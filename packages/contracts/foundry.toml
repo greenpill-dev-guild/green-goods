@@ -1,0 +1,36 @@
+[profile.default]
+solc = '0.8.21'
+ffi = false
+fuzz_runs = 256
+optimizer = true
+optimizer_runs = 3000
+verbosity = 2
+src = 'src'
+test = 'test'
+out = 'out'
+libs = ['lib']
+allow_paths = [
+  # pnpm symlinks to the project root's node_modules
+  "../../node_modules",
+  # template uses linked mud packages from within the mud monorepo
+  "../../../../packages",
+  # projects created from this template and using linked mud packages
+  "../../../mud/packages",
+]
+extra_output_files = [
+  "abi",
+  "evm.bytecode"
+]
+fs_permissions = [{ access = "read", path = "./"}]
+eth_rpc_url = "http://localhost:8545"
+
+[profile.base]
+eth_rpc_url = "https://mainnet.base.org"
+
+[profile.base-goerli]
+eth_rpc_url = "https://goerli.base.org"
+
+[profile.lattice-testnet]
+eth_rpc_url = "https://follower.testnet-chain.linfra.xyz"
+
+# See more config options https://github.com/foundry-rs/foundry/tree/master/config

@@ -1,0 +1,35 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+
+node_modules
+dist
+dev-dist
+.DS_Store
+DS_Store
+
+node_modules
+/.pnp
+.pnp.js
+
+
+# production
+
+build
+
+# local env files
+
+.env\*.local
+.env
+
+# forge
+out/
+cache/
+cache_hardhat/
+node_modules/
+bindings/
+artifacts/
+
+# Ignore MUD deploy artifacts
+deploys/**/*.json
+

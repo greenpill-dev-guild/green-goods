@@ -1,0 +1,38 @@
+{
+  "name": "web",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3002",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@emotion/react": "11.11.1",
+    "@privy-io/react-auth": "^1.40.3",
+    "@privy-io/wagmi-connector": "0.1.4",
+    "@react-spring/web": "9.7.3",
+    "axios": "1.5.0",
+    "graphql": "^16.7.1",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-hot-toast": "2.4.1",
+    "react-router-dom": "^6.15.0",
+    "siwe": "2.1.4",
+    "wagmi": "^1.4.1",
+    "next": "13.5.4"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10",
+    "daisyui": "3.5.1",
+    "postcss": "^8",
+    "tailwindcss": "^3",
+    "eslint": "^8",
+    "eslint-config-next": "13.5.4"
+  }
+}

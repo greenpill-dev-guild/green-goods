@@ -1,0 +1,63 @@
+{
+  "folders": [
+    {
+      "name": "web3-starter-kit",
+      "path": ".."
+    },
+    {
+      "name": "app",
+      "path": "../packages/clients/app"
+    },
+    {
+      "name": "web",
+      "path": "../packages/clients/web"
+    },
+    {
+      "name": "dashboard",
+      "path": "../packages/clients/dashboard"
+    },
+    {
+      "name": "api",
+      "path": "../packages/api"
+    },
+    {
+      "name": "graph",
+      "path": "../packages/graph"
+    },
+    {
+      "name": "contracts",
+      "path": "../packages/contracts"
+    }
+  ],
+  "settings": {
+    "npm.packageManager": "pnpm",
+    "editor.formatOnSaveMode": "file",
+    "editor.tabCompletion": "on",
+    "editor.tabSize": 2,
+    "editor.formatOnSave": true,
+    "editor.inlineSuggest.enabled": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll": true
+    },
+    "files.eol": "\n",
+    "[typescript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "files.trimTrailingWhitespace": true,
+    "[solidity]": {
+      "editor.defaultFormatter": "JuanBlanco.solidity"
+    },
+    "solidity.formatter": "forge",
+    "solidity.compileUsingRemoteVersion": "v0.8.21",
+    "solidity.remappings": [
+      // "forge-std/=lib/forge-std/src/",
+      // "tokenbound/=lib/tokenbound/src",
+      // "highlight/=lib/hl-evm-contracts/contracts",
+      // "@opengsn/contracts/=node_modules/@opengsn/contracts/",
+      // "@ethereum-attestation-service/eas-contracts/=node_modules/@ethereum-attestation-service/eas-contracts/",
+      // "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+      // "@openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable/"
+    ],
+    "testing.automaticallyOpenPeekView": "never"
+  }
+}
