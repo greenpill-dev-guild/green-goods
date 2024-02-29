@@ -1,4 +1,3 @@
-import { useAccount, useDisconnect, useSignMessage } from "wagmi";
 import { createContext, useContext, useEffect, useState } from "react";
 
 // TODO: Verify SIWE is working
@@ -30,9 +29,9 @@ export const Web3Provider = ({ children }: Props) => {
   const [authenticating, setAuthenticating] = useState(false);
 
   // const chainId = useChainId();
-  const { address } = useAccount();
-  const { disconnectAsync } = useDisconnect();
-  const { signMessageAsync } = useSignMessage();
+  // const { address } = useAccount();
+  // const { disconnectAsync } = useDisconnect();
+  // const { signMessageAsync } = useSignMessage();
 
   const [error, setError] = useState<null | string>(null);
 
