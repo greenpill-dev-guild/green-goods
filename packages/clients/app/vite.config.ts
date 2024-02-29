@@ -1,3 +1,4 @@
+import path from "path";
 import { defineConfig } from "vite";
 
 import svgr from "vite-plugin-svgr";
@@ -22,6 +23,7 @@ export default defineConfig({
      * @see https://vitejs.dev/config/shared-options.html#resolve-alias
      */
     alias: {
+      "@": path.resolve(__dirname, "./src"),
       process: "process/browser",
       util: "util",
     },

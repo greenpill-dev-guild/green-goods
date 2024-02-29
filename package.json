@@ -32,28 +32,23 @@
   },
   "scripts": {
     "foundry:up": "curl -L https://foundry.paradigm.xyz | bash && bash $HOME/.foundry/bin/foundryup",
-    "mud:up": "pnpm mud set-version --tag main && pnpm install",
     "prepare": "(forge --version || pnpm foundry:up)",
     "build": "pnpm recursive run build",
     "lint": "pnpm recursive run lint",
     "test": "pnpm recursive run test",
-    "dev": "concurrently -n \"APP,WEB,API,CONTRACTS,GRAPH\" -c \"bgMagenta.bold,bgGreen.bold,bgCyan.bold,bgYellow.bold,bgWhite.bold\" \"pnpm run dev:app\" \"pnpm run dev:web\" \"pnpm run dev:api\" \"pnpm run dev:contracts\" \"pnpm run dev:graph\"",
+    "dev": "concurrently -n \"APP,WEB,CONTRACTS\" -c \"bgMagenta.bold,bgGreen.bold,bgCyan.bold\" \"pnpm run dev:app\" \"pnpm run dev:web\" \"pnpm run dev:contracts\"",
     "dev:app": "pnpm --filter 'app' run dev",
     "dev:web": "pnpm --filter 'web' run  dev",
-    "dev:api": "pnpm --filter 'api' run  dev",
-    "dev:graph": "pnpm --filter 'graph' run  dev",
     "dev:contracts": "pnpm --filter 'contracts' run  dev",
     "deploy:local": "pnpm --filter 'contracts' run deploy:local --network local",
-    "deploy:base": "pnpm --filter 'contracts' run deploy:base --network base",
-    "deploy:base-goerli": "pnpm --filter 'contracts' run deploy:base-goerli --network base-goerli"
+    "deploy:base-sepolia": "pnpm --filter 'contracts' run deploy:base-sepolia --network base-sepolia",
+    "deploy:base": "pnpm --filter 'contracts' run deploy:base --network base"
   },
   "dependencies": {
     "dotenv": "16.3.1",
-    "ethers": "^6.7.1",
-    "viem": "^1.10.9"
+    "viem": "^2.7.16"
   },
   "devDependencies": {
-    "@latticexyz/cli": "2.0.0-next.9",
     "@typescript-eslint/eslint-plugin": "^6.7.4",
     "@typescript-eslint/parser": "^6.7.4",
     "concurrently": "8.2.1",

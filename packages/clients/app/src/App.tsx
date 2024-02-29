@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { Toaster } from "react-hot-toast";
-import { useHuddle01 } from "@huddle01/react";
 
 import { usePWA, InstallState } from "./hooks/providers/pwa";
 
@@ -12,7 +11,6 @@ import { CircleLoader } from "./components/Loader/Circle";
 import Views from "./views";
 
 export function App() {
-  const { initialize } = useHuddle01();
   const { installState, ...pwaData } = usePWA();
 
   const Onboard: Record<InstallState, React.ReactNode> = {
@@ -31,7 +29,6 @@ export function App() {
 
   useEffect(() => {
     // its preferable to use env vars to store projectId
-    initialize(import.meta.env.VITE_HUDDLE_PROJECT_ID);
   }, []);
 
   return (

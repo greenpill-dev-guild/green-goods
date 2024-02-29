@@ -1,0 +1,202 @@
+/*
+  Libraries
+*/
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: "Euclid Circular A";
+  src: url("/fonts/Euclid-Circular-Light.ttf") format("truetype");
+  font-weight: 300;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Euclid Circular A";
+  src: url("/fonts/Euclid-Circular-Regular.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Euclid Circular A";
+  src: url("/fonts/Euclid-Circular-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Euclid Circular A";
+  src: url("/fonts/Euclid-Circular-SemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Euclid Circular A";
+  src: url("/fonts/Euclid-Circular-Bold.ttf") format("truetype");
+  font-weight: bold;
+  font-style: normal;
+}
+
+/*
+  Variables
+*/
+:root {
+  --text-color: #191c1c;
+  --surface-color: #fff;
+  --background-color: #fafdfc;
+  --primary-color: #287273;
+
+  background: linear-gradient(
+    151deg,
+    #e9e3dd 10.39%,
+    #b2a79e 56.43%,
+    #d6d0cb 100%
+  );
+  color-scheme: light dark;
+  font-family: "Euclid Circular A", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* @media (prefers-color-scheme: dark) {
+  :root {
+    --text-color: #c4c7c6;
+    --surface-color: #101414;
+    --primary-color: #0f7173;
+    --background-color: #191c1c;
+    background: linear-gradient(
+      151deg,
+      #171d1d 10.39%,
+      #191c1c 56.43%,
+      #101414 100%
+    );
+  }
+} */
+
+/*
+  App
+*/
+html {
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}
+
+*,
+*::before,
+*::after {
+  -webkit-box-sizing: inherit;
+  -moz-box-sizing: inherit;
+  box-sizing: inherit;
+  overscroll-behavior-y: contain;
+}
+
+body {
+  color: var(--text-color);
+  max-width: 100dvw;
+  max-height: 100dvh;
+  width: 100dvw;
+  height: 100dvh;
+  scrollbar-width: none;
+  -ms-overflow-style: none; /* IE and Edge */
+  overflow: hidden;
+}
+
+h1,
+h2,
+h3 {
+  font-family: "Azedo", sans-serif;
+}
+
+h3 {
+  @apply text-4xl;
+  @apply font-bold;
+}
+
+h4 {
+  @apply text-2xl;
+  @apply font-medium;
+}
+
+h5 {
+  @apply text-xl;
+}
+
+h6,
+p,
+span,
+a,
+li,
+label {
+  font-weight: 300;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  overflow-y: visible;
+  overflow: hidden;
+}
+
+#root > div {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  overflow-y: visible;
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+/*
+  Components
+*/
+.qr-scanner {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  z-index: -10;
+}
+
+.qr-scanner > div {
+  width: 100% !important;
+  height: 100% !important;
+  padding-top: 0 !important;
+}
+
+.qr-scanner > div > video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dot {
+  position: absolute;
+  opacity: 0.27;
+  animation: dot-fade 1s infinite;
+  @apply w-4;
+  @apply h-4;
+  @apply rounded-full;
+}
+
+@keyframes dot-fade {
+  0%,
+  50%,
+  100% {
+    opacity: 0.27;
+  }
+  25% {
+    opacity: 1;
+  }
+}
+
+.unselectable {
+  user-select: none;
+}

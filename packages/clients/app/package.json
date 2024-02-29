@@ -9,9 +9,10 @@
     "build": "vite build"
   },
   "dependencies": {
+    "@apollo/client": "3.9.5",
     "@emotion/react": "11.11.1",
-    "@privy-io/react-auth": "^1.40.3",
-    "@privy-io/wagmi-connector": "0.1.4",
+    "@ethereum-attestation-service/eas-sdk": "1.5.0",
+    "@tokenbound/sdk": "0.4.5",
     "@react-spring/web": "9.7.3",
     "@xstate/react": "3.2.2",
     "axios": "1.5.0",
@@ -22,9 +23,8 @@
     "react-dom": "^18.2.0",
     "react-hot-toast": "2.4.1",
     "react-router-dom": "6.15.0",
-    "siwe": "2.1.4",
-    "urql": "4.0.5",
     "util": "^0.12.4",
+    "nft.storage": "7.1.1",
     "wagmi": "^1.4.1",
     "xstate": "4.38.2"
   },

@@ -11,7 +11,7 @@ export const Header: React.FC<HeaderProps> = () => {
     <header
       className={`bg-base-100 py-2 px-8 flex items-center justify-between border-b-2`}
     >
-      <h1 className="font-bold text-4xl">Web3 Web</h1>
+      <h1 className="font-bold text-4xl">WAVES</h1>
       <div>
         <button className="btn btn-sm btn-primary">Login</button>
       </div>

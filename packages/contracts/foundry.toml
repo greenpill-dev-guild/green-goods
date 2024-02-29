@@ -12,10 +12,6 @@ libs = ['lib']
 allow_paths = [
   # pnpm symlinks to the project root's node_modules
   "../../node_modules",
-  # template uses linked mud packages from within the mud monorepo
-  "../../../../packages",
-  # projects created from this template and using linked mud packages
-  "../../../mud/packages",
 ]
 extra_output_files = [
   "abi",
@@ -27,10 +23,7 @@ eth_rpc_url = "http://localhost:8545"
 [profile.base]
 eth_rpc_url = "https://mainnet.base.org"
 
-[profile.base-goerli]
-eth_rpc_url = "https://goerli.base.org"
-
-[profile.lattice-testnet]
-eth_rpc_url = "https://follower.testnet-chain.linfra.xyz"
+[profile.base-sepolia]
+eth_rpc_url = "https://sepolia.base.org/"
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
