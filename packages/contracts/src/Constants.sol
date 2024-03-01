@@ -7,15 +7,3 @@ address constant TOKENBOUND_ACCOUNT = 0x9FFDEb36540e1a12b1F27751508715174122C090
 
 // EAS (ETHEREUM ATTESTATION SERVICE)
 address constant EAS_OP = 0x4200000000000000000000000000000000000021; // Any OP Stack deployed
-
-error NotOwner();
-error NotValidMint();
-error NotValidOwner();
-error MintAlreadyClaimed();
-error InvalidChainId();
-error InvalidTokenId();
-error InvalidTokenContract();
-error InvalidImplementation();
-error InvalidAccount();
-error InvalidAccountOwner();
-error InvalidAccountOwnerSignature();

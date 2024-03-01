@@ -17,8 +17,7 @@
   "dependencies": {
     "@ethereum-attestation-service/eas-contracts": "1.3.7",
     "@openzeppelin/contracts": "4.7.3",
-    "@openzeppelin/contracts-upgradeable": "4.7.3",
-    "ethers": "^6.7.1"
+    "@openzeppelin/contracts-upgradeable": "4.7.3"
   },
   "devDependencies": {
     "solidity-coverage": "^0.8.1",
