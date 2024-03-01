@@ -16,13 +16,17 @@ contract CampaignToken is ERC721 {
 
     event CampaignCreated(address indexed owner, address indexed tba, uint256 hypercertId, string[] capitals, string metadata);
 
-    AccountProxy constant public IMPLEMENTATION = AccountProxy(payable(0x55266d75D1a14E4572138116aF39863Ed6596E7F));
+    address private implementation;
+    address private confirmationResolver;
 
     using Counters for Counters.Counter;
 
     Counters.Counter private _campaignIdCounter;
 
-    constructor() ERC721("Greenpill Campaign", "GPC") {}
+    constructor(address _implementation, address _confirmationResolver) ERC721("Greenpill Campaign", "GPC") {
+        implementation = _implementation;
+        confirmationResolver = _confirmationResolver;
+    }
 
     //how to gate this so only app users can mint
     function createCampaign(
@@ -37,7 +41,7 @@ contract CampaignToken is ERC721 {
         _campaignIdCounter.increment();
         _mint(msg.sender, id);
 
-        address campaignAddrs = TBALib.createAccount(address(IMPLEMENTATION), address(this), id);
+        address campaignAddrs = TBALib.createAccount(address(implementation), address(this), id);
 
         uint256 hypercertId = CampaignAccount(payable(campaignAddrs)).initialize(_startDate, _endDate, _capitals, _team);
 
