@@ -41,6 +41,10 @@ contract CampaignAccount is AccountV3Upgradable, Initializable {
         for (uint256 i = 0; i < _team.length; i++) {
             team[_team[i]] = true;
         }
+
+        for (uint256 i = 0; i < _capitals.length; i++) {
+            capitals[i] = _caitals[i];
+        }
         
         // TODO: Mint hypercert
 
