@@ -13,17 +13,14 @@ import {CampaignAccount} from "../accounts/Campaign.sol";
 /// @notice A schema resolver for the Confirmations event schema
 contract ConfirmationResolver is SchemaResolver, Initializable, OwnableUpgradeable, UUPSUpgradeable {
     struct ConfirmationSchema {
-        address wave;
-        address synth;
-        address synthAccount;
-        string claimPoint;
+        bool approval;
+        string  contributionId;
+        uint256 created_at;
     }
-
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(address easAddrs) SchemaResolver(IEAS(easAddrs)) {
         _disableInitializers();
-
     }
 
     function initialize() external initializer {
@@ -40,6 +37,7 @@ contract ConfirmationResolver is SchemaResolver, Initializable, OwnableUpgradeab
         onlyOwner
         returns (bool)
     {
+        // TODO: Check if the confirmation is valid
 
         return true;
     }
