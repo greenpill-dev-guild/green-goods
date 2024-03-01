@@ -47,8 +47,12 @@ contract CampaignToken is ERC721 {
 
         // emit CampaignCreated(msg.sender, campaignAddrs, hypercertId, _capitals, _metadata);
      
-        return address(0x0); //campaignAddrs;
+        return campaignAddrs;
     }
+
+    // function owner2() public view returns(address){
+    //     return(0x00000000000000000000000000000000000A11cE);
+    // }
 
     // function initializeData(uint _id, uint _hypercertId) public {
     //     require(msg.sender == ownerOf(_id), "not owner");

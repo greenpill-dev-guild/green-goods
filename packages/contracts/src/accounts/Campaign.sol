@@ -65,4 +65,8 @@ contract CampaignAccount is AccountV3Upgradable, Initializable {
         contributions[_contributionId] = true;
 
     }
+
+    function owner2() public view returns(address){
+        return(0x00000000000000000000000000000000000A11cE);
+    }
 }

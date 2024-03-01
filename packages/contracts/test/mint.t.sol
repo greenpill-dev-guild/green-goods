@@ -18,7 +18,7 @@ import { AccountGuardian } from "tokenbound/AccountGuardian.sol";
 
 import { TOKENBOUND_REGISTRY, EAS_OP } from "../src/Constants.sol";
 
-import { CampaignToken } from "../src/tokens/Campaign.sol";
+import { CampaignToken, TBALib } from "../src/tokens/Campaign.sol";
 import { CampaignAccount } from "../src/accounts/Campaign.sol";
 import {ConfirmationResolver} from "../src/resolvers/Confirmation.sol";
 
@@ -175,18 +175,17 @@ contract MintTest is Test {
 
     function testSCAccount() public {
         hoax(alice);
-        CampaignToken(campaignToken).createCampaign(1709250389, 1709350000,"metadata", capitals, team);
+        address tbaAddress = CampaignToken(campaignToken).createCampaign(1709250389, 1709350000,"metadata", capitals, team);
         uint tokenId = 0;
-        //console2.log("tokenId ", tokenId);
-        address scAddress = registry6551.account(
+        console2.log("scaddress ", tbaAddress);
+        address scAddress = TBALib.getAccount(
             address(implementation),
-            bytes32(0x0), //salt
-            11155111, //sepolia chain id 
+            
             address(campaignToken),
             tokenId
         );
         console2.log("scAddress ", scAddress);
-        CampaignAccount scAccount = CampaignAccount(payable(scAddress));
+        CampaignAccount scAccount = CampaignAccount(payable(tbaAddress));
         address shouldBeAlice = scAccount.owner();
         //console2.log("shouldBeAlice ", shouldBeAlice);
         assertEq(shouldBeAlice, alice, "Not Alice 2");
