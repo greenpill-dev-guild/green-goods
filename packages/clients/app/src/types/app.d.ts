@@ -39,7 +39,7 @@ declare interface Contribution {
 declare interface Confirmation {
   id: string;
   workID: string;
-  userAddrs: string;
+  approver: string;
   approval: boolean;
   created_at: string;
 }
