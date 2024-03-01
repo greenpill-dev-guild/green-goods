@@ -191,6 +191,26 @@ contract MintTest is Test {
         assertEq(shouldBeAlice, alice, "Not Alice 2");
     }
 
+    function testHypercert() public {
+        hoax(alice);
+        address tbaAddress = CampaignToken(campaignToken).createCampaign(1709250389, 1709350000,"metadata", capitals, team);
+        uint tokenId = 0;
+        //console2.log("scaddress ", tbaAddress);
+        address scAddress = TBALib.getAccount(
+            address(implementation),
+            
+            address(campaignToken),
+            tokenId
+        );
+        //console2.log("scAddress ", scAddress);
+        CampaignAccount scAccount = CampaignAccount(payable(tbaAddress));
+        uint hyperId = scAccount.hypercertId();
+        console2.log("hypercertId ", hyperId);
+        assertGt(hyperId, 0, "0 hyperId");
+    }
+
+    
+
     // function testTheArt() public {
     //     vm.prank(alice);
     //     campaignToken.createCampaign(capitals, team, 1709250389, 1709350000);
