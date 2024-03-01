@@ -2,8 +2,8 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import "erc6551/src/interfaces/IERC6551Registry.sol";
-import "tokenbound/src/AccountProxy.sol";
+import "tokenbound/lib/erc6551/interfaces/IERC6551Registry.sol";
+import "tokenbound/AccountProxy.sol";
 import "base64/base64.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
