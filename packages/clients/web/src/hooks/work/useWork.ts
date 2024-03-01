@@ -1,0 +1,1 @@
+const useAction = (work: Work) => {};

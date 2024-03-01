@@ -1,45 +1,21 @@
-import { useAccount, useChainId, useDisconnect, useSignMessage } from "wagmi";
-import { SiweMessage } from "siwe";
-import { usePrivyWagmi } from "@privy-io/wagmi-connector";
-import { ConnectedWallet, useWallets, usePrivy } from "@privy-io/react-auth";
-import { createContext, useContext, useEffect, useState } from "react";
-
-import { apiClient } from "../../modules/axios";
-
-// TODO: Verify SIWE is working
-// TODO: Add with credentials to login
-
-const domain = document.location.host;
-const origin = document.location.origin;
+import {
+  useConnect,
+  useEthereum,
+  useUserInfo,
+} from "@particle-network/auth-core-modal";
+import { UserInfo } from "@particle-network/auth-core";
+import { createContext, useContext, useState } from "react";
+import { EVMProvider } from "@particle-network/auth-core-modal/dist/context/evmProvider";
 
 export interface Web3Props {
   error: null | string;
-  ready: boolean;
-  address?: `0x${string}`;
-  activeWallet?: ConnectedWallet;
-  wallets: ConnectedWallet[];
-  handleConnect: () => Promise<void>;
-  signMessage: (message: string) => Promise<string | void>;
+  authenticating: boolean;
+  connected: boolean;
+  address: string | null;
+  provider: EVMProvider;
+  user?: UserInfo;
   login: () => Promise<void>;
   logout: () => Promise<void>;
-}
-
-async function createSiweMessage(
-  address: `0x${string}`,
-  statement: string,
-  nonce: string,
-  chainId: number,
-) {
-  const message = new SiweMessage({
-    domain,
-    address,
-    statement,
-    uri: origin,
-    version: "1",
-    chainId,
-    nonce,
-  });
-  return message.prepareMessage();
 }
 
 const Web3Context = createContext<Web3Props | null>(null);
@@ -55,20 +31,15 @@ export const Web3Provider = ({ children }: Props) => {
 
   const [authenticating, setAuthenticating] = useState(false);
 
-  const chainId = useChainId();
-  const { address } = useAccount();
-  const { disconnectAsync } = useDisconnect();
-  const { signMessageAsync } = useSignMessage();
-
-  const { wallets } = useWallets();
-  const { login: privyLogin, ready, authenticated } = usePrivy();
-  const { wallet: activeWallet } = usePrivyWagmi();
+  const { address, provider } = useEthereum();
+  const { userInfo } = useUserInfo();
+  const { connect, disconnect, connected } = useConnect();
 
   const [error, setError] = useState<null | string>(null);
 
   async function handleConnect(): Promise<void> {
     try {
-      privyLogin();
+      await connect();
       setError(null);
     } catch (err: any) {
       err && err.message && setError(err.message);
@@ -76,20 +47,9 @@ export const Web3Provider = ({ children }: Props) => {
     }
   }
 
-  async function signMessage(message: string): Promise<string | void> {
-    try {
-      setError(null);
-      const msg = await signMessageAsync({ message });
-      return msg;
-    } catch (err: any) {
-      err && err.message && setError(err.message);
-      console.error("ERROR SIGNING MSG", err);
-    }
-  }
-
   async function login() {
     try {
-      if (authenticated || authenticating) {
+      if (connected) {
         return;
       }
 
@@ -97,36 +57,13 @@ export const Web3Provider = ({ children }: Props) => {
       setError(null);
 
       if (!address) {
-        handleConnect();
+        await handleConnect();
         setAuthenticating(false);
 
         return;
       }
 
-      const nonceRes = await apiClient.get<{ nonce: string }>(
-        `/identity/nonce`,
-      );
-
-      const message = await createSiweMessage(
-        address,
-        "Enter Web3 App",
-        nonceRes.data.nonce,
-        chainId,
-      );
-      const signature = await signMessage(message);
-
-      await apiClient.post(
-        `/identity/login`,
-        {
-          message,
-          signature,
-        },
-        // {},
-      );
-
       setAuthenticating(false);
-
-      localStorage.setItem("authenticated", "true");
     } catch (err: any) {
       setAuthenticating(false);
       err && err.message && setError(err.message);
@@ -137,34 +74,22 @@ export const Web3Provider = ({ children }: Props) => {
   async function logout(): Promise<void> {
     try {
       setError(null);
-      await disconnectAsync();
-      await apiClient.post(`/identity/logout`, {
-        withCredentials: true,
-      });
-
-      localStorage.setItem("authenticated", "false");
+      await disconnect();
     } catch (err: any) {
       err && err.message && setError(err.message);
       console.error("ERROR DICONNECTING WALLET", err);
     }
   }
 
-  useEffect(() => {
-    if (address) {
-      login();
-    }
-  }, [address]);
-
   return (
     <Web3Context.Provider
       value={{
         error,
+        authenticating,
+        connected,
         address,
-        ready,
-        activeWallet,
-        wallets,
-        handleConnect,
-        signMessage,
+        user: userInfo,
+        provider,
         login,
         logout,
       }}

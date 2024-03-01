@@ -1,16 +1,13 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { mainnet } from "viem/chains";
+import { createWalletClient, custom } from "viem";
+import { createContext, useContext, useState } from "react";
 
-// TODO: Verify SIWE is working
-// TODO: Add with credentials to login
+import { useEthereum } from "@particle-network/auth-core-modal";
 
 export interface Web3Props {
   error: null | string;
-  // ready: boolean;
   address?: `0x${string}`;
-  // activeWallet?: ConnectedWallet;
-  // wallets: ConnectedWallet[];
   handleConnect: () => Promise<void>;
-  signMessage: (message: string) => Promise<string | void>;
   login: () => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -28,6 +25,15 @@ export const Web3Provider = ({ children }: Props) => {
 
   const [authenticating, setAuthenticating] = useState(false);
 
+  const { provider } = useEthereum();
+
+  const viemProvider = createWalletClient({
+    chain: mainnet,
+    transport: custom(provider),
+  });
+
+  const particleProvider = new ParticleProvider(particle.auth);
+
   // const chainId = useChainId();
   // const { address } = useAccount();
   // const { disconnectAsync } = useDisconnect();
@@ -44,17 +50,6 @@ export const Web3Provider = ({ children }: Props) => {
     }
   }
 
-  async function signMessage(message: string): Promise<string | void> {
-    try {
-      setError(null);
-      const msg = await signMessageAsync({ message });
-      return msg;
-    } catch (err: any) {
-      err && err.message && setError(err.message);
-      console.error("ERROR SIGNING MSG", err);
-    }
-  }
-
   async function login() {
     try {
       // if (authenticated || authenticating) {
@@ -64,12 +59,12 @@ export const Web3Provider = ({ children }: Props) => {
       setAuthenticating(true);
       setError(null);
 
-      if (!address) {
-        handleConnect();
-        setAuthenticating(false);
+      // if (!address) {
+      //   handleConnect();
+      //   setAuthenticating(false);
 
-        return;
-      }
+      //   return;
+      // }
 
       setAuthenticating(false);
 
@@ -84,7 +79,7 @@ export const Web3Provider = ({ children }: Props) => {
   async function logout(): Promise<void> {
     try {
       setError(null);
-      await disconnectAsync();
+      // await disconnectAsync();
 
       localStorage.setItem("authenticated", "false");
     } catch (err: any) {
@@ -93,22 +88,21 @@ export const Web3Provider = ({ children }: Props) => {
     }
   }
 
-  useEffect(() => {
-    if (address) {
-      login();
-    }
-  }, [address]);
+  // useEffect(() => {
+  //   if (address) {
+  //     login();
+  //   }
+  // }, [address]);
 
   return (
     <Web3Context.Provider
       value={{
         error,
-        address,
+        address: `0x${"address"}`,
         // ready,
         // activeWallet,
         // wallets,
         handleConnect,
-        signMessage,
         login,
         logout,
       }}

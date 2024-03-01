@@ -4,19 +4,13 @@
   "private": true,
   "keywords": [
     "web3",
-    "starter",
-    "kit",
     "dapp",
     "ethereum",
     "solidity",
-    "hardhat",
     "react",
-    "next",
     "typescript",
     "pnpm",
-    "foundry",
-    "lattice",
-    "latticexyz"
+    "foundry"
   ],
   "workspaces": {
     "packages": [

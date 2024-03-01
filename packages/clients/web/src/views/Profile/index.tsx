@@ -13,22 +13,22 @@ export const Profile: React.FC<ProfileProps> = ({
   address,
   name,
   handleConnect,
-  signMessage,
+  // signMessage,
   login,
   logout,
   error,
-  wallets,
-  ready,
+  // wallets,
+  // ready,
 }) => {
   const web3Props = {
     address,
     handleConnect,
-    signMessage,
+    // signMessage,
     login,
     logout,
     error,
-    wallets,
-    ready,
+    // wallets,
+    // ready,
   };
 
   return (

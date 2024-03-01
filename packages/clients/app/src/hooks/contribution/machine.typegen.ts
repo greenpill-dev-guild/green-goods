@@ -35,18 +35,19 @@ export interface Typegen0 {
   };
   eventsCausingActions: {
     error: "error.platform.mediaUploader" | "error.platform.workAttester";
-    reset: "VIEW_WORK";
+    reset: "CONTRIBUTE_MORE" | "GO_HOME";
     verified: "done.invoke.mediaUploader";
     worked: "done.invoke.workAttester";
   };
   eventsCausingDelays: {};
   eventsCausingGuards: {};
   eventsCausingServices: {
-    mediaUploader: "CREATE";
+    mediaUploader: "UPLOAD";
     workAttester: "done.invoke.mediaUploader";
   };
   matchesStates:
     | "attesting_work"
+    | "campaign"
     | "details"
     | "idle"
     | "media"

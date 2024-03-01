@@ -9,6 +9,10 @@ declare namespace NodeJS {
   }
 }
 
+declare interface Window {
+  particle: any;
+}
+
 declare module "*.svg" {
   import * as React from "react";
 

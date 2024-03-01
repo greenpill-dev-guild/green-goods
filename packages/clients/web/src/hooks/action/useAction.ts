@@ -1,1 +1,0 @@
-const useAction = (action: Action) => {};

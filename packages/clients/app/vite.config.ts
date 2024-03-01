@@ -1,37 +1,15 @@
 import path from "path";
 import { defineConfig } from "vite";
-
 import svgr from "vite-plugin-svgr";
+import react from "@vitejs/plugin-react";
 import mkcert from "vite-plugin-mkcert";
 import { VitePWA } from "vite-plugin-pwa";
-import react from "@vitejs/plugin-react";
 
-/**
- * @see https://vitejs.dev/config/
- */
+// https://vitejs.dev/config/
 export default defineConfig({
-  /**
-   * Defines global constant replacments
-   * @see https://vitejs.dev/config/shared-options.html#define
-   */
-  define: {
-    global: "globalThis",
-  },
-  resolve: {
-    /**
-     * Polyfills nodejs imports
-     * @see https://vitejs.dev/config/shared-options.html#resolve-alias
-     */
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-      process: "process/browser",
-      util: "util",
-    },
-  },
   plugins: [
-    react(),
     mkcert(),
-    //@ts-ignore
+    react(),
     svgr({
       svgrOptions: {
         namedExport: "RC",
@@ -51,7 +29,7 @@ export default defineConfig({
         enabled: true,
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
+        // globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
       },
       manifest: {
         name: "Dapp",
@@ -103,6 +81,11 @@ export default defineConfig({
       },
     }),
   ],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
   server: {
     port: 3001,
   },

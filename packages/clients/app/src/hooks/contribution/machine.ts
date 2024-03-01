@@ -1,20 +1,19 @@
 // import { toast } from "react-toastify";
 import { createMachine, assign } from "xstate";
-import { provider } from "viem";
+
 import {
   EAS,
   Offchain,
   SchemaEncoder,
   SchemaRegistry,
 } from "@ethereum-attestation-service/eas-sdk";
+import { uploadMedia } from "@/modules/nftStorage";
 
 export const EASContractAddress = "0xC2679fBD37d54388Ce493F1DB75320D236e1815e"; // Sepolia v0.26
 
 // Initialize the sdk with the address of the EAS Schema contract address
-const eas = new EAS(EASContractAddress);
 
 // Gets a default provider (in production use something else like infura/alchemy)
-const provider = ethers.getDefaultProvider("sepolia");
 
 export interface WorkContext {
   title: string | null;
@@ -82,7 +81,7 @@ export const workMachine = createMachine(
       media: {
         on: {
           NEXT: {
-            target: "media",
+            target: "campaign",
           },
           BACK: {
             target: "details",
@@ -92,9 +91,23 @@ export const workMachine = createMachine(
           },
         },
       },
+      campaign: {
+        on: {
+          NEXT: {
+            target: "review",
+          },
+          BACK: {
+            target: "media",
+          },
+          CANCEL: {
+            target: "idle",
+          },
+        },
+      },
+
       review: {
         on: {
-          CREATE: {
+          UPLOAD: {
             target: "uploading_media",
           },
           BACK: {
@@ -135,7 +148,11 @@ export const workMachine = createMachine(
       },
       work_attested: {
         on: {
-          VIEW_WORK: {
+          GO_HOME: {
+            target: "idle",
+            actions: "reset",
+          },
+          CONTRIBUTE_MORE: {
             target: "idle",
             actions: "reset",
           },
@@ -159,10 +176,13 @@ export const workMachine = createMachine(
     },
     guards: {
       areDetailsValid: (_context, event: { image: string | ArrayBuffer }) => {
-        return !!event.image;
+        return true;
       },
       isMediaValid: (context) => {
-        return !context.creature && !!context.element;
+        return true;
+      },
+      isCampaignValid: (context) => {
+        return true;
       },
     },
     actions: {
@@ -199,32 +219,18 @@ export const workMachine = createMachine(
       }),
     },
     services: {
-      mediaUploader: async (context, event: { image?: string }, _meta) => {
-        let image: string | null = context.image;
-
-        if (event.image) {
-          image = event.image;
-        }
-
-        if (!image) {
-          throw new Error("No image provided!");
-        }
-
-        // TODO: Add form image upload
-        // const formData = new FormData();
-
-        // formData.append("image", image, image.name);
-
-        // const data = {
-        //   // Add other parameters here
-        // };
-        // formData.append("data", JSON.stringify(data));
-
+      mediaUploader: async (
+        context,
+        event: {
+          media?: { asset: File; title: string; description: string }[];
+        },
+        _meta
+      ) => {
         try {
-          // const { data } = await apiClient.post<{ plant: PlantResponse }>(
-          //   "/plants/detect",
-          //   { image },
-          // );
+          event.media?.forEach(async (media) => {
+            const url = await uploadMedia(media);
+            console.log("Media uploaded!", url);
+          });
 
           return {
             // plantId: data.plant.suggestions[0].id,
@@ -237,18 +243,8 @@ export const workMachine = createMachine(
         }
       },
       workAttester: async (context, event: { element?: any }) => {
-        let element: any | null = context.element;
-
-        if (event.element) {
-          element = event.element;
-          // context.element = event.element;
-        }
-
-        if (!element || !context.plant) {
-          throw new Error("No element or plant provided!");
-        }
-
         try {
+          // TODO: Make attestations with EAS
           return { element, img: `data:image/png;base64,${data.img}` };
         } catch (error) {
           console.log("Creature generation failed!", error);
@@ -256,5 +252,5 @@ export const workMachine = createMachine(
         }
       },
     },
-  },
+  }
 );

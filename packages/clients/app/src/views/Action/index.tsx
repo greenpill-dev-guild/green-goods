@@ -1,6 +1,6 @@
 import React from "react";
 
-import { ActionDataProps } from "../../hooks/views/useAction";
+import { ActionDataProps } from "../../hooks/views/useContribute";
 
 interface ActionProps extends ActionDataProps {}
 

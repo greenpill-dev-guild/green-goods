@@ -2,7 +2,6 @@ import { a, useTransition } from "@react-spring/web";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import { useHome } from "../hooks/views/useHome";
-import { useExplore } from "../hooks/views/useWork";
 import { useProfile } from "../hooks/views/useProfile";
 
 import Home from "./Home";
@@ -23,7 +22,6 @@ export default function Views() {
   });
 
   const home = useHome();
-  const explore = useExplore();
   const profile = useProfile();
 
   return transitions((style, location) => (

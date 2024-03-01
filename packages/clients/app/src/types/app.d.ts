@@ -20,10 +20,10 @@ declare interface Campaign {
   team: string[];
   capitals: string[];
   created_at: string;
-  actions?: Action[];
+  contributions?: Contribution[];
 }
 
-declare interface Action {
+declare interface Contribution {
   id: string;
   cammpaignAddrs: string;
   title: string;
@@ -36,7 +36,7 @@ declare interface Action {
   status: "pending" | "approved" | "rejected";
 }
 
-declare interface Completion {
+declare interface Confirmation {
   id: string;
   workID: string;
   userAddrs: string;

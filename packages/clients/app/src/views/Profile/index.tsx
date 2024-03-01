@@ -12,23 +12,15 @@ export const Profile: React.FC<ProfileProps> = ({
   avatarSpring,
   address,
   name,
-  handleConnect,
-  signMessage,
   login,
   logout,
   error,
-  wallets,
-  ready,
 }) => {
   const web3Props = {
     address,
-    handleConnect,
-    signMessage,
     login,
     logout,
     error,
-    wallets,
-    ready,
   };
 
   return (
