@@ -10,35 +10,36 @@ declare type Capital =
 
 declare interface Campaign {
   id: string;
-  hypercert_id: number;
+  hypercertID: number;
   title: string;
   description: string;
   details: string;
-  start_date: number;
-  end_date: number;
-  creator_address: string;
-  team_addresses: string[];
-  capitals: Capital[];
+  start_date: string;
+  end_date: string;
+  creator: string;
+  team: string[];
+  capitals: string[];
   created_at: string;
+  contributions?: Contribution[];
 }
 
-declare interface Work {
+declare interface Contribution {
   id: string;
-  cammpaign_address: string;
+  cammpaignAddrs: string;
   title: string;
   description: string;
   value: number;
-  user_addres: string;
+  user: string;
   capitals: string[];
-  media: string[];
-  status: "pending" | "approved" | "rejected";
+  proof: string[];
   created_at: string;
+  status: "pending" | "approved" | "rejected";
 }
 
-declare interface Completion {
+declare interface Confirmation {
   id: string;
-  work_id: string;
-  approver_address: string;
+  workID: string;
+  approver: string;
   approval: boolean;
   created_at: string;
 }

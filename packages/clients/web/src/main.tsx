@@ -1,8 +1,5 @@
-import "./index.css";
-
-import * as React from "react";
-import * as ReactDOM from "react-dom/client";
-
+import React from "react";
+import ReactDOM from "react-dom/client";
 import { ApolloProvider } from "@apollo/client";
 import { BrowserRouter } from "react-router-dom";
 import { AuthCoreContextProvider } from "@particle-network/auth-core-modal";
@@ -13,11 +10,19 @@ import { particleConfig } from "./modules/particle";
 import { AppProvider } from "./hooks/providers/app";
 import { Web3Provider } from "./hooks/providers/web3";
 
-import { App } from "./App";
+import App from "./App";
 
-const root = ReactDOM.createRoot(document.getElementById("root")!);
+import "./index.css";
 
-root.render(
+import("buffer").then(({ Buffer }) => {
+  window.Buffer = Buffer;
+});
+
+import("process").then(({ default: process }) => {
+  window.process = process;
+});
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <AuthCoreContextProvider options={particleConfig}>
       <ApolloProvider client={contractClient}>
@@ -30,5 +35,5 @@ root.render(
         </BrowserRouter>
       </ApolloProvider>
     </AuthCoreContextProvider>
-  </React.StrictMode>,
+  </React.StrictMode>
 );

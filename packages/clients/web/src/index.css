@@ -1,76 +1,127 @@
+/*
+  Libraries
+*/
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
- 
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
- 
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
- 
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
- 
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
- 
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
- 
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
- 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+/*
+  Variables
+*/
+:root {
+  --text-color: #191c1c;
+  --surface-color: #fff;
+  --background-color: #fafdfc;
+  --primary-color: #287273;
 
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 10% 3.9%;
- 
-    --radius: 0.5rem;
+  background: linear-gradient(
+    151deg,
+    #dde9df 10.39%,
+    #9eb2a0 56.43%,
+    #cbd6cc 100%
+  );
+  color-scheme: light dark;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+/*
+  App
+*/
+html {
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}
+
+*,
+*::before,
+*::after {
+  -webkit-box-sizing: inherit;
+  -moz-box-sizing: inherit;
+  box-sizing: inherit;
+  overscroll-behavior-y: contain;
+}
+
+body {
+  color: var(--text-color);
+  max-width: 100dvw;
+  max-height: 100dvh;
+  width: 100dvw;
+  height: 100dvh;
+  scrollbar-width: none;
+  -ms-overflow-style: none; /* IE and Edge */
+  overflow: hidden;
+}
+
+h2 {
+  @apply text-4xl;
+  @apply font-bold;
+}
+
+h3 {
+  @apply text-3xl;
+  @apply font-medium;
+}
+
+h4 {
+  @apply text-2xl;
+}
+
+h5 {
+  @apply text-xl;
+}
+
+h6,
+p,
+span,
+a,
+li,
+label {
+  font-weight: 300;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  overflow-y: visible;
+  overflow: hidden;
+}
+
+/* #root > div {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  overflow-y: visible;
+} */
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+/*
+  Components
+*/
+.dot {
+  position: absolute;
+  opacity: 0.27;
+  animation: dot-fade 1s infinite;
+  @apply w-4;
+  @apply h-4;
+  @apply rounded-full;
+}
+
+@keyframes dot-fade {
+  0%,
+  50%,
+  100% {
+    opacity: 0.27;
   }
- 
-  .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
- 
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
- 
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
- 
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
- 
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
- 
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
- 
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
- 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
- 
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
+  25% {
+    opacity: 1;
   }
 }
- 
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-}
+

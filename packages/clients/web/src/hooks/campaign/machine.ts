@@ -62,33 +62,33 @@ export const campaignMachine = createMachine(
       details: {
         on: {
           NEXT: {
-            target: "team",
-          },
-          CANCEL: {
-            target: "idle",
-          },
-        },
-      },
-      team: {
-        on: {
-          NEXT: {
             target: "media",
           },
-          BACK: {
-            target: "details",
-          },
           CANCEL: {
             target: "idle",
           },
         },
       },
+      // team: {
+      //   on: {
+      //     NEXT: {
+      //       target: "media",
+      //     },
+      //     BACK: {
+      //       target: "details",
+      //     },
+      //     CANCEL: {
+      //       target: "idle",
+      //     },
+      //   },
+      // },
       media: {
         on: {
           NEXT: {
             target: "media",
           },
           BACK: {
-            target: "team",
+            target: "details",
           },
           CANCEL: {
             target: "idle",
@@ -139,6 +139,10 @@ export const campaignMachine = createMachine(
       campaign_created: {
         on: {
           VIEW_CAMPAIGN: {
+            target: "idle",
+            actions: "reset",
+          },
+          GO_HOME: {
             target: "idle",
             actions: "reset",
           },

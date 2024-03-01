@@ -1,15 +1,15 @@
+import { AuthType } from "@particle-network/auth-core";
 import {
   AuthCoreModalOptions,
   PromptSettingType,
 } from "@particle-network/auth-core-modal";
-import { AuthType } from "@particle-network/auth-core";
 import { BaseSepolia, Base } from "@particle-network/chains";
 
 export const particleConfig: AuthCoreModalOptions = {
-  projectId: process.env.VITE_PARTICLE_PROJECT_ID ?? "",
-  clientKey: process.env.VITE_PARTICLE_CLIENT_KEY ?? "",
-  appId: process.env.VITE_PARTICLE_APP_ID ?? "",
-  authTypes: [AuthType.email, AuthType.google, AuthType.apple],
+  projectId: import.meta.env.VITE_PARTICLE_PROJECT_ID ?? "",
+  clientKey: import.meta.env.VITE_PARTICLE_CLIENT_KEY ?? "",
+  appId: import.meta.env.VITE_PARTICLE_APP_ID ?? "",
+  authTypes: [AuthType.email, AuthType.phone],
   themeType: "dark",
   fiatCoin: "USD",
   language: "en",

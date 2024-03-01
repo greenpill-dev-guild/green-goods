@@ -36,7 +36,7 @@ export interface Typegen0 {
   eventsCausingActions: {
     campaigned: "done.invoke.campaignCreator";
     error: "error.platform.campaignCreator" | "error.platform.mediaUploader";
-    reset: "VIEW_CAMPAIGN";
+    reset: "GO_HOME" | "VIEW_CAMPAIGN";
     verified: "done.invoke.mediaUploader";
   };
   eventsCausingDelays: {};
@@ -52,7 +52,6 @@ export interface Typegen0 {
     | "idle"
     | "media"
     | "review"
-    | "team"
     | "uploading_media";
   tags: never;
 }
