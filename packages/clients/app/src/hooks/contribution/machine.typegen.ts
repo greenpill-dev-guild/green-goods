@@ -3,56 +3,65 @@
 export interface Typegen0 {
   "@@xstate/typegen": true;
   internalEvents: {
+    "done.invoke.contributionAttester": {
+      type: "done.invoke.contributionAttester";
+      data: unknown;
+      __tip: "See the XState TS docs to learn how to strongly type this.";
+    };
     "done.invoke.mediaUploader": {
       type: "done.invoke.mediaUploader";
       data: unknown;
       __tip: "See the XState TS docs to learn how to strongly type this.";
     };
-    "done.invoke.workAttester": {
-      type: "done.invoke.workAttester";
+    "error.platform.contributionAttester": {
+      type: "error.platform.contributionAttester";
       data: unknown;
-      __tip: "See the XState TS docs to learn how to strongly type this.";
     };
     "error.platform.mediaUploader": {
       type: "error.platform.mediaUploader";
       data: unknown;
     };
-    "error.platform.workAttester": {
-      type: "error.platform.workAttester";
-      data: unknown;
-    };
     "xstate.init": { type: "xstate.init" };
   };
   invokeSrcNameMap: {
+    contributionAttester: "done.invoke.contributionAttester";
     mediaUploader: "done.invoke.mediaUploader";
-    workAttester: "done.invoke.workAttester";
   };
   missingImplementations: {
-    actions: "verified" | "worked";
+    actions: "goHome";
     delays: never;
     guards: never;
     services: never;
   };
   eventsCausingActions: {
-    error: "error.platform.mediaUploader" | "error.platform.workAttester";
-    reset: "CONTRIBUTE_MORE" | "GO_HOME";
-    verified: "done.invoke.mediaUploader";
-    worked: "done.invoke.workAttester";
+    contributed: "done.invoke.contributionAttester";
+    error:
+      | "error.platform.contributionAttester"
+      | "error.platform.mediaUploader";
+    goHome: "GO_HOME";
+    reset: "CANCEL" | "CONTRIBUTE_MORE" | "GO_HOME";
+    saveCampaign: "NEXT";
+    saveDetails: "NEXT";
+    saveMedia: "NEXT";
   };
   eventsCausingDelays: {};
-  eventsCausingGuards: {};
+  eventsCausingGuards: {
+    areDetailsValid: "NEXT";
+    isCampaignValid: "NEXT";
+    isMediaValid: "NEXT";
+  };
   eventsCausingServices: {
-    mediaUploader: "UPLOAD";
-    workAttester: "done.invoke.mediaUploader";
+    contributionAttester: "done.invoke.mediaUploader";
+    mediaUploader: "ATTEST";
   };
   matchesStates:
-    | "attesting_work"
+    | "attesting_contribution"
     | "campaign"
+    | "contribution_attested"
     | "details"
     | "idle"
     | "media"
     | "review"
-    | "uploading_media"
-    | "work_attested";
+    | "uploading_media";
   tags: never;
 }

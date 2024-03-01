@@ -11,6 +11,10 @@ interface ProfileProps extends ProfileDataProps, Web3Props {}
 export const Profile: React.FC<ProfileProps> = ({
   avatarSpring,
   address,
+  authenticating,
+  avatar,
+  connected,
+  provider,
   name,
   login,
   logout,
@@ -21,13 +25,16 @@ export const Profile: React.FC<ProfileProps> = ({
     login,
     logout,
     error,
+    connected,
+    authenticating,
+    provider,
   };
 
   return (
     <section className={`grid place-items-center h-full w-full gap-3 px-6`}>
       <div className={`relative w-full`}>
         <ProfileInfo
-          avatar={"/assets/avatar.png"}
+          avatar={avatar || ""}
           username={name || address}
           avatarSpring={avatarSpring}
         />

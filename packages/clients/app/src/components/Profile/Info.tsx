@@ -1,7 +1,7 @@
 import { SpringValue, a } from "@react-spring/web";
 
 interface ProfileInfoProps {
-  username?: string;
+  username?: string | null;
   avatar?: string;
   avatarSpring: {
     opacity: SpringValue<number>;

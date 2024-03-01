@@ -5,22 +5,20 @@ export const client = new NFTStorage({
 });
 
 export interface FileUpload {
-  media: File;
+  file: File;
   name?: string;
   description?: string;
 }
 
 export async function uploadMedia(media: FileUpload[]) {
-  const metadata = media.map(async ({ name, description, media }) => {
+  const metadata = media.map(async ({ name, description, file }) => {
     const metadata = await client.store({
       name: name ?? "Unknown",
       description: description ?? "No description",
-      image: media,
+      image: file,
     });
 
-    console.log(metadata);
-
-    return metadata.url;
+    return metadata.url.toString();
   });
 
   return await Promise.all(metadata);

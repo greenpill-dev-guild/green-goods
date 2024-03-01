@@ -6,6 +6,7 @@ import {
 import { UserInfo } from "@particle-network/auth-core";
 import { createContext, useContext, useState } from "react";
 import { EVMProvider } from "@particle-network/auth-core-modal/dist/context/evmProvider";
+import { ethers } from "ethers";
 
 export interface Web3Props {
   error: null | string;
@@ -36,6 +37,8 @@ export const Web3Provider = ({ children }: Props) => {
   const { connect, disconnect, connected } = useConnect();
 
   const [error, setError] = useState<null | string>(null);
+
+  // const signer = ethers.Jso
 
   async function handleConnect(): Promise<void> {
     try {

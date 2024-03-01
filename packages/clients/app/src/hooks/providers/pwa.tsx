@@ -11,26 +11,14 @@ export interface PWADataProps {
   handleInstallCheck: (e: any) => void;
 }
 
-function wait(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 export const usePWA = (): PWADataProps => {
   const { isHandheld, platform } = useApp();
 
   const [installState, setInstalledState] = useState<InstallState>(
-    isHandheld ? "idle" : "unsupported",
+    isHandheld ? "installed" : "unsupported"
   );
 
   async function handleInstallCheck(e: any) {
-    await wait(1200);
-
-    // console.log(
-    //   "PWA was installed",
-    //   // @ts-ignore
-    //   await window.navigator.getInstalledRelatedApps(),
-    // );
-
     if (
       window.matchMedia("(display-mode: standalone)").matches ||
       window.matchMedia("(display-mode: fullscreen)").matches
@@ -39,7 +27,8 @@ export const usePWA = (): PWADataProps => {
 
       console.log("PWA was installed", e);
     } else {
-      setInstalledState("prompt");
+      // setInstalledState("prompt");
+      setInstalledState("installed"); // TODO: Update PWA flow
 
       console.log("PWA was not installed", e);
     }
