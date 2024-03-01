@@ -43,11 +43,11 @@ contract CampaignToken is ERC721 {
 
         address campaignAddrs = TBALib.createAccount(address(implementation), address(this), id);
 
-        uint256 hypercertId = CampaignAccount(payable(campaignAddrs)).initialize(_startDate, _endDate, _capitals, _team);
+        // uint256 hypercertId = CampaignAccount(payable(campaignAddrs)).initialize(_startDate, _endDate, _capitals, _team);
 
-        emit CampaignCreated(msg.sender, campaignAddrs, hypercertId, _capitals, _metadata);
+        // emit CampaignCreated(msg.sender, campaignAddrs, hypercertId, _capitals, _metadata);
      
-        return campaignAddrs;
+        return address(0x0); //campaignAddrs;
     }
 
     // function initializeData(uint _id, uint _hypercertId) public {
