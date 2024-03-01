@@ -1,3 +1,6 @@
 [submodule "packages/contracts/lib/base64"]
 	path = packages/contracts/lib/base64
 	url = https://github.com/Brechtpd/base64
+[submodule "packages/contracts/lib/tokenbound"]
+	path = packages/contracts/lib/tokenbound
+	url = https://github.com/tokenbound/contracts
