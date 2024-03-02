@@ -156,12 +156,29 @@ contract MintTest is Test {
     // Deploy Campaign Token
     if (campaignToken.code.length == 0) {
         //vm.startBroadcast(deployerPrivateKey);
-        CampaignToken test = new CampaignToken{salt: salt}(campaignImplementation, confirmationResolver);
+        new CampaignToken{salt: salt}(campaignImplementation, confirmationResolver);
         //vm.stopBroadcast();
-        console.log("CampaignToken:", address(test), "(deployed)");
         console.log("CampaignToken:", campaignToken, "(deployed)");
     } else {
         console.log("CampaignToken:", campaignToken, "(exists)");
+    }
+
+     if (contributionResolver.code.length == 0) {
+        //vm.startBroadcast(deployerPrivateKey);
+        new ContributionResolver{salt: salt}(EAS_OP);
+        //vm.stopBroadcast();
+        console.log("ContributionResolver:", contributionResolver, "(deployed)");
+    } else {
+        console.log("ContributionResolver:", contributionResolver, "(exists)");
+    }
+
+    if (confirmationResolver.code.length == 0) {
+        //vm.startBroadcast(deployerPrivateKey);
+        new ConfirmationResolver{salt: salt}(EAS_OP);
+        //vm.stopBroadcast();
+        console.log("ConfirmationResolver:", confirmationResolver, "(deployed)");
+    } else {
+        console.log("ConfirmationResolver:", confirmationResolver, "(exists)");
     }
 
 
@@ -205,6 +222,7 @@ contract MintTest is Test {
         address shouldBeAlice = scAccount.owner();
         //console2.log("shouldBeAlice ", shouldBeAlice);
         assertEq(shouldBeAlice, alice, "Not Alice 2");
+        assert(scAccount.isCampaign());
     }
 
     function testHypercert() public {
@@ -244,7 +262,7 @@ contract MintTest is Test {
             expirationTime: 0, // The time when the attestation expires (Unix timestamp).
             revocable: true, // Whether the attestation is revocable.
             refUID: 0, // The UID of the related attestation.
-            data: abi.encode("uint256", "5,", "string", "title,", "string" "description," "string[]", capitals,",", "string[]", capitals), // Custom attestation data.
+            data: abi.encode(5, "title", "description", capitals, capitals), // Custom attestation data.
             value: 0 // An explicit ETH amount to send to the resolver. This is important to prevent accidental user errors.
         });
 
@@ -254,11 +272,46 @@ contract MintTest is Test {
             data: attestationRequestData // The arguments of the attestation request.
         });
 
-        hoax(alice);
+        //hoax(alice);
         eas.attest(request);
 
         //???
     }
+
+    // function testConfirmationResolver() public {
+    //     hoax(alice);
+    //     (address tbaAddress, uint hyperCertId) = CampaignToken(campaignToken).createCampaign(1709250389, 1709350000,"metadata", capitals, team);
+    //     uint tokenId = 0;
+    //     //console2.log("scaddress ", tbaAddress);
+    //     address scAddress = TBALib.getAccount(
+    //         address(implementation),
+    //         address(campaignToken),
+    //         tokenId
+    //     );
+    //     //console2.log("scAddress ", scAddress);
+    //     CampaignAccount scAccount = CampaignAccount(payable(tbaAddress));
+    //     uint hyperId = scAccount.hypercertId();
+
+    //     AttestationRequestData memory attestationRequestData = AttestationRequestData({
+    //         recipient: tbaAddress,
+    //         expirationTime: 0, // The time when the attestation expires (Unix timestamp).
+    //         revocable: true, // Whether the attestation is revocable.
+    //         refUID: 0, // The UID of the related attestation.
+    //         data: abi.encode(5, "title", "description", capitals, capitals), // Custom attestation data.
+    //         value: 0 // An explicit ETH amount to send to the resolver. This is important to prevent accidental user errors.
+    //     });
+
+    //     /// @notice A struct representing the full arguments of the attestation request.
+    //     AttestationRequest memory request = AttestationRequest({
+    //         schema: contributionSchemaUid, // The unique identifier of the schema.
+    //         data: attestationRequestData // The arguments of the attestation request.
+    //     });
+
+    //     hoax(alice);
+    //     eas.attest(request);
+
+    //     //???
+    // }
 
 
 

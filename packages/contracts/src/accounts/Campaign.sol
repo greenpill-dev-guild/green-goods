@@ -19,7 +19,6 @@ contract CampaignAccount is AccountV3Upgradable, Initializable {
     string[] public capitals;
     mapping (address => bool) public team;
     mapping (uint256 => bool) public contributions;
-    bool public isCampaign = true;
 
     uint[] private values;
 
@@ -113,7 +112,10 @@ contract CampaignAccount is AccountV3Upgradable, Initializable {
         }
         
         contributions[_contributionId] = true;
+    }
 
+    function isCampaign() public pure returns(bool){
+        return(true);
     }
 
     

@@ -40,6 +40,7 @@ contract ContributionResolver is SchemaResolver, Initializable, OwnableUpgradeab
     {   
         CampaignAccount campaignAccount = CampaignAccount(payable(attestation.recipient));
         return(campaignAccount.isCampaign());
+        return(true);
     }
 
     function onRevoke(Attestation calldata attestation, uint256 /*value*/ )
