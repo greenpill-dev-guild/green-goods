@@ -56,7 +56,7 @@ contract CampaignAccount is AccountV3Upgradable, Initializable {
         IHypercertToken(0xC2d179166bc9dbB00A03686a5b17eCe2224c2704).mintClaim(address(this), 100, _metadata, IHypercertToken.TransferRestrictions.FromCreatorOnly);
 
 
-        //return hypercertId;
+        return hypercertId;
     }
 
     function onERC1155Received(

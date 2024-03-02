@@ -35,7 +35,7 @@ contract CampaignToken is ERC721 {
         string calldata _metadata,
         string[] calldata _capitals,
         address[] calldata _team
-    ) external returns(address){
+    ) external returns(address, uint){
         uint256 id = _campaignIdCounter.current();
     
         _campaignIdCounter.increment();
@@ -43,11 +43,11 @@ contract CampaignToken is ERC721 {
 
         address campaignAddrs = TBALib.createAccount(address(implementation), address(this), id);
 
-        CampaignAccount(payable(campaignAddrs)).initialize(_startDate, _endDate, _metadata, _capitals, _team);
+        uint hypeId = CampaignAccount(payable(campaignAddrs)).initialize(_startDate, _endDate, _metadata, _capitals, _team);
 
         emit CampaignCreated(msg.sender, campaignAddrs, /*hypercertId,*/ _capitals, _metadata);
     
-        return campaignAddrs;
+        return(campaignAddrs, hypeId);
     }
 
     

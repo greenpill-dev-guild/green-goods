@@ -9,12 +9,9 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "erc6551/interfaces/IERC6551Registry.sol";
 import "tokenbound/AccountProxy.sol";
 import "erc6551/examples/simple/ERC6551Account.sol";
-interface ISchemaRegistry{
-    function register(string calldata schema, ISchemaResolver resolver, bool revocable) external returns (bytes32);
-}
-interface ISchemaResolver{
-    
-}
+import "../src/interfaces/ISchemaRegistry.sol";
+import "../src/interfaces/ISchemaResolver.sol";
+import { IEAS, AttestationRequest, AttestationRequestData } from "../src/interfaces/IEAS.sol";
 
 import { Script } from "forge-std/Script.sol";
 import { console } from "forge-std/console.sol";
@@ -42,11 +39,16 @@ contract MintTest is Test {
     address public actualImplementation = 0x41C8f39463A868d3A88af00cd0fe7102F30E44eC;
     address public entryPoint = 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789;
     ISchemaRegistry public easRegistry = ISchemaRegistry(0x4200000000000000000000000000000000000020);
+    IEAS public eas = IEAS(EAS_OP);
 
     address[] public team;
     string[] public capitals;
 
     bytes32 salt = 0x6551655165516551655165516551655165516551655165516551655165516551;
+    bytes32 contributionSchemaUid;
+    bytes32 confirmationSchemaUid;
+
+
     address factory = address(this);//0x4e59b44847b379578588920cA78FbF26c0B4956C;
 
     address gpSafe = 0x3F35aC99149fD564f9a3f5eC78d146aeE1db7387;
@@ -163,12 +165,8 @@ contract MintTest is Test {
     }
 
 
-    bytes32 contributionSchemaUid = easRegistry.register("uint256 value, address campaign, string title, string description, string[] media, string[] capitals", ISchemaResolver(contributionResolver), true);
-    bytes32 confirmationSchemaUid = easRegistry.register("uint  contributionId, bool approval, string feedback, address campAccount", ISchemaResolver(confirmationResolver), true);
-
-
-
-
+    contributionSchemaUid = easRegistry.register("uint256 value, string title, string description, string[] media, string[] capitals", ISchemaResolver(contributionResolver), true);
+    confirmationSchemaUid = easRegistry.register("uint  contributionId, bool approval, string feedback, address campAccount", ISchemaResolver(confirmationResolver), true);
 
 
         // campaignToken = new CampaignToken(address(0x41C8f39463A868d3A88af00cd0fe7102F30E44eC), address(0xabcd));
@@ -182,7 +180,7 @@ contract MintTest is Test {
         capitals.push("cheese");
     }
 
-    function testcreateCampaign() public {
+    function testCreateCampaign() public {
         console2.log(CampaignToken(campaignToken).name());
         hoax(alice);
         CampaignToken(campaignToken).createCampaign(1709250389, 1709350000, "metadata", capitals, team);
@@ -193,7 +191,7 @@ contract MintTest is Test {
 
     function testSCAccount() public {
         hoax(alice);
-        address tbaAddress = CampaignToken(campaignToken).createCampaign(1709250389, 1709350000,"metadata", capitals, team);
+        (address tbaAddress, uint hyperCertId) = CampaignToken(campaignToken).createCampaign(1709250389, 1709350000,"metadata", capitals, team);
         uint tokenId = 0;
         console2.log("scaddress ", tbaAddress);
         address scAddress = TBALib.getAccount(
@@ -211,7 +209,7 @@ contract MintTest is Test {
 
     function testHypercert() public {
         hoax(alice);
-        address tbaAddress = CampaignToken(campaignToken).createCampaign(1709250389, 1709350000,"metadata", capitals, team);
+        (address tbaAddress, uint hyperCertId) = CampaignToken(campaignToken).createCampaign(1709250389, 1709350000,"metadata", capitals, team);
         uint tokenId = 0;
         //console2.log("scaddress ", tbaAddress);
         address scAddress = TBALib.getAccount(
@@ -224,11 +222,12 @@ contract MintTest is Test {
         uint hyperId = scAccount.hypercertId();
         console2.log("hypercertId ", hyperId);
         assertGt(hyperId, 0, "0 hyperId");
+        assertEq(hyperId, hyperCertId, "hypercert doesn't match");
     }
 
     function testContributionResolver() public {
         hoax(alice);
-        address tbaAddress = CampaignToken(campaignToken).createCampaign(1709250389, 1709350000,"metadata", capitals, team);
+        (address tbaAddress, uint hyperCertId) = CampaignToken(campaignToken).createCampaign(1709250389, 1709350000,"metadata", capitals, team);
         uint tokenId = 0;
         //console2.log("scaddress ", tbaAddress);
         address scAddress = TBALib.getAccount(
@@ -239,6 +238,25 @@ contract MintTest is Test {
         //console2.log("scAddress ", scAddress);
         CampaignAccount scAccount = CampaignAccount(payable(tbaAddress));
         uint hyperId = scAccount.hypercertId();
+
+        AttestationRequestData memory attestationRequestData = AttestationRequestData({
+            recipient: tbaAddress,
+            expirationTime: 0, // The time when the attestation expires (Unix timestamp).
+            revocable: true, // Whether the attestation is revocable.
+            refUID: 0, // The UID of the related attestation.
+            data: abi.encode("uint256", "5,", "string", "title,", "string" "description," "string[]", capitals,",", "string[]", capitals), // Custom attestation data.
+            value: 0 // An explicit ETH amount to send to the resolver. This is important to prevent accidental user errors.
+        });
+
+        /// @notice A struct representing the full arguments of the attestation request.
+        AttestationRequest memory request = AttestationRequest({
+            schema: contributionSchemaUid, // The unique identifier of the schema.
+            data: attestationRequestData // The arguments of the attestation request.
+        });
+
+        hoax(alice);
+        eas.attest(request);
+
         //???
     }
 

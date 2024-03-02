@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import { ISemver } from "../ISemver.sol";
+import { ISemver } from "./ISemver.sol";
 import { Attestation } from "../Common.sol";
 
 /// @title ISchemaResolver
