@@ -21,6 +21,14 @@ interface IHypercertToken {
     /// @dev Emitted when token with tokenID `claimID` is stored, with external data reference via `uri`.
     event ClaimStored(uint256 indexed claimID, string uri, uint256 totalUnits);
 
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 id,
+        uint256 amount,
+        bytes calldata data
+    ) external;
+
     /// @dev Function called to store a claim referenced via `uri` with a maximum number of fractions `units`.
     function mintClaim(address account, uint256 units, string memory uri, TransferRestrictions restrictions) external;
 

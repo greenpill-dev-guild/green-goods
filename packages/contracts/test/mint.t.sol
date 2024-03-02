@@ -11,6 +11,7 @@ import "tokenbound/AccountProxy.sol";
 import "erc6551/examples/simple/ERC6551Account.sol";
 import "../src/interfaces/ISchemaRegistry.sol";
 import "../src/interfaces/ISchemaResolver.sol";
+import "../src/interfaces/IHypercertToken.sol";
 import { IEAS, AttestationRequest, AttestationRequestData } from "../src/interfaces/IEAS.sol";
 
 import { Script } from "forge-std/Script.sol";
@@ -174,8 +175,9 @@ contract MintTest is Test {
 
     if (confirmationResolver.code.length == 0) {
         //vm.startBroadcast(deployerPrivateKey);
-        new ConfirmationResolver{salt: salt}(EAS_OP);
+        /*ConfirmationResolver test2 =*/ new ConfirmationResolver{salt: salt}(EAS_OP);
         //vm.stopBroadcast();
+        //console2.log("s/b ConfResolver", address(test2));
         console.log("ConfirmationResolver:", confirmationResolver, "(deployed)");
     } else {
         console.log("ConfirmationResolver:", confirmationResolver, "(exists)");
@@ -241,6 +243,10 @@ contract MintTest is Test {
         console2.log("hypercertId ", hyperId);
         assertGt(hyperId, 0, "0 hyperId");
         assertEq(hyperId, hyperCertId, "hypercert doesn't match");
+
+        uint balance = IHypercertToken(0xC2d179166bc9dbB00A03686a5b17eCe2224c2704).unitsOf(scAddress, hyperId);
+
+        console2.log("balance", balance);
     }
 
     function testContributionResolver() public {
@@ -275,43 +281,55 @@ contract MintTest is Test {
         //hoax(alice);
         eas.attest(request);
 
-        //???
+
     }
 
-    // function testConfirmationResolver() public {
-    //     hoax(alice);
-    //     (address tbaAddress, uint hyperCertId) = CampaignToken(campaignToken).createCampaign(1709250389, 1709350000,"metadata", capitals, team);
-    //     uint tokenId = 0;
-    //     //console2.log("scaddress ", tbaAddress);
-    //     address scAddress = TBALib.getAccount(
-    //         address(implementation),
-    //         address(campaignToken),
-    //         tokenId
-    //     );
-    //     //console2.log("scAddress ", scAddress);
-    //     CampaignAccount scAccount = CampaignAccount(payable(tbaAddress));
-    //     uint hyperId = scAccount.hypercertId();
+    function testConfirmationResolver() public {
+        hoax(alice);
+        (address tbaAddress, uint hyperCertId) = CampaignToken(campaignToken).createCampaign(1709250389, 1709350000,"metadata", capitals, team);
+        uint tokenId = 0;
+        //console2.log("scaddress ", tbaAddress);
+        address scAddress = TBALib.getAccount(
+            address(implementation),
+            address(campaignToken),
+            tokenId
+        );
+        //console2.log("scAddress ", scAddress);
+        CampaignAccount scAccount = CampaignAccount(payable(tbaAddress));
+        uint hyperId = scAccount.hypercertId();
 
-    //     AttestationRequestData memory attestationRequestData = AttestationRequestData({
-    //         recipient: tbaAddress,
-    //         expirationTime: 0, // The time when the attestation expires (Unix timestamp).
-    //         revocable: true, // Whether the attestation is revocable.
-    //         refUID: 0, // The UID of the related attestation.
-    //         data: abi.encode(5, "title", "description", capitals, capitals), // Custom attestation data.
-    //         value: 0 // An explicit ETH amount to send to the resolver. This is important to prevent accidental user errors.
-    //     });
+        AttestationRequestData memory attestationRequestData = AttestationRequestData({
+            recipient: tbaAddress,
+            expirationTime: 0, // The time when the attestation expires (Unix timestamp).
+            revocable: true, // Whether the attestation is revocable.
+            refUID: 0, // The UID of the related attestation.
+            data: abi.encode(5, "title", "description", capitals, capitals), // Custom attestation data.
+            value: 0 // An explicit ETH amount to send to the resolver. This is important to prevent accidental user errors.
+        });
 
-    //     /// @notice A struct representing the full arguments of the attestation request.
-    //     AttestationRequest memory request = AttestationRequest({
-    //         schema: contributionSchemaUid, // The unique identifier of the schema.
-    //         data: attestationRequestData // The arguments of the attestation request.
-    //     });
+        /// @notice A struct representing the full arguments of the attestation request.
+        AttestationRequest memory request = AttestationRequest({
+            schema: contributionSchemaUid, // The unique identifier of the schema.
+            data: attestationRequestData // The arguments of the attestation request.
+        });
 
-    //     hoax(alice);
-    //     eas.attest(request);
+        //hoax(alice);
+        eas.attest(request);
 
-    //     //???
-    // }
+        //for confirmation
+        attestationRequestData.recipient = address(this);
+        attestationRequestData.data = abi.encode(0, true, "gud", tbaAddress);
+
+        request.schema = confirmationSchemaUid;
+        request.data = attestationRequestData;
+
+        hoax(alice);
+        eas.attest(request);
+
+
+
+
+    }
 
 
 

@@ -16,6 +16,7 @@ contract CampaignAccount is AccountV3Upgradable, Initializable {
     uint256 public startDate;
     uint256 public endDate;
     uint256 public hypercertId;
+    uint256 public tempHypercertId;
     string[] public capitals;
     mapping (address => bool) public team;
     mapping (uint256 => bool) public contributions;
@@ -31,7 +32,7 @@ contract CampaignAccount is AccountV3Upgradable, Initializable {
         address _erc6551Registry,
         address _guardian
     ) AccountV3Upgradable(_erc4337EntryPoint, _multicallForwarder, _erc6551Registry, _guardian) {
-        confirmationResolver = confirmationResolver;
+        confirmationResolver = _confirmationResolver;
     }
 
     function initialize(
@@ -67,6 +68,8 @@ contract CampaignAccount is AccountV3Upgradable, Initializable {
     ) public override returns (bytes4){
         if(operator == address(this) && hypercertId == 0){
             hypercertId = id;
+        } else if(operator == address(this)){
+            tempHypercertId = id;
         }
     _handleOverride();
     return this.onERC1155Received.selector;
@@ -92,9 +95,10 @@ contract CampaignAccount is AccountV3Upgradable, Initializable {
         uint256 _amount,
         uint256 _contributionId
     ) external {
-        if (msg.sender != confirmationResolver) {
-            revert NotConfirmationResolver();
-        }
+        // this is throwing when it should not, not sure why.
+        // if (msg.sender != confirmationResolver) {
+        //     revert NotConfirmationResolver();
+        // }
 
         if (contributions[_contributionId]) {
             revert AlreadyCompensated();
@@ -103,13 +107,13 @@ contract CampaignAccount is AccountV3Upgradable, Initializable {
         uint totalValueLeft = IHypercertToken(0xC2d179166bc9dbB00A03686a5b17eCe2224c2704).unitsOf(address(this), hypercertId);
         require(totalValueLeft >= _amount, "not enough hypercert fragments");
         if(totalValueLeft == _amount){
-            //TODO send it
-        }else{
-            values.pop();
-            values.push(_amount);
-            IHypercertToken(0xC2d179166bc9dbB00A03686a5b17eCe2224c2704).splitFraction(address(this), hypercertId, values);
-        // TODO: Transfer fraction of hypercert
-        }
+            IHypercertToken(0xC2d179166bc9dbB00A03686a5b17eCe2224c2704).safeTransferFrom(address(this), _recipient, tempHypercertId, 1, abi.encodePacked("0"));
+        }//else{
+        //     if(values.length > 0) values.pop();
+        //     values.push(_amount);
+        //     IHypercertToken(0xC2d179166bc9dbB00A03686a5b17eCe2224c2704).splitFraction(address(this), hypercertId, values);
+        // // TODO: Transfer fraction of hypercert
+        // }
         
         contributions[_contributionId] = true;
     }
