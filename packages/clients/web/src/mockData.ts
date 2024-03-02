@@ -1,7 +1,7 @@
 const campaigns: Campaign[] = [
   {
     id: "1",
-    title: "Campaign 1",
+    title: "Clean Streams, Clear Futures: A Waterway Restoration Initiative",
     description: "Description 1",
     capitals: ["Cultural", "Intellectual", "Social"],
     created_at: "2021-08-01",
@@ -17,7 +17,7 @@ const campaigns: Campaign[] = [
   },
   {
     id: "2",
-    title: "Campaign 2",
+    title: "Books for All: Expanding Access to Community Libraries",
     description: "Description 2",
     capitals: ["Cultural", "Intellectual", "Social"],
     created_at: "2021-08-01",
@@ -33,7 +33,7 @@ const campaigns: Campaign[] = [
   },
   {
     id: "3",
-    title: "Campaign 3",
+    title: "Restoration of 45th and Broadview Community Garden",
     description: "Description 3",
     capitals: ["Cultural", "Intellectual", "Social"],
     created_at: "2021-08-01",
