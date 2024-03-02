@@ -43,6 +43,7 @@ contract MintTest is Test {
     address public entryPoint = 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789;
     ISchemaRegistry public easRegistry = ISchemaRegistry(0x4200000000000000000000000000000000000020);
     IEAS public eas = IEAS(EAS_OP);
+    Hypercert hypercertContract = 
 
     address[] public team;
     string[] public capitals;
@@ -64,6 +65,9 @@ contract MintTest is Test {
     address campaignImplementation;
     address campaignProxy;
     address campaignToken;
+    address hypercert;
+
+
 
 
     function setUp() public {
@@ -208,6 +212,7 @@ contract MintTest is Test {
 
     contributionSchemaUid = easRegistry.register("uint256 value, string title, string description, string[] media, string[] capitals", ISchemaResolver(contributionResolver), true);
     confirmationSchemaUid = easRegistry.register("uint  contributionId, bool approval, string feedback, address campAccount", ISchemaResolver(confirmationResolver), true);
+
 
 
         // campaignToken = new CampaignToken(address(0x41C8f39463A868d3A88af00cd0fe7102F30E44eC), address(0xabcd));
