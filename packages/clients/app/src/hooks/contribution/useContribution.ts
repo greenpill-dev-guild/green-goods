@@ -5,7 +5,7 @@ export const EASContractAddress = "0xC2679fBD37d54388Ce493F1DB75320D236e1815e"; 
 
 import { ContributionContext, contributionMachine } from "./machine";
 import { useNavigate } from "react-router-dom";
-import { FileUpload } from "@/modules/nftStorage";
+// import { FileUpload } from "@/modules/nftStorage";
 import { useWeb3 } from "../providers/web3";
 
 export interface ContributionDataProps extends ContributionContext {

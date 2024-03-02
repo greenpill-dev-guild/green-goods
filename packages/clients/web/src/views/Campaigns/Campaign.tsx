@@ -1,8 +1,8 @@
 import React from "react";
 import { useParams } from "react-router-dom";
 
-import { useCampaign } from "@/hooks/campaign/useCampaign";
-import { CircleLoader } from "@/components/Loader/Circle";
+import { useCampaign } from "../../hooks/campaign/useCampaign";
+import { CircleLoader } from "../../components/Loader/Circle";
 
 interface CampaignProps {}
 
@@ -11,9 +11,7 @@ const Campaign: React.FC<CampaignProps> = () => {
     address: string;
   }>();
 
-  const { id, capitals, team, loading, address } = useCampaign(
-    params.address ?? ""
-  );
+  const { id, loading, address } = useCampaign(params.address ?? "");
 
   if (!address) {
     return <div>Please Login To View Campaigns</div>;
@@ -51,15 +49,15 @@ const Campaign: React.FC<CampaignProps> = () => {
             <h4></h4>
             <h6></h6>
             <div>
-              {capitals.map((capital) => (
+              {/* {capitals.map((capital) => (
                 <div />
-              ))}
+              ))} */}
             </div>
             <h6></h6>
             <div>
-              {team.map((member) => (
+              {/* {team.map((member) => (
                 <div />
-              ))}
+              ))} */}
             </div>
             <h6></h6>
             <div></div>

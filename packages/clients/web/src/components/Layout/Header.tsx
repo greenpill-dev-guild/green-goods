@@ -29,7 +29,7 @@ export const Header: React.FC<HeaderProps> = () => {
               </Avatar>
             </PopoverTrigger>
             <PopoverContent>
-              <p>{user?.name ?? address}</p>
+              <p>{address}</p>
               <Button variant="default" onClick={logout}>
                 Logout
               </Button>

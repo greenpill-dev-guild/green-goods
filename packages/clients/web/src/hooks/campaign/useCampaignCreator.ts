@@ -43,8 +43,8 @@ export const useCampaignCreator = (): CampaignCreationDataProps => {
       },
     },
     services: {
-      campaignCreator: async (context, event) => {
-        const mediaUrls = event.data.urls;
+      campaignCreator: async (_context, _event) => {
+        // const mediaUrls = event.data.urls;
 
         // TODO: Using provider get signer and make rpc call to deploy campaign
 

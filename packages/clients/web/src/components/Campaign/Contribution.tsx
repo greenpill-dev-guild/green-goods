@@ -17,12 +17,12 @@ export const ContributionCard: React.FC<ContributionCardProps> = ({
   capitals,
   title,
   description,
-  logo,
-  banner,
+  // logo,
+  // banner,
 }) => {
   return (
     <Card className="w-[350px]">
-      <img src={banner} />
+      <img src={"banner"} />
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <div>
