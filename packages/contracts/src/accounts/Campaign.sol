@@ -19,6 +19,7 @@ contract CampaignAccount is AccountV3Upgradable, Initializable {
     string[] public capitals;
     mapping (address => bool) public team;
     mapping (uint256 => bool) public contributions;
+    bool public isCampaign = true;
 
     //IHypercertToken hypercert = IHypercertToken(0xC2d179166bc9dbB00A03686a5b17eCe2224c2704);
 

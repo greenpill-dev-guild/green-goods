@@ -38,13 +38,11 @@ contract ContributionResolver is SchemaResolver, Initializable, OwnableUpgradeab
     function onAttest(Attestation calldata attestation, uint256 /*value*/ )
         internal
         override
-        onlyOwner
         returns (bool)
-    {
-
-        // TODO: Check if the contribution is valid
-
-        return true;
+    {   
+        CampaignAccount campaignAccount = CampaignAccount(attestation.recipient);
+        
+        return(campaignAccount.isCampaign());
     }
 
     function onRevoke(Attestation calldata attestation, uint256 /*value*/ )
