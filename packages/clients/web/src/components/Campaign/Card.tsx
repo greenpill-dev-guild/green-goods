@@ -21,10 +21,10 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
 }) => {
   return (
     <Card className="w-[350px]">
-      <div>
+      {/* <div>
         <img src={banner} />
         <img src={logo} />
-      </div>
+      </div> */}
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <div>
