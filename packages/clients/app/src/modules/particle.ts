@@ -9,8 +9,8 @@ export const particleConfig: AuthCoreModalOptions = {
   projectId: import.meta.env.VITE_PARTICLE_PROJECT_ID ?? "",
   clientKey: import.meta.env.VITE_PARTICLE_CLIENT_KEY ?? "",
   appId: import.meta.env.VITE_PARTICLE_APP_ID ?? "",
-  authTypes: [AuthType.email, AuthType.phone],
-  themeType: "dark",
+  authTypes: [AuthType.email, AuthType.phone, AuthType.google],
+  customStyle: {},
   fiatCoin: "USD",
   language: "en",
   erc4337: {

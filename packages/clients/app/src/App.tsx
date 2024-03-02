@@ -12,7 +12,7 @@ import { Login } from "./views/Login";
 
 function App() {
   const web3Props = useWeb3();
-  const { installState, ...pwaData } = usePWA();
+  const { installState } = usePWA();
   const isLoggedIn = !!web3Props.connected && !web3Props.authenticating;
 
   const Onboard: Record<InstallState, React.ReactNode> = {
@@ -35,7 +35,6 @@ function App() {
 
   return (
     <>
-      hello
       {Onboard[installState]}
       <Toaster />
     </>

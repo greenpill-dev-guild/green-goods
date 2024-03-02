@@ -14,6 +14,7 @@ export interface Web3Props {
   connected: boolean;
   address: string | null;
   provider: EVMProvider;
+  ethersProvider?: ethers.BrowserProvider;
   user?: UserInfo;
   login: () => Promise<void>;
   logout: () => Promise<void>;
@@ -37,6 +38,9 @@ export const Web3Provider = ({ children }: Props) => {
   const { connect, disconnect, connected } = useConnect();
 
   const [error, setError] = useState<null | string>(null);
+
+  // @ts-ignore
+  const ethersProvider = provider && new ethers.BrowserProvider(provider);
 
   // const signer = ethers.Jso
 
@@ -93,6 +97,7 @@ export const Web3Provider = ({ children }: Props) => {
         address,
         user: userInfo,
         provider,
+        ethersProvider,
         login,
         logout,
       }}

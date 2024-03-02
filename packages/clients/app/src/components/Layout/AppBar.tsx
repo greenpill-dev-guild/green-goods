@@ -53,7 +53,7 @@ export const Appbar = () => {
   return (
     <a.nav
       className={
-        "btm-nav z-20 bg-base-100 py-6 fixed bottom-0 rounded-t-2xl w-full"
+        "btm-nav z-20 bg-base-100 py-8 fixed bottom-0 rounded-t-2xl w-full"
       }
       style={spring}
     >

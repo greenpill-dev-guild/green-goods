@@ -105,6 +105,9 @@ label {
 /*
   Components
 */
+.particle-pwe-btn {
+  z-index: 0 !important;
+}
 .dot {
   position: absolute;
   opacity: 0.27;
@@ -124,4 +127,3 @@ label {
     opacity: 1;
   }
 }
-

@@ -31,7 +31,7 @@ export interface Typegen0 {
     actions: "goHome";
     delays: never;
     guards: never;
-    services: never;
+    services: "contributionAttester";
   };
   eventsCausingActions: {
     contributed: "done.invoke.contributionAttester";
@@ -42,13 +42,11 @@ export interface Typegen0 {
     reset: "CANCEL" | "CONTRIBUTE_MORE" | "GO_HOME";
     saveCampaign: "NEXT";
     saveDetails: "NEXT";
-    saveMedia: "NEXT";
   };
   eventsCausingDelays: {};
   eventsCausingGuards: {
     areDetailsValid: "NEXT";
     isCampaignValid: "NEXT";
-    isMediaValid: "NEXT";
   };
   eventsCausingServices: {
     contributionAttester: "done.invoke.mediaUploader";
@@ -60,7 +58,6 @@ export interface Typegen0 {
     | "contribution_attested"
     | "details"
     | "idle"
-    | "media"
     | "review"
     | "uploading_media";
   tags: never;

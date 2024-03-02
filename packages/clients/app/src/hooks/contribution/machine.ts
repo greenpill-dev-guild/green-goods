@@ -1,22 +1,23 @@
-import {
-  EAS,
-  SchemaEncoder,
-  TransactionSigner,
-} from "@ethereum-attestation-service/eas-sdk";
 import { createMachine, assign } from "xstate";
 
 import { uploadMedia } from "@/modules/nftStorage";
 
 export const EASContractAddress = "0xC2679fBD37d54388Ce493F1DB75320D236e1815e"; // Sepolia v0.26
 
-export interface ContributionContext {
+export interface ContributionInfo {
   value: number;
   campaign: string;
   title: string | null;
   description: string | null;
-  media: { file: File; title: string; description: string }[];
+  media: { file: File; title: string; description: string } | null;
   capitals: Capital[];
-  signer: TransactionSigner | null;
+}
+
+export interface ContributionContext {
+  info: ContributionInfo;
+  result: {
+    id: string | null;
+  };
   error: string | null;
 }
 
@@ -43,13 +44,17 @@ export const contributionMachine = createMachine(
         };
       },
       context: {
-        value: 0,
-        campaign: "",
-        title: null,
-        description: null,
-        media: [],
-        capitals: [],
-        signer: null,
+        info: {
+          value: 0,
+          campaign: "",
+          title: null,
+          description: null,
+          media: null,
+          capitals: [],
+        },
+        result: {
+          id: null,
+        },
         error: null,
       } as ContributionContext,
     },
@@ -64,7 +69,7 @@ export const contributionMachine = createMachine(
       details: {
         on: {
           NEXT: {
-            target: "media",
+            target: "campaign",
             cond: "areDetailsValid",
             actions: "saveDetails",
           },
@@ -74,22 +79,22 @@ export const contributionMachine = createMachine(
           },
         },
       },
-      media: {
-        on: {
-          NEXT: {
-            target: "campaign",
-            cond: "isMediaValid",
-            actions: "saveMedia",
-          },
-          BACK: {
-            target: "details",
-          },
-          CANCEL: {
-            target: "idle",
-            actions: "reset",
-          },
-        },
-      },
+      // media: {
+      //   on: {
+      //     NEXT: {
+      //       target: "campaign",
+      //       cond: "isMediaValid",
+      //       actions: "saveMedia",
+      //     },
+      //     BACK: {
+      //       target: "details",
+      //     },
+      //     CANCEL: {
+      //       target: "idle",
+      //       actions: "reset",
+      //     },
+      //   },
+      // },
       campaign: {
         on: {
           NEXT: {
@@ -98,7 +103,7 @@ export const contributionMachine = createMachine(
             actions: "saveCampaign",
           },
           BACK: {
-            target: "media",
+            target: "details",
           },
           CANCEL: {
             target: "idle",
@@ -170,9 +175,6 @@ export const contributionMachine = createMachine(
       areDetailsValid: (_context, _event) => {
         return true;
       },
-      isMediaValid: (_context) => {
-        return true;
-      },
       isCampaignValid: (_context) => {
         return true;
       },
@@ -181,24 +183,10 @@ export const contributionMachine = createMachine(
       saveDetails: assign((context, event) => {
         console.log("saveDetails", context, event);
 
-        context.title = "";
-        // context.description = event.description;
-
-        return context;
-      }),
-      saveMedia: assign((context, event) => {
-        console.log("saveMedia", context, event);
-
-        context.title = "";
-        // context.description = event.description;
-
         return context;
       }),
       saveCampaign: assign((context, event) => {
         console.log("saveCampaign", context, event);
-
-        context.title = "";
-        // context.description = event.description;
 
         return context;
       }),
@@ -208,13 +196,15 @@ export const contributionMachine = createMachine(
         return context;
       }),
       reset: assign((context, _event) => {
-        context.value = 0;
-        context.campaign = "";
-        context.title = null;
-        context.description = null;
-        context.media = [];
-        context.capitals = [];
-        context.signer = null;
+        context.info.value = 0;
+        context.info.campaign = "";
+        context.info.title = null;
+        context.info.description = null;
+        context.info.media = null;
+        context.info.capitals = [];
+
+        context.result.id = null;
+
         context.error = null;
 
         return context;
@@ -246,78 +236,20 @@ export const contributionMachine = createMachine(
     },
     services: {
       mediaUploader: async (context, _meta) => {
-        if (!context.media.length) {
+        if (!context.info.media) {
           return {
             urls: [],
           };
         }
 
         try {
-          const urls = await uploadMedia(context.media);
+          const urls = await uploadMedia([context.info.media]);
 
           return {
             urls,
           };
         } catch (error) {
           console.log("Media uploading failed!", error);
-          throw error;
-        }
-      },
-      contributionAttester: async (context, event) => {
-        console.log("Contribution attestation started!", context, event);
-
-        try {
-          const { signer, campaign, title, description, capitals, value } =
-            context;
-          const { data } = event;
-
-          if (!signer) {
-            throw new Error("No signer found!");
-          }
-
-          const eas = new EAS(EASContractAddress);
-
-          eas.connect(signer);
-
-          // Initialize SchemaEncoder with the schema string
-          const schemaEncoder = new SchemaEncoder(
-            "uint256 value, address campaign, string title, string description, string[] media, string[] capitals"
-          );
-
-          const encodedData = schemaEncoder.encodeData([
-            { name: "value", value: value, type: "uint256" },
-            { name: "campaign", value: campaign, type: "address" },
-            { name: "title", value: title ?? "", type: "string" },
-            {
-              name: "description",
-              value: description ?? "",
-              type: "string",
-            },
-            { name: "media", value: data.urls, type: "string[]" },
-            {
-              name: "capitals",
-              value: capitals,
-              type: "string[]",
-            },
-          ]);
-
-          const schemaUID = ""; // TODO: Get the schema UID from the registry
-
-          const tx = await eas.attest({
-            schema: schemaUID,
-            data: {
-              recipient: "",
-              revocable: true, // Be aware that if your schema is not revocable, this MUST be false
-              data: encodedData,
-            },
-          });
-
-          const newAttestationUID = await tx.wait();
-
-          console.log("New attestation UID:", newAttestationUID);
-          return { id: newAttestationUID };
-        } catch (error) {
-          console.log("Contribution attestation failed!", error);
           throw error;
         }
       },
