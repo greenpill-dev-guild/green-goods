@@ -13,9 +13,10 @@ import {CampaignAccount} from "../accounts/Campaign.sol";
 /// @notice A schema resolver for the Confirmations event schema
 contract ConfirmationResolver is SchemaResolver, Initializable, OwnableUpgradeable, UUPSUpgradeable {
     struct ConfirmationSchema {
+        uint  contributionId;
         bool approval;
-        string  contributionId;
-        uint256 created_at;
+        string feedback;
+        address campAccount;
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -34,12 +35,19 @@ contract ConfirmationResolver is SchemaResolver, Initializable, OwnableUpgradeab
     function onAttest(Attestation calldata attestation, uint256 /*value*/ )
         internal
         override
-        onlyOwner
         returns (bool)
-    {
-        // TODO: Check if the confirmation is valid
+    {   
+        ConfirmationSchema memory schema = abi.decode(attestation.data, (ConfirmationSchema));
+        CampaignAccount campaignAccount = CampaignAccount(payable(schema.campAccount));
+        require(campaignAccount.isCampaign() && campaignAccount.team(attestation.attester), "confirmation Resolver: not allowed");
+        if(schema.approval){campaignAccount.compensateContribution(
+            attestation.recipient,
+            100,//schema.amount, 
+            schema.contributionId
+        );}
 
-        return true;
+        return(true);
+
     }
 
     function onRevoke(Attestation calldata attestation, uint256 /*value*/ )

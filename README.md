@@ -47,3 +47,8 @@ If you would like to contribute here are the following steps:
 - Pick up an open needs help issue from the [issues](https://github.com/Oba-One/web3-starter-kit/issues) that's not in progress and create a branch with the issue name.
 - Once done open a [PR](<[https://github.com/wefa-labs/wefa/pulls](https://github.com/Oba-One/web3-starter-kit/pulls)>) to merge into the development branch of the starter kit repo
 - Once approved make sure your branch is up to date with main and complete the merge.
+
+
+### test
+
+```forge test --fork-url https://base-sepolia-rpc.publicnode.com -vvvv```

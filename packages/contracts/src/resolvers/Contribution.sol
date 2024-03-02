@@ -14,8 +14,6 @@ import {CampaignAccount} from "../accounts/Campaign.sol";
 contract ContributionResolver is SchemaResolver, Initializable, OwnableUpgradeable, UUPSUpgradeable {
     struct ContributionSchema {
         uint256 value;
-        uint256 created_at; 
-        address campaign;
         string title;
         string description;
         string[] media;
@@ -38,13 +36,11 @@ contract ContributionResolver is SchemaResolver, Initializable, OwnableUpgradeab
     function onAttest(Attestation calldata attestation, uint256 /*value*/ )
         internal
         override
-        onlyOwner
         returns (bool)
-    {
-
-        // TODO: Check if the contribution is valid
-
-        return true;
+    {   
+        CampaignAccount campaignAccount = CampaignAccount(payable(attestation.recipient));
+        return(campaignAccount.isCampaign());
+        return(true);
     }
 
     function onRevoke(Attestation calldata attestation, uint256 /*value*/ )

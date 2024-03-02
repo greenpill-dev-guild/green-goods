@@ -12,13 +12,29 @@ library TBALib {
 
         if (block.chainid == 8453) {
             account =
-                IERC6551Registry(TOKENBOUND_REGISTRY).createAccount(implmentation, 8453, tokenContract, tokenId, 7, "");
+                IERC6551Registry(TOKENBOUND_REGISTRY).createAccount(
+                    implmentation, 
+                "",
+                8453, 
+                tokenContract, 
+                tokenId
+                );
         } else if (block.chainid == 84532) {
             account =
-                IERC6551Registry(TOKENBOUND_REGISTRY).createAccount(implmentation, 84532, tokenContract, tokenId, 7, "");
+                IERC6551Registry(TOKENBOUND_REGISTRY).createAccount(
+                    implmentation, 
+                "",
+                84532, 
+                tokenContract, 
+                tokenId
+            );
         } else if (block.chainid == 11155111) {
             account = IERC6551Registry(TOKENBOUND_REGISTRY).createAccount(
-                implmentation, 11155111, tokenContract, tokenId, 7, ""
+                implmentation, 
+                "",
+                11155111, 
+                tokenContract, 
+                tokenId
             );
         } else {
             revert InvalidChainId();
@@ -35,11 +51,29 @@ library TBALib {
         address account;
 
         if (block.chainid == 8453) {
-            account = IERC6551Registry(TOKENBOUND_REGISTRY).account(implmentation, 8453, tokenContract, tokenId, 7);
+            account = IERC6551Registry(TOKENBOUND_REGISTRY).account(
+                    implmentation, 
+                "",
+                8453, 
+                tokenContract, 
+                tokenId
+                );
         } else if (block.chainid == 84532) {
-            account = IERC6551Registry(TOKENBOUND_REGISTRY).account(implmentation, 84532, tokenContract, tokenId, 7);
+            account = IERC6551Registry(TOKENBOUND_REGISTRY).account(
+                    implmentation, 
+                "",
+                84532, 
+                tokenContract, 
+                tokenId
+                );
         } else if (block.chainid == 11155111) {
-            account = IERC6551Registry(TOKENBOUND_REGISTRY).account(implmentation, 11155111, tokenContract, tokenId, 7);
+            account = IERC6551Registry(TOKENBOUND_REGISTRY).account(
+                    implmentation, 
+                "",
+                11155111, 
+                tokenContract, 
+                tokenId
+                );
         } else {
             revert InvalidChainId();
         }
