@@ -1,3 +1,4 @@
+import { mockConfirmations, mockContributions } from "@/mockData";
 import {
   userConfirmationsQuery,
   userContributionsQuery,
@@ -14,11 +15,12 @@ export const useHome = (): HomeDataProps => {
   const { data: confirmationData } = useQuery<any[]>(userConfirmationsQuery);
 
   const contributions =
-    contributionData?.map((contribution) => contribution) || [];
+    contributionData?.map((contribution) => contribution) || mockContributions;
 
   const confirmationMap: Record<string, Confirmation> = {};
 
-  confirmationData?.forEach((confirmation) => {
+  const confirmations = confirmationData ? confirmationData : mockConfirmations;
+  confirmations?.forEach((confirmation) => {
     confirmationMap[confirmation.id] = confirmation;
   });
 

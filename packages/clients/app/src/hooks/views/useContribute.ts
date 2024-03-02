@@ -6,6 +6,7 @@ import {
   useContribution,
   ContributionDataProps,
 } from "../contribution/useContribution";
+import { mockCampaigns } from "@/mockData";
 
 export interface ContributeDataProps extends ContributionDataProps {
   campaigns: Campaign[];
@@ -33,7 +34,7 @@ export const useContribute = (): ContributeDataProps => {
         capitals: campaign.capitals,
         created_at: campaign.created_at,
       };
-    }) || [];
+    }) || mockCampaigns;
 
   const contribution = useContribution();
 
