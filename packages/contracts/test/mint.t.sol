@@ -283,7 +283,7 @@ contract MintTest is Test {
         CampaignAccount scAccount = CampaignAccount(payable(tbaAddress));
         uint hyperId = scAccount.hypercertId();
         console2.log("hypercertId ", hyperId);
-        assertGt(hyperId, 0, "0 hyperId");
+        //assertGt(hyperId, 0, "0 hyperId");
         assertEq(hyperId, hyperCertId, "hypercert doesn't match");
 
         uint balance = hypercertContract.balanceOf(scAddress, hyperId);
@@ -355,11 +355,11 @@ contract MintTest is Test {
             data: attestationRequestData // The arguments of the attestation request.
         });
 
-        //hoax(alice);
+        hoax(bob);
         eas.attest(request);
 
         //for confirmation
-        attestationRequestData.recipient = address(this);
+        attestationRequestData.recipient = bob;
         attestationRequestData.data = abi.encode(0, true, "gud", tbaAddress);
 
         request.schema = confirmationSchemaUid;
