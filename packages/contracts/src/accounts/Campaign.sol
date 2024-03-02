@@ -21,6 +21,8 @@ contract CampaignAccount is AccountV3Upgradable, Initializable {
     mapping (uint256 => bool) public contributions;
     bool public isCampaign = true;
 
+    uint[] private values;
+
     //IHypercertToken hypercert = IHypercertToken(0xC2d179166bc9dbB00A03686a5b17eCe2224c2704);
 
     constructor(
@@ -64,30 +66,29 @@ contract CampaignAccount is AccountV3Upgradable, Initializable {
         uint256 value,
         bytes memory data
     ) public override returns (bytes4){
-        if(operator == address(this)){
+        if(operator == address(this) && hypercertId == 0){
             hypercertId = id;
         }
     _handleOverride();
-        return this.onERC1155Received.selector;
-    /**
-     * @dev Handles the receipt of a multiple ERC1155 token types. This function
-     * is called at the end of a `safeBatchTransferFrom` after the balances have
-     * been updated.
-     *
-     * NOTE: To accept the transfer(s), this must return
-     * `bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"))`
-     * (i.e. 0xbc197c81, or its own function selector).
-     *
-     * @param operator The address which initiated the batch transfer (i.e. msg.sender)
-     * @param from The address which previously owned the token
-     * @param ids An array containing ids of each token being transferred (order and length must match values array)
-     * @param values An array containing amounts of each token being transferred (order and length must match ids array)
-     * @param data Additional data with no specified format
-     * @return `bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"))` if transfer is allowed
-     */
+    return this.onERC1155Received.selector;
     }
 
-    function compesateContribution(
+    //Don't think we need this...
+    // function onERC1155BatchReceived(
+    //     address operator,
+    //     address from,
+    //     uint256[] calldata ids,
+    //     uint256[] calldata values,
+    //     bytes calldata data
+    // ) external returns (bytes4){
+    //     if(operator == address(this)){
+    //         hypercertId = id;
+    //     }
+    // _handleOverride();
+    // return this.onERC1155Received.selector;
+    // }
+
+    function compensateContribution(
         address _recipient,
         uint256 _amount,
         uint256 _contributionId
@@ -100,8 +101,17 @@ contract CampaignAccount is AccountV3Upgradable, Initializable {
             revert AlreadyCompensated();
         }
 
+        uint totalValueLeft = IHypercertToken(0xC2d179166bc9dbB00A03686a5b17eCe2224c2704).unitsOf(address(this), hypercertId);
+        require(totalValueLeft >= _amount, "not enough hypercert fragments");
+        if(totalValueLeft == _amount){
+            //TODO send it
+        }else{
+            values.pop();
+            values.push(_amount);
+            IHypercertToken(0xC2d179166bc9dbB00A03686a5b17eCe2224c2704).splitFraction(address(this), hypercertId, values);
         // TODO: Transfer fraction of hypercert
-
+        }
+        
         contributions[_contributionId] = true;
 
     }
