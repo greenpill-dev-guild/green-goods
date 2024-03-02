@@ -1,7 +1,9 @@
-// import { toast } from "react-toastify";
+// import { toast } from "sonner"
 import { createMachine, assign } from "xstate";
 
-export interface CampaignContext {
+import { FileUpload, uploadMedia } from "@/modules/nftStorage";
+
+export interface CampaignInfo {
   title: string | null;
   description: string | null;
   details: string | null;
@@ -9,8 +11,17 @@ export interface CampaignContext {
   end_date: number | null;
   team: string[];
   capitals: Capital[];
-  media: File[];
+  media: FileUpload[];
+}
+
+export interface CampaignContext {
   error: string | null;
+  info: CampaignInfo;
+  results: {
+    id: string | null;
+    hypercertTokenID: number | null;
+    account: string | null;
+  };
 }
 
 export const campaignMachine = createMachine(
@@ -21,51 +32,57 @@ export const campaignMachine = createMachine(
     strict: true,
     tsTypes: {} as import("./machine.typegen").Typegen0,
     predictableActionArguments: true,
-    initial: "idle",
+    initial: "details",
     schema: {
       services: {} as {
         mediaUploader: {
           data: {
-            plantId: number;
-            // details: PlantDetails | undefined;
-            img: string;
+            urls: string[];
           };
         };
         campaignCreator: {
           data: {
-            element: any;
-            img: string;
+            account: string;
+            hypercertTokenID: number;
           };
         };
       },
       context: {
-        title: null,
-        description: null,
-        details: null,
-        start_date: null,
-        end_date: null,
-        team: [],
-        capitals: [],
-        media: [],
+        info: {
+          title: null,
+          description: null,
+          details: null,
+          start_date: null,
+          end_date: null,
+          team: [],
+          capitals: [],
+          media: [],
+        },
+        results: {
+          id: null,
+          hypercertTokenID: null,
+          account: null,
+        },
         error: null,
       } as CampaignContext,
     },
     states: {
       idle: {
         on: {
-          CREATE_CAMPAIGN: {
+          START_CAMPAIGN: {
             target: "details",
-            // cond: "areDetailsValid",
           },
         },
       },
       details: {
         on: {
           NEXT: {
-            target: "media",
+            target: "review",
+            cond: "areDetailsValid",
           },
           CANCEL: {
             target: "idle",
+            actions: ["goHome", "reset"],
           },
         },
       },
@@ -82,29 +99,30 @@ export const campaignMachine = createMachine(
       //     },
       //   },
       // },
-      media: {
-        on: {
-          NEXT: {
-            target: "media",
-          },
-          BACK: {
-            target: "details",
-          },
-          CANCEL: {
-            target: "idle",
-          },
-        },
-      },
+      // media: {
+      //   on: {
+      //     NEXT: {
+      //       target: "media",
+      //     },
+      //     BACK: {
+      //       target: "details",
+      //     },
+      //     CANCEL: {
+      //       target: "idle",
+      //     },
+      //   },
+      // },
       review: {
         on: {
           CREATE: {
             target: "uploading_media",
           },
           BACK: {
-            target: "media",
+            target: "review",
           },
           CANCEL: {
             target: "idle",
+            actions: ["goHome", "reset"],
           },
         },
       },
@@ -114,7 +132,6 @@ export const campaignMachine = createMachine(
           src: "mediaUploader",
           onDone: {
             target: "creating_campaign",
-            actions: "verified",
           },
           onError: {
             target: "review",
@@ -128,7 +145,7 @@ export const campaignMachine = createMachine(
           src: "campaignCreator",
           onDone: {
             target: "campaign_created",
-            actions: "campaigned",
+            actions: "campaignCreated",
           },
           onError: {
             target: "review",
@@ -140,10 +157,14 @@ export const campaignMachine = createMachine(
         on: {
           VIEW_CAMPAIGN: {
             target: "idle",
-            actions: "reset",
+            actions: ["goToCampaign", "reset"],
           },
           GO_HOME: {
             target: "idle",
+            actions: ["goHome", "reset"],
+          },
+          CREATE_ANOTHER: {
+            target: "details",
             actions: "reset",
           },
         },
@@ -156,9 +177,6 @@ export const campaignMachine = createMachine(
 
       // toast.info("Campaign machine entered.");
     },
-    // exit: (context, event) => {
-    //   console.log("Campaign machine exited.", context, event);
-    // },
   },
   {
     delays: {
@@ -167,24 +185,25 @@ export const campaignMachine = createMachine(
       },
     },
     guards: {
-      areDetailsValid: (_context, event: { image: string | ArrayBuffer }) => {
-        return !!event.image;
-      },
-      isTeamValid: (context, event: { element: any }) => {
-        return !!context.image && (!!event.element || !!context.element);
-      },
-      isMediaValid: (context) => {
-        return !context.creature && !!context.element;
+      areDetailsValid: (_context) => {
+        return true;
       },
     },
     actions: {
       reset: assign((context, _event) => {
-        context.address = undefined;
-        context.image = null;
-        // context.element = null;
-        // context.plant = null;
-        // context.creature = null;
-        context.imageVerified = false;
+        context.info.title = null;
+        context.info.description = null;
+        context.info.details = null;
+        context.info.start_date = null;
+        context.info.end_date = null;
+        context.info.team = [];
+        context.info.capitals = [];
+        context.info.media = [];
+
+        context.results.id = null;
+        context.results.hypercertTokenID = null;
+        context.results.account = null;
+
         context.error = null;
 
         return context;
@@ -192,10 +211,6 @@ export const campaignMachine = createMachine(
       error: assign((context, event) => {
         switch (event.type) {
           case "error.platform.mediaUploader":
-            context.imageVerified = false;
-            // context.image = null;
-            // context.element = null;
-
             // @ts-ignore
             context.error = event.data.message;
             break;
@@ -210,68 +225,28 @@ export const campaignMachine = createMachine(
         }
         console.log("Error!", context, event);
 
-        // toast.error(context.error || "Error with creature generator.");
-
         return context;
       }),
     },
     services: {
-      mediaUploader: async (context, event: { image?: string }, _meta) => {
-        let image: string | null = context.image;
-
-        if (event.image) {
-          image = event.image;
+      mediaUploader: async (context, _meta) => {
+        if (!context.info.media.length) {
+          return {
+            urls: [],
+          };
         }
-
-        if (!image) {
-          throw new Error("No image provided!");
-        }
-
-        // TODO: Add form image upload
-        // const formData = new FormData();
-
-        // formData.append("image", image, image.name);
-
-        // const data = {
-        //   // Add other parameters here
-        // };
-        // formData.append("data", JSON.stringify(data));
 
         try {
-          // const { data } = await apiClient.post<{ plant: PlantResponse }>(
-          //   "/plants/detect",
-          //   { image },
-          // );
+          const urls = await uploadMedia(context.info.media);
 
           return {
-            // plantId: data.plant.suggestions[0].id,
-            // details: data.plant.suggestions[0].plant_details,
-            img: image,
+            urls,
           };
         } catch (error) {
-          console.log("Photo verification failed!", error);
-          throw error;
-        }
-      },
-      campaignCreator: async (context, event: { element?: any }) => {
-        let element: any | null = context.element;
-
-        if (event.element) {
-          element = event.element;
-          // context.element = event.element;
-        }
-
-        if (!element || !context.plant) {
-          throw new Error("No element or plant provided!");
-        }
-
-        try {
-          return { element, img: `data:image/png;base64,${data.img}` };
-        } catch (error) {
-          console.log("Creature generation failed!", error);
+          console.log("Media uploading failed!", error);
           throw error;
         }
       },
     },
-  },
+  }
 );

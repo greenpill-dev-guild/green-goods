@@ -2,10 +2,14 @@ import { a, useTransition } from "@react-spring/web";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import { useHome } from "../hooks/views/useHome";
+import { useCampaigns } from "../hooks/views/useCampaigns";
 import { useProfile } from "../hooks/views/useProfile";
 
 import Home from "./Home";
 import Profile from "./Profile";
+import Campaigns from "./Campaigns";
+import Campaign from "./Campaigns/Campaign";
+import CampaignCreate from "./Campaigns/Create";
 
 export default function Views() {
   const location = useLocation();
@@ -22,6 +26,7 @@ export default function Views() {
   });
 
   const home = useHome();
+  const campaigns = useCampaigns();
   const profile = useProfile();
 
   return transitions((style, location) => (
@@ -31,6 +36,10 @@ export default function Views() {
     >
       <Routes location={location}>
         <Route path="home" element={<Home {...home} />} />
+        <Route path="campaigns" element={<Campaigns {...campaigns} />}>
+          <Route path="create" element={<CampaignCreate {...campaigns} />} />
+          <Route path=":address" element={<Campaign />} />
+        </Route>
         <Route path="profile" element={<Profile {...profile} />} />
         <Route path="*" element={<Navigate to="home" />} />
       </Routes>

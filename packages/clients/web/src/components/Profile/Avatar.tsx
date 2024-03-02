@@ -1,4 +1,5 @@
 import { SpringValue, a } from "@react-spring/web";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface ProfileInfoProps {
   username?: string | null;

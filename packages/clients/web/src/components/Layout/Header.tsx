@@ -1,19 +1,45 @@
 import React from "react";
 
-// import { RC as MenuIcon } from "../../assets/menu.svg";
+// import { Icons } from "@/components/icons"
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { useWeb3 } from "@/hooks/providers/web3";
+
+import { Button } from "../ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 
 interface HeaderProps {
   isStarted?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = () => {
+  const { address, connected, login, logout } = useWeb3();
   return (
-    <header
-      className={`bg-base-100 py-2 px-8 flex items-center justify-between border-b-2`}
-    >
-      <h1 className="font-bold text-4xl">WAVES</h1>
+    <header className={`py-4 px-16 flex items-center justify-between`}>
+      <h1 className="">GreenCamp</h1>
       <div>
-        <button className="btn btn-sm btn-primary">Login</button>
+        {connected ? (
+          <Popover>
+            <PopoverTrigger>
+              <Avatar>
+                <AvatarImage
+                  src="https://github.com/shadcn.png"
+                  alt="@shadcn"
+                />
+                <AvatarFallback>CN</AvatarFallback>
+              </Avatar>
+            </PopoverTrigger>
+            <PopoverContent>
+              <p>{user?.name ?? address}</p>
+              <Button variant="default" onClick={logout}>
+                Logout
+              </Button>
+            </PopoverContent>
+          </Popover>
+        ) : (
+          <Button variant="default" onClick={login}>
+            Connect
+          </Button>
+        )}
       </div>
     </header>
   );

@@ -9,18 +9,7 @@
   Variables
 */
 :root {
-  --text-color: #191c1c;
-  --surface-color: #fff;
-  --background-color: #fafdfc;
-  --primary-color: #287273;
-
-  background: linear-gradient(
-    151deg,
-    #dde9df 10.39%,
-    #9eb2a0 56.43%,
-    #cbd6cc 100%
-  );
-  color-scheme: light dark;
+  /* color-scheme: light dark; */
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -57,47 +46,6 @@ body {
   overflow: hidden;
 }
 
-h2 {
-  @apply text-4xl;
-  @apply font-bold;
-}
-
-h3 {
-  @apply text-3xl;
-  @apply font-medium;
-}
-
-h4 {
-  @apply text-2xl;
-}
-
-h5 {
-  @apply text-xl;
-}
-
-h6,
-p,
-span,
-a,
-li,
-label {
-  font-weight: 300;
-}
-
-#root {
-  width: 100%;
-  height: 100%;
-  overflow-y: visible;
-  overflow: hidden;
-}
-
-/* #root > div {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  overflow-y: visible;
-} */
-
 ::-webkit-scrollbar {
   display: none;
 }
@@ -124,4 +72,3 @@ label {
     opacity: 1;
   }
 }
-

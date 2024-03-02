@@ -1,13 +1,21 @@
-import { mainnet } from "viem/chains";
-import { createWalletClient, custom } from "viem";
-import { createContext, useContext, useState } from "react";
-
-import { useEthereum } from "@particle-network/auth-core-modal";
+import { ethers } from "ethers";
+import {
+  useAccount,
+  useConnectKit,
+  useConnectModal,
+  useParticleProvider,
+} from "@particle-network/connect-react-ui";
+import { createContext, useContext, useEffect, useState } from "react";
+import { Provider } from "@particle-network/connect";
 
 export interface Web3Props {
   error: null | string;
-  address?: `0x${string}`;
-  handleConnect: () => Promise<void>;
+  authenticating: boolean;
+  connected: boolean;
+  address: string | null;
+  provider?: Provider;
+  ethersProvider?: ethers.BrowserProvider;
+  // user?: WalletMeta;
   login: () => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -25,24 +33,19 @@ export const Web3Provider = ({ children }: Props) => {
 
   const [authenticating, setAuthenticating] = useState(false);
 
-  const { provider } = useEthereum();
-
-  const viemProvider = createWalletClient({
-    chain: mainnet,
-    transport: custom(provider),
-  });
-
-  const particleProvider = new ParticleProvider(particle.auth);
-
-  // const chainId = useChainId();
-  // const { address } = useAccount();
-  // const { disconnectAsync } = useDisconnect();
-  // const { signMessageAsync } = useSignMessage();
+  const account = useAccount();
+  const provider = useParticleProvider();
+  const { openConnectModal } = useConnectModal();
+  const { disconnect } = useConnectKit();
 
   const [error, setError] = useState<null | string>(null);
 
+  // @ts-ignore
+  const ethersProvider = provider && new ethers.BrowserProvider(provider);
+
   async function handleConnect(): Promise<void> {
     try {
+      openConnectModal && openConnectModal();
       setError(null);
     } catch (err: any) {
       err && err.message && setError(err.message);
@@ -52,23 +55,16 @@ export const Web3Provider = ({ children }: Props) => {
 
   async function login() {
     try {
-      // if (authenticated || authenticating) {
-      //   return;
-      // }
-
       setAuthenticating(true);
       setError(null);
 
-      // if (!address) {
-      //   handleConnect();
-      //   setAuthenticating(false);
+      if (!account) {
+        handleConnect();
 
-      //   return;
-      // }
+        return;
+      }
 
       setAuthenticating(false);
-
-      localStorage.setItem("authenticated", "true");
     } catch (err: any) {
       setAuthenticating(false);
       err && err.message && setError(err.message);
@@ -79,30 +75,29 @@ export const Web3Provider = ({ children }: Props) => {
   async function logout(): Promise<void> {
     try {
       setError(null);
-      // await disconnectAsync();
-
-      localStorage.setItem("authenticated", "false");
+      await disconnect();
     } catch (err: any) {
       err && err.message && setError(err.message);
       console.error("ERROR DICONNECTING WALLET", err);
     }
   }
 
-  // useEffect(() => {
-  //   if (address) {
-  //     login();
-  //   }
-  // }, [address]);
+  useEffect(() => {
+    if (account) {
+      setAuthenticating(false);
+    }
+  }, [account]);
 
   return (
     <Web3Context.Provider
       value={{
         error,
-        address: `0x${"address"}`,
-        // ready,
-        // activeWallet,
-        // wallets,
-        handleConnect,
+        authenticating,
+        connected: !!account,
+        address: account ?? null,
+        // user: walletMetas()[0],
+        provider,
+        ethersProvider,
         login,
         logout,
       }}

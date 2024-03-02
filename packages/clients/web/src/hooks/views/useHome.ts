@@ -1,5 +1,11 @@
-export interface HomeDataProps {}
+import { useCampaigns, CampaignsDataProps } from "../campaign/useCampaigns";
+
+export interface HomeDataProps extends CampaignsDataProps {}
 
 export const useHome = (): HomeDataProps => {
-  return {};
+  const campaignsData = useCampaigns();
+
+  return {
+    ...campaignsData,
+  };
 };

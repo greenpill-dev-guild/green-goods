@@ -13,6 +13,8 @@ declare interface Campaign {
   hypercertID: number;
   title: string;
   description: string;
+  banner: string;
+  logo: string;
   details: string;
   start_date: string;
   end_date: string;
@@ -20,7 +22,6 @@ declare interface Campaign {
   team: string[];
   capitals: string[];
   created_at: string;
-  contributions?: Contribution[];
 }
 
 declare interface Contribution {
@@ -38,8 +39,9 @@ declare interface Contribution {
 
 declare interface Confirmation {
   id: string;
-  workID: string;
-  approver: string;
+  contributionID: string;
+  attester: string;
   approval: boolean;
+  feedback?: string;
   created_at: string;
 }

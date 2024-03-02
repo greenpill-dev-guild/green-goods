@@ -28,19 +28,22 @@ export interface Typegen0 {
     mediaUploader: "done.invoke.mediaUploader";
   };
   missingImplementations: {
-    actions: "campaigned" | "verified";
+    actions: "campaignCreated" | "goHome" | "goToCampaign";
     delays: never;
     guards: never;
-    services: never;
+    services: "campaignCreator";
   };
   eventsCausingActions: {
-    campaigned: "done.invoke.campaignCreator";
+    campaignCreated: "done.invoke.campaignCreator";
     error: "error.platform.campaignCreator" | "error.platform.mediaUploader";
-    reset: "GO_HOME" | "VIEW_CAMPAIGN";
-    verified: "done.invoke.mediaUploader";
+    goHome: "CANCEL" | "GO_HOME";
+    goToCampaign: "VIEW_CAMPAIGN";
+    reset: "CANCEL" | "CREATE_ANOTHER" | "GO_HOME" | "VIEW_CAMPAIGN";
   };
   eventsCausingDelays: {};
-  eventsCausingGuards: {};
+  eventsCausingGuards: {
+    areDetailsValid: "NEXT";
+  };
   eventsCausingServices: {
     campaignCreator: "done.invoke.mediaUploader";
     mediaUploader: "CREATE";
@@ -50,7 +53,6 @@ export interface Typegen0 {
     | "creating_campaign"
     | "details"
     | "idle"
-    | "media"
     | "review"
     | "uploading_media";
   tags: never;
