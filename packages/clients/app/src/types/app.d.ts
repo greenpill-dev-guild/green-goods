@@ -13,14 +13,14 @@ declare interface Campaign {
   hypercertID: number;
   title: string;
   description: string;
-  banner: string;
   logo: string;
+  banner: string;
   details: string;
   start_date: string;
   end_date: string;
   creator: string;
   team: string[];
-  capitals: string[];
+  capitals: Capital[];
   created_at: string;
 }
 

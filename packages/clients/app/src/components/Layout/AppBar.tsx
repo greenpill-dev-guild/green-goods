@@ -53,7 +53,7 @@ export const Appbar = () => {
   return (
     <a.nav
       className={
-        "btm-nav z-20 bg-base-100 py-8 fixed bottom-0 rounded-t-2xl w-full"
+        "btm-nav z-20 bg-base-100 py-9 fixed bottom-0 rounded-t-2xl w-full"
       }
       style={spring}
     >
@@ -67,13 +67,13 @@ export const Appbar = () => {
             }`}
           >
             <Icon width={36} height={36} />
-            {/* <p
+            <p
               className={`text-sm tracking-wide ${
                 pathname === path ? "text-primary" : "text-neutral"
               }`}
             >
               {title}
-            </p> */}
+            </p>
           </button>
         </Link>
       ))}
