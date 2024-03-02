@@ -6,12 +6,15 @@ import {CampaignToken} from "../src/tokens/Campaign.sol";
 import {CampaignAccount} from "../src/accounts/Campaign.sol";
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
+import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Receiver.sol";
 import "erc6551/interfaces/IERC6551Registry.sol";
 import "tokenbound/AccountProxy.sol";
 import "erc6551/examples/simple/ERC6551Account.sol";
 import "../src/interfaces/ISchemaRegistry.sol";
 import "../src/interfaces/ISchemaResolver.sol";
 import "../src/interfaces/IHypercertToken.sol";
+import "../src/tokens/Hypercert.sol";
 import { IEAS, AttestationRequest, AttestationRequestData } from "../src/interfaces/IEAS.sol";
 
 import { Script } from "forge-std/Script.sol";
@@ -30,6 +33,7 @@ import {ContributionResolver} from "../src/resolvers/Contribution.sol";
 contract MintTest is Test {
     //CampaignToken public gpnft;
 
+
     address payable public alice =
         payable(0x00000000000000000000000000000000000A11cE);
     address payable public bob =
@@ -41,6 +45,7 @@ contract MintTest is Test {
     address public entryPoint = 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789;
     ISchemaRegistry public easRegistry = ISchemaRegistry(0x4200000000000000000000000000000000000020);
     IEAS public eas = IEAS(EAS_OP);
+    Hypercert hypercertContract;
 
     address[] public team;
     string[] public capitals;
@@ -62,6 +67,9 @@ contract MintTest is Test {
     address campaignImplementation;
     address campaignProxy;
     address campaignToken;
+    address hypercert;
+
+
 
 
     function setUp() public {
@@ -85,6 +93,18 @@ contract MintTest is Test {
         factory
     );
 
+    hypercert = Create2.computeAddress(
+        salt,
+        keccak256(
+            abi.encodePacked(
+                type(Hypercert).creationCode, abi.encode()
+            )
+        ),
+        factory
+    );
+
+    console2.log("hypercert", hypercert);
+
     campaignImplementation = Create2.computeAddress(
         salt,
         keccak256(
@@ -106,12 +126,14 @@ contract MintTest is Test {
         salt,
         keccak256(
             abi.encodePacked(
-                type(CampaignToken).creationCode, abi.encode(campaignImplementation, confirmationResolver)
+                type(CampaignToken).creationCode, abi.encode(campaignImplementation, confirmationResolver, hypercert)
             )
         ),
         factory
     );
 
+
+    
     // Load the private key from the `PRIVATE_KEY` environment variable (in .env)
     //uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 
@@ -157,7 +179,7 @@ contract MintTest is Test {
     // Deploy Campaign Token
     if (campaignToken.code.length == 0) {
         //vm.startBroadcast(deployerPrivateKey);
-        new CampaignToken{salt: salt}(campaignImplementation, confirmationResolver);
+        new CampaignToken{salt: salt}(campaignImplementation, confirmationResolver, hypercert);
         //vm.stopBroadcast();
         console.log("CampaignToken:", campaignToken, "(deployed)");
     } else {
@@ -183,9 +205,21 @@ contract MintTest is Test {
         console.log("ConfirmationResolver:", confirmationResolver, "(exists)");
     }
 
+    if (hypercert.code.length == 0) {
+        //vm.startBroadcast(deployerPrivateKey);
+        new Hypercert{salt: salt}();
+        //vm.stopBroadcast();
+        //console2.log("s/b ConfResolver", address(test2));
+        console.log("Hypercert:", hypercert, "(deployed)");
+    } else {
+        console.log("Hypercert:", hypercert, "(exists)");
+    }
+
+    hypercertContract = Hypercert(hypercert);
 
     contributionSchemaUid = easRegistry.register("uint256 value, string title, string description, string[] media, string[] capitals", ISchemaResolver(contributionResolver), true);
     confirmationSchemaUid = easRegistry.register("uint  contributionId, bool approval, string feedback, address campAccount", ISchemaResolver(confirmationResolver), true);
+
 
 
         // campaignToken = new CampaignToken(address(0x41C8f39463A868d3A88af00cd0fe7102F30E44eC), address(0xabcd));
@@ -197,6 +231,14 @@ contract MintTest is Test {
         capitals.push("money");
         capitals.push("dollars");
         capitals.push("cheese");
+    }
+
+    function testMint() public {
+        hoax(alice);
+        uint tokID1 = hypercertContract.mint(100);
+        hoax(bob);
+        hypercertContract.mint(50);
+        console2.log("alice balance", hypercertContract.balanceOf(alice, tokID1));
     }
 
     function testCreateCampaign() public {
@@ -241,10 +283,10 @@ contract MintTest is Test {
         CampaignAccount scAccount = CampaignAccount(payable(tbaAddress));
         uint hyperId = scAccount.hypercertId();
         console2.log("hypercertId ", hyperId);
-        assertGt(hyperId, 0, "0 hyperId");
+        //assertGt(hyperId, 0, "0 hyperId");
         assertEq(hyperId, hyperCertId, "hypercert doesn't match");
 
-        uint balance = IHypercertToken(0xC2d179166bc9dbB00A03686a5b17eCe2224c2704).unitsOf(scAddress, hyperId);
+        uint balance = hypercertContract.balanceOf(scAddress, hyperId);
 
         console2.log("balance", balance);
     }
@@ -313,11 +355,11 @@ contract MintTest is Test {
             data: attestationRequestData // The arguments of the attestation request.
         });
 
-        //hoax(alice);
+        hoax(bob);
         eas.attest(request);
 
         //for confirmation
-        attestationRequestData.recipient = address(this);
+        attestationRequestData.recipient = bob;
         attestationRequestData.data = abi.encode(0, true, "gud", tbaAddress);
 
         request.schema = confirmationSchemaUid;

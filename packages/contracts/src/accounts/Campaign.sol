@@ -5,6 +5,7 @@ import { AccountV3Upgradable } from "tokenbound/AccountV3Upgradable.sol";
 import { Initializable } from "openzeppelin-contracts/proxy/utils/Initializable.sol";
 
 import { IHypercertToken } from "../interfaces/IHypercertToken.sol";
+import "../tokens/Hypercert.sol";
 
 error NotTeamMember();
 error NotConfirmationResolver();
@@ -20,6 +21,7 @@ contract CampaignAccount is AccountV3Upgradable, Initializable {
     string[] public capitals;
     mapping (address => bool) public team;
     mapping (uint256 => bool) public contributions;
+    address public hypercert;
 
     uint[] private values;
 
@@ -33,6 +35,7 @@ contract CampaignAccount is AccountV3Upgradable, Initializable {
         address _guardian
     ) AccountV3Upgradable(_erc4337EntryPoint, _multicallForwarder, _erc6551Registry, _guardian) {
         confirmationResolver = _confirmationResolver;
+        
     }
 
     function initialize(
@@ -40,10 +43,12 @@ contract CampaignAccount is AccountV3Upgradable, Initializable {
         uint256 _endDate,
         string calldata _metadata,
         string[] memory _capitals,
-        address[] memory _team // Users smart account address
+        address[] memory _team,
+        address _hypercert 
     ) external initializer returns (uint256) {
         startDate = _startDate;
         endDate = _endDate;
+        hypercert = _hypercert;
 
         for (uint256 i = 0; i < _team.length; i++) {
             team[_team[i]] = true;
@@ -53,7 +58,7 @@ contract CampaignAccount is AccountV3Upgradable, Initializable {
             capitals.push(_capitals[i]);
         }
         
-        IHypercertToken(0xC2d179166bc9dbB00A03686a5b17eCe2224c2704).mintClaim(address(this), 100, _metadata, IHypercertToken.TransferRestrictions.FromCreatorOnly);
+        hypercertId = Hypercert(hypercert).mint(100);
 
 
         return hypercertId;
@@ -66,11 +71,11 @@ contract CampaignAccount is AccountV3Upgradable, Initializable {
         uint256 value,
         bytes memory data
     ) public override returns (bytes4){
-        if(operator == address(this) && hypercertId == 0){
-            hypercertId = id;
-        } else if(operator == address(this)){
-            tempHypercertId = id;
-        }
+        // if(operator == address(this) && hypercertId == 0){
+        //     hypercertId = id;
+        // } else if(operator == address(this)){
+        //     tempHypercertId = id;
+        // }
     _handleOverride();
     return this.onERC1155Received.selector;
     }
@@ -104,16 +109,17 @@ contract CampaignAccount is AccountV3Upgradable, Initializable {
             revert AlreadyCompensated();
         }
 
-        uint totalValueLeft = IHypercertToken(0xC2d179166bc9dbB00A03686a5b17eCe2224c2704).unitsOf(address(this), hypercertId);
+        uint totalValueLeft = Hypercert(hypercert).balanceOf(address(this), hypercertId);
         require(totalValueLeft >= _amount, "not enough hypercert fragments");
-        if(totalValueLeft == _amount){
-            IHypercertToken(0xC2d179166bc9dbB00A03686a5b17eCe2224c2704).safeTransferFrom(address(this), _recipient, tempHypercertId, 1, abi.encodePacked("0"));
-        }//else{
-        //     if(values.length > 0) values.pop();
-        //     values.push(_amount);
-        //     IHypercertToken(0xC2d179166bc9dbB00A03686a5b17eCe2224c2704).splitFraction(address(this), hypercertId, values);
-        // // TODO: Transfer fraction of hypercert
-        // }
+        if(totalValueLeft >= _amount){
+            Hypercert(hypercert).safeTransferFrom(address(this), _recipient, tempHypercertId, _amount, abi.encodePacked("0"));
+        } //else{
+            // if(values.length > 0) values.pop();
+            // values.push(_amount);
+            // //hypercert.splitFraction(address(this), hypercertId, values);
+            // hypercert.safeTransferFrom(address(this), _recipient, tempHypercertId, _amount, abi.encodePacked("0"));
+        // TODO: Transfer fraction of hypercert
+        //}
         
         contributions[_contributionId] = true;
     }
