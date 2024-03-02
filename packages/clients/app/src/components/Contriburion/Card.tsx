@@ -27,17 +27,15 @@ export const ContributionCard: React.FC<ContributionCardProps> = ({
   return (
     <Card className="w-[350px]">
       <img src={proof[0]} />
-      <CardHeader>
+      <CardHeader className="px-6">
         <CardTitle>{title}</CardTitle>
         <div>
           {capitals.map((capital) => (
             <Badge>{capital}</Badge>
           ))}
         </div>
-      </CardHeader>
-      <CardContent>
         <CardDescription>{description}</CardDescription>
-      </CardContent>
+      </CardHeader>
       <CardFooter className="flex justify-between"></CardFooter>
     </Card>
   );

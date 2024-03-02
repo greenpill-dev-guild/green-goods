@@ -3,12 +3,12 @@ import { useQuery } from "@apollo/client";
 import { campaignsQuery } from "@/modules/apollo";
 
 import {
-  useContribution,
-  ContributionDataProps,
-} from "../contribution/useContribution";
+  useMakeContribution,
+  MakeContributionDataProps,
+} from "../contribution/useMakeContribution";
 import { mockCampaigns } from "@/mockData";
 
-export interface ContributeDataProps extends ContributionDataProps {
+export interface ContributeDataProps extends MakeContributionDataProps {
   campaigns: Campaign[];
 }
 
@@ -36,7 +36,7 @@ export const useContribute = (): ContributeDataProps => {
       };
     }) || mockCampaigns;
 
-  const contribution = useContribution();
+  const contribution = useMakeContribution();
 
   return {
     campaigns,

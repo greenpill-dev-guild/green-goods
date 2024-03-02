@@ -20,7 +20,7 @@ export const ProfileInfo: React.FC<ProfileInfoProps> = ({
       style={avatarSpring}
     >
       <div className="text-neutral-content rounded-full w-20">
-        <img src={avatar} alt="profile avatar" className="" />
+        <img src={avatar} alt="profile avatar" className="rounded-full w-20" />
       </div>
       <h5 className="w-2/3 h-12 line-clamp-1 capitalize">{username}</h5>
     </a.div>

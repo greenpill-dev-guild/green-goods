@@ -9,6 +9,7 @@ import { OnlyMobile } from "./components/Layout/OnlyMobile";
 
 import Views from "./views";
 import { Login } from "./views/Login";
+import { ContributionsProvider } from "./hooks/contribution/useContributions";
 
 function App() {
   const web3Props = useWeb3();
@@ -34,10 +35,10 @@ function App() {
   };
 
   return (
-    <>
+    <ContributionsProvider>
       {Onboard[installState]}
       <Toaster />
-    </>
+    </ContributionsProvider>
   );
 }
 

@@ -59,7 +59,7 @@ export const mockContributions: Contribution[] = [
     user: "afo-wefa.eth",
     capitals: ["Cultural", "Intellectual", "Social"],
     proof: [
-      "https://drive.google.com/file/d/10tHbt9sDKN1GdE2IQZ4Mu2c0YAQg56lr/view?usp=sharing",
+      "https://bafybeif4rv4cjeuzx3daq5yqpjiy2y5dqgfl3pjlsnghzmsoaih35erpdu.ipfs.dweb.link/",
     ],
     created_at: "2021-08-01",
     status: "pending",
@@ -73,7 +73,7 @@ export const mockContributions: Contribution[] = [
     user: "afo-wefa.eth",
     capitals: ["Cultural", "Intellectual", "Social"],
     proof: [
-      "https://drive.google.com/file/d/10tHbt9sDKN1GdE2IQZ4Mu2c0YAQg56lr/view?usp=sharing",
+      "https://bafybeif4rv4cjeuzx3daq5yqpjiy2y5dqgfl3pjlsnghzmsoaih35erpdu.ipfs.dweb.link/",
     ],
     created_at: "2021-08-01",
     status: "pending",
@@ -87,7 +87,7 @@ export const mockContributions: Contribution[] = [
     user: "afo-wefa.eth",
     capitals: ["Cultural", "Intellectual", "Social"],
     proof: [
-      "https://drive.google.com/file/d/10tHbt9sDKN1GdE2IQZ4Mu2c0YAQg56lr/view?usp=sharing",
+      "https://bafybeif4rv4cjeuzx3daq5yqpjiy2y5dqgfl3pjlsnghzmsoaih35erpdu.ipfs.dweb.link/",
     ],
     created_at: "2021-08-01",
     status: "pending",

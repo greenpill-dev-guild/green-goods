@@ -6,8 +6,9 @@ import { useContribute } from "../hooks/views/useContribute";
 import { useProfile } from "../hooks/views/useProfile";
 
 import Home from "./Home";
-import Contribute from "./Contribute";
 import Profile from "./Profile";
+import Contribute from "./Contribute";
+import Contribution from "./Home/Contribution";
 
 export default function Views() {
   const location = useLocation();
@@ -33,7 +34,9 @@ export default function Views() {
       style={style}
     >
       <Routes location={location}>
-        <Route path="home" element={<Home {...home} />} />
+        <Route path="home" element={<Home {...home} />}>
+          <Route path=":contribution" element={<Contribution />} />
+        </Route>
         <Route path="contribute" element={<Contribute {...contribute} />} />
         <Route path="profile" element={<Profile {...profile} />} />
         <Route path="*" element={<Navigate to="home" />} />

@@ -7,21 +7,22 @@ interface LoginProps extends Web3Props {}
 
 export const Login: React.FC<LoginProps> = ({ error, login }) => {
   return (
-    <section className={`grid place-items-center h-full w-full gap-3 px-6`}>
-      {/* <img
-        className="w-64"
-        src={`assets/logo-banner-transparent.png`}
-        alt="Greenpill"
-      /> */}
-      <div className={`text-center uppercase`}>
-        <h5>Welcome to the</h5>
-        <h2>Camp Green</h2>
-      </div>
-      <div className={`w-full`}>
-        <Button onClick={login}>Login</Button>
-        <p className="w-full text-red-500 h-10 line-clamp-2 text-center">
-          {error}
-        </p>
+    <section
+      className={`grid place-items-center h-full w-full gap-3 px-6 bg-[]`}
+    >
+      <div className="flex flex-col gap-12">
+        <div className={`text-center uppercase`}>
+          <h5>Welcome To</h5>
+          <h2>Camp Green</h2>
+        </div>
+        <img
+          className="w-screen"
+          src={`https://bafybeif4rv4cjeuzx3daq5yqpjiy2y5dqgfl3pjlsnghzmsoaih35erpdu.ipfs.dweb.link/`}
+          alt="Camp Green"
+        />
+        <Button onClick={login} className="w-full">
+          Login
+        </Button>
       </div>
     </section>
   );
