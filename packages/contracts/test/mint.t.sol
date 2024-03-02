@@ -9,6 +9,12 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "erc6551/interfaces/IERC6551Registry.sol";
 import "tokenbound/AccountProxy.sol";
 import "erc6551/examples/simple/ERC6551Account.sol";
+interface ISchemaRegistry{
+    function register(string calldata schema, ISchemaResolver resolver, bool revocable) external returns (bytes32);
+}
+interface ISchemaResolver{
+    
+}
 
 import { Script } from "forge-std/Script.sol";
 import { console } from "forge-std/console.sol";
@@ -21,6 +27,7 @@ import { TOKENBOUND_REGISTRY, EAS_OP } from "../src/Constants.sol";
 import { CampaignToken, TBALib } from "../src/tokens/Campaign.sol";
 import { CampaignAccount } from "../src/accounts/Campaign.sol";
 import {ConfirmationResolver} from "../src/resolvers/Confirmation.sol";
+import {ContributionResolver} from "../src/resolvers/Contribution.sol";
 
 contract MintTest is Test {
     //CampaignToken public gpnft;
@@ -34,6 +41,7 @@ contract MintTest is Test {
     AccountProxy public implementation = AccountProxy(payable(0x55266d75D1a14E4572138116aF39863Ed6596E7F));
     address public actualImplementation = 0x41C8f39463A868d3A88af00cd0fe7102F30E44eC;
     address public entryPoint = 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789;
+    ISchemaRegistry public easRegistry = ISchemaRegistry(0x4200000000000000000000000000000000000020);
 
     address[] public team;
     string[] public capitals;
@@ -47,6 +55,7 @@ contract MintTest is Test {
 
     address guardian;
     address confirmationResolver;
+    address contributionResolver;
     address campaignImplementation;
     address campaignProxy;
     address campaignToken;
@@ -64,6 +73,12 @@ contract MintTest is Test {
     confirmationResolver = Create2.computeAddress(
         salt,
         keccak256(abi.encodePacked(type(ConfirmationResolver).creationCode, abi.encode(EAS_OP))),
+        factory
+    );
+
+    contributionResolver = Create2.computeAddress(
+        salt,
+        keccak256(abi.encodePacked(type(ContributionResolver).creationCode, abi.encode(EAS_OP))),
         factory
     );
 
@@ -148,6 +163,9 @@ contract MintTest is Test {
     }
 
 
+    bytes32 contributionSchemaUid = easRegistry.register("uint256 value, address campaign, string title, string description, string[] media, string[] capitals", ISchemaResolver(contributionResolver), true);
+    bytes32 confirmationSchemaUid = easRegistry.register("uint  contributionId, bool approval, string feedback, address campAccount", ISchemaResolver(confirmationResolver), true);
+
 
 
 
@@ -224,7 +242,7 @@ contract MintTest is Test {
         //???
     }
 
-    
+
 
     
 

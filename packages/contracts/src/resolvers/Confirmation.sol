@@ -13,11 +13,10 @@ import {CampaignAccount} from "../accounts/Campaign.sol";
 /// @notice A schema resolver for the Confirmations event schema
 contract ConfirmationResolver is SchemaResolver, Initializable, OwnableUpgradeable, UUPSUpgradeable {
     struct ConfirmationSchema {
+        uint  contributionId;
         bool approval;
-        uint  contributionId; //was "string???
-        uint256 created_at; //???
+        string feedback;
         address campAccount;
-        uint amount;
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -41,11 +40,11 @@ contract ConfirmationResolver is SchemaResolver, Initializable, OwnableUpgradeab
         ConfirmationSchema memory schema = abi.decode(attestation.data, (ConfirmationSchema));
         CampaignAccount campaignAccount = CampaignAccount(payable(schema.campAccount));
         require(campaignAccount.isCampaign() && campaignAccount.team(attestation.attester), "confirmation Resolver: not allowed");
-        campaignAccount.compensateContribution(
+        if(schema.approval){campaignAccount.compensateContribution(
             attestation.recipient,
-            schema.amount, 
+            4,//schema.amount, 
             schema.contributionId
-        );
+        );}
 
         return(true);
 
