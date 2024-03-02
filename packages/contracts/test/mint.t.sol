@@ -6,12 +6,14 @@ import {CampaignToken} from "../src/tokens/Campaign.sol";
 import {CampaignAccount} from "../src/accounts/Campaign.sol";
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/token/ERC115/IERC1155.sol";
 import "erc6551/interfaces/IERC6551Registry.sol";
 import "tokenbound/AccountProxy.sol";
 import "erc6551/examples/simple/ERC6551Account.sol";
 import "../src/interfaces/ISchemaRegistry.sol";
 import "../src/interfaces/ISchemaResolver.sol";
 import "../src/interfaces/IHypercertToken.sol";
+import "../src/tokens/Hypercert.sol";
 import { IEAS, AttestationRequest, AttestationRequestData } from "../src/interfaces/IEAS.sol";
 
 import { Script } from "forge-std/Script.sol";
@@ -112,6 +114,16 @@ contract MintTest is Test {
         factory
     );
 
+    hypercert = Create2.computeAddress(
+        salt,
+        keccak256(
+            abi.encodePacked(
+                type(Hypercert).creationCode, abi.encode()
+            )
+        ),
+        factory
+    );
+
     // Load the private key from the `PRIVATE_KEY` environment variable (in .env)
     //uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 
@@ -181,6 +193,16 @@ contract MintTest is Test {
         console.log("ConfirmationResolver:", confirmationResolver, "(deployed)");
     } else {
         console.log("ConfirmationResolver:", confirmationResolver, "(exists)");
+    }
+
+    if (hypercert.code.length == 0) {
+        //vm.startBroadcast(deployerPrivateKey);
+        new Hypercert{salt: salt}();
+        //vm.stopBroadcast();
+        //console2.log("s/b ConfResolver", address(test2));
+        console.log("Hypercert:", hypercert, "(deployed)");
+    } else {
+        console.log("Hypercert:", hypercert, "(exists)");
     }
 
 
