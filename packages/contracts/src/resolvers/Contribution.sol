@@ -40,8 +40,7 @@ contract ContributionResolver is SchemaResolver, Initializable, OwnableUpgradeab
         override
         returns (bool)
     {   
-        CampaignAccount campaignAccount = CampaignAccount(attestation.recipient);
-        
+        CampaignAccount campaignAccount = CampaignAccount(payable(attestation.recipient));
         return(campaignAccount.isCampaign());
     }
 

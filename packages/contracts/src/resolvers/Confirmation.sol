@@ -14,7 +14,7 @@ import {CampaignAccount} from "../accounts/Campaign.sol";
 contract ConfirmationResolver is SchemaResolver, Initializable, OwnableUpgradeable, UUPSUpgradeable {
     struct ConfirmationSchema {
         bool approval;
-        string  contributionId;
+        string  contributionId; //uint???
         uint256 created_at;
     }
 
@@ -34,12 +34,17 @@ contract ConfirmationResolver is SchemaResolver, Initializable, OwnableUpgradeab
     function onAttest(Attestation calldata attestation, uint256 /*value*/ )
         internal
         override
-        onlyOwner
         returns (bool)
     {
-        // TODO: Check if the confirmation is valid
+        CampaignAccount campaignAccount = CampaignAccount(payable(attestation.recipient));
+        return(campaignAccount.isCampaign() && campaignAccount.team(attestation.attester));
 
-        return true;
+        campaignAccount.compensateContribution(
+            _recipient,
+            _amount,
+            _contributionId
+            );
+
     }
 
     function onRevoke(Attestation calldata attestation, uint256 /*value*/ )

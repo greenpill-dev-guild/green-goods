@@ -198,7 +198,6 @@ contract MintTest is Test {
         //console2.log("scaddress ", tbaAddress);
         address scAddress = TBALib.getAccount(
             address(implementation),
-            
             address(campaignToken),
             tokenId
         );
@@ -208,6 +207,24 @@ contract MintTest is Test {
         console2.log("hypercertId ", hyperId);
         assertGt(hyperId, 0, "0 hyperId");
     }
+
+    function testContributionResolver() public {
+        hoax(alice);
+        address tbaAddress = CampaignToken(campaignToken).createCampaign(1709250389, 1709350000,"metadata", capitals, team);
+        uint tokenId = 0;
+        //console2.log("scaddress ", tbaAddress);
+        address scAddress = TBALib.getAccount(
+            address(implementation),
+            address(campaignToken),
+            tokenId
+        );
+        //console2.log("scAddress ", scAddress);
+        CampaignAccount scAccount = CampaignAccount(payable(tbaAddress));
+        uint hyperId = scAccount.hypercertId();
+        //???
+    }
+
+    
 
     
 
