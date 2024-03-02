@@ -17,7 +17,7 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
   title,
   description,
   logo,
-  banner,
+  // banner,
 }) => {
   return (
     <Card className="w-[350px]">
