@@ -42,7 +42,7 @@ contract ConfirmationResolver is SchemaResolver, Initializable, OwnableUpgradeab
         require(campaignAccount.isCampaign() && campaignAccount.team(attestation.attester), "confirmation Resolver: not allowed");
         if(schema.approval){campaignAccount.compensateContribution(
             attestation.recipient,
-            100,//schema.amount, 
+            4,//schema.amount, 
             schema.contributionId
         );}
 

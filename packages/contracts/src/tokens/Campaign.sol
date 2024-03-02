@@ -18,14 +18,16 @@ contract CampaignToken is ERC721 {
 
     address private implementation;
     address private confirmationResolver;
+    address public hypercert;
 
     using Counters for Counters.Counter;
 
     Counters.Counter private _campaignIdCounter;
 
-    constructor(address _implementation, address _confirmationResolver) ERC721("Greenpill Campaign", "GPC") {
+    constructor(address _implementation, address _confirmationResolver, address _hypercert) ERC721("Greenpill Campaign", "GPC") {
         implementation = _implementation;
         confirmationResolver = _confirmationResolver;
+        hypercert = _hypercert;
     }
 
     //how to gate this so only app users can mint
@@ -43,7 +45,7 @@ contract CampaignToken is ERC721 {
 
         address campaignAddrs = TBALib.createAccount(address(implementation), address(this), id);
 
-        uint hypeId = CampaignAccount(payable(campaignAddrs)).initialize(_startDate, _endDate, _metadata, _capitals, _team);
+        uint hypeId = CampaignAccount(payable(campaignAddrs)).initialize(_startDate, _endDate, _metadata, _capitals, _team, hypercert);
 
         emit CampaignCreated(msg.sender, campaignAddrs, /*hypercertId,*/ _capitals, _metadata);
     
