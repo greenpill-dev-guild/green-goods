@@ -35,6 +35,7 @@ contract CampaignAccount is AccountV3Upgradable, Initializable {
     function initialize(
         uint256 _startDate,
         uint256 _endDate,
+        string calldata _metadata,
         string[] memory _capitals,
         address[] memory _team // Users smart account address
     ) external initializer returns (uint256) {
@@ -49,7 +50,7 @@ contract CampaignAccount is AccountV3Upgradable, Initializable {
             capitals.push(_capitals[i]);
         }
         
-        IHypercertToken(0xC2d179166bc9dbB00A03686a5b17eCe2224c2704).mintClaim(address(this), 100, "something really cool here I guess (URI)", IHypercertToken.TransferRestrictions.FromCreatorOnly);
+        IHypercertToken(0xC2d179166bc9dbB00A03686a5b17eCe2224c2704).mintClaim(address(this), 100, _metadata, IHypercertToken.TransferRestrictions.FromCreatorOnly);
 
 
         //return hypercertId;

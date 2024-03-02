@@ -43,7 +43,7 @@ contract CampaignToken is ERC721 {
 
         address campaignAddrs = TBALib.createAccount(address(implementation), address(this), id);
 
-        CampaignAccount(payable(campaignAddrs)).initialize(_startDate, _endDate, _capitals, _team);
+        CampaignAccount(payable(campaignAddrs)).initialize(_startDate, _endDate, _metadata, _capitals, _team);
 
         emit CampaignCreated(msg.sender, campaignAddrs, /*hypercertId,*/ _capitals, _metadata);
     
