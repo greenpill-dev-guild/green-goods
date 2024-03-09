@@ -1,42 +1,43 @@
 import React from "react";
-import { Outlet, useNavigate } from "react-router-dom";
 
-import { Card } from "@/components/ui/card";
 import { HomeDataProps } from "@/hooks/views/useHome";
+
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+} from "@/components/ui/carousel";
 
 interface HomeProps extends HomeDataProps {}
 
-const Home: React.FC<HomeProps> = ({ confirmationMap, contributions }) => {
-  const navigate = useNavigate();
-
+const Home: React.FC<HomeProps> = ({}) => {
   return (
-    <section className={`relative w-full h-full`}>
-      <ul className="flex flex-col gap-4 px-4 py-12 h-full overflow-y-scroll">
-        {contributions.map((contribution, index) => {
-          const confirmation = confirmationMap[contribution.id];
-          return (
-            <li key={index}>
-              <Card onClick={() => navigate(`${contribution.id}`)}>
-                <img src={contribution.proof[0]} alt="" />
-                <div className="px-4 py-4">
-                  <div>{contribution.title}</div>
-                  <div>{contribution.description}</div>
-                  <div>{contribution.value}</div>
-                  <div>
-                    {confirmation
-                      ? confirmation.approval
-                        ? "Approved"
-                        : "Rejected"
-                      : "Pending"}
-                  </div>
-                </div>
-              </Card>
-            </li>
-          );
-        })}
-      </ul>
-      <Outlet />
-    </section>
+    <div className={`relative w-full h-full flex flex-col gap-8`}>
+      <section>
+        <h4>Contributions</h4>
+        <Carousel className={`relative w-full h-full`}>
+          <CarouselContent>
+            {Array.from({ length: 5 }).map((_, index) => (
+              <CarouselItem key={index}>
+                <div className="p-1">{index}</div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+        </Carousel>
+      </section>
+      <section>
+        <h4>Campaigns</h4>
+        <Carousel className={`relative w-full h-full`}>
+          <CarouselContent>
+            {Array.from({ length: 5 }).map((_, index) => (
+              <CarouselItem key={index}>
+                <div className="p-1">{index}</div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+        </Carousel>
+      </section>
+    </div>
   );
 };
 

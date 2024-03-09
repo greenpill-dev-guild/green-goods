@@ -20,8 +20,8 @@ export const useProfile = (): ProfileDataProps => {
   });
 
   return {
-    name: web3.user?.name,
-    avatar: web3.user?.avatar,
+    name: web3.user?.email?.address,
+    avatar: web3.user?.farcaster?.pfp,
     avatarSpring,
     ...web3,
   };

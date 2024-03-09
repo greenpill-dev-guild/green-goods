@@ -1,31 +1,21 @@
-import { mockConfirmations, mockContributions } from "@/mockData";
-import {
-  userConfirmationsQuery,
-  userContributionsQuery,
-} from "@/modules/apollo";
-import { useQuery } from "@apollo/client";
+import { useCampaigns } from "../campaign/useCampaigns";
+import { useContributions } from "../contribution/useContributions";
 
 export interface HomeDataProps {
+  address?: string | null;
+  campaigns: Campaign[];
   contributions: Contribution[];
-  confirmationMap: Record<string, Confirmation>;
+  contributionMap: Record<string, Contribution>;
 }
 
 export const useHome = (): HomeDataProps => {
-  const { data: contributionData } = useQuery<any[]>(userContributionsQuery);
-  const { data: confirmationData } = useQuery<any[]>(userConfirmationsQuery);
-
-  const contributions =
-    contributionData?.map((contribution) => contribution) || mockContributions;
-
-  const confirmationMap: Record<string, Confirmation> = {};
-
-  const confirmations = confirmationData ? confirmationData : mockConfirmations;
-  confirmations?.forEach((confirmation) => {
-    confirmationMap[confirmation.id] = confirmation;
-  });
+  const { campaigns } = useCampaigns();
+  const { address, contributionMap, contributions } = useContributions();
 
   return {
+    address,
+    campaigns,
     contributions,
-    confirmationMap,
+    contributionMap,
   };
 };

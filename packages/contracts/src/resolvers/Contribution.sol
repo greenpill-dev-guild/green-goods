@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.21;
 
-import {IEAS, Attestation} from "eas-contracts/IEAS.sol";
-import {SchemaResolver} from "eas-contracts/resolver/SchemaResolver.sol";
-import "openzeppelin-contracts/proxy/utils/UUPSUpgradeable.sol";
-import "openzeppelin-contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { IEAS, Attestation } from "eas-contracts/IEAS.sol";
+import { SchemaResolver } from "eas-contracts/resolver/SchemaResolver.sol";
+import { UUPSUpgradeable } from "openzeppelin-contracts/proxy/utils/UUPSUpgradeable.sol";
+import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-import {CampaignToken} from "../tokens/Campaign.sol";
-import {CampaignAccount} from "../accounts/Campaign.sol";
+import { CampaignAccount } from "../accounts/Campaign.sol";
+
+error NotCampaign();
+error NotOwner();
 
 /// @title ContributionResolver
 /// @notice A schema resolver for the Contributions event schema
@@ -39,7 +41,11 @@ contract ContributionResolver is SchemaResolver, Initializable, OwnableUpgradeab
         returns (bool)
     {   
         CampaignAccount campaignAccount = CampaignAccount(payable(attestation.recipient));
-        return(campaignAccount.isCampaign());
+
+        if (!campaignAccount.isCampaign()) {
+            revert NotCampaign();
+        }
+
         return(true);
     }
 
@@ -50,8 +56,6 @@ contract ContributionResolver is SchemaResolver, Initializable, OwnableUpgradeab
         onlyOwner
         returns (bool)
     {
-        require(attestation.attester == owner(), "ContributionResolver: only owner can revoke");
-
         return true;
     }
 

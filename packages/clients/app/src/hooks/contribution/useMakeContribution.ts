@@ -1,12 +1,10 @@
 import { useMachine } from "@xstate/react";
+import { useNavigate } from "react-router-dom";
 import { EAS, SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
 
-export const EASContractAddress = "0xC2679fBD37d54388Ce493F1DB75320D236e1815e"; // Sepolia v0.26
+import { EASContractAddress } from "@/lib/constants";
 
 import { ContributionContext, contributionMachine } from "./machine";
-import { useNavigate } from "react-router-dom";
-// import { FileUpload } from "@/modules/nftStorage";
-import { useWeb3 } from "../providers/web3";
 
 export interface MakeContributionDataProps extends ContributionContext {
   isIdle: boolean;
@@ -27,7 +25,7 @@ export interface MakeContributionDataProps extends ContributionContext {
 }
 
 export const useMakeContribution = (): MakeContributionDataProps => {
-  const { ethersProvider } = useWeb3();
+  // const { getEthersProvider } = useWeb3();
   const navigate = useNavigate();
 
   const [state, send] = useMachine(contributionMachine, {
@@ -45,11 +43,11 @@ export const useMakeContribution = (): MakeContributionDataProps => {
         const { data } = event;
 
         try {
-          const signer = ethersProvider?.getSigner();
+          // const signer = ethersProvider?.getSigner();
 
-          if (!signer) {
-            throw new Error("No signer found!");
-          }
+          // if (!signer) {
+          //   throw new Error("No signer found!");
+          // }
 
           const eas = new EAS(EASContractAddress);
 

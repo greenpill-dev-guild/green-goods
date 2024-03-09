@@ -1,19 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.21;
 
-import {IEAS, Attestation} from "eas-contracts/IEAS.sol";
-import {SchemaResolver} from "eas-contracts/resolver/SchemaResolver.sol";
-import "openzeppelin-contracts/proxy/utils/UUPSUpgradeable.sol";
-import "openzeppelin-contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { IEAS, Attestation } from "eas-contracts/IEAS.sol";
+import { SchemaResolver } from "eas-contracts/resolver/SchemaResolver.sol";
+import { UUPSUpgradeable } from "openzeppelin-contracts/proxy/utils/UUPSUpgradeable.sol";
+import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-import {CampaignToken} from "../tokens/Campaign.sol";
-import {CampaignAccount} from "../accounts/Campaign.sol";
+import { CampaignAccount } from "../accounts/Campaign.sol";
+
+error NotCampaignAccount();
+error NotAllowed();
 
 /// @title ConfirmationResolver
 /// @notice A schema resolver for the Confirmations event schema
 contract ConfirmationResolver is SchemaResolver, Initializable, OwnableUpgradeable, UUPSUpgradeable {
     struct ConfirmationSchema {
-        uint  contributionId;
+        uint256  contributionId;
         bool approval;
         string feedback;
         address campAccount;
@@ -39,7 +41,15 @@ contract ConfirmationResolver is SchemaResolver, Initializable, OwnableUpgradeab
     {   
         ConfirmationSchema memory schema = abi.decode(attestation.data, (ConfirmationSchema));
         CampaignAccount campaignAccount = CampaignAccount(payable(schema.campAccount));
-        require(campaignAccount.isCampaign() && campaignAccount.team(attestation.attester), "confirmation Resolver: not allowed");
+
+        if (!campaignAccount.isCampaign()) {
+            revert NotCampaignAccount();
+        }
+
+        if (!campaignAccount.team(attestation.attester)) {
+            revert NotAllowed();
+        }
+
         if(schema.approval){campaignAccount.compensateContribution(
             attestation.recipient,
             4,//schema.amount, 
@@ -57,8 +67,6 @@ contract ConfirmationResolver is SchemaResolver, Initializable, OwnableUpgradeab
         onlyOwner
         returns (bool)
     {
-        require(attestation.attester == owner(), "ConfirmationResolver: only owner can revoke");
-
         return true;
     }
 

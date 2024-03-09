@@ -14,15 +14,14 @@
   --background-color: #fafdfc;
   --primary-color: #287273;
 
-  background: linear-gradient(
-    151deg,
-    #dde9df 10.39%,
-    #9eb2a0 56.43%,
-    #cbd6cc 100%
-  );
   color-scheme: light dark;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+  font-family: "Noto Sans", sans-serif;
+  font-optical-sizing: auto;
+  /* font-weight: <weight>; */
+  font-style: normal;
+  font-variation-settings: "wdth" 100;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;

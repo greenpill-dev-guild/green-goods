@@ -1,14 +1,18 @@
 import { a, useTransition } from "@react-spring/web";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
-import { useHome } from "../hooks/views/useHome";
-import { useContribute } from "../hooks/views/useContribute";
-import { useProfile } from "../hooks/views/useProfile";
+import { useHome } from "@/hooks/views/useHome";
+import { useProfile } from "@/hooks/views/useProfile";
+import { useContribute } from "@/hooks/views/useContribute";
+
+import CampaignViewer from "@/components/Campaign/Viewer";
+import ContributionViewer from "@/components/Contriburion/Viewer";
 
 import Home from "./Home";
 import Profile from "./Profile";
 import Contribute from "./Contribute";
-import Contribution from "./Home/Contribution";
+import Campaigns from "./Home/Campaigns";
+import Contributions from "./Home/Contributions";
 
 export default function Views() {
   const location = useLocation();
@@ -34,8 +38,12 @@ export default function Views() {
       style={style}
     >
       <Routes location={location}>
-        <Route path="home" element={<Home {...home} />}>
-          <Route path=":contribution" element={<Contribution />} />
+        <Route path="home" element={<Home {...home} />} />
+        <Route path="campaigns" element={<Campaigns {...home} />}>
+          <Route path=":id" element={<CampaignViewer />} />
+        </Route>
+        <Route path="contributions" element={<Contributions {...home} />}>
+          <Route path=":id" element={<ContributionViewer />} />
         </Route>
         <Route path="contribute" element={<Contribute {...contribute} />} />
         <Route path="profile" element={<Profile {...profile} />} />

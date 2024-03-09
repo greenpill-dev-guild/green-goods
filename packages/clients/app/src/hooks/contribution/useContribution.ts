@@ -10,6 +10,8 @@ export const useContribution = (id: string): ContributionDataProps => {
   const confirmation = confirmationMap[id];
   const contribution = contributionMap[id];
 
+  console.log(contributionMap, confirmation);
+
   return {
     ...contribution,
     status: confirmation

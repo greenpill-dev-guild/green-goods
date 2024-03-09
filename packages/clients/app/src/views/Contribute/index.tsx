@@ -3,6 +3,8 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
+import { ContributeDataProps } from "@/hooks/views/useContribute";
+
 import {
   Form,
   FormControl,
@@ -11,15 +13,11 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "../../components/ui/form";
-
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CircleLoader } from "@/components/Loader/Circle";
-
-import { ContributeDataProps } from "../../hooks/views/useContribute";
-import { Input } from "../../components/ui/input";
-
-import { MultiSelect } from "../../components/ui/multi-select";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 interface ContributeProps extends ContributeDataProps {}
 

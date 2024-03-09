@@ -1,21 +1,27 @@
 import {
-  useConnect,
-  useEthereum,
-  useUserInfo,
-} from "@particle-network/auth-core-modal";
-import { UserInfo } from "@particle-network/auth-core";
+  usePrivy,
+  useWallets,
+  User,
+  ConnectedWallet,
+  UnsignedTransactionRequest,
+  SendTransactionModalUIOptions,
+} from "@privy-io/react-auth";
+import { usePrivySmartAccount } from "@zerodev/privy";
 import { createContext, useContext, useState } from "react";
-import { EVMProvider } from "@particle-network/auth-core-modal/dist/context/evmProvider";
-import { ethers } from "ethers";
 
 export interface Web3Props {
   error: null | string;
-  authenticating: boolean;
-  connected: boolean;
+  ready: boolean;
+  zeroDevReady: boolean;
   address: string | null;
-  provider: EVMProvider;
-  ethersProvider?: ethers.BrowserProvider;
-  user?: UserInfo;
+  user: User | null;
+  activeWallet?: ConnectedWallet;
+  wallets: ConnectedWallet[];
+  // signer: Json
+  sendTransaction: (
+    data: UnsignedTransactionRequest,
+    uiOptions?: SendTransactionModalUIOptions | undefined
+  ) => Promise<`0x${string}`>;
   login: () => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -31,32 +37,28 @@ export const Web3Provider = ({ children }: Props) => {
 
   if (currentValue) throw new Error("AppProvider can only be used once");
 
-  const [authenticating, setAuthenticating] = useState(false);
+  const {
+    ready,
+    authenticated,
+    login: privyLogin,
+    logout: privyLogout,
+    zeroDevReady,
+    sendTransaction,
+  } = usePrivySmartAccount();
+  const { user } = usePrivy();
+  const { wallets } = useWallets();
 
-  const { address, provider } = useEthereum();
-  const { userInfo } = useUserInfo();
-  const { connect, disconnect, connected } = useConnect();
+  const activeWallet = wallets[0];
+  const address = activeWallet?.address;
+  // const signer = getEthersProvider().getSigner();
 
   const [error, setError] = useState<null | string>(null);
-
-  // @ts-ignore
-  const ethersProvider = provider && new ethers.BrowserProvider(provider);
-
-  // const signer = ethers.Jso
-
-  async function handleConnect(): Promise<void> {
-    try {
-      await connect();
-      setError(null);
-    } catch (err: any) {
-      err && err.message && setError(err.message);
-      console.error("ERROR CONNECTING WALLET", err);
-    }
-  }
+  const [authenticating, setAuthenticating] = useState(false);
 
   async function login() {
     try {
-      if (connected) {
+      if (authenticated || authenticating) {
+        console.log("Already authenticated...");
         return;
       }
 
@@ -64,7 +66,7 @@ export const Web3Provider = ({ children }: Props) => {
       setError(null);
 
       if (!address) {
-        await handleConnect();
+        privyLogin();
         setAuthenticating(false);
 
         return;
@@ -81,7 +83,7 @@ export const Web3Provider = ({ children }: Props) => {
   async function logout(): Promise<void> {
     try {
       setError(null);
-      await disconnect();
+      await privyLogout();
     } catch (err: any) {
       err && err.message && setError(err.message);
       console.error("ERROR DICONNECTING WALLET", err);
@@ -92,12 +94,13 @@ export const Web3Provider = ({ children }: Props) => {
     <Web3Context.Provider
       value={{
         error,
-        authenticating,
-        connected,
+        ready,
+        zeroDevReady,
         address,
-        user: userInfo,
-        provider,
-        ethersProvider,
+        user,
+        activeWallet,
+        wallets,
+        sendTransaction,
         login,
         logout,
       }}

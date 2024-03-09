@@ -1,41 +1,62 @@
 import React from "react";
 import { useParams } from "react-router-dom";
 
-import { useContribution } from "../../hooks/contribution/useContribution";
+import { useContribution } from "@/hooks/contribution/useContribution";
 
-interface ContributionProps {}
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "../ui/card";
+import { Badge } from "../ui/badge";
 
-const Contribution: React.FC<ContributionProps> = () => {
+interface ContributionViewerProps {}
+
+const ContributionViewer: React.FC<ContributionViewerProps> = () => {
   const params = useParams<{
     id: string;
   }>();
 
+  console.log(params.id);
+
   const {
     // cammpaignAddrs,
-    // capitals,
+    capitals,
     // created_at,
-    // description,
-    // proof,
-    // id,
+    description,
+    proof,
+    id,
     // status,
-    // title,
+    title,
     // user,
     // value,
   } = useContribution(params.id ?? "");
 
   return (
-    <section className={`relative w-full h-full`}>
+    <Card className={`relative w-full h-full`}>
       <div>
         <div>
-          <img src="" />
+          {proof?.length && <img src={proof[0]} />}
+          <CardHeader className="px-6">
+            <CardTitle>{title}</CardTitle>
+            <div>
+              {capitals.map((capital) => (
+                <Badge>{capital}</Badge>
+              ))}
+            </div>
+            <CardDescription>{description}</CardDescription>
+          </CardHeader>
           <div>
             <img src="" />
             <img src="" />
           </div>
           <div>
-            <p></p>
+            <p>{id}</p>
             <h3></h3>
-            <p></p>
+            <p>{title}</p>
             <p></p>
           </div>
           <hr />
@@ -59,8 +80,8 @@ const Contribution: React.FC<ContributionProps> = () => {
         </div>
       </div>
       <aside></aside>
-    </section>
+    </Card>
   );
 };
 
-export default Contribution;
+export default ContributionViewer;

@@ -2,38 +2,46 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { ApolloProvider } from "@apollo/client";
 import { BrowserRouter } from "react-router-dom";
-import { AuthCoreContextProvider } from "@particle-network/auth-core-modal";
+import { ZeroDevProvider } from "@zerodev/privy";
+import { baseSepolia, foundry } from "viem/chains";
+import { PrivyProvider } from "@privy-io/react-auth";
 
-import { contractClient } from "./modules/apollo";
-import { particleConfig } from "./modules/particle";
+import { contractClient } from "@/modules/apollo";
 
-import { AppProvider } from "./hooks/providers/app";
-import { Web3Provider } from "./hooks/providers/web3";
+import { AppProvider } from "@/hooks/providers/app";
+import { Web3Provider } from "@/hooks/providers/web3";
 
-import App from "./App.tsx";
+import App from "@/App.tsx";
 
 import "./index.css";
 
-import("buffer").then(({ Buffer }) => {
-  window.Buffer = Buffer;
-});
-
-import("process").then(({ default: process }) => {
-  window.process = process;
-});
-
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <AuthCoreContextProvider options={particleConfig}>
-      <ApolloProvider client={contractClient}>
-        <BrowserRouter>
-          <AppProvider>
-            <Web3Provider>
-              <App />
-            </Web3Provider>
-          </AppProvider>
-        </BrowserRouter>
-      </ApolloProvider>
-    </AuthCoreContextProvider>
+    <ZeroDevProvider projectId={import.meta.env.VITE_ZERO_DEV_PROJECT_ID ?? ""}>
+      <PrivyProvider
+        appId={import.meta.env.VITE_PRIVY_APP_ID ?? ""}
+        config={{
+          loginMethods: ["email", "wallet"],
+          appearance: {
+            theme: "light",
+          },
+          embeddedWallets: {
+            createOnLogin: "users-without-wallets",
+          },
+          defaultChain: baseSepolia,
+          supportedChains: [foundry, baseSepolia],
+        }}
+      >
+        <ApolloProvider client={contractClient}>
+          <BrowserRouter>
+            <AppProvider>
+              <Web3Provider>
+                <App />
+              </Web3Provider>
+            </AppProvider>
+          </BrowserRouter>
+        </ApolloProvider>
+      </PrivyProvider>
+    </ZeroDevProvider>
   </React.StrictMode>
 );

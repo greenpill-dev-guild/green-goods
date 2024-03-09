@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {Test, console2} from "forge-std/Test.sol";
+
 import {CampaignToken} from "../src/tokens/Campaign.sol";
 import {CampaignAccount} from "../src/accounts/Campaign.sol";
 
@@ -18,7 +19,6 @@ import "../src/tokens/Hypercert.sol";
 import { IEAS, AttestationRequest, AttestationRequestData } from "../src/interfaces/IEAS.sol";
 
 import { Script } from "forge-std/Script.sol";
-import { console } from "forge-std/console.sol";
 import { Create2 } from "openzeppelin-contracts/utils/Create2.sol";
 import { AccountProxy } from "tokenbound/AccountProxy.sol";
 import { AccountGuardian } from "tokenbound/AccountGuardian.sol";
@@ -32,7 +32,6 @@ import {ContributionResolver} from "../src/resolvers/Contribution.sol";
 
 contract Deploy is Script {
     //CampaignToken public gpnft;
-
 
     address payable public alice =
         payable(0x00000000000000000000000000000000000A11cE);
@@ -54,7 +53,6 @@ contract Deploy is Script {
     bytes32 contributionSchemaUid;
     bytes32 confirmationSchemaUid;
 
-
     address factory = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
 
     address gpSafe = 0x3F35aC99149fD564f9a3f5eC78d146aeE1db7387;
@@ -69,12 +67,8 @@ contract Deploy is Script {
     address campaignToken;
     address hypercert;
 
-
-
-
     function run() public {
     
-
     // guardian = Create2.computeAddress(
     //     salt,
     //     keccak256(abi.encodePacked(type(AccountGuardian).creationCode, abi.encode(gpSafe))),

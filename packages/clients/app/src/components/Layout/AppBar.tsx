@@ -1,9 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { a, config, useSpring } from "@react-spring/web";
 
-import HomeIcon from "../../assets/icons/waves.svg?react";
-import ContributeIcon from "../../assets/icons/add.svg?react";
-import ProfileIcon from "../../assets/icons/profile.svg?react";
+import { HomeIcon, PlusIcon, CircleUserRoundIcon } from "lucide-react";
 
 const tabs: {
   path: string;
@@ -22,12 +20,12 @@ const tabs: {
   {
     path: "/contribute",
     title: "Contribute",
-    Icon: ContributeIcon,
+    Icon: PlusIcon,
   },
   {
     path: "/profile",
     title: "Profile",
-    Icon: ProfileIcon,
+    Icon: CircleUserRoundIcon,
   },
 ];
 

@@ -11,11 +11,14 @@ interface ProfileProps extends ProfileDataProps, Web3Props {}
 export const Profile: React.FC<ProfileProps> = ({
   avatarSpring,
   address,
-  authenticating,
   avatar,
-  connected,
-  provider,
   name,
+  ready,
+  user,
+  wallets,
+  activeWallet,
+  sendTransaction,
+  zeroDevReady,
   login,
   logout,
   error,
@@ -25,9 +28,12 @@ export const Profile: React.FC<ProfileProps> = ({
     login,
     logout,
     error,
-    connected,
-    authenticating,
-    provider,
+    ready,
+    zeroDevReady,
+    user,
+    activeWallet,
+    wallets,
+    sendTransaction,
   };
 
   return (

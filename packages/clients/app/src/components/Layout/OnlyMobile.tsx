@@ -69,18 +69,19 @@ export const OnlyMobile: React.FC = () => {
 
   return (
     <a.div className="grid place-items-center w-screen h-screen text-center z-10">
-      <a.div style={contentSpring} className="flex flex-col gap-12">
+      <a.div
+        style={contentSpring}
+        className="flex flex-col items-center gap-12"
+      >
         <div className="justify-self-start flex flex-col gap-2">
-          <h1 className="text-9xl font-bold leading-[6rem]">Web3</h1>
-          <p className="text-4xl tracking-wider">
-            Connecting Generative Art & Culture
-          </p>
+          <h1 className="text-9xl font-bold leading-[6rem]">Camp Green</h1>
+          <p className="text-4xl tracking-wider"></p>
         </div>
         <p className="text-2xl font-normal tracking-wide">
-          📲 Visit <span className="font-bold">web3.app</span> on phone to
-          install app
+          📲 Visit <span className="font-bold">app.campgreen.world</span> on
+          phone to install app
         </p>
-        <form
+        {/* <form
           onSubmit={handleSubscribe}
           className="flex flex-col gap-2 justify-self-start"
         >
@@ -96,7 +97,7 @@ export const OnlyMobile: React.FC = () => {
           >
             Subscribe
           </button>
-        </form>
+        </form> */}
       </a.div>
     </a.div>
   );

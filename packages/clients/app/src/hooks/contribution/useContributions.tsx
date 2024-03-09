@@ -7,8 +7,10 @@ import {
   userConfirmationsQuery,
   userContributionsQuery,
 } from "@/modules/apollo";
+import { mockContributions } from "@/lib/mockData";
 
 export interface ContributionsDataProps {
+  address: string | null;
   contributions: Contribution[];
   contributionMap: Record<string, Contribution>;
   confirmationMap: Record<string, Confirmation>;
@@ -61,8 +63,17 @@ export const ContributionsProvider = ({ children }: Props) => {
   return (
     <ContributionsContext.Provider
       value={{
+        address,
         contributions: [],
-        contributionMap,
+        contributionMap: contributionData
+          ? contributionMap
+          : mockContributions.reduce(
+              (acc: Record<string, Contribution>, contribution) => {
+                acc[contribution.id] = contribution;
+                return acc;
+              },
+              {}
+            ),
         confirmationMap,
       }}
     >
