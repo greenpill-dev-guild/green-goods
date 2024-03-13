@@ -12,7 +12,7 @@ import { TBALib } from "../lib/TBA.sol";
 contract CampaignToken is ERC721 {
     using Strings for uint256;
 
-    event CampaignCreated(address indexed owner, address indexed tba, /*uint256 hypercertId,*/ string[] capitals, string metadata);
+    event CampaignCreated(address indexed creator, address indexed tba, /*uint256 hypercertId,*/ string[] capitals, string metadata);
 
     address private implementation;
     address private confirmationResolver;
@@ -49,7 +49,7 @@ contract CampaignToken is ERC721 {
 
         uint256 hypeId = CampaignAccount(payable(campaignAddrs)).initialize(_startDate, _endDate, _metadata, _capitals, _team, hypercert);
 
-        emit CampaignCreated(msg.sender, campaignAddrs, hypeId, _capitals, _metadata);
+        emit CampaignCreated(msg.sender, campaignAddrs, _capitals, _metadata);
     
         return(campaignAddrs, hypeId);
     }

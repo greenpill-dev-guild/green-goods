@@ -13,7 +13,7 @@ error NotAllowed();
 
 /// @title ConfirmationResolver
 /// @notice A schema resolver for the Confirmations event schema
-contract ConfirmationResolver is SchemaResolver, Initializable, OwnableUpgradeable, UUPSUpgradeable {
+contract ConfirmationResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
     struct ConfirmationSchema {
         uint256  contributionId;
         bool approval;

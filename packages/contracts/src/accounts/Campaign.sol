@@ -82,7 +82,7 @@ contract CampaignAccount is AccountV3Upgradable, Initializable {
         uint256 _contributionId
     ) external {
         // this is throwing when it should not, not sure why.
-        if (msgSender() != confirmationResolver) {
+        if (_msgSender() != confirmationResolver) {
             revert NotConfirmationResolver();
         }
 

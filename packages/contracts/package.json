@@ -10,7 +10,8 @@
     "lint": "pnpm run prettier && pnpm run solhint",
     "anvil": "source .env && anvil --fork-url $ANVIL_FORK_URL --chain-id $ANVIL_CHAIN_ID",
     "build": "forge build",
-    "deploy:local": "pnpm run build && mud deploy",
+    "test": "pnpm run build && forge test -f https://sepolia.base.org --gas-report",
+    "deploy:local9": "pnpm run build && mud deploy",
     "deploy:base": "source .env && FOUNDRY_PROFILE=base forge script script/Base.s.sol:BaseScript --private-key $FORGE_PRIVATE_KEY --etherscan-api-key $ETHERSCAN_API_KEY --broadcast",
     "deploy:base-sepolia": "source .env && FOUNDRY_PROFILE=base-sepolia forge script script/BaseGoerli.s.sol:BaseScript --private-key $FORGE_PRIVATE_KEY --etherscan-api-key $ETHERSCAN_API_KEY --broadcast"
   },

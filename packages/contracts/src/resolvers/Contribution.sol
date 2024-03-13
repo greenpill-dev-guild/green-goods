@@ -13,7 +13,7 @@ error NotOwner();
 
 /// @title ContributionResolver
 /// @notice A schema resolver for the Contributions event schema
-contract ContributionResolver is SchemaResolver, Initializable, OwnableUpgradeable, UUPSUpgradeable {
+contract ContributionResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
     struct ContributionSchema {
         uint256 value;
         string title;
