@@ -1,9 +1,0 @@
-[submodule "packages/contracts/lib/base64"]
-	path = packages/contracts/lib/base64
-	url = https://github.com/Brechtpd/base64
-[submodule "packages/contracts/lib/tokenbound"]
-	path = packages/contracts/lib/tokenbound
-	url = https://github.com/tokenbound/contracts
-[submodule "packages/contracts/lib/hypercerts"]
-	path = packages/contracts/lib/hypercerts
-	url = https://github.com/hypercerts-org/hypercerts
