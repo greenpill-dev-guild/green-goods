@@ -50,7 +50,7 @@ contract MintTest is Test {
             salt,
             keccak256(
                 abi.encodePacked(
-                    type(ActionRegistry).creationCode, abi.encode(address(0), actionResolver, address(1))
+                    type(ActionRegistry).creationCode, abi.encode(actionResolver)
                 )
             ),
             factory
@@ -63,7 +63,7 @@ contract MintTest is Test {
         // Deploy Action Token
         if (actionRegistry.code.length == 0) {
             //vm.startBroadcast(deployerPrivateKey);
-            new ActionRegistry{salt: salt}(address(0), actionResolver, address(0));
+            new ActionRegistry{salt: salt}(actionResolver);
             //vm.stopBroadcast();
             console2.log("ActionRegistry:", actionRegistry, "(deployed)");
         } else {
@@ -94,26 +94,26 @@ contract MintTest is Test {
     }
 
     function testCreateAction() public {
-        console2.log(ActionRegistry(actionRegistry).name());
+        // console2.log(ActionRegistry(actionRegistry).name());
 
         hoax(alice);
         
-        ActionRegistry(actionRegistry).createAction(1709250389, 1709350000, "metadata", capitals, team);
+       // ActionRegistry(actionRegistry).createAction(1709250389, 1709350000, "metadata", capitals, team);
 
-        uint256 tokenId = 0;
-        address shouldBeAlice = ActionRegistry(actionRegistry).ownerOf(tokenId);
+       // uint256 tokenId = 0;
+    //    address shouldBeAlice = ActionRegistry(actionRegistry).ownerOf(tokenId);
 
-        assertEq(shouldBeAlice, alice, "Not Alice");
+     //   assertEq(shouldBeAlice, alice, "Not Alice");
     }
 
     function testSCAccount() public {
         hoax(alice);
 
         uint256 tokenId = 0;
-        (address tbaAddress, uint256 hyperCertId) = ActionRegistry(actionRegistry).createAction(1709250389, 1709350000,"metadata", capitals, team);
+       // (address tbaAddress, uint256 hyperCertId) = ActionRegistry(actionRegistry).createAction(1709250389, 1709350000,"metadata", capitals, team);
 
-        console2.log("scaddress ", tbaAddress);
-        console2.log("hyperCertId ", hyperCertId);
+      //  console2.log("scaddress ", tbaAddress);
+      //  console2.log("hyperCertId ", hyperCertId);
 
         // address scAddress = TBALib.getAccount(
         //     address(implementation),
@@ -131,43 +131,43 @@ contract MintTest is Test {
         // assert(scAccount.isAction());
     }
 
-    function testActionResolver() public {
-        hoax(alice);
+    // function testActionResolver() public {
+    //     hoax(alice);
 
-        uint256 tokenId = 0;
-        (address tbaAddress, uint256 hyperCertId) = ActionRegistry(actionRegistry).createAction(1709250389, 1709350000,"metadata", capitals, team);
+    //     uint256 tokenId = 0;
+    //   //  (address tbaAddress, uint256 hyperCertId) = ActionRegistry(actionRegistry).createAction(1709250389, 1709350000,"metadata", capitals, team);
 
-        //console2.log("scaddress ", tbaAddress);
-        console2.log("hyperCertId ", hyperCertId);
+    //     //console2.log("scaddress ", tbaAddress);
+    // //    console2.log("hyperCertId ", hyperCertId);
 
-        AttestationRequestData memory attestationRequestData = AttestationRequestData({
-            recipient: tbaAddress,
-            expirationTime: 0, // The time when the attestation expires (Unix timestamp).
-            revocable: true, // Whether the attestation is revocable.
-            refUID: 0, // The UID of the related attestation.
-            data: abi.encode(5, "title", "description", capitals, capitals), // Custom attestation data.
-            value: 0 // An explicit ETH amount to send to the resolver. This is important to prevent accidental user errors.
-        });
+    // //    AttestationRequestData memory attestationRequestData = AttestationRequestData({
+    //         recipient: tbaAddress,
+    //         expirationTime: 0, // The time when the attestation expires (Unix timestamp).
+    //         revocable: true, // Whether the attestation is revocable.
+    //         refUID: 0, // The UID of the related attestation.
+    //         data: abi.encode(5, "title", "description", capitals, capitals), // Custom attestation data.
+    //         value: 0 // An explicit ETH amount to send to the resolver. This is important to prevent accidental user errors.
+    //     });
 
-        /// @notice A struct representing the full arguments of the attestation request.
-        AttestationRequest memory request = AttestationRequest({
-            schema: actionSchemaUid, // The unique identifier of the schema.
-            data: attestationRequestData // The arguments of the attestation request.
-        });
+    //     /// @notice A struct representing the full arguments of the attestation request.
+    //     AttestationRequest memory request = AttestationRequest({
+    //         schema: actionSchemaUid, // The unique identifier of the schema.
+    //         data: attestationRequestData // The arguments of the attestation request.
+    //     });
 
-        hoax(bob);
+    //     hoax(bob);
 
-        eas.attest(request);
+    //     eas.attest(request);
 
-        //for action
-        attestationRequestData.recipient = bob;
-        attestationRequestData.data = abi.encode(0, true, "gud", tbaAddress);
+    //     //for action
+    //     attestationRequestData.recipient = bob;
+    //     attestationRequestData.data = abi.encode(0, true, "gud", tbaAddress);
 
-        request.schema = actionSchemaUid;
-        request.data = attestationRequestData;
+    //     request.schema = actionSchemaUid;
+    //     request.data = attestationRequestData;
 
-        hoax(alice);
+    //     hoax(alice);
 
-        eas.attest(request);
-    }
+    //     eas.attest(request);
+    // }
 }

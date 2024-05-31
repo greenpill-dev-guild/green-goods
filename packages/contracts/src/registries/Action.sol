@@ -1,42 +1,104 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
-import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+error NotActionResolver();
+error NotActionOwner();
+error InvalidActionData();
 
-contract ActionRegistry is ERC721 {
-    using Strings for uint256;
-
-    event ActionCreated(address indexed creator, address indexed tba, /*uint256 hypercertId,*/ string[] capitals, string metadata);
-
-    address private implementation;
-    address private confirmationResolver;
-    address public hypercert;
-
-
-    constructor(
-        address _implementation,
-        address _confirmationResolver,
-        address _hypercert
-    ) ERC721("Greenpill Action", "GPC") {
-        implementation = _implementation;
-        confirmationResolver = _confirmationResolver;
-        hypercert = _hypercert;
+contract ActionRegistry {
+    enum ActionCategory {
+        LIVING,
+        SOCIAL
     }
 
-    //how to gate this so only app users can mint
-    function createAction(
-        uint256 _startDate,
-        uint256 _endDate,
-        string calldata _metadata,
-        string[] calldata _capitals,
-        address[] calldata _team
-    ) external returns(address, uint256){
-    
-        // _mint(msg.sender, id);
+    struct ActionStruct  {
+        uint frequency;
+        ActionCategory category;
+        string metadata;
+    }
 
-        // emit ActionCreated(msg.sender, actionAddrs, _capitals, _metadata);
-    
-        // return(actionAddrs, hypeId);
+    event ActionRegistered(address indexed creator, /*uint256 hypercertId,*/ string[] capitals, string metadata);
+    event ActionUpdated(address indexed creator, /*uint256 hypercertId,*/ string[] capitals, string metadata);
+
+    address private actionResolver;
+
+    mapping(bytes32 => address) public actionToOwner;
+    mapping(bytes32 => ActionStruct) public idToActionData; 
+
+    constructor(
+        address _actionResolver
+    ) {
+        actionResolver = _actionResolver;
+    }
+
+    function registerAction(
+        address _owner,
+        bytes32 _id,
+        uint _frequency,
+        ActionCategory _category,
+        string calldata _metadata
+    ) external {
+        // Check that sender is the resolver
+        if (msg.sender != actionResolver) {
+            revert NotActionResolver();
+        }
+
+        // Create mapping for action to owner
+        actionToOwner[_id] = _owner;
+
+        // Create mapping for action id to action data
+        idToActionData[_id] = ActionStruct(_frequency, _category, _metadata);
+      
+    }
+
+    function updateActionFrequency(
+        bytes32 _id,
+        uint _frequency
+    ) external returns(address, uint256){
+        address owner = actionToOwner[_id];
+
+        if (msg.sender != owner) {
+            revert NotActionOwner();
+        }
+
+        ActionStruct memory action = idToActionData[_id];
+
+        action.frequency = _frequency;
+
+        idToActionData[_id] = action;
+    }
+
+     function updateActionCategory(
+        bytes32 _id,
+        ActionCategory _category
+    ) external returns(address, uint256){
+        address owner = actionToOwner[_id];
+
+        if (msg.sender != owner) {
+            revert NotActionOwner();
+        }
+
+        ActionStruct memory action = idToActionData[_id];
+
+        action.category = _category;
+
+        idToActionData[_id] = action;
+    }
+
+     function updateActionMetadata(
+        bytes32 _id,
+        string calldata _metadata
+    ) external returns(address, uint256){
+        address owner = actionToOwner[_id];
+
+        if (msg.sender != owner) {
+            revert NotActionOwner();
+        }
+
+        ActionStruct memory action = idToActionData[_id];
+
+        action.metadata = _metadata;
+
+        idToActionData[_id] = action;
     }
 }
