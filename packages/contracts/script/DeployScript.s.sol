@@ -6,7 +6,7 @@ import {Test, console2} from "forge-std/Test.sol";
 import { IEAS, AttestationRequest, AttestationRequestData } from "eas-contracts/IEAS.sol";
 
 import { Script } from "forge-std/Script.sol";
-import { Create2 } from "openzeppelin-contracts/utils/Create2.sol";
+import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
 
 import { EAS_OP } from "../src/Constants.sol";
 
@@ -160,11 +160,11 @@ contract Deploy is Script {
 
     
     vm.startBroadcast(deployerPrivateKey);
-    contributionSchemaUid = easRegistry.register("uint256 value, string title, string description, string[] media, string[] capitals", ISchemaResolver(0xa547526412e87fBAD5B483bd17F6540a1dC686fd), true);
+    // contributionSchemaUid = easRegistry.register("uint256 value, string title, string description, string[] media, string[] capitals", ISchemaResolver(0xa547526412e87fBAD5B483bd17F6540a1dC686fd), true);
     vm.stopBroadcast();
     // console2.log("contributionSchemaUid", contributionSchemaUid);
     vm.startBroadcast(deployerPrivateKey);    
-    confirmationSchemaUid = easRegistry.register("uint  contributionId, bool approval, string feedback, address campAccount", ISchemaResolver(0xd76a4D50F1CcaD941B85692Dc6681b35bC6B480c), true);
+    // confirmationSchemaUid = easRegistry.register("uint  contributionId, bool approval, string feedback, address campAccount", ISchemaResolver(0xd76a4D50F1CcaD941B85692Dc6681b35bC6B480c), true);
     vm.stopBroadcast();
     // console2.log("confirmationSchemaUid", confirmationSchemaUid);
 

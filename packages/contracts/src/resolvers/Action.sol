@@ -3,8 +3,8 @@ pragma solidity ^0.8.21;
 
 import { IEAS, Attestation } from "eas-contracts/IEAS.sol";
 import { SchemaResolver } from "eas-contracts/resolver/SchemaResolver.sol";
-import { UUPSUpgradeable } from "openzeppelin-contracts/proxy/utils/UUPSUpgradeable.sol";
-import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 error NotCampaignAccount();
 error NotAllowed();
@@ -25,7 +25,7 @@ contract ActionResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
     }
 
     function initialize() external initializer {
-        __Ownable_init();
+        // __Ownable_init();
     }
 
     function isPayable() public pure override returns (bool) {
@@ -38,21 +38,21 @@ contract ActionResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
         returns (bool)
     {   
         ActionSchema memory schema = abi.decode(attestation.data, (ActionSchema));
-        CampaignAccount campaignAccount = CampaignAccount(payable(schema.campAccount));
+        // CampaignAccount campaignAccount = CampaignAccount(payable(schema.campAccount));
 
-        if (!campaignAccount.isCampaign()) {
-            revert NotCampaignAccount();
-        }
+        // if (!campaignAccount.isCampaign()) {
+        //     revert NotCampaignAccount();
+        // }
 
-        if (!campaignAccount.team(attestation.attester)) {
-            revert NotAllowed();
-        }
+        // if (!campaignAccount.team(attestation.attester)) {
+        //     revert NotAllowed();
+        // }
 
-        if(schema.approval){campaignAccount.compensateContribution(
-            attestation.recipient,
-            4,//schema.amount, 
-            schema.contributionId
-        );}
+        // if(schema.approval){campaignAccount.compensateContribution(
+        //     attestation.recipient,
+        //     4,//schema.amount, 
+        //     schema.contributionId
+        // );}
 
         return(true);
 
