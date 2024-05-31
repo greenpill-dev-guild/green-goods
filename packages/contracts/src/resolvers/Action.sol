@@ -6,20 +6,17 @@ import { SchemaResolver } from "eas-contracts/resolver/SchemaResolver.sol";
 import { UUPSUpgradeable } from "openzeppelin-contracts/proxy/utils/UUPSUpgradeable.sol";
 import { OwnableUpgradeable } from "openzeppelin-contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-import { CampaignAccount } from "../accounts/Campaign.sol";
+error NotCampaignAccount();
+error NotAllowed();
 
-error NotCampaign();
-error NotOwner();
-
-/// @title ContributionResolver
-/// @notice A schema resolver for the Contributions event schema
-contract ContributionResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
-    struct ContributionSchema {
-        uint256 value;
-        string title;
-        string description;
-        string[] media;
-        string[] capitals;
+/// @title ActionResolver
+/// @notice A schema resolver for the Actions event schema
+contract ActionResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
+    struct ActionSchema {
+        uint256  contributionId;
+        bool approval;
+        string feedback;
+        address campAccount;
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -40,13 +37,25 @@ contract ContributionResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
         override
         returns (bool)
     {   
-        CampaignAccount campaignAccount = CampaignAccount(payable(attestation.recipient));
+        ActionSchema memory schema = abi.decode(attestation.data, (ActionSchema));
+        CampaignAccount campaignAccount = CampaignAccount(payable(schema.campAccount));
 
         if (!campaignAccount.isCampaign()) {
-            revert NotCampaign();
+            revert NotCampaignAccount();
         }
 
+        if (!campaignAccount.team(attestation.attester)) {
+            revert NotAllowed();
+        }
+
+        if(schema.approval){campaignAccount.compensateContribution(
+            attestation.recipient,
+            4,//schema.amount, 
+            schema.contributionId
+        );}
+
         return(true);
+
     }
 
     function onRevoke(Attestation calldata attestation, uint256 /*value*/ )

@@ -12,18 +12,6 @@
     "pnpm",
     "foundry"
   ],
-  "workspaces": {
-    "packages": [
-      "packages/*",
-      "packages/clients/*"
-    ],
-    "nohoist": [
-      "**/@openzeppelin/contracts",
-      "**/@openzeppelin/contracts/**",
-      "**/@openzeppelin/contracts-upgradeable",
-      "**/@openzeppelin/contracts-upgradeable/**"
-    ]
-  },
   "scripts": {
     "foundry:up": "curl -L https://foundry.paradigm.xyz | bash && bash $HOME/.foundry/bin/foundryup",
     "prepare": "(forge --version || pnpm foundry:up)",
