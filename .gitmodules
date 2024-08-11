@@ -1,3 +1,0 @@
-[submodule "packages/contracts/lib/contracts"]
-	path = packages/contracts/lib/contracts
-	url = https://github.com/tokenbound/contracts
