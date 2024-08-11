@@ -24,6 +24,10 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         },
         defaultChain: arbitrumSepolia,
         supportedChains: [foundry, arbitrumSepolia, arbitrum],
+        embeddedWallets: {
+          createOnLogin: "users-without-wallets",
+          noPromptOnSignature: true,
+        },
       }}
     >
       <ApolloProvider client={contractClient}>
