@@ -1,5 +1,5 @@
 {
-  "name": "web3-starter-kit",
+  "name": "green-goods",
   "version": "0.0.0",
   "private": true,
   "keywords": [
@@ -18,25 +18,20 @@
     "build": "pnpm recursive run build",
     "lint": "pnpm recursive run lint",
     "test": "pnpm recursive run test",
-    "dev": "concurrently -n \"APP,WEB,CONTRACTS\" -c \"bgMagenta.bold,bgGreen.bold,bgCyan.bold\" \"pnpm run dev:app\" \"pnpm run dev:web\" \"pnpm run dev:contracts\"",
+    "dev": "concurrently -n \"APP,CONTRACTS\" -c \"bgMagenta.bold,bgCyan.bold\" \"pnpm run dev:app\" \"pnpm run dev:contracts\"",
     "dev:app": "pnpm --filter 'app' run dev",
-    "dev:web": "pnpm --filter 'web' run  dev",
     "dev:contracts": "pnpm --filter 'contracts' run  dev",
     "deploy:local": "pnpm --filter 'contracts' run deploy:local --network local",
-    "deploy:base-sepolia": "pnpm --filter 'contracts' run deploy:base-sepolia --network base-sepolia",
-    "deploy:base": "pnpm --filter 'contracts' run deploy:base --network base"
+    "deploy:arbitrum-sepolia": "pnpm --filter 'contracts' run deploy:arbitrum-sepolia --network arbitrum-sepolia",
+    "deploy:arbitrum": "pnpm --filter 'contracts' run deploy:arbitrum --network arbitrum"
   },
   "dependencies": {
-    "dotenv": "16.3.1",
-    "ethers": "^6.7.1",
-    "viem": "^2.7.16"
+    "dotenv": "16.4.5",
+    "ethers": "^6.13.2",
+    "viem": "^2.19.2"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^6.7.4",
-    "@typescript-eslint/parser": "^6.7.4",
     "concurrently": "8.2.1",
-    "eslint": "^8.50.0",
-    "rimraf": "^3.0.2",
     "prettier": "^3.0.3",
     "typescript": "^5.2.2",
     "wait-port": "1.1.0"
