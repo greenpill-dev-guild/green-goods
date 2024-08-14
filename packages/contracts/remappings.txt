@@ -1,7 +1,6 @@
-tokenbound/=lib/tokenbound/src/
-openzeppelin-contracts/=./node_modules/@openzeppelin/contracts/
-openzeppelin-contracts/contracts=lib/tokenbound/lib/openzeppelin-contracts/contracts/
-openzeppelin-contracts-upgradeable=./node_modules/@openzeppelin/contracts-upgradeable/
-eas-contracts/=./node_modules/@ethereum-attestation-service/eas-contracts/contracts/
-erc6551/=lib/tokenbound/lib/erc6551/src/
-base64/=lib/base64/
+@openzeppelin/contracts=./node_modules/@openzeppelin/contracts/
+@openzeppelin/contracts-upgradeable=./node_modules/@openzeppelin/contracts-upgradeable/
+eas-contracts=./node_modules/@ethereum-attestation-service/eas-contracts/contracts/
+forge-std=./node_modules/forge-std/src/
+ds-test=./node_modules/ds-test/src/
+tokenbound=./lib/tokenbound/src/

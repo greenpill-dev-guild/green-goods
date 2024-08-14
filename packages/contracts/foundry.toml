@@ -20,10 +20,10 @@ extra_output_files = [
 fs_permissions = [{ access = "read", path = "./"}]
 eth_rpc_url = "http://localhost:8545"
 
-[profile.base]
-eth_rpc_url = "https://mainnet.base.org"
+[profile.arbitrum]
+eth_rpc_url = "https://arb1.arbitrum.io/rpc"
 
-[profile.base-sepolia]
-eth_rpc_url = "https://sepolia.base.org/"
+[profile.arbitrum-sepolia]
+eth_rpc_url = "https://sepolia-rollup.arbitrum.io/rpc"
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
