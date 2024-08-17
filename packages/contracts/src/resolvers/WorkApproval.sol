@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.21;
+pragma solidity ^0.8.25;
 
 import { IEAS, Attestation } from "eas-contracts/IEAS.sol";
 import { SchemaResolver } from "eas-contracts/resolver/SchemaResolver.sol";
