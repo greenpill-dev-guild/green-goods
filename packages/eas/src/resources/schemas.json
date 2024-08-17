@@ -1,0 +1,64 @@
+[
+  {
+    "name": "Garden Assessment",
+    "description": "Assess a Green Goods garden sapce biodiversity.",
+    "values": [],
+    "resolver": "0x8965249828954343",
+    "UID": "",
+    "parsed": ""
+  },
+  {
+    "name": "Garden Work",
+    "description": "Upload work on a Green Goods garden sapce.",
+    "values": [
+      {
+        "type": "uint256",
+        "name": "actionUID"
+      },
+      {
+        "type": "string",
+        "name": "title"
+      },
+      {
+        "type": "string",
+        "name": "feedback"
+      },
+      {
+        "type": "string",
+        "name": "metadata"
+      },
+      {
+        "type": "string[]",
+        "name": "media"
+      }
+    ],
+    "resolver": "0x8965249828954343",
+    "UID": "",
+    "parsed": "uint256 actionUID, string title, string feedback, string metadata, string[] media"
+  },
+  {
+    "name": "Garden Work Approval",
+    "description": "Approve work on a Green Goods garden sapce.",
+    "values": [
+      {
+        "type": "uint256",
+        "name": "actionUID"
+      },
+      {
+        "type": "bytes32",
+        "name": "workUID"
+      },
+      {
+        "type": "bool",
+        "name": "approved"
+      },
+      {
+        "type": "string",
+        "name": "feedback"
+      }
+    ],
+    "resolver": "0x8965249828954343",
+    "UID": "",
+    "parsed": "uint256 actionUID bytes32 workUID, bool approved, string feedback"
+  }
+]
