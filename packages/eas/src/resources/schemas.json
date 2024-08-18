@@ -8,8 +8,8 @@
     "parsed": ""
   },
   {
-    "name": "Garden Work",
-    "description": "Upload work on a Green Goods garden sapce.",
+    "name": "Work",
+    "description": "Upload work on a Green Goods sapce.",
     "values": [
       {
         "type": "uint256",
@@ -37,8 +37,8 @@
     "parsed": "uint256 actionUID, string title, string feedback, string metadata, string[] media"
   },
   {
-    "name": "Garden Work Approval",
-    "description": "Approve work on a Green Goods garden sapce.",
+    "name": "Work Approval",
+    "description": "Approve work on a Green Goods sapce.",
     "values": [
       {
         "type": "uint256",
