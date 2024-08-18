@@ -2,7 +2,7 @@
   "name": "contracts",
   "version": "0.0.8",
   "private": true,
-  "description": "Contracts for Protocol",
+  "descripticon": "Contracts for Protocol",
   "scripts": {
     "account": "node script/ListAccount.js",
     "chain": "anvil --config-out localhost.json",
@@ -14,8 +14,8 @@
     "anvil": "source .env && anvil --fork-url $ANVIL_FORK_URL --chain-id $ANVIL_CHAIN_ID",
     "build": "forge build",
     "test": "pnpm run build && forge test -f https://sepolia-rollup.arbitrum.io/rpc --gas-report",
-    "deploy:arbitrum": "source .env && FOUNDRY_PROFILE=arbitrum forge script script/Arbitrum.s.sol:ArbitrumScript --private-key $FORGE_PRIVATE_KEY --etherscan-api-key $ETHERSCAN_API_KEY --broadcast",
-    "deploy:arbitrum-sepolia": "source .env && FOUNDRY_PROFILE=arbitrum-sepolia forge script script/ArbitrumSepolia.s.sol:ArbitrumScript --private-key $FORGE_PRIVATE_KEY --etherscan-api-key $ETHERSCAN_API_KEY --broadcast"
+    "deploy:sepolia": "source .env && FOUNDRY_PROFILE=arbitrum-sepolia forge script script/ArbitrumSepolia.s.sol:ArbitrumScript --private-key $FORGE_PRIVATE_KEY --etherscan-api-key $ETHERSCAN_API_KEY --broadcast",
+    "deploy:arbitrum": "source .env && FOUNDRY_PROFILE=arbitrum forge script script/Arbitrum.s.sol:ArbitrumScript --private-key $FORGE_PRIVATE_KEY --etherscan-api-key $ETHERSCAN_API_KEY --broadcast"
   },
   "dependencies": {
     "@ethereum-attestation-service/eas-contracts": "1.7.1",
