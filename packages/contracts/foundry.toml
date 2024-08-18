@@ -1,18 +1,38 @@
 [profile.default]
-solc = '0.8.21'
+solc = "0.8.25"
 ffi = false
-fuzz_runs = 256
+auto_detect_solc = false
+block_timestamp = 1_680_220_800 # March 31, 2023 at 00:00 GMT
+bytecode_hash = "none"
+evm_version = "shanghai"
+fuzz = { runs = 1_000 }
+gas_reports = ["*"]
 optimizer = true
-optimizer_runs = 3000
+optimizer_runs = 10_000
 verbosity = 2
+libs = ['lib']
+out = 'out'
+script = "script"
 src = 'src'
 test = 'test'
-out = 'out'
-libs = ['lib']
-allow_paths = [
-  # pnpm symlinks to the project root's node_modules
-  "../../node_modules",
-]
+
+[profile.ci]
+  fuzz = { runs = 10_000 }
+  verbosity = 4
+
+[etherscan]
+  arbitrum = { key = "${API_KEY_ARBISCAN}" }
+
+[fmt]
+  bracket_spacing = true
+  int_types = "long"
+  line_length = 120
+  multiline_func_header = "all"
+  number_underscore = "thousands"
+  quote_style = "double"
+  tab_width = 2
+  wrap_comments = true
+
 extra_output_files = [
   "abi",
   "evm.bytecode"
