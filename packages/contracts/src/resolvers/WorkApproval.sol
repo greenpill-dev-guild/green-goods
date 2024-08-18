@@ -31,11 +31,7 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
         return true;
     }
 
-    function onAttest(Attestation calldata attestation, uint256 /*value*/ )
-        internal
-        override
-        returns (bool)
-    {   
+    function onAttest(Attestation calldata attestation, uint256 /*value*/) internal override returns (bool) {
         WorkApprovalSchema memory schema = abi.decode(attestation.data, (WorkApprovalSchema));
         Attestation memory workAttestation = _eas.getAttestation(schema.workUID);
 
@@ -53,17 +49,14 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
             revert NotInActionRegistry();
         }
 
-        return(true);
+        return (true);
     }
 
     // solhint-disable no-unused-vars
-    function onRevoke(Attestation calldata attestation, uint256 /*value*/ )
-        internal
-        view
-        override
-        onlyOwner
-        returns (bool)
-    {
+    function onRevoke(
+        Attestation calldata attestation,
+        uint256 /*value*/
+    ) internal view override onlyOwner returns (bool) {
         return true;
     }
 

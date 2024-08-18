@@ -11,9 +11,7 @@ contract GardenToken is Ownable, ERC721 {
     uint256 private _nextTokenId;
     address private _gardenAccountImplementation;
 
-    constructor(
-        address gardenAccountImplementation
-    ) ERC721("Green Goods Garden", "GGG") {
+    constructor(address gardenAccountImplementation) ERC721("Green Goods Garden", "GGG") {
         _gardenAccountImplementation = gardenAccountImplementation;
     }
 
@@ -22,7 +20,7 @@ contract GardenToken is Ownable, ERC721 {
         string calldata name,
         address[] calldata gardeners,
         address[] calldata gardenOperators
-    ) external onlyOwner() {
+    ) external onlyOwner {
         uint256 tokenId = _nextTokenId++;
         _safeMint(_msgSender(), tokenId);
 

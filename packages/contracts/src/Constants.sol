@@ -30,14 +30,12 @@ error NotInActionRegistry();
 
 // ENUMS
 enum Capital {
-  SOCIAL,
-  MATERIAL,
-  FINANCIAL,
-  LIVING,
-  INTELLECTUAL,
-  EXPERIENTIAL,
-  SPIRITUAL,
-  CULTURAL
+    SOCIAL,
+    MATERIAL,
+    FINANCIAL,
+    LIVING,
+    INTELLECTUAL,
+    EXPERIENTIAL,
+    SPIRITUAL,
+    CULTURAL
 }
-
-

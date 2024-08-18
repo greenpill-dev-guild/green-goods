@@ -33,11 +33,7 @@ contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
         return true;
     }
 
-    function onAttest(Attestation calldata attestation, uint256 /*value*/ )
-        internal
-        override
-        returns (bool)
-    {   
+    function onAttest(Attestation calldata attestation, uint256 /*value*/) internal override returns (bool) {
         WorkSchema memory schema = abi.decode(attestation.data, (WorkSchema));
 
         GardenAccount gardenAccount = GardenAccount(payable(attestation.recipient));
@@ -48,7 +44,8 @@ contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
 
         // solhint-disable max-line-length
         if (
-            ActionRegistry(actionRegistry).idToAction(schema.actionUID) == Action(0, 0, "", new Capital[](0), new string[](0))
+            ActionRegistry(actionRegistry).idToAction(schema.actionUID) ==
+            Action(0, 0, "", new Capital[](0), new string[](0))
         ) {
             revert NotInActionRegistry();
         }
@@ -57,17 +54,14 @@ contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
             revert NotActiveAction();
         }
 
-        return(true);
+        return (true);
     }
 
     // solhint-disable no-unused-vars
-    function onRevoke(Attestation calldata attestation, uint256 /*value*/ )
-        internal
-        view
-        override
-        onlyOwner
-        returns (bool)
-    {
+    function onRevoke(
+        Attestation calldata attestation,
+        uint256 /*value*/
+    ) internal view override onlyOwner returns (bool) {
         return true;
     }
 

@@ -26,7 +26,8 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         address _communityToken,
         string calldata _name,
         address[] calldata _gardeners,
-        address[] calldata _gardenOperators) external initializer {
+        address[] calldata _gardenOperators
+    ) external initializer {
         communityToken = _communityToken;
         name = _name;
 

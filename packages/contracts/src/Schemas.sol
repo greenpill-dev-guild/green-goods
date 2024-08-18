@@ -20,4 +20,3 @@ struct WorkApprovalSchema {
     bool approved;
     string feedback;
 }
-
