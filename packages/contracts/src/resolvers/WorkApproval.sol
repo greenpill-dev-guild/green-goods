@@ -17,8 +17,11 @@ error NotGardenOperator();
 /// @title WorkApprovalResolver
 /// @notice A schema resolver for the Actions event schema
 contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
+    address public actionRegistry;
+
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address easAddrs) SchemaResolver(IEAS(easAddrs)) {
+    constructor(address easAddrs, address actionAddrs) SchemaResolver(IEAS(easAddrs)) {
+        actionRegistry = actionAddrs;
         _disableInitializers();
     }
 
@@ -31,7 +34,7 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
         return true;
     }
 
-    function onAttest(Attestation calldata attestation, uint256 /*value*/) internal override returns (bool) {
+    function onAttest(Attestation calldata attestation, uint256 /*value*/) internal view override returns (bool) {
         WorkApprovalSchema memory schema = abi.decode(attestation.data, (WorkApprovalSchema));
         Attestation memory workAttestation = _eas.getAttestation(schema.workUID);
 
@@ -45,7 +48,7 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
             revert NotGardenOperator();
         }
 
-        if (ActionRegistry(ActionRegistry(actionRegistry).idToAction(schema.actionUID)).startTime == 0) {
+        if (ActionRegistry(actionRegistry).getAction(schema.actionUID).startTime == 0) {
             revert NotInActionRegistry();
         }
 
@@ -54,7 +57,7 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
 
     // solhint-disable no-unused-vars
     function onRevoke(
-        Attestation calldata attestation,
+        Attestation calldata /*attestation*/,
         uint256 /*value*/
     ) internal view override onlyOwner returns (bool) {
         return true;

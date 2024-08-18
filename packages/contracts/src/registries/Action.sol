@@ -49,6 +49,10 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
         transferOwnership(_multisig);
     }
 
+    function getAction(uint256 actionUID) external view returns (Action memory) {
+        return idToAction[actionUID];
+    }
+
     /// @notice Registers a new action with the specified parameters.
     /// @param _startTime The start time of the action.
     /// @param _endTime The end time of the action.
@@ -112,7 +116,7 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     /// @notice Updates the media associated with an existing action.
     /// @param actionUID The unique identifier of the action to update.
     /// @param _media The new array of media URLs to associate with the action.
-    function updateActionMedia(uint256 actionUID, string[] calldata _media) external {
+    function updateActionMedia(uint256 actionUID, string[] memory _media) external {
         if (_msgSender() != actionToOwner[actionUID]) {
             revert NotActionOwner();
         }

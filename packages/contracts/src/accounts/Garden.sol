@@ -12,8 +12,8 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     address public communityToken;
     string public name;
 
-    mapping(address gardener => bool isGardener) private gardeners;
-    mapping(address operator => bool isOperator) private gardenOperators;
+    mapping(address gardener => bool isGardener) public gardeners;
+    mapping(address operator => bool isOperator) public gardenOperators;
 
     constructor(
         address erc4337EntryPoint,
