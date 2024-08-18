@@ -1,104 +1,141 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.25;
 
-error NotActionResolver();
+import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+
+import { Capital } from "../Constants.sol";
+
 error NotActionOwner();
-error InvalidActionData();
 
-contract ActionRegistry {
-    enum ActionCategory {
-        LIVING,
-        SOCIAL
+/// @title Action Registry Contract
+/// @notice This contract allows the owner to register and manage actions.
+/// @dev This contract is upgradeable using the UUPS proxy pattern.
+contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
+    /// @dev Represents an action with its metadata.
+    struct Action  {
+        uint256 startTime;
+        uint256 endTime;
+        string instructions;
+        Capital[] capitals;
+        string[] media;
     }
 
-    struct ActionStruct  {
-        uint frequency;
-        ActionCategory category;
-        string metadata;
+    /// @notice Emitted when a new action is registered.
+    /// @param owner The address of the action owner.
+    /// @param action The details of the registered action.
+    event ActionRegistered(address indexed owner, Action indexed action);
+
+    /// @notice Emitted when an action is updated.
+    /// @param owner The address of the action owner.
+    /// @param action The updated details of the action.
+    event ActionUpdated(address indexed owner, Action indexed action);
+
+    uint256 private _nextActionUID;
+
+    mapping(uint256 => address) public actionToOwner;
+    mapping(uint256 => Action) public idToAction; 
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
     }
 
-    event ActionRegistered(address indexed creator, /*uint256 hypercertId,*/ string[] capitals, string metadata);
-    event ActionUpdated(address indexed creator, /*uint256 hypercertId,*/ string[] capitals, string metadata);
-
-    address private actionResolver;
-
-    mapping(bytes32 => address) public actionToOwner;
-    mapping(bytes32 => ActionStruct) public idToActionData; 
-
-    constructor(
-        address _actionResolver
-    ) {
-        actionResolver = _actionResolver;
+    /// @notice Initializes the contract and sets the multisig wallet as the owner.
+    /// @dev This function must be called only once during contract deployment.
+    /// @param _multisig The address of the multisig wallet to transfer ownership to.
+    function initialize(address _multisig) external initializer {
+        __Ownable_init();
+        transferOwnership(_multisig);
     }
 
+    /// @notice Registers a new action with the specified parameters.
+    /// @param _startTime The start time of the action.
+    /// @param _endTime The end time of the action.
+    /// @param _instructions The CID JSON instructions for the action.
+    /// @param _capitals An array of Capital structs associated with the action.
+    /// @param _media An array of media CIDs associated with the action.
     function registerAction(
-        address _owner,
-        bytes32 _id,
-        uint _frequency,
-        ActionCategory _category,
-        string calldata _metadata
+        uint256 _startTime,
+        uint256 _endTime,
+        string calldata _instructions,
+        Capital[] calldata _capitals,
+        string[] calldata _media
+    ) external onlyOwner() {
+        uint256 actionUID = _nextActionUID++;
+
+        actionToOwner[actionUID] = _msgSender();
+        idToAction[actionUID] = Action(_startTime, _endTime, _instructions, _capitals, _media);
+
+        emit ActionRegistered(_msgSender(), idToAction[actionUID]);   
+    }
+
+    /// @notice Updates the start time of an existing action.
+    /// @param actionUID The unique identifier of the action to update.
+    /// @param _startTime The new start time of the action.
+    function updateActionStartTime(
+        uint256 actionUID,
+        uint256 _startTime
     ) external {
-        // Check that sender is the resolver
-        if (msg.sender != actionResolver) {
-            revert NotActionResolver();
-        }
-
-        // Create mapping for action to owner
-        actionToOwner[_id] = _owner;
-
-        // Create mapping for action id to action data
-        idToActionData[_id] = ActionStruct(_frequency, _category, _metadata);
-      
-    }
-
-    function updateActionFrequency(
-        bytes32 _id,
-        uint _frequency
-    ) external returns(address, uint256){
-        address owner = actionToOwner[_id];
-
-        if (msg.sender != owner) {
+        if (msg.sender != actionToOwner[actionUID]) {
             revert NotActionOwner();
         }
 
-        ActionStruct memory action = idToActionData[_id];
+        idToAction[actionUID].startTime = _startTime;
 
-        action.frequency = _frequency;
-
-        idToActionData[_id] = action;
+        emit ActionUpdated(actionToOwner[actionUID], idToAction[actionUID]);
     }
 
-     function updateActionCategory(
-        bytes32 _id,
-        ActionCategory _category
-    ) external returns(address, uint256){
-        address owner = actionToOwner[_id];
-
-        if (msg.sender != owner) {
+    /// @notice Updates the end time of an existing action.
+    /// @param actionUID The unique identifier of the action to update.
+    /// @param _endTime The new end time of the action.
+    function updateActionEndTime(
+        uint256 actionUID,
+        uint256 _endTime
+    ) external {
+        if (msg.sender != actionToOwner[actionUID]) {
             revert NotActionOwner();
         }
 
-        ActionStruct memory action = idToActionData[_id];
+        idToAction[actionUID].endTime = _endTime;
 
-        action.category = _category;
-
-        idToActionData[_id] = action;
+        emit ActionUpdated(actionToOwner[actionUID], idToAction[actionUID]);
     }
 
-     function updateActionMetadata(
-        bytes32 _id,
-        string calldata _metadata
-    ) external returns(address, uint256){
-        address owner = actionToOwner[_id];
-
-        if (msg.sender != owner) {
+    /// @notice Updates the instructions for an existing action.
+    /// @param actionUID The unique identifier of the action to update.
+    /// @param _instructions The new instructions for the action.
+    function updateActionInstructions(
+        uint256 actionUID,
+        string calldata _instructions
+    ) external {
+        if (msg.sender != actionToOwner[actionUID]) {
             revert NotActionOwner();
         }
 
-        ActionStruct memory action = idToActionData[_id];
+        idToAction[actionUID].instructions = _instructions;
 
-        action.metadata = _metadata;
-
-        idToActionData[_id] = action;
+        emit ActionUpdated(actionToOwner[actionUID], idToAction[actionUID]);
     }
+
+    /// @notice Updates the media associated with an existing action.
+    /// @param actionUID The unique identifier of the action to update.
+    /// @param _media The new array of media URLs to associate with the action.
+    function updateActionMedia(
+        uint256 actionUID,
+        string[] calldata _media
+    ) external {
+        if (_msgSender() != actionToOwner[actionUID]) {
+            revert NotActionOwner();
+        }
+
+        idToAction[actionUID].media = _media;
+
+        emit ActionUpdated(actionToOwner[actionUID], idToAction[actionUID]);
+    }
+
+    /// @dev Authorizes an upgrade to the contract's implementation.
+    /// @param newImplementation The address of the new implementation contract.
+    /// @custom:oz-upgrades-unsafe-allow override
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 }
