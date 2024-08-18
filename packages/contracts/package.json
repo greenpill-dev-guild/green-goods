@@ -18,7 +18,9 @@
     "deploy:arbitrum-sepolia": "source .env && FOUNDRY_PROFILE=arbitrum-sepolia forge script script/ArbitrumSepolia.s.sol:ArbitrumScript --private-key $FORGE_PRIVATE_KEY --etherscan-api-key $ETHERSCAN_API_KEY --broadcast"
   },
   "dependencies": {
-    "@ethereum-attestation-service/eas-contracts": "1.7.1"
+    "@ethereum-attestation-service/eas-contracts": "1.7.1",
+    "@openzeppelin/contracts": "4.8.3",
+    "@openzeppelin/contracts-upgradeable": "4.8.3"
   },
   "devDependencies": {
     "@types/prettier": "2",
