@@ -2,17 +2,23 @@
 
 pragma solidity ^0.8.25;
 
+struct AsessmentSchema {
+    string title;
+    string[] media;
+}
+
 struct WorkSchema {
-    bytes32 uid;
-    string name;
-    string description;
-    string[] attributes;
+    uint256 actionUID;
+    string title;
+    string feedback;
+    string metadata;
+    string[] media;
 }
 
 struct WorkApprovalSchema {
-    bytes32 uid;
-    string name;
-    string description;
-    string[] attributes;
+    uint256 actionUID;
+    bytes32 workUID;
+    bool approved;
+    string feedback;
 }
 
