@@ -6,8 +6,7 @@ const QRCode = require("qrcode");
 const fs = require("fs");
 const toml = require("toml");
 
-const ALCHEMY_API_KEY =
-  process.env.ALCHEMY_API_KEY || "oKxs-03sij-U_N0iOlrSsZFr29-IqbuF";
+const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY || "oKxs-03sij-U_N0iOlrSsZFr29-IqbuF";
 
 async function getBalanceForEachNetwork(address) {
   try {
@@ -27,8 +26,7 @@ async function getBalanceForEachNetwork(address) {
     }
 
     for (const networkName in rpcEndpoints) {
-      if (networkName === "localhost" || networkName === "default_network")
-        continue;
+      if (networkName === "localhost" || networkName === "default_network") continue;
 
       const networkUrl = replaceENVAlchemyKey(rpcEndpoints[networkName]);
 
@@ -37,10 +35,7 @@ async function getBalanceForEachNetwork(address) {
         const balance = await provider.getBalance(address);
         console.log("--", networkName, "-- 📡");
         console.log("   balance:", +ethers.utils.formatEther(balance));
-        console.log(
-          "   nonce:",
-          +(await provider.getTransactionCount(address))
-        );
+        console.log("   nonce:", +(await provider.getTransactionCount(address)));
       } catch (e) {
         console.log("Can't connect to network", networkName);
         console.log();
@@ -54,18 +49,14 @@ async function main() {
   const privateKey = process.env.DEPLOYER_PRIVATE_KEY;
 
   if (!privateKey) {
-    console.log(
-      "🚫️ You don't have a deployer account. Run `yarn generate` first"
-    );
+    console.log("🚫️ You don't have a deployer account. Run `yarn generate` first");
     return;
   }
 
   // Get account from private key.
   const wallet = new Wallet(privateKey);
   const address = wallet.address;
-  console.log(
-    await QRCode.toString(address, { type: "terminal", small: true })
-  );
+  console.log(await QRCode.toString(address, { type: "terminal", small: true }));
   console.log("Public address:", address, "\n");
 
   await getBalanceForEachNetwork(address);
