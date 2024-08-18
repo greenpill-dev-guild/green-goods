@@ -7,23 +7,26 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgrade
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import { WorkSchema } from "../Schemas.sol";
+import { GardenAccount } from "../accounts/Garden.sol";
 import { ActionRegistry } from "../registries/Action.sol";
-import { NotGardenAccount, NotGardenerAccount, NotInActionRegistry } from "../Constants.sol";
+import { NotGardenerAccount, NotInActionRegistry } from "../Constants.sol";
 
-error NotGardenAction();
 error NotActiveAction();
 
 /// @title WorkResolver
 /// @notice A schema resolver for the Actions event schema
 contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
+    address public actionRegistry;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address easAddrs) SchemaResolver(IEAS(easAddrs)) {
+    constructor(address easAddrs, address actionAddrs) SchemaResolver(IEAS(easAddrs)) {
+        actionRegistry = actionAddrs;
         _disableInitializers();
     }
 
-    function initialize() external initializer {
+    function initialize(address _multisig) external initializer {
         __Ownable_init();
+        transferOwnership(_multisig);
     }
 
     function isPayable() public pure override returns (bool) {
@@ -36,26 +39,28 @@ contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
         returns (bool)
     {   
         WorkSchema memory schema = abi.decode(attestation.data, (WorkSchema));
-        // CampaignAccount campaignAccount = CampaignAccount(payable(schema.campAccount));
 
-        // if (!campaignAccount.isCampaign()) {
-        //     revert NotGardenAccount();
-        // }
+        GardenAccount gardenAccount = GardenAccount(payable(attestation.recipient));
 
-        // if (!campaignAccount.team(attestation.attester)) {
-        //     revert NotAllowed();
-        // }
+        if (gardenAccount.gardeners(attestation.attester) == false) {
+            revert NotGardenerAccount();
+        }
 
-        // if(schema.approval){campaignAccount.compensateContribution(
-        //     attestation.recipient,
-        //     4,//schema.amount, 
-        //     schema.contributionId
-        // );}
+        // solhint-disable max-line-length
+        if (
+            ActionRegistry(actionRegistry).idToAction(schema.actionUID) == Action(0, 0, "", new Capital[](0), new string[](0))
+        ) {
+            revert NotInActionRegistry();
+        }
+
+        if (ActionRegistry(actionRegistry).idToAction(schema.actionUID).endTime < block.timestamp) {
+            revert NotActiveAction();
+        }
 
         return(true);
-
     }
 
+    // solhint-disable no-unused-vars
     function onRevoke(Attestation calldata attestation, uint256 /*value*/ )
         internal
         view

@@ -7,8 +7,9 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgrade
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import { WorkApprovalSchema } from "../Schemas.sol";
+import { GardenAccount } from "../accounts/Garden.sol";
 import { ActionRegistry } from "../registries/Action.sol";
-import { NotGardenAccount, NotGardenerAccount, NotInActionRegistry } from "../Constants.sol";
+import { NotInActionRegistry } from "../Constants.sol";
 
 error NotInWorkRegistry();
 error NotGardenOperator();
@@ -21,8 +22,9 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
         _disableInitializers();
     }
 
-    function initialize() external initializer {
-        // __Ownable_init();
+    function initialize(address _multisig) external initializer {
+        __Ownable_init();
+        transferOwnership(_multisig);
     }
 
     function isPayable() public pure override returns (bool) {
@@ -35,26 +37,26 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
         returns (bool)
     {   
         WorkApprovalSchema memory schema = abi.decode(attestation.data, (WorkApprovalSchema));
-        // CampaignAccount campaignAccount = CampaignAccount(payable(schema.campAccount));
+        Attestation memory workAttestation = _eas.getAttestation(schema.workUID);
 
-        // if (!campaignAccount.isCampaign()) {
-        //     revert NotCampaignAccount();
-        // }
+        if (workAttestation.attester != attestation.recipient) {
+            revert NotInWorkRegistry();
+        }
 
-        // if (!campaignAccount.team(attestation.attester)) {
-        //     revert NotAllowed();
-        // }
+        GardenAccount gardenAccount = GardenAccount(payable(workAttestation.recipient));
 
-        // if(schema.approval){campaignAccount.compensateContribution(
-        //     attestation.recipient,
-        //     4,//schema.amount, 
-        //     schema.contributionId
-        // );}
+        if (gardenAccount.gardenOperators(attestation.attester) == false) {
+            revert NotGardenOperator();
+        }
+
+        if (ActionRegistry(ActionRegistry(actionRegistry).idToAction(schema.actionUID)).startTime == 0) {
+            revert NotInActionRegistry();
+        }
 
         return(true);
-
     }
 
+    // solhint-disable no-unused-vars
     function onRevoke(Attestation calldata attestation, uint256 /*value*/ )
         internal
         view
