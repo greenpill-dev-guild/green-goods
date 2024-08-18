@@ -4,9 +4,9 @@
 /* solhint-disable max-states-count */
 pragma solidity ^0.8.25;
 
-import { IEAS, AttestationRequestData, AttestationRequest } from "eas-contracts/IEAS.sol";
-import { ISchemaRegistry } from "eas-contracts/ISchemaRegistry.sol";
-import { ISchemaResolver } from "eas-contracts/resolver/ISchemaResolver.sol";
+import { ISchemaRegistry } from "@eas/ISchemaRegistry.sol";
+import { ISchemaResolver } from "@eas/resolver/ISchemaResolver.sol";
+import { IEAS, AttestationRequestData, AttestationRequest } from "@eas/IEAS.sol";
 
 import { Test, console2 } from "forge-std/Test.sol";
 import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
