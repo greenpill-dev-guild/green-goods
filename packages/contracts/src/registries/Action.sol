@@ -33,8 +33,8 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
 
     uint256 private _nextActionUID;
 
-    mapping(uint256 => address) public actionToOwner;
-    mapping(uint256 => Action) public idToAction; 
+    mapping(uint256 actionUID => address owner) public actionToOwner;
+    mapping(uint256 actionUID => Action action) public idToAction; 
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
