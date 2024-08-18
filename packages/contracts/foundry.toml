@@ -21,6 +21,7 @@ test = 'test'
   verbosity = 4
 
 [etherscan]
+  sepolia = { key = "${API_KEY_ETHERSCAN}"}
   arbitrum = { key = "${API_KEY_ARBISCAN}" }
 
 [fmt]
@@ -37,13 +38,14 @@ extra_output_files = [
   "abi",
   "evm.bytecode"
 ]
+
 fs_permissions = [{ access = "read", path = "./"}]
 eth_rpc_url = "http://localhost:8545"
 
-[profile.arbitrum]
-eth_rpc_url = "https://arb1.arbitrum.io/rpc"
+[profile.sepolia]
+eth_rpc_url = "https://arb-mainnet.g.alchemy.com/v2/i2qnBKk5GQ8pVGPLA-G3D9il5o0ULQO3"
 
-[profile.arbitrum-sepolia]
-eth_rpc_url = "https://sepolia-rollup.arbitrum.io/rpc"
+[profile.arbitrum]
+eth_rpc_url = "https://arb-mainnet.g.alchemy.com/v2/i2qnBKk5GQ8pVGPLA-G3D9il5o0ULQO3"
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
