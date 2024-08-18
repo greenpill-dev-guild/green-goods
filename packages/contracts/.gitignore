@@ -1,35 +1,24 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
-
+# directories
+cache
+coverage
 node_modules
-dist
-dev-dist
+out
+
+# files
+*.env
+*.log
 .DS_Store
-DS_Store
+.pnp.*
+lcov.info
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
 
-node_modules
-/.pnp
-.pnp.js
+# broadcasts
+!broadcast
+broadcast/*
+broadcast/*/31337/
 
-
-# production
-
-build
-
-# local env files
-
-.env\*.local
-.env
-
-# forge
-out/
-cache/
-cache_hardhat/
-node_modules/
-bindings/
-artifacts/
-
-# Ignore MUD deploy artifacts
-deploys/**/*.json
 
