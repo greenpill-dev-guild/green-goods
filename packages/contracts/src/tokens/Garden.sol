@@ -1,18 +1,26 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.25;
 
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { ERC721Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 
 import { TBALib } from "../lib/TBA.sol";
 import { GardenAccount } from "../accounts/Garden.sol";
 
-contract GardenToken is Ownable, ERC721 {
+contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     uint256 private _nextTokenId;
     address private _gardenAccountImplementation;
 
-    constructor(address gardenAccountImplementation) ERC721("Green Goods Garden", "GGG") {
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor(address gardenAccountImplementation) ERC721Upgradeable() {
         _gardenAccountImplementation = gardenAccountImplementation;
+    }
+
+    function initialize(address _multisig) external initializer {
+        __ERC721_init("Green Goods Garden", "GGG");
+        __Ownable_init();
+        transferOwnership(_multisig);
     }
 
     function mintGarden(
@@ -28,4 +36,6 @@ contract GardenToken is Ownable, ERC721 {
 
         GardenAccount(payable(gardenAccount)).initialize(communityToken, name, gardeners, gardenOperators);
     }
+
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 }
