@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 /* solhint-disable max-line-length */
 /* solhint-disable quotes */
-
 pragma solidity ^0.8.25;
 
 import { Script, console } from "forge-std/Script.sol";
@@ -14,7 +13,9 @@ import { GardenToken } from "../src/tokens/Garden.sol";
 import { GardenAccount } from "../src/accounts/Garden.sol";
 import { TOKENBOUND_REGISTRY, GREEN_GOODS_SAFE } from "../src/Constants.sol";
 
-contract Deploy is Script {
+/// @title DeployGardenToken
+/// @notice Script for deploying the GardenToken contract and minting a garden for Rio Claro, São Paulo.
+contract DeployGardenToken is Script {
     function run() external {
         bytes32 salt = 0x6551655165516551655165516551655165516551655165516551655165516551;
         address factory = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
@@ -22,6 +23,7 @@ contract Deploy is Script {
         address erc4337EntryPoint = 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789;
         address multicallForwarder = 0xcA11bde05977b3631167028862bE2a173976CA11;
 
+        // Compute addresses
         address guardian = Create2.computeAddress(
             salt,
             keccak256(abi.encodePacked(type(AccountGuardian).creationCode, abi.encode(GREEN_GOODS_SAFE))),
@@ -53,10 +55,9 @@ contract Deploy is Script {
             vm.startBroadcast();
             new AccountGuardian{ salt: salt }(GREEN_GOODS_SAFE);
             vm.stopBroadcast();
-
-            console.log("AccountGuardian:", guardian, "(deployed)");
+            console.log("AccountGuardian deployed at:", guardian);
         } else {
-            console.log("AccountGuardian:", guardian, "(exists)");
+            console.log("AccountGuardian already exists at:", guardian);
         }
 
         // Deploy GardenAccount implementation
@@ -64,10 +65,9 @@ contract Deploy is Script {
             vm.startBroadcast();
             new GardenAccount{ salt: salt }(erc4337EntryPoint, multicallForwarder, TOKENBOUND_REGISTRY, guardian);
             vm.stopBroadcast();
-
-            console.log("GardenAccount:", implementation, "(deployed)");
+            console.log("GardenAccount deployed at:", implementation);
         } else {
-            console.log("GardenAccount:", implementation, "(exists)");
+            console.log("GardenAccount already exists at:", implementation);
         }
 
         // Deploy AccountProxy
@@ -75,24 +75,35 @@ contract Deploy is Script {
             vm.startBroadcast();
             new AccountProxy{ salt: salt }(guardian, implementation);
             vm.stopBroadcast();
-
-            console.log("AccountProxy:", proxy, "(deployed)");
+            console.log("AccountProxy deployed at:", proxy);
         } else {
-            console.log("AccountProxy:", proxy, "(exists)");
+            console.log("AccountProxy already exists at:", proxy);
         }
 
         // Deploy GardenToken
         if (token.code.length == 0) {
             vm.startBroadcast();
-            new GardenToken{ salt: salt }(implementation).initialize(GREEN_GOODS_SAFE);
-            vm.stopBroadcast();
+            GardenToken gardenToken = new GardenToken{ salt: salt }(implementation);
+            gardenToken.initialize(GREEN_GOODS_SAFE);
+            console.log("GardenToken deployed at:", token);
 
-            console.log("GardenToken:", token, "(deployed)");
+            // Mint a garden for Rio Claro, São Paulo
+            address[] memory gardeners = new address[](1);
+            address[] memory gardenOperators = new address[](1);
+
+            gardeners[0] = GREEN_GOODS_SAFE; // Example gardener
+            gardenOperators[0] = GREEN_GOODS_SAFE; // Example operator
+            gardenToken.mintGarden(address(0x3), "Rio Claro, S\u00e3o Paulo", gardeners, gardenOperators);
+
+            vm.stopBroadcast();
+            console.log("Garden for Rio Claro, S\u00e3o Paulo minted.");
         } else {
-            console.log("GardenToken:", token, "(exists)");
+            console.log("GardenToken already exists at:", token);
         }
 
+        // Print out verification commands
         console.log("\nVerification Commands:\n");
+
         console.log(
             "AccountGuardian: forge verify-contract --num-of-optimizations 200 --chain-id",
             block.chainid,
