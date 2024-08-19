@@ -41,7 +41,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     }
 
     function updateName(string memory _name) external {
-        if (_isValidSigner(msg.sender, "")) {
+        if (_isValidSigner(_msgSender(), "")) {
             revert NotGardenOwner();
         }
 
@@ -49,7 +49,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     }
 
     function addGardener(address gardener) external {
-        if (_isValidSigner(msg.sender, "")) {
+        if (_isValidSigner(_msgSender(), "")) {
             revert NotGardenOwner();
         }
 
@@ -57,7 +57,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     }
 
     function removeGardener(address gardener) external {
-        if (_isValidSigner(msg.sender, "")) {
+        if (_isValidSigner(_msgSender(), "")) {
             revert NotGardenOwner();
         }
 
@@ -65,7 +65,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     }
 
     function addGardenOperator(address operator) external {
-        if (_isValidSigner(msg.sender, "")) {
+        if (_isValidSigner(_msgSender(), "")) {
             revert NotGardenOwner();
         }
 
@@ -73,7 +73,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     }
 
     function removeGardenOperator(address operator) external {
-        if (_isValidSigner(msg.sender, "")) {
+        if (_isValidSigner(_msgSender(), "")) {
             revert NotGardenOwner();
         }
 

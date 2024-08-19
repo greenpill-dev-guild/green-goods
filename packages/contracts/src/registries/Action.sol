@@ -78,7 +78,7 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     /// @param actionUID The unique identifier of the action to update.
     /// @param _startTime The new start time of the action.
     function updateActionStartTime(uint256 actionUID, uint256 _startTime) external {
-        if (msg.sender != actionToOwner[actionUID]) {
+        if (_msgSender() != actionToOwner[actionUID]) {
             revert NotActionOwner();
         }
 
@@ -91,7 +91,7 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     /// @param actionUID The unique identifier of the action to update.
     /// @param _endTime The new end time of the action.
     function updateActionEndTime(uint256 actionUID, uint256 _endTime) external {
-        if (msg.sender != actionToOwner[actionUID]) {
+        if (_msgSender() != actionToOwner[actionUID]) {
             revert NotActionOwner();
         }
 
@@ -104,7 +104,7 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     /// @param actionUID The unique identifier of the action to update.
     /// @param _instructions The new instructions for the action.
     function updateActionInstructions(uint256 actionUID, string calldata _instructions) external {
-        if (msg.sender != actionToOwner[actionUID]) {
+        if (_msgSender() != actionToOwner[actionUID]) {
             revert NotActionOwner();
         }
 
