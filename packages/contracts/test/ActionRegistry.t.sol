@@ -1,39 +1,128 @@
 // SPDX-License-Identifier: UNLICENSED
-/* solhint-disable no-console2 */
-/* solhint-disable no-console */
-/* solhint-disable max-states-count */
-pragma solidity ^0.8.25;
+pragma solidity >=0.8.25;
 
-import { ISchemaRegistry } from "@eas/ISchemaRegistry.sol";
-import { ISchemaResolver } from "@eas/resolver/ISchemaResolver.sol";
-import { IEAS, AttestationRequestData, AttestationRequest } from "@eas/IEAS.sol";
+import { Test } from "forge-std/Test.sol";
 
-import { Test, console2 } from "forge-std/Test.sol";
-import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
+import { Capital } from "../src/Constants.sol";
+import { ActionRegistry, NotActionOwner } from "../src/registries/Action.sol";
 
-import { EAS_ARB } from "../src/Constants.sol";
+contract ActionRegistryTest is Test {
+    ActionRegistry private actionRegistry;
+    address private multisig = address(0x123);
+    address private owner = address(this);
 
-// import { ActionResolver } from "../src/resolvers/Action.sol";
-import { ActionRegistry } from "../src/registries/Action.sol";
+    function setUp() public {
+        // Deploy the ActionRegistry contract
+        actionRegistry = new ActionRegistry();
+        // actionRegistry.initialize(multisig);
+    }
 
-// import { ISchemaResolver } from "../src/interfaces/ISchemaResolver.sol";
-// import { IEAS, AttestationRequest, AttestationRequestData } from "../src/interfaces/IEAS.sol";
+    function testInitialize() public {
+        // Test that the contract is properly initialized
+        assertEq(actionRegistry.owner(), multisig, "Owner should be the multisig address");
+    }
 
-contract MintTest is Test {
-    address payable public alice = payable(0x00000000000000000000000000000000000A11cE);
-    address payable public bob = payable(0x0000000000000000000000000000000000000B0b);
+    function testRegisterAction() public {
+        // Test registering a new action
+        Capital[] memory capitals = new Capital[](1);
+        capitals[0] = Capital.CULTURAL;
 
-    IEAS public eas = IEAS(EAS_ARB);
-    ISchemaRegistry public easRegistry = ISchemaRegistry(0x4200000000000000000000000000000000000020);
+        string[] memory media = new string[](1);
+        media[0] = "mediaCID1";
 
-    address[] public team;
-    string[] public capitals;
+        vm.prank(multisig);
+        actionRegistry.registerAction(block.timestamp, block.timestamp + 1 days, "instructionsCID", capitals, media);
 
-    bytes32 public salt = 0x6551655165516551655165516551655165516551655165516551655165516551;
-    bytes32 public actionSchemaUid;
+        ActionRegistry.Action memory action = actionRegistry.getAction(0);
+        assertEq(action.startTime, block.timestamp, "Start time should be the current time");
+        assertEq(action.endTime, block.timestamp + 1 days, "End time should be one day later");
+        assertEq(action.instructions, "instructionsCID", "Instructions should match");
+        assertEq(action.media[0], "mediaCID1", "Media should match");
+    }
 
-    address public factory = address(this); //0x4e59b44847b379578588920cA78FbF26c0B4956C;
+    function testUpdateActionStartTime() public {
+        // Test updating the start time of an action
+        testRegisterAction();
 
-    address public actionResolver;
-    address public actionRegistry;
+        vm.prank(multisig);
+        actionRegistry.updateActionStartTime(0, block.timestamp + 1 hours);
+
+        ActionRegistry.Action memory action = actionRegistry.getAction(0);
+        assertEq(action.startTime, block.timestamp + 1 hours, "Start time should be updated");
+    }
+
+    function testUpdateActionEndTime() public {
+        // Test updating the end time of an action
+        testRegisterAction();
+
+        vm.prank(multisig);
+        actionRegistry.updateActionEndTime(0, block.timestamp + 2 days);
+
+        ActionRegistry.Action memory action = actionRegistry.getAction(0);
+        assertEq(action.endTime, block.timestamp + 2 days, "End time should be updated");
+    }
+
+    function testUpdateActionInstructions() public {
+        // Test updating the instructions of an action
+        testRegisterAction();
+
+        vm.prank(multisig);
+        actionRegistry.updateActionInstructions(0, "newInstructionsCID");
+
+        ActionRegistry.Action memory action = actionRegistry.getAction(0);
+        assertEq(action.instructions, "newInstructionsCID", "Instructions should be updated");
+    }
+
+    function testUpdateActionMedia() public {
+        // Test updating the media of an action
+        testRegisterAction();
+
+        string[] memory newMedia = new string[](1);
+        newMedia[0] = "newMediaCID";
+
+        vm.prank(multisig);
+        actionRegistry.updateActionMedia(0, newMedia);
+
+        ActionRegistry.Action memory action = actionRegistry.getAction(0);
+        assertEq(action.media[0], "newMediaCID", "Media should be updated");
+    }
+
+    function testOnlyOwnerCanRegister() public {
+        // Test that only the owner can register actions
+        Capital[] memory capitals = new Capital[](1);
+        capitals[0] = Capital.CULTURAL;
+
+        string[] memory media = new string[](1);
+        media[0] = "mediaCID1";
+
+        vm.prank(address(0x999));
+        vm.expectRevert("Ownable: caller is not the owner");
+        actionRegistry.registerAction(block.timestamp, block.timestamp + 1 days, "instructionsCID", capitals, media);
+    }
+
+    function testOnlyOwnerCanUpdate() public {
+        // Test that only the action owner can update the action
+        testRegisterAction();
+
+        vm.prank(address(0x999));
+        vm.expectRevert(NotActionOwner.selector);
+        actionRegistry.updateActionStartTime(0, block.timestamp + 1 hours);
+    }
+
+    function testAuthorizeUpgrade() public {
+        // Test that only the owner can authorize an upgrade
+        address newImplementation = address(0x456);
+
+        vm.prank(multisig);
+        actionRegistry.upgradeTo(newImplementation);
+    }
+
+    function testNonOwnerCannotUpgrade() public {
+        // Test that non-owners cannot authorize an upgrade
+        address newImplementation = address(0x456);
+
+        vm.prank(address(0x999));
+        vm.expectRevert("Ownable: caller is not the owner");
+        actionRegistry.upgradeTo(newImplementation);
+    }
 }
