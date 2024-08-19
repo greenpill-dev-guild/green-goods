@@ -1,7 +1,6 @@
 import { z } from "zod";
 import fs from "node:fs";
 import * as path from "node:path";
-import { ZERO_ADDRESS } from "@ethereum-attestation-service/eas-sdk";
 
 import { schemaRegistry } from "../services/eas";
 
@@ -15,6 +14,7 @@ const EasSchemaSchema = z.object({
       name: z.string(),
     })
     .array(),
+  resolver: z.string().optional(),
   UID: z.string().optional(),
   parsed: z.string().optional(),
 });
@@ -55,6 +55,7 @@ export const schemasToEas = async (
 
       const tx = await _schemaRegistry.register({
         schema: schemaToStore,
+        resolverAddress: schema.resolver,
         revocable: true,
       });
 
