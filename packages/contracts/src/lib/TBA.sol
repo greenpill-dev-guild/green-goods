@@ -6,46 +6,56 @@ import { IERC6551Registry } from "../interfaces/IERC6551Registry.sol";
 
 error InvalidChainId();
 
+/// @title TBALib
+/// @notice A library for interacting with Token Bound Accounts (TBA) on different chains.
+/// @dev This library handles the creation and retrieval of TBA accounts based on the current chain ID.
 library TBALib {
-    function createAccount(address implmentation, address tokenContract, uint256 tokenId) external returns (address) {
-        address account;
+    uint256 private constant SALT = 7; // A constant salt value for account creation
 
-        if (block.chainid == 42161) {
-            account = IERC6551Registry(TOKENBOUND_REGISTRY).createAccount(
-                implmentation,
-                42161,
-                tokenContract,
-                tokenId,
-                7,
-                ""
-            );
-        } else if (block.chainid == 11155111) {
-            account = IERC6551Registry(TOKENBOUND_REGISTRY).createAccount(
-                implmentation,
-                11155111,
-                tokenContract,
-                tokenId,
-                7,
-                ""
-            );
+    /// @notice Creates a TBA account based on the current chain ID.
+    /// @dev Reverts with `InvalidChainId` if the chain ID is not recognized.
+    /// @param implementation The address of the TBA implementation contract.
+    /// @param tokenContract The address of the token contract associated with the TBA.
+    /// @param tokenId The ID of the token associated with the TBA.
+    /// @return The address of the created TBA account.
+    function createAccount(address implementation, address tokenContract, uint256 tokenId) external returns (address) {
+        if (block.chainid == 42161 || block.chainid == 11155111) {
+            return
+                IERC6551Registry(TOKENBOUND_REGISTRY).createAccount(
+                    implementation,
+                    block.chainid,
+                    tokenContract,
+                    tokenId,
+                    SALT,
+                    ""
+                );
         } else {
             revert InvalidChainId();
         }
-
-        return account;
     }
 
-    function getAccount(address implmentation, address tokenContract, uint256 tokenId) external view returns (address) {
-        address account;
-
-        if (block.chainid == 42161) {
-            account = IERC6551Registry(TOKENBOUND_REGISTRY).account(implmentation, 42161, tokenContract, tokenId, 7);
-        } else if (block.chainid == 11155111) {
-            account = IERC6551Registry(TOKENBOUND_REGISTRY).account(implmentation, 11155111, tokenContract, tokenId, 7);
+    /// @notice Retrieves a TBA account based on the current chain ID.
+    /// @dev Reverts with `InvalidChainId` if the chain ID is not recognized.
+    /// @param implementation The address of the TBA implementation contract.
+    /// @param tokenContract The address of the token contract associated with the TBA.
+    /// @param tokenId The ID of the token associated with the TBA.
+    /// @return The address of the TBA account.
+    function getAccount(
+        address implementation,
+        address tokenContract,
+        uint256 tokenId
+    ) external view returns (address) {
+        if (block.chainid == 42161 || block.chainid == 11155111) {
+            return
+                IERC6551Registry(TOKENBOUND_REGISTRY).account(
+                    implementation,
+                    block.chainid,
+                    tokenContract,
+                    tokenId,
+                    SALT
+                );
         } else {
             revert InvalidChainId();
         }
-
-        return account;
     }
 }

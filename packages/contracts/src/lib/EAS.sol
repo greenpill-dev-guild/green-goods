@@ -5,18 +5,20 @@ import { EAS_ARBITRUM, EAS_SEPOLIA } from "../Constants.sol";
 
 error InvalidChainId();
 
+/// @title EASLib
+/// @notice A library to retrieve the EAS address based on the current chain ID.
+/// @dev This library uses the block's chain ID to determine the appropriate EAS address.
 library EASLib {
-    function getEAS() external view returns (address) {
-        address token;
-
+    /// @notice Returns the EAS address based on the current chain ID.
+    /// @dev Reverts with `InvalidChainId` if the chain ID is not recognized.
+    /// @return The address of the EAS.
+    function getEAS() internal view returns (address) {
         if (block.chainid == 42161) {
-            token = EAS_ARBITRUM;
+            return EAS_ARBITRUM;
         } else if (block.chainid == 11155111) {
-            token = EAS_SEPOLIA;
+            return EAS_SEPOLIA;
         } else {
             revert InvalidChainId();
         }
-
-        return token;
     }
 }
