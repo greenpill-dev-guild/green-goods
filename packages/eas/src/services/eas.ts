@@ -1,9 +1,12 @@
 import { ethers } from "ethers";
 import { EAS, SchemaRegistry } from "@ethereum-attestation-service/eas-sdk";
 
-import { ALCHEMY_API_KEY, PRIVATE_KEY } from "../constants";
+import { ALCHEMY_API_KEY, PRIVATE_KEY, PROD } from "../constants";
 
-const provider = new ethers.AlchemyProvider("sepolia", ALCHEMY_API_KEY);
+const provider = new ethers.AlchemyProvider(
+  PROD ? "arbitrum" : "sepolia",
+  ALCHEMY_API_KEY
+);
 const signer = new ethers.Wallet(PRIVATE_KEY).connect(provider);
 
 const easSigner = () => {
