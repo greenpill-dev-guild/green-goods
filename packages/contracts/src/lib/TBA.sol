@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { TOKENBOUND_REGISTRY } from "../Constants.sol";
+import { TOKENBOUND_REGISTRY, SALT } from "../Constants.sol";
 import { IERC6551Registry } from "../interfaces/IERC6551Registry.sol";
 
 error InvalidChainId();
@@ -10,8 +10,6 @@ error InvalidChainId();
 /// @notice A library for interacting with Token Bound Accounts (TBA) on different chains.
 /// @dev This library handles the creation and retrieval of TBA accounts based on the current chain ID.
 library TBALib {
-    uint256 private constant SALT = 7; // A constant salt value for account creation
-
     /// @notice Creates a TBA account based on the current chain ID.
     /// @dev Reverts with `InvalidChainId` if the chain ID is not recognized.
     /// @param implementation The address of the TBA implementation contract.
@@ -23,11 +21,10 @@ library TBALib {
             return
                 IERC6551Registry(TOKENBOUND_REGISTRY).createAccount(
                     implementation,
+                    SALT,
                     block.chainid,
                     tokenContract,
-                    tokenId,
-                    SALT,
-                    ""
+                    tokenId
                 );
         } else {
             revert InvalidChainId();
@@ -49,10 +46,10 @@ library TBALib {
             return
                 IERC6551Registry(TOKENBOUND_REGISTRY).account(
                     implementation,
+                    SALT,
                     block.chainid,
                     tokenContract,
-                    tokenId,
-                    SALT
+                    tokenId
                 );
         } else {
             revert InvalidChainId();
