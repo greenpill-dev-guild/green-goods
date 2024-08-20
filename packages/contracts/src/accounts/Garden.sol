@@ -84,6 +84,8 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
             gardenOperators[_gardenOperators[i]] = true;
             emit GardenOperatorAdded(_msgSender(), _gardenOperators[i]);
         }
+
+        emit NameUpdated(_msgSender(), _name);
     }
 
     /// @notice Updates the name of the garden.
