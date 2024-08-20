@@ -2,7 +2,7 @@
   "name": "contracts",
   "version": "0.0.8",
   "private": true,
-  "description": "Contracts for Protocol",
+  "descripticon": "Contracts for Protocol",
   "scripts": {
     "account": "node script/ListAccount.js",
     "chain": "anvil --config-out localhost.json",
@@ -13,9 +13,11 @@
     "lint": "pnpm run prettier && pnpm run solhint",
     "anvil": "source .env && anvil --fork-url $ANVIL_FORK_URL --chain-id $ANVIL_CHAIN_ID",
     "build": "forge build",
-    "test": "pnpm run build && forge test -f https://sepolia-rollup.arbitrum.io/rpc --gas-report",
-    "deploy:arbitrum": "source .env && FOUNDRY_PROFILE=arbitrum forge script script/Arbitrum.s.sol:ArbitrumScript --private-key $FORGE_PRIVATE_KEY --etherscan-api-key $ETHERSCAN_API_KEY --broadcast",
-    "deploy:arbitrum-sepolia": "source .env && FOUNDRY_PROFILE=arbitrum-sepolia forge script script/ArbitrumSepolia.s.sol:ArbitrumScript --private-key $FORGE_PRIVATE_KEY --etherscan-api-key $ETHERSCAN_API_KEY --broadcast"
+    "test": "pnpm run build && forge test -f https://eth-sepolia.g.alchemy.com/v2/i2qnBKk5GQ8pVGPLA-G3D9il5o0ULQO3 --gas-report",
+    "deploy:counter": "source .env && forge script script/Counter.s.sol:CounterScript --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN",
+    "deploy:action": "source .env && forge script script/DeployActionRegistry.s.sol:DeployActionRegistry --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN",
+    "deploy:garden": "source .env && forge script script/DeployGardenToken.s.sol:DeployGardenToken --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN",
+    "deploy:resolvers": "source .env && forge script script/DeployResolvers.s.sol:DeployResolvers --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN"
   },
   "dependencies": {
     "@ethereum-attestation-service/eas-contracts": "1.7.1",
@@ -29,7 +31,6 @@
     "toml": "~3.0.0",
     "solidity-coverage": "^0.8.12",
     "solhint": "^5.0.3",
-    "forge-std": "github:foundry-rs/forge-std#v1.8.1",
     "prettier": "^3.3.3",
     "prettier-plugin-solidity": "^1.4.0"
   }

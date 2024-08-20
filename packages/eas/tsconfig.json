@@ -1,0 +1,15 @@
+{
+	"compilerOptions": {
+		"target": "ESNext",
+		"esModuleInterop": true,
+		"noImplicitAny": true,
+		"strictNullChecks": true,
+		"moduleResolution": "NodeNext",
+		"module": "NodeNext",
+		"resolveJsonModule": true
+	},
+	"ts-node": {
+		"swc": true
+	},
+	"include": ["src/**/*.ts"]
+}
