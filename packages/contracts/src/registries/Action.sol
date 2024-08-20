@@ -16,6 +16,7 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     struct Action {
         uint256 startTime;
         uint256 endTime;
+        string title;
         string instructions;
         Capital[] capitals;
         string[] media;
@@ -36,10 +37,15 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     mapping(uint256 actionUID => address owner) public actionToOwner;
     mapping(uint256 actionUID => Action action) public idToAction;
 
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
-        _disableInitializers();
+    modifier onlyActionOwner(uint256 actionUID) {
+        if (_msgSender() != actionToOwner[actionUID]) {
+            revert NotActionOwner();
+        }
+        _;
     }
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {}
 
     /// @notice Initializes the contract and sets the multisig wallet as the owner.
     /// @dev This function must be called only once during contract deployment.
@@ -47,6 +53,7 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     function initialize(address _multisig) external initializer {
         __Ownable_init();
         transferOwnership(_multisig);
+        // _disableInitializers();
     }
 
     function getAction(uint256 actionUID) external view returns (Action memory) {
@@ -62,6 +69,7 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     function registerAction(
         uint256 _startTime,
         uint256 _endTime,
+        string calldata _title,
         string calldata _instructions,
         Capital[] calldata _capitals,
         string[] calldata _media
@@ -69,7 +77,7 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
         uint256 actionUID = _nextActionUID++;
 
         actionToOwner[actionUID] = _msgSender();
-        idToAction[actionUID] = Action(_startTime, _endTime, _instructions, _capitals, _media);
+        idToAction[actionUID] = Action(_startTime, _endTime, _title, _instructions, _capitals, _media);
 
         emit ActionRegistered(_msgSender(), idToAction[actionUID]);
     }
@@ -77,11 +85,7 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     /// @notice Updates the start time of an existing action.
     /// @param actionUID The unique identifier of the action to update.
     /// @param _startTime The new start time of the action.
-    function updateActionStartTime(uint256 actionUID, uint256 _startTime) external {
-        if (_msgSender() != actionToOwner[actionUID]) {
-            revert NotActionOwner();
-        }
-
+    function updateActionStartTime(uint256 actionUID, uint256 _startTime) external onlyActionOwner(actionUID) {
         idToAction[actionUID].startTime = _startTime;
 
         emit ActionUpdated(actionToOwner[actionUID], idToAction[actionUID]);
@@ -90,12 +94,17 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     /// @notice Updates the end time of an existing action.
     /// @param actionUID The unique identifier of the action to update.
     /// @param _endTime The new end time of the action.
-    function updateActionEndTime(uint256 actionUID, uint256 _endTime) external {
-        if (_msgSender() != actionToOwner[actionUID]) {
-            revert NotActionOwner();
-        }
-
+    function updateActionEndTime(uint256 actionUID, uint256 _endTime) external onlyActionOwner(actionUID) {
         idToAction[actionUID].endTime = _endTime;
+
+        emit ActionUpdated(actionToOwner[actionUID], idToAction[actionUID]);
+    }
+
+    /// @notice Updates the title of an existing action.
+    /// @param actionUID The unique identifier of the action to update.
+    /// @param _title The new title for the action.
+    function updateActionTitle(uint256 actionUID, string calldata _title) external onlyActionOwner(actionUID) {
+        idToAction[actionUID].title = _title;
 
         emit ActionUpdated(actionToOwner[actionUID], idToAction[actionUID]);
     }
@@ -103,11 +112,10 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     /// @notice Updates the instructions for an existing action.
     /// @param actionUID The unique identifier of the action to update.
     /// @param _instructions The new instructions for the action.
-    function updateActionInstructions(uint256 actionUID, string calldata _instructions) external {
-        if (_msgSender() != actionToOwner[actionUID]) {
-            revert NotActionOwner();
-        }
-
+    function updateActionInstructions(
+        uint256 actionUID,
+        string calldata _instructions
+    ) external onlyActionOwner(actionUID) {
         idToAction[actionUID].instructions = _instructions;
 
         emit ActionUpdated(actionToOwner[actionUID], idToAction[actionUID]);
@@ -116,11 +124,7 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     /// @notice Updates the media associated with an existing action.
     /// @param actionUID The unique identifier of the action to update.
     /// @param _media The new array of media URLs to associate with the action.
-    function updateActionMedia(uint256 actionUID, string[] memory _media) external {
-        if (_msgSender() != actionToOwner[actionUID]) {
-            revert NotActionOwner();
-        }
-
+    function updateActionMedia(uint256 actionUID, string[] memory _media) external onlyActionOwner(actionUID) {
         idToAction[actionUID].media = _media;
 
         emit ActionUpdated(actionToOwner[actionUID], idToAction[actionUID]);
