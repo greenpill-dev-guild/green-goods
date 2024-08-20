@@ -23,7 +23,7 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(address easAddrs, address actionAddrs) SchemaResolver(IEAS(easAddrs)) {
         actionRegistry = actionAddrs;
-        _disableInitializers();
+        // _disableInitializers();
     }
 
     /// @notice Initializes the contract and sets the multisig wallet as the owner.

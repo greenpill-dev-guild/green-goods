@@ -25,7 +25,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     /// @param gardenAccountImplementation The address of the Garden account implementation.
     constructor(address gardenAccountImplementation) ERC721Upgradeable() {
         _gardenAccountImplementation = gardenAccountImplementation;
-        _disableInitializers(); // Prevent constructor usage for upgradable contracts
+        // _disableInitializers(); // Prevent constructor usage for upgradable contracts
     }
 
     /// @notice Initializes the contract with the given multisig wallet and Garden account implementation.
@@ -48,7 +48,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         string calldata name,
         address[] calldata gardeners,
         address[] calldata gardenOperators
-    ) external onlyOwner {
+    ) external onlyOwner returns (address) {
         uint256 tokenId = _nextTokenId++;
         _safeMint(_msgSender(), tokenId);
 
@@ -57,6 +57,8 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         GardenAccount(payable(gardenAccount)).initialize(communityToken, name, gardeners, gardenOperators);
 
         emit GardenMinted(_msgSender(), tokenId, name);
+
+        return gardenAccount;
     }
 
     /// @notice Authorizes contract upgrades.
