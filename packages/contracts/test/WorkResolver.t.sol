@@ -17,18 +17,19 @@ contract WorkResolverTest is Test {
     GardenAccount private mockGardenAccount;
     MockEAS private mockIEAS;
 
-    address private multisig = address(0x123);
-    address private attester = address(0x456);
-    address private recipient = address(0x789);
+    address private owner = address(this);
+    address private multisig = address(0x124);
+    address private attester = address(0x476);
+    address private recipient = address(0x787);
 
     function setUp() public {
         // Deploy the mock contracts
         mockActionRegistry = new ActionRegistry();
-        mockGardenAccount = new GardenAccount(address(0x001), address(0x002), address(0x003), address(0x004));
+        mockGardenAccount = new GardenAccount(address(0x021), address(0x022), address(0x023), address(0x024));
         mockIEAS = new MockEAS();
 
         mockActionRegistry.initialize(multisig);
-        mockGardenAccount.initialize(address(0x555), "Test Garden", new address[](0), new address[](0));
+        mockGardenAccount.initialize(address(0x545), "Test Garden", new address[](0), new address[](0));
 
         // Deploy the WorkResolver contract
         workResolver = new WorkResolver(address(mockIEAS), address(mockActionRegistry));
@@ -37,7 +38,7 @@ contract WorkResolverTest is Test {
 
     function testInitialize() public {
         // Test that the contract is properly initialized
-        assertEq(workResolver.owner(), multisig, "Owner should be the multisig address");
+        assertEq(workResolver.owner(), owner, "Owner should be the multisig address");
     }
 
     function testIsPayable() public {

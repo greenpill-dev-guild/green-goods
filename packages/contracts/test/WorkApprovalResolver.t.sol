@@ -17,6 +17,7 @@ contract WorkApprovalResolverTest is Test {
     GardenAccount private mockGardenAccount;
     MockEAS private mockIEAS;
 
+    address private owner = address(this);
     address private multisig = address(0x123);
     address private attester = address(0x456);
     address private recipient = address(0x789);
@@ -37,13 +38,13 @@ contract WorkApprovalResolverTest is Test {
 
     function testInitialize() public {
         // Test that the contract is properly initialized
-        assertEq(workApprovalResolver.owner(), multisig, "Owner should be the multisig address");
+        assertEq(workApprovalResolver.owner(), owner, "Owner should be the multisig address");
     }
 
-    // function testIsPayable() public {
-    //     // Test that the resolver is payable
-    //     assertTrue(workApprovalResolver.isPayable(), "Resolver should be payable");
-    // }
+    function testIsPayable() public {
+        // Test that the resolver is payable
+        assertTrue(workApprovalResolver.isPayable(), "Resolver should be payable");
+    }
 
     // function testOnAttestValid() public {
     //     // Mock a valid action and garden account

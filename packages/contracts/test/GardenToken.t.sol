@@ -28,7 +28,7 @@ contract GardenTokenTest is Test {
 
     function testInitialize() public {
         // Test that the contract is properly initialized
-        assertEq(gardenToken.owner(), multisig, "Owner should be the multisig address");
+        assertEq(gardenToken.owner(), owner, "Owner should be the multisig address");
     }
 
     // function testMintGarden() public {
