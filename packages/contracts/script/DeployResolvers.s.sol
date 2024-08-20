@@ -3,12 +3,14 @@
 /* solhint-disable quotes */
 pragma solidity ^0.8.25;
 
+// import { ISchemaRegistry } from "@eas/IEAS.sol";
 import { Script, console } from "forge-std/Script.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
 
 import { EASLib } from "../src/lib/EAS.sol";
-import { ACTION_REGISTRY, GREEN_GOODS_SAFE } from "../src/Constants.sol";
+// import { WorkSchema, WorkApprovalSchema } from "../src/Schemas.sol";
+import { ACTION_REGISTRY, FACTORY, SALT } from "../src/Constants.sol";
 import { WorkResolver } from "../src/resolvers/Work.sol";
 import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
 
@@ -16,43 +18,60 @@ import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
 /// @notice Script for deploying the WorkResolver and WorkApprovalResolver contracts using CREATE2.
 contract DeployResolvers is Script {
     function run() public {
-        bytes32 salt = 0x6551655165516551655165516551655165516551655165516551655165516551;
-        address factory = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
         address eas = EASLib.getEAS();
+        // address schemaRegistry = EASLib.getSchemaRegistry();
 
         // Calculate the CREATE2 addresses for the resolvers
         address predictedWorkResolverAddress = Create2.computeAddress(
-            salt,
+            SALT,
             keccak256(abi.encodePacked(type(WorkResolver).creationCode, abi.encode(eas, ACTION_REGISTRY))),
-            factory
+            FACTORY
         );
 
         address predictedWorkApprovalResolverAddress = Create2.computeAddress(
-            salt,
+            SALT,
             keccak256(abi.encodePacked(type(WorkApprovalResolver).creationCode, abi.encode(eas, ACTION_REGISTRY))),
-            factory
+            FACTORY
         );
 
         // Deploy WorkResolver
         if (predictedWorkResolverAddress.code.length == 0) {
             vm.startBroadcast();
-            WorkResolver workResolver = new WorkResolver{ salt: salt }(eas, ACTION_REGISTRY);
-            workResolver.initialize(GREEN_GOODS_SAFE);
+
+            WorkResolver workResolver = new WorkResolver{ salt: SALT }(eas, ACTION_REGISTRY);
+            workResolver.initialize(address(this));
+
+            // bytes32 workSchemaUID = ISchemaRegistry(schemaRegistry).register(
+            //     abi.encode(WorkSchema),
+            //     WorkResolver(predictedWorkResolverAddress),
+            //     true
+            // );
+
             vm.stopBroadcast();
 
             console.log("WorkResolver deployed at:", predictedWorkResolverAddress);
+            // console.log("WorkSchema UID:", workSchemaUID);
         } else {
             console.log("WorkResolver already exists at:", predictedWorkResolverAddress);
         }
 
-        // Deploy WorkApprovalResolver
+        // Deploy WorkApprovalResolvers
         if (predictedWorkApprovalResolverAddress.code.length == 0) {
             vm.startBroadcast();
-            WorkApprovalResolver workApprovalResolver = new WorkApprovalResolver{ salt: salt }(eas, ACTION_REGISTRY);
-            workApprovalResolver.initialize(GREEN_GOODS_SAFE);
+
+            WorkApprovalResolver workApprovalResolver = new WorkApprovalResolver{ salt: SALT }(eas, ACTION_REGISTRY);
+            workApprovalResolver.initialize(address(this));
+
+            // bytes32 workApprovalSchemaUID = ISchemaRegistry(schemaRegistry).register(
+            //     abi.encode(WorkApprovalSchema),
+            //     predictedWorkApprovalResolverAddress,
+            //     true
+            // );
+
             vm.stopBroadcast();
 
             console.log("WorkApprovalResolver deployed at:", predictedWorkApprovalResolverAddress);
+            // console.log("WorkApprovalSchema UID:", workApprovalSchemaUID);
         } else {
             console.log("WorkApprovalResolver already exists at:", predictedWorkApprovalResolverAddress);
         }

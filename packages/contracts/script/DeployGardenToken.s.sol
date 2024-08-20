@@ -11,49 +11,50 @@ import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
 
 import { GardenToken } from "../src/tokens/Garden.sol";
 import { GardenAccount } from "../src/accounts/Garden.sol";
-import { TOKENBOUND_REGISTRY, GREEN_GOODS_SAFE } from "../src/Constants.sol";
+import { CommunityTokenLib } from "../src/lib/CommunityToken.sol";
+
+import { TOKENBOUND_REGISTRY, GREEN_GOODS_SAFE, FACTORY, SALT } from "../src/Constants.sol";
 
 /// @title DeployGardenToken
 /// @notice Script for deploying the GardenToken contract and minting a garden for Rio Claro, São Paulo.
 contract DeployGardenToken is Script {
     function run() external {
-        bytes32 salt = 0x6551655165516551655165516551655165516551655165516551655165516551;
-        address factory = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
-
         address erc4337EntryPoint = 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789;
         address multicallForwarder = 0xcA11bde05977b3631167028862bE2a173976CA11;
 
+        address gardenAccount;
+
         // Compute addresses
         address guardian = Create2.computeAddress(
-            salt,
+            SALT,
             keccak256(abi.encodePacked(type(AccountGuardian).creationCode, abi.encode(GREEN_GOODS_SAFE))),
-            factory
+            FACTORY
         );
         address implementation = Create2.computeAddress(
-            salt,
+            SALT,
             keccak256(
                 abi.encodePacked(
                     type(GardenAccount).creationCode,
                     abi.encode(erc4337EntryPoint, multicallForwarder, TOKENBOUND_REGISTRY, guardian)
                 )
             ),
-            factory
+            FACTORY
         );
         address proxy = Create2.computeAddress(
-            salt,
+            SALT,
             keccak256(abi.encodePacked(type(AccountProxy).creationCode, abi.encode(guardian, implementation))),
-            factory
+            FACTORY
         );
         address token = Create2.computeAddress(
-            salt,
+            SALT,
             keccak256(abi.encodePacked(type(GardenToken).creationCode, abi.encode(implementation))),
-            factory
+            FACTORY
         );
 
         // Deploy AccountGuardian
         if (guardian.code.length == 0) {
             vm.startBroadcast();
-            new AccountGuardian{ salt: salt }(GREEN_GOODS_SAFE);
+            new AccountGuardian{ salt: SALT }(GREEN_GOODS_SAFE);
             vm.stopBroadcast();
             console.log("AccountGuardian deployed at:", guardian);
         } else {
@@ -63,7 +64,7 @@ contract DeployGardenToken is Script {
         // Deploy GardenAccount implementation
         if (implementation.code.length == 0) {
             vm.startBroadcast();
-            new GardenAccount{ salt: salt }(erc4337EntryPoint, multicallForwarder, TOKENBOUND_REGISTRY, guardian);
+            new GardenAccount{ salt: SALT }(erc4337EntryPoint, multicallForwarder, TOKENBOUND_REGISTRY, guardian);
             vm.stopBroadcast();
             console.log("GardenAccount deployed at:", implementation);
         } else {
@@ -73,7 +74,7 @@ contract DeployGardenToken is Script {
         // Deploy AccountProxy
         if (proxy.code.length == 0) {
             vm.startBroadcast();
-            new AccountProxy{ salt: salt }(guardian, implementation);
+            new AccountProxy{ salt: SALT }(guardian, implementation);
             vm.stopBroadcast();
             console.log("AccountProxy deployed at:", proxy);
         } else {
@@ -83,22 +84,24 @@ contract DeployGardenToken is Script {
         // Deploy GardenToken
         if (token.code.length == 0) {
             vm.startBroadcast();
-            GardenToken gardenToken = new GardenToken{ salt: salt }(implementation);
-            gardenToken.initialize(GREEN_GOODS_SAFE);
+            GardenToken gardenToken = new GardenToken{ salt: SALT }(implementation);
+            gardenToken.initialize(address(this));
+
+            address communityToken = CommunityTokenLib.getCommunityToken();
             console.log("GardenToken deployed at:", token);
 
             // Mint a garden for Rio Claro, São Paulo
             address[] memory gardeners = new address[](1);
             address[] memory gardenOperators = new address[](1);
 
-            gardeners[0] = GREEN_GOODS_SAFE; // Example gardener
-            gardenOperators[0] = GREEN_GOODS_SAFE; // Example operator
-            gardenToken.mintGarden(address(0x3), "Rio Claro, S\u00e3o Paulo", gardeners, gardenOperators);
+            gardeners[0] = 0x2aa64E6d80390F5C017F0313cB908051BE2FD35e; // afo-wefa.eth
+            gardenOperators[0] = 0x2aa64E6d80390F5C017F0313cB908051BE2FD35e; // afo-wefa.eth
+            gardenAccount = gardenToken.mintGarden(communityToken, "Root Planet", gardeners, gardenOperators);
 
             vm.stopBroadcast();
-            console.log("Garden for Rio Claro, S\u00e3o Paulo minted.");
+            console.log("Root Plane Garden for Rio Claro, S\u00e3o Paulo minted.");
         } else {
-            console.log("GardenToken already exists at:", token);
+            console.log("Garden Token already exists at:", token);
         }
 
         // Print out verification commands
@@ -148,6 +151,8 @@ contract DeployGardenToken is Script {
             string.concat(
                 'src/GardenToken.sol:GardenToken --constructor-args $(cast abi-encode "constructor(address)" ',
                 Strings.toHexString(implementation),
+                "",
+                Strings.toHexString(gardenAccount),
                 ")\n"
             )
         );
