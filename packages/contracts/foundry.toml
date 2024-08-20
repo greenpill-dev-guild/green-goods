@@ -43,7 +43,7 @@ fs_permissions = [{ access = "read", path = "./"}]
 eth_rpc_url = "http://localhost:8545"
 
 [profile.sepolia]
-eth_rpc_url = "https://arb-mainnet.g.alchemy.com/v2/i2qnBKk5GQ8pVGPLA-G3D9il5o0ULQO3"
+eth_rpc_url = "https://eth-sepolia.g.alchemy.com/v2/i2qnBKk5GQ8pVGPLA-G3D9il5o0ULQO3"
 
 [profile.arbitrum]
 eth_rpc_url = "https://arb-mainnet.g.alchemy.com/v2/i2qnBKk5GQ8pVGPLA-G3D9il5o0ULQO3"
