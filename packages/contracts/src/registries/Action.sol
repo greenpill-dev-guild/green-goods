@@ -52,7 +52,7 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     /// @param _multisig The address of the multisig wallet to transfer ownership to.
     function initialize(address _multisig) external initializer {
         __Ownable_init();
-        transferOwnership(_multisig);
+        // transferOwnership(_multisig);
         // _disableInitializers();
     }
 

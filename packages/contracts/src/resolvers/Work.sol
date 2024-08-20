@@ -22,7 +22,7 @@ contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(address easAddrs, address actionAddrs) SchemaResolver(IEAS(easAddrs)) {
         actionRegistry = actionAddrs;
-        _disableInitializers();
+        // _disableInitializers();
     }
 
     /// @notice Initializes the contract and sets the multisig wallet as the owner.
@@ -30,7 +30,7 @@ contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
     /// @param _multisig The address of the multisig wallet to transfer ownership to.
     function initialize(address _multisig) external initializer {
         __Ownable_init();
-        transferOwnership(_multisig);
+        // transferOwnership(_multisig);
     }
 
     /// @notice Indicates whether the resolver is payable.
