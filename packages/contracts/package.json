@@ -14,9 +14,10 @@
     "anvil": "source .env && anvil --fork-url $ANVIL_FORK_URL --chain-id $ANVIL_CHAIN_ID",
     "build": "forge build",
     "test": "pnpm run build && forge test -f https://eth-sepolia.g.alchemy.com/v2/i2qnBKk5GQ8pVGPLA-G3D9il5o0ULQO3 --gas-report",
-    "deploy:action": "source .env && forge script script/DeployActionRegistry.s.sol:DeployActionRegistry --private-key $PRIVATE_KEY --etherscan-api-key $ETHERSCAN_API_KEY",
-    "deploy:garden": "source .env && forge script script/DeployGardenToken.s.sol:DeployGardenToken --private-key $PRIVATE_KEY --etherscan-api-key $ETHERSCAN_API_KEY",
-    "deploy:resolvers": "source .env && forge script script/DeployResolvers.s.sol:DeployResolvers --private-key $PRIVATE_KEY --etherscan-api-key $ETHERSCAN_API_KEY"
+    "deploy:counter": "source .env && forge script script/Counter.s.sol:CounterScript --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN",
+    "deploy:action": "source .env && forge script script/DeployActionRegistry.s.sol:DeployActionRegistry --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN",
+    "deploy:garden": "source .env && forge script script/DeployGardenToken.s.sol:DeployGardenToken --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN",
+    "deploy:resolvers": "source .env && forge script script/DeployResolvers.s.sol:DeployResolvers --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN"
   },
   "dependencies": {
     "@ethereum-attestation-service/eas-contracts": "1.7.1",
