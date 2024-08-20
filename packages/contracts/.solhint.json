@@ -10,7 +10,7 @@
     "named-parameters-mapping": "warn",
     "no-console": "off",
     "not-rely-on-time": "off",
-    "one-contract-per-file": true,
+    "one-contract-per-file": "error",
     "avoid-low-level-calls": "off",
     "no-inline-assembly": "off",
     "no-empty-blocks": "off",
