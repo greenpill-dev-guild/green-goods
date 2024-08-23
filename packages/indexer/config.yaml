@@ -1,0 +1,45 @@
+# yaml-language-server: $schema=./node_modules/envio/evm.schema.json
+name: Green Goods
+description: Green Goods Indexer
+contracts:
+  - name: Action Registry
+    abi_file_path: ../contracts/out/Action.sol/ActionRegistry.json
+    handler: ./src/EventHandlers.ts
+    events:
+      - event: ActionRegistered
+      - event: ActionUpdated
+  - name: Garden Account
+    abi_file_path: ../contracts/out/Garden.sol/GardenAccount.json
+    handler: ./src/EventHandlers.ts
+    events:
+      - event: NameUpdated
+      - event: GardenerAdded
+      - event: GardenerRemoved
+      - event: GardenOperatorAdded
+      - event: GardenOperatorRemoved
+  - name: Garden Token
+    abi_file_path: ../contracts/out/Garden.sol/GardenToken.json
+    handler: ./src/EventHandlers.ts
+    events:
+      - event: GardenMinted
+  # - name: Community Token
+  #   abi_file_path: ../contracts/out/Action.sol/ActionRegistry.json
+  #   handler: ./src/EventHandlers.ts
+  #   events:
+  #     - event: ActionRegistered
+  #     - event: ActionUpdated
+networks:
+  - id: 42161 # Arbitrum
+    start_block: 242630858
+    contracts:
+      - name: Action Registry
+        address: 0x70Df51173B3EF27A245e1a0F129e2BAab39A937E
+      - name: Garden Token
+        address: 0x5D29C573581270d2bF436382820B3b64904AEeD7
+  - id: 11155111 # Sepolia
+    start_block: 6234598
+    contracts:
+      - name: Action Registry
+        address: 0x70Df51173B3EF27A245e1a0F129e2BAab39A937E
+      - name: Garden Token
+        address: 0x5D29C573581270d2bF436382820B3b64904AEeD7
