@@ -1,11 +1,11 @@
 [
   {
     "name": "Garden Assessment",
-    "description": "Assess a Green Goods garden sapce biodiversity.",
+    "description": "Assess a Green Goods garden space biodiversity.",
     "values": [
       {
         "type": "uint8",
-        "name": "soilMoisturePrecentage"
+        "name": "soilMoisturePercentage"
       },
       {
         "type": "uint256",
