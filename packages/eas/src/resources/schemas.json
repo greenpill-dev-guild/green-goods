@@ -1,11 +1,60 @@
 [
   {
     "name": "Garden Assessment",
-    "description": "Assess a Green Goods garden sapce biodiversity.",
-    "values": [],
-    "resolver": "0x8965249828954343",
-    "UID": "",
-    "parsed": ""
+    "description": "Assess a Green Goods garden space biodiversity.",
+    "values": [
+      {
+        "type": "uint8",
+        "name": "soilMoisturePercentage"
+      },
+      {
+        "type": "uint256",
+        "name": "carbonTonStock"
+      },
+      {
+        "type": "uint256",
+        "name": "carbonTonPotential"
+      },
+      {
+        "type": "uint256",
+        "name": "gardenSquareMeters"
+      },
+      {
+        "type": "string",
+        "name": "biome"
+      },
+      {
+        "type": "string",
+        "name": "remoteReportPDF"
+      },
+      {
+        "type": "string",
+        "name": "speciesRegistryJSON"
+      },
+      {
+        "type": "string[]",
+        "name": "polygonCoordinates"
+      },
+      {
+        "type": "string[]",
+        "name": "treeGenusesObserved"
+      },
+      {
+        "type": "string[]",
+        "name": "weedGenusesObserved"
+      },
+      {
+        "type": "string[]",
+        "name": "issues"
+      },
+      {
+        "type": "string[]",
+        "name": "tags"
+      }
+    ],
+    "resolver": "",
+    "UID": "0xc3b3fd4f173683ad40c405b4e8f5e0ede9ba5605e618eff98d576fa04cd5c890",
+    "parsed": "uint8 soilMoisturePrecentage, uint256 carbonTonStock, uint256 carbonTonPotential, uint256 gardenSquareMeters, string biome, string remoteReportPDF, string speciesRegistryJSON, string[] polygonCoordinates, string[] treeGenusesObserved, string[] weedGenusesObserved, string[] issues, string[] tags"
   },
   {
     "name": "Work",
