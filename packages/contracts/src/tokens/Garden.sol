@@ -19,7 +19,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     /// @param owner The owner of the minted Garden token.
     /// @param tokenId The unique identifier of the minted Garden token.
     /// @param name The name of the Garden associated with the minted token.
-    event GardenMinted(address indexed owner, uint256 indexed tokenId, string name);
+    event GardenMinted(address indexed owner, uint256 indexed tokenId, address indexed account, string name);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     /// @param gardenAccountImplementation The address of the Garden account implementation.

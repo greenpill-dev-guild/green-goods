@@ -25,12 +25,12 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     /// @notice Emitted when a new action is registered.
     /// @param owner The address of the action owner.
     /// @param action The details of the registered action.
-    event ActionRegistered(address indexed owner, Action indexed action);
+    event ActionRegistered(address indexed owner, uint256 actionUID, Action indexed action);
 
     /// @notice Emitted when an action is updated.
     /// @param owner The address of the action owner.
     /// @param action The updated details of the action.
-    event ActionUpdated(address indexed owner, Action indexed action);
+    event ActionUpdated(address indexed owner, uint256 actionUID, Action indexed action);
 
     uint256 private _nextActionUID;
 
@@ -79,7 +79,7 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
         actionToOwner[actionUID] = _msgSender();
         idToAction[actionUID] = Action(_startTime, _endTime, _title, _instructions, _capitals, _media);
 
-        emit ActionRegistered(_msgSender(), idToAction[actionUID]);
+        emit ActionRegistered(_msgSender(), actionUID, idToAction[actionUID]);
     }
 
     /// @notice Updates the start time of an existing action.
@@ -88,7 +88,7 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     function updateActionStartTime(uint256 actionUID, uint256 _startTime) external onlyActionOwner(actionUID) {
         idToAction[actionUID].startTime = _startTime;
 
-        emit ActionUpdated(actionToOwner[actionUID], idToAction[actionUID]);
+        emit ActionUpdated(actionToOwner[actionUID], actionUID, idToAction[actionUID]);
     }
 
     /// @notice Updates the end time of an existing action.
@@ -97,7 +97,7 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     function updateActionEndTime(uint256 actionUID, uint256 _endTime) external onlyActionOwner(actionUID) {
         idToAction[actionUID].endTime = _endTime;
 
-        emit ActionUpdated(actionToOwner[actionUID], idToAction[actionUID]);
+        emit ActionUpdated(actionToOwner[actionUID], actionUID, idToAction[actionUID]);
     }
 
     /// @notice Updates the title of an existing action.
@@ -106,7 +106,7 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     function updateActionTitle(uint256 actionUID, string calldata _title) external onlyActionOwner(actionUID) {
         idToAction[actionUID].title = _title;
 
-        emit ActionUpdated(actionToOwner[actionUID], idToAction[actionUID]);
+        emit ActionUpdated(actionToOwner[actionUID], actionUID, idToAction[actionUID]);
     }
 
     /// @notice Updates the instructions for an existing action.
@@ -118,7 +118,7 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     ) external onlyActionOwner(actionUID) {
         idToAction[actionUID].instructions = _instructions;
 
-        emit ActionUpdated(actionToOwner[actionUID], idToAction[actionUID]);
+        emit ActionUpdated(actionToOwner[actionUID], actionUID, idToAction[actionUID]);
     }
 
     /// @notice Updates the media associated with an existing action.
@@ -127,7 +127,7 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     function updateActionMedia(uint256 actionUID, string[] memory _media) external onlyActionOwner(actionUID) {
         idToAction[actionUID].media = _media;
 
-        emit ActionUpdated(actionToOwner[actionUID], idToAction[actionUID]);
+        emit ActionUpdated(actionToOwner[actionUID], actionUID, idToAction[actionUID]);
     }
 
     /// @dev Authorizes an upgrade to the contract's implementation.

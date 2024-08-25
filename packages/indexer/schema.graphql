@@ -1,0 +1,81 @@
+enum Capital {
+  SOCIAL
+  MATERIAL
+  FINANCIAL
+  LIVING
+  INTELLECTUAL
+  EXPERIENTIAL
+  SPIRITUAL
+  CULTURAL
+  UNKNOWN
+}
+
+type GardenAssessment {
+  id: ID! # Bytes32
+  authorAddress: String! # Address
+  soilMoisturePercentage: Int!
+  carbonTonStock: Int!
+  carbonTonPotential: Int!
+  gardenSquareMeters: Int!
+  biome: String!
+  remoteReportCID: String!
+  speciesRegistryCID: String!
+  polygonCoordinates: [Int!]!
+  treeGenusesObserved: [String!]!
+  weedGenusesObserved: [String!]!
+  issues: [String!]!
+  tags: [String!]!
+  createdAt: Int!
+
+  garden: Garden!
+}
+
+type Action {
+  id: ID! # Bytes32
+  ownerAddress: String! # Address
+  startTime: Int!
+  endTime: Int!
+  title: String!
+  instructions: String!
+  capitals: [Capital!]!
+  media: [String!]!
+  createdAt: Int!
+}
+
+type Work {
+  id: ID! # Bytes32
+  ownerAddress: String! # Address
+  title: String!
+  feedback: String!
+  metadata: String!
+  media: [String!]!
+  createdAt: Int!
+
+  workApprovals: [WorkApproval!]! @derivedFrom(field: "work")
+
+  action: Action!
+  garden: Garden!
+}
+
+type WorkApproval {
+  id: ID! # Bytes32
+  approverAddress: String! # Address
+  approved: Boolean!
+  feedback: String!
+  createdAt: Int!
+
+  action: Action!
+  work: Work!
+}
+
+type Garden {
+  id: ID! # Address
+  tokenAddress: String! # Address
+  tokenID: Int!
+  name: String!
+  description: String!
+  createdAt: Int!
+
+  assessments: [GardenAssessment!]! @derivedFrom(field: "garden")
+  works: [Work!]! @derivedFrom(field: "garden")
+}
