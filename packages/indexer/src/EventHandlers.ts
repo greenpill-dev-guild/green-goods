@@ -106,7 +106,7 @@ EAS.Attested.handler(async ({ event, context }) => {
     context.WorkApproval.set(workApproval);
   } else if (schemaUID === GARDEN_ASSESSMENT_SCHEMA_UID) {
     const gardenAssessment = await getGardenAssessmentAttestation(uid);
-    // context.log.debug(gardenAssessment.polygonCoordinates.toString());
-    // context.GardenAssessment.set(gardenAssessment);
+
+    context.GardenAssessment.set(gardenAssessment);
   }
 });
