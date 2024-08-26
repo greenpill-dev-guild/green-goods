@@ -1,7 +1,5 @@
 import { EAS } from "@ethereum-attestation-service/eas-sdk";
 
-import { GardenAssessment, Work, WorkApproval } from "generated";
-
 const eas = new EAS("0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458");
 
 const getWorkAttestation = async (workUID: string): Promise<Work> => {
