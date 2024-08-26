@@ -1,4 +1,4 @@
-export const mockCampaigns: Campaign[] = [
+export const mockCampaigns: any[] = [
   {
     id: "1",
     title: "Campaign 1",
@@ -49,7 +49,7 @@ export const mockCampaigns: Campaign[] = [
   },
 ];
 
-export const mockContributions: Contribution[] = [
+export const mockContributions: any[] = [
   {
     id: "1",
     cammpaignAddrs: "0x123",
@@ -94,7 +94,7 @@ export const mockContributions: Contribution[] = [
   },
 ];
 
-export const mockConfirmations: Confirmation[] = [
+export const mockConfirmations: any[] = [
   {
     id: "1",
     contributionID: "128",

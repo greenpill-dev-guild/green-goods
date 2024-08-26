@@ -1,15 +1,18 @@
 import React from "react";
-import { a, config, useSpring } from "@react-spring/web";
+// import { a, config, useSpring } from "@react-spring/web";
 
 export const CircleLoader: React.FC = () => {
-  const spring = useSpring({
-    from: { opacity: 0 },
-    to: { opacity: 1 },
-    config: { ...config.default, clamp: true },
-  });
+  // const spring = useSpring({
+  //   from: { opacity: 0 },
+  //   to: { opacity: 1 },
+  //   config: { ...config.default, clamp: true },
+  // });
 
   return (
-    <a.div className="relative h-12 w-12" style={spring}>
+    <div
+      className="relative h-12 w-12"
+      // style={spring}
+    >
       <div
         className="dot bg-[#171d1d]"
         style={{
@@ -42,6 +45,6 @@ export const CircleLoader: React.FC = () => {
           animationDelay: "0.75s",
         }}
       />
-    </a.div>
+    </div>
   );
 };
