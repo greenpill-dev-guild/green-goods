@@ -36,6 +36,10 @@ Core libraries:
 
 - [React](https://react.dev) - Library for rendering UI and controlling basic state
 - [Vite](https://vitejs.dev) - Build library for client UIs
+- [Openzeppelin](https://docs.openzeppelin.com/contracts/4.x/) - Library for writing secure and audited smart contracts
+- [EAS](https://attest.sh) - Contracts for making attestations and verifying claims
+- [Envio](https://envio.dev) - Indexer for querying and indexing blockchain data
+- [Foundry](https://book.getfoundry.sh/getting-started/installation) - Library for compiling and deploying smart contracts
 
 ## Contributing
 
@@ -48,7 +52,6 @@ If you would like to contribute here are the following steps:
 - Once done open a [PR](<[https://github.com/wefa-labs/wefa/pulls](https://github.com/Oba-One/web3-starter-kit/pulls)>) to merge into the development branch of the starter kit repo
 - Once approved make sure your branch is up to date with main and complete the merge.
 
-
 ### test
 
-```forge test --fork-url https://base-sepolia-rpc.publicnode.com -vvvv```
+`forge test --fork-url https://base-sepolia-rpc.publicnode.com -vvvv`
