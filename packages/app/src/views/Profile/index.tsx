@@ -1,9 +1,9 @@
 import React from "react";
 
 import { Web3Props } from "../../hooks/providers/web3";
-import { ProfileDataProps } from "../../hooks/views/useProfile";
+import { ProfileDataProps } from "../../hooks/useProfile";
 
-import { ProfileInfo } from "../../components/Profile/Info";
+import { ProfileInfo } from "../../components/Info";
 import { ProfileActions } from "../../components/Profile/Actions";
 
 interface ProfileProps extends ProfileDataProps, Web3Props {}
