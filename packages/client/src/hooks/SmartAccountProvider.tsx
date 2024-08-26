@@ -144,6 +144,8 @@ export const SmartAccountProvider = ({
       setSmartAccountClient(smartAccountClient);
       setSmartAccountAddress(smartAccountAddress);
       setSmartAccountReady(true);
+
+      console.log("smartAccountClient", smartAccountClient.account.address);
     };
 
     if (embeddedWallet) createSmartWallet(embeddedWallet);
