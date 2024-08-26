@@ -25,7 +25,7 @@ type GardenAssessment {
   weedGenusesObserved: [String!]!
   issues: [String!]!
   tags: [String!]!
-  createdAt: Int!
+  createdAt: BigInt!
 
   garden: Garden!
 }
@@ -39,7 +39,7 @@ type Action {
   instructions: String!
   capitals: [Capital!]!
   media: [String!]!
-  createdAt: Int!
+  createdAt: BigInt!
 }
 
 type Work {
@@ -49,7 +49,7 @@ type Work {
   feedback: String!
   metadata: String!
   media: [String!]!
-  createdAt: Int!
+  createdAt: BigInt!
 
   workApprovals: [WorkApproval!]! @derivedFrom(field: "work")
 
@@ -62,7 +62,7 @@ type WorkApproval {
   approverAddress: String! # Address
   approved: Boolean!
   feedback: String!
-  createdAt: Int!
+  createdAt: BigInt!
 
   action: Action!
   work: Work!
@@ -74,7 +74,7 @@ type Garden {
   tokenID: Int!
   name: String!
   description: String!
-  createdAt: Int!
+  createdAt: BigInt!
 
   assessments: [GardenAssessment!]! @derivedFrom(field: "garden")
   works: [Work!]! @derivedFrom(field: "garden")

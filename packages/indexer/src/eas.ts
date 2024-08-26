@@ -5,8 +5,6 @@ import { GardenAssessment, Work, WorkApproval } from "generated";
 const eas = new EAS("0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458");
 
 const getWorkAttestation = async (workUID: string): Promise<Work> => {
-  const eas = new EAS("0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458");
-
   const attestation = await eas.getAttestation(workUID);
   const data = JSON.parse(attestation.data);
 
@@ -19,15 +17,13 @@ const getWorkAttestation = async (workUID: string): Promise<Work> => {
     feedback: data.filter((d: any) => d.name === "feedback")[0].value.value!,
     metadata: data.filter((d: any) => d.name === "metadata")[0].value.value!,
     media: data.filter((d: any) => d.name === "media")[0].value.value!,
-    createdAt: Number(attestation.time),
+    createdAt: attestation.time,
   };
 };
 
 const getWorkApprovalAttestation = async (
   workApprovalUID: string
 ): Promise<WorkApproval> => {
-  const eas = new EAS("0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458");
-
   const attestation = await eas.getAttestation(workApprovalUID);
   const data = JSON.parse(attestation.data);
 
@@ -38,15 +34,13 @@ const getWorkApprovalAttestation = async (
     work_id: data.filter((d: any) => d.name === "workUID")[0].value.value!,
     approved: data.filter((d: any) => d.name === "approved")[0].value.value!,
     feedback: data.filter((d: any) => d.name === "feedback")[0].value.value!,
-    createdAt: Number(attestation.time),
+    createdAt: attestation.time,
   };
 };
 
 const getGardenAssessmentAttestation = async (
   gardenAssessmentUID: string
 ): Promise<GardenAssessment> => {
-  const eas = new EAS("0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458");
-
   const attestation = await eas.getAttestation(gardenAssessmentUID);
   const data = JSON.parse(attestation.data);
 
@@ -82,7 +76,7 @@ const getGardenAssessmentAttestation = async (
     )[0].value.value!,
     issues: data.filter((d: any) => d.name === "issues")[0].value.value!,
     tags: data.filter((d: any) => d.name === "tags")[0].value.value!,
-    createdAt: Number(attestation.time),
+    createdAt: attestation.time,
   };
 };
 
