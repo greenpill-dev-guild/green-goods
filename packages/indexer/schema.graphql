@@ -10,26 +10,6 @@ enum Capital {
   UNKNOWN
 }
 
-type GardenAssessment {
-  id: ID! # Bytes32
-  authorAddress: String! # Address
-  soilMoisturePercentage: Int!
-  carbonTonStock: Int!
-  carbonTonPotential: Int!
-  gardenSquareMeters: Int!
-  biome: String!
-  remoteReportCID: String!
-  speciesRegistryCID: String!
-  polygonCoordinates: [Int!]!
-  treeGenusesObserved: [String!]!
-  weedGenusesObserved: [String!]!
-  issues: [String!]!
-  tags: [String!]!
-  createdAt: BigInt!
-
-  garden: Garden!
-}
-
 type Action {
   id: ID! # Bytes32
   ownerAddress: String! # Address
@@ -42,32 +22,6 @@ type Action {
   createdAt: BigInt!
 }
 
-type Work {
-  id: ID! # Bytes32
-  ownerAddress: String! # Address
-  title: String!
-  feedback: String!
-  metadata: String!
-  media: [String!]!
-  createdAt: BigInt!
-
-  workApprovals: [WorkApproval!]! @derivedFrom(field: "work")
-
-  action: Action!
-  garden: Garden!
-}
-
-type WorkApproval {
-  id: ID! # Bytes32
-  approverAddress: String! # Address
-  approved: Boolean!
-  feedback: String!
-  createdAt: BigInt!
-
-  action: Action!
-  work: Work!
-}
-
 type Garden {
   id: ID! # Address
   tokenAddress: String! # Address
@@ -75,7 +29,4 @@ type Garden {
   name: String!
   description: String!
   createdAt: BigInt!
-
-  assessments: [GardenAssessment!]! @derivedFrom(field: "garden")
-  works: [Work!]! @derivedFrom(field: "garden")
 }

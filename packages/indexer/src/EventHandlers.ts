@@ -2,22 +2,9 @@ import {
   ActionRegistry,
   GardenToken,
   GardenAccount,
-  EAS,
   Action,
   // Garden,
 } from "generated";
-import { Capital_t } from "generated/src/db/Enums.gen";
-
-import {
-  getWorkAttestation,
-  getWorkApprovalAttestation,
-  getGardenAssessmentAttestation,
-} from "./eas";
-import {
-  WORK_SCHEMA_UID,
-  WORK_APPROVAL_SCHEMA_UID,
-  GARDEN_ASSESSMENT_SCHEMA_UID,
-} from "./constants";
 
 // Handler for the ActionRegistered event
 ActionRegistry.ActionRegistered.handler(async ({ event, context }) => {
@@ -90,23 +77,3 @@ GardenAccount.GardenOperatorAdded.handler(async ({ event, context }) => {});
 
 // Handler for the GardenAccount GardenOperatorRemoved event
 GardenAccount.GardenOperatorRemoved.handler(async ({ event, context }) => {});
-
-// Handler for EAS.Attested event
-EAS.Attested.handler(async ({ event, context }) => {
-  const uid = event.params.uid;
-  const schemaUID = event.params.schemaUID;
-
-  if (schemaUID === WORK_SCHEMA_UID) {
-    const work = await getWorkAttestation(uid);
-
-    context.Work.set(work);
-  } else if (schemaUID === WORK_APPROVAL_SCHEMA_UID) {
-    const workApproval = await getWorkApprovalAttestation(uid);
-
-    context.WorkApproval.set(workApproval);
-  } else if (schemaUID === GARDEN_ASSESSMENT_SCHEMA_UID) {
-    const gardenAssessment = await getGardenAssessmentAttestation(uid);
-
-    context.GardenAssessment.set(gardenAssessment);
-  }
-});

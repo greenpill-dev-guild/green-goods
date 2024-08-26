@@ -22,11 +22,6 @@ contracts:
       - event: GardenerRemoved
       - event: GardenOperatorAdded
       - event: GardenOperatorRemoved
-  - name: EAS
-    abi_file_path: src/abis/EAS.json
-    handler: src/EventHandlers.ts
-    events:
-      - event: Attested
 networks:
   - id: 42161 # Arbitrum
     start_block: 242630858
@@ -35,5 +30,3 @@ networks:
         address: 0x70Df51173B3EF27A245e1a0F129e2BAab39A937E
       - name: GardenToken
         address: 0x5D29C573581270d2bF436382820B3b64904AEeD7
-      - name: EAS
-        address: 0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458
