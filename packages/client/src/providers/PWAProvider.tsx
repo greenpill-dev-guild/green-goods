@@ -1,14 +1,34 @@
-import { useEffect, useState } from "react";
+import React, { useState, useEffect, useContext } from "react";
 
 export type DisplayMode = "standalone" | "browser" | "twa";
+export type Platform = "ios" | "android" | "windows" | "unknown";
 export type InstallState = "idle" | "prompt" | "installed" | "unsupported";
 
-export type Platform = "ios" | "android" | "windows" | "unknown";
-
 export interface PWADataProps {
-  platform: Platform;
-  installState: InstallState;
-  handleInstallCheck: (e: any) => void;
+  platform?: Platform;
+  installState?: InstallState;
+  handleInstallCheck?: (e: any) => void;
+}
+
+function detectHandheld(): boolean {
+  const userAgent =
+    navigator.userAgent || navigator.vendor || (window as any).opera;
+
+  // Check if the user agent contains any keywords indicating a handheld device
+  const handheldKeywords = [
+    "Android",
+    "webOS",
+    "iPhone",
+    "iPad",
+    "iPod",
+    "BlackBerry",
+    "Windows Phone",
+  ];
+  const isHandheld = handheldKeywords.some((keyword) =>
+    userAgent.includes(keyword)
+  );
+
+  return isHandheld;
 }
 
 function getMobileOperatingSystem(): Platform {
@@ -33,9 +53,15 @@ function getMobileOperatingSystem(): Platform {
   return "unknown";
 }
 
+const PWAContext = React.createContext<PWADataProps>({});
+
 export const isHandheld = detectHandheld();
 
-export const usePWA = (): PWADataProps => {
+export const usePWA = () => {
+  return useContext(PWAContext);
+};
+
+export const PWAProvider = ({ children }: { children: React.ReactNode }) => {
   const [installState, setInstalledState] = useState<InstallState>(
     isHandheld ? "installed" : "unsupported"
   );
@@ -77,29 +103,15 @@ export const usePWA = (): PWADataProps => {
     };
   }, []);
 
-  return {
-    platform,
-    installState,
-    handleInstallCheck,
-  };
-};
-function detectHandheld(): boolean {
-  const userAgent =
-    navigator.userAgent || navigator.vendor || (window as any).opera;
-
-  // Check if the user agent contains any keywords indicating a handheld device
-  const handheldKeywords = [
-    "Android",
-    "webOS",
-    "iPhone",
-    "iPad",
-    "iPod",
-    "BlackBerry",
-    "Windows Phone",
-  ];
-  const isHandheld = handheldKeywords.some((keyword) =>
-    userAgent.includes(keyword)
+  return (
+    <PWAContext.Provider
+      value={{
+        platform,
+        installState,
+        handleInstallCheck,
+      }}
+    >
+      {children}
+    </PWAContext.Provider>
   );
-
-  return isHandheld;
-}
+};

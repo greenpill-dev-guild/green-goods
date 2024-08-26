@@ -1,8 +1,24 @@
 // import { getContract } from "viem";
+import React, { useEffect, useContext } from "react";
 
 // import { useSmartAccount } from "./SmartAccountProvider";
 
+type Platform = "ios" | "android" | "windows" | "unknown";
+
+export interface WorkDataProps {
+  platform?: Platform;
+  uploadWork?: () => void;
+}
+
+const WorkContext = React.createContext<WorkDataProps>({});
+
 export const useWork = () => {
+  return useContext(WorkContext);
+};
+
+export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
+  const platform = "android";
+
   // const { smartAccountClient } = useSmartAccount();
 
   // const easContract = getContract({
@@ -16,7 +32,18 @@ export const useWork = () => {
     console.log("uploadWork");
   }
 
-  return {
-    uploadWork,
-  };
+  useEffect(() => {
+    return () => {};
+  }, []);
+
+  return (
+    <WorkContext.Provider
+      value={{
+        platform,
+        uploadWork,
+      }}
+    >
+      {children}
+    </WorkContext.Provider>
+  );
 };

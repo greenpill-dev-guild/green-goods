@@ -151,8 +151,6 @@ export const SmartAccountProvider = ({
     if (embeddedWallet) createSmartWallet(embeddedWallet);
   }, [embeddedWallet?.address]);
 
-  console.log("client", smartAccountClient);
-
   return (
     <SmartAccountContext.Provider
       value={{
