@@ -70,7 +70,7 @@ export const Hero: React.FC = () => {
           📲 Visit <span className="font-bold">app.campgreen.world</span> on
           phone to install app
         </p>
-        {/* <form
+        <form
           onSubmit={handleSubscribe}
           className="flex flex-col gap-2 justify-self-start"
         >
@@ -86,7 +86,7 @@ export const Hero: React.FC = () => {
           >
             Subscribe
           </button>
-        </form> */}
+        </form>
       </div>
     </div>
   );

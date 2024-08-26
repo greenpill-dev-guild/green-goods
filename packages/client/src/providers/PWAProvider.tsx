@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 
-import { Platform, useApp } from "../../../app/src/hooks/providers/app";
-
 export type DisplayMode = "standalone" | "browser" | "twa";
 export type InstallState = "idle" | "prompt" | "installed" | "unsupported";
+
+export type Platform = "ios" | "android" | "windows" | "unknown";
 
 export interface PWADataProps {
   platform: Platform;
@@ -39,6 +39,8 @@ export const usePWA = (): PWADataProps => {
   const [installState, setInstalledState] = useState<InstallState>(
     isHandheld ? "installed" : "unsupported"
   );
+
+  const platform = getMobileOperatingSystem();
 
   async function handleInstallCheck(e: any) {
     const platform = getMobileOperatingSystem();
@@ -83,3 +85,23 @@ export const usePWA = (): PWADataProps => {
     handleInstallCheck,
   };
 };
+function detectHandheld(): boolean {
+  const userAgent =
+    navigator.userAgent || navigator.vendor || (window as any).opera;
+
+  // Check if the user agent contains any keywords indicating a handheld device
+  const handheldKeywords = [
+    "Android",
+    "webOS",
+    "iPhone",
+    "iPad",
+    "iPod",
+    "BlackBerry",
+    "Windows Phone",
+  ];
+  const isHandheld = handheldKeywords.some((keyword) =>
+    userAgent.includes(keyword)
+  );
+
+  return isHandheld;
+}

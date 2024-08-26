@@ -1,14 +1,14 @@
 import React from "react";
 import toast from "react-hot-toast";
 
-interface TextAddressProps {
+interface TextProps {
   address: string;
   ens?: string;
   className?: string;
   canCopy?: boolean;
 }
 
-export const TextAddress: React.FC<TextAddressProps> = ({
+export const Text: React.FC<TextProps> = ({
   address,
   ens,
   className,
