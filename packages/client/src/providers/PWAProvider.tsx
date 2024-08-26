@@ -43,8 +43,6 @@ export const usePWA = (): PWADataProps => {
   const platform = getMobileOperatingSystem();
 
   async function handleInstallCheck(e: any) {
-    const platform = getMobileOperatingSystem();
-
     if (
       window.matchMedia("(display-mode: standalone)").matches ||
       window.matchMedia("(display-mode: fullscreen)").matches
