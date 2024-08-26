@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { PrivyProvider } from "@privy-io/react-auth";
 import { arbitrum } from "viem/chains";
 
-import { SmartAccountProvider } from "./hooks/SmartAccountProvider";
+import { SmartAccountProvider } from "./providers/SmartAccountProvider.tsx";
 
 import App from "./App.tsx";
 import "./index.css";

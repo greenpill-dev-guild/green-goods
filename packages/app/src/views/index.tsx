@@ -2,7 +2,7 @@ import { a, useTransition } from "@react-spring/web";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import { useHome } from "@/hooks/views/useHome";
-import { useProfile } from "@/hooks/views/useProfile";
+import { useProfile } from "@/hooks/useProfile";
 import { useContribute } from "@/hooks/views/useContribute";
 
 import CampaignViewer from "@/components/Campaign/Viewer";
