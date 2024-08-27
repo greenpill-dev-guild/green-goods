@@ -1,6 +1,6 @@
 import { Web3Props } from "../../hooks/providers/web3";
 
-import { Button } from "../../../../client/src/components/Button";
+import { Button } from "../../components";
 
 interface ProfileActionsProps extends Web3Props {}
 

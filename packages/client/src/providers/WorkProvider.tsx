@@ -1,7 +1,7 @@
 // import { getContract } from "viem";
 import React, { useEffect, useContext } from "react";
 
-// import { useSmartAccount } from "./SmartAccountProvider";
+// import { useUser } from "./UserProvider";
 
 type Platform = "ios" | "android" | "windows" | "unknown";
 
@@ -19,7 +19,7 @@ export const useWork = () => {
 export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   const platform = "android";
 
-  // const { smartAccountClient } = useSmartAccount();
+  // const { smartAccountClient } = useUser();
 
   // const easContract = getContract({
   //   address: "0x6d3dC0Fe5351087E3Af3bDe8eB3F7350ed894fc3",

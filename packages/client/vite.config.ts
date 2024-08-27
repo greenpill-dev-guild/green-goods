@@ -1,7 +1,121 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import path from "path";
+import dotenvExpand from "dotenv-expand";
+
+import mkcert from "vite-plugin-mkcert";
+import react from "@vitejs/plugin-react";
+import { VitePWA } from "vite-plugin-pwa";
+import { defineConfig, loadEnv } from "vite";
 
 // https://vitejs.dev/config/
-export default defineConfig({
-  plugins: [react()],
-})
+export default defineConfig(({ mode }) => {
+  // This check is important!
+  if (mode === "development") {
+    const env = loadEnv(mode, process.cwd(), "");
+    dotenvExpand.expand({ parsed: env });
+  }
+
+  return {
+    plugins: [
+      mkcert(),
+      react(),
+      VitePWA({
+        includeAssets: [
+          "favicon.ico",
+          "images/logo-64.png",
+          "images/logo-310.png",
+          "images/home.png",
+          "images/work.png",
+          "images/profile.png",
+        ],
+        injectRegister: "auto",
+        registerType: "autoUpdate",
+        devOptions: {
+          enabled: true,
+        },
+        workbox: {
+          // globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
+        },
+        manifest: {
+          name: "Green Goods",
+          short_name: "Green Goods",
+          icons: [
+            {
+              src: "images/logo-64.png",
+              sizes: "64x64",
+              type: "image/png",
+            },
+            {
+              src: "images/logo-310.png",
+              sizes: "192X192",
+              type: "image/png",
+            },
+            {
+              src: "images/logo-310.png",
+              sizes: "512x512",
+              type: "image/png",
+            },
+          ],
+          start_url: "/",
+          scope: "/",
+          display: "standalone",
+          orientation: "portrait-primary",
+          theme_color: "#367D42",
+          background_color: "#000",
+          shortcuts: [
+            {
+              name: "Home",
+              description: "View Gardens",
+              url: "/profile",
+              icons: [
+                {
+                  src: "images/home.png",
+                  sizes: "64x64",
+                  type: "image/png",
+                },
+              ],
+            },
+            {
+              name: "Work",
+              description: "Upload your work",
+              url: "/profile",
+              icons: [
+                {
+                  src: "images/work.png",
+                  sizes: "64x64",
+                  type: "image/png",
+                },
+              ],
+            },
+            {
+              name: "Profile",
+              description: "View your profile",
+              url: "/profile",
+              icons: [
+                {
+                  src: "images/profile.png",
+                  sizes: "64x64",
+                  type: "image/png",
+                },
+              ],
+            },
+          ],
+          related_applications: [
+            {
+              platform: "webapp",
+              url: "https://localhost:3001/manifest.webmanifest",
+            },
+          ],
+          categories: [],
+        },
+      }),
+    ],
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
+      },
+    },
+    server: {
+      port: 3001,
+    },
+  };
+});

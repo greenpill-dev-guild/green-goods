@@ -1,31 +1,32 @@
 import { Link, useLocation } from "react-router-dom";
 // import { a, config, useSpring } from "@react-spring/web";
 
-import { HomeIcon, PlusIcon, CircleUserRoundIcon } from "lucide-react";
+import {
+  RiHome2Fill,
+  RiCrossFill,
+  RiProfileFill,
+  RemixiconComponentType,
+} from "@remixicon/react";
 
 const tabs: {
   path: string;
   title: string;
-  Icon: React.FunctionComponent<
-    React.SVGProps<SVGSVGElement> & {
-      title?: string | undefined;
-    }
-  >;
+  Icon: RemixiconComponentType;
 }[] = [
   {
     path: "/home",
     title: "Home",
-    Icon: HomeIcon,
+    Icon: RiHome2Fill,
   },
   {
     path: "/contribute",
     title: "Contribute",
-    Icon: PlusIcon,
+    Icon: RiCrossFill,
   },
   {
     path: "/profile",
     title: "Profile",
-    Icon: CircleUserRoundIcon,
+    Icon: RiProfileFill,
   },
 ];
 
@@ -64,7 +65,7 @@ export const Appbar = () => {
               : "fill-stone-500"
             }`}
           >
-            <Icon width={36} height={36} />
+            <Icon className="w-6 h-6" />
             <p
               className={`text-sm tracking-wide ${
                 pathname === path ? "text-primary" : "text-neutral"
@@ -78,3 +79,50 @@ export const Appbar = () => {
     </nav>
   );
 };
+
+// import Link from "next/link";
+// import { useTranslations } from "next-intl";
+// import { usePathname } from "next/navigation";
+// import { RiHome2Fill, PlusCircleIcon, UserCircleIcon } from "lucide-react";
+
+// const linkClasses =
+//   "flex-1 flex flex-col items-center text-slate-800 hover:text-teal-700 py-2 focus:outline-none focus:text-teal-700";
+
+// export const Navbar = () => {
+//   const pathname = usePathname();
+//   const t = useTranslations("Navigation");
+
+//   if (
+//     pathname.includes("proposals") ||
+//     pathname.includes("profile") ||
+//     pathname.includes("create")
+//   ) {
+//     return (
+//       <div className="fixed bottom-0 left-0 right-0 h-[4.5rem] shadow-sm bg-slate-50 font-medium border-t border-slate-100 rounded-t-md py-3 px-4 flex justify-around items-center w-full">
+//         <Link
+//           href="/proposals"
+//           className={`${linkClasses} ${pathname.includes("proposals") && "text-teal-800"}`}
+//         >
+//           <RiHome2Fill className="h-6 w-6" />
+//           <span className=" mt-1">{t("link1")}</span>
+//         </Link>
+//         <Link
+//           href="/create/proposal"
+//           className={`${linkClasses} ${pathname.includes("create") && "text-teal-800"}`}
+//         >
+//           <PlusCircleIcon className="h-6 w-6" />
+//           <span className=" mt-1">{t("link2")}</span>
+//         </Link>
+//         <Link
+//           href="/profile"
+//           className={`${linkClasses} ${pathname.includes("profile") && "text-teal-800"}`}
+//         >
+//           <UserCircleIcon className="h-6 w-6" />
+//           <span className=" mt-1">{t("link3")}</span>
+//         </Link>
+//       </div>
+//     );
+//   }
+
+//   return null;
+// };

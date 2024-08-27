@@ -1,6 +1,6 @@
 import React from "react";
 
-import { Button } from "../../components/Button";
+import { Button } from "../../components";
 import { usePrivy } from "@privy-io/react-auth";
 
 interface LoginProps {}

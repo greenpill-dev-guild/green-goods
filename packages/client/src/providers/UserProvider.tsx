@@ -19,7 +19,7 @@ import React, { useState, useEffect, useContext } from "react";
 import { ConnectedWallet, usePrivy, useWallets } from "@privy-io/react-auth";
 import { createPublicClient, createWalletClient, custom, http } from "viem";
 
-interface SmartAccountInterface {
+interface UserInterface {
   eoa: ConnectedWallet | undefined;
   smartAccountReady: boolean;
   smartAccountAddress: `0x${string}` | undefined;
@@ -36,22 +36,18 @@ interface SmartAccountInterface {
     | null;
 }
 
-const SmartAccountContext = React.createContext<SmartAccountInterface>({
+const UserContext = React.createContext<UserInterface>({
   eoa: undefined,
   smartAccountClient: undefined,
   smartAccountAddress: undefined,
   smartAccountReady: false,
 });
 
-export const useSmartAccount = () => {
-  return useContext(SmartAccountContext);
+export const useUser = () => {
+  return useContext(UserContext);
 };
 
-export const SmartAccountProvider = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
+export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   // Get a list of all of the wallets (EOAs) the user has connected to your site
   const { wallets } = useWallets();
   const { ready } = usePrivy();
@@ -152,7 +148,7 @@ export const SmartAccountProvider = ({
   }, [embeddedWallet?.address]);
 
   return (
-    <SmartAccountContext.Provider
+    <UserContext.Provider
       value={{
         smartAccountReady: smartAccountReady,
         smartAccountClient: smartAccountClient,
@@ -161,6 +157,6 @@ export const SmartAccountProvider = ({
       }}
     >
       {children}
-    </SmartAccountContext.Provider>
+    </UserContext.Provider>
   );
 };

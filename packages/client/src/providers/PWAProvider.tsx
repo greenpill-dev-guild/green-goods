@@ -2,33 +2,23 @@ import React, { useState, useEffect, useContext } from "react";
 
 export type DisplayMode = "standalone" | "browser" | "twa";
 export type Platform = "ios" | "android" | "windows" | "unknown";
-export type InstallState = "idle" | "prompt" | "installed" | "unsupported";
+export type InstallState =
+  | "idle"
+  | "not-installed"
+  | "installed"
+  | "unsupported";
 
 export interface PWADataProps {
-  platform?: Platform;
-  installState?: InstallState;
+  isMobile?: boolean;
+  isInstalled?: boolean;
+  deferredPrompt?: BeforeInstallPromptEvent | null;
+  promptInstall?: () => void;
   handleInstallCheck?: (e: any) => void;
 }
 
-function detectHandheld(): boolean {
-  const userAgent =
-    navigator.userAgent || navigator.vendor || (window as any).opera;
-
-  // Check if the user agent contains any keywords indicating a handheld device
-  const handheldKeywords = [
-    "Android",
-    "webOS",
-    "iPhone",
-    "iPad",
-    "iPod",
-    "BlackBerry",
-    "Windows Phone",
-  ];
-  const isHandheld = handheldKeywords.some((keyword) =>
-    userAgent.includes(keyword)
-  );
-
-  return isHandheld;
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
 function getMobileOperatingSystem(): Platform {
@@ -55,33 +45,39 @@ function getMobileOperatingSystem(): Platform {
 
 const PWAContext = React.createContext<PWADataProps>({});
 
-export const isHandheld = detectHandheld();
-
 export const usePWA = () => {
   return useContext(PWAContext);
 };
 
 export const PWAProvider = ({ children }: { children: React.ReactNode }) => {
-  const [installState, setInstalledState] = useState<InstallState>(
-    isHandheld ? "installed" : "unsupported"
-  );
+  const [deferredPrompt, setDeferredPrompt] =
+    useState<BeforeInstallPromptEvent | null>(null);
+  const [installState, setInstalledState] = useState<InstallState>("idle");
 
   const platform = getMobileOperatingSystem();
 
-  async function handleInstallCheck(e: any) {
+  async function handleInstallCheck(e: any | null) {
+    e?.preventDefault(); // Prevent the automatic prompt
+    setDeferredPrompt(e);
+
     if (
       window.matchMedia("(display-mode: standalone)").matches ||
-      window.matchMedia("(display-mode: fullscreen)").matches
+      window.matchMedia("(display-mode: fullscreen)").matches ||
+      (window.navigator as any).standalone
     ) {
       setInstalledState("installed");
 
       console.log("PWA was installed", e);
     } else {
-      // setInstalledState("prompt");
-      setInstalledState("installed"); // TODO: Update PWA flow
+      setInstalledState("not-installed");
 
       console.log("PWA was not installed", e);
     }
+  }
+
+  function handleBeforeInstallPrompt(e: Event) {
+    e.preventDefault();
+    setDeferredPrompt(e as BeforeInstallPromptEvent);
   }
 
   function handlePWAInstalled() {
@@ -90,24 +86,42 @@ export const PWAProvider = ({ children }: { children: React.ReactNode }) => {
     // TODO: Add analytics and fire notification
   }
 
+  const promptInstall = () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt(); // Show the install prompt
+      deferredPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === "accepted") {
+          console.log("User accepted the install prompt");
+        } else {
+          console.log("User dismissed the install prompt");
+        }
+        setDeferredPrompt(null); // Clear the saved prompt
+      });
+    }
+  };
+
   useEffect(() => {
-    isHandheld &&
-      window.addEventListener("beforeinstallprompt", handleInstallCheck);
-    isHandheld && window.addEventListener("appinstalled", handlePWAInstalled);
+    handleInstallCheck(null);
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handlePWAInstalled);
 
     return () => {
-      isHandheld &&
-        window.removeEventListener("beforeinstallprompt", handleInstallCheck);
-      isHandheld &&
-        window.removeEventListener("appinstalled", handlePWAInstalled);
+      window.removeEventListener(
+        "beforeinstallprompt",
+        handleBeforeInstallPrompt
+      );
+      window.removeEventListener("appinstalled", handlePWAInstalled);
     };
   }, []);
 
   return (
     <PWAContext.Provider
       value={{
-        platform,
-        installState,
+        isMobile: platform === "ios" || platform === "android",
+        isInstalled: installState === "installed",
+        deferredPrompt,
+        promptInstall,
         handleInstallCheck,
       }}
     >
