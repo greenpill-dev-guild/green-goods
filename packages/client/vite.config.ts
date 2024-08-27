@@ -40,18 +40,28 @@ export default defineConfig(({ mode }) => {
           short_name: "Green Goods",
           icons: [
             {
-              src: "images/logo-64.png",
-              sizes: "64x64",
+              src: "/images/android-icon-36x36.png",
+              sizes: "36x36",
               type: "image/png",
             },
             {
-              src: "images/logo-310.png",
-              sizes: "192X192",
+              src: "/images/android-icon-48x48.png",
+              sizes: "48x48",
               type: "image/png",
             },
             {
-              src: "images/logo-310.png",
-              sizes: "512x512",
+              src: "/images/android-icon-72x72.png",
+              sizes: "72x72",
+              type: "image/png",
+            },
+            {
+              src: "/images/android-icon-144x144.png",
+              sizes: "144x144",
+              type: "image/png",
+            },
+            {
+              src: "/icon.png",
+              sizes: "192x192",
               type: "image/png",
             },
           ],
