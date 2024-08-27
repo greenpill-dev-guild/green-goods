@@ -3,9 +3,9 @@ import React from "react";
 import { Button } from "@/components/Button";
 import { usePrivy } from "@privy-io/react-auth";
 
-interface LoginProps {}
+interface OnboardingProps {}
 
-const Login: React.FC<LoginProps> = () => {
+const Onboarding: React.FC<OnboardingProps> = () => {
   const { login } = usePrivy();
 
   return (
@@ -22,10 +22,10 @@ const Login: React.FC<LoginProps> = () => {
           src={`https://bafybeif4rv4cjeuzx3daq5yqpjiy2y5dqgfl3pjlsnghzmsoaih35erpdu.ipfs.dweb.link/`}
           alt="Camp Green"
         />
-        <Button label="Login" onClick={login} />
+        <Button label="Onboarding" onClick={login} />
       </div>
     </section>
   );
 };
 
-export default Login;
+export default Onboarding;

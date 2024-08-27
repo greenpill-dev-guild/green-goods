@@ -12,33 +12,32 @@ import {
   createPimlicoBundlerClient,
   createPimlicoPaymasterClient,
 } from "permissionless/clients/pimlico";
-import { Chain, Transport } from "viem";
-import { arbitrum } from "viem/chains";
 import { EntryPoint } from "permissionless/types";
+
 import React, { useState, useEffect, useContext } from "react";
 import { ConnectedWallet, usePrivy, useWallets } from "@privy-io/react-auth";
+
+import { arbitrum } from "viem/chains";
+import { Chain, Transport } from "viem";
 import { createPublicClient, createWalletClient, custom, http } from "viem";
 
 interface UserInterface {
+  isOnboarded: boolean;
   eoa: ConnectedWallet | undefined;
   smartAccountReady: boolean;
   smartAccountAddress: `0x${string}` | undefined;
-  smartAccountClient:
-    | SmartAccountClient<
-        EntryPoint,
-        Transport,
-        Chain,
-        SmartAccount<EntryPoint, string, Transport, Chain>
-      >
-    | Transport
-    | any
-    | SmartAccount<EntryPoint, string, Transport, Chain>
-    | null;
+  smartAccountClient: SmartAccountClient<
+    EntryPoint,
+    Transport,
+    Chain,
+    SmartAccount<EntryPoint, string, Transport, Chain>
+  > | null;
 }
 
 const UserContext = React.createContext<UserInterface>({
+  isOnboarded: false,
   eoa: undefined,
-  smartAccountClient: undefined,
+  smartAccountClient: null,
   smartAccountAddress: undefined,
   smartAccountReady: false,
 });
@@ -58,18 +57,13 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
   // States to store the smart account and its status
   const [eoa, setEoa] = useState<ConnectedWallet | undefined>();
-  const [smartAccountClient, setSmartAccountClient] = useState<
-    | SmartAccountClient<
-        EntryPoint,
-        Transport,
-        Chain,
-        SmartAccount<EntryPoint, string, Transport, Chain>
-      >
-    | Transport
-    | any
-    | SmartAccount<EntryPoint, string, Transport, Chain>
-    | null
-  >();
+  const [smartAccountClient, setSmartAccountClient] =
+    useState<SmartAccountClient<
+      EntryPoint,
+      Transport,
+      Chain,
+      SmartAccount<EntryPoint, string, Transport, Chain>
+    > | null>(null);
   const [smartAccountAddress, setSmartAccountAddress] = useState<
     `0x${string}` | undefined
   >();
@@ -137,7 +131,14 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
       const smartAccountAddress = smartAccountClient.account?.address;
 
-      setSmartAccountClient(smartAccountClient);
+      setSmartAccountClient(
+        smartAccountClient as SmartAccountClient<
+          EntryPoint,
+          Transport,
+          Chain,
+          SmartAccount<EntryPoint, string, Transport, Chain>
+        >
+      );
       setSmartAccountAddress(smartAccountAddress);
       setSmartAccountReady(true);
 
@@ -150,6 +151,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <UserContext.Provider
       value={{
+        isOnboarded: false, // Todo - implement onboard check
         smartAccountReady: smartAccountReady,
         smartAccountClient: smartAccountClient,
         smartAccountAddress: smartAccountAddress,

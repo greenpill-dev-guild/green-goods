@@ -7,13 +7,16 @@ export type InstallState =
   | "not-installed"
   | "installed"
   | "unsupported";
+export type Locale = "en" | "pt";
 
 export interface PWADataProps {
-  isMobile?: boolean;
-  isInstalled?: boolean;
-  deferredPrompt?: BeforeInstallPromptEvent | null;
-  promptInstall?: () => void;
-  handleInstallCheck?: (e: any) => void;
+  isMobile: boolean;
+  isInstalled: boolean;
+  locale: Locale;
+  deferredPrompt: BeforeInstallPromptEvent | null;
+  promptInstall: () => void;
+  handleInstallCheck: (e: any) => void;
+  switchLanguage: (lang: Locale) => void;
 }
 
 interface BeforeInstallPromptEvent extends Event {
@@ -43,13 +46,22 @@ function getMobileOperatingSystem(): Platform {
   return "unknown";
 }
 
-const PWAContext = React.createContext<PWADataProps>({});
+const PWAContext = React.createContext<PWADataProps>({
+  isMobile: false,
+  isInstalled: false,
+  locale: "en",
+  deferredPrompt: null,
+  promptInstall: () => {},
+  handleInstallCheck: () => {},
+  switchLanguage: () => {},
+});
 
 export const usePWA = () => {
   return useContext(PWAContext);
 };
 
 export const PWAProvider = ({ children }: { children: React.ReactNode }) => {
+  const [locale, setLocale] = useState<Locale>("en");
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [installState, setInstalledState] = useState<InstallState>("idle");
@@ -75,7 +87,7 @@ export const PWAProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
-  function handleBeforeInstallPrompt(e: Event) {
+  function handleBeforeInstall(e: Event) {
     e.preventDefault();
     setDeferredPrompt(e as BeforeInstallPromptEvent);
   }
@@ -84,6 +96,10 @@ export const PWAProvider = ({ children }: { children: React.ReactNode }) => {
     setInstalledState("installed");
 
     // TODO: Add analytics and fire notification
+  }
+
+  function switchLanguage(lang: Locale) {
+    setLocale(lang);
   }
 
   const promptInstall = () => {
@@ -103,14 +119,11 @@ export const PWAProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     handleInstallCheck(null);
 
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("beforeinstallprompt", handleBeforeInstall);
     window.addEventListener("appinstalled", handlePWAInstalled);
 
     return () => {
-      window.removeEventListener(
-        "beforeinstallprompt",
-        handleBeforeInstallPrompt
-      );
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
       window.removeEventListener("appinstalled", handlePWAInstalled);
     };
   }, []);
@@ -120,9 +133,11 @@ export const PWAProvider = ({ children }: { children: React.ReactNode }) => {
       value={{
         isMobile: platform === "ios" || platform === "android",
         isInstalled: installState === "installed",
+        locale,
         deferredPrompt,
         promptInstall,
         handleInstallCheck,
+        switchLanguage,
       }}
     >
       {children}

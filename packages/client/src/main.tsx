@@ -5,11 +5,11 @@ import { createRoot } from "react-dom/client";
 import { arbitrum } from "viem/chains";
 import { PrivyProvider } from "@privy-io/react-auth";
 
-import { PWAProvider } from "./providers/PWAProvider.tsx";
-import { UserProvider } from "./providers/UserProvider.tsx";
+import { PWAProvider } from "@/providers/PWAProvider.tsx";
+import { UserProvider } from "@/providers/UserProvider.tsx";
 
-import App from "./App.tsx";
-import "./index.css";
+import App from "@/App.tsx";
+import "@/index.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

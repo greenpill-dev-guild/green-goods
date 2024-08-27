@@ -1,64 +1,83 @@
+import { IntlProvider } from "react-intl";
 import { Toaster } from "react-hot-toast";
 import { usePrivy } from "@privy-io/react-auth";
 import { Route, Routes, Navigate, BrowserRouter } from "react-router-dom";
 
-import { WorkProvider } from "./providers/WorkProvider";
-import { GardenProvider } from "./providers/GardenProvider";
+import messages_en from "@/i18n/en.json";
+import messages_es from "@/i18n/pt.json";
 
-import { usePWA } from "./providers/PWAProvider";
-import { useUser } from "./providers/UserProvider";
+import { WorkProvider } from "@/providers/WorkProvider";
+import { GardenProvider } from "@/providers/GardenProvider";
 
-import Views from "./views";
-import { Appbar } from "./components/AppBar";
+import { usePWA } from "@/providers/PWAProvider";
+import { useUser } from "@/providers/UserProvider";
+
+import Views from "@/views";
+import { Appbar } from "@/components/AppBar";
+
+const messages = {
+  en: messages_en,
+  pt: messages_es,
+};
 
 function App() {
   const { authenticated } = usePrivy();
-  const { isMobile, isInstalled } = usePWA();
-  const { smartAccountReady } = useUser();
+  const { isMobile, isInstalled, locale } = usePWA();
+  const { isOnboarded, smartAccountReady } = useUser();
 
   const isAuthenticated = authenticated && smartAccountReady;
-
-  // const isOnboarded = user.
-
-  // Check if the user is on mobile and the PWA is installed
-  const shouldShowApp = isInstalled && isMobile;
+  const isDownloaded = isInstalled && isMobile;
 
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Landing Page Route */}
-        <Route path="/landing" element={<div>Landing Page</div>} />
+    <IntlProvider locale={locale} messages={messages[locale]}>
+      <BrowserRouter>
+        <Routes>
+          {/* Landing Page Route */}
+          <Route path="/landing" element={<div>Landing Page</div>} />
 
-        {/* Login Route */}
-        <Route
-          path="/login"
-          element={
-            isAuthenticated ? <Navigate to="/" replace /> : <div>Login</div>
-          }
-        />
+          {/* Login Route */}
+          <Route
+            path="/login"
+            element={
+              isAuthenticated ? <Navigate to="/" replace /> : <div>Login</div>
+            }
+          />
 
-        {/* Main Route: Either show app or landing page based on conditions */}
-        <Route
-          path="/"
-          element={
-            shouldShowApp ?
-              isAuthenticated ?
-                <GardenProvider>
-                  <WorkProvider>
-                    <Views />
-                    <Appbar />
-                    <Toaster />
-                  </WorkProvider>
-                </GardenProvider>
-              : <Navigate to="/login" replace />
-            : <Navigate to="/landing" replace />
-          }
-        />
+          {/* Onboarding Route */}
+          <Route
+            path="/onboarding"
+            element={
+              isAuthenticated && !isOnboarded ?
+                <div>Onboarding</div>
+              : <Navigate to="/" replace />
+            }
+          />
 
-        {/* Catch-all Route: Redirect to the appropriate place */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+          {/* Main Route: Either show app or landing page based on conditions */}
+          <Route
+            path="/"
+            element={
+              isDownloaded ?
+                isAuthenticated ?
+                  isOnboarded ?
+                    <GardenProvider>
+                      <WorkProvider>
+                        <Views />
+                        <Appbar />
+                        <Toaster />
+                      </WorkProvider>
+                    </GardenProvider>
+                  : <Navigate to="/onboarding" replace />
+                : <Navigate to="/login" replace />
+              : <Navigate to="/landing" replace />
+            }
+          />
+
+          {/* Catch-all Route: Redirect to the appropriate place */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </IntlProvider>
   );
 }
 

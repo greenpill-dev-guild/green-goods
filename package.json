@@ -26,6 +26,7 @@
     "deploy:arbitrum": "pnpm --filter 'contracts' run deploy:arbitrum --network arbitrum"
   },
   "dependencies": {
+    "@ethereum-attestation-service/eas-sdk": "2.5.0",
     "dotenv": "16.4.5",
     "ethers": "^6.13.2",
     "viem": "^2.19.6"
