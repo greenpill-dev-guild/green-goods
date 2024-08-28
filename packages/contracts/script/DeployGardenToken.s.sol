@@ -91,11 +91,18 @@ contract DeployGardenToken is Script {
             console.log("GardenToken deployed at:", token);
 
             // Mint a garden for Rio Claro, São Paulo
-            address[] memory gardeners = new address[](1);
-            address[] memory gardenOperators = new address[](1);
+            address[] memory gardeners = new address[](4);
+            address[] memory gardenOperators = new address[](4);
 
             gardeners[0] = 0x2aa64E6d80390F5C017F0313cB908051BE2FD35e; // afo-wefa.eth
+            gardeners[1] = 0xAcD59e854adf632d2322404198624F757C868C97; // groweco.eth
+            gardeners[2] = 0x29e6cbF2450F86006292D10A3cF791955600a457; // marcin
+            gardeners[3] = 0x2aa64E6d80390F5C017F0313cB908051BE2FD35e; // afo@greenpill.builders
             gardenOperators[0] = 0x2aa64E6d80390F5C017F0313cB908051BE2FD35e; // afo-wefa.eth
+            gardenOperators[1] = 0xAcD59e854adf632d2322404198624F757C868C97; // groweco.eth
+            gardenOperators[2] = 0x29e6cbF2450F86006292D10A3cF791955600a457; // marcin
+            gardenOperators[3] = 0x2aa64E6d80390F5C017F0313cB908051BE2FD35e; // afo@greenpill.builders
+
             gardenAccount = gardenToken.mintGarden(communityToken, "Root Planet", gardeners, gardenOperators);
 
             vm.stopBroadcast();
@@ -124,11 +131,11 @@ contract DeployGardenToken is Script {
             string.concat(
                 'src/GardenAccount.sol:GardenAccount --constructor-args $(cast abi-encode "constructor(address,address,address,address)" ',
                 Strings.toHexString(erc4337EntryPoint),
-                " ",
+                ", ",
                 Strings.toHexString(multicallForwarder),
-                " ",
+                ", ",
                 Strings.toHexString(TOKENBOUND_REGISTRY),
-                " ",
+                ", ",
                 Strings.toHexString(guardian),
                 ")\n"
             )
@@ -140,7 +147,7 @@ contract DeployGardenToken is Script {
             string.concat(
                 'src/AccountProxy.sol:AccountProxy --constructor-args $(cast abi-encode "constructor(address,address)" ',
                 Strings.toHexString(guardian),
-                " ",
+                ", ",
                 Strings.toHexString(implementation),
                 ")\n"
             )
@@ -151,7 +158,7 @@ contract DeployGardenToken is Script {
             string.concat(
                 'src/GardenToken.sol:GardenToken --constructor-args $(cast abi-encode "constructor(address)" ',
                 Strings.toHexString(implementation),
-                "",
+                ", ",
                 Strings.toHexString(gardenAccount),
                 ")\n"
             )
