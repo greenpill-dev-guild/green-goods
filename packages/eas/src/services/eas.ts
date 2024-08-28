@@ -10,7 +10,10 @@ const provider = new ethers.AlchemyProvider(
 const signer = new ethers.Wallet(PRIVATE_KEY).connect(provider);
 
 const easSigner = () => {
-  const EASContractAddress = "0xC2679fBD37d54388Ce493F1DB75320D236e1815e"; // Sepolia v0.26
+  const EASContractAddress =
+    PROD ?
+      "0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458"
+    : "0xC2679fBD37d54388Ce493F1DB75320D236e1815e"; // Sepolia v0.26
 
   // Initialize the sdk with the address of the EAS Schema contract address
   const eas = new EAS(EASContractAddress);
@@ -24,7 +27,9 @@ const easSigner = () => {
 
 const schemaRegistry = () => {
   const schemaRegistryContractAddress =
-    "0x0a7E2Ff54e76B8E6659aedc9103FB21c038050D0"; // Sepolia 0.26
+    PROD ?
+      "0xA310da9c5B885E7fb3fbA9D66E9Ba6Df512b78eB"
+    : "0x0a7E2Ff54e76B8E6659aedc9103FB21c038050D0"; // Sepolia 0.26
 
   const schemaRegistry = new SchemaRegistry(schemaRegistryContractAddress);
 
