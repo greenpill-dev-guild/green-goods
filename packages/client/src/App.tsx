@@ -1,5 +1,5 @@
-import { IntlProvider } from "react-intl";
 import { Toaster } from "react-hot-toast";
+import { IntlProvider } from "react-intl";
 import { usePrivy } from "@privy-io/react-auth";
 import { Route, Routes, Navigate, BrowserRouter } from "react-router-dom";
 
@@ -25,8 +25,8 @@ function App() {
   const { isMobile, isInstalled, locale } = usePWA();
   const { isOnboarded, smartAccountReady } = useUser();
 
-  const isAuthenticated = authenticated && smartAccountReady;
   const isDownloaded = isInstalled && isMobile;
+  const isAuthenticated = authenticated && smartAccountReady;
 
   return (
     <IntlProvider locale={locale} messages={messages[locale]}>
