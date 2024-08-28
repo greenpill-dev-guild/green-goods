@@ -15,6 +15,11 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     /// @param newName The new name of the garden.
     event NameUpdated(address indexed updater, string newName);
 
+    /// @notice Emitted when the garden description is updated.
+    /// @param updater The address of the entity that updated the description.
+    /// @param newDescription The new description of the garden.
+    event DescriptionUpdated(address indexed updater, string newDescription);
+
     /// @notice Emitted when a new gardener is added.
     /// @param updater The address of the entity that added the gardener.
     /// @param gardener The address of the added gardener.
@@ -41,6 +46,9 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     /// @notice The name of the garden.
     string public name;
 
+    /// @notice The description of the garden.
+    string public description;
+
     /// @notice Mapping of gardener addresses to their status.
     mapping(address gardener => bool isGardener) public gardeners;
 
@@ -64,16 +72,22 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     /// @dev This function must be called after the contract is deployed.
     /// @param _communityToken The address of the community token associated with the garden.
     /// @param _name The name of the garden.
+    /// @param _description The description of the garden.
     /// @param _gardeners An array of addresses representing the initial gardeners.
     /// @param _gardenOperators An array of addresses representing the initial garden operators.
     function initialize(
         address _communityToken,
         string calldata _name,
+        string calldata _description,
         address[] calldata _gardeners,
         address[] calldata _gardenOperators
     ) external initializer {
         communityToken = _communityToken;
         name = _name;
+        description = _description;
+
+        gardeners[_msgSender()] = true;
+        gardenOperators[_msgSender()] = true;
 
         for (uint256 i = 0; i < _gardeners.length; i++) {
             gardeners[_gardeners[i]] = true;
@@ -86,6 +100,10 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         }
 
         emit NameUpdated(_msgSender(), _name);
+        emit DescriptionUpdated(_msgSender(), _description);
+
+        emit GardenerAdded(_msgSender(), _msgSender());
+        emit GardenOperatorAdded(_msgSender(), _msgSender());
     }
 
     /// @notice Updates the name of the garden.
@@ -99,6 +117,19 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         name = _name;
 
         emit NameUpdated(_msgSender(), _name);
+    }
+
+    /// @notice Updates the description of the garden.
+    /// @dev Only callable by a valid signer of the contract.
+    /// @param _description The new description of the garden.
+    function updateDescription(string memory _description) external {
+        if (_isValidSigner(_msgSender(), "")) {
+            revert NotGardenOwner();
+        }
+
+        description = _description;
+
+        emit DescriptionUpdated(_msgSender(), _description);
     }
 
     /// @notice Adds a new gardener to the garden.

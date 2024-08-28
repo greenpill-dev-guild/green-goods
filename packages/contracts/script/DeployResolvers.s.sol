@@ -84,7 +84,7 @@ contract DeployResolvers is Script {
             block.chainid,
             predictedWorkResolverAddress,
             string.concat(
-                'src/resolvers/Work.sol:WorkResolver --constructor-args $(cast abi-encode "constructor(address,address)" ',
+                'src/resolvers/Work.sol:WorkResolver --constructor-args $(cast abi-encode "constructor(address,address)", ',
                 Strings.toHexString(eas),
                 ", ",
                 Strings.toHexString(ACTION_REGISTRY),
