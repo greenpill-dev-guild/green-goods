@@ -1,46 +1,75 @@
-// import { getContract } from "viem";
-import React, { useEffect, useContext } from "react";
+import toast from "react-hot-toast";
+import React, { useContext } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
-// import { useUser } from "./UserProvider";
-
-type Platform = "ios" | "android" | "windows" | "unknown";
+import { queryClient } from "@/modules/react-query";
 
 export interface WorkDataProps {
-  platform?: Platform;
-  uploadWork?: () => void;
+  works: WorkCard[];
+  workApprovals: WorkApprovalCard[];
+  uploadWork?: (draft: WorkDraft) => Promise<string>;
+  approveWork?: (draft: WorkApprovalDraft) => Promise<string>;
 }
 
-const WorkContext = React.createContext<WorkDataProps>({});
+const WorkContext = React.createContext<WorkDataProps>({
+  works: [],
+  workApprovals: [],
+  uploadWork: async () => "",
+  approveWork: async () => "",
+});
 
 export const useWork = () => {
   return useContext(WorkContext);
 };
 
 export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
-  const platform = "android";
+  const { data: works } = useQuery<WorkCard[]>({
+    queryKey: ["works"],
+    queryFn: () => [],
+  });
+  const { data: workApprovals } = useQuery<WorkApprovalCard[]>({
+    queryKey: ["workApprovals"],
+    queryFn: () => [],
+  });
 
-  // const { smartAccountClient } = useUser();
-
-  // const easContract = getContract({
-  //   address: "0x6d3dC0Fe5351087E3Af3bDe8eB3F7350ed894fc3",
-  //   abi: [],
-  //   client: smartAccountClient,
-  // });
-
-  function uploadWork() {
-    // easContract.write.
-    console.log("uploadWork");
-  }
-
-  useEffect(() => {
-    return () => {};
-  }, []);
+  const workMutation = useMutation({
+    mutationFn: async (draft: WorkDraft) => {
+      return draft.feedback;
+    },
+    onMutate: () => {
+      toast.loading("Uploading work...");
+    },
+    onSuccess: () => {
+      toast.success("Work uploaded!");
+      queryClient.invalidateQueries({ queryKey: ["works"] });
+    },
+    onError: () => {
+      toast.error("Work upload failed!");
+    },
+  });
+  const workApprovalMutation = useMutation({
+    mutationFn: async (draft: WorkApprovalDraft) => {
+      return draft.feedback;
+    },
+    onMutate: () => {
+      toast.loading("Approving work...");
+    },
+    onSuccess: () => {
+      toast.success("Work approved!");
+      queryClient.invalidateQueries({ queryKey: ["workApprovals"] });
+    },
+    onError: () => {
+      toast.error("Work approval failed!");
+    },
+  });
 
   return (
     <WorkContext.Provider
       value={{
-        platform,
-        uploadWork,
+        works: works || [],
+        workApprovals: workApprovals || [],
+        uploadWork: workMutation.mutateAsync,
+        approveWork: workApprovalMutation.mutateAsync,
       }}
     >
       {children}

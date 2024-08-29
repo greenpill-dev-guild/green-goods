@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useContext } from "react";
 
-export type DisplayMode = "standalone" | "browser" | "twa";
-export type Platform = "ios" | "android" | "windows" | "unknown";
 export type InstallState =
   | "idle"
   | "not-installed"
   | "installed"
   | "unsupported";
 export type Locale = "en" | "pt";
+export type Platform = "ios" | "android" | "windows" | "unknown";
 
 export interface PWADataProps {
   isMobile: boolean;

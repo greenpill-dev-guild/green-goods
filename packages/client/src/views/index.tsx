@@ -27,11 +27,12 @@ export default function Views() {
       // style={style}
     >
       <Routes location={location}>
-        <Route path="home" element={<div>Home</div>} />
-        <Route path="gardens/:id" element={<div>Garden</div>} />
+        <Route path="gardens" element={<div>Home</div>}>
+          <Route path=":id" element={<div>Garden</div>} />
+        </Route>
         <Route path="work" element={<div>Work</div>} />
         <Route path="profile" element={<div>Profile</div>} />
-        <Route path="*" element={<Navigate to="home" />} />
+        <Route path="*" element={<Navigate to="gardens" />} />
       </Routes>
     </main>
   );

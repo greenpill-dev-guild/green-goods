@@ -3,98 +3,93 @@
 @tailwind utilities;
 
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+  color-scheme: light dark;
 
-  /* font-family: var(--font-inter); */
+  color: #213547;
+  background-color: #ffffff;
+
   scrollbar-width: none;
   -ms-overflow-style: none; /* IE and Edge */
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-style: normal;
+  font-weight: 400;
   font-synthesis: none;
+  font-optical-sizing: auto;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* @media (prefers-color-scheme: dark) {
+  :root {
+    color: rgba(255, 255, 255, 0.87);
+    background-color: #242424;
+  }
+} */
 
 ::-webkit-scrollbar {
   display: none;
 }
 
 /*
-  Layout
-*/
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  height: 100vh;
-}
-
-#app {
-  width: 100%;
-  height: 100%;
-  overflow-y: visible;
-  overflow: hidden;
-}
-
-/*
   Typography
 */
 h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+  @apply text-6xl;
+  @apply font-medium;
 }
 
 h2 {
-  @apply text-4xl;
-  @apply font-bold;
+  @apply text-5xl;
+  @apply font-medium;
 }
 
 h3 {
-  @apply text-3xl;
+  @apply text-4xl;
   @apply font-medium;
 }
 
 h4 {
   @apply text-2xl;
+  @apply font-medium;
 }
 
 h5 {
   @apply text-xl;
+  @apply font-medium;
 }
 
 p {
-  font-size: 1.2em;
+  @apply text-base;
+  @apply font-normal;
 }
 
 span {
-  font-size: 1em;
+  @apply text-base;
+  @apply font-normal;
+}
+
+label {
+  @apply text-base;
+  @apply font-medium;
 }
 
 a {
-  font-weight: 500;
+  @apply text-base;
+  @apply font-medium;
   color: #646cff;
   text-decoration: inherit;
 }
 
-a:hover {
-  color: #535bf2;
+.small {
+  @apply text-sm;
+  @apply font-normal;
 }
 
-h6,
-p,
-span,
-a,
-li,
-label {
-  font-weight: 300;
-}
+/* a:hover {
+  color: #535bf2;
+} */
 
 /*
   Components
@@ -105,8 +100,6 @@ button {
   padding: 0.6em 1.2em;
   font-size: 1em;
   font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
   cursor: pointer;
   transition: border-color 0.25s;
 }
@@ -120,7 +113,7 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
-.dot {
+.loader {
   position: absolute;
   opacity: 0.27;
   animation: dot-fade 1s infinite;
@@ -137,18 +130,5 @@ button:focus-visible {
   }
   25% {
     opacity: 1;
-  }
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
   }
 }

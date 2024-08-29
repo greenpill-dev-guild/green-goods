@@ -1,3 +1,12 @@
+import React, { useState, useEffect, useContext } from "react";
+import {
+  useLogin,
+  useLogout,
+  usePrivy,
+  useWallets,
+  ConnectedWallet,
+} from "@privy-io/react-auth";
+
 import {
   ENTRYPOINT_ADDRESS_V07,
   type SmartAccountClient,
@@ -14,24 +23,25 @@ import {
 } from "permissionless/clients/pimlico";
 import { EntryPoint } from "permissionless/types";
 
-import React, { useState, useEffect, useContext } from "react";
-import { ConnectedWallet, usePrivy, useWallets } from "@privy-io/react-auth";
-
 import { arbitrum } from "viem/chains";
 import { Chain, Transport } from "viem";
 import { createPublicClient, createWalletClient, custom, http } from "viem";
 
+type SAC = SmartAccountClient<
+  EntryPoint,
+  Transport,
+  Chain,
+  SmartAccount<EntryPoint, string, Transport, Chain>
+>;
+
 interface UserInterface {
   isOnboarded: boolean;
-  eoa: ConnectedWallet | undefined;
+  eoa?: ConnectedWallet;
   smartAccountReady: boolean;
-  smartAccountAddress: `0x${string}` | undefined;
-  smartAccountClient: SmartAccountClient<
-    EntryPoint,
-    Transport,
-    Chain,
-    SmartAccount<EntryPoint, string, Transport, Chain>
-  > | null;
+  smartAccountAddress?: `0x${string}`;
+  smartAccountClient: SAC | null;
+  login: () => void;
+  logout: () => void;
 }
 
 const UserContext = React.createContext<UserInterface>({
@@ -40,6 +50,8 @@ const UserContext = React.createContext<UserInterface>({
   smartAccountClient: null,
   smartAccountAddress: undefined,
   smartAccountReady: false,
+  login: () => {},
+  logout: () => {},
 });
 
 export const useUser = () => {
@@ -47,23 +59,27 @@ export const useUser = () => {
 };
 
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
-  // Get a list of all of the wallets (EOAs) the user has connected to your site
+  const [isOnboarded, setOnboarded] = useState(false);
+
   const { wallets } = useWallets();
   const { ready } = usePrivy();
-  // Find the embedded wallet by finding the entry in the list with a `walletClientType` of 'privy'
+  const { login } = useLogin({
+    onComplete(isNewUser) {
+      setOnboarded(!isNewUser);
+    },
+    onError(error) {
+      console.error("Privy error logging in", error);
+    },
+  });
+  const { logout } = useLogout();
   const embeddedWallet = wallets.find(
     (wallet) => wallet.walletClientType === "privy"
   );
 
-  // States to store the smart account and its status
   const [eoa, setEoa] = useState<ConnectedWallet | undefined>();
-  const [smartAccountClient, setSmartAccountClient] =
-    useState<SmartAccountClient<
-      EntryPoint,
-      Transport,
-      Chain,
-      SmartAccount<EntryPoint, string, Transport, Chain>
-    > | null>(null);
+  const [smartAccountClient, setSmartAccountClient] = useState<SAC | null>(
+    null
+  );
   const [smartAccountAddress, setSmartAccountAddress] = useState<
     `0x${string}` | undefined
   >();
@@ -74,8 +90,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   }, [ready, embeddedWallet]);
 
   useEffect(() => {
-    // Creates a smart account given a Privy `ConnectedWallet` object representing
-    // the  user's EOA.
     const createSmartWallet = async (eoa: ConnectedWallet) => {
       setEoa(eoa);
       // Get an EIP1193 provider and viem WalletClient for the EOA
@@ -151,11 +165,13 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <UserContext.Provider
       value={{
-        isOnboarded: false, // Todo - implement onboard check
-        smartAccountReady: smartAccountReady,
-        smartAccountClient: smartAccountClient,
-        smartAccountAddress: smartAccountAddress,
-        eoa: eoa,
+        isOnboarded,
+        smartAccountReady,
+        smartAccountClient,
+        smartAccountAddress,
+        eoa,
+        login,
+        logout,
       }}
     >
       {children}

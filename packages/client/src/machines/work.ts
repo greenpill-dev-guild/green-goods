@@ -8,16 +8,11 @@ import {
 
 import { EAS } from "@/constants";
 
-export const makeEndorsement = async (
-  endorsement: any,
-  signer?: TransactionSigner
-) => {
-  "use client";
-
+export async function uploadWork(endorsement: any, signer?: TransactionSigner) {
   if (!signer) throw new Error("No signer provided");
 
   // Initialize SchemaEncoder with the schema string
-  const schemaEncoder = new SchemaEncoder(EAS["10"].WORK.schema);
+  const schemaEncoder = new SchemaEncoder(EAS["42161"].WORK.schema);
 
   if (!endorsement.projectUID) throw new Error("No project UID provided");
   if (!endorsement.metricUID) throw new Error("No metric UID provided");
@@ -34,7 +29,7 @@ export const makeEndorsement = async (
   // console.log("Transaction receipt:", transaction.receipt);
 
   return "newAttestationUID";
-};
+}
 
 interface Context {
   projectUID: string;
@@ -46,20 +41,20 @@ export const endorsementMachine = setup({
     input: Context;
     context: Context;
     events:
-      | { type: "START_ENDORSING" }
+      | { type: "START_" }
       | {
-          type: "ENDORSE";
+          type: "WORK";
           endorsement: any;
           signer: JsonRpcSigner;
         }
       | { type: "CANCEL" }
-      | { type: `xstate.done.actor.endorser`; output: string }
-      | { type: `xstate.error.actor.endorser`; error: unknown };
+      | { type: `xstate.done.actor.uploader`; output: string }
+      | { type: `xstate.error.actor.uploader`; error: unknown };
   },
   actions: {
     handleSuccess: ({ event }) => {
       const id =
-        event.type === "xstate.done.actor.endorser" ? event.output : "";
+        event.type === "xstate.done.actor.uploader" ? event.output : "";
 
       toast.success(
         `Endorsement successful, view it here https://optimism-sepolia.easscan.org/onchain/attestation/view/${id}`
@@ -70,14 +65,14 @@ export const endorsementMachine = setup({
     },
   },
   actors: {
-    makeEndorsement: fromPromise<
+    uploadWork: fromPromise<
       string,
       { endorsement: any; signer?: JsonRpcSigner }
     >(async ({ input: { endorsement, signer } }) => {
       // Function to make the endorsement attestation
       console.log("Making endorsement attestation...", endorsement, signer);
 
-      return await makeEndorsement(endorsement, signer);
+      return await uploadWork(endorsement, signer);
     }),
   },
 }).createMachine({
@@ -95,21 +90,33 @@ export const endorsementMachine = setup({
   states: {
     idle: {
       on: {
-        START_ENDORSING: "endorse",
+        START_: "endorse",
       },
     },
-    endorse: {
+    media: {
       on: {
-        ENDORSE: "endorsing",
+        WORK: "uploading",
         CANCEL: "idle",
       },
     },
-    endorsing: {
+    details: {
+      on: {
+        WORK: "uploading",
+        CANCEL: "idle",
+      },
+    },
+    review: {
+      on: {
+        WORK: "uploading",
+        CANCEL: "idle",
+      },
+    },
+    uploading: {
       invoke: {
-        id: "endorser",
-        src: "makeEndorsement",
+        id: "uploader",
+        src: "uploadWork",
         input: ({ event }) =>
-          event.type === "ENDORSE" ?
+          event.type === "WORK" ?
             {
               endorsement: event.endorsement,
 
@@ -124,7 +131,7 @@ export const endorsementMachine = setup({
               },
             },
         onDone: {
-          target: "endorsed",
+          target: "uploaded",
           actions: "handleSuccess",
         },
         onError: {
@@ -133,7 +140,7 @@ export const endorsementMachine = setup({
         },
       },
     },
-    endorsed: {
+    uploaded: {
       type: "final",
     },
   },

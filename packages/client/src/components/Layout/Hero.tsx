@@ -60,34 +60,31 @@ export const Hero: React.FC = () => {
   }
 
   return (
-    <div className="grid place-items-center w-screen h-screen text-center z-10">
+    <main className="w-full text-center">
       <div className="flex flex-col items-center gap-12">
         <div className="justify-self-start flex flex-col gap-2">
-          <h1 className="text-9xl font-bold leading-[6rem]">Camp Green</h1>
+          <h1 className="">Bringing Biodiversity Onchain</h1>
           <p className="text-4xl tracking-wider"></p>
         </div>
-        <p className="text-2xl font-normal tracking-wide">
-          📲 Visit <span className="font-bold">app.campgreen.world</span> on
-          phone to install app
-        </p>
+        <p className="text-2xl font-normal tracking-wide"></p>
         <form
           onSubmit={handleSubscribe}
           className="flex flex-col gap-2 justify-self-start"
         >
           <input
-            className="w-96 h-14 px-4 py-2 rounded-md bg-gray-100"
+            className="w-full h-14 px-4 py-2 rounded-md bg-gray-100"
             name="email"
             type="email"
             placeholder="Your email"
           />
           <button
-            className="w-96 h-14 px-4 py-2 rounded-md bg-black text-white font-bold"
+            className="w-full h-14 px-4 py-2 rounded-md bg-black text-white font-bold"
             type="submit"
           >
             Subscribe
           </button>
         </form>
       </div>
-    </div>
+    </main>
   );
 };

@@ -1,68 +1,111 @@
-declare type TCreateProposal = {
-  name: string;
-  location: string;
-  problem: string;
-  solution: string;
-  budget: number;
-  start_date: Date;
-  end_date: Date;
-  collaborators?: string[];
-  community?: string | null;
-  banner_image: string;
-  milestones: TMilestone[];
-};
+declare enum Capital {
+  SOCIAL,
+  MATERIAL,
+  FINANCIAL,
+  LIVING,
+  INTELLECTUAL,
+  EXPERIENTIAL,
+  SPIRITUAL,
+  CULTURAL,
+}
 
-declare type TSummaryProposal = {
-  id: string;
-  name: string;
-  location: string;
-  problem: string;
-  start_date: Date;
-  end_date: Date;
-  banner_image: string;
-  votes: TVote[] | null;
-};
+declare interface GardenerCard {
+  id: string; // Privy ID
+  username: string; // Unique username
+  gardenerAddress: string; // Smart Account Address
+  avatar?: string;
+  location?: string;
+  createdAt?: string;
+}
 
-declare type TFullProposal = TSummaryProposal & {
-  author_id: string;
-  solution: string;
-  budget: number;
-  community?: string | null;
-  collaborators: TCollaborator[] | null;
-  milestones: TMilestone[];
-};
-
-declare type TCollaborator = {
-  id: string | null;
-  username?: string | null;
-  user_id: string | null;
-  profile_image?: string | null;
-};
-
-declare type TMilestone = {
-  id?: string;
-  name: string;
-  budget: number;
-  description: string;
-  // created_at: Date;
-};
-
-declare type TUser = {
-  id: string;
+declare interface UserDraft {
   username: string;
-  address: string | null;
-  phone_number: string | null;
-  email: string | null;
-  location: string | null;
-  profile_image: string | null;
-  onboarded: boolean | null;
-  created_at?: Date;
-};
+  avatar: string;
+  location: string;
+}
 
-declare type TVote = {
+declare interface User extends UserDraft, GardenerCard {
+  eoaAddress: string; // EOA address
+  onboarded: boolean;
+  email?: string;
+  phoneNumber?: string;
+}
+
+declare interface GardenAssessment {
   id: string;
-  proposal_id: string;
-  user_id: string;
-  vote_type: boolean | null;
-  created_at: string;
-};
+  soilMoisturePercentage: number;
+  carbonTonStock: number;
+  carbonTonPotential: number;
+  gardenSquareMeters: number;
+  biome: string;
+  remoteReportCID: string;
+  speciesRegistryCID: string;
+  polygonCoordinates: string;
+  treeGenusesObserved: string[];
+  weedGenusesObserved: string[];
+  issues: string[];
+  tags: string[];
+  createdAt: BigInt;
+}
+
+declare interface GardenCard {
+  id: string;
+  name: string;
+  location: string;
+  bannerImage: string;
+  gardenOperators: string[];
+}
+
+declare interface Garden extends GardenCard {
+  description: string;
+  address: string;
+  gardeners: string[];
+  gardenAssessments: GardenAssessment[];
+}
+
+declare interface Action {
+  id: string;
+  startTime: BigInt;
+  endTime: BigInt;
+  title: string;
+  instructions: string;
+  capitals: Captial[];
+  media: string[];
+  createdAt: BigInt;
+}
+
+declare interface WorkDraft {
+  actionUID: number;
+  title: string;
+  feedback: string;
+  metadata: string;
+  media: string[];
+}
+declare interface WorkCard {
+  id: string;
+  createdAt: string;
+  title: string;
+  gardernerAddress: string;
+  gardenAddress: string;
+  createdAt: BigInt;
+}
+
+declare interface Work extends WorkDraft, WprkCard {}
+
+declare interface WorkApprovalDraft {
+  actionUID: number;
+  workUID: number;
+  approved: boolean;
+  feedback: string;
+}
+
+declare interface WorkApprovalCard {
+  id: string;
+  approved: boolean;
+  workUid: string;
+  recipientAddress: string;
+  approverAddress: string;
+  createdAt: BigInt;
+}
+
+declare interface WorkApproval extends WorkApprovalDraft, WorkApprovalCard {}
