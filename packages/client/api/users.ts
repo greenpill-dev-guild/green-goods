@@ -13,7 +13,7 @@ declare global {
 }
 
 export const config = {
-  runtime: "nodejs",
+  // runtime: "nodejs",
 };
 
 const privy = new PrivyClient(
