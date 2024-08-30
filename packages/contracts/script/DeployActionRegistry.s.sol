@@ -33,7 +33,7 @@ contract DeployActionRegistry is Script {
             newRegistry.registerAction(
                 block.timestamp,
                 block.timestamp + 30 days,
-                "Test Action 1",
+                "Identify Plants",
                 "QmTmbcRyKtkMpMFWsm6D8YpgwMUuds3jE4sJdjqhqFGvWe",
                 capitals,
                 media
@@ -41,7 +41,7 @@ contract DeployActionRegistry is Script {
             newRegistry.registerAction(
                 block.timestamp,
                 block.timestamp + 30 days,
-                "Test Action 2",
+                "Planting",
                 "QmTmbcRyKtkMpMFWsm6D8YpgwMUuds3jE4sJdjqhqFGvWe",
                 capitals,
                 media

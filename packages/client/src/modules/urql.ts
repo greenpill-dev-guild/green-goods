@@ -1,6 +1,6 @@
 import { Client, cacheExchange, fetchExchange } from "@urql/core";
 
-export const greenGoodsIndever = new Client({
+export const greenGoodsIndexer = new Client({
   url:
     import.meta.env.DEV ?
       "http://localhost:8000"

@@ -920,10 +920,6 @@ packages:
     resolution: {integrity: sha512-nLDxIFRyhDblz3qMuq+SoRZED4+miJ/G+tdDrjkkkRnjAsBexeGpgjLEQ0blJy7rHhR2b93rhQY4SvyWu9v03g==}
     engines: {node: '>=10'}
 
-  minimatch@5.1.6:
-    resolution: {integrity: sha512-lKwV/1brpG6mBUFHtb7NUmtABCb2WZZmm2wNiOA5hAb8VdCS4B3dtMWyvcoViccwAW/COERjXLt0zP1zXUN26g==}
-    engines: {node: '>=10'}
-
   minimist@1.2.8:
     resolution: {integrity: sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==}
 
@@ -2011,7 +2007,7 @@ snapshots:
       fs.realpath: 1.0.0
       inflight: 1.0.6
       inherits: 2.0.4
-      minimatch: 5.1.6
+      minimatch: 5.0.1
       once: 1.4.0
 
   gopd@1.0.1:
@@ -2215,10 +2211,6 @@ snapshots:
       brace-expansion: 1.1.11
 
   minimatch@5.0.1:
-    dependencies:
-      brace-expansion: 2.0.1
-
-  minimatch@5.1.6:
     dependencies:
       brace-expansion: 2.0.1
 

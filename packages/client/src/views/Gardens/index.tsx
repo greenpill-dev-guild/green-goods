@@ -1,7 +1,8 @@
 import { Outlet, useLocation } from "react-router-dom";
 
-// import { GardenCard } from "./Card";
 import { useGarden } from "@/providers/GardenProvider";
+
+// import { GardenCard } from "./Card";
 
 export interface GardensProps {}
 

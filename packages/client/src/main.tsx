@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { arbitrum } from "viem/chains";
+import { Toaster } from "react-hot-toast";
 import { PrivyProvider } from "@privy-io/react-auth";
 
 import { PWAProvider } from "@/providers/PWAProvider.tsx";
@@ -37,6 +38,7 @@ createRoot(document.getElementById("root")!).render(
       >
         <UserProvider>
           <App />
+          <Toaster />
         </UserProvider>
       </PrivyProvider>
     </PWAProvider>

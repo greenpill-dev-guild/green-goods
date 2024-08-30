@@ -13,20 +13,23 @@ enum Capital {
 type Action {
   id: ID! # Bytes32
   ownerAddress: String! # Address
-  startTime: Int!
-  endTime: Int!
+  startTime: BigInt!
+  endTime: BigInt!
   title: String!
   instructions: String!
   capitals: [Capital!]!
   media: [String!]!
-  createdAt: BigInt!
+  createdAt: Int!
 }
 
 type Garden {
   id: ID! # Address
   tokenAddress: String! # Address
-  tokenID: Int!
+  tokenID: BigInt!
   name: String!
   description: String!
-  createdAt: BigInt!
+  createdAt: Int!
+
+  gardeners: [String!]! # Address
+  operators: [String!]! # Address
 }

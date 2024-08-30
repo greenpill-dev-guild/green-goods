@@ -9,7 +9,6 @@ import {
 // import { Button } from "../Button";
 
 export interface GardenCardProps extends GardenCard {
-  userVote?: boolean | null; // true if upvoted, false if downvoted, null if not voted
   onCardClick: () => void;
 }
 
@@ -25,8 +24,6 @@ export const GardenCard: React.FC<GardenCardProps> = ({
   // onUpVote,
   // onCardClick,
 }) => {
-  // const upvotes = votes?.filter((vote) => vote.vote_type === true).length ?? 0;
-
   return (
     <div
       className="flex flex-col bg-white border border-1 shadow-md rounded-xl"

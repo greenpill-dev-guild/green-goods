@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@hookform/resolvers": "3.9.0",
     "@phosphor-icons/react": "2.1.7",
     "@privy-io/react-auth": "^1.80.0",
     "@privy-io/server-auth": "1.11.1",

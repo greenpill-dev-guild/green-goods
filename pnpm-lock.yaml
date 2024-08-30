@@ -36,6 +36,9 @@ importers:
 
   packages/client:
     dependencies:
+      '@hookform/resolvers':
+        specifier: 3.9.0
+        version: 3.9.0(react-hook-form@7.53.0(react@18.3.1))
       '@phosphor-icons/react':
         specifier: 2.1.7
         version: 2.1.7(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1338,6 +1341,11 @@ packages:
     resolution: {integrity: sha512-JyyN9Lo66kirbCMuMMRPtJxtKJoIsXKS569ebHGGRKbl8s4CtUfLnyKJxteA+vIKySocO4s1SkTkGS4xtG/yEA==}
     peerDependencies:
       react: '>= 16'
+
+  '@hookform/resolvers@3.9.0':
+    resolution: {integrity: sha512-bU0Gr4EepJ/EQsH/IwEzYLsT/PEj5C0ynLQ4m+GSHS+xKH4TfSelhluTgOaoc4kA5s7eCsQbM4wvZLzELmWzUg==}
+    peerDependencies:
+      react-hook-form: ^7.0.0
 
   '@humanwhocodes/module-importer@1.0.1':
     resolution: {integrity: sha512-bxveV4V8v5Yb4ncFTT3rPSgZBOpCkjfK0y4oVVVJwIuDVBRMDXrPyXRL988i5ap9m9bnyEEjWfm5WkBmtffLfA==}
@@ -7811,6 +7819,10 @@ snapshots:
   '@heroicons/react@2.1.1(react@18.3.1)':
     dependencies:
       react: 18.3.1
+
+  '@hookform/resolvers@3.9.0(react-hook-form@7.53.0(react@18.3.1))':
+    dependencies:
+      react-hook-form: 7.53.0(react@18.3.1)
 
   '@humanwhocodes/module-importer@1.0.1': {}
 

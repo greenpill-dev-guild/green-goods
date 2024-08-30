@@ -1,4 +1,8 @@
+import { IntlProvider } from "react-intl";
 import React, { useState, useEffect, useContext } from "react";
+
+import enMessages from "@/i18n/en.json";
+import ptMessages from "@/i18n/pt.json";
 
 export type InstallState =
   | "idle"
@@ -22,6 +26,11 @@ interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
+
+const messages = {
+  en: enMessages,
+  pt: ptMessages,
+};
 
 function getMobileOperatingSystem(): Platform {
   // @ts-ignore
@@ -139,7 +148,9 @@ export const PWAProvider = ({ children }: { children: React.ReactNode }) => {
         switchLanguage,
       }}
     >
-      {children}
+      <IntlProvider locale={locale} messages={messages[locale]}>
+        {children}
+      </IntlProvider>
     </PWAContext.Provider>
   );
 };

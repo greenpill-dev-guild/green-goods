@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from "react";
 import {
+  User,
   useLogin,
   useLogout,
   usePrivy,
@@ -35,6 +36,7 @@ type SAC = SmartAccountClient<
 >;
 
 interface UserInterface {
+  user: User | null;
   isOnboarded: boolean;
   eoa?: ConnectedWallet;
   smartAccountReady: boolean;
@@ -45,6 +47,7 @@ interface UserInterface {
 }
 
 const UserContext = React.createContext<UserInterface>({
+  user: null,
   isOnboarded: false,
   eoa: undefined,
   smartAccountClient: null,
@@ -62,7 +65,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [isOnboarded, setOnboarded] = useState(false);
 
   const { wallets } = useWallets();
-  const { ready } = usePrivy();
+  const { ready, user } = usePrivy();
   const { login } = useLogin({
     onComplete(isNewUser) {
       setOnboarded(!isNewUser);
@@ -145,6 +148,8 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
       const smartAccountAddress = smartAccountClient.account?.address;
 
+      // Todo: Add test attestation to check if smart account is ready
+
       setSmartAccountClient(
         smartAccountClient as SmartAccountClient<
           EntryPoint,
@@ -165,6 +170,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <UserContext.Provider
       value={{
+        user,
         isOnboarded,
         smartAccountReady,
         smartAccountClient,

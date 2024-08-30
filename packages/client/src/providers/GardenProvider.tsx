@@ -1,9 +1,11 @@
 import React, { useContext } from "react";
+import { User } from "@privy-io/react-auth";
 import { useQuery } from "@tanstack/react-query";
+import { getGardeners, getGardens } from "@/modules/greengoods";
 
 export interface GardenDataProps {
-  gardens: Garden[];
-  gardeners: GardenerCard[];
+  gardens: GardenCard[];
+  gardeners: User[];
 }
 
 const GardenContext = React.createContext<GardenDataProps>({
@@ -16,13 +18,13 @@ export const useGarden = () => {
 };
 
 export const GardenProvider = ({ children }: { children: React.ReactNode }) => {
-  const { data: gardens } = useQuery<Garden[]>({
+  const { data: gardens } = useQuery<GardenCard[]>({
     queryKey: ["gardens"],
-    queryFn: () => [],
+    queryFn: getGardens,
   });
-  const { data: gardeners } = useQuery<GardenerCard[]>({
+  const { data: gardeners } = useQuery<User[]>({
     queryKey: ["gardeners"],
-    queryFn: () => [],
+    queryFn: getGardeners,
   });
 
   return (

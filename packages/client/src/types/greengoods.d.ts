@@ -9,7 +9,7 @@ declare enum Capital {
   CULTURAL,
 }
 
-declare interface GardenerCard {
+declare interface UserCard {
   id: string; // Privy ID
   username: string; // Unique username
   gardenerAddress: string; // Smart Account Address
@@ -24,7 +24,7 @@ declare interface UserDraft {
   location: string;
 }
 
-declare interface User extends UserDraft, GardenerCard {
+declare interface User extends UserDraft, UserCard {
   eoaAddress: string; // EOA address
   onboarded: boolean;
   email?: string;
@@ -33,6 +33,8 @@ declare interface User extends UserDraft, GardenerCard {
 
 declare interface GardenAssessment {
   id: string;
+  authorAddress: string;
+  gardenAddress: string;
   soilMoisturePercentage: number;
   carbonTonStock: number;
   carbonTonPotential: number;
@@ -45,7 +47,7 @@ declare interface GardenAssessment {
   weedGenusesObserved: string[];
   issues: string[];
   tags: string[];
-  createdAt: BigInt;
+  createdAt: number;
 }
 
 declare interface GardenCard {
@@ -64,14 +66,14 @@ declare interface Garden extends GardenCard {
 }
 
 declare interface Action {
-  id: string;
-  startTime: BigInt;
-  endTime: BigInt;
+  id: number;
+  startTime: number;
+  endTime: number;
   title: string;
   instructions: string;
   capitals: Captial[];
   media: string[];
-  createdAt: BigInt;
+  createdAt: number;
 }
 
 declare interface WorkDraft {
@@ -81,31 +83,31 @@ declare interface WorkDraft {
   metadata: string;
   media: string[];
 }
+
 declare interface WorkCard {
   id: string;
-  createdAt: string;
-  title: string;
-  gardernerAddress: string;
+  // title: string;
+  gardenerAddress: string;
   gardenAddress: string;
-  createdAt: BigInt;
+  createdAt: number;
 }
 
-declare interface Work extends WorkDraft, WprkCard {}
+declare interface Work extends WorkDraft, WorkCard {}
 
 declare interface WorkApprovalDraft {
   actionUID: number;
-  workUID: number;
+  workUID: string;
   approved: boolean;
   feedback: string;
 }
 
 declare interface WorkApprovalCard {
   id: string;
+  workUID: string;
   approved: boolean;
-  workUid: string;
   recipientAddress: string;
   approverAddress: string;
-  createdAt: BigInt;
+  createdAt: number;
 }
 
 declare interface WorkApproval extends WorkApprovalDraft, WorkApprovalCard {}

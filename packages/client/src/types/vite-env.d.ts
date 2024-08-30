@@ -1,6 +1,5 @@
 /// <reference types="vite/client" />
 /// <reference types="vite-plugin-svgr/client" />
-/// <reference types="node" />
 
 interface ImportMetaEnv {
   readonly NODE_ENV: "development" | "production" | "test";

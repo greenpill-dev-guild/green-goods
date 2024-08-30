@@ -7,7 +7,11 @@ contracts:
     handler: src/EventHandlers.ts
     events:
       - event: ActionRegistered
-      - event: ActionUpdated
+      - event: ActionStartTimeUpdated
+      - event: ActionEndTimeUpdated
+      - event: ActionTitleUpdated
+      - event: ActionInstructionsUpdated
+      - event: ActionMediaUpdated
   - name: GardenToken
     abi_file_path: ../contracts/out/Garden.sol/GardenToken.json
     handler: src/EventHandlers.ts
@@ -18,6 +22,7 @@ contracts:
     handler: src/EventHandlers.ts
     events:
       - event: NameUpdated
+      - event: DescriptionUpdated
       - event: GardenerAdded
       - event: GardenerRemoved
       - event: GardenOperatorAdded

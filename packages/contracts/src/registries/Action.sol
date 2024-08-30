@@ -124,7 +124,8 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     function updateActionEndTime(uint256 actionUID, uint256 _endTime) external onlyActionOwner(actionUID) {
         idToAction[actionUID].endTime = _endTime;
 
-        emit ActionEndTimeUpdated(actionToOwner[actionUID], actionUID, _endTime);}
+        emit ActionEndTimeUpdated(actionToOwner[actionUID], actionUID, _endTime);
+    }
 
     /// @notice Updates the title of an existing action.
     /// @param actionUID The unique identifier of the action to update.
