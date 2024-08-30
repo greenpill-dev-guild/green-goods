@@ -1,7 +1,7 @@
 import { usePWA } from "@/providers/PWAProvider";
 // import { SpringValue, a } from "@react-spring/web";
 
-interface ProfileInfoProps {
+interface ProfileAccountProps {
   username?: string | null;
   avatar?: string;
   // avatarSpring: {
@@ -10,7 +10,7 @@ interface ProfileInfoProps {
   // };
 }
 
-export const ProfileInfo: React.FC<ProfileInfoProps> = ({
+export const ProfileAccount: React.FC<ProfileAccountProps> = ({
   avatar,
   // avatarSpring,
   username,

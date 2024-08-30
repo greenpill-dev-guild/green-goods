@@ -23,12 +23,12 @@ interface FormSelectProps extends SelectProps {
 export const FormSelect = forwardRef<HTMLSelectElement, FormSelectProps>(
   (
     { label, selected, onRemove, error, helperText, options, ...props },
-    ref
+    _ref
   ) => {
     return (
       <Controller
         name="select"
-        render={(form) => (
+        render={(_form) => (
           <div>
             <label className="block text-sm font-bold text-slate-600 mb-2">
               <h3 className="text-lg font-bold text-slate-600">{label}</h3>

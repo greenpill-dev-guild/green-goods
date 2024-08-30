@@ -8,7 +8,7 @@ interface FormDateProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const FormDate = forwardRef<HTMLInputElement, FormDateProps>(
-  ({ label, helperText, error, className, ...props }, ref) => (
+  ({ label, helperText, error, className, ...props }, _ref) => (
     <div className={`${className} flex flex-col gap-1 mb-2`}>
       <label className="font-semibold text-slate-800" htmlFor={props.id}>
         {label}
@@ -21,7 +21,7 @@ export const FormDate = forwardRef<HTMLInputElement, FormDateProps>(
           startDate: new Date(props.value as string),
           endDate: null,
         }}
-        onChange={(value) => {}}
+        onChange={(_value) => {}}
         inputClassName=""
         containerClassName=""
         toggleClassName=""

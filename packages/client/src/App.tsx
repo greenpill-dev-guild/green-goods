@@ -28,9 +28,9 @@ const messages = {
 function App() {
   const { authenticated } = usePrivy();
   const { isMobile, isInstalled, locale } = usePWA();
-  const { isOnboarded, smartAccountReady } = useUser();
+  const { smartAccountReady } = useUser();
 
-  console.log("isMobile", isMobile, isInstalled, locale);
+  console.log("PWA", isMobile, isInstalled, locale);
 
   const isDownloaded = isMobile && isInstalled;
   const isAuthenticated = authenticated && smartAccountReady;
@@ -56,32 +56,19 @@ function App() {
                 : <Navigate to="/landing" replace />
               }
             />
-            {/* Onboarding */}
-            <Route
-              path="/onboarding"
-              element={
-                isDownloaded ?
-                  isAuthenticated && !isOnboarded ?
-                    <div>Onboarding</div>
-                  : <Navigate to="/" replace />
-                : <Navigate to="/landing" replace />
-              }
-            />
             {/* Main: Show app or navigate to login, onboarding, or landing page based on conditions */}
             <Route
               path="/"
               element={
                 isDownloaded ?
                   isAuthenticated ?
-                    isOnboarded ?
-                      <GardenProvider>
-                        <WorkProvider>
-                          <Views />
-                          <Appbar />
-                          <Toaster />
-                        </WorkProvider>
-                      </GardenProvider>
-                    : <Navigate to="/onboarding" replace />
+                    <GardenProvider>
+                      <WorkProvider>
+                        <Views />
+                        <Appbar />
+                        <Toaster />
+                      </WorkProvider>
+                    </GardenProvider>
                   : <Navigate to="/login" replace />
                 : <Navigate to="/landing" replace />
               }

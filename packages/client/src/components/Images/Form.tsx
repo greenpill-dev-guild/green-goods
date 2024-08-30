@@ -4,29 +4,29 @@ import { UseFieldArrayRemove, UseFormRegister } from "react-hook-form";
 import { FormText } from "../Form/Text";
 import { FormInput } from "../Form/Input";
 
-import {
-  cardContentStyles,
-  cardStyles,
-  cardTitleStyles,
-} from "../../views/Gardens/Viewer";
+// import {
+//   cardContentStyles,
+//   cardStyles,
+//   cardTitleStyles,
+// } from "../../views/Gardens/Viewer";
 
-interface MilestoneFormProps extends TMilestone {
+interface MediaFormProps {
   index: number;
-  register: UseFormRegister<TCreateProposal>;
+  register: UseFormRegister<any>;
   onRemove: UseFieldArrayRemove;
 }
 
-export const MilestoneForm: React.FC<MilestoneFormProps> = ({
+export const MediaForm: React.FC<MediaFormProps> = ({
   index,
   register,
   onRemove,
 }) => {
   return (
-    <div className={`${cardStyles}`}>
+    <div className={`${"cardStyles"}`}>
       <div
-        className={`${cardTitleStyles} flex w-full justify-between items-center`}
+        className={`${"cardTitleStyles"} flex w-full justify-between items-center`}
       >
-        <p className="">Milestone {index}</p>
+        <p className="">Media {index}</p>
         <button
           className="btn btn-square bg-teal-100"
           onClick={() => onRemove(index)}
@@ -34,7 +34,7 @@ export const MilestoneForm: React.FC<MilestoneFormProps> = ({
           <RiCloseFill className="w-6 h-6" />
         </button>
       </div>
-      <div className={`${cardContentStyles}`}>
+      <div className={`${"cardContentStyles"}`}>
         <div className="flex w-full">
           <FormInput
             label="Name"

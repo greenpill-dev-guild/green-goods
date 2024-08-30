@@ -1,10 +1,10 @@
 // import { a, useTransition } from "@react-spring/web";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
-// import Home from "./Home";
-// import Wprk from "./Work";
-// import Profile from "./Profile";
-// import Garden from "./Gardens/Garden";
+import Work from "./Work";
+import Profile from "./Profile";
+import Gardens from "./Gardens";
+import { Garden } from "./Gardens/Garden";
 
 export default function Views() {
   const location = useLocation();
@@ -27,11 +27,11 @@ export default function Views() {
       // style={style}
     >
       <Routes location={location}>
-        <Route path="gardens" element={<div>Home</div>}>
-          <Route path=":id" element={<div>Garden</div>} />
+        <Route path="gardens" element={<Gardens />}>
+          <Route path=":id" element={<Garden />} />
         </Route>
-        <Route path="work" element={<div>Work</div>} />
-        <Route path="profile" element={<div>Profile</div>} />
+        <Route path="garden" element={<Work />} />
+        <Route path="profile" element={<Profile />} />
         <Route path="*" element={<Navigate to="gardens" />} />
       </Routes>
     </main>

@@ -1,80 +1,51 @@
-// import { useState } from "react";
+import { Outlet, useLocation } from "react-router-dom";
 
-import { ProposalCard } from "./Card";
+// import { GardenCard } from "./Card";
+import { useGarden } from "@/providers/GardenProvider";
 
-export interface ProposalListProps {
-  user: TUser | null;
-  proposals: TSummaryProposal[];
-  onProposalClick: (id: string) => void;
-  onProposalVote: (id: string, vote: boolean | null) => void;
-  noProposalsMessage?: string;
-}
+export interface GardensProps {}
 
-export const ProposalList: React.FC<ProposalListProps> = ({
-  user,
-  proposals,
-  onProposalClick,
-  onProposalVote,
-  noProposalsMessage,
-}) => {
-  // const [filter, setFiler] = useState<"all" | "upvoted">("all"); // TODO: Add filter state
+const Gardens: React.FC<GardensProps> = () => {
+  const { gardens } = useGarden();
+  // const navigate = useNavigate();
+  const location = useLocation();
 
-  const filteredProposals = proposals.filter((p) => p);
+  // function handleCardClick(id: string) {
+  //   navigate(`/campaigns/${id}`);
+  // }
 
   return (
-    <ul className="h-full flex-1 flex flex-col gap-4 overflow-y-scroll cursor-pointer">
-      {filteredProposals.length ?
-        filteredProposals.map((proposal) => (
-          <li key={proposal.id}>
-            <ProposalCard
-              {...proposal}
-              userVote={
-                proposal.votes?.find((v) => v.user_id === user?.id)
-                  ?.vote_type ?? null
-              }
-              onCardClick={() => onProposalClick(proposal.id)}
-              onUpVote={() => onProposalVote(proposal.id, true)}
-            />
-          </li>
-        ))
-      : <p className="h-full w-full grid place-items-center text-sm italic">
-          {noProposalsMessage}
-        </p>
-      }
-    </ul>
+    <section className={`relative w-full h-full`}>
+      <div className="flex justify-between w-full">
+        <h4>Home</h4>
+        <div></div>
+      </div>
+      {/* <ul className="h-full flex-1 flex flex-col gap-4 overflow-y-scroll cursor-pointer"> */}
+      {location.pathname === "/campaigns" ?
+        <ul className={`relative w-full h-full`}>
+          {gardens.length ?
+            gardens.map((garden) => (
+              <li key={garden.id}>
+                {/* <GardenCard
+                  {...garden}
+                  // userVote={
+                  //   garden.votes?.find((v) => v.user_id === user?.id)
+                  //     ?.vote_type ?? null
+                  // }
+                  // onCardClick={() => onGardenClick(garden.id)}
+                  // onUpVote={() => onGardenVote(garden.id, true)}
+                /> */}
+              </li>
+            ))
+          : <p className="h-full w-full grid place-items-center text-sm italic">
+              No gardens found. Try creating one!
+            </p>
+          }
+        </ul>
+      : null}
+      <Outlet />
+    </section>
   );
 };
 
-// const Home: React.FC<HomeProps> = (
-//   {
-//     // address,
-//     // confirmationMap,
-//     // contributions,
-//   }
-// ) => {
-//   const navigate = useNavigate();
-//   const location = useLocation();
-
-//   function handleCardClick(id: string) {
-//     navigate(`/campaigns/${id}`);
-//   }
-
-//   return (
-//     <section className={`relative w-full h-full`}>
-//       <div className="flex justify-between w-full">
-//         <h4>Home</h4>
-//         <div></div>
-//       </div>
-//       {location.pathname === "/campaigns" ?
-//         <ul className={`relative w-full h-full`}>
-//           {Array.from({ length: 5 }).map((_, index) => (
-//             <li className="p-1" onClick={() => handleCardClick("")}>
-//               {index}
-//             </li>
-//           ))}
-//         </ul>
-//       : null}
-//       <Outlet />
-//     </section>
-//   );
-// };
+export default Gardens;

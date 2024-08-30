@@ -1,5 +1,3 @@
-"use client";
-
 import {
   FieldArrayWithId,
   UseFieldArrayAppend,
@@ -9,23 +7,23 @@ import {
 import { RiAddFill } from "@remixicon/react";
 
 import { Button } from "../Button";
-import { MilestoneForm } from "./Form";
+import { MediaForm } from "./Form";
 
-interface MilestoneListProps {
-  register: UseFormRegister<TCreateProposal>;
-  milestones: FieldArrayWithId<TCreateProposal, "milestones", "id">[];
-  addMilestone: UseFieldArrayAppend<TCreateProposal, "milestones">;
-  removeMilestone: UseFieldArrayRemove;
+interface MediaListProps {
+  register: UseFormRegister<WorkDraft>;
+  media: FieldArrayWithId<WorkDraft>[];
+  addMedia: UseFieldArrayAppend<WorkDraft>;
+  removeMedia: UseFieldArrayRemove;
 }
 
-export const MilestoneList: React.FC<MilestoneListProps> = ({
+export const MediaList: React.FC<MediaListProps> = ({
   register,
-  milestones,
-  addMilestone,
-  removeMilestone,
+  media,
+  addMedia,
+  removeMedia,
 }) => {
-  function handleAddMilestone() {
-    addMilestone({
+  function handleAddMedia() {
+    addMedia({
       name: "",
       budget: 0,
       description: "",
@@ -35,22 +33,22 @@ export const MilestoneList: React.FC<MilestoneListProps> = ({
   return (
     <>
       <ul>
-        {milestones?.length > 0 &&
-          milestones.map((milestone, index) => (
+        {media?.length > 0 &&
+          media.map((milestone, index) => (
             <li key={milestone.id}>
-              <MilestoneForm
+              <MediaForm
                 {...milestone}
                 register={register}
                 index={index}
-                onRemove={removeMilestone}
+                onRemove={removeMedia}
               />
             </li>
           ))}
       </ul>
       <Button
         type="button"
-        onClick={handleAddMilestone}
-        label="Add Milestone"
+        onClick={handleAddMedia}
+        label="Add Media"
         Icon={RiAddFill}
         size="small"
         className="self-end"

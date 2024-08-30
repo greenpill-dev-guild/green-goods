@@ -1,39 +1,38 @@
 import React from "react";
 import {
   RiCalendar2Fill,
-  RiThumbUpFill,
+  // RiThumbUpFill,
   RiMapPin2Fill,
 } from "@remixicon/react";
 
 // import { truncateDescription } from "../../utils/text";
 // import { Button } from "../Button";
 
-export interface ProposalCardProps extends TSummaryProposal {
+export interface GardenCardProps extends GardenCard {
   userVote?: boolean | null; // true if upvoted, false if downvoted, null if not voted
-  onUpVote: () => void;
   onCardClick: () => void;
 }
 
-export const ProposalCard: React.FC<ProposalCardProps> = ({
+export const GardenCard: React.FC<GardenCardProps> = ({
   name,
   location,
-  problem,
-  banner_image,
-  start_date,
-  end_date,
-  votes,
-  userVote,
-  onUpVote,
-  onCardClick,
+  // problem,
+  // banner_image,
+  // start_date,
+  // end_date,
+  // votes,
+  // userVote,
+  // onUpVote,
+  // onCardClick,
 }) => {
-  const upvotes = votes?.filter((vote) => vote.vote_type === true).length ?? 0;
+  // const upvotes = votes?.filter((vote) => vote.vote_type === true).length ?? 0;
 
   return (
     <div
       className="flex flex-col bg-white border border-1 shadow-md rounded-xl"
-      onClick={onCardClick}
+      // onClick={onCardClick}
     >
-      <div className="relative w-full h-auto rounded-t-xl">
+      {/* <div className="relative w-full h-auto rounded-t-xl">
         <span className="flex gap-1 items-center absolute top-2 right-2 bg-white px-1.5 py-1 rounded-xl">
           <RiThumbUpFill
             onClick={onUpVote}
@@ -54,7 +53,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
           }
           alt="Image Description"
         />
-      </div>
+      </div> */}
       <div className="p-4 md:p-5 flex flex-col gap-1">
         <h3 className="text-lg font-bold text-slate-800 line-clamp-1">
           {name}
@@ -65,13 +64,13 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
         </div>
         <div className="flex gap-1">
           <RiCalendar2Fill className="h-5 text-teal-400" />
-          <span className="text-sm font-medium">
+          {/* <span className="text-sm font-medium">
             {start_date && end_date ?
               `${start_date.toLocaleDateString()} - ${end_date.toLocaleDateString()}`
             : "No timeline provided."}
-          </span>
+          </span> */}
         </div>
-        <p className="mt-1 text-slate-600 line-clamp-3 leading-5">{problem}</p>
+        {/* <p className="mt-1 text-slate-600 line-clamp-3 leading-5">{problem}</p> */}
         {/* <div className="flex w-full justify-end">
           <Button label="View" size="small" onClick={onCardClick} />
         </div> */}
