@@ -19,8 +19,8 @@ export function isValidEmail(email: string) {
 }
 
 export function truncateDescription(description: string) {
-  return description.length > 80
-    ? description.slice(0, 80 - 1) + "..."
+  return description.length > 80 ?
+      description.slice(0, 80 - 1) + "..."
     : description;
 }
 
@@ -57,41 +57,4 @@ export function formatLastUpdated(updatedAt: string) {
   }
 
   return "just now";
-}
-
-export function determineSocialMedia(link: string) {
-  if (link.includes("https://twitter.com") || link.includes(" https://x.com"))
-    return {
-      icon: "/icons/x.svg",
-      label: "X",
-    };
-
-  if (link.includes("https://warpcast.com"))
-    return {
-      icon: "/icons/farcaster.svg",
-      label: "farcaster",
-    };
-
-  if (link.includes("https://mirror.xyz"))
-    return {
-      icon: "/icons/mirror.svg",
-      label: "mirror",
-    };
-
-  if (link.includes("https://discord.com"))
-    return {
-      icon: "/icons/discord.svg",
-      label: "discord",
-    };
-
-  if (link.includes("https://t.me"))
-    return {
-      icon: "/icons/telegram.svg",
-      label: "telegram",
-    };
-
-  return {
-    icon: "/icons/globe-alt.svg",
-    label: "link",
-  };
 }
