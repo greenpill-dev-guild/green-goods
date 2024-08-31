@@ -36,7 +36,7 @@ export const Garden: React.FC<GardenProps> = () => {
     id: string;
   }>();
   const { actions, gardens, gardeners } = useGarden();
-  const { works, workApprovals } = useWork();
+  const { works } = useWork();
   const [activeTab, setActiveTab] = useState<GardenTab>(GardenTab.Actions);
 
   const garden = gardens.find((garden) => garden.id === id);

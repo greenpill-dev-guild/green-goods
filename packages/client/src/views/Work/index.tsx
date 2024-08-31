@@ -15,15 +15,15 @@ enum WorkTab {
 }
 
 const Work: React.FC<WorkProps> = () => {
-  const { actions, form } = useWork();
+  const { form } = useWork();
   const [activeTab, setActiveTab] = useState(WorkTab.Media);
 
   if (!form) {
     return null;
   }
 
-  const { images, setImages, actionUID, register, uploadWork } = form;
-  const action = actions.find((action) => action.id === actionUID);
+  const { images, setImages, register, uploadWork } = form;
+  // const action = actions.find((action) => action.id === actionUID);
 
   const renderTabContent = () => {
     switch (activeTab) {
