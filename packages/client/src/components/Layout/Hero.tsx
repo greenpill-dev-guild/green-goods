@@ -56,7 +56,7 @@ export const Hero: React.FC = () => {
   }
 
   return (
-    <main className="w-full min-h-[calc(100dvh-9rem)] lg:min-h-[calc(100dvh-7rem)] flex flex-col lg:flex-row lg:justify-center gap-16">
+    <main className="w-full min-h-[calc(100dvh-9rem)] lg:min-h-[calc(100dvh-6rem)] flex flex-col lg:flex-row lg:justify-center gap-16">
       <form
         onSubmit={handleSubscribe}
         className="flex-1 flex flex-col gap-2 items-center lg:items-start lg:justify-center pt-[10vh] lg:pt-0 text-center lg:text-left"
