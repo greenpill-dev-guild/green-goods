@@ -17,19 +17,19 @@ interface ButtonProps {
 
 const sizes = {
   small: "py-2 px-3",
-  medium: "py-3 px-4 text-lg",
+  medium: "py-3 px-4 text-xl",
   large: "p-4 sm:p-5 text-xl",
 };
 
 const variantColors = {
-  primary: "teal",
-  secondary: "green",
+  primary: "#367D42",
+  secondary: "#D2B48C",
   tertiary: "blue",
 };
 
 function generateStyles(variant: "primary" | "secondary" | "tertiary") {
   return {
-    solid: `border-transparent bg-${variantColors[variant]}-500 text-white hover:bg-${variantColors[variant]}-700`,
+    solid: `border-transparent bg-[${variantColors[variant]}] text-white hover:bg-${variantColors[variant]}-700`,
     soft: `border-transparent bg-${variantColors[variant]}-100 text-${variantColors[variant]}-800 hover:bg-${variantColors[variant]}-200  dark:hover:bg-${variantColors[variant]}-900 dark:text-${variantColors[variant]}-500 dark:hover:text-${variantColors[variant]}-400`,
     outline: `border-${variantColors[variant]}-500 text-${variantColors[variant]}-500 hover:border-${variantColors[variant]}-400 hover:text-${variantColors[variant]}-400 `,
     ghost: `border-transparent text-${variantColors[variant]}-500 hover:bg-${variantColors[variant]}-100 hover:text-${variantColors[variant]}-800  dark:hover:bg-${variantColors[variant]}-800/30 dark:hover:text-${variantColors[variant]}-400`,

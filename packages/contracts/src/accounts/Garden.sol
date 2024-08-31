@@ -7,6 +7,7 @@ import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable
 // import { Action } from "../registries/Action.sol";
 
 error NotGardenOwner();
+error NotGardenOperator();
 
 /// @title GardenAccount Contract
 /// @notice Manages gardeners and operators for a Garden, and supports community token management.
@@ -51,11 +52,29 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     /// @notice The description of the garden.
     string public description;
 
+    // TODO: Add banner image property
+
     /// @notice Mapping of gardener addresses to their status.
     mapping(address gardener => bool isGardener) public gardeners;
 
     /// @notice Mapping of garden operator addresses to their status.
     mapping(address operator => bool isOperator) public gardenOperators;
+
+    modifier onlyGardenOwner() {
+        if (_isValidSigner(_msgSender(), "") == false) {
+            revert NotGardenOwner();
+        }
+
+        _;
+    }
+
+    modifier onlyOperator() {
+        if (!gardenOperators[_msgSender()]) {
+            revert NotGardenOperator();
+        }
+
+        _;
+    }
 
     /// @notice Initializes the contract with the necessary dependencies.
     /// @dev This constructor is for the upgradable pattern and uses Initializable for upgrade safety.
@@ -111,11 +130,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     /// @notice Updates the name of the garden.
     /// @dev Only callable by a valid signer of the contract.
     /// @param _name The new name of the garden.
-    function updateName(string memory _name) external {
-        if (_isValidSigner(_msgSender(), "")) {
-            revert NotGardenOwner();
-        }
-
+    function updateName(string memory _name) external onlyGardenOwner {
         name = _name;
 
         emit NameUpdated(_msgSender(), _name);
@@ -125,10 +140,6 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     /// @dev Only callable by a valid signer of the contract.
     /// @param _description The new description of the garden.
     function updateDescription(string memory _description) external {
-        if (_isValidSigner(_msgSender(), "")) {
-            revert NotGardenOwner();
-        }
-
         description = _description;
 
         emit DescriptionUpdated(_msgSender(), _description);
@@ -137,11 +148,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     /// @notice Adds a new gardener to the garden.
     /// @dev Only callable by a valid signer of the contract.
     /// @param gardener The address of the gardener to add.
-    function addGardener(address gardener) external {
-        if (_isValidSigner(_msgSender(), "")) {
-            revert NotGardenOwner();
-        }
-
+    function addGardener(address gardener) external onlyOperator {
         gardeners[gardener] = true;
 
         emit GardenerAdded(_msgSender(), gardener);
@@ -150,11 +157,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     /// @notice Removes an existing gardener from the garden.
     /// @dev Only callable by a valid signer of the contract.
     /// @param gardener The address of the gardener to remove.
-    function removeGardener(address gardener) external {
-        if (_isValidSigner(_msgSender(), "")) {
-            revert NotGardenOwner();
-        }
-
+    function removeGardener(address gardener) external onlyOperator {
         gardeners[gardener] = false;
 
         emit GardenerRemoved(_msgSender(), gardener);
@@ -163,11 +166,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     /// @notice Adds a new operator to the garden.
     /// @dev Only callable by a valid signer of the contract.
     /// @param operator The address of the operator to add.
-    function addGardenOperator(address operator) external {
-        if (_isValidSigner(_msgSender(), "")) {
-            revert NotGardenOwner();
-        }
-
+    function addGardenOperator(address operator) external onlyOperator {
         gardenOperators[operator] = true;
 
         emit GardenOperatorAdded(_msgSender(), operator);
@@ -176,11 +175,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     /// @notice Removes an existing operator from the garden.
     /// @dev Only callable by a valid signer of the contract.
     /// @param operator The address of the operator to remove.
-    function removeGardenOperator(address operator) external {
-        if (_isValidSigner(_msgSender(), "")) {
-            revert NotGardenOwner();
-        }
-
+    function removeGardenOperator(address operator) external onlyGardenOwner {
         gardenOperators[operator] = false;
 
         emit GardenOperatorRemoved(_msgSender(), operator);

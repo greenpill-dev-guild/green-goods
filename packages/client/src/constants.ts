@@ -1,11 +1,11 @@
+import schemas from "../../eas/src/resources/schemas.json";
+
 export const APP_NAME = "Green Goods";
 export const APP_DEFAULT_TITLE = "Green Goods";
 export const APP_TITLE_TEMPLATE = "%s - Green Goods";
 export const APP_DESCRIPTION = "Start Bringing Biodiversity Onchain";
 export const APP_URL = "https://greengoods.app";
 export const APP_ICON = "https://greengoods.app/icon.png";
-
-import schemas from "../../eas/src/resources/schemas.json";
 
 export const EAS = {
   "42161": {

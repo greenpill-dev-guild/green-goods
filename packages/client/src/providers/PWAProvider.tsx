@@ -15,6 +15,7 @@ export type Platform = "ios" | "android" | "windows" | "unknown";
 export interface PWADataProps {
   isMobile: boolean;
   isInstalled: boolean;
+  platform: Platform;
   locale: Locale;
   deferredPrompt: BeforeInstallPromptEvent | null;
   promptInstall: () => void;
@@ -59,6 +60,7 @@ const PWAContext = React.createContext<PWADataProps>({
   isInstalled: false,
   locale: "en",
   deferredPrompt: null,
+  platform: "unknown",
   promptInstall: () => {},
   handleInstallCheck: () => {},
   switchLanguage: () => {},
@@ -144,6 +146,7 @@ export const PWAProvider = ({ children }: { children: React.ReactNode }) => {
           platform === "android" ||
           platform === "windows",
         isInstalled: installState === "installed",
+        platform,
         locale,
         deferredPrompt,
         promptInstall,

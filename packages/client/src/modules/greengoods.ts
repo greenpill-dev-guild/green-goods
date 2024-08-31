@@ -39,17 +39,27 @@ export function getActions(): Action[] {
 }
 
 export function getGardens(): Garden[] {
+  const operators = [
+    "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
+    "0xAcD59e854adf632d2322404198624F757C868C97,",
+    "0x29e6cbF2450F86006292D10A3cF791955600a457",
+    "0x41f842E28c5a18aAF1fCA0e5908E16d3Ff7e4E9c",
+    "0x742fa58340df9Ad7c691De4Ed999CF7f71079A8F",
+    "0xb084b8258e3409deCa8a5847aa5Ee9fda07a62A8",
+  ];
+
   return [
     {
-      id: "0xf226185e4e76d05EC2cbb9BF1B04e67E25532ecA",
-      name: "Too Many Trees",
+      id: "0xa9Cb249a3B651Ce82bf9E9cc48BCF41957647F48",
+      name: "Root Planet",
       location: "Rio Claro, São Paulo",
       bannerImage: "",
-      operators: ["0x3307e5392215f63189081ba49611eb7e1c5dabae"],
-      gardeners: ["0x3307e5392215f63189081ba49611eb7e1c5dabae"],
+      operators,
+      gardeners: operators,
       gardenAssessments: [],
-      description: "A garden in Rio Claro, São Paulo",
-      tokenAddress: "",
+      description:
+        "Observing invasive species and planting natives species to improve biodiversity.",
+      tokenAddress: "0x9EF896a314B7aE98609eC0c0cA43724C768046B4",
       tokenID: 0,
     },
   ];

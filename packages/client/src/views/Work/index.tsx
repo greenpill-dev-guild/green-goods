@@ -15,15 +15,15 @@ enum WorkTab {
 }
 
 const Work: React.FC<WorkProps> = () => {
-  const { form } = useWork();
+  const { actions, form } = useWork();
   const [activeTab, setActiveTab] = useState(WorkTab.Media);
 
   if (!form) {
     return null;
   }
 
-  const { images, setImages, register, uploadWork } = form;
-  // const action = actions.find((action) => action.id === actionUID);
+  const { images, setImages, actionUID, register, uploadWork } = form;
+  const action = actions.find((action) => action.id === actionUID);
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -40,7 +40,16 @@ const Work: React.FC<WorkProps> = () => {
           />
         );
       case WorkTab.Review:
-        return <WorkReview />;
+        return (
+          <WorkReview
+            title={action?.title!}
+            description={action?.description!}
+            feedback={action?.details.feedbackPlaceholder!}
+            images={images}
+            plantCount={0}
+            plantSelection={[]}
+          />
+        );
       default:
         return null;
     }

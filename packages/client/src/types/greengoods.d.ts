@@ -9,6 +9,15 @@ declare enum Capital {
   CULTURAL,
 }
 
+declare type Plant =
+  | "Jatoba"
+  | "uvaia"
+  | "avocado"
+  | "banana"
+  | "jambo"
+  | "inga"
+  | "ipê";
+
 // declare interface UserCard {
 //   id: string; // Privy ID
 //   username: string; // Unique username
@@ -107,8 +116,10 @@ declare interface WorkInput {
 declare interface WorkDraft {
   actionUID: number;
   title: string;
+  plantSelection: string[];
+  plantCount: number;
   feedback: string;
-  metadata: Record<string, string | number | boolean | string[]>;
+  // metadata: Record<string, string | number | boolean | string[]>;
   media: File[];
 }
 

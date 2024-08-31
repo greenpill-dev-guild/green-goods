@@ -97,22 +97,22 @@ contract DeployGardenToken is Script {
             gardeners[0] = 0x2aa64E6d80390F5C017F0313cB908051BE2FD35e; // afo-wefa.eth
             gardeners[1] = 0xAcD59e854adf632d2322404198624F757C868C97; // groweco.eth
             gardeners[2] = 0x29e6cbF2450F86006292D10A3cF791955600a457; // marcin
-            gardeners[3] = 0x2aa64E6d80390F5C017F0313cB908051BE2FD35e; // afo@greenpill.builders
+            gardeners[3] = 0x742fa58340df9Ad7c691De4Ed999CF7f71079A8F; // afo@greenpill.builders
             gardenOperators[0] = 0x2aa64E6d80390F5C017F0313cB908051BE2FD35e; // afo-wefa.eth
             gardenOperators[1] = 0xAcD59e854adf632d2322404198624F757C868C97; // groweco.eth
             gardenOperators[2] = 0x29e6cbF2450F86006292D10A3cF791955600a457; // marcin
-            gardenOperators[3] = 0x2aa64E6d80390F5C017F0313cB908051BE2FD35e; // afo@greenpill.builders
+            gardenOperators[3] = 0x742fa58340df9Ad7c691De4Ed999CF7f71079A8F; // afo@greenpill.builders
 
             gardenAccount = gardenToken.mintGarden(
                 communityToken,
                 "Root Planet",
-                "Observing invasive species and planting natives species to improve biodiversity.",
+                "Observing invasive species and planting natives to improve biodiversity.",
                 gardeners,
                 gardenOperators
             );
 
             vm.stopBroadcast();
-            console.log("Root Plane Garden for Rio Claro, S\u00e3o Paulo minted.");
+            console.log("Root Plane Garden for Rio Claro, S\u00e3o Paulo minted.", gardenAccount);
         } else {
             console.log("Garden Token already exists at:", token);
         }

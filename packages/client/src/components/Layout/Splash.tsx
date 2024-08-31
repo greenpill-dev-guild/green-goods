@@ -16,16 +16,16 @@ export const Splash: React.FC<SplashProps> = ({
   buttonLabel,
 }) => {
   return (
-    <div
-      className="flex flex-col items-center justify-center  gap-4 w-full h-full"
-      // className="absolute top-0 z-50 flex items-center justify-center w-screen h-screen overflow-hidden bg-white"
-    >
-      <img src="/icon.png" alt={APP_NAME} width={180} height={180} />
-      <h3 className=" font-bold text-center">{APP_NAME}</h3>
+    <div className="flex flex-col items-center gap-4 w-full h-full pb-12 pt-[20vh]">
+      <img src="/icon.png" alt={APP_NAME} width={240} />
+      <h2 className=" font-bold text-center text-[#367D42] mb-20">
+        {APP_NAME}
+      </h2>
       <Button
         label={buttonLabel}
         onClick={login}
         disabled={isLoggingIn}
+        variant="secondary"
         fullWidth
       />
     </div>

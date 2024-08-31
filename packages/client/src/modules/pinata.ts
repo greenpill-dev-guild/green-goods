@@ -12,7 +12,7 @@ export async function uploadFilesToIPFS(files: File[]) {
   return await pinata.upload.fileArray(files);
 }
 
-export async function uploadJSONToIPFS(json: JSON) {
+export async function uploadJSONToIPFS(json: Record<string, any>) {
   return await pinata.upload.json(json);
 }
 

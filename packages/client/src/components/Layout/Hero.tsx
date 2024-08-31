@@ -1,23 +1,22 @@
+import { usePWA } from "@/providers/PWAProvider";
 import React, { useState } from "react";
+import { DeviceFrameset } from "react-device-frameset";
+import "react-device-frameset/styles/marvel-devices.min.css";
+import toast from "react-hot-toast";
 
 type SubscribeState = "idle" | "subscribing" | "subscribed" | "error";
 
-function wait(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 const url =
-  "https://house.us21.list-manage.com/subscribe/post-json?u=f9cd12d07ddbdbe80d68c3e28&amp;id=792284a5e1&amp&c=1;f_id=00ddeae6f0";
+  "https://app.us13.list-manage.com/subscribe/post?u=16db3a1a92dd56e81459cd500&amp;id=c6c12d1a3f&amp;f_id=0021fae1f0";
 
 export const Hero: React.FC = () => {
-  const [, setSubscribeState] = useState<SubscribeState>("idle");
-  const [, setSubscribeError] = useState<string | null>(null);
+  const { isMobile } = usePWA();
+  const [state, setSubscribeState] = useState<SubscribeState>("idle");
 
   function handleSubscribe(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     setSubscribeState("subscribing");
-    setSubscribeError(null);
 
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email") as string;
@@ -38,52 +37,98 @@ export const Hero: React.FC = () => {
           // ERROR
           console.log(data["msg"]);
 
-          setSubscribeError("Something went wrong. Please try again.");
-          setSubscribeState("error");
+          throw new Error(data["msg"]);
         } else {
           // SUCCESS - Show notification
           console.log(data["msg"]);
 
-          setSubscribeState("subscribed");
+          toast.success("Successfilly subscribed!");
 
-          wait(2000).then(() => {
-            setSubscribeState("idle");
-          });
+          setSubscribeState("subscribed");
         }
       })
       .catch((error) => {
         console.error("Error:", error);
 
-        setSubscribeError(error.message);
         setSubscribeState("error");
+        toast.error("Something went wrong. Please try again.");
       });
   }
 
   return (
-    <main className="w-full text-center">
-      <div className="flex flex-col items-center gap-12">
-        <div className="justify-self-start flex flex-col gap-2">
-          <h1 className="">Bringing Biodiversity Onchain</h1>
-          <p className="text-4xl tracking-wider"></p>
-        </div>
-        <p className="text-2xl font-normal tracking-wide"></p>
-        <form
-          onSubmit={handleSubscribe}
-          className="flex flex-col gap-2 justify-self-start"
-        >
+    <main className="w-full min-h-[calc(100dvh-9rem)] lg:min-h-[calc(100dvh-7rem)] flex flex-col lg:flex-row lg:justify-center gap-16">
+      <form
+        onSubmit={handleSubscribe}
+        className="flex-1 flex flex-col gap-2 items-center lg:items-start lg:justify-center pt-[10vh] lg:pt-0 text-center lg:text-left"
+      >
+        <h2 className="font-bold lg:text-8xl lg:tracking-wide text-[#367D42] mb-2">
+          Bringing Biodiversity Onchain
+        </h2>
+        <p className="text-xl lg:text-2xl">
+          Green Goods measures, tracks, and rewards the impact on gardens with a
+          simple progressive web app.{" "}
+          <span className="font-bold text-2xl hidden sm:flex text-[#367D42]">
+            Open the website on your phone to get started!
+          </span>
+        </p>
+        <div className="flex flex-col lg:flex-row w-full mt-6">
           <input
-            className="w-full h-14 px-4 py-2 rounded-md bg-gray-100"
+            className="w-full h-14 px-4 py-2 border-[#367D42] rounded-md bg-stone-50 mb-2"
             name="email"
             type="email"
-            placeholder="Your email"
+            required
+            placeholder="Grow with us, enter your email"
           />
           <button
-            className="w-full h-14 px-4 py-2 rounded-md bg-black text-white font-bold"
+            className="w-full lg:max-w-60 h-14 px-4 py-2 rounded-md bg-[#367D42] text-white font-bold mb-6"
             type="submit"
+            disabled={state === "subscribing" || state === "subscribed"}
           >
             Subscribe
           </button>
-        </form>
+        </div>
+        {isMobile && (
+          <>
+            <button
+              className="w-full lg:max-w-xs h-14 px-4 py-2 rounded-md bg-[#D2B48C] text-white font-bold"
+              type="button"
+              onClick={() => {
+                const dialog = document.getElementById(
+                  "pwa-dialog"
+                ) as HTMLDialogElement;
+
+                dialog.showModal();
+              }}
+            >
+              Install App
+            </button>
+            <dialog id="pwa-dialog" className="modal">
+              <div className="modal-box">
+                <h4 className="text-[#367D42]">Install Green Goods</h4>
+                <p>
+                  To install on your device, tap the 3 dots below and then "Add
+                  to Home Screen".
+                </p>
+              </div>
+              <form method="dialog" className="modal-backdrop">
+                <button>close</button>
+              </form>
+            </dialog>
+          </>
+        )}
+      </form>
+      <div>
+        {!isMobile && (
+          <div className="flex-1 w-full h-full grid place-items-center">
+            <DeviceFrameset device="iPhone 8" color="black">
+              <img
+                src="/images/app-mock.png"
+                alt="Green Goods App Mockup"
+                className="w-full h-full object-cover"
+              />
+            </DeviceFrameset>
+          </div>
+        )}
       </div>
     </main>
   );

@@ -23,7 +23,7 @@ function App() {
   console.log("PWA", isMobile, isInstalled, locale);
 
   const isDownloaded = isMobile;
-  const isAuthenticated = !authenticated && !smartAccountReady;
+  const isAuthenticated = authenticated && smartAccountReady;
 
   return (
     <QueryClientProvider client={queryClient}>

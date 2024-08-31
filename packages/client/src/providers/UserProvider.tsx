@@ -161,7 +161,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       setSmartAccountAddress(smartAccountAddress);
       setSmartAccountReady(true);
 
-      console.log("smartAccountClient", smartAccountClient.account.address);
+      console.log("smartAccountClient", smartAccountAddress);
     };
 
     if (embeddedWallet) createSmartWallet(embeddedWallet);

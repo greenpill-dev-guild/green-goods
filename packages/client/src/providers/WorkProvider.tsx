@@ -3,16 +3,15 @@ import toast from "react-hot-toast";
 import React, { useContext, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
 import { FormState, useForm, UseFormRegister } from "react-hook-form";
 
 import { EAS } from "@/constants";
 
 import { queryClient } from "@/modules/react-query";
-import { uploadFileToIPFS } from "@/modules/pinata";
 
 import { useUser } from "./UserProvider";
 import { useGarden } from "./GardenProvider";
+import { encodeWorkData } from "@/utils/eas";
 
 export interface WorkDataProps {
   actions: Action[];
@@ -34,35 +33,10 @@ const workSchema = z.object({
   title: z.string(),
   feedback: z.string(),
   metadata: z.string(),
+  plantSelection: z.array(z.string()),
+  plantCount: z.number(),
   media: z.array(z.instanceof(File)),
 });
-
-// schema: EAS[11155111].METRICS.uid,
-//     data: {
-//       recipient: "",
-//       revocable: true, // Be aware that if your schema is not revocable, this MUST be false
-//       data: encodedData,
-//     },
-
-async function encodeWorkData(data: WorkDraft): Promise<string> {
-  const schemaEncoder = new SchemaEncoder(EAS["42161"].WORK.schema);
-
-  const media = await Promise.all(
-    data.media.map(async (file) => {
-      return (await uploadFileToIPFS(file)).IpfsHash;
-    })
-  );
-
-  const encodedData = schemaEncoder.encodeData([
-    { name: "actionUID", value: data.actionUID, type: "uint256" },
-    { name: "title", value: data.title, type: "string" },
-    { name: "feedback", value: data.feedback, type: "string" },
-    { name: "metadata", value: data.metadata, type: "string" },
-    { name: "media", value: media, type: "string[]" },
-  ]);
-
-  return encodedData;
-}
 
 const WorkContext = React.createContext<WorkDataProps>({
   actions: [],
@@ -107,7 +81,9 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       actionUID: 0,
       title: "",
       feedback: "",
-      metadata: {},
+      plantSelection: [],
+      plantCount: 0,
+      // metadata: {},
       media: [],
     },
     resolver: zodResolver(workSchema),
@@ -119,10 +95,13 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         throw new Error("No smart account client found");
       }
 
-      const encodedData = encodeWorkData({
-        ...draft,
-        media: images,
-      });
+      const encodedData = encodeWorkData(
+        {
+          ...draft,
+          media: images,
+        },
+        "0x"
+      );
 
       const encodedFunctionCall: `0x${string}` = `0x${encodedData}`; // Todo encode function call and arguments
 

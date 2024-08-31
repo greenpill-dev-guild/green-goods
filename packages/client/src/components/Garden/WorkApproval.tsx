@@ -3,9 +3,9 @@ import toast from "react-hot-toast";
 import { Form, useForm } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
 
 import { EAS } from "@/constants";
+import { encodeWorkApprovalData } from "@/utils/eas";
 
 import { queryClient } from "@/modules/react-query";
 
@@ -19,34 +19,11 @@ interface GardenWorkApprovalProps {
 }
 
 const workApprovalSchema = z.object({
-  endorsement: z.string().nullish(),
-  metrics: z
-    .array(
-      z
-        .object({
-          metricUID: z.string(),
-          metricName: z.string().optional(),
-          metricDescription: z.string().optional(),
-          value: z.string(),
-          source: z.string().url(),
-        })
-        .nullish()
-    )
-    .nullish(),
+  actionUID: z.string(),
+  workUID: z.string(),
+  approved: z.boolean(),
+  feedback: z.string(),
 });
-
-function encodeWorkApprovalData(data: WorkApprovalDraft) {
-  const schemaEncoder = new SchemaEncoder(EAS["42161"].WORK_APPROVAL.schema);
-
-  const encodedData = schemaEncoder.encodeData([
-    { name: "actionUID", value: data.actionUID, type: "uint256" },
-    { name: "workUID", value: data.workUID, type: "bytes32" },
-    { name: "approved", value: data.approved, type: "bool" },
-    { name: "feedback", value: data.feedback, type: "string" },
-  ]);
-
-  return encodedData;
-}
 
 export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({
   work,
@@ -70,13 +47,13 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({
         throw new Error("No smart account client found");
       }
 
-      const encodedData = encodeWorkApprovalData(draft);
+      const recipient = work.gardenerAddress as `0x${string}`;
 
-      const encodedFunctionCall: `0x${string}` = `0x${encodedData}`; // Todo encode function call and arguments
+      const data = encodeWorkApprovalData(draft, recipient);
 
       const receipt = await smartAccountClient.sendTransaction({
         to: EAS["42161"].EAS.address as `0x${string}`,
-        data: encodedFunctionCall, // Todo encode solidty function call and arguments
+        data,
       });
 
       return receipt;

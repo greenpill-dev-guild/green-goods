@@ -11,7 +11,7 @@ enum Capital {
 }
 
 type Action {
-  id: ID! # Bytes32
+  id: Int!
   ownerAddress: String! # Address
   startTime: BigInt!
   endTime: BigInt!

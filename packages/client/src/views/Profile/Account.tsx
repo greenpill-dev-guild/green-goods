@@ -1,20 +1,98 @@
-interface ProfileAccountProps {
-  username?: string | null;
-  avatar?: string;
+import {
+  RiKeyLine,
+  RiMailFill,
+  RiPhoneLine,
+  RiUserLine,
+} from "@remixicon/react";
+import { usePrivy } from "@privy-io/react-auth";
+
+import { usePWA } from "@/providers/PWAProvider";
+import { useUser } from "@/providers/UserProvider";
+
+interface LinkedAccount {
+  title: string;
+  description: string;
+  isLinked: boolean;
+  Icon: React.ReactNode;
+  link: () => void;
+  unlink: () => void;
 }
 
-export const ProfileAccount: React.FC<ProfileAccountProps> = ({
-  avatar,
-  username,
-}) => {
-  return (
-    <div className="absolute bottom-[100%] left-0 rigt-0 flex flex-col gap-3 items-center w-full">
-      <div className="text-neutral-content rounded-full w-20">
-        <img src={avatar} alt="profile avatar" className="rounded-full w-20" />
-      </div>
+interface ProfileAccountProps {}
 
-      {/* Rest of your app goes here */}
-      <h5 className="w-2/3 h-12 line-clamp-1 capitalize">{username}</h5>
+export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
+  const {
+    user,
+    linkEmail,
+    linkPhone,
+    linkPasskey,
+    linkFarcaster,
+    unlinkEmail,
+    unlinkPhone,
+    // unlinkPasskey,
+    unlinkFarcaster,
+  } = usePrivy();
+  const { switchLanguage } = usePWA();
+  const { logout } = useUser();
+
+  const linkedAccounts: LinkedAccount[] = [
+    {
+      title: "Email",
+      description: user?.email?.address || "Not Linked",
+      isLinked: !!user?.email?.address,
+      Icon: <RiMailFill />,
+      link: linkEmail,
+      unlink: () => user?.email?.address && unlinkEmail(user?.email?.address),
+    },
+    {
+      title: "Phone",
+      description: user?.phone?.number || "Not Linked",
+      isLinked: !!user?.phone?.number,
+      Icon: <RiPhoneLine />,
+      link: linkPhone,
+      unlink: () => user?.phone?.number && unlinkPhone(user?.phone?.number),
+    },
+    {
+      title: "Passkey",
+      description: user?.mfaMethods.includes("passkey") ? "" : "Not Linked",
+      isLinked: !!user?.mfaMethods.includes("passkey"),
+      Icon: <RiKeyLine />,
+      link: linkPasskey,
+      unlink: () => {},
+    },
+    {
+      title: "Farcaster",
+      description: user?.farcaster?.displayName || "Not Linked",
+      isLinked: !!user?.farcaster?.displayName,
+      Icon: <RiUserLine />,
+      link: linkFarcaster,
+      unlink: () =>
+        user?.farcaster?.fid && unlinkFarcaster(user?.farcaster?.fid),
+    },
+  ];
+
+  return (
+    <div className="flex flex-col gap-3 items-center w-full">
+      <h3>Languages</h3>
+      <button onClick={() => switchLanguage("en")}>English</button>
+      <button onClick={() => switchLanguage("pt")}>Português</button>
+      <h3>Linked Accounts</h3>
+      <ul>
+        {linkedAccounts.map(
+          ({ title, Icon, description, isLinked, link, unlink }) => (
+            <li key={title} className="flex gap-1">
+              <span>{Icon}</span>
+              <span>{title}</span>
+              <span>{description}</span>
+              <button onClick={isLinked ? unlink : link}>
+                {isLinked ? "Unlink" : "Link"}
+              </button>
+            </li>
+          )
+        )}
+      </ul>
+      <h3>Settings</h3>
+      <button onClick={logout}>Logout</button>
     </div>
   );
 };
