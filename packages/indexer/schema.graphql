@@ -1,0 +1,37 @@
+enum Capital {
+  SOCIAL
+  MATERIAL
+  FINANCIAL
+  LIVING
+  INTELLECTUAL
+  EXPERIENTIAL
+  SPIRITUAL
+  CULTURAL
+  UNKNOWN
+}
+
+type Action {
+  id: Int!
+  ownerAddress: String! # Address
+  startTime: BigInt!
+  endTime: BigInt!
+  title: String!
+  instructions: String!
+  capitals: [Capital!]!
+  media: [String!]!
+  createdAt: Int!
+}
+
+type Garden {
+  id: ID! # Address
+  tokenAddress: String! # Address
+  tokenID: BigInt!
+  name: String!
+  description: String!
+  location: String!
+  bannerImage: String!
+  createdAt: Int!
+
+  gardeners: [String!]! # Address
+  operators: [String!]! # Address
+}

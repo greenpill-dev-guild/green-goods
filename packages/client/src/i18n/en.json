@@ -1,0 +1,11 @@
+{
+  "app.title": "Welcome to the App",
+  "app.login": "Login",
+  "app.logout": "Logout",
+  "app.home": "Home",
+  "app.home.title": "Gardens",
+  "app.profile": "Profile",
+  "app.profile.account": "Account",
+  "app.profile.help": "Help",
+  "app.profile.settings": "Settings"
+}

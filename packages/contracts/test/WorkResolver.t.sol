@@ -29,7 +29,13 @@ contract WorkResolverTest is Test {
         mockIEAS = new MockEAS();
 
         mockActionRegistry.initialize(multisig);
-        mockGardenAccount.initialize(address(0x545), "Test Garden", new address[](0), new address[](0));
+        mockGardenAccount.initialize(
+            address(0x545),
+            "Test Garden",
+            "Test Description",
+            new address[](0),
+            new address[](0)
+        );
 
         // Deploy the WorkResolver contract
         workResolver = new WorkResolver(address(mockIEAS), address(mockActionRegistry));

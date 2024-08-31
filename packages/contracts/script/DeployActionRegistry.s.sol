@@ -25,26 +25,32 @@ contract DeployActionRegistry is Script {
             Capital[] memory capitals = new Capital[](1);
             capitals[0] = Capital.LIVING;
 
-            string[] memory media = new string[](2);
-            media[0] = "QmWYQY9vnb9ot7u49UMeH41DdjZghrgr2YoaYaNwYSpeAn";
-            media[1] = "QmS9K5EdyakRPW7gV86xivaUNx1AuhPUzUSRD53WnjL4Uz";
+            string[] memory observeMedia = new string[](3);
+            observeMedia[0] = "QmVvKqpnfJm8UwRq9SF15V2jgJ86yCBsmMBmpEaoQU92bD";
+            observeMedia[1] = "QmXeV9zWpXHzTGFS3jJRBRYBTHkcVE23qpdhhtQKX1uC4L";
+            observeMedia[2] = "QmXp5fEnjHbsLniCE5BD1LyjoGgvoHKuajqQnDCPAZih2X";
+
+            string[] memory plantMedia = new string[](3);
+            plantMedia[0] = "QmY6h53RyAY6VQfqqUTBwkVkG8JpCon9SdVkqtB5YzPVwx";
+            plantMedia[1] = "QmZAeu9sEtNqXZBmiYiAt7bd4M38TmE73ekj47n7JDU2xm";
+            plantMedia[2] = "QmdYz2JsVhyzZe591vR1sBQQjLWjGCTp1yJ1t1EicrAnYH";
 
             newRegistry.initialize(address(this));
             newRegistry.registerAction(
                 block.timestamp,
                 block.timestamp + 30 days,
-                "Test Action 1",
-                "QmTmbcRyKtkMpMFWsm6D8YpgwMUuds3jE4sJdjqhqFGvWe",
+                "Observe",
+                "QmX8rLExs7TDGPNAg9w22R8iYeRUYsrkkLg6LUUK8oNDUJ",
                 capitals,
-                media
+                observeMedia
             );
             newRegistry.registerAction(
                 block.timestamp,
                 block.timestamp + 30 days,
-                "Test Action 2",
-                "QmTmbcRyKtkMpMFWsm6D8YpgwMUuds3jE4sJdjqhqFGvWe",
+                "Plant",
+                "QmZGJBdZeCVx7S42KqovzUhwrGhqwxVCaoofzUE2YRhb2s",
                 capitals,
-                media
+                plantMedia
             );
 
             vm.stopBroadcast();

@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=./node_modules/envio/evm.schema.json
+name: Green Goods
+description: Green Goods Indexer
+contracts:
+  - name: ActionRegistry
+    abi_file_path: ../contracts/out/Action.sol/ActionRegistry.json
+    handler: src/EventHandlers.ts
+    events:
+      - event: ActionRegistered
+      - event: ActionStartTimeUpdated
+      - event: ActionEndTimeUpdated
+      - event: ActionTitleUpdated
+      - event: ActionInstructionsUpdated
+      - event: ActionMediaUpdated
+  - name: GardenToken
+    abi_file_path: ../contracts/out/Garden.sol/GardenToken.json
+    handler: src/EventHandlers.ts
+    events:
+      - event: GardenMinted
+  - name: GardenAccount
+    abi_file_path: ../contracts/out/Garden.sol/GardenAccount.json
+    handler: src/EventHandlers.ts
+    events:
+      - event: NameUpdated
+      - event: DescriptionUpdated
+      - event: GardenerAdded
+      - event: GardenerRemoved
+      - event: GardenOperatorAdded
+      - event: GardenOperatorRemoved
+networks:
+  - id: 42161 # Arbitrum
+    start_block: 242630858
+    contracts:
+      - name: ActionRegistry
+        address: 0x9AF3D5Bb1a6d057B99A4948420c5d24ff1e482Ce
+      - name: GardenToken
+        address: 0xf226185e4e76d05EC2cbb9BF1B04e67E25532ecA
