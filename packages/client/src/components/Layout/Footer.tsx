@@ -1,6 +1,4 @@
 import {
-  RiTelegramFill,
-  RiDiscordFill,
   RiTwitterFill,
   RiGithubFill,
   RemixiconComponentType,
@@ -18,16 +16,6 @@ interface Link {
 
 const links: Link[] = [
   { title: "x", Icon: RiTwitterFill, link: "https://x.com/gp_dev_guild" },
-  {
-    title: "discord",
-    Icon: RiDiscordFill,
-    link: "https://discord.com/gp_dev_guild",
-  },
-  {
-    title: "telegram",
-    Icon: RiTelegramFill,
-    link: "https://t.me/gp_dev_guild",
-  },
   {
     title: "github",
     Icon: RiGithubFill,
@@ -48,7 +36,7 @@ export const Footer: React.FC<FooterProps> = () => {
             height={24}
           /> */}
           <p>
-            Impact Reef is built by <b>Greenpill Dev Guild</b>
+            Green Goods is built by <b>Greenpill Dev Guild</b>
           </p>
         </aside>
         <nav className="flex gap-3">

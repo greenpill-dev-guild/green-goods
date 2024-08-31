@@ -28,6 +28,8 @@ type Garden {
   tokenID: BigInt!
   name: String!
   description: String!
+  location: String!
+  bannerImage: String!
   createdAt: Int!
 
   gardeners: [String!]! # Address

@@ -2,14 +2,7 @@
 
 interface ProfileHelpProps {}
 
-export const ProfileHelp: React.FC<ProfileHelpProps> = (
-  {
-    // error,
-    // address,
-    // logout,
-    // login,
-  }
-) => {
+export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
   return (
     <div className="flex flex-col gap-3 items-center w-full">
       {/* <Button

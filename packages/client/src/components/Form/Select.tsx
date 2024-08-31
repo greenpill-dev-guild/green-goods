@@ -1,34 +1,40 @@
 import "react-tailwindcss-select/dist/index.css";
 
+import Select from "react-select";
 import { forwardRef } from "react";
 import { RiCloseFill } from "@remixicon/react";
 import { Control, Controller } from "react-hook-form";
-import Select from "react-tailwindcss-select";
-import {
-  Option,
-  SelectProps,
-} from "react-tailwindcss-select/dist/components/type";
 
-interface FormSelectProps extends SelectProps {
+interface FormSelectProps {
   label: string;
   placeholder: string;
   selected: string[];
   onRemove: (value: string) => void;
   error?: string;
   helperText?: string;
-  options: Option[];
+  options: { label: string; value: string }[];
   control: Control<any>;
 }
 
 export const FormSelect = forwardRef<HTMLSelectElement, FormSelectProps>(
   (
-    { label, selected, onRemove, error, helperText, options, ...props },
+    {
+      label,
+      selected,
+      onRemove,
+      // error,
+      // helperText,
+      options,
+      control,
+      // ...props
+    },
     _ref
   ) => {
     return (
       <Controller
         name="select"
-        render={(_form) => (
+        control={control}
+        render={(field) => (
           <div>
             <label className="block text-sm font-bold text-slate-600 mb-2">
               <h3 className="text-lg font-bold text-slate-600">{label}</h3>
@@ -49,14 +55,13 @@ export const FormSelect = forwardRef<HTMLSelectElement, FormSelectProps>(
                   </div>
                 </div>
               ))}
-            {options.length > 0 && (
-              <>
-                <Select {...props} options={options} value={null} />
-                <p className="text-sm center italic mt-6">
-                  {helperText ?? error}
-                </p>
-              </>
-            )}
+            <Select
+              {...field}
+              options={options}
+              isMulti
+              // className={`basic-multi-select ${errors.plants ? "border-red-500" : ""}`}
+              classNamePrefix="select"
+            />
           </div>
         )}
       />

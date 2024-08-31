@@ -22,8 +22,8 @@ function App() {
 
   console.log("PWA", isMobile, isInstalled, locale);
 
-  const isDownloaded = isMobile && isInstalled;
-  const isAuthenticated = authenticated && smartAccountReady;
+  const isDownloaded = isMobile;
+  const isAuthenticated = !authenticated && !smartAccountReady;
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -47,7 +47,7 @@ function App() {
           />
           {/* Main: Show app or navigate to login, onboarding, or landing page based on conditions */}
           <Route
-            path="/"
+            path="*"
             element={
               isDownloaded ?
                 isAuthenticated ?
@@ -62,7 +62,7 @@ function App() {
             }
           />
           {/* Catch-all: Redirect to the appropriate place */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* <Route path="*" element={<Navigate to="/" replace />} /> */}
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>

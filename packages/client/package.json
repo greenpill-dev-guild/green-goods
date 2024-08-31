@@ -27,15 +27,17 @@
     "react-hot-toast": "^2.4.1",
     "react-intl": "6.6.8",
     "react-router-dom": "^6.26.1",
+    "react-select": "5.8.0",
     "react-tailwindcss-datepicker": "^1.7.2",
-    "react-tailwindcss-select": "^1.8.5",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@0no-co/graphqlsp": "^1.12.12",
+    "daisyui": "4.12.10",
     "@eslint/js": "^9.9.0",
     "@tanstack/eslint-plugin-query": "5.52.0",
     "@tailwindcss/forms": "^0.5.7",
+    "@tailwindcss/typography": "0.5.15",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vercel/node": "3.2.10",

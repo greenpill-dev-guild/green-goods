@@ -9,27 +9,27 @@ declare enum Capital {
   CULTURAL,
 }
 
-declare interface UserCard {
-  id: string; // Privy ID
-  username: string; // Unique username
-  gardenerAddress: string; // Smart Account Address
-  avatar?: string;
-  location?: string;
-  createdAt?: string;
-}
+// declare interface UserCard {
+//   id: string; // Privy ID
+//   username: string; // Unique username
+//   gardenerAddress: string; // Smart Account Address
+//   avatar?: string;
+//   location?: string;
+//   createdAt?: string;
+// }
 
-declare interface UserDraft {
-  username: string;
-  avatar: string;
-  location: string;
-}
+// declare interface UserDraft {
+//   username: string;
+//   avatar: string;
+//   location: string;
+// }
 
-declare interface User extends UserDraft, UserCard {
-  eoaAddress: string; // EOA address
-  onboarded: boolean;
-  email?: string;
-  phoneNumber?: string;
-}
+// declare interface User extends UserDraft, UserCard {
+//   eoaAddress: string; // EOA address
+//   onboarded: boolean;
+//   email?: string;
+//   phoneNumber?: string;
+// }
 
 declare interface GardenAssessment {
   id: string;
@@ -55,17 +55,18 @@ declare interface GardenCard {
   name: string;
   location: string;
   bannerImage: string;
-  gardenOperators: string[];
+  operators: string[];
 }
 
 declare interface Garden extends GardenCard {
   description: string;
-  address: string;
+  tokenAddress: string;
+  tokenID: number;
   gardeners: string[];
   gardenAssessments: GardenAssessment[];
 }
 
-declare interface Action {
+declare interface ActionCard {
   id: number;
   startTime: number;
   endTime: number;
@@ -76,23 +77,60 @@ declare interface Action {
   createdAt: number;
 }
 
+declare interface Action extends ActionCard {
+  description: string;
+  inputs: WorkInput[];
+  mediaInfo: {
+    title: string;
+    description: string;
+    maxImageCount: number;
+  };
+  details: {
+    title: string;
+    description: string;
+    feedbackPlaceholder: string;
+  };
+  review: {
+    title: string;
+    description: string;
+  };
+}
+
+declare interface WorkInput {
+  title: string;
+  placeholder: string;
+  type: "text" | "textarea" | "select" | "number";
+  required: boolean;
+  options: string[];
+}
+
 declare interface WorkDraft {
   actionUID: number;
   title: string;
   feedback: string;
-  metadata: string;
-  media: string[];
+  metadata: Record<string, string | number | boolean | string[]>;
+  media: File[];
 }
 
 declare interface WorkCard {
   id: string;
-  // title: string;
+  title: string;
+  actionUID: number;
   gardenerAddress: string;
   gardenAddress: string;
+  feedback: string;
+  metadata: string;
+  media: string[];
   createdAt: number;
 }
 
-declare interface Work extends WorkDraft, WorkCard {}
+declare interface WorkMetadata {
+  [key: string]: string | number | boolean | string[];
+}
+
+declare interface Work extends WorkCard {
+  approvals: WorkApproval[];
+}
 
 declare interface WorkApprovalDraft {
   actionUID: number;

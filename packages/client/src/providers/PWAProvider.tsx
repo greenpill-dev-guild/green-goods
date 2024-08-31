@@ -139,7 +139,10 @@ export const PWAProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <PWAContext.Provider
       value={{
-        isMobile: platform === "ios" || platform === "android",
+        isMobile:
+          platform === "ios" ||
+          platform === "android" ||
+          platform === "windows",
         isInstalled: installState === "installed",
         locale,
         deferredPrompt,

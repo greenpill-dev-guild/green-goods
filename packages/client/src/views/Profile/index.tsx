@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 
-// import { ProfileDataProps } from "./useProfile";
+import { useUser } from "@/providers/UserProvider";
 
 import { ProfileHelp } from "./Help";
 import { ProfileAccount } from "./Account";
@@ -8,16 +8,28 @@ import { ProfileSettings } from "./Settings";
 
 interface ProfileProps {}
 
-type ProfileTab = "account" | "settings" | "help";
+enum ProfileTabs {
+  Account = "account",
+  Settings = "settings",
+  Help = "help",
+}
 
-const Profile: React.FC<ProfileProps> = (
-  {
-    // avatarSpring,
-    // avatar,
-    // name,
-  }
-) => {
-  const [tab, setTab] = React.useState<ProfileTab>("account");
+const Profile: React.FC<ProfileProps> = () => {
+  const {} = useUser();
+  const [activeTab, setActiveTab] = useState<ProfileTabs>(ProfileTabs.Account);
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case ProfileTabs.Account:
+        return <ProfileAccount />;
+      case ProfileTabs.Settings:
+        return <ProfileSettings />;
+      case ProfileTabs.Help:
+        return <ProfileHelp />;
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className={`grid place-items-center h-full w-full gap-3 px-6`}>
@@ -28,40 +40,22 @@ const Profile: React.FC<ProfileProps> = (
           className="rounded-full w-20"
         />
       </div>
-      {/* <Tabs /> */}
-      <div className="flex gap-3">
-        <button
-          onClick={() => setTab("account")}
-          className={`${
-            tab === "account" ? "bg-neutral-content text-neutral" : "bg-neutral"
-          } px-3 py-2 rounded-md`}
-        >
-          Account
-        </button>
-        <button
-          onClick={() => setTab("settings")}
-          className={`${
-            tab === "settings" ?
-              "bg-neutral-content text-neutral"
-            : "bg-neutral"
-          } px-3 py-2 rounded-md`}
-        >
-          Settings
-        </button>
-        <button
-          onClick={() => setTab("help")}
-          className={`${
-            tab === "help" ? "bg-neutral-content text-neutral" : "bg-neutral"
-          } px-3 py-2 rounded-md`}
-        >
-          Help
-        </button>
-      </div>
-      {/* <View/> */}
       <div>
-        {tab === "account" && <ProfileAccount />}
-        {tab === "settings" && <ProfileSettings />}
-        {tab === "help" && <ProfileHelp />}
+        <ul>
+          {Object.values(ProfileTabs).map((activeTab) => (
+            <li
+              key={activeTab}
+              onClick={() => setActiveTab(activeTab)}
+              style={{
+                fontWeight: activeTab === activeTab ? "bold" : "normal",
+                cursor: "pointer",
+              }}
+            >
+              {activeTab}
+            </li>
+          ))}
+        </ul>
+        {renderTabContent()}
       </div>
     </div>
   );

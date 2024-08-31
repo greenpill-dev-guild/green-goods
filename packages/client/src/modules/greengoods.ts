@@ -1,6 +1,7 @@
-// import { greenGoodsIndexer } from "./urql";
-
 import { User } from "@privy-io/react-auth";
+
+import plantActionInstructions from "../utils/actions/plant.json";
+import observerActionInstructions from "../utils/actions/observe.json";
 
 export function getActions(): Action[] {
   return [
@@ -8,11 +9,16 @@ export function getActions(): Action[] {
       id: 0,
       startTime: 0,
       endTime: 0,
-      title: "Planting",
+      title: "Observation",
       instructions: "cid:0x1234",
       capitals: [Capital.LIVING],
       media: [],
       createdAt: 0,
+      description: plantActionInstructions.description,
+      inputs: plantActionInstructions.details.inputs as WorkInput[],
+      mediaInfo: plantActionInstructions.media,
+      details: plantActionInstructions.details,
+      review: plantActionInstructions.review,
     },
     {
       id: 0,
@@ -23,19 +29,28 @@ export function getActions(): Action[] {
       capitals: [Capital.LIVING],
       media: [],
       createdAt: 0,
+      description: observerActionInstructions.description,
+      inputs: observerActionInstructions.details.inputs as WorkInput[],
+      mediaInfo: observerActionInstructions.media,
+      details: observerActionInstructions.details,
+      review: observerActionInstructions.review,
     },
   ];
 }
 
-export function getGardens(): GardenCard[] {
+export function getGardens(): Garden[] {
   return [
     {
       id: "0x3307e5392215f63189081ba49611eb7e1c5dabae",
-      name: "Rio Claro",
+      name: "Too Many Trees",
       location: "Rio Claro, São Paulo",
-      bannerImage:
-        "https://media.discordapp.net/attachments/1258534967634559108/1277319972439457824/20240825_135614.jpg?ex=66d2026c&is=66d0b0ec&hm=97a45f46da958b3743bbe84d727f0e7e05a44628926a2e94bbec4807a9120286&=&format=webp&width=1412&height=1060",
-      gardenOperators: ["0x3307e5392215f63189081ba49611eb7e1c5dabae"],
+      bannerImage: "",
+      operators: ["0x3307e5392215f63189081ba49611eb7e1c5dabae"],
+      gardeners: ["0x3307e5392215f63189081ba49611eb7e1c5dabae"],
+      gardenAssessments: [],
+      description: "A garden in Rio Claro, São Paulo",
+      tokenAddress: "",
+      tokenID: 0,
     },
   ];
 }

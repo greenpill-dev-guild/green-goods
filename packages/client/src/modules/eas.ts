@@ -2,9 +2,10 @@ import { graphql } from "gql.tada";
 
 import { EAS } from "@/constants";
 
+import { getFileByHash } from "./pinata";
 import { easArbitrumClient } from "./urql";
 
-const parseDataToWork = (
+const parseDataToWork = async (
   workUID: string,
   attestation: {
     attester: string;
@@ -12,8 +13,20 @@ const parseDataToWork = (
     time: number;
   },
   decodedDataJson: any
-): Work => {
+): Promise<Work> => {
   const data = JSON.parse(decodedDataJson);
+
+  const media: string[] = data.filter((d: any) => d.name === "media")[0].value
+    .value!;
+
+  const mediaUrls = await Promise.all(
+    media.map(async (hash: string) => {
+      const file = await getFileByHash(hash);
+      return file.data;
+    })
+  );
+
+  const filteredMedia = mediaUrls.filter((url) => typeof url === "string");
 
   return {
     id: workUID,
@@ -23,8 +36,9 @@ const parseDataToWork = (
     title: data.filter((d: any) => d.name === "title")[0].value.value!,
     feedback: data.filter((d: any) => d.name === "feedback")[0].value.value!,
     metadata: data.filter((d: any) => d.name === "metadata")[0].value.value!,
-    media: data.filter((d: any) => d.name === "media")[0].value.value!,
+    media: filteredMedia,
     createdAt: attestation.time,
+    approvals: [],
   };
 };
 
@@ -123,15 +137,18 @@ export const getWorks = async (): Promise<WorkCard[]> => {
   if (error) console.error(error);
   if (!data) console.error("No data found");
 
-  return (
-    data?.attestations.map(({ id, recipient, timeCreated, decodedDataJson }) =>
-      parseDataToWork(
-        id,
-        { attester: recipient, recipient, time: timeCreated },
-        decodedDataJson
-      )
+  const works = Promise.all(
+    data?.attestations.map(
+      async ({ id, recipient, timeCreated, decodedDataJson }) =>
+        await parseDataToWork(
+          id,
+          { attester: recipient, recipient, time: timeCreated },
+          decodedDataJson
+        )
     ) ?? []
   );
+
+  return works;
 };
 
 export const getWorkApprovals = async (): Promise<WorkApprovalCard[]> => {

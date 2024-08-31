@@ -1,5 +1,4 @@
 import { Link, useLocation } from "react-router-dom";
-// import { a, config, useSpring } from "@react-spring/web";
 
 import {
   RiHome2Fill,
@@ -33,22 +32,6 @@ const tabs: {
 export const Appbar = () => {
   const { pathname } = useLocation();
 
-  // const spring = useSpring({
-  //   from: {
-  //     opacity: 0,
-  //     transform: "translateY(100%)",
-  //   },
-  //   to: {
-  //     opacity: 1,
-  //     transform: "translateY(0)",
-  //   },
-  //   config: {
-  //     ...config.slow,
-  //     friction: 48,
-  //     clamp: true,
-  //   },
-  // });
-
   return (
     <nav
       className={
@@ -64,15 +47,13 @@ export const Appbar = () => {
             //   "flex-1 flex flex-col items-center text-slate-800 hover:text-teal-700 py-2 focus:outline-none focus:text-teal-700";
 
             className={`flex flex-col items-center ${
-              pathname === path ?
-                "active tab-active fill-stone-950"
-              : "fill-stone-500"
+              pathname === path ? "active tab-active" : ""
             }`}
           >
             <Icon className="w-6 h-6" />
             <p
               className={`text-sm tracking-wide ${
-                pathname === path ? "text-primary" : "text-neutral"
+                pathname === path ? "t" : ""
               }`}
             >
               {title}

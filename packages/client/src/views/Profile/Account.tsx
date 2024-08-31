@@ -1,5 +1,3 @@
-// import { SpringValue, a } from "@react-spring/web";
-
 interface ProfileAccountProps {
   username?: string | null;
   avatar?: string;
