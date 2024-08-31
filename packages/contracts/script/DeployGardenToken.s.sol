@@ -103,7 +103,13 @@ contract DeployGardenToken is Script {
             gardenOperators[2] = 0x29e6cbF2450F86006292D10A3cF791955600a457; // marcin
             gardenOperators[3] = 0x2aa64E6d80390F5C017F0313cB908051BE2FD35e; // afo@greenpill.builders
 
-            gardenAccount = gardenToken.mintGarden(communityToken, "Root Planet", "", gardeners, gardenOperators);
+            gardenAccount = gardenToken.mintGarden(
+                communityToken,
+                "Root Planet",
+                "Observing invasive species and planting natives species to improve biodiversity.",
+                gardeners,
+                gardenOperators
+            );
 
             vm.stopBroadcast();
             console.log("Root Plane Garden for Rio Claro, S\u00e3o Paulo minted.");

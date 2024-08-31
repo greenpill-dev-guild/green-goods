@@ -41,7 +41,7 @@ export function getActions(): Action[] {
 export function getGardens(): Garden[] {
   return [
     {
-      id: "0x3307e5392215f63189081ba49611eb7e1c5dabae",
+      id: "0xf226185e4e76d05EC2cbb9BF1B04e67E25532ecA",
       name: "Too Many Trees",
       location: "Rio Claro, São Paulo",
       bannerImage: "",

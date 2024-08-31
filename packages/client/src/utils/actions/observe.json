@@ -7,7 +7,7 @@
   },
   "details": {
     "title": "Input Observation Details",
-    "description": "Please provide the following details about the observation",
+    "description": "Please provide the following details about the observation.",
     "feedbackPlaceholder": "Provide feedback or any issues during the observation process",
     "inputs": [
       {
@@ -28,6 +28,6 @@
   },
   "review": {
     "title": "Review Observation Details",
-    "description": "Please review the details you have provided before submitting"
+    "description": "Please review the details you have provided before submitting."
   }
 }
