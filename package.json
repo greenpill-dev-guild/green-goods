@@ -32,9 +32,9 @@
     "viem": "^2.19.6"
   },
   "devDependencies": {
+    "@types/node": "22.5.1",
     "concurrently": "8.2.2",
     "prettier": "^3.3.3",
-    "typescript": "^5.5.4",
     "wait-port": "1.1.0"
   },
   "engines": {

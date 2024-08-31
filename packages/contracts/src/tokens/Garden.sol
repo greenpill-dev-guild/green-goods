@@ -18,7 +18,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Emitted when a new Garden is minted.
     /// @param owner The owner of the minted Garden token.
     /// @param tokenId The unique identifier of the minted Garden token.
-    /// @param name The name of the Garden associated with the minted token.
+    /// @param account The address of the associated Garden account.
     event GardenMinted(address indexed owner, uint256 indexed tokenId, address indexed account);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -41,11 +41,13 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     /// @dev The Garden account is initialized with the provided parameters.
     /// @param communityToken The address of the community token associated with the Garden.
     /// @param name The name of the Garden.
+    /// @param description The description of the Garden.
     /// @param gardeners An array of addresses representing the gardeners of the Garden.
     /// @param gardenOperators An array of addresses representing the operators of the Garden.
     function mintGarden(
         address communityToken,
         string calldata name,
+        string calldata description,
         address[] calldata gardeners,
         address[] calldata gardenOperators
     ) external onlyOwner returns (address) {
@@ -54,9 +56,9 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
 
         address gardenAccount = TBALib.createAccount(_gardenAccountImplementation, address(this), tokenId);
 
-        GardenAccount(payable(gardenAccount)).initialize(communityToken, name, gardeners, gardenOperators);
+        GardenAccount(payable(gardenAccount)).initialize(communityToken, name, description, gardeners, gardenOperators);
 
-        emit GardenMinted(_msgSender(), tokenId, gardenAccount); 
+        emit GardenMinted(_msgSender(), tokenId, gardenAccount);
 
         return gardenAccount;
     }

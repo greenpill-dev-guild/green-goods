@@ -1,34 +1,46 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { PrivyProvider } from "@privy-io/react-auth";
+
 import { arbitrum } from "viem/chains";
+import { Toaster } from "react-hot-toast";
+import { PrivyProvider } from "@privy-io/react-auth";
 
-import { SmartAccountProvider } from "./providers/SmartAccountProvider.tsx";
+import { PWAProvider } from "@/providers/PWAProvider.tsx";
+import { UserProvider } from "@/providers/UserProvider.tsx";
 
-import App from "./App.tsx";
-import "./index.css";
+import { APP_DESCRIPTION } from "@/constants";
+import App from "@/App.tsx";
+import "@/index.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <PrivyProvider
-      appId={import.meta.env.VITE_PRIVY_APP_ID as string}
-      config={{
-        loginMethods: ["email", "sms"],
-        appearance: {
-          theme: "light",
-          loginMessage: "Start Bringing Biodiversity Onchain",
-        },
-        embeddedWallets: {
-          createOnLogin: "users-without-wallets",
-          noPromptOnSignature: true,
-        },
-        defaultChain: arbitrum,
-        supportedChains: [arbitrum],
-      }}
-    >
-      <SmartAccountProvider>
-        <App />
-      </SmartAccountProvider>
-    </PrivyProvider>
+    <PWAProvider>
+      <PrivyProvider
+        appId={import.meta.env.VITE_PRIVY_APP_ID as string}
+        config={{
+          loginMethods: ["email", "sms"],
+          appearance: {
+            theme: "light",
+            loginMessage: APP_DESCRIPTION,
+            landingHeader: "",
+            logo: "",
+          },
+          embeddedWallets: {
+            createOnLogin: "users-without-wallets",
+            noPromptOnSignature: true,
+          },
+          defaultChain: arbitrum,
+          supportedChains: [arbitrum],
+          intl: {
+            defaultCountry: navigator.language === "pt-BR" ? "BR" : "US",
+          },
+        }}
+      >
+        <UserProvider>
+          <App />
+          <Toaster />
+        </UserProvider>
+      </PrivyProvider>
+    </PWAProvider>
   </StrictMode>
 );

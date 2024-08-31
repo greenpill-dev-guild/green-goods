@@ -1,15 +1,37 @@
-import { useEffect, useState } from "react";
+import { IntlProvider } from "react-intl";
+import React, { useState, useEffect, useContext } from "react";
 
-export type DisplayMode = "standalone" | "browser" | "twa";
-export type InstallState = "idle" | "prompt" | "installed" | "unsupported";
+import enMessages from "@/i18n/en.json";
+import ptMessages from "@/i18n/pt.json";
 
+export type InstallState =
+  | "idle"
+  | "not-installed"
+  | "installed"
+  | "unsupported";
+export type Locale = "en" | "pt";
 export type Platform = "ios" | "android" | "windows" | "unknown";
 
 export interface PWADataProps {
+  isMobile: boolean;
+  isInstalled: boolean;
   platform: Platform;
-  installState: InstallState;
+  locale: Locale;
+  deferredPrompt: BeforeInstallPromptEvent | null;
+  promptInstall: () => void;
   handleInstallCheck: (e: any) => void;
+  switchLanguage: (lang: Locale) => void;
 }
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
+
+const messages = {
+  en: enMessages,
+  pt: ptMessages,
+};
 
 function getMobileOperatingSystem(): Platform {
   // @ts-ignore
@@ -33,29 +55,51 @@ function getMobileOperatingSystem(): Platform {
   return "unknown";
 }
 
-export const isHandheld = detectHandheld();
+const PWAContext = React.createContext<PWADataProps>({
+  isMobile: false,
+  isInstalled: false,
+  locale: "en",
+  deferredPrompt: null,
+  platform: "unknown",
+  promptInstall: () => {},
+  handleInstallCheck: () => {},
+  switchLanguage: () => {},
+});
 
-export const usePWA = (): PWADataProps => {
-  const [installState, setInstalledState] = useState<InstallState>(
-    isHandheld ? "installed" : "unsupported"
-  );
+export const usePWA = () => {
+  return useContext(PWAContext);
+};
+
+export const PWAProvider = ({ children }: { children: React.ReactNode }) => {
+  const [locale, setLocale] = useState<Locale>("en");
+  const [deferredPrompt, setDeferredPrompt] =
+    useState<BeforeInstallPromptEvent | null>(null);
+  const [installState, setInstalledState] = useState<InstallState>("idle");
 
   const platform = getMobileOperatingSystem();
 
-  async function handleInstallCheck(e: any) {
+  async function handleInstallCheck(e: any | null) {
+    e?.preventDefault(); // Prevent the automatic prompt
+    setDeferredPrompt(e);
+
     if (
       window.matchMedia("(display-mode: standalone)").matches ||
-      window.matchMedia("(display-mode: fullscreen)").matches
+      window.matchMedia("(display-mode: fullscreen)").matches ||
+      (window.navigator as any).standalone
     ) {
       setInstalledState("installed");
 
       console.log("PWA was installed", e);
     } else {
-      // setInstalledState("prompt");
-      setInstalledState("installed"); // TODO: Update PWA flow
+      setInstalledState("not-installed");
 
       console.log("PWA was not installed", e);
     }
+  }
+
+  function handleBeforeInstall(e: Event) {
+    e.preventDefault();
+    setDeferredPrompt(e as BeforeInstallPromptEvent);
   }
 
   function handlePWAInstalled() {
@@ -64,42 +108,55 @@ export const usePWA = (): PWADataProps => {
     // TODO: Add analytics and fire notification
   }
 
+  function switchLanguage(lang: Locale) {
+    setLocale(lang);
+  }
+
+  const promptInstall = () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt(); // Show the install prompt
+      deferredPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === "accepted") {
+          console.log("User accepted the install prompt");
+        } else {
+          console.log("User dismissed the install prompt");
+        }
+        setDeferredPrompt(null); // Clear the saved prompt
+      });
+    }
+  };
+
   useEffect(() => {
-    isHandheld &&
-      window.addEventListener("beforeinstallprompt", handleInstallCheck);
-    isHandheld && window.addEventListener("appinstalled", handlePWAInstalled);
+    handleInstallCheck(null);
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstall);
+    window.addEventListener("appinstalled", handlePWAInstalled);
 
     return () => {
-      isHandheld &&
-        window.removeEventListener("beforeinstallprompt", handleInstallCheck);
-      isHandheld &&
-        window.removeEventListener("appinstalled", handlePWAInstalled);
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
+      window.removeEventListener("appinstalled", handlePWAInstalled);
     };
   }, []);
 
-  return {
-    platform,
-    installState,
-    handleInstallCheck,
-  };
-};
-function detectHandheld(): boolean {
-  const userAgent =
-    navigator.userAgent || navigator.vendor || (window as any).opera;
-
-  // Check if the user agent contains any keywords indicating a handheld device
-  const handheldKeywords = [
-    "Android",
-    "webOS",
-    "iPhone",
-    "iPad",
-    "iPod",
-    "BlackBerry",
-    "Windows Phone",
-  ];
-  const isHandheld = handheldKeywords.some((keyword) =>
-    userAgent.includes(keyword)
+  return (
+    <PWAContext.Provider
+      value={{
+        isMobile:
+          platform === "ios" ||
+          platform === "android" ||
+          platform === "windows",
+        isInstalled: installState === "installed",
+        platform,
+        locale,
+        deferredPrompt,
+        promptInstall,
+        handleInstallCheck,
+        switchLanguage,
+      }}
+    >
+      <IntlProvider locale={locale} messages={messages[locale]}>
+        {children}
+      </IntlProvider>
+    </PWAContext.Provider>
   );
-
-  return isHandheld;
-}
+};

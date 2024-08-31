@@ -1,0 +1,33 @@
+{
+  "description": "Capture the planting process for seedlings or saplings, including the location, date, and any other relevant details. Each planting action should be documented separately.",
+  "media": {
+    "title": "Photograph the Plot",
+    "description": "Please take a photo of the location where you will be planting Seedlings or Saplings.",
+    "maxImageCount": 8
+  },
+  "details": {
+    "title": "Input Planting Details",
+    "description": "Please provide the following details about the planting process.",
+    "feedbackPlaceholder": "Provide feedback or any issues during the planting process",
+    "inputs": [
+      {
+        "title": "Plants Planted",
+        "placeholder": "Select the different species planted",
+        "type": "select",
+        "required": true,
+        "options": ["Acacia", "Eucalyptus", "Pine", "Other"]
+      },
+      {
+        "title": "How many plants were planted?",
+        "placeholder": "Enter the number of plants planted",
+        "type": "number",
+        "required": true,
+        "options": []
+      }
+    ]
+  },
+  "review": {
+    "title": "Review Planting Details",
+    "description": "Please review the details you have provided before submitting."
+  }
+}

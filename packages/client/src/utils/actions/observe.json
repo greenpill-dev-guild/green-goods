@@ -1,0 +1,33 @@
+{
+  "description": "Observe the growth and health of the plants, including the location, date, and any other relevant details. Each observation action should be documented separately.",
+  "media": {
+    "title": "Capture the Observation",
+    "description": "Please take a photo of the location where you will be observing the plants. You can also take photos of the plants to document their growth and health.",
+    "maxImageCount": 7
+  },
+  "details": {
+    "title": "Input Observation Details",
+    "description": "Please provide the following details about the observation.",
+    "feedbackPlaceholder": "Provide feedback or any issues during the observation process",
+    "inputs": [
+      {
+        "title": "Plants Observed",
+        "placeholder": "Select the different species observed",
+        "type": "select",
+        "required": false,
+        "options": []
+      },
+      {
+        "title": "Number of Plants Observed",
+        "placeholder": "Enter the number of plants observed",
+        "type": "number",
+        "required": false,
+        "options": []
+      }
+    ]
+  },
+  "review": {
+    "title": "Review Observation Details",
+    "description": "Please review the details you have provided before submitting."
+  }
+}
