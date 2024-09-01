@@ -72,7 +72,7 @@ export default defineConfig(({ mode }) => {
               type: "image/png",
             },
             {
-              src: "/icon.png",
+              src: "/apple-icon.png",
               sizes: "192x192",
               type: "image/png",
             },
@@ -82,7 +82,7 @@ export default defineConfig(({ mode }) => {
           display: "standalone",
           orientation: "portrait-primary",
           theme_color: "#367D42",
-          background_color: "#000",
+          background_color: "#fff",
           shortcuts: [
             {
               name: "Home",
