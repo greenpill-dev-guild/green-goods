@@ -25,7 +25,7 @@ interface FooterProps {}
 
 export const Footer: React.FC<FooterProps> = () => {
   return (
-    <footer className="footer h-[5rem] border-t lg:border-none border-stone-200 flex flex-col gap-2 py-2 lg:flex-row items-center justify-between  lg:gap-4">
+    <footer className="footer h-[5rem] border-stone-200 flex flex-col gap-2 py-2 lg:flex-row items-center justify-between  lg:gap-4">
       <div className="">
         <p>
           Built by <b className="text-[#367D42]">Greenpill Dev Guild</b>
