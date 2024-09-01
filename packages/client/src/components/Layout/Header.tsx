@@ -1,4 +1,5 @@
 import { APP_NAME } from "@/constants";
+import { usePWA } from "@/providers/PWAProvider";
 import {
   RiGithubLine,
   RiTwitterLine,
@@ -22,14 +23,19 @@ const links: Link<RemixiconComponentType>[] = [
 ];
 
 export const Header: React.FC<HeaderProps> = () => {
+  const { isMobile } = usePWA();
+
+  const filterLinks =
+    isMobile ? links.filter(({ title }) => title === "twitter") : links;
+
   return (
     <header className="w-full h-16 lg:h-24 flex justify-between items-center py-4 lg:py-6 text-[#367D42]">
       <div className="flex items-center space-x-2">
         <img src="/icon.png" alt="APP_NAME Logo" className=" w-12 lg:w-20" />
         <h1 className="text-xl lg:text-3xl font-bold">{APP_NAME}</h1>
       </div>
-      <div className="hidden lg:flex gap-2">
-        {links.map(({ Icon, link, action, title }) => (
+      <div className="flex gap-2">
+        {filterLinks.map(({ Icon, link, action, title }) => (
           <a
             key={title}
             href={link}
