@@ -6,11 +6,8 @@ import toast from "react-hot-toast";
 
 type SubscribeState = "idle" | "subscribing" | "subscribed" | "error";
 
-const url =
-  "https://app.us13.list-manage.com/subscribe/post?u=16db3a1a92dd56e81459cd500&amp;id=c6c12d1a3f&amp;f_id=0021fae1f0";
-
 export const Hero: React.FC = () => {
-  const { isMobile } = usePWA();
+  const { isMobile, platform } = usePWA();
   const [state, setSubscribeState] = useState<SubscribeState>("idle");
 
   function handleSubscribe(e: React.FormEvent<HTMLFormElement>) {
@@ -18,30 +15,29 @@ export const Hero: React.FC = () => {
 
     setSubscribeState("subscribing");
 
+    console.log(e.currentTarget);
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email") as string;
 
-    console.log(email);
-
-    fetch(url + "&" + formData, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      mode: "cors",
-      cache: "default",
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data["result"] !== "success") {
+    fetch(
+      import.meta.env.DEV ?
+        "http://localhost:3000/api/subscribe"
+      : "/api/subscribe",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      }
+    )
+      .then((response) => {
+        if (!response.ok) {
           // ERROR
-          console.log(data["msg"]);
+          console.log(response.status);
 
-          throw new Error(data["msg"]);
+          throw new Error("Network response was not ok.");
         } else {
-          // SUCCESS - Show notification
-          console.log(data["msg"]);
-
           toast.success("Successfilly subscribed!");
 
           setSubscribeState("subscribed");
@@ -56,7 +52,7 @@ export const Hero: React.FC = () => {
   }
 
   return (
-    <main className="w-full min-h-[calc(100dvh-9rem)] lg:min-h-[calc(100dvh-6rem)] flex flex-col lg:flex-row lg:justify-center gap-16">
+    <main className="w-full min-h-[calc(100lvh-9rem)] lg:min-h-[calc(100lvh-6rem)] flex flex-col lg:flex-row lg:justify-center gap-16">
       <form
         onSubmit={handleSubscribe}
         className="flex-1 flex flex-col gap-2 items-center lg:items-start lg:justify-center pt-[10vh] lg:pt-0 text-center lg:text-left"
@@ -106,8 +102,11 @@ export const Hero: React.FC = () => {
               <div className="modal-box">
                 <h4 className="text-[#367D42]">Install Green Goods</h4>
                 <p>
-                  To install on your device, tap the 3 dots below and then "Add
-                  to Home Screen".
+                  {platform === "ios" ?
+                    "Tap the share button and then 'Add to Home Screen'."
+                  : platform === "android" ?
+                    "Tap the menu button and then 'Add to Home Screen'."
+                  : "Tap the menu button and then 'Add to Home Screen'."}
                 </p>
               </div>
               <form method="dialog" className="modal-backdrop">
