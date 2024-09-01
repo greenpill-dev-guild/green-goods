@@ -17,12 +17,10 @@ import { Appbar } from "@/components/Layout/AppBar";
 
 function App() {
   const { authenticated } = usePrivy();
-  const { isMobile, isInstalled, locale } = usePWA();
+  const { isMobile, isInstalled } = usePWA();
   const { smartAccountReady } = useUser();
 
-  console.log("PWA", isMobile, isInstalled, locale);
-
-  const isDownloaded = isMobile;
+  const isDownloaded = isMobile && isInstalled;
   const isAuthenticated = authenticated && smartAccountReady;
 
   return (
