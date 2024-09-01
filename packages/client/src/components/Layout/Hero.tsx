@@ -1,14 +1,15 @@
-import { usePWA } from "@/providers/PWAProvider";
+import toast from "react-hot-toast";
 import React, { useState } from "react";
 import { DeviceFrameset } from "react-device-frameset";
 import "react-device-frameset/styles/marvel-devices.min.css";
-import toast from "react-hot-toast";
+
+import { usePWA } from "@/providers/PWAProvider";
 
 type SubscribeState = "idle" | "subscribing" | "subscribed" | "error";
 
 export const Hero: React.FC = () => {
   const { isMobile, platform } = usePWA();
-  const [state, setSubscribeState] = useState<SubscribeState>("idle");
+  const [_state, setSubscribeState] = useState<SubscribeState>("idle");
 
   function handleSubscribe(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -67,7 +68,7 @@ export const Hero: React.FC = () => {
             Open the website on your phone to get started!
           </span>
         </p>
-        <div className="flex flex-col lg:flex-row w-full mt-6">
+        {/* <div className="flex flex-col lg:flex-row w-full mt-6">
           <input
             className="w-full h-14 px-4 py-2 border-[#367D42] rounded-md bg-stone-50 mb-2"
             name="email"
@@ -82,7 +83,7 @@ export const Hero: React.FC = () => {
           >
             Subscribe
           </button>
-        </div>
+        </div> */}
         {isMobile && (
           <>
             <button
