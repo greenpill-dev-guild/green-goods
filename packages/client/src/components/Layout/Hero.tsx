@@ -100,7 +100,7 @@ export const Hero: React.FC = () => {
               Install App
             </button>
             <dialog id="pwa-dialog" className="modal">
-              <div className="modal-box">
+              <div className="modal-box bg-white">
                 <h4 className="text-[#367D42]">Install Green Goods</h4>
                 <p>
                   {platform === "ios" ?
