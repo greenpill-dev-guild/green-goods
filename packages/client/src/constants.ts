@@ -31,4 +31,6 @@ export const GREEN_GOODS_GARDEN_OPERATOR_WHITELIST = [
   "afo@greenpill.builders",
   "coi@greenpill.builders",
   "nansel@greenpill.builders",
+  "marcin@greenpill.builders",
+  "marcus@greenpill.builders",
 ];

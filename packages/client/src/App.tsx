@@ -14,13 +14,14 @@ import Views from "@/views";
 import Login from "@/views/Login";
 import Landing from "@/views/Landing";
 import { Appbar } from "@/components/Layout/AppBar";
+import { CircleLoader } from "./components/Loader";
 
 function App() {
   const { authenticated } = usePrivy();
   const { isMobile, isInstalled } = usePWA();
-  const { smartAccountReady } = useUser();
+  const { authenticating, smartAccountReady } = useUser();
 
-  const isDownloaded = isMobile && isInstalled;
+  const isDownloaded = isMobile;
   const isAuthenticated = authenticated && smartAccountReady;
 
   return (
@@ -37,7 +38,11 @@ function App() {
             path="/login"
             element={
               isDownloaded ?
-                !isAuthenticated ?
+                !isAuthenticated && authenticating ?
+                  <main className="w-full h-full grid place-items-center">
+                    <CircleLoader />
+                  </main>
+                : !isAuthenticated ?
                   <Login />
                 : <Navigate to="/" replace />
               : <Navigate to="/landing" replace />

@@ -29,7 +29,11 @@ export const GardenProvider = ({ children }: { children: React.ReactNode }) => {
   // QUERIES
   const { data: actions } = useQuery<Action[]>({
     queryKey: ["actions"],
-    queryFn: getActions,
+    queryFn: () => {
+      const actions = getActions();
+
+      return actions;
+    },
   });
 
   const { data: gardens } = useQuery<Garden[]>({

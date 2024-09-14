@@ -6,8 +6,7 @@ import {
 } from "@remixicon/react";
 import { usePrivy } from "@privy-io/react-auth";
 
-import { usePWA } from "@/providers/PWAProvider";
-import { useUser } from "@/providers/UserProvider";
+import { Button } from "@/components/Button";
 
 interface LinkedAccount {
   title: string;
@@ -29,18 +28,15 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
     linkFarcaster,
     unlinkEmail,
     unlinkPhone,
-    // unlinkPasskey,
     unlinkFarcaster,
   } = usePrivy();
-  const { switchLanguage } = usePWA();
-  const { logout } = useUser();
 
   const linkedAccounts: LinkedAccount[] = [
     {
       title: "Email",
       description: user?.email?.address || "Not Linked",
       isLinked: !!user?.email?.address,
-      Icon: <RiMailFill />,
+      Icon: <RiMailFill className="w-4" />,
       link: linkEmail,
       unlink: () => user?.email?.address && unlinkEmail(user?.email?.address),
     },
@@ -48,7 +44,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
       title: "Phone",
       description: user?.phone?.number || "Not Linked",
       isLinked: !!user?.phone?.number,
-      Icon: <RiPhoneLine />,
+      Icon: <RiPhoneLine className="w-4" />,
       link: linkPhone,
       unlink: () => user?.phone?.number && unlinkPhone(user?.phone?.number),
     },
@@ -56,7 +52,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
       title: "Passkey",
       description: user?.mfaMethods.includes("passkey") ? "" : "Not Linked",
       isLinked: !!user?.mfaMethods.includes("passkey"),
-      Icon: <RiKeyLine />,
+      Icon: <RiKeyLine className="w-4" />,
       link: linkPasskey,
       unlink: () => {},
     },
@@ -64,7 +60,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
       title: "Farcaster",
       description: user?.farcaster?.displayName || "Not Linked",
       isLinked: !!user?.farcaster?.displayName,
-      Icon: <RiUserLine />,
+      Icon: <RiUserLine className="w-4" />,
       link: linkFarcaster,
       unlink: () =>
         user?.farcaster?.fid && unlinkFarcaster(user?.farcaster?.fid),
@@ -72,27 +68,35 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
   ];
 
   return (
-    <div className="flex flex-col gap-3 items-center w-full">
-      <h3>Languages</h3>
-      <button onClick={() => switchLanguage("en")}>English</button>
-      <button onClick={() => switchLanguage("pt")}>Português</button>
-      <h3>Linked Accounts</h3>
-      <ul>
-        {linkedAccounts.map(
-          ({ title, Icon, description, isLinked, link, unlink }) => (
-            <li key={title} className="flex gap-1">
-              <span>{Icon}</span>
-              <span>{title}</span>
-              <span>{description}</span>
-              <button onClick={isLinked ? unlink : link}>
-                {isLinked ? "Unlink" : "Link"}
-              </button>
-            </li>
-          )
-        )}
-      </ul>
-      <h3>Settings</h3>
-      <button onClick={logout}>Logout</button>
-    </div>
+    <>
+      <div className="flex flex-col gap-2 mt-4">
+        <h5>Linked Accounts</h5>
+        <ul className="flex flex-col gap-2">
+          {linkedAccounts.map(
+            ({ title, Icon, description, isLinked, link, unlink }) => (
+              <li
+                key={title}
+                className="flex gap-1 justify-between border border-stone-50 shadow-sm "
+              >
+                <div className="flex flex-col gap-2 px-2 py-3">
+                  <div className="flex items-center font-sm gap-1">
+                    {Icon}
+                    <label className="line-clamp-1 text-sm">{title}</label>
+                  </div>
+                  <p className="text-xs">{description}</p>
+                </div>
+                <Button
+                  label={isLinked ? "Unlink" : "Link"}
+                  onClick={isLinked ? unlink : link}
+                  variant="secondary"
+                  className="w-[20vw]"
+                  size="small"
+                />
+              </li>
+            )
+          )}
+        </ul>
+      </div>
+    </>
   );
 };

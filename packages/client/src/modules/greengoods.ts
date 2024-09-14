@@ -3,6 +3,17 @@ import { User } from "@privy-io/react-auth";
 import plantActionInstructions from "../utils/actions/plant.json";
 import observerActionInstructions from "../utils/actions/observe.json";
 
+export enum Capital {
+  SOCIAL,
+  MATERIAL,
+  FINANCIAL,
+  LIVING,
+  INTELLECTUAL,
+  EXPERIENTIAL,
+  SPIRITUAL,
+  CULTURAL,
+}
+
 export function getActions(): Action[] {
   return [
     {
@@ -21,7 +32,7 @@ export function getActions(): Action[] {
       review: plantActionInstructions.review,
     },
     {
-      id: 0,
+      id: 2,
       startTime: 0,
       endTime: 0,
       title: "Planting",
@@ -53,7 +64,20 @@ export function getGardens(): Garden[] {
       id: "0xa9Cb249a3B651Ce82bf9E9cc48BCF41957647F48",
       name: "Root Planet",
       location: "Rio Claro, São Paulo",
-      bannerImage: "",
+      bannerImage: "https://picsum.photos/800/200",
+      operators,
+      gardeners: operators,
+      gardenAssessments: [],
+      description:
+        "Observing invasive species and planting natives species to improve biodiversity.",
+      tokenAddress: "0x9EF896a314B7aE98609eC0c0cA43724C768046B4",
+      tokenID: 0,
+    },
+    {
+      id: "0xa9Cb249a3B651Ce82bf9E9cc48B1957647F48",
+      name: "Root Planet",
+      location: "Rio Claro, São Paulo",
+      bannerImage: "https://picsum.photos/800/200",
       operators,
       gardeners: operators,
       gardenAssessments: [],

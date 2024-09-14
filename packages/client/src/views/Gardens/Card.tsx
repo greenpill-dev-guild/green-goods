@@ -10,20 +10,23 @@ import { Button } from "@/components/Button";
 // import { Button } from "../Button";
 
 export interface GardenCardProps extends Garden {
+  index: number;
   onCardClick: () => void;
 }
 
 export const GardenCard: React.FC<GardenCardProps> = ({
   // id,
+  index,
   name,
+  description,
   location,
   bannerImage,
   // operators,
   onCardClick,
 }) => {
   return (
-    <div
-      className="flex flex-col bg-white border border-1 shadow-md rounded-xl"
+    <li
+      className={`${index === 0 ? "mt-4" : ""} flex flex-col bg-stone-50 border border-1 shadow-md rounded-xl`}
       // onClick={onCardClick}
     >
       <div className="relative w-full h-auto rounded-t-xl">
@@ -38,19 +41,17 @@ export const GardenCard: React.FC<GardenCardProps> = ({
           alt="Image Description"
         />
       </div>
-      <div className="p-4 md:p-5 flex flex-col gap-1">
-        <h3 className="text-lg font-bold text-slate-800 line-clamp-1">
-          {name}
-        </h3>
+      <div className="p-4 md:p-5 flex flex-col gap-3">
+        <h4 className=" text-slate-800 line-clamp-1">{name}</h4>
         <div className="flex gap-1">
           <RiMapPin2Fill className="h-5 text-teal-400" />
           <span className="text-sm font-medium">{location}</span>
         </div>
-        {/* <p className="mt-1 text-slate-600 line-clamp-3 leading-5">{problem}</p> */}
+        <p className="small text-slate-600 line-clamp-3">{description}</p>
         <div className="flex w-full justify-end">
-          <Button label="View" size="small" onClick={onCardClick} />
+          <Button label="View" size="small" fullWidth onClick={onCardClick} />
         </div>
       </div>
-    </div>
+    </li>
   );
 };

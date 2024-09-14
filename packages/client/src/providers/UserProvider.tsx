@@ -36,6 +36,7 @@ type SAC = SmartAccountClient<
 >;
 
 interface UserInterface {
+  authenticating: boolean;
   user: User | null;
   isOnboarded: boolean;
   eoa?: ConnectedWallet;
@@ -47,6 +48,7 @@ interface UserInterface {
 }
 
 const UserContext = React.createContext<UserInterface>({
+  authenticating: true,
   user: null,
   isOnboarded: false,
   eoa: undefined,
@@ -62,6 +64,7 @@ export const useUser = () => {
 };
 
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
+  const [authenticating, setAuthenticating] = useState(true);
   const [isOnboarded, setOnboarded] = useState(false);
 
   const { wallets } = useWallets();
@@ -160,8 +163,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       );
       setSmartAccountAddress(smartAccountAddress);
       setSmartAccountReady(true);
-
-      console.log("smartAccountClient", smartAccountAddress);
+      setAuthenticating(false);
     };
 
     if (embeddedWallet) createSmartWallet(embeddedWallet);
@@ -170,6 +172,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <UserContext.Provider
       value={{
+        authenticating,
         user,
         isOnboarded,
         smartAccountReady,

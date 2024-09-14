@@ -1,15 +1,15 @@
 import {
   RiMapPin2Fill,
-  RiArrowLeftFill,
+  RiArrowGoBackLine,
   RiCalendarEventFill,
   RiProfileFill,
   // RiThumbUpFill,
   // PencilLineIcon,
 } from "@remixicon/react";
 import React, { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 
-import { formatAddress } from "@/utils/text";
+// import { formatAddress } from "@/utils/text";
 
 import { useGarden } from "@/providers/GardenProvider";
 
@@ -41,7 +41,12 @@ export const Garden: React.FC<GardenProps> = () => {
 
   const garden = gardens.find((garden) => garden.id === id);
 
-  if (!garden) return <CircleLoader />;
+  if (!garden)
+    return (
+      <main className="w-full h-full grid place-items-center">
+        <CircleLoader />;
+      </main>
+    );
 
   const { name, bannerImage, location, operators, gardenAssessments } = garden;
 
@@ -64,33 +69,32 @@ export const Garden: React.FC<GardenProps> = () => {
   };
 
   return (
-    <div className="h-full overflow-y-scroll flex flex-col">
-      <div className="relative w-full">
-        <a
-          className="flex gap-1 items-center h-8 px-2 py-1 bg-white rounded-lg font-bold absolute top-0 left-0"
-          href="/proposals"
+    <div className="absolute left-0 top-0 h-full w-full flex flex-col">
+      <div className="w-full">
+        <Link
+          className="flex gap-1 items-center w-10 h-10 p-2 bg-white rounded-lg font-bold absolute top-4 left-4"
+          to="/gardens"
         >
-          <RiArrowLeftFill className="h-8" />
-          Back
-        </a>
+          <RiArrowGoBackLine className="w-10 h-10 text-black" />
+        </Link>
         <img
           src={bannerImage}
-          className="w-full object-cover object-top aspect-[16/9] border-b-2 border-slate-300 shadow-sm"
+          className="w-full object-cover object-top aspect-[16/9] border-b-2 border-stone-300 shadow-sm rounded-b-3xl"
           alt="Banner"
         />
       </div>
       <div className="px-4 py-2">
-        <h2 className="text-xl font-semibold line-clamp-2 mb-2">{name}</h2>
+        <h4 className="line-clamp-2 mb-2">{name}</h4>
         <div className="flex w-full justify-between items-start mb-2">
           <div className="flex flex-col gap-1">
-            <div className="flex gap-1">
+            {/* <div className="flex gap-1">
               <RiProfileFill className="h-5 text-teal-400" />
               <span className="text-sm font-medium">
                 {operators
                   .map((operator) => formatAddress(operator))
                   .join(", ")}
               </span>
-            </div>
+            </div> */}
             <div className="flex gap-1">
               <RiMapPin2Fill className="h-5 text-teal-400" />
               <span className="text-sm font-medium">{location}</span>
@@ -106,21 +110,20 @@ export const Garden: React.FC<GardenProps> = () => {
           </div>
         </div>
       </div>
-      <div>
-        <ul>
-          {Object.values(GardenTab).map((tab) => (
-            <li
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              style={{
-                fontWeight: activeTab === tab ? "bold" : "normal",
-                cursor: "pointer",
-              }}
-            >
+      <ul className="px-4 flex items-center flex-nowrap border border-stone-100 shadow-sm rounded-lg divide-x-2">
+        {Object.values(GardenTab).map((tab) => (
+          <li
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`flex-1 flex justify-center items-center p-3 cursor-pointer ${tab === activeTab ? "bg-stone-100" : ""} transition-colors duration-200`}
+          >
+            <label className="capitalize small font-semibold text-center w-full">
               {tab}
-            </li>
-          ))}
-        </ul>
+            </label>
+          </li>
+        ))}
+      </ul>
+      <div className="px-4 flex-1 overflow-y-scroll flex flex-col gap-2 pb-20">
         {renderTabContent()}
       </div>
     </div>
