@@ -2,7 +2,7 @@ import {
   RiMapPin2Fill,
   RiArrowGoBackLine,
   RiCalendarEventFill,
-  RiProfileFill,
+  // RiProfileFill,
   // RiThumbUpFill,
   // PencilLineIcon,
 } from "@remixicon/react";
@@ -48,7 +48,7 @@ export const Garden: React.FC<GardenProps> = () => {
       </main>
     );
 
-  const { name, bannerImage, location, operators, gardenAssessments } = garden;
+  const { name, bannerImage, location, gardenAssessments } = garden;
 
   const gardenWorks = works.filter((work) => work.gardenAddress === id);
   const gardenGardeners = gardeners.filter((gardener) =>

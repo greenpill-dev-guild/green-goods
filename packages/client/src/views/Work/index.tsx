@@ -1,12 +1,13 @@
+import { Link } from "react-router-dom";
+import { RiArrowGoBackLine } from "@remixicon/react";
+
 import { useWork, WorkTab } from "@/providers/WorkProvider";
+import { Button } from "@/components/Button";
 
 import { WorkIntro } from "./Intro";
 import { WorkMedia } from "./Media";
 import { WorkDetails } from "./Details";
 import { WorkReview } from "./Review";
-import { Link, useNavigate } from "react-router-dom";
-import { RiArrowGoBackLine } from "@remixicon/react";
-import { Button } from "@/components/Button";
 
 interface WorkProps {}
 
@@ -30,10 +31,10 @@ const actionContent = {
 };
 
 const Work: React.FC<WorkProps> = () => {
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const { actions, form, activeTab, setActiveTab } = useWork();
 
-  const actionOnClick = {};
+  // const actionOnClick = {};
 
   if (!form) {
     return null;

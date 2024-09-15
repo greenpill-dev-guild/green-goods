@@ -21,7 +21,7 @@ function App() {
   const { isMobile, isInstalled } = usePWA();
   const { authenticating, smartAccountReady } = useUser();
 
-  const isDownloaded = isMobile;
+  const isDownloaded = isMobile && isInstalled;
   const isAuthenticated = authenticated && smartAccountReady;
 
   return (
