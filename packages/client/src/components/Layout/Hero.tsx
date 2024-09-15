@@ -1,56 +1,15 @@
-import toast from "react-hot-toast";
-import React, { useState } from "react";
+import React from "react";
 import { DeviceFrameset } from "react-device-frameset";
 import "react-device-frameset/styles/marvel-devices.min.css";
 
 import { usePWA } from "@/providers/PWAProvider";
 
-type SubscribeState = "idle" | "subscribing" | "subscribed" | "error";
+interface HeroProps {
+  handleSubscribe: (e: React.FormEvent<HTMLFormElement>) => void;
+}
 
-export const Hero: React.FC = () => {
+export const Hero: React.FC<HeroProps> = ({ handleSubscribe }) => {
   const { isMobile, platform } = usePWA();
-  const [_state, setSubscribeState] = useState<SubscribeState>("idle");
-
-  function handleSubscribe(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-
-    setSubscribeState("subscribing");
-
-    console.log(e.currentTarget);
-    const formData = new FormData(e.currentTarget);
-    const email = formData.get("email") as string;
-
-    fetch(
-      import.meta.env.DEV ?
-        "http://localhost:3000/api/subscribe"
-      : "/api/subscribe",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }),
-      }
-    )
-      .then((response) => {
-        if (!response.ok) {
-          // ERROR
-          console.log(response.status);
-
-          throw new Error("Network response was not ok.");
-        } else {
-          toast.success("Successfilly subscribed!");
-
-          setSubscribeState("subscribed");
-        }
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-
-        setSubscribeState("error");
-        toast.error("Something went wrong. Please try again.");
-      });
-  }
 
   return (
     <main className="w-full min-h-[calc(100lvh-9rem)] lg:min-h-[calc(100lvh-6rem)] flex flex-col lg:flex-row lg:justify-center gap-16">

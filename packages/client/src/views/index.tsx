@@ -8,7 +8,7 @@ import { Garden } from "./Gardens/Garden";
 export default function Views() {
   return (
     <main
-      className={`flex h-[calc(100dvh-3.5rem)] overflow-hidden max-h-[calc(100dvh-3.5rem)] overflow-y-contain`}
+      className={`overflow-hidden h-[calc(100dvh-3.5rem)] max-h-[calc(100dvh-3.5rem)]`}
     >
       <Routes>
         <Route path="gardens" element={<Gardens />}>
@@ -20,5 +20,4 @@ export default function Views() {
       </Routes>
     </main>
   );
-  // ));
 }

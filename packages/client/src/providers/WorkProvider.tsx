@@ -13,6 +13,13 @@ import { useUser } from "./UserProvider";
 import { useGarden } from "./GardenProvider";
 import { encodeWorkData } from "@/utils/eas";
 
+export enum WorkTab {
+  Intro = "Intro",
+  Media = "Media",
+  Details = "Details",
+  Review = "Review",
+}
+
 export interface WorkDataProps {
   actions: Action[];
   works: Work[];
@@ -26,6 +33,8 @@ export interface WorkDataProps {
     register: UseFormRegister<WorkDraft>;
     uploadWork?: (e?: React.BaseSyntheticEvent) => Promise<void>;
   };
+  activeTab: WorkTab;
+  setActiveTab: React.Dispatch<React.SetStateAction<WorkTab>>;
 }
 
 const workSchema = z.object({
@@ -75,6 +84,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   // MUTATIONS
   const [actionUID, setActionUID] = useState<number | null>(null);
   const [images, setImages] = useState<File[]>([]);
+  const [activeTab, setActiveTab] = useState(WorkTab.Intro);
 
   const { register, handleSubmit, formState } = useForm<WorkDraft>({
     defaultValues: {
@@ -153,6 +163,8 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
           setActionUID,
           uploadWork,
         },
+        activeTab,
+        setActiveTab,
       }}
     >
       {children}

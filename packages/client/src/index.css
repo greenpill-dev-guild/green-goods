@@ -5,8 +5,8 @@
 :root {
   color-scheme: light dark;
 
-  color: #213547;
-  background-color: #ffffff;
+  @apply text-stone-800;
+  background-color: #fff;
 
   scrollbar-width: none;
   -ms-overflow-style: none; /* IE and Edge */
@@ -29,6 +29,14 @@
 } */
 
 ::-webkit-scrollbar {
+  display: none;
+}
+
+ul::-webkit-scrollbar {
+  display: none;
+}
+
+div::-webkit-scrollbar {
   display: none;
 }
 
@@ -57,7 +65,7 @@ h4 {
 
 h5 {
   @apply text-xl;
-  @apply font-medium;
+  @apply font-semibold;
 }
 
 p {
@@ -78,12 +86,16 @@ label {
 a {
   @apply text-base;
   @apply font-medium;
-  color: #646cff;
   text-decoration: inherit;
 }
 
 .small {
   @apply text-sm;
+  @apply font-normal;
+}
+
+.extra-small {
+  @apply text-xs;
   @apply font-normal;
 }
 
@@ -94,25 +106,6 @@ a {
 /*
   Components
 */
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-
-button:hover {
-  border-color: #646cff;
-}
-
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
 .loader {
   position: absolute;
   opacity: 0.27;

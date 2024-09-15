@@ -16,33 +16,31 @@ const Gardens: React.FC<GardensProps> = () => {
   }
 
   return (
-    <section className={`relative w-full h-full`}>
-      <div className="flex justify-between w-full">
-        <h3>Gardens</h3>
-      </div>
-      {/* <ul className="h-full flex-1 flex flex-col gap-4 overflow-y-scroll cursor-pointer"> */}
+    <div className={`flex flex-col w-full h-full pt-4 py-8`}>
       {location.pathname === "/gardens" ?
-        <ul className={`relative w-full h-full`}>
-          {gardens.length ?
-            gardens.map((garden) => (
-              <li key={garden.id}>
+        <>
+          <div className="flex justify-between w-full">
+            <h3>Gardens</h3>
+          </div>
+          <ul className={`flex-1 flex flex-col gap-4 overflow-y-scroll`}>
+            {gardens.length ?
+              gardens.map((garden, index) => (
                 <GardenCard
+                  key={garden.id}
+                  index={index}
                   {...garden}
                   onCardClick={() => handleCardClick(garden.id)}
                 />
-              </li>
-            ))
-          : <p className="h-full w-full grid place-items-center text-sm italic">
-              No gardens found,
-              <span role="img" aria-label="Sad face">
-                😔
-              </span>
-            </p>
-          }
-        </ul>
+              ))
+            : <p className="grid place-items-center text-sm italic">
+                No gardens found
+              </p>
+            }
+          </ul>
+        </>
       : null}
       <Outlet />
-    </section>
+    </div>
   );
 };
 

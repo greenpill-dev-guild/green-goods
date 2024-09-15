@@ -60,9 +60,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled}
         className={`
-        ${className} ${sizeClasses} ${styleClasses} ${fullWidth ? "w-full" : ""}
+         ${sizeClasses} ${styleClasses} ${fullWidth ? "w-full" : ""}
         inline-flex justify-center items-center gap-x-2 text-sm font-semibold rounded-lg
-        border disabled:pointer-events-none disabled:opacity-50
+        border disabled:pointer-events-none disabled:opacity-50 ${className}
       `}
         {...props}
       >

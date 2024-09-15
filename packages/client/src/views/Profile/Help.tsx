@@ -1,4 +1,8 @@
-import { RiTelegramLine, RiWhatsappLine } from "@remixicon/react";
+import {
+  RiArrowDropRightLine,
+  RiTelegramLine,
+  RiWhatsappLine,
+} from "@remixicon/react";
 
 interface Social {
   title: string;
@@ -74,32 +78,53 @@ const socials: Social[] = [
 
 export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
   return (
-    <div className="flex flex-col gap-3 items-center w-full">
-      <h3 className="text-4xl font-bold">Get In Touch</h3>
-      <ul className="flex gap-3">
-        {socials.map((social) => (
-          <li key={social.title} className="flex gap-1">
-            <a
-              href={social.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex gap-1 items-center"
+    <>
+      <div className="flex flex-col gap-4 mt-4">
+        <h5 className="">Get In Touch</h5>
+        <ul className="flex flex-col gap-2">
+          {socials.map((social) => (
+            <li
+              key={social.title}
+              className="flex flex-col w-full gap-1 border p-2 rounded-xl"
             >
-              {social.Icon}
-              <span>{social.title}</span>
-            </a>
-          </li>
-        ))}
-      </ul>
-      <h3 className="text-4xl font-bold">Frequently Asked Questions</h3>
-      <ul>
-        {faqs.map((faq) => (
-          <li key={faq.question} className="flex flex-col gap-1">
-            <h2 className="text-2xl font-semibold">{faq.question}</h2>
-            <p>{faq.answer}</p>
-          </li>
-        ))}
-      </ul>
-    </div>
+              <a
+                href={social.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex  gap-2 items-center text-stone-900"
+              >
+                <div className="border p-2 rounded-full bg-stone-50">
+                  {social.Icon}
+                </div>
+                <div className="flex-1">
+                  <label className="text-base">{social.title}</label>
+                  <div className="text-xs text-stone-600">
+                    {social.description}
+                  </div>
+                </div>
+                <RiArrowDropRightLine />
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="flex flex-col gap-4 mt-8">
+        <h5 className="">Frequently Asked Questions</h5>
+        <ul className="flex flex-col gap-3">
+          {faqs.map((faq) => (
+            <details
+              tabIndex={0}
+              key={faq.question}
+              className="collapse collapse-arrow border shadow-sm rounded-xl"
+            >
+              <summary className="font-semibold text-sm collapse-title">
+                {faq.question}
+              </summary>
+              <p className="collapse-content text-xs">{faq.answer}</p>
+            </details>
+          ))}
+        </ul>
+      </div>
+    </>
   );
 };

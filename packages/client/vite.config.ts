@@ -81,7 +81,7 @@ export default defineConfig(({ mode }) => {
           scope: "/",
           display: "standalone",
           orientation: "portrait-primary",
-          theme_color: "#367D42",
+          theme_color: "#fff",
           background_color: "#fff",
           shortcuts: [
             {

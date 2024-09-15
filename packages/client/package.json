@@ -29,6 +29,7 @@
     "react-intl": "6.6.8",
     "react-router-dom": "^6.26.1",
     "react-select": "5.8.0",
+    "react-spring-bottom-sheet": "3.4.1",
     "react-tailwindcss-datepicker": "^1.7.2",
     "zod": "^3.23.8"
   },
