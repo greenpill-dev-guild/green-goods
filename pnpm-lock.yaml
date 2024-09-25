@@ -103,9 +103,6 @@ importers:
         specifier: ^3.23.8
         version: 3.23.8
     devDependencies:
-      '@0no-co/graphqlsp':
-        specifier: ^1.12.12
-        version: 1.12.13(graphql@16.9.0)(typescript@5.5.4)
       '@eslint/js':
         specifier: ^9.9.0
         version: 9.9.0
