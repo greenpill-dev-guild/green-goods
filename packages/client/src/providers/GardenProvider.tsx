@@ -39,7 +39,7 @@ export const GardenProvider = ({ children }: { children: React.ReactNode }) => {
   const { data: gardens } = useQuery<Garden[]>({
     queryKey: ["gardens"],
     queryFn: async () => {
-      const gardens = getGardens();
+      const gardens = await getGardens();
       const assessments = await getGardenAssessments();
 
       return gardens.map((garden) => {
