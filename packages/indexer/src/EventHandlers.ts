@@ -9,40 +9,42 @@ import {
 
 // Handler for the ActionRegistered event
 ActionRegistry.ActionRegistered.handler(async ({ event, context }) => {
-  // const actionId = event.params.actionUID.toString();
-  // // const capitals: Capital[] = event.params.action[4].map((capital) => {
-  // //   const number = Number(capital);
-  // //   if (number === 1) {
-  // //     return "SOCIAL";
-  // //   } else if (number === 2) {
-  // //     return "MATERIAL";
-  // //   } else if (number === 3) {
-  // //     return "FINANCIAL";
-  // //   } else if (number === 4) {
-  // //     return "LIVING";
-  // //   } else if (number === 5) {
-  // //     return "INTELLECTUAL";
-  // //   } else if (number === 6) {
-  // //     return "SPIRITUAL";
-  // //   } else if (number === 7) {
-  // //     return "CULTURAL";
-  // //   } else {
-  // //     return "UNKNOWN";
-  // //   }
-  // // });
-  // // // Update or create a new Action entity
-  // const actionEntity: Action = {
-  //   id: actionId,
-  //   ownerAddress: event.params.owner,
-  //   startTime: event.params.action[0],
-  //   endTime: event.params.action[1],
-  //   title: event.params.action[2],
-  //   instructions: event.params.action[3],
-  //   capitals: [],
-  //   media: event.params.action[5],
-  //   createdAt: event.block.timestamp,
-  // };
-  // context.Action.set(actionEntity);
+  const actionId = event.params.actionUID.toString();
+  const capitals: Capital[] = event.params.capitals.map((capital) => {
+    const number = Number(capital);
+    if (number === 1) {
+      return "SOCIAL";
+    } else if (number === 2) {
+      return "MATERIAL";
+    } else if (number === 3) {
+      return "FINANCIAL";
+    } else if (number === 4) {
+      return "LIVING";
+    } else if (number === 5) {
+      return "INTELLECTUAL";
+    } else if (number === 6) {
+      return "SPIRITUAL";
+    } else if (number === 7) {
+      return "CULTURAL";
+    } else {
+      return "UNKNOWN";
+    }
+  });
+
+  // Update or create a new Action entity
+  const actionEntity: Action = {
+    id: actionId,
+    ownerAddress: event.params.owner,
+    startTime: event.params.startTime,
+    endTime: event.params.endTime,
+    title: event.params.title,
+    instructions: event.params.instructions,
+    capitals,
+    media: event.params.media,
+    createdAt: event.block.timestamp,
+  };
+
+  context.Action.set(actionEntity);
 });
 
 // Handler for the ActionStartTimeUpdated event
@@ -125,12 +127,12 @@ GardenToken.GardenMinted.handler(async ({ event, context }) => {
   // create a new Garden entity
   const gardenEntity: Garden = {
     id: event.params.account,
-    name: "",
-    description: "",
-    bannerImage: "",
-    location: "",
-    gardeners: [],
-    operators: [],
+    name: event.params.name,
+    description: event.params.description,
+    bannerImage: event.params.bannerImage,
+    location: event.params.location,
+    gardeners: event.params.gardeners,
+    operators: event.params.gardenOperators,
     tokenAddress: event.srcAddress,
     tokenID: event.params.tokenId,
     createdAt: event.block.timestamp,
