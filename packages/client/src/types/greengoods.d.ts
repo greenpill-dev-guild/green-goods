@@ -1,3 +1,6 @@
+/* eslint-disable */
+/* prettier-ignore */
+
 declare enum Capital {
   SOCIAL,
   MATERIAL,
