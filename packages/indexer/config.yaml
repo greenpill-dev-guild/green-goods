@@ -3,7 +3,7 @@ name: Green Goods
 description: Green Goods Indexer
 contracts:
   - name: ActionRegistry
-    abi_file_path: ../contracts/out/Action.sol/ActionRegistry.json
+    abi_file_path: abis/ActionRegistry.json
     handler: src/EventHandlers.ts
     events:
       - event: ActionRegistered
@@ -13,12 +13,12 @@ contracts:
       - event: ActionInstructionsUpdated
       - event: ActionMediaUpdated
   - name: GardenToken
-    abi_file_path: ../contracts/out/Garden.sol/GardenToken.json
+    abi_file_path: abis/GardenToken.json
     handler: src/EventHandlers.ts
     events:
       - event: GardenMinted
   - name: GardenAccount
-    abi_file_path: ../contracts/out/Garden.sol/GardenAccount.json
+    abi_file_path: abis/GardenAccount.json
     handler: src/EventHandlers.ts
     events:
       - event: NameUpdated
