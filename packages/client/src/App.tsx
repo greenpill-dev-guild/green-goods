@@ -38,7 +38,11 @@ function App() {
             path="/login"
             element={
               isDownloaded ?
-                !isAuthenticated ?
+                !isAuthenticated && authenticating ?
+                  <main className="w-full h-full grid place-items-center">
+                    <CircleLoader />
+                  </main>
+                : !isAuthenticated ?
                   <Login />
                 : <Navigate to="/" replace />
               : <Navigate to="/landing" replace />

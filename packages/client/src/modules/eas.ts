@@ -1,9 +1,8 @@
-import { graphql } from "gql.tada";
-
 import { EAS } from "@/constants";
 
 import { getFileByHash } from "./pinata";
 import { easArbitrumClient } from "./urql";
+import { easGraphQL } from "./graphql";
 
 const parseDataToWork = async (
   workUID: string,
@@ -114,7 +113,7 @@ const parseDataToGardenAssessment = (
 
 export const getWorks = async (): Promise<WorkCard[]> => {
   // TODO add 'where: valid: true' filter
-  const QUERY = graphql(/* GraphQL */ `
+  const QUERY = easGraphQL(/* GraphQL */ `
     query Attestations($where: AttestationWhereInput) {
       attestations(where: $where) {
         id
@@ -153,7 +152,7 @@ export const getWorks = async (): Promise<WorkCard[]> => {
 
 export const getWorkApprovals = async (): Promise<WorkApprovalCard[]> => {
   // TODO add 'where: valid: true' filter
-  const QUERY = graphql(/* GraphQL */ `
+  const QUERY = easGraphQL(/* GraphQL */ `
     query Attestations($where: AttestationWhereInput) {
       attestations(where: $where) {
         id
@@ -189,7 +188,7 @@ export const getWorkApprovals = async (): Promise<WorkApprovalCard[]> => {
 
 export const getGardenAssessments = async (): Promise<GardenAssessment[]> => {
   // TODO add 'where: valid: true' filter
-  const QUERY = graphql(/* GraphQL */ `
+  const QUERY = easGraphQL(/* GraphQL */ `
     query Attestations($where: AttestationWhereInput) {
       attestations(where: $where) {
         id
