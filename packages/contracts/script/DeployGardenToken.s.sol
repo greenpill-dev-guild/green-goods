@@ -91,22 +91,26 @@ contract DeployGardenToken is Script {
             console.log("GardenToken deployed at:", token);
 
             // Mint a garden for Rio Claro, São Paulo
-            address[] memory gardeners = new address[](4);
-            address[] memory gardenOperators = new address[](4);
+            address[] memory gardeners = new address[](5);
+            address[] memory gardenOperators = new address[](5);
 
             gardeners[0] = 0x2aa64E6d80390F5C017F0313cB908051BE2FD35e; // afo-wefa.eth
             gardeners[1] = 0xAcD59e854adf632d2322404198624F757C868C97; // groweco.eth
             gardeners[2] = 0x29e6cbF2450F86006292D10A3cF791955600a457; // marcin
             gardeners[3] = 0x742fa58340df9Ad7c691De4Ed999CF7f71079A8F; // afo@greenpill.builders
+            gardeners[4] = 0x9aBb9dFfEedd44EEeDD44Eeedd44eEeDd44eEeDd; // deployer
             gardenOperators[0] = 0x2aa64E6d80390F5C017F0313cB908051BE2FD35e; // afo-wefa.eth
             gardenOperators[1] = 0xAcD59e854adf632d2322404198624F757C868C97; // groweco.eth
             gardenOperators[2] = 0x29e6cbF2450F86006292D10A3cF791955600a457; // marcin
             gardenOperators[3] = 0x742fa58340df9Ad7c691De4Ed999CF7f71079A8F; // afo@greenpill.builders
+            gardenOperators[4] = 0x9aBb9dFfEedd44EEeDD44Eeedd44eEeDd44eEeDd; // deployer
 
             gardenAccount = gardenToken.mintGarden(
                 communityToken,
                 "Root Planet",
                 "Observing invasive species and planting natives to improve biodiversity.",
+                "Rio Claro, S\u00e3o Paulo",
+                "bafybeie6wzt62apqp57vtpdtkuth6cakc5ir64nfzd3jpjpmw36r3hbriq",
                 gardeners,
                 gardenOperators
             );

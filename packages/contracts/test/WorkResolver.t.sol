@@ -33,6 +33,8 @@ contract WorkResolverTest is Test {
             address(0x545),
             "Test Garden",
             "Test Description",
+            "Test Location",
+            "",
             new address[](0),
             new address[](0)
         );
