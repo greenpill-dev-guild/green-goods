@@ -2,7 +2,7 @@ import React from "react";
 import { DeviceFrameset } from "react-device-frameset";
 import "react-device-frameset/styles/marvel-devices.min.css";
 
-import { usePWA } from "@/providers/PWAProvider";
+import { usePWA } from "@/providers/pwa";
 
 interface HeroProps {
   handleSubscribe: (e: React.FormEvent<HTMLFormElement>) => void;

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 
 import { formatAddress } from "@/utils/text";
 
-import { useUser } from "@/providers/UserProvider";
+import { useUser } from "@/providers/user";
 
 import { ProfileHelp } from "./Help";
 import { ProfileAccount } from "./Account";

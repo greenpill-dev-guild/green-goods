@@ -1,5 +1,5 @@
 import { APP_NAME } from "@/constants";
-import { usePWA } from "@/providers/PWAProvider";
+import { usePWA } from "@/providers/pwa";
 import {
   RiGithubLine,
   RiTwitterLine,

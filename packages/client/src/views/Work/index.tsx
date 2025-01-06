@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { RiArrowGoBackLine } from "@remixicon/react";
 
-import { useWork, WorkTab } from "@/providers/WorkProvider";
+import { useWork, WorkTab } from "@/providers/work";
 import { Button } from "@/components/Button";
 
 import { WorkIntro } from "./Intro";

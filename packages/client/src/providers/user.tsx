@@ -169,6 +169,8 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     if (embeddedWallet) createSmartWallet(embeddedWallet);
   }, [embeddedWallet?.address]);
 
+  console.log(smartAccountAddress);
+
   return (
     <UserContext.Provider
       value={{

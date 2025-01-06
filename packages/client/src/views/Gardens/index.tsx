@@ -1,6 +1,6 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 
-import { useGarden } from "@/providers/GardenProvider";
+import { useGarden } from "@/providers/garden";
 
 import { GardenCard } from "./Card";
 

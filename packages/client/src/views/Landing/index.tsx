@@ -1,7 +1,7 @@
 import toast from "react-hot-toast";
 import React, { useState } from "react";
 
-import { usePWA } from "@/providers/PWAProvider";
+import { usePWA } from "@/providers/pwa";
 
 import { Hero } from "@/components/Layout/Hero";
 import { Header } from "@/components/Layout/Header";

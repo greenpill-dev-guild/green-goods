@@ -9,8 +9,8 @@ import { EAS } from "@/constants";
 
 import { queryClient } from "@/modules/react-query";
 
-import { useUser } from "./UserProvider";
-import { useGarden } from "./GardenProvider";
+import { useUser } from "./user";
+import { useGarden } from "./garden";
 import { encodeWorkData } from "@/utils/eas";
 
 export enum WorkTab {

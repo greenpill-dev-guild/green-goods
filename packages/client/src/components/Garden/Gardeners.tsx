@@ -1,4 +1,4 @@
-import { Gardener } from "@/providers/GardenProvider";
+import { Gardener } from "@/providers/garden";
 
 interface GardenGardenersProps {
   gardeners: Gardener[];

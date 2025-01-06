@@ -1,5 +1,5 @@
-import { usePWA } from "@/providers/PWAProvider";
-import { useUser } from "@/providers/UserProvider";
+import { usePWA } from "@/providers/pwa";
+import { useUser } from "@/providers/user";
 
 import { Button } from "@/components/Button";
 

@@ -5,8 +5,8 @@ import { arbitrum } from "viem/chains";
 import { Toaster } from "react-hot-toast";
 import { PrivyProvider } from "@privy-io/react-auth";
 
-import { PWAProvider } from "@/providers/PWAProvider.tsx";
-import { UserProvider } from "@/providers/UserProvider.tsx";
+import { PWAProvider } from "@/providers/pwa";
+import { UserProvider } from "@/providers/user";
 
 import { APP_DESCRIPTION } from "@/constants";
 import App from "@/App.tsx";

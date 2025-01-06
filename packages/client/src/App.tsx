@@ -4,11 +4,11 @@ import { Route, Routes, Navigate, BrowserRouter } from "react-router-dom";
 
 import { queryClient } from "@/modules/react-query";
 
-import { WorkProvider } from "@/providers/WorkProvider";
-import { GardenProvider } from "@/providers/GardenProvider";
+import { WorkProvider } from "@/providers/work";
+import { GardenProvider } from "@/providers/garden";
 
-import { usePWA } from "@/providers/PWAProvider";
-import { useUser } from "@/providers/UserProvider";
+import { usePWA } from "@/providers/pwa";
+import { useUser } from "@/providers/user";
 
 import Views from "@/views";
 import Login from "@/views/Login";

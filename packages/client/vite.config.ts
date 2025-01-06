@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import path from "path";
 import dotenvExpand from "dotenv-expand";
 
@@ -15,6 +16,10 @@ export default defineConfig(({ mode }) => {
   }
 
   return {
+    test: {
+      env: loadEnv(mode, process.cwd(), ""),
+      // ...
+    },
     plugins: [
       mkcert(),
       react(),

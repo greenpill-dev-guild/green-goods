@@ -11,13 +11,13 @@ import { useParams, Link } from "react-router-dom";
 
 // import { formatAddress } from "@/utils/text";
 
-import { useGarden } from "@/providers/GardenProvider";
+import { useGarden } from "@/providers/garden";
 
 import { CircleLoader } from "@/components/Loader";
 import { GardenActions } from "@/components/Garden/Actions";
 import { GardenAssessments } from "@/components/Garden/Asessments";
 import { GardenGardeners } from "@/components/Garden/Gardeners";
-import { useWork } from "@/providers/WorkProvider";
+import { useWork } from "@/providers/work";
 
 enum GardenTab {
   Actions = "actions",

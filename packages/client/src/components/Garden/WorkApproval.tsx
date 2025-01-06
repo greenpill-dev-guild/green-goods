@@ -9,7 +9,7 @@ import { encodeWorkApprovalData } from "@/utils/eas";
 
 import { queryClient } from "@/modules/react-query";
 
-import { useUser } from "@/providers/UserProvider";
+import { useUser } from "@/providers/user";
 
 import { FormInput } from "../Form/Input";
 import { Button } from "../Button";
