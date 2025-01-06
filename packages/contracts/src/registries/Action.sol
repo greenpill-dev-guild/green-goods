@@ -25,9 +25,22 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     /// @notice Emitted when a new action is registered.
     /// @param owner The address of the action owner.
     /// @param actionUID The unique identifier of the action.
-    /// @param action The details of the registered action.
-    /// @param timestamp The timestamp of the registration.
-    event ActionRegistered(address indexed owner, uint256 indexed actionUID, Action indexed action, uint256 timestamp);
+    /// @param startTime The start time of the action.
+    /// @param endTime The end time of the action.
+    /// @param title The title of the action.
+    /// @param instructions The instructions of the action.
+    /// @param capitals The capitals of the action.
+    /// @param media The media of the action.
+    event ActionRegistered(
+        address owner,
+        uint256 indexed actionUID,
+        uint256 indexed startTime,
+        uint256 indexed endTime,
+        string title,
+        string instructions,
+        Capital[] capitals,
+        string[] media
+    );
 
     /// @notice Emitted when an existing action is start time is updated.
     /// @param owner The address of the action owner.
@@ -106,7 +119,7 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
         actionToOwner[actionUID] = _msgSender();
         idToAction[actionUID] = Action(_startTime, _endTime, _title, _instructions, _capitals, _media);
 
-        emit ActionRegistered(_msgSender(), actionUID, idToAction[actionUID], block.timestamp);
+        emit ActionRegistered(_msgSender(), actionUID, _startTime, _endTime, _title, _instructions, _capitals, _media);
     }
 
     /// @notice Updates the start time of an existing action.

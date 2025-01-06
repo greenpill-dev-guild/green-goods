@@ -52,7 +52,11 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     /// @notice The description of the garden.
     string public description;
 
-    // TODO: Add banner image property
+    /// @notice The location of the garden.
+    string public location;
+
+    /// @notice The URL of the banner image of the garden.
+    string public bannerImage;
 
     /// @notice Mapping of gardener addresses to their status.
     mapping(address gardener => bool isGardener) public gardeners;
@@ -100,12 +104,16 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         address _communityToken,
         string calldata _name,
         string calldata _description,
+        string calldata _location,
+        string calldata _bannerImage,
         address[] calldata _gardeners,
         address[] calldata _gardenOperators
     ) external initializer {
         communityToken = _communityToken;
         name = _name;
         description = _description;
+        location = _location;
+        bannerImage = _bannerImage;
 
         gardeners[_msgSender()] = true;
         gardenOperators[_msgSender()] = true;

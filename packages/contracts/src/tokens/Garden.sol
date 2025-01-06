@@ -16,10 +16,24 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     address private _gardenAccountImplementation;
 
     /// @notice Emitted when a new Garden is minted.
-    /// @param owner The owner of the minted Garden token.
     /// @param tokenId The unique identifier of the minted Garden token.
     /// @param account The address of the associated Garden account.
-    event GardenMinted(address indexed owner, uint256 indexed tokenId, address indexed account);
+    /// @param name The name of the Garden.
+    /// @param description The description of the Garden.
+    /// @param location The location of the Garden.
+    /// @param bannerImage The URL of the banner image of the Garden.
+    /// @param gardeners An array of addresses representing the gardeners of the Garden.
+    /// @param gardenOperators An array of addresses representing the operators of the Garden.
+    event GardenMinted(
+        uint256 indexed tokenId,
+        address indexed account,
+        string name,
+        string description,
+        string location,
+        string bannerImage,
+        address[] gardeners,
+        address[] gardenOperators
+    );
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     /// @param gardenAccountImplementation The address of the Garden account implementation.
@@ -48,6 +62,8 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         address communityToken,
         string calldata name,
         string calldata description,
+        string calldata location,
+        string calldata bannerImage,
         address[] calldata gardeners,
         address[] calldata gardenOperators
     ) external onlyOwner returns (address) {
@@ -56,9 +72,17 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
 
         address gardenAccount = TBALib.createAccount(_gardenAccountImplementation, address(this), tokenId);
 
-        GardenAccount(payable(gardenAccount)).initialize(communityToken, name, description, gardeners, gardenOperators);
+        GardenAccount(payable(gardenAccount)).initialize(
+            communityToken,
+            name,
+            description,
+            location,
+            bannerImage,
+            gardeners,
+            gardenOperators
+        );
 
-        emit GardenMinted(_msgSender(), tokenId, gardenAccount);
+        emit GardenMinted(tokenId, gardenAccount, name, description, location, bannerImage, gardeners, gardenOperators);
 
         return gardenAccount;
     }

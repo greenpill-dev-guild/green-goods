@@ -22,8 +22,10 @@ contract DeployActionRegistry is Script {
             vm.startBroadcast();
             ActionRegistry newRegistry = new ActionRegistry{ salt: SALT }();
 
-            Capital[] memory capitals = new Capital[](1);
+            Capital[] memory capitals = new Capital[](3);
             capitals[0] = Capital.LIVING;
+            capitals[1] = Capital.CULTURAL;
+            capitals[2] = Capital.SOCIAL;
 
             string[] memory observeMedia = new string[](3);
             observeMedia[0] = "QmVvKqpnfJm8UwRq9SF15V2jgJ86yCBsmMBmpEaoQU92bD";
@@ -38,16 +40,16 @@ contract DeployActionRegistry is Script {
             newRegistry.initialize(address(this));
             newRegistry.registerAction(
                 block.timestamp,
-                block.timestamp + 30 days,
-                "Observe",
+                block.timestamp + 27 days,
+                "Identify Plants",
                 "QmX8rLExs7TDGPNAg9w22R8iYeRUYsrkkLg6LUUK8oNDUJ",
                 capitals,
                 observeMedia
             );
             newRegistry.registerAction(
                 block.timestamp,
-                block.timestamp + 30 days,
-                "Plant",
+                block.timestamp + 27 days,
+                "Plant Seedlings",
                 "QmZGJBdZeCVx7S42KqovzUhwrGhqwxVCaoofzUE2YRhb2s",
                 capitals,
                 plantMedia

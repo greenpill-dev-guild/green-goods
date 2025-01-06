@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-struct AsessmentSchema {
+struct AssessmentSchema {
     string title;
     string[] media;
 }
