@@ -10,19 +10,20 @@ import { GardenProvider } from "@/providers/garden";
 import { usePWA } from "@/providers/pwa";
 import { useUser } from "@/providers/user";
 
-import Views from "@/views";
+import { CircleLoader } from "@/components/Loader";
+import { AppBar } from "@/components/Layout/AppBar";
+
+import AppViews from "@/views";
 import Login from "@/views/Login";
 import Landing from "@/views/Landing";
-import { Appbar } from "@/components/Layout/AppBar";
-import { CircleLoader } from "./components/Loader";
 
 function App() {
   const { authenticated } = usePrivy();
   const { isMobile, isInstalled } = usePWA();
-  const { authenticating, smartAccountReady } = useUser();
+  const { ready, smartAccountAddress } = useUser();
 
   const isDownloaded = isMobile && isInstalled;
-  const isAuthenticated = authenticated && smartAccountReady;
+  const isAuthenticated = authenticated && smartAccountAddress;
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -38,7 +39,7 @@ function App() {
             path="/login"
             element={
               isDownloaded ?
-                !isAuthenticated && authenticating ?
+                !isAuthenticated && !ready ?
                   <main className="w-full h-full grid place-items-center">
                     <CircleLoader />
                   </main>
@@ -56,8 +57,8 @@ function App() {
                 isAuthenticated ?
                   <GardenProvider>
                     <WorkProvider>
-                      <Views />
-                      <Appbar />
+                      <AppViews />
+                      <AppBar />
                     </WorkProvider>
                   </GardenProvider>
                 : <Navigate to="/login" replace />
