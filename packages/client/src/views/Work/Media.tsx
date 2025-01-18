@@ -1,15 +1,21 @@
 import React, { useState } from "react";
+import { RiImageFill } from "@remixicon/react";
+
+import { FormInfo } from "@/components/Form/Info";
+import { Books } from "@/assets/Books";
 
 interface WorkMediaProps {
-  title?: string;
-  description?: string;
+  instruction: string;
+  needed: string[];
+  optional: string[];
   images: File[];
   setImages: React.Dispatch<React.SetStateAction<File[]>>;
 }
 
 export const WorkMedia: React.FC<WorkMediaProps> = ({
-  title,
-  description,
+  instruction,
+  needed,
+  optional,
   images,
   setImages,
 }) => {
@@ -28,45 +34,54 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
 
   return (
     <div>
-      <h1>{title}</h1>
-      <p>{description}</p>
-      <div className="form-control mb-4">
-        <label className="label">
-          <span className="label-text">Upload Images</span>
-        </label>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleImageUpload}
-          multiple
-          className="input input-bordered"
-        />
+      <FormInfo title="Upload Media" info={instruction} Icon={RiImageFill} />
+      <div>
+        <label>Needed</label>
+        <ul>{needed.map((item) => item)}</ul>
       </div>
-      <div className="carousel carousel-center rounded-box space-x-4 mb-4">
-        {images.map((file, index) => (
-          <div
-            key={index}
-            className="carousel-item relative"
-            onClick={() => setPreviewModalOpen(true)}
-          >
-            <img
-              src={URL.createObjectURL(file)}
-              alt={`Uploaded ${index}`}
-              className="w-40 h-40 object-cover"
-            />
-            <button
-              className="btn btn-sm btn-circle absolute top-2 right-2"
-              onClick={(e) => {
-                e.stopPropagation();
-                removeImage(index);
-              }}
-              type="button"
+      <div>
+        <label>Optional</label>
+        <ul>{optional.map((item) => item)}</ul>
+      </div>
+      <input
+        id="work-media-upload"
+        type="file"
+        accept="image/*"
+        onChange={handleImageUpload}
+        multiple
+        className="input input-bordered hidden"
+      />
+      <ul className="flex flex-col gap-4">
+        {images.length ?
+          images.map((file, index) => (
+            <li
+              key={index}
+              className="carousel-item relative"
+              onClick={() => setPreviewModalOpen(true)}
             >
-              ✕
-            </button>
-          </div>
-        ))}
-      </div>
+              <img
+                src={URL.createObjectURL(file)}
+                alt={`Uploaded ${index}`}
+                className="w-full aspect-square object-cover rounded-lg"
+              />
+              <button
+                className="btn btn-sm btn-circle absolute top-2 right-2"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeImage(index);
+                }}
+                type="button"
+              >
+                ✕
+              </button>
+            </li>
+          ))
+        : <li className="grid place-items-center">
+            No images added yet. Click on upload button
+            <Books />
+          </li>
+        }
+      </ul>
       {previewModalOpen && (
         <dialog
           className="modal modal-open"
