@@ -2,10 +2,10 @@ import React, { useContext } from "react";
 import { User } from "@privy-io/react-auth";
 import { useQuery } from "@tanstack/react-query";
 
+import { GREEN_GOODS_GARDEN_OPERATOR_WHITELIST } from "@/constants";
+
 import { getGardenAssessments } from "@/modules/eas";
 import { getActions, getGardeners, getGardens } from "@/modules/greengoods";
-
-import { GREEN_GOODS_GARDEN_OPERATOR_WHITELIST } from "@/constants";
 
 export type Gardener = User & { operator: boolean };
 
@@ -66,7 +66,7 @@ export const GardenProvider = ({ children }: { children: React.ReactNode }) => {
             return {
               ...gardener,
               operator: GREEN_GOODS_GARDEN_OPERATOR_WHITELIST.includes(
-                gardener.email?.address || gardener.phone?.number || ""
+                gardener.email?.address! ?? gardener.phone?.number!
               ),
             };
           }) || [],

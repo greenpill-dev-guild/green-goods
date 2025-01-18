@@ -2,6 +2,7 @@ import { PinataSDK } from "pinata";
 
 export const pinata = new PinataSDK({
   pinataJwt: import.meta.env.VITE_PINATA_JWT as string,
+  pinataGateway: "fuchsia-impossible-snake-503.mypinata.cloud",
 });
 
 export async function uploadFileToIPFS(file: File) {

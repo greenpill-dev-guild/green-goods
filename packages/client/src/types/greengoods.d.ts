@@ -52,8 +52,8 @@ declare interface GardenAssessment {
   carbonTonPotential: number;
   gardenSquareMeters: number;
   biome: string;
-  remoteReportCID: string;
-  speciesRegistryCID: string;
+  remoteReport: string;
+  speciesRegistry: string;
   polygonCoordinates: string;
   treeGenusesObserved: string[];
   weedGenusesObserved: string[];
@@ -109,6 +109,7 @@ declare interface Action extends ActionCard {
 }
 
 declare interface WorkInput {
+  key: string;
   title: string;
   placeholder: string;
   type: "text" | "textarea" | "select" | "number";
