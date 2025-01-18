@@ -1,4 +1,4 @@
-import "react-tailwindcss-select/dist/index.css";
+// import "react-tailwindcss-select/dist/index.css";
 
 import Select from "react-select";
 import { forwardRef } from "react";

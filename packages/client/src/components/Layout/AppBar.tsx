@@ -1,40 +1,47 @@
 import { Link, useLocation } from "react-router-dom";
 
 import {
-  RiHome2Fill,
-  RiCrossFill,
-  RiProfileFill,
+  RiHomeFill,
+  RiPlantFill,
+  RiUserFill,
+  RiHomeLine,
+  RiPlantLine,
+  RiUserLine,
   RemixiconComponentType,
 } from "@remixicon/react";
 
 const tabs: {
   path: string;
   title: string;
-  Icon: RemixiconComponentType;
+  ActiveIcon: RemixiconComponentType;
+  InactiveIcon: RemixiconComponentType;
 }[] = [
   {
     path: "/gardens",
     title: "Home",
-    Icon: RiHome2Fill,
+    ActiveIcon: RiHomeFill,
+    InactiveIcon: RiHomeLine,
   },
   {
     path: "/garden",
     title: "Garden",
-    Icon: RiCrossFill,
+    ActiveIcon: RiPlantFill,
+    InactiveIcon: RiPlantLine,
   },
   {
     path: "/profile",
     title: "Profile",
-    Icon: RiProfileFill,
+    ActiveIcon: RiUserFill,
+    InactiveIcon: RiUserLine,
   },
 ];
 
-export const Appbar = () => {
+export const AppBar = () => {
   const { pathname } = useLocation();
 
   return (
     <nav className={"btm-nav z-10 w-full rounded-t-2xl py-9 bg-[#F4E0CC]"}>
-      {tabs.map(({ path, Icon, title }) => (
+      {tabs.map(({ path, ActiveIcon, InactiveIcon, title }) => (
         <Link to={path} key={title}>
           <button
             className={`flex flex-col items-center ${
@@ -43,10 +50,12 @@ export const Appbar = () => {
               : "text-stone-700"
             }`}
           >
-            <Icon className="w-6 h-6" />
+            {pathname === path ?
+              <ActiveIcon className="w-6 h-6" />
+            : <InactiveIcon className="w-6 h-6" />}
             <p
               className={`text-sm tracking-wide ${
-                pathname === path ? "t" : ""
+                pathname === path ? "text-[#367D42]" : ""
               }`}
             >
               {title}

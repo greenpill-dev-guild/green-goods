@@ -7,9 +7,9 @@ interface FormProgressProps {
 
 export const FormProgress = ({ currentStep, steps }: FormProgressProps) => {
   return (
-    <ul className="relative flex flex-row gap-x-2">
+    <div className="relative flex flex-row gap-x-2">
       {steps.map((step, index) => (
-        <li
+        <div
           key={step}
           className="flex flex-col justify-center items-center flex-1 group"
         >
@@ -34,14 +34,14 @@ export const FormProgress = ({ currentStep, steps }: FormProgressProps) => {
               className={`${currentStep > index + 1 ? "bg-teal-400" : "bg-slate-400"} ms-2 w-full h-px flex-1 group-last:hidden`}
             ></div>
           </div>
-          <div className="mt-3">
+          {/* <div className="mt-3">
             <span className={`block font-medium text-lg text-teal-600`}>
               {step}
             </span>
-          </div>
-        </li>
+          </div> */}
+        </div>
       ))}
-    </ul>
+    </div>
   );
 };
 

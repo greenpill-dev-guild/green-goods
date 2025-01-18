@@ -1,4 +1,4 @@
-import Datepicker from "react-tailwindcss-datepicker";
+// import Datepicker from "react-tailwindcss-datepicker";
 import { InputHTMLAttributes, forwardRef } from "react";
 
 interface FormDateProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -13,7 +13,7 @@ export const FormDate = forwardRef<HTMLInputElement, FormDateProps>(
       <label className="font-semibold text-slate-800" htmlFor={props.id}>
         {label}
       </label>
-      <Datepicker
+      {/* <Datepicker
         {...props}
         // ref={ref}
         asSingle
@@ -25,7 +25,7 @@ export const FormDate = forwardRef<HTMLInputElement, FormDateProps>(
         inputClassName=""
         containerClassName=""
         toggleClassName=""
-      />
+      /> */}
       <p
         id={`${props.id}-input-helper-text`}
         className={`

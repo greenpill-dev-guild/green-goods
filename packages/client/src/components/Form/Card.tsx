@@ -1,8 +1,8 @@
 import { RemixiconComponentType } from "@remixicon/react";
 
-interface FormInfoProps {
-  title: string;
-  info: string;
+interface FormCardProps {
+  label: string;
+  value: string;
   variant?: "primary" | "secondary" | "tertiary";
   Icon?: RemixiconComponentType;
 }
@@ -13,13 +13,13 @@ const variants = {
   tertiary: "bg-yellow-100 text-yellow-700",
 };
 
-export const FormInfo = ({
-  title,
-  info,
+export const FormCard = ({
+  label,
+  value,
   variant = "primary",
   Icon,
   ...props
-}: FormInfoProps) => {
+}: FormCardProps) => {
   const variantClasses = variants[variant];
 
   return (
@@ -27,11 +27,11 @@ export const FormInfo = ({
       className={`${variantClasses} p-4 rounded-lg flex mb-4 max-h-36`}
       {...props}
     >
-      {Icon && <Icon size={24} />}
-      <div className="flex flex-col gap-0.5">
-        <h3 className="text-lg font-bold text-slate-800">{title}</h3>
-        <p className="text-sm text-slate-700">{info}</p>
+      <div className="flex gap-0.5">
+        {Icon && <Icon size={24} />}
+        <h3 className="text-lg font-bold text-slate-800">{label}</h3>
       </div>
+      <p className="text-sm text-slate-700">{value}</p>
     </div>
   );
 };
