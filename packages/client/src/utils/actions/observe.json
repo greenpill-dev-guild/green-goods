@@ -11,13 +11,15 @@
     "feedbackPlaceholder": "Provide feedback or any issues during the observation process",
     "inputs": [
       {
+        "key": "plantSelection",
         "title": "Plants Observed",
         "placeholder": "Select the different species observed",
         "type": "select",
         "required": false,
-        "options": []
+        "options": ["Acacia", "Eucalyptus", "Pine", "Other"]
       },
       {
+        "key": "plantCount",
         "title": "Number of Plants Observed",
         "placeholder": "Enter the number of plants observed",
         "type": "number",
