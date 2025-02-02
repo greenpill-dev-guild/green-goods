@@ -1,78 +1,121 @@
 import React, { useContext } from "react";
-import { User } from "@privy-io/react-auth";
 import { useQuery } from "@tanstack/react-query";
 
-import { GREEN_GOODS_GARDEN_OPERATOR_WHITELIST } from "@/constants";
+import { getGardenAssessments, getWorks } from "@/modules/eas";
+import { getActions, getGardens, getGardeners } from "@/modules/greengoods";
 
-import { getGardenAssessments } from "@/modules/eas";
-import { getActions, getGardeners, getGardens } from "@/modules/greengoods";
+import { useUser } from "./user";
+import { useWork } from "./work";
 
-export type Gardener = User & { operator: boolean };
-
-export interface GardenDataProps {
-  actions: Action[];
-  gardens: Garden[];
-  gardeners: Gardener[];
+interface GardenDataProps {
+  isOperator: boolean;
+  garden?: Garden;
+  gardeners: GardenerCard[];
+  error?: Error | null;
 }
 
-const GardenContext = React.createContext<GardenDataProps>({
-  actions: [],
-  gardens: [],
-  gardeners: [],
-});
+interface GardensDataProps {
+  actions: Action[];
+  gardens: Garden[];
+  gardenersMap: Map<string, GardenerCard>;
+}
 
-export const useGarden = () => {
-  return useContext(GardenContext);
+export const useGarden = (id: string): GardenDataProps => {
+  const { gardens, gardenersMap } = useGardens();
+  const { workApprovalMap } = useWork();
+  const { eoa, smartAccountAddress } = useUser();
+
+  const { data: garden, error } = useQuery<
+    Garden,
+    Error,
+    Garden,
+    [string, string]
+  >({
+    _optimisticResults: "optimistic",
+    initialData: gardens.find((garden) => garden.id === id),
+    queryKey: ["gardens", id],
+    queryFn: async ({ queryKey }) => {
+      const [_, id] = queryKey;
+      const garden = gardens.find((garden) => garden.id === id);
+
+      if (!garden) throw new Error("Garden not found");
+
+      const assessments = await getGardenAssessments(id);
+      const works: Work[] = (await getWorks(id)).map((work) => {
+        const workApproval = workApprovalMap[work.id];
+
+        return {
+          ...work,
+          status:
+            workApproval ?
+              workApproval.approved ?
+                "approved"
+              : "rejected"
+            : "pending",
+        };
+      });
+
+      return { ...garden, assessments, works };
+    },
+  });
+
+  return {
+    isOperator:
+      !!garden?.operators.includes(eoa?.address!) ||
+      !!garden?.operators.includes(smartAccountAddress!),
+    garden,
+    gardeners:
+      garden?.gardeners.reduce<GardenerCard[]>((acc, id) => {
+        const user = gardenersMap.get(id);
+        if (user) acc.push(user);
+        else acc.push({ id, account: id, registeredAt: new Date() });
+        return acc;
+      }, []) ?? [],
+    error,
+  };
 };
 
-export const GardenProvider = ({ children }: { children: React.ReactNode }) => {
+const GardensContext = React.createContext<GardensDataProps>({
+  actions: [],
+  gardens: [],
+  gardenersMap: new Map(),
+});
+
+export const useGardens = () => {
+  return useContext(GardensContext);
+};
+
+export const GardensProvider = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
   // QUERIES
   const { data: actions } = useQuery<Action[]>({
     queryKey: ["actions"],
-    queryFn: () => {
-      const actions = getActions();
-
-      return actions;
-    },
+    queryFn: getActions,
   });
 
   const { data: gardens } = useQuery<Garden[]>({
     queryKey: ["gardens"],
-    queryFn: async () => {
-      const gardens = await getGardens();
-      const assessments = await getGardenAssessments();
-
-      return gardens.map((garden) => {
-        garden.gardenAssessments = assessments.filter(
-          (assessment) => assessment.gardenAddress === garden.id
-        );
-
-        return garden;
-      });
-    },
+    queryFn: getGardens,
   });
-  const { data: gardeners } = useQuery<User[]>({
+  const { data: gardeners } = useQuery<GardenerCard[]>({
     queryKey: ["gardeners"],
     queryFn: getGardeners,
   });
 
   return (
-    <GardenContext.Provider
+    <GardensContext.Provider
       value={{
         actions: actions || [],
         gardens: gardens || [],
-        gardeners:
-          gardeners?.map((gardener) => {
-            return {
-              ...gardener,
-              operator: GREEN_GOODS_GARDEN_OPERATOR_WHITELIST.includes(
-                gardener.email?.address! ?? gardener.phone?.number!
-              ),
-            };
-          }) || [],
+        gardenersMap: new Map(
+          gardeners?.map((gardener) => [gardener.id, gardener]) || []
+        ),
       }}
     >
       {children}
-    </GardenContext.Provider>
+    </GardensContext.Provider>
   );
 };

@@ -5,9 +5,9 @@ import { Route, Routes, Navigate, BrowserRouter } from "react-router-dom";
 import { queryClient } from "@/modules/react-query";
 
 import { WorkProvider } from "@/providers/work";
-import { GardenProvider } from "@/providers/garden";
+import { GardensProvider } from "@/providers/garden";
 
-import { usePWA } from "@/providers/pwa";
+import { useApp } from "@/providers/app";
 import { useUser } from "@/providers/user";
 
 import { CircleLoader } from "@/components/Loader";
@@ -19,7 +19,7 @@ import Landing from "@/views/Landing";
 
 function App() {
   const { authenticated } = usePrivy();
-  const { isMobile, isInstalled } = usePWA();
+  const { isMobile, isInstalled } = useApp();
   const { ready, smartAccountAddress } = useUser();
 
   const isDownloaded = isMobile && isInstalled;
@@ -55,12 +55,12 @@ function App() {
             element={
               isDownloaded ?
                 isAuthenticated ?
-                  <GardenProvider>
+                  <GardensProvider>
                     <WorkProvider>
                       <AppViews />
                       <AppBar />
                     </WorkProvider>
-                  </GardenProvider>
+                  </GardensProvider>
                 : <Navigate to="/login" replace />
               : <Navigate to="/landing" replace />
             }

@@ -60,7 +60,7 @@ export async function getActions(): Promise<Action[]> {
           instructions,
           startTime: startTime as number,
           endTime: endTime as number,
-          capitals,
+          capitals: capitals as Capital[],
           media: [mediaImage],
           description: "",
           inputs:
@@ -127,13 +127,15 @@ export async function getGardens(): Promise<Garden[]> {
         bannerImage,
         gardeners: garden.gardeners,
         operators: garden.operators,
-        gardenAssessments: [],
+        assessments: [],
+        works: [],
+        createdAt: new Date(garden.createdAt),
       };
     })
   );
 }
 
-export async function getGardeners(): Promise<User[]> {
+export async function getGardeners(): Promise<GardenerCard[]> {
   const request = await fetch(
     import.meta.env.DEV ? "/api/users" : "/api/users"
   );
@@ -142,5 +144,16 @@ export async function getGardeners(): Promise<User[]> {
 
   console.log("Gardeners", response);
 
-  return response;
+  return response.map((user) => {
+    return {
+      id: user.id,
+      registeredAt: user.createdAt,
+      account: user.smartWallet?.address,
+      email: user.email?.address,
+      phone: user.phone?.number,
+      location: "",
+      username: user.customMetadata?.username as string,
+      avatar: user.farcaster?.pfp || (user.customMetadata?.avatar as string),
+    };
+  });
 }
