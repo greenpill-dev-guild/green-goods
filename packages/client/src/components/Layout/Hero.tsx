@@ -2,19 +2,19 @@ import React from "react";
 import { DeviceFrameset } from "react-device-frameset";
 import "react-device-frameset/styles/marvel-devices.min.css";
 
-import { usePWA } from "@/providers/pwa";
+import { useApp } from "@/providers/app";
 
 interface HeroProps {
   handleSubscribe: (e: React.FormEvent<HTMLFormElement>) => void;
 }
 
 export const Hero: React.FC<HeroProps> = ({ handleSubscribe }) => {
-  const { isMobile, platform } = usePWA();
+  const { isMobile, platform } = useApp();
 
   return (
     <main className="w-full min-h-[calc(100lvh-9rem)] lg:min-h-[calc(100lvh-6rem)] flex flex-col lg:flex-row lg:justify-center gap-16">
-      <form
-        onSubmit={handleSubscribe}
+      <div
+        // onSubmit={handleSubscribe}
         className="flex-1 flex flex-col gap-2 items-center lg:items-start lg:justify-center pt-[10vh] lg:pt-0 text-center lg:text-left"
       >
         <h2 className="font-bold lg:text-8xl lg:tracking-wide text-[#367D42] mb-2">
@@ -29,7 +29,7 @@ export const Hero: React.FC<HeroProps> = ({ handleSubscribe }) => {
         </p>
         {/* <div className="flex flex-col lg:flex-row w-full mt-6">
           <input
-            className="w-full h-14 px-4 py-2 border-[#367D42] rounded-md bg-stone-50 mb-2"
+            className="w-full h-14 px-4 py-2 border-[#367D42] rounded-md bg-slate-50 mb-2"
             name="email"
             type="email"
             required
@@ -75,7 +75,7 @@ export const Hero: React.FC<HeroProps> = ({ handleSubscribe }) => {
             </dialog>
           </>
         )}
-      </form>
+      </div>
       <div>
         {!isMobile && (
           <div className="flex-1 w-full h-full grid place-items-center">

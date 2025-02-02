@@ -8,14 +8,14 @@ import { SmartWalletsProvider } from "@privy-io/react-auth/smart-wallets";
 
 import { APP_DESCRIPTION } from "@/constants";
 
-import { PWAProvider } from "@/providers/pwa";
+import { AppProvider } from "@/providers/app";
 import { UserProvider } from "@/providers/user";
 
 import App from "@/App.tsx";
 import "@/index.css";
 
 export const Root = () => (
-  <PWAProvider>
+  <AppProvider>
     <PrivyProvider
       appId={import.meta.env.VITE_PRIVY_APP_ID as string}
       config={{
@@ -43,7 +43,7 @@ export const Root = () => (
         </UserProvider>
       </SmartWalletsProvider>
     </PrivyProvider>
-  </PWAProvider>
+  </AppProvider>
 );
 
 createRoot(document.getElementById("root")!).render(

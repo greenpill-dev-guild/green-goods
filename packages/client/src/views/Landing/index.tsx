@@ -1,7 +1,7 @@
 import toast from "react-hot-toast";
 import React, { useState } from "react";
 
-import { usePWA } from "@/providers/pwa";
+import { useApp } from "@/providers/app";
 
 import { Hero } from "@/components/Layout/Hero";
 import { Header } from "@/components/Layout/Header";
@@ -12,7 +12,7 @@ interface LandingProps {}
 type SubscribeState = "idle" | "subscribing" | "subscribed" | "error";
 
 const Landing: React.FC<LandingProps> = () => {
-  const { isMobile } = usePWA();
+  const { isMobile } = useApp();
 
   const [_state, setSubscribeState] = useState<SubscribeState>("idle");
 
