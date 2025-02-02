@@ -1,45 +1,38 @@
 import {
   RiMapPin2Fill,
-  RiArrowGoBackLine,
+  RiArrowLeftSLine,
   RiCalendarEventFill,
-  // RiProfileFill,
-  // RiThumbUpFill,
-  // PencilLineIcon,
+  RiNotificationFill,
 } from "@remixicon/react";
 import React, { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, Outlet, useLocation } from "react-router-dom";
 
-// import { formatAddress } from "@/utils/text";
-
-import { useGarden } from "@/providers/garden";
+import { useGarden, useGardens } from "@/providers/garden";
 
 import { CircleLoader } from "@/components/Loader";
-import { GardenActions } from "@/components/Garden/Actions";
-import { GardenAssessments } from "@/components/Garden/Asessments";
+import { GardenWork } from "@/components/Garden/Work";
 import { GardenGardeners } from "@/components/Garden/Gardeners";
-import { useWork } from "@/providers/work";
+import { GardenAssessments } from "@/components/Garden/Asessments";
+import { GardenNotifications } from "./Notifications";
 
 enum GardenTab {
-  Actions = "actions",
+  Work = "work",
   Assessments = "assessments",
   Gardeners = "gardeners",
 }
 
 interface GardenProps {}
 
-export const cardStyles = "bg-white border rounded-xl shadow-sm";
-export const cardTitleStyles = "text-base font-medium bg-teal-100 py-2 px-3";
-export const cardContentStyles = "text-sm leading-1 mt-2 px-3 pb-2";
-
 export const Garden: React.FC<GardenProps> = () => {
+  const [activeTab, setActiveTab] = useState<GardenTab>(GardenTab.Work);
+
   const { id } = useParams<{
     id: string;
   }>();
-  const { actions, gardens, gardeners } = useGarden();
-  const { works } = useWork();
-  const [activeTab, setActiveTab] = useState<GardenTab>(GardenTab.Actions);
+  const { pathname } = useLocation();
 
-  const garden = gardens.find((garden) => garden.id === id);
+  const { actions } = useGardens();
+  const { garden, gardeners } = useGarden(id!);
 
   if (!garden)
     return (
@@ -48,21 +41,18 @@ export const Garden: React.FC<GardenProps> = () => {
       </main>
     );
 
-  const { name, bannerImage, location, gardenAssessments } = garden;
+  const { name, bannerImage, location, createdAt, assessments, works } = garden;
 
-  const gardenWorks = works.filter((work) => work.gardenAddress === id);
-  const gardenGardeners = gardeners.filter((gardener) =>
-    garden.gardeners.includes(gardener.wallet?.address ?? "")
-  );
+  const workNotifications = works.filter((work) => work.status === "pending");
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case GardenTab.Actions:
-        return <GardenActions actions={actions} works={gardenWorks} />;
+      case GardenTab.Work:
+        return <GardenWork actions={actions} works={works} />;
       case GardenTab.Assessments:
-        return <GardenAssessments assessments={gardenAssessments} />;
+        return <GardenAssessments assessments={assessments} />;
       case GardenTab.Gardeners:
-        return <GardenGardeners gardeners={gardenGardeners} />;
+        return <GardenGardeners gardeners={gardeners} />;
       default:
         return null;
     }
@@ -70,62 +60,79 @@ export const Garden: React.FC<GardenProps> = () => {
 
   return (
     <div className="absolute left-0 top-0 h-full w-full flex flex-col">
-      <div className="w-full">
-        <Link
-          className="flex gap-1 items-center w-10 h-10 p-2 bg-white rounded-lg font-bold absolute top-4 left-4"
-          to="/gardens"
-        >
-          <RiArrowGoBackLine className="w-10 h-10 text-black" />
-        </Link>
-        <img
-          src={bannerImage}
-          className="w-full object-cover object-top aspect-[16/9] border-b-2 border-stone-300 shadow-sm rounded-b-3xl"
-          alt="Banner"
-        />
-      </div>
-      <div className="px-4 py-2">
-        <h4 className="line-clamp-2 mb-2">{name}</h4>
-        <div className="flex w-full justify-between items-start mb-2">
-          <div className="flex flex-col gap-1">
-            {/* <div className="flex gap-1">
-              <RiProfileFill className="h-5 text-teal-400" />
-              <span className="text-sm font-medium">
-                {operators
-                  .map((operator) => formatAddress(operator))
-                  .join(", ")}
-              </span>
-            </div> */}
-            <div className="flex gap-1">
-              <RiMapPin2Fill className="h-5 text-teal-400" />
-              <span className="text-sm font-medium">{location}</span>
+      {pathname.includes("work") || pathname.includes("assessments") ? null : (
+        <>
+          <div>
+            <div className="flex gap-1 items-center justify-between absolute top-4 left-4 right-4">
+              <Link
+                className="flex gap-1 items-center w-10 h-10 p-2 bg-white rounded-lg"
+                to="/gardens"
+              >
+                <RiArrowLeftSLine className="w-10 h-10 text-black" />
+              </Link>
+              <div className="relative dropdown dropdown-bottom dropdown-end">
+                {workNotifications.length && (
+                  <span className="absolute -top-2 -right-2 w-5 h-5 bg-teal-500 rounded-full flex-col justify-center items-center gap-2.5 inline-flex">
+                    <p className="text-xs self-stretch text-center text-white font-medium leading-3 tracking-tight">
+                      {workNotifications.length}
+                    </p>
+                  </span>
+                )}
+                <div
+                  tabIndex={0}
+                  role="button"
+                  className="flex items-center gap-1  w-10 h-10 p-2 bg-white rounded-lg "
+                >
+                  <RiNotificationFill />
+                </div>
+                <GardenNotifications
+                  garden={garden}
+                  notifications={workNotifications}
+                />
+              </div>
             </div>
-            <div className="flex gap-1">
-              <RiCalendarEventFill className="h-5 text-teal-400" />
-              {/* <span className="text-sm font-medium">
-                {start_date && end_date ?
-                  `${start_date.toLocaleDateString()} - ${end_date.toLocaleDateString()}`
-                : "No timeline provided."}
-              </span> */}
+            <img
+              src={bannerImage}
+              className="w-full object-cover object-top aspect-[16/9] border-b-2 border-slate-300 shadow-sm rounded-b-3xl"
+              alt="Banner"
+            />
+          </div>
+          <div className="px-4 py-1">
+            <h4 className="line-clamp-1">{name}</h4>
+            <div className="flex w-full justify-between items-start mb-2">
+              <div className="flex flex-col gap-1">
+                <div className="flex gap-1 font-bold">
+                  <RiMapPin2Fill className="h-5 text-teal-400" />
+                  <span className="text-sm">Location: {location}</span>
+                </div>
+                <div className="flex gap-1 font-bold">
+                  <RiCalendarEventFill className="h-5 text-teal-400" />
+                  <span className="text-sm">
+                    Founded: {createdAt.toDateString()}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-      <ul className="px-4 flex items-center flex-nowrap border border-stone-100 shadow-sm rounded-lg divide-x-2">
-        {Object.values(GardenTab).map((tab) => (
-          <li
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`flex-1 flex justify-center items-center p-3 cursor-pointer ${tab === activeTab ? "bg-stone-100" : ""} transition-colors duration-200`}
-          >
-            <label className="capitalize small font-semibold text-center w-full">
-              {tab}
-            </label>
-          </li>
-        ))}
-      </ul>
-      <div className="px-4 flex-1 overflow-y-scroll flex flex-col gap-2 pb-20">
-        {renderTabContent()}
-      </div>
+          <ul className="mx-4 flex items-center flex-nowrap border border-slate-100 overflow-hidden shadow-sm rounded-lg divide-x-2">
+            {Object.values(GardenTab).map((tab) => (
+              <li
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`flex-1 flex justify-center items-center p-3 cursor-pointer ${tab === activeTab ? "bg-teal-200 " : ""} transition-colors duration-200`}
+              >
+                <label className="capitalize small font-semibold text-center w-full">
+                  {tab}
+                </label>
+              </li>
+            ))}
+          </ul>
+          <div className="noscroll px-4 pt-4 flex-1 overflow-y-scroll flex flex-col gap-2 pb-20">
+            {renderTabContent()}
+          </div>
+        </>
+      )}
+      <Outlet context={{ gardenId: garden.id }} />
     </div>
   );
 };
