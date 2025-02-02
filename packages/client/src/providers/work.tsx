@@ -1,22 +1,28 @@
 // import { z } from "zod";
 import toast from "react-hot-toast";
-import React, { useContext, useState } from "react";
-// import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { Control, FormState, useForm, UseFormRegister } from "react-hook-form";
-
-import { EAS } from "@/constants";
-
-import { queryClient } from "@/modules/react-query";
-
-import { useUser } from "./user";
-import { useGarden } from "./garden";
-import { encodeWorkData } from "@/utils/eas";
-import { abi } from "@/utils/abis/EAS.json";
 import {
   NO_EXPIRATION,
   ZERO_BYTES32,
 } from "@ethereum-attestation-service/eas-sdk";
+import React, { useContext, useState } from "react";
+// import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  QueryObserverResult,
+  useMutation,
+  useQuery,
+} from "@tanstack/react-query";
+import { Control, FormState, useForm, UseFormRegister } from "react-hook-form";
+
+import { EAS } from "@/constants";
+
+import { getWorkApprovals } from "@/modules/eas";
+import { queryClient } from "@/modules/react-query";
+
+import { encodeWorkData } from "@/utils/eas";
+import { abi } from "@/utils/abis/EAS.json";
+
+import { useUser } from "./user";
+import { useGardens } from "./garden";
 
 export enum WorkTab {
   Intro = "Intro",
@@ -29,8 +35,11 @@ export enum WorkTab {
 export interface WorkDataProps {
   gardens: Garden[];
   actions: Action[];
-  works: Work[];
-  workApprovals: WorkApprovalCard[];
+  workApprovals: WorkApproval[];
+  workApprovalMap: Record<string, WorkApproval>;
+  refetchWorkApprovals: () => Promise<
+    QueryObserverResult<WorkApproval[], Error>
+  >;
   form: {
     state: FormState<WorkDraft>;
     actionUID: number | null;
@@ -62,8 +71,8 @@ export interface WorkDataProps {
 const WorkContext = React.createContext<WorkDataProps>({
   gardens: [],
   actions: [],
-  works: [],
   workApprovals: [],
+  workApprovalMap: {},
   form: {
     // @ts-ignore
     register: () => {},
@@ -83,16 +92,14 @@ export const useWork = () => {
 
 export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   const { smartAccountClient } = useUser();
-  const { actions, gardens } = useGarden();
+  const { actions, gardens } = useGardens();
 
   // QUERIES
-  const { data: works } = useQuery<Work[]>({
-    queryKey: ["works"],
-    queryFn: () => [],
-  });
-  const { data: workApprovals } = useQuery<WorkApproval[]>({
+  const { data: workApprovals, refetch: refetchWorkApprovals } = useQuery<
+    WorkApproval[]
+  >({
     queryKey: ["workApprovals"],
-    queryFn: () => [],
+    queryFn: () => getWorkApprovals(),
   });
 
   // MUTATIONS
@@ -176,8 +183,16 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       value={{
         gardens,
         actions,
-        works: works || [],
-        workApprovals: workApprovals || [],
+        workApprovals: workApprovals ?? [],
+        workApprovalMap:
+          workApprovals?.reduce(
+            (acc, work) => {
+              acc[work.workUID] = work;
+              return acc;
+            },
+            {} as Record<string, WorkApproval>
+          ) ?? {},
+        refetchWorkApprovals,
         form: {
           state: formState,
           control,
