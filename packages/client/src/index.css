@@ -5,7 +5,7 @@
 :root {
   color-scheme: light dark;
 
-  @apply text-stone-800;
+  @apply text-slate-800;
   background-color: #fff;
 
   scrollbar-width: none;
@@ -27,6 +27,12 @@
     background-color: #242424;
   }
 } */
+
+.noscroll {
+  overflow: auto; /* Allow scrolling */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
 
 ::-webkit-scrollbar {
   display: none;

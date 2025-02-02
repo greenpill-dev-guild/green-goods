@@ -1,10 +1,5 @@
-import {
-  RiKeyLine,
-  RiMailFill,
-  RiPhoneLine,
-  RiUserLine,
-} from "@remixicon/react";
 import { usePrivy } from "@privy-io/react-auth";
+import { RiKeyLine, RiMailFill, RiPhoneLine } from "@remixicon/react";
 
 import { Button } from "@/components/Button";
 
@@ -25,10 +20,9 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
     linkEmail,
     linkPhone,
     linkPasskey,
-    linkFarcaster,
     unlinkEmail,
     unlinkPhone,
-    unlinkFarcaster,
+    logout,
   } = usePrivy();
 
   const linkedAccounts: LinkedAccount[] = [
@@ -56,29 +50,20 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
       link: linkPasskey,
       unlink: () => {},
     },
-    {
-      title: "Farcaster",
-      description: user?.farcaster?.displayName || "Not Linked",
-      isLinked: !!user?.farcaster?.displayName,
-      Icon: <RiUserLine className="w-4" />,
-      link: linkFarcaster,
-      unlink: () =>
-        user?.farcaster?.fid && unlinkFarcaster(user?.farcaster?.fid),
-    },
   ];
 
   return (
     <>
-      <div className="flex flex-col gap-2 mt-4">
+      <div className="noscroll overscroll-none flex flex-col gap-2 mt-4">
         <h5>Linked Accounts</h5>
         <ul className="flex flex-col gap-2">
           {linkedAccounts.map(
             ({ title, Icon, description, isLinked, link, unlink }) => (
               <li
                 key={title}
-                className="flex gap-1 justify-between border border-stone-50 shadow-sm "
+                className="flex gap-1 justify-between border-2 border-slate-100 shadow-sm "
               >
-                <div className="flex flex-col gap-2 px-2 py-3">
+                <div className="flex flex-col gap-2 px-2 py-1">
                   <div className="flex items-center font-sm gap-1">
                     {Icon}
                     <label className="line-clamp-1 text-sm">{title}</label>
@@ -89,13 +74,20 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
                   label={isLinked ? "Unlink" : "Link"}
                   onClick={isLinked ? unlink : link}
                   variant="secondary"
-                  className="w-[20vw]"
+                  className="w-[20vw] bg-teal-400"
                   size="small"
                 />
               </li>
             )
           )}
         </ul>
+        <Button
+          label="Logout"
+          className="bg-red-700 mt-8 mb-4"
+          fullWidth
+          // size="small"
+          onClick={logout}
+        />
       </div>
     </>
   );

@@ -11,6 +11,7 @@
     "feedbackPlaceholder": "Provide feedback or any issues during the planting process",
     "inputs": [
       {
+        "key": "plantSelection",
         "title": "Plants Planted",
         "placeholder": "Select the different species planted",
         "type": "select",
@@ -18,6 +19,7 @@
         "options": ["Acacia", "Eucalyptus", "Pine", "Other"]
       },
       {
+        "key": "plantCount",
         "title": "How many plants were planted?",
         "placeholder": "Enter the number of plants planted",
         "type": "number",

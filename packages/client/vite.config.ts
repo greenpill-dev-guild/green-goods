@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import path from "path";
 import dotenvExpand from "dotenv-expand";
 
@@ -15,6 +16,11 @@ export default defineConfig(({ mode }) => {
   }
 
   return {
+    test: {
+      env: loadEnv(mode, process.cwd(), ""),
+      environment: "jsdom",
+      setupFiles: "./src/__tests__/setupTests.ts", // Optional: setup file
+    },
     plugins: [
       mkcert(),
       react(),

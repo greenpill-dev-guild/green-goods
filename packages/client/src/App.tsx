@@ -4,25 +4,26 @@ import { Route, Routes, Navigate, BrowserRouter } from "react-router-dom";
 
 import { queryClient } from "@/modules/react-query";
 
-import { WorkProvider } from "@/providers/WorkProvider";
-import { GardenProvider } from "@/providers/GardenProvider";
+import { WorkProvider } from "@/providers/work";
+import { GardensProvider } from "@/providers/garden";
 
-import { usePWA } from "@/providers/PWAProvider";
-import { useUser } from "@/providers/UserProvider";
+import { useApp } from "@/providers/app";
+import { useUser } from "@/providers/user";
 
-import Views from "@/views";
+import { CircleLoader } from "@/components/Loader";
+import { AppBar } from "@/components/Layout/AppBar";
+
+import AppViews from "@/views";
 import Login from "@/views/Login";
 import Landing from "@/views/Landing";
-import { Appbar } from "@/components/Layout/AppBar";
-import { CircleLoader } from "./components/Loader";
 
 function App() {
   const { authenticated } = usePrivy();
-  const { isMobile, isInstalled } = usePWA();
-  const { authenticating, smartAccountReady } = useUser();
+  const { isMobile, isInstalled } = useApp();
+  const { ready, smartAccountAddress } = useUser();
 
   const isDownloaded = isMobile && isInstalled;
-  const isAuthenticated = authenticated && smartAccountReady;
+  const isAuthenticated = authenticated && smartAccountAddress;
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -38,7 +39,7 @@ function App() {
             path="/login"
             element={
               isDownloaded ?
-                !isAuthenticated && authenticating ?
+                !isAuthenticated && !ready ?
                   <main className="w-full h-full grid place-items-center">
                     <CircleLoader />
                   </main>
@@ -54,12 +55,12 @@ function App() {
             element={
               isDownloaded ?
                 isAuthenticated ?
-                  <GardenProvider>
+                  <GardensProvider>
                     <WorkProvider>
-                      <Views />
-                      <Appbar />
+                      <AppViews />
+                      <AppBar />
                     </WorkProvider>
-                  </GardenProvider>
+                  </GardensProvider>
                 : <Navigate to="/login" replace />
               : <Navigate to="/landing" replace />
             }

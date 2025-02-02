@@ -79,7 +79,7 @@ const socials: Social[] = [
 export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
   return (
     <>
-      <div className="flex flex-col gap-4 mt-4">
+      <div className=" flex flex-col gap-4 mt-4">
         <h5 className="">Get In Touch</h5>
         <ul className="flex flex-col gap-2">
           {socials.map((social) => (
@@ -91,14 +91,14 @@ export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
                 href={social.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex  gap-2 items-center text-stone-900"
+                className="flex  gap-2 items-center text-slate-900"
               >
-                <div className="border p-2 rounded-full bg-stone-50">
+                <div className="border p-2 rounded-full bg-slate-50">
                   {social.Icon}
                 </div>
                 <div className="flex-1">
                   <label className="text-base">{social.title}</label>
-                  <div className="text-xs text-stone-600">
+                  <div className="text-xs text-slate-600">
                     {social.description}
                   </div>
                 </div>

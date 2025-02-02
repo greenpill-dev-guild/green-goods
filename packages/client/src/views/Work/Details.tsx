@@ -1,35 +1,36 @@
-import { UseFormRegister } from "react-hook-form";
+import { RiFileFill } from "@remixicon/react";
+import { Control, UseFormRegister } from "react-hook-form";
 
+import { FormInfo } from "@/components/Form/Info";
 import { FormText } from "@/components/Form/Text";
 import { FormInput } from "@/components/Form/Input";
-// import { FormSelect } from "@/components/Form/Select";
+import { FormSelect } from "@/components/Form/Select";
 
 interface WorkDetailsProps {
-  title?: string;
-  description: string;
+  instruction: string;
   feedbackPlaceholder: string;
   inputs: WorkInput[];
   register: UseFormRegister<WorkDraft>;
+  control: Control<WorkDraft>;
 }
 
 export const WorkDetails: React.FC<WorkDetailsProps> = ({
-  title,
-  description,
+  instruction,
   feedbackPlaceholder,
   register,
+  control,
   inputs,
 }) => {
   return (
     <div>
-      <h1>{title}</h1>
-      <p>{description}</p>
-      {inputs.map(({ placeholder, required, title, type }, index) => {
+      <FormInfo title="Enter Details" info={instruction} Icon={RiFileFill} />
+      {inputs.map(({ placeholder, options, required, title, key, type }) => {
         if (type === "number") {
           return (
             <FormInput
               // @ts-ignore
-              {...register(title)}
-              key={index}
+              {...register(key)}
+              key={key}
               label={title}
               type="number"
               placeholder={placeholder}
@@ -38,25 +39,25 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
           );
         } else if (type === "select") {
           return (
-            // <FormSelect
-            //   key={index}
-            //   // @ts-ignore
-            //   {...register(title)}
-            //   label={title}
-            //   placeholder={placeholder}
-            //   options={options.map((option) => ({
-            //     label: option,
-            //     value: option,
-            //   }))}
-            // />
-            null
+            <FormSelect
+              key={key}
+              // @ts-ignore
+              {...register(key)}
+              label={title}
+              placeholder={placeholder}
+              options={options.map((option) => ({
+                label: option,
+                value: option,
+              }))}
+              control={control}
+            />
           );
         } else if (type === "text") {
           return (
             <FormInput
-              key={index}
+              key={key}
               // @ts-ignore
-              {...register(title)}
+              {...register(key)}
               label={title}
               placeholder={placeholder}
               required={required}
@@ -66,8 +67,8 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
           return (
             <FormText
               // @ts-ignore
-              {...register(title)}
-              key={index}
+              {...register(key)}
+              key={key}
               label={title}
               rows={3}
               placeholder={placeholder}

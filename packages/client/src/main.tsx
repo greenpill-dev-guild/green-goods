@@ -4,43 +4,50 @@ import { createRoot } from "react-dom/client";
 import { arbitrum } from "viem/chains";
 import { Toaster } from "react-hot-toast";
 import { PrivyProvider } from "@privy-io/react-auth";
-
-import { PWAProvider } from "@/providers/PWAProvider.tsx";
-import { UserProvider } from "@/providers/UserProvider.tsx";
+import { SmartWalletsProvider } from "@privy-io/react-auth/smart-wallets";
 
 import { APP_DESCRIPTION } from "@/constants";
+
+import { AppProvider } from "@/providers/app";
+import { UserProvider } from "@/providers/user";
+
 import App from "@/App.tsx";
 import "@/index.css";
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <PWAProvider>
-      <PrivyProvider
-        appId={import.meta.env.VITE_PRIVY_APP_ID as string}
-        config={{
-          loginMethods: ["email", "sms"],
-          appearance: {
-            theme: "light",
-            loginMessage: APP_DESCRIPTION,
-            landingHeader: "",
-            logo: "",
-          },
-          embeddedWallets: {
-            createOnLogin: "users-without-wallets",
-            noPromptOnSignature: true,
-          },
-          defaultChain: arbitrum,
-          supportedChains: [arbitrum],
-          intl: {
-            defaultCountry: navigator.language === "pt-BR" ? "BR" : "US",
-          },
-        }}
-      >
+export const Root = () => (
+  <AppProvider>
+    <PrivyProvider
+      appId={import.meta.env.VITE_PRIVY_APP_ID as string}
+      config={{
+        loginMethods: ["email", "sms"],
+        appearance: {
+          theme: "light",
+          loginMessage: APP_DESCRIPTION,
+          landingHeader: "",
+          logo: "",
+        },
+        embeddedWallets: {
+          createOnLogin: "users-without-wallets",
+        },
+        defaultChain: arbitrum,
+        supportedChains: [arbitrum],
+        intl: {
+          defaultCountry: navigator.language === "pt-BR" ? "BR" : "US",
+        },
+      }}
+    >
+      <SmartWalletsProvider>
         <UserProvider>
           <App />
           <Toaster />
         </UserProvider>
-      </PrivyProvider>
-    </PWAProvider>
+      </SmartWalletsProvider>
+    </PrivyProvider>
+  </AppProvider>
+);
+
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <Root />
   </StrictMode>
 );
