@@ -1,6 +1,6 @@
 import { Form } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import { RiArrowLeftSFill } from "@remixicon/react";
+import { RiArrowLeftSLine } from "@remixicon/react";
 
 import { useWork, WorkTab } from "@/providers/work";
 
@@ -26,8 +26,8 @@ const Work: React.FC<WorkProps> = () => {
     state,
     images,
     setImages,
-    setActionUID,
     actionUID,
+    setActionUID,
     gardenAddress,
     setGardenAddress,
     register,
@@ -58,8 +58,8 @@ const Work: React.FC<WorkProps> = () => {
         return (
           <WorkMedia
             instruction="Please take a clear photo of the plants on the garden"
-            needed={[]}
-            optional={[]}
+            needed={["whole_plant"]}
+            optional={["leaves", "flowers", "fruits", "bark"]}
             images={images}
             setImages={setImages}
           />
@@ -67,7 +67,7 @@ const Work: React.FC<WorkProps> = () => {
       case WorkTab.Details:
         return (
           <WorkDetails
-            instruction=""
+            instruction="Provide detailed information and feedback"
             feedbackPlaceholder=""
             inputs={action?.inputs ?? []}
             register={register}
@@ -142,20 +142,21 @@ const Work: React.FC<WorkProps> = () => {
       }}
       className="fixed top-0 left-0 right-0 bottom-0 z-40 bg-white flex flex-col w-full pt-4 pb-4 px-4"
     >
-      <div className="relative grid place-items-center">
+      <div className="relative flex justify-between items-center">
         <button
           type="button"
-          className="flex gap-1 absolute top-0 left-0 items-center w-10 h-10 p-2 bg-white rounded-lg font-bold"
+          className="flex items-center gap-1 w-10 h-10 p-2 bg-white border border-slate-200 rounded-lg"
           onClick={tabActions[activeTab].backButton}
         >
-          <RiArrowLeftSFill className="w-12 h-12 text-black" />
+          <RiArrowLeftSLine className="w-10 h-10 text-black" />
         </button>
         <FormProgress
           currentStep={Object.values(WorkTab).indexOf(activeTab) + 1}
-          steps={Object.values(WorkTab)}
+          steps={Object.values(WorkTab).slice(0, 4)}
         />
+        <div className="flex items-center gap-1 w-10 h-10 p-2 border border-transparent" />
       </div>
-      <div className="flex-1 overflow-y-scroll mt-4 pb-4">
+      <div className="flex-1 overflow-y-scroll noscroll mt-4 pb-4">
         {renderTabContent()}
       </div>
       <div className="flex gap-2 flex-nowrap">

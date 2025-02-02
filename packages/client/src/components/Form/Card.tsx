@@ -8,7 +8,7 @@ interface FormCardProps {
 }
 
 const variants = {
-  primary: "bg-teal-50 border-teal-200 border-1 shadow-md",
+  primary: "bg-transparent border-slate-100 border-2 shadow-sm",
   secondary: "bg-green-100 text-green-700",
   tertiary: "bg-yellow-100 text-yellow-700",
 };
@@ -24,14 +24,14 @@ export const FormCard = ({
 
   return (
     <div
-      className={`${variantClasses} p-4 rounded-lg flex mb-4 max-h-36`}
+      className={`${variantClasses} rounded-lg flex flex-col divide-y-2 mb-4 shadow-md`}
       {...props}
     >
-      <div className="flex gap-0.5">
-        {Icon && <Icon size={24} />}
-        <h3 className="text-lg font-bold text-slate-800">{label}</h3>
+      <div className="flex items-center gap-2 px-4 py-2">
+        {Icon && <Icon size={24} className="text-teal-600" />}
+        <h3 className="text-lg font-medium text-slate-800">{label}</h3>
       </div>
-      <p className="text-sm text-slate-700">{value}</p>
+      <p className="text-slate-700 px-4 py-3">{value}</p>
     </div>
   );
 };

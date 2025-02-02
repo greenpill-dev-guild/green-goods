@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { RiImageFill } from "@remixicon/react";
+import { RiCloseLine, RiImageFill } from "@remixicon/react";
 
 import { FormInfo } from "@/components/Form/Info";
 import { Books } from "@/assets/Books";
@@ -35,13 +35,31 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
   return (
     <div>
       <FormInfo title="Upload Media" info={instruction} Icon={RiImageFill} />
-      <div>
-        <label>Needed</label>
-        <ul>{needed.map((item) => item)}</ul>
+      <div className="tracking-tight text-xs mb-3">
+        <h6 className="mb-1">NEEDED</h6>
+        <ul className="flex gap-1 flex-wrap">
+          {needed.map((item) => (
+            <li
+              key={item}
+              className="capitalize rounded-full p-1 px-1.5 bg-teal-500 text-white"
+            >
+              {item.replace("_", " ")}
+            </li>
+          ))}
+        </ul>
       </div>
-      <div>
-        <label>Optional</label>
-        <ul>{optional.map((item) => item)}</ul>
+      <div className="tracking-tight text-xs mb-6">
+        <h6 className="mb-1">OPTIONAL</h6>
+        <ul className="flex gap-1 flex-wrap">
+          {optional.map((item) => (
+            <li
+              key={item}
+              className="capitalize rounded-full p-1 px-1.5 bg-teal-500 text-white"
+            >
+              {item.replace("_", " ")}
+            </li>
+          ))}
+        </ul>
       </div>
       <input
         id="work-media-upload"
@@ -65,19 +83,21 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
                 className="w-full aspect-square object-cover rounded-lg"
               />
               <button
-                className="btn btn-sm btn-circle absolute top-2 right-2"
+                className="flex items-center w-8 h-8 p-1 bg-white border border-slate-200 rounded-lg absolute top-2 right-2"
                 onClick={(e) => {
                   e.stopPropagation();
                   removeImage(index);
                 }}
                 type="button"
               >
-                ✕
+                <RiCloseLine className="w-8 h-8" />
               </button>
             </li>
           ))
-        : <li className="grid place-items-center">
-            No images added yet. Click on upload button
+        : <li className="pt-8 px-4 grid place-items-center">
+            <p className="text-center text-lg font-medium mb-3">
+              No images added yet. Click on upload button
+            </p>
             <Books />
           </li>
         }

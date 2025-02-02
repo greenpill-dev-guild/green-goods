@@ -27,23 +27,25 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
         info="What type of work you are submitting?"
         Icon={RiHammerFill}
       />
-      <div className="carousel carousel-center rounded-box max-w-md space-x-4 p-4">
+      <div className="carousel carousel-center max-w-md space-x-4 mb-4">
         {actions.map((action) => (
           <li
             key={action.id}
-            className={`carousel-item flex flex-col gap-2 border-2 shadow w-2/3 rounded-xl ${
+            className={`carousel-item flex flex-col border shadow-sm  w-2/3 rounded-xl ${
               action.id === selectedActionUID ?
                 "active border-green-600"
-              : "border-transparent"
+              : "border-slate-200"
             }`}
             onClick={() => setActionUID(action.id)}
           >
             <img
               src={action.media[0]}
               alt={"Action image"}
-              className="aspect-square object-cover rounded-xl"
+              className="aspect-video object-cover rounded-t-xl"
             />
-            <h5>{action.title}</h5>
+            <div className="p-2">
+              <h5 className="text-xl font-medium">{action.title}</h5>
+            </div>
           </li>
         ))}
       </div>
@@ -52,27 +54,28 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
         info="Which garden are you submitting for?"
         Icon={RiPlantFill}
       />
-      <ul className="carousel carousel-center rounded-box max-w-md space-x-4 p-4">
+      <ul className="carousel carousel-center max-w-md space-x-4 mb-4">
         {gardens.map((garden) => (
           <li
             key={garden.id}
-            className={`carousel-item flex flex-col border-2 w-2/3 ${
+            className={`carousel-item flex flex-col border shadow-sm  w-2/3 rounded-xl ${
               garden.id === selectedGardenAddress ?
                 "active border-green-600"
               : "border-transparent"
             }`}
             onClick={() => setGardenAddress(garden.id)}
           >
-            <img src={garden.bannerImage} alt={"Garden banner image"} />
-            <h5>{garden.name}</h5>
-            <p>{garden.description}</p>
+            <img
+              src={garden.bannerImage}
+              alt={"Garden banner image"}
+              className="aspect-video object-cover rounded-t-xl"
+            />
+            <div className="p-2">
+              <h5 className="text-xl font-medium">{garden.name}</h5>
+              <p className="text-xs line-clamp-3">{garden.description}</p>
+            </div>
           </li>
         ))}
-        {gardens.length < 2 && (
-          <li className="carousel-item flex flex-col w-2/3">
-            <div className="divider"></div>
-          </li>
-        )}
       </ul>
     </>
   );
