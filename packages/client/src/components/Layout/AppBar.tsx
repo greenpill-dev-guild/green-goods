@@ -47,7 +47,7 @@ export const AppBar = () => {
             className={`flex flex-col items-center ${
               pathname === path ?
                 "active tab-active text-[#367D42] focus:outline-none hover:text-[#367D42]"
-              : "text-stone-700"
+              : "text-slate-700"
             }`}
           >
             {pathname === path ?

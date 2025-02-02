@@ -12,8 +12,8 @@ export const FormText = forwardRef<HTMLTextAreaElement, FormTextProps>(
   ({ rows, label, error, className, helperText, ...props }, ref) => {
     return (
       <div className={`${className} flex flex-col gap-1 mb-2`}>
-        <label htmlFor={props.id} className="block text-sm font-medium mb-2">
-          <h3 className="font-bold text-slate-600">{label}</h3>
+        <label htmlFor={props.id} className="font-semibold text-slate-800">
+          {label}
         </label>
         <textarea
           ref={ref}

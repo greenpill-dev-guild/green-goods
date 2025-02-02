@@ -26,7 +26,7 @@ export const GardenCard: React.FC<GardenCardProps> = ({
 }) => {
   return (
     <li
-      className={`${index === 0 ? "mt-4" : ""} flex flex-col bg-stone-50 border border-1 shadow-md rounded-xl`}
+      className={`${index === 0 ? "mt-4" : ""} flex flex-col bg-slate-50 border border-1 shadow-md rounded-xl`}
       // onClick={onCardClick}
     >
       <div className="relative w-full h-auto rounded-t-xl">

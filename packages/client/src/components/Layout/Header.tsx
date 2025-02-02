@@ -1,5 +1,5 @@
 import { APP_NAME } from "@/constants";
-import { usePWA } from "@/providers/pwa";
+import { useApp } from "@/providers/app";
 import {
   RiGithubLine,
   RiTwitterLine,
@@ -23,7 +23,7 @@ const links: Link<RemixiconComponentType>[] = [
 ];
 
 export const Header: React.FC<HeaderProps> = () => {
-  const { isMobile } = usePWA();
+  const { isMobile } = useApp();
 
   const filterLinks =
     isMobile ? links.filter(({ title }) => title === "twitter") : links;
@@ -41,7 +41,7 @@ export const Header: React.FC<HeaderProps> = () => {
             href={link}
             target="_blank"
             rel="noreferrer"
-            className="text-[#367D42] hover:text-[#D2B48C] bg-stone-100 hover:bg-stone-200 p-2 rounded-full transition-colors grid place-items-center"
+            className="text-[#367D42] hover:text-[#D2B48C] bg-slate-100 hover:bg-slate-200 p-2 rounded-full transition-colors grid place-items-center"
             onClick={action}
           >
             <Icon size={28} />
