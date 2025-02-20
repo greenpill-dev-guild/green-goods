@@ -87,7 +87,11 @@ const Work: React.FC<WorkProps> = () => {
           />
         );
       case WorkTab.Complete:
-        return null;
+        return (
+          <div>
+            <p>Work completed</p>
+          </div>
+        );
     }
   };
 
@@ -116,8 +120,7 @@ const Work: React.FC<WorkProps> = () => {
     },
     [WorkTab.Review]: {
       primary: () => {
-        const element = document.getElementById("work-form") as HTMLFormElement;
-        element.submit();
+        uploadWork();
       },
       primaryLabel: "Upload Work",
       primaryDisabled: !state.isValid || state.isSubmitting,
@@ -137,9 +140,6 @@ const Work: React.FC<WorkProps> = () => {
     <Form
       id="work-form"
       control={control}
-      onSubmit={({ event }) => {
-        uploadWork(event);
-      }}
       className="fixed top-0 left-0 right-0 bottom-0 z-40 bg-white flex flex-col w-full pt-4 pb-4 px-4"
     >
       <div className="relative flex justify-between items-center">

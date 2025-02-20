@@ -142,8 +142,6 @@ export async function getGardeners(): Promise<GardenerCard[]> {
 
   const response: User[] = await request.json();
 
-  console.log("Gardeners", response);
-
   return response.map((user) => {
     return {
       id: user.id,

@@ -1,16 +1,17 @@
 // import { z } from "zod";
 import toast from "react-hot-toast";
 import {
-  NO_EXPIRATION,
-  ZERO_BYTES32,
-} from "@ethereum-attestation-service/eas-sdk";
-import React, { useContext, useState } from "react";
-// import { zodResolver } from "@hookform/resolvers/zod";
-import {
   QueryObserverResult,
   useMutation,
   useQuery,
 } from "@tanstack/react-query";
+import {
+  NO_EXPIRATION,
+  ZERO_BYTES32,
+} from "@ethereum-attestation-service/eas-sdk";
+import React, { useContext, useState } from "react";
+import { encodeFunctionData, parseEther, zeroAddress } from "viem";
+// import { zodResolver } from "@hookform/resolvers/zod";
 import { Control, FormState, useForm, UseFormRegister } from "react-hook-form";
 
 import { EAS } from "@/constants";
@@ -139,9 +140,8 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         media: images,
       });
 
-      const receipt = await smartAccountClient.writeContract({
+      const data = encodeFunctionData({
         abi,
-        address: EAS["42161"].EAS.address as `0x${string}`,
         functionName: "attest",
         args: [
           {
@@ -158,7 +158,37 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         ],
       });
 
-      return receipt;
+      const userOperation = await smartAccountClient.prepareUserOperation({
+        calls: [
+          // {
+          //   to: zeroAddress,
+          //   value: 0n,
+          //   data: "0x",
+          // },
+          {
+            to: EAS["42161"].EAS.address,
+            data,
+            value: 0n,
+          },
+        ],
+        stateOverride: [
+          {
+            balance: parseEther("1000"),
+            address: smartAccountClient.account.address,
+          },
+        ],
+      });
+
+      const userOperationHash =
+        await smartAccountClient.sendUserOperation(userOperation);
+
+      console.log("userOperationHash", userOperationHash);
+
+      // const receipt = await smartAccountClient.waitForUserOperationReceipt({
+      //   hash: userOperationHash,
+      // });
+
+      return "receipt";
     },
     onMutate: () => {
       toast.loading("Uploading work...");
@@ -168,7 +198,8 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       toast.success("Work uploaded!");
       queryClient.invalidateQueries({ queryKey: ["works"] });
     },
-    onError: () => {
+    onError: (error) => {
+      console.error("Upload Work", error);
       toast.remove();
       toast.error("Work upload failed!");
     },

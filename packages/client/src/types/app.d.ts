@@ -22,11 +22,11 @@ declare enum Capital {
 declare interface GardenerCard {
   id: string; // Privy ID
   account?: string; // Smart Account Address
-  username?: string; // Unique username
+  username?: string | null; // Unique username
   email?: string;
   phone?: string;
   location?: string;
-  avatar?: string;
+  avatar?: string | null;
   registeredAt: Date;
 }
 

@@ -71,13 +71,13 @@ export const Garden: React.FC<GardenProps> = () => {
                 <RiArrowLeftSLine className="w-10 h-10 text-black" />
               </Link>
               <div className="relative dropdown dropdown-bottom dropdown-end">
-                {workNotifications.length && (
+                {workNotifications.length ?
                   <span className="absolute -top-2 -right-2 w-5 h-5 bg-teal-500 rounded-full flex-col justify-center items-center gap-2.5 inline-flex">
                     <p className="text-xs self-stretch text-center text-white font-medium leading-3 tracking-tight">
                       {workNotifications.length}
                     </p>
                   </span>
-                )}
+                : null}
                 <div
                   tabIndex={0}
                   role="button"

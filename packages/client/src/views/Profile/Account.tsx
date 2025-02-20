@@ -1,5 +1,10 @@
 import { usePrivy } from "@privy-io/react-auth";
-import { RiKeyLine, RiMailFill, RiPhoneLine } from "@remixicon/react";
+import {
+  RiKeyLine,
+  RiMailFill,
+  RiPhoneLine,
+  RiWalletLine,
+} from "@remixicon/react";
 
 import { Button } from "@/components/Button";
 
@@ -20,8 +25,11 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
     linkEmail,
     linkPhone,
     linkPasskey,
+    linkWallet,
     unlinkEmail,
     unlinkPhone,
+    // unlinkPasskey,
+    unlinkWallet,
     logout,
   } = usePrivy();
 
@@ -49,6 +57,15 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
       Icon: <RiKeyLine className="w-4" />,
       link: linkPasskey,
       unlink: () => {},
+    },
+    {
+      title: "Wallet",
+      description: user?.wallet ? "" : "Not Linked",
+      isLinked: !!user?.wallet,
+      Icon: <RiWalletLine className="w-4" />,
+      link: linkWallet,
+      unlink: () =>
+        user?.wallet?.address && unlinkWallet(user?.wallet?.address),
     },
   ];
 

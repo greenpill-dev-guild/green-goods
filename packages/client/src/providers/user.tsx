@@ -37,8 +37,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     (account) => account.type === "smart_wallet"
   );
 
-  console.log("smartAccount", smartAccount);
-
   return (
     <UserContext.Provider
       value={{

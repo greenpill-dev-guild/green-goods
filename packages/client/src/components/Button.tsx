@@ -22,14 +22,14 @@ const sizes = {
 };
 
 const variantColors = {
-  primary: "#367D42",
+  primary: "teal",
   secondary: "#D2B48C",
   tertiary: "blue",
 };
 
 function generateStyles(variant: "primary" | "secondary" | "tertiary") {
   return {
-    solid: `border-transparent bg-[${variantColors[variant]}] text-white hover:bg-${variantColors[variant]}-700`,
+    solid: `border-transparent bg-${variantColors[variant]}-600 text-white hover:bg-${variantColors[variant]}-700`,
     soft: `border-transparent bg-${variantColors[variant]}-100 text-${variantColors[variant]}-800 hover:bg-${variantColors[variant]}-200  dark:hover:bg-${variantColors[variant]}-900 dark:text-${variantColors[variant]}-500 dark:hover:text-${variantColors[variant]}-400`,
     outline: `border-${variantColors[variant]}-500 text-${variantColors[variant]}-500 hover:border-${variantColors[variant]}-400 hover:text-${variantColors[variant]}-400 `,
     ghost: `border-transparent text-${variantColors[variant]}-500 hover:bg-${variantColors[variant]}-100 hover:text-${variantColors[variant]}-800  dark:hover:bg-${variantColors[variant]}-800/30 dark:hover:text-${variantColors[variant]}-400`,

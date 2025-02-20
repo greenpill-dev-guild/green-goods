@@ -22,13 +22,14 @@ const parseDataToGardenAssessment = async (
     data.filter((d: any) => d.name === "speciesRegistryJSON")[0].value.value!
   );
 
+  const speciesRegistry: SpeciesRegistry = species.data as any;
+
   const issues = data
     .filter((d: any) => d.name === "issues")[0]
     .value.value.map((issue: string) => issue.replace("_", " "));
   const tags = data
     .filter((d: any) => d.name === "tags")[0]
     .value.value.map((tag: string) => tag.replace("_", " "));
-  const speciesRegistry = JSON.parse(species.data as string);
 
   return {
     id: gardenAssessmentUID,
@@ -37,14 +38,17 @@ const parseDataToGardenAssessment = async (
     soilMoisturePercentage: data.filter(
       (d: any) => d.name === "soilMoisturePercentage"
     )[0].value.value!,
-    carbonTonStock: data.filter((d: any) => d.name === "carbonTonStock")[0]
-      .value.value!,
-    carbonTonPotential: data.filter(
-      (d: any) => d.name === "carbonTonPotential"
-    )[0].value.value!,
-    gardenSquareMeters: data.filter(
-      (d: any) => d.name === "gardenSquareMeters"
-    )[0].value.value!,
+    carbonTonStock: Number(
+      data.filter((d: any) => d.name === "carbonTonStock")[0].value.value.hex!
+    ),
+    carbonTonPotential: Number(
+      data.filter((d: any) => d.name === "carbonTonPotential")[0].value.value
+        .hex!
+    ),
+    gardenSquareMeters: Number(
+      data.filter((d: any) => d.name === "gardenSquareMeters")[0].value.value
+        .hex!
+    ),
     biome: data.filter((d: any) => d.name === "biome")[0].value.value!,
     remoteReport:
       typeof report.data === "string" ?
@@ -186,11 +190,11 @@ export const getGardenAssessments = async (
 
   return await Promise.all(
     data?.attestations.map(
-      async ({ id, recipient, timeCreated, decodedDataJson }) =>
+      async ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
         await parseDataToGardenAssessment(
           id,
           {
-            attester: recipient,
+            attester,
             recipient,
             time: timeCreated,
           },

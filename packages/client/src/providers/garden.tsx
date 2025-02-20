@@ -17,6 +17,8 @@ interface GardenDataProps {
 interface GardensDataProps {
   actions: Action[];
   gardens: Garden[];
+  gardensStatus: "error" | "success" | "pending";
+  gardenersStatus: "error" | "success" | "pending";
   gardenersMap: Map<string, GardenerCard>;
 }
 
@@ -31,7 +33,6 @@ export const useGarden = (id: string): GardenDataProps => {
     Garden,
     [string, string]
   >({
-    _optimisticResults: "optimistic",
     initialData: gardens.find((garden) => garden.id === id),
     queryKey: ["gardens", id],
     queryFn: async ({ queryKey }) => {
@@ -57,6 +58,7 @@ export const useGarden = (id: string): GardenDataProps => {
 
       return { ...garden, assessments, works };
     },
+    throwOnError: true,
   });
 
   return {
@@ -78,6 +80,8 @@ export const useGarden = (id: string): GardenDataProps => {
 const GardensContext = React.createContext<GardensDataProps>({
   actions: [],
   gardens: [],
+  gardensStatus: "pending",
+  gardenersStatus: "pending",
   gardenersMap: new Map(),
 });
 
@@ -96,20 +100,24 @@ export const GardensProvider = ({
     queryFn: getActions,
   });
 
-  const { data: gardens } = useQuery<Garden[]>({
+  const { data: gardens, status: gardensStatus } = useQuery<Garden[]>({
     queryKey: ["gardens"],
     queryFn: getGardens,
   });
-  const { data: gardeners } = useQuery<GardenerCard[]>({
-    queryKey: ["gardeners"],
-    queryFn: getGardeners,
-  });
+  const { data: gardeners, status: gardenersStatus } = useQuery<GardenerCard[]>(
+    {
+      queryKey: ["gardeners"],
+      queryFn: getGardeners,
+    }
+  );
 
   return (
     <GardensContext.Provider
       value={{
         actions: actions || [],
         gardens: gardens || [],
+        gardensStatus,
+        gardenersStatus,
         gardenersMap: new Map(
           gardeners?.map((gardener) => [gardener.id, gardener]) || []
         ),

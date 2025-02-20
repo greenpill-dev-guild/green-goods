@@ -11,7 +11,6 @@ const { PrivyClient } = require("@privy-io/server-auth");
 //     }
 //   }
 // }
-
 export const config = {
   // runtime: "nodejs",
 };

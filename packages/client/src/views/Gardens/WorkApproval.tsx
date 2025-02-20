@@ -2,11 +2,11 @@ import { z } from "zod";
 import React from "react";
 import toast from "react-hot-toast";
 import { useForm } from "react-hook-form";
+import { useParams } from "react-router-dom";
 import {
   NO_EXPIRATION,
   ZERO_BYTES32,
 } from "@ethereum-attestation-service/eas-sdk";
-import { Form, useParams } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 
@@ -108,7 +108,7 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
   const { title, feedback, media } = work;
 
   return (
-    <Form>
+    <form>
       <h2>{title}</h2>
       <p>{feedback}</p>
       <ul className="carousel rounded-box w-full">
@@ -121,6 +121,7 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
       <FormInput label="Feedback" {...register("feedback")} />
       <div className="flex gap-2 w-full">
         <Button
+          type="button"
           label="Reject"
           onClick={handleSubmit((data) => {
             data.approved = false;
@@ -128,6 +129,7 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
           })}
         />
         <Button
+          type="button"
           label="Approve"
           onClick={handleSubmit((data) => {
             data.approved = true;
@@ -135,6 +137,6 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
           })}
         />
       </div>
-    </Form>
+    </form>
   );
 };
