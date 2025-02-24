@@ -10,7 +10,7 @@ import {
   ZERO_BYTES32,
 } from "@ethereum-attestation-service/eas-sdk";
 import React, { useContext, useState } from "react";
-import { encodeFunctionData, parseEther, zeroAddress } from "viem";
+// import { encodeFunctionData, parseEther, zeroAddress } from "viem";
 // import { zodResolver } from "@hookform/resolvers/zod";
 import { Control, FormState, useForm, UseFormRegister } from "react-hook-form";
 
@@ -24,6 +24,8 @@ import { abi } from "@/utils/abis/EAS.json";
 
 import { useUser } from "./user";
 import { useGardens } from "./garden";
+import { arbitrum } from "viem/chains";
+import { Chain, encodeFunctionData, TransactionRequest } from "viem";
 
 export enum WorkTab {
   Intro = "Intro",
@@ -133,16 +135,15 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
 
       const action = actions.find((action) => action.id === actionUID);
 
-      const encodedData = await encodeWorkData({
+      const encodedAttestationData = await encodeWorkData({
         ...draft,
         title: `${action?.title} - ${new Date().toISOString()}`,
         actionUID,
         media: images,
       });
 
-      const data = encodeFunctionData({
+      const encodedData = encodeFunctionData({
         abi,
-        functionName: "attest",
         args: [
           {
             schema: EAS["42161"].WORK.uid,
@@ -151,44 +152,25 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
               expirationTime: NO_EXPIRATION,
               revocable: true,
               refUID: ZERO_BYTES32,
-              data: encodedData,
+              data: encodedAttestationData,
               value: 0n,
             },
           },
         ],
+        functionName: "attest",
       });
 
-      const userOperation = await smartAccountClient.prepareUserOperation({
-        calls: [
-          // {
-          //   to: zeroAddress,
-          //   value: 0n,
-          //   data: "0x",
-          // },
-          {
-            to: EAS["42161"].EAS.address,
-            data,
-            value: 0n,
-          },
-        ],
-        stateOverride: [
-          {
-            balance: parseEther("1000"),
-            address: smartAccountClient.account.address,
-          },
-        ],
-      });
+      const transactionRequest: TransactionRequest & { chain: Chain } = {
+        chain: arbitrum,
+        to: EAS["42161"].EAS.address as `0x${string}`,
+        value: 0n,
+        data: encodedData,
+      };
 
-      const userOperationHash =
-        await smartAccountClient.sendUserOperation(userOperation);
+      const receipt =
+        await smartAccountClient.sendTransaction(transactionRequest);
 
-      console.log("userOperationHash", userOperationHash);
-
-      // const receipt = await smartAccountClient.waitForUserOperationReceipt({
-      //   hash: userOperationHash,
-      // });
-
-      return "receipt";
+      return receipt;
     },
     onMutate: () => {
       toast.loading("Uploading work...");

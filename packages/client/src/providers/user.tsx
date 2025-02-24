@@ -7,7 +7,7 @@ import {
 import React, { useContext } from "react";
 import {
   useSmartWallets,
-  SmartWalletClientTypeWithSwitchChain,
+  SmartWalletClientType,
 } from "@privy-io/react-auth/smart-wallets";
 
 interface UserInterface {
@@ -15,7 +15,7 @@ interface UserInterface {
   user: User | null;
   eoa?: ConnectedWallet | null;
   smartAccountAddress?: string | null;
-  smartAccountClient?: SmartWalletClientTypeWithSwitchChain | null;
+  smartAccountClient?: SmartWalletClientType | null;
 }
 
 const UserContext = React.createContext<UserInterface>({
