@@ -22,6 +22,7 @@
     "@tanstack/react-query": "^5.52.2",
     "@urql/core": "^5.0.4",
     "@vercel/functions": "1.4.1",
+    "clsx": "2.1.1",
     "gql.tada": "^1.8.10",
     "pinata": "^0.4.0",
     "react": "^18.3.1",
@@ -32,6 +33,8 @@
     "react-intl": "6.6.8",
     "react-router-dom": "^6.26.1",
     "react-select": "5.8.0",
+    "tailwind-merge": "3.0.2",
+    "tailwind-variants": "0.3.1",
     "zod": "^3.23.8"
   },
   "devDependencies": {

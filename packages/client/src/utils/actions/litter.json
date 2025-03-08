@@ -1,0 +1,35 @@
+{
+  "description": "Capture the litter cleanup process, including the location, date, and any other relevant details. Each litter cleanup action should be documented separately.",
+  "media": {
+    "title": "Capture the Litter Cleanup",
+    "description": "Please take a photo of the location where you will be picking up the litter. You can also take photos of the litter to document its condition.",
+    "maxImageCount": 8
+  },
+  "details": {
+    "title": "Input Litter Cleanup Details",
+    "description": "Please provide the following details about the litter cleanup process.",
+    "feedbackPlaceholder": "Provide feedback or any issues during the litter cleanup process",
+    "inputs": [
+      {
+        "key": "litterSelection",
+        "title": "Litter Type",
+        "placeholder": "Select the different litter picked up",
+        "type": "select",
+        "required": true,
+        "options": ["Other", "Plastic", "Metal", "Glass", "Paper", "Organic"]
+      },
+      {
+        "key": "litterCount",
+        "title": "Litter Removed",
+        "placeholder": "Enter the number of pieces of litter removed",
+        "type": "number",
+        "required": true,
+        "options": []
+      }
+    ]
+  },
+  "review": {
+    "title": "Review Litter Cleanup",
+    "description": "Please review the details you have provided before submitting."
+  }
+}

@@ -20,12 +20,14 @@ export const Splash: React.FC<SplashProps> = ({
       <img src="/icon.png" alt={APP_NAME} width={240} />
       <h3 className="font-bold text-center text-[#367D42] mb-12">{APP_NAME}</h3>
       <Button
-        label={buttonLabel}
         onClick={login}
         disabled={isLoggingIn}
-        variant="secondary"
-        fullWidth
-      />
+        className="w-full"
+        // variant="secondary"
+        // fullWidth
+      >
+        {buttonLabel}
+      </Button>
     </div>
   );
 };

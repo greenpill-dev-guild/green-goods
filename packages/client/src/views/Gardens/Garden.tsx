@@ -32,7 +32,7 @@ export const Garden: React.FC<GardenProps> = () => {
   const { pathname } = useLocation();
 
   const { actions } = useGardens();
-  const { garden, gardeners } = useGarden(id!);
+  const { garden, gardenStatus, gardeners } = useGarden(id!);
 
   if (!garden)
     return (
@@ -48,9 +48,20 @@ export const Garden: React.FC<GardenProps> = () => {
   const renderTabContent = () => {
     switch (activeTab) {
       case GardenTab.Work:
-        return <GardenWork actions={actions} works={works} />;
+        return (
+          <GardenWork
+            workFetchStatus={gardenStatus}
+            actions={actions}
+            works={works}
+          />
+        );
       case GardenTab.Assessments:
-        return <GardenAssessments assessments={assessments} />;
+        return (
+          <GardenAssessments
+            asessmentFetchStatus={gardenStatus}
+            assessments={assessments}
+          />
+        );
       case GardenTab.Gardeners:
         return <GardenGardeners gardeners={gardeners} />;
       default:

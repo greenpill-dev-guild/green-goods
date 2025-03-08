@@ -106,7 +106,7 @@ const Work: React.FC<WorkProps> = () => {
     [WorkTab.Media]: {
       primary: () => setActiveTab(WorkTab.Details),
       primaryLabel: "Add Details",
-      primaryDisabled: images.length < 0,
+      primaryDisabled: images.length < 2,
       secondary: () => document.getElementById("work-media-upload")?.click(),
       secondaryLabel: "Upload Media",
       backButton: () => setActiveTab(WorkTab.Intro),

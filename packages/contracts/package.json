@@ -18,7 +18,9 @@
     "deploy:action": "source .env && forge script script/DeployActionRegistry.s.sol:DeployActionRegistry --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN",
     "deploy:garden": "source .env && forge script script/DeployGardenToken.s.sol:DeployGardenToken --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN",
     "deploy:resolvers": "source .env && forge script script/DeployResolvers.s.sol:DeployResolvers --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN",
-    "deploy:operators": "source .env && forge script script/DeployGardenOperators.s.sol:DeployGardenOperators --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN"
+    "deploy:operators": "source .env && forge script script/DeployGardenOperators.s.sol:DeployGardenOperators --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN",
+    "deploy:new-garden": "source .env && forge script script/DeployGarden.s.sol:DeployGarden --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN",
+    "deploy:new-action": "source .env && forge script script/DeployAction.s.sol:DeployAction --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN"
   },
   "dependencies": {
     "@ethereum-attestation-service/eas-contracts": "1.7.1",

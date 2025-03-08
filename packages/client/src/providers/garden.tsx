@@ -10,6 +10,7 @@ import { useWork } from "./work";
 interface GardenDataProps {
   isOperator: boolean;
   garden?: Garden;
+  gardenStatus: "error" | "success" | "pending";
   gardeners: GardenerCard[];
   error?: Error | null;
 }
@@ -27,12 +28,11 @@ export const useGarden = (id: string): GardenDataProps => {
   const { workApprovalMap } = useWork();
   const { eoa, smartAccountAddress } = useUser();
 
-  const { data: garden, error } = useQuery<
-    Garden,
-    Error,
-    Garden,
-    [string, string]
-  >({
+  const {
+    data: garden,
+    error,
+    status: gardenStatus,
+  } = useQuery<Garden, Error, Garden, [string, string]>({
     initialData: gardens.find((garden) => garden.id === id),
     queryKey: ["gardens", id],
     queryFn: async ({ queryKey }) => {
@@ -66,6 +66,7 @@ export const useGarden = (id: string): GardenDataProps => {
       !!garden?.operators.includes(eoa?.address!) ||
       !!garden?.operators.includes(smartAccountAddress!),
     garden,
+    gardenStatus,
     gardeners:
       garden?.gardeners.reduce<GardenerCard[]>((acc, id) => {
         const user = gardenersMap.get(id);

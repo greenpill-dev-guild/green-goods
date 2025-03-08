@@ -61,18 +61,22 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
           </ul>
         </div>
       </div>
-      <h5 className="mb-1">Media</h5>
-      <ul className="mb-4 carousel carousel-center max-w-md space-x-4">
-        {images.map((file, index) => (
-          <div key={index} className="carousel-item w-1/2">
-            <img
-              src={URL.createObjectURL(file)}
-              alt={`Preview ${index}`}
-              className="w-full aspect-[3/4] object-cover rounded-2xl"
-            />
-          </div>
-        ))}
-      </ul>
+      {images.length > 0 && (
+        <>
+          <h5 className="mb-1">Media</h5>
+          <ul className="mb-4 carousel carousel-center max-w-md space-x-4">
+            {images.map((file, index) => (
+              <div key={index} className="carousel-item w-1/2">
+                <img
+                  src={URL.createObjectURL(file)}
+                  alt={`Preview ${index}`}
+                  className="w-full aspect-[3/4] object-cover rounded-2xl"
+                />
+              </div>
+            ))}
+          </ul>
+        </>
+      )}
       <h5 className="mb-1">Details</h5>
       <FormCard label="Action" value={action.title} Icon={RiHammerFill} />
       <FormCard
@@ -85,7 +89,9 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
         value={plantCount.toString()}
         Icon={RiLeafFill}
       />
-      <FormCard label="Feedback" value={feedback} Icon={RiPencilFill} />
+      {feedback && (
+        <FormCard label="Feedback" value={feedback} Icon={RiPencilFill} />
+      )}
     </div>
   );
 };
