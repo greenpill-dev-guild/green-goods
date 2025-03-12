@@ -21,7 +21,7 @@ contract DeployGarden is Script {
         GardenToken gardenToken = GardenToken(GARDEN_TOKEN);
 
         address communityToken = CommunityTokenLib.getCommunityToken();
-        console.log("GardenToken deployed at:", token);
+        // console.log("GardenToken deployed at:", token);
 
         // Mint a garden for Rio Claro, São Paulo
         address[] memory gardeners = new address[](5);
