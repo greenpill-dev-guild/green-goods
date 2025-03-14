@@ -20,10 +20,7 @@
     "test": "pnpm recursive run test",
     "dev": "concurrently -n \"APP,CONTRACTS\" -c \"bgMagenta.bold,bgCyan.bold\" \"pnpm run dev:app\" \"pnpm run dev:contracts\"",
     "dev:app": "pnpm --filter 'app' run dev",
-    "dev:contracts": "pnpm --filter 'contracts' run  dev",
-    "deploy:local": "pnpm --filter 'contracts' run deploy:local --network local",
-    "deploy:arbitrum-sepolia": "pnpm --filter 'contracts' run deploy:arbitrum-sepolia --network arbitrum-sepolia",
-    "deploy:arbitrum": "pnpm --filter 'contracts' run deploy:arbitrum --network arbitrum"
+    "dev:contracts": "pnpm --filter 'contracts' run  dev"
   },
   "dependencies": {
     "@ethereum-attestation-service/eas-sdk": "^2.5.0",
