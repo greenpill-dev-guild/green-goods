@@ -36,8 +36,8 @@ const Profile: React.FC<ProfileProps> = () => {
   };
 
   return (
-    <div className={"flex flex-col h-full w-full pt-8 px-4 fixed top-0 left-0"}>
-      <div className="flex flex-col items-center gap-1 px-2 mb-6">
+    <div className={"flex flex-col w-full pt-8 mx-auto"}>
+      <div className="flex flex-col items-center gap-2 px-2 mb-6">
         <div className="relative w-36 aspect-square -z-10"/>  
         <img
           src={user?.farcaster?.pfp ?? "/images/avatar.png"}
@@ -54,9 +54,8 @@ const Profile: React.FC<ProfileProps> = () => {
           </label>
         )}
       </div>
-      <ul className="flex items-center flex-nowrap border border-slate-100 shadow-2xs rounded-lg divide-x-2">
         {Object.values(ProfileTabs).map((tab) => (
-          <li
+          <div
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`flex-1 flex justify-center items-center p-3 cursor-pointer ${tab === activeTab ? "bg-teal-100" : ""} transition-colors duration-200`}
@@ -64,12 +63,9 @@ const Profile: React.FC<ProfileProps> = () => {
             <label className="capitalize small font-semibold text-center w-full">
               {tab}
             </label>
-          </li>
+          </div>
         ))}
-      </ul>
-      <div className="noscroll flex-1 overflow-y-scroll flex flex-col gap-2 pb-20">
         {renderTabContent()}
-      </div>
     </div>
   );
 };

@@ -4,7 +4,7 @@ import {
   // RiCalendar2Fill,
   // RiThumbUpFill,
 } from "@remixicon/react";
-import { Button } from "@/components/Button";
+import { Button } from "@/components/UI/Button";
 
 // import { truncateDescription } from "../../utils/text";
 // import { Button } from "../Button";

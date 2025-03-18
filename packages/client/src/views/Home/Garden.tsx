@@ -70,7 +70,7 @@ export const Garden: React.FC<GardenProps> = () => {
   };
 
   return (
-    <div className="absolute left-0 top-0 h-full w-full flex flex-col">
+    <div className="relative h-full w-full flex flex-col">
       {pathname.includes("work") || pathname.includes("assessments") ? null : (
         <>
           <div>

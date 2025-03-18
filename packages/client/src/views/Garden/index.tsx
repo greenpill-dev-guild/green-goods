@@ -1,10 +1,6 @@
 import { Form } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import {
-  RiArrowLeftLine,
-  RiArrowRightSLine,
-  RiImage2Fill,
-} from "@remixicon/react";
+import { RiArrowLeftSLine } from "@remixicon/react";
 
 import { useWork, WorkTab } from "@/providers/work";
 
@@ -15,12 +11,12 @@ import { WorkIntro } from "./Intro";
 import { WorkMedia } from "./Media";
 import { WorkDetails } from "./Details";
 import { WorkReview } from "./Review";
-import { WorkCompleted } from "./Completed";
 
-const Work: React.FC = () => {
+interface WorkProps {}
+
+const Work: React.FC<WorkProps> = () => {
   const navigate = useNavigate();
-  const { gardens, actions, form, activeTab, setActiveTab, workMutation } =
-    useWork();
+  const { gardens, actions, form, activeTab, setActiveTab } = useWork();
 
   if (!form) {
     return null;
@@ -79,13 +75,11 @@ const Work: React.FC = () => {
           />
         );
       case WorkTab.Review:
-        if (!garden || !action)
-          return <div>Missing garden or action information</div>;
         return (
           <WorkReview
             instruction={"Check if your informations are correct"}
-            garden={garden}
-            action={action}
+            garden={garden!}
+            action={action!}
             images={images}
             feedback={feedback}
             plantCount={plantCount}
@@ -93,121 +87,97 @@ const Work: React.FC = () => {
           />
         );
       case WorkTab.Complete:
-        return <WorkCompleted workMutation={workMutation} garden={garden!} />;
+        return (
+          <div>
+            <p>Work completed</p>
+          </div>
+        );
     }
-  };
-
-  const changeTab = (tab: WorkTab) => {
-    document
-      .getElementById("work-form")
-      ?.scrollIntoView({ behavior: "instant" });
-    setActiveTab(tab);
   };
 
   const tabActions = {
     [WorkTab.Intro]: {
-      primary: () => changeTab(WorkTab.Media),
+      primary: () => setActiveTab(WorkTab.Media),
       primaryLabel: "Start Gardening",
       primaryDisabled: !gardenAddress || typeof actionUID !== "number",
       secondary: null,
       backButton: () => navigate("/gardens"),
     },
     [WorkTab.Media]: {
-      primary: () => changeTab(WorkTab.Details),
+      primary: () => setActiveTab(WorkTab.Details),
       primaryLabel: "Add Details",
       primaryDisabled: images.length < 2,
       secondary: () => document.getElementById("work-media-upload")?.click(),
       secondaryLabel: "Upload Media",
-      backButton: () => changeTab(WorkTab.Intro),
+      backButton: () => setActiveTab(WorkTab.Intro),
     },
     [WorkTab.Details]: {
-      primary: () => changeTab(WorkTab.Review),
+      primary: () => setActiveTab(WorkTab.Review),
       primaryLabel: "Review Work",
       primaryDisabled: !state.isValid,
       secondary: null,
-      backButton: () => changeTab(WorkTab.Media),
+      backButton: () => setActiveTab(WorkTab.Media),
     },
     [WorkTab.Review]: {
       primary: () => {
-        changeTab(WorkTab.Complete);
         uploadWork();
       },
       primaryLabel: "Upload Work",
       primaryDisabled: !state.isValid || state.isSubmitting,
       secondary: null,
-      backButton: () => changeTab(WorkTab.Details),
+      backButton: () => setActiveTab(WorkTab.Details),
     },
     [WorkTab.Complete]: {
-      primary: () => {
-        navigate("/gardens");
-      },
-      primaryLabel: "Finish",
-      primaryDisabled: workMutation.isPending,
+      primary: () => navigate("/gardens"),
+      primaryLabel: "Go to Gardens",
+      primaryDisabled: false,
       secondary: null,
       backButton: undefined,
     },
   };
 
   return (
+    <>
     <Form
       id="work-form"
       control={control}
-      className="relative py-6 flex flex-col gap-4 min-h-screen"
+      className="flex z-40 bg-white flex-col w-full pt-4 pb-4 px-4 h-full"
     >
-      <div className="padded relative flex flex-col gap-4">
-        <div className="relative flex flex-row w-full  justify-between items-center">
-          <Button
-            variant="neutral"
-            mode="stroke"
-            type="button"
-            shape="pilled"
-            size="xsmall"
-            label=""
-            leadingIcon={<RiArrowLeftLine className="w-4 h-4 text-black" />}
-            onClick={(e) => {
-              tabActions[activeTab].backButton?.();
-              e.currentTarget.blur();
-            }}
-            className="p-0 px-2"
-          />
-          <FormProgress
-            currentStep={Object.values(WorkTab).indexOf(activeTab) + 1}
-            steps={Object.values(WorkTab).slice(0, 4)}
-          />
-          <div className="flex items-center gap-1 w-10 h-10 p-2 border border-transparent" />
-        </div>
+      <div className="relative flex justify-between items-center">
+        <button
+          type="button"
+          className="flex items-center gap-1 w-10 h-10 p-2 bg-white border border-slate-200 rounded-lg"
+          onClick={tabActions[activeTab].backButton}
+        >
+          <RiArrowLeftSLine className="w-10 h-10 text-black" />
+        </button>
+        <FormProgress
+          currentStep={Object.values(WorkTab).indexOf(activeTab) + 1}
+          steps={Object.values(WorkTab).slice(0, 4)}
+        />
+        <div className="flex items-center gap-1 w-10 h-10 p-2 border border-transparent" />
+      </div>
+      <div className="">
         {renderTabContent()}
-        <div className="flex grow" />
       </div>
-      <div className="flex border-t border-stroke-soft-200">
-        <div className="flex flex-row gap-2 w-full mt-4 padded">
-          {tabActions[activeTab].secondary && (
-            <Button
-              className="w-full"
-              onClick={tabActions[activeTab].secondary}
-              label={tabActions[activeTab].secondaryLabel}
-              variant="neutral"
-              type="button"
-              shape="pilled"
-              mode="stroke"
-              leadingIcon={<RiImage2Fill className="text-primary w-5 h-5" />}
-            />
-          )}
+      <div className="flex grow"/>
+        {tabActions[activeTab].secondary && (
           <Button
-            className="w-full"
-            variant="primary"
-            mode="filled"
-            size="medium"
-            onClick={tabActions[activeTab].primary}
-            label={tabActions[activeTab].primaryLabel}
-            disabled={tabActions[activeTab].primaryDisabled}
+            fullWidth
+            onClick={tabActions[activeTab].secondary}
+            label={tabActions[activeTab].secondaryLabel}
             type="button"
-            shape="pilled"
-            trailingIcon={<RiArrowRightSLine className="w-5 h-5" />}
           />
-        </div>
-      </div>
+        )}
+        <Button
+          fullWidth
+          onClick={tabActions[activeTab].primary}
+          label={tabActions[activeTab].primaryLabel}
+          disabled={tabActions[activeTab].primaryDisabled}
+          type="button"
+        />
     </Form>
+    </>
   );
 };
 

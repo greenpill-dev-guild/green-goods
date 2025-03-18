@@ -26,7 +26,11 @@ body {
 }
 
 #root {
-  @apply w-full h-full max-w-(--breakpoint-xl) mx-auto flex flex-col;
+  @apply w-full h-full mx-auto flex flex-col;
+}
+
+#landing-root {
+  @apply w-full h-full mx-auto flex flex-col max-w-[var(--breakpoint-xl)];
 }
 
 main {

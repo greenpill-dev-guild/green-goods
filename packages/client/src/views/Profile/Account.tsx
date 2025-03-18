@@ -6,7 +6,7 @@ import {
   RiWalletLine,
 } from "@remixicon/react";
 
-import { Button } from "@/components/Button";
+import { Button } from "@/components/UI/Button";
 
 interface LinkedAccount {
   title: string;
@@ -70,41 +70,32 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
   ];
 
   return (
-    <>
-      <div className="noscroll overscroll-none flex flex-col gap-2 mt-4">
-        <h5>Linked Accounts</h5>
-        <ul className="flex flex-col gap-2">
-          {linkedAccounts.map(
-            ({ title, Icon, description, isLinked, link, unlink }) => (
-              <li
-                key={title}
-                className="flex gap-1 justify-between border-2 border-slate-100 shadow-2xs "
-              >
-                <div className="flex flex-col gap-2 px-2 py-1">
-                  <div className="flex items-center font-sm gap-1">
-                    {Icon}
-                    <label className="line-clamp-1 text-sm">{title}</label>
-                  </div>
-                  <p className="text-xs">{description}</p>
+    <div className="flex flex-col gap-2 mt-4">
+      <h5>Linked Accounts</h5>
+        {linkedAccounts.map(
+          ({ title, Icon, description, isLinked, link, unlink }) => (
+            <div
+              key={title}
+              className="flex gap-1 justify-between border-2 border-slate-100 shadow-2xs "
+            >
+              <div className="flex flex-col gap-2 px-2 py-1">
+                <div className="flex items-center font-sm gap-1">
+                  {Icon}
+                  <label className="line-clamp-1 text-sm">{title}</label>
                 </div>
-                <Button
-                  label={isLinked ? "Unlink" : "Link"}
-                  onClick={isLinked ? unlink : link}
-                  variant="secondary"
-                  className="w-[20vw] bg-teal-400"
-                  size="small"
-                />
-              </li>
-            )
-          )}
-        </ul>
-        <Button
-          label="Logout"
-          variant="danger"
-          size="small"
-          onClick={logout}
-        />
-      </div>
-    </>
+                <p className="text-xs">{description}</p>
+              </div>
+              <Button
+                label={isLinked ? "Unlink" : "Link"}
+                onClick={isLinked ? unlink : link}
+                variant="secondary"
+                className="w-[20vw] bg-teal-400"
+                size="small"
+              />
+            </div>
+          )
+        )}
+      <Button label="Logout" variant="danger" size="small" onClick={logout} />
+    </div>
   );
 };

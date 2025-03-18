@@ -1,6 +1,6 @@
 import { useLogout } from "@privy-io/react-auth";
 
-import { Button } from "@/components/Button";
+import { Button } from "@/components/UI/Button";
 
 interface ProfileSettingsProps {}
 
