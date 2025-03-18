@@ -4,8 +4,8 @@ import { RiArrowLeftSLine } from "@remixicon/react";
 
 import { useWork, WorkTab } from "@/providers/work";
 
-import { Button } from "@/components/Button";
-import { FormProgress } from "@/components/Form/Progress";
+import { Button } from "@/components/UI/Button";
+import { FormProgress } from "@/components/UI/Form/Progress";
 
 import { WorkIntro } from "./Intro";
 import { WorkMedia } from "./Media";
@@ -137,10 +137,11 @@ const Work: React.FC<WorkProps> = () => {
   };
 
   return (
+    <>
     <Form
       id="work-form"
       control={control}
-      className="fixed top-0 left-0 right-0 bottom-0 z-40 bg-white flex flex-col w-full pt-4 pb-4 px-4"
+      className="flex z-40 bg-white flex-col w-full pt-4 pb-4 px-4 h-full"
     >
       <div className="relative flex justify-between items-center">
         <button
@@ -156,10 +157,10 @@ const Work: React.FC<WorkProps> = () => {
         />
         <div className="flex items-center gap-1 w-10 h-10 p-2 border border-transparent" />
       </div>
-      <div className="flex-1 overflow-y-scroll noscroll mt-4 pb-4">
+      <div className="">
         {renderTabContent()}
       </div>
-      <div className="flex gap-2 flex-nowrap">
+      <div className="flex grow"/>
         {tabActions[activeTab].secondary && (
           <Button
             fullWidth
@@ -175,8 +176,8 @@ const Work: React.FC<WorkProps> = () => {
           disabled={tabActions[activeTab].primaryDisabled}
           type="button"
         />
-      </div>
     </Form>
+    </>
   );
 };
 

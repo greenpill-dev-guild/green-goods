@@ -1,7 +1,7 @@
 import React from "react";
 import { RiHammerFill, RiPlantFill } from "@remixicon/react";
 
-import { FormInfo } from "@/components/Form/Info";
+import { FormInfo } from "@/components/UI/Form/Info";
 
 interface WorkIntroProps {
   actions: Action[];

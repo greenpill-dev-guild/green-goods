@@ -1,7 +1,7 @@
 // button.base.tsx
 import * as React from "react";
 import {tv, type VariantProps} from "tailwind-variants";
-import type { PolymorphicComponentProps } from "../../utils/polymorphic";
+import type { PolymorphicComponentProps } from "../../../utils/polymorphic";
 
 export const buttonVariants = tv({
   // A common base class if needed (here we ensure we always have a flex container)
@@ -10,7 +10,7 @@ export const buttonVariants = tv({
     variant: {
       primary: "",
       secondary: "",
-      danger: "bg-red-500",
+      danger: "",
     },
     mode: {
       filled: "",

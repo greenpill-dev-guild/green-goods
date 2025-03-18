@@ -41,7 +41,7 @@ export const AppBar = () => {
   const { pathname } = useLocation();
 
   return (
-    <nav className={"bg-white border-t border-t-gray-300 flex flex-row gap-2 justify-evenly items-center w-full py-4 z-[10000]"}>
+    <nav className={"fixed bottom-0 bg-white border-t border-t-gray-300 flex flex-row gap-2 justify-evenly items-center w-full py-4 z-[10000]"}>
       {tabs.map(({ path, ActiveIcon, InactiveIcon, title }) => {
         const isActive = pathname === path;
         return (

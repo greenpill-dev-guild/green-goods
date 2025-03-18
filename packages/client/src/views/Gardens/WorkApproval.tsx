@@ -20,9 +20,9 @@ import { queryClient } from "@/modules/react-query";
 import { useUser } from "@/providers/user";
 import { useGardens, useGarden } from "@/providers/garden";
 
-import { Button } from "@/components/Button";
+import { Button } from "@/components/UI/Button";
 import { CircleLoader } from "@/components/Loader";
-import { FormInput } from "@/components/Form/Input";
+import { FormInput } from "@/components/UI/Form/Input";
 
 interface GardenWorkApprovalProps {}
 

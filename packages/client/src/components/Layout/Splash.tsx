@@ -2,7 +2,7 @@ import React from "react";
 
 import { APP_NAME } from "@/constants";
 
-import { Button } from "../Button";
+import { Button } from "../UI/Button";
 
 interface SplashProps {
   login: () => void;

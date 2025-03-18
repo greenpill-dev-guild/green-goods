@@ -8,8 +8,8 @@ import {
   RiPlantFill,
 } from "@remixicon/react";
 
-import { FormInfo } from "@/components/Form/Info";
-import { FormCard } from "@/components/Form/Card";
+import { FormInfo } from "@/components/UI/Form/Info";
+import { FormCard } from "@/components/UI/Form/Card";
 import { formatAddress } from "@/utils/text";
 
 interface WorkReviewProps {

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { RiCloseLine, RiImageFill } from "@remixicon/react";
 
-import { FormInfo } from "@/components/Form/Info";
+import { FormInfo } from "@/components/UI/Form/Info";
 import { Books } from "@/assets/Books";
 
 interface WorkMediaProps {
