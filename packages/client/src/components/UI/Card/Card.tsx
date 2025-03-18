@@ -3,7 +3,7 @@ import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
 
 export const cardVariants = tv({
-  base: "rounded-2xl border flex gap-0.5 justify-between border-border p-1 px-4 bg-white",
+  base: "rounded-2xl border bg-card text-card-foreground flex gap-0.5 justify-between border-slate-200 p-1 px-4 min-h-18",
   variants: {
     variant: {
       primary: "",
@@ -11,27 +11,22 @@ export const cardVariants = tv({
     },
     mode: {
       "no-outline": "border-0 shadow-0",
-      outline: "border-border border shadow-xs",
-      filled: "bg-card border-0"
+      outline: "border-slate-200 border",
+      filled: "bg-card-grey border-0"
     },
     size: {
-      large: "min-h-18",
-      small: "h-auto py-4",
+      large: "",
+      small: "",
     },
     shadow: {
       "no-shadow": "shadow-none",
       shadow: "shadow-md"
-    },
-    animating: {
-      default: "active:brightness-102 active:bg-primary/1.5 transition-all duration-200 ease-in-out",
-      none: ""
     }
   },
   defaultVariants: {
     variant: "primary",
     mode: "outline",
     size: "large",
-    animating: "default"
   },
 });
 
@@ -114,16 +109,6 @@ const CardFooter = React.forwardRef<
 ));
 CardFooter.displayName = "CardFooter";
 
-const FlexCard = React.forwardRef<HTMLDivElement, CardRootProps>(
-  ({ className, ...props }, ref) => (
-    <Card
-      ref={ref}
-      className={cn("flex flex-row items-center gap-3 grow", className)}
-      {...props}
-    />
-  )
-);
-
 export {
   Card,
   CardHeader,
@@ -131,5 +116,4 @@ export {
   CardTitle,
   CardDescription,
   CardContent,
-  FlexCard
 };

@@ -1,3 +1,5 @@
+import { Avatar } from "@/components/UI/Avatar/Avatar";
+import { Card } from "@/components/UI/Card/Card";
 import {
   RiArrowDropRightLine,
   RiTelegramLine,
@@ -79,51 +81,44 @@ const socials: Social[] = [
 export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
   return (
     <>
-      <div className=" flex flex-col gap-4 mt-4">
+      <div className=" flex flex-col gap-4 my-4">
         <h5 className="">Get In Touch</h5>
-        <ul className="flex flex-col gap-2">
-          {socials.map((social) => (
-            <li
-              key={social.title}
-              className="flex flex-col w-full gap-1 border p-2 rounded-xl"
-            >
-              <a
-                href={social.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex  gap-2 items-center text-slate-900"
-              >
-                <div className="border p-2 rounded-full bg-slate-50">
-                  {social.Icon}
+        {socials.map((social) => (
+          <Card
+            key={social.title}
+          >
+            <div className="flex flex-row items-center gap-3">
+              <Avatar>
+                <div className="flex items-center justify-center text-center mx-auto text-slate-500">
+                  <a
+                    href={social.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {social.Icon}
+                  </a>
                 </div>
-                <div className="flex-1">
-                  <label className="text-base">{social.title}</label>
-                  <div className="text-xs text-slate-600">
-                    {social.description}
-                  </div>
+              </Avatar>
+
+              <div className="flex-1">
+                <div className="text-base">{social.title}</div>
+                <div className="text-xs text-slate-600">
+                  {social.description}
                 </div>
-                <RiArrowDropRightLine />
-              </a>
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div className="flex flex-col gap-4 mt-8">
-        <h5 className="">Frequently Asked Questions</h5>
-        <ul className="flex flex-col gap-3">
-          {faqs.map((faq) => (
-            <details
-              tabIndex={0}
-              key={faq.question}
-              className="collapse collapse-arrow border shadow-2xs rounded-xl"
-            >
-              <summary className="font-semibold text-sm collapse-title">
-                {faq.question}
-              </summary>
-              <p className="collapse-content text-xs">{faq.answer}</p>
-            </details>
-          ))}
-        </ul>
+              </div>
+              <RiArrowDropRightLine />
+            </div>
+          </Card>
+        ))}
+        <h5>Questions</h5>
+        {faqs.map((faq) => (
+          <div key={faq.question} className="">
+            <div className="font-semibold text-sm collapse-title">
+              {faq.question}
+            </div>
+            <p className="collapse-content text-xs">{faq.answer}</p>
+          </div>
+        ))}
       </div>
     </>
   );

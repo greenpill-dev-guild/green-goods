@@ -1,7 +1,8 @@
-import React from "react";
+import type React from "react";
 import { RiHammerFill, RiPlantFill } from "@remixicon/react";
 
 import { FormInfo } from "@/components/UI/Form/Info";
+import { cn } from "@/utils/cn";
 
 interface WorkIntroProps {
   actions: Action[];
@@ -27,15 +28,16 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
         info="What type of work you are submitting?"
         Icon={RiHammerFill}
       />
-      <div className="carousel carousel-center max-w-md space-x-4 mb-4">
+      <ul className="carousel carousel-center max-w-md space-x-4 mb-4">
         {actions.map((action) => (
           <li
             key={action.id}
-            className={`carousel-item flex flex-col border shadow-sm  w-2/3 rounded-xl ${
-              action.id === selectedActionUID ?
-                "active border-green-600"
-              : "border-slate-200"
-            }`}
+            className={cn(
+              "carousel-item flex flex-col border shadow-sm  w-2/3 rounded-xl",
+              action.id === selectedActionUID
+                ? "active border-green-600"
+                : "border-slate-200"
+            )}
             onClick={() => setActionUID(action.id)}
           >
             <img
@@ -48,7 +50,7 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
             </div>
           </li>
         ))}
-      </div>
+      </ul>
       <FormInfo
         title="Select your garden"
         info="Which garden are you submitting for?"
@@ -58,11 +60,12 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
         {gardens.map((garden) => (
           <li
             key={garden.id}
-            className={`carousel-item flex flex-col border shadow-sm  w-2/3 rounded-xl ${
-              garden.id === selectedGardenAddress ?
-                "active border-green-600"
-              : "border-transparent"
-            }`}
+            className={cn(
+              "carousel-item flex flex-col border shadow-sm  w-2/3 rounded-xl",
+              garden.id === selectedGardenAddress
+                ? "active border-green-600"
+                : "border-transparent"
+            )}
             onClick={() => setGardenAddress(garden.id)}
           >
             <img

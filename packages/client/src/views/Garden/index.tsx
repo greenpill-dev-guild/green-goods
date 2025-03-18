@@ -12,9 +12,7 @@ import { WorkMedia } from "./Media";
 import { WorkDetails } from "./Details";
 import { WorkReview } from "./Review";
 
-interface WorkProps {}
-
-const Work: React.FC<WorkProps> = () => {
+const Work: React.FC = () => {
   const navigate = useNavigate();
   const { gardens, actions, form, activeTab, setActiveTab } = useWork();
 
@@ -75,11 +73,12 @@ const Work: React.FC<WorkProps> = () => {
           />
         );
       case WorkTab.Review:
+        if (!garden || !action) return <div>Missing garden or action information</div>;
         return (
           <WorkReview
             instruction={"Check if your informations are correct"}
-            garden={garden!}
-            action={action!}
+            garden={garden}
+            action={action}
             images={images}
             feedback={feedback}
             plantCount={plantCount}
@@ -137,13 +136,12 @@ const Work: React.FC<WorkProps> = () => {
   };
 
   return (
-    <>
     <Form
       id="work-form"
       control={control}
-      className="flex z-40 bg-white flex-col w-full pt-4 pb-4 px-4 h-full"
+      className="flex flex-col h-full py-4 gap-4"
     >
-      <div className="relative flex justify-between items-center">
+      <div className="relative flex justify-between items-center mb-4">
         <button
           type="button"
           className="flex items-center gap-1 w-10 h-10 p-2 bg-white border border-slate-200 rounded-lg"
@@ -157,27 +155,27 @@ const Work: React.FC<WorkProps> = () => {
         />
         <div className="flex items-center gap-1 w-10 h-10 p-2 border border-transparent" />
       </div>
-      <div className="">
+      <div className="flex-grow overflow-y-auto">
         {renderTabContent()}
       </div>
-      <div className="flex grow"/>
+      <div className="mt-auto pt-4 flex flex-col gap-2">
         {tabActions[activeTab].secondary && (
           <Button
-            fullWidth
+            className="w-full"
             onClick={tabActions[activeTab].secondary}
             label={tabActions[activeTab].secondaryLabel}
             type="button"
           />
         )}
         <Button
-          fullWidth
+          className="w-full"
           onClick={tabActions[activeTab].primary}
           label={tabActions[activeTab].primaryLabel}
           disabled={tabActions[activeTab].primaryDisabled}
           type="button"
         />
+      </div>
     </Form>
-    </>
   );
 };
 

@@ -32,21 +32,20 @@ export const Profile: React.FC<ProfileProps> = ({avatar, displayName, ...props }
   console.log(props);
 
   return (
-    <div className="relative flex flex-col items-center gap-2 px-2">
-      <div className="relative w-36 aspect-square -z-10 mb-2" />
+    <div className="relative flex flex-col items-center gap-2 px-2 mb-6">
+      <div className="relative w-36 aspect-square -z-10" />
       <img
         src={avatar ?? "/images/avatar.png"}
         alt="profile avatar"
         className="rounded-full w-36 min-w-36 absolute"
       />
       <h4>{displayName}</h4>
-      <div className="flex flex-row flex-wrap justify-center items-center">
+      <div className="flex flex-row flex-wrap justify-center items-center gap-2">
       {
         Object.entries(props).map(([key, value]) => {
           const Icon = ProfileDataTypes[key as keyof typeof ProfileDataTypes];
-          if (value === undefined) return;
           return (
-            <Badge key={key}><Icon className="w-4 text-primary mx-1"/>{value}</Badge>
+            <Badge key={key}><Icon className="w-4 text-greengoods-green mx-1"/>{value}</Badge>
           );
         })
       }</div>

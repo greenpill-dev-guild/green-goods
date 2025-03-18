@@ -15,7 +15,7 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      "flex flex-row items-center justify-evenly rounded-md bg-border border border-border w-full overflow-clip",
+      "flex flex-row items-center justify-center rounded-md bg-greengoods-grey border border-slate-200 w-auto overflow-clip",
       className
     )}
     {...props}
@@ -24,11 +24,11 @@ const TabsList = React.forwardRef<
 TabsList.displayName = TabsPrimitive.List.displayName;
 
 export const triggerVariants = tv({
-  base: "inline-flex items-center justify-center whitespace-nowrap ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none transition-all grow",
+  base: "inline-flex items-center justify-center whitespace-nowrap ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none transition-all",
   variants: {
     variant: {
-      gardenTabs: "data-[state=active]:bg-secondary bg-white p-4 text-gray-500 data-[state=active]:text-black",
-      multiTabs: "rounded-sm px-3 py-1.5 text-sm disabled:opacity-50 data-[state=active]:bg-gray-200 data-[state=active]:text-foreground data-[state=active]:shadow-sm m-2",
+      gardenTabs: "data-[state=active]:bg-greengoods-green/20 bg-white p-4 text-black/70 data-[state=active]:text-black",
+      multiTabs: "rounded-sm px-3 py-1.5 text-sm disabled:opacity-50 data-[state=active]:bg-slate-200 data-[state=active]:text-foreground data-[state=active]:shadow-sm m-2",
     },
   },
   defaultVariants: {
@@ -61,7 +61,7 @@ const TabsContent = React.forwardRef<
   <TabsPrimitive.Content
     ref={ref}
     className={cn(
-      "ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+      "mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
       className
     )}
     {...props}
