@@ -13,7 +13,7 @@ import { CircleLoader } from "@/components/Loader";
 import { GardenWork } from "@/components/Garden/Work";
 import { GardenGardeners } from "@/components/Garden/Gardeners";
 import { GardenAssessments } from "@/components/Garden/Asessments";
-import { Tabs, TabsList, TabsTrigger } from "@/components/UI/Tabs/Tabs";
+import { GardenNotifications } from "./Notifications";
 
 enum GardenTab {
   Work = "work",
@@ -37,7 +37,7 @@ export const Garden: React.FC<GardenProps> = () => {
   if (!garden)
     return (
       <main className="w-full h-full grid place-items-center">
-        <CircleLoader />
+        <CircleLoader />;
       </main>
     );
 
@@ -70,15 +70,10 @@ export const Garden: React.FC<GardenProps> = () => {
   };
 
   return (
-    <div className="relative h-full w-full flex flex-col">
+    <div className="absolute left-0 top-0 h-full w-full flex flex-col">
       {pathname.includes("work") || pathname.includes("assessments") ? null : (
         <>
-          <img
-            src={bannerImage}
-            className="w-full object-cover object-top rounded-b-3xl image-lut max-h-55"
-            alt="Banner"
-          />
-          <div className="padded">
+          <div>
             <div className="flex gap-1 items-center justify-between absolute top-4 left-4 right-4">
               <Link
                 className="flex gap-1 items-center w-10 h-10 p-2 bg-white rounded-lg"
@@ -87,13 +82,13 @@ export const Garden: React.FC<GardenProps> = () => {
                 <RiArrowLeftSLine className="w-10 h-10 text-black" />
               </Link>
               <div className="relative dropdown dropdown-bottom dropdown-end">
-                {workNotifications.length ? (
+                {workNotifications.length ?
                   <span className="absolute -top-2 -right-2 w-5 h-5 bg-teal-500 rounded-full flex-col justify-center items-center gap-2.5 inline-flex">
                     <p className="text-xs self-stretch text-center text-white font-medium leading-3 tracking-tight">
                       {workNotifications.length}
                     </p>
                   </span>
-                ) : null}
+                : null}
                 <div
                   tabIndex={0}
                   role="button"
@@ -101,52 +96,50 @@ export const Garden: React.FC<GardenProps> = () => {
                 >
                   <RiNotificationFill />
                 </div>
-                {/* <GardenNotifications
+                <GardenNotifications
                   garden={garden}
                   notifications={workNotifications}
-                /> */}
+                />
+              </div>
+            </div>
+            <img
+              src={bannerImage}
+              className="w-full object-cover object-top aspect-16/9 border-b-2 border-slate-300 shadow-2xs rounded-b-3xl"
+              alt="Banner"
+            />
+          </div>
+          <div className="px-4 py-1">
+            <h4 className="line-clamp-1">{name}</h4>
+            <div className="flex w-full justify-between items-start mb-2">
+              <div className="flex flex-col gap-1">
+                <div className="flex gap-1 font-bold">
+                  <RiMapPin2Fill className="h-5 text-teal-400" />
+                  <span className="text-sm">Location: {location}</span>
+                </div>
+                <div className="flex gap-1 font-bold">
+                  <RiCalendarEventFill className="h-5 text-teal-400" />
+                  <span className="text-sm">
+                    Founded: {createdAt.toDateString()}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
-          <div className="padded py-6 flex flex-col gap-2">
-            <h5 className="line-clamp-1">{name}</h5>
-            <div className="flex w-full justify-between items-start mb-2">
-              <div className="flex flex-col gap-2">
-                <div className="flex flex-row gap-1 items-center">
-                  <RiMapPin2Fill className="h-5 text-primary" />
-                  <div className="text-xs">
-                    <span className="font-medium">Location •</span> {location}
-                  </div>
-                </div>
-                <div className="flex flex-row gap-1 items-center">
-                  <RiCalendarEventFill className="h-5 text-primary" />
-                  <div className="text-xs">
-                    <span className="font-medium">Founded •</span>{" "}
-                    {createdAt.toDateString()}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <Tabs value={activeTab}>
-              <TabsList>
-                {Object.values(GardenTab).map((tab) => (
-                  <TabsTrigger
-                    key={tab}
-                    value={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`flex-1 flex justify-center items-center p-3 cursor-pointer ${tab === activeTab ? "bg-teal-200 " : ""} transition-colors duration-200`}
-                  >
-                    <label className="capitalize small font-semibold text-center w-full">
-                      {tab}
-                    </label>
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-            <div className="flex-1 flex flex-col gap-4 pt-4 pb-20">
-              {renderTabContent()}
-            </div>
+          <ul className="mx-4 flex items-center flex-nowrap border border-slate-100 overflow-hidden shadow-2xs rounded-lg divide-x-2">
+            {Object.values(GardenTab).map((tab) => (
+              <li
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`flex-1 flex justify-center items-center p-3 cursor-pointer ${tab === activeTab ? "bg-teal-200 " : ""} transition-colors duration-200`}
+              >
+                <label className="capitalize small font-semibold text-center w-full">
+                  {tab}
+                </label>
+              </li>
+            ))}
+          </ul>
+          <div className="noscroll px-4 pt-4 flex-1 overflow-y-scroll flex flex-col gap-2 pb-20">
+            {renderTabContent()}
           </div>
         </>
       )}

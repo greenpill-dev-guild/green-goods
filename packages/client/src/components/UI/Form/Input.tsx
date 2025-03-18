@@ -8,29 +8,24 @@ interface FormInputProps extends InputHTMLAttributes<HTMLInputElement> {
 
 export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
   ({ label, helperText, error, className, ...props }, ref) => (
-    <div className={`${className} flex flex-col gap-1`}>
-      <label
-        className="font-semibold text-slate-800 text-label-sm"
-        htmlFor={props.id}
-      >
+    <div className={`${className} flex flex-col gap-1 mb-2`}>
+      <label className="font-semibold text-slate-800" htmlFor={props.id}>
         {label}
       </label>
       <input
-        className="input bg-inherit border border-stroke-sub-300 rounded-lg py-3 px-4 disabled:opacity-50 disabled:pointer-events-none"
+        className="input bg-inherit" //py-3 px-4 block w-full border-slate-200 bg-white rounded-lg shadow-2xs text-sm focus:border-teal-500 focus:ring-teal-500 disabled:opacity-50 disabled:pointer-events-none"
         {...props}
         ref={ref}
       />
-      {(helperText || error) && (
-        <p
-          id={`${props.id}-input-helper-text`}
-          className={`
+      <p
+        id={`${props.id}-input-helper-text`}
+        className={`
           text-xs h-3
           ${error ? "text-red-600" : "text-slate-600"}
         `}
-        >
-          {helperText ?? error}
-        </p>
-      )}
+      >
+        {helperText ?? error}
+      </p>
     </div>
   )
 );

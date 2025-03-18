@@ -1,9 +1,6 @@
 @import "tailwindcss";
 
 @theme {
-  /* --text-base: 16px; */
-  /* --text-sm: 14px */
-
   /* Title variants */
   --text-title-h1: 56px;
   --text-title-h1--line-height: 64px;
@@ -54,7 +51,7 @@
   --text-label-sm: 14px;
   --text-label-sm--line-height: 20px;
   --text-label-sm--letter-spacing: -0.006em;
-  --text-label-sm--font-weight: 400;
+  --text-label-sm--font-weight: 500;
 
   --text-label-xs: 12px;
   --text-label-xs--line-height: 16px;
@@ -120,200 +117,52 @@
   --text-doc-paragraph--font-weight: 400;
 }
 
-@layer utilities {
-  /* Title styles */
-  /* .text-title-h1 {
-    font-size: var(--text-title-h1);
-    line-height: var(--text-title-h1--line-height);
-    letter-spacing: var(--text-title-h1--letter-spacing);
-    font-weight: var(--text-title-h1--font-weight);
-  }
+h1 {
+  @apply text-title-h1;
+}
 
-  .text-title-h2 {
-    font-size: var(--text-title-h2);
-    line-height: var(--text-title-h2--line-height);
-    letter-spacing: var(--text-title-h2--letter-spacing);
-    font-weight: var(--text-title-h2--font-weight);
-  }
+h2 {
+  @apply text-title-h2;
+}
 
-  .text-title-h3 {
-    font-size: var(--text-title-h3);
-    line-height: var(--text-title-h3--line-height);
-    letter-spacing: var(--text-title-h3--letter-spacing);
-    font-weight: var(--text-title-h3--font-weight);
-  }
+h3 {
+  @apply text-title-h3;
+}
 
-  .text-title-h4 {
-    font-size: var(--text-title-h4);
-    line-height: var(--text-title-h4--line-height);
-    letter-spacing: var(--text-title-h4--letter-spacing);
-    font-weight: var(--text-title-h4--font-weight);
-  }
+h4 {
+  @apply text-title-h4;
+}
 
-  .text-title-h5 {
-    font-size: var(--text-title-h5);
-    line-height: var(--text-title-h5--line-height);
-    letter-spacing: var(--text-title-h5--letter-spacing);
-    font-weight: var(--text-title-h5--font-weight);
-  }
+h5 {
+  @apply text-title-h5;
+}
 
-  .text-title-h6 {
-    font-size: var(--text-title-h6);
-    line-height: var(--text-title-h6--line-height);
-    letter-spacing: var(--text-title-h6--letter-spacing);
-    font-weight: var(--text-title-h6--font-weight);
-  }
+h6 {
+  @apply text-title-h6;
+}
 
-  /* Label styles */
-  .text-label-xl {
-    font-size: var(--text-label-xl);
-    line-height: var(--text-label-xl--line-height);
-    letter-spacing: var(--text-label-xl--letter-spacing);
-    font-weight: var(--text-label-xl--font-weight);
-  }
+p {
+  @apply text-paragraph-md;
+}
 
-  .text-label-lg {
-    font-size: var(--text-label-lg);
-    line-height: var(--text-label-lg--line-height);
-    letter-spacing: var(--text-label-lg--letter-spacing);
-    font-weight: var(--text-label-lg--font-weight);
-  }
+span {
+  @apply text-paragraph-md;
+}
 
-  .text-label-md {
-    font-size: var(--text-label-md);
-    line-height: var(--text-label-md--line-height);
-    letter-spacing: var(--text-label-md--letter-spacing);
-    font-weight: var(--text-label-md--font-weight);
-  }
+label {
+  @apply text-label-md;
+}
 
-  .text-label-sm {
-    font-size: var(--text-label-sm);
-    line-height: var(--text-label-sm--line-height);
-    letter-spacing: var(--text-label-sm--letter-spacing);
-    font-weight: var(--text-label-sm--font-weight);
-  }
+a {
+  @apply text-label-md;
+  text-decoration: inherit;
+}
 
-  .text-label-xs {
-    font-size: var(--text-label-xs);
-    line-height: var(--text-label-xs--line-height);
-    letter-spacing: var(--text-label-xs--letter-spacing);
-    font-weight: var(--text-label-xs--font-weight);
-  }
+/* Additional utility classes */
+.small {
+  @apply text-paragraph-sm;
+}
 
-  /* Paragraph styles */
-  .text-paragraph-xl {
-    font-size: var(--text-paragraph-xl);
-    line-height: var(--text-paragraph-xl--line-height);
-    letter-spacing: var(--text-paragraph-xl--letter-spacing);
-    font-weight: var(--text-paragraph-xl--font-weight);
-  }
-
-  .text-paragraph-lg {
-    font-size: var(--text-paragraph-lg);
-    line-height: var(--text-paragraph-lg--line-height);
-    letter-spacing: var(--text-paragraph-lg--letter-spacing);
-    font-weight: var(--text-paragraph-lg--font-weight);
-  }
-
-  .text-paragraph-md {
-    font-size: var(--text-paragraph-md);
-    line-height: var(--text-paragraph-md--line-height);
-    letter-spacing: var(--text-paragraph-md--letter-spacing);
-    font-weight: var(--text-paragraph-md--font-weight);
-  }
-
-  .text-paragraph-sm {
-    font-size: var(--text-paragraph-sm);
-    line-height: var(--text-paragraph-sm--line-height);
-    letter-spacing: var(--text-paragraph-sm--letter-spacing);
-    font-weight: var(--text-paragraph-sm--font-weight);
-  }
-
-  .text-paragraph-xs {
-    font-size: var(--text-paragraph-xs);
-    line-height: var(--text-paragraph-xs--line-height);
-    letter-spacing: var(--text-paragraph-xs--letter-spacing);
-    font-weight: var(--text-paragraph-xs--font-weight);
-  }
-
-  /* Subheading styles */
-  .text-subheading-md {
-    font-size: var(--text-subheading-md);
-    line-height: var(--text-subheading-md--line-height);
-    letter-spacing: var(--text-subheading-md--letter-spacing);
-    font-weight: var(--text-subheading-md--font-weight);
-  }
-
-  .text-subheading-sm {
-    font-size: var(--text-subheading-sm);
-    line-height: var(--text-subheading-sm--line-height);
-    letter-spacing: var(--text-subheading-sm--letter-spacing);
-    font-weight: var(--text-subheading-sm--font-weight);
-  }
-
-  .text-subheading-xs {
-    font-size: var(--text-subheading-xs);
-    line-height: var(--text-subheading-xs--line-height);
-    letter-spacing: var(--text-subheading-xs--letter-spacing);
-    font-weight: var(--text-subheading-xs--font-weight);
-  }
-
-  .text-subheading-2xs {
-    font-size: var(--text-subheading-2xs);
-    line-height: var(--text-subheading-2xs--line-height);
-    letter-spacing: var(--text-subheading-2xs--letter-spacing);
-    font-weight: var(--text-subheading-2xs--font-weight);
-  }
-
-  /* Documentation styles */
-  .text-doc-label {
-    font-size: var(--text-doc-label);
-    line-height: var(--text-doc-label--line-height);
-    letter-spacing: var(--text-doc-label--letter-spacing);
-    font-weight: var(--text-doc-label--font-weight);
-  }
-
-  .text-doc-paragraph {
-    font-size: var(--text-doc-paragraph);
-    line-height: var(--text-doc-paragraph--line-height);
-    letter-spacing: var(--text-doc-paragraph--letter-spacing);
-    font-weight: var(--text-doc-paragraph--font-weight);
-  }
-  */ h1 {
-    @apply text-title-h1 text-foreground;
-  }
-
-  h2 {
-    @apply text-title-h2 text-foreground;
-  }
-
-  h3 {
-    @apply text-title-h3 text-foreground;
-  }
-
-  h4 {
-    @apply text-title-h4 text-foreground;
-  }
-
-  h5 {
-    @apply text-title-h5 text-foreground;
-  }
-
-  h6 {
-    @apply text-title-h6 text-foreground;
-  }
-
-  a {
-    @apply text-label-md;
-    text-decoration: inherit;
-  }
-
-  /* Additional utility classes */
-  .small {
-    @apply text-paragraph-sm;
-  }
-
-  .extra-small {
-    @apply text-paragraph-xs;
-  }
+.extra-small {
+  @apply text-paragraph-xs;
 }
