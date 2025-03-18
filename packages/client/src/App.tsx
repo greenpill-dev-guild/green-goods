@@ -22,8 +22,10 @@ function App() {
   const { isMobile, isInstalled } = useApp();
   const { ready, smartAccountAddress } = useUser();
 
-  const isDownloaded = isMobile && isInstalled;
-  const isAuthenticated = authenticated && smartAccountAddress;
+  const desktopBypass = import.meta.env.VITE_DESKTOP_DEV;
+
+  const isDownloaded = (isMobile && isInstalled) || desktopBypass;
+  const isAuthenticated = (authenticated && smartAccountAddress) || desktopBypass ;
 
   return (
     <QueryClientProvider client={queryClient}>
