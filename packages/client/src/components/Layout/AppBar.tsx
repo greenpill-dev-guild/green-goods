@@ -41,7 +41,7 @@ export const AppBar = () => {
   const { pathname } = useLocation();
 
   return (
-    <nav className={"fixed bottom-0 bg-white border-t border-t-gray-300 flex flex-row gap-2 justify-evenly items-center w-full py-4 z-[10000]"}>
+    <nav className={"fixed bottom-0 bg-white border-t border-t-slate-200 flex flex-row justify-evenly items-center w-full py-3 z-[10000]"}>
       {tabs.map(({ path, ActiveIcon, InactiveIcon, title }) => {
         const isActive = pathname === path;
         return (
@@ -49,7 +49,7 @@ export const AppBar = () => {
           <button
             className={cn("flex flex-col items-center",
               isActive && "active tab-active text-greengoods-green focus:outline-hidden active-text-red-500",
-              !isActive && "text-slate-700")
+              !isActive && "text-slate-400")
             }
             type="button"
           >
@@ -57,7 +57,7 @@ export const AppBar = () => {
               <ActiveIcon className="w-6 h-6" />
             : <InactiveIcon className="w-6 h-6" />}
             <p
-              className={`text-sm tracking-wide ${
+              className={`text-sm ${
                 pathname === path ? "text-[#367D42]" : ""
               }`}
             >

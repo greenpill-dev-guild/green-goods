@@ -2,4 +2,6 @@
 
 @theme {
   --color-greengoods-green: hsla(148, 51%, 48%, 1);
+
+  --color-card-grey: #F5F7FA;
 }

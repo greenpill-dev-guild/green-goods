@@ -1,4 +1,5 @@
-import { RiCheckFill } from "@remixicon/react";
+import { cn } from "@/utils/cn";
+import { RiCheckFill, RiArrowRightSLine } from "@remixicon/react";
 
 interface FormProgressProps {
   currentStep: number;
@@ -15,24 +16,23 @@ export const FormProgress = ({ currentStep, steps }: FormProgressProps) => {
         >
           <div className="inline-flex items-center text-sm align-middle">
             <span
-              className={`
-                relative grid place-items-center w-7 h-7 font-medium rounded-full 
-                transition-colors ease-in-out duration-300
-                ${
-                  currentStep > index + 1 ? "bg-teal-500"
-                  : currentStep === index + 1 ?
-                    "bg-teal-500 text-white before:absolute before:-inset-1 before:bg-teal-200 before:rounded-full before:w-13 before:h-13 before:z-[-1] before:m-auto"
-                  : "bg-slate-200 text-black"
-                }
-              `}
+              className={cn(
+                "relative grid place-items-center w-7 h-7 font-medium rounded-full transition-colors ease-in-out duration-300 border border-slate-200 text-black",
+                currentStep > index + 1 && "bg-greengoods-green border-0",
+                currentStep === index + 1 &&
+                  "bg-greengoods-green text-white before:absolute before:-inset-1 before:bg-greengoods-green before:rounded-full before:w-13 before:h-13 before:z-[-1] before:m-auto border-0"
+              )}
             >
-              {currentStep > index + 1 ?
+              {currentStep > index + 1 ? (
                 <RiCheckFill className="w-5 h-5 text-white" />
-              : index + 1}
+              ) : (
+                index + 1
+              )}
             </span>
             <div
-              className={`${currentStep > index + 1 ? "bg-teal-400" : "bg-slate-400"} ms-2 w-full h-px flex-1 group-last:hidden`}
-            ></div>
+              className={`${currentStep > index + 1 ? "bg-greengoods-green" : "bg-slate-400"} ms-2 w-full h-px flex-1 group-last:hidden`}
+            />
+            {index < steps.length -1 && <div><RiArrowRightSLine className="w-5 text-slate-400"/></div>}
           </div>
           {/* <div className="mt-3">
             <span className={`block font-medium text-lg text-teal-600`}>

@@ -1,4 +1,5 @@
-import { RemixiconComponentType } from "@remixicon/react";
+import type { RemixiconComponentType } from "@remixicon/react";
+import { Card } from "../Card/Card";
 
 interface FormInfoProps {
   title: string;
@@ -23,19 +24,21 @@ export const FormInfo = ({
   const variantClasses = variants[variant];
 
   return (
-    <div
+    <Card
       className={`${variantClasses} p-4 rounded-lg flex gap-2 mb-4 max-h-36`}
+      variant="primary"
+      mode="filled"
       {...props}
     >
       {Icon && (
         <div className="bg-white h-12 w-12 p-3 rounded-full">
-          <Icon size={24} className="text-teal-500" />
+          <Icon size={24} className="text-greengoods-green" />
         </div>
       )}
-      <div className="flex flex-col gap-0.5">
-        <h3 className="text-xl font-medium text-slate-800">{title}</h3>
-        <p className="text-xs leading-tight text-slate-700">{info}</p>
+      <div className="flex flex-col gap-0.5 grow">
+        <h5>{title}</h5>
+        <div className="text-xs leading-tight text-slate-700">{info}</div>
       </div>
-    </div>
+    </Card>
   );
 };

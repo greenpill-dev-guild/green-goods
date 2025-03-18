@@ -141,10 +141,6 @@ h6 {
   @apply text-title-h6;
 }
 
-p {
-  @apply text-paragraph-md;
-}
-
 span {
   @apply text-paragraph-md;
 }
