@@ -78,7 +78,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
             ({ title, Icon, description, isLinked, link, unlink }) => (
               <li
                 key={title}
-                className="flex gap-1 justify-between border-2 border-slate-100 shadow-sm "
+                className="flex gap-1 justify-between border-2 border-slate-100 shadow-2xs "
               >
                 <div className="flex flex-col gap-2 px-2 py-1">
                   <div className="flex items-center font-sm gap-1">
@@ -100,9 +100,8 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
         </ul>
         <Button
           label="Logout"
-          className="bg-red-700 mt-8 mb-4"
-          fullWidth
-          // size="small"
+          variant="danger"
+          size="small"
           onClick={logout}
         />
       </div>

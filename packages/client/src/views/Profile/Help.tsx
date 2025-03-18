@@ -115,7 +115,7 @@ export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
             <details
               tabIndex={0}
               key={faq.question}
-              className="collapse collapse-arrow border shadow-sm rounded-xl"
+              className="collapse collapse-arrow border shadow-2xs rounded-xl"
             >
               <summary className="font-semibold text-sm collapse-title">
                 {faq.question}

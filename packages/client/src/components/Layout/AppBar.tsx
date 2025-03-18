@@ -7,8 +7,9 @@ import {
   RiHomeLine,
   RiPlantLine,
   RiUserLine,
-  RemixiconComponentType,
+  type RemixiconComponentType,
 } from "@remixicon/react";
+import { cn } from "@/utils/cn";
 
 const tabs: {
   path: string;
@@ -40,15 +41,17 @@ export const AppBar = () => {
   const { pathname } = useLocation();
 
   return (
-    <nav className={"btm-nav z-10 w-full rounded-t-2xl py-9 bg-[#F4E0CC]"}>
-      {tabs.map(({ path, ActiveIcon, InactiveIcon, title }) => (
+    <nav className={"bg-white border-t border-t-gray-300 flex flex-row gap-2 justify-evenly items-center w-full py-4 z-[10000]"}>
+      {tabs.map(({ path, ActiveIcon, InactiveIcon, title }) => {
+        const isActive = pathname === path;
+        return (
         <Link to={path} key={title}>
           <button
-            className={`flex flex-col items-center ${
-              pathname === path ?
-                "active tab-active text-[#367D42] focus:outline-none hover:text-[#367D42]"
-              : "text-slate-700"
-            }`}
+            className={cn("flex flex-col items-center",
+              isActive && "active tab-active text-greengoods-green focus:outline-hidden active-text-red-500",
+              !isActive && "text-slate-700")
+            }
+            type="button"
           >
             {pathname === path ?
               <ActiveIcon className="w-6 h-6" />
@@ -62,7 +65,7 @@ export const AppBar = () => {
             </p>
           </button>
         </Link>
-      ))}
+      )})}
     </nav>
   );
 };

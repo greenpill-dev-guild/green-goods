@@ -13,7 +13,7 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
         {label}
       </label>
       <input
-        className="input bg-inherit" //py-3 px-4 block w-full border-slate-200 bg-white rounded-lg shadow-sm text-sm focus:border-teal-500 focus:ring-teal-500 disabled:opacity-50 disabled:pointer-events-none"
+        className="input bg-inherit" //py-3 px-4 block w-full border-slate-200 bg-white rounded-lg shadow-2xs text-sm focus:border-teal-500 focus:ring-teal-500 disabled:opacity-50 disabled:pointer-events-none"
         {...props}
         ref={ref}
       />

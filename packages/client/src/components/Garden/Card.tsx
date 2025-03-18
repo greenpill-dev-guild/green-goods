@@ -31,7 +31,7 @@ export const GardenCard: React.FC<GardenCardProps> = ({
     >
       <div className="relative w-full h-auto rounded-t-xl">
         <img
-          className="w-full rounded-t-xl aspect-[4/2] object-cover object-top"
+          className="w-full rounded-t-xl aspect-4/2 object-cover object-top"
           width={400}
           height={200}
           src={

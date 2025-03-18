@@ -32,9 +32,8 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = () => {
       </div> */}
       <Button
         label="Logout"
-        className="bg-red-500"
-        fullWidth
-        // size="small"
+        variant="danger"
+        size="small"
         onClick={logout}
       />
     </>

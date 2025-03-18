@@ -15,7 +15,7 @@ export const GardenNotifications: React.FC<GardenNotificationsProps> = ({
   return (
     <ul
       tabIndex={0}
-      className="dropdown-content max-h-80 p-2 gap-3 border border-slate-100 rounded-2xl w-72 flex flex-col items-center noscroll overflow-scroll bg-white z-[10]"
+      className="dropdown-content max-h-80 p-2 gap-3 border border-slate-100 rounded-2xl w-72 flex flex-col items-center noscroll overflow-scroll bg-white z-10"
     >
       {notifications.map(({ id, gardenerAddress }) => (
         <li key={id}>

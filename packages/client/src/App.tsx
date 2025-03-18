@@ -16,6 +16,7 @@ import { AppBar } from "@/components/Layout/AppBar";
 import AppViews from "@/views";
 import Login from "@/views/Login";
 import Landing from "@/views/Landing";
+import "@/index.css";
 
 function App() {
   const { authenticated } = usePrivy();

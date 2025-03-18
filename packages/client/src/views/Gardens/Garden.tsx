@@ -104,7 +104,7 @@ export const Garden: React.FC<GardenProps> = () => {
             </div>
             <img
               src={bannerImage}
-              className="w-full object-cover object-top aspect-[16/9] border-b-2 border-slate-300 shadow-sm rounded-b-3xl"
+              className="w-full object-cover object-top aspect-16/9 border-b-2 border-slate-300 shadow-2xs rounded-b-3xl"
               alt="Banner"
             />
           </div>
@@ -125,7 +125,7 @@ export const Garden: React.FC<GardenProps> = () => {
               </div>
             </div>
           </div>
-          <ul className="mx-4 flex items-center flex-nowrap border border-slate-100 overflow-hidden shadow-sm rounded-lg divide-x-2">
+          <ul className="mx-4 flex items-center flex-nowrap border border-slate-100 overflow-hidden shadow-2xs rounded-lg divide-x-2">
             {Object.values(GardenTab).map((tab) => (
               <li
                 key={tab}

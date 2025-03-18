@@ -8,7 +8,7 @@ interface FormCardProps {
 }
 
 const variants = {
-  primary: "bg-transparent border-slate-100 border-2 shadow-sm",
+  primary: "bg-transparent border-slate-100 border-2 shadow-2xs",
   secondary: "bg-green-100 text-green-700",
   tertiary: "bg-yellow-100 text-yellow-700",
 };

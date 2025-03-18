@@ -1,11 +1,11 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@import './styles/colors.css';
+@import './styles/typography.css';
+@import './styles/utilities.css';
 
 :root {
-  color-scheme: light dark;
-
   @apply text-slate-800;
+  color-scheme: light dark;
   background-color: #fff;
 
   scrollbar-width: none;
@@ -21,17 +21,16 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* @media (prefers-color-scheme: dark) {
-  :root {
-    color: rgba(255, 255, 255, 0.87);
-    background-color: #242424;
-  }
-} */
+body {
+  @apply m-0 w-screen h-screen bg-white dark:bg-white text-slate-900;
+}
 
-.noscroll {
-  overflow: auto; /* Allow scrolling */
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* Internet Explorer 10+ */
+#root {
+  @apply w-full h-full max-w-(--breakpoint-xl) mx-auto flex flex-col;
+}
+
+main {
+  @apply px-4 sm:px-6 md:px-12;
 }
 
 ::-webkit-scrollbar {
@@ -45,69 +44,6 @@ ul::-webkit-scrollbar {
 div::-webkit-scrollbar {
   display: none;
 }
-
-/*
-  Typography
-*/
-h1 {
-  @apply text-6xl;
-  @apply font-medium;
-}
-
-h2 {
-  @apply text-5xl;
-  @apply font-medium;
-}
-
-h3 {
-  @apply text-4xl;
-  @apply font-medium;
-}
-
-h4 {
-  @apply text-2xl;
-  @apply font-medium;
-}
-
-h5 {
-  @apply text-xl;
-  @apply font-semibold;
-}
-
-p {
-  @apply text-base;
-  @apply font-normal;
-}
-
-span {
-  @apply text-base;
-  @apply font-normal;
-}
-
-label {
-  @apply text-base;
-  @apply font-medium;
-}
-
-a {
-  @apply text-base;
-  @apply font-medium;
-  text-decoration: inherit;
-}
-
-.small {
-  @apply text-sm;
-  @apply font-normal;
-}
-
-.extra-small {
-  @apply text-xs;
-  @apply font-normal;
-}
-
-/* a:hover {
-  color: #535bf2;
-} */
 
 /*
   Components

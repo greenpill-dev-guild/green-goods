@@ -10,7 +10,7 @@ import { GardenWorkApproval } from "./Gardens/WorkApproval";
 export default function Views() {
   return (
     <main
-      className={`overflow-hidden overscroll-contain h-[calc(100lvh-3.5rem)]`}
+      className={"overflow-hidden overscroll-contain h-[calc(100lvh-3.5rem)]"}
     >
       <Routes>
         <Route path="gardens" element={<Gardens />}>
