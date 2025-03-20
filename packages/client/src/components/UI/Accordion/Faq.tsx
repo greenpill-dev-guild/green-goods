@@ -12,7 +12,7 @@ const Faq = React.forwardRef<
 >(({ className, ...props }, ref) => (
     <AccordionPrimitive.Root
       ref={ref}
-      className={cn("flex flex-col gap-4", className)}
+      className={cn("flex flex-col gap-2", className)}
       {...props}
     />
 ));
@@ -39,7 +39,7 @@ const FaqTrigger = React.forwardRef<
     <AccordionPrimitive.Trigger
       ref={ref}
       className={cn(
-        "flex flex-row w-full gap-3 text-base font-medium transition-all [&[data-state=open]>svg:first-of-type]:text-primary [&[data-state=open]>svg:first-of-type]:scale-110 [&[data-state=open]>svg:first-of-type]:animate-spring-bump grow text-left items-start",
+        "flex flex-row w-full gap-3 text-base font-medium transition-all [&[data-state=open]>svg:first-of-type]:text-greengoods-green [&[data-state=open]>svg:first-of-type]:scale-110 [&[data-state=open]>svg:first-of-type]:animate-spring-bump grow text-left items-start",
         className
       )}
       {...props}

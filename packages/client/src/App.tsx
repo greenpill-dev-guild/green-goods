@@ -17,6 +17,10 @@ import AppViews from "@/views";
 import Login from "@/views/Login";
 import Landing from "@/views/Landing";
 import "@/index.css";
+import "@/styles/colors.css";
+import "@/styles/typography.css";
+import "@/styles/utilities.css";
+import "@/styles/animation.css";
 
 function App() {
   const { authenticated } = usePrivy();
@@ -26,7 +30,7 @@ function App() {
   const desktopBypass = import.meta.env.VITE_DESKTOP_DEV;
 
   const isDownloaded = (isMobile && isInstalled) || desktopBypass;
-  const isAuthenticated = (authenticated && smartAccountAddress) || desktopBypass ;
+  const isAuthenticated = (authenticated && smartAccountAddress);
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -53,7 +53,6 @@ export default defineConfig(({ mode }) => {
           enabled: true,
         },
         workbox: {
-          maximumFileSizeToCacheInBytes: 5097152,
           // globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
         },
         manifest: {
@@ -148,11 +147,11 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3001,
       proxy: {
-        graphql: {
+        "graphql": {
           target: "https://indexer.dev.hyperindex.xyz/332f54b/v1/graphql",
-          changeOrigin: true,
-        },
-      },
+          changeOrigin: true
+        }
+      }
     },
   };
 });

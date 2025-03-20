@@ -1,6 +1,10 @@
 @import "tailwindcss";
 
 @theme {
+
+  /* --text-base: 16px; */
+  /* --text-sm: 14px */
+
   /* Title variants */
   --text-title-h1: 56px;
   --text-title-h1--line-height: 64px;

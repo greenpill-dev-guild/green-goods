@@ -30,15 +30,15 @@ const Profile: React.FC = () => {
   return (
     <div className={"flex flex-col h-full py-4 pb-10 gap-4"}>
       <UserProfile
-        displayName={user?.email?.address || user?.phone?.number || "Bubba"}
+        displayName={user?.email?.address || user?.phone?.number || user?.id || "Unknown"}
         avatar={user?.farcaster?.pfp || "/images/avatar.png"}
-        location="downtown"
-        wallet={formatAddress(user?.wallet?.address || "0x0")}
-        registration="2022-01-01"
-        email="bubba@bubba.com"
-        telephone="123456789"
+        location={(user?.customMetadata?.location as string) || undefined}
+        wallet={user?.wallet?.address && formatAddress(user?.wallet?.address)}
+        registration={user?.createdAt.toLocaleDateString() || undefined}
+        email={user?.email?.address || undefined}
+        telephone={user?.phone?.number || undefined}
       />
-      <Tabs defaultValue="account">
+      <Tabs defaultValue="help">
         <div className="flex items-center justify-center">
           <TabsList className="">
             {Object.values(availableTabs).map((tab) => {

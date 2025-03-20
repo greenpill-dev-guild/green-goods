@@ -1,11 +1,11 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
-import Work from "./Work";
+import Work from "./Garden";
 import Profile from "./Profile";
-import Gardens from "./Gardens";
-import { Garden } from "./Gardens/Garden";
-import { GardenAssessment } from "./Gardens/Assessment";
-import { GardenWorkApproval } from "./Gardens/WorkApproval";
+import Gardens from "./Home";
+import { Garden } from "./Home/Garden";
+import { GardenAssessment } from "./Home/Assessment";
+import { GardenWorkApproval } from "./Home/WorkApproval";
 
 export default function Views() {
   return (

@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 @theme {
+  
   --animate-dot-fade: dot-fade 1s ease-in-out infinite;
   @keyframes dot-fade {
     0%,
@@ -57,21 +58,5 @@
     to {
       transform: scale(1);
     }
-  }
-}
-
-.upload-spinner {
-  border-bottom-color: transparent;
-  border-radius: 50%;
-  box-sizing: border-box;
-  animation: rotation 3s linear infinite;
-}
-
-@keyframes rotation {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
   }
 }
