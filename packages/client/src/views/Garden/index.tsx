@@ -139,7 +139,7 @@ const Work: React.FC = () => {
     <Form
       id="work-form"
       control={control}
-      className="flex flex-col h-full py-4 gap-4"
+      className="padded py-6 flex flex-col gap-4"
     >
       <div className="relative flex justify-between items-center mb-4">
         <button
@@ -155,9 +155,7 @@ const Work: React.FC = () => {
         />
         <div className="flex items-center gap-1 w-10 h-10 p-2 border border-transparent" />
       </div>
-      <div className="flex-grow overflow-y-auto">
         {renderTabContent()}
-      </div>
       <div className="mt-auto pt-4 flex flex-col gap-2">
         {tabActions[activeTab].secondary && (
           <Button

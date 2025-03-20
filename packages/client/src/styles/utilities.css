@@ -1,6 +1,10 @@
 @import 'tailwindcss';
 
 @layer utilities {
+
+  .image-lut {
+    @apply contrast-110 brightness-105 saturate-130;
+  }
   /* Custom Shadow Utilities */
   .shadow-regular-xs {
     box-shadow: 0 1px 2px 0 rgba(10, 13, 20, 0.03);

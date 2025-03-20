@@ -40,7 +40,7 @@ export const Profile: React.FC<ProfileProps> = ({avatar, displayName, ...props }
         className="rounded-full w-36 min-w-36 absolute"
       />
       <h4>{displayName}</h4>
-      <div className="flex flex-row flex-wrap justify-center items-center gap-2">
+      <div className="flex flex-row flex-wrap justify-center items-center">
       {
         Object.entries(props).map(([key, value]) => {
           const Icon = ProfileDataTypes[key as keyof typeof ProfileDataTypes];

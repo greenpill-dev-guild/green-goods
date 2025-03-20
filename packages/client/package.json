@@ -27,6 +27,7 @@
     "@urql/core": "^5.0.4",
     "@vercel/functions": "1.4.1",
     "clsx": "2.1.1",
+    "embla-carousel-react": "^8.5.2",
     "gql.tada": "^1.8.10",
     "pinata": "^0.4.0",
     "react": "^18.3.1",

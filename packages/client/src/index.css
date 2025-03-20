@@ -30,8 +30,8 @@ body {
   @apply w-full h-full mx-auto flex flex-col max-w-[var(--breakpoint-xl)];
 }
 
-main {
-  @apply px-4 sm:px-6 md:px-12;
+.padded {
+  @apply mx-4 sm:mx-6 md:mx-12;
 }
 
 ::-webkit-scrollbar {
