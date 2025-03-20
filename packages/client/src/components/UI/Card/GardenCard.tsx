@@ -7,7 +7,7 @@ import { Badge } from "../Badge/Badge";
 import { formatAddress } from "@/utils/text";
 
 export const cardVariants = tv({
-  base: "flex flex-col grow border rounded-lg border-card-darkergrey overflow-clip rounded-lg text-card-foreground justify-between border-slate-200 p-0 gap-0",
+  base: "flex flex-col grow border rounded-lg border-card overflow-clip rounded-lg justify-between border-slate-200 p-0 gap-0",
   variants: {
     media: {
       large: "",
@@ -41,20 +41,20 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardRootProps>(
         />
         <div
           data-selected={selected}
-          className="p-5 flex flex-col gap-2 border-2 border-t-0 rounded-b-lg border-white data-[selected=true]:border-greengoods-selected transition-all duration-400"
+          className="p-5 flex flex-col gap-2 border-2 border-t-0 rounded-b-lg border-white data-[selected=true]:border-primary transition-all duration-400"
         >
           <div className="flex flex-col gap-2">
             <h5 className="flex items-center text-xl font-medium">
               {garden.name}
             </h5>
             <div className="flex flex-row gap-1">
-              <Badge variant="outline" tint="none"><RiUserCommunityFill className="w-3.5 text-greengoods-green mx-1"/>{garden.operators.length} Gardeners</Badge>
-              <Badge variant="outline" tint="none"><RiUserLocationFill className="w-3.5 text-greengoods-green mx-1"/>{garden.location}</Badge>
+              <Badge variant="outline" tint="none"><RiUserCommunityFill className="w-3.5 text-primary mx-1"/>{garden.operators.length} Gardeners</Badge>
+              <Badge variant="outline" tint="none"><RiUserLocationFill className="w-3.5 text-primary mx-1"/>{garden.location}</Badge>
             </div>
             {showOperators &&(<><div className="text-xs text-slate-700 uppercase">Operators</div>
             <div className="flex flex-row gap-1 flex-wrap">
               {garden.operators.map((operator) => (
-                <Badge key={operator} variant="outline" tint="none"><RiUser2Fill className="w-3.5 text-greengoods-green mx-1"/>{formatAddress(operator)}</Badge>
+                <Badge key={operator} variant="outline" tint="none"><RiUser2Fill className="w-3.5 text-primary mx-1"/>{formatAddress(operator)}</Badge>
               ))}
             </div></>)}
           </div>

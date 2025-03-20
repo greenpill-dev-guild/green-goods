@@ -122,31 +122,31 @@
 }
 
 h1 {
-  @apply text-title-h1;
+  @apply text-title-h1 text-foreground;
 }
 
 h2 {
-  @apply text-title-h2;
+  @apply text-title-h2 text-foreground;
 }
 
 h3 {
-  @apply text-title-h3;
+  @apply text-title-h3 text-foreground;
 }
 
 h4 {
-  @apply text-title-h4;
+  @apply text-title-h4 text-foreground;
 }
 
 h5 {
-  @apply text-title-h5;
+  @apply text-title-h5 text-foreground;
 }
 
 h6 {
-  @apply text-title-h6;
+  @apply text-title-h6 text-foreground;
 }
 
 span {
-  @apply text-paragraph-md;
+  @apply text-paragraph-md text-foreground;
 }
 
 label {

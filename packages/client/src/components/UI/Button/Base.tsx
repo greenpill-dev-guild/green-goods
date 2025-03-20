@@ -7,8 +7,8 @@ export const buttonVariants = tv({
   base: "flex flex-row items-center text-center h-7 self-center items-center justify-center text-[#525866]",
   variants: {
     variant: {
-      primary: "bg-greengoods-green",
-      secondary: "bg-greengoods-green",
+      primary: "bg-primary",
+      secondary: "bg-primary",
       danger: "bg-red-500",
     },
     mode: {

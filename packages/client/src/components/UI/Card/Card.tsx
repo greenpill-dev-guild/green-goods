@@ -3,7 +3,7 @@ import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
 
 export const cardVariants = tv({
-  base: "rounded-2xl border bg-card text-card-foreground flex gap-0.5 justify-between border-slate-200 p-1 px-4",
+  base: "rounded-2xl border flex gap-0.5 justify-between border-card p-1 px-4 bg-white",
   variants: {
     variant: {
       primary: "",
@@ -11,8 +11,8 @@ export const cardVariants = tv({
     },
     mode: {
       "no-outline": "border-0 shadow-0",
-      outline: "border-slate-200 border shadow-xs",
-      filled: "bg-card-grey border-0"
+      outline: "border-card border shadow-xs",
+      filled: "bg-card border-0"
     },
     size: {
       large: "min-h-18",
@@ -23,7 +23,7 @@ export const cardVariants = tv({
       shadow: "shadow-md"
     },
     animating: {
-      default: "active:brightness-107 active:bg-greengoods-lightgreen/50 transition-all duration-200 ease-in-out",
+      default: "active:brightness-107 active:bg-primary/5 transition-all duration-200 ease-in-out",
       none: ""
     }
   },

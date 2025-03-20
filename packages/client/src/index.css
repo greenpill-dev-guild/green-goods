@@ -1,7 +1,6 @@
 @import "tailwindcss";
 
 :root {
-  @apply text-slate-800;
   color-scheme: light dark;
   background-color: #fff;
 
@@ -19,7 +18,7 @@
 }
 
 body {
-  @apply m-0 w-screen h-screen bg-white dark:bg-white text-slate-900;
+  @apply m-0 w-screen h-screen bg-white dark:bg-white text-foreground;
 }
 
 #root {

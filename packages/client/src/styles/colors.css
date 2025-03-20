@@ -1,7 +1,112 @@
 @import "tailwindcss";
 
-@theme {
-  --color-greengoods-green: hsla(148, 51%, 48%, 1);
+  :root {
+    /* Tailwind default colors in OKLCH format */
+    --color-slate-50: oklch(0.984 0.003 247.858);
+    --color-slate-100: oklch(0.968 0.007 247.896);
+    --color-slate-200: oklch(0.929 0.013 255.508);
+    --color-slate-300: oklch(0.869 0.022 252.894);
+    --color-slate-400: oklch(0.704 0.04 256.788);
+    --color-slate-500: oklch(0.554 0.046 257.417);
+    --color-slate-600: oklch(0.446 0.043 257.281);
+    --color-slate-700: oklch(0.372 0.044 257.287);
+    --color-slate-800: oklch(0.279 0.041 260.031);
+    --color-slate-900: oklch(0.208 0.042 265.755);
+    --color-slate-950: oklch(0.129 0.042 264.695);
 
-  --color-card-grey: #F5F7FA;
+    --color-gray-50: oklch(0.985 0.002 247.839);
+    --color-gray-100: oklch(0.967 0.003 264.542);
+    --color-gray-200: oklch(0.928 0.006 264.531);
+    --color-gray-300: oklch(0.872 0.01 258.338);
+    --color-gray-400: oklch(0.707 0.022 261.325);
+    --color-gray-500: oklch(0.551 0.027 264.364);
+    --color-gray-600: oklch(0.446 0.03 256.802);
+    --color-gray-700: oklch(0.373 0.034 259.733);
+    --color-gray-800: oklch(0.278 0.033 256.848);
+    --color-gray-900: oklch(0.21 0.034 264.665);
+    --color-gray-950: oklch(0.13 0.028 261.692);
+
+    --color-neutral-50: oklch(0.985 0 0);
+    --color-neutral-100: oklch(0.97 0 0);
+    --color-neutral-200: oklch(0.922 0 0);
+    --color-neutral-300: oklch(0.87 0 0);
+    --color-neutral-400: oklch(0.708 0 0);
+    --color-neutral-500: oklch(0.556 0 0);
+    --color-neutral-600: oklch(0.439 0 0);
+    --color-neutral-700: oklch(0.371 0 0);
+    --color-neutral-800: oklch(0.269 0 0);
+    --color-neutral-900: oklch(0.205 0 0);
+    --color-neutral-950: oklch(0.145 0 0);
+
+    --color-green-50: oklch(0.978 0.019 157.379);
+    --color-green-100: oklch(0.95 0.038 156.01);
+    --color-green-200: oklch(0.905 0.065 156.242);
+    --color-green-300: oklch(0.85 0.094 156.484);
+    --color-green-400: oklch(0.77 0.14 154.687);
+    --color-green-500: oklch(0.692 0.172 154.574);
+    --color-green-600: oklch(0.613 0.162 151.334);
+    --color-green-700: oklch(0.522 0.139 150.245);
+    --color-green-800: oklch(0.431 0.112 148.235);
+    --color-green-900: oklch(0.367 0.088 145.302);
+    --color-green-950: oklch(0.267 0.069 145.844);
+
+    --color-blue-50: oklch(0.98 0.018 225.294);
+    --color-blue-100: oklch(0.95 0.039 227.139);
+    --color-blue-200: oklch(0.905 0.071 229.686);
+    --color-blue-300: oklch(0.849 0.102 233.389);
+    --color-blue-400: oklch(0.778 0.136 238.317);
+    --color-blue-500: oklch(0.7 0.181 244.969);
+    --color-blue-600: oklch(0.616 0.196 248.054);
+    --color-blue-700: oklch(0.525 0.178 251.504);
+    --color-blue-800: oklch(0.45 0.148 253.272);
+    --color-blue-900: oklch(0.386 0.12 253.861);
+    --color-blue-950: oklch(0.316 0.099 254.054);
+
+    --color-red-50: oklch(0.969 0.015 12.422);
+    --color-red-100: oklch(0.941 0.03 12.58);
+    --color-red-200: oklch(0.892 0.058 10.001);
+    --color-red-300: oklch(0.81 0.117 11.638);
+    --color-red-400: oklch(0.712 0.194 13.428);
+    --color-red-500: oklch(0.645 0.246 16.439);
+    --color-red-600: oklch(0.586 0.253 17.585);
+    --color-red-700: oklch(0.514 0.222 16.935);
+    --color-red-800: oklch(0.455 0.188 13.697);
+    --color-red-900: oklch(0.41 0.159 10.272);
+    --color-red-950: oklch(0.271 0.105 12.094);
+
+    /* GreenGoods Custom Colors */
+    --color-greengoods-green: oklch(0.7 0.167 155.0); /* Converted from hsla(148, 51%, 48%, 1) */
+    --color-greengoods-lightgreen: oklch(0.96 0.04 156.0); /* Converted from #E0FAEC */
+    --color-greengoods-selected: oklch(0.67 0.17 153.0); /* Converted from #1EAF62 */
+    
+    --color-card-grey: oklch(0.97 0.003 240.0); /* Converted from #F5F7FA */
+    --color-card-darkergrey: oklch(0.9 0.008 245.0); /* Converted from #E0E4EA */
+  }
+
+/* Tailwind theme configuration */
+@theme {
+  --color-primary: var(--color-greengoods-green);
+  --color-primary-foreground: white;
+  
+  --color-secondary: var(--color-greengoods-lightgreen);
+  --color-secondary-foreground: var(--color-greengoods-green);
+  
+  --color-accent: var(--color-greengoods-selected);
+  --color-accent-foreground: white;
+
+  --color-background: white;
+  --color-foreground: var(--color-slate-950);
+  
+  --color-card: var(--color-card-grey);
+  --color-card-foreground: var(--color-slate-900);
+  
+  --color-muted: var(--color-card-darkergrey);
+  --color-muted-foreground: var(--color-slate-500);
+  
+  --color-destructive: var(--color-red-500);
+  --color-destructive-foreground: white;
+  
+  --color-border: var(--color-gray-200);
+  --color-input: var(--color-gray-200);
+  --color-ring: var(--color-gray-300);
 }
