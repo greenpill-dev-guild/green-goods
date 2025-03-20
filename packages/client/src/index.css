@@ -1,7 +1,4 @@
-@import 'tailwindcss';
-@import './styles/colors.css';
-@import './styles/typography.css';
-@import './styles/utilities.css';
+@import "tailwindcss";
 
 :root {
   @apply text-slate-800;
@@ -59,15 +56,4 @@ div::-webkit-scrollbar {
   @apply w-4;
   @apply h-4;
   @apply rounded-full;
-}
-
-@keyframes dot-fade {
-  0%,
-  50%,
-  100% {
-    opacity: 0.27;
-  }
-  25% {
-    opacity: 1;
-  }
 }

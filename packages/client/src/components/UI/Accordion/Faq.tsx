@@ -2,13 +2,23 @@
 
 import * as React from "react";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
-import { RiAddLargeLine, RiAddLine, RiArrowDownBoxFill, RiQuestionLine } from "@remixicon/react";
+import { RiAddLine, RiQuestionLine } from "@remixicon/react";
 import { cn } from "@/utils/cn";
 import { FlexCard } from "../Card/Card";
 
-const Accordion = AccordionPrimitive.Root;
+const Faq = React.forwardRef<
+  React.ElementRef<typeof AccordionPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Root>
+>(({ className, ...props }, ref) => (
+    <AccordionPrimitive.Root
+      ref={ref}
+      className={cn("flex flex-col gap-2", className)}
+      {...props}
+    />
+));
+Faq.displayName = "Faq";
 
-const AccordionItem = React.forwardRef<
+const FaqItem = React.forwardRef<
   React.ElementRef<typeof AccordionPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Item>
 >(({ className, ...props }, ref) => (
@@ -20,9 +30,9 @@ const AccordionItem = React.forwardRef<
     />
   </FlexCard>
 ));
-AccordionItem.displayName = "AccordionItem";
+FaqItem.displayName = "FaqItem";
 
-const AccordionTrigger = React.forwardRef<
+const FaqTrigger = React.forwardRef<
   React.ElementRef<typeof AccordionPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Trigger>
 >(({ className, children, ...props }, ref) => (
@@ -39,9 +49,9 @@ const AccordionTrigger = React.forwardRef<
       <RiAddLine className="h-5 w-5 shrink-0 transition-transform duration-200 text-[#9A9FAD] flex text-right " />
     </AccordionPrimitive.Trigger>
 ));
-AccordionTrigger.displayName = AccordionPrimitive.Trigger.displayName;
+FaqTrigger.displayName = AccordionPrimitive.Trigger.displayName;
 
-const AccordionContent = React.forwardRef<
+const FaqContent = React.forwardRef<
   React.ElementRef<typeof AccordionPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Content>
 >(({ className, children, ...props }, ref) => (
@@ -54,6 +64,6 @@ const AccordionContent = React.forwardRef<
   </AccordionPrimitive.Content>
 ));
 
-AccordionContent.displayName = AccordionPrimitive.Content.displayName;
+FaqContent.displayName = AccordionPrimitive.Content.displayName;
 
-export { Accordion, AccordionItem, AccordionTrigger, AccordionContent };
+export { Faq, FaqItem, FaqTrigger, FaqContent };

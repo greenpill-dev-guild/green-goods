@@ -146,6 +146,12 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 3001,
+      proxy: {
+        "graphql": {
+          target: "https://indexer.dev.hyperindex.xyz/332f54b/v1/graphql",
+          changeOrigin: true
+        }
+      }
     },
   };
 });

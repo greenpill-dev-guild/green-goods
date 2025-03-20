@@ -49,7 +49,7 @@ export const GardenCard: React.FC<GardenCardProps> = ({
         </div>
         <p className="small text-slate-600 line-clamp-3">{description}</p>
         <div className="flex w-full justify-end">
-          <Button label="View" size="small" fullWidth onClick={onCardClick} />
+          <Button label="View" size="small" onClick={onCardClick} />
         </div>
       </div>
     </li>
