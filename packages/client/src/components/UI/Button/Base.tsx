@@ -4,7 +4,7 @@ import { tv, type VariantProps } from "tailwind-variants";
 import type { PolymorphicComponentProps } from "../../../utils/polymorphic";
 
 export const buttonVariants = tv({
-  base: "flex flex-row items-center text-center h-7 self-center items-center justify-center text-[#525866]",
+  base: "flex flex-row items-center text-center h-7 self-center items-center justify-center text-[#525866] text-nowrap",
   variants: {
     variant: {
       primary: "bg-primary",

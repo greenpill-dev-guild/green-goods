@@ -41,7 +41,7 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
               key={action.id}
               onClick={() => setActionUID(action.id)}
             >
-              <ActionCard action={action} selected={selectedActionUID === action.id} media="large" />
+              <ActionCard action={action} selected={selectedActionUID === action.id} media="small" />
             </CarouselItem>
           ))}
         </CarouselContent>
@@ -58,7 +58,7 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
               key={garden.id}
               onClick={() => setGardenAddress(garden.id)}
             >
-              <GardenCard garden={garden} selected={garden.id === selectedGardenAddress} />
+              <GardenCard garden={garden} selected={garden.id === selectedGardenAddress} showDescription={true} showOperators={false} />
             </CarouselItem>
           ))}
         </CarouselContent>

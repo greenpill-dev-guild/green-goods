@@ -21,8 +21,6 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
   setImages,
 }) => {
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
-  // @dev @ Afo- preview modal
-  const disablePreview = true;
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -40,19 +38,19 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
       <FormInfo title="Upload Media" info={instruction} Icon={RiImageFill} />
       <div className="">
         <div className="text-xs tracking-tight mb-1 uppercase">needed</div>
-        {needed.map((item) => (
-          <Badge
-            key={item}
-            className="capitalize"
-            variant="pill"
-            tint="primary"
-          >
-            {item.replace("_", " ")}
-          </Badge>
-        ))}
+          {needed.map((item) => (
+            <Badge
+              key={item}
+              className="capitalize"
+              variant="pill"
+              tint="primary"
+            >
+              {item.replace("_", " ")}
+            </Badge>
+          ))}
       </div>
       <div className="">
-        <div className="text-xs tracking-tight mb-1 uppercase">optional</div>
+      <div className="text-xs tracking-tight mb-1 uppercase">optional</div>
         <ul className="flex gap-1 flex-wrap">
           {optional.map((item) => (
             <Badge
@@ -75,16 +73,20 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         className="input input-bordered hidden"
       />
       <ul className="flex flex-col gap-4">
-        {images.length ? (
+        {images.length ?
           images.map((file, index) => (
-            <li key={file.name} className="carousel-item relative">
+            <li
+              key={index}
+              className="carousel-item relative"
+              onClick={() => setPreviewModalOpen(true)}
+            >
               <img
                 src={URL.createObjectURL(file)}
                 alt={`Uploaded ${index}`}
                 className="w-full aspect-square object-cover rounded-lg"
               />
               <button
-                className="flex items-center w-8 h-8 p-1 bg-white border border-stroke-sub-300 rounded-lg absolute top-2 right-2"
+                className="flex items-center w-8 h-8 p-1 bg-white border border-slate-200 rounded-lg absolute top-2 right-2"
                 onClick={(e) => {
                   e.stopPropagation();
                   removeImage(index);
@@ -95,15 +97,17 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
               </button>
             </li>
           ))
-        ) : (
-          <li className="pt-8 px-4 grid place-items-center">
+        : <li className="pt-8 px-4 grid place-items-center">
+            <p className="text-center text-lg font-medium mb-3">
+              No images added yet. Click on upload button
+            </p>
             <Books />
           </li>
-        )}
+        }
       </ul>
-      {!disablePreview && previewModalOpen && (
+      {previewModalOpen && (
         <dialog
-          className="modal modal-open" // @dev styles here are probably missing form daisy
+          className="modal modal-open"
           onClick={() => setPreviewModalOpen(false)}
         >
           <div className="modal-box relative">

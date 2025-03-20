@@ -7,6 +7,7 @@ interface FormInfoProps {
   info: string;
   variant?: "primary" | "secondary" | "tertiary";
   Icon?: RemixiconComponentType;
+  className?: string;
 }
 
 const variants = {
@@ -20,13 +21,14 @@ export const FormInfo = ({
   info,
   variant = "primary",
   Icon,
+  className = "",
   ...props
 }: FormInfoProps) => {
   const variantClasses = variants[variant];
 
   return (
     <Card
-      className={cn(variantClasses, "p-4 rounded-lg flex gap-2 max-h-36")}
+      className={cn(variantClasses, className, "p-4 rounded-lg flex gap-4 max-h-36")}
       variant="primary"
       mode="filled"
       {...props}
@@ -37,7 +39,7 @@ export const FormInfo = ({
         </div>
       )}
       <div className="flex flex-col gap-0.5 grow">
-        <h5>{title}</h5>
+        <h6>{title}</h6>
         <div className="text-xs leading-tight text-slate-700">{info}</div>
       </div>
     </Card>

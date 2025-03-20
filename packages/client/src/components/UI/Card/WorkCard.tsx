@@ -38,7 +38,7 @@ const WorkCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
         />
         <div
           data-selected={selected}
-          className="p-5 flex flex-col gap-2 border border-t-0 rounded-b-lg border-border transition-all duration-400"
+          className="p-5 flex flex-col gap-2 border border-t-0 rounded-b-lg border-border  transition-all duration-400"
         >
           <div className="flex flex-row gap-2">
             <div
@@ -62,7 +62,9 @@ const WorkCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
             <div className="text-slate-500 text-xs">
               Published on {new Date(work.createdAt).toLocaleString()}
             </div>
-            <Button label="View Details" size="small" />
+            <Button size="small">
+                  View Details
+            </Button>
           </div>
         </div>
       </Card>

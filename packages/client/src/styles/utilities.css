@@ -3,7 +3,7 @@
 @layer utilities {
 
   .image-lut {
-    @apply contrast-110 brightness-105 saturate-130;
+    @apply contrast-110 brightness-105 saturate-150;
   }
   /* Custom Shadow Utilities */
   .shadow-regular-xs {

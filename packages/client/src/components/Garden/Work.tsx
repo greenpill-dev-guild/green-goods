@@ -3,6 +3,7 @@ import { RiAlertFill, RiLeafFill, RiSearchEyeLine } from "@remixicon/react";
 import { useNavigate } from "react-router-dom";
 
 import { CircleLoader } from "../Loader";
+import { WorkCard } from "../UI/Card/WorkCard";
 
 interface GardenWorkProps {
   actions: Action[];
@@ -24,6 +25,8 @@ export const GardenWork: React.FC<GardenWorkProps> = ({
       case "success":
         return works.length ?
             works.map((work) => (
+              <>
+              <WorkCard work={work} selected={false} media="large" />
               <li
                 key={work.id}
                 className="inline-flex w-full flex-col items-start justify-center overflow-hidden rounded-2xl border border-strokee-soft-200"
@@ -91,7 +94,7 @@ export const GardenWork: React.FC<GardenWorkProps> = ({
                     </div>
                   </div>
                 </div>
-              </li>
+              </li></>
             ))
           : <p className="grid place-items-center px-8 py-4 text-center text-sm italic">
               No works done yet, get started by clicking an action above
