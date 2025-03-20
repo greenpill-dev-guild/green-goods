@@ -2,7 +2,13 @@ import type React from "react";
 import { RiHammerFill, RiPlantFill } from "@remixicon/react";
 
 import { FormInfo } from "@/components/UI/Form/Info";
-import { cn } from "@/utils/cn";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+} from "@/components/UI/Carousel/Carousel";
+import { ActionCard } from "@/components/UI/Card/ActionCard";
+import { GardenCard } from "@/components/UI/Card/GardenCard";
 
 interface WorkIntroProps {
   actions: Action[];
@@ -28,58 +34,35 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
         info="What type of work you are submitting?"
         Icon={RiHammerFill}
       />
-      <ul className="carousel carousel-center max-w-md space-x-4 mb-4">
-        {actions.map((action) => (
-          <li
-            key={action.id}
-            className={cn(
-              "carousel-item flex flex-col border shadow-sm  w-2/3 rounded-xl",
-              action.id === selectedActionUID
-                ? "active border-green-600"
-                : "border-slate-200"
-            )}
-            onClick={() => setActionUID(action.id)}
-          >
-            <img
-              src={action.media[0]}
-              alt={"Action image"}
-              className="aspect-video object-cover rounded-t-xl"
-            />
-            <div className="p-2">
-              <h5 className="text-xl font-medium">{action.title}</h5>
-            </div>
-          </li>
-        ))}
-      </ul>
+      <Carousel opts={{ align: "start"}}>
+        <CarouselContent>
+          {actions.map((action) => (
+            <CarouselItem
+              key={action.id}
+              onClick={() => setActionUID(action.id)}
+            >
+              <ActionCard action={action} selected={selectedActionUID === action.id} media="large" />
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+      </Carousel>
       <FormInfo
         title="Select your garden"
         info="Which garden are you submitting for?"
         Icon={RiPlantFill}
       />
-      <ul className="carousel carousel-center max-w-md space-x-4 mb-4">
-        {gardens.map((garden) => (
-          <li
-            key={garden.id}
-            className={cn(
-              "carousel-item flex flex-col border shadow-sm  w-2/3 rounded-xl",
-              garden.id === selectedGardenAddress
-                ? "active border-green-600"
-                : "border-transparent"
-            )}
-            onClick={() => setGardenAddress(garden.id)}
-          >
-            <img
-              src={garden.bannerImage}
-              alt={"Garden banner image"}
-              className="aspect-video object-cover rounded-t-xl"
-            />
-            <div className="p-2">
-              <h5 className="text-xl font-medium">{garden.name}</h5>
-              <p className="text-xs line-clamp-3">{garden.description}</p>
-            </div>
-          </li>
-        ))}
-      </ul>
+      <Carousel>
+        <CarouselContent>
+          {gardens.map((garden) => (
+            <CarouselItem
+              key={garden.id}
+              onClick={() => setGardenAddress(garden.id)}
+            >
+              <GardenCard garden={garden} selected={garden.id === selectedGardenAddress} />
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+      </Carousel>
     </>
   );
 };

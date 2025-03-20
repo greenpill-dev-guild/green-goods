@@ -28,7 +28,7 @@ const Profile: React.FC = () => {
 
   console.log(user);
   return (
-    <div className={"flex flex-col h-full py-4 pb-10 gap-4"}>
+    <section className={"padded flex flex-col h-full py-4 pb-10 gap-6 pt-10"}>
       <UserProfile
         displayName={user?.email?.address || user?.phone?.number || user?.id || "Unknown"}
         avatar={user?.farcaster?.pfp || "/images/avatar.png"}
@@ -63,7 +63,7 @@ const Profile: React.FC = () => {
           <ProfileHelp />
         </TabsContent>
       </Tabs>
-    </div>
+    </section>
   );
 };
 

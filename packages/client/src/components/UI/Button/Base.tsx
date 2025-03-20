@@ -22,7 +22,7 @@ export const buttonVariants = tv({
     },
     size: {
       large: "rounded-lg px-6 py-5",
-      small: "rounded-lg px-3 py-1",
+      small: "rounded-lg px-3 py-1 text-sm",
     },
   },
   // compoundVariants: [

@@ -5,7 +5,7 @@ import { Card, type CardRootProps } from "./Card";
 import { RiCamera3Line } from "@remixicon/react";
 
 export const cardVariants = tv({
-  base: "relative flex flex-col grow border-0 rounded-lg overflow-clip rounded-lg justify-between p-0 gap-0",
+  base: "flex flex-col grow border rounded-lg border-card-darkergrey overflow-clip rounded-lg text-card-foreground justify-between border-slate-200 p-0 gap-0",
   variants: {
     media: {
       large: "",
@@ -31,40 +31,19 @@ const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
         <img
           src={action.media[0]}
           alt={action.description}
-          className={cn(
-            media === "large" ? "h-auto aspect-video" : "max-h-26",
-            "object-cover image-lut z-1"
-          )}
+          className={cn(media === "large" ? "h-auto aspect-video" : "max-h-26", "object-cover image-lut")} 
         />
         <div
           data-selected={selected}
-          className="p-5 flex flex-col gap-2 border border-t-0 rounded-b-lg border-border  transition-all duration-400"
+          className="p-5 flex flex-col gap-2 border-2 border-t-0 rounded-b-lg border-white data-[selected=true]:border-greengoods-selected transition-all duration-400"
         >
           <div className="flex flex-row gap-2">
-            <div
-              className={cn(
-                "absolute top-0 left-0 right-0 bottom-0 w-full h-full border-2 border-primary/50 rounded-lg opacity-0 transition-opacity",
-                selected && "opacity-100"
-              )}
-            />
-            <h5
-              className={cn(
-                "flex items-center text-xl font-medium",
-                selected && "text-primary"
-              )}
-            >
-              <RiCamera3Line
-                className={cn(
-                  "w-8 inline-flex mr-2",
-                  selected && "animate-spring-bump"
-                )}
-              />
+            <h5 className="flex items-center text-xl font-medium">
+              <RiCamera3Line className="w-8 inline-flex mr-2" />
               {action.title}
             </h5>
           </div>
-          <div className="text-sm text-slate-500">
-            {action.mediaInfo.description}
-          </div>
+          <div className="text-sm text-slate-500">{action.mediaInfo.description}</div>
         </div>
       </Card>
     );

@@ -23,7 +23,7 @@ export const cardVariants = tv({
       shadow: "shadow-md"
     },
     animating: {
-      default: "active:scale-101 transition-transform duration-100 ease-in-out",
+      default: "active:brightness-107 active:bg-greengoods-lightgreen/50 transition-all duration-200 ease-in-out",
       none: ""
     }
   },
