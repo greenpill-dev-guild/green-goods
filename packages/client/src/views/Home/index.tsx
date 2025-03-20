@@ -45,14 +45,14 @@ const Gardens: React.FC = () => {
 
   return (
     <div
-      className={"padded py-2"}
+      className={""}
     >
       {location.pathname === "/gardens" ?
         <>
-          <div className="flex justify-between w-full py-4">
+          <div className="padded flex justify-between w-full py-4">
             <h3>Home</h3>
           </div>
-          <ul className={"flex-1 flex flex-col gap-4 overflow-y-scroll"}>
+          <ul className={"padded flex-1 flex flex-col gap-4 overflow-y-scroll"}>
             <GardensList />
           </ul>
         </>

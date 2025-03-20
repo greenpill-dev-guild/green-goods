@@ -3,6 +3,7 @@ import { RiCloseLine, RiImageFill } from "@remixicon/react";
 
 import { FormInfo } from "@/components/UI/Form/Info";
 import { Books } from "@/assets/Books";
+import { Badge } from "@/components/UI/Badge/Badge";
 
 interface WorkMediaProps {
   instruction: string;
@@ -33,31 +34,33 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
   };
 
   return (
-    <div>
+    <div className="flex flex-col gap-4">
       <FormInfo title="Upload Media" info={instruction} Icon={RiImageFill} />
-      <div className="tracking-tight text-xs mb-3">
-        <h6 className="mb-1">NEEDED</h6>
-        <ul className="flex gap-1 flex-wrap">
+      <div className="">
+        <div className="text-xs tracking-tight mb-1 uppercase">needed</div>
           {needed.map((item) => (
-            <li
+            <Badge
               key={item}
-              className="capitalize rounded-full p-1 px-1.5 bg-teal-500 text-white"
+              className="capitalize"
+              variant="pill"
+              tint="primary"
             >
               {item.replace("_", " ")}
-            </li>
+            </Badge>
           ))}
-        </ul>
       </div>
-      <div className="tracking-tight text-xs mb-6">
-        <h6 className="mb-1">OPTIONAL</h6>
+      <div className="">
+      <div className="text-xs tracking-tight mb-1 uppercase">optional</div>
         <ul className="flex gap-1 flex-wrap">
           {optional.map((item) => (
-            <li
+            <Badge
               key={item}
-              className="capitalize rounded-full p-1 px-1.5 bg-teal-500 text-white"
+              className="capitalize"
+              variant="pill"
+              tint="primary"
             >
               {item.replace("_", " ")}
-            </li>
+            </Badge>
           ))}
         </ul>
       </div>

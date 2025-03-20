@@ -17,7 +17,7 @@ export const FormProgress = ({ currentStep, steps }: FormProgressProps) => {
           <div className="inline-flex items-center text-sm align-middle">
             <span
               className={cn(
-                "relative grid place-items-center w-7 h-7 font-medium rounded-full transition-colors ease-in-out duration-300 border border-slate-200 text-black",
+                "relative grid place-items-center w-7 h-7 font-medium rounded-full transition-colors ease-in-out duration-50 border border-slate-200 text-black",
                 currentStep > index + 1 && "bg-primary border-0",
                 currentStep === index + 1 &&
                   "bg-primary text-white before:absolute before:-inset-1 before:bg-primary before:rounded-full before:w-13 before:h-13 before:z-[-1] before:m-auto border-0"

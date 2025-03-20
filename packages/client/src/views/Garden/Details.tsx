@@ -1,5 +1,5 @@
 import { RiFileFill } from "@remixicon/react";
-import { Control, UseFormRegister } from "react-hook-form";
+import type { Control, UseFormRegister } from "react-hook-form";
 
 import { FormInfo } from "@/components/UI/Form/Info";
 import { FormText } from "@/components/UI/Form/Text";
@@ -37,7 +37,8 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
               required={required}
             />
           );
-        } else if (type === "select") {
+        }
+        if (type === "select") {
           return (
             <FormSelect
               key={key}
@@ -52,7 +53,8 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
               control={control}
             />
           );
-        } else if (type === "text") {
+        }
+        if (type === "text") {
           return (
             <FormInput
               key={key}
@@ -63,7 +65,8 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
               required={required}
             />
           );
-        } else if (type === "textarea") {
+        }
+        if (type === "textarea") {
           return (
             <FormText
               // @ts-ignore
@@ -75,9 +78,8 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
               required={required}
             />
           );
-        } else {
-          return null;
         }
+        return null;
       })}
       <FormText
         {...register("feedback")}

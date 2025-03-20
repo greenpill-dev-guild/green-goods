@@ -10,7 +10,7 @@ import { GardenWorkApproval } from "./Home/WorkApproval";
 export default function Views() {
   return (
     <main
-      className="flex flex-col h-[calc(100vh-4.5rem)] mb-[4.5rem]"
+      className="flex flex-col h-[calc(100vh-4rem)] mb-[5rem]"
     >
       <div className="flex-1 overflow-y-auto">
         <Routes>

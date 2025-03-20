@@ -145,10 +145,6 @@ h6 {
   @apply text-title-h6 text-foreground;
 }
 
-span {
-  @apply text-paragraph-md text-foreground;
-}
-
 label {
   @apply text-label-md;
 }

@@ -88,8 +88,11 @@
   --color-primary: var(--color-greengoods-green);
   --color-primary-foreground: white;
   
-  --color-secondary: var(--color-greengoods-lightgreen);
-  --color-secondary-foreground: var(--color-greengoods-green);
+  --color-secondary: var(--color-green-100);
+  --color-secondary-foreground: "black";
+  
+  --color-tertiary: var(--color-blue-100);
+  --color-tertiary-foreground: "black";
   
   --color-accent: var(--color-greengoods-selected);
   --color-accent-foreground: white;

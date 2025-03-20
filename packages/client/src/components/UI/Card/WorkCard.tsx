@@ -2,7 +2,7 @@ import { cn } from "@/utils/cn";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
 import { Card, type CardRootProps } from "./Card";
-import { RiCamera3Line } from "@remixicon/react";
+import { Button } from "../Button";
 
 export const cardVariants = tv({
   base: "relative flex flex-col grow border-0 rounded-lg overflow-clip rounded-lg justify-between p-0 gap-0",
@@ -21,16 +21,16 @@ export type ActionCardVariantProps = VariantProps<typeof cardVariants>;
 
 export type ActionCardRootProps = React.HTMLAttributes<HTMLDivElement> &
   ActionCardVariantProps &
-  CardRootProps & { action: Action; selected: boolean };
+  CardRootProps & { work: Work; selected: boolean };
 
-const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
-  ({ media, className, selected, action, ...props }, ref) => {
+const WorkCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
+  ({ media, className, selected, work, ...props }, ref) => {
     const classes = cardVariants({ media, class: className });
     return (
       <Card ref={ref} className={cn(classes)} {...props}>
         <img
-          src={action.media[0]}
-          alt={action.description}
+          src={work.media[0]}
+          alt={work.feedback}
           className={cn(
             media === "large" ? "h-auto aspect-video" : "max-h-26",
             "object-cover image-lut z-1"
@@ -47,29 +47,30 @@ const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
                 selected && "opacity-100"
               )}
             />
-            <h5
+            <h6
               className={cn(
                 "flex items-center text-xl font-medium",
                 selected && "text-primary"
               )}
             >
-              <RiCamera3Line
-                className={cn(
-                  "w-8 inline-flex mr-2",
-                  selected && "animate-spring-bump"
-                )}
-              />
-              {action.title}
-            </h5>
+              {work.title}
+            </h6>
           </div>
-          <div className="text-sm text-slate-500">
-            {action.mediaInfo.description}
+          <div className="text-sm text-slate-500">{work.feedback}</div>
+          <div className="border-t border-border" />
+          <div className="flex flex-row gap-2 items-center">
+            <div className="text-slate-500 text-xs">
+              Published on {new Date(work.createdAt).toLocaleString()}
+            </div>
+            <Button size="small">
+                  View Details
+            </Button>
           </div>
         </div>
       </Card>
     );
   }
 );
-ActionCard.displayName = "ActionCard";
+WorkCard.displayName = "WorkCard";
 
-export { ActionCard };
+export { WorkCard };
