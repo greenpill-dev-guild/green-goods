@@ -48,7 +48,7 @@ export const AppBar = () => {
         <Link to={path} key={title}>
           <button
             className={cn("flex flex-col items-center",
-              isActive && "active tab-active text-greengoods-green focus:outline-hidden active-text-red-500",
+              isActive && "active tab-active text-primary focus:outline-hidden active-text-red-500",
               !isActive && "text-slate-400")
             }
             type="button"
@@ -58,7 +58,7 @@ export const AppBar = () => {
             : <InactiveIcon className="w-6 h-6" />}
             <p
               className={`text-sm ${
-                pathname === path ? "text-[#367D42]" : ""
+                pathname === path ? "text-primary" : ""
               }`}
             >
               {title}

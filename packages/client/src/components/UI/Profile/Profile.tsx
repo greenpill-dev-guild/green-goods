@@ -46,7 +46,7 @@ export const Profile: React.FC<ProfileProps> = ({avatar, displayName, ...props }
           const Icon = ProfileDataTypes[key as keyof typeof ProfileDataTypes];
           if (value === undefined) return;
           return (
-            <Badge key={key}><Icon className="w-4 text-greengoods-green mx-1"/>{value}</Badge>
+            <Badge key={key}><Icon className="w-4 text-primary mx-1"/>{value}</Badge>
           );
         })
       }</div>

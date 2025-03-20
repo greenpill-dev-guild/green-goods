@@ -8,12 +8,12 @@ const badgeVariants = tv(
     variants: {
       variant: {
         transparent:
-          "font-semibold border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
+          "font-medium border-transparent bg-primary text-foreground hover:bg-primary/80",
         pill:
           "border-transparent rounded-2xl",
         destructive:
           "border-transparent bg-destructive text-destructive-foreground shadow hover:bg-destructive/80",
-        outline: "text-foreground border-card-darkergrey p-.5 px-1 text-xs",
+        outline: "text-foreground border-card p-.5 px-1 text-xs",
       },
       tint: {
         green: "bg-green-100",

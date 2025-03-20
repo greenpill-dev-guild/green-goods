@@ -84,7 +84,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
           <Card key={title}>
             <div className="flex flex-row items-center gap-3">
               <Avatar>
-                <div className="flex items-center justify-center text-center mx-auto text-greengoods-green">
+                <div className="flex items-center justify-center text-center mx-auto text-primary">
                   {Icon}
                 </div>
               </Avatar>

@@ -94,7 +94,7 @@ export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
             <FlexCard>
               <div className="flex flex-row items-center gap-3 grow">
                 <Avatar>
-                  <div className="flex items-center justify-center text-center mx-auto text-slate-500">
+                  <div className="flex items-center justify-center text-center mx-auto text-grey-200">
                     {social.Icon}
                   </div>
                 </Avatar>
