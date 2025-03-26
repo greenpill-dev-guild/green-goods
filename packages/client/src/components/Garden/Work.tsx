@@ -23,13 +23,13 @@ export const GardenWork: React.FC<GardenWorkProps> = ({
       case "pending":
         return <CircleLoader />;
       case "success":
-        return works.length ?
-            works.map((work) => (
-              <>
+        return works.length ? (
+          works.map((work) => (
+            <>
               <WorkCard work={work} selected={false} media="large" />
               <li
                 key={work.id}
-                className="inline-flex w-full flex-col items-start justify-center overflow-hidden rounded-2xl border border-strokee-soft-200"
+                className="inline-flex w-full flex-col items-start justify-center overflow-hidden rounded-2xl border border-stroke-soft-200"
                 // className="flex flex-col gap-1 shadow-2xs border border-slate-50 bg-slate-100 rounded-xl pb-2"
                 onClick={() =>
                   navigate(`/gardens/${work.gardenAddress}/work/${work.id}`)
@@ -79,7 +79,7 @@ export const GardenWork: React.FC<GardenWorkProps> = ({
                     </div>
                   </div>
                   <div className="inline-flex items-center justify-center gap-2 self-stretch">
-                    <div className="h-[0px] shrink grow basis-0 border border-strokee-soft-200"></div>
+                    <div className="h-[0px] shrink grow basis-0 border border-stroke-soft-200"></div>
                   </div>
                   <div className="inline-flex items-center justify-between self-stretch">
                     <div className="font-['Inter'] text-xs font-normal leading-none text-text-sub-600">
@@ -94,11 +94,14 @@ export const GardenWork: React.FC<GardenWorkProps> = ({
                     </div>
                   </div>
                 </div>
-              </li></>
-            ))
-          : <p className="grid place-items-center px-8 py-4 text-center text-sm italic">
-              No works done yet, get started by clicking an action above
-            </p>;
+              </li>
+            </>
+          ))
+        ) : (
+          <p className="grid place-items-center px-8 py-4 text-center text-sm italic">
+            No works done yet, get started by clicking an action above
+          </p>
+        );
       case "error":
         return (
           <p className="grid place-items-center text-sm italic">
