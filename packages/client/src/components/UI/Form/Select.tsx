@@ -20,8 +20,10 @@ export const FormSelect = forwardRef<HTMLSelectElement, FormSelectProps>(
         name={name}
         control={control}
         render={(field) => (
-          <div className="mb-2">
-            <label className="font-semibold text-slate-800">{label}</label>
+          <div className="">
+            <label className="font-semibold text-slate-800  text-label-sm">
+              {label}
+            </label>
             <Select
               value={field.field.value.map((v: string) => ({
                 label: v,

@@ -22,7 +22,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
   inputs,
 }) => {
   return (
-    <div>
+    <div className="flex flex-col gap-4">
       <FormInfo title="Enter Details" info={instruction} Icon={RiFileFill} />
       {inputs.map(({ placeholder, options, required, title, key, type }) => {
         if (type === "number") {

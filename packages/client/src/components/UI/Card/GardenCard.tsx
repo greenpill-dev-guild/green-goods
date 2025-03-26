@@ -28,6 +28,7 @@ export type GardenCardVariantProps = VariantProps<typeof cardVariants>;
 export type GardenCardOptions = {
   showOperators?: boolean;
   showDescription?: boolean;
+  showBanner?: boolean;
 };
 
 export type GardenCardRootProps = React.HTMLAttributes<HTMLDivElement> &
@@ -43,6 +44,7 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardRootProps>(
       garden,
       showOperators = false,
       showDescription = true,
+      showBanner = true,
       ...props
     },
     ref
@@ -55,12 +57,16 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardRootProps>(
           alt={garden.description}
           className={cn(
             media === "large" ? "h-55" : "max-h-26",
-            "object-cover image-lut z-1"
+            "object-cover image-lut z-1",
+            !showBanner && "hidden"
           )}
         />
         <div
           data-selected={selected}
-          className="p-5 flex flex-col gap-2 border border-border border-t-0 rounded-b-lg transition-all duration-400" 
+          className={cn(
+            "p-5 flex flex-col gap-2 border border-border rounded-lg transition-all duration-400",
+            showBanner && "border-t-0"
+          )}
         >
           <div className="flex flex-col gap-2">
             <div

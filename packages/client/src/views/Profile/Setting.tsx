@@ -30,12 +30,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = () => {
           </div>
         </div>
       </div> */}
-      <Button
-        label="Logout"
-        variant="danger"
-        size="small"
-        onClick={logout}
-      />
+      <Button label="Logout" variant="neutral" size="small" onClick={logout} />
     </>
   );
 };

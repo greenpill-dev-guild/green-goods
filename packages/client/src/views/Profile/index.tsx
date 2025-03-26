@@ -1,8 +1,5 @@
 import type React from "react";
-import {
-  RiHeadphoneLine,
-  RiSettings2Fill,
-} from "@remixicon/react";
+import { RiHeadphoneLine, RiSettings2Fill } from "@remixicon/react";
 import { Profile as UserProfile } from "@/components/UI/Profile/Profile";
 
 import { formatAddress } from "@/utils/text";
@@ -20,7 +17,7 @@ import {
 
 const availableTabs = {
   help: { value: "help", Icon: RiHeadphoneLine, label: "Help" },
-  account: { value: "account", Icon: RiSettings2Fill, label: "Settings" },
+  account: { value: "account", Icon: RiSettings2Fill, label: "Account" },
 };
 
 const Profile: React.FC = () => {
@@ -30,7 +27,9 @@ const Profile: React.FC = () => {
   return (
     <section className={"padded flex flex-col h-full py-4 pb-10 gap-6 pt-10"}>
       <UserProfile
-        displayName={user?.email?.address || user?.phone?.number || user?.id || "Unknown"}
+        displayName={
+          user?.email?.address || user?.phone?.number || user?.id || "Unknown"
+        }
         avatar={user?.farcaster?.pfp || "/images/avatar.png"}
         location={(user?.customMetadata?.location as string) || undefined}
         wallet={user?.wallet?.address && formatAddress(user?.wallet?.address)}

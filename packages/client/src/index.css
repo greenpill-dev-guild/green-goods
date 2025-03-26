@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+@import "./styles/colors.css";
+@import "./styles/typography.css";
+@import "./styles/utilities.css";
+@import "./styles/animation.css";
+
 :root {
   color-scheme: light dark;
   background-color: #fff;

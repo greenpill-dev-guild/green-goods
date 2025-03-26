@@ -1,37 +1,32 @@
-import { RemixiconComponentType } from "@remixicon/react";
+import type { RemixiconComponentType } from "@remixicon/react";
+import { Card, type CardRootProps } from "../Card/Card";
+import { cn } from "@/utils/cn";
 
 interface FormCardProps {
   label: string;
   value: string;
-  variant?: "primary" | "secondary" | "tertiary";
   Icon?: RemixiconComponentType;
 }
-
-const variants = {
-  primary: "bg-transparent border-slate-100 border-2 shadow-2xs",
-  secondary: "bg-green-100 text-green-700",
-  tertiary: "bg-yellow-100 text-yellow-700",
-};
 
 export const FormCard = ({
   label,
   value,
   variant = "primary",
   Icon,
+  className,
   ...props
-}: FormCardProps) => {
-  const variantClasses = variants[variant];
-
+}: FormCardProps & CardRootProps) => {
   return (
-    <div
-      className={`${variantClasses} rounded-lg flex flex-col divide-y-2 mb-4 shadow-md`}
-      {...props}
-    >
-      <div className="flex items-center gap-2 px-4 py-2">
-        {Icon && <Icon size={24} className="text-teal-600" />}
-        <h3 className="text-lg font-medium text-slate-800">{label}</h3>
+    <Card className={cn("p-0", className)} {...props}>
+      <div className="flex flex-col gap-2 w-full">
+        <div className="flex flex-row p-3 border-b border-stroke-soft-200 w-full">
+          {Icon && <Icon size={24} className="text-primary" />}
+          <div className="px-2 font-medium text-slate-800">{label}</div>
+        </div>
+        <div className="pb-3 pl-4 pt-1 text-label-sm items-start text-left justify-start">
+          {value}
+        </div>
       </div>
-      <p className="text-slate-700 px-4 py-3">{value}</p>
-    </div>
+    </Card>
   );
 };
