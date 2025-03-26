@@ -20,6 +20,10 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
   images,
   setImages,
 }) => {
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  // @dev @ Afo- preview modal
+  const disablePreview = true;
+
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files) {
@@ -97,6 +101,32 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
           </li>
         )}
       </ul>
+      {!disablePreview && previewModalOpen && (
+        <dialog
+          className="modal modal-open" // @dev styles here are probably missing form daisy
+          onClick={() => setPreviewModalOpen(false)}
+        >
+          <div className="modal-box relative">
+            <label
+              onClick={() => setPreviewModalOpen(false)}
+              className="btn btn-sm btn-circle absolute right-2 top-2"
+            >
+              ✕
+            </label>
+            <div className="carousel w-full">
+              {images.map((file, index) => (
+                <div key={index} className="carousel-item w-full">
+                  <img
+                    src={URL.createObjectURL(file)}
+                    alt={`Preview ${index}`}
+                    className="w-full h-64 object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </dialog>
+      )}
     </div>
   );
 };
