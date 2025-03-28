@@ -27,5 +27,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "../../eas/src/resources/schemas.json"]
+  "include": ["src", "../../eas/src/resources/schemas.json"],
+  "exclude": ["src/__tests__"]
 }
