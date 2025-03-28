@@ -1,6 +1,6 @@
 import { RiMapPin2Fill, RiCalendarEventFill } from "@remixicon/react";
 import React, { useState } from "react";
-import { useParams, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useParams, Outlet, useLocation } from "react-router-dom";
 
 import { useGarden, useGardens } from "@/providers/garden";
 
@@ -10,6 +10,7 @@ import { GardenGardeners } from "@/components/Garden/Gardeners";
 import { GardenAssessments } from "@/components/Garden/Asessments";
 import { Tabs, TabsList, TabsTrigger } from "@/components/UI/Tabs/Tabs";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
+import { useNavigateToTop } from "@/utils/useNavigateToTop";
 
 enum GardenTab {
   Work = "work",
@@ -20,7 +21,7 @@ enum GardenTab {
 interface GardenProps {}
 
 export const Garden: React.FC<GardenProps> = () => {
-  const navigate = useNavigate();
+  const navigate = useNavigateToTop();
   const [activeTab, setActiveTab] = useState<GardenTab>(GardenTab.Work);
 
   const { id } = useParams<{

@@ -1,4 +1,4 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 import {
   RiHomeFill,
@@ -10,6 +10,7 @@ import {
   type RemixiconComponentType,
 } from "@remixicon/react";
 import { cn } from "@/utils/cn";
+import { useNavigateToTop } from "@/utils/useNavigateToTop";
 
 const tabs: {
   path: string;
@@ -40,12 +41,7 @@ const tabs: {
 export const AppBar = () => {
   const { pathname } = useLocation();
 
-  const navigate = useNavigate();
-
-  const handleNavigation = (path: string) => {
-    navigate(path);
-    document.getElementById("root")?.scrollIntoView({ behavior: "instant" });
-  };
+  const navigate = useNavigateToTop();
 
   return (
     <nav
@@ -56,7 +52,7 @@ export const AppBar = () => {
       {tabs.map(({ path, ActiveIcon, InactiveIcon, title }) => {
         const isActive = pathname === path;
         return (
-          <Link to={path} key={title} onClick={() => handleNavigation(path)}>
+          <Link to={path} key={title} onClick={() => navigate(path)}>
             <button
               className={cn(
                 "flex flex-col items-center",

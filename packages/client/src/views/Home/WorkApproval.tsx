@@ -2,7 +2,7 @@ import { z } from "zod";
 import React from "react";
 import toast from "react-hot-toast";
 import { Form, useForm } from "react-hook-form";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import {
   NO_EXPIRATION,
   ZERO_BYTES32,
@@ -40,6 +40,7 @@ import {
 import { FormCard } from "@/components/UI/Form/Card";
 import { FormText } from "@/components/UI/Form/Text";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
+import { useNavigateToTop } from "@/utils/useNavigateToTop";
 
 interface GardenWorkApprovalProps {}
 
@@ -55,7 +56,7 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
     id: string;
     workId: string;
   }>();
-  const navigate = useNavigate();
+  const navigate = useNavigateToTop();
   const { garden } = useGarden(id!);
   const { actions } = useGardens();
 

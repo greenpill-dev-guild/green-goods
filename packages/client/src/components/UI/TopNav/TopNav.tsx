@@ -2,7 +2,7 @@ import { RiArrowLeftLine, RiNotificationFill } from "@remixicon/react";
 import { Button } from "../Button";
 import { GardenNotifications } from "@/views/Home/Notifications";
 import { createPortal } from "react-dom";
-import { useEffect, useRef, forwardRef } from "react";
+import { useRef, forwardRef } from "react";
 import { cn } from "@/utils/cn";
 
 type TopNavProps = {
@@ -19,15 +19,6 @@ type NotificationsProps = {
 
 const Notifications = forwardRef<HTMLDialogElement, NotificationsProps>(
   ({ garden, works }, ref) => {
-    useEffect(() => {
-      document.getElementById("root")?.toggleAttribute("data-noscroll", true);
-      return () => {
-        document
-          .getElementById("root")
-          ?.toggleAttribute("data-noscroll", false);
-      };
-    }, []);
-
     if (!garden || !works) return null;
 
     return createPortal(
@@ -100,27 +91,28 @@ export const TopNav: React.FC<TopNavProps> = ({
   return (
     <div
       className={cn(
-        "relative flex flex-row w-full justify-between items-center gap-4 p-4",
+        "relative flex flex-row w-full justify-evenly items-center gap-4 p-4 h-14",
         overlay && "absolute"
       )}
       {...props}
     >
-      <Button
-        variant="neutral"
-        mode="stroke"
-        type="button"
-        shape="pilled"
-        size="xsmall"
-        label=""
-        leadingIcon={<RiArrowLeftLine className="w-4 h-4 text-black" />}
-        onClick={(e) => {
-          onBackClick?.(e);
-          e.currentTarget.blur();
-        }}
-        className="p-0 px-2"
-      />
-      <div className="flex flex-row gap-4 justify-center ">{children}</div>
-      <div className="flex items-center gap-1 w-10 h-10 p-2 border border-transparent" />
+      {onBackClick && (
+        <Button
+          variant="neutral"
+          mode="stroke"
+          type="button"
+          shape="pilled"
+          size="xsmall"
+          label=""
+          leadingIcon={<RiArrowLeftLine className="w-4 h-4 text-black" />}
+          onClick={(e) => {
+            onBackClick?.(e);
+            e.currentTarget.blur();
+          }}
+          className="p-0 px-2"
+        />
+      )}
+      <div className="flex flex-row gap-4 justify-center grow">{children}</div>
       {garden && <NotificationCenter {...props} garden={garden} />}
     </div>
   );

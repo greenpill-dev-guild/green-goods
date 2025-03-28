@@ -30,11 +30,11 @@ body {
 }
 
 #root {
-  @apply w-full h-full mx-auto flex flex-col data-[noscroll=true]:overflow-hidden;
+  @apply w-full h-full mx-auto flex flex-col;
 }
 
 #root > div {
-  @apply w-full h-full mx-auto flex flex-col data-[noscroll=true]:overflow-hidden;
+  @apply w-full h-full mx-auto flex flex-col;
 }
 
 #landing-root {

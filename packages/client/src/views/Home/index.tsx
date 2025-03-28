@@ -1,12 +1,13 @@
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 
 import { useGardens } from "@/providers/garden";
 
 import { GardenCard } from "@/components/UI/Card/GardenCard";
 import { CircleLoader } from "@/components/Loader";
+import { useNavigateToTop } from "@/utils/useNavigateToTop";
 
 const Gardens: React.FC = () => {
-  const navigate = useNavigate();
+  const navigate = useNavigateToTop();
   const location = useLocation();
   const { gardens, gardensStatus } = useGardens();
 

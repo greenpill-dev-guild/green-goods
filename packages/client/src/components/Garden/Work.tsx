@@ -1,7 +1,6 @@
-import { useNavigate } from "react-router-dom";
-
 import { CircleLoader } from "../Loader";
 import { WorkCard } from "../UI/Card/WorkCard";
+import { useNavigateToTop } from "@/utils/useNavigateToTop";
 
 interface GardenWorkProps {
   actions: Action[];
@@ -14,7 +13,7 @@ export const GardenWork: React.FC<GardenWorkProps> = ({
   actions,
   workFetchStatus,
 }) => {
-  const navigate = useNavigate();
+  const navigate = useNavigateToTop();
 
   const WorkList = () => {
     switch (workFetchStatus) {

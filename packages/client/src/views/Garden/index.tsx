@@ -125,6 +125,7 @@ const Work: React.FC = () => {
     [WorkTab.Review]: {
       primary: () => {
         changeTab(WorkTab.Complete);
+        form.reset();
         uploadWork();
       },
       primaryLabel: "Upload Work",
@@ -134,6 +135,10 @@ const Work: React.FC = () => {
     },
     [WorkTab.Complete]: {
       primary: () => {
+        workMutation.reset();
+        control._reset();
+        setImages([]);
+        changeTab(WorkTab.Intro);
         navigate("/gardens");
       },
       primaryLabel: "Finish",

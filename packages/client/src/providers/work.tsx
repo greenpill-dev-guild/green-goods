@@ -58,6 +58,7 @@ export interface WorkDataProps {
     feedback: string;
     plantSelection: string[];
     plantCount: number;
+    reset: () => void;
   };
   activeTab: WorkTab;
   setActiveTab: React.Dispatch<React.SetStateAction<WorkTab>>;
@@ -87,6 +88,7 @@ const WorkContext = React.createContext<WorkDataProps>({
     uploadWork: async () => {},
     gardenAddress: null,
     setGardenAddress: () => {},
+    reset: () => {},
   },
 });
 
@@ -112,7 +114,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   const [images, setImages] = useState<File[]>([]);
   const [activeTab, setActiveTab] = useState(WorkTab.Intro);
 
-  const { control, register, handleSubmit, formState, watch } =
+  const { control, register, handleSubmit, formState, watch, reset } =
     useForm<WorkDraft>({
       defaultValues: {
         feedback: "",
@@ -222,6 +224,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
           feedback,
           plantSelection,
           plantCount,
+          reset,
         },
         activeTab,
         setActiveTab,

@@ -1,9 +1,9 @@
 import { RiTreeLine, RiSeedlingLine, RiCoinFill } from "@remixicon/react";
-import { useNavigate } from "react-router-dom";
 
 import { CircleLoader } from "../Loader";
 import { Badge } from "../UI/Badge/Badge";
 import { Card } from "../UI/Card/Card";
+import { useNavigateToTop } from "@/utils/useNavigateToTop";
 
 interface GardenAssessmentsProps {
   assessments: GardenAssessment[];
@@ -14,7 +14,7 @@ export const GardenAssessments: React.FC<GardenAssessmentsProps> = ({
   assessments,
   asessmentFetchStatus,
 }) => {
-  const navigate = useNavigate();
+  const navigate = useNavigateToTop();
 
   const AsessmentList = () => {
     switch (asessmentFetchStatus) {
