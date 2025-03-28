@@ -64,7 +64,7 @@ const NotificationCenter: React.FC<TopNavProps> = ({ works, ...props }) => {
     <>
       <button
         type="button"
-        className="relative dropdown dropdown-bottom dropdown-end flex items-center gap-1 bg-white rounded-lg"
+        className="relative dropdown dropdown-bottom dropdown-end flex items-center gap-1 bg-white rounded-lg z-1"
         onClick={toggleDialog}
       >
         {workNotifications.length ? (
@@ -109,7 +109,7 @@ export const TopNav: React.FC<TopNavProps> = ({
             onBackClick?.(e);
             e.currentTarget.blur();
           }}
-          className="p-0 px-2"
+          className="p-0 px-2 z-1"
         />
       )}
       <div className="absolute left-0 top-0 w-full h-full flex flex-row justify-between items-center">
