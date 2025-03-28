@@ -19,7 +19,7 @@ const tabs: {
   InactiveIcon: RemixiconComponentType;
 }[] = [
   {
-    path: "/gardens",
+    path: "/home",
     title: "Home",
     ActiveIcon: RiHomeFill,
     InactiveIcon: RiHomeLine,
@@ -50,7 +50,7 @@ export const AppBar = () => {
       }
     >
       {tabs.map(({ path, ActiveIcon, InactiveIcon, title }) => {
-        const isActive = pathname === path;
+        const isActive = pathname.startsWith(path);
         return (
           <Link to={path} key={title} onClick={() => navigate(path)}>
             <button
@@ -62,13 +62,13 @@ export const AppBar = () => {
               )}
               type="button"
             >
-              {pathname === path ? (
+              {pathname.startsWith(path) ? (
                 <ActiveIcon className="w-6 h-6" />
               ) : (
                 <InactiveIcon className="w-6 h-6" />
               )}
               <p
-                className={`text-sm ${pathname === path ? "text-primary" : ""}`}
+                className={`text-sm ${pathname.startsWith(path) ? "text-primary" : ""}`}
               >
                 {title}
               </p>

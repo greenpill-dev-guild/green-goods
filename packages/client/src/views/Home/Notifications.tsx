@@ -20,7 +20,7 @@ export const GardenNotifications: React.FC<GardenNotificationsProps> = ({
       {notifications.map(({ id, gardenerAddress }) => (
         <Link
           key={id}
-          to={`/gardens/${garden.id}/work/${id}`}
+          to={`/home/${garden.id}/work/${id}`}
           className="flex flex-col gap-2 p-4 text-black bg-bg-weak-50 text-xs rounded-lg"
         >
           <div className="inline-flex gap-2 items-center">

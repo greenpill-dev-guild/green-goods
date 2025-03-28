@@ -132,7 +132,7 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
 
   return (
     <article>
-      <TopNav onBackClick={() => navigate(`/gardens/${garden.id}`)} />
+      <TopNav onBackClick={() => navigate(`/home/${garden.id}`)} />
       <Form
         id="work-approve"
         control={control}

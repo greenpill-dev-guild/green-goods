@@ -29,7 +29,7 @@ export const GardenWork: React.FC<GardenWorkProps> = ({
               action={actions.find((a) => a.id === work.actionUID)!}
               media="large"
               onClick={() =>
-                navigate(`/gardens/${work.gardenAddress}/work/${work.id}`)
+                navigate(`/home/${work.gardenAddress}/work/${work.id}`)
               }
             />
           ))

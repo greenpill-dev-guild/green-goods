@@ -12,7 +12,7 @@ const Gardens: React.FC = () => {
   const { gardens, gardensStatus } = useGardens();
 
   function handleCardClick(id: string) {
-    navigate(`/gardens/${id}`);
+    navigate(`/home/${id}`);
     document.getElementsByTagName("article")[0].scrollIntoView();
   }
 
@@ -53,7 +53,7 @@ const Gardens: React.FC = () => {
 
   return (
     <article className={"mb-6"}>
-      {location.pathname === "/gardens" ? (
+      {location.pathname === "/home" ? (
         <>
           <div className="padded flex justify-between w-full py-4">
             <h3>Home</h3>

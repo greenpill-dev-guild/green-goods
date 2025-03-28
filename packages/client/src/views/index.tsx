@@ -12,7 +12,7 @@ export default function Views() {
     <main className="flex flex-col pb-[4rem]">
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
         <Routes>
-          <Route path="gardens" element={<Gardens />}>
+          <Route path="home" element={<Gardens />}>
             <Route path=":id" element={<Garden />}>
               <Route path="work/:workId" element={<GardenWorkApproval />} />
               <Route
@@ -23,7 +23,7 @@ export default function Views() {
           </Route>
           <Route path="garden" element={<Work />} />
           <Route path="profile" element={<Profile />} />
-          <Route path="*" element={<Navigate to="gardens" />} />
+          <Route path="*" element={<Navigate to="home" />} />
         </Routes>
       </div>
     </main>

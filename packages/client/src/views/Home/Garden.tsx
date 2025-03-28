@@ -75,7 +75,7 @@ export const Garden: React.FC<GardenProps> = () => {
             alt="Banner"
           />
           <TopNav
-            onBackClick={() => navigate("/gardens")}
+            onBackClick={() => navigate("/home")}
             works={works}
             garden={garden}
             overlay={true}

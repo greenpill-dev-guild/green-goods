@@ -28,7 +28,7 @@ export const GardenAssessments: React.FC<GardenAssessmentsProps> = ({
               className="flex flex-col gap-2 p-4"
               onClick={() =>
                 navigate(
-                  `/gardens/${assessment.gardenAddress}/assessments/${assessment.id}`
+                  `/home/${assessment.gardenAddress}/assessments/${assessment.id}`
                 )
               }
             >

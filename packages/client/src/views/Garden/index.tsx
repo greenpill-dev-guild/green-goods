@@ -105,7 +105,7 @@ const Work: React.FC = () => {
       primaryLabel: "Start Gardening",
       primaryDisabled: !gardenAddress || typeof actionUID !== "number",
       secondary: null,
-      backButton: () => navigate("/gardens"),
+      backButton: () => navigate("/home"),
     },
     [WorkTab.Media]: {
       primary: () => changeTab(WorkTab.Details),
@@ -139,7 +139,7 @@ const Work: React.FC = () => {
         control._reset();
         setImages([]);
         changeTab(WorkTab.Intro);
-        navigate("/gardens");
+        navigate("/home");
       },
       primaryLabel: "Finish",
       primaryDisabled: workMutation.isPending,
