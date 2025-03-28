@@ -3,13 +3,13 @@ import type * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
 
 const badgeVariants = tv({
-  base: "inline-flex items-center rounded-md border px-.5 py-.25 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-nowrap whitespace-nowrap",
+  base: "inline-flex items-center rounded-md border px-.5 py-.25 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-nowrap whitespace-nowrap flex flex-row gap-1",
   variants: {
     variant: {
       transparent:
         "font-medium border-transparent bg-primary text-foreground hover:bg-primary/80",
       pill: "border-0 border-transparent rounded-2xl text-sm p-0.5 px-2 font-medium",
-      outline: "text-foreground border-card p-.5 px-1 text-xs",
+      outline: "text-foreground border-stroke-soft-200 p-1 px-1.5 text-xs",
     },
     tint: {
       primary: "bg-primary text-primary-foreground",
@@ -35,16 +35,27 @@ const badgeVariants = tv({
   },
 });
 
-export interface BadgeProps
-  extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof badgeVariants> {}
+export type BadgeProps = React.HTMLAttributes<HTMLDivElement> &
+  VariantProps<typeof badgeVariants> & {
+    leadingIcon?: React.ReactNode;
+    trailingIcon?: React.ReactNode;
+  };
 
-function Badge({ className, variant, tint, ...props }: BadgeProps) {
+function Badge({
+  className,
+  variant,
+  tint,
+  children,
+  leadingIcon,
+  trailingIcon,
+  ...props
+}: BadgeProps) {
   return (
-    <div
-      className={cn(badgeVariants({ variant, tint }), className)}
-      {...props}
-    />
+    <div className={cn(badgeVariants({ variant, tint }), className)} {...props}>
+      {leadingIcon}
+      {children}
+      {trailingIcon}
+    </div>
   );
 }
 

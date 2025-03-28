@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 import { useParams } from "react-router-dom";
 
 import { useGarden } from "@/providers/garden";
@@ -22,9 +22,9 @@ export const GardenAssessment: React.FC<GardenAssessmentProps> = ({}) => {
   if (!assessment || !garden)
     return (
       <div className="w-full h-full grid place-items-center">
-        <CircleLoader />;
+        <CircleLoader />
       </div>
     );
 
-  return <div className=""></div>;
+  return <div className="" />;
 };
