@@ -6,6 +6,7 @@ import mkcert from "vite-plugin-mkcert";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import { defineConfig, loadEnv } from "vite";
+import tailwindcss from "@tailwindcss/vite";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -23,6 +24,7 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [
       mkcert(),
+      tailwindcss(),
       react(),
       VitePWA({
         includeAssets: [
@@ -51,6 +53,7 @@ export default defineConfig(({ mode }) => {
           enabled: true,
         },
         workbox: {
+          maximumFileSizeToCacheInBytes: 5097152,
           // globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
         },
         manifest: {
@@ -144,6 +147,12 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 3001,
+      proxy: {
+        graphql: {
+          target: "https://indexer.dev.hyperindex.xyz/332f54b/v1/graphql",
+          changeOrigin: true,
+        },
+      },
     },
   };
 });
