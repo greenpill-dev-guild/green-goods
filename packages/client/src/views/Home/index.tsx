@@ -52,7 +52,7 @@ const Gardens: React.FC = () => {
   };
 
   return (
-    <article className={""}>
+    <article className={"mb-6"}>
       {location.pathname === "/gardens" ? (
         <>
           <div className="padded flex justify-between w-full py-4">
