@@ -62,9 +62,7 @@ const WorkCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
             <div className="text-slate-500 text-xs">
               Published on {new Date(work.createdAt).toLocaleString()}
             </div>
-            <Button size="small">
-                  View Details
-            </Button>
+            <Button label="View Details" size="small" />
           </div>
         </div>
       </Card>

@@ -1,10 +1,11 @@
+import type { SyntheticEvent } from "react";
 import { Root, type ButtonRootProps } from "./Base";
 
 export type ButtonProps = {
   label: string;
   leadingIcon?: React.ReactNode;
   trailingIcon?: React.ReactNode;
-  onClick?: () => void;
+  onClick?: (e: SyntheticEvent<HTMLButtonElement>) => void;
 } & ButtonRootProps;
 
 /** Primary UI component for user interaction */

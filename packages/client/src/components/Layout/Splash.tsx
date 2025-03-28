@@ -23,11 +23,10 @@ export const Splash: React.FC<SplashProps> = ({
         onClick={login}
         disabled={isLoggingIn}
         className="w-full"
+        label={buttonLabel}
         // variant="secondary"
         // fullWidth
-      >
-        {buttonLabel}
-      </Button>
+      />
     </div>
   );
 };

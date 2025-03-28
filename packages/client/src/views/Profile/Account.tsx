@@ -9,11 +9,7 @@ import {
 
 import { Button } from "@/components/UI/Button";
 import { Card } from "@/components/UI/Card/Card";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/UI/Avatar/Avatar";
+import { Avatar } from "@/components/UI/Avatar/Avatar";
 
 interface LinkedAccount {
   title: string;

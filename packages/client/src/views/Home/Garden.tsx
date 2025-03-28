@@ -13,7 +13,6 @@ import { CircleLoader } from "@/components/Loader";
 import { GardenWork } from "@/components/Garden/Work";
 import { GardenGardeners } from "@/components/Garden/Gardeners";
 import { GardenAssessments } from "@/components/Garden/Asessments";
-import { GardenNotifications } from "./Notifications";
 import { Tabs, TabsList, TabsTrigger } from "@/components/UI/Tabs/Tabs";
 
 enum GardenTab {
@@ -115,12 +114,15 @@ export const Garden: React.FC<GardenProps> = () => {
               <div className="flex flex-col gap-2">
                 <div className="flex flex-row gap-1 items-center">
                   <RiMapPin2Fill className="h-5 text-primary" />
-                  <div className="text-xs"><span className="font-medium">Location •</span> {location}</div>
+                  <div className="text-xs">
+                    <span className="font-medium">Location •</span> {location}
+                  </div>
                 </div>
                 <div className="flex flex-row gap-1 items-center">
                   <RiCalendarEventFill className="h-5 text-primary" />
                   <div className="text-xs">
-                  <span className="font-medium">Founded •</span> {createdAt.toDateString()}
+                    <span className="font-medium">Founded •</span>{" "}
+                    {createdAt.toDateString()}
                   </div>
                 </div>
               </div>
@@ -142,7 +144,7 @@ export const Garden: React.FC<GardenProps> = () => {
                 ))}
               </TabsList>
             </Tabs>
-            <div className="flex-1 flex flex-col gap-4 pt-4 pb-20"> 
+            <div className="flex-1 flex flex-col gap-4 pt-4 pb-20">
               {renderTabContent()}
             </div>
           </div>

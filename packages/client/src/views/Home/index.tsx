@@ -19,21 +19,23 @@ const Gardens: React.FC = () => {
       case "pending":
         return <CircleLoader />;
       case "success":
-        return gardens.length ?
-            gardens.map((garden, index) => (
-              <GardenCard
-                key={garden.id}
-                garden={garden}
-                media="large"
-                showOperators={true}
-                selected={garden.id === location.pathname.split("/")[2]}
-                {...garden}
-                onClick={() => handleCardClick(garden.id)}
-              />
-            ))
-          : <p className="grid place-items-center text-sm italic">
-              No gardens found
-            </p>;
+        return gardens.length ? (
+          gardens.map((garden) => (
+            <GardenCard
+              key={garden.id}
+              garden={garden}
+              media="large"
+              showOperators={true}
+              selected={garden.id === location.pathname.split("/")[2]}
+              {...garden}
+              onClick={() => handleCardClick(garden.id)}
+            />
+          ))
+        ) : (
+          <p className="grid place-items-center text-sm italic">
+            No gardens found
+          </p>
+        );
       case "error":
         return (
           <p className="grid place-items-center text-sm italic">
@@ -44,10 +46,8 @@ const Gardens: React.FC = () => {
   };
 
   return (
-    <div
-      className={""}
-    >
-      {location.pathname === "/gardens" ?
+    <div className={""}>
+      {location.pathname === "/gardens" ? (
         <>
           <div className="padded flex justify-between w-full py-4">
             <h3>Home</h3>
@@ -56,7 +56,7 @@ const Gardens: React.FC = () => {
             <GardensList />
           </ul>
         </>
-      : null}
+      ) : null}
       <Outlet />
     </div>
   );
