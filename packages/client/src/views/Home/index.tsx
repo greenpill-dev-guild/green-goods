@@ -52,9 +52,11 @@ const Gardens: React.FC = () => {
           <div className="padded flex justify-between w-full py-4">
             <h3>Home</h3>
           </div>
-          <ul className={"padded flex-1 flex flex-col gap-4 overflow-y-scroll"}>
+          <div
+            className={"padded flex-1 flex flex-col gap-4 overflow-y-scroll"}
+          >
             <GardensList />
-          </ul>
+          </div>
         </>
       ) : null}
       <Outlet />

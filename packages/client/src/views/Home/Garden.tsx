@@ -137,9 +137,9 @@ export const Garden: React.FC<GardenProps> = () => {
                     onClick={() => setActiveTab(tab)}
                     className={`flex-1 flex justify-center items-center p-3 cursor-pointer ${tab === activeTab ? "bg-teal-200 " : ""} transition-colors duration-200`}
                   >
-                    <label className="capitalize small font-semibold text-center w-full">
+                    <div className="capitalize small font-semibold text-center w-full">
                       {tab}
-                    </label>
+                    </div>
                   </TabsTrigger>
                 ))}
               </TabsList>

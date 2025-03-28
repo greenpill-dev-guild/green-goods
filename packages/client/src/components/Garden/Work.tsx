@@ -51,8 +51,8 @@ export const GardenWork: React.FC<GardenWorkProps> = ({
   };
 
   return (
-    <ul className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4">
       <WorkList />
-    </ul>
+    </div>
   );
 };

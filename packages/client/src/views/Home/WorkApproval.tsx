@@ -22,7 +22,23 @@ import { useGardens, useGarden } from "@/providers/garden";
 
 import { Button } from "@/components/UI/Button";
 import { CircleLoader } from "@/components/Loader";
-import { FormInput } from "@/components/UI/Form/Input";
+import { FormInfo } from "@/components/UI/Form/Info";
+import {
+  RiCheckDoubleFill,
+  RiCheckFill,
+  RiCloseFill,
+  RiHammerFill,
+  RiLeafFill,
+  RiPencilFill,
+  RiPlantFill,
+} from "@remixicon/react";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+} from "@/components/UI/Carousel/Carousel";
+import { FormCard } from "@/components/UI/Form/Card";
+import { FormText } from "@/components/UI/Form/Text";
 
 interface GardenWorkApprovalProps {}
 
@@ -101,41 +117,94 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
   if (!work || !action || !garden)
     return (
       <main className="w-full h-full grid place-items-center">
-        <CircleLoader />;
+        <CircleLoader />
       </main>
     );
 
   const { title, feedback, media } = work;
+  const plantSelection = [work.metadata];
+  const plantCount = [work.metadata];
 
   return (
-    <form>
-      <h2>{title}</h2>
-      <p>{feedback}</p>
-      <ul className="carousel rounded-box w-full">
-        {media.map((media) => (
-          <li key={media} className="carousel-item w-full">
-            <img src={media} alt="Media" />
-          </li>
-        ))}
-      </ul>
-      <FormInput label="Feedback" {...register("feedback")} />
-      <div className="flex gap-2 w-full">
-        <Button
-          type="button"
-          label="Reject"
-          onClick={handleSubmit((data) => {
-            data.approved = false;
-            workApprovalMutation.mutate(data);
-          })}
-        />
-        <Button
-          type="button"
-          label="Approve"
-          onClick={handleSubmit((data) => {
-            data.approved = true;
-            workApprovalMutation.mutate(data);
-          })}
-        />
+    <form className="py-6 ">
+      <div className="relative flex flex-col gap-4 min-h-screen">
+        <div className="padded flex flex-col gap-4">
+          <FormInfo
+            title="Evaluate Work"
+            info="Verify if the work is acceptable"
+            Icon={RiCheckDoubleFill}
+          />
+          <h2>{title}</h2>
+          <h6>Media</h6>
+          <Carousel>
+            <CarouselContent>
+              {media.map((item, index) => (
+                <CarouselItem
+                  key={item}
+                  className="max-w-40 aspect-3/4 object-cover rounded-2xl "
+                >
+                  <img
+                    src={item}
+                    alt={`Preview ${index}`}
+                    className="w-full h-full aspect-3/4 object-cover rounded-2xl"
+                  />
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </Carousel>
+          <h6>Details</h6>
+          <FormCard label="Action" value={action.title} Icon={RiHammerFill} />
+          <FormCard
+            label="Plant Types"
+            value={plantSelection.join(", ")}
+            Icon={RiPlantFill}
+          />
+          {feedback && (
+            <FormCard
+              label="Description"
+              value={feedback}
+              Icon={RiPencilFill}
+            />
+          )}
+          <FormCard
+            label="Plant Amount"
+            value={plantCount.toString()}
+            Icon={RiLeafFill}
+          />
+          <h6>Give your feedback</h6>
+          <FormText rows={4} label="Description" {...register("feedback")} />
+        </div>
+      </div>
+      <div className="flex border-t border-stroke-soft-200">
+        <div className="flex flex-row gap-4 w-full mt-4 padded">
+          <Button
+            onClick={handleSubmit((data) => {
+              data.approved = false;
+              workApprovalMutation.mutate(data);
+            })}
+            label="Reject"
+            className="w-full"
+            variant="error"
+            type="button"
+            shape="pilled"
+            mode="stroke"
+            leadingIcon={<RiCloseFill className="w-5 h-5" />}
+          />
+          <Button
+            onClick={handleSubmit((data) => {
+              data.approved = true;
+              workApprovalMutation.mutate(data);
+            })}
+            type="button"
+            label="Approve"
+            className="w-full"
+            variant="primary"
+            mode="filled"
+            size="medium"
+            shape="pilled"
+            trailingIcon={<RiCheckFill className="w-5 h-5" />}
+          />
+        </div>
       </div>
     </form>
   );

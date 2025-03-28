@@ -180,12 +180,12 @@ const Work: React.FC = () => {
         <div className="flex grow" />
       </div>
       <div className="flex border-t border-stroke-soft-200">
-        <div className="flex flex-row gap-2 w-full mt-4 padded">
+        <div className="flex flex-row gap-4 w-full mt-4 padded">
           {tabActions[activeTab].secondary && (
             <Button
-              className="w-full"
               onClick={tabActions[activeTab].secondary}
               label={tabActions[activeTab].secondaryLabel}
+              className="w-full"
               variant="neutral"
               type="button"
               shape="pilled"
@@ -194,13 +194,13 @@ const Work: React.FC = () => {
             />
           )}
           <Button
+            onClick={tabActions[activeTab].primary}
+            label={tabActions[activeTab].primaryLabel}
+            disabled={tabActions[activeTab].primaryDisabled}
             className="w-full"
             variant="primary"
             mode="filled"
             size="medium"
-            onClick={tabActions[activeTab].primary}
-            label={tabActions[activeTab].primaryLabel}
-            disabled={tabActions[activeTab].primaryDisabled}
             type="button"
             shape="pilled"
             trailingIcon={<RiArrowRightSLine className="w-5 h-5" />}

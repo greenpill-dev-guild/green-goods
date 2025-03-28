@@ -58,7 +58,7 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
                   <img
                     src={URL.createObjectURL(file)}
                     alt={`Preview ${index}`}
-                    className="w-full aspect-3/4 object-cover rounded-2xl"
+                    className="w-full h-full aspect-3/4 object-cover rounded-2xl"
                   />
                 </CarouselItem>
               ))}
