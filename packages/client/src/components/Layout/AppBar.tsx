@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import {
   RiHomeFill,
@@ -40,6 +40,13 @@ const tabs: {
 export const AppBar = () => {
   const { pathname } = useLocation();
 
+  const navigate = useNavigate();
+
+  const handleNavigation = (path: string) => {
+    navigate(path);
+    document.getElementById("root")?.scrollIntoView({ behavior: "instant" });
+  };
+
   return (
     <nav
       className={
@@ -49,7 +56,7 @@ export const AppBar = () => {
       {tabs.map(({ path, ActiveIcon, InactiveIcon, title }) => {
         const isActive = pathname === path;
         return (
-          <Link to={path} key={title}>
+          <Link to={path} key={title} onClick={() => handleNavigation(path)}>
             <button
               className={cn(
                 "flex flex-col items-center",

@@ -1,5 +1,3 @@
-import { formatAddress } from "@/utils/text";
-import { RiAlertFill, RiLeafFill, RiSearchEyeLine } from "@remixicon/react";
 import { useNavigate } from "react-router-dom";
 
 import { CircleLoader } from "../Loader";

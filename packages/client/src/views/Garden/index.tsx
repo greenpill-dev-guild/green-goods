@@ -1,10 +1,6 @@
 import { Form } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import {
-  RiArrowLeftLine,
-  RiArrowRightSLine,
-  RiImage2Fill,
-} from "@remixicon/react";
+import { RiArrowRightSLine, RiImage2Fill } from "@remixicon/react";
 
 import { useWork, WorkTab } from "@/providers/work";
 
@@ -16,6 +12,7 @@ import { WorkMedia } from "./Media";
 import { WorkDetails } from "./Details";
 import { WorkReview } from "./Review";
 import { WorkCompleted } from "./Completed";
+import { TopNav } from "@/components/UI/TopNav/TopNav";
 
 const Work: React.FC = () => {
   const navigate = useNavigate();
@@ -45,7 +42,7 @@ const Work: React.FC = () => {
   const garden = gardens.find((garden) => garden.id === gardenAddress);
   const action = actions.find((action) => action.id === actionUID);
 
-  const renderTabContent = () => {
+  const RenderTabContent = () => {
     switch (activeTab) {
       case WorkTab.Intro:
         return (
@@ -98,9 +95,7 @@ const Work: React.FC = () => {
   };
 
   const changeTab = (tab: WorkTab) => {
-    document
-      .getElementById("work-form")
-      ?.scrollIntoView({ behavior: "instant" });
+    document.getElementById("root")?.scrollIntoView({ behavior: "instant" });
     setActiveTab(tab);
   };
 
@@ -149,65 +144,52 @@ const Work: React.FC = () => {
   };
 
   return (
-    <Form
-      id="work-form"
-      control={control}
-      className="relative py-6 flex flex-col gap-4 min-h-screen"
-    >
-      <div className="padded relative flex flex-col gap-4">
-        <div className="relative flex flex-row w-full  justify-between items-center">
-          <Button
-            variant="neutral"
-            mode="stroke"
-            type="button"
-            shape="pilled"
-            size="xsmall"
-            label=""
-            leadingIcon={<RiArrowLeftLine className="w-4 h-4 text-black" />}
-            onClick={(e) => {
-              tabActions[activeTab].backButton?.();
-              e.currentTarget.blur();
-            }}
-            className="p-0 px-2"
-          />
-          <FormProgress
-            currentStep={Object.values(WorkTab).indexOf(activeTab) + 1}
-            steps={Object.values(WorkTab).slice(0, 4)}
-          />
-          <div className="flex items-center gap-1 w-10 h-10 p-2 border border-transparent" />
+    <>
+      <TopNav onBackClick={tabActions[activeTab].backButton}>
+        <FormProgress
+          currentStep={Object.values(WorkTab).indexOf(activeTab) + 1}
+          steps={Object.values(WorkTab).slice(0, 4)}
+        />
+      </TopNav>
+      <Form
+        id="work-form"
+        control={control}
+        className="relative py-6 pt-0 flex flex-col gap-4 min-h-screen"
+      >
+        <div className="padded relative flex flex-col gap-4">
+          <RenderTabContent />
+          <div className="flex grow" />
         </div>
-        {renderTabContent()}
-        <div className="flex grow" />
-      </div>
-      <div className="flex border-t border-stroke-soft-200">
-        <div className="flex flex-row gap-4 w-full mt-4 padded">
-          {tabActions[activeTab].secondary && (
+        <div className="flex border-t border-stroke-soft-200">
+          <div className="flex flex-row gap-4 w-full mt-4 padded">
+            {tabActions[activeTab].secondary && (
+              <Button
+                onClick={tabActions[activeTab].secondary}
+                label={tabActions[activeTab].secondaryLabel}
+                className="w-full"
+                variant="neutral"
+                type="button"
+                shape="pilled"
+                mode="stroke"
+                leadingIcon={<RiImage2Fill className="text-primary w-5 h-5" />}
+              />
+            )}
             <Button
-              onClick={tabActions[activeTab].secondary}
-              label={tabActions[activeTab].secondaryLabel}
+              onClick={tabActions[activeTab].primary}
+              label={tabActions[activeTab].primaryLabel}
+              disabled={tabActions[activeTab].primaryDisabled}
               className="w-full"
-              variant="neutral"
+              variant="primary"
+              mode="filled"
+              size="medium"
               type="button"
               shape="pilled"
-              mode="stroke"
-              leadingIcon={<RiImage2Fill className="text-primary w-5 h-5" />}
+              trailingIcon={<RiArrowRightSLine className="w-5 h-5" />}
             />
-          )}
-          <Button
-            onClick={tabActions[activeTab].primary}
-            label={tabActions[activeTab].primaryLabel}
-            disabled={tabActions[activeTab].primaryDisabled}
-            className="w-full"
-            variant="primary"
-            mode="filled"
-            size="medium"
-            type="button"
-            shape="pilled"
-            trailingIcon={<RiArrowRightSLine className="w-5 h-5" />}
-          />
+          </div>
         </div>
-      </div>
-    </Form>
+      </Form>
+    </>
   );
 };
 

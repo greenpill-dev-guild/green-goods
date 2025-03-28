@@ -22,12 +22,19 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+html {
+  @apply relative;
+}
 body {
-  @apply m-0 w-screen h-screen bg-white dark:bg-white text-foreground;
+  @apply relative m-0 w-screen h-screen bg-white dark:bg-white text-foreground;
 }
 
 #root {
-  @apply w-full h-full mx-auto flex flex-col;
+  @apply w-full h-full mx-auto flex flex-col data-[noscroll=true]:overflow-hidden;
+}
+
+#root > div {
+  @apply w-full h-full mx-auto flex flex-col data-[noscroll=true]:overflow-hidden;
 }
 
 #landing-root {
@@ -48,6 +55,10 @@ ul::-webkit-scrollbar {
 
 div::-webkit-scrollbar {
   display: none;
+}
+
+hr {
+  @apply opacity-10;
 }
 
 /*

@@ -33,8 +33,6 @@ export const Profile: React.FC<ProfileProps> = ({
   displayName,
   ...props
 }) => {
-  console.log(props);
-
   return (
     <div className="relative flex flex-col items-center gap-2 px-2">
       <div className="relative w-36 aspect-square -z-10 mb-2" />

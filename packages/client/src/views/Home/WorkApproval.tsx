@@ -1,8 +1,8 @@
 import { z } from "zod";
 import React from "react";
 import toast from "react-hot-toast";
-import { useForm } from "react-hook-form";
-import { useParams } from "react-router-dom";
+import { Form, useForm } from "react-hook-form";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   NO_EXPIRATION,
   ZERO_BYTES32,
@@ -39,6 +39,7 @@ import {
 } from "@/components/UI/Carousel/Carousel";
 import { FormCard } from "@/components/UI/Form/Card";
 import { FormText } from "@/components/UI/Form/Text";
+import { TopNav } from "@/components/UI/TopNav/TopNav";
 
 interface GardenWorkApprovalProps {}
 
@@ -54,7 +55,7 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
     id: string;
     workId: string;
   }>();
-
+  const navigate = useNavigate();
   const { garden } = useGarden(id!);
   const { actions } = useGardens();
 
@@ -62,7 +63,7 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
   const action = actions.find((action) => action.id === work?.actionUID);
 
   const { smartAccountClient } = useUser();
-  const { register, handleSubmit } = useForm<WorkApprovalDraft>({
+  const { register, handleSubmit, control } = useForm<WorkApprovalDraft>({
     defaultValues: {
       actionUID: work?.actionUID,
       workUID: work?.id,
@@ -103,13 +104,16 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
       return receipt;
     },
     onMutate: () => {
+      console.log("Approving work...");
       toast.loading("Approving work...");
     },
     onSuccess: () => {
+      console.log("Work approved!");
       toast.success("Work approved!");
       queryClient.invalidateQueries({ queryKey: ["workApprovals"] });
     },
     onError: () => {
+      console.log("Work approval failed!");
       toast.error("Work approval failed!");
     },
   });
@@ -126,8 +130,13 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
   const plantCount = [work.metadata];
 
   return (
-    <form className="py-6 ">
-      <div className="relative flex flex-col gap-4 min-h-screen">
+    <article>
+      <TopNav onBackClick={() => navigate(`/gardens/${garden.id}`)} />
+      <Form
+        id="work-approve"
+        control={control}
+        className="relative flex flex-col gap-4 min-h-screen pb-6"
+      >
         <div className="padded flex flex-col gap-4">
           <FormInfo
             title="Evaluate Work"
@@ -174,38 +183,39 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
           <h6>Give your feedback</h6>
           <FormText rows={4} label="Description" {...register("feedback")} />
         </div>
-      </div>
-      <div className="flex border-t border-stroke-soft-200">
-        <div className="flex flex-row gap-4 w-full mt-4 padded">
-          <Button
-            onClick={handleSubmit((data) => {
-              data.approved = false;
-              workApprovalMutation.mutate(data);
-            })}
-            label="Reject"
-            className="w-full"
-            variant="error"
-            type="button"
-            shape="pilled"
-            mode="stroke"
-            leadingIcon={<RiCloseFill className="w-5 h-5" />}
-          />
-          <Button
-            onClick={handleSubmit((data) => {
-              data.approved = true;
-              workApprovalMutation.mutate(data);
-            })}
-            type="button"
-            label="Approve"
-            className="w-full"
-            variant="primary"
-            mode="filled"
-            size="medium"
-            shape="pilled"
-            trailingIcon={<RiCheckFill className="w-5 h-5" />}
-          />
+        <div className="flex border-t border-stroke-soft-200">
+          <div className="flex flex-row gap-4 w-full mt-4 padded">
+            <Button
+              onClick={handleSubmit((data) => {
+                data.approved = false;
+                workApprovalMutation.mutate(data);
+              })}
+              label="Reject"
+              className="w-full"
+              variant="error"
+              type="button"
+              shape="pilled"
+              mode="stroke"
+              leadingIcon={<RiCloseFill className="w-5 h-5" />}
+            />
+            <Button
+              onClick={handleSubmit((data) => {
+                data.approved = true;
+                workApprovalMutation.mutate(data);
+                console.log(data);
+              })}
+              type="submit"
+              label="Approve"
+              className="w-full"
+              variant="primary"
+              mode="filled"
+              size="medium"
+              shape="pilled"
+              trailingIcon={<RiCheckFill className="w-5 h-5" />}
+            />
+          </div>
         </div>
-      </div>
-    </form>
+      </Form>
+    </article>
   );
 };

@@ -1,11 +1,6 @@
-import {
-  RiMapPin2Fill,
-  RiArrowLeftSLine,
-  RiCalendarEventFill,
-  RiNotificationFill,
-} from "@remixicon/react";
+import { RiMapPin2Fill, RiCalendarEventFill } from "@remixicon/react";
 import React, { useState } from "react";
-import { useParams, Link, Outlet, useLocation } from "react-router-dom";
+import { useParams, Outlet, useLocation, useNavigate } from "react-router-dom";
 
 import { useGarden, useGardens } from "@/providers/garden";
 
@@ -14,6 +9,7 @@ import { GardenWork } from "@/components/Garden/Work";
 import { GardenGardeners } from "@/components/Garden/Gardeners";
 import { GardenAssessments } from "@/components/Garden/Asessments";
 import { Tabs, TabsList, TabsTrigger } from "@/components/UI/Tabs/Tabs";
+import { TopNav } from "@/components/UI/TopNav/TopNav";
 
 enum GardenTab {
   Work = "work",
@@ -24,6 +20,7 @@ enum GardenTab {
 interface GardenProps {}
 
 export const Garden: React.FC<GardenProps> = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<GardenTab>(GardenTab.Work);
 
   const { id } = useParams<{
@@ -42,8 +39,6 @@ export const Garden: React.FC<GardenProps> = () => {
     );
 
   const { name, bannerImage, location, createdAt, assessments, works } = garden;
-
-  const workNotifications = works.filter((work) => work.status === "pending");
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -78,36 +73,12 @@ export const Garden: React.FC<GardenProps> = () => {
             className="w-full object-cover object-top rounded-b-3xl image-lut max-h-55"
             alt="Banner"
           />
-          <div className="padded">
-            <div className="flex gap-1 items-center justify-between absolute top-4 left-4 right-4">
-              <Link
-                className="flex gap-1 items-center w-10 h-10 p-2 bg-white rounded-lg"
-                to="/gardens"
-              >
-                <RiArrowLeftSLine className="w-10 h-10 text-black" />
-              </Link>
-              <div className="relative dropdown dropdown-bottom dropdown-end">
-                {workNotifications.length ? (
-                  <span className="absolute -top-2 -right-2 w-5 h-5 bg-teal-500 rounded-full flex-col justify-center items-center gap-2.5 inline-flex">
-                    <p className="text-xs self-stretch text-center text-white font-medium leading-3 tracking-tight">
-                      {workNotifications.length}
-                    </p>
-                  </span>
-                ) : null}
-                <div
-                  tabIndex={0}
-                  role="button"
-                  className="flex items-center gap-1  w-10 h-10 p-2 bg-white rounded-lg "
-                >
-                  <RiNotificationFill />
-                </div>
-                {/* <GardenNotifications
-                  garden={garden}
-                  notifications={workNotifications}
-                /> */}
-              </div>
-            </div>
-          </div>
+          <TopNav
+            onBackClick={() => navigate("/gardens")}
+            works={works}
+            garden={garden}
+            overlay={true}
+          />
           <div className="padded py-6 flex flex-col gap-2">
             <h5 className="line-clamp-1">{name}</h5>
             <div className="flex w-full justify-between items-start mb-2">

@@ -9,10 +9,8 @@ import { GardenWorkApproval } from "./Home/WorkApproval";
 
 export default function Views() {
   return (
-    <main
-      className="flex flex-col h-[calc(100vh-4rem)] mb-[5rem]"
-    >
-      <div className="flex-1 overflow-y-auto">
+    <main className="flex flex-col pb-[4rem]">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
         <Routes>
           <Route path="gardens" element={<Gardens />}>
             <Route path=":id" element={<Garden />}>

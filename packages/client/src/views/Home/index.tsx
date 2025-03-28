@@ -12,12 +12,17 @@ const Gardens: React.FC = () => {
 
   function handleCardClick(id: string) {
     navigate(`/gardens/${id}`);
+    document.getElementsByTagName("article")[0].scrollIntoView();
   }
 
   const GardensList = () => {
     switch (gardensStatus) {
       case "pending":
-        return <CircleLoader />;
+        return (
+          <div className="flex w-full h-full items-center justify-center ">
+            <CircleLoader />
+          </div>
+        );
       case "success":
         return gardens.length ? (
           gardens.map((garden) => (
@@ -46,7 +51,7 @@ const Gardens: React.FC = () => {
   };
 
   return (
-    <div className={""}>
+    <article className={""}>
       {location.pathname === "/gardens" ? (
         <>
           <div className="padded flex justify-between w-full py-4">
@@ -60,7 +65,7 @@ const Gardens: React.FC = () => {
         </>
       ) : null}
       <Outlet />
-    </div>
+    </article>
   );
 };
 
