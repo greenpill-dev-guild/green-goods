@@ -112,7 +112,14 @@ export const TopNav: React.FC<TopNavProps> = ({
           className="p-0 px-2"
         />
       )}
-      <div className="flex flex-row gap-4 justify-center grow">{children}</div>
+      <div className="absolute left-0 top-0 w-full h-full flex flex-row justify-between items-center">
+        {/* absolute space children / progress */}
+        <div className="flex flex-row gap-4 justify-center grow">
+          {children}
+        </div>
+      </div>
+      {/* Spacer */}
+      <div className="flex grow" />
       {garden && <NotificationCenter {...props} garden={garden} />}
     </div>
   );

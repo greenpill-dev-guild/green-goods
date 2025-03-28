@@ -60,8 +60,8 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardRootProps>(
         <div
           data-selected={selected}
           className={cn(
-            "p-5 flex flex-col gap-2 border border-border rounded-b-lg transition-all duration-400 border-t-0",
-            showBanner && "border-t-0"
+            "p-5 flex flex-col gap-2 border border-border rounded-lg transition-all duration-400",
+            showBanner && "border-t-0 rounded-t-0"
           )}
         >
           <div className="flex flex-col gap-2">
