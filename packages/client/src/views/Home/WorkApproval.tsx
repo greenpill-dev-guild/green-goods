@@ -1,28 +1,3 @@
-import { z } from "zod";
-import React from "react";
-import toast from "react-hot-toast";
-import { Form, useForm } from "react-hook-form";
-import { useParams } from "react-router-dom";
-import {
-  NO_EXPIRATION,
-  ZERO_BYTES32,
-} from "@ethereum-attestation-service/eas-sdk";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
-
-import { EAS } from "@/constants";
-
-import { abi } from "@/utils/abis/EAS.json";
-import { encodeWorkApprovalData } from "@/utils/eas";
-
-import { queryClient } from "@/modules/react-query";
-
-import { useUser } from "@/providers/user";
-import { useGardens, useGarden } from "@/providers/garden";
-
-import { Button } from "@/components/UI/Button";
-import { CircleLoader } from "@/components/Loader";
-import { FormInfo } from "@/components/UI/Form/Info";
 import {
   RiCheckDoubleFill,
   RiCheckFill,
@@ -32,6 +7,35 @@ import {
   RiPencilFill,
   RiPlantFill,
 } from "@remixicon/react";
+import { z } from "zod";
+import { arbitrum } from "viem/chains";
+import toast from "react-hot-toast";
+import { Form, useForm } from "react-hook-form";
+import { useParams } from "react-router-dom";
+import {
+  NO_EXPIRATION,
+  ZERO_BYTES32,
+} from "@ethereum-attestation-service/eas-sdk";
+import React, { useEffect, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Chain, encodeFunctionData, TransactionRequest } from "viem";
+
+import { EAS } from "@/constants";
+
+import { abi } from "@/utils/abis/EAS.json";
+import { encodeWorkApprovalData } from "@/utils/eas";
+import { useNavigateToTop } from "@/utils/useNavigateToTop";
+
+import { getFileByHash } from "@/modules/pinata";
+import { queryClient } from "@/modules/react-query";
+
+import { useUser } from "@/providers/user";
+import { useGardens, useGarden } from "@/providers/garden";
+
+import { Button } from "@/components/UI/Button";
+import { CircleLoader } from "@/components/Loader";
+import { FormInfo } from "@/components/UI/Form/Info";
 import {
   Carousel,
   CarouselContent,
@@ -40,9 +44,6 @@ import {
 import { FormCard } from "@/components/UI/Form/Card";
 import { FormText } from "@/components/UI/Form/Text";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
-import { useNavigateToTop } from "@/utils/useNavigateToTop";
-import { Chain, encodeFunctionData, TransactionRequest } from "viem";
-import { arbitrum } from "viem/chains";
 
 interface GardenWorkApprovalProps {}
 
@@ -58,6 +59,7 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
     id: string;
     workId: string;
   }>();
+  const [workMetadata, setWorkMetadata] = useState<WorkMetadata | null>(null);
   const navigate = useNavigateToTop();
   const { garden } = useGarden(id!);
   const { actions } = useGardens();
@@ -71,7 +73,7 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
       actionUID: work?.actionUID,
       workUID: work?.id,
       approved: false,
-      feedback: "mmnnjknjun",
+      feedback: "",
     },
     resolver: zodResolver(workApprovalSchema),
     shouldUseNativeValidation: true,
@@ -133,6 +135,22 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
     },
   });
 
+  async function fetchWorkMetadata() {
+    if (work) {
+      const res = await getFileByHash(work.metadata);
+
+      if (!res.data) throw new Error("No metadata found");
+
+      const metadata: WorkMetadata = res.data as any;
+
+      setWorkMetadata(metadata);
+    }
+  }
+
+  useEffect(() => {
+    fetchWorkMetadata();
+  }, [work]);
+
   if (!work || !action || !garden)
     return (
       <div className="w-full h-full grid place-items-center">
@@ -141,8 +159,6 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
     );
 
   const { title, feedback, media } = work;
-  const plantSelection = [work.metadata];
-  const plantCount = [work.metadata];
 
   return (
     <article>
@@ -180,7 +196,7 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
           <FormCard label="Action" value={action.title} Icon={RiHammerFill} />
           <FormCard
             label="Plant Types"
-            value={plantSelection.join(", ")}
+            value={workMetadata?.plantSelection.join(", ") || ""}
             Icon={RiPlantFill}
           />
           {feedback && (
@@ -192,7 +208,7 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
           )}
           <FormCard
             label="Plant Amount"
-            value={plantCount.toString()}
+            value={workMetadata?.plantCount.toString() || ""}
             Icon={RiLeafFill}
           />
           <h6>Give your feedback</h6>
