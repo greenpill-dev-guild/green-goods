@@ -19,7 +19,8 @@ import {
 import React, { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Chain, encodeFunctionData, TransactionRequest } from "viem";
+import { encodeFunctionData } from "viem/utils";
+import { Chain, TransactionRequest } from "viem";
 
 import { EAS } from "@/constants";
 

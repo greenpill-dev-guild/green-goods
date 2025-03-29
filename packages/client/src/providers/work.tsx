@@ -23,7 +23,8 @@ import { abi } from "@/utils/abis/EAS.json";
 import { useUser } from "./user";
 import { useGardens } from "./garden";
 import { arbitrum } from "viem/chains";
-import { Chain, encodeFunctionData, TransactionRequest } from "viem";
+import { encodeFunctionData } from "viem/utils";
+import { Chain, TransactionRequest } from "viem";
 
 export enum WorkTab {
   Intro = "Intro",
