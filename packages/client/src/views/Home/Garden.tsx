@@ -60,8 +60,6 @@ export const Garden: React.FC<GardenProps> = () => {
         );
       case GardenTab.Gardeners:
         return <GardenGardeners gardeners={gardeners} />;
-      default:
-        return null;
     }
   };
 

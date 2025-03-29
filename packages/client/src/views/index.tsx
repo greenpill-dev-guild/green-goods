@@ -1,9 +1,9 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
-import Work from "./Garden";
+import Home from "./Home";
+import Garden from "./Garden";
 import Profile from "./Profile";
-import Gardens from "./Home";
-import { Garden } from "./Home/Garden";
+import { Garden as HomeGarden } from "./Home/Garden";
 import { GardenAssessment } from "./Home/Assessment";
 import { GardenWorkApproval } from "./Home/WorkApproval";
 
@@ -12,8 +12,8 @@ export default function Views() {
     <main className="flex flex-col pb-[4rem]">
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
         <Routes>
-          <Route path="home" element={<Gardens />}>
-            <Route path=":id" element={<Garden />}>
+          <Route path="home" element={<Home />}>
+            <Route path=":id" element={<HomeGarden />}>
               <Route path="work/:workId" element={<GardenWorkApproval />} />
               <Route
                 path="assessments/:assessmentId"
@@ -21,7 +21,7 @@ export default function Views() {
               />
             </Route>
           </Route>
-          <Route path="garden" element={<Work />} />
+          <Route path="garden" element={<Garden />} />
           <Route path="profile" element={<Profile />} />
           <Route path="*" element={<Navigate to="home" />} />
         </Routes>
