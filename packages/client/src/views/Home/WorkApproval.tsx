@@ -41,14 +41,16 @@ import { FormCard } from "@/components/UI/Form/Card";
 import { FormText } from "@/components/UI/Form/Text";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
 import { useNavigateToTop } from "@/utils/useNavigateToTop";
+import { Chain, encodeFunctionData, TransactionRequest } from "viem";
+import { arbitrum } from "viem/chains";
 
 interface GardenWorkApprovalProps {}
 
 const workApprovalSchema = z.object({
-  actionUID: z.string(),
+  actionUID: z.number(),
   workUID: z.string(),
   approved: z.boolean(),
-  feedback: z.string(),
+  feedback: z.string().optional(),
 });
 
 export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
@@ -69,10 +71,11 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
       actionUID: work?.actionUID,
       workUID: work?.id,
       approved: false,
-      feedback: "",
+      feedback: "mmnnjknjun",
     },
     resolver: zodResolver(workApprovalSchema),
     shouldUseNativeValidation: true,
+    mode: "onChange",
   });
 
   const workApprovalMutation = useMutation({
@@ -81,11 +84,10 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
         throw new Error("No smart account client found");
       }
 
-      const data = encodeWorkApprovalData(draft);
+      const encodedAttestationData = encodeWorkApprovalData(draft);
 
-      const receipt = await smartAccountClient.writeContract({
+      const encodedData = encodeFunctionData({
         abi,
-        address: EAS["42161"].EAS.address as `0x${string}`,
         functionName: "attest",
         args: [
           {
@@ -95,12 +97,22 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
               expirationTime: NO_EXPIRATION,
               revocable: true,
               refUID: ZERO_BYTES32,
-              data,
+              data: encodedAttestationData,
               value: 0n,
             },
           },
         ],
       });
+
+      const transactionRequest: TransactionRequest & { chain: Chain } = {
+        chain: arbitrum,
+        to: EAS["42161"].EAS.address as `0x${string}`,
+        value: 0n,
+        data: encodedData,
+      };
+
+      const receipt =
+        await smartAccountClient.sendTransaction(transactionRequest);
 
       return receipt;
     },
@@ -110,20 +122,22 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
     },
     onSuccess: () => {
       console.log("Work approved!");
+      toast.dismiss();
       toast.success("Work approved!");
       queryClient.invalidateQueries({ queryKey: ["workApprovals"] });
     },
-    onError: () => {
-      console.log("Work approval failed!");
+    onError: (e) => {
+      console.log("Work approval failed!", e);
+      toast.dismiss();
       toast.error("Work approval failed!");
     },
   });
 
   if (!work || !action || !garden)
     return (
-      <main className="w-full h-full grid place-items-center">
+      <div className="w-full h-full grid place-items-center">
         <CircleLoader />
-      </main>
+      </div>
     );
 
   const { title, feedback, media } = work;
@@ -203,9 +217,8 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
               onClick={handleSubmit((data) => {
                 data.approved = true;
                 workApprovalMutation.mutate(data);
-                console.log(data);
               })}
-              type="submit"
+              type="button"
               label="Approve"
               className="w-full"
               variant="primary"

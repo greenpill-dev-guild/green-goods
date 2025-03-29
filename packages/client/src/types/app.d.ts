@@ -149,7 +149,7 @@ declare interface WorkApprovalDraft {
   actionUID: number;
   workUID: string;
   approved: boolean;
-  feedback: string;
+  feedback?: string;
 }
 
 declare interface WorkApproval extends WorkApprovalDraft {
