@@ -8,7 +8,7 @@ interface HeroProps {
   handleSubscribe: (e: React.FormEvent<HTMLFormElement>) => void;
 }
 
-export const Hero: React.FC<HeroProps> = ({ handleSubscribe }) => {
+export const Hero: React.FC<HeroProps> = () => {
   const { isMobile, platform } = useApp();
 
   return (
@@ -62,11 +62,11 @@ export const Hero: React.FC<HeroProps> = ({ handleSubscribe }) => {
               <div className="modal-box bg-white">
                 <h4 className="text-[#367D42]">Install Green Goods</h4>
                 <p>
-                  {platform === "ios" ?
-                    "Tap the share button and then 'Add to Home Screen'."
-                  : platform === "android" ?
-                    "Tap the menu button and then 'Add to Home Screen'."
-                  : "Tap the menu button and then 'Add to Home Screen'."}
+                  {platform === "ios"
+                    ? "Tap the share button and then 'Add to Home Screen'."
+                    : platform === "android"
+                      ? "Tap the menu button and then 'Add to Home Screen'."
+                      : "Tap the menu button and then 'Add to Home Screen'."}
                 </p>
               </div>
               <form method="dialog" className="modal-backdrop">

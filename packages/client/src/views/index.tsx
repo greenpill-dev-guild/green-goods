@@ -1,31 +1,43 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import { lazy, Suspense } from "react";
 
-import Work from "./Work";
-import Profile from "./Profile";
-import Gardens from "./Gardens";
-import { Garden } from "./Gardens/Garden";
-import { GardenAssessment } from "./Gardens/Assessment";
-import { GardenWorkApproval } from "./Gardens/WorkApproval";
+// Dynamically import default exports
+const Home = lazy(() => import("./Home"));
+const Garden = lazy(() => import("./Garden"));
+const Profile = lazy(() => import("./Profile"));
+import { Garden as HomeGarden } from "./Home/Garden";
+import { GardenAssessment } from "./Home/Assessment";
+import { GardenWorkApproval } from "./Home/WorkApproval";
+
+import { CircleLoader } from "@/components/Loader";
 
 export default function Views() {
   return (
-    <main
-      className={`overflow-hidden overscroll-contain h-[calc(100lvh-3.5rem)]`}
-    >
-      <Routes>
-        <Route path="gardens" element={<Gardens />}>
-          <Route path=":id" element={<Garden />}>
-            <Route path="work/:workId" element={<GardenWorkApproval />} />
-            <Route
-              path="assessments/:assessmentId"
-              element={<GardenAssessment />}
-            />
-          </Route>
-        </Route>
-        <Route path="garden" element={<Work />} />
-        <Route path="profile" element={<Profile />} />
-        <Route path="*" element={<Navigate to="gardens" />} />
-      </Routes>
+    <main className="flex flex-col pb-[4rem]">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <Suspense
+          fallback={
+            <div className="w-full h-full grid place-items-center">
+              <CircleLoader />
+            </div>
+          }
+        >
+          <Routes>
+            <Route path="home" element={<Home />}>
+              <Route path=":id" element={<HomeGarden />}>
+                <Route path="work/:workId" element={<GardenWorkApproval />} />
+                <Route
+                  path="assessments/:assessmentId"
+                  element={<GardenAssessment />}
+                />
+              </Route>
+            </Route>
+            <Route path="garden" element={<Garden />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="*" element={<Navigate to="home" />} />
+          </Routes>
+        </Suspense>
+      </div>
     </main>
   );
 }

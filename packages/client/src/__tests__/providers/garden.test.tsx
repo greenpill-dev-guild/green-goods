@@ -1,26 +1,28 @@
 import { describe, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import {
+  render,
+  // screen
+} from "@testing-library/react";
 
-import { useGarden, GardenProvider } from "../../providers/garden";
+import { useGardens, GardensProvider } from "../../providers/garden";
 
 const TestComponent = () => {
-  const { actions, gardeners, gardens } = useGarden();
+  const { actions, gardens } = useGardens();
 
   return (
     <div>
       <p>Actions: {actions.length}</p>
-      <p>Gardeners: {gardeners.length}</p>
       <p>Gardens: {gardens.length}</p>
     </div>
   );
 };
 
-describe("GardenProvider", () => {
+describe("GardensProvider", () => {
   it("should provide default value and allow updates", () => {
     render(
-      <GardenProvider>
+      <GardensProvider>
         <TestComponent />
-      </GardenProvider>
+      </GardensProvider>
     );
 
     // Check initial value

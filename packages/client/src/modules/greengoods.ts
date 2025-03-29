@@ -111,9 +111,7 @@ export async function getGardens(): Promise<Garden[]> {
 
   return await Promise.all(
     data.Garden.map(async (garden) => {
-      const image = (
-        await getFileByHash("QmS8mL4x9fnNutV63pSfwRhhVgoVpw4gaDCCGaTpv6oMGW")
-      ).data;
+      const image = (await getFileByHash(garden.bannerImage)).data;
 
       const bannerImage = URL.createObjectURL(image as Blob);
 

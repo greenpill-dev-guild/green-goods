@@ -1,6 +1,10 @@
 import { describe, it } from "vitest";
 
-import { getActions, getGardeners, getGardens } from "../../modules/greengoods";
+import {
+  getActions,
+  // getGardeners,
+  getGardens,
+} from "../../modules/greengoods";
 
 describe("greengoods", () => {
   it("should get gardens", async () => {
@@ -15,5 +19,6 @@ describe("greengoods", () => {
 
   it("should get actions", async () => {
     const actions = await getActions();
+    console.log(actions);
   });
 });

@@ -108,6 +108,6 @@
     ],
     "resolver": "0x63279204b744C4fDb7dbE8331F6b13D7F8344a1d",
     "UID": "0x047ed74a39f6e98ed82e4423cba3134c81afe8d97525c1107e2a9ed9c975ec77",
-    "parsed": "uint256 actionUID bytes32 workUID, bool approved, string feedback"
+    "parsed": "uint256 actionUID, bytes32 workUID, bool approved, string feedback"
   }
 ]

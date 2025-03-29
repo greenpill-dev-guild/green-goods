@@ -1,5 +1,3 @@
-// import { z } from "zod";
-import toast from "react-hot-toast";
 import {
   QueryObserverResult,
   useMutation,
@@ -25,7 +23,8 @@ import { abi } from "@/utils/abis/EAS.json";
 import { useUser } from "./user";
 import { useGardens } from "./garden";
 import { arbitrum } from "viem/chains";
-import { Chain, encodeFunctionData, TransactionRequest } from "viem";
+import { encodeFunctionData } from "viem/utils";
+import { Chain, TransactionRequest } from "viem";
 
 export enum WorkTab {
   Intro = "Intro",
@@ -38,6 +37,9 @@ export enum WorkTab {
 export interface WorkDataProps {
   gardens: Garden[];
   actions: Action[];
+  workMutation: ReturnType<
+    typeof useMutation<`0x${string}`, Error, WorkDraft, void>
+  >;
   workApprovals: WorkApproval[];
   workApprovalMap: Record<string, WorkApproval>;
   refetchWorkApprovals: () => Promise<
@@ -57,6 +59,7 @@ export interface WorkDataProps {
     feedback: string;
     plantSelection: string[];
     plantCount: number;
+    reset: () => void;
   };
   activeTab: WorkTab;
   setActiveTab: React.Dispatch<React.SetStateAction<WorkTab>>;
@@ -86,6 +89,7 @@ const WorkContext = React.createContext<WorkDataProps>({
     uploadWork: async () => {},
     gardenAddress: null,
     setGardenAddress: () => {},
+    reset: () => {},
   },
 });
 
@@ -111,7 +115,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   const [images, setImages] = useState<File[]>([]);
   const [activeTab, setActiveTab] = useState(WorkTab.Intro);
 
-  const { control, register, handleSubmit, formState, watch } =
+  const { control, register, handleSubmit, formState, watch, reset } =
     useForm<WorkDraft>({
       defaultValues: {
         feedback: "",
@@ -173,17 +177,17 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       return receipt;
     },
     onMutate: () => {
-      toast.loading("Uploading work...");
+      // toast.loading("Uploading work..."); @dev deprecated
     },
     onSuccess: () => {
-      toast.remove();
-      toast.success("Work uploaded!");
+      // toast.remove();
+      // toast.success("Work uploaded!"); @dev deprecated
       queryClient.invalidateQueries({ queryKey: ["works"] });
     },
     onError: (error) => {
       console.error("Upload Work", error);
-      toast.remove();
-      toast.error("Work upload failed!");
+      // toast.remove();
+      // toast.error("Work upload failed!"); @dev deprecated
     },
   });
 
@@ -196,6 +200,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       value={{
         gardens,
         actions,
+        workMutation,
         workApprovals: workApprovals ?? [],
         workApprovalMap:
           workApprovals?.reduce(
@@ -220,6 +225,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
           feedback,
           plantSelection,
           plantCount,
+          reset,
         },
         activeTab,
         setActiveTab,

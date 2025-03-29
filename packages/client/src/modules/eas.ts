@@ -236,10 +236,10 @@ export const getWorks = async (gardenAddress?: string): Promise<WorkCard[]> => {
 
   const works = Promise.all(
     data?.attestations.map(
-      async ({ id, recipient, timeCreated, decodedDataJson }) =>
+      async ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
         await parseDataToWork(
           id,
-          { attester: recipient, recipient, time: timeCreated },
+          { attester, recipient, time: timeCreated },
           decodedDataJson
         )
     ) ?? []
@@ -284,12 +284,13 @@ export const getWorkApprovals = async (
   if (!data) console.error("No data found");
 
   return (
-    data?.attestations.map(({ id, recipient, timeCreated, decodedDataJson }) =>
-      parseDataToWorkApproval(
-        id,
-        { attester: recipient, recipient, time: timeCreated },
-        decodedDataJson
-      )
+    data?.attestations.map(
+      ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
+        parseDataToWorkApproval(
+          id,
+          { attester, recipient, time: timeCreated },
+          decodedDataJson
+        )
     ) ?? []
   );
 };

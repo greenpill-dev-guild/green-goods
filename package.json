@@ -19,7 +19,7 @@
     "lint": "pnpm recursive run lint",
     "test": "pnpm recursive run test",
     "dev": "concurrently -n \"APP,CONTRACTS\" -c \"bgMagenta.bold,bgCyan.bold\" \"pnpm run dev:app\" \"pnpm run dev:contracts\"",
-    "dev:app": "pnpm --filter 'app' run dev",
+    "dev:app": "pnpm --filter 'client' run dev",
     "dev:contracts": "pnpm --filter 'contracts' run  dev"
   },
   "dependencies": {
