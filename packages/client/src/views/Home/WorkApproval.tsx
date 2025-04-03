@@ -2,6 +2,7 @@ import {
   RiCheckDoubleFill,
   RiCheckFill,
   RiCloseFill,
+  RiErrorWarningFill,
   RiHammerFill,
   RiLeafFill,
   RiPencilFill,
@@ -45,6 +46,8 @@ import {
 import { FormCard } from "@/components/UI/Form/Card";
 import { FormText } from "@/components/UI/Form/Text";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
+import { WorkCompleted } from "../Garden/Completed";
+import { GardenCard } from "@/components/UI/Card/GardenCard";
 
 interface GardenWorkApprovalProps {}
 
@@ -121,18 +124,18 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
     },
     onMutate: () => {
       console.log("Approving work...");
-      toast.loading("Approving work...");
+      // toast.loading("Approving work...");
     },
     onSuccess: () => {
       console.log("Work approved!");
-      toast.dismiss();
-      toast.success("Work approved!");
+      // toast.dismiss();
+      // toast.success("Work approved!");
       queryClient.invalidateQueries({ queryKey: ["workApprovals"] });
     },
     onError: (e) => {
       console.log("Work approval failed!", e);
-      toast.dismiss();
-      toast.error("Work approval failed!");
+      // toast.dismiss();
+      // toast.error("Work approval failed!");
     },
   });
 
@@ -164,89 +167,133 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
   return (
     <article>
       <TopNav onBackClick={() => navigate(`/home/${garden.id}`)} />
-      <Form
-        id="work-approve"
-        control={control}
-        className="relative flex flex-col gap-4 min-h-screen pb-6"
-      >
-        <div className="padded flex flex-col gap-4">
-          <FormInfo
-            title="Evaluate Work"
-            info="Verify if the work is acceptable"
-            Icon={RiCheckDoubleFill}
-          />
-          <h2>{title}</h2>
-          <h6>Media</h6>
-          <Carousel>
-            <CarouselContent>
-              {media.map((item, index) => (
-                <CarouselItem
-                  key={item}
-                  className="max-w-40 aspect-3/4 object-cover rounded-2xl "
-                >
-                  <img
-                    src={item}
-                    alt={`Preview ${index}`}
-                    className="w-full h-full aspect-3/4 object-cover rounded-2xl"
-                  />
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-          </Carousel>
-          <h6>Details</h6>
-          <FormCard label="Action" value={action.title} Icon={RiHammerFill} />
-          <FormCard
-            label="Plant Types"
-            value={workMetadata?.plantSelection.join(", ") || ""}
-            Icon={RiPlantFill}
-          />
-          {feedback && (
+      {workApprovalMutation.isIdle && (
+        <Form
+          id="work-approve"
+          control={control}
+          className="relative flex flex-col gap-4 min-h-screen pb-6"
+        >
+          <div className="padded flex flex-col gap-4">
+            <FormInfo
+              title="Evaluate Work"
+              info="Verify if the work is acceptable"
+              Icon={RiCheckDoubleFill}
+            />
+            <h6>Garden</h6>
+            <GardenCard
+              garden={garden}
+              media="small"
+              showOperators={true}
+              selected={false}
+              showDescription={false}
+              showBanner={false}
+            />
+            {media.length > 0 && (
+              <>
+                <h6>Media</h6>
+                <Carousel>
+                  <CarouselContent>
+                    {media.map((item, index) => (
+                      <CarouselItem
+                        key={item}
+                        className="max-w-40 aspect-3/4 object-cover rounded-2xl "
+                      >
+                        <img
+                          src={item}
+                          alt={`Preview ${index}`}
+                          className="w-full h-full aspect-3/4 object-cover rounded-2xl"
+                        />
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                </Carousel>
+              </>
+            )}
+            <h6>Details</h6>
+            <FormCard label="Action" value={action.title} Icon={RiHammerFill} />
             <FormCard
-              label="Description"
-              value={feedback}
-              Icon={RiPencilFill}
+              label="Plant Types"
+              value={workMetadata?.plantSelection.join(", ") || ""}
+              Icon={RiPlantFill}
             />
-          )}
-          <FormCard
-            label="Plant Amount"
-            value={workMetadata?.plantCount.toString() || ""}
-            Icon={RiLeafFill}
-          />
-          <h6>Give your feedback</h6>
-          <FormText rows={4} label="Description" {...register("feedback")} />
-        </div>
-        <div className="flex border-t border-stroke-soft-200">
-          <div className="flex flex-row gap-4 w-full mt-4 padded">
-            <Button
-              onClick={handleSubmit((data) => {
-                data.approved = false;
-                workApprovalMutation.mutate(data);
-              })}
-              label="Reject"
-              className="w-full"
-              variant="error"
-              type="button"
-              shape="pilled"
-              mode="stroke"
-              leadingIcon={<RiCloseFill className="w-5 h-5" />}
+            {feedback && (
+              <FormCard
+                label="Description"
+                value={feedback}
+                Icon={RiPencilFill}
+              />
+            )}
+            <FormCard
+              label="Plant Amount"
+              value={workMetadata?.plantCount.toString() || ""}
+              Icon={RiLeafFill}
             />
-            <Button
-              onClick={handleSubmit((data) => {
-                data.approved = true;
-                workApprovalMutation.mutate(data);
-              })}
-              type="button"
-              label="Approve"
-              className="w-full"
-              variant="primary"
-              mode="filled"
-              size="medium"
-              shape="pilled"
-              trailingIcon={<RiCheckFill className="w-5 h-5" />}
-            />
+            <h6>Give your feedback</h6>
+            <FormText rows={4} label="Description" {...register("feedback")} />
           </div>
+          <div className="flex border-t border-stroke-soft-200">
+            <div className="flex flex-row gap-4 w-full mt-4 padded">
+              <Button
+                onClick={handleSubmit((data) => {
+                  data.approved = false;
+                  workApprovalMutation.mutate(data);
+                })}
+                label="Reject"
+                className="w-full"
+                variant="error"
+                type="button"
+                shape="pilled"
+                mode="stroke"
+                leadingIcon={<RiCloseFill className="w-5 h-5" />}
+              />
+              <Button
+                onClick={handleSubmit((data) => {
+                  data.approved = true;
+                  workApprovalMutation.mutate(data);
+                })}
+                type="button"
+                label="Approve"
+                className="w-full"
+                variant="primary"
+                mode="filled"
+                size="medium"
+                shape="pilled"
+                trailingIcon={<RiCheckFill className="w-5 h-5" />}
+              />
+            </div>
+          </div>
+        </Form>
+      )}
+      {!workApprovalMutation.isIdle && (
+        <div className="padded">
+          <WorkCompleted
+            garden={garden}
+            status={workApprovalMutation.status}
+            messages={{
+              success: {
+                header: `You've ${
+                  workApprovalMutation.variables.approved
+                    ? "approved"
+                    : "rejected"
+                } the work!`,
+                variant: "success",
+                title: workApprovalMutation.variables.approved
+                  ? "Approved!"
+                  : "Rejected!",
+                body: `You've ${
+                  workApprovalMutation.variables.approved
+                    ? "approved"
+                    : "rejected"
+                } the work!<br/><br/>Excellent work!`,
+                icon: workApprovalMutation.variables.approved
+                  ? RiCheckFill
+                  : RiCloseFill,
+                spinner: false,
+              },
+            }}
+          />
         </div>
-      </Form>
+      )}
     </article>
   );
 };

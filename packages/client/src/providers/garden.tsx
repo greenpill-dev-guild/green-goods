@@ -11,6 +11,8 @@ interface GardenDataProps {
   isOperator: boolean;
   garden?: Garden;
   gardenStatus: "error" | "success" | "pending";
+  isFetching: boolean;
+  isLoading: boolean;
   gardeners: GardenerCard[];
   error?: Error | null;
 }
@@ -32,6 +34,8 @@ export const useGarden = (id: string): GardenDataProps => {
     data: garden,
     error,
     status: gardenStatus,
+    isFetching,
+    isLoading,
   } = useQuery<Garden, Error, Garden, [string, string]>({
     initialData: gardens.find((garden) => garden.id === id),
     queryKey: ["gardens", id],
@@ -47,10 +51,9 @@ export const useGarden = (id: string): GardenDataProps => {
 
         return {
           ...work,
-          status:
-            workApproval ?
-              workApproval.approved ?
-                "approved"
+          status: workApproval
+            ? workApproval.approved
+              ? "approved"
               : "rejected"
             : "pending",
         };
@@ -74,6 +77,8 @@ export const useGarden = (id: string): GardenDataProps => {
         else acc.push({ id, account: id, registeredAt: new Date() });
         return acc;
       }, []) ?? [],
+    isFetching,
+    isLoading,
     error,
   };
 };

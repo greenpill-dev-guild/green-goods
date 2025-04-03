@@ -34,9 +34,9 @@ export const GardenWork: React.FC<GardenWorkProps> = ({
             />
           ))
         ) : (
-          <div>
-            <CircleLoader />
-          </div>
+          <p className="grid p-8 place-items-center text-sm text-center italic text-gray-400">
+            No work yet, get started by submitting new work.
+          </p>
         );
       case "error":
         return (

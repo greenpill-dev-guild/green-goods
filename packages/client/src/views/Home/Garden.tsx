@@ -30,7 +30,9 @@ export const Garden: React.FC<GardenProps> = () => {
   const { pathname } = useLocation();
 
   const { actions } = useGardens();
-  const { garden, gardenStatus, gardeners } = useGarden(id!);
+  const { garden, gardenStatus, gardeners, isLoading, isFetching } = useGarden(
+    id!
+  );
 
   if (!garden)
     return (
@@ -46,7 +48,7 @@ export const Garden: React.FC<GardenProps> = () => {
       case GardenTab.Work:
         return (
           <GardenWork
-            workFetchStatus={gardenStatus}
+            workFetchStatus={isFetching ? "pending" : gardenStatus}
             actions={actions}
             works={works}
           />
@@ -54,7 +56,7 @@ export const Garden: React.FC<GardenProps> = () => {
       case GardenTab.Assessments:
         return (
           <GardenAssessments
-            asessmentFetchStatus={gardenStatus}
+            asessmentFetchStatus={isFetching ? "pending" : gardenStatus}
             assessments={assessments}
           />
         );

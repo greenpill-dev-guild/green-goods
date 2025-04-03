@@ -26,11 +26,11 @@ export const GardenAssessments: React.FC<GardenAssessmentsProps> = ({
             <Card
               key={assessment.id}
               className="flex flex-col gap-2 p-4"
-              onClick={() =>
-                navigate(
-                  `/home/${assessment.gardenAddress}/assessments/${assessment.id}`
-                )
-              }
+              // onClick={() =>
+              //   navigate(
+              //     `/home/${assessment.gardenAddress}/assessments/${assessment.id}`
+              //   )
+              // }
             >
               <h6>#{index + 1} Assessment</h6>
               <span className="text-xs">TAGS</span>
@@ -109,7 +109,7 @@ export const GardenAssessments: React.FC<GardenAssessmentsProps> = ({
             </Card>
           ))
         ) : (
-          <p className="grid p-8 place-items-center text-sm text-center italic">
+          <p className="grid p-8 place-items-center text-sm text-center italic text-gray-400">
             No assessments yet, get started by clicking a garden above
           </p>
         );

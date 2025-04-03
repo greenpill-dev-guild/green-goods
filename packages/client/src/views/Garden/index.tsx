@@ -39,6 +39,8 @@ const Work: React.FC = () => {
     plantCount,
   } = form;
 
+  const { status } = workMutation;
+
   const garden = gardens.find((garden) => garden.id === gardenAddress);
   const action = actions.find((action) => action.id === actionUID);
 
@@ -90,7 +92,7 @@ const Work: React.FC = () => {
           />
         );
       case WorkTab.Complete:
-        return <WorkCompleted workMutation={workMutation} garden={garden!} />;
+        return <WorkCompleted status={status} garden={garden!} />;
     }
   };
 

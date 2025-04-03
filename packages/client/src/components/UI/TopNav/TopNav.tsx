@@ -92,7 +92,7 @@ export const TopNav: React.FC<TopNavProps> = ({
     <div
       className={cn(
         "relative flex flex-row w-full justify-evenly items-center gap-4 p-4 h-14",
-        overlay && "absolute"
+        overlay && "fixed z-1000"
       )}
       {...props}
     >

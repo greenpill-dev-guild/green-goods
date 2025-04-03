@@ -57,7 +57,7 @@ const WorkCard = React.forwardRef<
   return (
     <Card ref={ref} className={cn(classes)} {...props}>
       <img
-        src={work.media[0]}
+        src={work.media[0] || "/images/no-image-placeholder.png"}
         alt={work.feedback}
         className={cn(
           media === "large" ? "h-auto aspect-video" : "max-h-26",
@@ -93,7 +93,11 @@ const WorkCard = React.forwardRef<
           >
             {formatAddress(work.gardenerAddress)}
           </Badge>
-          <Badge variant="outline" leadingIcon={statusIcon}>
+          <Badge
+            variant="outline"
+            leadingIcon={statusIcon}
+            className="capitalize"
+          >
             {work.status}
           </Badge>
           <Badge
