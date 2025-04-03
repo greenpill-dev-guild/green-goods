@@ -2,8 +2,8 @@ import { describe, it } from "vitest";
 
 import {
   getGardenAssessments,
-  getWorks,
-  getWorkApprovals,
+  // getWorks,
+  // getWorkApprovals,
 } from "../../modules/eas";
 
 describe("eas", () => {
