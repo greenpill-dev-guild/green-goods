@@ -3,62 +3,78 @@ import {
   RiCheckFill,
   RiErrorWarningFill,
   RiTelegram2Fill,
+  type RemixiconComponentType,
 } from "@remixicon/react";
 
-import type { useMutation } from "@tanstack/react-query";
 import {
   UploadModal,
   type ModalVariantRoot,
 } from "@/components/UI/UploadModal/UploadModal";
 
+export type completedMessage = {
+  header?: string;
+  variant: ModalVariantRoot["variant"];
+  title: string;
+  body: string;
+  icon: RemixiconComponentType;
+  spinner: boolean;
+};
+
+export type completedStatus = "error" | "success" | "pending" | "idle";
+
 interface WorkCompletedProps {
   garden: Garden;
-  workMutation: ReturnType<
-    typeof useMutation<`0x${string}`, Error, WorkDraft, void>
-  >;
+  status: "error" | "success" | "pending" | "idle";
+  messages?: { [key: string]: completedMessage };
 }
 
-const messages = (garden: Garden) => ({
-  error: {
-    variant: "error",
-    header: "Error",
-    body: "Something went wrong, please try again later",
-    icon: RiErrorWarningFill,
-    spinner: false,
-  },
-  success: {
-    variant: "success",
-    header: "Published!",
-    body: `Your work has been submitted!<br/><br/>${garden.operators[0].substring(0, 12)}, your Garden Operator will review your submission and you’ll be notified once it's approved or rejected.`,
-    icon: RiCheckFill,
-    spinner: false,
-  },
-  pending: {
-    variant: "pending",
-    header: "Publishing...",
-    body: "Your work is being submitted...",
-    icon: RiTelegram2Fill,
-    spinner: true,
-  },
-  idle: {
-    variant: "pending",
-    header: "Pending",
-    body: "We also have no idea what's going on...",
-    icon: RiTelegram2Fill,
-    spinner: true,
-  },
-});
-
 export const WorkCompleted: React.FC<WorkCompletedProps> = ({
-  workMutation,
   garden,
+  status,
+  messages,
 }) => {
-  const { status } = workMutation;
-  const state = messages(garden)[status as keyof ReturnType<typeof messages>];
+  const getMessages = (garden: Garden) => ({
+    error: {
+      header: "",
+      variant: "error",
+      title: "Error",
+      body: "Something went wrong, please try again later",
+      icon: RiErrorWarningFill,
+      spinner: false,
+    },
+    success: {
+      header: "Your work has been added!",
+      variant: "success",
+      title: "Published!",
+      body: `Your work has been submitted!<br/><br/>${garden.operators[0].substring(0, 12)}, your Garden Operator will review your submission and you’ll be notified once it's approved or rejected.`,
+      icon: RiCheckFill,
+      spinner: false,
+    },
+    pending: {
+      header: "",
+      variant: "pending",
+      title: "Publishing...",
+      body: "Your work is being submitted...",
+      icon: RiTelegram2Fill,
+      spinner: true,
+    },
+    idle: {
+      header: "",
+      variant: "pending",
+      title: "Pending",
+      body: "We also have no idea what's going on...",
+      icon: RiTelegram2Fill,
+      spinner: true,
+    },
+    ...messages,
+  });
+
+  const state = getMessages(garden)[status as completedStatus];
   return (
     <UploadModal
       variant={state.variant as ModalVariantRoot["variant"]}
       headerText={state.header}
+      titleText={state.title}
       bodyText={state.body}
       icon={state.icon}
       spinner={state.spinner}

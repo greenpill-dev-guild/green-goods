@@ -2,16 +2,12 @@ import { cn } from "@/utils/cn";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
 import { Card, type CardRootProps } from "./Card";
-import {
-  RiUser2Fill,
-  RiUserCommunityFill,
-  RiUserLocationFill,
-} from "@remixicon/react";
+import { RiGroupFill, RiMapPinFill, RiMapPinUserFill } from "@remixicon/react";
 import { Badge } from "../Badge/Badge";
 import { formatAddress } from "@/utils/text";
 
 export const cardVariants = tv({
-  base: "relative flex flex-col grow border-0 rounded-lg overflow-clip rounded-lg justify-between p-0 gap-0",
+  base: "relative flex flex-col grow border-0 rounded-lg overflow-clip rounded-b-lg justify-between p-0 gap-0",
   variants: {
     media: {
       large: "",
@@ -28,6 +24,7 @@ export type GardenCardVariantProps = VariantProps<typeof cardVariants>;
 export type GardenCardOptions = {
   showOperators?: boolean;
   showDescription?: boolean;
+  showBanner?: boolean;
 };
 
 export type GardenCardRootProps = React.HTMLAttributes<HTMLDivElement> &
@@ -43,24 +40,29 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardRootProps>(
       garden,
       showOperators = false,
       showDescription = true,
-      ...props
+      showBanner = true,
+      onClick,
     },
     ref
   ) => {
     const classes = cardVariants({ media, class: className });
     return (
-      <Card ref={ref} className={cn(classes, selected && "")} {...props}>
+      <Card ref={ref} className={cn(classes, selected && "")} onClick={onClick}>
         <img
           src={garden.bannerImage}
           alt={garden.description}
           className={cn(
             media === "large" ? "h-55" : "max-h-26",
-            "object-cover image-lut z-1"
+            "object-cover image-lut z-1",
+            !showBanner && "hidden"
           )}
         />
         <div
           data-selected={selected}
-          className="p-5 flex flex-col gap-2 border border-border border-t-0 rounded-b-lg transition-all duration-400" 
+          className={cn(
+            "p-5 flex flex-col gap-2 border border-border rounded-lg transition-all duration-400",
+            showBanner && "border-t-0 rounded-t-0"
+          )}
         >
           <div className="flex flex-col gap-2">
             <div
@@ -78,12 +80,15 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardRootProps>(
               {garden.name}
             </h5>
             <div className="flex flex-row gap-1">
-              <Badge variant="outline" tint="none">
-                <RiUserCommunityFill className="w-3.5 text-primary mx-1" />
+              <Badge
+                variant="outline"
+                tint="none"
+                leadingIcon={<RiGroupFill className="h-4 w-4 text-primary" />}
+              >
                 {garden.operators.length} Gardeners
               </Badge>
               <Badge variant="outline" tint="none">
-                <RiUserLocationFill className="w-3.5 text-primary mx-1" />
+                <RiMapPinFill className="h-4 w-4 text-primary" />
                 {garden.location}
               </Badge>
             </div>
@@ -96,13 +101,13 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardRootProps>(
                   <>
                     {garden.operators.slice(0, 2).map((operator) => (
                       <Badge key={operator} variant="outline" tint="none">
-                        <RiUser2Fill className="w-3.5 text-primary mx-1" />
+                        <RiMapPinUserFill className="w-4 h-4 text-primary" />
                         {formatAddress(operator)}
                       </Badge>
                     ))}
                     {garden.operators.length > 2 && (
                       <Badge key={"others"} variant="outline" tint="none">
-                        <RiUser2Fill className="w-3.5 text-primary mx-1" />
+                        <RiMapPinUserFill className="w-4 h-4 text-primary" />
                         and {garden.operators.length - 2} others
                       </Badge>
                     )}

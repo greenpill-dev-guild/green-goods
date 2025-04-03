@@ -145,11 +145,16 @@ declare interface Work extends WorkCard {
   status: "pending" | "approved" | "rejected";
 }
 
+declare interface WorkMetadata {
+  plantCount: number;
+  plantSelection: string[];
+}
+
 declare interface WorkApprovalDraft {
   actionUID: number;
   workUID: string;
   approved: boolean;
-  feedback: string;
+  feedback?: string;
 }
 
 declare interface WorkApproval extends WorkApprovalDraft {

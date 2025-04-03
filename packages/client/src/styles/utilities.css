@@ -1,69 +1,94 @@
-@import 'tailwindcss';
+@import "tailwindcss";
+
+@theme {
+  /* Basic shadows */
+  --shadow-regular-xs: 0 1px 2px 0 rgba(10, 13, 20, 0.03);
+  --shadow-regular-sm: 0 2px 4px rgba(27, 28, 29, 0.04);
+  --shadow-regular-md: 0 16px 32px -12px rgba(14, 18, 27, 0.1);
+
+  /* Button focus shadows */
+  --shadow-button-primary-focus: 0 0 0 2px var(--color-bg-white-0),
+    0 0 0 4px var(--color-primary-alpha-10);
+  --shadow-button-important-focus: 0 0 0 2px var(--color-bg-white-0),
+    0 0 0 4px var(--color-neutral-alpha-16);
+  --shadow-button-error-focus: 0 0 0 2px var(--color-bg-white-0),
+    0 0 0 4px var(--color-red-alpha-10);
+
+  /* Fancy button shadows */
+  --shadow-fancy-buttons-neutral: 0 1px 2px 0 rgba(27, 28, 29, 0.48),
+    0 0 0 1px #242628;
+  --shadow-fancy-buttons-primary: 0 1px 2px 0 rgba(14, 18, 27, 0.24),
+    0 0 0 1px var(--color-primary-base);
+  --shadow-fancy-buttons-error: 0 1px 2px 0 rgba(14, 18, 27, 0.24),
+    0 0 0 1px var(--color-error-base);
+  --shadow-fancy-buttons-stroke: 0 1px 3px 0 rgba(14, 18, 27, 0.12),
+    0 0 0 1px var(--color-stroke-soft-200);
+
+  /* Component-specific shadows */
+  --shadow-toggle-switch: 0 6px 10px 0 rgba(14, 18, 27, 0.06),
+    0 2px 4px 0 rgba(14, 18, 27, 0.03);
+  --shadow-switch-thumb: 0 4px 8px 0 rgba(27, 28, 29, 0.06),
+    0 2px 4px 0 rgba(14, 18, 27, 0.08);
+  --shadow-tooltip: 0 12px 24px 0 rgba(14, 18, 27, 0.06),
+    0 1px 2px 0 rgba(14, 18, 27, 0.03);
+}
 
 @layer utilities {
-
   .image-lut {
     @apply contrast-110 brightness-105 saturate-150;
   }
-  /* Custom Shadow Utilities */
+
+  /* Usage examples in utility classes */
   .shadow-regular-xs {
-    box-shadow: 0 1px 2px 0 rgba(10, 13, 20, 0.03);
+    box-shadow: var(--shadow-regular-xs);
   }
+
   .shadow-regular-sm {
-    box-shadow: 0 2px 4px rgba(27, 28, 29, 0.04);
+    box-shadow: var(--shadow-regular-sm);
   }
+
   .shadow-regular-md {
-    box-shadow: 0 16px 32px -12px rgba(14, 18, 27, 0.1);
+    box-shadow: var(--shadow-regular-md);
   }
+
   .shadow-button-primary-focus {
-    box-shadow:
-      0 0 0 2px white,
-      0 0 0 4px rgba(var(--color-primary), 0.1);
+    box-shadow: var(--shadow-button-primary-focus);
   }
+
   .shadow-button-important-focus {
-    box-shadow:
-      0 0 0 2px white,
-      0 0 0 4px rgba(var(--color-neutral), 0.16);
+    box-shadow: var(--shadow-button-important-focus);
   }
+
   .shadow-button-error-focus {
-    box-shadow:
-      0 0 0 2px white,
-      0 0 0 4px rgba(var(--color-red), 0.1);
+    box-shadow: var(--shadow-button-error-focus);
   }
+
   .shadow-fancy-buttons-neutral {
-    box-shadow:
-      0 1px 2px 0 rgba(27, 28, 29, 0.48),
-      0 0 0 1px #242628;
+    box-shadow: var(--shadow-fancy-buttons-neutral);
   }
+
   .shadow-fancy-buttons-primary {
-    box-shadow:
-      0 1px 2px 0 rgba(14, 18, 27, 0.24),
-      0 0 0 1px var(--color-primary);
+    box-shadow: var(--shadow-fancy-buttons-primary);
   }
+
   .shadow-fancy-buttons-error {
-    box-shadow:
-      0 1px 2px 0 rgba(14, 18, 27, 0.24),
-      0 0 0 1px var(--color-error);
+    box-shadow: var(--shadow-fancy-buttons-error);
   }
+
   .shadow-fancy-buttons-stroke {
-    box-shadow:
-      0 1px 3px 0 rgba(14, 18, 27, 0.12),
-      0 0 0 1px var(--color-stroke-soft-200);
+    box-shadow: var(--shadow-fancy-buttons-stroke);
   }
+
   .shadow-toggle-switch {
-    box-shadow:
-      0 6px 10px 0 rgba(14, 18, 27, 0.06),
-      0 2px 4px 0 rgba(14, 18, 27, 0.03);
+    box-shadow: var(--shadow-toggle-switch);
   }
+
   .shadow-switch-thumb {
-    box-shadow:
-      0 4px 8px 0 rgba(27, 28, 29, 0.06),
-      0 2px 4px 0 rgba(14, 18, 27, 0.08);
+    box-shadow: var(--shadow-switch-thumb);
   }
+
   .shadow-tooltip {
-    box-shadow:
-      0 12px 24px 0 rgba(14, 18, 27, 0.06),
-      0 1px 2px 0 rgba(14, 18, 27, 0.03);
+    box-shadow: var(--shadow-tooltip);
   }
 
   /* Custom Border Radius Utilities */
@@ -79,47 +104,4 @@
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* Internet Explorer 10+ */
   }
-
-  h1 {
-    @apply text-title-h1 text-foreground;
-  }
-  
-  h2 {
-    @apply text-title-h2 text-foreground;
-  }
-  
-  h3 {
-    @apply text-title-h3 text-foreground;
-  }
-  
-  h4 {
-    @apply text-title-h4 text-foreground;
-  }
-  
-  h5 {
-    @apply text-title-h5 text-foreground;
-  }
-  
-  h6 {
-    @apply text-title-h6 text-foreground;
-  }
-  
-  label {
-    @apply text-label-md;
-  }
-  
-  a {
-    @apply text-label-md;
-    text-decoration: inherit;
-  }
-  
-  /* Additional utility classes */
-  .small {
-    @apply text-paragraph-sm;
-  }
-  
-  .extra-small {
-    @apply text-paragraph-xs;
-  }
-  
 }

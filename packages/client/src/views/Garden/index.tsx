@@ -1,6 +1,6 @@
 import { Form } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import { RiArrowLeftSLine } from "@remixicon/react";
+import { RiArrowRightSLine, RiImage2Fill } from "@remixicon/react";
 
 import { useWork, WorkTab } from "@/providers/work";
 
@@ -11,10 +11,13 @@ import { WorkIntro } from "./Intro";
 import { WorkMedia } from "./Media";
 import { WorkDetails } from "./Details";
 import { WorkReview } from "./Review";
+import { WorkCompleted } from "./Completed";
+import { TopNav } from "@/components/UI/TopNav/TopNav";
 
 const Work: React.FC = () => {
   const navigate = useNavigate();
-  const { gardens, actions, form, activeTab, setActiveTab } = useWork();
+  const { gardens, actions, form, activeTab, setActiveTab, workMutation } =
+    useWork();
 
   if (!form) {
     return null;
@@ -35,6 +38,8 @@ const Work: React.FC = () => {
     plantSelection,
     plantCount,
   } = form;
+
+  const { status } = workMutation;
 
   const garden = gardens.find((garden) => garden.id === gardenAddress);
   const action = actions.find((action) => action.id === actionUID);
@@ -73,7 +78,8 @@ const Work: React.FC = () => {
           />
         );
       case WorkTab.Review:
-        if (!garden || !action) return <div>Missing garden or action information</div>;
+        if (!garden || !action)
+          return <div>Missing garden or action information</div>;
         return (
           <WorkReview
             instruction={"Check if your informations are correct"}
@@ -86,94 +92,110 @@ const Work: React.FC = () => {
           />
         );
       case WorkTab.Complete:
-        return (
-          <div>
-            <p>Work completed</p>
-          </div>
-        );
+        return <WorkCompleted status={status} garden={garden!} />;
     }
+  };
+
+  const changeTab = (tab: WorkTab) => {
+    document.getElementById("root")?.scrollIntoView({ behavior: "instant" });
+    setActiveTab(tab);
   };
 
   const tabActions = {
     [WorkTab.Intro]: {
-      primary: () => setActiveTab(WorkTab.Media),
+      primary: () => changeTab(WorkTab.Media),
       primaryLabel: "Start Gardening",
       primaryDisabled: !gardenAddress || typeof actionUID !== "number",
       secondary: null,
-      backButton: () => navigate("/gardens"),
+      backButton: () => navigate("/home"),
     },
     [WorkTab.Media]: {
-      primary: () => setActiveTab(WorkTab.Details),
+      primary: () => changeTab(WorkTab.Details),
       primaryLabel: "Add Details",
       primaryDisabled: images.length < 2,
       secondary: () => document.getElementById("work-media-upload")?.click(),
       secondaryLabel: "Upload Media",
-      backButton: () => setActiveTab(WorkTab.Intro),
+      backButton: () => changeTab(WorkTab.Intro),
     },
     [WorkTab.Details]: {
-      primary: () => setActiveTab(WorkTab.Review),
+      primary: () => changeTab(WorkTab.Review),
       primaryLabel: "Review Work",
       primaryDisabled: !state.isValid,
       secondary: null,
-      backButton: () => setActiveTab(WorkTab.Media),
+      backButton: () => changeTab(WorkTab.Media),
     },
     [WorkTab.Review]: {
       primary: () => {
+        changeTab(WorkTab.Complete);
+        form.reset();
         uploadWork();
       },
       primaryLabel: "Upload Work",
       primaryDisabled: !state.isValid || state.isSubmitting,
       secondary: null,
-      backButton: () => setActiveTab(WorkTab.Details),
+      backButton: () => changeTab(WorkTab.Details),
     },
     [WorkTab.Complete]: {
-      primary: () => navigate("/gardens"),
-      primaryLabel: "Go to Gardens",
-      primaryDisabled: false,
+      primary: () => {
+        workMutation.reset();
+        control._reset();
+        setImages([]);
+        changeTab(WorkTab.Intro);
+        navigate("/home");
+      },
+      primaryLabel: "Finish",
+      primaryDisabled: workMutation.isPending,
       secondary: null,
       backButton: undefined,
     },
   };
 
   return (
-    <Form
-      id="work-form"
-      control={control}
-      className="padded py-6 flex flex-col gap-4"
-    >
-      <div className="relative flex justify-between items-center mb-4">
-        <button
-          type="button"
-          className="flex items-center gap-1 w-10 h-10 p-2 bg-white border border-slate-200 rounded-lg"
-          onClick={tabActions[activeTab].backButton}
-        >
-          <RiArrowLeftSLine className="w-10 h-10 text-black" />
-        </button>
+    <>
+      <TopNav onBackClick={tabActions[activeTab].backButton}>
         <FormProgress
           currentStep={Object.values(WorkTab).indexOf(activeTab) + 1}
           steps={Object.values(WorkTab).slice(0, 4)}
         />
-        <div className="flex items-center gap-1 w-10 h-10 p-2 border border-transparent" />
-      </div>
-        {renderTabContent()}
-      <div className="mt-auto pt-4 flex flex-col gap-2">
-        {tabActions[activeTab].secondary && (
-          <Button
-            className="w-full"
-            onClick={tabActions[activeTab].secondary}
-            label={tabActions[activeTab].secondaryLabel}
-            type="button"
-          />
-        )}
-        <Button
-          className="w-full"
-          onClick={tabActions[activeTab].primary}
-          label={tabActions[activeTab].primaryLabel}
-          disabled={tabActions[activeTab].primaryDisabled}
-          type="button"
-        />
-      </div>
-    </Form>
+      </TopNav>
+      <Form
+        id="work-form"
+        control={control}
+        className="relative py-6 pt-0 flex flex-col gap-4 min-h-[calc(100vh-7.5rem)]"
+      >
+        <div className="padded relative flex flex-col gap-4 flex-1">
+          {renderTabContent()}
+        </div>
+        <div className="flex border-t border-stroke-soft-200">
+          <div className="flex flex-row gap-4 w-full mt-4 padded">
+            {tabActions[activeTab].secondary && (
+              <Button
+                onClick={tabActions[activeTab].secondary}
+                label={tabActions[activeTab].secondaryLabel}
+                className="w-full"
+                variant="neutral"
+                type="button"
+                shape="pilled"
+                mode="stroke"
+                leadingIcon={<RiImage2Fill className="text-primary w-5 h-5" />}
+              />
+            )}
+            <Button
+              onClick={tabActions[activeTab].primary}
+              label={tabActions[activeTab].primaryLabel}
+              disabled={tabActions[activeTab].primaryDisabled}
+              className="w-full"
+              variant="primary"
+              mode="filled"
+              size="medium"
+              type="button"
+              shape="pilled"
+              trailingIcon={<RiArrowRightSLine className="w-5 h-5" />}
+            />
+          </div>
+        </div>
+      </Form>
+    </>
   );
 };
 

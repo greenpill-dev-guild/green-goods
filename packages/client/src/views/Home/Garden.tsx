@@ -1,11 +1,6 @@
-import {
-  RiMapPin2Fill,
-  RiArrowLeftSLine,
-  RiCalendarEventFill,
-  RiNotificationFill,
-} from "@remixicon/react";
+import { RiMapPin2Fill, RiCalendarEventFill } from "@remixicon/react";
 import React, { useState } from "react";
-import { useParams, Link, Outlet, useLocation } from "react-router-dom";
+import { useParams, Outlet, useLocation } from "react-router-dom";
 
 import { useGarden, useGardens } from "@/providers/garden";
 
@@ -13,8 +8,9 @@ import { CircleLoader } from "@/components/Loader";
 import { GardenWork } from "@/components/Garden/Work";
 import { GardenGardeners } from "@/components/Garden/Gardeners";
 import { GardenAssessments } from "@/components/Garden/Asessments";
-import { GardenNotifications } from "./Notifications";
 import { Tabs, TabsList, TabsTrigger } from "@/components/UI/Tabs/Tabs";
+import { TopNav } from "@/components/UI/TopNav/TopNav";
+import { useNavigateToTop } from "@/utils/useNavigateToTop";
 
 enum GardenTab {
   Work = "work",
@@ -25,6 +21,7 @@ enum GardenTab {
 interface GardenProps {}
 
 export const Garden: React.FC<GardenProps> = () => {
+  const navigate = useNavigateToTop();
   const [activeTab, setActiveTab] = useState<GardenTab>(GardenTab.Work);
 
   const { id } = useParams<{
@@ -33,7 +30,7 @@ export const Garden: React.FC<GardenProps> = () => {
   const { pathname } = useLocation();
 
   const { actions } = useGardens();
-  const { garden, gardenStatus, gardeners } = useGarden(id!);
+  const { garden, gardenStatus, gardeners, isFetching } = useGarden(id!);
 
   if (!garden)
     return (
@@ -44,14 +41,12 @@ export const Garden: React.FC<GardenProps> = () => {
 
   const { name, bannerImage, location, createdAt, assessments, works } = garden;
 
-  const workNotifications = works.filter((work) => work.status === "pending");
-
   const renderTabContent = () => {
     switch (activeTab) {
       case GardenTab.Work:
         return (
           <GardenWork
-            workFetchStatus={gardenStatus}
+            workFetchStatus={isFetching ? "pending" : gardenStatus}
             actions={actions}
             works={works}
           />
@@ -59,14 +54,12 @@ export const Garden: React.FC<GardenProps> = () => {
       case GardenTab.Assessments:
         return (
           <GardenAssessments
-            asessmentFetchStatus={gardenStatus}
+            asessmentFetchStatus={isFetching ? "pending" : gardenStatus}
             assessments={assessments}
           />
         );
       case GardenTab.Gardeners:
         return <GardenGardeners gardeners={gardeners} />;
-      default:
-        return null;
     }
   };
 
@@ -79,48 +72,27 @@ export const Garden: React.FC<GardenProps> = () => {
             className="w-full object-cover object-top rounded-b-3xl image-lut max-h-55"
             alt="Banner"
           />
-          <div className="padded">
-            <div className="flex gap-1 items-center justify-between absolute top-4 left-4 right-4">
-              <Link
-                className="flex gap-1 items-center w-10 h-10 p-2 bg-white rounded-lg"
-                to="/gardens"
-              >
-                <RiArrowLeftSLine className="w-10 h-10 text-black" />
-              </Link>
-              <div className="relative dropdown dropdown-bottom dropdown-end">
-                {workNotifications.length ? (
-                  <span className="absolute -top-2 -right-2 w-5 h-5 bg-teal-500 rounded-full flex-col justify-center items-center gap-2.5 inline-flex">
-                    <p className="text-xs self-stretch text-center text-white font-medium leading-3 tracking-tight">
-                      {workNotifications.length}
-                    </p>
-                  </span>
-                ) : null}
-                <div
-                  tabIndex={0}
-                  role="button"
-                  className="flex items-center gap-1  w-10 h-10 p-2 bg-white rounded-lg "
-                >
-                  <RiNotificationFill />
-                </div>
-                {/* <GardenNotifications
-                  garden={garden}
-                  notifications={workNotifications}
-                /> */}
-              </div>
-            </div>
-          </div>
+          <TopNav
+            onBackClick={() => navigate("/home")}
+            works={works}
+            garden={garden}
+            overlay={true}
+          />
           <div className="padded py-6 flex flex-col gap-2">
             <h5 className="line-clamp-1">{name}</h5>
             <div className="flex w-full justify-between items-start mb-2">
               <div className="flex flex-col gap-2">
                 <div className="flex flex-row gap-1 items-center">
-                  <RiMapPin2Fill className="h-5 text-primary" />
-                  <div className="text-xs"><span className="font-medium">Location •</span> {location}</div>
+                  <RiMapPin2Fill className="h-4 text-primary" />
+                  <div className="text-xs">
+                    <span className="font-medium">Location •</span> {location}
+                  </div>
                 </div>
                 <div className="flex flex-row gap-1 items-center">
-                  <RiCalendarEventFill className="h-5 text-primary" />
+                  <RiCalendarEventFill className="h-4 text-primary" />
                   <div className="text-xs">
-                  <span className="font-medium">Founded •</span> {createdAt.toDateString()}
+                    <span className="font-medium">Founded •</span>{" "}
+                    {createdAt.toDateString()}
                   </div>
                 </div>
               </div>
@@ -135,14 +107,14 @@ export const Garden: React.FC<GardenProps> = () => {
                     onClick={() => setActiveTab(tab)}
                     className={`flex-1 flex justify-center items-center p-3 cursor-pointer ${tab === activeTab ? "bg-teal-200 " : ""} transition-colors duration-200`}
                   >
-                    <label className="capitalize small font-semibold text-center w-full">
+                    <div className="capitalize small font-semibold text-center w-full">
                       {tab}
-                    </label>
+                    </div>
                   </TabsTrigger>
                 ))}
               </TabsList>
             </Tabs>
-            <div className="flex-1 flex flex-col gap-4 pt-4 pb-20"> 
+            <div className="flex-1 flex flex-col gap-4 pt-4 pb-20">
               {renderTabContent()}
             </div>
           </div>

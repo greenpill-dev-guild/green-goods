@@ -37,7 +37,8 @@ const modalVariants = tv({
 
 export type ModalVariantRoot = React.HTMLAttributes<HTMLDivElement> &
   VariantProps<typeof modalVariants> & {
-    headerText: string;
+    titleText: string;
+    headerText?: string;
     bodyText: string;
     icon: RemixiconComponentType;
     spinner?: boolean;
@@ -47,6 +48,7 @@ function UploadModal({
   className,
   variant,
   headerText,
+  titleText,
   bodyText,
   icon: ModalIcon,
   spinner: showSpinner = true,
@@ -54,21 +56,28 @@ function UploadModal({
 }: ModalVariantRoot) {
   const { root, icon, avatar, spinner } = modalVariants({ variant });
   return (
-    <Card {...props} className={root()}>
-      <div className="relative flex flex-col gap-4 items-center justify-center">
-        <Avatar className={avatar()}>
-          <div className={cn(showSpinner && "animate-spin" && spinner())} />
-          <div className="w-full h-full flex items-center justify-center">
-            <ModalIcon className={icon()} />
-          </div>
-        </Avatar>
-        <h6>{headerText}</h6>
-        <div
-          className="flex mx-4 max-w-full text-wrap text-center"
-          dangerouslySetInnerHTML={{ __html: bodyText }}
-        />
-      </div>
-    </Card>
+    <>
+      {headerText && (
+        <div className="flex flex-col gap-4 items-center justify-center mb-4">
+          <h6>{headerText}</h6>
+        </div>
+      )}
+      <Card {...props} className={root()}>
+        <div className="relative flex flex-col gap-4 items-center justify-center">
+          <Avatar className={avatar()}>
+            <div className={cn(showSpinner && "animate-spin" && spinner())} />
+            <div className="w-full h-full flex items-center justify-center">
+              <ModalIcon className={icon()} />
+            </div>
+          </Avatar>
+          <h6>{titleText}</h6>
+          <div
+            className="flex mx-4 max-w-full text-wrap text-center"
+            dangerouslySetInnerHTML={{ __html: bodyText }}
+          />
+        </div>
+      </Card>
+    </>
   );
 }
 

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
-import { RiAddLargeLine, RiAddLine, RiArrowDownBoxFill, RiQuestionLine } from "@remixicon/react";
+import { RiAddLine, RiQuestionLine } from "@remixicon/react";
 import { cn } from "@/utils/cn";
 import { FlexCard } from "../Card/Card";
 
@@ -15,7 +15,10 @@ const AccordionItem = React.forwardRef<
   <FlexCard size="small">
     <AccordionPrimitive.Item
       ref={ref}
-      className={cn("flex flex-col grow w-full items-start justify-items-start gap-2", className)}
+      className={cn(
+        "flex flex-col grow w-full items-start justify-items-start gap-2",
+        className
+      )}
       {...props}
     />
   </FlexCard>
@@ -26,18 +29,18 @@ const AccordionTrigger = React.forwardRef<
   React.ElementRef<typeof AccordionPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Trigger>
 >(({ className, children, ...props }, ref) => (
-    <AccordionPrimitive.Trigger
-      ref={ref}
-      className={cn(
-        "flex flex-row w-full gap-3 text-base font-medium transition-all [&[data-state=open]>svg:first-of-type]:text-primary [&[data-state=open]>svg:first-of-type]:scale-110 [&[data-state=open]>svg:first-of-type]:animate-spring-bump grow text-left items-start",
-        className
-      )}
-      {...props}
-    >
-      <RiQuestionLine className="w-6 h-6 shrink-0 text-[#525865] transition-all " />
-      <div className="flex grow">{children}</div>
-      <RiAddLine className="h-5 w-5 shrink-0 transition-transform duration-200 text-[#9A9FAD] flex text-right " />
-    </AccordionPrimitive.Trigger>
+  <AccordionPrimitive.Trigger
+    ref={ref}
+    className={cn(
+      "flex flex-row w-full gap-3 text-base font-medium transition-all [&[data-state=open]>svg:first-of-type]:text-primary [&[data-state=open]>svg:first-of-type]:scale-110 [&[data-state=open]>svg:first-of-type]:animate-spring-bump grow text-left items-start",
+      className
+    )}
+    {...props}
+  >
+    <RiQuestionLine className="w-6 h-6 shrink-0 text-[#525865] transition-all " />
+    <div className="flex grow">{children}</div>
+    <RiAddLine className="h-5 w-5 shrink-0 transition-transform duration-200 text-[#9A9FAD] flex text-right " />
+  </AccordionPrimitive.Trigger>
 ));
 AccordionTrigger.displayName = AccordionPrimitive.Trigger.displayName;
 

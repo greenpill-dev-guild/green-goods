@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import type React from "react";
+import { useState } from "react";
 import { RiCloseLine, RiImageFill } from "@remixicon/react";
 
 import { FormInfo } from "@/components/UI/Form/Info";
@@ -21,6 +22,8 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
   setImages,
 }) => {
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  // @dev @ Afo- preview modal
+  const disablePreview = true;
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -38,6 +41,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
       <FormInfo title="Upload Media" info={instruction} Icon={RiImageFill} />
       <div className="">
         <div className="text-xs tracking-tight mb-1 uppercase">needed</div>
+        <div className="flex gap-1 flex-wrap">
           {needed.map((item) => (
             <Badge
               key={item}
@@ -48,10 +52,11 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
               {item.replace("_", " ")}
             </Badge>
           ))}
+        </div>
       </div>
       <div className="">
-      <div className="text-xs tracking-tight mb-1 uppercase">optional</div>
-        <ul className="flex gap-1 flex-wrap">
+        <div className="text-xs tracking-tight mb-1 uppercase">optional</div>
+        <div className="flex gap-1 flex-wrap">
           {optional.map((item) => (
             <Badge
               key={item}
@@ -62,7 +67,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
               {item.replace("_", " ")}
             </Badge>
           ))}
-        </ul>
+        </div>
       </div>
       <input
         id="work-media-upload"
@@ -72,21 +77,17 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         multiple
         className="input input-bordered hidden"
       />
-      <ul className="flex flex-col gap-4">
-        {images.length ?
+      <div className="flex flex-col gap-4">
+        {images.length ? (
           images.map((file, index) => (
-            <li
-              key={index}
-              className="carousel-item relative"
-              onClick={() => setPreviewModalOpen(true)}
-            >
+            <div key={file.name} className="carousel-item relative">
               <img
                 src={URL.createObjectURL(file)}
                 alt={`Uploaded ${index}`}
                 className="w-full aspect-square object-cover rounded-lg"
               />
               <button
-                className="flex items-center w-8 h-8 p-1 bg-white border border-slate-200 rounded-lg absolute top-2 right-2"
+                className="flex items-center w-8 h-8 p-1 bg-white border border-stroke-sub-300 rounded-lg absolute top-2 right-2"
                 onClick={(e) => {
                   e.stopPropagation();
                   removeImage(index);
@@ -95,19 +96,17 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
               >
                 <RiCloseLine className="w-8 h-8" />
               </button>
-            </li>
+            </div>
           ))
-        : <li className="pt-8 px-4 grid place-items-center">
-            <p className="text-center text-lg font-medium mb-3">
-              No images added yet. Click on upload button
-            </p>
+        ) : (
+          <div className="pt-8 px-4 grid place-items-center">
             <Books />
-          </li>
-        }
-      </ul>
-      {previewModalOpen && (
+          </div>
+        )}
+      </div>
+      {!disablePreview && previewModalOpen && (
         <dialog
-          className="modal modal-open"
+          className="modal modal-open" // @dev styles here are probably missing form daisy
           onClick={() => setPreviewModalOpen(false)}
         >
           <div className="modal-box relative">

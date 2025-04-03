@@ -14,10 +14,6 @@ import { UserProvider } from "@/providers/user";
 import App from "@/App.tsx";
 
 import "@/index.css";
-import "@/styles/colors.css";
-import "@/styles/typography.css";
-import "@/styles/utilities.css";
-import "@/styles/animation.css";
 
 export const Root = () => (
   <AppProvider>
