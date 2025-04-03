@@ -1,6 +1,6 @@
 import { useLogout } from "@privy-io/react-auth";
 
-import { Button } from "@/components/UI/Button";
+import { Button } from "@/components/Button";
 
 interface ProfileSettingsProps {}
 
@@ -30,7 +30,13 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = () => {
           </div>
         </div>
       </div> */}
-      <Button label="Logout" variant="neutral" size="small" onClick={logout} />
+      <Button
+        label="Logout"
+        className="bg-red-500"
+        fullWidth
+        // size="small"
+        onClick={logout}
+      />
     </>
   );
 };

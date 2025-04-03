@@ -7,10 +7,8 @@ import {
   RiHomeLine,
   RiPlantLine,
   RiUserLine,
-  type RemixiconComponentType,
+  RemixiconComponentType,
 } from "@remixicon/react";
-import { cn } from "@/utils/cn";
-import { useNavigateToTop } from "@/utils/useNavigateToTop";
 
 const tabs: {
   path: string;
@@ -19,7 +17,7 @@ const tabs: {
   InactiveIcon: RemixiconComponentType;
 }[] = [
   {
-    path: "/home",
+    path: "/gardens",
     title: "Home",
     ActiveIcon: RiHomeFill,
     InactiveIcon: RiHomeLine,
@@ -41,41 +39,30 @@ const tabs: {
 export const AppBar = () => {
   const { pathname } = useLocation();
 
-  const navigate = useNavigateToTop();
-
   return (
-    <nav
-      className={
-        "fixed bottom-0 bg-white border-t border-t-stroke-soft-200 flex flex-row justify-evenly items-center w-full py-3 z-[10000]"
-      }
-    >
-      {tabs.map(({ path, ActiveIcon, InactiveIcon, title }) => {
-        const isActive = pathname.startsWith(path);
-        return (
-          <Link to={path} key={title} onClick={() => navigate(path)}>
-            <button
-              className={cn(
-                "flex flex-col items-center",
-                isActive &&
-                  "active tab-active text-primary focus:outline-hidden active-text-red-500",
-                !isActive && "text-slate-400"
-              )}
-              type="button"
+    <nav className={"btm-nav z-10 w-full rounded-t-2xl py-9 bg-[#F4E0CC]"}>
+      {tabs.map(({ path, ActiveIcon, InactiveIcon, title }) => (
+        <Link to={path} key={title}>
+          <button
+            className={`flex flex-col items-center ${
+              pathname === path ?
+                "active tab-active text-[#367D42] focus:outline-none hover:text-[#367D42]"
+              : "text-slate-700"
+            }`}
+          >
+            {pathname === path ?
+              <ActiveIcon className="w-6 h-6" />
+            : <InactiveIcon className="w-6 h-6" />}
+            <p
+              className={`text-sm tracking-wide ${
+                pathname === path ? "text-[#367D42]" : ""
+              }`}
             >
-              {pathname.startsWith(path) ? (
-                <ActiveIcon className="w-6 h-6" />
-              ) : (
-                <InactiveIcon className="w-6 h-6" />
-              )}
-              <p
-                className={`text-sm ${pathname.startsWith(path) ? "text-primary" : ""}`}
-              >
-                {title}
-              </p>
-            </button>
-          </Link>
-        );
-      })}
+              {title}
+            </p>
+          </button>
+        </Link>
+      ))}
     </nav>
   );
 };

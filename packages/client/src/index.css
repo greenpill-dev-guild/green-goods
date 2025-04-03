@@ -1,12 +1,11 @@
-@import "tailwindcss";
-
-@import "./styles/colors.css";
-@import "./styles/typography.css";
-@import "./styles/utilities.css";
-@import "./styles/animation.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   color-scheme: light dark;
+
+  @apply text-slate-800;
   background-color: #fff;
 
   scrollbar-width: none;
@@ -22,27 +21,17 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-html {
-  @apply relative;
-}
-body {
-  @apply relative m-0 w-screen h-screen bg-white dark:bg-white text-foreground;
-}
+/* @media (prefers-color-scheme: dark) {
+  :root {
+    color: rgba(255, 255, 255, 0.87);
+    background-color: #242424;
+  }
+} */
 
-#root {
-  @apply w-full h-full mx-auto flex flex-col;
-}
-
-#root > div {
-  @apply w-full h-full mx-auto flex flex-col;
-}
-
-#landing-root {
-  @apply w-full h-full mx-auto flex flex-col max-w-[var(--breakpoint-xl)];
-}
-
-.padded {
-  @apply mx-4 sm:mx-6 md:mx-12;
+.noscroll {
+  overflow: auto; /* Allow scrolling */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
 }
 
 ::-webkit-scrollbar {
@@ -57,9 +46,68 @@ div::-webkit-scrollbar {
   display: none;
 }
 
-hr {
-  @apply opacity-10;
+/*
+  Typography
+*/
+h1 {
+  @apply text-6xl;
+  @apply font-medium;
 }
+
+h2 {
+  @apply text-5xl;
+  @apply font-medium;
+}
+
+h3 {
+  @apply text-4xl;
+  @apply font-medium;
+}
+
+h4 {
+  @apply text-2xl;
+  @apply font-medium;
+}
+
+h5 {
+  @apply text-xl;
+  @apply font-semibold;
+}
+
+p {
+  @apply text-base;
+  @apply font-normal;
+}
+
+span {
+  @apply text-base;
+  @apply font-normal;
+}
+
+label {
+  @apply text-base;
+  @apply font-medium;
+}
+
+a {
+  @apply text-base;
+  @apply font-medium;
+  text-decoration: inherit;
+}
+
+.small {
+  @apply text-sm;
+  @apply font-normal;
+}
+
+.extra-small {
+  @apply text-xs;
+  @apply font-normal;
+}
+
+/* a:hover {
+  color: #535bf2;
+} */
 
 /*
   Components
@@ -73,6 +121,13 @@ hr {
   @apply rounded-full;
 }
 
-.select__control {
-  @apply rounded-lg;
+@keyframes dot-fade {
+  0%,
+  50%,
+  100% {
+    opacity: 0.27;
+  }
+  25% {
+    opacity: 1;
+  }
 }

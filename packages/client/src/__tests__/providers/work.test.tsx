@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
 import { describe, it } from "vitest";
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import {
   EAS,
   NO_EXPIRATION,
@@ -11,10 +11,11 @@ import { EAS as constants } from "@/constants";
 import { useWork, WorkProvider } from "@/providers/work";
 
 const TestComponent = () => {
-  const { activeTab, workApprovals } = useWork();
+  const { activeTab, works, workApprovals } = useWork();
 
   return (
     <div>
+      <p>Actions: {works.length}</p>
       <p>Workers: {workApprovals.length}</p>
       <p>Works: {activeTab}</p>
     </div>

@@ -3,9 +3,9 @@ import { useApp } from "@/providers/app";
 import {
   RiGithubLine,
   RiTwitterLine,
-  type RemixiconComponentType,
+  RemixiconComponentType,
 } from "@remixicon/react";
-import type React from "react";
+import React from "react";
 
 interface HeaderProps {}
 

@@ -2,7 +2,7 @@ import React from "react";
 
 import { APP_NAME } from "@/constants";
 
-import { Button } from "../UI/Button";
+import { Button } from "../Button";
 
 interface SplashProps {
   login: () => void;
@@ -23,10 +23,11 @@ export const Splash: React.FC<SplashProps> = ({
         onClick={login}
         disabled={isLoggingIn}
         className="w-full"
-        label={buttonLabel}
         // variant="secondary"
         // fullWidth
-      />
+      >
+        {buttonLabel}
+      </Button>
     </div>
   );
 };

@@ -12,7 +12,6 @@ import { AppProvider } from "@/providers/app";
 import { UserProvider } from "@/providers/user";
 
 import App from "@/App.tsx";
-
 import "@/index.css";
 
 export const Root = () => (
