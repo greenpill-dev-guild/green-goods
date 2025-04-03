@@ -30,9 +30,7 @@ export const Garden: React.FC<GardenProps> = () => {
   const { pathname } = useLocation();
 
   const { actions } = useGardens();
-  const { garden, gardenStatus, gardeners, isLoading, isFetching } = useGarden(
-    id!
-  );
+  const { garden, gardenStatus, gardeners, isFetching } = useGarden(id!);
 
   if (!garden)
     return (

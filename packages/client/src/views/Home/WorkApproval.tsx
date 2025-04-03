@@ -15,7 +15,7 @@ import {
   NO_EXPIRATION,
   ZERO_BYTES32,
 } from "@ethereum-attestation-service/eas-sdk";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { encodeFunctionData } from "viem/utils";
@@ -160,7 +160,7 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
       </div>
     );
 
-  const { title, feedback, media } = work;
+  const { feedback, media } = work;
 
   return (
     <article>
