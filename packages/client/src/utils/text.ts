@@ -19,8 +19,8 @@ export function isValidEmail(email: string) {
 }
 
 export function truncateDescription(description: string) {
-  return description.length > 80
-    ? description.slice(0, 80 - 1) + "..."
+  return description.length > 80 ?
+      description.slice(0, 80 - 1) + "..."
     : description;
 }
 

@@ -13,7 +13,7 @@ export const GardenGardeners: React.FC<GardenGardenersProps> = ({
         gardeners.map((user) => (
           <li
             key={user.id}
-            className="flex items-center gap-3 border-slate-100 border-2 shadow-2xs rounded-lg p-2"
+            className="flex items-center gap-3 border-slate-100 border-2 shadow-sm rounded-lg p-2"
           >
             <img
               className="w-10 h-10"

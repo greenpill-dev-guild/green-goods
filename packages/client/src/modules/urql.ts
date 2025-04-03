@@ -1,7 +1,7 @@
 import { Client, cacheExchange, fetchExchange } from "@urql/core";
 
 export const greenGoodsIndexer = new Client({
-  url: "https://indexer.dev.hyperindex.xyz/332f54b/v1/graphql",
+  url: "https://indexer.dev.hyperindex.xyz/80e789b/v1/graphql",
   exchanges: [cacheExchange, fetchExchange],
 });
 
