@@ -37,7 +37,7 @@ export function encodeWorkApprovalData(data: WorkApprovalDraft) {
     { name: "actionUID", value: data.actionUID, type: "uint256" },
     { name: "workUID", value: data.workUID, type: "bytes32" },
     { name: "approved", value: data.approved, type: "bool" },
-    { name: "feedback", value: data.feedback, type: "string" },
+    { name: "feedback", value: data.feedback ?? "", type: "string" },
   ]) as `0x${string}`;
 
   return encodedData;

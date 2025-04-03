@@ -22,6 +22,101 @@ export default defineConfig(({ mode }) => {
       environment: "jsdom",
       setupFiles: "./src/__tests__/setupTests.ts", // Optional: setup file
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: function manualChunks(id) {
+            if (id.includes("privy")) {
+              return "privy";
+            }
+            if (id.includes("tailwind")) {
+              return "tailwind";
+            }
+            if (id.includes("radix")) {
+              return "radix";
+            }
+            if (id.includes("pinata")) {
+              return "pinata";
+            }
+            if (
+              id.includes("viem") ||
+              id.includes("ethers") ||
+              id.includes("eas") ||
+              id.includes("whisk")
+            ) {
+              return "blockchain";
+            }
+            if (id.includes("urql") || id.includes("gql")) {
+              return "graphql";
+            }
+            if (id.includes("react-device")) {
+              return "react-device";
+            }
+            if (
+              id.includes("react-hook-form") ||
+              id.includes("react-select") ||
+              id.includes("hookform") ||
+              id.includes("zod")
+            ) {
+              return "form";
+            }
+            if (id.includes("remix")) {
+              return "remix";
+            }
+            if (id.includes("react")) {
+              return "react";
+            }
+            if (id.includes("node_modules")) {
+              return "vendor";
+            }
+
+            return null;
+          },
+          // {
+          // privy: ["@privy-io/react-auth"],
+          // react: [
+          //   "react",
+          //   "react-dom",
+          //   "react-router-dom",
+          //   "react-intl",
+          //   "@tanstack/react-query",
+          // ],
+          // radix: [
+          //   "@radix-ui/react-accordion",
+          //   "@radix-ui/react-avatar",
+          //   "@radix-ui/react-select",
+          //   "@radix-ui/react-slot",
+          //   "@radix-ui/react-tabs",
+          // ],
+          // remix: ["@remixicon/react"],
+          // tailwind: [
+          //   "tailwind-variants",
+          //   "tailwind-merge",
+          //   "@tailwindcss/vite",
+          //   "clsx",
+          // ],
+          // graphql: ["@urql/core", "gql.tada"],
+          // carousel: ["embla-carousel-react"],
+          // pinata: ["pinata"],
+          // "react-device": ["react-device-frameset"],
+          // toast: ["react-hot-toast"],
+          // form: [
+          //   "@hookform/resolvers",
+          //   "react-hook-form",
+          //   "react-select",
+          //   "zod",
+          // ],
+          // blockchain: [
+          //   "@paperclip-labs/whisk-sdk",
+          //   "viem",
+          //   "ethers",
+          //   "@ethereum-attestation-service/eas-sdk",
+          // ],
+          // dotenv: ["dotenv"],
+          // },
+        },
+      },
+    },
     plugins: [
       mkcert(),
       tailwindcss(),
@@ -53,7 +148,7 @@ export default defineConfig(({ mode }) => {
           enabled: true,
         },
         workbox: {
-          maximumFileSizeToCacheInBytes: 5097152,
+          // maximumFileSizeToCacheInBytes,
           // globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
         },
         manifest: {
@@ -96,7 +191,7 @@ export default defineConfig(({ mode }) => {
             {
               name: "Home",
               description: "View Gardens",
-              url: "/profile",
+              url: "/home",
               icons: [
                 {
                   src: "images/home.png",
@@ -106,9 +201,9 @@ export default defineConfig(({ mode }) => {
               ],
             },
             {
-              name: "Work",
+              name: "Garden",
               description: "Upload your work",
-              url: "/profile",
+              url: "/garden",
               icons: [
                 {
                   src: "images/work.png",

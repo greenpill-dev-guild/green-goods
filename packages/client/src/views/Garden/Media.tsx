@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import type React from "react";
+import { useState } from "react";
 import { RiCloseLine, RiImageFill } from "@remixicon/react";
 
 import { FormInfo } from "@/components/UI/Form/Info";
@@ -40,20 +41,22 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
       <FormInfo title="Upload Media" info={instruction} Icon={RiImageFill} />
       <div className="">
         <div className="text-xs tracking-tight mb-1 uppercase">needed</div>
-        {needed.map((item) => (
-          <Badge
-            key={item}
-            className="capitalize"
-            variant="pill"
-            tint="primary"
-          >
-            {item.replace("_", " ")}
-          </Badge>
-        ))}
+        <div className="flex gap-1 flex-wrap">
+          {needed.map((item) => (
+            <Badge
+              key={item}
+              className="capitalize"
+              variant="pill"
+              tint="primary"
+            >
+              {item.replace("_", " ")}
+            </Badge>
+          ))}
+        </div>
       </div>
       <div className="">
         <div className="text-xs tracking-tight mb-1 uppercase">optional</div>
-        <ul className="flex gap-1 flex-wrap">
+        <div className="flex gap-1 flex-wrap">
           {optional.map((item) => (
             <Badge
               key={item}
@@ -64,7 +67,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
               {item.replace("_", " ")}
             </Badge>
           ))}
-        </ul>
+        </div>
       </div>
       <input
         id="work-media-upload"
@@ -74,10 +77,10 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         multiple
         className="input input-bordered hidden"
       />
-      <ul className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4">
         {images.length ? (
           images.map((file, index) => (
-            <li key={file.name} className="carousel-item relative">
+            <div key={file.name} className="carousel-item relative">
               <img
                 src={URL.createObjectURL(file)}
                 alt={`Uploaded ${index}`}
@@ -93,14 +96,14 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
               >
                 <RiCloseLine className="w-8 h-8" />
               </button>
-            </li>
+            </div>
           ))
         ) : (
-          <li className="pt-8 px-4 grid place-items-center">
+          <div className="pt-8 px-4 grid place-items-center">
             <Books />
-          </li>
+          </div>
         )}
-      </ul>
+      </div>
       {!disablePreview && previewModalOpen && (
         <dialog
           className="modal modal-open" // @dev styles here are probably missing form daisy

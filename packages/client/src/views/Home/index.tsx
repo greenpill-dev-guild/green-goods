@@ -1,23 +1,29 @@
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 
 import { useGardens } from "@/providers/garden";
 
 import { GardenCard } from "@/components/UI/Card/GardenCard";
 import { CircleLoader } from "@/components/Loader";
+import { useNavigateToTop } from "@/utils/useNavigateToTop";
 
 const Gardens: React.FC = () => {
-  const navigate = useNavigate();
+  const navigate = useNavigateToTop();
   const location = useLocation();
   const { gardens, gardensStatus } = useGardens();
 
   function handleCardClick(id: string) {
-    navigate(`/gardens/${id}`);
+    navigate(`/home/${id}`);
+    document.getElementsByTagName("article")[0].scrollIntoView();
   }
 
   const GardensList = () => {
     switch (gardensStatus) {
       case "pending":
-        return <CircleLoader />;
+        return (
+          <div className="flex w-full h-full items-center justify-center ">
+            <CircleLoader />
+          </div>
+        );
       case "success":
         return gardens.length ? (
           gardens.map((garden) => (
@@ -46,19 +52,21 @@ const Gardens: React.FC = () => {
   };
 
   return (
-    <div className={""}>
-      {location.pathname === "/gardens" ? (
+    <article className={"mb-6"}>
+      {location.pathname === "/home" ? (
         <>
           <div className="padded flex justify-between w-full py-4">
             <h3>Home</h3>
           </div>
-          <ul className={"padded flex-1 flex flex-col gap-4 overflow-y-scroll"}>
+          <div
+            className={"padded flex-1 flex flex-col gap-4 overflow-y-scroll"}
+          >
             <GardensList />
-          </ul>
+          </div>
         </>
       ) : null}
       <Outlet />
-    </div>
+    </article>
   );
 };
 

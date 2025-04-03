@@ -23,7 +23,6 @@ const availableTabs = {
 const Profile: React.FC = () => {
   const { user } = useUser();
 
-  console.log(user);
   return (
     <section className={"padded flex flex-col h-full py-4 pb-10 gap-6 pt-10"}>
       <UserProfile

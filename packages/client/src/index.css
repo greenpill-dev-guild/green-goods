@@ -22,11 +22,18 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+html {
+  @apply relative;
+}
 body {
-  @apply m-0 w-screen h-screen bg-white dark:bg-white text-foreground;
+  @apply relative m-0 w-screen h-screen bg-white dark:bg-white text-foreground;
 }
 
 #root {
+  @apply w-full h-full mx-auto flex flex-col;
+}
+
+#root > div {
   @apply w-full h-full mx-auto flex flex-col;
 }
 
@@ -50,6 +57,10 @@ div::-webkit-scrollbar {
   display: none;
 }
 
+hr {
+  @apply opacity-10;
+}
+
 /*
   Components
 */
@@ -60,4 +71,8 @@ div::-webkit-scrollbar {
   @apply w-4;
   @apply h-4;
   @apply rounded-full;
+}
+
+.select__control {
+  @apply rounded-lg;
 }
