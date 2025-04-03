@@ -72,3 +72,7 @@ hr {
   @apply h-4;
   @apply rounded-full;
 }
+
+.select__control {
+  @apply rounded-lg;
+}

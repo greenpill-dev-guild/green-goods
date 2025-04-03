@@ -91,11 +91,12 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
                 <div className="text-xs text-gray-500">{description}</div>
               </div>
               <Button
-                variant="neutral"
+                variant={isLinked ? "neutral" : "primary"}
                 label={isLinked ? "Unlink" : "Link"}
                 onClick={isLinked ? unlink : link}
                 mode={isLinked ? "stroke" : "filled"}
                 size="xxsmall"
+                className="w-18"
               />
             </div>
           </Card>

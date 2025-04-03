@@ -15,6 +15,7 @@ interface GardenDataProps {
   isLoading: boolean;
   gardeners: GardenerCard[];
   error?: Error | null;
+  refetch: () => void;
 }
 
 interface GardensDataProps {
@@ -36,6 +37,7 @@ export const useGarden = (id: string): GardenDataProps => {
     status: gardenStatus,
     isFetching,
     isLoading,
+    refetch,
   } = useQuery<Garden, Error, Garden, [string, string]>({
     initialData: gardens.find((garden) => garden.id === id),
     queryKey: ["gardens", id],
@@ -80,6 +82,7 @@ export const useGarden = (id: string): GardenDataProps => {
     isFetching,
     isLoading,
     error,
+    refetch,
   };
 };
 

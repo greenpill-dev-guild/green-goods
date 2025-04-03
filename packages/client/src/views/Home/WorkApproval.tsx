@@ -2,7 +2,6 @@ import {
   RiCheckDoubleFill,
   RiCheckFill,
   RiCloseFill,
-  RiErrorWarningFill,
   RiHammerFill,
   RiLeafFill,
   RiPencilFill,
@@ -10,15 +9,14 @@ import {
 } from "@remixicon/react";
 import { z } from "zod";
 import { arbitrum } from "viem/chains";
-import toast from "react-hot-toast";
 import { Form, useForm } from "react-hook-form";
 import { useParams } from "react-router-dom";
 import {
   NO_EXPIRATION,
   ZERO_BYTES32,
 } from "@ethereum-attestation-service/eas-sdk";
-import React, { useEffect, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import React, { useEffect, useMemo, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { encodeFunctionData } from "viem/utils";
 import { Chain, TransactionRequest } from "viem";
@@ -30,7 +28,6 @@ import { encodeWorkApprovalData } from "@/utils/eas";
 import { useNavigateToTop } from "@/utils/useNavigateToTop";
 
 import { getFileByHash } from "@/modules/pinata";
-import { queryClient } from "@/modules/react-query";
 
 import { useUser } from "@/providers/user";
 import { useGardens, useGarden } from "@/providers/garden";
@@ -67,6 +64,7 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
   const navigate = useNavigateToTop();
   const { garden } = useGarden(id!);
   const { actions } = useGardens();
+  const queryClient = useQueryClient();
 
   const work = garden?.works.find((work) => work.id === workId);
   const action = actions.find((action) => action.id === work?.actionUID);
@@ -231,37 +229,41 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
             <h6>Give your feedback</h6>
             <FormText rows={4} label="Description" {...register("feedback")} />
           </div>
-          <div className="flex border-t border-stroke-soft-200">
-            <div className="flex flex-row gap-4 w-full mt-4 padded">
-              <Button
-                onClick={handleSubmit((data) => {
-                  data.approved = false;
-                  workApprovalMutation.mutate(data);
-                })}
-                label="Reject"
-                className="w-full"
-                variant="error"
-                type="button"
-                shape="pilled"
-                mode="stroke"
-                leadingIcon={<RiCloseFill className="w-5 h-5" />}
-              />
-              <Button
-                onClick={handleSubmit((data) => {
-                  data.approved = true;
-                  workApprovalMutation.mutate(data);
-                })}
-                type="button"
-                label="Approve"
-                className="w-full"
-                variant="primary"
-                mode="filled"
-                size="medium"
-                shape="pilled"
-                trailingIcon={<RiCheckFill className="w-5 h-5" />}
-              />
+          {work.status === "pending" && (
+            <div className="flex border-t border-stroke-soft-200">
+              <div className="flex flex-row gap-4 w-full mt-4 padded">
+                <Button
+                  onClick={handleSubmit((data) => {
+                    data.approved = false;
+                    workApprovalMutation.mutate(data);
+                    queryClient.clear();
+                  })}
+                  label="Reject"
+                  className="w-full"
+                  variant="error"
+                  type="button"
+                  shape="pilled"
+                  mode="stroke"
+                  leadingIcon={<RiCloseFill className="w-5 h-5" />}
+                />
+                <Button
+                  onClick={handleSubmit((data) => {
+                    data.approved = true;
+                    workApprovalMutation.mutate(data);
+                    queryClient.clear();
+                  })}
+                  type="button"
+                  label="Approve"
+                  className="w-full"
+                  variant="primary"
+                  mode="filled"
+                  size="medium"
+                  shape="pilled"
+                  trailingIcon={<RiCheckFill className="w-5 h-5" />}
+                />
+              </div>
             </div>
-          </div>
+          )}
         </Form>
       )}
       {!workApprovalMutation.isIdle && (
