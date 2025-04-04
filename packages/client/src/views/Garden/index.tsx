@@ -161,12 +161,12 @@ const Work: React.FC = () => {
       <Form
         id="work-form"
         control={control}
-        className="relative py-6 pt-0 flex flex-col gap-4 min-h-[calc(100vh-7.5rem)]"
+        className="relative py-6 pt-16 flex flex-col gap-4 min-h-[calc(100vh-7.5rem)]"
       >
         <div className="padded relative flex flex-col gap-4 flex-1">
           {renderTabContent()}
         </div>
-        <div className="flex border-t border-stroke-soft-200">
+        <div className="flex fixed left-0 bottom-0 py-3 w-full z-[10000] bg-white border-t border-stroke-soft-200">
           <div className="flex flex-row gap-4 w-full mt-4 padded">
             {tabActions[activeTab].secondary && (
               <Button

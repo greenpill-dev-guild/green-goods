@@ -23,20 +23,17 @@ export const FormProgress = ({ currentStep, steps }: FormProgressProps) => {
                   "relative grid place-items-center w-5 h-5 font-medium rounded-full transition-colors ease-in-out duration-50 border border-slate-200 text-white",
                   isFutureStep && "bg-primary border-0",
                   isCurrentStep &&
-                    "border border-primary before:absolute before:-inset-1 before:bg-primary before:rounded-full before:w-13 before:h-13 before:z-[-1] before:m-auto "
+                    "border border-primary before:absolute before:-inset-1 before:bg-primary before:rounded-full before:w-6 before:h-6 before:z-[-10] before:m-auto "
                 )}
               >
-                {isFutureStep ? (
+                {isFutureStep ?
                   <RiCheckFill className="w-3 h-3 text-white" />
-                ) : (
-                  <div
-                    className={cn(
-                      isCurrentStep ? "text-primary" : "text-black"
-                    )}
+                : <div
+                    className={cn(isCurrentStep ? "text-white" : "text-black")}
                   >
                     {index + 1}
                   </div>
-                )}
+                }
               </span>
               <div
                 className={`${currentStep > index + 1 ? "bg-primary" : "bg-slate-400"} ms-2 w-full h-px flex-1 group-last:hidden`}

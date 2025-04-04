@@ -24,7 +24,7 @@ const Profile: React.FC = () => {
   const { user } = useUser();
 
   return (
-    <section className={"padded flex flex-col h-full py-4 pb-10 gap-6 pt-10"}>
+    <section className={"padded flex flex-col h-full py-4 pb-10 gap-6 pt-8"}>
       <UserProfile
         displayName={
           user?.email?.address || user?.phone?.number || user?.id || "Unknown"
@@ -36,7 +36,7 @@ const Profile: React.FC = () => {
         email={user?.email?.address || undefined}
         telephone={user?.phone?.number || undefined}
       />
-      <Tabs defaultValue="help">
+      <Tabs defaultValue="help" className="">
         <div className="flex items-center justify-center">
           <TabsList className="">
             {Object.values(availableTabs).map((tab) => {

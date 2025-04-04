@@ -58,7 +58,7 @@ const Landing: React.FC<LandingProps> = () => {
   }
 
   return (
-    <div id="landing-root">
+    <div id="landing-root" className="px-8">
       <Header />
       <Hero handleSubscribe={handleSubscribe} />
       {!isMobile && <Footer />}
