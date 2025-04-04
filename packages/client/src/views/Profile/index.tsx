@@ -24,21 +24,26 @@ const Profile: React.FC = () => {
   const { user } = useUser();
 
   return (
-    <section className={"padded flex flex-col h-full py-4 pb-10 gap-6 pt-8"}>
-      <UserProfile
-        displayName={
-          user?.email?.address || user?.phone?.number || user?.id || "Unknown"
-        }
-        avatar={user?.farcaster?.pfp || "/images/avatar.png"}
-        location={(user?.customMetadata?.location as string) || undefined}
-        wallet={user?.wallet?.address && formatAddress(user?.wallet?.address)}
-        registration={user?.createdAt.toLocaleDateString() || undefined}
-        email={user?.email?.address || undefined}
-        telephone={user?.phone?.number || undefined}
-      />
-      <Tabs defaultValue="help" className="">
-        <div className="flex items-center justify-center">
-          <TabsList className="">
+    <section className={"flex"}>
+      <Tabs defaultValue="help" className="w-full h-full px-4 pt-72 pb-4">
+        <div className="fixed flex flex-col gap-1 top-0 left-0 px-4 pt-8 bg-white z-10">
+          <UserProfile
+            displayName={
+              user?.email?.address ||
+              user?.phone?.number ||
+              user?.id ||
+              "Unknown"
+            }
+            avatar={user?.farcaster?.pfp || "/images/avatar.png"}
+            location={(user?.customMetadata?.location as string) || undefined}
+            wallet={
+              user?.wallet?.address && formatAddress(user?.wallet?.address)
+            }
+            registration={user?.createdAt.toLocaleDateString() || undefined}
+            email={user?.email?.address || undefined}
+            telephone={user?.phone?.number || undefined}
+          />
+          <TabsList className="flex items-center justify-center mt-2">
             {Object.values(availableTabs).map((tab) => {
               const Icon = tab.Icon;
               return (

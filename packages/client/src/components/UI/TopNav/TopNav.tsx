@@ -85,14 +85,14 @@ export const TopNav: React.FC<TopNavProps> = ({
   children,
   onBackClick,
   garden,
-  overlay = true,
+  overlay,
   ...props
 }: TopNavProps) => {
   return (
     <div
       className={cn(
-        "relative flex flex-row w-full justify-evenly items-center gap-4 p-4 h-14",
-        overlay && "fixed top-0 z-1000 bg-white"
+        "relative flex z-1000 flex-row w-full justify-evenly items-center gap-4 p-4 h-14",
+        overlay && "fixed top-0 bg-white"
       )}
       {...props}
     >

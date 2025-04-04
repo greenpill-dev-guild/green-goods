@@ -76,7 +76,6 @@ export const Garden: React.FC<GardenProps> = () => {
             onBackClick={() => navigate("/home")}
             works={works}
             garden={garden}
-            overlay={true}
           />
           <div className="padded py-6 flex flex-col gap-2">
             <h5 className="line-clamp-1">{name}</h5>

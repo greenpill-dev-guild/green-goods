@@ -152,7 +152,7 @@ const Work: React.FC = () => {
 
   return (
     <>
-      <TopNav onBackClick={tabActions[activeTab].backButton}>
+      <TopNav onBackClick={tabActions[activeTab].backButton} overlay>
         <FormProgress
           currentStep={Object.values(WorkTab).indexOf(activeTab) + 1}
           steps={Object.values(WorkTab).slice(0, 4)}
