@@ -64,7 +64,10 @@ const NotificationCenter: React.FC<TopNavProps> = ({ works, ...props }) => {
     <>
       <button
         type="button"
-        className="relative dropdown dropdown-bottom dropdown-end flex items-center gap-1 bg-white rounded-lg z-1"
+        className={cn(
+          "relative dropdown dropdown-bottom dropdown-end flex items-center gap-1 p-1 bg-white rounded-lg z-1",
+          !workNotifications.length && " touch-none pointer-events-none"
+        )}
         onClick={toggleDialog}
       >
         {workNotifications.length ?
@@ -74,7 +77,9 @@ const NotificationCenter: React.FC<TopNavProps> = ({ works, ...props }) => {
             </p>
           </span>
         : null}
-        <RiNotificationFill />
+        <RiNotificationFill
+          className={workNotifications.length ? "text-primary" : "text-black"}
+        />
       </button>
       <Notifications {...props} works={works} ref={ref} />
     </>
