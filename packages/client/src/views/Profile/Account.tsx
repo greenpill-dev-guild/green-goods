@@ -4,9 +4,12 @@ import {
   RiMailFill,
   RiPhoneLine,
   RiWalletLine,
+  RiLogoutBoxRLine,
 } from "@remixicon/react";
 
-import { Button } from "@/components/Button";
+import { Button } from "@/components/UI/Button";
+import { Card } from "@/components/UI/Card/Card";
+import { Avatar } from "@/components/UI/Avatar/Avatar";
 
 interface LinkedAccount {
   title: string;
@@ -70,42 +73,42 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
   ];
 
   return (
-    <>
-      <div className="noscroll overscroll-none flex flex-col gap-2 mt-4">
-        <h5>Linked Accounts</h5>
-        <ul className="flex flex-col gap-2">
-          {linkedAccounts.map(
-            ({ title, Icon, description, isLinked, link, unlink }) => (
-              <li
-                key={title}
-                className="flex gap-1 justify-between border-2 border-slate-100 shadow-sm "
-              >
-                <div className="flex flex-col gap-2 px-2 py-1">
-                  <div className="flex items-center font-sm gap-1">
-                    {Icon}
-                    <label className="line-clamp-1 text-sm">{title}</label>
-                  </div>
-                  <p className="text-xs">{description}</p>
+    <div className="flex flex-col gap-4 my-4">
+      <h5>Edit Account</h5>
+      {linkedAccounts.map(
+        ({ title, Icon, description, isLinked, link, unlink }) => (
+          <Card key={title}>
+            <div className="flex flex-row items-center gap-3 justify-center w-full">
+              <Avatar>
+                <div className="flex items-center justify-center text-center mx-auto text-primary">
+                  {Icon}
                 </div>
-                <Button
-                  label={isLinked ? "Unlink" : "Link"}
-                  onClick={isLinked ? unlink : link}
-                  variant="secondary"
-                  className="w-[20vw] bg-teal-400"
-                  size="small"
-                />
-              </li>
-            )
-          )}
-        </ul>
-        <Button
-          label="Logout"
-          className="bg-red-700 mt-8 mb-4"
-          fullWidth
-          // size="small"
-          onClick={logout}
-        />
-      </div>
-    </>
+              </Avatar>
+              <div className="flex flex-col gap-1 grow">
+                <div className="flex items-center font-sm gap-1">
+                  <div className="line-clamp-1 text-sm">{title}</div>
+                </div>
+                <div className="text-xs text-gray-500">{description}</div>
+              </div>
+              <Button
+                variant={isLinked ? "neutral" : "primary"}
+                label={isLinked ? "Unlink" : "Link"}
+                onClick={isLinked ? unlink : link}
+                mode={isLinked ? "stroke" : "filled"}
+                size="xxsmall"
+                className="w-18"
+              />
+            </div>
+          </Card>
+        )
+      )}
+      <Button
+        variant="neutral"
+        mode="stroke"
+        onClick={logout}
+        label="Logout"
+        leadingIcon={<RiLogoutBoxRLine className="w-4" />}
+      />
+    </div>
   );
 };

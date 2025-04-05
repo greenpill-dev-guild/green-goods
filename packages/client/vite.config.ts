@@ -6,6 +6,7 @@ import mkcert from "vite-plugin-mkcert";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import { defineConfig, loadEnv } from "vite";
+import tailwindcss from "@tailwindcss/vite";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -21,8 +22,89 @@ export default defineConfig(({ mode }) => {
       environment: "jsdom",
       setupFiles: "./src/__tests__/setupTests.ts", // Optional: setup file
     },
+    build: {
+      // rollupOptions: {
+      //   output: {
+      //     manualChunks: function manualChunks(id) {
+      //       if (id.includes("react-device")) {
+      //         return "landing";
+      //       }
+      //       if (
+      //         id.includes("urql") ||
+      //         id.includes("eas") ||
+      //         id.includes("carousel") ||
+      //         id.includes("pinata") ||
+      //         id.includes("privy") ||
+      //         id.includes("whisk")
+      //       ) {
+      //         return "app";
+      //       }
+      //       if (
+      //         id.includes("viem") ||
+      //         id.includes("clsx") ||
+      //         id.includes("hookform") ||
+      //         id.includes("tailwind") ||
+      //         id.includes("radix") ||
+      //         id.includes("zod") ||
+      //         id.includes("react-select") ||
+      //         id.includes("remix") ||
+      //         id.includes("react-query") ||
+      //         id.includes("react")
+      //       ) {
+      //         return "shared";
+      //       }
+
+      //       return "vendor";
+      //     },
+      //     // {
+      //     // privy: ["@privy-io/react-auth"],
+      //     // react: [
+      //     //   "react",
+      //     //   "react-dom",
+      //     //   "react-router-dom",
+      //     //   "react-intl",
+      //     //   "@tanstack/react-query",
+      //     // ],
+      //     // radix: [
+      //     //   "@radix-ui/react-accordion",
+      //     //   "@radix-ui/react-avatar",
+      //     //   "@radix-ui/react-select",
+      //     //   "@radix-ui/react-slot",
+      //     //   "@radix-ui/react-tabs",
+      //     // ],
+      //     // remix: ["@remixicon/react"],
+      //     // tailwind: [
+      //     //   "tailwind-variants",
+      //     //   "tailwind-merge",
+      //     //   "@tailwindcss/vite",
+      //     //   "clsx",
+      //     // ],
+      //     // graphql: ["@urql/core", "gql.tada"],
+      //     // carousel: ["embla-carousel-react"],
+      //     // pinata: ["pinata"],
+      //     // "react-device": ["react-device-frameset"],
+      //     // toast: ["react-hot-toast"],
+      //     // form: [
+      //     //   "@hookform/resolvers",
+      //     //   "react-hook-form",
+      //     //   "react-select",
+      //     //   "zod",
+      //     // ],
+      //     // blockchain: [
+      //     //   "@paperclip-labs/whisk-sdk",
+      //     //   "viem",
+      //     //   "ethers",
+      //     //   "@ethereum-attestation-service/eas-sdk",
+      //     // ],
+      //     // dotenv: ["dotenv"],
+      //     // },
+      //   },
+      // },
+      chunkSizeWarningLimit: 720,
+    },
     plugins: [
       mkcert(),
+      tailwindcss(),
       react(),
       VitePWA({
         includeAssets: [
@@ -51,6 +133,7 @@ export default defineConfig(({ mode }) => {
           enabled: true,
         },
         workbox: {
+          maximumFileSizeToCacheInBytes: 6797152,
           // globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
         },
         manifest: {
@@ -93,7 +176,7 @@ export default defineConfig(({ mode }) => {
             {
               name: "Home",
               description: "View Gardens",
-              url: "/profile",
+              url: "/home",
               icons: [
                 {
                   src: "images/home.png",
@@ -103,9 +186,9 @@ export default defineConfig(({ mode }) => {
               ],
             },
             {
-              name: "Work",
+              name: "Garden",
               description: "Upload your work",
-              url: "/profile",
+              url: "/garden",
               icons: [
                 {
                   src: "images/work.png",
@@ -144,6 +227,12 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 3001,
+      proxy: {
+        graphql: {
+          target: "https://indexer.dev.hyperindex.xyz/332f54b/v1/graphql",
+          changeOrigin: true,
+        },
+      },
     },
   };
 });
