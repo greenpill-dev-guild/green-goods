@@ -64,59 +64,60 @@ export const Garden: React.FC<GardenProps> = () => {
   };
 
   return (
-    <div className="relative h-full w-full flex flex-col">
+    <div className="h-full w-full flex flex-col">
       {pathname.includes("work") || pathname.includes("assessments") ? null : (
         <>
-          <img
-            src={bannerImage}
-            className="w-full object-cover object-top rounded-b-3xl image-lut max-h-55"
-            alt="Banner"
-          />
-          <TopNav
-            onBackClick={() => navigate("/home")}
-            works={works}
-            garden={garden}
-            overlay={true}
-          />
-          <div className="padded py-6 flex flex-col gap-2">
-            <h5 className="line-clamp-1">{name}</h5>
-            <div className="flex w-full justify-between items-start mb-2">
-              <div className="flex flex-col gap-2">
-                <div className="flex flex-row gap-1 items-center">
-                  <RiMapPin2Fill className="h-4 text-primary" />
-                  <div className="text-xs">
-                    <span className="font-medium">Location •</span> {location}
+          <div className="fixed top-0 left-0 right-0 w-full bg-white z-10">
+            <TopNav
+              className="absolute top-0 left-0 flex w-full justify-between items-center p-4"
+              onBackClick={() => navigate("/home")}
+              works={works}
+              garden={garden}
+            />
+            <img
+              src={bannerImage}
+              className="w-full object-cover object-center rounded-b-3xl max-h-44"
+              alt="Banner"
+            />
+            <div className="padded mt-2 flex flex-col gap-1">
+              <h5 className="line-clamp-1">{name}</h5>
+              <div className="flex w-full justify-between items-start mb-2">
+                <div className="flex flex-col gap-1">
+                  <div className="flex flex-row gap-1 items-center">
+                    <RiMapPin2Fill className="h-4 text-primary" />
+                    <div className="text-xs">
+                      <span className="font-medium">Location •</span> {location}
+                    </div>
                   </div>
-                </div>
-                <div className="flex flex-row gap-1 items-center">
-                  <RiCalendarEventFill className="h-4 text-primary" />
-                  <div className="text-xs">
-                    <span className="font-medium">Founded •</span>{" "}
-                    {createdAt.toDateString()}
+                  <div className="flex flex-row gap-1 items-center">
+                    <RiCalendarEventFill className="h-4 text-primary" />
+                    <div className="text-xs">
+                      <span className="font-medium">Founded •</span>{" "}
+                      {createdAt.toDateString()}
+                    </div>
                   </div>
                 </div>
               </div>
+              <Tabs value={activeTab}>
+                <TabsList>
+                  {Object.values(GardenTab).map((tab) => (
+                    <TabsTrigger
+                      key={tab}
+                      value={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`flex-1 flex justify-center items-center p-3 cursor-pointer ${tab === activeTab ? "bg-teal-200 " : ""} transition-colors duration-200`}
+                    >
+                      <div className="capitalize small font-semibold text-center w-full">
+                        {tab}
+                      </div>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
             </div>
-
-            <Tabs value={activeTab}>
-              <TabsList>
-                {Object.values(GardenTab).map((tab) => (
-                  <TabsTrigger
-                    key={tab}
-                    value={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`flex-1 flex justify-center items-center p-3 cursor-pointer ${tab === activeTab ? "bg-teal-200 " : ""} transition-colors duration-200`}
-                  >
-                    <div className="capitalize small font-semibold text-center w-full">
-                      {tab}
-                    </div>
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-            <div className="flex-1 flex flex-col gap-4 pt-4 pb-20">
-              {renderTabContent()}
-            </div>
+          </div>
+          <div className="padded flex-1 flex flex-col gap-4 pt-80 pb-4">
+            {renderTabContent()}
           </div>
         </>
       )}

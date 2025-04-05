@@ -75,3 +75,35 @@
     transform: rotate(360deg);
   }
 }
+
+@keyframes slideDownBounce {
+  0% {
+    transform: translateY(0);
+  }
+  20% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes slideUpBounce {
+  0% {
+    transform: translateY(100%);
+  }
+  20% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.animate-slideDownBounce {
+  animation: slideDownBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+
+.animate-slideUpBounce {
+  animation: slideUpBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}

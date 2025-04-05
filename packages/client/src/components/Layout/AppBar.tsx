@@ -40,14 +40,17 @@ const tabs: {
 
 export const AppBar = () => {
   const { pathname } = useLocation();
+  const isGarden = pathname.startsWith("/garden");
 
   const navigate = useNavigateToTop();
 
   return (
     <nav
-      className={
-        "fixed bottom-0 bg-white border-t border-t-stroke-soft-200 flex flex-row justify-evenly items-center w-full py-3 z-[10000]"
-      }
+      className={cn(
+        "fixed bottom-0 bg-white border-t border-t-stroke-soft-200 flex flex-row justify-evenly items-center w-full py-3 z-[10000]",
+        // When in the garden view, add the custom bounce slide animation.
+        isGarden ? "animate-slideDownBounce" : "translate-y-0"
+      )}
     >
       {tabs.map(({ path, ActiveIcon, InactiveIcon, title }) => {
         const isActive = pathname.startsWith(path);
@@ -62,11 +65,9 @@ export const AppBar = () => {
               )}
               type="button"
             >
-              {pathname.startsWith(path) ? (
+              {pathname.startsWith(path) ?
                 <ActiveIcon className="w-6 h-6" />
-              ) : (
-                <InactiveIcon className="w-6 h-6" />
-              )}
+              : <InactiveIcon className="w-6 h-6" />}
               <p
                 className={`text-sm ${pathname.startsWith(path) ? "text-primary" : ""}`}
               >

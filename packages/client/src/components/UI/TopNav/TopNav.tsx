@@ -64,17 +64,22 @@ const NotificationCenter: React.FC<TopNavProps> = ({ works, ...props }) => {
     <>
       <button
         type="button"
-        className="relative dropdown dropdown-bottom dropdown-end flex items-center gap-1 bg-white rounded-lg z-1"
+        className={cn(
+          "relative dropdown dropdown-bottom dropdown-end flex items-center gap-1 p-1 bg-white rounded-lg z-1",
+          !workNotifications.length && " touch-none pointer-events-none"
+        )}
         onClick={toggleDialog}
       >
-        {workNotifications.length ? (
+        {workNotifications.length ?
           <span className="absolute -top-2 -right-2 w-5 h-5 bg-teal-500 rounded-full flex-col justify-center items-center gap-2.5 inline-flex">
             <p className="text-xs self-stretch text-center text-white font-medium leading-3 tracking-tight">
               {workNotifications.length}
             </p>
           </span>
-        ) : null}
-        <RiNotificationFill />
+        : null}
+        <RiNotificationFill
+          className={workNotifications.length ? "text-primary" : "text-black"}
+        />
       </button>
       <Notifications {...props} works={works} ref={ref} />
     </>
@@ -85,14 +90,14 @@ export const TopNav: React.FC<TopNavProps> = ({
   children,
   onBackClick,
   garden,
-  overlay = false,
+  overlay,
   ...props
 }: TopNavProps) => {
   return (
     <div
       className={cn(
-        "relative flex flex-row w-full justify-evenly items-center gap-4 p-4 h-14",
-        overlay && "fixed z-1000"
+        "relative flex z-1000 flex-row w-full justify-evenly items-center gap-4 p-4 h-14",
+        overlay && "fixed top-0 bg-white"
       )}
       {...props}
     >

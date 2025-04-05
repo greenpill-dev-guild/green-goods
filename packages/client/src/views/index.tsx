@@ -13,7 +13,7 @@ import { CircleLoader } from "@/components/Loader";
 
 export default function Views() {
   return (
-    <main className="flex flex-col pb-[4rem]">
+    <main className="flex flex-col h-[calc(100lvh-69px)]">
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
         <Suspense
           fallback={
