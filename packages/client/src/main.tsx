@@ -2,7 +2,6 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { arbitrum } from "viem/chains";
-import { Toaster } from "react-hot-toast";
 import { PrivyProvider } from "@privy-io/react-auth";
 import { SmartWalletsProvider } from "@privy-io/react-auth/smart-wallets";
 
@@ -40,7 +39,6 @@ export const Root = () => (
       <SmartWalletsProvider>
         <UserProvider>
           <App />
-          <Toaster />
         </UserProvider>
       </SmartWalletsProvider>
     </PrivyProvider>

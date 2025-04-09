@@ -60,6 +60,16 @@
   }
 }
 
+.loader {
+  position: absolute;
+  opacity: 0.27;
+  animation: dot-fade 1s infinite;
+  @apply w-4;
+  @apply h-4;
+  @apply rounded-full;
+}
+
+
 .upload-spinner {
   border-bottom-color: transparent;
   border-radius: 50%;

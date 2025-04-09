@@ -1,10 +1,10 @@
 import { RiMapPin2Fill, RiCalendarEventFill } from "@remixicon/react";
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useParams, Outlet, useLocation } from "react-router-dom";
 
 import { useGarden, useGardens } from "@/providers/garden";
 
-import { CircleLoader } from "@/components/Loader";
+import { CircleLoader } from "@/components/UI/Loader";
 import { GardenWork } from "@/components/Garden/Work";
 import { GardenGardeners } from "@/components/Garden/Gardeners";
 import { GardenAssessments } from "@/components/Garden/Asessments";
@@ -23,6 +23,18 @@ interface GardenProps {}
 export const Garden: React.FC<GardenProps> = () => {
   const navigate = useNavigateToTop();
   const [activeTab, setActiveTab] = useState<GardenTab>(GardenTab.Work);
+  const [scrollPositions, setScrollPositions] = useState({
+    [GardenTab.Work]: 0,
+    [GardenTab.Assessments]: 0,
+    [GardenTab.Gardeners]: 0,
+  });
+
+  // Refs for each tab's scrollable container
+  const tabRefs = {
+    [GardenTab.Work]: useRef<HTMLUListElement>(null),
+    [GardenTab.Assessments]: useRef<HTMLUListElement>(null),
+    [GardenTab.Gardeners]: useRef<HTMLUListElement>(null),
+  };
 
   const { id } = useParams<{
     id: string;
@@ -41,27 +53,54 @@ export const Garden: React.FC<GardenProps> = () => {
 
   const { name, bannerImage, location, createdAt, assessments, works } = garden;
 
+  // Save scroll position on scroll event for the active tab
+  const handleScroll =
+    (tab: GardenTab) => (event: React.UIEvent<HTMLUListElement, UIEvent>) => {
+      setScrollPositions((prev) => ({
+        ...prev,
+        [tab]: event.currentTarget.scrollTop,
+      }));
+    };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case GardenTab.Work:
         return (
           <GardenWork
+            ref={tabRefs[GardenTab.Work]}
             workFetchStatus={isFetching ? "pending" : gardenStatus}
             actions={actions}
             works={works}
+            handleScroll={handleScroll(GardenTab.Work)}
           />
         );
       case GardenTab.Assessments:
         return (
           <GardenAssessments
+            ref={tabRefs[GardenTab.Assessments]}
             asessmentFetchStatus={isFetching ? "pending" : gardenStatus}
             assessments={assessments}
+            handleScroll={handleScroll(GardenTab.Assessments)}
           />
         );
       case GardenTab.Gardeners:
-        return <GardenGardeners gardeners={gardeners} />;
+        return (
+          <GardenGardeners
+            ref={tabRefs[GardenTab.Gardeners]}
+            gardeners={gardeners}
+            handleScroll={handleScroll(GardenTab.Gardeners)}
+          />
+        );
     }
   };
+
+  // Restore scroll position when switching tabs
+  useEffect(() => {
+    const currentRef = tabRefs[activeTab].current;
+    if (currentRef) {
+      currentRef.scrollTop = scrollPositions[activeTab];
+    }
+  }, [activeTab, scrollPositions, tabRefs]);
 
   return (
     <div className="h-full w-full flex flex-col">

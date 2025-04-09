@@ -9,7 +9,7 @@ import { Garden as HomeGarden } from "./Home/Garden";
 import { GardenAssessment } from "./Home/Assessment";
 import { GardenWorkApproval } from "./Home/WorkApproval";
 
-import { CircleLoader } from "@/components/Loader";
+import { CircleLoader } from "@/components/UI/Loader";
 
 export default function Views() {
   return (

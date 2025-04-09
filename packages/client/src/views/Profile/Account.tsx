@@ -73,7 +73,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
   ];
 
   return (
-    <div className="flex flex-col gap-4 my-4">
+    <>
       <h5>Edit Account</h5>
       {linkedAccounts.map(
         ({ title, Icon, description, isLinked, link, unlink }) => (
@@ -109,6 +109,6 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
         label="Logout"
         leadingIcon={<RiLogoutBoxRLine className="w-4" />}
       />
-    </div>
+    </>
   );
 };

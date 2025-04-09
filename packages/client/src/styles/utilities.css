@@ -98,10 +98,4 @@
   .rounded-20 {
     border-radius: 1.25rem;
   }
-
-  .noscroll {
-    overflow: auto; /* Allow scrolling */
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* Internet Explorer 10+ */
-  }
 }

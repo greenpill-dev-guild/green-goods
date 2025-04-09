@@ -1,3 +1,4 @@
+import { Toaster } from "react-hot-toast";
 import { usePrivy } from "@privy-io/react-auth";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Route, Routes, Navigate, BrowserRouter } from "react-router-dom";
@@ -10,7 +11,7 @@ import { GardensProvider } from "@/providers/garden";
 import { useApp } from "@/providers/app";
 import { useUser } from "@/providers/user";
 
-import { CircleLoader } from "@/components/Loader";
+import { CircleLoader } from "@/components/UI/Loader";
 import { AppBar } from "@/components/Layout/AppBar";
 
 import AppViews from "@/views";
@@ -22,9 +23,7 @@ function App() {
   const { isMobile, isInstalled } = useApp();
   const { ready, smartAccountAddress } = useUser();
 
-  const desktopBypass = import.meta.env.VITE_DESKTOP_DEV;
-
-  const isDownloaded = (isMobile && isInstalled) || desktopBypass;
+  const isDownloaded = (isMobile && isInstalled) || import.meta.env.DEV;
   const isAuthenticated = authenticated && smartAccountAddress;
 
   return (
@@ -34,45 +33,44 @@ function App() {
           {/* Landing */}
           <Route
             path="/landing"
-            element={isDownloaded ? <Navigate to="/" replace /> : <Landing />}
+            element={
+              isDownloaded ?
+                <Navigate to="/" replace />
+              : <>
+                  <Landing />
+                  <Toaster />
+                </>
+            }
           />
           {/* Login */}
           <Route
             path="/login"
             element={
-              isDownloaded ? (
-                !isAuthenticated && !ready ? (
+              isDownloaded ?
+                !isAuthenticated && !ready ?
                   <main className="w-full h-full grid place-items-center">
                     <CircleLoader />
                   </main>
-                ) : !isAuthenticated ? (
+                : !isAuthenticated ?
                   <Login />
-                ) : (
-                  <Navigate to="/" replace />
-                )
-              ) : (
-                <Navigate to="/landing" replace />
-              )
+                : <Navigate to="/" replace />
+              : <Navigate to="/landing" replace />
             }
           />
           {/* Main: Show app or navigate to login, onboarding, or landing page based on conditions */}
           <Route
             path="*"
             element={
-              isDownloaded ? (
-                isAuthenticated ? (
+              isDownloaded ?
+                isAuthenticated ?
                   <GardensProvider>
                     <WorkProvider>
                       <AppViews />
                       <AppBar />
                     </WorkProvider>
                   </GardensProvider>
-                ) : (
-                  <Navigate to="/login" replace />
-                )
-              ) : (
-                <Navigate to="/landing" replace />
-              )
+                : <Navigate to="/login" replace />
+              : <Navigate to="/landing" replace />
             }
           />
           {/* Catch-all: Redirect to the appropriate place */}

@@ -3,7 +3,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import { useGardens } from "@/providers/garden";
 
 import { GardenCard } from "@/components/UI/Card/GardenCard";
-import { CircleLoader } from "@/components/Loader";
+import { BeatLoader } from "@/components/UI/Loader";
 import { useNavigateToTop } from "@/utils/useNavigateToTop";
 
 const Gardens: React.FC = () => {
@@ -21,7 +21,7 @@ const Gardens: React.FC = () => {
       case "pending":
         return (
           <div className="flex w-full h-full items-center justify-center ">
-            <CircleLoader />
+            <BeatLoader />
           </div>
         );
       case "success":

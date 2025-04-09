@@ -3,7 +3,7 @@ import { useState } from "react";
 import { RiCloseLine, RiImageFill } from "@remixicon/react";
 
 import { FormInfo } from "@/components/UI/Form/Info";
-import { Books } from "@/assets/Books";
+import { Books } from "@/components/Garden/Books";
 import { Badge } from "@/components/UI/Badge/Badge";
 
 interface WorkMediaProps {
@@ -78,7 +78,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         className="input input-bordered hidden"
       />
       <div className="flex flex-col gap-4">
-        {images.length ? (
+        {images.length ?
           images.map((file, index) => (
             <div key={file.name} className="carousel-item relative">
               <img
@@ -98,11 +98,10 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
               </button>
             </div>
           ))
-        ) : (
-          <div className="pt-8 px-4 grid place-items-center">
+        : <div className="pt-8 px-4 grid place-items-center">
             <Books />
           </div>
-        )}
+        }
       </div>
       {!disablePreview && previewModalOpen && (
         <dialog

@@ -25,6 +25,7 @@
     "@tailwindcss/vite": "^4.0.14",
     "@tanstack/react-query": "^5.52.2",
     "@urql/core": "^5.0.4",
+    "browser-lang": "0.2.1",
     "clsx": "2.1.1",
     "embla-carousel-react": "^8.5.2",
     "gql.tada": "^1.8.10",
@@ -37,6 +38,7 @@
     "react-intl": "6.6.8",
     "react-router-dom": "^6.26.1",
     "react-select": "5.8.0",
+    "react-spinners": "0.15.0",
     "tailwind-merge": "3.0.2",
     "tailwind-variants": "0.3.1",
     "zod": "^3.23.8"
@@ -50,6 +52,7 @@
     "@testing-library/jest-dom": "6.6.3",
     "@testing-library/react": "16.1.0",
     "@testing-library/user-event": "14.5.2",
+    "@types/browser-lang": "0.1.2",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vercel/node": "3.2.10",

@@ -14,6 +14,7 @@ import {
   TabsContent,
   TabsList,
 } from "@/components/UI/Tabs/Tabs";
+import { useRef } from "react";
 
 const availableTabs = {
   help: { value: "help", Icon: RiHeadphoneLine, label: "Help" },
@@ -22,10 +23,19 @@ const availableTabs = {
 
 const Profile: React.FC = () => {
   const { user } = useUser();
+  const contentRef = useRef<HTMLDivElement>(null);
 
   return (
     <section className={"flex"}>
-      <Tabs defaultValue="help" className="w-full h-full px-4 pt-72 pb-4">
+      <Tabs
+        defaultValue="help"
+        className="w-full h-full px-4 pt-72 pb-4"
+        onValueChange={() => {
+          if (contentRef.current) {
+            contentRef.current.scrollTop = 0;
+          }
+        }}
+      >
         <div className="fixed flex flex-col gap-1 top-0 left-0 px-4 pt-8 bg-white z-10">
           <UserProfile
             displayName={
@@ -59,10 +69,19 @@ const Profile: React.FC = () => {
             })}
           </TabsList>
         </div>
-        <TabsContent value="account">
+        {/* <div className="flex flex-col gap-4 my-4"> */}
+        <TabsContent
+          className="flex flex-col gap-4 my-4"
+          value="account"
+          ref={contentRef}
+        >
           <ProfileAccount />
         </TabsContent>
-        <TabsContent value="help">
+        <TabsContent
+          className="flex flex-col gap-4 my-4"
+          value="help"
+          ref={contentRef}
+        >
           <ProfileHelp />
         </TabsContent>
       </Tabs>
