@@ -4,10 +4,8 @@
 interface ImportMetaEnv {
   readonly NODE_ENV: "development" | "production" | "test";
   readonly PUBLIC_URL: string;
-  readonly VITE_ALCHEMY_API_KEY: string;
   readonly VITE_PRIVY_APP_ID: string;
-  readonly VITE_PIMLICO_API_KEY: string;
-  readonly VITE_PINATA_API_KEY: string;
+  readonly VITE_PINATA_JWT: string;
   readonly VITE_WHISK_API_KEY: string;
 }
 

@@ -1,4 +1,9 @@
-import { Faq, FaqContent, FaqItem, FaqTrigger } from "@/components/UI/Accordion/Faq";
+import {
+  Faq,
+  FaqContent,
+  FaqItem,
+  FaqTrigger,
+} from "@/components/UI/Accordion/Faq";
 import { Avatar } from "@/components/UI/Avatar/Avatar";
 import { FlexCard } from "@/components/UI/Card/Card";
 import {
@@ -82,48 +87,46 @@ const socials: Social[] = [
 export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
   return (
     <>
-      <div className="flex flex-col gap-4 my-4">
-        <h5 className="">Get In Touch</h5>
-        {socials.map((social) => (
-          <a
-            key={social.title}
-            href={social.url}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <FlexCard>
-              <div className="flex flex-row items-center gap-3 grow">
-                <Avatar>
-                  <div className="flex items-center justify-center text-center mx-auto text-grey-200">
-                    {social.Icon}
-                  </div>
-                </Avatar>
-
-                <div className="flex-1">
-                  <div className="text-base">{social.title}</div>
-                  <div className="text-xs text-slate-600">
-                    {social.description}
-                  </div>
+      <h5 className="">Get In Touch</h5>
+      {socials.map((social) => (
+        <a
+          key={social.title}
+          href={social.url}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <FlexCard>
+            <div className="flex flex-row items-center gap-3 grow">
+              <Avatar>
+                <div className="flex items-center justify-center text-center mx-auto text-grey-200">
+                  {social.Icon}
                 </div>
-                <div className="flex text-right">
-                  <RiArrowDropRightLine />
+              </Avatar>
+
+              <div className="flex-1">
+                <div className="text-base">{social.title}</div>
+                <div className="text-xs text-slate-600">
+                  {social.description}
                 </div>
               </div>
-            </FlexCard>
-          </a>
-        ))}
-        <h5>Questions</h5>
-        <Faq type="single">
-          {faqs.map((faq) => {
-            return (
-              <FaqItem key={faq.question} value={faq.question}>
-                <FaqTrigger>{faq.question}</FaqTrigger>
-                <FaqContent>{faq.answer}</FaqContent>
-              </FaqItem>
-            );
-          })}
-        </Faq>
-      </div>
+              <div className="flex text-right">
+                <RiArrowDropRightLine />
+              </div>
+            </div>
+          </FlexCard>
+        </a>
+      ))}
+      <h5>Questions</h5>
+      <Faq type="single">
+        {faqs.map((faq) => {
+          return (
+            <FaqItem key={faq.question} value={faq.question}>
+              <FaqTrigger>{faq.question}</FaqTrigger>
+              <FaqContent>{faq.answer}</FaqContent>
+            </FaqItem>
+          );
+        })}
+      </Faq>
     </>
   );
 };

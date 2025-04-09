@@ -1,14 +1,17 @@
 import { formatAddress } from "@/utils/text";
+import { forwardRef } from "react";
 
 interface GardenGardenersProps {
   gardeners: GardenerCard[];
+  handleScroll: (event: React.UIEvent<HTMLUListElement, UIEvent>) => void;
 }
 
-export const GardenGardeners: React.FC<GardenGardenersProps> = ({
-  gardeners,
-}) => {
+export const GardenGardeners = forwardRef<
+  HTMLUListElement,
+  GardenGardenersProps
+>(({ gardeners, handleScroll }, ref) => {
   return (
-    <ul className="flex flex-col gap-2">
+    <ul className="flex flex-col gap-2" ref={ref} onScroll={handleScroll}>
       {gardeners.length ?
         gardeners.map((user) => (
           <li
@@ -39,4 +42,4 @@ export const GardenGardeners: React.FC<GardenGardenersProps> = ({
       }
     </ul>
   );
-};
+});

@@ -47,9 +47,8 @@ export const AppBar = () => {
   return (
     <nav
       className={cn(
-        "fixed bottom-0 bg-white border-t border-t-stroke-soft-200 flex flex-row justify-evenly items-center w-full py-3 z-[10000]",
-        // When in the garden view, add the custom bounce slide animation.
-        isGarden ? "animate-slideDownBounce" : "translate-y-0"
+        "fixed bottom-0 bg-white border-t border-t-stroke-soft-200 flex flex-row justify-evenly items-center w-full py-3 z-[10000] transition-transform duration-300",
+        isGarden ? "translate-y-full" : "translate-y-0"
       )}
     >
       {tabs.map(({ path, ActiveIcon, InactiveIcon, title }) => {

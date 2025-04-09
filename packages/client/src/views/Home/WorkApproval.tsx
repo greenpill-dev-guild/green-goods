@@ -33,7 +33,7 @@ import { useUser } from "@/providers/user";
 import { useGardens, useGarden } from "@/providers/garden";
 
 import { Button } from "@/components/UI/Button";
-import { CircleLoader } from "@/components/Loader";
+import { CircleLoader } from "@/components/UI/Loader";
 import { FormInfo } from "@/components/UI/Form/Info";
 import {
   Carousel,
@@ -274,21 +274,23 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
             messages={{
               success: {
                 header: `You've ${
-                  workApprovalMutation.variables.approved
-                    ? "approved"
-                    : "rejected"
+                  workApprovalMutation.variables.approved ?
+                    "approved"
+                  : "rejected"
                 } the work!`,
                 variant: "success",
-                title: workApprovalMutation.variables.approved
-                  ? "Approved!"
+                title:
+                  workApprovalMutation.variables.approved ?
+                    "Approved!"
                   : "Rejected!",
                 body: `You've ${
-                  workApprovalMutation.variables.approved
-                    ? "approved"
-                    : "rejected"
+                  workApprovalMutation.variables.approved ?
+                    "approved"
+                  : "rejected"
                 } the work!<br/><br/>Excellent work!`,
-                icon: workApprovalMutation.variables.approved
-                  ? RiCheckFill
+                icon:
+                  workApprovalMutation.variables.approved ?
+                    RiCheckFill
                   : RiCloseFill,
                 spinner: false,
               },

@@ -25,12 +25,21 @@ export const EAS = {
       address: "0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458",
     },
   },
+  "42220": {
+    GARDEN_ASSESSMENT: {
+      uid: schemas[0].UID,
+      schema: schemas[0].parsed,
+    },
+    WORK: {
+      uid: schemas[1].UID,
+      schema: schemas[1].parsed,
+    },
+    WORK_APPROVAL: {
+      uid: schemas[2].UID,
+      schema: schemas[2].parsed,
+    },
+    EAS: {
+      address: "0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458",
+    },
+  },
 };
-
-export const GREEN_GOODS_GARDEN_OPERATOR_WHITELIST = [
-  "afo@greenpill.builders",
-  "coi@greenpill.builders",
-  "nansel@greenpill.builders",
-  "marcin@greenpill.builders",
-  "marcus@greenpill.builders",
-];

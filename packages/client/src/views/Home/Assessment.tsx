@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 
 import { useGarden } from "@/providers/garden";
 
-import { CircleLoader } from "@/components/Loader";
+import { CircleLoader } from "@/components/UI/Loader";
 
 interface GardenAssessmentProps {}
 

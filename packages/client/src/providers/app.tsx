@@ -1,3 +1,4 @@
+import browserLang from "browser-lang";
 import { IntlProvider } from "react-intl";
 import React, { useState, useEffect, useContext } from "react";
 
@@ -11,6 +12,8 @@ export type InstallState =
   | "unsupported";
 export type Locale = "en" | "pt";
 export type Platform = "ios" | "android" | "windows" | "unknown";
+
+const supportedLanguages: Locale[] = ["en", "pt"];
 
 export interface AppDataProps {
   isMobile: boolean;
@@ -71,7 +74,11 @@ export const useApp = () => {
 };
 
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
-  const [locale, setLocale] = useState<Locale>("en");
+  const defaultLocale = browserLang({
+    languages: supportedLanguages,
+    fallback: "en",
+  });
+  const [locale, setLocale] = useState<Locale>(defaultLocale as Locale);
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [installState, setInstalledState] = useState<InstallState>("idle");

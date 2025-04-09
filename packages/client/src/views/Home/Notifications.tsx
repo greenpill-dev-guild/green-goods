@@ -15,7 +15,7 @@ export const GardenNotifications: React.FC<GardenNotificationsProps> = ({
   return (
     <div
       tabIndex={0}
-      className="relative p-2 gap-3 border border-slate-100 rounded-2xl w-72 flex flex-col items-center noscroll overflow-scroll bg-white text-xs mx-auto h-[80%]"
+      className="relative p-2 gap-3 border border-slate-100 rounded-2xl w-72 flex flex-col items-center overflow-scroll bg-white text-xs mx-auto h-[80%]"
     >
       {notifications.map(({ id, gardenerAddress }) => (
         <Link
