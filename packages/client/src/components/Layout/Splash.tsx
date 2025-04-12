@@ -23,6 +23,7 @@ export const Splash: React.FC<SplashProps> = ({
         onClick={login}
         disabled={isLoggingIn}
         className="w-full"
+        shape="pilled"
         label={buttonLabel}
         // variant="secondary"
         // fullWidth
