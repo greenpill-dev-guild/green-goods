@@ -19,13 +19,14 @@ import React, { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { encodeFunctionData } from "viem/utils";
-import { Chain, TransactionRequest } from "viem";
+import { Chain, decodeErrorResult, TransactionRequest } from "viem";
 
 import { EAS } from "@/constants";
 
 import { abi } from "@/utils/abis/EAS.json";
 import { encodeWorkApprovalData } from "@/utils/eas";
 import { useNavigateToTop } from "@/utils/useNavigateToTop";
+import { abi as WorkApprovalResolverABI } from "@/utils/abis/WorkApprovalResolver.json";
 
 import { getFileByHash } from "@/modules/pinata";
 
@@ -130,10 +131,16 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
       // toast.success("Work approved!");
       queryClient.invalidateQueries({ queryKey: ["workApprovals"] });
     },
-    onError: (e) => {
-      console.log("Work approval failed!", e);
-      // toast.dismiss();
-      // toast.error("Work approval failed!");
+    onError: (error: any) => {
+      console.log("Work approval failed!", error);
+
+      if (error.data) {
+        const decodedError = decodeErrorResult({
+          abi: WorkApprovalResolverABI,
+          data: error.data as `0x${string}`,
+        });
+        console.error("Decoded Error:", decodedError);
+      }
     },
   });
 

@@ -7,7 +7,9 @@ import {
   NO_EXPIRATION,
   ZERO_BYTES32,
 } from "@ethereum-attestation-service/eas-sdk";
+import { parseAbi, decodeErrorResult } from "viem";
 import React, { useContext, useState } from "react";
+
 // import { encodeFunctionData, parseEther, zeroAddress } from "viem";
 // import { zodResolver } from "@hookform/resolvers/zod";
 import { Control, FormState, useForm, UseFormRegister } from "react-hook-form";
@@ -19,6 +21,7 @@ import { queryClient } from "@/modules/react-query";
 
 import { encodeWorkData } from "@/utils/eas";
 import { abi } from "@/utils/abis/EAS.json";
+import { abi as WorkResolverABI } from "@/utils/abis/WorkResolver.json";
 
 import { useUser } from "./user";
 import { useGardens } from "./garden";
@@ -184,8 +187,17 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       // toast.success("Work uploaded!"); @dev deprecated
       queryClient.invalidateQueries({ queryKey: ["works"] });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Upload Work", error);
+
+      if (error.data) {
+        const decodedError = decodeErrorResult({
+          abi: WorkResolverABI,
+          data: error.data as `0x${string}`,
+        });
+        console.error("Decoded Error:", decodedError);
+      }
+
       // toast.remove();
       // toast.error("Work upload failed!"); @dev deprecated
     },
