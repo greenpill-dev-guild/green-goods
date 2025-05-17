@@ -7,6 +7,7 @@ interface ImportMetaEnv {
   readonly VITE_PRIVY_APP_ID: string;
   readonly VITE_PINATA_JWT: string;
   readonly VITE_WHISK_API_KEY: string;
+  readonly VITE_ENVIO_INDEXER_URL: string;
 }
 
 interface ImportMeta {

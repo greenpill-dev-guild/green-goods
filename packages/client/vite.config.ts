@@ -229,7 +229,7 @@ export default defineConfig(({ mode }) => {
       port: 3001,
       proxy: {
         graphql: {
-          target: "https://indexer.dev.hyperindex.xyz/332f54b/v1/graphql",
+          target: process.env.VITE_ENVIO_INDEXER_URL,
           changeOrigin: true,
         },
       },

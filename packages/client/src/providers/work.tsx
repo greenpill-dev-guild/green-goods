@@ -7,7 +7,7 @@ import {
   NO_EXPIRATION,
   ZERO_BYTES32,
 } from "@ethereum-attestation-service/eas-sdk";
-import { parseAbi, decodeErrorResult } from "viem";
+import { decodeErrorResult } from "viem";
 import React, { useContext, useState } from "react";
 
 // import { encodeFunctionData, parseEther, zeroAddress } from "viem";
