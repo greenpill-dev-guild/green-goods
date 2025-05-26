@@ -1,5 +1,6 @@
 import { formatAddress } from "@/utils/text";
 import { forwardRef } from "react";
+import { useIntl } from "react-intl";
 
 interface GardenGardenersProps {
   gardeners: GardenerCard[];
@@ -10,9 +11,10 @@ export const GardenGardeners = forwardRef<
   HTMLUListElement,
   GardenGardenersProps
 >(({ gardeners, handleScroll }, ref) => {
+  const intl = useIntl();
   return (
     <ul className="flex flex-col gap-2" ref={ref} onScroll={handleScroll}>
-      {gardeners.length ?
+      {gardeners.length ? (
         gardeners.map((user) => (
           <li
             key={user.id}
@@ -28,18 +30,29 @@ export const GardenGardeners = forwardRef<
                 {(user.account && formatAddress(user.account)) ||
                   user?.email ||
                   user?.phone ||
-                  "Unknown User"}
+                  intl.formatMessage({
+                    id: "app.garden.gardeners.unknownUser",
+                    description: "Unknown User",
+                  })}
               </span>
               <span className="text-xs">
-                Registered: {user.registeredAt.toDateString()}
+                {intl.formatMessage({
+                  id: "app.garden.gardeners.registered",
+                  description: "Registered",
+                })}
+                : {user.registeredAt.toDateString()}
               </span>
             </div>
           </li>
         ))
-      : <p className="grid place-items-center p-8 text-center text-sm italic">
-          No gardeners yet, get started by clicking a garden above
+      ) : (
+        <p className="grid place-items-center p-8 text-center text-sm italic">
+          {intl.formatMessage({
+            id: "app.garden.gardeners.noGardeners",
+            description: "No gardeners yet",
+          })}
         </p>
-      }
+      )}
     </ul>
   );
 });

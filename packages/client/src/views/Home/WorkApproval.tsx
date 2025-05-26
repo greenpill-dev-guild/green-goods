@@ -46,6 +46,7 @@ import { FormText } from "@/components/UI/Form/Text";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
 import { WorkCompleted } from "../Garden/Completed";
 import { GardenCard } from "@/components/UI/Card/GardenCard";
+import { useIntl } from "react-intl";
 
 interface GardenWorkApprovalProps {}
 
@@ -57,6 +58,7 @@ const workApprovalSchema = z.object({
 });
 
 export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
+  const intl = useIntl();
   const { id, workId } = useParams<{
     id: string;
     workId: string;
@@ -180,11 +182,22 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
         >
           <div className="padded flex flex-col gap-4">
             <FormInfo
-              title="Evaluate Work"
-              info="Verify if the work is acceptable"
+              title={intl.formatMessage({
+                id: "app.home.workApproval.evaluateWork",
+                defaultMessage: "Evaluate Work",
+              })}
+              info={intl.formatMessage({
+                id: "app.home.workApproval.verifyIfTheWorkIsAcceptable",
+                defaultMessage: "Verify if the work is acceptable",
+              })}
               Icon={RiCheckDoubleFill}
             />
-            <h6>Garden</h6>
+            <h6>
+              {intl.formatMessage({
+                id: "app.home.workApproval.garden",
+                defaultMessage: "Garden",
+              })}
+            </h6>
             <GardenCard
               garden={garden}
               media="small"
@@ -195,7 +208,12 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
             />
             {media.length > 0 && (
               <>
-                <h6>Media</h6>
+                <h6>
+                  {intl.formatMessage({
+                    id: "app.home.workApproval.media",
+                    defaultMessage: "Media",
+                  })}
+                </h6>
                 <Carousel>
                   <CarouselContent>
                     {media.map((item, index) => (
@@ -214,27 +232,60 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
                 </Carousel>
               </>
             )}
-            <h6>Details</h6>
-            <FormCard label="Action" value={action.title} Icon={RiHammerFill} />
+            <h6>
+              {intl.formatMessage({
+                id: "app.home.workApproval.details",
+                defaultMessage: "Details",
+              })}
+            </h6>
             <FormCard
-              label="Plant Types"
+              label={intl.formatMessage({
+                id: "app.home.workApproval.action",
+                defaultMessage: "Action",
+              })}
+              value={action.title}
+              Icon={RiHammerFill}
+            />
+            <FormCard
+              label={intl.formatMessage({
+                id: "app.home.workApproval.plantTypes",
+                defaultMessage: "Plant Types",
+              })}
               value={workMetadata?.plantSelection.join(", ") || ""}
               Icon={RiPlantFill}
             />
             {feedback && (
               <FormCard
-                label="Description"
+                label={intl.formatMessage({
+                  id: "app.home.workApproval.description",
+                  defaultMessage: "Description",
+                })}
                 value={feedback}
                 Icon={RiPencilFill}
               />
             )}
             <FormCard
-              label="Plant Amount"
+              label={intl.formatMessage({
+                id: "app.home.workApproval.plantAmount",
+                defaultMessage: "Plant Amount",
+              })}
               value={workMetadata?.plantCount.toString() || ""}
               Icon={RiLeafFill}
             />
-            <h6>Give your feedback</h6>
-            <FormText rows={4} label="Description" {...register("feedback")} />
+            <h6>
+              {intl.formatMessage({
+                id: "app.home.workApproval.giveYourFeedback",
+                defaultMessage: "Give your feedback",
+              })}
+            </h6>
+            <FormText
+              rows={4}
+              label={intl.formatMessage({
+                id: "app.home.workApproval.description",
+                defaultMessage: "Description",
+              })}
+              {...register("feedback")}
+            />
           </div>
           {work.status === "pending" && (
             <div className="flex border-t border-stroke-soft-200">
@@ -245,7 +296,10 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
                     workApprovalMutation.mutate(data);
                     queryClient.clear();
                   })}
-                  label="Reject"
+                  label={intl.formatMessage({
+                    id: "app.home.workApproval.reject",
+                    defaultMessage: "Reject",
+                  })}
                   className="w-full"
                   variant="error"
                   type="button"
@@ -260,7 +314,10 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
                     queryClient.clear();
                   })}
                   type="button"
-                  label="Approve"
+                  label={intl.formatMessage({
+                    id: "app.home.workApproval.approve",
+                    defaultMessage: "Approve",
+                  })}
                   className="w-full"
                   variant="primary"
                   mode="filled"
@@ -280,24 +337,62 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
             status={workApprovalMutation.status}
             messages={{
               success: {
-                header: `You've ${
-                  workApprovalMutation.variables.approved ?
-                    "approved"
-                  : "rejected"
-                } the work!`,
+                header: intl.formatMessage(
+                  {
+                    id: "app.home.workApproval.header",
+                    defaultMessage: "You've {status} the work!",
+                  },
+                  {
+                    status: workApprovalMutation.variables.approved
+                      ? intl
+                          .formatMessage({
+                            id: "app.home.workApproval.approved",
+                            defaultMessage: "Approved",
+                          })
+                          .toLocaleLowerCase()
+                      : intl
+                          .formatMessage({
+                            id: "app.home.workApproval.rejected",
+                            defaultMessage: "Rejected",
+                          })
+                          .toLocaleLowerCase(),
+                  }
+                ),
                 variant: "success",
                 title:
-                  workApprovalMutation.variables.approved ?
-                    "Approved!"
-                  : "Rejected!",
-                body: `You've ${
-                  workApprovalMutation.variables.approved ?
-                    "approved"
-                  : "rejected"
-                } the work!<br/><br/>Excellent work!`,
-                icon:
-                  workApprovalMutation.variables.approved ?
-                    RiCheckFill
+                  (workApprovalMutation.variables.approved
+                    ? intl.formatMessage({
+                        id: "app.home.workApproval.approved",
+                        defaultMessage: "Approved",
+                      })
+                    : intl.formatMessage({
+                        id: "app.home.workApproval.rejected",
+                        defaultMessage: "Rejected",
+                      })) + "!",
+                body: intl.formatMessage(
+                  {
+                    id: "app.home.workApproval.body",
+                    defaultMessage:
+                      "You've {status} the work!<br/><br/>Excellent work!",
+                  },
+                  {
+                    status: workApprovalMutation.variables.approved
+                      ? intl
+                          .formatMessage({
+                            id: "app.home.workApproval.approved",
+                            defaultMessage: "Approved",
+                          })
+                          .toLocaleLowerCase()
+                      : intl
+                          .formatMessage({
+                            id: "app.home.workApproval.rejected",
+                            defaultMessage: "Rejected",
+                          })
+                          .toLocaleLowerCase(),
+                  }
+                ),
+                icon: workApprovalMutation.variables.approved
+                  ? RiCheckFill
                   : RiCloseFill,
                 spinner: false,
               },

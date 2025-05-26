@@ -11,6 +11,7 @@ import { GardenAssessments } from "@/components/Garden/Asessments";
 import { Tabs, TabsList, TabsTrigger } from "@/components/UI/Tabs/Tabs";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
 import { useNavigateToTop } from "@/utils/useNavigateToTop";
+import { useIntl } from "react-intl";
 
 enum GardenTab {
   Work = "work",
@@ -21,6 +22,7 @@ enum GardenTab {
 interface GardenProps {}
 
 export const Garden: React.FC<GardenProps> = () => {
+  const intl = useIntl();
   const navigate = useNavigateToTop();
   const [activeTab, setActiveTab] = useState<GardenTab>(GardenTab.Work);
   const [scrollPositions, setScrollPositions] = useState({
@@ -125,13 +127,26 @@ export const Garden: React.FC<GardenProps> = () => {
                   <div className="flex flex-row gap-1 items-center">
                     <RiMapPin2Fill className="h-4 text-primary" />
                     <div className="text-xs">
-                      <span className="font-medium">Location •</span> {location}
+                      <span className="font-medium">
+                        {intl.formatMessage({
+                          id: "app.home.location",
+                          description: "Location",
+                        })}{" "}
+                        •
+                      </span>{" "}
+                      {location}
                     </div>
                   </div>
                   <div className="flex flex-row gap-1 items-center">
                     <RiCalendarEventFill className="h-4 text-primary" />
                     <div className="text-xs">
-                      <span className="font-medium">Founded •</span>{" "}
+                      <span className="font-medium">
+                        {intl.formatMessage({
+                          id: "app.home.founded",
+                          description: "Founded",
+                        })}{" "}
+                        •
+                      </span>{" "}
                       {createdAt.toDateString()}
                     </div>
                   </div>

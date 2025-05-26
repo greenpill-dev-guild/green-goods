@@ -4,22 +4,29 @@ import React, { useState, useEffect, useContext } from "react";
 
 import enMessages from "@/i18n/en.json";
 import ptMessages from "@/i18n/pt.json";
+import esMessages from "@/i18n/es.json";
+
+const messages = {
+  en: enMessages,
+  pt: ptMessages,
+  es: esMessages,
+};
 
 export type InstallState =
   | "idle"
   | "not-installed"
   | "installed"
   | "unsupported";
-export type Locale = "en" | "pt";
+export const supportedLanguages = ["en", "pt", "es"] as const;
+export type Locale = (typeof supportedLanguages)[number];
 export type Platform = "ios" | "android" | "windows" | "unknown";
-
-const supportedLanguages: Locale[] = ["en", "pt"];
 
 export interface AppDataProps {
   isMobile: boolean;
   isInstalled: boolean;
   platform: Platform;
   locale: Locale;
+  availableLocales: readonly Locale[];
   deferredPrompt: BeforeInstallPromptEvent | null;
   promptInstall: () => void;
   handleInstallCheck: (e: any) => void;
@@ -30,11 +37,6 @@ interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
-
-const messages = {
-  en: enMessages,
-  pt: ptMessages,
-};
 
 function getMobileOperatingSystem(): Platform {
   // @ts-ignore
@@ -62,6 +64,7 @@ const AppContext = React.createContext<AppDataProps>({
   isMobile: false,
   isInstalled: false,
   locale: "en",
+  availableLocales: supportedLanguages,
   deferredPrompt: null,
   platform: "unknown",
   promptInstall: () => {},
@@ -75,7 +78,7 @@ export const useApp = () => {
 
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const defaultLocale = browserLang({
-    languages: supportedLanguages,
+    languages: [...supportedLanguages],
     fallback: "en",
   });
   const [locale, setLocale] = useState<Locale>(defaultLocale as Locale);
@@ -155,6 +158,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         isInstalled: installState === "installed",
         platform,
         locale,
+        availableLocales: supportedLanguages,
         deferredPrompt,
         promptInstall,
         handleInstallCheck,

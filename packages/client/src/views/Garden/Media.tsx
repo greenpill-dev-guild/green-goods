@@ -5,6 +5,7 @@ import { RiCloseLine, RiImageFill } from "@remixicon/react";
 import { FormInfo } from "@/components/UI/Form/Info";
 import { Books } from "@/components/Garden/Books";
 import { Badge } from "@/components/UI/Badge/Badge";
+import { useIntl } from "react-intl";
 
 interface WorkMediaProps {
   instruction: string;
@@ -21,6 +22,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
   images,
   setImages,
 }) => {
+  const intl = useIntl();
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   // @dev @ Afo- preview modal
   const disablePreview = true;
@@ -38,9 +40,21 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
 
   return (
     <div className="flex flex-col gap-4">
-      <FormInfo title="Upload Media" info={instruction} Icon={RiImageFill} />
+      <FormInfo
+        title={intl.formatMessage({
+          id: "app.garden.upload.title",
+          description: "Upload Media",
+        })}
+        info={instruction}
+        Icon={RiImageFill}
+      />
       <div className="">
-        <div className="text-xs tracking-tight mb-1 uppercase">needed</div>
+        <div className="text-xs tracking-tight mb-1 uppercase">
+          {intl.formatMessage({
+            id: "app.garden.upload.needed",
+            description: "Needed",
+          })}
+        </div>
         <div className="flex gap-1 flex-wrap">
           {needed.map((item) => (
             <Badge
@@ -55,7 +69,12 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         </div>
       </div>
       <div className="">
-        <div className="text-xs tracking-tight mb-1 uppercase">optional</div>
+        <div className="text-xs tracking-tight mb-1 uppercase">
+          {intl.formatMessage({
+            id: "app.garden.upload.optional",
+            description: "Optional",
+          })}
+        </div>
         <div className="flex gap-1 flex-wrap">
           {optional.map((item) => (
             <Badge
@@ -78,12 +97,15 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         className="input input-bordered hidden"
       />
       <div className="flex flex-col gap-4">
-        {images.length ?
+        {images.length ? (
           images.map((file, index) => (
             <div key={file.name} className="carousel-item relative">
               <img
                 src={URL.createObjectURL(file)}
-                alt={`Uploaded ${index}`}
+                alt={`${intl.formatMessage({
+                  id: "app.garden.upload.uploaded",
+                  description: "Uploaded",
+                })} ${index + 1}`}
                 className="w-full aspect-square object-cover rounded-lg"
               />
               <button
@@ -98,10 +120,11 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
               </button>
             </div>
           ))
-        : <div className="pt-8 px-4 grid place-items-center">
+        ) : (
+          <div className="pt-8 px-4 grid place-items-center">
             <Books />
           </div>
-        }
+        )}
       </div>
       {!disablePreview && previewModalOpen && (
         <dialog

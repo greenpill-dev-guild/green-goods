@@ -13,8 +13,10 @@ import { WorkDetails } from "./Details";
 import { WorkReview } from "./Review";
 import { WorkCompleted } from "./Completed";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
+import { useIntl } from "react-intl";
 
 const Work: React.FC = () => {
+  const intl = useIntl();
   const navigate = useNavigate();
   const { gardens, actions, form, activeTab, setActiveTab, workMutation } =
     useWork();
@@ -60,7 +62,11 @@ const Work: React.FC = () => {
       case WorkTab.Media:
         return (
           <WorkMedia
-            instruction="Please take a clear photo of the plants on the garden"
+            instruction={intl.formatMessage({
+              id: "app.garden.submit.tab.media.instruction",
+              defaultMessage:
+                "Please take a clear photo of the plants in the garden",
+            })}
             needed={["whole_plant"]}
             optional={["leaves", "flowers", "fruits", "bark"]}
             images={images}
@@ -70,7 +76,10 @@ const Work: React.FC = () => {
       case WorkTab.Details:
         return (
           <WorkDetails
-            instruction="Provide detailed information and feedback"
+            instruction={intl.formatMessage({
+              id: "app.garden.submit.tab.details.instruction",
+              defaultMessage: "Provide detailed information and feedback",
+            })}
             feedbackPlaceholder=""
             inputs={action?.inputs ?? []}
             register={register}
@@ -79,10 +88,20 @@ const Work: React.FC = () => {
         );
       case WorkTab.Review:
         if (!garden || !action)
-          return <div>Missing garden or action information</div>;
+          return (
+            <div>
+              {intl.formatMessage({
+                id: "app.garden.submit.tab.review.error",
+                defaultMessage: "Missing garden or action information",
+              })}
+            </div>
+          );
         return (
           <WorkReview
-            instruction={"Check if your informations are correct"}
+            instruction={intl.formatMessage({
+              id: "app.garden.submit.tab.review.instruction",
+              defaultMessage: "Check if the information is correct",
+            })}
             garden={garden}
             action={action}
             images={images}
@@ -104,22 +123,34 @@ const Work: React.FC = () => {
   const tabActions = {
     [WorkTab.Intro]: {
       primary: () => changeTab(WorkTab.Media),
-      primaryLabel: "Start Gardening",
+      primaryLabel: intl.formatMessage({
+        id: "app.garden.submit.tab.intro.label",
+        defaultMessage: "Start Gardening",
+      }),
       primaryDisabled: !gardenAddress || typeof actionUID !== "number",
       secondary: null,
       backButton: () => navigate("/home"),
     },
     [WorkTab.Media]: {
       primary: () => changeTab(WorkTab.Details),
-      primaryLabel: "Add Details",
+      primaryLabel: intl.formatMessage({
+        id: "app.garden.submit.tab.media.label",
+        defaultMessage: "Add Details",
+      }),
       primaryDisabled: images.length < 2,
       secondary: () => document.getElementById("work-media-upload")?.click(),
-      secondaryLabel: "Upload Media",
+      secondaryLabel: intl.formatMessage({
+        id: "app.garden.submit.tab.media.secondaryLabel",
+        defaultMessage: "Upload Media",
+      }),
       backButton: () => changeTab(WorkTab.Intro),
     },
     [WorkTab.Details]: {
       primary: () => changeTab(WorkTab.Review),
-      primaryLabel: "Review Work",
+      primaryLabel: intl.formatMessage({
+        id: "app.garden.submit.tab.details.label",
+        defaultMessage: "Review Work",
+      }),
       primaryDisabled: !state.isValid,
       secondary: null,
       backButton: () => changeTab(WorkTab.Media),
@@ -130,7 +161,10 @@ const Work: React.FC = () => {
         form.reset();
         uploadWork();
       },
-      primaryLabel: "Upload Work",
+      primaryLabel: intl.formatMessage({
+        id: "app.garden.submit.tab.review.label",
+        defaultMessage: "Upload Work",
+      }),
       primaryDisabled: !state.isValid || state.isSubmitting,
       secondary: null,
       backButton: () => changeTab(WorkTab.Details),
@@ -143,7 +177,10 @@ const Work: React.FC = () => {
         changeTab(WorkTab.Intro);
         navigate("/home");
       },
-      primaryLabel: "Finish",
+      primaryLabel: intl.formatMessage({
+        id: "app.garden.submit.tab.complete.label",
+        defaultMessage: "Finish",
+      }),
       primaryDisabled: workMutation.isPending,
       secondary: null,
       backButton: undefined,

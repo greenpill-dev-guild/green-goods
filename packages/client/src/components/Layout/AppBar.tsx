@@ -11,38 +11,39 @@ import {
 } from "@remixicon/react";
 import { cn } from "@/utils/cn";
 import { useNavigateToTop } from "@/utils/useNavigateToTop";
-
-const tabs: {
-  path: string;
-  title: string;
-  ActiveIcon: RemixiconComponentType;
-  InactiveIcon: RemixiconComponentType;
-}[] = [
-  {
-    path: "/home",
-    title: "Home",
-    ActiveIcon: RiHomeFill,
-    InactiveIcon: RiHomeLine,
-  },
-  {
-    path: "/garden",
-    title: "Garden",
-    ActiveIcon: RiPlantFill,
-    InactiveIcon: RiPlantLine,
-  },
-  {
-    path: "/profile",
-    title: "Profile",
-    ActiveIcon: RiUserFill,
-    InactiveIcon: RiUserLine,
-  },
-];
+import { useIntl } from "react-intl";
 
 export const AppBar = () => {
   const { pathname } = useLocation();
   const isGarden = pathname.startsWith("/garden");
-
+  const intl = useIntl();
   const navigate = useNavigateToTop();
+
+  const tabs: {
+    path: string;
+    title: string;
+    ActiveIcon: RemixiconComponentType;
+    InactiveIcon: RemixiconComponentType;
+  }[] = [
+    {
+      path: "/home",
+      title: intl.formatMessage({ id: "app.home" }),
+      ActiveIcon: RiHomeFill,
+      InactiveIcon: RiHomeLine,
+    },
+    {
+      path: "/garden",
+      title: intl.formatMessage({ id: "app.garden" }),
+      ActiveIcon: RiPlantFill,
+      InactiveIcon: RiPlantLine,
+    },
+    {
+      path: "/profile",
+      title: intl.formatMessage({ id: "app.profile" }),
+      ActiveIcon: RiUserFill,
+      InactiveIcon: RiUserLine,
+    },
+  ];
 
   return (
     <nav
@@ -64,9 +65,11 @@ export const AppBar = () => {
               )}
               type="button"
             >
-              {pathname.startsWith(path) ?
+              {pathname.startsWith(path) ? (
                 <ActiveIcon className="w-6 h-6" />
-              : <InactiveIcon className="w-6 h-6" />}
+              ) : (
+                <InactiveIcon className="w-6 h-6" />
+              )}
               <p
                 className={`text-sm ${pathname.startsWith(path) ? "text-primary" : ""}`}
               >

@@ -5,6 +5,7 @@ import { FormInfo } from "@/components/UI/Form/Info";
 import { FormText } from "@/components/UI/Form/Text";
 import { FormInput } from "@/components/UI/Form/Input";
 import { FormSelect } from "@/components/UI/Form/Select";
+import { useIntl } from "react-intl";
 
 interface WorkDetailsProps {
   instruction: string;
@@ -21,9 +22,17 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
   control,
   inputs,
 }) => {
+  const intl = useIntl();
   return (
     <div className="flex flex-col gap-4">
-      <FormInfo title="Enter Details" info={instruction} Icon={RiFileFill} />
+      <FormInfo
+        title={intl.formatMessage({
+          id: "app.garden.details.title",
+          description: "Enter Details",
+        })}
+        info={instruction}
+        Icon={RiFileFill}
+      />
       {inputs.map(({ placeholder, options, required, title, key, type }) => {
         if (type === "number") {
           return (
@@ -83,7 +92,10 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
       })}
       <FormText
         {...register("feedback")}
-        label="Feedback"
+        label={intl.formatMessage({
+          id: "app.garden.details.feedback",
+          description: "Feedback",
+        })}
         rows={4}
         placeholder={feedbackPlaceholder}
       />
