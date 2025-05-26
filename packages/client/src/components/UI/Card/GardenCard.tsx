@@ -5,6 +5,7 @@ import { Card, type CardRootProps } from "./Card";
 import { RiGroupFill, RiMapPinFill, RiMapPinUserFill } from "@remixicon/react";
 import { Badge } from "../Badge/Badge";
 import { formatAddress } from "@/utils/text";
+import { useIntl } from "react-intl";
 
 export const cardVariants = tv({
   base: "relative flex flex-col grow border-0 rounded-lg overflow-clip rounded-b-lg justify-between p-0 gap-0",
@@ -45,6 +46,8 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardRootProps>(
     },
     ref
   ) => {
+    const intl = useIntl();
+
     const classes = cardVariants({ media, class: className });
     return (
       <Card ref={ref} className={cn(classes, selected && "")} onClick={onClick}>
@@ -85,7 +88,11 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardRootProps>(
                 tint="none"
                 leadingIcon={<RiGroupFill className="h-4 w-4 text-primary" />}
               >
-                {garden.operators.length} Gardeners
+                {garden.operators.length}{" "}
+                {intl.formatMessage({
+                  id: "app.garden.gardeners",
+                  defaultMessage: "Gardeners",
+                })}
               </Badge>
               <Badge variant="outline" tint="none">
                 <RiMapPinFill className="h-4 w-4 text-primary" />
@@ -95,7 +102,10 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardRootProps>(
             {showOperators && (
               <>
                 <div className="text-xs text-slate-700 uppercase">
-                  Operators
+                  {intl.formatMessage({
+                    id: "app.garden.operators",
+                    defaultMessage: "Operators",
+                  })}
                 </div>
                 <div className="flex flex-row gap-1 flex-wrap">
                   <>
@@ -108,7 +118,13 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardRootProps>(
                     {garden.operators.length > 2 && (
                       <Badge key={"others"} variant="outline" tint="none">
                         <RiMapPinUserFill className="w-4 h-4 text-primary" />
-                        and {garden.operators.length - 2} others
+                        {intl.formatMessage(
+                          {
+                            id: "app.garden.andOthers",
+                            defaultMessage: "and {amount} others",
+                          },
+                          { amount: garden.operators.length - 2 }
+                        )}
                       </Badge>
                     )}
                   </>

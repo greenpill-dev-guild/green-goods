@@ -13,6 +13,7 @@ import {
 } from "@remixicon/react";
 import { formatAddress } from "@/utils/text";
 import { useMemo } from "react";
+import { useIntl } from "react-intl";
 
 export const cardVariants = tv({
   base: "relative flex flex-col grow border-0 rounded-lg overflow-clip rounded-lg justify-between p-0 gap-0",
@@ -39,6 +40,7 @@ const WorkCard = React.forwardRef<
     onClick?: (e: React.SyntheticEvent<HTMLButtonElement>) => void;
   }
 >(({ media, className, selected, work, action, onClick, ...props }, ref) => {
+  const intl = useIntl();
   const classes = cardVariants({ media, class: className });
 
   const statusIcon = useMemo(() => {
@@ -98,7 +100,10 @@ const WorkCard = React.forwardRef<
             leadingIcon={statusIcon}
             className="capitalize"
           >
-            {work.status}
+            {intl.formatMessage({
+              id: "app.garden.work.status." + work.status,
+              defaultMessage: work.status,
+            })}
           </Badge>
           <Badge
             variant="outline"
@@ -111,9 +116,22 @@ const WorkCard = React.forwardRef<
         <div className="border-t border-border my-2" />
         <div className="flex flex-row gap-2 items-center">
           <div className="text-xs">
-            Published on {new Date(work.createdAt).toLocaleString()}
+            {intl.formatMessage(
+              {
+                id: "app.garden.publishedOn",
+                defaultMessage: "Published on {date}",
+              },
+              { date: new Date(work.createdAt).toLocaleString() }
+            )}
           </div>
-          <Button size="small" label="View Details" onClick={onClick} />
+          <Button
+            size="small"
+            label={intl.formatMessage({
+              id: "app.garden.viewDetails",
+              defaultMessage: "View Details",
+            })}
+            onClick={onClick}
+          />
         </div>
       </div>
     </Card>

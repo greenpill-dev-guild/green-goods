@@ -77,10 +77,12 @@ export const useApp = () => {
 };
 
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
-  const defaultLocale = browserLang({
-    languages: [...supportedLanguages],
-    fallback: "en",
-  });
+  const defaultLocale = localStorage.getItem("gg-language")
+    ? (localStorage.getItem("gg-language") as Locale)
+    : browserLang({
+        languages: [...supportedLanguages],
+        fallback: "en",
+      });
   const [locale, setLocale] = useState<Locale>(defaultLocale as Locale);
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
@@ -120,6 +122,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
   function switchLanguage(lang: Locale) {
     setLocale(lang);
+    localStorage.setItem("gg-language", lang);
   }
 
   const promptInstall = () => {

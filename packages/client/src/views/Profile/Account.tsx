@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/UI/Select/Select";
 import { useIntl } from "react-intl";
+import { capitalize } from "@/utils/text";
 
 interface LinkedAccount {
   title: string;
@@ -78,13 +79,23 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
         <Select onValueChange={(val) => switchLanguage(val as Locale)}>
           <SelectTrigger className="w-[180px]">
             <SelectValue
-              placeholder={intl.formatDisplayName(locale, { type: "language" })}
+              className="capitalize"
+              placeholder={capitalize(
+                intl.formatDisplayName(locale, { type: "language" }) || ""
+              )}
             />
           </SelectTrigger>
           <SelectContent>
             {availableLocales?.map((localeOption) => (
-              <SelectItem value={localeOption} key={localeOption}>
-                {intl.formatDisplayName(localeOption, { type: "language" })}
+              <SelectItem
+                value={localeOption}
+                key={localeOption}
+                className="capitalize"
+              >
+                {capitalize(
+                  intl.formatDisplayName(localeOption, { type: "language" }) ||
+                    ""
+                )}
               </SelectItem>
             ))}
           </SelectContent>
@@ -224,7 +235,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
                 onClick={isLinked ? unlink : link}
                 mode={isLinked ? "stroke" : "filled"}
                 size="xxsmall"
-                className="w-18"
+                className="min-w-18"
               />
             </div>
           </Card>

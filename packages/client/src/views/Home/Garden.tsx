@@ -13,16 +13,32 @@ import { TopNav } from "@/components/UI/TopNav/TopNav";
 import { useNavigateToTop } from "@/utils/useNavigateToTop";
 import { useIntl } from "react-intl";
 
-enum GardenTab {
-  Work = "work",
-  Assessments = "assessments",
-  Gardeners = "gardeners",
-}
-
 interface GardenProps {}
 
 export const Garden: React.FC<GardenProps> = () => {
   const intl = useIntl();
+
+  enum GardenTab {
+    Work = "work",
+    Assessments = "assessments",
+    Gardeners = "gardeners",
+  }
+
+  const tabNames = {
+    [GardenTab.Work]: intl.formatMessage({
+      id: "app.garden.work",
+      defaultMessage: "Work",
+    }),
+    [GardenTab.Assessments]: intl.formatMessage({
+      id: "app.garden.assessments",
+      defaultMessage: "Assessments",
+    }),
+    [GardenTab.Gardeners]: intl.formatMessage({
+      id: "app.garden.gardeners",
+      defaultMessage: "Gardeners",
+    }),
+  };
+
   const navigate = useNavigateToTop();
   const [activeTab, setActiveTab] = useState<GardenTab>(GardenTab.Work);
   const [scrollPositions, setScrollPositions] = useState({
@@ -162,7 +178,7 @@ export const Garden: React.FC<GardenProps> = () => {
                       className={`flex-1 flex justify-center items-center p-3 cursor-pointer ${tab === activeTab ? "bg-teal-200 " : ""} transition-colors duration-200`}
                     >
                       <div className="capitalize small font-semibold text-center w-full">
-                        {tab}
+                        {tabNames[tab]}
                       </div>
                     </TabsTrigger>
                   ))}
