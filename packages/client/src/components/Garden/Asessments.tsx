@@ -44,21 +44,35 @@ export const GardenAssessments = forwardRef<
                 {intl.formatMessage({ id: "app.garden.assessments.tags" })}
               </span>
               <ul className="flex flex-wrap gap-2">
-                {assessment.tags.map((tag, index) => (
-                  <Badge variant="pill" key={index} tint="primary">
-                    {tag}
-                  </Badge>
-                ))}
+                {assessment.tags.map((tag, index) => {
+                  const tagName = tag.replace(" ", "_");
+                  return (
+                    <Badge variant="pill" key={index} tint="primary">
+                      {intl.formatMessage({
+                        id: `app.garden.tags.${tagName}`,
+                        description: `Tag ${tagName}`,
+                        defaultMessage: tag,
+                      })}
+                    </Badge>
+                  );
+                })}
               </ul>
               <span className="text-xs uppercase">
                 {intl.formatMessage({ id: "app.garden.assessments.issues" })}
               </span>
               <ul className="flex flex-wrap gap-2">
-                {assessment.issues.map((issue, index) => (
-                  <Badge variant="pill" key={index} tint="tertiary">
-                    {issue}
-                  </Badge>
-                ))}
+                {assessment.issues.map((issue, index) => {
+                  const tagName = issue.replace(" ", "_");
+                  return (
+                    <Badge variant="pill" key={index} tint="tertiary">
+                      {intl.formatMessage({
+                        id: `app.garden.tags.${tagName}`,
+                        description: `Issue ${tagName}`,
+                        defaultMessage: issue,
+                      })}
+                    </Badge>
+                  );
+                })}
               </ul>
               <hr className="my-2" />
               <div className="grid-cols-2 grid-flow-row-dense grid text-sm">
