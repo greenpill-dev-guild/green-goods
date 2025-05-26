@@ -5,6 +5,7 @@ import { Badge } from "../UI/Badge/Badge";
 import { Card } from "../UI/Card/Card";
 import { forwardRef } from "react";
 import { useIntl } from "react-intl";
+import getTag from "@/utils/tags";
 
 interface GardenAssessmentsProps {
   assessments: GardenAssessment[];
@@ -45,14 +46,9 @@ export const GardenAssessments = forwardRef<
               </span>
               <ul className="flex flex-wrap gap-2">
                 {assessment.tags.map((tag, index) => {
-                  const tagName = tag.replace(" ", "_");
                   return (
                     <Badge variant="pill" key={index} tint="primary">
-                      {intl.formatMessage({
-                        id: `app.garden.tags.${tagName}`,
-                        description: `Tag ${tagName}`,
-                        defaultMessage: tag,
-                      })}
+                      {getTag(intl, tag)}
                     </Badge>
                   );
                 })}
@@ -62,14 +58,9 @@ export const GardenAssessments = forwardRef<
               </span>
               <ul className="flex flex-wrap gap-2">
                 {assessment.issues.map((issue, index) => {
-                  const tagName = issue.replace(" ", "_");
                   return (
                     <Badge variant="pill" key={index} tint="tertiary">
-                      {intl.formatMessage({
-                        id: `app.garden.tags.${tagName}`,
-                        description: `Issue ${tagName}`,
-                        defaultMessage: issue,
-                      })}
+                      {getTag(intl, issue)}
                     </Badge>
                   );
                 })}
