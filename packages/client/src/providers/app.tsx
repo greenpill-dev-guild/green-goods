@@ -1,9 +1,11 @@
 import browserLang from "browser-lang";
 import { IntlProvider } from "react-intl";
 import React, { useState, useEffect, useContext } from "react";
+import { PostHogProvider } from "posthog-js/react";
 
 import enMessages from "@/i18n/en.json";
 import ptMessages from "@/i18n/pt.json";
+import { track } from "@/modules/posthog";
 
 export type InstallState =
   | "idle"
@@ -111,8 +113,11 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
   function handleAppInstalled() {
     setInstalledState("installed");
-
-    // TODO: Add analytics and fire notification
+    track("App Installed", {
+      platform,
+      locale,
+      installState,
+    });
   }
 
   function switchLanguage(lang: Locale) {
@@ -146,24 +151,33 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <AppContext.Provider
-      value={{
-        isMobile:
-          platform === "ios" ||
-          platform === "android" ||
-          platform === "windows",
-        isInstalled: installState === "installed",
-        platform,
-        locale,
-        deferredPrompt,
-        promptInstall,
-        handleInstallCheck,
-        switchLanguage,
+    <PostHogProvider
+      apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
+      options={{
+        api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+        capture_exceptions: true,
+        debug: import.meta.env.MODE === "development",
       }}
     >
-      <IntlProvider locale={locale} messages={messages[locale]}>
-        {children}
-      </IntlProvider>
-    </AppContext.Provider>
+      <AppContext.Provider
+        value={{
+          isMobile:
+            platform === "ios" ||
+            platform === "android" ||
+            platform === "windows",
+          isInstalled: installState === "installed",
+          platform,
+          locale,
+          deferredPrompt,
+          promptInstall,
+          handleInstallCheck,
+          switchLanguage,
+        }}
+      >
+        <IntlProvider locale={locale} messages={messages[locale]}>
+          {children}
+        </IntlProvider>
+      </AppContext.Provider>
+    </PostHogProvider>
   );
 };
