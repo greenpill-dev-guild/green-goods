@@ -36,7 +36,7 @@
     "wait-port": "1.1.0"
   },
   "engines": {
-    "node": "20.x",
+    "node": ">=20.x",
     "pnpm": "^10.x"
   }
 }
