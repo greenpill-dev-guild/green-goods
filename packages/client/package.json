@@ -55,7 +55,6 @@
     "@testing-library/react": "16.1.0",
     "@testing-library/user-event": "14.5.2",
     "@types/browser-lang": "0.1.2",
-    "@types/mixpanel-browser": "^2.60.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vercel/node": "3.2.10",
