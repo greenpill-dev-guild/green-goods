@@ -142,8 +142,9 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
         id: "app.account.passkey",
         description: "Passkey",
       }),
-      description: user?.mfaMethods.includes("passkey")
-        ? ""
+      description:
+        user?.mfaMethods.includes("passkey") ?
+          ""
         : intl.formatMessage({
             id: "app.account.notLinked",
             description: "Not Linked",
@@ -158,12 +159,13 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
         id: "app.account.wallet",
         description: "Wallet",
       }),
-      description: user?.wallet
-        ? ""
-        : intl.formatMessage({
+      description:
+        user?.wallet ? "" : (
+          intl.formatMessage({
             id: "app.account.notLinked",
             description: "Not Linked",
-          }),
+          })
+        ),
       isLinked: !!user?.wallet,
       Icon: <RiWalletLine className="w-4" />,
       link: linkWallet,
@@ -222,15 +224,15 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
               <Button
                 variant={isLinked ? "neutral" : "primary"}
                 label={
-                  isLinked
-                    ? intl.formatMessage({
-                        id: "app.account.unlink",
-                        description: "Unlink",
-                      })
-                    : intl.formatMessage({
-                        id: "app.account.link",
-                        description: "Link",
-                      })
+                  isLinked ?
+                    intl.formatMessage({
+                      id: "app.account.unlink",
+                      description: "Unlink",
+                    })
+                  : intl.formatMessage({
+                      id: "app.account.link",
+                      description: "Link",
+                    })
                 }
                 onClick={isLinked ? unlink : link}
                 mode={isLinked ? "stroke" : "filled"}

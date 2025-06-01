@@ -87,7 +87,7 @@ const Profile: React.FC = () => {
         {/* <div className="flex flex-col gap-4 my-4"> */}
         <TabsContent
           className="flex flex-col gap-4 my-4"
-          value={"account"}
+          value="account"
           ref={contentRef}
         >
           <ProfileAccount />

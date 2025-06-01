@@ -14,7 +14,7 @@ export const GardenGardeners = forwardRef<
   const intl = useIntl();
   return (
     <ul className="flex flex-col gap-2" ref={ref} onScroll={handleScroll}>
-      {gardeners.length ? (
+      {gardeners.length ?
         gardeners.map((user) => (
           <li
             key={user.id}
@@ -45,14 +45,13 @@ export const GardenGardeners = forwardRef<
             </div>
           </li>
         ))
-      ) : (
-        <p className="grid place-items-center p-8 text-center text-sm italic">
+      : <p className="grid place-items-center p-8 text-center text-sm italic">
           {intl.formatMessage({
             id: "app.garden.gardeners.noGardeners",
             description: "No gardeners yet",
           })}
         </p>
-      )}
+      }
     </ul>
   );
 });

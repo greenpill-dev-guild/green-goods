@@ -343,8 +343,9 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
                     defaultMessage: "You've {status} the work!",
                   },
                   {
-                    status: workApprovalMutation.variables.approved
-                      ? intl
+                    status:
+                      workApprovalMutation.variables.approved ?
+                        intl
                           .formatMessage({
                             id: "app.home.workApproval.approved",
                             defaultMessage: "Approved",
@@ -360,15 +361,15 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
                 ),
                 variant: "success",
                 title:
-                  (workApprovalMutation.variables.approved
-                    ? intl.formatMessage({
-                        id: "app.home.workApproval.approved",
-                        defaultMessage: "Approved",
-                      })
-                    : intl.formatMessage({
-                        id: "app.home.workApproval.rejected",
-                        defaultMessage: "Rejected",
-                      })) + "!",
+                  (workApprovalMutation.variables.approved ?
+                    intl.formatMessage({
+                      id: "app.home.workApproval.approved",
+                      defaultMessage: "Approved",
+                    })
+                  : intl.formatMessage({
+                      id: "app.home.workApproval.rejected",
+                      defaultMessage: "Rejected",
+                    })) + "!",
                 body: intl.formatMessage(
                   {
                     id: "app.home.workApproval.body",
@@ -376,8 +377,9 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
                       "You've {status} the work!<br/><br/>Excellent work!",
                   },
                   {
-                    status: workApprovalMutation.variables.approved
-                      ? intl
+                    status:
+                      workApprovalMutation.variables.approved ?
+                        intl
                           .formatMessage({
                             id: "app.home.workApproval.approved",
                             defaultMessage: "Approved",
@@ -391,8 +393,9 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
                           .toLocaleLowerCase(),
                   }
                 ),
-                icon: workApprovalMutation.variables.approved
-                  ? RiCheckFill
+                icon:
+                  workApprovalMutation.variables.approved ?
+                    RiCheckFill
                   : RiCloseFill,
                 spinner: false,
               },
