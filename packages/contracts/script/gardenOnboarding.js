@@ -3,18 +3,17 @@ const { PrivyClient } = require("@privy-io/server-auth");
 const { parse } = require("csv-parse");
 const fs = require("fs");
 const { execSync } = require("child_process");
-const pinataSDK = require("@pinata/sdk");
-const FormData = require("form-data");
+const PinataClient = require("@pinata/sdk");
 const fetch = require("node-fetch");
 const path = require("path");
 
 // Initialize Privy client
-const privyClient = new PrivyClient({
-  apiKey: process.env.PRIVY_API_KEY,
-});
+const privyClient = new PrivyClient(process.env.RIVY_CLIENT_ID, process.env.PRIVY_APP_SECRET_ID);
 
 // Initialize Pinata client
-const pinata = new pinataSDK(process.env.PINATA_API_KEY, process.env.PINATA_API_SECRET);
+const pinata = new PinataClient({
+  pinataJWTKey: process.env.PINATA_JWT,
+});
 
 // Function to download image from URL
 async function downloadImage(url) {
@@ -32,17 +31,14 @@ async function downloadImage(url) {
   return tempPath;
 }
 
-// Function to upload to IPFS
+// Function to upload to IPFS using @pinata/sdk
 async function uploadToIPFS(filePath) {
   try {
-    const stream = fs.createReadStream(filePath);
-    const options = {
-      pinataMetadata: {
-        name: path.basename(filePath),
-      },
-    };
-
-    const result = await pinata.pinFileToIPFS(stream, options);
+    const readableStream = fs.createReadStream(filePath);
+    const filename = path.basename(filePath);
+    const result = await pinata.pinFileToIPFS(readableStream, {
+      pinataMetadata: { name: filename },
+    });
     return result.IpfsHash;
   } catch (error) {
     console.error("Error uploading to IPFS:", error);
@@ -78,14 +74,14 @@ async function processBannerImage(bannerInput) {
   }
 }
 
-// Function to read and parse CSV file
-async function parseCSV(filePath) {
+// Function to read and parse CSV file as raw rows
+async function parseCSVRows(filePath) {
   return new Promise((resolve, reject) => {
     const results = [];
     fs.createReadStream(filePath)
       .pipe(
         parse({
-          columns: true,
+          columns: false,
           skip_empty_lines: true,
           trim: true,
         }),
@@ -99,29 +95,50 @@ async function parseCSV(filePath) {
 // Function to create embedded wallet for a user
 async function createEmbeddedWallet(identifier) {
   try {
-    // Create a new user with the identifier and pregenerate their wallet
-    const user = await privyClient.importUser({
-      linkedAccounts: [
-        {
-          type: identifier.includes("@") ? "email" : "phone",
-          address: identifier,
-        },
-      ],
-      createEthereumWallet: true,
-    });
-
-    // Get the wallet address from the user's linked accounts
-    const walletAccount = user.linkedAccounts.find(
-      (account) => account.type === "wallet" && account.chain_type === "ethereum",
-    );
-
-    if (!walletAccount) {
-      throw new Error(`No Ethereum wallet found for user ${identifier}`);
+    // First try to get the existing user
+    let user;
+    try {
+      user = await privyClient.getUser(identifier);
+      console.log(`Found existing user for ${identifier}`);
+    } catch (error) {
+      // If user doesn't exist, create a new one
+      console.log(`Creating new user for ${identifier}`);
+      user = await privyClient.importUser({
+        linkedAccounts: [
+          {
+            type: identifier.includes("@") ? "email" : "phone",
+            address: identifier,
+          },
+        ],
+        createEthereumWallet: true,
+        createEthereumSmartWallet: true,
+      });
     }
 
-    return walletAccount.address;
+    // Check if user already has a smart wallet
+    const smartWallet = user.linkedAccounts.find((account) => account.type === "smart_wallet");
+
+    if (smartWallet) {
+      console.log(`Found existing smart wallet for ${identifier}: ${smartWallet.address}`);
+      return smartWallet.address;
+    }
+
+    // If no smart wallet exists, create one
+    console.log(`Creating new smart wallet for ${identifier}`);
+    const updatedUser = await privyClient.updateUser(identifier, {
+      createEthereumSmartWallet: true,
+    });
+
+    const newSmartWallet = updatedUser.linkedAccounts.find((account) => account.type === "smart_wallet");
+
+    if (!newSmartWallet) {
+      throw new Error(`Failed to create smart wallet for user ${identifier}`);
+    }
+
+    console.log(`Created new smart wallet for ${identifier}: ${newSmartWallet.address}`);
+    return newSmartWallet.address;
   } catch (error) {
-    console.error(`Error creating wallet for ${identifier}:`, error);
+    console.error(`Error handling wallet for ${identifier}:`, error);
     throw error;
   }
 }
@@ -129,27 +146,17 @@ async function createEmbeddedWallet(identifier) {
 // Function to deploy garden contract using Foundry
 async function deployGarden(gardenInfo, gardeners, operators) {
   try {
-    // Create temporary config file for garden deployment
-    const configPath = "./garden-config.json";
-    const config = {
-      gardenInfo: {
-        name: gardenInfo.name,
-        description: gardenInfo.description,
-        location: gardenInfo.location,
-        bannerImage: gardenInfo.bannerImage,
-      },
-      gardeners,
-      operators,
-    };
-
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+    // Set environment variables for the Forge script
+    process.env.GARDEN_NAME = gardenInfo.name;
+    process.env.GARDEN_DESCRIPTION = gardenInfo.description;
+    process.env.GARDEN_LOCATION = gardenInfo.location;
+    process.env.GARDEN_BANNER = gardenInfo.bannerImage;
+    process.env.GARDENERS = JSON.stringify(gardeners);
+    process.env.OPERATORS = JSON.stringify(operators);
 
     // Execute Foundry script
     const command = `forge script script/DeployGarden.s.sol:DeployGarden --private-key ${process.env.PRIVATE_KEY} --broadcast`;
     execSync(command, { stdio: "inherit" });
-
-    // Clean up config file
-    fs.unlinkSync(configPath);
   } catch (error) {
     console.error("Error deploying garden:", error);
     throw error;
@@ -158,44 +165,88 @@ async function deployGarden(gardenInfo, gardeners, operators) {
 
 async function main() {
   try {
-    // Get CSV file path from command line arguments
-    const csvPath = process.argv[2];
+    // Parse command line arguments
+    const args = process.argv.slice(2);
+    const dryRun = args.includes("--dry-run");
+    const csvPath = args.find((arg) => !arg.startsWith("--"));
+
     if (!csvPath) {
       console.error("Please provide a CSV file path as an argument");
-      console.error("Usage: node GardenOnboarding.js <path-to-csv>");
+      console.error("Usage: node GardenOnboarding.js [--dry-run] <path-to-csv>");
       process.exit(1);
     }
 
-    // Read and parse the CSV file
-    const data = await parseCSV(csvPath);
+    // Read and parse the CSV file as raw rows
+    const rows = await parseCSVRows(csvPath);
 
-    // Extract garden info from the first few rows (key-value pairs)
-    const bannerInput = data[3]["Banner Image URL or Upload:"];
+    // Skip the first line (instructions)
+    // Next 4 lines are key-value pairs
+    const name = rows[1][1] || rows[1][0]; // Handles both 'Name:' and 'Neme:'
+    const description = rows[2][1];
+    const location = rows[3][1];
+    const bannerInput = rows[4][1];
+
+    if (!bannerInput) {
+      throw new Error("Banner image value is missing or the column header is incorrect in the CSV.");
+    }
+
     console.log("Processing banner image...");
     const bannerImage = await processBannerImage(bannerInput);
 
     const gardenInfo = {
-      name: data[0]["Neme:"],
-      description: data[1]["Description:"],
-      location: data[2]["Location:"],
+      name,
+      description,
+      location,
       bannerImage,
     };
 
-    // Extract operators and gardeners
+    // Dynamically find the header row for operators/gardeners
+    let header,
+      headerRowIdx = -1;
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i].map((col) => col.trim());
+      if (row.includes("Garden Operators") && row.includes("Gardeners")) {
+        header = row;
+        headerRowIdx = i;
+        break;
+      }
+    }
+    if (!header || headerRowIdx === -1) {
+      console.error("Could not find a header row with both 'Garden Operators' and 'Gardeners'.");
+      rows.forEach((row, idx) => console.log(`Row ${idx}:`, row));
+      throw new Error("Could not find 'Garden Operators' or 'Gardeners' columns in the CSV");
+    }
+    const operatorIdx = header.findIndex((col) => col === "Garden Operators");
+    const gardenerIdx = header.findIndex((col) => col === "Gardeners");
+    console.log(
+      `Found columns - Operators at index ${operatorIdx}, Gardeners at index ${gardenerIdx} (header row ${headerRowIdx})`,
+    );
+
+    // The rest are the actual data
     const operators = new Set();
     const gardeners = new Set();
 
-    // Process all rows after the garden info
-    for (let i = 4; i < data.length; i++) {
-      const row = data[i];
-      if (row["Garden Operators"]) {
-        const operatorWallet = await createEmbeddedWallet(row["Garden Operators"]);
+    console.log("\nProcessing operators and gardeners...");
+    for (let i = headerRowIdx + 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row[operatorIdx] && !row[gardenerIdx]) continue; // Skip empty rows
+
+      // Process operator
+      if (row[operatorIdx]) {
+        const operatorId = row[operatorIdx].trim();
+        console.log(`\nProcessing operator: ${operatorId}`);
+        const operatorWallet = await createEmbeddedWallet(operatorId);
+        console.log(`Created/found smart wallet for operator: ${operatorWallet}`);
         operators.add(operatorWallet);
-        // Operators are also gardeners
-        gardeners.add(operatorWallet);
+        gardeners.add(operatorWallet); // Operators are also gardeners
       }
-      if (row["Gardeners"]) {
-        const gardenerWallet = await createEmbeddedWallet(row["Gardeners"]);
+
+      // Process gardener
+      if (row[gardenerIdx]) {
+        const gardenerId = row[gardenerIdx].trim();
+        console.log(`\nProcessing gardener: ${gardenerId}`);
+        const gardenerWallet = await createEmbeddedWallet(gardenerId);
+        console.log(`Created/found smart wallet for gardener: ${gardenerWallet}`);
         gardeners.add(gardenerWallet);
       }
     }
@@ -204,11 +255,23 @@ async function main() {
     const operatorAddresses = Array.from(operators);
     const gardenerAddresses = Array.from(gardeners);
 
+    console.log("\nSummary:");
+    console.log(`Total operators: ${operatorAddresses.length}`);
+    console.log(`Total gardeners: ${gardenerAddresses.length}`);
+
+    if (dryRun) {
+      console.log("\nDry run completed. Garden deployment skipped.");
+      console.log("Garden info:", gardenInfo);
+      console.log("Operator addresses:", operatorAddresses);
+      console.log("Gardener addresses:", gardenerAddresses);
+      process.exit(0);
+    }
+
     // Deploy garden contract with separate whitelists
-    console.log("Deploying garden contract...");
+    console.log("\nDeploying garden contract...");
     await deployGarden(gardenInfo, gardenerAddresses, operatorAddresses);
 
-    console.log("Garden onboarding completed successfully!");
+    console.log("\nGarden onboarding completed successfully!");
   } catch (error) {
     console.error("Error in garden onboarding:", error);
     process.exit(1);

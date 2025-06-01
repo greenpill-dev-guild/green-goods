@@ -15,39 +15,45 @@ import { GARDEN_TOKEN } from "../src/Constants.sol";
 /// @notice Script for deploying the GardenToken contract and minting a garden.
 contract DeployGarden is Script {
     function run() external {
-        // Read configuration from JSON file
-        string memory configPath = vm.readFile("./garden-config.json");
-        GardenConfig memory config = abi.decode(
-            stdJson.parseRaw(configPath, ".gardenInfo"),
-            (GardenConfig)
-        );
-        address[] memory gardeners = abi.decode(
-            stdJson.parseRaw(configPath, ".gardeners"),
-            (address[])
-        );
-        address[] memory operators = abi.decode(
-            stdJson.parseRaw(configPath, ".operators"),
-            (address[])
-        );
+        // Read configuration from environment variables
+        string memory name = vm.envString("GARDEN_NAME");
+        string memory description = vm.envString("GARDEN_DESCRIPTION");
+        string memory location = vm.envString("GARDEN_LOCATION");
+        string memory bannerImage = vm.envString("GARDEN_BANNER");
+        string memory gardenersJson = vm.envString("GARDENERS");
+        string memory operatorsJson = vm.envString("OPERATORS");
 
-        // Deploy GardenToken
+        // Parse JSON arrays
+        address[] memory gardeners = abi.decode(vm.parseJson(gardenersJson), (address[]));
+        address[] memory operators = abi.decode(vm.parseJson(operatorsJson), (address[]));
+
+        // Start broadcasting transactions
         vm.startBroadcast();
-        GardenToken gardenToken = GardenToken(GARDEN_TOKEN);
 
+        // Deploy garden contract
+        GardenToken gardenToken = GardenToken(GARDEN_TOKEN);
         address communityToken = CommunityTokenLib.getCommunityToken();
 
         address gardenAccount = gardenToken.mintGarden(
             communityToken,
-            config.name,
-            config.description,
-            config.location,
-            config.bannerImage,
+            name,
+            description,
+            location,
+            bannerImage,
             gardeners,
             operators
         );
 
         vm.stopBroadcast();
+
+        // Log deployment information
         console.log("Garden minted at:", gardenAccount);
+        console.log("Name:", name);
+        console.log("Description:", description);
+        console.log("Location:", location);
+        console.log("Banner Image:", bannerImage);
+        console.log("Number of Gardeners:", gardeners.length);
+        console.log("Number of Operators:", operators.length);
     }
 }
 

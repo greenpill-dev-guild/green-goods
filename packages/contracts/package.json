@@ -25,23 +25,26 @@
   },
   "dependencies": {
     "@ethereum-attestation-service/eas-contracts": "1.7.1",
+    "@hpke/chacha20poly1305": "^1.6.2",
+    "@hpke/core": "^1.7.2",
     "@openzeppelin/contracts-upgradeable": "4.9.6",
+    "@pinata/sdk": "^2.1.0",
     "@privy-io/server-auth": "latest",
     "csv-parse": "^5.5.3",
     "dotenv": "^16.4.1",
-    "@pinata/sdk": "^2.1.0",
     "form-data": "^4.0.0",
-    "node-fetch": "^2.7.0"
+    "node-fetch": "^2.7.0",
+    "pinata": "^0.4.0"
   },
   "devDependencies": {
     "@types/prettier": "2",
     "@types/qrcode": "1",
     "envfile": "~6.18.0",
-    "qrcode": "~1.5.4",
-    "toml": "~3.0.0",
-    "solidity-coverage": "^0.8.14",
-    "solhint": "^5.0.5",
     "prettier": "^3.5.3",
-    "prettier-plugin-solidity": "^1.4.2"
+    "prettier-plugin-solidity": "^1.4.2",
+    "qrcode": "~1.5.4",
+    "solhint": "^5.0.5",
+    "solidity-coverage": "^0.8.14",
+    "toml": "~3.0.0"
   }
 }
