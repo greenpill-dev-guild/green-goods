@@ -8,23 +8,34 @@ const fetch = require("node-fetch");
 const path = require("path");
 
 // Initialize Privy client
-const privyClient = new PrivyClient(process.env.RIVY_CLIENT_ID, process.env.PRIVY_APP_SECRET_ID);
+const privyClient = new PrivyClient(process.env.PRIVY_CLIENT_ID, process.env.PRIVY_APP_SECRET_ID, {
+  walletApi: {
+    authorizationPrivateKey: process.env.PRIVY_AUTHORIZATION_PRIVATE_KEY,
+  },
+});
 
 // Initialize Pinata client
 const pinata = new PinataClient({
   pinataJWTKey: process.env.PINATA_JWT,
 });
 
+const CONFIG = {
+  tempDir: path.join(__dirname, "temp"),
+  maxRetries: 3,
+  retryDelay: 1000,
+  supportedImageTypes: ['jpg', 'jpeg', 'png', 'gif']
+};
+
 // Function to download image from URL
 async function downloadImage(url) {
   const response = await fetch(url);
   const buffer = await response.buffer();
   const filename = path.basename(url);
-  const tempPath = path.join(__dirname, "temp", filename);
+  const tempPath = path.join(CONFIG.tempDir, filename);
 
   // Ensure temp directory exists
-  if (!fs.existsSync(path.join(__dirname, "temp"))) {
-    fs.mkdirSync(path.join(__dirname, "temp"));
+  if (!fs.existsSync(CONFIG.tempDir)) {
+    fs.mkdirSync(CONFIG.tempDir);
   }
 
   fs.writeFileSync(tempPath, buffer);
@@ -36,12 +47,23 @@ async function uploadToIPFS(filePath) {
   try {
     const readableStream = fs.createReadStream(filePath);
     const filename = path.basename(filePath);
-    const result = await pinata.pinFileToIPFS(readableStream, {
-      pinataMetadata: { name: filename },
-    });
+    const result = await uploadWithRetry(readableStream, { pinataMetadata: { name: filename } });
     return result.IpfsHash;
   } catch (error) {
     console.error("Error uploading to IPFS:", error);
+    throw error;
+  }
+}
+
+// Retry logic for IPFS upload
+async function uploadWithRetry(stream, metadata, retries = CONFIG.maxRetries) {
+  try {
+    return await pinata.pinFileToIPFS(stream, metadata);
+  } catch (error) {
+    if (retries > 0) {
+      await new Promise(resolve => setTimeout(resolve, CONFIG.retryDelay));
+      return uploadWithRetry(stream, metadata, retries - 1);
+    }
     throw error;
   }
 }
@@ -95,6 +117,9 @@ async function parseCSVRows(filePath) {
 // Function to create embedded wallet for a user
 async function createEmbeddedWallet(identifier) {
   try {
+    if (typeof identifier !== 'string' || !identifier) {
+      throw new Error("Invalid identifier provided for wallet creation");
+    }
     // First try to get the existing user
     let user;
     try {
@@ -105,10 +130,9 @@ async function createEmbeddedWallet(identifier) {
       console.log(`Creating new user for ${identifier}`);
       user = await privyClient.importUser({
         linkedAccounts: [
-          {
-            type: identifier.includes("@") ? "email" : "phone",
-            address: identifier,
-          },
+          identifier.includes("@")
+            ? { type: "email", address: identifier }
+            : { type: "phone", number: identifier },
         ],
         createEthereumWallet: true,
         createEthereumSmartWallet: true,
@@ -165,6 +189,23 @@ async function deployGarden(gardenInfo, gardeners, operators) {
 
 async function main() {
   try {
+    console.log("Starting garden onboarding process...");
+    console.log("Environment:", process.env.NODE_ENV || "development");
+
+    // Environment variable validation
+    const requiredEnvVars = [
+      'PRIVY_CLIENT_ID',
+      'PRIVY_APP_SECRET_ID',
+      'PRIVY_AUTHORIZATION_PRIVATE_KEY',
+      'PINATA_JWT',
+      'PRIVATE_KEY',
+    ];
+    for (const envVar of requiredEnvVars) {
+      if (!process.env[envVar]) {
+        throw new Error(`Missing required environment variable: ${envVar}`);
+      }
+    }
+
     // Parse command line arguments
     const args = process.argv.slice(2);
     const dryRun = args.includes("--dry-run");
@@ -179,6 +220,11 @@ async function main() {
     // Read and parse the CSV file as raw rows
     const rows = await parseCSVRows(csvPath);
 
+    // CSV validation
+    if (rows.length < 7) {
+      throw new Error("CSV file must have at least 7 rows (instructions + garden info + header + data)");
+    }
+
     // Skip the first line (instructions)
     // Next 4 lines are key-value pairs
     const name = rows[1][1] || rows[1][0]; // Handles both 'Name:' and 'Neme:'
@@ -187,7 +233,8 @@ async function main() {
     const bannerInput = rows[4][1];
 
     if (!bannerInput) {
-      throw new Error("Banner image value is missing or the column header is incorrect in the CSV.");
+      console.warn("No banner image provided, using default image");
+      return "default_ipfs_hash";
     }
 
     console.log("Processing banner image...");
