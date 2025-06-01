@@ -1,129 +1,234 @@
-## Overview
+# Green Goods
 
-Green Goods is an innovative Progressive Web App (PWA) designed to revolutionize biodiversity conservation. By providing tools for Garden Operators and Gardeners, the app streamlines the documentation and approval of conservation work. Key features include:
+Green Goods is a decentralized platform for biodiversity conservation, enabling Garden Operators and Gardeners to document and get approval for conservation work through blockchain-based attestations.
 
-- **Work Submission:** Gardeners can capture and upload images of their conservation efforts.
-- **Plant AI Detection (In Development):** Automatically verifies that uploaded images contain valid plant data using external APIs (with plans to explore local model deployment).
-- **Blockchain Integration:** Securely records work attestations on-chain using Ethereum Attestation Service (EAS) and related blockchain components.
-- **Impact Reporting:** Aggregates data for standardized impact metrics like invasive species removal, biomass generation, and carbon sequestration.
+## 🏗️ Repository Architecture
 
-## Getting Started
+The project is organized as a monorepo using pnpm workspaces:
+
+```
+green-goods/
+├── packages/
+│   ├── client/           # Frontend React application
+│   ├── contracts/        # Smart contracts and deployment scripts
+│   └── server/           # Backend services and APIs
+├── apps/                 # Additional applications
+└── docs/                 # Documentation
+```
+
+### Key Components
+
+#### Client (`packages/client`)
+
+- React-based Progressive Web App (PWA)
+- Built with Vite, TypeScript, and Tailwind CSS
+- Handles user authentication, garden management, and blockchain interactions
+
+#### Contracts (`packages/contracts`)
+
+- Solidity smart contracts for garden management
+- Foundry-based deployment scripts
+- Integration with Privy for wallet management
+
+#### Server (`packages/server`)
+
+- Backend services and APIs
+- Handles data persistence and business logic
+- Integrates with blockchain networks
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- **Node.js & npm:** Ensure you have Node.js (version 20 or higher) and npm installed.
-- **Git:** Version control is managed with Git.
-- **Foundry:** For smart contract development and testing.
-- **Docker (optional):** For local development and containerized deployments.
+- Node.js (v20 or higher)
+- pnpm (v9.x)
+- Foundry (for smart contract development)
+- Git
 
 ### Installation
 
-1. **Clone the Repository:**
+1. Clone the repository:
+
    ```bash
-   git clone https://github.com/greenpill-dev-guild/green-goods.git
+   git clone https://github.com/your-org/green-goods.git
    cd green-goods
    ```
-2. **Install Dependencies:**
+
+2. Install dependencies:
 
    ```bash
    pnpm install
    ```
 
-3. **Configure Environment Variables:** Create a .env file in each package as needed by copying the example .env file and set the necessary environment variables (e.g., API keys for plant detection, blockchain endpoints, etc.):
-
-_Reachout to the Green Goods team on the [Greenpill Dev Guild Discord](https://discord.gg/XgU4emTW7M) to get environment variables._
-
-4. **Build and Run the App:**
-   ```bash
-   pnpm run dev
-   ```
-
-The top `pnpm run dev` will run the Vite development server for the **Client** and for **Contracts** it will compile and build the smart contracts.
-
-### Client
-
-The Green Goods client is built using React and Vite. To run the development server, navigate to the client directory and run the following command:
-
-1. **Run the Development Server:**
-   ```bash
-   pnpm run dev
-   ```
-
-The app should now be running at http://localhost:3001.
-
-2. **Build for Production:**
-   ```bash
-   pnpm run build
-   ```
-
-The app will be built in the `dist` directory.
-
-### Contracts
-
-The Green Goods smart contracts are built using Foundry and deployed to a local blockchain (e.g., Anvil) or a public blockchain (e.g., Arbitrum).
-
-1. **Compile Contracts:**
+3. Set up environment variables:
 
    ```bash
-   pnpm run compile
+   # Copy example env files
+   cp packages/client/.env.example packages/client/.env
+   cp packages/contracts/.env.example packages/contracts/.env
+   cp packages/server/.env.example packages/server/.env
    ```
 
-2. **Build Contracts:**
+4. Configure environment variables:
+   - `PRIVY_CLIENT_ID`: Your Privy application ID
+   - `PRIVY_APP_SECRET_ID`: Privy app secret
+   - `PRIVY_AUTHORIZATION_PRIVATE_KEY`: Privy authorization key
+   - `PINATA_JWT`: Pinata API JWT token
+   - `PRIVATE_KEY`: Ethereum private key for deployments
+
+## 💻 Development
+
+### Running the Development Environment
+
+1. Start the client:
 
    ```bash
-   pnpm run build
+   pnpm --filter client dev
    ```
 
-3. **Deploy Contracts:** There are multiple deploy:\* scripts for different contracts and functionality. Each one simulate the transaction and in order to run onchain will need a `--broadcast` flag.
+2. Start the server:
 
    ```bash
-   pnpm run deploy:counter --broadcast
+   pnpm --filter server dev
    ```
 
-## Architecture
+3. Deploy contracts (if needed):
+   ```bash
+   pnpm --filter contracts deploy
+   ```
 
-Green Goods is built using a modern, modular architecture to ensure scalability and maintainability. The main components include:
+### Testing
+
+Run tests across all packages:
+
+```bash
+pnpm test
+```
+
+Run tests for a specific package:
+
+```bash
+pnpm --filter <package-name> test
+```
+
+### Linting and Type Checking
+
+```bash
+# Lint all packages
+pnpm lint
+
+# Type check all packages
+pnpm typecheck
+```
+
+## 🛠️ Core Technologies
 
 ### Frontend
 
-Built with React (using Vitejs) and styled with TailwindCSS.
+- **React**: UI library
+- **Vite**: Build tool and dev server
+- **TypeScript**: Type safety
+- **Tailwind CSS**: Styling
+- **TanStack Query**: Data fetching and caching
+- **Privy**: Authentication and wallet management
+- **Radix UI**: Accessible UI components
+- **React Hook Form**: Form management
 
-Implements a mobile-first PWA design for seamless user experience on both mobile and desktop.
+### Smart Contracts
 
-Integrates real-time image validation and plant detection UI flows.
-API Integration Layer:
+- **Solidity**: Smart contract language
+- **Foundry**: Development framework
+- **Hardhat**: Alternative development environment
 
-Handles calls to external plant detection services (e.g., Plant.id, PlantNet, Kindwise) for image analysis.
-Processes API responses and integrates detection data into work metadata.
+### Backend
 
-### Backend & Blockchain Integration
+- **Node.js**: Runtime
+- **Express**: Web framework
+- **TypeScript**: Type safety
+- **Prisma**: Database ORM
 
-Manages user submissions, work approvals, and conservation impact reports.
+## 📦 Package Management
 
-Deploys a Garden NFT contract that deploys tokenbound smart account owned by the NFT holder.
-
-Deploys an Action Registry smart contract that enables creating new actions for work submission, work approval, and impact reporting.
-
-Integrates with Ethereum Attestation Service (EAS) for blockchain-based attestations.
-
-Uses a Ethereum Attestation and Envio Graphql Indexer to read blockchain events asynchronously.
-
-_Refer to Green Goods technical specs for [work](https://app.charmverse.io/greenpill-dev-guild/green-goods-work-spec-2986399741355552) and [plant detection](https://app.charmverse.io/greenpill-dev-guild/green-goods-ai-plant-detection-spec-2926920793393595) for more details._
-
-## Contributing
-
-We welcome contributions from the community! To contribute to Green Goods, please follow these steps:
-
-1. **Fork the Repository:** Click the "Fork" button on the repository page to create your own copy.
-
-2. **Create a Branch:** Create a new branch for your feature or bug fix:
+### Adding Dependencies
 
 ```bash
-git checkout -b feature/your-feature-name
+# Add to specific package
+pnpm --filter <package-name> add <dependency>
+
+# Add dev dependency
+pnpm --filter <package-name> add -D <dependency>
 ```
 
-3. **Make Your Changes:** Develop and test your changes locally. Make sure to update documentation and tests as needed.
+### Workspace Scripts
 
-4. **Submit a Pull Request:** Once your changes are ready, submit a pull request (PR) detailing what your contribution does and linking to any relevant issues.
+```bash
+# Run script in specific package
+pnpm --filter <package-name> <script-name>
 
-5. **Review Process:** Our team will review your PR, provide feedback, and work with you to merge your contribution.
+# Run script in all packages
+pnpm -r <script-name>
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch:
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+3. Make your changes
+4. Run tests and linting:
+   ```bash
+   pnpm test
+   pnpm lint
+   ```
+5. Commit your changes:
+   ```bash
+   git commit -m "feat: your feature description"
+   ```
+6. Push to your fork
+7. Create a pull request
+
+### Commit Convention
+
+We follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
+
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `style`: Code style changes
+- `refactor`: Code refactoring
+- `test`: Adding or modifying tests
+- `chore`: Maintenance tasks
+
+### Pull Request Process
+
+1. Update documentation if needed
+2. Add tests for new features
+3. Ensure all tests pass
+4. Update the changelog
+5. Get code review approval
+6. Merge after approval
+
+## 📚 Documentation
+
+- [Architecture Overview](./docs/architecture.md)
+- [API Documentation](./docs/api.md)
+- [Smart Contract Documentation](./docs/contracts.md)
+- [Contributing Guidelines](./docs/contributing.md)
+
+## 🔐 Security
+
+- Report security vulnerabilities to security@greengoods.app
+- Do not disclose security-related issues publicly
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- [Privy](https://www.privy.io/) for authentication and wallet management
+- [Pinata](https://pinata.cloud/) for IPFS services
+- [Foundry](https://getfoundry.sh/) for smart contract development
+- All contributors and supporters of the project
