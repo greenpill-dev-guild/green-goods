@@ -15,20 +15,35 @@ import {
   TabsList,
 } from "@/components/UI/Tabs/Tabs";
 import { useRef } from "react";
-
-const availableTabs = {
-  help: { value: "help", Icon: RiHeadphoneLine, label: "Help" },
-  account: { value: "account", Icon: RiSettings2Fill, label: "Account" },
-};
+import { useIntl } from "react-intl";
 
 const Profile: React.FC = () => {
   const { user } = useUser();
   const contentRef = useRef<HTMLDivElement>(null);
+  const intl = useIntl();
+  const availableTabs = {
+    account: {
+      value: "account",
+      Icon: RiSettings2Fill,
+      label: intl.formatMessage({
+        id: "app.profile.account",
+        description: "Account",
+      }),
+    },
+    help: {
+      value: "help",
+      Icon: RiHeadphoneLine,
+      label: intl.formatMessage({
+        id: "app.profile.help",
+        description: "Help",
+      }),
+    },
+  };
 
   return (
     <section className={"flex"}>
       <Tabs
-        defaultValue="help"
+        defaultValue="account"
         className="w-full h-full px-4 pt-72 pb-4"
         onValueChange={() => {
           if (contentRef.current) {
@@ -36,7 +51,7 @@ const Profile: React.FC = () => {
           }
         }}
       >
-        <div className="fixed flex flex-col gap-1 top-0 left-0 px-4 pt-8 bg-white z-10">
+        <div className="fixed w-full gap-1 top-0 left-0 px-4 py-8 bg-white z-10 items-center">
           <UserProfile
             displayName={
               user?.email?.address ||

@@ -11,16 +11,34 @@ import { GardenAssessments } from "@/components/Garden/Asessments";
 import { Tabs, TabsList, TabsTrigger } from "@/components/UI/Tabs/Tabs";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
 import { useNavigateToTop } from "@/utils/useNavigateToTop";
-
-enum GardenTab {
-  Work = "work",
-  Assessments = "assessments",
-  Gardeners = "gardeners",
-}
+import { useIntl } from "react-intl";
 
 interface GardenProps {}
 
 export const Garden: React.FC<GardenProps> = () => {
+  const intl = useIntl();
+
+  enum GardenTab {
+    Work = "work",
+    Assessments = "assessments",
+    Gardeners = "gardeners",
+  }
+
+  const tabNames = {
+    [GardenTab.Work]: intl.formatMessage({
+      id: "app.garden.work",
+      defaultMessage: "Work",
+    }),
+    [GardenTab.Assessments]: intl.formatMessage({
+      id: "app.garden.assessments",
+      defaultMessage: "Assessments",
+    }),
+    [GardenTab.Gardeners]: intl.formatMessage({
+      id: "app.garden.gardeners",
+      defaultMessage: "Gardeners",
+    }),
+  };
+
   const navigate = useNavigateToTop();
   const [activeTab, setActiveTab] = useState<GardenTab>(GardenTab.Work);
   const [scrollPositions, setScrollPositions] = useState({
@@ -125,13 +143,26 @@ export const Garden: React.FC<GardenProps> = () => {
                   <div className="flex flex-row gap-1 items-center">
                     <RiMapPin2Fill className="h-4 text-primary" />
                     <div className="text-xs">
-                      <span className="font-medium">Location •</span> {location}
+                      <span className="font-medium">
+                        {intl.formatMessage({
+                          id: "app.home.location",
+                          description: "Location",
+                        })}{" "}
+                        •
+                      </span>{" "}
+                      {location}
                     </div>
                   </div>
                   <div className="flex flex-row gap-1 items-center">
                     <RiCalendarEventFill className="h-4 text-primary" />
                     <div className="text-xs">
-                      <span className="font-medium">Founded •</span>{" "}
+                      <span className="font-medium">
+                        {intl.formatMessage({
+                          id: "app.home.founded",
+                          description: "Founded",
+                        })}{" "}
+                        •
+                      </span>{" "}
                       {createdAt.toDateString()}
                     </div>
                   </div>
@@ -147,7 +178,7 @@ export const Garden: React.FC<GardenProps> = () => {
                       className={`flex-1 flex justify-center items-center p-3 cursor-pointer ${tab === activeTab ? "bg-teal-200 " : ""} transition-colors duration-200`}
                     >
                       <div className="capitalize small font-semibold text-center w-full">
-                        {tab}
+                        {tabNames[tab]}
                       </div>
                     </TabsTrigger>
                   ))}

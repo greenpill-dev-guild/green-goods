@@ -5,11 +5,13 @@ import { useGardens } from "@/providers/garden";
 import { GardenCard } from "@/components/UI/Card/GardenCard";
 import { BeatLoader } from "@/components/UI/Loader";
 import { useNavigateToTop } from "@/utils/useNavigateToTop";
+import { useIntl } from "react-intl";
 
 const Gardens: React.FC = () => {
   const navigate = useNavigateToTop();
   const location = useLocation();
   const { gardens, gardensStatus } = useGardens();
+  const intl = useIntl();
 
   function handleCardClick(id: string) {
     navigate(`/home/${id}`);
@@ -25,25 +27,33 @@ const Gardens: React.FC = () => {
           </div>
         );
       case "success":
-        return gardens.length ?
-            gardens.map((garden) => (
-              <GardenCard
-                key={garden.id}
-                garden={garden}
-                media="large"
-                showOperators={true}
-                selected={garden.id === location.pathname.split("/")[2]}
-                {...garden}
-                onClick={() => handleCardClick(garden.id)}
-              />
-            ))
-          : <p className="grid place-items-center text-sm italic">
-              No gardens found
-            </p>;
+        return gardens.length ? (
+          gardens.map((garden) => (
+            <GardenCard
+              key={garden.id}
+              garden={garden}
+              media="large"
+              showOperators={true}
+              selected={garden.id === location.pathname.split("/")[2]}
+              {...garden}
+              onClick={() => handleCardClick(garden.id)}
+            />
+          ))
+        ) : (
+          <p className="grid place-items-center text-sm italic">
+            {intl.formatMessage({
+              id: "app.home.messages.noGardensFound",
+              description: "No gardens found",
+            })}
+          </p>
+        );
       case "error":
         return (
           <p className="grid place-items-center text-sm italic">
-            Error loading gardens
+            {intl.formatMessage({
+              id: "app.home.messages.errorLoadingGardens",
+              description: "Error loading gardens",
+            })}
           </p>
         );
     }
@@ -51,10 +61,12 @@ const Gardens: React.FC = () => {
 
   return (
     <article className={"mb-6"}>
-      {location.pathname === "/home" ?
+      {location.pathname === "/home" ? (
         <>
           <div className="padded flex justify-between w-full py-4">
-            <h4 className="font-semibold">Home</h4>
+            <h4 className="font-semibold">
+              {intl.formatMessage({ id: "app.home" })}
+            </h4>
           </div>
           <div
             className={"padded flex-1 flex flex-col gap-4 overflow-y-scroll"}
@@ -62,7 +74,7 @@ const Gardens: React.FC = () => {
             <GardensList />
           </div>
         </>
-      : null}
+      ) : null}
       <Outlet />
     </article>
   );

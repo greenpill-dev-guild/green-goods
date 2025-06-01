@@ -5,6 +5,13 @@ import { PostHogProvider } from "posthog-js/react";
 
 import enMessages from "@/i18n/en.json";
 import ptMessages from "@/i18n/pt.json";
+import esMessages from "@/i18n/es.json";
+
+const messages = {
+  en: enMessages,
+  pt: ptMessages,
+  es: esMessages,
+};
 import { track } from "@/modules/posthog";
 
 export type InstallState =
@@ -12,16 +19,16 @@ export type InstallState =
   | "not-installed"
   | "installed"
   | "unsupported";
-export type Locale = "en" | "pt";
+export const supportedLanguages = ["en", "pt", "es"] as const;
+export type Locale = (typeof supportedLanguages)[number];
 export type Platform = "ios" | "android" | "windows" | "unknown";
-
-const supportedLanguages: Locale[] = ["en", "pt"];
 
 export interface AppDataProps {
   isMobile: boolean;
   isInstalled: boolean;
   platform: Platform;
   locale: Locale;
+  availableLocales: readonly Locale[];
   deferredPrompt: BeforeInstallPromptEvent | null;
   promptInstall: () => void;
   handleInstallCheck: (e: any) => void;
@@ -32,11 +39,6 @@ interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
-
-const messages = {
-  en: enMessages,
-  pt: ptMessages,
-};
 
 function getMobileOperatingSystem(): Platform {
   // @ts-ignore
@@ -64,6 +66,7 @@ const AppContext = React.createContext<AppDataProps>({
   isMobile: false,
   isInstalled: false,
   locale: "en",
+  availableLocales: supportedLanguages,
   deferredPrompt: null,
   platform: "unknown",
   promptInstall: () => {},
@@ -76,10 +79,13 @@ export const useApp = () => {
 };
 
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
-  const defaultLocale = browserLang({
-    languages: supportedLanguages,
-    fallback: "en",
-  });
+  const defaultLocale =
+    localStorage.getItem("gg-language") ?
+      (localStorage.getItem("gg-language") as Locale)
+    : browserLang({
+        languages: [...supportedLanguages],
+        fallback: "en",
+      });
   const [locale, setLocale] = useState<Locale>(defaultLocale as Locale);
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
@@ -122,6 +128,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
   function switchLanguage(lang: Locale) {
     setLocale(lang);
+    localStorage.setItem("gg-language", lang);
   }
 
   const promptInstall = () => {
@@ -168,6 +175,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           isInstalled: installState === "installed",
           platform,
           locale,
+          availableLocales: supportedLanguages,
           deferredPrompt,
           promptInstall,
           handleInstallCheck,
