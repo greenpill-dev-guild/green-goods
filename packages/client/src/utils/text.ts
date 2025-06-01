@@ -58,3 +58,6 @@ export function formatLastUpdated(updatedAt: string) {
 
   return "just now";
 }
+
+export const capitalize = (s: string): string =>
+  (s && String(s[0]).toUpperCase() + String(s).slice(1)) || "";

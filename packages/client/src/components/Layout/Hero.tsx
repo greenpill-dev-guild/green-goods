@@ -6,12 +6,14 @@ import "react-device-frameset/styles/marvel-devices.min.css";
 
 import { useApp } from "@/providers/app";
 import { RiCloseLine } from "@remixicon/react";
+import { useIntl } from "react-intl";
 
 interface HeroProps {
   handleSubscribe: (e: React.FormEvent<HTMLFormElement>) => void;
 }
 
 export const Hero: React.FC<HeroProps> = () => {
+  const intl = useIntl();
   const { isMobile, platform } = useApp();
 
   return (
@@ -21,13 +23,22 @@ export const Hero: React.FC<HeroProps> = () => {
         className="flex-1 flex flex-col gap-2 items-center lg:items-start lg:justify-center pt-[10vh] lg:pt-0 text-center lg:text-left"
       >
         <h2 className="font-bold lg:text-8xl lg:tracking-wide text-[#367D42] mb-2">
-          Bringing Biodiversity Onchain
+          {intl.formatMessage({
+            id: "app.hero.title",
+            defaultMessage: "Bringing Biodiversity Onchain",
+          })}
         </h2>
         <p className="text-xl lg:text-2xl">
-          Green Goods measures, tracks, and rewards the impact on gardens with a
-          simple progressive web app.{" "}
+          {intl.formatMessage({
+            id: "app.hero.description",
+            defaultMessage:
+              "Green Goods measures, tracks, and rewards the impact on gardens with a simple progressive web app.",
+          })}
           <span className="font-bold text-2xl hidden sm:flex text-[#367D42]">
-            Open the website on your phone to get started!
+            {intl.formatMessage({
+              id: "app.hero.cta",
+              defaultMessage: "Open the website on your phone to get started!",
+            })}
           </span>
         </p>
         {/* <div className="flex flex-col lg:flex-row w-full mt-6">
@@ -49,28 +60,39 @@ export const Hero: React.FC<HeroProps> = () => {
         {isMobile && (
           <Dialog.Root>
             <Dialog.Trigger className="px-4 py-3 bg-green-600 text-white rounded-full w-full">
-              Install App
+              {intl.formatMessage({
+                id: "app.hero.install",
+                defaultMessage: "Install App",
+              })}
             </Dialog.Trigger>
             <Dialog.Portal>
               <Dialog.Overlay className="fixed inset-0 bg-transparent backdrop-blur-sm animate-fade-in" />
               <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-4 max-w-md w-full animate-scale-in">
                 <div className="relative bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
-                  <h4 className="text-[#367D42]">Install Green Goods</h4>
+                  <h4 className="text-[#367D42]">
+                    {intl.formatMessage({
+                      id: "app.hero.install.title",
+                      defaultMessage: "Install Green Goods",
+                    })}
+                  </h4>
                   <p>
                     {platform === "ios" ?
-                      <>
-                        Tap the share button and then press{" "}
-                        <b>"Add to Home Screen"</b>
-                      </>
+                      intl.formatMessage({
+                        id: "app.hero.install.ios",
+                        defaultMessage:
+                          "Tap the share button and then press <b>Add to Home Screen</b>",
+                      })
                     : platform === "android" ?
-                      <>
-                        Tap the 3 dots menu button in the bottom right and press{" "}
-                        <b>"Add to Home Screen"</b>
-                      </>
-                    : <>
-                        Tap the menu button and press{" "}
-                        <b>"Add to Home Screen"</b>
-                      </>
+                      intl.formatMessage({
+                        id: "app.hero.install.android",
+                        defaultMessage:
+                          "Tap the 3 dots menu button in the bottom right and press <b>Add to Home Screen</b>",
+                      })
+                    : intl.formatMessage({
+                        id: "app.hero.install.other",
+                        defaultMessage:
+                          "Tap the menu button and press <b>Add to Home Screen</b>",
+                      })
                     }
                   </p>
                   <Dialog.Close className="absolute top-3 right-3">

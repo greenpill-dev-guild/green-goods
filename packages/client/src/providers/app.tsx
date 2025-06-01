@@ -1,25 +1,34 @@
 import browserLang from "browser-lang";
 import { IntlProvider } from "react-intl";
 import React, { useState, useEffect, useContext } from "react";
+import { PostHogProvider } from "posthog-js/react";
 
 import enMessages from "@/i18n/en.json";
 import ptMessages from "@/i18n/pt.json";
+import esMessages from "@/i18n/es.json";
+
+const messages = {
+  en: enMessages,
+  pt: ptMessages,
+  es: esMessages,
+};
+import { track } from "@/modules/posthog";
 
 export type InstallState =
   | "idle"
   | "not-installed"
   | "installed"
   | "unsupported";
-export type Locale = "en" | "pt";
+export const supportedLanguages = ["en", "pt", "es"] as const;
+export type Locale = (typeof supportedLanguages)[number];
 export type Platform = "ios" | "android" | "windows" | "unknown";
-
-const supportedLanguages: Locale[] = ["en", "pt"];
 
 export interface AppDataProps {
   isMobile: boolean;
   isInstalled: boolean;
   platform: Platform;
   locale: Locale;
+  availableLocales: readonly Locale[];
   deferredPrompt: BeforeInstallPromptEvent | null;
   promptInstall: () => void;
   handleInstallCheck: (e: any) => void;
@@ -30,11 +39,6 @@ interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
-
-const messages = {
-  en: enMessages,
-  pt: ptMessages,
-};
 
 function getMobileOperatingSystem(): Platform {
   // @ts-ignore
@@ -62,6 +66,7 @@ const AppContext = React.createContext<AppDataProps>({
   isMobile: false,
   isInstalled: false,
   locale: "en",
+  availableLocales: supportedLanguages,
   deferredPrompt: null,
   platform: "unknown",
   promptInstall: () => {},
@@ -74,10 +79,13 @@ export const useApp = () => {
 };
 
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
-  const defaultLocale = browserLang({
-    languages: supportedLanguages,
-    fallback: "en",
-  });
+  const defaultLocale =
+    localStorage.getItem("gg-language") ?
+      (localStorage.getItem("gg-language") as Locale)
+    : browserLang({
+        languages: [...supportedLanguages],
+        fallback: "en",
+      });
   const [locale, setLocale] = useState<Locale>(defaultLocale as Locale);
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
@@ -111,12 +119,16 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
   function handleAppInstalled() {
     setInstalledState("installed");
-
-    // TODO: Add analytics and fire notification
+    track("App Installed", {
+      platform,
+      locale,
+      installState,
+    });
   }
 
   function switchLanguage(lang: Locale) {
     setLocale(lang);
+    localStorage.setItem("gg-language", lang);
   }
 
   const promptInstall = () => {
@@ -146,24 +158,34 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <AppContext.Provider
-      value={{
-        isMobile:
-          platform === "ios" ||
-          platform === "android" ||
-          platform === "windows",
-        isInstalled: installState === "installed",
-        platform,
-        locale,
-        deferredPrompt,
-        promptInstall,
-        handleInstallCheck,
-        switchLanguage,
+    <PostHogProvider
+      apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
+      options={{
+        api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+        capture_exceptions: true,
+        debug: import.meta.env.MODE === "development",
       }}
     >
-      <IntlProvider locale={locale} messages={messages[locale]}>
-        {children}
-      </IntlProvider>
-    </AppContext.Provider>
+      <AppContext.Provider
+        value={{
+          isMobile:
+            platform === "ios" ||
+            platform === "android" ||
+            platform === "windows",
+          isInstalled: installState === "installed",
+          platform,
+          locale,
+          availableLocales: supportedLanguages,
+          deferredPrompt,
+          promptInstall,
+          handleInstallCheck,
+          switchLanguage,
+        }}
+      >
+        <IntlProvider locale={locale} messages={messages[locale]}>
+          {children}
+        </IntlProvider>
+      </AppContext.Provider>
+    </PostHogProvider>
   );
 };
