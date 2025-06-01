@@ -23,8 +23,6 @@ export const supportedLanguages = ["en", "pt", "es"] as const;
 export type Locale = (typeof supportedLanguages)[number];
 export type Platform = "ios" | "android" | "windows" | "unknown";
 
-const supportedLanguages: Locale[] = ["en", "pt"];
-
 export interface AppDataProps {
   isMobile: boolean;
   isInstalled: boolean;
