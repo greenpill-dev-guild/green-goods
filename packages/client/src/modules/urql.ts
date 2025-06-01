@@ -1,7 +1,7 @@
 import { Client, cacheExchange, fetchExchange } from "@urql/core";
 
 export const greenGoodsIndexer = new Client({
-  url: "https://indexer.dev.hyperindex.xyz/332f54b/v1/graphql",
+  url: import.meta.env.VITE_ENVIO_INDEXER_URL,
   exchanges: [cacheExchange, fetchExchange],
 });
 

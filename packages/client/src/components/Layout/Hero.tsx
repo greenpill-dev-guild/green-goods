@@ -1,8 +1,11 @@
 import React from "react";
+import * as Dialog from "@radix-ui/react-dialog";
 import { DeviceFrameset } from "react-device-frameset";
+
 import "react-device-frameset/styles/marvel-devices.min.css";
 
 import { useApp } from "@/providers/app";
+import { RiCloseLine } from "@remixicon/react";
 
 interface HeroProps {
   handleSubscribe: (e: React.FormEvent<HTMLFormElement>) => void;
@@ -44,36 +47,39 @@ export const Hero: React.FC<HeroProps> = () => {
           </button>
         </div> */}
         {isMobile && (
-          <>
-            <button
-              className="w-full lg:max-w-xs h-14 px-4 py-2 rounded-md bg-[#D2B48C] text-white font-bold"
-              type="button"
-              onClick={() => {
-                const dialog = document.getElementById(
-                  "pwa-dialog"
-                ) as HTMLDialogElement;
-
-                dialog.showModal();
-              }}
-            >
+          <Dialog.Root>
+            <Dialog.Trigger className="px-4 py-3 bg-green-600 text-white rounded-full w-full">
               Install App
-            </button>
-            <dialog id="pwa-dialog" className="modal">
-              <div className="modal-box bg-white">
-                <h4 className="text-[#367D42]">Install Green Goods</h4>
-                <p>
-                  {platform === "ios"
-                    ? "Tap the share button and then 'Add to Home Screen'."
-                    : platform === "android"
-                      ? "Tap the menu button and then 'Add to Home Screen'."
-                      : "Tap the menu button and then 'Add to Home Screen'."}
-                </p>
-              </div>
-              <form method="dialog" className="modal-backdrop">
-                <button>close</button>
-              </form>
-            </dialog>
-          </>
+            </Dialog.Trigger>
+            <Dialog.Portal>
+              <Dialog.Overlay className="fixed inset-0 bg-transparent backdrop-blur-sm animate-fade-in" />
+              <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-4 max-w-md w-full animate-scale-in">
+                <div className="relative bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
+                  <h4 className="text-[#367D42]">Install Green Goods</h4>
+                  <p>
+                    {platform === "ios" ?
+                      <>
+                        Tap the share button and then press{" "}
+                        <b>"Add to Home Screen"</b>
+                      </>
+                    : platform === "android" ?
+                      <>
+                        Tap the 3 dots menu button in the bottom right and press{" "}
+                        <b>"Add to Home Screen"</b>
+                      </>
+                    : <>
+                        Tap the menu button and press{" "}
+                        <b>"Add to Home Screen"</b>
+                      </>
+                    }
+                  </p>
+                  <Dialog.Close className="absolute top-3 right-3">
+                    <RiCloseLine />
+                  </Dialog.Close>
+                </div>
+              </Dialog.Content>
+            </Dialog.Portal>
+          </Dialog.Root>
         )}
       </div>
       <div>
