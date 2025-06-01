@@ -31,6 +31,7 @@
     "embla-carousel-react": "^8.5.2",
     "gql.tada": "^1.8.10",
     "pinata": "^0.4.0",
+    "posthog-js": "^1.248.1",
     "react": "^18.3.1",
     "react-device-frameset": "1.3.4",
     "react-dom": "^18.3.1",
