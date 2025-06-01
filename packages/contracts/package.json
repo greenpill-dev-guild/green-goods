@@ -20,11 +20,18 @@
     "deploy:resolvers": "source .env && forge script script/DeployResolvers.s.sol:DeployResolvers --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN",
     "deploy:operators": "source .env && forge script script/DeployGardenOperators.s.sol:DeployGardenOperators --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN",
     "deploy:new-garden": "source .env && forge script script/DeployGarden.s.sol:DeployGarden --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN",
-    "deploy:new-action": "source .env && forge script script/DeployAction.s.sol:DeployAction --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN"
+    "deploy:new-action": "source .env && forge script script/DeployAction.s.sol:DeployAction --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN",
+    "onboard:garden": "node script/GardenOnboarding.js"
   },
   "dependencies": {
     "@ethereum-attestation-service/eas-contracts": "1.7.1",
-    "@openzeppelin/contracts-upgradeable": "4.9.6"
+    "@openzeppelin/contracts-upgradeable": "4.9.6",
+    "@privy-io/server-auth": "latest",
+    "csv-parse": "^5.5.3",
+    "dotenv": "^16.4.1",
+    "@pinata/sdk": "^2.1.0",
+    "form-data": "^4.0.0",
+    "node-fetch": "^2.7.0"
   },
   "devDependencies": {
     "@types/prettier": "2",
