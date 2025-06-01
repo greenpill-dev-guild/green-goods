@@ -2,6 +2,7 @@ import { forwardRef } from "react";
 import { BeatLoader } from "../UI/Loader";
 import { WorkCard } from "../UI/Card/WorkCard";
 import { useNavigateToTop } from "@/utils/useNavigateToTop";
+import { useIntl } from "react-intl";
 
 interface GardenWorkProps {
   actions: Action[];
@@ -12,6 +13,7 @@ interface GardenWorkProps {
 
 export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
   ({ works, actions, workFetchStatus, handleScroll }, ref) => {
+    const intl = useIntl();
     const navigate = useNavigateToTop();
 
     const WorkList = () => {
@@ -47,12 +49,18 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
                   />
                 ))
             : <p className="grid p-8 place-items-center text-sm text-center italic text-gray-400">
-                No work yet, get started by submitting new work.
+                {intl.formatMessage({
+                  id: "app.garden.work.noWork",
+                  description: "No work yet",
+                })}
               </p>;
         case "error":
           return (
             <p className="grid place-items-center text-sm italic">
-              Error loading works
+              {intl.formatMessage({
+                id: "app.garden.work.errorLoadingWorks",
+                description: "Error loading works",
+              })}
             </p>
           );
       }

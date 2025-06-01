@@ -9,6 +9,7 @@ import {
 } from "@/components/UI/Carousel/Carousel";
 import { ActionCard } from "@/components/UI/Card/ActionCard";
 import { GardenCard } from "@/components/UI/Card/GardenCard";
+import { useIntl } from "react-intl";
 
 interface WorkIntroProps {
   actions: Action[];
@@ -27,28 +28,46 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
   setActionUID,
   setGardenAddress,
 }) => {
+  const intl = useIntl();
+
   return (
     <>
       <FormInfo
-        title="Select your action"
-        info="What type of work you are submitting?"
+        title={intl.formatMessage({
+          id: "app.garden.selectYourAction",
+          defaultMessage: "Select your action",
+        })}
+        info={intl.formatMessage({
+          id: "app.garden.whatTypeOfWork",
+          defaultMessage: "What type of work are you submitting?",
+        })}
         Icon={RiHammerFill}
       />
-      <Carousel opts={{ align: "start"}}>
+      <Carousel opts={{ align: "start" }}>
         <CarouselContent>
           {actions.map((action) => (
             <CarouselItem
               key={action.id}
               onClick={() => setActionUID(action.id)}
             >
-              <ActionCard action={action} selected={selectedActionUID === action.id} media="small" />
+              <ActionCard
+                action={action}
+                selected={selectedActionUID === action.id}
+                media="small"
+              />
             </CarouselItem>
           ))}
         </CarouselContent>
       </Carousel>
       <FormInfo
-        title="Select your garden"
-        info="Which garden are you submitting for?"
+        title={intl.formatMessage({
+          id: "app.garden.selectYourGarden",
+          defaultMessage: "Select your garden",
+        })}
+        info={intl.formatMessage({
+          id: "app.garden.whichGarden",
+          defaultMessage: "Which garden are you submitting for?",
+        })}
         Icon={RiPlantFill}
       />
       <Carousel>
@@ -58,7 +77,12 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
               key={garden.id}
               onClick={() => setGardenAddress(garden.id)}
             >
-              <GardenCard garden={garden} selected={garden.id === selectedGardenAddress} showDescription={true} showOperators={false} />
+              <GardenCard
+                garden={garden}
+                selected={garden.id === selectedGardenAddress}
+                showDescription={true}
+                showOperators={false}
+              />
             </CarouselItem>
           ))}
         </CarouselContent>

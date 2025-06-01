@@ -14,6 +14,7 @@ import {
   CarouselContent,
   CarouselItem,
 } from "@/components/UI/Carousel/Carousel";
+import { useIntl } from "react-intl";
 
 interface WorkReviewProps {
   instruction: string;
@@ -34,10 +35,23 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
   plantCount,
   feedback,
 }) => {
+  const intl = useIntl();
   return (
     <div className="flex flex-col gap-4">
-      <FormInfo title="Review Work" info={instruction} Icon={RiFileFill} />
-      <h6>Garden</h6>
+      <FormInfo
+        title={intl.formatMessage({
+          id: "app.garden.review.title",
+          defaultMessage: "Review Work",
+        })}
+        info={instruction}
+        Icon={RiFileFill}
+      />
+      <h6>
+        {intl.formatMessage({
+          id: "app.garden.review.garden",
+          defaultMessage: "Garden",
+        })}
+      </h6>
       <GardenCard
         garden={garden}
         selected={false}
@@ -47,7 +61,12 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
       />
       {images.length > 0 && (
         <>
-          <h6>Media</h6>
+          <h6>
+            {intl.formatMessage({
+              id: "app.garden.review.media",
+              defaultMessage: "Media",
+            })}
+          </h6>
           <Carousel>
             <CarouselContent>
               {images.map((file, index) => (
@@ -66,18 +85,43 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
           </Carousel>
         </>
       )}
-      <h6>Details</h6>
-      <FormCard label="Action" value={action.title} Icon={RiHammerFill} />
+      <h6>
+        {intl.formatMessage({
+          id: "app.garden.review.details",
+          defaultMessage: "Details",
+        })}
+      </h6>
       <FormCard
-        label="Plant Types"
+        label={intl.formatMessage({
+          id: "app.garden.review.action",
+          defaultMessage: "Action",
+        })}
+        value={action.title}
+        Icon={RiHammerFill}
+      />
+      <FormCard
+        label={intl.formatMessage({
+          id: "app.garden.review.plantTypes",
+          defaultMessage: "Plant Types",
+        })}
         value={plantSelection.join(", ")}
         Icon={RiPlantFill}
       />
       {feedback && (
-        <FormCard label="Description" value={feedback} Icon={RiPencilFill} />
+        <FormCard
+          label={intl.formatMessage({
+            id: "app.garden.review.description",
+            defaultMessage: "Description",
+          })}
+          value={feedback}
+          Icon={RiPencilFill}
+        />
       )}
       <FormCard
-        label="Plant Amount"
+        label={intl.formatMessage({
+          id: "app.garden.review.plantAmount",
+          defaultMessage: "Plant Amount",
+        })}
         value={plantCount.toString()}
         Icon={RiLeafFill}
       />

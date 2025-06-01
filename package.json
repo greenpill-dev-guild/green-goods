@@ -13,6 +13,7 @@
     "foundry"
   ],
   "scripts": {
+    "init": "pnpm install",
     "foundry:up": "curl -L https://foundry.paradigm.xyz | bash && bash $HOME/.foundry/bin/foundryup",
     "prepare": "(forge --version || pnpm foundry:up)",
     "build": "pnpm recursive run build",
@@ -35,7 +36,7 @@
     "wait-port": "1.1.0"
   },
   "engines": {
-    "node": "20.x",
-    "pnpm": "^9.x"
+    "node": ">=20.x",
+    "pnpm": ">=9.x"
   }
 }

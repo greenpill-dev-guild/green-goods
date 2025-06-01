@@ -2,6 +2,7 @@ import React from "react";
 import { RiAlertFill } from "@remixicon/react";
 import { formatAddress } from "@/utils/text";
 import { Link } from "react-router-dom";
+import { useIntl } from "react-intl";
 
 interface GardenNotificationsProps {
   garden: Garden;
@@ -12,6 +13,7 @@ export const GardenNotifications: React.FC<GardenNotificationsProps> = ({
   garden,
   notifications,
 }) => {
+  const intl = useIntl();
   return (
     <div
       tabIndex={0}
@@ -25,13 +27,28 @@ export const GardenNotifications: React.FC<GardenNotificationsProps> = ({
         >
           <div className="inline-flex gap-2 items-center">
             <RiAlertFill size={20} className="text-amber-500" />
-            <span className="text-base">Pending Work Approval</span>
+            <span className="text-base">
+              {intl.formatMessage({
+                id: "app.home.notifications.pendingWorkApproval",
+                description: "Pending Work Approval",
+              })}
+            </span>
           </div>
           <p className="">
-            <b>{formatAddress(gardenerAddress)}</b> completed work on{" "}
+            <b>{formatAddress(gardenerAddress)}</b>{" "}
+            {intl.formatMessage({
+              id: "app.home.notifications.completedWorkApproval",
+              description: "Completed work on",
+            })}{" "}
             <b>{garden.name}</b>
           </p>
-          <p> Tap notification to review</p>
+          <p>
+            {" "}
+            {intl.formatMessage({
+              id: "app.home.notifications.tapToReview",
+              description: "Tap notification to review",
+            })}
+          </p>
         </Link>
       ))}
     </div>
