@@ -1,0 +1,10 @@
+{
+  "gardenInfo": {
+    "name": "Test Garden",
+    "description": "Here in this garden we test things",
+    "location": "Mars",
+    "bannerImage": "QmavXo5zJsgwhF6tZDgvgK193tB4b6NVcakeHh29kv1YRe"
+  },
+  "gardeners": [],
+  "operators": []
+}
