@@ -10,6 +10,7 @@ import {
 import { z } from "zod";
 import { useIntl } from "react-intl";
 import { arbitrum } from "viem/chains";
+import { decodeErrorResult } from "viem";
 import { Form, useForm } from "react-hook-form";
 import { useParams } from "react-router-dom";
 import {
@@ -20,7 +21,6 @@ import React, { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { encodeFunctionData } from "viem/utils";
-import { Chain, decodeErrorResult, TransactionRequest } from "viem";
 
 import { EAS } from "@/constants";
 
