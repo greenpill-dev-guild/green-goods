@@ -27,7 +27,6 @@ import { useUser } from "./user";
 import { useGardens } from "./garden";
 import { arbitrum } from "viem/chains";
 import { encodeFunctionData } from "viem/utils";
-import { Chain, TransactionRequest } from "viem";
 
 export enum WorkTab {
   Intro = "Intro",
@@ -167,15 +166,12 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         functionName: "attest",
       });
 
-      const transactionRequest: TransactionRequest & { chain: Chain } = {
+      const receipt = await smartAccountClient.sendTransaction({
         chain: arbitrum,
         to: EAS["42161"].EAS.address as `0x${string}`,
         value: 0n,
         data: encodedData,
-      };
-
-      const receipt =
-        await smartAccountClient.sendTransaction(transactionRequest);
+      });
 
       return receipt;
     },

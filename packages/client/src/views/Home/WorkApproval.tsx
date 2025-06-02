@@ -8,6 +8,7 @@ import {
   RiPlantFill,
 } from "@remixicon/react";
 import { z } from "zod";
+import { useIntl } from "react-intl";
 import { arbitrum } from "viem/chains";
 import { Form, useForm } from "react-hook-form";
 import { useParams } from "react-router-dom";
@@ -46,7 +47,6 @@ import { FormText } from "@/components/UI/Form/Text";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
 import { WorkCompleted } from "../Garden/Completed";
 import { GardenCard } from "@/components/UI/Card/GardenCard";
-import { useIntl } from "react-intl";
 
 interface GardenWorkApprovalProps {}
 
@@ -111,15 +111,12 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
         ],
       });
 
-      const transactionRequest: TransactionRequest & { chain: Chain } = {
+      const receipt = await smartAccountClient.sendTransaction({
         chain: arbitrum,
         to: EAS["42161"].EAS.address as `0x${string}`,
         value: 0n,
         data: encodedData,
-      };
-
-      const receipt =
-        await smartAccountClient.sendTransaction(transactionRequest);
+      });
 
       return receipt;
     },
