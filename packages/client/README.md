@@ -86,16 +86,26 @@ The client application uses [Vitest](https://vitest.dev/) for unit and integrati
   ```
   The coverage report will typically be generated in a `coverage` directory within `packages/client`.
 
-## Linting
+## Code Quality and Formatting
 
-The project uses ESLint for code linting to ensure code quality and consistency.
+The project uses Biome for fast formatting and linting, along with ESLint for additional code quality checks.
 
-- **Run the linter:**
+- **Format code:**
+  ```bash
+  pnpm run format
+  ```
+
+- **Check formatting without applying changes:**
+  ```bash
+  pnpm run format:check
+  ```
+
+- **Run linting:**
   ```bash
   pnpm run lint
   ```
 
-This command will check the codebase for any linting errors or warnings based on the configured rules in `eslint.config.js`.
+The `lint` command runs both Biome checks and ESLint to ensure code quality and consistency based on the configured rules in `biome.json` and `eslint.config.js`.
 
 ## Key Technologies
 
@@ -114,6 +124,7 @@ The client application is built with a modern frontend stack:
 - **[Radix UI](https://www.radix-ui.com/):** For unstyled, accessible UI primitives.
 - **[React Hook Form](https://react-hook-form.com/):** For form validation and management.
 - **[PWA Features](https://vite-pwa-org.netlify.app/):** Configured via `vite-plugin-pwa` to enable Progressive Web App capabilities.
+- **[Biome](https://biomejs.dev/):** Fast and modern formatter and linter for JavaScript/TypeScript.
 
 ## Project Structure Highlights
 

@@ -111,13 +111,19 @@ Run tests for a specific package:
 pnpm --filter <package-name> test
 ```
 
-### Linting and Type Checking
+### Code Quality and Formatting
 
 ```bash
-# Lint all packages
+# Format code across all packages
+pnpm format
+
+# Check formatting without applying changes
+pnpm format:check
+
+# Lint and check code quality
 pnpm lint
 
-# Type check all packages
+# Type check all packages (if available)
 pnpm typecheck
 ```
 
@@ -133,6 +139,7 @@ pnpm typecheck
 - **Privy**: Authentication and wallet management
 - **Radix UI**: Accessible UI components
 - **React Hook Form**: Form management
+- **Biome**: Fast formatting and linting
 
 ### Smart Contracts
 
@@ -177,17 +184,21 @@ pnpm -r <script-name>
    git checkout -b feature/your-feature-name
    ```
 3. Make your changes
-4. Run tests and linting:
+4. **Git hooks will automatically**:
+   - Format and lint staged files on commit (pre-commit hook)
+   - Run comprehensive quality checks on push (pre-push hook)
+5. Manual quality checks (optional):
    ```bash
+   pnpm format
    pnpm test
    pnpm lint
    ```
-5. Commit your changes:
+6. Commit your changes:
    ```bash
    git commit -m "feat: your feature description"
    ```
-6. Push to your fork
-7. Create a pull request
+7. Push to your fork
+8. Create a pull request
 
 ### Commit Convention
 

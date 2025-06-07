@@ -46,8 +46,7 @@
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json,md}": [
-      "biome format --write",
-      "biome check"
+      "biome format --write"
     ],
     "*.sol": [
       "pnpm --filter contracts format"

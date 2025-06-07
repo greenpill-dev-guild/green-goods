@@ -1,0 +1,103 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.0.0-beta.6/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "style": {
+        "noParameterAssign": "warn",
+        "useAsConstAssertion": "warn",
+        "useDefaultParameterLast": "warn",
+        "useEnumInitializers": "warn",
+        "useSelfClosingElements": "warn",
+        "useSingleVarDeclarator": "warn",
+        "noUnusedTemplateLiteral": "warn",
+        "useNumberNamespace": "warn",
+        "noInferrableTypes": "off",
+        "noUselessElse": "warn"
+      },
+      "suspicious": {
+        "noArrayIndexKey": "warn"
+      },
+      "correctness": {
+        "noUnusedVariables": "warn"
+      }
+    }
+  },
+  "formatter": {
+    "enabled": true,
+    "formatWithErrors": false,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineEnding": "lf",
+    "lineWidth": 100,
+    "attributePosition": "auto",
+    "bracketSpacing": true,
+    "bracketSameLine": false,
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/build",
+      "!**/coverage",
+      "!**/dev-dist",
+      "!**/broadcast",
+      "!**/cache",
+      "!**/out",
+      "!**/lib",
+      "!**/*.env",
+      "!**/*.log",
+      "!**/.DS_Store",
+      "!**/.pnp.*",
+      "!**/bun.lockb",
+      "!**/lcov.info",
+      "!**/package-lock.json",
+      "!**/pnpm-lock.yaml",
+      "!**/yarn.lock",
+      "!**/*.css"
+    ]
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "trailingCommas": "es5",
+      "semicolons": "always",
+      "arrowParentheses": "always",
+      "bracketSpacing": true,
+      "bracketSameLine": false,
+      "quoteProperties": "asNeeded",
+      "attributePosition": "auto"
+    }
+  },
+  "json": {
+    "formatter": {
+      "trailingCommas": "none"
+    }
+  },
+  "files": {
+    "includes": [
+      "**/packages/*/src/**/*",
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx",
+      "**/*.json",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/build",
+      "!**/coverage",
+      "!**/dev-dist",
+      "!**/broadcast",
+      "!**/cache",
+      "!**/out",
+      "!**/lib",
+      "!**/packages/*/lib/**/*"
+    ]
+  }
+}
