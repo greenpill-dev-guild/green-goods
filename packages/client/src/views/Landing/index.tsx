@@ -25,18 +25,13 @@ const Landing: React.FC<LandingProps> = () => {
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email") as string;
 
-    fetch(
-      import.meta.env.DEV ?
-        "http://localhost:3000/api/subscribe"
-      : "/api/subscribe",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }),
-      }
-    )
+    fetch(import.meta.env.DEV ? "http://localhost:3000/api/subscribe" : "/api/subscribe", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email }),
+    })
       .then((response) => {
         if (!response.ok) {
           // ERROR

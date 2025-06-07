@@ -47,24 +47,14 @@ const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
                 selected && "opacity-100"
               )}
             />
-            <h5
-              className={cn(
-                "flex items-center text-xl font-medium",
-                selected && "text-primary"
-              )}
-            >
+            <h5 className={cn("flex items-center text-xl font-medium", selected && "text-primary")}>
               <RiCamera3Line
-                className={cn(
-                  "w-8 inline-flex mr-2",
-                  selected && "animate-spring-bump"
-                )}
+                className={cn("w-8 inline-flex mr-2", selected && "animate-spring-bump")}
               />
               {action.title}
             </h5>
           </div>
-          <div className="text-sm text-slate-500">
-            {action.mediaInfo.description}
-          </div>
+          <div className="text-sm text-slate-500">{action.mediaInfo.description}</div>
         </div>
       </Card>
     );

@@ -26,10 +26,7 @@ export default function Views() {
             <Route path="home" element={<Home />}>
               <Route path=":id" element={<HomeGarden />}>
                 <Route path="work/:workId" element={<GardenWorkApproval />} />
-                <Route
-                  path="assessments/:assessmentId"
-                  element={<GardenAssessment />}
-                />
+                <Route path="assessments/:assessmentId" element={<GardenAssessment />} />
               </Route>
             </Route>
             <Route path="garden" element={<Garden />} />

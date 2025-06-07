@@ -11,11 +11,7 @@ const Login: React.FC<LoginProps> = () => {
   const { login } = usePrivy();
 
   return (
-    <Splash
-      login={login}
-      isLoggingIn={false}
-      buttonLabel={intl.messages["app.login"] as string}
-    />
+    <Splash login={login} isLoggingIn={false} buttonLabel={intl.messages["app.login"] as string} />
   );
 };
 

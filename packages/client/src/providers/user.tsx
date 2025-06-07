@@ -1,14 +1,6 @@
-import {
-  User,
-  usePrivy,
-  useWallets,
-  ConnectedWallet,
-} from "@privy-io/react-auth";
+import { User, usePrivy, useWallets, ConnectedWallet } from "@privy-io/react-auth";
 import React, { useContext, useEffect } from "react";
-import {
-  useSmartWallets,
-  SmartWalletClientType,
-} from "@privy-io/react-auth/smart-wallets";
+import { useSmartWallets, SmartWalletClientType } from "@privy-io/react-auth/smart-wallets";
 import { identify } from "@/modules/posthog";
 
 interface UserInterface {
@@ -30,13 +22,11 @@ export const useUser = () => {
 
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const { wallets } = useWallets();
-  const { ready, user, } = usePrivy();
+  const { ready, user } = usePrivy();
   const { client } = useSmartWallets();
 
   const eoa = wallets.find((wallet) => wallet.walletClientType === "privy");
-  const smartAccount = user?.linkedAccounts.find(
-    (account) => account.type === "smart_wallet"
-  );
+  const smartAccount = user?.linkedAccounts.find((account) => account.type === "smart_wallet");
 
   useEffect(() => {
     if (user) {

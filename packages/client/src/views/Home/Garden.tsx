@@ -72,13 +72,12 @@ export const Garden: React.FC<GardenProps> = () => {
   const { name, bannerImage, location, createdAt, assessments, works } = garden;
 
   // Save scroll position on scroll event for the active tab
-  const handleScroll =
-    (tab: GardenTab) => (event: React.UIEvent<HTMLUListElement, UIEvent>) => {
-      setScrollPositions((prev) => ({
-        ...prev,
-        [tab]: event.currentTarget.scrollTop,
-      }));
-    };
+  const handleScroll = (tab: GardenTab) => (event: React.UIEvent<HTMLUListElement, UIEvent>) => {
+    setScrollPositions((prev) => ({
+      ...prev,
+      [tab]: event.currentTarget.scrollTop,
+    }));
+  };
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -186,9 +185,7 @@ export const Garden: React.FC<GardenProps> = () => {
               </Tabs>
             </div>
           </div>
-          <div className="padded flex-1 flex flex-col gap-4 pt-80 pb-4">
-            {renderTabContent()}
-          </div>
+          <div className="padded flex-1 flex flex-col gap-4 pt-80 pb-4">{renderTabContent()}</div>
         </>
       )}
       <Outlet context={{ gardenId: garden.id }} />

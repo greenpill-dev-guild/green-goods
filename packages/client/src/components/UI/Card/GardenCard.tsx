@@ -132,9 +132,7 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardRootProps>(
               </>
             )}
           </div>
-          {showDescription && (
-            <div className="text-sm text-slate-500">{garden.description}</div>
-          )}
+          {showDescription && <div className="text-sm text-slate-500">{garden.description}</div>}
         </div>
       </Card>
     );

@@ -1,11 +1,4 @@
-import {
-  ActionRegistry,
-  GardenToken,
-  GardenAccount,
-  Capital,
-  Action,
-  Garden,
-} from "generated";
+import { ActionRegistry, GardenToken, GardenAccount, Capital, Action, Garden } from "generated";
 
 // Handler for the ActionRegistered event
 ActionRegistry.ActionRegistered.handler(async ({ event, context }) => {
@@ -192,9 +185,7 @@ GardenAccount.GardenerRemoved.handler(async ({ event, context }) => {
   if (gardenAccountEntity) {
     context.Garden.set({
       ...gardenAccountEntity,
-      gardeners: gardenAccountEntity.gardeners.filter(
-        (g) => g !== event.params.gardener
-      ),
+      gardeners: gardenAccountEntity.gardeners.filter((g) => g !== event.params.gardener),
     });
   }
 });
@@ -220,9 +211,7 @@ GardenAccount.GardenOperatorRemoved.handler(async ({ event, context }) => {
   if (gardenAccountEntity) {
     context.Garden.set({
       ...gardenAccountEntity,
-      operators: gardenAccountEntity.operators.filter(
-        (g) => g !== event.params.operator
-      ),
+      operators: gardenAccountEntity.operators.filter((g) => g !== event.params.operator),
     });
   }
 });

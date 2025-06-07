@@ -9,9 +9,7 @@ import {
 
 describe("pinata", () => {
   it("should get file by hash", async () => {
-    const file = await getFileByHash(
-      "bafybeie6wzt62apqp57vtpdtkuth6cakc5ir64nfzd3jpjpmw36r3hbriq"
-    );
+    const file = await getFileByHash("bafybeie6wzt62apqp57vtpdtkuth6cakc5ir64nfzd3jpjpmw36r3hbriq");
 
     console.log(file);
   });

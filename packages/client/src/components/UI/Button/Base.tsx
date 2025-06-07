@@ -268,10 +268,7 @@ export type ButtonRootProps = VariantProps<typeof buttonVariants> &
   };
 
 const ButtonRoot = React.forwardRef<HTMLButtonElement, ButtonRootProps>(
-  (
-    { children, variant, mode, size, asChild, className, shape, ...rest },
-    forwardedRef
-  ) => {
+  ({ children, variant, mode, size, asChild, className, shape, ...rest }, forwardedRef) => {
     const uniqueId = React.useId();
     const Component = asChild ? Slot : "button";
     const { root } = buttonVariants({ variant, mode, size, shape });
@@ -292,11 +289,7 @@ const ButtonRoot = React.forwardRef<HTMLButtonElement, ButtonRootProps>(
     );
 
     return (
-      <Component
-        ref={forwardedRef}
-        className={root({ class: className })}
-        {...rest}
-      >
+      <Component ref={forwardedRef} className={root({ class: className })} {...rest}>
         {extendedChildren}
       </Component>
     );

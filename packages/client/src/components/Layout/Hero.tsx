@@ -76,24 +76,23 @@ export const Hero: React.FC<HeroProps> = () => {
                     })}
                   </h4>
                   <p>
-                    {platform === "ios" ?
-                      intl.formatMessage({
-                        id: "app.hero.install.ios",
-                        defaultMessage:
-                          "Tap the share button and then press <b>Add to Home Screen</b>",
-                      })
-                    : platform === "android" ?
-                      intl.formatMessage({
-                        id: "app.hero.install.android",
-                        defaultMessage:
-                          "Tap the 3 dots menu button in the bottom right and press <b>Add to Home Screen</b>",
-                      })
-                    : intl.formatMessage({
-                        id: "app.hero.install.other",
-                        defaultMessage:
-                          "Tap the menu button and press <b>Add to Home Screen</b>",
-                      })
-                    }
+                    {platform === "ios"
+                      ? intl.formatMessage({
+                          id: "app.hero.install.ios",
+                          defaultMessage:
+                            "Tap the share button and then press <b>Add to Home Screen</b>",
+                        })
+                      : platform === "android"
+                        ? intl.formatMessage({
+                            id: "app.hero.install.android",
+                            defaultMessage:
+                              "Tap the 3 dots menu button in the bottom right and press <b>Add to Home Screen</b>",
+                          })
+                        : intl.formatMessage({
+                            id: "app.hero.install.other",
+                            defaultMessage:
+                              "Tap the menu button and press <b>Add to Home Screen</b>",
+                          })}
                   </p>
                   <Dialog.Close className="absolute top-3 right-3">
                     <RiCloseLine />

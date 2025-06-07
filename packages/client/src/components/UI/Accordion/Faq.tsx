@@ -10,11 +10,7 @@ const Faq = React.forwardRef<
   React.ElementRef<typeof AccordionPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Root>
 >(({ className, ...props }, ref) => (
-    <AccordionPrimitive.Root
-      ref={ref}
-      className={cn("flex flex-col gap-4", className)}
-      {...props}
-    />
+  <AccordionPrimitive.Root ref={ref} className={cn("flex flex-col gap-4", className)} {...props} />
 ));
 Faq.displayName = "Faq";
 
@@ -36,18 +32,18 @@ const FaqTrigger = React.forwardRef<
   React.ElementRef<typeof AccordionPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Trigger>
 >(({ className, children, ...props }, ref) => (
-    <AccordionPrimitive.Trigger
-      ref={ref}
-      className={cn(
-        "flex flex-row w-full gap-3 text-base font-medium transition-all [&[data-state=open]>svg:first-of-type]:text-primary [&[data-state=open]>svg:first-of-type]:scale-110 [&[data-state=open]>svg:first-of-type]:animate-spring-bump grow text-left items-start",
-        className
-      )}
-      {...props}
-    >
-      <RiQuestionLine className="w-6 h-6 shrink-0 text-[#525865] transition-all " />
-      <div className="flex grow">{children}</div>
-      <RiAddLine className="h-5 w-5 shrink-0 transition-transform duration-200 text-[#9A9FAD] flex text-right " />
-    </AccordionPrimitive.Trigger>
+  <AccordionPrimitive.Trigger
+    ref={ref}
+    className={cn(
+      "flex flex-row w-full gap-3 text-base font-medium transition-all [&[data-state=open]>svg:first-of-type]:text-primary [&[data-state=open]>svg:first-of-type]:scale-110 [&[data-state=open]>svg:first-of-type]:animate-spring-bump grow text-left items-start",
+      className
+    )}
+    {...props}
+  >
+    <RiQuestionLine className="w-6 h-6 shrink-0 text-[#525865] transition-all " />
+    <div className="flex grow">{children}</div>
+    <RiAddLine className="h-5 w-5 shrink-0 transition-transform duration-200 text-[#9A9FAD] flex text-right " />
+  </AccordionPrimitive.Trigger>
 ));
 FaqTrigger.displayName = AccordionPrimitive.Trigger.displayName;
 

@@ -53,11 +53,7 @@ export const useGarden = (id: string): GardenDataProps => {
 
         return {
           ...work,
-          status: workApproval
-            ? workApproval.approved
-              ? "approved"
-              : "rejected"
-            : "pending",
+          status: workApproval ? (workApproval.approved ? "approved" : "rejected") : "pending",
         };
       });
 
@@ -98,11 +94,7 @@ export const useGardens = () => {
   return useContext(GardensContext);
 };
 
-export const GardensProvider = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
+export const GardensProvider = ({ children }: { children: React.ReactNode }) => {
   // QUERIES
   const { data: actions } = useQuery<Action[]>({
     queryKey: ["actions"],
@@ -113,12 +105,10 @@ export const GardensProvider = ({
     queryKey: ["gardens"],
     queryFn: getGardens,
   });
-  const { data: gardeners, status: gardenersStatus } = useQuery<GardenerCard[]>(
-    {
-      queryKey: ["gardeners"],
-      queryFn: getGardeners,
-    }
-  );
+  const { data: gardeners, status: gardenersStatus } = useQuery<GardenerCard[]>({
+    queryKey: ["gardeners"],
+    queryFn: getGardeners,
+  });
 
   return (
     <GardensContext.Provider
@@ -127,9 +117,7 @@ export const GardensProvider = ({
         gardens: gardens || [],
         gardensStatus,
         gardenersStatus,
-        gardenersMap: new Map(
-          gardeners?.map((gardener) => [gardener.id, gardener]) || []
-        ),
+        gardenersMap: new Map(gardeners?.map((gardener) => [gardener.id, gardener]) || []),
       }}
     >
       {children}

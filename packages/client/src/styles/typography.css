@@ -121,8 +121,8 @@
 }
 
 @layer utilities {
-  /* Title styles */
-  /* .text-title-h1 {
+  /* Title styles 
+  .text-title-h1 {
     font-size: var(--text-title-h1);
     line-height: var(--text-title-h1--line-height);
     letter-spacing: var(--text-title-h1--letter-spacing);
@@ -279,7 +279,9 @@
     letter-spacing: var(--text-doc-paragraph--letter-spacing);
     font-weight: var(--text-doc-paragraph--font-weight);
   }
-  */ h1 {
+  */
+
+  h1 {
     @apply text-title-h1 text-foreground;
   }
 

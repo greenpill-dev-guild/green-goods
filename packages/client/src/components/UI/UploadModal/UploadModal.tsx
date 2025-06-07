@@ -9,10 +9,8 @@ const modalVariants = tv({
   slots: {
     root: "flex flex-col items-center rounded-4xl border p-8 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-nowrap whitespace-nowrap",
     icon: "flex",
-    avatar:
-      "relative border-0 w-20 h-20 p-2 rounded-full flex items-center justify-center",
-    spinner:
-      "absolute left-0 top-0 w-full h-full upload-spinner border-success-base/50 border-3",
+    avatar: "relative border-0 w-20 h-20 p-2 rounded-full flex items-center justify-center",
+    spinner: "absolute left-0 top-0 w-full h-full upload-spinner border-success-base/50 border-3",
   },
   variants: {
     variant: {

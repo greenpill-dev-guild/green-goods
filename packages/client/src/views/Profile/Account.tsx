@@ -80,22 +80,13 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
           <SelectTrigger className="w-[180px]">
             <SelectValue
               className="capitalize"
-              placeholder={capitalize(
-                intl.formatDisplayName(locale, { type: "language" }) || ""
-              )}
+              placeholder={capitalize(intl.formatDisplayName(locale, { type: "language" }) || "")}
             />
           </SelectTrigger>
           <SelectContent>
             {availableLocales?.map((localeOption) => (
-              <SelectItem
-                value={localeOption}
-                key={localeOption}
-                className="capitalize"
-              >
-                {capitalize(
-                  intl.formatDisplayName(localeOption, { type: "language" }) ||
-                    ""
-                )}
+              <SelectItem value={localeOption} key={localeOption} className="capitalize">
+                {capitalize(intl.formatDisplayName(localeOption, { type: "language" }) || "")}
               </SelectItem>
             ))}
           </SelectContent>
@@ -142,9 +133,8 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
         id: "app.account.passkey",
         description: "Passkey",
       }),
-      description:
-        user?.mfaMethods.includes("passkey") ?
-          ""
+      description: user?.mfaMethods.includes("passkey")
+        ? ""
         : intl.formatMessage({
             id: "app.account.notLinked",
             description: "Not Linked",
@@ -159,18 +149,16 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
         id: "app.account.wallet",
         description: "Wallet",
       }),
-      description:
-        user?.wallet ? "" : (
-          intl.formatMessage({
+      description: user?.wallet
+        ? ""
+        : intl.formatMessage({
             id: "app.account.notLinked",
             description: "Not Linked",
-          })
-        ),
+          }),
       isLinked: !!user?.wallet,
       Icon: <RiWalletLine className="w-4" />,
       link: linkWallet,
-      unlink: () =>
-        user?.wallet?.address && unlinkWallet(user?.wallet?.address),
+      unlink: () => user?.wallet?.address && unlinkWallet(user?.wallet?.address),
     },
   ];
 
@@ -206,26 +194,25 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
           description: "Edit Account",
         })}
       </h5>
-      {accountSettings.map(
-        ({ title, Icon, description, isLinked, link, unlink }) => (
-          <Card key={title}>
-            <div className="flex flex-row items-center gap-3 justify-center w-full">
-              <Avatar>
-                <div className="flex items-center justify-center text-center mx-auto text-primary">
-                  {Icon}
-                </div>
-              </Avatar>
-              <div className="flex flex-col gap-1 grow">
-                <div className="flex items-center font-sm gap-1">
-                  <div className="line-clamp-1 text-sm">{title}</div>
-                </div>
-                <div className="text-xs text-gray-500">{description}</div>
+      {accountSettings.map(({ title, Icon, description, isLinked, link, unlink }) => (
+        <Card key={title}>
+          <div className="flex flex-row items-center gap-3 justify-center w-full">
+            <Avatar>
+              <div className="flex items-center justify-center text-center mx-auto text-primary">
+                {Icon}
               </div>
-              <Button
-                variant={isLinked ? "neutral" : "primary"}
-                label={
-                  isLinked ?
-                    intl.formatMessage({
+            </Avatar>
+            <div className="flex flex-col gap-1 grow">
+              <div className="flex items-center font-sm gap-1">
+                <div className="line-clamp-1 text-sm">{title}</div>
+              </div>
+              <div className="text-xs text-gray-500">{description}</div>
+            </div>
+            <Button
+              variant={isLinked ? "neutral" : "primary"}
+              label={
+                isLinked
+                  ? intl.formatMessage({
                       id: "app.account.unlink",
                       description: "Unlink",
                     })
@@ -233,16 +220,15 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
                       id: "app.account.link",
                       description: "Link",
                     })
-                }
-                onClick={isLinked ? unlink : link}
-                mode={isLinked ? "stroke" : "filled"}
-                size="xxsmall"
-                className="min-w-18"
-              />
-            </div>
-          </Card>
-        )
-      )}
+              }
+              onClick={isLinked ? unlink : link}
+              mode={isLinked ? "stroke" : "filled"}
+              size="xxsmall"
+              className="min-w-18"
+            />
+          </div>
+        </Card>
+      ))}
       <Button
         variant="neutral"
         mode="stroke"

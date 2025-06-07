@@ -41,16 +41,7 @@ export async function getActions(): Promise<Action[]> {
 
   return await Promise.all(
     data.Action.map(
-      async ({
-        id,
-        title,
-        instructions,
-        startTime,
-        endTime,
-        capitals,
-        media,
-        createdAt,
-      }) => {
+      async ({ id, title, instructions, startTime, endTime, capitals, media, createdAt }) => {
         const image = (await getFileByHash(media[0])).data;
         const mediaImage = URL.createObjectURL(image as Blob);
 
@@ -64,21 +55,13 @@ export async function getActions(): Promise<Action[]> {
           media: [mediaImage],
           description: "",
           inputs:
-            id === "1" ?
-              (plantActionInstructions.details.inputs as WorkInput[])
-            : (observerActionInstructions.details.inputs as WorkInput[]),
-          mediaInfo:
-            id === "1" ?
-              plantActionInstructions.media
-            : observerActionInstructions.media,
+            id === "1"
+              ? (plantActionInstructions.details.inputs as WorkInput[])
+              : (observerActionInstructions.details.inputs as WorkInput[]),
+          mediaInfo: id === "1" ? plantActionInstructions.media : observerActionInstructions.media,
           details:
-            id === "1" ?
-              plantActionInstructions.details
-            : observerActionInstructions.details,
-          review:
-            id === "1" ?
-              plantActionInstructions.review
-            : observerActionInstructions.review,
+            id === "1" ? plantActionInstructions.details : observerActionInstructions.details,
+          review: id === "1" ? plantActionInstructions.review : observerActionInstructions.review,
           createdAt,
         };
       }
@@ -134,9 +117,7 @@ export async function getGardens(): Promise<Garden[]> {
 }
 
 export async function getGardeners(): Promise<GardenerCard[]> {
-  const request = await fetch(
-    import.meta.env.DEV ? "/api/users" : "/api/users"
-  );
+  const request = await fetch(import.meta.env.DEV ? "/api/users" : "/api/users");
 
   const response: User[] = await request.json();
 

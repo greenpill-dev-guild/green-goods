@@ -1,16 +1,7 @@
-import {
-  Faq,
-  FaqContent,
-  FaqItem,
-  FaqTrigger,
-} from "@/components/UI/Accordion/Faq";
+import { Faq, FaqContent, FaqItem, FaqTrigger } from "@/components/UI/Accordion/Faq";
 import { Avatar } from "@/components/UI/Avatar/Avatar";
 import { FlexCard } from "@/components/UI/Card/Card";
-import {
-  RiArrowDropRightLine,
-  RiTelegramLine,
-  RiWhatsappLine,
-} from "@remixicon/react";
+import { RiArrowDropRightLine, RiTelegramLine, RiWhatsappLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
 interface Social {
@@ -77,12 +68,7 @@ export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
     <>
       <h5 className="">Get In Touch</h5>
       {socials.map((social) => (
-        <a
-          key={social.title}
-          href={social.url}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        <a key={social.title} href={social.url} target="_blank" rel="noopener noreferrer">
           <FlexCard>
             <div className="flex flex-row items-center gap-3 grow">
               <Avatar>
@@ -93,9 +79,7 @@ export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
 
               <div className="flex-1">
                 <div className="text-base">{social.title}</div>
-                <div className="text-xs text-slate-600">
-                  {social.description}
-                </div>
+                <div className="text-xs text-slate-600">{social.description}</div>
               </div>
               <div className="flex text-right">
                 <RiArrowDropRightLine />

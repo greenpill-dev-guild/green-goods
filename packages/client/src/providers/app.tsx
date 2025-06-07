@@ -14,11 +14,7 @@ const messages = {
 };
 import { track } from "@/modules/posthog";
 
-export type InstallState =
-  | "idle"
-  | "not-installed"
-  | "installed"
-  | "unsupported";
+export type InstallState = "idle" | "not-installed" | "installed" | "unsupported";
 export const supportedLanguages = ["en", "pt", "es"] as const;
 export type Locale = (typeof supportedLanguages)[number];
 export type Platform = "ios" | "android" | "windows" | "unknown";
@@ -79,16 +75,14 @@ export const useApp = () => {
 };
 
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
-  const defaultLocale =
-    localStorage.getItem("gg-language") ?
-      (localStorage.getItem("gg-language") as Locale)
+  const defaultLocale = localStorage.getItem("gg-language")
+    ? (localStorage.getItem("gg-language") as Locale)
     : browserLang({
         languages: [...supportedLanguages],
         fallback: "en",
       });
   const [locale, setLocale] = useState<Locale>(defaultLocale as Locale);
-  const [deferredPrompt, setDeferredPrompt] =
-    useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [installState, setInstalledState] = useState<InstallState>("idle");
 
   const platform = getMobileOperatingSystem();
@@ -168,10 +162,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     >
       <AppContext.Provider
         value={{
-          isMobile:
-            platform === "ios" ||
-            platform === "android" ||
-            platform === "windows",
+          isMobile: platform === "ios" || platform === "android" || platform === "windows",
           isInstalled: installState === "installed",
           platform,
           locale,

@@ -19,15 +19,10 @@ export function isValidEmail(email: string) {
 }
 
 export function truncateDescription(description: string) {
-  return description.length > 80
-    ? description.slice(0, 80 - 1) + "..."
-    : description;
+  return description.length > 80 ? description.slice(0, 80 - 1) + "..." : description;
 }
 
-export function formatPrice(
-  price: number | null,
-  currency?: "ETH" | "USDC" | "OP"
-) {
+export function formatPrice(price: number | null, currency?: "ETH" | "USDC" | "OP") {
   return price?.toLocaleString("en-US", {
     style: "currency",
     currency: currency ?? "USD",

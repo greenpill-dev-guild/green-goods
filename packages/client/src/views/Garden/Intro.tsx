@@ -2,11 +2,7 @@ import type React from "react";
 import { RiHammerFill, RiPlantFill } from "@remixicon/react";
 
 import { FormInfo } from "@/components/UI/Form/Info";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-} from "@/components/UI/Carousel/Carousel";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/UI/Carousel/Carousel";
 import { ActionCard } from "@/components/UI/Card/ActionCard";
 import { GardenCard } from "@/components/UI/Card/GardenCard";
 import { useIntl } from "react-intl";
@@ -46,10 +42,7 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
       <Carousel opts={{ align: "start" }}>
         <CarouselContent>
           {actions.map((action) => (
-            <CarouselItem
-              key={action.id}
-              onClick={() => setActionUID(action.id)}
-            >
+            <CarouselItem key={action.id} onClick={() => setActionUID(action.id)}>
               <ActionCard
                 action={action}
                 selected={selectedActionUID === action.id}
@@ -73,10 +66,7 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
       <Carousel>
         <CarouselContent>
           {gardens.map((garden) => (
-            <CarouselItem
-              key={garden.id}
-              onClick={() => setGardenAddress(garden.id)}
-            >
+            <CarouselItem key={garden.id} onClick={() => setGardenAddress(garden.id)}>
               <GardenCard
                 garden={garden}
                 selected={garden.id === selectedGardenAddress}

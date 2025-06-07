@@ -15,9 +15,7 @@ export const GardenAssessment: React.FC<GardenAssessmentProps> = ({}) => {
 
   const { garden } = useGarden(id!);
 
-  const assessment = garden?.assessments.find(
-    (assessment) => assessment.id === assessmentId
-  );
+  const assessment = garden?.assessments.find((assessment) => assessment.id === assessmentId);
 
   if (!assessment || !garden)
     return (

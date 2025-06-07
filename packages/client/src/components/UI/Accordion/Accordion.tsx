@@ -15,10 +15,7 @@ const AccordionItem = React.forwardRef<
   <FlexCard size="small">
     <AccordionPrimitive.Item
       ref={ref}
-      className={cn(
-        "flex flex-col grow w-full items-start justify-items-start gap-2",
-        className
-      )}
+      className={cn("flex flex-col grow w-full items-start justify-items-start gap-2", className)}
       {...props}
     />
   </FlexCard>

@@ -13,10 +13,7 @@ import { arbitrum } from "viem/chains";
 import { decodeErrorResult } from "viem";
 import { Form, useForm } from "react-hook-form";
 import { useParams } from "react-router-dom";
-import {
-  NO_EXPIRATION,
-  ZERO_BYTES32,
-} from "@ethereum-attestation-service/eas-sdk";
+import { NO_EXPIRATION, ZERO_BYTES32 } from "@ethereum-attestation-service/eas-sdk";
 import React, { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,11 +34,7 @@ import { useGardens, useGarden } from "@/providers/garden";
 import { Button } from "@/components/UI/Button";
 import { CircleLoader } from "@/components/UI/Loader";
 import { FormInfo } from "@/components/UI/Form/Info";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-} from "@/components/UI/Carousel/Carousel";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/UI/Carousel/Carousel";
 import { FormCard } from "@/components/UI/Form/Card";
 import { FormText } from "@/components/UI/Form/Text";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
@@ -340,9 +333,8 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
                     defaultMessage: "You've {status} the work!",
                   },
                   {
-                    status:
-                      workApprovalMutation.variables.approved ?
-                        intl
+                    status: workApprovalMutation.variables.approved
+                      ? intl
                           .formatMessage({
                             id: "app.home.workApproval.approved",
                             defaultMessage: "Approved",
@@ -358,25 +350,23 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
                 ),
                 variant: "success",
                 title:
-                  (workApprovalMutation.variables.approved ?
-                    intl.formatMessage({
-                      id: "app.home.workApproval.approved",
-                      defaultMessage: "Approved",
-                    })
-                  : intl.formatMessage({
-                      id: "app.home.workApproval.rejected",
-                      defaultMessage: "Rejected",
-                    })) + "!",
+                  (workApprovalMutation.variables.approved
+                    ? intl.formatMessage({
+                        id: "app.home.workApproval.approved",
+                        defaultMessage: "Approved",
+                      })
+                    : intl.formatMessage({
+                        id: "app.home.workApproval.rejected",
+                        defaultMessage: "Rejected",
+                      })) + "!",
                 body: intl.formatMessage(
                   {
                     id: "app.home.workApproval.body",
-                    defaultMessage:
-                      "You've {status} the work!<br/><br/>Excellent work!",
+                    defaultMessage: "You've {status} the work!<br/><br/>Excellent work!",
                   },
                   {
-                    status:
-                      workApprovalMutation.variables.approved ?
-                        intl
+                    status: workApprovalMutation.variables.approved
+                      ? intl
                           .formatMessage({
                             id: "app.home.workApproval.approved",
                             defaultMessage: "Approved",
@@ -390,10 +380,7 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
                           .toLocaleLowerCase(),
                   }
                 ),
-                icon:
-                  workApprovalMutation.variables.approved ?
-                    RiCheckFill
-                  : RiCloseFill,
+                icon: workApprovalMutation.variables.approved ? RiCheckFill : RiCloseFill,
                 spinner: false,
               },
             }}

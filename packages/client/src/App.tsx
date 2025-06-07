@@ -34,43 +34,53 @@ function App() {
           <Route
             path="/landing"
             element={
-              isDownloaded ?
+              isDownloaded ? (
                 <Navigate to="/" replace />
-              : <>
+              ) : (
+                <>
                   <Landing />
                   <Toaster />
                 </>
+              )
             }
           />
           {/* Login */}
           <Route
             path="/login"
             element={
-              isDownloaded ?
-                !isAuthenticated && !ready ?
+              isDownloaded ? (
+                !isAuthenticated && !ready ? (
                   <main className="w-full h-full grid place-items-center">
                     <CircleLoader />
                   </main>
-                : !isAuthenticated ?
+                ) : !isAuthenticated ? (
                   <Login />
-                : <Navigate to="/" replace />
-              : <Navigate to="/landing" replace />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              ) : (
+                <Navigate to="/landing" replace />
+              )
             }
           />
           {/* Main: Show app or navigate to login, onboarding, or landing page based on conditions */}
           <Route
             path="*"
             element={
-              isDownloaded ?
-                isAuthenticated ?
+              isDownloaded ? (
+                isAuthenticated ? (
                   <GardensProvider>
                     <WorkProvider>
                       <AppViews />
                       <AppBar />
                     </WorkProvider>
                   </GardensProvider>
-                : <Navigate to="/login" replace />
-              : <Navigate to="/landing" replace />
+                ) : (
+                  <Navigate to="/login" replace />
+                )
+              ) : (
+                <Navigate to="/landing" replace />
+              )
             }
           />
           {/* Catch-all: Redirect to the appropriate place */}

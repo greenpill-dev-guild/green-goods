@@ -71,35 +71,21 @@ const WorkCard = React.forwardRef<
         className="p-4 flex flex-col gap-2 border border-t-0 rounded-b-lg border-border transition-all duration-400"
       >
         <div className="flex flex-row gap-2">
-          <h6
-            className={cn(
-              "flex items-center text-xl font-medium",
-              selected && "text-primary"
-            )}
-          >
+          <h6 className={cn("flex items-center text-xl font-medium", selected && "text-primary")}>
             {work.title}
           </h6>
         </div>
         <div className="text-sm flex flex-row flex-wrap gap-2">
           <Badge
             variant="outline"
-            leadingIcon={
-              <RiSearchEyeLine className="h-4 w-4 text-primary-base" />
-            }
+            leadingIcon={<RiSearchEyeLine className="h-4 w-4 text-primary-base" />}
           >
             {action.title}
           </Badge>
-          <Badge
-            variant="outline"
-            leadingIcon={<RiUser3Fill className="h-4 w-4 text-tertiary" />}
-          >
+          <Badge variant="outline" leadingIcon={<RiUser3Fill className="h-4 w-4 text-tertiary" />}>
             {formatAddress(work.gardenerAddress)}
           </Badge>
-          <Badge
-            variant="outline"
-            leadingIcon={statusIcon}
-            className="capitalize"
-          >
+          <Badge variant="outline" leadingIcon={statusIcon} className="capitalize">
             {intl.formatMessage({
               id: "app.garden.work.status." + work.status,
               defaultMessage: work.status,

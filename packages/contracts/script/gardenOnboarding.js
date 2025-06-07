@@ -23,7 +23,7 @@ const CONFIG = {
   tempDir: path.join(__dirname, "temp"),
   maxRetries: 3,
   retryDelay: 1000,
-  supportedImageTypes: ['jpg', 'jpeg', 'png', 'gif']
+  supportedImageTypes: ["jpg", "jpeg", "png", "gif"],
 };
 
 // Function to download image from URL
@@ -61,7 +61,7 @@ async function uploadWithRetry(stream, metadata, retries = CONFIG.maxRetries) {
     return await pinata.pinFileToIPFS(stream, metadata);
   } catch (error) {
     if (retries > 0) {
-      await new Promise(resolve => setTimeout(resolve, CONFIG.retryDelay));
+      await new Promise((resolve) => setTimeout(resolve, CONFIG.retryDelay));
       return uploadWithRetry(stream, metadata, retries - 1);
     }
     throw error;
@@ -117,7 +117,7 @@ async function parseCSVRows(filePath) {
 // Function to create embedded wallet for a user
 async function createEmbeddedWallet(identifier) {
   try {
-    if (typeof identifier !== 'string' || !identifier) {
+    if (typeof identifier !== "string" || !identifier) {
       throw new Error("Invalid identifier provided for wallet creation");
     }
     // First try to get the existing user
@@ -130,9 +130,7 @@ async function createEmbeddedWallet(identifier) {
       console.log(`Creating new user for ${identifier}`);
       user = await privyClient.importUser({
         linkedAccounts: [
-          identifier.includes("@")
-            ? { type: "email", address: identifier }
-            : { type: "phone", number: identifier },
+          identifier.includes("@") ? { type: "email", address: identifier } : { type: "phone", number: identifier },
         ],
         createEthereumWallet: true,
         createEthereumSmartWallet: true,
@@ -194,11 +192,11 @@ async function main() {
 
     // Environment variable validation
     const requiredEnvVars = [
-      'PRIVY_CLIENT_ID',
-      'PRIVY_APP_SECRET_ID',
-      'PRIVY_AUTHORIZATION_PRIVATE_KEY',
-      'PINATA_JWT',
-      'PRIVATE_KEY',
+      "PRIVY_CLIENT_ID",
+      "PRIVY_APP_SECRET_ID",
+      "PRIVY_AUTHORIZATION_PRIVATE_KEY",
+      "PINATA_JWT",
+      "PRIVATE_KEY",
     ];
     for (const envVar of requiredEnvVars) {
       if (!process.env[envVar]) {

@@ -47,8 +47,7 @@ Notifications.displayName = "Notifications";
 const NotificationCenter: React.FC<TopNavProps> = ({ works, ...props }) => {
   const ref = useRef<HTMLDialogElement>(null);
 
-  const workNotifications =
-    works?.filter((work) => work.status === "pending") || [];
+  const workNotifications = works?.filter((work) => work.status === "pending") || [];
 
   if (works === undefined) return null;
 
@@ -70,16 +69,14 @@ const NotificationCenter: React.FC<TopNavProps> = ({ works, ...props }) => {
         )}
         onClick={toggleDialog}
       >
-        {workNotifications.length ?
+        {workNotifications.length ? (
           <span className="absolute -top-2 -right-2 w-5 h-5 bg-teal-500 rounded-full flex-col justify-center items-center gap-2.5 inline-flex">
             <p className="text-xs self-stretch text-center text-white font-medium leading-3 tracking-tight">
               {workNotifications.length}
             </p>
           </span>
-        : null}
-        <RiNotificationFill
-          className={workNotifications.length ? "text-primary" : "text-black"}
-        />
+        ) : null}
+        <RiNotificationFill className={workNotifications.length ? "text-primary" : "text-black"} />
       </button>
       <Notifications {...props} works={works} ref={ref} />
     </>
@@ -119,9 +116,7 @@ export const TopNav: React.FC<TopNavProps> = ({
       )}
       <div className="absolute left-0 top-0 w-full h-full flex flex-row justify-between items-center">
         {/* absolute space children / progress */}
-        <div className="flex flex-row gap-4 justify-center grow">
-          {children}
-        </div>
+        <div className="flex flex-row gap-4 justify-center grow">{children}</div>
       </div>
       {/* Spacer */}
       <div className="flex grow" />

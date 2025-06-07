@@ -27,24 +27,26 @@ const Gardens: React.FC = () => {
           </div>
         );
       case "success":
-        return gardens.length ?
-            gardens.map((garden) => (
-              <GardenCard
-                key={garden.id}
-                garden={garden}
-                media="large"
-                showOperators={true}
-                selected={garden.id === location.pathname.split("/")[2]}
-                {...garden}
-                onClick={() => handleCardClick(garden.id)}
-              />
-            ))
-          : <p className="grid place-items-center text-sm italic">
-              {intl.formatMessage({
-                id: "app.home.messages.noGardensFound",
-                description: "No gardens found",
-              })}
-            </p>;
+        return gardens.length ? (
+          gardens.map((garden) => (
+            <GardenCard
+              key={garden.id}
+              garden={garden}
+              media="large"
+              showOperators={true}
+              selected={garden.id === location.pathname.split("/")[2]}
+              {...garden}
+              onClick={() => handleCardClick(garden.id)}
+            />
+          ))
+        ) : (
+          <p className="grid place-items-center text-sm italic">
+            {intl.formatMessage({
+              id: "app.home.messages.noGardensFound",
+              description: "No gardens found",
+            })}
+          </p>
+        );
       case "error":
         return (
           <p className="grid place-items-center text-sm italic">
@@ -59,20 +61,16 @@ const Gardens: React.FC = () => {
 
   return (
     <article className={"mb-6"}>
-      {location.pathname === "/home" ?
+      {location.pathname === "/home" ? (
         <>
           <div className="padded flex justify-between w-full py-4">
-            <h4 className="font-semibold">
-              {intl.formatMessage({ id: "app.home" })}
-            </h4>
+            <h4 className="font-semibold">{intl.formatMessage({ id: "app.home" })}</h4>
           </div>
-          <div
-            className={"padded flex-1 flex flex-col gap-4 overflow-y-scroll"}
-          >
+          <div className={"padded flex-1 flex flex-col gap-4 overflow-y-scroll"}>
             <GardensList />
           </div>
         </>
-      : null}
+      ) : null}
       <Outlet />
     </article>
   );

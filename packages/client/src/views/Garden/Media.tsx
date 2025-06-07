@@ -57,12 +57,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         </div>
         <div className="flex gap-1 flex-wrap">
           {needed.map((item) => (
-            <Badge
-              key={item}
-              className="capitalize"
-              variant="pill"
-              tint="primary"
-            >
+            <Badge key={item} className="capitalize" variant="pill" tint="primary">
               {item.replace("_", " ")}
             </Badge>
           ))}
@@ -77,12 +72,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         </div>
         <div className="flex gap-1 flex-wrap">
           {optional.map((item) => (
-            <Badge
-              key={item}
-              className="capitalize"
-              variant="pill"
-              tint="primary"
-            >
+            <Badge key={item} className="capitalize" variant="pill" tint="primary">
               {item.replace("_", " ")}
             </Badge>
           ))}
@@ -97,7 +87,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         className="input input-bordered hidden"
       />
       <div className="flex flex-col gap-4">
-        {images.length ?
+        {images.length ? (
           images.map((file, index) => (
             <div key={file.name} className="carousel-item relative">
               <img
@@ -120,10 +110,11 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
               </button>
             </div>
           ))
-        : <div className="pt-8 px-4 grid place-items-center">
+        ) : (
+          <div className="pt-8 px-4 grid place-items-center">
             <Books />
           </div>
-        }
+        )}
       </div>
       {!disablePreview && previewModalOpen && (
         <dialog

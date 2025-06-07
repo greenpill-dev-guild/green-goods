@@ -65,12 +65,12 @@ export const AppBar = () => {
               )}
               type="button"
             >
-              {pathname.startsWith(path) ?
+              {pathname.startsWith(path) ? (
                 <ActiveIcon className="w-6 h-6" />
-              : <InactiveIcon className="w-6 h-6" />}
-              <p
-                className={`text-sm ${pathname.startsWith(path) ? "text-primary" : ""}`}
-              >
+              ) : (
+                <InactiveIcon className="w-6 h-6" />
+              )}
+              <p className={`text-sm ${pathname.startsWith(path) ? "text-primary" : ""}`}>
                 {title}
               </p>
             </button>

@@ -1,7 +1,6 @@
 import assert from "assert";
 import { TestHelpers, Action, Garden } from "generated";
-const { MockDb, Addresses, ActionRegistry, GardenToken, GardenAccount } =
-  TestHelpers;
+const { MockDb, Addresses, ActionRegistry, GardenToken, GardenAccount } = TestHelpers;
 
 describe("Action Registry Test", () => {
   it("A new action is registered", async () => {
@@ -21,11 +20,10 @@ describe("Action Registry Test", () => {
     };
 
     // Creating a mock event
-    const mockNewGreetingEvent =
-      ActionRegistry.ActionRegistered.createMockEvent({
-        actionUID: BigInt(0),
-        ...action,
-      });
+    const mockNewGreetingEvent = ActionRegistry.ActionRegistered.createMockEvent({
+      actionUID: BigInt(0),
+      ...action,
+    });
 
     // Processing the mock event on the mock database
     const updatedMockDb = await ActionRegistry.ActionRegistered.processEvent({
@@ -79,9 +77,7 @@ describe("Garden Token Test", () => {
     });
 
     // Getting the entity from the mock database
-    const actualGardenEntity = updatedMockDb.entities.Garden.get(
-      garden.account
-    );
+    const actualGardenEntity = updatedMockDb.entities.Garden.get(garden.account);
 
     // Expected entity that should be created
     const expectedGardenEntity: Garden = {

@@ -9,12 +9,7 @@ export type ButtonProps = {
 } & ButtonRootProps;
 
 /** Primary UI component for user interaction */
-export const Button = ({
-  label,
-  leadingIcon,
-  trailingIcon,
-  ...props
-}: ButtonProps) => {
+export const Button = ({ label, leadingIcon, trailingIcon, ...props }: ButtonProps) => {
   return (
     <Root {...props}>
       {leadingIcon}

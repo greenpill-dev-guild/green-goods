@@ -18,8 +18,7 @@ import { useIntl } from "react-intl";
 const Work: React.FC = () => {
   const intl = useIntl();
   const navigate = useNavigate();
-  const { gardens, actions, form, activeTab, setActiveTab, workMutation } =
-    useWork();
+  const { gardens, actions, form, activeTab, setActiveTab, workMutation } = useWork();
 
   if (!form) {
     return null;
@@ -64,8 +63,7 @@ const Work: React.FC = () => {
           <WorkMedia
             instruction={intl.formatMessage({
               id: "app.garden.submit.tab.media.instruction",
-              defaultMessage:
-                "Please take a clear photo of the plants in the garden",
+              defaultMessage: "Please take a clear photo of the plants in the garden",
             })}
             needed={["whole_plant"]}
             optional={["leaves", "flowers", "fruits", "bark"]}
@@ -200,9 +198,7 @@ const Work: React.FC = () => {
         control={control}
         className="relative py-6 pt-16 flex flex-col gap-4 min-h-[calc(100vh-7.5rem)]"
       >
-        <div className="padded relative flex flex-col gap-4 flex-1">
-          {renderTabContent()}
-        </div>
+        <div className="padded relative flex flex-col gap-4 flex-1">{renderTabContent()}</div>
         <div className="flex fixed left-0 bottom-0 py-3 w-full z-[10000] bg-white border-t border-stroke-soft-200">
           <div className="flex flex-row gap-4 w-full mt-4 padded">
             {tabActions[activeTab].secondary && (
