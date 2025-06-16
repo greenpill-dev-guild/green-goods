@@ -1,5 +1,6 @@
 import { usePrivy } from "@privy-io/react-auth";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { lazy, Suspense } from "react";
 import { Toaster } from "react-hot-toast";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AppBar } from "@/components/Layout/AppBar";
@@ -12,8 +13,10 @@ import { useUser } from "@/providers/user";
 import { WorkProvider } from "@/providers/work";
 
 import AppViews from "@/views";
-import Landing from "@/views/Landing";
-import Login from "@/views/Login";
+
+// Dynamic imports for better code splitting
+const Landing = lazy(() => import("@/views/Landing"));
+const Login = lazy(() => import("@/views/Login"));
 
 function App() {
   const { authenticated } = usePrivy();
@@ -35,7 +38,9 @@ function App() {
                 <Navigate to="/" replace />
               ) : (
                 <>
-                  <Landing />
+                  <Suspense fallback={<CircleLoader />}>
+                    <Landing />
+                  </Suspense>
                   <Toaster />
                 </>
               )
@@ -51,7 +56,9 @@ function App() {
                     <CircleLoader />
                   </main>
                 ) : !isAuthenticated ? (
-                  <Login />
+                  <Suspense fallback={<CircleLoader />}>
+                    <Login />
+                  </Suspense>
                 ) : (
                   <Navigate to="/" replace />
                 )

@@ -1,12 +1,12 @@
 /// <reference types="vitest" />
 
-import path from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import dotenvExpand from "dotenv-expand";
 import { defineConfig, loadEnv } from "vite";
 import mkcert from "vite-plugin-mkcert";
 import { VitePWA } from "vite-plugin-pwa";
+import { resolve } from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -23,84 +23,9 @@ export default defineConfig(({ mode }) => {
       setupFiles: "./src/__tests__/setupTests.ts", // Optional: setup file
     },
     build: {
-      // rollupOptions: {
-      //   output: {
-      //     manualChunks: function manualChunks(id) {
-      //       if (id.includes("react-device")) {
-      //         return "landing";
-      //       }
-      //       if (
-      //         id.includes("urql") ||
-      //         id.includes("eas") ||
-      //         id.includes("carousel") ||
-      //         id.includes("pinata") ||
-      //         id.includes("privy") ||
-      //         id.includes("whisk")
-      //       ) {
-      //         return "app";
-      //       }
-      //       if (
-      //         id.includes("viem") ||
-      //         id.includes("clsx") ||
-      //         id.includes("hookform") ||
-      //         id.includes("tailwind") ||
-      //         id.includes("radix") ||
-      //         id.includes("zod") ||
-      //         id.includes("react-select") ||
-      //         id.includes("remix") ||
-      //         id.includes("react-query") ||
-      //         id.includes("react")
-      //       ) {
-      //         return "shared";
-      //       }
-
-      //       return "vendor";
-      //     },
-      //     // {
-      //     // privy: ["@privy-io/react-auth"],
-      //     // react: [
-      //     //   "react",
-      //     //   "react-dom",
-      //     //   "react-router-dom",
-      //     //   "react-intl",
-      //     //   "@tanstack/react-query",
-      //     // ],
-      //     // radix: [
-      //     //   "@radix-ui/react-accordion",
-      //     //   "@radix-ui/react-avatar",
-      //     //   "@radix-ui/react-select",
-      //     //   "@radix-ui/react-slot",
-      //     //   "@radix-ui/react-tabs",
-      //     // ],
-      //     // remix: ["@remixicon/react"],
-      //     // tailwind: [
-      //     //   "tailwind-variants",
-      //     //   "tailwind-merge",
-      //     //   "@tailwindcss/vite",
-      //     //   "clsx",
-      //     // ],
-      //     // graphql: ["@urql/core", "gql.tada"],
-      //     // carousel: ["embla-carousel-react"],
-      //     // pinata: ["pinata"],
-      //     // "react-device": ["react-device-frameset"],
-      //     // toast: ["react-hot-toast"],
-      //     // form: [
-      //     //   "@hookform/resolvers",
-      //     //   "react-hook-form",
-      //     //   "react-select",
-      //     //   "zod",
-      //     // ],
-      //     // blockchain: [
-      //     //   "@paperclip-labs/whisk-sdk",
-      //     //   "viem",
-      //     //   "ethers",
-      //     //   "@ethereum-attestation-service/eas-sdk",
-      //     // ],
-      //     // dotenv: ["dotenv"],
-      //     // },
-      //   },
-      // },
-      chunkSizeWarningLimit: 720,
+      target: 'es2020',
+      sourcemap: true,
+      chunkSizeWarningLimit: 2000,
     },
     plugins: [
       mkcert(),
@@ -133,8 +58,28 @@ export default defineConfig(({ mode }) => {
           enabled: true,
         },
         workbox: {
-          maximumFileSizeToCacheInBytes: 6797152,
-          // globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
+          // Increase the limit to handle larger bundles (10 MB)
+          maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
+          // Only cache smaller, essential files in the service worker
+          globPatterns: [
+            "**/*.{html,ico,png,svg}",
+            "**/assets/*.css",
+            // Exclude the largest JS bundles from SW precaching
+            "!**/assets/*-{index,vendor,crypto,wallet}*.js"
+          ],
+          // Use runtime caching for large JS files
+          runtimeCaching: [
+            {
+              urlPattern: /.*\.js$/,
+              handler: "CacheFirst",
+              options: {
+                cacheName: "js-cache",
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
+          ],
         },
         manifest: {
           name: "Green Goods",
@@ -222,15 +167,17 @@ export default defineConfig(({ mode }) => {
     ],
     resolve: {
       alias: {
-        "@": path.resolve(__dirname, "./src"),
+        "@": resolve(__dirname, './src'),
       },
     },
     server: {
       port: 3001,
+      host: true,
       proxy: {
         graphql: {
-          target: process.env.VITE_ENVIO_INDEXER_URL,
+          target: "http://localhost:8000",
           changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/graphql/, ""),
         },
       },
     },

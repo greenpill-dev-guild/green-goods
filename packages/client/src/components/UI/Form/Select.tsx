@@ -1,7 +1,7 @@
 // import "react-tailwindcss-select/dist/index.css";
 
 import { forwardRef } from "react";
-import { type Control, Controller, type FieldValues, type FieldPath } from "react-hook-form";
+import { type Control, Controller, type FieldPath, type FieldValues } from "react-hook-form";
 import Select from "react-select";
 
 interface FormSelectProps<T extends FieldValues = FieldValues> {
