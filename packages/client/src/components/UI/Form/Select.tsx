@@ -1,19 +1,19 @@
 // import "react-tailwindcss-select/dist/index.css";
 
 import { forwardRef } from "react";
-import { type Control, Controller, type FieldValues } from "react-hook-form";
+import { type Control, Controller, type FieldValues, type FieldPath } from "react-hook-form";
 import Select from "react-select";
 
-interface FormSelectProps {
-  name: string;
+interface FormSelectProps<T extends FieldValues = FieldValues> {
+  name: FieldPath<T>;
   label: string;
   placeholder: string;
   error?: string;
   options: { label: string; value: string }[];
-  control: Control<FieldValues>;
+  control: Control<T>;
 }
 
-export const FormSelect = forwardRef<HTMLSelectElement, FormSelectProps>(
+const FormSelectComponent = forwardRef<HTMLSelectElement, FormSelectProps<any>>(
   ({ name, label, options, control }, _ref) => {
     return (
       <Controller
@@ -42,4 +42,8 @@ export const FormSelect = forwardRef<HTMLSelectElement, FormSelectProps>(
   }
 );
 
-FormSelect.displayName = "FormSelect";
+FormSelectComponent.displayName = "FormSelect";
+
+export const FormSelect = FormSelectComponent as <T extends FieldValues = FieldValues>(
+  props: FormSelectProps<T> & { ref?: React.Ref<HTMLSelectElement> }
+) => React.ReactElement;
