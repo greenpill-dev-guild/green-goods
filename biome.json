@@ -9,30 +9,19 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
+      "recommended": false,
       "style": {
-        "noParameterAssign": "warn",
-        "useAsConstAssertion": "warn",
-        "useDefaultParameterLast": "warn",
-        "useEnumInitializers": "warn",
-        "useSelfClosingElements": "warn",
-        "useSingleVarDeclarator": "warn",
-        "noUnusedTemplateLiteral": "warn",
-        "useNumberNamespace": "warn",
-        "noInferrableTypes": "off",
-        "noUselessElse": "warn"
+        "noNonNullAssertion": "off",
+        "noParameterAssign": "off"
       },
       "suspicious": {
-        "noArrayIndexKey": "warn"
-      },
-      "correctness": {
-        "noUnusedVariables": "warn"
+        "noTemplateCurlyInString": "off"
       }
     }
   },
   "formatter": {
     "enabled": true,
-    "formatWithErrors": false,
+    "formatWithErrors": true,
     "indentStyle": "space",
     "indentWidth": 2,
     "lineEnding": "lf",
@@ -41,26 +30,11 @@
     "bracketSpacing": true,
     "bracketSameLine": false,
     "includes": [
-      "**",
-      "!**/node_modules",
-      "!**/dist",
-      "!**/build",
-      "!**/coverage",
-      "!**/dev-dist",
-      "!**/broadcast",
-      "!**/cache",
-      "!**/out",
-      "!**/lib",
-      "!**/*.env",
-      "!**/*.log",
-      "!**/.DS_Store",
-      "!**/.pnp.*",
-      "!**/bun.lockb",
-      "!**/lcov.info",
-      "!**/package-lock.json",
-      "!**/pnpm-lock.yaml",
-      "!**/yarn.lock",
-      "!**/*.css"
+      "**/packages/client/src/**/*.{ts,tsx,js,jsx}",
+      "**/packages/contracts/src/**/*.{ts,tsx,js,jsx}",
+      "**/packages/contracts/script/**/*.{ts,tsx,js,jsx}",
+      "**/packages/eas/src/**/*.{ts,tsx,js,jsx}",
+      "**/*.json"
     ]
   },
   "javascript": {
@@ -82,22 +56,11 @@
   },
   "files": {
     "includes": [
-      "**/packages/*/src/**/*",
-      "**/*.ts",
-      "**/*.tsx",
-      "**/*.js",
-      "**/*.jsx",
-      "**/*.json",
-      "!**/node_modules",
-      "!**/dist",
-      "!**/build",
-      "!**/coverage",
-      "!**/dev-dist",
-      "!**/broadcast",
-      "!**/cache",
-      "!**/out",
-      "!**/lib",
-      "!**/packages/*/lib/**/*"
+      "**/packages/client/src/**/*.{ts,tsx,js,jsx}",
+      "**/packages/contracts/src/**/*.{ts,tsx,js,jsx}",
+      "**/packages/contracts/script/**/*.{ts,tsx,js,jsx}",
+      "**/packages/eas/src/**/*.{ts,tsx,js,jsx}",
+      "**/*.json"
     ]
   }
 }

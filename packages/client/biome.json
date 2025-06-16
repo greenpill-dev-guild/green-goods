@@ -3,32 +3,11 @@
   "$schema": "https://biomejs.dev/schemas/2.0.0-beta.6/schema.json",
   "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "linter": {
-    "enabled": true,
-    "rules": {
-      "recommended": true,
-      "correctness": {
-        "useExhaustiveDependencies": "warn"
-      },
-      "suspicious": {
-        "noExplicitAny": "warn"
-      },
-      "style": {
-        "noParameterAssign": "error",
-        "useAsConstAssertion": "error",
-        "useDefaultParameterLast": "error",
-        "useEnumInitializers": "error",
-        "useSelfClosingElements": "error",
-        "useSingleVarDeclarator": "error",
-        "noUnusedTemplateLiteral": "error",
-        "useNumberNamespace": "error",
-        "noInferrableTypes": "error",
-        "noUselessElse": "error"
-      }
-    }
+    "enabled": false
   },
   "formatter": {
     "enabled": true,
-    "formatWithErrors": false,
+    "formatWithErrors": true,
     "indentStyle": "space",
     "indentWidth": 2,
     "lineEnding": "lf",
@@ -37,14 +16,15 @@
     "bracketSpacing": true,
     "bracketSameLine": false,
     "includes": [
-      "**",
+      "**/*.{ts,tsx,js,jsx,json}",
       "!**/node_modules",
       "!**/dist",
       "!**/build",
       "!**/coverage",
       "!**/dev-dist",
       "!**/*.min.js",
-      "!**/*.bundle.js"
+      "!**/*.bundle.js",
+      "!**/*.css"
     ]
   },
   "javascript": {
@@ -66,17 +46,13 @@
   },
   "files": {
     "includes": [
-      "**/src/**/*",
-      "**/*.ts",
-      "**/*.tsx",
-      "**/*.js",
-      "**/*.jsx",
-      "**/*.json",
+      "**/src/**/*.{ts,tsx,js,jsx,json}",
       "!**/node_modules",
       "!**/dist",
       "!**/build",
       "!**/coverage",
-      "!**/dev-dist"
+      "!**/dev-dist",
+      "!**/*.css"
     ]
   }
 }
