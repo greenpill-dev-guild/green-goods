@@ -1,9 +1,9 @@
-import { cn } from "@/utils/cn";
+import type { RemixiconComponentType } from "@remixicon/react";
 import type * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
-import { Card } from "../Card/Card";
+import { cn } from "@/utils/cn";
 import { Avatar } from "../Avatar/Avatar";
-import type { RemixiconComponentType } from "@remixicon/react";
+import { Card } from "../Card/Card";
 
 const modalVariants = tv({
   slots: {
@@ -69,10 +69,9 @@ function UploadModal({
             </div>
           </Avatar>
           <h6>{titleText}</h6>
-          <div
-            className="flex mx-4 max-w-full text-wrap text-center"
-            dangerouslySetInnerHTML={{ __html: bodyText }}
-          />
+          <div className="flex mx-4 max-w-full text-wrap text-center">
+            <div>{bodyText}</div>
+          </div>
         </div>
       </Card>
     </>

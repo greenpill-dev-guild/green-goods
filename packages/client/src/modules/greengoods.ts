@@ -1,21 +1,19 @@
-import { User } from "@privy-io/react-auth";
-
-import plantActionInstructions from "@/utils/actions/plant.json";
+import type { User } from "@privy-io/react-auth";
 import observerActionInstructions from "@/utils/actions/observe.json";
-
+import plantActionInstructions from "@/utils/actions/plant.json";
+import { greenGoodsGraphQL } from "./graphql";
 import { getFileByHash } from "./pinata";
 import { greenGoodsIndexer } from "./urql";
-import { greenGoodsGraphQL } from "./graphql";
 
 export enum Capital {
-  SOCIAL,
-  MATERIAL,
-  FINANCIAL,
-  LIVING,
-  INTELLECTUAL,
-  EXPERIENTIAL,
-  SPIRITUAL,
-  CULTURAL,
+  SOCIAL = 0,
+  MATERIAL = 1,
+  FINANCIAL = 2,
+  LIVING = 3,
+  INTELLECTUAL = 4,
+  EXPERIENTIAL = 5,
+  SPIRITUAL = 6,
+  CULTURAL = 7,
 }
 
 export async function getActions(): Promise<Action[]> {
@@ -46,7 +44,7 @@ export async function getActions(): Promise<Action[]> {
         const mediaImage = URL.createObjectURL(image as Blob);
 
         return {
-          id: parseInt(id),
+          id: Number.parseInt(id),
           title,
           instructions,
           startTime: startTime as number,

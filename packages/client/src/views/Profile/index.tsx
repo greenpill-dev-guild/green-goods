@@ -1,16 +1,13 @@
-import type React from "react";
 import { RiHeadphoneLine, RiSettings2Fill } from "@remixicon/react";
-import { Profile as UserProfile } from "@/components/UI/Profile/Profile";
-
-import { formatAddress } from "@/utils/text";
-
-import { useUser } from "@/providers/user";
-
-import { ProfileHelp } from "./Help";
-import { ProfileAccount } from "./Account";
-import { Tabs, TabsTrigger, TabsContent, TabsList } from "@/components/UI/Tabs/Tabs";
+import type React from "react";
 import { useRef } from "react";
 import { useIntl } from "react-intl";
+import { Profile as UserProfile } from "@/components/UI/Profile/Profile";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/UI/Tabs/Tabs";
+import { useUser } from "@/providers/user";
+import { formatAddress } from "@/utils/text";
+import { ProfileAccount } from "./Account";
+import { ProfileHelp } from "./Help";
 
 const Profile: React.FC = () => {
   const { user } = useUser();

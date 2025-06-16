@@ -1,25 +1,20 @@
-import { QueryObserverResult, useMutation, useQuery } from "@tanstack/react-query";
 import { NO_EXPIRATION, ZERO_BYTES32 } from "@ethereum-attestation-service/eas-sdk";
-import { decodeErrorResult } from "viem";
+import { type QueryObserverResult, useMutation, useQuery } from "@tanstack/react-query";
 import React, { useContext, useState } from "react";
-
 // import { encodeFunctionData, parseEther, zeroAddress } from "viem";
 // import { zodResolver } from "@hookform/resolvers/zod";
-import { Control, FormState, useForm, UseFormRegister } from "react-hook-form";
-
-import { EAS } from "@/constants";
-
-import { getWorkApprovals } from "@/modules/eas";
-import { queryClient } from "@/modules/react-query";
-
-import { encodeWorkData } from "@/utils/eas";
-import { abi } from "@/utils/abis/EAS.json";
-import { abi as WorkResolverABI } from "@/utils/abis/WorkResolver.json";
-
-import { useUser } from "./user";
-import { useGardens } from "./garden";
+import { type Control, type FormState, type UseFormRegister, useForm } from "react-hook-form";
+import { decodeErrorResult } from "viem";
 import { arbitrum } from "viem/chains";
 import { encodeFunctionData } from "viem/utils";
+import { EAS } from "@/constants";
+import { getWorkApprovals } from "@/modules/eas";
+import { queryClient } from "@/modules/react-query";
+import { abi } from "@/utils/abis/EAS.json";
+import { abi as WorkResolverABI } from "@/utils/abis/WorkResolver.json";
+import { encodeWorkData } from "@/utils/eas";
+import { useGardens } from "./garden";
+import { useUser } from "./user";
 
 export enum WorkTab {
   Intro = "Intro",

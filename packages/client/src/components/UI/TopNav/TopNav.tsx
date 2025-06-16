@@ -1,9 +1,9 @@
 import { RiArrowLeftLine, RiNotificationFill } from "@remixicon/react";
-import { Button } from "../Button";
-import { GardenNotifications } from "@/views/Home/Notifications";
+import { forwardRef, useRef } from "react";
 import { createPortal } from "react-dom";
-import { useRef, forwardRef } from "react";
 import { cn } from "@/utils/cn";
+import { GardenNotifications } from "@/views/Home/Notifications";
+import { Button } from "../Button";
 
 type TopNavProps = {
   onBackClick?: (e: React.SyntheticEvent<HTMLButtonElement>) => void;

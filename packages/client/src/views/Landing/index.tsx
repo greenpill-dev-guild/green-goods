@@ -1,13 +1,12 @@
+import type React from "react";
+import { useState } from "react";
 import toast from "react-hot-toast";
-import React, { useState } from "react";
-
+import { Footer } from "@/components/Layout/Footer";
+import { Header } from "@/components/Layout/Header";
+import { Hero } from "@/components/Layout/Hero";
 import { useApp } from "@/providers/app";
 
-import { Hero } from "@/components/Layout/Hero";
-import { Header } from "@/components/Layout/Header";
-import { Footer } from "@/components/Layout/Footer";
-
-interface LandingProps {}
+type LandingProps = {};
 
 type SubscribeState = "idle" | "subscribing" | "subscribed" | "error";
 
@@ -38,11 +37,10 @@ const Landing: React.FC<LandingProps> = () => {
           console.log(response.status);
 
           throw new Error("Network response was not ok.");
-        } else {
-          toast.success("Successfilly subscribed!");
-
-          setSubscribeState("subscribed");
         }
+        toast.success("Successfilly subscribed!");
+
+        setSubscribeState("subscribed");
       })
       .catch((error) => {
         console.error("Error:", error);

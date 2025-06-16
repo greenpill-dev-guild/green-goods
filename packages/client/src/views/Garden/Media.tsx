@@ -1,11 +1,10 @@
+import { RiCloseLine, RiImageFill } from "@remixicon/react";
 import type React from "react";
 import { useState } from "react";
-import { RiCloseLine, RiImageFill } from "@remixicon/react";
-
-import { FormInfo } from "@/components/UI/Form/Info";
+import { useIntl } from "react-intl";
 import { Books } from "@/components/Garden/Books";
 import { Badge } from "@/components/UI/Badge/Badge";
-import { useIntl } from "react-intl";
+import { FormInfo } from "@/components/UI/Form/Info";
 
 interface WorkMediaProps {
   instruction: string;

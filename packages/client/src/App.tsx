@@ -1,22 +1,19 @@
-import { Toaster } from "react-hot-toast";
 import { usePrivy } from "@privy-io/react-auth";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Route, Routes, Navigate, BrowserRouter } from "react-router-dom";
-
+import { Toaster } from "react-hot-toast";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { AppBar } from "@/components/Layout/AppBar";
+import { CircleLoader } from "@/components/UI/Loader";
 import { queryClient } from "@/modules/react-query";
 
-import { WorkProvider } from "@/providers/work";
-import { GardensProvider } from "@/providers/garden";
-
 import { useApp } from "@/providers/app";
+import { GardensProvider } from "@/providers/garden";
 import { useUser } from "@/providers/user";
-
-import { CircleLoader } from "@/components/UI/Loader";
-import { AppBar } from "@/components/Layout/AppBar";
+import { WorkProvider } from "@/providers/work";
 
 import AppViews from "@/views";
-import Login from "@/views/Login";
 import Landing from "@/views/Landing";
+import Login from "@/views/Login";
 
 function App() {
   const { authenticated } = usePrivy();

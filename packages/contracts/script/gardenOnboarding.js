@@ -1,11 +1,11 @@
 require("dotenv").config();
 const { PrivyClient } = require("@privy-io/server-auth");
 const { parse } = require("csv-parse");
-const fs = require("fs");
-const { execSync } = require("child_process");
+const fs = require("node:fs");
+const { execSync } = require("node:child_process");
 const PinataClient = require("@pinata/sdk");
 const fetch = require("node-fetch");
-const path = require("path");
+const path = require("node:path");
 
 // Initialize Privy client
 const privyClient = new PrivyClient(process.env.PRIVY_CLIENT_ID, process.env.PRIVY_APP_SECRET_ID, {
@@ -125,7 +125,7 @@ async function createEmbeddedWallet(identifier) {
     try {
       user = await privyClient.getUser(identifier);
       console.log(`Found existing user for ${identifier}`);
-    } catch (error) {
+    } catch (_error) {
       // If user doesn't exist, create a new one
       console.log(`Creating new user for ${identifier}`);
       user = await privyClient.importUser({
@@ -246,8 +246,8 @@ async function main() {
     };
 
     // Dynamically find the header row for operators/gardeners
-    let header,
-      headerRowIdx = -1;
+    let header;
+    let headerRowIdx = -1;
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i].map((col) => col.trim());
       if (row.includes("Garden Operators") && row.includes("Gardeners")) {

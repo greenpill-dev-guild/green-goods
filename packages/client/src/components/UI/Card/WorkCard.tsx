@@ -1,9 +1,3 @@
-import { cn } from "@/utils/cn";
-import * as React from "react";
-import { tv, type VariantProps } from "tailwind-variants";
-import { Card, type CardRootProps } from "./Card";
-import { Button } from "../Button";
-import { Badge } from "../Badge/Badge";
 import {
   RiAlertFill,
   RiFileUnknowFill,
@@ -11,9 +5,15 @@ import {
   RiSearchEyeLine,
   RiUser3Fill,
 } from "@remixicon/react";
-import { formatAddress } from "@/utils/text";
+import * as React from "react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
+import { tv, type VariantProps } from "tailwind-variants";
+import { cn } from "@/utils/cn";
+import { formatAddress } from "@/utils/text";
+import { Badge } from "../Badge/Badge";
+import { Button } from "../Button";
+import { Card, type CardRootProps } from "./Card";
 
 export const cardVariants = tv({
   base: "relative flex flex-col grow border-0 rounded-lg overflow-clip rounded-lg justify-between p-0 gap-0",
@@ -87,7 +87,7 @@ const WorkCard = React.forwardRef<
           </Badge>
           <Badge variant="outline" leadingIcon={statusIcon} className="capitalize">
             {intl.formatMessage({
-              id: "app.garden.work.status." + work.status,
+              id: `app.garden.work.status.${work.status}`,
               defaultMessage: work.status,
             })}
           </Badge>

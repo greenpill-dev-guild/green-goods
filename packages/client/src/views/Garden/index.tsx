@@ -1,19 +1,17 @@
-import { Form } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
 import { RiArrowRightSLine, RiImage2Fill } from "@remixicon/react";
-
-import { useWork, WorkTab } from "@/providers/work";
+import { Form } from "react-hook-form";
+import { useIntl } from "react-intl";
+import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/UI/Button";
 import { FormProgress } from "@/components/UI/Form/Progress";
-
+import { TopNav } from "@/components/UI/TopNav/TopNav";
+import { useWork, WorkTab } from "@/providers/work";
+import { WorkCompleted } from "./Completed";
+import { WorkDetails } from "./Details";
 import { WorkIntro } from "./Intro";
 import { WorkMedia } from "./Media";
-import { WorkDetails } from "./Details";
 import { WorkReview } from "./Review";
-import { WorkCompleted } from "./Completed";
-import { TopNav } from "@/components/UI/TopNav/TopNav";
-import { useIntl } from "react-intl";
 
 const Work: React.FC = () => {
   const intl = useIntl();

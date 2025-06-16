@@ -1,12 +1,12 @@
-import React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
+import type React from "react";
 import { DeviceFrameset } from "react-device-frameset";
 
 import "react-device-frameset/styles/marvel-devices.min.css";
 
-import { useApp } from "@/providers/app";
 import { RiCloseLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { useApp } from "@/providers/app";
 
 interface HeroProps {
   handleSubscribe: (e: React.FormEvent<HTMLFormElement>) => void;

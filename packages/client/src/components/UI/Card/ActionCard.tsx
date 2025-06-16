@@ -1,8 +1,8 @@
-import { cn } from "@/utils/cn";
+import { RiCamera3Line } from "@remixicon/react";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
+import { cn } from "@/utils/cn";
 import { Card, type CardRootProps } from "./Card";
-import { RiCamera3Line } from "@remixicon/react";
 
 export const cardVariants = tv({
   base: "relative flex flex-col grow border-0 rounded-lg overflow-clip rounded-lg justify-between p-0 gap-0",

@@ -1,19 +1,18 @@
-import { RiMapPin2Fill, RiCalendarEventFill } from "@remixicon/react";
-import React, { useState, useRef, useEffect } from "react";
-import { useParams, Outlet, useLocation } from "react-router-dom";
-
-import { useGarden, useGardens } from "@/providers/garden";
-
-import { CircleLoader } from "@/components/UI/Loader";
-import { GardenWork } from "@/components/Garden/Work";
-import { GardenGardeners } from "@/components/Garden/Gardeners";
+import { RiCalendarEventFill, RiMapPin2Fill } from "@remixicon/react";
+import type React from "react";
+import { useEffect, useRef, useState } from "react";
+import { useIntl } from "react-intl";
+import { Outlet, useLocation, useParams } from "react-router-dom";
 import { GardenAssessments } from "@/components/Garden/Asessments";
+import { GardenGardeners } from "@/components/Garden/Gardeners";
+import { GardenWork } from "@/components/Garden/Work";
+import { CircleLoader } from "@/components/UI/Loader";
 import { Tabs, TabsList, TabsTrigger } from "@/components/UI/Tabs/Tabs";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
+import { useGarden, useGardens } from "@/providers/garden";
 import { useNavigateToTop } from "@/utils/useNavigateToTop";
-import { useIntl } from "react-intl";
 
-interface GardenProps {}
+type GardenProps = {};
 
 export const Garden: React.FC<GardenProps> = () => {
   const intl = useIntl();

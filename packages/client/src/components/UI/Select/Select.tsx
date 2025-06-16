@@ -1,8 +1,8 @@
 "use client";
 
-import * as React from "react";
 import * as SelectPrimitive from "@radix-ui/react-select";
-import { RiCheckLine, RiArrowDropDownLine, RiArrowDropUpLine } from "@remixicon/react";
+import { RiArrowDropDownLine, RiArrowDropUpLine, RiCheckLine } from "@remixicon/react";
+import * as React from "react";
 import { cn } from "@/utils/cn";
 
 const Select = SelectPrimitive.Root;

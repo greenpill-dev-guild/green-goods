@@ -1,7 +1,7 @@
 "use client";
 
-import * as React from "react";
 import useEmblaCarousel, { type UseEmblaCarouselType } from "embla-carousel-react";
+import * as React from "react";
 import { cn } from "@/utils/cn";
 
 type CarouselApi = UseEmblaCarouselType[1];

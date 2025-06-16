@@ -1,11 +1,10 @@
-import type React from "react";
 import { RiHammerFill, RiPlantFill } from "@remixicon/react";
-
-import { FormInfo } from "@/components/UI/Form/Info";
-import { Carousel, CarouselContent, CarouselItem } from "@/components/UI/Carousel/Carousel";
+import type React from "react";
+import { useIntl } from "react-intl";
 import { ActionCard } from "@/components/UI/Card/ActionCard";
 import { GardenCard } from "@/components/UI/Card/GardenCard";
-import { useIntl } from "react-intl";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/UI/Carousel/Carousel";
+import { FormInfo } from "@/components/UI/Form/Info";
 
 interface WorkIntroProps {
   actions: Action[];

@@ -9431,5 +9431,3 @@ export type introspection = {
   subscription: never;
   types: introspection_types;
 };
-
-import * as gqlTada from "gql.tada";

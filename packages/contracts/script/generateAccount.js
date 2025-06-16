@@ -1,6 +1,6 @@
 const ethers = require("ethers");
 const { parse, stringify } = require("envfile");
-const fs = require("fs");
+const fs = require("node:fs");
 
 const envFilePath = "./.env";
 

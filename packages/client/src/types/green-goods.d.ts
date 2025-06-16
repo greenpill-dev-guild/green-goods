@@ -3700,5 +3700,3 @@ export type introspection = {
   subscription: "subscription_root";
   types: introspection_types;
 };
-
-import * as gqlTada from "gql.tada";

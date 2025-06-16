@@ -1,8 +1,8 @@
 // import "react-tailwindcss-select/dist/index.css";
 
-import Select from "react-select";
 import { forwardRef } from "react";
-import { Control, Controller } from "react-hook-form";
+import { type Control, Controller, type FieldValues } from "react-hook-form";
+import Select from "react-select";
 
 interface FormSelectProps {
   name: string;
@@ -10,7 +10,7 @@ interface FormSelectProps {
   placeholder: string;
   error?: string;
   options: { label: string; value: string }[];
-  control: Control<any>;
+  control: Control<FieldValues>;
 }
 
 export const FormSelect = forwardRef<HTMLSelectElement, FormSelectProps>(
@@ -21,8 +21,11 @@ export const FormSelect = forwardRef<HTMLSelectElement, FormSelectProps>(
         control={control}
         render={(field) => (
           <div className="">
-            <label className="font-semibold text-slate-800  text-label-sm">{label}</label>
+            <label htmlFor={name} className="font-semibold text-slate-800  text-label-sm">
+              {label}
+            </label>
             <Select
+              id={name}
               value={field.field.value.map((v: string) => ({
                 label: v,
                 value: v,

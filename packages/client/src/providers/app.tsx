@@ -1,17 +1,18 @@
 import browserLang from "browser-lang";
-import { IntlProvider } from "react-intl";
-import React, { useState, useEffect, useContext } from "react";
 import { PostHogProvider } from "posthog-js/react";
+import React, { useContext, useEffect, useState } from "react";
+import { IntlProvider } from "react-intl";
 
 import enMessages from "@/i18n/en.json";
-import ptMessages from "@/i18n/pt.json";
 import esMessages from "@/i18n/es.json";
+import ptMessages from "@/i18n/pt.json";
 
 const messages = {
   en: enMessages,
   pt: ptMessages,
   es: esMessages,
 };
+
 import { track } from "@/modules/posthog";
 
 export type InstallState = "idle" | "not-installed" | "installed" | "unsupported";
@@ -149,7 +150,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
       window.removeEventListener("appinstalled", handleAppInstalled);
     };
-  }, []);
+  }, [handleAppInstalled, handleBeforeInstall, handleInstallCheck]);
 
   return (
     <PostHogProvider

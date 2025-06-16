@@ -1,8 +1,8 @@
+import { RiArrowDropRightLine, RiTelegramLine, RiWhatsappLine } from "@remixicon/react";
+import { useIntl } from "react-intl";
 import { Faq, FaqContent, FaqItem, FaqTrigger } from "@/components/UI/Accordion/Faq";
 import { Avatar } from "@/components/UI/Avatar/Avatar";
 import { FlexCard } from "@/components/UI/Card/Card";
-import { RiArrowDropRightLine, RiTelegramLine, RiWhatsappLine } from "@remixicon/react";
-import { useIntl } from "react-intl";
 
 interface Social {
   title: string;
@@ -16,7 +16,7 @@ interface FAQ {
   answer: string;
 }
 
-interface ProfileHelpProps {}
+type ProfileHelpProps = {};
 
 export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
   const intl = useIntl();

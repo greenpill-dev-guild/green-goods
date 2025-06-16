@@ -1,6 +1,6 @@
-import { formatAddress } from "@/utils/text";
 import { forwardRef } from "react";
 import { useIntl } from "react-intl";
+import { formatAddress } from "@/utils/text";
 
 interface GardenGardenersProps {
   gardeners: GardenerCard[];

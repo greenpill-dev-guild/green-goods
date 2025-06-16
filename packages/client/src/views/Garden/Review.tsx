@@ -1,10 +1,9 @@
 import { RiFileFill, RiHammerFill, RiLeafFill, RiPencilFill, RiPlantFill } from "@remixicon/react";
-
-import { FormInfo } from "@/components/UI/Form/Info";
-import { FormCard } from "@/components/UI/Form/Card";
+import { useIntl } from "react-intl";
 import { GardenCard } from "@/components/UI/Card/GardenCard";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/UI/Carousel/Carousel";
-import { useIntl } from "react-intl";
+import { FormCard } from "@/components/UI/Form/Card";
+import { FormInfo } from "@/components/UI/Form/Info";
 
 interface WorkReviewProps {
   instruction: string;

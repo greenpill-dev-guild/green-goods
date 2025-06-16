@@ -1,8 +1,8 @@
-import React, { useContext } from "react";
 import { useQuery } from "@tanstack/react-query";
+import React, { useContext, useMemo } from "react";
 
 import { getGardenAssessments, getWorks } from "@/modules/eas";
-import { getActions, getGardens, getGardeners } from "@/modules/greengoods";
+import { getActions, getGardeners, getGardens } from "@/modules/greengoods";
 
 import { useUser } from "./user";
 import { useWork } from "./work";
@@ -62,10 +62,15 @@ export const useGarden = (id: string): GardenDataProps => {
     throwOnError: true,
   });
 
+  const isOperator = useMemo(
+    () =>
+      (!!eoa?.address && !!garden?.operators.includes(eoa.address)) ||
+      (!!smartAccountAddress && !!garden?.operators.includes(smartAccountAddress)),
+    [garden, eoa, smartAccountAddress]
+  );
+
   return {
-    isOperator:
-      !!garden?.operators.includes(eoa?.address!) ||
-      !!garden?.operators.includes(smartAccountAddress!),
+    isOperator,
     garden,
     gardenStatus,
     gardeners:

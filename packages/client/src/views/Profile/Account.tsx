@@ -1,18 +1,17 @@
 import { usePrivy } from "@privy-io/react-auth";
 import {
+  RiEarthFill,
   RiKeyLine,
+  RiLogoutBoxRLine,
   RiMailFill,
   RiPhoneLine,
   RiWalletLine,
-  RiLogoutBoxRLine,
-  RiEarthFill,
 } from "@remixicon/react";
-
+import type { ReactNode } from "react";
+import { useIntl } from "react-intl";
+import { Avatar } from "@/components/UI/Avatar/Avatar";
 import { Button } from "@/components/UI/Button";
 import { Card } from "@/components/UI/Card/Card";
-import { Avatar } from "@/components/UI/Avatar/Avatar";
-import { useApp, type Locale } from "@/providers/app";
-import type { ReactNode } from "react";
 import {
   Select,
   SelectContent,
@@ -20,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/UI/Select/Select";
-import { useIntl } from "react-intl";
+import { type Locale, useApp } from "@/providers/app";
 import { capitalize } from "@/utils/text";
 
 interface LinkedAccount {
@@ -39,7 +38,7 @@ interface ApplicationSettings {
   Icon: React.ReactNode;
 }
 
-interface ProfileAccountProps {}
+type ProfileAccountProps = {};
 
 export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
   const {

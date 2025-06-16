@@ -1,5 +1,5 @@
+import { RiArrowRightSLine, RiCheckFill } from "@remixicon/react";
 import { cn } from "@/utils/cn";
-import { RiCheckFill, RiArrowRightSLine } from "@remixicon/react";
 
 interface FormProgressProps {
   currentStep: number;

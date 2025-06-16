@@ -1,10 +1,10 @@
-import { describe, it } from "vitest";
 import {
   render,
   // screen
 } from "@testing-library/react";
+import { describe, it } from "vitest";
 
-import { useGardens, GardensProvider } from "../../providers/garden";
+import { GardensProvider, useGardens } from "../../providers/garden";
 
 const TestComponent = () => {
   const { actions, gardens } = useGardens();

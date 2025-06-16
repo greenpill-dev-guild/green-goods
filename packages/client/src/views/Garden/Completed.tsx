@@ -1,13 +1,12 @@
-import type React from "react";
 import {
+  type RemixiconComponentType,
   RiCheckFill,
   RiErrorWarningFill,
   RiTelegram2Fill,
-  type RemixiconComponentType,
 } from "@remixicon/react";
-
-import { UploadModal, type ModalVariantRoot } from "@/components/UI/UploadModal/UploadModal";
+import type React from "react";
 import { useIntl } from "react-intl";
+import { type ModalVariantRoot, UploadModal } from "@/components/UI/UploadModal/UploadModal";
 
 export type completedMessage = {
   header: string;

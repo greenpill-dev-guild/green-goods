@@ -1,11 +1,10 @@
+import { useIntl } from "react-intl";
 import { Outlet, useLocation } from "react-router-dom";
-
-import { useGardens } from "@/providers/garden";
 
 import { GardenCard } from "@/components/UI/Card/GardenCard";
 import { BeatLoader } from "@/components/UI/Loader";
+import { useGardens } from "@/providers/garden";
 import { useNavigateToTop } from "@/utils/useNavigateToTop";
-import { useIntl } from "react-intl";
 
 const Gardens: React.FC = () => {
   const navigate = useNavigateToTop();

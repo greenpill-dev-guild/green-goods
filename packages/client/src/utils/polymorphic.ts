@@ -26,6 +26,6 @@ export type PolymorphicComponentProps<
   P = {},
 > = PolymorphicComponentProp<T, P>;
 
-export type PolymorphicComponent<P> = {
-  <T extends React.ElementType>(props: PolymorphicComponentPropsWithRef<T, P>): React.ReactNode;
-};
+export type PolymorphicComponent<P> = <T extends React.ElementType>(
+  props: PolymorphicComponentPropsWithRef<T, P>
+) => React.ReactNode;

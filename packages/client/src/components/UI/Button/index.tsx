@@ -1,5 +1,5 @@
 import type { SyntheticEvent } from "react";
-import { Root, type ButtonRootProps } from "./Base";
+import { type ButtonRootProps, Root } from "./Base";
 
 export type ButtonProps = {
   label: string;

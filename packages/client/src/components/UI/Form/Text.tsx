@@ -1,4 +1,4 @@
-import { InputHTMLAttributes, forwardRef } from "react";
+import { forwardRef, type InputHTMLAttributes } from "react";
 
 interface FormTextProps extends InputHTMLAttributes<HTMLTextAreaElement> {
   rows: number;

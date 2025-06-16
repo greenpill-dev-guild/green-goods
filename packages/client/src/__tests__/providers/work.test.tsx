@@ -1,7 +1,7 @@
+import { EAS, NO_EXPIRATION, SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
+import { render } from "@testing-library/react";
 import { ethers } from "ethers";
 import { describe, it } from "vitest";
-import { render } from "@testing-library/react";
-import { EAS, NO_EXPIRATION, SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
 
 import { EAS as constants } from "@/constants";
 import { useWork, WorkProvider } from "@/providers/work";

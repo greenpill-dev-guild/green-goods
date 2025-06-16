@@ -7,9 +7,10 @@ posthog.init(import.meta.env.VITE_PUBLIC_POSTHOG_KEY, {
   debug: IS_DEV,
 });
 
-export function track(event: string, properties: Record<string, any>) {
+export function track(event: string, properties: Record<string, unknown>) {
   if (!IS_DEV) {
     console.log("track", event, properties);
+    posthog.capture(event, properties);
   } else {
     posthog.capture(event, properties);
   }

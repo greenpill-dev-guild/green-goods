@@ -1,9 +1,9 @@
+import { type RemixiconComponentType, RiGithubLine, RiTwitterLine } from "@remixicon/react";
+import type React from "react";
 import { APP_NAME } from "@/constants";
 import { useApp } from "@/providers/app";
-import { RiGithubLine, RiTwitterLine, type RemixiconComponentType } from "@remixicon/react";
-import type React from "react";
 
-interface HeaderProps {}
+type HeaderProps = Record<string, never>;
 
 const links: Link<RemixiconComponentType>[] = [
   {

@@ -1,6 +1,7 @@
-import assert from "assert";
-import { TestHelpers, Action, Garden } from "generated";
-const { MockDb, Addresses, ActionRegistry, GardenToken, GardenAccount } = TestHelpers;
+import assert from "node:assert";
+import { type Action, type Garden, TestHelpers } from "generated";
+
+const { MockDb, Addresses, ActionRegistry, GardenToken } = TestHelpers;
 
 describe("Action Registry Test", () => {
   it("A new action is registered", async () => {

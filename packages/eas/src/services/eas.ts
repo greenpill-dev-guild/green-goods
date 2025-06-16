@@ -1,5 +1,5 @@
-import { ethers } from "ethers";
 import { EAS, SchemaRegistry } from "@ethereum-attestation-service/eas-sdk";
+import { ethers } from "ethers";
 
 import { ALCHEMY_API_KEY, PRIVATE_KEY, PROD } from "../constants";
 

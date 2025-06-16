@@ -1,15 +1,15 @@
-import { Navigate, Route, Routes } from "react-router-dom";
 import { lazy, Suspense } from "react";
+import { Navigate, Route, Routes } from "react-router-dom";
 
 // Dynamically import default exports
 const Home = lazy(() => import("./Home"));
 const Garden = lazy(() => import("./Garden"));
 const Profile = lazy(() => import("./Profile"));
-import { Garden as HomeGarden } from "./Home/Garden";
-import { GardenAssessment } from "./Home/Assessment";
-import { GardenWorkApproval } from "./Home/WorkApproval";
 
 import { CircleLoader } from "@/components/UI/Loader";
+import { GardenAssessment } from "./Home/Assessment";
+import { Garden as HomeGarden } from "./Home/Garden";
+import { GardenWorkApproval } from "./Home/WorkApproval";
 
 export default function Views() {
   return (
