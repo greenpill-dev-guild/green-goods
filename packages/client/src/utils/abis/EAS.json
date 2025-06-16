@@ -109,9 +109,7 @@
     {
       "type": "function",
       "name": "getAttestation",
-      "inputs": [
-        { "name": "uid", "type": "bytes32", "internalType": "bytes32" }
-      ],
+      "inputs": [{ "name": "uid", "type": "bytes32", "internalType": "bytes32" }],
       "outputs": [
         {
           "name": "",
@@ -175,18 +173,14 @@
     {
       "type": "function",
       "name": "getTimestamp",
-      "inputs": [
-        { "name": "data", "type": "bytes32", "internalType": "bytes32" }
-      ],
+      "inputs": [{ "name": "data", "type": "bytes32", "internalType": "bytes32" }],
       "outputs": [{ "name": "", "type": "uint64", "internalType": "uint64" }],
       "stateMutability": "view"
     },
     {
       "type": "function",
       "name": "isAttestationValid",
-      "inputs": [
-        { "name": "uid", "type": "bytes32", "internalType": "bytes32" }
-      ],
+      "inputs": [{ "name": "uid", "type": "bytes32", "internalType": "bytes32" }],
       "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
       "stateMutability": "view"
     },
@@ -232,9 +226,7 @@
           ]
         }
       ],
-      "outputs": [
-        { "name": "", "type": "bytes32[]", "internalType": "bytes32[]" }
-      ],
+      "outputs": [{ "name": "", "type": "bytes32[]", "internalType": "bytes32[]" }],
       "stateMutability": "payable"
     },
     {
@@ -295,9 +287,7 @@
           ]
         }
       ],
-      "outputs": [
-        { "name": "", "type": "bytes32[]", "internalType": "bytes32[]" }
-      ],
+      "outputs": [{ "name": "", "type": "bytes32[]", "internalType": "bytes32[]" }],
       "stateMutability": "payable"
     },
     {
@@ -373,18 +363,14 @@
     {
       "type": "function",
       "name": "multiRevokeOffchain",
-      "inputs": [
-        { "name": "data", "type": "bytes32[]", "internalType": "bytes32[]" }
-      ],
+      "inputs": [{ "name": "data", "type": "bytes32[]", "internalType": "bytes32[]" }],
       "outputs": [{ "name": "", "type": "uint64", "internalType": "uint64" }],
       "stateMutability": "nonpayable"
     },
     {
       "type": "function",
       "name": "multiTimestamp",
-      "inputs": [
-        { "name": "data", "type": "bytes32[]", "internalType": "bytes32[]" }
-      ],
+      "inputs": [{ "name": "data", "type": "bytes32[]", "internalType": "bytes32[]" }],
       "outputs": [{ "name": "", "type": "uint64", "internalType": "uint64" }],
       "stateMutability": "nonpayable"
     },
@@ -461,18 +447,14 @@
     {
       "type": "function",
       "name": "revokeOffchain",
-      "inputs": [
-        { "name": "data", "type": "bytes32", "internalType": "bytes32" }
-      ],
+      "inputs": [{ "name": "data", "type": "bytes32", "internalType": "bytes32" }],
       "outputs": [{ "name": "", "type": "uint64", "internalType": "uint64" }],
       "stateMutability": "nonpayable"
     },
     {
       "type": "function",
       "name": "timestamp",
-      "inputs": [
-        { "name": "data", "type": "bytes32", "internalType": "bytes32" }
-      ],
+      "inputs": [{ "name": "data", "type": "bytes32", "internalType": "bytes32" }],
       "outputs": [{ "name": "", "type": "uint64", "internalType": "uint64" }],
       "stateMutability": "nonpayable"
     },

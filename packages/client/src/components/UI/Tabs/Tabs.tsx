@@ -1,9 +1,9 @@
 "use client";
 
-import * as React from "react";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
-import { cn } from "@/utils/cn";
+import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
+import { cn } from "@/utils/cn";
 
 const Tabs = TabsPrimitive.Root;
 
@@ -37,18 +37,15 @@ export const triggerVariants = tv({
   },
 });
 
-export type TriggerProps = React.ComponentPropsWithoutRef<
-  typeof TabsPrimitive.Trigger
-> &
+export type TriggerProps = React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger> &
   VariantProps<typeof triggerVariants>;
 
-const TabsTrigger = React.forwardRef<
-  React.ElementRef<typeof TabsPrimitive.Trigger>,
-  TriggerProps
->(({ className, variant, ...props }, ref) => {
-  const classes = triggerVariants({ variant, class: className });
-  return <TabsPrimitive.Trigger ref={ref} className={cn(classes)} {...props} />;
-});
+const TabsTrigger = React.forwardRef<React.ElementRef<typeof TabsPrimitive.Trigger>, TriggerProps>(
+  ({ className, variant, ...props }, ref) => {
+    const classes = triggerVariants({ variant, class: className });
+    return <TabsPrimitive.Trigger ref={ref} className={cn(classes)} {...props} />;
+  }
+);
 TabsTrigger.displayName = TabsPrimitive.Trigger.displayName;
 
 const TabsContent = React.forwardRef<

@@ -1,4 +1,4 @@
-import { InputHTMLAttributes, forwardRef } from "react";
+import { forwardRef, type InputHTMLAttributes } from "react";
 
 interface FormInputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
@@ -9,10 +9,7 @@ interface FormInputProps extends InputHTMLAttributes<HTMLInputElement> {
 export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
   ({ label, helperText, error, className, ...props }, ref) => (
     <div className={`${className} flex flex-col gap-1`}>
-      <label
-        className="font-semibold text-slate-800 text-label-sm"
-        htmlFor={props.id}
-      >
+      <label className="font-semibold text-slate-800 text-label-sm" htmlFor={props.id}>
         {label}
       </label>
       <input

@@ -1,11 +1,9 @@
 import type React from "react";
 import { useParams } from "react-router-dom";
-
+import { CircleLoader } from "@/components/UI/Loader";
 import { useGarden } from "@/providers/garden";
 
-import { CircleLoader } from "@/components/UI/Loader";
-
-interface GardenAssessmentProps {}
+type GardenAssessmentProps = {};
 
 export const GardenAssessment: React.FC<GardenAssessmentProps> = ({}) => {
   const { id, assessmentId } = useParams<{
@@ -15,9 +13,7 @@ export const GardenAssessment: React.FC<GardenAssessmentProps> = ({}) => {
 
   const { garden } = useGarden(id!);
 
-  const assessment = garden?.assessments.find(
-    (assessment) => assessment.id === assessmentId
-  );
+  const assessment = garden?.assessments.find((assessment) => assessment.id === assessmentId);
 
   if (!assessment || !garden)
     return (

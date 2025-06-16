@@ -111,28 +111,86 @@ Run tests for a specific package:
 pnpm --filter <package-name> test
 ```
 
-### Linting and Type Checking
+### Code Quality and Formatting
 
 ```bash
-# Lint all packages
+# Format code across all packages
+pnpm format
+
+# Check formatting without applying changes
+pnpm format:check
+
+# Lint and check code quality (ultra-fast with oxlint)
 pnpm lint
 
-# Type check all packages
+# Run oxlint specifically (10-100x faster than ESLint)
+pnpm lint:oxlint
+
+# Type check all packages (if available)
 pnpm typecheck
 ```
+
+## ⚡ Development Tools & Performance
+
+### Linting & Code Quality
+
+We use a **high-performance linting setup**:
+
+- **Oxlint**: Ultra-fast Rust-based linter
+- **Biome**: Fast formatting and basic checks
+- **Combined**: Complete code quality coverage
+
+**Performance:**
+- **Linting Speed**: 30ms on 84 files
+- **Rules**: 99 comprehensive rules including React, TypeScript, and accessibility
+
+### Build System
+
+The project supports **dual build systems**:
+
+#### Production Builds (Recommended)
+```bash
+pnpm run build              # Optimized Vite build with chunking
+```
+- **Bundle Size**: 4.4MB main bundle with optimal code splitting
+- **Build Time**: ~33 seconds with full optimization
+- **Features**: Dynamic imports, PWA support, optimal chunking
+
+#### Experimental Builds (Development/Testing)
+```bash
+pnpm run build:rolldown     # Experimental rolldown-vite build
+```
+- **Purpose**: Testing next-generation bundling technology
+- **Performance**: Similar output with experimental Rust-based bundling
+- **Status**: Based on [Vite's Rolldown integration](https://vite.dev/guide/rolldown)
+
+### Bundle Optimization
+
+**Dynamic Imports Implemented:**
+- Landing & Login components: Lazy-loaded for better initial load
+- Feature components: Assessment, Garden, WorkApproval split into separate chunks
+- **Result**: Optimized bundle size with better loading performance
+
+**Chunk Analysis:**
+- `Assessment-*.js` (0.36 kB) - Assessment component
+- `Garden-*.js` (10.81 kB) - Garden component  
+- `WorkApproval-*.js` (66.11 kB) - Work approval component
+- Main bundle: Optimally chunked vendor libraries
 
 ## 🛠️ Core Technologies
 
 ### Frontend
 
 - **React**: UI library
-- **Vite**: Build tool and dev server
+- **Vite**: Build tool and dev server (with experimental Rolldown support)
 - **TypeScript**: Type safety
 - **Tailwind CSS**: Styling
 - **TanStack Query**: Data fetching and caching
 - **Privy**: Authentication and wallet management
 - **Radix UI**: Accessible UI components
 - **React Hook Form**: Form management
+- **Biome**: Fast formatting and linting
+- **Oxlint**: Ultra-fast Rust-based linting (replaces ESLint)
 
 ### Smart Contracts
 
@@ -177,17 +235,21 @@ pnpm -r <script-name>
    git checkout -b feature/your-feature-name
    ```
 3. Make your changes
-4. Run tests and linting:
+4. **Git hooks will automatically**:
+   - Format and lint staged files on commit (pre-commit hook)
+   - Run comprehensive quality checks on push (pre-push hook)
+5. Manual quality checks (optional):
    ```bash
+   pnpm format
    pnpm test
    pnpm lint
    ```
-5. Commit your changes:
+6. Commit your changes:
    ```bash
    git commit -m "feat: your feature description"
    ```
-6. Push to your fork
-7. Create a pull request
+7. Push to your fork
+8. Create a pull request
 
 ### Commit Convention
 

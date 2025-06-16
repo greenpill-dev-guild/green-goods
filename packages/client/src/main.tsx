@@ -1,16 +1,12 @@
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-
-import { arbitrum } from "viem/chains";
 import { PrivyProvider } from "@privy-io/react-auth";
 import { SmartWalletsProvider } from "@privy-io/react-auth/smart-wallets";
-
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { arbitrum } from "viem/chains";
+import App from "@/App.tsx";
 import { APP_DESCRIPTION } from "@/constants";
-
 import { AppProvider } from "@/providers/app";
 import { UserProvider } from "@/providers/user";
-
-import App from "@/App.tsx";
 
 import "@/index.css";
 
@@ -45,8 +41,12 @@ export const Root = () => (
   </AppProvider>
 );
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <Root />
-  </StrictMode>
-);
+const container = document.getElementById("root");
+
+if (container) {
+  createRoot(container).render(
+    <StrictMode>
+      <Root />
+    </StrictMode>
+  );
+}

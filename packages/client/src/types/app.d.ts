@@ -1,5 +1,5 @@
 /* eslint-disable */
-/* prettier-ignore */
+/* biome-ignore format: generated file */
 
 declare interface Link<T> {
   title: string;

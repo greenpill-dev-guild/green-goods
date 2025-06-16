@@ -1,11 +1,10 @@
 import { RiFileFill } from "@remixicon/react";
 import type { Control, UseFormRegister } from "react-hook-form";
-
+import { useIntl } from "react-intl";
 import { FormInfo } from "@/components/UI/Form/Info";
-import { FormText } from "@/components/UI/Form/Text";
 import { FormInput } from "@/components/UI/Form/Input";
 import { FormSelect } from "@/components/UI/Form/Select";
-import { useIntl } from "react-intl";
+import { FormText } from "@/components/UI/Form/Text";
 
 interface WorkDetailsProps {
   instruction: string;

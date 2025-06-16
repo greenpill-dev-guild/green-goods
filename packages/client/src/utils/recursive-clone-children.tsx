@@ -16,36 +16,30 @@ export function recursiveCloneChildren(
   additionalProps: any,
   displayNames: string[],
   uniqueId: string,
-  asChild?: boolean,
+  asChild?: boolean
 ): React.ReactNode | React.ReactNode[] {
-  const mappedChildren = React.Children.map(
-    children,
-    (child: React.ReactNode, index) => {
-      if (!React.isValidElement(child)) {
-        return child;
-      }
+  const mappedChildren = React.Children.map(children, (child: React.ReactNode, index) => {
+    if (!React.isValidElement(child)) {
+      return child;
+    }
 
-      const displayName =
-        (child.type as React.ComponentType)?.displayName || "";
-      const newProps = displayNames.includes(displayName)
-        ? additionalProps
-        : {};
+    const displayName = (child.type as React.ComponentType)?.displayName || "";
+    const newProps = displayNames.includes(displayName) ? additionalProps : {};
 
-      const childProps = (child as React.ReactElement<any>).props;
+    const childProps = (child as React.ReactElement<any>).props;
 
-      return React.cloneElement(
-        child,
-        { ...newProps, key: `${uniqueId}-${index}` },
-        recursiveCloneChildren(
-          childProps?.children,
-          additionalProps,
-          displayNames,
-          uniqueId,
-          childProps?.asChild,
-        ),
-      );
-    },
-  );
+    return React.cloneElement(
+      child,
+      { ...newProps, key: `${uniqueId}-${index}` },
+      recursiveCloneChildren(
+        childProps?.children,
+        additionalProps,
+        displayNames,
+        uniqueId,
+        childProps?.asChild
+      )
+    );
+  });
 
   return asChild ? mappedChildren?.[0] : mappedChildren;
 }

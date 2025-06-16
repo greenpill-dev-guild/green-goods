@@ -60,9 +60,7 @@
     {
       "type": "function",
       "name": "initialize",
-      "inputs": [
-        { "name": "_multisig", "type": "address", "internalType": "address" }
-      ],
+      "inputs": [{ "name": "_multisig", "type": "address", "internalType": "address" }],
       "outputs": [],
       "stateMutability": "nonpayable"
     },
@@ -222,9 +220,7 @@
     {
       "type": "function",
       "name": "transferOwnership",
-      "inputs": [
-        { "name": "newOwner", "type": "address", "internalType": "address" }
-      ],
+      "inputs": [{ "name": "newOwner", "type": "address", "internalType": "address" }],
       "outputs": [],
       "stateMutability": "nonpayable"
     },
@@ -366,10 +362,7 @@
       "32766": [{ "start": 1356, "length": 32 }],
       "32768": [{ "start": 1403, "length": 32 }],
       "32770": [{ "start": 1445, "length": 32 }],
-      "32908": [
-        { "start": 5220, "length": 32 },
-        { "start": 5818, "length": 32 }
-      ]
+      "32908": [{ "start": 5220, "length": 32 }, { "start": 5818, "length": 32 }]
     }
   },
   "methodIdentifiers": {
@@ -500,9 +493,7 @@
           "stateMutability": "view",
           "type": "function",
           "name": "actionRegistry",
-          "outputs": [
-            { "internalType": "address", "name": "", "type": "address" }
-          ]
+          "outputs": [{ "internalType": "address", "name": "", "type": "address" }]
         },
         {
           "inputs": [
@@ -685,18 +676,14 @@
           "stateMutability": "view",
           "type": "function",
           "name": "owner",
-          "outputs": [
-            { "internalType": "address", "name": "", "type": "address" }
-          ]
+          "outputs": [{ "internalType": "address", "name": "", "type": "address" }]
         },
         {
           "inputs": [],
           "stateMutability": "view",
           "type": "function",
           "name": "proxiableUUID",
-          "outputs": [
-            { "internalType": "bytes32", "name": "", "type": "bytes32" }
-          ]
+          "outputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }]
         },
         {
           "inputs": [],
@@ -754,9 +741,7 @@
           "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }]
         },
         {
-          "inputs": [
-            { "internalType": "address", "name": "newOwner", "type": "address" }
-          ],
+          "inputs": [{ "internalType": "address", "name": "newOwner", "type": "address" }],
           "stateMutability": "nonpayable",
           "type": "function",
           "name": "transferOwnership"
@@ -791,9 +776,7 @@
           "stateMutability": "view",
           "type": "function",
           "name": "version",
-          "outputs": [
-            { "internalType": "string", "name": "", "type": "string" }
-          ]
+          "outputs": [{ "internalType": "string", "name": "", "type": "string" }]
         },
         { "inputs": [], "stateMutability": "payable", "type": "receive" }
       ],

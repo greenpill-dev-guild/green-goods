@@ -3,9 +3,9 @@
 //   RiGithubFill,
 //   RemixiconComponentType,
 // } from "@remixicon/react";
-import React from "react";
+import type React from "react";
 
-interface FooterProps {}
+type FooterProps = Record<string, never>;
 
 // interface Link {
 //   title: string;

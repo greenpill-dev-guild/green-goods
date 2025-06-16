@@ -1,16 +1,12 @@
-import type React from "react";
 import {
+  type RemixiconComponentType,
   RiCheckFill,
   RiErrorWarningFill,
   RiTelegram2Fill,
-  type RemixiconComponentType,
 } from "@remixicon/react";
-
-import {
-  UploadModal,
-  type ModalVariantRoot,
-} from "@/components/UI/UploadModal/UploadModal";
+import type React from "react";
 import { useIntl } from "react-intl";
+import { type ModalVariantRoot, UploadModal } from "@/components/UI/UploadModal/UploadModal";
 
 export type completedMessage = {
   header: string;
@@ -29,11 +25,7 @@ interface WorkCompletedProps {
   messages?: { [key: string]: completedMessage };
 }
 
-export const WorkCompleted: React.FC<WorkCompletedProps> = ({
-  garden,
-  status,
-  messages,
-}) => {
+export const WorkCompleted: React.FC<WorkCompletedProps> = ({ garden, status, messages }) => {
   const intl = useIntl();
   const getMessages = (garden: Garden) => ({
     error: {

@@ -1,10 +1,10 @@
 import {
+  type Action,
   ActionRegistry,
-  GardenToken,
+  type Capital,
+  type Garden,
   GardenAccount,
-  Capital,
-  Action,
-  Garden,
+  GardenToken,
 } from "generated";
 
 // Handler for the ActionRegistered event
@@ -14,21 +14,26 @@ ActionRegistry.ActionRegistered.handler(async ({ event, context }) => {
     const number = Number(capital);
     if (number === 1) {
       return "SOCIAL";
-    } else if (number === 2) {
-      return "MATERIAL";
-    } else if (number === 3) {
-      return "FINANCIAL";
-    } else if (number === 4) {
-      return "LIVING";
-    } else if (number === 5) {
-      return "INTELLECTUAL";
-    } else if (number === 6) {
-      return "SPIRITUAL";
-    } else if (number === 7) {
-      return "CULTURAL";
-    } else {
-      return "UNKNOWN";
     }
+    if (number === 2) {
+      return "MATERIAL";
+    }
+    if (number === 3) {
+      return "FINANCIAL";
+    }
+    if (number === 4) {
+      return "LIVING";
+    }
+    if (number === 5) {
+      return "INTELLECTUAL";
+    }
+    if (number === 6) {
+      return "SPIRITUAL";
+    }
+    if (number === 7) {
+      return "CULTURAL";
+    }
+    return "UNKNOWN";
   });
 
   // Update or create a new Action entity
@@ -192,9 +197,7 @@ GardenAccount.GardenerRemoved.handler(async ({ event, context }) => {
   if (gardenAccountEntity) {
     context.Garden.set({
       ...gardenAccountEntity,
-      gardeners: gardenAccountEntity.gardeners.filter(
-        (g) => g !== event.params.gardener
-      ),
+      gardeners: gardenAccountEntity.gardeners.filter((g) => g !== event.params.gardener),
     });
   }
 });
@@ -220,9 +223,7 @@ GardenAccount.GardenOperatorRemoved.handler(async ({ event, context }) => {
   if (gardenAccountEntity) {
     context.Garden.set({
       ...gardenAccountEntity,
-      operators: gardenAccountEntity.operators.filter(
-        (g) => g !== event.params.operator
-      ),
+      operators: gardenAccountEntity.operators.filter((g) => g !== event.params.operator),
     });
   }
 });

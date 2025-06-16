@@ -1,19 +1,19 @@
 // import "react-tailwindcss-select/dist/index.css";
 
-import Select from "react-select";
 import { forwardRef } from "react";
-import { Control, Controller } from "react-hook-form";
+import { type Control, Controller, type FieldPath, type FieldValues } from "react-hook-form";
+import Select from "react-select";
 
-interface FormSelectProps {
-  name: string;
+interface FormSelectProps<T extends FieldValues = FieldValues> {
+  name: FieldPath<T>;
   label: string;
   placeholder: string;
   error?: string;
   options: { label: string; value: string }[];
-  control: Control<any>;
+  control: Control<T>;
 }
 
-export const FormSelect = forwardRef<HTMLSelectElement, FormSelectProps>(
+const FormSelectComponent = forwardRef<HTMLSelectElement, FormSelectProps<any>>(
   ({ name, label, options, control }, _ref) => {
     return (
       <Controller
@@ -21,10 +21,11 @@ export const FormSelect = forwardRef<HTMLSelectElement, FormSelectProps>(
         control={control}
         render={(field) => (
           <div className="">
-            <label className="font-semibold text-slate-800  text-label-sm">
+            <label htmlFor={name} className="font-semibold text-slate-800  text-label-sm">
               {label}
             </label>
             <Select
+              id={name}
               value={field.field.value.map((v: string) => ({
                 label: v,
                 value: v,
@@ -41,4 +42,8 @@ export const FormSelect = forwardRef<HTMLSelectElement, FormSelectProps>(
   }
 );
 
-FormSelect.displayName = "FormSelect";
+FormSelectComponent.displayName = "FormSelect";
+
+export const FormSelect = FormSelectComponent as <T extends FieldValues = FieldValues>(
+  props: FormSelectProps<T> & { ref?: React.Ref<HTMLSelectElement> }
+) => React.ReactElement;

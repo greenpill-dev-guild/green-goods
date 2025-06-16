@@ -1,6 +1,6 @@
 const ethers = require("ethers");
 const { parse, stringify } = require("envfile");
-const fs = require("fs");
+const fs = require("node:fs");
 
 const envFilePath = "./.env";
 
@@ -34,9 +34,7 @@ async function main() {
   // .env file exists
   const existingEnvConfig = parse(fs.readFileSync(envFilePath).toString());
   if (existingEnvConfig.DEPLOYER_PRIVATE_KEY) {
-    console.log(
-      "⚠️ You already have a deployer account. Check the packages/foundry/.env file"
-    );
+    console.log("⚠️ You already have a deployer account. Check the packages/foundry/.env file");
     return;
   }
 

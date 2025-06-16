@@ -1,32 +1,20 @@
-import {
-  QueryObserverResult,
-  useMutation,
-  useQuery,
-} from "@tanstack/react-query";
-import {
-  NO_EXPIRATION,
-  ZERO_BYTES32,
-} from "@ethereum-attestation-service/eas-sdk";
-import { decodeErrorResult } from "viem";
+import { NO_EXPIRATION, ZERO_BYTES32 } from "@ethereum-attestation-service/eas-sdk";
+import { type QueryObserverResult, useMutation, useQuery } from "@tanstack/react-query";
 import React, { useContext, useState } from "react";
-
 // import { encodeFunctionData, parseEther, zeroAddress } from "viem";
 // import { zodResolver } from "@hookform/resolvers/zod";
-import { Control, FormState, useForm, UseFormRegister } from "react-hook-form";
-
-import { EAS } from "@/constants";
-
-import { getWorkApprovals } from "@/modules/eas";
-import { queryClient } from "@/modules/react-query";
-
-import { encodeWorkData } from "@/utils/eas";
-import { abi } from "@/utils/abis/EAS.json";
-import { abi as WorkResolverABI } from "@/utils/abis/WorkResolver.json";
-
-import { useUser } from "./user";
-import { useGardens } from "./garden";
+import { type Control, type FormState, type UseFormRegister, useForm } from "react-hook-form";
+import { decodeErrorResult } from "viem";
 import { arbitrum } from "viem/chains";
 import { encodeFunctionData } from "viem/utils";
+import { EAS } from "@/constants";
+import { getWorkApprovals } from "@/modules/eas";
+import { queryClient } from "@/modules/react-query";
+import { abi } from "@/utils/abis/EAS.json";
+import { abi as WorkResolverABI } from "@/utils/abis/WorkResolver.json";
+import { encodeWorkData } from "@/utils/eas";
+import { useGardens } from "./garden";
+import { useUser } from "./user";
 
 export enum WorkTab {
   Intro = "Intro",
@@ -39,14 +27,10 @@ export enum WorkTab {
 export interface WorkDataProps {
   gardens: Garden[];
   actions: Action[];
-  workMutation: ReturnType<
-    typeof useMutation<`0x${string}`, Error, WorkDraft, void>
-  >;
+  workMutation: ReturnType<typeof useMutation<`0x${string}`, Error, WorkDraft, void>>;
   workApprovals: WorkApproval[];
   workApprovalMap: Record<string, WorkApproval>;
-  refetchWorkApprovals: () => Promise<
-    QueryObserverResult<WorkApproval[], Error>
-  >;
+  refetchWorkApprovals: () => Promise<QueryObserverResult<WorkApproval[], Error>>;
   form: {
     state: FormState<WorkDraft>;
     actionUID: number | null;
@@ -104,9 +88,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   const { actions, gardens } = useGardens();
 
   // QUERIES
-  const { data: workApprovals, refetch: refetchWorkApprovals } = useQuery<
-    WorkApproval[]
-  >({
+  const { data: workApprovals, refetch: refetchWorkApprovals } = useQuery<WorkApproval[]>({
     queryKey: ["workApprovals"],
     queryFn: () => getWorkApprovals(),
   });
@@ -117,17 +99,16 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   const [images, setImages] = useState<File[]>([]);
   const [activeTab, setActiveTab] = useState(WorkTab.Intro);
 
-  const { control, register, handleSubmit, formState, watch, reset } =
-    useForm<WorkDraft>({
-      defaultValues: {
-        feedback: "",
-        plantSelection: [],
-        plantCount: 0,
-      },
-      shouldUseNativeValidation: true,
-      mode: "onChange",
-      // resolver: zodResolver(workSchema),
-    });
+  const { control, register, handleSubmit, formState, watch, reset } = useForm<WorkDraft>({
+    defaultValues: {
+      feedback: "",
+      plantSelection: [],
+      plantCount: 0,
+    },
+    shouldUseNativeValidation: true,
+    mode: "onChange",
+    // resolver: zodResolver(workSchema),
+  });
 
   const feedback = watch("feedback");
   const plantSelection = watch("plantSelection");
