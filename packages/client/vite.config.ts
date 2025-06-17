@@ -79,6 +79,45 @@ export default defineConfig(({ mode }) => {
                 },
               },
             },
+            // Cache images for offline viewing
+            {
+              urlPattern: /.*\.(png|jpg|jpeg|svg|gif|webp)$/,
+              handler: "CacheFirst",
+              options: {
+                cacheName: "image-cache",
+                expiration: {
+                  maxEntries: 100,
+                  maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
+            // Cache API responses for offline
+            {
+              urlPattern: /^https:\/\/api\.pinata\.cloud/,
+              handler: "NetworkFirst",
+              options: {
+                cacheName: "api-cache",
+                networkTimeoutSeconds: 5,
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
+            // Cache GraphQL responses
+            {
+              urlPattern: /graphql/,
+              handler: "NetworkFirst",
+              options: {
+                cacheName: "graphql-cache",
+                networkTimeoutSeconds: 5,
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
           ],
         },
         manifest: {

@@ -15,6 +15,7 @@ import { abi as WorkResolverABI } from "@/utils/abis/WorkResolver.json";
 import { encodeWorkData } from "@/utils/eas";
 import { useGardens } from "./garden";
 import { useUser } from "./user";
+import { offlineDB } from "@/modules/offline-db";
 
 export enum WorkTab {
   Intro = "Intro",
@@ -27,7 +28,7 @@ export enum WorkTab {
 export interface WorkDataProps {
   gardens: Garden[];
   actions: Action[];
-  workMutation: ReturnType<typeof useMutation<`0x${string}`, Error, WorkDraft, void>>;
+  workMutation: ReturnType<typeof useMutation<`0x${string}`, unknown, WorkDraft, void>>;
   workApprovals: WorkApproval[];
   workApprovalMap: Record<string, WorkApproval>;
   refetchWorkApprovals: () => Promise<QueryObserverResult<WorkApproval[], Error>>;
@@ -116,11 +117,29 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
 
   const workMutation = useMutation({
     mutationFn: async (draft: WorkDraft) => {
-      if (!smartAccountClient) throw new Error("No smart account client found");
       if (!gardenAddress) throw new Error("No garden address found");
       if (typeof actionUID !== "number") throw new Error("No action UID found");
 
       const action = actions.find((action) => action.id === actionUID);
+
+      // Check if we're offline or if smart account is not available
+      if (!navigator.onLine || !smartAccountClient) {
+        // Save to offline storage
+        const offlineId = await offlineDB.addPendingWork({
+          type: "work",
+          data: {
+            ...draft,
+            title: `${action?.title} - ${new Date().toISOString()}`,
+            actionUID,
+            gardenAddress,
+          },
+          images,
+          synced: false,
+        });
+
+        // Return a fake transaction hash for offline work
+        return `0xoffline_${offlineId}` as `0x${string}`;
+      }
 
       const encodedAttestationData = await encodeWorkData({
         ...draft,
@@ -164,15 +183,13 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       // toast.success("Work uploaded!"); @dev deprecated
       queryClient.invalidateQueries({ queryKey: ["works"] });
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
-      console.error("Upload Work", error);
-
       if (error.data) {
-        const decodedError = decodeErrorResult({
+        const _decodedError = decodeErrorResult({
           abi: WorkResolverABI,
           data: error.data as `0x${string}`,
         });
-        console.error("Decoded Error:", decodedError);
       }
 
       // toast.remove();

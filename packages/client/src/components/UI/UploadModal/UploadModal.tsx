@@ -43,7 +43,7 @@ export type ModalVariantRoot = React.HTMLAttributes<HTMLDivElement> &
   };
 
 function UploadModal({
-  className,
+  className: _className,
   variant,
   headerText,
   titleText,

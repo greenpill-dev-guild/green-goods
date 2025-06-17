@@ -3,6 +3,7 @@ import {
   RiCheckFill,
   RiErrorWarningFill,
   RiTelegram2Fill,
+  RiWifiOffLine,
 } from "@remixicon/react";
 import type React from "react";
 import { useIntl } from "react-intl";
@@ -27,6 +28,7 @@ interface WorkCompletedProps {
 
 export const WorkCompleted: React.FC<WorkCompletedProps> = ({ garden, status, messages }) => {
   const intl = useIntl();
+  const isOffline = status === "success" && !navigator.onLine;
   const getMessages = (garden: Garden) => ({
     error: {
       header: intl.formatMessage({
@@ -65,7 +67,7 @@ export const WorkCompleted: React.FC<WorkCompletedProps> = ({ garden, status, me
         }
       ),
       variant: "success",
-      icon: RiCheckFill,
+      icon: isOffline ? RiWifiOffLine : RiCheckFill,
       spinner: false,
     },
     pending: {

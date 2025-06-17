@@ -36,6 +36,7 @@ import { abi as WorkApprovalResolverABI } from "@/utils/abis/WorkApprovalResolve
 import { encodeWorkApprovalData } from "@/utils/eas";
 import { useNavigateToTop } from "@/utils/useNavigateToTop";
 import { WorkCompleted } from "../Garden/Completed";
+import { offlineDB } from "@/modules/offline-db";
 
 type GardenWorkApprovalProps = {};
 
@@ -46,7 +47,7 @@ const workApprovalSchema = z.object({
   feedback: z.string().optional(),
 });
 
-export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
+export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = () => {
   const intl = useIntl();
   const { id, workId } = useParams<{
     id: string;
@@ -76,8 +77,20 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
 
   const workApprovalMutation = useMutation({
     mutationFn: async (draft: WorkApprovalDraft) => {
-      if (!smartAccountClient) {
-        throw new Error("No smart account client found");
+      // Check if we're offline or if smart account is not available
+      if (!navigator.onLine || !smartAccountClient) {
+        // Save to offline storage
+        const offlineId = await offlineDB.addPendingWork({
+          type: "approval",
+          data: {
+            ...draft,
+            gardenerAddress: work?.gardenerAddress,
+          },
+          synced: false,
+        });
+
+        // Return a fake transaction hash for offline work
+        return `0xoffline_${offlineId}` as `0x${string}`;
       }
 
       const encodedAttestationData = encodeWorkApprovalData(draft);
@@ -110,24 +123,20 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
       return receipt;
     },
     onMutate: () => {
-      console.log("Approving work...");
       // toast.loading("Approving work...");
     },
     onSuccess: () => {
-      console.log("Work approved!");
       // toast.dismiss();
       // toast.success("Work approved!");
       queryClient.invalidateQueries({ queryKey: ["workApprovals"] });
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
-      console.log("Work approval failed!", error);
-
       if (error.data) {
-        const decodedError = decodeErrorResult({
+        const _decodedError = decodeErrorResult({
           abi: WorkApprovalResolverABI,
           data: error.data as `0x${string}`,
         });
-        console.error("Decoded Error:", decodedError);
       }
     },
   });
@@ -138,6 +147,7 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
 
       if (!res.data) throw new Error("No metadata found");
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const metadata: WorkMetadata = res.data as any;
 
       setWorkMetadata(metadata);

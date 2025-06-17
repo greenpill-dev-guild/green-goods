@@ -8,34 +8,17 @@ posthog.init(import.meta.env.VITE_PUBLIC_POSTHOG_KEY, {
 });
 
 export function track(event: string, properties: Record<string, unknown>) {
-  if (!IS_DEV) {
-    console.log("track", event, properties);
-    posthog.capture(event, properties);
-  } else {
-    posthog.capture(event, properties);
-  }
+  posthog.capture(event, properties);
 }
 
 export function identify(distinctId: string) {
-  if (!IS_DEV) {
-    console.log("identify", distinctId);
-  } else {
-    posthog.identify(distinctId);
-  }
+  posthog.identify(distinctId);
 }
 
 export function reset() {
-  if (IS_DEV) {
-    console.log("reset");
-  } else {
-    posthog.reset();
-  }
+  posthog.reset();
 }
 
 export function getDistinctId() {
-  if (IS_DEV) {
-    console.log("getDistinctId");
-  } else {
-    return posthog.get_distinct_id();
-  }
+  return posthog.get_distinct_id();
 }

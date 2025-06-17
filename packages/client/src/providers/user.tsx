@@ -34,6 +34,14 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [user]);
 
+  useEffect(() => {
+    // Make smart account client available globally for offline sync
+    if (client) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).smartAccountClient = client;
+    }
+  }, [client]);
+
   return (
     <UserContext.Provider
       value={{

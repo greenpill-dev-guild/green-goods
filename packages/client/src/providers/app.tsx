@@ -28,6 +28,7 @@ export interface AppDataProps {
   availableLocales: readonly Locale[];
   deferredPrompt: BeforeInstallPromptEvent | null;
   promptInstall: () => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handleInstallCheck: (e: any) => void;
   switchLanguage: (lang: Locale) => void;
 }
@@ -39,7 +40,7 @@ interface BeforeInstallPromptEvent extends Event {
 
 function getMobileOperatingSystem(): Platform {
   // @ts-ignore
-  var userAgent = navigator.userAgent || navigator.vendor || window.opera;
+  const userAgent = navigator.userAgent || navigator.vendor || window.opera;
 
   // Windows Phone must come first because its UA also contains "Android"
   if (/windows phone/i.test(userAgent)) {
@@ -88,22 +89,24 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
   const platform = getMobileOperatingSystem();
 
-  async function handleInstallCheck(e: any | null) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async function handleInstallCheck(e: any) {
     e?.preventDefault(); // Prevent the automatic prompt
     setDeferredPrompt(e);
 
     if (
       window.matchMedia("(display-mode: standalone)").matches ||
       window.matchMedia("(display-mode: fullscreen)").matches ||
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window.navigator as any).standalone
     ) {
       setInstalledState("installed");
 
-      console.log("App was installed", e);
+      // App was installed
     } else {
       setInstalledState("not-installed");
 
-      console.log("App was not installed", e);
+      // App was not installed
     }
   }
 
@@ -131,9 +134,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       deferredPrompt.prompt(); // Show the install prompt
       deferredPrompt.userChoice.then((choiceResult) => {
         if (choiceResult.outcome === "accepted") {
-          console.log("User accepted the install prompt");
+          // User accepted the install prompt
         } else {
-          console.log("User dismissed the install prompt");
+          // User dismissed the install prompt
         }
         setDeferredPrompt(null); // Clear the saved prompt
       });

@@ -5,6 +5,7 @@ import { Toaster } from "react-hot-toast";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AppBar } from "@/components/Layout/AppBar";
 import { CircleLoader } from "@/components/UI/Loader";
+import { OfflineIndicator } from "@/components/UI/OfflineIndicator/OfflineIndicator";
 import { queryClient } from "@/modules/react-query";
 
 import { useApp } from "@/providers/app";
@@ -77,6 +78,7 @@ function App() {
                     <WorkProvider>
                       <AppViews />
                       <AppBar />
+                      <OfflineIndicator />
                     </WorkProvider>
                   </GardensProvider>
                 ) : (

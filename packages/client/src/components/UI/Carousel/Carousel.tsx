@@ -176,7 +176,7 @@ CarouselItem.displayName = "CarouselItem";
 const GardenCarousel = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & { garden: Garden }
->(({ className, children, garden, ...props }, ref) => {
+>(({ className: _className, children, garden, ...props }, ref) => {
   return (
     <div ref={ref} className="flex flex-col" {...props}>
       <img src={garden.bannerImage} alt={garden.description} className="max-h-26 object-cover" />

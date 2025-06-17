@@ -34,8 +34,7 @@ export async function getActions(): Promise<Action[]> {
 
   const { data, error } = await greenGoodsIndexer.query(QUERY, {}).toPromise();
 
-  if (error) console.error(error);
-  if (!data) return [];
+  if (error || !data) return [];
 
   return await Promise.all(
     data.Action.map(
@@ -87,8 +86,7 @@ export async function getGardens(): Promise<Garden[]> {
 
   const { data, error } = await greenGoodsIndexer.query(QUERY, {}).toPromise();
 
-  if (error) console.error(error);
-  if (!data) return [];
+  if (error || !data) return [];
 
   return await Promise.all(
     data.Garden.map(async (garden) => {

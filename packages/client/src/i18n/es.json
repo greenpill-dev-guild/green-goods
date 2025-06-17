@@ -160,5 +160,9 @@
   "app.profile.settings": "Configuración",
   "app.settings.language": "Idioma",
   "app.settings.selectLanguage": "Selecciona tu idioma deseado",
-  "app.title": "Bienvenido a la App"
+  "app.title": "Bienvenido a la App",
+  "app.offline.workingOffline": "Trabajando sin conexión",
+  "app.offline.syncing": "Sincronizando...",
+  "app.offline.synced": "Todo sincronizado",
+  "app.offline.pendingItems": "{count} pendientes"
 }

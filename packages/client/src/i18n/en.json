@@ -161,5 +161,12 @@
   "app.profile.settings": "Settings",
   "app.settings.language": "Language",
   "app.settings.selectLanguage": "Select your desired language",
-  "app.title": "Welcome to the App"
+  "app.title": "Welcome to the App",
+  "app.offline.workingOffline": "Working offline",
+  "app.offline.syncing": "Syncing...",
+  "app.offline.synced": "All synced",
+  "app.offline.pendingItems": "{count} pending",
+  "app.garden.completed.messages.offline.header": "Work saved offline!",
+  "app.garden.completed.messages.offline.title": "Saved Offline",
+  "app.garden.completed.messages.offline.body": "Your work has been saved offline and will be submitted when you're back online."
 }

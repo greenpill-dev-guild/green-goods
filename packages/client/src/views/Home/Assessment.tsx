@@ -5,7 +5,7 @@ import { useGarden } from "@/providers/garden";
 
 type GardenAssessmentProps = {};
 
-export const GardenAssessment: React.FC<GardenAssessmentProps> = ({}) => {
+export const GardenAssessment: React.FC<GardenAssessmentProps> = () => {
   const { id, assessmentId } = useParams<{
     id: string;
     assessmentId: string;
