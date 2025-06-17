@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface SmartLoadingOptions {
   minLoadingTime?: number; // Minimum time to show loading (prevents flashing)
