@@ -25,7 +25,37 @@ export default defineConfig(({ mode }) => {
     build: {
       target: 'es2020',
       sourcemap: true,
-      chunkSizeWarningLimit: 2000,
+      chunkSizeWarningLimit: 1000, // Reduced for better performance
+      rollupOptions: {
+        output: {
+          // Better chunk splitting for optimal caching
+          manualChunks: {
+            // Vendor chunks for better caching
+            react: ['react', 'react-dom'],
+            router: ['react-router-dom'],
+            ui: ['@radix-ui/react-accordion', '@radix-ui/react-avatar', '@radix-ui/react-dialog', '@radix-ui/react-select', '@radix-ui/react-slot', '@radix-ui/react-tabs'],
+            query: ['@tanstack/react-query'],
+            auth: ['@privy-io/react-auth'],
+            utils: ['clsx', 'tailwind-merge', 'zod'],
+          },
+          // Optimize chunk names for better caching
+          chunkFileNames: (chunkInfo) => {
+            const facadeModuleId = chunkInfo.facadeModuleId ? chunkInfo.facadeModuleId.split('/').pop() : 'chunk';
+            return `js/[name]-[hash].js`;
+          },
+          assetFileNames: (assetInfo) => {
+            const info = assetInfo.name!.split('.');
+            const extType = info[info.length - 1];
+            if (/\.(png|jpe?g|svg|gif|tiff|bmp|ico)$/i.test(assetInfo.name!)) {
+              return `images/[name]-[hash][extname]`;
+            }
+            if (/\.(woff|woff2|eot|ttf|otf)$/i.test(assetInfo.name!)) {
+              return `fonts/[name]-[hash][extname]`;
+            }
+            return `assets/[name]-[hash][extname]`;
+          },
+        },
+      },
     },
     plugins: [
       mkcert(),

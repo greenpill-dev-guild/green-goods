@@ -1,0 +1,318 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   Mobile Touch & Scroll Optimizations
+   ========================================================================== */
+
+/* Enable hardware acceleration and smooth scrolling */
+html {
+  /* Enable smooth scrolling with momentum on iOS */
+  -webkit-overflow-scrolling: touch;
+  /* Prevent bounce effect on scroll */
+  overscroll-behavior: none;
+  /* Better text rendering on mobile */
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  /* Prevent horizontal scroll */
+  overflow-x: hidden;
+  /* Prevent pull-to-refresh */
+  overscroll-behavior-y: none;
+  /* Better font rendering */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Enhanced scrollable containers */
+.scroll-container {
+  /* Enable hardware-accelerated smooth scrolling */
+  -webkit-overflow-scrolling: touch;
+  /* Prevent overscroll/bounce */
+  overscroll-behavior: none;
+  /* GPU acceleration */
+  transform: translateZ(0);
+  will-change: scroll-position;
+}
+
+/* Momentum scrolling for specific elements */
+.momentum-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
+  scroll-behavior: smooth;
+}
+
+/* ==========================================================================
+   Touch Optimizations
+   ========================================================================== */
+
+/* Enhanced touch targets - minimum 44px for accessibility */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  touch-action: manipulation;
+  /* Prevent double-tap zoom */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Remove tap highlight on mobile */
+.no-tap-highlight {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Enhanced button touch feedback */
+.touch-button {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  /* Faster click response */
+  cursor: pointer;
+  /* Prevent text selection */
+  -webkit-user-select: none;
+  user-select: none;
+  /* Hardware acceleration */
+  transform: translateZ(0);
+  transition: transform 0.1s ease-out;
+}
+
+.touch-button:active {
+  transform: scale(0.98) translateZ(0);
+}
+
+/* Enhanced form inputs for mobile */
+.mobile-input {
+  /* Prevent zoom on focus in iOS Safari */
+  font-size: 16px;
+  /* Better touch target */
+  min-height: 44px;
+  /* Remove iOS styling */
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 0;
+  /* Prevent autocomplete styling */
+  -webkit-box-shadow: 0 0 0 1000px transparent inset;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+/* ==========================================================================
+   Pull-to-Refresh and Swipe Gestures
+   ========================================================================== */
+
+/* Disable pull-to-refresh where not wanted */
+.no-pull-refresh {
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Safe area support for notched devices */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-area-left {
+  padding-left: env(safe-area-inset-left);
+}
+
+.safe-area-right {
+  padding-right: env(safe-area-inset-right);
+}
+
+.safe-area-all {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+/* ==========================================================================
+   Performance Optimizations
+   ========================================================================== */
+
+/* GPU-accelerated elements */
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Improve rendering performance for animations */
+.performance-optimized {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+
+/* Better list scrolling performance */
+.optimized-list {
+  contain: layout style paint;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
+}
+
+.optimized-list-item {
+  contain: layout paint;
+  transform: translateZ(0);
+}
+
+/* ==========================================================================
+   Gesture Handling
+   ========================================================================== */
+
+/* Swipeable elements */
+.swipeable {
+  touch-action: pan-x;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Horizontal scroll containers */
+.horizontal-scroll {
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: none;
+  scroll-snap-type: x mandatory;
+}
+
+.horizontal-scroll-item {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+}
+
+/* Vertical scroll containers */
+.vertical-scroll {
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none;
+}
+
+/* ==========================================================================
+   App-like Experience
+   ========================================================================== */
+
+/* Hide browser UI when in fullscreen/standalone mode */
+@media (display-mode: standalone) {
+  body {
+    /* Remove any default browser spacing */
+    margin: 0;
+    padding: 0;
+    /* Prevent rubber band scrolling */
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+  
+  #root {
+    height: 100vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: none;
+  }
+}
+
+/* Better focus management for keyboard navigation */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-primary-base focus:ring-offset-2;
+}
+
+/* Enhanced ripple effect for touch feedback */
+.ripple-effect {
+  position: relative;
+  overflow: hidden;
+  transform: translateZ(0);
+}
+
+.ripple-effect::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s, opacity 0.6s;
+}
+
+.ripple-effect:active::before {
+  width: 300px;
+  height: 300px;
+  opacity: 0.1;
+  transition: 0s;
+}
+
+/* ==========================================================================
+   Accessibility & Touch Improvements
+   ========================================================================== */
+
+/* Larger touch targets for better accessibility */
+@media (pointer: coarse) {
+  .adaptive-touch {
+    min-height: 48px;
+    min-width: 48px;
+  }
+  
+  /* Increase button sizes on touch devices */
+  button, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  .performance-optimized,
+  .gpu-accelerated,
+  .touch-button {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* High contrast mode adjustments */
+@media (prefers-contrast: high) {
+  .touch-button {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+}
+
+/* ==========================================================================
+   Utility Classes
+   ========================================================================== */
+
+@layer utilities {
+  /* Touch action utilities */
+  .touch-pan-x { touch-action: pan-x; }
+  .touch-pan-y { touch-action: pan-y; }
+  .touch-pinch-zoom { touch-action: pinch-zoom; }
+  .touch-manipulation { touch-action: manipulation; }
+  .touch-none { touch-action: none; }
+  
+  /* Overscroll behavior utilities */
+  .overscroll-none { overscroll-behavior: none; }
+  .overscroll-auto { overscroll-behavior: auto; }
+  .overscroll-contain { overscroll-behavior: contain; }
+  
+  /* Webkit scrolling utilities */
+  .webkit-scrolling-touch { -webkit-overflow-scrolling: touch; }
+  .webkit-scrolling-auto { -webkit-overflow-scrolling: auto; }
+  
+  /* Performance utilities */
+  .will-change-transform { will-change: transform; }
+  .will-change-scroll { will-change: scroll-position; }
+  .will-change-auto { will-change: auto; }
+  
+  /* Contain utilities for better performance */
+  .contain-layout { contain: layout; }
+  .contain-paint { contain: paint; }
+  .contain-size { contain: size; }
+  .contain-style { contain: style; }
+  .contain-all { contain: layout paint size style; }
+} 

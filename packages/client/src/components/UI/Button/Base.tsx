@@ -21,6 +21,8 @@ export const buttonVariants = tv({
       "disabled:pointer-events-none disabled:bg-weak-50 disabled:text-disabled-300 disabled:outline-transparent",
       "active:scale-95",
       "user-select-none",
+      // mobile optimizations
+      "touch-target touch-button no-tap-highlight gpu-accelerated",
     ],
     icon: [
       // base

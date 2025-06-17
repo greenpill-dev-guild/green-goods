@@ -47,7 +47,7 @@ export const AppBar = () => {
   return (
     <nav
       className={cn(
-        "fixed bottom-0 bg-white border-t border-t-stroke-soft-200 flex flex-row justify-evenly items-center w-full py-3 z-[10000] transition-transform duration-300",
+        "fixed bottom-0 bg-white border-t border-t-stroke-soft-200 flex flex-row justify-evenly items-center w-full py-3 z-[10000] transition-transform duration-300 safe-area-bottom gpu-accelerated",
         isGarden ? "translate-y-full" : "translate-y-0"
       )}
     >
@@ -57,7 +57,7 @@ export const AppBar = () => {
           <Link to={path} key={title} onClick={() => navigate(path)}>
             <button
               className={cn(
-                "flex flex-col items-center",
+                "flex flex-col items-center touch-target touch-button no-tap-highlight",
                 isActive &&
                   "active tab-active text-primary focus:outline-hidden active-text-red-500",
                 !isActive && "text-slate-400"

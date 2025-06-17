@@ -4,6 +4,7 @@
 @import "./styles/typography.css";
 @import "./styles/utilities.css";
 @import "./styles/animation.css";
+@import "./styles/mobile-optimizations.css";
 
 :root {
   color-scheme: light dark;

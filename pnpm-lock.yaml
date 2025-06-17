@@ -145,6 +145,9 @@ importers:
       '@formatjs/cli':
         specifier: ^6.7.1
         version: 6.7.1
+      '@playwright/test':
+        specifier: ^1.53.0
+        version: 1.53.0
       '@tailwindcss/forms':
         specifier: ^0.5.7
         version: 0.5.7(tailwindcss@4.0.14)
@@ -234,7 +237,7 @@ importers:
         version: 2.1.0
       '@privy-io/server-auth':
         specifier: latest
-        version: 1.25.0(bufferutil@4.0.8)(encoding@0.1.13)(ethers@6.13.5(bufferutil@4.0.8)(utf-8-validate@5.0.10))(typescript@5.7.2)(utf-8-validate@5.0.10)(viem@2.30.5(bufferutil@4.0.8)(typescript@5.7.2)(utf-8-validate@5.0.10)(zod@3.25.46))
+        version: 1.27.1(bufferutil@4.0.8)(encoding@0.1.13)(ethers@6.13.5(bufferutil@4.0.8)(utf-8-validate@5.0.10))(typescript@5.7.2)(utf-8-validate@5.0.10)(viem@2.30.5(bufferutil@4.0.8)(typescript@5.7.2)(utf-8-validate@5.0.10)(zod@3.25.46))
       csv-parse:
         specifier: ^5.5.3
         version: 5.6.0
@@ -2195,6 +2198,11 @@ packages:
     resolution: {integrity: sha512-hkS0tcKtsjf9xhsEBs2Nbey5s+Db7x5rlOH9TaWHBXkJ7IwwOs2xnEDigNaxAHKjYAwcw+m2hzpO5QgOfeF7Zw==}
     deprecated: Please install the new IPFS SDK at pinata-web3. More information at https://docs.pinata.cloud/web3/sdk
 
+  '@playwright/test@1.53.0':
+    resolution: {integrity: sha512-15hjKreZDcp7t6TL/7jkAo6Df5STZN09jGiv5dbP9A6vMVncXRqE7/B2SncsyOwrkZRBH2i6/TPOL8BVmm3c7w==}
+    engines: {node: '>=18'}
+    hasBin: true
+
   '@pnpm/config.env-replace@1.1.0':
     resolution: {integrity: sha512-htyl8TWnKL7K/ESFa1oW2UB5lVDxuF5DpM7tBi6Hu2LNL3mWkIzNLG6N4zoCUP1lCKNxWy/3iu8mS8MvToGd6w==}
     engines: {node: '>=12.22.0'}
@@ -2234,6 +2242,10 @@ packages:
     resolution: {integrity: sha512-lBIXqzCgCBru9KqEeFiQuNm446gcLw+5Z+Zg8WmyAq6S+wdB8v0rpCBT4O5BOiPww6L5WXpbRnUdoX2lVu6gtA==}
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
 
+  '@privy-io/public-api@2.33.2':
+    resolution: {integrity: sha512-TpNzZ5pk2g4kUNErV7FgM2FAQ2bDvKF43Gtspo1+dOvoc9faK1Frs7brr7ZFhVinkMRZAQGkEdiHQt7fzOQTFg==}
+    engines: {node: '>=18.0.0', npm: '>=8.0.0'}
+
   '@privy-io/react-auth@2.13.6':
     resolution: {integrity: sha512-NtlAPacPyFSvcPyjhk+85yFN6lceZ8aLAjU64SW/LA3sMARwR8PsidS3UeXLYxm6dOQ+56Dr0a6e29Sgt1onpA==}
     peerDependencies:
@@ -2253,8 +2265,8 @@ packages:
       permissionless:
         optional: true
 
-  '@privy-io/server-auth@1.25.0':
-    resolution: {integrity: sha512-ksAXm1enCeuQAQGU9SKiF5iiTPTia3sJH2TKcFfbrekdOAoUYEFZRyqWrwza9oUBcG24mW/Tw5ViZd/YZy797A==}
+  '@privy-io/server-auth@1.27.1':
+    resolution: {integrity: sha512-LLjCS3t22HSlgjTTQ4U6F6RiS4c/o+iYwyrAkPZtAr2INaajgTpHJblTiPuY7vqmzrpBIoQSi5UXIIcA+OX1Gw==}
     peerDependencies:
       ethers: ^6
       viem: ^2.24.1
@@ -5145,6 +5157,11 @@ packages:
   fs.realpath@1.0.0:
     resolution: {integrity: sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==}
 
+  fsevents@2.3.2:
+    resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
+    engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
+    os: [darwin]
+
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
@@ -6750,6 +6767,16 @@ packages:
 
   pkg-types@1.0.3:
     resolution: {integrity: sha512-nN7pYi0AQqJnoLPC9eHFQ8AcyaixBUOwvqc5TDnIKCMEE6I0y8P7OKA7fPexsXGCGxQDl/cmrLAp26LhcwxZ4A==}
+
+  playwright-core@1.53.0:
+    resolution: {integrity: sha512-mGLg8m0pm4+mmtB7M89Xw/GSqoNC+twivl8ITteqvAndachozYe2ZA7srU6uleV1vEdAHYqjq+SV8SNxRRFYBw==}
+    engines: {node: '>=18'}
+    hasBin: true
+
+  playwright@1.53.0:
+    resolution: {integrity: sha512-ghGNnIEYZC4E+YtclRn4/p6oYbdPiASELBIYkBXfaTVKreQUYbMUYQDwS12a8F0/HtIjr/CkGjtwABeFPGcS4Q==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   plimit-lit@1.6.1:
     resolution: {integrity: sha512-B7+VDyb8Tl6oMJT9oSO2CW8XC/T4UcJGrwOVoNGwOQsQYhlpfajmrMj5xeejqaASq3V/EqThyOeATEOMuSEXiA==}
@@ -10587,6 +10614,10 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
+  '@playwright/test@1.53.0':
+    dependencies:
+      playwright: 1.53.0
+
   '@pnpm/config.env-replace@1.1.0': {}
 
   '@pnpm/network.ca-file@1.0.2':
@@ -10637,6 +10668,18 @@ snapshots:
       - utf-8-validate
 
   '@privy-io/public-api@2.30.0(bufferutil@4.0.8)(typescript@5.7.2)(utf-8-validate@5.0.10)':
+    dependencies:
+      '@privy-io/api-base': 1.5.1
+      bs58: 5.0.0
+      libphonenumber-js: 1.10.47
+      viem: 2.30.5(bufferutil@4.0.8)(typescript@5.7.2)(utf-8-validate@5.0.10)(zod@3.25.46)
+      zod: 3.25.46
+    transitivePeerDependencies:
+      - bufferutil
+      - typescript
+      - utf-8-validate
+
+  '@privy-io/public-api@2.33.2(bufferutil@4.0.8)(typescript@5.7.2)(utf-8-validate@5.0.10)':
     dependencies:
       '@privy-io/api-base': 1.5.1
       bs58: 5.0.0
@@ -10717,11 +10760,13 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@privy-io/server-auth@1.25.0(bufferutil@4.0.8)(encoding@0.1.13)(ethers@6.13.5(bufferutil@4.0.8)(utf-8-validate@5.0.10))(typescript@5.7.2)(utf-8-validate@5.0.10)(viem@2.30.5(bufferutil@4.0.8)(typescript@5.7.2)(utf-8-validate@5.0.10)(zod@3.25.46))':
+  '@privy-io/server-auth@1.27.1(bufferutil@4.0.8)(encoding@0.1.13)(ethers@6.13.5(bufferutil@4.0.8)(utf-8-validate@5.0.10))(typescript@5.7.2)(utf-8-validate@5.0.10)(viem@2.30.5(bufferutil@4.0.8)(typescript@5.7.2)(utf-8-validate@5.0.10)(zod@3.25.46))':
     dependencies:
+      '@hpke/chacha20poly1305': 1.6.2
+      '@hpke/core': 1.7.2
       '@noble/curves': 1.8.1
       '@noble/hashes': 1.7.1
-      '@privy-io/public-api': 2.30.0(bufferutil@4.0.8)(typescript@5.7.2)(utf-8-validate@5.0.10)
+      '@privy-io/public-api': 2.33.2(bufferutil@4.0.8)(typescript@5.7.2)(utf-8-validate@5.0.10)
       '@solana/web3.js': 1.98.0(bufferutil@4.0.8)(encoding@0.1.13)(utf-8-validate@5.0.10)
       canonicalize: 2.1.0
       dotenv: 16.4.5
@@ -14296,6 +14341,9 @@ snapshots:
 
   fs.realpath@1.0.0: {}
 
+  fsevents@2.3.2:
+    optional: true
+
   fsevents@2.3.3:
     optional: true
 
@@ -15960,6 +16008,14 @@ snapshots:
       jsonc-parser: 3.2.1
       mlly: 1.6.1
       pathe: 1.1.2
+
+  playwright-core@1.53.0: {}
+
+  playwright@1.53.0:
+    dependencies:
+      playwright-core: 1.53.0
+    optionalDependencies:
+      fsevents: 2.3.2
 
   plimit-lit@1.6.1:
     dependencies:
