@@ -23,7 +23,7 @@ function App() {
   const { isMobile, isInstalled } = useApp();
   const { ready, smartAccountAddress } = useUser();
 
-  const isDownloaded = (isMobile && isInstalled) || import.meta.env.DEV;
+  const isDownloaded = (isMobile && isInstalled) || import.meta.env.VITE_DESKTOP_DEV;
   const isAuthenticated = authenticated && smartAccountAddress;
 
   return (
