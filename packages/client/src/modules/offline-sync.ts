@@ -1,9 +1,9 @@
+import { NO_EXPIRATION, ZERO_BYTES32 } from "@ethereum-attestation-service/eas-sdk";
 import { encodeFunctionData } from "viem";
 import { arbitrum } from "viem/chains";
-import { NO_EXPIRATION, ZERO_BYTES32 } from "@ethereum-attestation-service/eas-sdk";
 import { EAS } from "@/constants";
 import { abi } from "@/utils/abis/EAS.json";
-import { encodeWorkData, encodeWorkApprovalData } from "@/utils/eas";
+import { encodeWorkApprovalData, encodeWorkData } from "@/utils/eas";
 import { offlineDB } from "./offline-db";
 import { queryClient } from "./react-query";
 

@@ -9,13 +9,13 @@ import { arbitrum } from "viem/chains";
 import { encodeFunctionData } from "viem/utils";
 import { EAS } from "@/constants";
 import { getWorkApprovals } from "@/modules/eas";
+import { offlineDB } from "@/modules/offline-db";
 import { queryClient } from "@/modules/react-query";
 import { abi } from "@/utils/abis/EAS.json";
 import { abi as WorkResolverABI } from "@/utils/abis/WorkResolver.json";
 import { encodeWorkData } from "@/utils/eas";
 import { useGardens } from "./garden";
 import { useUser } from "./user";
-import { offlineDB } from "@/modules/offline-db";
 
 export enum WorkTab {
   Intro = "Intro",
