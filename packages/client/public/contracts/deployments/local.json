@@ -1,0 +1,29 @@
+{
+  "chainId": 31337,
+  "name": "Local Development",
+  "rpcUrl": "http://localhost:8545",
+  "contracts": {
+    "eas": "0xCD43aE7E2D42bd6B68F97CcDCECc69953351B081",
+    "schemaRegistry": "0x0000000000000000000000000000000000000000",
+    "actionRegistry": "0xAca40D0a6c1a54eDAA4D700EaE226F587cDda37F",
+    "gardenToken": "0xABee63FFc48a6bf480118bDEDdB8966dCBb2099A",
+    "workResolver": "0x86AB834da1D68C2b4deb54bD7c9318F8a3b9ed2f",
+    "workApprovalResolver": "0x212fD0a7051453afeAfBd37e46E2afE8426Dc918"
+  },
+  "schemas": {
+    "gardenAssessment": {
+      "uid": "0x0000000000000000000000000000000000000000000000000000000000000001",
+      "schema": "uint8 soilMoisturePercentage, uint256 carbonTonStock, uint256 carbonTonPotential, uint256 gardenSquareMeters, string biome, string[] treeGenusSpecies"
+    },
+    "work": {
+      "uid": "0x0000000000000000000000000000000000000000000000000000000000000002",
+      "resolver": "0x86AB834da1D68C2b4deb54bD7c9318F8a3b9ed2f",
+      "schema": "uint256 gardenTokenId, uint256 actionUID, bool isCompleted"
+    },
+    "workApproval": {
+      "uid": "0x0000000000000000000000000000000000000000000000000000000000000003",
+      "resolver": "0x212fD0a7051453afeAfBd37e46E2afE8426Dc918",
+      "schema": "bool isApproved"
+    }
+  }
+} 

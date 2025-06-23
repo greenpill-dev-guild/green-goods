@@ -8,7 +8,7 @@
     "chain": "anvil --config-out localhost.json",
     "compile": "forge compile",
     "dev": "forge build --via-ir",
-    "format": "biome format --write 'src/**/*.sol'",
+    "format": "forge fmt",
     "solhint": "solhint --config ./.solhint.json 'src/**/*.sol' --fix",
     "lint": "pnpm run format && pnpm run solhint",
     "anvil": "source .env && anvil --fork-url $ANVIL_FORK_URL --chain-id $ANVIL_CHAIN_ID",
@@ -21,7 +21,15 @@
     "deploy:operators": "source .env && forge script script/DeployGardenOperators.s.sol:DeployGardenOperators --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN",
     "deploy:new-garden": "source .env && forge script script/DeployGarden.s.sol:DeployGarden --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN",
     "deploy:new-action": "source .env && forge script script/DeployAction.s.sol:DeployAction --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN",
-    "onboard:garden": "node script/GardenOnboarding.js"
+    "onboard:garden": "node script/GardenOnboarding.js",
+    "fork": "node ../../scripts/setup-fork.js && source .env.${FORK_NETWORK:-arbitrum} && anvil --fork-url $FORK_RPC_URL --chain-id 31337 --config-out localhost.json --gas-limit 30000000 --host 0.0.0.0",
+    "fork:arbitrum": "FORK_NETWORK=arbitrum pnpm fork",
+    "fork:base": "FORK_NETWORK=base pnpm fork",
+    "fork:celo": "FORK_NETWORK=celo pnpm fork",
+    "deploy:local": "source .env.${FORK_NETWORK:-arbitrum} && forge script script/DeployLocalFull.s.sol --rpc-url http://localhost:8545 --private-key $PRIVATE_KEY --broadcast --ffi && node ../../scripts/copy-deployment.js",
+    "deploy:local:watch": "pnpm deploy:local && chokidar 'src/**/*.sol' -c 'pnpm deploy:local'",
+    "test:local": "source .env.${FORK_NETWORK:-arbitrum} && forge test --rpc-url http://localhost:8545",
+    "reset": "pkill -f anvil || true && rm -f localhost.json deployments/local.json"
   },
   "dependencies": {
     "@ethereum-attestation-service/eas-contracts": "1.7.1",
@@ -39,6 +47,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.0.0-beta.6",
     "@types/qrcode": "1",
+    "chokidar-cli": "^3.0.0",
     "envfile": "~6.18.0",
     "qrcode": "~1.5.4",
     "solhint": "^5.0.5",

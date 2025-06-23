@@ -1,0 +1,191 @@
+[
+  {
+    "type": "constructor",
+    "inputs": [
+      {
+        "name": "registry",
+        "type": "address",
+        "internalType": "contract ISchemaRegistry"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "attest",
+    "inputs": [
+      {
+        "name": "request",
+        "type": "tuple",
+        "internalType": "struct AttestationRequest",
+        "components": [
+          { "name": "schema", "type": "bytes32", "internalType": "bytes32" },
+          {
+            "name": "data",
+            "type": "tuple",
+            "internalType": "struct AttestationRequestData",
+            "components": [
+              {
+                "name": "recipient",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "expirationTime",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              { "name": "revocable", "type": "bool", "internalType": "bool" },
+              {
+                "name": "refUID",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              { "name": "data", "type": "bytes", "internalType": "bytes" },
+              {
+                "name": "value",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "getAttestation",
+    "inputs": [{ "name": "uid", "type": "bytes32", "internalType": "bytes32" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct Attestation",
+        "components": [
+          { "name": "uid", "type": "bytes32", "internalType": "bytes32" },
+          { "name": "schema", "type": "bytes32", "internalType": "bytes32" },
+          { "name": "time", "type": "uint64", "internalType": "uint64" },
+          {
+            "name": "expirationTime",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "revocationTime",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          { "name": "refUID", "type": "bytes32", "internalType": "bytes32" },
+          {
+            "name": "recipient",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "attester",
+            "type": "address",
+            "internalType": "address"
+          },
+          { "name": "revocable", "type": "bool", "internalType": "bool" },
+          { "name": "data", "type": "bytes", "internalType": "bytes" }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "Attested",
+    "inputs": [
+      {
+        "name": "recipient",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "attester",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "uid",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "schema",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "time",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      },
+      {
+        "name": "expirationTime",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      },
+      {
+        "name": "revocable",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      },
+      {
+        "name": "refUID",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "data",
+        "type": "bytes",
+        "indexed": false,
+        "internalType": "bytes"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Revoked",
+    "inputs": [
+      {
+        "name": "recipient",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "attester",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "uid",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "schema",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  }
+]

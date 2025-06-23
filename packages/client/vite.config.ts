@@ -20,12 +20,30 @@ export default defineConfig(({ mode }) => {
     test: {
       env: loadEnv(mode, process.cwd(), ""),
       environment: "jsdom",
-      setupFiles: "./src/__tests__/setupTests.ts", // Optional: setup file
+      setupFiles: "./src/__tests__/setupTests.ts",
     },
     build: {
-      target: 'es2020',
+      target: "esnext",
+      minify: 'esbuild',
       sourcemap: true,
       chunkSizeWarningLimit: 2000,
+      rollupOptions: {
+        external: [
+          "@safe-global/safe-apps-sdk",
+          "@safe-global/safe-apps-provider",
+        ],
+        output: {
+          manualChunks: {
+            vendor: ['react', 'react-dom'],
+            web3: ['ethers', 'viem'],
+            ui: ['@radix-ui/react-dialog', '@radix-ui/react-select']
+          },
+          globals: {
+            "@safe-global/safe-apps-sdk": "SafeAppsSDK",
+            "@safe-global/safe-apps-provider": "SafeAppsProvider",
+          },
+        },
+      },
     },
     plugins: [
       mkcert(),
@@ -36,150 +54,125 @@ export default defineConfig(({ mode }) => {
           "favicon.ico",
           "icon.png",
           "apple-icon.png",
-          "images/android-icon-36x36.png",
-          "images/android-icon-48x48.png",
-          "images/android-icon-72x72.png",
-          "images/android-icon-144x144.png",
-          "images/apple-icon-57x57.png",
-          "images/apple-icon-60x60.png",
-          "images/apple-icon-72x72.png",
-          "images/apple-icon-120x120.png",
-          "images/apple-icon-144x144.png",
-          "images/ms-icon-70x70.png",
-          "images/ms-icon-144x144.png",
-          "images/ms-icon-310.png",
-          "images/home.png",
-          "images/work.png",
-          "images/profile.png",
+          "images/*.png"
         ],
         injectRegister: "auto",
-        registerType: "autoUpdate",
+        registerType: "prompt",
         devOptions: {
           enabled: true,
         },
         workbox: {
-          // Increase the limit to handle larger bundles (10 MB)
-          maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
-          // Only cache smaller, essential files in the service worker
-          globPatterns: [
-            "**/*.{html,ico,png,svg}",
-            "**/assets/*.css",
-            // Exclude the largest JS bundles from SW precaching
-            "!**/assets/*-{index,vendor,crypto,wallet}*.js"
-          ],
-          // Use runtime caching for large JS files
+          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+          globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
           runtimeCaching: [
             {
-              urlPattern: /.*\.js$/,
-              handler: "CacheFirst",
+              urlPattern: /^https:\/\/api\.*/i,
+              handler: 'NetworkFirst',
               options: {
-                cacheName: "js-cache",
-                cacheableResponse: {
-                  statuses: [0, 200],
-                },
-              },
-            },
-          ],
+                cacheName: 'api-cache',
+                expiration: {
+                  maxEntries: 50,
+                  maxAgeSeconds: 60 * 60 * 24
+                }
+              }
+            }
+          ]
         },
         manifest: {
           name: "Green Goods",
           short_name: "Green Goods",
+          description: "Green Goods App",
+          theme_color: "#ffffff",
+          background_color: "#fff",
+          display: "standalone",
+          orientation: "portrait-primary",
+          start_url: "/",
+          scope: "/",
           icons: [
             {
-              src: "/images/android-icon-36x36.png",
-              sizes: "36x36",
-              type: "image/png",
-            },
-            {
-              src: "/images/android-icon-48x48.png",
-              sizes: "48x48",
-              type: "image/png",
-            },
-            {
-              src: "/images/android-icon-72x72.png",
-              sizes: "72x72",
-              type: "image/png",
-            },
-            {
-              src: "/images/android-icon-144x144.png",
-              sizes: "144x144",
-              type: "image/png",
-            },
-            {
-              src: "/apple-icon.png",
+              src: "icon.png",
               sizes: "192x192",
               type: "image/png",
             },
-          ],
-          start_url: "/",
-          scope: "/",
-          display: "standalone",
-          orientation: "portrait-primary",
-          theme_color: "#fff",
-          background_color: "#fff",
-          shortcuts: [
             {
-              name: "Home",
-              description: "View Gardens",
-              url: "/home",
-              icons: [
-                {
-                  src: "images/home.png",
-                  sizes: "64x64",
-                  type: "image/png",
-                },
-              ],
-            },
-            {
-              name: "Garden",
-              description: "Upload your work",
-              url: "/garden",
-              icons: [
-                {
-                  src: "images/work.png",
-                  sizes: "64x64",
-                  type: "image/png",
-                },
-              ],
-            },
-            {
-              name: "Profile",
-              description: "View your profile",
-              url: "/profile",
-              icons: [
-                {
-                  src: "images/profile.png",
-                  sizes: "64x64",
-                  type: "image/png",
-                },
-              ],
+              src: "icon.png",
+              sizes: "512x512",
+              type: "image/png",
             },
           ],
-          related_applications: [
-            {
-              platform: "webapp",
-              url: "https://localhost:3001/manifest.webmanifest",
-            },
-          ],
-          categories: [],
         },
       }),
     ],
+    define: {
+      global: {},
+      __DEV__: JSON.stringify(mode === 'development'),
+      __PROD__: JSON.stringify(mode === 'production'),
+      "process.env": loadEnv(mode, process.cwd(), ""),
+    },
     resolve: {
       alias: {
         "@": resolve(__dirname, './src'),
+        "@components": resolve(__dirname, './src/components'),
+        "@utils": resolve(__dirname, './src/utils'),
+        "@types": resolve(__dirname, './src/types'),
+        "@config": resolve(__dirname, './src/config'),
+        process: "process/browser",
+        path: "path-browserify",
+        os: "os-browserify",
+        stream: "stream-browserify",
       },
     },
     server: {
       port: 3001,
-      host: true,
+      host: '0.0.0.0',
+      open: false,
+      cors: true,
+      hmr: {
+        overlay: true,
+        port: 24678
+      },
       proxy: {
-        graphql: {
-          target: "http://localhost:8000",
+        '/api': {
+          target: 'http://localhost:8080',
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/graphql/, ""),
+          rewrite: (path) => path.replace(/^\/api/, '')
+        },
+        '/graphql': {
+          target: 'http://localhost:8080',
+          changeOrigin: true,
+        },
+        '/rpc': {
+          target: 'http://localhost:8545',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/rpc/, '')
+        }
+      },
+      fs: {
+        allow: ['..']
+      }
+    },
+    optimizeDeps: {
+      include: [
+        'react',
+        'react-dom',
+        'ethers',
+        'viem',
+        '@radix-ui/react-dialog',
+        '@radix-ui/react-select',
+        '@tanstack/react-query'
+      ],
+      exclude: ['canvas'],
+      esbuildOptions: {
+        target: "esnext",
+        define: {
+          global: "globalThis",
+        },
+        supported: {
+          bigint: true,
         },
       },
     },
+    logLevel: 'info',
+    clearScreen: false
   };
 });

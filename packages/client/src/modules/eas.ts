@@ -140,127 +140,45 @@ const parseDataToWorkApproval = (
 };
 
 export const getGardenAssessments = async (gardenAddress?: string): Promise<GardenAssessment[]> => {
-  // TODO add 'where: valid: true' filter
-  const QUERY = easGraphQL(/* GraphQL */ `
-    query Attestations($where: AttestationWhereInput) {
-      attestations(where: $where) {
-        id
-        attester
-        recipient
-        timeCreated
-        decodedDataJson
-      }
-    }
-  `);
-
-  const schemaId = { equals: EAS["42161"].GARDEN_ASSESSMENT.uid };
-
-  const { data, error } = await easArbitrumClient
-    .query(QUERY, {
-      where: gardenAddress
-        ? {
-            schemaId,
-            recipient: { equals: gardenAddress },
-          }
-        : {
-            schemaId,
-          },
-    })
-    .toPromise();
-
-  if (error) console.error(error);
-  if (!data) console.error("No assessment data found");
-
-  return await Promise.all(
-    data?.attestations.map(
-      async ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
-        await parseDataToGardenAssessment(
-          id,
-          {
-            attester,
-            recipient,
-            time: timeCreated,
-          },
-          decodedDataJson
-        )
-    ) ?? []
-  );
+  console.warn("EAS indexing not available in local development - returning empty array");
+  return [];
 };
 
 export const getWorks = async (gardenAddress?: string): Promise<WorkCard[]> => {
-  // TODO add 'where: valid: true' filter
-  const QUERY = easGraphQL(/* GraphQL */ `
-    query Attestations($where: AttestationWhereInput) {
-      attestations(where: $where) {
-        id
-        attester
-        recipient
-        timeCreated
-        decodedDataJson
-      }
-    }
-  `);
-
-  const schemaId = { equals: EAS["42161"].WORK.uid };
-
-  const { data, error } = await easArbitrumClient
-    .query(QUERY, {
-      where: gardenAddress
-        ? { schemaId, recipient: { equals: gardenAddress } }
-        : {
-            schemaId,
-          },
-    })
-    .toPromise();
-
-  if (error) console.error(error);
-  if (!data) console.error("No data found");
-
-  const works = Promise.all(
-    data?.attestations.map(
-      async ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
-        await parseDataToWork(id, { attester, recipient, time: timeCreated }, decodedDataJson)
-    ) ?? []
-  );
-
-  return works;
+  console.warn("EAS indexing not available in local development - returning empty array");
+  return [];
 };
 
 export const getWorkApprovals = async (gardenerAddress?: string): Promise<WorkApproval[]> => {
-  // TODO add 'where: valid: true' filter
-  const QUERY = easGraphQL(/* GraphQL */ `
-    query Attestations($where: AttestationWhereInput) {
-      attestations(where: $where) {
-        id
-        attester
-        recipient
-        timeCreated
-        decodedDataJson
-      }
-    }
-  `);
-
-  const schemaId = { equals: EAS["42161"].WORK_APPROVAL.uid };
-
-  const { data, error } = await easArbitrumClient
-    .query(QUERY, {
-      where: gardenerAddress
-        ? {
-            schemaId,
-            recipient: { equals: gardenerAddress },
-          }
-        : {
-            schemaId,
-          },
-    })
-    .toPromise();
-
-  if (error) console.error(error);
-  if (!data) console.error("No data found");
-
-  return (
-    data?.attestations.map(({ id, attester, recipient, timeCreated, decodedDataJson }) =>
-      parseDataToWorkApproval(id, { attester, recipient, time: timeCreated }, decodedDataJson)
-    ) ?? []
-  );
+  console.warn("EAS indexing not available in local development - returning empty array");
+  return [];
 };
+
+export type GardenAssertion = {
+  id: string;
+  schema: {
+    id: `0x${string}`;
+  };
+  data: string;
+};
+
+export type Attest = {
+  id: string;
+  refUID: string;
+  attester: `0x${string}`;
+  txid: `0x${string}`;
+  createdAtTimestamp: number;
+  data: `0x${string}`;
+};
+
+export async function getGardenAssertions(
+  gardenAccountAddress: string
+): Promise<GardenAssertion[]> {
+  console.warn("EAS indexing not available in local development - returning empty array");
+  return [];
+}
+
+export async function getGardenWorks(gardenTokenId: number | null) {
+  console.warn("EAS indexing not available in local development - returning empty array");
+  return [];
+}

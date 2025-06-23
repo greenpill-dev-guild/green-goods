@@ -1,11 +1,4 @@
-import {
-  type Action,
-  ActionRegistry,
-  type Capital,
-  type Garden,
-  GardenAccount,
-  GardenToken,
-} from "generated";
+import { type Action, ActionRegistry, type Capital, type Garden, GardenToken } from "generated";
 
 // Handler for the ActionRegistered event
 ActionRegistry.ActionRegistered.handler(async ({ event, context }) => {
@@ -146,84 +139,4 @@ GardenToken.GardenMinted.handler(async ({ event, context }) => {
   context.Garden.set(gardenEntity);
 });
 
-GardenToken.GardenMinted.contractRegister(({ event, context }) => {
-  context.addGardenAccount(event.params.account);
-});
-
-// Handler for the GardenNameUpdated event
-GardenAccount.NameUpdated.handler(async ({ event, context }) => {
-  const gardenAccount = event.srcAddress;
-  const gardenAccountEntity = await context.Garden.get(gardenAccount);
-
-  if (gardenAccountEntity) {
-    context.Garden.set({
-      ...gardenAccountEntity,
-      name: event.params.newName,
-    });
-  }
-});
-
-// Handler for the GardenDescriptionUpdated event
-GardenAccount.DescriptionUpdated.handler(async ({ event, context }) => {
-  const gardenAccount = event.srcAddress;
-  const gardenAccountEntity = await context.Garden.get(gardenAccount);
-
-  if (gardenAccountEntity) {
-    context.Garden.set({
-      ...gardenAccountEntity,
-      description: event.params.newDescription,
-    });
-  }
-});
-
-// Handler for the GardenerAdded event
-GardenAccount.GardenerAdded.handler(async ({ event, context }) => {
-  const gardenAccount = event.srcAddress;
-  const gardenAccountEntity = await context.Garden.get(gardenAccount);
-
-  if (gardenAccountEntity) {
-    context.Garden.set({
-      ...gardenAccountEntity,
-      gardeners: [...gardenAccountEntity.gardeners, event.params.gardener],
-    });
-  }
-});
-
-// Handler for the GardenerRemoved event
-GardenAccount.GardenerRemoved.handler(async ({ event, context }) => {
-  const gardenAccount = event.srcAddress;
-  const gardenAccountEntity = await context.Garden.get(gardenAccount);
-
-  if (gardenAccountEntity) {
-    context.Garden.set({
-      ...gardenAccountEntity,
-      gardeners: gardenAccountEntity.gardeners.filter((g) => g !== event.params.gardener),
-    });
-  }
-});
-
-// Handler for the GardenOperatorAdded event
-GardenAccount.GardenOperatorAdded.handler(async ({ event, context }) => {
-  const gardenAccount = event.srcAddress;
-  const gardenAccountEntity = await context.Garden.get(gardenAccount);
-
-  if (gardenAccountEntity) {
-    context.Garden.set({
-      ...gardenAccountEntity,
-      operators: [...gardenAccountEntity.operators, event.params.operator],
-    });
-  }
-});
-
-// Handler for the GardenAccount GardenOperatorRemoved event
-GardenAccount.GardenOperatorRemoved.handler(async ({ event, context }) => {
-  const gardenAccount = event.srcAddress;
-  const gardenAccountEntity = await context.Garden.get(gardenAccount);
-
-  if (gardenAccountEntity) {
-    context.Garden.set({
-      ...gardenAccountEntity,
-      operators: gardenAccountEntity.operators.filter((g) => g !== event.params.operator),
-    });
-  }
-});
+// Note: GardenAccount event handlers removed as GardenAccount contract is not deployed

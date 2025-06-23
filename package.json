@@ -23,9 +23,17 @@
     "lint:oxlint": "oxlint packages/client/src packages/eas/src packages/indexer/src",
     "lint-staged": "lint-staged",
     "test": "pnpm recursive run test",
-    "dev": "concurrently -n \"APP,CONTRACTS\" -c \"bgMagenta.bold,bgCyan.bold\" \"pnpm run dev:app\" \"pnpm run dev:contracts\"",
-    "dev:app": "pnpm --filter 'client' run dev",
-    "dev:contracts": "pnpm --filter 'contracts' run  dev"
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "dev": "node scripts/dev-optimized.js",
+    "monitor": "node scripts/performance-monitor.js",
+    "setup:fork": "node scripts/setup-fork.js",
+    "setup:db": "node scripts/setup-db.js",
+    "setup:local": "node scripts/setup-env.js && pnpm setup:fork && pnpm install",
+    "reset:local": "pnpm --filter contracts reset && pnpm --filter indexer reset",
+    "test:setup": "node scripts/test-setup.js",
+    "test:local": "pnpm test:setup && pnpm --filter contracts test:local"
   },
   "dependencies": {
     "@ethereum-attestation-service/eas-sdk": "^2.5.0",
@@ -35,9 +43,11 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.0.0-beta.6",
+    "@playwright/test": "^1.53.0",
     "@types/node": "22.5.1",
     "concurrently": "8.2.2",
     "husky": "^9.1.4",
+    "js-yaml": "^4.1.0",
     "lint-staged": "^15.2.7",
     "oxlint": "^0.15.0",
     "wait-port": "1.1.0"
@@ -47,12 +57,20 @@
     "pnpm": ">=9.x"
   },
   "lint-staged": {
-    "*.{js,jsx,ts,tsx,json,md}": [
-      "biome format --write",
-      "oxlint"
+    "packages/client/src/**/*.{js,jsx,ts,tsx}": [
+      "biome format --write"
     ],
-    "*.sol": [
-      "pnpm --filter contracts format"
+    "packages/eas/src/**/*.{js,jsx,ts,tsx}": [
+      "biome format --write"
+    ],
+    "packages/indexer/src/**/*.{js,jsx,ts,tsx}": [
+      "biome format --write"
+    ],
+    "*.{json,md}": [
+      "biome format --write"
+    ],
+    "packages/contracts/**/*.sol": [
+      "cd packages/contracts && forge fmt"
     ]
   }
 }

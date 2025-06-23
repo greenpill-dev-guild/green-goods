@@ -5,7 +5,13 @@
     "clientKind": "git",
     "useIgnoreFile": true
   },
-  "assist": { "actions": { "source": { "organizeImports": "on" } } },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
   "linter": {
     "enabled": true,
     "rules": {
@@ -34,6 +40,7 @@
       "**/packages/contracts/src/**/*.{ts,tsx,js,jsx}",
       "**/packages/contracts/script/**/*.{ts,tsx,js,jsx}",
       "**/packages/eas/src/**/*.{ts,tsx,js,jsx}",
+      "**/packages/indexer/src/**/*.{ts,tsx,js,jsx}",
       "**/*.json"
     ]
   },
@@ -60,6 +67,7 @@
       "**/packages/contracts/src/**/*.{ts,tsx,js,jsx}",
       "**/packages/contracts/script/**/*.{ts,tsx,js,jsx}",
       "**/packages/eas/src/**/*.{ts,tsx,js,jsx}",
+      "**/packages/indexer/src/**/*.{ts,tsx,js,jsx}",
       "**/*.json"
     ]
   }

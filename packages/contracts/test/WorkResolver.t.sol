@@ -9,13 +9,13 @@ import { Test } from "forge-std/Test.sol";
 import { WorkResolver, NotActiveAction } from "../src/resolvers/Work.sol";
 import { ActionRegistry } from "../src/registries/Action.sol";
 import { GardenAccount } from "../src/accounts/Garden.sol";
-import { MockEAS } from "../src/mocks/EAS.sol";
+import { EAS } from "../src/mocks/EAS.sol";
 
 contract WorkResolverTest is Test {
     WorkResolver private workResolver;
     ActionRegistry private mockActionRegistry;
     GardenAccount private mockGardenAccount;
-    MockEAS private mockIEAS;
+    EAS private mockIEAS;
 
     address private owner = address(this);
     address private multisig = address(0x124);
@@ -26,7 +26,7 @@ contract WorkResolverTest is Test {
         // Deploy the mock contracts
         mockActionRegistry = new ActionRegistry();
         mockGardenAccount = new GardenAccount(address(0x021), address(0x022), address(0x023), address(0x024));
-        mockIEAS = new MockEAS();
+        mockIEAS = new EAS();
 
         mockActionRegistry.initialize(multisig);
         mockGardenAccount.initialize(

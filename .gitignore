@@ -130,3 +130,12 @@ dist
 .yarn/install-state.gz
 .pnp.*
 .vercel
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+
+# E2E test videos/screenshots
+*.webm
+test-failed-*.png

@@ -9,20 +9,23 @@
     "codegen": "envio codegen",
     "dev": "envio dev",
     "test": "pnpm mocha",
-    "start": "ts-node generated/src/Index.bs.js"
+    "start": "ts-node generated/src/Index.bs.js",
+    "dev:local": "envio dev --config config.local.yaml",
+    "codegen:local": "envio codegen --config config.local.yaml",
+    "reset": "rm -rf .envio generated && (dropdb greengoods_indexer 2>/dev/null || true) && (createdb greengoods_indexer 2>/dev/null || true)"
   },
   "devDependencies": {
     "@types/chai": "^4.3.11",
     "@types/mocha": "10.0.6",
     "@types/node": "20.8.8",
+    "mocha": "10.2.0",
     "ts-mocha": "^10.0.0",
     "ts-node": "10.9.1",
-    "typescript": "5.2.2",
-    "mocha": "10.2.0"
+    "typescript": "5.2.2"
   },
   "dependencies": {
     "chai": "4.3.10",
-    "envio": "2.11.6",
+    "envio": "2.22.3",
     "ethers": "6.13.5"
   },
   "optionalDependencies": {

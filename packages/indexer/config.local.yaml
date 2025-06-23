@@ -1,0 +1,34 @@
+name: Green Goods Local
+description: Green Goods Local Development Indexer
+schema: ./schema.graphql
+event_decoder: viem
+networks:
+  - id: 31337
+    start_block: 14
+    rpc_config:
+      url: http://localhost:8545
+    contracts:
+      - name: ActionRegistry
+        address: '0xAca40D0a6c1a54eDAA4D700EaE226F587cDda37F'
+      - name: GardenToken
+        address: '0xABee63FFc48a6bf480118bDEDdB8966dCBb2099A'
+contracts:
+  - name: ActionRegistry
+    abi_file_path: abis/ActionRegistry.json
+    handler: src/EventHandlers.ts
+    events:
+      - event: ActionRegistered
+      - event: ActionStartTimeUpdated
+      - event: ActionEndTimeUpdated
+      - event: ActionTitleUpdated
+      - event: ActionInstructionsUpdated
+      - event: ActionMediaUpdated
+  - name: GardenToken
+    abi_file_path: abis/GardenToken.json
+    handler: src/EventHandlers.ts
+    events:
+      - event: Minted
+      - event: GardenCreated
+      - event: GardenBannerUpdated
+      - event: GardenOperatorsUpdated
+      - event: GardenGardenersUpdated
