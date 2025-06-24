@@ -25,7 +25,11 @@
     "test": "pnpm recursive run test",
     "dev": "concurrently -n \"APP,CONTRACTS\" -c \"bgMagenta.bold,bgCyan.bold\" \"pnpm run dev:app\" \"pnpm run dev:contracts\"",
     "dev:app": "pnpm --filter 'client' run dev",
-    "dev:contracts": "pnpm --filter 'contracts' run  dev"
+    "dev:contracts": "pnpm --filter 'contracts' run  dev",
+    "mcp:build": "pnpm --filter '@green-goods/mcp-server' run build",
+    "mcp:dev": "pnpm --filter '@green-goods/mcp-server' run dev:http",
+    "mcp:start": "pnpm --filter '@green-goods/mcp-server' run start:http",
+    "mcp:test": "cd packages/mcp-server && ./test-charmverse.sh"
   },
   "dependencies": {
     "@ethereum-attestation-service/eas-sdk": "^2.5.0",
