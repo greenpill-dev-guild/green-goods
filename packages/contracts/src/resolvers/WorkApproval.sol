@@ -26,12 +26,10 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
         // _disableInitializers();
     }
 
-    /// @notice Initializes the contract and sets the multisig wallet as the owner.
+    /// @notice Initializes the contract and sets the deployer as the owner.
     /// @dev This function replaces the constructor for upgradable contracts.
-    /// @param _multisig The address of the multisig wallet to transfer ownership to.
-    function initialize(address _multisig) external initializer {
+    function initialize() external initializer {
         __Ownable_init();
-        // transferOwnership(_multisig);
     }
 
     /// @notice Indicates whether the resolver is payable.

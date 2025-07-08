@@ -87,12 +87,10 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() { }
 
-    /// @notice Initializes the contract and sets the multisig wallet as the owner.
+    /// @notice Initializes the contract and sets the deployer as the owner.
     /// @dev This function must be called only once during contract deployment.
-    /// @param _multisig The address of the multisig wallet to transfer ownership to.
-    function initialize(address _multisig) external initializer {
+    function initialize() external initializer {
         __Ownable_init();
-        // transferOwnership(_multisig);
         // _disableInitializers();
     }
 

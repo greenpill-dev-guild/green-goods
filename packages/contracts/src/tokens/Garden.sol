@@ -42,13 +42,11 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         // _disableInitializers(); // Prevent constructor usage for upgradable contracts
     }
 
-    /// @notice Initializes the contract with the given multisig wallet and Garden account implementation.
+    /// @notice Initializes the contract with the deployer as the owner.
     /// @dev This function replaces the constructor for upgradable contracts.
-    /// @param _multisig The address of the multisig wallet to set as the owner.
-    function initialize(address _multisig) external initializer {
+    function initialize() external initializer {
         __ERC721_init("Green Goods Garden", "GGG");
         __Ownable_init();
-        // transferOwnership(_multisig);
     }
 
     /// @notice Mints a new Garden token and creates the associated Garden account.

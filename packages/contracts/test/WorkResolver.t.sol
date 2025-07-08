@@ -30,13 +30,7 @@ contract WorkResolverTest is Test {
 
         mockActionRegistry.initialize(multisig);
         mockGardenAccount.initialize(
-            address(0x545),
-            "Test Garden",
-            "Test Description",
-            "Test Location",
-            "",
-            new address[](0),
-            new address[](0)
+            address(0x545), "Test Garden", "Test Description", "Test Location", "", new address[](0), new address[](0)
         );
 
         // Deploy the WorkResolver contract
