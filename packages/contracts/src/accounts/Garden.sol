@@ -91,7 +91,9 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         address multicallForwarder,
         address erc6551Registry,
         address guardian
-    ) AccountV3Upgradable(erc4337EntryPoint, multicallForwarder, erc6551Registry, guardian) {}
+    )
+        AccountV3Upgradable(erc4337EntryPoint, multicallForwarder, erc6551Registry, guardian)
+    { }
 
     /// @notice Initializes the GardenAccount with initial gardeners and operators.
     /// @dev This function must be called after the contract is deployed.
@@ -108,7 +110,10 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         string calldata _bannerImage,
         address[] calldata _gardeners,
         address[] calldata _gardenOperators
-    ) external initializer {
+    )
+        external
+        initializer
+    {
         communityToken = _communityToken;
         name = _name;
         description = _description;

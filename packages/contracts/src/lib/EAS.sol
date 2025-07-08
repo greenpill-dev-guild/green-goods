@@ -13,9 +13,9 @@ library EASLib {
     /// @dev Reverts with `InvalidChainId` if the chain ID is not recognized.
     /// @return The address of the EAS.
     function getEAS() internal view returns (address) {
-        if (block.chainid == 42161) {
+        if (block.chainid == 42_161) {
             return EAS_ARBITRUM;
-        } else if (block.chainid == 11155111) {
+        } else if (block.chainid == 11_155_111) {
             return EAS_SEPOLIA;
         } else {
             revert InvalidChainId();
@@ -23,9 +23,9 @@ library EASLib {
     }
 
     function getSchemaRegistry() internal view returns (address) {
-        if (block.chainid == 42161) {
+        if (block.chainid == 42_161) {
             return EAS_SCHEMA_REGISTRY_ARBITRUM;
-        } else if (block.chainid == 11155111) {
+        } else if (block.chainid == 11_155_111) {
             return EAS_SCHEMA_REGISTRY_SEPOLIA;
         } else {
             revert InvalidChainId();

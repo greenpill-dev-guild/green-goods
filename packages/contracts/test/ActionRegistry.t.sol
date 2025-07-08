@@ -32,12 +32,7 @@ contract ActionRegistryTest is Test {
 
         // vm.prank(multisig);
         actionRegistry.registerAction(
-            block.timestamp,
-            block.timestamp + 1 days,
-            "Test Action",
-            "instructionsCID",
-            capitals,
-            media
+            block.timestamp, block.timestamp + 1 days, "Test Action", "instructionsCID", capitals, media
         );
 
         ActionRegistry.Action memory action = actionRegistry.getAction(0);
@@ -105,12 +100,7 @@ contract ActionRegistryTest is Test {
         vm.prank(address(0x999));
         vm.expectRevert("Ownable: caller is not the owner");
         actionRegistry.registerAction(
-            block.timestamp,
-            block.timestamp + 1 days,
-            "Test Action 2",
-            "instructionsCID",
-            capitals,
-            media
+            block.timestamp, block.timestamp + 1 days, "Test Action 2", "instructionsCID", capitals, media
         );
     }
 

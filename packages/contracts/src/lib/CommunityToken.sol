@@ -13,9 +13,9 @@ library CommunityTokenLib {
     /// @dev Reverts with `InvalidChainId` if the chain ID is not recognized.
     /// @return The address of the community token.
     function getCommunityToken() internal view returns (address) {
-        if (block.chainid == 42161) {
+        if (block.chainid == 42_161) {
             return COMMUNITY_TOKEN_ARBITRUM;
-        } else if (block.chainid == 11155111) {
+        } else if (block.chainid == 11_155_111) {
             return COMMUNITY_TOKEN_SEPOLIA;
         } else {
             revert InvalidChainId();

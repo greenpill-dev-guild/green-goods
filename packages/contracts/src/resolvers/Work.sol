@@ -44,7 +44,7 @@ contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
     /// @dev Verifies the attester and the action's validity and active status.
     /// @param attestation The attestation data structure.
     /// @return A boolean indicating whether the attestation is valid.
-    function onAttest(Attestation calldata attestation, uint256 /*value*/) internal view override returns (bool) {
+    function onAttest(Attestation calldata attestation, uint256 /*value*/ ) internal view override returns (bool) {
         WorkSchema memory schema = abi.decode(attestation.data, (WorkSchema));
 
         GardenAccount gardenAccount = GardenAccount(payable(attestation.recipient));
@@ -69,14 +69,20 @@ contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
     /// @dev This function can only be called by the contract owner.
     /// @return A boolean indicating whether the revocation is valid.
     function onRevoke(
-        Attestation calldata /*attestation*/,
+        Attestation calldata, /*attestation*/
         uint256 /*value*/
-    ) internal view override onlyOwner returns (bool) {
+    )
+        internal
+        view
+        override
+        onlyOwner
+        returns (bool)
+    {
         return true;
     }
 
     /// @notice Authorizes an upgrade to the contract's implementation.
     /// @dev This function can only be called by the contract owner.
     /// @param newImplementation The address of the new contract implementation.
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner { }
 }

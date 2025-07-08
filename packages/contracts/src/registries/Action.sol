@@ -85,7 +85,7 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {}
+    constructor() { }
 
     /// @notice Initializes the contract and sets the multisig wallet as the owner.
     /// @dev This function must be called only once during contract deployment.
@@ -113,7 +113,10 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
         string calldata _instructions,
         Capital[] calldata _capitals,
         string[] calldata _media
-    ) external onlyOwner {
+    )
+        external
+        onlyOwner
+    {
         uint256 actionUID = _nextActionUID++;
 
         actionToOwner[actionUID] = _msgSender();
@@ -155,7 +158,10 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     function updateActionInstructions(
         uint256 actionUID,
         string calldata _instructions
-    ) external onlyActionOwner(actionUID) {
+    )
+        external
+        onlyActionOwner(actionUID)
+    {
         idToAction[actionUID].instructions = _instructions;
 
         emit ActionInstructionsUpdated(actionToOwner[actionUID], actionUID, _instructions);
@@ -173,5 +179,5 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     /// @dev Authorizes an upgrade to the contract's implementation.
     /// @param newImplementation The address of the new implementation contract.
     /// @custom:oz-upgrades-unsafe-allow override
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner { }
 }
