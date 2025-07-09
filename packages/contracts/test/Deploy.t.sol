@@ -101,7 +101,7 @@ contract DeployTest is Test {
         assertTrue(gardenAccount != address(0), "GardenAccount should be deployed");
 
         // Deploy ActionRegistry
-        address actionRegistry = deployer.deployActionRegistry(salt, factory, address(this));
+        address actionRegistry = deployer.deployActionRegistry(salt, factory);
         assertTrue(actionRegistry != address(0), "ActionRegistry should be deployed");
 
         // Verify ActionRegistry initialization
@@ -138,7 +138,7 @@ contract DeployTest is Test {
 
         // Deploy ActionRegistry first
         (bytes32 salt, address factory,) = deployer.getDeploymentDefaults();
-        address actionRegistry = deployer.deployActionRegistry(salt, factory, address(this));
+        address actionRegistry = deployer.deployActionRegistry(salt, factory);
 
         // Initialize sample data
         deployer.initializeSampleData(actionRegistry);

@@ -39,7 +39,7 @@ contract DeployResolvers is Script {
             vm.startBroadcast();
 
             WorkResolver workResolver = new WorkResolver{ salt: SALT }(eas, ACTION_REGISTRY);
-            workResolver.initialize(address(this));
+            workResolver.initialize();
 
             // bytes32 workSchemaUID = ISchemaRegistry(schemaRegistry).register(
             //     abi.encode(WorkSchema),
@@ -60,7 +60,7 @@ contract DeployResolvers is Script {
             vm.startBroadcast();
 
             WorkApprovalResolver workApprovalResolver = new WorkApprovalResolver{ salt: SALT }(eas, ACTION_REGISTRY);
-            workApprovalResolver.initialize(address(this));
+            workApprovalResolver.initialize();
 
             // bytes32 workApprovalSchemaUID = ISchemaRegistry(schemaRegistry).register(
             //     abi.encode(WorkApprovalSchema),

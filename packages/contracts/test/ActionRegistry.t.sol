@@ -14,7 +14,7 @@ contract ActionRegistryTest is Test {
     function setUp() public {
         // Deploy the ActionRegistry contract
         actionRegistry = new ActionRegistry();
-        actionRegistry.initialize(multisig);
+        actionRegistry.initialize();
     }
 
     function testInitialize() public {
