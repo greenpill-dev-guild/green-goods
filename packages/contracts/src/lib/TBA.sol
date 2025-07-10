@@ -17,7 +17,10 @@ library TBALib {
     /// @param tokenId The ID of the token associated with the TBA.
     /// @return The address of the created TBA account.
     function createAccount(address implementation, address tokenContract, uint256 tokenId) external returns (address) {
-        if (block.chainid == 42_161 || block.chainid == 11_155_111) {
+        if (
+            block.chainid == 42_161 || block.chainid == 11_155_111 || block.chainid == 8453 || block.chainid == 10
+                || block.chainid == 42_220 || block.chainid == 31_337
+        ) {
             return IERC6551Registry(TOKENBOUND_REGISTRY).createAccount(
                 implementation, SALT, block.chainid, tokenContract, tokenId
             );
@@ -41,7 +44,10 @@ library TBALib {
         view
         returns (address)
     {
-        if (block.chainid == 42_161 || block.chainid == 11_155_111) {
+        if (
+            block.chainid == 42_161 || block.chainid == 11_155_111 || block.chainid == 8453 || block.chainid == 10
+                || block.chainid == 42_220 || block.chainid == 31_337
+        ) {
             return IERC6551Registry(TOKENBOUND_REGISTRY).account(
                 implementation, SALT, block.chainid, tokenContract, tokenId
             );
