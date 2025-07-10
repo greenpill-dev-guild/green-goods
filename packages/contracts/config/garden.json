@@ -1,0 +1,12 @@
+{
+  "name": "Community Learning Garden",
+  "description": "A vibrant space where community members collaborate on environmental and educational projects",
+  "location": "San Francisco, CA",
+  "bannerImage": "QmVvKqpnfJm8UwRq9SF15V2jgJ86yCBsmMBmpEaoQU92bD",
+  "gardeners": [
+    "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+  ],
+  "operators": ["0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", "0x90F79bf6EB2c4f870365E785982E1f101E93b906"]
+}
