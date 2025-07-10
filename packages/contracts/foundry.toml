@@ -17,8 +17,7 @@ src = 'src'
 test = 'test'
 via_ir = true
 fs_permissions = [
-  { access = "read", path = "./" },
-  { access = "write", path = "./deployments/" }
+  { access = "read-write", path = "./" }
 ]
 
 [profile.ci]
