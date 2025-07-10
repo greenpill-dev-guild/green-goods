@@ -1,0 +1,10 @@
+{
+  "accountProxy": "0xad621aF21dBfdaCe0A078C021Ab2FDDA080a52D1",
+  "actionRegistry": "0x547e82BF9c8496f41927583793242f6b91C182A6",
+  "deploymentRegistry": "0x86AB834da1D68C2b4deb54bD7c9318F8a3b9ed2f",
+  "gardenAccountImpl": "0x83287652b4e1514e101a4053c9bcAFf6a24d051C",
+  "gardenToken": "0xE73e86787dDC94b98f6d0327124D18341C527e1f",
+  "guardian": "0xFdF620FEafE1f15B9f3725283A72088791eDFC74",
+  "workApprovalResolver": "0x4708E9b199412cc2Cf4d394430BD3DF1f31F2Be5",
+  "workResolver": "0x054814d58b3A160ca0243FFC77f2F5d62709f396"
+}
