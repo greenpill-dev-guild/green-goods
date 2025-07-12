@@ -15,14 +15,15 @@
     "@types/chai": "^4.3.11",
     "@types/mocha": "10.0.6",
     "@types/node": "20.8.8",
+    "js-yaml": "^4.1.0",
+    "mocha": "10.2.0",
     "ts-mocha": "^10.0.0",
     "ts-node": "10.9.1",
-    "typescript": "5.2.2",
-    "mocha": "10.2.0"
+    "typescript": "5.2.2"
   },
   "dependencies": {
     "chai": "4.3.10",
-    "envio": "2.11.6",
+    "envio": "2.25.0",
     "ethers": "6.13.5"
   },
   "optionalDependencies": {
