@@ -39,23 +39,19 @@
     "gas:monitor": "node script/deploy-helpers/gas-optimizer.js monitor"
   },
   "dependencies": {
-    "@ethereum-attestation-service/eas-contracts": "1.7.1",
-    "@openzeppelin/contracts-upgradeable": "4.9.6"
+    "@openzeppelin/contracts": "^5.0.2",
+    "@openzeppelin/contracts-upgradeable": "^5.0.2",
+    "dotenv": "^16.4.5"
   },
   "devDependencies": {
     "@pinata/sdk": "^2.1.0",
     "@privy-io/server-auth": "latest",
     "@biomejs/biome": "2.0.0-beta.6",
-    "@types/qrcode": "1",
     "csv-parse": "^5.5.3",
-    "dotenv": "^16.4.1",
     "envfile": "~6.18.0",
-    "form-data": "^4.0.0",
     "node-fetch": "^2.7.0",
     "pinata": "^0.4.0",
-    "qrcode": "~1.5.4",
     "solhint": "^5.0.5",
-    "solidity-coverage": "^0.8.14",
     "toml": "~3.0.0"
   }
 }

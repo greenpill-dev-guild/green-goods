@@ -1,10 +1,28 @@
 {
   "accountProxy": "0xad621aF21dBfdaCe0A078C021Ab2FDDA080a52D1",
   "actionRegistry": "0x547e82BF9c8496f41927583793242f6b91C182A6",
-  "deploymentRegistry": "0x86AB834da1D68C2b4deb54bD7c9318F8a3b9ed2f",
+  "deploymentRegistry": "0x48c309c0875cfeD9b6D9FaEfF0100898E95371fA",
+  "eas": {
+    "address": "0x72E1d8ccf5299fb36fEfD8CC4394B8ef7e98Af92",
+    "schemaRegistry": "0x5ece93bE4BDCF293Ed61FA78698B594F2135AF34"
+  },
   "gardenAccountImpl": "0x83287652b4e1514e101a4053c9bcAFf6a24d051C",
   "gardenToken": "0xE73e86787dDC94b98f6d0327124D18341C527e1f",
   "guardian": "0xFdF620FEafE1f15B9f3725283A72088791eDFC74",
-  "workApprovalResolver": "0x4708E9b199412cc2Cf4d394430BD3DF1f31F2Be5",
-  "workResolver": "0x054814d58b3A160ca0243FFC77f2F5d62709f396"
+  "schemas": {
+    "gardenAssessmentDescription": "Biodiversity assessment schema for Green Goods garden spaces. Captures soil health, carbon metrics, species diversity, and ecological observations to verify regenerative agriculture practices.",
+    "gardenAssessmentName": "Green Goods Garden Assessment v2",
+    "gardenAssessmentSchema": "uint8 soilMoisturePercentage,uint256 carbonTonStock,uint256 carbonTonPotential,uint256 gardenSquareMeters,string biome,string remoteReportPDF,string speciesRegistryJSON,string[] polygonCoordinates,string[] treeGenusesObserved,string[] weedGenusesObserved,string[] issues,string[] tags",
+    "gardenAssessmentSchemaUID": "0x76ea40f6c854813bed0224a4334298e63bf77818680bebe1b2921171f2eeb0f6",
+    "workApprovalDescription": "Work approval schema for Green Goods protocol. Allows validators to approve or reject submitted work with feedback, enabling trustless verification of regenerative agriculture activities.",
+    "workApprovalName": "Green Goods Work Approval",
+    "workApprovalSchema": "uint256 actionUID,bytes32 workUID,bool approved,string feedback",
+    "workApprovalSchemaUID": "0xf1474c5f73e98044b3f13f1bd250764660773abd90ee47b0fbc6662ad25fbcad",
+    "workDescription": "Work submission schema for Green Goods protocol. Enables gardeners to submit completed regenerative agriculture tasks with media evidence and metadata for verification and payment.",
+    "workName": "Green Goods Work Submission",
+    "workSchema": "uint256 actionUID,string title,string feedback,string metadata,string[] media",
+    "workSchemaUID": "0x74e5d1578bf5b547898bf9c4ac46ec3e4833418437db929de1b540f9d2528d8e"
+  },
+  "workApprovalResolver": "0x55371CFEe041E3542B4aA18aB2dD5d2566a228DB",
+  "workResolver": "0x1eA10B8B5A24B5C79E8921F47e21964637793b14"
 }

@@ -140,8 +140,9 @@
         "confirmations": 2
       },
       "contracts": {
-        "eas": "0x72E12946a188408A24c7700F1fec6E45B516ba28",
-        "easSchemaRegistry": "0x5eFcF784f15263F6F5a587a0B7b85E8C7bA7AE7E",
+        "eas": "0x72E1d8ccf5299fb36fEfD8CC4394B8ef7e98Af92",
+        "easSchemaRegistry": "0x5ece93bE4BDCF293Ed61FA78698B594F2135AF34",
+        "communityToken": "0x4cB67033da4FD849a552A4C5553E7F532B93E516",
         "erc4337EntryPoint": "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
         "multicallForwarder": "0xcA11bde05977b3631167028862bE2a173976CA11"
       }

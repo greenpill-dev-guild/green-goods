@@ -8,11 +8,13 @@ This comprehensive guide covers deploying Green Goods smart contracts to any EVM
 2. [Prerequisites](#prerequisites)
 3. [Network Configuration](#network-configuration)
 4. [Core Contract Deployment](#core-contract-deployment)
-5. [Garden & Actions Deployment](#garden--actions-deployment)
-6. [Fork Testing](#fork-testing)
-7. [Gas Optimization](#gas-optimization)
-8. [Adding New Networks](#adding-new-networks)
-9. [Troubleshooting](#troubleshooting)
+5. [EAS Schema Deployment](#eas-schema-deployment)
+6. [Garden & Actions Deployment](#garden--actions-deployment)
+7. [Fork Testing](#fork-testing)
+8. [Testing & Validation](#testing--validation)
+9. [Gas Optimization](#gas-optimization)
+10. [Adding New Networks](#adding-new-networks)
+11. [Troubleshooting](#troubleshooting)
 
 ## Quick Start
 
@@ -24,19 +26,28 @@ cp .env.example .env
 pnpm install
 ```
 
-### 2. Deploy Core Contracts
+### 2. Verify Network Configuration
+```bash
+# Verify all network configurations before deployment
+pnpm network:verify
+```
+
+### 3. Deploy Core Contracts (includes EAS schemas)
 ```bash
 # Local development
 pnpm deploy:local
 
 # Testnet (Sepolia)
-pnpm deploy:testnet
+pnpm deploy:sepolia
 
 # Mainnet (Arbitrum)
 pnpm deploy:arbitrum --broadcast --verify
+
+# Celo
+pnpm deploy:celo --broadcast --verify
 ```
 
-### 3. Deploy Garden & Actions
+### 4. Deploy Garden & Actions
 ```bash
 # Deploy a garden from JSON
 pnpm deploy:garden config/garden-example.json --network sepolia --broadcast
@@ -72,6 +83,22 @@ The deployment system supports multiple networks configured in `deployments/netw
 - **optimism** (10) - Optimism
 - **celo** (42220) - Celo
 
+### Network Verification
+
+Before deployment, verify your network configuration:
+
+```bash
+# Verify all network configurations
+pnpm network:verify
+```
+
+This utility will:
+- ✅ Check required configuration fields
+- 🔗 Test RPC connectivity
+- 🆔 Verify chain IDs match
+- ⚠️ Identify environment variable usage
+- 📋 Validate EAS contract addresses
+
 ### Environment Variables
 
 Configure your `.env` file:
@@ -88,11 +115,15 @@ CELO_RPC_URL=https://...
 
 # Optional - for contract verification
 ETHERSCAN_API_KEY=your-etherscan-v2-api-key
+
+# Optional - Enhanced error recovery
+SCHEMA_DEPLOYMENT_MAX_RETRIES=3
+SCHEMA_DEPLOYMENT_SKIP_ON_FAILURE=false
 ```
 
 ## Core Contract Deployment
 
-The main deployment script (`Deploy.s.sol`) deploys all core contracts in the correct order:
+The main deployment script (`Deploy.s.sol`) deploys all core contracts and EAS schemas in the correct order with enhanced error recovery:
 
 1. **DeploymentRegistry** - Central registry for network-specific addresses
 2. **AccountGuardian** - Security module for token-bound accounts
@@ -102,13 +133,23 @@ The main deployment script (`Deploy.s.sol`) deploys all core contracts in the co
 6. **ActionRegistry** - Registry for garden actions
 7. **WorkResolver** - Resolver for work attestations
 8. **WorkApprovalResolver** - Resolver for work approval attestations
+9. **EAS Schemas** - Deployed automatically with retry logic
+
+### Enhanced Error Recovery
+
+The deployment system includes comprehensive error recovery:
+
+- **Configurable Retries**: Customize max attempts via `SCHEMA_DEPLOYMENT_MAX_RETRIES`
+- **Exponential Backoff**: Automatic delay between retry attempts
+- **Graceful Failure Handling**: Continue deployment with `SCHEMA_DEPLOYMENT_SKIP_ON_FAILURE=true`
+- **Detailed Error Logging**: Comprehensive error messages with troubleshooting hints
 
 ### Deployment Commands
 
 ```bash
 # Deploy to specific networks
 pnpm deploy:local      # Local development
-pnpm deploy:testnet    # Sepolia testnet
+pnpm deploy:sepolia    # Sepolia testnet
 pnpm deploy:arbitrum   # Arbitrum One
 pnpm deploy:base       # Base
 pnpm deploy:optimism   # Optimism
@@ -117,8 +158,11 @@ pnpm deploy:celo       # Celo
 # With verification
 pnpm deploy:arbitrum --verify
 
-# Custom deployment
-node script/deploy.js --network <network> --broadcast --verify
+# Custom deployment with error recovery
+SCHEMA_DEPLOYMENT_MAX_RETRIES=5 pnpm deploy:celo --broadcast
+
+# Continue deployment despite schema failures
+SCHEMA_DEPLOYMENT_SKIP_ON_FAILURE=true pnpm deploy:celo --broadcast
 ```
 
 ### Deployment Options
@@ -129,6 +173,68 @@ node script/deploy.js --network <network> --broadcast --verify
 - `--gas-optimize` - Enable gas optimization
 - `--save-report` - Generate deployment report
 
+## EAS Schema Deployment
+
+EAS schemas are deployed automatically as part of the main deployment process with enhanced error recovery. The schemas are defined in `config/schemas.json` and deployed via Solidity contracts.
+
+### Schema Configuration
+
+Schemas are configured in `config/schemas.json`:
+
+```json
+{
+  "schemas": {
+    "gardenAssessment": {
+      "name": "Garden Assessment",
+      "description": "Assess a Green Goods garden space biodiversity.",
+      "revocable": true,
+      "fields": [
+        {"name": "soilMoisturePercentage", "type": "uint8"},
+        {"name": "carbonTonStock", "type": "uint256"}
+      ]
+    },
+    "work": {
+      "name": "Work Submission",
+      "description": "Upload work on a Green Goods space.",
+      "revocable": true,
+      "fields": [
+        {"name": "actionUID", "type": "uint256"},
+        {"name": "title", "type": "string"}
+      ]
+    },
+    "workApproval": {
+      "name": "Work Approval",
+      "description": "Approve work on a Green Goods space.",
+      "revocable": true,
+      "fields": [
+        {"name": "actionUID", "type": "uint256"},
+        {"name": "approved", "type": "bool"}
+      ]
+    }
+  }
+}
+```
+
+### Schema Types
+
+1. **Garden Assessment Schema** - For biodiversity assessments
+2. **Work Schema** - For work submissions
+3. **Work Approval Schema** - For work approvals
+
+### Schema UIDs
+
+After deployment, the schema UIDs are automatically saved to the deployment file at `deployments/{chainId}-latest.json`:
+
+```json
+{
+  "schemas": {
+    "gardenAssessmentSchemaUID": "0x...",
+    "workSchemaUID": "0x...", 
+    "workApprovalSchemaUID": "0x..."
+  }
+}
+```
+
 ## Garden & Actions Deployment
 
 After core contracts are deployed, you can deploy gardens and actions using JSON configuration files.
@@ -138,260 +244,246 @@ After core contracts are deployed, you can deploy gardens and actions using JSON
 Create a garden configuration file:
 ```json
 {
-  "name": "Community Learning Garden",
-  "description": "A vibrant space for community collaboration",
+  "name": "Example Garden",
+  "description": "A test garden for Green Goods",
   "location": "San Francisco, CA",
-  "bannerImage": "QmVvKqpnfJm8UwRq9SF15V2jgJ86yCBsmMBmpEaoQU92bD",
-  "gardeners": [
-    "0x1234567890123456789012345678901234567890",
-    "0x2345678901234567890123456789012345678901"
-  ],
-  "operators": [
-    "0x4567890123456789012345678901234567890123"
-  ]
+  "bannerImage": "QmHash...",
+  "gardeners": ["0x..."],
+  "operators": ["0x..."]
 }
 ```
 
-Deploy the garden:
+Deploy with:
 ```bash
-pnpm deploy:garden config/my-garden.json --network sepolia --broadcast
+pnpm deploy:garden config/garden.json --network celo --broadcast
 ```
 
-### Garden Onboarding (CSV-based)
+### Bulk Garden Onboarding
 
-For bulk onboarding with automatic wallet creation, use CSV format:
-
-```csv
-Instructions: Fill in the garden information and participant details below
-Name,Community Learning Garden
-Description,A vibrant space where community members collaborate on environmental projects
-Location,"San Francisco, CA"
-Banner Image,https://example.com/banner.jpg
-,
-Garden Operators,Gardeners
-operator1@example.com,gardener1@example.com
-operator2@example.com,gardener2@example.com
-,gardener3@example.com
-```
-
-**Required Environment Variables for Onboarding:**
+For bulk onboarding with automatic wallet creation:
 ```bash
-PRIVY_CLIENT_ID=your-privy-client-id
-PRIVY_APP_SECRET_ID=your-privy-app-secret
-PRIVY_AUTHORIZATION_PRIVATE_KEY=your-privy-auth-key
-PINATA_JWT=your-pinata-jwt-token
+pnpm deploy:onboard config/garden-onboarding-example.csv --network celo --broadcast
 ```
 
-Deploy with onboarding:
+### Action Deployment
+
+Deploy actions from JSON configuration:
 ```bash
-# Test configuration first
-pnpm deploy:onboard config/garden-onboarding.csv --network sepolia --dry-run
-
-# Deploy with wallet creation
-pnpm deploy:onboard config/garden-onboarding.csv --network sepolia --broadcast
+pnpm deploy:actions config/actions.json --network celo --broadcast
 ```
-
-**Onboarding Features:**
-- **Automatic Wallet Creation**: Creates embedded wallets for email/phone identifiers
-- **IPFS Integration**: Automatically uploads banner images to IPFS
-- **Bulk Processing**: Handle multiple gardeners and operators at once
-- **Validation**: Comprehensive CSV format validation
-
-### Actions Deployment
-
-Create an actions configuration file:
-```json
-{
-  "actions": [
-    {
-      "title": "Community Garden Cleanup",
-      "instructions": "bafkreiafya2q3nz5dbl4fvxphtrnmahl6hcjyvhzwcimgwnbh4wsy5kr7i",
-      "startTime": "2024-02-01T00:00:00Z",
-      "endTime": "2024-08-01T00:00:00Z",
-      "capitals": ["LIVING", "SOCIAL", "MATERIAL"],
-      "media": [
-        "bafkreiemwmci42u7cb23xacktk5nfspo5kfsbmflvh6sixjahjbdk2bsie"
-      ]
-    }
-  ]
-}
-```
-
-Deploy actions:
-```bash
-pnpm deploy:actions config/my-actions.json --network sepolia --broadcast
-```
-
-### Valid Capital Types
-`SOCIAL`, `MATERIAL`, `FINANCIAL`, `LIVING`, `INTELLECTUAL`, `EXPERIENTIAL`, `SPIRITUAL`, `CULTURAL`
 
 ## Fork Testing
 
-Test deployments against real network state without spending gas:
+Test against real network state:
+```bash
+# Fork and test against Arbitrum
+pnpm fork:arbitrum
+
+# Fork and test against Celo
+pnpm fork:celo
+
+# Run tests on fork
+pnpm test
+```
+
+## Testing & Validation
+
+### Comprehensive Test Suite
+
+Run the deployment test suite to validate functionality:
 
 ```bash
-# Start network forks
-pnpm fork:arbitrum    # Fork Arbitrum One
-pnpm fork:base        # Fork Base
-pnpm fork:sepolia     # Fork Sepolia
+# Run all deployment tests
+forge test --match-contract DeploymentTest -vv
 
-# Deploy to fork
-pnpm deploy:fork
+# Test specific scenarios
+forge test --match-test testIdempotentDeployment -vvv
+forge test --match-test testSchemaDeploymentFailureRecovery -vvv
+forge test --match-test testNetworkFallback -vvv
+```
 
-# Custom fork with specific block
-node script/fork-helpers/setup-fork.js arbitrum 150000000
+### Test Coverage
+
+The test suite validates:
+- ✅ **Core Contract Deployment**: All contracts deploy correctly
+- ✅ **Enhanced Error Recovery**: Retry logic and failure handling
+- ✅ **Idempotent Deployments**: Safe re-runs without conflicts
+- ✅ **Schema Validation**: EAS schema deployment and verification
+- ✅ **Network Fallbacks**: Deployment on unsupported networks
+- ✅ **Gas Optimization**: Performance tracking
+- ✅ **Configuration Handling**: Environment variable processing
+
+### Deployment Validation
+
+```bash
+# Check deployment status
+pnpm deployment:status
+
+# Verify network configuration
+pnpm network:verify
+
+# Validate specific deployment
+forge test --match-test testDeploymentFlowLocalhost -vvv
 ```
 
 ## Gas Optimization
 
-### Monitor Gas Prices
+The deployment system includes built-in gas optimization:
+
 ```bash
 # Check current gas prices
-pnpm gas:check arbitrum
+pnpm gas:check
 
-# Monitor gas prices over time
-pnpm gas:monitor arbitrum --duration=600
-```
+# Monitor gas prices in real-time
+pnpm gas:monitor
 
-### Optimized Deployment
-```bash
 # Deploy with gas optimization
-pnpm deploy:optimized arbitrum --broadcast --verify --gas-strategy=aggressive
+pnpm deploy:celo --gas-optimize --broadcast
 ```
-
-### Gas Strategies
-- **Conservative**: 20% premium for faster inclusion
-- **Standard**: 10% premium, balanced approach
-- **Aggressive**: Minimize costs, may wait longer
 
 ## Adding New Networks
 
-### 1. Update Network Configuration
+To add a new network:
 
-Edit `deployments/networks.json`:
+1. Update `deployments/networks.json`:
 ```json
 {
   "networks": {
-    "mynetwork": {
+    "newchain": {
       "chainId": 12345,
-      "name": "My Network",
-      "rpcUrl": "${MY_NETWORK_RPC_URL}",
+      "name": "New Chain",
+      "rpcUrl": "${NEWCHAIN_RPC_URL}",
       "nativeCurrency": {
-        "name": "My Token",
-        "symbol": "MTK",
+        "name": "New Token",
+        "symbol": "NEW",
         "decimals": 18
       },
-      "blockExplorer": "https://explorer.mynetwork.com",
+      "blockExplorer": "https://newscan.io",
       "verifyApiUrl": "https://api.etherscan.io/v2/api",
       "verifyApiKey": "${ETHERSCAN_API_KEY}",
       "contracts": {
         "eas": "0x...",
-        "easSchemaRegistry": "0x...",
-        "communityToken": "0x...",
-        "erc4337EntryPoint": "0x...",
-        "multicallForwarder": "0x..."
+        "easSchemaRegistry": "0x..."
       }
     }
   }
 }
 ```
 
-### 2. Add Environment Variables
+2. Add RPC URL to `.env`:
 ```bash
-MY_NETWORK_RPC_URL=https://rpc.mynetwork.com
+NEWCHAIN_RPC_URL=https://rpc.newchain.com
 ```
 
-### 3. Update Package Scripts
-```json
-{
-  "scripts": {
-    "deploy:mynetwork": "node script/deploy.js --network mynetwork --broadcast --verify"
-  }
-}
+3. Add deployment script to `package.json`:
+```bash
+"deploy:newchain": "node script/deploy.js core --network newchain --broadcast --verify"
+```
+
+4. Verify the configuration:
+```bash
+pnpm network:verify
 ```
 
 ## Troubleshooting
 
-### Common Issues
+### Pre-Deployment Validation
 
-**Environment variable not set**
-- Solution: Ensure all required variables in `.env` are configured
-
-**CREATE2 deployment failed**
-- Solution: Contract might already be deployed. Check predicted address.
-
-**Verification failed**
-- Solution: Check API key, wait and retry, or verify manually
-
-**Fork not working**
-- Solution: Check RPC URL, ensure anvil is installed (`foundryup`)
-
-### Debug Mode
 ```bash
-# Maximum verbosity
-forge script script/Deploy.s.sol:Deploy --rpc-url <url> -vvvv
+# Verify network configuration before deployment
+pnpm network:verify
+
+# Test deployment locally first
+pnpm deploy:local
+
+# Run deployment tests
+forge test --match-contract DeploymentTest -vv
 ```
 
-### Deployment Status
+### Common Issues & Solutions
+
+1. **Schema deployment fails**
+   ```bash
+   # Enable graceful failure handling
+   SCHEMA_DEPLOYMENT_SKIP_ON_FAILURE=true pnpm deploy:celo
+   
+   # Increase retry attempts
+   SCHEMA_DEPLOYMENT_MAX_RETRIES=5 pnpm deploy:celo
+   ```
+
+2. **Gas estimation fails**
+   ```bash
+   # Check current gas prices
+   pnpm gas:check
+   
+   # Use gas optimization
+   pnpm deploy:celo --gas-optimize
+   ```
+
+3. **RPC connectivity issues**
+   ```bash
+   # Verify network configuration
+   pnpm network:verify
+   
+   # Test specific network
+   curl -X POST $CELO_RPC_URL -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}'
+   ```
+
+4. **Verification fails**
+   ```bash
+   # Manual verification
+   forge verify-contract --chain-id 42220 0x... src/Contract.sol:Contract
+   
+   # Check Etherscan API key
+   echo $ETHERSCAN_API_KEY
+   ```
+
+### Enhanced Error Recovery Testing
+
 ```bash
-# Check deployment status
+# Test failure recovery with mock failures
+forge test --match-test testSchemaDeploymentFailureRecovery -vvv
+
+# Test with skip-on-failure enabled
+SCHEMA_DEPLOYMENT_SKIP_ON_FAILURE=true forge test --match-test testSchemaDeploymentFailureRecovery
+```
+
+### Debug Commands
+
+```bash
+# Check deployment status across networks
 pnpm deployment:status
 
-# Check specific network
-pnpm deployment:status sepolia
+# Verify specific contract
+forge verify-contract --chain-id 42220 0x... src/Contract.sol:Contract
+
+# Monitor gas prices
+pnpm gas:monitor
+
+# Test deployment with maximum verbosity
+forge test --match-contract DeploymentTest -vvvv
 ```
 
-## Security Considerations
+### Getting Help
 
-1. **Private Keys**: Never commit private keys. Use hardware wallets for mainnet.
-2. **Multisig**: Set `MULTISIG_ADDRESS` for production deployments.
-3. **Verification**: Always verify contracts after deployment.
-4. **Testing**: Thoroughly test on forks and testnets first.
+1. **Pre-deployment**: Run `pnpm network:verify` to catch configuration issues
+2. **During deployment**: Check logs for specific error messages
+3. **Post-deployment**: Run `forge test --match-contract DeploymentTest` to validate
+4. **Configuration issues**: Verify `deployments/networks.json` and `.env` setup
+5. **Test locally first**: Use `pnpm deploy:local` before mainnet deployment
 
-## File Structure
+## Summary
 
-```
-packages/contracts/
-├── config/
-│   ├── garden-example.json
-│   ├── actions-example.json
-│   ├── test-garden.json
-│   └── test-actions.json
-├── deployments/
-│   ├── networks.json
-│   ├── {chainId}-latest.json
-│   ├── gardens/
-│   └── actions/
-├── script/
-│   ├── Deploy.s.sol
-│   ├── deploy.js
-│   ├── helpers/
-│   └── utils/
-└── src/
-    ├── DeploymentRegistry.sol
-    └── ...
-```
+The Green Goods deployment system now provides:
 
-## Benefits of Optimized System
+- **🔧 Network Verification Utility**: Pre-deployment configuration validation
+- **🔄 Enhanced Error Recovery**: Configurable retry logic with exponential backoff
+- **🧪 Comprehensive Test Suite**: Automated validation of deployment functionality
+- **📊 Real-time Gas Monitoring**: Built-in gas price tracking and optimization
+- **🌐 Multi-Chain Support**: Deploy to any EVM-compatible network
+- **🎯 Deterministic Addresses**: Using CREATE2 for predictable contract addresses
+- **✅ Automatic Verification**: Contract verification on block explorers
+- **⚙️ Flexible Configuration**: Easy network addition and deployment customization
+- **🔍 Advanced Troubleshooting**: Comprehensive debugging tools and utilities
 
-### Before
-- ❌ Multiple separate deployment scripts
-- ❌ Hardcoded configurations
-- ❌ Manual network management
-- ❌ No gas optimization
-- ❌ Limited validation
-
-### After
-- ✅ Unified deployment system
-- ✅ JSON configuration files
-- ✅ Network-aware deployment
-- ✅ Gas optimization built-in
-- ✅ Comprehensive validation
-- ✅ Deployment record keeping
-
-## Support
-
-For deployment issues:
-1. Check this troubleshooting section
-2. Review deployment logs in `broadcast/` directory
-3. Open an issue with deployment logs and configuration 
+The deployment process is now fully integrated with robust error handling, comprehensive testing, and advanced monitoring capabilities, ensuring reliable deployments across all supported networks. 

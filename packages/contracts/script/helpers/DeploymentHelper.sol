@@ -37,6 +37,9 @@ abstract contract DeploymentHelper is Script {
         address actionRegistry;
         address workResolver;
         address workApprovalResolver;
+        bytes32 gardenAssessmentSchemaUID;
+        bytes32 workSchemaUID;
+        bytes32 workApprovalSchemaUID;
     }
 
     /// @notice Load network configuration from JSON file
@@ -45,14 +48,17 @@ abstract contract DeploymentHelper is Script {
         string memory path = string.concat(root, "/deployments/networks.json");
         string memory json = vm.readFile(path);
 
-        string memory chainIdStr = vm.toString(block.chainid);
-        string memory basePath = string.concat(".networks.", chainIdStr);
+        // Map chain ID to network name
+        string memory networkName = getNetworkName(block.chainid);
+        string memory basePath = string.concat(".networks.", networkName);
 
-        // Check if network is configured
-        bytes memory checkBytes = json.parseRaw(string.concat(basePath, ".chainId"));
-        if (checkBytes.length == 0) {
-            // Use localhost config for unconfigured networks
+        // Check if network is configured by trying to read chainId
+        try vm.parseJson(json, string.concat(basePath, ".chainId")) {
+            // Network exists, use it
+        } catch {
+            // Network not found, use localhost as fallback
             basePath = ".networks.localhost";
+            console.log("Warning: Chain ID", block.chainid, "not configured, using localhost config");
         }
 
         NetworkConfig memory config;
@@ -69,6 +75,19 @@ abstract contract DeploymentHelper is Script {
         config.greenGoodsSafe = json.readAddress(".deploymentDefaults.greenGoodsSafe");
 
         return config;
+    }
+
+    /// @notice Get network name from chain ID
+    function getNetworkName(uint256 chainId) internal pure returns (string memory) {
+        if (chainId == 31_337) return "localhost";
+        if (chainId == 11_155_111) return "sepolia";
+        if (chainId == 42_161) return "arbitrum";
+        if (chainId == 8453) return "base";
+        if (chainId == 10) return "optimism";
+        if (chainId == 42_220) return "celo";
+
+        // Default to localhost for unknown chains
+        return "localhost";
     }
 
     /// @notice Get deployment defaults from JSON
@@ -110,7 +129,7 @@ abstract contract DeploymentHelper is Script {
         return addr.code.length > 0;
     }
 
-    /// @notice Save deployment result to JSON
+    /// @notice Save deployment result to JSON with schema configuration
     function saveDeployment(DeploymentResult memory result) internal {
         string memory obj = "deployment";
         vm.serializeAddress(obj, "deploymentRegistry", result.deploymentRegistry);
@@ -120,6 +139,20 @@ abstract contract DeploymentHelper is Script {
         vm.serializeAddress(obj, "gardenToken", result.gardenToken);
         vm.serializeAddress(obj, "actionRegistry", result.actionRegistry);
         vm.serializeAddress(obj, "workResolver", result.workResolver);
+        vm.serializeAddress(obj, "workApprovalResolver", result.workApprovalResolver);
+
+        // Load schema configuration from JSON
+        string memory schemasJson = loadSchemasFromConfig(result);
+
+        // Add EAS configuration
+        NetworkConfig memory config = loadNetworkConfig();
+        string memory easObj = "eas";
+        vm.serializeAddress(easObj, "address", config.eas);
+        string memory easJson = vm.serializeAddress(easObj, "schemaRegistry", config.easSchemaRegistry);
+
+        // Final serialization
+        vm.serializeString(obj, "schemas", schemasJson);
+        vm.serializeString(obj, "eas", easJson);
         string memory finalJson = vm.serializeAddress(obj, "workApprovalResolver", result.workApprovalResolver);
 
         string memory chainIdStr = vm.toString(block.chainid);
@@ -127,6 +160,49 @@ abstract contract DeploymentHelper is Script {
         vm.writeJson(finalJson, fileName);
 
         console.log("Deployment saved to:", fileName);
+    }
+
+    /// @notice Load schemas from configuration file and add deployment UIDs
+    function loadSchemasFromConfig(DeploymentResult memory result) internal returns (string memory) {
+        string memory root = vm.projectRoot();
+        string memory path = string.concat(root, "/config/schemas.json");
+        string memory json = vm.readFile(path);
+
+        string memory schemasObj = "schemas";
+
+        // Garden Assessment Schema
+        vm.serializeBytes32(schemasObj, "gardenAssessmentSchemaUID", result.gardenAssessmentSchemaUID);
+        vm.serializeString(schemasObj, "gardenAssessmentName", json.readString(".schemas.gardenAssessment.name"));
+        vm.serializeString(
+            schemasObj, "gardenAssessmentDescription", json.readString(".schemas.gardenAssessment.description")
+        );
+        vm.serializeString(schemasObj, "gardenAssessmentSchema", _generateSchemaString("gardenAssessment"));
+
+        // Work Schema
+        vm.serializeBytes32(schemasObj, "workSchemaUID", result.workSchemaUID);
+        vm.serializeString(schemasObj, "workName", json.readString(".schemas.work.name"));
+        vm.serializeString(schemasObj, "workDescription", json.readString(".schemas.work.description"));
+        vm.serializeString(schemasObj, "workSchema", _generateSchemaString("work"));
+
+        // Work Approval Schema
+        vm.serializeBytes32(schemasObj, "workApprovalSchemaUID", result.workApprovalSchemaUID);
+        vm.serializeString(schemasObj, "workApprovalName", json.readString(".schemas.workApproval.name"));
+        vm.serializeString(schemasObj, "workApprovalDescription", json.readString(".schemas.workApproval.description"));
+        string memory schemasJson =
+            vm.serializeString(schemasObj, "workApprovalSchema", _generateSchemaString("workApproval"));
+
+        return schemasJson;
+    }
+
+    /// @notice Generate schema string from fields array using JavaScript utility
+    function _generateSchemaString(string memory schemaName) internal virtual returns (string memory) {
+        string[] memory inputs = new string[](3);
+        inputs[0] = "node";
+        inputs[1] = "script/utils/generateSchemas.js";
+        inputs[2] = schemaName;
+
+        bytes memory result = vm.ffi(inputs);
+        return string(result);
     }
 
     /// @notice Print deployment summary
@@ -141,6 +217,10 @@ abstract contract DeploymentHelper is Script {
         console.log("Action Registry:", result.actionRegistry);
         console.log("Work Resolver:", result.workResolver);
         console.log("Work Approval Resolver:", result.workApprovalResolver);
+        console.log("\n--- EAS Schema UIDs ---");
+        console.log("Garden Assessment Schema UID:", vm.toString(result.gardenAssessmentSchemaUID));
+        console.log("Work Schema UID:", vm.toString(result.workSchemaUID));
+        console.log("Work Approval Schema UID:", vm.toString(result.workApprovalSchemaUID));
         console.log("========================\n");
     }
 
