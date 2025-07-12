@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-const fs = require("fs").promises;
-const path = require("path");
-const { execSync } = require("child_process");
-const https = require("https");
+const fs = require("node:fs").promises;
+const path = require("node:path");
+const { execSync } = require("node:child_process");
+const https = require("node:https");
 
 // Gas optimization strategies
 const GAS_STRATEGIES = {

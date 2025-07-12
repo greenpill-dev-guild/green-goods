@@ -34,7 +34,10 @@
       "**/packages/contracts/src/**/*.{ts,tsx,js,jsx}",
       "**/packages/contracts/script/**/*.{ts,tsx,js,jsx}",
       "**/packages/eas/src/**/*.{ts,tsx,js,jsx}",
-      "**/*.json"
+      "**/*.json",
+      "!**/packages/contracts/out/**",
+      "!**/packages/contracts/broadcast/**",
+      "!**/packages/contracts/cache/**"
     ]
   },
   "javascript": {
@@ -60,7 +63,10 @@
       "**/packages/contracts/src/**/*.{ts,tsx,js,jsx}",
       "**/packages/contracts/script/**/*.{ts,tsx,js,jsx}",
       "**/packages/eas/src/**/*.{ts,tsx,js,jsx}",
-      "**/*.json"
+      "**/*.json",
+      "!**/packages/contracts/out/**",
+      "!**/packages/contracts/broadcast/**",
+      "!**/packages/contracts/cache/**"
     ]
   }
 }

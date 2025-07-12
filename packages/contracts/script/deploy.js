@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-const { execSync } = require("child_process");
-const fs = require("fs");
-const path = require("path");
+const { execSync } = require("node:child_process");
+const fs = require("node:fs");
+const path = require("node:path");
 const dotenv = require("dotenv");
 const { DeploymentAddresses } = require("./utils/deployment-addresses");
 const { GasOptimizer } = require("./utils/gas-optimizer");
@@ -249,7 +249,7 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
     fs.writeFileSync(scriptPath, solidity);
 
     try {
-      await this.executeForgeScript(scriptPath + ":DeployActionsGenerated", options);
+      await this.executeForgeScript(`${scriptPath}:DeployActionsGenerated`, options);
 
       // Save deployment record
       this.saveActionsDeploymentRecord(config, options);
@@ -344,7 +344,7 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
     }
 
     // Start anvil
-    const { spawn } = require("child_process");
+    const { spawn } = require("node:child_process");
     const anvil = spawn("anvil", anvilArgs, {
       stdio: background ? "pipe" : "inherit",
       detached: background,
@@ -395,7 +395,7 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
     console.log("🔄 Starting anvil for localhost deployment...");
 
     // Start anvil in background
-    const { spawn } = require("child_process");
+    const { spawn } = require("node:child_process");
     const anvil = spawn(
       "anvil",
       ["--accounts", "10", "--balance", "10000", "--block-time", "1", "--port", "8545", "--silent"],
@@ -426,7 +426,7 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
 
   async isAnvilRunning() {
     try {
-      const http = require("http");
+      const http = require("node:http");
 
       return new Promise((resolve) => {
         const req = http.request(

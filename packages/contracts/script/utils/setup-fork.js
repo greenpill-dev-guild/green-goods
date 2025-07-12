@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-const { spawn } = require("child_process");
-const fs = require("fs");
-const path = require("path");
+const { spawn } = require("node:child_process");
+const fs = require("node:fs");
+const path = require("node:path");
 
 // Load environment variables from .env file
 require("dotenv").config({ path: path.join(__dirname, "../../.env") });
