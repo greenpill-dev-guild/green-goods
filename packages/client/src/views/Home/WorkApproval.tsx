@@ -27,13 +27,14 @@ import { FormInfo } from "@/components/UI/Form/Info";
 import { FormText } from "@/components/UI/Form/Text";
 import { CircleLoader } from "@/components/UI/Loader";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
-import { EAS } from "@/constants";
+import { getEASConfig } from "@/constants";
 import { getFileByHash } from "@/modules/pinata";
 import { useGarden, useGardens } from "@/providers/garden";
 import { useUser } from "@/providers/user";
 import { abi } from "@/utils/abis/EAS.json";
 import { abi as WorkApprovalResolverABI } from "@/utils/abis/WorkApprovalResolver.json";
 import { encodeWorkApprovalData } from "@/utils/eas";
+import { useCurrentChain } from "@/utils/useChainConfig";
 import { useNavigateToTop } from "@/utils/useNavigateToTop";
 import { WorkCompleted } from "../Garden/Completed";
 
@@ -57,6 +58,7 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
   const { garden } = useGarden(id!);
   const { actions } = useGardens();
   const queryClient = useQueryClient();
+  const chainId = useCurrentChain();
 
   const work = garden?.works.find((work) => work.id === workId);
   const action = actions.find((action) => action.id === work?.actionUID);
@@ -80,14 +82,15 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
         throw new Error("No smart account client found");
       }
 
-      const encodedAttestationData = encodeWorkApprovalData(draft);
+      const encodedAttestationData = encodeWorkApprovalData(draft, chainId);
+      const easConfig = getEASConfig(chainId);
 
       const encodedData = encodeFunctionData({
         abi,
         functionName: "attest",
         args: [
           {
-            schema: EAS["42161"].WORK_APPROVAL.uid,
+            schema: easConfig.WORK_APPROVAL.uid,
             data: {
               recipient: work?.gardenerAddress as `0x${string}`,
               expirationTime: NO_EXPIRATION,
@@ -102,7 +105,7 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
 
       const receipt = await smartAccountClient.sendTransaction({
         chain: arbitrum,
-        to: EAS["42161"].EAS.address as `0x${string}`,
+        to: easConfig.EAS.address as `0x${string}`,
         value: 0n,
         data: encodedData,
       });

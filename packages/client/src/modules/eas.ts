@@ -1,8 +1,8 @@
-import { EAS } from "@/constants";
+import { getEASConfig } from "@/constants";
 
 import { easGraphQL } from "./graphql";
 import { getFileByHash } from "./pinata";
-import { easArbitrumClient } from "./urql";
+import { createEasClient } from "./urql";
 
 const parseDataToGardenAssessment = async (
   gardenAssessmentUID: string,
@@ -139,7 +139,10 @@ const parseDataToWorkApproval = (
   };
 };
 
-export const getGardenAssessments = async (gardenAddress?: string): Promise<GardenAssessment[]> => {
+export const getGardenAssessments = async (
+  gardenAddress?: string,
+  chainId?: number | string
+): Promise<GardenAssessment[]> => {
   // TODO add 'where: valid: true' filter
   const QUERY = easGraphQL(/* GraphQL */ `
     query Attestations($where: AttestationWhereInput) {
@@ -153,9 +156,11 @@ export const getGardenAssessments = async (gardenAddress?: string): Promise<Gard
     }
   `);
 
-  const schemaId = { equals: EAS["42161"].GARDEN_ASSESSMENT.uid };
+  const easConfig = getEASConfig(chainId);
+  const schemaId = { equals: easConfig.GARDEN_ASSESSMENT.uid };
+  const client = createEasClient(chainId);
 
-  const { data, error } = await easArbitrumClient
+  const { data, error } = await client
     .query(QUERY, {
       where: gardenAddress
         ? {
@@ -187,7 +192,10 @@ export const getGardenAssessments = async (gardenAddress?: string): Promise<Gard
   );
 };
 
-export const getWorks = async (gardenAddress?: string): Promise<WorkCard[]> => {
+export const getWorks = async (
+  gardenAddress?: string,
+  chainId?: number | string
+): Promise<WorkCard[]> => {
   // TODO add 'where: valid: true' filter
   const QUERY = easGraphQL(/* GraphQL */ `
     query Attestations($where: AttestationWhereInput) {
@@ -201,9 +209,11 @@ export const getWorks = async (gardenAddress?: string): Promise<WorkCard[]> => {
     }
   `);
 
-  const schemaId = { equals: EAS["42161"].WORK.uid };
+  const easConfig = getEASConfig(chainId);
+  const schemaId = { equals: easConfig.WORK.uid };
+  const client = createEasClient(chainId);
 
-  const { data, error } = await easArbitrumClient
+  const { data, error } = await client
     .query(QUERY, {
       where: gardenAddress
         ? { schemaId, recipient: { equals: gardenAddress } }
@@ -226,7 +236,10 @@ export const getWorks = async (gardenAddress?: string): Promise<WorkCard[]> => {
   return works;
 };
 
-export const getWorkApprovals = async (gardenerAddress?: string): Promise<WorkApproval[]> => {
+export const getWorkApprovals = async (
+  gardenerAddress?: string,
+  chainId?: number | string
+): Promise<WorkApproval[]> => {
   // TODO add 'where: valid: true' filter
   const QUERY = easGraphQL(/* GraphQL */ `
     query Attestations($where: AttestationWhereInput) {
@@ -240,9 +253,11 @@ export const getWorkApprovals = async (gardenerAddress?: string): Promise<WorkAp
     }
   `);
 
-  const schemaId = { equals: EAS["42161"].WORK_APPROVAL.uid };
+  const easConfig = getEASConfig(chainId);
+  const schemaId = { equals: easConfig.WORK_APPROVAL.uid };
+  const client = createEasClient(chainId);
 
-  const { data, error } = await easArbitrumClient
+  const { data, error } = await client
     .query(QUERY, {
       where: gardenerAddress
         ? {

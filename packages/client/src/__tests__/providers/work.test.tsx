@@ -3,7 +3,7 @@ import { render } from "@testing-library/react";
 import { ethers } from "ethers";
 import { describe, it } from "vitest";
 
-import { EAS as constants } from "@/constants";
+import { getEASConfig } from "@/constants";
 import { useWork, WorkProvider } from "@/providers/work";
 
 const TestComponent = () => {
@@ -42,12 +42,13 @@ describe("Work Attestation", () => {
 
     // Create a wallet instance using the private key and connect it to the provider
     const wallet = new ethers.Wallet(import.meta.env.PRIVATE_KEY, provider);
-    const eas = new EAS(constants[42161].EAS.address);
+    const easConfig = getEASConfig(42161);
+    const eas = new EAS(easConfig.EAS.address);
 
     eas.connect(wallet);
 
     // Initialize SchemaEncoder with the schema string
-    const schema = constants["42161"].WORK.schema as `0x${string}`;
+    const schema = easConfig.WORK.schema as `0x${string}`;
     const schemaEncoder = new SchemaEncoder(schema);
 
     const encodedData = schemaEncoder.encodeData([
@@ -59,7 +60,7 @@ describe("Work Attestation", () => {
     ]);
 
     const tx = await eas.attest({
-      schema: constants["42161"].WORK.uid,
+      schema: easConfig.WORK.uid,
       data: {
         recipient: "0x55fdFb60fb07fCe2Dc8A7CC3ED8a6f1C793FeE68",
         expirationTime: NO_EXPIRATION,
@@ -78,12 +79,13 @@ describe("Work Approval Attestation", () => {
 
     // Create a wallet instance using the private key and connect it to the provider
     const wallet = new ethers.Wallet(import.meta.env.PRIVATE_KEY, provider);
-    const eas = new EAS(constants[42161].EAS.address);
+    const easConfig = getEASConfig(42161);
+    const eas = new EAS(easConfig.EAS.address);
 
     eas.connect(wallet);
 
     // Initialize SchemaEncoder with the schema string
-    const schema = constants["42161"].WORK_APPROVAL.schema as `0x${string}`;
+    const schema = easConfig.WORK_APPROVAL.schema as `0x${string}`;
     const schemaEncoder = new SchemaEncoder(schema);
 
     const encodedData = schemaEncoder.encodeData([
@@ -94,7 +96,7 @@ describe("Work Approval Attestation", () => {
     ]);
 
     const tx = await eas.attest({
-      schema: constants["42161"].WORK_APPROVAL.uid,
+      schema: easConfig.WORK_APPROVAL.uid,
       data: {
         recipient: "0xb294D4d442B99f21f9E2d9E1821f83057B2beC5A",
         expirationTime: NO_EXPIRATION,

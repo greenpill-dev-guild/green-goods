@@ -1,10 +1,11 @@
 import { SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
 
-import { EAS } from "@/constants";
+import { getEASConfig } from "@/constants";
 import { uploadFileToIPFS, uploadJSONToIPFS } from "@/modules/pinata";
 
-export async function encodeWorkData(data: WorkDraft) {
-  const schema = EAS["42161"].WORK.schema as `0x${string}`;
+export async function encodeWorkData(data: WorkDraft, chainId: number | string = 42161) {
+  const easConfig = getEASConfig(chainId);
+  const schema = easConfig.WORK.schema as `0x${string}`;
   const schemaEncoder = new SchemaEncoder(schema);
 
   const media = await Promise.all(
@@ -29,8 +30,9 @@ export async function encodeWorkData(data: WorkDraft) {
   return encodedData;
 }
 
-export function encodeWorkApprovalData(data: WorkApprovalDraft) {
-  const schema = EAS["42161"].WORK_APPROVAL.schema as `0x${string}`;
+export function encodeWorkApprovalData(data: WorkApprovalDraft, chainId: number | string = 42161) {
+  const easConfig = getEASConfig(chainId);
+  const schema = easConfig.WORK_APPROVAL.schema as `0x${string}`;
   const schemaEncoder = new SchemaEncoder(schema);
 
   const encodedData = schemaEncoder.encodeData([

@@ -17,6 +17,7 @@
     "formatjs": "formatjs extract"
   },
   "dependencies": {
+    "@ethereum-attestation-service/eas-sdk": "2.7.0",
     "@hookform/resolvers": "3.9.0",
     "@paperclip-labs/whisk-sdk": "^0.0.18",
     "@privy-io/react-auth": "^2.13.6",

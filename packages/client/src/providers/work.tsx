@@ -7,12 +7,13 @@ import { type Control, type FormState, type UseFormRegister, useForm } from "rea
 import { decodeErrorResult } from "viem";
 import { arbitrum } from "viem/chains";
 import { encodeFunctionData } from "viem/utils";
-import { EAS } from "@/constants";
+import { getEASConfig } from "@/constants";
 import { getWorkApprovals } from "@/modules/eas";
 import { queryClient } from "@/modules/react-query";
 import { abi } from "@/utils/abis/EAS.json";
 import { abi as WorkResolverABI } from "@/utils/abis/WorkResolver.json";
 import { encodeWorkData } from "@/utils/eas";
+import { useCurrentChain } from "@/utils/useChainConfig";
 import { useGardens } from "./garden";
 import { useUser } from "./user";
 
@@ -84,13 +85,14 @@ export const useWork = () => {
 };
 
 export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
-  const { smartAccountClient } = useUser();
+  const { smartAccountClient, eoa } = useUser();
   const { actions, gardens } = useGardens();
+  const chainId = useCurrentChain();
 
   // QUERIES
   const { data: workApprovals, refetch: refetchWorkApprovals } = useQuery<WorkApproval[]>({
-    queryKey: ["workApprovals"],
-    queryFn: () => getWorkApprovals(),
+    queryKey: ["workApprovals", chainId, eoa?.address],
+    queryFn: () => getWorkApprovals(eoa?.address, chainId),
   });
 
   // MUTATIONS
@@ -121,19 +123,23 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       if (typeof actionUID !== "number") throw new Error("No action UID found");
 
       const action = actions.find((action) => action.id === actionUID);
+      const easConfig = getEASConfig(chainId);
 
-      const encodedAttestationData = await encodeWorkData({
-        ...draft,
-        title: `${action?.title} - ${new Date().toISOString()}`,
-        actionUID,
-        media: images,
-      });
+      const encodedAttestationData = await encodeWorkData(
+        {
+          ...draft,
+          title: `${action?.title} - ${new Date().toISOString()}`,
+          actionUID,
+          media: images,
+        },
+        chainId
+      );
 
       const encodedData = encodeFunctionData({
         abi,
         args: [
           {
-            schema: EAS["42161"].WORK.uid,
+            schema: easConfig.WORK.uid,
             data: {
               recipient: gardenAddress as `0x${string}`,
               expirationTime: NO_EXPIRATION,
@@ -149,7 +155,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
 
       const receipt = await smartAccountClient.sendTransaction({
         chain: arbitrum,
-        to: EAS["42161"].EAS.address as `0x${string}`,
+        to: easConfig.EAS.address as `0x${string}`,
         value: 0n,
         data: encodedData,
       });

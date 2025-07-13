@@ -3,6 +3,7 @@ import React, { useContext, useMemo } from "react";
 
 import { getGardenAssessments, getWorks } from "@/modules/eas";
 import { getActions, getGardeners, getGardens } from "@/modules/greengoods";
+import { useCurrentChain } from "@/utils/useChainConfig";
 
 import { useUser } from "./user";
 import { useWork } from "./work";
@@ -30,6 +31,7 @@ export const useGarden = (id: string): GardenDataProps => {
   const { gardens, gardenersMap } = useGardens();
   const { workApprovalMap } = useWork();
   const { eoa, smartAccountAddress } = useUser();
+  const chainId = useCurrentChain();
 
   const {
     data: garden,
@@ -38,17 +40,17 @@ export const useGarden = (id: string): GardenDataProps => {
     isFetching,
     isLoading,
     refetch,
-  } = useQuery<Garden, Error, Garden, [string, string]>({
+  } = useQuery<Garden, Error, Garden, [string, string, number]>({
     initialData: gardens.find((garden) => garden.id === id),
-    queryKey: ["gardens", id],
+    queryKey: ["gardens", id, chainId],
     queryFn: async ({ queryKey }) => {
-      const [_, id] = queryKey;
+      const [_, id, chainId] = queryKey;
       const garden = gardens.find((garden) => garden.id === id);
 
       if (!garden) throw new Error("Garden not found");
 
-      const assessments = await getGardenAssessments(id);
-      const works: Work[] = (await getWorks(id)).map((work) => {
+      const assessments = await getGardenAssessments(id, chainId);
+      const works: Work[] = (await getWorks(id, chainId)).map((work) => {
         const workApproval = workApprovalMap[work.id];
 
         return {
