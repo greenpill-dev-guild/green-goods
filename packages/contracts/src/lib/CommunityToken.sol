@@ -25,6 +25,8 @@ library CommunityTokenLib {
             return COMMUNITY_TOKEN_SEPOLIA;
         } else if (block.chainid == 8453) {
             return COMMUNITY_TOKEN_BASE;
+        } else if (block.chainid == 84_532) {
+            return COMMUNITY_TOKEN_SEPOLIA; // Base Sepolia uses Sepolia community token
         } else if (block.chainid == 10) {
             return COMMUNITY_TOKEN_OPTIMISM;
         } else if (block.chainid == 42_220) {

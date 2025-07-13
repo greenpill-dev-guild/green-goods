@@ -1,4 +1,3 @@
-# yaml-language-server: $schema=./node_modules/envio/evm.schema.json
 name: Green Goods
 description: Green Goods Indexer
 contracts:
@@ -28,22 +27,40 @@ contracts:
       - event: GardenOperatorAdded
       - event: GardenOperatorRemoved
 networks:
-  - id: 42161 # Arbitrum
+  - id: 42161
     start_block: 242630858
     contracts:
       - name: ActionRegistry
-        address: 0x933b88Ef33a25d14a68354C88b2eb31e475cd482
+        address: "0x933b88Ef33a25d14a68354C88b2eb31e475cd482"
       - name: GardenToken
-        address: 0x508198C3f071987D5eEb0030825628F9B10c6037
-      # GardenAccount not deployed on Arbitrum yet - uncomment when deployed
-      # - name: GardenAccount
-      #   address: 0x0000000000000000000000000000000000000000
-  - id: 42220 # Celo
-    start_block: 1 # Update with appropriate start block
+        address: "0x508198C3f071987D5eEb0030825628F9B10c6037"
+  - id: 42220
+    start_block: 1
     contracts:
       - name: ActionRegistry
-        address: 0x547e82BF9c8496f41927583793242f6b91C182A6
+        address: "0x547e82BF9c8496f41927583793242f6b91C182A6"
       - name: GardenToken
-        address: 0xE73e86787dDC94b98f6d0327124D18341C527e1f
+        address: "0xE73e86787dDC94b98f6d0327124D18341C527e1f"
       - name: GardenAccount
-        address: 0x83287652b4e1514e101a4053c9bcAFf6a24d051C
+        address: "0xad621aF21dBfdaCe0A078C021Ab2FDDA080a52D1"
+  - id: 84532
+    start_block: 1
+    contracts:
+      - name: ActionRegistry
+        address: "0x547e82BF9c8496f41927583793242f6b91C182A6"
+      - name: GardenToken
+        address: "0x19f367E448208377dA8C81E770bC6777c7815516"
+      - name: GardenAccount
+        address: "0xad621aF21dBfdaCe0A078C021Ab2FDDA080a52D1"
+  - id: 31337
+    start_block: 1
+    contracts:
+      - name: ActionRegistry
+        address: '0x547e82BF9c8496f41927583793242f6b91C182A6'
+      - name: GardenToken
+        address: '0xE73e86787dDC94b98f6d0327124D18341C527e1f'
+      - name: GardenAccount
+        address: '0xad621aF21dBfdaCe0A078C021Ab2FDDA080a52D1'
+rpc_config:
+  '31337':
+    url: http://localhost:8545
