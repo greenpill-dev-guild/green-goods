@@ -1,13 +1,13 @@
 {
   "accountProxy": "0xad621aF21dBfdaCe0A078C021Ab2FDDA080a52D1",
   "actionRegistry": "0x547e82BF9c8496f41927583793242f6b91C182A6",
-  "deploymentRegistry": "0x40A0819d208C50D0803D5dcdC6F6bb00bEF4583a",
+  "deploymentRegistry": "0x34A1D3fff3958843C43aD80F30b94c510645C316",
   "eas": {
     "address": "0xC2679fBD37d54388Ce493F1DB75320D236e1815e",
     "schemaRegistry": "0x0a7E2Ff54e76B8E6659aedc9103FB21c038050D0"
   },
   "gardenAccountImpl": "0x83287652b4e1514e101a4053c9bcAFf6a24d051C",
-  "gardenToken": "0xE73e86787dDC94b98f6d0327124D18341C527e1f",
+  "gardenToken": "0x19f367E448208377dA8C81E770bC6777c7815516",
   "guardian": "0xFdF620FEafE1f15B9f3725283A72088791eDFC74",
   "schemas": {
     "gardenAssessmentDescription": "Biodiversity assessment schema for Green Goods garden spaces. Captures soil health, carbon metrics, species diversity, and ecological observations to verify regenerative agriculture practices.",
