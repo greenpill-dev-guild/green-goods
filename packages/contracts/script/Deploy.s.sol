@@ -104,6 +104,9 @@ contract Deploy is Script, DeploymentHelper {
     /// @notice Error thrown when unauthorized caller attempts to call internal function
     error OnlySelfCanCall();
 
+    /// @notice Error thrown when invalid capital type is provided
+    error InvalidCapitalType();
+
     /// @notice Deployment profile types
     enum DeploymentProfile {
         FULL,
@@ -166,19 +169,34 @@ contract Deploy is Script, DeploymentHelper {
     /// @notice Load deployment profile from environment variable
     function loadDeploymentProfile() internal view returns (DeploymentProfile) {
         try vm.envString("DEPLOYMENT_PROFILE") returns (string memory profileStr) {
-            bytes32 profileHash = keccak256(abi.encodePacked(profileStr));
-
-            if (profileHash == keccak256("full")) return DeploymentProfile.FULL;
-            if (profileHash == keccak256("update")) return DeploymentProfile.UPDATE;
-            if (profileHash == keccak256("metadata-only")) return DeploymentProfile.METADATA_ONLY;
-            if (profileHash == keccak256("contracts-only")) return DeploymentProfile.CONTRACTS_ONLY;
-            if (profileHash == keccak256("schemas-only")) return DeploymentProfile.SCHEMAS_ONLY;
-            if (profileHash == keccak256("testing")) return DeploymentProfile.TESTING;
-            if (profileHash == keccak256("production")) return DeploymentProfile.PRODUCTION;
-            if (profileHash == keccak256("hotfix")) return DeploymentProfile.HOTFIX;
+            return _getProfileFromString(profileStr);
         } catch { }
 
         return DeploymentProfile.FULL; // Default
+    }
+
+    /// @notice Helper function to convert profile string to enum
+    function _getProfileFromString(string memory profileStr) internal pure returns (DeploymentProfile) {
+        bytes32 profileHash = keccak256(abi.encodePacked(profileStr));
+
+        // First check common profiles
+        if (profileHash == keccak256("full")) return DeploymentProfile.FULL;
+        if (profileHash == keccak256("update")) return DeploymentProfile.UPDATE;
+        if (profileHash == keccak256("production")) return DeploymentProfile.PRODUCTION;
+        if (profileHash == keccak256("testing")) return DeploymentProfile.TESTING;
+
+        // Then check specialized profiles
+        return _getSpecializedProfile(profileHash);
+    }
+
+    /// @notice Helper function to get specialized profiles
+    function _getSpecializedProfile(bytes32 profileHash) internal pure returns (DeploymentProfile) {
+        if (profileHash == keccak256("metadata-only")) return DeploymentProfile.METADATA_ONLY;
+        if (profileHash == keccak256("contracts-only")) return DeploymentProfile.CONTRACTS_ONLY;
+        if (profileHash == keccak256("schemas-only")) return DeploymentProfile.SCHEMAS_ONLY;
+        if (profileHash == keccak256("hotfix")) return DeploymentProfile.HOTFIX;
+
+        return DeploymentProfile.FULL; // Default for unknown profiles
     }
 
     /// @notice Load deployment flags from environment variables
@@ -196,6 +214,15 @@ contract Deploy is Script, DeploymentHelper {
     function _getFlagsForProfile(DeploymentProfile profile) internal pure returns (DeploymentFlags memory) {
         if (profile == DeploymentProfile.METADATA_ONLY) {
             return DeploymentFlags({
+                contracts: ContractFlags({ skipExisting: true, forceRedeploy: false, skipVerification: true }),
+                schemas: SchemaFlags({ skip: true, forceRedeploy: false, metadataOnly: true }),
+                config: ConfigurationFlags({
+                    skipConfiguration: true,
+                    skipSeedData: true,
+                    skipGovernanceTransfer: true,
+                    addDeployerToAllowlist: false
+                }),
+                logging: LoggingFlags({ verbose: true }),
                 skipExistingContracts: true,
                 forceRedeploy: false,
                 skipSchemas: true,
@@ -212,6 +239,15 @@ contract Deploy is Script, DeploymentHelper {
 
         if (profile == DeploymentProfile.UPDATE) {
             return DeploymentFlags({
+                contracts: ContractFlags({ skipExisting: true, forceRedeploy: false, skipVerification: true }),
+                schemas: SchemaFlags({ skip: false, forceRedeploy: true, metadataOnly: false }),
+                config: ConfigurationFlags({
+                    skipConfiguration: false,
+                    skipSeedData: true,
+                    skipGovernanceTransfer: true,
+                    addDeployerToAllowlist: false
+                }),
+                logging: LoggingFlags({ verbose: false }),
                 skipExistingContracts: true,
                 forceRedeploy: false,
                 skipSchemas: false,
@@ -228,6 +264,15 @@ contract Deploy is Script, DeploymentHelper {
 
         if (profile == DeploymentProfile.CONTRACTS_ONLY) {
             return DeploymentFlags({
+                contracts: ContractFlags({ skipExisting: false, forceRedeploy: false, skipVerification: false }),
+                schemas: SchemaFlags({ skip: true, forceRedeploy: false, metadataOnly: false }),
+                config: ConfigurationFlags({
+                    skipConfiguration: true,
+                    skipSeedData: true,
+                    skipGovernanceTransfer: true,
+                    addDeployerToAllowlist: false
+                }),
+                logging: LoggingFlags({ verbose: false }),
                 skipExistingContracts: false,
                 forceRedeploy: false,
                 skipSchemas: true,
@@ -244,6 +289,15 @@ contract Deploy is Script, DeploymentHelper {
 
         if (profile == DeploymentProfile.SCHEMAS_ONLY) {
             return DeploymentFlags({
+                contracts: ContractFlags({ skipExisting: true, forceRedeploy: false, skipVerification: true }),
+                schemas: SchemaFlags({ skip: false, forceRedeploy: false, metadataOnly: false }),
+                config: ConfigurationFlags({
+                    skipConfiguration: true,
+                    skipSeedData: true,
+                    skipGovernanceTransfer: true,
+                    addDeployerToAllowlist: false
+                }),
+                logging: LoggingFlags({ verbose: false }),
                 skipExistingContracts: true,
                 forceRedeploy: false,
                 skipSchemas: false,
@@ -260,6 +314,15 @@ contract Deploy is Script, DeploymentHelper {
 
         if (profile == DeploymentProfile.TESTING) {
             return DeploymentFlags({
+                contracts: ContractFlags({ skipExisting: true, forceRedeploy: false, skipVerification: false }),
+                schemas: SchemaFlags({ skip: false, forceRedeploy: false, metadataOnly: false }),
+                config: ConfigurationFlags({
+                    skipConfiguration: false,
+                    skipSeedData: false,
+                    skipGovernanceTransfer: false,
+                    addDeployerToAllowlist: true
+                }),
+                logging: LoggingFlags({ verbose: true }),
                 skipExistingContracts: true,
                 forceRedeploy: false,
                 skipSchemas: false,
@@ -276,6 +339,15 @@ contract Deploy is Script, DeploymentHelper {
 
         if (profile == DeploymentProfile.PRODUCTION) {
             return DeploymentFlags({
+                contracts: ContractFlags({ skipExisting: true, forceRedeploy: false, skipVerification: false }),
+                schemas: SchemaFlags({ skip: false, forceRedeploy: false, metadataOnly: false }),
+                config: ConfigurationFlags({
+                    skipConfiguration: false,
+                    skipSeedData: true,
+                    skipGovernanceTransfer: false,
+                    addDeployerToAllowlist: false
+                }),
+                logging: LoggingFlags({ verbose: false }),
                 skipExistingContracts: true,
                 forceRedeploy: false,
                 skipSchemas: false,
@@ -292,6 +364,15 @@ contract Deploy is Script, DeploymentHelper {
 
         if (profile == DeploymentProfile.HOTFIX) {
             return DeploymentFlags({
+                contracts: ContractFlags({ skipExisting: true, forceRedeploy: false, skipVerification: true }),
+                schemas: SchemaFlags({ skip: true, forceRedeploy: false, metadataOnly: false }),
+                config: ConfigurationFlags({
+                    skipConfiguration: false,
+                    skipSeedData: true,
+                    skipGovernanceTransfer: true,
+                    addDeployerToAllowlist: false
+                }),
+                logging: LoggingFlags({ verbose: true }),
                 skipExistingContracts: true,
                 forceRedeploy: false,
                 skipSchemas: true,
@@ -308,6 +389,15 @@ contract Deploy is Script, DeploymentHelper {
 
         // Default FULL profile
         return DeploymentFlags({
+            contracts: ContractFlags({ skipExisting: true, forceRedeploy: false, skipVerification: false }),
+            schemas: SchemaFlags({ skip: false, forceRedeploy: false, metadataOnly: false }),
+            config: ConfigurationFlags({
+                skipConfiguration: false,
+                skipSeedData: false,
+                skipGovernanceTransfer: false,
+                addDeployerToAllowlist: true
+            }),
+            logging: LoggingFlags({ verbose: false }),
             skipExistingContracts: true,
             forceRedeploy: false,
             skipSchemas: false,
@@ -1361,17 +1451,29 @@ contract Deploy is Script, DeploymentHelper {
     }
 
     function parseCapital(string memory capitalStr) internal pure returns (Capital) {
+        return _parseCapitalFromString(capitalStr);
+    }
+
+    function _parseCapitalFromString(string memory capitalStr) internal pure returns (Capital) {
         bytes32 capitalHash = keccak256(bytes(capitalStr));
 
+        // First check common capital types
         if (capitalHash == keccak256(bytes("SOCIAL"))) return Capital.SOCIAL;
-        if (capitalHash == keccak256(bytes("MATERIAL"))) return Capital.MATERIAL;
-        if (capitalHash == keccak256(bytes("FINANCIAL"))) return Capital.FINANCIAL;
         if (capitalHash == keccak256(bytes("LIVING"))) return Capital.LIVING;
+        if (capitalHash == keccak256(bytes("CULTURAL"))) return Capital.CULTURAL;
+        if (capitalHash == keccak256(bytes("MATERIAL"))) return Capital.MATERIAL;
+
+        // Then check remaining capital types
+        return _parseRemainingCapitalTypes(capitalHash);
+    }
+
+    /// @notice Helper function to parse remaining capital types
+    function _parseRemainingCapitalTypes(bytes32 capitalHash) internal pure returns (Capital) {
+        if (capitalHash == keccak256(bytes("FINANCIAL"))) return Capital.FINANCIAL;
         if (capitalHash == keccak256(bytes("INTELLECTUAL"))) return Capital.INTELLECTUAL;
         if (capitalHash == keccak256(bytes("EXPERIENTIAL"))) return Capital.EXPERIENTIAL;
         if (capitalHash == keccak256(bytes("SPIRITUAL"))) return Capital.SPIRITUAL;
-        if (capitalHash == keccak256(bytes("CULTURAL"))) return Capital.CULTURAL;
 
-        revert("Invalid capital type");
+        revert InvalidCapitalType();
     }
 }
