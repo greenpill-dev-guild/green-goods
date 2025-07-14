@@ -29,6 +29,8 @@ contracts:
 networks:
   - id: 42161
     start_block: 242630858
+    rpc_config:
+      url: https://arb1.arbitrum.io/rpc
     contracts:
       - name: ActionRegistry
         address: "0x933b88Ef33a25d14a68354C88b2eb31e475cd482"
@@ -36,6 +38,8 @@ networks:
         address: "0x508198C3f071987D5eEb0030825628F9B10c6037"
   - id: 42220
     start_block: 1
+    rpc_config:
+      url: https://forno.celo.org
     contracts:
       - name: ActionRegistry
         address: "0x547e82BF9c8496f41927583793242f6b91C182A6"
@@ -45,6 +49,8 @@ networks:
         address: "0xad621aF21dBfdaCe0A078C021Ab2FDDA080a52D1"
   - id: 84532
     start_block: 1
+    rpc_config:
+      url: https://sepolia.base.org
     contracts:
       - name: ActionRegistry
         address: "0x547e82BF9c8496f41927583793242f6b91C182A6"
@@ -54,6 +60,8 @@ networks:
         address: "0xad621aF21dBfdaCe0A078C021Ab2FDDA080a52D1"
   - id: 31337
     start_block: 1
+    rpc_config:
+      url: http://localhost:8545
     contracts:
       - name: ActionRegistry
         address: '0x547e82BF9c8496f41927583793242f6b91C182A6'
@@ -61,6 +69,3 @@ networks:
         address: '0xE73e86787dDC94b98f6d0327124D18341C527e1f'
       - name: GardenAccount
         address: '0xad621aF21dBfdaCe0A078C021Ab2FDDA080a52D1'
-rpc_urls:
-  31337: http://localhost:8545
-  84532: ${BASE_SEPOLIA_RPC_URL}
