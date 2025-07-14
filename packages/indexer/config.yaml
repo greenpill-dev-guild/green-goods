@@ -61,6 +61,6 @@ networks:
         address: '0xE73e86787dDC94b98f6d0327124D18341C527e1f'
       - name: GardenAccount
         address: '0xad621aF21dBfdaCe0A078C021Ab2FDDA080a52D1'
-rpc_config:
-  '31337':
-    url: http://localhost:8545
+rpc_urls:
+  31337: http://localhost:8545
+  84532: ${BASE_SEPOLIA_RPC_URL}
