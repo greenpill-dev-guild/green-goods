@@ -52,7 +52,7 @@ To run the client application in a local development environment:
     pnpm run dev:rolldown
     ```
 
-The application should typically be accessible at `http://localhost:3001`. The Vite server will provide live reloading and HMR (Hot Module Replacement).
+The application should typically be accessible at `https://localhost:3001` (note: HTTPS due to mkcert plugin for PWA features). The Vite server will provide live reloading and HMR (Hot Module Replacement).
 
 ## Building for Production
 
@@ -158,37 +158,4 @@ The `packages/client/src` directory is organized as follows:
 - **`App.tsx`**: The root React component with dynamic imports and global providers.
 - **`api/`**: Serverless functions (e.g., `subscribe.cjs`, `users.cjs`) for deployment on platforms like Vercel.
 - **`components/`**: Reusable UI components used throughout the application.
-  - `UI/`: General-purpose UI elements (buttons, inputs, modals, etc.).
-  - `Layout/`: Components related to page structure (header, footer, navigation).
-  - `Garden/`: Components specific to "Garden" features.
-- **`constants.ts`**: Global constants used in the application.
-- **`i18n/`**: Internationalization configuration and translation files (e.g., `en.json`, `pt.json`).
-- **`modules/`**: Contains modules for interacting with external services or implementing core functionalities.
-  - `eas.ts`: Ethereum Attestation Service related logic.
-  - `graphql.ts`: GraphQL client setup (using `gql.tada`).
-  - `greengoods.ts`: Green Goods specific logic or API interactions.
-  - `pinata.ts`: Pinata IPFS service interactions.
-  - `react-query.ts`: TanStack Query (React Query) configuration.
-- **`providers/`**: React Context API providers for managing global state or shared functionality.
-- **`styles/`**: Global styles, Tailwind CSS configuration, and custom CSS.
-- **`types/`**: TypeScript type definitions, including ambient types (`*.d.ts`).
-- **`utils/`**: Utility functions and helpers used across the application.
-  - `abis/`: ABIs for interacting with smart contracts.
-  - `actions/`: Specific action-related utilities.
-- **`views/`**: Page-level components with lazy loading for optimal performance.
-- **`__tests__/`**: Contains test files, mirroring the structure of the `src` directory.
-
-### Configuration Files
-
-- **`vite.config.ts`**: Vite configuration with PWA, mkcert, and Rolldown support.
-- **`vite.rolldown.config.ts`**: Experimental Rolldown-specific configuration.
-- **`postcss.config.js` and `tailwind.config.js`**: PostCSS and Tailwind CSS configuration.
-- **`.oxlintrc.json`**: Oxlint configuration for ultra-fast linting.
-- **`biome.json`**: Biome configuration for formatting and basic checks.
-- **`tsconfig.json` (and variants)**: TypeScript configuration files.
-- **`public/`**: Static assets served directly by the development server.
-- **`index.html`**: The main HTML shell for the SPA.
-
-## Contributing
-
-While this README focuses on the client package, general contribution guidelines for the entire Green Goods project can be found in the [root README.md](../../README.md#contributing). Please refer to it for information on how to fork the repository, create branches, submit pull requests, and the review process.
+  - `
