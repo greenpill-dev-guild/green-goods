@@ -5,30 +5,51 @@
   "descripticon": "Contracts for Green Goods Protocol",
   "scripts": {
     "chain": "anvil --config-out localhost.json",
-    "compile": "forge compile",
-    "dev": "forge build --via-ir",
     "format": "forge fmt",
-    "solhint": "solhint --config ./.solhint.json 'src/**/*.sol' --fix",
+    "solhint": "solhint --config ./.solhint.json 'src/**/*.sol'  'script/**/*.sol' 'test/**/*.sol' --fix",
     "lint": "pnpm run format && pnpm run solhint",
+    "compile": "forge compile",
     "build": "forge build --via-ir",
     "test": "pnpm run build && forge test -f https://eth-sepolia.g.alchemy.com/v2/i2qnBKk5GQ8pVGPLA-G3D9il5o0ULQO3 --gas-report",
 
-    "fork": "node script/deploy.js fork",
     "fork:sepolia": "node script/deploy.js fork sepolia",
     "fork:arbitrum": "node script/deploy.js fork arbitrum",
     "fork:base": "node script/deploy.js fork base",
+    "fork:base-sepolia": "node script/deploy.js fork baseSepolia",
     "fork:celo": "node script/deploy.js fork celo",
     "fork:optimism": "node script/deploy.js fork optimism",
 
-    "deploy": "node script/deploy.js core",
-    "deploy:local": "node script/deploy.js core --network localhost --broadcast",
-    "deploy:fork": "node script/deploy.js core --network localhost --broadcast",
-    "deploy:dryrun": "node script/deploy.js core --network localhost",
-    "deploy:sepolia": "node script/deploy.js core --network sepolia --broadcast --verify",
-    "deploy:arbitrum": "node script/deploy.js core --network arbitrum --broadcast --verify",
-    "deploy:base": "node script/deploy.js core --network base --broadcast --verify",
-    "deploy:celo": "node script/deploy.js core --network celo --broadcast --verify",
-    "deploy:optimism": "node script/deploy.js core --network optimism --broadcast --verify",
+    "deploy": "node script/deploy.js core --help",
+    "deploy:core": "node script/deploy.js core",
+
+    "deploy:local": "node script/deploy.js core --network localhost --broadcast --profile testing",
+    "deploy:sepolia": "node script/deploy.js core --network sepolia --broadcast --verify --profile testing",
+    "deploy:arbitrum": "node script/deploy.js core --network arbitrum --broadcast --verify --profile production",
+    "deploy:base": "node script/deploy.js core --network base --broadcast --verify --profile production",
+    "deploy:base-sepolia": "node script/deploy.js core --network baseSepolia --broadcast --profile testing",
+    "deploy:celo": "node script/deploy.js core --network celo --broadcast --verify --profile production",
+    "deploy:optimism": "node script/deploy.js core --network optimism --broadcast --verify --profile production",
+
+    "deploy:full": "node script/deploy.js core --profile full",
+    "deploy:update": "node script/deploy.js core --profile update",
+    "deploy:metadata": "node script/deploy.js core --profile metadata-only",
+    "deploy:contracts": "node script/deploy.js core --profile contracts-only",
+    "deploy:schemas": "node script/deploy.js core --profile schemas-only",
+    "deploy:test": "node script/deploy.js core --profile testing",
+    "deploy:prod": "node script/deploy.js core --profile production",
+    "deploy:hotfix": "node script/deploy.js core --profile hotfix",
+
+    "deploy:celo:update": "pnpm deploy:update --network celo --broadcast --verify",
+    "deploy:celo:metadata": "pnpm deploy:metadata --network celo --broadcast",
+    "deploy:sepolia:test": "pnpm deploy:test --network sepolia --broadcast --verify",
+    "deploy:base:prod": "pnpm deploy:prod --network base --broadcast --verify",
+
+    "deploy:dryrun": "node script/deploy.js core --dry-run --verbose",
+    "deploy:dryrun:celo": "pnpm deploy:dryrun --network celo --profile production",
+    "deploy:dryrun:update": "pnpm deploy:update --dry-run --verbose",
+
+    "deploy:list-profiles": "node script/deploy.js core --list-profiles",
+    "deploy:help": "node script/deploy.js core --help",
 
     "deploy:garden": "node script/deploy.js garden config/garden.json",
     "deploy:onboard": "node script/deploy.js onboard config/garden-onboarding-example.csv",
@@ -39,18 +60,17 @@
     "gas:monitor": "node script/deploy-helpers/gas-optimizer.js monitor"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^5.0.2",
-    "@openzeppelin/contracts-upgradeable": "^5.0.2",
-    "dotenv": "^16.4.5"
+    "@ethereum-attestation-service/eas-contracts": "^1.8.0",
+    "@openzeppelin/contracts-upgradeable": "4.9.3"
   },
   "devDependencies": {
-    "@pinata/sdk": "^2.1.0",
-    "@privy-io/server-auth": "latest",
     "@biomejs/biome": "2.0.0-beta.6",
+    "@pinata/sdk": "^2.1.0",
+    "@privy-io/server-auth": "1.28.3",
     "csv-parse": "^5.5.3",
     "envfile": "~6.18.0",
+    "js-yaml": "^4.1.0",
     "node-fetch": "^2.7.0",
-    "pinata": "^0.4.0",
     "solhint": "^5.0.5",
     "toml": "~3.0.0"
   }

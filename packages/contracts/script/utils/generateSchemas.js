@@ -18,16 +18,50 @@ function generateSchemaString(fields) {
  * @returns {Object} - Object with schema strings added to each schema
  */
 function loadSchemasWithGenerated(configPath) {
-  const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+  const schemasArray = JSON.parse(fs.readFileSync(configPath, "utf8"));
 
-  // Generate schema strings for each schema
-  for (const [, schemaConfig] of Object.entries(config.schemas)) {
+  // Convert array to object with schema strings generated
+  const schemasObj = {};
+
+  for (const schemaConfig of schemasArray) {
     if (schemaConfig.fields && Array.isArray(schemaConfig.fields)) {
       schemaConfig.generatedSchema = generateSchemaString(schemaConfig.fields);
     }
+    schemasObj[schemaConfig.id] = schemaConfig;
   }
 
-  return config;
+  return { schemas: schemasObj };
+}
+
+/**
+ * Get a specific schema by ID
+ * @param {string} configPath - Path to schemas.json file
+ * @param {string} schemaId - ID of the schema to retrieve
+ * @returns {Object} - Schema object with generated schema string
+ */
+function getSchemaById(configPath, schemaId) {
+  const schemasArray = JSON.parse(fs.readFileSync(configPath, "utf8"));
+  const schema = schemasArray.find((s) => s.id === schemaId);
+
+  if (!schema) {
+    throw new Error(`Schema '${schemaId}' not found`);
+  }
+
+  if (schema.fields && Array.isArray(schema.fields)) {
+    schema.generatedSchema = generateSchemaString(schema.fields);
+  }
+
+  return schema;
+}
+
+/**
+ * Get all available schema IDs
+ * @param {string} configPath - Path to schemas.json file
+ * @returns {Array} - Array of schema IDs
+ */
+function getSchemaIds(configPath) {
+  const schemasArray = JSON.parse(fs.readFileSync(configPath, "utf8"));
+  return schemasArray.map((s) => s.id);
 }
 
 /**
@@ -37,31 +71,33 @@ function main() {
   const args = process.argv.slice(2);
 
   if (args.length === 0) {
-    console.error("Usage: node generateSchemas.js <schemaName>");
-    console.error("Available schemas: gardenAssessment, work, workApproval");
+    console.error("Usage: node generateSchemas.js <schemaId>");
+
+    const configPath = path.join(__dirname, "../../config/schemas.json");
+    try {
+      const availableIds = getSchemaIds(configPath);
+      console.error("Available schemas:", availableIds.join(", "));
+    } catch (error) {
+      console.error("Error loading schemas:", error.message);
+    }
+
     process.exit(1);
   }
 
-  const schemaName = args[0];
+  const schemaId = args[0];
   const configPath = path.join(__dirname, "../../config/schemas.json");
 
   try {
-    const config = loadSchemasWithGenerated(configPath);
+    const schema = getSchemaById(configPath, schemaId);
 
-    if (!config.schemas[schemaName]) {
-      console.error(`Schema '${schemaName}' not found`);
-      process.exit(1);
-    }
-
-    const schema = config.schemas[schemaName];
     if (schema.generatedSchema) {
       console.log(schema.generatedSchema);
     } else {
-      console.error(`No fields found for schema '${schemaName}'`);
+      console.error(`No fields found for schema '${schemaId}'`);
       process.exit(1);
     }
   } catch (error) {
-    console.error("Error loading schemas:", error.message);
+    console.error("Error loading schema:", error.message);
     process.exit(1);
   }
 }
@@ -70,6 +106,8 @@ function main() {
 module.exports = {
   generateSchemaString,
   loadSchemasWithGenerated,
+  getSchemaById,
+  getSchemaIds,
 };
 
 // Run main function if called directly

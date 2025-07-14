@@ -52,15 +52,12 @@ contract Deploy is Script, DeploymentHelper {
         bool revocable;
     }
 
-    /// @notice Schema deployment retry configuration
-    struct RetryConfig {
-        uint256 maxRetries;
-        uint256 retryDelay;
-        bool skipOnFailure;
-    }
-
     /// @notice Standard EAS Schema UID for naming
     bytes32 public constant SCHEMA_NAME_SCHEMA = 0x44d562ac1d7cd77e232978687fea027ace48f719cf1d58c7888e509663bb87fc;
+
+    /// @notice Standard EAS Schema UID for descriptions
+    bytes32 public constant SCHEMA_DESCRIPTION_SCHEMA =
+        0x21cbc60aac46ba22125ff85dd01882ebe6e87eb4fc46628589931ccbef9b8c94;
 
     /// @notice Error thrown when Guardian deployment address doesn't match predicted
     error GuardianDeploymentAddressMismatch();
@@ -107,29 +104,300 @@ contract Deploy is Script, DeploymentHelper {
     /// @notice Error thrown when unauthorized caller attempts to call internal function
     error OnlySelfCanCall();
 
+    /// @notice Deployment profile types
+    enum DeploymentProfile {
+        FULL,
+        UPDATE,
+        METADATA_ONLY,
+        CONTRACTS_ONLY,
+        SCHEMAS_ONLY,
+        TESTING,
+        PRODUCTION,
+        HOTFIX
+    }
+
+    /// @notice Contract deployment flags
+    struct ContractFlags {
+        bool skipExisting;
+        bool forceRedeploy;
+        bool skipVerification;
+    }
+
+    /// @notice Schema deployment flags
+    struct SchemaFlags {
+        bool skip;
+        bool forceRedeploy;
+        bool metadataOnly;
+    }
+
+    /// @notice Configuration flags
+    struct ConfigurationFlags {
+        bool skipConfiguration;
+        bool skipSeedData;
+        bool skipGovernanceTransfer;
+        bool addDeployerToAllowlist;
+    }
+
+    /// @notice Logging flags
+    struct LoggingFlags {
+        bool verbose;
+    }
+
+    /// @notice Deployment control flags
+    struct DeploymentFlags {
+        ContractFlags contracts;
+        SchemaFlags schemas;
+        ConfigurationFlags config;
+        LoggingFlags logging;
+        // Legacy flags for backward compatibility
+        bool skipExistingContracts;
+        bool forceRedeploy;
+        bool skipSchemas;
+        bool forceSchemaDeployment;
+        bool skipVerification;
+        bool skipSeedData;
+        bool skipConfiguration;
+        bool verboseLogging;
+        bool skipGovernanceTransfer;
+        bool addDeployerToAllowlist;
+        bool metadataOnly;
+    }
+
+    /// @notice Load deployment profile from environment variable
+    function loadDeploymentProfile() internal view returns (DeploymentProfile) {
+        try vm.envString("DEPLOYMENT_PROFILE") returns (string memory profileStr) {
+            bytes32 profileHash = keccak256(abi.encodePacked(profileStr));
+
+            if (profileHash == keccak256("full")) return DeploymentProfile.FULL;
+            if (profileHash == keccak256("update")) return DeploymentProfile.UPDATE;
+            if (profileHash == keccak256("metadata-only")) return DeploymentProfile.METADATA_ONLY;
+            if (profileHash == keccak256("contracts-only")) return DeploymentProfile.CONTRACTS_ONLY;
+            if (profileHash == keccak256("schemas-only")) return DeploymentProfile.SCHEMAS_ONLY;
+            if (profileHash == keccak256("testing")) return DeploymentProfile.TESTING;
+            if (profileHash == keccak256("production")) return DeploymentProfile.PRODUCTION;
+            if (profileHash == keccak256("hotfix")) return DeploymentProfile.HOTFIX;
+        } catch { }
+
+        return DeploymentProfile.FULL; // Default
+    }
+
+    /// @notice Load deployment flags from environment variables
+    function loadDeploymentFlags() internal view returns (DeploymentFlags memory flags) {
+        DeploymentProfile profile = loadDeploymentProfile();
+
+        // Load base flags from profile
+        flags = _getFlagsForProfile(profile);
+
+        // Override with specific environment variables if set
+        _applyEnvironmentOverrides(flags);
+    }
+
+    /// @notice Get flags for a specific deployment profile
+    function _getFlagsForProfile(DeploymentProfile profile) internal pure returns (DeploymentFlags memory) {
+        if (profile == DeploymentProfile.METADATA_ONLY) {
+            return DeploymentFlags({
+                skipExistingContracts: true,
+                forceRedeploy: false,
+                skipSchemas: true,
+                forceSchemaDeployment: false,
+                skipVerification: true,
+                skipSeedData: true,
+                skipConfiguration: true,
+                verboseLogging: true,
+                skipGovernanceTransfer: true,
+                addDeployerToAllowlist: false,
+                metadataOnly: true
+            });
+        }
+
+        if (profile == DeploymentProfile.UPDATE) {
+            return DeploymentFlags({
+                skipExistingContracts: true,
+                forceRedeploy: false,
+                skipSchemas: false,
+                forceSchemaDeployment: true,
+                skipVerification: true,
+                skipSeedData: true,
+                skipConfiguration: false,
+                verboseLogging: false,
+                skipGovernanceTransfer: true,
+                addDeployerToAllowlist: false,
+                metadataOnly: false
+            });
+        }
+
+        if (profile == DeploymentProfile.CONTRACTS_ONLY) {
+            return DeploymentFlags({
+                skipExistingContracts: false,
+                forceRedeploy: false,
+                skipSchemas: true,
+                forceSchemaDeployment: false,
+                skipVerification: false,
+                skipSeedData: true,
+                skipConfiguration: true,
+                verboseLogging: false,
+                skipGovernanceTransfer: true,
+                addDeployerToAllowlist: false,
+                metadataOnly: false
+            });
+        }
+
+        if (profile == DeploymentProfile.SCHEMAS_ONLY) {
+            return DeploymentFlags({
+                skipExistingContracts: true,
+                forceRedeploy: false,
+                skipSchemas: false,
+                forceSchemaDeployment: false,
+                skipVerification: true,
+                skipSeedData: true,
+                skipConfiguration: true,
+                verboseLogging: false,
+                skipGovernanceTransfer: true,
+                addDeployerToAllowlist: false,
+                metadataOnly: false
+            });
+        }
+
+        if (profile == DeploymentProfile.TESTING) {
+            return DeploymentFlags({
+                skipExistingContracts: true,
+                forceRedeploy: false,
+                skipSchemas: false,
+                forceSchemaDeployment: false,
+                skipVerification: false,
+                skipSeedData: false,
+                skipConfiguration: false,
+                verboseLogging: true,
+                skipGovernanceTransfer: false,
+                addDeployerToAllowlist: true,
+                metadataOnly: false
+            });
+        }
+
+        if (profile == DeploymentProfile.PRODUCTION) {
+            return DeploymentFlags({
+                skipExistingContracts: true,
+                forceRedeploy: false,
+                skipSchemas: false,
+                forceSchemaDeployment: false,
+                skipVerification: false,
+                skipSeedData: true,
+                skipConfiguration: false,
+                verboseLogging: false,
+                skipGovernanceTransfer: false,
+                addDeployerToAllowlist: false,
+                metadataOnly: false
+            });
+        }
+
+        if (profile == DeploymentProfile.HOTFIX) {
+            return DeploymentFlags({
+                skipExistingContracts: true,
+                forceRedeploy: false,
+                skipSchemas: true,
+                forceSchemaDeployment: false,
+                skipVerification: true,
+                skipSeedData: true,
+                skipConfiguration: false,
+                verboseLogging: true,
+                skipGovernanceTransfer: true,
+                addDeployerToAllowlist: false,
+                metadataOnly: false
+            });
+        }
+
+        // Default FULL profile
+        return DeploymentFlags({
+            skipExistingContracts: true,
+            forceRedeploy: false,
+            skipSchemas: false,
+            forceSchemaDeployment: false,
+            skipVerification: false,
+            skipSeedData: false,
+            skipConfiguration: false,
+            verboseLogging: false,
+            skipGovernanceTransfer: false,
+            addDeployerToAllowlist: true,
+            metadataOnly: false
+        });
+    }
+
+    /// @notice Apply environment variable overrides to flags
+    function _applyEnvironmentOverrides(DeploymentFlags memory flags) internal view {
+        try vm.envBool("SKIP_EXISTING_CONTRACTS") returns (bool value) {
+            flags.skipExistingContracts = value;
+        } catch { }
+
+        try vm.envBool("FORCE_REDEPLOY") returns (bool value) {
+            flags.forceRedeploy = value;
+            if (value) {
+                flags.skipExistingContracts = false; // Force redeploy overrides skip
+            }
+        } catch { }
+
+        try vm.envBool("SKIP_SCHEMAS") returns (bool value) {
+            flags.skipSchemas = value;
+        } catch { }
+
+        try vm.envBool("FORCE_SCHEMA_DEPLOYMENT") returns (bool value) {
+            flags.forceSchemaDeployment = value;
+        } catch { }
+
+        try vm.envBool("SKIP_VERIFICATION") returns (bool value) {
+            flags.skipVerification = value;
+        } catch { }
+
+        try vm.envBool("SKIP_SEED_DATA") returns (bool value) {
+            flags.skipSeedData = value;
+        } catch { }
+
+        try vm.envBool("SKIP_CONFIGURATION") returns (bool value) {
+            flags.skipConfiguration = value;
+        } catch { }
+
+        try vm.envBool("VERBOSE_LOGGING") returns (bool value) {
+            flags.verboseLogging = value;
+        } catch { }
+
+        try vm.envBool("SKIP_GOVERNANCE_TRANSFER") returns (bool value) {
+            flags.skipGovernanceTransfer = value;
+        } catch { }
+
+        try vm.envBool("ADD_DEPLOYER_TO_ALLOWLIST") returns (bool value) {
+            flags.addDeployerToAllowlist = value;
+        } catch { }
+
+        try vm.envBool("METADATA_ONLY") returns (bool value) {
+            flags.metadataOnly = value;
+        } catch { }
+    }
+
     function run() external {
-        // Load configuration
+        // Load configuration and flags
         NetworkConfig memory config = loadNetworkConfig();
+        DeploymentFlags memory flags = loadDeploymentFlags();
         (bytes32 salt, address factory, address tokenboundRegistry) = getDeploymentDefaults();
 
-        // Get deployer
-        address deployer;
-        try vm.envAddress("MULTISIG_ADDRESS") returns (address addr) {
-            deployer = addr;
-        } catch {
-            deployer = msg.sender;
-        }
+        // Get deployer and multisig addresses
+        address deployer = msg.sender;
+        address multisig = config.multisig;
 
         console.log("Deploying to chain:", block.chainid);
         console.log("Deployer:", deployer);
+        console.log("Multisig:", multisig != address(0) ? vm.toString(multisig) : "Not configured");
         console.log("Salt:", vm.toString(salt));
+
+        if (flags.verboseLogging) {
+            _logDeploymentFlags(flags);
+        }
 
         vm.startBroadcast();
 
         DeploymentResult memory result;
 
-        // 1. Deploy DeploymentRegistry
-        result.deploymentRegistry = deployDeploymentRegistry(deployer);
+        // 1. Deploy DeploymentRegistry with proper ownership
+        result.deploymentRegistry =
+            deployDeploymentRegistryWithGovernance(multisig != address(0) ? multisig : deployer, deployer, flags);
 
         // 2. Deploy core infrastructure
         result.guardian = deployGuardian(config.greenGoodsSafe, salt, factory);
@@ -144,23 +412,41 @@ contract Deploy is Script, DeploymentHelper {
         result.workResolver = deployWorkResolver(config.eas, result.actionRegistry, salt, factory);
         result.workApprovalResolver = deployWorkApprovalResolver(config.eas, result.actionRegistry, salt, factory);
 
-        // 4. Deploy EAS schemas with enhanced error recovery
-        (result.gardenAssessmentSchemaUID, result.workSchemaUID, result.workApprovalSchemaUID) =
-            deployEASSchemasWithRetry(config.easSchemaRegistry, result.workResolver, result.workApprovalResolver);
-
-        // 5. Configure DeploymentRegistry with deployed addresses
-        configureDeploymentRegistry(result.deploymentRegistry, config, result);
-
-        // 6. Initialize sample data if requested
-        bool initSampleData;
-        try vm.envBool("INITIALIZE_SAMPLE_DATA") returns (bool val) {
-            initSampleData = val;
-        } catch {
-            initSampleData = false;
+        // 4. Deploy EAS schemas (with skip flag)
+        if (!flags.skipSchemas) {
+            (result.gardenAssessmentSchemaUID, result.workSchemaUID, result.workApprovalSchemaUID) =
+            deployEASSchemasWithFlags(config.easSchemaRegistry, result.workResolver, result.workApprovalResolver, flags);
+        } else {
+            console.log(">> Skipping schema deployment (SKIP_SCHEMAS=true)");
         }
 
-        if (initSampleData) {
-            initializeSampleData(result.actionRegistry);
+        // 5. Configure DeploymentRegistry (with governance handling)
+        if (!flags.skipConfiguration) {
+            configureDeploymentRegistryWithGovernance(
+                result.deploymentRegistry, config, result, deployer, multisig, flags
+            );
+        } else {
+            console.log(">> Skipping deployment registry configuration (SKIP_CONFIGURATION=true)");
+        }
+
+        // 6. Initialize seed data (with enhanced flag logic)
+        bool initSeedData = !flags.skipSeedData;
+        if (!flags.skipSeedData) {
+            try vm.envBool("INITIALIZE_SEED_DATA") returns (bool val) {
+                initSeedData = val;
+            } catch {
+                // Check if it's a testnet or local deployment
+                uint256 chainId = block.chainid;
+                initSeedData = (chainId == 31_337 || chainId == 11_155_111 || chainId == 84_532);
+            }
+        }
+
+        if (initSeedData) {
+            console.log("Initializing seed data for testing...");
+            deploySeedGardens(result.gardenToken, config.communityToken);
+            deploySeedActions(result.actionRegistry);
+        } else if (flags.skipSeedData) {
+            console.log(">> Skipping seed data initialization (SKIP_SEED_DATA=true)");
         }
 
         vm.stopBroadcast();
@@ -168,7 +454,12 @@ contract Deploy is Script, DeploymentHelper {
         // Print summary and save deployment
         printDeploymentSummary(result);
         saveDeployment(result);
-        generateVerificationCommands(result);
+
+        if (!flags.skipVerification) {
+            generateVerificationCommands(result);
+        } else {
+            console.log(">> Skipping verification command generation (SKIP_VERIFICATION=true)");
+        }
     }
 
     function deployDeploymentRegistry(address owner) public returns (address) {
@@ -180,6 +471,36 @@ contract Deploy is Script, DeploymentHelper {
         ERC1967Proxy proxy = new ERC1967Proxy(address(implementation), initData);
 
         console.log("DeploymentRegistry deployed at:", address(proxy));
+        return address(proxy);
+    }
+
+    function deployDeploymentRegistryWithGovernance(
+        address initialOwner,
+        address deployer,
+        DeploymentFlags memory flags
+    )
+        public
+        returns (address)
+    {
+        // Deploy implementation
+        DeploymentRegistry implementation = new DeploymentRegistry();
+
+        // Deploy proxy
+        bytes memory initData = abi.encodeWithSelector(DeploymentRegistry.initialize.selector, initialOwner);
+        ERC1967Proxy proxy = new ERC1967Proxy(address(implementation), initData);
+
+        console.log("[OK] DeploymentRegistry deployed at:", address(proxy));
+        console.log("   Initial owner:", initialOwner);
+
+        // Add deployer to allowlist if requested and if owner is multisig
+        if (flags.addDeployerToAllowlist && initialOwner != deployer) {
+            try DeploymentRegistry(address(proxy)).addToAllowlist(deployer) {
+                console.log("[OK] Added deployer to allowlist:", deployer);
+            } catch {
+                console.log("[WARN] Could not add deployer to allowlist (requires owner)");
+            }
+        }
+
         return address(proxy);
     }
 
@@ -206,6 +527,55 @@ contract Deploy is Script, DeploymentHelper {
         reg.setNetworkConfig(block.chainid, netConfig);
 
         console.log("DeploymentRegistry configured for chain:", block.chainid);
+    }
+
+    function configureDeploymentRegistryWithGovernance(
+        address registry,
+        NetworkConfig memory config,
+        DeploymentResult memory result,
+        address deployer,
+        address multisig,
+        DeploymentFlags memory flags
+    )
+        internal
+    {
+        DeploymentRegistry reg = DeploymentRegistry(registry);
+
+        // Set network configuration with governance-aware error handling
+        DeploymentRegistry.NetworkConfig memory netConfig = DeploymentRegistry.NetworkConfig({
+            eas: config.eas,
+            easSchemaRegistry: config.easSchemaRegistry,
+            communityToken: config.communityToken,
+            actionRegistry: result.actionRegistry,
+            gardenToken: result.gardenToken,
+            workResolver: result.workResolver,
+            workApprovalResolver: result.workApprovalResolver
+        });
+
+        try reg.setNetworkConfig(block.chainid, netConfig) {
+            console.log("[OK] DeploymentRegistry configured for chain:", block.chainid);
+
+            // Handle governance transfer if multisig is configured and deployer is current owner
+            if (
+                !flags.skipGovernanceTransfer && multisig != address(0) && reg.owner() == deployer
+                    && multisig != deployer
+            ) {
+                _handleGovernanceTransfer(reg, deployer, multisig, flags);
+            }
+        } catch (bytes memory reason) {
+            console.log("[WARN] Failed to configure DeploymentRegistry:");
+            console.log("   Reason:", string(reason));
+            console.log("   Current owner:", reg.owner());
+            console.log("   Caller:", deployer);
+            console.log("   Is in allowlist:", reg.isInAllowlist(deployer));
+
+            if (reg.owner() != deployer && !reg.isInAllowlist(deployer)) {
+                console.log("[INFO] To enable deployment configuration:");
+                console.log("   1. Add deployer to allowlist: DeploymentRegistry.addToAllowlist(", deployer, ")");
+                console.log("   2. Or transfer ownership back temporarily");
+                console.log("   3. Or use SKIP_CONFIGURATION=true flag");
+            }
+        }
     }
 
     function deployGuardian(address greenGoodsSafe, bytes32 salt, address factory) public returns (address) {
@@ -376,7 +746,7 @@ contract Deploy is Script, DeploymentHelper {
         return predicted;
     }
 
-    function deployEASSchemasWithRetry(
+    function deployEASSchemas(
         address schemaRegistry,
         address workResolver,
         address workApprovalResolver
@@ -384,28 +754,12 @@ contract Deploy is Script, DeploymentHelper {
         internal
         returns (bytes32 gardenAssessmentUID, bytes32 workUID, bytes32 workApprovalUID)
     {
-        console.log("\n=== Deploying EAS Schemas with Enhanced Error Recovery ===");
-
-        // Load retry configuration
-        RetryConfig memory retryConfig = RetryConfig({
-            maxRetries: 3,
-            retryDelay: 1000, // 1 second delay between retries
-            skipOnFailure: false
-        });
-
-        // Try to load custom retry config from environment
-        try vm.envUint("SCHEMA_DEPLOYMENT_MAX_RETRIES") returns (uint256 maxRetries) {
-            retryConfig.maxRetries = maxRetries;
-        } catch { }
-
-        try vm.envBool("SCHEMA_DEPLOYMENT_SKIP_ON_FAILURE") returns (bool skipOnFailure) {
-            retryConfig.skipOnFailure = skipOnFailure;
-        } catch { }
+        console.log("\n=== Deploying EAS Schemas ===");
 
         // Load network config to get EAS address
         NetworkConfig memory config = loadNetworkConfig();
 
-        // Enhanced validation with detailed error messages
+        // Validation with detailed error messages
         if (schemaRegistry == address(0)) {
             console.log("ERROR: Schema registry address is zero for chain", block.chainid);
             console.log("Please check your networks.json configuration");
@@ -445,22 +799,14 @@ contract Deploy is Script, DeploymentHelper {
         ISchemaRegistry registry = ISchemaRegistry(schemaRegistry);
         IEAS eas = IEAS(config.eas);
 
-        // Deploy schemas with retry logic
-        gardenAssessmentUID =
-            _deploySchemaWithRetry(registry, schemaJson, existingGardenUID, "gardenAssessment", address(0), retryConfig);
+        // Deploy schemas
+        gardenAssessmentUID = _deploySchema(registry, schemaJson, existingGardenUID, "gardenAssessment", address(0));
+        workUID = _deploySchema(registry, schemaJson, existingWorkUID, "work", workResolver);
+        workApprovalUID =
+            _deploySchema(registry, schemaJson, existingWorkApprovalUID, "workApproval", workApprovalResolver);
 
-        workUID = _deploySchemaWithRetry(registry, schemaJson, existingWorkUID, "work", workResolver, retryConfig);
-
-        workApprovalUID = _deploySchemaWithRetry(
-            registry, schemaJson, existingWorkApprovalUID, "workApproval", workApprovalResolver, retryConfig
-        );
-
-        // Create name attestations for Celo with error recovery
-        if (block.chainid == 42_220) {
-            _createSchemaNameAttestationsWithRetry(
-                eas, schemaJson, gardenAssessmentUID, workUID, workApprovalUID, retryConfig
-            );
-        }
+        // Create name and description attestations for all chains
+        _createSchemaNameAndDescriptionAttestations(eas, schemaJson, gardenAssessmentUID, workUID, workApprovalUID);
 
         console.log("EAS Schemas deployed successfully:");
         console.log("Garden Assessment UID:", vm.toString(gardenAssessmentUID));
@@ -469,57 +815,135 @@ contract Deploy is Script, DeploymentHelper {
         console.log("=================================================\n");
     }
 
-    function _deploySchemaWithRetry(
+    function deployEASSchemasWithFlags(
+        address schemaRegistry,
+        address workResolver,
+        address workApprovalResolver,
+        DeploymentFlags memory flags
+    )
+        internal
+        returns (bytes32 gardenAssessmentUID, bytes32 workUID, bytes32 workApprovalUID)
+    {
+        console.log("\n=== Deploying EAS Schemas ===");
+
+        // Load network config to get EAS address
+        NetworkConfig memory config = loadNetworkConfig();
+
+        // Validation with detailed error messages
+        if (schemaRegistry == address(0)) {
+            console.log("ERROR: Schema registry address is zero for chain", block.chainid);
+            console.log("Please check your networks.json configuration");
+            revert SchemaRegistryAddressZero();
+        }
+
+        if (config.eas == address(0)) {
+            console.log("ERROR: EAS contract address is zero for chain", block.chainid);
+            console.log("Please check your networks.json configuration");
+            revert EASAddressZero();
+        }
+
+        if (workResolver == address(0)) {
+            console.log("ERROR: Work resolver address is zero");
+            console.log("This indicates a failure in resolver deployment");
+            revert WorkResolverAddressZero();
+        }
+
+        if (workApprovalResolver == address(0)) {
+            console.log("ERROR: Work approval resolver address is zero");
+            console.log("This indicates a failure in work approval resolver deployment");
+            revert WorkApprovalResolverAddressZero();
+        }
+
+        // Load existing deployment and schema config
+        (bytes32 existingGardenUID, bytes32 existingWorkUID, bytes32 existingWorkApprovalUID) = _loadExistingSchemas();
+
+        string memory schemaJson;
+        try vm.readFile(string.concat(vm.projectRoot(), "/config/schemas.json")) returns (string memory schemaConfig) {
+            schemaJson = schemaConfig;
+        } catch {
+            console.log("ERROR: Failed to load schemas.json configuration file");
+            console.log("Please ensure config/schemas.json exists and is readable");
+            revert SchemaDeploymentFailed("ALL", "Configuration file not found");
+        }
+
+        ISchemaRegistry registry = ISchemaRegistry(schemaRegistry);
+        IEAS eas = IEAS(config.eas);
+
+        // Deploy schemas with force deployment flag
+        gardenAssessmentUID =
+            _deploySchemaWithFlags(registry, schemaJson, existingGardenUID, "gardenAssessment", address(0), flags);
+        workUID = _deploySchemaWithFlags(registry, schemaJson, existingWorkUID, "work", workResolver, flags);
+        workApprovalUID = _deploySchemaWithFlags(
+            registry, schemaJson, existingWorkApprovalUID, "workApproval", workApprovalResolver, flags
+        );
+
+        // Create name and description attestations for all chains
+        _createSchemaNameAndDescriptionAttestations(eas, schemaJson, gardenAssessmentUID, workUID, workApprovalUID);
+
+        console.log("EAS Schemas deployed successfully:");
+        console.log("Garden Assessment UID:", vm.toString(gardenAssessmentUID));
+        console.log("Work UID:", vm.toString(workUID));
+        console.log("Work Approval UID:", vm.toString(workApprovalUID));
+        console.log("=================================================\n");
+    }
+
+    function _deploySchema(
         ISchemaRegistry registry,
         string memory schemaJson,
         bytes32 existingUID,
         string memory schemaName,
-        address resolver,
-        RetryConfig memory retryConfig
+        address resolver
     )
         internal
         returns (bytes32)
     {
         if (existingUID != bytes32(0)) {
             console.log("Schema already exists:", schemaName, "UID:", vm.toString(existingUID));
-
             console.log("Schema validation passed for:", schemaName);
-
             return existingUID;
         }
 
         console.log("Deploying new schema:", schemaName);
 
-        // Retry loop for schema deployment
-        for (uint256 attempt = 0; attempt <= retryConfig.maxRetries; attempt++) {
-            try this._deploySchemaAttemptWrapper(registry, schemaJson, schemaName, resolver) returns (bytes32 uid) {
-                console.log("Schema deployed successfully:", schemaName, "UID:", vm.toString(uid));
-                return uid;
-            } catch (bytes memory reason) {
-                console.log("Schema deployment attempt", attempt + 1, "failed for:", schemaName);
-                console.log("Error:", string(reason));
+        // Deploy schema directly without retry
+        bytes32 uid = _deploySchemaAttempt(registry, schemaJson, schemaName, resolver);
+        console.log("Schema deployed successfully:", schemaName, "UID:", vm.toString(uid));
+        return uid;
+    }
 
-                if (attempt == retryConfig.maxRetries) {
-                    console.log("Max retries reached for schema:", schemaName);
-
-                    if (retryConfig.skipOnFailure) {
-                        console.log("Skipping schema deployment due to configuration");
-                        return bytes32(0);
-                    } else {
-                        revert SchemaDeploymentFailed(schemaName, string(reason));
-                    }
-                }
-
-                // Wait before retry
-                if (retryConfig.retryDelay > 0) {
-                    console.log("Waiting", retryConfig.retryDelay, "ms before retry...");
-                    // Note: vm.sleep is not available in Foundry, so we'll use a computational delay
-                    _computationalDelay(retryConfig.retryDelay);
-                }
-            }
+    function _deploySchemaWithFlags(
+        ISchemaRegistry registry,
+        string memory schemaJson,
+        bytes32 existingUID,
+        string memory schemaName,
+        address resolver,
+        DeploymentFlags memory flags
+    )
+        internal
+        returns (bytes32)
+    {
+        // Force schema deployment overrides existing check
+        if (flags.forceSchemaDeployment) {
+            console.log("[FORCE] Force deploying schema:", schemaName, "(FORCE_SCHEMA_DEPLOYMENT=true)");
+            bytes32 forceUID = _deploySchemaAttempt(registry, schemaJson, schemaName, resolver);
+            console.log("[OK] Schema force deployed successfully:", schemaName, "UID:", vm.toString(forceUID));
+            return forceUID;
         }
 
-        revert SchemaDeploymentFailed(schemaName, "Unexpected error in retry loop");
+        if (existingUID != bytes32(0)) {
+            console.log(">> Schema already exists:", schemaName, "UID:", vm.toString(existingUID));
+            if (flags.verboseLogging) {
+                console.log("   Use FORCE_SCHEMA_DEPLOYMENT=true to redeploy");
+            }
+            return existingUID;
+        }
+
+        console.log("Deploying new schema:", schemaName);
+
+        // Deploy schema directly without retry
+        bytes32 uid = _deploySchemaAttempt(registry, schemaJson, schemaName, resolver);
+        console.log("[OK] Schema deployed successfully:", schemaName, "UID:", vm.toString(uid));
+        return uid;
     }
 
     function _deploySchemaAttempt(
@@ -532,8 +956,7 @@ contract Deploy is Script, DeploymentHelper {
         returns (bytes32)
     {
         string memory schemaString = _generateSchemaStringWithValidation(schemaName);
-        bool revocable =
-            abi.decode(vm.parseJson(schemaJson, string.concat(".schemas.", schemaName, ".revocable")), (bool));
+        bool revocable = _getSchemaRevocableFromArray(schemaJson, schemaName);
 
         bytes32 uid = registry.register(schemaString, resolver, revocable);
 
@@ -543,17 +966,33 @@ contract Deploy is Script, DeploymentHelper {
         return uid;
     }
 
-    function _deploySchemaAttemptWrapper(
-        ISchemaRegistry registry,
+    /// @notice Helper function to get schema revocable flag from flat array by ID
+    function _getSchemaRevocableFromArray(
         string memory schemaJson,
-        string memory schemaName,
-        address resolver
+        string memory schemaId
     )
-        external
-        returns (bytes32)
+        internal
+        pure
+        returns (bool)
     {
-        if (msg.sender != address(this)) revert OnlySelfCanCall();
-        return _deploySchemaAttempt(registry, schemaJson, schemaName, resolver);
+        // Parse the array and find the schema with matching ID
+        for (uint256 i = 0; i < 10; i++) {
+            // Assume max 10 schemas
+            string memory indexPath = string.concat("[", vm.toString(i), "]");
+
+            try vm.parseJson(schemaJson, string.concat(indexPath, ".id")) returns (bytes memory idData) {
+                string memory currentId = abi.decode(idData, (string));
+
+                if (keccak256(abi.encodePacked(currentId)) == keccak256(abi.encodePacked(schemaId))) {
+                    return abi.decode(vm.parseJson(schemaJson, string.concat(indexPath, ".revocable")), (bool));
+                }
+            } catch {
+                // Index doesn't exist, continue
+                break;
+            }
+        }
+
+        revert(string.concat("Schema not found: ", schemaId));
     }
 
     function _generateSchemaStringWithValidation(string memory schemaName) internal returns (string memory) {
@@ -574,43 +1013,98 @@ contract Deploy is Script, DeploymentHelper {
         return string(result);
     }
 
-    function _createSchemaNameAttestationsWithRetry(
+    function _createSchemaNameAndDescriptionAttestations(
         IEAS eas,
         string memory schemaJson,
         bytes32 gardenAssessmentUID,
         bytes32 workUID,
-        bytes32 workApprovalUID,
-        RetryConfig memory retryConfig
+        bytes32 workApprovalUID
     )
         internal
     {
-        console.log("Creating schema name attestations with retry logic...");
+        console.log("Creating schema name and description attestations...");
 
         if (gardenAssessmentUID != bytes32(0)) {
-            string memory gardenName = abi.decode(vm.parseJson(schemaJson, ".schemas.gardenAssessment.name"), (string));
-            _createSchemaNameAttestationWithRetry(eas, gardenAssessmentUID, gardenName, retryConfig);
+            string memory gardenName = _getSchemaNameFromArray(schemaJson, "gardenAssessment");
+            string memory gardenDescription = _getSchemaDescriptionFromArray(schemaJson, "gardenAssessment");
+            _createSchemaNameAttestation(eas, gardenAssessmentUID, gardenName);
+            _createSchemaDescriptionAttestation(eas, gardenAssessmentUID, gardenDescription);
         }
 
         if (workUID != bytes32(0)) {
-            string memory workName = abi.decode(vm.parseJson(schemaJson, ".schemas.work.name"), (string));
-            _createSchemaNameAttestationWithRetry(eas, workUID, workName, retryConfig);
+            string memory workName = _getSchemaNameFromArray(schemaJson, "work");
+            string memory workDescription = _getSchemaDescriptionFromArray(schemaJson, "work");
+            _createSchemaNameAttestation(eas, workUID, workName);
+            _createSchemaDescriptionAttestation(eas, workUID, workDescription);
         }
 
         if (workApprovalUID != bytes32(0)) {
-            string memory workApprovalName =
-                abi.decode(vm.parseJson(schemaJson, ".schemas.workApproval.name"), (string));
-            _createSchemaNameAttestationWithRetry(eas, workApprovalUID, workApprovalName, retryConfig);
+            string memory workApprovalName = _getSchemaNameFromArray(schemaJson, "workApproval");
+            string memory workApprovalDescription = _getSchemaDescriptionFromArray(schemaJson, "workApproval");
+            _createSchemaNameAttestation(eas, workApprovalUID, workApprovalName);
+            _createSchemaDescriptionAttestation(eas, workApprovalUID, workApprovalDescription);
         }
     }
 
-    function _createSchemaNameAttestationWithRetry(
-        IEAS eas,
-        bytes32 schemaUID,
-        string memory name,
-        RetryConfig memory retryConfig
+    /// @notice Helper function to get schema name from flat array by ID
+    function _getSchemaNameFromArray(
+        string memory schemaJson,
+        string memory schemaId
     )
         internal
+        pure
+        returns (string memory)
     {
+        // Parse the array and find the schema with matching ID
+        for (uint256 i = 0; i < 10; i++) {
+            // Assume max 10 schemas
+            string memory indexPath = string.concat("[", vm.toString(i), "]");
+
+            try vm.parseJson(schemaJson, string.concat(indexPath, ".id")) returns (bytes memory idData) {
+                string memory currentId = abi.decode(idData, (string));
+
+                if (keccak256(abi.encodePacked(currentId)) == keccak256(abi.encodePacked(schemaId))) {
+                    return abi.decode(vm.parseJson(schemaJson, string.concat(indexPath, ".name")), (string));
+                }
+            } catch {
+                // Index doesn't exist, continue
+                break;
+            }
+        }
+
+        revert(string.concat("Schema not found: ", schemaId));
+    }
+
+    /// @notice Helper function to get schema description from flat array by ID
+    function _getSchemaDescriptionFromArray(
+        string memory schemaJson,
+        string memory schemaId
+    )
+        internal
+        pure
+        returns (string memory)
+    {
+        // Parse the array and find the schema with matching ID
+        for (uint256 i = 0; i < 10; i++) {
+            // Assume max 10 schemas
+            string memory indexPath = string.concat("[", vm.toString(i), "]");
+
+            try vm.parseJson(schemaJson, string.concat(indexPath, ".id")) returns (bytes memory idData) {
+                string memory currentId = abi.decode(idData, (string));
+
+                if (keccak256(abi.encodePacked(currentId)) == keccak256(abi.encodePacked(schemaId))) {
+                    return abi.decode(vm.parseJson(schemaJson, string.concat(indexPath, ".description")), (string));
+                }
+            } catch {
+                // Index doesn't exist, continue
+                break;
+            }
+        }
+
+        revert(string.concat("Schema description not found: ", schemaId));
+    }
+
+    function _createSchemaNameAttestation(IEAS eas, bytes32 schemaUID, string memory name) internal {
         bytes memory encodedData = abi.encode(schemaUID, name);
 
         IEAS.AttestationRequest memory request = IEAS.AttestationRequest({
@@ -625,36 +1119,42 @@ contract Deploy is Script, DeploymentHelper {
             })
         });
 
-        for (uint256 attempt = 0; attempt <= retryConfig.maxRetries; attempt++) {
-            try eas.attest(request) returns (bytes32 attestationUID) {
-                console.log("Name attestation created successfully for:", name);
-                console.log("Attestation UID:", vm.toString(attestationUID));
-                return;
-            } catch (bytes memory reason) {
-                console.log("Name attestation attempt", attempt + 1, "failed for:", name);
-                console.log("Error:", string(reason));
-
-                if (attempt == retryConfig.maxRetries) {
-                    console.log("Max retries reached for name attestation:", name);
-                    if (!retryConfig.skipOnFailure) {
-                        console.log("Continuing deployment despite attestation failure");
-                    }
-                    return;
-                }
-
-                if (retryConfig.retryDelay > 0) {
-                    _computationalDelay(retryConfig.retryDelay);
-                }
-            }
+        try eas.attest(request) returns (bytes32 attestationUID) {
+            console.log("Name attestation created successfully for:", name);
+            console.log("Attestation UID:", vm.toString(attestationUID));
+        } catch Error(string memory reason) {
+            console.log("Failed to create name attestation for:", name);
+            console.log("Reason:", reason);
+        } catch {
+            console.log("Failed to create name attestation for:", name, "(unknown error)");
         }
     }
 
-    function _computationalDelay(uint256 milliseconds) internal pure {
-        // Simple computational delay - not precise but provides some delay
-        uint256 iterations = milliseconds * 1000;
-        uint256 dummy = 0;
-        for (uint256 i = 0; i < iterations; i++) {
-            dummy += i;
+    function _createSchemaDescriptionAttestation(IEAS eas, bytes32 schemaUID, string memory description) internal {
+        bytes memory encodedData = abi.encode(schemaUID, description);
+
+        IEAS.AttestationRequest memory request = IEAS.AttestationRequest({
+            schema: SCHEMA_DESCRIPTION_SCHEMA,
+            data: IEAS.AttestationRequestData({
+                recipient: address(0),
+                expirationTime: 0,
+                revocable: true,
+                refUID: bytes32(0),
+                data: encodedData,
+                value: 0
+            })
+        });
+
+        try eas.attest(request) returns (bytes32 attestationUID) {
+            console.log("Description attestation created successfully for schema:", vm.toString(schemaUID));
+            console.log("Attestation UID:", vm.toString(attestationUID));
+        } catch Error(string memory reason) {
+            console.log("Failed to create description attestation for schema:", vm.toString(schemaUID));
+            console.log("Reason:", reason);
+        } catch {
+            console.log(
+                "Failed to create description attestation for schema:", vm.toString(schemaUID), "(unknown error)"
+            );
         }
     }
 
@@ -683,7 +1183,7 @@ contract Deploy is Script, DeploymentHelper {
         }
     }
 
-    function initializeSampleData(address actionRegistry) public {
+    function initializeSeedData(address actionRegistry) public {
         ActionRegistry registry = ActionRegistry(actionRegistry);
 
         // Initialize sample actions
@@ -706,6 +1206,172 @@ contract Deploy is Script, DeploymentHelper {
             observeMedia
         );
 
-        console.log("Sample data initialized");
+        console.log("Seed data initialized");
+    }
+
+    function _handleGovernanceTransfer(
+        DeploymentRegistry reg,
+        address, /* deployer */
+        address multisig,
+        DeploymentFlags memory flags
+    )
+        internal
+    {
+        console.log("\n[GOV] Initiating governance transfer...");
+
+        // Add multisig to allowlist first (if not already)
+        if (!reg.isInAllowlist(multisig)) {
+            try reg.addToAllowlist(multisig) {
+                console.log("[OK] Added multisig to allowlist:", multisig);
+            } catch {
+                console.log("[WARN] Could not add multisig to allowlist");
+            }
+        }
+
+        // Load additional allowlist addresses from environment
+        _addEnvironmentAllowlist(reg, flags);
+
+        // Initiate governance transfer
+        try reg.initiateGovernanceTransfer(multisig) {
+            console.log("[OK] Governance transfer initiated to:", multisig);
+            console.log("[INFO] Multisig must call acceptGovernanceTransfer() to complete");
+            console.log("[INFO] Current owner can call cancelGovernanceTransfer() to cancel");
+        } catch (bytes memory reason) {
+            console.log("[WARN] Could not initiate governance transfer:");
+            console.log("   Reason:", string(reason));
+        }
+    }
+
+    function _addEnvironmentAllowlist(DeploymentRegistry reg, DeploymentFlags memory /* flags */ ) internal {
+        // Check for comma-separated allowlist in environment variable
+        try vm.envString("DEPLOYMENT_REGISTRY_ALLOWLIST") returns (string memory allowlistStr) {
+            if (bytes(allowlistStr).length > 0) {
+                console.log("[ALLOWLIST] Processing allowlist from environment...");
+
+                // Note: This is a simplified parser - in production you'd want more robust CSV parsing
+                // For now, assumes single address or you can call multiple times with different env vars
+                address allowlistAddr = vm.parseAddress(allowlistStr);
+
+                try reg.addToAllowlist(allowlistAddr) {
+                    console.log("[OK] Added to allowlist from env:", allowlistAddr);
+                } catch {
+                    console.log("[WARN] Could not add address to allowlist:", allowlistAddr);
+                }
+            }
+        } catch {
+            // No allowlist configured in environment
+        }
+
+        // Check for individual allowlist addresses
+        for (uint256 i = 0; i < 10; i++) {
+            string memory envVar = string.concat("ALLOWLIST_ADDRESS_", vm.toString(i));
+            try vm.envAddress(envVar) returns (address addr) {
+                try reg.addToAllowlist(addr) {
+                    console.log("[OK] Added to allowlist:", addr);
+                } catch {
+                    console.log("[WARN] Could not add address to allowlist:", addr);
+                }
+            } catch {
+                // No more allowlist addresses
+                break;
+            }
+        }
+    }
+
+    function _logDeploymentFlags(DeploymentFlags memory flags) internal view {
+        console.log("\n=== Deployment Flags ===");
+        console.log("Skip Existing Contracts:", flags.skipExistingContracts);
+        console.log("Force Redeploy:", flags.forceRedeploy);
+        console.log("Skip Schemas:", flags.skipSchemas);
+        console.log("Force Schema Deployment:", flags.forceSchemaDeployment);
+        console.log("Skip Verification:", flags.skipVerification);
+        console.log("Skip Seed Data:", flags.skipSeedData);
+        console.log("Skip Configuration:", flags.skipConfiguration);
+        console.log("Skip Governance Transfer:", flags.skipGovernanceTransfer);
+        console.log("Add Deployer to Allowlist:", flags.addDeployerToAllowlist);
+        console.log("Verbose Logging:", flags.verboseLogging);
+        console.log("Metadata Only:", flags.metadataOnly);
+        console.log("========================\n");
+    }
+
+    function deploySeedGardens(address gardenToken, address communityToken) internal {
+        string memory configPath = string.concat(vm.projectRoot(), "/config/garden.json");
+
+        try vm.readFile(configPath) returns (string memory json) {
+            string memory name = abi.decode(vm.parseJson(json, ".name"), (string));
+            string memory description = abi.decode(vm.parseJson(json, ".description"), (string));
+            string memory location = abi.decode(vm.parseJson(json, ".location"), (string));
+            string memory bannerImage = abi.decode(vm.parseJson(json, ".bannerImage"), (string));
+            address[] memory gardeners = abi.decode(vm.parseJson(json, ".gardeners"), (address[]));
+            address[] memory operators = abi.decode(vm.parseJson(json, ".operators"), (address[]));
+
+            GardenToken(gardenToken).mintGarden(
+                communityToken, name, description, location, bannerImage, gardeners, operators
+            );
+
+            console.log("Seed garden deployed from config/garden.json");
+        } catch {
+            console.log("No garden.json found, skipping seed garden deployment");
+        }
+    }
+
+    function deploySeedActions(address actionRegistry) internal {
+        string memory configPath = string.concat(vm.projectRoot(), "/config/actions.json");
+
+        try vm.readFile(configPath) returns (string memory json) {
+            // Parse actions array
+            uint256 actionsCount = 3; // Assume max 3 actions for simplicity
+
+            for (uint256 i = 0; i < actionsCount; i++) {
+                string memory basePath = string.concat(".actions[", vm.toString(i), "]");
+
+                try vm.parseJson(json, string.concat(basePath, ".title")) returns (bytes memory) {
+                    string memory title = abi.decode(vm.parseJson(json, string.concat(basePath, ".title")), (string));
+                    string memory instructions =
+                        abi.decode(vm.parseJson(json, string.concat(basePath, ".instructions")), (string));
+                    uint256 startTime = block.timestamp;
+                    uint256 endTime = block.timestamp + 365 days;
+
+                    // Parse capitals
+                    string[] memory capitalStrings =
+                        abi.decode(vm.parseJson(json, string.concat(basePath, ".capitals")), (string[]));
+                    Capital[] memory capitals = new Capital[](capitalStrings.length);
+                    for (uint256 j = 0; j < capitalStrings.length; j++) {
+                        capitals[j] = parseCapital(capitalStrings[j]);
+                    }
+
+                    // Parse media
+                    string[] memory media =
+                        abi.decode(vm.parseJson(json, string.concat(basePath, ".media")), (string[]));
+
+                    ActionRegistry(actionRegistry).registerAction(
+                        startTime, endTime, title, instructions, capitals, media
+                    );
+
+                    console.log("Deployed action:", title);
+                } catch {
+                    // No more actions
+                    break;
+                }
+            }
+        } catch {
+            console.log("No actions.json found, using default sample action");
+            initializeSeedData(actionRegistry);
+        }
+    }
+
+    function parseCapital(string memory capitalStr) internal pure returns (Capital) {
+        bytes32 capitalHash = keccak256(bytes(capitalStr));
+
+        if (capitalHash == keccak256(bytes("SOCIAL"))) return Capital.SOCIAL;
+        if (capitalHash == keccak256(bytes("MATERIAL"))) return Capital.MATERIAL;
+        if (capitalHash == keccak256(bytes("FINANCIAL"))) return Capital.FINANCIAL;
+        if (capitalHash == keccak256(bytes("LIVING"))) return Capital.LIVING;
+        if (capitalHash == keccak256(bytes("INTELLECTUAL"))) return Capital.INTELLECTUAL;
+        if (capitalHash == keccak256(bytes("EXPERIENTIAL"))) return Capital.EXPERIENTIAL;
+        if (capitalHash == keccak256(bytes("SPIRITUAL"))) return Capital.SPIRITUAL;
+        if (capitalHash == keccak256(bytes("CULTURAL"))) return Capital.CULTURAL;
+
+        revert("Invalid capital type");
     }
 }

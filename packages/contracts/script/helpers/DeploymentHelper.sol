@@ -26,6 +26,7 @@ abstract contract DeploymentHelper is Script {
         address erc4337EntryPoint;
         address multicallForwarder;
         address greenGoodsSafe;
+        address multisig;
     }
 
     struct DeploymentResult {
@@ -73,6 +74,7 @@ abstract contract DeploymentHelper is Script {
         config.safeFactory = json.readAddress(".deploymentDefaults.safeFactory");
         config.safe4337Module = json.readAddress(".deploymentDefaults.safe4337Module");
         config.greenGoodsSafe = json.readAddress(".deploymentDefaults.greenGoodsSafe");
+        config.multisig = json.readAddress(".deploymentDefaults.multisig");
 
         return config;
     }
@@ -83,6 +85,7 @@ abstract contract DeploymentHelper is Script {
         if (chainId == 11_155_111) return "sepolia";
         if (chainId == 42_161) return "arbitrum";
         if (chainId == 8453) return "base";
+        if (chainId == 84_532) return "baseSepolia";
         if (chainId == 10) return "optimism";
         if (chainId == 42_220) return "celo";
 
@@ -170,28 +173,68 @@ abstract contract DeploymentHelper is Script {
 
         string memory schemasObj = "schemas";
 
+        // Find and process each schema from the flat array
+        (string memory gardenAssessmentName, string memory gardenAssessmentDescription) =
+            _findSchemaDataInArray(json, "gardenAssessment");
+        (string memory workName, string memory workDescription) = _findSchemaDataInArray(json, "work");
+        (string memory workApprovalName, string memory workApprovalDescription) =
+            _findSchemaDataInArray(json, "workApproval");
+
         // Garden Assessment Schema
         vm.serializeBytes32(schemasObj, "gardenAssessmentSchemaUID", result.gardenAssessmentSchemaUID);
-        vm.serializeString(schemasObj, "gardenAssessmentName", json.readString(".schemas.gardenAssessment.name"));
-        vm.serializeString(
-            schemasObj, "gardenAssessmentDescription", json.readString(".schemas.gardenAssessment.description")
-        );
+        vm.serializeString(schemasObj, "gardenAssessmentName", gardenAssessmentName);
+        vm.serializeString(schemasObj, "gardenAssessmentDescription", gardenAssessmentDescription);
         vm.serializeString(schemasObj, "gardenAssessmentSchema", _generateSchemaString("gardenAssessment"));
 
         // Work Schema
         vm.serializeBytes32(schemasObj, "workSchemaUID", result.workSchemaUID);
-        vm.serializeString(schemasObj, "workName", json.readString(".schemas.work.name"));
-        vm.serializeString(schemasObj, "workDescription", json.readString(".schemas.work.description"));
+        vm.serializeString(schemasObj, "workName", workName);
+        vm.serializeString(schemasObj, "workDescription", workDescription);
         vm.serializeString(schemasObj, "workSchema", _generateSchemaString("work"));
 
         // Work Approval Schema
         vm.serializeBytes32(schemasObj, "workApprovalSchemaUID", result.workApprovalSchemaUID);
-        vm.serializeString(schemasObj, "workApprovalName", json.readString(".schemas.workApproval.name"));
-        vm.serializeString(schemasObj, "workApprovalDescription", json.readString(".schemas.workApproval.description"));
+        vm.serializeString(schemasObj, "workApprovalName", workApprovalName);
+        vm.serializeString(schemasObj, "workApprovalDescription", workApprovalDescription);
         string memory schemasJson =
             vm.serializeString(schemasObj, "workApprovalSchema", _generateSchemaString("workApproval"));
 
         return schemasJson;
+    }
+
+    /// @notice Find a schema by ID in the flat array and return its name and description
+    function _findSchemaDataInArray(
+        string memory json,
+        string memory schemaId
+    )
+        internal
+        pure
+        returns (string memory name, string memory description)
+    {
+        // Parse the array and find the schema with matching ID
+        bytes memory arrayData = vm.parseJson(json);
+
+        // Since we can't easily iterate through JSON arrays in Solidity, we'll try indices
+        // This is a simple approach - in production, you might want a more robust solution
+        for (uint256 i = 0; i < 10; i++) {
+            // Assume max 10 schemas
+            string memory indexPath = string.concat("[", vm.toString(i), "]");
+
+            try vm.parseJson(json, string.concat(indexPath, ".id")) returns (bytes memory idData) {
+                string memory currentId = abi.decode(idData, (string));
+
+                if (keccak256(abi.encodePacked(currentId)) == keccak256(abi.encodePacked(schemaId))) {
+                    name = abi.decode(vm.parseJson(json, string.concat(indexPath, ".name")), (string));
+                    description = abi.decode(vm.parseJson(json, string.concat(indexPath, ".description")), (string));
+                    return (name, description);
+                }
+            } catch {
+                // Index doesn't exist, continue
+                break;
+            }
+        }
+
+        revert(string.concat("Schema not found: ", schemaId));
     }
 
     /// @notice Generate schema string from fields array using JavaScript utility
