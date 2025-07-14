@@ -175,7 +175,7 @@ export default defineConfig(({ mode }) => {
       host: true,
       proxy: {
         graphql: {
-          target: "http://localhost:8000",
+          target: "http://localhost:8080",
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/graphql/, ""),
         },

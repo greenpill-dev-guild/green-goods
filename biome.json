@@ -34,6 +34,7 @@
       "**/packages/contracts/src/**/*.{ts,tsx,js,jsx}",
       "**/packages/contracts/script/**/*.{ts,tsx,js,jsx}",
       "**/packages/eas/src/**/*.{ts,tsx,js,jsx}",
+      "**/packages/client/*.config.{ts,js}",
       "**/*.json",
       "!**/packages/contracts/out/**",
       "!**/packages/contracts/broadcast/**",
@@ -63,10 +64,13 @@
       "**/packages/contracts/src/**/*.{ts,tsx,js,jsx}",
       "**/packages/contracts/script/**/*.{ts,tsx,js,jsx}",
       "**/packages/eas/src/**/*.{ts,tsx,js,jsx}",
+      "**/packages/client/*.config.{ts,js}",
       "**/*.json",
       "!**/packages/contracts/out/**",
       "!**/packages/contracts/broadcast/**",
-      "!**/packages/contracts/cache/**"
+      "!**/packages/contracts/cache/**",
+      "!.biomeignore",
+      "!.gitignore"
     ]
   }
 }
