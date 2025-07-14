@@ -3,11 +3,15 @@
   "version": "0.0.0",
   "private": true,
   "keywords": [
+    "green-goods",
+    "green-goods-protocol",
+    "pwa",
     "web3",
     "dapp",
     "ethereum",
     "solidity",
     "react",
+    "tailwind",
     "typescript",
     "pnpm",
     "foundry"
@@ -17,24 +21,40 @@
     "foundry:up": "curl -L https://foundry.paradigm.xyz | bash && bash $HOME/.foundry/bin/foundryup",
     "prepare": "husky",
     "build": "pnpm recursive run build",
+
     "format": "biome format --write .",
     "format:check": "biome format .",
     "lint": "biome check --write --unsafe packages/client/src/**/*.{ts,tsx} packages/contracts/src packages/indexer/src",
     "lint:oxlint": "oxlint packages/client/src packages/indexer/src",
     "lint-staged": "lint-staged",
+
     "test": "pnpm recursive run test",
-    "dev": "concurrently -n \"APP,CONTRACTS\" -c \"bgMagenta.bold,bgCyan.bold\" \"pnpm run dev:app\" \"pnpm run dev:contracts\"",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:smoke": "playwright test tests/specs/smoke",
+    "test:e2e:mobile": "playwright test --project=mobile-chrome --project=mobile-safari",
+    "test:e2e:integration": "playwright test tests/specs/integration",
+    "test:e2e:blockchain": "playwright test tests/specs/blockchain",
+    "test:e2e:pwa": "playwright test tests/specs/pwa",
+    "test:e2e:performance": "playwright test tests/specs/performance",
+    "test:e2e:quick": "playwright test tests/specs/smoke tests/specs/integration/basic-integration.spec.ts --project=chromium",
+    "test:all": "pnpm test && pnpm test:e2e",
+
+    "dev": "concurrently \"pnpm dev:indexer\" \"pnpm dev:app\" --names \"indexer,client\" --prefix-colors \"blue,green\" --kill-others-on-fail",
     "dev:app": "pnpm --filter 'client' run dev",
-    "dev:contracts": "pnpm --filter 'contracts' run  dev"
+    "dev:indexer": "pnpm --filter 'indexer' run dev",
+    "dev:contracts": "pnpm --filter 'contracts' run  dev",
+    "show:deployment": "node scripts/show-deployment-addresses.js"
   },
   "dependencies": {
-    "@ethereum-attestation-service/eas-sdk": "^2.5.0",
     "dotenv": "16.4.5",
     "ethers": "^6.13.2",
     "viem": "^2.30.5"
   },
   "devDependencies": {
     "@biomejs/biome": "2.0.0-beta.6",
+    "@playwright/test": "^1.54.1",
     "@types/node": "22.5.1",
     "concurrently": "8.2.2",
     "husky": "^9.1.4",
