@@ -13,7 +13,7 @@ function getIndexerUrl() {
     window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
 
   if (isDev || isLocalhost) {
-    return "http://localhost:8080";
+    return "http://localhost:8080/graphql";
   }
 
   // Production URL (update when deployed)
