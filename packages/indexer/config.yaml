@@ -29,17 +29,13 @@ contracts:
 networks:
   - id: 42161
     start_block: 242630858
-    rpc_config:
-      url: https://arb1.arbitrum.io/rpc
     contracts:
       - name: ActionRegistry
         address: "0x933b88Ef33a25d14a68354C88b2eb31e475cd482"
       - name: GardenToken
         address: "0x508198C3f071987D5eEb0030825628F9B10c6037"
   - id: 42220
-    start_block: 1
-    rpc_config:
-      url: https://forno.celo.org
+    start_block: 40293303
     contracts:
       - name: ActionRegistry
         address: "0x547e82BF9c8496f41927583793242f6b91C182A6"
@@ -48,9 +44,7 @@ networks:
       - name: GardenAccount
         address: "0xad621aF21dBfdaCe0A078C021Ab2FDDA080a52D1"
   - id: 84532
-    start_block: 1
-    rpc_config:
-      url: https://sepolia.base.org
+    start_block: 28278599
     contracts:
       - name: ActionRegistry
         address: "0x547e82BF9c8496f41927583793242f6b91C182A6"
@@ -58,14 +52,17 @@ networks:
         address: "0x19f367E448208377dA8C81E770bC6777c7815516"
       - name: GardenAccount
         address: "0xad621aF21dBfdaCe0A078C021Ab2FDDA080a52D1"
-  - id: 31337
-    start_block: 1
-    rpc_config:
-      url: http://localhost:8545
-    contracts:
-      - name: ActionRegistry
-        address: '0x547e82BF9c8496f41927583793242f6b91C182A6'
-      - name: GardenToken
-        address: '0xE73e86787dDC94b98f6d0327124D18341C527e1f'
-      - name: GardenAccount
-        address: '0xad621aF21dBfdaCe0A078C021Ab2FDDA080a52D1'
+  # WARNING: DO NOT UNCOMMENT THE LOCAL CHAIN CONFIG BELOW!
+  # The indexer cannot sync properly with multiple networks if localhost is enabled.
+  # Use the deployment scripts to manage this configuration automatically.
+  # - id: 31337
+  #   start_block: 1000
+  #   rpc_config:
+  #     url: http://localhost:8545
+  #   contracts:
+  #     - name: ActionRegistry
+  #       address: '0x547e82BF9c8496f41927583793242f6b91C182A6'
+  #     - name: GardenToken
+  #       address: '0x547e82BF9c8496f41927583793242f6b91C182A6'
+  #     - name: GardenAccount
+  #       address: '0x547e82BF9c8496f41927583793242f6b91C182A6'

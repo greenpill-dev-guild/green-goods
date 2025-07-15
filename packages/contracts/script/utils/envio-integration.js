@@ -142,59 +142,70 @@ class EnvioIntegration {
         throw new Error(`Missing required addresses: ${missingAddresses.join(", ")}`);
       }
 
-      // Backup current config only if it hasn't been backed up recently
-      if (fs.existsSync(this.envioConfigPath)) {
-        const shouldBackup = !fs.existsSync(this.backupConfigPath) || this.isBackupOld(this.backupConfigPath);
-
-        if (shouldBackup) {
-          fs.copyFileSync(this.envioConfigPath, this.backupConfigPath);
-          console.log("💾 Backed up existing config");
-        }
-      }
-
-      // Load current Envio config
-      const envioConfig = yaml.load(fs.readFileSync(this.envioConfigPath, "utf8"));
-
-      // Update or add network configuration
-      const targetChainId = useLocalhost ? 31337 : Number.parseInt(chainId);
-      const networkIndex = envioConfig.networks.findIndex((n) => n.id === targetChainId);
-
-      const networkConfig = {
-        id: targetChainId,
-        start_block: this.getStartBlock(chainId),
-        contracts: [
-          {
-            name: "ActionRegistry",
-            address: deployment.actionRegistry,
-          },
-          {
-            name: "GardenToken",
-            address: deployment.gardenToken,
-          },
-          {
-            name: "GardenAccount",
-            address: deployment.accountProxy,
-          },
-        ],
-      };
-
-      if (networkIndex >= 0) {
-        envioConfig.networks[networkIndex] = networkConfig;
-        console.log(`🔄 Updated existing network config for chain ${targetChainId}`);
+      // Handle local chain config specially
+      if (chainId === "31337" || useLocalhost) {
+        await this.enableLocalChainConfig();
+        await this.updateLocalChainAddresses(deployment);
+        console.log("✅ Local chain config updated successfully");
       } else {
-        envioConfig.networks.push(networkConfig);
-        console.log(`➕ Added new network config for chain ${targetChainId}`);
+        // For non-local deployments, make sure local config is disabled
+        await this.disableLocalChainConfig();
+
+        // Continue with regular network config update
+        // Backup current config only if it hasn't been backed up recently
+        if (fs.existsSync(this.envioConfigPath)) {
+          const shouldBackup = !fs.existsSync(this.backupConfigPath) || this.isBackupOld(this.backupConfigPath);
+
+          if (shouldBackup) {
+            fs.copyFileSync(this.envioConfigPath, this.backupConfigPath);
+            console.log("💾 Backed up existing config");
+          }
+        }
+
+        // Load current Envio config
+        const envioConfig = yaml.load(fs.readFileSync(this.envioConfigPath, "utf8"));
+
+        // Update or add network configuration
+        const targetChainId = Number.parseInt(chainId);
+        const networkIndex = envioConfig.networks.findIndex((n) => n.id === targetChainId);
+
+        const networkConfig = {
+          id: targetChainId,
+          start_block: this.getStartBlock(chainId),
+          contracts: [
+            {
+              name: "ActionRegistry",
+              address: deployment.actionRegistry,
+            },
+            {
+              name: "GardenToken",
+              address: deployment.gardenToken,
+            },
+            {
+              name: "GardenAccount",
+              address: deployment.accountProxy,
+            },
+          ],
+        };
+
+        if (networkIndex >= 0) {
+          envioConfig.networks[networkIndex] = networkConfig;
+          console.log(`🔄 Updated existing network config for chain ${targetChainId}`);
+        } else {
+          envioConfig.networks.push(networkConfig);
+          console.log(`➕ Added new network config for chain ${targetChainId}`);
+        }
+
+        // Update RPC configuration
+        this.updateRpcConfig(envioConfig, chainId, useLocalhost);
+
+        // Write updated config
+        fs.writeFileSync(this.envioConfigPath, yaml.dump(envioConfig, { lineWidth: -1 }));
+        console.log("✅ Envio config updated successfully");
       }
-
-      // Update RPC configuration
-      this.updateRpcConfig(envioConfig, chainId, useLocalhost);
-
-      // Write updated config
-      fs.writeFileSync(this.envioConfigPath, yaml.dump(envioConfig, { lineWidth: -1 }));
-      console.log("✅ Envio config updated successfully");
 
       // Display the updated addresses
-      console.log(`\n📋 Contract addresses updated in Envio for chain ${targetChainId}:`);
+      console.log(`\n📋 Contract addresses updated in Envio for chain ${chainId}:`);
       console.log(`   ActionRegistry: ${deployment.actionRegistry}`);
       console.log(`   GardenToken: ${deployment.gardenToken}`);
       console.log(`   GardenAccount: ${deployment.accountProxy}`);
@@ -324,6 +335,123 @@ class EnvioIntegration {
   }
 
   /**
+   * Uncomment local chain config for development
+   */
+  async enableLocalChainConfig() {
+    console.log("\n📝 Enabling local chain config for development...");
+
+    try {
+      const configContent = fs.readFileSync(this.envioConfigPath, "utf8");
+
+      // Check if local chain config is already uncommented
+      if (configContent.includes("  - id: 31337") && !configContent.includes("  # - id: 31337")) {
+        console.log("✅ Local chain config is already enabled");
+        return;
+      }
+
+      // Remove any existing warning comments
+      let updatedContent = configContent
+        .replace(/^  # WARNING: DO NOT UNCOMMENT THE LOCAL CHAIN CONFIG BELOW!.*?\n/gm, "")
+        .replace(/^  # The indexer cannot sync properly with multiple networks if localhost is enabled\.\n/gm, "")
+        .replace(/^  # Use the deployment scripts to manage this configuration automatically\.\n/gm, "");
+
+      // Uncomment the local chain config section
+      updatedContent = updatedContent
+        .replace(/^  # - id: 31337/gm, "  - id: 31337")
+        .replace(/^  #   start_block: \d+/gm, "    start_block: 1000")
+        .replace(/^  #   rpc_config:/gm, "    rpc_config:")
+        .replace(/^  #     url: http:\/\/localhost:8545/gm, "      url: http://localhost:8545")
+        .replace(/^  #   contracts:/gm, "    contracts:")
+        .replace(/^  #     - name: (ActionRegistry|GardenToken|GardenAccount)/gm, "      - name: $1")
+        .replace(/^  #       address: '[^']*'/gm, "      address: '0x0000000000000000000000000000000000000000'");
+
+      fs.writeFileSync(this.envioConfigPath, updatedContent);
+      console.log("✅ Local chain config enabled successfully");
+    } catch (error) {
+      console.error("❌ Failed to enable local chain config:", error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Comment out local chain config after development
+   */
+  async disableLocalChainConfig() {
+    console.log("\n🔒 Disabling local chain config...");
+
+    try {
+      const configContent = fs.readFileSync(this.envioConfigPath, "utf8");
+
+      // Check if local chain config is already commented out
+      if (configContent.includes("  # - id: 31337")) {
+        console.log("✅ Local chain config is already disabled");
+        return;
+      }
+
+      // Add warning comment
+      const warningComment =
+        "  # WARNING: DO NOT UNCOMMENT THE LOCAL CHAIN CONFIG BELOW!\n  # The indexer cannot sync properly with multiple networks if localhost is enabled.\n  # Use the deployment scripts to manage this configuration automatically.\n";
+
+      // Comment out the local chain config section
+      let updatedContent = configContent
+        .replace(/^  - id: 31337/gm, "  # - id: 31337")
+        .replace(/^    start_block: \d+/gm, "  #   start_block: 1000")
+        .replace(/^    rpc_config:/gm, "  #   rpc_config:")
+        .replace(/^      url: http:\/\/localhost:8545/gm, "  #     url: http://localhost:8545")
+        .replace(/^    contracts:/gm, "  #   contracts:")
+        .replace(/^      - name: (ActionRegistry|GardenToken|GardenAccount)/gm, "  #     - name: $1")
+        .replace(/^      address: '[^']*'/gm, "  #       address: '0x547e82BF9c8496f41927583793242f6b91C182A6'");
+
+      // Find the local chain config section and add the warning comment before it
+      updatedContent = updatedContent.replace(/^  # - id: 31337/gm, `${warningComment}  # - id: 31337`);
+
+      fs.writeFileSync(this.envioConfigPath, updatedContent);
+      console.log("✅ Local chain config disabled with warning comment");
+    } catch (error) {
+      console.error("❌ Failed to disable local chain config:", error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Update local chain config with deployed contract addresses
+   */
+  async updateLocalChainAddresses(deployment) {
+    console.log("\n🔄 Updating local chain config with deployed addresses...");
+
+    try {
+      const configContent = fs.readFileSync(this.envioConfigPath, "utf8");
+
+      // Update the addresses in the local chain config
+      let updatedContent = configContent;
+
+      // Update ActionRegistry address
+      updatedContent = updatedContent.replace(
+        /^      - name: ActionRegistry\n      address: '[^']*'/gm,
+        `      - name: ActionRegistry\n      address: '${deployment.actionRegistry}'`,
+      );
+
+      // Update GardenToken address
+      updatedContent = updatedContent.replace(
+        /^      - name: GardenToken\n      address: '[^']*'/gm,
+        `      - name: GardenToken\n      address: '${deployment.gardenToken}'`,
+      );
+
+      // Update GardenAccount address
+      updatedContent = updatedContent.replace(
+        /^      - name: GardenAccount\n      address: '[^']*'/gm,
+        `      - name: GardenAccount\n      address: '${deployment.accountProxy}'`,
+      );
+
+      fs.writeFileSync(this.envioConfigPath, updatedContent);
+      console.log("✅ Local chain addresses updated successfully");
+    } catch (error) {
+      console.error("❌ Failed to update local chain addresses:", error.message);
+      throw error;
+    }
+  }
+
+  /**
    * Stop file watching
    */
   stopWatching() {
@@ -363,6 +491,9 @@ Commands:
   watch [chainIds...]  Watch for deployment changes and auto-update
   start               Start indexer after updating config
   restore             Restore original config from backup
+  enable-local        Enable local chain config for development
+  disable-local       Disable local chain config (cleanup after development)
+  cleanup             Same as disable-local
 
 Options:
   --localhost         Use localhost RPC for the chain
@@ -371,6 +502,8 @@ Options:
 Examples:
   node envio-integration.js update 31337 --localhost
   node envio-integration.js watch 31337 84532
+  node envio-integration.js enable-local
+  node envio-integration.js disable-local
   node envio-integration.js update && node envio-integration.js start
       `);
       return;
@@ -411,6 +544,17 @@ Examples:
 
         case "restore": {
           integration.restoreConfig();
+          break;
+        }
+
+        case "enable-local": {
+          await integration.enableLocalChainConfig();
+          break;
+        }
+
+        case "disable-local":
+        case "cleanup": {
+          await integration.disableLocalChainConfig();
           break;
         }
 

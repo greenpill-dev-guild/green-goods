@@ -57,7 +57,11 @@
     "deployment:status": "node script/deploy.js status",
 
     "gas:check": "node script/deploy-helpers/gas-optimizer.js",
-    "gas:monitor": "node script/deploy-helpers/gas-optimizer.js monitor"
+    "gas:monitor": "node script/deploy-helpers/gas-optimizer.js monitor",
+
+    "envio:enable-local": "node script/utils/envio-integration.js enable-local",
+    "envio:disable-local": "node script/utils/envio-integration.js disable-local",
+    "envio:cleanup": "node script/utils/envio-integration.js cleanup"
   },
   "dependencies": {
     "@ethereum-attestation-service/eas-contracts": "^1.8.0",
