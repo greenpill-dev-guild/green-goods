@@ -39,7 +39,17 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     if (client) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).smartAccountClient = client;
+    } else {
+      // Clean up the global reference when client is not available
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete (window as any).smartAccountClient;
     }
+
+    // Cleanup function to remove global reference on unmount
+    return () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete (window as any).smartAccountClient;
+    };
   }, [client]);
 
   return (
