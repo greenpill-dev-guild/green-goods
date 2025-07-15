@@ -190,6 +190,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
           abi: WorkResolverABI,
           data: error.data as `0x${string}`,
         });
+        void _decodedError; // For debugging purposes
       }
 
       // toast.remove();

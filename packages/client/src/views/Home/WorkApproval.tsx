@@ -137,6 +137,7 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = () => {
           abi: WorkApprovalResolverABI,
           data: error.data as `0x${string}`,
         });
+        void _decodedError; // For debugging purposes
       }
     },
   });
