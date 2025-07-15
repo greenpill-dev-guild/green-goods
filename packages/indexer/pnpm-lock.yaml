@@ -17,6 +17,10 @@ importers:
       ethers:
         specifier: 6.13.5
         version: 6.13.5
+    optionalDependencies:
+      generated:
+        specifier: ./generated
+        version: link:generated
     devDependencies:
       '@types/chai':
         specifier: ^4.3.11
@@ -39,10 +43,6 @@ importers:
       typescript:
         specifier: 5.2.2
         version: 5.2.2
-    optionalDependencies:
-      generated:
-        specifier: ./generated
-        version: link:generated
 
 packages:
 
