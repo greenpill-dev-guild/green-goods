@@ -1,5 +1,19 @@
 import { type IDBPDatabase, openDB } from "idb";
 
+// Local interface for cached work data (based on global WorkCard)
+export interface CachedWork {
+  id: string;
+  title: string;
+  actionUID: number;
+  gardenerAddress: string;
+  gardenAddress: string;
+  feedback: string;
+  metadata: string;
+  media: string[];
+  createdAt: number;
+  status?: "pending" | "approved" | "rejected";
+}
+
 export interface OfflineWork {
   id: string;
   type: "work" | "approval";
@@ -45,7 +59,7 @@ class OfflineDatabase {
         // Store for cached work data (for viewing offline)
         if (!db.objectStoreNames.contains("cachedWork")) {
           const cachedWork = db.createObjectStore("cachedWork", { keyPath: "id" });
-          cachedWork.createIndex("gardenId", "gardenAddress");
+          cachedWork.createIndex("gardenAddress", "gardenAddress");
           cachedWork.createIndex("gardenerAddress", "gardenerAddress");
         }
       },
@@ -130,18 +144,18 @@ class OfflineDatabase {
     return await index.getAll(workId);
   }
 
-  async cacheWork(work: unknown) {
+  async cacheWork(work: CachedWork) {
     const db = await this.init();
     await db.put("cachedWork", work);
   }
 
-  async getCachedWork(gardenId?: string): Promise<unknown[]> {
+  async getCachedWork(gardenAddress?: string): Promise<CachedWork[]> {
     const db = await this.init();
 
-    if (gardenId) {
+    if (gardenAddress) {
       const tx = db.transaction("cachedWork", "readonly");
-      const index = tx.objectStore("cachedWork").index("gardenId");
-      return await index.getAll(gardenId);
+      const index = tx.objectStore("cachedWork").index("gardenAddress");
+      return await index.getAll(gardenAddress);
     }
 
     return db.getAll("cachedWork");

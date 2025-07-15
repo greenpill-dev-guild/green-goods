@@ -331,6 +331,7 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = () => {
           <WorkCompleted
             garden={garden}
             status={workApprovalMutation.status}
+            mutationData={workApprovalMutation.data}
             messages={{
               success: {
                 header: intl.formatMessage(

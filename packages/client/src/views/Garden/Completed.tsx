@@ -24,11 +24,32 @@ interface WorkCompletedProps {
   garden: Garden;
   status: "error" | "success" | "pending" | "idle";
   messages?: { [key: string]: completedMessage };
+  mutationData?: any; // The mutation result data (transaction hash or error)
 }
 
-export const WorkCompleted: React.FC<WorkCompletedProps> = ({ garden, status, messages }) => {
+export const WorkCompleted: React.FC<WorkCompletedProps> = ({
+  garden,
+  status,
+  messages,
+  mutationData,
+}) => {
   const intl = useIntl();
-  const isOffline = status === "success" && !navigator.onLine;
+
+  // Detect if work was saved offline by checking if the transaction hash starts with "0xoffline_"
+  const isOfflineWork = (data: any): boolean => {
+    if (!data) return false;
+    if (typeof data === "string") {
+      return data.startsWith("0xoffline_");
+    }
+    // For transaction receipts, check the transactionHash
+    if (data.transactionHash && typeof data.transactionHash === "string") {
+      return data.transactionHash.startsWith("0xoffline_");
+    }
+    return false;
+  };
+
+  const isOffline = isOfflineWork(mutationData);
+
   const getMessages = (garden: Garden) => ({
     error: {
       header: intl.formatMessage({
@@ -49,18 +70,25 @@ export const WorkCompleted: React.FC<WorkCompletedProps> = ({ garden, status, me
     },
     success: {
       header: intl.formatMessage({
-        id: "app.garden.completed.messages.success.header",
-        defaultMessage: " ",
+        id: isOffline
+          ? "app.garden.completed.messages.success.offline.header"
+          : "app.garden.completed.messages.success.header",
+        defaultMessage: isOffline ? "Your work has been saved offline!" : " ",
       }),
       title: intl.formatMessage({
-        id: "app.garden.completed.messages.success.title",
-        defaultMessage: "Published!",
+        id: isOffline
+          ? "app.garden.completed.messages.success.offline.title"
+          : "app.garden.completed.messages.success.title",
+        defaultMessage: isOffline ? "Saved Offline!" : "Published!",
       }),
       body: intl.formatMessage(
         {
-          id: "app.garden.completed.messages.success.body",
-          defaultMessage:
-            "Your work has been submitted!<br/><br/>{operator}, your Garden Operator will review your submission and you’ll be notified once it's approved or rejected.",
+          id: isOffline
+            ? "app.garden.completed.messages.success.offline.body"
+            : "app.garden.completed.messages.success.body",
+          defaultMessage: isOffline
+            ? "Your work has been saved offline!<br/><br/>It will be submitted automatically when you reconnect to the internet. {operator} will review it once submitted."
+            : "Your work has been submitted!<br/><br/>{operator}, your Garden Operator will review your submission and you'll be notified once it's approved or rejected.",
         },
         {
           operator: garden.operators[0].substring(0, 12),
@@ -72,19 +100,31 @@ export const WorkCompleted: React.FC<WorkCompletedProps> = ({ garden, status, me
     },
     pending: {
       header: intl.formatMessage({
-        id: "app.garden.completed.messages.pending.header",
+        id:
+          isOffline || !navigator.onLine
+            ? "app.garden.completed.messages.pending.offline.header"
+            : "app.garden.completed.messages.pending.header",
         defaultMessage: " ",
       }),
       title: intl.formatMessage({
-        id: "app.garden.completed.messages.pending.title",
-        defaultMessage: "Publishing...",
+        id:
+          isOffline || !navigator.onLine
+            ? "app.garden.completed.messages.pending.offline.title"
+            : "app.garden.completed.messages.pending.title",
+        defaultMessage: isOffline || !navigator.onLine ? "Saving Offline..." : "Publishing...",
       }),
       body: intl.formatMessage({
-        id: "app.garden.completed.messages.pending.body",
-        defaultMessage: "Your work is being submitted...",
+        id:
+          isOffline || !navigator.onLine
+            ? "app.garden.completed.messages.pending.offline.body"
+            : "app.garden.completed.messages.pending.body",
+        defaultMessage:
+          isOffline || !navigator.onLine
+            ? "Your work is being saved offline..."
+            : "Your work is being submitted...",
       }),
       variant: "pending",
-      icon: RiTelegram2Fill,
+      icon: isOffline || !navigator.onLine ? RiWifiOffLine : RiTelegram2Fill,
       spinner: true,
     },
     idle: {

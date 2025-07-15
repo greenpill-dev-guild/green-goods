@@ -107,7 +107,7 @@ const Work: React.FC = () => {
           />
         );
       case WorkTab.Complete:
-        return <WorkCompleted status={status} garden={garden!} />;
+        return <WorkCompleted status={status} garden={garden!} mutationData={workMutation.data} />;
     }
   };
 
