@@ -2,6 +2,7 @@ import { type ConnectedWallet, type User, usePrivy, useWallets } from "@privy-io
 import { type SmartWalletClientType, useSmartWallets } from "@privy-io/react-auth/smart-wallets";
 import React, { useContext, useEffect } from "react";
 import { identify } from "@/modules/posthog";
+import { offlineSync } from "@/modules/offline-sync";
 
 interface UserInterface {
   ready: boolean;
@@ -35,21 +36,8 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   }, [user]);
 
   useEffect(() => {
-    // Make smart account client available globally for offline sync
-    if (client) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as any).smartAccountClient = client;
-    } else {
-      // Clean up the global reference when client is not available
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (window as any).smartAccountClient;
-    }
-
-    // Cleanup function to remove global reference on unmount
-    return () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (window as any).smartAccountClient;
-    };
+    // Provide smart account client to offline sync service
+    offlineSync.setSmartAccountClient(client);
   }, [client]);
 
   return (

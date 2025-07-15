@@ -1,6 +1,7 @@
 import { NO_EXPIRATION, ZERO_BYTES32 } from "@ethereum-attestation-service/eas-sdk";
 import { encodeFunctionData } from "viem";
 import { arbitrum } from "viem/chains";
+import { type SmartWalletClientType } from "@privy-io/react-auth/smart-wallets";
 import { EAS } from "@/constants";
 import { abi } from "@/utils/abis/EAS.json";
 import { encodeWorkApprovalData, encodeWorkData } from "@/utils/eas";
@@ -16,6 +17,23 @@ import { queryClient } from "./react-query";
 export class OfflineSync {
   private syncInProgress = false;
   private syncInterval: NodeJS.Timeout | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private smartAccountClient: any = null;
+
+  // Method to set the smart account client
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  setSmartAccountClient(client: any) {
+    this.smartAccountClient = client;
+  }
+
+  // Method to get the smart account client with proper error handling
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private getSmartAccountClient(): any {
+    if (!this.smartAccountClient) {
+      throw new Error("Smart account client not available. Ensure user is authenticated.");
+    }
+    return this.smartAccountClient;
+  }
 
   // Start periodic sync
   startSync(intervalMs = 30000) {
@@ -43,6 +61,12 @@ export class OfflineSync {
   async sync() {
     // Prevent concurrent syncs
     if (this.syncInProgress || !navigator.onLine) {
+      return;
+    }
+
+    // Early return if no smart account client available
+    if (!this.smartAccountClient) {
+      console.warn("Skipping sync: Smart account client not available");
       return;
     }
 
@@ -81,11 +105,7 @@ export class OfflineSync {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private async syncWork(work: any) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const smartAccountClient = (window as any).smartAccountClient;
-    if (!smartAccountClient) {
-      throw new Error("Smart account client not available");
-    }
+    const smartAccountClient = this.getSmartAccountClient();
 
     // Get images from offline storage
     const images = await offlineDB.getImagesForWork(work.id);
@@ -127,11 +147,7 @@ export class OfflineSync {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private async syncApproval(work: any) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const smartAccountClient = (window as any).smartAccountClient;
-    if (!smartAccountClient) {
-      throw new Error("Smart account client not available");
-    }
+    const smartAccountClient = this.getSmartAccountClient();
 
     const encodedAttestationData = encodeWorkApprovalData(work.data);
 
