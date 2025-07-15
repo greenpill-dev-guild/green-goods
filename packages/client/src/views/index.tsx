@@ -1,13 +1,21 @@
-import { Navigate, Route, Routes } from "react-router-dom";
 import { lazy, Suspense } from "react";
+import { Navigate, Route, Routes } from "react-router-dom";
 
 // Dynamically import default exports
 const Home = lazy(() => import("./Home"));
 const Garden = lazy(() => import("./Garden"));
 const Profile = lazy(() => import("./Profile"));
-import { Garden as HomeGarden } from "./Home/Garden";
-import { GardenAssessment } from "./Home/Assessment";
-import { GardenWorkApproval } from "./Home/WorkApproval";
+
+// Dynamically import nested route components
+const GardenAssessment = lazy(() =>
+  import("./Home/Assessment").then((module) => ({ default: module.GardenAssessment }))
+);
+const HomeGarden = lazy(() =>
+  import("./Home/Garden").then((module) => ({ default: module.Garden }))
+);
+const GardenWorkApproval = lazy(() =>
+  import("./Home/WorkApproval").then((module) => ({ default: module.GardenWorkApproval }))
+);
 
 import { CircleLoader } from "@/components/UI/Loader";
 
@@ -26,10 +34,7 @@ export default function Views() {
             <Route path="home" element={<Home />}>
               <Route path=":id" element={<HomeGarden />}>
                 <Route path="work/:workId" element={<GardenWorkApproval />} />
-                <Route
-                  path="assessments/:assessmentId"
-                  element={<GardenAssessment />}
-                />
+                <Route path="assessments/:assessmentId" element={<GardenAssessment />} />
               </Route>
             </Route>
             <Route path="garden" element={<Garden />} />

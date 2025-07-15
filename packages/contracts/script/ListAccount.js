@@ -1,9 +1,9 @@
 const dotenv = require("dotenv");
 dotenv.config();
-const path = require("path");
+const path = require("node:path");
 const { ethers, Wallet } = require("ethers");
 const QRCode = require("qrcode");
-const fs = require("fs");
+const fs = require("node:fs");
 const toml = require("toml");
 
 const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY || "oKxs-03sij-U_N0iOlrSsZFr29-IqbuF";
@@ -36,7 +36,7 @@ async function getBalanceForEachNetwork(address) {
         console.log("--", networkName, "-- 📡");
         console.log("   balance:", +ethers.utils.formatEther(balance));
         console.log("   nonce:", +(await provider.getTransactionCount(address)));
-      } catch (e) {
+      } catch (_e) {
         console.log("Can't connect to network", networkName);
         console.log();
       }

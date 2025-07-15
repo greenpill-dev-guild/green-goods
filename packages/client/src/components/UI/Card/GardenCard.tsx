@@ -1,11 +1,11 @@
-import { cn } from "@/utils/cn";
-import * as React from "react";
-import { tv, type VariantProps } from "tailwind-variants";
-import { Card, type CardRootProps } from "./Card";
 import { RiGroupFill, RiMapPinFill, RiMapPinUserFill } from "@remixicon/react";
-import { Badge } from "../Badge/Badge";
-import { formatAddress } from "@/utils/text";
+import * as React from "react";
 import { useIntl } from "react-intl";
+import { tv, type VariantProps } from "tailwind-variants";
+import { cn } from "@/utils/cn";
+import { formatAddress } from "@/utils/text";
+import { Badge } from "../Badge/Badge";
+import { Card, type CardRootProps } from "./Card";
 
 export const cardVariants = tv({
   base: "relative flex flex-col grow border-0 rounded-lg overflow-clip rounded-b-lg justify-between p-0 gap-0",
@@ -108,33 +108,29 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardRootProps>(
                   })}
                 </div>
                 <div className="flex flex-row gap-1 flex-wrap">
-                  <>
-                    {garden.operators.slice(0, 2).map((operator) => (
-                      <Badge key={operator} variant="outline" tint="none">
-                        <RiMapPinUserFill className="w-4 h-4 text-primary" />
-                        {formatAddress(operator)}
-                      </Badge>
-                    ))}
-                    {garden.operators.length > 2 && (
-                      <Badge key={"others"} variant="outline" tint="none">
-                        <RiMapPinUserFill className="w-4 h-4 text-primary" />
-                        {intl.formatMessage(
-                          {
-                            id: "app.garden.andOthers",
-                            defaultMessage: "and {amount} others",
-                          },
-                          { amount: garden.operators.length - 2 }
-                        )}
-                      </Badge>
-                    )}
-                  </>
+                  {garden.operators.slice(0, 2).map((operator) => (
+                    <Badge key={operator} variant="outline" tint="none">
+                      <RiMapPinUserFill className="w-4 h-4 text-primary" />
+                      {formatAddress(operator)}
+                    </Badge>
+                  ))}
+                  {garden.operators.length > 2 && (
+                    <Badge key={"others"} variant="outline" tint="none">
+                      <RiMapPinUserFill className="w-4 h-4 text-primary" />
+                      {intl.formatMessage(
+                        {
+                          id: "app.garden.andOthers",
+                          defaultMessage: "and {amount} others",
+                        },
+                        { amount: garden.operators.length - 2 }
+                      )}
+                    </Badge>
+                  )}
                 </div>
               </>
             )}
           </div>
-          {showDescription && (
-            <div className="text-sm text-slate-500">{garden.description}</div>
-          )}
+          {showDescription && <div className="text-sm text-slate-500">{garden.description}</div>}
         </div>
       </Card>
     );

@@ -28,11 +28,7 @@ type ProfileProps = {
   displayName: string;
 } & actionsMap;
 
-export const Profile: React.FC<ProfileProps> = ({
-  avatar,
-  displayName,
-  ...props
-}) => {
+export const Profile: React.FC<ProfileProps> = ({ avatar, displayName, ...props }) => {
   return (
     <div className="relative flex flex-col items-center gap-2 px-2">
       <div className="relative w-24 aspect-square -z-10 mb-2" />
@@ -47,10 +43,7 @@ export const Profile: React.FC<ProfileProps> = ({
           const Icon = ProfileDataTypes[key as keyof typeof ProfileDataTypes];
           if (value === undefined) return;
           return (
-            <Badge
-              key={key}
-              leadingIcon={<Icon className="w-4 text-primary mx-1" />}
-            >
+            <Badge key={key} leadingIcon={<Icon className="w-4 text-primary mx-1" />}>
               {value}
             </Badge>
           );

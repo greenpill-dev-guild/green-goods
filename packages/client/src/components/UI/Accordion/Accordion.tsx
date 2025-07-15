@@ -1,8 +1,8 @@
 "use client";
 
-import * as React from "react";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import { RiAddLine, RiQuestionLine } from "@remixicon/react";
+import * as React from "react";
 import { cn } from "@/utils/cn";
 import { FlexCard } from "../Card/Card";
 
@@ -15,10 +15,7 @@ const AccordionItem = React.forwardRef<
   <FlexCard size="small">
     <AccordionPrimitive.Item
       ref={ref}
-      className={cn(
-        "flex flex-col grow w-full items-start justify-items-start gap-2",
-        className
-      )}
+      className={cn("flex flex-col grow w-full items-start justify-items-start gap-2", className)}
       {...props}
     />
   </FlexCard>

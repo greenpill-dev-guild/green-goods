@@ -15,9 +15,13 @@
   "scripts": {
     "init": "pnpm install",
     "foundry:up": "curl -L https://foundry.paradigm.xyz | bash && bash $HOME/.foundry/bin/foundryup",
-    "prepare": "(forge --version || pnpm foundry:up)",
+    "prepare": "husky",
     "build": "pnpm recursive run build",
-    "lint": "pnpm recursive run lint",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "lint": "biome check --write --unsafe packages/client/src/**/*.{ts,tsx} packages/contracts/src packages/eas/src",
+    "lint:oxlint": "oxlint packages/client/src packages/eas/src packages/indexer/src",
+    "lint-staged": "lint-staged",
     "test": "pnpm recursive run test",
     "dev": "concurrently -n \"APP,CONTRACTS\" -c \"bgMagenta.bold,bgCyan.bold\" \"pnpm run dev:app\" \"pnpm run dev:contracts\"",
     "dev:app": "pnpm --filter 'client' run dev",
@@ -30,13 +34,25 @@
     "viem": "^2.30.5"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.0.0-beta.6",
     "@types/node": "22.5.1",
     "concurrently": "8.2.2",
-    "prettier": "^3.3.3",
+    "husky": "^9.1.4",
+    "lint-staged": "^15.2.7",
+    "oxlint": "^0.15.0",
     "wait-port": "1.1.0"
   },
   "engines": {
     "node": ">=20.x",
     "pnpm": ">=9.x"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,json,md}": [
+      "biome format --write",
+      "oxlint"
+    ],
+    "*.sol": [
+      "pnpm --filter contracts format"
+    ]
   }
 }

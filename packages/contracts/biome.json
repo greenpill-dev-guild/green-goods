@@ -1,0 +1,76 @@
+{
+  "root": false,
+  "$schema": "https://biomejs.dev/schemas/2.0.0-beta.6/schema.json",
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "style": {
+        "noParameterAssign": "error",
+        "useAsConstAssertion": "error",
+        "useDefaultParameterLast": "error",
+        "useEnumInitializers": "error",
+        "useSelfClosingElements": "error",
+        "useSingleVarDeclarator": "error",
+        "noUnusedTemplateLiteral": "error",
+        "useNumberNamespace": "error",
+        "noInferrableTypes": "error",
+        "noUselessElse": "error"
+      }
+    }
+  },
+  "formatter": {
+    "enabled": true,
+    "formatWithErrors": false,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineEnding": "lf",
+    "lineWidth": 120,
+    "attributePosition": "auto",
+    "bracketSpacing": true,
+    "bracketSameLine": false,
+    "includes": [
+      "**",
+      "!**/broadcast",
+      "!**/cache",
+      "!**/coverage",
+      "!**/node_modules",
+      "!**/out",
+      "!**/*.env",
+      "!**/*.log",
+      "!**/.DS_Store",
+      "!**/.pnp.*",
+      "!**/bun.lockb",
+      "!**/lcov.info",
+      "!**/package-lock.json",
+      "!**/pnpm-lock.yaml",
+      "!**/yarn.lock"
+    ]
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "trailingCommas": "all",
+      "semicolons": "always",
+      "arrowParentheses": "always",
+      "bracketSpacing": true,
+      "bracketSameLine": false,
+      "quoteProperties": "asNeeded",
+      "attributePosition": "auto"
+    }
+  },
+  "json": {
+    "formatter": {
+      "trailingCommas": "none"
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["**/*.sol"],
+      "formatter": {
+        "indentWidth": 4,
+        "lineWidth": 120
+      }
+    }
+  ]
+}

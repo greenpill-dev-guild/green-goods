@@ -1,8 +1,8 @@
-import React, { useContext } from "react";
 import { useQuery } from "@tanstack/react-query";
+import React, { useContext, useMemo } from "react";
 
 import { getGardenAssessments, getWorks } from "@/modules/eas";
-import { getActions, getGardens, getGardeners } from "@/modules/greengoods";
+import { getActions, getGardeners, getGardens } from "@/modules/greengoods";
 
 import { useUser } from "./user";
 import { useWork } from "./work";
@@ -53,11 +53,7 @@ export const useGarden = (id: string): GardenDataProps => {
 
         return {
           ...work,
-          status: workApproval
-            ? workApproval.approved
-              ? "approved"
-              : "rejected"
-            : "pending",
+          status: workApproval ? (workApproval.approved ? "approved" : "rejected") : "pending",
         };
       });
 
@@ -66,10 +62,15 @@ export const useGarden = (id: string): GardenDataProps => {
     throwOnError: true,
   });
 
+  const isOperator = useMemo(
+    () =>
+      (!!eoa?.address && !!garden?.operators.includes(eoa.address)) ||
+      (!!smartAccountAddress && !!garden?.operators.includes(smartAccountAddress)),
+    [garden, eoa, smartAccountAddress]
+  );
+
   return {
-    isOperator:
-      !!garden?.operators.includes(eoa?.address!) ||
-      !!garden?.operators.includes(smartAccountAddress!),
+    isOperator,
     garden,
     gardenStatus,
     gardeners:
@@ -98,11 +99,7 @@ export const useGardens = () => {
   return useContext(GardensContext);
 };
 
-export const GardensProvider = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
+export const GardensProvider = ({ children }: { children: React.ReactNode }) => {
   // QUERIES
   const { data: actions } = useQuery<Action[]>({
     queryKey: ["actions"],
@@ -113,12 +110,10 @@ export const GardensProvider = ({
     queryKey: ["gardens"],
     queryFn: getGardens,
   });
-  const { data: gardeners, status: gardenersStatus } = useQuery<GardenerCard[]>(
-    {
-      queryKey: ["gardeners"],
-      queryFn: getGardeners,
-    }
-  );
+  const { data: gardeners, status: gardenersStatus } = useQuery<GardenerCard[]>({
+    queryKey: ["gardeners"],
+    queryFn: getGardeners,
+  });
 
   return (
     <GardensContext.Provider
@@ -127,9 +122,7 @@ export const GardensProvider = ({
         gardens: gardens || [],
         gardensStatus,
         gardenersStatus,
-        gardenersMap: new Map(
-          gardeners?.map((gardener) => [gardener.id, gardener]) || []
-        ),
+        gardenersMap: new Map(gardeners?.map((gardener) => [gardener.id, gardener]) || []),
       }}
     >
       {children}

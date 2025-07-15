@@ -46,9 +46,7 @@ if (!self.define) {
 
   self.define = (depsNames, factory) => {
     const uri =
-      nextDefineUri ||
-      ("document" in self ? document.currentScript.src : "") ||
-      location.href;
+      nextDefineUri || ("document" in self ? document.currentScript.src : "") || location.href;
     if (registry[uri]) {
       // Module is already loading or loaded.
       return;
@@ -87,7 +85,7 @@ define(["./workbox-c982e567"], function (workbox) {
       },
       {
         url: "index.html",
-        revision: "0.s6nkl8pt798",
+        revision: "0.j3son40h6so",
       },
     ],
     {}

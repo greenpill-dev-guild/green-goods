@@ -35,25 +35,20 @@ const parseDataToGardenAssessment = async (
     id: gardenAssessmentUID,
     authorAddress: attestation.attester,
     gardenAddress: attestation.recipient,
-    soilMoisturePercentage: data.filter(
-      (d: any) => d.name === "soilMoisturePercentage"
-    )[0].value.value!,
+    soilMoisturePercentage: data.filter((d: any) => d.name === "soilMoisturePercentage")[0].value
+      .value!,
     carbonTonStock: Number(
       data.filter((d: any) => d.name === "carbonTonStock")[0].value.value.hex!
     ),
     carbonTonPotential: Number(
-      data.filter((d: any) => d.name === "carbonTonPotential")[0].value.value
-        .hex!
+      data.filter((d: any) => d.name === "carbonTonPotential")[0].value.value.hex!
     ),
     gardenSquareMeters: Number(
-      data.filter((d: any) => d.name === "gardenSquareMeters")[0].value.value
-        .hex!
+      data.filter((d: any) => d.name === "gardenSquareMeters")[0].value.value.hex!
     ),
     biome: data.filter((d: any) => d.name === "biome")[0].value.value!,
     remoteReport:
-      typeof report.data === "string" ?
-        report.data
-      : URL.createObjectURL(report.data as Blob),
+      typeof report.data === "string" ? report.data : URL.createObjectURL(report.data as Blob),
     speciesRegistry: {
       trees: await Promise.all(
         speciesRegistry.trees.map(async (tree: any) => ({
@@ -78,15 +73,9 @@ const parseDataToGardenAssessment = async (
         }))
       ),
     },
-    polygonCoordinates: data.filter(
-      (d: any) => d.name === "polygonCoordinates"
-    )[0].value.value!,
-    treeGenusesObserved: data.filter(
-      (d: any) => d.name === "treeGenusesObserved"
-    )[0].value.value!,
-    weedGenusesObserved: data.filter(
-      (d: any) => d.name === "weedGenusesObserved"
-    )[0].value.value!,
+    polygonCoordinates: data.filter((d: any) => d.name === "polygonCoordinates")[0].value.value!,
+    treeGenusesObserved: data.filter((d: any) => d.name === "treeGenusesObserved")[0].value.value!,
+    weedGenusesObserved: data.filter((d: any) => d.name === "weedGenusesObserved")[0].value.value!,
     issues,
     tags,
     createdAt: attestation.time,
@@ -104,8 +93,7 @@ const parseDataToWork = async (
 ): Promise<WorkCard> => {
   const data = JSON.parse(decodedDataJson);
 
-  const media: string[] = data.filter((d: any) => d.name === "media")[0].value
-    .value!;
+  const media: string[] = data.filter((d: any) => d.name === "media")[0].value.value!;
 
   const mediaUrls = await Promise.all(
     media.map(async (hash: string) => {
@@ -119,9 +107,7 @@ const parseDataToWork = async (
     id: workUID,
     gardenerAddress: attestation.attester,
     gardenAddress: attestation.recipient,
-    actionUID: Number(
-      data.filter((d: any) => d.name === "actionUID")[0].value.value.hex!
-    ),
+    actionUID: Number(data.filter((d: any) => d.name === "actionUID")[0].value.value.hex!),
     title: data.filter((d: any) => d.name === "title")[0].value.value!,
     feedback: data.filter((d: any) => d.name === "feedback")[0].value.value!,
     metadata: data.filter((d: any) => d.name === "metadata")[0].value.value!,
@@ -153,9 +139,7 @@ const parseDataToWorkApproval = (
   };
 };
 
-export const getGardenAssessments = async (
-  gardenAddress?: string
-): Promise<GardenAssessment[]> => {
+export const getGardenAssessments = async (gardenAddress?: string): Promise<GardenAssessment[]> => {
   // TODO add 'where: valid: true' filter
   const QUERY = easGraphQL(/* GraphQL */ `
     query Attestations($where: AttestationWhereInput) {
@@ -173,9 +157,8 @@ export const getGardenAssessments = async (
 
   const { data, error } = await easArbitrumClient
     .query(QUERY, {
-      where:
-        gardenAddress ?
-          {
+      where: gardenAddress
+        ? {
             schemaId,
             recipient: { equals: gardenAddress },
           }
@@ -222,9 +205,8 @@ export const getWorks = async (gardenAddress?: string): Promise<WorkCard[]> => {
 
   const { data, error } = await easArbitrumClient
     .query(QUERY, {
-      where:
-        gardenAddress ?
-          { schemaId, recipient: { equals: gardenAddress } }
+      where: gardenAddress
+        ? { schemaId, recipient: { equals: gardenAddress } }
         : {
             schemaId,
           },
@@ -237,20 +219,14 @@ export const getWorks = async (gardenAddress?: string): Promise<WorkCard[]> => {
   const works = Promise.all(
     data?.attestations.map(
       async ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
-        await parseDataToWork(
-          id,
-          { attester, recipient, time: timeCreated },
-          decodedDataJson
-        )
+        await parseDataToWork(id, { attester, recipient, time: timeCreated }, decodedDataJson)
     ) ?? []
   );
 
   return works;
 };
 
-export const getWorkApprovals = async (
-  gardenerAddress?: string
-): Promise<WorkApproval[]> => {
+export const getWorkApprovals = async (gardenerAddress?: string): Promise<WorkApproval[]> => {
   // TODO add 'where: valid: true' filter
   const QUERY = easGraphQL(/* GraphQL */ `
     query Attestations($where: AttestationWhereInput) {
@@ -268,9 +244,8 @@ export const getWorkApprovals = async (
 
   const { data, error } = await easArbitrumClient
     .query(QUERY, {
-      where:
-        gardenerAddress ?
-          {
+      where: gardenerAddress
+        ? {
             schemaId,
             recipient: { equals: gardenerAddress },
           }
@@ -284,13 +259,8 @@ export const getWorkApprovals = async (
   if (!data) console.error("No data found");
 
   return (
-    data?.attestations.map(
-      ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
-        parseDataToWorkApproval(
-          id,
-          { attester, recipient, time: timeCreated },
-          decodedDataJson
-        )
+    data?.attestations.map(({ id, attester, recipient, timeCreated, decodedDataJson }) =>
+      parseDataToWorkApproval(id, { attester, recipient, time: timeCreated }, decodedDataJson)
     ) ?? []
   );
 };

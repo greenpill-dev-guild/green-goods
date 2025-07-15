@@ -1,5 +1,5 @@
 // import Datepicker from "react-tailwindcss-datepicker";
-import { InputHTMLAttributes, forwardRef } from "react";
+import { forwardRef, type InputHTMLAttributes } from "react";
 
 interface FormDateProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;

@@ -1,17 +1,16 @@
-import { Link, useLocation } from "react-router-dom";
-
 import {
-  RiHomeFill,
-  RiPlantFill,
-  RiUserFill,
-  RiHomeLine,
-  RiPlantLine,
-  RiUserLine,
   type RemixiconComponentType,
+  RiHomeFill,
+  RiHomeLine,
+  RiPlantFill,
+  RiPlantLine,
+  RiUserFill,
+  RiUserLine,
 } from "@remixicon/react";
+import { useIntl } from "react-intl";
+import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/utils/cn";
 import { useNavigateToTop } from "@/utils/useNavigateToTop";
-import { useIntl } from "react-intl";
 
 export const AppBar = () => {
   const { pathname } = useLocation();
@@ -65,12 +64,12 @@ export const AppBar = () => {
               )}
               type="button"
             >
-              {pathname.startsWith(path) ?
+              {pathname.startsWith(path) ? (
                 <ActiveIcon className="w-6 h-6" />
-              : <InactiveIcon className="w-6 h-6" />}
-              <p
-                className={`text-sm ${pathname.startsWith(path) ? "text-primary" : ""}`}
-              >
+              ) : (
+                <InactiveIcon className="w-6 h-6" />
+              )}
+              <p className={`text-sm ${pathname.startsWith(path) ? "text-primary" : ""}`}>
                 {title}
               </p>
             </button>

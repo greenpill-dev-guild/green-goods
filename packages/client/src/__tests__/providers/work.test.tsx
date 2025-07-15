@@ -1,11 +1,7 @@
+import { EAS, NO_EXPIRATION, SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
+import { render } from "@testing-library/react";
 import { ethers } from "ethers";
 import { describe, it } from "vitest";
-import { render } from "@testing-library/react";
-import {
-  EAS,
-  NO_EXPIRATION,
-  SchemaEncoder,
-} from "@ethereum-attestation-service/eas-sdk";
 
 import { EAS as constants } from "@/constants";
 import { useWork, WorkProvider } from "@/providers/work";
@@ -42,10 +38,7 @@ describe("WorkProvider", () => {
 
 describe("Work Attestation", () => {
   it("should provide default value and allow updates", async () => {
-    const provider = new ethers.AlchemyProvider(
-      "arbitrum",
-      import.meta.env.VITE_ALCHEMY_API_KEY
-    );
+    const provider = new ethers.AlchemyProvider("arbitrum", import.meta.env.VITE_ALCHEMY_API_KEY);
 
     // Create a wallet instance using the private key and connect it to the provider
     const wallet = new ethers.Wallet(import.meta.env.PRIVATE_KEY, provider);
@@ -81,10 +74,7 @@ describe("Work Attestation", () => {
 
 describe("Work Approval Attestation", () => {
   it("should provide default value and allow updates", async () => {
-    const provider = new ethers.AlchemyProvider(
-      "arbitrum",
-      import.meta.env.VITE_ALCHEMY_API_KEY
-    );
+    const provider = new ethers.AlchemyProvider("arbitrum", import.meta.env.VITE_ALCHEMY_API_KEY);
 
     // Create a wallet instance using the private key and connect it to the provider
     const wallet = new ethers.Wallet(import.meta.env.PRIVATE_KEY, provider);

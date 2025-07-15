@@ -121,8 +121,8 @@
 }
 
 @layer utilities {
-  /* Title styles */
-  /* .text-title-h1 {
+  /* Title styles 
+  .text-title-h1 {
     font-size: var(--text-title-h1);
     line-height: var(--text-title-h1--line-height);
     letter-spacing: var(--text-title-h1--letter-spacing);
@@ -279,33 +279,238 @@
     letter-spacing: var(--text-doc-paragraph--letter-spacing);
     font-weight: var(--text-doc-paragraph--font-weight);
   }
-  */ h1 {
-    @apply text-title-h1 text-foreground;
+  */
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-family-sans);
+    color: var(--color-slate-800);
+  }
+
+  * {
+    font-family: var(--font-family-sans);
+  }
+
+  .title-screen {
+    font-size: var(--text-title-screen-font-size);
+    line-height: var(--text-title-screen-line-height);
+    font-weight: var(--text-title-screen-font-weight);
+  }
+
+  .title-section {
+    font-size: var(--text-title-section-font-size);
+    line-height: var(--text-title-section-line-height);
+    font-weight: var(--text-title-section-font-weight);
+  }
+
+  .title-subsection {
+    font-size: var(--text-title-subsection-font-size);
+    line-height: var(--text-title-subsection-line-height);
+    font-weight: var(--text-title-subsection-font-weight);
+  }
+
+  .title-body {
+    font-size: var(--text-title-body-font-size);
+    line-height: var(--text-title-body-line-height);
+    font-weight: var(--text-title-body-font-weight);
+  }
+
+  .label-lg {
+    font-size: var(--text-label-lg-font-size);
+    line-height: var(--text-label-lg-line-height);
+    font-weight: var(--text-label-lg-font-weight);
+  }
+
+  .label-md {
+    font-size: var(--text-label-md-font-size);
+    line-height: var(--text-label-md-line-height);
+    font-weight: var(--text-label-md-font-weight);
+  }
+
+  .label-sm {
+    font-size: var(--text-label-sm-font-size);
+    line-height: var(--text-label-sm-line-height);
+    font-weight: var(--text-label-sm-font-weight);
+  }
+
+  .label-xs {
+    font-size: var(--text-label-xs-font-size);
+    line-height: var(--text-label-xs-line-height);
+    font-weight: var(--text-label-xs-font-weight);
+  }
+
+  .body-lg-regular {
+    font-size: var(--text-body-lg-regular-font-size);
+    line-height: var(--text-body-lg-regular-line-height);
+    font-weight: var(--text-body-lg-regular-font-weight);
+  }
+
+  .body-lg-medium {
+    font-size: var(--text-body-lg-medium-font-size);
+    line-height: var(--text-body-lg-medium-line-height);
+    font-weight: var(--text-body-lg-medium-font-weight);
+  }
+
+  .body-md-regular {
+    font-size: var(--text-body-md-regular-font-size);
+    line-height: var(--text-body-md-regular-line-height);
+    font-weight: var(--text-body-md-regular-font-weight);
+  }
+
+  .body-md-medium {
+    font-size: var(--text-body-md-medium-font-size);
+    line-height: var(--text-body-md-medium-line-height);
+    font-weight: var(--text-body-md-medium-font-weight);
+  }
+
+  .body-sm-regular {
+    font-size: var(--text-body-sm-regular-font-size);
+    line-height: var(--text-body-sm-regular-line-height);
+    font-weight: var(--text-body-sm-regular-font-weight);
+  }
+
+  .body-sm-medium {
+    font-size: var(--text-body-sm-medium-font-size);
+    line-height: var(--text-body-sm-medium-line-height);
+    font-weight: var(--text-body-sm-medium-font-weight);
+  }
+
+  .body-xs-regular {
+    font-size: var(--text-body-xs-regular-font-size);
+    line-height: var(--text-body-xs-regular-line-height);
+    font-weight: var(--text-body-xs-regular-font-weight);
+  }
+
+  .body-xs-medium {
+    font-size: var(--text-body-xs-medium-font-size);
+    line-height: var(--text-body-xs-medium-line-height);
+    font-weight: var(--text-body-xs-medium-font-weight);
+  }
+
+  /* TODO: DOC STYLES */
+
+  .doc-heading {
+    font-size: var(--text-doc-heading-font-size);
+    line-height: var(--text-doc-heading-line-height);
+    font-weight: var(--text-doc-heading-font-weight);
+  }
+
+  .doc-subheading {
+    font-size: var(--text-doc-subheading-font-size);
+    line-height: var(--text-doc-subheading-line-height);
+    font-weight: var(--text-doc-subheading-font-weight);
+  }
+
+  .doc-paragraph {
+    font-size: var(--text-doc-paragraph-font-size);
+    line-height: var(--text-doc-paragraph-line-height);
+    font-weight: var(--text-doc-paragraph-font-weight);
+  }
+
+  h1 {
+    font-size: 2em;
+    font-weight: bold;
   }
 
   h2 {
-    @apply text-title-h2 text-foreground;
+    font-size: 1.5em;
+    font-weight: bold;
   }
 
   h3 {
-    @apply text-title-h3 text-foreground;
+    font-size: 1.17em;
+    font-weight: bold;
   }
 
   h4 {
-    @apply text-title-h4 text-foreground;
+    font-size: 1em;
+    font-weight: bold;
   }
 
   h5 {
-    @apply text-title-h5 text-foreground;
+    font-size: 0.83em;
+    font-weight: bold;
   }
 
   h6 {
-    @apply text-title-h6 text-foreground;
+    font-size: 0.67em;
+    font-weight: bold;
+  }
+
+  p {
+    font-size: 1em;
   }
 
   a {
-    @apply text-label-md;
-    text-decoration: inherit;
+    color: var(--color-primary);
+    text-decoration: none;
+  }
+
+  ul {
+    list-style: disc;
+    padding-left: 2rem;
+  }
+
+  ol {
+    list-style: decimal;
+    padding-left: 2rem;
+  }
+
+  blockquote {
+    border-left: 2px solid var(--color-slate-300);
+    padding-left: 1rem;
+    margin-left: 0;
+    font-style: italic;
+  }
+
+  pre {
+    background: var(--color-slate-100);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+  }
+
+  code {
+    font-family: var(--font-family-mono);
+    background: var(--color-slate-100);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+  }
+
+  pre > code {
+    padding: 0;
+    background: transparent;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th,
+  td {
+    border: 1px solid var(--color-slate-300);
+    padding: 0.5rem;
+  }
+
+  th {
+    background: var(--color-slate-100);
+    font-weight: bold;
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  hr {
+    border: 0;
+    border-top: 1px solid var(--color-slate-300);
+    margin: 1rem 0;
   }
 
   /* Additional utility classes */

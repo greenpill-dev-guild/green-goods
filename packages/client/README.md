@@ -47,81 +47,116 @@ To run the client application in a local development environment:
     pnpm run dev
     ```
 
+    **Alternative development server (experimental):**
+    ```bash
+    pnpm run dev:rolldown
+    ```
+
 The application should typically be accessible at `http://localhost:3001`. The Vite server will provide live reloading and HMR (Hot Module Replacement).
 
 ## Building for Production
 
-To create a production-ready build of the client application:
+The client supports dual build systems for different use cases:
 
-1.  **Ensure you are in the `packages/client` directory or use pnpm workspace filtering.**
+### Production Build (Recommended)
+```bash
+pnpm run build
+```
+- **Optimized**: Full Vite optimization with code splitting
+- **Bundle Size**: ~4.4MB main bundle with dynamic imports
+- **Features**: PWA support, optimal chunking, production-ready
 
-2.  **Run the build command:**
-    ```bash
-    pnpm run build
-    ```
+### Experimental Build
+```bash
+pnpm run build:rolldown
+```
+- **Purpose**: Testing next-generation Rolldown bundling
+- **Performance**: Similar output with experimental Rust-based bundling
+- **Status**: Based on Vite's Rolldown integration
 
-This command will compile the TypeScript code, bundle the application using Vite, and output the static assets to the `dist` directory within `packages/client`. These assets are ready for deployment to a static hosting provider.
+Both commands will compile TypeScript, bundle the application, and output static assets to the `dist` directory, ready for deployment.
 
 ## Testing
 
 The client application uses [Vitest](https://vitest.dev/) for unit and integration testing.
 
 - **Run tests once:**
-
   ```bash
   pnpm run test
   ```
 
 - **Run tests in watch mode (for interactive development):**
-
   ```bash
   pnpm run test:watch
   ```
-
-  _(Note: The `package.json` specifies `--standalone` for `test:watch`, which might require you to be in the `packages/client` directory or adjust if running from the root.)_
 
 - **Generate test coverage report:**
   ```bash
   pnpm run coverage
   ```
-  The coverage report will typically be generated in a `coverage` directory within `packages/client`.
 
-## Linting
+## Code Quality and Formatting
 
-The project uses ESLint for code linting to ensure code quality and consistency.
+The project uses a high-performance linting setup:
 
-- **Run the linter:**
+- **Format code:**
+  ```bash
+  pnpm run format
+  ```
+
+- **Run linting (ultra-fast):**
   ```bash
   pnpm run lint
   ```
 
-This command will check the codebase for any linting errors or warnings based on the configured rules in `eslint.config.js`.
+The `lint` command runs both Biome checks and Oxlint to ensure code quality and consistency in milliseconds.
+
+**Tools Used:**
+- **Biome**: Fast formatting and basic checks
+- **Oxlint**: Ultra-fast Rust-based linting (30ms on 84 files)
+- **Combined**: Complete code quality coverage
 
 ## Key Technologies
 
 The client application is built with a modern frontend stack:
 
-- **[React](https://react.dev/):** A JavaScript library for building user interfaces.
-- **[Vite](https://vitejs.dev/):** A fast build tool and development server.
-- **[TypeScript](https://www.typescriptlang.org/):** A superset of JavaScript that adds static typing.
-- **[Tailwind CSS](https://tailwindcss.com/):** A utility-first CSS framework for rapid UI development.
-  - Includes `tailwind-merge` and `tailwind-variants` for managing styles.
-- **[Privy](https://www.privy.io/):** For user authentication and wallet management.
-- **[TanStack Query (React Query)](https://tanstack.com/query/latest):** For server-state management, data fetching, and caching.
-- **[GQL.tada](https://gql-tada.0no.co/):** For type-safe GraphQL queries.
-- **[Vitest](https://vitest.dev/):** A Vite-native testing framework.
-- **[React Router](https://reactrouter.com/):** For client-side routing.
-- **[Radix UI](https://www.radix-ui.com/):** For unstyled, accessible UI primitives.
-- **[React Hook Form](https://react-hook-form.com/):** For form validation and management.
-- **[PWA Features](https://vite-pwa-org.netlify.app/):** Configured via `vite-plugin-pwa` to enable Progressive Web App capabilities.
+### Core Framework
+- **[React](https://react.dev/):** UI library with lazy loading for optimal performance
+- **[Vite](https://vitejs.dev/):** Fast build tool with experimental Rolldown support
+- **[TypeScript](https://www.typescriptlang.org/):** Static typing for better development experience
+
+### Styling & UI
+- **[Tailwind CSS](https://tailwindcss.com/):** Utility-first CSS framework
+  - Includes `tailwind-merge` and `tailwind-variants` for managing styles
+- **[Radix UI](https://www.radix-ui.com/):** Unstyled, accessible UI primitives
+
+### State Management & Data
+- **[TanStack Query (React Query)](https://tanstack.com/query/latest):** Server-state management and caching
+- **[GQL.tada](https://gql-tada.0no.co/):** Type-safe GraphQL queries
+- **[React Hook Form](https://react-hook-form.com/):** Form validation and management
+
+### Authentication & Blockchain
+- **[Privy](https://www.privy.io/):** User authentication and wallet management
+- **[React Router](https://reactrouter.com/):** Client-side routing
+
+### Development & Quality
+- **[Vitest](https://vitest.dev/):** Vite-native testing framework
+- **[Biome](https://biomejs.dev/):** Fast formatting and linting
+- **[Oxlint](https://oxc-project.github.io/):** Ultra-fast Rust-based linting
+- **[PWA Features](https://vite-pwa-org.netlify.app/):** Progressive Web App capabilities
+
+### Performance Optimizations
+- **Dynamic Imports**: Lazy loading for major components
+- **Code Splitting**: Automatic chunking for optimal loading
+- **Bundle Optimization**: ~4.4MB main bundle with separate feature chunks
 
 ## Project Structure Highlights
 
 The `packages/client/src` directory is organized as follows:
 
 - **`main.tsx`**: The main entry point of the application.
-- **`App.tsx`**: The root React component, setting up routing and global providers.
-- **`api/`**: Contains serverless functions (e.g., `subscribe.cjs`, `users.cjs`) intended for deployment on platforms like Vercel. These handle specific backend interactions.
+- **`App.tsx`**: The root React component with dynamic imports and global providers.
+- **`api/`**: Serverless functions (e.g., `subscribe.cjs`, `users.cjs`) for deployment on platforms like Vercel.
 - **`components/`**: Reusable UI components used throughout the application.
   - `UI/`: General-purpose UI elements (buttons, inputs, modals, etc.).
   - `Layout/`: Components related to page structure (header, footer, navigation).
@@ -134,22 +169,24 @@ The `packages/client/src` directory is organized as follows:
   - `greengoods.ts`: Green Goods specific logic or API interactions.
   - `pinata.ts`: Pinata IPFS service interactions.
   - `react-query.ts`: TanStack Query (React Query) configuration.
-- **`providers/`**: React Context API providers for managing global state or shared functionality (e.g., `AppProvider`, `UserProvider`).
+- **`providers/`**: React Context API providers for managing global state or shared functionality.
 - **`styles/`**: Global styles, Tailwind CSS configuration, and custom CSS.
 - **`types/`**: TypeScript type definitions, including ambient types (`*.d.ts`).
 - **`utils/`**: Utility functions and helpers used across the application.
   - `abis/`: ABIs for interacting with smart contracts.
   - `actions/`: Specific action-related utilities.
-- **`views/`**: Page-level components that represent different routes/screens of the application (e.g., `Home`, `Login`, `Profile`, `Garden` views).
+- **`views/`**: Page-level components with lazy loading for optimal performance.
 - **`__tests__/`**: Contains test files, mirroring the structure of the `src` directory.
 
-Other important files in `packages/client`:
+### Configuration Files
 
-- **`vite.config.ts`**: Configuration for Vite, including plugins like PWA and mkcert.
-- **`postcss.config.js` and `tailwind.config.js`**: Configuration for PostCSS and Tailwind CSS.
-- **`eslint.config.js`**: ESLint configuration.
-- **`tsconfig.json` (and variants):** TypeScript configuration files.
-- **`public/`**: Static assets that are served directly by the development server or copied to the build output.
+- **`vite.config.ts`**: Vite configuration with PWA, mkcert, and Rolldown support.
+- **`vite.rolldown.config.ts`**: Experimental Rolldown-specific configuration.
+- **`postcss.config.js` and `tailwind.config.js`**: PostCSS and Tailwind CSS configuration.
+- **`.oxlintrc.json`**: Oxlint configuration for ultra-fast linting.
+- **`biome.json`**: Biome configuration for formatting and basic checks.
+- **`tsconfig.json` (and variants)**: TypeScript configuration files.
+- **`public/`**: Static assets served directly by the development server.
 - **`index.html`**: The main HTML shell for the SPA.
 
 ## Contributing

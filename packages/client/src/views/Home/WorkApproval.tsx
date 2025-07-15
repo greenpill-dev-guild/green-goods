@@ -1,3 +1,5 @@
+import { NO_EXPIRATION, ZERO_BYTES32 } from "@ethereum-attestation-service/eas-sdk";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   RiCheckDoubleFill,
   RiCheckFill,
@@ -7,48 +9,35 @@ import {
   RiPencilFill,
   RiPlantFill,
 } from "@remixicon/react";
-import { z } from "zod";
-import { useIntl } from "react-intl";
-import { arbitrum } from "viem/chains";
-import { decodeErrorResult } from "viem";
-import { Form, useForm } from "react-hook-form";
-import { useParams } from "react-router-dom";
-import {
-  NO_EXPIRATION,
-  ZERO_BYTES32,
-} from "@ethereum-attestation-service/eas-sdk";
-import React, { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { zodResolver } from "@hookform/resolvers/zod";
+import type React from "react";
+import { useEffect, useState } from "react";
+import { Form, useForm } from "react-hook-form";
+import { useIntl } from "react-intl";
+import { useParams } from "react-router-dom";
+import { decodeErrorResult } from "viem";
+import { arbitrum } from "viem/chains";
 import { encodeFunctionData } from "viem/utils";
-
+import { z } from "zod";
+import { Button } from "@/components/UI/Button";
+import { GardenCard } from "@/components/UI/Card/GardenCard";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/UI/Carousel/Carousel";
+import { FormCard } from "@/components/UI/Form/Card";
+import { FormInfo } from "@/components/UI/Form/Info";
+import { FormText } from "@/components/UI/Form/Text";
+import { CircleLoader } from "@/components/UI/Loader";
+import { TopNav } from "@/components/UI/TopNav/TopNav";
 import { EAS } from "@/constants";
-
+import { getFileByHash } from "@/modules/pinata";
+import { useGarden, useGardens } from "@/providers/garden";
+import { useUser } from "@/providers/user";
 import { abi } from "@/utils/abis/EAS.json";
+import { abi as WorkApprovalResolverABI } from "@/utils/abis/WorkApprovalResolver.json";
 import { encodeWorkApprovalData } from "@/utils/eas";
 import { useNavigateToTop } from "@/utils/useNavigateToTop";
-import { abi as WorkApprovalResolverABI } from "@/utils/abis/WorkApprovalResolver.json";
-
-import { getFileByHash } from "@/modules/pinata";
-
-import { useUser } from "@/providers/user";
-import { useGardens, useGarden } from "@/providers/garden";
-
-import { Button } from "@/components/UI/Button";
-import { CircleLoader } from "@/components/UI/Loader";
-import { FormInfo } from "@/components/UI/Form/Info";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-} from "@/components/UI/Carousel/Carousel";
-import { FormCard } from "@/components/UI/Form/Card";
-import { FormText } from "@/components/UI/Form/Text";
-import { TopNav } from "@/components/UI/TopNav/TopNav";
 import { WorkCompleted } from "../Garden/Completed";
-import { GardenCard } from "@/components/UI/Card/GardenCard";
 
-interface GardenWorkApprovalProps {}
+type GardenWorkApprovalProps = {};
 
 const workApprovalSchema = z.object({
   actionUID: z.number(),
@@ -143,19 +132,19 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
     },
   });
 
-  async function fetchWorkMetadata() {
-    if (work) {
-      const res = await getFileByHash(work.metadata);
-
-      if (!res.data) throw new Error("No metadata found");
-
-      const metadata: WorkMetadata = res.data as any;
-
-      setWorkMetadata(metadata);
-    }
-  }
-
   useEffect(() => {
+    async function fetchWorkMetadata() {
+      if (work) {
+        const res = await getFileByHash(work.metadata);
+
+        if (!res.data) throw new Error("No metadata found");
+
+        const metadata: WorkMetadata = res.data as any;
+
+        setWorkMetadata(metadata);
+      }
+    }
+
     fetchWorkMetadata();
   }, [work]);
 
@@ -340,9 +329,8 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
                     defaultMessage: "You've {status} the work!",
                   },
                   {
-                    status:
-                      workApprovalMutation.variables.approved ?
-                        intl
+                    status: workApprovalMutation.variables.approved
+                      ? intl
                           .formatMessage({
                             id: "app.home.workApproval.approved",
                             defaultMessage: "Approved",
@@ -357,26 +345,25 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
                   }
                 ),
                 variant: "success",
-                title:
-                  (workApprovalMutation.variables.approved ?
-                    intl.formatMessage({
-                      id: "app.home.workApproval.approved",
-                      defaultMessage: "Approved",
-                    })
-                  : intl.formatMessage({
-                      id: "app.home.workApproval.rejected",
-                      defaultMessage: "Rejected",
-                    })) + "!",
+                title: `${
+                  workApprovalMutation.variables.approved
+                    ? intl.formatMessage({
+                        id: "app.home.workApproval.approved",
+                        defaultMessage: "Approved",
+                      })
+                    : intl.formatMessage({
+                        id: "app.home.workApproval.rejected",
+                        defaultMessage: "Rejected",
+                      })
+                }!`,
                 body: intl.formatMessage(
                   {
                     id: "app.home.workApproval.body",
-                    defaultMessage:
-                      "You've {status} the work!<br/><br/>Excellent work!",
+                    defaultMessage: "You've {status} the work!<br/><br/>Excellent work!",
                   },
                   {
-                    status:
-                      workApprovalMutation.variables.approved ?
-                        intl
+                    status: workApprovalMutation.variables.approved
+                      ? intl
                           .formatMessage({
                             id: "app.home.workApproval.approved",
                             defaultMessage: "Approved",
@@ -390,10 +377,7 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
                           .toLocaleLowerCase(),
                   }
                 ),
-                icon:
-                  workApprovalMutation.variables.approved ?
-                    RiCheckFill
-                  : RiCloseFill,
+                icon: workApprovalMutation.variables.approved ? RiCheckFill : RiCloseFill,
                 spinner: false,
               },
             }}
