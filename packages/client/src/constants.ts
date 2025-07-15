@@ -6,7 +6,12 @@ export const APP_URL = "https://greengoods.app";
 export const APP_ICON = "https://greengoods.app/icon.png";
 
 // Import networks configuration
-const networksConfig = require("../../contracts/deployments/networks.json");
+import networksConfig from "../../contracts/deployments/networks.json";
+// Import deployment configurations
+import deployment31337 from "../../contracts/deployments/31337-latest.json";
+import deployment42161 from "../../contracts/deployments/42161-latest.json";
+import deployment42220 from "../../contracts/deployments/42220-latest.json";
+import deployment84532 from "../../contracts/deployments/84532-latest.json";
 
 // Helper function to get network config by chain ID
 function getNetworkConfigFromNetworksJson(chainId: number) {
@@ -24,18 +29,18 @@ function getNetworkConfigFromNetworksJson(chainId: number) {
 }
 
 // Function to safely import deployment files
-function getDeploymentConfig(chainId: number | string) {
+function getDeploymentConfig(chainId: number | string): any {
   const chain = String(chainId);
   try {
     switch (chain) {
       case "31337":
-        return require("../../contracts/deployments/31337-latest.json");
+        return deployment31337;
       case "42161":
-        return require("../../contracts/deployments/42161-latest.json");
+        return deployment42161;
       case "42220":
-        return require("../../contracts/deployments/42220-latest.json");
+        return deployment42220;
       case "84532":
-        return require("../../contracts/deployments/84532-latest.json");
+        return deployment84532;
       default:
         return {};
     }
