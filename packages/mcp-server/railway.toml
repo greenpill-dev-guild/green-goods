@@ -1,0 +1,14 @@
+# Railway configuration for Green Goods MCP Server
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "npm run build && npm run start:railway"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+# Optional: Add environment variables here
+# [env]
+# NODE_ENV = "production" 

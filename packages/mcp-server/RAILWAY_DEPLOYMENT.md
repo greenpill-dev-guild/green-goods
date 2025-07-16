@@ -37,23 +37,41 @@ Optional (when you get CharmVerse API access):
 CHARMVERSE_API_KEY=your_charmverse_api_key
 ```
 
+## API Endpoints
+
+Once deployed, your MCP server will be available at these endpoints:
+
+### Base Route (Main MCP Endpoint)
+- **GET** `https://your-app.railway.app/` - Server info and available endpoints
+- **POST** `https://your-app.railway.app/` - Main JSON-RPC MCP endpoint
+
+### Utility Endpoints  
+- **GET** `https://your-app.railway.app/health` - Health check
+- **GET** `https://your-app.railway.app/methods` - List available methods
+- **GET** `https://your-app.railway.app/tools` - Tool descriptions
+
 ## Verify Deployment
 
-Once deployed, test these endpoints:
+Test these endpoints after deployment:
 
-1. **Health Check**
+1. **Server Info**
+```bash
+curl https://your-app.railway.app/
+```
+
+2. **Health Check**
 ```bash
 curl https://your-app.railway.app/health
 ```
 
-2. **Available Methods**
+3. **Available Methods**
 ```bash
-curl https://your-app.railway.app/mcp/methods
+curl https://your-app.railway.app/methods
 ```
 
-3. **Test MCP Call**
+4. **Test MCP Call (Main Endpoint)**
 ```bash
-curl -X POST https://your-app.railway.app/mcp \
+curl -X POST https://your-app.railway.app/ \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",

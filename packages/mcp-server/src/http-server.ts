@@ -15,8 +15,24 @@ export function createHttpServer(mcpServer: Server): Express {
     res.json({ status: "ok", server: "green-goods-mcp-server" });
   });
 
-  // JSON-RPC endpoint - matches your configuration
-  app.post("/mcp", async (req, res) => {
+  // Base route - serve info on GET, handle JSON-RPC on POST
+  app.get("/", (req, res) => {
+    res.json({
+      server: "green-goods-mcp-server",
+      version: "1.0.0",
+      description: "Model Context Protocol server for Green Goods development",
+      endpoints: {
+        jsonrpc: "POST /",
+        health: "GET /health", 
+        methods: "GET /methods",
+        tools: "GET /tools"
+      },
+      documentation: "https://github.com/greenpill-dev-guild/green-goods"
+    });
+  });
+
+  // Main JSON-RPC endpoint at base route
+  app.post("/", async (req, res) => {
     const rpcReq = req.body;
     
     // Validate JSON-RPC request
@@ -58,7 +74,7 @@ export function createHttpServer(mcpServer: Server): Express {
   });
 
   // List available methods endpoint
-  app.get("/mcp/methods", (req, res) => {
+  app.get("/methods", (req, res) => {
     const methods = Object.keys(handlers);
     res.json({
       methods,
@@ -68,7 +84,7 @@ export function createHttpServer(mcpServer: Server): Express {
   });
 
   // MCP tools endpoint (for discovery)
-  app.get("/mcp/tools", (req, res) => {
+  app.get("/tools", (req, res) => {
     res.json({
       tools: [
         {
@@ -83,7 +99,9 @@ export function createHttpServer(mcpServer: Server): Express {
           name: "search_docs",
           description: "Search project documentation",
           parameters: {
-            query: { type: "string", required: true }
+            query: { type: "string", required: true },
+            type: { type: "string", required: false },
+            limit: { type: "number", required: false }
           }
         },
         {
@@ -99,6 +117,41 @@ export function createHttpServer(mcpServer: Server): Express {
           description: "Analyze a smart contract in the project",
           parameters: {
             contractName: { type: "string", required: true }
+          }
+        },
+        {
+          name: "get_space_info",
+          description: "Get information about the Greenpill Dev Guild CharmVerse space",
+          parameters: {}
+        },
+        {
+          name: "list_pages",
+          description: "List pages in the Greenpill Dev Guild CharmVerse space",
+          parameters: {
+            type: { type: "string", required: false },
+            limit: { type: "number", required: false, default: 20 }
+          }
+        },
+        {
+          name: "get_members",
+          description: "Get members of the Greenpill Dev Guild CharmVerse space",
+          parameters: {
+            role: { type: "string", required: false }
+          }
+        },
+        {
+          name: "get_proposals",
+          description: "Get proposals from the Greenpill Dev Guild CharmVerse space",
+          parameters: {
+            status: { type: "string", required: false }
+          }
+        },
+        {
+          name: "search_charmverse",
+          description: "Search the Greenpill Dev Guild CharmVerse space",
+          parameters: {
+            query: { type: "string", required: true },
+            type: { type: "string", required: false }
           }
         }
       ]

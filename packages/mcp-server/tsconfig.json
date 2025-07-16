@@ -16,7 +16,9 @@
     "sourceMap": true,
     "removeComments": false,
     "allowJs": true,
-    "noEmit": false
+    "noEmit": false,
+    "noImplicitAny": false,
+    "types": ["node"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "build"]

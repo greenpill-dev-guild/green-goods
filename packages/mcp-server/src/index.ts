@@ -239,9 +239,12 @@ class GreenGoodsMCPServer {
   async runHttp(port: number) {
     const httpApp = createHttpServer(this.server);
     httpApp.listen(port, '0.0.0.0', () => {
-      console.log(`Green Goods MCP Server running in HTTP mode on port ${port}`);
-      console.log(`Health check available at: http://0.0.0.0:${port}/health`);
-      console.log(`MCP endpoint available at: http://0.0.0.0:${port}/mcp`);
+      console.log(`🚀 Green Goods MCP Server running on port ${port}`);
+      console.log(`📊 Server info: http://0.0.0.0:${port}/`);
+      console.log(`🔍 Health check: http://0.0.0.0:${port}/health`);
+      console.log(`⚡ JSON-RPC endpoint: POST http://0.0.0.0:${port}/`);
+      console.log(`🛠️  Available methods: http://0.0.0.0:${port}/methods`);
+      console.log(`📋 Tool descriptions: http://0.0.0.0:${port}/tools`);
     });
   }
 
