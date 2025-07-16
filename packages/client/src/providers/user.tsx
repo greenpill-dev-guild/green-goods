@@ -1,8 +1,8 @@
 import { type ConnectedWallet, type User, usePrivy, useWallets } from "@privy-io/react-auth";
 import { type SmartWalletClientType, useSmartWallets } from "@privy-io/react-auth/smart-wallets";
 import React, { useContext, useEffect } from "react";
-import { identify } from "@/modules/posthog";
 import { offlineSync } from "@/modules/offline-sync";
+import { identify } from "@/modules/posthog";
 
 interface UserInterface {
   ready: boolean;

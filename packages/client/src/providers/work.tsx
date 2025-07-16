@@ -115,65 +115,70 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   const plantSelection = watch("plantSelection");
   const plantCount = watch("plantCount");
 
+  // Extract submission logic to reusable function
+  const submitWork = async (draft: WorkDraft): Promise<`0x${string}`> => {
+    if (!gardenAddress) throw new Error("No garden address found");
+    if (typeof actionUID !== "number") throw new Error("No action UID found");
+
+    const action = actions.find((action) => action.id === actionUID);
+
+    // Check if we're offline or if smart account is not available
+    if (!navigator.onLine || !smartAccountClient) {
+      // Save to offline storage
+      const offlineId = await offlineDB.addPendingWork({
+        type: "work",
+        data: {
+          ...draft,
+          title: `${action?.title} - ${new Date().toISOString()}`,
+          actionUID,
+          gardenAddress,
+        },
+        images,
+        synced: false,
+      });
+
+      // Return a fake transaction hash for offline work
+      return `0xoffline_${offlineId}` as `0x${string}`;
+    }
+
+    const encodedAttestationData = await encodeWorkData({
+      ...draft,
+      title: `${action?.title} - ${new Date().toISOString()}`,
+      actionUID,
+      media: images,
+    });
+
+    const encodedData = encodeFunctionData({
+      abi,
+      args: [
+        {
+          schema: EAS["42161"].WORK.uid,
+          data: {
+            recipient: gardenAddress as `0x${string}`,
+            expirationTime: NO_EXPIRATION,
+            revocable: true,
+            refUID: ZERO_BYTES32,
+            data: encodedAttestationData,
+            value: 0n,
+          },
+        },
+      ],
+      functionName: "attest",
+    });
+
+    const receipt = await smartAccountClient.sendTransaction({
+      chain: arbitrum,
+      to: EAS["42161"].EAS.address as `0x${string}`,
+      value: 0n,
+      data: encodedData,
+    });
+
+    return receipt;
+  };
+
   const workMutation = useMutation({
     mutationFn: async (draft: WorkDraft) => {
-      if (!gardenAddress) throw new Error("No garden address found");
-      if (typeof actionUID !== "number") throw new Error("No action UID found");
-
-      const action = actions.find((action) => action.id === actionUID);
-
-      // Check if we're offline or if smart account is not available
-      if (!navigator.onLine || !smartAccountClient) {
-        // Save to offline storage
-        const offlineId = await offlineDB.addPendingWork({
-          type: "work",
-          data: {
-            ...draft,
-            title: `${action?.title} - ${new Date().toISOString()}`,
-            actionUID,
-            gardenAddress,
-          },
-          images,
-          synced: false,
-        });
-
-        // Return a fake transaction hash for offline work
-        return `0xoffline_${offlineId}` as `0x${string}`;
-      }
-
-      const encodedAttestationData = await encodeWorkData({
-        ...draft,
-        title: `${action?.title} - ${new Date().toISOString()}`,
-        actionUID,
-        media: images,
-      });
-
-      const encodedData = encodeFunctionData({
-        abi,
-        args: [
-          {
-            schema: EAS["42161"].WORK.uid,
-            data: {
-              recipient: gardenAddress as `0x${string}`,
-              expirationTime: NO_EXPIRATION,
-              revocable: true,
-              refUID: ZERO_BYTES32,
-              data: encodedAttestationData,
-              value: 0n,
-            },
-          },
-        ],
-        functionName: "attest",
-      });
-
-      const receipt = await smartAccountClient.sendTransaction({
-        chain: arbitrum,
-        to: EAS["42161"].EAS.address as `0x${string}`,
-        value: 0n,
-        data: encodedData,
-      });
-
-      return receipt;
+      return submitWork(draft);
     },
     onMutate: () => {
       // toast.loading("Uploading work..."); @dev deprecated
