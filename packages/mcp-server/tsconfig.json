@@ -14,7 +14,9 @@
     "rootDir": "./src",
     "declaration": true,
     "sourceMap": true,
-    "removeComments": false
+    "removeComments": false,
+    "allowJs": true,
+    "noEmit": false
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "build"]

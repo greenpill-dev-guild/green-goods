@@ -1,0 +1,17 @@
+node_modules
+*.log
+.env
+.env.local
+.env.*.local
+build
+dist
+coverage
+.nyc_output
+.DS_Store
+Thumbs.db
+src
+*.md
+test-*.sh
+tsconfig.json
+.git
+.gitignore 

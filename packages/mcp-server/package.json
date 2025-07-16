@@ -9,13 +9,15 @@
     "start": "node build/index.js",
     "start:stdio": "node build/index.js --stdio",
     "start:http": "node build/index.js --http",
+    "start:railway": "node build/index.js --http --port $PORT",
     "dev": "tsx src/index.ts",
     "dev:stdio": "tsx src/index.ts --stdio",
     "dev:http": "tsx src/index.ts --http",
-    "test": "npm run build && node build/test.js"
+    "test": "npm run build && node build/test.js",
+    "railway:deploy": "railway up"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^0.6.0",
+    "@modelcontextprotocol/sdk": "^1.15.1",
     "octokit": "^3.1.2",
     "express": "^4.19.2",
     "dotenv": "^16.4.5",

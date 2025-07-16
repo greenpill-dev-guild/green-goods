@@ -19,7 +19,7 @@ const program = new Command();
 program
   .option("--stdio", "Run in stdio mode (default)")
   .option("--http", "Run in HTTP mode")
-  .option("--port <port>", "HTTP port", "8000")
+  .option("--port <port>", "HTTP port", process.env.PORT || "8000")
   .parse();
 
 const options = program.opts();
@@ -198,7 +198,7 @@ class GreenGoodsMCPServer {
     });
 
     // Handle tool calls
-    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    this.server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
       const { name, arguments: args } = request.params;
 
       const handler = handlers[name];
@@ -238,8 +238,10 @@ class GreenGoodsMCPServer {
 
   async runHttp(port: number) {
     const httpApp = createHttpServer(this.server);
-    httpApp.listen(port, () => {
+    httpApp.listen(port, '0.0.0.0', () => {
       console.log(`Green Goods MCP Server running in HTTP mode on port ${port}`);
+      console.log(`Health check available at: http://0.0.0.0:${port}/health`);
+      console.log(`MCP endpoint available at: http://0.0.0.0:${port}/mcp`);
     });
   }
 
