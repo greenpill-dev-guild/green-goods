@@ -47,6 +47,7 @@
   "files": {
     "includes": [
       "**/src/**/*.{ts,tsx,js,jsx,json}",
+      "*.{ts,tsx,js,jsx,json}",
       "!**/node_modules",
       "!**/dist",
       "!**/build",

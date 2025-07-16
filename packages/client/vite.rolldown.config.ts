@@ -3,10 +3,10 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import dotenvExpand from "dotenv-expand";
+import { resolve } from "path";
 import { defineConfig, loadEnv } from "rolldown-vite";
 import mkcert from "vite-plugin-mkcert";
 import { VitePWA } from "vite-plugin-pwa";
-import { resolve } from 'path'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
@@ -46,7 +46,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
-      target: 'es2020',
+      target: "es2020",
       sourcemap: true,
       chunkSizeWarningLimit: 2000, // Higher limit for rolldown
     },
@@ -56,4 +56,4 @@ export default defineConfig(({ mode }) => {
       setupFiles: "./src/test/setup.ts",
     },
   };
-}); 
+});

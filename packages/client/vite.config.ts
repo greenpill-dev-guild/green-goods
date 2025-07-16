@@ -3,10 +3,10 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import dotenvExpand from "dotenv-expand";
+import { resolve } from "path";
 import { defineConfig, loadEnv } from "vite";
 import mkcert from "vite-plugin-mkcert";
 import { VitePWA } from "vite-plugin-pwa";
-import { resolve } from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -17,13 +17,14 @@ export default defineConfig(({ mode }) => {
   }
 
   return {
-    test: {
-      env: loadEnv(mode, process.cwd(), ""),
-      environment: "jsdom",
-      setupFiles: "./src/__tests__/setupTests.ts", // Optional: setup file
-    },
+    // REMOVE THESE LINES - they conflict with vitest.config.ts
+    // test: {
+    //   env: loadEnv(mode, process.cwd(), ""),
+    //   environment: "jsdom",
+    //   setupFiles: "./src/__tests__/setupTests.ts", // Optional: setup file
+    // },
     build: {
-      target: 'es2020',
+      target: "es2020",
       sourcemap: true,
       chunkSizeWarningLimit: 2000,
     },
@@ -65,7 +66,7 @@ export default defineConfig(({ mode }) => {
             "**/*.{html,ico,png,svg}",
             "**/assets/*.css",
             // Exclude the largest JS bundles from SW precaching
-            "!**/assets/*-{index,vendor,crypto,wallet}*.js"
+            "!**/assets/*-{index,vendor,crypto,wallet}*.js",
           ],
           // Use runtime caching for large JS files
           runtimeCaching: [
@@ -206,7 +207,7 @@ export default defineConfig(({ mode }) => {
     ],
     resolve: {
       alias: {
-        "@": resolve(__dirname, './src'),
+        "@": resolve(__dirname, "./src"),
       },
     },
     server: {

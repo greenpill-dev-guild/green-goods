@@ -31,6 +31,7 @@
     "bracketSameLine": false,
     "includes": [
       "**/packages/client/src/**/*.{ts,tsx,js,jsx}",
+      "**/packages/client/*.{ts,tsx,js,jsx}",
       "**/packages/contracts/src/**/*.{ts,tsx,js,jsx}",
       "**/packages/contracts/script/**/*.{ts,tsx,js,jsx}",
       "**/packages/eas/src/**/*.{ts,tsx,js,jsx}",
