@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   render,
   // screen
@@ -19,10 +20,19 @@ const TestComponent = () => {
 
 describe("GardensProvider", () => {
   it("should provide default value and allow updates", () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
     render(
-      <GardensProvider>
-        <TestComponent />
-      </GardensProvider>
+      <QueryClientProvider client={queryClient}>
+        <GardensProvider>
+          <TestComponent />
+        </GardensProvider>
+      </QueryClientProvider>
     );
 
     // Check initial value

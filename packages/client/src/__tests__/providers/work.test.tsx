@@ -1,10 +1,14 @@
 import { EAS, NO_EXPIRATION, SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render } from "@testing-library/react";
 import { ethers } from "ethers";
-import { describe, it } from "vitest";
+import { describe, it, vi } from "vitest";
 
 import { EAS as constants } from "@/constants";
 import { useWork, WorkProvider } from "@/providers/work";
+
+// Mock environment variables
+vi.stubEnv("PRIVATE_KEY", "0x1234567890123456789012345678901234567890123456789012345678901234");
 
 const TestComponent = () => {
   const { activeTab, workApprovals } = useWork();
@@ -19,10 +23,19 @@ const TestComponent = () => {
 
 describe("WorkProvider", () => {
   it("should provide default value and allow updates", () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
     render(
-      <WorkProvider>
-        <TestComponent />
-      </WorkProvider>
+      <QueryClientProvider client={queryClient}>
+        <WorkProvider>
+          <TestComponent />
+        </WorkProvider>
+      </QueryClientProvider>
     );
 
     // Check initial value
@@ -38,6 +51,13 @@ describe("WorkProvider", () => {
 
 describe("Work Attestation", () => {
   it("should provide default value and allow updates", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
     const provider = new ethers.AlchemyProvider("arbitrum", import.meta.env.VITE_ALCHEMY_API_KEY);
 
     // Create a wallet instance using the private key and connect it to the provider
@@ -74,6 +94,13 @@ describe("Work Attestation", () => {
 
 describe("Work Approval Attestation", () => {
   it("should provide default value and allow updates", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
     const provider = new ethers.AlchemyProvider("arbitrum", import.meta.env.VITE_ALCHEMY_API_KEY);
 
     // Create a wallet instance using the private key and connect it to the provider
