@@ -1,0 +1,59 @@
+{
+  "description": "Water the plants systematically, documenting the location, amount, method, and any relevant details about the watering session. Each watering action should be documented separately.",
+  "media": {
+    "title": "Capture the Watering Activity",
+    "description": "Please take photos of the watering process, including before and after shots of the plants, watering equipment used, and the general area being watered.",
+    "maxImageCount": 7
+  },
+  "details": {
+    "title": "Input Watering Details",
+    "description": "Please provide the following details about the watering session.",
+    "feedbackPlaceholder": "Provide feedback about the watering process, plant condition, or any issues encountered",
+    "inputs": [
+      {
+        "key": "plantSelection",
+        "title": "Plants Watered",
+        "placeholder": "Select the different species watered",
+        "type": "select",
+        "required": false,
+        "options": ["Acacia", "Eucalyptus", "Pine", "Other"]
+      },
+      {
+        "key": "plantCount",
+        "title": "Number of Plants Watered",
+        "placeholder": "Enter the number of plants watered",
+        "type": "number",
+        "required": false,
+        "options": []
+      },
+      {
+        "key": "waterAmount",
+        "title": "Water Amount",
+        "placeholder": "Enter the amount of water used (in liters)",
+        "type": "number",
+        "required": true,
+        "options": []
+      },
+      {
+        "key": "wateringMethod",
+        "title": "Watering Method",
+        "placeholder": "Select the watering method used",
+        "type": "select",
+        "required": true,
+        "options": ["Watering can", "Hose", "Sprinkler", "Drip irrigation", "Bucket", "Other"]
+      },
+      {
+        "key": "soilCondition",
+        "title": "Soil Condition Before Watering",
+        "placeholder": "Describe the soil condition",
+        "type": "select",
+        "required": false,
+        "options": ["Very dry", "Dry", "Slightly moist", "Moist", "Wet"]
+      }
+    ]
+  },
+  "review": {
+    "title": "Review Watering Details",
+    "description": "Please review the watering details you have provided before submitting."
+  }
+}
