@@ -1,3 +1,12 @@
+import type { Chain } from "viem";
+import { arbitrum, baseSepolia, celo } from "viem/chains";
+
+import deployment31337 from "../../contracts/deployments/31337-latest.json";
+import deployment42161 from "../../contracts/deployments/42161-latest.json";
+import deployment42220 from "../../contracts/deployments/42220-latest.json";
+import deployment84532 from "../../contracts/deployments/84532-latest.json";
+import networksConfig from "../../contracts/deployments/networks.json";
+
 export const APP_NAME = "Green Goods";
 export const APP_DEFAULT_TITLE = "Green Goods";
 export const APP_TITLE_TEMPLATE = "%s - Green Goods";
@@ -5,13 +14,22 @@ export const APP_DESCRIPTION = "Start Bringing Biodiversity Onchain";
 export const APP_URL = "https://greengoods.app";
 export const APP_ICON = "https://greengoods.app/icon.png";
 
-// Import networks configuration
-import networksConfig from "../../contracts/deployments/networks.json";
-// Import deployment configurations
-import deployment31337 from "../../contracts/deployments/31337-latest.json";
-import deployment42161 from "../../contracts/deployments/42161-latest.json";
-import deployment42220 from "../../contracts/deployments/42220-latest.json";
-import deployment84532 from "../../contracts/deployments/84532-latest.json";
+// Function to get the default chain based on environment variable
+export function getDefaultChain(): Chain {
+  const chainId = import.meta.env.VITE_CHAIN_ID;
+
+  switch (chainId) {
+    case "42161":
+      return arbitrum;
+    case "42220":
+      return celo;
+    case "84532":
+      return baseSepolia;
+    default:
+      // Default to Base Sepolia if no environment variable is set
+      return baseSepolia;
+  }
+}
 
 // Helper function to get network config by chain ID
 function getNetworkConfigFromNetworksJson(chainId: number) {
@@ -46,6 +64,42 @@ function getDeploymentConfig(chainId: number | string): any {
     }
   } catch (error) {
     return {};
+  }
+}
+
+// Dynamically determine indexer URL based on environment
+export function getIndexerUrl() {
+  // If explicitly set, use that
+  if (import.meta.env.VITE_ENVIO_INDEXER_URL) {
+    return import.meta.env.VITE_ENVIO_INDEXER_URL;
+  }
+
+  // Default to local development URL
+  const isDev = import.meta.env.DEV;
+  const isLocalhost =
+    window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+
+  if (isDev || isLocalhost) {
+    return "http://localhost:8080/v1/graphql";
+  }
+
+  // Production URL (update when deployed)
+  return "https://api.greengoods.app/indexer";
+}
+
+// Get EAS GraphQL URL based on chain
+export function getEasGraphqlUrl(chainId?: number | string) {
+  const chain = chainId ? String(chainId) : import.meta.env.VITE_CHAIN_ID || "84532";
+
+  switch (chain) {
+    case "42161":
+      return "https://arbitrum.easscan.org/graphql";
+    case "42220":
+      return "https://celo.easscan.org/graphql";
+    case "84532":
+      return "https://base-sepolia.easscan.org/graphql";
+    default:
+      return "https://base-sepolia.easscan.org/graphql";
   }
 }
 

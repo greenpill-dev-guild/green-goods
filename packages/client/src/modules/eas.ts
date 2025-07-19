@@ -1,4 +1,4 @@
-import { getEASConfig } from "@/constants";
+import { getEASConfig } from "@/config";
 
 import { easGraphQL } from "./graphql";
 import { getFileByHash } from "./pinata";

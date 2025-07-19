@@ -27,7 +27,7 @@ import { FormInfo } from "@/components/UI/Form/Info";
 import { FormText } from "@/components/UI/Form/Text";
 import { CircleLoader } from "@/components/UI/Loader";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
-import { getEASConfig } from "@/constants";
+import { getEASConfig } from "@/config";
 import { getFileByHash } from "@/modules/pinata";
 import { useGarden, useGardens } from "@/providers/garden";
 import { useUser } from "@/providers/user";

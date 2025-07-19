@@ -3,7 +3,7 @@ import { render } from "@testing-library/react";
 import { ethers } from "ethers";
 import { describe, it } from "vitest";
 
-import { getEASConfig } from "@/constants";
+import { getEASConfig } from "@/config";
 import { useWork, WorkProvider } from "@/providers/work";
 
 const TestComponent = () => {

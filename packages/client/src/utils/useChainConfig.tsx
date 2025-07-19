@@ -1,6 +1,6 @@
 import { useWallets } from "@privy-io/react-auth";
 import { useMemo } from "react";
-import { getEASConfig, getNetworkConfig } from "@/constants";
+import { getEASConfig, getNetworkConfig } from "@/config";
 
 /**
  * Hook to get the current chain ID from the connected wallet

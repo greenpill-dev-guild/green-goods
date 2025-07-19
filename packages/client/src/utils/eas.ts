@@ -1,6 +1,6 @@
 import { SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
 
-import { getEASConfig } from "@/constants";
+import { getEASConfig } from "@/config";
 import { uploadFileToIPFS, uploadJSONToIPFS } from "@/modules/pinata";
 
 export async function encodeWorkData(data: WorkDraft, chainId: number | string = 42161) {

@@ -1,6 +1,6 @@
 import type React from "react";
 
-import { APP_NAME } from "@/constants";
+import { APP_NAME } from "@/config";
 
 import { Button } from "../UI/Button";
 

@@ -7,7 +7,7 @@ import { type Control, type FormState, type UseFormRegister, useForm } from "rea
 import { decodeErrorResult } from "viem";
 import { arbitrum } from "viem/chains";
 import { encodeFunctionData } from "viem/utils";
-import { getEASConfig } from "@/constants";
+import { getEASConfig } from "@/config";
 import { getWorkApprovals } from "@/modules/eas";
 import { queryClient } from "@/modules/react-query";
 import { abi } from "@/utils/abis/EAS.json";
