@@ -17,6 +17,7 @@
     "@types/node": "20.8.8",
     "js-yaml": "^4.1.0",
     "mocha": "10.2.0",
+    "npm": "^11.4.2",
     "ts-mocha": "^10.0.0",
     "ts-node": "10.9.1",
     "typescript": "5.2.2"

@@ -41,8 +41,6 @@ networks:
         address: "0x547e82BF9c8496f41927583793242f6b91C182A6"
       - name: GardenToken
         address: "0xE73e86787dDC94b98f6d0327124D18341C527e1f"
-      - name: GardenAccount
-        address: "0xad621aF21dBfdaCe0A078C021Ab2FDDA080a52D1"
   - id: 84532
     start_block: 28278599
     contracts:
@@ -50,8 +48,6 @@ networks:
         address: "0x547e82BF9c8496f41927583793242f6b91C182A6"
       - name: GardenToken
         address: "0x19f367E448208377dA8C81E770bC6777c7815516"
-      - name: GardenAccount
-        address: "0xad621aF21dBfdaCe0A078C021Ab2FDDA080a52D1"
   # WARNING: DO NOT UNCOMMENT THE LOCAL CHAIN CONFIG BELOW!
   # The indexer cannot sync properly with multiple networks if localhost is enabled.
   # Use the deployment scripts to manage this configuration automatically.
