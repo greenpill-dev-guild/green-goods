@@ -47,6 +47,7 @@
     "dev:logs:indexer": "pnpm exec pm2 logs indexer --raw",
     "dev:stop": "pnpm exec pm2 delete all",
     "dev:app": "pnpm --filter 'client' run dev",
+    "dev:api": "pnpm --filter 'api' run dev",
     "dev:indexer": "pnpm --filter 'indexer' run dev",
     "dev:contracts": "pnpm --filter 'contracts' run  dev"
   },
