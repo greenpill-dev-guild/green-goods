@@ -60,5 +60,3 @@ networks:
   #       address: '0x547e82BF9c8496f41927583793242f6b91C182A6'
   #     - name: GardenToken
   #       address: '0x547e82BF9c8496f41927583793242f6b91C182A6'
-  #     - name: GardenAccount
-  #       address: '0x547e82BF9c8496f41927583793242f6b91C182A6'
