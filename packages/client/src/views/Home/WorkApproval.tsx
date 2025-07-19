@@ -135,21 +135,21 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
     },
   });
 
-  async function fetchWorkMetadata() {
-    if (work) {
-      const res = await getFileByHash(work.metadata);
-
-      if (!res.data) throw new Error("No metadata found");
-
-      const metadata: WorkMetadata = res.data as any;
-
-      setWorkMetadata(metadata);
-    }
-  }
-
   useEffect(() => {
+    async function fetchWorkMetadata() {
+      if (work) {
+        const res = await getFileByHash(work.metadata);
+
+        if (!res.data) throw new Error("No metadata found");
+
+        const metadata: WorkMetadata = res.data as any;
+
+        setWorkMetadata(metadata);
+      }
+    }
+
     fetchWorkMetadata();
-  }, [fetchWorkMetadata]);
+  }, [work]);
 
   if (!work || !action || !garden)
     return (
