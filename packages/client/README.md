@@ -9,7 +9,7 @@ This section assumes you have already set up the main Green Goods project as out
 ### Prerequisites
 
 - Ensure Node.js (version 20 or higher) and pnpm are installed.
-- The main project dependencies should be installed by running `pnpm init` in the root directory.
+- The main project dependencies should be installed by running `pnpm install` in the root directory.
 
 ### Environment Variables
 
@@ -27,6 +27,7 @@ Client-specific environment variables are managed in a `.env` file within the `p
     - `VITE_PINATA_GATEWAY_URL`: URL for your Pinata IPFS gateway.
     - `VITE_PINATA_API_URL`: Pinata API endpoint for file uploads.
     - `VITE_PINATA_API_KEY`: Your Pinata API key.
+    - `VITE_DESKTOP_DEV`: Set to bypass PWA download checks during desktop development.
 
     _Refer to the main project's [README.md](../../README.md#configure-environment-variables) for guidance on obtaining these values, typically by reaching out to the Green Goods team._
 
@@ -53,6 +54,140 @@ To run the client application in a local development environment:
     ```
 
 The application should typically be accessible at `https://localhost:3001` (note: HTTPS due to mkcert plugin for PWA features). The Vite server will provide live reloading and HMR (Hot Module Replacement).
+
+### Development Setup
+
+**VS Code Configuration:**
+The project includes pre-configured VS Code settings that:
+- Set Biome as the default formatter for JS/TS files
+- Enable format on save
+- Configure automatic import organization
+- Set up proper formatters for different file types
+
+**Required VS Code Extensions:**
+1. **Biome** (`biomejs.biome`) - Primary formatting and linting
+2. **Error Lens** (`usernamehw.errorlens`) - Inline error display
+3. **GitLens** (`eamodio.gitlens`) - Git integration
+
+**Code Quality Tools:**
+- **Biome**: Fast formatting and basic linting (35x faster than Prettier)
+- **0xlint**: Ultra-fast Rust-based linting (30ms on entire codebase)
+- **TypeScript**: Strict type checking with excellent IDE integration
+- **Husky**: Automated git hooks for quality checks
+
+### Development Workflow
+
+**Hot Module Replacement (HMR):**
+Vite provides instant HMR for:
+- React component updates
+- CSS changes
+- TypeScript compilation
+- Asset updates
+
+**Code Quality Commands:**
+```bash
+# Format code
+pnpm run format
+
+# Run linting (ultra-fast)
+pnpm run lint
+
+# The lint command runs both Biome checks and 0xlint
+```
+
+**Testing Commands:**
+```bash
+# Run tests once
+pnpm run test
+
+# Run tests in watch mode (for interactive development)
+pnpm run test:watch
+
+# Generate test coverage report
+pnpm run coverage
+```
+
+**Component Development Workflow:**
+1. Create component directory: `src/components/YourComponent/`
+2. Add main component file: `index.tsx`
+3. Add test file: `__tests__/index.test.tsx`
+4. Use existing design system components from `src/components/UI/`
+5. Follow Tailwind CSS + Radix UI patterns
+
+**PWA Development:**
+For PWA testing:
+- Use `VITE_DESKTOP_DEV=true` to bypass installation prompts during development
+- Test on mobile devices for full PWA experience
+- Use browser dev tools for PWA auditing and performance testing
+
+**Performance Monitoring:**
+- **React DevTools**: For component debugging and profiling
+- **TanStack Query DevTools**: For server state inspection and caching analysis
+- **Vite DevTools**: For build analysis and optimization
+- **Browser DevTools**: For performance profiling and Core Web Vitals
+
+### Configuration Files
+
+**Biome Configuration (`biome.json`):**
+- React/TypeScript specific rules
+- Optimized for component development
+- Automatic import organization
+
+**Key Development Settings:**
+- **Line width**: 100 characters
+- **Indentation**: 2 spaces
+- **Quotes**: Double quotes
+- **Semicolons**: Always
+- **Trailing commas**: ES5 style
+
+### Troubleshooting
+
+**Common Development Issues:**
+
+**Biome not working:**
+1. Restart VS Code
+2. Check Biome extension is enabled
+3. Verify `node_modules/.bin/biome` exists
+4. Run `pnpm install` to ensure dependencies
+
+**Development server issues:**
+```bash
+# Check if port 3001 is in use
+lsof -i :3001
+
+# Kill process if needed
+pkill -f "client dev"
+
+# Clear Vite cache
+rm -rf node_modules/.vite
+```
+
+**PWA installation issues:**
+- Ensure you're using HTTPS (mkcert handles this automatically)
+- Check service worker registration in browser dev tools
+- Verify PWA manifest is correctly generated
+
+**Performance issues:**
+- Use `pnpm run build` to check production bundle size
+- Enable React DevTools Profiler for component performance
+- Check Network tab for slow API calls or large assets
+
+### Environment-Specific Development
+
+**Development Environment:**
+- Hot reloading enabled
+- Source maps for debugging
+- Development-specific error boundaries
+- Mock data support (if configured)
+
+**Production Preview:**
+```bash
+pnpm run build
+pnpm run preview
+```
+- Tests production build locally
+- Mimics production environment
+- Useful for final testing before deployment
 
 ## Building for Production
 
@@ -109,11 +244,11 @@ The project uses a high-performance linting setup:
   pnpm run lint
   ```
 
-The `lint` command runs both Biome checks and Oxlint to ensure code quality and consistency in milliseconds.
+The `lint` command runs both Biome checks and 0xlint to ensure code quality and consistency in milliseconds.
 
 **Tools Used:**
 - **Biome**: Fast formatting and basic checks
-- **Oxlint**: Ultra-fast Rust-based linting (30ms on 84 files)
+- **0xlint**: Ultra-fast Rust-based linting (30ms on 84 files)
 - **Combined**: Complete code quality coverage
 
 ## Key Technologies
@@ -126,9 +261,10 @@ The client application is built with a modern frontend stack:
 - **[TypeScript](https://www.typescriptlang.org/):** Static typing for better development experience
 
 ### Styling & UI
-- **[Tailwind CSS](https://tailwindcss.com/):** Utility-first CSS framework
+- **[Tailwind CSS v4](https://tailwindcss.com/):** Utility-first CSS framework with modern features
   - Includes `tailwind-merge` and `tailwind-variants` for managing styles
 - **[Radix UI](https://www.radix-ui.com/):** Unstyled, accessible UI primitives
+  - Components: Accordion, Avatar, Dialog, Select, Slot, Tabs
 
 ### State Management & Data
 - **[TanStack Query (React Query)](https://tanstack.com/query/latest):** Server-state management and caching
@@ -137,18 +273,46 @@ The client application is built with a modern frontend stack:
 
 ### Authentication & Blockchain
 - **[Privy](https://www.privy.io/):** User authentication and wallet management
-- **[React Router](https://reactrouter.com/):** Client-side routing
+- **[EAS SDK](https://github.com/ethereum-attestation-service/eas-sdk):** Ethereum Attestation Service integration
+- **[Wagmi](https://wagmi.sh/):** React hooks for Ethereum
 
 ### Development & Quality
 - **[Vitest](https://vitest.dev/):** Vite-native testing framework
 - **[Biome](https://biomejs.dev/):** Fast formatting and linting
-- **[Oxlint](https://oxc-project.github.io/):** Ultra-fast Rust-based linting
+- **[0xlint](https://oxc-project.github.io/):** Ultra-fast Rust-based linting
 - **[PWA Features](https://vite-pwa-org.netlify.app/):** Progressive Web App capabilities
 
 ### Performance Optimizations
-- **Dynamic Imports**: Lazy loading for major components
+- **Dynamic Imports**: Lazy loading for major components (Home, Garden, Profile views)
 - **Code Splitting**: Automatic chunking for optimal loading
 - **Bundle Optimization**: ~4.4MB main bundle with separate feature chunks
+  - `Assessment-*.js` (0.36 kB) - Assessment component
+  - `Garden-*.js` (10.81 kB) - Garden component  
+  - `WorkApproval-*.js` (66.11 kB) - Work approval component
+
+## Architecture & Features
+
+### Component Library
+The application uses a comprehensive design system built with:
+- **Tailwind CSS v4**: Modern utility-first styling with CSS variables
+- **Radix UI primitives**: Accessible, unstyled components
+- **Custom components**: Button, Card variants (ActionCard, GardenCard, WorkCard), Form components, Navigation, etc.
+
+### Progressive Web App (PWA)
+- **Offline Support**: Service worker for offline functionality
+- **Mobile Optimization**: Responsive design with mobile-first approach
+- **Installation**: Can be installed as a native app on mobile devices
+- **HTTPS Required**: Development server uses mkcert for HTTPS
+
+### Routing & Navigation
+- **React Router**: Client-side routing with lazy-loaded components
+- **Dynamic routing**: `/home`, `/garden/:id`, `/profile`, `/login`
+- **Navigation hooks**: Custom `useNavigateToTop` for smooth navigation
+
+### Work Flow Management
+- **Multi-step Forms**: Garden assessment, work submission, approval workflows
+- **State Management**: React Query for server state, React Hook Form for forms
+- **Real-time Updates**: GraphQL subscriptions for live data updates
 
 ## Project Structure Highlights
 
@@ -156,6 +320,87 @@ The `packages/client/src` directory is organized as follows:
 
 - **`main.tsx`**: The main entry point of the application.
 - **`App.tsx`**: The root React component with dynamic imports and global providers.
-- **`api/`**: Serverless functions (e.g., `subscribe.cjs`, `users.cjs`) for deployment on platforms like Vercel.
-- **`components/`**: Reusable UI components used throughout the application.
-  - `
+- **`components/`**: Reusable UI components organized by type:
+  - `Garden/`: Garden-specific components
+  - `Layout/`: Navigation and layout components  
+  - `UI/`: Generic UI components (Button, Card, Form, etc.)
+- **`views/`**: Main application views with lazy loading:
+  - `Home/`: Garden management and work overview
+  - `Garden/`: Garden details and work submission
+  - `Profile/`: User account management
+  - `Landing/`: Public landing page
+  - `Login/`: Authentication flow
+- **`providers/`**: React context providers:
+  - `app.tsx`: Global application state
+  - `garden.tsx`: Garden-specific state
+  - `user.tsx`: User authentication state
+  - `work.tsx`: Work submission state
+- **`modules/`**: Service modules:
+  - `eas.ts`: Ethereum Attestation Service integration
+  - `greengoods.ts`: Green Goods API integration
+  - `pinata.ts`: IPFS file upload service
+  - `react-query.ts`: Query client configuration
+- **`utils/`**: Utility functions and helpers:
+  - `abis/`: Contract ABIs
+  - `cn.ts`: Class name utility (tailwind-merge)
+  - `eas.ts`: EAS utility functions
+  - Component utilities for forms, text processing, etc.
+- **`types/`**: TypeScript type definitions
+- **`styles/`**: Global styles and CSS variables
+- **`i18n/`**: Internationalization (English, Spanish, Portuguese)
+
+## Development Tips
+
+### Hot Module Replacement (HMR)
+Vite provides instant HMR for:
+- React component updates
+- CSS changes
+- TypeScript compilation
+- Asset updates
+
+### Code Quality
+The project enforces high code quality through:
+- **Pre-commit hooks**: Automatic formatting and linting
+- **Type checking**: Strict TypeScript configuration
+- **Testing**: Comprehensive test coverage with Vitest
+- **Performance monitoring**: Bundle analysis and optimization
+
+### PWA Development
+For PWA testing:
+- Use `VITE_DESKTOP_DEV=true` to bypass installation prompts
+- Test on mobile devices for full PWA experience
+- Use browser dev tools for PWA auditing
+
+### Debugging
+- **React DevTools**: For component debugging
+- **TanStack Query DevTools**: For server state inspection
+- **Vite DevTools**: For build analysis
+- **Browser DevTools**: For performance profiling
+
+## Deployment
+
+The client is optimized for static hosting:
+
+### Build Output
+```bash
+pnpm run build
+```
+Produces:
+- Static HTML, CSS, JS files in `dist/`
+- Service worker for PWA functionality
+- Optimized assets with cache headers
+- Source maps for debugging
+
+### Deployment Targets
+- **Vercel**: Zero-config deployment
+- **Netlify**: Static site hosting
+- **Railway**: Full-stack deployment
+- **Any CDN**: Standard static hosting
+
+### Environment Configuration
+Production deployments require:
+- Environment variables for API endpoints
+- HTTPS for PWA functionality
+- Proper CORS configuration for API access
+
+For detailed deployment instructions, see the [main project README](../../README.md).

@@ -75,7 +75,7 @@
     "pnpm": ">=9.x"
   },
   "lint-staged": {
-    "*.{js,jsx,ts,tsx,json,md}": [
+    "*.{js,jsx,ts,tsx,json}": [
       "biome format --write",
       "oxlint"
     ],

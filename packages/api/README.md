@@ -40,59 +40,175 @@ pnpm build
 pnpm start
 ```
 
-## 🌐 API Endpoints
+### Development Setup
 
-- `GET /` - API information
-- `GET /api/health` - Health check
-- `GET /api/users` - Get all users (Privy)
-- `POST /api/subscribe` - Email subscription
+**Framework & Technologies:**
+- **Fastify**: High-performance web framework for Node.js
+- **TypeScript**: Full type safety with strict configuration
+- **Railway**: Cloud deployment with auto-deployment
+- **Privy**: Authentication and user management
 
-## 🚀 Railway Deployment
+**Code Quality Tools:**
+- **Biome**: Fast formatting and linting
+- **TypeScript**: Strict type checking
+- **Husky**: Automated git hooks for quality checks
 
-1. **Connect Repository**: Link your GitHub repo to Railway
-2. **Environment Variables**: Set in Railway dashboard:
-   ```
-   PRIVY_APP_ID=your_privy_app_id
-   PRIVY_APP_SECRET_ID=your_privy_secret
-   NODE_ENV=production
-   ```
-3. **Deploy**: Railway auto-deploys on push to main branch
+### Development Workflow
 
-### Custom Domain Setup
-
-To use `api.greengoods.app`:
-
-1. Go to Railway dashboard
-2. Click on your API service
-3. Go to "Settings" → "Domains"
-4. Add custom domain: `api.greengoods.app`
-5. Update your DNS records as instructed
-
-## 🔧 Environment Variables
-
+**Hot Reload Development:**
 ```bash
-# Required
-PRIVY_APP_ID=          # Privy application ID
+# Start with automatic restart on file changes
+pnpm dev
+```
+Uses `tsx watch` for fast TypeScript compilation and automatic server restart.
+
+**Code Quality Commands:**
+```bash
+# Format code
+pnpm run format
+
+# Run linting
+pnpm run lint
+
+# Type checking without compilation
+pnpm run type-check
+```
+
+**Build Process:**
+```bash
+# Compile TypeScript and resolve path aliases
+pnpm build
+
+# Output goes to dist/ directory
+# Uses tsc + tsc-alias for path resolution
+```
+
+### Configuration
+
+**TypeScript Configuration:**
+- Strict mode enabled
+- Path aliases supported via `tsc-alias`
+- Node.js target with ES modules
+
+**Environment Variables:**
+```bash
+# Required for development
+PRIVY_APP_ID=               # Privy application ID
 PRIVY_APP_SECRET_ID=        # Privy secret key
 
 # Optional
-PORT=3000                   # Server port (Railway sets this)
-NODE_ENV=development        # Environment
+PORT=3000                   # Server port (Railway sets this automatically)
+NODE_ENV=development        # Environment mode
 ```
 
-## 🏥 Health Monitoring
+**Fastify Configuration:**
+- CORS enabled for frontend integration
+- JSON body parsing
+- Error handling middleware
+- Health check endpoints
 
-Railway automatically monitors the `/api/health` endpoint:
+### API Development
 
-- **Timeout**: 300 seconds
-- **Restart Policy**: On failure
-- **Max Retries**: 10
+**Adding New Endpoints:**
+1. Create route handler in `src/routes/`
+2. Register route in main server file
+3. Add TypeScript types for request/response
+4. Test with development server
 
-## 📦 Dependencies
+**Authentication Integration:**
+- Uses Privy server SDK for user verification
+- JWT token validation
+- User session management
 
-- **express**: Web framework
-- **cors**: Cross-origin resource sharing
-- **@privy-io/server-auth**: Authentication
-- **dotenv**: Environment variable loading
-- **typescript**: Type safety
-- **tsx**: TypeScript execution 
+**Error Handling:**
+- Comprehensive error responses
+- Structured error objects
+- Appropriate HTTP status codes
+
+### Railway Deployment
+
+**Automatic Deployment:**
+- Pushes to main branch trigger deployment
+- `railway.toml` configuration included
+- Environment variables managed in Railway dashboard
+
+**Health Monitoring:**
+- `/api/health` endpoint for health checks
+- Automatic restart on failure
+- Resource monitoring via Railway dashboard
+
+**Custom Domain Setup:**
+1. Configure custom domain in Railway dashboard
+2. Update DNS records as instructed
+3. SSL/TLS handled automatically
+
+### Troubleshooting
+
+**Development Server Issues:**
+```bash
+# Check if port 3000 is in use
+lsof -i :3000
+
+# Kill process if needed
+pkill -f "api dev"
+
+# Clear TypeScript cache
+rm -rf dist/
+```
+
+**Build Issues:**
+```bash
+# Clean build
+rm -rf dist/
+pnpm build
+
+# Check for TypeScript errors
+pnpm run type-check
+
+# Verify path aliases resolution
+cat dist/server.js | grep "import"
+```
+
+**Authentication Issues:**
+- Verify Privy app ID and secret are correct
+- Check token format and expiration
+- Test with Privy's server SDK directly
+
+**Railway Deployment Issues:**
+- Check Railway logs via dashboard
+- Verify environment variables are set
+- Ensure build command succeeds locally
+- Check Railway service health status
+
+### Performance Optimization
+
+**Fastify Features:**
+- Built-in request/response validation
+- Efficient JSON serialization
+- Connection pooling support
+- Lightweight compared to Express
+
+**Monitoring:**
+- Railway provides built-in metrics
+- Custom health checks at `/api/health`
+- Error tracking and logging
+
+### Testing
+
+**Manual Testing:**
+```bash
+# Start development server
+pnpm dev
+
+# Test health endpoint
+curl http://localhost:3000/api/health
+
+# Test with frontend
+# Start client on port 3001, API on port 3000
+```
+
+**Integration Testing:**
+- Test with client application
+- Verify CORS configuration
+- Test Privy authentication flow
+- Validate all API endpoints 
