@@ -139,9 +139,10 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       // Return a properly formatted hex string for offline work
-      // Using a special prefix that still maintains hex format
-      const paddedId = offlineId.toString().padStart(40, "0");
-      return `0x${paddedId}` as `0x${string}`;
+      // Using the "0xoffline_" prefix that Completed.tsx expects
+      // Total length should be 66 characters to match Ethereum transaction hash format
+      const paddedId = offlineId.toString().padStart(56, "0");
+      return `0xoffline_${paddedId}` as `0x${string}`;
     }
 
     const encodedAttestationData = await encodeWorkData({
