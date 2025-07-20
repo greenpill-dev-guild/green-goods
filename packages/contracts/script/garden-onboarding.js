@@ -45,40 +45,6 @@ class GardenOnboarding {
     this.deploymentAddresses = new DeploymentAddresses();
   }
 
-  // Sanitize environment object for safe logging
-  sanitizeEnvForLogging(env) {
-    const sensitiveKeys = [
-      "DEPLOYER_PRIVATE_KEY",
-      "PRIVY_APP_SECRET_ID",
-      "PRIVY_AUTHORIZATION_PRIVATE_KEY",
-      "PINATA_JWT",
-      "ETHERSCAN_API_KEY",
-      "INFURA_API_KEY",
-      "ALCHEMY_API_KEY",
-    ];
-
-    const sanitized = { ...env };
-
-    sensitiveKeys.forEach((key) => {
-      if (sanitized[key]) {
-        sanitized[key] = "[REDACTED]";
-      }
-    });
-
-    // Also redact any key that looks like a private key or secret
-    Object.keys(sanitized).forEach((key) => {
-      if (
-        key.toLowerCase().includes("private") ||
-        key.toLowerCase().includes("secret") ||
-        key.toLowerCase().includes("key")
-      ) {
-        sanitized[key] = "[REDACTED]";
-      }
-    });
-
-    return sanitized;
-  }
-
   async validateEnvironment() {
     const requiredEnvVars = ["DEPLOYER_PRIVATE_KEY"];
 
@@ -282,8 +248,14 @@ class GardenOnboarding {
       };
 
       if (this.options.dryRun) {
-        console.log("\n[DRY RUN] Would deploy garden with environment:");
-        console.log(JSON.stringify(this.sanitizeEnvForLogging(env), null, 2));
+        console.log("\n[DRY RUN] Would deploy garden contract");
+        console.log("Garden Name:", gardenInfo.name);
+        console.log("Garden Description:", gardenInfo.description);
+        console.log("Garden Location:", gardenInfo.location);
+        console.log("Garden Banner IPFS Hash:", gardenInfo.bannerImage);
+        console.log("Number of Gardeners:", gardeners.length);
+        console.log("Number of Operators:", operators.length);
+        console.log("Target Network:", this.options.network);
         return;
       }
 
