@@ -649,13 +649,21 @@ contract Deploy is Script, DeploymentHelper {
         }
     }
 
-    function _computationalDelay(uint256 milliseconds) internal pure {
-        // Simple computational delay - not precise but provides some delay
-        uint256 iterations = milliseconds * 1000;
-        uint256 dummy = 0;
+    /// @notice Simple delay counter to prevent compiler optimization
+    uint256 private _delayCounter;
+
+    function _computationalDelay(uint256 milliseconds) internal {
+        // Reduced iterations to prevent excessive gas usage while maintaining observable side effect
+        // Using a more reasonable 100 iterations per millisecond instead of 1000
+        uint256 iterations = milliseconds * 100;
+
         for (uint256 i = 0; i < iterations; i++) {
-            dummy += i;
+            // Store result in state variable to prevent compiler optimization
+            _delayCounter += i;
         }
+
+        // Additional simple computation to ensure delay is not optimized away
+        _delayCounter = _delayCounter % type(uint256).max;
     }
 
     function _loadExistingSchemas()

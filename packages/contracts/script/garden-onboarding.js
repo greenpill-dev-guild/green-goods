@@ -272,7 +272,7 @@ class GardenOnboarding {
         "forge",
         args.map((arg) => (arg === process.env.DEPLOYER_PRIVATE_KEY ? "[REDACTED]" : arg)).join(" "),
       );
-      execSync("forge", args, { stdio: "inherit", env, cwd: path.join(__dirname, "..") });
+      execSync(`forge ${args.join(" ")}`, { stdio: "inherit", env, cwd: path.join(__dirname, "..") });
     } catch (error) {
       console.error("Error deploying garden:", error);
       throw error;

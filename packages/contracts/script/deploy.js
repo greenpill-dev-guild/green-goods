@@ -143,7 +143,7 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
     console.log("forge", displayArgs.join(" "));
 
     try {
-      execSync("forge", args, {
+      execSync(`forge ${args.join(" ")}`, {
         stdio: "inherit",
         env: process.env,
         cwd: path.join(__dirname, ".."),
@@ -514,7 +514,7 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
     console.log("\nExecuting deployment...");
     console.log("forge", args.join(" "));
 
-    execSync("forge", args, {
+    execSync(`forge ${args.join(" ")}`, {
       stdio: "inherit",
       env: { ...process.env, ...env },
       cwd: path.join(__dirname, ".."),
