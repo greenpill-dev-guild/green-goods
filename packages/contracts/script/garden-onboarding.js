@@ -45,6 +45,40 @@ class GardenOnboarding {
     this.deploymentAddresses = new DeploymentAddresses();
   }
 
+  // Sanitize environment object for safe logging
+  sanitizeEnvForLogging(env) {
+    const sensitiveKeys = [
+      "DEPLOYER_PRIVATE_KEY",
+      "PRIVY_APP_SECRET_ID",
+      "PRIVY_AUTHORIZATION_PRIVATE_KEY",
+      "PINATA_JWT",
+      "ETHERSCAN_API_KEY",
+      "INFURA_API_KEY",
+      "ALCHEMY_API_KEY",
+    ];
+
+    const sanitized = { ...env };
+
+    sensitiveKeys.forEach((key) => {
+      if (sanitized[key]) {
+        sanitized[key] = "[REDACTED]";
+      }
+    });
+
+    // Also redact any key that looks like a private key or secret
+    Object.keys(sanitized).forEach((key) => {
+      if (
+        key.toLowerCase().includes("private") ||
+        key.toLowerCase().includes("secret") ||
+        key.toLowerCase().includes("key")
+      ) {
+        sanitized[key] = "[REDACTED]";
+      }
+    });
+
+    return sanitized;
+  }
+
   async validateEnvironment() {
     const requiredEnvVars = ["DEPLOYER_PRIVATE_KEY"];
 
@@ -249,14 +283,24 @@ class GardenOnboarding {
 
       if (this.options.dryRun) {
         console.log("\n[DRY RUN] Would deploy garden with environment:");
-        console.log(JSON.stringify(env, null, 2));
+        console.log(JSON.stringify(this.sanitizeEnvForLogging(env), null, 2));
         return;
       }
 
       // Execute Foundry script
-      const command = `forge script script/DeployGarden.s.sol:DeployGarden --private-key ${process.env.DEPLOYER_PRIVATE_KEY} --broadcast`;
+      const args = [
+        "script",
+        "script/DeployGarden.s.sol:DeployGarden",
+        "--private-key",
+        process.env.DEPLOYER_PRIVATE_KEY,
+        "--broadcast",
+      ];
       console.log("\nDeploying garden contract...");
-      execSync(command, { stdio: "inherit", env, cwd: path.join(__dirname, "..") });
+      console.log(
+        "forge",
+        args.map((arg) => (arg === process.env.DEPLOYER_PRIVATE_KEY ? "[REDACTED]" : arg)).join(" "),
+      );
+      execSync("forge", args, { stdio: "inherit", env, cwd: path.join(__dirname, "..") });
     } catch (error) {
       console.error("Error deploying garden:", error);
       throw error;
