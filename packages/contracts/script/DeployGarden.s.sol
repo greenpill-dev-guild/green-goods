@@ -4,12 +4,8 @@
 pragma solidity ^0.8.25;
 
 import { Script, console } from "forge-std/Script.sol";
-import { stdJson } from "forge-std/StdJson.sol";
 
 import { GardenToken } from "../src/tokens/Garden.sol";
-import { CommunityTokenLib } from "../src/lib/CommunityToken.sol";
-
-import { GARDEN_TOKEN } from "../src/Constants.sol";
 
 /// @title DeployGarden
 /// @notice Script for deploying the GardenToken contract and minting a garden.
@@ -23,6 +19,10 @@ contract DeployGarden is Script {
         string memory gardenersJson = vm.envString("GARDENERS");
         string memory operatorsJson = vm.envString("OPERATORS");
 
+        // Get contract addresses from environment
+        address gardenTokenAddress = vm.envAddress("GARDEN_TOKEN");
+        address communityTokenAddress = vm.envAddress("COMMUNITY_TOKEN");
+
         // Parse JSON arrays
         address[] memory gardeners = abi.decode(vm.parseJson(gardenersJson), (address[]));
         address[] memory operators = abi.decode(vm.parseJson(operatorsJson), (address[]));
@@ -31,17 +31,10 @@ contract DeployGarden is Script {
         vm.startBroadcast();
 
         // Deploy garden contract
-        GardenToken gardenToken = GardenToken(GARDEN_TOKEN);
-        address communityToken = CommunityTokenLib.getCommunityToken();
+        GardenToken gardenToken = GardenToken(gardenTokenAddress);
 
         address gardenAccount = gardenToken.mintGarden(
-            communityToken,
-            name,
-            description,
-            location,
-            bannerImage,
-            gardeners,
-            operators
+            communityTokenAddress, name, description, location, bannerImage, gardeners, operators
         );
 
         vm.stopBroadcast();
