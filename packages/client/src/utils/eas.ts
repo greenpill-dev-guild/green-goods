@@ -30,7 +30,7 @@ export async function encodeWorkData(data: WorkDraft) {
 }
 
 export function encodeWorkApprovalData(data: WorkApprovalDraft) {
-  const schema = "uint256 actionUID,bytes32 workUID,bool approved" as `0x${string}`;
+  const schema = "uint256 actionUID,bytes32 workUID,bool approved,string feedback" as `0x${string}`;
   const schemaEncoder = new SchemaEncoder(schema);
 
   const encodedData = schemaEncoder.encodeData([
