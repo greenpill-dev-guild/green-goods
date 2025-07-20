@@ -60,7 +60,7 @@ export async function getActions(): Promise<Action[]> {
           startTime: (startTime as number) * 1000,
           endTime: (endTime as number) * 1000,
           capitals: capitals as Capital[],
-          media: [image ? mediaImage : ""],
+          media: [mediaImage],
           description: "",
           inputs:
             id === "1"
