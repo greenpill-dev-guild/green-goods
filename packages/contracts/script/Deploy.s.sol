@@ -495,12 +495,14 @@ contract Deploy is Script, DeploymentHelper {
             config.erc4337EntryPoint, config.multicallForwarder, tokenboundRegistry, result.guardian, salt, factory
         );
         result.accountProxy = deployAccountProxy(result.guardian, result.gardenAccountImpl, salt, factory);
-        result.gardenToken = deployGardenToken(result.gardenAccountImpl, salt, factory);
+        result.gardenToken = deployGardenToken(result.gardenAccountImpl, config.greenGoodsSafe, salt, factory);
 
         // 3. Deploy registries and resolvers
-        result.actionRegistry = deployActionRegistry(salt, factory);
-        result.workResolver = deployWorkResolver(config.eas, result.actionRegistry, salt, factory);
-        result.workApprovalResolver = deployWorkApprovalResolver(config.eas, result.actionRegistry, salt, factory);
+        result.actionRegistry = deployActionRegistry(config.greenGoodsSafe, salt, factory);
+        result.workResolver =
+            deployWorkResolver(config.eas, result.actionRegistry, config.greenGoodsSafe, salt, factory);
+        result.workApprovalResolver =
+            deployWorkApprovalResolver(config.eas, result.actionRegistry, config.greenGoodsSafe, salt, factory);
 
         // 4. Deploy EAS schemas (with skip flag)
         if (!flags.skipSchemas) {
@@ -743,14 +745,22 @@ contract Deploy is Script, DeploymentHelper {
         return predicted;
     }
 
-    function deployGardenToken(address implementation, bytes32 salt, address factory) public returns (address) {
+    function deployGardenToken(
+        address implementation,
+        address multisig,
+        bytes32 salt,
+        address factory
+    )
+        public
+        returns (address)
+    {
         bytes memory bytecode = abi.encodePacked(type(GardenToken).creationCode, abi.encode(implementation));
 
         address predicted = Create2.computeAddress(salt, keccak256(bytecode), factory);
 
         if (!isDeployed(predicted)) {
             GardenToken token = new GardenToken{ salt: salt }(implementation);
-            token.initialize();
+            token.initialize(multisig);
             if (address(token) != predicted) {
                 revert GardenTokenDeploymentAddressMismatch();
             }
@@ -762,14 +772,14 @@ contract Deploy is Script, DeploymentHelper {
         return predicted;
     }
 
-    function deployActionRegistry(bytes32 salt, address factory) public returns (address) {
+    function deployActionRegistry(address multisig, bytes32 salt, address factory) public returns (address) {
         bytes memory bytecode = type(ActionRegistry).creationCode;
 
         address predicted = Create2.computeAddress(salt, keccak256(bytecode), factory);
 
         if (!isDeployed(predicted)) {
             ActionRegistry registry = new ActionRegistry{ salt: salt }();
-            registry.initialize();
+            registry.initialize(multisig);
             if (address(registry) != predicted) {
                 revert ActionRegistryDeploymentAddressMismatch();
             }
@@ -784,6 +794,7 @@ contract Deploy is Script, DeploymentHelper {
     function deployWorkResolver(
         address eas,
         address actionRegistry,
+        address multisig,
         bytes32 salt,
         address factory
     )
@@ -796,7 +807,7 @@ contract Deploy is Script, DeploymentHelper {
 
         if (!isDeployed(predicted)) {
             WorkResolver resolver = new WorkResolver{ salt: salt }(eas, actionRegistry);
-            resolver.initialize();
+            resolver.initialize(multisig);
             if (address(resolver) != predicted) {
                 revert WorkResolverDeploymentAddressMismatch();
             }
@@ -811,6 +822,7 @@ contract Deploy is Script, DeploymentHelper {
     function deployWorkApprovalResolver(
         address eas,
         address actionRegistry,
+        address multisig,
         bytes32 salt,
         address factory
     )
@@ -824,7 +836,7 @@ contract Deploy is Script, DeploymentHelper {
 
         if (!isDeployed(predicted)) {
             WorkApprovalResolver resolver = new WorkApprovalResolver{ salt: salt }(eas, actionRegistry);
-            resolver.initialize();
+            resolver.initialize(multisig);
             if (address(resolver) != predicted) {
                 revert WorkApprovalResolverDeploymentAddressMismatch();
             }
@@ -1246,6 +1258,23 @@ contract Deploy is Script, DeploymentHelper {
                 "Failed to create description attestation for schema:", vm.toString(schemaUID), "(unknown error)"
             );
         }
+    }
+
+    /// @notice Simple delay counter to prevent compiler optimization
+    uint256 private _delayCounter;
+
+    function _computationalDelay(uint256 milliseconds) internal {
+        // Reduced iterations to prevent excessive gas usage while maintaining observable side effect
+        // Using a more reasonable 100 iterations per millisecond instead of 1000
+        uint256 iterations = milliseconds * 100;
+
+        for (uint256 i = 0; i < iterations; i++) {
+            // Store result in state variable to prevent compiler optimization
+            _delayCounter += i;
+        }
+
+        // Additional simple computation to ensure delay is not optimized away
+        _delayCounter = _delayCounter % type(uint256).max;
     }
 
     function _loadExistingSchemas()

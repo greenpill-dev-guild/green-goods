@@ -411,9 +411,9 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
     }
 
     // Build forge script command
-    let cmd = "forge script script/Deploy.s.sol:Deploy";
-    cmd += ` --chain-id ${networkConfig.chainId}`;
-    cmd += ` --rpc-url ${rpcUrl}`;
+    const args = ["script", "script/Deploy.s.sol:Deploy"];
+    args.push("--chain-id", networkConfig.chainId.toString());
+    args.push("--rpc-url", rpcUrl);
 
     if (options.broadcast) {
       cmd += " --broadcast";
@@ -460,7 +460,7 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
           const envVar = apiKey.slice(2, -1);
           apiKey = process.env[envVar];
           if (apiKey) {
-            cmd += ` --etherscan-api-key ${apiKey}`;
+            args.push("--etherscan-api-key", apiKey);
           }
         }
       }
@@ -471,14 +471,15 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
       const gasOptimizer = new GasOptimizer(options.network, options.gasStrategy || "standard");
       await gasOptimizer.initialize();
       const optimalGasPrice = await gasOptimizer.getOptimalGasPrice();
-      cmd += ` --gas-price ${Math.floor(optimalGasPrice * 1e9)}`;
+      args.push("--gas-price", Math.floor(optimalGasPrice * 1e9).toString());
     }
 
     console.log("\nExecuting deployment command:");
-    console.log(cmd.replace(process.env.DEPLOYER_PRIVATE_KEY || process.env.PRIVATE_KEY || "", "[REDACTED]"));
+    const displayArgs = args.map((arg) => (arg === process.env.DEPLOYER_PRIVATE_KEY ? "[REDACTED]" : arg));
+    console.log("forge", displayArgs.join(" "));
 
     try {
-      execSync(cmd, {
+      execSync(`forge ${args.join(" ")}`, {
         stdio: "inherit",
         env: process.env,
         cwd: path.join(__dirname, ".."),
@@ -920,7 +921,7 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
       await this.ensureAnvilRunning("celo");
     }
 
-    let cmd = `forge script ${scriptPath}`;
+    const args = ["script", scriptPath];
 
     if (options.network !== "localhost") {
       let rpcUrl = networkConfig.rpcUrl;
@@ -931,10 +932,10 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
           throw new Error(`Environment variable ${envVar} not set`);
         }
       }
-      cmd += ` --rpc-url ${rpcUrl}`;
-      cmd += ` --chain-id ${networkConfig.chainId}`;
+      args.push("--rpc-url", rpcUrl);
+      args.push("--chain-id", networkConfig.chainId.toString());
     } else {
-      cmd += " --rpc-url http://localhost:8545";
+      args.push("--rpc-url", "http://localhost:8545");
     }
 
     if (options.broadcast) {
@@ -950,13 +951,14 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
       cmd += " --verify";
       cmd += ` --verifier-url ${networkConfig.verifyApiUrl}`;
       if (process.env.ETHERSCAN_API_KEY) {
-        cmd += ` --etherscan-api-key ${process.env.ETHERSCAN_API_KEY}`;
+        args.push("--etherscan-api-key", process.env.ETHERSCAN_API_KEY);
       }
     }
 
     console.log("\nExecuting deployment...");
+    console.log("forge", ...args);
 
-    execSync(cmd, {
+    execFileSync("forge", args, {
       stdio: "inherit",
       env: { ...process.env, ...env },
       cwd: path.join(__dirname, ".."),

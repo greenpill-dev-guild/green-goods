@@ -248,15 +248,31 @@ class GardenOnboarding {
       };
 
       if (this.options.dryRun) {
-        console.log("\n[DRY RUN] Would deploy garden with environment:");
-        console.log(JSON.stringify(env, null, 2));
+        console.log("\n[DRY RUN] Would deploy garden contract");
+        console.log("Garden Name:", gardenInfo.name);
+        console.log("Garden Description:", gardenInfo.description);
+        console.log("Garden Location:", gardenInfo.location);
+        console.log("Garden Banner IPFS Hash:", gardenInfo.bannerImage);
+        console.log("Number of Gardeners:", gardeners.length);
+        console.log("Number of Operators:", operators.length);
+        console.log("Target Network:", this.options.network);
         return;
       }
 
       // Execute Foundry script
-      const command = `forge script script/DeployGarden.s.sol:DeployGarden --private-key ${process.env.DEPLOYER_PRIVATE_KEY} --broadcast`;
+      const args = [
+        "script",
+        "script/DeployGarden.s.sol:DeployGarden",
+        "--private-key",
+        process.env.DEPLOYER_PRIVATE_KEY,
+        "--broadcast",
+      ];
       console.log("\nDeploying garden contract...");
-      execSync(command, { stdio: "inherit", env, cwd: path.join(__dirname, "..") });
+      console.log(
+        "forge",
+        args.map((arg) => (arg === process.env.DEPLOYER_PRIVATE_KEY ? "[REDACTED]" : arg)).join(" "),
+      );
+      execSync(`forge ${args.join(" ")}`, { stdio: "inherit", env, cwd: path.join(__dirname, "..") });
     } catch (error) {
       console.error("Error deploying garden:", error);
       throw error;
