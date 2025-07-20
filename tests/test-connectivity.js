@@ -34,8 +34,8 @@ async function testConnectivity() {
           "https://localhost:3001/",
           {
             timeout: 5000,
-            // Only allow self-signed certs in test environment
-            ...(process.env.NODE_ENV === "test" && { rejectUnauthorized: false }),
+            // If you need to trust a specific self-signed certificate in test, add a `ca` field here.
+            // For example: ca: fs.readFileSync("tests/test-ca.pem"),
           },
           (res) => {
             console.log(`HTTPS Response received: ${res.statusCode}`);
@@ -65,8 +65,8 @@ async function testConnectivity() {
           "https://localhost:3001/",
           {
             timeout: 5000,
-            // Only allow self-signed certs in test environment
-            ...(process.env.NODE_ENV === "test" && { rejectUnauthorized: false }),
+            // If you need to trust a specific self-signed certificate in test, add a `ca` field here.
+            // For example: ca: fs.readFileSync("tests/test-ca.pem"),
           },
           (res) => {
             console.log(`HTTPS Response received: ${res.statusCode}`);
