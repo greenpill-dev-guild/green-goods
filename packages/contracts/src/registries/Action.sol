@@ -87,10 +87,11 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() { }
 
-    /// @notice Initializes the contract and sets the deployer as the owner.
+    /// @notice Initializes the contract and sets the specified address as the owner.
     /// @dev This function must be called only once during contract deployment.
-    function initialize() external initializer {
-        __Ownable_init();
+    /// @param _multisig The address that will own the contract.
+    function initialize(address _multisig) external initializer {
+        __Ownable_init(_multisig);
         // _disableInitializers();
     }
 

@@ -137,12 +137,14 @@ contract Deploy is Script, DeploymentHelper {
             config.erc4337EntryPoint, config.multicallForwarder, tokenboundRegistry, result.guardian, salt, factory
         );
         result.accountProxy = deployAccountProxy(result.guardian, result.gardenAccountImpl, salt, factory);
-        result.gardenToken = deployGardenToken(result.gardenAccountImpl, salt, factory);
+        result.gardenToken = deployGardenToken(result.gardenAccountImpl, config.greenGoodsSafe, salt, factory);
 
         // 3. Deploy registries and resolvers
-        result.actionRegistry = deployActionRegistry(salt, factory);
-        result.workResolver = deployWorkResolver(config.eas, result.actionRegistry, salt, factory);
-        result.workApprovalResolver = deployWorkApprovalResolver(config.eas, result.actionRegistry, salt, factory);
+        result.actionRegistry = deployActionRegistry(config.greenGoodsSafe, salt, factory);
+        result.workResolver =
+            deployWorkResolver(config.eas, result.actionRegistry, config.greenGoodsSafe, salt, factory);
+        result.workApprovalResolver =
+            deployWorkApprovalResolver(config.eas, result.actionRegistry, config.greenGoodsSafe, salt, factory);
 
         // 4. Deploy EAS schemas with enhanced error recovery
         (result.gardenAssessmentSchemaUID, result.workSchemaUID, result.workApprovalSchemaUID) =
@@ -283,14 +285,22 @@ contract Deploy is Script, DeploymentHelper {
         return predicted;
     }
 
-    function deployGardenToken(address implementation, bytes32 salt, address factory) public returns (address) {
+    function deployGardenToken(
+        address implementation,
+        address multisig,
+        bytes32 salt,
+        address factory
+    )
+        public
+        returns (address)
+    {
         bytes memory bytecode = abi.encodePacked(type(GardenToken).creationCode, abi.encode(implementation));
 
         address predicted = Create2.computeAddress(salt, keccak256(bytecode), factory);
 
         if (!isDeployed(predicted)) {
             GardenToken token = new GardenToken{ salt: salt }(implementation);
-            token.initialize();
+            token.initialize(multisig);
             if (address(token) != predicted) {
                 revert GardenTokenDeploymentAddressMismatch();
             }
@@ -302,14 +312,14 @@ contract Deploy is Script, DeploymentHelper {
         return predicted;
     }
 
-    function deployActionRegistry(bytes32 salt, address factory) public returns (address) {
+    function deployActionRegistry(address multisig, bytes32 salt, address factory) public returns (address) {
         bytes memory bytecode = type(ActionRegistry).creationCode;
 
         address predicted = Create2.computeAddress(salt, keccak256(bytecode), factory);
 
         if (!isDeployed(predicted)) {
             ActionRegistry registry = new ActionRegistry{ salt: salt }();
-            registry.initialize();
+            registry.initialize(multisig);
             if (address(registry) != predicted) {
                 revert ActionRegistryDeploymentAddressMismatch();
             }
@@ -324,6 +334,7 @@ contract Deploy is Script, DeploymentHelper {
     function deployWorkResolver(
         address eas,
         address actionRegistry,
+        address multisig,
         bytes32 salt,
         address factory
     )
@@ -336,7 +347,7 @@ contract Deploy is Script, DeploymentHelper {
 
         if (!isDeployed(predicted)) {
             WorkResolver resolver = new WorkResolver{ salt: salt }(eas, actionRegistry);
-            resolver.initialize();
+            resolver.initialize(multisig);
             if (address(resolver) != predicted) {
                 revert WorkResolverDeploymentAddressMismatch();
             }
@@ -351,6 +362,7 @@ contract Deploy is Script, DeploymentHelper {
     function deployWorkApprovalResolver(
         address eas,
         address actionRegistry,
+        address multisig,
         bytes32 salt,
         address factory
     )
@@ -364,7 +376,7 @@ contract Deploy is Script, DeploymentHelper {
 
         if (!isDeployed(predicted)) {
             WorkApprovalResolver resolver = new WorkApprovalResolver{ salt: salt }(eas, actionRegistry);
-            resolver.initialize();
+            resolver.initialize(multisig);
             if (address(resolver) != predicted) {
                 revert WorkApprovalResolverDeploymentAddressMismatch();
             }
