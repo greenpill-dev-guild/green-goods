@@ -44,6 +44,7 @@
     "dev": "trap 'pnpm exec pm2 delete all' EXIT; pnpm exec pm2 start ecosystem.config.js && pnpm exec pm2 logs --raw",
     "dev:status": "pnpm exec pm2 list",
     "dev:logs:client": "pnpm exec pm2 logs client --raw",
+    "dev:logs:api": "pnpm exec pm2 logs api --raw",
     "dev:logs:indexer": "pnpm exec pm2 logs indexer --raw",
     "dev:stop": "pnpm exec pm2 delete all",
     "dev:app": "pnpm --filter 'client' run dev",
@@ -52,18 +53,21 @@
     "dev:contracts": "pnpm --filter 'contracts' run  dev"
   },
   "dependencies": {
-    "dotenv": "16.4.5",
-    "ethers": "^6.13.2",
+    "dotenv": "17.2.0",
+    "ethers": "^6.15.0",
     "viem": "^2.30.5"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.0.0-beta.6",
+    "@biomejs/biome": "2.1.2",
     "@playwright/test": "^1.54.1",
-    "@types/node": "22.5.1",
-    "husky": "^9.1.4",
-    "lint-staged": "^15.2.7",
-    "oxlint": "^0.15.0",
-    "pm2": "^5.4.2",
+    "@types/node": "^22.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "16.1.2",
+    "oxlint": "1.7.0",
+    "pm2": "6.0.8",
+    "tsc-alias": "^1.8.10",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.3",
     "wait-port": "1.1.0"
   },
   "engines": {
