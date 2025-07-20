@@ -121,6 +121,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
     if (typeof actionUID !== "number") throw new Error("No action UID found");
 
     const action = actions.find((action) => action.id === actionUID);
+    const actionTitle = action?.title || "Unknown Action";
 
     // Check if we're offline or if smart account is not available
     if (!navigator.onLine || !smartAccountClient) {
@@ -129,7 +130,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         type: "work",
         data: {
           ...draft,
-          title: `${action?.title} - ${new Date().toISOString()}`,
+          title: `${actionTitle} - ${new Date().toISOString()}`,
           actionUID,
           gardenAddress,
         },
@@ -137,13 +138,15 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         synced: false,
       });
 
-      // Return a fake transaction hash for offline work
-      return `0xoffline_${offlineId}` as `0x${string}`;
+      // Return a properly formatted hex string for offline work
+      // Using a special prefix that still maintains hex format
+      const paddedId = offlineId.toString().padStart(40, "0");
+      return `0x${paddedId}` as `0x${string}`;
     }
 
     const encodedAttestationData = await encodeWorkData({
       ...draft,
-      title: `${action?.title} - ${new Date().toISOString()}`,
+      title: `${actionTitle} - ${new Date().toISOString()}`,
       actionUID,
       media: images,
     });
