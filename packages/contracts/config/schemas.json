@@ -1,0 +1,22 @@
+{
+  "schemas": {
+    "gardenAssessment": {
+      "name": "Test Garden Assessment",
+      "description": "Test description",
+      "revocable": true,
+      "fields": [{ "name": "soilMoisturePercentage", "type": "uint8" }]
+    },
+    "work": {
+      "name": "Test Work",
+      "description": "Test work description",
+      "revocable": true,
+      "fields": [{ "name": "actionUID", "type": "uint256" }]
+    },
+    "workApproval": {
+      "name": "Test Work Approval",
+      "description": "Test work approval description",
+      "revocable": true,
+      "fields": [{ "name": "approved", "type": "bool" }]
+    }
+  }
+}

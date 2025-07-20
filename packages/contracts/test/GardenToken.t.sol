@@ -9,21 +9,20 @@ import { GardenAccount } from "../src/accounts/Garden.sol";
 contract GardenTokenTest is Test {
     GardenToken private gardenToken;
     address private multisig = address(0x123);
-    address private gardenAccountImplementation =
-        address(
-            new GardenAccount(
-                address(0x001), // erc4337EntryPoint
-                address(0x002), // multicallForwarder
-                address(0x003), // erc6551Registry
-                address(0x004) // guardian
-            )
-        );
+    address private gardenAccountImplementation = address(
+        new GardenAccount(
+            address(0x001), // erc4337EntryPoint
+            address(0x002), // multicallForwarder
+            address(0x003), // erc6551Registry
+            address(0x004) // guardian
+        )
+    );
     address private owner = address(this);
 
     function setUp() public {
         // Deploy the contract and initialize it
         gardenToken = new GardenToken(gardenAccountImplementation);
-        gardenToken.initialize(multisig);
+        gardenToken.initialize();
     }
 
     function testInitialize() public {
