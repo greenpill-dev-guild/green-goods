@@ -31,9 +31,10 @@
     "bracketSameLine": false,
     "includes": [
       "**/packages/client/src/**/*.{ts,tsx,js,jsx}",
+      "**/packages/api/src/**/*.{ts,tsx,js,jsx}",
+      "**/packages/indexer/src/**/*.{ts,tsx,js,jsx}",
       "**/packages/contracts/src/**/*.{ts,tsx,js,jsx}",
       "**/packages/contracts/script/**/*.{ts,tsx,js,jsx}",
-      "**/packages/eas/src/**/*.{ts,tsx,js,jsx}",
       "**/packages/client/*.config.{ts,js}",
       "**/tests/**/*.{ts,tsx,js,jsx}",
       "*.config.{ts,js}",
@@ -64,9 +65,10 @@
   "files": {
     "includes": [
       "**/packages/client/src/**/*.{ts,tsx,js,jsx}",
+      "**/packages/api/src/**/*.{ts,tsx,js,jsx}",
+      "**/packages/indexer/src/**/*.{ts,tsx,js,jsx}",
       "**/packages/contracts/src/**/*.{ts,tsx,js,jsx}",
       "**/packages/contracts/script/**/*.{ts,tsx,js,jsx}",
-      "**/packages/eas/src/**/*.{ts,tsx,js,jsx}",
       "**/packages/client/*.config.{ts,js}",
       "**/tests/**/*.{ts,tsx,js,jsx}",
       "*.config.{ts,js}",
