@@ -52,7 +52,7 @@ pnpm start
 1. **Connect Repository**: Link your GitHub repo to Railway
 2. **Environment Variables**: Set in Railway dashboard:
    ```
-   VITE_PRIVY_APP_ID=your_privy_app_id
+   PRIVY_APP_ID=your_privy_app_id
    PRIVY_APP_SECRET_ID=your_privy_secret
    NODE_ENV=production
    ```
@@ -72,7 +72,7 @@ To use `api.greengoods.app`:
 
 ```bash
 # Required
-VITE_PRIVY_APP_ID=          # Privy application ID
+PRIVY_APP_ID=          # Privy application ID
 PRIVY_APP_SECRET_ID=        # Privy secret key
 
 # Optional

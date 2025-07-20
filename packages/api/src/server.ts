@@ -1,30 +1,34 @@
-import express, { type Request, type Response, type NextFunction } from 'express';
-import cors from 'cors';
+import Fastify, { type FastifyRequest, type FastifyReply } from 'fastify';
+import cors from '@fastify/cors';
 import dotenv from 'dotenv';
 import { PrivyClient } from '@privy-io/server-auth';
 
 // Load environment variables
 dotenv.config();
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+const fastify = Fastify({
+  logger: {
+    level: process.env.NODE_ENV === 'production' ? 'info' : 'debug'
+  }
+});
 
-// Middleware
-app.use(cors({
+const PORT = Number(process.env.PORT) || 3000;
+
+// Register CORS plugin
+await fastify.register(cors, {
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://greengoods.app', 'https://www.greengoods.app']
     : ['http://localhost:5173', 'http://localhost:3000'],
   credentials: true
-}));
-app.use(express.json());
+});
 
 // Users route
-app.get('/api/users', async (req: Request, res: Response) => {
+fastify.get('/api/users', async (request: FastifyRequest, reply: FastifyReply) => {
   try {
     // For development, return mock data if Privy isn't configured
-    if (!process.env.VITE_PRIVY_APP_ID || !process.env.PRIVY_APP_SECRET_ID) {
-      console.log('⚠️  Privy not configured, returning mock data');
-      res.json([
+    if (!process.env.PRIVY_APP_ID || !process.env.PRIVY_APP_SECRET_ID) {
+      fastify.log.warn('Privy not configured, returning mock data');
+      return reply.send([
         {
           id: 'mock-user-1',
           createdAt: new Date().toISOString(),
@@ -48,21 +52,20 @@ app.get('/api/users', async (req: Request, res: Response) => {
           }
         }
       ]);
-      return;
     }
 
     // Use real Privy client if configured
     const privy = new PrivyClient(
-      process.env.VITE_PRIVY_APP_ID,
+      process.env.PRIVY_APP_ID,
       process.env.PRIVY_APP_SECRET_ID
     );
 
     const users = await privy.getUsers();
-    res.json(users);
+    return reply.send(users);
   } catch (error) {
-    console.error('Users API Error:', error);
+    fastify.log.error('Users API Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ 
+    return reply.status(500).send({ 
       error: 'Internal server error', 
       message: errorMessage 
     });
@@ -70,25 +73,25 @@ app.get('/api/users', async (req: Request, res: Response) => {
 });
 
 // Subscribe route
-app.post('/api/subscribe', async (req: Request, res: Response) => {
-  const { email } = req.body;
+fastify.post<{
+  Body: { email: string }
+}>('/api/subscribe', async (request: FastifyRequest<{ Body: { email: string } }>, reply: FastifyReply) => {
+  const { email } = request.body;
   
   if (!email) {
-    res.status(400).json({ 
+    return reply.status(400).send({ 
       success: false, 
       error: 'Email is required' 
     });
-    return;
   }
 
   // Basic email validation
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
-    res.status(400).json({ 
+    return reply.status(400).send({ 
       success: false, 
       error: 'Invalid email format' 
     });
-    return;
   }
 
   try {
@@ -107,19 +110,19 @@ app.post('/api/subscribe', async (req: Request, res: Response) => {
     });
 
     if (response.ok) {
-      res.status(200).json({ 
+      return reply.status(200).send({ 
         success: true, 
         message: "Subscription successful!" 
       });
     } else {
-      res.status(response.status).json({ 
+      return reply.status(response.status).send({ 
         success: false, 
         message: "Subscription failed." 
       });
     }
   } catch (error) {
-    console.error('Subscribe error:', error);
-    res.status(500).json({ 
+    fastify.log.error('Subscribe error:', error);
+    return reply.status(500).send({ 
       success: false, 
       message: "Internal Server Error" 
     });
@@ -127,8 +130,8 @@ app.post('/api/subscribe', async (req: Request, res: Response) => {
 });
 
 // Health check
-app.get('/api/health', (req: Request, res: Response) => {
-  res.json({ 
+fastify.get('/api/health', async (request: FastifyRequest, reply: FastifyReply) => {
+  return reply.send({ 
     status: 'ok', 
     timestamp: new Date().toISOString(),
     env: process.env.NODE_ENV,
@@ -138,8 +141,8 @@ app.get('/api/health', (req: Request, res: Response) => {
 });
 
 // Root endpoint
-app.get('/', (req: Request, res: Response) => {
-  res.json({
+fastify.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
+  return reply.send({
     name: 'Green Goods API',
     version: process.env.npm_package_version || '0.0.0',
     endpoints: {
@@ -150,24 +153,33 @@ app.get('/', (req: Request, res: Response) => {
   });
 });
 
-// Error handling middleware
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error('Error:', err);
-  res.status(500).json({ 
+// Global error handler
+fastify.setErrorHandler(async (error: Error, request: FastifyRequest, reply: FastifyReply) => {
+  fastify.log.error('Global error:', error);
+  return reply.status(500).send({ 
     error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+    message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
   });
 });
 
 // 404 handler
-app.all('*', (req: Request, res: Response) => {
-  res.status(404).json({ error: 'Not found' });
+fastify.setNotFoundHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+  return reply.status(404).send({ error: 'Not found' });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Green Goods API running on port ${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
-  console.log(`👥 Users endpoint: http://localhost:${PORT}/api/users`);
-  console.log(`📧 Subscribe endpoint: http://localhost:${PORT}/api/subscribe`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-}); 
+// Start server
+const start = async () => {
+  try {
+    await fastify.listen({ port: PORT, host: '0.0.0.0' });
+    fastify.log.info(`🚀 Green Goods API running on port ${PORT}`);
+    fastify.log.info(`📊 Health check: http://localhost:${PORT}/api/health`);
+    fastify.log.info(`👥 Users endpoint: http://localhost:${PORT}/api/users`);
+    fastify.log.info(`📧 Subscribe endpoint: http://localhost:${PORT}/api/subscribe`);
+    fastify.log.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  } catch (err) {
+    fastify.log.error(err);
+    process.exit(1);
+  }
+};
+
+start(); 
