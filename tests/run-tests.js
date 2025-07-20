@@ -64,24 +64,45 @@ async function checkServices() {
     console.log("⚠️  Indexer not running on port 8080");
   }
 
-  // Check client with HTTPS request - more robust approach
+  // Check client with HTTP request - secure health check approach
   try {
-    const https = require("https");
+    const http = require("http");
 
     const clientStatus = await new Promise((resolve) => {
-      const req = https.get(
-        "https://localhost:3001/",
+      // Try HTTP first (common for health checks), fallback to HTTPS if needed
+      const req = http.get(
+        "http://localhost:3001/",
         {
           timeout: 5000,
-          rejectUnauthorized: false, // Accept self-signed cert from mkcert
         },
         (res) => {
-          resolve({ status: res.statusCode, success: true });
+          resolve({ status: res.statusCode, success: true, protocol: "HTTP" });
         }
       );
 
       req.on("error", () => {
-        resolve({ status: 0, success: false });
+        // If HTTP fails, try HTTPS but with proper certificate handling
+        const https = require("https");
+        const httpsReq = https.get(
+          "https://localhost:3001/",
+          {
+            timeout: 5000,
+            // Only allow self-signed certs in test environment
+            ...(process.env.NODE_ENV === "test" && { rejectUnauthorized: false }),
+          },
+          (res) => {
+            resolve({ status: res.statusCode, success: true, protocol: "HTTPS" });
+          }
+        );
+
+        httpsReq.on("error", () => {
+          resolve({ status: 0, success: false });
+        });
+
+        httpsReq.on("timeout", () => {
+          httpsReq.destroy();
+          resolve({ status: 0, success: false });
+        });
       });
 
       req.on("timeout", () => {
@@ -91,7 +112,9 @@ async function checkServices() {
     });
 
     if (clientStatus.success && clientStatus.status >= 200 && clientStatus.status < 500) {
-      console.log(`✅ Client is running on port 3001 (HTTPS ${clientStatus.status})`);
+      console.log(
+        `✅ Client is running on port 3001 (${clientStatus.protocol} ${clientStatus.status})`
+      );
       servicesReady = true;
     } else if (clientStatus.success) {
       console.log(`⚠️  Client responding with status: ${clientStatus.status}`);

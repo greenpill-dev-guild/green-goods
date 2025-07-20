@@ -416,12 +416,12 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
     args.push("--rpc-url", rpcUrl);
 
     if (options.broadcast) {
-      cmd += " --broadcast";
+      args.push("--broadcast");
       const privateKey = process.env.DEPLOYER_PRIVATE_KEY || process.env.PRIVATE_KEY;
       if (!privateKey) {
         throw new Error("DEPLOYER_PRIVATE_KEY or PRIVATE_KEY not set in .env file");
       }
-      cmd += ` --private-key ${privateKey}`;
+      args.push("--private-key", privateKey);
     }
 
     // Skip verification if contracts are already deployed or if explicitly skipped
@@ -451,8 +451,8 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
     }
 
     if (shouldVerify) {
-      cmd += " --verify";
-      cmd += ` --verifier-url ${networkConfig.verifyApiUrl}`;
+      args.push("--verify");
+      args.push("--verifier-url", networkConfig.verifyApiUrl);
 
       if (networkConfig.verifyApiKey) {
         let apiKey = networkConfig.verifyApiKey;
@@ -939,17 +939,17 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
     }
 
     if (options.broadcast) {
-      cmd += " --broadcast";
+      args.push("--broadcast");
       const privateKey = process.env.DEPLOYER_PRIVATE_KEY || process.env.PRIVATE_KEY;
       if (!privateKey) {
         throw new Error("DEPLOYER_PRIVATE_KEY or PRIVATE_KEY not set in .env file");
       }
-      cmd += ` --private-key ${privateKey}`;
+      args.push("--private-key", privateKey);
     }
 
     if (options.verify && networkConfig.verifyApiUrl && !options.skipVerification) {
-      cmd += " --verify";
-      cmd += ` --verifier-url ${networkConfig.verifyApiUrl}`;
+      args.push("--verify");
+      args.push("--verifier-url", networkConfig.verifyApiUrl);
       if (process.env.ETHERSCAN_API_KEY) {
         args.push("--etherscan-api-key", process.env.ETHERSCAN_API_KEY);
       }
