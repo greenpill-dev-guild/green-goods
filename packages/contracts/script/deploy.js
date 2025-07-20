@@ -512,9 +512,9 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
     }
 
     console.log("\nExecuting deployment...");
-    console.log("forge", args.join(" "));
+    console.log("forge", ...args);
 
-    execSync(`forge ${args.join(" ")}`, {
+    execFileSync("forge", args, {
       stdio: "inherit",
       env: { ...process.env, ...env },
       cwd: path.join(__dirname, ".."),
