@@ -68,7 +68,6 @@
     "@openzeppelin/contracts-upgradeable": "4.9.3"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.0.0-beta.6",
     "@pinata/sdk": "^2.1.0",
     "@privy-io/server-auth": "1.28.3",
     "csv-parse": "^5.5.3",
