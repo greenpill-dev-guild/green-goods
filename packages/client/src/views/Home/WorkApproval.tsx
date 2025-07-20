@@ -34,7 +34,7 @@ import { useUser } from "@/providers/user";
 import { abi } from "@/utils/abis/EAS.json";
 import { abi as WorkApprovalResolverABI } from "@/utils/abis/WorkApprovalResolver.json";
 import { encodeWorkApprovalData } from "@/utils/eas";
-import { useNavigateToTop } from "@/utils/useNavigateToTop";
+import { useNavigateToTop } from "@/hooks/useNavigateToTop";
 import { WorkCompleted } from "../Garden/Completed";
 import { offlineDB } from "@/modules/offline-db";
 

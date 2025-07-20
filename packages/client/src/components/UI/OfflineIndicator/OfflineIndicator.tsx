@@ -2,7 +2,7 @@ import React from "react";
 import { RiWifiOffLine, RiRefreshLine, RiCheckLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { cn } from "@/utils/cn";
-import { useOffline } from "@/utils/useOffline";
+import { useOffline } from "@/hooks/useOffline";
 
 interface OfflineIndicatorProps {
   className?: string;

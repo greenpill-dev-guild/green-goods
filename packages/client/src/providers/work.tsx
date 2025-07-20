@@ -5,7 +5,6 @@ import React, { useContext, useState } from "react";
 // import { zodResolver } from "@hookform/resolvers/zod";
 import { type Control, type FormState, type UseFormRegister, useForm } from "react-hook-form";
 import { decodeErrorResult } from "viem";
-import { arbitrum } from "viem/chains";
 import { encodeFunctionData } from "viem/utils";
 import { EAS } from "@/constants";
 import { getWorkApprovals } from "@/modules/eas";
@@ -171,7 +170,6 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     const receipt = await smartAccountClient.sendTransaction({
-      chain: arbitrum,
       to: EAS["42161"].EAS.address as `0x${string}`,
       value: 0n,
       data: encodedData,

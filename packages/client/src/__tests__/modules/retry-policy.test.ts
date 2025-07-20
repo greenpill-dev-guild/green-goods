@@ -97,7 +97,7 @@ class RetryManager {
   getAllPendingRetries(): Array<{ workId: string; retryIn: number }> {
     const pending: Array<{ workId: string; retryIn: number }> = [];
 
-    for (const [workId, state] of this.retryStates) {
+    for (const [workId, _state] of this.retryStates) {
       const retryIn = this.getTimeUntilNextRetry(workId);
       if (retryIn > 0) {
         pending.push({ workId, retryIn });

@@ -1,6 +1,6 @@
 import { forwardRef, type UIEvent } from "react";
 import { useIntl } from "react-intl";
-import { useNavigateToTop } from "@/utils/useNavigateToTop";
+import { useNavigateToTop } from "@/hooks/useNavigateToTop";
 import { WorkCard } from "../UI/Card/WorkCard";
 import { BeatLoader } from "../UI/Loader";
 

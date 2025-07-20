@@ -10,7 +10,7 @@ import { CircleLoader } from "@/components/UI/Loader";
 import { Tabs, TabsList, TabsTrigger } from "@/components/UI/Tabs/Tabs";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
 import { useGarden, useGardens } from "@/providers/garden";
-import { useNavigateToTop } from "@/utils/useNavigateToTop";
+import { useNavigateToTop } from "@/hooks/useNavigateToTop";
 
 type GardenProps = {};
 

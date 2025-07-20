@@ -1,12 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-  createMockOfflineWork,
   createMockSmartAccountClient,
   mockFetch,
   mockFetchError,
   resetAllMocks,
   simulateNetworkConditions,
-  waitFor,
 } from "@/__tests__/offline-test-helpers";
 
 // Mock all the modules since they don't exist yet
@@ -57,7 +55,7 @@ class MockOfflineDB {
     }
   }
 
-  async getImagesForWork(workId: string) {
+  async getImagesForWork(_workId: string) {
     // Mock images associated with work
     return [];
   }
@@ -133,7 +131,7 @@ class MockOfflineSync {
     await mockOfflineDB.markAsSynced(work.id);
   }
 
-  private async syncWork(work: any) {
+  private async syncWork(_work: any) {
     // Simulate API call
     if (!this.smartAccountClient) {
       throw new Error("Smart account client not available");
@@ -147,7 +145,7 @@ class MockOfflineSync {
     return receipt;
   }
 
-  private async syncApproval(work: any) {
+  private async syncApproval(_work: any) {
     // Simulate API call
     if (!this.smartAccountClient) {
       throw new Error("Smart account client not available");
@@ -195,7 +193,7 @@ class MockDeduplicationManager {
     return btoa(content).substring(0, 16);
   }
 
-  async checkRemoteDuplicate(work: any): Promise<boolean> {
+  async checkRemoteDuplicate(_work: any): Promise<boolean> {
     try {
       const response = await fetch("/api/works/check-duplicate");
       if (!response.ok) return false;

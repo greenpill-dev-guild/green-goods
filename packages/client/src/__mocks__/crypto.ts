@@ -8,7 +8,7 @@ Object.defineProperty(global, "crypto", {
   value: {
     randomUUID: () => `mock-uuid-${Math.random().toString(36).substr(2, 9)}`,
     subtle: {
-      digest: (algorithm: string, data: any) => {
+      digest: (_algorithm: string, data: any) => {
         // Simple mock hash
         const input =
           data instanceof ArrayBuffer ? new TextDecoder().decode(data) : data.toString();

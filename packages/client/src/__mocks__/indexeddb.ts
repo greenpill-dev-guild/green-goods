@@ -13,8 +13,8 @@ export class MockIDBDatabase {
     return store;
   }
 
-  transaction(storeNames: string | string[], mode = "readonly") {
-    return new MockIDBTransaction(this, storeNames, mode);
+  transaction(_storeNames: string | string[], _mode = "readonly") {
+    return new MockIDBTransaction(this);
   }
 
   get objectStoreNames() {
@@ -98,11 +98,7 @@ export class MockIDBIndex {
 }
 
 export class MockIDBTransaction {
-  constructor(
-    private db: MockIDBDatabase,
-    private storeNames: string | string[],
-    private mode: string
-  ) {}
+  constructor(private db: MockIDBDatabase) {}
 
   objectStore(name: string) {
     return this.db.stores.get(name);
