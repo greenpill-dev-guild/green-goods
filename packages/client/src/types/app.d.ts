@@ -88,7 +88,7 @@ declare interface ActionCard {
   instructions: string;
   capitals: Capital[];
   media: string[];
-  createdAt: number;
+  createdAt: Date;
 }
 
 declare interface Action extends ActionCard {

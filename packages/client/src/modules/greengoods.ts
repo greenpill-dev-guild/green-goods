@@ -1,6 +1,8 @@
 import type { User } from "@privy-io/react-auth";
+
 import observerActionInstructions from "@/utils/actions/observe.json";
 import plantActionInstructions from "@/utils/actions/plant.json";
+
 import { greenGoodsGraphQL } from "./graphql";
 import { getFileByHash } from "./pinata";
 import { greenGoodsIndexer } from "./urql";
@@ -40,17 +42,25 @@ export async function getActions(): Promise<Action[]> {
   return await Promise.all(
     data.Action.map(
       async ({ id, title, instructions, startTime, endTime, capitals, media, createdAt }) => {
-        const image = (await getFileByHash(media[0])).data;
-        const mediaImage = URL.createObjectURL(image as Blob);
+        const image = await getFileByHash(media[0])
+          .then((res) => res)
+          .catch((e) => {
+            console.log("Error", media[0], e);
+            return null;
+          });
+
+        const mediaImage = image
+          ? URL.createObjectURL(image.data as Blob)
+          : "/images/no-image-placeholder.png";
 
         return {
           id: Number.parseInt(id),
           title,
           instructions,
-          startTime: startTime as number,
-          endTime: endTime as number,
+          startTime: (startTime as number) * 1000,
+          endTime: (endTime as number) * 1000,
           capitals: capitals as Capital[],
-          media: [mediaImage],
+          media: [image ? mediaImage : ""],
           description: "",
           inputs:
             id === "1"
@@ -60,7 +70,7 @@ export async function getActions(): Promise<Action[]> {
           details:
             id === "1" ? plantActionInstructions.details : observerActionInstructions.details,
           review: id === "1" ? plantActionInstructions.review : observerActionInstructions.review,
-          createdAt,
+          createdAt: new Date(createdAt * 1000),
         };
       }
     )
@@ -92,9 +102,16 @@ export async function getGardens(): Promise<Garden[]> {
 
   return await Promise.all(
     data.Garden.map(async (garden) => {
-      const image = (await getFileByHash(garden.bannerImage)).data;
+      const image = await getFileByHash(garden.bannerImage)
+        .then((res) => res)
+        .catch((e) => {
+          console.log("Error", garden.bannerImage, e);
+          return null;
+        });
 
-      const bannerImage = URL.createObjectURL(image as Blob);
+      const bannerImage = image
+        ? URL.createObjectURL(image.data as Blob)
+        : "/images/no-image-placeholder.png";
 
       return {
         id: garden.id,
@@ -108,14 +125,24 @@ export async function getGardens(): Promise<Garden[]> {
         operators: garden.operators,
         assessments: [],
         works: [],
-        createdAt: new Date(garden.createdAt),
+        createdAt: new Date(garden.createdAt * 1000),
       };
     })
   );
 }
 
 export async function getGardeners(): Promise<GardenerCard[]> {
-  const request = await fetch(import.meta.env.DEV ? "/api/users" : "/api/users");
+  const apiUrl = import.meta.env.DEV
+    ? "http://localhost:3000/users"
+    : "https://api.greengoods.app/users";
+
+  const request = await fetch(apiUrl, {
+    method: "GET",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 
   const response: User[] = await request.json();
 
