@@ -153,11 +153,13 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       media: images,
     });
 
+    const easConfig = getEASConfig("42161");
+
     const encodedData = encodeFunctionData({
       abi,
       args: [
         {
-          schema: EAS["42161"].WORK.uid,
+          schema: easConfig.WORK.uid,
           data: {
             recipient: gardenAddress as `0x${string}`,
             expirationTime: NO_EXPIRATION,
@@ -172,7 +174,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     const receipt = await smartAccountClient.sendTransaction({
-      to: EAS["42161"].EAS.address as `0x${string}`,
+      to: easConfig.EAS.address as `0x${string}`,
       value: 0n,
       data: encodedData,
     });

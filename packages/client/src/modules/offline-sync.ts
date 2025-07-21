@@ -24,7 +24,7 @@ import { NO_EXPIRATION, ZERO_BYTES32 } from "@ethereum-attestation-service/eas-s
 // import { type SmartWalletClientType } from "@privy-io/react-auth/smart-wallets";
 import { encodeFunctionData } from "viem";
 import { arbitrum } from "viem/chains";
-import { EAS } from "@/constants";
+import { getEASConfig } from "@/config";
 import { abi } from "@/utils/abis/EAS.json";
 import { encodeWorkApprovalData, encodeWorkData } from "@/utils/eas";
 import { offlineDB } from "./offline-db";
@@ -227,12 +227,14 @@ export class OfflineSync {
       media: imageFiles,
     });
 
+    const easConfig = getEASConfig("42161");
+
     const encodedData = encodeFunctionData({
       abi,
       functionName: "attest",
       args: [
         {
-          schema: EAS["42161"].WORK.uid,
+          schema: easConfig.WORK.uid,
           data: {
             recipient: work.data.gardenAddress as `0x${string}`,
             expirationTime: NO_EXPIRATION,
@@ -247,7 +249,7 @@ export class OfflineSync {
 
     const receipt = await smartAccountClient.sendTransaction({
       chain: arbitrum,
-      to: EAS["42161"].EAS.address as `0x${string}`,
+      to: easConfig.EAS.address as `0x${string}`,
       value: 0n,
       data: encodedData,
     });
@@ -273,13 +275,14 @@ export class OfflineSync {
     const smartAccountClient = this.getSmartAccountClient();
 
     const encodedAttestationData = encodeWorkApprovalData(work.data);
+    const easConfig = getEASConfig("42161");
 
     const encodedData = encodeFunctionData({
       abi,
       functionName: "attest",
       args: [
         {
-          schema: EAS["42161"].WORK_APPROVAL.uid,
+          schema: easConfig.WORK_APPROVAL.uid,
           data: {
             recipient: work.data.gardenerAddress as `0x${string}`,
             expirationTime: NO_EXPIRATION,
@@ -294,7 +297,7 @@ export class OfflineSync {
 
     const receipt = await smartAccountClient.sendTransaction({
       chain: arbitrum,
-      to: EAS["42161"].EAS.address as `0x${string}`,
+      to: easConfig.EAS.address as `0x${string}`,
       value: 0n,
       data: encodedData,
     });
