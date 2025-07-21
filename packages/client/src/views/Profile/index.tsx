@@ -48,7 +48,7 @@ const Profile: React.FC = () => {
             avatar={user?.farcaster?.pfp || "/images/avatar.png"}
             location={(user?.customMetadata?.location as string) || undefined}
             wallet={user?.wallet?.address && formatAddress(user?.wallet?.address)}
-            registration={user?.createdAt.toLocaleDateString() || undefined}
+            registration={user?.createdAt?.toLocaleDateString() || undefined}
             email={user?.email?.address || undefined}
             telephone={user?.phone?.number || undefined}
           />

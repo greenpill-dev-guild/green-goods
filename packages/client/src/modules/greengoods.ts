@@ -70,7 +70,7 @@ export async function getActions(): Promise<Action[]> {
           details:
             id === "1" ? plantActionInstructions.details : observerActionInstructions.details,
           review: id === "1" ? plantActionInstructions.review : observerActionInstructions.review,
-          createdAt: new Date(createdAt * 1000),
+          createdAt: createdAt,
         };
       }
     )
@@ -125,7 +125,7 @@ export async function getGardens(): Promise<Garden[]> {
         operators: garden.operators,
         assessments: [],
         works: [],
-        createdAt: new Date(garden.createdAt * 1000),
+        createdAt: garden.createdAt,
       };
     })
   );
@@ -149,7 +149,7 @@ export async function getGardeners(): Promise<GardenerCard[]> {
   return response.map((user) => {
     return {
       id: user.id,
-      registeredAt: user.createdAt,
+      registeredAt: new Date(user.createdAt).getTime(),
       account: user.smartWallet?.address,
       email: user.email?.address,
       phone: user.phone?.number,

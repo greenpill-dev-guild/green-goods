@@ -34,7 +34,7 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
                     id: "app.garden.gardeners.registered",
                     description: "Registered",
                   })}
-                  : {user.registeredAt.toDateString()}
+                  : {new Date(user.registeredAt * 1000).toDateString()}
                 </span>
               </div>
             </li>

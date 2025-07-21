@@ -160,7 +160,7 @@ export const Garden: React.FC<GardenProps> = () => {
                         })}{" "}
                         •
                       </span>{" "}
-                      {createdAt.toDateString()}
+                      {new Date(createdAt * 1000).toDateString()}
                     </div>
                   </div>
                 </div>

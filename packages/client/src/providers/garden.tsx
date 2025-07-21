@@ -79,7 +79,7 @@ export const useGarden = (id: string): GardenDataProps => {
       garden?.gardeners.reduce<GardenerCard[]>((acc, id) => {
         const user = gardenersMap.get(id);
         if (user) acc.push(user);
-        else acc.push({ id, account: id, registeredAt: new Date() });
+        else acc.push({ id, account: id, registeredAt: Date.now() });
         return acc;
       }, []) ?? [],
     isFetching,
