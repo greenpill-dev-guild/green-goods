@@ -1,31 +1,28 @@
 {
   "actions": [
     {
-      "title": "Community Garden Cleanup",
-      "instructions": "bafkreiafya2q3nz5dbl4fvxphtrnmahl6hcjyvhzwcimgwnbh4wsy5kr7i",
-      "startTime": "2024-02-01T00:00:00Z",
-      "endTime": "2024-08-01T00:00:00Z",
-      "capitals": ["LIVING", "SOCIAL", "MATERIAL"],
-      "media": [
-        "bafkreiemwmci42u7cb23xacktk5nfspo5kfsbmflvh6sixjahjbdk2bsie",
-        "bafkreiafya2q3nz5dbl4fvxphtrnmahl6hcjyvhzwcimgwnbh4wsy5kr7i"
-      ]
-    },
-    {
-      "title": "Educational Workshop Series",
-      "instructions": "bafkreiXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-      "startTime": "2024-03-01T00:00:00Z",
-      "endTime": "2024-09-01T00:00:00Z",
-      "capitals": ["INTELLECTUAL", "SOCIAL", "CULTURAL"],
-      "media": ["bafkreiYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY"]
-    },
-    {
-      "title": "Simple Test Action",
-      "instructions": "bafkreitest1",
+      "title": "Soil Health Assessment",
+      "instructions": "Measure soil moisture, pH, and organic matter content using provided testing kit. Document findings with photos and measurements.",
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2024-12-31T23:59:59Z",
-      "capitals": ["LIVING", "SOCIAL"],
-      "media": ["bafkreimedia1"]
+      "capitals": ["LIVING", "INTELLECTUAL", "MATERIAL"],
+      "media": ["QmSampleSoilTestingInstructionsHash", "QmSampleSoilHealthGuideHash", "QmSampleReportingTemplateHash"]
+    },
+    {
+      "title": "Biodiversity Survey",
+      "instructions": "Conduct a comprehensive survey of plant and animal species in the garden area. Use iNaturalist app for species identification.",
+      "startTime": "2024-01-01T00:00:00Z",
+      "endTime": "2024-12-31T23:59:59Z",
+      "capitals": ["LIVING", "INTELLECTUAL", "EXPERIENTIAL"],
+      "media": ["QmSampleBiodiversityGuideHash", "QmSampleSpeciesIdentificationHash", "QmSampleDataCollectionFormHash"]
+    },
+    {
+      "title": "Carbon Sequestration Measurement",
+      "instructions": "Measure tree diameter at breast height (DBH) and calculate carbon storage potential using provided formulas.",
+      "startTime": "2024-01-01T00:00:00Z",
+      "endTime": "2024-12-31T23:59:59Z",
+      "capitals": ["LIVING", "INTELLECTUAL", "MATERIAL"],
+      "media": ["QmSampleCarbonMeasurementGuideHash", "QmSampleCalculationFormulaHash", "QmSampleReportingTemplateHash"]
     }
   ]
 }

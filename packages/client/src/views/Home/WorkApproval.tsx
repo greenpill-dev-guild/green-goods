@@ -10,13 +10,11 @@ import {
   RiPlantFill,
 } from "@remixicon/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type React from "react";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Form, useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { useParams } from "react-router-dom";
 import { decodeErrorResult } from "viem";
-import { arbitrum } from "viem/chains";
 import { encodeFunctionData } from "viem/utils";
 import { z } from "zod";
 import { Button } from "@/components/UI/Button";
@@ -27,13 +25,14 @@ import { FormInfo } from "@/components/UI/Form/Info";
 import { FormText } from "@/components/UI/Form/Text";
 import { CircleLoader } from "@/components/UI/Loader";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
-import { EAS } from "@/constants";
+import { getEASConfig } from "@/config";
 import { getFileByHash } from "@/modules/pinata";
 import { useGarden, useGardens } from "@/providers/garden";
 import { useUser } from "@/providers/user";
 import { abi } from "@/utils/abis/EAS.json";
 import { abi as WorkApprovalResolverABI } from "@/utils/abis/WorkApprovalResolver.json";
 import { encodeWorkApprovalData } from "@/utils/eas";
+import { useCurrentChain } from "@/utils/useChainConfig";
 import { useNavigateToTop } from "@/utils/useNavigateToTop";
 import { WorkCompleted } from "../Garden/Completed";
 
@@ -46,7 +45,7 @@ const workApprovalSchema = z.object({
   feedback: z.string().optional(),
 });
 
-export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
+export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = () => {
   const intl = useIntl();
   const { id, workId } = useParams<{
     id: string;
@@ -57,6 +56,7 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
   const { garden } = useGarden(id!);
   const { actions } = useGardens();
   const queryClient = useQueryClient();
+  const chainId = useCurrentChain();
 
   const work = garden?.works.find((work) => work.id === workId);
   const action = actions.find((action) => action.id === work?.actionUID);
@@ -80,14 +80,15 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
         throw new Error("No smart account client found");
       }
 
-      const encodedAttestationData = encodeWorkApprovalData(draft);
+      const encodedAttestationData = encodeWorkApprovalData(draft, chainId);
+      const easConfig = getEASConfig(chainId);
 
       const encodedData = encodeFunctionData({
         abi,
         functionName: "attest",
         args: [
           {
-            schema: EAS["42161"].WORK_APPROVAL.uid,
+            schema: easConfig.WORK_APPROVAL.uid,
             data: {
               recipient: work?.gardenerAddress as `0x${string}`,
               expirationTime: NO_EXPIRATION,
@@ -101,8 +102,7 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
       });
 
       const receipt = await smartAccountClient.sendTransaction({
-        chain: arbitrum,
-        to: EAS["42161"].EAS.address as `0x${string}`,
+        to: easConfig.EAS.address as `0x${string}`,
         value: 0n,
         data: encodedData,
       });
@@ -110,24 +110,34 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
       return receipt;
     },
     onMutate: () => {
-      console.log("Approving work...");
       // toast.loading("Approving work...");
     },
     onSuccess: () => {
-      console.log("Work approved!");
       // toast.dismiss();
       // toast.success("Work approved!");
       queryClient.invalidateQueries({ queryKey: ["workApprovals"] });
     },
-    onError: (error: any) => {
-      console.log("Work approval failed!", error);
+    onError: (error: unknown) => {
+      if (error instanceof Error && error.message.includes("User rejected the request")) {
+        return;
+      }
 
-      if (error.data) {
-        const decodedError = decodeErrorResult({
-          abi: WorkApprovalResolverABI,
-          data: error.data as `0x${string}`,
-        });
-        console.error("Decoded Error:", decodedError);
+      // Properly decode revert data if available
+      if (
+        error &&
+        typeof error === "object" &&
+        "data" in error &&
+        typeof error.data === "string" &&
+        error.data.startsWith("0x")
+      ) {
+        try {
+          decodeErrorResult({
+            abi: WorkApprovalResolverABI,
+            data: error.data as `0x${string}`,
+          });
+        } catch (decodeError) {
+          console.error("Failed to decode error result:", decodeError);
+        }
       }
     },
   });
@@ -139,7 +149,7 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
 
         if (!res.data) throw new Error("No metadata found");
 
-        const metadata: WorkMetadata = res.data as any;
+        const metadata: WorkMetadata = res.data as unknown as WorkMetadata;
 
         setWorkMetadata(metadata);
       }

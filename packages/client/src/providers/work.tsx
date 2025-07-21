@@ -5,14 +5,14 @@ import React, { useContext, useState } from "react";
 // import { zodResolver } from "@hookform/resolvers/zod";
 import { type Control, type FormState, type UseFormRegister, useForm } from "react-hook-form";
 import { decodeErrorResult } from "viem";
-import { arbitrum } from "viem/chains";
 import { encodeFunctionData } from "viem/utils";
-import { EAS } from "@/constants";
+import { getEASConfig } from "@/config";
 import { getWorkApprovals } from "@/modules/eas";
 import { queryClient } from "@/modules/react-query";
 import { abi } from "@/utils/abis/EAS.json";
 import { abi as WorkResolverABI } from "@/utils/abis/WorkResolver.json";
 import { encodeWorkData } from "@/utils/eas";
+import { useCurrentChain } from "@/utils/useChainConfig";
 import { useGardens } from "./garden";
 import { useUser } from "./user";
 
@@ -27,7 +27,7 @@ export enum WorkTab {
 export interface WorkDataProps {
   gardens: Garden[];
   actions: Action[];
-  workMutation: ReturnType<typeof useMutation<`0x${string}`, Error, WorkDraft, void>>;
+  workMutation: ReturnType<typeof useMutation<`0x${string}`, unknown, WorkDraft, void>>;
   workApprovals: WorkApproval[];
   workApprovalMap: Record<string, WorkApproval>;
   refetchWorkApprovals: () => Promise<QueryObserverResult<WorkApproval[], Error>>;
@@ -84,13 +84,14 @@ export const useWork = () => {
 };
 
 export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
-  const { smartAccountClient } = useUser();
+  const { smartAccountClient, eoa } = useUser();
   const { actions, gardens } = useGardens();
+  const chainId = useCurrentChain();
 
   // QUERIES
   const { data: workApprovals, refetch: refetchWorkApprovals } = useQuery<WorkApproval[]>({
-    queryKey: ["workApprovals"],
-    queryFn: () => getWorkApprovals(),
+    queryKey: ["workApprovals", chainId, eoa?.address],
+    queryFn: () => getWorkApprovals(eoa?.address, chainId),
   });
 
   // MUTATIONS
@@ -121,19 +122,23 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       if (typeof actionUID !== "number") throw new Error("No action UID found");
 
       const action = actions.find((action) => action.id === actionUID);
+      const easConfig = getEASConfig(chainId);
 
-      const encodedAttestationData = await encodeWorkData({
-        ...draft,
-        title: `${action?.title} - ${new Date().toISOString()}`,
-        actionUID,
-        media: images,
-      });
+      const encodedAttestationData = await encodeWorkData(
+        {
+          ...draft,
+          title: `${action?.title} - ${new Date().toISOString()}`,
+          actionUID,
+          media: images,
+        },
+        chainId
+      );
 
       const encodedData = encodeFunctionData({
         abi,
         args: [
           {
-            schema: EAS["42161"].WORK.uid,
+            schema: easConfig.WORK.uid,
             data: {
               recipient: gardenAddress as `0x${string}`,
               expirationTime: NO_EXPIRATION,
@@ -148,8 +153,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       const receipt = await smartAccountClient.sendTransaction({
-        chain: arbitrum,
-        to: EAS["42161"].EAS.address as `0x${string}`,
+        to: easConfig.EAS.address as `0x${string}`,
         value: 0n,
         data: encodedData,
       });
@@ -164,19 +168,32 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       // toast.success("Work uploaded!"); @dev deprecated
       queryClient.invalidateQueries({ queryKey: ["works"] });
     },
-    onError: (error: any) => {
-      console.error("Upload Work", error);
-
-      if (error.data) {
-        const decodedError = decodeErrorResult({
-          abi: WorkResolverABI,
-          data: error.data as `0x${string}`,
-        });
-        console.error("Decoded Error:", decodedError);
+    onError: (error: unknown) => {
+      if (error instanceof Error && error.message.includes("User rejected the request")) {
+        return;
       }
 
-      // toast.remove();
-      // toast.error("Work upload failed!"); @dev deprecated
+      // Properly decode revert data if available
+      if (
+        error &&
+        typeof error === "object" &&
+        "data" in error &&
+        typeof error.data === "string" &&
+        error.data.startsWith("0x")
+      ) {
+        try {
+          decodeErrorResult({
+            abi: WorkResolverABI,
+            data: error.data as `0x${string}`,
+          });
+        } catch (decodeError) {
+          console.error("Failed to decode error result:", decodeError);
+        }
+      }
+
+      queryClient.invalidateQueries({
+        queryKey: ["work-approvals"],
+      });
     },
   });
 

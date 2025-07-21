@@ -331,4 +331,4 @@ Error: Invalid API key
 - [GitHub Issues](https://github.com/your-org/green-goods/issues)
 - [Discord Community](https://discord.gg/your-server)
 - [Documentation](https://docs.greengoods.app)
-- [Stack Overflow](https://stackoverflow.com/questions/tagged/greengoods)
+- [Stack Overflow](https://stackoverflow.com/questions/tagged/greengoods) 

@@ -2,21 +2,17 @@ import { PinataSDK } from "pinata";
 
 export const pinata = new PinataSDK({
   pinataJwt: import.meta.env.VITE_PINATA_JWT as string,
-  pinataGateway: "fuchsia-impossible-snake-503.mypinata.cloud",
+  pinataGateway: "greengoods.mypinata.cloud",
 });
 
 export async function uploadFileToIPFS(file: File) {
-  return await pinata.upload.file(file);
-}
-
-export async function uploadFilesToIPFS(files: File[]) {
-  return await pinata.upload.fileArray(files);
+  return await pinata.upload.private.file(file);
 }
 
 export async function uploadJSONToIPFS(json: Record<string, unknown>) {
-  return await pinata.upload.json(json);
+  return await pinata.upload.private.json(json);
 }
 
 export async function getFileByHash(hash: string) {
-  return await pinata.gateways.get(hash);
+  return await pinata.gateways.public.get(hash);
 }

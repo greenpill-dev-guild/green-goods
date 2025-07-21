@@ -130,3 +130,7 @@ dist
 .yarn/install-state.gz
 .pnp.*
 .vercel
+
+# Playwright test results
+test-results/
+playwright-report/

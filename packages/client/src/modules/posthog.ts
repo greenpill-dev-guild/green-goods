@@ -8,16 +8,15 @@ posthog.init(import.meta.env.VITE_PUBLIC_POSTHOG_KEY, {
 });
 
 export function track(event: string, properties: Record<string, unknown>) {
-  if (!IS_DEV) {
+  if (IS_DEV) {
     console.log("track", event, properties);
-    posthog.capture(event, properties);
   } else {
     posthog.capture(event, properties);
   }
 }
 
 export function identify(distinctId: string) {
-  if (!IS_DEV) {
+  if (IS_DEV) {
     console.log("identify", distinctId);
   } else {
     posthog.identify(distinctId);

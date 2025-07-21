@@ -30,6 +30,8 @@ library EASLib {
             return EAS_SEPOLIA;
         } else if (block.chainid == 8453) {
             return EAS_BASE;
+        } else if (block.chainid == 84_532) {
+            return EAS_BASE; // Base Sepolia uses same EAS address as Base
         } else if (block.chainid == 10) {
             return EAS_OPTIMISM;
         } else if (block.chainid == 42_220) {
@@ -48,6 +50,8 @@ library EASLib {
             return EAS_SCHEMA_REGISTRY_SEPOLIA;
         } else if (block.chainid == 8453) {
             return EAS_SCHEMA_REGISTRY_BASE;
+        } else if (block.chainid == 84_532) {
+            return EAS_SCHEMA_REGISTRY_BASE; // Base Sepolia uses same schema registry as Base
         } else if (block.chainid == 10) {
             return EAS_SCHEMA_REGISTRY_OPTIMISM;
         } else if (block.chainid == 42_220) {

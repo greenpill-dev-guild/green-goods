@@ -26,6 +26,7 @@ abstract contract DeploymentHelper is Script {
         address erc4337EntryPoint;
         address multicallForwarder;
         address greenGoodsSafe;
+        address multisig;
     }
 
     struct DeploymentResult {
@@ -49,7 +50,7 @@ abstract contract DeploymentHelper is Script {
         string memory json = vm.readFile(path);
 
         // Map chain ID to network name
-        string memory networkName = getNetworkName(block.chainid);
+        string memory networkName = _getNetworkName(block.chainid);
         string memory basePath = string.concat(".networks.", networkName);
 
         // Check if network is configured by trying to read chainId
@@ -73,16 +74,18 @@ abstract contract DeploymentHelper is Script {
         config.safeFactory = json.readAddress(".deploymentDefaults.safeFactory");
         config.safe4337Module = json.readAddress(".deploymentDefaults.safe4337Module");
         config.greenGoodsSafe = json.readAddress(".deploymentDefaults.greenGoodsSafe");
+        config.multisig = json.readAddress(".deploymentDefaults.multisig");
 
         return config;
     }
 
     /// @notice Get network name from chain ID
-    function getNetworkName(uint256 chainId) internal pure returns (string memory) {
+    function _getNetworkName(uint256 chainId) internal pure returns (string memory) {
         if (chainId == 31_337) return "localhost";
         if (chainId == 11_155_111) return "sepolia";
         if (chainId == 42_161) return "arbitrum";
         if (chainId == 8453) return "base";
+        if (chainId == 84_532) return "baseSepolia";
         if (chainId == 10) return "optimism";
         if (chainId == 42_220) return "celo";
 
@@ -102,7 +105,7 @@ abstract contract DeploymentHelper is Script {
     }
 
     /// @notice Deploy a contract using CREATE2
-    function deployCreate2(bytes memory bytecode, bytes32 salt, address factory) internal returns (address) {
+    function _deployCreate2(bytes memory bytecode, bytes32 salt, address factory) internal returns (address) {
         address predicted = Create2.computeAddress(salt, keccak256(bytecode), factory);
 
         if (predicted.code.length > 0) {
@@ -125,12 +128,12 @@ abstract contract DeploymentHelper is Script {
     }
 
     /// @notice Check if contract is already deployed
-    function isDeployed(address addr) internal view returns (bool) {
+    function _isDeployed(address addr) internal view returns (bool) {
         return addr.code.length > 0;
     }
 
     /// @notice Save deployment result to JSON with schema configuration
-    function saveDeployment(DeploymentResult memory result) internal {
+    function _saveDeployment(DeploymentResult memory result) internal {
         string memory obj = "deployment";
         vm.serializeAddress(obj, "deploymentRegistry", result.deploymentRegistry);
         vm.serializeAddress(obj, "guardian", result.guardian);
@@ -142,7 +145,7 @@ abstract contract DeploymentHelper is Script {
         vm.serializeAddress(obj, "workApprovalResolver", result.workApprovalResolver);
 
         // Load schema configuration from JSON
-        string memory schemasJson = loadSchemasFromConfig(result);
+        string memory schemasJson = _loadSchemasFromConfig(result);
 
         // Add EAS configuration
         NetworkConfig memory config = loadNetworkConfig();
@@ -163,35 +166,71 @@ abstract contract DeploymentHelper is Script {
     }
 
     /// @notice Load schemas from configuration file and add deployment UIDs
-    function loadSchemasFromConfig(DeploymentResult memory result) internal returns (string memory) {
+    function _loadSchemasFromConfig(DeploymentResult memory result) internal returns (string memory) {
         string memory root = vm.projectRoot();
         string memory path = string.concat(root, "/config/schemas.json");
         string memory json = vm.readFile(path);
 
         string memory schemasObj = "schemas";
 
+        // Find and process each schema from the flat array
+        (string memory gardenAssessmentName, string memory gardenAssessmentDescription) =
+            _findSchemaDataInArray(json, "gardenAssessment");
+        (string memory workName, string memory workDescription) = _findSchemaDataInArray(json, "work");
+        (string memory workApprovalName, string memory workApprovalDescription) =
+            _findSchemaDataInArray(json, "workApproval");
+
         // Garden Assessment Schema
         vm.serializeBytes32(schemasObj, "gardenAssessmentSchemaUID", result.gardenAssessmentSchemaUID);
-        vm.serializeString(schemasObj, "gardenAssessmentName", json.readString(".schemas.gardenAssessment.name"));
-        vm.serializeString(
-            schemasObj, "gardenAssessmentDescription", json.readString(".schemas.gardenAssessment.description")
-        );
+        vm.serializeString(schemasObj, "gardenAssessmentName", gardenAssessmentName);
+        vm.serializeString(schemasObj, "gardenAssessmentDescription", gardenAssessmentDescription);
         vm.serializeString(schemasObj, "gardenAssessmentSchema", _generateSchemaString("gardenAssessment"));
 
         // Work Schema
         vm.serializeBytes32(schemasObj, "workSchemaUID", result.workSchemaUID);
-        vm.serializeString(schemasObj, "workName", json.readString(".schemas.work.name"));
-        vm.serializeString(schemasObj, "workDescription", json.readString(".schemas.work.description"));
+        vm.serializeString(schemasObj, "workName", workName);
+        vm.serializeString(schemasObj, "workDescription", workDescription);
         vm.serializeString(schemasObj, "workSchema", _generateSchemaString("work"));
 
         // Work Approval Schema
         vm.serializeBytes32(schemasObj, "workApprovalSchemaUID", result.workApprovalSchemaUID);
-        vm.serializeString(schemasObj, "workApprovalName", json.readString(".schemas.workApproval.name"));
-        vm.serializeString(schemasObj, "workApprovalDescription", json.readString(".schemas.workApproval.description"));
+        vm.serializeString(schemasObj, "workApprovalName", workApprovalName);
+        vm.serializeString(schemasObj, "workApprovalDescription", workApprovalDescription);
         string memory schemasJson =
             vm.serializeString(schemasObj, "workApprovalSchema", _generateSchemaString("workApproval"));
 
         return schemasJson;
+    }
+
+    /// @notice Find a schema by ID in the flat array and return its name and description
+    function _findSchemaDataInArray(
+        string memory json,
+        string memory schemaId
+    )
+        internal
+        pure
+        returns (string memory name, string memory description)
+    {
+        // Since we can't easily iterate through JSON arrays in Solidity, we'll try indices
+        // Loop through reasonable number of potential schema indices
+        for (uint256 i = 0; i < 100; i++) {
+            string memory indexPath = string.concat("[", vm.toString(i), "]");
+
+            try vm.parseJson(json, string.concat(indexPath, ".id")) returns (bytes memory idData) {
+                string memory currentId = abi.decode(idData, (string));
+
+                if (keccak256(abi.encodePacked(currentId)) == keccak256(abi.encodePacked(schemaId))) {
+                    name = abi.decode(vm.parseJson(json, string.concat(indexPath, ".name")), (string));
+                    description = abi.decode(vm.parseJson(json, string.concat(indexPath, ".description")), (string));
+                    return (name, description);
+                }
+            } catch {
+                // Index doesn't exist, continue
+                break;
+            }
+        }
+
+        revert(string.concat("Schema not found: ", schemaId));
     }
 
     /// @notice Generate schema string from fields array using JavaScript utility
@@ -206,7 +245,7 @@ abstract contract DeploymentHelper is Script {
     }
 
     /// @notice Print deployment summary
-    function printDeploymentSummary(DeploymentResult memory result) internal view {
+    function _printDeploymentSummary(DeploymentResult memory result) internal view {
         console.log("\n=== Deployment Summary ===");
         console.log("Chain ID:", block.chainid);
         console.log("Deployment Registry:", result.deploymentRegistry);
@@ -225,7 +264,7 @@ abstract contract DeploymentHelper is Script {
     }
 
     /// @notice Generate verification commands
-    function generateVerificationCommands(DeploymentResult memory result) internal view {
+    function _generateVerificationCommands(DeploymentResult memory result) internal view {
         console.log("\n=== Verification Commands ===");
 
         string memory baseCmd =

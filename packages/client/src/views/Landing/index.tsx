@@ -1,5 +1,4 @@
-import type React from "react";
-import { useState } from "react";
+import React, { useState } from "react";
 import toast from "react-hot-toast";
 import { Footer } from "@/components/Layout/Footer";
 import { Header } from "@/components/Layout/Header";
@@ -20,7 +19,6 @@ const Landing: React.FC<LandingProps> = () => {
 
     setSubscribeState("subscribing");
 
-    console.log(e.currentTarget);
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email") as string;
 
@@ -34,7 +32,6 @@ const Landing: React.FC<LandingProps> = () => {
       .then((response) => {
         if (!response.ok) {
           // ERROR
-          console.log(response.status);
 
           throw new Error("Network response was not ok.");
         }
@@ -42,9 +39,7 @@ const Landing: React.FC<LandingProps> = () => {
 
         setSubscribeState("subscribed");
       })
-      .catch((error) => {
-        console.error("Error:", error);
-
+      .catch((_error) => {
         setSubscribeState("error");
         toast.error("Something went wrong. Please try again.");
       });
