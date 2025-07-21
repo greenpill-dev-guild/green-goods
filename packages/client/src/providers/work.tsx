@@ -173,11 +173,22 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
-      if (error instanceof Error && error.message.includes("0x")) {
-        decodeErrorResult({
-          abi: WorkResolverABI,
-          data: error.message as `0x${string}`,
-        });
+      // Properly decode revert data if available
+      if (
+        error &&
+        typeof error === "object" &&
+        "data" in error &&
+        typeof error.data === "string" &&
+        error.data.startsWith("0x")
+      ) {
+        try {
+          decodeErrorResult({
+            abi: WorkResolverABI,
+            data: error.data as `0x${string}`,
+          });
+        } catch (decodeError) {
+          console.error("Failed to decode error result:", decodeError);
+        }
       }
 
       queryClient.invalidateQueries({
