@@ -13,14 +13,10 @@
   },
   "dependencies": {
     "@fastify/cors": "^9.0.1",
-    "@privy-io/server-auth": "^1.28.3",
-    "dotenv": "^16.4.5",
     "fastify": "^4.28.1"
   },
   "devDependencies": {
-    "fastify-tsconfig": "^2.0.0",
-    "tsc-alias": "^1.8.8",
-    "tsx": "^4.16.0"
+    "fastify-tsconfig": "^2.0.0"
   },
   "engines": {
     "node": ">=18.0.0"

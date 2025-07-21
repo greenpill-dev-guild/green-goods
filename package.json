@@ -17,7 +17,7 @@
     "foundry"
   ],
   "scripts": {
-    "init": "pnpm install",
+    "setup": "node scripts/setup.js",
     "foundry:up": "curl -L https://foundry.paradigm.xyz | bash && bash $HOME/.foundry/bin/foundryup",
     "prepare": "husky",
     "build": "pnpm recursive run build",
@@ -39,6 +39,8 @@
     "test:e2e:pwa": "playwright test tests/specs/pwa",
     "test:e2e:performance": "playwright test tests/specs/performance",
     "test:e2e:quick": "playwright test tests/specs/smoke tests/specs/integration/basic-integration.spec.ts --project=chromium",
+    "test:offline": "node tests/run-offline-tests.js",
+    "test:offline:debug": "node tests/run-offline-tests.js --debug --headed",
     "test:all": "pnpm test && pnpm test:e2e",
 
     "dev": "trap 'pnpm exec pm2 delete all' EXIT; pnpm exec pm2 start ecosystem.config.js && pnpm exec pm2 logs --raw",
@@ -53,15 +55,17 @@
     "dev:contracts": "pnpm --filter 'contracts' run  dev"
   },
   "dependencies": {
-    "dotenv": "17.2.0",
+    "@privy-io/server-auth": "^1.28.3",
+    "dotenv": "^17.2.0",
     "ethers": "^6.15.0",
     "viem": "^2.33.0"
   },
   "devDependencies": {
     "@biomejs/biome": "2.1.2",
     "@playwright/test": "^1.54.1",
-    "@types/node": "^22.0.0",
+    "@types/node": "^22.5.1",
     "husky": "^9.1.7",
+    "js-yaml": "^4.1.0",
     "lint-staged": "16.1.2",
     "oxlint": "1.7.0",
     "pm2": "6.0.8",
