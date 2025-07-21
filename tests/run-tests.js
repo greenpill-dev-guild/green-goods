@@ -88,9 +88,10 @@ async function checkServices() {
           {
             timeout: 5000,
             // Optionally, provide CA in test environment to support self-signed cert
-            ...(process.env.NODE_ENV === "test" && process.env.LOCAL_CA && {
-              ca: fs.readFileSync(process.env.LOCAL_CA)
-            }),
+            ...(process.env.NODE_ENV === "test" &&
+              process.env.LOCAL_CA && {
+                ca: fs.readFileSync(process.env.LOCAL_CA),
+              }),
           },
           (res) => {
             resolve({ status: res.statusCode, success: true, protocol: "HTTPS" });
