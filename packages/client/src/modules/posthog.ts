@@ -24,9 +24,18 @@ export function identify(distinctId: string) {
 }
 
 export function reset() {
-  posthog.reset();
+  if (IS_DEV) {
+    console.log("reset");
+  } else {
+    posthog.reset();
+  }
 }
 
 export function getDistinctId() {
-  return posthog.get_distinct_id();
+  if (IS_DEV) {
+    console.log("getDistinctId");
+    return "dev-user-id";
+  } else {
+    return posthog.get_distinct_id();
+  }
 }
