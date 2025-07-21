@@ -70,7 +70,7 @@ export async function getActions(): Promise<Action[]> {
           details:
             id === "1" ? plantActionInstructions.details : observerActionInstructions.details,
           review: id === "1" ? plantActionInstructions.review : observerActionInstructions.review,
-          createdAt: createdAt,
+          createdAt: (createdAt as number) * 1000,
         };
       }
     )
@@ -125,7 +125,7 @@ export async function getGardens(): Promise<Garden[]> {
         operators: garden.operators,
         assessments: [],
         works: [],
-        createdAt: garden.createdAt,
+        createdAt: (garden.createdAt as number) * 1000,
       };
     })
   );
