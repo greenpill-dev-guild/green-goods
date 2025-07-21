@@ -167,7 +167,7 @@ contract Deploy is Script, DeploymentHelper {
     }
 
     /// @notice Load deployment profile from environment variable
-    function loadDeploymentProfile() internal view returns (DeploymentProfile) {
+    function _loadDeploymentProfile() internal view returns (DeploymentProfile) {
         try vm.envString("DEPLOYMENT_PROFILE") returns (string memory profileStr) {
             return _getProfileFromString(profileStr);
         } catch { }
@@ -200,8 +200,8 @@ contract Deploy is Script, DeploymentHelper {
     }
 
     /// @notice Load deployment flags from environment variables
-    function loadDeploymentFlags() internal view returns (DeploymentFlags memory flags) {
-        DeploymentProfile profile = loadDeploymentProfile();
+    function _loadDeploymentFlags() internal view returns (DeploymentFlags memory flags) {
+        DeploymentProfile profile = _loadDeploymentProfile();
 
         // Load base flags from profile
         flags = _getFlagsForProfile(profile);
@@ -465,7 +465,7 @@ contract Deploy is Script, DeploymentHelper {
     function run() external {
         // Load configuration and flags
         NetworkConfig memory config = loadNetworkConfig();
-        DeploymentFlags memory flags = loadDeploymentFlags();
+        DeploymentFlags memory flags = _loadDeploymentFlags();
         (bytes32 salt, address factory, address tokenboundRegistry) = getDeploymentDefaults();
 
         // Get deployer and multisig addresses
@@ -500,21 +500,23 @@ contract Deploy is Script, DeploymentHelper {
         // 3. Deploy registries and resolvers
         result.actionRegistry = deployActionRegistry(config.greenGoodsSafe, salt, factory);
         result.workResolver =
-            deployWorkResolver(config.eas, result.actionRegistry, config.greenGoodsSafe, salt, factory);
+            _deployWorkResolver(config.eas, result.actionRegistry, config.greenGoodsSafe, salt, factory);
         result.workApprovalResolver =
-            deployWorkApprovalResolver(config.eas, result.actionRegistry, config.greenGoodsSafe, salt, factory);
+            _deployWorkApprovalResolver(config.eas, result.actionRegistry, config.greenGoodsSafe, salt, factory);
 
         // 4. Deploy EAS schemas (with skip flag)
         if (!flags.skipSchemas) {
             (result.gardenAssessmentSchemaUID, result.workSchemaUID, result.workApprovalSchemaUID) =
-            deployEASSchemasWithFlags(config.easSchemaRegistry, result.workResolver, result.workApprovalResolver, flags);
+            _deployEASSchemasWithFlags(
+                config.easSchemaRegistry, result.workResolver, result.workApprovalResolver, flags
+            );
         } else {
             console.log(">> Skipping schema deployment (SKIP_SCHEMAS=true)");
         }
 
         // 5. Configure DeploymentRegistry (with governance handling)
         if (!flags.skipConfiguration) {
-            configureDeploymentRegistryWithGovernance(
+            _configureDeploymentRegistryWithGovernance(
                 result.deploymentRegistry, config, result, deployer, multisig, flags
             );
         } else {
@@ -535,8 +537,8 @@ contract Deploy is Script, DeploymentHelper {
 
         if (initSeedData) {
             console.log("Initializing seed data for testing...");
-            deploySeedGardens(result.gardenToken, config.communityToken);
-            deploySeedActions(result.actionRegistry);
+            _deploySeedGardens(result.gardenToken, config.communityToken);
+            _deploySeedActions(result.actionRegistry);
         } else if (flags.skipSeedData) {
             console.log(">> Skipping seed data initialization (SKIP_SEED_DATA=true)");
         }
@@ -544,11 +546,11 @@ contract Deploy is Script, DeploymentHelper {
         vm.stopBroadcast();
 
         // Print summary and save deployment
-        printDeploymentSummary(result);
-        saveDeployment(result);
+        _printDeploymentSummary(result);
+        _saveDeployment(result);
 
         if (!flags.skipVerification) {
-            generateVerificationCommands(result);
+            _generateVerificationCommands(result);
         } else {
             console.log(">> Skipping verification command generation (SKIP_VERIFICATION=true)");
         }
@@ -596,7 +598,7 @@ contract Deploy is Script, DeploymentHelper {
         return address(proxy);
     }
 
-    function configureDeploymentRegistry(
+    function _configureDeploymentRegistry(
         address registry,
         NetworkConfig memory config,
         DeploymentResult memory result
@@ -621,7 +623,7 @@ contract Deploy is Script, DeploymentHelper {
         console.log("DeploymentRegistry configured for chain:", block.chainid);
     }
 
-    function configureDeploymentRegistryWithGovernance(
+    function _configureDeploymentRegistryWithGovernance(
         address registry,
         NetworkConfig memory config,
         DeploymentResult memory result,
@@ -675,7 +677,7 @@ contract Deploy is Script, DeploymentHelper {
 
         address predicted = Create2.computeAddress(salt, keccak256(bytecode), factory);
 
-        if (!isDeployed(predicted)) {
+        if (!_isDeployed(predicted)) {
             AccountGuardian guardian = new AccountGuardian{ salt: salt }(greenGoodsSafe);
             if (address(guardian) != predicted) {
                 revert GuardianDeploymentAddressMismatch();
@@ -705,7 +707,7 @@ contract Deploy is Script, DeploymentHelper {
 
         address predicted = Create2.computeAddress(salt, keccak256(bytecode), factory);
 
-        if (!isDeployed(predicted)) {
+        if (!_isDeployed(predicted)) {
             GardenAccount account =
                 new GardenAccount{ salt: salt }(entryPoint, multicallForwarder, tokenRegistry, guardian);
             if (address(account) != predicted) {
@@ -732,7 +734,7 @@ contract Deploy is Script, DeploymentHelper {
 
         address predicted = Create2.computeAddress(salt, keccak256(bytecode), factory);
 
-        if (!isDeployed(predicted)) {
+        if (!_isDeployed(predicted)) {
             AccountProxy proxy = new AccountProxy{ salt: salt }(guardian, implementation);
             if (address(proxy) != predicted) {
                 revert AccountProxyDeploymentAddressMismatch();
@@ -758,7 +760,7 @@ contract Deploy is Script, DeploymentHelper {
 
         address predicted = Create2.computeAddress(salt, keccak256(bytecode), factory);
 
-        if (!isDeployed(predicted)) {
+        if (!_isDeployed(predicted)) {
             GardenToken token = new GardenToken{ salt: salt }(implementation);
             token.initialize(multisig);
             if (address(token) != predicted) {
@@ -777,7 +779,7 @@ contract Deploy is Script, DeploymentHelper {
 
         address predicted = Create2.computeAddress(salt, keccak256(bytecode), factory);
 
-        if (!isDeployed(predicted)) {
+        if (!_isDeployed(predicted)) {
             ActionRegistry registry = new ActionRegistry{ salt: salt }();
             registry.initialize(multisig);
             if (address(registry) != predicted) {
@@ -791,7 +793,7 @@ contract Deploy is Script, DeploymentHelper {
         return predicted;
     }
 
-    function deployWorkResolver(
+    function _deployWorkResolver(
         address eas,
         address actionRegistry,
         address multisig,
@@ -805,7 +807,7 @@ contract Deploy is Script, DeploymentHelper {
 
         address predicted = Create2.computeAddress(salt, keccak256(bytecode), factory);
 
-        if (!isDeployed(predicted)) {
+        if (!_isDeployed(predicted)) {
             WorkResolver resolver = new WorkResolver{ salt: salt }(eas, actionRegistry);
             resolver.initialize(multisig);
             if (address(resolver) != predicted) {
@@ -819,7 +821,7 @@ contract Deploy is Script, DeploymentHelper {
         return predicted;
     }
 
-    function deployWorkApprovalResolver(
+    function _deployWorkApprovalResolver(
         address eas,
         address actionRegistry,
         address multisig,
@@ -834,7 +836,7 @@ contract Deploy is Script, DeploymentHelper {
 
         address predicted = Create2.computeAddress(salt, keccak256(bytecode), factory);
 
-        if (!isDeployed(predicted)) {
+        if (!_isDeployed(predicted)) {
             WorkApprovalResolver resolver = new WorkApprovalResolver{ salt: salt }(eas, actionRegistry);
             resolver.initialize(multisig);
             if (address(resolver) != predicted) {
@@ -848,7 +850,7 @@ contract Deploy is Script, DeploymentHelper {
         return predicted;
     }
 
-    function deployEASSchemas(
+    function _deployEASSchemas(
         address schemaRegistry,
         address workResolver,
         address workApprovalResolver
@@ -917,7 +919,7 @@ contract Deploy is Script, DeploymentHelper {
         console.log("=================================================\n");
     }
 
-    function deployEASSchemasWithFlags(
+    function _deployEASSchemasWithFlags(
         address schemaRegistry,
         address workResolver,
         address workApprovalResolver,
@@ -1078,8 +1080,7 @@ contract Deploy is Script, DeploymentHelper {
         returns (bool)
     {
         // Parse the array and find the schema with matching ID
-        for (uint256 i = 0; i < 10; i++) {
-            // Assume max 10 schemas
+        for (uint256 i = 0; i < 100; i++) {
             string memory indexPath = string.concat("[", vm.toString(i), "]");
 
             try vm.parseJson(schemaJson, string.concat(indexPath, ".id")) returns (bytes memory idData) {
@@ -1158,8 +1159,7 @@ contract Deploy is Script, DeploymentHelper {
         returns (string memory)
     {
         // Parse the array and find the schema with matching ID
-        for (uint256 i = 0; i < 10; i++) {
-            // Assume max 10 schemas
+        for (uint256 i = 0; i < 100; i++) {
             string memory indexPath = string.concat("[", vm.toString(i), "]");
 
             try vm.parseJson(schemaJson, string.concat(indexPath, ".id")) returns (bytes memory idData) {
@@ -1187,8 +1187,7 @@ contract Deploy is Script, DeploymentHelper {
         returns (string memory)
     {
         // Parse the array and find the schema with matching ID
-        for (uint256 i = 0; i < 10; i++) {
-            // Assume max 10 schemas
+        for (uint256 i = 0; i < 100; i++) {
             string memory indexPath = string.concat("[", vm.toString(i), "]");
 
             try vm.parseJson(schemaJson, string.concat(indexPath, ".id")) returns (bytes memory idData) {
@@ -1413,7 +1412,7 @@ contract Deploy is Script, DeploymentHelper {
         console.log("========================\n");
     }
 
-    function deploySeedGardens(address gardenToken, address communityToken) internal {
+    function _deploySeedGardens(address gardenToken, address communityToken) internal {
         string memory configPath = string.concat(vm.projectRoot(), "/config/garden.json");
 
         try vm.readFile(configPath) returns (string memory json) {
@@ -1434,14 +1433,12 @@ contract Deploy is Script, DeploymentHelper {
         }
     }
 
-    function deploySeedActions(address actionRegistry) internal {
+    function _deploySeedActions(address actionRegistry) internal {
         string memory configPath = string.concat(vm.projectRoot(), "/config/actions.json");
 
         try vm.readFile(configPath) returns (string memory json) {
             // Parse actions array
-            uint256 actionsCount = 3; // Assume max 3 actions for simplicity
-
-            for (uint256 i = 0; i < actionsCount; i++) {
+            for (uint256 i = 0; i < 50; i++) {
                 string memory basePath = string.concat(".actions[", vm.toString(i), "]");
 
                 try vm.parseJson(json, string.concat(basePath, ".title")) returns (bytes memory) {
@@ -1456,7 +1453,7 @@ contract Deploy is Script, DeploymentHelper {
                         abi.decode(vm.parseJson(json, string.concat(basePath, ".capitals")), (string[]));
                     Capital[] memory capitals = new Capital[](capitalStrings.length);
                     for (uint256 j = 0; j < capitalStrings.length; j++) {
-                        capitals[j] = parseCapital(capitalStrings[j]);
+                        capitals[j] = _parseCapital(capitalStrings[j]);
                     }
 
                     // Parse media
@@ -1479,7 +1476,7 @@ contract Deploy is Script, DeploymentHelper {
         }
     }
 
-    function parseCapital(string memory capitalStr) internal pure returns (Capital) {
+    function _parseCapital(string memory capitalStr) internal pure returns (Capital) {
         return _parseCapitalFromString(capitalStr);
     }
 
