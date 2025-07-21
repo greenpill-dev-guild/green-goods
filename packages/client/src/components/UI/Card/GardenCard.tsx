@@ -8,7 +8,7 @@ import { Badge } from "../Badge/Badge";
 import { Card, type CardRootProps } from "./Card";
 
 export const cardVariants = tv({
-  base: "relative flex flex-col grow border-0 rounded-lg overflow-clip rounded-b-lg justify-between p-0 gap-0",
+  base: "relative flex flex-col grow border-0 rounded-lg overflow-clip rounded-b-lg justify-between p-0 gap-0 min-h-60",
   variants: {
     media: {
       large: "",

@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 
-const { execSync } = require("node:child_process");
 const fs = require("node:fs");
-const path = require("node:path");
 const dotenv = require("dotenv");
+const path = require("node:path");
+const { execSync } = require("node:child_process");
+
 const { DeploymentAddresses } = require("./utils/deployment-addresses");
 const { GasOptimizer } = require("./utils/gas-optimizer");
 const { GardenOnboarding } = require("./garden-onboarding");
+const { EnvioIntegration } = require("./utils/envio-integration");
 
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, "..", ".env") });
@@ -29,6 +31,74 @@ const CAPITAL_MAPPING = {
 class DeploymentCLI {
   constructor() {
     this.deploymentAddresses = new DeploymentAddresses();
+    this.profiles = {
+      full: {
+        description: "Full deployment with all components",
+        flags: {},
+      },
+      update: {
+        description: "Update existing deployment (skip contracts)",
+        flags: {
+          skipExisting: true,
+          skipVerification: true,
+          forceSchemas: true,
+          skipSeedData: true,
+        },
+      },
+      "metadata-only": {
+        description: "Update only schema metadata",
+        flags: {
+          skipExisting: true,
+          skipSchemas: true,
+          skipConfiguration: true,
+          skipSeedData: true,
+          skipVerification: true,
+          skipGovernance: true,
+          metadataOnly: true,
+        },
+      },
+      "contracts-only": {
+        description: "Deploy only contracts (skip schemas)",
+        flags: {
+          skipSchemas: true,
+          skipSeedData: true,
+          skipConfiguration: true,
+        },
+      },
+      "schemas-only": {
+        description: "Deploy only schemas",
+        flags: {
+          skipExisting: true,
+          skipConfiguration: true,
+          skipSeedData: true,
+          skipVerification: true,
+        },
+      },
+      testing: {
+        description: "Full deployment with test data",
+        flags: {
+          verbose: true,
+        },
+      },
+      production: {
+        description: "Production deployment (no test data, governance transfer)",
+        flags: {
+          skipSeedData: true,
+          skipGovernance: false,
+          noAllowlist: true,
+        },
+      },
+      hotfix: {
+        description: "Emergency hotfix deployment",
+        flags: {
+          skipExisting: true,
+          skipSchemas: true,
+          skipSeedData: true,
+          skipVerification: true,
+          verbose: true,
+        },
+      },
+    };
   }
 
   showHelp() {
@@ -45,41 +115,280 @@ Commands:
   status [network]         Check deployment status
   fork <network>           Start a network fork
 
+DEPLOYMENT PROFILES (use --profile <name>):
+${Object.entries(this.profiles)
+  .map(([name, profile]) => `  ${name.padEnd(15)} - ${profile.description}`)
+  .join("\n")}
+
 Options:
-  --network, -n <network>  Network to deploy to (default: localhost)
-  --broadcast, -b          Broadcast transactions
-  --verify, -v             Verify contracts after deployment
-  --gas-optimize, -g       Enable gas optimization
-  --gas-strategy <strategy> Gas strategy (conservative/standard/aggressive)
-  --save-report, -r        Generate deployment report
-  --dry-run               Validate configuration without deploying
-  --help, -h               Show this help
+  --profile, -p <name>              Use deployment profile
+  --list-profiles                   List available profiles
+  --network, -n <network>           Network to deploy to (default: localhost)
+  --broadcast, -b                   Broadcast transactions
+  --verify, -v                      Verify contracts after deployment
+  --gas-optimize, -g                Enable gas optimization
+  --gas-strategy <strategy>         Gas strategy (conservative/standard/aggressive)
+  --save-report, -r                 Generate deployment report
+  --dry-run                         Validate configuration without deploying
+  --help, -h                        Show this help
+
+Deployment Control Options:
+  --skip-existing                   Skip deployment if contract already exists
+  --force-redeploy                  Force redeployment even if contract exists
+  --skip-schemas                    Skip EAS schema deployment entirely
+  --force-schemas                   Force redeploy schemas even if they exist
+  --skip-verification               Skip contract verification
+  --skip-seed-data                  Skip seed data initialization
+  --skip-configuration              Skip deployment registry configuration
+  --skip-governance                 Skip governance transfer to multisig
+  --no-allowlist                    Don't add deployer to registry allowlist
+  --verbose                         Enable verbose deployment logging
+
+Envio Integration Options:
+  --skip-envio                      Skip automatic Envio configuration update
+  --start-indexer                   Start Envio indexer after localhost deployment
+
+QUICK COMMANDS (via package.json):
+  pnpm deploy:celo                  # Full production deployment to Celo
+  pnpm deploy:sepolia               # Full testing deployment to Sepolia
+  pnpm deploy:celo:update           # Update existing Celo deployment
+  pnpm deploy:celo:metadata         # Update schema metadata on Celo
+  pnpm deploy:dryrun:celo           # Simulate Celo production deployment
 
 Examples:
-  node deploy.js core --network sepolia --broadcast --verify
-  node deploy.js garden config/garden.json --network arbitrum --broadcast
-  node deploy.js onboard config/garden-onboarding-example.csv --network sepolia --broadcast
-  node deploy.js actions config/actions.json --network base --broadcast
-  node deploy.js status sepolia
-  node deploy.js fork arbitrum
-
-Local Development:
-  When deploying to localhost with --broadcast, anvil will automatically start with a Celo fork.
-  This provides access to real tokenbound registry and EAS contracts for testing.
-  No need to manually run 'pnpm chain' before deployment commands.
-
-Garden Onboarding CSV Format:
-  - Line 1: Instructions (skipped)
-  - Line 2-5: Garden info (Name, Description, Location, Banner Image URL/Path)
-  - Line 6: Headers (must include "Garden Operators" and "Gardeners")
-  - Line 7+: Data rows with operator and gardener email/phone identifiers
+  # Using profiles
+  node deploy.js core --profile production --network celo --broadcast --verify
+  node deploy.js core --profile testing --network sepolia --broadcast
+  node deploy.js core --profile metadata-only --network celo --broadcast
+  
+  # Traditional flags (still supported)
+  node deploy.js core --network sepolia --broadcast --force-schemas
+  node deploy.js core --network arbitrum --broadcast --verify --skip-seed-data
+  
+  # With Envio integration
+  node deploy.js core --network localhost --broadcast --start-indexer
+  node deploy.js core --network sepolia --broadcast --skip-envio
 
 Available networks: ${Object.keys(networksConfig.networks).join(", ")}
     `);
   }
 
+  listProfiles() {
+    console.log("Available deployment profiles:");
+    Object.entries(this.profiles).forEach(([name, profile]) => {
+      console.log(`  ${name.padEnd(15)} - ${profile.description}`);
+    });
+  }
+
+  parseOptions(args) {
+    const options = {
+      network: "localhost",
+      broadcast: false,
+      verify: false,
+      gasOptimize: false,
+      gasStrategy: "standard",
+      saveReport: false,
+      dryRun: false,
+      profile: null,
+      // Envio integration flags
+      skipEnvio: false,
+      startIndexer: false,
+      // Deployment flags
+      skipExisting: false,
+      forceRedeploy: false,
+      skipSchemas: false,
+      forceSchemas: false,
+      skipVerification: false,
+      skipSeedData: false,
+      skipConfiguration: false,
+      skipGovernance: false,
+      noAllowlist: false,
+      verbose: false,
+      metadataOnly: false,
+    };
+
+    for (let i = 1; i < args.length; i++) {
+      const arg = args[i];
+
+      // Skip command and config file arguments
+      if (i === 1 && !arg.startsWith("-")) continue;
+      if (i === 2 && !args[1].startsWith("-") && !arg.startsWith("-")) continue;
+
+      switch (arg) {
+        case "--network":
+        case "-n":
+          options.network = args[++i];
+          break;
+        case "--broadcast":
+        case "-b":
+          options.broadcast = true;
+          break;
+        case "--verify":
+        case "-v":
+          options.verify = true;
+          break;
+        case "--gas-optimize":
+        case "-g":
+          options.gasOptimize = true;
+          break;
+        case "--gas-strategy":
+          options.gasStrategy = args[++i];
+          break;
+        case "--save-report":
+        case "-r":
+          options.saveReport = true;
+          break;
+        case "--dry-run":
+          options.dryRun = true;
+          break;
+        case "--profile":
+        case "-p":
+          options.profile = args[++i];
+          break;
+        case "--list-profiles":
+          this.listProfiles();
+          process.exit(0);
+          break;
+
+        // Deployment control flags
+        case "--skip-existing":
+          options.skipExisting = true;
+          break;
+        case "--force-redeploy":
+          options.forceRedeploy = true;
+          break;
+        case "--skip-schemas":
+          options.skipSchemas = true;
+          break;
+        case "--force-schemas":
+          options.forceSchemas = true;
+          break;
+        case "--skip-verification":
+          options.skipVerification = true;
+          break;
+        case "--skip-seed-data":
+          options.skipSeedData = true;
+          break;
+        case "--skip-configuration":
+          options.skipConfiguration = true;
+          break;
+        case "--skip-governance":
+          options.skipGovernance = true;
+          break;
+        case "--no-allowlist":
+          options.noAllowlist = true;
+          break;
+        case "--verbose":
+          options.verbose = true;
+          break;
+
+        // Envio integration flags
+        case "--skip-envio":
+          options.skipEnvio = true;
+          break;
+        case "--start-indexer":
+          options.startIndexer = true;
+          break;
+
+        case "--help":
+        case "-h":
+          this.showHelp();
+          process.exit(0);
+          break;
+
+        default:
+          if (arg.startsWith("-")) {
+            console.error(`❌ Unknown option: ${arg}`);
+            this.showHelp();
+            process.exit(1);
+          }
+      }
+    }
+
+    // Apply environment variable overrides (env vars take precedence over CLI flags)
+    if (process.env.SKIP_EXISTING_CONTRACTS !== undefined) {
+      options.skipExisting = process.env.SKIP_EXISTING_CONTRACTS === "true";
+    }
+    if (process.env.FORCE_REDEPLOY !== undefined) {
+      options.forceRedeploy = process.env.FORCE_REDEPLOY === "true";
+    }
+    if (process.env.SKIP_SCHEMAS !== undefined) {
+      options.skipSchemas = process.env.SKIP_SCHEMAS === "true";
+    }
+    if (process.env.FORCE_SCHEMA_DEPLOYMENT !== undefined) {
+      options.forceSchemas = process.env.FORCE_SCHEMA_DEPLOYMENT === "true";
+    }
+    if (process.env.SKIP_VERIFICATION !== undefined) {
+      options.skipVerification = process.env.SKIP_VERIFICATION === "true";
+    }
+    if (process.env.SKIP_SEED_DATA !== undefined) {
+      options.skipSeedData = process.env.SKIP_SEED_DATA === "true";
+    }
+    if (process.env.SKIP_CONFIGURATION !== undefined) {
+      options.skipConfiguration = process.env.SKIP_CONFIGURATION === "true";
+    }
+    if (process.env.SKIP_GOVERNANCE_TRANSFER !== undefined) {
+      options.skipGovernance = process.env.SKIP_GOVERNANCE_TRANSFER === "true";
+    }
+    if (process.env.ADD_DEPLOYER_TO_ALLOWLIST !== undefined) {
+      options.noAllowlist = process.env.ADD_DEPLOYER_TO_ALLOWLIST === "false";
+    }
+    if (process.env.VERBOSE_LOGGING !== undefined) {
+      options.verbose = process.env.VERBOSE_LOGGING === "true";
+    }
+    if (process.env.METADATA_ONLY !== undefined) {
+      options.metadataOnly = process.env.METADATA_ONLY === "true";
+    }
+
+    // Apply profile flags
+    if (options.profile) {
+      this.applyProfile(options, options.profile);
+    }
+
+    return options;
+  }
+
+  applyProfile(options, profileName) {
+    const profile = this.profiles[profileName];
+    if (!profile) {
+      console.error(`❌ Unknown profile: ${profileName}`);
+      console.log("Available profiles:");
+      this.listProfiles();
+      process.exit(1);
+    }
+
+    console.log(`📋 Applying profile: ${profileName} - ${profile.description}`);
+    Object.assign(options, profile.flags);
+  }
+
+  setEnvironmentFlags(options) {
+    // Set environment variables for the Solidity script
+    process.env.SKIP_EXISTING_CONTRACTS = options.skipExisting.toString();
+    process.env.FORCE_REDEPLOY = options.forceRedeploy.toString();
+    process.env.SKIP_SCHEMAS = options.skipSchemas.toString();
+    process.env.FORCE_SCHEMA_DEPLOYMENT = options.forceSchemas.toString();
+    process.env.SKIP_VERIFICATION = options.skipVerification.toString();
+    process.env.SKIP_SEED_DATA = options.skipSeedData.toString();
+    process.env.SKIP_CONFIGURATION = options.skipConfiguration.toString();
+    process.env.SKIP_GOVERNANCE_TRANSFER = options.skipGovernance.toString();
+    process.env.ADD_DEPLOYER_TO_ALLOWLIST = (!options.noAllowlist).toString();
+    process.env.VERBOSE_LOGGING = options.verbose.toString();
+    process.env.METADATA_ONLY = options.metadataOnly.toString();
+
+    // Set deployment profile if specified
+    if (options.profile) {
+      process.env.DEPLOYMENT_PROFILE = options.profile;
+    }
+  }
+
   async deployCoreContracts(options) {
     console.log(`Deploying core contracts to ${options.network}`);
+
+    // Set environment variables for the Solidity script
+    this.setEnvironmentFlags(options);
+
+    // Display active deployment flags
+    this.logActiveFlags(options);
 
     const networkConfig = networksConfig.networks[options.network];
     if (!networkConfig) {
@@ -87,7 +396,7 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
     }
 
     // Auto-start anvil with Celo fork for localhost deployments
-    if (options.network === "localhost" && options.broadcast) {
+    if (options.network === "localhost") {
       await this.ensureAnvilRunning("celo");
     }
 
@@ -108,13 +417,40 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
 
     if (options.broadcast) {
       args.push("--broadcast");
-      if (!process.env.DEPLOYER_PRIVATE_KEY) {
-        throw new Error("DEPLOYER_PRIVATE_KEY not set in .env file");
+      const privateKey = process.env.DEPLOYER_PRIVATE_KEY || process.env.PRIVATE_KEY;
+      if (!privateKey) {
+        throw new Error("DEPLOYER_PRIVATE_KEY or PRIVATE_KEY not set in .env file");
       }
-      args.push("--private-key", process.env.DEPLOYER_PRIVATE_KEY);
+      args.push("--private-key", privateKey);
     }
 
-    if (options.verify && networkConfig.verifyApiUrl) {
+    // Skip verification if contracts are already deployed or if explicitly skipped
+    let shouldVerify = options.verify && networkConfig.verifyApiUrl && !options.skipVerification;
+    if (shouldVerify) {
+      try {
+        const chainMap = {
+          localhost: "31337",
+          sepolia: "11155111",
+          arbitrum: "42161",
+          base: "8453",
+          baseSepolia: "84532",
+          optimism: "10",
+          celo: "42220",
+        };
+        const chainId = chainMap[options.network] || options.network;
+        const deploymentFile = path.join(__dirname, "../deployments", `${chainId}-latest.json`);
+
+        if (fs.existsSync(deploymentFile) && !options.forceRedeploy) {
+          console.log("⏭️  Skipping verification - contracts already deployed and likely verified");
+          shouldVerify = false;
+        }
+      } catch (error) {
+        console.error("❌ Failed to check deployment status:", error.message);
+        // If check fails, proceed with verification
+      }
+    }
+
+    if (shouldVerify) {
       args.push("--verify");
       args.push("--verifier-url", networkConfig.verifyApiUrl);
 
@@ -151,6 +487,62 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
 
       console.log("\n✅ Core contracts deployed successfully!");
 
+      // Auto-update Envio configuration after successful deployment
+      if (!options.skipEnvio) {
+        try {
+          console.log("\n🔄 Auto-updating Envio configuration...");
+
+          // Get chain ID for Envio integration
+          const chainMap = {
+            localhost: "31337",
+            sepolia: "11155111",
+            arbitrum: "42161",
+            base: "8453",
+            baseSepolia: "84532",
+            optimism: "10",
+            celo: "42220",
+          };
+          const chainId = chainMap[options.network] || options.network;
+
+          const envioIntegration = new EnvioIntegration();
+          await envioIntegration.updateEnvioConfig(chainId, options.network === "localhost");
+
+          // Setup cleanup for local deployments
+          if (options.network === "localhost") {
+            console.log("🔄 Setting up cleanup for local chain config...");
+
+            const cleanup = async () => {
+              console.log("\n🧹 Cleaning up local chain config...");
+              try {
+                await envioIntegration.disableLocalChainConfig();
+                console.log("✅ Local chain config disabled successfully");
+              } catch (error) {
+                console.warn("⚠️  Failed to disable local chain config:", error.message);
+              }
+            };
+
+            // Register cleanup handlers
+            process.on("exit", cleanup);
+            process.on("SIGINT", cleanup);
+            process.on("SIGTERM", cleanup);
+            process.on("uncaughtException", cleanup);
+          }
+
+          // Optionally start indexer for localhost deployments
+          if (options.network === "localhost" && options.startIndexer) {
+            await envioIntegration.startIndexer();
+          }
+        } catch (envioError) {
+          console.warn("⚠️  Failed to update Envio config:", envioError.message);
+          console.warn("   You can manually update it later using:");
+          console.warn(
+            `   node script/utils/envio-integration.js update ${chainMap[options.network] || options.network}`,
+          );
+        }
+      } else {
+        console.log("⏭️  Skipping Envio update (--skip-envio flag set)");
+      }
+
       if (options.saveReport) {
         console.log("📊 Generating deployment report...");
         // Report generation would be implemented here
@@ -161,8 +553,53 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
     }
   }
 
+  logActiveFlags(options) {
+    const activeFlags = [];
+
+    if (options.skipExisting) activeFlags.push("Skip Existing Contracts");
+    if (options.forceRedeploy) activeFlags.push("Force Redeploy");
+    if (options.skipSchemas) activeFlags.push("Skip Schemas");
+    if (options.forceSchemas) activeFlags.push("Force Schema Deployment");
+    if (options.skipVerification) activeFlags.push("Skip Verification");
+    if (options.skipSeedData) activeFlags.push("Skip Seed Data");
+    if (options.skipConfiguration) activeFlags.push("Skip Configuration");
+    if (options.skipGovernance) activeFlags.push("Skip Governance Transfer");
+    if (options.noAllowlist) activeFlags.push("No Deployer Allowlist");
+    if (options.verbose) activeFlags.push("Verbose Logging");
+    if (options.metadataOnly) activeFlags.push("Metadata Only");
+
+    if (activeFlags.length > 0) {
+      console.log("\n🏁 Active Deployment Flags:");
+      activeFlags.forEach((flag) => {
+        console.log(`   ✓ ${flag}`);
+      });
+    }
+
+    // Show governance configuration
+    console.log("\n🏛️  Governance Configuration:");
+    console.log("   Multisig: 0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19 (Green Goods Safe)");
+
+    const allowlistAddresses = [];
+    if (process.env.DEPLOYMENT_REGISTRY_ALLOWLIST) {
+      allowlistAddresses.push(process.env.DEPLOYMENT_REGISTRY_ALLOWLIST);
+    }
+    for (let i = 0; i < 10; i++) {
+      const addr = process.env[`ALLOWLIST_ADDRESS_${i}`];
+      if (addr) allowlistAddresses.push(addr);
+    }
+
+    if (allowlistAddresses.length > 0) {
+      console.log("   Allowlist:", allowlistAddresses.join(", "));
+    }
+
+    console.log("");
+  }
+
   async deployGarden(configPath, options) {
     console.log(`Deploying garden from ${configPath} to ${options.network}`);
+
+    // Set environment variables for deployment flags
+    this.setEnvironmentFlags(options);
 
     // Load and validate garden config
     const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
@@ -220,6 +657,9 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
 
   async deployActions(configPath, options) {
     console.log(`Deploying actions from ${configPath} to ${options.network}`);
+
+    // Set environment variables for deployment flags
+    this.setEnvironmentFlags(options);
 
     // Load and validate actions config
     const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
@@ -287,7 +727,7 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
       }
     } else {
       // List all networks
-      const networks = ["localhost", "sepolia", "arbitrum", "base", "optimism", "celo"];
+      const networks = ["localhost", "sepolia", "arbitrum", "base", "baseSepolia", "optimism", "celo"];
 
       networks.forEach((net) => {
         try {
@@ -473,8 +913,11 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
   async executeForgeScript(scriptPath, options, env = {}) {
     const networkConfig = networksConfig.networks[options.network];
 
+    // Set environment variables for deployment flags
+    this.setEnvironmentFlags(options);
+
     // Auto-start anvil with Celo fork for localhost deployments
-    if (options.network === "localhost" && options.broadcast) {
+    if (options.network === "localhost") {
       await this.ensureAnvilRunning("celo");
     }
 
@@ -497,13 +940,14 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
 
     if (options.broadcast) {
       args.push("--broadcast");
-      if (!process.env.DEPLOYER_PRIVATE_KEY) {
-        throw new Error("DEPLOYER_PRIVATE_KEY not set in .env file");
+      const privateKey = process.env.DEPLOYER_PRIVATE_KEY || process.env.PRIVATE_KEY;
+      if (!privateKey) {
+        throw new Error("DEPLOYER_PRIVATE_KEY or PRIVATE_KEY not set in .env file");
       }
-      args.push("--private-key", process.env.DEPLOYER_PRIVATE_KEY);
+      args.push("--private-key", privateKey);
     }
 
-    if (options.verify && networkConfig.verifyApiUrl) {
+    if (options.verify && networkConfig.verifyApiUrl && !options.skipVerification) {
       args.push("--verify");
       args.push("--verifier-url", networkConfig.verifyApiUrl);
       if (process.env.ETHERSCAN_API_KEY) {
@@ -682,35 +1126,8 @@ async function main() {
   const command = args[0];
   const cli = new DeploymentCLI();
 
-  // Parse options
-  const options = {
-    network: "localhost",
-    broadcast: false,
-    verify: false,
-    gasOptimize: false,
-    gasStrategy: "standard",
-    saveReport: false,
-    dryRun: false,
-  };
-
-  for (let i = 1; i < args.length; i++) {
-    const arg = args[i];
-    if (arg === "--network" || arg === "-n") {
-      options.network = args[++i];
-    } else if (arg === "--broadcast" || arg === "-b") {
-      options.broadcast = true;
-    } else if (arg === "--verify" || arg === "-v") {
-      options.verify = true;
-    } else if (arg === "--gas-optimize" || arg === "-g") {
-      options.gasOptimize = true;
-    } else if (arg === "--gas-strategy") {
-      options.gasStrategy = args[++i];
-    } else if (arg === "--save-report" || arg === "-r") {
-      options.saveReport = true;
-    } else if (arg === "--dry-run") {
-      options.dryRun = true;
-    }
-  }
+  // Parse all options including deployment flags
+  const options = cli.parseOptions(args);
 
   try {
     switch (command) {
@@ -719,7 +1136,7 @@ async function main() {
         break;
 
       case "garden":
-        if (args.length < 2) {
+        if (args.length < 2 || args[1].startsWith("-")) {
           console.error("❌ Garden config file required");
           process.exit(1);
         }
@@ -727,7 +1144,7 @@ async function main() {
         break;
 
       case "onboard":
-        if (args.length < 2) {
+        if (args.length < 2 || args[1].startsWith("-")) {
           console.error("❌ Garden CSV file required");
           process.exit(1);
         }
@@ -735,24 +1152,28 @@ async function main() {
         break;
 
       case "actions":
-        if (args.length < 2) {
+        if (args.length < 2 || args[1].startsWith("-")) {
           console.error("❌ Actions config file required");
           process.exit(1);
         }
         await cli.deployActions(args[1], options);
         break;
 
-      case "status":
-        await cli.checkDeploymentStatus(args[1]);
+      case "status": {
+        const networkArg = args.find((arg) => !arg.startsWith("-") && arg !== "status");
+        await cli.checkDeploymentStatus(networkArg);
         break;
+      }
 
-      case "fork":
-        if (args.length < 2) {
+      case "fork": {
+        const forkNetworkArg = args.find((arg) => !arg.startsWith("-") && arg !== "fork");
+        if (!forkNetworkArg) {
           console.error("❌ Network required for fork");
           process.exit(1);
         }
-        await cli.startFork(args[1]);
+        await cli.startFork(forkNetworkArg);
         break;
+      }
 
       default:
         console.error(`❌ Unknown command: ${command}`);

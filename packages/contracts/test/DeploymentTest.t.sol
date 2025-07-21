@@ -4,6 +4,7 @@ pragma solidity ^0.8.25;
 import "forge-std/Test.sol" as ForgeTest;
 import "../script/Deploy.s.sol" as DeployScript;
 import "../script/helpers/DeploymentHelper.sol" as DeploymentHelperModule;
+import "../src/DeploymentRegistry.sol";
 
 contract DeploymentTest is ForgeTest.Test, DeploymentHelperModule.DeploymentHelper {
     DeployScript.Deploy private deployScript;

@@ -127,7 +127,7 @@ contract DeployTest is Test {
             address actionRegistry = deployer.deployActionRegistry(salt, factory);
 
             // Initialize sample data
-            deployer.initializeSampleData(actionRegistry);
+            deployer.initializeSeedData(actionRegistry);
 
             // Verify sample data was added
             ActionRegistry registry = ActionRegistry(actionRegistry);

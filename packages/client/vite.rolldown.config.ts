@@ -1,12 +1,12 @@
 /// <reference types="vitest" />
 
-import tailwindcss from "@tailwindcss/vite";
+import { resolve } from "path";
 import react from "@vitejs/plugin-react";
 import dotenvExpand from "dotenv-expand";
-import { resolve } from "path";
-import { defineConfig, loadEnv } from "rolldown-vite";
 import mkcert from "vite-plugin-mkcert";
 import { VitePWA } from "vite-plugin-pwa";
+import tailwindcss from "@tailwindcss/vite";
+import { defineConfig, loadEnv } from "rolldown-vite";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [
-      react(),
+      react({}),
       tailwindcss(),
       mkcert(),
       VitePWA({
@@ -37,13 +37,6 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3001,
       host: true,
-      proxy: {
-        graphql: {
-          target: "http://localhost:8000",
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/graphql/, ""),
-        },
-      },
     },
     build: {
       target: "es2020",

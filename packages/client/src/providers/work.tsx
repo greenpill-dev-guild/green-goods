@@ -6,13 +6,14 @@ import React, { useContext, useState } from "react";
 import { type Control, type FormState, type UseFormRegister, useForm } from "react-hook-form";
 import { decodeErrorResult } from "viem";
 import { encodeFunctionData } from "viem/utils";
-import { EAS } from "@/constants";
+import { getEASConfig } from "@/config";
 import { getWorkApprovals } from "@/modules/eas";
 import { offlineDB } from "@/modules/offline-db";
 import { queryClient } from "@/modules/react-query";
 import { abi } from "@/utils/abis/EAS.json";
 import { abi as WorkResolverABI } from "@/utils/abis/WorkResolver.json";
 import { encodeWorkData } from "@/utils/eas";
+import { useCurrentChain } from "@/utils/useChainConfig";
 import { useGardens } from "./garden";
 import { useUser } from "./user";
 
@@ -84,13 +85,14 @@ export const useWork = () => {
 };
 
 export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
-  const { smartAccountClient } = useUser();
+  const { smartAccountClient, eoa } = useUser();
   const { actions, gardens } = useGardens();
+  const chainId = useCurrentChain();
 
   // QUERIES
   const { data: workApprovals, refetch: refetchWorkApprovals } = useQuery<WorkApproval[]>({
-    queryKey: ["workApprovals"],
-    queryFn: () => getWorkApprovals(),
+    queryKey: ["workApprovals", chainId, eoa?.address],
+    queryFn: () => getWorkApprovals(eoa?.address, chainId),
   });
 
   // MUTATIONS
@@ -200,8 +202,27 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         void _decodedError; // For debugging purposes
       }
 
-      // toast.remove();
-      // toast.error("Work upload failed!"); @dev deprecated
+      // Properly decode revert data if available
+      if (
+        error &&
+        typeof error === "object" &&
+        "data" in error &&
+        typeof error.data === "string" &&
+        error.data.startsWith("0x")
+      ) {
+        try {
+          decodeErrorResult({
+            abi: WorkResolverABI,
+            data: error.data as `0x${string}`,
+          });
+        } catch (decodeError) {
+          console.error("Failed to decode error result:", decodeError);
+        }
+      }
+
+      queryClient.invalidateQueries({
+        queryKey: ["work-approvals"],
+      });
     },
   });
 

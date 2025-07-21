@@ -27,7 +27,7 @@ declare interface GardenerCard {
   phone?: string;
   location?: string;
   avatar?: string | null;
-  registeredAt: Date;
+  registeredAt: number;
 }
 
 declare interface GardenCard {
@@ -39,7 +39,7 @@ declare interface GardenCard {
 }
 
 declare interface Garden extends GardenCard {
-  createdAt: Date;
+  createdAt: number;
   description: string;
   tokenAddress: string;
   tokenID: number;

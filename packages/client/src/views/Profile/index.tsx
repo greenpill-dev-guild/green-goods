@@ -1,6 +1,5 @@
 import { RiHeadphoneLine, RiSettings2Fill } from "@remixicon/react";
-import type React from "react";
-import { useRef } from "react";
+import React, { useRef } from "react";
 import { useIntl } from "react-intl";
 import { Profile as UserProfile } from "@/components/UI/Profile/Profile";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/UI/Tabs/Tabs";
@@ -49,7 +48,7 @@ const Profile: React.FC = () => {
             avatar={user?.farcaster?.pfp || "/images/avatar.png"}
             location={(user?.customMetadata?.location as string) || undefined}
             wallet={user?.wallet?.address && formatAddress(user?.wallet?.address)}
-            registration={user?.createdAt.toLocaleDateString() || undefined}
+            registration={user?.createdAt?.toLocaleDateString() || undefined}
             email={user?.email?.address || undefined}
             telephone={user?.phone?.number || undefined}
           />

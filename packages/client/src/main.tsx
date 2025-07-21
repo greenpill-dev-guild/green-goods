@@ -2,9 +2,10 @@ import { PrivyProvider } from "@privy-io/react-auth";
 import { SmartWalletsProvider } from "@privy-io/react-auth/smart-wallets";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { arbitrum } from "viem/chains";
+import { arbitrum, baseSepolia, celo } from "viem/chains";
+
 import App from "@/App.tsx";
-import { APP_DESCRIPTION } from "@/constants";
+import { APP_DESCRIPTION, getDefaultChain } from "@/config";
 import { AppProvider } from "@/providers/app";
 import { UserProvider } from "@/providers/user";
 
@@ -25,10 +26,11 @@ export const Root = () => (
         embeddedWallets: {
           createOnLogin: "users-without-wallets",
         },
-        defaultChain: arbitrum,
-        supportedChains: [arbitrum],
+        defaultChain: getDefaultChain(),
+        supportedChains: [arbitrum, celo, baseSepolia],
         intl: {
-          defaultCountry: navigator.language === "pt-BR" ? "BR" : "US",
+          defaultCountry:
+            navigator.language === "pt-BR" ? "BR" : navigator.language === "es-ES" ? "ES" : "US",
         },
       }}
     >

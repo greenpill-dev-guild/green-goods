@@ -12,6 +12,7 @@ enum Capital {
 
 type Action {
   id: ID!
+  chainId: Int!
   ownerAddress: String! # Address
   startTime: BigInt!
   endTime: BigInt!
@@ -24,6 +25,7 @@ type Action {
 
 type Garden {
   id: ID! # Address
+  chainId: Int!
   tokenAddress: String! # Address
   tokenID: BigInt!
   name: String!

@@ -1,5 +1,4 @@
-import type React from "react";
-import { useState } from "react";
+import React, { useState } from "react";
 import toast from "react-hot-toast";
 import { Footer } from "@/components/Layout/Footer";
 import { Header } from "@/components/Layout/Header";
