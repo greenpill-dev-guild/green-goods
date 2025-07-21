@@ -1,6 +1,5 @@
 import { RiCalendarEventFill, RiMapPin2Fill } from "@remixicon/react";
-import type React from "react";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation, useParams } from "react-router-dom";
 import { GardenAssessments } from "@/components/Garden/Asessments";

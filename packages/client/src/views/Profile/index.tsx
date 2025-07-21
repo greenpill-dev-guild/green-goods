@@ -1,6 +1,5 @@
 import { RiHeadphoneLine, RiSettings2Fill } from "@remixicon/react";
-import type React from "react";
-import { useRef } from "react";
+import React, { useRef } from "react";
 import { useIntl } from "react-intl";
 import { Profile as UserProfile } from "@/components/UI/Profile/Profile";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/UI/Tabs/Tabs";

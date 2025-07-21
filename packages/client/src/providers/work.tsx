@@ -5,7 +5,6 @@ import React, { useContext, useState } from "react";
 // import { zodResolver } from "@hookform/resolvers/zod";
 import { type Control, type FormState, type UseFormRegister, useForm } from "react-hook-form";
 import { decodeErrorResult } from "viem";
-import { arbitrum } from "viem/chains";
 import { encodeFunctionData } from "viem/utils";
 import { getEASConfig } from "@/config";
 import { getWorkApprovals } from "@/modules/eas";
@@ -28,7 +27,7 @@ export enum WorkTab {
 export interface WorkDataProps {
   gardens: Garden[];
   actions: Action[];
-  workMutation: ReturnType<typeof useMutation<`0x${string}`, Error, WorkDraft, void>>;
+  workMutation: ReturnType<typeof useMutation<`0x${string}`, unknown, WorkDraft, void>>;
   workApprovals: WorkApproval[];
   workApprovalMap: Record<string, WorkApproval>;
   refetchWorkApprovals: () => Promise<QueryObserverResult<WorkApproval[], Error>>;
@@ -154,7 +153,6 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       const receipt = await smartAccountClient.sendTransaction({
-        chain: arbitrum,
         to: easConfig.EAS.address as `0x${string}`,
         value: 0n,
         data: encodedData,
@@ -170,19 +168,21 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       // toast.success("Work uploaded!"); @dev deprecated
       queryClient.invalidateQueries({ queryKey: ["works"] });
     },
-    onError: (error: any) => {
-      console.error("Upload Work", error);
-
-      if (error.data) {
-        const decodedError = decodeErrorResult({
-          abi: WorkResolverABI,
-          data: error.data as `0x${string}`,
-        });
-        console.error("Decoded Error:", decodedError);
+    onError: (error: unknown) => {
+      if (error instanceof Error && error.message.includes("User rejected the request")) {
+        return;
       }
 
-      // toast.remove();
-      // toast.error("Work upload failed!"); @dev deprecated
+      if (error instanceof Error && error.message.includes("0x")) {
+        decodeErrorResult({
+          abi: WorkResolverABI,
+          data: error.message as `0x${string}`,
+        });
+      }
+
+      queryClient.invalidateQueries({
+        queryKey: ["work-approvals"],
+      });
     },
   });
 

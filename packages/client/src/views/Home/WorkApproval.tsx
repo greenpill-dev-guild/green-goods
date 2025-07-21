@@ -10,13 +10,11 @@ import {
   RiPlantFill,
 } from "@remixicon/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type React from "react";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Form, useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { useParams } from "react-router-dom";
 import { decodeErrorResult } from "viem";
-import { arbitrum } from "viem/chains";
 import { encodeFunctionData } from "viem/utils";
 import { z } from "zod";
 import { Button } from "@/components/UI/Button";
@@ -47,7 +45,7 @@ const workApprovalSchema = z.object({
   feedback: z.string().optional(),
 });
 
-export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
+export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = () => {
   const intl = useIntl();
   const { id, workId } = useParams<{
     id: string;
@@ -104,7 +102,6 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
       });
 
       const receipt = await smartAccountClient.sendTransaction({
-        chain: arbitrum,
         to: easConfig.EAS.address as `0x${string}`,
         value: 0n,
         data: encodedData,
@@ -113,24 +110,23 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
       return receipt;
     },
     onMutate: () => {
-      console.log("Approving work...");
       // toast.loading("Approving work...");
     },
     onSuccess: () => {
-      console.log("Work approved!");
       // toast.dismiss();
       // toast.success("Work approved!");
       queryClient.invalidateQueries({ queryKey: ["workApprovals"] });
     },
-    onError: (error: any) => {
-      console.log("Work approval failed!", error);
+    onError: (error: unknown) => {
+      if (error instanceof Error && error.message.includes("User rejected the request")) {
+        return;
+      }
 
-      if (error.data) {
-        const decodedError = decodeErrorResult({
+      if (error instanceof Error && error.message.includes("0x")) {
+        decodeErrorResult({
           abi: WorkApprovalResolverABI,
-          data: error.data as `0x${string}`,
+          data: error.message as `0x${string}`,
         });
-        console.error("Decoded Error:", decodedError);
       }
     },
   });
@@ -142,7 +138,7 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = ({}) => {
 
         if (!res.data) throw new Error("No metadata found");
 
-        const metadata: WorkMetadata = res.data as any;
+        const metadata: WorkMetadata = res.data as unknown as WorkMetadata;
 
         setWorkMetadata(metadata);
       }

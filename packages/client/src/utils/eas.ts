@@ -10,7 +10,7 @@ export async function encodeWorkData(data: WorkDraft, chainId: number | string =
 
   const media = await Promise.all(
     data.media.map(async (file) => {
-      return (await uploadFileToIPFS(file)).IpfsHash;
+      return (await uploadFileToIPFS(file)).cid;
     })
   );
 
@@ -23,7 +23,7 @@ export async function encodeWorkData(data: WorkDraft, chainId: number | string =
     { name: "actionUID", value: data.actionUID, type: "uint256" },
     { name: "title", value: data.title, type: "string" },
     { name: "feedback", value: data.feedback, type: "string" },
-    { name: "metadata", value: metadata.IpfsHash, type: "string" },
+    { name: "metadata", value: metadata.cid, type: "string" },
     { name: "media", value: media, type: "string[]" },
   ]) as `0x${string}`;
 

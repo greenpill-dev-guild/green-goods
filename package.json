@@ -55,7 +55,7 @@
   "dependencies": {
     "dotenv": "17.2.0",
     "ethers": "^6.15.0",
-    "viem": "^2.30.5"
+    "viem": "^2.33.0"
   },
   "devDependencies": {
     "@biomejs/biome": "2.1.2",
