@@ -91,7 +91,7 @@ green-goods/
    - `VITE_PRIVY_APP_ID`: Your Privy application ID
    - `PRIVY_APP_SECRET_ID`: Privy app secret  
    - `VITE_PINATA_API_KEY`: Pinata API key for IPFS
-   - `DEPLOYER_PRIVATE_KEY`: Ethereum private key for deployments
+   - `PRIVATE_KEY`: Ethereum private key for deployments
 
 ## 💻 Development
 
@@ -198,7 +198,7 @@ NODE_ENV=development        # Environment
 
 **Contracts (`packages/contracts/.env`):**
 ```bash
-DEPLOYER_PRIVATE_KEY=       # Deployment private key
+PRIVATE_KEY=       # Deployment private key
 SEPOLIA_RPC_URL=           # Sepolia RPC endpoint
 ARBITRUM_RPC_URL=          # Arbitrum RPC endpoint
 CELO_RPC_URL=              # Celo RPC endpoint

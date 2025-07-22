@@ -46,7 +46,7 @@ class GardenOnboarding {
   }
 
   async validateEnvironment() {
-    const requiredEnvVars = ["DEPLOYER_PRIVATE_KEY"];
+    const requiredEnvVars = ["PRIVATE_KEY"];
 
     if (!this.options.dryRun) {
       requiredEnvVars.push("PRIVY_CLIENT_ID", "PRIVY_APP_SECRET_ID", "PRIVY_AUTHORIZATION_PRIVATE_KEY", "PINATA_JWT");
@@ -264,14 +264,11 @@ class GardenOnboarding {
         "script",
         "script/DeployGarden.s.sol:DeployGarden",
         "--private-key",
-        process.env.DEPLOYER_PRIVATE_KEY,
+        process.env.PRIVATE_KEY,
         "--broadcast",
       ];
       console.log("\nDeploying garden contract...");
-      console.log(
-        "forge",
-        args.map((arg) => (arg === process.env.DEPLOYER_PRIVATE_KEY ? "[REDACTED]" : arg)).join(" "),
-      );
+      console.log("forge", args.map((arg) => (arg === process.env.PRIVATE_KEY ? "[REDACTED]" : arg)).join(" "));
       execSync(`forge ${args.join(" ")}`, { stdio: "inherit", env, cwd: path.join(__dirname, "..") });
     } catch (error) {
       console.error("Error deploying garden:", error);
@@ -415,7 +412,7 @@ CSV Format:
   Line 7+: Data rows with operator and gardener identifiers
 
 Required Environment Variables:
-  DEPLOYER_PRIVATE_KEY       - Private key for deployment
+  PRIVATE_KEY       - Private key for deployment
   PRIVY_CLIENT_ID           - Privy client ID
   PRIVY_APP_SECRET_ID       - Privy app secret
   PRIVY_AUTHORIZATION_PRIVATE_KEY - Privy authorization key

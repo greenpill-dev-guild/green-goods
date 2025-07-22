@@ -417,9 +417,9 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
 
     if (options.broadcast) {
       args.push("--broadcast");
-      const privateKey = process.env.DEPLOYER_PRIVATE_KEY || process.env.PRIVATE_KEY;
+      const privateKey = process.env.PRIVATE_KEY || process.env.PRIVATE_KEY;
       if (!privateKey) {
-        throw new Error("DEPLOYER_PRIVATE_KEY or PRIVATE_KEY not set in .env file");
+        throw new Error("PRIVATE_KEY or PRIVATE_KEY not set in .env file");
       }
       args.push("--private-key", privateKey);
     }
@@ -475,7 +475,7 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
     }
 
     console.log("\nExecuting deployment command:");
-    const displayArgs = args.map((arg) => (arg === process.env.DEPLOYER_PRIVATE_KEY ? "[REDACTED]" : arg));
+    const displayArgs = args.map((arg) => (arg === process.env.PRIVATE_KEY ? "[REDACTED]" : arg));
     console.log("forge", displayArgs.join(" "));
 
     try {
@@ -940,9 +940,9 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
 
     if (options.broadcast) {
       args.push("--broadcast");
-      const privateKey = process.env.DEPLOYER_PRIVATE_KEY || process.env.PRIVATE_KEY;
+      const privateKey = process.env.PRIVATE_KEY || process.env.PRIVATE_KEY;
       if (!privateKey) {
-        throw new Error("DEPLOYER_PRIVATE_KEY or PRIVATE_KEY not set in .env file");
+        throw new Error("PRIVATE_KEY or PRIVATE_KEY not set in .env file");
       }
       args.push("--private-key", privateKey);
     }
@@ -1080,7 +1080,7 @@ contract DeployActionsGenerated is Script {
       ...config,
       timestamp: new Date().toISOString(),
       network: options.network,
-      deployer: process.env.DEPLOYER_PRIVATE_KEY ? "configured" : "missing",
+      deployer: process.env.PRIVATE_KEY ? "configured" : "missing",
     };
 
     const recordPath = path.join(
@@ -1102,7 +1102,7 @@ contract DeployActionsGenerated is Script {
       actions: config.actions,
       timestamp: new Date().toISOString(),
       network: options.network,
-      deployer: process.env.DEPLOYER_PRIVATE_KEY ? "configured" : "missing",
+      deployer: process.env.PRIVATE_KEY ? "configured" : "missing",
     };
 
     const recordPath = path.join(__dirname, "..", "deployments", "actions", `batch-${Date.now()}.json`);
