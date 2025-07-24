@@ -12,8 +12,8 @@ const { DeploymentAddresses } = require("./utils/deployment-addresses");
 
 // Initialize Privy client
 let privyClient;
-if (process.env.PRIVY_CLIENT_ID && process.env.PRIVY_APP_SECRET_ID) {
-  privyClient = new PrivyClient(process.env.PRIVY_CLIENT_ID, process.env.PRIVY_APP_SECRET_ID, {
+if (process.env.PRIVY_APP_ID && process.env.PRIVY_APP_SECRET_ID) {
+  privyClient = new PrivyClient(process.env.PRIVY_APP_ID, process.env.PRIVY_APP_SECRET_ID, {
     walletApi: {
       authorizationPrivateKey: process.env.PRIVY_AUTHORIZATION_PRIVATE_KEY,
     },
@@ -49,7 +49,7 @@ class GardenOnboarding {
     const requiredEnvVars = ["PRIVATE_KEY"];
 
     if (!this.options.dryRun) {
-      requiredEnvVars.push("PRIVY_CLIENT_ID", "PRIVY_APP_SECRET_ID", "PRIVY_AUTHORIZATION_PRIVATE_KEY", "PINATA_JWT");
+      requiredEnvVars.push("PRIVY_APP_ID", "PRIVY_APP_SECRET_ID", "PRIVY_AUTHORIZATION_PRIVATE_KEY", "PINATA_JWT");
     }
 
     const missing = requiredEnvVars.filter((envVar) => !process.env[envVar]);
@@ -413,7 +413,7 @@ CSV Format:
 
 Required Environment Variables:
   PRIVATE_KEY       - Private key for deployment
-  PRIVY_CLIENT_ID           - Privy client ID
+  PRIVY_APP_ID           - Privy client ID
   PRIVY_APP_SECRET_ID       - Privy app secret
   PRIVY_AUTHORIZATION_PRIVATE_KEY - Privy authorization key
   PINATA_JWT                - Pinata JWT token
