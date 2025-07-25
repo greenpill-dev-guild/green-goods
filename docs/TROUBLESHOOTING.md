@@ -2,6 +2,31 @@
 
 This guide covers common issues and their solutions when working with Green Goods.
 
+## Quick Fixes
+
+**Services not starting?**
+```bash
+pnpm dev:stop && pnpm dev  # Restart all services
+```
+
+**Port conflicts?**
+```bash
+lsof -i :3001 && lsof -i :8080  # Find conflicting processes
+pkill -f "dev:"  # Kill all dev processes
+```
+
+**Environment issues?**
+```bash
+cp .env.example .env  # Reset environment
+# Edit .env with correct values
+```
+
+**Node/pnpm version issues?**
+```bash
+nvm use 20        # Switch to Node 20
+npm install -g pnpm@9  # Install correct pnpm
+```
+
 ## 🚨 Common Issues
 
 ### Installation Issues
@@ -201,7 +226,7 @@ Error: Too Many Requests
 **Problem**: Required environment variables not set
 
 ```
-Error: Missing required environment variable: PRIVY_CLIENT_ID
+Error: Missing required environment variable: PRIVY_APP_ID
 ```
 
 **Solution**:

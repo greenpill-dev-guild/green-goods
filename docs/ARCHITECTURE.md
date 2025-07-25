@@ -2,6 +2,15 @@
 
 This document provides a comprehensive overview of the Green Goods platform architecture, covering all components from the frontend to blockchain infrastructure.
 
+## Quick Overview
+
+- **Client**: React PWA frontend with offline support
+- **API**: Node.js backend with Fastify and Privy auth  
+- **Indexer**: GraphQL blockchain data indexer (Envio)
+- **Contracts**: Solidity smart contracts with EAS integration
+- **Networks**: Celo, Arbitrum, Base, Sepolia testnets
+- **Storage**: IPFS via Pinata for decentralized file storage
+
 ## 🏗️ System Overview
 
 Green Goods is a decentralized platform for biodiversity conservation that enables Garden Operators and Gardeners to document and get approval for conservation work through blockchain-based attestations.
