@@ -1,76 +1,132 @@
 import React from "react";
-import { RiWifiOffLine, RiRefreshLine, RiCheckLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { useOfflineDisplayPriority, useOfflineStore } from "@/stores/offlineStore";
 import { cn } from "@/utils/cn";
-import { useOffline } from "@/hooks/useOffline";
+import { SyncErrorBoundary } from "@/components/UI/ErrorBoundary/SyncErrorBoundary";
 
 interface OfflineIndicatorProps {
   className?: string;
 }
 
-export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({ className }) => {
-  const intl = useIntl();
-  const { isOnline, pendingCount, syncStatus } = useOffline();
+// Fallback OfflineIndicator that works even if the store has issues
+const FallbackOfflineIndicator: React.FC<OfflineIndicatorProps> = ({ className }) => {
+  const isOnline = navigator.onLine;
 
-  // Don't show anything if online and no pending items
-  if (isOnline && pendingCount === 0 && syncStatus === "idle") {
-    return null;
+  if (isOnline) {
+    return null; // Don't show anything when online
   }
 
   return (
     <div
+      data-testid="offline-indicator"
       className={cn(
-        "fixed bottom-20 left-4 right-4 z-50 rounded-lg p-3 shadow-lg",
-        !isOnline ? "bg-warning-base text-white" : "bg-primary-base text-white",
+        "fixed top-0 left-0 right-0 z-[20000] px-4 py-2 text-center text-sm font-medium",
+        "bg-gray-500 text-white",
         className
       )}
+      role="status"
+      aria-live="polite"
+      aria-label="Offline status notification"
     >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {!isOnline ? (
-            <>
-              <RiWifiOffLine className="h-5 w-5" />
-              <span className="text-sm font-medium">
-                {intl.formatMessage({
-                  id: "app.offline.workingOffline",
-                  defaultMessage: "Working offline",
-                })}
-              </span>
-            </>
-          ) : syncStatus === "syncing" ? (
-            <>
-              <RiRefreshLine className="h-5 w-5 animate-spin" />
-              <span className="text-sm font-medium">
-                {intl.formatMessage({
-                  id: "app.offline.syncing",
-                  defaultMessage: "Syncing...",
-                })}
-              </span>
-            </>
-          ) : (
-            <>
-              <RiCheckLine className="h-5 w-5" />
-              <span className="text-sm font-medium">
-                {intl.formatMessage({
-                  id: "app.offline.synced",
-                  defaultMessage: "All synced",
-                })}
-              </span>
-            </>
-          )}
-        </div>
-        {pendingCount > 0 && (
-          <span className="text-sm">
-            {intl.formatMessage(
-              {
-                id: "app.offline.pendingItems",
-                defaultMessage: "{count} pending",
-              },
-              { count: pendingCount }
-            )}
-          </span>
-        )}
-      </div>
+      <div data-testid="status-text">📶 Offline</div>
     </div>
+  );
+};
+
+const OfflineIndicatorInner: React.FC<OfflineIndicatorProps> = ({ className }) => {
+  const intl = useIntl();
+
+  // Use a try-catch to safely access the store
+  let displayPriority: string | null = null;
+  let conflictCount = 0;
+  let pendingCount = 0;
+
+  try {
+    displayPriority = useOfflineDisplayPriority();
+    const storeData = useOfflineStore((state) => ({
+      conflictCount: state.conflictCount,
+      pendingCount: state.pendingCount,
+    }));
+    conflictCount = storeData.conflictCount;
+    pendingCount = storeData.pendingCount;
+  } catch (error) {
+    // If the store has issues, just show nothing or fall back to basic online/offline
+    console.warn("OfflineIndicator store access failed:", error);
+    return <FallbackOfflineIndicator className={className} />;
+  }
+
+  // Don't render if nothing to show
+  if (!displayPriority) {
+    return null;
+  }
+
+  const getStatusInfo = () => {
+    switch (displayPriority) {
+      case "conflicts":
+        return {
+          text: `⚠️ ${conflictCount} conflict${conflictCount > 1 ? "s" : ""} need resolution`,
+          bgColor: "bg-red-500",
+          textColor: "text-white",
+        };
+      case "cleanup":
+        return {
+          text: "🗄️ Storage cleanup needed",
+          bgColor: "bg-yellow-500",
+          textColor: "text-white",
+        };
+      case "syncing":
+        return {
+          text: "🔄 Syncing...",
+          bgColor: "bg-blue-500",
+          textColor: "text-white",
+        };
+      case "offline":
+        return {
+          text: "📶 Offline",
+          bgColor: "bg-gray-500",
+          textColor: "text-white",
+        };
+      case "pending":
+        return {
+          text: `✅ ${pendingCount} item${pendingCount > 1 ? "s" : ""} pending sync`,
+          bgColor: "bg-green-500",
+          textColor: "text-white",
+        };
+      default:
+        return null;
+    }
+  };
+
+  const statusInfo = getStatusInfo();
+  if (!statusInfo) return null;
+
+  return (
+    <div
+      data-testid="offline-indicator"
+      className={cn(
+        "fixed top-0 left-0 right-0 z-[20000] px-4 py-2 text-center text-sm font-medium",
+        statusInfo.bgColor,
+        statusInfo.textColor,
+        className
+      )}
+      role="status"
+      aria-live="polite"
+      aria-label="Sync status notification"
+    >
+      <div data-testid="status-text">{statusInfo.text}</div>
+      {displayPriority === "conflicts" && (
+        <div data-testid="conflicts-count" className="sr-only">
+          {conflictCount}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export const OfflineIndicator: React.FC<OfflineIndicatorProps> = (props) => {
+  return (
+    <SyncErrorBoundary fallback={<FallbackOfflineIndicator {...props} />}>
+      <OfflineIndicatorInner {...props} />
+    </SyncErrorBoundary>
   );
 };

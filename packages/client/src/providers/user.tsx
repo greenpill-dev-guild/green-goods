@@ -1,7 +1,7 @@
 import { type ConnectedWallet, type User, usePrivy, useWallets } from "@privy-io/react-auth";
 import { type SmartWalletClientType, useSmartWallets } from "@privy-io/react-auth/smart-wallets";
 import React, { useContext, useEffect } from "react";
-import { offlineSync } from "@/modules/offline-sync";
+import { jobQueue } from "@/modules/job-queue";
 import { identify } from "@/modules/posthog";
 
 interface UserInterface {
@@ -36,8 +36,8 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   }, [user]);
 
   useEffect(() => {
-    // Provide smart account client to offline sync service
-    offlineSync.setSmartAccountClient(client);
+    // Provide smart account client to job queue service
+    jobQueue.setSmartAccountClient(client);
   }, [client]);
 
   return (

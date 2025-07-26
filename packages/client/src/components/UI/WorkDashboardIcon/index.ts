@@ -1,0 +1,1 @@
+export { WorkDashboardIcon } from "./WorkDashboardIcon";

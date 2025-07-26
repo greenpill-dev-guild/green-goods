@@ -1,6 +1,7 @@
 import { RiArrowLeftLine, RiNotificationFill } from "@remixicon/react";
 import { forwardRef, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useHasOfflineIssues } from "@/stores/offlineStore";
 import { cn } from "@/utils/cn";
 import { GardenNotifications } from "@/views/Home/Notifications";
 import { Button } from "../Button";
@@ -90,11 +91,15 @@ export const TopNav: React.FC<TopNavProps> = ({
   overlay,
   ...props
 }: TopNavProps) => {
+  const hasOfflineIssues = useHasOfflineIssues();
+
   return (
     <div
       className={cn(
         "relative flex z-1000 flex-row w-full justify-evenly items-center gap-4 p-4 h-14",
-        overlay && "fixed top-0 bg-white"
+        overlay && "fixed bg-white",
+        overlay && hasOfflineIssues && "top-10", // Space for offline indicator
+        overlay && !hasOfflineIssues && "top-0"
       )}
       {...props}
     >

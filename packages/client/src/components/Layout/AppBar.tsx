@@ -9,8 +9,8 @@ import {
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link, useLocation } from "react-router-dom";
-import { cn } from "@/utils/cn";
 import { useNavigateToTop } from "@/hooks/useNavigateToTop";
+import { cn } from "@/utils/cn";
 
 export const AppBar = () => {
   const { pathname } = useLocation();

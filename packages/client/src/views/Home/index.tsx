@@ -3,8 +3,8 @@ import { Outlet, useLocation } from "react-router-dom";
 
 import { GardenCard } from "@/components/UI/Card/GardenCard";
 import { BeatLoader } from "@/components/UI/Loader";
-import { useGardens } from "@/providers/garden";
 import { useNavigateToTop } from "@/hooks/useNavigateToTop";
+import { useGardens } from "@/providers/garden";
 
 const Gardens: React.FC = () => {
   const navigate = useNavigateToTop();

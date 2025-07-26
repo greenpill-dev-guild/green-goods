@@ -7,6 +7,54 @@ import deployment42220 from "../../contracts/deployments/42220-latest.json";
 import deployment84532 from "../../contracts/deployments/84532-latest.json";
 import networksConfig from "../../contracts/deployments/networks.json";
 
+// Environment variables debug info (remove in production)
+const debugEnvVars = () => {
+  const viteVars = Object.keys(import.meta.env)
+    .filter((key) => key.startsWith("VITE_"))
+    .reduce(
+      (acc, key) => {
+        acc[key] = import.meta.env[key] ? "✅ Loaded" : "❌ Missing";
+        return acc;
+      },
+      {} as Record<string, string>
+    );
+
+  console.log("🔍 Environment Variables Status:", viteVars);
+  console.log("📍 Key variables check:");
+  console.log("  VITE_PRIVY_APP_ID:", import.meta.env.VITE_PRIVY_APP_ID ? "✅" : "❌");
+  console.log("  VITE_CHAIN_ID:", import.meta.env.VITE_CHAIN_ID || "❌ Not set");
+  console.log("  VITE_PINATA_JWT:", import.meta.env.VITE_PINATA_JWT ? "✅" : "❌");
+};
+
+// Run debug in development
+if (import.meta.env.DEV) {
+  debugEnvVars();
+}
+
+// Supported chains configuration
+export const SUPPORTED_CHAINS = {
+  31337: "localhost",
+  11155111: "sepolia",
+  42161: "arbitrum",
+  8453: "base",
+  84532: "base-sepolia",
+  10: "optimism",
+  42220: "celo",
+} as const;
+
+export type SupportedChainId = keyof typeof SUPPORTED_CHAINS;
+
+export const getChainName = (chainId: number): string => {
+  return SUPPORTED_CHAINS[chainId as SupportedChainId] || "unknown";
+};
+
+export const isChainSupported = (chainId: number): chainId is SupportedChainId => {
+  return chainId in SUPPORTED_CHAINS;
+};
+
+// Current chain configuration
+export const CURRENT_CHAIN_ID = Number(import.meta.env.VITE_CHAIN_ID) || 42161;
+
 export const APP_NAME = "Green Goods";
 export const APP_DEFAULT_TITLE = "Green Goods";
 export const APP_TITLE_TEMPLATE = "%s - Green Goods";

@@ -94,7 +94,11 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     e?.preventDefault(); // Prevent the automatic prompt
     setDeferredPrompt(e);
 
+    // Check if we should mock PWA installation for testing
+    const mockInstalled = import.meta.env.VITE_MOCK_PWA_INSTALLED === "true";
+
     if (
+      mockInstalled ||
       window.matchMedia("(display-mode: standalone)").matches ||
       window.matchMedia("(display-mode: fullscreen)").matches ||
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -102,7 +106,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     ) {
       setInstalledState("installed");
 
-      // App was installed
+      // App was installed or mocked as installed
     } else {
       setInstalledState("not-installed");
 

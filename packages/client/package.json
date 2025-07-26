@@ -50,7 +50,8 @@
     "react-spinners": "0.15.0",
     "tailwind-merge": "3.0.2",
     "tailwind-variants": "0.3.1",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "zustand": "^5.0.6"
   },
   "devDependencies": {
     "@formatjs/cli": "^6.7.1",

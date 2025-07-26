@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import React, { useContext, useMemo } from "react";
-
-import { getGardenAssessments, getWorks } from "@/modules/eas";
+import { useWorksMerged } from "@/hooks/useWorksMerged";
+import { getGardenAssessments } from "@/modules/eas";
 import { getActions, getGardeners, getGardens } from "@/modules/greengoods";
 import { useCurrentChain } from "@/utils/useChainConfig";
 
@@ -33,6 +33,9 @@ export const useGarden = (id: string): GardenDataProps => {
   const { eoa, smartAccountAddress } = useUser();
   const chainId = useCurrentChain();
 
+  // Use merged works hook to get both online and offline work
+  const { works: mergedWorks, isLoading: worksLoading } = useWorksMerged(id);
+
   const {
     data: garden,
     error,
@@ -50,18 +53,21 @@ export const useGarden = (id: string): GardenDataProps => {
       if (!garden) throw new Error("Garden not found");
 
       const assessments = await getGardenAssessments(id, chainId);
-      const works: Work[] = (await getWorks(id, chainId)).map((work) => {
+
+      // Apply work approval status to merged works
+      const works: Work[] = mergedWorks.map((work) => {
         const workApproval = workApprovalMap[work.id];
 
         return {
           ...work,
-          status: workApproval ? (workApproval.approved ? "approved" : "rejected") : "pending",
+          status: workApproval ? (workApproval.approved ? "approved" : "rejected") : work.status,
         };
       });
 
       return { ...garden, assessments, works };
     },
     throwOnError: true,
+    enabled: !worksLoading, // Wait for works to load first
   });
 
   const isOperator = useMemo(

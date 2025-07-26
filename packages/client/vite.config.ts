@@ -10,13 +10,33 @@ import { VitePWA } from "vite-plugin-pwa";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
-  // This check is important!
-  if (mode === "development") {
-    const env = loadEnv(mode, process.cwd(), "");
-    dotenvExpand.expand({ parsed: env });
+  // Load environment variables from monorepo root first, then local overrides
+  const rootDir = resolve(__dirname, "../../"); // Go up to monorepo root
+
+  // 1. Load from monorepo root .env files (foundation)
+  const rootEnv = loadEnv(mode, rootDir, "");
+  dotenvExpand.expand({ parsed: rootEnv });
+
+  // 2. Load from package-specific .env files (overrides)
+  const localEnv = loadEnv(mode, __dirname, "");
+  dotenvExpand.expand({ parsed: localEnv });
+
+  // Debug: Log loaded variables (remove these lines in production)
+  const rootViteVars = Object.keys(rootEnv).filter((k) => k.startsWith("VITE_"));
+  const localViteVars = Object.keys(localEnv).filter((k) => k.startsWith("VITE_"));
+
+  if (rootViteVars.length > 0) {
+    console.log(`🌍 Root environment: ${rootViteVars.length} VITE_ variables loaded`);
+  }
+  if (localViteVars.length > 0) {
+    console.log(`📱 Local overrides: ${localViteVars.length} VITE_ variables loaded`);
   }
 
   return {
+    // Environment configuration
+    envDir: rootDir, // Primary lookup directory (monorepo root)
+    envPrefix: ["VITE_", "PRIVY_", "SKIP_"], // Include test/build prefixes beyond VITE_
+
     // REMOVE THESE LINES - they conflict with vitest.config.ts
     // test: {
     //   env: loadEnv(mode, process.cwd(), ""),

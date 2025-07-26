@@ -70,9 +70,9 @@ export const useStorageManager = (): UseStorageManagerReturn => {
     refreshStorageInfo();
   }, [refreshStorageInfo]);
 
-  // Periodic refresh (every 30 seconds)
+  // Periodic refresh (every 5 minutes - storage changes slowly)
   useEffect(() => {
-    const interval = setInterval(refreshStorageInfo, 30 * 1000);
+    const interval = setInterval(refreshStorageInfo, 5 * 60 * 1000); // 5 minutes
     return () => clearInterval(interval);
   }, [refreshStorageInfo]);
 

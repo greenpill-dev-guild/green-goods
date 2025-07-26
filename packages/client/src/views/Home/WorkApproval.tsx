@@ -1,4 +1,3 @@
-import { NO_EXPIRATION, ZERO_BYTES32 } from "@ethereum-attestation-service/eas-sdk";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   RiCheckDoubleFill,
@@ -15,7 +14,7 @@ import { Form, useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { useParams } from "react-router-dom";
 import { decodeErrorResult } from "viem";
-import { encodeFunctionData } from "viem/utils";
+
 import { z } from "zod";
 import { Button } from "@/components/UI/Button";
 import { GardenCard } from "@/components/UI/Card/GardenCard";
@@ -25,17 +24,14 @@ import { FormInfo } from "@/components/UI/Form/Info";
 import { FormText } from "@/components/UI/Form/Text";
 import { CircleLoader } from "@/components/UI/Loader";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
-import { getEASConfig } from "@/config";
+import { useNavigateToTop } from "@/hooks/useNavigateToTop";
+import { createOfflineTxHash, jobQueue } from "@/modules/job-queue";
 import { getFileByHash } from "@/modules/pinata";
 import { useGarden, useGardens } from "@/providers/garden";
 import { useUser } from "@/providers/user";
-import { abi } from "@/utils/abis/EAS.json";
 import { abi as WorkApprovalResolverABI } from "@/utils/abis/WorkApprovalResolver.json";
-import { encodeWorkApprovalData } from "@/utils/eas";
-import { useNavigateToTop } from "@/hooks/useNavigateToTop";
 import { useCurrentChain } from "@/utils/useChainConfig";
 import { WorkCompleted } from "../Garden/Completed";
-import { offlineDB } from "@/modules/offline-db";
 
 type GardenWorkApprovalProps = {};
 
@@ -62,7 +58,7 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = () => {
   const work = garden?.works.find((work) => work.id === workId);
   const action = actions.find((action) => action.id === work?.actionUID);
 
-  const { smartAccountClient } = useUser();
+  useUser(); // Keep the hook call for potential future use
   const { register, handleSubmit, control } = useForm<WorkApprovalDraft>({
     defaultValues: {
       actionUID: work?.actionUID,
@@ -77,50 +73,20 @@ export const GardenWorkApproval: React.FC<GardenWorkApprovalProps> = () => {
 
   const workApprovalMutation = useMutation({
     mutationFn: async (draft: WorkApprovalDraft) => {
-      // Check if we're offline or if smart account is not available
-      if (!navigator.onLine || !smartAccountClient) {
-        // Save to offline storage
-        const offlineId = await offlineDB.addPendingWork({
-          type: "approval",
-          data: {
-            ...draft,
-            gardenerAddress: work?.gardenerAddress,
-          },
-          synced: false,
-        });
+      // Add approval job to queue - this handles both offline and online scenarios
+      const jobId = await jobQueue.addJob(
+        "approval",
+        {
+          ...draft,
+          gardenerAddress: work?.gardenerAddress || "",
+        },
+        {
+          chainId,
+        }
+      );
 
-        // Return a fake transaction hash for offline work
-        return `0xoffline_${offlineId}` as `0x${string}`;
-      }
-
-      const encodedAttestationData = encodeWorkApprovalData(draft, chainId);
-      const easConfig = getEASConfig(chainId);
-
-      const encodedData = encodeFunctionData({
-        abi,
-        functionName: "attest",
-        args: [
-          {
-            schema: easConfig.WORK_APPROVAL.uid,
-            data: {
-              recipient: work?.gardenerAddress as `0x${string}`,
-              expirationTime: NO_EXPIRATION,
-              revocable: true,
-              refUID: ZERO_BYTES32,
-              data: encodedAttestationData,
-              value: 0n,
-            },
-          },
-        ],
-      });
-
-      const receipt = await smartAccountClient.sendTransaction({
-        to: easConfig.EAS.address as `0x${string}`,
-        value: 0n,
-        data: encodedData,
-      });
-
-      return receipt;
+      // Return an offline transaction hash for UI compatibility
+      return createOfflineTxHash(jobId);
     },
     onMutate: () => {
       // toast.loading("Approving work...");

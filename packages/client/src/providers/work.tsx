@@ -1,19 +1,14 @@
-import { NO_EXPIRATION, ZERO_BYTES32 } from "@ethereum-attestation-service/eas-sdk";
 import { type QueryObserverResult, useMutation, useQuery } from "@tanstack/react-query";
 import React, { useContext, useState } from "react";
-// import { encodeFunctionData, parseEther, zeroAddress } from "viem";
-// import { zodResolver } from "@hookform/resolvers/zod";
 import { type Control, type FormState, type UseFormRegister, useForm } from "react-hook-form";
 import { decodeErrorResult } from "viem";
-import { encodeFunctionData } from "viem/utils";
-import { getEASConfig } from "@/config";
+
 import { getWorkApprovals } from "@/modules/eas";
-import { offlineDB } from "@/modules/offline-db";
 import { queryClient } from "@/modules/react-query";
-import { abi } from "@/utils/abis/EAS.json";
 import { abi as WorkResolverABI } from "@/utils/abis/WorkResolver.json";
-import { encodeWorkData } from "@/utils/eas";
 import { useCurrentChain } from "@/utils/useChainConfig";
+import { formatJobError, submitWorkToQueue } from "@/utils/work-submission";
+
 import { useGardens } from "./garden";
 import { useUser } from "./user";
 
@@ -85,7 +80,7 @@ export const useWork = () => {
 };
 
 export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
-  const { smartAccountClient, eoa } = useUser();
+  const { eoa } = useUser();
   const { actions, gardens } = useGardens();
   const chainId = useCurrentChain();
 
@@ -116,75 +111,10 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   const plantSelection = watch("plantSelection");
   const plantCount = watch("plantCount");
 
-  // Extract submission logic to reusable function
-  const submitWork = async (draft: WorkDraft): Promise<`0x${string}`> => {
-    if (!gardenAddress) throw new Error("No garden address found");
-    if (typeof actionUID !== "number") throw new Error("No action UID found");
-
-    const action = actions.find((action) => action.id === actionUID);
-    const actionTitle = action?.title || "Unknown Action";
-
-    // Check if we're offline or if smart account is not available
-    if (!navigator.onLine || !smartAccountClient) {
-      // Save to offline storage
-      const offlineId = await offlineDB.addPendingWork({
-        type: "work",
-        data: {
-          ...draft,
-          title: `${actionTitle} - ${new Date().toISOString()}`,
-          actionUID,
-          gardenAddress,
-        },
-        images,
-        synced: false,
-      });
-
-      // Return a properly formatted hex string for offline work
-      // Using the "0xoffline_" prefix that Completed.tsx expects
-      // Total length should be 66 characters to match Ethereum transaction hash format
-      const paddedId = offlineId.toString().padStart(56, "0");
-      return `0xoffline_${paddedId}` as `0x${string}`;
-    }
-
-    const encodedAttestationData = await encodeWorkData({
-      ...draft,
-      title: `${actionTitle} - ${new Date().toISOString()}`,
-      actionUID,
-      media: images,
-    });
-
-    const easConfig = getEASConfig("42161");
-
-    const encodedData = encodeFunctionData({
-      abi,
-      args: [
-        {
-          schema: easConfig.WORK.uid,
-          data: {
-            recipient: gardenAddress as `0x${string}`,
-            expirationTime: NO_EXPIRATION,
-            revocable: true,
-            refUID: ZERO_BYTES32,
-            data: encodedAttestationData,
-            value: 0n,
-          },
-        },
-      ],
-      functionName: "attest",
-    });
-
-    const receipt = await smartAccountClient.sendTransaction({
-      to: easConfig.EAS.address as `0x${string}`,
-      value: 0n,
-      data: encodedData,
-    });
-
-    return receipt;
-  };
-
   const workMutation = useMutation({
     mutationFn: async (draft: WorkDraft) => {
-      return submitWork(draft);
+      // Use consolidated submission utility
+      return submitWorkToQueue(draft, gardenAddress!, actionUID!, actions, chainId, images);
     },
     onMutate: () => {
       // toast.loading("Uploading work..."); @dev deprecated
@@ -196,6 +126,8 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
+      console.error("Work submission failed:", error);
+
       if (error.data) {
         const _decodedError = decodeErrorResult({
           abi: WorkResolverABI,
@@ -221,6 +153,10 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
           console.error("Failed to decode error result:", decodeError);
         }
       }
+
+      // Show user-friendly error message
+      const userFriendlyError = formatJobError(error.message || "Unknown error occurred");
+      console.error("User-friendly error:", userFriendlyError);
 
       queryClient.invalidateQueries({
         queryKey: ["work-approvals"],
