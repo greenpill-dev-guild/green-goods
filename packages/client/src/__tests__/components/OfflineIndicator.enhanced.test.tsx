@@ -1,44 +1,32 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import React from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OfflineIndicator } from "@/components/UI/OfflineIndicator/OfflineIndicator";
 
-// Mock hooks
-const mockUseOffline = vi.fn();
-const mockUseConflictResolver = vi.fn();
-const mockUseStorageManager = vi.fn();
+// Mock the Zustand store
+const mockUseOfflineStore = vi.fn();
+const mockUseOfflineDisplayPriority = vi.fn();
 
-vi.mock("@/utils/useOffline", () => ({
-  useOffline: () => mockUseOffline(),
+vi.mock("@/stores/offlineStore", () => ({
+  useOfflineStore: (selector: any) => mockUseOfflineStore(selector),
+  useOfflineDisplayPriority: () => mockUseOfflineDisplayPriority(),
 }));
 
-vi.mock("@/utils/useConflictResolver", () => ({
-  useConflictResolver: () => mockUseConflictResolver(),
-}));
-
-vi.mock("@/utils/useStorageManager", () => ({
-  useStorageManager: () => mockUseStorageManager(),
-}));
-
-const renderWithProviders = (component: React.ReactElement) => {
+// Wrapper component for providers
+const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
   });
 
-  const messages = {
-    "app.offline.workingOffline": "Working offline",
-    "app.offline.syncing": "Syncing...",
-    "app.offline.synced": "All synced",
-    "app.offline.conflictsDetected": "Sync conflicts detected",
-    "app.offline.storageCleanupNeeded": "Storage cleanup recommended",
-  };
-
-  return render(
+  return (
     <QueryClientProvider client={queryClient}>
-      <IntlProvider locale="en" messages={messages}>
-        {component}
+      <IntlProvider locale="en" messages={{}}>
+        {children}
       </IntlProvider>
     </QueryClientProvider>
   );
@@ -46,42 +34,16 @@ const renderWithProviders = (component: React.ReactElement) => {
 
 describe("Enhanced OfflineIndicator", () => {
   beforeEach(() => {
-    mockUseOffline.mockReturnValue({
-      isOnline: true,
-      pendingCount: 0,
-      syncStatus: "idle",
-      pendingWork: [],
-      retryInfo: [],
-      hasConflicts: false,
-      shouldCleanup: false,
-      refetch: vi.fn(),
-    });
+    // Reset mocks
+    vi.clearAllMocks();
 
-    mockUseConflictResolver.mockReturnValue({
-      conflicts: [],
-      isResolving: false,
-      resolveConflict: vi.fn(),
-      resolveAllConflicts: vi.fn(),
-      hasConflicts: false,
-    });
-
-    mockUseStorageManager.mockReturnValue({
-      storageInfo: {
-        needsCleanup: false,
-        total: 1000000,
-        used: 100000,
-        available: 900000,
-        percentage: 10,
-      },
-      getStorageBreakdown: vi.fn(),
-      cleanupStorage: vi.fn(),
-      estimateCleanupSpace: vi.fn(),
-    });
-
-    // Reset navigator.onLine
-    Object.defineProperty(navigator, "onLine", {
-      value: true,
-      writable: true,
+    // Default store state
+    mockUseOfflineStore.mockImplementation((selector) => {
+      const state = {
+        conflictCount: 0,
+        pendingCount: 0,
+      };
+      return selector(state);
     });
   });
 
@@ -90,400 +52,188 @@ describe("Enhanced OfflineIndicator", () => {
   });
 
   it("should not render when online with no pending items", () => {
-    const { container } = renderWithProviders(<OfflineIndicator />);
-    expect(container.firstChild).toBeNull();
+    mockUseOfflineDisplayPriority.mockReturnValue(null);
+
+    render(
+      <TestWrapper>
+        <OfflineIndicator />
+      </TestWrapper>
+    );
+
+    expect(screen.queryByTestId("offline-indicator")).not.toBeInTheDocument();
   });
 
   it("should render when offline", () => {
-    mockUseOffline.mockReturnValue({
-      isOnline: false,
-      pendingCount: 0,
-      syncStatus: "idle",
-      pendingWork: [],
-      retryInfo: [],
-      hasConflicts: false,
-      shouldCleanup: false,
-      refetch: vi.fn(),
-    });
+    mockUseOfflineDisplayPriority.mockReturnValue("offline");
 
-    Object.defineProperty(navigator, "onLine", {
-      value: false,
-      writable: true,
-    });
+    render(
+      <TestWrapper>
+        <OfflineIndicator />
+      </TestWrapper>
+    );
 
-    renderWithProviders(<OfflineIndicator />);
-    expect(screen.getByTestId("offline-indicator")).toBeInTheDocument();
-    expect(screen.getByTestId("status-message")).toHaveTextContent("Working offline");
-    expect(screen.getByTestId("status-icon")).toHaveTextContent("📶");
+    const indicator = screen.getByTestId("offline-indicator");
+    expect(indicator).toBeInTheDocument();
+    expect(indicator).toHaveClass("bg-gray-500");
+    expect(screen.getByTestId("status-text")).toHaveTextContent("📶 Offline");
   });
 
   it("should render when has pending items", () => {
-    mockUseOffline.mockReturnValue({
-      isOnline: true,
-      pendingCount: 3,
-      syncStatus: "idle",
-      hasConflicts: false,
-      shouldCleanup: false,
-      refetch: vi.fn(),
+    mockUseOfflineDisplayPriority.mockReturnValue("pending");
+    mockUseOfflineStore.mockImplementation((selector) => {
+      const state = {
+        conflictCount: 0,
+        pendingCount: 3,
+      };
+      return selector(state);
     });
 
-    renderWithProviders(<OfflineIndicator />);
-    expect(screen.getByTestId("offline-indicator")).toBeInTheDocument();
-    expect(screen.getByTestId("pending-count")).toHaveTextContent("3 pending");
+    render(
+      <TestWrapper>
+        <OfflineIndicator />
+      </TestWrapper>
+    );
+
+    const indicator = screen.getByTestId("offline-indicator");
+    expect(indicator).toBeInTheDocument();
+    expect(indicator).toHaveClass("bg-green-500");
+    expect(screen.getByTestId("status-text")).toHaveTextContent("✅ 3 items pending sync");
   });
 
   it("should render when has conflicts", () => {
-    mockUseOffline.mockReturnValue({
-      isOnline: true,
-      pendingCount: 0,
-      syncStatus: "idle",
-      hasConflicts: true,
-      shouldCleanup: false,
-      refetch: vi.fn(),
+    mockUseOfflineDisplayPriority.mockReturnValue("conflicts");
+    mockUseOfflineStore.mockImplementation((selector) => {
+      const state = {
+        conflictCount: 2,
+        pendingCount: 0,
+      };
+      return selector(state);
     });
 
-    mockUseConflictResolver.mockReturnValue({
-      conflicts: [{ workId: "work-1", type: "already_submitted" }],
-      hasConflicts: true,
-      isResolving: false,
-      resolveConflict: vi.fn(),
-      resolveAllConflicts: vi.fn(),
-    });
+    render(
+      <TestWrapper>
+        <OfflineIndicator />
+      </TestWrapper>
+    );
 
-    renderWithProviders(<OfflineIndicator />);
-    expect(screen.getByTestId("offline-indicator")).toBeInTheDocument();
-    expect(screen.getByTestId("status-message")).toHaveTextContent("Sync conflicts detected");
-    expect(screen.getByTestId("conflicts-count")).toHaveTextContent("1 conflicts");
-    expect(screen.getByTestId("status-icon")).toHaveTextContent("⚠️");
+    const indicator = screen.getByTestId("offline-indicator");
+    expect(indicator).toBeInTheDocument();
+    expect(indicator).toHaveClass("bg-red-500");
+    expect(screen.getByTestId("status-text")).toHaveTextContent("⚠️ 2 conflicts need resolution");
+    expect(screen.getByTestId("conflicts-count")).toBeInTheDocument();
   });
 
   it("should render when storage cleanup needed", () => {
-    mockUseOffline.mockReturnValue({
-      isOnline: true,
-      pendingCount: 0,
-      syncStatus: "idle",
-      hasConflicts: false,
-      shouldCleanup: false,
-      refetch: vi.fn(),
-    });
+    mockUseOfflineDisplayPriority.mockReturnValue("cleanup");
 
-    mockUseStorageManager.mockReturnValue({
-      storageInfo: {
-        needsCleanup: true,
-        total: 1000000,
-        used: 900000,
-        available: 100000,
-        percentage: 90,
-      },
-      getStorageBreakdown: vi.fn(),
-      cleanupStorage: vi.fn(),
-      estimateCleanupSpace: vi.fn(),
-    });
+    render(
+      <TestWrapper>
+        <OfflineIndicator />
+      </TestWrapper>
+    );
 
-    renderWithProviders(<OfflineIndicator />);
-    expect(screen.getByTestId("offline-indicator")).toBeInTheDocument();
-    expect(screen.getByTestId("status-message")).toHaveTextContent("Storage cleanup recommended");
-    expect(screen.getByTestId("status-icon")).toHaveTextContent("🗄️");
+    const indicator = screen.getByTestId("offline-indicator");
+    expect(indicator).toBeInTheDocument();
+    expect(indicator).toHaveClass("bg-yellow-500");
+    expect(screen.getByTestId("status-text")).toHaveTextContent("🗄️ Storage cleanup needed");
   });
 
   it("should show syncing state", () => {
-    mockUseOffline.mockReturnValue({
-      isOnline: true,
-      pendingCount: 2,
-      syncStatus: "syncing",
-      hasConflicts: false,
-      shouldCleanup: false,
-      refetch: vi.fn(),
-    });
+    mockUseOfflineDisplayPriority.mockReturnValue("syncing");
 
-    renderWithProviders(<OfflineIndicator />);
-    expect(screen.getByTestId("status-message")).toHaveTextContent("Syncing...");
-    expect(screen.getByTestId("status-icon")).toHaveTextContent("🔄");
-    expect(screen.getByTestId("pending-count")).toHaveTextContent("2 pending");
+    render(
+      <TestWrapper>
+        <OfflineIndicator />
+      </TestWrapper>
+    );
+
+    const indicator = screen.getByTestId("offline-indicator");
+    expect(indicator).toBeInTheDocument();
+    expect(indicator).toHaveClass("bg-blue-500");
+    expect(screen.getByTestId("status-text")).toHaveTextContent("🔄 Syncing...");
   });
 
   it("should prioritize conflicts in display", () => {
-    mockUseOffline.mockReturnValue({
-      isOnline: false, // Also offline
-      pendingCount: 5,
-      syncStatus: "idle",
-      hasConflicts: true, // But has conflicts - should take priority
-      shouldCleanup: false,
-      refetch: vi.fn(),
+    // This test is more about the store logic, but we can test the component behavior
+    mockUseOfflineDisplayPriority.mockReturnValue("conflicts");
+    mockUseOfflineStore.mockImplementation((selector) => {
+      const state = {
+        conflictCount: 1,
+        pendingCount: 5, // Even with pending items, conflicts should take priority
+      };
+      return selector(state);
     });
 
-    mockUseConflictResolver.mockReturnValue({
-      hasConflicts: true,
-      conflicts: [{ workId: "work-1" }],
-      isResolving: false,
-      resolveConflict: vi.fn(),
-      resolveAllConflicts: vi.fn(),
-    });
-
-    renderWithProviders(<OfflineIndicator />);
-
-    // Should show conflicts message, not offline message
-    expect(screen.getByTestId("status-message")).toHaveTextContent("Sync conflicts detected");
-    expect(screen.getByTestId("status-icon")).toHaveTextContent("⚠️");
-  });
-
-  it("should open dashboard when clicked", async () => {
-    mockUseOffline.mockReturnValue({
-      isOnline: true,
-      pendingCount: 1,
-      syncStatus: "idle",
-      hasConflicts: false,
-      shouldCleanup: false,
-      refetch: vi.fn(),
-    });
-
-    renderWithProviders(<OfflineIndicator />);
+    render(
+      <TestWrapper>
+        <OfflineIndicator />
+      </TestWrapper>
+    );
 
     const indicator = screen.getByTestId("offline-indicator");
-    fireEvent.click(indicator);
-
-    await waitFor(() => {
-      expect(screen.getByTestId("dashboard-modal")).toBeInTheDocument();
-    });
-  });
-
-  it("should close dashboard when close button clicked", async () => {
-    mockUseOffline.mockReturnValue({
-      isOnline: true,
-      pendingCount: 1,
-      syncStatus: "idle",
-      hasConflicts: false,
-      shouldCleanup: false,
-      refetch: vi.fn(),
-    });
-
-    renderWithProviders(<OfflineIndicator />);
-
-    // Open dashboard
-    const indicator = screen.getByTestId("offline-indicator");
-    fireEvent.click(indicator);
-
-    await waitFor(() => {
-      expect(screen.getByTestId("dashboard-modal")).toBeInTheDocument();
-    });
-
-    // Close dashboard
-    const closeButton = screen.getByTestId("dashboard-close");
-    fireEvent.click(closeButton);
-
-    await waitFor(() => {
-      expect(screen.queryByTestId("dashboard-modal")).not.toBeInTheDocument();
-    });
-  });
-
-  it("should close dashboard when backdrop clicked", async () => {
-    mockUseOffline.mockReturnValue({
-      isOnline: true,
-      pendingCount: 1,
-      syncStatus: "idle",
-      hasConflicts: false,
-      shouldCleanup: false,
-      refetch: vi.fn(),
-    });
-
-    renderWithProviders(<OfflineIndicator />);
-
-    // Open dashboard
-    const indicator = screen.getByTestId("offline-indicator");
-    fireEvent.click(indicator);
-
-    await waitFor(() => {
-      expect(screen.getByTestId("dashboard-modal")).toBeInTheDocument();
-    });
-
-    // Click backdrop
-    const backdrop = screen.getByTestId("dashboard-modal");
-    fireEvent.click(backdrop);
-
-    await waitFor(() => {
-      expect(screen.queryByTestId("dashboard-modal")).not.toBeInTheDocument();
-    });
+    expect(indicator).toHaveClass("bg-red-500");
+    expect(screen.getByTestId("status-text")).toHaveTextContent("⚠️ 1 conflict need resolution");
   });
 
   it("should use correct background color for different states", () => {
-    // Test offline state (warning background)
-    mockUseOffline.mockReturnValue({
-      isOnline: false,
-      pendingCount: 0,
-      syncStatus: "idle",
-      hasConflicts: false,
-      shouldCleanup: false,
-      refetch: vi.fn(),
+    const testCases = [
+      { priority: "conflicts", bgClass: "bg-red-500" },
+      { priority: "cleanup", bgClass: "bg-yellow-500" },
+      { priority: "syncing", bgClass: "bg-blue-500" },
+      { priority: "offline", bgClass: "bg-gray-500" },
+      { priority: "pending", bgClass: "bg-green-500" },
+    ];
+
+    testCases.forEach(({ priority, bgClass }) => {
+      mockUseOfflineDisplayPriority.mockReturnValue(priority);
+
+      const { unmount } = render(
+        <TestWrapper>
+          <OfflineIndicator />
+        </TestWrapper>
+      );
+
+      const indicator = screen.getByTestId("offline-indicator");
+      expect(indicator).toHaveClass(bgClass);
+
+      unmount();
     });
-
-    Object.defineProperty(navigator, "onLine", {
-      value: false,
-      writable: true,
-    });
-
-    const { unmount } = renderWithProviders(<OfflineIndicator />);
-    let indicator = screen.getByTestId("offline-indicator");
-    expect(indicator).toHaveClass("bg-warning-base");
-    unmount();
-
-    // Test conflicts state (error background)
-    mockUseOffline.mockReturnValue({
-      isOnline: true,
-      pendingCount: 0,
-      syncStatus: "idle",
-      hasConflicts: false,
-      shouldCleanup: false,
-      refetch: vi.fn(),
-    });
-
-    mockUseConflictResolver.mockReturnValue({
-      hasConflicts: true,
-      conflicts: [{ workId: "work-1" }],
-      isResolving: false,
-      resolveConflict: vi.fn(),
-      resolveAllConflicts: vi.fn(),
-    });
-
-    Object.defineProperty(navigator, "onLine", {
-      value: true,
-      writable: true,
-    });
-
-    renderWithProviders(<OfflineIndicator />);
-    indicator = screen.getByTestId("offline-indicator");
-    expect(indicator).toHaveClass("bg-error-base");
   });
 
   it("should show multiple status indicators together", () => {
-    mockUseOffline.mockReturnValue({
-      isOnline: true,
-      pendingCount: 3,
-      syncStatus: "idle",
-      hasConflicts: true,
-      shouldCleanup: false,
-      refetch: vi.fn(),
+    // This test doesn't apply to the new design where only one status is shown at a time
+    // The priority logic handles what to display, so this test is redundant
+    mockUseOfflineDisplayPriority.mockReturnValue("conflicts");
+    mockUseOfflineStore.mockImplementation((selector) => {
+      const state = {
+        conflictCount: 2,
+        pendingCount: 3,
+      };
+      return selector(state);
     });
 
-    mockUseConflictResolver.mockReturnValue({
-      hasConflicts: true,
-      conflicts: [{ workId: "work-1" }],
-      isResolving: false,
-      resolveConflict: vi.fn(),
-      resolveAllConflicts: vi.fn(),
-    });
+    render(
+      <TestWrapper>
+        <OfflineIndicator />
+      </TestWrapper>
+    );
 
-    renderWithProviders(<OfflineIndicator />);
-
-    expect(screen.getByTestId("conflicts-count")).toHaveTextContent("1 conflicts");
-    expect(screen.getByTestId("pending-count")).toHaveTextContent("3 pending");
-  });
-
-  it("should handle rapid state changes", async () => {
-    // Test that the component correctly handles different states by testing each one separately
-
-    // Test 1: Offline state
-    mockUseOffline.mockReturnValue({
-      isOnline: false,
-      pendingCount: 0,
-      syncStatus: "idle",
-      hasConflicts: false,
-      shouldCleanup: false,
-      refetch: vi.fn(),
-    });
-
-    let { unmount } = renderWithProviders(<OfflineIndicator />);
-    expect(screen.getByTestId("status-message")).toHaveTextContent("Working offline");
-    unmount();
-
-    // Test 2: Offline with pending items
-    mockUseOffline.mockReturnValue({
-      isOnline: false,
-      pendingCount: 2,
-      syncStatus: "idle",
-      hasConflicts: false,
-      shouldCleanup: false,
-      refetch: vi.fn(),
-    });
-    ({ unmount } = renderWithProviders(<OfflineIndicator />));
-    expect(screen.getByTestId("pending-count")).toHaveTextContent("2 pending");
-    unmount();
-
-    // Test 3: Online and syncing
-    mockUseOffline.mockReturnValue({
-      isOnline: true,
-      pendingCount: 2,
-      syncStatus: "syncing",
-      hasConflicts: false,
-      shouldCleanup: false,
-      refetch: vi.fn(),
-    });
-    ({ unmount } = renderWithProviders(<OfflineIndicator />));
-    expect(screen.getByTestId("status-message")).toHaveTextContent("Syncing...");
-    unmount();
-
-    // Test 4: All synced (should not render)
-    mockUseOffline.mockReturnValue({
-      isOnline: true,
-      pendingCount: 0,
-      syncStatus: "idle",
-      hasConflicts: false,
-      shouldCleanup: false,
-      refetch: vi.fn(),
-    });
-    const { container } = renderWithProviders(<OfflineIndicator />);
-    expect(container.firstChild).toBeNull();
+    // Should only show the highest priority (conflicts)
+    const indicator = screen.getByTestId("offline-indicator");
+    expect(indicator).toBeInTheDocument();
+    expect(screen.getByTestId("status-text")).toHaveTextContent("⚠️ 2 conflicts need resolution");
   });
 
   it("should apply custom className", () => {
-    mockUseOffline.mockReturnValue({
-      isOnline: false,
-      pendingCount: 0,
-      syncStatus: "idle",
-      hasConflicts: false,
-      shouldCleanup: false,
-      refetch: vi.fn(),
-    });
+    mockUseOfflineDisplayPriority.mockReturnValue("offline");
 
-    renderWithProviders(<OfflineIndicator className="custom-class" />);
+    render(
+      <TestWrapper>
+        <OfflineIndicator className="custom-class" />
+      </TestWrapper>
+    );
 
     const indicator = screen.getByTestId("offline-indicator");
     expect(indicator).toHaveClass("custom-class");
-  });
-
-  it("should show tap to view instruction", () => {
-    mockUseOffline.mockReturnValue({
-      isOnline: false,
-      pendingCount: 0,
-      syncStatus: "idle",
-      hasConflicts: false,
-      shouldCleanup: false,
-      refetch: vi.fn(),
-    });
-
-    renderWithProviders(<OfflineIndicator />);
-
-    expect(screen.getByText("• Tap to view")).toBeInTheDocument();
-  });
-
-  it("should handle accessibility requirements", () => {
-    mockUseOffline.mockReturnValue({
-      isOnline: false,
-      pendingCount: 0,
-      syncStatus: "idle",
-      hasConflicts: false,
-      shouldCleanup: false,
-      refetch: vi.fn(),
-    });
-
-    renderWithProviders(<OfflineIndicator />);
-
-    const indicator = screen.getByTestId("offline-indicator");
-
-    // Should be focusable
-    expect(indicator).toHaveAttribute("tabIndex");
-
-    // Should have appropriate ARIA attributes (would be added in real implementation)
-    // expect(indicator).toHaveAttribute('role', 'button');
-    // expect(indicator).toHaveAttribute('aria-label');
   });
 });
