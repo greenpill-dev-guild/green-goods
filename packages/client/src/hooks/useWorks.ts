@@ -1,57 +1,37 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
 import { getWorks } from "@/modules/eas";
 import { jobQueue, jobQueueDB } from "@/modules/job-queue";
 import { jobQueueEventBus, useJobQueueEvents } from "@/modules/job-queue/event-bus";
 import { useCurrentChain } from "@/utils/useChainConfig";
 import { queryInvalidation, queryKeys } from "./query-keys";
 
-/**
- * Simplified hook for job queue statistics with event-driven updates
- */
-export function useJobQueueStats() {
-  const queryClient = useQueryClient();
-
-  const query = useQuery({
-    queryKey: queryKeys.queue.stats(),
-    queryFn: () => jobQueue.getStats(),
-    staleTime: 30000, // 30 seconds
-    gcTime: 60000, // 1 minute
-  });
-
-  // Listen to events to update stats
-  useJobQueueEvents(["job:added", "job:completed", "job:failed", "queue:sync-completed"], () => {
-    queryClient.invalidateQueries({ queryKey: queryKeys.queue.stats() });
-  });
-
-  return query;
+// Helper function to convert job payload to Work model
+export function jobToWork(job: Job<WorkJobPayload>): Work {
+  return {
+    id: job.id, // Use job ID as temporary work ID
+    title: job.payload.title || `Action ${job.payload.actionUID}`,
+    actionUID: job.payload.actionUID,
+    gardenerAddress: "pending", // Will be resolved when online
+    gardenAddress: job.payload.gardenAddress,
+    feedback: job.payload.feedback,
+    metadata: JSON.stringify({
+      plantCount: job.payload.plantCount,
+      plantSelection: job.payload.plantSelection,
+    }),
+    media: [], // Media will be loaded separately for offline jobs
+    createdAt: job.createdAt,
+    status: job.synced
+      ? "pending" // Synced but awaiting approval
+      : job.lastError
+        ? "rejected" // Failed to sync
+        : "pending", // Waiting to sync
+  };
 }
 
 /**
- * Simplified hook for pending jobs count with event-driven updates
+ * Hook for merged works (online + offline) with event-driven updates
  */
-export function usePendingJobsCount() {
-  const queryClient = useQueryClient();
-
-  const query = useQuery({
-    queryKey: queryKeys.queue.pendingCount(),
-    queryFn: () => jobQueue.getPendingCount(),
-    staleTime: 10000, // 10 seconds
-    gcTime: 30000, // 30 seconds
-  });
-
-  // Listen to events to update count
-  useJobQueueEvents(["job:added", "job:completed", "job:failed"], () => {
-    queryClient.invalidateQueries({ queryKey: queryKeys.queue.pendingCount() });
-  });
-
-  return query;
-}
-
-/**
- * Simplified hook for merged works (online + offline) with event-driven updates
- */
-export function useWorksMergedSimplified(gardenId: string) {
+export function useWorks(gardenId: string) {
   const chainId = useCurrentChain();
   const queryClient = useQueryClient();
 
@@ -148,84 +128,43 @@ export function useWorksMergedSimplified(gardenId: string) {
 }
 
 /**
- * Simplified hook for offline status with event-driven updates
+ * Hook for getting pending work count across all gardens with event-driven updates
  */
-export function useOfflineStatus() {
+export function usePendingWorksCount() {
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: queryKeys.offline.status(),
-    queryFn: () => ({
-      isOnline: navigator.onLine,
-      pendingCount: jobQueue.getPendingCount(),
-      isSyncing: jobQueue.isSyncInProgress(),
-    }),
-    staleTime: 5000, // 5 seconds
+    queryKey: queryKeys.queue.pendingCount(),
+    queryFn: () => jobQueue.getPendingCount(),
+    staleTime: 10000, // 10 seconds
     gcTime: 30000, // 30 seconds
   });
 
-  // Listen to online/offline events
-  useEffect(() => {
-    const handleOnlineOffline = () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.offline.status() });
-    };
-
-    window.addEventListener("online", handleOnlineOffline);
-    window.addEventListener("offline", handleOnlineOffline);
-
-    return () => {
-      window.removeEventListener("online", handleOnlineOffline);
-      window.removeEventListener("offline", handleOnlineOffline);
-    };
-  }, [queryClient]);
-
-  // Listen to sync events
-  useJobQueueEvents(["queue:sync-started", "queue:sync-completed", "queue:sync-failed"], () => {
-    queryClient.invalidateQueries({ queryKey: queryKeys.offline.status() });
+  // Listen to events to update count
+  useJobQueueEvents(["job:added", "job:completed", "job:failed"], () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.queue.pendingCount() });
   });
 
   return query;
 }
 
 /**
- * Master hook that provides all job queue functionality with minimal complexity
+ * Hook for getting queue statistics with event-driven updates
  */
-export function useJobQueue() {
-  const stats = useJobQueueStats();
-  const pendingCount = usePendingJobsCount();
-  const offlineStatus = useOfflineStatus();
+export function useQueueStatistics() {
+  const queryClient = useQueryClient();
 
-  return {
-    stats: stats.data,
-    pendingCount: pendingCount.data || 0,
-    isOnline: offlineStatus.data?.isOnline ?? navigator.onLine,
-    isSyncing: offlineStatus.data?.isSyncing ?? false,
-    isLoading: stats.isLoading || pendingCount.isLoading || offlineStatus.isLoading,
-    error: stats.error || pendingCount.error || offlineStatus.error,
-    flush: () => jobQueue.flush(),
-    refetch: () => {
-      stats.refetch();
-      pendingCount.refetch();
-      offlineStatus.refetch();
-    },
-  };
-}
+  const query = useQuery({
+    queryKey: queryKeys.queue.stats(),
+    queryFn: () => jobQueue.getStats(),
+    staleTime: 10000, // 10 seconds
+    gcTime: 30000, // 30 seconds
+  });
 
-// Helper function (moved from useWorksMerged)
-function jobToWork(job: Job<WorkJobPayload>): Work {
-  return {
-    id: job.id,
-    title: job.payload.title || `Action ${job.payload.actionUID}`,
-    actionUID: job.payload.actionUID,
-    gardenerAddress: "pending",
-    gardenAddress: job.payload.gardenAddress,
-    feedback: job.payload.feedback,
-    metadata: JSON.stringify({
-      plantCount: job.payload.plantCount,
-      plantSelection: job.payload.plantSelection,
-    }),
-    media: [],
-    createdAt: job.createdAt,
-    status: job.synced ? "pending" : job.lastError ? "rejected" : "pending",
-  };
+  // Listen to events to update stats
+  useJobQueueEvents(["job:added", "job:completed", "job:failed", "queue:sync-completed"], () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.queue.stats() });
+  });
+
+  return query;
 }

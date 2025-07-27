@@ -26,7 +26,7 @@ vi.mock("@/modules/react-query", () => ({
   },
 }));
 
-vi.mock("@/hooks/useWorksMerged", () => ({
+vi.mock("@/hooks/useWorks", () => ({
   jobToWork: vi.fn(),
 }));
 
@@ -34,7 +34,7 @@ vi.mock("@/providers/user", () => ({
   useUser: vi.fn(),
 }));
 
-import { jobToWork } from "@/hooks/useWorksMerged";
+import { jobToWork } from "@/hooks/useWorks";
 // Import mocked modules
 import { jobQueue } from "@/modules/job-queue";
 import { queryClient } from "@/modules/react-query";

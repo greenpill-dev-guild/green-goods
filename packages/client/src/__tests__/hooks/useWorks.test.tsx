@@ -1,13 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import React from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  jobToWork,
-  usePendingWorksCount,
-  useQueueStatistics,
-  useWorksMerged,
-} from "@/hooks/useWorksMerged";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { TestQueryProvider } from "../test-utils";
+import { Job } from "@/types/job-queue";
+import { jobToWork, usePendingWorksCount, useQueueStatistics, useWorks } from "@/hooks/useWorks";
 
 // Mock modules with direct vi.fn() in factories to avoid hoisting issues
 vi.mock("@/modules/eas", () => ({
@@ -112,8 +109,7 @@ const createWrapper = () => {
   );
 };
 
-describe("useWorksMerged", () => {
-  // Setup function for tests
+describe("useWorks", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Mock useCurrentChain to return a chain ID
@@ -126,7 +122,7 @@ describe("useWorksMerged", () => {
       vi.mocked(getWorks).mockResolvedValue(mockWorks);
       vi.mocked(jobQueue.getJobs).mockResolvedValue([]);
 
-      const { result } = renderHook(() => useWorksMerged("0xgarden123"), {
+      const { result } = renderHook(() => useWorks("0xgarden123"), {
         wrapper: createWrapper(),
       });
 
@@ -145,7 +141,7 @@ describe("useWorksMerged", () => {
       vi.mocked(getWorks).mockRejectedValue(networkError);
       vi.mocked(jobQueue.getJobs).mockResolvedValue([]);
 
-      const { result } = renderHook(() => useWorksMerged("0xgarden123"), {
+      const { result } = renderHook(() => useWorks("0xgarden123"), {
         wrapper: createWrapper(),
       });
 
@@ -164,7 +160,7 @@ describe("useWorksMerged", () => {
       vi.mocked(getWorks).mockResolvedValue([]);
       vi.mocked(jobQueue.getJobs).mockResolvedValue([]);
 
-      renderHook(() => useWorksMerged(""), {
+      renderHook(() => useWorks(""), {
         wrapper: createWrapper(),
       });
 
@@ -218,7 +214,7 @@ describe("useWorksMerged", () => {
       });
       vi.mocked(jobQueueDB.getImagesForJob).mockResolvedValue(mockImages);
 
-      const { result } = renderHook(() => useWorksMerged("0xgarden123"), {
+      const { result } = renderHook(() => useWorks("0xgarden123"), {
         wrapper: createWrapper(),
       });
 
@@ -250,7 +246,7 @@ describe("useWorksMerged", () => {
       });
       vi.mocked(jobQueueDB.getImagesForJob).mockRejectedValue(new Error("Media load error"));
 
-      const { result } = renderHook(() => useWorksMerged("0xgarden123"), {
+      const { result } = renderHook(() => useWorks("0xgarden123"), {
         wrapper: createWrapper(),
       });
 
@@ -277,7 +273,7 @@ describe("useWorksMerged", () => {
       });
       vi.mocked(jobQueueDB.getImagesForJob).mockResolvedValue([]);
 
-      const { result } = renderHook(() => useWorksMerged("0xgarden123"), {
+      const { result } = renderHook(() => useWorks("0xgarden123"), {
         wrapper: createWrapper(),
       });
 
@@ -316,7 +312,7 @@ describe("useWorksMerged", () => {
       });
       vi.mocked(jobQueueDB.getImagesForJob).mockResolvedValue([]);
 
-      const { result } = renderHook(() => useWorksMerged("0xgarden123"), {
+      const { result } = renderHook(() => useWorks("0xgarden123"), {
         wrapper: createWrapper(),
       });
 
@@ -351,7 +347,7 @@ describe("useWorksMerged", () => {
       });
       vi.mocked(jobQueueDB.getImagesForJob).mockResolvedValue([]);
 
-      const { result } = renderHook(() => useWorksMerged("0xgarden123"), {
+      const { result } = renderHook(() => useWorks("0xgarden123"), {
         wrapper: createWrapper(),
       });
 
