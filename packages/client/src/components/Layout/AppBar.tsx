@@ -8,15 +8,17 @@ import {
   RiUserLine,
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { cn } from "@/utils/cn";
 import { useNavigateToTop } from "@/utils/useNavigateToTop";
+import { PersistentLink, useDeepLinkPersistence } from "@/components/Navigation/PersistentLink";
 
 export const AppBar = () => {
   const { pathname } = useLocation();
   const isGarden = pathname.startsWith("/garden");
   const intl = useIntl();
   const navigate = useNavigateToTop();
+  const { shouldPreserveRoute } = useDeepLinkPersistence();
 
   const tabs: {
     path: string;
@@ -54,26 +56,34 @@ export const AppBar = () => {
       {tabs.map(({ path, ActiveIcon, InactiveIcon, title }) => {
         const isActive = pathname.startsWith(path);
         return (
-          <Link to={path} key={title} onClick={() => navigate(path)}>
+          <PersistentLink 
+            to={path} 
+            key={title} 
+            onClick={() => navigate(path)}
+            preventRedirect={shouldPreserveRoute()}
+            className="focus:outline-none"
+          >
             <button
               className={cn(
-                "flex flex-col items-center",
+                "flex flex-col items-center transition-colors duration-200",
                 isActive &&
-                  "active tab-active text-primary focus:outline-hidden active-text-red-500",
-                !isActive && "text-slate-400"
+                  "active tab-active text-primary focus:outline-hidden",
+                !isActive && "text-slate-400 hover:text-slate-600"
               )}
               type="button"
+              aria-label={`Navigate to ${title}`}
+              aria-current={isActive ? 'page' : undefined}
             >
               {pathname.startsWith(path) ? (
-                <ActiveIcon className="w-6 h-6" />
+                <ActiveIcon className="w-6 h-6" aria-hidden="true" />
               ) : (
-                <InactiveIcon className="w-6 h-6" />
+                <InactiveIcon className="w-6 h-6" aria-hidden="true" />
               )}
               <p className={`text-sm ${pathname.startsWith(path) ? "text-primary" : ""}`}>
                 {title}
               </p>
             </button>
-          </Link>
+          </PersistentLink>
         );
       })}
     </nav>
