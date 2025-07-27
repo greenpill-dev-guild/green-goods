@@ -33,7 +33,7 @@ export const triggerVariants = tv({
     },
   },
   defaultVariants: {
-    variant: "gardenTabs",
+    variant: "multiTabs",
   },
 });
 
