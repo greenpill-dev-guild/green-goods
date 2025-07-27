@@ -1,6 +1,5 @@
-// Enhanced offline types for the comprehensive offline system
-
-export interface OfflineStatus {
+// Offline types for the Green Goods app
+declare interface OfflineStatus {
   isOnline: boolean;
   hasPendingItems: boolean;
   hasConflicts: boolean;
@@ -13,20 +12,19 @@ export interface OfflineStatus {
   };
 }
 
-export interface OfflineDashboardData {
-  pendingWork: OfflineWorkItem[];
-  conflicts: WorkConflict[];
-  retryQueue: RetryableItem[];
-  storageInfo: StorageAnalytics;
-  syncStatus: {
-    lastSync: number;
-    nextSync?: number;
-    inProgress: boolean;
-    errors: string[];
+declare interface OfflineDashboardData {
+  status: OfflineStatus;
+  metrics: SyncMetrics;
+  workItems: OfflineWorkItem[];
+  retryableItems: string[];
+  storageInfo: {
+    usedSpace: number;
+    totalSpace: number;
+    needsCleanup: boolean;
   };
 }
 
-export interface OfflineWorkItem {
+declare interface OfflineWorkItem {
   id: string;
   type: "work" | "work_approval";
   title: string;
@@ -39,87 +37,87 @@ export interface OfflineWorkItem {
   retryCount: number;
   error?: string;
   contentHash?: string;
-  size: number; // estimated size in bytes
+  size: number;
   images?: {
     count: number;
     totalSize: number;
   };
 }
 
-export interface SyncMetrics {
-  successful: number;
-  failed: number;
-  retries: number;
-  totalTime: number;
-  averageTime: number;
-  errors: Array<{
-    timestamp: number;
-    error: string;
-    workId: string;
-  }>;
+declare interface SyncMetrics {
+  pendingCount: number;
+  syncedCount: number;
+  failedCount: number;
+  conflictCount: number;
+  totalSize: number;
+  lastSync?: number;
+  avgSyncTime?: number;
+  successRate: number;
 }
 
-export interface OfflineSettings {
+declare interface OfflineSettings {
   autoSync: boolean;
-  syncInterval: number;
-  retryPolicy: {
-    maxRetries: number;
-    initialDelay: number;
-    maxDelay: number;
-    backoffMultiplier: number;
-  };
-  storage: {
-    maxAge: number;
-    maxItems: number;
-    cleanupThreshold: number;
-    autoCleanup: boolean;
-  };
-  deduplication: {
-    enabled: boolean;
-    checkRemote: boolean;
-    timeWindow: number;
-  };
-  conflictResolution: {
-    autoResolve: boolean;
-    preferLocal: boolean;
-  };
+  syncInterval: number; // minutes
+  maxRetries: number;
+  keepOfflineDataDays: number;
+  compressImages: boolean;
+  maxImageSize: number; // MB
+  syncOnlyOnWifi: boolean;
+  enableNotifications: boolean;
+  debugMode: boolean;
+  maxPendingWorks: number;
+  storageQuotaWarning: number; // percentage
+  cleanupOldWorksAutomatically: boolean;
+  batchSyncSize: number;
+  enableConflictResolution: boolean;
+  autoRetryFailedItems: boolean;
+  backgroundSyncEnabled: boolean;
+  compressionQuality: number; // 0-1
+  enableDuplicateDetection: boolean;
+  showDetailedErrors: boolean;
+  enableAnalytics: boolean;
+  dataSaverMode: boolean;
+  enablePreemptiveSync: boolean;
+  syncPriority: "balanced" | "speed" | "reliability";
 }
 
-export interface OfflineCapabilities {
-  hasStorage: boolean;
-  hasServiceWorker: boolean;
-  hasNotifications: boolean;
-  hasBackgroundSync: boolean;
-  storageQuota: number;
-  storageUsed: number;
+declare interface OfflineCapabilities {
+  canStoreWork: boolean;
+  canStoreImages: boolean;
+  canDetectDuplicates: boolean;
+  canResolveConflicts: boolean;
+  canCompressImages: boolean;
+  maxStorageSize: number;
+  supportedImageFormats: string[];
+  maxImageCount: number;
+  supportsBatchSync: boolean;
+  supportsBackgroundSync: boolean;
+  supportsProgressTracking: boolean;
+  supportsRetryMechanisms: boolean;
+  supportsConflictResolution: boolean;
+  supportsStorageAnalytics: boolean;
 }
 
-// Re-export types from modules for convenience
-export type { RetryableItem, RetryConfig } from "../modules/retry-policy";
-export type { WorkConflict, ConflictType } from "../modules/conflict-resolver";
-export type { StorageAnalytics, CleanupResult } from "../modules/storage-manager";
-export type { DuplicateCheckResult } from "../modules/deduplication";
-
-// Dashboard component props
-export interface OfflineWorkDashboardProps {
+declare interface WorkDashboardProps {
   className?: string;
   onClose?: () => void;
   onRetryItem?: (workId: string) => Promise<void>;
   onResolveConflict?: (workId: string, resolution: string) => Promise<void>;
   onStorageCleanup?: () => Promise<void>;
+  onDeleteItem?: (workId: string) => Promise<void>;
 }
 
-export interface ConflictResolutionModalProps {
-  conflict: WorkConflict;
+declare interface ConflictResolutionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onResolve: (workId: string, resolution: string, data?: any) => Promise<void>;
+  conflict: WorkConflict;
+  onResolve: (resolution: "keep_local" | "keep_remote" | "merge") => Promise<void>;
 }
 
-export interface DuplicateWorkWarningProps {
-  workData: any;
-  duplicateInfo: DuplicateCheckResult;
-  onProceed: () => void;
+declare interface DuplicateWorkWarningProps {
+  isOpen: boolean;
+  onClose: () => void;
+  duplicate: DuplicateCheckResult;
+  onContinue: () => void;
   onCancel: () => void;
-  onViewDuplicate?: (workId: string) => void;
 }

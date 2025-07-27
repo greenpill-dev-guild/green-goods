@@ -4,7 +4,7 @@
  */
 
 // Smart Account Client interface
-export interface SmartAccountClient {
+declare interface SmartAccountClient {
   sendTransaction(params: TransactionParams): Promise<string>;
   getAddress(): Promise<string>;
   isConnected(): boolean;
@@ -12,7 +12,7 @@ export interface SmartAccountClient {
 }
 
 // Transaction parameters
-export interface TransactionParams {
+declare interface TransactionParams {
   to: `0x${string}`;
   value: bigint;
   data: `0x${string}`;
@@ -21,7 +21,7 @@ export interface TransactionParams {
 }
 
 // Transaction result
-export interface TransactionResult {
+declare interface TransactionResult {
   hash: string;
   blockNumber?: number;
   gasUsed?: bigint;
@@ -29,7 +29,7 @@ export interface TransactionResult {
 }
 
 // EAS Configuration interface
-export interface EASConfig {
+declare interface EASConfig {
   EAS: {
     address: string;
   };
@@ -42,28 +42,28 @@ export interface EASConfig {
 }
 
 // Encoded data interfaces for processors
-export interface EncodedWorkData {
+declare interface EncodedWorkData {
   attestationData: `0x${string}`;
   easConfig: EASConfig;
   gardenAddress: string;
   actionTitle: string;
 }
 
-export interface EncodedApprovalData {
+declare interface EncodedApprovalData {
   attestationData: `0x${string}`;
   easConfig: EASConfig;
   gardenerAddress: string;
 }
 
 // Job execution context
-export interface JobExecutionContext {
+declare interface JobExecutionContext {
   chainId: number;
   smartAccountClient: SmartAccountClient;
   meta: Record<string, unknown>;
 }
 
 // Job processor result
-export interface JobProcessorResult {
+declare interface JobProcessorResult {
   success: boolean;
   txHash?: string;
   error?: string;
@@ -72,14 +72,14 @@ export interface JobProcessorResult {
 }
 
 // Enhanced job processor interface with better typing
-export interface TypedJobProcessor<TPayload = unknown, TEncoded = unknown> {
+declare interface TypedJobProcessor<TPayload = unknown, TEncoded = unknown> {
   encodePayload(payload: TPayload, chainId: number): Promise<TEncoded>;
   execute(encoded: TEncoded, context: JobExecutionContext): Promise<string>;
   validate?(payload: TPayload): boolean;
 }
 
 // Work-specific types
-export interface WorkJobPayload {
+declare interface WorkJobPayload {
   title?: string;
   feedback: string;
   metadata?: string;
@@ -90,7 +90,7 @@ export interface WorkJobPayload {
   media?: File[];
 }
 
-export interface ApprovalJobPayload {
+declare interface ApprovalJobPayload {
   actionUID: number;
   workUID: string;
   gardenerAddress: string;
@@ -99,7 +99,7 @@ export interface ApprovalJobPayload {
 }
 
 // Enhanced job interface with better typing
-export interface TypedJob<T = unknown> {
+declare interface TypedJob<T = unknown> {
   id: string;
   kind: string;
   payload: T;
@@ -112,7 +112,7 @@ export interface TypedJob<T = unknown> {
 }
 
 // Queue statistics with additional metadata
-export interface EnhancedQueueStats {
+declare interface EnhancedQueueStats {
   total: number;
   pending: number;
   failed: number;
@@ -123,7 +123,7 @@ export interface EnhancedQueueStats {
 }
 
 // Network status interface
-export interface NetworkStatus {
+declare interface NetworkStatus {
   isOnline: boolean;
   chainId?: number;
   blockNumber?: number;
@@ -131,7 +131,7 @@ export interface NetworkStatus {
 }
 
 // Sync result with detailed information
-export interface DetailedSyncResult {
+declare interface DetailedSyncResult {
   processed: number;
   failed: number;
   skipped: number;
@@ -149,7 +149,7 @@ export interface DetailedSyncResult {
 }
 
 // Configuration interface for job queue
-export interface JobQueueConfig {
+declare interface JobQueueConfig {
   maxRetries: number;
   retryDelay: number;
   batchSize: number;
@@ -159,7 +159,7 @@ export interface JobQueueConfig {
 }
 
 // Media resource interface
-export interface MediaResource {
+declare interface MediaResource {
   id: string;
   url: string;
   file: File;
@@ -169,7 +169,7 @@ export interface MediaResource {
 }
 
 // Event payload types for better event typing
-export interface JobEventPayloads {
+declare interface JobEventPayloads {
   "job:added": { jobId: string; job: TypedJob };
   "job:processing": { jobId: string; job: TypedJob };
   "job:completed": { jobId: string; job: TypedJob; txHash: string };
