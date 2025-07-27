@@ -1,0 +1,1 @@
+// TODO: import and use <SEO /> for garden deep-link view just like Garden index

@@ -1,4 +1,5 @@
 import { RiArrowRightSLine, RiImage2Fill } from "@remixicon/react";
+import { SEO } from "@/components/SEO";
 import { Form } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
@@ -111,6 +112,12 @@ const Work: React.FC = () => {
     }
   };
 
+  // Prepare basic SEO info – fallback values if data not yet loaded
+  const seoTitle = garden?.name ?? "Garden";
+  const seoDescription = garden?.description ?? "Explore this garden on GardenGrow.";
+  // @ts-ignore – images may not yet be present on the Garden type definition
+  const seoImage = (garden as any)?.images?.[0];
+
   const changeTab = (tab: WorkTab) => {
     document.getElementById("root")?.scrollIntoView({ behavior: "instant" });
     setActiveTab(tab);
@@ -185,6 +192,7 @@ const Work: React.FC = () => {
 
   return (
     <>
+      <SEO title={seoTitle} description={seoDescription} image={seoImage} />
       <TopNav onBackClick={tabActions[activeTab].backButton} overlay>
         <FormProgress
           currentStep={Object.values(WorkTab).indexOf(activeTab) + 1}
