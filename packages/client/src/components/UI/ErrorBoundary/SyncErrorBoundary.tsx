@@ -1,4 +1,5 @@
 import React, { Component, type ReactNode } from "react";
+import toast from "react-hot-toast";
 import { track } from "@/modules/posthog";
 
 interface Props {
@@ -30,30 +31,25 @@ export class SyncErrorBoundary extends Component<Props, State> {
       component_stack: errorInfo.componentStack,
     });
 
+    // Only show toast for unexpected errors, not network/fetch errors
+    if (!error.message?.includes("fetch") && !error.message?.includes("network")) {
+      toast.error("Sync temporarily unavailable", {
+        duration: 4000,
+        id: "sync-error", // Prevent duplicate toasts
+      });
+    }
+
     // Call custom error handler if provided
     this.props.onError?.(error, errorInfo);
 
     console.error("SyncErrorBoundary caught an error:", error, errorInfo);
+
+    // Reset error state to prevent modal from closing
+    this.setState({ hasError: false });
   }
 
   render() {
-    if (this.state.hasError) {
-      return (
-        this.props.fallback || (
-          <div className="inline-flex items-center gap-2 px-3 py-1 text-xs bg-yellow-100 border border-yellow-300 text-yellow-800 rounded">
-            <span>⚠️ Sync temporarily unavailable</span>
-            <button
-              type="button"
-              onClick={() => this.setState({ hasError: false, error: undefined })}
-              className="text-xs underline hover:no-underline text-yellow-700"
-            >
-              Retry
-            </button>
-          </div>
-        )
-      );
-    }
-
+    // Always render children - errors are handled gracefully within components
     return this.props.children;
   }
 }

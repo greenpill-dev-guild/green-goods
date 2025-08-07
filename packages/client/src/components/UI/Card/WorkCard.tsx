@@ -1,128 +1,318 @@
-import {
-  RiAlertFill,
-  RiFileUnknowFill,
-  RiLeafFill,
-  RiSearchEyeLine,
-  RiUser3Fill,
-} from "@remixicon/react";
-import * as React from "react";
-import { useMemo } from "react";
+import React from "react";
 import { useIntl } from "react-intl";
-import { tv, type VariantProps } from "tailwind-variants";
-import { cn } from "@/utils/cn";
-import { formatAddress } from "@/utils/text";
-import { Badge } from "../Badge/Badge";
-import { Button } from "../Button";
-import { Card, type CardRootProps } from "./Card";
+import { cn } from "../../../utils/cn";
+import { Card } from "./Card";
+import { StatusBadge } from "./StatusBadge";
+import {
+  RiPlantLine,
+  RiTimeLine,
+  RiRefreshLine,
+  RiFileTextLine,
+  RiCheckLine,
+  RiCloseLine,
+  RiImageLine,
+  RiTaskLine,
+  RiUserLine,
+} from "@remixicon/react";
 
-export const cardVariants = tv({
-  base: "relative flex flex-col grow border-0 rounded-lg overflow-clip rounded-lg justify-between p-0 gap-0",
-  variants: {
-    media: {
-      large: "",
-      small: "",
-    },
-  },
-  defaultVariants: {
-    media: "large",
-  },
-});
+export interface WorkCardItem {
+  id: string;
+  type: "work" | "work_approval";
+  title: string;
+  description?: string;
+  gardenId: string;
+  gardenName?: string;
+  status: "approved" | "rejected" | "pending" | "syncing" | "failed";
+  createdAt: number;
+  lastAttempt?: number;
+  retryCount: number;
+  error?: string;
+  size: number;
+  images?: {
+    count: number;
+    totalSize: number;
+  };
+  mediaPreview?: string[];
+}
 
-export type ActionCardVariantProps = VariantProps<typeof cardVariants>;
+export interface WorkCardProps {
+  work: WorkCardItem;
+  className?: string;
+  variant?: "full" | "minimal";
+  onClick?: () => void;
+}
 
-export type ActionCardRootProps = React.HTMLAttributes<HTMLDivElement> &
-  ActionCardVariantProps &
-  CardRootProps & { work: Work; action: Action; selected: boolean };
+export interface MinimalWorkCardProps {
+  work: {
+    id: string;
+    title: string;
+    description?: string;
+    status: "approved" | "rejected" | "pending" | "syncing" | "failed";
+    createdAt: number;
+    gardenId: string;
+  };
+  onClick: () => void;
+  className?: string;
+}
 
-const WorkCard = React.forwardRef<
-  HTMLDivElement,
-  ActionCardRootProps & {
-    onClick?: (e: React.SyntheticEvent<HTMLButtonElement>) => void;
+const WorkTypeIcon: React.FC<{ type: string; className?: string }> = ({ type, className }) => {
+  const Icon = type === "work_approval" ? RiUserLine : RiTaskLine;
+  return <Icon className={className} />;
+};
+
+const formatTimeAgo = (timestamp: number): string => {
+  const now = Date.now();
+  const diff = now - timestamp;
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+
+  if (days > 0) return `${days}d ago`;
+  if (hours > 0) return `${hours}h ago`;
+  if (minutes > 0) return `${minutes}m ago`;
+  return "Just now";
+};
+
+const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+};
+
+const truncateAddress = (address: string): string => {
+  if (!address) return "";
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+};
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case "approved":
+      return "text-green-600 bg-green-50 border-green-200";
+    case "rejected":
+      return "text-red-600 bg-red-50 border-red-200";
+    case "pending":
+      return "text-blue-600 bg-blue-50 border-blue-200";
+    case "syncing":
+      return "text-orange-600 bg-orange-50 border-orange-200";
+    case "failed":
+      return "text-red-600 bg-red-50 border-red-200";
+    default:
+      return "text-slate-600 bg-slate-50 border-slate-200";
   }
->(({ media, className, selected, work, action, onClick, ...props }, ref) => {
+};
+
+export const WorkCard: React.FC<WorkCardProps> = ({
+  work,
+  className,
+  variant = "full",
+  onClick,
+}) => {
   const intl = useIntl();
-  const classes = cardVariants({ media, class: className });
 
-  const statusIcon = useMemo(() => {
-    switch (work.status) {
-      case "pending":
-        return <RiAlertFill className="h-4 w-4 text-warning-base" />;
-      case "approved":
-        return <RiLeafFill className="h-4 w-4 text-primary-base" />;
-      case "rejected":
-        return <RiAlertFill className="h-4 w-4 text-error-base" />;
-      default:
-        return <RiFileUnknowFill className="h-4 w-4 text-muted-base" />;
-    }
-  }, [work.status]);
+  const isCompleted = work.status === "approved" || work.status === "rejected";
+  const isPending = ["pending", "syncing"].includes(work.status);
+  const isFailed = work.status === "failed";
 
-  return (
-    <Card ref={ref} className={cn(classes)} {...props}>
-      <img
-        src={work.media[0] || "/images/no-image-placeholder.png"}
-        alt={work.feedback}
-        className={cn(
-          media === "large" ? "h-auto aspect-video" : "max-h-26",
-          "object-cover image-lut z-1"
-        )}
-      />
+  // Render minimal variant
+  if (variant === "minimal") {
+    return (
       <div
-        data-selected={selected}
-        className="p-4 flex flex-col gap-2 border border-t-0 rounded-b-lg border-border transition-all duration-400"
+        onClick={onClick}
+        className={cn(
+          "flex gap-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer",
+          className
+        )}
       >
-        <div className="flex flex-row gap-2">
-          <h6 className={cn("flex items-center text-xl font-medium", selected && "text-primary")}>
-            {work.title}
-          </h6>
+        {/* Image placeholder */}
+        <div className="w-16 h-16 bg-slate-100 rounded-lg flex-shrink-0 flex items-center justify-center">
+          <RiTimeLine className="w-6 h-6 text-slate-400" />
         </div>
-        <div className="text-sm flex flex-row flex-wrap gap-2">
-          <Badge
-            variant="outline"
-            leadingIcon={<RiSearchEyeLine className="h-4 w-4 text-primary-base" />}
-          >
-            {action.title}
-          </Badge>
-          <Badge variant="outline" leadingIcon={<RiUser3Fill className="h-4 w-4 text-tertiary" />}>
-            {formatAddress(work.gardenerAddress)}
-          </Badge>
-          <Badge variant="outline" leadingIcon={statusIcon} className="capitalize">
-            {intl.formatMessage({
-              id: `app.garden.work.status.${work.status}`,
-              defaultMessage: work.status,
-            })}
-          </Badge>
-          <Badge
-            variant="outline"
-            leadingIcon={<RiLeafFill className="h-4 w-4 text-primary-base" />}
-          >
-            {0}
-          </Badge>
-        </div>
-        <div className="text-sm">{work.feedback}</div>
-        <div className="border-t border-border my-2" />
-        <div className="flex flex-row gap-2 items-center">
-          <div className="text-xs">
-            {intl.formatMessage(
-              {
-                id: "app.garden.publishedOn",
-                defaultMessage: "Published on {date}",
-              },
-              { date: new Date(work.createdAt).toLocaleString() }
-            )}
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between mb-1">
+            <h4 className="font-medium text-sm text-slate-900 truncate pr-2">{work.title}</h4>
+            <span
+              className={cn(
+                "text-xs font-medium px-2 py-0.5 rounded-full border flex-shrink-0",
+                getStatusColor(work.status)
+              )}
+            >
+              {work.status}
+            </span>
           </div>
-          <Button
-            size="small"
-            label={intl.formatMessage({
-              id: "app.garden.viewDetails",
-              defaultMessage: "View Details",
-            })}
-            onClick={onClick}
-          />
+
+          {work.description && (
+            <p className="text-xs text-slate-600 mb-2 line-clamp-2">{work.description}</p>
+          )}
+
+          <div className="flex items-center justify-between text-xs text-slate-500">
+            <span>{formatTimeAgo(work.createdAt)}</span>
+            <span>
+              Garden: {work.gardenId.slice(0, 6)}...{work.gardenId.slice(-4)}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Render full variant (default)
+  return (
+    <Card
+      className={cn(
+        "p-4 border-l-4 transition-all duration-200",
+        isCompleted && "border-l-green-400 bg-green-50/30",
+        isPending && "border-l-blue-400 bg-blue-50/30",
+        isFailed && "border-l-red-400 bg-red-50/30",
+        className
+      )}
+    >
+      {/* Header */}
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-3 mb-1">
+            <WorkTypeIcon type={work.type} className="w-4 h-4 flex-shrink-0 text-slate-500" />
+            <h3 className="font-semibold text-sm truncate">{work.title}</h3>
+            <StatusBadge status={work.status} size="sm" />
+          </div>
+
+          {/* Garden Info */}
+          <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
+            <RiPlantLine className="w-3 h-3" />
+            <span>
+              {intl.formatMessage({
+                id: "app.workCard.garden",
+                defaultMessage: "Garden:",
+              })}{" "}
+              {work.gardenName || truncateAddress(work.gardenId)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Description */}
+      {work.description && (
+        <p className="text-sm text-slate-600 mb-3 line-clamp-2">{work.description}</p>
+      )}
+
+      {/* Media Preview */}
+      {work.images && work.images.count > 0 && (
+        <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-1 text-xs text-slate-500">
+            <RiImageLine className="w-3 h-3" />
+            <span>
+              {work.images.count} {work.images.count === 1 ? "image" : "images"}(
+              {formatFileSize(work.images.totalSize)})
+            </span>
+          </div>
+          {work.mediaPreview && work.mediaPreview.length > 0 && (
+            <div className="flex -space-x-1">
+              {work.mediaPreview.slice(0, 3).map((url, i) => (
+                <img
+                  key={i}
+                  src={url}
+                  alt=""
+                  className="w-6 h-6 rounded-full border-2 border-white object-cover"
+                />
+              ))}
+              {work.mediaPreview.length > 3 && (
+                <div className="w-6 h-6 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-xs text-slate-500">
+                  +{work.mediaPreview.length - 3}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Error Display */}
+      {work.error && (
+        <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-xs text-red-700">{work.error}</p>
+        </div>
+      )}
+
+      {/* Footer */}
+      <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+        <div className="flex items-center gap-4 text-xs text-slate-500">
+          <span className="flex items-center gap-1">
+            <RiTimeLine className="w-3 h-3" />
+            {formatTimeAgo(work.createdAt)}
+          </span>
+
+          {work.lastAttempt && work.retryCount > 0 && (
+            <span className="flex items-center gap-1">
+              <RiRefreshLine className="w-3 h-3" />
+              {work.retryCount} {work.retryCount === 1 ? "retry" : "retries"}
+            </span>
+          )}
+
+          <span className="flex items-center gap-1">
+            <RiFileTextLine className="w-3 h-3" />
+            {formatFileSize(work.size)}
+          </span>
+        </div>
+
+        {/* Status Indicator */}
+        <div className="flex items-center gap-1">
+          {work.status === "syncing" && (
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
+              <span className="text-xs text-blue-600">
+                {intl.formatMessage({
+                  id: "app.workCard.syncing",
+                  defaultMessage: "Syncing...",
+                })}
+              </span>
+            </div>
+          )}
+
+          {isCompleted && (
+            <div className="flex items-center gap-1 text-xs">
+              {work.status === "approved" ? (
+                <RiCheckLine className="w-3 h-3 text-green-600" />
+              ) : (
+                <RiCloseLine className="w-3 h-3 text-red-600" />
+              )}
+              <span className={work.status === "approved" ? "text-green-600" : "text-red-600"}>
+                {work.status === "approved"
+                  ? intl.formatMessage({
+                      id: "app.workCard.approved",
+                      defaultMessage: "Approved",
+                    })
+                  : intl.formatMessage({
+                      id: "app.workCard.rejected",
+                      defaultMessage: "Rejected",
+                    })}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </Card>
   );
-});
-WorkCard.displayName = "WorkCard";
+};
 
-export { WorkCard };
+// Export MinimalWorkCard as a wrapper around WorkCard with variant="minimal"
+export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({ work, onClick, className }) => {
+  // Adapt the minimal work interface to the full WorkCardItem interface
+  const workItem: WorkCardItem = {
+    ...work,
+    type: "work",
+    gardenName: undefined,
+    lastAttempt: undefined,
+    retryCount: 0,
+    error: undefined,
+    size: 0,
+    images: undefined,
+    mediaPreview: undefined,
+  };
+
+  return <WorkCard work={workItem} variant="minimal" onClick={onClick} className={className} />;
+};
+
+// Re-export StatusBadge for convenience
+export { StatusBadge, type StatusBadgeProps } from "./StatusBadge";

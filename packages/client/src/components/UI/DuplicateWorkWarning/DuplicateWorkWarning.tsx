@@ -1,6 +1,14 @@
 import React, { useState } from "react";
-import type { DuplicateWorkWarningProps } from "../../../types/offline";
 import { cn } from "../../../utils/cn";
+import type { DuplicateCheckResult } from "../../../modules/deduplication";
+
+interface DuplicateWorkWarningProps {
+  workData: any;
+  duplicateInfo: DuplicateCheckResult;
+  onProceed: () => void;
+  onCancel: () => void;
+  onViewDuplicate?: (workId: string) => void;
+}
 
 export const DuplicateWorkWarning: React.FC<DuplicateWorkWarningProps> = ({
   workData,

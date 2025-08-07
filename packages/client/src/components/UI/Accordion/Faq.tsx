@@ -40,7 +40,7 @@ const FaqTrigger = React.forwardRef<
     )}
     {...props}
   >
-    <RiQuestionLine className="w-6 h-6 shrink-0 text-[#525865] transition-all " />
+    <RiQuestionLine className="w-6 h-6 shrink-0 text-primary transition-all " />
     <div className="flex grow">{children}</div>
     <RiAddLine className="h-5 w-5 shrink-0 transition-transform duration-200 text-[#9A9FAD] flex text-right " />
   </AccordionPrimitive.Trigger>

@@ -5,7 +5,7 @@ import { cn } from "@/utils/cn";
 import { Card, type CardRootProps } from "./Card";
 
 export const cardVariants = tv({
-  base: "relative flex flex-col grow border-0 rounded-lg overflow-clip rounded-lg justify-between p-0 gap-0 min-h-60",
+  base: "relative flex flex-col grow border-0 rounded-lg overflow-clip rounded-b-lg justify-between p-0 gap-0 h-max-content", // Fixed height to match garden cards
   variants: {
     media: {
       large: "",
@@ -32,13 +32,13 @@ const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
           src={action.media[0]}
           alt={action.description}
           className={cn(
-            media === "large" ? "h-auto aspect-video" : "max-h-26",
+            media === "large" ? "h-40" : "h-26", // Consistent with garden cards
             "object-cover image-lut z-1"
           )}
         />
         <div
           data-selected={selected}
-          className="p-5 flex flex-col gap-2 border border-t-0 rounded-b-lg border-border  transition-all duration-400"
+          className="p-5 flex flex-col gap-2 border border-t-0 rounded-b-lg border-border transition-all duration-400 flex-1"
         >
           <div className="flex flex-row gap-2">
             <div
@@ -54,7 +54,7 @@ const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
               {action.title}
             </h5>
           </div>
-          <div className="text-sm text-slate-500">{action.mediaInfo.description}</div>
+          <div className="text-sm text-slate-500 h-24 flex-1">{action.mediaInfo?.description}</div>
         </div>
       </Card>
     );

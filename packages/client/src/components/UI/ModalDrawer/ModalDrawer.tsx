@@ -1,4 +1,5 @@
 import React from "react";
+import { RiCloseLine } from "@remixicon/react";
 import { cn } from "../../../utils/cn";
 
 export interface ModalDrawerTab {
@@ -81,11 +82,15 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
             {header.actions}
             <button
               onClick={onClose}
-              className="p-1 hover:bg-slate-100 rounded-full transition-colors flex-shrink-0"
+              className={cn(
+                "p-1 hover:bg-slate-100 rounded-full border border-slate-200 transition-all duration-200 flex-shrink-0",
+                "focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-600 active:border-emerald-600",
+                "hover:shadow-lg hover:scale-105 active:scale-95"
+              )}
               data-testid="modal-drawer-close"
               aria-label="Close modal"
             >
-              <span className="text-xl text-slate-400">×</span>
+              <RiCloseLine className="w-5 h-5 text-slate-400 focus:text-emerald-700 active:text-emerald-700" />
             </button>
           </div>
         </div>
@@ -98,10 +103,12 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
                 key={tab.id}
                 onClick={() => onTabChange?.(tab.id)}
                 className={cn(
-                  "flex items-center justify-center gap-1.5 py-3 text-sm font-medium transition-colors relative flex-1 min-w-0",
+                  "flex items-center justify-center gap-1.5 py-3 text-sm font-medium transition-all duration-200 relative flex-1 min-w-0",
+                  "focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:text-emerald-700",
+                  "active:text-emerald-700 hover:bg-slate-50",
                   activeTab === tab.id
                     ? "text-primary border-b-2 border-primary bg-slate-50"
-                    : "text-slate-600 hover:bg-slate-50"
+                    : "text-slate-600"
                 )}
                 data-testid={`tab-${tab.id}`}
               >
