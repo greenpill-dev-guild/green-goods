@@ -76,7 +76,7 @@ export default defineConfig(({ mode }) => {
         injectRegister: "auto",
         registerType: "autoUpdate",
         devOptions: {
-          enabled: true,
+          enabled: false, // Disable SW in dev to prevent HMR issues
         },
         workbox: {
           // Increase the limit to handle larger bundles (10 MB)
@@ -233,6 +233,13 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3001,
       host: true,
+      hmr: {
+        overlay: true, // Show HMR errors in overlay
+      },
+      watch: {
+        usePolling: true, // Better file watching on some systems
+        interval: 100,
+      },
     },
   };
 });

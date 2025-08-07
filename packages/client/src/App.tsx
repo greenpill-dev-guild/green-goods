@@ -9,9 +9,9 @@ import { AppErrorBoundary } from "@/components/UI/ErrorBoundary/AppErrorBoundary
 import { CircleLoader } from "@/components/UI/Loader";
 import { OfflineIndicator } from "@/components/UI/OfflineIndicator/OfflineIndicator";
 
-import { useOfflineSync } from "@/hooks/useOfflineSync";
 import { queryClient } from "@/modules/react-query";
 import { useApp } from "@/providers/app";
+import "@/modules/service-worker"; // Initialize service worker
 
 import { GardensProvider } from "@/providers/garden";
 import { JobQueueProvider } from "@/providers/jobQueue";
@@ -32,9 +32,6 @@ function AppContent() {
 
   const isDownloaded = (isMobile && isInstalled) || import.meta.env.VITE_DESKTOP_DEV;
   const isAuthenticated = authenticated && smartAccountAddress;
-
-  // Always call the sync hook, but it will handle authentication internally
-  useOfflineSync();
 
   return (
     <Routes>
