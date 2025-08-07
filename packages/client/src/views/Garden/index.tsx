@@ -2,10 +2,16 @@ import { RiArrowRightSLine, RiImage2Fill } from "@remixicon/react";
 import { Form } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 import { Button } from "@/components/UI/Button";
 import { FormProgress } from "@/components/UI/Form/Progress";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
+import { DuplicateWorkWarning } from "@/components/UI/DuplicateWorkWarning/DuplicateWorkWarning";
+
+import { defaultDeduplicationManager } from "@/modules/deduplication";
+import { useCurrentChain } from "@/hooks/useChainConfig";
+
 import { useWork, WorkTab } from "@/providers/work";
 import { WorkCompleted } from "./Completed";
 import { WorkDetails } from "./Details";
@@ -16,7 +22,14 @@ import { WorkReview } from "./Review";
 const Work: React.FC = () => {
   const intl = useIntl();
   const navigate = useNavigate();
+  const chainId = useCurrentChain();
   const { gardens, actions, form, activeTab, setActiveTab, workMutation } = useWork();
+
+  // State for duplicate warning modal
+  const [duplicateWarning, setDuplicateWarning] = useState<{
+    workData: any;
+    duplicateInfo: any;
+  } | null>(null);
 
   if (!form) {
     return null;
@@ -41,7 +54,46 @@ const Work: React.FC = () => {
   const { status } = workMutation;
 
   const garden = gardens.find((garden) => garden.id === gardenAddress);
-  const action = actions.find((action) => action.id === actionUID);
+  const action = actions.find((action) => action.id === `${chainId}-${actionUID}`);
+
+  // Enhanced upload function with duplicate detection
+  const handleWorkSubmission = async () => {
+    if (!gardenAddress || !actionUID || !action) return;
+
+    // Check for duplicates first
+    const workData = {
+      type: "work",
+      chainId,
+      data: {
+        feedback,
+        plantSelection,
+        plantCount,
+        title: `${action.title} - ${new Date().toISOString()}`,
+        actionUID,
+        gardenAddress,
+      },
+      images,
+    };
+
+    try {
+      const duplicateResult = await defaultDeduplicationManager.performComprehensiveCheck(workData);
+
+      if (duplicateResult.isDuplicate) {
+        setDuplicateWarning({
+          workData,
+          duplicateInfo: duplicateResult,
+        });
+        return;
+      }
+
+      // No duplicates, proceed with normal submission
+      uploadWork();
+    } catch (error) {
+      console.error("Error checking for duplicates:", error);
+      // Proceed with submission if duplicate check fails
+      uploadWork();
+    }
+  };
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -152,10 +204,14 @@ const Work: React.FC = () => {
       backButton: () => changeTab(WorkTab.Media),
     },
     [WorkTab.Review]: {
-      primary: () => {
-        changeTab(WorkTab.Complete);
-        form.reset();
-        uploadWork();
+      primary: async () => {
+        // Check for duplicates before submission
+        await handleWorkSubmission();
+        // Only proceed to complete tab if no duplicates were found
+        if (!duplicateWarning) {
+          changeTab(WorkTab.Complete);
+          form.reset();
+        }
       },
       primaryLabel: intl.formatMessage({
         id: "app.garden.submit.tab.review.label",
@@ -226,6 +282,28 @@ const Work: React.FC = () => {
           </div>
         </div>
       </Form>
+
+      {/* Duplicate Work Warning Modal */}
+      {duplicateWarning && (
+        <DuplicateWorkWarning
+          workData={duplicateWarning.workData}
+          duplicateInfo={duplicateWarning.duplicateInfo}
+          onProceed={() => {
+            setDuplicateWarning(null);
+            uploadWork();
+            changeTab(WorkTab.Complete);
+            form.reset();
+          }}
+          onCancel={() => {
+            setDuplicateWarning(null);
+          }}
+          onViewDuplicate={(workId: string) => {
+            // Navigate to view the existing work
+            setDuplicateWarning(null);
+            navigate(`/home/${gardenAddress}/work/${workId}`);
+          }}
+        />
+      )}
     </>
   );
 };
