@@ -20,12 +20,23 @@ export function useCurrentChain() {
           ? parseInt(connectedWallet.chainId, 16)
           : connectedWallet.chainId;
 
-      return Number(chain);
+      const finalChain = Number(chain);
+      return finalChain;
     }
 
     // Fallback to environment variable or Base Sepolia
     const envChain = import.meta.env.VITE_CHAIN_ID;
-    return envChain ? Number(envChain) : 84532; // Base Sepolia
+
+    if (envChain && envChain.trim() !== "") {
+      const parsedEnvChain = Number(envChain);
+      if (!isNaN(parsedEnvChain)) {
+        return parsedEnvChain;
+      }
+    }
+
+    // Final fallback to Base Sepolia
+    console.log("⚠️ useCurrentChain - using fallback chainId: 84532 (Base Sepolia)");
+    return 84532; // Base Sepolia
   }, [wallets]);
 
   return chainId;

@@ -2,8 +2,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getWorks } from "@/modules/eas";
 import { jobQueue, jobQueueDB } from "@/modules/job-queue";
 import { jobQueueEventBus, useJobQueueEvents } from "@/modules/job-queue/event-bus";
-import { useCurrentChain } from "@/utils/useChainConfig";
 import { queryInvalidation, queryKeys } from "./query-keys";
+import { useCurrentChain } from "./useChainConfig";
 
 // Helper function to convert job payload to Work model
 export function jobToWork(job: Job<WorkJobPayload>): Work {

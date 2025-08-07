@@ -29,6 +29,14 @@ export const queryKeys = {
       ["jobQueue", "works", "approvals", userAddress, chainId] as const,
   },
 
+  // Work approvals related keys
+  workApprovals: {
+    all: ["workApprovals"] as const,
+    byAttester: (attesterAddress?: string, chainId?: number) =>
+      ["workApprovals", "byAttester", attesterAddress, chainId] as const,
+    offline: (attesterAddress?: string) => ["workApprovals", "offline", attesterAddress] as const,
+  },
+
   // Offline state keys
   offline: {
     all: ["jobQueue", "offline"] as const,
@@ -97,6 +105,9 @@ export type QueryKey =
   | ReturnType<typeof queryKeys.works.offline>
   | ReturnType<typeof queryKeys.works.merged>
   | ReturnType<typeof queryKeys.works.approvals>
+  | typeof queryKeys.workApprovals.all
+  | ReturnType<typeof queryKeys.workApprovals.byAttester>
+  | ReturnType<typeof queryKeys.workApprovals.offline>
   | typeof queryKeys.offline.all
   | ReturnType<typeof queryKeys.offline.status>
   | ReturnType<typeof queryKeys.offline.sync>
