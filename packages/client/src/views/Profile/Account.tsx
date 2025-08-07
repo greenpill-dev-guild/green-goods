@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/UI/Select/Select";
+
 import { type Locale, useApp } from "@/providers/app";
 import { capitalize } from "@/utils/text";
 
@@ -187,6 +188,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
           </div>
         </Card>
       ))}
+
       <h5>
         {intl.formatMessage({
           id: "app.profile.editAccount",
