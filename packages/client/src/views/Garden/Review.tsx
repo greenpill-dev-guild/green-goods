@@ -43,6 +43,7 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
       </h6>
       <GardenCard
         garden={garden}
+        height="selection"
         selected={false}
         showDescription={false}
         showOperators={true}

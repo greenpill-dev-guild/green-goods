@@ -68,6 +68,7 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
             <CarouselItem key={garden.id} onClick={() => setGardenAddress(garden.id)}>
               <GardenCard
                 garden={garden}
+                height="selection"
                 selected={garden.id === selectedGardenAddress}
                 showDescription={true}
                 showOperators={false}

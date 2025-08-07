@@ -8,13 +8,13 @@ const Profile = lazy(() => import("./Profile"));
 
 // Dynamically import nested route components
 const GardenAssessment = lazy(() =>
-  import("./Home/Assessment").then((module) => ({ default: module.GardenAssessment }))
+  import("./Home/Garden/Assessment").then((module) => ({ default: module.GardenAssessment }))
 );
 const HomeGarden = lazy(() =>
-  import("./Home/Garden").then((module) => ({ default: module.Garden }))
+  import("./Home/Garden/Garden").then((module) => ({ default: module.Garden }))
 );
-const GardenWorkApproval = lazy(() =>
-  import("./Home/WorkApproval").then((module) => ({ default: module.GardenWorkApproval }))
+const GardenWork = lazy(() =>
+  import("./Home/Garden/Work").then((module) => ({ default: module.GardenWork }))
 );
 
 import { CircleLoader } from "@/components/UI/Loader";
@@ -33,7 +33,7 @@ export default function Views() {
           <Routes>
             <Route path="home" element={<Home />}>
               <Route path=":id" element={<HomeGarden />}>
-                <Route path="work/:workId" element={<GardenWorkApproval />} />
+                <Route path="work/:workId" element={<GardenWork />} />
                 <Route path="assessments/:assessmentId" element={<GardenAssessment />} />
               </Route>
             </Route>
