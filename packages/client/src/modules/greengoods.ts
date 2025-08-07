@@ -1,5 +1,5 @@
 import type { User } from "@privy-io/react-auth";
-
+import litterActionInstructions from "@/utils/actions/litter.json";
 import observerActionInstructions from "@/utils/actions/observe.json";
 import plantActionInstructions from "@/utils/actions/plant.json";
 
@@ -18,115 +18,158 @@ export enum Capital {
   CULTURAL = 7,
 }
 
-export async function getActions(): Promise<Action[]> {
-  const QUERY = greenGoodsGraphQL(/* GraphQL */ `
-    query Actions {
-      Action {
-        id
-        startTime
-        endTime
-        title
-        instructions
-        capitals
-        media
-        createdAt
+function getActionInstructions(title: string) {
+  switch (title.toLowerCase()) {
+    case "identify plants":
+      return observerActionInstructions;
+    case "plant seedlings":
+      return plantActionInstructions;
+    case "litter cleanup":
+      return litterActionInstructions;
+  }
+}
+
+export async function getActions(chainId: number): Promise<Action[]> {
+  try {
+    const QUERY = greenGoodsGraphQL(/* GraphQL */ `
+      query Actions($chainId: Int!) {
+        Action(where: {chainId: {_eq: $chainId}}) {
+          id
+          chainId
+          startTime
+          endTime
+          title
+          instructions
+          capitals
+          media
+          createdAt
+        }
       }
+    `);
+
+    console.log("🔍 getActions - Querying with chainId:", chainId);
+    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }).toPromise();
+
+    console.log("🔍 getActions - Query result:", { data, error });
+    console.log("🔍 getActions - Actions found:", data?.Action?.length || 0);
+
+    if (error) {
+      console.error("Error fetching actions:", error);
+      return [];
     }
-  `);
 
-  const { data, error } = await greenGoodsIndexer.query(QUERY, {}).toPromise();
+    if (!data || !data.Action || !Array.isArray(data.Action)) {
+      console.warn("No actions data received");
+      return [];
+    }
 
-  if (error || !data) return [];
-
-  return await Promise.all(
-    data.Action.map(
-      async ({ id, title, instructions, startTime, endTime, capitals, media, createdAt }) => {
-        const image = await getFileByHash(media[0])
-          .then((res) => res)
-          .catch((e) => {
-            console.log("Error", media[0], e);
-            return null;
-          });
+    return await Promise.all(
+      data.Action.map(async ({ id, title, startTime, endTime, capitals, media, createdAt }) => {
+        const image =
+          media && media.length > 0
+            ? await getFileByHash(media[0])
+                .then((res) => res)
+                .catch((e) => {
+                  console.log("Error fetching media", media[0], e);
+                  return null;
+                })
+            : null;
 
         const mediaImage = image
           ? URL.createObjectURL(image.data as Blob)
           : "/images/no-image-placeholder.png";
 
+        const instructions = getActionInstructions(title);
+
         return {
-          id: Number.parseInt(id),
+          id,
           title,
-          instructions,
-          startTime: (startTime as number) * 1000,
-          endTime: (endTime as number) * 1000,
+          startTime: startTime ? (startTime as number) * 1000 : Date.now(),
+          endTime: endTime ? (endTime as number) * 1000 : Date.now() + 365 * 24 * 60 * 60 * 1000, // Default to 1 year from now
           capitals: capitals as Capital[],
           media: [mediaImage],
           description: "",
-          inputs:
-            id === "1"
-              ? (plantActionInstructions.details.inputs as WorkInput[])
-              : (observerActionInstructions.details.inputs as WorkInput[]),
-          mediaInfo: id === "1" ? plantActionInstructions.media : observerActionInstructions.media,
-          details:
-            id === "1" ? plantActionInstructions.details : observerActionInstructions.details,
-          review: id === "1" ? plantActionInstructions.review : observerActionInstructions.review,
-          createdAt: (createdAt as number) * 1000,
+          inputs: instructions?.details.inputs as WorkInput[],
+          mediaInfo: instructions?.media,
+          details: instructions?.details,
+          review: instructions?.review,
+          createdAt: createdAt ? (createdAt as number) * 1000 : Date.now(),
         };
-      }
-    )
-  );
+      })
+    );
+  } catch (error) {
+    console.error("Unexpected error in getActions:", error);
+    return [];
+  }
 }
 
-export async function getGardens(): Promise<Garden[]> {
-  const QUERY = greenGoodsGraphQL(/* GraphQL */ `
-    query Gardens {
-      Garden {
-        id
-        tokenAddress
-        tokenID
-        name
-        description
-        location
-        bannerImage
-        gardeners
-        operators
-        createdAt
+export async function getGardens(chainId: number): Promise<Garden[]> {
+  try {
+    const QUERY = greenGoodsGraphQL(/* GraphQL */ `
+      query Gardens($chainId: Int!) {
+        Garden(where: {chainId: {_eq: $chainId}}) {
+          id
+          chainId
+          tokenAddress
+          tokenID
+          name
+          description
+          location
+          bannerImage
+          gardeners
+          operators
+          createdAt
+        }
       }
+    `);
+
+    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }).toPromise();
+
+    if (error) {
+      console.error("Error fetching gardens:", error);
+      return [];
     }
-  `);
 
-  const { data, error } = await greenGoodsIndexer.query(QUERY, {}).toPromise();
+    if (!data || !data.Garden || !Array.isArray(data.Garden)) {
+      console.warn("No gardens data received");
+      return [];
+    }
 
-  if (error || !data) return [];
+    return await Promise.all(
+      data.Garden.map(async (garden) => {
+        const image = garden.bannerImage
+          ? await getFileByHash(garden.bannerImage)
+              .then((res) => res)
+              .catch((e) => {
+                console.log("Error fetching garden banner", garden.bannerImage, e);
+                return null;
+              })
+          : null;
 
-  return await Promise.all(
-    data.Garden.map(async (garden) => {
-      const image = await getFileByHash(garden.bannerImage)
-        .then((res) => res)
-        .catch((e) => {
-          console.log("Error", garden.bannerImage, e);
-          return null;
-        });
+        const bannerImage = image
+          ? URL.createObjectURL(image.data as Blob)
+          : "/images/no-image-placeholder.png";
 
-      const bannerImage = image
-        ? URL.createObjectURL(image.data as Blob)
-        : "/images/no-image-placeholder.png";
-
-      return {
-        id: garden.id,
-        tokenAddress: garden.tokenAddress,
-        tokenID: garden.tokenID as number,
-        name: garden.name,
-        description: garden.description,
-        location: garden.location,
-        bannerImage,
-        gardeners: garden.gardeners,
-        operators: garden.operators,
-        assessments: [],
-        works: [],
-        createdAt: (garden.createdAt as number) * 1000,
-      };
-    })
-  );
+        return {
+          id: garden.id,
+          tokenAddress: garden.tokenAddress,
+          tokenID: garden.tokenID as number,
+          name: garden.name || "Unnamed Garden",
+          description: garden.description || "",
+          location: garden.location || "Unknown Location",
+          bannerImage,
+          gardeners: garden.gardeners || [],
+          operators: garden.operators || [],
+          assessments: [],
+          works: [],
+          createdAt: garden.createdAt ? (garden.createdAt as number) * 1000 : Date.now(),
+        };
+      })
+    );
+  } catch (error) {
+    console.error("Unexpected error in getGardens:", error);
+    return [];
+  }
 }
 
 export async function getGardeners(): Promise<GardenerCard[]> {

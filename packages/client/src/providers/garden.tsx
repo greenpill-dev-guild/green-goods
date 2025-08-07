@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import React, { useContext, useMemo } from "react";
-import { useWorksMerged } from "@/hooks/useWorksMerged";
+import { useCurrentChain } from "@/hooks";
+import { useWorks } from "@/hooks/useWorks";
 import { getGardenAssessments } from "@/modules/eas";
 import { getActions, getGardeners, getGardens } from "@/modules/greengoods";
-import { useCurrentChain } from "@/utils/useChainConfig";
 
 import { useUser } from "./user";
 import { useWork } from "./work";
@@ -34,7 +34,7 @@ export const useGarden = (id: string): GardenDataProps => {
   const chainId = useCurrentChain();
 
   // Use merged works hook to get both online and offline work
-  const { works: mergedWorks, isLoading: worksLoading } = useWorksMerged(id);
+  const { works: mergedWorks, isLoading: worksLoading } = useWorks(id);
 
   const {
     data: garden,
@@ -54,20 +54,11 @@ export const useGarden = (id: string): GardenDataProps => {
 
       const assessments = await getGardenAssessments(id, chainId);
 
-      // Apply work approval status to merged works
-      const works: Work[] = mergedWorks.map((work) => {
-        const workApproval = workApprovalMap[work.id];
-
-        return {
-          ...work,
-          status: workApproval ? (workApproval.approved ? "approved" : "rejected") : work.status,
-        };
-      });
-
-      return { ...garden, assessments, works };
+      // Return garden with assessments, works will be merged separately
+      return { ...garden, assessments };
     },
     throwOnError: true,
-    enabled: !worksLoading, // Wait for works to load first
+    // Remove circular dependency - no longer wait for works
   });
 
   const isOperator = useMemo(
@@ -77,9 +68,18 @@ export const useGarden = (id: string): GardenDataProps => {
     [garden, eoa, smartAccountAddress]
   );
 
+  // Apply work approval status to merged works
+  const processedWorks: Work[] = mergedWorks.map((work) => {
+    const workApproval = workApprovalMap[work.id];
+    return {
+      ...work,
+      status: workApproval ? (workApproval.approved ? "approved" : "rejected") : work.status,
+    };
+  });
+
   return {
     isOperator,
-    garden,
+    garden: garden ? { ...garden, works: processedWorks } : undefined,
     gardenStatus,
     gardeners:
       garden?.gardeners.reduce<GardenerCard[]>((acc, id) => {
@@ -88,8 +88,8 @@ export const useGarden = (id: string): GardenDataProps => {
         else acc.push({ id, account: id, registeredAt: Math.floor(Date.now() / 1000) });
         return acc;
       }, []) ?? [],
-    isFetching,
-    isLoading,
+    isFetching: isFetching || worksLoading,
+    isLoading: isLoading || worksLoading,
     error,
     refetch,
   };
@@ -108,15 +108,17 @@ export const useGardens = () => {
 };
 
 export const GardensProvider = ({ children }: { children: React.ReactNode }) => {
+  const chainId = useCurrentChain();
+
   // QUERIES
   const { data: actions } = useQuery<Action[]>({
-    queryKey: ["actions"],
-    queryFn: getActions,
+    queryKey: ["actions", chainId],
+    queryFn: () => getActions(chainId),
   });
 
   const { data: gardens, status: gardensStatus } = useQuery<Garden[]>({
-    queryKey: ["gardens"],
-    queryFn: getGardens,
+    queryKey: ["gardens", chainId],
+    queryFn: () => getGardens(chainId),
   });
   const { data: gardeners, status: gardenersStatus } = useQuery<GardenerCard[]>({
     queryKey: ["gardeners"],

@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { jobToWork } from "@/hooks/useWorksMerged";
+
+import { jobToWork } from "@/hooks/useWorks";
 import { jobQueue } from "@/modules/job-queue";
 import { queryClient } from "@/modules/react-query";
 import { useUser } from "./user";
-import { SyncErrorBoundary } from "@/components/UI/ErrorBoundary/SyncErrorBoundary";
 
 interface JobQueueContextValue {
   stats: QueueStats;
@@ -228,9 +228,5 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
 };
 
 export const JobQueueProvider: React.FC<JobQueueProviderProps> = ({ children }) => {
-  return (
-    <SyncErrorBoundary>
-      <JobQueueProviderInner>{children}</JobQueueProviderInner>
-    </SyncErrorBoundary>
-  );
+  return <JobQueueProviderInner>{children}</JobQueueProviderInner>;
 };

@@ -1,6 +1,6 @@
 import { track } from "@/modules/posthog";
-import type { SmartAccountClient } from "@/types/smart-account";
 import { queryClient } from "../react-query";
+import { serviceWorkerManager } from "../service-worker";
 import { jobQueueDB } from "./db";
 import { jobQueueEventBus } from "./event-bus";
 import { getDefaultChainId, JobProcessor } from "./job-processor";
@@ -88,6 +88,14 @@ class JobQueue {
     if (isOnline) {
       this.processJob(jobId).catch((error) => {
         track("offline_job_immediate_process_failed", {
+          job_id: jobId,
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+      });
+    } else {
+      // Request background sync for offline jobs
+      serviceWorkerManager.requestBackgroundSync().catch((error) => {
+        track("background_sync_request_failed", {
           job_id: jobId,
           error: error instanceof Error ? error.message : "Unknown error",
         });

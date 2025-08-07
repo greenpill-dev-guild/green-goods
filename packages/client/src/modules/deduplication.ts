@@ -117,33 +117,102 @@ export class DeduplicationManager {
   }
 
   /**
-   * Generates a content-based hash for work data
+   * Generates a content-based hash for work data using feedback as core element
    *
-   * This method creates a deterministic hash from the core content fields
-   * of work data, excluding metadata like timestamps and IDs. The hash
-   * is designed to be stable across multiple generations of the same content.
+   * This method creates a deterministic hash from the specified content fields:
+   * - gardenAddress: The garden where work is submitted
+   * - feedback: The core work content (primary hashing element)
+   * - type: The type of work submission
+   * - imageHashes: Unique identifiers for associated images
+   * - actionIdWithChain: Action ID prefixed with chain ID for uniqueness
    *
    * @param workData - The work data object to hash
    * @returns A unique content hash string
    */
   generateContentHash(workData: any): string {
-    // Simplified, direct hash generation without complex normalization
     const data = workData.data || {};
 
-    // Create a simple, direct hash from the core content fields
+    // Generate image hashes for unique image identification
+    const imageHashes = this.config.includeImages
+      ? this.generateImageHashes(workData.images || [])
+      : [];
+
+    // Get chainId from various possible sources
+    const chainId = workData.chainId || data.chainId || this.getDefaultChainId();
+
+    // Create hash from the specified core content fields
     const contentForHash = {
-      type: workData.type || "work",
-      title: data.title || workData.title || "",
-      description: data.description || workData.description || "",
       gardenAddress: data.gardenAddress || workData.gardenAddress || "",
-      actionUID: data.actionUID || workData.actionUID || 0,
-      ...(this.config.includeImages && { imageCount: workData.images?.length || 0 }),
+      feedback: data.feedback || workData.feedback || "",
+      type: workData.type || "work",
+      imageHashes: imageHashes,
+      actionIdWithChain: `${chainId}:${data.actionUID || workData.actionUID || 0}`,
     };
 
     // Create stable JSON string with sorted keys
     const hashInput = JSON.stringify(contentForHash, Object.keys(contentForHash).sort());
 
     return this.generateSafeHash(hashInput);
+  }
+
+  /**
+   * Generates hashes for image files
+   *
+   * This method creates unique identifiers for image files based on their properties.
+   * For File objects, it uses name, size, type, and last modified date.
+   * For URLs or other formats, it uses the string representation.
+   *
+   * @param images - Array of images (File objects, URLs, or other formats)
+   * @returns Array of image hashes sorted for consistency
+   * @private
+   */
+  private generateImageHashes(images: any[]): string[] {
+    if (!images || images.length === 0) {
+      return [];
+    }
+
+    const imageHashes = images.map((image, index) => {
+      try {
+        if (image instanceof File) {
+          // Generate hash from file properties (synchronous)
+          const hashInput = `${image.name}-${image.size}-${image.type}-${image.lastModified || 0}`;
+          return this.generateSafeHash(hashInput);
+        } else if (typeof image === "string") {
+          // For URL strings, use the URL itself
+          return this.generateSafeHash(image);
+        } else if (image && typeof image === "object") {
+          // For objects with url/id properties
+          const hashInput = image.url || image.id || image.src || JSON.stringify(image);
+          return this.generateSafeHash(hashInput);
+        } else {
+          // Fallback: use string representation
+          return this.generateSafeHash(String(image));
+        }
+      } catch (error) {
+        console.warn(`Failed to hash image at index ${index}:`, error);
+        // Fallback hash for failed image processing
+        return this.generateSafeHash(`image-${index}-fallback`);
+      }
+    });
+
+    return imageHashes.sort(); // Sort for consistency
+  }
+
+  /**
+   * Gets the default chain ID from environment or fallback
+   *
+   * @returns Default chain ID (Base Sepolia: 84532)
+   * @private
+   */
+  private getDefaultChainId(): number {
+    // Try to get from environment variable first
+    const envChainId = import.meta.env.VITE_CHAIN_ID;
+    if (envChainId && !isNaN(Number(envChainId))) {
+      return Number(envChainId);
+    }
+
+    // Fallback to Base Sepolia
+    return 84532;
   }
 
   /**

@@ -2,12 +2,11 @@ import { type QueryObserverResult, useMutation, useQuery } from "@tanstack/react
 import React, { useContext, useState } from "react";
 import { type Control, type FormState, type UseFormRegister, useForm } from "react-hook-form";
 import { decodeErrorResult } from "viem";
-
+import { useCurrentChain } from "@/hooks";
 import { getWorkApprovals } from "@/modules/eas";
 import { queryClient } from "@/modules/react-query";
+import { formatJobError, submitWorkToQueue } from "@/modules/work-submission";
 import { abi as WorkResolverABI } from "@/utils/abis/WorkResolver.json";
-import { useCurrentChain } from "@/utils/useChainConfig";
-import { formatJobError, submitWorkToQueue } from "@/utils/work-submission";
 
 import { useGardens } from "./garden";
 import { useUser } from "./user";

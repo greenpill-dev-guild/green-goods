@@ -1,4 +1,4 @@
-import { track } from "@/modules/posthog";
+import { track, trackSyncPerformance } from "@/modules/posthog";
 import { queryClient } from "../react-query";
 import { jobQueueDB } from "./db";
 import { jobQueueEventBus } from "./event-bus";
@@ -89,6 +89,7 @@ export class SyncManager {
    * Internal flush implementation
    */
   private async doFlush(): Promise<FlushResult> {
+    const startTime = Date.now();
     this.syncInProgress = true;
     jobQueueEventBus.emit("queue:sync-started", {});
 
@@ -96,6 +97,9 @@ export class SyncManager {
       const pendingJobs = await jobQueueDB.getJobs({ synced: false });
 
       if (pendingJobs.length === 0) {
+        trackSyncPerformance("flush_empty", startTime, true, {
+          pending_jobs: 0,
+        });
         return { processed: 0, failed: 0, skipped: 0 };
       }
 
@@ -109,7 +113,19 @@ export class SyncManager {
       queryClient.invalidateQueries({ queryKey: ["works"] });
       queryClient.invalidateQueries({ queryKey: ["workApprovals"] });
 
+      // Track successful sync
+      trackSyncPerformance("flush_completed", startTime, true, {
+        ...result,
+        total_jobs: pendingJobs.length,
+      });
+
       return result;
+    } catch (error) {
+      // Track failed sync
+      trackSyncPerformance("flush_failed", startTime, false, {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw error;
     } finally {
       this.syncInProgress = false;
     }
