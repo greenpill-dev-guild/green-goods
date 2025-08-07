@@ -94,4 +94,29 @@
   .rounded-20 {
     border-radius: 1.25rem;
   }
+
+  /* Modal Scroll Lock Utilities */
+  .modal-open {
+    overflow: hidden;
+    height: 100vh;
+  }
+  
+  .modal-open body {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Universal Icon Button Class */
+  .btn-icon {
+    @apply relative flex items-center justify-center w-8 h-8 p-1 rounded-lg border;
+    @apply bg-white border-slate-200 text-slate-500;
+    @apply transition-all duration-200 active:scale-95;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary active:border-primary;
+  }
+
+  .btn-icon svg {
+    @apply focus:text-primary active:text-primary;
+  }
 }

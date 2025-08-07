@@ -101,10 +101,6 @@ declare interface OfflineCapabilities {
 declare interface WorkDashboardProps {
   className?: string;
   onClose?: () => void;
-  onRetryItem?: (workId: string) => Promise<void>;
-  onResolveConflict?: (workId: string, resolution: string) => Promise<void>;
-  onStorageCleanup?: () => Promise<void>;
-  onDeleteItem?: (workId: string) => Promise<void>;
 }
 
 declare interface ConflictResolutionModalProps {
@@ -114,10 +110,5 @@ declare interface ConflictResolutionModalProps {
   onResolve: (resolution: "keep_local" | "keep_remote" | "merge") => Promise<void>;
 }
 
-declare interface DuplicateWorkWarningProps {
-  isOpen: boolean;
-  onClose: () => void;
-  duplicate: DuplicateCheckResult;
-  onContinue: () => void;
-  onCancel: () => void;
-}
+// Moved to component file - DuplicateWorkWarningProps is now defined locally
+// in /components/UI/DuplicateWorkWarning/DuplicateWorkWarning.tsx
