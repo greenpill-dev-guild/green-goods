@@ -1,8 +1,9 @@
 import { forwardRef, type UIEvent } from "react";
 import { useIntl } from "react-intl";
-import { useNavigateToTop } from "@/hooks/useNavigateToTop";
+import { useNavigateToTop } from "@/hooks";
 import { WorkCard } from "../UI/Card/WorkCard";
 import { BeatLoader } from "../UI/Loader";
+import { cn } from "@/utils/cn";
 
 interface GardenWorkProps {
   actions: Action[];
@@ -74,13 +75,45 @@ const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
 
 export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
   ({ works, actions, workFetchStatus, handleScroll }, ref) => {
+    const isEmpty = workFetchStatus === "success" && works.length === 0;
+    const hasError = workFetchStatus === "error";
+    const isLoading = workFetchStatus === "pending";
+
     return (
       <ul
         ref={ref}
         onScroll={handleScroll}
-        className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 w-full no-scrollbar overflow-y-scroll"
+        className={
+          !isEmpty && !hasError && !isLoading
+            ? "grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 w-full no-scrollbar overflow-y-scroll h-full"
+            : "flex items-center justify-center w-full h-full overflow-y-scroll no-scrollbar"
+        }
       >
-        <WorkList works={works} actions={actions} workFetchStatus={workFetchStatus} />
+        {isLoading && (
+          <div className="flex items-center justify-center p-8">
+            <BeatLoader />
+          </div>
+        )}
+
+        {hasError && (
+          <div className="flex items-center justify-center p-8">
+            <p className="text-sm text-red-600 text-center">
+              Error loading works. Please try again.
+            </p>
+          </div>
+        )}
+
+        {isEmpty && (
+          <div className="flex items-center justify-center p-8">
+            <p className="text-sm text-center italic text-gray-400">
+              No work items found for this garden yet.
+            </p>
+          </div>
+        )}
+
+        {!isLoading && !hasError && !isEmpty && (
+          <WorkList works={works} actions={actions} workFetchStatus={workFetchStatus} />
+        )}
       </ul>
     );
   }

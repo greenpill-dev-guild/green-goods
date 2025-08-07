@@ -4,14 +4,19 @@ import { formatAddress } from "@/utils/text";
 
 interface GardenGardenersProps {
   gardeners: GardenerCard[];
+  garden?: Garden;
   handleScroll: (event: React.UIEvent<HTMLUListElement, UIEvent>) => void;
 }
 
 export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps>(
-  ({ gardeners, handleScroll }, ref) => {
+  ({ gardeners, garden, handleScroll }, ref) => {
     const intl = useIntl();
     return (
-      <ul className="flex flex-col gap-2" ref={ref} onScroll={handleScroll}>
+      <ul
+        className="padded flex-1 flex flex-col gap-4 pt-80 pb-42"
+        ref={ref}
+        onScroll={handleScroll}
+      >
         {gardeners.length ? (
           gardeners.map((user) => (
             <li
@@ -34,7 +39,7 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
                     id: "app.garden.gardeners.registered",
                     description: "Registered",
                   })}
-                  : {new Date(user.registeredAt * 1000).toDateString()}
+                  : {new Date(user.registeredAt || garden?.createdAt || Date.now()).toDateString()}
                 </span>
               </div>
             </li>

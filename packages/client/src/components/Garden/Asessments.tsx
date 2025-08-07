@@ -25,7 +25,7 @@ const AssessmentList = ({ assessments, asessmentFetchStatus }: AssessmentListPro
     case "success":
       return assessments.length ? (
         assessments.map((assessment) => (
-          <Card key={assessment.id} className="flex flex-col gap-2 p-4">
+          <Card key={assessment.id} className="flex flex-col gap-2">
             <h6>
               #{assessment.id.slice(0, 4)}{" "}
               {intl.formatMessage({
