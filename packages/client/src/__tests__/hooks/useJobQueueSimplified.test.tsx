@@ -40,7 +40,7 @@ vi.mock("@/modules/job-queue/event-bus", () => ({
 import { getWorks } from "@/modules/eas";
 import { jobQueue, jobQueueDB } from "@/modules/job-queue";
 import { useJobQueueEvents } from "@/modules/job-queue/event-bus";
-import { useCurrentChain } from "@/utils/useChainConfig";
+import { useCurrentChain } from "@/hooks";
 
 const mockJobQueue = vi.mocked(jobQueue);
 const mockJobQueueDB = vi.mocked(jobQueueDB);

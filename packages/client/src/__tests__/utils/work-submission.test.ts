@@ -6,7 +6,7 @@ import {
   submitWorkToQueue,
   validateApprovalDraft,
   validateWorkDraft,
-} from "@/utils/work-submission";
+} from "@/modules/work-submission";
 
 vi.mock("@/modules/job-queue", () => ({
   jobQueue: {

@@ -36,7 +36,7 @@ vi.mock("@/modules/job-queue/media-resource-manager", () => ({
 // Get mock references after module mocking
 import { getWorks } from "@/modules/eas";
 import { jobQueue, jobQueueDB } from "@/modules/job-queue";
-import { useCurrentChain } from "@/utils/useChainConfig";
+import { useCurrentChain } from "@/hooks";
 
 // Test data factories
 const createMockWork = (overrides: Partial<Work> = {}): Work => ({

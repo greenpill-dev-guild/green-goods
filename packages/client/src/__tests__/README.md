@@ -13,7 +13,7 @@ src/__tests__/
 │   └── conflict-resolver.test.ts # Conflict resolution tests
 ├── components/                 # UI component tests
 │   ├── OfflineIndicator.enhanced.test.tsx # Enhanced offline indicator
-│   └── OfflineWorkDashboard.test.tsx (planned)
+│   └── WorkDashboard.test.tsx (planned) # Comprehensive work dashboard
 ├── integration/               # End-to-end workflow tests
 │   ├── offline-workflow.test.ts # Complete offline workflows
 │   └── conflict-resolution.test.ts (planned)
