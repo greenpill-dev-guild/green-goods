@@ -58,7 +58,7 @@ async function getWorkApprovalsByAttester(
       return [];
     }
 
-    return data.attestations
+    return (data.attestations as any[])
       .map((attestation: any) => {
         try {
           const decodedData = JSON.parse(attestation.decodedDataJson);
@@ -89,9 +89,12 @@ async function getWorkApprovalsByAttester(
           return null; // Return null for failed parsing
         }
       })
-      .filter(Boolean); // Remove null values
+      .filter((a: WorkApproval | null): a is WorkApproval => Boolean(a));
   } catch (networkError) {
-    console.warn("Network error fetching work approvals:", networkError.message || networkError);
+    console.warn(
+      "Network error fetching work approvals:",
+      (networkError as any)?.message || networkError
+    );
     return []; // Always return empty array on any error
   }
 }

@@ -4,6 +4,7 @@ import { jobQueue, jobQueueDB } from "@/modules/job-queue";
 import { jobQueueEventBus, useJobQueueEvents } from "@/modules/job-queue/event-bus";
 import { queryInvalidation, queryKeys } from "./query-keys";
 import { useCurrentChain } from "./useChainConfig";
+import { useMerged } from "./useMerged";
 
 // Helper function to convert job payload to Work model
 export function jobToWork(job: Job<WorkJobPayload>): Work {
@@ -35,36 +36,20 @@ export function useWorks(gardenId: string) {
   const chainId = useCurrentChain();
   const queryClient = useQueryClient();
 
-  // Online works query
-  const onlineWorksQuery = useQuery({
-    queryKey: queryKeys.works.online(gardenId, chainId),
-    queryFn: () => getWorks(gardenId, chainId),
-    enabled: !!gardenId,
-    staleTime: 30000, // 30 seconds
-    gcTime: 300000, // 5 minutes
-  });
-
-  // Offline works query
-  const offlineWorksQuery = useQuery({
-    queryKey: queryKeys.works.offline(gardenId),
-    queryFn: async () => {
+  const merged = useMerged<WorkCard[], Job<WorkJobPayload>[], Work[]>({
+    onlineKey: queryKeys.works.online(gardenId, chainId),
+    offlineKey: queryKeys.works.offline(gardenId),
+    mergedKey: queryKeys.works.merged(gardenId, chainId),
+    fetchOnline: () => getWorks(gardenId, chainId),
+    fetchOffline: async () => {
       const jobs = await jobQueue.getJobs({ kind: "work", synced: false });
-      return jobs.filter((job) => (job.payload as WorkJobPayload).gardenAddress === gardenId);
+      return jobs.filter(
+        (job) => (job.payload as WorkJobPayload).gardenAddress === gardenId
+      ) as Job<WorkJobPayload>[];
     },
-    staleTime: 5000, // 5 seconds
-    gcTime: 30000, // 30 seconds
-  });
-
-  // Merged works query that depends on both above queries
-  const mergedWorksQuery = useQuery({
-    queryKey: queryKeys.works.merged(gardenId, chainId),
-    queryFn: async () => {
-      const onlineWorks = onlineWorksQuery.data || [];
-      const offlineJobs = offlineWorksQuery.data || [];
-
-      // Convert offline jobs to works and load media
+    merge: async (onlineWorks, offlineJobs) => {
       const offlineWorks = await Promise.all(
-        offlineJobs.map(async (job) => {
+        (offlineJobs || []).map(async (job) => {
           const work = jobToWork(job as Job<WorkJobPayload>);
           const images = await jobQueueDB.getImagesForJob(job.id);
           work.media = images.map((img: { id: string; file: File; url: string }) => img.url);
@@ -72,57 +57,57 @@ export function useWorks(gardenId: string) {
         })
       );
 
-      // Merge and deduplicate
       const workMap = new Map<string, Work>();
-
-      // Add online works first (they take precedence)
-      onlineWorks.forEach((work) => {
+      (onlineWorks || []).forEach((work) => {
         workMap.set(work.id, { ...work, status: "pending" as const });
       });
-
-      // Add offline works that don't conflict
       offlineWorks.forEach((work) => {
-        const isDuplicate = onlineWorks.some((onlineWork) => {
+        const isDuplicate = (onlineWorks || []).some((onlineWork) => {
           const timeDiff = Math.abs(onlineWork.createdAt - work.createdAt);
           return onlineWork.actionUID === work.actionUID && timeDiff < 5 * 60 * 1000;
         });
-
         if (!isDuplicate) {
           workMap.set(work.id, work);
         }
       });
-
       return Array.from(workMap.values()).sort((a, b) => b.createdAt - a.createdAt);
     },
-    enabled: !onlineWorksQuery.isLoading && !offlineWorksQuery.isLoading,
-    staleTime: 5000, // 5 seconds
-    gcTime: 30000, // 30 seconds
+    events: [
+      {
+        subscribe: (listener: () => void) =>
+          jobQueueEventBus.onMultiple(
+            ["job:added", "job:completed", "job:failed"],
+            (type, data) => {
+              if ("job" in data && data.job.kind === "work") {
+                const jobGardenId = (data.job.payload as WorkJobPayload).gardenAddress;
+                if (jobGardenId === gardenId) listener();
+              }
+            }
+          ),
+      },
+    ],
   });
 
-  // Event-driven invalidation
-  useJobQueueEvents(["job:added", "job:completed", "job:failed"], (eventType, data) => {
+  // Keep additional invalidations for online queries
+  useJobQueueEvents(["job:completed"], (_eventType, data) => {
     if ("job" in data && data.job.kind === "work") {
       const jobGardenId = (data.job.payload as WorkJobPayload).gardenAddress;
       if (jobGardenId === gardenId) {
-        // Invalidate specific queries for this garden
-        queryInvalidation.invalidateWorksForGarden(gardenId, chainId).forEach((key) => {
-          queryClient.invalidateQueries({ queryKey: key });
-        });
+        queryClient.invalidateQueries({ queryKey: queryKeys.works.online(gardenId, chainId) });
       }
     }
   });
 
   return {
-    works: mergedWorksQuery.data || [],
-    isLoading:
-      onlineWorksQuery.isLoading || offlineWorksQuery.isLoading || mergedWorksQuery.isLoading,
-    error: onlineWorksQuery.error || offlineWorksQuery.error || mergedWorksQuery.error,
-    offlineCount: (offlineWorksQuery.data || []).length,
-    onlineCount: (onlineWorksQuery.data || []).length,
+    works: merged.merged.data || [],
+    isLoading: merged.merged.isLoading,
+    error: merged.merged.error,
+    offlineCount: (merged.offline.data || []).length,
+    onlineCount: (merged.online.data || []).length,
     refetch: () => {
-      onlineWorksQuery.refetch();
-      offlineWorksQuery.refetch();
-      mergedWorksQuery.refetch();
+      merged.online.refetch();
+      merged.offline.refetch();
+      merged.merged.refetch();
     },
   };
 }

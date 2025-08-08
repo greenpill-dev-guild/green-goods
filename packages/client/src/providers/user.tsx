@@ -37,7 +37,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     // Provide smart account client to job queue service
-    jobQueue.setSmartAccountClient(client);
+    jobQueue.setSmartAccountClient(client || null);
   }, [client]);
 
   return (

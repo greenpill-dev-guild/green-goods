@@ -1,5 +1,4 @@
 import { track } from "@/modules/posthog";
-import { queryClient } from "../react-query";
 import { serviceWorkerManager } from "../service-worker";
 import { jobQueueDB } from "./db";
 import { jobQueueEventBus } from "./event-bus";
@@ -29,8 +28,9 @@ class JobQueue {
   /**
    * Set the smart account client for blockchain transactions
    */
-  setSmartAccountClient(client: SmartAccountClient | null): void {
-    this.jobProcessor.setSmartAccountClient(client);
+  setSmartAccountClient(client: unknown): void {
+    const adapted: SmartAccountClient | null = adaptSmartAccountClient(client);
+    this.jobProcessor.setSmartAccountClient(adapted);
 
     // Trigger a sync when client becomes available
     if (client && navigator.onLine) {
@@ -243,7 +243,7 @@ class JobQueue {
     );
 
     unsubscribeFunctions.push(
-      jobQueueEventBus.on("job:retrying", ({ jobId, job, attempt }) => {
+      jobQueueEventBus.on("job:retrying", ({ jobId, job }) => {
         listener({ type: "job_retrying", jobId, job });
       })
     );
@@ -270,3 +270,24 @@ export const jobQueue = new JobQueue();
 export { jobQueueDB } from "./db";
 export { getDefaultChainId } from "./job-processor";
 export type { FlushResult } from "./sync-manager";
+
+// Adapter to normalize various smart account client shapes to SmartAccountClient
+function adaptSmartAccountClient(raw: unknown): SmartAccountClient | null {
+  if (!raw) return null;
+  const client: any = raw;
+  // If it already looks like our interface
+  if (typeof client.sendTransaction === "function") {
+    return client as SmartAccountClient;
+  }
+  // Attempt minimal wrapper if different method names exist
+  if (typeof client.send === "function") {
+    return {
+      sendTransaction: (params) => client.send(params),
+      getAddress: async () =>
+        typeof client.getAddress === "function" ? await client.getAddress() : "",
+      isConnected: () => true,
+    } as SmartAccountClient;
+  }
+  // Fallback to null if we cannot adapt
+  return null;
+}

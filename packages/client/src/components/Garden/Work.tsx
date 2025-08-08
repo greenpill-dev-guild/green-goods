@@ -3,7 +3,7 @@ import { useIntl } from "react-intl";
 import { useNavigateToTop } from "@/hooks";
 import { WorkCard } from "../UI/Card/WorkCard";
 import { BeatLoader } from "../UI/Loader";
-import { cn } from "@/utils/cn";
+// import { cn } from "@/utils/cn";
 
 interface GardenWorkProps {
   actions: Action[];
@@ -43,14 +43,15 @@ const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
             if (!action) return null;
 
             return (
-              <WorkCard
-                key={work.id}
-                work={work}
-                selected={false}
-                action={action}
-                media="large"
-                onClick={() => navigate(`/home/${work.gardenAddress}/work/${work.id}`)}
-              />
+              <li key={work.id} className="p-2">
+                <div
+                  onClick={() => navigate(`/home/${work.gardenAddress}/work/${work.id}`)}
+                  className="flex flex-col gap-1 cursor-pointer"
+                >
+                  <span className="text-sm font-medium">{action.title}</span>
+                  <span className="text-xs text-slate-600">{work.feedback}</span>
+                </div>
+              </li>
             );
           })
       ) : (

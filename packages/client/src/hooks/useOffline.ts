@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { jobQueue } from "@/modules/job-queue";
 import { usePendingWorksCount, useQueueStatistics } from "./useWorks";
 
@@ -48,8 +48,6 @@ export function useOffline() {
     pendingCount,
     pendingWork: [], // Simplified - components can use useWorksMerged directly if they need the full list
     syncStatus,
-    refetch: () => {
-      // Refetch is handled by the event-driven hooks automatically
-    },
+    refetch: () => {},
   };
 }

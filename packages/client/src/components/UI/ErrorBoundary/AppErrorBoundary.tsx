@@ -5,7 +5,7 @@ import {
   RiHomeLine,
   RiWifiOffLine,
 } from "@remixicon/react";
-import React, { Component, ErrorInfo, ReactNode } from "react";
+import { Component, ErrorInfo, ReactNode } from "react";
 import { track } from "@/modules/posthog";
 import { Button } from "../Button";
 
