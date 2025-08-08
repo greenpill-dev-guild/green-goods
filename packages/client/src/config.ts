@@ -52,8 +52,7 @@ export const isChainSupported = (chainId: number): chainId is SupportedChainId =
   return chainId in SUPPORTED_CHAINS;
 };
 
-// Current chain configuration
-export const CURRENT_CHAIN_ID = Number(import.meta.env.VITE_CHAIN_ID) || 42161;
+// Note: Avoid exporting a global CURRENT_CHAIN_ID. Prefer dynamic detection from wallet.
 
 export const APP_NAME = "Green Goods";
 export const APP_DEFAULT_TITLE = "Green Goods";
@@ -137,7 +136,7 @@ export function getIndexerUrl() {
 
 // Get EAS GraphQL URL based on chain
 export function getEasGraphqlUrl(chainId?: number | string) {
-  const chain = chainId ? String(chainId) : import.meta.env.VITE_CHAIN_ID || "84532";
+  const chain = String(chainId ?? 84532);
 
   switch (chain) {
     case "42161":

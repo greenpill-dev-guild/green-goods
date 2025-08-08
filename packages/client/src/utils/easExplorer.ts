@@ -12,6 +12,7 @@ const CHAIN_ID_TO_EAS_NAME: Record<number, string> = {
   10: "optimism",
   137: "polygon",
   8453: "base",
+  84532: "base-sepolia",
   // Add more chains as needed
 };
 

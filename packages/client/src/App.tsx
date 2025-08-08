@@ -30,7 +30,7 @@ function AppContent() {
   const { isMobile, isInstalled } = useApp();
   const { ready, smartAccountAddress } = useUser();
 
-  const isDownloaded = (isMobile && isInstalled) || import.meta.env.VITE_DESKTOP_DEV;
+  const isDownloaded = (isMobile && isInstalled) || import.meta.env.VITE_DESKTOP_DEV === "true";
   const isAuthenticated = authenticated && smartAccountAddress;
 
   return (

@@ -11,7 +11,10 @@ class ServiceWorkerManager {
 
   constructor() {
     this.isSupported =
-      "serviceWorker" in navigator && "sync" in window.ServiceWorkerRegistration.prototype;
+      "serviceWorker" in navigator &&
+      "ServiceWorkerRegistration" in window &&
+      // @ts-ignore - prototype check for Background Sync support in browsers that implement it
+      "sync" in (window.ServiceWorkerRegistration.prototype as any);
   }
 
   /**

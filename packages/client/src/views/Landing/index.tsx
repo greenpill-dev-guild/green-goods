@@ -34,7 +34,7 @@ const Landing: React.FC<LandingProps> = () => {
           // ERROR
           throw new Error("Network response was not ok.");
         }
-        toast.success("Successfilly subscribed!");
+        toast.success("Successfully subscribed!");
 
         setSubscribeState("subscribed");
       })

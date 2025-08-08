@@ -401,7 +401,10 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
                         onClick={handleSubmit((data) => {
                           data.approved = false;
                           workApprovalMutation.mutate(data);
-                          queryClient.clear();
+                          queryClient.invalidateQueries({ queryKey: ["workApprovals"] });
+                          if (garden?.id) {
+                            queryClient.invalidateQueries({ queryKey: ["works", garden.id] });
+                          }
                         })}
                         label={intl.formatMessage({
                           id: "app.home.workApproval.reject",
@@ -418,7 +421,10 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
                         onClick={handleSubmit((data) => {
                           data.approved = true;
                           workApprovalMutation.mutate(data);
-                          queryClient.clear();
+                          queryClient.invalidateQueries({ queryKey: ["workApprovals"] });
+                          if (garden?.id) {
+                            queryClient.invalidateQueries({ queryKey: ["works", garden.id] });
+                          }
                         })}
                         type="button"
                         label={intl.formatMessage({

@@ -15,7 +15,4 @@ export const greenGoodsIndexer = new Client({
   exchanges: [cacheExchange, fetchExchange],
 });
 
-export const easClient = new Client({
-  url: getEasGraphqlUrl(),
-  exchanges: [cacheExchange, fetchExchange],
-});
+// Prefer using createEasClient(chainId) for chain-aware requests.

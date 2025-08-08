@@ -24,18 +24,7 @@ export function useCurrentChain() {
       return finalChain;
     }
 
-    // Fallback to environment variable or Base Sepolia
-    const envChain = import.meta.env.VITE_CHAIN_ID;
-
-    if (envChain && envChain.trim() !== "") {
-      const parsedEnvChain = Number(envChain);
-      if (!isNaN(parsedEnvChain)) {
-        return parsedEnvChain;
-      }
-    }
-
-    // Final fallback to Base Sepolia
-    console.log("⚠️ useCurrentChain - using fallback chainId: 84532 (Base Sepolia)");
+    // Final fallback to Base Sepolia when no wallet is connected yet
     return 84532; // Base Sepolia
   }, [wallets]);
 
