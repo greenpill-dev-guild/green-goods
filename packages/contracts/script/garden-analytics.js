@@ -32,6 +32,49 @@ class GardenAnalytics {
     }
   }
 
+  // Find the earliest block number whose timestamp is >= targetTimestamp
+  // Returns an object: { blockNumber, blockTimestamp }
+  async findBlockByTimestamp(provider, targetTimestamp, latestBlockNumber) {
+    if (targetTimestamp <= 0) {
+      return { blockNumber: 0, blockTimestamp: 0 };
+    }
+
+    const latestBlock = await provider.getBlock(latestBlockNumber);
+    if (!latestBlock) {
+      return { blockNumber: 0, blockTimestamp: 0 };
+    }
+
+    // If target is after latest, clamp to latest
+    if (targetTimestamp >= latestBlock.timestamp) {
+      return { blockNumber: latestBlockNumber, blockTimestamp: latestBlock.timestamp };
+    }
+
+    let low = 0;
+    let high = latestBlockNumber;
+    let resultBlockNumber = 0;
+    let resultTimestamp = 0;
+
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      const block = await provider.getBlock(mid);
+      if (!block) {
+        // If the block can't be fetched, shrink the search window
+        high = mid - 1;
+        continue;
+      }
+
+      if (block.timestamp < targetTimestamp) {
+        low = mid + 1;
+      } else {
+        resultBlockNumber = mid;
+        resultTimestamp = block.timestamp;
+        high = mid - 1;
+      }
+    }
+
+    return { blockNumber: resultBlockNumber, blockTimestamp: resultTimestamp };
+  }
+
   async generateAnalytics(gardenAddress) {
     console.log("\n📊 Garden Analytics Report");
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -55,14 +98,15 @@ class GardenAnalytics {
     console.log(`  Location: ${location}`);
 
     const currentBlock = await provider.getBlockNumber();
-    const blockTime = 12; // Average block time in seconds (adjust per network)
-    // Parse period (value currently not used directly)
-    this.parsePeriod(this.options.period);
-    const blocksPerDay = (24 * 60 * 60) / blockTime;
-    const daysInPeriod =
-      this.options.period === "all" ? currentBlock / blocksPerDay : Number.parseInt(this.options.period);
+    const startTimestamp = this.parsePeriod(this.options.period);
 
-    const fromBlock = this.options.period === "all" ? 0 : Math.max(0, currentBlock - daysInPeriod * blocksPerDay);
+    let fromBlockInfo;
+    if (this.options.period === "all") {
+      fromBlockInfo = { blockNumber: 0, blockTimestamp: 0 };
+    } else {
+      fromBlockInfo = await this.findBlockByTimestamp(provider, startTimestamp, currentBlock);
+    }
+    const fromBlock = fromBlockInfo.blockNumber;
 
     console.log(`\n📦 Analyzing blocks ${Math.floor(fromBlock)} to ${currentBlock}`);
 
