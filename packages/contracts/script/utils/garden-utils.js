@@ -90,10 +90,10 @@ const NETWORK_CONFIG = {
 
 // Capital types enum
 const CAPITAL_TYPES = {
-  FINANCIAL: 0,
+  SOCIAL: 0,
   MATERIAL: 1,
-  LIVING: 2,
-  SOCIAL: 3,
+  FINANCIAL: 2,
+  LIVING: 3,
   INTELLECTUAL: 4,
   EXPERIENTIAL: 5,
   SPIRITUAL: 6,
