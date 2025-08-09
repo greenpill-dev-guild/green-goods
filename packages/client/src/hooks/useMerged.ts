@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient, type QueryKey } from "@tanstack/react-query";
+import { type QueryKey, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 
 type UseMergedOptions<TOnline, TOffline, TMerged> = {

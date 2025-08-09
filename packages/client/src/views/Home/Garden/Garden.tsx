@@ -1,23 +1,23 @@
 import {
   RiCalendarEventFill,
-  RiMapPin2Fill,
-  RiHammerFill,
   RiFileChartFill,
   RiGroupFill,
+  RiHammerFill,
+  RiMapPin2Fill,
 } from "@remixicon/react";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation, useParams } from "react-router-dom";
 import { GardenAssessments } from "@/components/Garden/Asessments";
 import { GardenGardeners } from "@/components/Garden/Gardeners";
 import { GardenWork } from "@/components/Garden/Work";
-import { CircleLoader } from "@/components/UI/Loader";
-import { StandardTabs, type StandardTab } from "@/components/UI/Tabs";
-import { TopNav } from "@/components/UI/TopNav/TopNav";
-import { useGarden, useGardens } from "@/providers/garden";
-import { useNavigateToTop, useBrowserNavigation } from "@/hooks";
-import { useGardenTabs, GardenTab } from "@/hooks/useGardenTabs";
 import { GardenErrorBoundary } from "@/components/UI/ErrorBoundary/ErrorBoundary";
+import { CircleLoader } from "@/components/UI/Loader";
+import { type StandardTab, StandardTabs } from "@/components/UI/Tabs";
+import { TopNav } from "@/components/UI/TopNav/TopNav";
+import { useBrowserNavigation, useNavigateToTop } from "@/hooks";
+import { GardenTab, useGardenTabs } from "@/hooks/useGardenTabs";
+import { useGarden, useGardens } from "@/providers/garden";
 
 type GardenProps = {};
 
@@ -45,9 +45,7 @@ export const Garden: React.FC<GardenProps> = () => {
   const navigate = useNavigateToTop();
   const { activeTab, setActiveTab, tabRefs, handleScroll, restoreScrollPosition } = useGardenTabs();
 
-  // Header height management for responsive layout
-  const headerRef = useRef<HTMLDivElement>(null);
-  const [headerHeight, setHeaderHeight] = useState(280);
+  // Header uses CSS sticky; no JS height measurement needed
 
   const { id } = useParams<{
     id: string;
@@ -66,18 +64,7 @@ export const Garden: React.FC<GardenProps> = () => {
 
   const { name, bannerImage, location, createdAt, assessments, works } = garden;
 
-  // Update header height on mount and window resize
-  useEffect(() => {
-    const updateHeaderHeight = () => {
-      if (headerRef.current) {
-        setHeaderHeight(headerRef.current.offsetHeight);
-      }
-    };
-
-    updateHeaderHeight();
-    window.addEventListener("resize", updateHeaderHeight);
-    return () => window.removeEventListener("resize", updateHeaderHeight);
-  }, []);
+  // Restore scroll position when switching tabs
 
   // Standard tabs configuration - removed counts
   const tabs: StandardTab[] = [
@@ -141,13 +128,10 @@ export const Garden: React.FC<GardenProps> = () => {
       <div className="h-full w-full flex flex-col relative">
         {pathname.includes("work") || pathname.includes("assessments") ? null : (
           <>
-            {/* Header with dynamic height tracking */}
-            <div
-              ref={headerRef}
-              className="fixed top-0 left-0 right-0 w-full bg-white z-10 shadow-sm"
-            >
+            {/* Sticky Header */}
+            <div className="sticky top-0 left-0 right-0 w-full bg-white z-10 shadow-sm">
               <TopNav
-                className="absolute top-0 left-0 flex w-full justify-between items-center p-4"
+                className="flex w-full justify-between items-center p-4"
                 onBackClick={() => navigate("/home")}
                 works={works}
                 garden={garden}
@@ -156,6 +140,8 @@ export const Garden: React.FC<GardenProps> = () => {
                 src={bannerImage}
                 className="w-full object-cover object-center rounded-b-3xl h-44 md:h-52"
                 alt={`${name} banner`}
+                loading="eager"
+                decoding="async"
               />
               <div className="px-4 md:px-6 mt-3 flex flex-col gap-1.5">
                 <h1 className="text-xl md:text-2xl font-semibold line-clamp-1">{name}</h1>
@@ -184,11 +170,8 @@ export const Garden: React.FC<GardenProps> = () => {
               />
             </div>
 
-            {/* Content area with dynamic padding */}
-            <div
-              className="flex-1 px-4 md:px-6 pb-4 overflow-hidden"
-              style={{ paddingTop: `${headerHeight + 16}px` }}
-            >
+            {/* Scrollable content */}
+            <div className="flex-1 px-4 md:px-6 pb-4 overflow-y-auto" aria-busy={isFetching}>
               {renderTabContent()}
             </div>
           </>

@@ -23,7 +23,13 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
               key={user.id}
               className="flex items-center gap-3 border-slate-100 border-2 shadow-2xs rounded-lg p-2"
             >
-              <img className="w-10 h-10" src={user.avatar ?? "/images/avatar.png"} alt="Profile" />
+              <img
+                className="w-10 h-10 rounded-full"
+                src={user.avatar ?? "/images/avatar.png"}
+                alt="Profile"
+                loading="lazy"
+                decoding="async"
+              />
               <div className="flex flex-col">
                 <span className="font-semibold">
                   {(user.account && formatAddress(user.account)) ||

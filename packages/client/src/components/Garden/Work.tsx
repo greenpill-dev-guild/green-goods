@@ -1,8 +1,9 @@
-import { forwardRef, type UIEvent } from "react";
+import { forwardRef, type UIEvent, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigateToTop } from "@/hooks";
-import { WorkCard } from "../UI/Card/WorkCard";
+// import { WorkCard } from "../UI/Card/WorkCard";
 import { BeatLoader } from "../UI/Loader";
+
 // import { cn } from "@/utils/cn";
 
 interface GardenWorkProps {
@@ -22,38 +23,38 @@ const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
   const intl = useIntl();
   const navigate = useNavigateToTop();
 
+  const actionById = useMemo(
+    () => new Map(actions.map((a) => [String(a.id), a] as const)),
+    [actions]
+  );
+  const sorted = useMemo(() => {
+    return [...works].sort((a, b) => {
+      if (a.status === "pending" && b.status !== "pending") return -1;
+      if (a.status !== "pending" && b.status === "pending") return 1;
+      return b.createdAt - a.createdAt;
+    });
+  }, [works]);
+
   switch (workFetchStatus) {
     case "pending":
       return <BeatLoader />;
     case "success":
-      return works.length ? (
-        works
-          .sort((a: Work, b: Work) => {
-            if (a.status === "pending" && b.status !== "pending") {
-              return -1;
-            }
-            if (a.status !== "pending" && b.status === "pending") {
-              return 1;
-            }
-
-            return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-          })
-          .map((work) => {
-            const action = actions.find((a) => a.id === work.actionUID);
-            if (!action) return null;
-
-            return (
-              <li key={work.id} className="p-2">
-                <div
-                  onClick={() => navigate(`/home/${work.gardenAddress}/work/${work.id}`)}
-                  className="flex flex-col gap-1 cursor-pointer"
-                >
-                  <span className="text-sm font-medium">{action.title}</span>
-                  <span className="text-xs text-slate-600">{work.feedback}</span>
-                </div>
-              </li>
-            );
-          })
+      return sorted.length ? (
+        sorted.map((work) => {
+          const action = actionById.get(String(work.actionUID));
+          if (!action) return null;
+          return (
+            <li key={work.id} className="p-2">
+              <div
+                onClick={() => navigate(`/home/${work.gardenAddress}/work/${work.id}`)}
+                className="flex flex-col gap-1 cursor-pointer"
+              >
+                <span className="text-sm font-medium">{action.title}</span>
+                <span className="text-xs text-slate-600">{work.feedback}</span>
+              </div>
+            </li>
+          );
+        })
       ) : (
         <p className="grid p-8 place-items-center text-sm text-center italic text-gray-400">
           {intl.formatMessage({

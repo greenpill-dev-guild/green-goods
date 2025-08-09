@@ -21,7 +21,28 @@ const AssessmentList = ({ assessments, asessmentFetchStatus }: AssessmentListPro
   const intl = useIntl();
   switch (asessmentFetchStatus) {
     case "pending":
-      return <BeatLoader />;
+      return (
+        <div className="grid gap-3">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="p-4 border border-slate-200 rounded-xl bg-white">
+              <div className="h-4 w-24 bg-slate-200 rounded animate-pulse mb-3" />
+              <div className="flex flex-wrap gap-2 mb-2">
+                {[...Array(4)].map((_, j) => (
+                  <div key={j} className="h-6 w-16 bg-slate-200 rounded-full animate-pulse" />
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                {[...Array(4)].map((_, k) => (
+                  <div key={k} className="flex flex-col gap-2">
+                    <div className="h-5 w-28 bg-slate-200 rounded animate-pulse" />
+                    <div className="h-4 w-20 bg-slate-200 rounded animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
     case "success":
       return assessments.length ? (
         assessments.map((assessment) => (
