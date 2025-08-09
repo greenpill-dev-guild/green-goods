@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import toast from "react-hot-toast";
+import { Navigate, useLocation } from "react-router-dom";
 import { Footer } from "@/components/Layout/Footer";
 import { Header } from "@/components/Layout/Header";
 import { Hero } from "@/components/Layout/Hero";
@@ -10,7 +11,8 @@ type LandingProps = {};
 type SubscribeState = "idle" | "subscribing" | "subscribed" | "error";
 
 const Landing: React.FC<LandingProps> = () => {
-  const { isMobile } = useApp();
+  const { isMobile, isInstalled } = useApp();
+  const location = useLocation();
 
   const [_state, setSubscribeState] = useState<SubscribeState>("idle");
 
@@ -43,6 +45,9 @@ const Landing: React.FC<LandingProps> = () => {
         toast.error("Something went wrong. Please try again.");
       });
   }
+
+  const redirectTo = new URLSearchParams(location.search).get("redirectTo");
+  if (isInstalled && redirectTo) return <Navigate to={redirectTo} replace />;
 
   return (
     <div id="landing-root" className="px-8">
