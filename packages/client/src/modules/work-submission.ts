@@ -20,7 +20,7 @@ export async function submitWorkToQueue(
     throw new Error("Action UID must be a number");
   }
 
-  const action = actions.find((a) => a.id === actionUID);
+  const action = actions.find((a) => a.id === `${chainId}-${actionUID}`);
   const actionTitle = action?.title || "Unknown Action";
 
   // Add job to queue - this handles both offline and online scenarios

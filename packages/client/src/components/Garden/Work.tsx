@@ -1,7 +1,7 @@
 import React, { forwardRef, memo, type UIEvent, useMemo, useCallback } from "react";
 import { FixedSizeList as List } from "react-window";
 import { useIntl } from "react-intl";
-import { useNavigateToTop } from "@/hooks";
+import { useCurrentChain, useNavigateToTop } from "@/hooks";
 // import { WorkCard } from "../UI/Card/WorkCard";
 import { BeatLoader } from "../UI/Loader";
 
@@ -23,6 +23,7 @@ interface WorkListProps {
 const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
   const intl = useIntl();
   const navigate = useNavigateToTop();
+  const chainId = useCurrentChain();
 
   const actionById = useMemo(
     () => new Map(actions.map((a) => [String(a.id), a] as const)),
@@ -70,7 +71,7 @@ const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
         style: React.CSSProperties;
       }) {
         const work = sorted[index];
-        const action = actionById.get(String(work.actionUID));
+        const action = actionById.get(`${chainId}-${work.actionUID}`);
         if (!action) return null;
         const onOpen = useCallback(
           () => navigate(`/home/${work.gardenAddress}/work/${work.id}`),

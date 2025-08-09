@@ -74,10 +74,12 @@ export const workProcessor: JobProcessor<WorkJobPayload, EncodedWorkData> = {
 // Helper function to get action title - this can be enhanced to lookup from actions context
 export function getActionTitle(
   actionUID: number,
-  actions?: Array<{ id: number; title: string }>
+  actions?: Array<{ id: string; title: string }>,
+  chainId?: number
 ): string {
-  if (actions) {
-    const action = actions.find((action) => action.id === actionUID);
+  if (actions && typeof chainId === "number") {
+    const compositeId = `${chainId}-${actionUID}`;
+    const action = actions.find((action) => action.id === compositeId);
     if (action) {
       return action.title;
     }

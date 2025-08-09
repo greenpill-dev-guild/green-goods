@@ -34,7 +34,6 @@ import { getFileByHash } from "@/modules/pinata";
 import { useGarden, useGardens } from "@/providers/garden";
 import { useUser } from "@/providers/user";
 import { abi as WorkApprovalResolverABI } from "@/utils/abis/WorkApprovalResolver.json";
-import { compareChainId } from "@/utils/chainId";
 import { isValidAttestationId, openEASExplorer } from "@/utils/easExplorer";
 import { downloadWorkData, downloadWorkMedia, shareWork, type WorkData } from "@/utils/workActions";
 import { WorkCompleted } from "../../Garden/Completed";
@@ -62,7 +61,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   const chainId = useCurrentChain();
 
   const work = garden?.works.find((work) => work.id === workId);
-  const action = actions.find((action) => compareChainId(action.id, work?.actionUID || 0));
+  const action = actions.find((action) => action.id === `${chainId}-${work?.actionUID || 0}`);
 
   const { smartAccountAddress } = useUser();
 
