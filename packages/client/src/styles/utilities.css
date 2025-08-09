@@ -119,4 +119,28 @@
   .btn-icon svg {
     @apply focus:text-primary active:text-primary;
   }
+
+  /* Increase hit area for touch without changing visual size */
+  .btn-icon::after {
+    content: "";
+    position: absolute;
+    /* Expand by 8px on all sides: 32px + 16px = 48px touch target */
+    inset: -8px;
+    border-radius: inherit;
+    background: transparent;
+    pointer-events: auto;
+  }
+
+  /* Reusable large touch target utility */
+  .tap-target-lg {
+    position: relative;
+  }
+  .tap-target-lg::after {
+    content: "";
+    position: absolute;
+    inset: -8px; /* 16px expansion → 48px total if base is 32px */
+    border-radius: inherit;
+    background: transparent;
+    pointer-events: auto;
+  }
 }

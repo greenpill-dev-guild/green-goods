@@ -52,7 +52,7 @@ export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className 
         className={cn(
           "relative p-1 rounded-lg border transition-all duration-200",
           "hover:shadow-lg hover:scale-105 active:scale-95",
-          "flex items-center justify-center w-8 h-8",
+          "flex items-center justify-center w-8 h-8 tap-target-lg",
           "focus:outline-none focus:ring-2",
           // Use state-appropriate colors for focus/active only
           isSyncing

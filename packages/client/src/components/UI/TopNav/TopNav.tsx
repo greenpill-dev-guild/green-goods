@@ -115,7 +115,7 @@ const NotificationCenter: React.FC<TopNavProps> = ({ works, ...props }) => {
     <>
       <button
         type="button"
-        className={cn(styles.button, "dropdown dropdown-bottom dropdown-end")}
+        className={cn(styles.button, "dropdown dropdown-bottom dropdown-end tap-target-lg")}
         onClick={toggleDialog}
       >
         {hasNotifications && <NotificationBadge count={workNotifications.length} />}
@@ -155,7 +155,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   );
 
   const backButtonClasses = cn(
-    "p-0 px-2 z-1 transition-all duration-200",
+    "p-0 px-2 z-1 transition-all duration-200 tap-target-lg",
     "focus:outline-none focus:ring-2 hover:shadow-lg hover:scale-105 active:scale-95",
     backButtonStyles.focusStyles
   );
