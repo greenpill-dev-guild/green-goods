@@ -1,4 +1,5 @@
-import { forwardRef, type UIEvent, useMemo } from "react";
+import React, { forwardRef, memo, type UIEvent, useMemo, useCallback } from "react";
+import { FixedSizeList as List } from "react-window";
 import { useIntl } from "react-intl";
 import { useNavigateToTop } from "@/hooks";
 // import { WorkCard } from "../UI/Card/WorkCard";
@@ -37,32 +38,79 @@ const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
 
   switch (workFetchStatus) {
     case "pending":
-      return <BeatLoader />;
-    case "success":
-      return sorted.length ? (
-        sorted.map((work) => {
-          const action = actionById.get(String(work.actionUID));
-          if (!action) return null;
-          return (
-            <li key={work.id} className="p-2">
-              <div
-                onClick={() => navigate(`/home/${work.gardenAddress}/work/${work.id}`)}
-                className="flex flex-col gap-1 cursor-pointer"
-              >
-                <span className="text-sm font-medium">{action.title}</span>
-                <span className="text-xs text-slate-600">{work.feedback}</span>
+      return (
+        <div className="grid gap-3">
+          {[...Array(8)].map((_, i) => (
+            <li key={i} className="p-2">
+              <div className="flex flex-col gap-2 rounded-lg border border-slate-200 p-3 bg-white">
+                <div className="h-4 w-40 bg-slate-200 rounded animate-pulse" />
+                <div className="h-3 w-64 bg-slate-200 rounded animate-pulse" />
               </div>
             </li>
-          );
-        })
-      ) : (
-        <p className="grid p-8 place-items-center text-sm text-center italic text-gray-400">
-          {intl.formatMessage({
-            id: "app.garden.work.noWork",
-            description: "No work yet",
-          })}
-        </p>
+          ))}
+        </div>
       );
+    case "success": {
+      if (!sorted.length) {
+        return (
+          <p className="grid p-8 place-items-center text-sm text-center italic text-gray-400">
+            {intl.formatMessage({
+              id: "app.garden.work.noWork",
+              description: "No work yet",
+            })}
+          </p>
+        );
+      }
+
+      const WorkListItem = memo(function WorkListItem({
+        index,
+        style,
+      }: {
+        index: number;
+        style: React.CSSProperties;
+      }) {
+        const work = sorted[index];
+        const action = actionById.get(String(work.actionUID));
+        if (!action) return null;
+        const onOpen = useCallback(
+          () => navigate(`/home/${work.gardenAddress}/work/${work.id}`),
+          [navigate, work.gardenAddress, work.id]
+        );
+        return (
+          <li style={style} className="p-2">
+            <button
+              onClick={onOpen}
+              className="flex flex-col gap-1 text-left w-full rounded-lg border border-slate-200 p-3 bg-white hover:shadow-sm transition-transform transform-gpu hover:scale-[1.01]"
+              aria-label={`View work ${action.title}`}
+            >
+              <span className="text-sm font-medium">{action.title}</span>
+              <span className="text-xs text-slate-600 line-clamp-2">{work.feedback}</span>
+            </button>
+          </li>
+        );
+      });
+
+      const shouldVirtualize = sorted.length > 30;
+      return shouldVirtualize ? (
+        <List
+          height={600}
+          itemCount={sorted.length}
+          itemSize={80}
+          width={"100%"}
+          className="w-full"
+        >
+          {({ index, style }: { index: number; style: React.CSSProperties }) => (
+            <WorkListItem index={index} style={style} />
+          )}
+        </List>
+      ) : (
+        <>
+          {sorted.map((_, i) => (
+            <WorkListItem key={sorted[i].id} index={i} style={{}} />
+          ))}
+        </>
+      );
+    }
     case "error":
       return (
         <p className="grid place-items-center text-sm italic">
@@ -73,6 +121,8 @@ const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
         </p>
       );
   }
+
+  return null;
 };
 
 export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(

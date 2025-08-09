@@ -8,7 +8,7 @@ import {
 import React, { useEffect } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation, useParams } from "react-router-dom";
-import { GardenAssessments } from "@/components/Garden/Asessments";
+import { GardenAssessments } from "@/components/Garden/Assessments";
 import { GardenGardeners } from "@/components/Garden/Gardeners";
 import { GardenWork } from "@/components/Garden/Work";
 import { GardenErrorBoundary } from "@/components/UI/ErrorBoundary/ErrorBoundary";

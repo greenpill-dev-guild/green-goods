@@ -48,6 +48,7 @@
     "react-intl": "6.6.8",
     "react-router-dom": "^6.26.1",
     "react-select": "5.8.0",
+    "react-window": "^1.8.10",
     "react-spinners": "0.15.0",
     "tailwind-merge": "3.0.2",
     "tailwind-variants": "0.3.1",
