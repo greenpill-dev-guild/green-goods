@@ -2,7 +2,8 @@ import { useIntl } from "react-intl";
 import { Outlet, useLocation } from "react-router-dom";
 
 import { GardenCard } from "@/components/UI/Card/GardenCard";
-import { BeatLoader } from "@/components/UI/Loader";
+import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
+
 import { WorkDashboardIcon } from "@/components/UI/WorkDashboard/Icon";
 import { useBrowserNavigation, useNavigateToTop } from "@/hooks";
 import { useGardens } from "@/providers/garden";
@@ -25,8 +26,10 @@ const Gardens: React.FC = () => {
     switch (gardensStatus) {
       case "pending":
         return (
-          <div className="flex w-full h-full items-center justify-center ">
-            <BeatLoader />
+          <div className="flex flex-col gap-4">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <GardenCardSkeleton key={idx} media="large" height="home" />
+            ))}
           </div>
         );
       case "success":
