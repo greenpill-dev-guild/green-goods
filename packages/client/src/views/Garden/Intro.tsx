@@ -24,6 +24,11 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
   setGardenAddress,
 }) => {
   const intl = useIntl();
+  const uidFromActionId = (id: string): number | null => {
+    const last = id.split("-").pop();
+    const n = Number(last);
+    return Number.isFinite(n) ? n : null;
+  };
 
   return (
     <>
@@ -40,15 +45,19 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
       />
       <Carousel opts={{ align: "start" }}>
         <CarouselContent>
-          {actions.map((action) => (
-            <CarouselItem key={action.id} onClick={() => setActionUID(action.id)}>
-              <ActionCard
-                action={action}
-                selected={selectedActionUID === action.id}
-                media="small"
-              />
-            </CarouselItem>
-          ))}
+          {actions.map((action) => {
+            const uid = uidFromActionId(action.id);
+            return (
+              <CarouselItem
+                key={action.id}
+                onClick={() => {
+                  if (uid !== null) setActionUID(uid);
+                }}
+              >
+                <ActionCard action={action} selected={selectedActionUID === uid} media="small" />
+              </CarouselItem>
+            );
+          })}
         </CarouselContent>
       </Carousel>
       <FormInfo
