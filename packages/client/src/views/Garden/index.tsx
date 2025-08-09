@@ -56,8 +56,8 @@ const Work: React.FC = () => {
   const action = actions.find((action) => action.id === `${chainId}-${actionUID}`);
 
   // Enhanced upload function with duplicate detection
-  const handleWorkSubmission = async () => {
-    if (!gardenAddress || !actionUID || !action) return;
+  const handleWorkSubmission = async (): Promise<boolean> => {
+    if (!gardenAddress || !actionUID || !action) return false;
 
     // Check for duplicates first
     const workData = {
@@ -82,15 +82,17 @@ const Work: React.FC = () => {
           workData,
           duplicateInfo: duplicateResult,
         });
-        return;
+        return false;
       }
 
       // No duplicates, proceed with normal submission
       uploadWork();
+      return true;
     } catch (error) {
       console.error("Error checking for duplicates:", error);
       // Proceed with submission if duplicate check fails
       uploadWork();
+      return true;
     }
   };
 
@@ -204,10 +206,9 @@ const Work: React.FC = () => {
     },
     [WorkTab.Review]: {
       primary: async () => {
-        // Check for duplicates before submission
-        await handleWorkSubmission();
-        // Only proceed to complete tab if no duplicates were found
-        if (!duplicateWarning) {
+        // Check for duplicates before submission and proceed based on result
+        const proceeded = await handleWorkSubmission();
+        if (proceeded) {
           changeTab(WorkTab.Complete);
           form.reset();
         }
@@ -223,7 +224,7 @@ const Work: React.FC = () => {
     [WorkTab.Complete]: {
       primary: () => {
         workMutation.reset();
-        control._reset();
+        form.reset();
         setImages([]);
         changeTab(WorkTab.Intro);
         navigate("/home");

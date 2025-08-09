@@ -76,7 +76,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, currentIndex, images.length, onClose, resetZoom]);
+  }, [isOpen, currentIndex, images.length, onClose]);
 
   const navigatePrev = () => {
     if (currentIndex > 0) {
