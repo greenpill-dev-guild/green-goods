@@ -2,8 +2,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getWorks } from "@/modules/eas";
 import { jobQueue, jobQueueDB } from "@/modules/job-queue";
 import { jobQueueEventBus, useJobQueueEvents } from "@/modules/job-queue/event-bus";
-import { queryInvalidation, queryKeys } from "./query-keys";
-import { useCurrentChain } from "./useChainConfig";
+import { queryKeys } from "./query-keys";
+import { DEFAULT_CHAIN_ID } from "@/config";
 import { useMerged } from "./useMerged";
 
 // Helper function to convert job payload to Work model
@@ -33,7 +33,7 @@ export function jobToWork(job: Job<WorkJobPayload>): Work {
  * Hook for merged works (online + offline) with event-driven updates
  */
 export function useWorks(gardenId: string) {
-  const chainId = useCurrentChain();
+  const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
 
   const merged = useMerged<WorkCard[], Job<WorkJobPayload>[], Work[]>({
@@ -77,7 +77,7 @@ export function useWorks(gardenId: string) {
         subscribe: (listener: () => void) =>
           jobQueueEventBus.onMultiple(
             ["job:added", "job:completed", "job:failed"],
-            (type, data) => {
+            (_type, data) => {
               if ("job" in data && data.job.kind === "work") {
                 const jobGardenId = (data.job.payload as WorkJobPayload).gardenAddress;
                 if (jobGardenId === gardenId) listener();

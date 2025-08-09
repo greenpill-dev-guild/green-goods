@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import React, { useContext, useMemo } from "react";
-import { useCurrentChain } from "@/hooks";
+import { DEFAULT_CHAIN_ID } from "@/config";
 import { useWorks } from "@/hooks/useWorks";
 import { getGardenAssessments } from "@/modules/eas";
 import { getActions, getGardeners, getGardens } from "@/modules/greengoods";
@@ -31,7 +31,7 @@ export const useGarden = (id: string): GardenDataProps => {
   const { gardens, gardenersMap } = useGardens();
   const { workApprovalMap } = useWork();
   const { eoa, smartAccountAddress } = useUser();
-  const chainId = useCurrentChain();
+  const chainId = DEFAULT_CHAIN_ID;
 
   // Use merged works hook to get both online and offline work
   const { works: mergedWorks, isLoading: worksLoading } = useWorks(id);
@@ -108,17 +108,17 @@ export const useGardens = () => {
 };
 
 export const GardensProvider = ({ children }: { children: React.ReactNode }) => {
-  const chainId = useCurrentChain();
+  const chainId = DEFAULT_CHAIN_ID;
 
   // QUERIES
   const { data: actions } = useQuery<Action[]>({
     queryKey: ["actions", chainId],
-    queryFn: () => getActions(chainId),
+    queryFn: () => getActions(),
   });
 
   const { data: gardens, status: gardensStatus } = useQuery<Garden[]>({
     queryKey: ["gardens", chainId],
-    queryFn: () => getGardens(chainId),
+    queryFn: () => getGardens(),
   });
   const { data: gardeners, status: gardenersStatus } = useQuery<GardenerCard[]>({
     queryKey: ["gardeners"],

@@ -1,34 +1,12 @@
-import { useWallets } from "@privy-io/react-auth";
 import { useMemo } from "react";
-import { getEASConfig, getNetworkConfig } from "@/config";
+import { DEFAULT_CHAIN_ID, getEASConfig, getNetworkConfig } from "@/config";
 
 /**
  * Hook to get the current chain ID from the connected wallet
  * Falls back to Base Sepolia if no wallet is connected
  */
 export function useCurrentChain() {
-  const { wallets } = useWallets();
-
-  const chainId = useMemo(() => {
-    // Get the first connected wallet
-    const connectedWallet = wallets.find((wallet) => wallet.chainId);
-
-    if (connectedWallet?.chainId) {
-      // Convert hex to decimal if needed
-      const chain =
-        typeof connectedWallet.chainId === "string" && connectedWallet.chainId.startsWith("0x")
-          ? parseInt(connectedWallet.chainId, 16)
-          : connectedWallet.chainId;
-
-      const finalChain = Number(chain);
-      return finalChain;
-    }
-
-    // Final fallback to Base Sepolia when no wallet is connected yet
-    return 84532; // Base Sepolia
-  }, [wallets]);
-
-  return chainId;
+  return useMemo(() => DEFAULT_CHAIN_ID, []);
 }
 
 /**

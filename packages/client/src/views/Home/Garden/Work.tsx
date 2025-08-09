@@ -28,7 +28,8 @@ import { FormInfo } from "@/components/UI/Form/Info";
 import { FormText } from "@/components/UI/Form/Text";
 import { CircleLoader } from "@/components/UI/Loader";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
-import { useCurrentChain, useNavigateToTop } from "@/hooks";
+import { useNavigateToTop } from "@/hooks";
+import { DEFAULT_CHAIN_ID } from "@/config";
 import { createOfflineTxHash, jobQueue } from "@/modules/job-queue";
 import { getFileByHash } from "@/modules/pinata";
 import { useGarden, useGardens } from "@/providers/garden";
@@ -58,7 +59,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   const { garden } = useGarden(id!);
   const { actions } = useGardens();
   const queryClient = useQueryClient();
-  const chainId = useCurrentChain();
+  const chainId = DEFAULT_CHAIN_ID;
 
   const work = garden?.works.find((work) => work.id === workId);
   const action = actions.find((action) => {

@@ -2,7 +2,7 @@ import { type QueryObserverResult, useMutation, useQuery } from "@tanstack/react
 import React, { useContext, useState } from "react";
 import { type Control, type FormState, type UseFormRegister, useForm } from "react-hook-form";
 import { decodeErrorResult } from "viem";
-import { useCurrentChain } from "@/hooks";
+import { DEFAULT_CHAIN_ID } from "@/config";
 import { getWorkApprovals } from "@/modules/eas";
 import { queryClient } from "@/modules/react-query";
 import { formatJobError, submitWorkToQueue } from "@/modules/work-submission";
@@ -82,7 +82,7 @@ export const useWork = () => {
 export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   const { eoa } = useUser();
   const { actions, gardens } = useGardens();
-  const chainId = useCurrentChain();
+  const chainId = DEFAULT_CHAIN_ID;
 
   // QUERIES
   const { data: workApprovals, refetch: refetchWorkApprovals } = useQuery<WorkApproval[]>({

@@ -19,11 +19,7 @@ const debugEnvVars = () => {
       {} as Record<string, string>
     );
 
-  console.log("🔍 Environment Variables Status:", viteVars);
-  console.log("📍 Key variables check:");
-  console.log("  VITE_PRIVY_APP_ID:", import.meta.env.VITE_PRIVY_APP_ID ? "✅" : "❌");
-  console.log("  VITE_CHAIN_ID:", import.meta.env.VITE_CHAIN_ID || "❌ Not set");
-  console.log("  VITE_PINATA_JWT:", import.meta.env.VITE_PINATA_JWT ? "✅" : "❌");
+  void viteVars;
 };
 
 // Run debug in development
@@ -77,6 +73,9 @@ export function getDefaultChain(): Chain {
       return baseSepolia;
   }
 }
+
+// Constant chain id derived from env for app-wide use
+export const DEFAULT_CHAIN_ID = getDefaultChain().id;
 
 // Helper function to get network config by chain ID
 function getNetworkConfigFromNetworksJson(chainId: number) {

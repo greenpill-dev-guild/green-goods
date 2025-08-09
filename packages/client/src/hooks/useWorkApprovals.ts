@@ -1,11 +1,10 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getEASConfig } from "@/config";
+import { DEFAULT_CHAIN_ID, getEASConfig } from "@/config";
 import { easGraphQL } from "@/modules/graphql";
 import { jobQueue } from "@/modules/job-queue";
 import { useJobQueueEvents } from "@/modules/job-queue/event-bus";
 import { createEasClient } from "@/modules/urql";
 import { queryKeys } from "./query-keys";
-import { useCurrentChain } from "./useChainConfig";
 
 // Enhanced work approval interface for UI
 export interface EnhancedWorkApproval extends WorkApproval {
@@ -58,38 +57,30 @@ async function getWorkApprovalsByAttester(
       return [];
     }
 
-    return (data.attestations as any[])
-      .map((attestation: any) => {
-        try {
-          const decodedData = JSON.parse(attestation.decodedDataJson);
+    return (data.attestations as any[]).flatMap((attestation: any) => {
+      try {
+        const decodedData = JSON.parse(attestation.decodedDataJson);
 
-          const actionUID = decodedData.find((d: any) => d.name === "actionUID")?.value?.value || 0;
-          const workUID = decodedData.find((d: any) => d.name === "workUID")?.value?.value || "";
-          const approved =
-            decodedData.find((d: any) => d.name === "approved")?.value?.value || false;
-          const feedback = decodedData.find((d: any) => d.name === "feedback")?.value?.value || "";
+        const actionUID = decodedData.find((d: any) => d.name === "actionUID")?.value?.value || 0;
+        const workUID = decodedData.find((d: any) => d.name === "workUID")?.value?.value || "";
+        const approved = decodedData.find((d: any) => d.name === "approved")?.value?.value || false;
+        const feedback = decodedData.find((d: any) => d.name === "feedback")?.value?.value || "";
 
-          return {
-            id: attestation.id,
-            operatorAddress: attestation.attester,
-            gardenerAddress: attestation.recipient,
-            actionUID,
-            workUID,
-            approved,
-            feedback,
-            createdAt: attestation.timeCreated * 1000, // Convert to milliseconds
-          };
-        } catch (parseError) {
-          console.warn(
-            "Failed to parse attestation data:",
-            parseError,
-            "for attestation:",
-            attestation?.id
-          );
-          return null; // Return null for failed parsing
-        }
-      })
-      .filter((a: WorkApproval | null): a is WorkApproval => Boolean(a));
+        const approval: WorkApproval = {
+          id: attestation.id,
+          operatorAddress: attestation.attester,
+          gardenerAddress: attestation.recipient,
+          actionUID,
+          workUID,
+          approved,
+          feedback,
+          createdAt: attestation.timeCreated * 1000, // Convert to milliseconds
+        };
+        return [approval];
+      } catch (_parseError) {
+        return [];
+      }
+    });
   } catch (networkError) {
     console.warn(
       "Network error fetching work approvals:",
@@ -104,7 +95,7 @@ async function getWorkApprovalsByAttester(
  * Used by WorkDashboard to show all work the user has reviewed
  */
 export function useWorkApprovals(attesterAddress?: string) {
-  const chainId = useCurrentChain();
+  const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
 
   // Online work approvals query (where user is attester)

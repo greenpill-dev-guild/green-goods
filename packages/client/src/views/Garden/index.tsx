@@ -8,7 +8,7 @@ import { Button } from "@/components/UI/Button";
 import { DuplicateWorkWarning } from "@/components/UI/DuplicateWorkWarning/DuplicateWorkWarning";
 import { FormProgress } from "@/components/UI/Form/Progress";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
-import { useCurrentChain } from "@/hooks/useChainConfig";
+import { DEFAULT_CHAIN_ID } from "@/config";
 import { defaultDeduplicationManager } from "@/modules/deduplication";
 
 import { useWork, WorkTab } from "@/providers/work";
@@ -21,7 +21,7 @@ import { WorkReview } from "./Review";
 const Work: React.FC = () => {
   const intl = useIntl();
   const navigate = useNavigate();
-  const chainId = useCurrentChain();
+  const chainId = DEFAULT_CHAIN_ID;
   const { gardens, actions, form, activeTab, setActiveTab, workMutation } = useWork();
 
   // State for duplicate warning modal
