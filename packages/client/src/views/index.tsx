@@ -11,7 +11,7 @@ const GardenAssessment = lazy(() =>
   import("./Home/Garden/Assessment").then((module) => ({ default: module.GardenAssessment }))
 );
 const HomeGarden = lazy(() =>
-  import("./Home/Garden/Garden").then((module) => ({ default: module.Garden }))
+  import("./Home/Garden").then((module) => ({ default: module.Garden }))
 );
 const GardenWork = lazy(() =>
   import("./Home/Garden/Work").then((module) => ({ default: module.GardenWork }))

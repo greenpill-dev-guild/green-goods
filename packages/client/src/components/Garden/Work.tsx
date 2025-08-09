@@ -138,8 +138,8 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
         onScroll={handleScroll}
         className={
           !isEmpty && !hasError && !isLoading
-            ? "grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 w-full no-scrollbar overflow-y-scroll h-full"
-            : "flex items-center justify-center w-full h-full overflow-y-scroll no-scrollbar"
+            ? "grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 w-full overflow-y-scroll h-full"
+            : "flex items-center justify-center w-full h-full overflow-y-scroll"
         }
       >
         {isLoading && (

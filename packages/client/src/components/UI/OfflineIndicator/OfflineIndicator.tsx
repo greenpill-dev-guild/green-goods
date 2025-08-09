@@ -15,7 +15,7 @@ type IndicatorState = "offline" | "back-online" | null;
 
 export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
   className,
-  forceShow = true, // Default to true for testing
+  forceShow = false, // Default to true for testing
   testState,
 }) => {
   // Get data directly from hooks

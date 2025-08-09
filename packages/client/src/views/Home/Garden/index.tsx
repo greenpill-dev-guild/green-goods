@@ -128,14 +128,8 @@ export const Garden: React.FC<GardenProps> = () => {
       <div className="h-full w-full flex flex-col relative">
         {pathname.includes("work") || pathname.includes("assessments") ? null : (
           <>
-            {/* Sticky Header */}
-            <div className="sticky top-0 left-0 right-0 w-full bg-white z-10 shadow-sm">
-              <TopNav
-                className="flex w-full justify-between items-center p-4"
-                onBackClick={() => navigate("/home")}
-                works={works}
-                garden={garden}
-              />
+            {/* Banner with overlaid TopNav */}
+            <div className="relative w-full">
               <img
                 src={bannerImage}
                 className="w-full object-cover object-center rounded-b-3xl h-44 md:h-52"
@@ -143,24 +137,37 @@ export const Garden: React.FC<GardenProps> = () => {
                 loading="eager"
                 decoding="async"
               />
-              <div className="px-4 md:px-6 mt-3 flex flex-col gap-1.5">
-                <h1 className="text-xl md:text-2xl font-semibold line-clamp-1">{name}</h1>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
-                  <div className="flex items-center gap-1.5 text-sm text-gray-600">
-                    <RiMapPin2Fill className="h-4 w-4 text-primary flex-shrink-0" />
-                    <span>{location}</span>
-                  </div>
-                  <span className="hidden sm:inline text-gray-400">•</span>
-                  <div className="flex items-center gap-1.5 text-sm text-gray-600">
-                    <RiCalendarEventFill className="h-4 w-4 text-primary flex-shrink-0" />
-                    <span>
-                      {intl.formatMessage({ id: "app.home.founded" })}{" "}
-                      {new Date(createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
+              <div className="absolute top-0 left-0 right-0 z-20">
+                <TopNav
+                  className="flex w-full justify-between items-center p-4 pt-6"
+                  onBackClick={() => navigate("/home")}
+                  works={works}
+                  garden={garden}
+                />
+              </div>
+            </div>
+
+            {/* Title and meta below banner */}
+            <div className="px-4 md:px-6 mt-3 flex flex-col gap-1.5">
+              <h1 className="text-xl md:text-2xl font-semibold line-clamp-1">{name}</h1>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
+                <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                  <RiMapPin2Fill className="h-4 w-4 text-primary flex-shrink-0" />
+                  <span>{location}</span>
+                </div>
+                <span className="hidden sm:inline text-gray-400">•</span>
+                <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                  <RiCalendarEventFill className="h-4 w-4 text-primary flex-shrink-0" />
+                  <span>
+                    {intl.formatMessage({ id: "app.home.founded" })}{" "}
+                    {new Date(createdAt).toLocaleDateString()}
+                  </span>
                 </div>
               </div>
+            </div>
 
+            {/* Tabs can remain sticky for better UX */}
+            <div className="sticky top-0 left-0 right-0 w-full bg-white z-10 shadow-sm">
               <StandardTabs
                 tabs={tabs}
                 activeTab={activeTab}
