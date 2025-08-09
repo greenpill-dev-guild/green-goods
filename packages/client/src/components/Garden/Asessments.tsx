@@ -4,7 +4,6 @@ import { useIntl } from "react-intl";
 import getTag from "@/utils/tags";
 import { Badge } from "../UI/Badge/Badge";
 import { Card } from "../UI/Card/Card";
-import { BeatLoader } from "../UI/Loader";
 
 interface GardenAssessmentsProps {
   assessments: GardenAssessment[];

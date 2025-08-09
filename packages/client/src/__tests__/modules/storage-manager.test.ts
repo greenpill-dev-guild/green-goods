@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  StorageManager,
-  defaultStorageManager,
   type CleanupPolicy,
+  defaultStorageManager,
+  StorageManager,
   // type CleanupResult,
   // type StorageAnalytics,
   // type StorageQuota,

@@ -1,4 +1,4 @@
-import { RiArrowLeftFill, RiNotificationLine, RiNotificationFill } from "@remixicon/react";
+import { RiArrowLeftFill, RiNotificationFill, RiNotificationLine } from "@remixicon/react";
 import { forwardRef, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useOffline } from "@/hooks";

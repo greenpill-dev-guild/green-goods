@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from "react";
+import { RiCheckboxCircleLine, RiCloseLine, RiTimeLine, RiUploadLine } from "@remixicon/react";
+import React, { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { cn } from "../../../utils/cn";
-import { StandardTabs, type StandardTab } from "../Tabs";
-import { useUser } from "../../../providers/user";
 import { useWorkApprovals } from "../../../hooks/useWorkApprovals";
-import { RiCloseLine, RiUploadLine, RiTimeLine, RiCheckboxCircleLine } from "@remixicon/react";
-import { UploadingTab } from "./Uploading";
-import { PendingTab } from "./Pending";
+import { useUser } from "../../../providers/user";
+import { cn } from "../../../utils/cn";
+import { type StandardTab, StandardTabs } from "../Tabs";
 import { CompletedTab } from "./Completed";
+import { PendingTab } from "./Pending";
+import { UploadingTab } from "./Uploading";
 
 export interface WorkDashboardProps {
   className?: string;

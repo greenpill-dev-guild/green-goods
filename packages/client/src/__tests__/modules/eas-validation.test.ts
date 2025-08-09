@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { parseDataToWorkApproval, parseDataToWork } from "../../modules/eas";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { parseDataToWork, parseDataToWorkApproval } from "../../modules/eas";
 
 // Mock the pinata module
 vi.mock("../../modules/pinata", () => ({

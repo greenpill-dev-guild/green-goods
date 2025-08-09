@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { cn } from "../../../utils/cn";
 import type { DuplicateCheckResult } from "../../../modules/deduplication";
+import { cn } from "../../../utils/cn";
 
 interface DuplicateWorkWarningProps {
   workData: any;

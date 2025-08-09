@@ -1,8 +1,8 @@
-import React, { useState } from "react";
 import { RiCloudOffLine, RiLoader4Line, RiTaskLine } from "@remixicon/react";
+import React, { useState } from "react";
 import { useIntl } from "react-intl";
-import { cn } from "../../../utils/cn";
 import { useOffline } from "../../../hooks/useOffline";
+import { cn } from "../../../utils/cn";
 import { WorkDashboard } from "./WorkDashboard";
 
 interface WorkDashboardIconProps {
@@ -24,28 +24,23 @@ export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className 
   let iconColor = "text-slate-500";
   let bgColor = "bg-white";
   let borderColor = "border-slate-200";
-  let focusActiveColors = "focus:text-slate-700 active:text-slate-700";
 
   if (isSyncing) {
     primaryIcon = (
       <RiLoader4Line className="w-4 h-4 animate-spin focus:text-blue-700 active:text-blue-700" />
     );
     iconColor = "text-slate-500";
-    focusActiveColors = "focus:text-blue-700 active:text-blue-700";
   } else if (!isOnline) {
     primaryIcon = (
       <RiCloudOffLine className="w-4 h-4 focus:text-orange-700 active:text-orange-700" />
     );
     iconColor = "text-slate-500";
-    focusActiveColors = "focus:text-orange-700 active:text-orange-700";
   } else if (hasPendingItems) {
     primaryIcon = <RiTaskLine className="w-4 h-4 focus:text-emerald-700 active:text-emerald-700" />;
     iconColor = "text-slate-500";
-    focusActiveColors = "focus:text-emerald-700 active:text-emerald-700";
   } else {
     primaryIcon = <RiTaskLine className="w-4 h-4 focus:text-emerald-700 active:text-emerald-700" />;
     iconColor = "text-slate-500";
-    focusActiveColors = "focus:text-emerald-700 active:text-emerald-700";
   }
 
   // Dashboard state and handlers

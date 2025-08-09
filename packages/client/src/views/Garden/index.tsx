@@ -1,16 +1,15 @@
 import { RiArrowRightSLine, RiImage2Fill } from "@remixicon/react";
+import { useState } from "react";
 import { Form } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
 
 import { Button } from "@/components/UI/Button";
+import { DuplicateWorkWarning } from "@/components/UI/DuplicateWorkWarning/DuplicateWorkWarning";
 import { FormProgress } from "@/components/UI/Form/Progress";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
-import { DuplicateWorkWarning } from "@/components/UI/DuplicateWorkWarning/DuplicateWorkWarning";
-
-import { defaultDeduplicationManager } from "@/modules/deduplication";
 import { useCurrentChain } from "@/hooks/useChainConfig";
+import { defaultDeduplicationManager } from "@/modules/deduplication";
 
 import { useWork, WorkTab } from "@/providers/work";
 import { WorkCompleted } from "./Completed";

@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DeduplicationManager,
-  defaultDeduplicationManager,
   type DuplicationConfig,
+  defaultDeduplicationManager,
   // type DuplicateCheckResult,
   // type LocalDuplicateResult,
 } from "@/modules/deduplication";

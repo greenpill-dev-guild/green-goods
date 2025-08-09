@@ -1,12 +1,12 @@
-import React from "react";
-import { cn } from "../../../utils/cn";
 import {
   RiCheckLine,
   RiCloseLine,
-  RiTimeLine,
-  RiLoader4Line,
   RiErrorWarningLine,
+  RiLoader4Line,
+  RiTimeLine,
 } from "@remixicon/react";
+import React from "react";
+import { cn } from "../../../utils/cn";
 
 export interface StatusBadgeProps {
   status: "approved" | "rejected" | "pending" | "syncing" | "failed";

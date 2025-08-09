@@ -2,7 +2,7 @@ import { RiHeadphoneLine, RiSettings2Fill } from "@remixicon/react";
 import { type React, useState } from "react";
 import { useIntl } from "react-intl";
 import { Profile as UserProfile } from "@/components/UI/Profile/Profile";
-import { StandardTabs, type StandardTab } from "@/components/UI/Tabs";
+import { type StandardTab, StandardTabs } from "@/components/UI/Tabs";
 import { useUser } from "@/providers/user";
 import { formatAddress } from "@/utils/text";
 import { ProfileAccount } from "./Account";

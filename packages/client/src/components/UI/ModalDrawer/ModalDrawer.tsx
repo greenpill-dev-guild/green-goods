@@ -1,5 +1,5 @@
-import React from "react";
 import { RiCloseLine } from "@remixicon/react";
+import React from "react";
 import { cn } from "../../../utils/cn";
 
 export interface ModalDrawerTab {

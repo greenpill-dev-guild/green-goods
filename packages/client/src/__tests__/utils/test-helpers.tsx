@@ -13,9 +13,9 @@
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, type RenderOptions } from "@testing-library/react";
+import { type RenderOptions, render } from "@testing-library/react";
 import React from "react";
-import { vi, expect } from "vitest";
+import { expect, vi } from "vitest";
 
 // ============================================================================
 // Type Definitions
@@ -539,4 +539,4 @@ export const cleanupAfterEach = () => {
 // ============================================================================
 
 export * from "@testing-library/react";
-export { vi, expect } from "vitest";
+export { expect, vi } from "vitest";

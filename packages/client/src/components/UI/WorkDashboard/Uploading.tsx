@@ -1,8 +1,8 @@
 import React from "react";
 import { useIntl } from "react-intl";
-import { BeatLoader } from "../Loader";
-import { MinimalWorkCard } from "../Card/WorkCard";
 import { jobQueue } from "../../../modules/job-queue";
+import { MinimalWorkCard } from "../Card/WorkCard";
+import { BeatLoader } from "../Loader";
 
 interface UploadingTabProps {
   uploadingWork: any[];

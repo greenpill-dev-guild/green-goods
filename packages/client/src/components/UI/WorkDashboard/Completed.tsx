@@ -1,7 +1,7 @@
 import React from "react";
 import { useIntl } from "react-intl";
-import { BeatLoader } from "../Loader";
 import { MinimalWorkCard } from "../Card/WorkCard";
+import { BeatLoader } from "../Loader";
 
 interface CompletedTabProps {
   completedWork: any[];

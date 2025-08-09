@@ -1,14 +1,14 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanupAfterEach, mockConsole, setupBeforeEach } from "@/__tests__/utils/test-helpers";
 import {
   AppProvider,
-  useApp,
   // type Locale,
   // type Platform,
   supportedLanguages,
+  useApp,
 } from "@/providers/app";
-import { setupBeforeEach, cleanupAfterEach, mockConsole } from "@/__tests__/utils/test-helpers";
 
 // Mock dependencies
 vi.mock("posthog-js/react", () => ({

@@ -3,27 +3,23 @@ import {
   RiCheckDoubleFill,
   RiCheckFill,
   RiCloseFill,
+  RiDownloadLine,
+  RiExternalLinkLine,
   RiHammerFill,
   RiLeafFill,
   RiPencilFill,
   RiPlantFill,
-  RiDownloadLine,
   RiShareLine,
-  RiExternalLinkLine,
   RiZoomInLine,
 } from "@remixicon/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Form, useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { useParams } from "react-router-dom";
 import { decodeErrorResult } from "viem";
 
 import { z } from "zod";
-import { compareChainId } from "@/utils/chainId";
-import { downloadWorkMedia, downloadWorkData, shareWork, type WorkData } from "@/utils/workActions";
-import { openEASExplorer, isValidAttestationId } from "@/utils/easExplorer";
-
 import { Button } from "@/components/UI/Button";
 import { GardenCard } from "@/components/UI/Card/GardenCard";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/UI/Carousel/Carousel";
@@ -32,12 +28,15 @@ import { FormInfo } from "@/components/UI/Form/Info";
 import { FormText } from "@/components/UI/Form/Text";
 import { CircleLoader } from "@/components/UI/Loader";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
+import { useCurrentChain, useNavigateToTop } from "@/hooks";
 import { createOfflineTxHash, jobQueue } from "@/modules/job-queue";
 import { getFileByHash } from "@/modules/pinata";
 import { useGarden, useGardens } from "@/providers/garden";
 import { useUser } from "@/providers/user";
 import { abi as WorkApprovalResolverABI } from "@/utils/abis/WorkApprovalResolver.json";
-import { useCurrentChain, useNavigateToTop } from "@/hooks";
+import { compareChainId } from "@/utils/chainId";
+import { isValidAttestationId, openEASExplorer } from "@/utils/easExplorer";
+import { downloadWorkData, downloadWorkMedia, shareWork, type WorkData } from "@/utils/workActions";
 import { WorkCompleted } from "../../Garden/Completed";
 
 type GardenWorkProps = {};

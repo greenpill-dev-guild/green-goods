@@ -1,7 +1,11 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useStorageManager } from "@/hooks/useStorageManager";
-import type { CleanupResult, StorageAnalytics } from "@/modules/storage-manager";
+import {
+  type CleanupResult,
+  defaultStorageManager,
+  type StorageAnalytics,
+} from "@/modules/storage-manager";
 
 // Mock the storage manager module
 vi.mock("@/modules/storage-manager", () => ({
@@ -13,7 +17,6 @@ vi.mock("@/modules/storage-manager", () => ({
 }));
 
 // Import mocked modules after mocking
-import { defaultStorageManager } from "@/modules/storage-manager";
 
 const mockStorageManager = vi.mocked(defaultStorageManager);
 

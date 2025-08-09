@@ -1,10 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import React from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { TestQueryProvider } from "../test-utils";
-import { Job } from "@/types/job-queue";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { jobToWork, usePendingWorksCount, useQueueStatistics, useWorks } from "@/hooks/useWorks";
+
+// Job is globally declared via src/types/job-queue.d.ts
+// import { TestQueryProvider } from "../test-utils";
 
 // Mock modules with direct vi.fn() in factories to avoid hoisting issues
 vi.mock("@/modules/eas", () => ({
@@ -33,10 +34,10 @@ vi.mock("@/modules/job-queue/media-resource-manager", () => ({
   },
 }));
 
+import { useCurrentChain } from "@/hooks";
 // Get mock references after module mocking
 import { getWorks } from "@/modules/eas";
 import { jobQueue, jobQueueDB } from "@/modules/job-queue";
-import { useCurrentChain } from "@/hooks";
 
 // Test data factories
 const createMockWork = (overrides: Partial<Work> = {}): Work => ({

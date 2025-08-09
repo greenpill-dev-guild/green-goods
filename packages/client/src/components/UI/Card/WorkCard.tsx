@@ -1,19 +1,19 @@
+import {
+  RiCheckLine,
+  RiCloseLine,
+  RiFileTextLine,
+  RiImageLine,
+  RiPlantLine,
+  RiRefreshLine,
+  RiTaskLine,
+  RiTimeLine,
+  RiUserLine,
+} from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
 import { cn } from "../../../utils/cn";
 import { Card } from "./Card";
 import { StatusBadge } from "./StatusBadge";
-import {
-  RiPlantLine,
-  RiTimeLine,
-  RiRefreshLine,
-  RiFileTextLine,
-  RiCheckLine,
-  RiCloseLine,
-  RiImageLine,
-  RiTaskLine,
-  RiUserLine,
-} from "@remixicon/react";
 
 export interface WorkCardItem {
   id: string;

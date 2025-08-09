@@ -1,2 +1,2 @@
+export type { ModalDrawerHeaderProps, ModalDrawerProps, ModalDrawerTab } from "./ModalDrawer";
 export { ModalDrawer } from "./ModalDrawer";
-export type { ModalDrawerProps, ModalDrawerTab, ModalDrawerHeaderProps } from "./ModalDrawer";

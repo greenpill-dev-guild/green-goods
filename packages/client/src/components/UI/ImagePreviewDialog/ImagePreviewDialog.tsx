@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect, TouchEvent, WheelEvent } from "react";
-import { RiCloseLine, RiZoomInLine, RiZoomOutLine, RiFocus3Line } from "@remixicon/react";
+import { RiCloseLine, RiFocus3Line, RiZoomInLine, RiZoomOutLine } from "@remixicon/react";
+import React, { TouchEvent, useEffect, useRef, useState, WheelEvent } from "react";
 import { cn } from "@/utils/cn";
 
 export interface ImagePreviewDialogProps {
@@ -76,7 +76,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, currentIndex, images.length]);
+  }, [isOpen, currentIndex, images.length, onClose, resetZoom]);
 
   const navigatePrev = () => {
     if (currentIndex > 0) {
@@ -113,7 +113,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
   // Touch handlers for pinch-to-zoom
   const handleTouchStart = (e: TouchEvent<HTMLDivElement>) => {
     if (e.touches.length === 2) {
-      const distance = getTouchDistance(e.touches);
+      const distance = getTouchDistance(e.touches as unknown as TouchList);
       setTouchState({
         initialDistance: distance,
         initialScale: scale,
@@ -129,7 +129,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
 
   const handleTouchMove = (e: TouchEvent<HTMLDivElement>) => {
     if (e.touches.length === 2 && touchState.initialDistance) {
-      const distance = getTouchDistance(e.touches);
+      const distance = getTouchDistance(e.touches as unknown as TouchList);
       const scaleFactor = distance / touchState.initialDistance;
       const newScale = Math.max(0.5, Math.min(4, touchState.initialScale * scaleFactor));
       setScale(newScale);
@@ -146,7 +146,11 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
     setIsDragging(false);
   };
 
-  const getTouchDistance = (touches: TouchList): number => {
+  const getTouchDistance = (touches: TouchList | ReadonlyArray<Touch> | unknown): number => {
+    // Normalize to array-like for React.TouchList compatibility
+    const t0 = touches[0];
+    const t1 = touches[1];
+    if (!t0 || !t1) return 0;
     const dx = touches[0].clientX - touches[1].clientX;
     const dy = touches[0].clientY - touches[1].clientY;
     return Math.sqrt(dx * dx + dy * dy);
@@ -193,6 +197,13 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
         ref={containerRef}
         className="relative w-full h-full max-w-4xl max-h-4xl m-4"
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+          }
+        }}
+        role="group"
+        tabIndex={0}
       >
         {/* Header Controls */}
         <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4 bg-gradient-to-b from-black/50 to-transparent">
