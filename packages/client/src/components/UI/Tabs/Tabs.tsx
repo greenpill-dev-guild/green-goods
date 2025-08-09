@@ -40,10 +40,52 @@ export const triggerVariants = tv({
 export type TriggerProps = React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger> &
   VariantProps<typeof triggerVariants>;
 
+function scrollContainerToTop() {
+  const el = document.getElementById("app-scroll");
+  if (el) {
+    el.scrollTop = 0;
+  } else if (typeof window !== "undefined") {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }
+}
+
 const TabsTrigger = React.forwardRef<React.ElementRef<typeof TabsPrimitive.Trigger>, TriggerProps>(
-  ({ className, variant, ...props }, ref) => {
+  ({ className, variant, onClick, ...props }, ref) => {
     const classes = triggerVariants({ variant, class: className });
-    return <TabsPrimitive.Trigger ref={ref} className={cn(classes)} {...props} />;
+    return (
+      <TabsPrimitive.Trigger
+        ref={ref}
+        className={cn(classes)}
+        onClick={(event) => {
+          // Reset the main scroll container when switching tabs
+          const target = event.currentTarget as HTMLElement;
+          // Try nearest scrollable ancestor first; fall back to app container/window
+          const findScrollableAncestor = (start: HTMLElement | null): HTMLElement | null => {
+            let el: HTMLElement | null = start;
+            while (el && el !== document.body) {
+              const style = window.getComputedStyle(el);
+              const overflowY = style.overflowY;
+              if (
+                (overflowY === "auto" || overflowY === "scroll") &&
+                el.scrollHeight > el.clientHeight
+              ) {
+                return el;
+              }
+              el = el.parentElement;
+            }
+            return null;
+          };
+          const nearest = findScrollableAncestor(target);
+          if (nearest) {
+            nearest.scrollTop = 0;
+          } else {
+            scrollContainerToTop();
+          }
+          if (onClick) onClick(event);
+        }}
+        {...props}
+      />
+    );
   }
 );
 TabsTrigger.displayName = TabsPrimitive.Trigger.displayName;

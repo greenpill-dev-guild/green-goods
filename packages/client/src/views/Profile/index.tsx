@@ -65,11 +65,12 @@ const Profile: React.FC = () => {
           activeTab={activeTab}
           onTabChange={setActiveTab}
           variant="compact"
+          scrollTargetSelector="#profile-scroll"
         />
       </div>
 
       {/* Content */}
-      <div className="flex-1 pt-56 pb-4 overflow-y-auto">
+      <div id="profile-scroll" className="flex-1 pt-56 pb-4 overflow-y-auto">
         <div className="padded flex flex-col gap-4 my-4">{renderTabContent()}</div>
       </div>
     </section>

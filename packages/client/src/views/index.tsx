@@ -1,5 +1,5 @@
-import { lazy, Suspense } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { lazy, Suspense, useEffect, useRef } from "react";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 // Dynamically import default exports
 const Home = lazy(() => import("./Home"));
@@ -20,9 +20,19 @@ const GardenWork = lazy(() =>
 import { CircleLoader } from "@/components/UI/Loader";
 
 export default function Views() {
+  const location = useLocation();
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Reset scroll position on route changes
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+    }
+  }, [location.pathname, location.search]);
+
   return (
     <main className="flex flex-col h-[calc(100lvh-69px)]">
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+      <div id="app-scroll" ref={scrollRef} className="flex-1 overflow-y-auto overflow-x-hidden">
         <Suspense
           fallback={
             <div className="w-full h-full grid place-items-center">

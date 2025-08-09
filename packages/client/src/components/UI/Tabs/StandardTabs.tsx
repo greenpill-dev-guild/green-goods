@@ -16,6 +16,8 @@ export interface StandardTabsProps {
   className?: string;
   variant?: "default" | "compact";
   isLoading?: boolean;
+  /** Optional CSS selector for the scrollable container to reset on tab change */
+  scrollTargetSelector?: string;
 }
 
 export const StandardTabs: React.FC<StandardTabsProps> = ({
@@ -25,13 +27,57 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
   className,
   variant = "default",
   isLoading = false,
+  scrollTargetSelector,
 }) => {
+  function findScrollableAncestor(start: HTMLElement | null): HTMLElement | null {
+    let el: HTMLElement | null = start;
+    while (el && el !== document.body) {
+      const style = window.getComputedStyle(el);
+      const overflowY = style.overflowY;
+      if ((overflowY === "auto" || overflowY === "scroll") && el.scrollHeight > el.clientHeight) {
+        return el;
+      }
+      el = el.parentElement;
+    }
+    return null;
+  }
+
+  function scrollContainerToTop(startEl?: HTMLElement | null) {
+    // 1) Explicit selector if provided
+    if (scrollTargetSelector) {
+      const explicit = document.querySelector(scrollTargetSelector) as HTMLElement | null;
+      if (explicit) {
+        explicit.scrollTop = 0;
+        return;
+      }
+    }
+    // 2) Nearest scrollable ancestor if available
+    const nearest = startEl ? findScrollableAncestor(startEl) : null;
+    if (nearest) {
+      nearest.scrollTop = 0;
+      return;
+    }
+    // 3) Fallback to main app scroll container or window
+    const appScroll = document.getElementById("app-scroll");
+    if (appScroll) {
+      appScroll.scrollTop = 0;
+      return;
+    }
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "auto" });
+    }
+  }
+
   return (
     <div className={cn("flex border-b border-border flex-shrink-0", className)}>
       {tabs.map((tab) => (
         <button
           key={tab.id}
-          onClick={() => !tab.disabled && onTabChange(tab.id)}
+          onClick={(event) => {
+            if (tab.disabled) return;
+            scrollContainerToTop(event.currentTarget as HTMLElement);
+            onTabChange(tab.id);
+          }}
           disabled={tab.disabled}
           className={cn(
             "flex items-center justify-center gap-1.5 text-sm font-medium transition-colors relative flex-1 min-w-0",
