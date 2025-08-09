@@ -82,7 +82,7 @@ export async function getActions(chainId: number): Promise<Action[]> {
         const instructions = getActionInstructions(title);
 
         return {
-          id,
+          id, // composite id stays for uniqueness but downstream selection matches numeric UID
           title,
           startTime: startTime ? (startTime as number) * 1000 : Date.now(),
           endTime: endTime ? (endTime as number) * 1000 : Date.now() + 365 * 24 * 60 * 60 * 1000, // Default to 1 year from now

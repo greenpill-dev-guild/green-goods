@@ -10,6 +10,7 @@ interface WorkReviewProps {
   garden: Garden;
   action: Action;
   images: File[];
+  values: Record<string, unknown>;
   plantSelection: string[];
   plantCount: number;
   feedback: string;
@@ -20,6 +21,7 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
   garden,
   instruction,
   images,
+  values,
   plantSelection,
   plantCount,
   feedback,
@@ -89,15 +91,27 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
         value={action.title}
         Icon={RiHammerFill}
       />
-      <FormCard
-        label={intl.formatMessage({
-          id: "app.garden.review.plantTypes",
-          defaultMessage: "Plant Types",
-        })}
-        value={plantSelection.join(", ")}
-        Icon={RiPlantFill}
-      />
-      {feedback && (
+      {/* Render dynamic inputs based on action.inputs */}
+      {action.inputs
+        .map((input) => {
+          const raw = values?.[input.key];
+          if (raw === undefined || raw === null || (Array.isArray(raw) && raw.length === 0)) {
+            return null;
+          }
+          let display: string = "";
+          if (Array.isArray(raw)) {
+            display = raw.join(", ");
+          } else if (typeof raw === "number") {
+            display = String(raw);
+          } else if (typeof raw === "string") {
+            display = raw;
+          } else {
+            display = JSON.stringify(raw);
+          }
+          return <FormCard key={input.key} label={input.title} value={display} Icon={RiFileFill} />;
+        })
+        .filter(Boolean)}
+      {feedback && feedback.trim().length > 0 && (
         <FormCard
           label={intl.formatMessage({
             id: "app.garden.review.description",
@@ -107,14 +121,6 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
           Icon={RiPencilFill}
         />
       )}
-      <FormCard
-        label={intl.formatMessage({
-          id: "app.garden.review.plantAmount",
-          defaultMessage: "Plant Amount",
-        })}
-        value={plantCount.toString()}
-        Icon={RiLeafFill}
-      />
     </div>
   );
 };

@@ -61,7 +61,12 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   const chainId = useCurrentChain();
 
   const work = garden?.works.find((work) => work.id === workId);
-  const action = actions.find((action) => action.id === `${chainId}-${work?.actionUID || 0}`);
+  const action = actions.find((action) => {
+    if (!work?.actionUID) return false;
+    const idPart = String(action.id).split("-").pop();
+    const numeric = Number(idPart);
+    return Number.isFinite(numeric) && numeric === work.actionUID;
+  });
 
   const { smartAccountAddress } = useUser();
 

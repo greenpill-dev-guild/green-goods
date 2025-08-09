@@ -46,7 +46,7 @@ interface JobQueueProviderProps {
 }
 
 const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) => {
-  const { smartAccountClient } = useUser();
+  const { smartAccountClient, smartAccountAddress } = useUser();
   const [stats, setStats] = useState<QueueStats>({ total: 0, pending: 0, failed: 0, synced: 0 });
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastEvent, setLastEvent] = useState<QueueEvent | null>(null);
@@ -106,7 +106,8 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
                   ...jobToWork(event.job as Job<WorkJobPayload>),
                   id: event.txHash!, // Use transaction hash as the real ID
                   status: "pending", // Work is submitted but awaiting approval
-                  gardenerAddress: workPayload.gardenAddress, // Will be resolved from tx
+                  // Use the current user's smart account as the optimistic gardener address
+                  gardenerAddress: smartAccountAddress || "pending",
                 };
 
                 // Check if this work is already in the list (avoid duplicates)

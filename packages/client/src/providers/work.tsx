@@ -40,6 +40,7 @@ export interface WorkDataProps {
     feedback: string;
     plantSelection: string[];
     plantCount: number;
+    values: Record<string, unknown>;
     reset: () => void;
   };
   activeTab: WorkTab;
@@ -109,6 +110,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   const feedback = watch("feedback");
   const plantSelection = watch("plantSelection");
   const plantCount = watch("plantCount");
+  const values = watch() as unknown as Record<string, unknown>;
 
   const workMutation = useMutation({
     mutationFn: async (draft: WorkDraft) => {
@@ -197,6 +199,8 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
           feedback,
           plantSelection,
           plantCount,
+          values,
+
           reset,
         },
         activeTab,

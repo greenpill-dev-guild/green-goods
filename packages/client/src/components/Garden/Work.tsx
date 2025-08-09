@@ -1,7 +1,7 @@
 import React, { forwardRef, memo, type UIEvent, useMemo, useCallback } from "react";
 import { FixedSizeList as List } from "react-window";
 import { useIntl } from "react-intl";
-import { useCurrentChain, useNavigateToTop } from "@/hooks";
+import { useNavigateToTop } from "@/hooks";
 // import { WorkCard } from "../UI/Card/WorkCard";
 import { BeatLoader } from "../UI/Loader";
 
@@ -23,12 +23,16 @@ interface WorkListProps {
 const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
   const intl = useIntl();
   const navigate = useNavigateToTop();
-  const chainId = useCurrentChain();
+  // const chainId = useCurrentChain();
 
-  const actionById = useMemo(
-    () => new Map(actions.map((a) => [String(a.id), a] as const)),
-    [actions]
-  );
+  const actionById = useMemo(() => {
+    const map = new Map<string, Action>();
+    for (const a of actions) {
+      const idPart = String(a.id).split("-").pop();
+      if (idPart) map.set(idPart, a);
+    }
+    return map;
+  }, [actions]);
   const sorted = useMemo(() => {
     return [...works].sort((a, b) => {
       if (a.status === "pending" && b.status !== "pending") return -1;
@@ -71,7 +75,7 @@ const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
         style: React.CSSProperties;
       }) {
         const work = sorted[index];
-        const action = actionById.get(`${chainId}-${work.actionUID}`);
+        const action = actionById.get(String(work.actionUID));
         if (!action) return null;
         const onOpen = useCallback(
           () => navigate(`/home/${work.gardenAddress}/work/${work.id}`),

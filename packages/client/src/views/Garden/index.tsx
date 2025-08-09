@@ -53,7 +53,13 @@ const Work: React.FC = () => {
   const { status } = workMutation;
 
   const garden = gardens.find((garden) => garden.id === gardenAddress);
-  const action = actions.find((action) => action.id === `${chainId}-${actionUID}`);
+  // Match action by numeric UID to the JSON mapping; remove chain ID coupling for form inputs and review
+  const action = actions.find((action) => {
+    if (!actionUID) return false;
+    const idPart = action.id?.split("-").pop();
+    const numeric = Number(idPart);
+    return Number.isFinite(numeric) && numeric === actionUID;
+  });
 
   // Enhanced upload function with duplicate detection
   const handleWorkSubmission = async (): Promise<boolean> => {
@@ -138,10 +144,10 @@ const Work: React.FC = () => {
       case WorkTab.Review:
         if (!garden || !action)
           return (
-            <div>
+            <div className="p-4 text-sm text-slate-600">
               {intl.formatMessage({
-                id: "app.garden.submit.tab.review.error",
-                defaultMessage: "Missing garden or action information",
+                id: "app.garden.submit.tab.review.loading",
+                defaultMessage: "Loading review details...",
               })}
             </div>
           );
@@ -154,6 +160,7 @@ const Work: React.FC = () => {
             garden={garden}
             action={action}
             images={images}
+            values={form.values}
             feedback={feedback}
             plantCount={plantCount}
             plantSelection={plantSelection}
