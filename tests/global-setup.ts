@@ -7,6 +7,10 @@ async function globalSetup(config: FullConfig) {
   process.env.TEST_INDEXER_URL = "http://localhost:8080/v1/graphql";
   process.env.TEST_CLIENT_URL = "https://localhost:3001"; // HTTPS because of mkcert
   process.env.TEST_CHAIN_ID = "84532"; // Base Sepolia
+  // Enable dev SW only during PWA tests when runner opts in via env
+  if (process.env.ENABLE_PWA_E2E === "true") {
+    process.env.VITE_ENABLE_SW_DEV = "true";
+  }
 
   // Optional service health check (only if services are expected to be running)
   if (!process.env.SKIP_HEALTH_CHECK) {

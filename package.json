@@ -20,6 +20,8 @@
     "setup": "node scripts/setup.js",
     "foundry:up": "curl -L https://foundry.paradigm.xyz | bash && bash $HOME/.foundry/bin/foundryup",
     "prepare": "husky",
+    "node:update": "nvm install 22 --reinstall-packages-from=22 && nvm alias default 22",
+    "node:update:latest": "nvm install node && nvm alias node default",
     "build": "pnpm recursive run build",
 
     "format": "biome format --write .",
@@ -50,6 +52,8 @@
     "dev:logs:indexer": "pnpm exec pm2 logs indexer --raw",
     "dev:stop": "pnpm exec pm2 delete all",
     "dev:app": "pnpm --filter 'client' run dev",
+    "dev:app:rolldown": "pnpm --filter 'client' run dev:rolldown",
+    "dev:app:pwa-e2e": "pnpm --filter 'client' run dev:pwa-e2e",
     "dev:api": "pnpm --filter 'api' run dev",
     "dev:indexer": "pnpm --filter 'indexer' run dev",
     "dev:contracts": "pnpm --filter 'contracts' run  dev"

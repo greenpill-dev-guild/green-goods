@@ -134,11 +134,31 @@ class ServiceWorkerManager {
 // Export singleton instance
 export const serviceWorkerManager = new ServiceWorkerManager();
 
-// Auto-register service worker
+// Auto-register service worker only in production, or when explicitly enabled for tests
 if (typeof window !== "undefined") {
-  serviceWorkerManager.register().then((success) => {
-    if (success) {
-      console.log("Service Worker registered successfully");
+  const enableDevServiceWorker = (import.meta as any).env?.VITE_ENABLE_SW_DEV === "true";
+
+  if ((import.meta as any).env?.PROD || enableDevServiceWorker) {
+    serviceWorkerManager.register().then((success) => {
+      if (success) {
+        console.log("Service Worker registered successfully");
+      }
+    });
+  }
+
+  // In development (and when not explicitly enabled), ensure no SW interferes with HMR
+  if ((import.meta as any).env?.DEV && !enableDevServiceWorker && "serviceWorker" in navigator) {
+    // Best-effort cleanup: unregister existing SWs and clear caches
+    navigator.serviceWorker
+      .getRegistrations()
+      .then((registrations) => Promise.all(registrations.map((r) => r.unregister())))
+      .catch(() => {});
+    // Clear caches that could serve stale assets
+    if ("caches" in window) {
+      caches
+        .keys()
+        .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+        .catch(() => {});
     }
-  });
+  }
 }

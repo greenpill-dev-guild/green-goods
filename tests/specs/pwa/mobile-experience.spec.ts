@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { BasePage } from "../../pages/base.page";
 
 test.describe("Mobile PWA Experience", () => {
@@ -41,6 +41,14 @@ test.describe("Mobile PWA Experience", () => {
   test("should support offline functionality", async ({ page, context }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
+
+    // Ensure service worker is active for this flow (PWA tests run with SW enabled)
+    const swReady = await page.evaluate(async () => {
+      if (!("serviceWorker" in navigator)) return false;
+      const reg = await navigator.serviceWorker.ready;
+      return !!reg?.active;
+    });
+    expect(swReady).toBe(true);
 
     // Simulate offline
     await context.setOffline(true);

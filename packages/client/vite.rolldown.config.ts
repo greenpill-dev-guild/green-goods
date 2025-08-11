@@ -24,8 +24,9 @@ export default defineConfig(({ mode }) => {
           globIgnores: ["**/assets/*-{index,vendor,crypto,wallet}*.js"],
           maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10MB limit for rolldown builds
         },
+        // Keep the service worker disabled in dev unless explicitly enabled via env
         devOptions: {
-          enabled: true,
+          enabled: process.env.VITE_ENABLE_SW_DEV === "true",
         },
       }),
     ],

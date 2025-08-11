@@ -3,10 +3,12 @@ module.exports = {
     {
       name: "client",
       script: "sh",
-      args: '-c "pnpm --filter client run dev"',
+      // Use rolldown dev config for faster builds & keep SW disabled by default
+      args: '-c "pnpm --filter client run dev:rolldown"',
       cwd: ".",
       env: {
         NODE_ENV: "development",
+        VITE_ENABLE_SW_DEV: "false",
       },
       merge_logs: true,
       autorestart: true,

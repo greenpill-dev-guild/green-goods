@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:rolldown": "vite --config vite.rolldown.config.ts",
+    "dev:pwa-e2e": "VITE_ENABLE_SW_DEV=true vite --config vite.rolldown.config.ts",
     "test": "vitest",
     "test:watch": "vitest --standalone",
     "coverage": "vitest run --coverage",
@@ -69,10 +70,10 @@
     "@vitejs/plugin-react": "^4.3.1",
     "dotenv-expand": "11.0.6",
     "jsdom": "25.0.1",
-    "rolldown-vite": "^7.0.9",
+    "rolldown-vite": "^7.1.0",
     "tailwindcss": "^4.0.14",
     "tailwindcss-animate": "^1.0.7",
-    "vite": "^6.0.1",
+    "vite": "^7.0.0",
     "vite-plugin-mkcert": "^1.17.8",
     "vite-plugin-pwa": "^0.21.1",
     "vitest": "3.2.4"

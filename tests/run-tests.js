@@ -164,7 +164,10 @@ async function main() {
       break;
 
     case "pwa":
-      runCommand("npx playwright test tests/specs/pwa", "Running PWA tests");
+      runCommand(
+        "ENABLE_PWA_E2E=true npx playwright test tests/specs/pwa",
+        "Running PWA tests with service worker enabled"
+      );
       break;
 
     case "performance":

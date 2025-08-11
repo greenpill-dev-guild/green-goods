@@ -75,9 +75,6 @@ export default defineConfig(({ mode }) => {
         ],
         injectRegister: "auto",
         registerType: "autoUpdate",
-        devOptions: {
-          enabled: false, // Disable SW in dev to prevent HMR issues
-        },
         workbox: {
           // Increase the limit to handle larger bundles (10 MB)
           maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
@@ -90,11 +87,13 @@ export default defineConfig(({ mode }) => {
           ],
           // Use runtime caching for large JS files
           runtimeCaching: [
+            // Avoid caching JS aggressively; use NetworkFirst for dev/prod to reduce stale modules
             {
               urlPattern: /.*\.js$/,
-              handler: "CacheFirst",
+              handler: "NetworkFirst",
               options: {
                 cacheName: "js-cache",
+                networkTimeoutSeconds: 3,
                 cacheableResponse: {
                   statuses: [0, 200],
                 },
@@ -223,6 +222,10 @@ export default defineConfig(({ mode }) => {
           ],
           categories: [],
         },
+        // Disable SW in dev unless explicitly enabled for PWA tests
+        devOptions: {
+          enabled: process.env.VITE_ENABLE_SW_DEV === "true",
+        },
       }),
     ],
     resolve: {
@@ -234,10 +237,10 @@ export default defineConfig(({ mode }) => {
       port: 3001,
       host: true,
       hmr: {
-        overlay: true, // Show HMR errors in overlay
+        overlay: true,
       },
       watch: {
-        usePolling: true, // Better file watching on some systems
+        usePolling: true,
         interval: 100,
       },
     },
