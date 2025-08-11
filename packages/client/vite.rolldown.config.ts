@@ -9,10 +9,21 @@ import mkcert from "vite-plugin-mkcert";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), "");
-  dotenvExpand.expand({ parsed: env });
+  // Load environment variables from monorepo root first, then local overrides
+  const rootDir = resolve(__dirname, "../../");
+
+  // 1) Load from monorepo root .env files (foundation)
+  const rootEnv = loadEnv(mode, rootDir, "");
+  dotenvExpand.expand({ parsed: rootEnv });
+
+  // 2) Load from package-specific .env files (overrides)
+  const localEnv = loadEnv(mode, __dirname, "");
+  dotenvExpand.expand({ parsed: localEnv });
 
   return {
+    // Environment configuration
+    envDir: rootDir,
+    envPrefix: ["VITE_", "PRIVY_", "SKIP_"],
     plugins: [
       react({}),
       tailwindcss(),
@@ -38,6 +49,13 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3001,
       host: true,
+      hmr: {
+        overlay: true,
+      },
+      watch: {
+        usePolling: true,
+        interval: 100,
+      },
     },
     build: {
       target: "es2020",
