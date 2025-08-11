@@ -22,6 +22,7 @@ interface GardenDataProps {
 interface GardensDataProps {
   actions: Action[];
   gardens: Garden[];
+  actionsStatus: "error" | "success" | "pending";
   gardensStatus: "error" | "success" | "pending";
   gardenersStatus: "error" | "success" | "pending";
   gardenersMap: Map<string, GardenerCard>;
@@ -98,6 +99,7 @@ export const useGarden = (id: string): GardenDataProps => {
 const GardensContext = React.createContext<GardensDataProps>({
   actions: [],
   gardens: [],
+  actionsStatus: "pending",
   gardensStatus: "pending",
   gardenersStatus: "pending",
   gardenersMap: new Map(),
@@ -111,7 +113,7 @@ export const GardensProvider = ({ children }: { children: React.ReactNode }) => 
   const chainId = DEFAULT_CHAIN_ID;
 
   // QUERIES
-  const { data: actions } = useQuery<Action[]>({
+  const { data: actions, status: actionsStatus } = useQuery<Action[]>({
     queryKey: ["actions", chainId],
     queryFn: () => getActions(),
   });
@@ -130,6 +132,7 @@ export const GardensProvider = ({ children }: { children: React.ReactNode }) => 
       value={{
         actions: actions || [],
         gardens: gardens || [],
+        actionsStatus,
         gardensStatus,
         gardenersStatus,
         gardenersMap: new Map(gardeners?.map((gardener) => [gardener.id, gardener]) || []),

@@ -252,5 +252,9 @@
   "app.offline.status.went.offline": "Estás sin conexión. Tu trabajo se sincronizará cuando vuelvas a estar en línea.",
   "app.garden.completed.messages.offline.header": "¡Trabajo guardado sin conexión!",
   "app.garden.completed.messages.offline.title": "Guardado Sin Conexión",
-  "app.garden.completed.messages.offline.body": "Tu trabajo ha sido guardado sin conexión y se enviará cuando vuelvas a estar conectado."
+  "app.garden.completed.messages.offline.body": "Tu trabajo ha sido guardado sin conexión y se enviará cuando vuelvas a estar conectado.",
+  "app.garden.errorFetchingActions": "Error al obtener acciones. Por favor, inténtalo de nuevo.",
+  "app.garden.noActionsFound": "No se encontraron acciones.",
+  "app.garden.errorFetchingGardens": "Error al obtener jardines. Por favor, inténtalo de nuevo.",
+  "app.garden.noGardensFound": "No se encontraron jardines."
 }

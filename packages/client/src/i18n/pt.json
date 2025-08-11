@@ -252,5 +252,9 @@
   "app.offline.status.went.offline": "Você está offline. Seu trabalho será sincronizado quando você voltar a ficar online.",
   "app.garden.completed.messages.offline.header": "Trabalho salvo offline!",
   "app.garden.completed.messages.offline.title": "Salvo Offline",
-  "app.garden.completed.messages.offline.body": "Seu trabalho foi salvo offline e será enviado quando você voltar a ficar conectado."
+  "app.garden.completed.messages.offline.body": "Seu trabalho foi salvo offline e será enviado quando você voltar a ficar conectado.",
+  "app.garden.errorFetchingActions": "Erro ao buscar ações. Por favor, tente novamente.",
+  "app.garden.noActionsFound": "Nenhuma ação encontrada.",
+  "app.garden.errorFetchingGardens": "Erro ao buscar jardins. Por favor, tente novamente.",
+  "app.garden.noGardensFound": "Nenhum jardim encontrado."
 }

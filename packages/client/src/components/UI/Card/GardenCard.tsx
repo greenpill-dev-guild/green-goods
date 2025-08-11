@@ -77,13 +77,13 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardRootProps>(
           <div className="flex flex-col gap-2 flex-1">
             <div
               className={cn(
-                "absolute top-0 left-0 right-0 bottom-0 w-full h-full border-2 border-primary/50 rounded-lg opacity-0 transition-opacity",
+                "absolute top-0 left-0 right-0 bottom-0 w-full h-full border-2 border-primary/50 rounded-lg opacity-0 transition-opacity z-10 pointer-events-none",
                 selected && "opacity-100"
               )}
             />
             <h5
               className={cn(
-                "flex items-center text-xl font-medium transition-colors",
+                "flex items-center text-xl font-medium transition-colors line-clamp-2",
                 selected && "text-primary"
               )}
             >

@@ -247,5 +247,9 @@
   "app.offline.status.went.offline": "You're offline. Your work will sync when you're back online.",
   "app.garden.completed.messages.offline.header": "Work saved offline!",
   "app.garden.completed.messages.offline.title": "Saved Offline",
-  "app.garden.completed.messages.offline.body": "Your work has been saved offline and will be submitted when you're back online."
+  "app.garden.completed.messages.offline.body": "Your work has been saved offline and will be submitted when you're back online.",
+  "app.garden.errorFetchingActions": "Error fetching actions. Please try again.",
+  "app.garden.noActionsFound": "No actions found.",
+  "app.garden.errorFetchingGardens": "Error fetching gardens. Please try again.",
+  "app.garden.noGardensFound": "No gardens found."
 }

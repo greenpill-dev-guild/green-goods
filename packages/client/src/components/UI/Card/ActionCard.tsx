@@ -11,9 +11,15 @@ export const cardVariants = tv({
       large: "",
       small: "",
     },
+    height: {
+      home: "",
+      selection: "h-60",
+      default: "",
+    },
   },
   defaultVariants: {
     media: "large",
+    height: "default",
   },
 });
 
@@ -24,8 +30,8 @@ export type ActionCardRootProps = React.HTMLAttributes<HTMLDivElement> &
   CardRootProps & { action: Action; selected: boolean };
 
 const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
-  ({ media, className, selected, action, ...props }, ref) => {
-    const classes = cardVariants({ media, class: className });
+  ({ media, height, className, selected, action, ...props }, ref) => {
+    const classes = cardVariants({ media, height, class: className });
     return (
       <Card ref={ref} className={cn(classes)} {...props}>
         <img
@@ -43,18 +49,25 @@ const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
           <div className="flex flex-row gap-2">
             <div
               className={cn(
-                "absolute top-0 left-0 right-0 bottom-0 w-full h-full border-2 border-primary/50 rounded-lg opacity-0 transition-opacity",
+                "absolute top-0 left-0 right-0 bottom-0 w-full h-full border-2 border-primary/50 rounded-lg opacity-0 transition-opacity z-10 pointer-events-none",
                 selected && "opacity-100"
               )}
             />
-            <h5 className={cn("flex items-center text-xl font-medium", selected && "text-primary")}>
+            <h5
+              className={cn(
+                "flex items-center text-xl font-medium line-clamp-2",
+                selected && "text-primary"
+              )}
+            >
               <RiCamera3Line
                 className={cn("w-8 inline-flex mr-2", selected && "animate-spring-bump")}
               />
               {action.title}
             </h5>
           </div>
-          <div className="text-sm text-slate-500 h-24 flex-1">{action.mediaInfo?.description}</div>
+          <div className="text-sm text-slate-500 h-24 flex-1 line-clamp-3">
+            {action.mediaInfo?.description}
+          </div>
         </div>
       </Card>
     );
