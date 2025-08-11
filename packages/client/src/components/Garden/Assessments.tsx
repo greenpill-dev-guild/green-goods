@@ -1,5 +1,5 @@
 import { RiCoinFill, RiSeedlingLine, RiTreeLine } from "@remixicon/react";
-import { forwardRef, memo, type UIEvent } from "react";
+import { forwardRef, memo } from "react";
 import { FixedSizeList as List } from "react-window";
 import { useIntl } from "react-intl";
 import getTag from "@/utils/tags";
@@ -9,7 +9,6 @@ import { Card } from "../UI/Card/Card";
 interface GardenAssessmentsProps {
   assessments: GardenAssessment[];
   asessmentFetchStatus: "pending" | "success" | "error";
-  handleScroll: (event: UIEvent<HTMLUListElement>) => void;
 }
 
 interface AssessmentListProps {
@@ -148,9 +147,9 @@ const AssessmentList = ({ assessments, asessmentFetchStatus }: AssessmentListPro
 };
 
 export const GardenAssessments = forwardRef<HTMLUListElement, GardenAssessmentsProps>(
-  ({ assessments, asessmentFetchStatus, handleScroll }, ref) => {
+  ({ assessments, asessmentFetchStatus }, ref) => {
     return (
-      <ul className="flex flex-col gap-2" ref={ref} onScroll={handleScroll}>
+      <ul className="flex flex-col gap-2" ref={ref}>
         <AssessmentList assessments={assessments} asessmentFetchStatus={asessmentFetchStatus} />
       </ul>
     );

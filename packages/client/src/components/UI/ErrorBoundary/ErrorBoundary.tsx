@@ -1,4 +1,5 @@
 import React, { Component, ReactNode } from "react";
+import { RiLeafFill, RiRefreshLine, RiArrowGoBackLine } from "@remixicon/react";
 import { Button } from "../Button";
 
 interface ErrorBoundaryState {
@@ -34,16 +35,20 @@ export class GardenErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoun
       return (
         <div className="flex flex-col items-center justify-center h-full p-8 bg-white">
           <div className="text-center max-w-md">
-            <h2 className="text-xl font-semibold mb-2 text-gray-800">Something went wrong</h2>
+            <div className="mx-auto mb-4 w-14 h-14 rounded-2xl grid place-items-center bg-primary/10">
+              <RiLeafFill className="w-7 h-7 text-primary" />
+            </div>
+            <h2 className="text-xl font-semibold mb-2 text-gray-900">Garden failed to load</h2>
             <p className="text-gray-600 mb-6">
-              We're having trouble loading this garden. This might be a temporary issue.
+              Something went wrong while loading this garden. Please try again.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button
                 variant="primary"
-                mode="ghost"
+                mode="filled"
                 size="medium"
-                label="Reload Page"
+                label="Reload"
+                leadingIcon={<RiRefreshLine className="w-5 h-5" />}
                 onClick={() => window.location.reload()}
               />
               <Button
@@ -51,15 +56,16 @@ export class GardenErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoun
                 mode="stroke"
                 size="medium"
                 label="Go Back"
+                leadingIcon={<RiArrowGoBackLine className="w-5 h-5" />}
                 onClick={() => window.history.back()}
               />
             </div>
             {import.meta.env.DEV && this.state.error && (
-              <details className="mt-4 text-left">
+              <details className="mt-6 text-left">
                 <summary className="cursor-pointer text-sm text-gray-500">
-                  Technical Details
+                  Technical details
                 </summary>
-                <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-auto max-h-32">
+                <pre className="mt-2 text-xs bg-slate-50 border border-slate-200 p-3 rounded-lg overflow-auto max-h-40">
                   {this.state.error.stack}
                 </pre>
               </details>

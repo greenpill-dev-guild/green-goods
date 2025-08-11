@@ -1,4 +1,5 @@
 import React, { forwardRef, memo, type UIEvent, useMemo, useCallback } from "react";
+import { MinimalWorkCard } from "@/components/UI/Card/WorkCard";
 import { FixedSizeList as List } from "react-window";
 import { useIntl } from "react-intl";
 import { useNavigateToTop } from "@/hooks";
@@ -11,7 +12,7 @@ interface GardenWorkProps {
   actions: Action[];
   works: Work[];
   workFetchStatus: "pending" | "success" | "error";
-  handleScroll: (event: UIEvent<HTMLUListElement>) => void;
+  handleScroll?: (event: UIEvent<HTMLUListElement>) => void;
 }
 
 interface WorkListProps {
@@ -76,21 +77,14 @@ const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
       }) {
         const work = sorted[index];
         const action = actionById.get(String(work.actionUID));
-        if (!action) return null;
+        const title = action?.title ?? `Action ${work.actionUID}`;
         const onOpen = useCallback(
           () => navigate(`/home/${work.gardenAddress}/work/${work.id}`),
           [navigate, work.gardenAddress, work.id]
         );
         return (
           <li style={style} className="p-2">
-            <button
-              onClick={onOpen}
-              className="flex flex-col gap-1 text-left w-full rounded-lg border border-slate-200 p-3 bg-white hover:shadow-sm transition-transform transform-gpu hover:scale-[1.01]"
-              aria-label={`View work ${action.title}`}
-            >
-              <span className="text-sm font-medium">{action.title}</span>
-              <span className="text-xs text-slate-600 line-clamp-2">{work.feedback}</span>
-            </button>
+            <MinimalWorkCard onClick={onOpen} work={work as unknown as Work} actionTitle={title} />
           </li>
         );
       });
@@ -142,8 +136,8 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
         onScroll={handleScroll}
         className={
           !isEmpty && !hasError && !isLoading
-            ? "grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 w-full overflow-y-scroll h-full"
-            : "flex items-center justify-center w-full h-full overflow-y-scroll"
+            ? "grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 w-full"
+            : "flex items-center justify-center w-full"
         }
       >
         {isLoading && (

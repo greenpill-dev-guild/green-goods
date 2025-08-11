@@ -6,7 +6,6 @@ import { formatAddress } from "@/utils/text";
 interface GardenGardenersProps {
   gardeners: GardenerCard[];
   garden?: Garden;
-  handleScroll: (event: React.UIEvent<HTMLUListElement, UIEvent>) => void;
 }
 
 const GardenerItem = memo(function GardenerItem({
@@ -46,11 +45,11 @@ const GardenerItem = memo(function GardenerItem({
 });
 
 export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps>(
-  ({ gardeners, garden, handleScroll }, ref) => {
+  ({ gardeners, garden }, ref) => {
     const intl = useIntl();
     const shouldVirtualize = gardeners.length > 40;
     return (
-      <ul className="padded flex-1 pt-80 pb-42" ref={ref} onScroll={handleScroll}>
+      <ul className="flex-1" ref={ref}>
         {gardeners.length ? (
           shouldVirtualize ? (
             <List height={600} itemCount={gardeners.length} itemSize={64} width={"100%"}>
