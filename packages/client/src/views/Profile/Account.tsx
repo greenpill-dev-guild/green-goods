@@ -7,11 +7,12 @@ import {
   RiPhoneLine,
   RiWalletLine,
 } from "@remixicon/react";
-import type { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 import { Avatar } from "@/components/UI/Avatar/Avatar";
 import { Button } from "@/components/UI/Button";
 import { Card } from "@/components/UI/Card/Card";
+import { FormInput } from "@/components/UI/Form/Input";
 import {
   Select,
   SelectContent,
@@ -22,6 +23,7 @@ import {
 
 import { type Locale, useApp } from "@/providers/app";
 import { capitalize } from "@/utils/text";
+import toast from "react-hot-toast";
 
 interface LinkedAccount {
   title: string;
@@ -57,6 +59,35 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
 
   const { locale, switchLanguage, availableLocales } = useApp();
   const intl = useIntl();
+  const [displayName, setDisplayName] = useState<string>(
+    ((user?.customMetadata?.username as string) || "") ?? ""
+  );
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    if (!user?.id) return;
+    try {
+      setSaving(true);
+      const { updateUserProfile } = await import("@/modules/greengoods");
+      let accessToken: string | undefined;
+      try {
+        const maybeTokenGetter = (usePrivy() as any)?.getAccessToken;
+        if (typeof maybeTokenGetter === "function") {
+          accessToken = (await maybeTokenGetter()) as string | undefined;
+        }
+      } catch {}
+      await updateUserProfile(user.id, { username: displayName }, accessToken);
+      toast.success(
+        intl.formatMessage({ id: "app.toast.profileUpdated", defaultMessage: "Profile updated" })
+      );
+    } catch (e) {
+      toast.error(
+        intl.formatMessage({ id: "app.toast.profileUpdateFailed", defaultMessage: "Update failed" })
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
 
   const applicationSettings: ApplicationSettings[] = [
     {
@@ -164,6 +195,41 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
 
   return (
     <>
+      <h5>
+        {intl.formatMessage({
+          id: "app.profile.profile",
+          description: "Profile",
+          defaultMessage: "Profile",
+        })}
+      </h5>
+      <Card>
+        <div className="flex flex-col gap-3">
+          <FormInput
+            id="display-name"
+            label={intl.formatMessage({
+              id: "app.profile.displayName",
+              defaultMessage: "Display name",
+            })}
+            value={displayName}
+            onChange={(e) => setDisplayName(e.currentTarget.value)}
+            placeholder="e.g. Maria"
+          />
+          <div className="flex justify-end">
+            <Button
+              variant="primary"
+              mode="filled"
+              size="xxsmall"
+              label={
+                saving
+                  ? intl.formatMessage({ id: "app.common.saving", defaultMessage: "Saving..." })
+                  : intl.formatMessage({ id: "app.common.save", defaultMessage: "Save" })
+              }
+              onClick={handleSave}
+              disabled={saving || !displayName?.trim()}
+            />
+          </div>
+        </div>
+      </Card>
       <h5>
         {intl.formatMessage({
           id: "app.profile.settings",

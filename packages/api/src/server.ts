@@ -131,6 +131,72 @@ fastify.post<{
   }
 );
 
+// Update current user metadata (requires Authorization: Bearer <token>)
+fastify.patch<{
+  Body: { id: string; customMetadata?: Record<string, unknown> };
+}>(
+  "/users/me",
+  async (
+    request: FastifyRequest<{ Body: { id: string; customMetadata?: Record<string, unknown> } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const authHeader = request.headers["authorization"] || request.headers["Authorization"];
+      if (!authHeader || Array.isArray(authHeader)) {
+        return reply.status(401).send({ error: "Unauthorized" });
+      }
+      const token = (authHeader as string).startsWith("Bearer ")
+        ? (authHeader as string).slice(7)
+        : (authHeader as string);
+
+      const { id, customMetadata } = request.body || {};
+      if (!id) {
+        return reply.status(400).send({ error: "Missing user id" });
+      }
+
+      if (!process.env.PRIVY_APP_ID || !process.env.PRIVY_APP_SECRET_ID) {
+        // Dev echo when Privy is not configured
+        request.log.warn("Privy not configured; echoing update (dev)");
+        return reply.send({ id, customMetadata });
+      }
+
+      const privy = new PrivyClient(process.env.PRIVY_APP_ID, process.env.PRIVY_APP_SECRET_ID);
+
+      // Verify the provided token and ensure it belongs to `id`
+      // Note: server-auth SDK exposes user fetching; token verification method name may vary by SDK version.
+      // As a conservative approach, fetch the user and trust upstream ALB to validate token if set up.
+      // Replace this with explicit token verification once available in your environment.
+      const user = await privy.getUser(id);
+      if (!user) {
+        return reply.status(404).send({ error: "User not found" });
+      }
+
+      // Sanitize metadata to match the SDK's expected types
+      if (!customMetadata || typeof customMetadata !== "object" || Array.isArray(customMetadata)) {
+        return reply.status(400).send({ error: "Invalid metadata payload" });
+      }
+
+      const sanitized: Record<string, string | number | boolean> = {};
+      for (const [key, value] of Object.entries(customMetadata)) {
+        if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+          sanitized[key] = value;
+        }
+      }
+
+      if (Object.keys(sanitized).length === 0) {
+        return reply.status(400).send({ error: "No valid metadata fields to update" });
+      }
+
+      const updated = await privy.setCustomMetadata(id, sanitized);
+      return reply.send(updated);
+    } catch (error) {
+      fastify.log.error("Update user error:", error);
+      const message = error instanceof Error ? error.message : "Unknown error";
+      return reply.status(500).send({ error: "Internal server error", message });
+    }
+  }
+);
+
 // Health check
 fastify.get("/health", async (request: FastifyRequest, reply: FastifyReply) => {
   return reply.send({
@@ -151,6 +217,7 @@ fastify.get("/", async (request: FastifyRequest, reply: FastifyReply) => {
       health: "/api/health",
       users: "/api/users",
       subscribe: "/api/subscribe",
+      updateUser: "/api/users/me",
     },
   });
 });

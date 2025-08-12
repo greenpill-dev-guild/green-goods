@@ -126,9 +126,7 @@ export async function getGardens(): Promise<Garden[]> {
               .catch(() => null)
           : null;
 
-        const bannerImage = image
-          ? URL.createObjectURL(image.data as Blob)
-          : "/images/no-image-placeholder.png";
+        const bannerImage = image ? URL.createObjectURL(image.data as Blob) : "";
 
         return {
           id: garden.id,
@@ -178,4 +176,25 @@ export async function getGardeners(): Promise<GardenerCard[]> {
       avatar: user.farcaster?.pfp || (user.customMetadata?.avatar as string),
     };
   });
+}
+
+export async function updateUserProfile(
+  id: string,
+  customMetadata: Record<string, unknown>,
+  accessToken?: string
+) {
+  const apiBase = import.meta.env.DEV ? "http://localhost:3000" : "https://api.greengoods.app";
+  const res = await fetch(`${apiBase}/users/me`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    },
+    body: JSON.stringify({ id, customMetadata }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to update user: ${res.status}`);
+  }
+  return (await res.json()) as unknown;
 }
