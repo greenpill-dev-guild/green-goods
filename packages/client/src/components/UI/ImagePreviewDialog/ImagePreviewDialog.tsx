@@ -1,4 +1,10 @@
-import { RiCloseLine, RiFocus3Line, RiZoomInLine, RiZoomOutLine } from "@remixicon/react";
+import {
+  RiCloseLine,
+  RiDownloadLine,
+  RiFocus3Line,
+  RiZoomInLine,
+  RiZoomOutLine,
+} from "@remixicon/react";
 import React, { TouchEvent, useEffect, useRef, useState, WheelEvent } from "react";
 import { cn } from "@/utils/cn";
 
@@ -25,6 +31,8 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
 
   const imageRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const prevFocusRef = useRef<HTMLElement | null>(null);
 
   // Touch pinch-to-zoom state
   const [touchState, setTouchState] = useState<{
@@ -78,6 +86,90 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, currentIndex, images.length, onClose]);
 
+  // Scroll lock + initial focus + restore focus
+  useEffect(() => {
+    if (!isOpen) return;
+
+    prevFocusRef.current = (document.activeElement as HTMLElement) ?? null;
+    document.documentElement.classList.add("modal-open");
+
+    // Defer to ensure the button exists in the DOM
+    setTimeout(() => {
+      closeBtnRef.current?.focus();
+    }, 0);
+
+    return () => {
+      document.documentElement.classList.remove("modal-open");
+      // Restore focus on next tick to let unmount commit
+      const prev = prevFocusRef.current;
+      setTimeout(() => prev?.focus?.(), 0);
+    };
+  }, [isOpen]);
+
+  // Focus trap within the dialog
+  const trapTabKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== "Tab") return;
+    const root = containerRef.current;
+    if (!root) return;
+
+    const focusables = Array.from(
+      root.querySelectorAll<HTMLElement>(
+        'a[href],button:not([disabled]),textarea,input,select,[tabindex]:not([tabindex="-1"])'
+      )
+    ).filter((el) => !el.hasAttribute("inert"));
+
+    if (focusables.length === 0) return;
+
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    const active = document.activeElement as HTMLElement | null;
+
+    if (e.shiftKey) {
+      if (active === first || !focusables.includes(active as HTMLElement)) {
+        last.focus();
+        e.preventDefault();
+      }
+    } else {
+      if (active === last) {
+        first.focus();
+        e.preventDefault();
+      }
+    }
+  };
+
+  const handleContainerKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    // Prevent accidental click via Enter/Space on the container
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+    }
+
+    // Maintain focus trap for Tab navigation
+    trapTabKey(e);
+
+    // Support key controls at the dialog container level for reliability
+    switch (e.key) {
+      case "Escape":
+        onClose();
+        break;
+      case "ArrowLeft":
+        navigatePrev();
+        break;
+      case "ArrowRight":
+        navigateNext();
+        break;
+      case "+":
+      case "=":
+        zoomIn();
+        break;
+      case "-":
+        zoomOut();
+        break;
+      case "0":
+        resetZoom();
+        break;
+    }
+  };
+
   const navigatePrev = () => {
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
@@ -103,6 +195,32 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
     setPosition({ x: 0, y: 0 });
   };
 
+  const handleDownload = () => {
+    try {
+      const url = images[currentIndex];
+      if (!url) return;
+      const link = document.createElement("a");
+      link.href = url;
+      // Derive a filename from URL; fallback to generic name
+      const urlPath = (() => {
+        try {
+          return new URL(url, window.location.href).pathname;
+        } catch {
+          return url; // may be a blob or data URL
+        }
+      })();
+      const lastSegment = urlPath.split("/").filter(Boolean).pop() || "download-image";
+      link.download = lastSegment;
+      link.rel = "noopener noreferrer";
+      // Some browsers require the element to be in the DOM
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch {
+      // noop
+    }
+  };
+
   // Mouse wheel zoom
   const handleWheel = (e: WheelEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -113,7 +231,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
   // Touch handlers for pinch-to-zoom
   const handleTouchStart = (e: TouchEvent<HTMLDivElement>) => {
     if (e.touches.length === 2) {
-      const distance = getTouchDistance(e.touches as unknown as TouchList);
+      const distance = getTouchDistance(e.touches as unknown as unknown as any);
       setTouchState({
         initialDistance: distance,
         initialScale: scale,
@@ -129,7 +247,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
 
   const handleTouchMove = (e: TouchEvent<HTMLDivElement>) => {
     if (e.touches.length === 2 && touchState.initialDistance) {
-      const distance = getTouchDistance(e.touches as unknown as TouchList);
+      const distance = getTouchDistance(e.touches as unknown as unknown as any);
       const scaleFactor = distance / touchState.initialDistance;
       const newScale = Math.max(0.5, Math.min(4, touchState.initialScale * scaleFactor));
       setScale(newScale);
@@ -146,7 +264,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
     setIsDragging(false);
   };
 
-  const getTouchDistance = (touches: TouchList | ReadonlyArray<Touch> | unknown): number => {
+  const getTouchDistance = (touches: any): number => {
     // Normalize to array-like for React.TouchList compatibility
     const t0 = touches[0];
     const t1 = touches[1];
@@ -197,13 +315,11 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
         ref={containerRef}
         className="relative w-full h-full max-w-4xl max-h-4xl m-4"
         onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-          }
-        }}
-        role="group"
-        tabIndex={0}
+        onKeyDown={handleContainerKeyDown}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Image preview"
+        tabIndex={-1}
       >
         {/* Header Controls */}
         <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4 bg-gradient-to-b from-black/50 to-transparent">
@@ -219,6 +335,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
               onClick={zoomOut}
               className="btn-icon bg-white/10 hover:bg-white/20 text-white rounded-full"
               aria-label="Zoom out"
+              type="button"
             >
               <RiZoomOutLine className="w-5 h-5" />
             </button>
@@ -226,6 +343,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
               onClick={resetZoom}
               className="btn-icon bg-white/10 hover:bg-white/20 text-white rounded-full"
               aria-label="Reset zoom"
+              type="button"
             >
               <RiFocus3Line className="w-5 h-5" />
             </button>
@@ -233,15 +351,30 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
               onClick={zoomIn}
               className="btn-icon bg-white/10 hover:bg-white/20 text-white rounded-full"
               aria-label="Zoom in"
+              type="button"
             >
               <RiZoomInLine className="w-5 h-5" />
             </button>
 
+            {/* Download Button */}
+            <button
+              onClick={handleDownload}
+              className="btn-icon bg-white/10 hover:bg-white/20 text-white rounded-full ml-2"
+              aria-label="Download image"
+              type="button"
+              data-testid="image-preview-download"
+            >
+              <RiDownloadLine className="w-5 h-5" />
+            </button>
+
             {/* Close Button */}
             <button
+              ref={closeBtnRef}
               onClick={onClose}
               className="btn-icon bg-white/10 hover:bg-white/20 text-white rounded-full ml-4"
               aria-label="Close preview"
+              data-testid="image-preview-close"
+              type="button"
             >
               <RiCloseLine className="w-5 h-5" />
             </button>
@@ -251,7 +384,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
         {/* Image Container */}
         <div
           ref={imageRef}
-          className="relative w-full h-full flex items-center justify-center overflow-hidden rounded-lg"
+          className="relative w-full h-full flex items-center justify-center overflow-hidden rounded-xl border border-white/10"
           onWheel={handleWheel}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
@@ -266,6 +399,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
             src={images[currentIndex]}
             alt={`Preview ${currentIndex + 1}`}
             className="max-w-full max-h-full object-contain select-none"
+            decoding="async"
             style={{
               transform: `scale(${scale}) translate(${position.x / scale}px, ${position.y / scale}px)`,
               transition: isDragging ? "none" : "transform 0.2s ease-out",
@@ -283,6 +417,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                 onClick={navigatePrev}
                 className="absolute left-4 top-1/2 -translate-y-1/2 btn-icon bg-white/10 hover:bg-white/20 text-white rounded-full"
                 aria-label="Previous image"
+                type="button"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -300,6 +435,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                 onClick={navigateNext}
                 className="absolute right-4 top-1/2 -translate-y-1/2 btn-icon bg-white/10 hover:bg-white/20 text-white rounded-full"
                 aria-label="Next image"
+                type="button"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -328,6 +464,8 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                       ? "border-white shadow-lg scale-110"
                       : "border-white/30 hover:border-white/60"
                   )}
+                  type="button"
+                  aria-label={`Go to image ${index + 1}`}
                 >
                   <img
                     src={image}
