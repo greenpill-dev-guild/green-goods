@@ -1,5 +1,5 @@
 import { RiHeadphoneLine, RiSettings2Fill } from "@remixicon/react";
-import { type React, useState } from "react";
+import { useState } from "react";
 import { useIntl } from "react-intl";
 import { Profile as UserProfile } from "@/components/UI/Profile/Profile";
 import { type StandardTab, StandardTabs } from "@/components/UI/Tabs";
@@ -9,7 +9,7 @@ import { ProfileAccount } from "./Account";
 import { ProfileHelp } from "./Help";
 
 const Profile: React.FC = () => {
-  const { user } = useUser();
+  const { user, smartAccountAddress } = useUser();
   const intl = useIntl();
   const [activeTab, setActiveTab] = useState("account");
 
@@ -52,7 +52,7 @@ const Profile: React.FC = () => {
             displayName={user?.email?.address || user?.phone?.number || user?.id || "Unknown"}
             avatar={user?.farcaster?.pfp || "/images/avatar.png"}
             location={(user?.customMetadata?.location as string) || undefined}
-            wallet={user?.wallet?.address && formatAddress(user?.wallet?.address)}
+            wallet={smartAccountAddress ? formatAddress(smartAccountAddress) : undefined}
             registration={user?.createdAt?.toLocaleDateString() || undefined}
             email={user?.email?.address || undefined}
             telephone={user?.phone?.number || undefined}

@@ -1,4 +1,4 @@
-import { RiArrowDropRightLine, RiTelegramLine, RiWhatsappLine } from "@remixicon/react";
+import { RiArrowDropRightLine, RiTelegramLine, RiTwitterLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Faq, FaqContent, FaqItem, FaqTrigger } from "@/components/UI/Accordion/Faq";
 import { Avatar } from "@/components/UI/Avatar/Avatar";
@@ -23,33 +23,42 @@ export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
 
   const socials: Social[] = [
     {
-      title: "WhatsApp",
-      description: intl.formatMessage({
-        id: "app.profile.help.socials.whatsapp.description",
-        description: "WhatsApp Description",
+      title: intl.formatMessage({
+        id: "app.profile.help.socials.telegram.title",
+        description: "Telegram",
       }),
-      url: "https://discord.gg/greengoods",
-      Icon: <RiWhatsappLine />,
-    },
-    {
-      title: "Telegram",
       description: intl.formatMessage({
         id: "app.profile.help.socials.telegram.description",
         description: "Telegram Description",
       }),
-      url: "https://t.me/gp_dev_guild",
+      url: "https://t.me/+N3o3_43iRec1Y2Jh",
       Icon: <RiTelegramLine />,
+    },
+    {
+      title: intl.formatMessage({
+        id: "app.profile.help.socials.twitter.title",
+        description: "Twitter",
+      }),
+      description: intl.formatMessage({
+        id: "app.profile.help.socials.twitter.description",
+        description: "Twitter Description",
+      }),
+      url: "https://x.com/greengoodsapp",
+      Icon: <RiTwitterLine />,
     },
   ];
 
   const faqTopics = [
     "whatIsGreenGoods",
-    "whatIsBiodiversity",
-    "howToBringBiodiversityOnchain",
-    "whatIsEAS",
+    "howSubmissionWorks",
+    "gardensAndOperators",
     "whoCanSubmitWork",
+    "whatIsEAS",
+    "offlineSupport",
+    "smartAccountAddress",
+    "dataStorage",
+    "duplicateHandling",
     "howToGetInvolved",
-    "howToLearnMore",
     "howToContact",
   ];
 
@@ -66,7 +75,7 @@ export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
 
   return (
     <>
-      <h5 className="">Get In Touch</h5>
+      <h5 className="">{intl.formatMessage({ id: "app.profile.help.getInTouch" })}</h5>
       {socials.map((social) => (
         <a key={social.title} href={social.url} target="_blank" rel="noopener noreferrer">
           <FlexCard>
@@ -88,8 +97,8 @@ export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
           </FlexCard>
         </a>
       ))}
-      <h5>Questions</h5>
-      <Faq type="single">
+      <h5>{intl.formatMessage({ id: "app.profile.help.questions" })}</h5>
+      <Faq>
         {faqs.map((faq) => {
           return (
             <FaqItem key={faq.question} value={faq.question}>
