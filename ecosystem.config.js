@@ -3,8 +3,8 @@ module.exports = {
     {
       name: "client",
       script: "sh",
-      // Use rolldown dev config for faster builds & keep SW disabled by default
-      args: '-c "pnpm --filter client run dev:rolldown"',
+      // Use default vite (aliased to rolldown-vite) for dev
+      args: '-c "pnpm --filter client run dev"',
       cwd: ".",
       env: {
         NODE_ENV: "development",
