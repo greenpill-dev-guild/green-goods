@@ -197,6 +197,89 @@ fastify.patch<{
   }
 );
 
+// Badges routes (basic implementation)
+fastify.get<{
+  Querystring: { wallet?: string };
+}>("/badges", async (request: FastifyRequest<{ Querystring: { wallet?: string } }>, reply) => {
+  try {
+    const { wallet } = request.query || {};
+    const chainId = Number(process.env.GREENPILL_CHAIN_ID || 84532);
+    const contract = process.env.GREENPILL_CONTRACT || null;
+
+    // Placeholder/mock badge until Atlantis integration is configured
+    const badge = {
+      key: "greenpill",
+      type: "nft",
+      title: "Greenpill",
+      state: "unknown",
+      progress: null,
+      images: {
+        small: `${process.env.PUBLIC_URL || ""}/images/avatar.png`,
+        large: `${process.env.PUBLIC_URL || ""}/images/app-mock.png`,
+      },
+      details: {
+        description: "A dynamic NFT that turns green as you earn impact.",
+        howToUrl: "https://www.atlantisp2p.com/howtogp",
+        explorerUrl: contract && wallet ? null : null,
+      },
+      chain: {
+        chainId,
+        contract,
+        tokenId: null as string | null,
+      },
+      owned: false,
+      updatedAt: new Date().toISOString(),
+    };
+
+    return reply.send({ badges: [badge] });
+  } catch (error) {
+    fastify.log.error("Badges API Error:", error);
+    return reply.status(500).send({ error: "Internal server error" });
+  }
+});
+
+fastify.get<{
+  Querystring: { wallet?: string };
+}>(
+  "/badges/greenpill",
+  async (request: FastifyRequest<{ Querystring: { wallet?: string } }>, reply) => {
+    try {
+      const { wallet } = request.query || {};
+      const chainId = Number(process.env.GREENPILL_CHAIN_ID || 84532);
+      const contract = process.env.GREENPILL_CONTRACT || null;
+
+      const badge = {
+        key: "greenpill",
+        type: "nft",
+        title: "Greenpill",
+        state: "unknown",
+        progress: null,
+        images: {
+          small: `${process.env.PUBLIC_URL || ""}/images/avatar.png`,
+          large: `${process.env.PUBLIC_URL || ""}/images/app-mock.png`,
+        },
+        details: {
+          description: "A dynamic NFT that turns green as you earn impact.",
+          howToUrl: "https://www.atlantisp2p.com/howtogp",
+          explorerUrl: contract && wallet ? null : null,
+        },
+        chain: {
+          chainId,
+          contract,
+          tokenId: null as string | null,
+        },
+        owned: false,
+        updatedAt: new Date().toISOString(),
+      };
+
+      return reply.send(badge);
+    } catch (error) {
+      fastify.log.error("Greenpill badge API Error:", error);
+      return reply.status(500).send({ error: "Internal server error" });
+    }
+  }
+);
+
 // Health check
 fastify.get("/health", async (request: FastifyRequest, reply: FastifyReply) => {
   return reply.send({
@@ -218,6 +301,8 @@ fastify.get("/", async (request: FastifyRequest, reply: FastifyReply) => {
       users: "/api/users",
       subscribe: "/api/subscribe",
       updateUser: "/api/users/me",
+      badges: "/api/badges",
+      greenpill: "/api/badges/greenpill",
     },
   });
 });
@@ -244,6 +329,8 @@ const start = async () => {
     fastify.log.info(`📊 Health check: http://localhost:${PORT}/api/health`);
     fastify.log.info(`👥 Users endpoint: http://localhost:${PORT}/api/users`);
     fastify.log.info(`📧 Subscribe endpoint: http://localhost:${PORT}/api/subscribe`);
+    fastify.log.info(`🏅 Badges endpoint: http://localhost:${PORT}/api/badges`);
+    fastify.log.info(`🟢 Greenpill endpoint: http://localhost:${PORT}/api/badges/greenpill`);
     fastify.log.info(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
   } catch (err) {
     fastify.log.error(err);

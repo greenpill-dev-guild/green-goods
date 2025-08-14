@@ -1,4 +1,4 @@
-import { RiHeadphoneLine, RiSettings2Fill } from "@remixicon/react";
+import { RiHeadphoneLine, RiMedal2Line, RiSettings2Fill } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { Profile as UserProfile } from "@/components/UI/Profile/Profile";
@@ -7,6 +7,7 @@ import { useUser } from "@/providers/user";
 import { formatAddress } from "@/utils/text";
 import { ProfileAccount } from "./Account";
 import { ProfileHelp } from "./Help";
+import { ProfileBadges } from "./Badges";
 
 const Profile: React.FC = () => {
   const { user, smartAccountAddress } = useUser();
@@ -21,6 +22,14 @@ const Profile: React.FC = () => {
         description: "Account",
       }),
       icon: <RiSettings2Fill className="w-4" />,
+    },
+    {
+      id: "badges",
+      label: intl.formatMessage({
+        id: "app.profile.badges",
+        description: "Badges",
+      }),
+      icon: <RiMedal2Line className="w-4" />,
     },
     {
       id: "help",
@@ -38,6 +47,8 @@ const Profile: React.FC = () => {
         return <ProfileAccount />;
       case "help":
         return <ProfileHelp />;
+      case "badges":
+        return <ProfileBadges />;
       default:
         return <ProfileAccount />;
     }
