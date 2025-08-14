@@ -140,17 +140,17 @@ export const TopNav: React.FC<TopNavProps> = ({
   overlay,
   ...props
 }: TopNavProps) => {
-  const { pendingCount, syncStatus, isOnline } = useOffline();
-  const hasOfflineIssues = !navigator.onLine || pendingCount > 0 || syncStatus === "error";
+  const { syncStatus, isOnline } = useOffline();
+  const hasOfflineIssues = !navigator.onLine;
 
   // Get appropriate button styling variant
   const buttonVariant = getButtonVariant(syncStatus, isOnline);
   const backButtonStyles = createButtonStyles(buttonVariant);
 
   const containerClasses = cn(
-    "relative flex z-[1000] flex-row w-full justify-evenly items-center gap-4 p-6 h-14 top-0",
+    "relative flex z-[1000] flex-row w-full justify-evenly items-center gap-4 p-6 h-14 top-2",
     overlay && "fixed bg-white",
-    overlay && hasOfflineIssues && "top-6", // Space for offline indicator
+    overlay && hasOfflineIssues && "top-2", // Space for offline indicator
     overlay && !hasOfflineIssues && "top-0"
   );
 
