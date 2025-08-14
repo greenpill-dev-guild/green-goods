@@ -1,0 +1,22 @@
+---
+description: Contracts — Solidity style, safety, gas, events, and testing with Foundry.
+globs:
+  - "packages/contracts/src/**/*.sol"
+  - "packages/contracts/script/**/*"
+  - "packages/contracts/test/**/*"
+alwaysApply: false
+---
+
+# Contracts Rules
+
+## Style & Safety
+- SPDX header; pinned `pragma`. Use OpenZeppelin where possible. Checks-Effects-Interactions; add ReentrancyGuard if funds move.
+
+## Gas & Storage
+- Prefer `calldata` for external args; avoid unnecessary SSTOREs; emit succinct events for off-chain consumers.
+
+## Events & Indexing
+- Emit events for new/updated work items with fields needed by indexer/UI (addresses, IDs, status, URIs).
+
+## Testing & Deploy
+- Foundry tests for happy/failure paths + invariants. Scripts for repeatable deploys; document network IDs/env vars.
