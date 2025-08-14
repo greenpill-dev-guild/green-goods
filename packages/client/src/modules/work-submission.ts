@@ -98,8 +98,9 @@ export function validateWorkDraft(
     errors.push("Feedback is required");
   }
 
-  if (draft.plantCount <= 0) {
-    errors.push("Plant count must be greater than 0");
+  // Plant count is optional; only validate if provided and negative
+  if (typeof (draft as any).plantCount === "number" && (draft as any).plantCount < 0) {
+    errors.push("Plant count cannot be negative");
   }
 
   if (images.length === 0) {

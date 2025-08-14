@@ -1,43 +1,28 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  RiCheckDoubleFill,
-  RiCheckFill,
-  RiCloseFill,
-  RiDownloadLine,
-  RiExternalLinkLine,
-  RiHammerFill,
-  RiLeafFill,
-  RiPencilFill,
-  RiPlantFill,
-  RiShareLine,
-  RiZoomInLine,
-} from "@remixicon/react";
+import { RiCheckFill, RiCloseFill } from "@remixicon/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { Form, useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
-import { useParams } from "react-router-dom";
-import { decodeErrorResult } from "viem";
+import { Await, useLoaderData, useLocation, useParams } from "react-router-dom";
 
 import { z } from "zod";
 import { Button } from "@/components/UI/Button";
-import { GardenCard } from "@/components/UI/Card/GardenCard";
-import { Carousel, CarouselContent, CarouselItem } from "@/components/UI/Carousel/Carousel";
-import { FormCard } from "@/components/UI/Form/Card";
-import { FormInfo } from "@/components/UI/Form/Info";
 import { FormText } from "@/components/UI/Form/Text";
-import { CircleLoader } from "@/components/UI/Loader";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
+import ConfirmDrawer from "@/components/UI/ModalDrawer/ConfirmDrawer";
+import { WorkViewSkeleton } from "@/components/UI/WorkView/WorkView";
+import toast from "react-hot-toast";
 import { useNavigateToTop } from "@/hooks";
 import { DEFAULT_CHAIN_ID } from "@/config";
 import { createOfflineTxHash, jobQueue } from "@/modules/job-queue";
-import { getFileByHash } from "@/modules/pinata";
-import { useGarden, useGardens } from "@/providers/garden";
+import { processApprovalJobInline } from "@/modules/job-queue/inline-processor";
 import { useUser } from "@/providers/user";
-import { abi as WorkApprovalResolverABI } from "@/utils/abis/WorkApprovalResolver.json";
+import { useJobQueueEvents } from "@/modules/job-queue/event-bus";
 import { isValidAttestationId, openEASExplorer } from "@/utils/easExplorer";
 import { downloadWorkData, downloadWorkMedia, shareWork, type WorkData } from "@/utils/workActions";
 import { WorkCompleted } from "../../Garden/Completed";
+import WorkViewSection from "./WorkViewSection";
 
 type GardenWorkProps = {};
 
@@ -48,26 +33,29 @@ const workApprovalSchema = z.object({
   feedback: z.string().optional(),
 });
 
+type WorkApprovalDraft = z.infer<typeof workApprovalSchema>;
+
 export const GardenWork: React.FC<GardenWorkProps> = () => {
   const intl = useIntl();
-  const { id, workId } = useParams<{
-    id: string;
-    workId: string;
-  }>();
+  useParams<{ id: string; workId: string }>();
   const [workMetadata, setWorkMetadata] = useState<WorkMetadata | null>(null);
-  const navigate = useNavigateToTop();
-  const { garden } = useGarden(id!);
-  const { actions } = useGardens();
+  const [isApproveDialogOpen, setApproveDialogOpen] = useState(false);
+  const [isRejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const navigateToTop = useNavigateToTop();
+  const location = useLocation();
+  const loaderData = useLoaderData() as {
+    garden: Garden;
+    work?: Work;
+    workMetadata: Promise<WorkMetadata | null>;
+    actionTitle?: string | null;
+  };
+  const garden = loaderData.garden;
+  // No longer need actions here; title comes from loader
   const queryClient = useQueryClient();
   const chainId = DEFAULT_CHAIN_ID;
 
-  const work = garden?.works.find((work) => work.id === workId);
-  const action = actions.find((action) => {
-    if (!work?.actionUID) return false;
-    const idPart = String(action.id).split("-").pop();
-    const numeric = Number(idPart);
-    return Number.isFinite(numeric) && numeric === work.actionUID;
-  });
+  const work = loaderData.work;
+  const actionTitleFromLoader = loaderData.actionTitle;
 
   const { smartAccountAddress } = useUser();
 
@@ -162,12 +150,12 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
       approved: false,
       feedback: "",
     },
-    resolver: zodResolver(workApprovalSchema),
+    resolver: zodResolver(workApprovalSchema as any),
     shouldUseNativeValidation: true,
     mode: "onChange",
   });
 
-  const workApprovalMutation = useMutation({
+  const workApprovalMutation = useMutation<string, unknown, WorkApprovalDraft>({
     mutationFn: async (draft: WorkApprovalDraft) => {
       // Add approval job to queue - this handles both offline and online scenarios
       const jobId = await jobQueue.addJob(
@@ -182,516 +170,231 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
       );
 
       // Return an offline transaction hash for UI compatibility
-      return createOfflineTxHash(jobId);
-    },
-    onMutate: () => {
-      // toast.loading("Approving work...");
-    },
-    onSuccess: () => {
-      // toast.dismiss();
-      // toast.success("Work approved!");
-      queryClient.invalidateQueries({ queryKey: ["workApprovals"] });
-    },
-    onError: (error: unknown) => {
-      if (error instanceof Error && error.message.includes("User rejected the request")) {
-        return;
-      }
-
-      // Properly decode revert data if available
-      if (
-        error &&
-        typeof error === "object" &&
-        "data" in error &&
-        typeof error.data === "string" &&
-        error.data.startsWith("0x")
-      ) {
+      const offlineHash = createOfflineTxHash(jobId);
+      // If a client is available, try to process inline immediately
+      const { smartAccountClient } = useUser();
+      if (smartAccountClient) {
         try {
-          decodeErrorResult({
-            abi: WorkApprovalResolverABI,
-            data: error.data as `0x${string}`,
-          });
-        } catch (decodeError) {
-          // Failed to decode error result
+          await processApprovalJobInline(jobId, chainId, smartAccountClient);
+        } catch {
+          // best-effort inline processing; job remains queued otherwise
         }
       }
+      return offlineHash;
+    },
+    onMutate: () => {
+      toast.loading(
+        intl.formatMessage({
+          id: "app.toast.submittingApproval",
+          defaultMessage: "Submitting approval...",
+        }),
+        { id: "approval-upload" }
+      );
     },
   });
 
-  useEffect(() => {
-    async function fetchWorkMetadata() {
-      if (work) {
-        const res = await getFileByHash(work.metadata);
+  // Toasts + cache invalidation from queue events
+  useJobQueueEvents(
+    ["job:completed", "job:failed"],
+    (type, data) => {
+      if (!work) return;
+      if (data.job.kind !== "approval") return;
+      const payload = data.job.payload as ApprovalJobPayload;
+      if (payload.workUID !== work.id) return;
 
-        if (!res.data) throw new Error("No metadata found");
-
-        const metadata: WorkMetadata = res.data as unknown as WorkMetadata;
-
-        setWorkMetadata(metadata);
+      if (type === "job:completed") {
+        toast.success(
+          payload.approved
+            ? intl.formatMessage({ id: "app.toast.workApproved", defaultMessage: "Work approved" })
+            : intl.formatMessage({ id: "app.toast.workRejected", defaultMessage: "Work rejected" })
+        );
+        toast.dismiss("approval-upload");
       }
+      if (type === "job:failed") {
+        toast.error(
+          intl.formatMessage({ id: "app.toast.actionFailed", defaultMessage: "Action failed" })
+        );
+        toast.dismiss("approval-upload");
+      }
+      queryClient.invalidateQueries({ queryKey: ["workApprovals"] });
+      if (garden?.id) {
+        queryClient.invalidateQueries({ queryKey: ["works", garden.id] });
+      }
+    },
+    [work?.id, garden?.id]
+  );
+
+  // using shared ConfirmDrawer component
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const meta = await loaderData.workMetadata;
+        if (mounted) setWorkMetadata(meta);
+      } catch {
+        if (mounted) setWorkMetadata(null);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [loaderData.workMetadata]);
+
+  const handleBack = () => {
+    const from = (location.state as any)?.from as string | undefined;
+    if (from === "dashboard") {
+      navigateToTop("/home");
+      return;
     }
+    navigateToTop(`/home/${garden?.id ?? ""}`);
+  };
 
-    fetchWorkMetadata();
-  }, [work]);
-
-  if (!work || !action || !garden)
+  if (!work || !garden)
     return (
-      <div className="w-full h-full grid place-items-center">
-        <CircleLoader />
-      </div>
+      <article>
+        <TopNav onBackClick={handleBack} />
+        <div className="padded">
+          <WorkViewSkeleton showMedia showActions={false} numDetails={3} />
+        </div>
+      </article>
     );
 
-  const { feedback, media } = work;
+  const hasMedia = Array.isArray(work.media) && work.media.length > 0;
 
   return (
     <article>
-      <TopNav onBackClick={() => navigate(`/home/${garden.id}`)} />
+      <TopNav onBackClick={handleBack} />
       {workApprovalMutation.isIdle && (
         <Form
           id="work-approve"
           control={control}
-          className="relative flex flex-col gap-4 min-h-screen pb-6"
+          className="relative min-h-[calc(100vh-7rem)] pb-24"
         >
-          <div className="padded flex flex-col gap-4">
-            <FormInfo
-              title={
-                viewingMode === "operator"
-                  ? intl.formatMessage({
-                      id: "app.home.workApproval.evaluateWork",
-                      defaultMessage: "Evaluate Work",
+          <Suspense
+            fallback={
+              <div className="padded">
+                <WorkViewSkeleton showMedia showActions={false} numDetails={3} />
+              </div>
+            }
+          >
+            <Await resolve={loaderData.workMetadata}>
+              {(resolvedMeta: WorkMetadata | null) => (
+                <WorkViewSection
+                  garden={garden}
+                  work={work}
+                  workMetadata={resolvedMeta}
+                  viewingMode={viewingMode as any}
+                  actionTitle={
+                    actionTitleFromLoader ??
+                    intl.formatMessage({
+                      id: "app.home.work.unknownAction",
+                      defaultMessage: "Unknown Action",
                     })
-                  : viewingMode === "gardener"
-                    ? intl.formatMessage({
-                        id: "app.home.work.yourSubmission",
-                        defaultMessage: "Your Work Submission",
-                      })
-                    : intl.formatMessage({
-                        id: "app.home.work.viewWork",
-                        defaultMessage: "View Work",
-                      })
-              }
-              info={
-                viewingMode === "operator"
-                  ? intl.formatMessage({
-                      id: "app.home.workApproval.verifyIfTheWorkIsAcceptable",
-                      defaultMessage: "Verify if the work is acceptable",
-                    })
-                  : viewingMode === "gardener"
-                    ? intl.formatMessage({
-                        id: "app.home.work.submittedForReview",
-                        defaultMessage: "Submitted for review",
-                      })
-                    : intl.formatMessage({
-                        id: "app.home.work.exploreSubmission",
-                        defaultMessage: "Explore this work submission",
-                      })
-              }
-              Icon={RiCheckDoubleFill}
-            />
-            <h6>
-              {intl.formatMessage({
-                id: "app.home.workApproval.garden",
-                defaultMessage: "Garden",
-              })}
-            </h6>
-            <GardenCard
-              garden={garden}
-              media="small"
-              height="selection"
-              showOperators={true}
-              selected={false}
-              showDescription={false}
-              showBanner={false}
-            />
-            {media.length > 0 && (
-              <>
-                <h6>
-                  {intl.formatMessage({
-                    id: "app.home.workApproval.media",
-                    defaultMessage: "Media",
-                  })}
-                </h6>
-                <Carousel enablePreview previewImages={media}>
-                  <CarouselContent>
-                    {media.map((item, index) => (
-                      <CarouselItem
-                        key={item}
-                        index={index}
-                        className="max-w-40 aspect-3/4 object-cover rounded-2xl"
-                      >
-                        <div className="relative group">
-                          <img
-                            src={item}
-                            alt={`Preview ${index}`}
-                            className="w-full h-full aspect-3/4 object-cover rounded-2xl"
-                          />
-                          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-2xl flex items-center justify-center">
-                            <RiZoomInLine className="w-8 h-8 text-white" />
-                          </div>
-                        </div>
-                      </CarouselItem>
-                    ))}
-                  </CarouselContent>
-                </Carousel>
-              </>
-            )}
-            <h6>
-              {intl.formatMessage({
-                id: "app.home.workApproval.details",
-                defaultMessage: "Details",
-              })}
-            </h6>
-            <FormCard
-              label={intl.formatMessage({
-                id: "app.home.workApproval.action",
-                defaultMessage: "Action",
-              })}
-              value={action.title}
-              Icon={RiHammerFill}
-            />
-            <FormCard
-              label={intl.formatMessage({
-                id: "app.home.workApproval.plantTypes",
-                defaultMessage: "Plant Types",
-              })}
-              value={workMetadata?.plantSelection.join(", ") || ""}
-              Icon={RiPlantFill}
-            />
-            {feedback && (
-              <FormCard
-                label={intl.formatMessage({
-                  id: "app.home.workApproval.description",
-                  defaultMessage: "Description",
-                })}
-                value={feedback}
-                Icon={RiPencilFill}
-              />
-            )}
-            <FormCard
-              label={intl.formatMessage({
-                id: "app.home.workApproval.plantAmount",
-                defaultMessage: "Plant Amount",
-              })}
-              value={workMetadata?.plantCount.toString() || ""}
-              Icon={RiLeafFill}
-            />
-            {viewingMode === "operator" && work.status === "pending" && (
-              <>
-                <h6>
-                  {intl.formatMessage({
-                    id: "app.home.workApproval.giveYourFeedback",
-                    defaultMessage: "Give your feedback",
-                  })}
-                </h6>
-                <FormText
-                  rows={4}
-                  label={intl.formatMessage({
-                    id: "app.home.workApproval.description",
-                    defaultMessage: "Description",
-                  })}
-                  {...register("feedback")}
+                  }
+                  onDownloadData={handleDownloadData}
+                  onDownloadMedia={hasMedia ? handleDownloadMedia : undefined}
+                  onShare={handleShare}
+                  onViewAttestation={
+                    work && work.id && isValidAttestationId(work.id)
+                      ? handleViewAttestation
+                      : undefined
+                  }
+                  footer={
+                    viewingMode === "operator" && work && work.status === "pending" ? (
+                      <div className="fixed left-0 right-0 bottom-0 bg-white border-t border-slate-200 p-4 flex gap-4">
+                        <Button
+                          onClick={() => setRejectDialogOpen(true)}
+                          label={intl.formatMessage({
+                            id: "app.home.workApproval.reject",
+                            defaultMessage: "Reject",
+                          })}
+                          className="flex-1"
+                          variant="error"
+                          type="button"
+                          shape="pilled"
+                          mode="stroke"
+                        />
+                        <Button
+                          onClick={() => setApproveDialogOpen(true)}
+                          type="button"
+                          label={intl.formatMessage({
+                            id: "app.home.workApproval.approve",
+                            defaultMessage: "Approve",
+                          })}
+                          className="flex-1"
+                          variant="primary"
+                          mode="filled"
+                          size="medium"
+                          shape="pilled"
+                        />
+                      </div>
+                    ) : null
+                  }
                 />
-              </>
-            )}
-          </div>
-          {/* Action buttons based on viewing mode and work status */}
-          <div className="flex border-t border-stroke-soft-200">
-            <div className="flex flex-col gap-3 w-full mt-4 padded">
-              {/* Operator View - Can approve/reject pending work */}
-              {viewingMode === "operator" && (
-                <div className="flex flex-col gap-3">
-                  {work.status === "pending" && (
-                    <div className="flex flex-row gap-4 w-full">
-                      <Button
-                        onClick={handleSubmit((data) => {
-                          data.approved = false;
-                          workApprovalMutation.mutate(data);
-                          queryClient.invalidateQueries({ queryKey: ["workApprovals"] });
-                          if (garden?.id) {
-                            queryClient.invalidateQueries({ queryKey: ["works", garden.id] });
-                          }
-                        })}
-                        label={intl.formatMessage({
-                          id: "app.home.workApproval.reject",
-                          defaultMessage: "Reject",
-                        })}
-                        className="w-full"
-                        variant="error"
-                        type="button"
-                        shape="pilled"
-                        mode="stroke"
-                        leadingIcon={<RiCloseFill className="w-5 h-5" />}
-                      />
-                      <Button
-                        onClick={handleSubmit((data) => {
-                          data.approved = true;
-                          workApprovalMutation.mutate(data);
-                          queryClient.invalidateQueries({ queryKey: ["workApprovals"] });
-                          if (garden?.id) {
-                            queryClient.invalidateQueries({ queryKey: ["works", garden.id] });
-                          }
-                        })}
-                        type="button"
-                        label={intl.formatMessage({
-                          id: "app.home.workApproval.approve",
-                          defaultMessage: "Approve",
-                        })}
-                        className="w-full"
-                        variant="primary"
-                        mode="filled"
-                        size="medium"
-                        shape="pilled"
-                        trailingIcon={<RiCheckFill className="w-5 h-5" />}
-                      />
-                    </div>
-                  )}
-
-                  {/* Operator tools - always available */}
-                  <div className="flex flex-col gap-3">
-                    <div className="flex flex-row gap-3">
-                      <Button
-                        onClick={handleDownloadData}
-                        label={intl.formatMessage({
-                          id: "app.home.work.downloadData",
-                          defaultMessage: "Download Data",
-                        })}
-                        className="flex-1"
-                        variant="neutral"
-                        type="button"
-                        shape="pilled"
-                        mode="stroke"
-                        leadingIcon={<RiDownloadLine className="w-5 h-5" />}
-                      />
-                      {work.media && work.media.length > 0 && (
-                        <Button
-                          onClick={handleDownloadMedia}
-                          label={intl.formatMessage({
-                            id: "app.home.work.downloadMedia",
-                            defaultMessage: "Download Media",
-                          })}
-                          className="flex-1"
-                          variant="neutral"
-                          type="button"
-                          shape="pilled"
-                          mode="stroke"
-                          leadingIcon={<RiDownloadLine className="w-5 h-5" />}
-                        />
-                      )}
-                    </div>
-                    <div className="flex flex-row gap-3">
-                      <Button
-                        onClick={handleShare}
-                        label={intl.formatMessage({
-                          id: "app.home.work.share",
-                          defaultMessage: "Share Work",
-                        })}
-                        className="flex-1"
-                        variant="neutral"
-                        type="button"
-                        shape="pilled"
-                        mode="stroke"
-                        leadingIcon={<RiShareLine className="w-5 h-5" />}
-                      />
-                      {work.id && isValidAttestationId(work.id) && (
-                        <Button
-                          onClick={handleViewAttestation}
-                          label={intl.formatMessage({
-                            id: "app.home.work.viewAttestation",
-                            defaultMessage: "View Attestation",
-                          })}
-                          className="flex-1"
-                          variant="neutral"
-                          type="button"
-                          shape="pilled"
-                          mode="stroke"
-                          leadingIcon={<RiExternalLinkLine className="w-5 h-5" />}
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
               )}
-
-              {/* Gardener View - Can see their work status and actions */}
-              {viewingMode === "gardener" && (
-                <div className="flex flex-col gap-3">
-                  {work.status === "pending" && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                      <p className="text-sm text-blue-700">
-                        {intl.formatMessage({
-                          id: "app.home.work.pendingReview",
-                          defaultMessage: "Your work is pending review by a garden operator.",
-                        })}
-                      </p>
-                    </div>
-                  )}
-                  {work.status === "approved" && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                      <p className="text-sm text-green-700">
-                        {intl.formatMessage({
-                          id: "app.home.work.approved",
-                          defaultMessage: "Your work has been approved!",
-                        })}
-                      </p>
-                    </div>
-                  )}
-                  {work.status === "rejected" && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                      <p className="text-sm text-red-700">
-                        {intl.formatMessage({
-                          id: "app.home.work.rejected",
-                          defaultMessage: "Your work was rejected. Please review the feedback.",
-                        })}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Action buttons for gardener - always available */}
-                  <div className="flex flex-col gap-3">
-                    <div className="flex flex-row gap-3">
-                      <Button
-                        onClick={handleDownloadData}
-                        label={intl.formatMessage({
-                          id: "app.home.work.downloadData",
-                          defaultMessage: "Download Data",
-                        })}
-                        className="flex-1"
-                        variant="neutral"
-                        type="button"
-                        shape="pilled"
-                        mode="stroke"
-                        leadingIcon={<RiDownloadLine className="w-5 h-5" />}
-                      />
-                      {work.media && work.media.length > 0 && (
-                        <Button
-                          onClick={handleDownloadMedia}
-                          label={intl.formatMessage({
-                            id: "app.home.work.downloadMedia",
-                            defaultMessage: "Download Media",
-                          })}
-                          className="flex-1"
-                          variant="neutral"
-                          type="button"
-                          shape="pilled"
-                          mode="stroke"
-                          leadingIcon={<RiDownloadLine className="w-5 h-5" />}
-                        />
-                      )}
-                    </div>
-                    <div className="flex flex-row gap-3">
-                      <Button
-                        onClick={handleShare}
-                        label={intl.formatMessage({
-                          id: "app.home.work.share",
-                          defaultMessage: "Share Work",
-                        })}
-                        className="flex-1"
-                        variant="neutral"
-                        type="button"
-                        shape="pilled"
-                        mode="stroke"
-                        leadingIcon={<RiShareLine className="w-5 h-5" />}
-                      />
-                      {work.id && isValidAttestationId(work.id) && (
-                        <Button
-                          onClick={handleViewAttestation}
-                          label={intl.formatMessage({
-                            id: "app.home.work.viewAttestation",
-                            defaultMessage: "View Attestation",
-                          })}
-                          className="flex-1"
-                          variant="neutral"
-                          type="button"
-                          shape="pilled"
-                          mode="stroke"
-                          leadingIcon={<RiExternalLinkLine className="w-5 h-5" />}
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Viewer Mode - Read-only view with limited actions */}
-              {viewingMode === "viewer" && (
-                <div className="flex flex-col gap-3">
-                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
-                    <p className="text-sm text-slate-700">
-                      {intl.formatMessage({
-                        id: "app.home.work.viewerMode",
-                        defaultMessage: "You are viewing this work submission.",
-                      })}
-                    </p>
-                  </div>
-
-                  {/* Action buttons for viewers */}
-                  <div className="flex flex-col gap-3">
-                    <div className="flex flex-row gap-3">
-                      <Button
-                        onClick={handleDownloadData}
-                        label={intl.formatMessage({
-                          id: "app.home.work.downloadData",
-                          defaultMessage: "Download Data",
-                        })}
-                        className="flex-1"
-                        variant="neutral"
-                        type="button"
-                        shape="pilled"
-                        mode="stroke"
-                        leadingIcon={<RiDownloadLine className="w-5 h-5" />}
-                      />
-                      {work.media && work.media.length > 0 && (
-                        <Button
-                          onClick={handleDownloadMedia}
-                          label={intl.formatMessage({
-                            id: "app.home.work.downloadMedia",
-                            defaultMessage: "Download Media",
-                          })}
-                          className="flex-1"
-                          variant="neutral"
-                          type="button"
-                          shape="pilled"
-                          mode="stroke"
-                          leadingIcon={<RiDownloadLine className="w-5 h-5" />}
-                        />
-                      )}
-                    </div>
-                    <div className="flex flex-row gap-3">
-                      <Button
-                        onClick={handleShare}
-                        label={intl.formatMessage({
-                          id: "app.home.work.share",
-                          defaultMessage: "Share Work",
-                        })}
-                        className="flex-1"
-                        variant="neutral"
-                        type="button"
-                        shape="pilled"
-                        mode="stroke"
-                        leadingIcon={<RiShareLine className="w-5 h-5" />}
-                      />
-                      {work.id && isValidAttestationId(work.id) && (
-                        <Button
-                          onClick={handleViewAttestation}
-                          label={intl.formatMessage({
-                            id: "app.home.work.viewAttestation",
-                            defaultMessage: "View Attestation",
-                          })}
-                          className="flex-1"
-                          variant="neutral"
-                          type="button"
-                          shape="pilled"
-                          mode="stroke"
-                          leadingIcon={<RiExternalLinkLine className="w-5 h-5" />}
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+            </Await>
+          </Suspense>
         </Form>
       )}
+
+      <ConfirmDrawer
+        isOpen={isApproveDialogOpen}
+        onClose={() => setApproveDialogOpen(false)}
+        title={intl.formatMessage({
+          id: "app.home.workApproval.confirmApprove",
+          defaultMessage: "Confirm Approval",
+        })}
+        description={intl.formatMessage({
+          id: "app.home.workApproval.addOptionalFeedback",
+          defaultMessage: "Optionally add feedback for the gardener.",
+        })}
+        confirmLabel={intl.formatMessage({ id: "app.common.confirm", defaultMessage: "Confirm" })}
+        confirmVariant="primary"
+        onConfirm={handleSubmit((data) => {
+          data.approved = true;
+          workApprovalMutation.mutate(data);
+          setApproveDialogOpen(false);
+        })}
+      >
+        <FormText
+          rows={4}
+          label={intl.formatMessage({
+            id: "app.home.workApproval.feedback",
+            defaultMessage: "Feedback",
+          })}
+          {...register("feedback")}
+        />
+      </ConfirmDrawer>
+
+      <ConfirmDrawer
+        isOpen={isRejectDialogOpen}
+        onClose={() => setRejectDialogOpen(false)}
+        title={intl.formatMessage({
+          id: "app.home.workApproval.confirmReject",
+          defaultMessage: "Confirm Rejection",
+        })}
+        description={intl.formatMessage({
+          id: "app.home.workApproval.addFeedbackRequired",
+          defaultMessage: "Please add feedback for the gardener.",
+        })}
+        confirmLabel={intl.formatMessage({ id: "app.common.confirm", defaultMessage: "Confirm" })}
+        confirmVariant="error"
+        onConfirm={handleSubmit((data) => {
+          data.approved = false;
+          workApprovalMutation.mutate(data);
+          setRejectDialogOpen(false);
+        })}
+      >
+        <FormText
+          rows={4}
+          label={intl.formatMessage({
+            id: "app.home.workApproval.feedback",
+            defaultMessage: "Feedback",
+          })}
+          {...register("feedback", { required: true })}
+        />
+      </ConfirmDrawer>
       {!workApprovalMutation.isIdle && (
         <div className="padded">
           <WorkCompleted

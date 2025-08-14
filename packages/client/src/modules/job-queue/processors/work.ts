@@ -41,8 +41,15 @@ export const workProcessor: JobProcessor<WorkJobPayload, EncodedWorkData> = {
   async execute(
     encoded: EncodedWorkData,
     _meta: Record<string, unknown>,
-    smartAccountClient: any
+    smartAccountClient: unknown
   ): Promise<string> {
+    if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
+      // eslint-disable-next-line no-console
+      console.debug("[workProcessor] execute", {
+        to: encoded.easConfig.EAS.address,
+        garden: encoded.gardenAddress,
+      });
+    }
     const encodedData = encodeFunctionData({
       abi,
       functionName: "attest",
@@ -61,13 +68,25 @@ export const workProcessor: JobProcessor<WorkJobPayload, EncodedWorkData> = {
       ],
     });
 
-    const receipt = await smartAccountClient.sendTransaction({
-      to: encoded.easConfig.EAS.address as `0x${string}`,
-      value: 0n,
-      data: encodedData,
-    });
-
-    return receipt;
+    try {
+      const client = smartAccountClient as any;
+      const receipt = await client.sendTransaction({
+        to: encoded.easConfig.EAS.address as `0x${string}`,
+        value: 0n,
+        data: encodedData,
+      });
+      if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
+        // eslint-disable-next-line no-console
+        console.debug("[workProcessor] sendTransaction receipt", receipt);
+      }
+      return receipt;
+    } catch (err: any) {
+      if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
+        // eslint-disable-next-line no-console
+        console.debug("[workProcessor] sendTransaction error", err);
+      }
+      throw err;
+    }
   },
 };
 
