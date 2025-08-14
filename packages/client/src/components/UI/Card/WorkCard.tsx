@@ -14,6 +14,7 @@ import { useIntl } from "react-intl";
 import { cn } from "../../../utils/cn";
 import { Card } from "./Card";
 import { StatusBadge } from "./StatusBadge";
+import { formatAddress } from "@/utils/text";
 
 export interface WorkCardItem {
   id: string;
@@ -43,16 +44,13 @@ export interface WorkCardProps {
 }
 
 export interface MinimalWorkCardProps {
-  work: {
-    id: string;
-    title: string;
-    description?: string;
-    status: "approved" | "rejected" | "pending" | "syncing" | "failed";
-    createdAt: number;
-    gardenId: string;
-  };
+  work: Work;
   onClick: () => void;
   className?: string;
+  actionTitle?: string;
+  gardenerName?: string;
+  showGardenInfo?: boolean;
+  badges?: React.ReactNode[];
 }
 
 const WorkTypeIcon: React.FC<{ type: string; className?: string }> = ({ type, className }) => {
@@ -60,9 +58,15 @@ const WorkTypeIcon: React.FC<{ type: string; className?: string }> = ({ type, cl
   return <Icon className={className} />;
 };
 
+const toMs = (timestamp: number): number => {
+  // Normalize seconds to milliseconds if needed
+  return timestamp < 1e12 ? timestamp * 1000 : timestamp;
+};
+
 const formatTimeAgo = (timestamp: number): string => {
+  const ts = toMs(timestamp);
   const now = Date.now();
-  const diff = now - timestamp;
+  const diff = now - ts;
   const minutes = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);
@@ -297,21 +301,132 @@ export const WorkCard: React.FC<WorkCardProps> = ({
 };
 
 // Export MinimalWorkCard as a wrapper around WorkCard with variant="minimal"
-export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({ work, onClick, className }) => {
-  // Adapt the minimal work interface to the full WorkCardItem interface
-  const workItem: WorkCardItem = {
-    ...work,
-    type: "work",
-    gardenName: undefined,
-    lastAttempt: undefined,
-    retryCount: 0,
-    error: undefined,
-    size: 0,
-    images: undefined,
-    mediaPreview: undefined,
-  };
+export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
+  work,
+  onClick,
+  className,
+  actionTitle,
+  gardenerName,
+  showGardenInfo = false,
+  badges,
+}) => {
+  const intl = useIntl();
+  const displayStatus = work.status.charAt(0).toUpperCase() + work.status.slice(1);
+  // Resolve thumbnail from media entry (supports string URL, {url}, or File)
+  const initialCandidate =
+    Array.isArray(work.media) && work.media.length > 0 ? work.media[0] : undefined;
+  const [thumbUrl, setThumbUrl] = React.useState<string | undefined>(
+    typeof initialCandidate === "string" ? initialCandidate : undefined
+  );
+  React.useEffect(() => {
+    let createdUrl: string | undefined;
+    try {
+      const m0 =
+        Array.isArray(work.media) && work.media.length > 0 ? (work.media as any[])[0] : undefined;
+      let url: string | undefined;
+      if (typeof m0 === "string") {
+        url = m0;
+      } else if (m0 && typeof m0 === "object") {
+        if (typeof (m0 as any).url === "string") {
+          url = (m0 as any).url as string;
+        } else if ((m0 as any).file instanceof File) {
+          createdUrl = URL.createObjectURL((m0 as any).file as File);
+          url = createdUrl;
+        } else if (m0 instanceof File) {
+          createdUrl = URL.createObjectURL(m0 as File);
+          url = createdUrl;
+        }
+      }
+      setThumbUrl(url);
+    } catch {
+      setThumbUrl(undefined);
+    }
+    return () => {
+      if (createdUrl) {
+        try {
+          URL.revokeObjectURL(createdUrl);
+        } catch {}
+      }
+    };
+  }, [work.media]);
+  const hasFeedback = Boolean(work.feedback && work.feedback.trim().length > 0);
+  const mediaCount = Array.isArray(work.media) ? work.media.length : 0;
+  const name = gardenerName || formatAddress(work.gardenerAddress);
+  const action = actionTitle || work.title;
+  const timeAgo = formatTimeAgo(work.createdAt);
 
-  return <WorkCard work={workItem} variant="minimal" onClick={onClick} className={className} />;
+  return (
+    <div
+      onClick={onClick}
+      className={cn(
+        "flex items-stretch gap-0 border border-slate-200 rounded-lg overflow-hidden transition-colors cursor-pointer bg-white",
+        "hover:bg-slate-50",
+        className
+      )}
+    >
+      {/* Media thumbnail - flush to left edge */}
+      <div className="w-20 h-20 flex-shrink-0 bg-slate-100 overflow-hidden">
+        {thumbUrl ? (
+          <img src={thumbUrl} alt="" className="w-full h-full object-cover aspect-square" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-slate-400">
+            <RiImageLine className="w-6 h-6" />
+          </div>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0 pl-2 pr-3 py-3">
+        {/* Title row */}
+        <div className="flex items-start justify-between">
+          <h4 className="font-medium text-sm text-slate-900 truncate pr-2">{action}</h4>
+          <span
+            className={cn(
+              "text-xs font-medium px-2 py-0.5 rounded-full border flex-shrink-0",
+              getStatusColor(work.status)
+            )}
+          >
+            {displayStatus}
+          </span>
+        </div>
+
+        {/* Subtitle: gardener and time */}
+        <div className="mt-0.5 text-xs text-slate-600 truncate">
+          {name}
+          <span className="mx-1">•</span>
+          {timeAgo}
+        </div>
+
+        {/* Meta / Tags */}
+        <div className="mt-2 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2">
+            {mediaCount > 0 && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border bg-blue-50 text-blue-600 border-blue-100">
+                <RiImageLine className="w-3 h-3" /> {mediaCount}
+              </span>
+            )}
+            {hasFeedback && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border bg-purple-50 text-purple-600 border-purple-100">
+                <RiFileTextLine className="w-3 h-3" />
+                {intl.formatMessage({ id: "app.workCard.feedback", defaultMessage: "Feedback" })}
+              </span>
+            )}
+            {badges?.map((badge, i) => (
+              <React.Fragment key={i}>{badge}</React.Fragment>
+            ))}
+          </div>
+          {showGardenInfo && (
+            <div className="flex items-center gap-2 text-slate-500">
+              <span>
+                {intl.formatMessage({ id: "app.workCard.garden", defaultMessage: "Garden:" })}{" "}
+                {formatAddress(work.gardenAddress)}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 };
 
 // Re-export StatusBadge for convenience

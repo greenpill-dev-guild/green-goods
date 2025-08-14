@@ -45,7 +45,7 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
 
   return (
     <div
-      className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[10001] flex items-end justify-center animate-in fade-in-0 duration-150"
+      className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[7777] flex items-end justify-center animate-in fade-in-0 duration-150"
       data-testid="modal-drawer-overlay"
       onClick={onClose}
       onKeyDown={(e) => {
