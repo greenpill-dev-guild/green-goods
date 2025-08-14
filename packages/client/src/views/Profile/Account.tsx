@@ -197,41 +197,6 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
     <>
       <h5>
         {intl.formatMessage({
-          id: "app.profile.profile",
-          description: "Profile",
-          defaultMessage: "Profile",
-        })}
-      </h5>
-      <Card>
-        <div className="flex flex-col gap-3">
-          <FormInput
-            id="display-name"
-            label={intl.formatMessage({
-              id: "app.profile.displayName",
-              defaultMessage: "Display name",
-            })}
-            value={displayName}
-            onChange={(e) => setDisplayName(e.currentTarget.value)}
-            placeholder="e.g. Maria"
-          />
-          <div className="flex justify-end">
-            <Button
-              variant="primary"
-              mode="filled"
-              size="xxsmall"
-              label={
-                saving
-                  ? intl.formatMessage({ id: "app.common.saving", defaultMessage: "Saving..." })
-                  : intl.formatMessage({ id: "app.common.save", defaultMessage: "Save" })
-              }
-              onClick={handleSave}
-              disabled={saving || !displayName?.trim()}
-            />
-          </div>
-        </div>
-      </Card>
-      <h5>
-        {intl.formatMessage({
           id: "app.profile.settings",
           description: "Settings",
         })}
@@ -261,6 +226,38 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
           description: "Edit Account",
         })}
       </h5>
+      <Card>
+        <div className="flex flex-col gap-3">
+          <FormInput
+            id="display-name"
+            label={intl.formatMessage({
+              id: "app.profile.displayName",
+              defaultMessage: "Display name",
+            })}
+            value={displayName}
+            onChange={(e) => setDisplayName(e.currentTarget.value)}
+            placeholder={intl.formatMessage({
+              id: "app.profile.displayName.placeholder",
+              defaultMessage: "e.g. Maria",
+            })}
+            className="mt-1"
+          />
+          <div className="flex justify-end">
+            <Button
+              variant="primary"
+              mode="filled"
+              size="xxsmall"
+              label={
+                saving
+                  ? intl.formatMessage({ id: "app.common.saving", defaultMessage: "Saving..." })
+                  : intl.formatMessage({ id: "app.common.save", defaultMessage: "Save" })
+              }
+              onClick={handleSave}
+              disabled={saving || !displayName?.trim()}
+            />
+          </div>
+        </div>
+      </Card>
       {accountSettings.map(({ title, Icon, description, isLinked, link, unlink }) => (
         <Card key={title}>
           <div className="flex flex-row items-center gap-3 justify-center w-full">

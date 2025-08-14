@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { GardenCard } from "@/components/UI/Card/GardenCard";
 import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
 
-import { WorkDashboardIcon } from "@/components/UI/WorkDashboard/Icon";
+import { WorkDashboardIcon } from "./WorkDashboard/Icon";
 import { useBrowserNavigation, useNavigateToTop } from "@/hooks";
 
 const Gardens: React.FC = () => {

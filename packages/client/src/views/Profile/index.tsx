@@ -47,7 +47,7 @@ const Profile: React.FC = () => {
     <section className="flex flex-col h-full">
       {/* Fixed Header */}
       <div className="fixed w-full top-0 left-0 bg-white z-10">
-        <div className="px-4 py-8">
+        <div className="px-4 pt-6 pb-4">
           <UserProfile
             displayName={user?.email?.address || user?.phone?.number || user?.id || "Unknown"}
             avatar={user?.farcaster?.pfp || "/images/avatar.png"}
@@ -70,7 +70,7 @@ const Profile: React.FC = () => {
       </div>
 
       {/* Content */}
-      <div id="profile-scroll" className="flex-1 pt-56 pb-4 overflow-y-auto">
+      <div id="profile-scroll" className="flex-1 pt-72 pb-4 overflow-y-auto">
         <div className="padded flex flex-col gap-4 my-4">{renderTabContent()}</div>
       </div>
     </section>

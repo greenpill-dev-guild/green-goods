@@ -6,7 +6,7 @@ import { Badge } from "@/components/UI/Badge/Badge";
 import { FormInfo } from "@/components/UI/Form/Info";
 import { ImagePreviewDialog } from "@/components/UI/ImagePreviewDialog";
 import { track } from "@/modules/posthog";
-import { formatFileSize, imageCompressor } from "@/utils/image-compression";
+import { imageCompressor } from "@/utils/image-compression";
 
 interface WorkMediaProps {
   instruction: string;

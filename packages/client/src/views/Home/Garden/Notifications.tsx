@@ -58,6 +58,7 @@ export const GardenNotifications: React.FC<GardenNotificationsProps> = ({
             <Link
               key={id}
               to={`/home/${garden.id}/work/${id}`}
+              state={{ from: "garden" }}
               className="w-full flex flex-col gap-2 p-4 text-black bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl transition-all duration-200 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] border border-amber-200 cursor-pointer group"
             >
               <div className="inline-flex gap-2 items-center">

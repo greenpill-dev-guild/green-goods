@@ -1,25 +1,29 @@
 import type React from "react";
-import { useParams } from "react-router-dom";
-import { CircleLoader } from "@/components/UI/Loader";
-import { useGarden } from "@/providers/garden";
+import { useParams, useRouteLoaderData } from "react-router-dom";
+import { WorkViewSkeleton } from "@/components/UI/WorkView/WorkView";
+import { TopNav } from "@/components/UI/TopNav/TopNav";
 
 type GardenAssessmentProps = {};
 
 export const GardenAssessment: React.FC<GardenAssessmentProps> = () => {
-  const { id, assessmentId } = useParams<{
+  const { assessmentId } = useParams<{
     id: string;
     assessmentId: string;
   }>();
 
-  const { garden } = useGarden(id!);
+  const loader = useRouteLoaderData("garden") as { garden: Garden } | null;
+  const garden = loader?.garden;
 
   const assessment = garden?.assessments.find((assessment) => assessment.id === assessmentId);
 
   if (!assessment || !garden)
     return (
-      <div className="w-full h-full grid place-items-center">
-        <CircleLoader />
-      </div>
+      <article>
+        <TopNav onBackClick={() => window.history.back()} />
+        <div className="padded pt-16">
+          <WorkViewSkeleton showMedia={false} showActions={false} numDetails={2} />
+        </div>
+      </article>
     );
 
   return <div className="" />;

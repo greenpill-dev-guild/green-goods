@@ -1,5 +1,5 @@
-import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { usePrivy } from "@privy-io/react-auth";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useUser } from "@/providers/user";
 
 export default function RequireAuth() {

@@ -1,3 +1,4 @@
+// TODO: Scap component not needed and take any useful parts and implement elsewhere
 import {
   type RemixiconComponentType,
   RiCheckFill,
