@@ -39,7 +39,7 @@ declare global {
     plantCount: number;
     actionUID: number;
     gardenAddress: string;
-    media?: File[];
+    media?: (File | string)[];
   }
 
   interface ApprovalJobPayload {

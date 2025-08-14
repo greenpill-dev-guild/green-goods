@@ -11,7 +11,7 @@ export function useOffline() {
   const { data: stats } = useQueueStatistics();
 
   // Get pending work items using the job queue directly (no polling)
-  const pendingWork = stats ? stats.pending + stats.failed : 0;
+  void stats; // kept for potential future use
 
   useEffect(() => {
     const handleOnline = () => {

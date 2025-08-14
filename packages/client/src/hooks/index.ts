@@ -13,6 +13,8 @@ export { useNavigateToTop } from "./useNavigateToTop";
 export { useOffline } from "./useOffline";
 export type { UseStorageManagerReturn } from "./useStorageManager";
 export { useStorageManager } from "./useStorageManager";
+export { useLocalLLM } from "./useLocalLLM";
+export { useSpeechToText } from "./useSpeechToText";
 
 // Export job queue and works hooks
 export {

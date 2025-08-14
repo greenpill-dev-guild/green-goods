@@ -125,8 +125,8 @@ declare interface WorkDraft {
   plantSelection: string[];
   plantCount: number;
   feedback: string;
-  // metadata: Record<string, string | number | boolean | string[]>;
-  media: File[];
+  metadata?: string;
+  media: (File | string)[];
 }
 
 declare interface WorkCard {

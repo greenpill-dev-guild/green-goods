@@ -18,6 +18,32 @@ import { WorkDetails } from "./Details";
 import { WorkIntro } from "./Intro";
 import { WorkMedia } from "./Media";
 import { WorkReview } from "./Review";
+import { ChatPanel } from "@/components/AIWorkAssistant/ChatPanel";
+import { useLocalLLM } from "@/hooks/useLocalLLM";
+
+const AIWorkAssistant: React.FC = () => {
+  const { form } = useWork();
+  const { llm } = useLocalLLM();
+  if (!form) return null;
+  return (
+    <ChatPanel
+      imageFiles={form.images}
+      onReady={(work, metadataCID, mediaCIDs) => {
+        try {
+          // Sync AI output into existing form fields and metadata
+          // @ts-ignore setValue exists; we add it in provider below
+          form.setValue?.("feedback", work.description, { shouldValidate: true });
+          // @ts-ignore
+          form.setValue?.("metadata", metadataCID, { shouldValidate: true });
+          // Replace media with pre-pinned CIDs to avoid double upload (optional)
+          // @ts-ignore
+          form.setPinnedMediaCIDs?.(mediaCIDs);
+        } catch {}
+      }}
+      llm={llm}
+    />
+  );
+};
 
 const Work: React.FC = () => {
   const intl = useIntl();
@@ -294,16 +320,19 @@ const Work: React.FC = () => {
                   return Number.isFinite(num) && num === actionUID; // TODO: Refator to use json schemas and create a function to get the actionUID from the action
                 });
                 return (
-                  <WorkDetails
-                    instruction={intl.formatMessage({
-                      id: "app.garden.submit.tab.details.instruction",
-                      defaultMessage: "Provide detailed information and feedback",
-                    })}
-                    feedbackPlaceholder=""
-                    inputs={found?.inputs ?? []}
-                    register={register}
-                    control={control}
-                  />
+                  <>
+                    <WorkDetails
+                      instruction={intl.formatMessage({
+                        id: "app.garden.submit.tab.details.instruction",
+                        defaultMessage: "Provide detailed information and feedback",
+                      })}
+                      feedbackPlaceholder=""
+                      inputs={found?.inputs ?? []}
+                      register={register}
+                      control={control}
+                    />
+                    <div className="mt-4">{images.length > 0 && <AIWorkAssistant />}</div>
+                  </>
                 );
               }}
             </Await>
@@ -324,7 +353,7 @@ const Work: React.FC = () => {
 
   return (
     <>
-      <TopNav onBackClick={tabActions[activeTab].backButton} overlay>
+      <TopNav onBackClick={tabActions[activeTab as keyof typeof tabActions].backButton} overlay>
         <FormProgress
           currentStep={Object.values(WorkTab).indexOf(activeTab) + 1}
           steps={Object.values(WorkTab).slice(0, 4)}
@@ -338,10 +367,10 @@ const Work: React.FC = () => {
         <div className="padded relative flex flex-col gap-4 flex-1">{renderTabContent()}</div>
         <div className="flex fixed left-0 bottom-0 py-3 w-full z-[10000] bg-white border-t border-stroke-soft-200">
           <div className="flex flex-row gap-4 w-full padded">
-            {tabActions[activeTab].secondary && (
+            {tabActions[activeTab as keyof typeof tabActions].secondary ? (
               <Button
-                onClick={tabActions[activeTab].secondary}
-                label={tabActions[activeTab].secondaryLabel}
+                onClick={tabActions[activeTab as keyof typeof tabActions].secondary as any}
+                label={(tabActions[activeTab as keyof typeof tabActions] as any).secondaryLabel}
                 className="w-full"
                 variant="neutral"
                 type="button"
@@ -349,11 +378,11 @@ const Work: React.FC = () => {
                 mode="stroke"
                 leadingIcon={<RiImage2Fill className="text-primary w-5 h-5" />}
               />
-            )}
+            ) : null}
             <Button
-              onClick={tabActions[activeTab].primary}
-              label={tabActions[activeTab].primaryLabel}
-              disabled={tabActions[activeTab].primaryDisabled}
+              onClick={tabActions[activeTab as keyof typeof tabActions].primary}
+              label={tabActions[activeTab as keyof typeof tabActions].primaryLabel}
+              disabled={tabActions[activeTab as keyof typeof tabActions].primaryDisabled}
               className="w-full"
               variant="primary"
               mode="filled"

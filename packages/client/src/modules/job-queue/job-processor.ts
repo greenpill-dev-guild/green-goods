@@ -1,10 +1,4 @@
 import { track } from "@/modules/posthog";
-import type {
-  ApprovalJobPayload,
-  JobProcessorResult,
-  SmartAccountClient,
-  WorkJobPayload,
-} from "@/types/smart-account";
 import { jobQueueDB } from "./db";
 import { approvalProcessor } from "./processors/approval";
 import { workProcessor } from "./processors/work";

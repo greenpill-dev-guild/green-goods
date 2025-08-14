@@ -1,4 +1,4 @@
-import { RiFileFill, RiHammerFill, RiLeafFill, RiPencilFill, RiPlantFill } from "@remixicon/react";
+import { RiFileFill, RiHammerFill, RiPencilFill } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { GardenCard } from "@/components/UI/Card/GardenCard";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/UI/Carousel/Carousel";
@@ -22,8 +22,6 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
   instruction,
   images,
   values,
-  plantSelection,
-  plantCount,
   feedback,
 }) => {
   const intl = useIntl();

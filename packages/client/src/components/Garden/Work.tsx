@@ -84,7 +84,17 @@ const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
         );
         return (
           <li style={style} className="p-2">
-            <MinimalWorkCard onClick={onOpen} work={work as unknown as Work} actionTitle={title} />
+            <MinimalWorkCard
+              onClick={onOpen}
+              work={{
+                id: work.id,
+                title,
+                description: work.feedback,
+                status: work.status as any,
+                createdAt: work.createdAt,
+                gardenId: work.gardenAddress,
+              }}
+            />
           </li>
         );
       });

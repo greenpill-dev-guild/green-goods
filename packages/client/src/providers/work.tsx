@@ -1,6 +1,12 @@
 import { type QueryObserverResult, useMutation, useQuery } from "@tanstack/react-query";
 import React, { useContext, useState } from "react";
-import { type Control, type FormState, type UseFormRegister, useForm } from "react-hook-form";
+import {
+  type Control,
+  type FormState,
+  type UseFormRegister,
+  useForm,
+  type UseFormSetValue,
+} from "react-hook-form";
 import { decodeErrorResult } from "viem";
 import { DEFAULT_CHAIN_ID } from "@/config";
 import { getWorkApprovals } from "@/modules/eas";
@@ -42,6 +48,8 @@ export interface WorkDataProps {
     plantCount: number;
     values: Record<string, unknown>;
     reset: () => void;
+    setValue?: UseFormSetValue<WorkDraft>;
+    setPinnedMediaCIDs?: React.Dispatch<React.SetStateAction<string[] | null>>;
   };
   activeTab: WorkTab;
   setActiveTab: React.Dispatch<React.SetStateAction<WorkTab>>;
@@ -103,28 +111,33 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   const [images, setImages] = useState<File[]>([]);
   const [activeTab, setActiveTab] = useState(WorkTab.Intro);
 
-  const { control, register, handleSubmit, formState, watch, reset } = useForm<WorkDraft>({
-    defaultValues: {
-      feedback: "",
-      plantSelection: [],
-      plantCount: 0,
-    },
-    shouldUseNativeValidation: true,
-    mode: "onChange",
-    // resolver: zodResolver(workSchema),
-  });
+  const { control, register, handleSubmit, formState, watch, reset, setValue } = useForm<WorkDraft>(
+    {
+      defaultValues: {
+        feedback: "",
+        plantSelection: [],
+        plantCount: 0,
+        metadata: undefined,
+      },
+      shouldUseNativeValidation: true,
+      mode: "onChange",
+      // resolver: zodResolver(workSchema),
+    }
+  );
 
   const feedback = watch("feedback");
   const plantSelection = watch("plantSelection");
   const plantCount = watch("plantCount");
   const values = watch() as unknown as Record<string, unknown>;
 
+  const [pinnedMediaCIDs, setPinnedMediaCIDs] = useState<string[] | null>(null);
+
   const workMutation = useMutation({
     mutationFn: async (draft: WorkDraft) => {
-      // Use consolidated submission utility
-      // Use actions from the loader if provided later; fallback to empty list
+      // If we have pre-pinned media CIDs from the AI step, pass them through
+      const mediaToSend = pinnedMediaCIDs ? (pinnedMediaCIDs as unknown as File[]) : images;
       const ctxActions = [] as Action[];
-      return submitWorkToQueue(draft, gardenAddress!, actionUID!, ctxActions, chainId, images);
+      return submitWorkToQueue(draft, gardenAddress!, actionUID!, ctxActions, chainId, mediaToSend);
     },
     onMutate: () => {
       // toast.loading("Uploading work..."); @dev deprecated
@@ -209,8 +222,10 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
           plantSelection,
           plantCount,
           values,
-
           reset,
+          // helpers for AI assistant bridge
+          setValue,
+          setPinnedMediaCIDs,
         },
         activeTab,
         setActiveTab,
@@ -252,6 +267,8 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
                     plantCount,
                     values,
                     reset,
+                    setValue,
+                    setPinnedMediaCIDs,
                   },
                   activeTab,
                   setActiveTab,

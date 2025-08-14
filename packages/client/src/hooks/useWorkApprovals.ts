@@ -187,7 +187,7 @@ export function useWorkApprovals(attesterAddress?: string) {
   ];
 
   // Event-driven invalidation for approval jobs
-  useJobQueueEvents(["job:added", "job:completed", "job:failed"], (eventType, data) => {
+  useJobQueueEvents(["job:added", "job:completed", "job:failed"], (_eventType, data) => {
     if ("job" in data && data.job.kind === "approval") {
       queryClient.invalidateQueries({
         queryKey: ["workApprovals", "byAttester", attesterAddress, chainId],
