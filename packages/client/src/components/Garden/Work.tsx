@@ -79,8 +79,7 @@ const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
         const action = actionById.get(String(work.actionUID));
         const title = action?.title ?? `Action ${work.actionUID}`;
         const onOpen = useCallback(
-          () =>
-            navigate(`/home/${work.gardenAddress}/work/${work.id}`, { state: { from: "garden" } }),
+          () => navigate(`/home/${work.gardenAddress}/work/${work.id}`),
           [navigate, work.gardenAddress, work.id]
         );
         return (

@@ -1,6 +1,6 @@
 import { type ConnectedWallet, type User, usePrivy, useWallets } from "@privy-io/react-auth";
 import { type SmartWalletClientType, useSmartWallets } from "@privy-io/react-auth/smart-wallets";
-import React, { useContext, useEffect, useMemo } from "react";
+import React, { useContext, useEffect } from "react";
 // import { jobQueue } from "@/modules/job-queue";
 import { identify } from "@/modules/posthog";
 

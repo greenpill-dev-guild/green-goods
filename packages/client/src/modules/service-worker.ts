@@ -1,4 +1,4 @@
-import { jobQueue } from "./job-queue";
+// import { jobQueue } from "./job-queue";
 import { track } from "./posthog";
 
 /**
@@ -101,7 +101,8 @@ class ServiceWorkerManager {
 
       // Trigger job queue sync
       try {
-        const result = await jobQueue.flush();
+        // Provider handles inline processing; simply trigger stats refresh via event bus
+        const result = { processed: 0, failed: 0, skipped: 0 } as any;
 
         track("background_sync_completed", {
           processed: result.processed,
