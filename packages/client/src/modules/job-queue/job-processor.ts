@@ -25,12 +25,41 @@ const processors = {
  */
 export class JobProcessor {
   private smartAccountClient: SmartAccountClient | null = null;
+  private clientProvider: (() => SmartAccountClient | null) | null = null;
 
   /**
    * Set the smart account client for blockchain transactions
    */
   setSmartAccountClient(client: SmartAccountClient | null): void {
     this.smartAccountClient = client;
+    if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
+      // eslint-disable-next-line no-console
+      console.debug("[JobProcessor] setSmartAccountClient", {
+        hasClient: !!client,
+      });
+    }
+  }
+
+  /**
+   * Set a provider function that can supply the latest smart account client on demand
+   */
+  setSmartAccountClientProvider(provider: (() => SmartAccountClient | null) | null): void {
+    this.clientProvider = provider;
+  }
+
+  /**
+   * Whether a smart account client is available for immediate processing
+   */
+  hasClient(): boolean {
+    if (this.smartAccountClient) return true;
+    if (this.clientProvider) {
+      const fresh = this.clientProvider();
+      if (fresh) {
+        this.smartAccountClient = fresh;
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -38,11 +67,22 @@ export class JobProcessor {
    */
   async processJob(jobId: string): Promise<JobProcessorResult> {
     const job = await jobQueueDB.getJob(jobId);
+    // Idempotency: if job is missing or already synced, treat as a no-op success
     if (!job || job.synced) {
-      return { success: false, error: "Job not found or already synced" };
+      return { success: true };
     }
 
     if (!this.smartAccountClient) {
+      // Attempt to fetch a fresh client from provider
+      if (this.clientProvider) {
+        const fresh = this.clientProvider();
+        if (fresh) {
+          this.smartAccountClient = fresh;
+        }
+      }
+    }
+    if (!this.smartAccountClient) {
+      console.error("[JobProcessor] Smart account client not available");
       return { success: false, error: "Smart account client not available" };
     }
 
@@ -68,14 +108,39 @@ export class JobProcessor {
           ...(job.payload as WorkJobPayload),
           media: images.map((img: { file: File }) => img.file),
         };
-
+        if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
+          // eslint-disable-next-line no-console
+          console.debug("[JobProcessor] encoding work payload", {
+            jobId,
+            chainId,
+            imageCount: images.length,
+          });
+        }
         const encoded = await workProcessor.encodePayload(workPayload, chainId);
+        if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
+          // eslint-disable-next-line no-console
+          console.debug("[JobProcessor] executing work transaction", {
+            jobId,
+            to: (encoded as any)?.easConfig?.EAS?.address,
+          });
+        }
         txHash = await workProcessor.execute(encoded, job.meta || {}, this.smartAccountClient);
       } else if (job.kind === "approval") {
+        if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
+          // eslint-disable-next-line no-console
+          console.debug("[JobProcessor] encoding approval payload", { jobId, chainId });
+        }
         const encoded = await approvalProcessor.encodePayload(
           job.payload as ApprovalJobPayload,
           chainId
         );
+        if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
+          // eslint-disable-next-line no-console
+          console.debug("[JobProcessor] executing approval transaction", {
+            jobId,
+            to: (encoded as any)?.easConfig?.EAS?.address,
+          });
+        }
         txHash = await approvalProcessor.execute(encoded, job.meta || {}, this.smartAccountClient);
       } else {
         throw new Error(`Unsupported job kind: ${job.kind}`);
@@ -98,6 +163,10 @@ export class JobProcessor {
       return { success: true, txHash };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
+        // eslint-disable-next-line no-console
+        console.debug("[JobProcessor] processJob error", { jobId, error: errorMessage });
+      }
 
       // Track failed processing
       track("offline_job_failed", {
@@ -127,6 +196,8 @@ export class JobProcessor {
     let processed = 0;
     let failed = 0;
     let skipped = 0;
+
+    console.log("[JobProcessor] Processing batch", { jobs, batchSize });
 
     // Process in batches to avoid overwhelming the network
     for (let i = 0; i < jobs.length; i += batchSize) {

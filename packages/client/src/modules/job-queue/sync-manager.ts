@@ -15,7 +15,6 @@ export interface FlushResult {
  */
 export class SyncManager {
   private syncInProgress = false;
-  private syncInterval: NodeJS.Timeout | null = null;
   private flushPromise: Promise<FlushResult> | null = null;
   private lastFlushTime = 0;
   private readonly FLUSH_DEBOUNCE_MS = 1000;
@@ -23,6 +22,10 @@ export class SyncManager {
   constructor(private jobProcessor: JobProcessor) {
     // Bind methods to maintain context
     this.handleOnline = this.handleOnline.bind(this);
+    // Bind online event immediately; we do not use periodic timers
+    if (typeof window !== "undefined") {
+      window.addEventListener("online", this.handleOnline);
+    }
   }
 
   /**
@@ -38,6 +41,10 @@ export class SyncManager {
   async flush(): Promise<FlushResult> {
     // Return existing flush if in progress
     if (this.flushPromise) {
+      if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
+        // eslint-disable-next-line no-console
+        console.debug("[SyncManager] flush requested but one is already in progress");
+      }
       return this.flushPromise;
     }
 
@@ -45,6 +52,10 @@ export class SyncManager {
     const now = Date.now();
     if (now - this.lastFlushTime < this.FLUSH_DEBOUNCE_MS) {
       // Return a resolved promise for debounced calls
+      if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
+        // eslint-disable-next-line no-console
+        console.debug("[SyncManager] flush debounced");
+      }
       return Promise.resolve({ processed: 0, failed: 0, skipped: 0 });
     }
     this.lastFlushTime = now;
@@ -55,19 +66,30 @@ export class SyncManager {
       track("offline_queue_flush_failed", {
         error: "Currently offline",
       });
+      if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
+        // eslint-disable-next-line no-console
+        console.debug("[SyncManager] flush aborted: offline");
+      }
       throw new Error("Cannot sync: currently offline");
     }
 
     this.flushPromise = this.doFlush()
       .then((result) => {
-        // Track flush results
-        jobQueueEventBus.emit("queue:sync-completed", { result });
-        track("offline_queue_flushed", {
-          processed: result.processed,
-          failed: result.failed,
-          skipped: result.skipped,
-          total_jobs: result.processed + result.failed + result.skipped,
-        });
+        // Only emit/track when there was actual work
+        const total = result.processed + result.failed + result.skipped;
+        if (total > 0) {
+          jobQueueEventBus.emit("queue:sync-completed", { result });
+          track("offline_queue_flushed", {
+            processed: result.processed,
+            failed: result.failed,
+            skipped: result.skipped,
+            total_jobs: total,
+          });
+          if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
+            // eslint-disable-next-line no-console
+            console.debug("[SyncManager] flush completed", result);
+          }
+        }
         return result;
       })
       .catch((error) => {
@@ -76,6 +98,10 @@ export class SyncManager {
         track("offline_queue_flush_error", {
           error: errorMessage,
         });
+        if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
+          // eslint-disable-next-line no-console
+          console.debug("[SyncManager] flush failed", errorMessage);
+        }
         throw error;
       })
       .finally(() => {
@@ -90,34 +116,46 @@ export class SyncManager {
    */
   private async doFlush(): Promise<FlushResult> {
     const startTime = Date.now();
+
+    // Check queue first; avoid emitting start/completed events for empty flushes
+    const pendingJobs = await jobQueueDB.getJobs({ synced: false });
+    if (pendingJobs.length === 0) {
+      trackSyncPerformance("flush_empty", startTime, true, {
+        pending_jobs: 0,
+      });
+      if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
+        // eslint-disable-next-line no-console
+        console.debug("[SyncManager] no pending jobs to flush");
+      }
+      return { processed: 0, failed: 0, skipped: 0 };
+    }
+
     this.syncInProgress = true;
     jobQueueEventBus.emit("queue:sync-started", {});
+    if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
+      // eslint-disable-next-line no-console
+      console.debug("[SyncManager] starting flush", { count: pendingJobs.length });
+    }
 
     try {
-      const pendingJobs = await jobQueueDB.getJobs({ synced: false });
-
-      if (pendingJobs.length === 0) {
-        trackSyncPerformance("flush_empty", startTime, true, {
-          pending_jobs: 0,
-        });
-        return { processed: 0, failed: 0, skipped: 0 };
-      }
-
       // Process jobs using the JobProcessor
       const result = await this.jobProcessor.processBatch(pendingJobs);
 
-      // Clean up synced jobs
+      // Clean up synced jobs after processing
       await jobQueueDB.clearSyncedJobs();
 
-      // Invalidate React Query cache
-      queryClient.invalidateQueries({ queryKey: ["works"] });
-      queryClient.invalidateQueries({ queryKey: ["workApprovals"] });
+      // Invalidate only uploading list; per-job events handle targeted updates elsewhere
+      queryClient.invalidateQueries({ queryKey: ["uploadingWorkJobs"] });
 
       // Track successful sync
       trackSyncPerformance("flush_completed", startTime, true, {
         ...result,
         total_jobs: pendingJobs.length,
       });
+      if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
+        // eslint-disable-next-line no-console
+        console.debug("[SyncManager] processed batch", result);
+      }
 
       return result;
     } catch (error) {
@@ -125,49 +163,17 @@ export class SyncManager {
       trackSyncPerformance("flush_failed", startTime, false, {
         error: error instanceof Error ? error.message : "Unknown error",
       });
+      if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
+        // eslint-disable-next-line no-console
+        console.debug("[SyncManager] doFlush error", error);
+      }
       throw error;
     } finally {
       this.syncInProgress = false;
     }
   }
 
-  /**
-   * Start periodic sync with configurable interval
-   */
-  startPeriodicSync(intervalMs: number = 30000): void {
-    this.stopPeriodicSync(); // Clear existing interval
-
-    // Initial sync
-    this.flush().catch((error) => {
-      track("initial_sync_failed", {
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-    });
-
-    // Set up periodic sync
-    this.syncInterval = setInterval(() => {
-      this.flush().catch((error) => {
-        track("periodic_sync_failed", {
-          error: error instanceof Error ? error.message : "Unknown error",
-        });
-      });
-    }, intervalMs);
-
-    // Sync when coming back online
-    window.addEventListener("online", this.handleOnline);
-  }
-
-  /**
-   * Stop periodic sync and cleanup
-   */
-  stopPeriodicSync(): void {
-    if (this.syncInterval) {
-      clearInterval(this.syncInterval);
-      this.syncInterval = null;
-    }
-
-    window.removeEventListener("online", this.handleOnline);
-  }
+  // Periodic sync removed; rely on online/client/SW triggers
 
   /**
    * Handle online event
@@ -185,6 +191,8 @@ export class SyncManager {
    * Cleanup resources
    */
   cleanup(): void {
-    this.stopPeriodicSync();
+    if (typeof window !== "undefined") {
+      window.removeEventListener("online", this.handleOnline);
+    }
   }
 }

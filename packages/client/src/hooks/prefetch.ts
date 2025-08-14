@@ -1,6 +1,6 @@
-import { queryClient } from "@/modules/react-query";
-import { getActions, getGardens, getGardeners } from "@/modules/greengoods";
 import { DEFAULT_CHAIN_ID } from "@/config";
+import { getActions, getGardeners, getGardens } from "@/modules/greengoods";
+import { queryClient } from "@/modules/react-query";
 
 export function ensureBaseLists(chainId: number = DEFAULT_CHAIN_ID) {
   const actionsPromise = queryClient.ensureQueryData({

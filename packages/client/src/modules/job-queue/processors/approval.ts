@@ -28,6 +28,13 @@ export const approvalProcessor: JobProcessor<ApprovalJobPayload, EncodedApproval
     _meta: Record<string, unknown>,
     smartAccountClient: any
   ): Promise<string> {
+    if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
+      // eslint-disable-next-line no-console
+      console.debug("[approvalProcessor] execute", {
+        to: encoded.easConfig.EAS.address,
+        gardener: encoded.gardenerAddress,
+      });
+    }
     const encodedData = encodeFunctionData({
       abi,
       functionName: "attest",
@@ -46,12 +53,23 @@ export const approvalProcessor: JobProcessor<ApprovalJobPayload, EncodedApproval
       ],
     });
 
-    const receipt = await smartAccountClient.sendTransaction({
-      to: encoded.easConfig.EAS.address as `0x${string}`,
-      value: 0n,
-      data: encodedData,
-    });
-
-    return receipt;
+    try {
+      const receipt = await smartAccountClient.sendTransaction({
+        to: encoded.easConfig.EAS.address as `0x${string}`,
+        value: 0n,
+        data: encodedData,
+      });
+      if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
+        // eslint-disable-next-line no-console
+        console.debug("[approvalProcessor] sendTransaction receipt", receipt);
+      }
+      return receipt;
+    } catch (err: any) {
+      if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
+        // eslint-disable-next-line no-console
+        console.debug("[approvalProcessor] sendTransaction error", err);
+      }
+      throw err;
+    }
   },
 };

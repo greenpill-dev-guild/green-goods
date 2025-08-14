@@ -1,9 +1,6 @@
 import { track } from "@/modules/posthog";
-import { serviceWorkerManager } from "../service-worker";
 import { jobQueueDB } from "./db";
 import { jobQueueEventBus } from "./event-bus";
-import { getDefaultChainId, JobProcessor } from "./job-processor";
-import { type FlushResult, SyncManager } from "./sync-manager";
 
 // Helper to create offline transaction hash for UI compatibility
 export function createOfflineTxHash(jobId: string): `0x${string}` {
@@ -17,30 +14,7 @@ export function createOfflineTxHash(jobId: string): `0x${string}` {
  * Main responsibilities: job creation and coordination
  */
 class JobQueue {
-  private jobProcessor: JobProcessor;
-  private syncManager: SyncManager;
-
-  constructor() {
-    this.jobProcessor = new JobProcessor();
-    this.syncManager = new SyncManager(this.jobProcessor);
-  }
-
-  /**
-   * Set the smart account client for blockchain transactions
-   */
-  setSmartAccountClient(client: unknown): void {
-    const adapted: SmartAccountClient | null = adaptSmartAccountClient(client);
-    this.jobProcessor.setSmartAccountClient(adapted);
-
-    // Trigger a sync when client becomes available
-    if (client && navigator.onLine) {
-      this.syncManager.flush().catch((error) => {
-        track("smart_account_sync_failed", {
-          error: error instanceof Error ? error.message : "Unknown error",
-        });
-      });
-    }
-  }
+  constructor() {}
 
   /**
    * Add a job to the queue
@@ -50,7 +24,7 @@ class JobQueue {
     payload: JobKindMap[K],
     meta?: Record<string, unknown>
   ): Promise<string> {
-    const chainId = getDefaultChainId(meta as { chainId?: number });
+    const chainId = (meta as { chainId?: number })?.chainId || 84532;
     const isOnline = navigator.onLine;
 
     const jobId = await jobQueueDB.addJob({
@@ -78,29 +52,30 @@ class JobQueue {
       job_kind: kind,
       is_online: isOnline,
       chain_id: chainId,
-      will_process_immediately: isOnline && !!this.jobProcessor,
+      will_process_immediately: false,
     });
+
+    if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
+      const mediaCount =
+        payload && typeof payload === "object" && "media" in (payload as any)
+          ? Array.isArray((payload as any).media)
+            ? (payload as any).media.length
+            : 0
+          : 0;
+      // eslint-disable-next-line no-console
+      console.debug("[JobQueue] addJob", {
+        jobId,
+        kind,
+        chainId,
+        isOnline,
+        mediaCount,
+      });
+    }
 
     // Emit event using the event bus
     jobQueueEventBus.emit("job:added", { jobId, job });
 
-    // Try to process immediately if we're online
-    if (isOnline) {
-      this.processJob(jobId).catch((error) => {
-        track("offline_job_immediate_process_failed", {
-          job_id: jobId,
-          error: error instanceof Error ? error.message : "Unknown error",
-        });
-      });
-    } else {
-      // Request background sync for offline jobs
-      serviceWorkerManager.requestBackgroundSync().catch((error) => {
-        track("background_sync_request_failed", {
-          job_id: jobId,
-          error: error instanceof Error ? error.message : "Unknown error",
-        });
-      });
-    }
+    // Immediate processing removed; providers handle processing inline
 
     return jobId;
   }
@@ -135,81 +110,7 @@ class JobQueue {
     return jobs.length;
   }
 
-  /**
-   * Process a single job (delegates to JobProcessor)
-   */
-  private async processJob(jobId: string): Promise<void> {
-    const job = await jobQueueDB.getJob(jobId);
-    if (!job) return;
-
-    // Emit processing event
-    jobQueueEventBus.emit("job:processing", { jobId, job });
-
-    const result = await this.jobProcessor.processJob(jobId);
-
-    if (result.success && result.txHash) {
-      // Emit success event
-      jobQueueEventBus.emit("job:completed", {
-        jobId,
-        job,
-        txHash: result.txHash,
-      });
-
-      // Schedule retry if failed but retries available
-      const updatedJob = await jobQueueDB.getJob(jobId);
-      if (updatedJob && updatedJob.attempts < 3) {
-        const delay = Math.pow(2, updatedJob.attempts) * 1000; // Exponential backoff
-        setTimeout(() => {
-          jobQueueEventBus.emit("job:retrying", {
-            jobId,
-            job: updatedJob,
-            attempt: updatedJob.attempts + 1,
-          });
-          this.processJob(jobId).catch((error) => {
-            track("retry_job_failed", {
-              job_id: jobId,
-              error: error instanceof Error ? error.message : "Unknown error",
-            });
-          });
-        }, delay);
-      }
-    } else if (result.error) {
-      // Emit failure event
-      jobQueueEventBus.emit("job:failed", {
-        jobId,
-        job,
-        error: result.error,
-      });
-    }
-  }
-
-  /**
-   * Flush all pending jobs (delegates to SyncManager)
-   */
-  async flush(): Promise<FlushResult> {
-    return await this.syncManager.flush();
-  }
-
-  /**
-   * Start periodic sync (delegates to SyncManager)
-   */
-  startPeriodicSync(intervalMs?: number): void {
-    this.syncManager.startPeriodicSync(intervalMs);
-  }
-
-  /**
-   * Stop periodic sync (delegates to SyncManager)
-   */
-  stopPeriodicSync(): void {
-    this.syncManager.stopPeriodicSync();
-  }
-
-  /**
-   * Check if sync is in progress
-   */
-  isSyncInProgress(): boolean {
-    return this.syncManager.isSyncInProgress();
-  }
+  // Processing APIs removed; providers handle processing inline
 
   /**
    * Subscribe to queue events (for backward compatibility)
@@ -258,7 +159,6 @@ class JobQueue {
    * Cleanup resources when queue is no longer needed
    */
   async cleanup(): Promise<void> {
-    this.syncManager.cleanup();
     await jobQueueDB.cleanup();
   }
 }
@@ -268,26 +168,5 @@ export const jobQueue = new JobQueue();
 
 // Re-export for convenience
 export { jobQueueDB } from "./db";
-export { getDefaultChainId } from "./job-processor";
-export type { FlushResult } from "./sync-manager";
 
-// Adapter to normalize various smart account client shapes to SmartAccountClient
-function adaptSmartAccountClient(raw: unknown): SmartAccountClient | null {
-  if (!raw) return null;
-  const client: any = raw;
-  // If it already looks like our interface
-  if (typeof client.sendTransaction === "function") {
-    return client as SmartAccountClient;
-  }
-  // Attempt minimal wrapper if different method names exist
-  if (typeof client.send === "function") {
-    return {
-      sendTransaction: (params) => client.send(params),
-      getAddress: async () =>
-        typeof client.getAddress === "function" ? await client.getAddress() : "",
-      isConnected: () => true,
-    } as SmartAccountClient;
-  }
-  // Fallback to null if we cannot adapt
-  return null;
-}
+// No client adaptation here; providers perform uploads inline

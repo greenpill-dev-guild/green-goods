@@ -1,14 +1,15 @@
-import { type QueryObserverResult, useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import React, { useContext, useState } from "react";
 import { type Control, type FormState, type UseFormRegister, useForm } from "react-hook-form";
-import { decodeErrorResult } from "viem";
+import toast from "react-hot-toast";
+// import { decodeErrorResult } from "viem";
 import { DEFAULT_CHAIN_ID } from "@/config";
-import { getWorkApprovals } from "@/modules/eas";
-import { queryClient } from "@/modules/react-query";
-import { formatJobError, submitWorkToQueue } from "@/modules/work-submission";
-import { abi as WorkResolverABI } from "@/utils/abis/WorkResolver.json";
+import { jobQueue } from "@/modules/job-queue";
+import { processWorkJobInline } from "@/modules/job-queue/inline-processor";
+import { submitWorkToQueue, validateWorkDraft } from "@/modules/work-submission";
+// import { abi as WorkResolverABI } from "@/utils/abis/WorkResolver.json";
 
-import { Await, useLoaderData } from "react-router-dom";
+import { Await, useRouteLoaderData } from "react-router-dom";
 import { useUser } from "./user";
 
 export enum WorkTab {
@@ -16,16 +17,14 @@ export enum WorkTab {
   Media = "Media",
   Details = "Details",
   Review = "Review",
-  Complete = "Complete",
 }
 
 export interface WorkDataProps {
   gardens: Garden[];
   actions: Action[];
-  workMutation: ReturnType<typeof useMutation<`0x${string}`, unknown, WorkDraft, void>>;
-  workApprovals: WorkApproval[];
-  workApprovalMap: Record<string, WorkApproval>;
-  refetchWorkApprovals: () => Promise<QueryObserverResult<WorkApproval[], Error>>;
+  workMutation: ReturnType<
+    typeof useMutation<`0x${string}`, unknown, { draft: WorkDraft; images: File[] }, void>
+  >;
   form: {
     state: FormState<WorkDraft>;
     actionUID: number | null;
@@ -57,10 +56,6 @@ export interface WorkDataProps {
 // });
 
 const WorkContext = React.createContext<WorkDataProps>({
-  gardens: [],
-  actions: [],
-  workApprovals: [],
-  workApprovalMap: {},
   form: {
     // @ts-ignore
     register: () => {},
@@ -80,22 +75,12 @@ export const useWork = () => {
 };
 
 export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
-  const { eoa } = useUser();
-  // Actions and gardens streamed via route loader at garden-submit route
-  const loader = ((): { actions?: Promise<Action[]>; gardens?: Promise<Garden[]> } => {
-    try {
-      return useLoaderData() as any;
-    } catch {
-      return {};
-    }
-  })();
+  const { smartAccountClient } = useUser();
+  // Actions and gardens streamed via route loader at `garden-submit` route
+  const loaderData = useRouteLoaderData("garden-submit") as
+    | { actions?: Promise<Action[]>; gardens?: Promise<Garden[]> }
+    | undefined;
   const chainId = DEFAULT_CHAIN_ID;
-
-  // QUERIES
-  const { data: workApprovals, refetch: refetchWorkApprovals } = useQuery<WorkApproval[]>({
-    queryKey: ["workApprovals", chainId, eoa?.address],
-    queryFn: () => getWorkApprovals(eoa?.address, chainId),
-  });
 
   // MUTATIONS
   const [actionUID, setActionUID] = useState<number | null>(null);
@@ -107,7 +92,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
     defaultValues: {
       feedback: "",
       plantSelection: [],
-      plantCount: 0,
+      // plantCount is optional
     },
     shouldUseNativeValidation: true,
     mode: "onChange",
@@ -120,62 +105,101 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   const values = watch() as unknown as Record<string, unknown>;
 
   const workMutation = useMutation({
-    mutationFn: async (draft: WorkDraft) => {
+    mutationFn: async ({ draft, images }: { draft: WorkDraft; images: File[] }) => {
       // Use consolidated submission utility
-      // Use actions from the loader if provided later; fallback to empty list
-      const ctxActions = [] as Action[];
-      return submitWorkToQueue(draft, gardenAddress!, actionUID!, ctxActions, chainId, images);
-    },
-    onMutate: () => {
-      // toast.loading("Uploading work..."); @dev deprecated
-    },
-    onSuccess: () => {
-      // toast.remove();
-      // toast.success("Work uploaded!"); @dev deprecated
-      queryClient.invalidateQueries({ queryKey: ["works"] });
-    },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onError: (error: any) => {
-      console.error("Work submission failed:", error);
+      // Use actions from the loader if provided; fallback to empty list
+      const ctxActions = (loaderData?.actions ? await loaderData.actions : []) as Action[];
+      // Always persist job to queue first
+      const tx = await submitWorkToQueue(
+        draft,
+        gardenAddress!,
+        actionUID!,
+        ctxActions,
+        chainId,
+        images
+      );
 
-      if (error.data) {
-        const _decodedError = decodeErrorResult({
-          abi: WorkResolverABI,
-          data: error.data as `0x${string}`,
-        });
-        void _decodedError; // For debugging purposes
-      }
-
-      // Properly decode revert data if available
-      if (
-        error &&
-        typeof error === "object" &&
-        "data" in error &&
-        typeof error.data === "string" &&
-        error.data.startsWith("0x")
-      ) {
+      // If a client is available, try to process inline immediately
+      if (smartAccountClient) {
         try {
-          decodeErrorResult({
-            abi: WorkResolverABI,
-            data: error.data as `0x${string}`,
-          });
-        } catch (decodeError) {
-          console.error("Failed to decode error result:", decodeError);
+          const latestJobs = await jobQueue.getJobs({ kind: "work", synced: false });
+          const job = latestJobs.find(
+            (j) =>
+              (j.payload as any)?.gardenAddress === gardenAddress &&
+              (j.payload as any)?.actionUID === actionUID
+          );
+          if (job) {
+            await processWorkJobInline(job.id, chainId, smartAccountClient);
+          }
+        } catch {
+          // best-effort inline processing; job remains queued otherwise
         }
       }
-
-      // Show user-friendly error message
-      const userFriendlyError = formatJobError(error.message || "Unknown error occurred");
-      console.error("User-friendly error:", userFriendlyError);
-
-      queryClient.invalidateQueries({
-        queryKey: ["work-approvals"],
-      });
+      return tx;
+    },
+    onMutate: () => {
+      toast.loading("Uploading work...", { id: "work-upload" });
+    },
+    onSuccess: () => {
+      // Queue add succeeded; dismiss loading. Actual upload success is toasted via queue events.
+      toast.dismiss("work-upload");
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onError: (_error: any) => {
+      // TODO: Move to job queue error handling
+      // console.error("Work submission failed:", error);
+      // if (error.data) {
+      //   const _decodedError = decodeErrorResult({
+      //     abi: WorkResolverABI,
+      //     data: error.data as `0x${string}`,
+      //   });
+      //   void _decodedError; // For debugging purposes
+      // } // TODO: Move to job queue error handling
+      // // Properly decode revert data if available
+      // if (
+      //   error &&
+      //   typeof error === "object" &&
+      //   "data" in error &&
+      //   typeof error.data === "string" &&
+      //   error.data.startsWith("0x")
+      // ) {
+      //   try {
+      //     decodeErrorResult({
+      //       abi: WorkResolverABI,
+      //       data: error.data as `0x${string}`,
+      //     });
+      //   } catch (decodeError) {
+      //     console.error("Failed to decode error result:", decodeError);
+      //   }
+      // }
+      // // Show user-friendly error message
+      // const userFriendlyError = formatJobError(error.message || "Unknown error occurred");
+      // console.error("User-friendly error:", userFriendlyError);
+      // toast.error(userFriendlyError, { id: "work-upload" });
+      // queryClient.invalidateQueries({
+      //   queryKey: ["work-approvals"],
+      // });
     },
   });
 
   const uploadWork = handleSubmit((data) => {
-    workMutation.mutate(data);
+    // Ensure optional plantCount is handled; react-hook-form may provide undefined
+    const draft: WorkDraft = {
+      feedback: data.feedback,
+      plantSelection: data.plantSelection,
+      ...(typeof (data as any).plantCount === "number"
+        ? { plantCount: (data as any).plantCount }
+        : {}),
+    } as WorkDraft;
+
+    const errors = validateWorkDraft(draft, gardenAddress, actionUID, images);
+    if (errors.length > 0) {
+      toast.error(errors[0]);
+      return;
+    }
+    // Snapshot images to avoid race with state clearing after navigation
+    const imagesSnapshot = images.slice();
+    workMutation.mutate({ draft, images: imagesSnapshot });
   });
 
   return (
@@ -184,16 +208,6 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         gardens: [],
         actions: [],
         workMutation,
-        workApprovals: workApprovals ?? [],
-        workApprovalMap:
-          workApprovals?.reduce(
-            (acc, work) => {
-              acc[work.workUID] = work;
-              return acc;
-            },
-            {} as Record<string, WorkApproval>
-          ) ?? {},
-        refetchWorkApprovals,
         form: {
           state: formState,
           control,
@@ -217,25 +231,15 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       }}
     >
       {/* Resolve actions/gardens lazily if provided by route loader */}
-      {loader.actions && loader.gardens ? (
+      {loaderData?.actions && loaderData?.gardens ? (
         <React.Suspense fallback={children}>
-          <Await resolve={Promise.all([loader.actions, loader.gardens])}>
+          <Await resolve={Promise.all([loaderData.actions, loaderData.gardens])}>
             {([actions, gardens]: [Action[], Garden[]]) => (
               <WorkContext.Provider
                 value={{
                   gardens,
                   actions,
                   workMutation,
-                  workApprovals: workApprovals ?? [],
-                  workApprovalMap:
-                    workApprovals?.reduce(
-                      (acc, work) => {
-                        acc[work.workUID] = work;
-                        return acc;
-                      },
-                      {} as Record<string, WorkApproval>
-                    ) ?? {},
-                  refetchWorkApprovals,
                   form: {
                     state: formState,
                     control,

@@ -20,6 +20,18 @@
  */
 
 /**
+ * CURRENT STATUS (Temporarily Disabled):
+ * - Deduplication is not required right now and remote API does not exist.
+ * - The implementation remains for future use, but all checks are no-ops.
+ * - performComprehensiveCheck() returns a non-duplicate result and does not
+ *   perform any network calls or local matching.
+ *
+ * To re-enable:
+ * - Remove the early returns in performComprehensiveCheck() and
+ *   checkRemoteDuplicate(), and wire up a real API endpoint if needed.
+ */
+
+/**
  * Configuration options for deduplication behavior
  */
 export interface DuplicationConfig {
@@ -109,7 +121,7 @@ export class DeduplicationManager {
     this.config = {
       apiBaseUrl: "/api",
       timeWindow: 24 * 60 * 60 * 1000, // 24 hours
-      includeImages: true,
+      includeImages: false, // Disabled by default while dedup is off
       hashAlgorithm: "simple",
       ignoreFields: ["id", "createdAt", "updatedAt", "timestamp", "lastModified"],
       ...config,
@@ -271,40 +283,9 @@ export class DeduplicationManager {
    * @returns Promise resolving to true if a remote duplicate exists
    */
   async checkRemoteDuplicate(workData: any): Promise<boolean> {
-    try {
-      const contentHash = this.generateContentHash(workData);
-
-      const response = await fetch(`${this.config.apiBaseUrl}/works/check-duplicate`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contentHash,
-          type: workData.type,
-          data: workData.data,
-          timeWindow: this.config.timeWindow,
-        }),
-      });
-
-      if (!response.ok) {
-        console.error("Duplicate check API error:", response.status);
-        return false; // Assume no duplicate on error
-      }
-
-      try {
-        const result = await response.json();
-        // Ensure we always return a boolean, handle malformed responses
-        return Boolean(result?.exists || false);
-      } catch (jsonError) {
-        // Handle malformed JSON responses
-        console.error("Malformed response from duplicate check API:", jsonError);
-        return false;
-      }
-    } catch (error) {
-      console.error("Error checking remote duplicate:", error);
-      return false; // Assume no duplicate on error
-    }
+    // No-op while deduplication is disabled
+    void workData;
+    return false;
   }
 
   /**
@@ -457,24 +438,11 @@ export class DeduplicationManager {
    * @returns Promise resolving to comprehensive duplicate check results
    */
   async performComprehensiveCheck(workData: any): Promise<DuplicateCheckResult> {
-    // Check local duplicates first
-    const localResult = this.checkLocalDuplicate(workData);
-
-    if (localResult.isDuplicate) {
-      return {
-        isDuplicate: true,
-        existingWorkId: localResult.existingItems[0],
-        similarity: 1.0,
-        conflictType: "exact",
-      };
-    }
-
-    // Check remote duplicates
-    const remoteIsDuplicate = await this.checkRemoteDuplicate(workData);
-
+    // No-op: deduplication is currently disabled; always allow submission
+    void workData;
     return {
-      isDuplicate: remoteIsDuplicate,
-      conflictType: remoteIsDuplicate ? "exact" : "none",
+      isDuplicate: false,
+      conflictType: "none",
     };
   }
 

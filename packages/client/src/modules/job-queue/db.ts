@@ -189,11 +189,11 @@ class JobQueueDatabase {
     const index = tx.objectStore("job_images").index("jobId");
     const images = await index.getAll(jobId);
 
-    // Return existing URLs managed by MediaResourceManager
+    // Always create fresh object URLs on access (stored URLs may be stale across reloads)
     return images.map((img) => ({
       id: img.id,
       file: img.file,
-      url: img.url,
+      url: mediaResourceManager.createUrl(img.file, jobId),
     }));
   }
 

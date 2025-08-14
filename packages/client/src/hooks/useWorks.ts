@@ -1,9 +1,10 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { DEFAULT_CHAIN_ID } from "@/config";
 import { getWorks } from "@/modules/eas";
 import { jobQueue, jobQueueDB } from "@/modules/job-queue";
 import { jobQueueEventBus, useJobQueueEvents } from "@/modules/job-queue/event-bus";
+import { useUser } from "@/providers/user";
 import { queryKeys } from "./query-keys";
-import { DEFAULT_CHAIN_ID } from "@/config";
 import { useMerged } from "./useMerged";
 
 // Helper function to convert job payload to Work model
@@ -35,6 +36,7 @@ export function jobToWork(job: Job<WorkJobPayload>): Work {
 export function useWorks(gardenId: string) {
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
+  const { smartAccountAddress } = useUser();
 
   const merged = useMerged<WorkCard[], Job<WorkJobPayload>[], Work[]>({
     onlineKey: queryKeys.works.online(gardenId, chainId),
@@ -52,7 +54,10 @@ export function useWorks(gardenId: string) {
         (offlineJobs || []).map(async (job) => {
           const work = jobToWork(job as Job<WorkJobPayload>);
           const images = await jobQueueDB.getImagesForJob(job.id);
-          work.media = images.map((img: { id: string; file: File; url: string }) => img.url);
+          work.media = images.map((img) => img.url);
+          if (smartAccountAddress) {
+            work.gardenerAddress = smartAccountAddress;
+          }
           return work;
         })
       );
@@ -120,7 +125,11 @@ export function usePendingWorksCount() {
 
   const query = useQuery({
     queryKey: queryKeys.queue.pendingCount(),
-    queryFn: () => jobQueue.getPendingCount(),
+    queryFn: async () => {
+      // Count only unsynced work jobs to align with Uploading tab
+      const jobs = await jobQueue.getJobs({ kind: "work", synced: false });
+      return jobs.length;
+    },
     staleTime: 10000, // 10 seconds
     gcTime: 30000, // 30 seconds
   });

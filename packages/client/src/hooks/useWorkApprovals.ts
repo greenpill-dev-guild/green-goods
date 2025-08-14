@@ -130,10 +130,8 @@ export function useWorkApprovals(attesterAddress?: string) {
     queryFn: async () => {
       try {
         const jobs = await jobQueue.getJobs({ kind: "approval", synced: false });
-        return jobs.filter((job: any) => {
-          const payload = job.payload as any;
-          return payload?.gardenerAddress?.toLowerCase() === attesterAddress?.toLowerCase();
-        });
+        // Do not filter out by gardenerAddress; show all local approval jobs
+        return jobs;
       } catch (error) {
         console.warn("Error fetching offline approval jobs:", error);
         return []; // Return empty array on error
@@ -187,7 +185,7 @@ export function useWorkApprovals(attesterAddress?: string) {
   ];
 
   // Event-driven invalidation for approval jobs
-  useJobQueueEvents(["job:added", "job:completed", "job:failed"], (eventType, data) => {
+  useJobQueueEvents(["job:added", "job:completed", "job:failed"], (_eventType, data) => {
     if ("job" in data && data.job.kind === "approval") {
       queryClient.invalidateQueries({
         queryKey: ["workApprovals", "byAttester", attesterAddress, chainId],

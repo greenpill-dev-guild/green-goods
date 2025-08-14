@@ -257,6 +257,55 @@ export const getWorks = async (
   return works;
 };
 
+// Fetch works by gardener (attester) across all gardens
+export const getWorksByGardener = async (
+  gardenerAddress?: string,
+  chainId?: number | string
+): Promise<WorkCard[]> => {
+  if (!gardenerAddress) return [];
+
+  const QUERY = easGraphQL(/* GraphQL */ `
+    query Attestations($where: AttestationWhereInput) {
+      attestations(where: $where) {
+        id
+        attester
+        recipient
+        timeCreated
+        decodedDataJson
+      }
+    }
+  `);
+
+  const easConfig = getEASConfig(chainId);
+  const client = createEasClient(chainId);
+
+  const { data, error } = await client
+    .query(QUERY, {
+      where: {
+        schemaId: { equals: easConfig.WORK.uid },
+        attester: { equals: gardenerAddress },
+        revoked: { equals: false },
+      },
+    })
+    .toPromise();
+
+  if (error) {
+    console.error(error);
+    return [];
+  }
+  if (!data) {
+    console.error("No data found");
+    return [];
+  }
+
+  return await Promise.all(
+    (data.attestations || []).map(
+      async ({ id, attester, recipient, timeCreated, decodedDataJson }: any) =>
+        await parseDataToWork(id, { attester, recipient, time: timeCreated }, decodedDataJson)
+    )
+  );
+};
+
 export const getWorkApprovals = async (
   gardenerAddress?: string,
   chainId?: number | string

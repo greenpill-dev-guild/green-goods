@@ -15,6 +15,7 @@ export const queryKeys = {
     jobs: (filter?: { kind?: string; synced?: boolean }) =>
       ["jobQueue", "queue", "jobs", filter] as const,
     pendingCount: () => ["jobQueue", "queue", "pendingCount"] as const,
+    uploading: () => ["jobQueue", "queue", "uploading"] as const,
   },
 
   // Works related keys

@@ -1,7 +1,7 @@
 import { type ConnectedWallet, type User, usePrivy, useWallets } from "@privy-io/react-auth";
 import { type SmartWalletClientType, useSmartWallets } from "@privy-io/react-auth/smart-wallets";
-import React, { useContext, useEffect } from "react";
-import { jobQueue } from "@/modules/job-queue";
+import React, { useContext, useEffect, useMemo } from "react";
+// import { jobQueue } from "@/modules/job-queue";
 import { identify } from "@/modules/posthog";
 
 interface UserInterface {
@@ -34,11 +34,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       identify(user.id);
     }
   }, [user]);
-
-  useEffect(() => {
-    // Provide smart account client to job queue service
-    jobQueue.setSmartAccountClient(client || null);
-  }, [client]);
 
   return (
     <UserContext.Provider

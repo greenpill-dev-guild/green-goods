@@ -1,12 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import toast from "react-hot-toast";
-
+import { DEFAULT_CHAIN_ID } from "@/config";
+import { queryKeys } from "@/hooks/query-keys";
 // import { jobToWork } from "@/hooks/useWorks";
 import { jobQueue } from "@/modules/job-queue";
 // import { jobQueueEventBus } from "@/modules/job-queue/event-bus";
 import { queryClient } from "@/modules/react-query";
-import { DEFAULT_CHAIN_ID } from "@/config";
-import { queryKeys } from "@/hooks/query-keys";
 import { useUser } from "./user";
 
 interface JobQueueContextValue {

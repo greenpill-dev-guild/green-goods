@@ -112,7 +112,7 @@ class MediaResourceManager {
   /**
    * Cleanup stale URLs older than specified age
    */
-  cleanupStale(maxAgeMs: number = 60 * 60 * 1000): void {
+  cleanupStale(_maxAgeMs: number = 60 * 60 * 1000): void {
     // This would require tracking creation timestamps
     // For now, we'll implement a simple cleanup of all URLs
     // In a production app, you'd want to track creation times
