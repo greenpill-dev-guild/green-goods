@@ -1,4 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
+import { config as loadEnv } from "dotenv";
+import path from "path";
+
+// Load root .env so tests can access PRIVY_TEST_* and other variables
+loadEnv({ path: path.resolve(__dirname, ".env") });
 
 // Environment configuration (focused on localhost as requested)
 const environments = {
@@ -49,7 +54,7 @@ export default defineConfig({
 
   // Projects focused on mobile browsers (PWA focus)
   projects: [
-    // Desktop Chrome for development
+    // Desktop Chrome for development and Landing Page
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
