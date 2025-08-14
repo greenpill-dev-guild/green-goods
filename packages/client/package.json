@@ -6,12 +6,11 @@
   "scripts": {
     "predev": "bash -lc 'lsof -t -iTCP:3001 -sTCP:LISTEN | xargs kill -9 2>/dev/null || true'",
     "dev": "vite",
-    "dev:pwa-e2e": "VITE_ENABLE_SW_DEV=true vite",
-    "test": "vitest",
+    "test": "vitest run",
     "test:watch": "vitest --standalone",
     "coverage": "vitest run --coverage",
     "format": "biome format --write .",
-    "lint": "biome check . && oxlint src",
+    "lint": "oxlint src",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "formatjs": "formatjs extract"

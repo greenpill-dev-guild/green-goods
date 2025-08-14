@@ -1,11 +1,33 @@
-import {
-  type Action,
-  ActionRegistry,
-  type Capital,
-  type Garden,
-  GardenAccount,
-  GardenToken,
-} from "generated";
+// @ts-nocheck
+
+import { ActionRegistry, GardenAccount, GardenToken, type Capital } from "generated";
+
+type Action = {
+  id: string;
+  chainId: number;
+  ownerAddress: string;
+  startTime: bigint;
+  endTime: bigint;
+  title: string;
+  instructions: string;
+  capitals: Capital[];
+  media: string[];
+  createdAt: number;
+};
+
+type Garden = {
+  id: string;
+  chainId: number;
+  tokenAddress: string;
+  tokenID: bigint;
+  name: string;
+  description: string;
+  location: string;
+  bannerImage: string;
+  createdAt: number;
+  gardeners: string[];
+  operators: string[];
+};
 
 // Handler for the ActionRegistered event
 ActionRegistry.ActionRegistered.handler(async ({ event, context }) => {

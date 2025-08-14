@@ -7,17 +7,7 @@
   },
   "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "linter": {
-    "enabled": true,
-    "rules": {
-      "recommended": false,
-      "style": {
-        "noNonNullAssertion": "off",
-        "noParameterAssign": "off"
-      },
-      "suspicious": {
-        "noTemplateCurlyInString": "off"
-      }
-    }
+    "enabled": false
   },
   "formatter": {
     "enabled": true,

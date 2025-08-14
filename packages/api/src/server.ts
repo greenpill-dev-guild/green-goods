@@ -1,4 +1,4 @@
-import Fastify, { type FastifyRequest, type FastifyReply } from "fastify";
+import Fastify from "fastify";
 import cors from "@fastify/cors";
 import dotenv from "dotenv";
 import { PrivyClient } from "@privy-io/server-auth";
@@ -24,7 +24,7 @@ await fastify.register(cors, {
 });
 
 // Users route
-fastify.get("/users", async (request: FastifyRequest, reply: FastifyReply) => {
+fastify.get("/users", async (request, reply) => {
   try {
     // For development, return mock data if Privy isn't configured
     if (!process.env.PRIVY_APP_ID || !process.env.PRIVY_APP_SECRET_ID) {
@@ -56,7 +56,7 @@ fastify.get("/users", async (request: FastifyRequest, reply: FastifyReply) => {
     }
 
     // Use real Privy client if configured
-    const privy = new PrivyClient(process.env.PRIVY_APP_ID, process.env.PRIVY_APP_SECRET_ID);
+    const privy = new PrivyClient(process.env.PRIVY_APP_ID!, process.env.PRIVY_APP_SECRET_ID!);
 
     const users = await privy.getUsers();
     return reply.send(users);
@@ -73,132 +73,120 @@ fastify.get("/users", async (request: FastifyRequest, reply: FastifyReply) => {
 // Subscribe route
 fastify.post<{
   Body: { email: string };
-}>(
-  "/subscribe",
-  async (request: FastifyRequest<{ Body: { email: string } }>, reply: FastifyReply) => {
-    const { email } = request.body;
+}>("/subscribe", async (request, reply) => {
+  const { email } = request.body;
 
-    if (!email) {
-      return reply.status(400).send({
-        success: false,
-        error: "Email is required",
-      });
-    }
-
-    // Basic email validation - using a safer regex pattern that avoids ReDoS
-    const emailRegex =
-      /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-    if (!emailRegex.test(email)) {
-      return reply.status(400).send({
-        success: false,
-        error: "Invalid email format",
-      });
-    }
-
-    try {
-      const mailchimpUrl = `https://app.us13.list-manage.com/subscribe/post?u=16db3a1a92dd56e81459cd500&id=c6c12d1a3f&f_id=0021fae1f0`;
-
-      const data = new URLSearchParams();
-      data.append("EMAIL", email);
-      data.append("b_16db3a1a92dd56e81459cd500_c6c12d1a3f", "");
-
-      const response = await fetch(mailchimpUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: data.toString(),
-      });
-
-      if (response.ok) {
-        return reply.status(200).send({
-          success: true,
-          message: "Subscription successful!",
-        });
-      } else {
-        return reply.status(response.status).send({
-          success: false,
-          message: "Subscription failed.",
-        });
-      }
-    } catch (error) {
-      fastify.log.error("Subscribe error:", error);
-      return reply.status(500).send({
-        success: false,
-        message: "Internal Server Error",
-      });
-    }
+  if (!email) {
+    return reply.status(400).send({
+      success: false,
+      error: "Email is required",
+    });
   }
-);
+
+  // Basic email validation - using a safer regex pattern that avoids ReDoS
+  const emailRegex =
+    /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+  if (!emailRegex.test(email)) {
+    return reply.status(400).send({
+      success: false,
+      error: "Invalid email format",
+    });
+  }
+
+  try {
+    const mailchimpUrl = `https://app.us13.list-manage.com/subscribe/post?u=16db3a1a92dd56e81459cd500&id=c6c12d1a3f&f_id=0021fae1f0`;
+
+    const data = new URLSearchParams();
+    data.append("EMAIL", email);
+    data.append("b_16db3a1a92dd56e81459cd500_c6c12d1a3f", "");
+
+    const response = await fetch(mailchimpUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: data.toString(),
+    });
+
+    if (response.ok) {
+      return reply.status(200).send({
+        success: true,
+        message: "Subscription successful!",
+      });
+    } else {
+      return reply.status(response.status).send({
+        success: false,
+        message: "Subscription failed.",
+      });
+    }
+  } catch (error) {
+    fastify.log.error("Subscribe error:", error);
+    return reply.status(500).send({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+});
 
 // Update current user metadata (requires Authorization: Bearer <token>)
 fastify.patch<{
   Body: { id: string; customMetadata?: Record<string, unknown> };
-}>(
-  "/users/me",
-  async (
-    request: FastifyRequest<{ Body: { id: string; customMetadata?: Record<string, unknown> } }>,
-    reply: FastifyReply
-  ) => {
-    try {
-      const authHeader = request.headers["authorization"] || request.headers["Authorization"];
-      if (!authHeader || Array.isArray(authHeader)) {
-        return reply.status(401).send({ error: "Unauthorized" });
-      }
-      const token = (authHeader as string).startsWith("Bearer ")
-        ? (authHeader as string).slice(7)
-        : (authHeader as string);
-
-      const { id, customMetadata } = request.body || {};
-      if (!id) {
-        return reply.status(400).send({ error: "Missing user id" });
-      }
-
-      if (!process.env.PRIVY_APP_ID || !process.env.PRIVY_APP_SECRET_ID) {
-        // Dev echo when Privy is not configured
-        request.log.warn("Privy not configured; echoing update (dev)");
-        return reply.send({ id, customMetadata });
-      }
-
-      const privy = new PrivyClient(process.env.PRIVY_APP_ID, process.env.PRIVY_APP_SECRET_ID);
-
-      // Verify the provided token and ensure it belongs to `id`
-      // Note: server-auth SDK exposes user fetching; token verification method name may vary by SDK version.
-      // As a conservative approach, fetch the user and trust upstream ALB to validate token if set up.
-      // Replace this with explicit token verification once available in your environment.
-      const user = await privy.getUser(id);
-      if (!user) {
-        return reply.status(404).send({ error: "User not found" });
-      }
-
-      // Sanitize metadata to match the SDK's expected types
-      if (!customMetadata || typeof customMetadata !== "object" || Array.isArray(customMetadata)) {
-        return reply.status(400).send({ error: "Invalid metadata payload" });
-      }
-
-      const sanitized: Record<string, string | number | boolean> = {};
-      for (const [key, value] of Object.entries(customMetadata)) {
-        if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-          sanitized[key] = value;
-        }
-      }
-
-      if (Object.keys(sanitized).length === 0) {
-        return reply.status(400).send({ error: "No valid metadata fields to update" });
-      }
-
-      const updated = await privy.setCustomMetadata(id, sanitized);
-      return reply.send(updated);
-    } catch (error) {
-      fastify.log.error("Update user error:", error);
-      const message = error instanceof Error ? error.message : "Unknown error";
-      return reply.status(500).send({ error: "Internal server error", message });
+}>("/users/me", async (request, reply) => {
+  try {
+    const authHeader = request.headers.authorization;
+    if (!authHeader) {
+      return reply.status(401).send({ error: "Unauthorized" });
     }
+
+    const { id, customMetadata } = request.body || {};
+    if (!id) {
+      return reply.status(400).send({ error: "Missing user id" });
+    }
+
+    if (!process.env.PRIVY_APP_ID || !process.env.PRIVY_APP_SECRET_ID) {
+      // Dev echo when Privy is not configured
+      request.log.warn("Privy not configured; echoing update (dev)");
+      return reply.send({ id, customMetadata });
+    }
+
+    const privy = new PrivyClient(process.env.PRIVY_APP_ID!, process.env.PRIVY_APP_SECRET_ID!);
+
+    // Verify the provided token and ensure it belongs to `id`
+    // Note: server-auth SDK exposes user fetching; token verification method name may vary by SDK version.
+    // As a conservative approach, fetch the user and trust upstream ALB to validate token if set up.
+    // Replace this with explicit token verification once available in your environment.
+    const user = await privy.getUser(id);
+    if (!user) {
+      return reply.status(404).send({ error: "User not found" });
+    }
+
+    // Sanitize metadata to match the SDK's expected types
+    if (!customMetadata || typeof customMetadata !== "object" || Array.isArray(customMetadata)) {
+      return reply.status(400).send({ error: "Invalid metadata payload" });
+    }
+
+    const sanitized: Record<string, string | number | boolean> = {};
+    for (const [key, value] of Object.entries(customMetadata)) {
+      if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+        sanitized[key] = value;
+      }
+    }
+
+    if (Object.keys(sanitized).length === 0) {
+      return reply.status(400).send({ error: "No valid metadata fields to update" });
+    }
+
+    const updated = await privy.setCustomMetadata(id, sanitized);
+    return reply.send(updated);
+  } catch (error) {
+    fastify.log.error("Update user error:", error);
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return reply.status(500).send({ error: "Internal server error", message });
   }
-);
+});
 
 // Health check
-fastify.get("/health", async (request: FastifyRequest, reply: FastifyReply) => {
+fastify.get("/health", async (request, reply) => {
   return reply.send({
     status: "ok",
     timestamp: new Date().toISOString(),
@@ -208,22 +196,16 @@ fastify.get("/health", async (request: FastifyRequest, reply: FastifyReply) => {
   });
 });
 
-// Root endpoint
-fastify.get("/", async (request: FastifyRequest, reply: FastifyReply) => {
+// Root endpoint (kept minimal to avoid drift)
+fastify.get("/", async (request, reply) => {
   return reply.send({
     name: "Green Goods API",
     version: process.env.npm_package_version || "0.0.0",
-    endpoints: {
-      health: "/api/health",
-      users: "/api/users",
-      subscribe: "/api/subscribe",
-      updateUser: "/api/users/me",
-    },
   });
 });
 
 // Global error handler
-fastify.setErrorHandler(async (error: Error, request: FastifyRequest, reply: FastifyReply) => {
+fastify.setErrorHandler(async (error, request, reply) => {
   fastify.log.error("Global error:", error);
   return reply.status(500).send({
     error: "Internal server error",
@@ -232,7 +214,7 @@ fastify.setErrorHandler(async (error: Error, request: FastifyRequest, reply: Fas
 });
 
 // 404 handler
-fastify.setNotFoundHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+fastify.setNotFoundHandler(async (request, reply) => {
   return reply.status(404).send({ error: "Not found" });
 });
 
@@ -241,9 +223,10 @@ const start = async () => {
   try {
     await fastify.listen({ port: PORT, host: "0.0.0.0" });
     fastify.log.info(`🚀 Green Goods API running on port ${PORT}`);
-    fastify.log.info(`📊 Health check: http://localhost:${PORT}/api/health`);
-    fastify.log.info(`👥 Users endpoint: http://localhost:${PORT}/api/users`);
-    fastify.log.info(`📧 Subscribe endpoint: http://localhost:${PORT}/api/subscribe`);
+    fastify.log.info(`📊 Health check: http://localhost:${PORT}/health`);
+    fastify.log.info(`👥 Users endpoint: http://localhost:${PORT}/users`);
+    fastify.log.info(`📧 Subscribe endpoint: http://localhost:${PORT}/subscribe`);
+    fastify.log.info(`🔧 Update user endpoint: http://localhost:${PORT}/users/me`);
     fastify.log.info(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
   } catch (err) {
     fastify.log.error(err);
