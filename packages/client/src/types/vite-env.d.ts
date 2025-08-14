@@ -9,6 +9,7 @@ interface ImportMetaEnv {
   readonly VITE_ENVIO_INDEXER_URL: string;
   readonly VITE_PUBLIC_POSTHOG_KEY: string;
   readonly VITE_PUBLIC_POSTHOG_HOST: string;
+  readonly VITE_POSTHOG_DEBUG?: string;
   readonly VITE_ALCHEMY_KEY?: string;
   readonly VITE_CHAIN_ID?: string;
   readonly VITE_DESKTOP_DEV?: string;

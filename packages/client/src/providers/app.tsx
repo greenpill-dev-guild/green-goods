@@ -165,7 +165,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       options={{
         api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
         capture_exceptions: true,
-        debug: import.meta.env.MODE === "development",
+        debug: import.meta.env.VITE_POSTHOG_DEBUG === "true",
       }}
     >
       <AppContext.Provider

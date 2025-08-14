@@ -1,10 +1,11 @@
 import { posthog } from "posthog-js";
 
 const IS_DEV = import.meta.env.DEV;
+const IS_DEBUG = import.meta.env.VITE_POSTHOG_DEBUG === "true";
 
 posthog.init(import.meta.env.VITE_PUBLIC_POSTHOG_KEY, {
   api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
-  debug: IS_DEV,
+  debug: IS_DEBUG,
 });
 
 // Event throttling to prevent excessive events
@@ -26,7 +27,7 @@ function shouldThrottleEvent(event: string): boolean {
 export function track(event: string, properties: Record<string, unknown>) {
   // Throttle frequent events
   if (shouldThrottleEvent(event)) {
-    if (IS_DEV) {
+    if (IS_DEBUG) {
       console.log(`[THROTTLED] ${event}`);
     }
     return;
@@ -41,32 +42,35 @@ export function track(event: string, properties: Record<string, unknown>) {
     session_id: getSessionId(),
   };
 
-  if (IS_DEV) {
+  if (IS_DEBUG) {
     console.log("track", event, enrichedProperties);
-  } else {
+  }
+  if (!IS_DEV) {
     posthog.capture(event, enrichedProperties);
   }
 }
 
 export function identify(distinctId: string) {
-  if (IS_DEV) {
+  if (IS_DEBUG) {
     console.log("identify", distinctId);
-  } else {
+  }
+  if (!IS_DEV) {
     posthog.identify(distinctId);
   }
 }
 
 export function reset() {
-  if (IS_DEV) {
+  if (IS_DEBUG) {
     console.log("reset");
-  } else {
+  }
+  if (!IS_DEV) {
     posthog.reset();
   }
 }
 
 export function getDistinctId() {
   if (IS_DEV) {
-    console.log("getDistinctId");
+    if (IS_DEBUG) console.log("getDistinctId");
     return "dev-user-id";
   } else {
     return posthog.get_distinct_id();
