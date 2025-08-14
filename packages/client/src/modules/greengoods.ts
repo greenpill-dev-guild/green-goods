@@ -2,6 +2,7 @@ import type { User } from "@privy-io/react-auth";
 import litterActionInstructions from "@/utils/actions/litter.json";
 import observerActionInstructions from "@/utils/actions/observe.json";
 import plantActionInstructions from "@/utils/actions/plant.json";
+import harvestActionInstructions from "@/utils/actions/harvest.json";
 
 import { greenGoodsGraphQL } from "./graphql";
 import { DEFAULT_CHAIN_ID } from "@/config";
@@ -27,6 +28,8 @@ function getActionInstructions(title: string) {
       return plantActionInstructions;
     case "litter cleanup":
       return litterActionInstructions;
+    case "harvest produce":
+      return harvestActionInstructions;
   }
 }
 

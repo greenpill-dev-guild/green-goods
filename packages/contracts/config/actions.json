@@ -23,6 +23,14 @@
       "endTime": "2024-12-31T23:59:59Z",
       "capitals": ["LIVING", "INTELLECTUAL", "MATERIAL"],
       "media": ["QmSampleCarbonMeasurementGuideHash", "QmSampleCalculationFormulaHash", "QmSampleReportingTemplateHash"]
+    },
+    {
+      "title": "Harvest Produce",
+      "instructions": "Capture harvest details including crops and quantities. Photograph the harvest and provide any relevant notes.",
+      "startTime": "2024-01-01T00:00:00Z",
+      "endTime": "2024-12-31T23:59:59Z",
+      "capitals": ["LIVING", "EXPERIENTIAL", "MATERIAL"],
+      "media": ["QmSampleHarvestGuideHash", "QmSamplePostHarvestHandlingHash", "QmSampleHarvestTemplateHash"]
     }
   ]
 }

@@ -1,0 +1,35 @@
+{
+  "description": "Capture the harvest process, including crops harvested, quantities, and any relevant notes. Each harvest should be documented separately.",
+  "media": {
+    "title": "Photograph the Harvest",
+    "description": "Please take a clear photo of the harvested produce and the area where it was harvested.",
+    "maxImageCount": 8
+  },
+  "details": {
+    "title": "Input Harvest Details",
+    "description": "Please provide the following details about the harvest.",
+    "feedbackPlaceholder": "Provide any notes about the harvest (conditions, issues, quality, etc.)",
+    "inputs": [
+      {
+        "key": "plantSelection",
+        "title": "Crops Harvested",
+        "placeholder": "Select the different crops harvested",
+        "type": "select",
+        "required": true,
+        "options": ["Tomato", "Lettuce", "Carrot", "Herbs", "Fruit", "Other"]
+      },
+      {
+        "key": "plantCount",
+        "title": "Quantity Harvested",
+        "placeholder": "Enter the total number of items harvested",
+        "type": "number",
+        "required": true,
+        "options": []
+      }
+    ]
+  },
+  "review": {
+    "title": "Review Harvest Details",
+    "description": "Please review the details you have provided before submitting."
+  }
+}
