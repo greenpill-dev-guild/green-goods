@@ -1,10 +1,9 @@
 import type { User } from "@privy-io/react-auth";
+import { DEFAULT_CHAIN_ID } from "@/config";
 import litterActionInstructions from "@/utils/actions/litter.json";
 import observerActionInstructions from "@/utils/actions/observe.json";
 import plantActionInstructions from "@/utils/actions/plant.json";
-
 import { greenGoodsGraphQL } from "./graphql";
-import { DEFAULT_CHAIN_ID } from "@/config";
 import { getFileByHash } from "./pinata";
 import { greenGoodsIndexer } from "./urql";
 
@@ -126,7 +125,9 @@ export async function getGardens(): Promise<Garden[]> {
               .catch(() => null)
           : null;
 
-        const bannerImage = image ? URL.createObjectURL(image.data as Blob) : "";
+        const bannerImage = image
+          ? URL.createObjectURL(image.data as Blob)
+          : "/images/no-image-placeholder.png";
 
         return {
           id: garden.id,
