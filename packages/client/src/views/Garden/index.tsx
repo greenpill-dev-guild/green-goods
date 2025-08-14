@@ -18,6 +18,7 @@ import { WorkDetails } from "./Details";
 import { WorkIntro } from "./Intro";
 import { WorkMedia } from "./Media";
 import { WorkReview } from "./Review";
+import { WorkViewSkeleton } from "@/components/UI/WorkView/WorkView";
 
 const Work: React.FC = () => {
   const intl = useIntl();
@@ -134,7 +135,7 @@ const Work: React.FC = () => {
         return Number.isFinite(numeric) && numeric === actionUID;
       });
       if (found?.title) computedTitle = found.title;
-    } catch (_error) {
+    } catch {
       return false;
     }
 
@@ -166,7 +167,7 @@ const Work: React.FC = () => {
       // No duplicates, proceed with normal submission
       uploadWork();
       return true;
-    } catch (_error) {
+    } catch {
       // Proceed with submission if duplicate check fails
       uploadWork();
       return true;
@@ -311,9 +312,13 @@ const Work: React.FC = () => {
         );
       case WorkTab.Review:
         return (
-          <Suspense fallback={<div className="p-4" />}>
-            {" "}
-            {/* TODO: Add skeleton */}
+          <Suspense
+            fallback={
+              <div className="padded">
+                <WorkViewSkeleton showMedia={true} showActions={false} numDetails={4} />
+              </div>
+            }
+          >
             <Await resolve={Promise.all([loader.actions, loader.gardens])}>
               {([actions, gardens]: [Action[], Garden[]]) => renderReview(actions, gardens)}
             </Await>
@@ -383,7 +388,7 @@ const Work: React.FC = () => {
           onViewDuplicate={(workId: string) => {
             // Navigate to view the existing work
             setDuplicateWarning(null);
-            navigate(`/home/${gardenAddress}/work/${workId}`);
+            navigate(`/home/${gardenAddress}/work/${workId}`, { state: { from: "garden" } });
           }}
         />
       )}
