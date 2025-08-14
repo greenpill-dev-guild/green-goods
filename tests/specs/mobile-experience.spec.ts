@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { BasePage } from "../../pages/base.page";
+import { BasePage } from "../pages/base.page";
 
 test.describe("Mobile PWA Experience", () => {
   let basePage: BasePage;

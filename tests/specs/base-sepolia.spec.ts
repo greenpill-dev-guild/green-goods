@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { BasePage } from "../../pages/base.page";
-import { testEnvironments } from "../../fixtures/test-data";
+import { BasePage } from "../pages/base.page";
+import { testEnvironments } from "../fixtures/test-data";
 
 test.describe("Base Sepolia Blockchain Integration", () => {
   let basePage: BasePage;
