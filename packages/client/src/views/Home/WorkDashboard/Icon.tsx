@@ -1,9 +1,9 @@
 import { RiCloudOffLine, RiLoader4Line, RiTaskLine } from "@remixicon/react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { useOffline } from "../../../hooks/useOffline";
 import { cn } from "../../../utils/cn";
-import { WorkDashboard } from "./WorkDashboard";
+import { WorkDashboard } from ".";
 
 interface WorkDashboardIconProps {
   className?: string;
@@ -13,6 +13,16 @@ export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className 
   const intl = useIntl();
   const { isOnline, pendingCount, syncStatus } = useOffline();
   const [showDashboard, setShowDashboard] = useState(false);
+
+  // Auto-open dashboard if flagged (e.g., after submission)
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem("openWorkDashboard") === "1") {
+        setShowDashboard(true);
+        sessionStorage.removeItem("openWorkDashboard");
+      }
+    } catch {}
+  }, []);
 
   // Only show notifications for actual pending work items
   const isSyncing = syncStatus === "syncing";
