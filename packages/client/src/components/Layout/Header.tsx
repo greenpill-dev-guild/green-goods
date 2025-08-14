@@ -2,6 +2,7 @@ import { type RemixiconComponentType, RiGithubLine, RiTwitterLine } from "@remix
 import type React from "react";
 import { APP_NAME } from "@/config";
 import { useApp } from "@/providers/app";
+import { CookieJarIcon } from "@/components/UI/CookieJar";
 
 type HeaderProps = Record<string, never>;
 
@@ -29,7 +30,8 @@ export const Header: React.FC<HeaderProps> = () => {
         <img src="/icon.png" alt="APP_NAME Logo" className=" w-12 lg:w-20" />
         <h1 className="text-xl lg:text-3xl font-bold">{APP_NAME}</h1>
       </div>
-      <div className="flex gap-2">
+      <div className="flex gap-2 items-center">
+        <CookieJarIcon />
         {filterLinks.map(({ Icon, link, action, title }) => (
           <a
             key={title}

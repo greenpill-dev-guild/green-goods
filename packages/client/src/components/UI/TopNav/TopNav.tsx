@@ -5,6 +5,7 @@ import { useOffline } from "@/hooks";
 import { cn } from "@/utils/cn";
 import { GardenNotifications } from "@/views/Home/Garden/Notifications";
 import { Button } from "../Button";
+import { CookieJarIcon } from "@/components/UI/CookieJar";
 
 type TopNavProps = {
   onBackClick?: (e: React.SyntheticEvent<HTMLButtonElement>) => void;
@@ -184,7 +185,10 @@ export const TopNav: React.FC<TopNavProps> = ({
       </div>
 
       <div className="flex grow" />
-      {garden && <NotificationCenter {...props} garden={garden} />}
+      <div className="flex items-center gap-2">
+        <CookieJarIcon />
+        {garden && <NotificationCenter {...props} garden={garden} />}
+      </div>
     </div>
   );
 };

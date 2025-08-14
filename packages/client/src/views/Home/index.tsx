@@ -7,6 +7,7 @@ import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
 
 import { WorkDashboardIcon } from "@/components/UI/WorkDashboard/Icon";
 import { useBrowserNavigation, useNavigateToTop } from "@/hooks";
+import { CookieJarIcon } from "@/components/UI/CookieJar";
 
 const Gardens: React.FC = () => {
   const navigate = useNavigateToTop();
@@ -76,7 +77,8 @@ const Gardens: React.FC = () => {
         <>
           <div className="flex justify-between items-center w-full py-6 px-4 sm:px-6 md:px-12">
             <h4 className="font-semibold flex-1">{intl.formatMessage({ id: "app.home" })}</h4>
-            <div className="flex-shrink-0 ml-4">
+            <div className="flex-shrink-0 ml-4 flex items-center gap-2">
+              <CookieJarIcon />
               <WorkDashboardIcon />
             </div>
           </div>
