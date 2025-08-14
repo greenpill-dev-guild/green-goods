@@ -7,7 +7,14 @@ import {
 } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
-import { Outlet, useLocation, useParams } from "react-router-dom";
+import {
+  Outlet,
+  useLocation,
+  useParams,
+  useRouteLoaderData,
+  useLoaderData,
+  Await,
+} from "react-router-dom";
 import { GardenAssessments } from "@/components/Garden/Assessments";
 import { GardenGardeners } from "@/components/Garden/Gardeners";
 import { GardenWork } from "@/components/Garden/Work";
@@ -16,7 +23,8 @@ import { type StandardTab, StandardTabs } from "@/components/UI/Tabs";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
 import { useBrowserNavigation, useNavigateToTop } from "@/hooks";
 import { GardenTab, useGardenTabs } from "@/hooks/useGardenTabs";
-import { useGarden, useGardens } from "@/providers/garden";
+//
+import { useQueryClient } from "@tanstack/react-query";
 
 type GardenProps = {};
 
@@ -48,13 +56,33 @@ export const Garden: React.FC<GardenProps> = () => {
 
   // Header uses CSS sticky; no JS height measurement needed
 
-  const { id } = useParams<{
-    id: string;
-  }>();
+  useParams<{ id: string }>();
   const { pathname } = useLocation();
 
-  const { actions } = useGardens();
-  const { garden, gardenStatus, gardeners, isFetching } = useGarden(id!);
+  // actions provided via parent route loader (home)
+  const homeData = useRouteLoaderData("home") as { actions: Promise<Action[]> } | null;
+  // useLoaderData gets this route's loader output.
+  const gardenLoader = useLoaderData() as { garden: Garden } | null;
+  const garden = gardenLoader?.garden;
+  const gardenStatus: "error" | "success" | "pending" = garden ? "success" : "pending";
+  const isFetching = false;
+  const queryClient = useQueryClient();
+  const allGardeners =
+    (queryClient.getQueryData(["gardeners"]) as GardenerCard[] | undefined) || [];
+  const gardeners: GardenerCard[] = garden?.gardeners
+    ? garden.gardeners.map((address) => {
+        const match = allGardeners.find((g) => g.account?.toLowerCase() === address.toLowerCase());
+        return {
+          id: match?.id || address,
+          account: address,
+          username: match?.username || undefined,
+          email: match?.email || undefined,
+          phone: match?.phone || undefined,
+          avatar: match?.avatar || undefined,
+          registeredAt: match?.registeredAt || Math.floor(Date.now() / 1000),
+        };
+      })
+    : [];
 
   if (!garden) return null;
 
@@ -86,7 +114,20 @@ export const Garden: React.FC<GardenProps> = () => {
       case GardenTab.Work: {
         const workFetchStatus =
           works.length > 0 ? "success" : isFetching ? "pending" : gardenStatus;
-        return <GardenWork workFetchStatus={workFetchStatus} actions={actions} works={works} />;
+        if (!homeData?.actions) {
+          return <GardenWork workFetchStatus={workFetchStatus} actions={[]} works={works} />;
+        }
+        return (
+          <React.Suspense
+            fallback={<GardenWork workFetchStatus={"pending"} actions={[]} works={[]} />}
+          >
+            <Await resolve={homeData.actions}>
+              {(actions: Action[]) => (
+                <GardenWork workFetchStatus={workFetchStatus} actions={actions} works={works} />
+              )}
+            </Await>
+          </React.Suspense>
+        );
       }
       case GardenTab.Reports:
         return (

@@ -8,7 +8,7 @@ import { queryClient } from "@/modules/react-query";
 import { formatJobError, submitWorkToQueue } from "@/modules/work-submission";
 import { abi as WorkResolverABI } from "@/utils/abis/WorkResolver.json";
 
-import { useGardens } from "./garden";
+import { Await, useLoaderData } from "react-router-dom";
 import { useUser } from "./user";
 
 export enum WorkTab {
@@ -81,7 +81,14 @@ export const useWork = () => {
 
 export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   const { eoa } = useUser();
-  const { actions, gardens } = useGardens();
+  // Actions and gardens streamed via route loader at garden-submit route
+  const loader = ((): { actions?: Promise<Action[]>; gardens?: Promise<Garden[]> } => {
+    try {
+      return useLoaderData() as any;
+    } catch {
+      return {};
+    }
+  })();
   const chainId = DEFAULT_CHAIN_ID;
 
   // QUERIES
@@ -115,7 +122,9 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   const workMutation = useMutation({
     mutationFn: async (draft: WorkDraft) => {
       // Use consolidated submission utility
-      return submitWorkToQueue(draft, gardenAddress!, actionUID!, actions, chainId, images);
+      // Use actions from the loader if provided later; fallback to empty list
+      const ctxActions = [] as Action[];
+      return submitWorkToQueue(draft, gardenAddress!, actionUID!, ctxActions, chainId, images);
     },
     onMutate: () => {
       // toast.loading("Uploading work..."); @dev deprecated
@@ -172,8 +181,8 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <WorkContext.Provider
       value={{
-        gardens,
-        actions,
+        gardens: [],
+        actions: [],
         workMutation,
         workApprovals: workApprovals ?? [],
         workApprovalMap:
@@ -207,7 +216,55 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         setActiveTab,
       }}
     >
-      {children}
+      {/* Resolve actions/gardens lazily if provided by route loader */}
+      {loader.actions && loader.gardens ? (
+        <React.Suspense fallback={children}>
+          <Await resolve={Promise.all([loader.actions, loader.gardens])}>
+            {([actions, gardens]: [Action[], Garden[]]) => (
+              <WorkContext.Provider
+                value={{
+                  gardens,
+                  actions,
+                  workMutation,
+                  workApprovals: workApprovals ?? [],
+                  workApprovalMap:
+                    workApprovals?.reduce(
+                      (acc, work) => {
+                        acc[work.workUID] = work;
+                        return acc;
+                      },
+                      {} as Record<string, WorkApproval>
+                    ) ?? {},
+                  refetchWorkApprovals,
+                  form: {
+                    state: formState,
+                    control,
+                    register,
+                    actionUID,
+                    images,
+                    setImages,
+                    setActionUID,
+                    uploadWork,
+                    gardenAddress,
+                    setGardenAddress,
+                    feedback,
+                    plantSelection,
+                    plantCount,
+                    values,
+                    reset,
+                  },
+                  activeTab,
+                  setActiveTab,
+                }}
+              >
+                {children}
+              </WorkContext.Provider>
+            )}
+          </Await>
+        </React.Suspense>
+      ) : (
+        children
+      )}
     </WorkContext.Provider>
   );
 };

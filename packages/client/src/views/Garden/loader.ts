@@ -1,16 +1,9 @@
 import type { LoaderFunctionArgs } from "react-router-dom";
-import { DEFAULT_CHAIN_ID, getEASConfig } from "@/config";
 // import { queryClient } from "@/modules/react-query";
 import { ensureBaseLists } from "@/hooks/prefetch";
 
-export async function homeLoader(_args: LoaderFunctionArgs) {
-  const chainId = DEFAULT_CHAIN_ID;
-
-  const eas = getEASConfig(chainId);
-  void eas; // currently unused here but shows available config
-
-  const { actionsPromise, gardensPromise, gardenersPromise } = ensureBaseLists(chainId);
-
+export async function gardenSubmitLoader(_args: LoaderFunctionArgs) {
+  const { actionsPromise, gardensPromise, gardenersPromise } = ensureBaseLists();
   // Streaming: return promises for non-critical data (no defer needed)
   return {
     actions: actionsPromise,

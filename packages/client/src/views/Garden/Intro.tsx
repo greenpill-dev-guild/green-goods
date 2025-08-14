@@ -7,7 +7,6 @@ import { GardenCard } from "@/components/UI/Card/GardenCard";
 import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/UI/Carousel/Carousel";
 import { FormInfo } from "@/components/UI/Form/Info";
-import { useGardens } from "@/providers/garden";
 
 interface WorkIntroProps {
   actions: Action[];
@@ -27,7 +26,9 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
   setGardenAddress,
 }) => {
   const intl = useIntl();
-  const { actionsStatus, gardensStatus } = useGardens();
+  // Status comes from parent loader now; show skeletons based on arrays being empty temporarily
+  const actionsStatus: "pending" | "success" = actions.length ? "success" : "pending";
+  const gardensStatus: "pending" | "success" = gardens.length ? "success" : "pending";
   const uidFromActionId = (id: string): number | null => {
     const last = id.split("-").pop();
     const n = Number(last);
@@ -56,7 +57,8 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
               </CarouselItem>
             ))}
 
-          {actionsStatus === "error" && actions.length === 0 && (
+          {/* Error state intentionally disabled until backend errors are surfaced */}
+          {actions.length === 0 && actionsStatus === "success" && (
             <div className="p-4 text-sm text-rose-600">
               {intl.formatMessage({
                 id: "app.garden.errorFetchingActions",
@@ -115,7 +117,8 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
               </CarouselItem>
             ))}
 
-          {gardensStatus === "error" && gardens.length === 0 && (
+          {/* Error state intentionally disabled until backend errors are surfaced */}
+          {gardens.length === 0 && gardensStatus === "success" && (
             <div className="p-4 text-sm text-rose-600">
               {intl.formatMessage({
                 id: "app.garden.errorFetchingGardens",
