@@ -129,9 +129,8 @@ class JobQueueDatabase {
     if (filter?.kind && filter?.synced !== undefined) {
       const tx = db.transaction("jobs", "readonly");
       const index = tx.objectStore("jobs").index("kind_synced");
-      // Store boolean as integer in composite key to satisfy IDBValidKey
-      const syncedKey = filter.synced ? 1 : 0;
-      return await index.getAll([filter.kind, syncedKey] as unknown as IDBValidKey);
+      // Query using boolean to match the index schema (kind: string, synced: boolean)
+      return await index.getAll([filter.kind, filter.synced] as unknown as IDBValidKey);
     }
 
     if (filter?.kind) {

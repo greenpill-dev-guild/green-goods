@@ -43,8 +43,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [user]);
 
-  console.log("user", smartAccount, client);
-
   return (
     <UserContext.Provider
       value={{
