@@ -3,6 +3,7 @@ import { type SmartWalletClientType, useSmartWallets } from "@privy-io/react-aut
 import React, { useContext, useEffect } from "react";
 // import { jobQueue } from "@/modules/job-queue";
 import { identify } from "@/modules/posthog";
+import { DEFAULT_CHAIN_ID } from "@/config";
 
 interface UserInterface {
   ready: boolean;
@@ -24,16 +25,25 @@ export const useUser = () => {
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const { wallets } = useWallets();
   const { ready, user } = usePrivy();
-  const { client } = useSmartWallets();
+  const { client, getClientForChain } = useSmartWallets();
 
   const eoa = wallets.find((wallet) => wallet.walletClientType === "privy");
   const smartAccount = user?.linkedAccounts.find((account) => account.type === "smart_wallet");
 
   useEffect(() => {
+    getClientForChain({ id: DEFAULT_CHAIN_ID })
+      .then((client) => {
+        console.log("client", client);
+      })
+      .catch((e) => {
+        console.error("client error", e);
+      });
     if (user) {
       identify(user.id);
     }
   }, [user]);
+
+  console.log("user", smartAccount, client);
 
   return (
     <UserContext.Provider

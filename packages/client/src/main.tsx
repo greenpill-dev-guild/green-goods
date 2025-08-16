@@ -46,7 +46,7 @@ export const Root = () => (
           logo: "",
         },
         embeddedWallets: {
-          createOnLogin: "users-without-wallets",
+          createOnLogin: "all-users",
         },
         defaultChain: getDefaultChain(),
         supportedChains: [arbitrum, celo, baseSepolia],
