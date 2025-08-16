@@ -55,13 +55,16 @@ class JobQueue {
       will_process_immediately: false,
     });
 
-    if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
-      const mediaCount =
-        payload && typeof payload === "object" && "media" in (payload as any)
-          ? Array.isArray((payload as any).media)
-            ? (payload as any).media.length
-            : 0
-          : 0;
+    if (import.meta.env?.VITE_QUEUE_DEBUG === "true") {
+      let mediaCount = 0;
+      if (
+        payload &&
+        typeof payload === "object" &&
+        "media" in (payload as unknown as Record<string, unknown>)
+      ) {
+        const maybeMedia = (payload as unknown as Record<string, unknown>).media;
+        mediaCount = Array.isArray(maybeMedia) ? maybeMedia.length : 0;
+      }
       // eslint-disable-next-line no-console
       console.debug("[JobQueue] addJob", {
         jobId,
@@ -74,6 +77,11 @@ class JobQueue {
 
     // Emit event using the event bus
     jobQueueEventBus.emit("job:added", { jobId, job });
+
+    // Hint service worker to register background sync (if supported/configured)
+    try {
+      navigator.serviceWorker?.controller?.postMessage({ type: "REGISTER_SYNC" });
+    } catch {}
 
     // Immediate processing removed; providers handle processing inline
 

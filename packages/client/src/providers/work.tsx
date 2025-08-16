@@ -1,16 +1,19 @@
 import { useMutation } from "@tanstack/react-query";
-import React, { useContext, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import React, { useContext } from "react";
 import { type Control, type FormState, type UseFormRegister, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 // import { decodeErrorResult } from "viem";
 import { DEFAULT_CHAIN_ID } from "@/config";
-import { jobQueue } from "@/modules/job-queue";
+// import { jobQueue } from "@/modules/job-queue";
 import { processWorkJobInline } from "@/modules/job-queue/inline-processor";
-import { submitWorkToQueue, validateWorkDraft } from "@/modules/work-submission";
+import { submitWorkToQueue, validateWorkDraft, formatJobError } from "@/modules/work-submission";
 // import { abi as WorkResolverABI } from "@/utils/abis/WorkResolver.json";
 
-import { Await, useRouteLoaderData } from "react-router-dom";
 import { useUser } from "./user";
+import { useActions, useGardens } from "@/hooks/useBaseLists";
+import { useWorkFlowStore, type WorkFlowState } from "@/state/useWorkFlowStore";
 
 export enum WorkTab {
   Intro = "Intro",
@@ -22,6 +25,7 @@ export enum WorkTab {
 export interface WorkDataProps {
   gardens: Garden[];
   actions: Action[];
+  isLoading?: boolean;
   workMutation: ReturnType<
     typeof useMutation<`0x${string}`, unknown, { draft: WorkDraft; images: File[] }, void>
   >;
@@ -46,14 +50,11 @@ export interface WorkDataProps {
   setActiveTab: React.Dispatch<React.SetStateAction<WorkTab>>;
 }
 
-// const workSchema = z.object({
-//   title: z.string().optional(),
-//   feedback: z.string().optional(),
-//   metadata: z.string().optional(),
-//   plantSelection: z.array(z.string()).optional(),
-//   plantCount: z.number(),
-//   media: z.array(z.instanceof(File)).optional(),
-// });
+const workSchema = z.object({
+  feedback: z.string().min(1, "Feedback is required"),
+  plantSelection: z.array(z.string()).default([]),
+  plantCount: z.number().nonnegative().optional(),
+});
 
 const WorkContext = React.createContext<WorkDataProps>({
   form: {
@@ -68,7 +69,7 @@ const WorkContext = React.createContext<WorkDataProps>({
     setGardenAddress: () => {},
     reset: () => {},
   },
-});
+} as unknown as WorkDataProps);
 
 export const useWork = () => {
   return useContext(WorkContext);
@@ -76,17 +77,55 @@ export const useWork = () => {
 
 export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   const { smartAccountClient } = useUser();
-  // Actions and gardens streamed via route loader at `garden-submit` route
-  const loaderData = useRouteLoaderData("garden-submit") as
-    | { actions?: Promise<Action[]>; gardens?: Promise<Garden[]> }
-    | undefined;
   const chainId = DEFAULT_CHAIN_ID;
 
-  // MUTATIONS
-  const [actionUID, setActionUID] = useState<number | null>(null);
-  const [gardenAddress, setGardenAddress] = useState<string | null>(null);
-  const [images, setImages] = useState<File[]>([]);
-  const [activeTab, setActiveTab] = useState(WorkTab.Intro);
+  // Base lists via React Query
+  const { data: actionsData = [], isLoading: actionsLoading } = useActions(chainId);
+  const { data: gardensData = [], isLoading: gardensLoading } = useGardens(chainId);
+
+  // UI state via Zustand
+  const actionUID = useWorkFlowStore((s: WorkFlowState) => s.actionUID);
+  const gardenAddress = useWorkFlowStore((s: WorkFlowState) => s.gardenAddress);
+  const images = useWorkFlowStore((s: WorkFlowState) => s.images);
+  const activeTab = useWorkFlowStore((s: WorkFlowState) => s.activeTab);
+  const _setActionUID = useWorkFlowStore((s: WorkFlowState) => s.setActionUID);
+  const _setGardenAddress = useWorkFlowStore((s: WorkFlowState) => s.setGardenAddress);
+  const _setImages = useWorkFlowStore((s: WorkFlowState) => s.setImages);
+  const _setActiveTab = useWorkFlowStore((s: WorkFlowState) => s.setActiveTab);
+
+  // Adapters to maintain React.Dispatch API for consumers
+  const setActionUID: React.Dispatch<React.SetStateAction<number | null>> = (
+    updater: React.SetStateAction<number | null>
+  ) => {
+    const next =
+      typeof updater === "function"
+        ? (updater as (prev: number | null) => number | null)(actionUID)
+        : updater;
+    _setActionUID(next);
+  };
+  const setGardenAddress: React.Dispatch<React.SetStateAction<string | null>> = (
+    updater: React.SetStateAction<string | null>
+  ) => {
+    const next =
+      typeof updater === "function"
+        ? (updater as (prev: string | null) => string | null)(gardenAddress)
+        : updater;
+    _setGardenAddress(next);
+  };
+  const setImages: React.Dispatch<React.SetStateAction<File[]>> = (
+    updater: React.SetStateAction<File[]>
+  ) => {
+    const next =
+      typeof updater === "function" ? (updater as (prev: File[]) => File[])(images) : updater;
+    _setImages(next);
+  };
+  const setActiveTab: React.Dispatch<React.SetStateAction<WorkTab>> = (
+    updater: React.SetStateAction<WorkTab>
+  ) => {
+    const next =
+      typeof updater === "function" ? (updater as (prev: WorkTab) => WorkTab)(activeTab) : updater;
+    _setActiveTab(next);
+  };
 
   const { control, register, handleSubmit, formState, watch, reset } = useForm<WorkDraft>({
     defaultValues: {
@@ -96,7 +135,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
     },
     shouldUseNativeValidation: true,
     mode: "onChange",
-    // resolver: zodResolver(workSchema),
+    resolver: zodResolver(workSchema),
   });
 
   const feedback = watch("feedback");
@@ -106,11 +145,10 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
 
   const workMutation = useMutation({
     mutationFn: async ({ draft, images }: { draft: WorkDraft; images: File[] }) => {
-      // Use consolidated submission utility
-      // Use actions from the loader if provided; fallback to empty list
-      const ctxActions = (loaderData?.actions ? await loaderData.actions : []) as Action[];
+      // Use consolidated submission utility with actions from React Query
+      const ctxActions = actionsData as Action[];
       // Always persist job to queue first
-      const tx = await submitWorkToQueue(
+      const { txHash, jobId } = await submitWorkToQueue(
         draft,
         gardenAddress!,
         actionUID!,
@@ -122,20 +160,12 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       // If a client is available, try to process inline immediately
       if (smartAccountClient) {
         try {
-          const latestJobs = await jobQueue.getJobs({ kind: "work", synced: false });
-          const job = latestJobs.find(
-            (j) =>
-              (j.payload as any)?.gardenAddress === gardenAddress &&
-              (j.payload as any)?.actionUID === actionUID
-          );
-          if (job) {
-            await processWorkJobInline(job.id, chainId, smartAccountClient);
-          }
+          await processWorkJobInline(jobId, chainId, smartAccountClient);
         } catch {
           // best-effort inline processing; job remains queued otherwise
         }
       }
-      return tx;
+      return txHash;
     },
     onMutate: () => {
       toast.loading("Uploading work...", { id: "work-upload" });
@@ -144,52 +174,23 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       // Queue add succeeded; dismiss loading. Actual upload success is toasted via queue events.
       toast.dismiss("work-upload");
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onError: (_error: any) => {
-      // TODO: Move to job queue error handling
-      // console.error("Work submission failed:", error);
-      // if (error.data) {
-      //   const _decodedError = decodeErrorResult({
-      //     abi: WorkResolverABI,
-      //     data: error.data as `0x${string}`,
-      //   });
-      //   void _decodedError; // For debugging purposes
-      // } // TODO: Move to job queue error handling
-      // // Properly decode revert data if available
-      // if (
-      //   error &&
-      //   typeof error === "object" &&
-      //   "data" in error &&
-      //   typeof error.data === "string" &&
-      //   error.data.startsWith("0x")
-      // ) {
-      //   try {
-      //     decodeErrorResult({
-      //       abi: WorkResolverABI,
-      //       data: error.data as `0x${string}`,
-      //     });
-      //   } catch (decodeError) {
-      //     console.error("Failed to decode error result:", decodeError);
-      //   }
-      // }
-      // // Show user-friendly error message
-      // const userFriendlyError = formatJobError(error.message || "Unknown error occurred");
-      // console.error("User-friendly error:", userFriendlyError);
-      // toast.error(userFriendlyError, { id: "work-upload" });
-      // queryClient.invalidateQueries({
-      //   queryKey: ["work-approvals"],
-      // });
+    onError: (error: unknown) => {
+      const message = formatJobError(
+        typeof error === "object" && error && "message" in (error as { message?: unknown })
+          ? String((error as { message?: unknown }).message)
+          : String(error)
+      );
+      toast.error(message);
+      toast.dismiss("work-upload");
     },
   });
 
-  const uploadWork = handleSubmit((data) => {
+  const uploadWork = handleSubmit(async (data: WorkDraft) => {
     // Ensure optional plantCount is handled; react-hook-form may provide undefined
     const draft: WorkDraft = {
       feedback: data.feedback,
       plantSelection: data.plantSelection,
-      ...(typeof (data as any).plantCount === "number"
-        ? { plantCount: (data as any).plantCount }
-        : {}),
+      ...(typeof data.plantCount === "number" ? { plantCount: data.plantCount } : {}),
     } as WorkDraft;
 
     const errors = validateWorkDraft(draft, gardenAddress, actionUID, images);
@@ -199,14 +200,15 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
     }
     // Snapshot images to avoid race with state clearing after navigation
     const imagesSnapshot = images.slice();
-    workMutation.mutate({ draft, images: imagesSnapshot });
+    await workMutation.mutateAsync({ draft, images: imagesSnapshot });
   });
 
   return (
     <WorkContext.Provider
       value={{
-        gardens: [],
-        actions: [],
+        gardens: gardensData,
+        actions: actionsData,
+        isLoading: actionsLoading || gardensLoading,
         workMutation,
         form: {
           state: formState,
@@ -230,45 +232,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         setActiveTab,
       }}
     >
-      {/* Resolve actions/gardens lazily if provided by route loader */}
-      {loaderData?.actions && loaderData?.gardens ? (
-        <React.Suspense fallback={children}>
-          <Await resolve={Promise.all([loaderData.actions, loaderData.gardens])}>
-            {([actions, gardens]: [Action[], Garden[]]) => (
-              <WorkContext.Provider
-                value={{
-                  gardens,
-                  actions,
-                  workMutation,
-                  form: {
-                    state: formState,
-                    control,
-                    register,
-                    actionUID,
-                    images,
-                    setImages,
-                    setActionUID,
-                    uploadWork,
-                    gardenAddress,
-                    setGardenAddress,
-                    feedback,
-                    plantSelection,
-                    plantCount,
-                    values,
-                    reset,
-                  },
-                  activeTab,
-                  setActiveTab,
-                }}
-              >
-                {children}
-              </WorkContext.Provider>
-            )}
-          </Await>
-        </React.Suspense>
-      ) : (
-        children
-      )}
+      {children}
     </WorkContext.Provider>
   );
 };

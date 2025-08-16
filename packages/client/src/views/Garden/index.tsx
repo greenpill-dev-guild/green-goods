@@ -1,7 +1,7 @@
-import { RiArrowRightSLine, RiImage2Fill } from "@remixicon/react";
-import React, { Suspense, useState } from "react";
+import { RiArrowRightSLine, RiImage2Fill, RiHammerFill, RiPlantFill } from "@remixicon/react";
+import React, { useState } from "react";
 import { useIntl } from "react-intl";
-import { Await, useLoaderData, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/UI/Button";
 import { DuplicateWorkWarning } from "@/components/UI/DuplicateWorkWarning/DuplicateWorkWarning";
@@ -9,6 +9,9 @@ import { FormProgress } from "@/components/UI/Form/Progress";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
 import { DEFAULT_CHAIN_ID } from "@/config";
 import { defaultDeduplicationManager, type DuplicateCheckResult } from "@/modules/deduplication";
+import { ActionCardSkeleton } from "@/components/UI/Card/ActionCardSkeleton";
+import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
+import { FormInfo } from "@/components/UI/Form/Info";
 // import { ActionCardSkeleton } from "@/components/UI/Card/ActionCardSkeleton";
 // import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
 
@@ -24,8 +27,7 @@ const Work: React.FC = () => {
   const intl = useIntl();
   const navigate = useNavigate();
   const chainId = DEFAULT_CHAIN_ID;
-  const { form, activeTab, setActiveTab, workMutation } = useWork();
-  const loader = useLoaderData() as { actions: Promise<Action[]>; gardens: Promise<Garden[]> };
+  const { form, activeTab, setActiveTab, actions, gardens, isLoading, workMutation } = useWork();
 
   // State for duplicate warning modal
   const [duplicateWarning, setDuplicateWarning] = useState<{
@@ -53,17 +55,22 @@ const Work: React.FC = () => {
     plantCount,
   } = form;
 
-  void workMutation; // Avoid unused warnings for status; mutation state handled via toasts
+  // mutation state handled via toasts inside uploadWork()
 
-  // We'll resolve actions/gardens via Suspense when needed
+  // Prefer resolved data from React Query
   // Helper to render Review step with data (never block UI; use fallbacks)
-  const renderReview = (actions: Action[], gardens: Garden[]) => {
-    const garden = gardens.find((g) => g.id === gardenAddress);
-    const action = actions.find((a) => {
+  const getActionUIDFromId = (id?: string): number | null => {
+    if (!id) return null;
+    const last = String(id).split("-").pop();
+    const num = Number(last);
+    return Number.isFinite(num) ? num : null;
+  };
+  const renderReview = (actionsList: Action[], gardensList: Garden[]) => {
+    const garden = gardensList.find((g) => g.id === gardenAddress);
+    const action = actionsList.find((a: Action) => {
       if (!actionUID) return false;
-      const idPart = a.id?.split("-").pop();
-      const numeric = Number(idPart);
-      return Number.isFinite(numeric) && numeric === actionUID;
+      const uid = getActionUIDFromId(a.id);
+      return uid !== null && uid === actionUID;
     });
 
     const fallbackGarden: Garden =
@@ -125,8 +132,7 @@ const Work: React.FC = () => {
     // Resolve action title for duplicate detection
     let computedTitle = `Work - ${new Date().toISOString()}`;
     try {
-      const actions = await loader.actions;
-      const found = actions.find((a) => {
+      const found = actions.find((a: Action) => {
         if (actionUID === undefined || actionUID === null) {
           return false;
         }
@@ -231,7 +237,7 @@ const Work: React.FC = () => {
         id: "app.garden.submit.tab.review.label",
         defaultMessage: "Upload Work",
       }),
-      primaryDisabled: !state.isValid || state.isSubmitting,
+      primaryDisabled: !state.isValid || state.isSubmitting || workMutation.isPending,
       secondary: null,
       backButton: () => changeTab(WorkTab.Details),
     },
@@ -240,23 +246,54 @@ const Work: React.FC = () => {
   const renderTabContent = () => {
     switch (activeTab) {
       case WorkTab.Intro:
-        return (
-          <Suspense fallback={<div className="p-4" />}>
-            {" "}
-            {/* TODO: Add skeleton for full view mimicking the intro view */}
-            <Await resolve={Promise.all([loader.actions, loader.gardens])}>
-              {([actions, gardens]: [Action[], Garden[]]) => (
-                <WorkIntro
-                  actions={actions}
-                  gardens={gardens}
-                  selectedActionUID={actionUID}
-                  selectedGardenAddress={gardenAddress}
-                  setActionUID={setActionUID}
-                  setGardenAddress={setGardenAddress}
-                />
-              )}
-            </Await>
-          </Suspense>
+        return isLoading && actions.length === 0 && gardens.length === 0 ? (
+          <div className="flex flex-col gap-6">
+            <FormInfo
+              title={intl.formatMessage({
+                id: "app.garden.selectYourAction",
+                defaultMessage: "Select your action",
+              })}
+              info={intl.formatMessage({
+                id: "app.garden.whatTypeOfWork",
+                defaultMessage: "What type of work are you submitting?",
+              })}
+              Icon={RiHammerFill}
+            />
+            <div className="flex gap-4 overflow-x-auto">
+              {Array.from({ length: 4 }).map((_, idx) => (
+                <div key={`action-skel-${idx}`} className="min-w-[16rem]">
+                  <ActionCardSkeleton media="small" height="selection" />
+                </div>
+              ))}
+            </div>
+            <FormInfo
+              title={intl.formatMessage({
+                id: "app.garden.selectYourGarden",
+                defaultMessage: "Select your garden",
+              })}
+              info={intl.formatMessage({
+                id: "app.garden.whichGarden",
+                defaultMessage: "Which garden are you submitting for?",
+              })}
+              Icon={RiPlantFill}
+            />
+            <div className="flex gap-4 overflow-x-auto">
+              {Array.from({ length: 4 }).map((_, idx) => (
+                <div key={`garden-skel-${idx}`} className="min-w-[16rem]">
+                  <GardenCardSkeleton media="small" height="selection" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <WorkIntro
+            actions={actions}
+            gardens={gardens}
+            selectedActionUID={actionUID}
+            selectedGardenAddress={gardenAddress}
+            setActionUID={setActionUID}
+            setGardenAddress={setGardenAddress}
+          />
         );
       case WorkTab.Media:
         return (
@@ -272,57 +309,32 @@ const Work: React.FC = () => {
           />
         );
       case WorkTab.Details:
-        return (
-          <Suspense
-            fallback={
-              <div className="padded flex flex-col gap-4">
-                <div className="h-24 w-full bg-slate-100 rounded-lg animate-pulse" />
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div
-                    key={`field-skel-${i}`}
-                    className="h-12 w-full bg-slate-100 rounded-lg animate-pulse"
-                  />
-                ))}
-              </div>
-            }
-          >
-            <Await resolve={loader.actions}>
-              {(actions: Action[]) => {
-                const found = actions.find((a) => {
-                  if (!actionUID) return false;
-                  const idPart = String(a.id).split("-").pop();
-                  const num = Number(idPart);
-                  return Number.isFinite(num) && num === actionUID; // TODO: Refator to use json schemas and create a function to get the actionUID from the action
-                });
-                return (
-                  <WorkDetails
-                    instruction={intl.formatMessage({
-                      id: "app.garden.submit.tab.details.instruction",
-                      defaultMessage: "Provide detailed information and feedback",
-                    })}
-                    feedbackPlaceholder=""
-                    inputs={found?.inputs ?? []}
-                    register={register}
-                    control={control}
-                  />
-                );
-              }}
-            </Await>
-          </Suspense>
-        );
+        return (() => {
+          const found = (actions || []).find((a) => {
+            if (!actionUID) return false;
+            const uid = getActionUIDFromId(a.id);
+            return uid !== null && uid === actionUID;
+          });
+          return (
+            <WorkDetails
+              instruction={intl.formatMessage({
+                id: "app.garden.submit.tab.details.instruction",
+                defaultMessage: "Provide detailed information and feedback",
+              })}
+              feedbackPlaceholder=""
+              inputs={found?.inputs ?? []}
+              register={register}
+              control={control}
+            />
+          );
+        })();
       case WorkTab.Review:
-        return (
-          <Suspense
-            fallback={
-              <div className="padded">
-                <WorkViewSkeleton showMedia={true} showActions={false} numDetails={4} />
-              </div>
-            }
-          >
-            <Await resolve={Promise.all([loader.actions, loader.gardens])}>
-              {([actions, gardens]: [Action[], Garden[]]) => renderReview(actions, gardens)}
-            </Await>
-          </Suspense>
+        return isLoading && actions.length === 0 && gardens.length === 0 ? (
+          <div className="padded">
+            <WorkViewSkeleton showMedia={true} showActions={false} numDetails={4} />
+          </div>
+        ) : (
+          renderReview(actions, gardens)
         );
     }
   };

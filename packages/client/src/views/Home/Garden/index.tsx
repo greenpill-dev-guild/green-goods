@@ -7,14 +7,7 @@ import {
 } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
-import {
-  Outlet,
-  useLocation,
-  useParams,
-  useRouteLoaderData,
-  useLoaderData,
-  Await,
-} from "react-router-dom";
+import { Outlet, useLocation, useParams } from "react-router-dom";
 import { GardenAssessments } from "@/components/Garden/Assessments";
 import { GardenGardeners } from "@/components/Garden/Gardeners";
 import { GardenWork } from "@/components/Garden/Work";
@@ -24,7 +17,10 @@ import { TopNav } from "@/components/UI/TopNav/TopNav";
 import { useBrowserNavigation, useNavigateToTop } from "@/hooks";
 import { GardenTab, useGardenTabs } from "@/hooks/useGardenTabs";
 //
-import { useQueryClient } from "@tanstack/react-query";
+// import { useQueryClient } from "@tanstack/react-query";
+import { useActions, useGardeners, useGardens } from "@/hooks/useBaseLists";
+import { useWorks } from "@/hooks/useWorks";
+import { DEFAULT_CHAIN_ID } from "@/config";
 
 type GardenProps = {};
 
@@ -56,19 +52,16 @@ export const Garden: React.FC<GardenProps> = () => {
 
   // Header uses CSS sticky; no JS height measurement needed
 
-  useParams<{ id: string }>();
+  const { id: gardenIdParam } = useParams<{ id: string }>();
   const { pathname } = useLocation();
-
-  // actions provided via parent route loader (home)
-  const homeData = useRouteLoaderData("home") as { actions: Promise<Action[]> } | null;
-  // useLoaderData gets this route's loader output.
-  const gardenLoader = useLoaderData() as { garden: Garden } | null;
-  const garden = gardenLoader?.garden;
+  const chainId = DEFAULT_CHAIN_ID;
+  const { data: allGardens = [] } = useGardens(chainId);
+  const garden = allGardens.find((g) => g.id === gardenIdParam);
   const gardenStatus: "error" | "success" | "pending" = garden ? "success" : "pending";
   const isFetching = false;
-  const queryClient = useQueryClient();
-  const allGardeners =
-    (queryClient.getQueryData(["gardeners"]) as GardenerCard[] | undefined) || [];
+  const { data: allGardeners = [] } = useGardeners();
+  const { data: actions = [] } = useActions(chainId);
+  const { works: mergedWorks } = useWorks(gardenIdParam || "");
   const gardeners: GardenerCard[] = garden?.gardeners
     ? garden.gardeners.map((address) => {
         const match = allGardeners.find((g) => g.account?.toLowerCase() === address.toLowerCase());
@@ -86,7 +79,7 @@ export const Garden: React.FC<GardenProps> = () => {
 
   if (!garden) return null;
 
-  const { name, bannerImage, location, createdAt, assessments, works } = garden;
+  const { name, bannerImage, location, createdAt, assessments } = garden;
 
   // Restore scroll position when switching tabs
 
@@ -113,20 +106,9 @@ export const Garden: React.FC<GardenProps> = () => {
     switch (activeTab) {
       case GardenTab.Work: {
         const workFetchStatus =
-          works.length > 0 ? "success" : isFetching ? "pending" : gardenStatus;
-        if (!homeData?.actions) {
-          return <GardenWork workFetchStatus={workFetchStatus} actions={[]} works={works} />;
-        }
+          mergedWorks.length > 0 ? "success" : isFetching ? "pending" : gardenStatus;
         return (
-          <React.Suspense
-            fallback={<GardenWork workFetchStatus={"pending"} actions={[]} works={[]} />}
-          >
-            <Await resolve={homeData.actions}>
-              {(actions: Action[]) => (
-                <GardenWork workFetchStatus={workFetchStatus} actions={actions} works={works} />
-              )}
-            </Await>
-          </React.Suspense>
+          <GardenWork workFetchStatus={workFetchStatus} actions={actions} works={mergedWorks} />
         );
       }
       case GardenTab.Reports:
@@ -162,7 +144,7 @@ export const Garden: React.FC<GardenProps> = () => {
                   <TopNav
                     className="flex w-full justify-between items-center p-4 pt-6"
                     onBackClick={() => navigate("/home")}
-                    works={works}
+                    works={mergedWorks}
                     garden={garden}
                   />
                 </div>

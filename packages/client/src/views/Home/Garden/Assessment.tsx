@@ -1,18 +1,16 @@
 import type React from "react";
-import { useParams, useRouteLoaderData } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { useGardens } from "@/hooks/useBaseLists";
+import { DEFAULT_CHAIN_ID } from "@/config";
 import { WorkViewSkeleton } from "@/components/UI/WorkView/WorkView";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
 
 type GardenAssessmentProps = {};
 
 export const GardenAssessment: React.FC<GardenAssessmentProps> = () => {
-  const { assessmentId } = useParams<{
-    id: string;
-    assessmentId: string;
-  }>();
-
-  const loader = useRouteLoaderData("garden") as { garden: Garden } | null;
-  const garden = loader?.garden;
+  const { id, assessmentId } = useParams<{ id: string; assessmentId: string }>();
+  const { data: gardens = [] } = useGardens(DEFAULT_CHAIN_ID);
+  const garden = gardens.find((g) => g.id === id) || null;
 
   const assessment = garden?.assessments.find((assessment) => assessment.id === assessmentId);
 

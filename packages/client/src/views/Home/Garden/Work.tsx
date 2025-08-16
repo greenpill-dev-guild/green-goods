@@ -1,10 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { RiCheckFill, RiCloseFill } from "@remixicon/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import React, { Suspense, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Form, useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
-import { Await, useLoaderData, useLocation, useParams } from "react-router-dom";
+import { useLocation, useParams, useOutletContext } from "react-router-dom";
 
 import { z } from "zod";
 import { Button } from "@/components/UI/Button";
@@ -23,6 +23,9 @@ import { isValidAttestationId, openEASExplorer } from "@/utils/easExplorer";
 import { downloadWorkData, downloadWorkMedia, shareWork, type WorkData } from "@/utils/workActions";
 import { WorkCompleted } from "../../Garden/Completed";
 import WorkViewSection from "./WorkViewSection";
+import { useActions, useGardens } from "@/hooks/useBaseLists";
+import { useWorks } from "@/hooks/useWorks";
+import { getFileByHash } from "@/modules/pinata";
 
 type GardenWorkProps = {};
 
@@ -37,30 +40,32 @@ type WorkApprovalDraft = z.infer<typeof workApprovalSchema>;
 
 export const GardenWork: React.FC<GardenWorkProps> = () => {
   const intl = useIntl();
-  useParams<{ id: string; workId: string }>();
+  const { id: gardenIdParam, workId } = useParams<{ id: string; workId: string }>();
+  const { gardenId: gardenIdFromContext } = (useOutletContext() as { gardenId?: string }) || {};
   const [workMetadata, setWorkMetadata] = useState<WorkMetadata | null>(null);
   const [isApproveDialogOpen, setApproveDialogOpen] = useState(false);
   const [isRejectDialogOpen, setRejectDialogOpen] = useState(false);
   const navigateToTop = useNavigateToTop();
   const location = useLocation();
-  const loaderData = useLoaderData() as {
-    garden: Garden;
-    work?: Work;
-    workMetadata: Promise<WorkMetadata | null>;
-    actionTitle?: string | null;
-  };
-  const garden = loaderData.garden;
-  // No longer need actions here; title comes from loader
-  const queryClient = useQueryClient();
   const chainId = DEFAULT_CHAIN_ID;
-
-  const work = loaderData.work;
-  const actionTitleFromLoader = loaderData.actionTitle;
+  const { data: gardens = [] } = useGardens();
+  const gardenId = (gardenIdFromContext || gardenIdParam) as string;
+  const garden = gardens.find((g) => g.id === gardenId);
+  const { data: actions = [] } = useActions(chainId);
+  const { works: mergedWorks } = useWorks(gardenId || "");
+  const work = mergedWorks.find((w) => w.id === (workId || ""));
+  const queryClient = useQueryClient();
+  const actionTitle = useMemo(() => {
+    if (!work) return null;
+    const compositeId = `${chainId}-${work.actionUID}`;
+    const match = actions.find((a) => a.id === compositeId);
+    return match?.title ?? null;
+  }, [actions, chainId, work]);
 
   const { smartAccountAddress } = useUser();
 
   // Determine user role and viewing mode
-  const viewingMode = useMemo(() => {
+  const viewingMode = useMemo<"operator" | "gardener" | "viewer">(() => {
     if (!garden || !work) return "viewer";
 
     // Check if user is garden operator
@@ -92,9 +97,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
         gardenId: garden?.id || "",
       };
       await downloadWorkMedia(workData);
-    } catch (error) {
-      // Error tracked in analytics
-    }
+    } catch {}
   };
 
   const handleDownloadData = () => {
@@ -112,9 +115,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
         gardenId: garden?.id || "",
       };
       downloadWorkData(workData);
-    } catch (error) {
-      // Error tracked in analytics
-    }
+    } catch {}
   };
 
   const handleShare = async () => {
@@ -132,9 +133,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
         gardenId: garden?.id || "",
       };
       await shareWork(workData);
-    } catch (error) {
-      // Error tracked in analytics
-    }
+    } catch {}
   };
 
   const handleViewAttestation = () => {
@@ -150,7 +149,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
       approved: false,
       feedback: "",
     },
-    resolver: zodResolver(workApprovalSchema as any),
+    resolver: zodResolver(workApprovalSchema),
     shouldUseNativeValidation: true,
     mode: "onChange",
   });
@@ -229,20 +228,38 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      try {
-        const meta = await loaderData.workMetadata;
-        if (mounted) setWorkMetadata(meta);
-      } catch {
+      if (!work) {
+        if (mounted) setWorkMetadata(null);
+        return;
+      }
+      const raw = work.metadata;
+      if (raw && typeof raw === "string") {
+        // Try to parse JSON (offline jobs). Otherwise, fetch by hash.
+        try {
+          if (raw.trim().startsWith("{") || raw.trim().startsWith("[")) {
+            const parsed = JSON.parse(raw) as unknown;
+            if (mounted) setWorkMetadata(parsed as WorkMetadata);
+            return;
+          }
+        } catch {}
+        try {
+          const file = await getFileByHash(raw);
+          const data = file.data as unknown as WorkMetadata;
+          if (mounted) setWorkMetadata(data ?? null);
+        } catch {
+          if (mounted) setWorkMetadata(null);
+        }
+      } else {
         if (mounted) setWorkMetadata(null);
       }
     })();
     return () => {
       mounted = false;
     };
-  }, [loaderData.workMetadata]);
+  }, [work]);
 
   const handleBack = () => {
-    const from = (location.state as any)?.from as string | undefined;
+    const from = (location.state as { from?: string } | null | undefined)?.from;
     if (from === "dashboard") {
       navigateToTop("/home");
       return;
@@ -271,70 +288,65 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
           control={control}
           className="relative min-h-[calc(100vh-7rem)] pb-24"
         >
-          <Suspense
-            fallback={
-              <div className="padded">
-                <WorkViewSkeleton showMedia showActions={false} numDetails={3} />
-              </div>
-            }
-          >
-            <Await resolve={loaderData.workMetadata}>
-              {(resolvedMeta: WorkMetadata | null) => (
-                <WorkViewSection
-                  garden={garden}
-                  work={work}
-                  workMetadata={resolvedMeta}
-                  viewingMode={viewingMode as any}
-                  actionTitle={
-                    actionTitleFromLoader ??
-                    intl.formatMessage({
-                      id: "app.home.work.unknownAction",
-                      defaultMessage: "Unknown Action",
-                    })
-                  }
-                  onDownloadData={handleDownloadData}
-                  onDownloadMedia={hasMedia ? handleDownloadMedia : undefined}
-                  onShare={handleShare}
-                  onViewAttestation={
-                    work && work.id && isValidAttestationId(work.id)
-                      ? handleViewAttestation
-                      : undefined
-                  }
-                  footer={
-                    viewingMode === "operator" && work && work.status === "pending" ? (
-                      <div className="fixed left-0 right-0 bottom-0 bg-white border-t border-slate-200 p-4 flex gap-4">
-                        <Button
-                          onClick={() => setRejectDialogOpen(true)}
-                          label={intl.formatMessage({
-                            id: "app.home.workApproval.reject",
-                            defaultMessage: "Reject",
-                          })}
-                          className="flex-1"
-                          variant="error"
-                          type="button"
-                          shape="pilled"
-                          mode="stroke"
-                        />
-                        <Button
-                          onClick={() => setApproveDialogOpen(true)}
-                          type="button"
-                          label={intl.formatMessage({
-                            id: "app.home.workApproval.approve",
-                            defaultMessage: "Approve",
-                          })}
-                          className="flex-1"
-                          variant="primary"
-                          mode="filled"
-                          size="medium"
-                          shape="pilled"
-                        />
-                      </div>
-                    ) : null
-                  }
-                />
-              )}
-            </Await>
-          </Suspense>
+          <>
+            <div className="padded">
+              {!workMetadata && <WorkViewSkeleton showMedia showActions={false} numDetails={3} />}
+            </div>
+            {workMetadata && (
+              <WorkViewSection
+                garden={garden}
+                work={work}
+                workMetadata={workMetadata}
+                viewingMode={viewingMode}
+                actionTitle={
+                  actionTitle ??
+                  intl.formatMessage({
+                    id: "app.home.work.unknownAction",
+                    defaultMessage: "Unknown Action",
+                  })
+                }
+                onDownloadData={handleDownloadData}
+                onDownloadMedia={hasMedia ? handleDownloadMedia : undefined}
+                onShare={handleShare}
+                onViewAttestation={
+                  work && work.id && isValidAttestationId(work.id)
+                    ? handleViewAttestation
+                    : undefined
+                }
+                footer={
+                  viewingMode === "operator" && work && work.status === "pending" ? (
+                    <div className="fixed left-0 right-0 bottom-0 bg-white border-t border-slate-200 p-4 flex gap-4">
+                      <Button
+                        onClick={() => setRejectDialogOpen(true)}
+                        label={intl.formatMessage({
+                          id: "app.home.workApproval.reject",
+                          defaultMessage: "Reject",
+                        })}
+                        className="flex-1"
+                        variant="error"
+                        type="button"
+                        shape="pilled"
+                        mode="stroke"
+                      />
+                      <Button
+                        onClick={() => setApproveDialogOpen(true)}
+                        type="button"
+                        label={intl.formatMessage({
+                          id: "app.home.workApproval.approve",
+                          defaultMessage: "Approve",
+                        })}
+                        className="flex-1"
+                        variant="primary"
+                        mode="filled"
+                        size="medium"
+                        shape="pilled"
+                      />
+                    </div>
+                  ) : null
+                }
+              />
+            )}
+          </>
         </Form>
       )}
 
