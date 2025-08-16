@@ -8,7 +8,7 @@ export {
   useEASConfig,
   useNetworkConfig,
 } from "./useChainConfig";
-export { useDebounced, useDebouncedValue } from "./useDebounced";
+// Removed unused debounced hooks
 export { useNavigateToTop } from "./useNavigateToTop";
 export { useOffline } from "./useOffline";
 export type { UseStorageManagerReturn } from "./useStorageManager";
