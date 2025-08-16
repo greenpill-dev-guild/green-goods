@@ -54,16 +54,6 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastEvent, setLastEvent] = useState<QueueEvent | null>(null);
 
-  // Update smart account client when it changes
-
-  // Optional periodic sync disabled by default; rely on online/service worker/client events
-  // useEffect(() => {
-  //   jobQueue.startPeriodicSync(120000); // 2 minutes if re-enabled
-  //   return () => {
-  //     jobQueue.stopPeriodicSync();
-  //   };
-  // }, []);
-
   // Subscribe to queue events
   useEffect(() => {
     const abortController = new AbortController();

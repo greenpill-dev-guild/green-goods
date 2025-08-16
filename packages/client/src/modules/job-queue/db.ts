@@ -127,11 +127,11 @@ class JobQueueDatabase {
     const db = await this.init();
 
     if (filter?.kind && filter?.synced !== undefined) {
-      // Need to filter by both - get by kind first then filter by synced
       const tx = db.transaction("jobs", "readonly");
-      const index = tx.objectStore("jobs").index("kind");
-      const jobs = await index.getAll(filter.kind);
-      return jobs.filter((job) => job.synced === filter.synced);
+      const index = tx.objectStore("jobs").index("kind_synced");
+      // Store boolean as integer in composite key to satisfy IDBValidKey
+      const syncedKey = filter.synced ? 1 : 0;
+      return await index.getAll([filter.kind, syncedKey] as unknown as IDBValidKey);
     }
 
     if (filter?.kind) {

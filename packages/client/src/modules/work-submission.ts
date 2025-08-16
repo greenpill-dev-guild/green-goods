@@ -11,7 +11,7 @@ export async function submitWorkToQueue(
   actions: Action[],
   chainId: number,
   images: File[]
-): Promise<`0x${string}`> {
+): Promise<{ txHash: `0x${string}`; jobId: string }> {
   if (!gardenAddress) {
     throw new Error("Garden address is required");
   }
@@ -41,7 +41,7 @@ export async function submitWorkToQueue(
   );
 
   // Return an offline transaction hash for UI compatibility
-  return createOfflineTxHash(jobId);
+  return { txHash: createOfflineTxHash(jobId), jobId };
 }
 
 /**
