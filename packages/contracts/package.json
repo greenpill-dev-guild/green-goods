@@ -69,7 +69,7 @@
   },
   "dependencies": {
     "@ethereum-attestation-service/eas-contracts": "^1.8.0",
-    "@openzeppelin/contracts-upgradeable": "4.9.3"
+    "@openzeppelin/contracts-upgradeable": "4.9.6"
   },
   "devDependencies": {
     "@pinata/sdk": "^2.1.0",
