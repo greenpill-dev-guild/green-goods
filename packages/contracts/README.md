@@ -206,7 +206,7 @@ pnpm deployment:status localhost
 # Deploy to Sepolia testnet
 pnpm deploy:sepolia
 
-# Deploy to Celo mainnet with verification
+# Deploy to Celo with verification
 pnpm deploy:celo --verify
 
 # Deploy with specific profile

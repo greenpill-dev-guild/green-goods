@@ -10,7 +10,7 @@ cp .env.example .env
 # Add your Privy test credentials to .env
 
 # 2. Start services
-npm run dev
+pnpm dev
 
 # 3. Run tests
 node tests/run-tests.js smoke       # Quick check (30s)
@@ -24,15 +24,11 @@ node tests/run-tests.js all         # Everything (10-15 min)
 
 **Terminal 1 - Start Indexer:**
 ```bash
-npm run dev:indexer
-# or
 pnpm dev:indexer
 ```
 
 **Terminal 2 - Start Client:**
 ```bash
-npm run dev:app
-# or
 pnpm dev:app
 ```
 
@@ -52,8 +48,8 @@ node tests/run-tests.js smoke
 ### Option 2: Use the Development Command
 
 ```bash
-npm run dev                         # Start all services
-node tests/run-tests.js smoke       # Run tests in another terminal
+pnpm dev                         # Start all services
+node tests/run-tests.js smoke    # Run tests in another terminal
 ```
 
 ### Option 3: Automatic Service Startup
@@ -203,11 +199,11 @@ node tests/run-tests.js all
 node tests/run-tests.js check
 
 # Start services manually
-npm run dev:indexer  # Terminal 1
-npm run dev:app      # Terminal 2
+pnpm dev:indexer  # Terminal 1
+pnpm dev:app      # Terminal 2
 
 # Or start all services
-npm run dev
+pnpm dev
 ```
 
 ### Service Health Check
@@ -258,8 +254,8 @@ node tests/run-tests.js ui
 
 - Check if ports 3001 (client) and 8080 (indexer) are available
 - Verify firewall isn't blocking local connections
-- Try restarting services: `npm run dev:stop && npm run dev`
-- Check logs: `npm run dev:logs:client` or `npm run dev:logs:indexer`
+- Try restarting services: `pnpm dev:stop && pnpm dev`
+- Check logs: `pnpm dev:logs:client` or `pnpm dev:logs:indexer`
 
 ### Browser Installation
 

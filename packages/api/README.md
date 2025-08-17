@@ -1,10 +1,10 @@
 # Green Goods API
 
-TypeScript Express API server for Green Goods platform.
+TypeScript Fastify API server for Green Goods platform.
 
 ## 🚀 Features
 
-- **TypeScript**: Fully typed Express server
+- **TypeScript**: Fully typed Fastify server
 - **Railway Ready**: Configured for Railway deployment
 - **Health Checks**: Built-in health monitoring
 - **CORS**: Configured for frontend integration
@@ -15,10 +15,7 @@ TypeScript Express API server for Green Goods platform.
 ```
 packages/api/
 ├── src/
-│   ├── server.ts          # Main server entry point
-│   └── routes/
-│       ├── users.ts       # Users API (Privy integration)
-│       └── subscribe.ts   # Email subscription
+│   └── server.ts          # Main server entry point (Fastify app, routes inline)
 ├── railway.toml           # Railway deployment config
 ├── tsconfig.json          # TypeScript configuration
 └── package.json
@@ -110,10 +107,9 @@ NODE_ENV=development        # Environment mode
 ### API Development
 
 **Adding New Endpoints:**
-1. Create route handler in `src/routes/`
-2. Register route in main server file
-3. Add TypeScript types for request/response
-4. Test with development server
+1. Add route in `src/server.ts` (Fastify instance)
+2. Add TypeScript types for request/response
+3. Test with development server
 
 **Authentication Integration:**
 - Uses Privy server SDK for user verification
@@ -133,7 +129,7 @@ NODE_ENV=development        # Environment mode
 - Environment variables managed in Railway dashboard
 
 **Health Monitoring:**
-- `/api/health` endpoint for health checks
+- `/health` endpoint for health checks
 - Automatic restart on failure
 - Resource monitoring via Railway dashboard
 
@@ -190,7 +186,7 @@ cat dist/server.js | grep "import"
 
 **Monitoring:**
 - Railway provides built-in metrics
-- Custom health checks at `/api/health`
+- Custom health checks at `/health`
 - Error tracking and logging
 
 ### Testing
@@ -201,7 +197,7 @@ cat dist/server.js | grep "import"
 pnpm dev
 
 # Test health endpoint
-curl http://localhost:3000/api/health
+curl http://localhost:3000/health
 
 # Test with frontend
 # Start client on port 3001, API on port 3000

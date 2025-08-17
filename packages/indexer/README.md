@@ -1,6 +1,6 @@
-## Envio ERC20 Template
+## Green Goods Indexer (Envio)
 
-*Please refer to the [documentation website](https://docs.envio.dev) for a thorough guide on all [Envio](https://envio.dev) indexer features*
+This package contains the Envio indexer for Green Goods contracts. It exposes a GraphQL API used by the client for gardens, actions, work, approvals, and attestations.
 
 ### Run
 
@@ -19,5 +19,16 @@ pnpm codegen
 ### Pre-requisites
 
 - [Node.js (use v18 or newer)](https://nodejs.org/en/download/current)
-- [pnpm (use v8 or newer)](https://pnpm.io/installation)
+- [pnpm (use v9 or newer)](https://pnpm.io/installation)
 - [Docker desktop](https://www.docker.com/products/docker-desktop/)
+
+### Entities (from `schema.graphql`)
+
+- Gardens and Actions
+- Work Submissions and Approvals
+- EAS Attestations
+
+### Client Configuration
+
+- Default dev endpoint: `http://localhost:8080/v1/graphql`
+- Override in client via `VITE_ENVIO_INDEXER_URL`

@@ -24,7 +24,7 @@ cp .env.example .env
 # (See sections below for where to get each value)
 
 # 3. Start all services
-npm run dev
+pnpm dev
 
 # 4. Verify services are running
 pnpm exec pm2 list
@@ -40,7 +40,7 @@ green-goods/
 ├── .env                  # 🔒 Your actual environment (gitignored)
 └── packages/
     ├── client/           # 📱 React frontend
-    │   └── .env.example  # �� Client-specific variables
+    │   └── .env.example  # 📱 Client-specific variables
     ├── api/              # 🖥️  Node.js backend
     │   └── .env.example  # 🖥️  API-specific variables
     ├── contracts/        # 📜 Solidity contracts
@@ -58,7 +58,7 @@ If you need to run a single package in isolation:
 cp .env packages/client/.env
 
 # Edit package .env to keep only relevant variables
-cd packages/client && npm run dev
+cd packages/client && pnpm dev
 ```
 
 Each package's `.env.example` shows the minimal variables needed for isolation.
@@ -126,17 +126,17 @@ REDIS_URL="your-redis-url"                         # Cache/sessions
 
 ### Full Stack Development
 ```bash
-npm run dev                      # Start all services
-pnpm exec pm2 logs client        # View client logs
-pnpm exec pm2 logs api           # View API logs
-pnpm exec pm2 logs indexer       # View indexer logs
+pnpm dev                      # Start all services
+pnpm exec pm2 logs client     # View client logs
+pnpm exec pm2 logs api        # View API logs
+pnpm exec pm2 logs indexer    # View indexer logs
 ```
 
 ### Frontend Only
 ```bash
 cd packages/client
 cp ../../.env .env
-npm run dev
+pnpm dev
 ```
 
 ### Contract Development
@@ -151,7 +151,7 @@ forge test                       # Run tests
 ```bash
 cd packages/api
 cp ../../.env .env
-npm run dev
+pnpm dev
 ```
 
 ## 🧪 Testing Setup
@@ -159,8 +159,9 @@ npm run dev
 ### E2E Tests (Offline Reconciliation)
 ```bash
 # Ensure Privy test credentials are set
-npm run test:offline             # Run offline tests
-npm run test:offline:debug       # Visual debugging
+node tests/run-tests.js smoke          # Quick check (30s)
+node tests/run-tests.js integration    # Core tests (3-5 min)
+node tests/run-tests.js all            # Everything (10-15 min)
 ```
 
 ### Contract Tests
@@ -206,7 +207,7 @@ pnpm exec pm2 restart <service>  # Restart service
 ls -la .env
 
 # Verify environment in running process
-cd packages/client && npm run dev
+cd packages/client && pnpm dev
 # Look for console logs showing loaded environment
 ```
 
@@ -216,8 +217,8 @@ cd packages/client && npm run dev
 echo $PRIVY_TEST_EMAIL
 echo $PRIVY_TEST_OTP
 
-# Check test account setup
-node tests/run-offline-tests.js --help
+# Check services are up before tests
+node tests/run-tests.js check
 ```
 
 ### Network Connection Issues?

@@ -23,10 +23,10 @@ Client-specific environment variables are managed in a `.env` file within the `p
     You will need to populate this file with necessary API keys and configuration values. Key variables include:
 
     - `VITE_PRIVY_APP_ID`: Your Privy application ID for authentication.
-    - `VITE_WALLETCONNECT_PROJECT_ID`: Your WalletConnect project ID.
-    - `VITE_PINATA_GATEWAY_URL`: URL for your Pinata IPFS gateway.
-    - `VITE_PINATA_API_URL`: Pinata API endpoint for file uploads.
-    - `VITE_PINATA_API_KEY`: Your Pinata API key.
+    - `VITE_WALLETCONNECT_PROJECT_ID`: Your WalletConnect project ID (if used).
+    - `VITE_PINATA_JWT`: Pinata JWT token for uploads (client-side).
+    - `VITE_CHAIN_ID`: Chain selection (e.g., 42161 for Arbitrum, 84532 for Base Sepolia).
+    - `VITE_ENVIO_INDEXER_URL`: Envio GraphQL endpoint (optional; defaults to localhost in dev).
     - `VITE_DESKTOP_DEV`: Set to bypass PWA download checks during desktop development.
 
     _Refer to the main project's [README.md](../../README.md#configure-environment-variables) for guidance on obtaining these values, typically by reaching out to the Green Goods team._
@@ -152,7 +152,7 @@ For PWA testing:
 
 **Development server issues:**
 ```bash
-# Check if port 3001 is in use
+# Check if port 3001 is in use (dev server runs on HTTPS)
 lsof -i :3001
 
 # Kill process if needed
@@ -213,7 +213,7 @@ Both commands will compile TypeScript, bundle the application, and output static
 
 ## Testing
 
-The client application uses [Vitest](https://vitest.dev/) for unit and integration testing.
+The client application uses [Vitest](https://vitest.dev/) for unit/integration testing and Playwright for E2E.
 
 - **Run tests once:**
   ```bash
@@ -274,7 +274,7 @@ The client application is built with a modern frontend stack:
 ### Authentication & Blockchain
 - **[Privy](https://www.privy.io/):** User authentication and wallet management
 - **[EAS SDK](https://github.com/ethereum-attestation-service/eas-sdk):** Ethereum Attestation Service integration
-- **[Wagmi](https://wagmi.sh/):** React hooks for Ethereum
+- **[Viem](https://viem.sh/):** Type-safe Ethereum client
 
 ### Development & Quality
 - **[Vitest](https://vitest.dev/):** Vite-native testing framework

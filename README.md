@@ -34,11 +34,13 @@ pnpm install
 cp .env.example .env
 # Edit .env with your API keys (see .env.example)
 
-# Start all services
+# Start all services (pm2: client, api, indexer)
 pnpm dev
 
-# Test the setup
-pnpm test:smoke
+# Tail logs
+pnpm dev:logs:client
+pnpm dev:logs:api
+pnpm dev:logs:indexer
 ```
 
 ## 🛠️ Development

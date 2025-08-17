@@ -8,7 +8,7 @@ This document provides a comprehensive overview of the Green Goods platform arch
 - **API**: Node.js backend with Fastify and Privy auth  
 - **Indexer**: GraphQL blockchain data indexer (Envio)
 - **Contracts**: Solidity smart contracts with EAS integration
-- **Networks**: Celo, Arbitrum, Base, Sepolia testnets
+- **Networks**: Celo, Arbitrum, Base, Sepolia
 - **Storage**: IPFS via Pinata for decentralized file storage
 
 ## 🏗️ System Overview
@@ -77,7 +77,7 @@ graph TB
 - **Styling**: Tailwind CSS v4 + Radix UI primitives
 - **State Management**: TanStack Query + React Context
 - **Authentication**: Privy for wallet management
-- **Blockchain**: Wagmi + EAS SDK
+- **Blockchain**: Viem + EAS SDK
 
 **Key Features:**
 - **PWA Capabilities**: Offline support, installable, mobile-optimized
@@ -113,10 +113,11 @@ src/
 - **CORS**: Configured for frontend integration
 
 **Endpoints:**
-- `GET /` - API information and health
-- `GET /api/health` - Health check endpoint
-- `GET /api/users` - User management (Privy integration)
-- `POST /api/subscribe` - Email subscription service
+- `GET /` - API information and version
+- `GET /health` - Health check endpoint
+- `GET /users` - User management (Privy integration)
+- `PATCH /users/me` - Update current user's metadata
+- `POST /subscribe` - Email subscription service
 
 **Deployment:**
 - **Platform**: Railway with `railway.toml` configuration
@@ -381,7 +382,7 @@ sequenceDiagram
 ### Inter-component Communication
 
 **Frontend ↔ Blockchain:**
-- **Wagmi**: React hooks for blockchain interactions
+- **Viem**: Type-safe Ethereum client
 - **EAS SDK**: Direct attestation creation and querying
 - **Contract ABIs**: Type-safe contract interactions
 

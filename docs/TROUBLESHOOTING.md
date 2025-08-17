@@ -86,6 +86,7 @@ Error: Cannot find module '@privy-io/server-auth'
    ```bash
    pnpm add @privy-io/server-auth
    ```
+3. Verify pnpm v9+ and Node 20+ are installed.
 
 #### Port Conflicts
 
@@ -184,7 +185,7 @@ No changes detected
    ```bash
    pnpm --filter client clean
    ```
-2. Restart dev server:
+2. Restart dev server (note: dev server uses HTTPS via mkcert):
    ```bash
    pnpm --filter client dev
    ```
@@ -235,7 +236,8 @@ Error: Missing required environment variable: PRIVY_APP_ID
    ```bash
    cp packages/client/.env.example packages/client/.env
    cp packages/contracts/.env.example packages/contracts/.env
-   cp packages/server/.env.example packages/server/.env
+   # API package is under packages/api
+   cp packages/api/.env.example packages/api/.env
    ```
 2. Fill in required values
 
@@ -287,7 +289,7 @@ Error: Invalid API key
 2. **Debug Mode**
 
    ```bash
-   DEBUG=* pnpm --filter server dev
+   DEBUG=* pnpm --filter api dev
    ```
 
 3. **API Testing**
