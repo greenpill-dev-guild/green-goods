@@ -131,7 +131,7 @@ async function checkServices() {
   if (servicesReady) {
     console.log("🎯 Services are ready for testing!\n");
   } else {
-    console.log("💡 Start services with: npm run dev\n");
+    console.log("💡 Start services with: pnpm dev\n");
   }
 
   return servicesReady;
@@ -164,7 +164,10 @@ async function main() {
       break;
 
     case "pwa":
-      runCommand("npx playwright test tests/specs/pwa", "Running PWA tests");
+      runCommand(
+        "ENABLE_PWA_E2E=true npx playwright test tests/specs/pwa",
+        "Running PWA tests with service worker enabled"
+      );
       break;
 
     case "performance":
@@ -232,7 +235,7 @@ Debugging:
   node tests/test-connectivity.js - Detailed connectivity debugging
 
 Quick start:
-  1. Start services: npm run dev (in another terminal)
+  1. Start services: pnpm dev (in another terminal)
   2. Check services: node tests/run-tests.js check
   3. Run smoke tests: node tests/run-tests.js smoke
   4. Run all tests: node tests/run-tests.js all

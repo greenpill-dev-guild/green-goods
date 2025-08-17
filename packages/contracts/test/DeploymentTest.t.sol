@@ -27,7 +27,7 @@ contract DeploymentTest is ForgeTest.Test, DeploymentHelperModule.DeploymentHelp
         vm.deal(deployer, 100 ether);
 
         // Mock environment variables
-        vm.setEnv("DEPLOYER_PRIVATE_KEY", "0x1234567890123456789012345678901234567890123456789012345678901234");
+        vm.setEnv("PRIVATE_KEY", "0x1234567890123456789012345678901234567890123456789012345678901234");
         vm.setEnv("LOCALHOST_RPC_URL", "http://localhost:8545");
         vm.setEnv("SEPOLIA_RPC_URL", "https://sepolia.infura.io/v3/test");
         vm.setEnv("ARBITRUM_RPC_URL", "https://arbitrum-mainnet.infura.io/v3/test");

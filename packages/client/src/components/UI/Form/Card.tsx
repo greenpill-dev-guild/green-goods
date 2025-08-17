@@ -11,7 +11,6 @@ interface FormCardProps {
 export const FormCard = ({
   label,
   value,
-  variant = "primary",
   Icon,
   className,
   ...props

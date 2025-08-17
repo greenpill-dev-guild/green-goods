@@ -74,7 +74,7 @@ Create a `.env` file:
 
 ```bash
 # Required
-DEPLOYER_PRIVATE_KEY=0x...
+PRIVATE_KEY=0x...
 
 # Network RPC URLs
 SEPOLIA_RPC_URL=https://...
@@ -206,7 +206,7 @@ pnpm deployment:status localhost
 # Deploy to Sepolia testnet
 pnpm deploy:sepolia
 
-# Deploy to Celo mainnet with verification
+# Deploy to Celo with verification
 pnpm deploy:celo --verify
 
 # Deploy with specific profile
@@ -222,7 +222,7 @@ pnpm gas:check
 Create a `.env` file in the contracts directory:
 ```bash
 # Required for deployment
-DEPLOYER_PRIVATE_KEY=0x...
+PRIVATE_KEY=0x...
 
 # Network RPC URLs (choose reliable providers)
 SEPOLIA_RPC_URL=https://ethereum-sepolia.publicnode.com
@@ -447,11 +447,11 @@ cast block latest --field gasLimit --rpc-url $CELO_RPC_URL
 **Environment Issues:**
 ```bash
 # Verify environment variables
-echo $DEPLOYER_PRIVATE_KEY | wc -c  # Should be 66 characters
+echo $PRIVATE_KEY | wc -c  # Should be 66 characters
 echo $CELO_RPC_URL
 
 # Test private key format
-cast wallet address $DEPLOYER_PRIVATE_KEY
+cast wallet address $PRIVATE_KEY
 ```
 
 ### Performance Optimization

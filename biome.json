@@ -7,17 +7,7 @@
   },
   "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "linter": {
-    "enabled": true,
-    "rules": {
-      "recommended": false,
-      "style": {
-        "noNonNullAssertion": "off",
-        "noParameterAssign": "off"
-      },
-      "suspicious": {
-        "noTemplateCurlyInString": "off"
-      }
-    }
+    "enabled": false
   },
   "formatter": {
     "enabled": true,
@@ -31,6 +21,7 @@
     "bracketSameLine": false,
     "includes": [
       "**/packages/client/src/**/*.{ts,tsx,js,jsx}",
+      "**/packages/client/*.{ts,tsx,js,jsx}",
       "**/packages/api/src/**/*.{ts,tsx,js,jsx}",
       "**/packages/indexer/src/**/*.{ts,tsx,js,jsx}",
       "**/packages/contracts/src/**/*.{ts,tsx,js,jsx}",

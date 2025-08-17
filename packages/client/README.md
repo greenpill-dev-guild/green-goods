@@ -23,10 +23,10 @@ Client-specific environment variables are managed in a `.env` file within the `p
     You will need to populate this file with necessary API keys and configuration values. Key variables include:
 
     - `VITE_PRIVY_APP_ID`: Your Privy application ID for authentication.
-    - `VITE_WALLETCONNECT_PROJECT_ID`: Your WalletConnect project ID.
-    - `VITE_PINATA_GATEWAY_URL`: URL for your Pinata IPFS gateway.
-    - `VITE_PINATA_API_URL`: Pinata API endpoint for file uploads.
-    - `VITE_PINATA_API_KEY`: Your Pinata API key.
+    - `VITE_WALLETCONNECT_PROJECT_ID`: Your WalletConnect project ID (if used).
+    - `VITE_PINATA_JWT`: Pinata JWT token for uploads (client-side).
+    - `VITE_CHAIN_ID`: Chain selection (e.g., 42161 for Arbitrum, 84532 for Base Sepolia).
+    - `VITE_ENVIO_INDEXER_URL`: Envio GraphQL endpoint (optional; defaults to localhost in dev).
     - `VITE_DESKTOP_DEV`: Set to bypass PWA download checks during desktop development.
 
     _Refer to the main project's [README.md](../../README.md#configure-environment-variables) for guidance on obtaining these values, typically by reaching out to the Green Goods team._
@@ -152,7 +152,7 @@ For PWA testing:
 
 **Development server issues:**
 ```bash
-# Check if port 3001 is in use
+# Check if port 3001 is in use (dev server runs on HTTPS)
 lsof -i :3001
 
 # Kill process if needed
@@ -213,7 +213,7 @@ Both commands will compile TypeScript, bundle the application, and output static
 
 ## Testing
 
-The client application uses [Vitest](https://vitest.dev/) for unit and integration testing.
+The client application uses [Vitest](https://vitest.dev/) for unit/integration testing and Playwright for E2E.
 
 - **Run tests once:**
   ```bash
@@ -274,7 +274,7 @@ The client application is built with a modern frontend stack:
 ### Authentication & Blockchain
 - **[Privy](https://www.privy.io/):** User authentication and wallet management
 - **[EAS SDK](https://github.com/ethereum-attestation-service/eas-sdk):** Ethereum Attestation Service integration
-- **[Wagmi](https://wagmi.sh/):** React hooks for Ethereum
+- **[Viem](https://viem.sh/):** Type-safe Ethereum client
 
 ### Development & Quality
 - **[Vitest](https://vitest.dev/):** Vite-native testing framework
@@ -318,36 +318,129 @@ The application uses a comprehensive design system built with:
 
 The `packages/client/src` directory is organized as follows:
 
-- **`main.tsx`**: The main entry point of the application.
-- **`App.tsx`**: The root React component with dynamic imports and global providers.
-- **`components/`**: Reusable UI components organized by type:
-  - `Garden/`: Garden-specific components
-  - `Layout/`: Navigation and layout components  
-  - `UI/`: Generic UI components (Button, Card, Form, etc.)
-- **`views/`**: Main application views with lazy loading:
-  - `Home/`: Garden management and work overview
-  - `Garden/`: Garden details and work submission
-  - `Profile/`: User account management
-  - `Landing/`: Public landing page
-  - `Login/`: Authentication flow
-- **`providers/`**: React context providers:
-  - `app.tsx`: Global application state
-  - `garden.tsx`: Garden-specific state
-  - `user.tsx`: User authentication state
-  - `work.tsx`: Work submission state
-- **`modules/`**: Service modules:
-  - `eas.ts`: Ethereum Attestation Service integration
-  - `greengoods.ts`: Green Goods API integration
-  - `pinata.ts`: IPFS file upload service
-  - `react-query.ts`: Query client configuration
-- **`utils/`**: Utility functions and helpers:
-  - `abis/`: Contract ABIs
-  - `cn.ts`: Class name utility (tailwind-merge)
-  - `eas.ts`: EAS utility functions
-  - Component utilities for forms, text processing, etc.
-- **`types/`**: TypeScript type definitions
-- **`styles/`**: Global styles and CSS variables
-- **`i18n/`**: Internationalization (English, Spanish, Portuguese)
+### Core Application Files
+- **`main.tsx`**: The main entry point that initializes React, providers, and PWA features
+- **`App.tsx`**: Root component with dynamic imports, error boundaries, and global providers
+- **`config.ts`**: Configuration management for API endpoints, chains, and feature flags
+
+### Hooks (`hooks/`)
+Centralized React hooks for shared functionality:
+- **`index.ts`**: Central export file for all hooks
+- **`useChainConfig.ts`**: Chain configuration hooks (useCurrentChain, useEASConfig, useNetworkConfig, useChainConfig)
+- **`useDebounced.ts`**: Debouncing utilities (useDebounced, useDebouncedValue)
+- **`useNavigateToTop.ts`**: Navigation helper for smooth top scrolling
+- **`useOffline.ts`**: Offline state management and sync status detection
+- **`useStorageManager.ts`**: Local storage management and cleanup utilities
+- **`useWorks.ts`**: Work data management, job queue integration, and pending work tracking
+- **`query-keys.ts`**: Centralized query key definitions for React Query
+
+### Modules (`modules/`)
+Service layer and business logic:
+- **`deduplication.ts`**: Data deduplication utilities for efficient storage
+- **`eas.ts`**: Ethereum Attestation Service integration and schema management
+- **`graphql.ts`**: GraphQL client configuration and type definitions
+- **`greengoods.ts`**: Green Goods API integration for gardens, actions, and gardeners
+- **`pinata.ts`**: IPFS file upload service for media storage
+- **`posthog.ts`**: Analytics and user behavior tracking
+- **`react-query.ts`**: Query client configuration with offline support
+- **`retry-policy.ts`**: Network retry logic for failed requests
+- **`service-worker.ts`**: Service worker registration and PWA functionality
+- **`storage-manager.ts`**: Advanced local storage management with cleanup
+- **`urql.ts`**: Alternative GraphQL client configuration
+- **`work-submission.ts`**: Work and approval submission utilities with validation
+- **`job-queue/`**: Offline-first job processing system
+  - `index.ts`: Main job queue interface and configuration
+  - `db.ts`: IndexedDB integration for persistent storage
+  - `event-bus.ts`: Event-driven communication for job updates
+  - `job-processor.ts`: Background job processing logic
+  - `media-resource-manager.ts`: Media file handling and compression
+  - `sync-manager.ts`: Online/offline synchronization management
+  - `processors/`: Specific job processors for work and approval submissions
+
+### Components (`components/`)
+Reusable UI components organized by scope:
+- **`Garden/`**: Garden-specific components (Work submission, assessment forms)
+- **`Layout/`**: Navigation and layout components (AppBar, TopNav, etc.)
+- **`UI/`**: Generic design system components
+  - `Button/`: Button variants and loading states
+  - `Card/`: ActionCard, GardenCard, WorkCard components
+  - `ErrorBoundary/`: Error handling and fallback UI
+  - `Form/`: Form inputs, validation, and accessibility
+  - `TopNav/`: Navigation with offline indicators
+  - `WorkDashboard/`: Work management interface
+
+### Views (`views/`)
+Main application pages with lazy loading:
+- **`Home/`**: Garden management dashboard
+  - `index.tsx`: Main home view with garden overview
+  - `Assessment.tsx`: Garden assessment workflow
+  - `Garden.tsx`: Garden list and selection
+  - `Notifications.tsx`: User notifications and alerts
+  - `WorkApproval.tsx`: Work approval interface for garden operators
+- **`Garden/`**: Garden details and work submission
+  - `index.tsx`: Garden detail view
+  - `Completed.tsx`: Completed work display
+  - `Details.tsx`: Garden information and statistics
+  - `Intro.tsx`: Garden onboarding flow
+  - `Media.tsx`: Media upload and management
+  - `Review.tsx`: Work review and submission
+- **`Profile/`**: User account management
+  - `index.tsx`: Profile overview
+  - `Account.tsx`: Account settings and wallet management
+  - `Help.tsx`: Help documentation and support
+- **`Landing/`**: Public landing page for unauthenticated users
+- **`Login/`**: Authentication flow with Privy integration
+
+### Providers (`providers/`)
+React context providers for global state:
+- **`app.tsx`**: Global application state (platform detection, theme, settings)
+- **`garden.tsx`**: Garden-specific state (current garden, actions, gardeners)
+- **`jobQueue.tsx`**: Job queue state management and event handling
+- **`user.tsx`**: User authentication state and wallet management
+- **`work.tsx`**: Work submission state and form management
+
+### Utilities (`utils/`)
+Helper functions and utilities:
+- **`abis/`**: Smart contract ABIs for blockchain interactions
+- **`cn.ts`**: Class name utility using tailwind-merge for conditional styling
+- **`eas.ts`**: EAS utility functions for attestation creation and verification
+- **`image-compression.ts`**: Image optimization and compression utilities
+- **`constants/`**: Application constants and configuration values
+- **`forms/`**: Form validation and helper utilities
+- **`text/`**: Text processing and formatting utilities
+
+### Styles (`styles/`)
+Styling and design system:
+- **`animation.css`**: Custom CSS animations and keyframes (dot-fade, accordion, spring-bump, slide effects)
+- **`globals.css`**: Global styles and CSS reset
+- **`index.css`**: Main stylesheet with Tailwind imports
+- **`variables.css`**: CSS custom properties and design tokens
+
+### Types (`types/`)
+TypeScript type definitions:
+- **`api.ts`**: API response and request types
+- **`auth.ts`**: Authentication and user types
+- **`garden.ts`**: Garden-related type definitions
+- **`index.ts`**: Centralized type exports
+- **`job.ts`**: Job queue and work submission types
+- **`storage.ts`**: Storage and caching types
+- **`work.ts`**: Work and approval type definitions
+
+### Internationalization (`i18n/`)
+Multi-language support:
+- **`en.json`**: English translations
+- **`es.json`**: Spanish translations
+- **`pt.json`**: Portuguese translations
+
+### Testing (`__tests__/`)
+Comprehensive test suite:
+- **`components/`**: Component unit tests
+- **`hooks/`**: Hook testing with custom render utilities
+- **`integration/`**: Integration tests for workflows
+- **`modules/`**: Service layer tests
+- **`providers/`**: Context provider tests
+- **`utils/`**: Utility function tests
+- **`setupTests.ts`**: Test environment configuration
 
 ## Development Tips
 

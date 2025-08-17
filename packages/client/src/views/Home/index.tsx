@@ -1,69 +1,69 @@
+import React from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation } from "react-router-dom";
 
 import { GardenCard } from "@/components/UI/Card/GardenCard";
-import { BeatLoader } from "@/components/UI/Loader";
-import { useGardens } from "@/providers/garden";
-import { useNavigateToTop } from "@/utils/useNavigateToTop";
+import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
+
+import { WorkDashboardIcon } from "./WorkDashboard/Icon";
+import { useBrowserNavigation, useNavigateToTop } from "@/hooks";
+import { useGardens } from "@/hooks/useBaseLists";
 
 const Gardens: React.FC = () => {
   const navigate = useNavigateToTop();
   const location = useLocation();
-  const { gardens, gardensStatus } = useGardens();
+  const { data: gardensResolved = [], isLoading } = useGardens();
   const intl = useIntl();
+
+  // Ensure proper re-rendering on browser navigation
+  useBrowserNavigation();
 
   function handleCardClick(id: string) {
     navigate(`/home/${id}`);
-    document.getElementsByTagName("article")[0].scrollIntoView();
+    document.getElementsByTagName("article")[0]?.scrollIntoView();
   }
 
-  const GardensList = () => {
-    switch (gardensStatus) {
-      case "pending":
-        return (
-          <div className="flex w-full h-full items-center justify-center ">
-            <BeatLoader />
-          </div>
-        );
-      case "success":
-        return gardens.length ? (
-          gardens.map((garden) => (
-            <GardenCard
-              key={garden.id}
-              garden={garden}
-              media="large"
-              showOperators={true}
-              selected={garden.id === location.pathname.split("/")[2]}
-              {...garden}
-              onClick={() => handleCardClick(garden.id)}
-            />
-          ))
-        ) : (
-          <p className="grid place-items-center text-sm italic">
-            {intl.formatMessage({
-              id: "app.home.messages.noGardensFound",
-              description: "No gardens found",
-            })}
-          </p>
-        );
-      case "error":
-        return (
-          <p className="grid place-items-center text-sm italic">
-            {intl.formatMessage({
-              id: "app.home.messages.errorLoadingGardens",
-              description: "Error loading gardens",
-            })}
-          </p>
-        );
-    }
-  };
+  const GardensList = () => (
+    <>
+      {isLoading ? (
+        <div className="flex flex-col gap-4">
+          {Array.from({ length: 3 }).map((_, idx) => (
+            <GardenCardSkeleton key={idx} media="large" height="home" />
+          ))}
+        </div>
+      ) : gardensResolved.length ? (
+        gardensResolved.map((garden: Garden) => (
+          <GardenCard
+            key={garden.id}
+            garden={garden}
+            media="large"
+            height="home"
+            showOperators={true}
+            selected={garden.id === location.pathname.split("/")[2]}
+            {...garden}
+            onClick={() => handleCardClick(garden.id)}
+          />
+        ))
+      ) : (
+        <p className="grid place-items-center text-sm italic">
+          {intl.formatMessage({
+            id: "app.home.messages.noGardensFound",
+            description: "No gardens found",
+          })}
+        </p>
+      )}
+    </>
+  );
 
   return (
     <article className={"mb-6"}>
       {location.pathname === "/home" ? (
         <>
-          <div className="padded flex justify-between w-full py-4">
-            <h4 className="font-semibold">{intl.formatMessage({ id: "app.home" })}</h4>
+          <div className="flex justify-between items-center w-full py-6 px-4 sm:px-6 md:px-12">
+            <h4 className="font-semibold flex-1">{intl.formatMessage({ id: "app.home" })}</h4>
+            <div className="flex-shrink-0 ml-4">
+              <WorkDashboardIcon />
+            </div>
           </div>
           <div className={"padded flex-1 flex flex-col gap-4 overflow-y-scroll"}>
             <GardensList />

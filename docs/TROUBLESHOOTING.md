@@ -2,6 +2,31 @@
 
 This guide covers common issues and their solutions when working with Green Goods.
 
+## Quick Fixes
+
+**Services not starting?**
+```bash
+pnpm dev:stop && pnpm dev  # Restart all services
+```
+
+**Port conflicts?**
+```bash
+lsof -i :3001 && lsof -i :8080  # Find conflicting processes
+pkill -f "dev:"  # Kill all dev processes
+```
+
+**Environment issues?**
+```bash
+cp .env.example .env  # Reset environment
+# Edit .env with correct values
+```
+
+**Node/pnpm version issues?**
+```bash
+nvm use 20        # Switch to Node 20
+npm install -g pnpm@9  # Install correct pnpm
+```
+
 ## 🚨 Common Issues
 
 ### Installation Issues
@@ -61,6 +86,7 @@ Error: Cannot find module '@privy-io/server-auth'
    ```bash
    pnpm add @privy-io/server-auth
    ```
+3. Verify pnpm v9+ and Node 20+ are installed.
 
 #### Port Conflicts
 
@@ -159,7 +185,7 @@ No changes detected
    ```bash
    pnpm --filter client clean
    ```
-2. Restart dev server:
+2. Restart dev server (note: dev server uses HTTPS via mkcert):
    ```bash
    pnpm --filter client dev
    ```
@@ -201,7 +227,7 @@ Error: Too Many Requests
 **Problem**: Required environment variables not set
 
 ```
-Error: Missing required environment variable: PRIVY_CLIENT_ID
+Error: Missing required environment variable: PRIVY_APP_ID
 ```
 
 **Solution**:
@@ -210,7 +236,8 @@ Error: Missing required environment variable: PRIVY_CLIENT_ID
    ```bash
    cp packages/client/.env.example packages/client/.env
    cp packages/contracts/.env.example packages/contracts/.env
-   cp packages/server/.env.example packages/server/.env
+   # API package is under packages/api
+   cp packages/api/.env.example packages/api/.env
    ```
 2. Fill in required values
 
@@ -262,7 +289,7 @@ Error: Invalid API key
 2. **Debug Mode**
 
    ```bash
-   DEBUG=* pnpm --filter server dev
+   DEBUG=* pnpm --filter api dev
    ```
 
 3. **API Testing**

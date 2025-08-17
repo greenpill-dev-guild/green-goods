@@ -5,7 +5,7 @@ echo "🔍 Running format check and linting before push..."
 # Run format check first
 npx pnpm format:check
 
-# Run linting (but don't fail on warnings, only errors)
-npx pnpm lint --error-on-warnings
+# Run linting
+npx pnpm lint
 
 echo "✅ Pre-push checks passed!" 

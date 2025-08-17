@@ -1,97 +1,86 @@
-import { usePrivy } from "@privy-io/react-auth";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { lazy, Suspense } from "react";
-import { Toaster } from "react-hot-toast";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import { AppBar } from "@/components/Layout/AppBar";
-import { CircleLoader } from "@/components/UI/Loader";
+import {
+  PersistQueryClientProvider,
+  type Persister,
+  type PersistedClient,
+} from "@tanstack/react-query-persist-client";
+import { set as idbSet, get as idbGet, del as idbDel, createStore } from "idb-keyval";
+import { useEffect } from "react";
+import { RouterProvider } from "react-router-dom";
+import { AppErrorBoundary } from "@/components/UI/ErrorBoundary/AppErrorBoundary";
+
 import { queryClient } from "@/modules/react-query";
+import { ensureBaseLists } from "@/hooks/prefetch";
+import "@/modules/service-worker"; // Initialize service worker
+import { router } from "@/router";
 
-import { useApp } from "@/providers/app";
-import { GardensProvider } from "@/providers/garden";
-import { useUser } from "@/providers/user";
-import { WorkProvider } from "@/providers/work";
-
-import AppViews from "@/views";
-
-// Dynamic imports for better code splitting
-const Landing = lazy(() => import("@/views/Landing"));
-const Login = lazy(() => import("@/views/Login"));
+const createSyncStoragePersister = ({ storage }: { storage: Storage }): Persister => {
+  return {
+    persistClient: async (client: PersistedClient) => {
+      try {
+        storage.setItem("__rq_pc__", JSON.stringify(client));
+      } catch {}
+    },
+    restoreClient: async (): Promise<PersistedClient | undefined> => {
+      try {
+        const raw = storage.getItem("__rq_pc__");
+        return raw ? (JSON.parse(raw) as PersistedClient) : undefined;
+      } catch {
+        return undefined;
+      }
+    },
+    removeClient: async (): Promise<void> => {
+      try {
+        storage.removeItem("__rq_pc__");
+      } catch {}
+    },
+  } as Persister;
+};
 
 function App() {
-  const { authenticated } = usePrivy();
-  const { isMobile, isInstalled } = useApp();
-  const { ready, smartAccountAddress } = useUser();
-
-  const isDownloaded = (isMobile && isInstalled) || import.meta.env.VITE_DESKTOP_DEV;
-  const isAuthenticated = authenticated && smartAccountAddress;
-
+  // Prefer IndexedDB persister for larger caches; fall back to localStorage
+  const createIDBPersister = ({
+    dbName,
+    storeName,
+  }: {
+    dbName: string;
+    storeName: string;
+  }): Persister => {
+    const store = createStore(dbName, storeName);
+    return {
+      persistClient: async (client: PersistedClient) => {
+        try {
+          await idbSet("__rq_pc__", client, store);
+        } catch {}
+      },
+      restoreClient: async (): Promise<PersistedClient | undefined> => {
+        try {
+          return (await idbGet("__rq_pc__", store)) as PersistedClient | undefined;
+        } catch {
+          return undefined;
+        }
+      },
+      removeClient: async (): Promise<void> => {
+        try {
+          await idbDel("__rq_pc__", store);
+        } catch {}
+      },
+    } as Persister;
+  };
+  const idbPersister = createIDBPersister({ dbName: "gg-react-query", storeName: "rq" });
+  const persister = idbPersister ?? createSyncStoragePersister({ storage: window.localStorage });
+  // Prefetch base lists at app start for instant UX
+  useEffect(() => {
+    void ensureBaseLists();
+  }, []);
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Routes>
-          {/* Landing */}
-          <Route
-            path="/landing"
-            element={
-              isDownloaded ? (
-                <Navigate to="/" replace />
-              ) : (
-                <>
-                  <Suspense fallback={<CircleLoader />}>
-                    <Landing />
-                  </Suspense>
-                  <Toaster />
-                </>
-              )
-            }
-          />
-          {/* Login */}
-          <Route
-            path="/login"
-            element={
-              isDownloaded ? (
-                !isAuthenticated && !ready ? (
-                  <main className="w-full h-full grid place-items-center">
-                    <CircleLoader />
-                  </main>
-                ) : !isAuthenticated ? (
-                  <Suspense fallback={<CircleLoader />}>
-                    <Login />
-                  </Suspense>
-                ) : (
-                  <Navigate to="/" replace />
-                )
-              ) : (
-                <Navigate to="/landing" replace />
-              )
-            }
-          />
-          {/* Main: Show app or navigate to login, onboarding, or landing page based on conditions */}
-          <Route
-            path="*"
-            element={
-              isDownloaded ? (
-                isAuthenticated ? (
-                  <GardensProvider>
-                    <WorkProvider>
-                      <AppViews />
-                      <AppBar />
-                    </WorkProvider>
-                  </GardensProvider>
-                ) : (
-                  <Navigate to="/login" replace />
-                )
-              ) : (
-                <Navigate to="/landing" replace />
-              )
-            }
-          />
-          {/* Catch-all: Redirect to the appropriate place */}
-          {/* <Route path="*" element={<Navigate to="/" replace />} /> */}
-        </Routes>
-      </BrowserRouter>
-    </QueryClientProvider>
+    <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
+      <QueryClientProvider client={queryClient}>
+        <AppErrorBoundary>
+          <RouterProvider router={router} />
+        </AppErrorBoundary>
+      </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }
 

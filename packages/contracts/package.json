@@ -73,11 +73,8 @@
   },
   "devDependencies": {
     "@pinata/sdk": "^2.1.0",
-    "@privy-io/server-auth": "1.28.3",
     "csv-parse": "^5.5.3",
     "envfile": "~6.18.0",
-    "ethers": "^6.15.0",
-    "js-yaml": "^4.1.0",
     "node-fetch": "^2.7.0",
     "solhint": "^5.0.5",
     "toml": "~3.0.0"

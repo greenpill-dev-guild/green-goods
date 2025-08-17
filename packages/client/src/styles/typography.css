@@ -4,6 +4,9 @@
   /* --text-base: 16px; */
   /* --text-sm: 14px */
 
+  /* Header color */
+  --color-header-text: #254d31;
+
   /* Title variants */
   --text-title-h1: 56px;
   --text-title-h1--line-height: 64px;
@@ -288,7 +291,7 @@
   h5,
   h6 {
     font-family: var(--font-family-sans);
-    color: var(--color-slate-800);
+    color: var(--color-header-text);
   }
 
   * {
@@ -452,12 +455,10 @@
 
   ul {
     list-style: disc;
-    padding-left: 2rem;
   }
 
   ol {
     list-style: decimal;
-    padding-left: 2rem;
   }
 
   blockquote {

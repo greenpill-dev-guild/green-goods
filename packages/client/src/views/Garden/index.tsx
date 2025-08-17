@@ -1,22 +1,39 @@
-import { RiArrowRightSLine, RiImage2Fill } from "@remixicon/react";
-import { Form } from "react-hook-form";
+import { RiArrowRightSLine, RiImage2Fill, RiHammerFill, RiPlantFill } from "@remixicon/react";
+import React, { useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/UI/Button";
+import { DuplicateWorkWarning } from "@/components/UI/DuplicateWorkWarning/DuplicateWorkWarning";
 import { FormProgress } from "@/components/UI/Form/Progress";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
+import { DEFAULT_CHAIN_ID } from "@/config";
+import { defaultDeduplicationManager, type DuplicateCheckResult } from "@/modules/deduplication";
+import { ActionCardSkeleton } from "@/components/UI/Card/ActionCardSkeleton";
+import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
+import { FormInfo } from "@/components/UI/Form/Info";
+// import { ActionCardSkeleton } from "@/components/UI/Card/ActionCardSkeleton";
+// import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
+
 import { useWork, WorkTab } from "@/providers/work";
-import { WorkCompleted } from "./Completed";
+
 import { WorkDetails } from "./Details";
 import { WorkIntro } from "./Intro";
 import { WorkMedia } from "./Media";
 import { WorkReview } from "./Review";
+import { WorkViewSkeleton } from "@/components/UI/WorkView/WorkView";
 
 const Work: React.FC = () => {
   const intl = useIntl();
   const navigate = useNavigate();
-  const { gardens, actions, form, activeTab, setActiveTab, workMutation } = useWork();
+  const chainId = DEFAULT_CHAIN_ID;
+  const { form, activeTab, setActiveTab, actions, gardens, isLoading, workMutation } = useWork();
+
+  // State for duplicate warning modal
+  const [duplicateWarning, setDuplicateWarning] = useState<{
+    workData: unknown;
+    duplicateInfo: DuplicateCheckResult;
+  } | null>(null);
 
   if (!form) {
     return null;
@@ -38,76 +55,128 @@ const Work: React.FC = () => {
     plantCount,
   } = form;
 
-  const { status } = workMutation;
+  // mutation state handled via toasts inside uploadWork()
 
-  const garden = gardens.find((garden) => garden.id === gardenAddress);
-  const action = actions.find((action) => action.id === actionUID);
+  // Prefer resolved data from React Query
+  // Helper to render Review step with data (never block UI; use fallbacks)
+  const getActionUIDFromId = (id?: string): number | null => {
+    if (!id) return null;
+    const last = String(id).split("-").pop();
+    const num = Number(last);
+    return Number.isFinite(num) ? num : null;
+  };
+  const renderReview = (actionsList: Action[], gardensList: Garden[]) => {
+    const garden = gardensList.find((g) => g.id === gardenAddress);
+    const action = actionsList.find((a: Action) => {
+      if (!actionUID) return false;
+      const uid = getActionUIDFromId(a.id);
+      return uid !== null && uid === actionUID;
+    });
 
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case WorkTab.Intro:
-        return (
-          <WorkIntro
-            actions={actions}
-            gardens={gardens}
-            selectedActionUID={actionUID}
-            selectedGardenAddress={gardenAddress}
-            setActionUID={setActionUID}
-            setGardenAddress={setGardenAddress}
-          />
-        );
-      case WorkTab.Media:
-        return (
-          <WorkMedia
-            instruction={intl.formatMessage({
-              id: "app.garden.submit.tab.media.instruction",
-              defaultMessage: "Please take a clear photo of the plants in the garden",
-            })}
-            needed={["whole_plant"]}
-            optional={["leaves", "flowers", "fruits", "bark"]}
-            images={images}
-            setImages={setImages}
-          />
-        );
-      case WorkTab.Details:
-        return (
-          <WorkDetails
-            instruction={intl.formatMessage({
-              id: "app.garden.submit.tab.details.instruction",
-              defaultMessage: "Provide detailed information and feedback",
-            })}
-            feedbackPlaceholder=""
-            inputs={action?.inputs ?? []}
-            register={register}
-            control={control}
-          />
-        );
-      case WorkTab.Review:
-        if (!garden || !action)
-          return (
-            <div>
-              {intl.formatMessage({
-                id: "app.garden.submit.tab.review.error",
-                defaultMessage: "Missing garden or action information",
-              })}
-            </div>
-          );
-        return (
-          <WorkReview
-            instruction={intl.formatMessage({
-              id: "app.garden.submit.tab.review.instruction",
-              defaultMessage: "Check if the information is correct",
-            })}
-            garden={garden}
-            action={action}
-            images={images}
-            feedback={feedback}
-            plantCount={plantCount}
-            plantSelection={plantSelection}
-          />
-        );
-      case WorkTab.Complete:
-        return <WorkCompleted status={status} garden={garden!} />;
+    const fallbackGarden: Garden =
+      garden ||
+      ({
+        id: gardenAddress || "",
+        tokenAddress: "",
+        tokenID: 0,
+        name: intl.formatMessage({ id: "app.garden.unknown", defaultMessage: "Unknown Garden" }),
+        description: "",
+        location: "",
+        bannerImage: "/images/no-image-placeholder.png",
+        gardeners: [],
+        operators: [],
+        assessments: [],
+        works: [],
+        createdAt: Date.now(),
+      } as Garden);
+
+    const fallbackAction: Action =
+      action ||
+      ({
+        id: `${chainId}-${actionUID ?? 0}`,
+        startTime: Date.now(),
+        endTime: Date.now(),
+        title: intl.formatMessage({ id: "app.action.selected", defaultMessage: "Selected Action" }),
+        instructions: "",
+        capitals: [],
+        media: ["/images/no-image-placeholder.png"],
+        createdAt: Date.now(),
+        description: "",
+        inputs: [],
+      } as unknown as Action);
+
+    return (
+      <WorkReview
+        instruction={intl.formatMessage({
+          id: "app.garden.submit.tab.review.instruction",
+          defaultMessage: "Check if the information is correct",
+        })}
+        garden={fallbackGarden}
+        action={fallbackAction}
+        images={images}
+        values={form.values}
+        feedback={feedback}
+        plantCount={plantCount}
+        plantSelection={plantSelection}
+      />
+    );
+  };
+
+  // Enhanced upload function with duplicate detection
+  const handleWorkSubmission = async (): Promise<boolean> => {
+    if (!gardenAddress || actionUID === null) {
+      return false;
+    }
+
+    // Check for duplicates first
+    // Resolve action title for duplicate detection
+    let computedTitle = `Work - ${new Date().toISOString()}`;
+    try {
+      const found = actions.find((a: Action) => {
+        if (actionUID === undefined || actionUID === null) {
+          return false;
+        }
+        const idPart = a.id?.split("-").pop();
+        const numeric = Number(idPart);
+        return Number.isFinite(numeric) && numeric === actionUID;
+      });
+      if (found?.title) computedTitle = found.title;
+    } catch {
+      return false;
+    }
+
+    const workData = {
+      type: "work",
+      chainId,
+      data: {
+        feedback,
+        plantSelection,
+        plantCount,
+        title: computedTitle,
+        actionUID,
+        gardenAddress,
+      },
+      images,
+    };
+
+    try {
+      const duplicateResult = await defaultDeduplicationManager.performComprehensiveCheck(workData);
+
+      if (duplicateResult.isDuplicate) {
+        setDuplicateWarning({
+          workData,
+          duplicateInfo: duplicateResult,
+        });
+        return false;
+      }
+
+      // No duplicates, proceed with normal submission
+      uploadWork();
+      return true;
+    } catch {
+      // Proceed with submission if duplicate check fails
+      uploadWork();
+      return true;
     }
   };
 
@@ -152,35 +221,122 @@ const Work: React.FC = () => {
       backButton: () => changeTab(WorkTab.Media),
     },
     [WorkTab.Review]: {
-      primary: () => {
-        changeTab(WorkTab.Complete);
-        form.reset();
-        uploadWork();
+      primary: async () => {
+        // Check for duplicates before submission and proceed based on result
+        const proceeded = await handleWorkSubmission();
+        if (proceeded) {
+          try {
+            sessionStorage.setItem("openWorkDashboard", "1");
+          } catch {}
+          navigate("/home");
+          form.reset();
+          setImages([]);
+        }
       },
       primaryLabel: intl.formatMessage({
         id: "app.garden.submit.tab.review.label",
         defaultMessage: "Upload Work",
       }),
-      primaryDisabled: !state.isValid || state.isSubmitting,
+      primaryDisabled: !state.isValid || state.isSubmitting || workMutation.isPending,
       secondary: null,
       backButton: () => changeTab(WorkTab.Details),
     },
-    [WorkTab.Complete]: {
-      primary: () => {
-        workMutation.reset();
-        control._reset();
-        setImages([]);
-        changeTab(WorkTab.Intro);
-        navigate("/home");
-      },
-      primaryLabel: intl.formatMessage({
-        id: "app.garden.submit.tab.complete.label",
-        defaultMessage: "Finish",
-      }),
-      primaryDisabled: workMutation.isPending,
-      secondary: null,
-      backButton: undefined,
-    },
+  };
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case WorkTab.Intro:
+        return isLoading && actions.length === 0 && gardens.length === 0 ? (
+          <div className="flex flex-col gap-6">
+            <FormInfo
+              title={intl.formatMessage({
+                id: "app.garden.selectYourAction",
+                defaultMessage: "Select your action",
+              })}
+              info={intl.formatMessage({
+                id: "app.garden.whatTypeOfWork",
+                defaultMessage: "What type of work are you submitting?",
+              })}
+              Icon={RiHammerFill}
+            />
+            <div className="flex gap-4 overflow-x-auto">
+              {Array.from({ length: 4 }).map((_, idx) => (
+                <div key={`action-skel-${idx}`} className="min-w-[16rem]">
+                  <ActionCardSkeleton media="small" height="selection" />
+                </div>
+              ))}
+            </div>
+            <FormInfo
+              title={intl.formatMessage({
+                id: "app.garden.selectYourGarden",
+                defaultMessage: "Select your garden",
+              })}
+              info={intl.formatMessage({
+                id: "app.garden.whichGarden",
+                defaultMessage: "Which garden are you submitting for?",
+              })}
+              Icon={RiPlantFill}
+            />
+            <div className="flex gap-4 overflow-x-auto">
+              {Array.from({ length: 4 }).map((_, idx) => (
+                <div key={`garden-skel-${idx}`} className="min-w-[16rem]">
+                  <GardenCardSkeleton media="small" height="selection" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <WorkIntro
+            actions={actions}
+            gardens={gardens}
+            selectedActionUID={actionUID}
+            selectedGardenAddress={gardenAddress}
+            setActionUID={setActionUID}
+            setGardenAddress={setGardenAddress}
+          />
+        );
+      case WorkTab.Media:
+        return (
+          <WorkMedia
+            instruction={intl.formatMessage({
+              id: "app.garden.submit.tab.media.instruction",
+              defaultMessage: "Please take a clear photo of the plants in the garden",
+            })}
+            needed={["whole_plant"]}
+            optional={["leaves", "flowers", "fruits", "bark"]}
+            images={images}
+            setImages={setImages}
+          />
+        );
+      case WorkTab.Details:
+        return (() => {
+          const found = (actions || []).find((a) => {
+            if (!actionUID) return false;
+            const uid = getActionUIDFromId(a.id);
+            return uid !== null && uid === actionUID;
+          });
+          return (
+            <WorkDetails
+              instruction={intl.formatMessage({
+                id: "app.garden.submit.tab.details.instruction",
+                defaultMessage: "Provide detailed information and feedback",
+              })}
+              feedbackPlaceholder=""
+              inputs={found?.inputs ?? []}
+              register={register}
+              control={control}
+            />
+          );
+        })();
+      case WorkTab.Review:
+        return isLoading && actions.length === 0 && gardens.length === 0 ? (
+          <div className="padded">
+            <WorkViewSkeleton showMedia={true} showActions={false} numDetails={4} />
+          </div>
+        ) : (
+          renderReview(actions, gardens)
+        );
+    }
   };
 
   return (
@@ -191,14 +347,14 @@ const Work: React.FC = () => {
           steps={Object.values(WorkTab).slice(0, 4)}
         />
       </TopNav>
-      <Form
+
+      <form
         id="work-form"
-        control={control}
         className="relative py-6 pt-16 flex flex-col gap-4 min-h-[calc(100vh-7.5rem)]"
       >
         <div className="padded relative flex flex-col gap-4 flex-1">{renderTabContent()}</div>
         <div className="flex fixed left-0 bottom-0 py-3 w-full z-[10000] bg-white border-t border-stroke-soft-200">
-          <div className="flex flex-row gap-4 w-full mt-4 padded">
+          <div className="flex flex-row gap-4 w-full padded">
             {tabActions[activeTab].secondary && (
               <Button
                 onClick={tabActions[activeTab].secondary}
@@ -225,7 +381,29 @@ const Work: React.FC = () => {
             />
           </div>
         </div>
-      </Form>
+      </form>
+
+      {/* Duplicate Work Warning Modal */}
+      {duplicateWarning && (
+        <DuplicateWorkWarning
+          workData={duplicateWarning.workData}
+          duplicateInfo={duplicateWarning.duplicateInfo}
+          onProceed={() => {
+            setDuplicateWarning(null);
+            uploadWork();
+            changeTab(WorkTab.Review);
+            form.reset();
+          }}
+          onCancel={() => {
+            setDuplicateWarning(null);
+          }}
+          onViewDuplicate={(workId: string) => {
+            // Navigate to view the existing work
+            setDuplicateWarning(null);
+            navigate(`/home/${gardenAddress}/work/${workId}`, { state: { from: "garden" } });
+          }}
+        />
+      )}
     </>
   );
 };

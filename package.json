@@ -17,30 +17,19 @@
     "foundry"
   ],
   "scripts": {
-    "init": "pnpm install",
+    "setup": "node scripts/setup.js",
     "foundry:up": "curl -L https://foundry.paradigm.xyz | bash && bash $HOME/.foundry/bin/foundryup",
     "prepare": "husky",
+    "node:update": "nvm install 22 --reinstall-packages-from=22 && nvm alias default 22",
+    "node:update:latest": "nvm install node && nvm alias node default",
     "build": "pnpm recursive run build",
-
     "format": "biome format --write .",
     "format:check": "biome format .",
-    "lint": "biome check --write --unsafe packages/client/src/**/*.{ts,tsx} packages/contracts/src packages/indexer/src",
-    "lint:oxlint": "oxlint packages/client/src packages/indexer/src",
+    "lint": "oxlint packages/client/src packages/api/src packages/indexer/src",
     "lint-staged": "lint-staged",
-
     "test": "pnpm recursive run test",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "test:e2e:debug": "playwright test --debug",
-    "test:e2e:smoke": "playwright test tests/specs/smoke",
-    "test:e2e:mobile": "playwright test --project=mobile-chrome --project=mobile-safari",
-    "test:e2e:integration": "playwright test tests/specs/integration",
-    "test:e2e:blockchain": "playwright test tests/specs/blockchain",
-    "test:e2e:pwa": "playwright test tests/specs/pwa",
-    "test:e2e:performance": "playwright test tests/specs/performance",
-    "test:e2e:quick": "playwright test tests/specs/smoke tests/specs/integration/basic-integration.spec.ts --project=chromium",
     "test:all": "pnpm test && pnpm test:e2e",
-
     "dev": "trap 'pnpm exec pm2 delete all' EXIT; pnpm exec pm2 start ecosystem.config.js && pnpm exec pm2 logs --raw",
     "dev:status": "pnpm exec pm2 list",
     "dev:logs:client": "pnpm exec pm2 logs client --raw",
@@ -52,22 +41,29 @@
     "dev:indexer": "pnpm --filter 'indexer' run dev",
     "dev:contracts": "pnpm --filter 'contracts' run  dev"
   },
+  "pnpm": {
+    "overrides": {
+      "vite": "npm:rolldown-vite@7.1.0"
+    }
+  },
   "dependencies": {
-    "dotenv": "17.2.0",
+    "@privy-io/server-auth": "^1.31.0",
+    "dotenv": "^17.2.1",
     "ethers": "^6.15.0",
-    "viem": "^2.33.0"
+    "viem": "^2.33.3"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.1.2",
-    "@playwright/test": "^1.54.1",
-    "@types/node": "^22.0.0",
+    "@biomejs/biome": "2.1.4",
+    "@playwright/test": "^1.54.2",
+    "@types/node": "^24.2.1",
     "husky": "^9.1.7",
-    "lint-staged": "16.1.2",
-    "oxlint": "1.7.0",
+    "js-yaml": "^4.1.0",
+    "lint-staged": "16.1.5",
+    "oxlint": "1.11.1",
     "pm2": "6.0.8",
-    "tsc-alias": "^1.8.10",
-    "tsx": "^4.19.0",
-    "typescript": "^5.8.3",
+    "tsc-alias": "^1.8.16",
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.2",
     "wait-port": "1.1.0"
   },
   "engines": {

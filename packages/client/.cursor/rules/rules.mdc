@@ -1,0 +1,53 @@
+---
+description: Client (PWA) — UI system, Tailwind v4, Radix, forms, offline-first, and component patterns.
+globs:
+  - "packages/client/src/**/*"
+  - "packages/client/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# Client UI & Styling Rules
+
+## Foundations
+- **Stack:** React + Vite + TypeScript, **Tailwind CSS v4** utilities, **Radix UI** primitives, TanStack Query for data, React Hook Form for forms, Privy for auth/wallet.
+- **Design language:** utility-first classes; avoid inline styles. Prefer semantic HTML (`<main>`, `<section>`, etc.) and accessible Radix components.
+- **Class composition:** use a `cn()` helper for conditional classes; keep class lists ordered layout→spacing→typography→color→state.
+
+## Layout & Spacing
+- Mobile-first. Use `container`, CSS grid/flex with consistent gaps from Tailwind scale.
+- Page skeleton: `<main>` (page), `<section>` (blocks), `<header>`/`<footer>` as needed; include empty, loading (skeleton), and error states for all async views.
+
+## Components
+- **Structure:** `Props` interface at top, function component below, named export. Colocate tests as `*.test.tsx`.
+- **Radix UI:** use Radix for accessible dialogs, popovers, selects; never re-implement focus management.
+- **Variants:** keep variants minimal (e.g., `size`, `tone`, `state`). Prefer data-attributes for state styling (e.g., `[data-state=open]`).
+- **Icons/imagery:** provide descriptive `alt` text; do not encode text in images.
+
+## Forms & Validation
+- Use **React Hook Form** + Zod resolver; display field-level errors and an error summary if submission fails.
+- Buttons must reflect mutation state: `loading` disables + shows spinner; success shows toast/snackbar.
+
+## Data Fetching
+- Use **TanStack Query** for remote data with explicit `queryKey`s and cache times. Always render `isPending`/`isError` branches.
+- For mutations, implement optimistic UI only when safe; otherwise show progress with a “view details” link.
+
+## Offline-First (PWA)
+- Persist **work submissions** and **approvals** offline via IndexedDB; enqueue sync jobs on reconnect.
+- Provide a global **OfflineIndicator** and per-view banners for pending sync; surface counts of queued actions.
+- On reconnect, auto-sync and toast results (success/failures with retry). All forms should save drafts offline.
+- Service Worker caches app shell + critical routes; avoid caching authenticated API responses beyond session.
+
+## Styling Conventions
+- Use Tailwind tokens; avoid arbitrary values unless prototyping (remove before merge).
+- Respect design scale for font sizes/line heights; ensure contrast for AA.
+- Reuse shared primitives (`<Button>`, `<Input>`, `<Card>`, `<Badge>`, `<Toast>`) before adding new UI.
+- Keep component files ≤200–250 lines; extract subcomponents/hooks when growing.
+
+## Green Goods Patterns
+- **Before/After workflow:** components must prompt for “before” and “after” photos, show previews, collect notes/metrics, and store media metadata (timestamp, plant detection tags) alongside the submission.
+- **Operator review:** review screens display plant-detection results, allow approve/reject with feedback, and record decision state for sync.
+- **Attestation prep:** attach IPFS URLs + detection metadata to the payload that downstream services submit to EAS.
+
+## Testing (client)
+- Vitest + React Testing Library; snapshot only for pure presentational components.
+- Playwright E2E for critical flows: login → create work with before/after → offline save → reconnect sync → operator approval.

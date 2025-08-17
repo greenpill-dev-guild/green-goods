@@ -7,6 +7,49 @@ import deployment42220 from "../../contracts/deployments/42220-latest.json";
 import deployment84532 from "../../contracts/deployments/84532-latest.json";
 import networksConfig from "../../contracts/deployments/networks.json";
 
+// Environment variables debug info (remove in production)
+const debugEnvVars = () => {
+  const viteVars = Object.keys(import.meta.env)
+    .filter((key) => key.startsWith("VITE_"))
+    .reduce(
+      (acc, key) => {
+        acc[key] = import.meta.env[key] ? "✅ Loaded" : "❌ Missing";
+        return acc;
+      },
+      {} as Record<string, string>
+    );
+
+  void viteVars;
+};
+
+// Run debug in development
+if (import.meta.env.DEV) {
+  debugEnvVars();
+}
+
+// Supported chains configuration
+export const SUPPORTED_CHAINS = {
+  31337: "localhost",
+  11155111: "sepolia",
+  42161: "arbitrum",
+  8453: "base",
+  84532: "base-sepolia",
+  10: "optimism",
+  42220: "celo",
+} as const;
+
+export type SupportedChainId = keyof typeof SUPPORTED_CHAINS;
+
+export const getChainName = (chainId: number): string => {
+  return SUPPORTED_CHAINS[chainId as SupportedChainId] || "unknown";
+};
+
+export const isChainSupported = (chainId: number): chainId is SupportedChainId => {
+  return chainId in SUPPORTED_CHAINS;
+};
+
+// Note: Avoid exporting a global CURRENT_CHAIN_ID. Prefer dynamic detection from wallet.
+
 export const APP_NAME = "Green Goods";
 export const APP_DEFAULT_TITLE = "Green Goods";
 export const APP_TITLE_TEMPLATE = "%s - Green Goods";
@@ -30,6 +73,9 @@ export function getDefaultChain(): Chain {
       return baseSepolia;
   }
 }
+
+// Constant chain id derived from env for app-wide use
+export const DEFAULT_CHAIN_ID = getDefaultChain().id;
 
 // Helper function to get network config by chain ID
 function getNetworkConfigFromNetworksJson(chainId: number) {
@@ -89,7 +135,7 @@ export function getIndexerUrl() {
 
 // Get EAS GraphQL URL based on chain
 export function getEasGraphqlUrl(chainId?: number | string) {
-  const chain = chainId ? String(chainId) : import.meta.env.VITE_CHAIN_ID || "84532";
+  const chain = String(chainId ?? 84532);
 
   switch (chain) {
     case "42161":

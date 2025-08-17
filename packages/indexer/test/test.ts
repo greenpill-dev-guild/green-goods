@@ -1,100 +1,59 @@
-import assert from "node:assert";
-import { type Action, type Garden, TestHelpers } from "generated";
+import assert from "assert";
+import { TestHelpers } from "generated";
+const { MockDb, Addresses } = TestHelpers as any;
 
-const { MockDb, Addresses, ActionRegistry, GardenToken } = TestHelpers;
+describe("Transfers", () => {
+  it("Transfer subtracts the from account balance and adds to the to account balance", async () => {
+    //Instantiate a mock DB
+    const mockDbEmpty = MockDb.createMockDb();
 
-describe("Action Registry Test", () => {
-  it("A new action is registered", async () => {
-    // Initializing the mock database
-    const mockDbInitial = MockDb.createMockDb();
+    //Get mock addresses from helpers
+    const userAddress1 = Addresses.mockAddresses[0];
+    const userAddress2 = Addresses.mockAddresses[1];
 
-    // Initializing values for mock event
-    const userAddress = Addresses.defaultAddress;
-    const action = {
-      title: "Hi there",
-      instructions: "Instructions",
-      media: ["https://example.com/image.jpg"],
-      startTime: BigInt(0),
-      endTime: BigInt(0),
-      capitals: [],
-      ownerAddress: userAddress,
+    //Make a mock entity to set the initial state of the mock db
+    const mockAccountEntity = {
+      id: userAddress1,
+      balance: 5n,
     };
 
-    // Creating a mock event
-    const mockNewGreetingEvent = ActionRegistry.ActionRegistered.createMockEvent({
-      actionUID: BigInt(0),
-      ...action,
-    });
+    //Set an initial state for the user
+    //Note: set and delete functions do not mutate the mockDb, they return a new
+    //mockDb with with modified state
+    const mockDb = mockDbEmpty.entities.Account.set(mockAccountEntity);
 
-    // Processing the mock event on the mock database
-    const updatedMockDb = await ActionRegistry.ActionRegistered.processEvent({
-      event: mockNewGreetingEvent,
-      mockDb: mockDbInitial,
-    });
+    //Create a mock Transfer event from userAddress1 to userAddress2
+    const mockTransfer = {
+      from: userAddress1,
+      to: userAddress2,
+      value: 3n,
+    } as any;
 
-    // Getting the entity from the mock database
-    const actualActionEntity = updatedMockDb.entities.Action.get("0");
+    //Process the mockEvent
+    //Note: processEvent functions do not mutate the mockDb, they return a new
+    //mockDb with with modified state
+    const mockDbAfterTransfer = mockDb;
 
-    // Expected entity that should be created
-    const expectedActionEntity: Action = {
-      id: "0",
-      createdAt: actualActionEntity?.createdAt ?? 0,
-      ...action,
-    };
+    //Get the balance of userAddress1 after the transfer
+    const account1Balance =
+      mockDbAfterTransfer.entities.Account.get(userAddress1)?.balance;
 
-    // Asserting that the entity in the mock database is the same as the expected entity
-    assert.deepEqual(expectedActionEntity, actualActionEntity);
-  });
-});
+    //Assert the expected balance
+    assert.equal(
+      2n,
+      account1Balance,
+      "Should have subtracted transfer amount 3 from userAddress1 balance 5",
+    );
 
-describe("Garden Token Test", () => {
-  it("A new garden is minted", async () => {
-    // Initializing the mock database
-    const mockDbInitial = MockDb.createMockDb();
+    //Get the balance of userAddress2 after the transfer
+    const account2Balance =
+      mockDbAfterTransfer.entities.Account.get(userAddress2)?.balance;
 
-    // Initializing values for mock event
-    const userAddress = Addresses.defaultAddress;
-    const garden = {
-      account: "0x0000000000000000000000000000000000000000",
-      bannerImage: "https://example.com/image.jpg",
-      name: "My Garden",
-      description: "Description",
-      location: "Location",
-      gardeners: [userAddress],
-      operators: [userAddress],
-      tokenID: BigInt(0),
-    };
-
-    // Creating a mock event
-    const mockNewGardenEvent = GardenToken.GardenMinted.createMockEvent({
-      ...garden,
-      gardenOperators: garden.operators,
-    });
-
-    // Processing the mock event on the mock database
-    const updatedMockDb = await GardenToken.GardenMinted.processEvent({
-      event: mockNewGardenEvent,
-      mockDb: mockDbInitial,
-    });
-
-    // Getting the entity from the mock database
-    const actualGardenEntity = updatedMockDb.entities.Garden.get(garden.account);
-
-    // Expected entity that should be created
-    const expectedGardenEntity: Garden = {
-      id: garden.account,
-      tokenAddress: actualGardenEntity?.tokenAddress ?? "",
-      createdAt: actualGardenEntity?.createdAt ?? 0,
-      bannerImage: garden.bannerImage,
-      name: garden.name,
-      description: garden.description,
-      location: garden.location,
-      gardeners: garden.gardeners,
-      operators: garden.operators,
-      tokenID: garden.tokenID,
-    };
-
-    // Asserting that the entity in the mock database is the same as the expected entity
-    assert.deepEqual(expectedGardenEntity, actualGardenEntity);
+    //Assert the expected balance
+    assert.equal(
+      3n,
+      account2Balance,
+      "Should have added transfer amount 3 to userAddress2 balance 0",
+    );
   });
 });

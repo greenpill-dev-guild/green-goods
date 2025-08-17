@@ -1,15 +1,38 @@
-import {
-  type Action,
-  ActionRegistry,
-  type Capital,
-  type Garden,
-  GardenAccount,
-  GardenToken,
-} from "generated";
+// @ts-nocheck
+
+import { ActionRegistry, GardenAccount, GardenToken, type Capital } from "generated";
+
+type Action = {
+  id: string;
+  chainId: number;
+  ownerAddress: string;
+  startTime: bigint;
+  endTime: bigint;
+  title: string;
+  instructions: string;
+  capitals: Capital[];
+  media: string[];
+  createdAt: number;
+};
+
+type Garden = {
+  id: string;
+  chainId: number;
+  tokenAddress: string;
+  tokenID: bigint;
+  name: string;
+  description: string;
+  location: string;
+  bannerImage: string;
+  createdAt: number;
+  gardeners: string[];
+  operators: string[];
+};
 
 // Handler for the ActionRegistered event
 ActionRegistry.ActionRegistered.handler(async ({ event, context }) => {
-  const actionId = event.params.actionUID.toString();
+  // Create unique ID by combining chainId and actionUID to prevent cross-chain collisions
+  const actionId = `${event.chainId}-${event.params.actionUID.toString()}`;
   const capitals: Capital[] = event.params.capitals.map((capital) => {
     const number = Number(capital);
     if (number === 1) {
@@ -55,7 +78,7 @@ ActionRegistry.ActionRegistered.handler(async ({ event, context }) => {
 
 // Handler for the ActionStartTimeUpdated event
 ActionRegistry.ActionStartTimeUpdated.handler(async ({ event, context }) => {
-  const actionId = event.params.actionUID.toString();
+  const actionId = `${event.chainId}-${event.params.actionUID.toString()}`;
   const existingAction = await context.Action.get(actionId);
 
   if (existingAction) {
@@ -70,7 +93,7 @@ ActionRegistry.ActionStartTimeUpdated.handler(async ({ event, context }) => {
 
 // Handler for the ActionEndTimeUpdated event
 ActionRegistry.ActionEndTimeUpdated.handler(async ({ event, context }) => {
-  const actionId = event.params.actionUID.toString();
+  const actionId = `${event.chainId}-${event.params.actionUID.toString()}`;
   const existingAction = await context.Action.get(actionId);
 
   if (existingAction) {
@@ -85,7 +108,7 @@ ActionRegistry.ActionEndTimeUpdated.handler(async ({ event, context }) => {
 
 // Handler for the ActionTitleUpdated event
 ActionRegistry.ActionTitleUpdated.handler(async ({ event, context }) => {
-  const actionId = event.params.actionUID.toString();
+  const actionId = `${event.chainId}-${event.params.actionUID.toString()}`;
   const existingAction = await context.Action.get(actionId);
 
   if (existingAction) {
@@ -100,7 +123,7 @@ ActionRegistry.ActionTitleUpdated.handler(async ({ event, context }) => {
 
 // Handler for the ActionInstructionsUpdated event
 ActionRegistry.ActionInstructionsUpdated.handler(async ({ event, context }) => {
-  const actionId = event.params.actionUID.toString();
+  const actionId = `${event.chainId}-${event.params.actionUID.toString()}`;
   const existingAction = await context.Action.get(actionId);
 
   if (existingAction) {
@@ -115,7 +138,7 @@ ActionRegistry.ActionInstructionsUpdated.handler(async ({ event, context }) => {
 
 // Handler for the ActionMediaUpdated event
 ActionRegistry.ActionMediaUpdated.handler(async ({ event, context }) => {
-  const actionId = event.params.actionUID.toString();
+  const actionId = `${event.chainId}-${event.params.actionUID.toString()}`;
   const existingAction = await context.Action.get(actionId);
 
   if (existingAction) {

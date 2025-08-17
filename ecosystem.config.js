@@ -3,10 +3,12 @@ module.exports = {
     {
       name: "client",
       script: "sh",
+      // Use default vite (aliased to rolldown-vite) for dev
       args: '-c "pnpm --filter client run dev"',
       cwd: ".",
       env: {
         NODE_ENV: "development",
+        VITE_ENABLE_SW_DEV: "false",
       },
       merge_logs: true,
       autorestart: true,

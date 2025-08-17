@@ -36,9 +36,9 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
         if (type === "number") {
           return (
             <FormInput
+              key={key}
               // @ts-ignore
               {...register(key)}
-              key={key}
               label={title}
               type="number"
               placeholder={placeholder}
@@ -77,9 +77,9 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
         if (type === "textarea") {
           return (
             <FormText
+              key={key}
               // @ts-ignore
               {...register(key)}
-              key={key}
               label={title}
               rows={3}
               placeholder={placeholder}

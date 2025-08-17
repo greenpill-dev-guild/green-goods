@@ -60,7 +60,7 @@ function UploadModal({
           <h6>{headerText}</h6>
         </div>
       )}
-      <Card {...props} className={root()}>
+      <Card {...props} className={cn(root(), className)}>
         <div className="relative flex flex-col gap-4 items-center justify-center">
           <Avatar className={avatar()}>
             <div className={cn(showSpinner && "animate-spin" && spinner())} />

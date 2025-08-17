@@ -3,7 +3,7 @@ import { SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
 import { getEASConfig } from "@/config";
 import { uploadFileToIPFS, uploadJSONToIPFS } from "@/modules/pinata";
 
-export async function encodeWorkData(data: WorkDraft, chainId: number | string = 42161) {
+export async function encodeWorkData(data: WorkDraft, chainId: number | string) {
   const easConfig = getEASConfig(chainId);
   const schema = easConfig.WORK.schema as `0x${string}`;
   const schemaEncoder = new SchemaEncoder(schema);
@@ -30,7 +30,7 @@ export async function encodeWorkData(data: WorkDraft, chainId: number | string =
   return encodedData;
 }
 
-export function encodeWorkApprovalData(data: WorkApprovalDraft, chainId: number | string = 42161) {
+export function encodeWorkApprovalData(data: WorkApprovalDraft, chainId: number | string) {
   const easConfig = getEASConfig(chainId);
   const schema = easConfig.WORK_APPROVAL.schema as `0x${string}`;
   const schemaEncoder = new SchemaEncoder(schema);
