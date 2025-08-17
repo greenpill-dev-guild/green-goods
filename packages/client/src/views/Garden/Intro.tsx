@@ -2,7 +2,9 @@ import { RiHammerFill, RiPlantFill } from "@remixicon/react";
 import type React from "react";
 import { useIntl } from "react-intl";
 import { ActionCard } from "@/components/UI/Card/ActionCard";
+import { ActionCardSkeleton } from "@/components/UI/Card/ActionCardSkeleton";
 import { GardenCard } from "@/components/UI/Card/GardenCard";
+import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/UI/Carousel/Carousel";
 import { FormInfo } from "@/components/UI/Form/Info";
 
@@ -24,6 +26,14 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
   setGardenAddress,
 }) => {
   const intl = useIntl();
+  // Status comes from parent loader now; show skeletons based on arrays being empty temporarily
+  const actionsStatus: "pending" | "success" = actions.length ? "success" : "pending";
+  const gardensStatus: "pending" | "success" = gardens.length ? "success" : "pending";
+  const uidFromActionId = (id: string): number | null => {
+    const last = id.split("-").pop();
+    const n = Number(last);
+    return Number.isFinite(n) ? n : null;
+  };
 
   return (
     <>
@@ -40,15 +50,51 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
       />
       <Carousel opts={{ align: "start" }}>
         <CarouselContent>
-          {actions.map((action) => (
-            <CarouselItem key={action.id} onClick={() => setActionUID(action.id)}>
-              <ActionCard
-                action={action}
-                selected={selectedActionUID === action.id}
-                media="small"
-              />
-            </CarouselItem>
-          ))}
+          {actionsStatus === "pending" &&
+            Array.from({ length: 4 }).map((_, idx) => (
+              <CarouselItem key={`action-skel-${idx}`}>
+                <ActionCardSkeleton media="small" height="selection" />
+              </CarouselItem>
+            ))}
+
+          {/* Error state intentionally disabled until backend errors are surfaced */}
+          {actions.length === 0 && actionsStatus === "success" && (
+            <div className="p-4 text-sm text-rose-600">
+              {intl.formatMessage({
+                id: "app.garden.errorFetchingActions",
+                defaultMessage: "Error fetching actions. Please try again.",
+              })}
+            </div>
+          )}
+
+          {actionsStatus === "success" && actions.length === 0 && (
+            <div className="p-4 text-sm text-slate-600">
+              {intl.formatMessage({
+                id: "app.garden.noActionsFound",
+                defaultMessage: "No actions found.",
+              })}
+            </div>
+          )}
+
+          {actions.length > 0 &&
+            actions.map((action) => {
+              const uid = uidFromActionId(action.id);
+              return (
+                <CarouselItem
+                  key={action.id}
+                  onClick={() => {
+                    if (uid !== null) setActionUID(uid);
+                  }}
+                >
+                  <ActionCard
+                    action={action}
+                    selected={selectedActionUID === uid}
+                    media="small"
+                    height="selection"
+                  />
+                </CarouselItem>
+              );
+            })}
         </CarouselContent>
       </Carousel>
       <FormInfo
@@ -64,16 +110,44 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
       />
       <Carousel>
         <CarouselContent>
-          {gardens.map((garden) => (
-            <CarouselItem key={garden.id} onClick={() => setGardenAddress(garden.id)}>
-              <GardenCard
-                garden={garden}
-                selected={garden.id === selectedGardenAddress}
-                showDescription={true}
-                showOperators={false}
-              />
-            </CarouselItem>
-          ))}
+          {gardensStatus === "pending" &&
+            Array.from({ length: 4 }).map((_, idx) => (
+              <CarouselItem key={`garden-skel-${idx}`}>
+                <GardenCardSkeleton media="small" height="selection" />
+              </CarouselItem>
+            ))}
+
+          {/* Error state intentionally disabled until backend errors are surfaced */}
+          {gardens.length === 0 && gardensStatus === "success" && (
+            <div className="p-4 text-sm text-rose-600">
+              {intl.formatMessage({
+                id: "app.garden.errorFetchingGardens",
+                defaultMessage: "Error fetching gardens. Please try again.",
+              })}
+            </div>
+          )}
+
+          {gardensStatus === "success" && gardens.length === 0 && (
+            <div className="p-4 text-sm text-slate-600">
+              {intl.formatMessage({
+                id: "app.garden.noGardensFound",
+                defaultMessage: "No gardens found.",
+              })}
+            </div>
+          )}
+
+          {gardens.length > 0 &&
+            gardens.map((garden) => (
+              <CarouselItem key={garden.id} onClick={() => setGardenAddress(garden.id)}>
+                <GardenCard
+                  garden={garden}
+                  height="selection"
+                  selected={garden.id === selectedGardenAddress}
+                  showDescription={true}
+                  showOperators={false}
+                />
+              </CarouselItem>
+            ))}
         </CarouselContent>
       </Carousel>
     </>

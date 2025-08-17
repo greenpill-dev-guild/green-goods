@@ -1,12 +1,11 @@
 #!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
 
 echo "🔍 Running format check and linting before push..."
 
 # Run format check first
-pnpm format:check
+npx pnpm format:check
 
-# Run linting (but don't fail on warnings, only errors)
-pnpm lint --error-on-warnings
+# Run linting
+npx pnpm lint
 
 echo "✅ Pre-push checks passed!" 

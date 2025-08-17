@@ -27,13 +27,7 @@ contract GardenAccountTest is Test {
         gardenOperators[0] = address(0x200);
 
         gardenAccount.initialize(
-            address(0x555),
-            "Test Garden",
-            "Test Description",
-            "Test Location",
-            "",
-            gardeners,
-            gardenOperators
+            address(0x555), "Test Garden", "Test Description", "Test Location", "", gardeners, gardenOperators
         );
     }
 

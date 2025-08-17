@@ -1,6 +1,6 @@
 [profile.default]
 solc = "0.8.25"
-ffi = false
+ffi = true
 auto_detect_solc = false
 block_timestamp = 1_680_220_800 # March 31, 2023 at 00:00 GMT
 bytecode_hash = "none"
@@ -16,15 +16,20 @@ script = "script"
 src = 'src'
 test = 'test'
 via_ir = true
-fs_permissions = [{ access = "read", path = "./script/" }]
+fs_permissions = [
+  { access = "read-write", path = "./" }
+]
 
 [profile.ci]
   fuzz = { runs = 10_000 }
   verbosity = 4
 
 [etherscan]
-  sepolia = { key = "${API_KEY_ETHERSCAN}"}
-  arbitrum = { key = "${API_KEY_ARBISCAN}" }
+  sepolia = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "11155111" }
+  arbitrum = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "42161" }
+  base = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "8453" }
+  optimism = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "10" }
+  celo = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "42220" }
 
 [fmt]
   bracket_spacing = true
@@ -41,12 +46,32 @@ extra_output_files = [
   "evm.bytecode"
 ]
 
+# RPC endpoints for different networks
+[rpc_endpoints]
+localhost = "http://localhost:8545"
+sepolia = "${SEPOLIA_RPC_URL}"
+arbitrum = "${ARBITRUM_RPC_URL}"
+base = "${BASE_RPC_URL}"
+optimism = "${OPTIMISM_RPC_URL}"
+celo = "${CELO_RPC_URL}"
+
+# Network-specific profiles
+[profile.local]
 eth_rpc_url = "http://localhost:8545"
 
 [profile.sepolia]
-eth_rpc_url = "https://eth-sepolia.g.alchemy.com/v2/i2qnBKk5GQ8pVGPLA-G3D9il5o0ULQO3"
+eth_rpc_url = "${SEPOLIA_RPC_URL}"
 
 [profile.arbitrum]
-eth_rpc_url = "https://arb-mainnet.g.alchemy.com/v2/i2qnBKk5GQ8pVGPLA-G3D9il5o0ULQO3"
+eth_rpc_url = "${ARBITRUM_RPC_URL}"
+
+[profile.base]
+eth_rpc_url = "${BASE_RPC_URL}"
+
+[profile.optimism]
+eth_rpc_url = "${OPTIMISM_RPC_URL}"
+
+[profile.celo]
+eth_rpc_url = "${CELO_RPC_URL}"
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config

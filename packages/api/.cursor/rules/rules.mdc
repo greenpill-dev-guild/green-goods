@@ -1,0 +1,27 @@
+---
+description: API — Fastify patterns, validation, auth, error shapes, and performance.
+globs:
+  - "packages/api/src/**/*"
+  - "packages/api/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# API Rules
+
+## Framework & Structure
+- **Fastify + TypeScript** with modular routers. Handlers delegate to services; keep controllers thin.
+
+## Validation & Types
+- Validate all inputs with Zod (schemas in `/schemas`). Derive TypeScript types from schemas for handlers.
+
+## Auth & Security
+- Gate sensitive routes with Privy session/wallet checks. Never log secrets. Use CORS minimally.
+
+## Responses & Errors
+- Standardize on `{ success, data?, error? }`. Map domain errors to HTTP codes (400/401/403/404/409/429/500).
+
+## Performance
+- Paginate list endpoints; add sensible limits. Cache hot, static config. Prefer streaming for large payloads.
+
+## Observability
+- Structured logs (level, msg, requestId). Emit metrics for request counts/latency/error rate.

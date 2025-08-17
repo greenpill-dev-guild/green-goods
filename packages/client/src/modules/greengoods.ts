@@ -1,4 +1,6 @@
 import type { User } from "@privy-io/react-auth";
+import { DEFAULT_CHAIN_ID } from "@/config";
+import litterActionInstructions from "@/utils/actions/litter.json";
 import observerActionInstructions from "@/utils/actions/observe.json";
 import plantActionInstructions from "@/utils/actions/plant.json";
 import { greenGoodsGraphQL } from "./graphql";
@@ -16,113 +18,157 @@ export enum Capital {
   CULTURAL = 7,
 }
 
+function getActionInstructions(title: string) {
+  switch (title.toLowerCase()) {
+    case "identify plants":
+      return observerActionInstructions;
+    case "plant seedlings":
+      return plantActionInstructions;
+    case "litter cleanup":
+      return litterActionInstructions;
+  }
+}
+
 export async function getActions(): Promise<Action[]> {
-  const QUERY = greenGoodsGraphQL(/* GraphQL */ `
-    query Actions {
-      Action {
-        id
-        startTime
-        endTime
-        title
-        instructions
-        capitals
-        media
-        createdAt
+  try {
+    const chainId = DEFAULT_CHAIN_ID;
+    const QUERY = greenGoodsGraphQL(/* GraphQL */ `
+      query Actions($chainId: Int!) {
+        Action(where: {chainId: {_eq: $chainId}}) {
+          id
+          chainId
+          startTime
+          endTime
+          title
+          instructions
+          capitals
+          media
+          createdAt
+        }
       }
-    }
-  `);
+    `);
 
-  const { data, error } = await greenGoodsIndexer.query(QUERY, {}).toPromise();
+    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }).toPromise();
 
-  if (error) console.error(error);
-  if (!data) return [];
+    if (error) return [];
 
-  return await Promise.all(
-    data.Action.map(
-      async ({ id, title, instructions, startTime, endTime, capitals, media, createdAt }) => {
-        const image = (await getFileByHash(media[0])).data;
-        const mediaImage = URL.createObjectURL(image as Blob);
+    if (!data || !data.Action || !Array.isArray(data.Action)) return [];
+
+    return await Promise.all(
+      data.Action.map(async ({ id, title, startTime, endTime, capitals, media, createdAt }) => {
+        const image =
+          media && media.length > 0
+            ? await getFileByHash(media[0])
+                .then((res) => res)
+                .catch(() => null)
+            : null;
+
+        const mediaImage = image
+          ? URL.createObjectURL(image.data as Blob)
+          : "/images/no-image-placeholder.png";
+
+        const instructions = getActionInstructions(title);
 
         return {
-          id: Number.parseInt(id),
+          id, // composite id stays for uniqueness but downstream selection matches numeric UID
           title,
-          instructions,
-          startTime: startTime as number,
-          endTime: endTime as number,
+          startTime: startTime ? (startTime as number) * 1000 : Date.now(),
+          endTime: endTime ? (endTime as number) * 1000 : Date.now() + 365 * 24 * 60 * 60 * 1000, // Default to 1 year from now
           capitals: capitals as Capital[],
           media: [mediaImage],
           description: "",
-          inputs:
-            id === "1"
-              ? (plantActionInstructions.details.inputs as WorkInput[])
-              : (observerActionInstructions.details.inputs as WorkInput[]),
-          mediaInfo: id === "1" ? plantActionInstructions.media : observerActionInstructions.media,
-          details:
-            id === "1" ? plantActionInstructions.details : observerActionInstructions.details,
-          review: id === "1" ? plantActionInstructions.review : observerActionInstructions.review,
-          createdAt,
+          inputs: instructions?.details.inputs as WorkInput[],
+          mediaInfo: instructions?.media,
+          details: instructions?.details,
+          review: instructions?.review,
+          createdAt: createdAt ? (createdAt as number) * 1000 : Date.now(),
         };
-      }
-    )
-  );
+      })
+    );
+  } catch {
+    return [];
+  }
 }
 
 export async function getGardens(): Promise<Garden[]> {
-  const QUERY = greenGoodsGraphQL(/* GraphQL */ `
-    query Gardens {
-      Garden {
-        id
-        tokenAddress
-        tokenID
-        name
-        description
-        location
-        bannerImage
-        gardeners
-        operators
-        createdAt
+  try {
+    const chainId = DEFAULT_CHAIN_ID;
+    const QUERY = greenGoodsGraphQL(/* GraphQL */ `
+      query Gardens($chainId: Int!) {
+        Garden(where: {chainId: {_eq: $chainId}}) {
+          id
+          chainId
+          tokenAddress
+          tokenID
+          name
+          description
+          location
+          bannerImage
+          gardeners
+          operators
+          createdAt
+        }
       }
-    }
-  `);
+    `);
 
-  const { data, error } = await greenGoodsIndexer.query(QUERY, {}).toPromise();
+    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }).toPromise();
 
-  if (error) console.error(error);
-  if (!data) return [];
+    if (error) return [];
 
-  return await Promise.all(
-    data.Garden.map(async (garden) => {
-      const image = (await getFileByHash(garden.bannerImage)).data;
+    if (!data || !data.Garden || !Array.isArray(data.Garden)) return [];
 
-      const bannerImage = URL.createObjectURL(image as Blob);
+    return await Promise.all(
+      data.Garden.map(async (garden) => {
+        const image = garden.bannerImage
+          ? await getFileByHash(garden.bannerImage)
+              .then((res) => res)
+              .catch(() => null)
+          : null;
 
-      return {
-        id: garden.id,
-        tokenAddress: garden.tokenAddress,
-        tokenID: garden.tokenID as number,
-        name: garden.name,
-        description: garden.description,
-        location: garden.location,
-        bannerImage,
-        gardeners: garden.gardeners,
-        operators: garden.operators,
-        assessments: [],
-        works: [],
-        createdAt: new Date(garden.createdAt),
-      };
-    })
-  );
+        const bannerImage = image
+          ? URL.createObjectURL(image.data as Blob)
+          : "/images/no-image-placeholder.png";
+
+        return {
+          id: garden.id,
+          tokenAddress: garden.tokenAddress,
+          tokenID: garden.tokenID as number,
+          name: garden.name || "Unnamed Garden",
+          description: garden.description || "",
+          location: garden.location || "Unknown Location",
+          bannerImage,
+          gardeners: garden.gardeners || [],
+          operators: garden.operators || [],
+          assessments: [],
+          works: [],
+          createdAt: garden.createdAt ? (garden.createdAt as number) * 1000 : Date.now(),
+        };
+      })
+    );
+  } catch {
+    return [];
+  }
 }
 
 export async function getGardeners(): Promise<GardenerCard[]> {
-  const request = await fetch(import.meta.env.DEV ? "/api/users" : "/api/users");
+  const apiUrl = import.meta.env.DEV
+    ? "http://localhost:3000/users"
+    : "https://api.greengoods.app/users";
+
+  const request = await fetch(apiUrl, {
+    method: "GET",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 
   const response: User[] = await request.json();
 
   return response.map((user) => {
     return {
       id: user.id,
-      registeredAt: user.createdAt,
+      registeredAt: new Date(user.createdAt).getTime(),
       account: user.smartWallet?.address,
       email: user.email?.address,
       phone: user.phone?.number,
@@ -131,4 +177,25 @@ export async function getGardeners(): Promise<GardenerCard[]> {
       avatar: user.farcaster?.pfp || (user.customMetadata?.avatar as string),
     };
   });
+}
+
+export async function updateUserProfile(
+  id: string,
+  customMetadata: Record<string, unknown>,
+  accessToken?: string
+) {
+  const apiBase = import.meta.env.DEV ? "http://localhost:3000" : "https://api.greengoods.app";
+  const res = await fetch(`${apiBase}/users/me`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    },
+    body: JSON.stringify({ id, customMetadata }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to update user: ${res.status}`);
+  }
+  return (await res.json()) as unknown;
 }

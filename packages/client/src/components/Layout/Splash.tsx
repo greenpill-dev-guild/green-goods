@@ -1,6 +1,6 @@
 import type React from "react";
 
-import { APP_NAME } from "@/constants";
+import { APP_NAME } from "@/config";
 
 import { Button } from "../UI/Button";
 
@@ -20,6 +20,7 @@ export const Splash: React.FC<SplashProps> = ({ login, isLoggingIn, buttonLabel 
         disabled={isLoggingIn}
         className="w-full"
         shape="pilled"
+        data-testid="login-button"
         label={buttonLabel}
         // variant="secondary"
         // fullWidth

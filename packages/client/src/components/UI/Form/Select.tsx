@@ -13,6 +13,7 @@ interface FormSelectProps<T extends FieldValues = FieldValues> {
   control: Control<T>;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const FormSelectComponent = forwardRef<HTMLSelectElement, FormSelectProps<any>>(
   ({ name, label, options, control }, _ref) => {
     return (

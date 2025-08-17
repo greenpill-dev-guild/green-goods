@@ -1,0 +1,14 @@
+---
+description: Indexer — Envio GraphQL conventions, mappings, and data exposure for UI.
+globs:
+  - "packages/indexer/src/**/*"
+  - "packages/indexer/schema.graphql"
+alwaysApply: false
+---
+
+# Indexer Rules
+
+- Mirror contract events precisely; include work status transitions and attestation references.
+- Expose queries optimized for UI screens (gardens list, pending approvals, user submissions).
+- Add pagination & filters; prefer stable sort keys.
+- Keep mapping functions idempotent; handle reorgs with confirmations strategy.

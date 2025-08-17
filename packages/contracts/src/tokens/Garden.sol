@@ -42,13 +42,12 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         // _disableInitializers(); // Prevent constructor usage for upgradable contracts
     }
 
-    /// @notice Initializes the contract with the given multisig wallet and Garden account implementation.
+    /// @notice Initializes the contract and sets the specified address as the owner.
     /// @dev This function replaces the constructor for upgradable contracts.
-    /// @param _multisig The address of the multisig wallet to set as the owner.
+    /// @param _multisig The address that will own the contract.
     function initialize(address _multisig) external initializer {
         __ERC721_init("Green Goods Garden", "GGG");
-        __Ownable_init();
-        // transferOwnership(_multisig);
+        __Ownable_init(_multisig);
     }
 
     /// @notice Mints a new Garden token and creates the associated Garden account.
@@ -66,20 +65,18 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         string calldata bannerImage,
         address[] calldata gardeners,
         address[] calldata gardenOperators
-    ) external onlyOwner returns (address) {
+    )
+        external
+        onlyOwner
+        returns (address)
+    {
         uint256 tokenId = _nextTokenId++;
         _safeMint(_msgSender(), tokenId);
 
         address gardenAccount = TBALib.createAccount(_gardenAccountImplementation, address(this), tokenId);
 
         GardenAccount(payable(gardenAccount)).initialize(
-            communityToken,
-            name,
-            description,
-            location,
-            bannerImage,
-            gardeners,
-            gardenOperators
+            communityToken, name, description, location, bannerImage, gardeners, gardenOperators
         );
 
         emit GardenMinted(tokenId, gardenAccount, name, description, location, bannerImage, gardeners, gardenOperators);
@@ -90,5 +87,5 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Authorizes contract upgrades.
     /// @dev Restricted to the contract owner.
     /// @param newImplementation The address of the new contract implementation.
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner { }
 }

@@ -1,78 +1,78 @@
 import { RiHeadphoneLine, RiSettings2Fill } from "@remixicon/react";
-import type React from "react";
-import { useRef } from "react";
+import { useState } from "react";
 import { useIntl } from "react-intl";
 import { Profile as UserProfile } from "@/components/UI/Profile/Profile";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/UI/Tabs/Tabs";
+import { type StandardTab, StandardTabs } from "@/components/UI/Tabs";
 import { useUser } from "@/providers/user";
 import { formatAddress } from "@/utils/text";
 import { ProfileAccount } from "./Account";
 import { ProfileHelp } from "./Help";
 
 const Profile: React.FC = () => {
-  const { user } = useUser();
-  const contentRef = useRef<HTMLDivElement>(null);
+  const { user, smartAccountAddress } = useUser();
   const intl = useIntl();
-  const availableTabs = {
-    account: {
-      value: "account",
-      Icon: RiSettings2Fill,
+  const [activeTab, setActiveTab] = useState("account");
+
+  const tabs: StandardTab[] = [
+    {
+      id: "account",
       label: intl.formatMessage({
         id: "app.profile.account",
         description: "Account",
       }),
+      icon: <RiSettings2Fill className="w-4" />,
     },
-    help: {
-      value: "help",
-      Icon: RiHeadphoneLine,
+    {
+      id: "help",
       label: intl.formatMessage({
         id: "app.profile.help",
         description: "Help",
       }),
+      icon: <RiHeadphoneLine className="w-4" />,
     },
+  ];
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "account":
+        return <ProfileAccount />;
+      case "help":
+        return <ProfileHelp />;
+      default:
+        return <ProfileAccount />;
+    }
   };
 
   return (
-    <section className={"flex"}>
-      <Tabs
-        defaultValue="account"
-        className="w-full h-full px-4 pt-72 pb-4"
-        onValueChange={() => {
-          if (contentRef.current) {
-            contentRef.current.scrollTop = 0;
-          }
-        }}
-      >
-        <div className="fixed w-full gap-1 top-0 left-0 px-4 py-8 bg-white z-10 items-center">
+    <section className="flex flex-col h-full">
+      {/* Fixed Header */}
+      <div className="fixed w-full top-0 left-0 bg-white z-10">
+        <div className="px-4 pt-6 pb-4">
           <UserProfile
             displayName={user?.email?.address || user?.phone?.number || user?.id || "Unknown"}
             avatar={user?.farcaster?.pfp || "/images/avatar.png"}
             location={(user?.customMetadata?.location as string) || undefined}
-            wallet={user?.wallet?.address && formatAddress(user?.wallet?.address)}
-            registration={user?.createdAt.toLocaleDateString() || undefined}
+            wallet={smartAccountAddress ? formatAddress(smartAccountAddress) : undefined}
+            registration={user?.createdAt?.toLocaleDateString() || undefined}
             email={user?.email?.address || undefined}
             telephone={user?.phone?.number || undefined}
           />
-          <TabsList className="flex items-center justify-center mt-2">
-            {Object.values(availableTabs).map((tab) => {
-              const Icon = tab.Icon;
-              return (
-                <TabsTrigger key={tab.value} value={tab.value} variant="gardenTabs">
-                  {<Icon className="w-4 mx-1" />}
-                  {tab.label}
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
         </div>
-        {/* <div className="flex flex-col gap-4 my-4"> */}
-        <TabsContent className="flex flex-col gap-4 my-4" value="account" ref={contentRef}>
-          <ProfileAccount />
-        </TabsContent>
-        <TabsContent className="flex flex-col gap-4 my-4" value="help" ref={contentRef}>
-          <ProfileHelp />
-        </TabsContent>
-      </Tabs>
+
+        {/* Full Screen Tabs - outside padding */}
+        <StandardTabs
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          variant="compact"
+          scrollTargetSelector="#profile-scroll"
+        />
+      </div>
+
+      {/* Content */}
+      <div id="profile-scroll" className="flex-1 pt-72 pb-4 overflow-y-auto">
+        <div className="padded flex flex-col gap-4 my-4">{renderTabContent()}</div>
+      </div>
     </section>
   );
 };

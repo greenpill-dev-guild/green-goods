@@ -1,11 +1,18 @@
 import { Client, cacheExchange, fetchExchange } from "@urql/core";
 
+import { getEasGraphqlUrl, getIndexerUrl } from "@/config";
+
+// Create EAS client for a specific chain
+export function createEasClient(chainId?: number | string) {
+  return new Client({
+    url: getEasGraphqlUrl(chainId),
+    exchanges: [cacheExchange, fetchExchange],
+  });
+}
+
 export const greenGoodsIndexer = new Client({
-  url: import.meta.env.VITE_ENVIO_INDEXER_URL,
+  url: getIndexerUrl(),
   exchanges: [cacheExchange, fetchExchange],
 });
 
-export const easArbitrumClient = new Client({
-  url: "https://arbitrum.easscan.org/graphql",
-  exchanges: [cacheExchange, fetchExchange],
-});
+// Prefer using createEasClient(chainId) for chain-aware requests.

@@ -1,12 +1,16 @@
 {
   "[solidity]": {
-    "editor.defaultFormatter": "NomicFoundation.hardhat-solidity"
+    "editor.defaultFormatter": "JuanBlanco.solidity",
+    "editor.formatOnSave": true,
+    "editor.rulers": [120],
+    "editor.wordWrap": "bounded",
+    "editor.wordWrapColumn": 120
   },
   "[toml]": {
-    "editor.defaultFormatter": "tamasfe.even-better-toml"
+    "editor.defaultFormatter": "biomejs.biome"
   },
   "[css]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "biomejs.biome"
   },
   "[typescriptreact]": {
     "editor.defaultFormatter": "biomejs.biome"
@@ -28,6 +32,11 @@
     "source.organizeImports.biome": "explicit"
   },
   "solidity.formatter": "forge",
+  "solidity.defaultCompiler": "localNodeModule",
+  "solidity.compileUsingRemoteVersion": "v0.8.25+commit.b61c2a91",
+  "solidity.enableFormatDocument": true,
+  "solidity.enableFormatOnSave": true,
+  "solidity.formatOnSave": true,
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,
   "search.exclude": {

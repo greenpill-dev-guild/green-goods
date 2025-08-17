@@ -1,0 +1,28 @@
+{
+  "actions": [
+    {
+      "title": "Soil Health Assessment",
+      "instructions": "Measure soil moisture, pH, and organic matter content using provided testing kit. Document findings with photos and measurements.",
+      "startTime": "2024-01-01T00:00:00Z",
+      "endTime": "2024-12-31T23:59:59Z",
+      "capitals": ["LIVING", "INTELLECTUAL", "MATERIAL"],
+      "media": ["QmSampleSoilTestingInstructionsHash", "QmSampleSoilHealthGuideHash", "QmSampleReportingTemplateHash"]
+    },
+    {
+      "title": "Biodiversity Survey",
+      "instructions": "Conduct a comprehensive survey of plant and animal species in the garden area. Use iNaturalist app for species identification.",
+      "startTime": "2024-01-01T00:00:00Z",
+      "endTime": "2024-12-31T23:59:59Z",
+      "capitals": ["LIVING", "INTELLECTUAL", "EXPERIENTIAL"],
+      "media": ["QmSampleBiodiversityGuideHash", "QmSampleSpeciesIdentificationHash", "QmSampleDataCollectionFormHash"]
+    },
+    {
+      "title": "Carbon Sequestration Measurement",
+      "instructions": "Measure tree diameter at breast height (DBH) and calculate carbon storage potential using provided formulas.",
+      "startTime": "2024-01-01T00:00:00Z",
+      "endTime": "2024-12-31T23:59:59Z",
+      "capitals": ["LIVING", "INTELLECTUAL", "MATERIAL"],
+      "media": ["QmSampleCarbonMeasurementGuideHash", "QmSampleCalculationFormulaHash", "QmSampleReportingTemplateHash"]
+    }
+  ]
+}

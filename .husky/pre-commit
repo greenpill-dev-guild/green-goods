@@ -1,1 +1,24 @@
-pnpm lint-staged
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Ensure nvm is available and use Node 22 if possible
+export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+# Try to use project Node version (22) silently; ignore errors if nvm is missing
+nvm use --silent 22 >/dev/null 2>&1 || true
+
+# Ensure pnpm is available (via corepack if needed)
+if ! command -v pnpm >/dev/null 2>&1; then
+  if command -v corepack >/dev/null 2>&1; then
+    corepack enable >/dev/null 2>&1 || true
+    corepack prepare pnpm@latest --activate >/dev/null 2>&1 || true
+  fi
+fi
+
+# Run lint-staged using pnpm if present, otherwise fall back to npx
+if command -v pnpm >/dev/null 2>&1; then
+  pnpm lint-staged
+else
+  npx --no-install lint-staged
+fi
+

@@ -21,20 +21,22 @@ if (!self.define) {
 
   const singleRequire = (uri, parentUri) => {
     uri = new URL(uri + ".js", parentUri).href;
-    return (
-      registry[uri] ||
-      new Promise((resolve) => {
-        if ("document" in self) {
-          const script = document.createElement("script");
-          script.src = uri;
-          script.onload = resolve;
-          document.head.appendChild(script);
-        } else {
-          nextDefineUri = uri;
-          importScripts(uri);
-          resolve();
-        }
-      }).then(() => {
+    return registry[uri] || (
+      
+        new Promise(resolve => {
+          if ("document" in self) {
+            const script = document.createElement("script");
+            script.src = uri;
+            script.onload = resolve;
+            document.head.appendChild(script);
+          } else {
+            nextDefineUri = uri;
+            importScripts(uri);
+            resolve();
+          }
+        })
+      
+      .then(() => {
         let promise = registry[uri];
         if (!promise) {
           throw new Error(`Module ${uri} didn’t register its module`);
@@ -45,29 +47,27 @@ if (!self.define) {
   };
 
   self.define = (depsNames, factory) => {
-    const uri =
-      nextDefineUri || ("document" in self ? document.currentScript.src : "") || location.href;
+    const uri = nextDefineUri || ("document" in self ? document.currentScript.src : "") || location.href;
     if (registry[uri]) {
       // Module is already loading or loaded.
       return;
     }
     let exports = {};
-    const require = (depUri) => singleRequire(depUri, uri);
+    const require = depUri => singleRequire(depUri, uri);
     const specialDeps = {
       module: { uri },
       exports,
-      require,
+      require
     };
-    registry[uri] = Promise.all(
-      depsNames.map((depName) => specialDeps[depName] || require(depName))
-    ).then((deps) => {
+    registry[uri] = Promise.all(depsNames.map(
+      depName => specialDeps[depName] || require(depName)
+    )).then(deps => {
       factory(...deps);
       return exports;
     });
   };
 }
-define(["./workbox-c982e567"], function (workbox) {
-  "use strict";
+define(['./workbox-d9170743'], (function (workbox) { 'use strict';
 
   self.skipWaiting();
   workbox.clientsClaim();
@@ -77,23 +77,43 @@ define(["./workbox-c982e567"], function (workbox) {
    * requests for URLs in the manifest.
    * See https://goo.gl/S9QRab
    */
-  workbox.precacheAndRoute(
-    [
-      {
-        url: "registerSW.js",
-        revision: "3ca0b8505b4bec776b69afdba2768812",
-      },
-      {
-        url: "index.html",
-        revision: "0.j3son40h6so",
-      },
-    ],
-    {}
-  );
+  workbox.precacheAndRoute([{
+    "url": "index.html",
+    "revision": "0.2hghhoe5guo"
+  }], {});
   workbox.cleanupOutdatedCaches();
-  workbox.registerRoute(
-    new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
-      allowlist: [/^\/$/],
-    })
-  );
-});
+  workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
+    allowlist: [/^\/$/]
+  }));
+  workbox.registerRoute(/.*\.js$/, new workbox.CacheFirst({
+    "cacheName": "js-cache",
+    plugins: [new workbox.CacheableResponsePlugin({
+      statuses: [0, 200]
+    })]
+  }), 'GET');
+  workbox.registerRoute(/.*\.(png|jpg|jpeg|svg|gif|webp)$/, new workbox.CacheFirst({
+    "cacheName": "image-cache",
+    plugins: [new workbox.ExpirationPlugin({
+      maxEntries: 100,
+      maxAgeSeconds: 2592000
+    }), new workbox.CacheableResponsePlugin({
+      statuses: [0, 200]
+    })]
+  }), 'GET');
+  workbox.registerRoute(/^https:\/\/api\.pinata\.cloud/, new workbox.NetworkFirst({
+    "cacheName": "api-cache",
+    "networkTimeoutSeconds": 5,
+    plugins: [new workbox.CacheableResponsePlugin({
+      statuses: [0, 200]
+    })]
+  }), 'GET');
+  workbox.registerRoute(/graphql/, new workbox.NetworkFirst({
+    "cacheName": "graphql-cache",
+    "networkTimeoutSeconds": 5,
+    plugins: [new workbox.CacheableResponsePlugin({
+      statuses: [0, 200]
+    })]
+  }), 'GET');
+
+}));
+//# sourceMappingURL=sw.js.map

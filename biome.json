@@ -7,17 +7,7 @@
   },
   "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "linter": {
-    "enabled": true,
-    "rules": {
-      "recommended": false,
-      "style": {
-        "noNonNullAssertion": "off",
-        "noParameterAssign": "off"
-      },
-      "suspicious": {
-        "noTemplateCurlyInString": "off"
-      }
-    }
+    "enabled": false
   },
   "formatter": {
     "enabled": true,
@@ -31,10 +21,19 @@
     "bracketSameLine": false,
     "includes": [
       "**/packages/client/src/**/*.{ts,tsx,js,jsx}",
+      "**/packages/client/*.{ts,tsx,js,jsx}",
+      "**/packages/api/src/**/*.{ts,tsx,js,jsx}",
+      "**/packages/indexer/src/**/*.{ts,tsx,js,jsx}",
       "**/packages/contracts/src/**/*.{ts,tsx,js,jsx}",
       "**/packages/contracts/script/**/*.{ts,tsx,js,jsx}",
-      "**/packages/eas/src/**/*.{ts,tsx,js,jsx}",
-      "**/*.json"
+      "**/packages/client/*.config.{ts,js}",
+      "**/tests/**/*.{ts,tsx,js,jsx}",
+      "*.config.{ts,js}",
+      "**/*.json",
+      "**/*.md",
+      "!**/packages/contracts/out/**",
+      "!**/packages/contracts/broadcast/**",
+      "!**/packages/contracts/cache/**"
     ]
   },
   "javascript": {
@@ -57,10 +56,20 @@
   "files": {
     "includes": [
       "**/packages/client/src/**/*.{ts,tsx,js,jsx}",
+      "**/packages/api/src/**/*.{ts,tsx,js,jsx}",
+      "**/packages/indexer/src/**/*.{ts,tsx,js,jsx}",
       "**/packages/contracts/src/**/*.{ts,tsx,js,jsx}",
       "**/packages/contracts/script/**/*.{ts,tsx,js,jsx}",
-      "**/packages/eas/src/**/*.{ts,tsx,js,jsx}",
-      "**/*.json"
+      "**/packages/client/*.config.{ts,js}",
+      "**/tests/**/*.{ts,tsx,js,jsx}",
+      "*.config.{ts,js}",
+      "**/*.json",
+      "**/*.md",
+      "!**/packages/contracts/out/**",
+      "!**/packages/contracts/broadcast/**",
+      "!**/packages/contracts/cache/**",
+      "!.biomeignore",
+      "!.gitignore"
     ]
   }
 }

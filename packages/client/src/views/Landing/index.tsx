@@ -1,6 +1,6 @@
-import type React from "react";
-import { useState } from "react";
+import React, { useState } from "react";
 import toast from "react-hot-toast";
+import { Navigate, useLocation } from "react-router-dom";
 import { Footer } from "@/components/Layout/Footer";
 import { Header } from "@/components/Layout/Header";
 import { Hero } from "@/components/Layout/Hero";
@@ -11,7 +11,8 @@ type LandingProps = {};
 type SubscribeState = "idle" | "subscribing" | "subscribed" | "error";
 
 const Landing: React.FC<LandingProps> = () => {
-  const { isMobile } = useApp();
+  const { isMobile, isInstalled } = useApp();
+  const location = useLocation();
 
   const [_state, setSubscribeState] = useState<SubscribeState>("idle");
 
@@ -20,7 +21,6 @@ const Landing: React.FC<LandingProps> = () => {
 
     setSubscribeState("subscribing");
 
-    console.log(e.currentTarget);
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email") as string;
 
@@ -34,21 +34,20 @@ const Landing: React.FC<LandingProps> = () => {
       .then((response) => {
         if (!response.ok) {
           // ERROR
-          console.log(response.status);
-
           throw new Error("Network response was not ok.");
         }
-        toast.success("Successfilly subscribed!");
+        toast.success("Successfully subscribed!");
 
         setSubscribeState("subscribed");
       })
-      .catch((error) => {
-        console.error("Error:", error);
-
+      .catch((_error) => {
         setSubscribeState("error");
         toast.error("Something went wrong. Please try again.");
       });
   }
+
+  const redirectTo = new URLSearchParams(location.search).get("redirectTo");
+  if (isInstalled && redirectTo) return <Navigate to={redirectTo} replace />;
 
   return (
     <div id="landing-root" className="px-8">

@@ -27,7 +27,7 @@ declare interface GardenerCard {
   phone?: string;
   location?: string;
   avatar?: string | null;
-  registeredAt: Date;
+  registeredAt: number;
 }
 
 declare interface GardenCard {
@@ -39,7 +39,7 @@ declare interface GardenCard {
 }
 
 declare interface Garden extends GardenCard {
-  createdAt: Date;
+  createdAt: number;
   description: string;
   tokenAddress: string;
   tokenID: number;
@@ -81,11 +81,11 @@ declare interface GardenAssessment {
 }
 
 declare interface ActionCard {
-  id: number;
+  id: string;
   startTime: number;
   endTime: number;
   title: string;
-  instructions: string;
+  instructions?: string;
   capitals: Capital[];
   media: string[];
   createdAt: number;
@@ -94,17 +94,17 @@ declare interface ActionCard {
 declare interface Action extends ActionCard {
   description: string;
   inputs: WorkInput[];
-  mediaInfo: {
+  mediaInfo?: {
     title: string;
     description: string;
     maxImageCount: number;
   };
-  details: {
+  details?: {
     title: string;
     description: string;
     feedbackPlaceholder: string;
   };
-  review: {
+  review?: {
     title: string;
     description: string;
   };
