@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
+// AA client comes from UserProvider (Kernel-based), not Privy smart wallets
+
 import toast from "react-hot-toast";
 import { DEFAULT_CHAIN_ID } from "@/config";
 import { queryKeys } from "@/hooks/query-keys";
@@ -49,10 +51,12 @@ interface JobQueueProviderProps {
 }
 
 const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) => {
-  const { smartAccountAddress, smartAccountClient } = useUser();
+  const { smartAccountAddress } = useUser();
   const [stats, setStats] = useState<QueueStats>({ total: 0, pending: 0, failed: 0, synced: 0 });
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastEvent, setLastEvent] = useState<QueueEvent | null>(null);
+
+  // No direct dependency on Privy smart wallets here
 
   // Subscribe to queue events
   useEffect(() => {
@@ -78,10 +82,8 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
           const newStats = await jobQueue.getStats();
           setStats(newStats);
         }
-      } catch (error) {
-        if (!abortController.signal.aborted) {
-          console.error("Failed to get queue stats:", error);
-        }
+      } catch {
+        // no-op: transient errors while updating stats are ignored
       }
     };
 
@@ -206,7 +208,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       abortController.abort(); // Cancel any pending async operations
       unsubscribe();
     };
-  }, []);
+  }, [smartAccountAddress]);
 
   // Removed queue-level sync toasts; provider now handles processing inline
 
@@ -215,37 +217,9 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
     isProcessing,
     lastEvent,
     flush: async () => {
-      // Provider-driven flush: iterate pending jobs and process inline
-      try {
-        const pendingWork = await jobQueue.getJobs({ kind: "work", synced: false });
-        const pendingApprovals = await jobQueue.getJobs({ kind: "approval", synced: false });
-
-        let processed = 0;
-        for (const j of pendingWork) {
-          if (smartAccountClient) {
-            const { processWorkJobInline } = await import("@/modules/job-queue/inline-processor");
-            const res = await processWorkJobInline(j.id, DEFAULT_CHAIN_ID, smartAccountClient);
-            if (res.success) processed++;
-          }
-        }
-        for (const j of pendingApprovals) {
-          if (smartAccountClient) {
-            const { processApprovalJobInline } = await import(
-              "@/modules/job-queue/inline-processor"
-            );
-            const res = await processApprovalJobInline(j.id, DEFAULT_CHAIN_ID, smartAccountClient);
-            if (res.success) processed++;
-          }
-        }
-        const newStats = await jobQueue.getStats();
-        setStats(newStats);
-        if (processed > 0) {
-          queryClient.invalidateQueries({ queryKey: queryKeys.queue.stats() });
-          queryClient.invalidateQueries({ queryKey: queryKeys.queue.pendingCount() });
-        }
-      } catch (e) {
-        // best-effort; errors are surfaced via per-job events
-      }
+      // Server-driven submission: leave jobs for background workers or future signal
+      const newStats = await jobQueue.getStats();
+      setStats(newStats);
     },
     hasPendingJobs: () => jobQueue.hasPendingJobs(),
     getPendingCount: () => jobQueue.getPendingCount(),

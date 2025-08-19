@@ -49,13 +49,9 @@ const Profile: React.FC = () => {
       <div className="fixed w-full top-0 left-0 bg-white z-10">
         <div className="px-4 pt-6 pb-4">
           <UserProfile
-            displayName={user?.email?.address || user?.phone?.number || user?.id || "Unknown"}
-            avatar={user?.farcaster?.pfp || "/images/avatar.png"}
-            location={(user?.customMetadata?.location as string) || undefined}
+            displayName={user?.id || "Unknown"}
+            avatar={"/images/avatar.png"}
             wallet={smartAccountAddress ? formatAddress(smartAccountAddress) : undefined}
-            registration={user?.createdAt?.toLocaleDateString() || undefined}
-            email={user?.email?.address || undefined}
-            telephone={user?.phone?.number || undefined}
           />
         </div>
 

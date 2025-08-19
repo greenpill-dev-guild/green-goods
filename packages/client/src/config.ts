@@ -83,8 +83,9 @@ function getNetworkConfigFromNetworksJson(chainId: number) {
 
   // Find network by chain ID
   for (const config of Object.values(networks)) {
-    if ((config as any).chainId === chainId) {
-      return config as any;
+    const cfg = config as unknown as Record<string, unknown>;
+    if ((cfg.chainId as number) === chainId) {
+      return config as unknown as NetworkConfig;
     }
   }
 
@@ -93,23 +94,43 @@ function getNetworkConfigFromNetworksJson(chainId: number) {
 }
 
 // Function to safely import deployment files
-function getDeploymentConfig(chainId: number | string): any {
+interface DeploymentConfig {
+  schemas?: {
+    gardenAssessmentSchemaUID?: string;
+    gardenAssessmentSchema?: string;
+    workSchemaUID?: string;
+    workSchema?: string;
+    workApprovalSchemaUID?: string;
+    workApprovalSchema?: string;
+  };
+  eas?: {
+    address?: string;
+    schemaRegistry?: string;
+  };
+  gardenToken?: string;
+  actionRegistry?: string;
+  workResolver?: string;
+  workApprovalResolver?: string;
+  deploymentRegistry?: string;
+}
+
+function getDeploymentConfig(chainId: number | string): DeploymentConfig {
   const chain = String(chainId);
   try {
     switch (chain) {
       case "31337":
-        return deployment31337;
+        return deployment31337 as unknown as DeploymentConfig;
       case "42161":
-        return deployment42161;
+        return deployment42161 as unknown as DeploymentConfig;
       case "42220":
-        return deployment42220;
+        return deployment42220 as unknown as DeploymentConfig;
       case "84532":
-        return deployment84532;
+        return deployment84532 as unknown as DeploymentConfig;
       default:
-        return {};
+        return {} as DeploymentConfig;
     }
-  } catch (error) {
-    return {};
+  } catch {
+    return {} as DeploymentConfig;
   }
 }
 
@@ -197,10 +218,16 @@ export function getEASConfig(chainId?: number | string): EASConfig {
       schema: deployment.schemas?.workApprovalSchema || "",
     },
     EAS: {
-      address: deployment.eas?.address || networkConfig.contracts?.eas,
+      address:
+        deployment.eas?.address ||
+        networkConfig.contracts?.eas ||
+        "0x0000000000000000000000000000000000000000",
     },
     SCHEMA_REGISTRY: {
-      address: deployment.eas?.schemaRegistry || networkConfig.contracts?.easSchemaRegistry,
+      address:
+        deployment.eas?.schemaRegistry ||
+        networkConfig.contracts?.easSchemaRegistry ||
+        "0x0000000000000000000000000000000000000000",
     },
   };
 }
@@ -280,4 +307,33 @@ export function getNetworkConfig(chainId?: number | string): NetworkConfig {
         networkConfig.contracts?.multicallForwarder || "0x0000000000000000000000000000000000000000",
     },
   };
+}
+
+// Build Pimlico RPC URL for a given chain id
+// Format: https://api.pimlico.io/v2/<chain-id>/rpc?apikey=<key>
+export function getPimlicoRpcUrl(chainId?: number | string): string {
+  const id = chainId ? Number(chainId) : getDefaultChain().id;
+  const apiKey = import.meta.env.VITE_PIMLICO_API_KEY || "";
+  const slug = (() => {
+    switch (id) {
+      case 31337:
+        return "31337";
+      case 11155111:
+        return "11155111";
+      case 42161:
+        return "42161";
+      case 8453:
+        return "8453";
+      case 84532:
+        return "84532";
+      case 10:
+        return "10";
+      case 42220:
+        return "42220";
+      default:
+        return String(id);
+    }
+  })();
+  const base = `https://api.pimlico.io/v2/${slug}/rpc`;
+  return apiKey ? `${base}?apikey=${apiKey}` : base;
 }

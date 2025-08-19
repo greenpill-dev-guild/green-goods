@@ -17,7 +17,7 @@ interface JobQueueEventMap {
   "queue:sync-completed": { result: { processed: number; failed: number; skipped: number } };
   "queue:sync-failed": { error: string };
   "offline:status-changed": { isOnline: boolean };
-  "performance:update": { metrics: any };
+  "performance:update": { metrics: unknown };
   "error:boundary": { error: string; context: string };
 }
 
@@ -32,7 +32,7 @@ class JobQueueEventBus extends EventTarget {
    * Emit a typed event
    */
   emit<T extends JobQueueEventType>(type: T, data: JobQueueEventData<T>): void {
-    if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
+    if (import.meta.env?.VITE_QUEUE_DEBUG === "true") {
       // eslint-disable-next-line no-console
       console.debug("[JobQueueEventBus] emit", type, data);
     }
@@ -91,7 +91,7 @@ class JobQueueEventBus extends EventTarget {
     // Since EventTarget doesn't provide a way to get listeners,
     // we'll need to track them manually or just let them be garbage collected
     // For now, we'll just clear our internal state if we had any
-    console.debug("Event bus cleanup requested - listeners will be garbage collected");
+    // no-op in production; debug logging removed per lint rules
   }
 }
 
@@ -101,25 +101,23 @@ export const jobQueueEventBus = new JobQueueEventBus();
 // React hook for using the event bus
 export function useJobQueueEvent<T extends JobQueueEventType>(
   type: T,
-  listener: JobQueueEventListener<T>,
-  deps: React.DependencyList = []
+  listener: JobQueueEventListener<T>
 ): void {
   React.useEffect(() => {
     const unsubscribe = jobQueueEventBus.on(type, listener);
     return unsubscribe;
-  }, deps);
+  }, [type, listener]);
 }
 
 // React hook for using multiple events
 export function useJobQueueEvents<T extends JobQueueEventType>(
   types: T[],
-  listener: (type: T, data: JobQueueEventData<T>) => void,
-  deps: React.DependencyList = []
+  listener: (type: T, data: JobQueueEventData<T>) => void
 ): void {
   React.useEffect(() => {
     const unsubscribe = jobQueueEventBus.onMultiple(types, listener);
     return unsubscribe;
-  }, deps);
+  }, [listener, types]);
 }
 
 // Cleanup event bus on page unload

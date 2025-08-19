@@ -1,12 +1,4 @@
-import { usePrivy } from "@privy-io/react-auth";
-import {
-  RiEarthFill,
-  RiKeyLine,
-  RiLogoutBoxRLine,
-  RiMailFill,
-  RiPhoneLine,
-  RiWalletLine,
-} from "@remixicon/react";
+import { RiEarthFill, RiKeyLine, RiLogoutBoxRLine } from "@remixicon/react";
 import { ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 import { Avatar } from "@/components/UI/Avatar/Avatar";
@@ -22,6 +14,7 @@ import {
 } from "@/components/UI/Select/Select";
 
 import { type Locale, useApp } from "@/providers/app";
+import { useUser } from "@/providers/user";
 import { capitalize } from "@/utils/text";
 import toast from "react-hot-toast";
 
@@ -44,24 +37,11 @@ interface ApplicationSettings {
 type ProfileAccountProps = {};
 
 export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
-  const {
-    user,
-    linkEmail,
-    linkPhone,
-    linkPasskey,
-    linkWallet,
-    unlinkEmail,
-    unlinkPhone,
-    // unlinkPasskey,
-    unlinkWallet,
-    logout,
-  } = usePrivy();
+  const { user, logout } = useUser();
 
   const { locale, switchLanguage, availableLocales } = useApp();
   const intl = useIntl();
-  const [displayName, setDisplayName] = useState<string>(
-    ((user?.customMetadata?.username as string) || "") ?? ""
-  );
+  const [displayName, setDisplayName] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {
@@ -69,18 +49,11 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
     try {
       setSaving(true);
       const { updateUserProfile } = await import("@/modules/greengoods");
-      let accessToken: string | undefined;
-      try {
-        const maybeTokenGetter = (usePrivy() as any)?.getAccessToken;
-        if (typeof maybeTokenGetter === "function") {
-          accessToken = (await maybeTokenGetter()) as string | undefined;
-        }
-      } catch {}
-      await updateUserProfile(user.id, { username: displayName }, accessToken);
+      await updateUserProfile(user.id, { username: displayName });
       toast.success(
         intl.formatMessage({ id: "app.toast.profileUpdated", defaultMessage: "Profile updated" })
       );
-    } catch (e) {
+    } catch {
       toast.error(
         intl.formatMessage({ id: "app.toast.profileUpdateFailed", defaultMessage: "Update failed" })
       );
@@ -128,68 +101,12 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
 
   const accountSettings: LinkedAccount[] = [
     {
-      title: intl.formatMessage({
-        id: "app.account.email",
-        description: "Email",
-      }),
-      description:
-        user?.email?.address ||
-        intl.formatMessage({
-          id: "app.account.notLinked",
-          description: "Not Linked",
-        }),
-      isLinked: !!user?.email?.address,
-      Icon: <RiMailFill className="w-4" />,
-      link: linkEmail,
-      unlink: () => user?.email?.address && unlinkEmail(user?.email?.address),
-    },
-    {
-      title: intl.formatMessage({
-        id: "app.account.phone",
-        description: "Phone",
-      }),
-      description:
-        user?.phone?.number ||
-        intl.formatMessage({
-          id: "app.account.notLinked",
-          description: "Not Linked",
-        }),
-      isLinked: !!user?.phone?.number,
-      Icon: <RiPhoneLine className="w-4" />,
-      link: linkPhone,
-      unlink: () => user?.phone?.number && unlinkPhone(user?.phone?.number),
-    },
-    {
-      title: intl.formatMessage({
-        id: "app.account.passkey",
-        description: "Passkey",
-      }),
-      description: user?.mfaMethods.includes("passkey")
-        ? ""
-        : intl.formatMessage({
-            id: "app.account.notLinked",
-            description: "Not Linked",
-          }),
-      isLinked: !!user?.mfaMethods.includes("passkey"),
+      title: intl.formatMessage({ id: "app.account.passkey", description: "Passkey" }),
+      description: "",
+      isLinked: true,
       Icon: <RiKeyLine className="w-4" />,
-      link: linkPasskey,
+      link: () => {},
       unlink: () => {},
-    },
-    {
-      title: intl.formatMessage({
-        id: "app.account.wallet",
-        description: "Wallet",
-      }),
-      description: user?.wallet
-        ? ""
-        : intl.formatMessage({
-            id: "app.account.notLinked",
-            description: "Not Linked",
-          }),
-      isLinked: !!user?.wallet,
-      Icon: <RiWalletLine className="w-4" />,
-      link: linkWallet,
-      unlink: () => user?.wallet?.address && unlinkWallet(user?.wallet?.address),
     },
   ];
 

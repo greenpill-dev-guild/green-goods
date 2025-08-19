@@ -3,6 +3,7 @@ import { encodeFunctionData } from "viem";
 import { getEASConfig } from "@/config";
 import { abi } from "@/utils/abis/EAS.json";
 import { encodeWorkApprovalData } from "@/utils/eas";
+import type { SmartAccountClient } from "permissionless";
 
 interface EncodedApprovalData {
   attestationData: `0x${string}`;
@@ -26,9 +27,9 @@ export const approvalProcessor: JobProcessor<ApprovalJobPayload, EncodedApproval
   async execute(
     encoded: EncodedApprovalData,
     _meta: Record<string, unknown>,
-    smartAccountClient: any
+    smartAccountClient: unknown
   ): Promise<string> {
-    if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
+    if (import.meta.env.VITE_QUEUE_DEBUG === "true") {
       // eslint-disable-next-line no-console
       console.debug("[approvalProcessor] execute", {
         to: encoded.easConfig.EAS.address,
@@ -54,18 +55,21 @@ export const approvalProcessor: JobProcessor<ApprovalJobPayload, EncodedApproval
     });
 
     try {
-      const receipt = await smartAccountClient.sendTransaction({
+      const client = smartAccountClient as SmartAccountClient;
+      const receipt = await client.sendTransaction({
+        chain: undefined,
+        account: client.account?.address as `0x${string}`,
         to: encoded.easConfig.EAS.address as `0x${string}`,
         value: 0n,
         data: encodedData,
       });
-      if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
+      if (import.meta.env.VITE_QUEUE_DEBUG === "true") {
         // eslint-disable-next-line no-console
         console.debug("[approvalProcessor] sendTransaction receipt", receipt);
       }
       return receipt;
-    } catch (err: any) {
-      if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
+    } catch (err) {
+      if (import.meta.env.VITE_QUEUE_DEBUG === "true") {
         // eslint-disable-next-line no-console
         console.debug("[approvalProcessor] sendTransaction error", err);
       }

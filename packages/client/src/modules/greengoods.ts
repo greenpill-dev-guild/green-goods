@@ -1,4 +1,12 @@
-import type { User } from "@privy-io/react-auth";
+type User = {
+  id: string;
+  createdAt: string;
+  smartWallet?: { address?: string } | null;
+  email?: { address?: string } | null;
+  phone?: { number?: string } | null;
+  customMetadata?: Record<string, unknown> | null;
+  farcaster?: { pfp?: string } | null;
+};
 import { DEFAULT_CHAIN_ID } from "@/config";
 import litterActionInstructions from "@/utils/actions/litter.json";
 import observerActionInstructions from "@/utils/actions/observe.json";

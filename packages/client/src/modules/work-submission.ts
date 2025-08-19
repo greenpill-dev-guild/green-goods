@@ -99,7 +99,10 @@ export function validateWorkDraft(
   }
 
   // Plant count is optional; only validate if provided and negative
-  if (typeof (draft as any).plantCount === "number" && (draft as any).plantCount < 0) {
+  if (
+    typeof (draft as unknown as { plantCount?: number }).plantCount === "number" &&
+    (draft as unknown as { plantCount?: number }).plantCount! < 0
+  ) {
     errors.push("Plant count cannot be negative");
   }
 
@@ -176,6 +179,20 @@ export function formatJobError(error: string): string {
     network: "Network connection error - your work is saved offline",
     quota: "Storage quota exceeded - please free up space",
     invalid: "Invalid data - please check your submission",
+    // Sponsorship / bundler / validator specific
+    paymaster: "Transaction sponsorship failed. Please try again shortly.",
+    sponsor: "Transaction sponsorship failed. Please try again shortly.",
+    bundler: "Transaction network is unavailable. Your action is queued.",
+    auto_sponsor_failed: "Could not attach sponsorship. Your action is queued.",
+    missing_paymaster_key: "Sponsorship is not configured. Your action is queued.",
+    missing_userop: "Internal error assembling transaction. Please retry.",
+    webauthn: "Passkey verification failed. Please retry login and try again.",
+    credential: "Passkey credential missing. Please login again.",
+    missing_passkey_credential: "Passkey credential missing. Please login again.",
+    signature: "Passkey signature invalid. Please retry.",
+    validator: "Passkey validation failed on-chain. Please retry.",
+    entrypoint: "EntryPoint rejected the operation. Please retry.",
+    "429": "Network is busy. Please try again in a moment.",
   };
 
   // Check for known error patterns

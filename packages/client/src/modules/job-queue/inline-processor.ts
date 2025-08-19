@@ -29,7 +29,10 @@ export async function processWorkJobInline(
 
     // Encode and execute via existing processor helpers
     const encoded = await workProcessor.encodePayload(payload, chainId);
-    const txHash = await workProcessor.execute(encoded as any, job.meta || {}, smartAccountClient);
+    const client =
+      smartAccountClient ||
+      (await (await import("@/modules/aa/passkey")).buildPasskeyKernelClient());
+    const txHash = await workProcessor.execute(encoded, job.meta || {}, client);
 
     // Mark and cleanup
     await jobQueueDB.markJobSynced(jobId, txHash);
@@ -39,8 +42,8 @@ export async function processWorkJobInline(
 
     jobQueueEventBus.emit("job:completed", { jobId, job, txHash });
     return { success: true, txHash };
-  } catch (err: any) {
-    const msg = err?.message || "Unknown error";
+  } catch (err) {
+    const msg = (err as { message?: string } | undefined)?.message || "Unknown error";
     await jobQueueDB.markJobFailed(jobId, msg);
     const updated = (await jobQueueDB.getJob(jobId)) || job;
     jobQueueEventBus.emit("job:failed", { jobId, job: updated, error: msg });
@@ -65,11 +68,11 @@ export async function processApprovalJobInline(
       job.payload as ApprovalJobPayload,
       chainId
     );
-    const txHash = await approvalProcessor.execute(
-      encoded as any,
-      job.meta || {},
-      smartAccountClient
-    );
+
+    const client =
+      smartAccountClient ||
+      (await (await import("@/modules/aa/passkey")).buildPasskeyKernelClient());
+    const txHash = await approvalProcessor.execute(encoded, job.meta || {}, client);
 
     await jobQueueDB.markJobSynced(jobId, txHash);
     try {
@@ -78,8 +81,8 @@ export async function processApprovalJobInline(
 
     jobQueueEventBus.emit("job:completed", { jobId, job, txHash });
     return { success: true, txHash };
-  } catch (err: any) {
-    const msg = err?.message || "Unknown error";
+  } catch (err) {
+    const msg = (err as { message?: string } | undefined)?.message || "Unknown error";
     await jobQueueDB.markJobFailed(jobId, msg);
     const updated = (await jobQueueDB.getJob(jobId)) || job;
     jobQueueEventBus.emit("job:failed", { jobId, job: updated, error: msg });

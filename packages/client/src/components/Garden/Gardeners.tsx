@@ -43,8 +43,14 @@ const GardenerItem = memo(function GardenerItem({
     <li
       className="flex items-center gap-3 border-slate-200 border rounded-lg p-2 bg-white cursor-pointer hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-sm hover:shadow"
       onClick={onClick}
-      role="button"
       tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
+      aria-label={displayName || "Gardener"}
     >
       <Avatar className="w-10 h-10">
         <AvatarImage
@@ -138,10 +144,19 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
             onClick={() => setSelected(null)}
             role="dialog"
             aria-modal="true"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setSelected(null);
+            }}
           >
             <div
               className="bg-white rounded-2xl shadow-2xl w-[min(520px,92vw)] p-5"
               onClick={(e) => e.stopPropagation()}
+              tabIndex={0}
+              role="document"
+              onKeyDown={(e) => {
+                if (e.key === "Escape") setSelected(null);
+              }}
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="text-base font-semibold truncate">{title}</div>

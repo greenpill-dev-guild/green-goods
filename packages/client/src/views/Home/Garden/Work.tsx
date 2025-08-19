@@ -16,7 +16,7 @@ import toast from "react-hot-toast";
 import { useNavigateToTop } from "@/hooks";
 import { DEFAULT_CHAIN_ID } from "@/config";
 import { createOfflineTxHash, jobQueue } from "@/modules/job-queue";
-import { processApprovalJobInline } from "@/modules/job-queue/inline-processor";
+// import { processApprovalJobInline } from "@/modules/job-queue/inline-processor";
 import { useUser } from "@/providers/user";
 import { useJobQueueEvents } from "@/modules/job-queue/event-bus";
 import { isValidAttestationId, openEASExplorer } from "@/utils/easExplorer";
@@ -171,14 +171,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
       // Return an offline transaction hash for UI compatibility
       const offlineHash = createOfflineTxHash(jobId);
       // If a client is available, try to process inline immediately
-      const { smartAccountClient } = useUser();
-      if (smartAccountClient) {
-        try {
-          await processApprovalJobInline(jobId, chainId, smartAccountClient);
-        } catch {
-          // best-effort inline processing; job remains queued otherwise
-        }
-      }
+      // Inline processing via local AA client removed; server will submit when available
       return offlineHash;
     },
     onMutate: () => {

@@ -5,7 +5,7 @@ import {
   RiZoomInLine,
   RiZoomOutLine,
 } from "@remixicon/react";
-import React, { TouchEvent, useEffect, useRef, useState, WheelEvent } from "react";
+import React, { TouchEvent, useCallback, useEffect, useRef, useState, WheelEvent } from "react";
 import { cn } from "@/utils/cn";
 
 export interface ImagePreviewDialogProps {
@@ -54,6 +54,32 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
     setCurrentIndex(initialIndex);
   }, [initialIndex]);
 
+  // Navigation & zoom helpers (declared before effects to satisfy use-before-define)
+  const navigatePrev = useCallback(() => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    }
+  }, [currentIndex]);
+
+  const navigateNext = useCallback(() => {
+    if (currentIndex < images.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    }
+  }, [currentIndex, images.length]);
+
+  const zoomIn = useCallback(() => {
+    setScale((prev) => Math.min(prev + 0.25, 4));
+  }, []);
+
+  const zoomOut = useCallback(() => {
+    setScale((prev) => Math.max(prev - 0.25, 0.5));
+  }, []);
+
+  const resetZoom = useCallback(() => {
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+  }, []);
+
   // Keyboard navigation
   useEffect(() => {
     if (!isOpen) return;
@@ -84,7 +110,17 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, currentIndex, images.length, onClose]);
+  }, [
+    isOpen,
+    currentIndex,
+    images.length,
+    onClose,
+    navigatePrev,
+    navigateNext,
+    zoomIn,
+    zoomOut,
+    resetZoom,
+  ]);
 
   // Scroll lock + initial focus + restore focus
   useEffect(() => {
@@ -170,31 +206,6 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
     }
   };
 
-  const navigatePrev = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-    }
-  };
-
-  const navigateNext = () => {
-    if (currentIndex < images.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    }
-  };
-
-  const zoomIn = () => {
-    setScale((prev) => Math.min(prev + 0.25, 4));
-  };
-
-  const zoomOut = () => {
-    setScale((prev) => Math.max(prev - 0.25, 0.5));
-  };
-
-  const resetZoom = () => {
-    setScale(1);
-    setPosition({ x: 0, y: 0 });
-  };
-
   const handleDownload = () => {
     try {
       const url = images[currentIndex];
@@ -231,7 +242,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
   // Touch handlers for pinch-to-zoom
   const handleTouchStart = (e: TouchEvent<HTMLDivElement>) => {
     if (e.touches.length === 2) {
-      const distance = getTouchDistance(e.touches as unknown as unknown as any);
+      const distance = getTouchDistance(e.touches as unknown as TouchList);
       setTouchState({
         initialDistance: distance,
         initialScale: scale,
@@ -247,7 +258,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
 
   const handleTouchMove = (e: TouchEvent<HTMLDivElement>) => {
     if (e.touches.length === 2 && touchState.initialDistance) {
-      const distance = getTouchDistance(e.touches as unknown as unknown as any);
+      const distance = getTouchDistance(e.touches as unknown as TouchList);
       const scaleFactor = distance / touchState.initialDistance;
       const newScale = Math.max(0.5, Math.min(4, touchState.initialScale * scaleFactor));
       setScale(newScale);
@@ -264,15 +275,16 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
     setIsDragging(false);
   };
 
-  const getTouchDistance = (touches: any): number => {
-    // Normalize to array-like for React.TouchList compatibility
-    const t0 = touches[0];
-    const t1 = touches[1];
+  function getTouchDistance(
+    touches: TouchList | Array<{ clientX: number; clientY: number }>
+  ): number {
+    const t0 = touches[0] as { clientX: number; clientY: number } | undefined;
+    const t1 = touches[1] as { clientX: number; clientY: number } | undefined;
     if (!t0 || !t1) return 0;
-    const dx = touches[0].clientX - touches[1].clientX;
-    const dy = touches[0].clientY - touches[1].clientY;
-    return Math.sqrt(dx * dx + dy * dy);
-  };
+    const dx = t0.clientX - t1.clientX;
+    const dy = t0.clientY - t1.clientY;
+    return Math.hypot(dx, dy);
+  }
 
   // Mouse drag handlers
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -309,6 +321,16 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
         className
       )}
       onClick={onClose}
+      tabIndex={0}
+      role="dialog"
+      aria-modal="true"
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onClose();
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClose();
+        }
+      }}
       data-testid="image-preview-dialog"
     >
       <div

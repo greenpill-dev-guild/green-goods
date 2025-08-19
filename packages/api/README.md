@@ -89,13 +89,20 @@ pnpm build
 
 **Environment Variables:**
 ```bash
-# Required for development
-PRIVY_APP_ID=               # Privy application ID
-PRIVY_APP_SECRET_ID=        # Privy secret key
+# Core
+PORT=3000
+NODE_ENV=development
+SESSION_SECRET=change-me
 
-# Optional
-PORT=3000                   # Server port (Railway sets this automatically)
-NODE_ENV=development        # Environment mode
+# WebAuthn relying party
+RP_ID=localhost
+RP_ORIGIN=http://localhost:3001
+RP_NAME=GreenGoods
+
+# Chain & Pimlico (use the same VITE_CHAIN_ID as the client)
+VITE_CHAIN_ID=44787
+PIMLICO_API_KEY=
+PIMLICO_PAYMASTER_API_KEY=
 ```
 
 **Fastify Configuration:**
@@ -112,8 +119,8 @@ NODE_ENV=development        # Environment mode
 3. Test with development server
 
 **Authentication Integration:**
-- Uses Privy server SDK for user verification
-- JWT token validation
+- WebAuthn (passkeys) via `@simplewebauthn/server`
+- Cookie-based sessions
 - User session management
 
 **Error Handling:**

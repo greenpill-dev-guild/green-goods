@@ -7,11 +7,11 @@ import toast from "react-hot-toast";
 // import { decodeErrorResult } from "viem";
 import { DEFAULT_CHAIN_ID } from "@/config";
 // import { jobQueue } from "@/modules/job-queue";
-import { processWorkJobInline } from "@/modules/job-queue/inline-processor";
+// import { processWorkJobInline } from "@/modules/job-queue/inline-processor";
 import { submitWorkToQueue, validateWorkDraft, formatJobError } from "@/modules/work-submission";
 // import { abi as WorkResolverABI } from "@/utils/abis/WorkResolver.json";
 
-import { useUser } from "./user";
+// import { useUser } from "./user";
 import { useActions, useGardens } from "@/hooks/useBaseLists";
 import { useWorkFlowStore, type WorkFlowState } from "@/state/useWorkFlowStore";
 
@@ -76,7 +76,6 @@ export const useWork = () => {
 };
 
 export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
-  const { smartAccountClient } = useUser();
   const chainId = DEFAULT_CHAIN_ID;
 
   // Base lists via React Query
@@ -148,7 +147,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       // Use consolidated submission utility with actions from React Query
       const ctxActions = actionsData as Action[];
       // Always persist job to queue first
-      const { txHash, jobId } = await submitWorkToQueue(
+      const { txHash } = await submitWorkToQueue(
         draft,
         gardenAddress!,
         actionUID!,
@@ -156,15 +155,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         chainId,
         images
       );
-
-      // If a client is available, try to process inline immediately
-      if (smartAccountClient) {
-        try {
-          await processWorkJobInline(jobId, chainId, smartAccountClient);
-        } catch {
-          // best-effort inline processing; job remains queued otherwise
-        }
-      }
+      // Inline processing via local AA client removed; server will submit when available
       return txHash;
     },
     onMutate: () => {
@@ -203,6 +194,8 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
     await workMutation.mutateAsync({ draft, images: imagesSnapshot });
   });
 
+  // AA client is optional; queue-only if not present
+
   return (
     <WorkContext.Provider
       value={{
@@ -225,7 +218,6 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
           plantSelection,
           plantCount,
           values,
-
           reset,
         },
         activeTab,
