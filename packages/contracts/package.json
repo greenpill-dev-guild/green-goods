@@ -56,6 +56,8 @@
     "garden:batch-ops": "node script/batch-garden-operations.js",
     "garden:monitor": "node script/monitor-garden-events.js",
     "garden:analytics": "node script/garden-analytics.js",
+    "garden:bulk-create": "node script/bulk-garden-creator.js",
+    "privy:create-accounts": "node script/create-privy-accounts.js",
 
     "action:register": "node script/action-manager.js register",
     "action:update": "node script/action-manager.js update",

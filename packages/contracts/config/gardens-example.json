@@ -1,0 +1,41 @@
+{
+  "gardens": [
+    {
+      "name": "Community Garden",
+      "description": "A sustainable community garden focused on organic vegetables and herbs. Open to all community members who want to learn about sustainable gardening practices.",
+      "location": "123 Main Street, Downtown, City, State 12345",
+      "bannerImage": "QmVvKqpnfJm8UwRq9SF15V2jgJ86yCBsmMBmpEaoQU92bD",
+      "gardeners": [
+        "0x1234567890123456789012345678901234567890",
+        "0x2345678901234567890123456789012345678901",
+        "0x3456789012345678901234567890123456789012"
+      ],
+      "operators": ["0x1234567890123456789012345678901234567890", "0x4567890123456789012345678901234567890123"]
+    },
+    {
+      "name": "Urban Farm Collective",
+      "description": "An urban farming initiative that transforms vacant lots into productive agricultural spaces. Focuses on food security and community education.",
+      "location": "456 Oak Avenue, Westside, City, State 12345",
+      "bannerImage": "QmXeV9zWpXHzTGFS3jJRBRYBTHkcVE23qpdhhtQKX1uC4L",
+      "gardeners": [
+        "0x5678901234567890123456789012345678901234",
+        "0x6789012345678901234567890123456789012345",
+        "0x7890123456789012345678901234567890123456",
+        "0x8901234567890123456789012345678901234567"
+      ],
+      "operators": ["0x5678901234567890123456789012345678901234", "0x9012345678901234567890123456789012345678"]
+    },
+    {
+      "name": "School Garden Project",
+      "description": "Educational garden at Lincoln Elementary School teaching children about plant life cycles, nutrition, and environmental stewardship.",
+      "location": "789 School Lane, Lincoln Elementary, City, State 12345",
+      "bannerImage": "QmXp5fEnjHbsLniCE5BD1LyjoGgvoHKuajqQnDCPAZih2X",
+      "gardeners": [
+        "0x0123456789012345678901234567890123456789",
+        "0x1234567890123456789012345678901234567890",
+        "0x2345678901234567890123456789012345678901"
+      ],
+      "operators": ["0x0123456789012345678901234567890123456789", "0x3456789012345678901234567890123456789012"]
+    }
+  ]
+}

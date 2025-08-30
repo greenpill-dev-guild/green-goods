@@ -22,6 +22,12 @@ pnpm deploy:onboard config/garden-onboarding-example.csv --network sepolia --bro
 
 # Deploy actions
 pnpm deploy:actions config/actions-example.json --network sepolia --broadcast
+
+# Create multiple gardens from JSON config
+pnpm garden:bulk-create --chain sepolia --config gardens.json
+
+# Create Privy smart accounts from JSON list
+pnpm privy:create-accounts --file users.json
 ```
 
 ## Deployment System
@@ -30,8 +36,10 @@ The contracts use a unified deployment CLI that handles:
 
 - **Core Contract Deployment**: All protocol contracts with deterministic addresses
 - **Garden Deployment**: Individual gardens from JSON configuration
+- **Bulk Garden Creation**: Multiple gardens from JSON configuration with batch processing
 - **Garden Onboarding**: Bulk garden onboarding from CSV with automatic wallet creation
 - **Action Deployment**: Batch action deployment from JSON configuration
+- **Privy Smart Accounts**: Bulk smart account creation from JSON lists
 - **Network Forking**: Local testing against real network state
 - **Gas Optimization**: Built-in gas price monitoring and optimization
 
@@ -126,6 +134,127 @@ Create a JSON file for action deployment:
   ]
 }
 ```
+
+## Garden Management Scripts
+
+The contracts package includes a comprehensive suite of garden management scripts for day-to-day operations:
+
+### Bulk Garden Creation
+
+Create multiple gardens efficiently from a single JSON configuration file:
+
+```bash
+# Basic usage
+pnpm garden:bulk-create --chain arbitrum --config gardens.json
+
+# Process 3 gardens simultaneously with 5s delay
+pnpm garden:bulk-create --chain arbitrum --config gardens.json --batch-size 3 --delay 5000
+
+# Dry run to validate config
+pnpm garden:bulk-create --chain arbitrum --config gardens.json --dry-run
+```
+
+**Configuration Format:**
+```json
+{
+  "gardens": [
+    {
+      "name": "Community Garden",
+      "description": "A sustainable community garden",
+      "location": "123 Main St, City, State",
+      "bannerImage": "QmHash123...", // Optional: IPFS hash or URL
+      "gardeners": ["0x123...", "0x456..."],
+      "operators": ["0x789...", "0xabc..."]
+    }
+  ]
+}
+```
+
+**Features:**
+- **Batch Processing**: Create multiple gardens sequentially or in parallel
+- **Error Handling**: Continue processing even if some gardens fail
+- **Progress Tracking**: Real-time progress bar and detailed logging
+- **Dry Run Mode**: Validate configuration without deploying
+- **Result Export**: Export detailed results to JSON
+- **Flexible Timing**: Configurable delays between deployments
+
+### Garden Management Commands
+
+```bash
+# Add garden members
+pnpm garden:add-members --chain arbitrum --garden 0x123... --addresses 0x456...
+
+# Remove garden members
+pnpm garden:remove-members --chain arbitrum --garden 0x123... --addresses 0x456...
+
+# Update garden information
+pnpm garden:update-info --chain arbitrum --garden 0x123... --name "New Name"
+
+# Check garden status
+pnpm garden:status --chain arbitrum --garden 0x123... --export json
+
+# Export garden data
+pnpm garden:export --chain arbitrum --garden 0x123... --format csv
+
+# Batch operations
+pnpm garden:batch-ops --chain arbitrum --config operations.json
+
+# Monitor garden events
+pnpm garden:monitor --chain arbitrum --garden 0x123... --realtime
+
+# Garden analytics
+pnpm garden:analytics --chain arbitrum --garden 0x123... --report summary
+```
+
+### Action Management
+
+```bash
+# Register actions from file
+pnpm action:register --chain arbitrum --file actions.json
+
+# Update action
+pnpm action:update --chain arbitrum --uid 1 --end-time "2024-12-31T23:59:59Z"
+
+# List actions
+pnpm action:list --chain arbitrum --export
+```
+
+### Privy Smart Account Creation
+
+Create Privy smart accounts for multiple users from a simple JSON file:
+
+```bash
+# Basic usage
+pnpm privy:create-accounts --file users.json
+
+# Dry run to validate
+pnpm privy:create-accounts --file users.json --dry-run
+
+# Export results
+pnpm privy:create-accounts --file users.json --export-results
+```
+
+**Input Format:**
+```json
+[
+  "user@example.com",
+  "+1234567890",
+  "admin@company.com",
+  "+9876543210"
+]
+```
+
+**Features:**
+- **Bulk Processing**: Create hundreds of smart accounts at once
+- **Email & Phone Support**: Handles any valid email format and international phone numbers
+- **Smart Wallet Creation**: Automatically creates EIP-4337 compatible smart accounts
+- **Error Handling**: Continues processing even if some accounts fail
+- **Result Export**: Export detailed results to JSON for further processing
+- **Dry Run Mode**: Validate configuration without creating accounts
+
+**See `script/PRIVY-ACCOUNTS-README.md` for comprehensive documentation.**
+
+**See `script/GARDEN-SCRIPTS.md` for comprehensive documentation of all garden management features.**
 
 ## Development
 

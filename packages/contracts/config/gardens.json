@@ -1,0 +1,20 @@
+{
+  "gardens": [
+    {
+      "name": "Unere",
+      "description": "A Mini Family Plantain Plantation designed for household sustainability, reducing the cost of purchasing plantains while fostering a small-scale micro-economy.",
+      "location": "Awka, Nigeria",
+      "bannerImage": "bafybeigbvesllhesvqvyorysiagme6rzw3fmiumbqrehvjubz46me7n7nu",
+      "gardeners": ["0x14FeCc69Fb1d99f9660a7b791e64902Bdf396c73", "0x79367B202d55D374b2e8E5E503C15BBC9E55a607"],
+      "operators": ["0x14FeCc69Fb1d99f9660a7b791e64902Bdf396c73"]
+    },
+    {
+      "name": "Quintal Agroflorestal MacaECO",
+      "description": "Jardim agroflorestal, da base de voluntários MacaECO, compreende uma área ~15x30m , com árvores nativas, frutíferas, extrato baixo e horta.",
+      "location": "Macaé, Rio de Janeiro, Brasil",
+      "bannerImage": "bafkreigoudbji6mge7tqzwza6nmut4ybgftexsyq45mg6ytb53fpgreztu",
+      "gardeners": ["0x9Abe50701b7fF7ce0b5403D2A009D0FF08932d58"],
+      "operators": ["0x9Abe50701b7fF7ce0b5403D2A009D0FF08932d58"]
+    }
+  ]
+}
