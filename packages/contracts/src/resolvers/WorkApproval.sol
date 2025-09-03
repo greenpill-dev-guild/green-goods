@@ -30,7 +30,8 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
     /// @dev This function replaces the constructor for upgradable contracts.
     /// @param _multisig The address that will own the contract.
     function initialize(address _multisig) external initializer {
-        __Ownable_init(_multisig);
+        __Ownable_init();
+        _transferOwnership(_multisig);
     }
 
     /// @notice Indicates whether the resolver is payable.

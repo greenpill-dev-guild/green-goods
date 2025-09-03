@@ -28,14 +28,14 @@ contract WorkResolverTest is Test {
         mockGardenAccount = new GardenAccount(address(0x021), address(0x022), address(0x023), address(0x024));
         mockIEAS = new MockEAS();
 
-        mockActionRegistry.initialize();
+        mockActionRegistry.initialize(address(this));
         mockGardenAccount.initialize(
             address(0x545), "Test Garden", "Test Description", "Test Location", "", new address[](0), new address[](0)
         );
 
         // Deploy the WorkResolver contract
         workResolver = new WorkResolver(address(mockIEAS), address(mockActionRegistry));
-        workResolver.initialize();
+        workResolver.initialize(address(this));
     }
 
     function testInitialize() public {

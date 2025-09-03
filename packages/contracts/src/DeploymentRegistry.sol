@@ -5,6 +5,7 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import { EnumerableSetUpgradeable } from
     "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
+import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
 
 /// @title DeploymentRegistry
 /// @notice A governance-controlled registry for managing contract deployments across networks
@@ -44,6 +45,23 @@ contract DeploymentRegistry is OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Emitted when emergency pause is deactivated
     event EmergencyPauseDeactivated(address indexed deactivator);
 
+    /// @notice Emitted when a template is registered
+    event TemplateRegistered(bytes32 indexed templateHash, uint256 expirationTime);
+
+    /// @notice Emitted when a contract is deployed via factory
+    event ContractDeployedViaFactory(
+        bytes32 indexed templateHash, address indexed deployed, bytes32 salt, address indexed deployer
+    );
+
+    /// @notice Emitted when emergency template is approved
+    event EmergencyTemplateApproved(bytes32 indexed templateHash, address indexed guardian);
+
+    /// @notice Emitted when Gnosis Safe is updated
+    event GnosisSafeUpdated(address indexed gnosisSafe);
+
+    /// @notice Emitted when emergency guardian is updated
+    event EmergencyGuardianUpdated(address indexed emergencyGuardian);
+
     /// @notice Mapping of chain IDs to network configurations
     mapping(uint256 chainId => NetworkConfig config) public networks;
 
@@ -55,6 +73,36 @@ contract DeploymentRegistry is OwnableUpgradeable, UUPSUpgradeable {
 
     /// @notice Emergency pause state
     bool public emergencyPaused;
+
+    /// @notice Gnosis Safe for multi-sig approvals
+    address public gnosisSafe;
+
+    /// @notice Emergency guardian (afo.eth)
+    address public emergencyGuardian;
+
+    /// @notice Template metadata structure
+    struct TemplateMetadata {
+        string name;
+        string version;
+        string description;
+        address deployer;
+        uint256 registeredAt;
+        uint256 expirationTime;
+        bool approved;
+        uint256 deploymentCount;
+    }
+
+    /// @notice Template expiration times
+    mapping(bytes32 templateHash => uint256 expirationTime) public templateExpirations;
+
+    /// @notice Approved deployment templates
+    mapping(bytes32 templateHash => bool approved) public approvedTemplates;
+
+    /// @notice Template metadata storage
+    mapping(bytes32 templateHash => TemplateMetadata metadata) public templateMetadata;
+
+    /// @notice Template deployment counters
+    mapping(bytes32 templateHash => uint256 count) public templateDeploymentCount;
 
     /// @notice Error thrown when trying to access unconfigured network
     error NetworkNotConfigured(uint256 chainId);
@@ -70,6 +118,27 @@ contract DeploymentRegistry is OwnableUpgradeable, UUPSUpgradeable {
 
     /// @notice Error thrown when caller is not pending owner
     error NotPendingOwner();
+
+    /// @notice Error thrown when template is expired
+    error TemplateExpired(bytes32 templateHash);
+
+    /// @notice Error thrown when template is not approved
+    error TemplateNotApproved(bytes32 templateHash);
+
+    /// @notice Error thrown when caller is not emergency guardian
+    error NotEmergencyGuardian();
+
+    /// @notice Error thrown when expiration time is invalid
+    error InvalidExpirationTime();
+
+    /// @notice Error thrown when template hash mismatch
+    error TemplateHashMismatch();
+
+    /// @notice Error thrown when initialization fails
+    error InitializationFailed();
+
+    /// @notice Error thrown when zero address provided
+    error ZeroAddress();
 
     /// @notice Modifier to check if caller is owner or in allowlist
     modifier onlyOwnerOrAllowlist() {
@@ -87,6 +156,14 @@ contract DeploymentRegistry is OwnableUpgradeable, UUPSUpgradeable {
         _;
     }
 
+    /// @notice Modifier to check if caller is emergency guardian or owner
+    modifier onlyEmergencyGuardian() {
+        if (msg.sender != emergencyGuardian && msg.sender != owner()) {
+            revert NotEmergencyGuardian();
+        }
+        _;
+    }
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -96,8 +173,20 @@ contract DeploymentRegistry is OwnableUpgradeable, UUPSUpgradeable {
     /// @param _owner The address that will own the registry
     function initialize(address _owner) external initializer {
         __Ownable_init();
-        transferOwnership(_owner);
+        _transferOwnership(_owner);
         emergencyPaused = false;
+    }
+
+    /// @notice Initializes the registry with Gnosis Safe and emergency guardian
+    /// @param _owner The address that will own the registry
+    /// @param _gnosisSafe The Gnosis Safe address for multi-sig approvals
+    /// @param _emergencyGuardian The emergency guardian address (afo.eth)
+    function initializeWithSafe(address _owner, address _gnosisSafe, address _emergencyGuardian) external initializer {
+        __Ownable_init();
+        _transferOwnership(_owner);
+        emergencyPaused = false;
+        gnosisSafe = _gnosisSafe;
+        emergencyGuardian = _emergencyGuardian;
     }
 
     /// @notice Sets the network configuration for a specific chain
@@ -118,7 +207,9 @@ contract DeploymentRegistry is OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Adds an address to the allowlist (owner only)
     /// @param account The address to add
     function addToAllowlist(address account) external onlyOwner {
-        require(account != address(0), "Cannot add zero address");
+        if (account == address(0)) {
+            revert ZeroAddress();
+        }
         if (_allowlist.add(account)) {
             emit AllowlistAdded(account);
         }
@@ -154,8 +245,12 @@ contract DeploymentRegistry is OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Initiates a governance transfer to a new owner
     /// @param newOwner The address of the new owner
     function initiateGovernanceTransfer(address newOwner) external onlyOwner {
-        require(newOwner != address(0), "New owner cannot be zero address");
-        require(newOwner != owner(), "New owner cannot be current owner");
+        if (newOwner == address(0)) {
+            revert ZeroAddress();
+        }
+        if (newOwner == owner()) {
+            revert UnauthorizedCaller(newOwner);
+        }
 
         pendingOwner = newOwner;
         emit GovernanceTransferInitiated(owner(), newOwner);
@@ -204,7 +299,9 @@ contract DeploymentRegistry is OwnableUpgradeable, UUPSUpgradeable {
     /// @param accounts Array of addresses to add
     function batchAddToAllowlist(address[] calldata accounts) external onlyOwner {
         for (uint256 i = 0; i < accounts.length; i++) {
-            require(accounts[i] != address(0), "Cannot add zero address");
+            if (accounts[i] == address(0)) {
+                revert ZeroAddress();
+            }
             if (_allowlist.add(accounts[i])) {
                 emit AllowlistAdded(accounts[i]);
             }
@@ -285,6 +382,180 @@ contract DeploymentRegistry is OwnableUpgradeable, UUPSUpgradeable {
     function updateGardenToken(address contractAddress) external onlyOwnerOrAllowlist whenNotPaused {
         networks[block.chainid].gardenToken = contractAddress;
         emit NetworkConfigUpdated(block.chainid, networks[block.chainid]);
+    }
+
+    /// @notice Register a deployment template with expiration
+    /// @param templateHash The hash of the template bytecode
+    /// @param expirationTime When the template expires (unix timestamp)
+    function registerTemplate(bytes32 templateHash, uint256 expirationTime) external onlyOwner {
+        if (expirationTime <= block.timestamp) {
+            revert InvalidExpirationTime();
+        }
+        templateExpirations[templateHash] = expirationTime;
+        approvedTemplates[templateHash] = true;
+        emit TemplateRegistered(templateHash, expirationTime);
+    }
+
+    /// @notice Register a deployment template with metadata
+    /// @param templateHash The hash of the template bytecode
+    /// @param name Template name (e.g., "ActionRegistry")
+    /// @param version Template version (e.g., "v1.0.0")
+    /// @param description Template description
+    /// @param expirationTime When the template expires (unix timestamp)
+    function registerTemplateWithMetadata(
+        bytes32 templateHash,
+        string calldata name,
+        string calldata version,
+        string calldata description,
+        uint256 expirationTime
+    )
+        external
+        onlyOwner
+    {
+        if (expirationTime <= block.timestamp) {
+            revert InvalidExpirationTime();
+        }
+
+        // Store in existing mappings for compatibility
+        templateExpirations[templateHash] = expirationTime;
+        approvedTemplates[templateHash] = true;
+
+        // Store enhanced metadata
+        templateMetadata[templateHash] = TemplateMetadata({
+            name: name,
+            version: version,
+            description: description,
+            deployer: msg.sender,
+            registeredAt: block.timestamp,
+            expirationTime: expirationTime,
+            approved: true,
+            deploymentCount: 0
+        });
+
+        emit TemplateRegistered(templateHash, expirationTime);
+    }
+
+    /// @notice Deploy contract via factory using approved template
+    /// @param templateHash The hash of the approved template
+    /// @param creationCode The contract creation bytecode
+    /// @param salt The salt for deterministic deployment
+    /// @param initData The initialization data
+    /// @return deployed The address of the deployed contract
+    function deployViaFactory(
+        bytes32 templateHash,
+        bytes memory creationCode,
+        bytes32 salt,
+        bytes memory initData
+    )
+        external
+        onlyOwnerOrAllowlist
+        whenNotPaused
+        returns (address deployed)
+    {
+        if (!approvedTemplates[templateHash]) {
+            revert TemplateNotApproved(templateHash);
+        }
+
+        if (block.timestamp >= templateExpirations[templateHash]) {
+            revert TemplateExpired(templateHash);
+        }
+
+        // Verify template hash matches bytecode
+        if (keccak256(creationCode) != templateHash) {
+            revert TemplateHashMismatch();
+        }
+
+        // Deploy using CREATE2
+        deployed = Create2.deploy(0, salt, creationCode);
+
+        // Initialize if init data provided
+        if (initData.length > 0) {
+            (bool success,) = deployed.call(initData);
+            if (!success) {
+                revert InitializationFailed();
+            }
+        }
+
+        // Update deployment tracking
+        unchecked {
+            ++templateDeploymentCount[templateHash];
+            ++templateMetadata[templateHash].deploymentCount;
+        }
+
+        emit ContractDeployedViaFactory(templateHash, deployed, salt, msg.sender);
+    }
+
+    /// @notice Emergency deployment approval (guardian only)
+    /// @param templateHash The template to approve for emergency deployment
+    function emergencyApproveTemplate(bytes32 templateHash) external onlyEmergencyGuardian {
+        approvedTemplates[templateHash] = true;
+        // Emergency templates expire in 24 hours
+        templateExpirations[templateHash] = block.timestamp + 24 hours;
+        emit EmergencyTemplateApproved(templateHash, msg.sender);
+    }
+
+    /// @notice Revoke deployer access (emergency guardian)
+    /// @param deployer The address to revoke
+    function emergencyRevokeDeployer(address deployer) external onlyEmergencyGuardian {
+        if (_allowlist.remove(deployer)) {
+            emit AllowlistRemoved(deployer);
+        }
+    }
+
+    /// @notice Set Gnosis Safe address
+    /// @param _gnosisSafe The Gnosis Safe address
+    function setGnosisSafe(address _gnosisSafe) external onlyOwner {
+        gnosisSafe = _gnosisSafe;
+        emit GnosisSafeUpdated(_gnosisSafe);
+    }
+
+    /// @notice Set emergency guardian
+    /// @param _emergencyGuardian The emergency guardian address
+    function setEmergencyGuardian(address _emergencyGuardian) external onlyOwner {
+        emergencyGuardian = _emergencyGuardian;
+        emit EmergencyGuardianUpdated(_emergencyGuardian);
+    }
+
+    /// @notice Get template metadata by hash
+    /// @param templateHash The template hash
+    /// @return metadata The template metadata
+    function getTemplateMetadata(bytes32 templateHash) external view returns (TemplateMetadata memory metadata) {
+        return templateMetadata[templateHash];
+    }
+
+    /// @notice Get multiple templates metadata
+    /// @param templateHashes Array of template hashes
+    /// @return metadataArray Array of template metadata
+    function getBatchTemplateMetadata(bytes32[] calldata templateHashes)
+        external
+        view
+        returns (TemplateMetadata[] memory metadataArray)
+    {
+        uint256 length = templateHashes.length;
+        metadataArray = new TemplateMetadata[](length);
+
+        for (uint256 i = 0; i < length;) {
+            metadataArray[i] = templateMetadata[templateHashes[i]];
+            unchecked {
+                ++i;
+            }
+        }
+
+        return metadataArray;
+    }
+
+    /// @notice Get template deployment statistics
+    /// @param templateHash The template hash
+    /// @return count Total deployments
+    /// @return approved Whether template is approved
+    /// @return expiration Template expiration time
+    function getTemplateStats(bytes32 templateHash)
+        external
+        view
+        returns (uint256 count, bool approved, uint256 expiration)
+    {
+        return
+            (templateDeploymentCount[templateHash], approvedTemplates[templateHash], templateExpirations[templateHash]);
     }
 
     /// @notice Authorizes an upgrade to a new implementation

@@ -91,8 +91,8 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     /// @dev This function must be called only once during contract deployment.
     /// @param _multisig The address that will own the contract.
     function initialize(address _multisig) external initializer {
-        __Ownable_init(_multisig);
-        // _disableInitializers();
+        __Ownable_init();
+        _transferOwnership(_multisig);
     }
 
     function getAction(uint256 actionUID) external view returns (Action memory) {

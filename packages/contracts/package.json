@@ -63,8 +63,23 @@
     "action:update": "node script/action-manager.js update",
     "action:list": "node script/action-manager.js list",
 
-    "gas:check": "node script/deploy-helpers/gas-optimizer.js",
-    "gas:monitor": "node script/deploy-helpers/gas-optimizer.js monitor",
+    "factory:setup": "node script/deploy.js factory-setup",
+    "factory:template-register": "node script/deploy.js template-register",
+    "factory:template-list": "node script/deploy.js template-list",
+    "factory:deploy-approved": "node script/deploy.js deploy-approved",
+    "factory:emergency-approve": "node script/deploy.js emergency-approve",
+    "factory:emergency-revoke": "node script/deploy.js emergency-revoke",
+
+    "factory:upgrade-registry": "node script/upgrade-registry-only.js",
+    "factory:deploy-fresh": "node script/deploy-fresh-simple.js",
+    "factory:deploy-proxy": "node script/deploy-proxy-enhanced.js",
+    "factory:test-functions": "node script/test-factory-functions.js",
+
+    "factory:register-templates": "node script/register-templates-enhanced.js",
+    "factory:test-enhanced": "node script/test-enhanced-features.js",
+
+    "gas:check": "node script/utils/gas-optimizer.js",
+    "gas:monitor": "node script/utils/gas-optimizer.js monitor",
     "envio:enable-local": "node script/utils/envio-integration.js enable-local",
     "envio:disable-local": "node script/utils/envio-integration.js disable-local",
     "envio:cleanup": "node script/utils/envio-integration.js cleanup"

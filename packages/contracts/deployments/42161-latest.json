@@ -1,28 +1,11 @@
 {
-  "accountProxy": "0xad621aF21dBfdaCe0A078C021Ab2FDDA080a52D1",
-  "actionRegistry": "0x933b88Ef33a25d14a68354C88b2eb31e475cd482",
-  "deploymentRegistry": "0x40A0819d208C50D0803D5dcdC6F6bb00bEF4583a",
-  "eas": {
-    "address": "0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458",
-    "schemaRegistry": "0xA310da9c5B885E7fb3fbA9D66E9Ba6Df512b78eB"
-  },
-  "gardenAccountImpl": "0x83287652b4e1514e101a4053c9bcAFf6a24d051C",
-  "gardenToken": "0x508198C3f071987D5eEb0030825628F9B10c6037",
-  "guardian": "0xFdF620FEafE1f15B9f3725283A72088791eDFC74",
-  "schemas": {
-    "gardenAssessmentDescription": "Biodiversity assessment schema for Green Goods garden spaces. Captures soil health, carbon metrics, species diversity, and ecological observations to verify regenerative agriculture practices.",
-    "gardenAssessmentName": "Green Goods Garden Assessment v2",
-    "gardenAssessmentSchema": "uint8 soilMoisturePercentage,uint256 carbonTonStock,uint256 carbonTonPotential,uint256 gardenSquareMeters,string biome,string remoteReportPDF,string speciesRegistryJSON,string[] polygonCoordinates,string[] treeGenusesObserved,string[] weedGenusesObserved,string[] issues,string[] tags",
-    "gardenAssessmentSchemaUID": "0x7433e24287be826b49e5eb28cd52192823e542521c94084a691e67e5cc7e8176",
-    "workApprovalDescription": "Work approval schema for Green Goods protocol. Allows validators to approve or reject submitted work with feedback, enabling trustless verification of regenerative agriculture activities.",
-    "workApprovalName": "Green Goods Work Approval",
-    "workApprovalSchema": "uint256 actionUID,bytes32 workUID,bool approved,string feedback",
-    "workApprovalSchemaUID": "0x047ed74a39f6e98ed82e4423cba3134c81afe8d97525c1107e2a9ed9c975ec77",
-    "workDescription": "Work submission schema for Green Goods protocol. Enables gardeners to submit completed regenerative agriculture tasks with media evidence and metadata for verification and payment.",
-    "workName": "Green Goods Work Submission",
-    "workSchema": "uint256 actionUID,string title,string feedback,string metadata,string[] media",
-    "workSchemaUID": "0x0eb5361c4f892a251e31ff9468ce1b767017eb3696a09bc77955d146c941a25a"
-  },
-  "workApprovalResolver": "0x63279204b744C4fDb7dbE8331F6b13D7F8344a1d",
-  "workResolver": "0x1cdDfe922FC92F692bA7db69A2D451d874449c9c"
+  "deploymentRegistry": "0x021368bf9958f4D535d39d571Bc45f74d20e4666",
+  "lastUpdated": "2025-08-30T07:42:54.161Z",
+  "factoryEnabled": true,
+  "deploymentType": "enhanced-foundry-proxy",
+  "note": "Using implementation directly. Proxy deployment needed for full functionality.",
+  "deploymentRegistryImpl": "0x40F2dBc4992eBAC9Bc6C997517d0Bc1bC051e8A1",
+  "needsProxy": true,
+  "deploymentRegistryProxy": "0x021368bf9958f4D535d39d571Bc45f74d20e4666",
+  "phase": "2"
 }

@@ -22,7 +22,7 @@ contract GardenTokenTest is Test {
     function setUp() public {
         // Deploy the contract and initialize it
         gardenToken = new GardenToken(gardenAccountImplementation);
-        gardenToken.initialize();
+        gardenToken.initialize(address(this));
     }
 
     function testInitialize() public {

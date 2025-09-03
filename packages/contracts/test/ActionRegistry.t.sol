@@ -14,12 +14,12 @@ contract ActionRegistryTest is Test {
     function setUp() public {
         // Deploy the ActionRegistry contract
         actionRegistry = new ActionRegistry();
-        actionRegistry.initialize();
+        actionRegistry.initialize(address(this));
     }
 
     function testInitialize() public {
         // Test that the contract is properly initialized
-        assertEq(actionRegistry.owner(), address(this), "Owner should be the multisig address");
+        assertEq(actionRegistry.owner(), address(this), "Owner should be the test contract address");
     }
 
     function testRegisterAction() public {

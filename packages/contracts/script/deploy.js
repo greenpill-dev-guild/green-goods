@@ -9,6 +9,7 @@ const { DeploymentAddresses } = require("./utils/deployment-addresses");
 const { GasOptimizer } = require("./utils/gas-optimizer");
 const { GardenOnboarding } = require("./garden-onboarding");
 const { EnvioIntegration } = require("./utils/envio-integration");
+// const { TemplateManager } = require("./utils/template-manager");
 
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, "..", ".env") });
@@ -114,6 +115,14 @@ Commands:
   actions <config.json>    Deploy actions from JSON config
   status [network]         Check deployment status
   fork <network>           Start a network fork
+  
+FACTORY COMMANDS:
+  factory-setup            Setup factory with Gnosis Safe and guardian
+  template-register        Register deployment template with expiration
+  template-list            List all registered templates
+  deploy-approved          Deploy using approved template
+  emergency-approve        Emergency template approval (guardian only)
+  emergency-revoke         Emergency deployer revocation (guardian only)
 
 DEPLOYMENT PROFILES (use --profile <name>):
 ${Object.entries(this.profiles)
@@ -1113,6 +1122,126 @@ contract DeployActionsGenerated is Script {
 
     console.log(`Deployment record saved to: ${recordPath}`);
   }
+
+  // ===== UTILITY METHODS =====
+
+  /**
+   * Get provider and signer for a network
+   */
+  getProviderAndSigner(network) {
+    const networkConfig = networksConfig.networks[network];
+    if (!networkConfig) {
+      throw new Error(`Network ${network} not found in configuration`);
+    }
+
+    // Get RPC URL
+    let rpcUrl = networkConfig.rpcUrl;
+    if (rpcUrl.startsWith("${") && rpcUrl.endsWith("}")) {
+      const envVar = rpcUrl.slice(2, -1);
+      rpcUrl = process.env[envVar];
+      if (!rpcUrl) {
+        throw new Error(`Environment variable ${envVar} not set`);
+      }
+    }
+
+    const privateKey = process.env.PRIVATE_KEY;
+    if (!privateKey) {
+      throw new Error("PRIVATE_KEY environment variable not set");
+    }
+
+    const provider = new ethers.JsonRpcProvider(rpcUrl);
+    const signer = new ethers.Wallet(privateKey, provider);
+
+    return { provider, signer };
+  }
+
+  // ===== FACTORY METHODS =====
+
+  /**
+   * Setup factory with Gnosis Safe and emergency guardian
+   */
+  async setupFactory(options) {
+    const dryRunFlag = options.dryRun ? "--dry-run" : "";
+    const cmd = `node script/factory-operations.js setup --network ${options.network} ${dryRunFlag}`;
+
+    try {
+      execSync(cmd, { stdio: "inherit" });
+    } catch (error) {
+      throw new Error(`Factory setup failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Register a deployment template
+   */
+  async registerTemplate(contractPath, options) {
+    const expirationDays = options.expires || 30;
+    const templateName = options.name || path.basename(contractPath, ".sol");
+    const dryRunFlag = options.dryRun ? "--dry-run" : "";
+
+    const cmd = `node script/factory-operations.js register-template --network ${options.network} --contract ${contractPath} --name ${templateName} --expires ${expirationDays} ${dryRunFlag}`;
+
+    try {
+      execSync(cmd, { stdio: "inherit" });
+    } catch (error) {
+      throw new Error(`Template registration failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * List all registered templates
+   */
+  async listTemplates(options) {
+    const cmd = `node script/factory-operations.js list-templates --network ${options.network}`;
+
+    try {
+      execSync(cmd, { stdio: "inherit" });
+    } catch (error) {
+      throw new Error(`Template listing failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Deploy contract using approved template
+   */
+  async deployFromTemplate(templateHash, options) {
+    const salt = options.salt || `${templateHash}-${Date.now()}`;
+    const dryRunFlag = options.dryRun ? "--dry-run" : "";
+
+    const cmd = `node script/factory-operations.js deploy-approved --network ${options.network} --template ${templateHash} --salt ${salt} ${dryRunFlag}`;
+
+    try {
+      execSync(cmd, { stdio: "inherit" });
+    } catch (error) {
+      throw new Error(`Template deployment failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Emergency template approval (guardian only)
+   */
+  async emergencyApproveTemplate(templateHash, options) {
+    const cmd = `node script/factory-operations.js emergency-approve --network ${options.network} --template ${templateHash}`;
+
+    try {
+      execSync(cmd, { stdio: "inherit" });
+    } catch (error) {
+      throw new Error(`Emergency approval failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Emergency deployer revocation (guardian only)
+   */
+  async emergencyRevokeDeployer(deployerAddress, options) {
+    const cmd = `node script/factory-operations.js emergency-revoke --network ${options.network} --deployer ${deployerAddress}`;
+
+    try {
+      execSync(cmd, { stdio: "inherit" });
+    } catch (error) {
+      throw new Error(`Emergency revocation failed: ${error.message}`);
+    }
+  }
 }
 
 // Main CLI logic
@@ -1175,6 +1304,47 @@ async function main() {
         await cli.startFork(forkNetworkArg);
         break;
       }
+
+      // Factory commands
+      case "factory-setup":
+        await cli.setupFactory(options);
+        break;
+
+      case "template-register":
+        if (args.length < 2 || args[1].startsWith("-")) {
+          console.error("❌ Contract path required");
+          process.exit(1);
+        }
+        await cli.registerTemplate(args[1], options);
+        break;
+
+      case "template-list":
+        await cli.listTemplates(options);
+        break;
+
+      case "deploy-approved":
+        if (args.length < 2 || args[1].startsWith("-")) {
+          console.error("❌ Template hash required");
+          process.exit(1);
+        }
+        await cli.deployFromTemplate(args[1], options);
+        break;
+
+      case "emergency-approve":
+        if (args.length < 2 || args[1].startsWith("-")) {
+          console.error("❌ Template hash required");
+          process.exit(1);
+        }
+        await cli.emergencyApproveTemplate(args[1], options);
+        break;
+
+      case "emergency-revoke":
+        if (args.length < 2 || args[1].startsWith("-")) {
+          console.error("❌ Deployer address required");
+          process.exit(1);
+        }
+        await cli.emergencyRevokeDeployer(args[1], options);
+        break;
 
       default:
         console.error(`❌ Unknown command: ${command}`);

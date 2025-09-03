@@ -1,0 +1,49 @@
+{
+  "factoryConfig": {
+    "gnosisSafe": "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+    "emergencyGuardian": "0x14FeCc69Fb1d99f9660a7b791e64902Bdf396c73",
+    "emergencyGuardianENS": "afo.eth",
+    "targetChains": ["arbitrum", "celo", "base"],
+    "defaultTemplateExpiration": 30
+  },
+  "templates": [
+    {
+      "name": "GardenToken",
+      "contractPath": "src/tokens/Garden.sol",
+      "description": "Standard Garden Token template with UUPS upgrades",
+      "expirationDays": 30,
+      "initParams": {
+        "gardenAccountImplementation": "REQUIRED"
+      }
+    },
+    {
+      "name": "ActionRegistry",
+      "contractPath": "src/registries/Action.sol",
+      "description": "Action Registry template with UUPS upgrades",
+      "expirationDays": 30,
+      "initParams": {
+        "owner": "REQUIRED"
+      }
+    },
+    {
+      "name": "WorkResolver",
+      "contractPath": "src/resolvers/Work.sol",
+      "description": "Work Resolver template with EAS integration",
+      "expirationDays": 30,
+      "initParams": {
+        "easAddress": "REQUIRED",
+        "actionRegistry": "REQUIRED"
+      }
+    }
+  ],
+  "security": {
+    "minBalance": "0.01",
+    "alertThreshold": "0.005",
+    "maxTransactionsPerHour": 10,
+    "monitoringEnabled": true
+  },
+  "verification": {
+    "autoVerify": true,
+    "etherscanApiKey": "ETHERSCAN_API_KEY"
+  }
+}
