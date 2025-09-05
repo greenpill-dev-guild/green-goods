@@ -1,0 +1,113 @@
+name: Admin Dashboard Tests
+
+on:
+  push:
+    branches: [ main, develop, 'cursor/implement-admin-dashboard-package-*' ]
+    paths: 
+      - 'packages/admin/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths: 
+      - 'packages/admin/**'
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run unit tests
+        run: |
+          cd packages/admin
+          pnpm test:unit
+        env:
+          CI: true
+
+      - name: Generate coverage report
+        run: |
+          cd packages/admin
+          pnpm test:coverage
+        env:
+          CI: true
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        with:
+          directory: packages/admin/coverage
+          flags: admin-dashboard
+          
+  integration-tests:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run integration tests
+        run: |
+          cd packages/admin
+          pnpm test:integration
+        env:
+          CI: true
+          VITEST_INTEGRATION: true
+          VITE_BASE_SEPOLIA_RPC: ${{ secrets.BASE_SEPOLIA_RPC }}
+          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+
+  lint-and-format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run linting
+        run: |
+          cd packages/admin
+          pnpm lint
+
+      - name: Check formatting
+        run: |
+          cd packages/admin
+          pnpm format --check
