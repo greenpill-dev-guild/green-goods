@@ -33,9 +33,9 @@ export default function Gardens() {
   const gardenPermissions = useGardenPermissions();
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const chainId = useChainId();
-  const [{ data, fetching, error }] = useQuery({ 
+  const [{ data, fetching, error }] = useQuery({
     query: GET_GARDENS,
-    variables: { chainId }
+    variables: { chainId },
   });
 
   // Load all gardens - permissions are checked at garden level
@@ -47,13 +47,18 @@ export default function Gardens() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Gardens</h1>
-            <p className="text-gray-600 dark:text-gray-400">Manage your gardens and view garden details</p>
+            <p className="text-gray-600 dark:text-gray-400">
+              Manage your gardens and view garden details
+            </p>
           </div>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
           {[...Array(8)].map((_, i) => (
-            <div key={i} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden animate-pulse min-w-[320px]">
+            <div
+              key={i}
+              className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden animate-pulse min-w-[320px]"
+            >
               <div className="h-48 bg-gray-200 dark:bg-gray-700"></div>
               <div className="p-6">
                 <div className="flex items-start justify-between mb-2">
@@ -64,7 +69,7 @@ export default function Gardens() {
                 </div>
                 <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
                 <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-4"></div>
-                
+
                 <div className="flex items-center justify-between text-sm mb-4">
                   <div className="flex items-center space-x-4">
                     <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded"></div>
@@ -90,19 +95,26 @@ export default function Gardens() {
           <div className="flex items-start">
             <div className="flex-shrink-0">
               <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                <path
+                  fillRule="evenodd"
+                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                  clipRule="evenodd"
+                />
               </svg>
             </div>
             <div className="ml-3">
               <h3 className="text-sm font-medium text-yellow-800">Indexer Connection Issue</h3>
               <div className="mt-2 text-sm text-yellow-700">
                 <p>Unable to load gardens from indexer: {error.message}</p>
-                <p className="mt-1">Garden management features are still available if you have direct garden addresses.</p>
+                <p className="mt-1">
+                  Garden management features are still available if you have direct garden
+                  addresses.
+                </p>
               </div>
             </div>
           </div>
         </div>
-        
+
         {/* Fallback content */}
         <div className="mt-8">
           <div className="flex items-center justify-between mb-8">
@@ -122,7 +134,7 @@ export default function Gardens() {
               </button>
             )}
           </div>
-          
+
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="text-center py-8">
               <RiPlantLine className="mx-auto h-12 w-12 text-gray-400" />
@@ -133,12 +145,9 @@ export default function Gardens() {
             </div>
           </div>
         </div>
-        
+
         {isDeployer && (
-          <CreateGardenModal
-            isOpen={createModalOpen}
-            onClose={() => setCreateModalOpen(false)}
-          />
+          <CreateGardenModal isOpen={createModalOpen} onClose={() => setCreateModalOpen(false)} />
         )}
       </div>
     );
@@ -169,56 +178,60 @@ export default function Gardens() {
           <RiPlantLine className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900">No gardens</h3>
           <p className="mt-1 text-sm text-gray-500">
-            {isDeployer 
-              ? "Get started by creating your first garden."
-              : "No gardens created yet."
-            }
+            {isDeployer ? "Get started by creating your first garden." : "No gardens created yet."}
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
-                  {(gardens as Garden[]).map((garden: Garden) => {
-          const canManage = gardenPermissions.canManageGarden(garden);
-          const resolvedBannerImage = garden.bannerImage ? resolveIPFSUrl(garden.bannerImage) : null;
-          
-          return (
-            <div key={garden.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow min-w-[320px]">
-              <div className="h-48 relative">
-                {resolvedBannerImage ? (
-                  <img
-                    src={resolvedBannerImage}
-                    alt={garden.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      const placeholder = e.currentTarget.nextElementSibling as HTMLElement;
-                      if (placeholder) {
-                        placeholder.style.display = 'flex';
-                      }
-                      e.currentTarget.style.display = 'none';
-                    }}
-                    loading="lazy"
-                  />
-                ) : null}
-                {/* Gradient placeholder */}
-                <div 
-                  className={`absolute inset-0 bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 ${resolvedBannerImage ? 'hidden' : 'flex'} items-center justify-center`}
-                  style={{ display: resolvedBannerImage ? 'none' : 'flex' }}
-                >
-                  <div className="text-white text-center">
-                    <div className="text-2xl font-bold opacity-80">{garden.name.charAt(0)}</div>
+          {(gardens as Garden[]).map((garden: Garden) => {
+            const canManage = gardenPermissions.canManageGarden(garden);
+            const resolvedBannerImage = garden.bannerImage
+              ? resolveIPFSUrl(garden.bannerImage)
+              : null;
+
+            return (
+              <div
+                key={garden.id}
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow min-w-[320px]"
+              >
+                <div className="h-48 relative">
+                  {resolvedBannerImage ? (
+                    <img
+                      src={resolvedBannerImage}
+                      alt={garden.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const placeholder = e.currentTarget.nextElementSibling as HTMLElement;
+                        if (placeholder) {
+                          placeholder.style.display = "flex";
+                        }
+                        e.currentTarget.style.display = "none";
+                      }}
+                      loading="lazy"
+                    />
+                  ) : null}
+                  {/* Gradient placeholder */}
+                  <div
+                    className={`absolute inset-0 bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 ${resolvedBannerImage ? "hidden" : "flex"} items-center justify-center`}
+                    style={{ display: resolvedBannerImage ? "none" : "flex" }}
+                  >
+                    <div className="text-white text-center">
+                      <div className="text-2xl font-bold opacity-80">{garden.name.charAt(0)}</div>
+                    </div>
                   </div>
+                  {canManage && (
+                    <div className="absolute top-2 right-2 bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium flex items-center">
+                      <RiShieldCheckLine className="h-3 w-3 mr-1" />
+                      Operator
+                    </div>
+                  )}
                 </div>
-                {canManage && (
-                  <div className="absolute top-2 right-2 bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium flex items-center">
-                    <RiShieldCheckLine className="h-3 w-3 mr-1" />
-                    Operator
-                  </div>
-                )}
-              </div>
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
-                      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">{garden.name}</h3>
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">
+                        {garden.name}
+                      </h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400">{garden.location}</p>
                     </div>
                     {!resolvedBannerImage && canManage && (
@@ -228,8 +241,10 @@ export default function Gardens() {
                       </div>
                     )}
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-4 line-clamp-2">{garden.description}</p>
-                  
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-4 line-clamp-2">
+                    {garden.description}
+                  </p>
+
                   <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400 mb-4">
                     <div className="flex items-center space-x-4">
                       <div className="flex items-center">
@@ -260,10 +275,7 @@ export default function Gardens() {
       )}
 
       {isDeployer && (
-        <CreateGardenModal
-          isOpen={createModalOpen}
-          onClose={() => setCreateModalOpen(false)}
-        />
+        <CreateGardenModal isOpen={createModalOpen} onClose={() => setCreateModalOpen(false)} />
       )}
     </div>
   );

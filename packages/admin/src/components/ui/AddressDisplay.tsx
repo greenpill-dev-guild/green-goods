@@ -9,11 +9,11 @@ interface AddressDisplayProps {
   truncateLength?: number;
 }
 
-export function AddressDisplay({ 
-  address, 
-  className, 
-  showCopyButton = true, 
-  truncateLength = 6 
+export function AddressDisplay({
+  address,
+  className,
+  showCopyButton = true,
+  truncateLength = 6,
 }: AddressDisplayProps) {
   const [copied, setCopied] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
@@ -33,15 +33,13 @@ export function AddressDisplay({
 
   return (
     <div className={cn("flex items-center space-x-2", className)}>
-      <div 
+      <div
         className="relative"
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
       >
-        <span className="text-sm font-mono cursor-pointer">
-          {truncatedAddress}
-        </span>
-        
+        <span className="text-sm font-mono cursor-pointer">{truncatedAddress}</span>
+
         {/* Tooltip */}
         {showTooltip && (
           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50">
@@ -50,7 +48,7 @@ export function AddressDisplay({
           </div>
         )}
       </div>
-      
+
       {showCopyButton && (
         <button
           onClick={handleCopy}

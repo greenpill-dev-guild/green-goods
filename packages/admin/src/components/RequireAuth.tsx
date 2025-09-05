@@ -8,7 +8,10 @@ export function RequireAuth() {
   if (!ready) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" data-testid="loading-spinner"></div>
+        <div
+          className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"
+          data-testid="loading-spinner"
+        ></div>
       </div>
     );
   }
@@ -18,6 +21,6 @@ export function RequireAuth() {
     const redirectTo = encodeURIComponent(location.pathname + location.search + location.hash);
     return <Navigate to={`/login?redirectTo=${redirectTo}`} replace />;
   }
-  
+
   return <Outlet />;
 }

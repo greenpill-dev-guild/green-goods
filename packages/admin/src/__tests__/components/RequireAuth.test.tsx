@@ -21,10 +21,11 @@ vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
   return {
     ...actual,
-    Navigate: ({ to }: { to: string }) => React.createElement("div", { 
-      "data-testid": "navigate", 
-      "data-to": to 
-    }),
+    Navigate: ({ to }: { to: string }) =>
+      React.createElement("div", {
+        "data-testid": "navigate",
+        "data-to": to,
+      }),
     Outlet: () => React.createElement("div", { "data-testid": "outlet" }, "Protected Content"),
     useLocation: () => mockUseLocation(),
   };

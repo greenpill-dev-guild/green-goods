@@ -23,29 +23,29 @@ export async function getFileByHash(hash: string) {
  */
 export function resolveIPFSUrl(url: string): string {
   if (!url) return "";
-  
+
   // If it's already a proper gateway URL, return as is
   if (url.startsWith("https://greengoods.mypinata.cloud/")) {
     return url;
   }
-  
+
   // Handle ipfs:// protocol
   if (url.startsWith("ipfs://")) {
     const hash = url.replace("ipfs://", "");
     return `https://greengoods.mypinata.cloud/ipfs/${hash}`;
   }
-  
+
   // Handle https://ipfs.io/ URLs
   if (url.includes("ipfs.io/ipfs/")) {
     const hash = url.split("ipfs.io/ipfs/")[1];
     return `https://greengoods.mypinata.cloud/ipfs/${hash}`;
   }
-  
+
   // Handle direct hash
   if (url.startsWith("Qm") || url.startsWith("baf")) {
     return `https://greengoods.mypinata.cloud/ipfs/${url}`;
   }
-  
+
   // Return original URL if no IPFS pattern matched
   return url;
 }

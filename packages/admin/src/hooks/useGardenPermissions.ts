@@ -16,9 +16,7 @@ export function useGardenPermissions(): GardenPermissions {
   const permissions = useMemo(() => {
     const isOperatorOfGarden = (garden: Garden): boolean => {
       if (!address || !garden.operators) return false;
-      return garden.operators
-        .map(op => op.toLowerCase())
-        .includes(address.toLowerCase());
+      return garden.operators.map((op) => op.toLowerCase()).includes(address.toLowerCase());
     };
 
     const canViewGarden = (_garden: Garden): boolean => {

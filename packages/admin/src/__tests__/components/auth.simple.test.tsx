@@ -42,10 +42,10 @@ describe("Authentication Logic", () => {
       search: "?tab=details",
       hash: "#section1",
     };
-    
+
     const redirectTo = encodeURIComponent(location.pathname + location.search + location.hash);
     const expectedRedirect = `/login?redirectTo=${redirectTo}`;
-    
+
     expect(expectedRedirect).toBe("/login?redirectTo=%2Fgardens%2F123%3Ftab%3Ddetails%23section1");
   });
 

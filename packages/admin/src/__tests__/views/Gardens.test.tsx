@@ -19,9 +19,13 @@ vi.mock("urql", () => ({
 // Mock CreateGardenModal component
 vi.mock("@/components/Garden/CreateGardenModal", () => ({
   CreateGardenModal: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) =>
-    isOpen ? React.createElement("div", { "data-testid": "create-garden-modal" },
-      React.createElement("button", { onClick: onClose }, "Close Modal")
-    ) : null,
+    isOpen
+      ? React.createElement(
+          "div",
+          { "data-testid": "create-garden-modal" },
+          React.createElement("button", { onClick: onClose }, "Close Modal")
+        )
+      : null,
 }));
 
 describe("Gardens View", () => {
@@ -211,7 +215,7 @@ describe("Gardens View", () => {
     // Close modal
     const closeButton = screen.getByText("Close Modal");
     await user.click(closeButton);
-    
+
     await waitFor(() => {
       expect(screen.queryByTestId("create-garden-modal")).not.toBeInTheDocument();
     });

@@ -15,7 +15,7 @@ import Contracts from "@/views/Contracts";
 function App() {
   return (
     <UrqlProvider value={urqlClient}>
-        <BrowserRouter>
+      <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route element={<RequireAuth />}>
@@ -75,7 +75,7 @@ function App() {
             },
           }}
         />
-        </BrowserRouter>
+      </BrowserRouter>
     </UrqlProvider>
   );
 }

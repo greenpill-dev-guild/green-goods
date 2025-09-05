@@ -23,7 +23,7 @@ export function CreateGardenModal({ isOpen, onClose }: CreateGardenModalProps) {
   const [gardenerInput, setGardenerInput] = useState("");
   const [operatorInput, setOperatorInput] = useState("");
   const { state, startCreation, submitCreation } = useCreateGardenWorkflow();
-  const isCreating = state.matches('creating');
+  const isCreating = state.matches("creating");
 
   const {
     register,
@@ -52,7 +52,10 @@ export function CreateGardenModal({ isOpen, onClose }: CreateGardenModalProps) {
   };
 
   const removeGardener = (index: number) => {
-    setValue("gardeners", gardeners.filter((_, i) => i !== index));
+    setValue(
+      "gardeners",
+      gardeners.filter((_, i) => i !== index)
+    );
   };
 
   const addOperator = () => {
@@ -63,7 +66,10 @@ export function CreateGardenModal({ isOpen, onClose }: CreateGardenModalProps) {
   };
 
   const removeOperator = (index: number) => {
-    setValue("operators", operators.filter((_, i) => i !== index));
+    setValue(
+      "operators",
+      operators.filter((_, i) => i !== index)
+    );
   };
 
   const onSubmit = async (data: CreateGardenForm) => {
@@ -108,10 +114,10 @@ export function CreateGardenModal({ isOpen, onClose }: CreateGardenModalProps) {
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div 
-          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" 
+        <div
+          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
           onClick={onClose}
-          onKeyDown={(e) => e.key === 'Escape' && onClose()}
+          onKeyDown={(e) => e.key === "Escape" && onClose()}
           role="button"
           tabIndex={0}
           aria-label="Close modal"
@@ -120,10 +126,7 @@ export function CreateGardenModal({ isOpen, onClose }: CreateGardenModalProps) {
         <div className="inline-block w-full max-w-2xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-medium text-gray-900">Create New Garden</h3>
-            <button
-              onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600 rounded-md"
-            >
+            <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-md">
               <RiCloseLine className="h-5 w-5" />
             </button>
           </div>
@@ -132,7 +135,10 @@ export function CreateGardenModal({ isOpen, onClose }: CreateGardenModalProps) {
             {/* Basic Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="garden-name" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="garden-name"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Garden Name *
                 </label>
                 <input
@@ -141,13 +147,14 @@ export function CreateGardenModal({ isOpen, onClose }: CreateGardenModalProps) {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                   placeholder="Enter garden name"
                 />
-                {errors.name && (
-                  <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
-                )}
+                {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>}
               </div>
 
               <div>
-                <label htmlFor="garden-location" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="garden-location"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Location *
                 </label>
                 <input
@@ -163,7 +170,10 @@ export function CreateGardenModal({ isOpen, onClose }: CreateGardenModalProps) {
             </div>
 
             <div>
-              <label htmlFor="garden-description" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="garden-description"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Description *
               </label>
               <textarea
@@ -180,7 +190,10 @@ export function CreateGardenModal({ isOpen, onClose }: CreateGardenModalProps) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="community-token" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="community-token"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Community Token Address *
                 </label>
                 <input
@@ -195,7 +208,10 @@ export function CreateGardenModal({ isOpen, onClose }: CreateGardenModalProps) {
               </div>
 
               <div>
-                <label htmlFor="banner-image" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="banner-image"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Banner Image URL
                 </label>
                 <input
@@ -212,7 +228,10 @@ export function CreateGardenModal({ isOpen, onClose }: CreateGardenModalProps) {
 
             {/* Gardeners */}
             <div>
-              <label htmlFor="gardener-input" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="gardener-input"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Gardeners
               </label>
               <div className="flex space-x-2 mb-2">
@@ -233,7 +252,10 @@ export function CreateGardenModal({ isOpen, onClose }: CreateGardenModalProps) {
               </div>
               <div className="space-y-2 max-h-32 overflow-y-auto">
                 {gardeners.map((gardener, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-2 bg-gray-50 rounded-md"
+                  >
                     <span className="text-sm font-mono">{gardener}</span>
                     <button
                       type="button"
@@ -249,7 +271,10 @@ export function CreateGardenModal({ isOpen, onClose }: CreateGardenModalProps) {
 
             {/* Operators */}
             <div>
-              <label htmlFor="operator-input" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="operator-input"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Operators
               </label>
               <div className="flex space-x-2 mb-2">
@@ -270,7 +295,10 @@ export function CreateGardenModal({ isOpen, onClose }: CreateGardenModalProps) {
               </div>
               <div className="space-y-2 max-h-32 overflow-y-auto">
                 {operators.map((operator, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-2 bg-gray-50 rounded-md"
+                  >
                     <span className="text-sm font-mono">{operator}</span>
                     <button
                       type="button"
@@ -298,9 +326,7 @@ export function CreateGardenModal({ isOpen, onClose }: CreateGardenModalProps) {
                 disabled={isCreating}
                 className={cn(
                   "px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500",
-                  isCreating
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-green-600 hover:bg-green-700"
+                  isCreating ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
                 )}
               >
                 {isCreating ? "Creating..." : "Create Garden"}

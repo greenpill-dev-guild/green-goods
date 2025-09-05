@@ -41,7 +41,7 @@ export const MockPrivyProvider = ({ children }: { children: React.ReactNode }) =
 export const createMockPrivyUser = (role: "admin" | "operator" | "unauthorized") => {
   const addressMap = {
     admin: "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
-    operator: "0x04D60647836bcA09c37B379550038BdaaFD82503", 
+    operator: "0x04D60647836bcA09c37B379550038BdaaFD82503",
     unauthorized: "0x1234567890123456789012345678901234567890",
   };
 

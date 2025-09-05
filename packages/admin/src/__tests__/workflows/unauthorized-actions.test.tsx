@@ -26,17 +26,25 @@ vi.mock("@/hooks/useGardenOperations", () => ({
 // Mock CreateGardenModal
 vi.mock("@/components/Garden/CreateGardenModal", () => ({
   CreateGardenModal: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) =>
-    isOpen ? React.createElement("div", { "data-testid": "create-garden-modal" },
-      React.createElement("button", { 
-        "data-testid": "create-garden-submit",
-        onClick: () => {
-          // Simulate unauthorized action
-          toast.error("Unauthorized: Admin role required");
-          onClose();
-        }
-      }, "Create Garden"),
-      React.createElement("button", { onClick: onClose }, "Cancel")
-    ) : null,
+    isOpen
+      ? React.createElement(
+          "div",
+          { "data-testid": "create-garden-modal" },
+          React.createElement(
+            "button",
+            {
+              "data-testid": "create-garden-submit",
+              onClick: () => {
+                // Simulate unauthorized action
+                toast.error("Unauthorized: Admin role required");
+                onClose();
+              },
+            },
+            "Create Garden"
+          ),
+          React.createElement("button", { onClick: onClose }, "Cancel")
+        )
+      : null,
 }));
 
 describe("Unauthorized Actions", () => {
@@ -51,7 +59,7 @@ describe("Unauthorized Actions", () => {
 
   it("should show error toast when unauthorized user tries to create garden", async () => {
     const user = userEvent.setup();
-    
+
     mockUseRole.mockReturnValue({
       isAdmin: false,
       isOperator: false,
@@ -75,7 +83,7 @@ describe("Unauthorized Actions", () => {
 
   it("should show error toast when operator tries admin-only actions", async () => {
     const user = userEvent.setup();
-    
+
     mockUseRole.mockReturnValue({
       isAdmin: false,
       isOperator: true,
@@ -103,8 +111,10 @@ describe("Unauthorized Actions", () => {
   });
 
   it("should prevent unauthorized garden operations", async () => {
-    const mockAddGardener = vi.fn(() => Promise.reject(new Error("Unauthorized: Only operators can add gardeners")));
-    
+    const mockAddGardener = vi.fn(() =>
+      Promise.reject(new Error("Unauthorized: Only operators can add gardeners"))
+    );
+
     mockUseGardenOperations.mockReturnValue({
       addGardener: mockAddGardener,
       removeGardener: vi.fn(),

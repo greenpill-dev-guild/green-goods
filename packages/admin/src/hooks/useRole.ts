@@ -30,7 +30,7 @@ export interface RoleInfo {
 export function useRole(): RoleInfo {
   const { address, ready } = useAuth();
   const deploymentRegistry = useDeploymentRegistry();
-  
+
   const [{ data: operatorData, fetching }] = useQuery({
     query: GET_OPERATOR_GARDENS,
     variables: { operator: [address || ""] },
@@ -40,7 +40,7 @@ export function useRole(): RoleInfo {
   const operatorGardens = operatorData?.Garden || [];
   const isOperator = operatorGardens.length > 0;
   const isDeployer = deploymentRegistry.canDeploy;
-  
+
   // Determine primary role based on capabilities
   let role: UserRole = "user";
   if (isDeployer) {

@@ -10,10 +10,7 @@ export interface ToastActionOptions {
 
 export function useToastAction() {
   const executeWithToast = useCallback(
-    async <T>(
-      action: () => Promise<T>,
-      options: ToastActionOptions = {}
-    ): Promise<T> => {
+    async <T>(action: () => Promise<T>, options: ToastActionOptions = {}): Promise<T> => {
       const {
         loadingMessage = "Processing...",
         successMessage = "Action completed successfully",
