@@ -1,22 +1,18 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { RiCloseLine, RiAddLine, RiDeleteBinLine } from "@remixicon/react";
-import { useCreateGarden } from "@/hooks/useCreateGarden";
+import { useCreateGardenWorkflow } from "@/hooks/useCreateGardenWorkflow";
 import { cn } from "@/utils/cn";
 
-const createGardenSchema = z.object({
-  name: z.string().min(1, "Garden name is required"),
-  description: z.string().min(1, "Description is required"),
-  location: z.string().min(1, "Location is required"),
-  bannerImage: z.string().url("Must be a valid URL").optional().or(z.literal("")),
-  communityToken: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Must be a valid address"),
-  gardeners: z.array(z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Must be a valid address")),
-  operators: z.array(z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Must be a valid address")),
-});
-
-type CreateGardenForm = z.infer<typeof createGardenSchema>;
+interface CreateGardenForm {
+  name: string;
+  description: string;
+  location: string;
+  bannerImage?: string;
+  communityToken: string;
+  gardeners: string[];
+  operators: string[];
+}
 
 interface CreateGardenModalProps {
   isOpen: boolean;
@@ -26,17 +22,18 @@ interface CreateGardenModalProps {
 export function CreateGardenModal({ isOpen, onClose }: CreateGardenModalProps) {
   const [gardenerInput, setGardenerInput] = useState("");
   const [operatorInput, setOperatorInput] = useState("");
-  const { createGarden, isCreating } = useCreateGarden();
+  const { state, startCreation, submitCreation } = useCreateGardenWorkflow();
+  const isCreating = state.matches('creating');
 
   const {
     register,
     handleSubmit,
     watch,
     setValue,
+    setError,
     formState: { errors },
     reset,
   } = useForm<CreateGardenForm>({
-    resolver: zodResolver(createGardenSchema),
     defaultValues: {
       gardeners: [],
       operators: [],
@@ -70,8 +67,26 @@ export function CreateGardenModal({ isOpen, onClose }: CreateGardenModalProps) {
   };
 
   const onSubmit = async (data: CreateGardenForm) => {
+    // Manual validation
+    if (!data.name) {
+      setError("name", { type: "required", message: "Garden name is required" });
+      return;
+    }
+    if (!data.description) {
+      setError("description", { type: "required", message: "Description is required" });
+      return;
+    }
+    if (!data.location) {
+      setError("location", { type: "required", message: "Location is required" });
+      return;
+    }
+    if (!data.communityToken || !/^0x[a-fA-F0-9]{40}$/.test(data.communityToken)) {
+      setError("communityToken", { type: "pattern", message: "Must be a valid address" });
+      return;
+    }
+
     try {
-      await createGarden({
+      startCreation({
         communityToken: data.communityToken,
         name: data.name,
         description: data.description,
@@ -80,6 +95,7 @@ export function CreateGardenModal({ isOpen, onClose }: CreateGardenModalProps) {
         gardeners: data.gardeners,
         gardenOperators: data.operators,
       });
+      await submitCreation();
       reset();
       onClose();
     } catch (error) {

@@ -1,15 +1,14 @@
 import { useMachine } from "@xstate/react";
-import { useWallets } from "@privy-io/react-auth";
-import { createWalletClient, custom } from "viem";
+import { useAccount, useWalletClient } from "wagmi";
 import { createGardenMachine } from "@/workflows/createGarden";
-import { getNetworkContracts, GardenTokenABI, getChainById } from "@/utils/contracts";
+import { getNetworkContracts, GardenTokenABI } from "@/utils/contracts";
 import { useAdminStore } from "@/stores/admin";
 import type { CreateGardenParams } from "@/types/contracts";
 
 export function useCreateGardenWorkflow() {
   const [state, send] = useMachine(createGardenMachine);
-  const { wallets } = useWallets();
-  const wallet = wallets.find(w => w.walletClientType === "privy");
+  const { address } = useAccount();
+  const { data: walletClient } = useWalletClient();
   const { selectedChainId } = useAdminStore();
 
   const startCreation = (params: CreateGardenParams) => {
@@ -17,15 +16,10 @@ export function useCreateGardenWorkflow() {
   };
 
   const submitCreation = async () => {
-    if (!wallet || !state.context.gardenParams) {
+    if (!walletClient || !address || !state.context.gardenParams) {
       send({ type: "FAILURE", error: "Wallet not connected or invalid parameters" });
       return;
     }
-
-    const walletClient = createWalletClient({
-      chain: getChainById(selectedChainId),
-      transport: custom((wallet as unknown as { provider: any }).provider),
-    });
 
     send({ type: "SUBMIT" });
 
@@ -37,7 +31,7 @@ export function useCreateGardenWorkflow() {
         address: contracts.gardenToken as `0x${string}`,
         abi: GardenTokenABI.abi,
         functionName: "mintGarden",
-        account: wallet.address as `0x${string}`,
+        account: address,
         args: [
           params.communityToken,
           params.name,

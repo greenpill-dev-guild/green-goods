@@ -6,7 +6,6 @@ import { urqlClient } from "@/utils/urql";
 import { RequireAuth } from "@/components/RequireAuth";
 import { RequireRole } from "@/components/RequireRole";
 import { DashboardLayout } from "@/components/Layout/DashboardLayout";
-import { SubscriptionsProvider } from "@/providers/subscriptions";
 import Login from "@/views/Login";
 import Dashboard from "@/views/Dashboard";
 import Gardens from "@/views/Gardens";
@@ -16,18 +15,17 @@ import Contracts from "@/views/Contracts";
 function App() {
   return (
     <UrqlProvider value={urqlClient}>
-      <SubscriptionsProvider>
         <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route element={<RequireAuth />}>
-            <Route element={<RequireRole allowedRoles={["admin", "operator"]} />}>
+            <Route element={<RequireRole allowedRoles={["deployer", "operator", "user"]} />}>
               <Route element={<DashboardLayout />}>
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/gardens" element={<Gardens />} />
                 <Route path="/gardens/:id" element={<GardenDetail />} />
-                <Route element={<RequireRole allowedRoles={["admin"]} />}>
+                <Route element={<RequireRole allowedRoles={["deployer"]} />}>
                   <Route path="/contracts" element={<Contracts />} />
                 </Route>
               </Route>
@@ -78,7 +76,6 @@ function App() {
           }}
         />
         </BrowserRouter>
-      </SubscriptionsProvider>
     </UrqlProvider>
   );
 }

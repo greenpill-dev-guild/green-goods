@@ -34,6 +34,22 @@ export default defineConfig(({ mode }) => {
       host: true,
       hmr: { overlay: true },
       watch: { usePolling: true, interval: 100 },
+      proxy: {
+        // Proxy indexer requests to avoid CORS issues in development
+        '/api/graphql': {
+          target: localEnv.VITE_ENVIO_INDEXER_URL || '',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/graphql/, ''),
+          configure: (proxy) => {
+            proxy.on('error', (err) => {
+              console.log('🔥 Indexer proxy error:', err);
+            });
+            proxy.on('proxyReq', (_proxyReq, req) => {
+              console.log('📡 Proxying request to indexer:', req.url);
+            });
+          }
+        }
+      }
     },
   };
 });

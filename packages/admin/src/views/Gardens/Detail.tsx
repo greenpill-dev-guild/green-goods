@@ -3,13 +3,15 @@ import { useParams, Link } from "react-router-dom";
 import { useQuery } from "urql";
 import { graphql } from "gql.tada";
 import { RiArrowLeftLine, RiUserLine, RiDeleteBinLine, RiUserAddLine } from "@remixicon/react";
-import { useRole } from "@/hooks/useRole";
+import { useGardenPermissions } from "@/hooks/useGardenPermissions";
 import { useGardenOperations } from "@/hooks/useGardenOperations";
 import { AddMemberModal } from "@/components/Garden/AddMemberModal";
+import { AddressDisplay } from "@/components/ui/AddressDisplay";
+import { resolveIPFSUrl } from "@/utils/pinata";
 
 const GET_GARDEN_DETAIL = graphql(`
-  query GetGardenDetail($id: ID!) {
-    garden(id: $id) {
+  query GetGardenDetail($id: String!) {
+    Garden(where: {id: {_eq: $id}}) {
       id
       chainId
       tokenAddress
@@ -27,9 +29,16 @@ const GET_GARDEN_DETAIL = graphql(`
 
 export default function GardenDetail() {
   const { id } = useParams<{ id: string }>();
-  const { isAdmin, operatorGardens } = useRole();
+  const gardenPermissions = useGardenPermissions();
   const [addMemberModalOpen, setAddMemberModalOpen] = useState(false);
   const [memberType, setMemberType] = useState<"gardener" | "operator">("gardener");
+
+  const openAddMemberModal = (type: "gardener" | "operator") => {
+    console.log("🟢 Opening modal for:", type);
+    setMemberType(type);
+    setAddMemberModalOpen(true);
+    console.log("🟢 Modal state set:", { type, open: true });
+  };
   
   const [{ data, fetching, error }] = useQuery({
     query: GET_GARDEN_DETAIL,
@@ -39,11 +48,10 @@ export default function GardenDetail() {
 
   const { addGardener, removeGardener, addOperator, removeOperator, isLoading } = useGardenOperations(id!);
 
-  const garden = data?.garden;
+  const garden = data?.Garden?.[0];
 
-  // Check if current user is operator of this garden
-  const isOperatorOfGarden = operatorGardens.some(g => g.id === id);
-  const canManage = isAdmin || isOperatorOfGarden;
+  // Check if current user can manage this specific garden
+  const canManage = garden ? gardenPermissions.canManageGarden(garden) : false;
 
   if (fetching) {
     return (
@@ -68,44 +76,63 @@ export default function GardenDetail() {
     );
   }
 
-  const openAddMemberModal = (type: "gardener" | "operator") => {
-    setMemberType(type);
-    setAddMemberModalOpen(true);
-  };
-
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center space-x-4">
-          <Link
-            to="/gardens"
-            className="p-2 text-gray-400 hover:text-gray-600 rounded-md"
-          >
-            <RiArrowLeftLine className="h-5 w-5" />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{garden.name}</h1>
-            <p className="text-gray-600">{garden.location}</p>
+    <div className="">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Link
+              to="/gardens"
+              className="p-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 rounded-md flex-shrink-0"
+            >
+              <RiArrowLeftLine className="h-5 w-5" />
+            </Link>
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 truncate">{garden.name}</h1>
+              <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <span>{garden.location}</span>
+                <span>•</span>
+                <span>Chain {garden.chainId}</span>
+                <span>•</span>
+                <span>Token #{garden.tokenID.toString()}</span>
+              </div>
+            </div>
           </div>
-        </div>
-        
-        <div className="text-sm text-gray-500">
-          Chain ID: {garden.chainId} | Token ID: {garden.tokenID.toString()}
         </div>
       </div>
 
+      <div className="p-6">
+
       {/* Garden Info */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-8">
-        {garden.bannerImage && (
-          <div className="h-64 rounded-t-lg overflow-hidden">
+        <div className="h-64 rounded-t-lg overflow-hidden relative">
+          {garden.bannerImage ? (
             <img
-              src={garden.bannerImage}
+              src={resolveIPFSUrl(garden.bannerImage)}
               alt={garden.name}
               className="w-full h-full object-cover"
+              onError={(e) => {
+                const placeholder = e.currentTarget.nextElementSibling as HTMLElement;
+                if (placeholder) {
+                  placeholder.style.display = 'flex';
+                }
+                e.currentTarget.style.display = 'none';
+              }}
+              loading="lazy"
             />
+          ) : null}
+          {/* Gradient placeholder */}
+          <div 
+            className={`absolute inset-0 bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 ${garden.bannerImage ? 'hidden' : 'flex'} items-center justify-center`}
+            style={{ display: garden.bannerImage ? 'none' : 'flex' }}
+          >
+            <div className="text-white text-center">
+              <div className="text-4xl font-bold opacity-80">{garden.name.charAt(0)}</div>
+              <div className="text-lg opacity-60 mt-2">{garden.name}</div>
+            </div>
           </div>
-        )}
+        </div>
         <div className="p-6">
           <h2 className="text-lg font-medium text-gray-900 mb-2">Description</h2>
           <p className="text-gray-600">{garden.description}</p>
@@ -137,11 +164,11 @@ export default function GardenDetail() {
               <div className="space-y-3">
                 {garden.operators.map((operator: string, index: number) => (
                   <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
-                    <div className="flex items-center space-x-3">
-                      <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <div className="flex items-center space-x-3 flex-1 min-w-0">
+                      <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
                         <RiUserLine className="h-4 w-4 text-blue-600" />
                       </div>
-                      <span className="text-sm font-mono">{operator}</span>
+                      <AddressDisplay address={operator} className="flex-1 min-w-0" />
                     </div>
                     {canManage && (
                       <button
@@ -182,11 +209,11 @@ export default function GardenDetail() {
               <div className="space-y-3">
                 {garden.gardeners.map((gardener: string, index: number) => (
                   <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
-                    <div className="flex items-center space-x-3">
-                      <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
+                    <div className="flex items-center space-x-3 flex-1 min-w-0">
+                      <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
                         <RiUserLine className="h-4 w-4 text-green-600" />
                       </div>
-                      <span className="text-sm font-mono">{gardener}</span>
+                      <AddressDisplay address={gardener} className="flex-1 min-w-0" />
                     </div>
                     {canManage && (
                       <button
@@ -216,9 +243,10 @@ export default function GardenDetail() {
           } else {
             await addOperator(address);
           }
-        }}
+                }}  
         isLoading={isLoading}
       />
+      </div>
     </div>
   );
 }

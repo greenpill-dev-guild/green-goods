@@ -1,26 +1,18 @@
 import { useState } from "react";
-import { useWallets } from "@privy-io/react-auth";
-import { createWalletClient, custom } from "viem";
+import { useAccount, useWalletClient } from "wagmi";
 import { useToastAction } from "./useToastAction";
-import { GardenAccountABI, getChainById } from "@/utils/contracts";
-import { useAdminStore } from "@/stores/admin";
+import { GardenAccountABI } from "@/utils/contracts";
 
 export function useGardenOperations(gardenId: string) {
   const [isLoading, setIsLoading] = useState(false);
   const { executeWithToast } = useToastAction();
-  const { selectedChainId } = useAdminStore();
-  const { wallets } = useWallets();
-  const wallet = wallets.find(w => w.walletClientType === "privy");
+  const { address } = useAccount();
+  const { data: walletClient } = useWalletClient();
 
   const addGardener = async (gardenerAddress: string) => {
-    if (!wallet) {
+    if (!walletClient || !address) {
       throw new Error("Wallet not connected");
     }
-
-    const walletClient = createWalletClient({
-      chain: getChainById(selectedChainId),
-      transport: custom((wallet as unknown as { provider: any }).provider),
-    });
 
     setIsLoading(true);
     
@@ -31,7 +23,7 @@ export function useGardenOperations(gardenId: string) {
             address: gardenId as `0x${string}`,
             abi: GardenAccountABI.abi,
             functionName: "addGardener",
-            account: wallet.address as `0x${string}`,
+            account: address,
             args: [gardenerAddress],
           });
 
@@ -51,14 +43,9 @@ export function useGardenOperations(gardenId: string) {
   };
 
   const removeGardener = async (gardenerAddress: string) => {
-    if (!wallet) {
+    if (!walletClient || !address) {
       throw new Error("Wallet not connected");
     }
-
-    const walletClient = createWalletClient({
-      chain: getChainById(selectedChainId),
-      transport: custom((wallet as unknown as { provider: any }).provider),
-    });
 
     setIsLoading(true);
     
@@ -69,7 +56,7 @@ export function useGardenOperations(gardenId: string) {
             address: gardenId as `0x${string}`,
             abi: GardenAccountABI.abi,
             functionName: "removeGardener",
-            account: wallet.address as `0x${string}`,
+            account: address,
             args: [gardenerAddress],
           });
 
@@ -89,14 +76,9 @@ export function useGardenOperations(gardenId: string) {
   };
 
   const addOperator = async (operatorAddress: string) => {
-    if (!wallet) {
+    if (!walletClient || !address) {
       throw new Error("Wallet not connected");
     }
-
-    const walletClient = createWalletClient({
-      chain: getChainById(selectedChainId),
-      transport: custom((wallet as unknown as { provider: any }).provider),
-    });
 
     setIsLoading(true);
     
@@ -107,7 +89,7 @@ export function useGardenOperations(gardenId: string) {
             address: gardenId as `0x${string}`,
             abi: GardenAccountABI.abi,
             functionName: "addGardenOperator",
-            account: wallet.address as `0x${string}`,
+            account: address,
             args: [operatorAddress],
           });
 
@@ -127,14 +109,9 @@ export function useGardenOperations(gardenId: string) {
   };
 
   const removeOperator = async (operatorAddress: string) => {
-    if (!wallet) {
+    if (!walletClient || !address) {
       throw new Error("Wallet not connected");
     }
-
-    const walletClient = createWalletClient({
-      chain: getChainById(selectedChainId),
-      transport: custom((wallet as unknown as { provider: any }).provider),
-    });
 
     setIsLoading(true);
     
@@ -145,7 +122,7 @@ export function useGardenOperations(gardenId: string) {
             address: gardenId as `0x${string}`,
             abi: GardenAccountABI.abi,
             functionName: "removeGardenOperator",
-            account: wallet.address as `0x${string}`,
+            account: address,
             args: [operatorAddress],
           });
 

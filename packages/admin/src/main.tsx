@@ -1,36 +1,45 @@
-import { PrivyProvider } from "@privy-io/react-auth";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { arbitrum, baseSepolia, celo } from "viem/chains";
+import { WagmiProvider } from 'wagmi'
+import { QueryClientProvider } from '@tanstack/react-query'
 
 import App from "@/App.tsx";
-import { APP_DESCRIPTION, getDefaultChain } from "@/config";
-import { UserProvider } from "@/providers/user";
+import { AuthProvider } from "@/providers/AuthProvider";
+import { wagmiConfig, queryClient } from "@/config";
 
 import "@/index.css";
 
+// Initialize theme on app start
+function initializeTheme() {
+  const themeMode = localStorage.getItem("themeMode") || 'system';
+  let shouldBeDark = false;
+
+  if (themeMode === 'dark') {
+    shouldBeDark = true;
+  } else if (themeMode === 'light') {
+    shouldBeDark = false;
+  } else {
+    // System mode
+    shouldBeDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+
+  if (shouldBeDark) {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
+}
+
+initializeTheme();
+
 export const Root = () => (
-  <PrivyProvider
-    appId={import.meta.env.VITE_PRIVY_APP_ID as string}
-    config={{
-      loginMethods: ["email", "sms"],
-      appearance: {
-        theme: "light",
-        loginMessage: APP_DESCRIPTION,
-        landingHeader: "",
-        logo: "",
-      },
-      embeddedWallets: {
-        createOnLogin: "all-users",
-      },
-      defaultChain: getDefaultChain(),
-      supportedChains: [arbitrum, celo, baseSepolia],
-    }}
-  >
-    <UserProvider>
-      <App />
-    </UserProvider>
-  </PrivyProvider>
+  <WagmiProvider config={wagmiConfig}>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </QueryClientProvider>
+  </WagmiProvider>
 );
 
 const container = document.getElementById("root");
