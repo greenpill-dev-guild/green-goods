@@ -194,7 +194,7 @@ Required environment variables (see `.env.example`):
 ```bash
 VITE_PRIVY_APP_ID=your_privy_app_id
 VITE_DEFAULT_CHAIN_ID=42161
-VITE_ALCHEMY_KEY=your_alchemy_key
+VITE_ALCHEMY_API_KEY=your_alchemy_key
 VITE_ENVIO_INDEXER_URL=https://indexer.dev.hyperindex.xyz/2e23bea/v1/graphql
 ```
 

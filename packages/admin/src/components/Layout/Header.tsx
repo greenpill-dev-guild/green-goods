@@ -28,7 +28,7 @@ export function Header() {
           <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Green Goods</h1>
         </div> */}
 
-        {/* Right side controls */}
+        {/* Left side controls */}
         <div className="flex items-center space-x-4">
           {/* Chain selector */}
           <select
@@ -43,10 +43,13 @@ export function Header() {
               </option>
             ))}
           </select>
-
-          {/* User profile */}
-          <UserProfile />
         </div>
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Right side - User profile */}
+        <UserProfile />
       </div>
     </header>
   );

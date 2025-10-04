@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { RiCloseLine, RiClipboardLine } from "@remixicon/react";
 import { cn } from "@/utils/cn";
 
@@ -20,15 +20,9 @@ export function AddMemberModal({
   const [address, setAddress] = useState("");
   const [error, setError] = useState("");
 
-  // 🐛 DEBUG: Log modal state changes
-  useEffect(() => {
-    console.log("🔴 AddMemberModal state:", { isOpen, memberType, isLoading });
-  }, [isOpen, memberType, isLoading]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    console.log("🔴 Modal submit:", { address, memberType });
 
     if (!address) {
       setError("Address is required");
@@ -45,7 +39,6 @@ export function AddMemberModal({
       setAddress("");
       onClose();
     } catch (error) {
-      console.error("🔴 Modal add error:", error);
       setError(error instanceof Error ? error.message : "Failed to add member");
     }
   };
@@ -70,11 +63,8 @@ export function AddMemberModal({
   };
 
   if (!isOpen) {
-    console.log("🔴 Modal not open, returning null");
     return null;
   }
-
-  console.log("🔴 Modal rendering...");
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">

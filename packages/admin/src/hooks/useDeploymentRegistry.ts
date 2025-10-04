@@ -69,7 +69,7 @@ export function useDeploymentRegistry(): DeploymentRegistryPermissions {
           return;
         }
 
-        const alchemyKey = import.meta.env.VITE_ALCHEMY_KEY || "demo";
+        const alchemyKey = import.meta.env.VITE_ALCHEMY_API_KEY || "demo";
 
         let rpcUrl = "";
         switch (selectedChainId) {

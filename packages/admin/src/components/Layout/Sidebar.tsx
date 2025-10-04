@@ -1,5 +1,11 @@
 import { Link, useLocation } from "react-router-dom";
-import { RiDashboardLine, RiPlantLine, RiSettings3Line, RiLogoutBoxLine } from "@remixicon/react";
+import {
+  RiDashboardLine,
+  RiPlantLine,
+  RiSettings3Line,
+  RiUploadLine,
+  RiLogoutBoxLine,
+} from "@remixicon/react";
 import { useAuth } from "@/providers/AuthProvider";
 import { useRole } from "@/hooks/useRole";
 import { useAdminStore } from "@/stores/admin";
@@ -14,6 +20,7 @@ const navigation = [
   },
   { name: "Gardens", href: "/gardens", icon: RiPlantLine, roles: ["deployer", "operator", "user"] },
   { name: "Contracts", href: "/contracts", icon: RiSettings3Line, roles: ["deployer"] },
+  { name: "Deployment", href: "/deployment", icon: RiUploadLine, roles: ["deployer"] },
 ];
 
 export function Sidebar() {

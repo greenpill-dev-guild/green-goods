@@ -43,8 +43,8 @@ export default function Gardens() {
 
   if (fetching) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Gardens</h1>
             <p className="text-gray-600 dark:text-gray-400">
@@ -124,15 +124,13 @@ export default function Gardens() {
                 Indexer offline - Limited functionality available
               </p>
             </div>
-            {isDeployer && (
-              <button
-                onClick={() => setCreateModalOpen(true)}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-              >
-                <RiAddLine className="mr-2 h-4 w-4" />
-                Create Garden
-              </button>
-            )}
+            <button
+              onClick={() => setCreateModalOpen(true)}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+            >
+              <RiAddLine className="mr-2 h-4 w-4" />
+              Create Garden
+            </button>
           </div>
 
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -146,9 +144,7 @@ export default function Gardens() {
           </div>
         </div>
 
-        {isDeployer && (
-          <CreateGardenModal isOpen={createModalOpen} onClose={() => setCreateModalOpen(false)} />
-        )}
+        <CreateGardenModal isOpen={createModalOpen} onClose={() => setCreateModalOpen(false)} />
       </div>
     );
   }
@@ -162,24 +158,20 @@ export default function Gardens() {
             View all gardens. Manage gardens where you are an operator.
           </p>
         </div>
-        {isDeployer && (
-          <button
-            onClick={() => setCreateModalOpen(true)}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-          >
-            <RiAddLine className="mr-2 h-4 w-4" />
-            Create Garden
-          </button>
-        )}
+        <button
+          onClick={() => setCreateModalOpen(true)}
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+        >
+          <RiAddLine className="mr-2 h-4 w-4" />
+          Create Garden
+        </button>
       </div>
 
       {gardens.length === 0 ? (
         <div className="text-center py-12">
           <RiPlantLine className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900">No gardens</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            {isDeployer ? "Get started by creating your first garden." : "No gardens created yet."}
-          </p>
+          <p className="mt-1 text-sm text-gray-500">Get started by creating your first garden.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
@@ -274,9 +266,7 @@ export default function Gardens() {
         </div>
       )}
 
-      {isDeployer && (
-        <CreateGardenModal isOpen={createModalOpen} onClose={() => setCreateModalOpen(false)} />
-      )}
+      <CreateGardenModal isOpen={createModalOpen} onClose={() => setCreateModalOpen(false)} />
     </div>
   );
 }

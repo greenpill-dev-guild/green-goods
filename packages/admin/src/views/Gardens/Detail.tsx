@@ -34,13 +34,11 @@ export default function GardenDetail() {
   const [memberType, setMemberType] = useState<"gardener" | "operator">("gardener");
 
   const openAddMemberModal = (type: "gardener" | "operator") => {
-    console.log("🟢 Opening modal for:", type);
     setMemberType(type);
     setAddMemberModalOpen(true);
-    console.log("🟢 Modal state set:", { type, open: true });
   };
 
-  const [{ data, fetching, error }] = useQuery({
+  const [{ data, fetching, error }, refetch] = useQuery({
     query: GET_GARDEN_DETAIL,
     variables: { id: id! },
     pause: !id,
@@ -175,7 +173,10 @@ export default function GardenDetail() {
                       </div>
                       {canManage && (
                         <button
-                          onClick={() => removeOperator(operator)}
+                          onClick={async () => {
+                            await removeOperator(operator);
+                            await refetch({ requestPolicy: "network-only" });
+                          }}
                           disabled={isLoading}
                           className="text-red-600 hover:text-red-800 disabled:opacity-50"
                         >
@@ -223,7 +224,10 @@ export default function GardenDetail() {
                       </div>
                       {canManage && (
                         <button
-                          onClick={() => removeGardener(gardener)}
+                          onClick={async () => {
+                            await removeGardener(gardener);
+                            await refetch({ requestPolicy: "network-only" });
+                          }}
                           disabled={isLoading}
                           className="text-red-600 hover:text-red-800 disabled:opacity-50"
                         >
@@ -249,6 +253,8 @@ export default function GardenDetail() {
             } else {
               await addOperator(address);
             }
+            // Refetch the garden data to show the updated member list
+            await refetch({ requestPolicy: "network-only" });
           }}
           isLoading={isLoading}
         />

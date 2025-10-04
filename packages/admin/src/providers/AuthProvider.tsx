@@ -57,7 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isConnecting,
     connect: open,
     disconnect,
-    ready: !isConnecting && isConnected, // Ready when connected and not connecting
+    ready: !isConnecting, // Ready when we've finished checking connection status
     user,
   };
 

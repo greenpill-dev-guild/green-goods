@@ -16,14 +16,31 @@ import ActionRegistryABI from "../../../indexer/abis/ActionRegistry.json";
 export { GardenTokenABI, GardenAccountABI, ActionRegistryABI };
 
 function getNetworkConfigFromNetworksJson(chainId: number) {
-  const networks = networksConfig as Record<string, any>;
+  const networksData = networksConfig as { networks: Record<string, any> };
 
-  if (networks[chainId]) {
-    return networks[chainId];
+  // Map chainId to network name
+  let networkName = "";
+  switch (chainId) {
+    case 42161:
+      networkName = "arbitrum";
+      break;
+    case 42220:
+      networkName = "celo";
+      break;
+    case 84532:
+      networkName = "baseSepolia";
+      break;
+    case 31337:
+      networkName = "localhost";
+      break;
+    case 11155111:
+      networkName = "sepolia";
+      break;
+    default:
+      networkName = "baseSepolia";
   }
 
-  // Fallback to Base Sepolia if not found
-  return networks.baseSepolia;
+  return networksData.networks[networkName] || networksData.networks.baseSepolia;
 }
 
 function getDeploymentConfig(chainId: number | string): Record<string, any> {
@@ -83,7 +100,7 @@ export function getChainById(chainId: number) {
 
 export function createClients(chainId: number) {
   const chain = getChainById(chainId);
-  const alchemyKey = import.meta.env.VITE_ALCHEMY_KEY || "demo";
+  const alchemyKey = import.meta.env.VITE_ALCHEMY_API_KEY || "demo";
 
   let rpcUrl = "";
   switch (chainId) {

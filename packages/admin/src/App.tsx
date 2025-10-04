@@ -11,6 +11,7 @@ import Dashboard from "@/views/Dashboard";
 import Gardens from "@/views/Gardens";
 import GardenDetail from "@/views/Gardens/Detail";
 import Contracts from "@/views/Contracts";
+import Deployment from "@/views/Deployment";
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
                 <Route path="/gardens/:id" element={<GardenDetail />} />
                 <Route element={<RequireRole allowedRoles={["deployer"]} />}>
                   <Route path="/contracts" element={<Contracts />} />
+                  <Route path="/deployment" element={<Deployment />} />
                 </Route>
               </Route>
             </Route>
