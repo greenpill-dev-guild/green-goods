@@ -2,6 +2,7 @@
 pragma solidity >=0.8.25;
 
 import { Test } from "forge-std/Test.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import { Capital } from "../src/Constants.sol";
 import { ActionRegistry, NotActionOwner } from "../src/registries/Action.sol";
@@ -12,14 +13,20 @@ contract ActionRegistryTest is Test {
     address private owner = address(this);
 
     function setUp() public {
-        // Deploy the ActionRegistry contract
-        actionRegistry = new ActionRegistry();
-        actionRegistry.initialize();
+        // Deploy the implementation
+        ActionRegistry implementation = new ActionRegistry();
+
+        // Deploy the proxy with initialization
+        bytes memory initData = abi.encodeWithSelector(ActionRegistry.initialize.selector, multisig);
+        ERC1967Proxy proxy = new ERC1967Proxy(address(implementation), initData);
+
+        // Cast proxy to ActionRegistry interface
+        actionRegistry = ActionRegistry(address(proxy));
     }
 
     function testInitialize() public {
         // Test that the contract is properly initialized
-        assertEq(actionRegistry.owner(), address(this), "Owner should be the multisig address");
+        assertEq(actionRegistry.owner(), multisig, "Owner should be the multisig address");
     }
 
     function testRegisterAction() public {
@@ -30,7 +37,7 @@ contract ActionRegistryTest is Test {
         string[] memory media = new string[](1);
         media[0] = "mediaCID1";
 
-        // vm.prank(multisig);
+        vm.prank(multisig);
         actionRegistry.registerAction(
             block.timestamp, block.timestamp + 1 days, "Test Action", "instructionsCID", capitals, media
         );
@@ -46,7 +53,7 @@ contract ActionRegistryTest is Test {
         // Test updating the start time of an action
         testRegisterAction();
 
-        // vm.prank(multisig);
+        vm.prank(multisig);
         actionRegistry.updateActionStartTime(0, block.timestamp + 1 hours);
 
         ActionRegistry.Action memory action = actionRegistry.getAction(0);
@@ -57,7 +64,7 @@ contract ActionRegistryTest is Test {
         // Test updating the end time of an action
         testRegisterAction();
 
-        // vm.prank(multisig);
+        vm.prank(multisig);
         actionRegistry.updateActionEndTime(0, block.timestamp + 2 days);
 
         ActionRegistry.Action memory action = actionRegistry.getAction(0);
@@ -68,7 +75,7 @@ contract ActionRegistryTest is Test {
         // Test updating the instructions of an action
         testRegisterAction();
 
-        // vm.prank(multisig);
+        vm.prank(multisig);
         actionRegistry.updateActionInstructions(0, "newInstructionsCID");
 
         ActionRegistry.Action memory action = actionRegistry.getAction(0);
@@ -82,7 +89,7 @@ contract ActionRegistryTest is Test {
         string[] memory newMedia = new string[](1);
         newMedia[0] = "newMediaCID";
 
-        // vm.prank(multisig);
+        vm.prank(multisig);
         actionRegistry.updateActionMedia(0, newMedia);
 
         ActionRegistry.Action memory action = actionRegistry.getAction(0);

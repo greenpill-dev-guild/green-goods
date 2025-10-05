@@ -36,6 +36,7 @@ abstract contract DeploymentHelper is Script {
         address accountProxy;
         address gardenToken;
         address actionRegistry;
+        address assessmentResolver;
         address workResolver;
         address workApprovalResolver;
         bytes32 gardenAssessmentSchemaUID;
@@ -141,6 +142,7 @@ abstract contract DeploymentHelper is Script {
         vm.serializeAddress(obj, "accountProxy", result.accountProxy);
         vm.serializeAddress(obj, "gardenToken", result.gardenToken);
         vm.serializeAddress(obj, "actionRegistry", result.actionRegistry);
+        vm.serializeAddress(obj, "assessmentResolver", result.assessmentResolver);
         vm.serializeAddress(obj, "workResolver", result.workResolver);
         vm.serializeAddress(obj, "workApprovalResolver", result.workApprovalResolver);
 
@@ -254,6 +256,7 @@ abstract contract DeploymentHelper is Script {
         console.log("Account Proxy:", result.accountProxy);
         console.log("Garden Token:", result.gardenToken);
         console.log("Action Registry:", result.actionRegistry);
+        console.log("Assessment Resolver:", result.assessmentResolver);
         console.log("Work Resolver:", result.workResolver);
         console.log("Work Approval Resolver:", result.workApprovalResolver);
         console.log("\n--- EAS Schema UIDs ---");
@@ -289,6 +292,11 @@ abstract contract DeploymentHelper is Script {
         console.log(string.concat(baseCmd, " ", vm.toString(result.gardenToken), " src/tokens/Garden.sol:GardenToken"));
         console.log(
             string.concat(baseCmd, " ", vm.toString(result.actionRegistry), " src/registries/Action.sol:ActionRegistry")
+        );
+        console.log(
+            string.concat(
+                baseCmd, " ", vm.toString(result.assessmentResolver), " src/resolvers/Assessment.sol:AssessmentResolver"
+            )
         );
         console.log(
             string.concat(baseCmd, " ", vm.toString(result.workResolver), " src/resolvers/Work.sol:WorkResolver")

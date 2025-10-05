@@ -77,6 +77,13 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     mapping(uint256 actionUID => address owner) public actionToOwner;
     mapping(uint256 actionUID => Action action) public idToAction;
 
+    /**
+     * @dev Storage gap for future upgrades
+     * Reserves 47 slots (50 total - 3 used: _nextActionUID, actionToOwner, idToAction)
+     * Allows adding new state variables without breaking storage layout in upgrades
+     */
+    uint256[47] private __gap;
+
     modifier onlyActionOwner(uint256 actionUID) {
         if (_msgSender() != actionToOwner[actionUID]) {
             revert NotActionOwner();
@@ -85,14 +92,16 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() { }
+    constructor() {
+        _disableInitializers();
+    }
 
     /// @notice Initializes the contract and sets the specified address as the owner.
     /// @dev This function must be called only once during contract deployment.
     /// @param _multisig The address that will own the contract.
     function initialize(address _multisig) external initializer {
-        __Ownable_init(_multisig);
-        // _disableInitializers();
+        __Ownable_init();
+        _transferOwnership(_multisig);
     }
 
     function getAction(uint256 actionUID) external view returns (Action memory) {

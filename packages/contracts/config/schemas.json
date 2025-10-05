@@ -2,9 +2,10 @@
   {
     "id": "gardenAssessment",
     "name": "Green Goods Garden Assessment v2",
-    "description": "Biodiversity assessment schema for Green Goods garden spaces. Captures soil health, carbon metrics, species diversity, and ecological observations to verify regenerative agriculture practices.",
+    "description": "Biodiversity assessment schema for Green Goods garden spaces. Captures soil health, carbon metrics, species diversity, and ecological observations to verify regenerative agriculture practices. V2: Adds version field for future upgradability.",
     "revocable": true,
     "fields": [
+      { "name": "version", "type": "uint8" },
       { "name": "soilMoisturePercentage", "type": "uint8" },
       { "name": "carbonTonStock", "type": "uint256" },
       { "name": "carbonTonPotential", "type": "uint256" },
@@ -21,10 +22,11 @@
   },
   {
     "id": "work",
-    "name": "Green Goods Work Submission",
-    "description": "Work submission schema for Green Goods protocol. Enables gardeners to submit completed regenerative agriculture tasks with media evidence and metadata for verification and payment.",
+    "name": "Green Goods Work Submission v2",
+    "description": "Work submission schema for Green Goods protocol. Enables gardeners to submit completed regenerative agriculture tasks with media evidence and metadata for verification and payment. V2: Adds version field for future upgradability.",
     "revocable": true,
     "fields": [
+      { "name": "version", "type": "uint8" },
       { "name": "actionUID", "type": "uint256" },
       { "name": "title", "type": "string" },
       { "name": "feedback", "type": "string" },
@@ -34,10 +36,11 @@
   },
   {
     "id": "workApproval",
-    "name": "Green Goods Work Approval",
-    "description": "Work approval schema for Green Goods protocol. Allows validators to approve or reject submitted work with feedback, enabling trustless verification of regenerative agriculture activities.",
+    "name": "Green Goods Work Approval v2",
+    "description": "Work approval schema for Green Goods protocol. Allows validators to approve or reject submitted work with feedback, enabling trustless verification of regenerative agriculture activities. V2: Adds version field for future upgradability.",
     "revocable": true,
     "fields": [
+      { "name": "version", "type": "uint8" },
       { "name": "actionUID", "type": "uint256" },
       { "name": "workUID", "type": "bytes32" },
       { "name": "approved", "type": "bool" },

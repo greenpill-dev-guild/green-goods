@@ -4,7 +4,7 @@ pragma solidity ^0.8.25;
 import "forge-std/Test.sol" as ForgeTest;
 import "../script/Deploy.s.sol" as DeployScript;
 import "../script/helpers/DeploymentHelper.sol" as DeploymentHelperModule;
-import "../src/DeploymentRegistry.sol";
+import { DeploymentRegistry } from "../src/DeploymentRegistry.sol";
 
 contract DeploymentTest is ForgeTest.Test, DeploymentHelperModule.DeploymentHelper {
     DeployScript.Deploy private deployScript;
@@ -266,6 +266,7 @@ contract DeploymentTest is ForgeTest.Test, DeploymentHelperModule.DeploymentHelp
             accountProxy: abi.decode(vm.parseJson(deploymentJson, ".accountProxy"), (address)),
             gardenToken: abi.decode(vm.parseJson(deploymentJson, ".gardenToken"), (address)),
             actionRegistry: abi.decode(vm.parseJson(deploymentJson, ".actionRegistry"), (address)),
+            assessmentResolver: abi.decode(vm.parseJson(deploymentJson, ".assessmentResolver"), (address)),
             workResolver: abi.decode(vm.parseJson(deploymentJson, ".workResolver"), (address)),
             workApprovalResolver: abi.decode(vm.parseJson(deploymentJson, ".workApprovalResolver"), (address)),
             gardenAssessmentSchemaUID: abi.decode(

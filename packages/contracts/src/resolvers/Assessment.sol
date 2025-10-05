@@ -6,30 +6,24 @@ import { SchemaResolver } from "@eas/resolver/SchemaResolver.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-import { WorkApprovalSchema } from "../Schemas.sol";
+import { AssessmentSchema } from "../Schemas.sol";
 import { GardenAccount } from "../accounts/Garden.sol";
-import { ActionRegistry } from "../registries/Action.sol";
-import { NotInActionRegistry } from "../Constants.sol";
 
-error NotInWorkRegistry();
 error NotGardenOperator();
 
-/// @title WorkApprovalResolver
-/// @notice A schema resolver for the Actions event schema
+/// @title AssessmentResolver
+/// @notice A schema resolver for Garden Assessment attestations
 /// @dev This contract is upgradable using the UUPS pattern and requires initialization.
-contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
-    address public actionRegistry;
-
+contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
     /**
      * @dev Storage gap for future upgrades
-     * Reserves 49 slots (50 total - 1 used: actionRegistry)
+     * Reserves 50 slots for future state variables
      * Allows adding new state variables without breaking storage layout in upgrades
      */
-    uint256[49] private __gap;
+    uint256[50] private __gap;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address easAddrs, address actionAddrs) SchemaResolver(IEAS(easAddrs)) {
-        actionRegistry = actionAddrs;
+    constructor(address easAddrs) SchemaResolver(IEAS(easAddrs)) {
         _disableInitializers();
     }
 
@@ -43,32 +37,29 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
 
     /// @notice Indicates whether the resolver is payable.
     /// @dev This is a pure function that always returns true.
-    /// @return A boolean indicating that the resolver is payable
+    /// @return A boolean indicating that the resolver is payable.
     function isPayable() public pure override returns (bool) {
         return true;
     }
 
     /// @notice Handles the logic to be executed when an attestation is made.
-    /// @dev Verifies the attester, work, and action's validity.
+    /// @dev Verifies the attester is a garden operator for the target garden.
     /// @param attestation The attestation data structure.
     /// @return A boolean indicating whether the attestation is valid.
     function onAttest(Attestation calldata attestation, uint256 /*value*/ ) internal view override returns (bool) {
-        WorkApprovalSchema memory schema = abi.decode(attestation.data, (WorkApprovalSchema));
-        Attestation memory workAttestation = _eas.getAttestation(schema.workUID);
+        // Decode the assessment schema to validate structure
+        AssessmentSchema memory schema = abi.decode(attestation.data, (AssessmentSchema));
 
-        if (workAttestation.attester != attestation.recipient) {
-            revert NotInWorkRegistry();
-        }
+        // Get the garden account from the recipient
+        GardenAccount gardenAccount = GardenAccount(payable(attestation.recipient));
 
-        GardenAccount gardenAccount = GardenAccount(payable(workAttestation.recipient));
-
+        // Verify attester is a garden operator
         if (gardenAccount.gardenOperators(attestation.attester) == false) {
             revert NotGardenOperator();
         }
 
-        if (ActionRegistry(actionRegistry).getAction(schema.actionUID).startTime == 0) {
-            revert NotInActionRegistry();
-        }
+        // Additional validation: check version is valid (currently only version 2)
+        require(schema.version == 2, "Invalid schema version");
 
         return (true);
     }

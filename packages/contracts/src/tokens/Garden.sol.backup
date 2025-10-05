@@ -17,13 +17,6 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     address private _gardenAccountImplementation;
     address public deploymentRegistry;
 
-    /**
-     * @dev Storage gap for future upgrades
-     * Reserves 47 slots (50 total - 3 used: _nextTokenId, _gardenAccountImplementation, deploymentRegistry)
-     * Allows adding new state variables without breaking storage layout in upgrades
-     */
-    uint256[47] private __gap;
-
     /// @notice Emitted when a new Garden is minted.
     /// @param tokenId The unique identifier of the minted Garden token.
     /// @param account The address of the associated Garden account.
@@ -44,35 +37,17 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         address[] gardenOperators
     );
 
-    /// @notice Configuration for batch garden minting (Gas Optimized)
-    struct GardenConfig {
-        address communityToken;
-        string name;
-        string description;
-        string location;
-        string bannerImage;
-        address[] gardeners;
-        address[] gardenOperators;
-    }
-
-    /// @notice Emitted for batch operations (Gas Optimized)
-    event BatchGardensMinted(
-        uint256 indexed startTokenId, uint256 indexed endTokenId, address indexed minter, uint256 count
-    );
-
     /// @notice Error thrown when unauthorized caller attempts to mint
     error UnauthorizedMinter();
 
     /// @notice Error thrown when deployment registry is not configured
     error DeploymentRegistryNotConfigured();
-    /// @notice Error thrown when invalid batch size is provided
-    error InvalidBatchSize();
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     /// @param gardenAccountImplementation The address of the Garden account implementation.
-    constructor(address gardenAccountImplementation) {
+    constructor(address gardenAccountImplementation) ERC721Upgradeable() {
         _gardenAccountImplementation = gardenAccountImplementation;
-        _disableInitializers(); // Prevent constructor usage for upgradable contracts
+        // _disableInitializers(); // Prevent constructor usage for upgradable contracts
     }
 
     /// @notice Initializes the contract and sets the specified address as the owner.
@@ -81,8 +56,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     /// @param _deploymentRegistry The deployment registry address for allowlist checking.
     function initialize(address _multisig, address _deploymentRegistry) external initializer {
         __ERC721_init("Green Goods Garden", "GGG");
-        __Ownable_init();
-        _transferOwnership(_multisig);
+        __Ownable_init(_multisig);
         deploymentRegistry = _deploymentRegistry;
     }
 
@@ -99,7 +73,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
             if (deploymentRegistry == address(0)) {
                 revert DeploymentRegistryNotConfigured();
             }
-
+            
             try DeploymentRegistry(deploymentRegistry).isInAllowlist(msg.sender) returns (bool isAllowed) {
                 if (!isAllowed) {
                     revert UnauthorizedMinter();
@@ -143,64 +117,6 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         emit GardenMinted(tokenId, gardenAccount, name, description, location, bannerImage, gardeners, gardenOperators);
 
         return gardenAccount;
-    }
-
-    /// @notice Batch mint multiple gardens (40% gas savings)
-    /// @param configs Array of garden configurations (max 10 for gas limit protection)
-    /// @return gardenAccounts Array of created garden account addresses
-    function batchMintGardens(GardenConfig[] calldata configs)
-        external
-        onlyAuthorizedMinter
-        returns (address[] memory gardenAccounts)
-    {
-        uint256 configsLength = configs.length;
-        if (configsLength == 0 || configsLength > 10) {
-            revert InvalidBatchSize();
-        }
-
-        gardenAccounts = new address[](configsLength);
-        uint256 startTokenId = _nextTokenId;
-
-        // Gas optimization: Batch increment token IDs
-        _nextTokenId += configsLength;
-
-        for (uint256 i = 0; i < configsLength;) {
-            uint256 tokenId = startTokenId + i;
-            GardenConfig calldata config = configs[i];
-
-            _safeMint(_msgSender(), tokenId);
-
-            address gardenAccount = TBALib.createAccount(_gardenAccountImplementation, address(this), tokenId);
-
-            GardenAccount(payable(gardenAccount)).initialize(
-                config.communityToken,
-                config.name,
-                config.description,
-                config.location,
-                config.bannerImage,
-                config.gardeners,
-                config.gardenOperators
-            );
-
-            gardenAccounts[i] = gardenAccount;
-
-            emit GardenMinted(
-                tokenId,
-                gardenAccount,
-                config.name,
-                config.description,
-                config.location,
-                config.bannerImage,
-                config.gardeners,
-                config.gardenOperators
-            );
-
-            unchecked {
-                ++i;
-            }
-        }
-
-        emit BatchGardensMinted(startTokenId, _nextTokenId - 1, _msgSender(), configsLength);
     }
 
     /// @notice Authorizes contract upgrades.

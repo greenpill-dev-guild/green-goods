@@ -2,6 +2,7 @@
 pragma solidity >=0.8.25;
 
 import { Test } from "forge-std/Test.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import { GardenToken } from "../src/tokens/Garden.sol";
 import { GardenAccount } from "../src/accounts/Garden.sol";
@@ -20,14 +21,20 @@ contract GardenTokenTest is Test {
     address private owner = address(this);
 
     function setUp() public {
-        // Deploy the contract and initialize it
-        gardenToken = new GardenToken(gardenAccountImplementation);
-        gardenToken.initialize();
+        // Deploy the implementation
+        GardenToken implementation = new GardenToken(gardenAccountImplementation);
+
+        // Deploy the proxy with initialization
+        bytes memory initData = abi.encodeWithSelector(GardenToken.initialize.selector, multisig, address(0));
+        ERC1967Proxy proxy = new ERC1967Proxy(address(implementation), initData);
+
+        // Cast proxy to GardenToken interface
+        gardenToken = GardenToken(address(proxy));
     }
 
     function testInitialize() public {
         // Test that the contract is properly initialized
-        assertEq(gardenToken.owner(), owner, "Owner should be the multisig address");
+        assertEq(gardenToken.owner(), multisig, "Owner should be the multisig address");
     }
 
     // function testMintGarden() public {

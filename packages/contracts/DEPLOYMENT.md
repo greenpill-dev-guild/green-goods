@@ -66,11 +66,99 @@ pnpm deploy:actions config/actions-example.json --network sepolia --broadcast
 - Git
 - RPC endpoints for target networks
 - Etherscan V2 API key (optional, for verification)
+- **Foundry Keystore** (required for all deployments - see setup below)
 
 ### Etherscan V2 API Benefits
 - **Single API Key**: Works across all supported chains
 - **Unified Endpoint**: All requests go to `https://api.etherscan.io/v2/api`
 - **Simplified Configuration**: No need for separate API keys per network
+
+## Foundry Keystore Setup (Required)
+
+All deployments now use Foundry's secure keystore instead of plaintext private keys. This provides enhanced security with password-protected encrypted keys.
+
+### Initial Setup
+
+#### 1. Import Your Deployment Key
+
+```bash
+# Import your private key to Foundry keystore (one-time setup)
+cast wallet import green-goods-deployer --interactive
+
+# You'll be prompted to:
+# 1. Enter your private key (with or without 0x prefix)
+# 2. Set a strong password for encryption
+# 
+# Example output:
+# Enter private key:
+# Enter password:
+# `green-goods-deployer` keystore was saved successfully.
+```
+
+#### 2. Verify Keystore Creation
+
+```bash
+# List all keystores
+cast wallet list
+
+# Expected output:
+# green-goods-deployer (address: 0x...)
+
+# View deployer address (requires password)
+cast wallet address green-goods-deployer
+
+# Enter password when prompted
+# Expected output: 0x... (your deployer address)
+```
+
+#### 3. Fund Deployer Address
+
+Ensure your deployer address has sufficient native tokens for gas:
+
+**Testnets:**
+- **Base Sepolia**: [Coinbase Faucet](https://www.coinbase.com/faucets/base-ethereum-goerli-faucet)
+- **Sepolia**: [Sepolia Faucet](https://sepoliafaucet.com/)
+- **Celo Alfajores**: [Celo Faucet](https://faucet.celo.org/)
+
+**Mainnets:**
+- Purchase native tokens (ETH, CELO, etc.) and send to your deployer address
+- Recommended: Keep 0.1-0.5 ETH for multiple deployments
+
+#### 4. Configure Environment
+
+Create or update `.env` file:
+
+```bash
+# Required
+FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer
+BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
+
+# Optional but recommended
+SENDER_ADDRESS=0x...  # Your deployer address
+ETHERSCAN_API_KEY=... # For contract verification
+```
+
+### Security Benefits
+
+✅ **Encrypted Storage**: Private key encrypted with password at rest  
+✅ **No Plaintext Keys**: No private keys in environment variables or .env files  
+✅ **Interactive Prompts**: Password required for each deployment session  
+✅ **Git-Safe**: Impossible to accidentally commit private keys  
+✅ **Command History Safe**: No keys exposed in terminal history  
+✅ **Backup-Friendly**: Keystore file can be securely backed up  
+✅ **Hardware Wallet Ready**: Foundation for future hardware wallet integration
+
+### Managing Multiple Deployers
+
+```bash
+# Import additional keystores for different environments
+cast wallet import green-goods-testnet --interactive
+cast wallet import green-goods-mainnet --interactive
+
+# Switch deployer by changing environment variable
+export FOUNDRY_KEYSTORE_ACCOUNT=green-goods-testnet
+pnpm deploy:base-sepolia:optimized
+```
 
 ## Network Configuration
 
@@ -233,6 +321,71 @@ After deployment, the schema UIDs are automatically saved to the deployment file
     "workApprovalSchemaUID": "0x..."
   }
 }
+```
+
+### Force Schema Redeployment
+
+If you need to redeploy schemas (e.g., after updating schema definitions or resolvers):
+
+```bash
+# Deploy new schemas even if they already exist
+FORCE_SCHEMA_DEPLOYMENT=true npm run deploy:base-sepolia --broadcast
+```
+
+**When to use force deployment:**
+- Schema definitions have changed (new fields, reordered fields)
+- Resolver addresses need updating
+- Migrating to new schema versions (V1 → V2)
+
+**Note:** EAS schema registry prevents duplicate schemas. If you try to deploy the same schema string twice, you'll get an `AlreadyExists()` error. Force deployment clears cached UIDs to allow redeployment of modified schemas.
+
+### Schema Versioning
+
+All schemas include a `uint8 version` field as the first field:
+
+```json
+{
+  "fields": [
+    {"name": "version", "type": "uint8"},
+    {"name": "actionUID", "type": "uint256"},
+    // ... other fields
+  ]
+}
+```
+
+**Benefits:**
+- Future-proof schema evolution
+- Backward compatibility with V1 attestations
+- Clear migration path for frontend/indexer
+- No breaking changes to existing data
+
+See `docs/UPGRADES.md` for detailed schema versioning strategy.
+
+### Troubleshooting Schema Deployment
+
+**"AlreadyExists()" Error:**
+- Schema with same string already registered
+- Expected if deploying unchanged schemas
+- Use `FORCE_SCHEMA_DEPLOYMENT=true` to redeploy modified schemas
+- Clear `deployments/{chainId}-latest.json` schema UIDs to force fresh deployment
+
+**"Schema Registry Address Zero":**
+- Network configuration missing EAS schema registry address
+- Check `deployments/networks.json` for your target network
+- Verify network name matches chain ID in configuration
+
+**Post-Deployment Verification:**
+
+```bash
+# Verify schema exists on-chain
+cast call <SCHEMA_REGISTRY> "getSchema(bytes32)" <SCHEMA_UID> \
+  --rpc-url $BASE_SEPOLIA_RPC_URL
+
+# Expected output: schema string, resolver address, revocable flag
+
+# Verify resolver is a proxy
+cast call <RESOLVER_ADDRESS> "owner()(address)" \
+  --rpc-url $BASE_SEPOLIA_RPC_URL
 ```
 
 ## Garden & Actions Deployment
@@ -398,6 +551,81 @@ pnpm deploy:local
 
 # Run deployment tests
 forge test --match-contract DeploymentTest -vv
+```
+
+### Keystore Issues
+
+#### "keystore not found"
+
+```bash
+# Verify keystore exists
+cast wallet list
+
+# If missing, import your key
+cast wallet import green-goods-deployer --interactive
+
+# Verify it was created
+cast wallet address green-goods-deployer
+```
+
+**Root Causes:**
+- Keystore was never imported
+- Using wrong account name in `FOUNDRY_KEYSTORE_ACCOUNT`
+- Keystore file was deleted from `~/.foundry/keystores/`
+
+#### "invalid password"
+
+```bash
+# Re-enter password carefully
+# Password is case-sensitive and must match exactly
+
+# If password forgotten, re-import with new password:
+cast wallet import green-goods-deployer --interactive --force
+# This will overwrite the existing keystore
+```
+
+#### "insufficient funds for gas"
+
+```bash
+# Check deployer balance
+cast balance $(cast wallet address green-goods-deployer) --rpc-url $BASE_SEPOLIA_RPC_URL
+
+# For Base Sepolia testnet, get free ETH:
+# https://www.coinbase.com/faucets/base-ethereum-goerli-faucet
+
+# Verify you're on the correct network
+echo $BASE_SEPOLIA_RPC_URL
+```
+
+#### "account not found in keystore"
+
+```bash
+# Check FOUNDRY_KEYSTORE_ACCOUNT matches your imported keystore
+echo $FOUNDRY_KEYSTORE_ACCOUNT
+
+# Should match output from:
+cast wallet list
+
+# Update environment variable if needed
+export FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer
+```
+
+#### Schema Deployment with Keystore
+
+All schema deployments (registration + attestations) use the same keystore. You'll only be prompted for the password once per deployment session.
+
+**Common Issues:**
+- **Schema registration fails**: Check deployer has sufficient gas
+- **Attestation creation fails**: Verify EAS contract addresses in `deployments/networks.json`
+- **Password timeout**: Re-run deployment if password prompt times out
+
+```bash
+# Verify EAS addresses for Base Sepolia
+cat deployments/networks.json | grep -A 5 '"baseSepolia"'
+
+# Should show:
+# "eas": "0x4200000000000000000000000000000000000021",
+# "easSchemaRegistry": "0x4200000000000000000000000000000000000020"
 ```
 
 ### Common Issues & Solutions

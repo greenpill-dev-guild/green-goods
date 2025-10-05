@@ -66,17 +66,58 @@ node script/deploy.js fork <network>
 - **optimism** (10) - Optimism
 - **celo** (42220) - Celo
 
+## Schema Management
+
+All EAS (Ethereum Attestation Service) schemas include a `uint8 version` field as the first field for future upgradability:
+
+### Current Schema Versions (V2)
+
+- **Work Schema**: Gardeners submit completed regenerative agriculture tasks
+- **WorkApproval Schema**: Operators approve or reject submitted work  
+- **GardenAssessment Schema**: Biodiversity and ecological assessments of garden spaces
+
+All V2 schemas include version field for:
+- Future-proof evolution (easy to add V3, V4)
+- Backward compatibility (V1 attestations remain valid)
+- Gradual migration path (frontend detects and handles both versions)
+- No breaking changes to existing data
+
+### Schema Configuration
+
+Schemas are defined in `config/schemas.json` and deployed automatically with core contracts.
+
+### Force Schema Redeployment
+
+```bash
+# Redeploy schemas after updates
+FORCE_SCHEMA_DEPLOYMENT=true npm run deploy:base-sepolia --broadcast
+```
+
+See `docs/UPGRADES.md` for detailed schema versioning strategy and `DEPLOYMENT.md` for schema deployment troubleshooting.
+
 ## Configuration
 
 ### Environment Variables
 
+Import your deployment key to Foundry keystore:
+
+```bash
+# One-time setup
+cast wallet import green-goods-deployer --interactive
+# Follow prompts to enter private key and set password
+
+# Verify
+cast wallet list
+```
+
 Create a `.env` file:
 
 ```bash
-# Required
-PRIVATE_KEY=0x...
+# Required - Foundry keystore account name
+FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer
 
 # Network RPC URLs
+BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
 SEPOLIA_RPC_URL=https://...
 ARBITRUM_RPC_URL=https://...
 BASE_RPC_URL=https://...
@@ -126,6 +167,43 @@ Create a JSON file for action deployment:
   ]
 }
 ```
+
+## Upgrading Contracts
+
+All contracts use the UUPS (Universal Upgradeable Proxy Standard) pattern and include storage gaps for safe upgrades.
+
+### Quick Upgrade
+
+```bash
+# Dry run (recommended first)
+npm run upgrade action-registry -- --network baseSepolia --dry-run
+
+# Execute upgrade
+npm run upgrade:action-registry -- --network baseSepolia --broadcast
+
+# Upgrade all contracts
+npm run upgrade:all -- --network baseSepolia --broadcast
+```
+
+### Available Upgrade Commands
+
+```bash
+npm run upgrade:action-registry        # Upgrade ActionRegistry
+npm run upgrade:garden-token          # Upgrade GardenToken
+npm run upgrade:work-resolver         # Upgrade WorkResolver
+npm run upgrade:work-approval-resolver # Upgrade WorkApprovalResolver
+npm run upgrade:deployment-registry   # Upgrade DeploymentRegistry
+npm run upgrade:all                   # Upgrade all contracts
+```
+
+### Documentation
+
+See [UPGRADES.md](docs/UPGRADES.md) for complete upgrade guide including:
+- Storage gap usage
+- Multisig upgrade process
+- Safety checklist
+- Troubleshooting
+- Rollback procedures
 
 ## Development
 
@@ -219,10 +297,15 @@ pnpm gas:check
 ### Configuration Management
 
 **Environment Variables:**
+First, import your key to Foundry keystore (one-time):
+```bash
+cast wallet import green-goods-deployer --interactive
+```
+
 Create a `.env` file in the contracts directory:
 ```bash
 # Required for deployment
-PRIVATE_KEY=0x...
+FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer
 
 # Network RPC URLs (choose reliable providers)
 SEPOLIA_RPC_URL=https://ethereum-sepolia.publicnode.com
@@ -446,12 +529,15 @@ cast block latest --field gasLimit --rpc-url $CELO_RPC_URL
 
 **Environment Issues:**
 ```bash
-# Verify environment variables
-echo $PRIVATE_KEY | wc -c  # Should be 66 characters
-echo $CELO_RPC_URL
+# Verify keystore exists
+cast wallet list
 
-# Test private key format
-cast wallet address $PRIVATE_KEY
+# Check keystore address
+cast wallet address green-goods-deployer
+
+# Verify RPC URLs
+echo $FOUNDRY_KEYSTORE_ACCOUNT
+echo $CELO_RPC_URL
 ```
 
 ### Performance Optimization

@@ -4,14 +4,10 @@ pragma solidity ^0.8.25;
 import { Test, console } from "forge-std/Test.sol";
 import { Deploy } from "../script/Deploy.s.sol";
 import { DeploymentRegistry } from "../src/DeploymentRegistry.sol";
-import { GardenToken } from "../src/tokens/Garden.sol";
 import { ActionRegistry } from "../src/registries/Action.sol";
-import { WorkResolver } from "../src/resolvers/Work.sol";
-import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
-import { GardenAccount } from "../src/accounts/Garden.sol";
 
 contract DeployTest is Test {
-    Deploy deployer;
+    Deploy public deployer;
 
     function setUp() public {
         deployer = new Deploy();
@@ -83,7 +79,7 @@ contract DeployTest is Test {
             assertTrue(guardian != address(0), "Guardian should be deployed");
 
             // Deploy ActionRegistry
-            address actionRegistry = deployer.deployActionRegistry(salt, factory);
+            address actionRegistry = deployer.deployActionRegistry(address(this), salt, factory);
             assertTrue(actionRegistry != address(0), "ActionRegistry should be deployed");
 
             // Verify ActionRegistry initialization
@@ -124,7 +120,7 @@ contract DeployTest is Test {
 
         // Try to deploy ActionRegistry and initialize sample data
         try deployer.getDeploymentDefaults() returns (bytes32 salt, address factory, address) {
-            address actionRegistry = deployer.deployActionRegistry(salt, factory);
+            address actionRegistry = deployer.deployActionRegistry(address(this), salt, factory);
 
             // Initialize sample data
             deployer.initializeSeedData(actionRegistry);

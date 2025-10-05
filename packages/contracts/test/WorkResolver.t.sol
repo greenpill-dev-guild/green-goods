@@ -2,11 +2,12 @@
 pragma solidity >=0.8.25;
 
 import { Test } from "forge-std/Test.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 // import { Attestation } from "@eas/IEAS.sol";
 
 // import { WorkSchema } from "../src/Schemas.sol";
 // import { NotInActionRegistry, NotGardenerAccount } from "../src/Constants.sol";
-import { WorkResolver, NotActiveAction } from "../src/resolvers/Work.sol";
+import { WorkResolver } from "../src/resolvers/Work.sol";
 import { ActionRegistry } from "../src/registries/Action.sol";
 import { GardenAccount } from "../src/accounts/Garden.sol";
 import { MockEAS } from "../src/mocks/EAS.sol";
@@ -24,23 +25,30 @@ contract WorkResolverTest is Test {
 
     function setUp() public {
         // Deploy the mock contracts
-        mockActionRegistry = new ActionRegistry();
+        ActionRegistry actionImpl = new ActionRegistry();
+        bytes memory actionInitData = abi.encodeWithSelector(ActionRegistry.initialize.selector, multisig);
+        ERC1967Proxy actionProxy = new ERC1967Proxy(address(actionImpl), actionInitData);
+        mockActionRegistry = ActionRegistry(address(actionProxy));
+
         mockGardenAccount = new GardenAccount(address(0x021), address(0x022), address(0x023), address(0x024));
         mockIEAS = new MockEAS();
 
-        mockActionRegistry.initialize();
         mockGardenAccount.initialize(
             address(0x545), "Test Garden", "Test Description", "Test Location", "", new address[](0), new address[](0)
         );
 
-        // Deploy the WorkResolver contract
-        workResolver = new WorkResolver(address(mockIEAS), address(mockActionRegistry));
-        workResolver.initialize();
+        // Deploy the WorkResolver implementation
+        WorkResolver resolverImpl = new WorkResolver(address(mockIEAS), address(mockActionRegistry));
+
+        // Deploy with proxy and initialize
+        bytes memory resolverInitData = abi.encodeWithSelector(WorkResolver.initialize.selector, multisig);
+        ERC1967Proxy resolverProxy = new ERC1967Proxy(address(resolverImpl), resolverInitData);
+        workResolver = WorkResolver(payable(address(resolverProxy)));
     }
 
     function testInitialize() public {
         // Test that the contract is properly initialized
-        assertEq(workResolver.owner(), owner, "Owner should be the multisig address");
+        assertEq(workResolver.owner(), multisig, "Owner should be the multisig address");
     }
 
     function testIsPayable() public {

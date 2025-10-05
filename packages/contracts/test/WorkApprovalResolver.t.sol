@@ -2,13 +2,14 @@
 pragma solidity >=0.8.25;
 
 import { Test } from "forge-std/Test.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 // import { Attestation } from "@eas/IEAS.sol";
 
 // import { WorkApprovalSchema } from "../src/Schemas.sol";
 // import { NotInActionRegistry } from "../src/Constants.sol";
 import { GardenAccount } from "../src/accounts/Garden.sol";
 import { ActionRegistry } from "../src/registries/Action.sol";
-import { WorkApprovalResolver, NotGardenOperator, NotInWorkRegistry } from "../src/resolvers/WorkApproval.sol";
+import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
 import { MockEAS } from "../src/mocks/EAS.sol";
 
 contract WorkApprovalResolverTest is Test {
@@ -24,23 +25,31 @@ contract WorkApprovalResolverTest is Test {
 
     function setUp() public {
         // Deploy the mock contracts
-        mockActionRegistry = new ActionRegistry();
-        mockGardenAccount = new GardenAccount(address(mockIEAS), address(0x002), address(0x003), address(0x004));
         mockIEAS = new MockEAS();
 
-        mockActionRegistry.initialize();
+        ActionRegistry actionImpl = new ActionRegistry();
+        bytes memory actionInitData = abi.encodeWithSelector(ActionRegistry.initialize.selector, multisig);
+        ERC1967Proxy actionProxy = new ERC1967Proxy(address(actionImpl), actionInitData);
+        mockActionRegistry = ActionRegistry(address(actionProxy));
+
+        mockGardenAccount = new GardenAccount(address(mockIEAS), address(0x002), address(0x003), address(0x004));
+
         mockGardenAccount.initialize(
             address(0x555), "Test Garden", "Test Description", "Test Location", "", new address[](0), new address[](0)
         );
 
-        // Deploy the WorkApprovalResolver contract
-        workApprovalResolver = new WorkApprovalResolver(address(address(0x007)), address(mockActionRegistry));
-        workApprovalResolver.initialize();
+        // Deploy the WorkApprovalResolver implementation
+        WorkApprovalResolver resolverImpl = new WorkApprovalResolver(address(mockIEAS), address(mockActionRegistry));
+
+        // Deploy with proxy and initialize
+        bytes memory resolverInitData = abi.encodeWithSelector(WorkApprovalResolver.initialize.selector, multisig);
+        ERC1967Proxy resolverProxy = new ERC1967Proxy(address(resolverImpl), resolverInitData);
+        workApprovalResolver = WorkApprovalResolver(payable(address(resolverProxy)));
     }
 
     function testInitialize() public {
         // Test that the contract is properly initialized
-        assertEq(workApprovalResolver.owner(), owner, "Owner should be the multisig address");
+        assertEq(workApprovalResolver.owner(), multisig, "Owner should be the multisig address");
     }
 
     function testIsPayable() public {

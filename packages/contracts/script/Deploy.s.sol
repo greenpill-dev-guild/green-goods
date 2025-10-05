@@ -4,6 +4,7 @@ pragma solidity ^0.8.25;
 import { Script, console } from "forge-std/Script.sol";
 import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 import { DeploymentHelper } from "./helpers/DeploymentHelper.sol";
 import { DeploymentRegistry } from "../src/DeploymentRegistry.sol";
@@ -14,6 +15,8 @@ import { GardenToken } from "../src/tokens/Garden.sol";
 import { ActionRegistry, Capital } from "../src/registries/Action.sol";
 import { WorkResolver } from "../src/resolvers/Work.sol";
 import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
+import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
+import { ResolverStub } from "../src/resolvers/ResolverStub.sol";
 
 /// @notice Schema registry interface
 interface ISchemaRegistry {
@@ -43,7 +46,15 @@ interface IEAS {
 /// @title Deploy
 /// @notice Main deployment script for Green Goods contracts
 contract Deploy is Script, DeploymentHelper {
+    // ===== DETERMINISTIC DEPLOYMENT CONSTANTS =====
+    // (for cross-chain consistency when using optimized profile)
+    bytes32 public constant DETERMINISTIC_SALT = 0x6551655165516551655165516551655165516551655165516551655165516551;
+    address public constant DETERMINISTIC_FACTORY = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
+    address public constant MANAGER = 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6;
+    address public constant MULTISIG = 0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19;
+    address public constant TOKENBOUND_REGISTRY = 0x000000006551c19487814612e58FE06813775758;
     /// @notice Schema configuration
+
     struct SchemaConfig {
         string name;
         string description;
@@ -116,7 +127,8 @@ contract Deploy is Script, DeploymentHelper {
         SCHEMAS_ONLY,
         TESTING,
         PRODUCTION,
-        HOTFIX
+        HOTFIX,
+        OPTIMIZED
     }
 
     /// @notice Contract deployment flags
@@ -166,6 +178,16 @@ contract Deploy is Script, DeploymentHelper {
         bool metadataOnly;
     }
 
+    /// @notice Deployment configuration struct for cleaner code organization
+    struct DeploymentConfig {
+        NetworkConfig config;
+        bytes32 salt;
+        address factory;
+        address tokenboundRegistry;
+        address deployer;
+        address multisig;
+    }
+
     /// @notice Load deployment profile from environment variable
     function _loadDeploymentProfile() internal view returns (DeploymentProfile) {
         try vm.envString("DEPLOYMENT_PROFILE") returns (string memory profileStr) {
@@ -184,6 +206,7 @@ contract Deploy is Script, DeploymentHelper {
         if (profileHash == keccak256("update")) return DeploymentProfile.UPDATE;
         if (profileHash == keccak256("production")) return DeploymentProfile.PRODUCTION;
         if (profileHash == keccak256("testing")) return DeploymentProfile.TESTING;
+        if (profileHash == keccak256("optimized")) return DeploymentProfile.OPTIMIZED;
 
         // Then check specialized profiles
         return _getSpecializedProfile(profileHash);
@@ -212,182 +235,235 @@ contract Deploy is Script, DeploymentHelper {
 
     /// @notice Get flags for a specific deployment profile
     function _getFlagsForProfile(DeploymentProfile profile) internal pure returns (DeploymentFlags memory) {
-        if (profile == DeploymentProfile.METADATA_ONLY) {
-            return DeploymentFlags({
-                contracts: ContractFlags({ skipExisting: true, forceRedeploy: false, skipVerification: true }),
-                schemas: SchemaFlags({ skip: true, forceRedeploy: false, metadataOnly: true }),
-                config: ConfigurationFlags({
-                    skipConfiguration: true,
-                    skipSeedData: true,
-                    skipGovernanceTransfer: true,
-                    addDeployerToAllowlist: false
-                }),
-                logging: LoggingFlags({ verbose: true }),
-                skipExistingContracts: true,
-                forceRedeploy: false,
-                skipSchemas: true,
-                forceSchemaDeployment: false,
-                skipVerification: true,
-                skipSeedData: true,
-                skipConfiguration: true,
-                verboseLogging: true,
-                skipGovernanceTransfer: true,
-                addDeployerToAllowlist: false,
-                metadataOnly: true
-            });
+        // Use a more efficient pattern to reduce complexity
+        if (profile == DeploymentProfile.METADATA_ONLY) return _getMetadataOnlyFlags();
+        if (profile == DeploymentProfile.UPDATE) return _getUpdateFlags();
+        if (profile == DeploymentProfile.CONTRACTS_ONLY) return _getContractsOnlyFlags();
+        if (profile == DeploymentProfile.SCHEMAS_ONLY) return _getSchemasOnlyFlags();
+
+        // Group remaining profiles to reduce branching
+        if (profile == DeploymentProfile.TESTING || profile == DeploymentProfile.PRODUCTION) {
+            return profile == DeploymentProfile.TESTING ? _getTestingFlags() : _getProductionFlags();
         }
 
-        if (profile == DeploymentProfile.UPDATE) {
-            return DeploymentFlags({
-                contracts: ContractFlags({ skipExisting: true, forceRedeploy: false, skipVerification: true }),
-                schemas: SchemaFlags({ skip: false, forceRedeploy: true, metadataOnly: false }),
-                config: ConfigurationFlags({
-                    skipConfiguration: false,
-                    skipSeedData: true,
-                    skipGovernanceTransfer: true,
-                    addDeployerToAllowlist: false
-                }),
-                logging: LoggingFlags({ verbose: false }),
-                skipExistingContracts: true,
-                forceRedeploy: false,
-                skipSchemas: false,
-                forceSchemaDeployment: true,
-                skipVerification: true,
-                skipSeedData: true,
-                skipConfiguration: false,
-                verboseLogging: false,
-                skipGovernanceTransfer: true,
-                addDeployerToAllowlist: false,
-                metadataOnly: false
-            });
-        }
-
-        if (profile == DeploymentProfile.CONTRACTS_ONLY) {
-            return DeploymentFlags({
-                contracts: ContractFlags({ skipExisting: false, forceRedeploy: false, skipVerification: false }),
-                schemas: SchemaFlags({ skip: true, forceRedeploy: false, metadataOnly: false }),
-                config: ConfigurationFlags({
-                    skipConfiguration: true,
-                    skipSeedData: true,
-                    skipGovernanceTransfer: true,
-                    addDeployerToAllowlist: false
-                }),
-                logging: LoggingFlags({ verbose: false }),
-                skipExistingContracts: false,
-                forceRedeploy: false,
-                skipSchemas: true,
-                forceSchemaDeployment: false,
-                skipVerification: false,
-                skipSeedData: true,
-                skipConfiguration: true,
-                verboseLogging: false,
-                skipGovernanceTransfer: true,
-                addDeployerToAllowlist: false,
-                metadataOnly: false
-            });
-        }
-
-        if (profile == DeploymentProfile.SCHEMAS_ONLY) {
-            return DeploymentFlags({
-                contracts: ContractFlags({ skipExisting: true, forceRedeploy: false, skipVerification: true }),
-                schemas: SchemaFlags({ skip: false, forceRedeploy: false, metadataOnly: false }),
-                config: ConfigurationFlags({
-                    skipConfiguration: true,
-                    skipSeedData: true,
-                    skipGovernanceTransfer: true,
-                    addDeployerToAllowlist: false
-                }),
-                logging: LoggingFlags({ verbose: false }),
-                skipExistingContracts: true,
-                forceRedeploy: false,
-                skipSchemas: false,
-                forceSchemaDeployment: false,
-                skipVerification: true,
-                skipSeedData: true,
-                skipConfiguration: true,
-                verboseLogging: false,
-                skipGovernanceTransfer: true,
-                addDeployerToAllowlist: false,
-                metadataOnly: false
-            });
-        }
-
-        if (profile == DeploymentProfile.TESTING) {
-            return DeploymentFlags({
-                contracts: ContractFlags({ skipExisting: true, forceRedeploy: false, skipVerification: false }),
-                schemas: SchemaFlags({ skip: false, forceRedeploy: false, metadataOnly: false }),
-                config: ConfigurationFlags({
-                    skipConfiguration: false,
-                    skipSeedData: false,
-                    skipGovernanceTransfer: false,
-                    addDeployerToAllowlist: true
-                }),
-                logging: LoggingFlags({ verbose: true }),
-                skipExistingContracts: true,
-                forceRedeploy: false,
-                skipSchemas: false,
-                forceSchemaDeployment: false,
-                skipVerification: false,
-                skipSeedData: false,
-                skipConfiguration: false,
-                verboseLogging: true,
-                skipGovernanceTransfer: false,
-                addDeployerToAllowlist: true,
-                metadataOnly: false
-            });
-        }
-
-        if (profile == DeploymentProfile.PRODUCTION) {
-            return DeploymentFlags({
-                contracts: ContractFlags({ skipExisting: true, forceRedeploy: false, skipVerification: false }),
-                schemas: SchemaFlags({ skip: false, forceRedeploy: false, metadataOnly: false }),
-                config: ConfigurationFlags({
-                    skipConfiguration: false,
-                    skipSeedData: true,
-                    skipGovernanceTransfer: false,
-                    addDeployerToAllowlist: false
-                }),
-                logging: LoggingFlags({ verbose: false }),
-                skipExistingContracts: true,
-                forceRedeploy: false,
-                skipSchemas: false,
-                forceSchemaDeployment: false,
-                skipVerification: false,
-                skipSeedData: true,
-                skipConfiguration: false,
-                verboseLogging: false,
-                skipGovernanceTransfer: false,
-                addDeployerToAllowlist: false,
-                metadataOnly: false
-            });
-        }
-
-        if (profile == DeploymentProfile.HOTFIX) {
-            return DeploymentFlags({
-                contracts: ContractFlags({ skipExisting: true, forceRedeploy: false, skipVerification: true }),
-                schemas: SchemaFlags({ skip: true, forceRedeploy: false, metadataOnly: false }),
-                config: ConfigurationFlags({
-                    skipConfiguration: false,
-                    skipSeedData: true,
-                    skipGovernanceTransfer: true,
-                    addDeployerToAllowlist: false
-                }),
-                logging: LoggingFlags({ verbose: true }),
-                skipExistingContracts: true,
-                forceRedeploy: false,
-                skipSchemas: true,
-                forceSchemaDeployment: false,
-                skipVerification: true,
-                skipSeedData: true,
-                skipConfiguration: false,
-                verboseLogging: true,
-                skipGovernanceTransfer: true,
-                addDeployerToAllowlist: false,
-                metadataOnly: false
-            });
+        if (profile == DeploymentProfile.HOTFIX || profile == DeploymentProfile.OPTIMIZED) {
+            return profile == DeploymentProfile.HOTFIX ? _getHotfixFlags() : _getOptimizedFlags();
         }
 
         // Default FULL profile
+        return _getDefaultFlags();
+    }
+
+    /// @notice Get metadata-only deployment flags
+    function _getMetadataOnlyFlags() internal pure returns (DeploymentFlags memory) {
+        return DeploymentFlags({
+            contracts: ContractFlags({ skipExisting: true, forceRedeploy: false, skipVerification: true }),
+            schemas: SchemaFlags({ skip: true, forceRedeploy: false, metadataOnly: true }),
+            config: ConfigurationFlags({
+                skipConfiguration: true,
+                skipSeedData: true,
+                skipGovernanceTransfer: true,
+                addDeployerToAllowlist: false
+            }),
+            logging: LoggingFlags({ verbose: true }),
+            skipExistingContracts: true,
+            forceRedeploy: false,
+            skipSchemas: true,
+            forceSchemaDeployment: false,
+            skipVerification: true,
+            skipSeedData: true,
+            skipConfiguration: true,
+            verboseLogging: true,
+            skipGovernanceTransfer: true,
+            addDeployerToAllowlist: false,
+            metadataOnly: true
+        });
+    }
+
+    /// @notice Get update deployment flags
+    function _getUpdateFlags() internal pure returns (DeploymentFlags memory) {
+        return DeploymentFlags({
+            contracts: ContractFlags({ skipExisting: true, forceRedeploy: false, skipVerification: true }),
+            schemas: SchemaFlags({ skip: false, forceRedeploy: true, metadataOnly: false }),
+            config: ConfigurationFlags({
+                skipConfiguration: false,
+                skipSeedData: true,
+                skipGovernanceTransfer: true,
+                addDeployerToAllowlist: false
+            }),
+            logging: LoggingFlags({ verbose: false }),
+            skipExistingContracts: true,
+            forceRedeploy: false,
+            skipSchemas: false,
+            forceSchemaDeployment: true,
+            skipVerification: true,
+            skipSeedData: true,
+            skipConfiguration: false,
+            verboseLogging: false,
+            skipGovernanceTransfer: true,
+            addDeployerToAllowlist: false,
+            metadataOnly: false
+        });
+    }
+
+    /// @notice Get contracts-only deployment flags
+    function _getContractsOnlyFlags() internal pure returns (DeploymentFlags memory) {
+        return DeploymentFlags({
+            contracts: ContractFlags({ skipExisting: false, forceRedeploy: false, skipVerification: false }),
+            schemas: SchemaFlags({ skip: true, forceRedeploy: false, metadataOnly: false }),
+            config: ConfigurationFlags({
+                skipConfiguration: true,
+                skipSeedData: true,
+                skipGovernanceTransfer: true,
+                addDeployerToAllowlist: false
+            }),
+            logging: LoggingFlags({ verbose: false }),
+            skipExistingContracts: false,
+            forceRedeploy: false,
+            skipSchemas: true,
+            forceSchemaDeployment: false,
+            skipVerification: false,
+            skipSeedData: true,
+            skipConfiguration: true,
+            verboseLogging: false,
+            skipGovernanceTransfer: true,
+            addDeployerToAllowlist: false,
+            metadataOnly: false
+        });
+    }
+
+    /// @notice Get schemas-only deployment flags
+    function _getSchemasOnlyFlags() internal pure returns (DeploymentFlags memory) {
+        return DeploymentFlags({
+            contracts: ContractFlags({ skipExisting: true, forceRedeploy: false, skipVerification: true }),
+            schemas: SchemaFlags({ skip: false, forceRedeploy: false, metadataOnly: false }),
+            config: ConfigurationFlags({
+                skipConfiguration: true,
+                skipSeedData: true,
+                skipGovernanceTransfer: true,
+                addDeployerToAllowlist: false
+            }),
+            logging: LoggingFlags({ verbose: false }),
+            skipExistingContracts: true,
+            forceRedeploy: false,
+            skipSchemas: false,
+            forceSchemaDeployment: false,
+            skipVerification: true,
+            skipSeedData: true,
+            skipConfiguration: true,
+            verboseLogging: false,
+            skipGovernanceTransfer: true,
+            addDeployerToAllowlist: false,
+            metadataOnly: false
+        });
+    }
+
+    /// @notice Get testing deployment flags
+    function _getTestingFlags() internal pure returns (DeploymentFlags memory) {
+        return DeploymentFlags({
+            contracts: ContractFlags({ skipExisting: true, forceRedeploy: false, skipVerification: false }),
+            schemas: SchemaFlags({ skip: false, forceRedeploy: false, metadataOnly: false }),
+            config: ConfigurationFlags({
+                skipConfiguration: false,
+                skipSeedData: false,
+                skipGovernanceTransfer: false,
+                addDeployerToAllowlist: true
+            }),
+            logging: LoggingFlags({ verbose: true }),
+            skipExistingContracts: true,
+            forceRedeploy: false,
+            skipSchemas: false,
+            forceSchemaDeployment: false,
+            skipVerification: false,
+            skipSeedData: false,
+            skipConfiguration: false,
+            verboseLogging: true,
+            skipGovernanceTransfer: false,
+            addDeployerToAllowlist: true,
+            metadataOnly: false
+        });
+    }
+
+    /// @notice Get production deployment flags
+    function _getProductionFlags() internal pure returns (DeploymentFlags memory) {
+        return DeploymentFlags({
+            contracts: ContractFlags({ skipExisting: true, forceRedeploy: false, skipVerification: false }),
+            schemas: SchemaFlags({ skip: false, forceRedeploy: false, metadataOnly: false }),
+            config: ConfigurationFlags({
+                skipConfiguration: false,
+                skipSeedData: true,
+                skipGovernanceTransfer: false,
+                addDeployerToAllowlist: false
+            }),
+            logging: LoggingFlags({ verbose: false }),
+            skipExistingContracts: true,
+            forceRedeploy: false,
+            skipSchemas: false,
+            forceSchemaDeployment: false,
+            skipVerification: false,
+            skipSeedData: true,
+            skipConfiguration: false,
+            verboseLogging: false,
+            skipGovernanceTransfer: false,
+            addDeployerToAllowlist: false,
+            metadataOnly: false
+        });
+    }
+
+    /// @notice Get hotfix deployment flags
+    function _getHotfixFlags() internal pure returns (DeploymentFlags memory) {
+        return DeploymentFlags({
+            contracts: ContractFlags({ skipExisting: true, forceRedeploy: false, skipVerification: true }),
+            schemas: SchemaFlags({ skip: true, forceRedeploy: false, metadataOnly: false }),
+            config: ConfigurationFlags({
+                skipConfiguration: false,
+                skipSeedData: true,
+                skipGovernanceTransfer: true,
+                addDeployerToAllowlist: false
+            }),
+            logging: LoggingFlags({ verbose: true }),
+            skipExistingContracts: true,
+            forceRedeploy: false,
+            skipSchemas: true,
+            forceSchemaDeployment: false,
+            skipVerification: true,
+            skipSeedData: true,
+            skipConfiguration: false,
+            verboseLogging: true,
+            skipGovernanceTransfer: true,
+            addDeployerToAllowlist: false,
+            metadataOnly: false
+        });
+    }
+
+    /// @notice Get optimized deployment flags
+    function _getOptimizedFlags() internal pure returns (DeploymentFlags memory) {
+        return DeploymentFlags({
+            contracts: ContractFlags({ skipExisting: true, forceRedeploy: false, skipVerification: false }),
+            schemas: SchemaFlags({ skip: false, forceRedeploy: true, metadataOnly: false }),
+            config: ConfigurationFlags({
+                skipConfiguration: false,
+                skipSeedData: true,
+                skipGovernanceTransfer: true,
+                addDeployerToAllowlist: false
+            }),
+            logging: LoggingFlags({ verbose: true }),
+            skipExistingContracts: true,
+            forceRedeploy: false,
+            skipSchemas: false,
+            forceSchemaDeployment: true,
+            skipVerification: false,
+            skipSeedData: true,
+            skipConfiguration: false,
+            verboseLogging: true,
+            skipGovernanceTransfer: true,
+            addDeployerToAllowlist: false,
+            metadataOnly: false
+        });
+    }
+
+    /// @notice Get default deployment flags
+    function _getDefaultFlags() internal pure returns (DeploymentFlags memory) {
         return DeploymentFlags({
             contracts: ContractFlags({ skipExisting: true, forceRedeploy: false, skipVerification: false }),
             schemas: SchemaFlags({ skip: false, forceRedeploy: false, metadataOnly: false }),
@@ -462,14 +538,86 @@ contract Deploy is Script, DeploymentHelper {
         } catch { }
     }
 
+    /// @notice Get network configuration for deterministic deployment
+    function _getDeterministicNetworkConfig() internal view returns (NetworkConfig memory) {
+        uint256 chainId = block.chainid;
+
+        if (chainId == 84_532) {
+            // Base Sepolia
+            return NetworkConfig({
+                eas: 0x4200000000000000000000000000000000000021,
+                easSchemaRegistry: 0x4200000000000000000000000000000000000020,
+                communityToken: 0x4cB67033da4FD849a552A4C5553E7F532B93E516,
+                safe: address(0),
+                safeFactory: address(0),
+                safe4337Module: address(0),
+                erc4337EntryPoint: 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789,
+                multicallForwarder: 0xcA11bde05977b3631167028862bE2a173976CA11,
+                greenGoodsSafe: MULTISIG,
+                multisig: MULTISIG
+            });
+        } else if (chainId == 42_220) {
+            // Celo
+            return NetworkConfig({
+                eas: 0x72E1d8ccf5299fb36fEfD8CC4394B8ef7e98Af92,
+                easSchemaRegistry: 0x5ece93bE4BDCF293Ed61FA78698B594F2135AF34,
+                communityToken: 0x4cB67033da4FD849a552A4C5553E7F532B93E516,
+                safe: address(0),
+                safeFactory: address(0),
+                safe4337Module: address(0),
+                erc4337EntryPoint: 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789,
+                multicallForwarder: 0xcA11bde05977b3631167028862bE2a173976CA11,
+                greenGoodsSafe: MULTISIG,
+                multisig: MULTISIG
+            });
+        } else {
+            // Fall back to regular network config loading
+            return loadNetworkConfig();
+        }
+    }
+
     function run() external {
         // Load configuration and flags
-        NetworkConfig memory config = loadNetworkConfig();
         DeploymentFlags memory flags = _loadDeploymentFlags();
-        (bytes32 salt, address factory, address tokenboundRegistry) = getDeploymentDefaults();
 
-        // Get deployer and multisig addresses
+        // Setup deployment configuration
+        DeploymentConfig memory deploymentConfig = _setupDeploymentConfiguration(flags);
+
+        // Execute deployment phases
+        DeploymentResult memory result = _executeDeployment(deploymentConfig, flags);
+
+        // Post-deployment tasks
+        _finalizeDeployment(result, flags);
+    }
+
+    /// @notice Setup deployment configuration based on profile and flags
+    function _setupDeploymentConfiguration(DeploymentFlags memory flags) internal returns (DeploymentConfig memory) {
+        NetworkConfig memory config;
+        bytes32 salt;
+        address factory;
+        address tokenboundRegistry;
         address deployer = msg.sender;
+
+        // Use deterministic config for optimized profile
+        bool useDeterministic = (_loadDeploymentProfile() == DeploymentProfile.OPTIMIZED);
+
+        if (useDeterministic) {
+            config = _getDeterministicNetworkConfig();
+            salt = DETERMINISTIC_SALT;
+            factory = DETERMINISTIC_FACTORY;
+            tokenboundRegistry = TOKENBOUND_REGISTRY;
+
+            console.log("=== DETERMINISTIC CROSS-CHAIN DEPLOYMENT ===");
+            console.log("Using deterministic addresses for cross-chain consistency");
+            console.log("Manager:", MANAGER);
+            console.log("Multisig:", MULTISIG);
+            console.log("Salt:", vm.toString(DETERMINISTIC_SALT));
+        } else {
+            config = loadNetworkConfig();
+            (salt, factory, tokenboundRegistry) = getDeploymentDefaults();
+            console.log("=== STANDARD DEPLOYMENT ===");
+        }
+
         address multisig = config.multisig;
 
         console.log("Deploying to chain:", block.chainid);
@@ -481,69 +629,139 @@ contract Deploy is Script, DeploymentHelper {
             _logDeploymentFlags(flags);
         }
 
+        return DeploymentConfig({
+            config: config,
+            salt: salt,
+            factory: factory,
+            tokenboundRegistry: tokenboundRegistry,
+            deployer: deployer,
+            multisig: multisig
+        });
+    }
+
+    /// @notice Execute the main deployment phases
+    function _executeDeployment(
+        DeploymentConfig memory deploymentConfig,
+        DeploymentFlags memory flags
+    )
+        internal
+        returns (DeploymentResult memory)
+    {
         vm.startBroadcast();
 
         DeploymentResult memory result;
 
         // 1. Deploy DeploymentRegistry with proper ownership
-        result.deploymentRegistry =
-            deployDeploymentRegistryWithGovernance(multisig != address(0) ? multisig : deployer, deployer, flags);
+        result.deploymentRegistry = deployDeploymentRegistryWithGovernance(
+            deploymentConfig.multisig != address(0) ? deploymentConfig.multisig : deploymentConfig.deployer,
+            deploymentConfig.deployer,
+            flags
+        );
 
         // 2. Deploy core infrastructure
-        result.guardian = deployGuardian(config.greenGoodsSafe, salt, factory);
-        result.gardenAccountImpl = deployGardenAccount(
-            config.erc4337EntryPoint, config.multicallForwarder, tokenboundRegistry, result.guardian, salt, factory
-        );
-        result.accountProxy = deployAccountProxy(result.guardian, result.gardenAccountImpl, salt, factory);
-        result.gardenToken = deployGardenToken(result.gardenAccountImpl, config.greenGoodsSafe, salt, factory);
+        result = _deployCoreInfrastructure(result, deploymentConfig);
 
         // 3. Deploy registries and resolvers
-        result.actionRegistry = deployActionRegistry(config.greenGoodsSafe, salt, factory);
-        result.workResolver =
-            _deployWorkResolver(config.eas, result.actionRegistry, config.greenGoodsSafe, salt, factory);
-        result.workApprovalResolver =
-            _deployWorkApprovalResolver(config.eas, result.actionRegistry, config.greenGoodsSafe, salt, factory);
+        result = _deployRegistriesAndResolvers(result, deploymentConfig);
 
         // 4. Deploy EAS schemas (with skip flag)
         if (!flags.skipSchemas) {
             (result.gardenAssessmentSchemaUID, result.workSchemaUID, result.workApprovalSchemaUID) =
             _deployEASSchemasWithFlags(
-                config.easSchemaRegistry, result.workResolver, result.workApprovalResolver, flags
+                deploymentConfig.config.easSchemaRegistry,
+                result.assessmentResolver,
+                result.workResolver,
+                result.workApprovalResolver,
+                flags
             );
         } else {
             console.log(">> Skipping schema deployment (SKIP_SCHEMAS=true)");
         }
 
+        vm.stopBroadcast();
+
+        return result;
+    }
+
+    /// @notice Deploy core infrastructure contracts
+    function _deployCoreInfrastructure(
+        DeploymentResult memory result,
+        DeploymentConfig memory deploymentConfig
+    )
+        internal
+        returns (DeploymentResult memory)
+    {
+        result.guardian =
+            deployGuardian(deploymentConfig.config.greenGoodsSafe, deploymentConfig.salt, deploymentConfig.factory);
+        result.gardenAccountImpl = deployGardenAccount(
+            deploymentConfig.config.erc4337EntryPoint,
+            deploymentConfig.config.multicallForwarder,
+            deploymentConfig.tokenboundRegistry,
+            result.guardian,
+            deploymentConfig.salt,
+            deploymentConfig.factory
+        );
+        result.accountProxy = deployAccountProxy(
+            result.guardian, result.gardenAccountImpl, deploymentConfig.salt, deploymentConfig.factory
+        );
+        result.gardenToken = deployGardenToken(
+            result.gardenAccountImpl,
+            deploymentConfig.config.greenGoodsSafe,
+            result.deploymentRegistry,
+            deploymentConfig.salt,
+            deploymentConfig.factory
+        );
+
+        return result;
+    }
+
+    /// @notice Deploy registries and resolvers
+    function _deployRegistriesAndResolvers(
+        DeploymentResult memory result,
+        DeploymentConfig memory deploymentConfig
+    )
+        internal
+        returns (DeploymentResult memory)
+    {
+        result.actionRegistry = deployActionRegistry(
+            deploymentConfig.config.greenGoodsSafe, deploymentConfig.salt, deploymentConfig.factory
+        );
+        result.workResolver = _deployWorkResolver(
+            deploymentConfig.config.eas, result.actionRegistry, deploymentConfig.salt, deploymentConfig.factory
+        );
+        result.workApprovalResolver = _deployWorkApprovalResolver(
+            deploymentConfig.config.eas, result.actionRegistry, deploymentConfig.salt, deploymentConfig.factory
+        );
+        result.assessmentResolver =
+            _deployAssessmentResolver(deploymentConfig.config.eas, deploymentConfig.salt, deploymentConfig.factory);
+
+        return result;
+    }
+
+    /// @notice Finalize deployment with configuration and seed data
+    function _finalizeDeployment(DeploymentResult memory result, DeploymentFlags memory flags) internal {
         // 5. Configure DeploymentRegistry (with governance handling)
         if (!flags.skipConfiguration) {
             _configureDeploymentRegistryWithGovernance(
-                result.deploymentRegistry, config, result, deployer, multisig, flags
+                result.deploymentRegistry,
+                _getCurrentConfig(),
+                result,
+                _getCurrentDeployer(),
+                _getCurrentMultisig(),
+                flags
             );
         } else {
             console.log(">> Skipping deployment registry configuration (SKIP_CONFIGURATION=true)");
         }
 
         // 6. Initialize seed data (with enhanced flag logic)
-        bool initSeedData = !flags.skipSeedData;
-        if (!flags.skipSeedData) {
-            try vm.envBool("INITIALIZE_SEED_DATA") returns (bool val) {
-                initSeedData = val;
-            } catch {
-                // Check if it's a testnet or local deployment
-                uint256 chainId = block.chainid;
-                initSeedData = (chainId == 31_337 || chainId == 11_155_111 || chainId == 84_532);
-            }
-        }
-
-        if (initSeedData) {
+        if (_shouldInitializeSeedData(flags)) {
             console.log("Initializing seed data for testing...");
-            _deploySeedGardens(result.gardenToken, config.communityToken);
+            _deploySeedGardens(result.gardenToken, _getCurrentConfig().communityToken);
             _deploySeedActions(result.actionRegistry);
         } else if (flags.skipSeedData) {
             console.log(">> Skipping seed data initialization (SKIP_SEED_DATA=true)");
         }
-
-        vm.stopBroadcast();
 
         // Print summary and save deployment
         _printDeploymentSummary(result);
@@ -554,6 +772,34 @@ contract Deploy is Script, DeploymentHelper {
         } else {
             console.log(">> Skipping verification command generation (SKIP_VERIFICATION=true)");
         }
+    }
+
+    /// @notice Determine if seed data should be initialized
+    function _shouldInitializeSeedData(DeploymentFlags memory flags) internal view returns (bool) {
+        if (flags.skipSeedData) return false;
+
+        try vm.envBool("INITIALIZE_SEED_DATA") returns (bool val) {
+            return val;
+        } catch {
+            // Check if it's a testnet or local deployment
+            uint256 chainId = block.chainid;
+            return (chainId == 31_337 || chainId == 11_155_111 || chainId == 84_532);
+        }
+    }
+
+    /// @notice Get current deployment configuration (helper for cleaner code)
+    function _getCurrentConfig() internal view returns (NetworkConfig memory) {
+        return loadNetworkConfig();
+    }
+
+    /// @notice Get current deployer address (helper for cleaner code)
+    function _getCurrentDeployer() internal view returns (address) {
+        return msg.sender;
+    }
+
+    /// @notice Get current multisig address (helper for cleaner code)
+    function _getCurrentMultisig() internal view returns (address) {
+        return _getCurrentConfig().multisig;
     }
 
     function deployDeploymentRegistry(address owner) public returns (address) {
@@ -579,19 +825,20 @@ contract Deploy is Script, DeploymentHelper {
         // Deploy implementation
         DeploymentRegistry implementation = new DeploymentRegistry();
 
-        // Deploy proxy
-        bytes memory initData = abi.encodeWithSelector(DeploymentRegistry.initialize.selector, initialOwner);
+        // SIMPLIFIED: Always use deployer as initial owner for easier management
+        // Multisig will be added to allowlist for co-management
+        bytes memory initData = abi.encodeWithSelector(DeploymentRegistry.initialize.selector, deployer);
         ERC1967Proxy proxy = new ERC1967Proxy(address(implementation), initData);
 
         console.log("[OK] DeploymentRegistry deployed at:", address(proxy));
-        console.log("   Initial owner:", initialOwner);
+        console.log("   Initial owner:", deployer);
 
-        // Add deployer to allowlist if requested and if owner is multisig
-        if (flags.addDeployerToAllowlist && initialOwner != deployer) {
-            try DeploymentRegistry(address(proxy)).addToAllowlist(deployer) {
-                console.log("[OK] Added deployer to allowlist:", deployer);
+        // Add multisig to allowlist if it's different from deployer
+        if (initialOwner != address(0) && initialOwner != deployer) {
+            try DeploymentRegistry(address(proxy)).addToAllowlist(initialOwner) {
+                console.log("[OK] Added multisig to allowlist:", initialOwner);
             } catch {
-                console.log("[WARN] Could not add deployer to allowlist (requires owner)");
+                console.log("[WARN] Could not add multisig to allowlist");
             }
         }
 
@@ -674,7 +921,6 @@ contract Deploy is Script, DeploymentHelper {
 
     function deployGuardian(address greenGoodsSafe, bytes32 salt, address factory) public returns (address) {
         bytes memory bytecode = abi.encodePacked(type(AccountGuardian).creationCode, abi.encode(greenGoodsSafe));
-
         address predicted = Create2.computeAddress(salt, keccak256(bytecode), factory);
 
         if (!_isDeployed(predicted)) {
@@ -682,9 +928,9 @@ contract Deploy is Script, DeploymentHelper {
             if (address(guardian) != predicted) {
                 revert GuardianDeploymentAddressMismatch();
             }
-            console.log("AccountGuardian deployed at:", predicted);
+            console.log("Guardian deployed:", predicted);
         } else {
-            console.log("AccountGuardian already deployed at:", predicted);
+            console.log("Guardian already deployed:", predicted);
         }
 
         return predicted;
@@ -704,7 +950,6 @@ contract Deploy is Script, DeploymentHelper {
         bytes memory bytecode = abi.encodePacked(
             type(GardenAccount).creationCode, abi.encode(entryPoint, multicallForwarder, tokenRegistry, guardian)
         );
-
         address predicted = Create2.computeAddress(salt, keccak256(bytecode), factory);
 
         if (!_isDeployed(predicted)) {
@@ -713,9 +958,9 @@ contract Deploy is Script, DeploymentHelper {
             if (address(account) != predicted) {
                 revert GardenAccountDeploymentAddressMismatch();
             }
-            console.log("GardenAccount deployed at:", predicted);
+            console.log("GardenAccount impl deployed:", predicted);
         } else {
-            console.log("GardenAccount already deployed at:", predicted);
+            console.log("GardenAccount impl already deployed:", predicted);
         }
 
         return predicted;
@@ -731,7 +976,6 @@ contract Deploy is Script, DeploymentHelper {
         returns (address)
     {
         bytes memory bytecode = abi.encodePacked(type(AccountProxy).creationCode, abi.encode(guardian, implementation));
-
         address predicted = Create2.computeAddress(salt, keccak256(bytecode), factory);
 
         if (!_isDeployed(predicted)) {
@@ -739,9 +983,9 @@ contract Deploy is Script, DeploymentHelper {
             if (address(proxy) != predicted) {
                 revert AccountProxyDeploymentAddressMismatch();
             }
-            console.log("AccountProxy deployed at:", predicted);
+            console.log("AccountProxy deployed:", predicted);
         } else {
-            console.log("AccountProxy already deployed at:", predicted);
+            console.log("AccountProxy already deployed:", predicted);
         }
 
         return predicted;
@@ -750,44 +994,65 @@ contract Deploy is Script, DeploymentHelper {
     function deployGardenToken(
         address implementation,
         address multisig,
+        address deploymentRegistry,
         bytes32 salt,
         address factory
     )
         public
         returns (address)
     {
-        bytes memory bytecode = abi.encodePacked(type(GardenToken).creationCode, abi.encode(implementation));
+        // Deploy implementation (not deterministic)
+        GardenToken gardenTokenImpl = new GardenToken(implementation);
 
-        address predicted = Create2.computeAddress(salt, keccak256(bytecode), factory);
+        // SIMPLIFIED: Use deployer as owner, multisig added to allowlist via DeploymentRegistry
+        bytes memory initData = abi.encodeWithSelector(GardenToken.initialize.selector, msg.sender, deploymentRegistry);
+
+        // Calculate deterministic proxy address
+        bytes memory proxyBytecode =
+            abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(address(gardenTokenImpl), initData));
+        address predicted = Create2.computeAddress(salt, keccak256(proxyBytecode), factory);
 
         if (!_isDeployed(predicted)) {
-            GardenToken token = new GardenToken{ salt: salt }(implementation);
-            token.initialize(multisig);
-            if (address(token) != predicted) {
+            // Deploy proxy with initialization
+            ERC1967Proxy proxy = new ERC1967Proxy{ salt: salt }(address(gardenTokenImpl), initData);
+
+            if (address(proxy) != predicted) {
                 revert GardenTokenDeploymentAddressMismatch();
             }
-            console.log("GardenToken deployed at:", predicted);
+            console.log("GardenToken proxy deployed:", predicted);
+            console.log("GardenToken implementation:", address(gardenTokenImpl));
+            console.log("GardenToken owner: deployer (", msg.sender, ")");
         } else {
-            console.log("GardenToken already deployed at:", predicted);
+            console.log("GardenToken proxy already deployed:", predicted);
         }
 
         return predicted;
     }
 
     function deployActionRegistry(address multisig, bytes32 salt, address factory) public returns (address) {
-        bytes memory bytecode = type(ActionRegistry).creationCode;
+        // Deploy implementation (not deterministic)
+        ActionRegistry actionRegistryImpl = new ActionRegistry();
 
-        address predicted = Create2.computeAddress(salt, keccak256(bytecode), factory);
+        // SIMPLIFIED: Use deployer as owner
+        bytes memory initData = abi.encodeWithSelector(ActionRegistry.initialize.selector, msg.sender);
+
+        // Calculate deterministic proxy address
+        bytes memory proxyBytecode =
+            abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(address(actionRegistryImpl), initData));
+        address predicted = Create2.computeAddress(salt, keccak256(proxyBytecode), factory);
 
         if (!_isDeployed(predicted)) {
-            ActionRegistry registry = new ActionRegistry{ salt: salt }();
-            registry.initialize(multisig);
-            if (address(registry) != predicted) {
+            // Deploy proxy with initialization
+            ERC1967Proxy proxy = new ERC1967Proxy{ salt: salt }(address(actionRegistryImpl), initData);
+
+            if (address(proxy) != predicted) {
                 revert ActionRegistryDeploymentAddressMismatch();
             }
-            console.log("ActionRegistry deployed at:", predicted);
+            console.log("ActionRegistry proxy deployed:", predicted);
+            console.log("ActionRegistry implementation:", address(actionRegistryImpl));
+            console.log("ActionRegistry owner: deployer (", msg.sender, ")");
         } else {
-            console.log("ActionRegistry already deployed at:", predicted);
+            console.log("ActionRegistry proxy already deployed:", predicted);
         }
 
         return predicted;
@@ -796,26 +1061,48 @@ contract Deploy is Script, DeploymentHelper {
     function _deployWorkResolver(
         address eas,
         address actionRegistry,
-        address multisig,
         bytes32 salt,
         address factory
     )
         internal
         returns (address)
     {
-        bytes memory bytecode = abi.encodePacked(type(WorkResolver).creationCode, abi.encode(eas, actionRegistry));
+        // Deploy implementation (address can vary across chains)
+        WorkResolver implementation = new WorkResolver(eas, actionRegistry);
 
-        address predicted = Create2.computeAddress(salt, keccak256(bytecode), factory);
+        // Deploy stub implementation deterministically (same address across chains)
+        bytes32 stubSalt = keccak256(abi.encodePacked(salt, "ResolverStub"));
+        ResolverStub stub = new ResolverStub{ salt: stubSalt }();
+
+        // Calculate deterministic proxy address using ResolverStub as placeholder implementation
+        bytes32 resolverSalt = keccak256(abi.encodePacked(salt, "WorkResolverProxy"));
+
+        bytes memory baseProxyBytecode = type(ERC1967Proxy).creationCode;
+        // Initialize stub with deployer as temporary owner for upgrade permissions
+        bytes memory stubInitData = abi.encodeWithSelector(ResolverStub.initialize.selector, msg.sender);
+        bytes memory proxyConstructorArgs = abi.encode(address(stub), stubInitData);
+        bytes memory fullProxyBytecode = abi.encodePacked(baseProxyBytecode, proxyConstructorArgs);
+
+        address predicted = Create2.computeAddress(resolverSalt, keccak256(fullProxyBytecode), factory);
 
         if (!_isDeployed(predicted)) {
-            WorkResolver resolver = new WorkResolver{ salt: salt }(eas, actionRegistry);
-            resolver.initialize(multisig);
-            if (address(resolver) != predicted) {
+            // Deploy proxy with stub implementation
+            ERC1967Proxy proxy = new ERC1967Proxy{ salt: resolverSalt }(address(stub), stubInitData);
+            if (address(proxy) != predicted) {
                 revert WorkResolverDeploymentAddressMismatch();
             }
-            console.log("WorkResolver deployed at:", predicted);
+
+            // Upgrade to real implementation
+            UUPSUpgradeable(address(proxy)).upgradeTo(address(implementation));
+
+            // NOTE: Ownership transfer skipped - can be done post-deployment by multisig
+            // The resolver proxy is functional for schema deployment
+
+            console.log("WorkResolver proxy deployed:", predicted);
+            console.log("WorkResolver implementation:", address(implementation));
+            console.log("WorkResolver stub:", address(stub));
         } else {
-            console.log("WorkResolver already deployed at:", predicted);
+            console.log("WorkResolver proxy already deployed:", predicted);
         }
 
         return predicted;
@@ -824,27 +1111,97 @@ contract Deploy is Script, DeploymentHelper {
     function _deployWorkApprovalResolver(
         address eas,
         address actionRegistry,
-        address multisig,
         bytes32 salt,
         address factory
     )
         internal
         returns (address)
     {
-        bytes memory bytecode =
-            abi.encodePacked(type(WorkApprovalResolver).creationCode, abi.encode(eas, actionRegistry));
+        // Deploy implementation (address can vary across chains)
+        WorkApprovalResolver implementation = new WorkApprovalResolver(eas, actionRegistry);
 
-        address predicted = Create2.computeAddress(salt, keccak256(bytecode), factory);
+        // Use the same deterministic stub implementation
+        bytes32 stubSalt = keccak256(abi.encodePacked(salt, "ResolverStub"));
+        address stubAddress = Create2.computeAddress(stubSalt, keccak256(type(ResolverStub).creationCode), factory);
+
+        // Deploy stub if not already deployed
+        if (!_isDeployed(stubAddress)) {
+            new ResolverStub{ salt: stubSalt }();
+        }
+
+        // Calculate deterministic proxy address using ResolverStub as placeholder implementation
+        bytes32 approvalResolverSalt = keccak256(abi.encodePacked(salt, "WorkApprovalResolverProxy"));
+
+        bytes memory baseProxyBytecode = type(ERC1967Proxy).creationCode;
+        // Initialize stub with deployer as temporary owner for upgrade permissions
+        bytes memory stubInitData = abi.encodeWithSelector(ResolverStub.initialize.selector, msg.sender);
+        bytes memory proxyConstructorArgs = abi.encode(stubAddress, stubInitData);
+        bytes memory fullProxyBytecode = abi.encodePacked(baseProxyBytecode, proxyConstructorArgs);
+
+        address predicted = Create2.computeAddress(approvalResolverSalt, keccak256(fullProxyBytecode), factory);
 
         if (!_isDeployed(predicted)) {
-            WorkApprovalResolver resolver = new WorkApprovalResolver{ salt: salt }(eas, actionRegistry);
-            resolver.initialize(multisig);
-            if (address(resolver) != predicted) {
+            // Deploy proxy with stub implementation
+            ERC1967Proxy proxy = new ERC1967Proxy{ salt: approvalResolverSalt }(stubAddress, stubInitData);
+            if (address(proxy) != predicted) {
                 revert WorkApprovalResolverDeploymentAddressMismatch();
             }
-            console.log("WorkApprovalResolver deployed at:", predicted);
+
+            // Upgrade to real implementation
+            UUPSUpgradeable(address(proxy)).upgradeTo(address(implementation));
+
+            // NOTE: Ownership transfer skipped - can be done post-deployment by multisig
+            // The resolver proxy is functional for schema deployment
+
+            console.log("WorkApprovalResolver proxy deployed:", predicted);
+            console.log("WorkApprovalResolver implementation:", address(implementation));
+            console.log("WorkApprovalResolver stub:", stubAddress);
         } else {
-            console.log("WorkApprovalResolver already deployed at:", predicted);
+            console.log("WorkApprovalResolver proxy already deployed:", predicted);
+        }
+
+        return predicted;
+    }
+
+    function _deployAssessmentResolver(address eas, bytes32 salt, address factory) internal returns (address) {
+        // Deploy implementation (address can vary across chains)
+        AssessmentResolver implementation = new AssessmentResolver(eas);
+
+        // Use the same deterministic stub implementation
+        bytes32 stubSalt = keccak256(abi.encodePacked(salt, "ResolverStub"));
+        address stubAddress = Create2.computeAddress(stubSalt, keccak256(type(ResolverStub).creationCode), factory);
+
+        // Deploy stub if not already deployed
+        if (!_isDeployed(stubAddress)) {
+            new ResolverStub{ salt: stubSalt }();
+        }
+
+        // Calculate deterministic proxy address using ResolverStub as placeholder implementation
+        bytes32 assessmentResolverSalt = keccak256(abi.encodePacked(salt, "AssessmentResolverProxy"));
+
+        bytes memory baseProxyBytecode = type(ERC1967Proxy).creationCode;
+        // Initialize stub with deployer as temporary owner for upgrade permissions
+        bytes memory stubInitData = abi.encodeWithSelector(ResolverStub.initialize.selector, msg.sender);
+        bytes memory proxyConstructorArgs = abi.encode(stubAddress, stubInitData);
+        bytes memory fullProxyBytecode = abi.encodePacked(baseProxyBytecode, proxyConstructorArgs);
+
+        address predicted = Create2.computeAddress(assessmentResolverSalt, keccak256(fullProxyBytecode), factory);
+
+        if (!_isDeployed(predicted)) {
+            // Deploy proxy with stub implementation
+            ERC1967Proxy proxy = new ERC1967Proxy{ salt: assessmentResolverSalt }(stubAddress, stubInitData);
+
+            // Upgrade to real implementation
+            UUPSUpgradeable(address(proxy)).upgradeTo(address(implementation));
+
+            // NOTE: Ownership transfer skipped - can be done post-deployment by multisig
+            // The resolver proxy is functional for schema deployment
+
+            console.log("AssessmentResolver proxy deployed:", predicted);
+            console.log("AssessmentResolver implementation:", address(implementation));
+            console.log("AssessmentResolver stub:", stubAddress);
+        } else {
+            console.log("AssessmentResolver proxy already deployed:", predicted);
         }
 
         return predicted;
@@ -852,6 +1209,7 @@ contract Deploy is Script, DeploymentHelper {
 
     function _deployEASSchemas(
         address schemaRegistry,
+        address assessmentResolver,
         address workResolver,
         address workApprovalResolver
     )
@@ -904,7 +1262,8 @@ contract Deploy is Script, DeploymentHelper {
         IEAS eas = IEAS(config.eas);
 
         // Deploy schemas
-        gardenAssessmentUID = _deploySchema(registry, schemaJson, existingGardenUID, "gardenAssessment", address(0));
+        gardenAssessmentUID =
+            _deploySchema(registry, schemaJson, existingGardenUID, "gardenAssessment", assessmentResolver);
         workUID = _deploySchema(registry, schemaJson, existingWorkUID, "work", workResolver);
         workApprovalUID =
             _deploySchema(registry, schemaJson, existingWorkApprovalUID, "workApproval", workApprovalResolver);
@@ -921,6 +1280,7 @@ contract Deploy is Script, DeploymentHelper {
 
     function _deployEASSchemasWithFlags(
         address schemaRegistry,
+        address assessmentResolver,
         address workResolver,
         address workApprovalResolver,
         DeploymentFlags memory flags
@@ -974,8 +1334,9 @@ contract Deploy is Script, DeploymentHelper {
         IEAS eas = IEAS(config.eas);
 
         // Deploy schemas with force deployment flag
-        gardenAssessmentUID =
-            _deploySchemaWithFlags(registry, schemaJson, existingGardenUID, "gardenAssessment", address(0), flags);
+        gardenAssessmentUID = _deploySchemaWithFlags(
+            registry, schemaJson, existingGardenUID, "gardenAssessment", assessmentResolver, flags
+        );
         workUID = _deploySchemaWithFlags(registry, schemaJson, existingWorkUID, "work", workResolver, flags);
         workApprovalUID = _deploySchemaWithFlags(
             registry, schemaJson, existingWorkApprovalUID, "workApproval", workApprovalResolver, flags

@@ -1,13 +1,13 @@
 {
   "accountProxy": "0xad621aF21dBfdaCe0A078C021Ab2FDDA080a52D1",
-  "actionRegistry": "0x547e82BF9c8496f41927583793242f6b91C182A6",
-  "deploymentRegistry": "0x48c309c0875cfeD9b6D9FaEfF0100898E95371fA",
+  "actionRegistry": "0x17b1AaeFDbECbaC49Dc2a83026ad134a1938a5da",
+  "deploymentRegistry": "0x34A1D3fff3958843C43aD80F30b94c510645C316",
   "eas": {
     "address": "0x72E1d8ccf5299fb36fEfD8CC4394B8ef7e98Af92",
     "schemaRegistry": "0x5ece93bE4BDCF293Ed61FA78698B594F2135AF34"
   },
   "gardenAccountImpl": "0x83287652b4e1514e101a4053c9bcAFf6a24d051C",
-  "gardenToken": "0xE73e86787dDC94b98f6d0327124D18341C527e1f",
+  "gardenToken": "0x6d5B56Dd19E3992F0a9b4E71495b5f4c454b3092",
   "guardian": "0xFdF620FEafE1f15B9f3725283A72088791eDFC74",
   "schemas": {
     "gardenAssessmentDescription": "Biodiversity assessment schema for Green Goods garden spaces. Captures soil health, carbon metrics, species diversity, and ecological observations to verify regenerative agriculture practices.",
@@ -23,6 +23,6 @@
     "workSchema": "uint256 actionUID,string title,string feedback,string metadata,string[] media",
     "workSchemaUID": "0x74e5d1578bf5b547898bf9c4ac46ec3e4833418437db929de1b540f9d2528d8e"
   },
-  "workApprovalResolver": "0x55371CFEe041E3542B4aA18aB2dD5d2566a228DB",
-  "workResolver": "0x1eA10B8B5A24B5C79E8921F47e21964637793b14"
+  "workApprovalResolver": "0x0EC9099cCc60d7A5f1390f09aA42D54C7590C71A",
+  "workResolver": "0x56f36609AC166880f5C73bb403A451598A949Def"
 }

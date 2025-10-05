@@ -11,7 +11,7 @@ const { GardenOnboarding } = require("./garden-onboarding");
 const { EnvioIntegration } = require("./utils/envio-integration");
 
 // Load environment variables
-dotenv.config({ path: path.join(__dirname, "..", ".env") });
+dotenv.config({ path: path.join(__dirname, "../../../", ".env") });
 
 // Load network configuration
 const networksConfig = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "deployments", "networks.json")));
@@ -96,6 +96,13 @@ class DeploymentCLI {
           skipSeedData: true,
           skipVerification: true,
           verbose: true,
+        },
+      },
+      optimized: {
+        description: "Gas-optimized deployment with deterministic addresses and batch operations",
+        flags: {
+          verbose: true,
+          skipSeedData: true, // Optimized deployment focuses on core contracts
         },
       },
     };
@@ -410,18 +417,26 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
       }
     }
 
-    // Build forge script command
+    // Build forge script command - always use unified Deploy.s.sol
     const args = ["script", "script/Deploy.s.sol:Deploy"];
     args.push("--chain-id", networkConfig.chainId.toString());
     args.push("--rpc-url", rpcUrl);
 
     if (options.broadcast) {
       args.push("--broadcast");
-      const privateKey = process.env.PRIVATE_KEY;
-      if (!privateKey) {
-        throw new Error("PRIVATE_KEY not set in .env file");
+
+      // Require Foundry keystore account
+      const keystoreName = process.env.FOUNDRY_KEYSTORE_ACCOUNT || "green-goods-deployer";
+      args.push("--account", keystoreName);
+
+      // Optionally specify sender address for verification
+      const senderAddress = process.env.SENDER_ADDRESS;
+      if (senderAddress) {
+        args.push("--sender", senderAddress);
       }
-      args.push("--private-key", privateKey);
+
+      console.log(`🔐 Using Foundry keystore: ${keystoreName}`);
+      console.log("💡 Password will be prompted interactively");
     }
 
     // Skip verification if contracts are already deployed or if explicitly skipped
@@ -940,11 +955,19 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
 
     if (options.broadcast) {
       args.push("--broadcast");
-      const privateKey = process.env.PRIVATE_KEY;
-      if (!privateKey) {
-        throw new Error("PRIVATE_KEY not set in .env file");
+
+      // Require Foundry keystore account
+      const keystoreName = process.env.FOUNDRY_KEYSTORE_ACCOUNT || "green-goods-deployer";
+      args.push("--account", keystoreName);
+
+      // Optionally specify sender address for verification
+      const senderAddress = process.env.SENDER_ADDRESS;
+      if (senderAddress) {
+        args.push("--sender", senderAddress);
       }
-      args.push("--private-key", privateKey);
+
+      console.log(`🔐 Using Foundry keystore: ${keystoreName}`);
+      console.log("💡 Password will be prompted interactively");
     }
 
     if (options.verify && networkConfig.verifyApiUrl && !options.skipVerification) {
@@ -1077,11 +1100,12 @@ contract DeployActionsGenerated is Script {
   }
 
   saveGardenDeploymentRecord(config, options) {
+    const keystoreName = process.env.FOUNDRY_KEYSTORE_ACCOUNT || "green-goods-deployer";
     const deploymentRecord = {
       ...config,
       timestamp: new Date().toISOString(),
       network: options.network,
-      deployer: process.env.PRIVATE_KEY ? "configured" : "missing",
+      deployer: keystoreName,
     };
 
     const recordPath = path.join(
@@ -1099,11 +1123,12 @@ contract DeployActionsGenerated is Script {
   }
 
   saveActionsDeploymentRecord(config, options) {
+    const keystoreName = process.env.FOUNDRY_KEYSTORE_ACCOUNT || "green-goods-deployer";
     const deploymentRecord = {
       actions: config.actions,
       timestamp: new Date().toISOString(),
       network: options.network,
-      deployer: process.env.PRIVATE_KEY ? "configured" : "missing",
+      deployer: keystoreName,
     };
 
     const recordPath = path.join(__dirname, "..", "deployments", "actions", `batch-${Date.now()}.json`);
