@@ -18,6 +18,7 @@ contracts:
       - event: GardenMinted
   - name: GardenAccount
     abi_file_path: abis/GardenAccount.json
+    # No address field - addresses will be registered dynamically via contractRegister
     handler: src/EventHandlers.ts
     events:
       - event: NameUpdated
@@ -26,6 +27,9 @@ contracts:
       - event: GardenerRemoved
       - event: GardenOperatorAdded
       - event: GardenOperatorRemoved
+      - event: InviteCreated
+      - event: InviteUsed
+      - event: InviteRevoked
 networks:
   - id: 42161
     start_block: 242630858
@@ -38,16 +42,16 @@ networks:
     start_block: 40293303
     contracts:
       - name: ActionRegistry
-        address: "0x547e82BF9c8496f41927583793242f6b91C182A6"
+        address: "0x17b1AaeFDbECbaC49Dc2a83026ad134a1938a5da"
       - name: GardenToken
-        address: "0xE73e86787dDC94b98f6d0327124D18341C527e1f"
+        address: "0x6d5B56Dd19E3992F0a9b4E71495b5f4c454b3092"
   - id: 84532
     start_block: 28278599
     contracts:
       - name: ActionRegistry
-        address: "0x547e82BF9c8496f41927583793242f6b91C182A6"
+        address: "0x17b1AaeFDbECbaC49Dc2a83026ad134a1938a5da"
       - name: GardenToken
-        address: "0x19f367E448208377dA8C81E770bC6777c7815516"
+        address: "0x6d5B56Dd19E3992F0a9b4E71495b5f4c454b3092"
   # WARNING: DO NOT UNCOMMENT THE LOCAL CHAIN CONFIG BELOW!
   # The indexer cannot sync properly with multiple networks if localhost is enabled.
   # Use the deployment scripts to manage this configuration automatically.
