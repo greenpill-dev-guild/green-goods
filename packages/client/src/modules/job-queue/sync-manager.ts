@@ -1,4 +1,4 @@
-import { track, trackSyncPerformance } from "@/modules/posthog";
+import { track, trackSyncPerformance } from "@/modules/app/posthog";
 import { queryClient } from "../react-query";
 import { jobQueueDB } from "./db";
 import { jobQueueEventBus } from "./event-bus";

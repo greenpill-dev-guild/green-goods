@@ -5,14 +5,18 @@ import React, { useContext } from "react";
 import { type Control, type FormState, type UseFormRegister, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 // import { decodeErrorResult } from "viem";
-import { DEFAULT_CHAIN_ID } from "@/config";
+import { DEFAULT_CHAIN_ID } from "@/config/blockchain";
 // import { jobQueue } from "@/modules/job-queue";
 import { processWorkJobInline } from "@/modules/job-queue/inline-processor";
-import { submitWorkToQueue, validateWorkDraft, formatJobError } from "@/modules/work-submission";
+import {
+  submitWorkToQueue,
+  validateWorkDraft,
+  formatJobError,
+} from "@/modules/work/work-submission";
 // import { abi as WorkResolverABI } from "@/utils/abis/WorkResolver.json";
 
-import { useUser } from "./user";
-import { useActions, useGardens } from "@/hooks/useBaseLists";
+import { useUser } from "@/hooks/auth/useUser";
+import { useActions, useGardens } from "@/hooks/blockchain/useBaseLists";
 import { useWorkFlowStore, type WorkFlowState } from "@/state/useWorkFlowStore";
 
 export enum WorkTab {

@@ -1,7 +1,7 @@
 import React, { forwardRef, memo, useMemo, useState } from "react";
 import { FixedSizeList as List } from "react-window";
 import { useIntl } from "react-intl";
-import { formatAddress } from "@/utils/text";
+import { formatAddress } from "@/utils/app/text";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/UI/Avatar/Avatar";
 // import { ModalDrawer } from "@/components/UI/ModalDrawer/ModalDrawer";
 import { Button } from "@/components/UI/Button";

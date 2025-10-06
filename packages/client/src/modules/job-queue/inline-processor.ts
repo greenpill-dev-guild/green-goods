@@ -2,6 +2,7 @@ import { jobQueueDB } from "./db";
 import { jobQueueEventBus } from "./event-bus";
 import { workProcessor } from "./processors/work";
 import { approvalProcessor } from "./processors/approval";
+import type { SmartAccountClient } from "permissionless";
 
 /**
  * Inline processors for jobs, using the given smart account client directly.
@@ -11,7 +12,7 @@ import { approvalProcessor } from "./processors/approval";
 export async function processWorkJobInline(
   jobId: string,
   chainId: number,
-  smartAccountClient: unknown
+  smartAccountClient: SmartAccountClient
 ): Promise<{ success: boolean; txHash?: string; error?: string }> {
   const job = await jobQueueDB.getJob(jobId);
   if (!job) return { success: false, error: "job_not_found" };
@@ -51,7 +52,7 @@ export async function processWorkJobInline(
 export async function processApprovalJobInline(
   jobId: string,
   chainId: number,
-  smartAccountClient: unknown
+  smartAccountClient: SmartAccountClient
 ): Promise<{ success: boolean; txHash?: string; error?: string }> {
   const job = await jobQueueDB.getJob(jobId);
   if (!job) return { success: false, error: "job_not_found" };

@@ -14,13 +14,14 @@ import { GardenWork } from "@/components/Garden/Work";
 import { GardenErrorBoundary } from "@/components/UI/ErrorBoundary/ErrorBoundary";
 import { type StandardTab, StandardTabs } from "@/components/UI/Tabs";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
-import { useBrowserNavigation, useNavigateToTop } from "@/hooks";
-import { GardenTab, useGardenTabs } from "@/hooks/useGardenTabs";
+import { useNavigateToTop } from "@/hooks/app/useNavigateToTop";
+import { useBrowserNavigation } from "@/hooks/app/useBrowserNavigation";
+import { GardenTab, useGardenTabs } from "@/hooks/garden/useGardenTabs";
 //
 // import { useQueryClient } from "@tanstack/react-query";
-import { useActions, useGardeners, useGardens } from "@/hooks/useBaseLists";
-import { useWorks } from "@/hooks/useWorks";
-import { DEFAULT_CHAIN_ID } from "@/config";
+import { useActions, useGardeners, useGardens } from "@/hooks/blockchain/useBaseLists";
+import { useWorks } from "@/hooks/work/useWorks";
+import { DEFAULT_CHAIN_ID } from "@/config/blockchain";
 
 type GardenProps = {};
 

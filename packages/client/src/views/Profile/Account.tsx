@@ -1,14 +1,8 @@
-import { usePrivy } from "@privy-io/react-auth";
-import {
-  RiEarthFill,
-  RiKeyLine,
-  RiLogoutBoxRLine,
-  RiMailFill,
-  RiPhoneLine,
-  RiWalletLine,
-} from "@remixicon/react";
+import { RiEarthFill, RiKeyLine, RiLogoutBoxRLine, RiWalletLine } from "@remixicon/react";
 import { ReactNode, useState } from "react";
+import toast from "react-hot-toast";
 import { useIntl } from "react-intl";
+import { useNavigate } from "react-router-dom";
 import { Avatar } from "@/components/UI/Avatar/Avatar";
 import { Button } from "@/components/UI/Button";
 import { Card } from "@/components/UI/Card/Card";
@@ -20,19 +14,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/UI/Select/Select";
-
+import { useAuth } from "@/hooks/auth/useAuth";
+import { useUser } from "@/hooks/auth/useUser";
 import { type Locale, useApp } from "@/providers/app";
-import { capitalize } from "@/utils/text";
-import toast from "react-hot-toast";
-
-interface LinkedAccount {
-  title: string;
-  description: string;
-  isLinked: boolean;
-  Icon: React.ReactNode;
-  link: () => void;
-  unlink: () => void;
-}
+import { capitalize } from "@/utils/app/text";
 
 interface ApplicationSettings {
   title: string;
@@ -45,22 +30,20 @@ type ProfileAccountProps = {};
 
 export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
   const {
-    user,
-    linkEmail,
-    linkPhone,
-    linkPasskey,
-    linkWallet,
-    unlinkEmail,
-    unlinkPhone,
-    // unlinkPasskey,
-    unlinkWallet,
-    logout,
-  } = usePrivy();
-
+    authMode,
+    clearPasskey,
+    disconnectWallet,
+    smartAccountAddress,
+    credential,
+    walletAddress,
+  } = useAuth();
+  const { user } = useUser();
+  const navigate = useNavigate();
   const { locale, switchLanguage, availableLocales } = useApp();
   const intl = useIntl();
+
   const [displayName, setDisplayName] = useState<string>(
-    ((user?.customMetadata?.username as string) || "") ?? ""
+    ((user?.wallet?.address as string) || "").slice(0, 8) ?? ""
   );
   const [saving, setSaving] = useState(false);
 
@@ -68,15 +51,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
     if (!user?.id) return;
     try {
       setSaving(true);
-      const { updateUserProfile } = await import("@/modules/greengoods");
-      let accessToken: string | undefined;
-      try {
-        const maybeTokenGetter = (usePrivy() as any)?.getAccessToken;
-        if (typeof maybeTokenGetter === "function") {
-          accessToken = (await maybeTokenGetter()) as string | undefined;
-        }
-      } catch {}
-      await updateUserProfile(user.id, { username: displayName }, accessToken);
+      // Profile updates can be implemented when backend supports it
       toast.success(
         intl.formatMessage({ id: "app.toast.profileUpdated", defaultMessage: "Profile updated" })
       );
@@ -88,6 +63,18 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
       setSaving(false);
     }
   }
+
+  const handleLogout = () => {
+    if (authMode === "passkey") {
+      clearPasskey();
+    } else if (authMode === "wallet") {
+      disconnectWallet();
+    }
+    navigate("/login");
+    toast.success(
+      intl.formatMessage({ id: "app.toast.loggedOut", defaultMessage: "Logged out successfully" })
+    );
+  };
 
   const applicationSettings: ApplicationSettings[] = [
     {
@@ -126,73 +113,6 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
     },
   ];
 
-  const accountSettings: LinkedAccount[] = [
-    {
-      title: intl.formatMessage({
-        id: "app.account.email",
-        description: "Email",
-      }),
-      description:
-        user?.email?.address ||
-        intl.formatMessage({
-          id: "app.account.notLinked",
-          description: "Not Linked",
-        }),
-      isLinked: !!user?.email?.address,
-      Icon: <RiMailFill className="w-4" />,
-      link: linkEmail,
-      unlink: () => user?.email?.address && unlinkEmail(user?.email?.address),
-    },
-    {
-      title: intl.formatMessage({
-        id: "app.account.phone",
-        description: "Phone",
-      }),
-      description:
-        user?.phone?.number ||
-        intl.formatMessage({
-          id: "app.account.notLinked",
-          description: "Not Linked",
-        }),
-      isLinked: !!user?.phone?.number,
-      Icon: <RiPhoneLine className="w-4" />,
-      link: linkPhone,
-      unlink: () => user?.phone?.number && unlinkPhone(user?.phone?.number),
-    },
-    {
-      title: intl.formatMessage({
-        id: "app.account.passkey",
-        description: "Passkey",
-      }),
-      description: user?.mfaMethods.includes("passkey")
-        ? ""
-        : intl.formatMessage({
-            id: "app.account.notLinked",
-            description: "Not Linked",
-          }),
-      isLinked: !!user?.mfaMethods.includes("passkey"),
-      Icon: <RiKeyLine className="w-4" />,
-      link: linkPasskey,
-      unlink: () => {},
-    },
-    {
-      title: intl.formatMessage({
-        id: "app.account.wallet",
-        description: "Wallet",
-      }),
-      description: user?.wallet
-        ? ""
-        : intl.formatMessage({
-            id: "app.account.notLinked",
-            description: "Not Linked",
-          }),
-      isLinked: !!user?.wallet,
-      Icon: <RiWalletLine className="w-4" />,
-      link: linkWallet,
-      unlink: () => user?.wallet?.address && unlinkWallet(user?.wallet?.address),
-    },
-  ];
-
   return (
     <>
       <h5>
@@ -219,6 +139,77 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
           </div>
         </Card>
       ))}
+
+      <h5>
+        {intl.formatMessage({
+          id: "app.profile.account",
+          description: "Account",
+        })}
+      </h5>
+
+      {/* Auth Mode Info */}
+      <Card>
+        <div className="flex flex-row items-center gap-3 justify-center w-full">
+          <Avatar>
+            <div className="flex items-center justify-center text-center mx-auto text-primary">
+              {authMode === "passkey" ? (
+                <RiKeyLine className="w-4" />
+              ) : (
+                <RiWalletLine className="w-4" />
+              )}
+            </div>
+          </Avatar>
+          <div className="flex flex-col gap-1 grow">
+            <div className="flex items-center font-sm gap-1">
+              <div className="line-clamp-1 text-sm">
+                {authMode === "passkey"
+                  ? intl.formatMessage({
+                      id: "app.account.passkey",
+                      description: "Passkey Wallet",
+                    })
+                  : intl.formatMessage({
+                      id: "app.account.wallet",
+                      description: "External Wallet",
+                    })}
+              </div>
+            </div>
+            <div className="text-xs text-gray-500">
+              {authMode === "passkey" && credential
+                ? "Active"
+                : authMode === "wallet" && walletAddress
+                  ? "Connected"
+                  : "Not configured"}
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Address Display */}
+      {(smartAccountAddress || walletAddress) && (
+        <Card>
+          <div className="flex flex-row items-center gap-3 justify-center w-full">
+            <Avatar>
+              <div className="flex items-center justify-center text-center mx-auto text-primary">
+                <RiWalletLine className="w-4" />
+              </div>
+            </Avatar>
+            <div className="flex flex-col gap-1 grow">
+              <div className="flex items-center font-sm gap-1">
+                <div className="line-clamp-1 text-sm">
+                  {intl.formatMessage({
+                    id: "app.account.address",
+                    description:
+                      authMode === "passkey" ? "Smart Account Address" : "Wallet Address",
+                  })}
+                </div>
+              </div>
+              <div className="text-xs text-gray-500 font-mono break-all">
+                {smartAccountAddress || walletAddress}
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
 
       <h5>
         {intl.formatMessage({
@@ -258,45 +249,11 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
           </div>
         </div>
       </Card>
-      {accountSettings.map(({ title, Icon, description, isLinked, link, unlink }) => (
-        <Card key={title}>
-          <div className="flex flex-row items-center gap-3 justify-center w-full">
-            <Avatar>
-              <div className="flex items-center justify-center text-center mx-auto text-primary">
-                {Icon}
-              </div>
-            </Avatar>
-            <div className="flex flex-col gap-1 grow">
-              <div className="flex items-center font-sm gap-1">
-                <div className="line-clamp-1 text-sm">{title}</div>
-              </div>
-              <div className="text-xs text-gray-500">{description}</div>
-            </div>
-            <Button
-              variant={isLinked ? "neutral" : "primary"}
-              label={
-                isLinked
-                  ? intl.formatMessage({
-                      id: "app.account.unlink",
-                      description: "Unlink",
-                    })
-                  : intl.formatMessage({
-                      id: "app.account.link",
-                      description: "Link",
-                    })
-              }
-              onClick={isLinked ? unlink : link}
-              mode={isLinked ? "stroke" : "filled"}
-              size="xxsmall"
-              className="min-w-18"
-            />
-          </div>
-        </Card>
-      ))}
+
       <Button
         variant="neutral"
         mode="stroke"
-        onClick={logout}
+        onClick={handleLogout}
         label={intl.formatMessage({
           id: "app.profile.logout",
           description: "Logout",

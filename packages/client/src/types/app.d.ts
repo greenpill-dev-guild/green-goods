@@ -163,3 +163,18 @@ declare interface WorkApproval extends WorkApprovalDraft {
   operatorAddress: string;
   createdAt: number;
 }
+
+declare interface AssessmentDraft {
+  title: string;
+  description: string;
+  assessmentType: string;
+  capitals: string[];
+  metrics: Record<string, any>;
+  evidenceMedia: File[];
+  reportDocuments: string[];
+  impactAttestations: string[];
+  startDate: number;
+  endDate: number;
+  location: string;
+  tags: string[];
+}

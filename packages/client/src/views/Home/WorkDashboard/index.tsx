@@ -9,23 +9,23 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useWorkApprovals } from "@/hooks/useWorkApprovals";
+import { useWorkApprovals } from "@/hooks/work/useWorkApprovals";
 import { useUser } from "@/providers/user";
-import { cn } from "@/utils/cn";
+import { cn } from "@/utils/styles/cn";
 import { CompletedTab } from "./Completed";
 import { PendingTab } from "./Pending";
 import { UploadingTab } from "./Uploading";
 import { TimeFilterControl } from "./TimeFilterControl";
 
 import { type StandardTab, StandardTabs } from "@/components/UI/Tabs";
-import { getGardens } from "@/modules/greengoods";
+import { getGardens } from "@/modules/data/greengoods";
 import {
   getWorks,
   getWorkApprovals as fetchWorkApprovals,
   getWorksByGardener,
-} from "@/modules/eas";
+} from "@/modules/data/eas";
 import { jobQueue, jobQueueDB } from "@/modules/job-queue";
-import { jobToWork } from "@/hooks/useWorks";
+import { jobToWork } from "@/hooks/work/useWorks";
 import { jobQueueEventBus } from "@/modules/job-queue/event-bus";
 import { queryKeys } from "@/hooks/query-keys";
 

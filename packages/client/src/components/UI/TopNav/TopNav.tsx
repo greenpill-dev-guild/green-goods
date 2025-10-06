@@ -2,7 +2,7 @@ import { RiArrowLeftFill, RiNotificationFill, RiNotificationLine } from "@remixi
 import { forwardRef, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useOffline } from "@/hooks";
-import { cn } from "@/utils/cn";
+import { cn } from "@/utils/styles/cn";
 import { GardenNotifications } from "@/views/Home/Garden/Notifications";
 import { Button } from "../Button";
 

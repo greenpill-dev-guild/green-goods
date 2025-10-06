@@ -2,7 +2,7 @@ import { RiCoinFill, RiSeedlingLine, RiTreeLine } from "@remixicon/react";
 import { forwardRef, memo } from "react";
 import { FixedSizeList as List } from "react-window";
 import { useIntl } from "react-intl";
-import getTag from "@/utils/tags";
+import getTag from "@/utils/app/tags";
 import { Badge } from "../UI/Badge/Badge";
 import { Card } from "../UI/Card/Card";
 

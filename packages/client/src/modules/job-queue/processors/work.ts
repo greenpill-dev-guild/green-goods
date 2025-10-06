@@ -1,8 +1,9 @@
 import { NO_EXPIRATION, ZERO_BYTES32 } from "@ethereum-attestation-service/eas-sdk";
 import { encodeFunctionData } from "viem";
-import { getEASConfig } from "@/config";
-import { abi } from "@/utils/abis/EAS.json";
-import { encodeWorkData } from "@/utils/eas";
+import { getEASConfig } from "@/config/blockchain";
+import { abi } from "@/utils/blockchain/abis/EAS.json";
+import { encodeWorkData } from "@/utils/eas/encoders";
+import type { SmartAccountClient } from "permissionless";
 
 interface EncodedWorkData {
   attestationData: `0x${string}`;
@@ -41,7 +42,7 @@ export const workProcessor: JobProcessor<WorkJobPayload, EncodedWorkData> = {
   async execute(
     encoded: EncodedWorkData,
     _meta: Record<string, unknown>,
-    smartAccountClient: unknown
+    smartAccountClient: SmartAccountClient
   ): Promise<string> {
     if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
       // eslint-disable-next-line no-console
@@ -69,8 +70,11 @@ export const workProcessor: JobProcessor<WorkJobPayload, EncodedWorkData> = {
     });
 
     try {
-      const client = smartAccountClient as any;
-      const receipt = await client.sendTransaction({
+      if (!smartAccountClient.account) {
+        throw new Error("Smart account not initialized");
+      }
+
+      const receipt = await smartAccountClient.sendTransaction({
         to: encoded.easConfig.EAS.address as `0x${string}`,
         value: 0n,
         data: encodedData,

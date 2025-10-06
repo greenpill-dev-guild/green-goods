@@ -11,10 +11,10 @@ import {
 } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
-import { cn } from "../../../utils/cn";
+import { cn } from "../../../utils/styles/cn";
 import { Card } from "./Card";
 import { StatusBadge } from "./StatusBadge";
-import { formatAddress } from "@/utils/text";
+import { formatAddress } from "@/utils/app/text";
 
 export interface WorkCardItem {
   id: string;

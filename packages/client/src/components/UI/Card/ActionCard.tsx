@@ -1,7 +1,7 @@
 import { RiCamera3Line } from "@remixicon/react";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
-import { cn } from "@/utils/cn";
+import { cn } from "@/utils/styles/cn";
 import { Card, type CardRootProps } from "./Card";
 
 export const cardVariants = tv({

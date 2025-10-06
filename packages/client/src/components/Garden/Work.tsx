@@ -1,10 +1,9 @@
-import React, { forwardRef, memo, type UIEvent, useMemo, useCallback } from "react";
-import { MinimalWorkCard } from "@/components/UI/Card/WorkCard";
-import { FixedSizeList as List } from "react-window";
+import React, { forwardRef, memo, useMemo, useCallback, UIEvent } from "react";
 import { useIntl } from "react-intl";
-import { useNavigateToTop } from "@/hooks";
-// import { WorkCard } from "../UI/Card/WorkCard";
-import { BeatLoader } from "../UI/Loader";
+import { FixedSizeList as List } from "react-window";
+import { MinimalWorkCard } from "@/components/UI/Card/WorkCard";
+import { BeatLoader } from "@/components/UI/Loader";
+import { useNavigateToTop } from "@/hooks/app/useNavigateToTop";
 
 // import { cn } from "@/utils/cn";
 

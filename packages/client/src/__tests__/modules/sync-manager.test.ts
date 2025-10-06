@@ -1,10 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-
-import { SyncManager } from "../../modules/job-queue/sync-manager";
-import { JobProcessor } from "../../modules/job-queue/job-processor";
 import { jobQueueDB } from "../../modules/job-queue";
+import { JobProcessor } from "../../modules/job-queue/job-processor";
+import { SyncManager } from "../../modules/job-queue/sync-manager";
 
-vi.mock("../../modules/job-queue", async (orig) => {
+vi.mock("../../modules/job-queue", async (_orig) => {
   const actual = await import("../../modules/job-queue");
   return {
     ...actual,
@@ -19,16 +18,18 @@ vi.mock("../../modules/job-queue", async (orig) => {
 describe("modules/job-queue/sync-manager", () => {
   beforeEach(() => {
     Object.defineProperty(navigator, "onLine", { value: true, writable: true });
-    vi.spyOn(global, "setTimeout").mockImplementation(((fn: any) => {
+    vi.spyOn(global, "setTimeout").mockImplementation(((fn: () => void) => {
       // immediately execute
       fn();
-      return 0 as any;
-    }) as any);
+      return 0 as unknown;
+    }) as unknown);
   });
 
   it("returns zeros on empty queue and emits no failure", async () => {
     const sm = new SyncManager(new JobProcessor());
-    (jobQueueDB.getJobs as any).mockResolvedValueOnce([]);
+    (
+      jobQueueDB.getJobs as unknown as jest.MockedFunction<typeof jobQueueDB.getJobs>
+    ).mockResolvedValueOnce([]);
     const res = await sm.flush();
     expect(res).toMatchObject({ processed: 0, failed: 0, skipped: 0 });
   });

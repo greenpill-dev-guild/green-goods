@@ -2,7 +2,7 @@
 
 import useEmblaCarousel, { type UseEmblaCarouselType } from "embla-carousel-react";
 import * as React from "react";
-import { cn } from "@/utils/cn";
+import { cn } from "@/utils/styles/cn";
 import { ImagePreviewDialog } from "../ImagePreviewDialog";
 
 type CarouselApi = UseEmblaCarouselType[1];

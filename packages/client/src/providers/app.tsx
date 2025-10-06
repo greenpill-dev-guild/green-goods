@@ -13,7 +13,7 @@ const messages = {
   es: esMessages,
 };
 
-import { track } from "@/modules/posthog";
+import { track } from "@/modules/app/posthog";
 
 export type InstallState = "idle" | "not-installed" | "installed" | "unsupported";
 export const supportedLanguages = ["en", "pt", "es"] as const;

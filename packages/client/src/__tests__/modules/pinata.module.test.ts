@@ -10,7 +10,7 @@ vi.mock("../../modules/pinata", () => ({
   getFileByHash: vi.fn(async (hash: string) => ({ data: `mock:${hash}` })),
 }));
 
-import { getFileByHash, uploadJSONToIPFS, uploadFileToIPFS } from "../../modules/pinata";
+import { getFileByHash, uploadJSONToIPFS, uploadFileToIPFS } from "../../modules/data/pinata";
 
 describe("modules/pinata", () => {
   it("fetches file by hash (mocked)", async () => {

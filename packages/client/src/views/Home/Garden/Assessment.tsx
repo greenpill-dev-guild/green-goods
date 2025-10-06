@@ -1,7 +1,7 @@
 import type React from "react";
 import { useParams } from "react-router-dom";
-import { useGardens } from "@/hooks/useBaseLists";
-import { DEFAULT_CHAIN_ID } from "@/config";
+import { useGardens } from "@/hooks/blockchain/useBaseLists";
+import { DEFAULT_CHAIN_ID } from "@/config/blockchain";
 import { WorkViewSkeleton } from "@/components/UI/WorkView/WorkView";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
 

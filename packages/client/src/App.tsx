@@ -10,8 +10,8 @@ import { RouterProvider } from "react-router-dom";
 import { AppErrorBoundary } from "@/components/UI/ErrorBoundary/AppErrorBoundary";
 
 import { queryClient } from "@/modules/react-query";
-import { ensureBaseLists } from "@/hooks/prefetch";
-import "@/modules/service-worker"; // Initialize service worker
+import { ensureBaseLists } from "@/hooks/blockchain/prefetch";
+import "@/modules/app/service-worker"; // Initialize service worker
 import { router } from "@/router";
 
 const createSyncStoragePersister = ({ storage }: { storage: Storage }): Persister => {

@@ -1,12 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { DEFAULT_CHAIN_ID } from "@/config";
+import { DEFAULT_CHAIN_ID } from "@/config/blockchain";
 import { queryKeys } from "@/hooks/query-keys";
 // import { jobToWork } from "@/hooks/useWorks";
 import { jobQueue } from "@/modules/job-queue";
 // import { jobQueueEventBus } from "@/modules/job-queue/event-bus";
 import { queryClient } from "@/modules/react-query";
-import { useUser } from "./user";
+import { useUser } from "@/hooks/auth/useUser";
 
 interface JobQueueContextValue {
   stats: QueueStats;
@@ -80,7 +80,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
         }
       } catch (error) {
         if (!abortController.signal.aborted) {
-          console.error("Failed to get queue stats:", error);
+          // Error handled by returning empty stats
         }
       }
     };
@@ -243,7 +243,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
           queryClient.invalidateQueries({ queryKey: queryKeys.queue.stats() });
           queryClient.invalidateQueries({ queryKey: queryKeys.queue.pendingCount() });
         }
-      } catch (e) {
+      } catch {
         // best-effort; errors are surfaced via per-job events
       }
     },

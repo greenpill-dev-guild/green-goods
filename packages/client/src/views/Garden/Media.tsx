@@ -1,12 +1,12 @@
 import { RiCloseLine, RiImageFill, RiLoader4Line, RiZoomInLine } from "@remixicon/react";
 import React, { useState } from "react";
 import { useIntl } from "react-intl";
-import { Books } from "@/components/Garden/Books";
+import { Books } from "@/components/Garden/BooksIcon";
 import { Badge } from "@/components/UI/Badge/Badge";
 import { FormInfo } from "@/components/UI/Form/Info";
 import { ImagePreviewDialog } from "@/components/UI/ImagePreviewDialog";
-import { track } from "@/modules/posthog";
-import { imageCompressor } from "@/utils/image-compression";
+import { track } from "@/modules/app/posthog";
+import { imageCompressor } from "@/utils/work/image-compression";
 
 interface WorkMediaProps {
   instruction: string;

@@ -13,7 +13,7 @@ import {
   // uploadFileToIPFS,
   // uploadFilesToIPFS,
   // uploadJSONToIPFS,
-} from "../../modules/pinata";
+} from "../../modules/data/pinata";
 
 describe("pinata", () => {
   it("should get file by hash", async () => {

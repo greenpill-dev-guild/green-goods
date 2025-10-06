@@ -1,7 +1,7 @@
 import type { RemixiconComponentType } from "@remixicon/react";
 import type * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
-import { cn } from "@/utils/cn";
+import { cn } from "@/utils/styles/cn";
 import { Avatar } from "../Avatar/Avatar";
 import { Card } from "../Card/Card";
 

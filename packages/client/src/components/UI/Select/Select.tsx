@@ -3,7 +3,7 @@
 import * as SelectPrimitive from "@radix-ui/react-select";
 import { RiArrowDropDownLine, RiArrowDropUpLine, RiCheckLine } from "@remixicon/react";
 import * as React from "react";
-import { cn } from "@/utils/cn";
+import { cn } from "@/utils/styles/cn";
 
 const Select = SelectPrimitive.Root;
 

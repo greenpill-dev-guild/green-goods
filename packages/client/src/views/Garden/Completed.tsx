@@ -10,8 +10,8 @@ import {
 import React, { useEffect } from "react";
 import { useIntl } from "react-intl";
 import { type ModalVariantRoot, UploadModal } from "@/components/UI/UploadModal/UploadModal";
-import { useOffline } from "@/hooks/useOffline";
-import { track } from "@/modules/posthog";
+import { useOffline } from "@/hooks/app/useOffline";
+import { track } from "@/modules/app/posthog";
 
 export type completedMessage = {
   header: string;

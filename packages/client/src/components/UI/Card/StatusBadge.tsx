@@ -6,7 +6,7 @@ import {
   RiTimeLine,
 } from "@remixicon/react";
 import React from "react";
-import { cn } from "../../../utils/cn";
+import { cn } from "../../../utils/styles/cn";
 
 export interface StatusBadgeProps {
   status: "approved" | "rejected" | "pending" | "syncing" | "failed";

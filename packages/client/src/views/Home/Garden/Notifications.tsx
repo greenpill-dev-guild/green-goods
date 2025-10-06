@@ -2,7 +2,7 @@ import { RiAlertFill, RiSeedlingFill } from "@remixicon/react";
 import type React from "react";
 import { useIntl } from "react-intl";
 import { Link, useNavigate } from "react-router-dom";
-import { formatAddress } from "@/utils/text";
+import { formatAddress } from "@/utils/app/text";
 
 interface GardenNotificationsProps {
   garden: Garden;
