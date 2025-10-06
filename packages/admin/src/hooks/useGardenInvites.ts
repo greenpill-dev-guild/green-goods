@@ -1,24 +1,71 @@
 import { useState } from "react";
 import { useAccount, useWalletClient } from "wagmi";
 import { type Hex, keccak256, toHex } from "viem";
+import { useQuery } from "@tanstack/react-query";
 import { useToastAction } from "./useToastAction";
 import { GardenAccountABI } from "@/utils/contracts";
 
 export interface GardenInvite {
-  code: Hex;
+  id: string;
   garden: string;
   creator: string;
-  expiry: number;
+  expiry: bigint;
   used: boolean;
   usedBy?: string;
-  link: string;
+  createdAt: number;
+  usedAt?: number;
+  chainId: number;
 }
 
 export function useGardenInvites(gardenAddress: string) {
   const [isLoading, setIsLoading] = useState(false);
+  const [isRevoking, setIsRevoking] = useState(false);
   const { executeWithToast } = useToastAction();
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
+
+  // Fetch invites from Envio indexer
+  const {
+    data: invites,
+    isLoading: isFetching,
+    refetch,
+  } = useQuery<GardenInvite[]>({
+    queryKey: ["garden-invites", gardenAddress],
+    queryFn: async (): Promise<GardenInvite[]> => {
+      const ENVIO_URL = import.meta.env.VITE_ENVIO_INDEXER_URL;
+      if (!ENVIO_URL) {
+        console.warn("ENVIO_INDEXER_URL not configured");
+        return [];
+      }
+
+      const response = await fetch(ENVIO_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: `
+            query GetGardenInvites($gardenId: String!) {
+              gardenInvites(where: { garden: $gardenId }) {
+                id
+                garden
+                creator
+                expiry
+                used
+                usedBy
+                createdAt
+                usedAt
+                chainId
+              }
+            }
+          `,
+          variables: { gardenId: gardenAddress.toLowerCase() },
+        }),
+      });
+
+      const result = await response.json();
+      return result.data?.gardenInvites || [];
+    },
+    enabled: !!gardenAddress,
+  });
 
   /**
    * Generates a unique invite code
@@ -81,12 +128,12 @@ export function useGardenInvites(gardenAddress: string) {
   /**
    * Revokes an unused invite
    */
-  const revokeInvite = async (inviteCode: Hex): Promise<void> => {
+  const revokeInvite = async (inviteCode: string): Promise<void> => {
     if (!walletClient || !address) {
       throw new Error("Wallet not connected");
     }
 
-    setIsLoading(true);
+    setIsRevoking(true);
 
     try {
       await executeWithToast(
@@ -96,7 +143,7 @@ export function useGardenInvites(gardenAddress: string) {
             abi: GardenAccountABI.abi,
             functionName: "revokeInvite",
             account: address,
-            args: [inviteCode],
+            args: [inviteCode as Hex],
           });
 
           return hash;
@@ -107,16 +154,22 @@ export function useGardenInvites(gardenAddress: string) {
           errorMessage: "Failed to revoke invite",
         }
       );
+
+      // Refetch invites after revocation
+      await refetch();
     } finally {
-      setIsLoading(false);
+      setIsRevoking(false);
     }
   };
 
   return {
+    invites,
+    isLoading: isLoading || isFetching,
+    isRevoking,
     createInvite,
     revokeInvite,
     generateInviteCode,
     generateInviteLink,
-    isLoading,
+    refetch,
   };
 }

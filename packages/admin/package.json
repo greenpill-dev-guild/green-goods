@@ -34,6 +34,7 @@
     "@urql/core": "^5.0.4",
     "@xstate/react": "^4.1.3",
     "clsx": "2.1.1",
+    "date-fns": "^4.1.0",
     "pinata": "^2.5.0",
     "gql.tada": "^1.8.10",
     "graphql-ws": "^6.0.6",
