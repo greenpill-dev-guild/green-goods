@@ -66,13 +66,13 @@ contract DeploymentTest is ForgeTest.Test, DeploymentHelperModule.DeploymentHelp
         assertTrue(actionRegistry != address(0), "ActionRegistry should be deployed");
 
         // Verify schema UIDs
-        bytes32 gardenSchemaUID =
-            abi.decode(vm.parseJson(deploymentJson, ".schemas.gardenAssessmentSchemaUID"), (bytes32));
+        bytes32 assessmentSchemaUID =
+            abi.decode(vm.parseJson(deploymentJson, ".schemas.assessmentSchemaUID"), (bytes32));
         bytes32 workSchemaUID = abi.decode(vm.parseJson(deploymentJson, ".schemas.workSchemaUID"), (bytes32));
         bytes32 workApprovalSchemaUID =
             abi.decode(vm.parseJson(deploymentJson, ".schemas.workApprovalSchemaUID"), (bytes32));
 
-        assertTrue(gardenSchemaUID != bytes32(0), "Garden schema should be deployed");
+        assertTrue(assessmentSchemaUID != bytes32(0), "Assessment schema should be deployed");
         assertTrue(workSchemaUID != bytes32(0), "Work schema should be deployed");
         assertTrue(workApprovalSchemaUID != bytes32(0), "Work approval schema should be deployed");
     }
@@ -126,7 +126,7 @@ contract DeploymentTest is ForgeTest.Test, DeploymentHelperModule.DeploymentHelp
         assertEq(firstDeployment.actionRegistry, secondDeployment.actionRegistry);
 
         // Verify schema UIDs are the same
-        assertEq(firstDeployment.gardenAssessmentSchemaUID, secondDeployment.gardenAssessmentSchemaUID);
+        assertEq(firstDeployment.assessmentSchemaUID, secondDeployment.assessmentSchemaUID);
         assertEq(firstDeployment.workSchemaUID, secondDeployment.workSchemaUID);
         assertEq(firstDeployment.workApprovalSchemaUID, secondDeployment.workApprovalSchemaUID);
     }
@@ -269,11 +269,12 @@ contract DeploymentTest is ForgeTest.Test, DeploymentHelperModule.DeploymentHelp
             assessmentResolver: abi.decode(vm.parseJson(deploymentJson, ".assessmentResolver"), (address)),
             workResolver: abi.decode(vm.parseJson(deploymentJson, ".workResolver"), (address)),
             workApprovalResolver: abi.decode(vm.parseJson(deploymentJson, ".workApprovalResolver"), (address)),
-            gardenAssessmentSchemaUID: abi.decode(
-                vm.parseJson(deploymentJson, ".schemas.gardenAssessmentSchemaUID"), (bytes32)
-            ),
+            gardenAssessmentSchemaUID: bytes32(0),
+            assessmentSchemaUID: abi.decode(vm.parseJson(deploymentJson, ".schemas.assessmentSchemaUID"), (bytes32)),
             workSchemaUID: abi.decode(vm.parseJson(deploymentJson, ".schemas.workSchemaUID"), (bytes32)),
-            workApprovalSchemaUID: abi.decode(vm.parseJson(deploymentJson, ".schemas.workApprovalSchemaUID"), (bytes32))
+            workApprovalSchemaUID: abi.decode(vm.parseJson(deploymentJson, ".schemas.workApprovalSchemaUID"), (bytes32)),
+            rootGardenAddress: abi.decode(vm.parseJson(deploymentJson, ".rootGarden.address"), (address)),
+            rootGardenTokenId: abi.decode(vm.parseJson(deploymentJson, ".rootGarden.tokenId"), (uint256))
         });
     }
 

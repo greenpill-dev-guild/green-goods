@@ -1,25 +1,29 @@
 {
-  "accountProxy": "0x2c7550b434562eC3d5641bBb0D448Bc344e7d230",
-  "actionRegistry": "0xB2AF9D2F2ac28Ace6d741387D1Cf07bF4ab8a448",
-  "deploymentRegistry": "0x021368bf9958f4D535d39d571Bc45f74d20e4666",
+  "accountProxy": "0xf5C7bC1A7C3516Da93eE9DfBc7d159c499361423",
+  "actionRegistry": "0x513cA706447B0E59aAB0DaB0a176419a453B9972",
+  "assessmentResolver": "0x7d80f7a6b6477208eF94d1Fd87AA8d52798B09C4",
+  "deploymentRegistry": "0x7FA9385bE102ac3EAc297483Dd6233D62b3e1496",
   "eas": {
     "address": "0x4200000000000000000000000000000000000021",
     "schemaRegistry": "0x4200000000000000000000000000000000000020"
   },
-  "gardenAccountImpl": "0xc847f0d93C2472BaA5674f575c159b7f28752D3f",
-  "gardenToken": "0x87af39938aC769C206a3635BCAAA1D4757E3BF8B",
-  "guardian": "0xFdF620FEafE1f15B9f3725283A72088791eDFC74",
+  "gardenAccountImpl": "0x7653a4faD9169D063Dab9402b3d8C7c7BC26672b",
+  "gardenToken": "0x1337c661121FebCD1edB286113Bd8C3e58b5bAbb",
+  "guardian": "0x0656C45f1e0269c6127B977077CbacAde6905cFc",
   "schemas": {
-    "gardenAssessmentDescription": "Biodiversity assessment schema for Green Goods garden spaces. Captures soil health, carbon metrics, species diversity, and ecological observations to verify regenerative agriculture practices.",
-    "gardenAssessmentName": "Green Goods Garden Assessment v2",
-    "gardenAssessmentSchema": "uint8 soilMoisturePercentage,uint256 carbonTonStock,uint256 carbonTonPotential,uint256 gardenSquareMeters,string biome,string remoteReportPDF,string speciesRegistryJSON,string[] polygonCoordinates,string[] treeGenusesObserved,string[] weedGenusesObserved,string[] issues,string[] tags",
-    "workApprovalDescription": "Work approval schema for Green Goods protocol. Allows validators to approve or reject submitted work with feedback, enabling trustless verification of regenerative agriculture activities. V2: Adds version field for future upgradability.",
-    "workApprovalName": "Green Goods Work Approval v2",
-    "workApprovalSchema": "uint8 version,uint256 actionUID,bytes32 workUID,bool approved,string feedback",
-    "workDescription": "Work submission schema for Green Goods protocol. Enables gardeners to submit completed regenerative agriculture tasks with media evidence and metadata for verification and payment. V2: Adds version field for future upgradability.",
-    "workName": "Green Goods Work Submission v2",
-    "workSchema": "uint8 version,uint256 actionUID,string title,string feedback,string metadata,string[] media"
+    "assessmentDescription": "General-purpose impact assessment schema. Captures measurable outcomes across the 8 forms of capital with flexible metrics and evidence. Supports impact attestation references for standardized impact reporting.",
+    "assessmentName": "Green Goods Impact Assessment",
+    "assessmentSchema": "string title,string description,string assessmentType,string[] capitals,string metricsJSON,string[] evidenceMedia,string[] reportDocuments,bytes32[] impactAttestations,uint256 startDate,uint256 endDate,string location,string[] tags",
+    "assessmentSchemaUID": "0x76c08ba8a0428e145b44dc067fd3b4492001f8bcdd2ab8716fdb9d1ba13628d3",
+    "workApprovalDescription": "Work approval schema. Allows validators to approve or reject submitted work with feedback.",
+    "workApprovalName": "Green Goods Work Approval",
+    "workApprovalSchema": "uint256 actionUID,bytes32 workUID,bool approved,string feedback",
+    "workApprovalSchemaUID": "0xa722a5cf52a42fc7178049c66615e653255706831e7c85f455fec8e65c982572",
+    "workDescription": "Work submission schema. Enables participants to submit completed activities with media evidence and metadata for verification.",
+    "workName": "Green Goods Work Submission",
+    "workSchema": "uint256 actionUID,string title,string feedback,string metadata,string[] media",
+    "workSchemaUID": "0x6005b46fe8a86d5f5793aff50dd8a2065931e4e71c1e209e21c137414072a44c"
   },
-  "workApprovalResolver": "0x6755f8b91dCb395412Fe8c95bDf36cB8faE63f0e",
-  "workResolver": "0x0b0d255706d4C9E94ae6a696C1063Ad374FBD30a"
+  "workApprovalResolver": "0x2078e44e1da6c420E6e3fE1799798b1E0a8136b8",
+  "workResolver": "0x2187ed54346b7d3e9bdF8ED8ACb5980924991c13"
 }

@@ -40,8 +40,12 @@ abstract contract DeploymentHelper is Script {
         address workResolver;
         address workApprovalResolver;
         bytes32 gardenAssessmentSchemaUID;
+        bytes32 assessmentSchemaUID;
         bytes32 workSchemaUID;
         bytes32 workApprovalSchemaUID;
+        // Root garden info
+        address rootGardenAddress;
+        uint256 rootGardenTokenId;
     }
 
     /// @notice Load network configuration from JSON file
@@ -146,6 +150,11 @@ abstract contract DeploymentHelper is Script {
         vm.serializeAddress(obj, "workResolver", result.workResolver);
         vm.serializeAddress(obj, "workApprovalResolver", result.workApprovalResolver);
 
+        // Serialize root garden info
+        string memory rootGardenObj = "rootGarden";
+        vm.serializeAddress(rootGardenObj, "address", result.rootGardenAddress);
+        string memory rootGardenJson = vm.serializeUint(rootGardenObj, "tokenId", result.rootGardenTokenId);
+
         // Load schema configuration from JSON
         string memory schemasJson = _loadSchemasFromConfig(result);
 
@@ -155,9 +164,11 @@ abstract contract DeploymentHelper is Script {
         vm.serializeAddress(easObj, "address", config.eas);
         string memory easJson = vm.serializeAddress(easObj, "schemaRegistry", config.easSchemaRegistry);
 
-        // Final serialization
+        // Final serialization with rootGarden
         vm.serializeString(obj, "schemas", schemasJson);
         vm.serializeString(obj, "eas", easJson);
+        vm.serializeString(obj, "rootGarden", rootGardenJson);
+        vm.serializeAddress(obj, "assessmentResolver", result.assessmentResolver);
         string memory finalJson = vm.serializeAddress(obj, "workApprovalResolver", result.workApprovalResolver);
 
         string memory chainIdStr = vm.toString(block.chainid);
@@ -176,17 +187,16 @@ abstract contract DeploymentHelper is Script {
         string memory schemasObj = "schemas";
 
         // Find and process each schema from the flat array
-        (string memory gardenAssessmentName, string memory gardenAssessmentDescription) =
-            _findSchemaDataInArray(json, "gardenAssessment");
+        (string memory assessmentName, string memory assessmentDescription) = _findSchemaDataInArray(json, "assessment");
         (string memory workName, string memory workDescription) = _findSchemaDataInArray(json, "work");
         (string memory workApprovalName, string memory workApprovalDescription) =
             _findSchemaDataInArray(json, "workApproval");
 
-        // Garden Assessment Schema
-        vm.serializeBytes32(schemasObj, "gardenAssessmentSchemaUID", result.gardenAssessmentSchemaUID);
-        vm.serializeString(schemasObj, "gardenAssessmentName", gardenAssessmentName);
-        vm.serializeString(schemasObj, "gardenAssessmentDescription", gardenAssessmentDescription);
-        vm.serializeString(schemasObj, "gardenAssessmentSchema", _generateSchemaString("gardenAssessment"));
+        // Assessment Schema (New Impact Schema)
+        vm.serializeBytes32(schemasObj, "assessmentSchemaUID", result.assessmentSchemaUID);
+        vm.serializeString(schemasObj, "assessmentName", assessmentName);
+        vm.serializeString(schemasObj, "assessmentDescription", assessmentDescription);
+        vm.serializeString(schemasObj, "assessmentSchema", _generateSchemaString("assessment"));
 
         // Work Schema
         vm.serializeBytes32(schemasObj, "workSchemaUID", result.workSchemaUID);
@@ -260,9 +270,12 @@ abstract contract DeploymentHelper is Script {
         console.log("Work Resolver:", result.workResolver);
         console.log("Work Approval Resolver:", result.workApprovalResolver);
         console.log("\n--- EAS Schema UIDs ---");
-        console.log("Garden Assessment Schema UID:", vm.toString(result.gardenAssessmentSchemaUID));
+        console.log("Assessment Schema UID:", vm.toString(result.assessmentSchemaUID));
         console.log("Work Schema UID:", vm.toString(result.workSchemaUID));
         console.log("Work Approval Schema UID:", vm.toString(result.workApprovalSchemaUID));
+        console.log("\n--- Root Garden ---");
+        console.log("Root Garden Address:", result.rootGardenAddress);
+        console.log("Root Garden Token ID:", result.rootGardenTokenId);
         console.log("========================\n");
     }
 

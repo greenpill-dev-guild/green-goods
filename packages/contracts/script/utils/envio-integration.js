@@ -292,7 +292,7 @@ class EnvioIntegration {
       try {
         execSync("pkill -f 'envio dev' || true", { stdio: "pipe" });
         console.log("🛑 Stopped existing indexer processes");
-      } catch (_e) {
+      } catch {
         // Ignore errors if no process found
       }
 
@@ -363,7 +363,7 @@ class EnvioIntegration {
         .replace(/^  #     url: http:\/\/localhost:8545/gm, "      url: http://localhost:8545")
         .replace(/^  #   contracts:/gm, "    contracts:")
         .replace(/^  #     - name: (ActionRegistry|GardenToken|GardenAccount)/gm, "      - name: $1")
-        .replace(/^  #       address: '[^']*'/gm, "      address: '0x0000000000000000000000000000000000000000'");
+        .replace(/^  #       address: '[^']*'/gm, "        address: '0x0000000000000000000000000000000000000000'");
 
       fs.writeFileSync(this.envioConfigPath, updatedContent);
       console.log("✅ Local chain config enabled successfully");
@@ -400,7 +400,7 @@ class EnvioIntegration {
         .replace(/^      url: http:\/\/localhost:8545/gm, "  #     url: http://localhost:8545")
         .replace(/^    contracts:/gm, "  #   contracts:")
         .replace(/^      - name: (ActionRegistry|GardenToken|GardenAccount)/gm, "  #     - name: $1")
-        .replace(/^      address: '[^']*'/gm, "  #       address: '0x547e82BF9c8496f41927583793242f6b91C182A6'");
+        .replace(/^        address: '[^']*'/gm, "  #       address: '0x547e82BF9c8496f41927583793242f6b91C182A6'");
 
       // Find the local chain config section and add the warning comment before it
       updatedContent = updatedContent.replace(/^  # - id: 31337/gm, `${warningComment}  # - id: 31337`);
@@ -427,20 +427,20 @@ class EnvioIntegration {
 
       // Update ActionRegistry address
       updatedContent = updatedContent.replace(
-        /^      - name: ActionRegistry\n      address: '[^']*'/gm,
-        `      - name: ActionRegistry\n      address: '${deployment.actionRegistry}'`,
+        /^      - name: ActionRegistry\n        address: '[^']*'/gm,
+        `      - name: ActionRegistry\n        address: '${deployment.actionRegistry}'`,
       );
 
       // Update GardenToken address
       updatedContent = updatedContent.replace(
-        /^      - name: GardenToken\n      address: '[^']*'/gm,
-        `      - name: GardenToken\n      address: '${deployment.gardenToken}'`,
+        /^      - name: GardenToken\n        address: '[^']*'/gm,
+        `      - name: GardenToken\n        address: '${deployment.gardenToken}'`,
       );
 
       // Update GardenAccount address
       updatedContent = updatedContent.replace(
-        /^      - name: GardenAccount\n      address: '[^']*'/gm,
-        `      - name: GardenAccount\n      address: '${deployment.accountProxy}'`,
+        /^      - name: GardenAccount\n        address: '[^']*'/gm,
+        `      - name: GardenAccount\n        address: '${deployment.accountProxy}'`,
       );
 
       fs.writeFileSync(this.envioConfigPath, updatedContent);

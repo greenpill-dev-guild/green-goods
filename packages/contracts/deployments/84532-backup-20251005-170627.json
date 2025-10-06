@@ -1,0 +1,25 @@
+{
+  "accountProxy": "0x2c7550b434562eC3d5641bBb0D448Bc344e7d230",
+  "actionRegistry": "0xB2AF9D2F2ac28Ace6d741387D1Cf07bF4ab8a448",
+  "deploymentRegistry": "0x021368bf9958f4D535d39d571Bc45f74d20e4666",
+  "eas": {
+    "address": "0x4200000000000000000000000000000000000021",
+    "schemaRegistry": "0x4200000000000000000000000000000000000020"
+  },
+  "gardenAccountImpl": "0xc847f0d93C2472BaA5674f575c159b7f28752D3f",
+  "gardenToken": "0x87af39938aC769C206a3635BCAAA1D4757E3BF8B",
+  "guardian": "0xFdF620FEafE1f15B9f3725283A72088791eDFC74",
+  "schemas": {
+    "gardenAssessmentDescription": "Biodiversity assessment schema for Green Goods garden spaces. Captures soil health, carbon metrics, species diversity, and ecological observations to verify regenerative agriculture practices.",
+    "gardenAssessmentName": "Green Goods Garden Assessment v2",
+    "gardenAssessmentSchema": "uint8 soilMoisturePercentage,uint256 carbonTonStock,uint256 carbonTonPotential,uint256 gardenSquareMeters,string biome,string remoteReportPDF,string speciesRegistryJSON,string[] polygonCoordinates,string[] treeGenusesObserved,string[] weedGenusesObserved,string[] issues,string[] tags",
+    "workApprovalDescription": "Work approval schema for Green Goods protocol. Allows validators to approve or reject submitted work with feedback, enabling trustless verification of regenerative agriculture activities. V2: Adds version field for future upgradability.",
+    "workApprovalName": "Green Goods Work Approval v2",
+    "workApprovalSchema": "uint8 version,uint256 actionUID,bytes32 workUID,bool approved,string feedback",
+    "workDescription": "Work submission schema for Green Goods protocol. Enables gardeners to submit completed regenerative agriculture tasks with media evidence and metadata for verification and payment. V2: Adds version field for future upgradability.",
+    "workName": "Green Goods Work Submission v2",
+    "workSchema": "uint8 version,uint256 actionUID,string title,string feedback,string metadata,string[] media"
+  },
+  "workApprovalResolver": "0x6755f8b91dCb395412Fe8c95bDf36cB8faE63f0e",
+  "workResolver": "0x0b0d255706d4C9E94ae6a696C1063Ad374FBD30a"
+}

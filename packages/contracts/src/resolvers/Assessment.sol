@@ -10,6 +10,10 @@ import { AssessmentSchema } from "../Schemas.sol";
 import { GardenAccount } from "../accounts/Garden.sol";
 
 error NotGardenOperator();
+error TitleRequired();
+error AssessmentTypeRequired();
+error AtLeastOneCapitalRequired();
+error InvalidCapital(string invalidCapital);
 
 /// @title AssessmentResolver
 /// @notice A schema resolver for Garden Assessment attestations
@@ -58,10 +62,40 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
             revert NotGardenOperator();
         }
 
-        // Additional validation: check version is valid (currently only version 2)
-        require(schema.version == 2, "Invalid schema version");
+        // Validate required fields
+        if (bytes(schema.title).length == 0) {
+            revert TitleRequired();
+        }
 
-        return (true);
+        if (bytes(schema.assessmentType).length == 0) {
+            revert AssessmentTypeRequired();
+        }
+
+        if (schema.capitals.length == 0) {
+            revert AtLeastOneCapitalRequired();
+        }
+
+        // Validate capitals are valid strings (8 forms of capital)
+        for (uint256 i = 0; i < schema.capitals.length; i++) {
+            string memory capital = schema.capitals[i];
+            if (!_isValidCapital(capital)) {
+                revert InvalidCapital(capital);
+            }
+        }
+
+        return true;
+    }
+
+    /// @notice Validates if a capital name is one of the 8 forms of capital
+    /// @param capital The capital name to validate
+    /// @return True if the capital is valid, false otherwise
+    function _isValidCapital(string memory capital) internal pure returns (bool) {
+        bytes32 capitalHash = keccak256(bytes(capital));
+
+        return capitalHash == keccak256("social") || capitalHash == keccak256("material")
+            || capitalHash == keccak256("financial") || capitalHash == keccak256("living")
+            || capitalHash == keccak256("intellectual") || capitalHash == keccak256("experiential")
+            || capitalHash == keccak256("spiritual") || capitalHash == keccak256("cultural");
     }
 
     // solhint-disable no-unused-vars

@@ -100,6 +100,9 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     /// @notice Mapping of invite codes to their used status.
     mapping(bytes32 inviteCode => bool isUsed) public inviteUsed;
 
+    /// @notice Whether this garden allows open joining without invite
+    bool public openJoining;
+
     modifier onlyGardenOwner() {
         if (_isValidSigner(_msgSender(), "") == false) {
             revert NotGardenOwner();
@@ -155,6 +158,10 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         description = _description;
         location = _location;
         bannerImage = _bannerImage;
+
+        // Enable open joining for root garden (tokenId 1)
+        (,, uint256 tokenId) = token();
+        openJoining = (tokenId == 1);
 
         gardeners[_msgSender()] = true;
         gardenOperators[_msgSender()] = true;
@@ -274,4 +281,22 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
 
         emit InviteRevoked(inviteCode, address(this));
     }
+
+    /// @notice Join garden if open joining is enabled
+    /// @dev Allows anyone to join without invite code if openJoining is true
+    function joinGarden() external {
+        if (!openJoining) revert InvalidInvite();
+        if (gardeners[_msgSender()]) revert AlreadyGardener();
+
+        gardeners[_msgSender()] = true;
+        emit GardenerAdded(address(this), _msgSender());
+    }
+
+    /// @notice Storage gap for upgradeable contract
+    /// @dev Reserve 50 slots minus 14 existing state variables = 36 slots
+    /// State variables: communityToken(1) + name(1) + description(1) + location(1) +
+    /// bannerImage(1) + gardeners(1) + gardenOperators(1) + gardenInvites(1) +
+    /// inviteToGarden(1) + inviteExpiry(1) + inviteUsed(1) + openJoining(1) +
+    /// Initializable(1) + AccountV3Upgradable inherited slots(1) = 14
+    uint256[36] private __gap;
 }

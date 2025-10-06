@@ -17,6 +17,7 @@ import { WorkResolver } from "../src/resolvers/Work.sol";
 import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
 import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
 import { ResolverStub } from "../src/resolvers/ResolverStub.sol";
+import { TBALib } from "../src/lib/TBA.sol";
 
 /// @notice Schema registry interface
 interface ISchemaRegistry {
@@ -666,7 +667,7 @@ contract Deploy is Script, DeploymentHelper {
 
         // 4. Deploy EAS schemas (with skip flag)
         if (!flags.skipSchemas) {
-            (result.gardenAssessmentSchemaUID, result.workSchemaUID, result.workApprovalSchemaUID) =
+            (result.assessmentSchemaUID, result.workSchemaUID, result.workApprovalSchemaUID) =
             _deployEASSchemasWithFlags(
                 deploymentConfig.config.easSchemaRegistry,
                 result.assessmentResolver,
@@ -754,13 +755,21 @@ contract Deploy is Script, DeploymentHelper {
             console.log(">> Skipping deployment registry configuration (SKIP_CONFIGURATION=true)");
         }
 
-        // 6. Initialize seed data (with enhanced flag logic)
-        if (_shouldInitializeSeedData(flags)) {
-            console.log("Initializing seed data for testing...");
-            _deploySeedGardens(result.gardenToken, _getCurrentConfig().communityToken);
+        // 6. ALWAYS initialize root garden (required for all deployments)
+        console.log(">> Deploying root community garden");
+        (address rootGarden, uint256 rootGardenTokenId) = _deploySeedGardens(
+            result.gardenToken, result.deploymentRegistry, _getCurrentConfig().communityToken, result.gardenAccountImpl
+        );
+
+        // Store in result for JSON export
+        result.rootGardenAddress = rootGarden;
+        result.rootGardenTokenId = rootGardenTokenId;
+
+        // 7. Deploy seed actions if not skipped
+        if (!flags.skipSeedData) {
             _deploySeedActions(result.actionRegistry);
-        } else if (flags.skipSeedData) {
-            console.log(">> Skipping seed data initialization (SKIP_SEED_DATA=true)");
+        } else {
+            console.log(">> Skipping seed actions (SKIP_SEED_DATA=true)");
         }
 
         // Print summary and save deployment
@@ -771,19 +780,6 @@ contract Deploy is Script, DeploymentHelper {
             _generateVerificationCommands(result);
         } else {
             console.log(">> Skipping verification command generation (SKIP_VERIFICATION=true)");
-        }
-    }
-
-    /// @notice Determine if seed data should be initialized
-    function _shouldInitializeSeedData(DeploymentFlags memory flags) internal view returns (bool) {
-        if (flags.skipSeedData) return false;
-
-        try vm.envBool("INITIALIZE_SEED_DATA") returns (bool val) {
-            return val;
-        } catch {
-            // Check if it's a testnet or local deployment
-            uint256 chainId = block.chainid;
-            return (chainId == 31_337 || chainId == 11_155_111 || chainId == 84_532);
         }
     }
 
@@ -832,6 +828,13 @@ contract Deploy is Script, DeploymentHelper {
 
         console.log("[OK] DeploymentRegistry deployed at:", address(proxy));
         console.log("   Initial owner:", deployer);
+
+        // Add deployer to allowlist for minting permissions during deployment
+        try DeploymentRegistry(address(proxy)).addToAllowlist(deployer) {
+            console.log("[OK] Added deployer to allowlist:", deployer);
+        } catch {
+            console.log("[WARN] Could not add deployer to allowlist");
+        }
 
         // Add multisig to allowlist if it's different from deployer
         if (initialOwner != address(0) && initialOwner != deployer) {
@@ -1214,7 +1217,7 @@ contract Deploy is Script, DeploymentHelper {
         address workApprovalResolver
     )
         internal
-        returns (bytes32 gardenAssessmentUID, bytes32 workUID, bytes32 workApprovalUID)
+        returns (bytes32 assessmentUID, bytes32 workUID, bytes32 workApprovalUID)
     {
         console.log("\n=== Deploying EAS Schemas ===");
 
@@ -1247,7 +1250,8 @@ contract Deploy is Script, DeploymentHelper {
         }
 
         // Load existing deployment and schema config
-        (bytes32 existingGardenUID, bytes32 existingWorkUID, bytes32 existingWorkApprovalUID) = _loadExistingSchemas();
+        (bytes32 existingAssessmentUID, bytes32 existingWorkUID, bytes32 existingWorkApprovalUID) =
+            _loadExistingSchemas();
 
         string memory schemaJson;
         try vm.readFile(string.concat(vm.projectRoot(), "/config/schemas.json")) returns (string memory schemaConfig) {
@@ -1262,17 +1266,16 @@ contract Deploy is Script, DeploymentHelper {
         IEAS eas = IEAS(config.eas);
 
         // Deploy schemas
-        gardenAssessmentUID =
-            _deploySchema(registry, schemaJson, existingGardenUID, "gardenAssessment", assessmentResolver);
+        assessmentUID = _deploySchema(registry, schemaJson, existingAssessmentUID, "assessment", assessmentResolver);
         workUID = _deploySchema(registry, schemaJson, existingWorkUID, "work", workResolver);
         workApprovalUID =
             _deploySchema(registry, schemaJson, existingWorkApprovalUID, "workApproval", workApprovalResolver);
 
         // Create name and description attestations for all chains
-        _createSchemaNameAndDescriptionAttestations(eas, schemaJson, gardenAssessmentUID, workUID, workApprovalUID);
+        _createSchemaNameAndDescriptionAttestations(eas, schemaJson, assessmentUID, workUID, workApprovalUID);
 
         console.log("EAS Schemas deployed successfully:");
-        console.log("Garden Assessment UID:", vm.toString(gardenAssessmentUID));
+        console.log("Assessment UID:", vm.toString(assessmentUID));
         console.log("Work UID:", vm.toString(workUID));
         console.log("Work Approval UID:", vm.toString(workApprovalUID));
         console.log("=================================================\n");
@@ -1286,7 +1289,7 @@ contract Deploy is Script, DeploymentHelper {
         DeploymentFlags memory flags
     )
         internal
-        returns (bytes32 gardenAssessmentUID, bytes32 workUID, bytes32 workApprovalUID)
+        returns (bytes32 assessmentUID, bytes32 workUID, bytes32 workApprovalUID)
     {
         console.log("\n=== Deploying EAS Schemas ===");
 
@@ -1319,7 +1322,8 @@ contract Deploy is Script, DeploymentHelper {
         }
 
         // Load existing deployment and schema config
-        (bytes32 existingGardenUID, bytes32 existingWorkUID, bytes32 existingWorkApprovalUID) = _loadExistingSchemas();
+        (bytes32 existingAssessmentUID, bytes32 existingWorkUID, bytes32 existingWorkApprovalUID) =
+            _loadExistingSchemas();
 
         string memory schemaJson;
         try vm.readFile(string.concat(vm.projectRoot(), "/config/schemas.json")) returns (string memory schemaConfig) {
@@ -1334,19 +1338,18 @@ contract Deploy is Script, DeploymentHelper {
         IEAS eas = IEAS(config.eas);
 
         // Deploy schemas with force deployment flag
-        gardenAssessmentUID = _deploySchemaWithFlags(
-            registry, schemaJson, existingGardenUID, "gardenAssessment", assessmentResolver, flags
-        );
+        assessmentUID =
+            _deploySchemaWithFlags(registry, schemaJson, existingAssessmentUID, "assessment", assessmentResolver, flags);
         workUID = _deploySchemaWithFlags(registry, schemaJson, existingWorkUID, "work", workResolver, flags);
         workApprovalUID = _deploySchemaWithFlags(
             registry, schemaJson, existingWorkApprovalUID, "workApproval", workApprovalResolver, flags
         );
 
         // Create name and description attestations for all chains
-        _createSchemaNameAndDescriptionAttestations(eas, schemaJson, gardenAssessmentUID, workUID, workApprovalUID);
+        _createSchemaNameAndDescriptionAttestations(eas, schemaJson, assessmentUID, workUID, workApprovalUID);
 
         console.log("EAS Schemas deployed successfully:");
-        console.log("Garden Assessment UID:", vm.toString(gardenAssessmentUID));
+        console.log("Assessment UID:", vm.toString(assessmentUID));
         console.log("Work UID:", vm.toString(workUID));
         console.log("Work Approval UID:", vm.toString(workApprovalUID));
         console.log("=================================================\n");
@@ -1480,7 +1483,7 @@ contract Deploy is Script, DeploymentHelper {
     function _createSchemaNameAndDescriptionAttestations(
         IEAS eas,
         string memory schemaJson,
-        bytes32 gardenAssessmentUID,
+        bytes32 assessmentUID,
         bytes32 workUID,
         bytes32 workApprovalUID
     )
@@ -1488,11 +1491,11 @@ contract Deploy is Script, DeploymentHelper {
     {
         console.log("Creating schema name and description attestations...");
 
-        if (gardenAssessmentUID != bytes32(0)) {
-            string memory gardenName = _getSchemaNameFromArray(schemaJson, "gardenAssessment");
-            string memory gardenDescription = _getSchemaDescriptionFromArray(schemaJson, "gardenAssessment");
-            _createSchemaNameAttestation(eas, gardenAssessmentUID, gardenName);
-            _createSchemaDescriptionAttestation(eas, gardenAssessmentUID, gardenDescription);
+        if (assessmentUID != bytes32(0)) {
+            string memory assessmentName = _getSchemaNameFromArray(schemaJson, "assessment");
+            string memory assessmentDescription = _getSchemaDescriptionFromArray(schemaJson, "assessment");
+            _createSchemaNameAttestation(eas, assessmentUID, assessmentName);
+            _createSchemaDescriptionAttestation(eas, assessmentUID, assessmentDescription);
         }
 
         if (workUID != bytes32(0)) {
@@ -1640,14 +1643,14 @@ contract Deploy is Script, DeploymentHelper {
     function _loadExistingSchemas()
         private
         view
-        returns (bytes32 gardenUID, bytes32 workUID, bytes32 workApprovalUID)
+        returns (bytes32 assessmentUID, bytes32 workUID, bytes32 workApprovalUID)
     {
         string memory chainIdStr = vm.toString(block.chainid);
         string memory deploymentPath = string.concat(vm.projectRoot(), "/deployments/", chainIdStr, "-latest.json");
 
         try vm.readFile(deploymentPath) returns (string memory deploymentJson) {
-            try vm.parseJson(deploymentJson, ".schemas.gardenAssessmentSchemaUID") returns (bytes memory data) {
-                gardenUID = abi.decode(data, (bytes32));
+            try vm.parseJson(deploymentJson, ".schemas.assessmentSchemaUID") returns (bytes memory data) {
+                assessmentUID = abi.decode(data, (bytes32));
             } catch { }
 
             try vm.parseJson(deploymentJson, ".schemas.workSchemaUID") returns (bytes memory data) {
@@ -1773,25 +1776,45 @@ contract Deploy is Script, DeploymentHelper {
         console.log("========================\n");
     }
 
-    function _deploySeedGardens(address gardenToken, address communityToken) internal {
+    function _deploySeedGardens(
+        address gardenToken,
+        address deploymentRegistry,
+        address communityToken,
+        address gardenAccountImpl
+    )
+        internal
+        returns (address rootGardenAddress, uint256 rootGardenTokenId)
+    {
         string memory configPath = string.concat(vm.projectRoot(), "/config/garden.json");
 
-        try vm.readFile(configPath) returns (string memory json) {
-            string memory name = abi.decode(vm.parseJson(json, ".name"), (string));
-            string memory description = abi.decode(vm.parseJson(json, ".description"), (string));
-            string memory location = abi.decode(vm.parseJson(json, ".location"), (string));
-            string memory bannerImage = abi.decode(vm.parseJson(json, ".bannerImage"), (string));
-            address[] memory gardeners = abi.decode(vm.parseJson(json, ".gardeners"), (address[]));
-            address[] memory operators = abi.decode(vm.parseJson(json, ".operators"), (address[]));
+        string memory json = vm.readFile(configPath);
+        string memory name = abi.decode(vm.parseJson(json, ".name"), (string));
+        string memory description = abi.decode(vm.parseJson(json, ".description"), (string));
+        string memory location = abi.decode(vm.parseJson(json, ".location"), (string));
+        string memory bannerImage = abi.decode(vm.parseJson(json, ".bannerImage"), (string));
+        address[] memory gardeners = abi.decode(vm.parseJson(json, ".gardeners"), (address[]));
+        address[] memory operators = abi.decode(vm.parseJson(json, ".operators"), (address[]));
 
-            GardenToken(gardenToken).mintGarden(
-                communityToken, name, description, location, bannerImage, gardeners, operators
-            );
+        // Temporarily add Deploy script to allowlist for minting
+        address deployScript = address(this);
+        DeploymentRegistry(deploymentRegistry).addToAllowlist(deployScript);
 
-            console.log("Seed garden deployed from config/garden.json");
-        } catch {
-            console.log("No garden.json found, skipping seed garden deployment");
-        }
+        // Mint root garden (will be tokenId 1)
+        GardenToken(gardenToken).mintGarden(
+            communityToken, name, description, location, bannerImage, gardeners, operators
+        );
+
+        // Calculate root garden address using TBALib
+        rootGardenTokenId = 1;
+        rootGardenAddress = TBALib.getAccount(gardenAccountImpl, gardenToken, rootGardenTokenId);
+
+        // Remove Deploy script from allowlist
+        DeploymentRegistry(deploymentRegistry).removeFromAllowlist(deployScript);
+
+        console.log("Root garden deployed at:", rootGardenAddress);
+        console.log("Root garden tokenId:", rootGardenTokenId);
+
+        return (rootGardenAddress, rootGardenTokenId);
     }
 
     function _deploySeedActions(address actionRegistry) internal {

@@ -504,20 +504,20 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
 
       // Auto-update Envio configuration after successful deployment
       if (!options.skipEnvio) {
+        // Define chainMap outside try-catch so it's accessible in error handling
+        const chainMap = {
+          localhost: "31337",
+          sepolia: "11155111",
+          arbitrum: "42161",
+          base: "8453",
+          baseSepolia: "84532",
+          optimism: "10",
+          celo: "42220",
+        };
+        const chainId = chainMap[options.network] || options.network;
+
         try {
           console.log("\n🔄 Auto-updating Envio configuration...");
-
-          // Get chain ID for Envio integration
-          const chainMap = {
-            localhost: "31337",
-            sepolia: "11155111",
-            arbitrum: "42161",
-            base: "8453",
-            baseSepolia: "84532",
-            optimism: "10",
-            celo: "42220",
-          };
-          const chainId = chainMap[options.network] || options.network;
 
           const envioIntegration = new EnvioIntegration();
           await envioIntegration.updateEnvioConfig(chainId, options.network === "localhost");
