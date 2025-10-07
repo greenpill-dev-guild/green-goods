@@ -71,21 +71,6 @@ Or directly run:
    ```
 4. Start fresh: `pnpm dev`
 
-### ReScript Compilation Errors
-
-If you encounter `Error: package @rescript/react not found or built` during codegen, or `Cannot find module './src/db/Migrations.res.js'` when running dev:
-
-**Solution:**
-```bash
-cd generated
-npm install --legacy-peer-deps
-npm run build
-cd ..
-pnpm dev
-```
-
-This is a workaround for pnpm workspace hoisting. The `generated` folder needs its own `node_modules` with ReScript packages to compile the generated code.
-
 ### Other Common Issues
 
 - **Port 8080 already in use**: Stop other services using port 8080 or change the port in Envio config

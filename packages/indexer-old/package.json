@@ -1,0 +1,37 @@
+{
+  "name": "indexer",
+  "version": "0.1.0",
+  "scripts": {
+    "clean": "tsc --clean",
+    "build": "tsc --build",
+    "watch": "tsc --watch",
+    "mocha": "ts-mocha test/**/*.ts",
+    "codegen": "envio codegen",
+    "dev": "envio dev",
+    "start": "envio start",
+    "test": "pnpm mocha",
+    "lint": "oxlint src test",
+    "reset": "./reset-indexer.sh"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.3.11",
+    "@types/mocha": "10.0.6",
+    "@types/node": "20.8.8",
+    "chai": "4.3.10",
+    "mocha": "10.2.0",
+    "ts-mocha": "^10.0.0",
+    "typescript": "5.2.2"
+  },
+  "dependencies": {
+    "@elastic/ecs-pino-format": "^1.5.0",
+    "envio": "2.26.0",
+    "postgres": "^3.4.7",
+    "rescript-envsafe": "^5.0.0"
+  },
+  "optionalDependencies": {
+    "generated": "./generated"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
