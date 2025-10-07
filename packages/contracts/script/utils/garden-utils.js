@@ -108,18 +108,21 @@ function sleep(ms) {
 }
 
 /**
- * Get private key from environment variables
+ * Get Foundry keystore account name from environment variables
  */
-function getPrivateKey() {
-  const privateKey = process.env.OPERATOR_PRIVATE_KEY || process.env.DEPLOYER_PRIVATE_KEY || process.env.PRIVATE_KEY;
+function getKeystoreAccount() {
+  const account = process.env.FOUNDRY_KEYSTORE_ACCOUNT || process.env.KEYSTORE_ACCOUNT;
 
-  if (!privateKey) {
+  if (!account) {
     throw new Error(
-      "Missing required environment variable: OPERATOR_PRIVATE_KEY (or DEPLOYER_PRIVATE_KEY/PRIVATE_KEY)",
+      "Missing required environment variable: FOUNDRY_KEYSTORE_ACCOUNT\n" +
+        "Please set up Foundry keystore:\n" +
+        "  1. Import your key: cast wallet import <account-name> --interactive\n" +
+        "  2. Set environment: export FOUNDRY_KEYSTORE_ACCOUNT=<account-name>",
     );
   }
 
-  return privateKey;
+  return account;
 }
 
 /**

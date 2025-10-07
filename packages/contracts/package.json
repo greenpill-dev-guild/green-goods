@@ -53,15 +53,6 @@
     "deploy:actions": "node script/deploy.js actions config/actions.json",
     "deployment:status": "node script/deploy.js status",
 
-    "garden:add-members": "node script/add-garden-members.js",
-    "garden:remove-members": "node script/remove-garden-members.js",
-    "garden:update-info": "node script/update-garden-info.js",
-    "garden:status": "node script/garden-status.js",
-    "garden:export": "node script/garden-export.js",
-    "garden:batch-ops": "node script/batch-garden-operations.js",
-    "garden:monitor": "node script/monitor-garden-events.js",
-    "garden:analytics": "node script/garden-analytics.js",
-
     "action:register": "node script/action-manager.js register",
     "action:update": "node script/action-manager.js update",
     "action:list": "node script/action-manager.js list",

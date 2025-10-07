@@ -214,8 +214,9 @@ async function setupEnvironment() {
     - VITE_PUBLIC_POSTHOG_KEY
     
   ${colors.bright}Development:${colors.reset}
-  • ${colors.cyan}Private Key${colors.reset} (Deployments): 
-    - PRIVATE_KEY (for contract deployments)
+  • ${colors.cyan}Foundry Keystore${colors.reset} (Deployments): 
+    - FOUNDRY_KEYSTORE_ACCOUNT (for secure contract deployments)
+    - Setup: cast wallet import <account-name> --interactive
   `);
   
   const editNow = await question('Would you like to edit .env now? (y/N): ');

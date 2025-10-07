@@ -268,6 +268,20 @@ pnpm --filter admin build
 ### Debug Mode
 Set `VITE_ENABLE_SW_DEV=true` for additional debugging information.
 
+## 📖 Documentation
+
+### [Admin Dashboard Documentation](./docs/)
+Comprehensive documentation for the admin dashboard:
+- **[Migration Guide](./docs/GARDEN_FEATURE_MIGRATION.md)** - Guide for implementing garden features that were previously CLI scripts
+- **[README](./docs/README.md)** - Overview of the admin dashboard architecture and common tasks
+
+**📋 For developers working on new garden features**, start with the [Garden Feature Migration Guide](./docs/GARDEN_FEATURE_MIGRATION.md) which includes:
+- Detailed implementation guides with code examples
+- Best practices and recommended patterns
+- GraphQL query examples
+- Testing checklists
+- Priority roadmap
+
 ## 📚 Additional Resources
 
 - [Green Goods Documentation](../../docs/)
