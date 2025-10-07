@@ -9,6 +9,7 @@ import { ActionRegistry } from "../src/registries/Action.sol";
 import { GardenToken } from "../src/tokens/Garden.sol";
 import { WorkResolver } from "../src/resolvers/Work.sol";
 import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
+import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
 import { DeploymentRegistry } from "../src/DeploymentRegistry.sol";
 
 /// @title Upgrade Script for Green Goods Contracts
@@ -27,11 +28,7 @@ contract Upgrade is Script {
     }
 
     /// @notice Load network configuration
-    function loadNetworkConfig()
-        internal
-        view
-        returns (address eas, address actionRegistry, address gardenAccountImpl)
-    {
+    function loadNetworkConfig() internal view returns (address eas, address actionRegistry, address gardenAccountImpl) {
         string memory chainIdStr = vm.toString(block.chainid);
         string memory deploymentPath = string.concat(vm.projectRoot(), "/deployments/", chainIdStr, "-latest.json");
         string memory json = vm.readFile(deploymentPath);
@@ -117,6 +114,25 @@ contract Upgrade is Script {
         vm.stopBroadcast();
     }
 
+    /// @notice Upgrade AssessmentResolver
+    function upgradeAssessmentResolver() public {
+        console.log("\n=== Upgrading AssessmentResolver ===");
+        address proxy = loadProxyAddress("assessmentResolver");
+        console.log("Proxy address:", proxy);
+
+        vm.startBroadcast();
+
+        (address eas,,) = loadNetworkConfig();
+
+        AssessmentResolver newImpl = new AssessmentResolver(eas);
+        console.log("New implementation:", address(newImpl));
+
+        UUPSUpgradeable(proxy).upgradeTo(address(newImpl));
+        console.log("Proxy upgraded successfully");
+
+        vm.stopBroadcast();
+    }
+
     /// @notice Upgrade DeploymentRegistry
     function upgradeDeploymentRegistry() public {
         console.log("\n=== Upgrading DeploymentRegistry ===");
@@ -140,6 +156,7 @@ contract Upgrade is Script {
         upgradeGardenToken();
         upgradeWorkResolver();
         upgradeWorkApprovalResolver();
+        upgradeAssessmentResolver();
         upgradeDeploymentRegistry();
     }
 }

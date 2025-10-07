@@ -46,45 +46,20 @@ const NETWORK_CONFIG = {
     chainId: 31337,
     blockTime: 1,
   },
-  sepolia: {
-    rpcUrl: process.env.SEPOLIA_RPC_URL || "https://eth-sepolia.g.alchemy.com/v2/demo",
-    chainId: 11155111,
-    blockTime: 12,
-  },
-  celo: {
-    rpcUrl: process.env.CELO_RPC_URL || "https://forno.celo.org",
-    chainId: 42220,
-    blockTime: 5,
-  },
-  "celo-testnet": {
-    rpcUrl: process.env.CELO_TESTNET_RPC_URL || "https://alfajores-forno.celo-testnet.org",
-    chainId: 44787,
-    blockTime: 5,
-  },
   arbitrum: {
     rpcUrl: process.env.ARBITRUM_RPC_URL || "https://arb1.arbitrum.io/rpc",
     chainId: 42161,
     blockTime: 0.25,
-  },
-  "arbitrum-sepolia": {
-    rpcUrl: process.env.ARBITRUM_SEPOLIA_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc",
-    chainId: 421614,
-    blockTime: 0.25,
-  },
-  base: {
-    rpcUrl: process.env.BASE_RPC_URL || "https://mainnet.base.org",
-    chainId: 8453,
-    blockTime: 2,
   },
   "base-sepolia": {
     rpcUrl: process.env.BASE_SEPOLIA_RPC_URL || "https://sepolia.base.org",
     chainId: 84532,
     blockTime: 2,
   },
-  optimism: {
-    rpcUrl: process.env.OPTIMISM_RPC_URL || "https://mainnet.optimism.io",
-    chainId: 10,
-    blockTime: 2,
+  celo: {
+    rpcUrl: process.env.CELO_RPC_URL || "https://forno.celo.org",
+    chainId: 42220,
+    blockTime: 5,
   },
 };
 
@@ -108,21 +83,22 @@ function sleep(ms) {
 }
 
 /**
- * Get Foundry keystore account name from environment variables
+ * Get private key from environment variables
  */
-function getKeystoreAccount() {
-  const account = process.env.FOUNDRY_KEYSTORE_ACCOUNT || process.env.KEYSTORE_ACCOUNT;
+function getPrivateKey() {
+  const privateKey = process.env.PRIVATE_KEY;
 
-  if (!account) {
+  if (!privateKey) {
     throw new Error(
-      "Missing required environment variable: FOUNDRY_KEYSTORE_ACCOUNT\n" +
-        "Please set up Foundry keystore:\n" +
+      "Missing required environment variable: PRIVATE_KEY\n" +
+        "Please set PRIVATE_KEY in your .env file\n" +
+        "For production deployments, use Foundry keystore instead:\n" +
         "  1. Import your key: cast wallet import <account-name> --interactive\n" +
-        "  2. Set environment: export FOUNDRY_KEYSTORE_ACCOUNT=<account-name>",
+        "  2. Use --account flag: forge script --account <account-name>",
     );
   }
 
-  return account;
+  return privateKey;
 }
 
 /**

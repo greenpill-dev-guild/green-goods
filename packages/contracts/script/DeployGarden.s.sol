@@ -33,9 +33,8 @@ contract DeployGarden is Script {
         // Deploy garden contract
         GardenToken gardenToken = GardenToken(gardenTokenAddress);
 
-        address gardenAccount = gardenToken.mintGarden(
-            communityTokenAddress, name, description, location, bannerImage, gardeners, operators
-        );
+        address gardenAccount =
+            gardenToken.mintGarden(communityTokenAddress, name, description, location, bannerImage, gardeners, operators);
 
         vm.stopBroadcast();
 

@@ -7,6 +7,7 @@ const CONTRACT_FUNCTIONS = {
   "garden-token": "upgradeGardenToken()",
   "work-resolver": "upgradeWorkResolver()",
   "work-approval-resolver": "upgradeWorkApprovalResolver()",
+  "assessment-resolver": "upgradeAssessmentResolver()",
   "deployment-registry": "upgradeDeploymentRegistry()",
   all: "upgradeAll()",
 };
@@ -22,6 +23,7 @@ Contracts:
   garden-token            Upgrade GardenToken
   work-resolver           Upgrade WorkResolver
   work-approval-resolver  Upgrade WorkApprovalResolver
+  assessment-resolver     Upgrade AssessmentResolver
   deployment-registry     Upgrade DeploymentRegistry
   all                     Upgrade all contracts
 
@@ -90,7 +92,7 @@ function main() {
     execSync(command, { stdio: "inherit", cwd: process.cwd() });
     console.log("\n✅ Upgrade completed successfully");
   } catch (error) {
-    console.error("\n❌ Upgrade failed");
+    console.error("\n❌ Upgrade failed", error);
     process.exit(1);
   }
 }

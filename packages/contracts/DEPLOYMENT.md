@@ -191,8 +191,8 @@ This utility will:
 
 Configure your `.env` file:
 ```bash
-# Required
-PRIVATE_KEY=0x...
+# Required - Foundry Keystore (see Foundry Keystore Setup section)
+FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer
 
 # Network RPC URLs
 SEPOLIA_RPC_URL=https://...
@@ -201,7 +201,7 @@ BASE_RPC_URL=https://...
 OPTIMISM_RPC_URL=https://...
 CELO_RPC_URL=https://...
 
-# Optional - for contract verification
+# Optional but recommended - for contract verification
 ETHERSCAN_API_KEY=your-etherscan-v2-api-key
 
 # Optional - Enhanced error recovery

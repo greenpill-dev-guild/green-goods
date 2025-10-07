@@ -229,20 +229,14 @@ class EnvioIntegration {
       31337: {
         url: "http://localhost:8545",
       },
+      42161: {
+        url: `https://arb-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY || "demo"}`,
+      },
       84532: {
         url: `https://base-sepolia.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY || "demo"}`,
       },
-      8453: {
-        url: `https://base-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY || "demo"}`,
-      },
       42220: {
         url: `https://celo-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY || "demo"}`,
-      },
-      44787: {
-        url: `https://celo-alfajores.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY || "demo"}`,
-      },
-      11155111: {
-        url: `https://eth-sepolia.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY || "demo"}`,
       },
     };
 
@@ -262,9 +256,9 @@ class EnvioIntegration {
 
     // For testnets, can start from recent block to speed up sync
     const recentBlocks = {
+      42161: 200000000, // Arbitrum One
       84532: 15000000, // Base Sepolia
-      44787: 25000000, // Celo Alfajores
-      11155111: 5000000, // Ethereum Sepolia
+      42220: 25000000, // Celo
     };
 
     return recentBlocks[chainId] || 1;

@@ -6,7 +6,7 @@ import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-import { DeploymentHelper } from "./helpers/DeploymentHelper.sol";
+import { DeployHelper } from "./DeployHelper.sol";
 import { DeploymentRegistry } from "../src/DeploymentRegistry.sol";
 import { AccountGuardian } from "@tokenbound/AccountGuardian.sol";
 import { AccountProxy } from "@tokenbound/AccountProxy.sol";
@@ -68,8 +68,7 @@ contract Deploy is Script, DeploymentHelper {
     bytes32 public constant SCHEMA_NAME_SCHEMA = 0x44d562ac1d7cd77e232978687fea027ace48f719cf1d58c7888e509663bb87fc;
 
     /// @notice Standard EAS Schema UID for descriptions
-    bytes32 public constant SCHEMA_DESCRIPTION_SCHEMA =
-        0x21cbc60aac46ba22125ff85dd01882ebe6e87eb4fc46628589931ccbef9b8c94;
+    bytes32 public constant SCHEMA_DESCRIPTION_SCHEMA = 0x21cbc60aac46ba22125ff85dd01882ebe6e87eb4fc46628589931ccbef9b8c94;
 
     /// @notice Error thrown when Guardian deployment address doesn't match predicted
     error GuardianDeploymentAddressMismatch();
@@ -667,8 +666,7 @@ contract Deploy is Script, DeploymentHelper {
 
         // 4. Deploy EAS schemas (with skip flag)
         if (!flags.skipSchemas) {
-            (result.assessmentSchemaUID, result.workSchemaUID, result.workApprovalSchemaUID) =
-            _deployEASSchemasWithFlags(
+            (result.assessmentSchemaUID, result.workSchemaUID, result.workApprovalSchemaUID) = _deployEASSchemasWithFlags(
                 deploymentConfig.config.easSchemaRegistry,
                 result.assessmentResolver,
                 result.workResolver,
@@ -702,9 +700,8 @@ contract Deploy is Script, DeploymentHelper {
             deploymentConfig.salt,
             deploymentConfig.factory
         );
-        result.accountProxy = deployAccountProxy(
-            result.guardian, result.gardenAccountImpl, deploymentConfig.salt, deploymentConfig.factory
-        );
+        result.accountProxy =
+            deployAccountProxy(result.guardian, result.gardenAccountImpl, deploymentConfig.salt, deploymentConfig.factory);
         result.gardenToken = deployGardenToken(
             result.gardenAccountImpl,
             deploymentConfig.config.greenGoodsSafe,
@@ -724,9 +721,8 @@ contract Deploy is Script, DeploymentHelper {
         internal
         returns (DeploymentResult memory)
     {
-        result.actionRegistry = deployActionRegistry(
-            deploymentConfig.config.greenGoodsSafe, deploymentConfig.salt, deploymentConfig.factory
-        );
+        result.actionRegistry =
+            deployActionRegistry(deploymentConfig.config.greenGoodsSafe, deploymentConfig.salt, deploymentConfig.factory);
         result.workResolver = _deployWorkResolver(
             deploymentConfig.config.eas, result.actionRegistry, deploymentConfig.salt, deploymentConfig.factory
         );
@@ -744,12 +740,7 @@ contract Deploy is Script, DeploymentHelper {
         // 5. Configure DeploymentRegistry (with governance handling)
         if (!flags.skipConfiguration) {
             _configureDeploymentRegistryWithGovernance(
-                result.deploymentRegistry,
-                _getCurrentConfig(),
-                result,
-                _getCurrentDeployer(),
-                _getCurrentMultisig(),
-                flags
+                result.deploymentRegistry, _getCurrentConfig(), result, _getCurrentDeployer(), _getCurrentMultisig(), flags
             );
         } else {
             console.log(">> Skipping deployment registry configuration (SKIP_CONFIGURATION=true)");
@@ -900,10 +891,8 @@ contract Deploy is Script, DeploymentHelper {
             console.log("[OK] DeploymentRegistry configured for chain:", block.chainid);
 
             // Handle governance transfer if multisig is configured and deployer is current owner
-            if (
-                !flags.skipGovernanceTransfer && multisig != address(0) && reg.owner() == deployer
-                    && multisig != deployer
-            ) {
+            if (!flags.skipGovernanceTransfer && multisig != address(0) && reg.owner() == deployer && multisig != deployer)
+            {
                 _handleGovernanceTransfer(reg, deployer, multisig, flags);
             }
         } catch (bytes memory reason) {
@@ -956,8 +945,7 @@ contract Deploy is Script, DeploymentHelper {
         address predicted = Create2.computeAddress(salt, keccak256(bytecode), factory);
 
         if (!_isDeployed(predicted)) {
-            GardenAccount account =
-                new GardenAccount{ salt: salt }(entryPoint, multicallForwarder, tokenRegistry, guardian);
+            GardenAccount account = new GardenAccount{ salt: salt }(entryPoint, multicallForwarder, tokenRegistry, guardian);
             if (address(account) != predicted) {
                 revert GardenAccountDeploymentAddressMismatch();
             }
@@ -1250,8 +1238,7 @@ contract Deploy is Script, DeploymentHelper {
         }
 
         // Load existing deployment and schema config
-        (bytes32 existingAssessmentUID, bytes32 existingWorkUID, bytes32 existingWorkApprovalUID) =
-            _loadExistingSchemas();
+        (bytes32 existingAssessmentUID, bytes32 existingWorkUID, bytes32 existingWorkApprovalUID) = _loadExistingSchemas();
 
         string memory schemaJson;
         try vm.readFile(string.concat(vm.projectRoot(), "/config/schemas.json")) returns (string memory schemaConfig) {
@@ -1268,8 +1255,7 @@ contract Deploy is Script, DeploymentHelper {
         // Deploy schemas
         assessmentUID = _deploySchema(registry, schemaJson, existingAssessmentUID, "assessment", assessmentResolver);
         workUID = _deploySchema(registry, schemaJson, existingWorkUID, "work", workResolver);
-        workApprovalUID =
-            _deploySchema(registry, schemaJson, existingWorkApprovalUID, "workApproval", workApprovalResolver);
+        workApprovalUID = _deploySchema(registry, schemaJson, existingWorkApprovalUID, "workApproval", workApprovalResolver);
 
         // Create name and description attestations for all chains
         _createSchemaNameAndDescriptionAttestations(eas, schemaJson, assessmentUID, workUID, workApprovalUID);
@@ -1322,8 +1308,7 @@ contract Deploy is Script, DeploymentHelper {
         }
 
         // Load existing deployment and schema config
-        (bytes32 existingAssessmentUID, bytes32 existingWorkUID, bytes32 existingWorkApprovalUID) =
-            _loadExistingSchemas();
+        (bytes32 existingAssessmentUID, bytes32 existingWorkUID, bytes32 existingWorkApprovalUID) = _loadExistingSchemas();
 
         string memory schemaJson;
         try vm.readFile(string.concat(vm.projectRoot(), "/config/schemas.json")) returns (string memory schemaConfig) {
@@ -1435,14 +1420,7 @@ contract Deploy is Script, DeploymentHelper {
     }
 
     /// @notice Helper function to get schema revocable flag from flat array by ID
-    function _getSchemaRevocableFromArray(
-        string memory schemaJson,
-        string memory schemaId
-    )
-        internal
-        pure
-        returns (bool)
-    {
+    function _getSchemaRevocableFromArray(string memory schemaJson, string memory schemaId) internal pure returns (bool) {
         // Parse the array and find the schema with matching ID
         for (uint256 i = 0; i < 100; i++) {
             string memory indexPath = string.concat("[", vm.toString(i), "]");
@@ -1617,9 +1595,7 @@ contract Deploy is Script, DeploymentHelper {
             console.log("Failed to create description attestation for schema:", vm.toString(schemaUID));
             console.log("Reason:", reason);
         } catch {
-            console.log(
-                "Failed to create description attestation for schema:", vm.toString(schemaUID), "(unknown error)"
-            );
+            console.log("Failed to create description attestation for schema:", vm.toString(schemaUID), "(unknown error)");
         }
     }
 
@@ -1800,9 +1776,7 @@ contract Deploy is Script, DeploymentHelper {
         DeploymentRegistry(deploymentRegistry).addToAllowlist(deployScript);
 
         // Mint root garden (will be tokenId 1)
-        GardenToken(gardenToken).mintGarden(
-            communityToken, name, description, location, bannerImage, gardeners, operators
-        );
+        GardenToken(gardenToken).mintGarden(communityToken, name, description, location, bannerImage, gardeners, operators);
 
         // Calculate root garden address using TBALib
         rootGardenTokenId = 1;
@@ -1841,12 +1815,9 @@ contract Deploy is Script, DeploymentHelper {
                     }
 
                     // Parse media
-                    string[] memory media =
-                        abi.decode(vm.parseJson(json, string.concat(basePath, ".media")), (string[]));
+                    string[] memory media = abi.decode(vm.parseJson(json, string.concat(basePath, ".media")), (string[]));
 
-                    ActionRegistry(actionRegistry).registerAction(
-                        startTime, endTime, title, instructions, capitals, media
-                    );
+                    ActionRegistry(actionRegistry).registerAction(startTime, endTime, title, instructions, capitals, media);
 
                     console.log("Deployed action:", title);
                 } catch {

@@ -24,31 +24,6 @@
         "multicallForwarder": "0xcA11bde05977b3631167028862bE2a173976CA11"
       }
     },
-    "sepolia": {
-      "chainId": 11155111,
-      "name": "Sepolia Testnet",
-      "rpcUrl": "${SEPOLIA_RPC_URL}",
-      "nativeCurrency": {
-        "name": "Sepolia Ether",
-        "symbol": "ETH",
-        "decimals": 18
-      },
-      "blockExplorer": "https://sepolia.etherscan.io",
-      "verifyApiUrl": "https://api.etherscan.io/v2/api",
-      "verifyApiKey": "${ETHERSCAN_API_KEY}",
-      "deployConfig": {
-        "gasPrice": "auto",
-        "gasLimit": "auto",
-        "confirmations": 1
-      },
-      "contracts": {
-        "eas": "0xC2679fBD37d54388Ce493F1DB75320D236e1815e",
-        "easSchemaRegistry": "0x0a7E2Ff54e76B8E6659aedc9103FB21c038050D0",
-        "communityToken": "0x4cB67033da4FD849a552A4C5553E7F532B93E516",
-        "erc4337EntryPoint": "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
-        "multicallForwarder": "0xcA11bde05977b3631167028862bE2a173976CA11"
-      }
-    },
     "arbitrum": {
       "chainId": 42161,
       "name": "Arbitrum One",
@@ -74,30 +49,6 @@
         "multicallForwarder": "0xcA11bde05977b3631167028862bE2a173976CA11"
       }
     },
-    "base": {
-      "chainId": 8453,
-      "name": "Base",
-      "rpcUrl": "${BASE_RPC_URL}",
-      "nativeCurrency": {
-        "name": "Base Ether",
-        "symbol": "ETH",
-        "decimals": 18
-      },
-      "blockExplorer": "https://basescan.org",
-      "verifyApiUrl": "https://api.etherscan.io/v2/api",
-      "verifyApiKey": "${ETHERSCAN_API_KEY}",
-      "deployConfig": {
-        "gasPrice": "auto",
-        "gasLimit": "auto",
-        "confirmations": 2
-      },
-      "contracts": {
-        "eas": "0x4200000000000000000000000000000000000021",
-        "easSchemaRegistry": "0x4200000000000000000000000000000000000020",
-        "erc4337EntryPoint": "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
-        "multicallForwarder": "0xcA11bde05977b3631167028862bE2a173976CA11"
-      }
-    },
     "baseSepolia": {
       "chainId": 84532,
       "name": "Base Sepolia",
@@ -119,30 +70,6 @@
         "eas": "0x4200000000000000000000000000000000000021",
         "easSchemaRegistry": "0x4200000000000000000000000000000000000020",
         "communityToken": "0x4cB67033da4FD849a552A4C5553E7F532B93E516",
-        "erc4337EntryPoint": "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
-        "multicallForwarder": "0xcA11bde05977b3631167028862bE2a173976CA11"
-      }
-    },
-    "optimism": {
-      "chainId": 10,
-      "name": "Optimism",
-      "rpcUrl": "${OPTIMISM_RPC_URL}",
-      "nativeCurrency": {
-        "name": "Optimism Ether",
-        "symbol": "ETH",
-        "decimals": 18
-      },
-      "blockExplorer": "https://optimistic.etherscan.io",
-      "verifyApiUrl": "https://api.etherscan.io/v2/api",
-      "verifyApiKey": "${ETHERSCAN_API_KEY}",
-      "deployConfig": {
-        "gasPrice": "auto",
-        "gasLimit": "auto",
-        "confirmations": 2
-      },
-      "contracts": {
-        "eas": "0x4200000000000000000000000000000000000021",
-        "easSchemaRegistry": "0x4200000000000000000000000000000000000020",
         "erc4337EntryPoint": "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
         "multicallForwarder": "0xcA11bde05977b3631167028862bE2a173976CA11"
       }

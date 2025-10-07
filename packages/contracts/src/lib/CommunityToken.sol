@@ -1,13 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {
-    COMMUNITY_TOKEN_ARBITRUM,
-    COMMUNITY_TOKEN_SEPOLIA,
-    COMMUNITY_TOKEN_BASE,
-    COMMUNITY_TOKEN_OPTIMISM,
-    COMMUNITY_TOKEN_CELO
-} from "../Constants.sol";
+import { COMMUNITY_TOKEN_ARBITRUM, COMMUNITY_TOKEN_BASE_SEPOLIA, COMMUNITY_TOKEN_CELO } from "../Constants.sol";
 
 error InvalidChainId();
 
@@ -21,14 +15,8 @@ library CommunityTokenLib {
     function getCommunityToken() internal view returns (address) {
         if (block.chainid == 42_161) {
             return COMMUNITY_TOKEN_ARBITRUM;
-        } else if (block.chainid == 11_155_111) {
-            return COMMUNITY_TOKEN_SEPOLIA;
-        } else if (block.chainid == 8453) {
-            return COMMUNITY_TOKEN_BASE;
         } else if (block.chainid == 84_532) {
-            return COMMUNITY_TOKEN_SEPOLIA; // Base Sepolia uses Sepolia community token
-        } else if (block.chainid == 10) {
-            return COMMUNITY_TOKEN_OPTIMISM;
+            return COMMUNITY_TOKEN_BASE_SEPOLIA;
         } else if (block.chainid == 42_220) {
             return COMMUNITY_TOKEN_CELO;
         } else if (block.chainid == 31_337) {

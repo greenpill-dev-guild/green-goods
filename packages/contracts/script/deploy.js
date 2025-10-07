@@ -6,8 +6,6 @@ const path = require("node:path");
 const { execSync, execFileSync } = require("node:child_process");
 
 const { DeploymentAddresses } = require("./utils/deployment-addresses");
-const { GasOptimizer } = require("./utils/gas-optimizer");
-const { GardenOnboarding } = require("./garden-onboarding");
 const { EnvioIntegration } = require("./utils/envio-integration");
 
 // Load environment variables
@@ -32,50 +30,8 @@ class DeploymentCLI {
   constructor() {
     this.deploymentAddresses = new DeploymentAddresses();
     this.profiles = {
-      full: {
-        description: "Full deployment with all components",
-        flags: {},
-      },
-      update: {
-        description: "Update existing deployment (skip contracts)",
-        flags: {
-          skipExisting: true,
-          skipVerification: true,
-          forceSchemas: true,
-          skipSeedData: true,
-        },
-      },
-      "metadata-only": {
-        description: "Update only schema metadata",
-        flags: {
-          skipExisting: true,
-          skipSchemas: true,
-          skipConfiguration: true,
-          skipSeedData: true,
-          skipVerification: true,
-          skipGovernance: true,
-          metadataOnly: true,
-        },
-      },
-      "contracts-only": {
-        description: "Deploy only contracts (skip schemas)",
-        flags: {
-          skipSchemas: true,
-          skipSeedData: true,
-          skipConfiguration: true,
-        },
-      },
-      "schemas-only": {
-        description: "Deploy only schemas",
-        flags: {
-          skipExisting: true,
-          skipConfiguration: true,
-          skipSeedData: true,
-          skipVerification: true,
-        },
-      },
-      testing: {
-        description: "Full deployment with test data",
+      dev: {
+        description: "Full deployment with test data and verbose logging (default)",
         flags: {
           verbose: true,
         },
@@ -88,21 +44,13 @@ class DeploymentCLI {
           noAllowlist: true,
         },
       },
-      hotfix: {
-        description: "Emergency hotfix deployment",
+      update: {
+        description: "Update schemas without redeploying contracts",
         flags: {
           skipExisting: true,
-          skipSchemas: true,
-          skipSeedData: true,
           skipVerification: true,
-          verbose: true,
-        },
-      },
-      optimized: {
-        description: "Gas-optimized deployment with deterministic addresses and batch operations",
-        flags: {
-          verbose: true,
-          skipSeedData: true, // Optimized deployment focuses on core contracts
+          forceSchemas: true,
+          skipSeedData: true,
         },
       },
     };
@@ -122,59 +70,55 @@ Commands:
   status [network]         Check deployment status
   fork <network>           Start a network fork
 
-DEPLOYMENT PROFILES (use --profile <name>):
+Deployment Profiles:
 ${Object.entries(this.profiles)
   .map(([name, profile]) => `  ${name.padEnd(15)} - ${profile.description}`)
   .join("\n")}
 
-Options:
-  --profile, -p <name>              Use deployment profile
-  --list-profiles                   List available profiles
-  --network, -n <network>           Network to deploy to (default: localhost)
-  --broadcast, -b                   Broadcast transactions
-  --verify, -v                      Verify contracts after deployment
-  --gas-optimize, -g                Enable gas optimization
-  --gas-strategy <strategy>         Gas strategy (conservative/standard/aggressive)
-  --save-report, -r                 Generate deployment report
-  --dry-run                         Validate configuration without deploying
-  --help, -h                        Show this help
+Common Options:
+  --profile, -p <name>     Use deployment profile (dev/production/update)
+  --network, -n <network>  Network to deploy to (default: localhost)
+  --broadcast, -b          Broadcast transactions
+  --verify, -v             Verify contracts after deployment
+  --dry-run                Validate configuration without deploying
+  --verbose                Enable verbose deployment logging
+  --help, -h               Show this help
 
-Deployment Control Options:
-  --skip-existing                   Skip deployment if contract already exists
-  --force-redeploy                  Force redeployment even if contract exists
-  --skip-schemas                    Skip EAS schema deployment entirely
-  --force-schemas                   Force redeploy schemas even if they exist
-  --skip-verification               Skip contract verification
-  --skip-seed-data                  Skip seed data initialization
-  --skip-configuration              Skip deployment registry configuration
-  --skip-governance                 Skip governance transfer to multisig
-  --no-allowlist                    Don't add deployer to registry allowlist
-  --verbose                         Enable verbose deployment logging
+Advanced Flags:
+  --skip-existing          Skip deployment if contract already exists
+  --skip-schemas           Skip EAS schema deployment entirely
+  --skip-seed-data         Skip seed data initialization
+  --skip-governance        Skip governance transfer to multisig
+  --skip-envio             Skip automatic Envio configuration update
+  --start-indexer          Start Envio indexer after localhost deployment
 
-Envio Integration Options:
-  --skip-envio                      Skip automatic Envio configuration update
-  --start-indexer                   Start Envio indexer after localhost deployment
-
-QUICK COMMANDS (via package.json):
-  pnpm deploy:celo                  # Full production deployment to Celo
-  pnpm deploy:sepolia               # Full testing deployment to Sepolia
-  pnpm deploy:celo:update           # Update existing Celo deployment
-  pnpm deploy:celo:metadata         # Update schema metadata on Celo
-  pnpm deploy:dryrun:celo           # Simulate Celo production deployment
+Quick Start (package.json):
+  pnpm dev                 # Start local anvil node
+  pnpm deploy:local        # Deploy to localhost with test data
+  pnpm deploy:testnet      # Deploy to Base Sepolia testnet
+  pnpm deploy:celo         # Deploy to Celo mainnet (production)
+  pnpm deploy:arbitrum     # Deploy to Arbitrum mainnet (production)
+  pnpm status              # Check deployment status
+  pnpm upgrade             # Upgrade contracts
 
 Examples:
-  # Using profiles
-  node deploy.js core --profile production --network celo --broadcast --verify
-  node deploy.js core --profile testing --network sepolia --broadcast
-  node deploy.js core --profile metadata-only --network celo --broadcast
+  # Development
+  node deploy.js core --network localhost --broadcast
   
-  # Traditional flags (still supported)
-  node deploy.js core --network sepolia --broadcast --force-schemas
-  node deploy.js core --network arbitrum --broadcast --verify --skip-seed-data
+  # Testnet deployment
+  node deploy.js core --network baseSepolia --broadcast --verify
   
-  # With Envio integration
-  node deploy.js core --network localhost --broadcast --start-indexer
-  node deploy.js core --network sepolia --broadcast --skip-envio
+  # Production deployment
+  node deploy.js core --network celo --broadcast --verify --profile production
+  
+  # Update existing deployment
+  node deploy.js core --network celo --profile update --broadcast --verify
+  
+  # Dry run
+  node deploy.js core --network arbitrum --profile production --dry-run
+  
+  # Fork network
+  node deploy.js fork celo
 
 Available networks: ${Object.keys(networksConfig.networks).join(", ")}
     `);
@@ -445,11 +389,8 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
       try {
         const chainMap = {
           localhost: "31337",
-          sepolia: "11155111",
           arbitrum: "42161",
-          base: "8453",
           baseSepolia: "84532",
-          optimism: "10",
           celo: "42220",
         };
         const chainId = chainMap[options.network] || options.network;
@@ -481,14 +422,6 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
       }
     }
 
-    // Gas optimization
-    if (options.gasOptimize) {
-      const gasOptimizer = new GasOptimizer(options.network, options.gasStrategy || "standard");
-      await gasOptimizer.initialize();
-      const optimalGasPrice = await gasOptimizer.getOptimalGasPrice();
-      args.push("--gas-price", Math.floor(optimalGasPrice * 1e9).toString());
-    }
-
     console.log("\nExecuting deployment command:");
     const displayArgs = args.map((arg, idx) => (idx > 0 && args[idx - 1] === "--private-key" ? "[REDACTED]" : arg));
     console.log("forge", displayArgs.join(" "));
@@ -507,11 +440,8 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
         // Define chainMap outside try-catch so it's accessible in error handling
         const chainMap = {
           localhost: "31337",
-          sepolia: "11155111",
           arbitrum: "42161",
-          base: "8453",
           baseSepolia: "84532",
-          optimism: "10",
           celo: "42220",
         };
         const chainId = chainMap[options.network] || options.network;
@@ -661,13 +591,9 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
 
   async onboardGarden(csvPath, options) {
     console.log(`Onboarding garden from ${csvPath} to ${options.network}`);
-
-    const onboarding = new GardenOnboarding({
-      network: options.network,
-      dryRun: options.dryRun,
-    });
-
-    await onboarding.processCSV(csvPath);
+    console.error("❌ Garden onboarding functionality is not yet implemented");
+    console.log("   This feature will be added in a future update");
+    process.exit(1);
   }
 
   async deployActions(configPath, options) {
@@ -737,12 +663,13 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
         console.log(`   Deployment Registry: ${addresses.deploymentRegistry}`);
         console.log(`   Work Resolver: ${addresses.workResolver}`);
         console.log(`   Work Approval Resolver: ${addresses.workApprovalResolver}`);
+        console.log(`   Assessment Resolver: ${addresses.assessmentResolver}`);
       } catch (error) {
         console.log(`❌ ${network}: ${error.message}`);
       }
     } else {
       // List all networks
-      const networks = ["localhost", "sepolia", "arbitrum", "base", "baseSepolia", "optimism", "celo"];
+      const networks = ["localhost", "arbitrum", "baseSepolia", "celo"];
 
       networks.forEach((net) => {
         try {

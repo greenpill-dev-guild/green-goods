@@ -3,8 +3,7 @@ pragma solidity ^0.8.25;
 
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
-import { EnumerableSetUpgradeable } from
-    "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
+import { EnumerableSetUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 
 /// @title DeploymentRegistry
 /// @notice A governance-controlled registry for managing contract deployments across networks
@@ -117,14 +116,7 @@ contract DeploymentRegistry is OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Sets the network configuration for a specific chain
     /// @param chainId The chain ID to configure
     /// @param config The network configuration
-    function setNetworkConfig(
-        uint256 chainId,
-        NetworkConfig calldata config
-    )
-        external
-        onlyOwnerOrAllowlist
-        whenNotPaused
-    {
+    function setNetworkConfig(uint256 chainId, NetworkConfig calldata config) external onlyOwnerOrAllowlist whenNotPaused {
         networks[chainId] = config;
         emit NetworkConfigUpdated(chainId, config);
     }

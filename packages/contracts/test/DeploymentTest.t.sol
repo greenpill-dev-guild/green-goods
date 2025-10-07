@@ -66,8 +66,7 @@ contract DeploymentTest is ForgeTest.Test, DeploymentHelperModule.DeploymentHelp
         assertTrue(actionRegistry != address(0), "ActionRegistry should be deployed");
 
         // Verify schema UIDs
-        bytes32 assessmentSchemaUID =
-            abi.decode(vm.parseJson(deploymentJson, ".schemas.assessmentSchemaUID"), (bytes32));
+        bytes32 assessmentSchemaUID = abi.decode(vm.parseJson(deploymentJson, ".schemas.assessmentSchemaUID"), (bytes32));
         bytes32 workSchemaUID = abi.decode(vm.parseJson(deploymentJson, ".schemas.workSchemaUID"), (bytes32));
         bytes32 workApprovalSchemaUID =
             abi.decode(vm.parseJson(deploymentJson, ".schemas.workApprovalSchemaUID"), (bytes32));
@@ -143,11 +142,9 @@ contract DeploymentTest is ForgeTest.Test, DeploymentHelperModule.DeploymentHelp
         string memory deploymentFile = string.concat(vm.projectRoot(), "/deployments/31337-latest.json");
         string memory deploymentJson = vm.readFile(deploymentFile);
 
-        string memory gardenSchema =
-            abi.decode(vm.parseJson(deploymentJson, ".schemas.gardenAssessmentSchema"), (string));
+        string memory gardenSchema = abi.decode(vm.parseJson(deploymentJson, ".schemas.gardenAssessmentSchema"), (string));
         string memory workSchema = abi.decode(vm.parseJson(deploymentJson, ".schemas.workSchema"), (string));
-        string memory workApprovalSchema =
-            abi.decode(vm.parseJson(deploymentJson, ".schemas.workApprovalSchema"), (string));
+        string memory workApprovalSchema = abi.decode(vm.parseJson(deploymentJson, ".schemas.workApprovalSchema"), (string));
 
         assertTrue(bytes(gardenSchema).length > 0, "Garden schema should not be empty");
         assertTrue(bytes(workSchema).length > 0, "Work schema should not be empty");
@@ -252,10 +249,7 @@ contract DeploymentTest is ForgeTest.Test, DeploymentHelperModule.DeploymentHelp
         vm.writeFile(string.concat(vm.projectRoot(), "/config/schemas.json"), schemaConfig);
     }
 
-    function _parseDeploymentResult()
-        internal
-        returns (DeploymentHelperModule.DeploymentHelper.DeploymentResult memory)
-    {
+    function _parseDeploymentResult() internal returns (DeploymentHelperModule.DeploymentHelper.DeploymentResult memory) {
         string memory deploymentFile = string.concat(vm.projectRoot(), "/deployments/31337-latest.json");
         string memory deploymentJson = vm.readFile(deploymentFile);
 

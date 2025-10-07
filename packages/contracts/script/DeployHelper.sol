@@ -5,9 +5,9 @@ import { Script, console } from "forge-std/Script.sol";
 import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
 import { stdJson } from "forge-std/StdJson.sol";
 
-/// @title DeploymentHelper
+/// @title DeployHelper
 /// @notice Helper contract for deployment scripts
-abstract contract DeploymentHelper is Script {
+abstract contract DeployHelper is Script {
     /// @notice Error thrown when CREATE2 deployment fails
     error CREATE2DeploymentFailed();
 
@@ -87,11 +87,8 @@ abstract contract DeploymentHelper is Script {
     /// @notice Get network name from chain ID
     function _getNetworkName(uint256 chainId) internal pure returns (string memory) {
         if (chainId == 31_337) return "localhost";
-        if (chainId == 11_155_111) return "sepolia";
         if (chainId == 42_161) return "arbitrum";
-        if (chainId == 8453) return "base";
         if (chainId == 84_532) return "baseSepolia";
-        if (chainId == 10) return "optimism";
         if (chainId == 42_220) return "celo";
 
         // Default to localhost for unknown chains
@@ -292,9 +289,7 @@ abstract contract DeploymentHelper is Script {
             )
         );
         console.log(
-            string.concat(
-                baseCmd, " ", vm.toString(result.guardian), " @tokenbound/AccountGuardian.sol:AccountGuardian"
-            )
+            string.concat(baseCmd, " ", vm.toString(result.guardian), " @tokenbound/AccountGuardian.sol:AccountGuardian")
         );
         console.log(
             string.concat(baseCmd, " ", vm.toString(result.gardenAccountImpl), " src/accounts/Garden.sol:GardenAccount")
@@ -311,9 +306,7 @@ abstract contract DeploymentHelper is Script {
                 baseCmd, " ", vm.toString(result.assessmentResolver), " src/resolvers/Assessment.sol:AssessmentResolver"
             )
         );
-        console.log(
-            string.concat(baseCmd, " ", vm.toString(result.workResolver), " src/resolvers/Work.sol:WorkResolver")
-        );
+        console.log(string.concat(baseCmd, " ", vm.toString(result.workResolver), " src/resolvers/Work.sol:WorkResolver"));
         console.log(
             string.concat(
                 baseCmd,

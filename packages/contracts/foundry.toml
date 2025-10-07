@@ -25,17 +25,14 @@ fs_permissions = [
   verbosity = 4
 
 [etherscan]
-  sepolia = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "11155111" }
   arbitrum = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "42161" }
-  base = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "8453" }
   baseSepolia = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "84532" }
-  optimism = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "10" }
   celo = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "42220" }
 
 [fmt]
   bracket_spacing = true
   int_types = "long"
-  line_length = 120
+  line_length = 124
   multiline_func_header = "all"
   number_underscore = "thousands"
   quote_style = "double"
@@ -50,31 +47,19 @@ extra_output_files = [
 # RPC endpoints for different networks
 [rpc_endpoints]
 localhost = "http://localhost:8545"
-sepolia = "${SEPOLIA_RPC_URL}"
 arbitrum = "${ARBITRUM_RPC_URL}"
-base = "${BASE_RPC_URL}"
 baseSepolia = "${BASE_SEPOLIA_RPC_URL}"
-optimism = "${OPTIMISM_RPC_URL}"
 celo = "${CELO_RPC_URL}"
 
 # Network-specific profiles
 [profile.local]
 eth_rpc_url = "http://localhost:8545"
 
-[profile.sepolia]
-eth_rpc_url = "${SEPOLIA_RPC_URL}"
-
 [profile.arbitrum]
 eth_rpc_url = "${ARBITRUM_RPC_URL}"
 
-[profile.base]
-eth_rpc_url = "${BASE_RPC_URL}"
-
 [profile.baseSepolia]
 eth_rpc_url = "${BASE_SEPOLIA_RPC_URL}"
-
-[profile.optimism]
-eth_rpc_url = "${OPTIMISM_RPC_URL}"
 
 [profile.celo]
 eth_rpc_url = "${CELO_RPC_URL}"
