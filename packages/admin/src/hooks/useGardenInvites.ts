@@ -99,7 +99,7 @@ export function useGardenInvites(gardenAddress: string) {
       const inviteCode = generateInviteCode();
       const expiry = Math.floor(Date.now() / 1000) + expiryDays * 24 * 60 * 60;
 
-      const result = await executeWithToast(
+      await executeWithToast(
         async () => {
           const hash = await walletClient.writeContract({
             address: gardenAddress as `0x${string}`,

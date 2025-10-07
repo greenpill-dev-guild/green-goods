@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { useQuery } from "urql";
 import { graphql } from "gql.tada";
 import { RiAddLine, RiPlantLine, RiUserLine, RiEyeLine, RiShieldCheckLine } from "@remixicon/react";
-import { useRole } from "@/hooks/useRole";
 import { useGardenPermissions } from "@/hooks/useGardenPermissions";
 import { CreateGardenModal } from "@/components/Garden/CreateGardenModal";
 import { useChainId } from "wagmi";
@@ -29,7 +28,6 @@ const GET_GARDENS = graphql(`
 `);
 
 export default function Gardens() {
-  const { isDeployer } = useRole();
   const gardenPermissions = useGardenPermissions();
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const chainId = useChainId();

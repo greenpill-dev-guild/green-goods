@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { RiCloseLine, RiClipboardLine, RiQrCodeLine } from "@remixicon/react";
+import { RiCloseLine, RiClipboardLine } from "@remixicon/react";
 import { cn } from "@/utils/cn";
 import { useGardenInvites } from "@/hooks/useGardenInvites";
 
