@@ -5,7 +5,6 @@ This document provides a comprehensive overview of the Green Goods platform arch
 ## Quick Overview
 
 - **Client**: React PWA frontend with offline support
-- **API**: Node.js backend with Fastify and Privy auth  
 - **Indexer**: GraphQL blockchain data indexer (Envio)
 - **Contracts**: Solidity smart contracts with EAS integration
 - **Networks**: Celo, Arbitrum, Base, Sepolia
@@ -23,8 +22,7 @@ graph TB
         PWA[Client PWA<br/>React + Vite]
     end
     
-    subgraph "API Layer"
-        API[API Server<br/>Fastify + TypeScript]
+    subgraph "Data Layer"
         GQL[GraphQL Indexer<br/>Envio]
     end
     
@@ -46,12 +44,11 @@ graph TB
         BASE[Base]
     end
     
-    PWA --> API
     PWA --> GQL
     PWA --> EAS
     PWA --> GG
+    PWA --> IPFS
     
-    API --> IPFS
     GQL --> RPC
     
     EAS --> CELO
@@ -103,26 +100,6 @@ src/
 ├── utils/               # Utility functions
 └── types/               # TypeScript definitions
 ```
-
-### API Server
-
-**Technology Stack:**
-- **Framework**: Fastify with TypeScript
-- **Deployment**: Railway with auto-deployment
-- **Authentication**: Privy server SDK
-- **CORS**: Configured for frontend integration
-
-**Endpoints:**
-- `GET /` - API information and version
-- `GET /health` - Health check endpoint
-- `GET /users` - User management (Privy integration)
-- `PATCH /users/me` - Update current user's metadata
-- `POST /subscribe` - Email subscription service
-
-**Deployment:**
-- **Platform**: Railway with `railway.toml` configuration
-- **Environment**: Automatic staging and production deployment
-- **Monitoring**: Built-in health checks and metrics
 
 ### GraphQL Indexer
 
@@ -187,13 +164,13 @@ sequenceDiagram
     participant C as Client
     participant BC as Blockchain
     participant I as Indexer
-    participant API as API Server
+    participant IPFS as IPFS/Pinata
     
     U->>C: Create Garden Form
     C->>BC: Deploy Garden NFT
     BC-->>C: Transaction Hash
-    C->>API: Upload Metadata to IPFS
-    API-->>C: IPFS Hash
+    C->>IPFS: Upload Metadata to IPFS
+    IPFS-->>C: IPFS Hash
     C->>BC: Update NFT Metadata
     BC->>I: Event: GardenCreated
     I->>I: Index Garden Data
@@ -269,7 +246,7 @@ sequenceDiagram
 
 **Testing Strategy:**
 - **Unit Tests**: Vitest for React components and utilities
-- **Integration Tests**: API and contract integration testing
+- **Integration Tests**: Contract integration testing
 - **E2E Tests**: Playwright for full user workflows
 - **Contract Tests**: Foundry for smart contract logic
 
@@ -282,7 +259,6 @@ sequenceDiagram
 
 **Infrastructure:**
 - **Frontend**: Static hosting (Vercel, Netlify, Railway)
-- **API**: Railway with auto-deployment and scaling
 - **Indexer**: Envio Cloud or self-hosted
 - **Contracts**: Deployed to multiple EVM networks
 
@@ -386,10 +362,6 @@ sequenceDiagram
 - **EAS SDK**: Direct attestation creation and querying
 - **Contract ABIs**: Type-safe contract interactions
 
-**Frontend ↔ API:**
-- **REST API**: Standard HTTP endpoints for user management
-- **Error Handling**: Comprehensive error responses and retry logic
-
 **Frontend ↔ Indexer:**
 - **GraphQL**: Efficient data querying with gql.tada
 - **Real-time Updates**: Subscriptions for live data
@@ -435,11 +407,6 @@ sequenceDiagram
 - **Performance Monitoring**: Core Web Vitals tracking
 - **User Analytics**: Privacy-respecting usage analytics
 
-**Backend Monitoring:**
-- **Health Checks**: Automated service health monitoring
-- **API Metrics**: Request/response time tracking
-- **Resource Usage**: CPU, memory, and disk monitoring
-
 ### Blockchain Monitoring
 
 **Contract Monitoring:**
@@ -454,6 +421,5 @@ sequenceDiagram
 
 For implementation details, see the individual package documentation:
 - [Client Architecture](./packages/client/README.md)
-- [API Architecture](./packages/api/README.md)
 - [Contract Architecture](./packages/contracts/DEPLOYMENT.md)
 - [Indexer Architecture](./packages/indexer/README.md) 

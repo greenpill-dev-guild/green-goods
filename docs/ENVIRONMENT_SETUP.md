@@ -41,8 +41,6 @@ green-goods/
 └── packages/
     ├── client/           # 📱 React frontend
     │   └── .env.example  # 📱 Client-specific variables
-    ├── api/              # 🖥️  Node.js backend
-    │   └── .env.example  # 🖥️  API-specific variables
     ├── contracts/        # 📜 Solidity contracts
     │   └── .env.example  # 📜 Contract-specific variables
     └── indexer/          # 🔍 GraphQL indexer
@@ -84,8 +82,8 @@ PRIVY_TEST_OTP="XXXXXX"                            # Your test OTP
 VITE_CHAIN_ID="42161"                              # 42161=Arbitrum, 84532=Base Sepolia
 
 # Blockchain access
-PRIVATE_KEY="your-wallet-private-key"              # For deployments (KEEP SECURE!)
-ALCHEMY_API_KEY="your-alchemy-key"                 # From https://alchemy.com
+FOUNDRY_KEYSTORE_ACCOUNT="green-goods-deployer"    # For secure deployments
+ETHERSCAN_API_KEY="your-etherscan-v2-api-key"      # For contract verification
 
 # Network RPC URLs
 ARBITRUM_RPC_URL="https://arbitrum-mainnet.infura.io/v3/YOUR_KEY"
@@ -128,7 +126,6 @@ REDIS_URL="your-redis-url"                         # Cache/sessions
 ```bash
 pnpm dev                      # Start all services
 pnpm exec pm2 logs client     # View client logs
-pnpm exec pm2 logs api        # View API logs
 pnpm exec pm2 logs indexer    # View indexer logs
 ```
 
@@ -147,12 +144,6 @@ npm run deploy:celo              # Deploy to Celo
 forge test                       # Run tests
 ```
 
-### API Development
-```bash
-cd packages/api
-cp ../../.env .env
-pnpm dev
-```
 
 ## 🧪 Testing Setup
 
@@ -185,9 +176,12 @@ forge test -vvv                  # Verbose contract tests
    .env.production   # Production
    ```
 
-3. **Secure private keys**
+3. **Secure wallet management**
    ```bash
-   # Use hardware wallets for production
+   # Use Foundry keystore for encrypted key storage
+   cast wallet import green-goods-deployer --interactive
+   
+   # For production, use hardware wallets
    # Consider using encrypted environment variables
    # Rotate keys regularly
    ```

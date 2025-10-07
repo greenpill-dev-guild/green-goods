@@ -348,6 +348,163 @@ This simplified structure maintains all testing functionality while being much m
 4. **Reduced Duplication** - Shared utilities and patterns
 5. **Improved Reliability** - Simplified logic is less prone to errors
 
+## Contract Testing
+
+Smart contract testing uses Foundry for comprehensive Solidity test coverage.
+
+### Running Contract Tests
+
+```bash
+cd packages/contracts
+
+# Compile contracts
+forge build
+
+# Run all tests
+forge test
+
+# Run specific test contract
+forge test --match-contract GardenAccountTest
+
+# Run with gas reporting
+forge test --gas-report
+
+# Generate coverage report
+forge coverage
+```
+
+### Test Organization
+
+```
+packages/contracts/test/
+├── ActionRegistry.t.sol     - Action registry tests
+├── GardenToken.t.sol         - Garden token and ERC721 tests
+├── GardenAccount.t.sol       - Garden account and TBA tests
+├── WorkResolver.t.sol        - Work attestation resolver tests
+├── WorkApprovalResolver.t.sol - Work approval resolver tests
+├── Deploy.t.sol              - Integration deployment tests
+└── DeploymentTest.t.sol      - Deployment verification tests
+```
+
+### Coverage Requirements
+
+- **Contracts**: 80% minimum coverage
+- **Core logic**: 90%+ preferred
+- **Critical paths**: 100% required
+
+### Test Patterns
+
+**Setup with Proxies:**
+```solidity
+function setUp() public {
+    // Deploy implementation
+    ActionRegistry implementation = new ActionRegistry();
+    
+    // Deploy proxy with initialization
+    bytes memory initData = abi.encodeWithSelector(
+        ActionRegistry.initialize.selector,
+        multisig
+    );
+    ERC1967Proxy proxy = new ERC1967Proxy(
+        address(implementation),
+        initData
+    );
+    
+    actionRegistry = ActionRegistry(address(proxy));
+}
+```
+
+**Testing Upgrades:**
+```solidity
+function testUpgrade() public {
+    ActionRegistry newImpl = new ActionRegistry();
+    vm.prank(owner);
+    UUPSUpgradeable(address(actionRegistry)).upgradeTo(address(newImpl));
+}
+```
+
+### Gas Benchmarks
+
+Expected gas costs for key operations:
+- Garden creation: ~150,000 gas
+- Work submission: ~50,000 gas
+- Work approval: ~40,000 gas
+- Invite code usage: ~50,000 gas (without deployment)
+
+## Admin Dashboard Testing
+
+The admin package uses Vitest + React Testing Library for component and integration tests.
+
+### Running Admin Tests
+
+```bash
+cd packages/admin
+
+# Fast unit tests (development)
+pnpm test:unit
+
+# Integration tests (requires Base Sepolia)
+pnpm test:integration
+
+# All tests
+pnpm test
+
+# Watch mode
+pnpm test:watch
+
+# Coverage report
+pnpm test:coverage
+
+# Interactive UI
+pnpm test:ui
+```
+
+### Test Structure
+
+```
+packages/admin/src/__tests__/
+├── hooks/                    - React hook tests
+│   ├── useRole.test.ts      - Role detection
+│   ├── useChainSync.test.ts - Chain switching
+│   └── useToastAction.test.ts - Toast notifications
+├── components/               - Component tests
+│   ├── RequireAuth.test.tsx - Auth guards
+│   └── RequireRole.test.tsx - Role-based access
+├── workflows/                - Workflow state machines
+│   └── createGarden.test.ts - Garden creation flow
+└── integration/              - E2E integration tests
+    └── garden-lifecycle.test.ts - Full garden workflow
+```
+
+### Mocking Strategy
+
+**Privy Authentication:**
+```typescript
+// Mock user roles
+const mockAdmin = createMockPrivyUser("admin");
+const mockOperator = createMockPrivyUser("operator");
+```
+
+**Blockchain Interactions:**
+```typescript
+// Mock successful transactions
+mockWalletClient.writeContract.mockResolvedValue(MOCK_TX_HASH);
+```
+
+**GraphQL Queries:**
+```typescript
+// MSW handlers for indexer
+graphql.query("GetGardens", () => 
+  HttpResponse.json({ data: { gardens: [...] }})
+);
+```
+
+### Performance Metrics
+
+- **Unit tests**: ~3 seconds
+- **Integration tests**: ~30 seconds
+- **Coverage target**: >80%
+
 ---
 
-🎉 **The tests are now production-ready and will successfully pass with proper service setup!** 
+🎉 **The tests are now production-ready and will successfully pass with proper service setup!**

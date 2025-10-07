@@ -8,7 +8,6 @@ Green Goods is a decentralized platform for biodiversity conservation, enabling 
 green-goods/
 ├── packages/
 │   ├── client/           # React PWA frontend
-│   ├── api/              # Node.js backend API
 │   ├── mcp/              # AI assistant integration
 │   ├── indexer/          # GraphQL blockchain indexer
 │   └── contracts/        # Solidity smart contracts
@@ -34,12 +33,11 @@ pnpm install
 cp .env.example .env
 # Edit .env with your API keys (see .env.example)
 
-# Start all services (pm2: client, api, indexer)
+# Start all services (pm2: client, indexer)
 pnpm dev
 
 # Tail logs
 pnpm dev:logs:client
-pnpm dev:logs:api
 pnpm dev:logs:indexer
 ```
 
@@ -79,7 +77,7 @@ pnpm format && pnpm lint && pnpm test # Quality checks
 | [Architecture](./docs/ARCHITECTURE.md) | System design |
 | [Troubleshooting](./docs/TROUBLESHOOTING.md) | Common issues |
 
-**Package docs:** [client](./packages/client/README.md) • [api](./packages/api/README.md) • [mcp](./packages/mcp/README.md) • [indexer](./packages/indexer/README.md) • [contracts](./packages/contracts/README.md)
+**Package docs:** [client](./packages/client/README.md) • [mcp](./packages/mcp/README.md) • [indexer](./packages/indexer/README.md) • [contracts](./packages/contracts/README.md)
 
 ---
 

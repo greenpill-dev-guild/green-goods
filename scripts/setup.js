@@ -242,7 +242,7 @@ const packages = {
       'test:e2e': 'pnpm test:e2e',
       'test:offline': 'pnpm test:offline'
     },
-    description: 'Run all services together (client, api, indexer)',
+    description: 'Run all services together (client, indexer)',
     pm2: true
   },
   client: {
@@ -258,18 +258,6 @@ const packages = {
     },
     description: 'Frontend React application with offline support',
     port: 5173
-  },
-  api: {
-    name: 'API Server',
-    path: 'packages/api', 
-    commands: {
-      dev: 'pnpm dev',
-      build: 'pnpm build',
-      start: 'pnpm start',
-      lint: 'pnpm lint'
-    },
-    description: 'Fastify API server for authentication',
-    port: 8080
   },
   indexer: {
     name: 'Blockchain Indexer',
