@@ -183,18 +183,11 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
       <div className="flex flex-col gap-4">
         {images.length ? (
           images.map((file, index) => (
-            <div
+            <button
               key={file.name}
-              className="carousel-item relative group cursor-pointer"
+              type="button"
+              className="carousel-item relative group cursor-pointer w-full"
               onClick={() => openPreview(index)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  openPreview(index);
-                }
-              }}
-              role="button"
-              tabIndex={0}
             >
               <img
                 src={URL.createObjectURL(file)}
@@ -221,7 +214,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
               >
                 <RiCloseLine className="w-8 h-8" />
               </button>
-            </div>
+            </button>
           ))
         ) : (
           <div className="pt-8 px-4 grid place-items-center">

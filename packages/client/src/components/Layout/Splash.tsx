@@ -1,6 +1,6 @@
 import type React from "react";
 
-import { APP_NAME } from "@/config/blockchain";
+import { APP_NAME } from "@/config/app";
 
 import { Button } from "../UI/Button";
 

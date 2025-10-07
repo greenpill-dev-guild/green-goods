@@ -4,7 +4,7 @@
  * Tests passkey-based authentication context provider
  */
 
-import { render, renderHook, screen, waitFor } from "@testing-library/react";
+import { render, renderHook, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthProvider, useAuth } from "../../providers/AuthProvider";
 

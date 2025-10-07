@@ -10,7 +10,7 @@ import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useWorkApprovals } from "@/hooks/work/useWorkApprovals";
-import { useUser } from "@/providers/user";
+import { useUser } from "@/hooks/auth/useUser";
 import { cn } from "@/utils/styles/cn";
 import { CompletedTab } from "./Completed";
 import { PendingTab } from "./Pending";

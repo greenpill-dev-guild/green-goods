@@ -1,6 +1,6 @@
 import browserLang from "browser-lang";
 import { PostHogProvider } from "posthog-js/react";
-import React, { useContext, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useState } from "react";
 import { IntlProvider } from "react-intl";
 
 import enMessages from "@/i18n/en.json";
@@ -90,7 +90,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const platform = getMobileOperatingSystem();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async function handleInstallCheck(e: any) {
+  const handleInstallCheck = useCallback(async (e: any) => {
     e?.preventDefault(); // Prevent the automatic prompt
     setDeferredPrompt(e);
 
@@ -112,21 +112,21 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
       // App was not installed
     }
-  }
+  }, []);
 
-  function handleBeforeInstall(e: Event) {
+  const handleBeforeInstall = useCallback((e: Event) => {
     e.preventDefault();
     setDeferredPrompt(e as BeforeInstallPromptEvent);
-  }
+  }, []);
 
-  function handleAppInstalled() {
+  const handleAppInstalled = useCallback(() => {
     setInstalledState("installed");
     track("App Installed", {
       platform,
       locale,
       installState,
     });
-  }
+  }, [platform, locale, installState]);
 
   function switchLanguage(lang: Locale) {
     setLocale(lang);

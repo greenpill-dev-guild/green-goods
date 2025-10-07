@@ -219,6 +219,12 @@ const CarouselItem = React.forwardRef<
         className
       )}
       onClick={handleClick}
+      onKeyDown={(e) => {
+        if (enablePreview && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          handleClick(e as unknown as React.MouseEvent<HTMLDivElement>);
+        }
+      }}
       {...props}
     >
       {children}

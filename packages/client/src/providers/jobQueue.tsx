@@ -78,7 +78,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
           const newStats = await jobQueue.getStats();
           setStats(newStats);
         }
-      } catch (error) {
+      } catch {
         if (!abortController.signal.aborted) {
           // Error handled by returning empty stats
         }
@@ -206,7 +206,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       abortController.abort(); // Cancel any pending async operations
       unsubscribe();
     };
-  }, []);
+  }, [smartAccountAddress]);
 
   // Removed queue-level sync toasts; provider now handles processing inline
 

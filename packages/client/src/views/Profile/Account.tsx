@@ -55,7 +55,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
       toast.success(
         intl.formatMessage({ id: "app.toast.profileUpdated", defaultMessage: "Profile updated" })
       );
-    } catch (e) {
+    } catch {
       toast.error(
         intl.formatMessage({ id: "app.toast.profileUpdateFailed", defaultMessage: "Update failed" })
       );

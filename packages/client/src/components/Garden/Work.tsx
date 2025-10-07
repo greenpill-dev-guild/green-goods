@@ -79,7 +79,7 @@ const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
         const title = action?.title ?? `Action ${work.actionUID}`;
         const onOpen = useCallback(
           () => navigate(`/home/${work.gardenAddress}/work/${work.id}`),
-          [navigate, work.gardenAddress, work.id]
+          [work.gardenAddress, work.id]
         );
         return (
           <li style={style} className="p-2">

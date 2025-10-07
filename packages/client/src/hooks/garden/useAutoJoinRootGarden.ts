@@ -64,7 +64,7 @@ export function useAutoJoinRootGarden() {
 
       if (smartAccountClient?.account) {
         // Use smart account for passkey authentication
-        await smartAccountClient.sendTransaction({
+        await (smartAccountClient.sendTransaction as any)({
           to: rootGarden.address,
           value: 0n,
           data: encodeFunctionData({

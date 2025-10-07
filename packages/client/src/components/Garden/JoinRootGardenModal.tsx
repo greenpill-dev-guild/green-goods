@@ -11,8 +11,8 @@ export function JoinRootGardenModal() {
         <h2 className="text-2xl font-semibold mb-4">Welcome to Green Goods! 🌱</h2>
 
         <p className="text-gray-700 mb-6">
-          Join the community garden to get started. You'll be able to participate in activities,
-          submit work, and earn rewards.
+          Join the community garden to get started. You&apos;ll be able to participate in
+          activities, submit work, and earn rewards.
         </p>
 
         <div className="flex gap-3">

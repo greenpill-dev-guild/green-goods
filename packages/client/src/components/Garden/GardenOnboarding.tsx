@@ -36,7 +36,7 @@ export function GardenOnboarding({ className }: GardenOnboardingProps) {
       setStep("error");
       setErrorMessage("Missing invite code or garden address");
     }
-  }, [inviteCode, gardenAddress]);
+  }, [inviteCode, gardenAddress, validateInvite]);
 
   const handleCreatePasskeyAndJoin = async () => {
     if (!inviteCode || !gardenAddress) {
@@ -105,7 +105,7 @@ export function GardenOnboarding({ className }: GardenOnboardingProps) {
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Join {gardenName}</h2>
 
           <p className="text-gray-600 mb-6">
-            You've been invited to join a regenerative garden community.
+            You&apos;ve been invited to join a regenerative garden community.
             {!credential
               ? " Create a secure passkey wallet to get started."
               : " Your passkey wallet is ready. Join the garden now!"}
@@ -154,7 +154,7 @@ export function GardenOnboarding({ className }: GardenOnboardingProps) {
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-green-600 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Creating Your Passkey Wallet</h2>
           <p className="text-gray-600">
-            Please follow your browser's prompts to create a secure passkey...
+            Please follow your browser&apos;s prompts to create a secure passkey...
           </p>
         </div>
       </div>
@@ -195,7 +195,7 @@ export function GardenOnboarding({ className }: GardenOnboardingProps) {
 
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome to the Garden! 🌱</h2>
 
-          <p className="text-gray-600 mb-4">You've successfully joined {gardenName}</p>
+          <p className="text-gray-600 mb-4">You&apos;ve successfully joined {gardenName}</p>
 
           {transactionHash && (
             <p className="text-xs text-gray-500 mb-4">

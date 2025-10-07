@@ -74,7 +74,7 @@ export const workProcessor: JobProcessor<WorkJobPayload, EncodedWorkData> = {
         throw new Error("Smart account not initialized");
       }
 
-      const receipt = await smartAccountClient.sendTransaction({
+      const receipt = await (smartAccountClient.sendTransaction as any)({
         to: encoded.easConfig.EAS.address as `0x${string}`,
         value: 0n,
         data: encodedData,
