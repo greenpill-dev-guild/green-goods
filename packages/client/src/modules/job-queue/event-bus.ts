@@ -107,7 +107,8 @@ export function useJobQueueEvent<T extends JobQueueEventType>(
   React.useEffect(() => {
     const unsubscribe = jobQueueEventBus.on(type, listener);
     return unsubscribe;
-  }, deps);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type, listener, ...deps]);
 }
 
 // React hook for using multiple events
@@ -119,7 +120,8 @@ export function useJobQueueEvents<T extends JobQueueEventType>(
   React.useEffect(() => {
     const unsubscribe = jobQueueEventBus.onMultiple(types, listener);
     return unsubscribe;
-  }, deps);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [types, listener, ...deps]);
 }
 
 // Cleanup event bus on page unload

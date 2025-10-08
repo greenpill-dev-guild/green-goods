@@ -189,7 +189,7 @@ export default function Deployment() {
               Deployment Not Available
             </h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              You don't have permission to deploy contracts on this network.
+              You don&apos;t have permission to deploy contracts on this network.
             </p>
           </div>
         )}

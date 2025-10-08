@@ -137,9 +137,15 @@ export function CreateInviteModal({ isOpen, onClose, gardenAddress }: CreateInvi
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Invite Link</label>
+              <label
+                htmlFor="invite-link-input"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Invite Link
+              </label>
               <div className="relative">
                 <input
+                  id="invite-link-input"
                   type="text"
                   value={inviteLink}
                   readOnly
