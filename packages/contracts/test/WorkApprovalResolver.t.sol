@@ -24,6 +24,11 @@ contract WorkApprovalResolverTest is Test {
     address private recipient = address(0x789);
 
     function setUp() public {
+        // Create minimal mock contracts with code (use non-precompile addresses)
+        vm.etch(address(0x1002), hex"00"); // multicallForwarder
+        vm.etch(address(0x1003), hex"00"); // erc6551Registry
+        vm.etch(address(0x1004), hex"00"); // guardian
+        
         // Deploy the mock contracts
         mockIEAS = new MockEAS();
 
@@ -32,7 +37,7 @@ contract WorkApprovalResolverTest is Test {
         ERC1967Proxy actionProxy = new ERC1967Proxy(address(actionImpl), actionInitData);
         mockActionRegistry = ActionRegistry(address(actionProxy));
 
-        mockGardenAccount = new GardenAccount(address(mockIEAS), address(0x002), address(0x003), address(0x004));
+        mockGardenAccount = new GardenAccount(address(mockIEAS), address(0x1002), address(0x1003), address(0x1004));
 
         mockGardenAccount.initialize(
             address(0x555), "Test Garden", "Test Description", "Test Location", "", new address[](0), new address[](0)

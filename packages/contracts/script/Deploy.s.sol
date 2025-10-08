@@ -807,7 +807,7 @@ contract Deploy is Script, DeployHelper {
     function deployDeploymentRegistryWithGovernance(
         address initialOwner,
         address deployer,
-        DeploymentFlags memory flags
+        DeploymentFlags memory /* flags */
     )
         public
         returns (address)
@@ -987,7 +987,7 @@ contract Deploy is Script, DeployHelper {
 
     function deployGardenToken(
         address implementation,
-        address multisig,
+        address /* multisig */,
         address deploymentRegistry,
         bytes32 salt,
         address factory
@@ -1023,7 +1023,7 @@ contract Deploy is Script, DeployHelper {
         return predicted;
     }
 
-    function deployActionRegistry(address multisig, bytes32 salt, address factory) public returns (address) {
+    function deployActionRegistry(address /* multisig */, bytes32 salt, address factory) public returns (address) {
         // Deploy implementation (not deterministic)
         ActionRegistry actionRegistryImpl = new ActionRegistry();
 
@@ -1850,7 +1850,7 @@ contract Deploy is Script, DeployHelper {
 
     function _deploySeedGardens(
         address gardenToken,
-        address deploymentRegistry,
+        address /* deploymentRegistry */,
         address communityToken,
         address gardenAccountImpl
     )
@@ -1925,34 +1925,7 @@ contract Deploy is Script, DeployHelper {
                         revert("Missing IPFS hash for action");
                     }
 
-                    string memory title = abi.decode(vm.parseJson(json, string.concat(basePath, ".title")), (string));
-                    
-                    // Use IPFS hash from upload instead of reading from JSON
-                    string memory instructions = ipfsHashes[i];
-                    
-                    // Parse timestamps
-                    string memory startTimeStr = abi.decode(vm.parseJson(json, string.concat(basePath, ".startTime")), (string));
-                    string memory endTimeStr = abi.decode(vm.parseJson(json, string.concat(basePath, ".endTime")), (string));
-                    
-                    // Convert ISO timestamps to Unix timestamps
-                    uint256 startTime = _parseISOTimestamp(startTimeStr);
-                    uint256 endTime = _parseISOTimestamp(endTimeStr);
-
-                    // Parse capitals
-                    string[] memory capitalStrings =
-                        abi.decode(vm.parseJson(json, string.concat(basePath, ".capitals")), (string[]));
-                    Capital[] memory capitals = new Capital[](capitalStrings.length);
-                    for (uint256 j = 0; j < capitalStrings.length; j++) {
-                        capitals[j] = _parseCapital(capitalStrings[j]);
-                    }
-
-                    // Parse media (empty for now, can be updated later)
-                    string[] memory media = abi.decode(vm.parseJson(json, string.concat(basePath, ".media")), (string[]));
-
-                    ActionRegistry(actionRegistry).registerAction(startTime, endTime, title, instructions, capitals, media);
-
-                    console.log("[OK] Deployed action:", title);
-                    console.log("   Instructions IPFS:", instructions);
+                    _parseSingleAction(json, basePath, i, ipfsHashes[i], actionRegistry);
                     actionCount++;
                 } catch {
                     // No more actions
@@ -1967,9 +1940,53 @@ contract Deploy is Script, DeployHelper {
         }
     }
 
+    /// @notice Helper function to parse and register a single action
+    function _parseSingleAction(
+        string memory json,
+        string memory basePath,
+        uint256 index,
+        string memory ipfsHash,
+        address actionRegistry
+    ) internal {
+        string memory title = abi.decode(vm.parseJson(json, string.concat(basePath, ".title")), (string));
+        
+        // Use IPFS hash from upload instead of reading from JSON
+        string memory instructions = ipfsHash;
+        
+        // Parse and convert timestamps
+        uint256 startTime = _parseISOTimestamp(
+            abi.decode(vm.parseJson(json, string.concat(basePath, ".startTime")), (string))
+        );
+        uint256 endTime = _parseISOTimestamp(
+            abi.decode(vm.parseJson(json, string.concat(basePath, ".endTime")), (string))
+        );
+
+        // Parse capitals
+        string[] memory capitalStrings =
+            abi.decode(vm.parseJson(json, string.concat(basePath, ".capitals")), (string[]));
+        Capital[] memory capitals = _parseCapitalsArray(capitalStrings);
+
+        // Parse media
+        string[] memory media = abi.decode(vm.parseJson(json, string.concat(basePath, ".media")), (string[]));
+
+        ActionRegistry(actionRegistry).registerAction(startTime, endTime, title, instructions, capitals, media);
+
+        console.log("[OK] Deployed action:", title);
+        console.log("   Instructions IPFS:", instructions);
+    }
+
+    /// @notice Helper function to parse an array of capital strings
+    function _parseCapitalsArray(string[] memory capitalStrings) internal pure returns (Capital[] memory) {
+        Capital[] memory capitals = new Capital[](capitalStrings.length);
+        for (uint256 j = 0; j < capitalStrings.length; j++) {
+            capitals[j] = _parseCapital(capitalStrings[j]);
+        }
+        return capitals;
+    }
+
     /// @notice Parse ISO 8601 timestamp to Unix timestamp
     /// @dev Simplified parser for YYYY-MM-DDTHH:MM:SSZ format
-    function _parseISOTimestamp(string memory isoTimestamp) internal pure returns (uint256) {
+    function _parseISOTimestamp(string memory isoTimestamp) internal view returns (uint256) {
         // For simplicity, use fixed timestamps for now
         // TODO: Implement proper ISO 8601 parsing if needed
         // For 2024-01-01T00:00:00Z -> 1704067200

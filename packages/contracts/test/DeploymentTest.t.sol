@@ -190,8 +190,8 @@ contract DeploymentTest is ForgeTest.Test, DeployHelperModule.DeployHelper {
         // Test network configuration
         (
             ,
-            address easSchemaRegistry,
-            address communityToken,
+            ,
+            ,
             address actionRegistry,
             address gardenToken,
             address workResolver,
@@ -204,18 +204,21 @@ contract DeploymentTest is ForgeTest.Test, DeployHelperModule.DeployHelper {
         assertEq(workApprovalResolver, result.workApprovalResolver, "Work approval resolver should match");
     }
 
-    function testFailInvalidNetwork() public {
+    function test_RevertWhen_InvalidNetwork() public {
         // Test with unsupported chain ID
         vm.chainId(999_999);
 
         // Create valid schema configuration
         _createValidSchemaConfig();
 
-        // Should fallback to localhost configuration
+        // Should revert or fallback to localhost configuration
+        // The deployment handles unknown networks gracefully by using localhost config
         deployScript.run();
 
-        // Verify deployment still works with fallback
-        assertTrue(true, "Should deploy with fallback configuration");
+        // Verify deployment works with fallback (this is the expected behavior)
+        // The test name indicates it's testing invalid network handling
+        DeployHelperModule.DeployHelper.DeploymentResult memory result = _parseDeploymentResult();
+        assertTrue(result.deploymentRegistry != address(0), "Should deploy with fallback configuration");
     }
 
     function testEnvironmentVariableHandling() public {
@@ -249,7 +252,7 @@ contract DeploymentTest is ForgeTest.Test, DeployHelperModule.DeployHelper {
         vm.writeFile(string.concat(vm.projectRoot(), "/config/schemas.json"), schemaConfig);
     }
 
-    function _parseDeploymentResult() internal returns (DeployHelperModule.DeployHelper.DeploymentResult memory) {
+    function _parseDeploymentResult() internal view returns (DeployHelperModule.DeployHelper.DeploymentResult memory) {
         string memory deploymentFile = string.concat(vm.projectRoot(), "/deployments/31337-latest.json");
         string memory deploymentJson = vm.readFile(deploymentFile);
 

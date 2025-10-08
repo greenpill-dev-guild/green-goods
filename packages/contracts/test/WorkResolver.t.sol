@@ -24,13 +24,19 @@ contract WorkResolverTest is Test {
     address private recipient = address(0x787);
 
     function setUp() public {
+        // Create minimal mock contracts with code (use non-precompile addresses)
+        vm.etch(address(0x1021), hex"00"); // erc4337EntryPoint
+        vm.etch(address(0x1022), hex"00"); // multicallForwarder
+        vm.etch(address(0x1023), hex"00"); // erc6551Registry
+        vm.etch(address(0x1024), hex"00"); // guardian
+        
         // Deploy the mock contracts
         ActionRegistry actionImpl = new ActionRegistry();
         bytes memory actionInitData = abi.encodeWithSelector(ActionRegistry.initialize.selector, multisig);
         ERC1967Proxy actionProxy = new ERC1967Proxy(address(actionImpl), actionInitData);
         mockActionRegistry = ActionRegistry(address(actionProxy));
 
-        mockGardenAccount = new GardenAccount(address(0x021), address(0x022), address(0x023), address(0x024));
+        mockGardenAccount = new GardenAccount(address(0x1021), address(0x1022), address(0x1023), address(0x1024));
         mockIEAS = new MockEAS();
 
         mockGardenAccount.initialize(

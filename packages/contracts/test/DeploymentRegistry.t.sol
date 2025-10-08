@@ -1,0 +1,223 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.25;
+
+import { Test, console } from "forge-std/Test.sol";
+import { DeploymentRegistry } from "../src/DeploymentRegistry.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+
+contract DeploymentRegistryTest is Test {
+    DeploymentRegistry public registry;
+    address public owner;
+    address public allowedUser;
+    address public unauthorizedUser;
+
+    event NetworkConfigUpdated(uint256 indexed chainId, DeploymentRegistry.NetworkConfig config);
+    event AllowlistAdded(address indexed account);
+    event AllowlistRemoved(address indexed account);
+
+    function setUp() public {
+        owner = address(this);
+        allowedUser = address(0x1);
+        unauthorizedUser = address(0x2);
+
+        // Deploy implementation
+        DeploymentRegistry impl = new DeploymentRegistry();
+        
+        // Deploy with proxy pattern
+        bytes memory initData = abi.encodeWithSelector(DeploymentRegistry.initialize.selector, owner);
+        address proxyAddr = address(new ERC1967Proxy(address(impl), initData));
+        registry = DeploymentRegistry(proxyAddr);
+    }
+
+    function testInitialization() public {
+        assertEq(registry.owner(), owner, "Owner should be set correctly");
+    }
+
+    function testSetNetworkConfig() public {
+        uint256 chainId = 1;
+        DeploymentRegistry.NetworkConfig memory config = DeploymentRegistry.NetworkConfig({
+            eas: address(0x10),
+            easSchemaRegistry: address(0x11),
+            communityToken: address(0x12),
+            actionRegistry: address(0x13),
+            gardenToken: address(0x14),
+            workResolver: address(0x15),
+            workApprovalResolver: address(0x16)
+        });
+
+        vm.expectEmit(true, true, true, true);
+        emit NetworkConfigUpdated(chainId, config);
+        
+        registry.setNetworkConfig(chainId, config);
+
+        DeploymentRegistry.NetworkConfig memory retrieved = registry.getNetworkConfigForChain(chainId);
+        assertEq(retrieved.eas, config.eas, "EAS address should match");
+        assertEq(retrieved.actionRegistry, config.actionRegistry, "ActionRegistry should match");
+    }
+
+    function testAddToAllowlist() public {
+        assertFalse(registry.isInAllowlist(allowedUser), "User should not be in allowlist initially");
+
+        vm.expectEmit(true, false, false, false);
+        emit AllowlistAdded(allowedUser);
+        
+        registry.addToAllowlist(allowedUser);
+        
+        assertTrue(registry.isInAllowlist(allowedUser), "User should be in allowlist after adding");
+    }
+
+    function testRemoveFromAllowlist() public {
+        registry.addToAllowlist(allowedUser);
+        assertTrue(registry.isInAllowlist(allowedUser), "User should be in allowlist");
+
+        vm.expectEmit(true, false, false, false);
+        emit AllowlistRemoved(allowedUser);
+        
+        registry.removeFromAllowlist(allowedUser);
+        
+        assertFalse(registry.isInAllowlist(allowedUser), "User should not be in allowlist after removal");
+    }
+
+    function test_RevertWhen_UnauthorizedSetNetworkConfig() public {
+        uint256 chainId = 1;
+        DeploymentRegistry.NetworkConfig memory config = DeploymentRegistry.NetworkConfig({
+            eas: address(0x10),
+            easSchemaRegistry: address(0x11),
+            communityToken: address(0x12),
+            actionRegistry: address(0x13),
+            gardenToken: address(0x14),
+            workResolver: address(0x15),
+            workApprovalResolver: address(0x16)
+        });
+
+        vm.prank(unauthorizedUser);
+        vm.expectRevert();
+        registry.setNetworkConfig(chainId, config);
+    }
+
+    function test_RevertWhen_UnauthorizedAddToAllowlist() public {
+        vm.prank(unauthorizedUser);
+        vm.expectRevert();
+        registry.addToAllowlist(allowedUser);
+    }
+
+    function testGetNetworkConfigForCurrentChain() public {
+        uint256 currentChain = block.chainid;
+        DeploymentRegistry.NetworkConfig memory config = DeploymentRegistry.NetworkConfig({
+            eas: address(0x20),
+            easSchemaRegistry: address(0x21),
+            communityToken: address(0x22),
+            actionRegistry: address(0x23),
+            gardenToken: address(0x24),
+            workResolver: address(0x25),
+            workApprovalResolver: address(0x26)
+        });
+
+        registry.setNetworkConfig(currentChain, config);
+        
+        DeploymentRegistry.NetworkConfig memory retrieved = registry.getNetworkConfig();
+        assertEq(retrieved.eas, config.eas, "Should get config for current chain");
+    }
+
+    function testMultipleChainConfigurations() public {
+        DeploymentRegistry.NetworkConfig memory config1 = DeploymentRegistry.NetworkConfig({
+            eas: address(0x30),
+            easSchemaRegistry: address(0x31),
+            communityToken: address(0x32),
+            actionRegistry: address(0x33),
+            gardenToken: address(0x34),
+            workResolver: address(0x35),
+            workApprovalResolver: address(0x36)
+        });
+
+        DeploymentRegistry.NetworkConfig memory config2 = DeploymentRegistry.NetworkConfig({
+            eas: address(0x40),
+            easSchemaRegistry: address(0x41),
+            communityToken: address(0x42),
+            actionRegistry: address(0x43),
+            gardenToken: address(0x44),
+            workResolver: address(0x45),
+            workApprovalResolver: address(0x46)
+        });
+
+        registry.setNetworkConfig(1, config1);
+        registry.setNetworkConfig(137, config2);
+
+        DeploymentRegistry.NetworkConfig memory retrieved1 = registry.getNetworkConfigForChain(1);
+        DeploymentRegistry.NetworkConfig memory retrieved2 = registry.getNetworkConfigForChain(137);
+
+        assertEq(retrieved1.eas, config1.eas, "Chain 1 config should match");
+        assertEq(retrieved2.eas, config2.eas, "Chain 137 config should match");
+    }
+
+    function testAllowlistCanSetConfig() public {
+        registry.addToAllowlist(allowedUser);
+
+        uint256 chainId = 1;
+        DeploymentRegistry.NetworkConfig memory config = DeploymentRegistry.NetworkConfig({
+            eas: address(0x50),
+            easSchemaRegistry: address(0x51),
+            communityToken: address(0x52),
+            actionRegistry: address(0x53),
+            gardenToken: address(0x54),
+            workResolver: address(0x55),
+            workApprovalResolver: address(0x56)
+        });
+
+        vm.prank(allowedUser);
+        registry.setNetworkConfig(chainId, config);
+
+        DeploymentRegistry.NetworkConfig memory retrieved = registry.getNetworkConfigForChain(chainId);
+        assertEq(retrieved.eas, config.eas, "Allowlisted user should be able to set config");
+    }
+
+    function testGovernanceTransfer() public {
+        address newOwner = address(0x99);
+        
+        registry.initiateGovernanceTransfer(newOwner);
+        assertEq(registry.pendingOwner(), newOwner, "Pending owner should be set");
+        
+        vm.prank(newOwner);
+        registry.acceptGovernanceTransfer();
+        
+        assertEq(registry.owner(), newOwner, "Ownership should be transferred");
+    }
+
+    function testBatchAddToAllowlist() public {
+        address[] memory accounts = new address[](3);
+        accounts[0] = address(0x10);
+        accounts[1] = address(0x20);
+        accounts[2] = address(0x30);
+
+        registry.batchAddToAllowlist(accounts);
+
+        assertTrue(registry.isInAllowlist(accounts[0]), "First account should be in allowlist");
+        assertTrue(registry.isInAllowlist(accounts[1]), "Second account should be in allowlist");
+        assertTrue(registry.isInAllowlist(accounts[2]), "Third account should be in allowlist");
+    }
+
+    function testAllowlistLength() public {
+        assertEq(registry.allowlistLength(), 0, "Allowlist should be empty initially");
+
+        registry.addToAllowlist(address(0x10));
+        assertEq(registry.allowlistLength(), 1, "Allowlist should have 1 address");
+
+        registry.addToAllowlist(address(0x20));
+        assertEq(registry.allowlistLength(), 2, "Allowlist should have 2 addresses");
+    }
+
+    function testGetAllowlist() public {
+        address[] memory expected = new address[](2);
+        expected[0] = address(0x10);
+        expected[1] = address(0x20);
+
+        registry.addToAllowlist(expected[0]);
+        registry.addToAllowlist(expected[1]);
+
+        address[] memory actual = registry.getAllowlist();
+        assertEq(actual.length, 2, "Should return 2 addresses");
+        assertEq(actual[0], expected[0], "First address should match");
+        assertEq(actual[1], expected[1], "Second address should match");
+    }
+}
+

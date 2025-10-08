@@ -6,6 +6,8 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 
 import { GardenToken } from "../src/tokens/Garden.sol";
 import { GardenAccount } from "../src/accounts/Garden.sol";
+import { MockERC20 } from "../src/mocks/ERC20.sol";
+import { MockNonERC20 } from "../src/mocks/NonERC20.sol";
 
 contract GardenTokenTest is Test {
     GardenToken private gardenToken;
@@ -19,6 +21,8 @@ contract GardenTokenTest is Test {
         )
     );
     address private owner = address(this);
+    MockERC20 private mockToken;
+    MockNonERC20 private mockNonERC20;
 
     function setUp() public {
         // Deploy the implementation
@@ -30,11 +34,162 @@ contract GardenTokenTest is Test {
 
         // Cast proxy to GardenToken interface
         gardenToken = GardenToken(address(proxy));
+
+        // Deploy mock tokens
+        mockToken = new MockERC20();
+        mockNonERC20 = new MockNonERC20();
     }
 
     function testInitialize() public {
         // Test that the contract is properly initialized
         assertEq(gardenToken.owner(), multisig, "Owner should be the multisig address");
+    }
+
+    // ERC-20 Validation Tests
+
+    function testMintGarden_RevertsWithZeroAddressToken() public {
+        address[] memory gardeners = new address[](0);
+        address[] memory gardenOperators = new address[](0);
+
+        vm.prank(multisig);
+        vm.expectRevert(GardenToken.InvalidCommunityToken.selector);
+        gardenToken.mintGarden(
+            address(0), // Zero address
+            "Test Garden",
+            "Description",
+            "Location",
+            "Banner",
+            gardeners,
+            gardenOperators
+        );
+    }
+
+    function testMintGarden_RevertsWithEOA() public {
+        address[] memory gardeners = new address[](0);
+        address[] memory gardenOperators = new address[](0);
+        address eoa = address(0x999); // EOA with no code
+
+        vm.prank(multisig);
+        vm.expectRevert(GardenToken.CommunityTokenNotContract.selector);
+        gardenToken.mintGarden(
+            eoa,
+            "Test Garden",
+            "Description",
+            "Location",
+            "Banner",
+            gardeners,
+            gardenOperators
+        );
+    }
+
+    function testMintGarden_RevertsWithNonERC20Contract() public {
+        address[] memory gardeners = new address[](0);
+        address[] memory gardenOperators = new address[](0);
+
+        vm.prank(multisig);
+        vm.expectRevert(GardenToken.InvalidERC20Token.selector);
+        gardenToken.mintGarden(
+            address(mockNonERC20),
+            "Test Garden",
+            "Description",
+            "Location",
+            "Banner",
+            gardeners,
+            gardenOperators
+        );
+    }
+
+    function testMintGarden_SucceedsWithValidERC20() public {
+        address[] memory gardeners = new address[](1);
+        address[] memory gardenOperators = new address[](1);
+        gardeners[0] = address(0x1);
+        gardenOperators[0] = address(0x2);
+
+        vm.prank(multisig);
+        address gardenAccount = gardenToken.mintGarden(
+            address(mockToken),
+            "Test Garden",
+            "Description",
+            "Location",
+            "Banner",
+            gardeners,
+            gardenOperators
+        );
+
+        // Verify the garden was created
+        assertTrue(gardenAccount != address(0), "Garden account should be created");
+        assertEq(gardenToken.ownerOf(0), multisig, "Token should be minted to multisig");
+    }
+
+    function testBatchMintGardens_RevertsWithInvalidToken() public {
+        GardenToken.GardenConfig[] memory configs = new GardenToken.GardenConfig[](2);
+
+        address[] memory gardeners = new address[](0);
+        address[] memory gardenOperators = new address[](0);
+
+        // First config with valid token
+        configs[0] = GardenToken.GardenConfig({
+            communityToken: address(mockToken),
+            name: "Garden 1",
+            description: "Description 1",
+            location: "Location 1",
+            bannerImage: "Banner 1",
+            gardeners: gardeners,
+            gardenOperators: gardenOperators
+        });
+
+        // Second config with invalid token (zero address)
+        configs[1] = GardenToken.GardenConfig({
+            communityToken: address(0),
+            name: "Garden 2",
+            description: "Description 2",
+            location: "Location 2",
+            bannerImage: "Banner 2",
+            gardeners: gardeners,
+            gardenOperators: gardenOperators
+        });
+
+        vm.prank(multisig);
+        vm.expectRevert(GardenToken.InvalidCommunityToken.selector);
+        gardenToken.batchMintGardens(configs);
+    }
+
+    function testBatchMintGardens_SucceedsWithValidTokens() public {
+        GardenToken.GardenConfig[] memory configs = new GardenToken.GardenConfig[](2);
+
+        address[] memory gardeners = new address[](0);
+        address[] memory gardenOperators = new address[](0);
+
+        // Both configs with valid token
+        configs[0] = GardenToken.GardenConfig({
+            communityToken: address(mockToken),
+            name: "Garden 1",
+            description: "Description 1",
+            location: "Location 1",
+            bannerImage: "Banner 1",
+            gardeners: gardeners,
+            gardenOperators: gardenOperators
+        });
+
+        configs[1] = GardenToken.GardenConfig({
+            communityToken: address(mockToken),
+            name: "Garden 2",
+            description: "Description 2",
+            location: "Location 2",
+            bannerImage: "Banner 2",
+            gardeners: gardeners,
+            gardenOperators: gardenOperators
+        });
+
+        vm.prank(multisig);
+        address[] memory gardenAccounts = gardenToken.batchMintGardens(configs);
+
+        // Verify both gardens were created
+        assertEq(gardenAccounts.length, 2, "Should create 2 gardens");
+        assertTrue(gardenAccounts[0] != address(0), "First garden should be created");
+        assertTrue(gardenAccounts[1] != address(0), "Second garden should be created");
+        assertEq(gardenToken.ownerOf(0), multisig, "First token should be minted");
+        assertEq(gardenToken.ownerOf(1), multisig, "Second token should be minted");
     }
 
     // function testMintGarden() public {

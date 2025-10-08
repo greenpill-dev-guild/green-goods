@@ -4,6 +4,7 @@ pragma solidity >=0.8.25;
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { ERC721Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import { TBALib } from "../lib/TBA.sol";
 import { GardenAccount } from "../accounts/Garden.sol";
@@ -67,6 +68,12 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     error DeploymentRegistryNotConfigured();
     /// @notice Error thrown when invalid batch size is provided
     error InvalidBatchSize();
+    /// @notice Error thrown when community token address is zero
+    error InvalidCommunityToken();
+    /// @notice Error thrown when community token address is not a contract
+    error CommunityTokenNotContract();
+    /// @notice Error thrown when community token does not implement ERC-20 interface
+    error InvalidERC20Token();
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     /// @param gardenAccountImplementation The address of the Garden account implementation.
@@ -131,6 +138,9 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         onlyAuthorizedMinter
         returns (address)
     {
+        // Validate community token early for better error messages
+        _validateCommunityToken(communityToken);
+
         uint256 tokenId = _nextTokenId++;
         _safeMint(_msgSender(), tokenId);
 
@@ -156,6 +166,14 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         uint256 configsLength = configs.length;
         if (configsLength == 0 || configsLength > 10) {
             revert InvalidBatchSize();
+        }
+
+        // Validate all community tokens upfront for fail-fast behavior
+        for (uint256 i = 0; i < configsLength;) {
+            _validateCommunityToken(configs[i].communityToken);
+            unchecked {
+                ++i;
+            }
         }
 
         gardenAccounts = new address[](configsLength);
@@ -201,6 +219,30 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         }
 
         emit BatchGardensMinted(startTokenId, _nextTokenId - 1, _msgSender(), configsLength);
+    }
+
+    /// @notice Validates that the provided address is a valid ERC-20 token contract
+    /// @dev Checks: non-zero address, has contract code, implements ERC-20 totalSupply
+    /// @param token The token address to validate
+    function _validateCommunityToken(address token) private view {
+        // Check non-zero address
+        if (token == address(0)) {
+            revert InvalidCommunityToken();
+        }
+
+        // Check that address contains contract code
+        if (token.code.length == 0) {
+            revert CommunityTokenNotContract();
+        }
+
+        // Attempt to call totalSupply() to verify it's an ERC-20
+        // This provides a basic sanity check without requiring full interface compliance
+        try IERC20(token).totalSupply() returns (uint256) {
+            // Success - the contract implements at least the totalSupply function
+            // This is a good indicator it's an ERC-20 token
+        } catch {
+            revert InvalidERC20Token();
+        }
     }
 
     /// @notice Authorizes contract upgrades.

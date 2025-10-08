@@ -11,12 +11,19 @@ contract GardenAccountTest is Test {
     address private multisig = address(0x123);
 
     function setUp() public {
+        // Deploy mock contracts with code to prevent revert
+        // Use non-precompile addresses (above 0x09)
+        vm.etch(address(0x1001), hex"00"); // erc4337EntryPoint
+        vm.etch(address(0x1002), hex"00"); // multicallForwarder  
+        vm.etch(address(0x1003), hex"00"); // erc6551Registry
+        vm.etch(address(0x1004), hex"00"); // guardian
+        
         // Deploy the GardenAccount contract
         gardenAccount = new GardenAccount(
-            address(0x001), // erc4337EntryPoint
-            address(0x002), // multicallForwarder
-            address(0x003), // erc6551Registry
-            address(0x004) // guardian
+            address(0x1001), // erc4337EntryPoint
+            address(0x1002), // multicallForwarder
+            address(0x1003), // erc6551Registry
+            address(0x1004) // guardian
         );
 
         // Initialize the contract

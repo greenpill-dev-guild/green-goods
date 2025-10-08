@@ -293,7 +293,7 @@ async function main() {
 
         // Try to use cache if available
         if (cache[cacheKey] && cache[cacheKey].hash) {
-          console.error(`Using cached hash as fallback`, { toStderr: true });
+          console.error("Using cached hash as fallback", { toStderr: true });
           ipfsHashes.push(cache[cacheKey].hash);
         } else {
           console.error("Error: Upload failed and no cache available", { toStderr: true });

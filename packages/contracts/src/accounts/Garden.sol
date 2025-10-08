@@ -3,6 +3,7 @@ pragma solidity >=0.8.25;
 
 import { AccountV3Upgradable } from "@tokenbound/AccountV3Upgradable.sol";
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 // import { Action } from "../registries/Action.sol";
 
@@ -14,6 +15,9 @@ error InvalidInvite();
 error InviteAlreadyUsed();
 error InviteExpired();
 error AlreadyGardener();
+error InvalidCommunityToken();
+error CommunityTokenNotContract();
+error InvalidERC20Token();
 
 /// @title GardenAccount Contract
 /// @notice Manages gardeners and operators for a Garden, and supports community token management.
@@ -153,6 +157,9 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         external
         initializer
     {
+        // Validate community token is a valid ERC-20
+        _validateCommunityToken(_communityToken);
+
         communityToken = _communityToken;
         name = _name;
         description = _description;
@@ -290,6 +297,30 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
 
         gardeners[_msgSender()] = true;
         emit GardenerAdded(address(this), _msgSender());
+    }
+
+    /// @notice Validates that the provided address is a valid ERC-20 token contract
+    /// @dev Checks: non-zero address, has contract code, implements ERC-20 totalSupply
+    /// @param _token The token address to validate
+    function _validateCommunityToken(address _token) private view {
+        // Check non-zero address
+        if (_token == address(0)) {
+            revert InvalidCommunityToken();
+        }
+
+        // Check that address contains contract code
+        if (_token.code.length == 0) {
+            revert CommunityTokenNotContract();
+        }
+
+        // Attempt to call totalSupply() to verify it's an ERC-20
+        // This provides a basic sanity check without requiring full interface compliance
+        try IERC20(_token).totalSupply() returns (uint256) {
+            // Success - the contract implements at least the totalSupply function
+            // This is a good indicator it's an ERC-20 token
+        } catch {
+            revert InvalidERC20Token();
+        }
     }
 
     /// @notice Storage gap for upgradeable contract
