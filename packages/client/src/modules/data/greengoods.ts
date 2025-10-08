@@ -1,7 +1,4 @@
 import { DEFAULT_CHAIN_ID } from "@/config/blockchain";
-import litterActionInstructions from "@/utils/actions/litter.json";
-import observerActionInstructions from "@/utils/actions/observe.json";
-import plantActionInstructions from "@/utils/actions/plant.json";
 import { greenGoodsGraphQL } from "./graphql";
 import { getFileByHash } from "./pinata";
 import { greenGoodsIndexer } from "./urql";
@@ -15,17 +12,6 @@ export enum Capital {
   EXPERIENTIAL = 5,
   SPIRITUAL = 6,
   CULTURAL = 7,
-}
-
-function getActionInstructions(title: string) {
-  switch (title.toLowerCase()) {
-    case "identify plants":
-      return observerActionInstructions;
-    case "plant seedlings":
-      return plantActionInstructions;
-    case "litter cleanup":
-      return litterActionInstructions;
-  }
 }
 
 export async function getActions(): Promise<Action[]> {
@@ -54,35 +40,58 @@ export async function getActions(): Promise<Action[]> {
     if (!data || !data.Action || !Array.isArray(data.Action)) return [];
 
     return await Promise.all(
-      data.Action.map(async ({ id, title, startTime, endTime, capitals, media, createdAt }) => {
-        const image =
-          media && media.length > 0
-            ? await getFileByHash(media[0])
-                .then((res) => res)
-                .catch(() => null)
-            : null;
+      data.Action.map(
+        async ({ id, title, startTime, endTime, capitals, media, instructions, createdAt }) => {
+          // Fetch image from first media item
+          const image =
+            media && media.length > 0
+              ? await getFileByHash(media[0])
+                  .then((res) => res)
+                  .catch(() => null)
+              : null;
 
-        const mediaImage = image
-          ? URL.createObjectURL(image.data as Blob)
-          : "/images/no-image-placeholder.png";
+          const mediaImage = image
+            ? URL.createObjectURL(image.data as Blob)
+            : "/images/no-image-placeholder.png";
 
-        const instructions = getActionInstructions(title);
+          // Fetch action instructions from IPFS using existing pinata module
+          let actionConfig: any = null;
+          try {
+            if (instructions) {
+              const configData = await getFileByHash(instructions);
+              // Parse the data as JSON
+              if (typeof configData.data === "string") {
+                actionConfig = JSON.parse(configData.data);
+              } else if (configData.data instanceof Blob) {
+                const text = await configData.data.text();
+                actionConfig = JSON.parse(text);
+              } else {
+                actionConfig = configData.data;
+              }
+            }
+          } catch (error) {
+            console.error(`Failed to fetch instructions for action ${id}:`, error);
+          }
 
-        return {
-          id, // composite id stays for uniqueness but downstream selection matches numeric UID
-          title,
-          startTime: startTime ? (startTime as number) * 1000 : Date.now(),
-          endTime: endTime ? (endTime as number) * 1000 : Date.now() + 365 * 24 * 60 * 60 * 1000, // Default to 1 year from now
-          capitals: capitals as Capital[],
-          media: [mediaImage],
-          description: "",
-          inputs: instructions?.details.inputs as WorkInput[],
-          mediaInfo: instructions?.media,
-          details: instructions?.details,
-          review: instructions?.review,
-          createdAt: createdAt ? (createdAt as number) * 1000 : Date.now(),
-        };
-      })
+          return {
+            id, // composite id stays for uniqueness but downstream selection matches numeric UID
+            title,
+            startTime: startTime ? (startTime as number) * 1000 : Date.now(),
+            endTime: endTime ? (endTime as number) * 1000 : Date.now() + 365 * 24 * 60 * 60 * 1000, // Default to 1 year from now
+            capitals: capitals as Capital[],
+            media: [mediaImage],
+            description: actionConfig?.description || "",
+            inputs: (actionConfig?.uiConfig?.details?.inputs as WorkInput[]) || [],
+            mediaInfo: actionConfig?.uiConfig?.media || {
+              title: "Capture Media",
+              maxImageCount: 5,
+            },
+            details: actionConfig?.uiConfig?.details || { title: "Details", inputs: [] },
+            review: actionConfig?.uiConfig?.review || { title: "Review", description: "" },
+            createdAt: createdAt ? (createdAt as number) * 1000 : Date.now(),
+          };
+        }
+      )
     );
   } catch {
     return [];
