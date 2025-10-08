@@ -4,26 +4,22 @@
   "private": true,
   "description": "Contracts for Green Goods Protocol",
   "scripts": {
-    "// === Core Development ===": "",
     "dev": "anvil --config-out localhost.json",
     "lint": "forge fmt && solhint --config ./.solhint.json 'src/**/*.sol' 'script/**/*.sol' 'test/**/*.sol' --fix",
     "build": "forge build --via-ir",
     "test": "pnpm build && forge test --gas-report",
 
-    "// === Deployment ===": "",
     "deploy": "node script/deploy.js core",
     "deploy:local": "node script/deploy.js core --network localhost --broadcast",
+    "deploy:dryrun": "node script/deploy.js core --network baseSepolia",
     "deploy:testnet": "node script/deploy.js core --network baseSepolia --broadcast --verify",
     "deploy:arbitrum": "node script/deploy.js core --network arbitrum --broadcast --verify --profile production",
     "deploy:celo": "node script/deploy.js core --network celo --broadcast --verify --profile production",
 
-    "// === Upgrades ===": "",
     "upgrade": "node script/upgrade.js",
 
-    "// === Actions ===": "",
     "action": "node script/action-manager.js",
 
-    "// === Utilities ===": "",
     "fork": "node script/deploy.js fork",
     "status": "node script/deploy.js status",
     "envio:local": "node script/utils/envio-integration.js enable-local",

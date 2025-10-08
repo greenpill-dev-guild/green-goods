@@ -3,10 +3,10 @@ pragma solidity ^0.8.25;
 
 import "forge-std/Test.sol" as ForgeTest;
 import "../script/Deploy.s.sol" as DeployScript;
-import "../script/helpers/DeploymentHelper.sol" as DeploymentHelperModule;
+import "../script/DeployHelper.sol" as DeployHelperModule;
 import { DeploymentRegistry } from "../src/DeploymentRegistry.sol";
 
-contract DeploymentTest is ForgeTest.Test, DeploymentHelperModule.DeploymentHelper {
+contract DeploymentTest is ForgeTest.Test, DeployHelperModule.DeployHelper {
     DeployScript.Deploy private deployScript;
     address private deployer;
 
@@ -113,10 +113,10 @@ contract DeploymentTest is ForgeTest.Test, DeploymentHelperModule.DeploymentHelp
 
         // Run deployment twice
         deployScript.run();
-        DeploymentHelperModule.DeploymentHelper.DeploymentResult memory firstDeployment = _parseDeploymentResult();
+        DeployHelperModule.DeployHelper.DeploymentResult memory firstDeployment = _parseDeploymentResult();
 
         deployScript.run();
-        DeploymentHelperModule.DeploymentHelper.DeploymentResult memory secondDeployment = _parseDeploymentResult();
+        DeployHelperModule.DeployHelper.DeploymentResult memory secondDeployment = _parseDeploymentResult();
 
         // Verify addresses are the same (idempotent)
         assertEq(firstDeployment.deploymentRegistry, secondDeployment.deploymentRegistry);
@@ -182,7 +182,7 @@ contract DeploymentTest is ForgeTest.Test, DeploymentHelperModule.DeploymentHelp
         deployScript.run();
 
         // Parse deployment result
-        DeploymentHelperModule.DeploymentHelper.DeploymentResult memory result = _parseDeploymentResult();
+        DeployHelperModule.DeployHelper.DeploymentResult memory result = _parseDeploymentResult();
 
         // Verify deployment registry is properly configured
         DeploymentRegistry registry = DeploymentRegistry(result.deploymentRegistry);
@@ -249,11 +249,11 @@ contract DeploymentTest is ForgeTest.Test, DeploymentHelperModule.DeploymentHelp
         vm.writeFile(string.concat(vm.projectRoot(), "/config/schemas.json"), schemaConfig);
     }
 
-    function _parseDeploymentResult() internal returns (DeploymentHelperModule.DeploymentHelper.DeploymentResult memory) {
+    function _parseDeploymentResult() internal returns (DeployHelperModule.DeployHelper.DeploymentResult memory) {
         string memory deploymentFile = string.concat(vm.projectRoot(), "/deployments/31337-latest.json");
         string memory deploymentJson = vm.readFile(deploymentFile);
 
-        return DeploymentHelperModule.DeploymentHelper.DeploymentResult({
+        return DeployHelperModule.DeployHelper.DeploymentResult({
             deploymentRegistry: abi.decode(vm.parseJson(deploymentJson, ".deploymentRegistry"), (address)),
             guardian: abi.decode(vm.parseJson(deploymentJson, ".guardian"), (address)),
             gardenAccountImpl: abi.decode(vm.parseJson(deploymentJson, ".gardenAccountImpl"), (address)),

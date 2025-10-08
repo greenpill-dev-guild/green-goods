@@ -1,15 +1,19 @@
 {
-  "accountProxy": "0xf5C7bC1A7C3516Da93eE9DfBc7d159c499361423",
-  "actionRegistry": "0x513cA706447B0E59aAB0DaB0a176419a453B9972",
-  "assessmentResolver": "0x7d80f7a6b6477208eF94d1Fd87AA8d52798B09C4",
-  "deploymentRegistry": "0x7FA9385bE102ac3EAc297483Dd6233D62b3e1496",
+  "accountProxy": "0x8DD721eFBF3ac753138d35130Ce1b16ec55ACAB7",
+  "actionRegistry": "0x3c18ED41276180b73D4c3458503CDDe97db6dD43",
+  "assessmentResolver": "0xAF7b5152EdBd7AC9a02d5DCB2aCD5ED15C800535",
+  "deploymentRegistry": "0xB6a87fFAE991E3A194430575af1b92afD76f7326",
   "eas": {
     "address": "0x4200000000000000000000000000000000000021",
     "schemaRegistry": "0x4200000000000000000000000000000000000020"
   },
-  "gardenAccountImpl": "0x7653a4faD9169D063Dab9402b3d8C7c7BC26672b",
-  "gardenToken": "0x1337c661121FebCD1edB286113Bd8C3e58b5bAbb",
+  "gardenAccountImpl": "0xd2787d2835Da17897898e440E32714Dc9D5C1cdC",
+  "gardenToken": "0x97736223A8855863334a3Bf3b9744bE83BaFfDca",
   "guardian": "0x0656C45f1e0269c6127B977077CbacAde6905cFc",
+  "rootGarden": {
+    "address": "0x01498e9CBB3AfBcfC8a67B51C040356a37A27352",
+    "tokenId": 1
+  },
   "schemas": {
     "assessmentDescription": "General-purpose impact assessment schema. Captures measurable outcomes across the 8 forms of capital with flexible metrics and evidence. Supports impact attestation references for standardized impact reporting.",
     "assessmentName": "Green Goods Impact Assessment",
@@ -24,6 +28,6 @@
     "workSchema": "uint256 actionUID,string title,string feedback,string metadata,string[] media",
     "workSchemaUID": "0x6005b46fe8a86d5f5793aff50dd8a2065931e4e71c1e209e21c137414072a44c"
   },
-  "workApprovalResolver": "0x2078e44e1da6c420E6e3fE1799798b1E0a8136b8",
-  "workResolver": "0x2187ed54346b7d3e9bdF8ED8ACb5980924991c13"
+  "workApprovalResolver": "0x2464B7B04fdf4cbF0305eB768eA2e5bfa680c74D",
+  "workResolver": "0xD686B7C6008c3AE98291098769E6Ccc7e4d28C52"
 }

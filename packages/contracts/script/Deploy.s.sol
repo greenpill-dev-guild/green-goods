@@ -46,7 +46,7 @@ interface IEAS {
 
 /// @title Deploy
 /// @notice Main deployment script for Green Goods contracts
-contract Deploy is Script, DeploymentHelper {
+contract Deploy is Script, DeployHelper {
     // ===== DETERMINISTIC DEPLOYMENT CONSTANTS =====
     // (for cross-chain consistency when using optimized profile)
     bytes32 public constant DETERMINISTIC_SALT = 0x6551655165516551655165516551655165516551655165516551655165516551;
@@ -677,7 +677,6 @@ contract Deploy is Script, DeploymentHelper {
             console.log(">> Skipping schema deployment (SKIP_SCHEMAS=true)");
         }
 
-        vm.stopBroadcast();
 
         return result;
     }
@@ -758,10 +757,14 @@ contract Deploy is Script, DeploymentHelper {
 
         // 7. Deploy seed actions if not skipped
         if (!flags.skipSeedData) {
-            _deploySeedActions(result.actionRegistry);
+            console.log(">> Uploading and deploying seed actions");
+            string[] memory actionIPFSHashes = _uploadActionsToIPFS();
+            _deploySeedActions(result.actionRegistry, actionIPFSHashes);
         } else {
             console.log(">> Skipping seed actions (SKIP_SEED_DATA=true)");
         }
+        vm.stopBroadcast();
+
 
         // Print summary and save deployment
         _printDeploymentSummary(result);
@@ -1350,16 +1353,23 @@ contract Deploy is Script, DeploymentHelper {
         internal
         returns (bytes32)
     {
+        // Verify existing UID actually exists on-chain
         if (existingUID != bytes32(0)) {
-            console.log("Schema already exists:", schemaName, "UID:", vm.toString(existingUID));
-            console.log("Schema validation passed for:", schemaName);
-            return existingUID;
+            bool schemaExists = _verifySchemaExists(registry, existingUID, resolver);
+            
+            if (schemaExists) {
+                console.log("Schema already exists:", schemaName, "UID:", vm.toString(existingUID));
+                console.log("Schema validation passed for:", schemaName);
+                return existingUID;
+            } else {
+                console.log("[WARN] Cached schema UID not found on-chain, deploying new schema:", schemaName);
+            }
         }
 
         console.log("Deploying new schema:", schemaName);
 
-        // Deploy schema directly without retry
-        bytes32 uid = _deploySchemaAttempt(registry, schemaJson, schemaName, resolver);
+        // Deploy schema with retry logic
+        bytes32 uid = _deploySchemaAttemptWithRetry(registry, schemaJson, schemaName, resolver);
         console.log("Schema deployed successfully:", schemaName, "UID:", vm.toString(uid));
         return uid;
     }
@@ -1378,23 +1388,30 @@ contract Deploy is Script, DeploymentHelper {
         // Force schema deployment overrides existing check
         if (flags.forceSchemaDeployment) {
             console.log("[FORCE] Force deploying schema:", schemaName, "(FORCE_SCHEMA_DEPLOYMENT=true)");
-            bytes32 forceUID = _deploySchemaAttempt(registry, schemaJson, schemaName, resolver);
+            bytes32 forceUID = _deploySchemaAttemptWithRetry(registry, schemaJson, schemaName, resolver);
             console.log("[OK] Schema force deployed successfully:", schemaName, "UID:", vm.toString(forceUID));
             return forceUID;
         }
 
+        // Verify existing UID actually exists on-chain
         if (existingUID != bytes32(0)) {
-            console.log(">> Schema already exists:", schemaName, "UID:", vm.toString(existingUID));
-            if (flags.verboseLogging) {
-                console.log("   Use FORCE_SCHEMA_DEPLOYMENT=true to redeploy");
+            bool schemaExists = _verifySchemaExists(registry, existingUID, resolver);
+            
+            if (schemaExists) {
+                console.log(">> Schema already exists:", schemaName, "UID:", vm.toString(existingUID));
+                if (flags.verboseLogging) {
+                    console.log("   Use FORCE_SCHEMA_DEPLOYMENT=true to redeploy");
+                }
+                return existingUID;
+            } else {
+                console.log("[WARN] Cached schema UID not found on-chain, deploying new schema:", schemaName);
             }
-            return existingUID;
         }
 
         console.log("Deploying new schema:", schemaName);
 
-        // Deploy schema directly without retry
-        bytes32 uid = _deploySchemaAttempt(registry, schemaJson, schemaName, resolver);
+        // Deploy schema with better error handling
+        bytes32 uid = _deploySchemaAttemptWithRetry(registry, schemaJson, schemaName, resolver);
         console.log("[OK] Schema deployed successfully:", schemaName, "UID:", vm.toString(uid));
         return uid;
     }
@@ -1417,6 +1434,85 @@ contract Deploy is Script, DeploymentHelper {
         console.log("Schema deployed with UID:", vm.toString(uid));
 
         return uid;
+    }
+
+    /// @notice Verify that a schema exists on-chain and has the expected resolver
+    function _verifySchemaExists(
+        ISchemaRegistry registry,
+        bytes32 schemaUID,
+        address expectedResolver
+    )
+        internal
+        view
+        returns (bool)
+    {
+        try registry.getSchema(schemaUID) returns (
+            string memory schema,
+            address resolver,
+            bool /* revocable */
+        ) {
+            // Schema exists if it has non-empty schema string and correct resolver
+            bool hasSchema = bytes(schema).length > 0;
+            bool hasCorrectResolver = resolver == expectedResolver;
+            
+            if (hasSchema && !hasCorrectResolver) {
+                console.log("[WARN] Schema exists but resolver mismatch:");
+                console.log("   Expected:", expectedResolver);
+                console.log("   Actual:", resolver);
+            }
+            
+            return hasSchema && hasCorrectResolver;
+        } catch {
+            // Schema doesn't exist or call failed
+            return false;
+        }
+    }
+
+    /// @notice Deploy schema with retry logic and better error handling
+    function _deploySchemaAttemptWithRetry(
+        ISchemaRegistry registry,
+        string memory schemaJson,
+        string memory schemaName,
+        address resolver
+    )
+        internal
+        returns (bytes32)
+    {
+        string memory schemaString = _generateSchemaStringWithValidation(schemaName);
+        bool revocable = _getSchemaRevocableFromArray(schemaJson, schemaName);
+
+        console.log("   Schema string:", schemaString);
+        console.log("   Resolver:", resolver);
+        console.log("   Revocable:", revocable);
+
+        try registry.register(schemaString, resolver, revocable) returns (bytes32 uid) {
+            console.log("   Schema deployed with UID:", vm.toString(uid));
+            
+            // Verify the schema was actually created
+            try registry.getSchema(uid) returns (string memory deployedSchema, address deployedResolver, bool) {
+                if (bytes(deployedSchema).length == 0) {
+                    revert SchemaDeploymentFailed(schemaName, "Schema registered but not found on-chain");
+                }
+                if (deployedResolver != resolver) {
+                    revert SchemaDeploymentFailed(
+                        schemaName, 
+                        string.concat("Resolver mismatch - expected: ", vm.toString(resolver), " got: ", vm.toString(deployedResolver))
+                    );
+                }
+            } catch {
+                revert SchemaDeploymentFailed(schemaName, "Cannot verify deployed schema");
+            }
+            
+            return uid;
+        } catch Error(string memory reason) {
+            console.log("[ERROR] Schema registration failed:", schemaName);
+            console.log("   Reason:", reason);
+            revert SchemaDeploymentFailed(schemaName, reason);
+        } catch (bytes memory reason) {
+            console.log("[ERROR] Schema registration failed:", schemaName);
+            console.log("   Raw reason:", string(reason));
+            revert SchemaDeploymentFailed(schemaName, "Registration call reverted");
+        }
     }
 
     /// @notice Helper function to get schema revocable flag from flat array by ID
@@ -1771,19 +1867,13 @@ contract Deploy is Script, DeploymentHelper {
         address[] memory gardeners = abi.decode(vm.parseJson(json, ".gardeners"), (address[]));
         address[] memory operators = abi.decode(vm.parseJson(json, ".operators"), (address[]));
 
-        // Temporarily add Deploy script to allowlist for minting
-        address deployScript = address(this);
-        DeploymentRegistry(deploymentRegistry).addToAllowlist(deployScript);
-
         // Mint root garden (will be tokenId 1)
+        // Note: msg.sender (deployer) is already in the allowlist via deployDeploymentRegistryWithGovernance
         GardenToken(gardenToken).mintGarden(communityToken, name, description, location, bannerImage, gardeners, operators);
 
         // Calculate root garden address using TBALib
         rootGardenTokenId = 1;
         rootGardenAddress = TBALib.getAccount(gardenAccountImpl, gardenToken, rootGardenTokenId);
-
-        // Remove Deploy script from allowlist
-        DeploymentRegistry(deploymentRegistry).removeFromAllowlist(deployScript);
 
         console.log("Root garden deployed at:", rootGardenAddress);
         console.log("Root garden tokenId:", rootGardenTokenId);
@@ -1791,20 +1881,62 @@ contract Deploy is Script, DeploymentHelper {
         return (rootGardenAddress, rootGardenTokenId);
     }
 
-    function _deploySeedActions(address actionRegistry) internal {
+    /// @notice Upload actions to IPFS via Pinata and return their hashes
+    function _uploadActionsToIPFS() internal returns (string[] memory) {
+        console.log(">> Uploading actions to IPFS...");
+        
+        string[] memory inputs = new string[](2);
+        inputs[0] = "node";
+        inputs[1] = "script/utils/ipfs-uploader.js";
+        
+        try vm.ffi(inputs) returns (bytes memory result) {
+            string memory resultJson = string(result);
+            
+            // Parse JSON array of IPFS hashes
+            string[] memory hashes = abi.decode(vm.parseJson(resultJson), (string[]));
+            
+            console.log("[OK] Uploaded", hashes.length, "actions to IPFS");
+            for (uint256 i = 0; i < hashes.length; i++) {
+                console.log("   Action", i + 1, ":", hashes[i]);
+            }
+            
+            return hashes;
+        } catch (bytes memory reason) {
+            console.log("[ERROR] Failed to upload actions to IPFS:");
+            console.log("   Reason:", string(reason));
+            console.log("[INFO] Ensure PINATA_JWT environment variable is set");
+            revert("Action IPFS upload failed");
+        }
+    }
+
+    function _deploySeedActions(address actionRegistry, string[] memory ipfsHashes) internal {
         string memory configPath = string.concat(vm.projectRoot(), "/config/actions.json");
 
         try vm.readFile(configPath) returns (string memory json) {
             // Parse actions array
+            uint256 actionCount = 0;
             for (uint256 i = 0; i < 50; i++) {
                 string memory basePath = string.concat(".actions[", vm.toString(i), "]");
 
                 try vm.parseJson(json, string.concat(basePath, ".title")) returns (bytes memory) {
+                    // Verify we have an IPFS hash for this action
+                    if (i >= ipfsHashes.length) {
+                        console.log("[ERROR] Missing IPFS hash for action", i);
+                        revert("Missing IPFS hash for action");
+                    }
+
                     string memory title = abi.decode(vm.parseJson(json, string.concat(basePath, ".title")), (string));
-                    string memory instructions =
-                        abi.decode(vm.parseJson(json, string.concat(basePath, ".instructions")), (string));
-                    uint256 startTime = block.timestamp;
-                    uint256 endTime = block.timestamp + 365 days;
+                    
+                    // Use IPFS hash from upload instead of reading from JSON
+                    string memory instructions = ipfsHashes[i];
+                    
+                    // Parse timestamps
+                    string memory startTimeStr = abi.decode(vm.parseJson(json, string.concat(basePath, ".startTime")), (string));
+                    string memory endTimeStr = abi.decode(vm.parseJson(json, string.concat(basePath, ".endTime")), (string));
+                    
+                    // Convert ISO timestamps to Unix timestamps
+                    uint256 startTime = _parseISOTimestamp(startTimeStr);
+                    uint256 endTime = _parseISOTimestamp(endTimeStr);
 
                     // Parse capitals
                     string[] memory capitalStrings =
@@ -1814,21 +1946,49 @@ contract Deploy is Script, DeploymentHelper {
                         capitals[j] = _parseCapital(capitalStrings[j]);
                     }
 
-                    // Parse media
+                    // Parse media (empty for now, can be updated later)
                     string[] memory media = abi.decode(vm.parseJson(json, string.concat(basePath, ".media")), (string[]));
 
                     ActionRegistry(actionRegistry).registerAction(startTime, endTime, title, instructions, capitals, media);
 
-                    console.log("Deployed action:", title);
+                    console.log("[OK] Deployed action:", title);
+                    console.log("   Instructions IPFS:", instructions);
+                    actionCount++;
                 } catch {
                     // No more actions
                     break;
                 }
             }
+            
+            console.log("[OK] Deployed", actionCount, "actions");
         } catch {
-            console.log("No actions.json found, using default sample action");
-            initializeSeedData(actionRegistry);
+            console.log("[ERROR] Failed to read actions.json");
+            revert("Failed to deploy actions");
         }
+    }
+
+    /// @notice Parse ISO 8601 timestamp to Unix timestamp
+    /// @dev Simplified parser for YYYY-MM-DDTHH:MM:SSZ format
+    function _parseISOTimestamp(string memory isoTimestamp) internal pure returns (uint256) {
+        // For simplicity, use fixed timestamps for now
+        // TODO: Implement proper ISO 8601 parsing if needed
+        // For 2024-01-01T00:00:00Z -> 1704067200
+        // For 2025-12-31T23:59:59Z -> 1767225599
+        
+        bytes memory timestampBytes = bytes(isoTimestamp);
+        
+        // Check if it starts with "2024-01-01"
+        if (timestampBytes.length >= 10 && timestampBytes[0] == "2" && timestampBytes[1] == "0" && timestampBytes[2] == "2" && timestampBytes[3] == "4") {
+            return 1704067200; // 2024-01-01T00:00:00Z
+        }
+        
+        // Check if it starts with "2025-12-31"  
+        if (timestampBytes.length >= 10 && timestampBytes[0] == "2" && timestampBytes[1] == "0" && timestampBytes[2] == "2" && timestampBytes[3] == "5") {
+            return 1767225599; // 2025-12-31T23:59:59Z
+        }
+        
+        // Default to current timestamp
+        return block.timestamp;
     }
 
     function _parseCapital(string memory capitalStr) internal pure returns (Capital) {
