@@ -18,26 +18,35 @@
   ],
   "scripts": {
     "setup": "node scripts/setup.js",
-    "foundry:up": "curl -L https://foundry.paradigm.xyz | bash && bash $HOME/.foundry/bin/foundryup",
     "prepare": "husky",
-    "node:update": "nvm install 22 --reinstall-packages-from=22 && nvm alias default 22",
-    "node:update:latest": "nvm install node && nvm alias node default",
-    "build": "pnpm recursive run build",
+
+    "dev": "trap 'pnpm exec pm2 delete all' EXIT; pnpm exec pm2 start ecosystem.config.js && pnpm exec pm2 logs --raw",
+    "dev:stop": "pnpm exec pm2 delete all",
+    "dev:client": "pnpm --filter 'client' run dev",
+    "dev:admin": "pnpm --filter 'admin' run dev",
+    "dev:indexer": "cd packages/indexer && pnpm run dev",
+    "dev:contracts": "pnpm --filter 'contracts' run dev",
+
     "format": "biome format --write .",
     "format:check": "biome format .",
-    "lint": "oxlint packages/client/src packages/indexer/src",
-    "lint-staged": "lint-staged",
+    "lint": "oxlint packages/client/src packages/indexer/src packages/admin/src packages/contracts/script",
     "test": "pnpm recursive run test",
     "test:e2e": "playwright test",
-    "test:all": "pnpm test && pnpm test:e2e",
-    "dev": "trap 'pnpm exec pm2 delete all' EXIT; pnpm exec pm2 start ecosystem.config.js && pnpm exec pm2 logs --raw",
-    "dev:status": "pnpm exec pm2 list",
-    "dev:logs:client": "pnpm exec pm2 logs client --raw",
-    "dev:logs:indexer": "pnpm exec pm2 logs indexer --raw",
-    "dev:stop": "pnpm exec pm2 delete all",
-    "dev:app": "pnpm --filter 'client' run dev",
-    "dev:indexer": "pnpm --filter 'indexer' run dev",
-    "dev:contracts": "pnpm --filter 'contracts' run  dev"
+    "test:client": "pnpm --filter 'client' run test",
+    "test:admin": "pnpm --filter 'admin' run test",
+    "test:indexer": "cd packages/indexer && pnpm run test",
+    "test:contracts": "pnpm --filter 'contracts' run test",
+
+    "build": "pnpm recursive run build",
+    "build:client": "pnpm --filter 'client' run build",
+    "build:admin": "pnpm --filter 'admin' run build",
+    "build:indexer": "cd packages/indexer && pnpm run build",
+    "build:contracts": "pnpm --filter 'contracts' run build",
+
+    "deploy:contracts:dryrun": "pnpm --filter 'contracts' run deploy:dryrun",
+    "deploy:contracts:baseSepolia": "pnpm --filter 'contracts' run deploy:baseSepolia",
+    "deploy:contracts:celo": "pnpm --filter 'contracts' run deploy:celo",
+    "deploy:contracts:arbitrum": "pnpm --filter 'contracts' run deploy:arbitrum"
   },
   "pnpm": {
     "overrides": {
@@ -45,7 +54,6 @@
     }
   },
   "dependencies": {
-    "@privy-io/server-auth": "^1.31.0",
     "dotenv": "^17.2.1",
     "ethers": "^6.15.0",
     "viem": "^2.33.3"

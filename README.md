@@ -7,12 +7,13 @@ Green Goods is a decentralized platform for biodiversity conservation, enabling 
 ```
 green-goods/
 ├── packages/
-│   ├── client/           # React PWA frontend
-│   ├── mcp/              # AI assistant integration
+│   ├── client/           # React PWA frontend (Gardener/Operator app)
+│   ├── admin/            # Admin dashboard (Garden & contract management)
 │   ├── indexer/          # GraphQL blockchain indexer
 │   └── contracts/        # Solidity smart contracts
 ├── docs/                 # Documentation
-└── tests/                # End-to-end testing
+├── tests/                # End-to-end testing (Playwright)
+└── scripts/              # Setup and utility scripts
 ```
 
 ## 🚀 Quick Start
@@ -33,12 +34,13 @@ pnpm install
 cp .env.example .env
 # Edit .env with your API keys (see .env.example)
 
-# Start all services (pm2: client, indexer)
+# Start all services (pm2: client, admin, indexer)
 pnpm dev
 
 # Tail logs
-pnpm dev:logs:client
-pnpm dev:logs:indexer
+pnpm exec pm2 logs client
+pnpm exec pm2 logs admin
+pnpm exec pm2 logs indexer
 ```
 
 ## 🛠️ Development
@@ -75,9 +77,10 @@ pnpm format && pnpm lint && pnpm test # Quality checks
 | [Environment Setup](./docs/ENVIRONMENT_SETUP.md) | API keys & configuration |
 | [Testing](./docs/TESTING.md) | E2E testing guide |
 | [Architecture](./docs/ARCHITECTURE.md) | System design |
+| [Features](./docs/FEATURES.md) | Core platform features |
 | [Troubleshooting](./docs/TROUBLESHOOTING.md) | Common issues |
 
-**Package docs:** [client](./packages/client/README.md) • [mcp](./packages/mcp/README.md) • [indexer](./packages/indexer/README.md) • [contracts](./packages/contracts/README.md)
+**Package docs:** [client](./packages/client/README.md) • [admin](./packages/admin/README.md) • [indexer](./packages/indexer/README.md) • [contracts](./packages/contracts/README.md)
 
 ---
 
