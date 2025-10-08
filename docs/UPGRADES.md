@@ -348,3 +348,4 @@ if (isV2) {
 - [EIP-1967: Proxy Storage Slots](https://eips.ethereum.org/EIPS/eip-1967)
 - [Foundry Book: Scripting](https://book.getfoundry.sh/tutorials/solidity-scripting)
 - [EAS Schema Registry](https://docs.attest.sh/docs/core--concepts/schemas)
+

@@ -989,3 +989,4 @@ For questions about:
 - **GraphQL schema**: Check `packages/indexer/schema.graphql`
 - **Existing patterns**: Review `packages/admin/src/views/Gardens/Detail.tsx`
 - **Authentication**: Review `packages/admin/src/providers/AuthProvider.tsx`
+
