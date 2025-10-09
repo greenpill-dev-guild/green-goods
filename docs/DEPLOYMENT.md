@@ -8,6 +8,8 @@ This comprehensive guide covers deploying Green Goods smart contracts to any EVM
 2. [Prerequisites](#prerequisites)
 3. [Network Configuration](#network-configuration)
 4. [Core Contract Deployment](#core-contract-deployment)
+   - 4.1. [Always-Deployed Infrastructure](#always-deployed-infrastructure)
+   - 4.2. [Deploy vs Upgrade Workflows](#deploy-vs-upgrade-workflows)
 5. [EAS Schema Deployment](#eas-schema-deployment)
 6. [Garden & Actions Deployment](#garden--actions-deployment)
 7. [Fork Testing](#fork-testing)
@@ -34,17 +36,24 @@ pnpm network:verify
 
 ### 3. Deploy Core Contracts (includes EAS schemas)
 ```bash
-# Local development
+# Local development (includes root garden + core actions)
 pnpm deploy:local
 
-# Testnet (Sepolia)
-pnpm deploy:sepolia
+# Testnet deployment
+pnpm deploy:testnet
 
-# Mainnet (Arbitrum)
-pnpm deploy:arbitrum --broadcast --verify
+# Mainnet deployments
+pnpm deploy:celo
+pnpm deploy:arbitrum
 
-# Celo
-pnpm deploy:celo --broadcast --verify
+# Dry run (simulation only, no transactions)
+pnpm deploy:dryrun
+
+# Advanced: Update schemas only
+node script/deploy.js core --network baseSepolia --broadcast --update-schemas
+
+# Advanced: Force fresh deployment
+node script/deploy.js core --network baseSepolia --broadcast --force
 ```
 
 ### 4. Deploy Garden & Actions
@@ -221,7 +230,40 @@ The main deployment script (`Deploy.s.sol`) deploys all core contracts and EAS s
 6. **ActionRegistry** - Registry for garden actions
 7. **WorkResolver** - Resolver for work attestations
 8. **WorkApprovalResolver** - Resolver for work approval attestations
-9. **EAS Schemas** - Deployed automatically with retry logic
+9. **AssessmentResolver** - Resolver for assessment attestations
+10. **EAS Schemas** - Deployed automatically with retry logic
+
+### Always-Deployed Infrastructure
+
+Every deployment automatically includes:
+
+#### 1. Core Contracts (9 contracts)
+- DeploymentRegistry (proxy)
+- AccountGuardian
+- GardenAccount (implementation)
+- AccountProxy
+- GardenToken (proxy)
+- ActionRegistry (proxy)
+- WorkResolver (proxy)
+- WorkApprovalResolver (proxy)
+- AssessmentResolver (proxy)
+
+#### 2. EAS Schemas (3 schemas)
+- Garden Assessment Schema
+- Work Schema
+- Work Approval Schema
+
+#### 3. Root Garden (1 garden)
+- "Green Goods Community Garden"
+- Configured from `config/garden.json`
+
+#### 4. Core Actions (3 actions)
+- Planting
+- Identify Plant
+- Litter Cleanup
+- Configured from `config/actions.json`
+
+This ensures every network has a functional baseline for testing and development.
 
 ### Enhanced Error Recovery
 
@@ -235,31 +277,129 @@ The deployment system includes comprehensive error recovery:
 ### Deployment Commands
 
 ```bash
-# Deploy to specific networks
-pnpm deploy:local      # Local development
-pnpm deploy:sepolia    # Sepolia testnet
-pnpm deploy:arbitrum   # Arbitrum One
-pnpm deploy:base       # Base
-pnpm deploy:optimism   # Optimism
-pnpm deploy:celo       # Celo
+# Environment-specific deployments
+pnpm deploy:local      # Localhost (anvil)
+pnpm deploy:dryrun     # Dry run on Base Sepolia
+pnpm deploy:testnet    # Base Sepolia with broadcast
+pnpm deploy:celo       # Celo mainnet
+pnpm deploy:arbitrum   # Arbitrum mainnet
 
-# With verification
-pnpm deploy:arbitrum --verify
+# Advanced deployment modes
+# Update schemas only (skip existing contracts)
+node script/deploy.js core --network baseSepolia --broadcast --update-schemas
 
-# Custom deployment with error recovery
-SCHEMA_DEPLOYMENT_MAX_RETRIES=5 pnpm deploy:celo --broadcast
-
-# Continue deployment despite schema failures
-SCHEMA_DEPLOYMENT_SKIP_ON_FAILURE=true pnpm deploy:celo --broadcast
+# Force fresh deployment (redeploy everything)
+node script/deploy.js core --network baseSepolia --broadcast --force
 ```
 
-### Deployment Options
+### Deployment Flags
 
 - `--network <network>` - Target network (default: localhost)
 - `--broadcast` - Execute transactions (required for actual deployment)
-- `--verify` - Verify contracts on block explorer
-- `--gas-optimize` - Enable gas optimization
-- `--save-report` - Generate deployment report
+- `--update-schemas` - Only update EAS schemas, skip existing contracts
+- `--force` - Force fresh deployment even if contracts exist
+
+**Note:** Contract verification happens automatically on supported networks (no flag needed).
+
+### Deploy vs Upgrade Workflows
+
+Understanding the difference between deploying and upgrading contracts is crucial:
+
+#### Fresh Deployment (deploy.js)
+Creates new contract instances with new addresses.
+
+**Use cases:**
+- Setting up a new network
+- Local development and testing
+- Fork testing against mainnet state
+- Initial testnet/mainnet deployment
+
+**Command:**
+```bash
+pnpm deploy:testnet
+```
+
+**What happens:**
+1. Deploys all contract implementations
+2. Deploys all proxy contracts
+3. Deploys EAS schemas
+4. Creates root garden
+5. Registers 3 core actions
+6. Saves addresses to `deployments/{chainId}-latest.json`
+
+#### UUPS Proxy Upgrade (upgrade.js)
+Updates existing proxy implementations, keeping same addresses.
+
+**Use cases:**
+- Fixing bugs in production
+- Adding new features
+- Security patches
+- Gas optimizations
+
+**Command:**
+```bash
+pnpm upgrade:testnet
+```
+
+**What happens:**
+1. Deploys new implementation contracts
+2. Calls `upgradeToAndCall()` on existing proxies
+3. Existing addresses remain unchanged
+4. Storage layout preserved
+5. No schema redeployment
+
+#### Decision Matrix
+
+| Scenario | Use Deploy | Use Upgrade |
+|----------|-----------|-------------|
+| New network setup | ✅ | ❌ |
+| Local development | ✅ | ❌ |
+| Fork testing | ✅ | ❌ |
+| Bug fix in production | ❌ | ✅ |
+| Add contract features | ❌ | ✅ |
+| Change schema definitions | ✅* | ❌ |
+| Want new addresses | ✅ | ❌ |
+| Keep existing addresses | ❌ | ✅ |
+
+*Use `--update-schemas` flag for schema-only updates
+
+#### Example Workflows
+
+**Local Development:**
+```bash
+# Start local chain
+pnpm dev
+
+# Deploy everything (new terminal)
+pnpm deploy:local
+
+# Make contract changes, then upgrade
+pnpm upgrade:local
+```
+
+**Testnet Deployment:**
+```bash
+# Initial deployment
+pnpm deploy:testnet
+
+# Later: upgrade contracts
+pnpm upgrade:testnet
+
+# Later: update schemas
+node script/deploy.js core --network baseSepolia --broadcast --update-schemas
+```
+
+**Production Deployment:**
+```bash
+# Initial mainnet deployment
+pnpm deploy:celo
+
+# Later: upgrade via multisig
+# 1. Propose upgrade transaction to multisig
+# 2. Multisig members sign
+# 3. Execute upgrade
+pnpm upgrade:celo --broadcast
+```
 
 ## EAS Schema Deployment
 
@@ -323,21 +463,32 @@ After deployment, the schema UIDs are automatically saved to the deployment file
 }
 ```
 
-### Force Schema Redeployment
+### Update Schemas Only
 
-If you need to redeploy schemas (e.g., after updating schema definitions or resolvers):
+If you only need to update schemas (e.g., after schema definition changes):
 
 ```bash
-# Deploy new schemas even if they already exist
-FORCE_SCHEMA_DEPLOYMENT=true npm run deploy:base-sepolia --broadcast
+# Update schemas, skip existing contracts
+node script/deploy.js core --network baseSepolia --broadcast --update-schemas
 ```
 
-**When to use force deployment:**
-- Schema definitions have changed (new fields, reordered fields)
-- Resolver addresses need updating
-- Migrating to new schema versions (V1 → V2)
+**When to use:**
+- Schema definitions changed (new fields, updated resolvers)
+- Schema names/descriptions updated
+- Need to deploy missing schemas
 
-**Note:** EAS schema registry prevents duplicate schemas. If you try to deploy the same schema string twice, you'll get an `AlreadyExists()` error. Force deployment clears cached UIDs to allow redeployment of modified schemas.
+**Force Fresh Deployment:**
+
+If you need to completely redeploy everything (including schemas):
+
+```bash
+# Force redeploy all contracts and schemas
+node script/deploy.js core --network baseSepolia --broadcast --force
+```
+
+**⚠️ Warning:** This creates new contract addresses. Existing integrations will break.
+
+**Note:** EAS schema registry prevents duplicate schemas. If you try to deploy the same schema string twice, you'll get an `AlreadyExists()` error.
 
 ### Schema Versioning
 
@@ -427,17 +578,27 @@ pnpm deploy:actions config/actions.json --network celo --broadcast
 
 ## Fork Testing
 
-Test against real network state:
-```bash
-# Fork and test against Arbitrum
-pnpm fork:arbitrum
+Test against real network state without spending gas:
 
-# Fork and test against Celo
+```bash
+# Test against real Celo state
 pnpm fork:celo
 
+# In another terminal: deploy to fork
+pnpm deploy:local
+
 # Run tests on fork
-pnpm test
+forge test --fork-url http://localhost:8545 -vv
+
+# Test upgrades on fork
+pnpm upgrade:local
 ```
+
+**Use cases:**
+- Testing upgrades against production state
+- Debugging production issues
+- Validating against real data
+- Integration testing with live contracts
 
 ## Testing & Validation
 
@@ -446,8 +607,15 @@ pnpm test
 Run the deployment test suite to validate functionality:
 
 ```bash
-# Run all deployment tests
+# Test deployment flow
 forge test --match-contract DeploymentTest -vv
+
+# Test upgrade flow
+forge test --match-contract UpgradeTest -vv
+
+# Test both on fork
+pnpm fork:celo
+forge test --fork-url http://localhost:8545 -vv
 
 # Test specific scenarios
 forge test --match-test testIdempotentDeployment -vvv
@@ -627,6 +795,45 @@ cat deployments/networks.json | grep -A 5 '"baseSepolia"'
 # "eas": "0x4200000000000000000000000000000000000021",
 # "easSchemaRegistry": "0x4200000000000000000000000000000000000020"
 ```
+
+### Deploy vs Upgrade Confusion
+
+#### "Contract already deployed"
+
+This usually means you're trying to deploy when you should upgrade:
+
+```bash
+# ❌ Wrong: Trying to deploy again
+pnpm deploy:testnet
+
+# ✅ Right: Upgrade existing deployment
+pnpm upgrade:testnet
+```
+
+#### "Cannot find deployment file"
+
+You're trying to upgrade but haven't deployed yet:
+
+```bash
+# ❌ Wrong: Trying to upgrade non-existent deployment
+pnpm upgrade:testnet
+
+# ✅ Right: Deploy first, then upgrade
+pnpm deploy:testnet
+# ... later ...
+pnpm upgrade:testnet
+```
+
+#### "Force fresh deployment"
+
+If you want to completely redeploy (new addresses):
+
+```bash
+# This will deploy everything fresh, ignoring existing deployments
+node script/deploy.js core --network baseSepolia --broadcast --force
+```
+
+**⚠️ Warning:** This creates new contract addresses. Existing integrations will break.
 
 ### Common Issues & Solutions
 
