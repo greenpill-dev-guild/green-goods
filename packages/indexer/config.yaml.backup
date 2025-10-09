@@ -31,11 +31,14 @@ contracts:
       - event: InviteRevoked
 networks:
   - id: 84532
-    start_block: 15000000
-    contracts:
-      - name: ActionRegistry
-        address: '0x5FdBce1F6eb68940A1FD0c95c935Db7aa9462c89'
-      - name: GardenToken
-        address: '0x829c50D3557CAa2E930D40Fbb34B5f35d5368e78'
-      - name: GardenAccount
-        address: '0x6dd675a46bac69f43B1e6d438676E04746c76d2d'
+  #   start_block: 1000
+  #   contracts:
+  #     - name: ActionRegistry
+  #       address: '0x547e82BF9c8496f41927583793242f6b91C182A6'
+  #     - name: GardenToken
+  #       address: '0x547e82BF9c8496f41927583793242f6b91C182A6'
+  #     - name: GardenAccount
+  #       address: '0x547e82BF9c8496f41927583793242f6b91C182A6'
+rpc_config:
+  '84532':
+    url: https://base-sepolia.g.alchemy.com/v2/demo
