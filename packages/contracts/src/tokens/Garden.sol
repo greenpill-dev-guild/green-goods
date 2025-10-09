@@ -168,9 +168,11 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
             revert InvalidBatchSize();
         }
 
-        // Validate all community tokens upfront for fail-fast behavior
+        // Validate all community tokens and array lengths upfront for fail-fast behavior
         for (uint256 i = 0; i < configsLength;) {
             _validateCommunityToken(configs[i].communityToken);
+            require(configs[i].gardeners.length <= 100, "Too many gardeners");
+            require(configs[i].gardenOperators.length <= 100, "Too many operators");
             unchecked {
                 ++i;
             }

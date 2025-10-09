@@ -120,6 +120,46 @@ contract ActionRegistryTest is Test {
         actionRegistry.updateActionStartTime(0, block.timestamp + 1 hours);
     }
 
+    function testRegisterActionRevertsWithInvalidTimeRange() public {
+        // Test that registering an action with end time before start time reverts
+        Capital[] memory capitals = new Capital[](1);
+        capitals[0] = Capital.CULTURAL;
+
+        string[] memory media = new string[](1);
+        media[0] = "mediaCID1";
+
+        vm.prank(multisig);
+        vm.expectRevert("End time must be after start time");
+        actionRegistry.registerAction(
+            block.timestamp + 2 days, // Start time after end time
+            block.timestamp + 1 days, // End time before start time
+            "Invalid Action",
+            "instructionsCID",
+            capitals,
+            media
+        );
+    }
+
+    function testUpdateActionStartTimeRevertsWithInvalidTime() public {
+        // Register a valid action first
+        testRegisterAction();
+
+        // Try to update start time to be after end time
+        vm.prank(multisig);
+        vm.expectRevert("Start time must be before end time");
+        actionRegistry.updateActionStartTime(0, block.timestamp + 2 days);
+    }
+
+    function testUpdateActionEndTimeRevertsWithInvalidTime() public {
+        // Register a valid action first
+        testRegisterAction();
+
+        // Try to update end time to be before start time
+        vm.prank(multisig);
+        vm.expectRevert("End time must be after start time");
+        actionRegistry.updateActionEndTime(0, block.timestamp - 1 hours);
+    }
+
     // function testAuthorizeUpgrade() public {
     //     // Test that only the owner can authorize an upgrade
     //     address newImplementation = address(0x456);

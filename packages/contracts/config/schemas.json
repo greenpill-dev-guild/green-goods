@@ -1,22 +1,46 @@
 {
   "schemas": {
-    "gardenAssessment": {
-      "name": "Test Garden Assessment",
-      "description": "Test description",
+    "assessment": {
+      "name": "Green Goods Assessment v3",
+      "description": "Flexible assessment schema for Green Goods gardens. Captures impact across 8 forms of capital with flexible metrics stored in IPFS JSON, along with evidence media and impact attestation references.",
       "revocable": true,
-      "fields": [{ "name": "soilMoisturePercentage", "type": "uint8" }]
+      "fields": [
+        { "name": "title", "type": "string" },
+        { "name": "description", "type": "string" },
+        { "name": "assessmentType", "type": "string" },
+        { "name": "capitals", "type": "string[]" },
+        { "name": "metricsJSON", "type": "string" },
+        { "name": "evidenceMedia", "type": "string[]" },
+        { "name": "reportDocuments", "type": "string[]" },
+        { "name": "impactAttestations", "type": "bytes32[]" },
+        { "name": "startDate", "type": "uint256" },
+        { "name": "endDate", "type": "uint256" },
+        { "name": "location", "type": "string" },
+        { "name": "tags", "type": "string[]" }
+      ]
     },
     "work": {
-      "name": "Test Work",
-      "description": "Test work description",
+      "name": "Green Goods Work Submission",
+      "description": "Work submission schema for Green Goods protocol. Enables gardeners to submit completed regenerative agriculture tasks with media evidence and metadata for verification and payment.",
       "revocable": true,
-      "fields": [{ "name": "actionUID", "type": "uint256" }]
+      "fields": [
+        { "name": "actionUID", "type": "uint256" },
+        { "name": "title", "type": "string" },
+        { "name": "feedback", "type": "string" },
+        { "name": "metadata", "type": "string" },
+        { "name": "media", "type": "string[]" }
+      ]
     },
     "workApproval": {
-      "name": "Test Work Approval",
-      "description": "Test work approval description",
+      "name": "Green Goods Work Approval",
+      "description": "Work approval schema for Green Goods protocol. Allows validators to approve or reject submitted work with feedback, enabling trustless verification of regenerative agriculture activities.",
       "revocable": true,
-      "fields": [{ "name": "approved", "type": "bool" }]
+      "fields": [
+        { "name": "actionUID", "type": "uint256" },
+        { "name": "workUID", "type": "bytes32" },
+        { "name": "approved", "type": "bool" },
+        { "name": "feedback", "type": "string" }
+      ]
     }
   }
 }

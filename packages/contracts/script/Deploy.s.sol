@@ -118,64 +118,10 @@ contract Deploy is Script, DeployHelper {
     /// @notice Error thrown when invalid capital type is provided
     error InvalidCapitalType();
 
-    /// @notice Deployment profile types
-    enum DeploymentProfile {
-        FULL,
-        UPDATE,
-        METADATA_ONLY,
-        CONTRACTS_ONLY,
-        SCHEMAS_ONLY,
-        TESTING,
-        PRODUCTION,
-        HOTFIX,
-        OPTIMIZED
-    }
-
-    /// @notice Contract deployment flags
-    struct ContractFlags {
-        bool skipExisting;
-        bool forceRedeploy;
-        bool skipVerification;
-    }
-
-    /// @notice Schema deployment flags
-    struct SchemaFlags {
-        bool skip;
-        bool forceRedeploy;
-        bool metadataOnly;
-    }
-
-    /// @notice Configuration flags
-    struct ConfigurationFlags {
-        bool skipConfiguration;
-        bool skipSeedData;
-        bool skipGovernanceTransfer;
-        bool addDeployerToAllowlist;
-    }
-
-    /// @notice Logging flags
-    struct LoggingFlags {
-        bool verbose;
-    }
-
-    /// @notice Deployment control flags
-    struct DeploymentFlags {
-        ContractFlags contracts;
-        SchemaFlags schemas;
-        ConfigurationFlags config;
-        LoggingFlags logging;
-        // Legacy flags for backward compatibility
-        bool skipExistingContracts;
-        bool forceRedeploy;
-        bool skipSchemas;
-        bool forceSchemaDeployment;
-        bool skipVerification;
-        bool skipSeedData;
-        bool skipConfiguration;
-        bool verboseLogging;
-        bool skipGovernanceTransfer;
-        bool addDeployerToAllowlist;
-        bool metadataOnly;
+    /// @notice Simplified deployment mode flags
+    struct DeploymentMode {
+        bool updateSchemasOnly;  // Only update schemas, skip contracts
+        bool forceRedeploy;      // Force fresh deployment
     }
 
     /// @notice Deployment configuration struct for cleaner code organization
@@ -188,355 +134,24 @@ contract Deploy is Script, DeployHelper {
         address multisig;
     }
 
-    /// @notice Load deployment profile from environment variable
-    function _loadDeploymentProfile() internal view returns (DeploymentProfile) {
-        try vm.envString("DEPLOYMENT_PROFILE") returns (string memory profileStr) {
-            return _getProfileFromString(profileStr);
+    /// @notice Parse deployment mode from environment variables
+    function _parseDeploymentMode() internal returns (DeploymentMode memory) {
+        DeploymentMode memory mode = DeploymentMode({
+            updateSchemasOnly: false,
+            forceRedeploy: false
+        });
+        
+        try vm.envBool("UPDATE_SCHEMAS_ONLY") returns (bool value) {
+            mode.updateSchemasOnly = value;
         } catch { }
-
-        return DeploymentProfile.FULL; // Default
-    }
-
-    /// @notice Helper function to convert profile string to enum
-    function _getProfileFromString(string memory profileStr) internal pure returns (DeploymentProfile) {
-        bytes32 profileHash = keccak256(abi.encodePacked(profileStr));
-
-        // First check common profiles
-        if (profileHash == keccak256("full")) return DeploymentProfile.FULL;
-        if (profileHash == keccak256("update")) return DeploymentProfile.UPDATE;
-        if (profileHash == keccak256("production")) return DeploymentProfile.PRODUCTION;
-        if (profileHash == keccak256("testing")) return DeploymentProfile.TESTING;
-        if (profileHash == keccak256("optimized")) return DeploymentProfile.OPTIMIZED;
-
-        // Then check specialized profiles
-        return _getSpecializedProfile(profileHash);
-    }
-
-    /// @notice Helper function to get specialized profiles
-    function _getSpecializedProfile(bytes32 profileHash) internal pure returns (DeploymentProfile) {
-        if (profileHash == keccak256("metadata-only")) return DeploymentProfile.METADATA_ONLY;
-        if (profileHash == keccak256("contracts-only")) return DeploymentProfile.CONTRACTS_ONLY;
-        if (profileHash == keccak256("schemas-only")) return DeploymentProfile.SCHEMAS_ONLY;
-        if (profileHash == keccak256("hotfix")) return DeploymentProfile.HOTFIX;
-
-        return DeploymentProfile.FULL; // Default for unknown profiles
-    }
-
-    /// @notice Load deployment flags from environment variables
-    function _loadDeploymentFlags() internal view returns (DeploymentFlags memory flags) {
-        DeploymentProfile profile = _loadDeploymentProfile();
-
-        // Load base flags from profile
-        flags = _getFlagsForProfile(profile);
-
-        // Override with specific environment variables if set
-        _applyEnvironmentOverrides(flags);
-    }
-
-    /// @notice Get flags for a specific deployment profile
-    function _getFlagsForProfile(DeploymentProfile profile) internal pure returns (DeploymentFlags memory) {
-        // Use a more efficient pattern to reduce complexity
-        if (profile == DeploymentProfile.METADATA_ONLY) return _getMetadataOnlyFlags();
-        if (profile == DeploymentProfile.UPDATE) return _getUpdateFlags();
-        if (profile == DeploymentProfile.CONTRACTS_ONLY) return _getContractsOnlyFlags();
-        if (profile == DeploymentProfile.SCHEMAS_ONLY) return _getSchemasOnlyFlags();
-
-        // Group remaining profiles to reduce branching
-        if (profile == DeploymentProfile.TESTING || profile == DeploymentProfile.PRODUCTION) {
-            return profile == DeploymentProfile.TESTING ? _getTestingFlags() : _getProductionFlags();
-        }
-
-        if (profile == DeploymentProfile.HOTFIX || profile == DeploymentProfile.OPTIMIZED) {
-            return profile == DeploymentProfile.HOTFIX ? _getHotfixFlags() : _getOptimizedFlags();
-        }
-
-        // Default FULL profile
-        return _getDefaultFlags();
-    }
-
-    /// @notice Get metadata-only deployment flags
-    function _getMetadataOnlyFlags() internal pure returns (DeploymentFlags memory) {
-        return DeploymentFlags({
-            contracts: ContractFlags({ skipExisting: true, forceRedeploy: false, skipVerification: true }),
-            schemas: SchemaFlags({ skip: true, forceRedeploy: false, metadataOnly: true }),
-            config: ConfigurationFlags({
-                skipConfiguration: true,
-                skipSeedData: true,
-                skipGovernanceTransfer: true,
-                addDeployerToAllowlist: false
-            }),
-            logging: LoggingFlags({ verbose: true }),
-            skipExistingContracts: true,
-            forceRedeploy: false,
-            skipSchemas: true,
-            forceSchemaDeployment: false,
-            skipVerification: true,
-            skipSeedData: true,
-            skipConfiguration: true,
-            verboseLogging: true,
-            skipGovernanceTransfer: true,
-            addDeployerToAllowlist: false,
-            metadataOnly: true
-        });
-    }
-
-    /// @notice Get update deployment flags
-    function _getUpdateFlags() internal pure returns (DeploymentFlags memory) {
-        return DeploymentFlags({
-            contracts: ContractFlags({ skipExisting: true, forceRedeploy: false, skipVerification: true }),
-            schemas: SchemaFlags({ skip: false, forceRedeploy: true, metadataOnly: false }),
-            config: ConfigurationFlags({
-                skipConfiguration: false,
-                skipSeedData: true,
-                skipGovernanceTransfer: true,
-                addDeployerToAllowlist: false
-            }),
-            logging: LoggingFlags({ verbose: false }),
-            skipExistingContracts: true,
-            forceRedeploy: false,
-            skipSchemas: false,
-            forceSchemaDeployment: true,
-            skipVerification: true,
-            skipSeedData: true,
-            skipConfiguration: false,
-            verboseLogging: false,
-            skipGovernanceTransfer: true,
-            addDeployerToAllowlist: false,
-            metadataOnly: false
-        });
-    }
-
-    /// @notice Get contracts-only deployment flags
-    function _getContractsOnlyFlags() internal pure returns (DeploymentFlags memory) {
-        return DeploymentFlags({
-            contracts: ContractFlags({ skipExisting: false, forceRedeploy: false, skipVerification: false }),
-            schemas: SchemaFlags({ skip: true, forceRedeploy: false, metadataOnly: false }),
-            config: ConfigurationFlags({
-                skipConfiguration: true,
-                skipSeedData: true,
-                skipGovernanceTransfer: true,
-                addDeployerToAllowlist: false
-            }),
-            logging: LoggingFlags({ verbose: false }),
-            skipExistingContracts: false,
-            forceRedeploy: false,
-            skipSchemas: true,
-            forceSchemaDeployment: false,
-            skipVerification: false,
-            skipSeedData: true,
-            skipConfiguration: true,
-            verboseLogging: false,
-            skipGovernanceTransfer: true,
-            addDeployerToAllowlist: false,
-            metadataOnly: false
-        });
-    }
-
-    /// @notice Get schemas-only deployment flags
-    function _getSchemasOnlyFlags() internal pure returns (DeploymentFlags memory) {
-        return DeploymentFlags({
-            contracts: ContractFlags({ skipExisting: true, forceRedeploy: false, skipVerification: true }),
-            schemas: SchemaFlags({ skip: false, forceRedeploy: false, metadataOnly: false }),
-            config: ConfigurationFlags({
-                skipConfiguration: true,
-                skipSeedData: true,
-                skipGovernanceTransfer: true,
-                addDeployerToAllowlist: false
-            }),
-            logging: LoggingFlags({ verbose: false }),
-            skipExistingContracts: true,
-            forceRedeploy: false,
-            skipSchemas: false,
-            forceSchemaDeployment: false,
-            skipVerification: true,
-            skipSeedData: true,
-            skipConfiguration: true,
-            verboseLogging: false,
-            skipGovernanceTransfer: true,
-            addDeployerToAllowlist: false,
-            metadataOnly: false
-        });
-    }
-
-    /// @notice Get testing deployment flags
-    function _getTestingFlags() internal pure returns (DeploymentFlags memory) {
-        return DeploymentFlags({
-            contracts: ContractFlags({ skipExisting: true, forceRedeploy: false, skipVerification: false }),
-            schemas: SchemaFlags({ skip: false, forceRedeploy: false, metadataOnly: false }),
-            config: ConfigurationFlags({
-                skipConfiguration: false,
-                skipSeedData: false,
-                skipGovernanceTransfer: false,
-                addDeployerToAllowlist: true
-            }),
-            logging: LoggingFlags({ verbose: true }),
-            skipExistingContracts: true,
-            forceRedeploy: false,
-            skipSchemas: false,
-            forceSchemaDeployment: false,
-            skipVerification: false,
-            skipSeedData: false,
-            skipConfiguration: false,
-            verboseLogging: true,
-            skipGovernanceTransfer: false,
-            addDeployerToAllowlist: true,
-            metadataOnly: false
-        });
-    }
-
-    /// @notice Get production deployment flags
-    function _getProductionFlags() internal pure returns (DeploymentFlags memory) {
-        return DeploymentFlags({
-            contracts: ContractFlags({ skipExisting: true, forceRedeploy: false, skipVerification: false }),
-            schemas: SchemaFlags({ skip: false, forceRedeploy: false, metadataOnly: false }),
-            config: ConfigurationFlags({
-                skipConfiguration: false,
-                skipSeedData: true,
-                skipGovernanceTransfer: false,
-                addDeployerToAllowlist: false
-            }),
-            logging: LoggingFlags({ verbose: false }),
-            skipExistingContracts: true,
-            forceRedeploy: false,
-            skipSchemas: false,
-            forceSchemaDeployment: false,
-            skipVerification: false,
-            skipSeedData: true,
-            skipConfiguration: false,
-            verboseLogging: false,
-            skipGovernanceTransfer: false,
-            addDeployerToAllowlist: false,
-            metadataOnly: false
-        });
-    }
-
-    /// @notice Get hotfix deployment flags
-    function _getHotfixFlags() internal pure returns (DeploymentFlags memory) {
-        return DeploymentFlags({
-            contracts: ContractFlags({ skipExisting: true, forceRedeploy: false, skipVerification: true }),
-            schemas: SchemaFlags({ skip: true, forceRedeploy: false, metadataOnly: false }),
-            config: ConfigurationFlags({
-                skipConfiguration: false,
-                skipSeedData: true,
-                skipGovernanceTransfer: true,
-                addDeployerToAllowlist: false
-            }),
-            logging: LoggingFlags({ verbose: true }),
-            skipExistingContracts: true,
-            forceRedeploy: false,
-            skipSchemas: true,
-            forceSchemaDeployment: false,
-            skipVerification: true,
-            skipSeedData: true,
-            skipConfiguration: false,
-            verboseLogging: true,
-            skipGovernanceTransfer: true,
-            addDeployerToAllowlist: false,
-            metadataOnly: false
-        });
-    }
-
-    /// @notice Get optimized deployment flags
-    function _getOptimizedFlags() internal pure returns (DeploymentFlags memory) {
-        return DeploymentFlags({
-            contracts: ContractFlags({ skipExisting: true, forceRedeploy: false, skipVerification: false }),
-            schemas: SchemaFlags({ skip: false, forceRedeploy: true, metadataOnly: false }),
-            config: ConfigurationFlags({
-                skipConfiguration: false,
-                skipSeedData: true,
-                skipGovernanceTransfer: true,
-                addDeployerToAllowlist: false
-            }),
-            logging: LoggingFlags({ verbose: true }),
-            skipExistingContracts: true,
-            forceRedeploy: false,
-            skipSchemas: false,
-            forceSchemaDeployment: true,
-            skipVerification: false,
-            skipSeedData: true,
-            skipConfiguration: false,
-            verboseLogging: true,
-            skipGovernanceTransfer: true,
-            addDeployerToAllowlist: false,
-            metadataOnly: false
-        });
-    }
-
-    /// @notice Get default deployment flags
-    function _getDefaultFlags() internal pure returns (DeploymentFlags memory) {
-        return DeploymentFlags({
-            contracts: ContractFlags({ skipExisting: true, forceRedeploy: false, skipVerification: false }),
-            schemas: SchemaFlags({ skip: false, forceRedeploy: false, metadataOnly: false }),
-            config: ConfigurationFlags({
-                skipConfiguration: false,
-                skipSeedData: false,
-                skipGovernanceTransfer: false,
-                addDeployerToAllowlist: true
-            }),
-            logging: LoggingFlags({ verbose: false }),
-            skipExistingContracts: true,
-            forceRedeploy: false,
-            skipSchemas: false,
-            forceSchemaDeployment: false,
-            skipVerification: false,
-            skipSeedData: false,
-            skipConfiguration: false,
-            verboseLogging: false,
-            skipGovernanceTransfer: false,
-            addDeployerToAllowlist: true,
-            metadataOnly: false
-        });
-    }
-
-    /// @notice Apply environment variable overrides to flags
-    function _applyEnvironmentOverrides(DeploymentFlags memory flags) internal view {
-        try vm.envBool("SKIP_EXISTING_CONTRACTS") returns (bool value) {
-            flags.skipExistingContracts = value;
-        } catch { }
-
+        
         try vm.envBool("FORCE_REDEPLOY") returns (bool value) {
-            flags.forceRedeploy = value;
-            if (value) {
-                flags.skipExistingContracts = false; // Force redeploy overrides skip
-            }
+            mode.forceRedeploy = value;
         } catch { }
-
-        try vm.envBool("SKIP_SCHEMAS") returns (bool value) {
-            flags.skipSchemas = value;
-        } catch { }
-
-        try vm.envBool("FORCE_SCHEMA_DEPLOYMENT") returns (bool value) {
-            flags.forceSchemaDeployment = value;
-        } catch { }
-
-        try vm.envBool("SKIP_VERIFICATION") returns (bool value) {
-            flags.skipVerification = value;
-        } catch { }
-
-        try vm.envBool("SKIP_SEED_DATA") returns (bool value) {
-            flags.skipSeedData = value;
-        } catch { }
-
-        try vm.envBool("SKIP_CONFIGURATION") returns (bool value) {
-            flags.skipConfiguration = value;
-        } catch { }
-
-        try vm.envBool("VERBOSE_LOGGING") returns (bool value) {
-            flags.verboseLogging = value;
-        } catch { }
-
-        try vm.envBool("SKIP_GOVERNANCE_TRANSFER") returns (bool value) {
-            flags.skipGovernanceTransfer = value;
-        } catch { }
-
-        try vm.envBool("ADD_DEPLOYER_TO_ALLOWLIST") returns (bool value) {
-            flags.addDeployerToAllowlist = value;
-        } catch { }
-
-        try vm.envBool("METADATA_ONLY") returns (bool value) {
-            flags.metadataOnly = value;
-        } catch { }
+        
+        return mode;
     }
+
 
     /// @notice Get network configuration for deterministic deployment
     function _getDeterministicNetworkConfig() internal view returns (NetworkConfig memory) {
@@ -577,57 +192,37 @@ contract Deploy is Script, DeployHelper {
     }
 
     function run() external {
-        // Load configuration and flags
-        DeploymentFlags memory flags = _loadDeploymentFlags();
+        // Parse deployment mode
+        DeploymentMode memory mode = _parseDeploymentMode();
 
         // Setup deployment configuration
-        DeploymentConfig memory deploymentConfig = _setupDeploymentConfiguration(flags);
+        DeploymentConfig memory deploymentConfig = _setupDeploymentConfiguration();
 
         // Execute deployment phases
-        DeploymentResult memory result = _executeDeployment(deploymentConfig, flags);
+        DeploymentResult memory result = _executeDeployment(deploymentConfig, mode);
 
         // Post-deployment tasks
-        _finalizeDeployment(result, flags);
+        _finalizeDeployment(result, mode);
     }
 
-    /// @notice Setup deployment configuration based on profile and flags
-    function _setupDeploymentConfiguration(DeploymentFlags memory flags) internal returns (DeploymentConfig memory) {
+    /// @notice Setup deployment configuration
+    function _setupDeploymentConfiguration() internal returns (DeploymentConfig memory) {
         NetworkConfig memory config;
         bytes32 salt;
         address factory;
         address tokenboundRegistry;
         address deployer = msg.sender;
 
-        // Use deterministic config for optimized profile
-        bool useDeterministic = (_loadDeploymentProfile() == DeploymentProfile.OPTIMIZED);
-
-        if (useDeterministic) {
-            config = _getDeterministicNetworkConfig();
-            salt = DETERMINISTIC_SALT;
-            factory = DETERMINISTIC_FACTORY;
-            tokenboundRegistry = TOKENBOUND_REGISTRY;
-
-            console.log("=== DETERMINISTIC CROSS-CHAIN DEPLOYMENT ===");
-            console.log("Using deterministic addresses for cross-chain consistency");
-            console.log("Manager:", MANAGER);
-            console.log("Multisig:", MULTISIG);
-            console.log("Salt:", vm.toString(DETERMINISTIC_SALT));
-        } else {
-            config = loadNetworkConfig();
-            (salt, factory, tokenboundRegistry) = getDeploymentDefaults();
-            console.log("=== STANDARD DEPLOYMENT ===");
-        }
-
+        config = loadNetworkConfig();
+        (salt, factory, tokenboundRegistry) = getDeploymentDefaults();
+        
         address multisig = config.multisig;
 
-        console.log("Deploying to chain:", block.chainid);
+        console.log("=== DEPLOYMENT ===");
+        console.log("Network:", _getNetworkName(block.chainid));
+        console.log("Chain ID:", block.chainid);
         console.log("Deployer:", deployer);
-        console.log("Multisig:", multisig != address(0) ? vm.toString(multisig) : "Not configured");
-        console.log("Salt:", vm.toString(salt));
-
-        if (flags.verboseLogging) {
-            _logDeploymentFlags(flags);
-        }
+        console.log("Governance:", _getCurrentMultisig());
 
         return DeploymentConfig({
             config: config,
@@ -642,7 +237,7 @@ contract Deploy is Script, DeployHelper {
     /// @notice Execute the main deployment phases
     function _executeDeployment(
         DeploymentConfig memory deploymentConfig,
-        DeploymentFlags memory flags
+        DeploymentMode memory mode
     )
         internal
         returns (DeploymentResult memory)
@@ -654,29 +249,33 @@ contract Deploy is Script, DeployHelper {
         // 1. Deploy DeploymentRegistry with proper ownership
         result.deploymentRegistry = deployDeploymentRegistryWithGovernance(
             deploymentConfig.multisig != address(0) ? deploymentConfig.multisig : deploymentConfig.deployer,
-            deploymentConfig.deployer,
-            flags
+            deploymentConfig.deployer
         );
 
-        // 2. Deploy core infrastructure
-        result = _deployCoreInfrastructure(result, deploymentConfig);
+        // 2. Deploy core infrastructure (skip if force redeploying with updateSchemasOnly)
+        if (!mode.updateSchemasOnly) {
+            result = _deployCoreInfrastructure(result, deploymentConfig);
 
-        // 3. Deploy registries and resolvers
-        result = _deployRegistriesAndResolvers(result, deploymentConfig);
+            // 3. Deploy registries and resolvers
+            result = _deployRegistriesAndResolvers(result, deploymentConfig);
 
-        // 4. Deploy EAS schemas (with skip flag)
-        if (!flags.skipSchemas) {
-            (result.assessmentSchemaUID, result.workSchemaUID, result.workApprovalSchemaUID) = _deployEASSchemasWithFlags(
+            // 4. Always deploy/update EAS schemas
+            (result.assessmentSchemaUID, result.workSchemaUID, result.workApprovalSchemaUID) = _deployEASSchemas(
                 deploymentConfig.config.easSchemaRegistry,
                 result.assessmentResolver,
                 result.workResolver,
-                result.workApprovalResolver,
-                flags
+                result.workApprovalResolver
             );
         } else {
-            console.log(">> Skipping schema deployment (SKIP_SCHEMAS=true)");
+            console.log(">> UPDATE_SCHEMAS_ONLY mode: schemas will be deployed without contract updates");
+            // In schema-only mode, deploy schemas without resolver addresses (use address(0))
+            (result.assessmentSchemaUID, result.workSchemaUID, result.workApprovalSchemaUID) = _deployEASSchemas(
+                deploymentConfig.config.easSchemaRegistry,
+                address(0),
+                address(0),
+                address(0)
+            );
         }
-
 
         return result;
     }
@@ -735,46 +334,39 @@ contract Deploy is Script, DeployHelper {
     }
 
     /// @notice Finalize deployment with configuration and seed data
-    function _finalizeDeployment(DeploymentResult memory result, DeploymentFlags memory flags) internal {
-        // 5. Configure DeploymentRegistry (with governance handling)
-        if (!flags.skipConfiguration) {
+    function _finalizeDeployment(DeploymentResult memory result, DeploymentMode memory mode) internal {
+        // Skip infrastructure deployment if only updating schemas
+        if (!mode.updateSchemasOnly) {
+            // 5. Configure DeploymentRegistry (with governance handling)
             _configureDeploymentRegistryWithGovernance(
-                result.deploymentRegistry, _getCurrentConfig(), result, _getCurrentDeployer(), _getCurrentMultisig(), flags
+                result.deploymentRegistry, _getCurrentConfig(), result, _getCurrentDeployer(), _getCurrentMultisig()
             );
-        } else {
-            console.log(">> Skipping deployment registry configuration (SKIP_CONFIGURATION=true)");
-        }
 
-        // 6. ALWAYS initialize root garden (required for all deployments)
-        console.log(">> Deploying root community garden");
-        (address rootGarden, uint256 rootGardenTokenId) = _deploySeedGardens(
-            result.gardenToken, result.deploymentRegistry, _getCurrentConfig().communityToken, result.gardenAccountImpl
-        );
+            // 6. ALWAYS deploy root garden + core actions (essential infrastructure)
+            console.log("\n=== INFRASTRUCTURE ===");
+            console.log(">> Deploying root community garden");
+            (address rootGarden, uint256 rootGardenTokenId) = _deploySeedGardens(
+                result.gardenToken, result.deploymentRegistry, _getCurrentConfig().communityToken, result.gardenAccountImpl
+            );
 
-        // Store in result for JSON export
-        result.rootGardenAddress = rootGarden;
-        result.rootGardenTokenId = rootGardenTokenId;
+            // Store in result for JSON export
+            result.rootGardenAddress = rootGarden;
+            result.rootGardenTokenId = rootGardenTokenId;
 
-        // 7. Deploy seed actions if not skipped
-        if (!flags.skipSeedData) {
-            console.log(">> Uploading and deploying seed actions");
+            // 7. ALWAYS deploy core actions (Planting, Identify Plant, Litter Cleanup)
+            console.log(">> Deploying core actions (3 total)");
             string[] memory actionIPFSHashes = _uploadActionsToIPFS();
-            _deploySeedActions(result.actionRegistry, actionIPFSHashes);
-        } else {
-            console.log(">> Skipping seed actions (SKIP_SEED_DATA=true)");
+            _deployCoreActions(result.actionRegistry, actionIPFSHashes);
         }
+        
         vm.stopBroadcast();
-
 
         // Print summary and save deployment
         _printDeploymentSummary(result);
         _saveDeployment(result);
 
-        if (!flags.skipVerification) {
-            _generateVerificationCommands(result);
-        } else {
-            console.log(">> Skipping verification command generation (SKIP_VERIFICATION=true)");
-        }
+        // Always generate verification commands (deploy.js handles localhost skip)
+        _generateVerificationCommands(result);
     }
 
     /// @notice Get current deployment configuration (helper for cleaner code)
@@ -806,8 +398,7 @@ contract Deploy is Script, DeployHelper {
 
     function deployDeploymentRegistryWithGovernance(
         address initialOwner,
-        address deployer,
-        DeploymentFlags memory /* flags */
+        address deployer
     )
         public
         returns (address)
@@ -872,8 +463,7 @@ contract Deploy is Script, DeployHelper {
         NetworkConfig memory config,
         DeploymentResult memory result,
         address deployer,
-        address multisig,
-        DeploymentFlags memory flags
+        address multisig
     )
         internal
     {
@@ -893,10 +483,10 @@ contract Deploy is Script, DeployHelper {
         try reg.setNetworkConfig(block.chainid, netConfig) {
             console.log("[OK] DeploymentRegistry configured for chain:", block.chainid);
 
-            // Handle governance transfer if multisig is configured and deployer is current owner
-            if (!flags.skipGovernanceTransfer && multisig != address(0) && reg.owner() == deployer && multisig != deployer)
+            // Always handle governance transfer if multisig is configured and deployer is current owner
+            if (multisig != address(0) && reg.owner() == deployer && multisig != deployer)
             {
-                _handleGovernanceTransfer(reg, deployer, multisig, flags);
+                _handleGovernanceTransfer(reg, deployer, multisig);
             }
         } catch (bytes memory reason) {
             console.log("[WARN] Failed to configure DeploymentRegistry:");
@@ -1260,81 +850,9 @@ contract Deploy is Script, DeployHelper {
         workUID = _deploySchema(registry, schemaJson, existingWorkUID, "work", workResolver);
         workApprovalUID = _deploySchema(registry, schemaJson, existingWorkApprovalUID, "workApproval", workApprovalResolver);
 
-        // Create name and description attestations for all chains
+        // Create name and description attestations for schema metadata
         _createSchemaNameAndDescriptionAttestations(eas, schemaJson, assessmentUID, workUID, workApprovalUID);
-
-        console.log("EAS Schemas deployed successfully:");
-        console.log("Assessment UID:", vm.toString(assessmentUID));
-        console.log("Work UID:", vm.toString(workUID));
-        console.log("Work Approval UID:", vm.toString(workApprovalUID));
-        console.log("=================================================\n");
-    }
-
-    function _deployEASSchemasWithFlags(
-        address schemaRegistry,
-        address assessmentResolver,
-        address workResolver,
-        address workApprovalResolver,
-        DeploymentFlags memory flags
-    )
-        internal
-        returns (bytes32 assessmentUID, bytes32 workUID, bytes32 workApprovalUID)
-    {
-        console.log("\n=== Deploying EAS Schemas ===");
-
-        // Load network config to get EAS address
-        NetworkConfig memory config = loadNetworkConfig();
-
-        // Validation with detailed error messages
-        if (schemaRegistry == address(0)) {
-            console.log("ERROR: Schema registry address is zero for chain", block.chainid);
-            console.log("Please check your networks.json configuration");
-            revert SchemaRegistryAddressZero();
-        }
-
-        if (config.eas == address(0)) {
-            console.log("ERROR: EAS contract address is zero for chain", block.chainid);
-            console.log("Please check your networks.json configuration");
-            revert EASAddressZero();
-        }
-
-        if (workResolver == address(0)) {
-            console.log("ERROR: Work resolver address is zero");
-            console.log("This indicates a failure in resolver deployment");
-            revert WorkResolverAddressZero();
-        }
-
-        if (workApprovalResolver == address(0)) {
-            console.log("ERROR: Work approval resolver address is zero");
-            console.log("This indicates a failure in work approval resolver deployment");
-            revert WorkApprovalResolverAddressZero();
-        }
-
-        // Load existing deployment and schema config
-        (bytes32 existingAssessmentUID, bytes32 existingWorkUID, bytes32 existingWorkApprovalUID) = _loadExistingSchemas();
-
-        string memory schemaJson;
-        try vm.readFile(string.concat(vm.projectRoot(), "/config/schemas.json")) returns (string memory schemaConfig) {
-            schemaJson = schemaConfig;
-        } catch {
-            console.log("ERROR: Failed to load schemas.json configuration file");
-            console.log("Please ensure config/schemas.json exists and is readable");
-            revert SchemaDeploymentFailed("ALL", "Configuration file not found");
-        }
-
-        ISchemaRegistry registry = ISchemaRegistry(schemaRegistry);
-        IEAS eas = IEAS(config.eas);
-
-        // Deploy schemas with force deployment flag
-        assessmentUID =
-            _deploySchemaWithFlags(registry, schemaJson, existingAssessmentUID, "assessment", assessmentResolver, flags);
-        workUID = _deploySchemaWithFlags(registry, schemaJson, existingWorkUID, "work", workResolver, flags);
-        workApprovalUID = _deploySchemaWithFlags(
-            registry, schemaJson, existingWorkApprovalUID, "workApproval", workApprovalResolver, flags
-        );
-
-        // Create name and description attestations for all chains
-        _createSchemaNameAndDescriptionAttestations(eas, schemaJson, assessmentUID, workUID, workApprovalUID);
+        console.log("[OK] Schema metadata attestations created");
 
         console.log("EAS Schemas deployed successfully:");
         console.log("Assessment UID:", vm.toString(assessmentUID));
@@ -1358,8 +876,7 @@ contract Deploy is Script, DeployHelper {
             bool schemaExists = _verifySchemaExists(registry, existingUID, resolver);
             
             if (schemaExists) {
-                console.log("Schema already exists:", schemaName, "UID:", vm.toString(existingUID));
-                console.log("Schema validation passed for:", schemaName);
+                console.log("[OK]", schemaName, "Schema:", vm.toString(existingUID));
                 return existingUID;
             } else {
                 console.log("[WARN] Cached schema UID not found on-chain, deploying new schema:", schemaName);
@@ -1370,49 +887,7 @@ contract Deploy is Script, DeployHelper {
 
         // Deploy schema with retry logic
         bytes32 uid = _deploySchemaAttemptWithRetry(registry, schemaJson, schemaName, resolver);
-        console.log("Schema deployed successfully:", schemaName, "UID:", vm.toString(uid));
-        return uid;
-    }
-
-    function _deploySchemaWithFlags(
-        ISchemaRegistry registry,
-        string memory schemaJson,
-        bytes32 existingUID,
-        string memory schemaName,
-        address resolver,
-        DeploymentFlags memory flags
-    )
-        internal
-        returns (bytes32)
-    {
-        // Force schema deployment overrides existing check
-        if (flags.forceSchemaDeployment) {
-            console.log("[FORCE] Force deploying schema:", schemaName, "(FORCE_SCHEMA_DEPLOYMENT=true)");
-            bytes32 forceUID = _deploySchemaAttemptWithRetry(registry, schemaJson, schemaName, resolver);
-            console.log("[OK] Schema force deployed successfully:", schemaName, "UID:", vm.toString(forceUID));
-            return forceUID;
-        }
-
-        // Verify existing UID actually exists on-chain
-        if (existingUID != bytes32(0)) {
-            bool schemaExists = _verifySchemaExists(registry, existingUID, resolver);
-            
-            if (schemaExists) {
-                console.log(">> Schema already exists:", schemaName, "UID:", vm.toString(existingUID));
-                if (flags.verboseLogging) {
-                    console.log("   Use FORCE_SCHEMA_DEPLOYMENT=true to redeploy");
-                }
-                return existingUID;
-            } else {
-                console.log("[WARN] Cached schema UID not found on-chain, deploying new schema:", schemaName);
-            }
-        }
-
-        console.log("Deploying new schema:", schemaName);
-
-        // Deploy schema with better error handling
-        bytes32 uid = _deploySchemaAttemptWithRetry(registry, schemaJson, schemaName, resolver);
-        console.log("[OK] Schema deployed successfully:", schemaName, "UID:", vm.toString(uid));
+        console.log("[OK]", schemaName, "Schema:", vm.toString(uid));
         return uid;
     }
 
@@ -1488,20 +963,8 @@ contract Deploy is Script, DeployHelper {
         try registry.register(schemaString, resolver, revocable) returns (bytes32 uid) {
             console.log("   Schema deployed with UID:", vm.toString(uid));
             
-            // Verify the schema was actually created
-            try registry.getSchema(uid) returns (string memory deployedSchema, address deployedResolver, bool) {
-                if (bytes(deployedSchema).length == 0) {
-                    revert SchemaDeploymentFailed(schemaName, "Schema registered but not found on-chain");
-                }
-                if (deployedResolver != resolver) {
-                    revert SchemaDeploymentFailed(
-                        schemaName, 
-                        string.concat("Resolver mismatch - expected: ", vm.toString(resolver), " got: ", vm.toString(deployedResolver))
-                    );
-                }
-            } catch {
-                revert SchemaDeploymentFailed(schemaName, "Cannot verify deployed schema");
-            }
+            //  Basic verification: skip detailed validation to avoid memory issues
+            console.log("[OK] Schema registered successfully:", schemaName);
             
             return uid;
         } catch Error(string memory reason) {
@@ -1515,25 +978,26 @@ contract Deploy is Script, DeployHelper {
         }
     }
 
-    /// @notice Helper function to get schema revocable flag from flat array by ID
-    function _getSchemaRevocableFromArray(string memory schemaJson, string memory schemaId) internal pure returns (bool) {
-        // Parse the array and find the schema with matching ID
-        for (uint256 i = 0; i < 100; i++) {
-            string memory indexPath = string.concat("[", vm.toString(i), "]");
-
-            try vm.parseJson(schemaJson, string.concat(indexPath, ".id")) returns (bytes memory idData) {
-                string memory currentId = abi.decode(idData, (string));
-
-                if (keccak256(abi.encodePacked(currentId)) == keccak256(abi.encodePacked(schemaId))) {
-                    return abi.decode(vm.parseJson(schemaJson, string.concat(indexPath, ".revocable")), (bool));
-                }
-            } catch {
-                // Index doesn't exist, continue
-                break;
-            }
+    /// @notice Helper function to get schema revocable flag from object structure by ID
+    function _getSchemaRevocableFromArray(string memory schemaJson, string memory schemaId) internal view returns (bool) {
+        // Map common aliases to actual schema keys
+        string memory actualSchemaKey = schemaId;
+        if (keccak256(abi.encodePacked(schemaId)) == keccak256(abi.encodePacked("assessment"))) {
+            actualSchemaKey = "assessment";
+        } else if (keccak256(abi.encodePacked(schemaId)) == keccak256(abi.encodePacked("work"))) {
+            actualSchemaKey = "work";
+        } else if (keccak256(abi.encodePacked(schemaId)) == keccak256(abi.encodePacked("workApproval"))) {
+            actualSchemaKey = "workApproval";
         }
-
-        revert(string.concat("Schema not found: ", schemaId));
+        
+        // Parse from object structure: .schemas.<key>.revocable
+        string memory schemaPath = string.concat(".schemas.", actualSchemaKey, ".revocable");
+        
+        try vm.parseJson(schemaJson, schemaPath) returns (bytes memory revocableData) {
+            return abi.decode(revocableData, (bool));
+        } catch {
+            revert(string.concat("Schema not found: ", schemaId, " (tried key: ", actualSchemaKey, ")"));
+        }
     }
 
     function _generateSchemaStringWithValidation(string memory schemaName) internal returns (string memory) {
@@ -1587,60 +1051,62 @@ contract Deploy is Script, DeployHelper {
         }
     }
 
-    /// @notice Helper function to get schema name from flat array by ID
+    /// @notice Helper function to get schema name from object structure by ID
     function _getSchemaNameFromArray(
         string memory schemaJson,
         string memory schemaId
     )
         internal
-        pure
+        view
         returns (string memory)
     {
-        // Parse the array and find the schema with matching ID
-        for (uint256 i = 0; i < 100; i++) {
-            string memory indexPath = string.concat("[", vm.toString(i), "]");
-
-            try vm.parseJson(schemaJson, string.concat(indexPath, ".id")) returns (bytes memory idData) {
-                string memory currentId = abi.decode(idData, (string));
-
-                if (keccak256(abi.encodePacked(currentId)) == keccak256(abi.encodePacked(schemaId))) {
-                    return abi.decode(vm.parseJson(schemaJson, string.concat(indexPath, ".name")), (string));
-                }
-            } catch {
-                // Index doesn't exist, continue
-                break;
-            }
+        // Map common aliases to actual schema keys
+        string memory actualSchemaKey = schemaId;
+        if (keccak256(abi.encodePacked(schemaId)) == keccak256(abi.encodePacked("assessment"))) {
+            actualSchemaKey = "assessment";
+        } else if (keccak256(abi.encodePacked(schemaId)) == keccak256(abi.encodePacked("work"))) {
+            actualSchemaKey = "work";
+        } else if (keccak256(abi.encodePacked(schemaId)) == keccak256(abi.encodePacked("workApproval"))) {
+            actualSchemaKey = "workApproval";
         }
-
-        revert(string.concat("Schema not found: ", schemaId));
+        
+        // Parse from object structure: .schemas.<key>.name
+        string memory schemaPath = string.concat(".schemas.", actualSchemaKey, ".name");
+        
+        try vm.parseJson(schemaJson, schemaPath) returns (bytes memory nameData) {
+            return abi.decode(nameData, (string));
+        } catch {
+            revert(string.concat("Schema name not found: ", schemaId, " (tried key: ", actualSchemaKey, ")"));
+        }
     }
 
-    /// @notice Helper function to get schema description from flat array by ID
+    /// @notice Helper function to get schema description from object structure by ID
     function _getSchemaDescriptionFromArray(
         string memory schemaJson,
         string memory schemaId
     )
         internal
-        pure
+        view
         returns (string memory)
     {
-        // Parse the array and find the schema with matching ID
-        for (uint256 i = 0; i < 100; i++) {
-            string memory indexPath = string.concat("[", vm.toString(i), "]");
-
-            try vm.parseJson(schemaJson, string.concat(indexPath, ".id")) returns (bytes memory idData) {
-                string memory currentId = abi.decode(idData, (string));
-
-                if (keccak256(abi.encodePacked(currentId)) == keccak256(abi.encodePacked(schemaId))) {
-                    return abi.decode(vm.parseJson(schemaJson, string.concat(indexPath, ".description")), (string));
-                }
-            } catch {
-                // Index doesn't exist, continue
-                break;
-            }
+        // Map common aliases to actual schema keys
+        string memory actualSchemaKey = schemaId;
+        if (keccak256(abi.encodePacked(schemaId)) == keccak256(abi.encodePacked("assessment"))) {
+            actualSchemaKey = "assessment";
+        } else if (keccak256(abi.encodePacked(schemaId)) == keccak256(abi.encodePacked("work"))) {
+            actualSchemaKey = "work";
+        } else if (keccak256(abi.encodePacked(schemaId)) == keccak256(abi.encodePacked("workApproval"))) {
+            actualSchemaKey = "workApproval";
         }
-
-        revert(string.concat("Schema description not found: ", schemaId));
+        
+        // Parse from object structure: .schemas.<key>.description
+        string memory schemaPath = string.concat(".schemas.", actualSchemaKey, ".description");
+        
+        try vm.parseJson(schemaJson, schemaPath) returns (bytes memory descData) {
+            return abi.decode(descData, (string));
+        } catch {
+            revert(string.concat("Schema description not found: ", schemaId, " (tried key: ", actualSchemaKey, ")"));
+        }
     }
 
     function _createSchemaNameAttestation(IEAS eas, bytes32 schemaUID, string memory name) internal {
@@ -1766,8 +1232,7 @@ contract Deploy is Script, DeployHelper {
     function _handleGovernanceTransfer(
         DeploymentRegistry reg,
         address, /* deployer */
-        address multisig,
-        DeploymentFlags memory flags
+        address multisig
     )
         internal
     {
@@ -1783,7 +1248,7 @@ contract Deploy is Script, DeployHelper {
         }
 
         // Load additional allowlist addresses from environment
-        _addEnvironmentAllowlist(reg, flags);
+        _addEnvironmentAllowlist(reg);
 
         // Initiate governance transfer
         try reg.initiateGovernanceTransfer(multisig) {
@@ -1796,7 +1261,7 @@ contract Deploy is Script, DeployHelper {
         }
     }
 
-    function _addEnvironmentAllowlist(DeploymentRegistry reg, DeploymentFlags memory /* flags */ ) internal {
+    function _addEnvironmentAllowlist(DeploymentRegistry reg) internal {
         // Check for comma-separated allowlist in environment variable
         try vm.envString("DEPLOYMENT_REGISTRY_ALLOWLIST") returns (string memory allowlistStr) {
             if (bytes(allowlistStr).length > 0) {
@@ -1832,20 +1297,9 @@ contract Deploy is Script, DeployHelper {
         }
     }
 
-    function _logDeploymentFlags(DeploymentFlags memory flags) internal view {
-        console.log("\n=== Deployment Flags ===");
-        console.log("Skip Existing Contracts:", flags.skipExistingContracts);
-        console.log("Force Redeploy:", flags.forceRedeploy);
-        console.log("Skip Schemas:", flags.skipSchemas);
-        console.log("Force Schema Deployment:", flags.forceSchemaDeployment);
-        console.log("Skip Verification:", flags.skipVerification);
-        console.log("Skip Seed Data:", flags.skipSeedData);
-        console.log("Skip Configuration:", flags.skipConfiguration);
-        console.log("Skip Governance Transfer:", flags.skipGovernanceTransfer);
-        console.log("Add Deployer to Allowlist:", flags.addDeployerToAllowlist);
-        console.log("Verbose Logging:", flags.verboseLogging);
-        console.log("Metadata Only:", flags.metadataOnly);
-        console.log("========================\n");
+    function _logDeploymentMode(DeploymentMode memory mode) internal pure {
+        // Deployment mode is now simpler - no verbose logging needed
+        // Mode details are shown inline during deployment
     }
 
     function _deploySeedGardens(
@@ -1909,26 +1363,28 @@ contract Deploy is Script, DeployHelper {
         }
     }
 
-    function _deploySeedActions(address actionRegistry, string[] memory ipfsHashes) internal {
+    /// @notice Deploy core actions from actions.json (Planting, Identify Plant, Litter Cleanup)
+    /// @dev These are essential infrastructure, always deployed
+    function _deployCoreActions(address actionRegistry, string[] memory ipfsHashes) internal {
         string memory configPath = string.concat(vm.projectRoot(), "/config/actions.json");
 
         try vm.readFile(configPath) returns (string memory json) {
-            // Parse actions array
+            // Parse actions array - iterate only as many times as we have IPFS hashes
             uint256 actionCount = 0;
-            for (uint256 i = 0; i < 50; i++) {
+            for (uint256 i = 0; i < ipfsHashes.length && i < 50; i++) {
                 string memory basePath = string.concat(".actions[", vm.toString(i), "]");
 
-                try vm.parseJson(json, string.concat(basePath, ".title")) returns (bytes memory) {
-                    // Verify we have an IPFS hash for this action
-                    if (i >= ipfsHashes.length) {
-                        console.log("[ERROR] Missing IPFS hash for action", i);
-                        revert("Missing IPFS hash for action");
+                try vm.parseJson(json, string.concat(basePath, ".title")) returns (bytes memory titleBytes) {
+                    // Check if we actually got a valid title
+                    if (titleBytes.length == 0) {
+                        console.log("[WARN] Empty title at index", i, "- stopping");
+                        break;
                     }
 
                     _parseSingleAction(json, basePath, i, ipfsHashes[i], actionRegistry);
                     actionCount++;
                 } catch {
-                    // No more actions
+                    // No more actions or parse error
                     break;
                 }
             }

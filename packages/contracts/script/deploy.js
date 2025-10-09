@@ -29,31 +29,6 @@ const CAPITAL_MAPPING = {
 class DeploymentCLI {
   constructor() {
     this.deploymentAddresses = new DeploymentAddresses();
-    this.profiles = {
-      dev: {
-        description: "Full deployment with test data and verbose logging (default)",
-        flags: {
-          verbose: true,
-        },
-      },
-      production: {
-        description: "Production deployment (no test data, governance transfer)",
-        flags: {
-          skipSeedData: true,
-          skipGovernance: false,
-          noAllowlist: true,
-        },
-      },
-      update: {
-        description: "Update schemas without redeploying contracts",
-        flags: {
-          skipExisting: true,
-          skipVerification: true,
-          forceSchemas: true,
-          skipSeedData: true,
-        },
-      },
-    };
   }
 
   showHelp() {
@@ -64,106 +39,46 @@ Usage: node deploy.js <command> [options]
 
 Commands:
   core                     Deploy core contracts
-  garden <config.json>     Deploy a garden from JSON config
-  onboard <config.csv>     Onboard gardens from CSV with wallet creation
-  actions <config.json>    Deploy actions from JSON config
-  status [network]         Check deployment status
-  fork <network>           Start a network fork
-
-Deployment Profiles:
-${Object.entries(this.profiles)
-  .map(([name, profile]) => `  ${name.padEnd(15)} - ${profile.description}`)
-  .join("\n")}
 
 Common Options:
-  --profile, -p <name>     Use deployment profile (dev/production/update)
   --network, -n <network>  Network to deploy to (default: localhost)
   --broadcast, -b          Broadcast transactions
-  --verify, -v             Verify contracts after deployment
-  --dry-run                Validate configuration without deploying
-  --verbose                Enable verbose deployment logging
+  --update-schemas         Only update schemas, skip existing contracts
+  --force                  Force fresh deployment
   --help, -h               Show this help
 
-Advanced Flags:
-  --skip-existing          Skip deployment if contract already exists
-  --skip-schemas           Skip EAS schema deployment entirely
-  --skip-seed-data         Skip seed data initialization
-  --skip-governance        Skip governance transfer to multisig
-  --skip-envio             Skip automatic Envio configuration update
-  --start-indexer          Start Envio indexer after localhost deployment
-
-Quick Start (package.json):
-  pnpm dev                 # Start local anvil node
-  pnpm deploy:local        # Deploy to localhost with test data
-  pnpm deploy:testnet      # Deploy to Base Sepolia testnet
-  pnpm deploy:celo         # Deploy to Celo mainnet (production)
-  pnpm deploy:arbitrum     # Deploy to Arbitrum mainnet (production)
-  pnpm status              # Check deployment status
-  pnpm upgrade             # Upgrade contracts
-
 Examples:
-  # Development
-  node deploy.js core --network localhost --broadcast
+  # Fresh deployment
+  node deploy.js core --network baseSepolia --broadcast
   
-  # Testnet deployment
-  node deploy.js core --network baseSepolia --broadcast --verify
+  # Update schemas only
+  node deploy.js core --network baseSepolia --broadcast --update-schemas
   
-  # Production deployment
-  node deploy.js core --network celo --broadcast --verify --profile production
-  
-  # Update existing deployment
-  node deploy.js core --network celo --profile update --broadcast --verify
-  
-  # Dry run
-  node deploy.js core --network arbitrum --profile production --dry-run
-  
-  # Fork network
-  node deploy.js fork celo
+  # Force redeploy everything
+  node deploy.js core --network baseSepolia --broadcast --force
 
 Available networks: ${Object.keys(networksConfig.networks).join(", ")}
-    `);
-  }
 
-  listProfiles() {
-    console.log("Available deployment profiles:");
-    Object.entries(this.profiles).forEach(([name, profile]) => {
-      console.log(`  ${name.padEnd(15)} - ${profile.description}`);
-    });
+Note: Contracts are automatically verified on all networks except localhost.
+For UUPS upgrades, use: pnpm upgrade <contract> --network <network> --broadcast
+    `);
   }
 
   parseOptions(args) {
     const options = {
       network: "localhost",
       broadcast: false,
-      verify: false,
-      gasOptimize: false,
-      gasStrategy: "standard",
-      saveReport: false,
-      dryRun: false,
-      profile: null,
-      // Envio integration flags
-      skipEnvio: false,
-      startIndexer: false,
-      // Deployment flags
-      skipExisting: false,
-      forceRedeploy: false,
-      skipSchemas: false,
-      forceSchemas: false,
-      skipVerification: false,
-      skipSeedData: false,
-      skipConfiguration: false,
-      skipGovernance: false,
-      noAllowlist: false,
-      verbose: false,
-      metadataOnly: false,
+      verify: true, // Default to verify
+
+      // New simplified flags
+      updateSchemasOnly: false,
+      force: false,
     };
 
     for (let i = 1; i < args.length; i++) {
       const arg = args[i];
 
-      // Skip command and config file arguments
       if (i === 1 && !arg.startsWith("-")) continue;
-      if (i === 2 && !args[1].startsWith("-") && !arg.startsWith("-")) continue;
 
       switch (arg) {
         case "--network":
@@ -174,162 +89,37 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
         case "-b":
           options.broadcast = true;
           break;
-        case "--verify":
-        case "-v":
-          options.verify = true;
+        case "--update-schemas":
+          options.updateSchemasOnly = true;
           break;
-        case "--gas-optimize":
-        case "-g":
-          options.gasOptimize = true;
+        case "--force":
+          options.force = true;
           break;
-        case "--gas-strategy":
-          options.gasStrategy = args[++i];
-          break;
-        case "--save-report":
-        case "-r":
-          options.saveReport = true;
-          break;
-        case "--dry-run":
-          options.dryRun = true;
-          break;
-        case "--profile":
-        case "-p":
-          options.profile = args[++i];
-          break;
-        case "--list-profiles":
-          this.listProfiles();
-          process.exit(0);
-          break;
-
-        // Deployment control flags
-        case "--skip-existing":
-          options.skipExisting = true;
-          break;
-        case "--force-redeploy":
-          options.forceRedeploy = true;
-          break;
-        case "--skip-schemas":
-          options.skipSchemas = true;
-          break;
-        case "--force-schemas":
-          options.forceSchemas = true;
-          break;
-        case "--skip-verification":
-          options.skipVerification = true;
-          break;
-        case "--skip-seed-data":
-          options.skipSeedData = true;
-          break;
-        case "--skip-configuration":
-          options.skipConfiguration = true;
-          break;
-        case "--skip-governance":
-          options.skipGovernance = true;
-          break;
-        case "--no-allowlist":
-          options.noAllowlist = true;
-          break;
-        case "--verbose":
-          options.verbose = true;
-          break;
-
-        // Envio integration flags
-        case "--skip-envio":
-          options.skipEnvio = true;
-          break;
-        case "--start-indexer":
-          options.startIndexer = true;
-          break;
-
         case "--help":
         case "-h":
           this.showHelp();
           process.exit(0);
           break;
-
         default:
           if (arg.startsWith("-")) {
-            console.error(`❌ Unknown option: ${arg}`);
+            console.error(`Unknown option: ${arg}`);
             this.showHelp();
             process.exit(1);
           }
       }
     }
 
-    // Apply environment variable overrides (env vars take precedence over CLI flags)
-    if (process.env.SKIP_EXISTING_CONTRACTS !== undefined) {
-      options.skipExisting = process.env.SKIP_EXISTING_CONTRACTS === "true";
-    }
-    if (process.env.FORCE_REDEPLOY !== undefined) {
-      options.forceRedeploy = process.env.FORCE_REDEPLOY === "true";
-    }
-    if (process.env.SKIP_SCHEMAS !== undefined) {
-      options.skipSchemas = process.env.SKIP_SCHEMAS === "true";
-    }
-    if (process.env.FORCE_SCHEMA_DEPLOYMENT !== undefined) {
-      options.forceSchemas = process.env.FORCE_SCHEMA_DEPLOYMENT === "true";
-    }
-    if (process.env.SKIP_VERIFICATION !== undefined) {
-      options.skipVerification = process.env.SKIP_VERIFICATION === "true";
-    }
-    if (process.env.SKIP_SEED_DATA !== undefined) {
-      options.skipSeedData = process.env.SKIP_SEED_DATA === "true";
-    }
-    if (process.env.SKIP_CONFIGURATION !== undefined) {
-      options.skipConfiguration = process.env.SKIP_CONFIGURATION === "true";
-    }
-    if (process.env.SKIP_GOVERNANCE_TRANSFER !== undefined) {
-      options.skipGovernance = process.env.SKIP_GOVERNANCE_TRANSFER === "true";
-    }
-    if (process.env.ADD_DEPLOYER_TO_ALLOWLIST !== undefined) {
-      options.noAllowlist = process.env.ADD_DEPLOYER_TO_ALLOWLIST === "false";
-    }
-    if (process.env.VERBOSE_LOGGING !== undefined) {
-      options.verbose = process.env.VERBOSE_LOGGING === "true";
-    }
-    if (process.env.METADATA_ONLY !== undefined) {
-      options.metadataOnly = process.env.METADATA_ONLY === "true";
-    }
-
-    // Apply profile flags
-    if (options.profile) {
-      this.applyProfile(options, options.profile);
+    // Always verify except localhost
+    if (options.network === "localhost") {
+      options.verify = false;
     }
 
     return options;
   }
 
-  applyProfile(options, profileName) {
-    const profile = this.profiles[profileName];
-    if (!profile) {
-      console.error(`❌ Unknown profile: ${profileName}`);
-      console.log("Available profiles:");
-      this.listProfiles();
-      process.exit(1);
-    }
-
-    console.log(`📋 Applying profile: ${profileName} - ${profile.description}`);
-    Object.assign(options, profile.flags);
-  }
-
   setEnvironmentFlags(options) {
-    // Set environment variables for the Solidity script
-    process.env.SKIP_EXISTING_CONTRACTS = options.skipExisting.toString();
-    process.env.FORCE_REDEPLOY = options.forceRedeploy.toString();
-    process.env.SKIP_SCHEMAS = options.skipSchemas.toString();
-    process.env.FORCE_SCHEMA_DEPLOYMENT = options.forceSchemas.toString();
-    process.env.SKIP_VERIFICATION = options.skipVerification.toString();
-    process.env.SKIP_SEED_DATA = options.skipSeedData.toString();
-    process.env.SKIP_CONFIGURATION = options.skipConfiguration.toString();
-    process.env.SKIP_GOVERNANCE_TRANSFER = options.skipGovernance.toString();
-    process.env.ADD_DEPLOYER_TO_ALLOWLIST = (!options.noAllowlist).toString();
-    process.env.VERBOSE_LOGGING = options.verbose.toString();
-    process.env.METADATA_ONLY = options.metadataOnly.toString();
-
-    // Set deployment profile if specified
-    if (options.profile) {
-      process.env.DEPLOYMENT_PROFILE = options.profile;
-    }
+    process.env.UPDATE_SCHEMAS_ONLY = options.updateSchemasOnly.toString();
+    process.env.FORCE_REDEPLOY = options.force.toString();
   }
 
   async deployCoreContracts(options) {
@@ -501,28 +291,14 @@ Available networks: ${Object.keys(networksConfig.networks).join(", ")}
   logActiveFlags(options) {
     const activeFlags = [];
 
-    if (options.skipExisting) activeFlags.push("Skip Existing Contracts");
-    if (options.forceRedeploy) activeFlags.push("Force Redeploy");
-    if (options.skipSchemas) activeFlags.push("Skip Schemas");
-    if (options.forceSchemas) activeFlags.push("Force Schema Deployment");
-    if (options.skipVerification) activeFlags.push("Skip Verification");
-    if (options.skipSeedData) activeFlags.push("Skip Seed Data");
-    if (options.skipConfiguration) activeFlags.push("Skip Configuration");
-    if (options.skipGovernance) activeFlags.push("Skip Governance Transfer");
-    if (options.noAllowlist) activeFlags.push("No Deployer Allowlist");
-    if (options.verbose) activeFlags.push("Verbose Logging");
-    if (options.metadataOnly) activeFlags.push("Metadata Only");
+    if (options.updateSchemasOnly) activeFlags.push("Update Schemas Only");
+    if (options.force) activeFlags.push("Force Redeploy");
 
     if (activeFlags.length > 0) {
-      console.log("\n🏁 Active Deployment Flags:");
-      activeFlags.forEach((flag) => {
-        console.log(`   ✓ ${flag}`);
-      });
+      console.log(`\nFlags: ${activeFlags.join(", ")}`);
     }
 
-    // Show governance configuration
-    console.log("\n🏛️  Governance Configuration:");
-    console.log("   Multisig: 0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19 (Green Goods Safe)");
+    console.log("\nGovernance: 0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19 (Green Goods Safe)\n");
 
     const allowlistAddresses = [];
     if (process.env.DEPLOYMENT_REGISTRY_ALLOWLIST) {

@@ -57,8 +57,11 @@ pnpm build                            # Build all packages
 pnpm --filter <package> build         # Build specific package
 
 # Smart Contracts
-pnpm --filter contracts test          # Test contracts
-pnpm --filter contracts deploy:sepolia # Deploy to testnet
+pnpm --filter contracts test             # Test contracts
+pnpm --filter contracts deploy:local     # Deploy locally
+pnpm --filter contracts deploy:testnet   # Deploy to testnet
+pnpm --filter contracts deploy:arbitrum  # Deploy to Arbitrum
+pnpm --filter contracts deploy:celo      # Deploy to Celo mainnet
 
 # Quality
 pnpm format && pnpm lint && pnpm test # Quality checks

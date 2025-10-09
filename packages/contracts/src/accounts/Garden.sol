@@ -157,6 +157,10 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         external
         initializer
     {
+        // Validate array lengths to prevent gas exhaustion
+        require(_gardeners.length <= 100, "Too many gardeners");
+        require(_gardenOperators.length <= 100, "Too many operators");
+        
         // Validate community token is a valid ERC-20
         _validateCommunityToken(_communityToken);
 
@@ -200,9 +204,9 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     }
 
     /// @notice Updates the description of the garden.
-    /// @dev Only callable by a valid signer of the contract.
+    /// @dev Only callable by garden operators.
     /// @param _description The new description of the garden.
-    function updateDescription(string memory _description) external {
+    function updateDescription(string memory _description) external onlyOperator {
         description = _description;
 
         emit DescriptionUpdated(_msgSender(), _description);

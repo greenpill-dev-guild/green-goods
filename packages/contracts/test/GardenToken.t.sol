@@ -192,66 +192,91 @@ contract GardenTokenTest is Test {
         assertEq(gardenToken.ownerOf(1), multisig, "Second token should be minted");
     }
 
-    // function testMintGarden() public {
-    //     // Test minting a new Garden token
-    //     address[] memory gardeners = new address[](1);
-    //     address[] memory gardenOperators = new address[](1);
+    function testOnlyOwnerOrAllowlistCanMint() public {
+        // Test that non-authorized addresses cannot mint
+        address notAuthorized = address(0x999);
+        
+        address[] memory gardeners = new address[](1);
+        address[] memory gardenOperators = new address[](1);
+        gardeners[0] = address(0x1);
+        gardenOperators[0] = address(0x2);
 
-    //     gardeners[0] = address(0x1);
-    //     gardenOperators[0] = address(0x2);
+        vm.prank(notAuthorized);
+        vm.expectRevert(GardenToken.DeploymentRegistryNotConfigured.selector);
+        gardenToken.mintGarden(
+            address(mockToken),
+            "Test Garden",
+            "Description",
+            "Location",
+            "Banner",
+            gardeners,
+            gardenOperators
+        );
+    }
 
-    //     vm.prank(multisig);
+    function testBatchMintGardensRevertsWithEmptyArray() public {
+        GardenToken.GardenConfig[] memory configs = new GardenToken.GardenConfig[](0);
 
-    //     gardenToken.mintGarden(address(0x3), "Test Garden", gardeners, gardenOperators);
+        vm.prank(multisig);
+        vm.expectRevert(GardenToken.InvalidBatchSize.selector);
+        gardenToken.batchMintGardens(configs);
+    }
 
-    //     assertEq(gardenToken.ownerOf(0), owner, "Owner should be the contract owner");
-    // }
+    function testBatchMintGardensRevertsWithTooManyGardens() public {
+        GardenToken.GardenConfig[] memory configs = new GardenToken.GardenConfig[](11); // Max is 10
 
-    // function testEmitGardenMintedEvent() public {
-    //     // Test that the GardenMinted event is emitted correctly
-    //     address[] memory gardeners = new address[](1);
-    //     address[] memory gardenOperators = new address[](1);
+        vm.prank(multisig);
+        vm.expectRevert(GardenToken.InvalidBatchSize.selector);
+        gardenToken.batchMintGardens(configs);
+    }
 
-    //     gardeners[0] = address(0x1);
-    //     gardenOperators[0] = address(0x2);
+    function testBatchMintGardensRevertsWithTooManyGardeners() public {
+        GardenToken.GardenConfig[] memory configs = new GardenToken.GardenConfig[](1);
 
-    //     vm.expectEmit(true, true, true, true);
-    //     emit GardenToken.GardenMinted(owner, 0, "Test Garden");
+        // Create array with 101 gardeners (exceeds limit of 100)
+        address[] memory tooManyGardeners = new address[](101);
+        for (uint256 i = 0; i < 101; i++) {
+            tooManyGardeners[i] = address(uint160(i + 1));
+        }
+        address[] memory operators = new address[](0);
 
-    //     gardenToken.mintGarden(address(0x3), "Test Garden", gardeners, gardenOperators);
-    // }
+        configs[0] = GardenToken.GardenConfig({
+            communityToken: address(mockToken),
+            name: "Garden 1",
+            description: "Description 1",
+            location: "Location 1",
+            bannerImage: "Banner 1",
+            gardeners: tooManyGardeners,
+            gardenOperators: operators
+        });
 
-    // function testOnlyOwnerCanMint() public {
-    //     // Test that only the owner can mint new Garden tokens
-    //     address notOwner = address(0x999);
-    //     vm.prank(notOwner); // Change the msg.sender to notOwner
+        vm.prank(multisig);
+        vm.expectRevert("Too many gardeners");
+        gardenToken.batchMintGardens(configs);
+    }
 
-    //     address[] memory gardeners = new address[](1);
-    //     address[] memory gardenOperators = new address[](1);
+    function testBatchMintGardensRevertsWithTooManyOperators() public {
+        GardenToken.GardenConfig[] memory configs = new GardenToken.GardenConfig[](1);
 
-    //     gardeners[0] = address(0x1);
-    //     gardenOperators[0] = address(0x2);
+        // Create array with 101 operators (exceeds limit of 100)
+        address[] memory gardeners = new address[](0);
+        address[] memory tooManyOperators = new address[](101);
+        for (uint256 i = 0; i < 101; i++) {
+            tooManyOperators[i] = address(uint160(i + 1));
+        }
 
-    //     vm.expectRevert("Ownable: caller is not the owner");
-    //     gardenToken.mintGarden(address(0x3), "Test Garden", gardeners, gardenOperators);
-    // }
+        configs[0] = GardenToken.GardenConfig({
+            communityToken: address(mockToken),
+            name: "Garden 1",
+            description: "Description 1",
+            location: "Location 1",
+            bannerImage: "Banner 1",
+            gardeners: gardeners,
+            gardenOperators: tooManyOperators
+        });
 
-    // function testAuthorizeUpgrade() public {
-    //     // Test that only the owner can authorize an upgrade
-    //     address newImplementation = address(0x456);
-
-    //     gardenToken.upgradeTo(newImplementation);
-    //     // We can't directly check this since the function is internal,
-    //     // but we are verifying that no revert occurs for the owner.
-    // }
-
-    // function testNonOwnerCannotUpgrade() public {
-    //     // Test that non-owners cannot authorize an upgrade
-    //     address notOwner = address(0x999);
-    //     vm.prank(notOwner); // Change the msg.sender to notOwner
-    //     address newImplementation = address(0x456);
-
-    //     vm.expectRevert("Ownable: caller is not the owner");
-    //     gardenToken.upgradeTo(newImplementation);
-    // }
+        vm.prank(multisig);
+        vm.expectRevert("Too many operators");
+        gardenToken.batchMintGardens(configs);
+    }
 }

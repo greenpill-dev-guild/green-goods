@@ -39,7 +39,6 @@ abstract contract DeployHelper is Script {
         address assessmentResolver;
         address workResolver;
         address workApprovalResolver;
-        bytes32 gardenAssessmentSchemaUID;
         bytes32 assessmentSchemaUID;
         bytes32 workSchemaUID;
         bytes32 workApprovalSchemaUID;
@@ -101,7 +100,8 @@ abstract contract DeployHelper is Script {
         string memory path = string.concat(root, "/deployments/networks.json");
         string memory json = vm.readFile(path);
 
-        salt = json.readBytes32(".deploymentDefaults.salt");
+        // Generate salt from string for fresh deployment
+        salt = keccak256(bytes("greenGoodsCleanDeploy2025:1"));
         factory = json.readAddress(".deploymentDefaults.factory");
         tokenboundRegistry = json.readAddress(".deploymentDefaults.tokenboundRegistry");
     }
@@ -211,7 +211,7 @@ abstract contract DeployHelper is Script {
         return schemasJson;
     }
 
-    /// @notice Find a schema by ID in the flat array and return its name and description
+    /// @notice Find a schema by ID in the object structure and return its name and description
     function _findSchemaDataInArray(
         string memory json,
         string memory schemaId
@@ -220,26 +220,26 @@ abstract contract DeployHelper is Script {
         pure
         returns (string memory name, string memory description)
     {
-        // Since we can't easily iterate through JSON arrays in Solidity, we'll try indices
-        // Loop through reasonable number of potential schema indices
-        for (uint256 i = 0; i < 100; i++) {
-            string memory indexPath = string.concat("[", vm.toString(i), "]");
-
-            try vm.parseJson(json, string.concat(indexPath, ".id")) returns (bytes memory idData) {
-                string memory currentId = abi.decode(idData, (string));
-
-                if (keccak256(abi.encodePacked(currentId)) == keccak256(abi.encodePacked(schemaId))) {
-                    name = abi.decode(vm.parseJson(json, string.concat(indexPath, ".name")), (string));
-                    description = abi.decode(vm.parseJson(json, string.concat(indexPath, ".description")), (string));
-                    return (name, description);
-                }
-            } catch {
-                // Index doesn't exist, continue
-                break;
-            }
+        // Map schema ID to actual key in schemas.json
+        string memory actualSchemaKey = schemaId;
+        if (keccak256(abi.encodePacked(schemaId)) == keccak256(abi.encodePacked("assessment"))) {
+            actualSchemaKey = "assessment";
+        } else if (keccak256(abi.encodePacked(schemaId)) == keccak256(abi.encodePacked("work"))) {
+            actualSchemaKey = "work";
+        } else if (keccak256(abi.encodePacked(schemaId)) == keccak256(abi.encodePacked("workApproval"))) {
+            actualSchemaKey = "workApproval";
         }
 
-        revert(string.concat("Schema not found: ", schemaId));
+        // Access schema from object structure: .schemas.<key>.name
+        string memory schemaPath = string.concat(".schemas.", actualSchemaKey);
+        
+        try vm.parseJson(json, string.concat(schemaPath, ".name")) returns (bytes memory nameData) {
+            name = abi.decode(nameData, (string));
+            description = abi.decode(vm.parseJson(json, string.concat(schemaPath, ".description")), (string));
+            return (name, description);
+        } catch {
+            revert(string.concat("Schema not found: ", schemaId, " (tried key: ", actualSchemaKey, ")"));
+        }
     }
 
     /// @notice Generate schema string from fields array using JavaScript utility

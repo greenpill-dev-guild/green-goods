@@ -62,6 +62,17 @@ contract WorkApprovalResolverTest is Test {
         assertTrue(workApprovalResolver.isPayable(), "Resolver should be payable");
     }
 
+    function testActionRegistrySet() public {
+        // Test that action registry is properly configured
+        assertEq(workApprovalResolver.actionRegistry(), address(mockActionRegistry), "Action registry should be set");
+    }
+
+    function testOwnerIsMultisig() public {
+        // Verify owner is the multisig
+        assertEq(workApprovalResolver.owner(), multisig, "Owner should be multisig");
+    }
+
+    // Note: Full integration tests for onAttest validation are in Integration.t.sol
     // function testOnAttestValid() public {
     //     // Mock a valid action and garden account
     //     mockGardenAccount.addGardenOperator(attester);

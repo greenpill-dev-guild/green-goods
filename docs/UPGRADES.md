@@ -1,5 +1,18 @@
 # Contract Upgrade Guide
 
+## Deploy vs Upgrade
+
+**This guide covers UUPS proxy upgrades only.**
+
+For fresh deployments with new addresses, see [DEPLOYMENT.md](./DEPLOYMENT.md).
+
+| Action | Command | Creates New Addresses? |
+|--------|---------|----------------------|
+| Deploy | `pnpm deploy:testnet` | ✅ Yes |
+| Upgrade | `pnpm upgrade:testnet` | ❌ No (same addresses) |
+
+If you're unsure which to use, see the [Deploy vs Upgrade Decision Matrix](./DEPLOYMENT.md#deploy-vs-upgrade-workflows).
+
 ## Overview
 
 All Green Goods contracts use the UUPS (Universal Upgradeable Proxy Standard) pattern, allowing contract logic to be upgraded while preserving state and addresses.
@@ -23,41 +36,25 @@ Storage gaps allow new state variables to be added in future upgrades without br
 2. **Sufficient gas** on target network
 3. **Verified deployment addresses** in `deployments/{chainId}-latest.json`
 
-### Dry Run (Recommended First Step)
-
-Always test upgrades without broadcasting first:
+### Quick Upgrade
 
 ```bash
-# Test ActionRegistry upgrade
-npm run upgrade action-registry -- --network baseSepolia --dry-run
+# Upgrade all contracts on testnet
+pnpm upgrade:testnet
+
+# Upgrade all contracts on mainnet
+pnpm upgrade:celo
+pnpm upgrade:arbitrum
 ```
 
-### Execute Upgrade
-
-#### Single Contract
+### Individual Contract Upgrades
 
 ```bash
-# Upgrade ActionRegistry on Base Sepolia
-npm run upgrade:action-registry -- --network baseSepolia --broadcast
-
-# Upgrade GardenToken
-npm run upgrade:garden-token -- --network baseSepolia --broadcast
-
-# Upgrade WorkResolver
-npm run upgrade:work-resolver -- --network baseSepolia --broadcast
-
-# Upgrade WorkApprovalResolver
-npm run upgrade:work-approval-resolver -- --network baseSepolia --broadcast
-
-# Upgrade DeploymentRegistry
-npm run upgrade:deployment-registry -- --network baseSepolia --broadcast
-```
-
-#### All Contracts
-
-```bash
-# Upgrade all contracts at once
-npm run upgrade:all -- --network baseSepolia --broadcast
+# Upgrade specific contract
+node script/upgrade.js action-registry --network baseSepolia --broadcast
+node script/upgrade.js garden-token --network baseSepolia --broadcast
+node script/upgrade.js work-resolver --network baseSepolia --broadcast
+node script/upgrade.js assessment-resolver --network baseSepolia --broadcast
 ```
 
 ### Verify Upgrade
@@ -245,26 +242,17 @@ Always test on testnet before mainnet:
 6. **Test thoroughly**: Comprehensive testing before production upgrades
 7. **Have rollback plan**: Know how to revert if issues arise
 
-## Schema Versioning Strategy
+## Schema Evolution Strategy
 
 ### Overview
 
-All EAS schemas include a `uint8 version` field as the first field. This enables future-proof schema evolution without breaking backward compatibility.
+Green Goods uses EAS (Ethereum Attestation Service) schemas for on-chain attestations. The current implementation provides a solid foundation that can be extended in future versions.
 
-### Why Version Fields?
+### Current Schema Implementations
 
-- **Future-proof**: Easy to add V3, V4 schemas later
-- **Backward compatible**: V1 attestations remain valid
-- **Clear migration path**: Frontend can detect and handle both versions
-- **No data loss**: Gradual migration without breaking changes
-- **Resolver updates**: Proxy resolvers can be upgraded without redeploying schemas
-
-### Current Schema Versions
-
-**V2 Schemas (Current):**
+**Current Schemas (see src/Schemas.sol):**
 ```solidity
 struct WorkSchema {
-    uint8 version;      // Always 2 for V2
     uint256 actionUID;
     string title;
     string feedback;
@@ -273,7 +261,6 @@ struct WorkSchema {
 }
 
 struct WorkApprovalSchema {
-    uint8 version;      // Always 2 for V2
     uint256 actionUID;
     bytes32 workUID;
     bool approved;
@@ -281,28 +268,35 @@ struct WorkApprovalSchema {
 }
 
 struct AssessmentSchema {
-    uint8 version;      // Always 2 for V2
-    uint8 soilMoisturePercentage;
-    uint256 carbonTonStock;
-    // ... other fields
+    string title;
+    string description;
+    string assessmentType;
+    string[] capitals;
+    string metricsJSON;
+    string[] evidenceMedia;
+    string[] reportDocuments;
+    bytes32[] impactAttestations;
+    uint256 startDate;
+    uint256 endDate;
+    string location;
+    string[] tags;
 }
 ```
 
-### Schema Evolution Pattern
+### Future Schema Evolution
 
-When creating a new schema version:
+When schemas need to evolve:
 
-1. **Add version field** if not present
-2. **Increment version number** (V2 → V3)
-3. **Deploy new schema** to EAS registry
-4. **Update frontend encoding** to use new version
-5. **Maintain backward compatibility** in decoders
+1. **Deploy new schema** with additional fields to EAS registry
+2. **Deploy new resolver** (or upgrade existing via UUPS proxy)
+3. **Update frontend/indexer** to handle new schema format
+4. **Maintain backward compatibility** by supporting old schema UIDs
 
-**Example V3 migration:**
+**Example future extension:**
 ```solidity
-// V3 - Adding new field
-struct WorkSchema {
-    uint8 version;      // Now 3
+// Extended schema with additional field
+struct WorkSchemaV2 {
+    uint8 version;  // Add version field for future tracking
     uint256 actionUID;
     string title;
     string feedback;
@@ -319,28 +313,7 @@ All resolvers are deployed as UUPS proxies, enabling:
 - **Logic updates** without schema redeployment
 - **Bug fixes** in validation logic
 - **Feature additions** to resolver functionality
-- **Consistent addresses** across schema versions
-
-### Backward Compatibility
-
-Frontend and indexer must handle multiple schema versions:
-
-```typescript
-// Detect version and decode accordingly
-const isV2 = attestation.schema === WORK_SCHEMA_UID_V2;
-
-if (isV2) {
-  // Decode with version field
-  const [version, actionUID, ...] = decode([
-    'uint8', 'uint256', 'string', 'string', 'string', 'string[]'
-  ], attestation.data);
-} else {
-  // V1 decoding (no version field)
-  const [actionUID, ...] = decode([
-    'uint256', 'string', 'string', 'string', 'string[]'
-  ], attestation.data);
-}
-```
+- **Consistent addresses** for client integrations
 
 ## Resources
 

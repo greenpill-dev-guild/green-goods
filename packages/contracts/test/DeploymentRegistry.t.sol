@@ -219,5 +219,96 @@ contract DeploymentRegistryTest is Test {
         assertEq(actual[0], expected[0], "First address should match");
         assertEq(actual[1], expected[1], "Second address should match");
     }
+
+    function testEmergencyPause() public {
+        // Setup a network config first
+        uint256 chainId = 1;
+        DeploymentRegistry.NetworkConfig memory config = DeploymentRegistry.NetworkConfig({
+            eas: address(0x10),
+            easSchemaRegistry: address(0x11),
+            communityToken: address(0x12),
+            actionRegistry: address(0x13),
+            gardenToken: address(0x14),
+            workResolver: address(0x15),
+            workApprovalResolver: address(0x16)
+        });
+        registry.setNetworkConfig(chainId, config);
+
+        // Activate emergency pause
+        registry.emergencyPause();
+        assertTrue(registry.emergencyPaused(), "Should be paused");
+
+        // Should not be able to set config when paused
+        vm.expectRevert();
+        registry.setNetworkConfig(chainId, config);
+
+        // Unpause
+        registry.emergencyUnpause();
+        assertFalse(registry.emergencyPaused(), "Should not be paused");
+
+        // Should be able to set config after unpause
+        registry.setNetworkConfig(chainId, config);
+    }
+
+    function testGetIndividualAddresses() public {
+        uint256 chainId = block.chainid;
+        DeploymentRegistry.NetworkConfig memory config = DeploymentRegistry.NetworkConfig({
+            eas: address(0x10),
+            easSchemaRegistry: address(0x11),
+            communityToken: address(0x12),
+            actionRegistry: address(0x13),
+            gardenToken: address(0x14),
+            workResolver: address(0x15),
+            workApprovalResolver: address(0x16)
+        });
+        registry.setNetworkConfig(chainId, config);
+
+        assertEq(registry.getEAS(), address(0x10), "EAS address should match");
+        assertEq(registry.getEASSchemaRegistry(), address(0x11), "Schema registry should match");
+        assertEq(registry.getCommunityToken(), address(0x12), "Community token should match");
+        assertEq(registry.getActionRegistry(), address(0x13), "Action registry should match");
+        assertEq(registry.getGardenToken(), address(0x14), "Garden token should match");
+        assertEq(registry.getWorkResolver(), address(0x15), "Work resolver should match");
+        assertEq(registry.getWorkApprovalResolver(), address(0x16), "Work approval resolver should match");
+    }
+
+    function testUpdateIndividualAddresses() public {
+        uint256 chainId = block.chainid;
+        DeploymentRegistry.NetworkConfig memory config = DeploymentRegistry.NetworkConfig({
+            eas: address(0x10),
+            easSchemaRegistry: address(0x11),
+            communityToken: address(0x12),
+            actionRegistry: address(0x13),
+            gardenToken: address(0x14),
+            workResolver: address(0x15),
+            workApprovalResolver: address(0x16)
+        });
+        registry.setNetworkConfig(chainId, config);
+
+        // Update action registry
+        registry.updateActionRegistry(address(0x99));
+        assertEq(registry.getActionRegistry(), address(0x99), "Action registry should be updated");
+
+        // Update garden token
+        registry.updateGardenToken(address(0x98));
+        assertEq(registry.getGardenToken(), address(0x98), "Garden token should be updated");
+    }
+
+    function testNetworkNotConfiguredError() public {
+        uint256 nonExistentChain = 999999;
+        
+        vm.expectRevert();
+        registry.getNetworkConfigForChain(nonExistentChain);
+    }
+
+    function testCancelGovernanceTransfer() public {
+        address newOwner = address(0x99);
+        
+        registry.initiateGovernanceTransfer(newOwner);
+        assertEq(registry.pendingOwner(), newOwner, "Pending owner should be set");
+        
+        registry.cancelGovernanceTransfer();
+        assertEq(registry.pendingOwner(), address(0), "Pending owner should be cleared");
+    }
 }
 

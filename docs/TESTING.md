@@ -377,20 +377,39 @@ forge coverage
 
 ```
 packages/contracts/test/
-├── ActionRegistry.t.sol     - Action registry tests
+├── ActionRegistry.t.sol      - Action registry tests
 ├── GardenToken.t.sol         - Garden token and ERC721 tests
 ├── GardenAccount.t.sol       - Garden account and TBA tests
 ├── WorkResolver.t.sol        - Work attestation resolver tests
 ├── WorkApprovalResolver.t.sol - Work approval resolver tests
+├── AssessmentResolver.t.sol  - Assessment attestation resolver tests
+├── DeploymentRegistry.t.sol  - Deployment registry and governance tests
+├── Integration.t.sol         - Full workflow integration tests
+├── FuzzTests.t.sol           - Fuzz testing for edge cases
 ├── Deploy.t.sol              - Integration deployment tests
 └── DeploymentTest.t.sol      - Deployment verification tests
 ```
 
-### Coverage Requirements
+### Test Coverage Targets
 
-- **Contracts**: 80% minimum coverage
-- **Core logic**: 90%+ preferred
-- **Critical paths**: 100% required
+- **Overall Contracts**: 90% minimum coverage
+- **Core logic**: 95%+ coverage
+- **Critical paths**: 100% coverage required
+- **Security features**: 100% coverage required
+
+### Coverage by Contract
+
+| Contract | Target | Status |
+|----------|--------|--------|
+| GardenToken | 95% | ✅ Enhanced |
+| GardenAccount | 95% | ✅ Enhanced |
+| ActionRegistry | 95% | ✅ Enhanced |
+| WorkResolver | 90% | ✅ Enhanced |
+| WorkApprovalResolver | 90% | ✅ Enhanced |
+| AssessmentResolver | 90% | ✅ New tests added |
+| DeploymentRegistry | 95% | ✅ Enhanced |
+| Integration Tests | N/A | ✅ Added |
+| Fuzz Tests | N/A | ✅ Added |
 
 ### Test Patterns
 
@@ -423,13 +442,57 @@ function testUpgrade() public {
 }
 ```
 
+### Integration Tests
+
+The `Integration.t.sol` file contains comprehensive workflow tests:
+
+```solidity
+// Full workflow tests
+function testCompleteHappyPath() public
+function testMultipleGardensIndependence() public
+function testBatchMinting() public
+function testActionLifecycle() public
+function testGardenMemberManagement() public
+function testInviteSystemWorkflow() public
+function testAccessControlAcrossContracts() public
+```
+
+**Coverage**: All major workflows including mint → action → work → approval
+
+### Fuzz Tests
+
+The `FuzzTests.t.sol` file uses Foundry's fuzzing to test edge cases:
+
+```solidity
+// Fuzz tests with random inputs
+function testFuzz_ActionRegistrationWithRandomTimes(uint64, uint32) public
+function testFuzz_GardenMintingWithRandomStrings(uint8, uint8) public
+function testFuzz_BatchMintingWithRandomSizes(uint8) public
+function testFuzz_ArrayLengthValidation(uint8) public
+function testFuzz_CapitalCombinations(uint8) public
+```
+
+**Benefits**: Automatically discovers edge cases and boundary conditions
+
+### Security Test Focus
+
+Enhanced test coverage for security-critical areas:
+
+- **Access Control**: All privileged functions have negative tests
+- **Input Validation**: Array length limits, time validation
+- **State Transitions**: Upgrade scenarios, ownership transfers  
+- **Edge Cases**: Boundary conditions, integer limits
+- **Integration**: Cross-contract interactions
+
 ### Gas Benchmarks
 
-Expected gas costs for key operations:
-- Garden creation: ~150,000 gas
-- Work submission: ~50,000 gas
-- Work approval: ~40,000 gas
-- Invite code usage: ~50,000 gas (without deployment)
+Expected gas costs for key operations (see `docs/GAS_LIMITS.md` for details):
+- Garden creation: ~600K gas
+- Batch garden creation (10): ~6M gas (~40% savings)
+- Action registration: ~250K gas
+- Work submission: ~150K gas
+- Work approval: ~180K gas
+- Invite code usage: ~60K gas
 
 ## Admin Dashboard Testing
 

@@ -18,16 +18,14 @@ function generateSchemaString(fields) {
  * @returns {Object} - Object with schema strings added to each schema
  */
 function loadSchemasWithGenerated(configPath) {
-  const schemasArray = JSON.parse(fs.readFileSync(configPath, "utf8"));
+  const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+  const schemasObj = config.schemas || {};
 
-  // Convert array to object with schema strings generated
-  const schemasObj = {};
-
-  for (const schemaConfig of schemasArray) {
+  // Generate schema strings for each schema
+  for (const [id, schemaConfig] of Object.entries(schemasObj)) {
     if (schemaConfig.fields && Array.isArray(schemaConfig.fields)) {
       schemaConfig.generatedSchema = generateSchemaString(schemaConfig.fields);
     }
-    schemasObj[schemaConfig.id] = schemaConfig;
   }
 
   return { schemas: schemasObj };
@@ -40,11 +38,21 @@ function loadSchemasWithGenerated(configPath) {
  * @returns {Object} - Schema object with generated schema string
  */
 function getSchemaById(configPath, schemaId) {
-  const schemasArray = JSON.parse(fs.readFileSync(configPath, "utf8"));
-  const schema = schemasArray.find((s) => s.id === schemaId);
+  const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+  const schemasObj = config.schemas || {};
+
+  // Map common aliases to actual schema keys
+  const schemaMap = {
+    assessment: "assessment",
+    work: "work",
+    workApproval: "workApproval",
+  };
+
+  const actualSchemaKey = schemaMap[schemaId] || schemaId;
+  const schema = schemasObj[actualSchemaKey];
 
   if (!schema) {
-    throw new Error(`Schema '${schemaId}' not found`);
+    throw new Error(`Schema '${schemaId}' not found (tried key: '${actualSchemaKey}')`);
   }
 
   if (schema.fields && Array.isArray(schema.fields)) {
@@ -60,8 +68,9 @@ function getSchemaById(configPath, schemaId) {
  * @returns {Array} - Array of schema IDs
  */
 function getSchemaIds(configPath) {
-  const schemasArray = JSON.parse(fs.readFileSync(configPath, "utf8"));
-  return schemasArray.map((s) => s.id);
+  const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+  const schemasObj = config.schemas || {};
+  return Object.keys(schemasObj);
 }
 
 /**

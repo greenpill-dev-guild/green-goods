@@ -125,6 +125,8 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
         external
         onlyOwner
     {
+        require(_endTime > _startTime, "End time must be after start time");
+        
         uint256 actionUID = _nextActionUID++;
 
         actionToOwner[actionUID] = _msgSender();
@@ -137,6 +139,7 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     /// @param actionUID The unique identifier of the action to update.
     /// @param _startTime The new start time of the action.
     function updateActionStartTime(uint256 actionUID, uint256 _startTime) external onlyActionOwner(actionUID) {
+        require(_startTime < idToAction[actionUID].endTime, "Start time must be before end time");
         idToAction[actionUID].startTime = _startTime;
 
         emit ActionStartTimeUpdated(actionToOwner[actionUID], actionUID, _startTime);
@@ -146,6 +149,7 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     /// @param actionUID The unique identifier of the action to update.
     /// @param _endTime The new end time of the action.
     function updateActionEndTime(uint256 actionUID, uint256 _endTime) external onlyActionOwner(actionUID) {
+        require(_endTime > idToAction[actionUID].startTime, "End time must be after start time");
         idToAction[actionUID].endTime = _endTime;
 
         emit ActionEndTimeUpdated(actionToOwner[actionUID], actionUID, _endTime);

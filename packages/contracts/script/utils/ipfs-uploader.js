@@ -167,7 +167,7 @@ function loadCache() {
       return JSON.parse(data);
     }
   } catch (error) {
-    console.error(`Warning: Failed to load cache: ${error.message}`, { toStderr: true });
+    // Failed to load cache, will proceed without it
   }
   return {};
 }
@@ -179,7 +179,7 @@ function saveCache(cache) {
   try {
     fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
   } catch (error) {
-    console.error(`Warning: Failed to save cache: ${error.message}`, { toStderr: true });
+    // Failed to save cache, will continue without it
   }
 }
 
@@ -202,7 +202,7 @@ async function uploadToIPFS(pinata, name, data, retries = 3) {
       if (attempt === retries) {
         throw error;
       }
-      console.error(`Upload attempt ${attempt} failed, retrying...`, { toStderr: true });
+      // Retry silently to avoid Forge error logs
       await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
     }
   }
@@ -241,7 +241,7 @@ async function main() {
     // If PINATA_JWT is not set and we have cache, use cache
     if (!process.env.PINATA_JWT) {
       if (allCached) {
-        console.error("No PINATA_JWT found, using cached hashes", { toStderr: true });
+        // Note: Don't write to stderr when using cache to avoid Forge error logs
         for (let i = 0; i < actions.length; i++) {
           const action = actions[i];
           const cacheKey = `${action.title}-${i}`;
@@ -265,7 +265,7 @@ async function main() {
 
       // Check cache first
       if (cache[cacheKey] && cache[cacheKey].hash) {
-        console.error(`Using cached hash for: ${action.title}`, { toStderr: true });
+        // Using cached hash (silent to avoid Forge error logs)
         ipfsHashes.push(cache[cacheKey].hash);
         continue;
       }
@@ -273,12 +273,11 @@ async function main() {
       // Generate instructions document
       const instructionsDoc = generateInstructionsDocument(action);
 
-      // Upload to IPFS
-      console.error(`Uploading: ${action.title}`, { toStderr: true });
+      // Upload to IPFS (silent to avoid Forge error logs)
       try {
         const hash = await uploadToIPFS(pinata, action.title.replace(/\s+/g, "-").toLowerCase(), instructionsDoc);
 
-        console.error(`Uploaded: ${action.title} -> ${hash}`, { toStderr: true });
+        // Upload successful
         ipfsHashes.push(hash);
 
         // Update cache

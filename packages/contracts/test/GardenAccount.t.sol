@@ -46,72 +46,70 @@ contract GardenAccountTest is Test {
         assertTrue(gardenAccount.gardenOperators(address(0x200)), "Garden operator should be added");
     }
 
-    // function testUpdateName() public {
-    //     vm.prank(owner);
-    //     vm.expectEmit(true, true, true, true);
-    //     emit GardenAccount.NameUpdated(owner, "New Garden Name");
+    function testUpdateDescription() public {
+        // Operator should be able to update description
+        vm.prank(address(0x200)); // Garden operator
+        gardenAccount.updateDescription("New Description");
+        assertEq(gardenAccount.description(), "New Description", "Description should be updated");
+    }
 
-    //     gardenAccount.updateName("New Garden Name");
-    //     assertEq(gardenAccount.name(), "New Garden Name", "Name should be updated");
-    // }
+    function testUpdateDescriptionRevertsIfNotOperator() public {
+        // Non-operator should not be able to update description
+        vm.prank(address(0x999)); // Not an operator
+        vm.expectRevert(NotGardenOperator.selector);
+        gardenAccount.updateDescription("Invalid Update");
+    }
 
-    // function testAddGardener() public {
-    //     vm.prank(owner);
-    //     vm.expectEmit(true, true, true, true);
-    //     emit GardenAccount.GardenerAdded(owner, address(0x300));
+    function testAddGardener() public {
+        // Operator should be able to add gardener
+        vm.prank(address(0x200)); // Garden operator
+        vm.expectEmit(true, true, true, true);
+        emit GardenAccount.GardenerAdded(address(0x200), address(0x300));
 
-    //     gardenAccount.addGardener(address(0x300));
-    //     assertTrue(gardenAccount.gardeners(address(0x300)), "New gardener should be added");
-    // }
+        gardenAccount.addGardener(address(0x300));
+        assertTrue(gardenAccount.gardeners(address(0x300)), "New gardener should be added");
+    }
 
-    // function testRemoveGardener() public {
-    //     vm.prank(owner);
-    //     vm.expectEmit(true, true, true, true);
-    //     emit GardenAccount.GardenerRemoved(owner, address(0x100));
+    function testRemoveGardener() public {
+        // Operator should be able to remove gardener
+        vm.prank(address(0x200)); // Garden operator
+        vm.expectEmit(true, true, true, true);
+        emit GardenAccount.GardenerRemoved(address(0x200), address(0x100));
 
-    //     gardenAccount.removeGardener(address(0x100));
-    //     assertFalse(gardenAccount.gardeners(address(0x100)), "Gardener should be removed");
-    // }
+        gardenAccount.removeGardener(address(0x100));
+        assertFalse(gardenAccount.gardeners(address(0x100)), "Gardener should be removed");
+    }
 
-    // function testAddGardenOperator() public {
-    //     vm.prank(owner);
-    //     vm.expectEmit(true, true, true, true);
-    //     emit GardenAccount.GardenOperatorAdded(owner, address(0x400));
+    function testAddGardenOperator() public {
+        // Operator should be able to add another operator
+        vm.prank(address(0x200)); // Garden operator
+        vm.expectEmit(true, true, true, true);
+        emit GardenAccount.GardenOperatorAdded(address(0x200), address(0x400));
 
-    //     gardenAccount.addGardenOperator(address(0x400));
-    //     assertTrue(gardenAccount.gardenOperators(address(0x400)), "New garden operator should be added");
-    // }
+        gardenAccount.addGardenOperator(address(0x400));
+        assertTrue(gardenAccount.gardenOperators(address(0x400)), "New garden operator should be added");
+    }
 
-    // function testRemoveGardenOperator() public {
-    //     vm.prank(owner);
-    //     vm.expectEmit(true, true, true, true);
-    //     emit GardenAccount.GardenOperatorRemoved(owner, address(0x200));
+    function testAddGardenerRevertsIfNotOperator() public {
+        // Non-operator should not be able to add gardener
+        vm.prank(address(0x999)); // Not an operator
+        vm.expectRevert(NotGardenOperator.selector);
+        gardenAccount.addGardener(address(0x888));
+    }
 
-    //     gardenAccount.removeGardenOperator(address(0x200));
-    //     assertFalse(gardenAccount.gardenOperators(address(0x200)), "Garden operator should be removed");
-    // }
+    function testRemoveGardenerRevertsIfNotOperator() public {
+        // Non-operator should not be able to remove gardener
+        vm.prank(address(0x999)); // Not an operator
+        vm.expectRevert(NotGardenOperator.selector);
+        gardenAccount.removeGardener(address(0x100));
+    }
 
-    // function testNotGardenOwnerReverts() public {
-    //     vm.prank(address(0x999)); // Not the owner
-    //     vm.expectRevert(NotGardenOwner.selector);
-    //     gardenAccount.updateName("Invalid Update");
-
-    //     vm.prank(address(0x999)); // Not the owner
-    //     vm.expectRevert(NotGardenOwner.selector);
-    //     gardenAccount.addGardener(address(0x888));
-
-    //     vm.prank(address(0x999)); // Not the owner
-    //     vm.expectRevert(NotGardenOwner.selector);
-    //     gardenAccount.removeGardener(address(0x100));
-
-    //     vm.prank(address(0x999)); // Not the owner
-    //     vm.expectRevert(NotGardenOwner.selector);
-    //     gardenAccount.addGardenOperator(address(0x777));
-
-    //     vm.prank(address(0x999)); // Not the owner
-    //     vm.expectRevert(NotGardenOwner.selector);
-    //     gardenAccount.removeGardenOperator(address(0x200));
-    // }
+    function testAddGardenOperatorRevertsIfNotOperator() public {
+        // Non-operator should not be able to add operator
+        vm.prank(address(0x999)); // Not an operator
+        vm.expectRevert(NotGardenOperator.selector);
+        gardenAccount.addGardenOperator(address(0x777));
+    }
 
     // ============================================
     // Invitation System Tests
@@ -344,5 +342,43 @@ contract GardenAccountTest is Test {
         gardenAccount.joinGardenWithInvite(inviteCode);
 
         assertTrue(gardenAccount.gardeners(address(0x500)), "Should be able to join at exact expiry");
+    }
+
+    function testInitializeRevertsWithTooManyGardeners() public {
+        // Deploy fresh garden account
+        GardenAccount newGarden = new GardenAccount(
+            address(0x1001), address(0x1002), address(0x1003), address(0x1004)
+        );
+
+        // Create array with 101 gardeners (exceeds limit of 100)
+        address[] memory tooManyGardeners = new address[](101);
+        for (uint256 i = 0; i < 101; i++) {
+            tooManyGardeners[i] = address(uint160(i + 1));
+        }
+        address[] memory operators = new address[](0);
+
+        vm.expectRevert("Too many gardeners");
+        newGarden.initialize(
+            address(0x555), "Test", "Test", "Test", "", tooManyGardeners, operators
+        );
+    }
+
+    function testInitializeRevertsWithTooManyOperators() public {
+        // Deploy fresh garden account
+        GardenAccount newGarden = new GardenAccount(
+            address(0x1001), address(0x1002), address(0x1003), address(0x1004)
+        );
+
+        // Create array with 101 operators (exceeds limit of 100)
+        address[] memory gardeners = new address[](0);
+        address[] memory tooManyOperators = new address[](101);
+        for (uint256 i = 0; i < 101; i++) {
+            tooManyOperators[i] = address(uint160(i + 1));
+        }
+
+        vm.expectRevert("Too many operators");
+        newGarden.initialize(
+            address(0x555), "Test", "Test", "Test", "", gardeners, tooManyOperators
+        );
     }
 }

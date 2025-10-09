@@ -44,7 +44,7 @@
     "build:contracts": "pnpm --filter 'contracts' run build",
 
     "deploy:contracts:dryrun": "pnpm --filter 'contracts' run deploy:dryrun",
-    "deploy:contracts:baseSepolia": "pnpm --filter 'contracts' run deploy:baseSepolia",
+    "deploy:contracts:testnet": "pnpm --filter 'contracts' run deploy:testnet",
     "deploy:contracts:celo": "pnpm --filter 'contracts' run deploy:celo",
     "deploy:contracts:arbitrum": "pnpm --filter 'contracts' run deploy:arbitrum"
   },

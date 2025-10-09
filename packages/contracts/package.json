@@ -12,11 +12,14 @@
     "deploy": "node script/deploy.js core",
     "deploy:local": "node script/deploy.js core --network localhost --broadcast",
     "deploy:dryrun": "node script/deploy.js core --network baseSepolia",
-    "deploy:testnet": "node script/deploy.js core --network baseSepolia --broadcast --verify",
-    "deploy:arbitrum": "node script/deploy.js core --network arbitrum --broadcast --verify --profile production",
-    "deploy:celo": "node script/deploy.js core --network celo --broadcast --verify --profile production",
+    "deploy:testnet": "node script/deploy.js core --network baseSepolia --broadcast",
+    "deploy:celo": "node script/deploy.js core --network celo --broadcast",
+    "deploy:arbitrum": "node script/deploy.js core --network arbitrum --broadcast",
 
     "upgrade": "node script/upgrade.js",
+    "upgrade:testnet": "node script/upgrade.js all --network baseSepolia --broadcast",
+    "upgrade:celo": "node script/upgrade.js all --network celo --broadcast",
+    "upgrade:arbitrum": "node script/upgrade.js all --network arbitrum --broadcast",
 
     "action": "node script/action-manager.js",
 

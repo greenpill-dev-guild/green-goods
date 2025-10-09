@@ -4,25 +4,194 @@ Smart contracts for the Green Goods Protocol - a decentralized platform for envi
 
 ## Quick Start
 
-```bash
-# Install dependencies
-pnpm install
+Get up and running with Green Goods contract deployment in minutes.
 
-# Deploy to local development
+### Prerequisites (One-Time Setup)
+
+#### 1. Install Dependencies
+
+```bash
+cd packages/contracts
+pnpm install
+```
+
+#### 2. Setup Foundry Keystore
+
+Import your deployment key (one-time setup):
+
+```bash
+cast wallet import green-goods-deployer --interactive
+# Enter your private key and set a password
+```
+
+Verify it was created:
+
+```bash
+cast wallet list
+# Should show: green-goods-deployer (address: 0x...)
+```
+
+#### 3. Configure Environment
+
+Create a `.env` file:
+
+```bash
+# Required - Foundry keystore account name
+FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer
+
+# Network RPC URLs
+BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
+CELO_RPC_URL=https://forno.celo.org
+ARBITRUM_RPC_URL=https://arb1.arbitrum.io/rpc
+
+# Optional - for contract verification
+ETHERSCAN_API_KEY=your-api-key-here
+```
+
+#### 4. Fund Your Deployer
+
+Ensure your deployer address has sufficient native tokens:
+
+- **Base Sepolia**: Get free ETH from [Coinbase Faucet](https://www.coinbase.com/faucets/base-ethereum-goerli-faucet)
+- **Celo Mainnet**: Purchase CELO and send to your deployer address
+- **Arbitrum Mainnet**: Purchase ETH and send to your deployer address
+
+---
+
+### Deployment by Environment
+
+#### Local Development
+
+Perfect for rapid iteration and testing:
+
+```bash
+# Terminal 1: Start local blockchain
+pnpm dev
+
+# Terminal 2: Deploy contracts
+pnpm deploy:local
+```
+
+**What gets deployed:**
+- All core contracts with deterministic addresses
+- All EAS schemas
+- Root "Green Goods Community Garden"
+- 3 core actions (Planting, Identify Plant, Litter Cleanup)
+
+**Use when:** Building features, running tests, experimenting locally
+
+---
+
+#### Fork Testing
+
+Test against real network state without spending gas:
+
+```bash
+# Fork Celo mainnet
+pnpm fork:celo
+
+# In another terminal: deploy to fork
 pnpm deploy:local
 
-# Deploy to testnet
-pnpm deploy:testnet
-
-# Deploy a garden
-pnpm deploy:garden config/garden-example.json --network sepolia --broadcast
-
-# Onboard gardens with automatic wallet creation
-pnpm deploy:onboard config/garden-onboarding-example.csv --network sepolia --broadcast
-
-# Deploy actions
-pnpm deploy:actions config/actions-example.json --network sepolia --broadcast
+# Run tests on fork
+forge test --fork-url http://localhost:8545 -vv
 ```
+
+**Use when:** Testing upgrades, validating against real state, debugging production issues
+
+---
+
+#### Testnet (Base Sepolia)
+
+Public testnet deployment for integration testing:
+
+```bash
+# Dry run first (no transactions, validates everything)
+pnpm deploy:dryrun
+
+# Deploy for real
+pnpm deploy:testnet
+```
+
+**Use when:** Testing integrations, sharing with team, preparing for mainnet
+
+**Note:** Requires testnet ETH (see Prerequisites above)
+
+---
+
+#### Mainnet (Celo, Arbitrum)
+
+Production deployments:
+
+```bash
+# Deploy to Celo mainnet
+pnpm deploy:celo
+
+# Deploy to Arbitrum mainnet
+pnpm deploy:arbitrum
+```
+
+**Use when:** Launching to production
+
+**⚠️ Warning:** Requires real funds. Double-check everything first!
+
+---
+
+### Common Commands Reference
+
+```bash
+# 🏗️ DEPLOY (creates new addresses)
+pnpm deploy:local        # Local development
+pnpm deploy:dryrun       # Dry run (Base Sepolia)
+pnpm deploy:testnet      # Base Sepolia testnet
+pnpm deploy:celo         # Celo mainnet
+pnpm deploy:arbitrum     # Arbitrum mainnet
+
+# 🔄 UPGRADE (keeps same addresses)
+pnpm upgrade:testnet     # Upgrade Base Sepolia
+pnpm upgrade:celo        # Upgrade Celo mainnet
+pnpm upgrade:arbitrum    # Upgrade Arbitrum mainnet
+
+# 🧪 TESTING
+pnpm test                # Run all tests
+pnpm fork:celo           # Fork Celo mainnet
+pnpm fork:arbitrum       # Fork Arbitrum mainnet
+
+# 🔧 DEVELOPMENT
+pnpm build               # Compile contracts
+pnpm lint                # Format and lint
+pnpm dev                 # Start local blockchain
+```
+
+---
+
+### Advanced Options
+
+#### Update Schemas Only
+
+If you only need to update EAS schemas:
+
+```bash
+node script/deploy.js core --network baseSepolia --broadcast --update-schemas
+```
+
+#### Force Fresh Deployment
+
+Force redeploy everything, even if contracts already exist:
+
+```bash
+node script/deploy.js core --network baseSepolia --broadcast --force
+```
+
+**⚠️ Warning:** This creates new contract addresses. Existing integrations will break.
+
+---
+
+**📖 For detailed documentation, see:**
+- Full Deployment Guide: [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)
+- Upgrade Guide: [docs/UPGRADES.md](./docs/UPGRADES.md)
+- Environment Setup: [docs/ENVIRONMENT_SETUP.md](./docs/ENVIRONMENT_SETUP.md)
+- Troubleshooting: [docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)
 
 ## Deployment System
 
@@ -38,24 +207,34 @@ The contracts use a unified deployment CLI that handles:
 ### Commands
 
 ```bash
-# Core contract deployment
-node script/deploy.js core --network <network> --broadcast --verify
+# Fresh deployment (all environments)
+pnpm deploy:local      # Localhost
+pnpm deploy:testnet    # Base Sepolia
+pnpm deploy:celo       # Celo mainnet
+pnpm deploy:arbitrum   # Arbitrum mainnet
 
-# Garden deployment
-node script/deploy.js garden <config.json> --network <network> --broadcast
+# Dry run (simulation only)
+pnpm deploy:dryrun
 
-# Garden onboarding (CSV with wallet creation)
-node script/deploy.js onboard <config.csv> --network <network> --broadcast
+# Advanced deployment options
+node script/deploy.js core --network baseSepolia --broadcast --update-schemas
+node script/deploy.js core --network baseSepolia --broadcast --force
 
-# Action deployment
-node script/deploy.js actions <config.json> --network <network> --broadcast
-
-# Deployment status
-node script/deploy.js status [network]
-
-# Network forking
-node script/deploy.js fork <network>
+# UUPS contract upgrades (different from deployment)
+pnpm upgrade:testnet
+pnpm upgrade:celo
+pnpm upgrade:arbitrum
 ```
+
+### What Gets Deployed?
+
+Every deployment includes:
+- ✅ Core contracts (DeploymentRegistry, GardenToken, ActionRegistry, Resolvers)
+- ✅ EAS schemas (Assessment, Work, WorkApproval)
+- ✅ Root community garden ("Green Goods Community Garden")
+- ✅ 3 core actions (Planting, Identify Plant, Litter Cleanup)
+
+This infrastructure is always deployed - no flags needed.
 
 ### Supported Networks
 
@@ -68,32 +247,33 @@ node script/deploy.js fork <network>
 
 ## Schema Management
 
-All EAS (Ethereum Attestation Service) schemas include a `uint8 version` field as the first field for future upgradability:
+The Green Goods protocol uses EAS (Ethereum Attestation Service) schemas for on-chain attestations:
 
-### Current Schema Versions (V2)
+### Current Schemas
 
 - **Work Schema**: Gardeners submit completed regenerative agriculture tasks
 - **WorkApproval Schema**: Operators approve or reject submitted work  
 - **GardenAssessment Schema**: Biodiversity and ecological assessments of garden spaces
 
-All V2 schemas include version field for:
-- Future-proof evolution (easy to add V3, V4)
-- Backward compatibility (V1 attestations remain valid)
-- Gradual migration path (frontend detects and handles both versions)
-- No breaking changes to existing data
+### Schema Evolution
+
+The current schema implementations are production-ready and can be extended in future versions if needed. Version fields can be added in future schema upgrades without breaking existing attestations.
 
 ### Schema Configuration
 
 Schemas are defined in `config/schemas.json` and deployed automatically with core contracts.
 
-### Force Schema Redeployment
+### Update Schemas
 
 ```bash
-# Redeploy schemas after updates
-FORCE_SCHEMA_DEPLOYMENT=true npm run deploy:base-sepolia --broadcast
+# Update schemas only (skip contracts)
+node script/deploy.js core --network baseSepolia --broadcast --update-schemas
+
+# Force fresh deployment (redeploy everything)
+node script/deploy.js core --network baseSepolia --broadcast --force
 ```
 
-See `docs/UPGRADES.md` for detailed schema versioning strategy and `DEPLOYMENT.md` for schema deployment troubleshooting.
+See `docs/UPGRADES.md` for detailed schema versioning strategy and `docs/DEPLOYMENT.md` for schema deployment troubleshooting.
 
 ## Configuration
 
@@ -168,7 +348,11 @@ Create a JSON file for action deployment:
 }
 ```
 
-## Upgrading Contracts
+## Upgrading Contracts (UUPS)
+
+**Important:** Upgrading is different from deploying:
+- **Deploy**: Creates new contracts with new addresses (use `pnpm deploy:*`)
+- **Upgrade**: Updates existing proxy implementations, same addresses (use `pnpm upgrade:*`)
 
 All contracts use the UUPS (Universal Upgradeable Proxy Standard) pattern and include storage gaps for safe upgrades.
 
@@ -176,29 +360,41 @@ All contracts use the UUPS (Universal Upgradeable Proxy Standard) pattern and in
 
 ```bash
 # Dry run (recommended first)
-npm run upgrade action-registry -- --network baseSepolia --dry-run
+pnpm upgrade:testnet
 
 # Execute upgrade
-npm run upgrade:action-registry -- --network baseSepolia --broadcast
+pnpm upgrade:testnet --broadcast
 
-# Upgrade all contracts
-npm run upgrade:all -- --network baseSepolia --broadcast
+# Upgrade all contracts on mainnet
+pnpm upgrade:celo
+pnpm upgrade:arbitrum
 ```
 
-### Available Upgrade Commands
+### Individual Contract Upgrades
 
 ```bash
-npm run upgrade:action-registry        # Upgrade ActionRegistry
-npm run upgrade:garden-token          # Upgrade GardenToken
-npm run upgrade:work-resolver         # Upgrade WorkResolver
-npm run upgrade:work-approval-resolver # Upgrade WorkApprovalResolver
-npm run upgrade:deployment-registry   # Upgrade DeploymentRegistry
-npm run upgrade:all                   # Upgrade all contracts
+node script/upgrade.js action-registry --network baseSepolia --broadcast
+node script/upgrade.js garden-token --network baseSepolia --broadcast
+node script/upgrade.js work-resolver --network baseSepolia --broadcast
+node script/upgrade.js assessment-resolver --network baseSepolia --broadcast
 ```
+
+### When to Deploy vs Upgrade
+
+**Use Deploy when:**
+- Setting up a new network
+- Testing locally or on fork
+- Want new contract addresses
+
+**Use Upgrade when:**
+- Fixing bugs in production contracts
+- Adding features to existing contracts
+- Maintaining same addresses for integrations
 
 ### Documentation
 
 See [UPGRADES.md](docs/UPGRADES.md) for complete upgrade guide including:
+- Deploy vs Upgrade decision matrix
 - Storage gap usage
 - Multisig upgrade process
 - Safety checklist
@@ -281,17 +477,18 @@ pnpm deployment:status localhost
 
 **Network Deployment:**
 ```bash
-# Deploy to Sepolia testnet
-pnpm deploy:sepolia
+# Deploy to testnet
+pnpm deploy:testnet
 
-# Deploy to Celo with verification
-pnpm deploy:celo --verify
+# Deploy to mainnet
+pnpm deploy:celo
+pnpm deploy:arbitrum
 
-# Deploy with specific profile
-pnpm deploy:celo --profile production
+# Deploy with update schemas only
+node script/deploy.js core --network celo --broadcast --update-schemas
 
-# Check gas prices before deployment
-pnpm gas:check
+# Force fresh deployment
+node script/deploy.js core --network celo --broadcast --force
 ```
 
 ### Configuration Management
@@ -327,22 +524,6 @@ Networks are configured in `deployments/networks.json`. The system automatically
 - Chain ID matching
 - Contract address requirements
 - Environment variable references
-
-**Deployment Profiles:**
-Use deployment profiles for different scenarios:
-```bash
-# Quick testing deployment
-pnpm deploy:test --network sepolia
-
-# Full production deployment
-pnpm deploy:prod --network celo
-
-# Update existing deployment
-pnpm deploy:update --network celo
-
-# Deploy only schemas
-pnpm deploy:schemas --network sepolia
-```
 
 ### Testing Strategy
 

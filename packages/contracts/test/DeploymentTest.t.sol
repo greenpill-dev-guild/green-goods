@@ -142,16 +142,16 @@ contract DeploymentTest is ForgeTest.Test, DeployHelperModule.DeployHelper {
         string memory deploymentFile = string.concat(vm.projectRoot(), "/deployments/31337-latest.json");
         string memory deploymentJson = vm.readFile(deploymentFile);
 
-        string memory gardenSchema = abi.decode(vm.parseJson(deploymentJson, ".schemas.gardenAssessmentSchema"), (string));
+        string memory assessmentSchema = abi.decode(vm.parseJson(deploymentJson, ".schemas.assessmentSchema"), (string));
         string memory workSchema = abi.decode(vm.parseJson(deploymentJson, ".schemas.workSchema"), (string));
         string memory workApprovalSchema = abi.decode(vm.parseJson(deploymentJson, ".schemas.workApprovalSchema"), (string));
 
-        assertTrue(bytes(gardenSchema).length > 0, "Garden schema should not be empty");
+        assertTrue(bytes(assessmentSchema).length > 0, "Garden schema should not be empty");
         assertTrue(bytes(workSchema).length > 0, "Work schema should not be empty");
         assertTrue(bytes(workApprovalSchema).length > 0, "Work approval schema should not be empty");
 
         // Verify schema contains expected fields
-        assertTrue(_contains(gardenSchema, "soilMoisturePercentage"), "Garden schema should contain soil moisture");
+        assertTrue(_contains(assessmentSchema, "soilMoisturePercentage"), "Garden schema should contain soil moisture");
         assertTrue(_contains(workSchema, "actionUID"), "Work schema should contain action UID");
         assertTrue(_contains(workApprovalSchema, "approved"), "Work approval schema should contain approved field");
     }
@@ -241,7 +241,7 @@ contract DeploymentTest is ForgeTest.Test, DeployHelperModule.DeployHelper {
     function _createValidSchemaConfig() internal {
         string memory schemaConfig = string.concat(
             "{\"schemas\":{",
-            "\"gardenAssessment\":{\"name\":\"Test Garden Assessment\",\"description\":\"Test description\",",
+            "\"assessment\":{\"name\":\"Test Garden Assessment\",\"description\":\"Test description\",",
             "\"revocable\":true,\"fields\":[{\"name\":\"soilMoisturePercentage\",\"type\":\"uint8\"}]},",
             "\"work\":{\"name\":\"Test Work\",\"description\":\"Test work description\",",
             "\"revocable\":true,\"fields\":[{\"name\":\"actionUID\",\"type\":\"uint256\"}]},",
@@ -266,7 +266,7 @@ contract DeploymentTest is ForgeTest.Test, DeployHelperModule.DeployHelper {
             assessmentResolver: abi.decode(vm.parseJson(deploymentJson, ".assessmentResolver"), (address)),
             workResolver: abi.decode(vm.parseJson(deploymentJson, ".workResolver"), (address)),
             workApprovalResolver: abi.decode(vm.parseJson(deploymentJson, ".workApprovalResolver"), (address)),
-            gardenAssessmentSchemaUID: bytes32(0),
+            assessmentSchemaUID: bytes32(0),
             assessmentSchemaUID: abi.decode(vm.parseJson(deploymentJson, ".schemas.assessmentSchemaUID"), (bytes32)),
             workSchemaUID: abi.decode(vm.parseJson(deploymentJson, ".schemas.workSchemaUID"), (bytes32)),
             workApprovalSchemaUID: abi.decode(vm.parseJson(deploymentJson, ".schemas.workApprovalSchemaUID"), (bytes32)),
