@@ -1,0 +1,188 @@
+---
+description: Production readiness assessment protocol — tests, security, deployment validation
+globs:
+alwaysApply: false
+---
+
+# Production Readiness Assessment
+
+Contracts — Solidity style, safety, gas, events, and testing with Foundry.
+
+This rule provides protocols for assessing whether Green Goods contracts are ready for deployment to testnet or mainnet.
+
+## Deployment Readiness Protocol
+
+Execute these checks in order when asked about production readiness:
+
+### 1. Test Coverage Check
+
+**Command:**
+```bash
+cd packages/contracts && pnpm test
+```
+
+**Requirements:**
+- **Testnet (Base Sepolia):** ≥80% pass rate acceptable
+- **Mainnet:** 100% tests must pass
+- **Review:** Check `FINAL_TEST_REPORT.md` for known issues
+
+**Red flags:**
+- Test pass rate <80%
+- Critical test failures in core contracts (GardenToken, ActionRegistry)
+- Skipped tests without justification comments
+
+### 2. Security Audit Status
+
+**Mainnet requirements (BLOCKING):**
+- External security audit REQUIRED
+- No critical or high severity issues unresolved
+- All medium severity issues addressed or accepted with documentation
+
+**Testnet requirements:**
+- Internal security review acceptable
+- No obvious vulnerabilities in access control
+- Reentrancy protection verified
+
+**Security scan:**
+```bash
+grep -r "TODO\|FIXME\|HACK\|XXX" packages/contracts/src/
+```
+Expected: Zero matches in production code
+
+### 3. Deployment Validation
+
+**Files to check:**
+- `deployments/{chainId}-latest.json` must exist for target network
+- All contract addresses must be non-zero
+- All schema UIDs must be present and non-zero
+
+**Verify:**
+```bash
+cat packages/contracts/deployments/84532-latest.json | jq
+```
+
+**Required fields:**
+- deploymentRegistry
+- gardenToken
+- actionRegistry
+- workResolver
+- workApprovalResolver
+- assessmentResolver
+- schemas.workSchemaUID
+- schemas.workApprovalSchemaUID
+- schemas.gardenAssessmentSchemaUID
+
+### 4. Network Configuration
+
+**Verify RPC connectivity:**
+```bash
+cast chain-id --rpc-url $BASE_SEPOLIA_RPC_URL
+```
+
+**Required env vars:**
+- `FOUNDRY_KEYSTORE_ACCOUNT`
+- `BASE_SEPOLIA_RPC_URL` (or target network RPC)
+- `ETHERSCAN_API_KEY` (optional but recommended)
+
+### 5. Gas Analysis
+
+**Command:**
+```bash
+cd packages/contracts && forge test --gas-report
+```
+
+**Target benchmarks:**
+- mintGarden: <500,000 gas
+- registerAction: <200,000 gas
+- Work submission (via resolver): <150,000 gas
+- Work approval: <100,000 gas
+
+**Red flags:**
+- Any function exceeding block gas limit (30M)
+- Significant gas regression from previous version
+
+### 6. Build and Compilation
+
+**Command:**
+```bash
+cd packages/contracts && pnpm build
+```
+
+**Requirements:**
+- Clean compilation with no errors
+- No warnings (acceptable: minor optimizer warnings)
+- Uses Solidity 0.8.25
+- `via_ir` optimization enabled in foundry.toml
+
+## Assessment Template
+
+When asked "Are contracts ready for production?", respond with:
+
+```markdown
+# Production Readiness Assessment for [Network]
+
+## Test Coverage
+- Tests passing: X/Y (Z%)
+- Status: ✅ Ready / ⚠️ Warning / ❌ Not Ready
+- Notes: [any issues]
+
+## Security Audit
+- Status: [Completed/In Progress/Not Started]
+- Findings: [Critical: X, High: Y, Medium: Z]
+- Status: ✅ Ready / ⚠️ Warning / ❌ Not Ready
+
+## Deployment Validation
+- Deployment file exists: [Yes/No]
+- All addresses present: [Yes/No]
+- Schema UIDs present: [Yes/No]
+- Status: ✅ Ready / ⚠️ Warning / ❌ Not Ready
+
+## Network Configuration
+- RPC connectivity: [Yes/No]
+- Chain ID correct: [Yes/No]
+- Deployer funded: [Yes/No]
+- Status: ✅ Ready / ⚠️ Warning / ❌ Not Ready
+
+## Gas Analysis
+- All functions within limits: [Yes/No]
+- No regressions: [Yes/No]
+- Status: ✅ Ready / ⚠️ Warning / ❌ Not Ready
+
+## Overall Assessment
+**Verdict:** ✅ READY / ⚠️ READY WITH CAVEATS / ❌ NOT READY
+
+**Recommendation:** [Deploy/Fix issues/Complete audit]
+
+**Next Steps:**
+1. [Action item 1]
+2. [Action item 2]
+```
+
+## Red Flags (BLOCK DEPLOYMENT)
+
+1. **Test pass rate <80%** — Fix failing tests
+2. **Compiler errors/warnings** — Resolve all errors
+3. **Missing schema UIDs** — Redeploy schemas
+4. **RPC connectivity failure** — Fix RPC endpoint
+5. **Insufficient deployer balance** — Fund wallet (min 0.1 ETH testnet)
+6. **No security audit (mainnet)** — Complete external audit
+7. **Unresolved critical issues** — Fix before deployment
+8. **Storage layout conflicts** — Fix storage gaps
+
+## Green Lights (READY)
+
+All must be true:
+- ✅ Tests passing (≥80% testnet, 100% mainnet)
+- ✅ Gas optimized and within limits
+- ✅ Network config verified
+- ✅ Deployer wallet funded
+- ✅ Documentation complete
+- ✅ No red flags present
+- ✅ Security review completed
+
+## Reference Files
+
+- Test summary: `/packages/contracts/FINAL_TEST_REPORT.md`
+- Deployment guide: `/docs/DEPLOYMENT.md`
+- Network config: `/packages/contracts/deployments/networks.json`
+- Test suites: `/packages/contracts/test/`

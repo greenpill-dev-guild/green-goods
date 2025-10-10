@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem"],
+      "env": {
+        "ALLOWED_DIRECTORIES": ["${workspaceFolder}"]
+      }
+    },
+    "github": {
+      "command": "docker run -i --rm -e GITHUB_PERSONAL_ACCESS_TOKEN ghcr.io/github/github-mcp-server",
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${env:GITHUB_PERSONAL_ACCESS_TOKEN}"
+      }
+    },
+    "playwright": {
+      "command": "npx @playwright/mcp@latest"
+    },
+    "vercel": {
+      "url": "https://mcp.vercel.com",
+      "headers": {}
+    },
+    "Figma": {
+      "url": "https://mcp.figma.com/mcp",
+      "headers": {}
+    }
+  }
+}

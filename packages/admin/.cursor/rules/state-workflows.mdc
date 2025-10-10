@@ -1,0 +1,297 @@
+---
+description: State management — Zustand stores, XState workflows, when to use state machines
+globs:
+  - stores/**
+  - workflows/**
+alwaysApply: false
+---
+
+# State Management & Workflows
+
+Admin dashboard uses **Zustand** for global state and **XState** for complex workflows with retries. This rule documents when to use each and common patterns.
+
+## Zustand Store Pattern
+
+### useAdminStore
+
+```typescript
+// stores/admin.ts
+export interface AdminState {
+  // Selected chain
+  selectedChainId: number;
+  setSelectedChainId: (chainId: number) => void;
+  
+  // Garden management
+  selectedGarden: Garden | null;
+  setSelectedGarden: (garden: Garden | null) => void;
+  
+  // Transaction tracking
+  pendingTransactions: Map<string, { type: string; status: 'pending' | 'confirmed' | 'failed' }>;
+  addPendingTransaction: (txHash: string, type: string) => void;
+  updateTransactionStatus: (txHash: string, status: 'confirmed' | 'failed') => void;
+  clearPendingTransactions: () => void;
+  
+  // UI state
+  sidebarOpen: boolean;
+  setSidebarOpen: (open: boolean) => void;
+}
+
+export const useAdminStore = create<AdminState>((set) => ({
+  selectedChainId: 84532,
+  setSelectedChainId: (chainId) => set({ selectedChainId: chainId }),
+  
+  selectedGarden: null,
+  setSelectedGarden: (garden) => set({ selectedGarden: garden }),
+  
+  pendingTransactions: new Map(),
+  addPendingTransaction: (txHash, type) => set((state) => {
+    const newMap = new Map(state.pendingTransactions);
+    newMap.set(txHash, { type, status: 'pending' });
+    return { pendingTransactions: newMap };
+  }),
+  
+  sidebarOpen: true,
+  setSidebarOpen: (open) => set({ sidebarOpen: open }),
+}));
+```
+
+### Usage
+
+```typescript
+function Dashboard() {
+  // Select specific slices (optimal)
+  const chainId = useAdminStore(s => s.selectedChainId);
+  const setChainId = useAdminStore(s => s.setSelectedChainId);
+  
+  // Or destructure (more re-renders)
+  const { selectedGarden, setSelectedGarden } = useAdminStore();
+}
+```
+
+## XState Workflow Pattern
+
+### When to Use XState
+
+**✅ Use XState for:**
+- Multi-step workflows with validation
+- Operations requiring retries
+- Complex state transitions
+- Error recovery flows
+
+**❌ Use simple state for:**
+- Toggle states (modal open/closed)
+- Form inputs
+- Selection state
+
+### Garden Creation Workflow
+
+```typescript
+// workflows/createGarden.ts
+export interface CreateGardenContext {
+  gardenParams?: CreateGardenParams;
+  txHash?: string;
+  error?: string;
+  retryCount: number;
+}
+
+export type CreateGardenEvent =
+  | { type: 'START'; params: CreateGardenParams }
+  | { type: 'SUBMIT' }
+  | { type: 'SUCCESS'; txHash: string }
+  | { type: 'FAILURE'; error: string }
+  | { type: 'RETRY' }
+  | { type: 'RESET' };
+
+const createGardenMachine = createMachine({
+  id: 'createGarden',
+  initial: 'idle',
+  context: {
+    gardenParams: undefined,
+    txHash: undefined,
+    error: undefined,
+    retryCount: 0,
+  },
+  states: {
+    idle: {
+      on: {
+        START: {
+          target: 'validating',
+          actions: assign({
+            gardenParams: (_, event) => event.params,
+          }),
+        },
+      },
+    },
+    validating: {
+      invoke: {
+        src: 'validateParams',
+        onDone: 'submitting',
+        onError: {
+          target: 'error',
+          actions: assign({
+            error: (_, event) => event.data.message,
+          }),
+        },
+      },
+    },
+    submitting: {
+      invoke: {
+        src: 'createGarden',
+        onDone: {
+          target: 'success',
+          actions: assign({
+            txHash: (_, event) => event.data,
+          }),
+        },
+        onError: {
+          target: 'error',
+          actions: assign({
+            error: (_, event) => event.data.message,
+            retryCount: (context) => context.retryCount + 1,
+          }),
+        },
+      },
+    },
+    error: {
+      on: {
+        RETRY: {
+          target: 'submitting',
+          cond: (context) => context.retryCount < 3,
+        },
+        RESET: 'idle',
+      },
+    },
+    success: {
+      on: {
+        RESET: 'idle',
+      },
+    },
+  },
+});
+```
+
+### Using XState Workflow
+
+```typescript
+// hooks/useCreateGardenWorkflow.ts
+export function useCreateGardenWorkflow() {
+  const [state, send] = useMachine(createGardenMachine, {
+    services: {
+      validateParams: async (context) => {
+        // Validation logic
+      },
+      createGarden: async (context) => {
+        // Contract call
+        const { writeContractAsync } = useWriteContract();
+        const txHash = await writeContractAsync({
+          address: gardenTokenAddress,
+          abi: GardenTokenABI,
+          functionName: 'mintGarden',
+          args: [context.gardenParams],
+        });
+        return txHash;
+      },
+    },
+  });
+  
+  return {
+    state: state.value,
+    context: state.context,
+    startCreation: (params) => send({ type: 'START', params }),
+    submit: () => send({ type: 'SUBMIT' }),
+    retry: () => send({ type: 'RETRY' }),
+    reset: () => send({ type: 'RESET' }),
+  };
+}
+```
+
+### Integration in Components
+
+```typescript
+function CreateGardenModal({ isOpen, onClose }) {
+  const { state, context, startCreation, submit, retry } = useCreateGardenWorkflow();
+  const { register, handleSubmit } = useForm<CreateGardenForm>();
+  
+  const onSubmit = handleSubmit((data) => {
+    startCreation(data);
+    submit();
+  });
+  
+  return (
+    <Modal isOpen={isOpen} onClose={onClose}>
+      {state === 'idle' && <Form onSubmit={onSubmit} />}
+      {state === 'submitting' && <Loader />}
+      {state === 'error' && (
+        <div>
+          <p>Error: {context.error}</p>
+          {context.retryCount < 3 && (
+            <button onClick={retry}>Retry</button>
+          )}
+        </div>
+      )}
+      {state === 'success' && <Success txHash={context.txHash} />}
+    </Modal>
+  );
+}
+```
+
+## Transaction Tracking
+
+### Pattern for Transaction States
+
+```typescript
+// In component
+const handleCreateGarden = async () => {
+  try {
+    const txHash = await writeContractAsync({/*...*/});
+    
+    // Track transaction
+    useAdminStore.getState().addPendingTransaction(txHash, 'createGarden');
+    
+    // Wait for confirmation
+    const receipt = await waitForTransactionReceipt({ hash: txHash });
+    
+    if (receipt.status === 'success') {
+      useAdminStore.getState().updateTransactionStatus(txHash, 'confirmed');
+      toast.success('Garden created!');
+    } else {
+      useAdminStore.getState().updateTransactionStatus(txHash, 'failed');
+      toast.error('Transaction failed');
+    }
+  } catch (err) {
+    toast.error(err.message);
+  }
+};
+```
+
+## Decision Matrix: Zustand vs XState
+
+### Use Zustand When:
+- Simple state updates
+- No complex transitions
+- No retry logic needed
+- UI-only state (sidebar, modals)
+
+**Example:**
+```typescript
+const sidebarOpen = useAdminStore(s => s.sidebarOpen);
+const setSidebarOpen = useAdminStore(s => s.setSidebarOpen);
+```
+
+### Use XState When:
+- Multi-step workflows (garden creation)
+- Retry logic with limits
+- Complex error handling
+- State history tracking needed
+
+**Example:**
+```typescript
+const { state, retry } = useCreateGardenWorkflow();
+// States: idle → validating → submitting → success/error
+```
+
+## Reference Files
+
+- Zustand store: `src/stores/admin.ts`
+- XState workflow: `src/workflows/createGarden.ts`
+- Workflow hook: `src/hooks/useCreateGardenWorkflow.ts`
