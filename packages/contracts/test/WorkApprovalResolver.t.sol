@@ -11,12 +11,14 @@ import { GardenAccount } from "../src/accounts/Garden.sol";
 import { ActionRegistry } from "../src/registries/Action.sol";
 import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
 import { MockEAS } from "../src/mocks/EAS.sol";
+import { MockERC20 } from "../src/mocks/ERC20.sol";
 
 contract WorkApprovalResolverTest is Test {
     WorkApprovalResolver private workApprovalResolver;
     ActionRegistry private mockActionRegistry;
     GardenAccount private mockGardenAccount;
     MockEAS private mockIEAS;
+    MockERC20 private mockCommunityToken;
 
     address private owner = address(this);
     address private multisig = address(0x123);
@@ -24,6 +26,9 @@ contract WorkApprovalResolverTest is Test {
     address private recipient = address(0x789);
 
     function setUp() public {
+        // Deploy mock community token
+        mockCommunityToken = new MockERC20();
+        
         // Create minimal mock contracts with code (use non-precompile addresses)
         vm.etch(address(0x1002), hex"00"); // multicallForwarder
         vm.etch(address(0x1003), hex"00"); // erc6551Registry
@@ -37,11 +42,22 @@ contract WorkApprovalResolverTest is Test {
         ERC1967Proxy actionProxy = new ERC1967Proxy(address(actionImpl), actionInitData);
         mockActionRegistry = ActionRegistry(address(actionProxy));
 
-        mockGardenAccount = new GardenAccount(address(mockIEAS), address(0x1002), address(0x1003), address(0x1004));
+        // Deploy mock garden account (needs proxy for upgradeable contract)
+        GardenAccount gardenAccountImpl = new GardenAccount(address(mockIEAS), address(0x1002), address(0x1003), address(0x1004));
 
-        mockGardenAccount.initialize(
-            address(0x555), "Test Garden", "Test Description", "Test Location", "", new address[](0), new address[](0)
+        bytes memory gardenAccountInitData = abi.encodeWithSelector(
+            GardenAccount.initialize.selector,
+            address(mockCommunityToken),
+            "Test Garden",
+            "Test Description",
+            "Test Location",
+            "",
+            new address[](0),
+            new address[](0)
         );
+        
+        ERC1967Proxy gardenAccountProxy = new ERC1967Proxy(address(gardenAccountImpl), gardenAccountInitData);
+        mockGardenAccount = GardenAccount(payable(address(gardenAccountProxy)));
 
         // Deploy the WorkApprovalResolver implementation
         WorkApprovalResolver resolverImpl = new WorkApprovalResolver(address(mockIEAS), address(mockActionRegistry));
@@ -64,7 +80,7 @@ contract WorkApprovalResolverTest is Test {
 
     function testActionRegistrySet() public {
         // Test that action registry is properly configured
-        assertEq(workApprovalResolver.actionRegistry(), address(mockActionRegistry), "Action registry should be set");
+        assertEq(workApprovalResolver.ACTION_REGISTRY(), address(mockActionRegistry), "Action registry should be set");
     }
 
     function testOwnerIsMultisig() public {

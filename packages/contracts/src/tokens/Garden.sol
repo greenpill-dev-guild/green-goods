@@ -15,15 +15,16 @@ import { DeploymentRegistry } from "../DeploymentRegistry.sol";
 /// @dev This contract is upgradable and follows the UUPS pattern.
 contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     uint256 private _nextTokenId;
-    address private _gardenAccountImplementation;
+    address private immutable _GARDEN_ACCOUNT_IMPLEMENTATION;
     address public deploymentRegistry;
 
     /**
      * @dev Storage gap for future upgrades
-     * Reserves 47 slots (50 total - 3 used: _nextTokenId, _gardenAccountImplementation, deploymentRegistry)
+     * Reserves 48 slots (50 total - 2 used: _nextTokenId, deploymentRegistry)
+     * Note: _GARDEN_ACCOUNT_IMPLEMENTATION is immutable (not in storage)
      * Allows adding new state variables without breaking storage layout in upgrades
      */
-    uint256[47] private __gap;
+    uint256[48] private __gap;
 
     /// @notice Emitted when a new Garden is minted.
     /// @param tokenId The unique identifier of the minted Garden token.
@@ -78,7 +79,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     /// @custom:oz-upgrades-unsafe-allow constructor
     /// @param gardenAccountImplementation The address of the Garden account implementation.
     constructor(address gardenAccountImplementation) {
-        _gardenAccountImplementation = gardenAccountImplementation;
+        _GARDEN_ACCOUNT_IMPLEMENTATION = gardenAccountImplementation;
         _disableInitializers(); // Prevent constructor usage for upgradable contracts
     }
 
@@ -144,7 +145,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         uint256 tokenId = _nextTokenId++;
         _safeMint(_msgSender(), tokenId);
 
-        address gardenAccount = TBALib.createAccount(_gardenAccountImplementation, address(this), tokenId);
+        address gardenAccount = TBALib.createAccount(_GARDEN_ACCOUNT_IMPLEMENTATION, address(this), tokenId);
 
         GardenAccount(payable(gardenAccount)).initialize(
             communityToken, name, description, location, bannerImage, gardeners, gardenOperators
@@ -190,7 +191,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
 
             _safeMint(_msgSender(), tokenId);
 
-            address gardenAccount = TBALib.createAccount(_gardenAccountImplementation, address(this), tokenId);
+            address gardenAccount = TBALib.createAccount(_GARDEN_ACCOUNT_IMPLEMENTATION, address(this), tokenId);
 
             GardenAccount(payable(gardenAccount)).initialize(
                 config.communityToken,

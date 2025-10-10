@@ -6,19 +6,26 @@ block_timestamp = 1_680_220_800 # March 31, 2023 at 00:00 GMT
 bytecode_hash = "none"
 evm_version = "shanghai"
 fuzz = { runs = 1_000 }
-gas_reports = ["*"]
+gas_reports = []         # Disabled by default for speed
 optimizer = true
 optimizer_runs = 200
-verbosity = 2
+verbosity = 1            # Less verbose by default
 libs = ['lib']
 out = 'out'
 script = "script"
 src = 'src'
 test = 'test'
-via_ir = true
+via_ir = true            # Required for stack depth
+sparse_mode = true       # Faster incremental builds
 fs_permissions = [
   { access = "read-write", path = "./" }
 ]
+
+[profile.production]
+  via_ir = true
+  optimizer_runs = 200
+  gas_reports = ["*"]      # Full gas reports for production
+  verbosity = 2
 
 [profile.ci]
   fuzz = { runs = 10_000 }
@@ -38,6 +45,12 @@ fs_permissions = [
   quote_style = "double"
   tab_width = 4
   wrap_comments = true
+
+[lint]
+exclude_lints = [
+  "mixed-case-function",
+  "mixed-case-variable"
+]
 
 extra_output_files = [
   "abi",

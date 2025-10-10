@@ -24,7 +24,7 @@ abstract contract ERC6551Helper is Test {
     }
     
     /// @notice Verifies the registry is deployed and functional
-    function _verifyERC6551Registry() internal {
+    function _verifyERC6551Registry() internal view {
         require(TOKENBOUND_REGISTRY.code.length > 0, "ERC6551Registry not deployed");
     }
 }

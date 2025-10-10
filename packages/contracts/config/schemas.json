@@ -1,7 +1,7 @@
 {
   "schemas": {
     "assessment": {
-      "name": "Green Goods Assessment v3",
+      "name": "Green Goods Assessment",
       "description": "Flexible assessment schema for Green Goods gardens. Captures impact across 8 forms of capital with flexible metrics stored in IPFS JSON, along with evidence media and impact attestation references.",
       "revocable": true,
       "fields": [

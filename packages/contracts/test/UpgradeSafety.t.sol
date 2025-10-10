@@ -8,7 +8,6 @@ import { ActionRegistry, Capital } from "../src/registries/Action.sol";
 import { GardenToken } from "../src/tokens/Garden.sol";
 import { GardenAccount } from "../src/accounts/Garden.sol";
 import { WorkResolver } from "../src/resolvers/Work.sol";
-import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
 import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
 import { DeploymentRegistry } from "../src/DeploymentRegistry.sol";
 import { MockEAS } from "../src/mocks/EAS.sol";
@@ -417,12 +416,12 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
         // Verify config stored
         (
             address eas,
-            address schemaRegistry,
+            ,  // schemaRegistry
             address commToken,
             address actReg,
-            address gardTok,
-            address workRes,
-            address workAppRes
+            ,  // gardTok
+            ,  // workRes
+               // workAppRes
         ) = deploymentRegistry.networks(chainId);
         
         assertEq(eas, config.eas);
@@ -437,12 +436,12 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
         // Verify config preserved
         (
             address easAfter,
-            address schemaRegistryAfter,
+            ,  // schemaRegistryAfter
             address commTokenAfter,
             address actRegAfter,
             address gardTokAfter,
-            address workResAfter,
-            address workAppResAfter
+            ,  // workResAfter
+               // workAppResAfter
         ) = deploymentRegistry.networks(chainId);
         
         assertEq(easAfter, config.eas);

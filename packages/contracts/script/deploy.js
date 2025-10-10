@@ -219,7 +219,11 @@ For UUPS upgrades, use: pnpm upgrade <contract> --network <network> --broadcast
     try {
       execSync(`forge ${args.join(" ")}`, {
         stdio: "inherit",
-        env: process.env,
+        env: {
+          ...process.env,
+          FOUNDRY_PROFILE: "production",
+          FORGE_BROADCAST: options.broadcast ? "true" : "false",
+        },
         cwd: path.join(__dirname, ".."),
       });
 
@@ -687,7 +691,12 @@ For UUPS upgrades, use: pnpm upgrade <contract> --network <network> --broadcast
 
     execFileSync("forge", args, {
       stdio: "inherit",
-      env: { ...process.env, ...env },
+      env: {
+        ...process.env,
+        ...env,
+        FOUNDRY_PROFILE: "production",
+        FORGE_BROADCAST: options.broadcast ? "true" : "false",
+      },
       cwd: path.join(__dirname, ".."),
     });
   }

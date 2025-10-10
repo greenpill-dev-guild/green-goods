@@ -28,13 +28,13 @@ contract AssessmentResolverTest is Test {
         // Deploy mock community token
         mockCommunityToken = new MockERC20();
         
-        // Deploy mock garden account
+        // Deploy mock garden account (needs proxy for upgradeable contract)
         vm.etch(address(0x1001), hex"00");
         vm.etch(address(0x1002), hex"00");
         vm.etch(address(0x1003), hex"00");
         vm.etch(address(0x1004), hex"00");
         
-        mockGardenAccount = new GardenAccount(
+        GardenAccount gardenAccountImpl = new GardenAccount(
             address(0x1001), // erc4337EntryPoint
             address(0x1002), // multicallForwarder
             address(0x1003), // erc6551Registry
@@ -46,7 +46,8 @@ contract AssessmentResolverTest is Test {
         gardeners[0] = gardener;
         operators[0] = operator;
         
-        mockGardenAccount.initialize(
+        bytes memory gardenAccountInitData = abi.encodeWithSelector(
+            GardenAccount.initialize.selector,
             address(mockCommunityToken),
             "Test Garden",
             "Test Description",
@@ -55,6 +56,9 @@ contract AssessmentResolverTest is Test {
             gardeners,
             operators
         );
+        
+        ERC1967Proxy gardenAccountProxy = new ERC1967Proxy(address(gardenAccountImpl), gardenAccountInitData);
+        mockGardenAccount = GardenAccount(payable(address(gardenAccountProxy)));
         
         // Deploy AssessmentResolver
         AssessmentResolver resolverImpl = new AssessmentResolver(address(mockIEAS));

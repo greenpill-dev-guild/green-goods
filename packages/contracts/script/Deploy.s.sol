@@ -361,9 +361,17 @@ contract Deploy is Script, DeployHelper {
         
         vm.stopBroadcast();
 
-        // Print summary and save deployment
+        // Print summary
         _printDeploymentSummary(result);
-        _saveDeployment(result);
+        
+        // Only save deployment file if actually broadcasting (not a simulation)
+        if (_isBroadcasting()) {
+            console.log("Broadcasting enabled - saving deployment to file");
+            _saveDeployment(result);
+        } else {
+            console.log("Simulation mode - skipping deployment file update");
+            console.log("To save deployment, run with --broadcast flag");
+        }
 
         // Always generate verification commands (deploy.js handles localhost skip)
         _generateVerificationCommands(result);
@@ -1018,6 +1026,18 @@ contract Deploy is Script, DeployHelper {
         return string(result);
     }
 
+    /// @notice Check if we're in broadcast mode (not simulation)
+    /// @dev Checks for FORGE_BROADCAST environment variable set by deploy.js
+    /// @return True if broadcasting, false if simulation
+    function _isBroadcasting() internal view returns (bool) {
+        try vm.envBool("FORGE_BROADCAST") returns (bool isBroadcast) {
+            return isBroadcast;
+        } catch {
+            // Default to false (simulation) if not set
+            return false;
+        }
+    }
+
     function _createSchemaNameAndDescriptionAttestations(
         IEAS eas,
         string memory schemaJson,
@@ -1124,15 +1144,15 @@ contract Deploy is Script, DeployHelper {
             })
         });
 
-        try eas.attest(request) returns (bytes32 attestationUID) {
-            console.log("Name attestation created successfully for:", name);
-            console.log("Attestation UID:", vm.toString(attestationUID));
-        } catch Error(string memory reason) {
-            console.log("Failed to create name attestation for:", name);
-            console.log("Reason:", reason);
-        } catch {
-            console.log("Failed to create name attestation for:", name, "(unknown error)");
+        bytes32 attestationUID = eas.attest(request);
+        
+        if (attestationUID == bytes32(0)) {
+            console.log("ERROR: Failed to create name attestation for:", name);
+            revert("Schema name attestation failed - deployment cannot continue");
         }
+        
+        console.log("Name attestation created successfully for:", name);
+        console.log("Attestation UID:", vm.toString(attestationUID));
     }
 
     function _createSchemaDescriptionAttestation(IEAS eas, bytes32 schemaUID, string memory description) internal {
@@ -1150,15 +1170,15 @@ contract Deploy is Script, DeployHelper {
             })
         });
 
-        try eas.attest(request) returns (bytes32 attestationUID) {
-            console.log("Description attestation created successfully for schema:", vm.toString(schemaUID));
-            console.log("Attestation UID:", vm.toString(attestationUID));
-        } catch Error(string memory reason) {
-            console.log("Failed to create description attestation for schema:", vm.toString(schemaUID));
-            console.log("Reason:", reason);
-        } catch {
-            console.log("Failed to create description attestation for schema:", vm.toString(schemaUID), "(unknown error)");
+        bytes32 attestationUID = eas.attest(request);
+        
+        if (attestationUID == bytes32(0)) {
+            console.log("ERROR: Failed to create description attestation for schema:", vm.toString(schemaUID));
+            revert("Schema description attestation failed - deployment cannot continue");
         }
+        
+        console.log("Description attestation created successfully for schema:", vm.toString(schemaUID));
+        console.log("Attestation UID:", vm.toString(attestationUID));
     }
 
     /// @notice Simple delay counter to prevent compiler optimization

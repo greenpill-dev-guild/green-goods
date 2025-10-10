@@ -301,6 +301,46 @@ node script/deploy.js core --network baseSepolia --broadcast --force
 
 **Note:** Contract verification happens automatically on supported networks (no flag needed).
 
+### Simulation vs Broadcast
+
+**Critical Difference:**
+
+| Mode | Command | Transactions | Deployment File | Use Case |
+|------|---------|--------------|-----------------|----------|
+| **Simulation** | `pnpm deploy:dryrun` | ❌ Not sent | ❌ Not updated | Testing, validation |
+| **Broadcast** | `pnpm deploy:testnet` | ✅ Sent to chain | ✅ Updated | Actual deployment |
+
+**Simulation Mode (Default without `--broadcast`):**
+```bash
+# Dry run - no transactions, no file updates
+node script/deploy.js core --network baseSepolia
+```
+
+- ✅ Tests deployment logic
+- ✅ Validates configuration
+- ✅ Estimates gas costs
+- ❌ **Does NOT update `deployments/{chainId}-latest.json`**
+- ❌ Does NOT send transactions
+- ⚡ Use for: Testing before production deployment
+
+**Broadcast Mode (With `--broadcast`):**
+```bash
+# Real deployment - transactions sent, file updated
+node script/deploy.js core --network baseSepolia --broadcast
+```
+
+- ✅ Sends real transactions
+- ✅ **Updates `deployments/{chainId}-latest.json`**
+- ✅ Deploys to actual blockchain
+- ✅ Costs real gas/ETH
+- ⚡ Use for: Production deployments
+
+**Why This Matters:**
+- Prevents accidental file updates during testing
+- Keeps deployment files synchronized with actual on-chain state
+- CI/CD pipelines can run simulations without side effects
+- Team members can test locally without modifying shared deployment files
+
 ### Deploy vs Upgrade Workflows
 
 Understanding the difference between deploying and upgrading contracts is crucial:
@@ -405,6 +445,40 @@ pnpm upgrade:celo --broadcast
 
 EAS schemas are deployed automatically as part of the main deployment process with enhanced error recovery. The schemas are defined in `config/schemas.json` and deployed via Solidity contracts.
 
+### FFI Requirement
+
+> **⚠️ Critical Requirement: Foundry FFI Must Be Enabled**
+> 
+> Green Goods schema deployment uses Foundry's **FFI (Foreign Function Interface)** to dynamically generate EAS schema strings from JSON configuration.
+> 
+> **Configuration:**
+> - `ffi = true` in `foundry.toml` ✅ (already configured)
+> 
+> **How it works:**
+> 1. Solidity calls `vm.ffi()` during deployment
+> 2. Executes `node script/utils/generateSchemas.js <schemaName>`
+> 3. Node script reads `config/schemas.json`
+> 4. Generates EAS-compatible schema string (e.g., `"string title,uint256 amount,..."`)
+> 5. Returns to Solidity for schema registration
+> 
+> **Requirements:**
+> - Node.js v16+ must be available in deployment environment
+> - FFI enabled in Foundry configuration
+> - `script/utils/generateSchemas.js` must be executable
+> 
+> **Security Note:**
+> FFI allows execution of external programs. Our usage is safe (controlled, audited script), but be cautious when running untrusted deployment scripts. Review `script/utils/generateSchemas.js` before first deployment.
+> 
+> **CI/CD Setup:**
+> ```yaml
+> # Ensure Node.js and FFI are available
+> - uses: actions/setup-node@v3
+>   with:
+>     node-version: '18'
+> - name: Enable FFI
+>   run: forge config --ffi
+> ```
+
 ### Schema Configuration
 
 Schemas are configured in `config/schemas.json`:
@@ -463,32 +537,107 @@ After deployment, the schema UIDs are automatically saved to the deployment file
 }
 ```
 
-### Update Schemas Only
+### Schema Migration & Update Strategy
 
-If you only need to update schemas (e.g., after schema definition changes):
+Green Goods supports multiple deployment modes for schemas, allowing you to update schemas without redeploying contracts.
+
+#### Update Schemas Only (Recommended)
+
+When you need to update schema metadata or deploy new schemas alongside existing contracts:
 
 ```bash
-# Update schemas, skip existing contracts
+# Update/deploy schemas while preserving existing contracts
 node script/deploy.js core --network baseSepolia --broadcast --update-schemas
 ```
 
-**When to use:**
-- Schema definitions changed (new fields, updated resolvers)
-- Schema names/descriptions updated
-- Need to deploy missing schemas
+**Use cases:**
+- ✅ Schema name or description updated
+- ✅ New schema fields added (requires new schema)
+- ✅ Resolver addresses changed
+- ✅ Deploying to network with existing contracts
+- ✅ Fixing schema metadata attestations
 
-**Force Fresh Deployment:**
+**What happens:**
+1. Loads existing contract addresses from `deployments/{chainId}-latest.json`
+2. Skips contract deployment (uses existing addresses)
+3. Registers new schemas or updates existing ones
+4. Creates/updates metadata attestations (name & description)
+5. Preserves all contract addresses
 
-If you need to completely redeploy everything (including schemas):
+**Important:** EAS schemas are **immutable**. You cannot modify a schema's fields after deployment. To change fields, you must:
+1. Deploy a new schema with updated fields
+2. Update resolver contracts to recognize new schema UID
+3. Support both old and new schemas in your application
+
+#### Force Fresh Deployment
+
+Complete redeployment of all contracts and schemas (creates new addresses):
 
 ```bash
-# Force redeploy all contracts and schemas
+# Force redeploy everything - USE WITH CAUTION
 node script/deploy.js core --network baseSepolia --broadcast --force
 ```
 
-**⚠️ Warning:** This creates new contract addresses. Existing integrations will break.
+**Use cases:**
+- 🆕 First deployment to a new network
+- 🧪 Testing with clean state
+- ⚠️ Production: Only when required (breaking changes)
 
-**Note:** EAS schema registry prevents duplicate schemas. If you try to deploy the same schema string twice, you'll get an `AlreadyExists()` error.
+**⚠️ Warning:** 
+- Creates new contract addresses
+- Breaks existing integrations
+- Requires updating all dependent systems
+- Old attestations remain but reference old contracts
+
+#### Schema Reuse Logic
+
+The deployment system automatically handles schema reuse:
+
+1. **Check existing deployment**: Reads `deployments/{chainId}-latest.json`
+2. **Verify on-chain**: Confirms schema exists and resolver matches
+3. **Reuse or redeploy**:
+   - ✅ Schema exists + resolver matches → Reuse existing
+   - ❌ Schema missing or resolver mismatch → Deploy new
+4. **Update metadata**: Always creates/updates name & description attestations
+
+**Example: Adding a Field**
+
+```json
+// Before: config/schemas.json
+{
+  "work": {
+    "fields": [
+      {"name": "actionUID", "type": "uint256"},
+      {"name": "title", "type": "string"}
+    ]
+  }
+}
+
+// After: Add new field
+{
+  "work": {
+    "fields": [
+      {"name": "actionUID", "type": "uint256"},
+      {"name": "title", "type": "string"},
+      {"name": "photos", "type": "string[]"}  // NEW
+    ]
+  }
+}
+```
+
+**Deployment:**
+```bash
+# Deploy new schema alongside existing
+node script/deploy.js core --network baseSepolia --broadcast --update-schemas
+```
+
+**Result:**
+- ✅ New schema UID created with additional field
+- ✅ Old schema UID remains valid
+- ✅ Existing contracts unchanged
+- ⚠️ Must update resolvers to handle both schemas
+
+**See also:** [Schema Migration Guide](./SCHEMA_MIGRATION.md) for comprehensive schema evolution strategies.
 
 ### Schema Versioning
 

@@ -15,6 +15,15 @@ cd packages/contracts
 pnpm install
 ```
 
+> **⚠️ Important: FFI Requirement**
+> 
+> Green Goods deployment uses Foundry's FFI (Foreign Function Interface) to generate EAS schema strings from the `config/schemas.json` file. This is **required** for deployment to work.
+> 
+> - **Already Configured**: `ffi = true` is set in `foundry.toml`
+> - **What it does**: Calls `script/utils/generateSchemas.js` to convert schema field definitions into EAS-compatible format strings
+> - **Security**: FFI allows execution of external scripts. Our usage is safe (controlled, audited script), but be aware when running untrusted deployment scripts
+> - **CI/CD**: Ensure your deployment environment has Node.js available and FFI enabled
+
 #### 2. Setup Foundry Keystore
 
 Import your deployment key (one-time setup):
@@ -736,4 +745,23 @@ echo $CELO_RPC_URL
 **Deployment Performance:**
 - Monitor gas prices for optimal timing
 - Use appropriate gas limits
-- Consider batch deployments for multiple contracts 
+- Consider batch deployments for multiple contracts
+
+---
+
+## Documentation
+
+**Core Guides:**
+- 📘 [Deployment Guide](../../docs/DEPLOYMENT.md) - Complete deployment workflows
+- 🔄 [Upgrade Guide](../../docs/UPGRADES.md) - Contract upgrade procedures
+- 📊 [Schema Migration Guide](../../docs/SCHEMA_MIGRATION.md) - EAS schema evolution strategies
+
+**Configuration:**
+- 📝 [Schema Definitions](./config/schemas.json) - EAS schema configuration
+- 🌐 [Network Configuration](./deployments/networks.json) - Multi-chain settings
+- 🏗️ [Action Definitions](./config/actions.json) - Core garden actions
+
+**Additional:**
+- 📐 [Architecture Overview](../../docs/ARCHITECTURE.md)
+- ✅ [Testing Guide](../../docs/TESTING.md)
+- 🚀 [Production Readiness](../../docs/PRODUCTION_READINESS.md) 

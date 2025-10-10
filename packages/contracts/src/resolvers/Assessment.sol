@@ -90,7 +90,11 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
     /// @param capital The capital name to validate
     /// @return True if the capital is valid, false otherwise
     function _isValidCapital(string memory capital) internal pure returns (bool) {
-        bytes32 capitalHash = keccak256(bytes(capital));
+        bytes32 capitalHash;
+        // Use inline assembly for gas-efficient keccak256
+        assembly {
+            capitalHash := keccak256(add(capital, 32), mload(capital))
+        }
 
         return capitalHash == keccak256("social") || capitalHash == keccak256("material")
             || capitalHash == keccak256("financial") || capitalHash == keccak256("living")

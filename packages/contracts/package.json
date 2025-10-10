@@ -7,7 +7,7 @@
     "dev": "anvil --config-out localhost.json",
     "lint": "forge fmt && solhint --config ./.solhint.json 'src/**/*.sol' 'script/**/*.sol' 'test/**/*.sol' --fix",
     "build": "forge build --via-ir",
-    "test": "pnpm build && forge test --gas-report",
+    "test": "pnpm build && ARBITRUM_RPC_URL=http://localhost:8545 BASE_SEPOLIA_RPC_URL=http://localhost:8545 CELO_RPC_URL=http://localhost:8545 forge test --gas-report",
 
     "deploy": "node script/deploy.js core",
     "deploy:local": "node script/deploy.js core --network localhost --broadcast",

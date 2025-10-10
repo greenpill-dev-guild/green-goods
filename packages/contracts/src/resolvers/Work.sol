@@ -17,18 +17,19 @@ error NotActiveAction();
 /// @notice A schema resolver for the Actions event schema
 /// @dev This contract is upgradable using the UUPS pattern and requires initialization.
 contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
-    address public actionRegistry;
+    address public immutable ACTION_REGISTRY;
 
     /**
      * @dev Storage gap for future upgrades
-     * Reserves 49 slots (50 total - 1 used: actionRegistry)
+     * Reserves 50 slots (50 total - 0 used in storage)
+     * Note: ACTION_REGISTRY is immutable (not in storage)
      * Allows adding new state variables without breaking storage layout in upgrades
      */
-    uint256[49] private __gap;
+    uint256[50] private __gap;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(address easAddrs, address actionAddrs) SchemaResolver(IEAS(easAddrs)) {
-        actionRegistry = actionAddrs;
+        ACTION_REGISTRY = actionAddrs;
         _disableInitializers();
     }
 
@@ -60,11 +61,11 @@ contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
             revert NotGardenerAccount();
         }
 
-        if (ActionRegistry(actionRegistry).getAction(schema.actionUID).startTime == 0) {
+        if (ActionRegistry(ACTION_REGISTRY).getAction(schema.actionUID).startTime == 0) {
             revert NotInActionRegistry();
         }
 
-        if (ActionRegistry(actionRegistry).getAction(schema.actionUID).endTime < block.timestamp) {
+        if (ActionRegistry(ACTION_REGISTRY).getAction(schema.actionUID).endTime < block.timestamp) {
             revert NotActiveAction();
         }
 

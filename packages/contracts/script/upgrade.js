@@ -89,7 +89,11 @@ function main() {
   console.log(`Executing: ${command}\n`);
 
   try {
-    execSync(command, { stdio: "inherit", cwd: process.cwd() });
+    execSync(command, {
+      stdio: "inherit",
+      cwd: process.cwd(),
+      env: { ...process.env, FOUNDRY_PROFILE: "production" },
+    });
     console.log("\n✅ Upgrade completed successfully");
   } catch (error) {
     console.error("\n❌ Upgrade failed", error);
