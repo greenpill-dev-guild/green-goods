@@ -8,10 +8,11 @@ import { ActionRegistry, Capital } from "../src/registries/Action.sol";
 import { GardenToken } from "../src/tokens/Garden.sol";
 import { GardenAccount } from "../src/accounts/Garden.sol";
 import { MockERC20 } from "../src/mocks/ERC20.sol";
+import { ERC6551Helper } from "./helpers/ERC6551Helper.sol";
 
 /// @title FuzzTests
 /// @notice Fuzz testing for edge cases and boundary conditions
-contract FuzzTests is Test {
+contract FuzzTests is Test, ERC6551Helper {
     ActionRegistry private actionRegistry;
     GardenToken private gardenToken;
     MockERC20 private mockToken;
@@ -20,6 +21,9 @@ contract FuzzTests is Test {
     address private gardenAccountImplementation;
 
     function setUp() public {
+        // Deploy ERC6551 Registry at canonical Tokenbound address
+        _deployERC6551Registry();
+        
         // Deploy mock token
         mockToken = new MockERC20();
         

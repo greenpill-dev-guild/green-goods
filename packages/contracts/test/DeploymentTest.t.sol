@@ -5,8 +5,9 @@ import "forge-std/Test.sol" as ForgeTest;
 import "../script/Deploy.s.sol" as DeployScript;
 import "../script/DeployHelper.sol" as DeployHelperModule;
 import { DeploymentRegistry } from "../src/DeploymentRegistry.sol";
+import { ERC6551Helper } from "./helpers/ERC6551Helper.sol";
 
-contract DeploymentTest is ForgeTest.Test, DeployHelperModule.DeployHelper {
+contract DeploymentTest is ForgeTest.Test, DeployHelperModule.DeployHelper, ERC6551Helper {
     DeployScript.Deploy private deployScript;
     address private deployer;
 
@@ -20,6 +21,9 @@ contract DeploymentTest is ForgeTest.Test, DeployHelperModule.DeployHelper {
     event DeploymentCompleted(uint256 indexed chainId, address indexed deployer);
 
     function setUp() public {
+        // Deploy ERC6551 Registry at canonical Tokenbound address
+        _deployERC6551Registry();
+        
         deployScript = new DeployScript.Deploy();
         deployer = makeAddr("deployer");
 
@@ -266,7 +270,6 @@ contract DeploymentTest is ForgeTest.Test, DeployHelperModule.DeployHelper {
             assessmentResolver: abi.decode(vm.parseJson(deploymentJson, ".assessmentResolver"), (address)),
             workResolver: abi.decode(vm.parseJson(deploymentJson, ".workResolver"), (address)),
             workApprovalResolver: abi.decode(vm.parseJson(deploymentJson, ".workApprovalResolver"), (address)),
-            assessmentSchemaUID: bytes32(0),
             assessmentSchemaUID: abi.decode(vm.parseJson(deploymentJson, ".schemas.assessmentSchemaUID"), (bytes32)),
             workSchemaUID: abi.decode(vm.parseJson(deploymentJson, ".schemas.workSchemaUID"), (bytes32)),
             workApprovalSchemaUID: abi.decode(vm.parseJson(deploymentJson, ".schemas.workApprovalSchemaUID"), (bytes32)),

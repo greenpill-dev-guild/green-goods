@@ -7,6 +7,7 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
 import { GardenAccount } from "../src/accounts/Garden.sol";
 import { MockEAS } from "../src/mocks/EAS.sol";
+import { MockERC20 } from "../src/mocks/ERC20.sol";
 
 /// @title AssessmentResolverTest
 /// @notice Test suite for the AssessmentResolver contract
@@ -14,6 +15,7 @@ contract AssessmentResolverTest is Test {
     AssessmentResolver private assessmentResolver;
     GardenAccount private mockGardenAccount;
     MockEAS private mockIEAS;
+    MockERC20 private mockCommunityToken;
     
     address private multisig = address(0x123);
     address private operator = address(0x200);
@@ -22,6 +24,9 @@ contract AssessmentResolverTest is Test {
     function setUp() public {
         // Deploy mock EAS
         mockIEAS = new MockEAS();
+        
+        // Deploy mock community token
+        mockCommunityToken = new MockERC20();
         
         // Deploy mock garden account
         vm.etch(address(0x1001), hex"00");
@@ -42,7 +47,7 @@ contract AssessmentResolverTest is Test {
         operators[0] = operator;
         
         mockGardenAccount.initialize(
-            address(0x555),
+            address(mockCommunityToken),
             "Test Garden",
             "Test Description",
             "Test Location",

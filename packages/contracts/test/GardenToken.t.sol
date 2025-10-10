@@ -8,8 +8,9 @@ import { GardenToken } from "../src/tokens/Garden.sol";
 import { GardenAccount } from "../src/accounts/Garden.sol";
 import { MockERC20 } from "../src/mocks/ERC20.sol";
 import { MockNonERC20 } from "../src/mocks/NonERC20.sol";
+import { ERC6551Helper } from "./helpers/ERC6551Helper.sol";
 
-contract GardenTokenTest is Test {
+contract GardenTokenTest is Test, ERC6551Helper {
     GardenToken private gardenToken;
     address private multisig = address(0x123);
     address private gardenAccountImplementation = address(
@@ -25,6 +26,9 @@ contract GardenTokenTest is Test {
     MockNonERC20 private mockNonERC20;
 
     function setUp() public {
+        // Deploy ERC6551 Registry at canonical Tokenbound address
+        _deployERC6551Registry();
+        
         // Deploy the implementation
         GardenToken implementation = new GardenToken(gardenAccountImplementation);
 

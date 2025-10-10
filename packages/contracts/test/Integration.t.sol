@@ -8,11 +8,12 @@ import { GardenToken } from "../src/tokens/Garden.sol";
 import { GardenAccount } from "../src/accounts/Garden.sol";
 import { ActionRegistry, Capital } from "../src/registries/Action.sol";
 import { MockERC20 } from "../src/mocks/ERC20.sol";
+import { ERC6551Helper } from "./helpers/ERC6551Helper.sol";
 
 /// @title IntegrationTest
 /// @notice Comprehensive integration tests for the Green Goods protocol
 /// @dev Tests full workflows across multiple contracts
-contract IntegrationTest is Test {
+contract IntegrationTest is Test, ERC6551Helper {
     GardenToken private gardenToken;
     ActionRegistry private actionRegistry;
     GardenAccount private gardenAccountImplementation;
@@ -27,6 +28,9 @@ contract IntegrationTest is Test {
     GardenAccount private gardenAccount;
 
     function setUp() public {
+        // Deploy ERC6551 Registry at canonical Tokenbound address
+        _deployERC6551Registry();
+        
         // Deploy community token
         communityToken = new MockERC20();
         
@@ -34,7 +38,7 @@ contract IntegrationTest is Test {
         gardenAccountImplementation = new GardenAccount(
             address(0x1001), // erc4337EntryPoint
             address(0x1002), // multicallForwarder
-            address(0x1003), // erc6551Registry
+            address(0x1003), // erc6551Registry - will be overridden by TOKENBOUND_REGISTRY in actual use
             address(0x1004) // guardian
         );
         
