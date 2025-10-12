@@ -30,7 +30,7 @@ git clone https://github.com/your-org/green-goods.git
 cd green-goods
 pnpm install
 
-# Configure environment
+# Configure environment (REQUIRED - all packages use root .env)
 cp .env.example .env
 # Edit .env with your API keys (see .env.example)
 
@@ -42,6 +42,40 @@ pnpm exec pm2 logs client
 pnpm exec pm2 logs admin
 pnpm exec pm2 logs indexer
 ```
+
+## ⚙️ Environment Configuration
+
+**All packages use a single root `.env` file for configuration** — no package-level `.env` files are used.
+
+### Key Environment Variables
+
+```bash
+# Client & Admin (Vite)
+VITE_PRIVY_APP_ID=your_privy_app_id
+VITE_CHAIN_ID=42161                     # Default chain (84532=Base Sepolia, 42161=Arbitrum, 42220=Celo)
+VITE_ENVIO_INDEXER_URL=http://localhost:8080/v1/graphql
+VITE_WALLETCONNECT_PROJECT_ID=your_project_id
+VITE_PINATA_JWT=your_pinata_jwt
+
+# Contracts (Foundry)
+FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer
+BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
+ARBITRUM_RPC_URL=https://arb1.arbitrum.io/rpc
+CELO_RPC_URL=https://forno.celo.org
+ETHERSCAN_API_KEY=your_etherscan_api_key
+
+# Indexer (Envio)
+# Most config in packages/indexer/config.yaml
+# Add any overrides here if needed
+```
+
+**How it works:**
+- Vite packages (client, admin) load `.env` via `vite.config.ts`
+- Contracts load `.env` via deployment scripts and `foundry.toml`
+- Indexer loads `.env` via Docker Compose and scripts
+- All commands (dev, build, deploy) automatically reference root `.env`
+
+See [Environment Setup Guide](./docs/ENVIRONMENT_SETUP.md) for detailed configuration.
 
 ## 🛠️ Development
 

@@ -22,6 +22,22 @@ pnpm codegen
 - [pnpm (use v9 or newer)](https://pnpm.io/installation)
 - [Docker desktop](https://www.docker.com/products/docker-desktop/)
 
+### Environment Variables
+
+**All environment variables are configured in the root `.env` file** (at the monorepo root, not in this package).
+
+The indexer automatically loads configuration from:
+- Root `.env` file (shared across all packages)
+- `config.yaml` (indexer-specific configuration)
+
+**Indexer-relevant environment variables:**
+```bash
+# Optional - only needed if indexer requires specific API keys or overrides
+# Most configuration is handled via config.yaml
+```
+
+The root `.env` is automatically loaded by the indexer's Docker Compose setup and development scripts.
+
 ### Entities (from `schema.graphql`)
 
 - Gardens and Actions

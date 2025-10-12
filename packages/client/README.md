@@ -13,23 +13,28 @@ This section assumes you have already set up the main Green Goods project as out
 
 ### Environment Variables
 
-Client-specific environment variables are managed in a `.env` file within the `packages/client` directory.
+**All environment variables are configured in the root `.env` file** (at the monorepo root, not in this package).
 
-1.  **Copy the example file:**
-    ```bash
-    cp .env.example .env
-    ```
-2.  **Populate the variables:**
-    You will need to populate this file with necessary API keys and configuration values. Key variables include:
+The root `.env` file is automatically loaded by:
+- Vite development server (via `vite.config.ts`)
+- Build scripts
+- All package scripts
 
-    - `VITE_PRIVY_APP_ID`: Your Privy application ID for authentication.
-    - `VITE_WALLETCONNECT_PROJECT_ID`: Your WalletConnect project ID (if used).
-    - `VITE_PINATA_JWT`: Pinata JWT token for uploads (client-side).
-    - `VITE_CHAIN_ID`: Chain selection (e.g., 42161 for Arbitrum, 84532 for Base Sepolia).
-    - `VITE_ENVIO_INDEXER_URL`: Envio GraphQL endpoint (optional; defaults to localhost in dev).
-    - `VITE_DESKTOP_DEV`: Set to bypass PWA download checks during desktop development.
+**Client-relevant environment variables:**
 
-    _Refer to the main project's [README.md](../../README.md#configure-environment-variables) for guidance on obtaining these values, typically by reaching out to the Green Goods team._
+- `VITE_PRIVY_APP_ID`: Your Privy application ID for authentication
+- `VITE_WALLETCONNECT_PROJECT_ID`: Your WalletConnect project ID (if used)
+- `VITE_PINATA_JWT`: Pinata JWT token for uploads (client-side)
+- `VITE_CHAIN_ID`: Chain selection (e.g., 42161 for Arbitrum, 84532 for Base Sepolia)
+- `VITE_ENVIO_INDEXER_URL`: Envio GraphQL endpoint (optional; defaults to localhost in dev)
+- `VITE_DESKTOP_DEV`: Set to bypass PWA download checks during desktop development
+
+**Setup:**
+1. Copy the root `.env.example` (if it exists) or create `.env` at the project root
+2. Add the required environment variables listed above
+3. Variables are automatically loaded when running `pnpm dev` from root or package directory
+
+_Refer to the main project's [README.md](../../README.md#configure-environment-variables) for complete environment setup instructions._
 
 ## Development
 

@@ -42,7 +42,14 @@ cast wallet list
 
 #### 3. Configure Environment
 
-Create a `.env` file:
+**All environment variables are configured in the root `.env` file** (at the monorepo root, not in this package).
+
+The root `.env` file is automatically loaded by:
+- Deployment scripts (`script/deploy.js`)
+- Foundry commands (via `foundry.toml` referencing root `.env`)
+- All package scripts
+
+Create or edit `.env` at the project root:
 
 ```bash
 # Required - Foundry keystore account name
@@ -565,12 +572,15 @@ node script/deploy.js core --network celo --broadcast --force
 ### Configuration Management
 
 **Environment Variables:**
+
+**All environment variables are configured in the root `.env` file** (at the monorepo root).
+
 First, import your key to Foundry keystore (one-time):
 ```bash
 cast wallet import green-goods-deployer --interactive
 ```
 
-Create a `.env` file in the contracts directory:
+Then create or edit `.env` at the project root (not in `packages/contracts/`):
 ```bash
 # Required for deployment
 FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer
@@ -588,6 +598,8 @@ ETHERSCAN_API_KEY=your-etherscan-v2-api-key
 SCHEMA_DEPLOYMENT_MAX_RETRIES=3
 SCHEMA_DEPLOYMENT_SKIP_ON_FAILURE=false
 ```
+
+The root `.env` file is automatically loaded by deployment scripts and Foundry commands.
 
 **Network Configuration:**
 Networks are configured in `deployments/networks.json`. The system automatically validates:

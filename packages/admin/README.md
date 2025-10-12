@@ -8,9 +8,8 @@ Administrative dashboard for managing the Green Goods platform, including garden
 # Install dependencies (from project root)
 pnpm install
 
-# Copy environment configuration
-cp .env.example .env
-# Edit .env with your API keys and configuration
+# Configure environment variables in root .env file
+# See "Environment Variables" section below
 
 # Start the admin dashboard
 pnpm --filter admin dev
@@ -201,7 +200,15 @@ pnpm --filter admin build
 ```
 
 ### Environment Variables
-Required environment variables (see `.env.example`):
+
+**All environment variables are configured in the root `.env` file** (at the monorepo root, not in this package).
+
+The root `.env` file is automatically loaded by:
+- Vite development server (via `vite.config.ts`)
+- Build scripts
+- All package scripts
+
+**Admin-relevant environment variables:**
 
 ```bash
 VITE_PRIVY_APP_ID=your_privy_app_id
@@ -209,6 +216,11 @@ VITE_DEFAULT_CHAIN_ID=42161
 VITE_ALCHEMY_API_KEY=your_alchemy_key
 VITE_ENVIO_INDEXER_URL=https://indexer.dev.hyperindex.xyz/2e23bea/v1/graphql
 ```
+
+**Setup:**
+1. Create or edit `.env` at the project root (not in `packages/admin/`)
+2. Add the required environment variables listed above
+3. Variables are automatically loaded when running `pnpm dev` from root or package directory
 
 ## 🧪 Testing
 
