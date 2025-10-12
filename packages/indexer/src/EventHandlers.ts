@@ -27,6 +27,7 @@ type Garden = {
   createdAt: number;
   gardeners: string[];
   operators: string[];
+  gapProjectUID?: string; // Karma GAP project attestation UID
 };
 
 type GardenInvite = {
@@ -356,4 +357,24 @@ GardenAccount.InviteRevoked.handler(async ({ event, context }) => {
 
   // Delete the invite from the database
   context.GardenInvite.deleteUnsafe(inviteId);
+});
+
+// Handler for the GAPProjectCreated event
+GardenAccount.GAPProjectCreated.handler(async ({ event, context }) => {
+  const gardenId = event.params.gardenAddress;
+  const existingGarden = await context.Garden.get(gardenId);
+
+  if (existingGarden) {
+    // Update the garden with the Karma GAP project UID
+    const updatedGarden: Garden = {
+      ...existingGarden,
+      gapProjectUID: event.params.projectUID,
+    };
+
+    context.Garden.set(updatedGarden);
+
+    context.log.info(`Updated Garden ${gardenId} with GAP project UID: ${event.params.projectUID}`);
+  } else {
+    context.log.warn(`Garden ${gardenId} not found when processing GAPProjectCreated event`);
+  }
 });

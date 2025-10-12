@@ -36,6 +36,9 @@ type Garden {
 
   gardeners: [String!]! # Address
   operators: [String!]! # Address
+  
+  # Karma GAP Integration
+  gapProjectUID: String # Karma GAP project attestation UID (bytes32)
 }
 
 type GardenInvite {

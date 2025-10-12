@@ -29,6 +29,7 @@ contracts:
       - event: InviteCreated
       - event: InviteUsed
       - event: InviteRevoked
+      - event: GAPProjectCreated
 networks:
   - id: 84532
     start_block: 15000000
