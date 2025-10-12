@@ -7,6 +7,7 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgrade
 // Import all upgradeable contracts
 import { ActionRegistry } from "../src/registries/Action.sol";
 import { GardenToken } from "../src/tokens/Garden.sol";
+import { GardenAccount } from "../src/accounts/Garden.sol";
 import { WorkResolver } from "../src/resolvers/Work.sol";
 import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
 import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
@@ -158,5 +159,100 @@ contract Upgrade is Script {
         upgradeWorkApprovalResolver();
         upgradeAssessmentResolver();
         upgradeDeploymentRegistry();
+    }
+
+    /// @notice Deploy new GardenAccount implementation with updated resolver addresses
+    /// @dev Use this when resolvers have been upgraded and gardens need new implementation
+    /// @param workApprovalResolver New WorkApprovalResolver address
+    /// @param assessmentResolver New AssessmentResolver address
+    /// @return newImplAddress Address of newly deployed GardenAccount implementation
+    function deployNewGardenAccountImplementation(
+        address workApprovalResolver,
+        address assessmentResolver
+    )
+        public
+        returns (address newImplAddress)
+    {
+        console.log("\n=== Deploying New GardenAccount Implementation ===");
+        console.log("New WorkApprovalResolver:", workApprovalResolver);
+        console.log("New AssessmentResolver:", assessmentResolver);
+
+        vm.startBroadcast();
+
+        // Load network config for constructor args
+        string memory chainIdStr = vm.toString(block.chainid);
+        string memory deploymentPath = string.concat(vm.projectRoot(), "/deployments/", chainIdStr, "-latest.json");
+        string memory json = vm.readFile(deploymentPath);
+
+        address entryPoint = abi.decode(vm.parseJson(json, ".eas.address"), (address));
+        address multicallForwarder = address(0xcA11bde05977b3631167028862bE2a173976CA11);
+        address tokenboundRegistry = address(0x000000006551c19487814612e58FE06813775758);
+        address guardian = abi.decode(vm.parseJson(json, ".guardian"), (address));
+
+        // Deploy new implementation
+        GardenAccount newImpl = new GardenAccount(
+            entryPoint, multicallForwarder, tokenboundRegistry, guardian, workApprovalResolver, assessmentResolver
+        );
+
+        newImplAddress = address(newImpl);
+        console.log("New GardenAccount implementation deployed:", newImplAddress);
+        console.log("\nNOTE: This is a NEW implementation. Existing gardens must opt-in to upgrade.");
+        console.log("Use upgradeGardenProxy() to upgrade individual gardens.");
+
+        vm.stopBroadcast();
+
+        return newImplAddress;
+    }
+
+    /// @notice Upgrade a specific garden proxy to new GardenAccount implementation
+    /// @dev Garden owner must approve this transaction
+    /// @param gardenProxyAddress Address of the garden proxy to upgrade
+    /// @param newImplementation Address of new GardenAccount implementation
+    function upgradeGardenProxy(address gardenProxyAddress, address newImplementation) public {
+        console.log("\n=== Upgrading Garden Proxy ===");
+        console.log("Garden proxy:", gardenProxyAddress);
+        console.log("New implementation:", newImplementation);
+
+        vm.startBroadcast();
+
+        // Garden proxies use AccountV3Upgradable which has upgradeTo
+        // This requires the caller to be the garden owner (via _isValidSigner)
+        UUPSUpgradeable(gardenProxyAddress).upgradeTo(newImplementation);
+        console.log("Garden proxy upgraded successfully");
+
+        vm.stopBroadcast();
+    }
+
+    /// @notice Batch upgrade multiple garden proxies
+    /// @param gardenProxies Array of garden proxy addresses
+    /// @param newImplementation Address of new GardenAccount implementation
+    function batchUpgradeGardens(address[] calldata gardenProxies, address newImplementation) public {
+        console.log("\n=== Batch Upgrading Garden Proxies ===");
+        console.log("Number of gardens:", gardenProxies.length);
+        console.log("New implementation:", newImplementation);
+
+        vm.startBroadcast();
+
+        for (uint256 i = 0; i < gardenProxies.length; i++) {
+            console.log("\nUpgrading garden", i + 1, "/", gardenProxies.length);
+            console.log("Garden proxy:", gardenProxies[i]);
+
+            try UUPSUpgradeable(gardenProxies[i]).upgradeTo(newImplementation) {
+                console.log("[OK] Upgraded successfully");
+            } catch Error(string memory reason) {
+                console.log("[FAIL] Failed:", reason);
+            }
+        }
+
+        vm.stopBroadcast();
+    }
+
+    /// @notice Check which implementation a garden proxy is using
+    /// @param gardenProxy Address of garden proxy
+    function checkGardenImplementation(address gardenProxy) public view returns (address) {
+        // Implementation address is stored at ERC1967 implementation slot
+        bytes32 implementationSlot = bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1);
+        bytes32 implementation = vm.load(gardenProxy, implementationSlot);
+        return address(uint160(uint256(implementation)));
     }
 }

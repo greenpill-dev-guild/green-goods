@@ -232,7 +232,7 @@ abstract contract DeployHelper is Script {
 
         // Access schema from object structure: .schemas.<key>.name
         string memory schemaPath = string.concat(".schemas.", actualSchemaKey);
-        
+
         try vm.parseJson(json, string.concat(schemaPath, ".name")) returns (bytes memory nameData) {
             name = abi.decode(nameData, (string));
             description = abi.decode(vm.parseJson(json, string.concat(schemaPath, ".description")), (string));

@@ -47,6 +47,12 @@ interface IEAS {
 /// @title Deploy
 /// @notice Main deployment script for Green Goods contracts
 contract Deploy is Script, DeployHelper {
+    // ===== CUSTOM ERRORS =====
+    error SchemaNameAttestationFailed();
+    error SchemaDescriptionAttestationFailed();
+    error ActionIPFSUploadFailed();
+    error ActionDeploymentFailed();
+
     // ===== DETERMINISTIC DEPLOYMENT CONSTANTS =====
     // (for cross-chain consistency when using optimized profile)
     bytes32 public constant DETERMINISTIC_SALT = 0x6551655165516551655165516551655165516551655165516551655165516551;
@@ -120,8 +126,8 @@ contract Deploy is Script, DeployHelper {
 
     /// @notice Simplified deployment mode flags
     struct DeploymentMode {
-        bool updateSchemasOnly;  // Only update schemas, skip contracts
-        bool forceRedeploy;      // Force fresh deployment
+        bool updateSchemasOnly; // Only update schemas, skip contracts
+        bool forceRedeploy; // Force fresh deployment
     }
 
     /// @notice Deployment configuration struct for cleaner code organization
@@ -136,22 +142,18 @@ contract Deploy is Script, DeployHelper {
 
     /// @notice Parse deployment mode from environment variables
     function _parseDeploymentMode() internal returns (DeploymentMode memory) {
-        DeploymentMode memory mode = DeploymentMode({
-            updateSchemasOnly: false,
-            forceRedeploy: false
-        });
-        
+        DeploymentMode memory mode = DeploymentMode({ updateSchemasOnly: false, forceRedeploy: false });
+
         try vm.envBool("UPDATE_SCHEMAS_ONLY") returns (bool value) {
             mode.updateSchemasOnly = value;
         } catch { }
-        
+
         try vm.envBool("FORCE_REDEPLOY") returns (bool value) {
             mode.forceRedeploy = value;
         } catch { }
-        
+
         return mode;
     }
-
 
     /// @notice Get network configuration for deterministic deployment
     function _getDeterministicNetworkConfig() internal view returns (NetworkConfig memory) {
@@ -215,7 +217,7 @@ contract Deploy is Script, DeployHelper {
 
         config = loadNetworkConfig();
         (salt, factory, tokenboundRegistry) = getDeploymentDefaults();
-        
+
         address multisig = config.multisig;
 
         console.log("=== DEPLOYMENT ===");
@@ -269,12 +271,8 @@ contract Deploy is Script, DeployHelper {
         } else {
             console.log(">> UPDATE_SCHEMAS_ONLY mode: schemas will be deployed without contract updates");
             // In schema-only mode, deploy schemas without resolver addresses (use address(0))
-            (result.assessmentSchemaUID, result.workSchemaUID, result.workApprovalSchemaUID) = _deployEASSchemas(
-                deploymentConfig.config.easSchemaRegistry,
-                address(0),
-                address(0),
-                address(0)
-            );
+            (result.assessmentSchemaUID, result.workSchemaUID, result.workApprovalSchemaUID) =
+                _deployEASSchemas(deploymentConfig.config.easSchemaRegistry, address(0), address(0), address(0));
         }
 
         return result;
@@ -290,11 +288,27 @@ contract Deploy is Script, DeployHelper {
     {
         result.guardian =
             deployGuardian(deploymentConfig.config.greenGoodsSafe, deploymentConfig.salt, deploymentConfig.factory);
+
+        // Deploy resolvers FIRST (needed for GardenAccount constructor)
+        result.actionRegistry =
+            deployActionRegistry(deploymentConfig.config.greenGoodsSafe, deploymentConfig.salt, deploymentConfig.factory);
+        result.workResolver = _deployWorkResolver(
+            deploymentConfig.config.eas, result.actionRegistry, deploymentConfig.salt, deploymentConfig.factory
+        );
+        result.workApprovalResolver = _deployWorkApprovalResolver(
+            deploymentConfig.config.eas, result.actionRegistry, deploymentConfig.salt, deploymentConfig.factory
+        );
+        result.assessmentResolver =
+            _deployAssessmentResolver(deploymentConfig.config.eas, deploymentConfig.salt, deploymentConfig.factory);
+
+        // Now deploy GardenAccount with resolver addresses
         result.gardenAccountImpl = deployGardenAccount(
             deploymentConfig.config.erc4337EntryPoint,
             deploymentConfig.config.multicallForwarder,
             deploymentConfig.tokenboundRegistry,
             result.guardian,
+            result.workApprovalResolver,
+            result.assessmentResolver,
             deploymentConfig.salt,
             deploymentConfig.factory
         );
@@ -311,25 +325,18 @@ contract Deploy is Script, DeployHelper {
         return result;
     }
 
-    /// @notice Deploy registries and resolvers
+    /// @notice Deploy registries and resolvers (now handled in _deployCoreInfrastructure)
+    /// @dev Kept for backward compatibility but no longer does anything
     function _deployRegistriesAndResolvers(
         DeploymentResult memory result,
-        DeploymentConfig memory deploymentConfig
+        DeploymentConfig memory /* deploymentConfig */
     )
         internal
+        pure
         returns (DeploymentResult memory)
     {
-        result.actionRegistry =
-            deployActionRegistry(deploymentConfig.config.greenGoodsSafe, deploymentConfig.salt, deploymentConfig.factory);
-        result.workResolver = _deployWorkResolver(
-            deploymentConfig.config.eas, result.actionRegistry, deploymentConfig.salt, deploymentConfig.factory
-        );
-        result.workApprovalResolver = _deployWorkApprovalResolver(
-            deploymentConfig.config.eas, result.actionRegistry, deploymentConfig.salt, deploymentConfig.factory
-        );
-        result.assessmentResolver =
-            _deployAssessmentResolver(deploymentConfig.config.eas, deploymentConfig.salt, deploymentConfig.factory);
-
+        // Resolvers and registries are now deployed in _deployCoreInfrastructure
+        // before GardenAccount (needed for GardenAccount constructor)
         return result;
     }
 
@@ -358,12 +365,12 @@ contract Deploy is Script, DeployHelper {
             string[] memory actionIPFSHashes = _uploadActionsToIPFS();
             _deployCoreActions(result.actionRegistry, actionIPFSHashes);
         }
-        
+
         vm.stopBroadcast();
 
         // Print summary
         _printDeploymentSummary(result);
-        
+
         // Only save deployment file if actually broadcasting (not a simulation)
         if (_isBroadcasting()) {
             console.log("Broadcasting enabled - saving deployment to file");
@@ -404,13 +411,7 @@ contract Deploy is Script, DeployHelper {
         return address(proxy);
     }
 
-    function deployDeploymentRegistryWithGovernance(
-        address initialOwner,
-        address deployer
-    )
-        public
-        returns (address)
-    {
+    function deployDeploymentRegistryWithGovernance(address initialOwner, address deployer) public returns (address) {
         // Deploy implementation
         DeploymentRegistry implementation = new DeploymentRegistry();
 
@@ -492,8 +493,7 @@ contract Deploy is Script, DeployHelper {
             console.log("[OK] DeploymentRegistry configured for chain:", block.chainid);
 
             // Always handle governance transfer if multisig is configured and deployer is current owner
-            if (multisig != address(0) && reg.owner() == deployer && multisig != deployer)
-            {
+            if (multisig != address(0) && reg.owner() == deployer && multisig != deployer) {
                 _handleGovernanceTransfer(reg, deployer, multisig);
             }
         } catch (bytes memory reason) {
@@ -534,6 +534,8 @@ contract Deploy is Script, DeployHelper {
         address multicallForwarder,
         address tokenRegistry,
         address guardian,
+        address workApprovalResolver,
+        address assessmentResolver,
         bytes32 salt,
         address factory
     )
@@ -541,12 +543,15 @@ contract Deploy is Script, DeployHelper {
         returns (address)
     {
         bytes memory bytecode = abi.encodePacked(
-            type(GardenAccount).creationCode, abi.encode(entryPoint, multicallForwarder, tokenRegistry, guardian)
+            type(GardenAccount).creationCode,
+            abi.encode(entryPoint, multicallForwarder, tokenRegistry, guardian, workApprovalResolver, assessmentResolver)
         );
         address predicted = Create2.computeAddress(salt, keccak256(bytecode), factory);
 
         if (!_isDeployed(predicted)) {
-            GardenAccount account = new GardenAccount{ salt: salt }(entryPoint, multicallForwarder, tokenRegistry, guardian);
+            GardenAccount account = new GardenAccount{ salt: salt }(
+                entryPoint, multicallForwarder, tokenRegistry, guardian, workApprovalResolver, assessmentResolver
+            );
             if (address(account) != predicted) {
                 revert GardenAccountDeploymentAddressMismatch();
             }
@@ -585,7 +590,7 @@ contract Deploy is Script, DeployHelper {
 
     function deployGardenToken(
         address implementation,
-        address /* multisig */,
+        address, /* multisig */
         address deploymentRegistry,
         bytes32 salt,
         address factory
@@ -621,7 +626,7 @@ contract Deploy is Script, DeployHelper {
         return predicted;
     }
 
-    function deployActionRegistry(address /* multisig */, bytes32 salt, address factory) public returns (address) {
+    function deployActionRegistry(address, /* multisig */ bytes32 salt, address factory) public returns (address) {
         // Deploy implementation (not deterministic)
         ActionRegistry actionRegistryImpl = new ActionRegistry();
 
@@ -882,7 +887,7 @@ contract Deploy is Script, DeployHelper {
         // Verify existing UID actually exists on-chain
         if (existingUID != bytes32(0)) {
             bool schemaExists = _verifySchemaExists(registry, existingUID, resolver);
-            
+
             if (schemaExists) {
                 console.log("[OK]", schemaName, "Schema:", vm.toString(existingUID));
                 return existingUID;
@@ -929,21 +934,17 @@ contract Deploy is Script, DeployHelper {
         view
         returns (bool)
     {
-        try registry.getSchema(schemaUID) returns (
-            string memory schema,
-            address resolver,
-            bool /* revocable */
-        ) {
+        try registry.getSchema(schemaUID) returns (string memory schema, address resolver, bool /* revocable */ ) {
             // Schema exists if it has non-empty schema string and correct resolver
             bool hasSchema = bytes(schema).length > 0;
             bool hasCorrectResolver = resolver == expectedResolver;
-            
+
             if (hasSchema && !hasCorrectResolver) {
                 console.log("[WARN] Schema exists but resolver mismatch:");
                 console.log("   Expected:", expectedResolver);
                 console.log("   Actual:", resolver);
             }
-            
+
             return hasSchema && hasCorrectResolver;
         } catch {
             // Schema doesn't exist or call failed
@@ -970,10 +971,10 @@ contract Deploy is Script, DeployHelper {
 
         try registry.register(schemaString, resolver, revocable) returns (bytes32 uid) {
             console.log("   Schema deployed with UID:", vm.toString(uid));
-            
+
             //  Basic verification: skip detailed validation to avoid memory issues
             console.log("[OK] Schema registered successfully:", schemaName);
-            
+
             return uid;
         } catch Error(string memory reason) {
             console.log("[ERROR] Schema registration failed:", schemaName);
@@ -997,10 +998,10 @@ contract Deploy is Script, DeployHelper {
         } else if (keccak256(abi.encodePacked(schemaId)) == keccak256(abi.encodePacked("workApproval"))) {
             actualSchemaKey = "workApproval";
         }
-        
+
         // Parse from object structure: .schemas.<key>.revocable
         string memory schemaPath = string.concat(".schemas.", actualSchemaKey, ".revocable");
-        
+
         try vm.parseJson(schemaJson, schemaPath) returns (bytes memory revocableData) {
             return abi.decode(revocableData, (bool));
         } catch {
@@ -1089,10 +1090,10 @@ contract Deploy is Script, DeployHelper {
         } else if (keccak256(abi.encodePacked(schemaId)) == keccak256(abi.encodePacked("workApproval"))) {
             actualSchemaKey = "workApproval";
         }
-        
+
         // Parse from object structure: .schemas.<key>.name
         string memory schemaPath = string.concat(".schemas.", actualSchemaKey, ".name");
-        
+
         try vm.parseJson(schemaJson, schemaPath) returns (bytes memory nameData) {
             return abi.decode(nameData, (string));
         } catch {
@@ -1118,10 +1119,10 @@ contract Deploy is Script, DeployHelper {
         } else if (keccak256(abi.encodePacked(schemaId)) == keccak256(abi.encodePacked("workApproval"))) {
             actualSchemaKey = "workApproval";
         }
-        
+
         // Parse from object structure: .schemas.<key>.description
         string memory schemaPath = string.concat(".schemas.", actualSchemaKey, ".description");
-        
+
         try vm.parseJson(schemaJson, schemaPath) returns (bytes memory descData) {
             return abi.decode(descData, (string));
         } catch {
@@ -1145,12 +1146,12 @@ contract Deploy is Script, DeployHelper {
         });
 
         bytes32 attestationUID = eas.attest(request);
-        
+
         if (attestationUID == bytes32(0)) {
             console.log("ERROR: Failed to create name attestation for:", name);
-            revert("Schema name attestation failed - deployment cannot continue");
+            revert SchemaNameAttestationFailed();
         }
-        
+
         console.log("Name attestation created successfully for:", name);
         console.log("Attestation UID:", vm.toString(attestationUID));
     }
@@ -1171,12 +1172,12 @@ contract Deploy is Script, DeployHelper {
         });
 
         bytes32 attestationUID = eas.attest(request);
-        
+
         if (attestationUID == bytes32(0)) {
             console.log("ERROR: Failed to create description attestation for schema:", vm.toString(schemaUID));
-            revert("Schema description attestation failed - deployment cannot continue");
+            revert SchemaDescriptionAttestationFailed();
         }
-        
+
         console.log("Description attestation created successfully for schema:", vm.toString(schemaUID));
         console.log("Attestation UID:", vm.toString(attestationUID));
     }
@@ -1249,13 +1250,7 @@ contract Deploy is Script, DeployHelper {
         console.log("Seed data initialized");
     }
 
-    function _handleGovernanceTransfer(
-        DeploymentRegistry reg,
-        address, /* deployer */
-        address multisig
-    )
-        internal
-    {
+    function _handleGovernanceTransfer(DeploymentRegistry reg, address, /* deployer */ address multisig) internal {
         console.log("\n[GOV] Initiating governance transfer...");
 
         // Add multisig to allowlist first (if not already)
@@ -1324,7 +1319,7 @@ contract Deploy is Script, DeployHelper {
 
     function _deploySeedGardens(
         address gardenToken,
-        address /* deploymentRegistry */,
+        address, /* deploymentRegistry */
         address communityToken,
         address gardenAccountImpl
     )
@@ -1358,28 +1353,28 @@ contract Deploy is Script, DeployHelper {
     /// @notice Upload actions to IPFS via Pinata and return their hashes
     function _uploadActionsToIPFS() internal returns (string[] memory) {
         console.log(">> Uploading actions to IPFS...");
-        
+
         string[] memory inputs = new string[](2);
         inputs[0] = "node";
         inputs[1] = "script/utils/ipfs-uploader.js";
-        
+
         try vm.ffi(inputs) returns (bytes memory result) {
             string memory resultJson = string(result);
-            
+
             // Parse JSON array of IPFS hashes
             string[] memory hashes = abi.decode(vm.parseJson(resultJson), (string[]));
-            
+
             console.log("[OK] Uploaded", hashes.length, "actions to IPFS");
             for (uint256 i = 0; i < hashes.length; i++) {
                 console.log("   Action", i + 1, ":", hashes[i]);
             }
-            
+
             return hashes;
         } catch (bytes memory reason) {
             console.log("[ERROR] Failed to upload actions to IPFS:");
             console.log("   Reason:", string(reason));
             console.log("[INFO] Ensure PINATA_JWT environment variable is set");
-            revert("Action IPFS upload failed");
+            revert ActionIPFSUploadFailed();
         }
     }
 
@@ -1408,11 +1403,11 @@ contract Deploy is Script, DeployHelper {
                     break;
                 }
             }
-            
+
             console.log("[OK] Deployed", actionCount, "actions");
         } catch {
             console.log("[ERROR] Failed to read actions.json");
-            revert("Failed to deploy actions");
+            revert ActionDeploymentFailed();
         }
     }
 
@@ -1420,26 +1415,24 @@ contract Deploy is Script, DeployHelper {
     function _parseSingleAction(
         string memory json,
         string memory basePath,
-        uint256 index,
+        uint256, // index - unused but kept for function signature consistency
         string memory ipfsHash,
         address actionRegistry
-    ) internal {
+    )
+        internal
+    {
         string memory title = abi.decode(vm.parseJson(json, string.concat(basePath, ".title")), (string));
-        
+
         // Use IPFS hash from upload instead of reading from JSON
         string memory instructions = ipfsHash;
-        
+
         // Parse and convert timestamps
-        uint256 startTime = _parseISOTimestamp(
-            abi.decode(vm.parseJson(json, string.concat(basePath, ".startTime")), (string))
-        );
-        uint256 endTime = _parseISOTimestamp(
-            abi.decode(vm.parseJson(json, string.concat(basePath, ".endTime")), (string))
-        );
+        uint256 startTime =
+            _parseISOTimestamp(abi.decode(vm.parseJson(json, string.concat(basePath, ".startTime")), (string)));
+        uint256 endTime = _parseISOTimestamp(abi.decode(vm.parseJson(json, string.concat(basePath, ".endTime")), (string)));
 
         // Parse capitals
-        string[] memory capitalStrings =
-            abi.decode(vm.parseJson(json, string.concat(basePath, ".capitals")), (string[]));
+        string[] memory capitalStrings = abi.decode(vm.parseJson(json, string.concat(basePath, ".capitals")), (string[]));
         Capital[] memory capitals = _parseCapitalsArray(capitalStrings);
 
         // Parse media
@@ -1467,19 +1460,25 @@ contract Deploy is Script, DeployHelper {
         // TODO: Implement proper ISO 8601 parsing if needed
         // For 2024-01-01T00:00:00Z -> 1704067200
         // For 2025-12-31T23:59:59Z -> 1767225599
-        
+
         bytes memory timestampBytes = bytes(isoTimestamp);
-        
+
         // Check if it starts with "2024-01-01"
-        if (timestampBytes.length >= 10 && timestampBytes[0] == "2" && timestampBytes[1] == "0" && timestampBytes[2] == "2" && timestampBytes[3] == "4") {
-            return 1704067200; // 2024-01-01T00:00:00Z
+        if (
+            timestampBytes.length >= 10 && timestampBytes[0] == "2" && timestampBytes[1] == "0" && timestampBytes[2] == "2"
+                && timestampBytes[3] == "4"
+        ) {
+            return 1_704_067_200; // 2024-01-01T00:00:00Z
         }
-        
-        // Check if it starts with "2025-12-31"  
-        if (timestampBytes.length >= 10 && timestampBytes[0] == "2" && timestampBytes[1] == "0" && timestampBytes[2] == "2" && timestampBytes[3] == "5") {
-            return 1767225599; // 2025-12-31T23:59:59Z
+
+        // Check if it starts with "2025-12-31"
+        if (
+            timestampBytes.length >= 10 && timestampBytes[0] == "2" && timestampBytes[1] == "0" && timestampBytes[2] == "2"
+                && timestampBytes[3] == "5"
+        ) {
+            return 1_767_225_599; // 2025-12-31T23:59:59Z
         }
-        
+
         // Default to current timestamp
         return block.timestamp;
     }
