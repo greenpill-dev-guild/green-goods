@@ -31,6 +31,10 @@ fs_permissions = [
   fuzz = { runs = 10_000 }
   verbosity = 4
 
+[profile.e2e]
+  match_contract = "E2E"  # Only run e2e tests
+  verbosity = 3           # More verbose for debugging RPC issues
+
 [etherscan]
   arbitrum = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "42161" }
   baseSepolia = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "84532" }
@@ -58,11 +62,9 @@ extra_output_files = [
 ]
 
 # RPC endpoints for different networks
+# Note: Fork test RPC URLs are loaded via vm.envString() to avoid initialization errors
 [rpc_endpoints]
 localhost = "http://localhost:8545"
-arbitrum = "${ARBITRUM_RPC_URL}"
-baseSepolia = "${BASE_SEPOLIA_RPC_URL}"
-celo = "${CELO_RPC_URL}"
 
 # Network-specific profiles
 [profile.local]
