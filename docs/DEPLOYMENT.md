@@ -637,7 +637,7 @@ node script/deploy.js core --network baseSepolia --broadcast --update-schemas
 - ✅ Existing contracts unchanged
 - ⚠️ Must update resolvers to handle both schemas
 
-**See also:** [Schema Migration Guide](./SCHEMA_MIGRATION.md) for comprehensive schema evolution strategies.
+**See also:** [Schema Migration Guide](./SCHEMA_MIGRATION.md) and [Upgrades Guide](./UPGRADES.md)
 
 ### Schema Versioning
 

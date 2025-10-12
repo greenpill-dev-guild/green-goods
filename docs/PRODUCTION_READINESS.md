@@ -572,6 +572,7 @@ pnpm upgrade:testnet
 - [Testing Guide](./TESTING.md)
 - [Troubleshooting](./TROUBLESHOOTING.md)
 - [Architecture](./ARCHITECTURE.md)
+- [Karma GAP](./KARMA_GAP.md)
 
 ### Contact Information
 

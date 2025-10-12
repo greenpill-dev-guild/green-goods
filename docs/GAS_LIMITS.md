@@ -196,4 +196,3 @@ Potential areas for further gas reduction:
 
 For gas optimization questions or concerns, please file an issue on the GitHub repository.
 
-

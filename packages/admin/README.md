@@ -29,7 +29,17 @@ The admin dashboard will be available at `http://localhost:3002`
 ### Operator Features (Indexer Query)
 - **Garden Access**: View and manage assigned gardens only
 - **Member Management**: Add/remove gardeners and operators within assigned gardens
+- **Impact Reports**: View Karma GAP attestations for assigned gardens
 - **Limited Scope**: Cannot create new gardens or manage contracts
+
+### Impact Reporting (Planned Feature)
+- **Karma GAP Integration**: Query impact attestations via Karma GAP SDK
+- **Three-Level Tracking**: Projects (gardens), impacts (approved work)
+- **Export Functionality**: Download impact data as CSV/JSON for reporting
+- **EAS Explorer Links**: Direct links to verify attestations on-chain
+- **Filter by Garden**: View impact data for specific gardens
+
+**Note:** Impact data is queried via Karma GAP SDK, not Green Goods indexer. See [docs/KARMA_GAP.md](../../docs/KARMA_GAP.md) for details.
 
 ## 🔐 Access Control
 
@@ -132,6 +142,8 @@ await executeWithToast(
 - `GetDashboardStats`: Dashboard overview data
 - `GetGardens`: All gardens or operator-specific gardens
 - `GetGardenDetail`: Individual garden details
+
+**Note:** GAP attestations (projects, impacts) are queried via Karma GAP SDK, not Green Goods indexer.
 
 #### Subscriptions
 - `GardenCreated`: Real-time garden creation events

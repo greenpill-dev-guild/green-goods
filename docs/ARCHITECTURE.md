@@ -419,7 +419,9 @@ sequenceDiagram
 - **Block Progression**: Network synchronization status
 - **Error Rates**: Failed transaction analysis
 
-For implementation details, see the individual package documentation:
-- [Client Architecture](./packages/client/README.md)
-- [Contract Architecture](./packages/contracts/DEPLOYMENT.md)
-- [Indexer Architecture](./packages/indexer/README.md) 
+For implementation details, see:
+- [Karma GAP Integration](./KARMA_GAP.md)
+- [Karma GAP Implementation](./KARMA_GAP_IMPLEMENTATION.md)
+- [Contract Upgrades](./UPGRADES.md)
+- [Deployment Guide](./DEPLOYMENT.md)
+- Individual package READMEs: [client](../packages/client/README.md), [contracts](../packages/contracts/README.md), [indexer](../packages/indexer/README.md) 

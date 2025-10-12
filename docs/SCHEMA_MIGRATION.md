@@ -358,5 +358,6 @@ cat deployments/84532-latest.json | jq .schemas
 - [EAS Documentation](https://docs.attest.sh/)
 - [Green Goods Deployment Guide](./DEPLOYMENT.md)
 - [Contract Upgrade Guide](./UPGRADES.md)
+- [Karma GAP Implementation](./KARMA_GAP_IMPLEMENTATION.md)
 - [Schema Configuration](../packages/contracts/config/schemas.json)
 

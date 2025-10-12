@@ -264,6 +264,44 @@ The Green Goods protocol uses EAS (Ethereum Attestation Service) schemas for on-
 - **WorkApproval Schema**: Operators approve or reject submitted work  
 - **GardenAssessment Schema**: Biodiversity and ecological assessments of garden spaces
 
+### Karma GAP Integration
+
+Green Goods integrates with the **Karma Grantee Accountability Protocol (GAP)** for standardized impact reporting across **8 networks**:
+
+**Supported Networks:**
+- Mainnet: Arbitrum, Celo
+- Testnet: Base Sepolia
+
+**Automatic Integration:**
+- **Garden Creation** → GAP Project attestation created automatically
+- **Operator Addition** → Operator added as GAP project admin automatically  
+- **Work Approval** → Impact attestation created automatically with work details
+
+**Key Architecture:**
+- `GardenAccount` is the owner and sole authority for GAP interactions
+- All schema UIDs and contract addresses centralized in `src/lib/Karma.sol`
+- Multi-chain support with automatic chain detection
+- Graceful degradation - GAP failures don't revert core operations
+- Identity-first security - all resolvers verify roles before any logic
+
+**Documentation:**
+- User Guide: [docs/KARMA_GAP.md](../../docs/KARMA_GAP.md)
+- Implementation: [docs/KARMA_GAP_IMPLEMENTATION.md](../../docs/KARMA_GAP_IMPLEMENTATION.md)
+- Upgrade Guide: [docs/UPGRADES.md](../../docs/UPGRADES.md)
+- KarmaLib Source: `src/lib/Karma.sol`
+- Interfaces: `src/interfaces/IKarmaGap.sol`
+
+**Testing:**
+```bash
+# Run all GAP E2E fork tests
+pnpm test:gap
+
+# Test specific networks
+pnpm test:gap:fork:arbitrum
+pnpm test:gap:fork:celo
+pnpm test:gap:fork:base
+```
+
 ### Schema Evolution
 
 The current schema implementations are production-ready and can be extended in future versions if needed. Version fields can be added in future schema upgrades without breaking existing attestations.
@@ -387,6 +425,30 @@ node script/upgrade.js garden-token --network baseSepolia --broadcast
 node script/upgrade.js work-resolver --network baseSepolia --broadcast
 node script/upgrade.js assessment-resolver --network baseSepolia --broadcast
 ```
+
+### Upgrading with Resolver Address Changes
+
+When WorkApprovalResolver or AssessmentResolver contracts are upgraded, a new GardenAccount implementation must be deployed:
+
+```bash
+# 1. Deploy new resolvers (if needed)
+node script/upgrade.js work-approval-resolver --network arbitrum
+
+# 2. Deploy new GardenAccount implementation
+forge script script/Upgrade.s.sol:Upgrade \
+  --sig "deployNewGardenAccountImplementation(address,address)" \
+  <NEW_WORK_APPROVAL_RESOLVER> \
+  <NEW_ASSESSMENT_RESOLVER> \
+  --network arbitrum --broadcast
+
+# 3. Gardens opt-in to upgrade
+forge script script/Upgrade.s.sol:Upgrade \
+  --sig "upgradeGardenProxy(address,address)" \
+  <GARDEN_PROXY> <NEW_IMPL> \
+  --network arbitrum --broadcast
+```
+
+See `docs/UPGRADES.md` for complete upgrade guide.
 
 ### When to Deploy vs Upgrade
 

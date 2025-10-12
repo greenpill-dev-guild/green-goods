@@ -75,13 +75,17 @@ pnpm format && pnpm lint && pnpm test # Quality checks
 
 ## 📚 Documentation
 
-| Guide | Purpose |
-|-------|---------|
-| [Environment Setup](./docs/ENVIRONMENT_SETUP.md) | API keys & configuration |
-| [Testing](./docs/TESTING.md) | E2E testing guide |
-| [Architecture](./docs/ARCHITECTURE.md) | System design |
+| Document | Description |
+|----------|-------------|
+| [Architecture](./docs/ARCHITECTURE.md) | System design and architecture |
+| [Deployment](./docs/DEPLOYMENT.md) | Contract deployment guide |
+| [Karma GAP](./docs/KARMA_GAP.md) | Impact attestation integration |
+| [Upgrades](./docs/UPGRADES.md) | UUPS upgrade guide |
+| [Testing](./docs/TESTING.md) | E2E and contract testing |
 | [Features](./docs/FEATURES.md) | Core platform features |
-| [Troubleshooting](./docs/TROUBLESHOOTING.md) | Common issues |
+| [Gas Limits](./docs/GAS_LIMITS.md) | Gas optimization guide |
+| [Production Readiness](./docs/PRODUCTION_READINESS.md) | Production deployment checklist |
+| [Troubleshooting](./docs/TROUBLESHOOTING.md) | Common issues and solutions |
 
 **Package docs:** [client](./packages/client/README.md) • [admin](./packages/admin/README.md) • [indexer](./packages/indexer/README.md) • [contracts](./packages/contracts/README.md)
 
