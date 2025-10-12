@@ -75,6 +75,10 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     error CommunityTokenNotContract();
     /// @notice Error thrown when community token does not implement ERC-20 interface
     error InvalidERC20Token();
+    /// @notice Error thrown when too many gardeners are provided
+    error TooManyGardeners();
+    /// @notice Error thrown when too many operators are provided
+    error TooManyOperators();
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     /// @param gardenAccountImplementation The address of the Garden account implementation.
@@ -172,8 +176,8 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         // Validate all community tokens and array lengths upfront for fail-fast behavior
         for (uint256 i = 0; i < configsLength;) {
             _validateCommunityToken(configs[i].communityToken);
-            require(configs[i].gardeners.length <= 100, "Too many gardeners");
-            require(configs[i].gardenOperators.length <= 100, "Too many operators");
+            if (configs[i].gardeners.length > 100) revert TooManyGardeners();
+            if (configs[i].gardenOperators.length > 100) revert TooManyOperators();
             unchecked {
                 ++i;
             }

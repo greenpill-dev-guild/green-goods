@@ -4,7 +4,7 @@ pragma solidity >=0.8.25;
 import { AccountV3Upgradable } from "@tokenbound/AccountV3Upgradable.sol";
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { IEAS, AttestationRequest, AttestationRequestData } from "@eas/IEAS.sol";
+import { AttestationRequest, AttestationRequestData } from "@eas/IEAS.sol";
 import { KarmaLib } from "../lib/Karma.sol";
 import { IKarmaGap, IProjectResolver } from "../interfaces/IKarmaGap.sol";
 
@@ -22,6 +22,10 @@ error AlreadyGardener();
 error InvalidCommunityToken();
 error CommunityTokenNotContract();
 error InvalidERC20Token();
+error TooManyGardeners();
+error TooManyOperators();
+error GAPProjectNotInitialized();
+error GAPNotSupportedOnChain();
 
 /// @title GardenAccount Contract
 /// @notice Manages gardeners and operators for a Garden, and supports community token management.
@@ -227,8 +231,8 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         initializer
     {
         // Validate array lengths to prevent gas exhaustion
-        require(_gardeners.length <= 100, "Too many gardeners");
-        require(_gardenOperators.length <= 100, "Too many operators");
+        if (_gardeners.length > 100) revert TooManyGardeners();
+        if (_gardenOperators.length > 100) revert TooManyOperators();
 
         // Validate community token is a valid ERC-20
         _validateCommunityToken(_communityToken);
@@ -481,8 +485,8 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         onlyResolver
         returns (bytes32)
     {
-        require(gapProjectUID != bytes32(0), "GAP project not initialized");
-        require(KarmaLib.isSupported(), "GAP not supported on this chain");
+        if (gapProjectUID == bytes32(0)) revert GAPProjectNotInitialized();
+        if (!KarmaLib.isSupported()) revert GAPNotSupportedOnChain();
 
         IKarmaGap gapContract = IKarmaGap(KarmaLib.getGapContract());
 
@@ -490,19 +494,19 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         bytes memory impactData = abi.encode(
             string(
                 abi.encodePacked(
-                    '{"title":"',
+                    "{'title':'",
                     _escapeJSON(workTitle),
-                    '",',
-                    '"text":"',
+                    "',",
+                    "'text':'",
                     _escapeJSON(impactDescription),
-                    '",',
-                    '"proof":"',
+                    "',",
+                    "'proof':'",
                     proofIPFS,
-                    '",',
-                    '"completedAt":',
+                    "',",
+                    "'completedAt':",
                     _uint2str(block.timestamp),
                     ",",
-                    '"type":"project-impact"}'
+                    "'type':'project-impact'}"
                 )
             )
         );
@@ -548,8 +552,8 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         onlyResolver
         returns (bytes32)
     {
-        require(gapProjectUID != bytes32(0), "GAP project not initialized");
-        require(KarmaLib.isSupported(), "GAP not supported on this chain");
+        if (gapProjectUID == bytes32(0)) revert GAPProjectNotInitialized();
+        if (!KarmaLib.isSupported()) revert GAPNotSupportedOnChain();
 
         IKarmaGap gapContract = IKarmaGap(KarmaLib.getGapContract());
 
@@ -557,19 +561,19 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         bytes memory milestoneData = abi.encode(
             string(
                 abi.encodePacked(
-                    '{"title":"',
+                    "{'title':'",
                     _escapeJSON(milestoneTitle),
-                    '",',
-                    '"text":"',
+                    "',",
+                    "'text':'",
                     _escapeJSON(milestoneDescription),
-                    '",',
-                    '"metadata":',
+                    "',",
+                    "'metadata':",
                     milestoneMeta,
                     ",",
-                    '"completedAt":',
+                    "'completedAt':",
                     _uint2str(block.timestamp),
                     ",",
-                    '"type":"project-milestone"}'
+                    "'type':'project-milestone'}"
                 )
             )
         );
@@ -609,18 +613,18 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     function _buildGAPDetailsJSON() private view returns (string memory) {
         return string(
             abi.encodePacked(
-                '{"title":"',
+                "{'title':'",
                 _escapeJSON(name),
-                '",',
-                '"description":"',
+                "',",
+                "'description':'",
                 _escapeJSON(description),
-                '",',
-                '"imageURL":"',
+                "',",
+                "'imageURL':'",
                 bannerImage,
-                '",',
-                '"location":"',
+                "',",
+                "'location':'",
                 _escapeJSON(location),
-                '"}'
+                "'}"
             )
         );
     }
@@ -631,7 +635,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         uint256 quoteCount = 0;
 
         for (uint256 i = 0; i < b.length; i++) {
-            if (b[i] == '"') quoteCount++;
+            if (b[i] == "'") quoteCount++;
         }
 
         if (quoteCount == 0) return str;
@@ -640,7 +644,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         uint256 j = 0;
 
         for (uint256 i = 0; i < b.length; i++) {
-            if (b[i] == '"') {
+            if (b[i] == "'") {
                 escaped[j++] = "\\";
             }
             escaped[j++] = b[i];

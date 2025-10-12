@@ -153,22 +153,22 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
         string memory capitalsJSON = "[";
         for (uint256 i = 0; i < schema.capitals.length; i++) {
             if (i > 0) capitalsJSON = string(abi.encodePacked(capitalsJSON, ","));
-            capitalsJSON = string(abi.encodePacked(capitalsJSON, '"', schema.capitals[i], '"'));
+            capitalsJSON = string(abi.encodePacked(capitalsJSON, "'", schema.capitals[i], "'"));
         }
         capitalsJSON = string(abi.encodePacked(capitalsJSON, "]"));
 
         // Build full metadata JSON with escaped strings
         return string(
             abi.encodePacked(
-                '{"capitals":',
+                "{'capitals':",
                 capitalsJSON,
                 ",",
-                '"assessmentType":"',
+                "'assessmentType':'",
                 _escapeJSON(schema.assessmentType),
-                '",',
-                '"metricsJSON":"',
+                "',",
+                "'metricsJSON':'",
                 _escapeJSON(schema.metricsJSON),
-                '"}'
+                "'}"
             )
         );
     }
@@ -181,7 +181,7 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
         uint256 quoteCount = 0;
 
         for (uint256 i = 0; i < b.length; i++) {
-            if (b[i] == '"') quoteCount++;
+            if (b[i] == "'") quoteCount++;
         }
 
         if (quoteCount == 0) return str;
@@ -190,7 +190,7 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
         uint256 j = 0;
 
         for (uint256 i = 0; i < b.length; i++) {
-            if (b[i] == '"') {
+            if (b[i] == "'") {
                 escaped[j++] = "\\";
             }
             escaped[j++] = b[i];

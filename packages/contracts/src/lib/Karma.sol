@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { IEAS, AttestationRequest, AttestationRequestData } from "@eas/IEAS.sol";
-import { IKarmaGap, IProjectResolver } from "../interfaces/IKarmaGap.sol";
-
 error KarmaGAPNotSupported();
 
 /// @title KarmaLib
@@ -143,47 +140,36 @@ library KarmaLib {
     /// @return Karma GAP contract address
     function getGapContract() internal view returns (address) {
         uint256 chainId = block.chainid;
-
-        // Mainnet Networks
         if (chainId == 10) return KARMA_GAP_CONTRACT_OPTIMISM;
         if (chainId == 42_161) return KARMA_GAP_CONTRACT_ARBITRUM;
         if (chainId == 42_220) return KARMA_GAP_CONTRACT_CELO;
         if (chainId == 1329) return KARMA_GAP_CONTRACT_SEI;
-
-        // Testnet Networks
         if (chainId == 11_155_420) return KARMA_GAP_CONTRACT_OPTIMISM_SEPOLIA;
         if (chainId == 11_155_111) return KARMA_GAP_CONTRACT_SEPOLIA;
         if (chainId == 84_532) return KARMA_GAP_CONTRACT_BASE_SEPOLIA;
         if (chainId == 1328) return KARMA_GAP_CONTRACT_SEI_TESTNET;
-
-        revert KarmaGAPNotSupported();
+        _revertUnsupported();
     }
 
     /// @notice Returns Project Resolver contract address for current chain
     /// @return Project Resolver contract address
     function getProjectResolver() internal view returns (address) {
         uint256 chainId = block.chainid;
-
-        // Mainnet Networks
         if (chainId == 10) return GAP_PROJECT_RESOLVER_OPTIMISM;
         if (chainId == 42_161) return GAP_PROJECT_RESOLVER_ARBITRUM;
         if (chainId == 42_220) return GAP_PROJECT_RESOLVER_CELO;
         if (chainId == 1329) return GAP_PROJECT_RESOLVER_SEI;
-
-        // Testnet Networks
         if (chainId == 11_155_420) return GAP_PROJECT_RESOLVER_OPTIMISM_SEPOLIA;
         if (chainId == 11_155_111) return GAP_PROJECT_RESOLVER_SEPOLIA;
         if (chainId == 84_532) return GAP_PROJECT_RESOLVER_BASE_SEPOLIA;
         if (chainId == 1328) return GAP_PROJECT_RESOLVER_SEI_TESTNET;
-
-        revert KarmaGAPNotSupported();
+        _revertUnsupported();
     }
 
     /// @notice Returns GAP project schema UID for current chain
     /// @return Project schema UID
     function getProjectSchemaUID() internal view returns (bytes32) {
         uint256 chainId = block.chainid;
-
         if (chainId == 10) return GAP_PROJECT_SCHEMA_OPTIMISM;
         if (chainId == 11_155_420) return GAP_PROJECT_SCHEMA_OPTIMISM_SEPOLIA;
         if (chainId == 42_161) return GAP_PROJECT_SCHEMA_ARBITRUM;
@@ -192,15 +178,13 @@ library KarmaLib {
         if (chainId == 42_220) return GAP_PROJECT_SCHEMA_CELO;
         if (chainId == 1329) return GAP_PROJECT_SCHEMA_SEI;
         if (chainId == 1328) return GAP_PROJECT_SCHEMA_SEI_TESTNET;
-
-        revert KarmaGAPNotSupported();
+        _revertUnsupported();
     }
 
     /// @notice Returns GAP details schema UID for current chain
     /// @return Details schema UID
     function getDetailsSchemaUID() internal view returns (bytes32) {
         uint256 chainId = block.chainid;
-
         if (chainId == 10) return GAP_DETAILS_SCHEMA_OPTIMISM;
         if (chainId == 11_155_420) return GAP_DETAILS_SCHEMA_OPTIMISM_SEPOLIA;
         if (chainId == 42_161) return GAP_DETAILS_SCHEMA_ARBITRUM;
@@ -209,8 +193,7 @@ library KarmaLib {
         if (chainId == 42_220) return GAP_DETAILS_SCHEMA_CELO;
         if (chainId == 1329) return GAP_DETAILS_SCHEMA_SEI;
         if (chainId == 1328) return GAP_DETAILS_SCHEMA_SEI_TESTNET;
-
-        revert KarmaGAPNotSupported();
+        _revertUnsupported();
     }
 
     /// @notice Returns GAP milestone schema UID for current chain
@@ -218,7 +201,6 @@ library KarmaLib {
     /// @return Milestone schema UID
     function getMilestoneSchemaUID() internal view returns (bytes32) {
         uint256 chainId = block.chainid;
-
         if (chainId == 10) return GAP_MILESTONE_SCHEMA_OPTIMISM;
         if (chainId == 11_155_420) return GAP_MILESTONE_SCHEMA_OPTIMISM_SEPOLIA;
         if (chainId == 42_161) return GAP_MILESTONE_SCHEMA_ARBITRUM;
@@ -227,8 +209,7 @@ library KarmaLib {
         if (chainId == 42_220) return GAP_MILESTONE_SCHEMA_CELO;
         if (chainId == 1329) return GAP_MILESTONE_SCHEMA_SEI;
         if (chainId == 1328) return GAP_MILESTONE_SCHEMA_SEI_TESTNET;
-
-        revert KarmaGAPNotSupported();
+        _revertUnsupported();
     }
 
     /// @notice Returns GAP project update schema UID for current chain
@@ -236,7 +217,6 @@ library KarmaLib {
     /// @return Project update schema UID
     function getProjectUpdateSchemaUID() internal view returns (bytes32) {
         uint256 chainId = block.chainid;
-
         if (chainId == 10) return GAP_PROJECT_UPDATE_SCHEMA_OPTIMISM;
         if (chainId == 11_155_420) return GAP_PROJECT_UPDATE_SCHEMA_OPTIMISM_SEPOLIA;
         if (chainId == 42_161) return GAP_PROJECT_UPDATE_SCHEMA_ARBITRUM;
@@ -245,7 +225,12 @@ library KarmaLib {
         if (chainId == 42_220) return GAP_PROJECT_UPDATE_SCHEMA_CELO;
         if (chainId == 1329) return GAP_PROJECT_UPDATE_SCHEMA_SEI;
         if (chainId == 1328) return GAP_PROJECT_UPDATE_SCHEMA_SEI_TESTNET;
+        _revertUnsupported();
+    }
 
+    /// @notice Internal helper to revert with KarmaGAPNotSupported error
+    /// @dev Extracted to reduce cyclomatic complexity of chain lookup functions
+    function _revertUnsupported() private pure {
         revert KarmaGAPNotSupported();
     }
 
