@@ -141,15 +141,20 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
         // SECURITY: Use try/catch to prevent GAP failures from reverting approval
         // The gardenAccount.createProjectImpact() has onlyOperator modifier
         // Since we already validated operator in onAttest(), this is secure
+        // solhint-disable-next-line no-empty-blocks
         try gardenAccount.createProjectImpact(workTitle, impactDesc, proof) {
-            // Success - event emitted by GardenAccount
+            // Success - event emitted by GardenAccount, no additional action needed
+            // solhint-disable-next-line no-empty-blocks
         } catch {
-            // Failed - approval still succeeds
+            // Intentionally ignore failures - approval succeeds even if GAP integration fails
         }
     }
 
     /// @notice Authorizes an upgrade to the contract's implementation.
     /// @dev This function can only be called by the contract owner.
     /// @param newImplementation The address of the new contract implementation.
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner { }
+    // solhint-disable-next-line no-empty-blocks
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
+        // Intentionally empty - UUPS upgrade authorization handled by onlyOwner modifier
+    }
 }

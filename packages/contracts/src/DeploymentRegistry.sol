@@ -295,5 +295,8 @@ contract DeploymentRegistry is OwnableUpgradeable, UUPSUpgradeable {
 
     /// @notice Authorizes an upgrade to a new implementation
     /// @param newImplementation The address of the new implementation
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner { }
+    // solhint-disable-next-line no-empty-blocks
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
+        // Intentionally empty - UUPS upgrade authorization handled by onlyOwner modifier
+    }
 }

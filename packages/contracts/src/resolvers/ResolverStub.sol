@@ -19,8 +19,9 @@ contract ResolverStub is UUPSUpgradeable, OwnableUpgradeable {
     }
 
     /// @notice Restrict upgrades to owner only
+    // solhint-disable-next-line no-empty-blocks
     function _authorizeUpgrade(address) internal override onlyOwner {
-        // Only owner can upgrade
+        // Intentionally empty - UUPS upgrade authorization handled by onlyOwner modifier
     }
 
     /// @notice Fallback function

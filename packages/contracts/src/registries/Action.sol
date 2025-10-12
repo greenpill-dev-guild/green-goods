@@ -193,5 +193,8 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     /// @dev Authorizes an upgrade to the contract's implementation.
     /// @param newImplementation The address of the new implementation contract.
     /// @custom:oz-upgrades-unsafe-allow override
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner { }
+    // solhint-disable-next-line no-empty-blocks
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
+        // Intentionally empty - UUPS upgrade authorization handled by onlyOwner modifier
+    }
 }

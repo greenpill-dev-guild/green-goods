@@ -342,6 +342,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     /// @param expiry The expiration timestamp for the invite.
     function createInviteCode(bytes32 inviteCode, uint256 expiry) external onlyOperator {
         if (gardenInvites[inviteCode]) revert InviteAlreadyExists();
+        // solhint-disable-next-line not-rely-on-time
         if (expiry <= block.timestamp) revert InvalidExpiry();
 
         gardenInvites[inviteCode] = true;
@@ -357,6 +358,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     function joinGardenWithInvite(bytes32 inviteCode) external {
         if (!gardenInvites[inviteCode]) revert InvalidInvite();
         if (inviteUsed[inviteCode]) revert InviteAlreadyUsed();
+        // solhint-disable-next-line not-rely-on-time
         if (block.timestamp > inviteExpiry[inviteCode]) revert InviteExpired();
         if (gardeners[_msgSender()]) revert AlreadyGardener();
 
@@ -407,9 +409,9 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
 
         // Attempt to call totalSupply() to verify it's an ERC-20
         // This provides a basic sanity check without requiring full interface compliance
+        // solhint-disable-next-line no-empty-blocks
         try IERC20(_token).totalSupply() returns (uint256) {
-            // Success - the contract implements at least the totalSupply function
-            // This is a good indicator it's an ERC-20 token
+            // Success - token validated, no additional action needed
         } catch {
             revert InvalidERC20Token();
         }
@@ -504,7 +506,8 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
                     proofIPFS,
                     "',",
                     "'completedAt':",
-                    _uint2str(block.timestamp),
+                    // solhint-disable-next-line not-rely-on-time
+                    _uint2str(block.timestamp), // Metadata only - not used for access control
                     ",",
                     "'type':'project-impact'}"
                 )
@@ -564,14 +567,15 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
                     "{'title':'",
                     _escapeJSON(milestoneTitle),
                     "',",
-                    "'text':'",
+                    "'text:'",
                     _escapeJSON(milestoneDescription),
                     "',",
                     "'metadata':",
                     milestoneMeta,
                     ",",
                     "'completedAt':",
-                    _uint2str(block.timestamp),
+                    // solhint-disable-next-line not-rely-on-time
+                    _uint2str(block.timestamp), // Metadata only - not used for access control
                     ",",
                     "'type':'project-milestone'}"
                 )
@@ -604,8 +608,9 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
 
         try resolver.addAdmin(gapProjectUID, admin) {
             emit GAPProjectAdminAdded(gapProjectUID, admin);
+            // solhint-disable-next-line no-empty-blocks
         } catch {
-            // Silently fail - don't revert operator addition
+            // Intentionally ignore failures - operator addition succeeds even if GAP admin sync fails
         }
     }
 
@@ -674,6 +679,40 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         }
 
         return string(buffer);
+    }
+
+    // ============================================
+    // GAP STATE QUERY HELPERS
+    // ============================================
+
+    /// @notice Query all GAP project admins
+    /// @dev Returns current admin list from GAP contract
+    /// @return admins Array of admin addresses
+    function getGAPProjectAdmins() external view returns (address[] memory admins) {
+        if (gapProjectUID == bytes32(0)) revert GAPProjectNotInitialized();
+
+        IProjectResolver resolver = IProjectResolver(KarmaLib.getProjectResolver());
+        return resolver.getProjectAdmins(gapProjectUID);
+    }
+
+    /// @notice Check if address is GAP project admin
+    /// @dev Queries GAP contract for admin status
+    /// @param account The address to check
+    /// @return isAdmin True if account is a project admin
+    function isGAPProjectAdmin(address account) external view returns (bool isAdmin) {
+        if (gapProjectUID == bytes32(0)) return false;
+
+        IProjectResolver resolver = IProjectResolver(KarmaLib.getProjectResolver());
+        return resolver.isProjectAdmin(gapProjectUID, account);
+    }
+
+    /// @notice Get GAP project metadata
+    /// @dev Returns combined project info from GAP
+    /// @return projectUID The project attestation UID
+    /// @return isInitialized Whether GAP project exists
+    function getGAPProjectMetadata() external view returns (bytes32 projectUID, bool isInitialized) {
+        projectUID = gapProjectUID;
+        isInitialized = projectUID != bytes32(0);
     }
 
     /// @notice Storage gap for upgradeable contract

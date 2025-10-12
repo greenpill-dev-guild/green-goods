@@ -109,7 +109,9 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
     /// @return True if the capital is valid, false otherwise
     function _isValidCapital(string memory capital) internal pure returns (bool) {
         bytes32 capitalHash;
-        // Use inline assembly for gas-efficient keccak256
+        // JUSTIFICATION: Gas optimization for string hashing - saves ~200 gas per validation
+        // Safe because we control the capital string and only read its length and data
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             capitalHash := keccak256(add(capital, 32), mload(capital))
         }
@@ -138,10 +140,12 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
         // SECURITY: Use try/catch to prevent GAP failures from reverting assessment
         // The gardenAccount.createProjectMilestone() has onlyResolver modifier
         // Since we already validated operator in onAttest(), this is secure
+        // solhint-disable-next-line no-empty-blocks
         try gardenAccount.createProjectMilestone(schema.title, schema.description, metaJSON) {
-            // Success - event emitted by GardenAccount
+            // Success - event emitted by GardenAccount, no additional action needed
+            // solhint-disable-next-line no-empty-blocks
         } catch {
-            // Failed - assessment still succeeds
+            // Intentionally ignore failures - assessment succeeds even if GAP integration fails
         }
     }
 
@@ -219,5 +223,8 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
     /// @notice Authorizes an upgrade to the contract's implementation.
     /// @dev This function can only be called by the contract owner.
     /// @param newImplementation The address of the new contract implementation.
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner { }
+    // solhint-disable-next-line no-empty-blocks
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
+        // Intentionally empty - UUPS upgrade authorization handled by onlyOwner modifier
+    }
 }

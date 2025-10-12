@@ -60,4 +60,9 @@ interface IProjectResolver {
     /// @param addr The address to check
     /// @return True if the address is the project owner
     function isProjectOwner(bytes32 projectUid, address addr) external view returns (bool);
+
+    /// @notice Gets all admins for a project
+    /// @param projectUid The UID of the project
+    /// @return Array of admin addresses
+    function getProjectAdmins(bytes32 projectUid) external view returns (address[] memory);
 }

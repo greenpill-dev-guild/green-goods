@@ -244,9 +244,9 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
 
         // Attempt to call totalSupply() to verify it's an ERC-20
         // This provides a basic sanity check without requiring full interface compliance
+        // solhint-disable-next-line no-empty-blocks
         try IERC20(token).totalSupply() returns (uint256) {
-            // Success - the contract implements at least the totalSupply function
-            // This is a good indicator it's an ERC-20 token
+            // Success - token validated, no additional action needed
         } catch {
             revert InvalidERC20Token();
         }
@@ -255,5 +255,8 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Authorizes contract upgrades.
     /// @dev Restricted to the contract owner.
     /// @param newImplementation The address of the new contract implementation.
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner { }
+    // solhint-disable-next-line no-empty-blocks
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
+        // Intentionally empty - UUPS upgrade authorization handled by onlyOwner modifier
+    }
 }
