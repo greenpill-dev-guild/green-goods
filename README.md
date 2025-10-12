@@ -1,6 +1,6 @@
 # Green Goods
 
-Green Goods is a decentralized platform for biodiversity conservation, enabling Garden Operators and Gardeners to document and get approval for conservation work through blockchain-based attestations.
+Green Goods is a decentralized platform for biodiversity conservation, enabling Garden Operators and Gardeners to document and get approval for conservation work through blockchain-based attestations. 
 
 ## 🏗️ Repository Structure
 
