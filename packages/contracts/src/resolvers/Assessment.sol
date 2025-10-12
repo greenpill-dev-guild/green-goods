@@ -8,6 +8,7 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 
 import { AssessmentSchema } from "../Schemas.sol";
 import { GardenAccount } from "../accounts/Garden.sol";
+import { KarmaLib } from "../lib/Karma.sol";
 
 error NotGardenOperator();
 error TitleRequired();
@@ -46,23 +47,36 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
         return true;
     }
 
-    /// @notice Handles the logic to be executed when an attestation is made.
-    /// @dev Verifies the attester is a garden operator for the target garden.
-    /// @param attestation The attestation data structure.
-    /// @return A boolean indicating whether the attestation is valid.
-    function onAttest(Attestation calldata attestation, uint256 /*value*/ ) internal view override returns (bool) {
+    /// @notice Handles the logic to be executed when an attestation is made
+    /// @dev Validates operator identity and assessment data structure
+    ///
+    /// **Validation Order (Security Critical):**
+    /// 1. SCHEMA DECODING: Decode assessment data structure
+    /// 2. IDENTITY: Verify attester is a garden operator (can create assessments)
+    /// 3. REQUIRED FIELDS: Validate title, assessmentType, capitals exist
+    /// 4. CAPITAL VALIDATION: Verify each capital is one of 8 valid types
+    /// 5. GAP INTEGRATION: Create project milestone if GAP supported
+    ///
+    /// **8 Forms of Capital:**
+    /// - social, material, financial, living
+    /// - intellectual, experiential, spiritual, cultural
+    ///
+    /// @param attestation The attestation data structure
+    /// @return bool True if attestation is valid
+    function onAttest(Attestation calldata attestation, uint256 /*value*/ ) internal override returns (bool) {
         // Decode the assessment schema to validate structure
         AssessmentSchema memory schema = abi.decode(attestation.data, (AssessmentSchema));
 
         // Get the garden account from the recipient
         GardenAccount gardenAccount = GardenAccount(payable(attestation.recipient));
 
-        // Verify attester is a garden operator
+        // IDENTITY CHECK: Verify operator status FIRST
+        // This is the primary authorization - only operators can create assessments
         if (gardenAccount.gardenOperators(attestation.attester) == false) {
             revert NotGardenOperator();
         }
 
-        // Validate required fields
+        // REQUIRED FIELDS: Validate essential data
         if (bytes(schema.title).length == 0) {
             revert TitleRequired();
         }
@@ -75,13 +89,17 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
             revert AtLeastOneCapitalRequired();
         }
 
-        // Validate capitals are valid strings (8 forms of capital)
+        // CAPITAL VALIDATION: Verify capitals are valid
+        // Ensures data quality for assessment attestations
         for (uint256 i = 0; i < schema.capitals.length; i++) {
             string memory capital = schema.capitals[i];
             if (!_isValidCapital(capital)) {
                 revert InvalidCapital(capital);
             }
         }
+
+        // GAP INTEGRATION: Create project milestone (assessment)
+        _createGAPProjectMilestone(schema, gardenAccount);
 
         return true;
     }
@@ -100,6 +118,85 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
             || capitalHash == keccak256("financial") || capitalHash == keccak256("living")
             || capitalHash == keccak256("intellectual") || capitalHash == keccak256("experiential")
             || capitalHash == keccak256("spiritual") || capitalHash == keccak256("cultural");
+    }
+
+    /// @notice Creates GAP project milestone securely via GardenAccount
+    /// @dev SECURITY: Only called after full validation in onAttest()
+    /// @param schema Assessment schema data
+    /// @param gardenAccount The garden account to create milestone for
+    function _createGAPProjectMilestone(AssessmentSchema memory schema, GardenAccount gardenAccount) private {
+        // Skip if GAP not supported on this chain
+        if (!KarmaLib.isSupported()) return;
+
+        // Skip if garden has no GAP project
+        bytes32 projectUID = gardenAccount.getGAPProjectUID();
+        if (projectUID == bytes32(0)) return;
+
+        // Build milestone metadata JSON
+        string memory metaJSON = _buildMilestoneMetadata(schema);
+
+        // SECURITY: Use try/catch to prevent GAP failures from reverting assessment
+        // The gardenAccount.createProjectMilestone() has onlyResolver modifier
+        // Since we already validated operator in onAttest(), this is secure
+        try gardenAccount.createProjectMilestone(schema.title, schema.description, metaJSON) {
+            // Success - event emitted by GardenAccount
+        } catch {
+            // Failed - assessment still succeeds
+        }
+    }
+
+    /// @notice Builds milestone metadata JSON from assessment schema
+    /// @param schema Assessment schema data
+    /// @return JSON string with assessment metadata
+    function _buildMilestoneMetadata(AssessmentSchema memory schema) private pure returns (string memory) {
+        // Build capitals array JSON - capitals are validated so no escaping needed
+        string memory capitalsJSON = "[";
+        for (uint256 i = 0; i < schema.capitals.length; i++) {
+            if (i > 0) capitalsJSON = string(abi.encodePacked(capitalsJSON, ","));
+            capitalsJSON = string(abi.encodePacked(capitalsJSON, '"', schema.capitals[i], '"'));
+        }
+        capitalsJSON = string(abi.encodePacked(capitalsJSON, "]"));
+
+        // Build full metadata JSON with escaped strings
+        return string(
+            abi.encodePacked(
+                '{"capitals":',
+                capitalsJSON,
+                ",",
+                '"assessmentType":"',
+                _escapeJSON(schema.assessmentType),
+                '",',
+                '"metricsJSON":"',
+                _escapeJSON(schema.metricsJSON),
+                '"}'
+            )
+        );
+    }
+
+    /// @notice Escapes double quotes in JSON strings
+    /// @param str The string to escape
+    /// @return Escaped string safe for JSON embedding
+    function _escapeJSON(string memory str) private pure returns (string memory) {
+        bytes memory b = bytes(str);
+        uint256 quoteCount = 0;
+
+        for (uint256 i = 0; i < b.length; i++) {
+            if (b[i] == '"') quoteCount++;
+        }
+
+        if (quoteCount == 0) return str;
+
+        bytes memory escaped = new bytes(b.length + quoteCount);
+        uint256 j = 0;
+
+        for (uint256 i = 0; i < b.length; i++) {
+            if (b[i] == '"') {
+                escaped[j++] = "\\";
+            }
+            escaped[j++] = b[i];
+        }
+
+        return string(escaped);
     }
 
     // solhint-disable no-unused-vars

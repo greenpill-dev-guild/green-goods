@@ -48,23 +48,32 @@ contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
         return true;
     }
 
-    /// @notice Handles the logic to be executed when an attestation is made.
-    /// @dev Verifies the attester and the action's validity and active status.
-    /// @param attestation The attestation data structure.
-    /// @return A boolean indicating whether the attestation is valid.
+    /// @notice Handles the logic to be executed when an attestation is made
+    /// @dev Validates attester identity and action validity before allowing work submission
+    ///
+    /// **Validation Order (Security Critical):**
+    /// 1. IDENTITY: Verify attester is a gardener of the target garden
+    /// 2. ACTION: Verify action exists in registry
+    /// 3. TIMING: Verify action is still active (not expired)
+    ///
+    /// @param attestation The attestation data structure
+    /// @return bool True if attestation is valid
     function onAttest(Attestation calldata attestation, uint256 /*value*/ ) internal view override returns (bool) {
         WorkSchema memory schema = abi.decode(attestation.data, (WorkSchema));
-
         GardenAccount gardenAccount = GardenAccount(payable(attestation.recipient));
 
+        // IDENTITY CHECK: Verify gardener status FIRST
+        // This is the primary security gate - only gardeners can submit work
         if (gardenAccount.gardeners(attestation.attester) == false) {
             revert NotGardenerAccount();
         }
 
+        // ACTION VALIDATION: Verify action exists in registry
         if (ActionRegistry(ACTION_REGISTRY).getAction(schema.actionUID).startTime == 0) {
             revert NotInActionRegistry();
         }
 
+        // TIMING VALIDATION: Verify action is still active
         if (ActionRegistry(ACTION_REGISTRY).getAction(schema.actionUID).endTime < block.timestamp) {
             revert NotActiveAction();
         }

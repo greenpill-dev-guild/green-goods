@@ -126,7 +126,7 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
         onlyOwner
     {
         require(_endTime > _startTime, "End time must be after start time");
-        
+
         uint256 actionUID = _nextActionUID++;
 
         actionToOwner[actionUID] = _msgSender();

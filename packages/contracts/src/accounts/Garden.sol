@@ -4,11 +4,15 @@ pragma solidity >=0.8.25;
 import { AccountV3Upgradable } from "@tokenbound/AccountV3Upgradable.sol";
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IEAS, AttestationRequest, AttestationRequestData } from "@eas/IEAS.sol";
+import { KarmaLib } from "../lib/Karma.sol";
+import { IKarmaGap, IProjectResolver } from "../interfaces/IKarmaGap.sol";
 
 // import { Action } from "../registries/Action.sol";
 
 error NotGardenOwner();
 error NotGardenOperator();
+error NotAuthorizedCaller();
 error InviteAlreadyExists();
 error InvalidExpiry();
 error InvalidInvite();
@@ -71,6 +75,29 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     /// @param garden The address of the garden.
     event InviteRevoked(bytes32 indexed inviteCode, address indexed garden);
 
+    /// @notice Emitted when a Karma GAP project is created for this garden.
+    /// @param projectUID The Karma GAP project attestation UID.
+    /// @param gardenAddress The address of this garden account.
+    /// @param projectName The name of the GAP project (garden name).
+    event GAPProjectCreated(bytes32 indexed projectUID, address indexed gardenAddress, string projectName);
+
+    /// @notice Emitted when a project impact is created for approved work.
+    /// @param impactUID The impact attestation UID.
+    /// @param projectUID The GAP project UID this impact belongs to.
+    /// @param creator The address that created the impact.
+    event GAPProjectImpactCreated(bytes32 indexed impactUID, bytes32 indexed projectUID, address indexed creator);
+
+    /// @notice Emitted when a project milestone is created from an assessment.
+    /// @param milestoneUID The milestone attestation UID.
+    /// @param projectUID The GAP project UID this milestone belongs to.
+    /// @param creator The address that created the milestone.
+    event GAPProjectMilestoneCreated(bytes32 indexed milestoneUID, bytes32 indexed projectUID, address indexed creator);
+
+    /// @notice Emitted when an operator is added as GAP project admin.
+    /// @param projectUID The GAP project UID.
+    /// @param admin The address added as admin.
+    event GAPProjectAdminAdded(bytes32 indexed projectUID, address indexed admin);
+
     /// @notice The community token associated with this garden.
     address public communityToken;
 
@@ -107,6 +134,18 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     /// @notice Whether this garden allows open joining without invite
     bool public openJoining;
 
+    /// @notice Karma GAP project UID for this garden
+    bytes32 public gapProjectUID;
+
+    /// @notice Immutable address of the WorkApprovalResolver
+    /// @dev Set at deployment, cannot be changed. Allows resolver to call createProjectImpact()
+    /// @dev Immutables don't use storage slots - stored in contract bytecode
+    address public immutable WORK_APPROVAL_RESOLVER;
+
+    /// @notice Immutable address of the AssessmentResolver
+    /// @dev Set at deployment, reserved for future milestone integration
+    address public immutable ASSESSMENT_RESOLVER;
+
     modifier onlyGardenOwner() {
         if (_isValidSigner(_msgSender(), "") == false) {
             revert NotGardenOwner();
@@ -123,20 +162,50 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         _;
     }
 
+    /// @notice Restricts function access to garden operators OR trusted resolvers
+    /// @dev Security: Resolvers must verify user identity before calling
+    /// @dev Trusted resolvers can create GAP attestations on behalf of verified operators
+    /// @dev This enables automatic impact reporting while maintaining security
+    modifier onlyOperatorOrResolver() {
+        if (!gardenOperators[_msgSender()] && _msgSender() != WORK_APPROVAL_RESOLVER && _msgSender() != ASSESSMENT_RESOLVER)
+        {
+            revert NotAuthorizedCaller();
+        }
+        _;
+    }
+
+    /// @notice Restricts function access to ONLY trusted resolvers
+    /// @dev SECURITY: Only resolvers can create GAP attestations
+    /// @dev Prevents operators from directly calling GAP functions
+    modifier onlyResolver() {
+        if (_msgSender() != WORK_APPROVAL_RESOLVER && _msgSender() != ASSESSMENT_RESOLVER) {
+            revert NotAuthorizedCaller();
+        }
+        _;
+    }
+
     /// @notice Initializes the contract with the necessary dependencies.
     /// @dev This constructor is for the upgradable pattern and uses Initializable for upgrade safety.
     /// @param erc4337EntryPoint The entry point address for ERC-4337 operations.
     /// @param multicallForwarder The forwarder address for multicall operations.
     /// @param erc6551Registry The registry address for ERC-6551.
     /// @param guardian The guardian address for security-related functions.
+    /// @param workApprovalResolver The address of the WorkApprovalResolver contract.
+    /// @param assessmentResolver The address of the AssessmentResolver contract.
     constructor(
         address erc4337EntryPoint,
         address multicallForwarder,
         address erc6551Registry,
-        address guardian
+        address guardian,
+        address workApprovalResolver,
+        address assessmentResolver
     )
         AccountV3Upgradable(erc4337EntryPoint, multicallForwarder, erc6551Registry, guardian)
-    { }
+    {
+        WORK_APPROVAL_RESOLVER = workApprovalResolver;
+        ASSESSMENT_RESOLVER = assessmentResolver;
+        _disableInitializers();
+    }
 
     /// @notice Initializes the GardenAccount with initial gardeners and operators.
     /// @dev This function must be called after the contract is deployed.
@@ -160,7 +229,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         // Validate array lengths to prevent gas exhaustion
         require(_gardeners.length <= 100, "Too many gardeners");
         require(_gardenOperators.length <= 100, "Too many operators");
-        
+
         // Validate community token is a valid ERC-20
         _validateCommunityToken(_communityToken);
 
@@ -192,6 +261,16 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
 
         emit GardenerAdded(_msgSender(), _msgSender());
         emit GardenOperatorAdded(_msgSender(), _msgSender());
+
+        // Create GAP project if supported on current chain
+        if (KarmaLib.isSupported()) {
+            _createGAPProject();
+
+            // Add all operators as GAP project admins
+            for (uint256 i = 0; i < _gardenOperators.length; i++) {
+                _addGAPProjectAdmin(_gardenOperators[i]);
+            }
+        }
     }
 
     /// @notice Updates the name of the garden.
@@ -237,6 +316,11 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         gardenOperators[operator] = true;
 
         emit GardenOperatorAdded(_msgSender(), operator);
+
+        // Add as GAP project admin if GAP supported and project exists
+        if (KarmaLib.isSupported() && gapProjectUID != bytes32(0)) {
+            _addGAPProjectAdmin(operator);
+        }
     }
 
     /// @notice Removes an existing operator from the garden.
@@ -327,11 +411,273 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         }
     }
 
+    /// @notice Returns the Karma GAP project UID for this garden
+    /// @return The GAP project UID, or bytes32(0) if not initialized
+    function getGAPProjectUID() external view returns (bytes32) {
+        return gapProjectUID;
+    }
+
+    /// @notice Creates Karma GAP project attestation
+    /// @dev Internal function called during initialization
+    function _createGAPProject() private {
+        IKarmaGap gapContract = IKarmaGap(KarmaLib.getGapContract());
+
+        // 1. Create project attestation
+        bytes memory projectData = abi.encode(true);
+
+        AttestationRequest memory projectReq = AttestationRequest({
+            schema: KarmaLib.getProjectSchemaUID(),
+            data: AttestationRequestData({
+                recipient: address(this),
+                expirationTime: 0,
+                revocable: true,
+                refUID: bytes32(0),
+                data: projectData,
+                value: 0
+            })
+        });
+
+        gapProjectUID = gapContract.attest(projectReq);
+
+        // 2. Create project details
+        bytes memory detailsData = abi.encode(_buildGAPDetailsJSON());
+
+        AttestationRequest memory detailsReq = AttestationRequest({
+            schema: KarmaLib.getDetailsSchemaUID(),
+            data: AttestationRequestData({
+                recipient: address(this),
+                expirationTime: 0,
+                revocable: true,
+                refUID: gapProjectUID,
+                data: detailsData,
+                value: 0
+            })
+        });
+
+        gapContract.attest(detailsReq);
+
+        emit GAPProjectCreated(gapProjectUID, address(this), name);
+    }
+
+    /// @notice Creates Karma GAP project impact for approved work
+    /// @dev SECURITY: Called ONLY by WorkApprovalResolver after full validation of work approval
+    ///
+    /// **Security Model:**
+    /// - ONLY callable by WorkApprovalResolver (trusted contract)
+    /// - Resolver verifies user identity BEFORE calling this function
+    /// - Two-layer security: 1) Resolver validates operator status, 2) This checks caller is trusted
+    /// - Operators CANNOT call this directly - prevents bypassing approval flow
+    ///
+    /// @param workTitle Action title from approved work
+    /// @param impactDescription Approval feedback
+    /// @param proofIPFS IPFS CID for evidence
+    /// @return impactUID The impact attestation UID
+    function createProjectImpact(
+        string calldata workTitle,
+        string calldata impactDescription,
+        string calldata proofIPFS
+    )
+        external
+        onlyResolver
+        returns (bytes32)
+    {
+        require(gapProjectUID != bytes32(0), "GAP project not initialized");
+        require(KarmaLib.isSupported(), "GAP not supported on this chain");
+
+        IKarmaGap gapContract = IKarmaGap(KarmaLib.getGapContract());
+
+        // Build impact JSON
+        bytes memory impactData = abi.encode(
+            string(
+                abi.encodePacked(
+                    '{"title":"',
+                    _escapeJSON(workTitle),
+                    '",',
+                    '"text":"',
+                    _escapeJSON(impactDescription),
+                    '",',
+                    '"proof":"',
+                    proofIPFS,
+                    '",',
+                    '"completedAt":',
+                    _uint2str(block.timestamp),
+                    ",",
+                    '"type":"project-impact"}'
+                )
+            )
+        );
+
+        AttestationRequest memory req = AttestationRequest({
+            schema: KarmaLib.getProjectUpdateSchemaUID(),
+            data: AttestationRequestData({
+                recipient: address(this),
+                expirationTime: 0,
+                revocable: true,
+                refUID: gapProjectUID,
+                data: impactData,
+                value: 0
+            })
+        });
+
+        bytes32 impactUID = gapContract.attest(req);
+
+        emit GAPProjectImpactCreated(impactUID, gapProjectUID, _msgSender());
+
+        return impactUID;
+    }
+
+    /// @notice Creates Karma GAP milestone for an assessment
+    /// @dev SECURITY: Called ONLY by AssessmentResolver after full validation
+    ///
+    /// **Security Model:**
+    /// - ONLY callable by AssessmentResolver (trusted contract)
+    /// - Resolver verifies user identity BEFORE calling this function
+    /// - Two-layer security: 1) Resolver validates operator status, 2) This checks caller is trusted
+    /// - Operators CANNOT call this directly - prevents bypassing assessment flow
+    ///
+    /// @param milestoneTitle Assessment title
+    /// @param milestoneDescription Assessment description
+    /// @param milestoneMeta Assessment metadata (capitals, metrics, evidence)
+    /// @return milestoneUID The milestone attestation UID
+    function createProjectMilestone(
+        string calldata milestoneTitle,
+        string calldata milestoneDescription,
+        string calldata milestoneMeta
+    )
+        external
+        onlyResolver
+        returns (bytes32)
+    {
+        require(gapProjectUID != bytes32(0), "GAP project not initialized");
+        require(KarmaLib.isSupported(), "GAP not supported on this chain");
+
+        IKarmaGap gapContract = IKarmaGap(KarmaLib.getGapContract());
+
+        // Build milestone JSON
+        bytes memory milestoneData = abi.encode(
+            string(
+                abi.encodePacked(
+                    '{"title":"',
+                    _escapeJSON(milestoneTitle),
+                    '",',
+                    '"text":"',
+                    _escapeJSON(milestoneDescription),
+                    '",',
+                    '"metadata":',
+                    milestoneMeta,
+                    ",",
+                    '"completedAt":',
+                    _uint2str(block.timestamp),
+                    ",",
+                    '"type":"project-milestone"}'
+                )
+            )
+        );
+
+        AttestationRequest memory req = AttestationRequest({
+            schema: KarmaLib.getMilestoneSchemaUID(),
+            data: AttestationRequestData({
+                recipient: address(this),
+                expirationTime: 0,
+                revocable: true,
+                refUID: gapProjectUID,
+                data: milestoneData,
+                value: 0
+            })
+        });
+
+        bytes32 milestoneUID = gapContract.attest(req);
+
+        emit GAPProjectMilestoneCreated(milestoneUID, gapProjectUID, _msgSender());
+
+        return milestoneUID;
+    }
+
+    /// @notice Internal function to add GAP project admin
+    /// @param admin Address to add as project admin
+    function _addGAPProjectAdmin(address admin) private {
+        IProjectResolver resolver = IProjectResolver(KarmaLib.getProjectResolver());
+
+        try resolver.addAdmin(gapProjectUID, admin) {
+            emit GAPProjectAdminAdded(gapProjectUID, admin);
+        } catch {
+            // Silently fail - don't revert operator addition
+        }
+    }
+
+    /// @notice Builds JSON for GAP project details
+    function _buildGAPDetailsJSON() private view returns (string memory) {
+        return string(
+            abi.encodePacked(
+                '{"title":"',
+                _escapeJSON(name),
+                '",',
+                '"description":"',
+                _escapeJSON(description),
+                '",',
+                '"imageURL":"',
+                bannerImage,
+                '",',
+                '"location":"',
+                _escapeJSON(location),
+                '"}'
+            )
+        );
+    }
+
+    /// @notice Escapes double quotes in JSON strings
+    function _escapeJSON(string memory str) private pure returns (string memory) {
+        bytes memory b = bytes(str);
+        uint256 quoteCount = 0;
+
+        for (uint256 i = 0; i < b.length; i++) {
+            if (b[i] == '"') quoteCount++;
+        }
+
+        if (quoteCount == 0) return str;
+
+        bytes memory escaped = new bytes(b.length + quoteCount);
+        uint256 j = 0;
+
+        for (uint256 i = 0; i < b.length; i++) {
+            if (b[i] == '"') {
+                escaped[j++] = "\\";
+            }
+            escaped[j++] = b[i];
+        }
+
+        return string(escaped);
+    }
+
+    /// @notice Converts uint256 to string
+    function _uint2str(uint256 _i) private pure returns (string memory) {
+        if (_i == 0) return "0";
+
+        uint256 temp = _i;
+        uint256 digits;
+
+        while (temp != 0) {
+            digits++;
+            temp /= 10;
+        }
+
+        bytes memory buffer = new bytes(digits);
+
+        while (_i != 0) {
+            digits -= 1;
+            buffer[digits] = bytes1(uint8(48 + uint256(_i % 10)));
+            _i /= 10;
+        }
+
+        return string(buffer);
+    }
+
     /// @notice Storage gap for upgradeable contract
-    /// @dev Reserve 50 slots minus 14 existing state variables = 36 slots
+    /// @dev Reserve 50 slots minus 15 existing state variables = 35 slots
+    /// @dev Immutables (WORK_APPROVAL_RESOLVER, ASSESSMENT_RESOLVER) do NOT use storage slots
     /// State variables: communityToken(1) + name(1) + description(1) + location(1) +
     /// bannerImage(1) + gardeners(1) + gardenOperators(1) + gardenInvites(1) +
     /// inviteToGarden(1) + inviteExpiry(1) + inviteUsed(1) + openJoining(1) +
-    /// Initializable(1) + AccountV3Upgradable inherited slots(1) = 14
-    uint256[36] private __gap;
+    /// gapProjectUID(1) + Initializable(1) + AccountV3Upgradable inherited slots(1) = 15
+    uint256[35] private __gap;
 }

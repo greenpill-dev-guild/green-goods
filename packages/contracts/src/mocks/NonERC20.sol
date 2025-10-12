@@ -8,4 +8,3 @@ contract MockNonERC20 {
         return 42;
     }
 }
-

@@ -10,4 +10,3 @@ contract MockERC20 is ERC20 {
         _mint(msg.sender, 1_000_000 * 10 ** 18);
     }
 }
-
