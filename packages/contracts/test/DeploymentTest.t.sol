@@ -23,7 +23,7 @@ contract DeploymentTest is ForgeTest.Test, DeployHelperModule.DeployHelper, ERC6
     function setUp() public {
         // Deploy ERC6551 Registry at canonical Tokenbound address
         _deployERC6551Registry();
-        
+
         deployScript = new DeployScript.Deploy();
         deployer = makeAddr("deployer");
 
@@ -204,15 +204,8 @@ contract DeploymentTest is ForgeTest.Test, DeployHelperModule.DeployHelper, ERC6
         DeploymentRegistry registry = DeploymentRegistry(result.deploymentRegistry);
 
         // Test network configuration
-        (
-            ,
-            ,
-            ,
-            address actionRegistry,
-            address gardenToken,
-            address workResolver,
-            address workApprovalResolver
-        ) = registry.networks(LOCALHOST_CHAIN_ID);
+        (,,, address actionRegistry, address gardenToken, address workResolver, address workApprovalResolver) =
+            registry.networks(LOCALHOST_CHAIN_ID);
 
         assertEq(actionRegistry, result.actionRegistry, "Action registry should match");
         assertEq(gardenToken, result.gardenToken, "Garden token should match");

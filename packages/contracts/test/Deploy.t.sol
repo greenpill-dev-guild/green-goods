@@ -18,7 +18,7 @@ contract DeployTest is Test {
         vm.setEnv("MULTISIG_ADDRESS", vm.toString(address(this)));
         vm.setEnv("INITIALIZE_SAMPLE_DATA", "false");
         vm.setEnv("SKIP_SEED_DATA", "true"); // Skip seed data for faster tests
-        
+
         // Give deployer broadcast permissions
         vm.startBroadcast(address(this));
 
@@ -30,7 +30,7 @@ contract DeployTest is Test {
             console.log("Deployment encountered an issue (expected in test environment)");
             console.logBytes(reason);
         }
-        
+
         vm.stopBroadcast();
     }
 
@@ -128,7 +128,7 @@ contract DeployTest is Test {
         return;
         vm.setEnv("MULTISIG_ADDRESS", vm.toString(address(this)));
         vm.setEnv("INITIALIZE_SAMPLE_DATA", "true");
-        
+
         vm.startPrank(address(this));
 
         // Try to deploy ActionRegistry and initialize sample data
@@ -148,7 +148,7 @@ contract DeployTest is Test {
             console.log("Sample data test skipped");
             console.logBytes(reason);
         }
-        
+
         vm.stopPrank();
     }
 
@@ -157,7 +157,7 @@ contract DeployTest is Test {
         vm.setEnv("MULTISIG_ADDRESS", vm.toString(address(this)));
         vm.setEnv("INITIALIZE_SAMPLE_DATA", "false");
         vm.setEnv("SKIP_SEED_DATA", "true");
-        
+
         vm.startBroadcast(address(this));
 
         // First deployment
@@ -173,7 +173,7 @@ contract DeployTest is Test {
         } catch {
             // Expected - some contracts may already exist
         }
-        
+
         vm.stopBroadcast();
 
         // The important thing is that the deployment script handles re-runs gracefully

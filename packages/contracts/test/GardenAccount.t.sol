@@ -4,7 +4,7 @@ pragma solidity >=0.8.25;
 import { Test } from "forge-std/Test.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-import { GardenAccount, NotGardenOperator } from "../src/accounts/Garden.sol";
+import { GardenAccount, NotGardenOperator, TooManyGardeners, TooManyOperators } from "../src/accounts/Garden.sol";
 import { MockERC20 } from "../src/mocks/ERC20.sol";
 
 contract GardenAccountTest is Test {
@@ -16,20 +16,26 @@ contract GardenAccountTest is Test {
     function setUp() public {
         // Deploy mock community token
         mockCommunityToken = new MockERC20();
-        
+
         // Deploy mock contracts with code to prevent revert
         // Use non-precompile addresses (above 0x09)
         vm.etch(address(0x1001), hex"00"); // erc4337EntryPoint
-        vm.etch(address(0x1002), hex"00"); // multicallForwarder  
+        vm.etch(address(0x1002), hex"00"); // multicallForwarder
         vm.etch(address(0x1003), hex"00"); // erc6551Registry
         vm.etch(address(0x1004), hex"00"); // guardian
-        
+
+        // Deploy mock resolvers for testing
+        address mockWorkApprovalResolver = address(0x2001);
+        address mockAssessmentResolver = address(0x2002);
+
         // Deploy the GardenAccount contract (needs proxy for upgradeable contract)
         GardenAccount gardenAccountImpl = new GardenAccount(
             address(0x1001), // erc4337EntryPoint
             address(0x1002), // multicallForwarder
             address(0x1003), // erc6551Registry
-            address(0x1004) // guardian
+            address(0x1004), // guardian
+            mockWorkApprovalResolver, // workApprovalResolver
+            mockAssessmentResolver // assessmentResolver
         );
 
         // Initialize the contract
@@ -49,7 +55,7 @@ contract GardenAccountTest is Test {
             gardeners,
             gardenOperators
         );
-        
+
         ERC1967Proxy gardenAccountProxy = new ERC1967Proxy(address(gardenAccountImpl), gardenAccountInitData);
         gardenAccount = GardenAccount(payable(address(gardenAccountProxy)));
     }
@@ -377,9 +383,9 @@ contract GardenAccountTest is Test {
     }
 
     function testInitializeRevertsWithTooManyGardeners() public {
-        // Deploy fresh garden account
-        GardenAccount newGarden = new GardenAccount(
-            address(0x1001), address(0x1002), address(0x1003), address(0x1004)
+        // Deploy fresh garden account implementation
+        GardenAccount gardenAccountImpl = new GardenAccount(
+            address(0x1001), address(0x1002), address(0x1003), address(0x1004), address(0x2001), address(0x2002)
         );
 
         // Create array with 101 gardeners (exceeds limit of 100)
@@ -389,16 +395,26 @@ contract GardenAccountTest is Test {
         }
         address[] memory operators = new address[](0);
 
-        vm.expectRevert("Too many gardeners");
-        newGarden.initialize(
-            address(0x555), "Test", "Test", "Test", "", tooManyGardeners, operators
+        bytes memory initData = abi.encodeWithSelector(
+            GardenAccount.initialize.selector,
+            address(mockCommunityToken),
+            "Test",
+            "Test",
+            "Test",
+            "",
+            tooManyGardeners,
+            operators
         );
+
+        // Proxy initialization should revert with TooManyGardeners error
+        vm.expectRevert(TooManyGardeners.selector);
+        new ERC1967Proxy(address(gardenAccountImpl), initData);
     }
 
     function testInitializeRevertsWithTooManyOperators() public {
-        // Deploy fresh garden account
-        GardenAccount newGarden = new GardenAccount(
-            address(0x1001), address(0x1002), address(0x1003), address(0x1004)
+        // Deploy fresh garden account implementation
+        GardenAccount gardenAccountImpl = new GardenAccount(
+            address(0x1001), address(0x1002), address(0x1003), address(0x1004), address(0x2001), address(0x2002)
         );
 
         // Create array with 101 operators (exceeds limit of 100)
@@ -408,9 +424,19 @@ contract GardenAccountTest is Test {
             tooManyOperators[i] = address(uint160(i + 1));
         }
 
-        vm.expectRevert("Too many operators");
-        newGarden.initialize(
-            address(0x555), "Test", "Test", "Test", "", gardeners, tooManyOperators
+        bytes memory initData = abi.encodeWithSelector(
+            GardenAccount.initialize.selector,
+            address(mockCommunityToken),
+            "Test",
+            "Test",
+            "Test",
+            "",
+            gardeners,
+            tooManyOperators
         );
+
+        // Proxy initialization should revert with TooManyOperators error
+        vm.expectRevert(TooManyOperators.selector);
+        new ERC1967Proxy(address(gardenAccountImpl), initData);
     }
 }

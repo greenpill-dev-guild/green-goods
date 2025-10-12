@@ -22,7 +22,7 @@ contract DeploymentRegistryTest is Test {
 
         // Deploy implementation
         DeploymentRegistry impl = new DeploymentRegistry();
-        
+
         // Deploy with proxy pattern
         bytes memory initData = abi.encodeWithSelector(DeploymentRegistry.initialize.selector, owner);
         address proxyAddr = address(new ERC1967Proxy(address(impl), initData));
@@ -47,7 +47,7 @@ contract DeploymentRegistryTest is Test {
 
         vm.expectEmit(true, true, true, true);
         emit NetworkConfigUpdated(chainId, config);
-        
+
         registry.setNetworkConfig(chainId, config);
 
         DeploymentRegistry.NetworkConfig memory retrieved = registry.getNetworkConfigForChain(chainId);
@@ -60,9 +60,9 @@ contract DeploymentRegistryTest is Test {
 
         vm.expectEmit(true, false, false, false);
         emit AllowlistAdded(allowedUser);
-        
+
         registry.addToAllowlist(allowedUser);
-        
+
         assertTrue(registry.isInAllowlist(allowedUser), "User should be in allowlist after adding");
     }
 
@@ -72,9 +72,9 @@ contract DeploymentRegistryTest is Test {
 
         vm.expectEmit(true, false, false, false);
         emit AllowlistRemoved(allowedUser);
-        
+
         registry.removeFromAllowlist(allowedUser);
-        
+
         assertFalse(registry.isInAllowlist(allowedUser), "User should not be in allowlist after removal");
     }
 
@@ -114,7 +114,7 @@ contract DeploymentRegistryTest is Test {
         });
 
         registry.setNetworkConfig(currentChain, config);
-        
+
         DeploymentRegistry.NetworkConfig memory retrieved = registry.getNetworkConfig();
         assertEq(retrieved.eas, config.eas, "Should get config for current chain");
     }
@@ -173,13 +173,13 @@ contract DeploymentRegistryTest is Test {
 
     function testGovernanceTransfer() public {
         address newOwner = address(0x99);
-        
+
         registry.initiateGovernanceTransfer(newOwner);
         assertEq(registry.pendingOwner(), newOwner, "Pending owner should be set");
-        
+
         vm.prank(newOwner);
         registry.acceptGovernanceTransfer();
-        
+
         assertEq(registry.owner(), newOwner, "Ownership should be transferred");
     }
 
@@ -295,20 +295,19 @@ contract DeploymentRegistryTest is Test {
     }
 
     function testNetworkNotConfiguredError() public {
-        uint256 nonExistentChain = 999999;
-        
+        uint256 nonExistentChain = 999_999;
+
         vm.expectRevert();
         registry.getNetworkConfigForChain(nonExistentChain);
     }
 
     function testCancelGovernanceTransfer() public {
         address newOwner = address(0x99);
-        
+
         registry.initiateGovernanceTransfer(newOwner);
         assertEq(registry.pendingOwner(), newOwner, "Pending owner should be set");
-        
+
         registry.cancelGovernanceTransfer();
         assertEq(registry.pendingOwner(), address(0), "Pending owner should be cleared");
     }
 }
-

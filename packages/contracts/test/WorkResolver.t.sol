@@ -28,13 +28,13 @@ contract WorkResolverTest is Test {
     function setUp() public {
         // Deploy mock community token
         mockCommunityToken = new MockERC20();
-        
+
         // Create minimal mock contracts with code (use non-precompile addresses)
         vm.etch(address(0x1021), hex"00"); // erc4337EntryPoint
         vm.etch(address(0x1022), hex"00"); // multicallForwarder
         vm.etch(address(0x1023), hex"00"); // erc6551Registry
         vm.etch(address(0x1024), hex"00"); // guardian
-        
+
         // Deploy the mock contracts
         ActionRegistry actionImpl = new ActionRegistry();
         bytes memory actionInitData = abi.encodeWithSelector(ActionRegistry.initialize.selector, multisig);
@@ -42,7 +42,9 @@ contract WorkResolverTest is Test {
         mockActionRegistry = ActionRegistry(address(actionProxy));
 
         // Deploy mock garden account (needs proxy for upgradeable contract)
-        GardenAccount gardenAccountImpl = new GardenAccount(address(0x1021), address(0x1022), address(0x1023), address(0x1024));
+        GardenAccount gardenAccountImpl = new GardenAccount(
+            address(0x1021), address(0x1022), address(0x1023), address(0x1024), address(0x2001), address(0x2002)
+        );
         mockIEAS = new MockEAS();
 
         bytes memory gardenAccountInitData = abi.encodeWithSelector(
@@ -55,7 +57,7 @@ contract WorkResolverTest is Test {
             new address[](0),
             new address[](0)
         );
-        
+
         ERC1967Proxy gardenAccountProxy = new ERC1967Proxy(address(gardenAccountImpl), gardenAccountInitData);
         mockGardenAccount = GardenAccount(payable(address(gardenAccountProxy)));
 

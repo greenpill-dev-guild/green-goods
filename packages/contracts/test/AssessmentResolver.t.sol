@@ -16,7 +16,7 @@ contract AssessmentResolverTest is Test {
     GardenAccount private mockGardenAccount;
     MockEAS private mockIEAS;
     MockERC20 private mockCommunityToken;
-    
+
     address private multisig = address(0x123);
     address private operator = address(0x200);
     address private gardener = address(0x300);
@@ -24,28 +24,30 @@ contract AssessmentResolverTest is Test {
     function setUp() public {
         // Deploy mock EAS
         mockIEAS = new MockEAS();
-        
+
         // Deploy mock community token
         mockCommunityToken = new MockERC20();
-        
+
         // Deploy mock garden account (needs proxy for upgradeable contract)
         vm.etch(address(0x1001), hex"00");
         vm.etch(address(0x1002), hex"00");
         vm.etch(address(0x1003), hex"00");
         vm.etch(address(0x1004), hex"00");
-        
+
         GardenAccount gardenAccountImpl = new GardenAccount(
             address(0x1001), // erc4337EntryPoint
             address(0x1002), // multicallForwarder
             address(0x1003), // erc6551Registry
-            address(0x1004) // guardian
+            address(0x1004), // guardian
+            address(0x2001), // workApprovalResolver
+            address(0x2002) // assessmentResolver
         );
-        
+
         address[] memory gardeners = new address[](1);
         address[] memory operators = new address[](1);
         gardeners[0] = gardener;
         operators[0] = operator;
-        
+
         bytes memory gardenAccountInitData = abi.encodeWithSelector(
             GardenAccount.initialize.selector,
             address(mockCommunityToken),
@@ -56,10 +58,10 @@ contract AssessmentResolverTest is Test {
             gardeners,
             operators
         );
-        
+
         ERC1967Proxy gardenAccountProxy = new ERC1967Proxy(address(gardenAccountImpl), gardenAccountInitData);
         mockGardenAccount = GardenAccount(payable(address(gardenAccountProxy)));
-        
+
         // Deploy AssessmentResolver
         AssessmentResolver resolverImpl = new AssessmentResolver(address(mockIEAS));
         bytes memory resolverInitData = abi.encodeWithSelector(AssessmentResolver.initialize.selector, multisig);
@@ -82,5 +84,3 @@ contract AssessmentResolverTest is Test {
     // Note: Full integration tests for onAttest validation require complex mock setup
     // These are covered in Integration.t.sol with real contract interactions
 }
-
-

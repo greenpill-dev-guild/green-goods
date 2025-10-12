@@ -18,7 +18,9 @@ contract GardenTokenTest is Test, ERC6551Helper {
             address(0x001), // erc4337EntryPoint
             address(0x002), // multicallForwarder
             address(0x003), // erc6551Registry
-            address(0x004) // guardian
+            address(0x004), // guardian
+            address(0x2001), // workApprovalResolver
+            address(0x2002) // assessmentResolver
         )
     );
     address private owner = address(this);
@@ -28,7 +30,7 @@ contract GardenTokenTest is Test, ERC6551Helper {
     function setUp() public {
         // Deploy ERC6551 Registry at canonical Tokenbound address
         _deployERC6551Registry();
-        
+
         // Deploy the implementation
         GardenToken implementation = new GardenToken(gardenAccountImplementation);
 
@@ -75,15 +77,7 @@ contract GardenTokenTest is Test, ERC6551Helper {
 
         vm.prank(multisig);
         vm.expectRevert(GardenToken.CommunityTokenNotContract.selector);
-        gardenToken.mintGarden(
-            eoa,
-            "Test Garden",
-            "Description",
-            "Location",
-            "Banner",
-            gardeners,
-            gardenOperators
-        );
+        gardenToken.mintGarden(eoa, "Test Garden", "Description", "Location", "Banner", gardeners, gardenOperators);
     }
 
     function testMintGarden_RevertsWithNonERC20Contract() public {
@@ -93,13 +87,7 @@ contract GardenTokenTest is Test, ERC6551Helper {
         vm.prank(multisig);
         vm.expectRevert(GardenToken.InvalidERC20Token.selector);
         gardenToken.mintGarden(
-            address(mockNonERC20),
-            "Test Garden",
-            "Description",
-            "Location",
-            "Banner",
-            gardeners,
-            gardenOperators
+            address(mockNonERC20), "Test Garden", "Description", "Location", "Banner", gardeners, gardenOperators
         );
     }
 
@@ -111,13 +99,7 @@ contract GardenTokenTest is Test, ERC6551Helper {
 
         vm.prank(multisig);
         address gardenAccount = gardenToken.mintGarden(
-            address(mockToken),
-            "Test Garden",
-            "Description",
-            "Location",
-            "Banner",
-            gardeners,
-            gardenOperators
+            address(mockToken), "Test Garden", "Description", "Location", "Banner", gardeners, gardenOperators
         );
 
         // Verify the garden was created
@@ -199,7 +181,7 @@ contract GardenTokenTest is Test, ERC6551Helper {
     function testOnlyOwnerOrAllowlistCanMint() public {
         // Test that non-authorized addresses cannot mint
         address notAuthorized = address(0x999);
-        
+
         address[] memory gardeners = new address[](1);
         address[] memory gardenOperators = new address[](1);
         gardeners[0] = address(0x1);
@@ -208,13 +190,7 @@ contract GardenTokenTest is Test, ERC6551Helper {
         vm.prank(notAuthorized);
         vm.expectRevert(GardenToken.DeploymentRegistryNotConfigured.selector);
         gardenToken.mintGarden(
-            address(mockToken),
-            "Test Garden",
-            "Description",
-            "Location",
-            "Banner",
-            gardeners,
-            gardenOperators
+            address(mockToken), "Test Garden", "Description", "Location", "Banner", gardeners, gardenOperators
         );
     }
 
@@ -255,7 +231,7 @@ contract GardenTokenTest is Test, ERC6551Helper {
         });
 
         vm.prank(multisig);
-        vm.expectRevert("Too many gardeners");
+        vm.expectRevert(GardenToken.TooManyGardeners.selector);
         gardenToken.batchMintGardens(configs);
     }
 
@@ -280,7 +256,7 @@ contract GardenTokenTest is Test, ERC6551Helper {
         });
 
         vm.prank(multisig);
-        vm.expectRevert("Too many operators");
+        vm.expectRevert(GardenToken.TooManyOperators.selector);
         gardenToken.batchMintGardens(configs);
     }
 }

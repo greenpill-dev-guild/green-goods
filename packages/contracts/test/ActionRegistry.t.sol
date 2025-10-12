@@ -5,7 +5,7 @@ import { Test } from "forge-std/Test.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import { Capital } from "../src/Constants.sol";
-import { ActionRegistry, NotActionOwner } from "../src/registries/Action.sol";
+import { ActionRegistry, NotActionOwner, EndTimeBeforeStartTime, StartTimeAfterEndTime } from "../src/registries/Action.sol";
 
 contract ActionRegistryTest is Test {
     ActionRegistry private actionRegistry;
@@ -129,7 +129,7 @@ contract ActionRegistryTest is Test {
         media[0] = "mediaCID1";
 
         vm.prank(multisig);
-        vm.expectRevert("End time must be after start time");
+        vm.expectRevert(EndTimeBeforeStartTime.selector);
         actionRegistry.registerAction(
             block.timestamp + 2 days, // Start time after end time
             block.timestamp + 1 days, // End time before start time
@@ -146,7 +146,7 @@ contract ActionRegistryTest is Test {
 
         // Try to update start time to be after end time
         vm.prank(multisig);
-        vm.expectRevert("Start time must be before end time");
+        vm.expectRevert(StartTimeAfterEndTime.selector);
         actionRegistry.updateActionStartTime(0, block.timestamp + 2 days);
     }
 
@@ -156,7 +156,7 @@ contract ActionRegistryTest is Test {
 
         // Try to update end time to be before start time
         vm.prank(multisig);
-        vm.expectRevert("End time must be after start time");
+        vm.expectRevert(EndTimeBeforeStartTime.selector);
         actionRegistry.updateActionEndTime(0, block.timestamp - 1 hours);
     }
 
