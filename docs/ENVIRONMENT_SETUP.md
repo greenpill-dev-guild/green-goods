@@ -36,30 +36,35 @@ pnpm exec pm2 list
 
 ```
 green-goods/
-├── .env.example          # 🌍 Master environment template
-├── .env                  # 🔒 Your actual environment (gitignored)
+├── .env.example          # 🌍 Environment template (all packages use this)
+├── .env                  # 🔒 Your actual environment (gitignored, root only)
 └── packages/
-    ├── client/           # 📱 React frontend
-    │   └── .env.example  # 📱 Client-specific variables
-    ├── contracts/        # 📜 Solidity contracts
-    │   └── .env.example  # 📜 Contract-specific variables
-    └── indexer/          # 🔍 GraphQL indexer
-        └── .env.example  # 🔍 Indexer-specific variables
+    ├── client/           # 📱 React frontend (uses root .env)
+    ├── admin/            # 🛠️ Admin dashboard (uses root .env)
+    ├── contracts/        # 📜 Solidity contracts (uses root .env)
+    └── indexer/          # 🔍 GraphQL indexer (uses root .env)
 ```
 
-## 🔧 Package Isolation (Advanced)
+**Important:** All packages read from the **root `.env` file only**. There are no package-level `.env` files.
 
-If you need to run a single package in isolation:
+## 🔧 How It Works
 
+**Automatic Loading:**
+- **Vite packages** (client, admin): Load via `vite.config.ts` automatically
+- **Contracts**: Load via deployment scripts and `foundry.toml`
+- **Indexer**: Load via Docker Compose and development scripts
+
+**Running from any directory:**
 ```bash
-# Copy root config to package
-cp .env packages/client/.env
+# From root
+pnpm dev                              # All services use root .env
 
-# Edit package .env to keep only relevant variables
-cd packages/client && pnpm dev
+# From package directory
+cd packages/client && pnpm dev        # Still uses root .env
+
+# From workspace filter
+pnpm --filter client dev              # Still uses root .env
 ```
-
-Each package's `.env.example` shows the minimal variables needed for isolation.
 
 ## 🔑 Environment Variables Reference
 
@@ -132,16 +137,14 @@ pnpm exec pm2 logs indexer    # View indexer logs
 ### Frontend Only
 ```bash
 cd packages/client
-cp ../../.env .env
-pnpm dev
+pnpm dev                         # Uses root .env automatically
 ```
 
 ### Contract Development
 ```bash
 cd packages/contracts
-cp ../../.env .env
-npm run deploy:celo              # Deploy to Celo
-forge test                       # Run tests
+pnpm deploy:celo                 # Deploy to Celo (uses root .env)
+forge test                       # Run tests (uses root .env)
 ```
 
 
