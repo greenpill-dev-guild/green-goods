@@ -12,6 +12,7 @@ import Gardens from "@/views/Gardens";
 import GardenDetail from "@/views/Gardens/Detail";
 import Contracts from "@/views/Contracts";
 import Deployment from "@/views/Deployment";
+import GardenAssessment from "@/views/Gardens/Assessment";
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/gardens" element={<Gardens />} />
                 <Route path="/gardens/:id" element={<GardenDetail />} />
+                <Route path="/gardens/:id/assessments" element={<GardenAssessment />} />
                 <Route element={<RequireRole allowedRoles={["deployer"]} />}>
                   <Route path="/contracts" element={<Contracts />} />
                   <Route path="/deployment" element={<Deployment />} />
