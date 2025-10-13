@@ -71,7 +71,7 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
         Attestation memory workAttestation = _eas.getAttestation(schema.workUID);
 
         // WORK RELATIONSHIP: Verify work was submitted to this garden
-        if (workAttestation.attester != attestation.recipient) {
+        if (workAttestation.recipient != attestation.recipient) {
             revert NotInWorkRegistry();
         }
 

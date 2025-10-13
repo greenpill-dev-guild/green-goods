@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
+import { IProjectResolver } from "../interfaces/IKarmaGap.sol";
+
 error KarmaGAPNotSupported();
 
 /// @title KarmaLib
@@ -8,23 +10,6 @@ error KarmaGAPNotSupported();
 /// @dev All Karma GAP constants and helper functions centralized here
 /// @dev Source: karma-gap-sdk/core/consts/index.ts
 library KarmaLib {
-    // ============================================================================
-    // KARMA GAP CONTRACT ADDRESSES (8 Networks)
-    // Source: karma-gap-sdk/core/consts/index.ts
-    // ============================================================================
-
-    // Mainnet Networks
-    address internal constant KARMA_GAP_CONTRACT_OPTIMISM = 0x6dC1D6b864e8BEf815806f9e4677123496e12026;
-    address internal constant KARMA_GAP_CONTRACT_ARBITRUM = 0x6dC1D6b864e8BEf815806f9e4677123496e12026;
-    address internal constant KARMA_GAP_CONTRACT_CELO = 0x6dC1D6b864e8BEf815806f9e4677123496e12026;
-    address internal constant KARMA_GAP_CONTRACT_SEI = 0xB80D85690747C3E2ceCc0f8529594C6602b642D5;
-
-    // Testnet Networks
-    address internal constant KARMA_GAP_CONTRACT_OPTIMISM_SEPOLIA = 0xC891F8eBA218f5034bf3a472528408BE19E1130E;
-    address internal constant KARMA_GAP_CONTRACT_SEPOLIA = 0xec8d7BFe344790FD860920C41B46B259c005727A;
-    address internal constant KARMA_GAP_CONTRACT_BASE_SEPOLIA = 0x4Ca7230fB6b78875bdd1B1e4F665B7B7f1891239;
-    address internal constant KARMA_GAP_CONTRACT_SEI_TESTNET = 0x0bB232f1b137fB55CB6af92c218A1cD63445a2E9;
-
     // ============================================================================
     // PROJECT RESOLVER ADDRESSES (8 Networks)
     // ============================================================================
@@ -135,19 +120,23 @@ library KarmaLib {
     // HELPER FUNCTIONS
     // ============================================================================
 
-    /// @notice Returns Karma GAP contract address for current chain
-    /// @dev Supports 8 networks: Optimism, Optimism Sepolia, Arbitrum, Sepolia, Base Sepolia, Celo, Sei, Sei Testnet
-    /// @return Karma GAP contract address
-    function getGapContract() internal view returns (address) {
+    /// @notice Returns EAS contract address for current chain
+    /// @dev Required for direct attestations to Karma GAP schemas
+    /// @return EAS contract address
+    function getEAS() internal view returns (address) {
         uint256 chainId = block.chainid;
-        if (chainId == 10) return KARMA_GAP_CONTRACT_OPTIMISM;
-        if (chainId == 42_161) return KARMA_GAP_CONTRACT_ARBITRUM;
-        if (chainId == 42_220) return KARMA_GAP_CONTRACT_CELO;
-        if (chainId == 1329) return KARMA_GAP_CONTRACT_SEI;
-        if (chainId == 11_155_420) return KARMA_GAP_CONTRACT_OPTIMISM_SEPOLIA;
-        if (chainId == 11_155_111) return KARMA_GAP_CONTRACT_SEPOLIA;
-        if (chainId == 84_532) return KARMA_GAP_CONTRACT_BASE_SEPOLIA;
-        if (chainId == 1328) return KARMA_GAP_CONTRACT_SEI_TESTNET;
+        // Mainnet chains
+        if (chainId == 10) return 0x4200000000000000000000000000000000000021; // Optimism
+        if (chainId == 42_161) return 0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458; // Arbitrum
+        if (chainId == 42_220) return 0x72E1d8ccf5299fb36fEfD8CC4394B8ef7e98Af92; // Celo
+        if (chainId == 1329) return 0x6c3970F4e8a23B3849F1C2e155aEe1fb3d44eb48; // Sei
+
+        // Testnet chains
+        if (chainId == 11_155_420) return 0x4200000000000000000000000000000000000021; // Optimism Sepolia
+        if (chainId == 11_155_111) return 0xC2679fBD37d54388Ce493F1DB75320D236e1815e; // Sepolia
+        if (chainId == 84_532) return 0x4200000000000000000000000000000000000021; // Base Sepolia
+        if (chainId == 1328) return 0x98222b52Cc47D9e97FC54583F1DBB4Eb3E3Dfa38; // Sei Testnet
+
         _revertUnsupported();
     }
 
@@ -241,5 +230,20 @@ library KarmaLib {
         uint256 chainId = block.chainid;
         return chainId == 10 || chainId == 11_155_420 || chainId == 42_161 || chainId == 11_155_111 || chainId == 84_532
             || chainId == 42_220 || chainId == 1329 || chainId == 1328;
+    }
+
+    // ============================================================================
+    // GAP PROJECT QUERY HELPERS
+    // ============================================================================
+
+    /// @notice Check if address is GAP project admin or owner
+    /// @dev Queries GAP contract for admin status (checks both owner and admin)
+    /// @param projectUID The GAP project attestation UID
+    /// @param account The address to check
+    /// @return True if account is a project admin or owner
+    function isAdmin(bytes32 projectUID, address account) internal view returns (bool) {
+        if (projectUID == bytes32(0)) return false;
+        IProjectResolver resolver = IProjectResolver(getProjectResolver());
+        return resolver.isAdmin(projectUID, account);
     }
 }
