@@ -2,7 +2,6 @@
 pragma solidity >=0.8.25;
 
 import { Test } from "forge-std/Test.sol";
-import { console } from "forge-std/console.sol";
 
 /// @title KarmaGAPSchemaValidationTest
 /// @notice Tests to validate JSON schema format for Karma GAP attestations
@@ -33,8 +32,6 @@ contract KarmaGAPSchemaValidationTest is Test {
                 "'type':'project-milestone'}"
             )
         );
-
-        console.log("Milestone JSON:", json);
 
         // Validate structure
         assertTrue(_containsField(json, "title"), "Should have title field");
@@ -75,8 +72,6 @@ contract KarmaGAPSchemaValidationTest is Test {
                 "'type':'project-impact'}"
             )
         );
-
-        console.log("Impact JSON:", json);
 
         // Validate structure
         assertTrue(_containsField(json, "title"), "Should have title field");

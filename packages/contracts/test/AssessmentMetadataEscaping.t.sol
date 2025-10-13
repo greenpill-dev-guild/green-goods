@@ -2,7 +2,6 @@
 pragma solidity >=0.8.25;
 
 import { Test } from "forge-std/Test.sol";
-import { console } from "forge-std/console.sol";
 
 /// @title AssessmentMetadataEscapingTest
 /// @notice Tests for validating assessment metadata JSON escaping logic
@@ -29,8 +28,6 @@ contract AssessmentMetadataEscapingTest is Test {
         // Count escaped quotes
         uint256 quoteCount = _countSubstring(escaped, "\\'");
         assertTrue(quoteCount > 0, "Should have escaped quotes");
-
-        console.log("Escaped metrics:", escaped);
     }
 
     /// @notice Test: Multiple quotes are all escaped
@@ -110,8 +107,6 @@ contract AssessmentMetadataEscapingTest is Test {
         assertTrue(_containsSubstring(metadata, "'assessmentType'"), "Should have assessmentType");
         assertTrue(_containsSubstring(metadata, "'metricsJSON'"), "Should have metricsJSON");
         assertTrue(_isValidJSON(metadata), "Metadata should be valid JSON");
-
-        console.log("Metadata:", metadata);
     }
 
     // ============================================================================

@@ -211,12 +211,14 @@ contract FuzzTests is Test, ERC6551Helper {
     function _bitmapToCapitals(uint8 bitmap) internal pure returns (Capital[] memory) {
         uint256 count = 0;
         for (uint256 i = 0; i < 8; i++) {
+            // solhint-disable-next-line incorrect-shift
             if ((bitmap & (1 << i)) != 0) count++;
         }
 
         Capital[] memory capitals = new Capital[](count);
         uint256 index = 0;
         for (uint256 i = 0; i < 8; i++) {
+            // solhint-disable-next-line incorrect-shift
             if ((bitmap & (1 << i)) != 0) {
                 capitals[index] = Capital(i);
                 index++;

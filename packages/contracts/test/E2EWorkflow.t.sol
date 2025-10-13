@@ -100,9 +100,7 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
     }
 
     /// @notice Test 1: Complete Happy Path (Mint → Register → Submit → Approve)
-    // SKIPPED: Blocked by GardenToken contract bug - _gardenAccountImplementation should be immutable
     function testCompleteProtocolWorkflow() public {
-        return;
         uint256 gasBefore = gasleft();
 
         // Step 1: Mint a garden
@@ -164,8 +162,9 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
         bytes memory workData = abi.encode(workSubmission);
 
         // Create attestation (simulating EAS attest call)
+        bytes32 workUID = bytes32(uint256(1));
         Attestation memory workAttestation = Attestation({
-            uid: bytes32(uint256(1)),
+            uid: workUID,
             schema: bytes32(uint256(100)),
             time: uint64(block.timestamp),
             expirationTime: 0,
@@ -179,7 +178,7 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
 
         // Mock the attestation in EAS
         vm.prank(gardener1);
-        mockEAS.setAttestation(1, workAttestation);
+        mockEAS.setAttestationByUID(workUID, workAttestation);
 
         emit log_named_string("[PASS] Step 3", "Work submitted by gardener");
 
@@ -193,13 +192,14 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
 
         bytes memory approvalData = abi.encode(approval);
 
+        bytes32 approvalUID = bytes32(uint256(2));
         Attestation memory approvalAttestation = Attestation({
-            uid: bytes32(uint256(2)),
+            uid: approvalUID,
             schema: bytes32(uint256(101)),
             time: uint64(block.timestamp),
             expirationTime: 0,
             revocationTime: 0,
-            refUID: bytes32(uint256(1)),
+            refUID: workUID,
             recipient: gardenAccountAddress,
             attester: operator1,
             revocable: true,
@@ -207,16 +207,16 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
         });
 
         vm.prank(operator1);
-        mockEAS.setAttestation(2, approvalAttestation);
+        mockEAS.setAttestationByUID(approvalUID, approvalAttestation);
 
         emit log_named_string("[PASS] Step 4", "Work approved by operator");
 
         // Verify final state
-        Attestation memory storedWork = mockEAS.getAttestation(1);
+        Attestation memory storedWork = mockEAS.getAttestation(workUID);
         assertEq(storedWork.attester, gardener1);
         assertEq(storedWork.recipient, gardenAccountAddress);
 
-        Attestation memory storedApproval = mockEAS.getAttestation(2);
+        Attestation memory storedApproval = mockEAS.getAttestation(approvalUID);
         assertEq(storedApproval.attester, operator1);
         assertTrue(abi.decode(storedApproval.data, (WorkApprovalSchema)).approved);
 
@@ -226,9 +226,7 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
     }
 
     /// @notice Test 2: Multi-Garden Parallel Workflows
-    // SKIPPED: Blocked by GardenToken contract bug - _gardenAccountImplementation should be immutable
     function testMultiGardenParallelWorkflows() public {
-        return;
         // Create 3 gardens
         address[] memory gardens = new address[](3);
         uint256[] memory actions = new uint256[](3);
@@ -323,8 +321,9 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
             media: new string[](0)
         });
 
+        bytes32 workUID1 = bytes32(uint256(1));
         Attestation memory workAttest1 = Attestation({
-            uid: bytes32(uint256(1)),
+            uid: workUID1,
             schema: bytes32(uint256(100)),
             time: uint64(block.timestamp),
             expirationTime: 0,
@@ -337,23 +336,24 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
         });
 
         vm.prank(gardener1);
-        mockEAS.setAttestation(1, workAttest1);
+        mockEAS.setAttestationByUID(workUID1, workAttest1);
 
         // Operator rejects work
         WorkApprovalSchema memory rejection = WorkApprovalSchema({
             actionUID: 0,
-            workUID: bytes32(uint256(1)),
+            workUID: workUID1,
             approved: false,
             feedback: "Please add photos of completed work"
         });
 
+        bytes32 rejectionUID = bytes32(uint256(2));
         Attestation memory rejectAttest = Attestation({
-            uid: bytes32(uint256(2)),
+            uid: rejectionUID,
             schema: bytes32(uint256(101)),
             time: uint64(block.timestamp),
             expirationTime: 0,
             revocationTime: 0,
-            refUID: bytes32(uint256(1)),
+            refUID: workUID1,
             recipient: gardenAccountAddress,
             attester: operator1,
             revocable: true,
@@ -361,10 +361,11 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
         });
 
         vm.prank(operator1);
-        mockEAS.setAttestation(2, rejectAttest);
+        mockEAS.setAttestationByUID(rejectionUID, rejectAttest);
 
         // Verify rejection
-        WorkApprovalSchema memory storedRejection = abi.decode(mockEAS.getAttestation(2).data, (WorkApprovalSchema));
+        WorkApprovalSchema memory storedRejection =
+            abi.decode(mockEAS.getAttestation(rejectionUID).data, (WorkApprovalSchema));
         assertFalse(storedRejection.approved);
         assertEq(storedRejection.feedback, "Please add photos of completed work");
 
@@ -378,13 +379,14 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
         });
         correctedWork.media[0] = "ipfs://QmCorrectedPhoto";
 
+        bytes32 workUID2 = bytes32(uint256(3));
         Attestation memory workAttest2 = Attestation({
-            uid: bytes32(uint256(3)),
+            uid: workUID2,
             schema: bytes32(uint256(100)),
             time: uint64(block.timestamp),
             expirationTime: 0,
             revocationTime: 0,
-            refUID: bytes32(uint256(1)), // Reference to original
+            refUID: workUID1, // Reference to original
             recipient: gardenAccountAddress,
             attester: gardener1,
             revocable: true,
@@ -392,23 +394,20 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
         });
 
         vm.prank(gardener1);
-        mockEAS.setAttestation(3, workAttest2);
+        mockEAS.setAttestationByUID(workUID2, workAttest2);
 
         // Operator approves corrected work
-        WorkApprovalSchema memory approval = WorkApprovalSchema({
-            actionUID: 0,
-            workUID: bytes32(uint256(3)),
-            approved: true,
-            feedback: "Perfect! Well done."
-        });
+        WorkApprovalSchema memory approval =
+            WorkApprovalSchema({ actionUID: 0, workUID: workUID2, approved: true, feedback: "Perfect! Well done." });
 
+        bytes32 approvalUID2 = bytes32(uint256(4));
         Attestation memory approvalAttest = Attestation({
-            uid: bytes32(uint256(4)),
+            uid: approvalUID2,
             schema: bytes32(uint256(101)),
             time: uint64(block.timestamp),
             expirationTime: 0,
             revocationTime: 0,
-            refUID: bytes32(uint256(3)),
+            refUID: workUID2,
             recipient: gardenAccountAddress,
             attester: operator1,
             revocable: true,
@@ -416,10 +415,11 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
         });
 
         vm.prank(operator1);
-        mockEAS.setAttestation(4, approvalAttest);
+        mockEAS.setAttestationByUID(approvalUID2, approvalAttest);
 
         // Verify approval
-        WorkApprovalSchema memory storedApproval = abi.decode(mockEAS.getAttestation(4).data, (WorkApprovalSchema));
+        WorkApprovalSchema memory storedApproval =
+            abi.decode(mockEAS.getAttestation(approvalUID2).data, (WorkApprovalSchema));
         assertTrue(storedApproval.approved);
 
         emit log_named_string("[PASS]", "Work rejection and resubmission flow validated");
@@ -477,8 +477,9 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
             tags: tags
         });
 
+        bytes32 assessmentUID = bytes32(uint256(1));
         Attestation memory assessmentAttest = Attestation({
-            uid: bytes32(uint256(1)),
+            uid: assessmentUID,
             schema: bytes32(uint256(102)),
             time: uint64(block.timestamp),
             expirationTime: 0,
@@ -491,10 +492,10 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
         });
 
         vm.prank(operator1);
-        mockEAS.setAttestation(1, assessmentAttest);
+        mockEAS.setAttestationByUID(assessmentUID, assessmentAttest);
 
         // Verify assessment stored correctly
-        Attestation memory storedAttest = mockEAS.getAttestation(1);
+        Attestation memory storedAttest = mockEAS.getAttestation(assessmentUID);
         AssessmentSchema memory storedAssessment = abi.decode(storedAttest.data, (AssessmentSchema));
 
         assertEq(storedAssessment.title, "Q1 2024 Biodiversity Assessment");
@@ -552,10 +553,7 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
     }
 
     /// @notice Test 6: Access Control Enforcement
-    // SKIPPED: Blocked by GardenToken contract bug - _gardenAccountImplementation should be immutable (gardenAccount calls
-    // don't work)
     function testAccessControlEnforcement() public {
-        return;
         // Setup garden
         address[] memory gardeners = new address[](1);
         address[] memory operators = new address[](1);
@@ -664,8 +662,9 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
 
         gasStart = gasleft();
         bytes memory workData = abi.encode(work);
+        bytes32 workUIDGas = bytes32(uint256(1));
         Attestation memory workAttest = Attestation({
-            uid: bytes32(uint256(1)),
+            uid: workUIDGas,
             schema: bytes32(uint256(100)),
             time: uint64(block.timestamp),
             expirationTime: 0,
@@ -678,7 +677,7 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
         });
 
         vm.prank(gardener1);
-        mockEAS.setAttestation(1, workAttest);
+        mockEAS.setAttestationByUID(workUIDGas, workAttest);
         gasSubmitWork = gasStart - gasleft();
 
         emit log_named_uint("Gas: submitWork", gasSubmitWork);
@@ -686,17 +685,18 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
 
         // Measure work approval
         WorkApprovalSchema memory approval =
-            WorkApprovalSchema({ actionUID: 0, workUID: bytes32(uint256(1)), approved: true, feedback: "Approved" });
+            WorkApprovalSchema({ actionUID: 0, workUID: workUIDGas, approved: true, feedback: "Approved" });
 
         gasStart = gasleft();
         bytes memory approvalData = abi.encode(approval);
+        bytes32 approvalUIDGas = bytes32(uint256(2));
         Attestation memory approvalAttest = Attestation({
-            uid: bytes32(uint256(2)),
+            uid: approvalUIDGas,
             schema: bytes32(uint256(101)),
             time: uint64(block.timestamp),
             expirationTime: 0,
             revocationTime: 0,
-            refUID: bytes32(uint256(1)),
+            refUID: workUIDGas,
             recipient: gardenAccountAddress,
             attester: operator1,
             revocable: true,
@@ -704,7 +704,7 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
         });
 
         vm.prank(operator1);
-        mockEAS.setAttestation(2, approvalAttest);
+        mockEAS.setAttestationByUID(approvalUIDGas, approvalAttest);
         gasApproveWork = gasStart - gasleft();
 
         emit log_named_uint("Gas: approveWork", gasApproveWork);
