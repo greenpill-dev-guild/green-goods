@@ -22,7 +22,8 @@
     "includes": [
       "**/packages/client/src/**/*.{ts,tsx,js,jsx}",
       "**/packages/client/*.{ts,tsx,js,jsx}",
-      "**/packages/api/src/**/*.{ts,tsx,js,jsx}",
+      "**/packages/admin/src/**/*.{ts,tsx,js,jsx}",
+      "**/packages/admin/*.{ts,tsx,js,jsx}",
       "**/packages/indexer/src/**/*.{ts,tsx,js,jsx}",
       "**/packages/contracts/src/**/*.{ts,tsx,js,jsx}",
       "**/packages/contracts/script/**/*.{ts,tsx,js,jsx}",
@@ -56,7 +57,7 @@
   "files": {
     "includes": [
       "**/packages/client/src/**/*.{ts,tsx,js,jsx}",
-      "**/packages/api/src/**/*.{ts,tsx,js,jsx}",
+      "**/packages/admin/src/**/*.{ts,tsx,js,jsx}",
       "**/packages/indexer/src/**/*.{ts,tsx,js,jsx}",
       "**/packages/contracts/src/**/*.{ts,tsx,js,jsx}",
       "**/packages/contracts/script/**/*.{ts,tsx,js,jsx}",

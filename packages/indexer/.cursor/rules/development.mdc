@@ -1,0 +1,63 @@
+---
+description: Indexer development workflow — codegen, Docker, reset procedures
+globs:
+alwaysApply: true
+---
+
+# Indexer Development Workflow
+
+## Common Commands
+
+```bash
+# Start indexer
+pnpm dev
+
+# Regenerate after schema changes
+pnpm codegen
+
+# Reset state completely
+pnpm reset
+
+# Docker operations
+docker compose down       # Stop
+docker compose up -d      # Start detached
+docker compose logs -f    # View logs
+```
+
+## When to Run Codegen
+
+- After changing `schema.graphql`
+- After updating `config.yaml`
+- After adding new contract events
+- When generated types are missing
+
+## When to Reset
+
+- Docker overlay filesystem errors
+- Database schema migrations
+- Starting fresh after testing
+- Resolving persistent Docker issues
+
+## Troubleshooting
+
+### ReScript Compilation Errors
+
+```bash
+cd generated
+npm install --legacy-peer-deps
+npm run build
+cd ..
+pnpm dev
+```
+
+### Port Conflicts
+
+```bash
+lsof -i :8080
+kill -9 <PID>
+```
+
+## Reference
+
+- README: `AGENTS.md`
+- Envio docs: https://docs.envio.dev

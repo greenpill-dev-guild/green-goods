@@ -1,8 +1,8 @@
 import { RiArrowLeftFill, RiNotificationFill, RiNotificationLine } from "@remixicon/react";
 import { forwardRef, useRef } from "react";
 import { createPortal } from "react-dom";
-import { useOffline } from "@/hooks";
-import { cn } from "@/utils/cn";
+import { useOffline } from "@/hooks/app/useOffline";
+import { cn } from "@/utils/styles/cn";
 import { GardenNotifications } from "@/views/Home/Garden/Notifications";
 import { Button } from "../Button";
 

@@ -7,6 +7,8 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { Capital } from "../Constants.sol";
 
 error NotActionOwner();
+error EndTimeBeforeStartTime();
+error StartTimeAfterEndTime();
 
 /// @title Action Registry Contract
 /// @notice This contract allows the owner to register and manage actions.
@@ -77,6 +79,13 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     mapping(uint256 actionUID => address owner) public actionToOwner;
     mapping(uint256 actionUID => Action action) public idToAction;
 
+    /**
+     * @dev Storage gap for future upgrades
+     * Reserves 47 slots (50 total - 3 used: _nextActionUID, actionToOwner, idToAction)
+     * Allows adding new state variables without breaking storage layout in upgrades
+     */
+    uint256[47] private __gap;
+
     modifier onlyActionOwner(uint256 actionUID) {
         if (_msgSender() != actionToOwner[actionUID]) {
             revert NotActionOwner();
@@ -85,14 +94,16 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() { }
+    constructor() {
+        _disableInitializers();
+    }
 
     /// @notice Initializes the contract and sets the specified address as the owner.
     /// @dev This function must be called only once during contract deployment.
     /// @param _multisig The address that will own the contract.
     function initialize(address _multisig) external initializer {
-        __Ownable_init(_multisig);
-        // _disableInitializers();
+        __Ownable_init();
+        _transferOwnership(_multisig);
     }
 
     function getAction(uint256 actionUID) external view returns (Action memory) {
@@ -116,6 +127,8 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
         external
         onlyOwner
     {
+        if (_endTime <= _startTime) revert EndTimeBeforeStartTime();
+
         uint256 actionUID = _nextActionUID++;
 
         actionToOwner[actionUID] = _msgSender();
@@ -128,6 +141,7 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     /// @param actionUID The unique identifier of the action to update.
     /// @param _startTime The new start time of the action.
     function updateActionStartTime(uint256 actionUID, uint256 _startTime) external onlyActionOwner(actionUID) {
+        if (_startTime >= idToAction[actionUID].endTime) revert StartTimeAfterEndTime();
         idToAction[actionUID].startTime = _startTime;
 
         emit ActionStartTimeUpdated(actionToOwner[actionUID], actionUID, _startTime);
@@ -137,6 +151,7 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     /// @param actionUID The unique identifier of the action to update.
     /// @param _endTime The new end time of the action.
     function updateActionEndTime(uint256 actionUID, uint256 _endTime) external onlyActionOwner(actionUID) {
+        if (_endTime <= idToAction[actionUID].startTime) revert EndTimeBeforeStartTime();
         idToAction[actionUID].endTime = _endTime;
 
         emit ActionEndTimeUpdated(actionToOwner[actionUID], actionUID, _endTime);
@@ -178,5 +193,8 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     /// @dev Authorizes an upgrade to the contract's implementation.
     /// @param newImplementation The address of the new implementation contract.
     /// @custom:oz-upgrades-unsafe-allow override
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner { }
+    // solhint-disable-next-line no-empty-blocks
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
+        // Intentionally empty - UUPS upgrade authorization handled by onlyOwner modifier
+    }
 }

@@ -1,0 +1,294 @@
+---
+description: Green Goods monorepo structure and cross-package conventions
+globs:
+alwaysApply: true
+---
+
+# Monorepo Structure & Conventions
+
+Green Goods is a pnpm monorepo with 4 packages. This rule provides guidance on cross-package patterns and when to share vs duplicate code.
+
+## Package Architecture
+
+```
+packages/
+├── client/       # React PWA (offline-first, gardener/operator app)
+├── admin/        # Admin dashboard (garden/contract management)
+├── indexer/      # Envio GraphQL (blockchain data indexer)
+└── contracts/    # Solidity (EAS integration, TBA accounts)
+```
+
+## Cross-Package Dependencies
+
+### Import Patterns
+
+**✅ Allowed Cross-Package Imports:**
+
+```typescript
+// Client/Admin importing contract artifacts
+import deployment from '../../../contracts/deployments/84532-latest.json';
+import networks from '../../../contracts/deployments/networks.json';
+import GardenABI from '../../../contracts/out/Garden.sol/Garden.json';
+
+// Indexer importing contract ABIs
+import ActionRegistryABI from '../abis/ActionRegistry.json';
+```
+
+**❌ Forbidden Cross-Package Imports:**
+
+```typescript
+// Don't import source code across packages
+import { someUtil } from '../../client/src/utils/helper';
+
+// Don't import from other package internals
+import { SomeComponent } from '../../admin/src/components/Foo';
+```
+
+### When to Share vs Duplicate
+
+**Share (via contracts/deployments/):**
+- Contract addresses
+- Network configurations
+- ABI files
+- Deployment metadata
+
+**Duplicate (in each package):**
+- Utility functions
+- Type definitions (unless from contract ABIs)
+- Component logic
+- Business logic
+
+**Why:** Each package should be independently deployable. Shared code creates coupling.
+
+## Workspace Commands
+
+### Running Commands
+
+```bash
+# Run in specific package
+pnpm --filter client dev
+pnpm --filter contracts test
+
+# Run in all packages
+pnpm -r test
+pnpm -r build
+
+# From package directory
+cd packages/client && pnpm dev
+```
+
+### Package Scripts
+
+Each package has consistent npm scripts:
+- `dev`: Start development server
+- `build`: Production build
+- `test`: Run tests
+- `lint`: Run linters
+- `format`: Format code
+
+## Dependency Management
+
+### Adding Dependencies
+
+```bash
+# Add to specific package
+pnpm --filter client add viem
+
+# Add to root (workspace tools)
+pnpm add -w -D vitest
+
+# Add to all packages
+pnpm -r add lodash
+```
+
+### Version Alignment
+
+Keep these dependencies aligned across client/admin:
+- react, react-dom
+- typescript
+- vite
+- @tanstack/react-query
+- viem
+
+**Check alignment:**
+```bash
+pnpm list react --depth=0 -r
+```
+
+## Testing Across Packages
+
+### Integration Testing
+
+When features span packages:
+
+1. **Client ↔ Contracts:** Test via E2E (Playwright)
+2. **Indexer ↔ Contracts:** Test event processing in indexer tests
+3. **Admin ↔ Contracts:** Test transaction flows in admin integration tests
+
+### Test Data Sharing
+
+**✅ Do:**
+- Use deployed contract addresses from deployment JSON
+- Reference same test wallets across packages
+- Share test network configurations
+
+**❌ Don't:**
+- Import test utilities from other packages
+- Couple test suites across packages
+- Share mock data structures
+
+## Build Order
+
+Packages have build dependencies:
+
+1. **contracts** (must build first — generates ABIs)
+2. **indexer** (needs contract ABIs)
+3. **client** (needs deployment artifacts)
+4. **admin** (needs deployment artifacts)
+
+**Build all in order:**
+```bash
+pnpm build
+```
+
+pnpm handles dependency graph automatically.
+
+## Code Ownership
+
+### File Locations by Concern
+
+**Blockchain logic:**
+- Solidity: `packages/contracts/src/`
+- TypeScript wrappers: `packages/client/src/modules/data/`
+
+**UI Components:**
+- Client: `packages/client/src/components/`
+- Admin: `packages/admin/src/components/`
+- **Never share** between client/admin (different UX patterns)
+
+**Data Fetching:**
+- GraphQL queries: `packages/*/src/` (each package owns queries)
+- Indexer schema: `packages/indexer/schema.graphql`
+
+**Configuration:**
+- Shared: `packages/contracts/deployments/`
+- Package-specific: Each package's `src/config.ts`
+
+## TypeScript Configuration
+
+All packages inherit from root `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true
+  }
+}
+```
+
+### Path Aliases
+
+Each package configures its own aliases:
+
+**Client/Admin:**
+```typescript
+// Use @ prefix for src/
+import { Button } from '@/components/UI/Button';
+import { useAuth } from '@/hooks/auth/useAuth';
+```
+
+**Contracts:**
+```solidity
+// Use foundry remappings
+import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+```
+
+## Common Anti-Patterns
+
+### ❌ Don't Create Package-Specific .env Files
+
+```bash
+# Wrong
+packages/client/.env
+packages/admin/.env
+
+# Correct
+.env  # Root only
+```
+
+### ❌ Don't Duplicate Contract Addresses
+
+```typescript
+// Wrong
+const GARDEN_TOKEN = '0x123...';
+
+// Correct
+import deployment from '../../../contracts/deployments/84532-latest.json';
+const GARDEN_TOKEN = deployment.gardenToken;
+```
+
+### ❌ Don't Import Across Frontend Packages
+
+```typescript
+// Wrong
+import { useRole } from '../../admin/src/hooks/useRole';
+
+// Correct
+// Duplicate the hook in client if needed, or extract to shared package
+```
+
+### ❌ Don't Skip Build Order
+
+```bash
+# Wrong
+cd packages/client && pnpm build  # Might fail if contracts not built
+
+# Correct
+pnpm build  # From root, handles order
+```
+
+## MCP Integration for Monorepo
+
+### Using GitHub MCP
+
+```bash
+# Query cross-package issues
+@github: List all open issues tagged "client" or "contracts"
+
+# Create issues with context
+@github: Create issue "Add garden invite system" with labels: feature, client, contracts
+
+# PR management
+@github: List PRs that modify both client and contracts packages
+```
+
+### Using Filesystem MCP
+
+```bash
+# Cross-package searches
+@filesystem: Find all files importing from '../../../contracts/deployments'
+
+# Bulk operations
+@filesystem: List all TypeScript files in client and admin that use viem
+```
+
+## Migration Checklist
+
+When moving logic between packages:
+
+- [ ] Update imports to use deployment artifacts (not hardcoded)
+- [ ] Ensure no source code imports across packages
+- [ ] Update both package tests
+- [ ] Update relevant README files
+- [ ] Check for duplicate type definitions
+- [ ] Validate build still works with `pnpm build`
+
+## Reference Documents
+
+- Root README: `/README.md`
+- Architecture: `/docs/ARCHITECTURE.md`
+- Package READMEs: `packages/*/README.md`
+- Agent rules: `.cursor/rules/*.mdc`, `packages/*/.cursor/rules/*.mdc`

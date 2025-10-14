@@ -1,5 +1,12 @@
 import { useState, useRef, useEffect } from "react";
-import { RiLogoutBoxLine, RiMoonLine, RiSunLine, RiUserLine, RiArrowDownSLine, RiComputerLine } from "@remixicon/react";
+import {
+  RiLogoutBoxLine,
+  RiMoonLine,
+  RiSunLine,
+  RiUserLine,
+  RiArrowDownSLine,
+  RiComputerLine,
+} from "@remixicon/react";
 import { useAuth } from "@/providers/AuthProvider";
 import { useRole } from "@/hooks/useRole";
 import { useDarkMode } from "@/hooks/useDarkMode";
@@ -10,7 +17,7 @@ export function UserProfile() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { disconnect, address } = useAuth();
   const { role } = useRole();
-  const { isDark, themeMode, setThemeMode } = useDarkMode();
+  const { themeMode, setThemeMode } = useDarkMode();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -33,11 +40,11 @@ export function UserProfile() {
 
   const getThemeIcon = (mode: string) => {
     switch (mode) {
-      case 'light':
+      case "light":
         return <RiSunLine className="mr-3 h-4 w-4" />;
-      case 'dark':
+      case "dark":
         return <RiMoonLine className="mr-3 h-4 w-4" />;
-      case 'system':
+      case "system":
         return <RiComputerLine className="mr-3 h-4 w-4" />;
       default:
         return <RiComputerLine className="mr-3 h-4 w-4" />;
@@ -46,14 +53,14 @@ export function UserProfile() {
 
   const getThemeLabel = (mode: string) => {
     switch (mode) {
-      case 'light':
-        return 'Light Mode';
-      case 'dark':
-        return 'Dark Mode';
-      case 'system':
-        return 'System';
+      case "light":
+        return "Light Mode";
+      case "dark":
+        return "Dark Mode";
+      case "system":
+        return "System";
       default:
-        return 'System';
+        return "System";
     }
   };
 
@@ -64,7 +71,9 @@ export function UserProfile() {
         className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
       >
         <div className="text-right">
-          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">{role}</div>
+          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">
+            {role}
+          </div>
           <div className="text-xs text-gray-500 dark:text-gray-400">
             {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : ""}
           </div>
@@ -75,11 +84,11 @@ export function UserProfile() {
               {role === "deployer" ? "D" : role === "operator" ? "O" : "U"}
             </span>
           </div>
-          <RiArrowDownSLine 
+          <RiArrowDownSLine
             className={cn(
               "h-4 w-4 text-gray-500 dark:text-gray-400 transition-transform",
               isOpen && "rotate-180"
-            )} 
+            )}
           />
         </div>
       </button>
@@ -111,7 +120,7 @@ export function UserProfile() {
                 Theme
               </div>
               <div className="space-y-1">
-                {(['light', 'dark', 'system'] as const).map((mode) => (
+                {(["light", "dark", "system"] as const).map((mode) => (
                   <button
                     key={mode}
                     onClick={() => setThemeMode(mode)}

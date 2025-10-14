@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { RetryPolicy, defaultRetryPolicy } from "../../modules/retry-policy";
+import { RetryPolicy, defaultRetryPolicy } from "../../modules/work/retry-policy";
 
 describe("modules/retry-policy", () => {
   it("calculates backoff and respects max retries", () => {

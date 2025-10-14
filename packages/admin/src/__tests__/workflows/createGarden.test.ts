@@ -124,9 +124,9 @@ describe("createGarden workflow", () => {
     actor.send({ type: "START", params: validParams });
     actor.send({ type: "SUBMIT" });
     actor.send({ type: "FAILURE", error: "Transaction failed" });
-    
+
     expect(actor.getSnapshot().value).toBe("error");
-    
+
     actor.send({ type: "RETRY" });
 
     // After retry, should go back to submitting state

@@ -1,8 +1,8 @@
 import { NO_EXPIRATION, ZERO_BYTES32 } from "@ethereum-attestation-service/eas-sdk";
 import { encodeFunctionData } from "viem";
-import { getEASConfig } from "@/config";
-import { abi } from "@/utils/abis/EAS.json";
-import { encodeWorkApprovalData } from "@/utils/eas";
+import { getEASConfig } from "@/config/blockchain";
+import { abi } from "@/utils/blockchain/abis/EAS.json";
+import { encodeWorkApprovalData } from "@/utils/eas/encoders";
 
 interface EncodedApprovalData {
   attestationData: `0x${string}`;

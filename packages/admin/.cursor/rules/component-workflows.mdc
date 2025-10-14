@@ -1,0 +1,200 @@
+---
+description: Component workflows — modals, forms, toast notifications, blockchain interactions
+globs:
+  - components/Garden/**
+  - views/**
+alwaysApply: false
+---
+
+# Component Workflows & Patterns
+
+Admin dashboard uses modal-based workflows for garden management. This rule documents modal patterns, form validation, and toast notification conventions.
+
+## Modal Workflow Pattern
+
+### CreateGardenModal
+
+```typescript
+// components/Garden/CreateGardenModal.tsx
+export function CreateGardenModal({ isOpen, onClose }: CreateGardenModalProps) {
+  const { register, handleSubmit, formState } = useForm<CreateGardenForm>({
+    resolver: zodResolver(createGardenSchema),
+  });
+  
+  const { writeContractAsync } = useWriteContract();
+  const { executeWithToast } = useToastAction();
+  
+  const onSubmit = handleSubmit(async (data) => {
+    await executeWithToast(
+      async () => {
+        // Upload banner to IPFS
+        const { IpfsHash } = await uploadFileToIPFS(bannerFile);
+        
+        // Create garden
+        const txHash = await writeContractAsync({
+          address: gardenTokenAddress,
+          abi: GardenTokenABI,
+          functionName: 'mintGarden',
+          args: [{
+            communityToken: data.communityToken,
+            name: data.name,
+            description: data.description,
+            location: data.location,
+            bannerImage: IpfsHash,
+            gardeners: data.gardeners,
+            gardenOperators: data.operators,
+          }],
+        });
+        
+        return txHash;
+      },
+      {
+        loadingMessage: 'Creating garden...',
+        successMessage: 'Garden created successfully!',
+        errorMessage: 'Failed to create garden',
+      }
+    );
+    
+    onClose();
+  });
+  
+  return (
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <form onSubmit={onSubmit}>
+        <FormInput label="Name" {...register('name')} />
+        <FormInput label="Description" {...register('description')} />
+        {/* ... */}
+        <Button type="submit" disabled={formState.isSubmitting}>
+          Create Garden
+        </Button>
+      </form>
+    </Modal>
+  );
+}
+```
+
+### AddMemberModal Pattern
+
+```typescript
+// components/Garden/AddMemberModal.tsx
+export function AddMemberModal({
+  isOpen,
+  onClose,
+  memberType,
+  onAdd,
+}: AddMemberModalProps) {
+  const [address, setAddress] = useState('');
+  const [error, setError] = useState('');
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    
+    // Validate address
+    if (!isAddress(address)) {
+      setError('Invalid Ethereum address');
+      return;
+    }
+    
+    try {
+      await onAdd(address);
+      setAddress('');
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add member');
+    }
+  };
+  
+  return (
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <form onSubmit={handleSubmit}>
+        <h2>Add {memberType === 'gardener' ? 'Gardener' : 'Operator'}</h2>
+        <input
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          placeholder="0x..."
+        />
+        {error && <p className="text-red-600">{error}</p>}
+        <Button type="submit">Add</Button>
+      </form>
+    </Modal>
+  );
+}
+```
+
+## Toast Notification Pattern
+
+### useToastAction Hook
+
+**MANDATORY for all blockchain interactions:**
+
+```typescript
+// hooks/useToastAction.ts
+export function useToastAction() {
+  const executeWithToast = async <T,>(
+    action: () => Promise<T>,
+    options: ToastActionOptions
+  ): Promise<T> => {
+    const toastId = toast.loading(options.loadingMessage || 'Processing...');
+    
+    try {
+      const result = await action();
+      toast.success(options.successMessage || 'Success!', { id: toastId });
+      return result;
+    } catch (error) {
+      const message = error instanceof Error
+        ? error.message
+        : options.errorMessage || 'Operation failed';
+      toast.error(message, { id: toastId });
+      throw error;
+    }
+  };
+  
+  return { executeWithToast };
+}
+```
+
+### Usage
+
+```typescript
+const { executeWithToast } = useToastAction();
+
+const handleAddGardener = async (address: string) => {
+  await executeWithToast(
+    () => writeContractAsync({
+      address: gardenAccountAddress,
+      abi: GardenAccountABI,
+      functionName: 'addGardener',
+      args: [address],
+    }),
+    {
+      loadingMessage: 'Adding gardener...',
+      successMessage: 'Gardener added successfully',
+      errorMessage: 'Failed to add gardener',
+    }
+  );
+};
+```
+
+## Form Validation with Zod
+
+```typescript
+const createGardenSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  description: z.string().min(10, 'Description too short'),
+  location: z.string().min(1, 'Location is required'),
+  communityToken: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid address'),
+  gardeners: z.array(z.string()).min(1, 'At least one gardener required'),
+  operators: z.array(z.string()).min(1, 'At least one operator required'),
+});
+
+const { register, handleSubmit, formState } = useForm({
+  resolver: zodResolver(createGardenSchema),
+});
+```
+
+## Reference Files
+
+- useToastAction: `src/hooks/useToastAction.ts`
+- CreateGardenModal: `src/components/Garden/CreateGardenModal.tsx`
+- AddMemberModal: `src/components/Garden/AddMemberModal.tsx`

@@ -9,7 +9,7 @@ export default function Contracts() {
   const [activeTab, setActiveTab] = useState<"deployed" | "deploy" | "upgrade">("deployed");
 
   const contracts = getNetworkContracts(selectedChainId);
-  const currentChain = SUPPORTED_CHAINS.find(c => c.id === selectedChainId);
+  const currentChain = SUPPORTED_CHAINS.find((c) => c.id === selectedChainId);
 
   const contractList = [
     { name: "Garden Token", address: contracts.gardenToken, type: "core" },
@@ -111,7 +111,9 @@ export default function Contracts() {
                       {contract.address}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(contract.address)}`}>
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(contract.address)}`}
+                      >
                         {getStatusText(contract.address)}
                       </span>
                     </td>

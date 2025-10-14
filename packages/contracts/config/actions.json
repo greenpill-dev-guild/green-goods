@@ -1,28 +1,171 @@
 {
   "actions": [
     {
-      "title": "Soil Health Assessment",
-      "instructions": "Measure soil moisture, pH, and organic matter content using provided testing kit. Document findings with photos and measurements.",
+      "title": "Planting",
+      "description": "Document planting activities for any plant type including trees, seedlings, shrubs, or other vegetation. Record species information and provide photographic evidence of the plot before and after planting.",
+      "capitals": ["LIVING", "MATERIAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
-      "endTime": "2024-12-31T23:59:59Z",
-      "capitals": ["LIVING", "INTELLECTUAL", "MATERIAL"],
-      "media": ["QmSampleSoilTestingInstructionsHash", "QmSampleSoilHealthGuideHash", "QmSampleReportingTemplateHash"]
+      "endTime": "2025-12-31T23:59:59Z",
+      "media": [],
+      "uiConfig": {
+        "media": {
+          "title": "Photograph the Plot",
+          "description": "Please take a photo of the location where you will be planting Seedlings or Saplings.",
+          "maxImageCount": 8,
+          "required": true
+        },
+        "details": {
+          "title": "Input Planting Details",
+          "description": "Please provide the following details about the planting process.",
+          "feedbackPlaceholder": "Provide feedback or any issues during the planting process",
+          "inputs": [
+            {
+              "key": "plantType",
+              "title": "Plant Type",
+              "placeholder": "Select the type of plant",
+              "type": "select",
+              "required": true,
+              "options": ["Tree", "Seedling", "Shrub", "Flower", "Vegetable", "Herb", "Grass", "Other"]
+            },
+            {
+              "key": "plantSelection",
+              "title": "Plant Species/Name",
+              "placeholder": "Enter the plant species (e.g., Acacia, Eucalyptus, Pine)",
+              "type": "text",
+              "required": true,
+              "options": []
+            },
+            {
+              "key": "plantCount",
+              "title": "How many plants were planted?",
+              "placeholder": "Enter the number of plants planted",
+              "type": "number",
+              "required": true,
+              "min": 1,
+              "options": []
+            }
+          ]
+        },
+        "review": {
+          "title": "Review Planting Details",
+          "description": "Please review the details you have provided before submitting."
+        }
+      }
     },
     {
-      "title": "Biodiversity Survey",
-      "instructions": "Conduct a comprehensive survey of plant and animal species in the garden area. Use iNaturalist app for species identification.",
-      "startTime": "2024-01-01T00:00:00Z",
-      "endTime": "2024-12-31T23:59:59Z",
+      "title": "Identify Plant",
+      "description": "Identify and observe plants in their environment. Document species information, health status, and environmental conditions. This action helps track biodiversity and ecosystem health over time.",
       "capitals": ["LIVING", "INTELLECTUAL", "EXPERIENTIAL"],
-      "media": ["QmSampleBiodiversityGuideHash", "QmSampleSpeciesIdentificationHash", "QmSampleDataCollectionFormHash"]
+      "startTime": "2024-01-01T00:00:00Z",
+      "endTime": "2025-12-31T23:59:59Z",
+      "media": [],
+      "uiConfig": {
+        "media": {
+          "title": "Capture Plant Photos",
+          "description": "Please take photos of the plants you are identifying. Document their current state and any notable features.",
+          "maxImageCount": 7,
+          "required": true
+        },
+        "details": {
+          "title": "Input Plant Identification Details",
+          "description": "Please provide the following details about the plant you are identifying.",
+          "feedbackPlaceholder": "Provide feedback or any observations during this process",
+          "inputs": [
+            {
+              "key": "plantType",
+              "title": "Plant Type",
+              "placeholder": "Select the type of plant",
+              "type": "select",
+              "required": true,
+              "options": ["Tree", "Seedling", "Shrub", "Flower", "Vegetable", "Herb", "Grass", "Other"]
+            },
+            {
+              "key": "plantName",
+              "title": "Plant Species/Name",
+              "placeholder": "Enter the plant species or custom name (e.g., Oak Tree in North Garden)",
+              "type": "text",
+              "required": true,
+              "options": []
+            },
+            {
+              "key": "plantCount",
+              "title": "Number of Plants Identified",
+              "placeholder": "Enter the number of plants identified",
+              "type": "number",
+              "required": false,
+              "min": 0,
+              "options": []
+            },
+            {
+              "key": "healthStatus",
+              "title": "Plant Health Status",
+              "placeholder": "Select the overall health status",
+              "type": "select",
+              "required": false,
+              "options": ["Excellent", "Good", "Fair", "Poor", "Critical"]
+            }
+          ]
+        },
+        "review": {
+          "title": "Review Plant Identification Details",
+          "description": "Please review the details you have provided before submitting."
+        }
+      }
     },
     {
-      "title": "Carbon Sequestration Measurement",
-      "instructions": "Measure tree diameter at breast height (DBH) and calculate carbon storage potential using provided formulas.",
+      "title": "Waste Cleanup",
+      "description": "Document waste removal activities including type, quantity, and estimated weight. Helps maintain clean environments and track waste reduction impact.",
+      "capitals": ["MATERIAL", "SOCIAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
-      "endTime": "2024-12-31T23:59:59Z",
-      "capitals": ["LIVING", "INTELLECTUAL", "MATERIAL"],
-      "media": ["QmSampleCarbonMeasurementGuideHash", "QmSampleCalculationFormulaHash", "QmSampleReportingTemplateHash"]
+      "endTime": "2025-12-31T23:59:59Z",
+      "media": [],
+      "uiConfig": {
+        "media": {
+          "title": "Capture the Waste Cleanup",
+          "description": "Please take a photo of the location where you will be picking up the waste. You can also take photos of the waste to document its condition.",
+          "maxImageCount": 8,
+          "required": true
+        },
+        "details": {
+          "title": "Input Waste Cleanup Details",
+          "description": "Please provide the following details about the waste cleanup process.",
+          "feedbackPlaceholder": "Provide feedback or any issues during the waste cleanup process",
+          "inputs": [
+            {
+              "key": "wasteSelection",
+              "title": "Waste Type",
+              "placeholder": "Select the different waste picked up",
+              "type": "select",
+              "required": true,
+              "multiple": true,
+              "options": ["Plastic", "Metal", "Glass", "Paper", "Organic", "Other"]
+            },
+            {
+              "key": "wasteCount",
+              "title": "Waste Removed",
+              "placeholder": "Enter the number of pieces of waste removed",
+              "type": "number",
+              "required": true,
+              "min": 1,
+              "options": []
+            },
+            {
+              "key": "estimatedWeight",
+              "title": "Estimated Weight (kg)",
+              "placeholder": "Estimate the total weight of waste collected",
+              "type": "number",
+              "required": false,
+              "min": 0,
+              "step": 0.1,
+              "options": []
+            }
+          ]
+        },
+        "review": {
+          "title": "Review Waste Cleanup",
+          "description": "Please review the details you have provided before submitting."
+        }
+      }
     }
   ]
 }

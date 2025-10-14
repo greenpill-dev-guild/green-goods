@@ -1,0 +1,127 @@
+---
+description: UUPS upgrade patterns — storage gaps, safety checklist, upgrade testing
+globs:
+  - src/**/*Upgradeable.sol
+  - test/*Upgrade*.sol
+  - script/upgrade.js
+alwaysApply: false
+---
+
+# UUPS Upgrade Patterns
+
+Green Goods contracts use UUPS (Universal Upgradeable Proxy Standard). This rule documents upgrade safety requirements.
+
+## Storage Gap Requirement
+
+**MANDATORY:** All upgradeable contracts must include `__gap`:
+
+```solidity
+// src/tokens/Garden.sol
+contract GardenToken is
+    ERC721Upgradeable,
+    OwnableUpgradeable,
+    UUPSUpgradeable
+{
+    // State variables
+    uint256 private _nextTokenId;
+    mapping(uint256 => string) private _tokenMetadata;
+    
+    // Storage gap for future upgrades (REQUIRED)
+    uint256[48] private __gap;  // 50 slots total - 2 used = 48 gap
+}
+```
+
+**Why:** Preserves storage layout across upgrades. Without gaps, adding new state variables can corrupt existing data.
+
+### Calculating Gap Size
+
+```
+Gap size = 50 - (number of state variables used)
+```
+
+**Example:**
+- 2 state variables used → `uint256[48] private __gap;`
+- 5 state variables used → `uint256[45] private __gap;`
+
+## Upgrade vs Deploy
+
+### When to Deploy (New Addresses)
+
+```bash
+pnpm deploy:testnet  # Creates new contracts
+```
+
+**Use when:**
+- Setting up new network
+- Testing locally
+- Want fresh state
+
+### When to Upgrade (Same Addresses)
+
+```bash
+pnpm upgrade:testnet  # Upgrades existing proxies
+```
+
+**Use when:**
+- Fixing bugs in production
+- Adding features
+- Maintaining same addresses
+
+## Upgrade Safety Checklist
+
+Before upgrading:
+
+- [ ] Storage gap present and correctly sized
+- [ ] No storage variable reordering
+- [ ] No storage variable type changes
+- [ ] New variables added at end only
+- [ ] Upgrade test passes
+- [ ] No breaking changes to public API
+- [ ] Upgrade path tested on fork
+
+### Upgrade Script
+
+```bash
+# Dry run first
+node script/upgrade.js garden-token --network baseSepolia
+
+# Execute upgrade
+node script/upgrade.js garden-token --network baseSepolia --broadcast
+
+# Verify upgrade
+cast call $GARDEN_TOKEN "owner()" --rpc-url $RPC
+cast call $PROXY "implementation()" --rpc-url $RPC
+```
+
+## Testing Upgrades
+
+```solidity
+// test/UpgradeSafety.t.sol
+function testUpgrade_maintainsState() public {
+    // 1. Deploy V1
+    GardenTokenV1 gardenV1 = new GardenTokenV1();
+    ERC1967Proxy proxy = new ERC1967Proxy(
+        address(gardenV1),
+        abi.encodeCall(gardenV1.initialize, ())
+    );
+    
+    // 2. Set state in V1
+    GardenTokenV1 garden = GardenTokenV1(address(proxy));
+    garden.mintGarden(owner, metadata);
+    uint256 tokenIdBefore = garden.totalSupply();
+    
+    // 3. Upgrade to V2
+    GardenTokenV2 gardenV2 = new GardenTokenV2();
+    garden.upgradeToAndCall(address(gardenV2), "");
+    
+    // 4. Verify state preserved
+    GardenTokenV2 gardenAfter = GardenTokenV2(address(proxy));
+    assertEq(gardenAfter.totalSupply(), tokenIdBefore, "State not preserved");
+}
+```
+
+## Reference Files
+
+- Upgrade script: `script/upgrade.js`
+- Upgrade tests: `test/UpgradeSafety.t.sol`
+- Upgrade guide: `/docs/UPGRADES.md`

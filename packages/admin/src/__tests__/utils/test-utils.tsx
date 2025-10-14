@@ -29,9 +29,7 @@ function createTestWrapper({
         <UrqlProvider value={client}>
           <UserProvider>
             <SubscriptionsProvider>
-              <BrowserRouter>
-                {children}
-              </BrowserRouter>
+              <BrowserRouter>{children}</BrowserRouter>
             </SubscriptionsProvider>
           </UserProvider>
         </UrqlProvider>
@@ -41,12 +39,9 @@ function createTestWrapper({
 }
 
 // Custom render function with providers
-export function renderWithProviders(
-  ui: React.ReactElement,
-  options: CustomRenderOptions = {}
-) {
+export function renderWithProviders(ui: React.ReactElement, options: CustomRenderOptions = {}) {
   const { userRole = "admin", _initialEntries, urqlClient, ...renderOptions } = options;
-  
+
   const Wrapper = createTestWrapper({ userRole, _initialEntries, urqlClient });
 
   return {

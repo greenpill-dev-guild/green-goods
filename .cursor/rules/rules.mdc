@@ -5,7 +5,7 @@ alwaysApply: false
 # Green Goods — Project-Wide Rules
 
 ## Monorepo & Packages
-- This is a pnpm workspace monorepo with packages: `client` (PWA), `api` (backend), `contracts` (Foundry), `indexer` (Envio), `mcp` (Model Context Protocol server). Keep inter-package boundaries clean; share via published interfaces, not deep imports.
+- This is a pnpm workspace monorepo with packages: `client` (PWA), `contracts` (Foundry), `indexer` (Envio), `mcp` (Model Context Protocol server). Keep inter-package boundaries clean; share via published interfaces, not deep imports.
 
 ## Tooling & Quality Gates
 - Use **TypeScript strict** everywhere. Generate small, focused modules with explicit exports.

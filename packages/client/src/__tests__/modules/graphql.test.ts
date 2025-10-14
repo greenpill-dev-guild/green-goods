@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { easGraphQL, greenGoodsGraphQL } from "../../modules/graphql";
+import { easGraphQL, greenGoodsGraphQL } from "../../modules/data/graphql";
 
 describe("modules/graphql", () => {
   it("exports query helpers", () => {

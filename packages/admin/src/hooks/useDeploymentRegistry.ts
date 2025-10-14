@@ -52,12 +52,12 @@ export function useDeploymentRegistry(): DeploymentRegistryPermissions {
         return;
       }
 
-      setPermissions(prev => ({ ...prev, loading: true, error: undefined }));
+      setPermissions((prev) => ({ ...prev, loading: true, error: undefined }));
 
       try {
         const contracts = getNetworkContracts(selectedChainId);
         const chain = getChainById(selectedChainId);
-        
+
         // If deployment registry is not configured, return false
         if (contracts.deploymentRegistry === "0x0000000000000000000000000000000000000000") {
           setPermissions({
@@ -69,8 +69,8 @@ export function useDeploymentRegistry(): DeploymentRegistryPermissions {
           return;
         }
 
-        const alchemyKey = import.meta.env.VITE_ALCHEMY_KEY || "demo";
-        
+        const alchemyKey = import.meta.env.VITE_ALCHEMY_API_KEY || "demo";
+
         let rpcUrl = "";
         switch (selectedChainId) {
           case 42161: // Arbitrum

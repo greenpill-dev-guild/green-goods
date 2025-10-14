@@ -1,7 +1,7 @@
 import React, { forwardRef, memo, useMemo, useState } from "react";
 import { FixedSizeList as List } from "react-window";
 import { useIntl } from "react-intl";
-import { formatAddress } from "@/utils/text";
+import { formatAddress } from "@/utils/app/text";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/UI/Avatar/Avatar";
 // import { ModalDrawer } from "@/components/UI/ModalDrawer/ModalDrawer";
 import { Button } from "@/components/UI/Button";
@@ -40,11 +40,10 @@ const GardenerItem = memo(function GardenerItem({
     });
   const subline = user.account ? formatAddress(user.account) : user.email || user.phone || "";
   return (
-    <li
-      className="flex items-center gap-3 border-slate-200 border rounded-lg p-2 bg-white cursor-pointer hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-sm hover:shadow"
+    <button
+      className="flex items-center gap-3 border-slate-200 border rounded-lg p-2 bg-white cursor-pointer hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-sm hover:shadow w-full text-left"
       onClick={onClick}
-      role="button"
-      tabIndex={0}
+      type="button"
     >
       <Avatar className="w-10 h-10">
         <AvatarImage
@@ -64,7 +63,7 @@ const GardenerItem = memo(function GardenerItem({
           : {new Date(user.registeredAt || garden?.createdAt || Date.now()).toDateString()}
         </span>
       </div>
-    </li>
+    </button>
   );
 });
 
@@ -136,12 +135,18 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
           <div
             className="fixed inset-0 z-[10002] flex items-center justify-center bg-black/40 backdrop-blur-sm"
             onClick={() => setSelected(null)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setSelected(null);
+              }
+            }}
             role="dialog"
             aria-modal="true"
           >
             <div
               className="bg-white rounded-2xl shadow-2xl w-[min(520px,92vw)] p-5"
               onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="text-base font-semibold truncate">{title}</div>

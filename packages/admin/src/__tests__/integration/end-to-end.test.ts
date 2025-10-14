@@ -14,7 +14,7 @@ describe.skipIf(!isIntegrationEnabled)("End-to-End Garden Management", () => {
   beforeAll(async () => {
     // Deploy test contracts
     contractAddresses = await setupIntegrationTest();
-    
+
     // Update environment with deployed contract addresses
     Object.defineProperty(import.meta, "env", {
       value: {
@@ -68,9 +68,7 @@ describe.skipIf(!isIntegrationEnabled)("End-to-End Garden Management", () => {
       role: "operator",
       isAdmin: false,
       isOperator: true,
-      operatorGardens: [
-        { id: contractAddresses.gardenAccount, name: "Test Garden" }
-      ],
+      operatorGardens: [{ id: contractAddresses.gardenAccount, name: "Test Garden" }],
       loading: false,
     }));
 
@@ -86,8 +84,8 @@ describe.skipIf(!isIntegrationEnabled)("End-to-End Garden Management", () => {
     // 1. Perform a blockchain transaction
     // 2. Wait for indexer to process the event
     // 3. Verify UI reflects the update
-    
-    const mockWaitForIndexerUpdate = vi.fn(() => 
+
+    const mockWaitForIndexerUpdate = vi.fn(() =>
       Promise.resolve({
         garden: {
           id: contractAddresses.gardenAccount,
@@ -103,9 +101,7 @@ describe.skipIf(!isIntegrationEnabled)("End-to-End Garden Management", () => {
 
   it("should handle network failures gracefully", async () => {
     // Mock network failure
-    const mockNetworkFailure = vi.fn(() => 
-      Promise.reject(new Error("Network request failed"))
-    );
+    const mockNetworkFailure = vi.fn(() => Promise.reject(new Error("Network request failed")));
 
     try {
       await mockNetworkFailure();
@@ -132,11 +128,11 @@ describe.skipIf(!isIntegrationEnabled)("End-to-End Garden Management", () => {
 // Helper function to wait for blockchain confirmation
 async function waitForTransaction(txHash: string, maxWait = 30000): Promise<boolean> {
   const startTime = Date.now();
-  
+
   while (Date.now() - startTime < maxWait) {
     // Mock transaction receipt check
     const mockGetReceipt = vi.fn(() => Promise.resolve({ status: "success" }));
-    
+
     try {
       const receipt = await mockGetReceipt();
       if (receipt.status === "success") {
@@ -145,9 +141,9 @@ async function waitForTransaction(txHash: string, maxWait = 30000): Promise<bool
     } catch {
       // Transaction not yet mined
     }
-    
-    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    await new Promise((resolve) => setTimeout(resolve, 2000));
   }
-  
+
   return false;
 }

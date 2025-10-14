@@ -1,0 +1,493 @@
+---
+description: Code quality standards, testing expectations, and tooling conventions for Green Goods
+globs:
+alwaysApply: true
+---
+
+# Code Quality & Testing Standards
+
+Green Goods maintains high code quality through automated tooling, comprehensive testing, and clear conventions.
+
+## Tooling Stack
+
+### Biome (Formatting + Basic Linting)
+
+**Why Biome over Prettier:**
+- **35x faster** than Prettier
+- Combined formatter + linter
+- Native TypeScript support
+- Zero configuration needed
+
+**Usage:**
+```bash
+# Format all files
+pnpm format
+
+# Format specific package
+pnpm --filter client format
+
+# Auto-format on save (VS Code)
+# Already configured in .vscode/settings.json
+```
+
+**Configuration:**
+- Root: `/biome.json`
+- Client: `/packages/client/biome.json`
+- Each package can override root config
+
+### 0xlint (Fast Linting)
+
+**Why 0xlint:**
+- **30ms** on entire codebase
+- Rust-based performance
+- TypeScript-aware
+- Complements Biome
+
+**Usage:**
+```bash
+# Lint client
+pnpm --filter client lint
+
+# Lint all packages
+pnpm lint
+```
+
+**What it catches:**
+- Unused variables
+- Import organization
+- TypeScript errors
+- Common mistakes
+
+### Combined Workflow
+
+```bash
+# Pre-commit hook runs automatically
+pnpm format && pnpm lint
+
+# Manual quality check
+pnpm format && pnpm lint && pnpm test
+```
+
+## Conventional Commits
+
+### Format
+
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer]
+```
+
+### Types
+
+- **feat**: New feature
+- **fix**: Bug fix
+- **docs**: Documentation changes
+- **style**: Code style (formatting, not CSS)
+- **refactor**: Code restructuring
+- **test**: Adding/updating tests
+- **chore**: Maintenance tasks
+
+### Scopes
+
+Use package names or feature areas:
+- `client`, `admin`, `contracts`, `indexer`
+- `offline`, `auth`, `deployment`, `schema`
+
+### Examples
+
+```bash
+# Feature additions
+feat(client): add offline work submission queue
+feat(contracts): implement garden invite system
+
+# Bug fixes
+fix(client): resolve job queue race condition on sync
+fix(contracts): fix storage gap in GardenToken upgrade
+
+# Documentation
+docs(indexer): add GraphQL query examples
+docs: update deployment guide with mainnet checklist
+
+# Tests
+test(client): add integration tests for work approval flow
+test(contracts): add gas optimization tests
+
+# Chores
+chore(admin): update dependencies to latest
+chore: configure Playwright E2E tests
+```
+
+### Commit Hook
+
+Git hooks automatically:
+1. Format staged files (Biome)
+2. Run linter (0xlint)
+3. Validate commit message format
+4. Run relevant tests (on push)
+
+## Testing Standards
+
+### Coverage Targets
+
+**Client:**
+- 80%+ for critical paths (offline queue, auth, sync)
+- 70%+ overall coverage
+- 100% for security-critical code (auth, encryption)
+
+**Admin:**
+- 70%+ for role logic and workflows
+- Integration test all admin operations
+- 100% for access control logic
+
+**Contracts:**
+- **Testnet**: 80% pass rate acceptable
+- **Mainnet**: 100% tests must pass
+- Gas optimization tests required
+
+**E2E (Playwright):**
+- Cover critical user flows
+- Garden creation → work submission → approval
+- Offline → online sync
+
+### Test Organization
+
+**Client/Admin (Vitest):**
+```
+src/
+├── __tests__/
+│   ├── components/      # Component unit tests
+│   ├── hooks/           # Hook tests
+│   ├── modules/         # Service layer tests
+│   ├── integration/     # Multi-component flows
+│   └── setupTests.ts    # Test environment setup
+├── __mocks__/
+│   ├── crypto.ts        # Browser API mocks
+│   ├── indexeddb.ts
+│   └── navigator.ts
+```
+
+**Contracts (Foundry):**
+```
+test/
+├── ActionRegistry.t.sol       # Unit tests
+├── GardenAccount.t.sol
+├── E2EWorkflow.t.sol         # Integration tests
+├── UpgradeSafety.t.sol       # Upgrade tests
+└── helpers/                   # Test utilities
+```
+
+### Test Naming
+
+**Client/Admin:**
+```typescript
+// Pattern: describe('[Module/Component]', () => { it('[behavior]') })
+
+describe('JobQueue', () => {
+  it('adds job and emits lifecycle events', async () => {
+    // ...
+  });
+  
+  it('retries failed jobs with exponential backoff', async () => {
+    // ...
+  });
+});
+```
+
+**Contracts:**
+```solidity
+// Pattern: test[ContractName]_[scenario]
+
+function testGardenToken_mintsNewGarden() public {
+  // ...
+}
+
+function testGardenToken_revertsOnUnauthorizedMint() public {
+  // ...
+}
+```
+
+### Test Quality Checklist
+
+For every new feature:
+- [ ] Unit tests for core logic
+- [ ] Integration test for user flow
+- [ ] Error case tests
+- [ ] Edge case coverage
+- [ ] Mock external dependencies
+- [ ] Cleanup after tests (no state leakage)
+
+## Code Style
+
+### TypeScript Strictness
+
+All packages use strict mode:
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitReturns": true
+  }
+}
+```
+
+**Rules:**
+- No `any` without comment justification
+- Prefer `unknown` for untrusted data
+- Use type guards for narrowing
+- Explicit return types on exported functions
+
+### Import Organization
+
+```typescript
+// 1. External dependencies
+import { useQuery } from '@tanstack/react-query';
+import { type Hex } from 'viem';
+
+// 2. Internal absolute imports (@ alias)
+import { Button } from '@/components/UI/Button';
+import { useAuth } from '@/hooks/auth/useAuth';
+
+// 3. Relative imports (same directory)
+import { helper } from './helper';
+
+// 4. Type-only imports separate
+import type { WorkDraft } from '@/types/work';
+```
+
+Biome auto-organizes imports on save.
+
+### File Naming
+
+**Components:**
+```
+ComponentName.tsx      # Component file
+ComponentName.test.tsx # Test file
+index.ts               # Barrel export (optional)
+```
+
+**Hooks:**
+```
+useFeatureName.ts
+useFeatureName.test.ts
+```
+
+**Utils:**
+```
+utilityName.ts
+utilityName.test.ts
+```
+
+**Lowercase for directories:**
+```
+components/ui/button/
+hooks/auth/
+modules/job-queue/
+```
+
+## Linting Configuration
+
+### Biome Config Highlights
+
+```json
+{
+  "formatter": {
+    "enabled": true,
+    "lineWidth": 100,
+    "indentStyle": "space"
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "suspicious": {
+        "noExplicitAny": "warn"
+      }
+    }
+  }
+}
+```
+
+### Solidity Linting (contracts)
+
+```bash
+# Run Solhint
+pnpm --filter contracts lint
+
+# Auto-format Solidity
+forge fmt
+```
+
+## Pre-Commit Workflow
+
+Husky hooks run automatically:
+
+**Pre-commit:**
+```bash
+1. Format staged files (Biome)
+2. Lint changed files (0xlint)
+3. Type check (tsc --noEmit)
+```
+
+**Pre-push:**
+```bash
+1. Run affected tests
+2. Verify build succeeds
+```
+
+**Manual bypass** (use sparingly):
+```bash
+git commit --no-verify
+```
+
+## Documentation Standards
+
+### Code Documentation
+
+**Required for:**
+- Exported functions
+- Complex algorithms
+- Non-obvious patterns
+- Public APIs
+
+**Example:**
+```typescript
+/**
+ * Merges online and offline work submissions, deduplicating based on content hash.
+ * 
+ * Online works take precedence. Offline works are filtered out if they match
+ * an online work within a 5-minute time window.
+ * 
+ * @param onlineWorks - Works fetched from blockchain
+ * @param offlineJobs - Pending local jobs
+ * @returns Merged and deduplicated work array
+ */
+export async function mergeWorks(
+  onlineWorks: Work[],
+  offlineJobs: Job<WorkJobPayload>[]
+): Promise<Work[]> {
+  // ...
+}
+```
+
+### README Updates
+
+When adding major features, update:
+- [ ] Package README (`packages/*/README.md`)
+- [ ] Root README (if cross-cutting feature)
+- [ ] Relevant docs in `/docs/`
+- [ ] AGENTS.md or .mdc rules (if establishing new pattern)
+
+### Comment Style
+
+```typescript
+// Single-line for brief explanations
+const result = calculateHash(data); // Hash used for deduplication
+
+/* 
+ * Multi-line for complex explanations
+ * explaining the why, not the what
+ */
+const backoffDelay = Math.min(
+  baseDelay * Math.pow(multiplier, attempt),
+  maxDelay
+); // Exponential backoff with ceiling
+```
+
+## Quality Metrics
+
+### Build Performance
+
+- **Client build**: <30s for development, <60s for production
+- **Contracts compile**: <10s with cache, <30s clean
+- **Test suite**: <5s for unit tests, <30s for integration
+
+### Bundle Size Targets
+
+**Client:**
+- Main bundle: ~4.4MB (acceptable for offline-first PWA)
+- Individual chunks: <100KB where possible
+- Critical path: <1MB (Garden, Home views)
+
+**Admin:**
+- Main bundle: ~2MB (admin tool, bundle size less critical)
+
+### Performance Budgets
+
+Monitor with Lighthouse/PageSpeed:
+- First Contentful Paint: <1.5s
+- Time to Interactive: <3s on 3G
+- Cumulative Layout Shift: <0.1
+
+## CI/CD Integration
+
+### GitHub Actions
+
+Automated quality checks on PR:
+```yaml
+1. Install dependencies (pnpm)
+2. Format check (Biome)
+3. Lint (0xlint + Biome)
+4. Type check (tsc)
+5. Unit tests (Vitest/Foundry)
+6. Build all packages
+7. E2E tests (Playwright)
+```
+
+### Pre-merge Requirements
+
+- [ ] All tests passing
+- [ ] No linter errors
+- [ ] No TypeScript errors
+- [ ] Build succeeds
+- [ ] Conventional commit format
+- [ ] README updated (if needed)
+
+## MCP Tool Integration
+
+Use MCP tools for quality workflows:
+
+### GitHub MCP for Issues
+
+```bash
+# Track tech debt
+@github: Create issue "Refactor job queue retry logic" with label tech-debt
+
+# Bug reports
+@github: Create issue from failed test output with label bug, package:client
+```
+
+### Playwright MCP for Testing
+
+```bash
+# Visual regression
+@playwright: Run visual comparison test for WorkDashboard component
+
+# E2E validation
+@playwright: Execute garden creation E2E test and capture screenshots
+```
+
+## Quality Checklist
+
+Before pushing code:
+
+- [ ] `pnpm format` (auto-formatted)
+- [ ] `pnpm lint` (no errors)
+- [ ] `pnpm test` (relevant tests pass)
+- [ ] `pnpm build` (builds successfully)
+- [ ] Conventional commit message
+- [ ] Updated documentation
+- [ ] Added tests for new features
+- [ ] Removed console.logs and debuggers
+
+## Reference Documents
+
+- Architecture: `/docs/ARCHITECTURE.md`
+- Testing guide: `/docs/TESTING.md`
+- Deployment guide: `/docs/DEPLOYMENT.md`
+- Biome config: `/biome.json`, `/packages/*/biome.json`
+- TypeScript config: `/tsconfig.json`
+- Package rules: `.cursor/rules/*.mdc`, `packages/*/.cursor/rules/*.mdc`

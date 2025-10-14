@@ -236,8 +236,6 @@ Error: Missing required environment variable: PRIVY_APP_ID
    ```bash
    cp packages/client/.env.example packages/client/.env
    cp packages/contracts/.env.example packages/contracts/.env
-   # API package is under packages/api
-   cp packages/api/.env.example packages/api/.env
    ```
 2. Fill in required values
 
@@ -284,17 +282,6 @@ Error: Invalid API key
 
    ```typescript
    console.log("Debug:", { variable });
-   ```
-
-2. **Debug Mode**
-
-   ```bash
-   DEBUG=* pnpm --filter api dev
-   ```
-
-3. **API Testing**
-   ```bash
-   curl -X GET http://localhost:3000/api/endpoint
    ```
 
 ### Contract Debugging

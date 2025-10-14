@@ -1,8 +1,12 @@
 {
-  "name": "Green Goods Development Garden",
-  "description": "A local development garden for testing the Green Goods protocol with sample data and realistic scenarios.",
-  "location": "Local Development Environment",
-  "bannerImage": "QmSampleBannerImageHashForLocalDevelopment",
-  "gardeners": ["0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"],
-  "operators": ["0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC", "0x90F79bf6EB2c4f870365E785982E1f101E93b906"]
+  "name": "Green Goods Community Garden",
+  "description": "The global community garden for all Green Goods participants. This is the root garden that serves as the entry point for new users and community activities. All participants start here and can join specialized gardens as they engage with the platform.",
+  "location": "Mama Earth",
+  "bannerImage": "QmSampleBannerImageHashForCommunityGarden",
+  "gardeners": [],
+  "operators": [
+    "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
+    "0xAcD59e854adf632d2322404198624F757C868C97",
+    "0xED47B5f719eA74405Eb96ff700C11D1685b953B1"
+  ]
 }

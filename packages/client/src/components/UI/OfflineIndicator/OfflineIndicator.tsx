@@ -1,7 +1,7 @@
 import { RiCheckLine, RiCloudOffLine } from "@remixicon/react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useOffline } from "@/hooks/useOffline";
-import { cn } from "@/utils/cn";
+import { useOffline } from "@/hooks/app/useOffline";
+import { cn } from "@/utils/styles/cn";
 
 interface OfflineIndicatorProps {
   className?: string;

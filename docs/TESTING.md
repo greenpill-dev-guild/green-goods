@@ -348,6 +348,226 @@ This simplified structure maintains all testing functionality while being much m
 4. **Reduced Duplication** - Shared utilities and patterns
 5. **Improved Reliability** - Simplified logic is less prone to errors
 
+## Contract Testing
+
+Smart contract testing uses Foundry for comprehensive Solidity test coverage.
+
+### Running Contract Tests
+
+```bash
+cd packages/contracts
+
+# Compile contracts
+forge build
+
+# Run all tests
+forge test
+
+# Run specific test contract
+forge test --match-contract GardenAccountTest
+
+# Run with gas reporting
+forge test --gas-report
+
+# Generate coverage report
+forge coverage
+```
+
+### Test Organization
+
+```
+packages/contracts/test/
+├── ActionRegistry.t.sol      - Action registry tests
+├── GardenToken.t.sol         - Garden token and ERC721 tests
+├── GardenAccount.t.sol       - Garden account and TBA tests
+├── WorkResolver.t.sol        - Work attestation resolver tests
+├── WorkApprovalResolver.t.sol - Work approval resolver tests
+├── AssessmentResolver.t.sol  - Assessment attestation resolver tests
+├── DeploymentRegistry.t.sol  - Deployment registry and governance tests
+├── Integration.t.sol         - Full workflow integration tests
+├── FuzzTests.t.sol           - Fuzz testing for edge cases
+├── Deploy.t.sol              - Integration deployment tests
+└── DeploymentTest.t.sol      - Deployment verification tests
+```
+
+### Test Coverage Targets
+
+- **Overall Contracts**: 90% minimum coverage
+- **Core logic**: 95%+ coverage
+- **Critical paths**: 100% coverage required
+- **Security features**: 100% coverage required
+
+### Coverage by Contract
+
+| Contract | Target | Status |
+|----------|--------|--------|
+| GardenToken | 95% | ✅ Enhanced |
+| GardenAccount | 95% | ✅ Enhanced |
+| ActionRegistry | 95% | ✅ Enhanced |
+| WorkResolver | 90% | ✅ Enhanced |
+| WorkApprovalResolver | 90% | ✅ Enhanced |
+| AssessmentResolver | 90% | ✅ New tests added |
+| DeploymentRegistry | 95% | ✅ Enhanced |
+| Integration Tests | N/A | ✅ Added |
+| Fuzz Tests | N/A | ✅ Added |
+
+### Test Patterns
+
+**Setup with Proxies:**
+```solidity
+function setUp() public {
+    // Deploy implementation
+    ActionRegistry implementation = new ActionRegistry();
+    
+    // Deploy proxy with initialization
+    bytes memory initData = abi.encodeWithSelector(
+        ActionRegistry.initialize.selector,
+        multisig
+    );
+    ERC1967Proxy proxy = new ERC1967Proxy(
+        address(implementation),
+        initData
+    );
+    
+    actionRegistry = ActionRegistry(address(proxy));
+}
+```
+
+**Testing Upgrades:**
+```solidity
+function testUpgrade() public {
+    ActionRegistry newImpl = new ActionRegistry();
+    vm.prank(owner);
+    UUPSUpgradeable(address(actionRegistry)).upgradeTo(address(newImpl));
+}
+```
+
+### Integration Tests
+
+The `Integration.t.sol` file contains comprehensive workflow tests:
+
+```solidity
+// Full workflow tests
+function testCompleteHappyPath() public
+function testMultipleGardensIndependence() public
+function testBatchMinting() public
+function testActionLifecycle() public
+function testGardenMemberManagement() public
+function testInviteSystemWorkflow() public
+function testAccessControlAcrossContracts() public
+```
+
+**Coverage**: All major workflows including mint → action → work → approval
+
+### Fuzz Tests
+
+The `FuzzTests.t.sol` file uses Foundry's fuzzing to test edge cases:
+
+```solidity
+// Fuzz tests with random inputs
+function testFuzz_ActionRegistrationWithRandomTimes(uint64, uint32) public
+function testFuzz_GardenMintingWithRandomStrings(uint8, uint8) public
+function testFuzz_BatchMintingWithRandomSizes(uint8) public
+function testFuzz_ArrayLengthValidation(uint8) public
+function testFuzz_CapitalCombinations(uint8) public
+```
+
+**Benefits**: Automatically discovers edge cases and boundary conditions
+
+### Security Test Focus
+
+Enhanced test coverage for security-critical areas:
+
+- **Access Control**: All privileged functions have negative tests
+- **Input Validation**: Array length limits, time validation
+- **State Transitions**: Upgrade scenarios, ownership transfers  
+- **Edge Cases**: Boundary conditions, integer limits
+- **Integration**: Cross-contract interactions
+
+### Gas Benchmarks
+
+Expected gas costs for key operations (see `docs/GAS_LIMITS.md` for details):
+- Garden creation: ~600K gas
+- Batch garden creation (10): ~6M gas (~40% savings)
+- Action registration: ~250K gas
+- Work submission: ~150K gas
+- Work approval: ~180K gas
+- Invite code usage: ~60K gas
+
+## Admin Dashboard Testing
+
+The admin package uses Vitest + React Testing Library for component and integration tests.
+
+### Running Admin Tests
+
+```bash
+cd packages/admin
+
+# Fast unit tests (development)
+pnpm test:unit
+
+# Integration tests (requires Base Sepolia)
+pnpm test:integration
+
+# All tests
+pnpm test
+
+# Watch mode
+pnpm test:watch
+
+# Coverage report
+pnpm test:coverage
+
+# Interactive UI
+pnpm test:ui
+```
+
+### Test Structure
+
+```
+packages/admin/src/__tests__/
+├── hooks/                    - React hook tests
+│   ├── useRole.test.ts      - Role detection
+│   ├── useChainSync.test.ts - Chain switching
+│   └── useToastAction.test.ts - Toast notifications
+├── components/               - Component tests
+│   ├── RequireAuth.test.tsx - Auth guards
+│   └── RequireRole.test.tsx - Role-based access
+├── workflows/                - Workflow state machines
+│   └── createGarden.test.ts - Garden creation flow
+└── integration/              - E2E integration tests
+    └── garden-lifecycle.test.ts - Full garden workflow
+```
+
+### Mocking Strategy
+
+**Privy Authentication:**
+```typescript
+// Mock user roles
+const mockAdmin = createMockPrivyUser("admin");
+const mockOperator = createMockPrivyUser("operator");
+```
+
+**Blockchain Interactions:**
+```typescript
+// Mock successful transactions
+mockWalletClient.writeContract.mockResolvedValue(MOCK_TX_HASH);
+```
+
+**GraphQL Queries:**
+```typescript
+// MSW handlers for indexer
+graphql.query("GetGardens", () => 
+  HttpResponse.json({ data: { gardens: [...] }})
+);
+```
+
+### Performance Metrics
+
+- **Unit tests**: ~3 seconds
+- **Integration tests**: ~30 seconds
+- **Coverage target**: >80%
+
 ---
 
-🎉 **The tests are now production-ready and will successfully pass with proper service setup!** 
+🎉 **The tests are now production-ready and will successfully pass with proper service setup!**

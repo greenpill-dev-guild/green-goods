@@ -1,6 +1,6 @@
 import { type RemixiconComponentType, RiGithubLine, RiTwitterLine } from "@remixicon/react";
 import type React from "react";
-import { APP_NAME } from "@/config";
+import { APP_NAME } from "@/config/app";
 import { useApp } from "@/providers/app";
 
 type HeaderProps = Record<string, never>;

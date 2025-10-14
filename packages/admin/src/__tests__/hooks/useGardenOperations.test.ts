@@ -36,7 +36,7 @@ describe("useGardenOperations", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     mockUseWallets.mockReturnValue({
       wallets: [
         {
@@ -62,7 +62,7 @@ describe("useGardenOperations", () => {
 
   it("should add gardener successfully", async () => {
     mockWalletClient.writeContract.mockResolvedValue(MOCK_TX_HASH);
-    
+
     const { result } = renderHook(() => useGardenOperations(gardenId));
 
     await act(async () => {
@@ -70,14 +70,11 @@ describe("useGardenOperations", () => {
       expect(txHash).toBe(MOCK_TX_HASH);
     });
 
-    expect(mockExecuteWithToast).toHaveBeenCalledWith(
-      expect.any(Function),
-      {
-        loadingMessage: "Adding gardener...",
-        successMessage: "Gardener added successfully",
-        errorMessage: "Failed to add gardener",
-      }
-    );
+    expect(mockExecuteWithToast).toHaveBeenCalledWith(expect.any(Function), {
+      loadingMessage: "Adding gardener...",
+      successMessage: "Gardener added successfully",
+      errorMessage: "Failed to add gardener",
+    });
 
     expect(mockWalletClient.writeContract).toHaveBeenCalledWith({
       address: gardenId,
@@ -90,27 +87,26 @@ describe("useGardenOperations", () => {
 
   it("should remove gardener successfully", async () => {
     mockWalletClient.writeContract.mockResolvedValue(MOCK_TX_HASH);
-    
+
     const { result } = renderHook(() => useGardenOperations(gardenId));
 
     await act(async () => {
-      const txHash = await result.current.removeGardener("0x1234567890123456789012345678901234567890");
+      const txHash = await result.current.removeGardener(
+        "0x1234567890123456789012345678901234567890"
+      );
       expect(txHash).toBe(MOCK_TX_HASH);
     });
 
-    expect(mockExecuteWithToast).toHaveBeenCalledWith(
-      expect.any(Function),
-      {
-        loadingMessage: "Removing gardener...",
-        successMessage: "Gardener removed successfully",
-        errorMessage: "Failed to remove gardener",
-      }
-    );
+    expect(mockExecuteWithToast).toHaveBeenCalledWith(expect.any(Function), {
+      loadingMessage: "Removing gardener...",
+      successMessage: "Gardener removed successfully",
+      errorMessage: "Failed to remove gardener",
+    });
   });
 
   it("should handle wallet not connected error", async () => {
     mockUseWallets.mockReturnValue({ wallets: [] });
-    
+
     const { result } = renderHook(() => useGardenOperations(gardenId));
 
     await act(async () => {
@@ -132,7 +128,7 @@ describe("useGardenOperations", () => {
         throw error;
       }
     });
-    
+
     const { result } = renderHook(() => useGardenOperations(gardenId));
 
     await act(async () => {
@@ -148,9 +144,9 @@ describe("useGardenOperations", () => {
 
   it("should set loading state during operations", async () => {
     mockWalletClient.writeContract.mockImplementation(
-      () => new Promise(resolve => setTimeout(() => resolve(MOCK_TX_HASH), 100))
+      () => new Promise((resolve) => setTimeout(() => resolve(MOCK_TX_HASH), 100))
     );
-    
+
     const { result } = renderHook(() => useGardenOperations(gardenId));
 
     expect(result.current.isLoading).toBe(false);
@@ -165,7 +161,7 @@ describe("useGardenOperations", () => {
 
   it("should add operator successfully", async () => {
     mockWalletClient.writeContract.mockResolvedValue(MOCK_TX_HASH);
-    
+
     const { result } = renderHook(() => useGardenOperations(gardenId));
 
     await act(async () => {
@@ -173,33 +169,29 @@ describe("useGardenOperations", () => {
       expect(txHash).toBe(MOCK_TX_HASH);
     });
 
-    expect(mockExecuteWithToast).toHaveBeenCalledWith(
-      expect.any(Function),
-      {
-        loadingMessage: "Adding operator...",
-        successMessage: "Operator added successfully",
-        errorMessage: "Failed to add operator",
-      }
-    );
+    expect(mockExecuteWithToast).toHaveBeenCalledWith(expect.any(Function), {
+      loadingMessage: "Adding operator...",
+      successMessage: "Operator added successfully",
+      errorMessage: "Failed to add operator",
+    });
   });
 
   it("should remove operator successfully", async () => {
     mockWalletClient.writeContract.mockResolvedValue(MOCK_TX_HASH);
-    
+
     const { result } = renderHook(() => useGardenOperations(gardenId));
 
     await act(async () => {
-      const txHash = await result.current.removeOperator("0x1111111111111111111111111111111111111111");
+      const txHash = await result.current.removeOperator(
+        "0x1111111111111111111111111111111111111111"
+      );
       expect(txHash).toBe(MOCK_TX_HASH);
     });
 
-    expect(mockExecuteWithToast).toHaveBeenCalledWith(
-      expect.any(Function),
-      {
-        loadingMessage: "Removing operator...",
-        successMessage: "Operator removed successfully",
-        errorMessage: "Failed to remove operator",
-      }
-    );
+    expect(mockExecuteWithToast).toHaveBeenCalledWith(expect.any(Function), {
+      loadingMessage: "Removing operator...",
+      successMessage: "Operator removed successfully",
+      errorMessage: "Failed to remove operator",
+    });
   });
 });

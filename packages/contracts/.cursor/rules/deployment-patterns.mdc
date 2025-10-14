@@ -1,0 +1,169 @@
+---
+description: Deployment patterns — deploy.js usage, profiles, verification
+globs:
+  - script/deploy.js
+  - script/upgrade.js
+  - script/**/*.s.sol
+alwaysApply: false
+---
+
+# Deployment Patterns
+
+Green Goods contracts use a unified deploy.js system. This rule documents mandatory patterns and deployment profiles.
+
+## MANDATORY: Use deploy.js
+
+**✅ ALWAYS:**
+```bash
+pnpm deploy:testnet
+node script/deploy.js core --network baseSepolia --broadcast
+```
+
+**❌ NEVER:**
+```bash
+forge script script/Deploy.s.sol --broadcast
+```
+
+**Why deploy.js is required:**
+- Loads root .env correctly
+- Ensures deterministic addresses
+- Handles schema deployment
+- Implements retry logic
+- Provides dry-run validation
+
+## Deployment Profiles
+
+```javascript
+// script/deploy.js
+const profiles = {
+  production: {
+    useOptimizedScript: false,
+    skipExisting: true,
+    forceRedeploy: false,
+    updateSchemas: false,
+  },
+  testing: {
+    useOptimizedScript: false,
+    skipExisting: false,
+    forceRedeploy: false,
+    updateSchemas: true,
+  },
+  update: {
+    useOptimizedScript: false,
+    skipExisting: true,
+    forceRedeploy: false,
+    updateSchemas: true,  // Only update schemas
+  },
+  hotfix: {
+    useOptimizedScript: false,
+    skipExisting: false,
+    forceRedeploy: true,  // Force redeploy
+    updateSchemas: false,
+  },
+  optimized: {
+    useOptimizedScript: true,  // Use OptimizedDeploy.s.sol
+    skipExisting: true,
+    forceRedeploy: false,
+    updateSchemas: false,
+  },
+};
+```
+
+### Using Profiles
+
+```bash
+# Use specific profile
+node script/deploy.js core --network celo --profile production --broadcast
+
+# Default profile (testing for testnet, production for mainnet)
+pnpm deploy:testnet
+```
+
+## Deployment Flags
+
+### Common Flag Combinations
+
+```bash
+# Dry run (simulation only)
+node script/deploy.js core --network baseSepolia
+
+# Deploy for real
+node script/deploy.js core --network baseSepolia --broadcast
+
+# Update schemas only (skip contracts)
+node script/deploy.js core --network baseSepolia --broadcast --update-schemas
+
+# Force fresh deployment (ignore existing)
+node script/deploy.js core --network baseSepolia --broadcast --force
+
+# Skip schemas (contracts only)
+node script/deploy.js core --network baseSepolia --broadcast --skip-schemas
+
+# Verbose logging
+node script/deploy.js core --network baseSepolia --broadcast --verbose
+```
+
+## What Gets Deployed
+
+Every core deployment includes:
+
+1. **Core contracts:**
+   - DeploymentRegistry
+   - GardenToken
+   - ActionRegistry
+   - WorkResolver
+   - WorkApprovalResolver
+   - AssessmentResolver
+
+2. **EAS schemas:**
+   - Garden Assessment schema
+   - Work schema
+   - Work Approval schema
+
+3. **Root garden:**
+   - "Green Goods Community Garden" (tokenId: 1)
+
+4. **Core actions:**
+   - Planting (actionUID: 1)
+   - Identify Plant (actionUID: 2)
+   - Litter Cleanup (actionUID: 3)
+
+This infrastructure is always deployed — no flags needed.
+
+## Post-Deployment
+
+### Verification
+
+```bash
+# Verify on block explorer
+forge verify-contract \
+  --chain-id 84532 \
+  --watch \
+  $CONTRACT_ADDRESS \
+  src/Contract.sol:ContractName
+
+# Verify ownership
+cast call $GARDEN_TOKEN "owner()" --rpc-url $RPC
+
+# Verify schema
+cast call $EAS "getSchema(bytes32)" $SCHEMA_UID --rpc-url $RPC
+```
+
+### Integration
+
+After deployment:
+
+```bash
+# Update indexer
+cd packages/indexer && pnpm codegen
+
+# Rebuild frontend
+cd packages/client && pnpm build
+```
+
+## Reference Files
+
+- Deploy script: `script/deploy.js`
+- Forge script: `script/Deploy.s.sol`
+- Deployment guide: `/docs/DEPLOYMENT.md`
+- Root deployment rule: `/.cursor/rules/deployment.mdc`

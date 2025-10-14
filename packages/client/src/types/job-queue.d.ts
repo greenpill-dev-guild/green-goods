@@ -1,4 +1,5 @@
 // Job Queue Types - Global declarations for better type safety
+import type { SmartAccountClient } from "permissionless";
 
 declare global {
   interface Job<T = unknown> {
@@ -26,7 +27,7 @@ declare global {
     execute: (
       encoded: TEncoded,
       meta: Record<string, unknown>,
-      smartAccountClient: unknown
+      smartAccountClient: SmartAccountClient
     ) => Promise<string>;
   }
 

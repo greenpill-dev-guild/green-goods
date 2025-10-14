@@ -6,8 +6,9 @@ import { GardenCard } from "@/components/UI/Card/GardenCard";
 import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
 
 import { WorkDashboardIcon } from "./WorkDashboard/Icon";
-import { useBrowserNavigation, useNavigateToTop } from "@/hooks";
-import { useGardens } from "@/hooks/useBaseLists";
+import { useBrowserNavigation } from "@/hooks/app/useBrowserNavigation";
+import { useNavigateToTop } from "@/hooks/app/useNavigateToTop";
+import { useGardens } from "@/hooks/blockchain/useBaseLists";
 
 const Gardens: React.FC = () => {
   const navigate = useNavigateToTop();

@@ -16,13 +16,12 @@ module.exports = {
       min_uptime: "10s",
     },
     {
-      name: "api",
+      name: "admin",
       script: "sh",
-      args: '-c "pnpm --filter api run dev"',
+      args: '-c "pnpm --filter admin run dev"',
       cwd: ".",
       env: {
         NODE_ENV: "development",
-        PORT: "3000",
       },
       merge_logs: true,
       autorestart: true,
@@ -32,7 +31,7 @@ module.exports = {
     {
       name: "indexer",
       script: "sh",
-      args: '-c "pnpm --filter indexer run dev"',
+      args: '-c "cd packages/indexer && pnpm run dev"',
       cwd: ".",
       env: {
         NODE_ENV: "development",

@@ -1,13 +1,12 @@
-import { PrivyProvider } from "@privy-io/react-auth";
-import { SmartWalletsProvider } from "@privy-io/react-auth/smart-wallets";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { arbitrum, baseSepolia, celo } from "viem/chains";
+import { WagmiProvider } from "wagmi";
 
 import App from "@/App.tsx";
-import { APP_DESCRIPTION, getDefaultChain } from "@/config";
+import { DEFAULT_CHAIN_ID } from "@/config/blockchain";
+import { wagmiConfig } from "@/config/wagmi";
+import { AuthProvider } from "@/providers/auth";
 import { AppProvider } from "@/providers/app";
-import { UserProvider } from "@/providers/user";
 
 import "@/index.css";
 
@@ -34,43 +33,23 @@ if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_SW_DEV !== "true") {
 }
 
 export const Root = () => (
-  <AppProvider>
-    <PrivyProvider
-      appId={import.meta.env.VITE_PRIVY_APP_ID as string}
-      config={{
-        loginMethods: ["email", "sms"],
-        appearance: {
-          theme: "light",
-          loginMessage: APP_DESCRIPTION,
-          landingHeader: "",
-          logo: "",
-        },
-        embeddedWallets: {
-          createOnLogin: "all-users",
-        },
-        defaultChain: getDefaultChain(),
-        supportedChains: [arbitrum, celo, baseSepolia],
-        intl: {
-          defaultCountry:
-            navigator.language === "pt-BR" ? "BR" : navigator.language === "es-ES" ? "ES" : "US",
-        },
-      }}
-    >
-      <SmartWalletsProvider>
-        <UserProvider>
-          <App />
-        </UserProvider>
-      </SmartWalletsProvider>
-    </PrivyProvider>
-  </AppProvider>
+  <WagmiProvider config={wagmiConfig}>
+    <AppProvider>
+      <AuthProvider chainId={DEFAULT_CHAIN_ID}>
+        <App />
+      </AuthProvider>
+    </AppProvider>
+  </WagmiProvider>
 );
 
 const container = document.getElementById("root");
-
-if (container) {
-  createRoot(container).render(
-    <StrictMode>
-      <Root />
-    </StrictMode>
-  );
+if (!container) {
+  throw new Error("Root container missing in index.html");
 }
+
+const root = createRoot(container);
+root.render(
+  <StrictMode>
+    <Root />
+  </StrictMode>
+);

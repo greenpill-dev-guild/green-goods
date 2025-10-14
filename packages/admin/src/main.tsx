@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { WagmiProvider } from 'wagmi'
-import { QueryClientProvider } from '@tanstack/react-query'
+import { WagmiProvider } from "wagmi";
+import { QueryClientProvider } from "@tanstack/react-query";
 
 import App from "@/App.tsx";
 import { AuthProvider } from "@/providers/AuthProvider";
@@ -11,22 +11,22 @@ import "@/index.css";
 
 // Initialize theme on app start
 function initializeTheme() {
-  const themeMode = localStorage.getItem("themeMode") || 'system';
+  const themeMode = localStorage.getItem("themeMode") || "system";
   let shouldBeDark = false;
 
-  if (themeMode === 'dark') {
+  if (themeMode === "dark") {
     shouldBeDark = true;
-  } else if (themeMode === 'light') {
+  } else if (themeMode === "light") {
     shouldBeDark = false;
   } else {
     // System mode
-    shouldBeDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    shouldBeDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
   }
 
   if (shouldBeDark) {
-    document.documentElement.classList.add('dark');
+    document.documentElement.classList.add("dark");
   } else {
-    document.documentElement.classList.remove('dark');
+    document.documentElement.classList.remove("dark");
   }
 }
 

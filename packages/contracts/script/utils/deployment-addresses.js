@@ -9,11 +9,8 @@ class DeploymentAddresses {
   loadForChain(chainId) {
     const chainMap = {
       localhost: "31337",
-      sepolia: "11155111",
       arbitrum: "42161",
-      base: "8453",
       baseSepolia: "84532",
-      optimism: "10",
       celo: "42220",
     };
 

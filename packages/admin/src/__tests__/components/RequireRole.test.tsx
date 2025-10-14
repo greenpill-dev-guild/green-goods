@@ -114,7 +114,9 @@ describe("RequireRole", () => {
 
     expect(screen.getByText("Unauthorized")).toBeInTheDocument();
     expect(screen.getByText("You don't have permission to access this area.")).toBeInTheDocument();
-    expect(screen.queryByText("Contact an admin to be added as an operator.")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Contact an admin to be added as an operator.")
+    ).not.toBeInTheDocument();
     expect(screen.queryByTestId("outlet")).not.toBeInTheDocument();
   });
 
@@ -129,6 +131,8 @@ describe("RequireRole", () => {
 
     render(<RequireRole allowedRoles={["admin"]} />);
 
-    expect(screen.queryByText("Contact an admin to be added as an operator.")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Contact an admin to be added as an operator.")
+    ).not.toBeInTheDocument();
   });
 });

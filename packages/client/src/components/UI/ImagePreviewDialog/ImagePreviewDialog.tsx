@@ -5,8 +5,8 @@ import {
   RiZoomInLine,
   RiZoomOutLine,
 } from "@remixicon/react";
-import React, { TouchEvent, useEffect, useRef, useState, WheelEvent } from "react";
-import { cn } from "@/utils/cn";
+import React, { TouchEvent, useCallback, useEffect, useRef, useState, WheelEvent } from "react";
+import { cn } from "@/utils/styles/cn";
 
 export interface ImagePreviewDialogProps {
   isOpen: boolean;
@@ -42,6 +42,19 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
     initialDistance: null,
     initialScale: 1,
   });
+
+  // Navigation functions
+  const navigatePrev = useCallback(() => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    }
+  }, [currentIndex]);
+
+  const navigateNext = useCallback(() => {
+    if (currentIndex < images.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    }
+  }, [currentIndex, images.length]);
 
   // Reset transform when image changes
   useEffect(() => {
@@ -84,7 +97,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, currentIndex, images.length, onClose]);
+  }, [isOpen, currentIndex, images.length, onClose, navigateNext, navigatePrev]);
 
   // Scroll lock + initial focus + restore focus
   useEffect(() => {
@@ -167,18 +180,6 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
       case "0":
         resetZoom();
         break;
-    }
-  };
-
-  const navigatePrev = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-    }
-  };
-
-  const navigateNext = () => {
-    if (currentIndex < images.length - 1) {
-      setCurrentIndex(currentIndex + 1);
     }
   };
 
@@ -309,6 +310,11 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
         className
       )}
       onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          onClose();
+        }
+      }}
       data-testid="image-preview-dialog"
     >
       <div

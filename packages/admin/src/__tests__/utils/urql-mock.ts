@@ -70,12 +70,13 @@ export function createMockUrqlClient(customHandlers?: Record<string, unknown>) {
   // Setup query mock to return appropriate responses
   mockClient.executeQuery.mockImplementation(({ query }) => {
     const queryName = query.definitions[0]?.name?.value;
-    const response = customHandlers?.[queryName] || defaultResponses[queryName] || {
-      data: null,
-      fetching: false,
-      error: new Error(`Unmocked query: ${queryName}`),
-    };
-    
+    const response = customHandlers?.[queryName] ||
+      defaultResponses[queryName] || {
+        data: null,
+        fetching: false,
+        error: new Error(`Unmocked query: ${queryName}`),
+      };
+
     return Promise.resolve(response);
   });
 

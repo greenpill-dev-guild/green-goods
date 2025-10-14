@@ -1,0 +1,51 @@
+name: Green Goods
+description: Green Goods Indexer
+contracts:
+  - name: ActionRegistry
+    abi_file_path: abis/ActionRegistry.json
+    handler: src/EventHandlers.ts
+    events:
+      - event: ActionRegistered
+      - event: ActionStartTimeUpdated
+      - event: ActionEndTimeUpdated
+      - event: ActionTitleUpdated
+      - event: ActionInstructionsUpdated
+      - event: ActionMediaUpdated
+  - name: GardenToken
+    abi_file_path: abis/GardenToken.json
+    handler: src/EventHandlers.ts
+    events:
+      - event: GardenMinted
+  - name: GardenAccount
+    abi_file_path: abis/GardenAccount.json
+    handler: src/EventHandlers.ts
+    events:
+      - event: NameUpdated
+      - event: DescriptionUpdated
+      - event: GardenerAdded
+      - event: GardenerRemoved
+      - event: GardenOperatorAdded
+      - event: GardenOperatorRemoved
+      - event: InviteCreated
+      - event: InviteUsed
+      - event: InviteRevoked
+      - event: GAPProjectCreated
+networks:
+  - id: 84532
+  - id: 42220
+  - id: 42161
+  #   start_block: 1000
+  #   contracts:
+  #     - name: ActionRegistry
+  #       address: '0x547e82BF9c8496f41927583793242f6b91C182A6'
+  #     - name: GardenToken
+  #       address: '0x547e82BF9c8496f41927583793242f6b91C182A6'
+  #     - name: GardenAccount
+  #       address: '0x547e82BF9c8496f41927583793242f6b91C182A6'
+rpc_config:
+  '42161':
+    url: https://arb-mainnet.g.alchemy.com/v2/demo
+  '42220':
+    url: https://celo-mainnet.g.alchemy.com/v2/demo
+  '84532':
+    url: https://base-sepolia.g.alchemy.com/v2/demo

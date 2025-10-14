@@ -29,6 +29,6 @@
   },
   "base_fee": "1000000000",
   "gas_price": "1875000000",
-  "gas_limit": "30000000",
-  "genesis_timestamp": "1752044792"
+  "gas_limit": null,
+  "genesis_timestamp": "1760241680"
 }

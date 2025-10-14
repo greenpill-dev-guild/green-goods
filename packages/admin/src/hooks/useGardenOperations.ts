@@ -15,7 +15,7 @@ export function useGardenOperations(gardenId: string) {
     }
 
     setIsLoading(true);
-    
+
     try {
       const result = await executeWithToast(
         async () => {
@@ -48,7 +48,7 @@ export function useGardenOperations(gardenId: string) {
     }
 
     setIsLoading(true);
-    
+
     try {
       const result = await executeWithToast(
         async () => {
@@ -81,7 +81,7 @@ export function useGardenOperations(gardenId: string) {
     }
 
     setIsLoading(true);
-    
+
     try {
       const result = await executeWithToast(
         async () => {
@@ -114,7 +114,7 @@ export function useGardenOperations(gardenId: string) {
     }
 
     setIsLoading(true);
-    
+
     try {
       const result = await executeWithToast(
         async () => {

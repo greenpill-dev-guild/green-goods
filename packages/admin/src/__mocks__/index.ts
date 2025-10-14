@@ -31,7 +31,7 @@ vi.mock("@privy-io/react-auth", () => ({
       },
     ],
   }),
-  PrivyProvider: ({ children }: { children: React.ReactNode }) => 
+  PrivyProvider: ({ children }: { children: React.ReactNode }) =>
     React.createElement("div", { "data-testid": "privy-provider" }, children),
 }));
 

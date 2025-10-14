@@ -8,8 +8,9 @@ export function Header() {
   const { switchChain, isPending: isSwitching } = useSwitchChain();
   const chainId = useChainId();
   const { setSidebarOpen } = useAdminStore();
-  
-  const currentChain = SUPPORTED_CHAINS.find(chain => chain.id === chainId) || SUPPORTED_CHAINS[0];
+
+  const currentChain =
+    SUPPORTED_CHAINS.find((chain) => chain.id === chainId) || SUPPORTED_CHAINS[0];
 
   return (
     <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
@@ -27,7 +28,7 @@ export function Header() {
           <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Green Goods</h1>
         </div> */}
 
-        {/* Right side controls */}
+        {/* Left side controls */}
         <div className="flex items-center space-x-4">
           {/* Chain selector */}
           <select
@@ -42,10 +43,13 @@ export function Header() {
               </option>
             ))}
           </select>
-
-          {/* User profile */}
-          <UserProfile />
         </div>
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Right side - User profile */}
+        <UserProfile />
       </div>
     </header>
   );

@@ -1,18 +1,16 @@
-import { usePrivy } from "@privy-io/react-auth";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useUser } from "@/providers/user";
+import { useAuth } from "@/hooks/auth/useAuth";
 
 export default function RequireAuth() {
-  const { authenticated } = usePrivy();
-  const { ready, smartAccountAddress } = useUser();
+  const { smartAccountAddress, isReady } = useAuth();
   const location = useLocation();
 
-  if (!ready) return null; // Router fallback will render global loader
+  if (!isReady) return null; // Router fallback will render global loader
 
-  const isAuthenticated = authenticated && smartAccountAddress;
-  if (!isAuthenticated) {
+  if (!smartAccountAddress) {
     const redirectTo = encodeURIComponent(location.pathname + location.search + location.hash);
     return <Navigate to={`/login?redirectTo=${redirectTo}`} replace />;
   }
+
   return <Outlet />;
 }

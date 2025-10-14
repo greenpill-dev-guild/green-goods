@@ -7,8 +7,11 @@ import { Button } from "@/components/UI/Button";
 import { DuplicateWorkWarning } from "@/components/UI/DuplicateWorkWarning/DuplicateWorkWarning";
 import { FormProgress } from "@/components/UI/Form/Progress";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
-import { DEFAULT_CHAIN_ID } from "@/config";
-import { defaultDeduplicationManager, type DuplicateCheckResult } from "@/modules/deduplication";
+import { DEFAULT_CHAIN_ID } from "@/config/blockchain";
+import {
+  defaultDeduplicationManager,
+  type DuplicateCheckResult,
+} from "@/modules/work/deduplication";
 import { ActionCardSkeleton } from "@/components/UI/Card/ActionCardSkeleton";
 import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
 import { FormInfo } from "@/components/UI/Form/Info";

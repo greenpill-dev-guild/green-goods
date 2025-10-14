@@ -11,10 +11,10 @@ import {
 } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
-import { cn } from "../../../utils/cn";
+import { cn } from "../../../utils/styles/cn";
 import { Card } from "./Card";
 import { StatusBadge } from "./StatusBadge";
-import { formatAddress } from "@/utils/text";
+import { formatAddress } from "@/utils/app/text";
 
 export interface WorkCardItem {
   id: string;
@@ -122,10 +122,11 @@ export const WorkCard: React.FC<WorkCardProps> = ({
   // Render minimal variant
   if (variant === "minimal") {
     return (
-      <div
+      <button
         onClick={onClick}
+        type="button"
         className={cn(
-          "flex gap-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer",
+          "flex gap-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer w-full text-left",
           className
         )}
       >
@@ -159,7 +160,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({
             </span>
           </div>
         </div>
-      </div>
+      </button>
     );
   }
 
@@ -356,10 +357,11 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   const timeAgo = formatTimeAgo(work.createdAt);
 
   return (
-    <div
+    <button
       onClick={onClick}
+      type="button"
       className={cn(
-        "flex items-stretch gap-0 border border-slate-200 rounded-lg overflow-hidden transition-colors cursor-pointer bg-white",
+        "flex items-stretch gap-0 border border-slate-200 rounded-lg overflow-hidden transition-colors cursor-pointer bg-white w-full text-left",
         "hover:bg-slate-50",
         className
       )}
@@ -425,7 +427,7 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
           )}
         </div>
       </div>
-    </div>
+    </button>
   );
 };
 

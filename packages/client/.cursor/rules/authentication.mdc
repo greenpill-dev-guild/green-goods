@@ -1,0 +1,781 @@
+---
+description: Authentication patterns — passkey-first, WebAuthn, Pimlico, smart accounts, Wagmi fallback
+globs:
+  - providers/auth.tsx
+  - providers/AuthProvider.tsx
+  - hooks/auth/**
+  - routes/RequireAuth.tsx
+  - routes/RequireInstalled.tsx
+alwaysApply: false
+---
+
+# Authentication & Account Abstraction
+
+Green Goods client uses **passkey-first authentication** with WebAuthn credentials and Kernel smart accounts via Pimlico. Wagmi provides fallback for operators and admins.
+
+## Authentication Modes
+
+```typescript
+export type AuthMode = 'passkey' | 'wallet' | null;
+```
+
+### Passkey Mode (Primary)
+
+**For:** Gardeners, general users
+**Tech:** WebAuthn + viem/account-abstraction + Kernel + Pimlico
+**UX:** Biometric authentication, no seed phrases, sponsored transactions
+
+### Wallet Mode (Fallback)
+
+**For:** Operators, admins, power users
+**Tech:** Wagmi + WalletConnect + MetaMask
+**UX:** Traditional wallet connection
+
+## AuthProvider Structure
+
+```typescript
+// providers/auth.tsx
+interface AuthContextType {
+  // Mode
+  authMode: AuthMode;
+  
+  // Passkey state
+  credential: P256Credential | null;
+  smartAccountAddress: Hex | null;
+  smartAccountClient: SmartAccountClient | null;
+  
+  // Wallet state
+  walletAddress: Hex | null;
+  walletConnector: Connector | null;
+  
+  // Status
+  isCreating: boolean;
+  isReady: boolean;
+  error: Error | null;
+  
+  // Passkey actions
+  createPasskey: () => Promise<void>;
+  clearPasskey: () => void;
+  
+  // Wallet actions
+  connectWallet: (connector: Connector) => Promise<void>;
+  disconnectWallet: () => void;
+}
+```
+
+### Provider Implementation
+
+```typescript
+export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }) {
+  const [authMode, setAuthMode] = useState<AuthMode>(null);
+  const [credential, setCredential] = useState<P256Credential | null>(null);
+  const [smartAccountAddress, setSmartAccountAddress] = useState<Hex | null>(null);
+  const [smartAccountClient, setSmartAccountClient] = useState<SmartAccountClient | null>(null);
+  
+  // Load saved credentials on mount
+  useEffect(() => {
+    const savedAuthMode = localStorage.getItem('greengoods_auth_mode');
+    
+    if (savedAuthMode === 'passkey') {
+      const saved = localStorage.getItem('greengoods_passkey_credential');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setCredential(parsed);
+        setAuthMode('passkey');
+      }
+    } else if (savedAuthMode === 'wallet') {
+      const account = getAccount(wagmiConfig);
+      if (account.address) {
+        setWalletAddress(account.address);
+        setAuthMode('wallet');
+      }
+    }
+  }, []);
+  
+  // Initialize smart account when credential available
+  useEffect(() => {
+    if (!credential) return;
+    
+    const initializeSmartAccount = async () => {
+      const chain = getChainFromId(chainId);
+      const publicClient = createPublicClientForChain(chainId);
+      const pimlicoClient = createPimlicoClientForChain(chainId);
+      
+      // Create WebAuthn account
+      const webAuthnAccount = toWebAuthnAccount({ credential });
+      
+      // Create Kernel smart account
+      const account = await toKernelSmartAccount({
+        client: publicClient,
+        version: '0.3.1',
+        owners: [webAuthnAccount],
+        entryPoint: {
+          address: entryPoint07Address,
+          version: '0.7',
+        },
+      });
+      
+      setSmartAccountAddress(account.address);
+      
+      // Create smart account client with Pimlico paymaster
+      const client = createSmartAccountClient({
+        account,
+        chain,
+        bundlerTransport: http(pimlicoClient.transport.url),
+        paymaster: pimlicoClient,
+        userOperation: {
+          estimateFeesPerGas: async () => {
+            const gasPrice = await pimlicoClient.getUserOperationGasPrice();
+            return gasPrice.fast;
+          },
+        },
+      });
+      
+      setSmartAccountClient(client);
+    };
+    
+    initializeSmartAccount();
+  }, [credential, chainId]);
+  
+  // ... actions (createPasskey, connectWallet, etc.)
+}
+```
+
+## Passkey Creation Flow
+
+```typescript
+const createPasskey = async () => {
+  setIsCreating(true);
+  setError(null);
+  
+  try {
+    // Create WebAuthn credential (triggers browser biometric prompt)
+    const newCredential = await createWebAuthnCredential({
+      name: 'Green Goods Wallet',
+    });
+    
+    // Save to localStorage (only public data)
+    localStorage.setItem('greengoods_passkey_credential', JSON.stringify(newCredential));
+    localStorage.setItem('greengoods_auth_mode', 'passkey');
+    
+    setCredential(newCredential);
+    setAuthMode('passkey');
+    
+    logger.log('Passkey created', { credentialId: newCredential.id });
+  } catch (err) {
+    logger.error('Passkey creation failed', err);
+    setError(err instanceof Error ? err : new Error('Failed to create passkey'));
+    throw err;
+  } finally {
+    setIsCreating(false);
+  }
+};
+```
+
+## Smart Account Usage
+
+### Sending Transactions
+
+```typescript
+import { useAuth } from '@/hooks/auth/useAuth';
+
+function MyComponent() {
+  const { smartAccountClient, isReady } = useAuth();
+  
+  const handleTransaction = async () => {
+    // Guard: check ready and client
+    if (!isReady || !smartAccountClient) {
+      throw new Error('Smart account not ready');
+    }
+    
+    // Check account exists
+    if (!smartAccountClient.account) {
+      throw new Error('Smart account not initialized');
+    }
+    
+    // Send transaction (automatically sponsored via Pimlico)
+    const txHash = await smartAccountClient.sendTransaction({
+      to: contractAddress,
+      data: encodedData,
+      value: 0n,
+    });
+    
+    return txHash;
+  };
+}
+```
+
+### Type Safety with Smart Accounts
+
+```typescript
+import type { SmartAccountClient } from 'permissionless';
+import type { SmartAccount } from 'viem/account-abstraction';
+
+// Processor signature
+async execute(
+  encoded: EncodedData,
+  meta: Record<string, unknown>,
+  smartAccountClient: SmartAccountClient
+): Promise<string> {
+  // Cast account if needed
+  const account = smartAccountClient.account as SmartAccount;
+  
+  // Use sendTransaction (any cast for permissionless compatibility)
+  const txHash = await (smartAccountClient.sendTransaction as any)({
+    to: address,
+    data: encodedData,
+    value: 0n,
+  });
+  
+  return txHash;
+}
+```
+
+## Wagmi Integration (Wallet Mode)
+
+### Wallet Connection
+
+```typescript
+const connectWallet = async (connector: Connector) => {
+  setIsCreating(true);
+  setError(null);
+  
+  try {
+    const result = await connect(wagmiConfig, { connector });
+    
+    setWalletAddress(result.accounts[0] as Hex);
+    setWalletConnector(connector);
+    setAuthMode('wallet');
+    localStorage.setItem('greengoods_auth_mode', 'wallet');
+    
+    logger.log('Wallet connected', { account: result.accounts[0] });
+  } catch (err) {
+    logger.error('Wallet connection failed', err);
+    throw err;
+  } finally {
+    setIsCreating(false);
+  }
+};
+```
+
+### Watch Account Changes
+
+```typescript
+useEffect(() => {
+  if (authMode !== 'wallet') return;
+  
+  const unwatch = watchAccount(wagmiConfig, {
+    onChange(account) {
+      if (account.address) {
+        setWalletAddress(account.address);
+      } else {
+        // Wallet disconnected
+        setWalletAddress(null);
+        setAuthMode(null);
+        localStorage.removeItem('greengoods_auth_mode');
+      }
+    },
+  });
+  
+  return unwatch;
+}, [authMode]);
+```
+
+## Route Guards
+
+### RequireAuth Pattern
+
+```typescript
+// routes/RequireAuth.tsx
+export default function RequireAuth() {
+  const { smartAccountAddress, isReady } = useAuth();
+  const location = useLocation();
+  
+  // Wait for auth to initialize
+  if (!isReady) return null;
+  
+  // Redirect to login if not authenticated
+  if (!smartAccountAddress) {
+    const redirectTo = encodeURIComponent(
+      location.pathname + location.search + location.hash
+    );
+    return <Navigate to={`/login?redirectTo=${redirectTo}`} replace />;
+  }
+  
+  // Render protected content
+  return <Outlet />;
+}
+```
+
+### RequireInstalled (PWA Guard)
+
+```typescript
+// routes/RequireInstalled.tsx
+export default function RequireInstalled() {
+  const { isMobile, isInstalled } = useApp();
+  const isDownloaded = (isMobile && isInstalled) || import.meta.env.VITE_DESKTOP_DEV === 'true';
+  const location = useLocation();
+  
+  if (!isDownloaded) {
+    const redirectTo = encodeURIComponent(location.pathname);
+    return <Navigate to={`/landing?redirectTo=${redirectTo}`} replace />;
+  }
+  
+  return <Outlet />;
+}
+```
+
+## useUser Adapter
+
+Provides backward-compatible user interface:
+
+```typescript
+// hooks/auth/useUser.ts
+export function useUser(): UseUserReturn {
+  const {
+    authMode,
+    walletAddress,
+    smartAccountAddress,
+    smartAccountClient,
+    credential,
+    isReady
+  } = useAuth();
+  
+  // EOA available in wallet mode only
+  const eoa = authMode === 'wallet' && walletAddress
+    ? { address: walletAddress }
+    : null;
+  
+  // Primary address depends on mode
+  const primaryAddress = authMode === 'wallet' ? walletAddress : smartAccountAddress;
+  
+  // Create user object
+  const user = primaryAddress ? {
+    id: authMode === 'wallet' ? walletAddress! : credential?.id || primaryAddress,
+    wallet: { address: primaryAddress },
+  } : null;
+  
+  return {
+    user,
+    ready: isReady,
+    eoa,
+    smartAccountAddress,
+    smartAccountClient,
+  };
+}
+```
+
+**Use useUser() for simplified access to user data.**
+
+## Pimlico Configuration
+
+### Client Creation
+
+```typescript
+// modules/pimlico/config.ts
+export function createPimlicoClientForChain(chainId: number) {
+  const chain = getChainFromId(chainId);
+  const bundlerUrl = getPimlicoBundlerUrl(chainId);
+  
+  return createPimlicoClient({
+    transport: http(bundlerUrl),
+    chain,
+  });
+}
+
+export function getPimlicoBundlerUrl(chainId: number): string {
+  const endpoint = PIMLICO_API_ENDPOINTS[chainId];
+  return `${endpoint}?apikey=${getPimlicoApiKey()}`;
+}
+```
+
+### Sponsored Transactions
+
+```typescript
+// modules/pimlico/paymaster.ts
+
+// Only sponsor garden join operations
+export function shouldSponsorOperation(callData: Hex, chainId: number): boolean {
+  const selector = callData.slice(0, 10);
+  
+  return (
+    selector === JOIN_GARDEN_SELECTOR ||
+    selector === JOIN_GARDEN_WITH_INVITE_SELECTOR
+  );
+}
+
+// Rate limiting (1 join per 24h per address)
+export function isRateLimited(address: string): boolean {
+  const lastUse = rateLimitCache.get(address.toLowerCase());
+  if (!lastUse) return false;
+  
+  const timeSinceLastUse = Date.now() - lastUse;
+  return timeSinceLastUse < RATE_LIMIT_WINDOW; // 24 hours
+}
+```
+
+## Job Queue Integration
+
+### Setting Smart Account Client
+
+```typescript
+// providers/jobQueue.tsx
+const { smartAccountClient } = useUser();
+
+useEffect(() => {
+  if (smartAccountClient) {
+    // Make client available to job processor
+    jobProcessor.setSmartAccountClient(smartAccountClient);
+  }
+}, [smartAccountClient]);
+```
+
+### Processing with Client
+
+```typescript
+// modules/job-queue/inline-processor.ts
+export async function processWorkJobInline(
+  jobId: string,
+  chainId: number,
+  smartAccountClient: SmartAccountClient
+) {
+  // Client passed explicitly, not accessed globally
+  const txHash = await workProcessor.execute(encoded, meta, smartAccountClient);
+  return { success: true, txHash };
+}
+```
+
+## Login Flow
+
+### Login View
+
+```typescript
+// views/Login/index.tsx
+export function Login() {
+  const { credential, smartAccountAddress, createPasskey, isCreating, error } = useAuth();
+  const navigate = useNavigate();
+  
+  // Auto-redirect if authenticated
+  useEffect(() => {
+    if (credential && smartAccountAddress) {
+      navigate('/home');
+    }
+  }, [credential, smartAccountAddress]);
+  
+  const handleCreatePasskey = async () => {
+    try {
+      await createPasskey();
+      // Auto-redirect handled by effect above
+    } catch (err) {
+      // Error already set in context
+      console.error('[Login] Passkey creation failed:', err);
+    }
+  };
+  
+  return (
+    <div>
+      <h1>Welcome! 🌱</h1>
+      <Button
+        onClick={handleCreatePasskey}
+        disabled={isCreating}
+        label={isCreating ? 'Creating Wallet...' : 'Create Passkey Wallet'}
+      />
+      {error && <p className="text-red-600">{error.message}</p>}
+    </div>
+  );
+}
+```
+
+## Garden Onboarding with Invite
+
+### Onboarding Flow
+
+```typescript
+// components/Garden/GardenOnboarding.tsx
+export function GardenOnboarding() {
+  const [searchParams] = useSearchParams();
+  const { credential, createPasskey, smartAccountAddress } = useAuth();
+  const { joinWithInvite, validateInvite } = useGardenJoin();
+  
+  const inviteCode = searchParams.get('invite') as Hex | null;
+  const gardenAddress = searchParams.get('garden') as Hex | null;
+  
+  // Validate invite on mount
+  useEffect(() => {
+    if (inviteCode && gardenAddress) {
+      validateInvite(gardenAddress, inviteCode).then(validation => {
+        if (!validation.isValid) {
+          setStep('error');
+          setErrorMessage(validation.error || 'Invalid invite');
+        }
+      });
+    }
+  }, [inviteCode, gardenAddress]);
+  
+  const handleCreatePasskeyAndJoin = async () => {
+    // Step 1: Create passkey if needed
+    if (!credential) {
+      setStep('creating');
+      await createPasskey();
+    }
+    
+    // Step 2: Join garden with sponsored transaction
+    setStep('joining');
+    const result = await joinWithInvite(gardenAddress!, inviteCode!);
+    
+    if (result.success) {
+      setStep('success');
+      setTimeout(() => navigate(`/gardens/${gardenAddress}`), 3000);
+    } else {
+      setStep('error');
+      setErrorMessage(result.error);
+    }
+  };
+  
+  // Render steps: init → creating → joining → success/error
+}
+```
+
+## Auto-Join Root Garden
+
+```typescript
+// hooks/garden/useAutoJoinRootGarden.ts
+export function useAutoJoinRootGarden() {
+  const { smartAccountAddress, smartAccountClient, ready } = useUser();
+  const networkConfig = getNetworkConfig();
+  const rootGarden = networkConfig.rootGarden;
+  
+  // Check if already a gardener
+  const { data: isGardener } = useReadContract({
+    address: rootGarden?.address,
+    abi: GardenAccountABI,
+    functionName: 'gardeners',
+    args: [smartAccountAddress],
+    query: {
+      enabled: !!smartAccountAddress && !!rootGarden,
+    },
+  });
+  
+  // Show prompt if not gardener and haven't prompted before
+  useEffect(() => {
+    if (!ready || !smartAccountAddress || !rootGarden) return;
+    
+    const hasPrompted = localStorage.getItem('rootGardenPrompted') === 'true';
+    
+    if (!isGardener && !hasPrompted) {
+      setShowPrompt(true);
+    }
+  }, [ready, smartAccountAddress, isGardener]);
+  
+  const joinGarden = async () => {
+    if (smartAccountClient?.account) {
+      // Use smart account for passkey
+      await smartAccountClient.sendTransaction({
+        to: rootGarden.address,
+        value: 0n,
+        data: encodeFunctionData({
+          abi: GardenAccountABI,
+          functionName: 'joinGarden',
+        }),
+      });
+    } else {
+      // Use wagmi for wallet
+      await writeContractAsync({
+        address: rootGarden.address,
+        abi: GardenAccountABI,
+        functionName: 'joinGarden',
+      });
+    }
+    
+    localStorage.setItem('rootGardenPrompted', 'true');
+    setShowPrompt(false);
+  };
+  
+  return { showPrompt, joinGarden, dismissPrompt };
+}
+```
+
+## Storage Keys
+
+### LocalStorage Keys
+
+```typescript
+// Auth state
+const PASSKEY_STORAGE_KEY = 'greengoods_passkey_credential';
+const AUTH_MODE_STORAGE_KEY = 'greengoods_auth_mode';
+
+// Onboarding
+const ROOT_GARDEN_PROMPTED_KEY = 'rootGardenPrompted';
+
+// Session flags
+sessionStorage.setItem('openWorkDashboard', 'true');
+```
+
+## Rate Limiting (Sponsored Transactions)
+
+```typescript
+// modules/pimlico/paymaster.ts
+
+const rateLimitCache = new Map<string, number>();
+const RATE_LIMIT_WINDOW = 24 * 60 * 60 * 1000; // 24 hours
+
+export function isRateLimited(address: string): boolean {
+  const lastUse = rateLimitCache.get(address.toLowerCase());
+  if (!lastUse) return false;
+  
+  const timeSinceLastUse = Date.now() - lastUse;
+  return timeSinceLastUse < RATE_LIMIT_WINDOW;
+}
+
+export function recordSponsoredOperation(address: string): void {
+  rateLimitCache.set(address.toLowerCase(), Date.now());
+}
+
+// In join hook
+const joinWithInvite = async (gardenAddress, inviteCode) => {
+  if (isRateLimited(smartAccountAddress)) {
+    return { success: false, error: 'Rate limit exceeded. Try again later.' };
+  }
+  
+  // ... send transaction
+  
+  recordSponsoredOperation(smartAccountAddress);
+};
+```
+
+## Guard Patterns
+
+### Component-Level Guards
+
+```typescript
+function ProtectedComponent() {
+  const { smartAccountAddress, isReady } = useAuth();
+  
+  // Loading state
+  if (!isReady) {
+    return <Loader />;
+  }
+  
+  // Unauthorized state
+  if (!smartAccountAddress) {
+    return <Navigate to="/login" />;
+  }
+  
+  // Render protected content
+  return <ProtectedContent />;
+}
+```
+
+### Hook-Level Guards
+
+```typescript
+export function useProtectedAction() {
+  const { smartAccountClient, isReady } = useAuth();
+  
+  const execute = async () => {
+    // Inline guard
+    if (!isReady || !smartAccountClient) {
+      throw new Error('Not authenticated');
+    }
+    
+    // Safe to use client
+    return await smartAccountClient.sendTransaction({/*...*/});
+  };
+  
+  return { execute, canExecute: isReady && !!smartAccountClient };
+}
+```
+
+## Testing Authentication
+
+### Mock Auth Provider
+
+```typescript
+// __tests__/providers/AuthProvider.test.tsx
+import { renderHook } from '@testing-library/react';
+
+vi.mock('viem/account-abstraction', () => ({
+  createWebAuthnCredential: vi.fn(),
+  toWebAuthnAccount: vi.fn(),
+}));
+
+vi.mock('permissionless', () => ({
+  createSmartAccountClient: vi.fn(),
+}));
+
+describe('AuthProvider', () => {
+  it('should provide auth context', () => {
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: ({ children }) => <AuthProvider>{children}</AuthProvider>,
+    });
+    
+    expect(result.current).toBeDefined();
+    expect(result.current.credential).toBeNull();
+    expect(result.current.isReady).toBe(false);
+  });
+});
+```
+
+## Anti-Patterns
+
+### ❌ Don't Access Wallet Chain
+
+```typescript
+// Wrong
+import { useAccount } from 'wagmi';
+const { chainId } = useAccount();
+
+// Correct
+import { useCurrentChain } from '@/hooks/blockchain/useChainConfig';
+const chainId = useCurrentChain(); // Reads from VITE_CHAIN_ID
+```
+
+### ❌ Don't Store Private Keys
+
+```typescript
+// Wrong
+localStorage.setItem('private_key', privateKey);
+
+// Correct
+// Use Foundry keystore for deployment
+// Use WebAuthn for user auth (no private key)
+```
+
+### ❌ Don't Skip Ready Check
+
+```typescript
+// Wrong
+const { smartAccountClient } = useAuth();
+await smartAccountClient.sendTransaction({/*...*/}); // May be null!
+
+// Correct
+const { smartAccountClient, isReady } = useAuth();
+if (!isReady || !smartAccountClient) return;
+await smartAccountClient.sendTransaction({/*...*/});
+```
+
+## MCP Integration
+
+Use GitHub MCP for auth issue tracking:
+
+```bash
+# Track auth issues
+@github: Create issue "Investigate passkey creation timeout on iOS Safari"
+
+# Document flows
+@github: Add documentation for garden onboarding with invite links
+```
+
+## Reference Files
+
+- Auth provider: `src/providers/auth.tsx`
+- useAuth hook: `src/hooks/auth/useAuth.ts`
+- useUser adapter: `src/hooks/auth/useUser.ts`
+- Garden join: `src/hooks/garden/useGardenJoin.ts`
+- Auto-join: `src/hooks/garden/useAutoJoinRootGarden.ts`
+- Pimlico config: `src/modules/pimlico/config.ts`
+- Paymaster: `src/modules/pimlico/paymaster.ts`
+- RequireAuth guard: `src/routes/RequireAuth.tsx`
+- RequireInstalled guard: `src/routes/RequireInstalled.tsx`
+- Login view: `src/views/Login/index.tsx`
+- Onboarding: `src/components/Garden/GardenOnboarding.tsx`

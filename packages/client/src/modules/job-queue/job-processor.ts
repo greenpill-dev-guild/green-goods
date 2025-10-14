@@ -1,4 +1,4 @@
-import { track } from "@/modules/posthog";
+import { track } from "@/modules/app/posthog";
 import type {
   ApprovalJobPayload,
   JobProcessorResult,

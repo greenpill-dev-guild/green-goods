@@ -8,9 +8,8 @@ Administrative dashboard for managing the Green Goods platform, including garden
 # Install dependencies (from project root)
 pnpm install
 
-# Copy environment configuration
-cp .env.example .env
-# Edit .env with your API keys and configuration
+# Configure environment variables in root .env file
+# See "Environment Variables" section below
 
 # Start the admin dashboard
 pnpm --filter admin dev
@@ -29,7 +28,17 @@ The admin dashboard will be available at `http://localhost:3002`
 ### Operator Features (Indexer Query)
 - **Garden Access**: View and manage assigned gardens only
 - **Member Management**: Add/remove gardeners and operators within assigned gardens
+- **Impact Reports**: View Karma GAP attestations for assigned gardens
 - **Limited Scope**: Cannot create new gardens or manage contracts
+
+### Impact Reporting (Planned Feature)
+- **Karma GAP Integration**: Query impact attestations via Karma GAP SDK
+- **Three-Level Tracking**: Projects (gardens), impacts (approved work)
+- **Export Functionality**: Download impact data as CSV/JSON for reporting
+- **EAS Explorer Links**: Direct links to verify attestations on-chain
+- **Filter by Garden**: View impact data for specific gardens
+
+**Note:** Impact data is queried via Karma GAP SDK, not Green Goods indexer. See [docs/KARMA_GAP.md](../../docs/KARMA_GAP.md) for details.
 
 ## 🔐 Access Control
 
@@ -133,6 +142,8 @@ await executeWithToast(
 - `GetGardens`: All gardens or operator-specific gardens
 - `GetGardenDetail`: Individual garden details
 
+**Note:** GAP attestations (projects, impacts) are queried via Karma GAP SDK, not Green Goods indexer.
+
 #### Subscriptions
 - `GardenCreated`: Real-time garden creation events
 - `OperatorAdded`: Real-time operator addition events
@@ -189,14 +200,27 @@ pnpm --filter admin build
 ```
 
 ### Environment Variables
-Required environment variables (see `.env.example`):
+
+**All environment variables are configured in the root `.env` file** (at the monorepo root, not in this package).
+
+The root `.env` file is automatically loaded by:
+- Vite development server (via `vite.config.ts`)
+- Build scripts
+- All package scripts
+
+**Admin-relevant environment variables:**
 
 ```bash
 VITE_PRIVY_APP_ID=your_privy_app_id
 VITE_DEFAULT_CHAIN_ID=42161
-VITE_ALCHEMY_KEY=your_alchemy_key
+VITE_ALCHEMY_API_KEY=your_alchemy_key
 VITE_ENVIO_INDEXER_URL=https://indexer.dev.hyperindex.xyz/2e23bea/v1/graphql
 ```
+
+**Setup:**
+1. Create or edit `.env` at the project root (not in `packages/admin/`)
+2. Add the required environment variables listed above
+3. Variables are automatically loaded when running `pnpm dev` from root or package directory
 
 ## 🧪 Testing
 
@@ -267,6 +291,20 @@ pnpm --filter admin build
 
 ### Debug Mode
 Set `VITE_ENABLE_SW_DEV=true` for additional debugging information.
+
+## 📖 Documentation
+
+### [Admin Dashboard Documentation](./docs/)
+Comprehensive documentation for the admin dashboard:
+- **[Migration Guide](./docs/GARDEN_FEATURE_MIGRATION.md)** - Guide for implementing garden features that were previously CLI scripts
+- **[README](./docs/README.md)** - Overview of the admin dashboard architecture and common tasks
+
+**📋 For developers working on new garden features**, start with the [Garden Feature Migration Guide](./docs/GARDEN_FEATURE_MIGRATION.md) which includes:
+- Detailed implementation guides with code examples
+- Best practices and recommended patterns
+- GraphQL query examples
+- Testing checklists
+- Priority roadmap
 
 ## 📚 Additional Resources
 

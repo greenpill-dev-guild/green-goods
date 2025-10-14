@@ -1,8 +1,11 @@
 import React from "react";
 
 // Create simplified mock providers for component testing
-export const MockUserProvider = ({ children, userRole = "admin" }: { 
-  children: React.ReactNode; 
+export const MockUserProvider = ({
+  children,
+  userRole = "admin",
+}: {
+  children: React.ReactNode;
   userRole?: "admin" | "operator" | "unauthorized";
 }) => {
   const addressMap = {

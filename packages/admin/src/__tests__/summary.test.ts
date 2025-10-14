@@ -23,7 +23,7 @@ describe("Test Suite Summary", () => {
     const environments = ["unit", "integration"];
     const hasUnitTests = environments.includes("unit");
     const hasIntegrationTests = environments.includes("integration");
-    
+
     expect(hasUnitTests).toBe(true);
     expect(hasIntegrationTests).toBe(true);
   });
@@ -44,7 +44,7 @@ describe("Test Suite Summary", () => {
 
   it("should validate all required user roles", () => {
     const supportedRoles = ["admin", "operator", "unauthorized"];
-    
+
     expect(supportedRoles).toContain("admin");
     expect(supportedRoles).toContain("operator");
     expect(supportedRoles).toContain("unauthorized");
@@ -54,7 +54,7 @@ describe("Test Suite Summary", () => {
   it("should test blockchain operations", () => {
     const blockchainOperations = [
       "addGardener",
-      "removeGardener", 
+      "removeGardener",
       "addOperator",
       "removeOperator",
       "createGarden",

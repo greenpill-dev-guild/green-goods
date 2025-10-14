@@ -4,10 +4,10 @@ import {
   submitWorkToQueue,
   validateWorkDraft,
   formatJobError,
-} from "../../modules/work-submission";
+} from "../../modules/work/work-submission";
 import { jobQueue } from "../../modules/job-queue";
 
-vi.mock("../../modules/job-queue", async (orig) => {
+vi.mock("../../modules/job-queue", async () => {
   const mod = await import("../../modules/job-queue");
   return {
     ...mod,

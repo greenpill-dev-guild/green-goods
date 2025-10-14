@@ -13,19 +13,24 @@ import { TopNav } from "@/components/UI/TopNav/TopNav";
 import ConfirmDrawer from "@/components/UI/ModalDrawer/ConfirmDrawer";
 import { WorkViewSkeleton } from "@/components/UI/WorkView/WorkView";
 import toast from "react-hot-toast";
-import { useNavigateToTop } from "@/hooks";
-import { DEFAULT_CHAIN_ID } from "@/config";
+import { useNavigateToTop } from "@/hooks/app/useNavigateToTop";
+import { DEFAULT_CHAIN_ID } from "@/config/blockchain";
 import { createOfflineTxHash, jobQueue } from "@/modules/job-queue";
 import { processApprovalJobInline } from "@/modules/job-queue/inline-processor";
-import { useUser } from "@/providers/user";
+import { useUser } from "@/hooks/auth/useUser";
 import { useJobQueueEvents } from "@/modules/job-queue/event-bus";
-import { isValidAttestationId, openEASExplorer } from "@/utils/easExplorer";
-import { downloadWorkData, downloadWorkMedia, shareWork, type WorkData } from "@/utils/workActions";
+import { isValidAttestationId, openEASExplorer } from "@/utils/eas/explorers";
+import {
+  downloadWorkData,
+  downloadWorkMedia,
+  shareWork,
+  type WorkData,
+} from "@/utils/work/workActions";
 import { WorkCompleted } from "../../Garden/Completed";
 import WorkViewSection from "./WorkViewSection";
-import { useActions, useGardens } from "@/hooks/useBaseLists";
-import { useWorks } from "@/hooks/useWorks";
-import { getFileByHash } from "@/modules/pinata";
+import { useActions, useGardens } from "@/hooks/blockchain/useBaseLists";
+import { useWorks } from "@/hooks/work/useWorks";
+import { getFileByHash } from "@/modules/data/pinata";
 
 type GardenWorkProps = {};
 

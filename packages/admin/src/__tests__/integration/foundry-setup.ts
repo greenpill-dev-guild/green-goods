@@ -14,9 +14,11 @@ export interface TestContractAddresses {
  */
 export async function deployTestContracts(): Promise<TestContractAddresses> {
   const contractsDir = join(process.cwd(), "../contracts");
-  
+
   if (!existsSync(contractsDir)) {
-    throw new Error("Contracts directory not found. Make sure you're running from the admin package.");
+    throw new Error(
+      "Contracts directory not found. Make sure you're running from the admin package."
+    );
   }
 
   // Create a test deployment script
@@ -45,7 +47,9 @@ echo "{\\"deploymentRegistry\\": \\"$DEPLOYMENT_REGISTRY\\", \\"gardenToken\\": 
       env: {
         ...process.env,
         BASE_SEPOLIA_RPC: process.env.VITE_BASE_SEPOLIA_RPC || "https://sepolia.base.org",
-        TEST_PRIVATE_KEY: process.env.TEST_PRIVATE_KEY || "0x1234567890123456789012345678901234567890123456789012345678901234",
+        TEST_PRIVATE_KEY:
+          process.env.TEST_PRIVATE_KEY ||
+          "0x1234567890123456789012345678901234567890123456789012345678901234",
       },
       stdio: ["pipe", "pipe", "pipe"],
     });

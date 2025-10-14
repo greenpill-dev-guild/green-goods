@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { createEasClient, greenGoodsIndexer } from "../../modules/urql";
+import { createEasClient, greenGoodsIndexer } from "../../modules/data/urql";
 
 describe("modules/urql", () => {
   it("creates EAS client and indexer", () => {

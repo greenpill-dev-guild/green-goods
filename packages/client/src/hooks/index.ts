@@ -1,23 +1,25 @@
-// Re-export all hooks from a centralized location
+// Barrel exports for hooks
 
-export { useBrowserNavigation } from "./useBrowserNavigation";
-// Export chain configuration hooks
-export {
-  useChainConfig,
-  useCurrentChain,
-  useEASConfig,
-  useNetworkConfig,
-} from "./useChainConfig";
-// Removed unused debounced hooks
-export { useNavigateToTop } from "./useNavigateToTop";
-export { useOffline } from "./useOffline";
-export type { UseStorageManagerReturn } from "./useStorageManager";
-export { useStorageManager } from "./useStorageManager";
+// App hooks
+export { useOffline } from "./app/useOffline";
+export { useBrowserNavigation } from "./app/useBrowserNavigation";
+export { useMerged } from "./app/useMerged";
+export { useNavigateToTop } from "./app/useNavigateToTop";
 
-// Export job queue and works hooks
-export {
-  jobToWork,
-  usePendingWorksCount,
-  useQueueStatistics,
-  useWorks,
-} from "./useWorks";
+// Auth hooks
+export { useAuth } from "./auth/useAuth";
+export { useUser } from "./auth/useUser";
+
+// Blockchain hooks
+export { useChainConfig } from "./blockchain/useChainConfig";
+export { useActions, useGardens, useGardeners } from "./blockchain/useBaseLists";
+
+// Garden hooks
+export { useAutoJoinRootGarden } from "./garden/useAutoJoinRootGarden";
+export { useGardenJoin } from "./garden/useGardenJoin";
+export { useGardenTabs } from "./garden/useGardenTabs";
+
+// Work hooks
+export { useStorageManager } from "./work/useStorageManager";
+export { useWorkApprovals } from "./work/useWorkApprovals";
+export { useWorks } from "./work/useWorks";
