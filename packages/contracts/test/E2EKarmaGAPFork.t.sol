@@ -133,8 +133,8 @@ contract E2EKarmaGAPForkTest is DeploymentBase, IERC721Receiver {
         string[] memory media = new string[](1);
         media[0] = "ipfs://action-media";
 
-        // FIXED: First action is ID 0 (registered in deployFullStack), so next is ID 1
-        uint256 actionId = 1;
+        // FIXED: No action registered in deployFullStack, so this is ID 0 (first action)
+        uint256 actionId = 0;
 
         actionRegistry.registerAction(
             block.timestamp, block.timestamp + 90 days, "Community Cleanup", "Organize cleanup event", caps, media
@@ -144,8 +144,7 @@ contract E2EKarmaGAPForkTest is DeploymentBase, IERC721Receiver {
     }
 
     function _validateAction(uint256 actionId) internal {
-        assertTrue(actionId > 0, "Action must be registered");
-
+        // Action ID 0 is valid (first action)
         ActionRegistry.Action memory action = actionRegistry.getAction(actionId);
         assertEq(action.title, "Community Cleanup", "Title must match");
         assertTrue(action.startTime <= block.timestamp, "Must be active");
@@ -177,6 +176,9 @@ contract E2EKarmaGAPForkTest is DeploymentBase, IERC721Receiver {
         communityToken = _getCommunityToken(chainId);
         deployFullStack(communityToken, address(this));
 
+        // Register action first (deployFullStack no longer does this)
+        uint256 actionId = _registerAction();
+
         // Create garden
         address gardenAddr = _createGarden();
         GardenAccount garden = GardenAccount(payable(gardenAddr));
@@ -187,7 +189,7 @@ contract E2EKarmaGAPForkTest is DeploymentBase, IERC721Receiver {
 
         // 1. Gardener submits work
         vm.prank(gardener);
-        bytes32 workUID = _submitWork(gardenAddr, 0); // FIXED: Action ID 0 from deployFullStack
+        bytes32 workUID = _submitWork(gardenAddr, actionId); // Use registered action ID
         assertTrue(workUID != bytes32(0), "Work must be submitted");
 
         // 2. Verify work attestation exists
@@ -197,7 +199,7 @@ contract E2EKarmaGAPForkTest is DeploymentBase, IERC721Receiver {
 
         // 3. Operator approves work
         vm.prank(operator);
-        bytes32 approvalUID = _approveWork(gardenAddr, workUID, 0); // Action ID 0 from deployFullStack
+        bytes32 approvalUID = _approveWork(gardenAddr, workUID, actionId); // Use registered action ID
         assertTrue(approvalUID != bytes32(0), "Approval must be created");
 
         // 4. Verify approval attestation

@@ -235,11 +235,14 @@ async function main() {
     // Check if we have valid cache for all actions
     const allCached = actions.every((action, idx) => {
       const cacheKey = `${action.title}-${idx}`;
-      return cache[cacheKey] && cache[cacheKey].hash;
+      return cache[cacheKey]?.hash;
     });
 
+    // Get Pinata JWT (check both PINATA_JWT and VITE_PINATA_JWT)
+    const pinataJWT = process.env.PINATA_JWT || process.env.VITE_PINATA_JWT;
+
     // If PINATA_JWT is not set and we have cache, use cache
-    if (!process.env.PINATA_JWT) {
+    if (!pinataJWT) {
       if (allCached) {
         // Note: Don't write to stderr when using cache to avoid Forge error logs
         for (let i = 0; i < actions.length; i++) {
@@ -250,13 +253,15 @@ async function main() {
         console.log(JSON.stringify(ipfsHashes));
         process.exit(0);
       } else {
-        console.error("Error: PINATA_JWT environment variable required and no valid cache found", { toStderr: true });
+        console.error("Error: PINATA_JWT or VITE_PINATA_JWT environment variable required and no valid cache found", {
+          toStderr: true,
+        });
         process.exit(1);
       }
     }
 
     // Initialize Pinata
-    const pinata = new pinataSDK({ pinataJWTKey: process.env.PINATA_JWT });
+    const pinata = new pinataSDK({ pinataJWTKey: pinataJWT });
 
     // Process each action
     for (let i = 0; i < actions.length; i++) {
@@ -264,7 +269,7 @@ async function main() {
       const cacheKey = `${action.title}-${i}`;
 
       // Check cache first
-      if (cache[cacheKey] && cache[cacheKey].hash) {
+      if (cache[cacheKey]?.hash) {
         // Using cached hash (silent to avoid Forge error logs)
         ipfsHashes.push(cache[cacheKey].hash);
         continue;
@@ -288,10 +293,11 @@ async function main() {
         };
         hasChanges = true;
       } catch (error) {
-        console.error(`Failed to upload ${action.title}: ${error.message}`, { toStderr: true });
+        const errorMsg = error?.message || error?.toString() || "Unknown error";
+        console.error(`Failed to upload ${action.title}: ${errorMsg}`, { toStderr: true });
 
         // Try to use cache if available
-        if (cache[cacheKey] && cache[cacheKey].hash) {
+        if (cache[cacheKey]?.hash) {
           console.error("Using cached hash as fallback", { toStderr: true });
           ipfsHashes.push(cache[cacheKey].hash);
         } else {

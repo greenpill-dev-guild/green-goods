@@ -80,7 +80,7 @@ function main() {
   const args = process.argv.slice(2);
 
   if (args.length === 0) {
-    console.error("Usage: node generateSchemas.js <schemaId>");
+    console.error("Usage: node generate-schemas.js <schemaId>");
 
     const configPath = path.join(__dirname, "../../config/schemas.json");
     try {

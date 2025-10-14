@@ -186,7 +186,7 @@ For UUPS upgrades, use: pnpm upgrade <contract> --network <network> --broadcast
         const chainId = chainMap[options.network] || options.network;
         const deploymentFile = path.join(__dirname, "../deployments", `${chainId}-latest.json`);
 
-        if (fs.existsSync(deploymentFile) && !options.forceRedeploy) {
+        if (fs.existsSync(deploymentFile) && !options.force) {
           console.log("⏭️  Skipping verification - contracts already deployed and likely verified");
           shouldVerify = false;
         }

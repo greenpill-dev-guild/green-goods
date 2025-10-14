@@ -12,7 +12,7 @@ import { AccountGuardian } from "@tokenbound/AccountGuardian.sol";
 import { AccountProxy } from "@tokenbound/AccountProxy.sol";
 import { GardenAccount } from "../../src/accounts/Garden.sol";
 import { GardenToken } from "../../src/tokens/Garden.sol";
-import { ActionRegistry, Capital } from "../../src/registries/Action.sol";
+import { ActionRegistry } from "../../src/registries/Action.sol";
 import { WorkResolver } from "../../src/resolvers/Work.sol";
 import { WorkApprovalResolver } from "../../src/resolvers/WorkApproval.sol";
 import { AssessmentResolver } from "../../src/resolvers/Assessment.sol";
@@ -105,9 +105,6 @@ abstract contract DeploymentBase is Test, DeployHelper {
 
         // 4. Configure deployment registry
         _configureRegistry(communityToken, eas, easSchemaRegistry);
-
-        // 5. Add test action (optional for E2E tests)
-        _registerTestAction();
     }
 
     /// @notice Deploy core contracts with FULL production features (CREATE2, UUPS, Guardian)
@@ -427,11 +424,9 @@ abstract contract DeploymentBase is Test, DeployHelper {
         _createSchemaNameAttestation(easContract, workApprovalSchemaUID, _getSchemaName(schemaJson, "workApproval"));
         _createSchemaNameAttestation(easContract, assessmentSchemaUID, _getSchemaName(schemaJson, "assessment"));
 
-        // Skip description attestations in test/fork environments
-        // The schema description schema may not exist on fork networks
-        bool isTestEnvironment = block.chainid == 31_337 || _isForkedNetwork();
-
-        if (!isTestEnvironment) {
+        // Description attestations: verify schema exists before attempting
+        // Schema description schema (0x21cbc6...) only exists on Base Sepolia, not Arbitrum or Celo
+        if (_schemaExists(easSchemaRegistry, SCHEMA_DESCRIPTION_SCHEMA)) {
             _createSchemaDescriptionAttestation(easContract, workSchemaUID, _getSchemaDescription(schemaJson, "work"));
             _createSchemaDescriptionAttestation(
                 easContract, workApprovalSchemaUID, _getSchemaDescription(schemaJson, "workApproval")
@@ -442,10 +437,12 @@ abstract contract DeploymentBase is Test, DeployHelper {
         }
     }
 
-    /// @notice Check if running on a forked network (Base Sepolia, Arbitrum, Celo)
-    function _isForkedNetwork() internal view returns (bool) {
-        // These are the networks we fork for E2E tests
-        return block.chainid == 84_532 || block.chainid == 42_161 || block.chainid == 42_220;
+    /// @notice Check if a schema exists in the registry (lightweight check)
+    /// @dev Uses low-level staticcall to avoid memory allocation issues during simulation
+    function _schemaExists(address easSchemaRegistry, bytes32 schemaUID) internal view returns (bool) {
+        // Use low-level staticcall to avoid memory allocation issues
+        (bool success,) = easSchemaRegistry.staticcall(abi.encodeWithSignature("getSchema(bytes32)", schemaUID));
+        return success;
     }
 
     /// @notice Configure deployment registry
@@ -461,23 +458,6 @@ abstract contract DeploymentBase is Test, DeployHelper {
         });
 
         deploymentRegistry.setNetworkConfig(block.chainid, config);
-    }
-
-    /// @notice Register a test action for E2E tests
-    function _registerTestAction() internal virtual {
-        Capital[] memory caps = new Capital[](1);
-        caps[0] = Capital.LIVING;
-        string[] memory media = new string[](1);
-        media[0] = "ipfs://test";
-
-        actionRegistry.registerAction(
-            block.timestamp,
-            block.timestamp + 365 days,
-            "Plant Native Trees",
-            "Plant native trees in the garden",
-            caps,
-            media
-        );
     }
 
     /// @notice Get network-specific addresses

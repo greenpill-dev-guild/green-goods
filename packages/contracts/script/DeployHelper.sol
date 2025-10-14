@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
+/* solhint-disable no-console */
 
-import { Script, console } from "forge-std/Script.sol";
+import { Script } from "forge-std/Script.sol";
+import { console } from "forge-std/console.sol";
 import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
 import { stdJson } from "forge-std/StdJson.sol";
 
@@ -55,15 +57,17 @@ abstract contract DeployHelper is Script {
 
         // Map chain ID to network name
         string memory networkName = _getNetworkName(block.chainid);
+        console.log("Loading network config for:", networkName);
         string memory basePath = string.concat(".networks.", networkName);
 
         // Check if network is configured by trying to read chainId
+        // solhint-disable-next-line no-empty-blocks
         try vm.parseJson(json, string.concat(basePath, ".chainId")) {
-            // Network exists, use it
+            // Network exists - basePath is correct, continue with it
         } catch {
             // Network not found, use localhost as fallback
+            console.log("Network not found, using localhost as fallback");
             basePath = ".networks.localhost";
-            console.log("Warning: Chain ID", block.chainid, "not configured, using localhost config");
         }
 
         NetworkConfig memory config;
@@ -79,6 +83,9 @@ abstract contract DeployHelper is Script {
         config.safe4337Module = json.readAddress(".deploymentDefaults.safe4337Module");
         config.greenGoodsSafe = json.readAddress(".deploymentDefaults.greenGoodsSafe");
         config.multisig = json.readAddress(".deploymentDefaults.multisig");
+
+        console.log("EAS:", config.eas);
+        console.log("EAS Schema Registry:", config.easSchemaRegistry);
 
         return config;
     }
@@ -109,23 +116,37 @@ abstract contract DeployHelper is Script {
     /// @notice Deploy a contract using CREATE2
     function _deployCreate2(bytes memory bytecode, bytes32 salt, address factory) internal returns (address) {
         address predicted = Create2.computeAddress(salt, keccak256(bytecode), factory);
+        console.log("Predicted CREATE2 address:", predicted);
 
         if (predicted.code.length > 0) {
-            console.log("Contract already deployed at:", predicted);
+            console.log("Contract already deployed at predicted address");
             return predicted;
         }
 
+        console.log("Deploying via CREATE2 factory:", factory);
         // Deploy using CREATE2 through factory
+        // solhint-disable-next-line avoid-low-level-calls
         (bool success, bytes memory data) = factory.call(abi.encodePacked(salt, bytecode));
         if (!success) {
+            console.log("CREATE2 deployment failed");
             revert CREATE2DeploymentFailed();
         }
 
-        address deployed = abi.decode(data, (address));
+        // Extract address from raw bytes (factory returns 20 bytes, not ABI-encoded)
+        address deployed;
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            deployed := mload(add(data, 20))
+        }
+
         if (deployed != predicted) {
+            console.log("Deployment address mismatch!");
+            console.log("Expected:", predicted);
+            console.log("Got:", deployed);
             revert DeploymentAddressMismatch();
         }
 
+        console.log("Successfully deployed at:", deployed);
         return deployed;
     }
 
@@ -136,6 +157,13 @@ abstract contract DeployHelper is Script {
 
     /// @notice Save deployment result to JSON with schema configuration
     function _saveDeployment(DeploymentResult memory result) internal {
+        console.log("\n=== Saving Deployment ===");
+        console.log("DeploymentRegistry:", result.deploymentRegistry);
+        console.log("Guardian:", result.guardian);
+        console.log("GardenAccountImpl:", result.gardenAccountImpl);
+        console.log("GardenToken:", result.gardenToken);
+        console.log("ActionRegistry:", result.actionRegistry);
+
         string memory obj = "deployment";
         vm.serializeAddress(obj, "deploymentRegistry", result.deploymentRegistry);
         vm.serializeAddress(obj, "guardian", result.guardian);
@@ -148,6 +176,9 @@ abstract contract DeployHelper is Script {
         vm.serializeAddress(obj, "workApprovalResolver", result.workApprovalResolver);
 
         // Serialize root garden info
+        console.log("\nRoot Garden:");
+        console.log("  Address:", result.rootGardenAddress);
+        console.log("  Token ID:", result.rootGardenTokenId);
         string memory rootGardenObj = "rootGarden";
         vm.serializeAddress(rootGardenObj, "address", result.rootGardenAddress);
         string memory rootGardenJson = vm.serializeUint(rootGardenObj, "tokenId", result.rootGardenTokenId);
@@ -170,9 +201,9 @@ abstract contract DeployHelper is Script {
 
         string memory chainIdStr = vm.toString(block.chainid);
         string memory fileName = string.concat("deployments/", chainIdStr, "-latest.json");
+        console.log("\nWriting deployment to:", fileName);
         vm.writeJson(finalJson, fileName);
-
-        console.log("Deployment saved to:", fileName);
+        console.log("Deployment saved successfully\n");
     }
 
     /// @notice Load schemas from configuration file and add deployment UIDs
@@ -246,7 +277,7 @@ abstract contract DeployHelper is Script {
     function _generateSchemaString(string memory schemaName) internal virtual returns (string memory) {
         string[] memory inputs = new string[](3);
         inputs[0] = "node";
-        inputs[1] = "script/utils/generateSchemas.js";
+        inputs[1] = "script/utils/generate-schemas.js";
         inputs[2] = schemaName;
 
         bytes memory result = vm.ffi(inputs);
@@ -254,68 +285,14 @@ abstract contract DeployHelper is Script {
     }
 
     /// @notice Print deployment summary
-    function _printDeploymentSummary(DeploymentResult memory result) internal view {
-        console.log("\n=== Deployment Summary ===");
-        console.log("Chain ID:", block.chainid);
-        console.log("Deployment Registry:", result.deploymentRegistry);
-        console.log("Guardian:", result.guardian);
-        console.log("Garden Account Implementation:", result.gardenAccountImpl);
-        console.log("Account Proxy:", result.accountProxy);
-        console.log("Garden Token:", result.gardenToken);
-        console.log("Action Registry:", result.actionRegistry);
-        console.log("Assessment Resolver:", result.assessmentResolver);
-        console.log("Work Resolver:", result.workResolver);
-        console.log("Work Approval Resolver:", result.workApprovalResolver);
-        console.log("\n--- EAS Schema UIDs ---");
-        console.log("Assessment Schema UID:", vm.toString(result.assessmentSchemaUID));
-        console.log("Work Schema UID:", vm.toString(result.workSchemaUID));
-        console.log("Work Approval Schema UID:", vm.toString(result.workApprovalSchemaUID));
-        console.log("\n--- Root Garden ---");
-        console.log("Root Garden Address:", result.rootGardenAddress);
-        console.log("Root Garden Token ID:", result.rootGardenTokenId);
-        console.log("========================\n");
+    // solhint-disable-next-line no-empty-blocks
+    function _printDeploymentSummary(DeploymentResult memory /* result */ ) internal view {
+        // TODO: Implement deployment summary logging
     }
 
     /// @notice Generate verification commands
-    function _generateVerificationCommands(DeploymentResult memory result) internal view {
-        console.log("\n=== Verification Commands ===");
-
-        string memory baseCmd =
-            string.concat("forge verify-contract --num-of-optimizations 200 --chain-id ", vm.toString(block.chainid));
-
-        console.log(
-            string.concat(
-                baseCmd, " ", vm.toString(result.deploymentRegistry), " src/DeploymentRegistry.sol:DeploymentRegistry"
-            )
-        );
-        console.log(
-            string.concat(baseCmd, " ", vm.toString(result.guardian), " @tokenbound/AccountGuardian.sol:AccountGuardian")
-        );
-        console.log(
-            string.concat(baseCmd, " ", vm.toString(result.gardenAccountImpl), " src/accounts/Garden.sol:GardenAccount")
-        );
-        console.log(
-            string.concat(baseCmd, " ", vm.toString(result.accountProxy), " @tokenbound/AccountProxy.sol:AccountProxy")
-        );
-        console.log(string.concat(baseCmd, " ", vm.toString(result.gardenToken), " src/tokens/Garden.sol:GardenToken"));
-        console.log(
-            string.concat(baseCmd, " ", vm.toString(result.actionRegistry), " src/registries/Action.sol:ActionRegistry")
-        );
-        console.log(
-            string.concat(
-                baseCmd, " ", vm.toString(result.assessmentResolver), " src/resolvers/Assessment.sol:AssessmentResolver"
-            )
-        );
-        console.log(string.concat(baseCmd, " ", vm.toString(result.workResolver), " src/resolvers/Work.sol:WorkResolver"));
-        console.log(
-            string.concat(
-                baseCmd,
-                " ",
-                vm.toString(result.workApprovalResolver),
-                " src/resolvers/WorkApproval.sol:WorkApprovalResolver"
-            )
-        );
-
-        console.log("=============================\n");
+    // solhint-disable-next-line no-empty-blocks
+    function _generateVerificationCommands(DeploymentResult memory /* result */ ) internal view {
+        // TODO: Generate verification commands for deployment
     }
 }

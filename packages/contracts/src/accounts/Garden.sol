@@ -626,13 +626,13 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
 
         IProjectResolver resolver = IProjectResolver(KarmaLib.getProjectResolver());
 
+        // solhint-disable-next-line no-empty-blocks
         try resolver.addAdmin(gapProjectUID, admin) {
-            // Admin added successfully
-        } catch Error(string memory) /* reason */ {
-            // Failed to add admin, continue anyway
-        } catch (bytes memory) /* lowLevelData */ {
-            // Failed to add admin, continue anyway
-            // Intentionally continue - operator addition succeeds even if GAP sync fails
+            // Success: admin added to GAP project
+        } catch Error(string memory) /* reason */ { // solhint-disable-line no-empty-blocks
+                // Non-critical: GAP sync failed but operator added successfully
+        } catch (bytes memory) /* lowLevelData */ { // solhint-disable-line no-empty-blocks
+                // Non-critical: GAP sync failed but operator added successfully
         }
     }
 
@@ -643,13 +643,13 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
 
         IProjectResolver resolver = IProjectResolver(KarmaLib.getProjectResolver());
 
+        // solhint-disable-next-line no-empty-blocks
         try resolver.removeAdmin(gapProjectUID, admin) {
-            // Admin removed successfully
-        } catch Error(string memory) /* reason */ {
-            // Failed to remove admin, continue anyway
-        } catch (bytes memory) /* lowLevelData */ {
-            // Failed to remove admin, continue anyway
-            // Intentionally continue - operator removal succeeds even if GAP sync fails
+            // Success: admin removed from GAP project
+        } catch Error(string memory) /* reason */ { // solhint-disable-line no-empty-blocks
+                // Non-critical: GAP sync failed but operator removed successfully
+        } catch (bytes memory) /* lowLevelData */ { // solhint-disable-line no-empty-blocks
+                // Non-critical: GAP sync failed but operator removed successfully
         }
     }
 

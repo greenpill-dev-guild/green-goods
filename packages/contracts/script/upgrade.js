@@ -33,6 +33,16 @@ Options:
   --broadcast            Execute upgrade (default for non-localhost)
   --help                 Show this help
 
+Rollback (manual):
+  # Get current implementation address first
+  cast call <PROXY> "0x5c60da1b" --rpc-url <RPC>
+  
+  # Then upgrade to previous implementation
+  forge script script/Upgrade.s.sol:Upgrade \\
+    --sig "upgradeGardenProxy(address,address)" \\
+    <PROXY> <PREVIOUS_IMPL> \\
+    --network <network> --broadcast
+
 Examples:
   # Dry run on Base Sepolia
   node script/upgrade.js action-registry --network baseSepolia --dry-run
