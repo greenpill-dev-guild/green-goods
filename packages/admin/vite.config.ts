@@ -1,7 +1,7 @@
 /// <reference types="vitest" />
 
 import tailwindcss from "@tailwindcss/vite";
-import react from "@vitejs/plugin-react-swc";
+import react from "@vitejs/plugin-react";
 import dotenvExpand from "dotenv-expand";
 import { resolve } from "path";
 import { defineConfig, loadEnv } from "vite";
