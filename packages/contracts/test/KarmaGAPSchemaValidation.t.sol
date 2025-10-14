@@ -11,25 +11,25 @@ contract KarmaGAPSchemaValidationTest is Test {
     function testMilestoneJSON_CorrectFormat() public {
         string memory title = "Q1 Assessment";
         string memory text = "Biodiversity increased";
-        string memory metadata = "{'capitals':['living']}";
+        string memory metadata = "{\"capitals\":[\"living\"]}";
         uint256 completedAt = block.timestamp;
 
         // Construct milestone JSON as done in Garden.sol
         string memory json = string(
             abi.encodePacked(
-                "{'title':'",
+                "{\"title\":\"",
                 _escapeJSON(title),
-                "',",
-                "'text':'",
+                "\",",
+                "\"text\":\"",
                 _escapeJSON(text),
-                "',",
-                "'metadata':",
+                "\",",
+                "\"metadata\":",
                 metadata,
                 ",",
-                "'completedAt':",
+                "\"completedAt\":",
                 _uint2str(completedAt),
                 ",",
-                "'type':'project-milestone'}"
+                "\"type\":\"project-milestone\"}"
             )
         );
 
@@ -44,7 +44,7 @@ contract KarmaGAPSchemaValidationTest is Test {
         assertFalse(_containsField(json, "description"), "Should NOT have description field");
 
         // Validate correct type
-        assertTrue(_containsSubstring(json, "'type':'project-milestone'"), "Type should be project-milestone");
+        assertTrue(_containsSubstring(json, "\"type\":\"project-milestone\""), "Type should be project-milestone");
     }
 
     /// @notice Test: Impact JSON format validation
@@ -57,19 +57,19 @@ contract KarmaGAPSchemaValidationTest is Test {
         // Construct impact JSON as done in Garden.sol
         string memory json = string(
             abi.encodePacked(
-                "{'title':'",
+                "{\"title\":\"",
                 _escapeJSON(title),
-                "',",
-                "'text':'",
+                "\",",
+                "\"text\":\"",
                 _escapeJSON(text),
-                "',",
-                "'proof':'",
+                "\",",
+                "\"proof\":\"",
                 proof,
-                "',",
-                "'completedAt':",
+                "\",",
+                "\"completedAt\":",
                 _uint2str(completedAt),
                 ",",
-                "'type':'project-impact'}"
+                "\"type\":\"project-impact\"}"
             )
         );
 
@@ -83,35 +83,35 @@ contract KarmaGAPSchemaValidationTest is Test {
         assertFalse(_containsField(json, "impact"), "Should NOT have impact field");
 
         // Validate correct type
-        assertTrue(_containsSubstring(json, "'type':'project-impact'"), "Type should be project-impact");
+        assertTrue(_containsSubstring(json, "\"type\":\"project-impact\""), "Type should be project-impact");
     }
 
     /// @notice Test: JSON escaping handles double quotes
     function testJSONEscaping_HandlesQuotes() public {
-        string memory titleWithQuotes = "Plant 'Native' Trees";
-        string memory textWithQuotes = "Successfully planted 'indigenous' species";
+        string memory titleWithQuotes = "Plant \"Native\" Trees";
+        string memory textWithQuotes = "Successfully planted \"indigenous\" species";
 
         string memory escapedTitle = _escapeJSON(titleWithQuotes);
         string memory escapedText = _escapeJSON(textWithQuotes);
 
         // Should contain escaped quotes
-        assertTrue(_containsSubstring(escapedTitle, "\\'Native\\'"), "Title quotes should be escaped");
-        assertTrue(_containsSubstring(escapedText, "\\'indigenous\\'"), "Text quotes should be escaped");
+        assertTrue(_containsSubstring(escapedTitle, "\\\"Native\\\""), "Title quotes should be escaped");
+        assertTrue(_containsSubstring(escapedText, "\\\"indigenous\\\""), "Text quotes should be escaped");
 
         // Construct full JSON
         string memory json = string(
             abi.encodePacked(
-                "{'title':'",
+                "{\"title\":\"",
                 escapedTitle,
-                "',",
-                "'text':'",
+                "\",",
+                "\"text\":\"",
                 escapedText,
-                "',",
-                "'proof':'ipfs://proof',",
-                "'completedAt':",
+                "\",",
+                "\"proof\":\"ipfs://proof\",",
+                "\"completedAt\":",
                 _uint2str(block.timestamp),
                 ",",
-                "'type':'project-impact'}"
+                "\"type\":\"project-impact\"}"
             )
         );
 
@@ -121,11 +121,11 @@ contract KarmaGAPSchemaValidationTest is Test {
 
     /// @notice Test: JSON escaping handles multiple quotes
     function testJSONEscaping_HandlesMultipleQuotes() public {
-        string memory titleWithManyQuotes = "Test 'one' and 'two' and 'three'";
+        string memory titleWithManyQuotes = "Test \"one\" and \"two\" and \"three\"";
         string memory escaped = _escapeJSON(titleWithManyQuotes);
 
         // Count escaped quotes
-        uint256 escapedQuoteCount = _countSubstring(escaped, "\\'");
+        uint256 escapedQuoteCount = _countSubstring(escaped, "\\\"");
         assertEq(escapedQuoteCount, 6, "Should have 6 escaped quotes");
     }
 
@@ -133,17 +133,17 @@ contract KarmaGAPSchemaValidationTest is Test {
     function testJSON_HandlesEmptyStrings() public {
         string memory json = string(
             abi.encodePacked(
-                "{'title':'Test',",
-                "'text':'Description',",
-                "'proof':'',", // Empty proof
-                "'completedAt':",
+                "{\"title\":\"Test\",",
+                "\"text\":\"Description\",",
+                "\"proof\":\"\",", // Empty proof
+                "\"completedAt\":",
                 _uint2str(block.timestamp),
                 ",",
-                "'type':'project-impact'}"
+                "\"type\":\"project-impact\"}"
             )
         );
 
-        assertTrue(_containsSubstring(json, "'proof':''"), "Should have empty proof field");
+        assertTrue(_containsSubstring(json, "\"proof\":\"\""), "Should have empty proof field");
         assertTrue(_isValidJSON(json), "JSON should be valid with empty proof");
     }
 
@@ -157,17 +157,17 @@ contract KarmaGAPSchemaValidationTest is Test {
 
         string memory json = string(
             abi.encodePacked(
-                "{'title':'",
+                "{\"title\":\"",
                 _escapeJSON(longTitle),
-                "',",
-                "'text':'",
+                "\",",
+                "\"text\":\"",
                 _escapeJSON(longText),
-                "',",
-                "'proof':'ipfs://proof',",
-                "'completedAt':",
+                "\",",
+                "\"proof\":\"ipfs://proof\",",
+                "\"completedAt\":",
                 _uint2str(block.timestamp),
                 ",",
-                "'type':'project-impact'}"
+                "\"type\":\"project-impact\"}"
             )
         );
 
@@ -178,45 +178,45 @@ contract KarmaGAPSchemaValidationTest is Test {
 
     /// @notice Test: Metadata JSON embedding in milestone
     function testMilestoneJSON_MetadataEmbedded() public {
-        string memory metadata = "{'capitals':['living','social'],'assessmentType':'quarterly'}";
+        string memory metadata = "{\"capitals\":[\"living\",\"social\"],\"assessmentType\":\"quarterly\"}";
 
         string memory json = string(
             abi.encodePacked(
-                "{'title':'Test',",
-                "'text':'Description',",
-                "'metadata':",
+                "{\"title\":\"Test\",",
+                "\"text\":\"Description\",",
+                "\"metadata\":",
                 metadata,
                 ",",
-                "'completedAt':",
+                "\"completedAt\":",
                 _uint2str(block.timestamp),
                 ",",
-                "'type':'project-milestone'}"
+                "\"type\":\"project-milestone\"}"
             )
         );
 
         // Metadata should be embedded as a JSON object
-        assertTrue(_containsSubstring(json, "'metadata':{"), "Metadata should be JSON object");
-        assertTrue(_containsSubstring(json, "'capitals':"), "Metadata should contain capitals");
+        assertTrue(_containsSubstring(json, "\"metadata\":{"), "Metadata should be JSON object");
+        assertTrue(_containsSubstring(json, "\"capitals\":"), "Metadata should contain capitals");
         assertTrue(_isValidJSON(json), "JSON should be valid with embedded metadata");
     }
 
     /// @notice Test: Special characters in different positions
     function testJSONEscaping_QuotesInDifferentPositions() public {
         // Quote at start
-        string memory str1 = "'Start with quote";
-        assertTrue(_containsSubstring(_escapeJSON(str1), "\\'Start"), "Should escape quote at start");
+        string memory str1 = "\"Start with quote";
+        assertTrue(_containsSubstring(_escapeJSON(str1), "\\\"Start"), "Should escape quote at start");
 
         // Quote at end
-        string memory str2 = "End with quote'";
-        assertTrue(_containsSubstring(_escapeJSON(str2), "quote\\'"), "Should escape quote at end");
+        string memory str2 = "End with quote\"";
+        assertTrue(_containsSubstring(_escapeJSON(str2), "quote\\\""), "Should escape quote at end");
 
         // Quote in middle
-        string memory str3 = "Middle'quote";
-        assertTrue(_containsSubstring(_escapeJSON(str3), "Middle\\'quote"), "Should escape quote in middle");
+        string memory str3 = "Middle\"quote";
+        assertTrue(_containsSubstring(_escapeJSON(str3), "Middle\\\"quote"), "Should escape quote in middle");
 
         // Multiple consecutive quotes
-        string memory str4 = "Test''double";
-        uint256 count = _countSubstring(_escapeJSON(str4), "\\'");
+        string memory str4 = "Test\"\"double";
+        uint256 count = _countSubstring(_escapeJSON(str4), "\\\"");
         assertEq(count, 2, "Should escape consecutive quotes");
     }
 
@@ -229,7 +229,7 @@ contract KarmaGAPSchemaValidationTest is Test {
         uint256 quoteCount = 0;
 
         for (uint256 i = 0; i < b.length; i++) {
-            if (b[i] == "'") quoteCount++;
+            if (b[i] == '"') quoteCount++;
         }
 
         if (quoteCount == 0) return str;
@@ -238,7 +238,7 @@ contract KarmaGAPSchemaValidationTest is Test {
         uint256 j = 0;
 
         for (uint256 i = 0; i < b.length; i++) {
-            if (b[i] == "'") {
+            if (b[i] == '"') {
                 escaped[j++] = "\\";
             }
             escaped[j++] = b[i];
@@ -270,7 +270,7 @@ contract KarmaGAPSchemaValidationTest is Test {
     }
 
     function _containsField(string memory json, string memory fieldName) private pure returns (bool) {
-        string memory searchStr = string(abi.encodePacked("'", fieldName, "':"));
+        string memory searchStr = string(abi.encodePacked("\"", fieldName, "\":"));
         return _containsSubstring(json, searchStr);
     }
 
@@ -337,7 +337,7 @@ contract KarmaGAPSchemaValidationTest is Test {
             }
             if (b[i] == "\\") {
                 escaped = true;
-            } else if (b[i] == "'") {
+            } else if (b[i] == '"') {
                 inString = !inString;
             } else if (!inString) {
                 if (b[i] == "{") openBraces++;

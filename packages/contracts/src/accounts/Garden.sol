@@ -500,20 +500,20 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         bytes memory impactData = abi.encode(
             string(
                 abi.encodePacked(
-                    "{'title':'",
+                    "{\"title\":\"",
                     StringUtils.escapeJSON(workTitle),
-                    "',",
-                    "'text':'",
+                    "\",",
+                    "\"text\":\"",
                     StringUtils.escapeJSON(impactDescription),
-                    "',",
-                    "'proof':'",
-                    proofIPFS,
-                    "',",
-                    "'completedAt':",
+                    "\",",
+                    "\"proof\":\"",
+                    StringUtils.escapeJSON(proofIPFS),
+                    "\",",
+                    "\"completedAt\":",
                     // solhint-disable-next-line not-rely-on-time
                     StringUtils.uint2str(block.timestamp), // Metadata only - not used for access control
                     ",",
-                    "'type':'project-update'}"
+                    "\"type\":\"project-update\"}"
                 )
             )
         );
@@ -571,24 +571,24 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
 
         IEAS eas = IEAS(KarmaLib.getEAS());
 
-        // Build milestone JSON with double quotes - FIX: 'text:' → 'text:'
+        // Build milestone JSON with double quotes
         bytes memory milestoneData = abi.encode(
             string(
                 abi.encodePacked(
-                    "{'title':'",
+                    "{\"title\":\"",
                     StringUtils.escapeJSON(milestoneTitle),
-                    "',",
-                    "'text':'", // FIXED: was "'text:'" (missing closing quote)
+                    "\",",
+                    "\"text\":\"",
                     StringUtils.escapeJSON(milestoneDescription),
-                    "',",
-                    "'metadata':",
+                    "\",",
+                    "\"metadata\":",
                     milestoneMeta,
                     ",",
-                    "'completedAt':",
+                    "\"completedAt\":",
                     // solhint-disable-next-line not-rely-on-time
                     StringUtils.uint2str(block.timestamp), // Metadata only - not used for access control
                     ",",
-                    "'type':'project-milestone'}"
+                    "\"type\":\"project-milestone\"}"
                 )
             )
         );
@@ -657,18 +657,18 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     function _buildGAPDetailsJSON() private view returns (string memory) {
         return string(
             abi.encodePacked(
-                "{'title':'",
+                "{\"title\":\"",
                 StringUtils.escapeJSON(name),
-                "',",
-                "'description':'",
+                "\",",
+                "\"description\":\"",
                 StringUtils.escapeJSON(description),
-                "',",
-                "'imageURL':'",
-                bannerImage,
-                "',",
-                "'location':'",
+                "\",",
+                "\"imageURL\":\"",
+                StringUtils.escapeJSON(bannerImage),
+                "\",",
+                "\"location\":\"",
                 StringUtils.escapeJSON(location),
-                "'}"
+                "\"}"
             )
         );
     }
