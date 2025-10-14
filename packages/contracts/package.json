@@ -8,24 +8,27 @@
     "dev": "anvil --config-out localhost.json",
     "lint": "forge fmt && solhint --config ./.solhint.json 'src/**/*.sol' 'script/**/*.sol' 'test/**/*.sol' --fix",
     "build": "forge build --via-ir",
+
     "test": "pnpm build && ARBITRUM_RPC_URL=http://localhost:8545 BASE_SEPOLIA_RPC_URL=http://localhost:8545 CELO_RPC_URL=http://localhost:8545 forge test --gas-report --no-match-contract 'E2E'",
-    "test:e2e": "source ../../.env && FOUNDRY_PROFILE=e2e forge test -vv",
+    "test:e2e": "pnpm build && forge test --match-contract 'E2EWorkflowTest' -vv && dotenv -e ../../.env -- forge test --match-contract 'E2EKarmaGAPForkTest' -vv",
+    "test:e2e:workflow": "pnpm build && forge test --match-contract 'E2EWorkflowTest' -vv",
+    "test:e2e:karma": "pnpm build && dotenv -e ../../.env -- forge test --match-contract 'E2EKarmaGAPForkTest' -vv",
+    "test:e2e:testnet": "pnpm build && dotenv -e ../../.env -- forge test --match-test 'testFork.*BaseSepolia' -vvv",
+    "test:e2e:arbitrum": "pnpm build && dotenv -e ../../.env -- forge test --match-test 'testFork.*Arbitrum' -vvv",
+    "test:e2e:celo": "pnpm build && dotenv -e ../../.env -- forge test --match-test 'testFork.*Celo' -vvv",
 
     "deploy": "node script/deploy.js core",
-    "deploy:local": "node script/deploy.js core --network localhost --broadcast",
     "deploy:dryrun": "node script/deploy.js core --network baseSepolia",
     "deploy:testnet": "node script/deploy.js core --network baseSepolia --broadcast",
-    "deploy:celo": "node script/deploy.js core --network celo --broadcast",
     "deploy:arbitrum": "node script/deploy.js core --network arbitrum --broadcast",
+    "deploy:celo": "node script/deploy.js core --network celo --broadcast",
 
     "upgrade": "node script/upgrade.js",
+    "upgrade:dryrun": "node script/upgrade.js all --network baseSepolia",
     "upgrade:testnet": "node script/upgrade.js all --network baseSepolia --broadcast",
-    "upgrade:celo": "node script/upgrade.js all --network celo --broadcast",
     "upgrade:arbitrum": "node script/upgrade.js all --network arbitrum --broadcast",
+    "upgrade:celo": "node script/upgrade.js all --network celo --broadcast",
 
-    "action": "node script/action-manager.js",
-
-    "fork": "node script/deploy.js fork",
     "status": "node script/deploy.js status",
     "envio:local": "node script/utils/envio-integration.js enable-local",
     "envio:cleanup": "node script/utils/envio-integration.js cleanup"
@@ -36,10 +39,6 @@
   },
   "devDependencies": {
     "@pinata/sdk": "^2.1.0",
-    "csv-parse": "^5.5.3",
-    "envfile": "~6.18.0",
-    "node-fetch": "^2.7.0",
-    "solhint": "^5.0.5",
-    "toml": "~3.0.0"
+    "solhint": "^6.0.1"
   }
 }

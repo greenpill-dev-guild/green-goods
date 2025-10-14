@@ -4,21 +4,27 @@
   "rules": {
     "code-complexity": ["error", 9],
     "compiler-version": ["error", ">=0.8.25"],
-    "func-name-mixedcase": "warn",
+    "func-name-mixedcase": "off",
     "func-visibility": ["error", { "ignoreConstructors": true }],
     "max-line-length": ["error", 132],
     "named-parameters-mapping": "warn",
     "no-console": "warn",
-    "not-rely-on-time": "warn",
+    "not-rely-on-time": "off",
     "one-contract-per-file": "error",
     "avoid-low-level-calls": "warn",
     "no-inline-assembly": "warn",
     "no-empty-blocks": "warn",
     "no-complex-fallback": "warn",
-    "import-path-check": "warn",
+    "import-path-check": "off",
     "max-states-count": ["warn", 20],
     "gas-custom-errors": "error",
     "reason-string": "error",
-    "no-unused-vars": "error"
+    "no-unused-vars": "error",
+    "gas-small-strings": "off",
+    "gas-increment-by-one": "off",
+    "gas-strict-inequalities": "off",
+    "gas-calldata-parameters": "off",
+    "function-max-lines": "off",
+    "use-natspec": "off"
   }
 }

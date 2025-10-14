@@ -16,6 +16,8 @@ package-lock.json
 pnpm-lock.yaml
 yarn.lock
 .ipfs-cache.json
+test-results.json
+FINAL_TEST_REPORT.md
 
 # broadcasts
 !broadcast
