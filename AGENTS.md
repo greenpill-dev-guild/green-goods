@@ -8,7 +8,7 @@ Green Goods is a decentralized platform for biodiversity conservation, enabling 
 
 **Tech Stack:** React · TypeScript · Solidity · GraphQL · Viem · EAS · Envio
 
-**Tools:** Biome (35x faster) · 0xlint (30ms) · pnpm · Foundry
+**Tools:** Biome (35x faster) · 0xlint (30ms) · bun · Foundry
 
 ## Monorepo Structure
 
@@ -99,7 +99,7 @@ const chainId = useAccount().chainId; // Never use wallet chain
 **Example:**
 ```bash
 # Correct
-pnpm deploy:testnet
+bun deploy:testnet
 node script/deploy.js core --network baseSepolia --broadcast
 
 # Wrong
@@ -128,11 +128,12 @@ forge script script/Deploy.s.sol --broadcast --rpc-url $RPC
 - Zero config needed
 - Complements Biome
 
-### pnpm (vs npm/yarn)
-- Workspace support
-- Efficient monorepo handling
-- Faster installs
-- Strict dependency resolution
+### bun (vs npm/pnpm)
+- **2-10x faster** installs and script execution
+- Native TypeScript support
+- Built-in test runner
+- Workspace support with --filter
+- Smaller lock files (binary format)
 
 ### Viem (vs ethers)
 - TypeScript-first design
@@ -263,34 +264,34 @@ grep "usePrivy" packages/client/src -r
 # First time setup
 git clone <repo>
 cd green-goods
-pnpm install
+bun install
 
 # Copy root .env
 cp .env.example .env
 # Edit .env with your keys
 
 # Start all services
-pnpm dev
+bun dev
 
 # View logs
-pnpm exec pm2 logs client
-pnpm exec pm2 logs admin
-pnpm exec pm2 logs indexer
+bunx pm2 logs client
+bunx pm2 logs admin
+bunx pm2 logs indexer
 ```
 
 ### Quality Commands
 ```bash
 # Format (Biome)
-pnpm format
+bun format
 
 # Lint (0xlint + Biome)
-pnpm lint
+bun lint
 
 # Test all packages
-pnpm test
+bun test
 
 # Build all packages
-pnpm build
+bun build
 ```
 
 ### Conventional Commits

@@ -20,7 +20,7 @@ green-goods/
 
 ### Prerequisites
 
-- **Node.js** v20+ • **pnpm** v9.x • **Docker** • **Foundry**
+- **Node.js** v20+ • **bun** v1.x • **Docker** • **Foundry**
 
 ### Setup & Run
 
@@ -28,19 +28,19 @@ green-goods/
 # Clone and install
 git clone https://github.com/your-org/green-goods.git
 cd green-goods
-pnpm install
+bun install
 
 # Configure environment (REQUIRED - all packages use root .env)
 cp .env.example .env
 # Edit .env with your API keys (see .env.example)
 
 # Start all services (pm2: client, admin, indexer)
-pnpm dev
+bun dev
 
 # Tail logs
-pnpm exec pm2 logs client
-pnpm exec pm2 logs admin
-pnpm exec pm2 logs indexer
+bunx pm2 logs client
+bunx pm2 logs admin
+bunx pm2 logs indexer
 ```
 
 ## ⚙️ Environment Configuration
@@ -83,22 +83,22 @@ See [Environment Setup Guide](./docs/ENVIRONMENT_SETUP.md) for detailed configur
 
 ```bash
 # Development
-pnpm dev                              # Start all services
-pnpm --filter <package> dev           # Start individual service
+bun dev                              # Start all services
+bun --filter <package> dev           # Start individual service
 
 # Building  
-pnpm build                            # Build all packages
-pnpm --filter <package> build         # Build specific package
+bun build                            # Build all packages
+bun --filter <package> build         # Build specific package
 
 # Smart Contracts
-pnpm --filter contracts test             # Test contracts
-pnpm --filter contracts deploy:local     # Deploy locally
-pnpm --filter contracts deploy:testnet   # Deploy to testnet
-pnpm --filter contracts deploy:arbitrum  # Deploy to Arbitrum
-pnpm --filter contracts deploy:celo      # Deploy to Celo mainnet
+bun --filter contracts test             # Test contracts
+bun --filter contracts deploy:local     # Deploy locally
+bun --filter contracts deploy:testnet   # Deploy to testnet
+bun --filter contracts deploy:arbitrum  # Deploy to Arbitrum
+bun --filter contracts deploy:celo      # Deploy to Celo mainnet
 
 # Quality
-pnpm format && pnpm lint && pnpm test # Quality checks
+bun format && bun lint && bun test # Quality checks
 ```
 
 ## 🤝 Contributing

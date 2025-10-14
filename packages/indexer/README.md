@@ -5,7 +5,7 @@ This package contains the Envio indexer for Green Goods contracts. It exposes a 
 ### Run
 
 ```bash
-pnpm dev
+bun dev
 ```
 
 Visit http://localhost:8080 to see the GraphQL Playground, local password is `testing`.
@@ -13,7 +13,7 @@ Visit http://localhost:8080 to see the GraphQL Playground, local password is `te
 ### Generate files from `config.yaml` or `schema.graphql`
 
 ```bash
-pnpm codegen
+bun run codegen
 ```
 
 ### Pre-requisites
@@ -57,7 +57,7 @@ If you encounter errors like `failed to mount /var/lib/docker/rootfs/stargz` or 
 
 **Quick Reset:**
 ```bash
-pnpm reset
+bun run reset
 ```
 
 Or directly run:
@@ -85,7 +85,7 @@ Or directly run:
    # Prune Docker system
    docker system prune -f
    ```
-4. Start fresh: `pnpm dev`
+4. Start fresh: `bun dev`
 
 ### ReScript Compilation Errors
 
@@ -97,7 +97,7 @@ cd generated
 npm install --legacy-peer-deps
 npm run build
 cd ..
-pnpm dev
+bun dev
 ```
 
 This is a workaround for pnpm workspace hoisting. The `generated` folder needs its own `node_modules` with ReScript packages to compile the generated code.
@@ -106,4 +106,4 @@ This is a workaround for pnpm workspace hoisting. The `generated` folder needs i
 
 - **Port 8080 already in use**: Stop other services using port 8080 or change the port in Envio config
 - **Database connection issues**: Ensure Docker Desktop is running and containers are healthy
-- **Code generation failures**: Run `pnpm codegen` to regenerate after schema changes
+- **Code generation failures**: Run `bun run codegen` to regenerate after schema changes

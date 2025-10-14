@@ -14,7 +14,7 @@ This rule covers Green Goods contract deployment workflows, ensuring safe and co
 
 ### When to Deploy (New Addresses)
 
-Use `pnpm deploy:*` when:
+Use `bun deploy:*` when:
 - Setting up a new network
 - First-time deployment
 - Testing locally or on fork
@@ -22,15 +22,15 @@ Use `pnpm deploy:*` when:
 
 **Commands:**
 ```bash
-pnpm deploy:local      # Anvil localhost
-pnpm deploy:testnet    # Base Sepolia
-pnpm deploy:celo       # Celo mainnet
-pnpm deploy:arbitrum   # Arbitrum mainnet
+bun deploy:local      # Anvil localhost
+bun deploy:testnet    # Base Sepolia
+bun deploy:celo       # Celo mainnet
+bun deploy:arbitrum   # Arbitrum mainnet
 ```
 
 ### When to Upgrade (Same Addresses)
 
-Use `pnpm upgrade:*` when:
+Use `bun upgrade:*` when:
 - Fixing bugs in production contracts
 - Adding features to existing contracts
 - Maintaining addresses for existing integrations
@@ -38,16 +38,16 @@ Use `pnpm upgrade:*` when:
 
 **Commands:**
 ```bash
-pnpm upgrade:testnet
-pnpm upgrade:celo
-pnpm upgrade:arbitrum
+bun upgrade:testnet
+bun upgrade:celo
+bun upgrade:arbitrum
 ```
 
 ## MANDATORY: Use deploy.js Wrapper
 
 **✅ ALWAYS:**
 ```bash
-pnpm deploy:testnet
+bun deploy:testnet
 node script/deploy.js core --network baseSepolia --broadcast
 ```
 
@@ -141,7 +141,7 @@ const profiles = {
 node script/deploy.js core --network celo --profile production --broadcast
 
 # Default profile (production for mainnet, testing for testnet)
-pnpm deploy:celo
+bun deploy:celo
 ```
 
 ## Deployment Artifacts
@@ -196,8 +196,8 @@ const workSchemaUID = deployment.schemas.workSchemaUID;
 
 Before running `--broadcast`:
 
-- [ ] Tests passing: `pnpm --filter contracts test`
-- [ ] Code formatted: `pnpm --filter contracts format`
+- [ ] Tests passing: `bun --filter contracts test`
+- [ ] Code formatted: `bun --filter contracts format`
 - [ ] Gas analyzed: `forge test --gas-report`
 - [ ] Dry run successful: `node script/deploy.js core --network <net>`
 - [ ] Deployer funded: `cast balance $ADDRESS --rpc-url $RPC`
@@ -233,8 +233,8 @@ cast call $EAS "getSchema(bytes32)" $SCHEMA_UID --rpc-url $RPC
 # Check deployment artifact for verification URLs
 
 # Update dependent packages
-cd packages/indexer && pnpm codegen
-cd packages/client && pnpm build
+cd packages/indexer && bun codegen
+cd packages/client && bun build
 ```
 
 ## Deployment Troubleshooting

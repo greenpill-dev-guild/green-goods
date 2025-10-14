@@ -36,6 +36,31 @@ function checkCommand(cmd, name) {
   }
 }
 
+function installBun() {
+  log.info('Installing bun...\n');
+  const isWindows = process.platform === 'win32';
+  
+  try {
+    if (isWindows) {
+      execSync('powershell -c "irm bun.sh/install.ps1 | iex"', { stdio: 'inherit' });
+    } else {
+      execSync('curl -fsSL https://bun.sh/install | bash', { stdio: 'inherit' });
+    }
+    
+    // Add to PATH for current session
+    if (!isWindows) {
+      process.env.PATH = `${process.env.HOME}/.bun/bin:${process.env.PATH}`;
+    }
+    
+    log.success('Bun installed successfully\n');
+    return true;
+  } catch (err) {
+    log.error('Failed to install bun automatically');
+    console.log(`${c.dim}Install manually: https://bun.sh${c.reset}\n`);
+    return false;
+  }
+}
+
 function checkVersion(cmd, minVersion, name) {
   try {
     const version = execSync(`${cmd} --version`, { encoding: 'utf8' }).trim();
@@ -69,20 +94,29 @@ console.log(`\n${c.green}🌱 Green Goods Setup${c.reset}\n`);
 // Check dependencies
 log.info('Checking dependencies...\n');
 const hasNode = checkVersion('node', 20, 'Node.js');
-const hasPnpm = checkVersion('pnpm', 9, 'pnpm');
+let hasBun = checkVersion('bun', 1, 'bun');
 const hasGit = checkCommand('git', 'Git');
 const hasDocker = checkDocker();
 const hasForge = checkCommand('forge', 'Foundry');
 
 console.log('');
 
-if (!hasNode || !hasPnpm || !hasGit) {
+if (!hasNode || !hasGit) {
   log.error('Missing required dependencies. Install them and try again.\n');
   console.log(`${c.dim}Required:${c.reset}
   • Node.js 20+: https://nodejs.org
-  • pnpm 9+: npm install -g pnpm
   • Git: https://git-scm.com\n`);
   process.exit(1);
+}
+
+if (!hasBun) {
+  log.warning('Bun not found. Attempting to install...\n');
+  hasBun = installBun();
+  if (!hasBun) {
+    log.error('Bun installation failed. Please install manually.\n');
+    console.log(`${c.dim}Install: https://bun.sh${c.reset}\n`);
+    process.exit(1);
+  }
 }
 
 if (!hasDocker) {
@@ -98,7 +132,7 @@ if (!hasForge) {
 if (!fs.existsSync('node_modules')) {
   log.info('Installing dependencies...\n');
   try {
-    execSync('pnpm install', { stdio: 'inherit' });
+    execSync('bun install', { stdio: 'inherit' });
     log.success('Dependencies installed\n');
   } catch {
     log.error('Failed to install dependencies\n');
@@ -131,11 +165,11 @@ See .env for all variables.\n`);
 console.log(`${c.green}✓ Setup complete!${c.reset}\n`);
 console.log(`${c.cyan}Next steps:${c.reset}
   1. Edit .env with your API keys
-  2. Start services: pnpm dev
-  3. Run tests: pnpm test
+  2. Start services: bun dev
+  3. Run tests: bun test
 
 ${c.dim}Individual packages:${c.reset}
-  • pnpm dev:client    - React PWA (port 5173)
-  • pnpm dev:indexer   - Blockchain indexer (port 8081)
-  • pnpm dev:contracts - Local blockchain (Anvil)
+  • bun dev:client    - React PWA (port 3001)
+  • bun dev:indexer   - Blockchain indexer (port 8081)
+  • bun dev:contracts - Local blockchain (Anvil)
 `);

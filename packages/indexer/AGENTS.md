@@ -4,10 +4,10 @@ The indexer exposes Green Goods blockchain data via GraphQL using Envio.
 
 ## Quick Reference
 
-**Start:** `pnpm dev`  
+**Start:** `bun dev`  
 **GraphQL Playground:** http://localhost:8080 (password: `testing`)  
-**Codegen:** `pnpm codegen`  
-**Reset:** `pnpm reset` or `./reset-indexer.sh`
+**Codegen:** `bun run codegen`  
+**Reset:** `bun run reset` or `./reset-indexer.sh`
 
 ## Architecture
 
@@ -156,20 +156,20 @@ Run codegen after:
 - Adding new events
 
 ```bash
-pnpm codegen
+bun run codegen
 ```
 
 ### Docker Management
 
 ```bash
 # Start indexer
-pnpm dev
+bun dev
 
 # Stop containers
 docker compose down
 
 # Reset completely
-pnpm reset
+bun run reset
 
 # View logs
 docker compose logs -f envio
@@ -184,7 +184,7 @@ cd generated
 npm install --legacy-peer-deps
 npm run build
 cd ..
-pnpm dev
+bun dev
 ```
 
 ## Troubleshooting
@@ -193,7 +193,7 @@ pnpm dev
 
 ```bash
 # Quick fix
-pnpm reset
+bun run reset
 
 # Or manual cleanup
 docker compose down -v

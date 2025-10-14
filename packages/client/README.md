@@ -8,8 +8,8 @@ This section assumes you have already set up the main Green Goods project as out
 
 ### Prerequisites
 
-- Ensure Node.js (version 20 or higher) and pnpm are installed.
-- The main project dependencies should be installed by running `pnpm install` in the root directory.
+- Ensure Node.js (version 20 or higher) and bun are installed.
+- The main project dependencies should be installed by running `bun install` in the root directory.
 
 ### Environment Variables
 
@@ -32,7 +32,7 @@ The root `.env` file is automatically loaded by:
 **Setup:**
 1. Copy the root `.env.example` (if it exists) or create `.env` at the project root
 2. Add the required environment variables listed above
-3. Variables are automatically loaded when running `pnpm dev` from root or package directory
+3. Variables are automatically loaded when running `bun dev` from root or package directory
 
 _Refer to the main project's [README.md](../../README.md#configure-environment-variables) for complete environment setup instructions._
 
@@ -46,7 +46,7 @@ To run the client application in a local development environment:
     cd packages/client
     ```
 
-    _(Note: If you are in the root directory, you can often run client scripts directly using pnpm's workspace features, e.g., `pnpm --filter client dev`)_
+    _(Note: If you are in the root directory, you can often run client scripts directly using pnpm's workspace features, e.g., `bun --filter client dev`)_
 
 2.  **Start the development server:**
     ```bash
@@ -153,7 +153,7 @@ For PWA testing:
 1. Restart VS Code
 2. Check Biome extension is enabled
 3. Verify `node_modules/.bin/biome` exists
-4. Run `pnpm install` to ensure dependencies
+4. Run `bun install` to ensure dependencies
 
 **Development server issues:**
 ```bash

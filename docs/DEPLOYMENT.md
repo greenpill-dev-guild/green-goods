@@ -25,7 +25,7 @@ This comprehensive guide covers deploying Green Goods smart contracts to any EVM
 cd packages/contracts
 cp .env.example .env
 # Edit .env with your configuration
-pnpm install
+bun install
 ```
 
 ### 2. Verify Network Configuration

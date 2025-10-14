@@ -504,22 +504,22 @@ The admin package uses Vitest + React Testing Library for component and integrat
 cd packages/admin
 
 # Fast unit tests (development)
-pnpm test:unit
+bun test:unit
 
 # Integration tests (requires Base Sepolia)
-pnpm test:integration
+bun test:integration
 
 # All tests
-pnpm test
+bun test
 
 # Watch mode
-pnpm test:watch
+bun test:watch
 
 # Coverage report
-pnpm test:coverage
+bun test:coverage
 
 # Interactive UI
-pnpm test:ui
+bun test:ui
 ```
 
 ### Test Structure
