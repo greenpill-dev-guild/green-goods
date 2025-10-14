@@ -15,15 +15,15 @@ export function useCreateAssessmentWorkflow() {
   const { selectedChainId } = useAdminStore();
 
   const EAS_GARDEN_ASSESSMENT_SCHEMA =
-  process.env.VITE_PUBLIC_EAS_GARDEN_ASSESSMENT_SCHEMA ||
-  "0x76ea40f6c854813bed0224a4334298e63bf77818680bebe1b2921171f2eeb0f6"; // Base Sepolia
+    process.env.VITE_PUBLIC_EAS_GARDEN_ASSESSMENT_SCHEMA ||
+    "0x76ea40f6c854813bed0224a4334298e63bf77818680bebe1b2921171f2eeb0f6"; // Base Sepolia
 
   const startCreation = (params: CreateAssessmentForm & { gardenId: string }) => {
     send({ type: "START", params });
   };
 
   const submitCreation = async (): Promise<string> => {
-    console.log('Debug - Validation check:', {
+    console.log("Debug - Validation check:", {
       address,
       hasParams: !!state.context.assessmentParams,
       userWallet: user?.wallet?.address,
@@ -46,7 +46,7 @@ export function useCreateAssessmentWorkflow() {
       throw new Error("Garden ID is required");
     }
 
-    if (typeof window.ethereum === 'undefined') {
+    if (typeof window.ethereum === "undefined") {
       const errorMsg = "Web3 provider not found. Please install MetaMask or another web3 wallet.";
       send({ type: "FAILURE", error: errorMsg });
       throw new Error(errorMsg);
@@ -56,22 +56,22 @@ export function useCreateAssessmentWorkflow() {
 
     try {
       const contracts = getNetworkContracts(selectedChainId);
-      if (!contracts?.easAddress || !contracts.assessmentSchemaUID) {
+      if (!contracts?.eas || !EAS_GARDEN_ASSESSMENT_SCHEMA) {
         throw new Error(`EAS configuration missing for chain ${selectedChainId}`);
       }
 
-  const params = state.context.assessmentParams;
-  const eas = new EAS("0x4200000000000000000000000000000000000021");
-  // Connect EAS SDK with the wallet's provider
-  if (!connector) {
-    throw new Error("No wallet connector found");
-  }
-  const provider = await connector.getProvider();
-  
-  // Create ethers provider from raw provider
-  const ethersProvider = new ethers.BrowserProvider(provider as any);
-  const signer = await ethersProvider.getSigner();
-  eas.connect(signer);
+      const params = state.context.assessmentParams;
+      const eas = new EAS("0x4200000000000000000000000000000000000021");
+      // Connect EAS SDK with the wallet's provider
+      if (!connector) {
+        throw new Error("No wallet connector found");
+      }
+      const provider = await connector.getProvider();
+
+      // Create ethers provider from raw provider
+      const ethersProvider = new ethers.BrowserProvider(provider as any);
+      const signer = await ethersProvider.getSigner();
+      eas.connect(signer);
 
       const schemaEncoder = new SchemaEncoder(
         "uint8 soilMoisturePercentage,uint256 carbonTonStock,uint256 carbonTonPotential,uint256 gardenSquareMeters,string biome,string remoteReportPDF,string speciesRegistryJSON,string[] polygonCoordinates,string[] treeGenusesObserved,string[] weedGenusesObserved,string[] issues,string[] tags"
@@ -109,7 +109,10 @@ export function useCreateAssessmentWorkflow() {
         newAttestationUID = attestResult;
       } else if (attestResult && typeof (attestResult as any).wait === "function") {
         // transaction-like object: prefer hash or UID if available
-        newAttestationUID = (attestResult as any).attestationUID || (attestResult as any).hash || String(attestResult);
+        newAttestationUID =
+          (attestResult as any).attestationUID ||
+          (attestResult as any).hash ||
+          String(attestResult);
         try {
           // wait for confirmation to get any on-chain UID if SDK returns it in receipt
           const receipt = await (attestResult as any).wait();
@@ -124,7 +127,7 @@ export function useCreateAssessmentWorkflow() {
       }
 
       send({ type: "SUCCESS", txHash: newAttestationUID });
-      
+
       return newAttestationUID;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error occurred";
