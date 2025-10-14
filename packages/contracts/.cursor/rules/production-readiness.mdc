@@ -21,6 +21,15 @@ Execute these checks in order when asked about production readiness:
 cd packages/contracts && pnpm test
 ```
 
+**Test Report:**
+```bash
+# Generate and review test report
+cd packages/contracts && pnpm test
+cat FINAL_TEST_REPORT.md
+```
+
+**Required:** FINAL_TEST_REPORT.md must exist and show ≥80% pass rate for testnet.
+
 **Requirements:**
 - **Testnet (Base Sepolia):** ≥80% pass rate acceptable
 - **Mainnet:** 100% tests must pass
