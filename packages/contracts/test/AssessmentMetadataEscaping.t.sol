@@ -9,34 +9,34 @@ import { Test } from "forge-std/Test.sol";
 contract AssessmentMetadataEscapingTest is Test {
     /// @notice Test: Escaping quotes in assessment type
     function testEscapeJSON_HandlesQuotesInAssessmentType() public {
-        string memory assessmentType = "Quarterly 'Q1' Assessment";
+        string memory assessmentType = "Quarterly \"Q1\" Assessment";
         string memory escaped = _escapeJSON(assessmentType);
 
         // Should contain escaped quotes
-        assertTrue(_containsSubstring(escaped, "\\'Q1\\'"), "Quotes should be escaped");
+        assertTrue(_containsSubstring(escaped, "\\\"Q1\\\""), "Quotes should be escaped");
 
         // Should not break JSON when embedded
-        string memory json = string(abi.encodePacked("{'assessmentType':'", escaped, "'}"));
+        string memory json = string(abi.encodePacked("{\"assessmentType\":\"", escaped, "\"}"));
         assertTrue(_isValidJSON(json), "JSON should be valid");
     }
 
     /// @notice Test: Escaping quotes in metrics JSON
     function testEscapeJSON_HandlesQuotesInMetricsJSON() public {
-        string memory metricsJSON = "{'metric':'test','value':'100'}";
+        string memory metricsJSON = "{\"metric\":\"test\",\"value\":\"100\"}";
         string memory escaped = _escapeJSON(metricsJSON);
 
         // Count escaped quotes
-        uint256 quoteCount = _countSubstring(escaped, "\\'");
+        uint256 quoteCount = _countSubstring(escaped, "\\\"");
         assertTrue(quoteCount > 0, "Should have escaped quotes");
     }
 
     /// @notice Test: Multiple quotes are all escaped
     function testEscapeJSON_HandlesMultipleQuotes() public {
-        string memory text = "Test 'one' and 'two' and 'three'";
+        string memory text = "Test \"one\" and \"two\" and \"three\"";
         string memory escaped = _escapeJSON(text);
 
         // Should have 6 escaped quotes (3 pairs)
-        uint256 count = _countSubstring(escaped, "\\'");
+        uint256 count = _countSubstring(escaped, "\\\"");
         assertEq(count, 6, "Should escape all 6 quote marks");
     }
 
@@ -58,54 +58,54 @@ contract AssessmentMetadataEscapingTest is Test {
 
     /// @notice Test: Consecutive quotes are handled
     function testEscapeJSON_ConsecutiveQuotes() public {
-        string memory text = "Test''double";
+        string memory text = "Test\"\"double";
         string memory escaped = _escapeJSON(text);
 
-        uint256 count = _countSubstring(escaped, "\\'");
+        uint256 count = _countSubstring(escaped, "\\\"");
         assertEq(count, 2, "Should escape both consecutive quotes");
     }
 
     /// @notice Test: Quote at start of string
     function testEscapeJSON_QuoteAtStart() public {
-        string memory text = "'Start";
+        string memory text = "\"Start";
         string memory escaped = _escapeJSON(text);
 
-        assertTrue(_containsSubstring(escaped, "\\'Start"), "Should escape quote at start");
+        assertTrue(_containsSubstring(escaped, "\\\"Start"), "Should escape quote at start");
     }
 
     /// @notice Test: Quote at end of string
     function testEscapeJSON_QuoteAtEnd() public {
-        string memory text = "End'";
+        string memory text = "End\"";
         string memory escaped = _escapeJSON(text);
 
-        assertTrue(_containsSubstring(escaped, "End\\'"), "Should escape quote at end");
+        assertTrue(_containsSubstring(escaped, "End\\\""), "Should escape quote at end");
     }
 
     /// @notice Test: Build milestone metadata with escaped fields
     function testBuildMilestoneMetadata_EscapesFields() public {
-        string memory assessmentType = "Type 'with' quotes";
-        string memory metricsJSON = "ipfs://metrics'test";
+        string memory assessmentType = "Type \"with\" quotes";
+        string memory metricsJSON = "ipfs://metrics\"test";
 
         // Build capitals array
-        string memory capitalsJSON = "['living','social']";
+        string memory capitalsJSON = "[\"living\",\"social\"]";
 
         // Build metadata JSON (simulating resolver logic)
         string memory metadata = string(
             abi.encodePacked(
-                "{'capitals':",
+                "{\"capitals\":",
                 capitalsJSON,
-                ",'assessmentType':'",
+                ",\"assessmentType\":\"",
                 _escapeJSON(assessmentType),
-                "','metricsJSON':'",
+                "\",\"metricsJSON\":\"",
                 _escapeJSON(metricsJSON),
-                "'}"
+                "\"}"
             )
         );
 
         // Verify structure
-        assertTrue(_containsSubstring(metadata, "'capitals':["), "Should have capitals array");
-        assertTrue(_containsSubstring(metadata, "'assessmentType'"), "Should have assessmentType");
-        assertTrue(_containsSubstring(metadata, "'metricsJSON'"), "Should have metricsJSON");
+        assertTrue(_containsSubstring(metadata, "\"capitals\":["), "Should have capitals array");
+        assertTrue(_containsSubstring(metadata, "\"assessmentType\""), "Should have assessmentType");
+        assertTrue(_containsSubstring(metadata, "\"metricsJSON\""), "Should have metricsJSON");
         assertTrue(_isValidJSON(metadata), "Metadata should be valid JSON");
     }
 
@@ -118,7 +118,7 @@ contract AssessmentMetadataEscapingTest is Test {
         uint256 quoteCount = 0;
 
         for (uint256 i = 0; i < b.length; i++) {
-            if (b[i] == "'") quoteCount++;
+            if (b[i] == '"') quoteCount++;
         }
 
         if (quoteCount == 0) return str;
@@ -127,7 +127,7 @@ contract AssessmentMetadataEscapingTest is Test {
         uint256 j = 0;
 
         for (uint256 i = 0; i < b.length; i++) {
-            if (b[i] == "'") {
+            if (b[i] == '"') {
                 escaped[j++] = "\\";
             }
             escaped[j++] = b[i];
@@ -199,7 +199,7 @@ contract AssessmentMetadataEscapingTest is Test {
             }
             if (b[i] == "\\") {
                 escaped = true;
-            } else if (b[i] == "'") {
+            } else if (b[i] == '"') {
                 inString = !inString;
             } else if (!inString) {
                 if (b[i] == "{") openBraces++;
