@@ -6,6 +6,7 @@
   "scripts": {
     "predev": "lsof -ti:8545 | xargs kill -9 2>/dev/null || true",
     "dev": "anvil --config-out localhost.json",
+    "format": "forge fmt",
     "lint": "forge fmt && solhint --config ./.solhint.json 'src/**/*.sol' 'script/**/*.sol' 'test/**/*.sol' --fix",
     "build": "forge build --via-ir",
 
@@ -18,20 +19,27 @@
     "test:e2e:celo": "pnpm build && dotenv -e ../../.env -- forge test --match-test 'testFork.*Celo' -vvv",
 
     "deploy": "node script/deploy.js core",
-    "deploy:dryrun": "node script/deploy.js core --network baseSepolia",
+    "deploy:dry:testnet": "node script/deploy.js core --network baseSepolia",
+    "deploy:dry:arbitrum": "node script/deploy.js core --network arbitrum",
+    "deploy:dry:celo": "node script/deploy.js core --network celo",
     "deploy:testnet": "node script/deploy.js core --network baseSepolia --broadcast",
     "deploy:arbitrum": "node script/deploy.js core --network arbitrum --broadcast",
     "deploy:celo": "node script/deploy.js core --network celo --broadcast",
 
     "upgrade": "node script/upgrade.js",
-    "upgrade:dryrun": "node script/upgrade.js all --network baseSepolia",
+    "upgrade:dry:testnet": "node script/upgrade.js all --network baseSepolia",
+    "upgrade:dry:arbitrum": "node script/upgrade.js all --network arbitrum",
+    "upgrade:dry:celo": "node script/upgrade.js all --network celo",
     "upgrade:testnet": "node script/upgrade.js all --network baseSepolia --broadcast",
     "upgrade:arbitrum": "node script/upgrade.js all --network arbitrum --broadcast",
     "upgrade:celo": "node script/upgrade.js all --network celo --broadcast",
 
     "status": "node script/deploy.js status",
     "envio:local": "node script/utils/envio-integration.js enable-local",
-    "envio:cleanup": "node script/utils/envio-integration.js cleanup"
+    "envio:cleanup": "node script/utils/envio-integration.js cleanup",
+
+    "ipfs:upload": "dotenv -e ../../.env -- node script/utils/ipfs-uploader.js",
+    "ipfs:cache": "cat .ipfs-cache.json"
   },
   "dependencies": {
     "@ethereum-attestation-service/eas-contracts": "^1.8.0",

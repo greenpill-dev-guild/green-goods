@@ -424,9 +424,9 @@ abstract contract DeploymentBase is Test, DeployHelper {
         _createSchemaNameAttestation(easContract, workApprovalSchemaUID, _getSchemaName(schemaJson, "workApproval"));
         _createSchemaNameAttestation(easContract, assessmentSchemaUID, _getSchemaName(schemaJson, "assessment"));
 
-        // Description attestations: verify schema exists before attempting
-        // Schema description schema (0x21cbc6...) only exists on Base Sepolia, not Arbitrum or Celo
-        if (_schemaExists(easSchemaRegistry, SCHEMA_DESCRIPTION_SCHEMA)) {
+        // Description attestations: only on Base Sepolia
+        // Schema description schema (0x21cbc6...) only exists on Base Sepolia, not other networks
+        if (block.chainid == 84_532) {
             _createSchemaDescriptionAttestation(easContract, workSchemaUID, _getSchemaDescription(schemaJson, "work"));
             _createSchemaDescriptionAttestation(
                 easContract, workApprovalSchemaUID, _getSchemaDescription(schemaJson, "workApproval")

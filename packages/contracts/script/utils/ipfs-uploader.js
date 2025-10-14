@@ -16,6 +16,9 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const pinataSDK = require("@pinata/sdk");
+const dotenv = require("dotenv");
+
+dotenv.config({ path: path.join(__dirname, "../../../../", ".env") });
 
 const CACHE_FILE = path.join(process.cwd(), ".ipfs-cache.json");
 const ACTIONS_FILE = path.join(process.cwd(), "config", "actions.json");
