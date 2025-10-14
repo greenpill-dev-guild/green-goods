@@ -68,12 +68,12 @@ export function CreateAssessmentModal({ isOpen, onClose, gardenId }: CreateAsses
         return;
       }
 
-      if (typeof window.ethereum === 'undefined') {
+      if (typeof window.ethereum === "undefined") {
         toast.error("Web3 provider not found. Please install MetaMask or another web3 wallet.");
         return;
       }
 
-      console.log('Starting creation with params:', { ...data, gardenId });
+      console.log("Starting creation with params:", { ...data, gardenId });
       startCreation({ ...data, gardenId });
       const uid = await submitCreation();
       setLastAttestationId(uid);
