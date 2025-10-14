@@ -108,7 +108,7 @@ jobs:
           bun run lint
 
       - name: Check formatting
-        run: biome format . --check
+        run: bun run format:check
 
       - name: Type check and build
         run: |
