@@ -12,7 +12,7 @@ Get up and running with Green Goods contract deployment in minutes.
 
 ```bash
 cd packages/contracts
-pnpm install
+bun install
 ```
 
 > **⚠️ Important: FFI Requirement**
@@ -82,10 +82,10 @@ Perfect for rapid iteration and testing:
 
 ```bash
 # Terminal 1: Start local blockchain
-pnpm dev
+bun dev
 
 # Terminal 2: Deploy contracts
-pnpm deploy:local
+bun deploy:local
 ```
 
 **What gets deployed:**
@@ -104,10 +104,10 @@ Test against real network state without spending gas:
 
 ```bash
 # Fork Celo mainnet
-pnpm fork:celo
+bun fork:celo
 
 # In another terminal: deploy to fork
-pnpm deploy:local
+bun deploy:local
 
 # Run tests on fork
 forge test --fork-url http://localhost:8545 -vv
@@ -123,10 +123,10 @@ Public testnet deployment for integration testing:
 
 ```bash
 # Dry run first (no transactions, validates everything)
-pnpm deploy:dryrun
+bun deploy:dryrun
 
 # Deploy for real
-pnpm deploy:testnet
+bun deploy:testnet
 ```
 
 **Use when:** Testing integrations, sharing with team, preparing for mainnet
@@ -141,10 +141,10 @@ Production deployments:
 
 ```bash
 # Deploy to Celo mainnet
-pnpm deploy:celo
+bun deploy:celo
 
 # Deploy to Arbitrum mainnet
-pnpm deploy:arbitrum
+bun deploy:arbitrum
 ```
 
 **Use when:** Launching to production
@@ -157,26 +157,26 @@ pnpm deploy:arbitrum
 
 ```bash
 # 🏗️ DEPLOY (creates new addresses)
-pnpm deploy:local        # Local development
-pnpm deploy:dryrun       # Dry run (Base Sepolia)
-pnpm deploy:testnet      # Base Sepolia testnet
-pnpm deploy:celo         # Celo mainnet
-pnpm deploy:arbitrum     # Arbitrum mainnet
+bun deploy:local        # Local development
+bun deploy:dryrun       # Dry run (Base Sepolia)
+bun deploy:testnet      # Base Sepolia testnet
+bun deploy:celo         # Celo mainnet
+bun deploy:arbitrum     # Arbitrum mainnet
 
 # 🔄 UPGRADE (keeps same addresses)
-pnpm upgrade:testnet     # Upgrade Base Sepolia
-pnpm upgrade:celo        # Upgrade Celo mainnet
-pnpm upgrade:arbitrum    # Upgrade Arbitrum mainnet
+bun upgrade:testnet     # Upgrade Base Sepolia
+bun upgrade:celo        # Upgrade Celo mainnet
+bun upgrade:arbitrum    # Upgrade Arbitrum mainnet
 
 # 🧪 TESTING
-pnpm test                # Run all tests
-pnpm fork:celo           # Fork Celo mainnet
-pnpm fork:arbitrum       # Fork Arbitrum mainnet
+bun test                # Run all tests
+bun fork:celo           # Fork Celo mainnet
+bun fork:arbitrum       # Fork Arbitrum mainnet
 
 # 🔧 DEVELOPMENT
-pnpm build               # Compile contracts
-pnpm lint                # Format and lint
-pnpm dev                 # Start local blockchain
+bun build               # Compile contracts
+bun lint                # Format and lint
+bun dev                 # Start local blockchain
 ```
 
 ---
@@ -224,22 +224,22 @@ The contracts use a unified deployment CLI that handles:
 
 ```bash
 # Fresh deployment (all environments)
-pnpm deploy:local      # Localhost
-pnpm deploy:testnet    # Base Sepolia
-pnpm deploy:celo       # Celo mainnet
-pnpm deploy:arbitrum   # Arbitrum mainnet
+bun deploy:local      # Localhost
+bun deploy:testnet    # Base Sepolia
+bun deploy:celo       # Celo mainnet
+bun deploy:arbitrum   # Arbitrum mainnet
 
 # Dry run (simulation only)
-pnpm deploy:dryrun
+bun deploy:dryrun
 
 # Advanced deployment options
 node script/deploy.js core --network baseSepolia --broadcast --update-schemas
 node script/deploy.js core --network baseSepolia --broadcast --force
 
 # UUPS contract upgrades (different from deployment)
-pnpm upgrade:testnet
-pnpm upgrade:celo
-pnpm upgrade:arbitrum
+bun upgrade:testnet
+bun upgrade:celo
+bun upgrade:arbitrum
 ```
 
 ### What Gets Deployed?
@@ -301,12 +301,12 @@ Green Goods integrates with the **Karma Grantee Accountability Protocol (GAP)** 
 **Testing:**
 ```bash
 # Run all GAP E2E fork tests
-pnpm test:gap
+bun test:gap
 
 # Test specific networks
-pnpm test:gap:fork:arbitrum
-pnpm test:gap:fork:celo
-pnpm test:gap:fork:base
+bun test:gap:fork:arbitrum
+bun test:gap:fork:celo
+bun test:gap:fork:base
 ```
 
 ### Schema Evolution
@@ -405,8 +405,8 @@ Create a JSON file for action deployment:
 ## Upgrading Contracts (UUPS)
 
 **Important:** Upgrading is different from deploying:
-- **Deploy**: Creates new contracts with new addresses (use `pnpm deploy:*`)
-- **Upgrade**: Updates existing proxy implementations, same addresses (use `pnpm upgrade:*`)
+- **Deploy**: Creates new contracts with new addresses (use `bun deploy:*`)
+- **Upgrade**: Updates existing proxy implementations, same addresses (use `bun upgrade:*`)
 
 All contracts use the UUPS (Universal Upgradeable Proxy Standard) pattern and include storage gaps for safe upgrades.
 
@@ -414,14 +414,14 @@ All contracts use the UUPS (Universal Upgradeable Proxy Standard) pattern and in
 
 ```bash
 # Dry run (recommended first)
-pnpm upgrade:testnet
+bun upgrade:testnet
 
 # Execute upgrade
-pnpm upgrade:testnet --broadcast
+bun upgrade:testnet --broadcast
 
 # Upgrade all contracts on mainnet
-pnpm upgrade:celo
-pnpm upgrade:arbitrum
+bun upgrade:celo
+bun upgrade:arbitrum
 ```
 
 ### Individual Contract Upgrades
@@ -485,7 +485,7 @@ See [UPGRADES.md](docs/UPGRADES.md) for complete upgrade guide including:
 
 **Prerequisites:**
 - [Foundry](https://book.getfoundry.sh/getting-started/installation) installed
-- Node.js (v16 or higher) and pnpm
+- Node.js (v16 or higher) and bun
 - Git
 
 **Development Tools:**
@@ -505,31 +505,31 @@ See [UPGRADES.md](docs/UPGRADES.md) for complete upgrade guide including:
 **Basic Commands:**
 ```bash
 # Install dependencies
-pnpm install
+bun install
 
 # Build contracts with IR optimization
-pnpm build
+bun build
 
 # Run comprehensive test suite
-pnpm test
+bun test
 
 # Format Solidity code
-pnpm format
+bun format
 
 # Lint contracts for security and style
-pnpm lint
+bun lint
 
 # Start local blockchain
-pnpm chain
+bun chain
 ```
 
 **Contract Development:**
 ```bash
 # Compile contracts
-pnpm compile
+bun compile
 
 # Run tests with gas reporting
-pnpm test
+bun test
 
 # Run specific test contract
 forge test --match-contract YourTestContract -vv
@@ -544,23 +544,23 @@ forge test --watch
 **Local Development:**
 ```bash
 # Start Anvil local blockchain
-pnpm chain
+bun chain
 
 # Deploy contracts to local network
-pnpm deploy:local
+bun deploy:local
 
 # Check deployment status
-pnpm deployment:status localhost
+bun deployment:status localhost
 ```
 
 **Network Deployment:**
 ```bash
 # Deploy to testnet
-pnpm deploy:testnet
+bun deploy:testnet
 
 # Deploy to mainnet
-pnpm deploy:celo
-pnpm deploy:arbitrum
+bun deploy:celo
+bun deploy:arbitrum
 
 # Deploy with update schemas only
 node script/deploy.js core --network celo --broadcast --update-schemas
@@ -619,7 +619,7 @@ Networks are configured in `deployments/networks.json`. The system automatically
 **Advanced Testing:**
 ```bash
 # Fork testing against live networks
-pnpm fork:celo
+bun fork:celo
 forge test --fork-url http://localhost:8545
 
 # Gas profiling
@@ -650,7 +650,7 @@ forge fmt
 solhint 'src/**/*.sol' 'script/**/*.sol' 'test/**/*.sol'
 
 # Combined format and lint
-pnpm lint
+bun lint
 ```
 
 **Security Considerations:**
@@ -677,23 +677,23 @@ pnpm lint
 **CLI Usage:**
 ```bash
 # Show available profiles
-pnpm deploy:list-profiles
+bun deploy:list-profiles
 
 # Dry run deployment (validation only)
-pnpm deploy:dryrun --network celo
+bun deploy:dryrun --network celo
 
 # Deploy with verbose logging
-pnpm deploy:celo --verbose
+bun deploy:celo --verbose
 
 # Deploy with custom gas strategy
-pnpm deploy:celo --gas-strategy aggressive
+bun deploy:celo --gas-strategy aggressive
 ```
 
 **Adding New Networks:**
 1. Update `deployments/networks.json` with network configuration
 2. Add RPC URL environment variable
 3. Add deployment script to `package.json`
-4. Verify configuration with `pnpm network:verify`
+4. Verify configuration with `bun network:verify`
 
 ### Indexer Integration
 
@@ -701,13 +701,13 @@ pnpm deploy:celo --gas-strategy aggressive
 The contracts package automatically integrates with the indexer:
 ```bash
 # Enable local development integration
-pnpm envio:enable-local
+bun envio:enable-local
 
 # Update indexer after deployment
 node script/utils/envio-integration.js update
 
 # Cleanup after development
-pnpm envio:cleanup
+bun envio:cleanup
 ```
 
 **Manual Integration:**
@@ -720,13 +720,13 @@ pnpm envio:cleanup
 **Gas Monitoring:**
 ```bash
 # Check current gas prices
-pnpm gas:check
+bun gas:check
 
 # Monitor gas prices in real-time
-pnpm gas:monitor
+bun gas:monitor
 
 # Deploy with gas optimization
-pnpm deploy:celo --gas-optimize
+bun deploy:celo --gas-optimize
 ```
 
 **Optimization Techniques:**
@@ -744,7 +744,7 @@ pnpm deploy:celo --gas-optimize
 ```bash
 # Clean and rebuild
 forge clean
-pnpm build
+bun build
 
 # Check Solidity version compatibility
 cat foundry.toml | grep solc
@@ -756,7 +756,7 @@ foundryup
 **Deployment Failures:**
 ```bash
 # Verify network configuration
-pnpm network:verify
+bun network:verify
 
 # Check RPC connectivity
 curl -X POST $CELO_RPC_URL \

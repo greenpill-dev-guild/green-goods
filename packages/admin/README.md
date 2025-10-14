@@ -6,13 +6,13 @@ Administrative dashboard for managing the Green Goods platform, including garden
 
 ```bash
 # Install dependencies (from project root)
-pnpm install
+bun install
 
 # Configure environment variables in root .env file
 # See "Environment Variables" section below
 
 # Start the admin dashboard
-pnpm --filter admin dev
+bun --filter admin dev
 ```
 
 The admin dashboard will be available at `http://localhost:3002`
@@ -187,16 +187,16 @@ await removeOperator("0x...");
 ### Local Development
 ```bash
 # Start admin dashboard only
-pnpm --filter admin dev
+bun --filter admin dev
 
 # Start all services (includes indexer)
-pnpm dev
+bun dev
 
 # Run tests
-pnpm --filter admin test
+bun --filter admin test
 
 # Build for production
-pnpm --filter admin build
+bun --filter admin build
 ```
 
 ### Environment Variables
@@ -220,14 +220,14 @@ VITE_ENVIO_INDEXER_URL=https://indexer.dev.hyperindex.xyz/2e23bea/v1/graphql
 **Setup:**
 1. Create or edit `.env` at the project root (not in `packages/admin/`)
 2. Add the required environment variables listed above
-3. Variables are automatically loaded when running `pnpm dev` from root or package directory
+3. Variables are automatically loaded when running `bun dev` from root or package directory
 
 ## 🧪 Testing
 
 ### Unit Tests
 ```bash
-pnpm --filter admin test
-pnpm --filter admin test:watch
+bun --filter admin test
+bun --filter admin test:watch
 ```
 
 ### Integration Testing
@@ -240,7 +240,7 @@ The admin dashboard integrates with:
 
 ### Production Build
 ```bash
-pnpm --filter admin build
+bun --filter admin build
 ```
 
 ### Environment Setup

@@ -10,7 +10,7 @@ cp .env.example .env
 # Add your Privy test credentials to .env
 
 # 2. Start services
-pnpm dev
+bun dev
 
 # 3. Run tests
 node tests/run-tests.js smoke       # Quick check (30s)
@@ -24,12 +24,12 @@ node tests/run-tests.js all         # Everything (10-15 min)
 
 **Terminal 1 - Start Indexer:**
 ```bash
-pnpm dev:indexer
+bun dev:indexer
 ```
 
 **Terminal 2 - Start Client:**
 ```bash
-pnpm dev:app
+bun dev:app
 ```
 
 **Terminal 3 - Run Tests:**
@@ -48,7 +48,7 @@ node tests/run-tests.js smoke
 ### Option 2: Use the Development Command
 
 ```bash
-pnpm dev                         # Start all services
+bun dev                         # Start all services
 node tests/run-tests.js smoke    # Run tests in another terminal
 ```
 
@@ -199,11 +199,11 @@ node tests/run-tests.js all
 node tests/run-tests.js check
 
 # Start services manually
-pnpm dev:indexer  # Terminal 1
-pnpm dev:app      # Terminal 2
+bun dev:indexer  # Terminal 1
+bun dev:app      # Terminal 2
 
 # Or start all services
-pnpm dev
+bun dev
 ```
 
 ### Service Health Check
@@ -254,8 +254,8 @@ node tests/run-tests.js ui
 
 - Check if ports 3001 (client) and 8080 (indexer) are available
 - Verify firewall isn't blocking local connections
-- Try restarting services: `pnpm dev:stop && pnpm dev`
-- Check logs: `pnpm dev:logs:client` or `pnpm dev:logs:indexer`
+- Try restarting services: `bun dev:stop && bun dev`
+- Check logs: `bun dev:logs:client` or `bun dev:logs:indexer`
 
 ### Browser Installation
 
@@ -504,22 +504,22 @@ The admin package uses Vitest + React Testing Library for component and integrat
 cd packages/admin
 
 # Fast unit tests (development)
-pnpm test:unit
+bun test:unit
 
 # Integration tests (requires Base Sepolia)
-pnpm test:integration
+bun test:integration
 
 # All tests
-pnpm test
+bun test
 
 # Watch mode
-pnpm test:watch
+bun test:watch
 
 # Coverage report
-pnpm test:coverage
+bun test:coverage
 
 # Interactive UI
-pnpm test:ui
+bun test:ui
 ```
 
 ### Test Structure

@@ -6,7 +6,7 @@ This guide covers common issues and their solutions when working with Green Good
 
 **Services not starting?**
 ```bash
-pnpm dev:stop && pnpm dev  # Restart all services
+bun dev:stop && bun dev  # Restart all services
 ```
 
 **Port conflicts?**
@@ -21,10 +21,10 @@ cp .env.example .env  # Reset environment
 # Edit .env with correct values
 ```
 
-**Node/pnpm version issues?**
+**Node/bun version issues?**
 ```bash
 nvm use 20        # Switch to Node 20
-npm install -g pnpm@9  # Install correct pnpm
+npm install -g bun@9  # Install correct bun
 ```
 
 ## 🚨 Common Issues
@@ -48,19 +48,19 @@ Error: The engine "node" is incompatible with this module. Expected version "20.
    nvm use 20
    ```
 
-#### pnpm Version Mismatch
+#### bun Version Mismatch
 
-**Problem**: Error about incompatible pnpm version
+**Problem**: Error about incompatible bun version
 
 ```
-Error: The engine "pnpm" is incompatible with this module. Expected version "^9.x". Got "10.11.0"
+Error: The engine "bun" is incompatible with this module. Expected version "^9.x". Got "10.11.0"
 ```
 
 **Solution**:
 
-1. Install correct pnpm version:
+1. Install correct bun version:
    ```bash
-   npm install -g pnpm@9
+   npm install -g bun@9
    ```
 
 ### Development Environment Issues
@@ -79,14 +79,14 @@ Error: Cannot find module '@privy-io/server-auth'
 
    ```bash
    rm -rf node_modules
-   pnpm install
+   bun install
    ```
 
 2. If issue persists, try installing the specific package:
    ```bash
-   pnpm add @privy-io/server-auth
+   bun add @privy-io/server-auth
    ```
-3. Verify pnpm v9+ and Node 20+ are installed.
+3. Verify bun v9+ and Node 20+ are installed.
 
 #### Port Conflicts
 
@@ -112,7 +112,7 @@ Error: listen EADDRINUSE: address already in use :::3001
 
 2. Or use a different port:
    ```bash
-   PORT=3002 pnpm --filter client dev
+   PORT=3002 bun --filter client dev
    ```
 
 ### Smart Contract Issues
@@ -163,12 +163,12 @@ Error: Type 'X' is not assignable to type 'Y'
 
 1. Run type checking:
    ```bash
-   pnpm --filter client typecheck
+   bun --filter client typecheck
    ```
 2. Fix type errors
 3. Rebuild:
    ```bash
-   pnpm --filter client build
+   bun --filter client build
    ```
 
 #### Hot Reload Not Working
@@ -183,11 +183,11 @@ No changes detected
 
 1. Clear cache:
    ```bash
-   pnpm --filter client clean
+   bun --filter client clean
    ```
 2. Restart dev server (note: dev server uses HTTPS via mkcert):
    ```bash
-   pnpm --filter client dev
+   bun --filter client dev
    ```
 
 ### Backend Issues
@@ -289,13 +289,13 @@ Error: Invalid API key
 1. **Foundry Debug**
 
    ```bash
-   pnpm --filter contracts test -vvv
+   bun --filter contracts test -vvv
    ```
 
 2. **Gas Profiling**
 
    ```bash
-   pnpm --filter contracts test:gas
+   bun --filter contracts test:gas
    ```
 
 3. **Event Logging**
@@ -312,12 +312,12 @@ Error: Invalid API key
 
 1. Use build cache:
    ```bash
-   pnpm --filter client build --cache
+   bun --filter client build --cache
    ```
 2. Optimize dependencies
 3. Use production mode:
    ```bash
-   NODE_ENV=production pnpm --filter client build
+   NODE_ENV=production bun --filter client build
    ```
 
 ### High Memory Usage
@@ -326,7 +326,7 @@ Error: Invalid API key
 
 1. Increase Node.js memory limit:
    ```bash
-   NODE_OPTIONS="--max-old-space-size=4096" pnpm --filter client dev
+   NODE_OPTIONS="--max-old-space-size=4096" bun --filter client dev
    ```
 2. Optimize bundle size
 3. Use code splitting

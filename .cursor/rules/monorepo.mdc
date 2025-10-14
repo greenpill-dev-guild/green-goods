@@ -6,7 +6,7 @@ alwaysApply: true
 
 # Monorepo Structure & Conventions
 
-Green Goods is a pnpm monorepo with 4 packages. This rule provides guidance on cross-package patterns and when to share vs duplicate code.
+Green Goods is a bun monorepo with 4 packages. This rule provides guidance on cross-package patterns and when to share vs duplicate code.
 
 ## Package Architecture
 
@@ -66,15 +66,15 @@ import { SomeComponent } from '../../admin/src/components/Foo';
 
 ```bash
 # Run in specific package
-pnpm --filter client dev
-pnpm --filter contracts test
+bun --filter client dev
+bun --filter contracts test
 
 # Run in all packages
-pnpm -r test
-pnpm -r build
+bun -r test
+bun -r build
 
 # From package directory
-cd packages/client && pnpm dev
+cd packages/client && bun dev
 ```
 
 ### Package Scripts
@@ -92,13 +92,13 @@ Each package has consistent npm scripts:
 
 ```bash
 # Add to specific package
-pnpm --filter client add viem
+bun --filter client add viem
 
 # Add to root (workspace tools)
-pnpm add -w -D vitest
+bun add -w -D vitest
 
 # Add to all packages
-pnpm -r add lodash
+bun -r add lodash
 ```
 
 ### Version Alignment
@@ -112,7 +112,7 @@ Keep these dependencies aligned across client/admin:
 
 **Check alignment:**
 ```bash
-pnpm list react --depth=0 -r
+bun list react --depth=0 -r
 ```
 
 ## Testing Across Packages
@@ -148,10 +148,10 @@ Packages have build dependencies:
 
 **Build all in order:**
 ```bash
-pnpm build
+bun build
 ```
 
-pnpm handles dependency graph automatically.
+bun handles dependency graph automatically.
 
 ## Code Ownership
 
@@ -244,10 +244,10 @@ import { useRole } from '../../admin/src/hooks/useRole';
 
 ```bash
 # Wrong
-cd packages/client && pnpm build  # Might fail if contracts not built
+cd packages/client && bun build  # Might fail if contracts not built
 
 # Correct
-pnpm build  # From root, handles order
+bun build  # From root, handles order
 ```
 
 ## MCP Integration for Monorepo
@@ -284,7 +284,7 @@ When moving logic between packages:
 - [ ] Update both package tests
 - [ ] Update relevant README files
 - [ ] Check for duplicate type definitions
-- [ ] Validate build still works with `pnpm build`
+- [ ] Validate build still works with `bun build`
 
 ## Reference Documents
 

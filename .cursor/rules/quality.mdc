@@ -21,10 +21,10 @@ Green Goods maintains high code quality through automated tooling, comprehensive
 **Usage:**
 ```bash
 # Format all files
-pnpm format
+bun format
 
 # Format specific package
-pnpm --filter client format
+bun --filter client format
 
 # Auto-format on save (VS Code)
 # Already configured in .vscode/settings.json
@@ -46,10 +46,10 @@ pnpm --filter client format
 **Usage:**
 ```bash
 # Lint client
-pnpm --filter client lint
+bun --filter client lint
 
 # Lint all packages
-pnpm lint
+bun lint
 ```
 
 **What it catches:**
@@ -62,10 +62,10 @@ pnpm lint
 
 ```bash
 # Pre-commit hook runs automatically
-pnpm format && pnpm lint
+bun format && bun lint
 
 # Manual quality check
-pnpm format && pnpm lint && pnpm test
+bun format && bun lint && bun test
 ```
 
 ## Conventional Commits
@@ -315,7 +315,7 @@ modules/job-queue/
 
 ```bash
 # Run Solhint
-pnpm --filter contracts lint
+bun --filter contracts lint
 
 # Auto-format Solidity
 forge fmt
@@ -428,7 +428,7 @@ Monitor with Lighthouse/PageSpeed:
 
 Automated quality checks on PR:
 ```yaml
-1. Install dependencies (pnpm)
+1. Install dependencies (bun)
 2. Format check (Biome)
 3. Lint (0xlint + Biome)
 4. Type check (tsc)
@@ -474,10 +474,10 @@ Use MCP tools for quality workflows:
 
 Before pushing code:
 
-- [ ] `pnpm format` (auto-formatted)
-- [ ] `pnpm lint` (no errors)
-- [ ] `pnpm test` (relevant tests pass)
-- [ ] `pnpm build` (builds successfully)
+- [ ] `bun format` (auto-formatted)
+- [ ] `bun lint` (no errors)
+- [ ] `bun test` (relevant tests pass)
+- [ ] `bun build` (builds successfully)
 - [ ] Conventional commit message
 - [ ] Updated documentation
 - [ ] Added tests for new features

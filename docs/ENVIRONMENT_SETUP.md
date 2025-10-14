@@ -5,7 +5,7 @@
 ```bash
 cp .env.example .env  # Copy template
 # Edit .env with your API keys (see .env.example comments)
-pnpm dev              # Start everything
+bun dev              # Start everything
 ```
 
 ✅ **That's it! The root .env file works for all packages.**
@@ -24,10 +24,10 @@ cp .env.example .env
 # (See sections below for where to get each value)
 
 # 3. Start all services
-pnpm dev
+bun dev
 
 # 4. Verify services are running
-pnpm exec pm2 list
+bun exec pm2 list
 ```
 
 ✅ **This setup works for all packages and is the recommended approach for development.**
@@ -57,13 +57,13 @@ green-goods/
 **Running from any directory:**
 ```bash
 # From root
-pnpm dev                              # All services use root .env
+bun dev                              # All services use root .env
 
 # From package directory
-cd packages/client && pnpm dev        # Still uses root .env
+cd packages/client && bun dev        # Still uses root .env
 
 # From workspace filter
-pnpm --filter client dev              # Still uses root .env
+bun --filter client dev              # Still uses root .env
 ```
 
 ## 🔑 Environment Variables Reference
@@ -129,21 +129,21 @@ REDIS_URL="your-redis-url"                         # Cache/sessions
 
 ### Full Stack Development
 ```bash
-pnpm dev                      # Start all services
-pnpm exec pm2 logs client     # View client logs
-pnpm exec pm2 logs indexer    # View indexer logs
+bun dev                      # Start all services
+bun exec pm2 logs client     # View client logs
+bun exec pm2 logs indexer    # View indexer logs
 ```
 
 ### Frontend Only
 ```bash
 cd packages/client
-pnpm dev                         # Uses root .env automatically
+bun dev                         # Uses root .env automatically
 ```
 
 ### Contract Development
 ```bash
 cd packages/contracts
-pnpm deploy:celo                 # Deploy to Celo (uses root .env)
+bun deploy:celo                 # Deploy to Celo (uses root .env)
 forge test                       # Run tests (uses root .env)
 ```
 
@@ -193,9 +193,9 @@ forge test -vvv                  # Verbose contract tests
 
 ### Service Not Starting?
 ```bash
-pnpm exec pm2 list               # Check service status
-pnpm exec pm2 logs <service>     # Check logs
-pnpm exec pm2 restart <service>  # Restart service
+bun exec pm2 list               # Check service status
+bun exec pm2 logs <service>     # Check logs
+bun exec pm2 restart <service>  # Restart service
 ```
 
 ### Environment Variables Not Loading?
@@ -204,7 +204,7 @@ pnpm exec pm2 restart <service>  # Restart service
 ls -la .env
 
 # Verify environment in running process
-cd packages/client && pnpm dev
+cd packages/client && bun dev
 # Look for console logs showing loaded environment
 ```
 

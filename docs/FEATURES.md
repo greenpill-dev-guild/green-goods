@@ -356,10 +356,10 @@ const formattedDate = intl.formatDate(new Date(), {
 
 For developers looking to contribute or understand the codebase:
 
-1. **Repository Setup**: Clone and install dependencies with `pnpm`
+1. **Repository Setup**: Clone and install dependencies with `bun`
 2. **Environment Configuration**: Set up local blockchain and API connections  
-3. **Development Server**: Run `pnpm dev` for hot-reload development
-4. **Testing**: Execute `pnpm test` for comprehensive test coverage
+3. **Development Server**: Run `bun dev` for hot-reload development
+4. **Testing**: Execute `bun test` for comprehensive test coverage
 5. **Documentation**: Review inline code documentation and examples
 
 For detailed development instructions, see [DEVELOPMENT.md](../DEVELOPMENT.md). 

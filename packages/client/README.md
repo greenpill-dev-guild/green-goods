@@ -8,8 +8,8 @@ This section assumes you have already set up the main Green Goods project as out
 
 ### Prerequisites
 
-- Ensure Node.js (version 20 or higher) and pnpm are installed.
-- The main project dependencies should be installed by running `pnpm install` in the root directory.
+- Ensure Node.js (version 20 or higher) and bun are installed.
+- The main project dependencies should be installed by running `bun install` in the root directory.
 
 ### Environment Variables
 
@@ -32,7 +32,7 @@ The root `.env` file is automatically loaded by:
 **Setup:**
 1. Copy the root `.env.example` (if it exists) or create `.env` at the project root
 2. Add the required environment variables listed above
-3. Variables are automatically loaded when running `pnpm dev` from root or package directory
+3. Variables are automatically loaded when running `bun dev` from root or package directory
 
 _Refer to the main project's [README.md](../../README.md#configure-environment-variables) for complete environment setup instructions._
 
@@ -46,16 +46,16 @@ To run the client application in a local development environment:
     cd packages/client
     ```
 
-    _(Note: If you are in the root directory, you can often run client scripts directly using pnpm's workspace features, e.g., `pnpm --filter client dev`)_
+    _(Note: If you are in the root directory, you can often run client scripts directly using bun's workspace features, e.g., `bun --filter client dev`)_
 
 2.  **Start the development server:**
     ```bash
-    pnpm run dev
+    bun run dev
     ```
 
     **Alternative development server (experimental):**
     ```bash
-    pnpm run dev:rolldown
+    bun run dev:rolldown
     ```
 
 The application should typically be accessible at `https://localhost:3001` (note: HTTPS due to mkcert plugin for PWA features). The Vite server will provide live reloading and HMR (Hot Module Replacement).
@@ -92,10 +92,10 @@ Vite provides instant HMR for:
 **Code Quality Commands:**
 ```bash
 # Format code
-pnpm run format
+bun run format
 
 # Run linting (ultra-fast)
-pnpm run lint
+bun run lint
 
 # The lint command runs both Biome checks and 0xlint
 ```
@@ -103,13 +103,13 @@ pnpm run lint
 **Testing Commands:**
 ```bash
 # Run tests once
-pnpm run test
+bun run test
 
 # Run tests in watch mode (for interactive development)
-pnpm run test:watch
+bun run test:watch
 
 # Generate test coverage report
-pnpm run coverage
+bun run coverage
 ```
 
 **Component Development Workflow:**
@@ -153,7 +153,7 @@ For PWA testing:
 1. Restart VS Code
 2. Check Biome extension is enabled
 3. Verify `node_modules/.bin/biome` exists
-4. Run `pnpm install` to ensure dependencies
+4. Run `bun install` to ensure dependencies
 
 **Development server issues:**
 ```bash
@@ -173,7 +173,7 @@ rm -rf node_modules/.vite
 - Verify PWA manifest is correctly generated
 
 **Performance issues:**
-- Use `pnpm run build` to check production bundle size
+- Use `bun run build` to check production bundle size
 - Enable React DevTools Profiler for component performance
 - Check Network tab for slow API calls or large assets
 
@@ -187,8 +187,8 @@ rm -rf node_modules/.vite
 
 **Production Preview:**
 ```bash
-pnpm run build
-pnpm run preview
+bun run build
+bun run preview
 ```
 - Tests production build locally
 - Mimics production environment
@@ -200,7 +200,7 @@ The client supports dual build systems for different use cases:
 
 ### Production Build (Recommended)
 ```bash
-pnpm run build
+bun run build
 ```
 - **Optimized**: Full Vite optimization with code splitting
 - **Bundle Size**: ~4.4MB main bundle with dynamic imports
@@ -208,7 +208,7 @@ pnpm run build
 
 ### Experimental Build
 ```bash
-pnpm run build:rolldown
+bun run build:rolldown
 ```
 - **Purpose**: Testing next-generation Rolldown bundling
 - **Performance**: Similar output with experimental Rust-based bundling
@@ -222,17 +222,17 @@ The client application uses [Vitest](https://vitest.dev/) for unit/integration t
 
 - **Run tests once:**
   ```bash
-  pnpm run test
+  bun run test
   ```
 
 - **Run tests in watch mode (for interactive development):**
   ```bash
-  pnpm run test:watch
+  bun run test:watch
   ```
 
 - **Generate test coverage report:**
   ```bash
-  pnpm run coverage
+  bun run coverage
   ```
 
 ## Code Quality and Formatting
@@ -241,12 +241,12 @@ The project uses a high-performance linting setup:
 
 - **Format code:**
   ```bash
-  pnpm run format
+  bun run format
   ```
 
 - **Run linting (ultra-fast):**
   ```bash
-  pnpm run lint
+  bun run lint
   ```
 
 The `lint` command runs both Biome checks and 0xlint to ensure code quality and consistency in milliseconds.
@@ -511,7 +511,7 @@ The client is optimized for static hosting:
 
 ### Build Output
 ```bash
-pnpm run build
+bun run build
 ```
 Produces:
 - Static HTML, CSS, JS files in `dist/`

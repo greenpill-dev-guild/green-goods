@@ -4,7 +4,7 @@ module.exports = {
       name: "client",
       script: "sh",
       // Use default vite (aliased to rolldown-vite) for dev
-      args: '-c "pnpm --filter client run dev"',
+      args: '-c "cd packages/client && bun run dev"',
       cwd: ".",
       env: {
         NODE_ENV: "development",
@@ -18,7 +18,7 @@ module.exports = {
     {
       name: "admin",
       script: "sh",
-      args: '-c "pnpm --filter admin run dev"',
+      args: '-c "cd packages/admin && bun run dev"',
       cwd: ".",
       env: {
         NODE_ENV: "development",
@@ -31,7 +31,7 @@ module.exports = {
     {
       name: "indexer",
       script: "sh",
-      args: '-c "cd packages/indexer && pnpm run dev"',
+      args: '-c "cd packages/indexer && bun run dev"',
       cwd: ".",
       env: {
         NODE_ENV: "development",

@@ -337,11 +337,11 @@ To support multiple chains:
 
 ```bash
 # Example: Deploy client for Celo
-VITE_CHAIN_ID=42220 pnpm --filter client build
+VITE_CHAIN_ID=42220 bun --filter client build
 # Deploy to celo.greengoods.app
 
 # Deploy client for Arbitrum
-VITE_CHAIN_ID=42161 pnpm --filter client build  
+VITE_CHAIN_ID=42161 bun --filter client build  
 # Deploy to arbitrum.greengoods.app
 ```
 

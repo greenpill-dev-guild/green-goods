@@ -14,7 +14,7 @@ This document provides a comprehensive checklist for assessing production readin
 
 - [ ] **All tests passing** (100% target for mainnet, 80%+ for testnet)
   ```bash
-  cd packages/contracts && pnpm test
+  cd packages/contracts && bun test
   ```
   - Expected: All unit tests passing
   - Expected: All integration tests passing  
@@ -98,9 +98,9 @@ This document provides a comprehensive checklist for assessing production readin
 
 - [ ] **Fork testing: Tested against live state**
   ```bash
-  pnpm fork:celo
+  bun fork:celo
   # In another terminal:
-  pnpm deploy:local
+  bun deploy:local
   forge test --fork-url http://localhost:8545 -vv
   ```
 
@@ -133,7 +133,7 @@ This document provides a comprehensive checklist for assessing production readin
 
 - [ ] **RPC endpoints verified**
   ```bash
-  pnpm network:verify
+  bun network:verify
   ```
   - All networks: Connectivity confirmed
   - Chain IDs: Verified correct
@@ -147,7 +147,7 @@ This document provides a comprehensive checklist for assessing production readin
 
 - [ ] **Deployment scripts tested**
   ```bash
-  pnpm deploy:dryrun
+  bun deploy:dryrun
   ```
   - Dry run successful: Yes/No
   - No errors in simulation: Yes/No
@@ -181,20 +181,20 @@ This document provides a comprehensive checklist for assessing production readin
 
 - [ ] **Run full test suite**
   ```bash
-  cd packages/contracts && pnpm test
+  cd packages/contracts && bun test
   ```
   - Result: ___ tests passing / ___ total
   - Pass rate: ____%
 
 - [ ] **Verify network config**
   ```bash
-  pnpm network:verify
+  bun network:verify
   ```
   - All checks passing: Yes/No
 
 - [ ] **Dry run deployment**
   ```bash
-  pnpm deploy:dryrun
+  bun deploy:dryrun
   ```
   - Simulation successful: Yes/No
   - Estimated gas cost: _______ ETH
@@ -215,7 +215,7 @@ This document provides a comprehensive checklist for assessing production readin
 
 - [ ] **Deploy to testnet**
   ```bash
-  pnpm deploy:testnet
+  bun deploy:testnet
   ```
   - Deployment started: ________________ (timestamp)
   - Deployment completed: ________________ (timestamp)
@@ -446,7 +446,7 @@ This document provides a comprehensive checklist for assessing production readin
 
 **Deployment Command:**
 ```bash
-pnpm deploy:testnet
+bun deploy:testnet
 ```
 
 ### Base Mainnet
@@ -462,7 +462,7 @@ pnpm deploy:testnet
 # Requires external audit
 # Requires multisig ownership
 # Requires comprehensive testing on testnet first
-pnpm deploy:base
+bun deploy:base
 ```
 
 ### Celo Mainnet
@@ -473,7 +473,7 @@ pnpm deploy:base
 
 **Deployment Command:**
 ```bash
-pnpm deploy:celo
+bun deploy:celo
 ```
 
 ### Arbitrum One
@@ -484,7 +484,7 @@ pnpm deploy:celo
 
 **Deployment Command:**
 ```bash
-pnpm deploy:arbitrum
+bun deploy:arbitrum
 ```
 
 ---
@@ -538,19 +538,19 @@ pnpm deploy:arbitrum
 
 ```bash
 # Test suite
-cd packages/contracts && pnpm test
+cd packages/contracts && bun test
 
 # Coverage
 forge coverage --report lcov
 
 # Network verification
-pnpm network:verify
+bun network:verify
 
 # Dry run
-pnpm deploy:dryrun
+bun deploy:dryrun
 
 # Deploy to testnet
-pnpm deploy:testnet
+bun deploy:testnet
 
 # Check balance
 cast balance $(cast wallet address green-goods-deployer) --rpc-url $BASE_SEPOLIA_RPC_URL
@@ -562,7 +562,7 @@ forge verify-contract --chain-id 84532 <ADDRESS> src/Contract.sol:Contract
 forge test --gas-report
 
 # Upgrade contract
-pnpm upgrade:testnet
+bun upgrade:testnet
 ```
 
 ### Related Documentation

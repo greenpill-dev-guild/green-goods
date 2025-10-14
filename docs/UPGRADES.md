@@ -8,8 +8,8 @@ For fresh deployments with new addresses, see [DEPLOYMENT.md](./DEPLOYMENT.md).
 
 | Action | Command | Creates New Addresses? |
 |--------|---------|----------------------|
-| Deploy | `pnpm deploy:testnet` | ✅ Yes |
-| Upgrade | `pnpm upgrade:testnet` | ❌ No (same addresses) |
+| Deploy | `bun deploy:testnet` | ✅ Yes |
+| Upgrade | `bun upgrade:testnet` | ❌ No (same addresses) |
 
 If you're unsure which to use, see the [Deploy vs Upgrade Decision Matrix](./DEPLOYMENT.md#deploy-vs-upgrade-workflows).
 
@@ -42,11 +42,11 @@ Storage gaps allow new state variables to be added in future upgrades without br
 
 ```bash
 # Upgrade all contracts on testnet
-pnpm upgrade:testnet
+bun upgrade:testnet
 
 # Upgrade all contracts on mainnet
-pnpm upgrade:celo
-pnpm upgrade:arbitrum
+bun upgrade:celo
+bun upgrade:arbitrum
 ```
 
 ### Individual Contract Upgrades
@@ -415,7 +415,7 @@ Always test on testnet before mainnet:
 
 ```bash
 # 1. Deploy to Base Sepolia
-pnpm deploy:testnet
+bun deploy:testnet
 
 # 2. Create test garden
 node script/deploy.js garden --network baseSepolia --broadcast
@@ -442,7 +442,7 @@ forge script script/Upgrade.s.sol:Upgrade \
 
 ```bash
 # Test upgrade on Arbitrum fork
-pnpm test:gap:fork:arbitrum
+bun test:gap:fork:arbitrum
 
 # Verify:
 # - Old gardens continue working
@@ -649,7 +649,7 @@ The current upgrade system provides essential safety features (address validatio
 **Implementation:**
 ```bash
 # Proposed workflow
-pnpm test:upgrade:fork -- --network arbitrum --contract action-registry
+bun test:upgrade:fork -- --network arbitrum --contract action-registry
 # Runs:
 # 1. Fork latest Arbitrum state
 # 2. Execute upgrade on fork

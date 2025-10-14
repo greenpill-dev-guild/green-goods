@@ -60,7 +60,7 @@ Examples:
 Available networks: ${Object.keys(networksConfig.networks).join(", ")}
 
 Note: Contracts are automatically verified on all networks except localhost.
-For UUPS upgrades, use: pnpm upgrade <contract> --network <network> --broadcast
+For UUPS upgrades, use: bun run upgrade <contract> --network <network> --broadcast
     `);
   }
 
