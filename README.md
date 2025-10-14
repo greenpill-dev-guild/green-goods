@@ -20,7 +20,7 @@ green-goods/
 
 ### Prerequisites
 
-- **Node.js** v20+ • **bun** v1.x • **Docker** • **Foundry**
+- **Node.js** v20+ • **bun** v9.x • **Docker** • **Foundry**
 
 ### Setup & Run
 
@@ -38,9 +38,9 @@ cp .env.example .env
 bun dev
 
 # Tail logs
-bunx pm2 logs client
-bunx pm2 logs admin
-bunx pm2 logs indexer
+bun exec pm2 logs client
+bun exec pm2 logs admin
+bun exec pm2 logs indexer
 ```
 
 ## ⚙️ Environment Configuration

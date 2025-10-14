@@ -6,10 +6,12 @@
     "build": "tsc --build",
     "watch": "tsc --watch",
     "mocha": "ts-mocha test/**/*.ts",
+
     "codegen": "envio codegen",
     "dev": "envio dev",
     "start": "envio start",
-    "test": "pnpm mocha",
+
+    "test": "bun run mocha",
     "lint": "oxlint src test",
     "reset": "./reset-indexer.sh"
   },

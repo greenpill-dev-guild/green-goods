@@ -14,4 +14,4 @@ else
   exit 1
 fi
 
-echo "✅ Pre-push checks passed!" 
+echo "✅ Pre-push checks passed!"

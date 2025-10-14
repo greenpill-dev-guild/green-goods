@@ -89,14 +89,14 @@ Successfully fixed all contract build issues and significantly improved test cov
 
 ```bash
 # From project root
-pnpm build:contracts  # ✅ Builds successfully
-pnpm test:contracts   # ✅ Runs all tests
+bun build:contracts  # ✅ Builds successfully
+bun test:contracts   # ✅ Runs all tests
 
 # With environment variables
 ARBITRUM_RPC_URL="http://localhost:8545" \
 BASE_SEPOLIA_RPC_URL="http://localhost:8545" \
 CELO_RPC_URL="http://localhost:8545" \
-pnpm test:contracts
+bun test:contracts
 ```
 
 ## Files Modified

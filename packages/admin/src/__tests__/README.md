@@ -39,13 +39,13 @@ src/test/
 
 ### Unit Tests (Fast)
 ```bash
-pnpm test:unit
+bun test:unit
 ```
 Runs all unit tests excluding integration tests. Uses mocks for all external dependencies.
 
 ### Integration Tests (Slow)
 ```bash
-pnpm test:integration
+bun test:integration
 ```
 Runs integration tests against Base Sepolia testnet. Requires:
 - `VITE_BASE_SEPOLIA_RPC` environment variable
@@ -54,19 +54,19 @@ Runs integration tests against Base Sepolia testnet. Requires:
 
 ### All Tests
 ```bash
-pnpm test
+bun test
 ```
 Runs both unit and integration tests.
 
 ### Watch Mode
 ```bash
-pnpm test:watch
+bun test:watch
 ```
 Runs tests in watch mode for development.
 
 ### Coverage Report
 ```bash
-pnpm test:coverage
+bun test:coverage
 ```
 Generates test coverage report.
 
@@ -124,13 +124,13 @@ The test suite is designed to run in CI environments:
 ### Debug Commands
 ```bash
 # Run specific test file
-pnpm test useRole.test.ts
+bun test useRole.test.ts
 
 # Run with verbose output
-pnpm test --reporter=verbose
+bun test --reporter=verbose
 
 # Run with UI (browser-based test runner)
-pnpm test:ui
+bun test:ui
 ```
 
 ## Adding New Tests

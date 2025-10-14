@@ -772,7 +772,7 @@ git checkout -b feature/garden-batch-operations
 ### 4. Testing
 ```bash
 cd packages/admin
-pnpm test
+bun test
 ```
 
 ### 5. Integration

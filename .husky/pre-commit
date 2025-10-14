@@ -16,4 +16,3 @@ else
   echo "Error: Neither bun nor npm found. Install bun: https://bun.sh"
   exit 1
 fi
-

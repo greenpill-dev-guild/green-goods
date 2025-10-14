@@ -56,7 +56,7 @@ Once you have the `gapProjectUID` from the indexer, use it with the Karma GAP SD
 ### 1. Install the SDK
 
 ```bash
-pnpm add @show-karma/karma-gap-sdk
+bun add @show-karma/karma-gap-sdk
 ```
 
 ### 2. Initialize GAP Client

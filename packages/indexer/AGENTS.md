@@ -6,8 +6,8 @@ The indexer exposes Green Goods blockchain data via GraphQL using Envio.
 
 **Start:** `bun dev`  
 **GraphQL Playground:** http://localhost:8080 (password: `testing`)  
-**Codegen:** `bun run codegen`  
-**Reset:** `bun run reset` or `./reset-indexer.sh`
+**Codegen:** `bun codegen`  
+**Reset:** `bun reset` or `./reset-indexer.sh`
 
 ## Architecture
 
@@ -156,7 +156,7 @@ Run codegen after:
 - Adding new events
 
 ```bash
-bun run codegen
+bun codegen
 ```
 
 ### Docker Management
@@ -169,7 +169,7 @@ bun dev
 docker compose down
 
 # Reset completely
-bun run reset
+bun reset
 
 # View logs
 docker compose logs -f envio
@@ -193,7 +193,7 @@ bun dev
 
 ```bash
 # Quick fix
-bun run reset
+bun reset
 
 # Or manual cleanup
 docker compose down -v

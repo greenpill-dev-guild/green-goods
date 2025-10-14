@@ -244,7 +244,28 @@ For UUPS upgrades, use: bun run upgrade <contract> --network <network> --broadca
           console.log("\n🔄 Auto-updating Envio configuration...");
 
           const envioIntegration = new EnvioIntegration();
-          await envioIntegration.updateEnvioConfig(chainId);
+          await envioIntegration.updateEnvioConfig(chainId, options.network === "localhost");
+
+          // Setup cleanup for local deployments
+          if (options.network === "localhost") {
+            console.log("🔄 Setting up cleanup for local chain config...");
+
+            const cleanup = async () => {
+              console.log("\n🧹 Cleaning up local chain config...");
+              try {
+                await envioIntegration.disableLocalChainConfig();
+                console.log("✅ Local chain config disabled successfully");
+              } catch (error) {
+                console.warn("⚠️  Failed to disable local chain config:", error.message);
+              }
+            };
+
+            // Register cleanup handlers
+            process.on("exit", cleanup);
+            process.on("SIGINT", cleanup);
+            process.on("SIGTERM", cleanup);
+            process.on("uncaughtException", cleanup);
+          }
 
           // Optionally start indexer for localhost deployments
           if (options.network === "localhost" && options.startIndexer) {

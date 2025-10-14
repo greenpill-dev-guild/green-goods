@@ -160,15 +160,15 @@ All testing is done via fork tests against live networks:
 
 ```bash
 # Test all networks
-pnpm test:gap
+bun test:gap
 
 # Test specific networks
-pnpm test:gap:fork:arbitrum
-pnpm test:gap:fork:celo
-pnpm test:gap:fork:base
-pnpm test:gap:fork:optimism
-pnpm test:gap:fork:sepolia
-pnpm test:gap:fork:sei
+bun test:gap:fork:arbitrum
+bun test:gap:fork:celo
+bun test:gap:fork:base
+bun test:gap:fork:optimism
+bun test:gap:fork:sepolia
+bun test:gap:fork:sei
 ```
 
 ### Test Coverage
@@ -193,7 +193,7 @@ SEI_RPC_URL=https://evm-rpc.sei-apis.com
 Then run:
 
 ```bash
-pnpm test:gap:fork:all
+bun test:gap:fork:all
 ```
 
 ## Deployment

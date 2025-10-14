@@ -27,7 +27,7 @@ cp .env.example .env
 bun dev
 
 # 4. Verify services are running
-pnpm exec pm2 list
+bun exec pm2 list
 ```
 
 ✅ **This setup works for all packages and is the recommended approach for development.**
@@ -130,8 +130,8 @@ REDIS_URL="your-redis-url"                         # Cache/sessions
 ### Full Stack Development
 ```bash
 bun dev                      # Start all services
-pnpm exec pm2 logs client     # View client logs
-pnpm exec pm2 logs indexer    # View indexer logs
+bun exec pm2 logs client     # View client logs
+bun exec pm2 logs indexer    # View indexer logs
 ```
 
 ### Frontend Only
@@ -143,7 +143,7 @@ bun dev                         # Uses root .env automatically
 ### Contract Development
 ```bash
 cd packages/contracts
-pnpm deploy:celo                 # Deploy to Celo (uses root .env)
+bun deploy:celo                 # Deploy to Celo (uses root .env)
 forge test                       # Run tests (uses root .env)
 ```
 
@@ -193,9 +193,9 @@ forge test -vvv                  # Verbose contract tests
 
 ### Service Not Starting?
 ```bash
-pnpm exec pm2 list               # Check service status
-pnpm exec pm2 logs <service>     # Check logs
-pnpm exec pm2 restart <service>  # Restart service
+bun exec pm2 list               # Check service status
+bun exec pm2 logs <service>     # Check logs
+bun exec pm2 restart <service>  # Restart service
 ```
 
 ### Environment Variables Not Loading?

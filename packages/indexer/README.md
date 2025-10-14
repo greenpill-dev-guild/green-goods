@@ -13,13 +13,13 @@ Visit http://localhost:8080 to see the GraphQL Playground, local password is `te
 ### Generate files from `config.yaml` or `schema.graphql`
 
 ```bash
-bun run codegen
+bun codegen
 ```
 
 ### Pre-requisites
 
 - [Node.js (use v18 or newer)](https://nodejs.org/en/download/current)
-- [pnpm (use v9 or newer)](https://pnpm.io/installation)
+- [bun (use v9 or newer)](https://bun.io/installation)
 - [Docker desktop](https://www.docker.com/products/docker-desktop/)
 
 ### Environment Variables
@@ -57,7 +57,7 @@ If you encounter errors like `failed to mount /var/lib/docker/rootfs/stargz` or 
 
 **Quick Reset:**
 ```bash
-bun run reset
+bun reset
 ```
 
 Or directly run:
@@ -100,10 +100,10 @@ cd ..
 bun dev
 ```
 
-This is a workaround for pnpm workspace hoisting. The `generated` folder needs its own `node_modules` with ReScript packages to compile the generated code.
+This is a workaround for bun workspace hoisting. The `generated` folder needs its own `node_modules` with ReScript packages to compile the generated code.
 
 ### Other Common Issues
 
 - **Port 8080 already in use**: Stop other services using port 8080 or change the port in Envio config
 - **Database connection issues**: Ensure Docker Desktop is running and containers are healthy
-- **Code generation failures**: Run `bun run codegen` to regenerate after schema changes
+- **Code generation failures**: Run `bun codegen` to regenerate after schema changes

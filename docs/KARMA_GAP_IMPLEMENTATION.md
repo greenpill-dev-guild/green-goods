@@ -397,15 +397,15 @@ All testing is done via fork tests for accuracy - no unit tests with mocks.
 
 ```bash
 # All GAP tests
-pnpm test:gap
+bun test:gap
 
 # Specific networks
-pnpm test:gap:fork:arbitrum
-pnpm test:gap:fork:celo
-pnpm test:gap:fork:base
-pnpm test:gap:fork:optimism
-pnpm test:gap:fork:sepolia
-pnpm test:gap:fork:sei
+bun test:gap:fork:arbitrum
+bun test:gap:fork:celo
+bun test:gap:fork:base
+bun test:gap:fork:optimism
+bun test:gap:fork:sepolia
+bun test:gap:fork:sei
 ```
 
 ### Test Results

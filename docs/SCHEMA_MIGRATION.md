@@ -85,7 +85,7 @@ Deploys all contracts and schemas (new addresses).
 
 ```bash
 # First deployment to a network
-pnpm deploy:testnet
+bun deploy:testnet
 
 # Force fresh deployment (caution!)
 node script/deploy.js core --network baseSepolia --broadcast --force
@@ -125,7 +125,7 @@ Updates contract implementations (UUPS proxy upgrade).
 
 ```bash
 # Upgrade contract logic, keep addresses
-pnpm upgrade:testnet
+bun upgrade:testnet
 ```
 
 **Use for:**
@@ -255,9 +255,9 @@ Run multiple schema versions simultaneously.
 
 3. **Test Schema Changes on Testnet First**
    ```bash
-   pnpm deploy:testnet
+   bun deploy:testnet
    # Verify, then:
-   pnpm deploy:celo
+   bun deploy:celo
    ```
 
 4. **Document Schema Evolution**

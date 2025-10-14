@@ -66,8 +66,8 @@ import { SomeComponent } from '../../admin/src/components/Foo';
 
 ```bash
 # Run in specific package
-cd packages/PACKAGE && bun run client dev
-cd packages/PACKAGE && bun run contracts test
+bun --filter client dev
+bun --filter contracts test
 
 # Run in all packages
 bun -r test
@@ -92,7 +92,7 @@ Each package has consistent npm scripts:
 
 ```bash
 # Add to specific package
-cd packages/PACKAGE && bun run client add viem
+bun --filter client add viem
 
 # Add to root (workspace tools)
 bun add -w -D vitest

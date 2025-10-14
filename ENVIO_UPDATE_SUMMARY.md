@@ -115,14 +115,14 @@ node packages/contracts/script/utils/envio-integration.js watch
 After any config changes:
 ```bash
 cd packages/indexer
-pnpm codegen
+bun codegen
 ```
 
 ### Start Indexer
 
 ```bash
 cd packages/indexer
-pnpm dev
+bun dev
 ```
 
 ## Testing
@@ -188,7 +188,7 @@ New chains will use `start_block: 0` by default:
 1. ✅ Configuration files updated
 2. ✅ Integration script simplified
 3. ✅ Deployment script updated
-4. ⏭️ Test with `pnpm codegen` in indexer package
+4. ⏭️ Test with `bun codegen` in indexer package
 5. ⏭️ Test with new deployment on testnet
 
 ## Verification
@@ -198,10 +198,10 @@ To verify the changes work:
 ```bash
 # 1. Regenerate indexer code
 cd packages/indexer
-pnpm codegen
+bun codegen
 
 # 2. Start indexer
-pnpm dev
+bun dev
 
 # 3. Visit GraphQL playground
 open http://localhost:8080

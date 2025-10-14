@@ -128,12 +128,11 @@ forge script script/Deploy.s.sol --broadcast --rpc-url $RPC
 - Zero config needed
 - Complements Biome
 
-### bun (vs npm/pnpm)
-- **2-10x faster** installs and script execution
-- Native TypeScript support
-- Built-in test runner
-- Workspace support with --filter
-- Smaller lock files (binary format)
+### bun (vs npm/yarn)
+- Workspace support
+- Efficient monorepo handling
+- Faster installs
+- Strict dependency resolution
 
 ### Viem (vs ethers)
 - TypeScript-first design
@@ -274,9 +273,9 @@ cp .env.example .env
 bun dev
 
 # View logs
-bunx pm2 logs client
-bunx pm2 logs admin
-bunx pm2 logs indexer
+bun exec pm2 logs client
+bun exec pm2 logs admin
+bun exec pm2 logs indexer
 ```
 
 ### Quality Commands

@@ -31,23 +31,23 @@ bun install
 ### 2. Verify Network Configuration
 ```bash
 # Verify all network configurations before deployment
-pnpm network:verify
+bun network:verify
 ```
 
 ### 3. Deploy Core Contracts (includes EAS schemas)
 ```bash
 # Local development (includes root garden + core actions)
-pnpm deploy:local
+bun deploy:local
 
 # Testnet deployment
-pnpm deploy:testnet
+bun deploy:testnet
 
 # Mainnet deployments
-pnpm deploy:celo
-pnpm deploy:arbitrum
+bun deploy:celo
+bun deploy:arbitrum
 
 # Dry run (simulation only, no transactions)
-pnpm deploy:dryrun
+bun deploy:dryrun
 
 # Advanced: Update schemas only
 node script/deploy.js core --network baseSepolia --broadcast --update-schemas
@@ -59,19 +59,19 @@ node script/deploy.js core --network baseSepolia --broadcast --force
 ### 4. Deploy Garden & Actions
 ```bash
 # Deploy a garden from JSON
-pnpm deploy:garden config/garden-example.json --network sepolia --broadcast
+bun deploy:garden config/garden-example.json --network sepolia --broadcast
 
 # Onboard gardens from CSV with wallet creation
-pnpm deploy:onboard config/garden-onboarding-example.csv --network sepolia --broadcast
+bun deploy:onboard config/garden-onboarding-example.csv --network sepolia --broadcast
 
 # Deploy actions
-pnpm deploy:actions config/actions-example.json --network sepolia --broadcast
+bun deploy:actions config/actions-example.json --network sepolia --broadcast
 ```
 
 ## Prerequisites
 
 - [Foundry](https://book.getfoundry.sh/getting-started/installation) installed
-- Node.js v16+ and pnpm
+- Node.js v16+ and bun
 - Git
 - RPC endpoints for target networks
 - Etherscan V2 API key (optional, for verification)
@@ -166,7 +166,7 @@ cast wallet import green-goods-mainnet --interactive
 
 # Switch deployer by changing environment variable
 export FOUNDRY_KEYSTORE_ACCOUNT=green-goods-testnet
-pnpm deploy:base-sepolia:optimized
+bun deploy:base-sepolia:optimized
 ```
 
 ## Network Configuration
@@ -186,7 +186,7 @@ Before deployment, verify your network configuration:
 
 ```bash
 # Verify all network configurations
-pnpm network:verify
+bun network:verify
 ```
 
 This utility will:
@@ -278,11 +278,11 @@ The deployment system includes comprehensive error recovery:
 
 ```bash
 # Environment-specific deployments
-pnpm deploy:local      # Localhost (anvil)
-pnpm deploy:dryrun     # Dry run on Base Sepolia
-pnpm deploy:testnet    # Base Sepolia with broadcast
-pnpm deploy:celo       # Celo mainnet
-pnpm deploy:arbitrum   # Arbitrum mainnet
+bun deploy:local      # Localhost (anvil)
+bun deploy:dryrun     # Dry run on Base Sepolia
+bun deploy:testnet    # Base Sepolia with broadcast
+bun deploy:celo       # Celo mainnet
+bun deploy:arbitrum   # Arbitrum mainnet
 
 # Advanced deployment modes
 # Update schemas only (skip existing contracts)
@@ -307,8 +307,8 @@ node script/deploy.js core --network baseSepolia --broadcast --force
 
 | Mode | Command | Transactions | Deployment File | Use Case |
 |------|---------|--------------|-----------------|----------|
-| **Simulation** | `pnpm deploy:dryrun` | ❌ Not sent | ❌ Not updated | Testing, validation |
-| **Broadcast** | `pnpm deploy:testnet` | ✅ Sent to chain | ✅ Updated | Actual deployment |
+| **Simulation** | `bun deploy:dryrun` | ❌ Not sent | ❌ Not updated | Testing, validation |
+| **Broadcast** | `bun deploy:testnet` | ✅ Sent to chain | ✅ Updated | Actual deployment |
 
 **Simulation Mode (Default without `--broadcast`):**
 ```bash
@@ -356,7 +356,7 @@ Creates new contract instances with new addresses.
 
 **Command:**
 ```bash
-pnpm deploy:testnet
+bun deploy:testnet
 ```
 
 **What happens:**
@@ -378,7 +378,7 @@ Updates existing proxy implementations, keeping same addresses.
 
 **Command:**
 ```bash
-pnpm upgrade:testnet
+bun upgrade:testnet
 ```
 
 **What happens:**
@@ -408,22 +408,22 @@ pnpm upgrade:testnet
 **Local Development:**
 ```bash
 # Start local chain
-pnpm dev
+bun dev
 
 # Deploy everything (new terminal)
-pnpm deploy:local
+bun deploy:local
 
 # Make contract changes, then upgrade
-pnpm upgrade:local
+bun upgrade:local
 ```
 
 **Testnet Deployment:**
 ```bash
 # Initial deployment
-pnpm deploy:testnet
+bun deploy:testnet
 
 # Later: upgrade contracts
-pnpm upgrade:testnet
+bun upgrade:testnet
 
 # Later: update schemas
 node script/deploy.js core --network baseSepolia --broadcast --update-schemas
@@ -432,13 +432,13 @@ node script/deploy.js core --network baseSepolia --broadcast --update-schemas
 **Production Deployment:**
 ```bash
 # Initial mainnet deployment
-pnpm deploy:celo
+bun deploy:celo
 
 # Later: upgrade via multisig
 # 1. Propose upgrade transaction to multisig
 # 2. Multisig members sign
 # 3. Execute upgrade
-pnpm upgrade:celo --broadcast
+bun upgrade:celo --broadcast
 ```
 
 ## EAS Schema Deployment
@@ -708,21 +708,21 @@ Create a garden configuration file:
 
 Deploy with:
 ```bash
-pnpm deploy:garden config/garden.json --network celo --broadcast
+bun deploy:garden config/garden.json --network celo --broadcast
 ```
 
 ### Bulk Garden Onboarding
 
 For bulk onboarding with automatic wallet creation:
 ```bash
-pnpm deploy:onboard config/garden-onboarding-example.csv --network celo --broadcast
+bun deploy:onboard config/garden-onboarding-example.csv --network celo --broadcast
 ```
 
 ### Action Deployment
 
 Deploy actions from JSON configuration:
 ```bash
-pnpm deploy:actions config/actions.json --network celo --broadcast
+bun deploy:actions config/actions.json --network celo --broadcast
 ```
 
 ## Fork Testing
@@ -731,16 +731,16 @@ Test against real network state without spending gas:
 
 ```bash
 # Test against real Celo state
-pnpm fork:celo
+bun fork:celo
 
 # In another terminal: deploy to fork
-pnpm deploy:local
+bun deploy:local
 
 # Run tests on fork
 forge test --fork-url http://localhost:8545 -vv
 
 # Test upgrades on fork
-pnpm upgrade:local
+bun upgrade:local
 ```
 
 **Use cases:**
@@ -763,7 +763,7 @@ forge test --match-contract DeploymentTest -vv
 forge test --match-contract UpgradeTest -vv
 
 # Test both on fork
-pnpm fork:celo
+bun fork:celo
 forge test --fork-url http://localhost:8545 -vv
 
 # Test specific scenarios
@@ -787,10 +787,10 @@ The test suite validates:
 
 ```bash
 # Check deployment status
-pnpm deployment:status
+bun deployment:status
 
 # Verify network configuration
-pnpm network:verify
+bun network:verify
 
 # Validate specific deployment
 forge test --match-test testDeploymentFlowLocalhost -vvv
@@ -802,13 +802,13 @@ The deployment system includes built-in gas optimization:
 
 ```bash
 # Check current gas prices
-pnpm gas:check
+bun gas:check
 
 # Monitor gas prices in real-time
-pnpm gas:monitor
+bun gas:monitor
 
 # Deploy with gas optimization
-pnpm deploy:celo --gas-optimize --broadcast
+bun deploy:celo --gas-optimize --broadcast
 ```
 
 ## Adding New Networks
@@ -852,7 +852,7 @@ NEWCHAIN_RPC_URL=https://rpc.newchain.com
 
 4. Verify the configuration:
 ```bash
-pnpm network:verify
+bun network:verify
 ```
 
 ## Troubleshooting
@@ -861,10 +861,10 @@ pnpm network:verify
 
 ```bash
 # Verify network configuration before deployment
-pnpm network:verify
+bun network:verify
 
 # Test deployment locally first
-pnpm deploy:local
+bun deploy:local
 
 # Run deployment tests
 forge test --match-contract DeploymentTest -vv
@@ -953,10 +953,10 @@ This usually means you're trying to deploy when you should upgrade:
 
 ```bash
 # ❌ Wrong: Trying to deploy again
-pnpm deploy:testnet
+bun deploy:testnet
 
 # ✅ Right: Upgrade existing deployment
-pnpm upgrade:testnet
+bun upgrade:testnet
 ```
 
 #### "Cannot find deployment file"
@@ -965,12 +965,12 @@ You're trying to upgrade but haven't deployed yet:
 
 ```bash
 # ❌ Wrong: Trying to upgrade non-existent deployment
-pnpm upgrade:testnet
+bun upgrade:testnet
 
 # ✅ Right: Deploy first, then upgrade
-pnpm deploy:testnet
+bun deploy:testnet
 # ... later ...
-pnpm upgrade:testnet
+bun upgrade:testnet
 ```
 
 #### "Force fresh deployment"
@@ -989,25 +989,25 @@ node script/deploy.js core --network baseSepolia --broadcast --force
 1. **Schema deployment fails**
    ```bash
    # Enable graceful failure handling
-   SCHEMA_DEPLOYMENT_SKIP_ON_FAILURE=true pnpm deploy:celo
+   SCHEMA_DEPLOYMENT_SKIP_ON_FAILURE=true bun deploy:celo
    
    # Increase retry attempts
-   SCHEMA_DEPLOYMENT_MAX_RETRIES=5 pnpm deploy:celo
+   SCHEMA_DEPLOYMENT_MAX_RETRIES=5 bun deploy:celo
    ```
 
 2. **Gas estimation fails**
    ```bash
    # Check current gas prices
-   pnpm gas:check
+   bun gas:check
    
    # Use gas optimization
-   pnpm deploy:celo --gas-optimize
+   bun deploy:celo --gas-optimize
    ```
 
 3. **RPC connectivity issues**
    ```bash
    # Verify network configuration
-   pnpm network:verify
+   bun network:verify
    
    # Test specific network
    curl -X POST $CELO_RPC_URL -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}'
@@ -1036,13 +1036,13 @@ SCHEMA_DEPLOYMENT_SKIP_ON_FAILURE=true forge test --match-test testSchemaDeploym
 
 ```bash
 # Check deployment status across networks
-pnpm deployment:status
+bun deployment:status
 
 # Verify specific contract
 forge verify-contract --chain-id 42220 0x... src/Contract.sol:Contract
 
 # Monitor gas prices
-pnpm gas:monitor
+bun gas:monitor
 
 # Test deployment with maximum verbosity
 forge test --match-contract DeploymentTest -vvvv
@@ -1050,11 +1050,11 @@ forge test --match-contract DeploymentTest -vvvv
 
 ### Getting Help
 
-1. **Pre-deployment**: Run `pnpm network:verify` to catch configuration issues
+1. **Pre-deployment**: Run `bun network:verify` to catch configuration issues
 2. **During deployment**: Check logs for specific error messages
 3. **Post-deployment**: Run `forge test --match-contract DeploymentTest` to validate
 4. **Configuration issues**: Verify `deployments/networks.json` and `.env` setup
-5. **Test locally first**: Use `pnpm deploy:local` before mainnet deployment
+5. **Test locally first**: Use `bun deploy:local` before mainnet deployment
 
 ## Summary
 
