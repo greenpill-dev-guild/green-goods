@@ -19,14 +19,12 @@
   "scripts": {
     "setup": "node scripts/setup.js",
     "prepare": "husky",
-
     "dev": "trap 'pnpm exec pm2 delete all' EXIT; pnpm exec pm2 start ecosystem.config.js && pnpm exec pm2 logs --raw",
     "dev:stop": "pnpm exec pm2 delete all",
     "dev:client": "pnpm --filter 'client' run dev",
     "dev:admin": "pnpm --filter 'admin' run dev",
     "dev:indexer": "cd packages/indexer && pnpm run dev",
     "dev:contracts": "pnpm --filter 'contracts' run dev",
-
     "format": "biome format --write .",
     "format:check": "biome format .",
     "lint": "oxlint packages/client/src packages/indexer/src packages/admin/src packages/contracts/script",
@@ -36,13 +34,11 @@
     "test:admin": "pnpm --filter 'admin' run test",
     "test:indexer": "cd packages/indexer && pnpm run test",
     "test:contracts": "pnpm --filter 'contracts' run test",
-
     "build": "pnpm recursive run build",
     "build:client": "pnpm --filter 'client' run build",
     "build:admin": "pnpm --filter 'admin' run build",
     "build:indexer": "cd packages/indexer && pnpm run build",
     "build:contracts": "pnpm --filter 'contracts' run build",
-
     "deploy:contracts:dryrun": "pnpm --filter 'contracts' run deploy:dryrun",
     "deploy:contracts:testnet": "pnpm --filter 'contracts' run deploy:testnet",
     "deploy:contracts:celo": "pnpm --filter 'contracts' run deploy:celo",
@@ -62,6 +58,7 @@
     "@biomejs/biome": "2.1.4",
     "@playwright/test": "^1.54.2",
     "@types/node": "^24.2.1",
+    "dotenv-cli": "^10.0.0",
     "husky": "^9.1.7",
     "js-yaml": "^4.1.0",
     "lint-staged": "16.1.5",

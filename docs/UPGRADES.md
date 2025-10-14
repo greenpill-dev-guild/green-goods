@@ -120,9 +120,12 @@ forge script script/Upgrade.s.sol:Upgrade \
   <NEW_WORK_APPROVAL_RESOLVER> \
   <NEW_ASSESSMENT_RESOLVER> \
   --rpc-url $ARBITRUM_RPC_URL \
-  --private-key $PRIVATE_KEY \
+  --account green-goods-deployer \
   --broadcast
 ```
+
+**Note:** The script automatically loads the correct entry point (0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789), 
+multicall forwarder, tokenbound registry, and guardian address from the deployment file.
 
 This deploys a **new** GardenAccount implementation. Existing gardens are unaffected.
 
@@ -628,6 +631,350 @@ Set up alerts for:
 8. **Verify resolver addresses**: For GardenAccount upgrades, double-check resolver addresses
 9. **Coordinate migrations**: For critical security patches, coordinate with garden operators
 10. **Track adoption**: Monitor which gardens have upgraded to new implementations
+
+## Future Enhancements
+
+The current upgrade system provides essential safety features (address validation, proxy verification, duplicate implementation checks). This section outlines future work to implement a comprehensive upgrade deployment flow.
+
+### 1. Automated Pre-Upgrade Testing
+
+**Goal:** Ensure upgrades are safe before broadcasting to mainnet.
+
+**Enhancements:**
+- Fork testing automation: Run upgrade on network fork with existing state
+- Regression test suite: Verify all critical functions still work post-upgrade
+- Gas regression detection: Alert if gas costs increase significantly
+- Storage layout verification: Automated check for storage collisions
+
+**Implementation:**
+```bash
+# Proposed workflow
+pnpm test:upgrade:fork -- --network arbitrum --contract action-registry
+# Runs:
+# 1. Fork latest Arbitrum state
+# 2. Execute upgrade on fork
+# 3. Run regression tests
+# 4. Compare gas costs
+# 5. Generate safety report
+```
+
+**Files to create:**
+- `script/test-upgrade-fork.js` - Fork testing orchestrator
+- `test/UpgradeRegression.t.sol` - Regression test suite
+- `test/StorageLayoutCheck.t.sol` - Storage validation tests
+
+### 2. Gas Estimation and Cost Prediction
+
+**Goal:** Provide cost estimates before executing upgrades.
+
+**Enhancements:**
+- Pre-broadcast gas estimation for all contracts
+- Network gas price monitoring
+- Total cost calculation (in ETH and USD)
+- Cost comparison across networks
+
+**Implementation:**
+```bash
+# Proposed command
+node script/upgrade.js action-registry \
+  --network arbitrum \
+  --estimate-cost
+  
+# Output:
+# Gas estimate: 2,450,000
+# Current gas price: 0.5 gwei
+# Total cost: 0.001225 ETH ($2.45)
+# Recommend waiting? No (gas price acceptable)
+```
+
+**Files to enhance:**
+- `script/upgrade.js` - Add `--estimate-cost` flag
+- `script/utils/gas-estimator.js` - Gas price APIs and calculations
+
+### 3. Automated Block Explorer Verification
+
+**Goal:** Automatically verify contracts after deployment.
+
+**Enhancements:**
+- Auto-submit to Etherscan/Arbiscan after deployment
+- Retry logic for verification failures
+- Verification status tracking
+- Multi-chain verification support
+
+**Implementation:**
+```javascript
+// Add to Upgrade.s.sol or post-deployment script
+function verifyImplementation(address impl, string memory contractName) {
+  // Uses Foundry's built-in verification
+  vm.broadcast();
+  // Verification happens automatically via --verify flag
+}
+```
+
+**Usage:**
+```bash
+node script/upgrade.js action-registry \
+  --network arbitrum \
+  --broadcast \
+  --verify  # New flag
+```
+
+**Files to enhance:**
+- `script/upgrade.js` - Add verification orchestration
+- `script/utils/verifier.js` - Handle Etherscan API interactions
+
+### 4. Implementation Version Tracking
+
+**Goal:** Maintain audit trail of all implementations and upgrades.
+
+**Enhancements:**
+- Version tracking in deployment JSON
+- Implementation address history
+- Changelog per version
+- Semantic versioning for implementations
+
+**Proposed schema:**
+```json
+{
+  "actionRegistry": "0x123...",
+  "implementationHistory": {
+    "actionRegistry": [
+      {
+        "version": "1.2.0",
+        "address": "0x123...",
+        "deployedAt": "2025-01-15T10:30:00Z",
+        "deployedBy": "0xabc...",
+        "changes": [
+          "Added gas optimization for registerAction",
+          "Fixed capital enum ordering"
+        ],
+        "previousVersion": "1.1.0"
+      },
+      {
+        "version": "1.1.0",
+        "address": "0x456...",
+        "deployedAt": "2024-12-01T14:20:00Z",
+        "deployedBy": "0xabc...",
+        "changes": ["Initial deployment"]
+      }
+    ]
+  }
+}
+```
+
+**Files to create:**
+- `script/utils/version-tracker.js` - Maintain version history
+- `deployments/versions/` - Directory for version metadata
+- `.version` files per contract with semantic versioning
+
+### 5. Automated Rollback Capabilities
+
+**Goal:** One-command rollback to previous implementation.
+
+**Enhancements:**
+- Store previous implementation address automatically
+- Rollback command with confirmation prompt
+- Rollback validation (verify previous implementation exists)
+- Multi-contract rollback support
+
+**Implementation:**
+```bash
+# Proposed rollback command
+node script/rollback.js action-registry \
+  --network arbitrum \
+  --broadcast
+  
+# Interactive prompt:
+# Current implementation: 0x123...
+# Previous implementation: 0x456...
+# Deployed: 2024-12-01 (45 days ago)
+# Confirm rollback? [y/N]
+```
+
+**Files to create:**
+- `script/rollback.js` - Rollback orchestrator
+- Update `script/upgrade.js` - Save previous implementation before upgrade
+
+### 6. Multi-Signature Upgrade Coordination
+
+**Goal:** Streamline upgrades for multisig-controlled contracts.
+
+**Enhancements:**
+- Generate Safe transaction JSON automatically
+- Simulate upgrade with multisig signer
+- Batch upgrade transactions for multiple contracts
+- Integration with Safe API for status tracking
+
+**Implementation:**
+```bash
+# Generate Safe transaction JSON
+node script/upgrade.js action-registry \
+  --network arbitrum \
+  --multisig 0xSafeAddress \
+  --generate-safe-tx \
+  --output safe-tx.json
+  
+# Outputs safe-tx.json ready for Safe web interface
+```
+
+**Files to create:**
+- `script/utils/safe-tx-builder.js` - Generate Safe transaction format
+- `script/upgrade-multisig.js` - Multisig-specific upgrade flow
+
+### 7. Post-Upgrade Monitoring and Alerting
+
+**Goal:** Automated monitoring after upgrades to detect issues early.
+
+**Enhancements:**
+- Event monitoring for upgrade-related errors
+- Transaction success rate tracking
+- Gas cost comparison (before vs after)
+- Automated alerts for anomalies
+
+**Implementation:**
+```bash
+# Monitor upgrade impact
+node script/monitor-upgrade.js action-registry \
+  --network arbitrum \
+  --duration 24h
+  
+# Tracks:
+# - Transaction success rate
+# - Average gas costs
+# - Error events
+# - Usage patterns
+# - Generates report after 24h
+```
+
+**Files to create:**
+- `script/monitor-upgrade.js` - Post-upgrade monitoring
+- `script/utils/event-tracker.js` - Listen for contract events
+- `.github/workflows/post-upgrade-monitor.yml` - CI monitoring
+
+### 8. Deployment History and Audit Trail
+
+**Goal:** Comprehensive audit trail for all upgrades.
+
+**Enhancements:**
+- Git-backed deployment history
+- Transaction hash tracking
+- Deployer address logging
+- Deployment timestamps
+- Block number recording
+
+**Proposed structure:**
+```
+deployments/
+├── 84532-latest.json           # Current deployment
+├── history/
+│   ├── 84532/
+│   │   ├── 2025-01-15-action-registry.json
+│   │   ├── 2025-01-10-garden-token.json
+│   │   └── 2024-12-20-work-resolver.json
+│   └── 42161/
+│       └── 2025-01-14-all-contracts.json
+└── audit/
+    └── upgrade-log.csv  # CSV for easy analysis
+```
+
+**Files to create:**
+- `script/utils/audit-logger.js` - Maintain upgrade audit trail
+- `script/generate-audit-report.js` - Generate human-readable reports
+
+### 9. Upgrade Proposal and Review System
+
+**Goal:** Formalize upgrade review process before execution.
+
+**Enhancements:**
+- Upgrade proposal templates
+- Required reviewers checklist
+- Diff generation (old vs new implementation)
+- Approval workflow integration
+
+**Implementation:**
+```bash
+# Create upgrade proposal
+node script/propose-upgrade.js action-registry \
+  --network arbitrum \
+  --changes-file CHANGELOG.md \
+  --create-pr
+  
+# Creates GitHub PR with:
+# - Implementation diff
+# - Gas impact analysis
+# - Breaking changes checklist
+# - Required reviewer assignments
+```
+
+**Files to create:**
+- `script/propose-upgrade.js` - Generate upgrade proposals
+- `.github/UPGRADE_PROPOSAL_TEMPLATE.md` - Standardized template
+- `.github/workflows/upgrade-checks.yml` - Automated proposal validation
+
+### 10. Cross-Chain Upgrade Orchestration
+
+**Goal:** Coordinate upgrades across multiple networks simultaneously.
+
+**Enhancements:**
+- Multi-chain upgrade planning
+- Sequential vs parallel execution
+- Network-specific configuration
+- Atomic rollback across chains
+
+**Implementation:**
+```bash
+# Upgrade same contract on all networks
+node script/upgrade-multi-chain.js action-registry \
+  --networks arbitrum,celo,base \
+  --strategy sequential \
+  --broadcast
+  
+# Executes upgrades in order, stops on first failure
+```
+
+**Files to create:**
+- `script/upgrade-multi-chain.js` - Cross-chain orchestrator
+- `config/upgrade-strategy.json` - Define upgrade ordering and dependencies
+
+### Implementation Priority
+
+**Phase 1 (Essential):**
+1. Automated pre-upgrade testing (fork tests)
+2. Implementation version tracking
+3. Gas estimation and cost prediction
+
+**Phase 2 (Important):**
+4. Automated rollback capabilities
+5. Post-upgrade monitoring
+6. Deployment history and audit trail
+
+**Phase 3 (Nice-to-have):**
+7. Automated block explorer verification
+8. Multi-signature upgrade coordination
+9. Upgrade proposal and review system
+10. Cross-chain upgrade orchestration
+
+### Getting Started
+
+To contribute to these enhancements:
+
+1. Review existing upgrade system (`script/Upgrade.s.sol`, `script/upgrade.js`)
+2. Pick a feature from Phase 1 or Phase 2
+3. Create feature branch: `feat/upgrade-enhancement-<name>`
+4. Implement with tests
+5. Document usage in this file
+6. Submit PR with upgrade proposal template
+
+### Success Metrics
+
+Track these metrics to measure upgrade system quality:
+
+- **Upgrade success rate**: Target >99%
+- **Time to upgrade**: Target <5 minutes per contract
+- **Rollback frequency**: Target <5% of upgrades
+- **Post-upgrade incidents**: Target zero critical issues
+- **Multi-sig coordination time**: Target <24 hours
+- **Gas cost accuracy**: Estimates within ±10% of actual
 
 ## Resources
 
