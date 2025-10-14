@@ -113,37 +113,37 @@
       }
     },
     {
-      "title": "Litter Cleanup",
-      "description": "Document litter removal activities including type, quantity, and estimated weight. Helps maintain clean environments and track waste reduction impact.",
+      "title": "Waste Cleanup",
+      "description": "Document waste removal activities including type, quantity, and estimated weight. Helps maintain clean environments and track waste reduction impact.",
       "capitals": ["MATERIAL", "SOCIAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2025-12-31T23:59:59Z",
       "media": [],
       "uiConfig": {
         "media": {
-          "title": "Capture the Litter Cleanup",
-          "description": "Please take a photo of the location where you will be picking up the litter. You can also take photos of the litter to document its condition.",
+          "title": "Capture the Waste Cleanup",
+          "description": "Please take a photo of the location where you will be picking up the waste. You can also take photos of the waste to document its condition.",
           "maxImageCount": 8,
           "required": true
         },
         "details": {
-          "title": "Input Litter Cleanup Details",
-          "description": "Please provide the following details about the litter cleanup process.",
-          "feedbackPlaceholder": "Provide feedback or any issues during the litter cleanup process",
+          "title": "Input Waste Cleanup Details",
+          "description": "Please provide the following details about the waste cleanup process.",
+          "feedbackPlaceholder": "Provide feedback or any issues during the waste cleanup process",
           "inputs": [
             {
-              "key": "litterSelection",
-              "title": "Litter Type",
-              "placeholder": "Select the different litter picked up",
+              "key": "wasteSelection",
+              "title": "Waste Type",
+              "placeholder": "Select the different waste picked up",
               "type": "select",
               "required": true,
               "multiple": true,
               "options": ["Plastic", "Metal", "Glass", "Paper", "Organic", "Other"]
             },
             {
-              "key": "litterCount",
-              "title": "Litter Removed",
-              "placeholder": "Enter the number of pieces of litter removed",
+              "key": "wasteCount",
+              "title": "Waste Removed",
+              "placeholder": "Enter the number of pieces of waste removed",
               "type": "number",
               "required": true,
               "min": 1,
@@ -152,7 +152,7 @@
             {
               "key": "estimatedWeight",
               "title": "Estimated Weight (kg)",
-              "placeholder": "Estimate the total weight of litter collected",
+              "placeholder": "Estimate the total weight of waste collected",
               "type": "number",
               "required": false,
               "min": 0,
@@ -162,7 +162,7 @@
           ]
         },
         "review": {
-          "title": "Review Litter Cleanup",
+          "title": "Review Waste Cleanup",
           "description": "Please review the details you have provided before submitting."
         }
       }
