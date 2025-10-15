@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { useQuery } from "urql";
 import { graphql } from "gql.tada";
 import {
+  RiAddLine,
   RiFileList3Line,
   RiArrowLeftLine,
   RiExternalLinkLine,
@@ -57,11 +58,16 @@ export default function GardenDetail() {
   const { id } = useParams<{ id: string }>();
   const gardenPermissions = useGardenPermissions();
   const [addMemberModalOpen, setAddMemberModalOpen] = useState(false);
+  const [addAssessmentModalOpen, setAddAssessmentModalOpen] = useState(false);
   const [memberType, setMemberType] = useState<"gardener" | "operator">("gardener");
 
   const openAddMemberModal = (type: "gardener" | "operator") => {
     setMemberType(type);
     setAddMemberModalOpen(true);
+  };
+
+  const openCreateAssessmentModal = () => {
+    setAddAssessmentModalOpen(true);
   };
 
   const [{ data, fetching, error }, refetch] = useQuery({
@@ -76,10 +82,10 @@ export default function GardenDetail() {
     query: GET_GARDEN_ASSESSMENTS,
     variables: {
       recipient: id!,
-      schemaId: contracts.eas!,
+      schemaId: contracts.assessmentSchema!,
       limit: 5, // Fetch latest 5 assessments for the detail view
     },
-    pause: !id || !contracts.eas,
+    pause: !id || !contracts.assessmentSchema,
   });
   const assessments = assessmentData?.Attestation || [];
 
