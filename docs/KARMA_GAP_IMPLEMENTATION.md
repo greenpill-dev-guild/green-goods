@@ -32,8 +32,9 @@ This document provides technical implementation details for maintainers and cont
 - Handles failures gracefully (approval succeeds even if GAP fails)
 
 **AssessmentResolver:**
-- No direct GAP integration (assessments do not create milestones)
-- Implements identity-first validation
+- Calls `GardenAccount.createProjectMilestone()` when assessment is submitted
+- Provides assessment data for milestone attestation
+- Handles failures gracefully (assessment succeeds even if GAP fails)
 
 ## Files Created
 
@@ -232,7 +233,7 @@ function _createGAPProjectImpact(
 
 **Identity Verification Added:**
 
-Both `WorkResolver.sol` and `AssessmentResolver.sol` now verify identity **as the first check**:
+Both `WorkResolver.sol` and `AssessmentResolver.sol` verify identity **as the first check**:
 
 ```solidity
 // In WorkResolver
@@ -377,116 +378,34 @@ try resolver.addAdmin(...) {
 
 ### E2E Fork Tests
 
-All testing is done via fork tests for accuracy - no unit tests with mocks.
+All testing is done via fork tests against live networks (no mocks).
 
-**Test File:** `test/E2EKarmaGAPFork.t.sol`
-
-**Test Coverage:**
-- ✅ testForkOptimism()
-- ✅ testForkOptimismSepolia()
-- ✅ testForkArbitrum_createGarden()
-- ✅ testForkArbitrum_operatorBecomesProjectAdmin()
-- ✅ testForkSepolia()
-- ✅ testForkBaseSepolia_createGarden()
-- ✅ testForkBaseSepolia_fullWorkflow()
-- ✅ testForkCelo()
-- ✅ testForkSei()
-- ✅ testForkSeiTestnet()
-
-**Running Tests:**
+**Test File:** `test/E2EKarmaGAPFork.t.sol`  
+**Coverage:** 10 tests across 8 networks (Optimism, Arbitrum, Celo, Base Sepolia, Sepolia, Sei)  
+**Status:** 129/129 total tests passing ✅
 
 ```bash
-# All GAP tests
-bun test:gap
-
-# Specific networks
-bun test:gap:fork:arbitrum
-bun test:gap:fork:celo
-bun test:gap:fork:base
-bun test:gap:fork:optimism
-bun test:gap:fork:sepolia
-bun test:gap:fork:sei
+bun test:gap  # Run all GAP tests
+bun test:gap:fork:arbitrum  # Test specific network
 ```
-
-### Test Results
-
-```
-Total Tests: 129
-Passed: 129 (100%)
-Status: All passing ✅
-```
-
-**Test Suites:**
-- AssessmentResolver: 3/3 ✅
-- GardenToken: 12/12 ✅
-- GardenAccount: 30/30 ✅ (including proxy-based tests)
-- E2EKarmaGAPFork: 10/10 ✅
-- WorkApproval: 7/7 ✅
-- UpgradeSafety: 7/7 ✅
-- ActionRegistry: 20/20 ✅
-- FuzzTests: 25/25 ✅
-- DeploymentRegistry: 8/8 ✅
-- WorkResolver: 5/5 ✅
-- Miscellaneous: 2/2 ✅
 
 ## Configuration
 
-### Foundry Config (`foundry.toml`)
+Fork tests load RPC URLs from environment variables (`$ARBITRUM_RPC_URL`, etc.). No hardcoded endpoints in config files.
 
-RPC endpoints removed from config file - fork tests load RPC URLs via `vm.envString()`:
-
-```toml
-[rpc_endpoints]
-localhost = "http://localhost:8545"
-# Fork tests use environment variables instead
-```
-
-### Package Scripts (`package.json`)
-
-```json
-{
-  "test:gap": "forge test --match-contract E2EKarmaGAPFork --gas-report",
-  "test:gap:fork:optimism": "forge test --match-contract E2EKarmaGAPFork --match-test testForkOptimism --fork-url $OPTIMISM_RPC_URL -vv",
-  "test:gap:fork:arbitrum": "forge test --match-contract E2EKarmaGAPFork --match-test testForkArbitrum --fork-url $ARBITRUM_RPC_URL -vv",
-  "test:gap:fork:celo": "forge test --match-contract E2EKarmaGAPFork --match-test testForkCelo --fork-url $CELO_RPC_URL -vv",
-  "test:gap:fork:base": "forge test --match-contract E2EKarmaGAPFork --match-test testForkBaseSepolia --fork-url $BASE_SEPOLIA_RPC_URL -vv",
-  "test:gap:fork:sepolia": "forge test --match-contract E2EKarmaGAPFork --match-test testForkSepolia --fork-url $SEPOLIA_RPC_URL -vv",
-  "test:gap:fork:sei": "forge test --match-contract E2EKarmaGAPFork --match-test testForkSei --fork-url $SEI_RPC_URL -vv"
-}
-```
+**Package scripts:** See `package.json` for `test:gap` and `test:gap:fork:*` commands.
 
 ## Deployment
 
-### Automatic Integration
+**Critical deployment order:** Deploy resolvers before GardenAccount:
 
-When deploying to a GAP-supported chain:
-
-1. Deploy core contracts (resolvers deployed before GardenAccount)
-2. GardenAccount deployed with resolver addresses as immutables
-3. Gardens automatically create GAP projects on initialization
-4. Operators automatically become project admins
-5. Approved work automatically creates impact attestations
-
-**No additional configuration needed** - the integration is automatic!
-
-### Deployment Order
-
-**Critical:** Resolvers must be deployed BEFORE GardenAccount:
-
-1. Deploy WorkApprovalResolver
-2. Deploy AssessmentResolver  
-3. Deploy GardenAccount with resolver addresses
+1. WorkApprovalResolver
+2. AssessmentResolver
+3. GardenAccount (with resolver addresses as immutables)
 4. Rest of infrastructure
 
-### Supported vs Unsupported Chains
-
-**Supported chains (GAP integration active):**
-- Optimism, Optimism Sepolia, Arbitrum, Sepolia, Base Sepolia, Celo, Sei, Sei Testnet
-
-**Unsupported chains (GAP integration skipped):**
-- Localhost, other testnets
-- `KarmaLib.isSupported()` returns `false`
-- Gardens work normally without GAP features
+**Supported chains:** Optimism, Arbitrum, Celo, Base Sepolia, Sepolia, Sei (8 networks total)  
+**Unsupported chains:** Localhost and other testnets gracefully skip GAP integration via `KarmaLib.isSupported()`
 
 ## Gas Impact
 
@@ -508,12 +427,11 @@ When deploying to a GAP-supported chain:
 - Set to unsupported chain to skip GAP (no gas overhead)
 - Graceful failures prevent expensive reverts
 
-## What Was NOT Implemented
+## Current Limitations
 
-1. **Assessments → Milestones:** Assessments do NOT create GAP milestones
-2. **Indexer Entities:** No GAPProject, GAPMilestone, or GAPImpact entities in Green Goods indexer
-3. **Admin Dashboard Queries:** Impact Reports query Karma GAP directly (future implementation)
-4. **Localhost Testing:** GAP integration not supported on localhost (use fork tests)
+1. **Indexer Entities:** No GAPProject, GAPMilestone, or GAPImpact entities in Green Goods indexer (query via Karma GAP SDK)
+2. **Admin Dashboard Queries:** Impact Reports query Karma GAP directly via SDK
+3. **Localhost Testing:** GAP integration not supported on localhost (use fork tests for validation)
 
 ## Upgrade Path
 
@@ -540,51 +458,20 @@ forge script script/Upgrade.s.sol:Upgrade \
 
 ## Troubleshooting
 
-### GAP Project Not Created
+**GAP Project Not Created:** Check `KarmaLib.isSupported()` returns true, verify contract addresses in `src/lib/Karma.sol`
 
-**Issue:** `gapProjectUID` is zero after garden creation
+**Impact Attestation Failed:** Verify `gapProjectUID != 0`, check operator status, review transaction logs for try/catch failures
 
-**Debug:**
-1. Check `KarmaLib.isSupported()` returns `true` for your chain
-2. Verify GAP contract address for your network in `src/lib/Karma.sol`
-3. Check initialization transaction for revert
-4. Verify garden has operators (operators trigger project creation)
+**Operator Not Project Admin:** Confirm operator added AFTER garden creation (GAP project must exist first)
 
-### Impact Attestation Failed
-
-**Issue:** Work approved but no impact attestation created
-
-**Debug:**
-1. Check if GAP project exists (`gapProjectUID != 0`)
-2. Verify caller is an operator
-3. Look for try/catch failure in transaction logs
-4. Confirm GAP contract is accessible on-chain
-5. Check WorkApprovalResolver is in trusted resolver list
-
-### Operator Not Project Admin
-
-**Issue:** Operator added but not GAP project admin
-
-**Debug:**
-1. Check if `_addGAPProjectAdmin()` was called
-2. Verify Project Resolver address in `src/lib/Karma.sol`
-3. Look for try/catch failure in transaction logs
-4. Confirm operator was added AFTER garden creation (must have GAP project first)
-
-### Schema Field Format Issues
-
-**Issue:** Attestations created but not displaying in Karma GAP UI
-
-**Verify JSON format matches Karma GAP SDK:**
-- Milestones use `text` (not `description`) and `type: "project-milestone"`
-- Impacts use `title` and `text` (not `work` and `impact`)
+**Schema Format Issues:** Milestones use `text` (not `description`) and `type: "project-milestone"`, impacts use `title` and `text`
 
 ## Known Limitations
 
-1. **Assessments → Milestones:** Not implemented (assessments don't create GAP milestones)
-2. **Localhost Testing:** Not supported for GAP (use fork tests instead)
-3. **RPC Requirements:** Fork tests require valid RPC URLs for each network
-4. **Resolver Upgrades:** Require new GardenAccount implementation deployment
+1. **Localhost Testing:** Not supported for GAP (use fork tests instead)
+2. **RPC Requirements:** Fork tests require valid RPC URLs for each network
+3. **Resolver Upgrades:** Require new GardenAccount implementation deployment
+4. **Indexer Scope:** Green Goods indexer doesn't track GAP attestations directly (use Karma GAP SDK)
 
 ## References
 
