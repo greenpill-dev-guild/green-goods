@@ -56,20 +56,23 @@ ActionRegistry.ActionRegistered.handler(async ({ event, context }) => {
   const actionId = `${event.chainId}-${event.params.actionUID.toString()}`;
   const capitals: Capital[] = event.params.capitals.map((capital) => {
     const number = Number(capital);
-    if (number === 1) {
+    if (number === 0) {
       return "SOCIAL";
     }
-    if (number === 2) {
+    if (number === 1) {
       return "MATERIAL";
     }
-    if (number === 3) {
+    if (number === 2) {
       return "FINANCIAL";
     }
-    if (number === 4) {
+    if (number === 3) {
       return "LIVING";
     }
-    if (number === 5) {
+    if (number === 4) {
       return "INTELLECTUAL";
+    }
+    if (number === 5) {
+      return "EXPERIENTIAL";
     }
     if (number === 6) {
       return "SPIRITUAL";
