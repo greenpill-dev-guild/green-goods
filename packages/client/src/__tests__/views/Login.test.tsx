@@ -1,36 +1,90 @@
 /**
  * Login View Test Suite
  *
- * Tests the passkey login/signup view
+ * Tests the passkey-first login view with Splash UI and AppKit integration
  */
 
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { BrowserRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Login } from "../../views/Login";
 
 // Mock useAuth hook
 const mockCreatePasskey = vi.fn();
+const mockConnectWallet = vi.fn();
 const mockUseAuth = vi.fn(() => ({
-  credential: null,
-  smartAccountAddress: null,
+  walletAddress: null,
+  smartAccountClient: null,
   createPasskey: mockCreatePasskey,
+  connectWallet: mockConnectWallet,
   isCreating: false,
+  isAuthenticated: false,
   error: null,
 }));
 
-vi.mock("@/hooks/useAuth", () => ({
+vi.mock("@/hooks/auth/useAuth", () => ({
   useAuth: () => mockUseAuth(),
 }));
 
-// Mock useNavigate
-const mockNavigate = vi.fn();
+// Mock useAutoJoinRootGarden hook
+const mockJoinGarden = vi.fn();
+const mockUseAutoJoinRootGarden = vi.fn(() => ({
+  joinGarden: mockJoinGarden,
+  isPending: false,
+  isGardener: false,
+  isLoading: false,
+  hasPrompted: false,
+  showPrompt: false,
+  dismissPrompt: vi.fn(),
+}));
+
+vi.mock("@/hooks/garden/useAutoJoinRootGarden", () => ({
+  useAutoJoinRootGarden: () => mockUseAutoJoinRootGarden(),
+}));
+
+// Mock AppKit hooks
+const mockOpenWalletModal = vi.fn();
+const mockUseAppKit = vi.fn(() => ({
+  open: mockOpenWalletModal,
+}));
+
+const mockUseAppKitAccount = vi.fn(() => ({
+  address: null,
+  isConnected: false,
+}));
+
+vi.mock("@reown/appkit/react", () => ({
+  useAppKit: () => mockUseAppKit(),
+  useAppKitAccount: () => mockUseAppKitAccount(),
+}));
+
+// Mock wagmi
+vi.mock("@wagmi/core", () => ({
+  getAccount: vi.fn(() => ({ connector: null })),
+}));
+
+// Mock toast
+vi.mock("react-hot-toast", () => ({
+  default: vi.fn(),
+  error: vi.fn(),
+}));
+
+// Mock logger
+vi.mock("@/utils/app/logger", () => ({
+  createLogger: () => ({
+    log: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+  }),
+}));
+
+// Mock Navigate component
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
   return {
     ...actual,
-    useNavigate: () => mockNavigate,
-    Navigate: ({ to }: { to: string }) => <div>Navigate to {to}</div>,
+    Navigate: ({ to }: { to: string }) => <div data-testid="navigate">Navigate to {to}</div>,
   };
 });
 
@@ -39,47 +93,31 @@ describe("Login", () => {
     vi.clearAllMocks();
   });
 
-  it("should render login view", () => {
+  it("should render Splash component with primary login button", () => {
     render(
       <BrowserRouter>
         <Login />
       </BrowserRouter>
     );
 
-    expect(screen.getByText("Green Goods")).toBeInTheDocument();
-    expect(screen.getByText("Welcome! 🌱")).toBeInTheDocument();
+    expect(screen.getByText("Login")).toBeInTheDocument();
+    expect(screen.getByText(/Login with wallet/i)).toBeInTheDocument();
   });
 
-  it("should show create passkey button", () => {
+  it("should show wallet login link as secondary option", () => {
     render(
       <BrowserRouter>
         <Login />
       </BrowserRouter>
     );
 
-    expect(screen.getByText("Create Passkey Wallet")).toBeInTheDocument();
+    const walletLink = screen.getByText(/Login with wallet/i);
+    expect(walletLink).toBeInTheDocument();
+    expect(walletLink).toHaveClass("underline");
   });
 
-  it("should show benefits of passkey auth", () => {
-    render(
-      <BrowserRouter>
-        <Login />
-      </BrowserRouter>
-    );
-
-    expect(screen.getByText(/Secure biometric authentication/i)).toBeInTheDocument();
-    expect(screen.getByText(/No passwords or seed phrases/i)).toBeInTheDocument();
-    expect(screen.getByText(/Sponsored transactions/i)).toBeInTheDocument();
-  });
-
-  it("should show loading state when creating passkey", () => {
-    mockUseAuth.mockReturnValue({
-      credential: null,
-      smartAccountAddress: null,
-      createPasskey: mockCreatePasskey,
-      isCreating: true,
-      error: null,
-    });
+  it("should trigger AppKit modal on wallet login click", async () => {
+    const user = userEvent.setup();
 
     render(
       <BrowserRouter>
@@ -87,15 +125,20 @@ describe("Login", () => {
       </BrowserRouter>
     );
 
-    expect(screen.getByText("Creating Wallet...")).toBeInTheDocument();
+    const walletLink = screen.getByText(/Login with wallet/i);
+    await user.click(walletLink);
+
+    expect(mockOpenWalletModal).toHaveBeenCalled();
   });
 
   it("should show error message when there is an error", () => {
     mockUseAuth.mockReturnValue({
-      credential: null,
-      smartAccountAddress: null,
+      walletAddress: null,
+      smartAccountClient: null,
       createPasskey: mockCreatePasskey,
+      connectWallet: mockConnectWallet,
       isCreating: false,
+      isAuthenticated: false,
       error: new Error("Test error message"),
     });
 
@@ -106,5 +149,25 @@ describe("Login", () => {
     );
 
     expect(screen.getByText(/Test error message/i)).toBeInTheDocument();
+  });
+
+  it("should redirect to home when authenticated", () => {
+    mockUseAuth.mockReturnValue({
+      walletAddress: null,
+      smartAccountClient: { account: {} },
+      createPasskey: mockCreatePasskey,
+      connectWallet: mockConnectWallet,
+      isCreating: false,
+      isAuthenticated: true,
+      error: null,
+    });
+
+    render(
+      <BrowserRouter>
+        <Login />
+      </BrowserRouter>
+    );
+
+    expect(screen.getByTestId("navigate")).toHaveTextContent("Navigate to /home");
   });
 });

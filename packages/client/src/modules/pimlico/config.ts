@@ -54,9 +54,29 @@ export function createPimlicoClientForChain(chainId: number) {
 
 export function createPublicClientForChain(chainId: number) {
   const chain = getChainFromId(chainId);
-  const rpcUrl = import.meta.env.VITE_ALCHEMY_API_KEY
-    ? `https://${chain.name}.g.alchemy.com/v2/${import.meta.env.VITE_ALCHEMY_API_KEY}`
-    : chain.rpcUrls.default.http[0];
+
+  // Build proper Alchemy RPC URL for each chain
+  let rpcUrl: string;
+  if (import.meta.env.VITE_ALCHEMY_API_KEY) {
+    const alchemyKey = import.meta.env.VITE_ALCHEMY_API_KEY;
+    switch (chainId) {
+      case 42161: // Arbitrum
+        rpcUrl = `https://arb-mainnet.g.alchemy.com/v2/${alchemyKey}`;
+        break;
+      case 42220: // Celo
+        rpcUrl = `https://celo-mainnet.g.alchemy.com/v2/${alchemyKey}`;
+        break;
+      case 84532: // Base Sepolia
+        rpcUrl = `https://base-sepolia.g.alchemy.com/v2/${alchemyKey}`;
+        break;
+      default:
+        // Fallback to chain's default RPC
+        rpcUrl = chain.rpcUrls.default.http[0];
+    }
+  } else {
+    // No Alchemy key, use chain's default RPC
+    rpcUrl = chain.rpcUrls.default.http[0];
+  }
 
   return createPublicClient({
     transport: http(rpcUrl),

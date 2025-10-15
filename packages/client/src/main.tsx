@@ -4,9 +4,12 @@ import { WagmiProvider } from "wagmi";
 
 import App from "@/App.tsx";
 import { DEFAULT_CHAIN_ID } from "@/config/blockchain";
-import { wagmiConfig } from "@/config/wagmi";
+import { wagmiConfig } from "@/config/appkit"; // Import from appkit.ts (single source of truth)
 import { AuthProvider } from "@/providers/auth";
 import { AppProvider } from "@/providers/app";
+
+// Initialize AppKit for wallet connection UI
+import "@/config/appkit";
 
 import "@/index.css";
 
@@ -34,11 +37,11 @@ if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_SW_DEV !== "true") {
 
 export const Root = () => (
   <WagmiProvider config={wagmiConfig}>
-    <AppProvider>
-      <AuthProvider chainId={DEFAULT_CHAIN_ID}>
+    <AuthProvider chainId={DEFAULT_CHAIN_ID}>
+      <AppProvider>
         <App />
-      </AuthProvider>
-    </AppProvider>
+      </AppProvider>
+    </AuthProvider>
   </WagmiProvider>
 );
 
