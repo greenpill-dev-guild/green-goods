@@ -21,7 +21,7 @@
  * ```
  */
 
-import { useAuth } from "@/hooks/auth/useAuth";
+import { useAuth, type AuthMode } from "@/hooks/auth/useAuth";
 import type { SmartAccountClient } from "permissionless";
 
 interface User {
@@ -37,6 +37,7 @@ interface UseUserReturn {
   eoa: { address: string } | null;
   smartAccountAddress: string | null;
   smartAccountClient: SmartAccountClient | null;
+  authMode: AuthMode;
 }
 
 export function useUser(): UseUserReturn {
@@ -64,5 +65,6 @@ export function useUser(): UseUserReturn {
     eoa,
     smartAccountAddress: smartAccountAddress || null,
     smartAccountClient,
+    authMode,
   };
 }

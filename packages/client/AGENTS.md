@@ -67,6 +67,9 @@ Different tools for different state concerns:
 
 ### Work Submission Workflow
 
+Green Goods uses **two distinct submission paths** based on authentication mode:
+
+**Passkey Mode (Offline-First):**
 ```
 User fills form → Submit → Add to job queue → Process inline (if online)
                                             → Queue for later (if offline)
@@ -74,22 +77,38 @@ User fills form → Submit → Add to job queue → Process inline (if online)
 Queue processes → Upload media to IPFS → Create EAS attestation → Mark synced
 ```
 
-**Files:**
+**Wallet Mode (Direct Transaction):**
+```
+User fills form → Submit → Upload media to IPFS → Create EAS attestation
+→ Send transaction via wallet → Wait for confirmation → Done
+```
+
+**Implementation:**
 - Form: `src/views/Garden/index.tsx`
-- Submission: `src/modules/work/work-submission.ts`
+- Wallet submission: `src/modules/work/wallet-submission.ts`
+- Queue submission: `src/modules/work/work-submission.ts`
 - Processing: `src/modules/job-queue/inline-processor.ts`
-- Provider: `src/providers/work.tsx`
+- Provider: `src/providers/work.tsx` (branches on `authMode`)
 
 ### Work Approval Workflow
 
+**Passkey Mode:**
 ```
 Operator views work → Reviews media/details → Approves/rejects with feedback
 → Creates approval job → Process inline → EAS attestation created
 ```
 
-**Files:**
+**Wallet Mode:**
+```
+Operator views work → Reviews media/details → Approves/rejects with feedback
+→ Encode approval data → Send transaction via wallet → Done
+```
+
+**Implementation:**
 - View: `src/views/Home/Garden/Work.tsx`
-- Hook: `src/hooks/work/useWorkApprovals.ts`
+- Hook: `src/hooks/work/useWorkApproval.ts` (branches on `authMode`)
+- Wallet submission: `src/modules/work/wallet-submission.ts`
+- Queue submission: `src/modules/work/work-submission.ts`
 - Provider: `src/providers/jobQueue.tsx`
 
 ### Garden Join with Invite

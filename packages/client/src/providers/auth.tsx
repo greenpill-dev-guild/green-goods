@@ -1,6 +1,15 @@
+/**
+ * Authentication Provider
+ *
+ * Manages user authentication via passkey (WebAuthn) or traditional wallets.
+ * Handles smart account initialization with Pimlico for gasless transactions.
+ *
+ * @module providers/auth
+ */
+
 import { createSmartAccountClient, type SmartAccountClient } from "permissionless";
 import { toKernelSmartAccount } from "permissionless/accounts";
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { type Hex, http } from "viem";
 import {
   createWebAuthnCredential,
@@ -10,7 +19,7 @@ import {
 } from "viem/account-abstraction";
 import { connect, disconnect, getAccount, watchAccount, type Connector } from "@wagmi/core";
 import { DEFAULT_CHAIN_ID } from "@/config/blockchain";
-import { wagmiConfig } from "@/config/wagmi";
+import { wagmiConfig } from "@/config/appkit";
 import { createLogger } from "@/utils/app/logger";
 import {
   createPimlicoClientForChain,
@@ -18,8 +27,17 @@ import {
   getChainFromId,
 } from "@/modules/pimlico/config";
 
+/**
+ * Authentication mode type
+ * - passkey: WebAuthn biometric authentication (primary for gardeners)
+ * - wallet: Traditional wallet connection (MetaMask, WalletConnect, etc.) for operators
+ * - null: Not authenticated
+ */
 export type AuthMode = "passkey" | "wallet" | null;
 
+/**
+ * Authentication context value
+ */
 interface AuthContextType {
   // Auth mode
   authMode: AuthMode;
@@ -35,7 +53,8 @@ interface AuthContextType {
 
   // Status flags
   isCreating: boolean;
-  isReady: boolean;
+  isReady: boolean; // Provider has finished initialization
+  isAuthenticated: boolean; // User has valid credentials
   error: Error | null;
 
   // Passkey actions
@@ -49,6 +68,12 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/**
+ * Hook to access authentication context.
+ * Must be used within AuthProvider.
+ *
+ * @throws If used outside AuthProvider
+ */
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
   if (!context) {
@@ -57,17 +82,58 @@ export function useAuth(): AuthContextType {
   return context;
 }
 
-// Storage keys
+/**
+ * LocalStorage keys for persisting auth state
+ *
+ * Security Note: Only public credential data is stored.
+ * Private keys never leave the device's secure enclave.
+ */
 const PASSKEY_STORAGE_KEY = "greengoods_passkey_credential";
 const AUTH_MODE_STORAGE_KEY = "greengoods_auth_mode";
 
+/**
+ * Serializable passkey credential data (public data only).
+ * Used for localStorage persistence.
+ *
+ * Note: P256Credential from viem includes id, publicKey, and raw authenticator data.
+ * The raw field contains the WebAuthn response needed for credential verification.
+ */
+interface SerializedCredential {
+  id: string;
+  publicKey: string;
+  raw: {
+    id: string;
+    type: string;
+    rawId: string;
+    response: {
+      clientDataJSON: string;
+      attestationObject: string;
+    };
+  };
+}
+
 const logger = createLogger("Auth");
 
+/**
+ * Props for AuthProvider component
+ */
 interface AuthProviderProps {
   children: React.ReactNode;
   chainId?: number;
 }
 
+/**
+ * Authentication Provider Component
+ *
+ * Provides authentication context to the entire app.
+ * Manages passkey and wallet authentication, smart account initialization.
+ *
+ * Initialization Flow:
+ * 1. Load saved auth mode from localStorage
+ * 2. If passkey mode: Load credential and initialize smart account
+ * 3. If wallet mode: Check for existing wallet connection
+ * 4. Set isReady to true when initialization complete
+ */
 export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProviderProps) {
   // Auth mode
   const [authMode, setAuthMode] = useState<AuthMode>(null);
@@ -83,6 +149,7 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
 
   // Status
   const [isCreating, setIsCreating] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   // Load saved auth mode and credentials on mount
@@ -94,12 +161,22 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
       try {
         const saved = localStorage.getItem(PASSKEY_STORAGE_KEY);
         if (saved) {
-          const parsed = JSON.parse(saved);
-          setCredential(parsed);
+          const serialized = JSON.parse(saved) as SerializedCredential;
+          // Reconstruct P256Credential from serialized public data
+          const reconstructed: P256Credential = {
+            id: serialized.id,
+            publicKey: serialized.publicKey as Hex,
+            raw: serialized.raw as any, // Raw authenticator data
+          };
+          setCredential(reconstructed);
           setAuthMode("passkey");
+          logger.log("Restored passkey from storage", { credentialId: serialized.id });
         }
       } catch (err) {
         logger.error("Failed to load saved credential", err);
+        // Clear corrupted data
+        localStorage.removeItem(PASSKEY_STORAGE_KEY);
+        localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
       }
     } else if (savedAuthMode === "wallet") {
       // Check for existing wallet connection
@@ -110,6 +187,9 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
         setAuthMode("wallet");
       }
     }
+
+    // Mark as initialized after checking localStorage
+    setIsInitialized(true);
   }, []);
 
   // Watch for wallet account changes
@@ -144,14 +224,36 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
 
     const initializeSmartAccount = async () => {
       try {
+        logger.log("Starting smart account initialization", {
+          credentialId: credential.id,
+          chainId,
+        });
+
+        // Step 1: Get chain and clients
+        logger.log("Setting up blockchain clients");
         const chain = getChainFromId(chainId);
         const publicClient = createPublicClientForChain(chainId);
         const pimlicoClient = createPimlicoClientForChain(chainId);
 
-        // Create WebAuthn account from credential
-        const webAuthnAccount = toWebAuthnAccount({ credential });
+        logger.log("Blockchain clients ready", {
+          chainName: chain.name,
+          pimlicoEndpoint: (pimlicoClient.transport as { url?: string }).url,
+        });
 
-        // Create Kernel smart account
+        // Step 2: Create WebAuthn account from credential
+        logger.log("Creating WebAuthn account from credential");
+        const webAuthnAccount = toWebAuthnAccount({ credential });
+        logger.log("WebAuthn account created", {
+          accountType: webAuthnAccount.type,
+        });
+
+        // Step 3: Create Kernel smart account
+        logger.log("Initializing Kernel smart account", {
+          version: "0.3.1",
+          entryPointVersion: "0.7",
+          ownersCount: 1,
+        });
+
         const account = await toKernelSmartAccount({
           client: publicClient,
           version: "0.3.1",
@@ -162,9 +264,18 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
           },
         });
 
+        logger.log("Kernel smart account created", {
+          smartAccountAddress: account.address,
+          accountType: account.type,
+        });
+
         setSmartAccountAddress(account.address);
 
-        // Create smart account client with Pimlico
+        // Step 4: Create smart account client with Pimlico bundler
+        logger.log("Setting up Pimlico smart account client", {
+          bundlerUrl: (pimlicoClient.transport as { url?: string }).url,
+        });
+
         const client = createSmartAccountClient({
           account,
           chain,
@@ -172,15 +283,35 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
           paymaster: pimlicoClient,
           userOperation: {
             estimateFeesPerGas: async () => {
+              logger.log("Estimating gas prices with Pimlico");
               const gasPrice = await pimlicoClient.getUserOperationGasPrice();
+              logger.log("Gas prices estimated", {
+                slow: gasPrice.slow,
+                standard: gasPrice.standard,
+                fast: gasPrice.fast,
+              });
               return gasPrice.fast;
             },
           },
         });
 
+        logger.log("Pimlico smart account client created", {
+          smartAccountAddress: account.address,
+          bundlerUrl: (pimlicoClient.transport as { url?: string }).url,
+        });
+
         setSmartAccountClient(client);
+
+        logger.log("Smart account initialization completed successfully", {
+          smartAccountAddress: account.address,
+          credentialId: credential.id,
+        });
       } catch (err) {
-        logger.error("Failed to initialize smart account", err);
+        logger.error("Smart account initialization failed", {
+          error: err,
+          credentialId: credential.id,
+          chainId,
+        });
         setError(err instanceof Error ? err : new Error("Failed to initialize smart account"));
       }
     };
@@ -188,7 +319,23 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
     initializeSmartAccount();
   }, [credential, chainId]);
 
-  const createPasskey = async () => {
+  /**
+   * Create a new passkey credential using WebAuthn.
+   *
+   * Process:
+   * 1. Prompts user for biometric authentication (Face ID, Touch ID, Windows Hello, etc.)
+   * 2. Generates P256 key pair (private key stays in device's secure enclave)
+   * 3. Saves public credential data to localStorage
+   * 4. Smart account initialization happens automatically via useEffect
+   *
+   * Security:
+   * - Private key never leaves the device
+   * - Only public credential data is persisted (id, publicKey, type)
+   * - WebAuthn standard ensures phishing resistance
+   *
+   * @throws If WebAuthn is not supported or user cancels
+   */
+  const createPasskey = useCallback(async () => {
     setIsCreating(true);
     setError(null);
 
@@ -198,8 +345,15 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
         name: "Green Goods Wallet",
       });
 
+      // Serialize only public data for storage
+      const serialized: SerializedCredential = {
+        id: newCredential.id,
+        publicKey: newCredential.publicKey,
+        raw: newCredential.raw as any, // Raw authenticator data needed for verification
+      };
+
       // Save to localStorage (only public data)
-      localStorage.setItem(PASSKEY_STORAGE_KEY, JSON.stringify(newCredential));
+      localStorage.setItem(PASSKEY_STORAGE_KEY, JSON.stringify(serialized));
       localStorage.setItem(AUTH_MODE_STORAGE_KEY, "passkey");
 
       setCredential(newCredential);
@@ -215,9 +369,13 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
     } finally {
       setIsCreating(false);
     }
-  };
+  }, []);
 
-  const clearPasskey = () => {
+  /**
+   * Clear passkey credential and reset auth state.
+   * Used for logout or account reset.
+   */
+  const clearPasskey = useCallback(() => {
     localStorage.removeItem(PASSKEY_STORAGE_KEY);
     localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
     setCredential(null);
@@ -225,9 +383,18 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
     setSmartAccountClient(null);
     setAuthMode(null);
     setError(null);
-  };
+    logger.log("Passkey cleared");
+  }, []);
 
-  const connectWallet = async (connector: Connector) => {
+  /**
+   * Connect a traditional wallet (MetaMask, WalletConnect, Coinbase Wallet, etc.)
+   *
+   * Used primarily by operators and admins who prefer traditional wallet management.
+   * Does NOT create a smart account - uses EOA directly.
+   *
+   * @throws If connection fails or user rejects
+   */
+  const connectWallet = useCallback(async (connector: Connector) => {
     setIsCreating(true);
     setError(null);
 
@@ -250,37 +417,63 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
     } finally {
       setIsCreating(false);
     }
-  };
+  }, []);
 
-  const disconnectWallet = () => {
+  /**
+   * Disconnect traditional wallet and reset auth state.
+   */
+  const disconnectWallet = useCallback(() => {
     disconnect(wagmiConfig);
     localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
     setWalletAddress(null);
     setWalletConnector(null);
     setAuthMode(null);
     setError(null);
-  };
+    logger.log("Wallet disconnected");
+  }, []);
 
-  // User is ready when either passkey or wallet is authenticated
-  const isReady =
+  // isReady means auth provider has finished initialization (checked localStorage, etc.)
+  const isReady = isInitialized;
+
+  // isAuthenticated means user has valid credentials
+  const isAuthenticated =
     (authMode === "passkey" && Boolean(credential && smartAccountAddress && smartAccountClient)) ||
     (authMode === "wallet" && Boolean(walletAddress));
 
-  const contextValue: AuthContextType = {
-    authMode,
-    credential,
-    smartAccountAddress,
-    smartAccountClient,
-    walletAddress,
-    walletConnector,
-    isCreating,
-    isReady,
-    error,
-    createPasskey,
-    clearPasskey,
-    connectWallet,
-    disconnectWallet,
-  };
+  const contextValue: AuthContextType = useMemo(
+    () => ({
+      authMode,
+      credential,
+      smartAccountAddress,
+      smartAccountClient,
+      walletAddress,
+      walletConnector,
+      isCreating,
+      isReady,
+      isAuthenticated,
+      error,
+      createPasskey,
+      clearPasskey,
+      connectWallet,
+      disconnectWallet,
+    }),
+    [
+      authMode,
+      credential,
+      smartAccountAddress,
+      smartAccountClient,
+      walletAddress,
+      walletConnector,
+      isCreating,
+      isReady,
+      isAuthenticated,
+      error,
+      createPasskey,
+      clearPasskey,
+      connectWallet,
+      disconnectWallet,
+    ]
+  );
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 }

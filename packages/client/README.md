@@ -22,17 +22,26 @@ The root `.env` file is automatically loaded by:
 
 **Client-relevant environment variables:**
 
-- `VITE_PRIVY_APP_ID`: Your Privy application ID for authentication
-- `VITE_WALLETCONNECT_PROJECT_ID`: Your WalletConnect project ID (if used)
+- `VITE_WALLETCONNECT_PROJECT_ID`: **Required** - Reown AppKit project ID for wallet connections (get from [cloud.reown.com](https://cloud.reown.com/))
+- `VITE_PIMLICO_API_KEY`: **Required** - Pimlico API key for passkey smart accounts (get from [pimlico.io](https://pimlico.io))
+- `VITE_APP_URL`: Application URL for AppKit metadata (e.g., `https://greengoods.app` or `http://localhost:3001` for dev)
 - `VITE_PINATA_JWT`: Pinata JWT token for uploads (client-side)
 - `VITE_CHAIN_ID`: Chain selection (e.g., 42161 for Arbitrum, 84532 for Base Sepolia)
 - `VITE_ENVIO_INDEXER_URL`: Envio GraphQL endpoint (optional; defaults to localhost in dev)
 - `VITE_DESKTOP_DEV`: Set to bypass PWA download checks during desktop development
+- `VITE_PRIVY_APP_ID`: **Deprecated** - Legacy Privy authentication (being migrated away)
 
 **Setup:**
-1. Copy the root `.env.example` (if it exists) or create `.env` at the project root
-2. Add the required environment variables listed above
-3. Variables are automatically loaded when running `bun dev` from root or package directory
+1. Copy the root `.env.example` to `.env` at the project root
+2. Get your WalletConnect Project ID from [cloud.reown.com](https://cloud.reown.com/)
+3. Get your Pimlico API key from [pimlico.io](https://pimlico.io)
+4. Add the required environment variables to your `.env` file
+5. Variables are automatically loaded when running `bun dev` from root or package directory
+
+**Authentication Setup:**
+Green Goods uses a dual authentication strategy:
+- **Passkey (Primary)**: WebAuthn biometric authentication via Pimlico smart accounts - recommended for gardeners
+- **Wallet (Fallback)**: Traditional wallet connection via AppKit - for operators who prefer EOA control
 
 _Refer to the main project's [README.md](../../README.md#configure-environment-variables) for complete environment setup instructions._
 
@@ -318,6 +327,33 @@ The application uses a comprehensive design system built with:
 - **Multi-step Forms**: Garden assessment, work submission, approval workflows
 - **State Management**: React Query for server state, React Hook Form for forms
 - **Real-time Updates**: GraphQL subscriptions for live data updates
+
+### Dual Authentication & Submission Paths
+
+Green Goods supports two distinct authentication modes with optimized submission workflows:
+
+**Passkey Mode (Gardeners):**
+- **Authentication**: WebAuthn biometric authentication (Face ID, Touch ID, fingerprint)
+- **Accounts**: Kernel smart accounts via Pimlico
+- **Submission**: Offline-first job queue with automatic sync
+- **Gas**: Sponsored transactions (gasless for users)
+- **Target Users**: Mobile-first gardeners who need offline support
+
+**Wallet Mode (Operators):**
+- **Authentication**: Traditional wallet connection (MetaMask, WalletConnect, Coinbase Wallet)
+- **Accounts**: Standard EOA (Externally Owned Accounts)
+- **Submission**: Direct blockchain transactions (bypasses job queue)
+- **Gas**: User pays gas fees
+- **Target Users**: Operators and admins who prefer traditional web3 UX
+
+**Implementation Files:**
+- Direct wallet submission: `src/modules/work/wallet-submission.ts`
+- Job queue submission: `src/modules/work/work-submission.ts`
+- Unified hooks: `src/hooks/work/useWorkApproval.ts`
+- Provider branching: `src/providers/work.tsx`
+- Future integration path: `docs/WALLET_QUEUE_INTEGRATION.md`
+
+The system automatically branches based on `authMode` from the authentication provider, ensuring each user type gets an optimized experience.
 
 ### Schema Integration
 

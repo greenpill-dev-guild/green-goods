@@ -31,6 +31,62 @@ export type AuthMode = 'passkey' | 'wallet' | null;
 **Tech:** Wagmi + WalletConnect + MetaMask
 **UX:** Traditional wallet connection
 
+## Auth Mode Branching Pattern
+
+Different authentication modes require different transaction submission paths:
+
+### Passkey Mode → Job Queue
+- Uses `SmartAccountClient` for transactions
+- Offline-first with job queue
+- Pimlico sponsorship for certain operations
+- Automatic sync when back online
+
+### Wallet Mode → Direct Transactions
+- Uses `WalletClient` for transactions
+- Online-only, traditional web3 UX
+- User pays gas fees
+- No job queue involvement
+
+### Implementation Pattern
+
+```typescript
+// Access auth mode from useUser hook
+const { authMode, smartAccountClient } = useUser();
+
+// Branch based on auth mode
+if (authMode === 'wallet') {
+  // Direct wallet submission
+  const hash = await submitWorkDirectly(draft, gardenAddress, actionUID, title, chainId, images);
+  return hash;
+} else {
+  // Passkey mode - use job queue
+  const { txHash, jobId } = await submitWorkToQueue(draft, gardenAddress, actionUID, actions, chainId, images);
+  
+  // Process inline if client available
+  if (smartAccountClient) {
+    await processWorkJobInline(jobId, chainId, smartAccountClient);
+  }
+  
+  return txHash;
+}
+```
+
+**Where branching happens:**
+- `src/providers/work.tsx` - Work submission
+- `src/hooks/work/useWorkApproval.ts` - Approval submission
+- `src/modules/work/wallet-submission.ts` - Direct wallet transactions
+- `src/modules/work/work-submission.ts` - Job queue submissions
+
+**Toast messaging:**
+```typescript
+onMutate: () => {
+  const message = authMode === 'wallet' 
+    ? 'Awaiting wallet confirmation...' 
+    : 'Uploading work...';
+  toast.loading(message, { id: 'work-upload' });
+}
+```
+
 ## AuthProvider Structure
 
 ```typescript
