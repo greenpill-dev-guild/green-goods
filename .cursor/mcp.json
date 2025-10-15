@@ -7,22 +7,11 @@
         "ALLOWED_DIRECTORIES": ["${workspaceFolder}"]
       }
     },
-    "github": {
-      "command": "docker run -i --rm -e GITHUB_PERSONAL_ACCESS_TOKEN ghcr.io/github/github-mcp-server",
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "${env:GITHUB_PERSONAL_ACCESS_TOKEN}"
-      }
-    },
-    "playwright": {
-      "command": "npx @playwright/mcp@latest"
-    },
     "vercel": {
-      "url": "https://mcp.vercel.com",
-      "headers": {}
+      "url": "https://mcp.vercel.com"
     },
-    "Figma": {
-      "url": "https://mcp.figma.com/mcp",
-      "headers": {}
+    "figma": {
+      "url": "https://mcp.figma.com/mcp"
     }
   }
 }
