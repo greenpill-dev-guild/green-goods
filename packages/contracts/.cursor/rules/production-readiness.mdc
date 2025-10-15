@@ -18,13 +18,13 @@ Execute these checks in order when asked about production readiness:
 
 **Command:**
 ```bash
-cd packages/contracts && pnpm test
+cd packages/contracts && bun test
 ```
 
 **Test Report:**
 ```bash
 # Generate and review test report
-cd packages/contracts && pnpm test
+cd packages/contracts && bun test
 cat FINAL_TEST_REPORT.md
 ```
 
@@ -114,7 +114,7 @@ cd packages/contracts && forge test --gas-report
 
 **Command:**
 ```bash
-cd packages/contracts && pnpm build
+cd packages/contracts && bun build
 ```
 
 **Requirements:**

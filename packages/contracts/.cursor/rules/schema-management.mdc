@@ -65,7 +65,7 @@ This file defines **production EAS schemas** deployed on-chain. Modifying it:
 Schemas deploy automatically with core contracts:
 
 ```bash
-pnpm deploy:testnet
+bun deploy:testnet
 # Deploys contracts + schemas
 
 node script/deploy.js core --network baseSepolia --broadcast

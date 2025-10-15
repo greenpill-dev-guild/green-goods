@@ -10,13 +10,13 @@ alwaysApply: true
 
 ```bash
 # Start indexer
-pnpm dev
+bun dev
 
 # Regenerate after schema changes
-pnpm codegen
+bun codegen
 
 # Reset state completely
-pnpm reset
+bun reset
 
 # Docker operations
 docker compose down       # Stop
@@ -47,7 +47,7 @@ cd generated
 npm install --legacy-peer-deps
 npm run build
 cd ..
-pnpm dev
+bun dev
 ```
 
 ### Port Conflicts
