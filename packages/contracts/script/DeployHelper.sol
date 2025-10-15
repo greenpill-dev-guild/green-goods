@@ -108,7 +108,7 @@ abstract contract DeployHelper is Script {
         string memory json = vm.readFile(path);
 
         // Generate salt from string for fresh deployment
-        salt = keccak256(bytes("greenGoodsCleanDeploy2025:1"));
+        salt = keccak256(bytes("greenGoodsCleanDeploy2025:2"));
         factory = json.readAddress(".deploymentDefaults.factory");
         tokenboundRegistry = json.readAddress(".deploymentDefaults.tokenboundRegistry");
     }

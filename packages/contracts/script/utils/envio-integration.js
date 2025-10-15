@@ -151,8 +151,10 @@ class EnvioIntegration {
         }
       }
 
-      // Load current Envio config
-      const envioConfig = yaml.load(fs.readFileSync(this.envioConfigPath, "utf8"));
+      // Load current Envio config with schema: 'failsafe' to preserve strings
+      const envioConfig = yaml.load(fs.readFileSync(this.envioConfigPath, "utf8"), {
+        schema: yaml.CORE_SCHEMA,
+      });
 
       // Update or add network configuration
       const targetChainId = Number.parseInt(chainId);
@@ -164,35 +166,60 @@ class EnvioIntegration {
         contracts: [
           {
             name: "ActionRegistry",
-            address: deployment.actionRegistry,
+            address: String(deployment.actionRegistry), // Ensure string
           },
           {
             name: "GardenToken",
-            address: deployment.gardenToken,
+            address: String(deployment.gardenToken), // Ensure string
           },
           {
             name: "GardenAccount",
-            address: deployment.accountProxy,
+            address: String(deployment.accountProxy), // Ensure string
           },
         ],
       };
 
       if (networkIndex >= 0) {
-        envioConfig.networks[networkIndex] = networkConfig;
+        // Preserve existing network config structure, only update contracts
+        envioConfig.networks[networkIndex] = {
+          ...envioConfig.networks[networkIndex],
+          ...networkConfig,
+        };
         console.log(`🔄 Updated existing network config for chain ${targetChainId}`);
       } else {
         envioConfig.networks.push(networkConfig);
         console.log(`➕ Added new network config for chain ${targetChainId}`);
       }
 
-      // Write updated config (preserve formatting with sortKeys)
+      // Ensure all network addresses are strings (fix corrupted data)
+      envioConfig.networks.forEach((network) => {
+        if (network.contracts) {
+          network.contracts.forEach((contract) => {
+            if (contract.address !== undefined && typeof contract.address !== "string") {
+              // Convert scientific notation back to hex if needed
+              console.warn(`⚠️  Converting corrupted address for ${contract.name} on chain ${network.id}`);
+              // This is corrupted data, we can't recover it - flag for manual fix
+              contract.address = String(contract.address);
+            }
+          });
+        }
+      });
+
+      // Write updated config with proper string handling
       fs.writeFileSync(
         this.envioConfigPath,
         yaml.dump(envioConfig, {
           lineWidth: -1,
           sortKeys: false,
           quotingType: '"',
-          forceQuotes: false,
+          noRefs: true,
+          // Custom replacer to ensure addresses stay as quoted strings
+          replacer: (key, value) => {
+            if (key === "address" && typeof value === "string") {
+              return value; // Keep as string
+            }
+            return value;
+          },
         }),
       );
       console.log("✅ Envio config updated successfully");

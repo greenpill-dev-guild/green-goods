@@ -1,51 +1,44 @@
+# yaml-language-server: $schema=./node_modules/envio/evm.schema.json
 name: Green Goods
 description: Green Goods Indexer
 contracts:
   - name: ActionRegistry
-    abi_file_path: abis/ActionRegistry.json
     handler: src/EventHandlers.ts
     events:
-      - event: ActionRegistered
-      - event: ActionStartTimeUpdated
-      - event: ActionEndTimeUpdated
-      - event: ActionTitleUpdated
-      - event: ActionInstructionsUpdated
-      - event: ActionMediaUpdated
+      - event: ActionRegistered(address owner, uint256 indexed actionUID, uint256 indexed startTime, uint256 indexed endTime, string title, string instructions, uint8[] capitals, string[] media)
+      - event: ActionStartTimeUpdated(address indexed owner, uint256 indexed actionUID, uint256 indexed startTime)
+      - event: ActionEndTimeUpdated(address indexed owner, uint256 indexed actionUID, uint256 indexed endTime)
+      - event: ActionTitleUpdated(address indexed owner, uint256 indexed actionUID, string indexed title)
+      - event: ActionInstructionsUpdated(address indexed owner, uint256 indexed actionUID, string indexed instructions)
+      - event: ActionMediaUpdated(address indexed owner, uint256 indexed actionUID, string[] indexed media)
   - name: GardenToken
-    abi_file_path: abis/GardenToken.json
     handler: src/EventHandlers.ts
     events:
-      - event: GardenMinted
+      - event: GardenMinted(uint256 indexed tokenId, address indexed account, string name, string description, string location, string bannerImage, address[] gardeners, address[] gardenOperators)
   - name: GardenAccount
-    abi_file_path: abis/GardenAccount.json
     handler: src/EventHandlers.ts
     events:
-      - event: NameUpdated
-      - event: DescriptionUpdated
-      - event: GardenerAdded
-      - event: GardenerRemoved
-      - event: GardenOperatorAdded
-      - event: GardenOperatorRemoved
-      - event: InviteCreated
-      - event: InviteUsed
-      - event: InviteRevoked
-      - event: GAPProjectCreated
+      - event: NameUpdated(address indexed updater, string newName)
+      - event: DescriptionUpdated(address indexed updater, string newDescription)
+      - event: GardenerAdded(address indexed updater, address indexed gardener)
+      - event: GardenerRemoved(address indexed updater, address indexed gardener)
+      - event: GardenOperatorAdded(address indexed updater, address indexed operator)
+      - event: GardenOperatorRemoved(address indexed updater, address indexed operator)
+      - event: InviteCreated(bytes32 indexed inviteCode, address indexed garden, address indexed creator, uint256 maxUses, uint256 expiresAt, string role)
+      - event: InviteUsed(bytes32 indexed inviteCode, address indexed garden, address indexed user)
+      - event: InviteRevoked(bytes32 indexed inviteCode, address indexed garden)
+      - event: GAPProjectCreated(bytes32 indexed projectUID, address indexed gardenAddress, string projectName)
 networks:
   - id: 84532
+    start_block: 0
   - id: 42220
+    start_block: 0
   - id: 42161
-  #   start_block: 1000
-  #   contracts:
-  #     - name: ActionRegistry
-  #       address: '0x547e82BF9c8496f41927583793242f6b91C182A6'
-  #     - name: GardenToken
-  #       address: '0x547e82BF9c8496f41927583793242f6b91C182A6'
-  #     - name: GardenAccount
-  #       address: '0x547e82BF9c8496f41927583793242f6b91C182A6'
-rpc_config:
-  '42161':
-    url: https://arb-mainnet.g.alchemy.com/v2/demo
-  '42220':
-    url: https://celo-mainnet.g.alchemy.com/v2/demo
-  '84532':
-    url: https://base-sepolia.g.alchemy.com/v2/demo
+    start_block: 0
+    contracts:
+      - name: ActionRegistry
+        address: "0xd94a6ef8A3f685dEdc7d69304564F8497e32cB1c"
+      - name: GardenToken
+        address: "0x89Cc1aB4dE7b9e837E4935EAa1f170eF46E0A6A7"
+      - name: GardenAccount
+        address: "0x62aae8bfAeC3a3e858ad05c21096f47dF16D9668"
