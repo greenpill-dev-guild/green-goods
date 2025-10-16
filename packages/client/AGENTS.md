@@ -141,7 +141,7 @@ Connect wallet → Manual prompt to join root garden (optional)
 - Splash screen: `src/components/Layout/Splash.tsx` (with loading states)
 - Hook: `src/hooks/garden/useAutoJoinRootGarden.ts`
 - Auth provider: `src/providers/auth.tsx`
-- Paymaster: `src/modules/pimlico/paymaster.ts` (sponsors joinGarden)
+- Pimlico client setup: `src/modules/auth/passkey.ts`, `src/modules/pimlico/config.ts`
 
 ## Module Architecture
 
@@ -442,4 +442,3 @@ For detailed patterns, see package-specific .mdc files:
 - Features: `/docs/FEATURES.md`
 - Testing: `/docs/TESTING.md`
 - Root agent guide: `/AGENTS.md`
-

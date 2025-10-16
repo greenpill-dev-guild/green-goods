@@ -1,6 +1,7 @@
 import { createPimlicoClient } from "permissionless/clients/pimlico";
 import { type Chain, createPublicClient, http } from "viem";
 import { arbitrum, baseSepolia, celo } from "viem/chains";
+import { entryPoint07Address } from "viem/account-abstraction";
 
 // Pimlico API endpoints by chain
 const PIMLICO_API_ENDPOINTS = {
@@ -49,6 +50,10 @@ export function createPimlicoClientForChain(chainId: number) {
   return createPimlicoClient({
     transport: http(bundlerUrl),
     chain,
+    entryPoint: {
+      address: entryPoint07Address,
+      version: "0.7",
+    },
   });
 }
 

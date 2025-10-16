@@ -1,11 +1,11 @@
 import { createSmartAccountClient, type SmartAccountClient } from "permissionless";
 import { toKernelSmartAccount } from "permissionless/accounts";
-import { type Hex, http } from "viem";
+import { http, type Hex } from "viem";
 import {
   createWebAuthnCredential,
-  type P256Credential,
-  toWebAuthnAccount,
   entryPoint07Address,
+  toWebAuthnAccount,
+  type P256Credential,
 } from "viem/account-abstraction";
 
 import {
@@ -78,6 +78,15 @@ async function createPasskeySession(
     chain,
     bundlerTransport: http(bundlerUrl),
     paymaster: pimlicoClient,
+    userOperation: {
+      estimateFeesPerGas: async () => {
+        const { fast } = await pimlicoClient.getUserOperationGasPrice();
+        return {
+          maxFeePerGas: fast.maxFeePerGas,
+          maxPriorityFeePerGas: fast.maxPriorityFeePerGas,
+        };
+      },
+    },
   });
 
   return {
@@ -88,7 +97,35 @@ async function createPasskeySession(
 }
 
 export async function registerPasskeySession(chainId: number): Promise<PasskeySession> {
-  const credential = await createWebAuthnCredential({ name: "Green Goods Wallet" });
+  const credential = await createWebAuthnCredential({
+    name: "Green Goods Wallet",
+    createFn: async (options) => {
+      const credentialOptions = options as CredentialCreationOptions | undefined;
+      const publicKeyOptions = credentialOptions?.publicKey;
+      if (publicKeyOptions) {
+        const existing = publicKeyOptions.pubKeyCredParams ?? [];
+        const defaults: PublicKeyCredentialParameters[] = [
+          { type: "public-key", alg: -7 },
+          { type: "public-key", alg: -257 },
+        ];
+        const merged = defaults.concat(existing);
+        const deduped: PublicKeyCredentialParameters[] = [];
+        const seen = new Set<number>();
+
+        for (const param of merged) {
+          if (seen.has(param.alg)) {
+            continue;
+          }
+          seen.add(param.alg);
+          deduped.push(param);
+        }
+
+        publicKeyOptions.pubKeyCredParams = deduped;
+      }
+
+      return window.navigator.credentials.create(credentialOptions);
+    },
+  });
   persistCredential(credential);
   return createPasskeySession(chainId, credential);
 }
