@@ -168,13 +168,14 @@ contract Deploy is Script, DeploymentBase {
         gardeners[3] = 0x23fBb98BBa894b2de086350bD60ef39860e92e43;
         gardeners[4] = 0x3f649DbFAFBE454940B8a82c5058b8d176dD3871;
 
-        address[] memory operators = new address[](6);
+        address[] memory operators = new address[](7);
         operators[0] = 0x2aa64E6d80390F5C017F0313cB908051BE2FD35e;
         operators[1] = 0xAcD59e854adf632d2322404198624F757C868C97;
         operators[2] = 0xED47B5f719eA74405Eb96ff700C11D1685b953B1;
         operators[3] = 0x5c79d252F458b3720f7f230f8490fd1eE81d32FB;
         operators[4] = 0xbaD8bcc9Eb5749829cF12189fDD5c1230D6C85e8;
         operators[5] = 0x5F56E995e8D3bd05a70a63f0d7531437e873772e;
+        operators[6] = 0x560F876431dfA6eFe1aaf9fAa0D3A4512782DD8c;
 
         gardenToken.mintGarden(communityToken, name, description, location, bannerImage, gardeners, operators);
 
