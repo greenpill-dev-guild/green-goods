@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { Script } from "forge-std/Script.sol";
+import { Script, console } from "forge-std/Script.sol";
 import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
 
 import { DeploymentBase } from "../test/helpers/DeploymentBase.sol";
@@ -177,13 +177,12 @@ contract Deploy is Script, DeploymentBase {
         operators[5] = 0x5F56E995e8D3bd05a70a63f0d7531437e873772e;
         operators[6] = 0x560F876431dfA6eFe1aaf9fAa0D3A4512782DD8c;
 
-        gardenToken.mintGarden(communityToken, name, description, location, bannerImage, gardeners, operators);
-
-        uint256 tokenId = 1;
-        address gardenAddress = TBALib.getAccount(address(gardenAccountImpl), address(gardenToken), tokenId);
+        address gardenAddress =  gardenToken.mintGarden(communityToken, name, description, location, bannerImage, gardeners, operators);
 
         gardenAddresses.push(gardenAddress);
-        gardenTokenIds.push(tokenId);
+        gardenTokenIds.push(1);
+
+        console.log("Garden address:", gardenAddress);
     }
 
     /// @notice Upload actions to IPFS and return hashes

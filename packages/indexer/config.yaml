@@ -44,11 +44,11 @@ networks:
       - name: GardenAccount
         address: "0x3B4A3ACA9D52b01086F625a0EB6E6e24b65C810D"
   - id: 42161
-    start_block: 200000000
+    start_block: 0
     contracts:
       - name: ActionRegistry
-        address: "0x6B3294202C97498f08F25B15a662D43223c152c7"
+        address: "0x8578004FD468212B9056052856c7cF282760Ef25"
       - name: GardenToken
-        address: "0xc8dBEaA0e60e508776e7AE0D3ad297E61d943ac1"
+        address: "0x3DEc3c42C5872a86Fb0e60A4AaDD7aD51CaF076a"
       - name: GardenAccount
-        address: "0x1Ffe3fcf6459Fb4803cc8184b4F5eeCcF3d15c6B"
+        address: "0xB9e374493bB9cea972C6d26f8a7634AEEcd71daA"
