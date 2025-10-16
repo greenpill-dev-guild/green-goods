@@ -293,6 +293,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         if (gardeners[_msgSender()]) revert AlreadyGardener();
 
         gardeners[_msgSender()] = true;
+        
         emit GardenerAdded(address(this), _msgSender());
     }
 
