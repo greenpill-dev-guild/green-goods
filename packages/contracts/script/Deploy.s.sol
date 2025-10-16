@@ -24,8 +24,8 @@ contract Deploy is Script, DeploymentBase {
     error InvalidCapitalType();
 
     // ===== STATE =====
-    address private rootGardenAddress;
-    uint256 private rootGardenTokenId;
+    address[] private gardenAddresses;
+    uint256[] private gardenTokenIds;
     address private guardian;
     address private accountProxy;
 
@@ -143,35 +143,51 @@ contract Deploy is Script, DeploymentBase {
         }
     }
 
-    /// @notice Deploy seed data (root garden + core actions)
+    /// @notice Deploy seed data (gardens from config + core actions)
     function _deploySeedData(NetworkConfig memory config) internal {
-        // 1. Mint root garden
-        (rootGardenAddress, rootGardenTokenId) = _deployRootGarden(config.communityToken);
+        // 1. Mint gardens from config
+        _deployGardens(config.communityToken);
 
         // 2. Deploy core actions
         string[] memory actionIPFSHashes = _uploadActionsToIPFS();
         _deployCoreActions(actionIPFSHashes);
     }
 
-    /// @notice Deploy root garden from config
-    function _deployRootGarden(address communityToken) internal returns (address, uint256) {
-        string memory configPath = string.concat(vm.projectRoot(), "/config/garden.json");
+    /// @notice Deploy all gardens from config
+    function _deployGardens(address communityToken) internal {
+        string memory configPath = string.concat(vm.projectRoot(), "/config/gardens.json");
         string memory json = vm.readFile(configPath);
 
-        string memory name = abi.decode(vm.parseJson(json, ".name"), (string));
-        string memory description = abi.decode(vm.parseJson(json, ".description"), (string));
-        string memory location = abi.decode(vm.parseJson(json, ".location"), (string));
-        string memory bannerImage = abi.decode(vm.parseJson(json, ".bannerImage"), (string));
-        address[] memory gardeners = abi.decode(vm.parseJson(json, ".gardeners"), (address[]));
-        address[] memory operators = abi.decode(vm.parseJson(json, ".operators"), (address[]));
+        // Iterate through gardens array in config
+        for (uint256 i = 0; i < 100; i++) {
+            string memory basePath = string.concat(".gardens[", vm.toString(i), "]");
+            
+            // Try to read garden name - if it fails, we've reached the end
+            try vm.parseJson(json, string.concat(basePath, ".name")) returns (bytes memory nameBytes) {
+                if (nameBytes.length == 0) break;
 
-        // Mint garden (tokenId will be 1)
-        gardenToken.mintGarden(communityToken, name, description, location, bannerImage, gardeners, operators);
+                string memory name = abi.decode(nameBytes, (string));
+                string memory description = abi.decode(vm.parseJson(json, string.concat(basePath, ".description")), (string));
+                string memory location = abi.decode(vm.parseJson(json, string.concat(basePath, ".location")), (string));
+                string memory bannerImage = abi.decode(vm.parseJson(json, string.concat(basePath, ".bannerImage")), (string));
+                address[] memory gardeners = abi.decode(vm.parseJson(json, string.concat(basePath, ".gardeners")), (address[]));
+                address[] memory operators = abi.decode(vm.parseJson(json, string.concat(basePath, ".operators")), (address[]));
 
-        uint256 tokenId = 1;
-        address gardenAddress = TBALib.getAccount(address(gardenAccountImpl), address(gardenToken), tokenId);
+                // Mint garden
+                gardenToken.mintGarden(communityToken, name, description, location, bannerImage, gardeners, operators);
 
-        return (gardenAddress, tokenId);
+                // Calculate token ID (starts at 1)
+                uint256 tokenId = i + 1;
+                address gardenAddress = TBALib.getAccount(address(gardenAccountImpl), address(gardenToken), tokenId);
+
+                // Store garden info
+                gardenAddresses.push(gardenAddress);
+                gardenTokenIds.push(tokenId);
+            } catch {
+                // No more gardens in config
+                break;
+            }
+        }
     }
 
     /// @notice Upload actions to IPFS and return hashes
@@ -368,6 +384,10 @@ contract Deploy is Script, DeploymentBase {
     /// @notice Save deployment results to JSON
     function _saveDeploymentResults() internal {
         // Build comprehensive deployment result
+        // Use first garden as "root" for backward compatibility
+        address rootGardenAddress = gardenAddresses.length > 0 ? gardenAddresses[0] : address(0);
+        uint256 rootGardenTokenId = gardenTokenIds.length > 0 ? gardenTokenIds[0] : 0;
+        
         DeploymentResult memory result = DeploymentResult({
             deploymentRegistry: address(deploymentRegistry),
             guardian: guardian,
@@ -387,6 +407,29 @@ contract Deploy is Script, DeploymentBase {
 
         // Use DeployHelper's comprehensive save method
         _saveDeployment(result);
+        
+        // Also save all garden addresses and token IDs to a separate file for reference
+        if (gardenAddresses.length > 0) {
+            string memory chainIdStr = vm.toString(block.chainid);
+            string memory gardensPath = string.concat(vm.projectRoot(), "/deployments/", chainIdStr, "-gardens.json");
+            
+            // Build JSON manually for array of gardens
+            string memory gardensJson = "{\"gardens\":[";
+            for (uint256 i = 0; i < gardenAddresses.length; i++) {
+                if (i > 0) gardensJson = string.concat(gardensJson, ",");
+                gardensJson = string.concat(
+                    gardensJson,
+                    "{\"tokenId\":",
+                    vm.toString(gardenTokenIds[i]),
+                    ",\"address\":\"",
+                    vm.toString(gardenAddresses[i]),
+                    "\"}"
+                );
+            }
+            gardensJson = string.concat(gardensJson, "]}");
+            
+            vm.writeFile(gardensPath, gardensJson);
+        }
     }
 
     /// @notice Generate verification commands
