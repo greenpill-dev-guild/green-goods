@@ -2,7 +2,7 @@
  * Auto-Join Root Garden Hook
  *
  * Manages joining the root community garden on first login.
- * Supports both manual prompting and automatic joining for passkey users.
+ * Supports automatic joining for passkey users and manual prompt for wallet users.
  *
  * @module hooks/garden/useAutoJoinRootGarden
  */
@@ -16,6 +16,9 @@ import GardenAccountABI from "@/utils/blockchain/abis/GardenAccount.json";
 import { createLogger } from "@/utils/app/logger";
 
 const logger = createLogger("AutoJoinRootGarden");
+
+const ONBOARDED_STORAGE_KEY = "greengoods_user_onboarded";
+const ROOT_GARDEN_PROMPTED_KEY = "rootGardenPrompted";
 
 /**
  * Join state for the root garden
@@ -32,13 +35,14 @@ interface JoinState {
  *
  * Features:
  * - Checks if user is already a member
- * - Shows prompt for manual join (when autoJoin=false)
- * - Auto-joins on first login (when autoJoin=true)
+ * - Auto-joins on first login for passkey users (when autoJoin=true)
+ * - Shows manual prompt for wallet users (when autoJoin=false)
+ * - Uses direct joinGarden() function (no invite codes)
  * - Stores join status in localStorage to prevent duplicate prompts
  *
  * Storage Keys:
- * - rootGardenPrompted: Set to "true" when user has been prompted or dismissed
- * - rootGardenJoined: Set to "true" when user has successfully joined via auto-join
+ * - greengoods_user_onboarded: Set to "true" after successful first-time onboarding
+ * - rootGardenPrompted: Set to "true" when wallet user has been prompted or dismissed
  *
  * @param autoJoin - If true, automatically joins without user prompt (passkey flow)
  * @returns Join state and functions for manual join/dismiss
@@ -70,43 +74,44 @@ export function useAutoJoinRootGarden(autoJoin = false) {
   const { writeContractAsync, isPending } = useWriteContract();
 
   // Auto-join effect (when autoJoin=true, joins automatically on first login)
+  // Note: This is primarily called manually from Login component for controlled flow
   useEffect(() => {
     if (!autoJoin) return;
     if (!ready || !smartAccountAddress || !rootGarden) return;
     if (checkingMembership || isGardener) return;
 
-    const hasJoinedBefore = localStorage.getItem("rootGardenJoined") === "true";
-    if (hasJoinedBefore) {
-      logger.log("User already auto-joined previously, skipping");
+    const isOnboarded = localStorage.getItem(ONBOARDED_STORAGE_KEY) === "true";
+    if (isOnboarded) {
+      logger.log("User already onboarded, skipping auto-join");
       return;
     }
 
-    // Trigger auto-join
-    logger.log("Auto-joining root garden for new passkey user");
+    // This auto-join is mainly a fallback - primary flow is in Login component
+    logger.log("Auto-joining root garden (fallback)");
     joinGarden().catch((err) => {
       logger.error("Auto-join failed", err);
     });
   }, [autoJoin, ready, smartAccountAddress, rootGarden, isGardener, checkingMembership]);
 
-  // Manual prompt effect (when autoJoin=false, shows prompt for user to join)
+  // Manual prompt effect (when autoJoin=false, shows prompt for wallet users to join)
   useEffect(() => {
     if (autoJoin) return; // Skip if auto-join is enabled
     if (!ready || !smartAccountAddress || !rootGarden) return;
     if (checkingMembership) return;
 
-    const hasPromptedBefore = localStorage.getItem("rootGardenPrompted") === "true";
+    const hasPromptedBefore = localStorage.getItem(ROOT_GARDEN_PROMPTED_KEY) === "true";
 
     if (!isGardener && !hasPromptedBefore) {
       setState((prev) => ({ ...prev, showPrompt: true, isLoading: false }));
     }
-    // Removed else block - no need to copy isGardener to state, already available from useReadContract
   }, [autoJoin, ready, smartAccountAddress, rootGarden, isGardener, checkingMembership]);
 
   /**
-   * Join the root garden.
+   * Join the root garden using direct joinGarden() function (no invite codes).
    *
    * Supports both passkey (smart account) and wallet (wagmi) authentication.
-   * Sets appropriate localStorage flags based on join mode.
+   * For passkey users: Transaction is sponsored via Pimlico paymaster.
+   * For wallet users: User pays gas fees directly.
    *
    * @throws {Error} If join transaction fails
    */
@@ -123,7 +128,7 @@ export function useAutoJoinRootGarden(autoJoin = false) {
       });
 
       if (smartAccountClient?.account) {
-        // Use smart account for passkey authentication
+        // Use smart account for passkey authentication (sponsored transaction)
         await (smartAccountClient.sendTransaction as any)({
           to: rootGarden.address,
           value: 0n,
@@ -134,9 +139,9 @@ export function useAutoJoinRootGarden(autoJoin = false) {
           }),
         });
 
-        logger.log("Successfully joined root garden with passkey");
+        logger.log("Successfully joined root garden with passkey (sponsored)");
       } else {
-        // Use wagmi for wallet authentication
+        // Use wagmi for wallet authentication (user pays gas)
         await writeContractAsync({
           address: rootGarden.address,
           abi: GardenAccountABI,
@@ -148,10 +153,7 @@ export function useAutoJoinRootGarden(autoJoin = false) {
       }
 
       // Set appropriate localStorage flags
-      if (autoJoin) {
-        localStorage.setItem("rootGardenJoined", "true");
-      }
-      localStorage.setItem("rootGardenPrompted", "true");
+      localStorage.setItem(ROOT_GARDEN_PROMPTED_KEY, "true");
 
       setState((prev) => ({
         ...prev,
@@ -170,10 +172,11 @@ export function useAutoJoinRootGarden(autoJoin = false) {
   /**
    * Dismiss the join prompt without joining.
    * Sets localStorage flag to prevent showing prompt again.
+   * Used for wallet users who can manually join later.
    */
   const dismissPrompt = () => {
     logger.log("Dismissing root garden prompt");
-    localStorage.setItem("rootGardenPrompted", "true");
+    localStorage.setItem(ROOT_GARDEN_PROMPTED_KEY, "true");
     setState((prev) => ({ ...prev, showPrompt: false, hasPrompted: true }));
   };
 

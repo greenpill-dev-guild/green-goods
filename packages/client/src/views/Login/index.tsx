@@ -6,6 +6,7 @@
  * - Passkey authentication with biometric WebAuthn
  * - AppKit wallet connection for operators/admins
  * - Auto-join root garden on first passkey login
+ * - Enhanced loading states for onboarding flow
  * - Mobile-first splash screen UI
  *
  * @module views/Login
@@ -15,7 +16,7 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAccount } from "wagmi";
 import toast from "react-hot-toast";
-import { Splash } from "@/components/Layout/Splash";
+import { Splash, type LoadingState } from "@/components/Layout/Splash";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useAutoJoinRootGarden } from "@/hooks/garden/useAutoJoinRootGarden";
 import { createLogger } from "@/utils/app/logger";
@@ -24,19 +25,21 @@ import { wagmiConfig, appKit } from "@/config/appkit";
 
 const logger = createLogger("Login");
 
-/**
- * Loading states for the passkey creation and garden join flow
- */
-type LoadingState = "idle" | "creating" | "joining" | "complete";
+const ONBOARDED_STORAGE_KEY = "greengoods_user_onboarded";
 
 /**
  * Login component - Primary entry point for user authentication
  *
  * Flow:
- * 1. Show splash screen with "Login" button (passkey)
- * 2. Show "Login with wallet" text link (AppKit)
- * 3. On passkey: Create WebAuthn credential → Initialize smart account → Auto-join root garden
- * 4. On wallet: Open AppKit modal → Connect wallet → Navigate to home
+ * 1. Check if user is onboarded (returning user)
+ * 2. Show splash screen with "Login" button (passkey) or "Login with wallet" link
+ * 3. On passkey first-time:
+ *    - Create WebAuthn credential → Show "Creating your garden account..."
+ *    - Initialize smart account → Show "Joining community garden..."
+ *    - Auto-join root garden (sponsored) → Set onboarded flag → Navigate to home
+ * 4. On passkey returning:
+ *    - Authenticate → Show "Welcome back..." → Navigate to home
+ * 5. On wallet: Open AppKit modal → Connect wallet → Navigate to home
  *
  * @returns {JSX.Element} Login view with authentication options
  */
@@ -51,14 +54,29 @@ export function Login() {
     isAuthenticated,
   } = useAuth();
 
-  const [loadingState, setLoadingState] = useState<LoadingState>("idle");
+  const [loadingState, setLoadingState] = useState<LoadingState | null>(null);
+  const [isFirstTime, setIsFirstTime] = useState<boolean>(false);
   const { joinGarden, isPending: isJoiningGarden } = useAutoJoinRootGarden(false);
 
   // Use wagmi's useAccount hook to detect wallet connection
   const { address: wagmiAddress, isConnected: wagmiConnected } = useAccount();
 
-  // Redirect if already authenticated
-  if (isAuthenticated && loadingState === "idle") {
+  // Check if user is onboarded on mount
+  useEffect(() => {
+    const isOnboarded = localStorage.getItem(ONBOARDED_STORAGE_KEY) === "true";
+    setIsFirstTime(!isOnboarded);
+    logger.log("User onboarding status", { isOnboarded, isFirstTime: !isOnboarded });
+  }, []);
+
+  // Redirect if already authenticated and idle
+  if (isAuthenticated && !loadingState) {
+    // Show welcome back briefly for returning users
+    if (!isFirstTime) {
+      setLoadingState("welcome-back");
+      setTimeout(() => {
+        // Navigate will happen automatically
+      }, 1500);
+    }
     return <Navigate to="/home" replace />;
   }
 
@@ -99,7 +117,13 @@ export function Login() {
 
   /**
    * Handle passkey creation and auto-join root garden.
-   * Shows loading states during each phase of the process.
+   * Shows appropriate loading states during each phase.
+   *
+   * First-time users:
+   * 1. Create passkey → "Creating your garden account..."
+   * 2. Initialize smart account
+   * 3. Join root garden (sponsored) → "Joining community garden..."
+   * 4. Set onboarded flag → Navigate to home
    *
    * Error handling:
    * - Passkey creation failure: Show error, stay on login screen
@@ -107,32 +131,55 @@ export function Login() {
    */
   const handleCreatePasskey = async () => {
     try {
-      setLoadingState("creating");
-      logger.log("Starting passkey creation");
+      // First-time users: Show account creation state
+      if (isFirstTime) {
+        setLoadingState("creating-account");
+      }
+
+      logger.log("Starting passkey creation", { isFirstTime });
 
       await createPasskey();
       logger.log("Passkey created successfully");
 
       // Wait for smart account client to be ready
       await waitForSmartAccountReady();
-      logger.log("Smart account ready, starting garden join");
+      logger.log("Smart account ready");
 
-      setLoadingState("joining");
-      try {
-        await joinGarden();
-        logger.log("Garden join successful");
-        setLoadingState("complete");
-      } catch (joinErr) {
-        // Garden join failed - continue to home anyway
-        logger.error("Garden join failed during onboarding", joinErr);
-        toast("Welcome! You can join the community garden from your profile.", {
-          icon: "ℹ️",
-        });
-        setLoadingState("complete");
-        // Navigate will happen automatically via the Navigate component
+      // First-time users: Auto-join root garden with sponsored transaction
+      if (isFirstTime) {
+        setLoadingState("joining-garden");
+        logger.log("Starting root garden join for first-time user");
+
+        try {
+          await joinGarden();
+          logger.log("Garden join successful");
+
+          // Mark user as onboarded
+          localStorage.setItem(ONBOARDED_STORAGE_KEY, "true");
+          logger.log("User marked as onboarded");
+
+          // Brief success state before navigation
+          setTimeout(() => {
+            // Navigate will happen automatically via the Navigate component
+          }, 1000);
+        } catch (joinErr) {
+          // Garden join failed - continue to home anyway
+          logger.error("Garden join failed during onboarding", joinErr);
+          toast("Welcome! You can join the community garden from your profile.", {
+            icon: "ℹ️",
+          });
+          // Still mark as onboarded so they don't see the flow again
+          localStorage.setItem(ONBOARDED_STORAGE_KEY, "true");
+        }
+      } else {
+        // Returning user: Show welcome back
+        setLoadingState("welcome-back");
+        setTimeout(() => {
+          // Navigate will happen automatically
+        }, 1000);
       }
     } catch (err) {
-      setLoadingState("idle");
+      setLoadingState(null);
       logger.error("Passkey creation failed", err);
       toast.error("Failed to create passkey. Please try again.");
     }
@@ -147,35 +194,22 @@ export function Login() {
     appKit.open();
   };
 
-  // Loading screen during passkey creation and garden join
-  if (loadingState !== "idle") {
+  // Loading screen during passkey creation, garden join, or welcome back
+  if (loadingState) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-green-50 to-white px-4">
-        <img src="/icon.png" alt="Green Goods" width={120} className="mb-8 animate-pulse" />
-        <div className="text-center space-y-4">
-          <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin mx-auto" />
-          <h2 className="text-xl font-semibold text-gray-900">
-            {loadingState === "creating" && "Creating your wallet..."}
-            {loadingState === "joining" && "Joining Green Goods community..."}
-            {loadingState === "complete" && "Welcome! 🌱"}
-          </h2>
-          <p className="text-gray-600">
-            {loadingState === "creating" && "Setting up your secure passkey wallet"}
-            {loadingState === "joining" && "Adding you to the community garden"}
-            {loadingState === "complete" && "Taking you to your dashboard"}
-          </p>
-        </div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-green-50 to-white">
+        <Splash loadingState={loadingState} />
       </div>
     );
   }
 
-  // Main splash screen
+  // Main splash screen with login button
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-green-50 to-white">
       <Splash
         login={handleCreatePasskey}
         isLoggingIn={isCreating || isJoiningGarden}
-        buttonLabel={loadingState !== "idle" ? "Creating Wallet..." : "Login"}
+        buttonLabel="Login"
       />
 
       {/* Secondary wallet login option */}

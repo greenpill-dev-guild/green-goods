@@ -30,23 +30,12 @@ type Garden = {
   gapProjectUID?: string; // Karma GAP project attestation UID
 };
 
-type GardenInvite = {
-  id: string;
-  garden: string;
-  creator: string;
-  expiry: bigint;
-  used: boolean;
-  usedBy?: string;
-  createdAt: number;
-  usedAt?: number;
-  chainId: number;
-};
-
 type Gardener = {
   id: string;
   chainId: number;
   createdAt: number;
   firstGarden?: string;
+  gardens: string[];
   joinedVia?: string;
 };
 
@@ -238,15 +227,42 @@ GardenAccount.DescriptionUpdated.handler(async ({ event, context }) => {
 // Handler for the GardenerAdded event
 GardenAccount.GardenerAdded.handler(async ({ event, context }) => {
   const gardenId = event.srcAddress;
-  const existingGarden = await context.Garden.get(gardenId);
+  const gardenerAddress = event.params.gardener;
 
+  // Create unique gardener ID with chain prefix
+  const gardenerId = `${event.chainId}-${gardenerAddress}`;
+
+  // Check if gardener entity already exists
+  const existingGardener = await context.Gardener.get(gardenerId);
+
+  if (existingGardener) {
+    // Update existing gardener with new garden
+    const updatedGardens = [...new Set([...existingGardener.gardens, gardenId])];
+    const updatedGardener: Gardener = {
+      ...existingGardener,
+      gardens: updatedGardens,
+    };
+    context.Gardener.set(updatedGardener);
+  } else {
+    // Create new gardener entity
+    const newGardener: Gardener = {
+      id: gardenerId,
+      chainId: event.chainId,
+      createdAt: event.block.timestamp,
+      firstGarden: gardenId,
+      gardens: [gardenId],
+    };
+    context.Gardener.set(newGardener);
+  }
+
+  // Update garden entity
+  const existingGarden = await context.Garden.get(gardenId);
   if (existingGarden) {
-    const updatedGardeners = [...existingGarden.gardeners, event.params.gardener];
+    const updatedGardeners = [...existingGarden.gardeners, gardenerAddress];
     const updatedGarden: Garden = {
       ...existingGarden,
       gardeners: updatedGardeners,
     };
-
     context.Garden.set(updatedGarden);
   }
 });
@@ -254,17 +270,30 @@ GardenAccount.GardenerAdded.handler(async ({ event, context }) => {
 // Handler for the GardenerRemoved event
 GardenAccount.GardenerRemoved.handler(async ({ event, context }) => {
   const gardenId = event.srcAddress;
-  const existingGarden = await context.Garden.get(gardenId);
+  const gardenerAddress = event.params.gardener;
+  const gardenerId = `${event.chainId}-${gardenerAddress}`;
 
+  // Update gardener entity (remove garden from their list)
+  const existingGardener = await context.Gardener.get(gardenerId);
+  if (existingGardener) {
+    const updatedGardens = existingGardener.gardens.filter((id) => id !== gardenId);
+    const updatedGardener: Gardener = {
+      ...existingGardener,
+      gardens: updatedGardens,
+    };
+    context.Gardener.set(updatedGardener);
+  }
+
+  // Update garden entity
+  const existingGarden = await context.Garden.get(gardenId);
   if (existingGarden) {
     const updatedGardeners = existingGarden.gardeners.filter(
-      (gardener) => gardener !== event.params.gardener
+      (gardener) => gardener !== gardenerAddress
     );
     const updatedGarden: Garden = {
       ...existingGarden,
       gardeners: updatedGardeners,
     };
-
     context.Garden.set(updatedGarden);
   }
 });
@@ -303,63 +332,42 @@ GardenAccount.GardenOperatorRemoved.handler(async ({ event, context }) => {
   }
 });
 
-// Handler for the InviteCreated event
-GardenAccount.InviteCreated.handler(async ({ event, context }) => {
-  const inviteId = event.params.inviteCode;
+// Handler for the GAPProjectCreated event
+GardenAccount.GAPProjectCreated.handler(async ({ event, context }) => {
+  const gardenId = event.params.gardenAddress;
+  const existingGarden = await context.Garden.get(gardenId);
 
-  const inviteEntity: GardenInvite = {
-    id: inviteId,
-    garden: event.params.garden,
-    creator: event.params.creator,
-    expiry: event.params.expiry,
-    used: false,
-    createdAt: event.block.timestamp,
-    chainId: event.chainId,
-  };
-
-  context.GardenInvite.set(inviteEntity);
-});
-
-// Handler for the InviteUsed event
-GardenAccount.InviteUsed.handler(async ({ event, context }) => {
-  const inviteId = event.params.inviteCode;
-  const userAddress = event.params.user;
-
-  // Update invite status
-  const existingInvite = await context.GardenInvite.get(inviteId);
-  if (existingInvite) {
-    const updatedInvite: GardenInvite = {
-      ...existingInvite,
-      used: true,
-      usedBy: userAddress,
-      usedAt: event.block.timestamp,
+  if (existingGarden) {
+    // Update the garden with the Karma GAP project UID
+    const updatedGarden: Garden = {
+      ...existingGarden,
+      gapProjectUID: event.params.projectUID,
     };
 
-    context.GardenInvite.set(updatedInvite);
-  }
+    context.Garden.set(updatedGarden);
 
-  // Create or update Gardener entity
-  const existingGardener = await context.Gardener.get(userAddress);
-  if (!existingGardener) {
-    // New gardener - track their first garden and invite
-    const gardenerEntity: Gardener = {
-      id: userAddress,
-      chainId: event.chainId,
-      createdAt: event.block.timestamp,
-      firstGarden: event.params.garden,
-      joinedVia: inviteId,
-    };
-
-    context.Gardener.set(gardenerEntity);
+    context.log.info(`Updated Garden ${gardenId} with GAP project UID: ${event.params.projectUID}`);
+  } else {
+    context.log.warn(`Garden ${gardenId} not found when processing GAPProjectCreated event`);
   }
 });
 
-// Handler for the InviteRevoked event
-GardenAccount.InviteRevoked.handler(async ({ event, context }) => {
-  const inviteId = event.params.inviteCode;
+// Handler for the GardenOperatorRemoved event
+GardenAccount.GardenOperatorRemoved.handler(async ({ event, context }) => {
+  const gardenId = event.srcAddress;
+  const existingGarden = await context.Garden.get(gardenId);
 
-  // Delete the invite from the database
-  context.GardenInvite.deleteUnsafe(inviteId);
+  if (existingGarden) {
+    const updatedOperators = existingGarden.operators.filter(
+      (operator) => operator !== event.params.operator
+    );
+    const updatedGarden: Garden = {
+      ...existingGarden,
+      operators: updatedOperators,
+    };
+
+    context.Garden.set(updatedGarden);
+  }
 });
 
 // Handler for the GAPProjectCreated event

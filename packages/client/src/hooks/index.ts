@@ -16,7 +16,6 @@ export { useActions, useGardens, useGardeners } from "./blockchain/useBaseLists"
 
 // Garden hooks
 export { useAutoJoinRootGarden } from "./garden/useAutoJoinRootGarden";
-export { useGardenJoin } from "./garden/useGardenJoin";
 export { useGardenTabs } from "./garden/useGardenTabs";
 
 // Work hooks

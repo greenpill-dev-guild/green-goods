@@ -21,6 +21,16 @@
         "name": "guardian",
         "type": "address",
         "internalType": "address"
+      },
+      {
+        "name": "workApprovalResolver",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "assessmentResolver",
+        "type": "address",
+        "internalType": "address"
       }
     ],
     "stateMutability": "nonpayable"
@@ -32,6 +42,32 @@
   {
     "type": "receive",
     "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "ASSESSMENT_RESOLVER",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "WORK_APPROVAL_RESOLVER",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -87,20 +123,60 @@
   },
   {
     "type": "function",
-    "name": "createInviteCode",
+    "name": "createProjectImpact",
     "inputs": [
       {
-        "name": "inviteCode",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        "name": "workTitle",
+        "type": "string",
+        "internalType": "string"
       },
       {
-        "name": "expiry",
-        "type": "uint256",
-        "internalType": "uint256"
+        "name": "impactDescription",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "proofIPFS",
+        "type": "string",
+        "internalType": "string"
       }
     ],
-    "outputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "createProjectMilestone",
+    "inputs": [
+      {
+        "name": "milestoneTitle",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "milestoneDescription",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
     "stateMutability": "nonpayable"
   },
   {
@@ -376,19 +452,13 @@
   },
   {
     "type": "function",
-    "name": "gardenInvites",
-    "inputs": [
-      {
-        "name": "inviteCode",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
+    "name": "gapProjectUID",
+    "inputs": [],
     "outputs": [
       {
-        "name": "isValid",
-        "type": "bool",
-        "internalType": "bool"
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
       }
     ],
     "stateMutability": "view"
@@ -427,6 +497,37 @@
         "name": "isGardener",
         "type": "bool",
         "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getGAPProjectMetadata",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "projectUID",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "isInitialized",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getGAPProjectUID",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
       }
     ],
     "stateMutability": "view"
@@ -489,55 +590,17 @@
   },
   {
     "type": "function",
-    "name": "inviteExpiry",
+    "name": "isGAPAdmin",
     "inputs": [
       {
-        "name": "inviteCode",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "expiry",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "inviteToGarden",
-    "inputs": [
-      {
-        "name": "inviteCode",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "garden",
+        "name": "account",
         "type": "address",
         "internalType": "address"
       }
     ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "inviteUsed",
-    "inputs": [
-      {
-        "name": "inviteCode",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
     "outputs": [
       {
-        "name": "isUsed",
+        "name": "",
         "type": "bool",
         "internalType": "bool"
       }
@@ -628,19 +691,6 @@
     "type": "function",
     "name": "joinGarden",
     "inputs": [],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "joinGardenWithInvite",
-    "inputs": [
-      {
-        "name": "inviteCode",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
@@ -916,19 +966,6 @@
         "name": "gardener",
         "type": "address",
         "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "revokeInvite",
-    "inputs": [
-      {
-        "name": "inviteCode",
-        "type": "bytes32",
-        "internalType": "bytes32"
       }
     ],
     "outputs": [],
@@ -1221,6 +1258,31 @@
   },
   {
     "type": "event",
+    "name": "GAPProjectCreated",
+    "inputs": [
+      {
+        "name": "projectUID",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "gardenAddress",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "projectName",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "GardenOperatorAdded",
     "inputs": [
       {
@@ -1304,81 +1366,6 @@
         "type": "uint8",
         "indexed": false,
         "internalType": "uint8"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "InviteCreated",
-    "inputs": [
-      {
-        "name": "inviteCode",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "garden",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "creator",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "expiry",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "InviteRevoked",
-    "inputs": [
-      {
-        "name": "inviteCode",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "garden",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "InviteUsed",
-    "inputs": [
-      {
-        "name": "inviteCode",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "garden",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "user",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
       }
     ],
     "anonymous": false
@@ -1500,6 +1487,26 @@
   },
   {
     "type": "error",
+    "name": "GAPImpactCreationFailed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "GAPMilestoneCreationFailed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "GAPNotSupportedOnChain",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "GAPProjectNotInitialized",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "InvalidAccountProof",
     "inputs": []
   },
@@ -1511,11 +1518,6 @@
   {
     "type": "error",
     "name": "InvalidEntryPoint",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "InvalidExpiry",
     "inputs": []
   },
   {
@@ -1545,22 +1547,17 @@
   },
   {
     "type": "error",
-    "name": "InviteAlreadyExists",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "InviteAlreadyUsed",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "InviteExpired",
+    "name": "KarmaGAPNotSupported",
     "inputs": []
   },
   {
     "type": "error",
     "name": "NotAuthorized",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotAuthorizedCaller",
     "inputs": []
   },
   {
@@ -1576,6 +1573,16 @@
   {
     "type": "error",
     "name": "OwnershipCycle",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TooManyGardeners",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TooManyOperators",
     "inputs": []
   }
 ]

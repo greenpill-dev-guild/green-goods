@@ -41,24 +41,12 @@ type Garden {
   gapProjectUID: String # Karma GAP project attestation UID (bytes32)
 }
 
-type GardenInvite {
-  id: ID! # inviteCode
-  garden: String! # Garden address
-  creator: String! # Operator address
-  expiry: BigInt!
-  used: Boolean!
-  usedBy: String # Address that redeemed the invite
-  createdAt: Int!
-  usedAt: Int
-  chainId: Int!
-}
-
 type Gardener {
   id: ID! # Smart account address
   chainId: Int!
   createdAt: Int!
   firstGarden: String # First garden joined
-  joinedVia: String # Invite code used
+  gardens: [String!]! # All gardens this gardener belongs to
   # Future extensibility:
   # - totalWork: Int
   # - approvals: [WorkApproval!]

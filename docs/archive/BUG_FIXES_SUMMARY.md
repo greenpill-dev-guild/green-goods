@@ -1,5 +1,7 @@
 # Green Goods Contracts - Bug Fixes & Test Cleanup Summary
 
+> **Note:** This report documents historical bug fixes. The invite system referenced in this document has been removed in favor of direct root garden joining (updated 2025-10-16).
+
 ## 🎉 **Result: 100% Test Pass Rate (119/119 tests passing)**
 
 ### Starting Point

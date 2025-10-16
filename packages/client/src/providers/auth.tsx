@@ -355,6 +355,7 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
       // Save to localStorage (only public data)
       localStorage.setItem(PASSKEY_STORAGE_KEY, JSON.stringify(serialized));
       localStorage.setItem(AUTH_MODE_STORAGE_KEY, "passkey");
+      // Note: userOnboarded flag will be set after successful garden join in Login component
 
       setCredential(newCredential);
       setAuthMode("passkey");

@@ -1,4 +1,3 @@
-# yaml-language-server: $schema=./node_modules/envio/evm.schema.json
 name: Green Goods
 description: Green Goods Indexer
 contracts:
@@ -33,6 +32,13 @@ networks:
     start_block: 0
   - id: 42220
     start_block: 0
+    contracts:
+      - name: ActionRegistry
+        address: "0x1f10E7DE76CfC5F1175d74d714D495e30B740C2E"
+      - name: GardenToken
+        address: "0x5Bb743A7E2F07970c00A87f45915A3b1176de226"
+      - name: GardenAccount
+        address: "0x2c6FB6128cA1177b58A8b361Cf799F0De4D031ac"
   - id: 42161
     start_block: 0
     contracts:

@@ -4,20 +4,15 @@ pragma solidity >=0.8.25;
 import { AccountV3Upgradable } from "@tokenbound/AccountV3Upgradable.sol";
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import { AttestationRequest, AttestationRequestData } from "@eas/IEAS.sol";
+
 import { KarmaLib } from "../lib/Karma.sol";
 import { StringUtils } from "../lib/StringUtils.sol";
 import { IGap, IProjectResolver } from "../interfaces/IKarmaGap.sol";
 
-// import { Action } from "../registries/Action.sol";
-
 error NotGardenOwner();
 error NotGardenOperator();
 error NotAuthorizedCaller();
-error InviteAlreadyExists();
-error InvalidExpiry();
 error InvalidInvite();
-error InviteAlreadyUsed();
-error InviteExpired();
 error AlreadyGardener();
 error TooManyGardeners();
 error TooManyOperators();
@@ -60,24 +55,6 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     /// @param operator The address of the removed garden operator.
     event GardenOperatorRemoved(address indexed updater, address indexed operator);
 
-    /// @notice Emitted when a garden invite is created.
-    /// @param inviteCode The unique code for the invite.
-    /// @param garden The address of the garden.
-    /// @param creator The address of the operator who created the invite.
-    /// @param expiry The expiration timestamp of the invite.
-    event InviteCreated(bytes32 indexed inviteCode, address indexed garden, address indexed creator, uint256 expiry);
-
-    /// @notice Emitted when a garden invite is used.
-    /// @param inviteCode The unique code for the invite.
-    /// @param garden The address of the garden.
-    /// @param user The address of the user who used the invite.
-    event InviteUsed(bytes32 indexed inviteCode, address indexed garden, address indexed user);
-
-    /// @notice Emitted when a garden invite is revoked.
-    /// @param inviteCode The unique code for the invite.
-    /// @param garden The address of the garden.
-    event InviteRevoked(bytes32 indexed inviteCode, address indexed garden);
-
     /// @notice Emitted when a Karma GAP project is created for this garden.
     /// @param projectUID The Karma GAP project attestation UID.
     /// @param gardenAddress The address of this garden account.
@@ -104,18 +81,6 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
 
     /// @notice Mapping of garden operator addresses to their status.
     mapping(address operator => bool isOperator) public gardenOperators;
-
-    /// @notice Mapping of invite codes to their validity status.
-    mapping(bytes32 inviteCode => bool isValid) public gardenInvites;
-
-    /// @notice Mapping of invite codes to the garden address they belong to.
-    mapping(bytes32 inviteCode => address garden) public inviteToGarden;
-
-    /// @notice Mapping of invite codes to their expiration timestamps.
-    mapping(bytes32 inviteCode => uint256 expiry) public inviteExpiry;
-
-    /// @notice Mapping of invite codes to their used status.
-    mapping(bytes32 inviteCode => bool isUsed) public inviteUsed;
 
     /// @notice Whether this garden allows open joining without invite
     bool public openJoining;
@@ -297,6 +262,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     /// @param operator The address of the operator to add.
     function addGardenOperator(address operator) external onlyOperator {
         gardenOperators[operator] = true;
+        gardeners[operator] = true;
 
         emit GardenOperatorAdded(_msgSender(), operator);
 
@@ -318,53 +284,6 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         if (KarmaLib.isSupported() && gapProjectUID != bytes32(0)) {
             _removeGAPProjectAdmin(operator);
         }
-    }
-
-    /// @notice Creates an invite code for the garden.
-    /// @dev Only callable by garden operators. Invite codes allow users to join the garden.
-    /// @param inviteCode The unique code for the invite.
-    /// @param expiry The expiration timestamp for the invite.
-    function createInviteCode(bytes32 inviteCode, uint256 expiry) external onlyOperator {
-        if (gardenInvites[inviteCode]) revert InviteAlreadyExists();
-        // solhint-disable-next-line not-rely-on-time
-        if (expiry <= block.timestamp) revert InvalidExpiry();
-
-        gardenInvites[inviteCode] = true;
-        inviteToGarden[inviteCode] = address(this);
-        inviteExpiry[inviteCode] = expiry;
-
-        emit InviteCreated(inviteCode, address(this), _msgSender(), expiry);
-    }
-
-    /// @notice Allows a user to join the garden using a valid invite code.
-    /// @dev This function can be called by anyone with a valid invite code.
-    /// @param inviteCode The unique code for the invite.
-    function joinGardenWithInvite(bytes32 inviteCode) external {
-        if (!gardenInvites[inviteCode]) revert InvalidInvite();
-        if (inviteUsed[inviteCode]) revert InviteAlreadyUsed();
-        // solhint-disable-next-line not-rely-on-time
-        if (block.timestamp > inviteExpiry[inviteCode]) revert InviteExpired();
-        if (gardeners[_msgSender()]) revert AlreadyGardener();
-
-        gardeners[_msgSender()] = true;
-        inviteUsed[inviteCode] = true;
-
-        emit InviteUsed(inviteCode, address(this), _msgSender());
-        emit GardenerAdded(address(this), _msgSender());
-    }
-
-    /// @notice Revokes an unused invite code.
-    /// @dev Only callable by garden operators.
-    /// @param inviteCode The unique code for the invite to revoke.
-    function revokeInvite(bytes32 inviteCode) external onlyOperator {
-        if (!gardenInvites[inviteCode]) revert InvalidInvite();
-        if (inviteUsed[inviteCode]) revert InviteAlreadyUsed();
-
-        delete gardenInvites[inviteCode];
-        delete inviteToGarden[inviteCode];
-        delete inviteExpiry[inviteCode];
-
-        emit InviteRevoked(inviteCode, address(this));
     }
 
     /// @notice Join garden if open joining is enabled
@@ -481,6 +400,8 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         IGap gap = IGap(KarmaLib.getGapContract());
 
         // Build project update JSON with required structure
+        string memory isoDate = StringUtils.timestampToISO(block.timestamp);
+
         bytes memory impactData = abi.encode(
             string(
                 abi.encodePacked(
@@ -491,8 +412,12 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
                     "\"text\":\"",
                     StringUtils.escapeJSON(impactDescription),
                     "\",",
-                    "\"startDate\":\"\",",
-                    "\"endDate\":\"\",",
+                    "\"startDate\":\"",
+                    isoDate,
+                    "\",",
+                    "\"endDate\":\"",
+                    isoDate,
+                    "\",",
                     "\"grants\":[],",
                     "\"indicators\":[],",
                     "\"deliverables\":[{",
@@ -633,7 +558,9 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     /// @notice Builds JSON for GAP project details
     function _buildGAPDetailsJSON() private view returns (string memory) {
         // Prefix banner image CID with IPFS gateway if not empty
-        string memory imageURL = bytes(bannerImage).length > 0 ? string(abi.encodePacked("ipfs://", bannerImage)) : "";
+        string memory imageURL = bytes(bannerImage).length > 0
+            ? string(abi.encodePacked("https://greengoods.mypinata.cloud/ipfs/", bannerImage))
+            : "";
 
         return string(
             abi.encodePacked(
