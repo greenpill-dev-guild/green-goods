@@ -1,5 +1,5 @@
 import type { SyntheticEvent } from "react";
-import { Root, type ButtonRootProps } from "./Base";
+import { type ButtonRootProps, Root } from "./Base";
 
 export type ButtonProps = {
   label: string;
@@ -9,12 +9,7 @@ export type ButtonProps = {
 } & ButtonRootProps;
 
 /** Primary UI component for user interaction */
-export const Button = ({
-  label,
-  leadingIcon,
-  trailingIcon,
-  ...props
-}: ButtonProps) => {
+export const Button = ({ label, leadingIcon, trailingIcon, ...props }: ButtonProps) => {
   return (
     <Root {...props}>
       {leadingIcon}

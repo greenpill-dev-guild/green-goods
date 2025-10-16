@@ -1,9 +1,9 @@
 "use client";
 
-import * as React from "react";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import { RiAddLine, RiQuestionLine } from "@remixicon/react";
-import { cn } from "@/utils/cn";
+import * as React from "react";
+import { cn } from "@/utils/styles/cn";
 import { FlexCard } from "../Card/Card";
 
 const Accordion = AccordionPrimitive.Root;
@@ -15,10 +15,7 @@ const AccordionItem = React.forwardRef<
   <FlexCard size="small">
     <AccordionPrimitive.Item
       ref={ref}
-      className={cn(
-        "flex flex-col grow w-full items-start justify-items-start gap-2",
-        className
-      )}
+      className={cn("flex flex-col grow w-full items-start justify-items-start gap-2", className)}
       {...props}
     />
   </FlexCard>
@@ -47,7 +44,7 @@ AccordionTrigger.displayName = AccordionPrimitive.Trigger.displayName;
 const AccordionContent = React.forwardRef<
   React.ElementRef<typeof AccordionPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+>(({ className: _className, children, ...props }, ref) => (
   <AccordionPrimitive.Content
     ref={ref}
     className="overflow-hidden text-sm transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down duration-1000"

@@ -1,53 +1,57 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-
-import { arbitrum } from "viem/chains";
-import { Toaster } from "react-hot-toast";
-import { PrivyProvider } from "@privy-io/react-auth";
-import { SmartWalletsProvider } from "@privy-io/react-auth/smart-wallets";
-
-import { APP_DESCRIPTION } from "@/constants";
-
-import { AppProvider } from "@/providers/app";
-import { UserProvider } from "@/providers/user";
+import { WagmiProvider } from "wagmi";
 
 import App from "@/App.tsx";
+import { DEFAULT_CHAIN_ID } from "@/config/blockchain";
+import { wagmiConfig } from "@/config/appkit"; // Import from appkit.ts (single source of truth)
+import { AuthProvider } from "@/providers/auth";
+import { AppProvider } from "@/providers/app";
+
+// Initialize AppKit for wallet connection UI
+import "@/config/appkit";
 
 import "@/index.css";
 
+// In development, ensure no stale service worker or caches make the app appear to run offline
+if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_SW_DEV !== "true") {
+  if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+    navigator.serviceWorker
+      .getRegistrations()
+      .then((registrations) =>
+        Promise.all(registrations.map((registration) => registration.unregister()))
+      )
+      .catch(() => {
+        // ignore
+      });
+  }
+  if (typeof caches !== "undefined" && caches?.keys) {
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
+      .catch(() => {
+        // ignore
+      });
+  }
+}
+
 export const Root = () => (
-  <AppProvider>
-    <PrivyProvider
-      appId={import.meta.env.VITE_PRIVY_APP_ID as string}
-      config={{
-        loginMethods: ["email", "sms"],
-        appearance: {
-          theme: "light",
-          loginMessage: APP_DESCRIPTION,
-          landingHeader: "",
-          logo: "",
-        },
-        embeddedWallets: {
-          createOnLogin: "users-without-wallets",
-        },
-        defaultChain: arbitrum,
-        supportedChains: [arbitrum],
-        intl: {
-          defaultCountry: navigator.language === "pt-BR" ? "BR" : "US",
-        },
-      }}
-    >
-      <SmartWalletsProvider>
-        <UserProvider>
-          <App />
-          <Toaster />
-        </UserProvider>
-      </SmartWalletsProvider>
-    </PrivyProvider>
-  </AppProvider>
+  <WagmiProvider config={wagmiConfig}>
+    <AuthProvider chainId={DEFAULT_CHAIN_ID}>
+      <AppProvider>
+        <App />
+      </AppProvider>
+    </AuthProvider>
+  </WagmiProvider>
 );
 
-createRoot(document.getElementById("root")!).render(
+const container = document.getElementById("root");
+if (!container) {
+  throw new Error("Root container missing in index.html");
+}
+
+const root = createRoot(container);
+root.render(
   <StrictMode>
     <Root />
   </StrictMode>

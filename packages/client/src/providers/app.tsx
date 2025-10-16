@@ -1,15 +1,23 @@
+import browserLang from "browser-lang";
+// import { PostHogProvider } from "posthog-js/react";
+import React, { useCallback, useContext, useEffect, useState } from "react";
 import { IntlProvider } from "react-intl";
-import React, { useState, useEffect, useContext } from "react";
 
 import enMessages from "@/i18n/en.json";
+import esMessages from "@/i18n/es.json";
 import ptMessages from "@/i18n/pt.json";
 
-export type InstallState =
-  | "idle"
-  | "not-installed"
-  | "installed"
-  | "unsupported";
-export type Locale = "en" | "pt";
+const messages = {
+  en: enMessages,
+  pt: ptMessages,
+  es: esMessages,
+};
+
+import { track } from "@/modules/app/posthog";
+
+export type InstallState = "idle" | "not-installed" | "installed" | "unsupported";
+export const supportedLanguages = ["en", "pt", "es"] as const;
+export type Locale = (typeof supportedLanguages)[number];
 export type Platform = "ios" | "android" | "windows" | "unknown";
 
 export interface AppDataProps {
@@ -17,8 +25,10 @@ export interface AppDataProps {
   isInstalled: boolean;
   platform: Platform;
   locale: Locale;
+  availableLocales: readonly Locale[];
   deferredPrompt: BeforeInstallPromptEvent | null;
   promptInstall: () => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handleInstallCheck: (e: any) => void;
   switchLanguage: (lang: Locale) => void;
 }
@@ -28,14 +38,9 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-const messages = {
-  en: enMessages,
-  pt: ptMessages,
-};
-
 function getMobileOperatingSystem(): Platform {
   // @ts-ignore
-  var userAgent = navigator.userAgent || navigator.vendor || window.opera;
+  const userAgent = navigator.userAgent || navigator.vendor || window.opera;
 
   // Windows Phone must come first because its UA also contains "Android"
   if (/windows phone/i.test(userAgent)) {
@@ -59,6 +64,7 @@ const AppContext = React.createContext<AppDataProps>({
   isMobile: false,
   isInstalled: false,
   locale: "en",
+  availableLocales: supportedLanguages,
   deferredPrompt: null,
   platform: "unknown",
   promptInstall: () => {},
@@ -71,45 +77,60 @@ export const useApp = () => {
 };
 
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
-  const [locale, setLocale] = useState<Locale>("en");
-  const [deferredPrompt, setDeferredPrompt] =
-    useState<BeforeInstallPromptEvent | null>(null);
+  const defaultLocale = localStorage.getItem("gg-language")
+    ? (localStorage.getItem("gg-language") as Locale)
+    : browserLang({
+        languages: [...supportedLanguages],
+        fallback: "en",
+      });
+  const [locale, setLocale] = useState<Locale>(defaultLocale as Locale);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [installState, setInstalledState] = useState<InstallState>("idle");
 
   const platform = getMobileOperatingSystem();
 
-  async function handleInstallCheck(e: any | null) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleInstallCheck = useCallback(async (e: any) => {
     e?.preventDefault(); // Prevent the automatic prompt
     setDeferredPrompt(e);
 
+    // Check if we should mock PWA installation for testing
+    const mockInstalled = import.meta.env.VITE_MOCK_PWA_INSTALLED === "true";
+
     if (
+      mockInstalled ||
       window.matchMedia("(display-mode: standalone)").matches ||
       window.matchMedia("(display-mode: fullscreen)").matches ||
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window.navigator as any).standalone
     ) {
       setInstalledState("installed");
 
-      console.log("App was installed", e);
+      // App was installed or mocked as installed
     } else {
       setInstalledState("not-installed");
 
-      console.log("App was not installed", e);
+      // App was not installed
     }
-  }
+  }, []);
 
-  function handleBeforeInstall(e: Event) {
+  const handleBeforeInstall = useCallback((e: Event) => {
     e.preventDefault();
     setDeferredPrompt(e as BeforeInstallPromptEvent);
-  }
+  }, []);
 
-  function handleAppInstalled() {
+  const handleAppInstalled = useCallback(() => {
     setInstalledState("installed");
-
-    // TODO: Add analytics and fire notification
-  }
+    track("App Installed", {
+      platform,
+      locale,
+      installState,
+    });
+  }, [platform, locale, installState]);
 
   function switchLanguage(lang: Locale) {
     setLocale(lang);
+    localStorage.setItem("gg-language", lang);
   }
 
   const promptInstall = () => {
@@ -117,9 +138,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       deferredPrompt.prompt(); // Show the install prompt
       deferredPrompt.userChoice.then((choiceResult) => {
         if (choiceResult.outcome === "accepted") {
-          console.log("User accepted the install prompt");
+          // User accepted the install prompt
         } else {
-          console.log("User dismissed the install prompt");
+          // User dismissed the install prompt
         }
         setDeferredPrompt(null); // Clear the saved prompt
       });
@@ -136,18 +157,24 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
       window.removeEventListener("appinstalled", handleAppInstalled);
     };
-  }, []);
+  }, [handleAppInstalled, handleBeforeInstall, handleInstallCheck]);
 
   return (
+    // <PostHogProvider
+    //   apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
+    //   options={{
+    //     api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+    //     capture_exceptions: true,
+    //     debug: import.meta.env.VITE_POSTHOG_DEBUG === "true",
+    //   }}
+    // >
     <AppContext.Provider
       value={{
-        isMobile:
-          platform === "ios" ||
-          platform === "android" ||
-          platform === "windows",
+        isMobile: platform === "ios" || platform === "android" || platform === "windows",
         isInstalled: installState === "installed",
         platform,
         locale,
+        availableLocales: supportedLanguages,
         deferredPrompt,
         promptInstall,
         handleInstallCheck,
@@ -158,5 +185,6 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         {children}
       </IntlProvider>
     </AppContext.Provider>
+    // </PostHogProvider>
   );
 };

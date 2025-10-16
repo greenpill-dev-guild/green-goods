@@ -1,0 +1,69 @@
+---
+description: Contracts — Solidity style, safety, gas, events, and testing with Foundry.
+globs:
+  - "packages/contracts/src/**/*.sol"
+  - "packages/contracts/script/**/*"
+  - "packages/contracts/test/**/*"
+alwaysApply: false
+---
+
+# Contracts Rules
+
+## Linting Standards (MANDATORY)
+
+### Error Handling
+- **ALWAYS use custom errors** instead of `require()` statements for gas efficiency and better UX
+- Custom errors should be descriptive and placed at the top of the contract after events
+- Pattern: `error ErrorName()` or `error ErrorName(string param)` for parameterized errors
+- Example:
+```solidity
+error SameImplementation();
+error ZeroAddress(string paramName);
+error NotAContract(string contractName);
+
+// Usage
+if (addr == address(0)) revert ZeroAddress("tokenAddress");
+```
+
+### Empty Blocks
+- Empty blocks MUST have a comment explaining why they're empty
+- Empty blocks that are intentional MUST be suppressed with `// solhint-disable-line no-empty-blocks`
+- Pattern for intentionally empty try blocks:
+```solidity
+// solhint-disable-next-line no-empty-blocks
+try externalCall() {
+    // Success case - no action needed
+} catch Error(string memory) /* reason */ { // solhint-disable-line no-empty-blocks
+    // Non-critical: operation continues on failure
+}
+```
+
+### Unused Variables
+- Remove all unused variables before committing
+- If a variable must be declared but not used (e.g., in catch blocks), comment it out: `catch Error(string memory) /* reason */`
+
+### String Length Limits
+- Error messages in `require` statements max 32 characters (BUT prefer custom errors instead)
+- Use custom errors with parameters for longer/dynamic error messages
+
+### Linting Workflow
+1. Run `bun run lint` before committing
+2. Fix all errors (red) - these block merges
+3. Fix or justify all warnings (yellow) - use solhint-disable comments when intentional
+4. Accepted patterns: empty blocks in UUPS `_authorizeUpgrade`, intentional empty try/catch for non-critical operations
+
+## Style & Safety
+- SPDX header; pinned `pragma`. Use OpenZeppelin where possible. Checks-Effects-Interactions; add ReentrancyGuard if funds move.
+- Follow Solhint recommendations: use custom errors, avoid empty blocks without justification
+
+## Gas & Storage
+- Prefer `calldata` for external args; avoid unnecessary SSTOREs; emit succinct events for off-chain consumers.
+- Custom errors save ~50 gas compared to require statements with strings
+
+## Events & Indexing
+- Emit events for new/updated work items with fields needed by indexer/UI (addresses, IDs, status, URIs).
+- Keep events concise - only emit data that changes or is needed for tracking
+
+## Testing & Deploy
+- Foundry tests for happy/failure paths + invariants. Scripts for repeatable deploys; document network IDs/env vars.
+- Test custom errors: `vm.expectRevert(abi.encodeWithSelector(CustomError.selector))`

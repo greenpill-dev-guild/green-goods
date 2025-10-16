@@ -1,0 +1,29 @@
+# External libraries and dependencies
+packages/contracts/lib/
+packages/indexer/
+**/node_modules/
+**/generated/
+**/*.generated.*
+**/*.bs.js
+
+# Build outputs
+**/dist/
+**/build/
+**/out/
+**/cache/
+**/broadcast/
+**/coverage/
+
+# CSS files (handled by other tools)
+**/*.css
+
+# Environment and config files
+**/*.env
+**/*.log
+**/.DS_Store
+**/.pnp.*
+**/bun.lockb
+**/lcov.info
+**/package-lock.json
+**/pnpm-lock.yaml
+**/yarn.lock 

@@ -17,20 +17,28 @@ error NotActiveAction();
 /// @notice A schema resolver for the Actions event schema
 /// @dev This contract is upgradable using the UUPS pattern and requires initialization.
 contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
-    address public actionRegistry;
+    address public immutable ACTION_REGISTRY;
+
+    /**
+     * @dev Storage gap for future upgrades
+     * Reserves 50 slots (50 total - 0 used in storage)
+     * Note: ACTION_REGISTRY is immutable (not in storage)
+     * Allows adding new state variables without breaking storage layout in upgrades
+     */
+    uint256[50] private __gap;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(address easAddrs, address actionAddrs) SchemaResolver(IEAS(easAddrs)) {
-        actionRegistry = actionAddrs;
-        // _disableInitializers();
+        ACTION_REGISTRY = actionAddrs;
+        _disableInitializers();
     }
 
-    /// @notice Initializes the contract and sets the multisig wallet as the owner.
+    /// @notice Initializes the contract and sets the specified address as the owner.
     /// @dev This function replaces the constructor for upgradable contracts.
-    /// @param _multisig The address of the multisig wallet to transfer ownership to.
+    /// @param _multisig The address that will own the contract.
     function initialize(address _multisig) external initializer {
         __Ownable_init();
-        // transferOwnership(_multisig);
+        _transferOwnership(_multisig);
     }
 
     /// @notice Indicates whether the resolver is payable.
@@ -40,24 +48,33 @@ contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
         return true;
     }
 
-    /// @notice Handles the logic to be executed when an attestation is made.
-    /// @dev Verifies the attester and the action's validity and active status.
-    /// @param attestation The attestation data structure.
-    /// @return A boolean indicating whether the attestation is valid.
-    function onAttest(Attestation calldata attestation, uint256 /*value*/) internal view override returns (bool) {
+    /// @notice Handles the logic to be executed when an attestation is made
+    /// @dev Validates attester identity and action validity before allowing work submission
+    ///
+    /// **Validation Order (Security Critical):**
+    /// 1. IDENTITY: Verify attester is a gardener of the target garden
+    /// 2. ACTION: Verify action exists in registry
+    /// 3. TIMING: Verify action is still active (not expired)
+    ///
+    /// @param attestation The attestation data structure
+    /// @return bool True if attestation is valid
+    function onAttest(Attestation calldata attestation, uint256 /*value*/ ) internal view override returns (bool) {
         WorkSchema memory schema = abi.decode(attestation.data, (WorkSchema));
-
         GardenAccount gardenAccount = GardenAccount(payable(attestation.recipient));
 
+        // IDENTITY CHECK: Verify gardener status FIRST
+        // This is the primary security gate - only gardeners can submit work
         if (gardenAccount.gardeners(attestation.attester) == false) {
             revert NotGardenerAccount();
         }
 
-        if (ActionRegistry(actionRegistry).getAction(schema.actionUID).startTime == 0) {
+        // ACTION VALIDATION: Verify action exists in registry
+        if (ActionRegistry(ACTION_REGISTRY).getAction(schema.actionUID).startTime == 0) {
             revert NotInActionRegistry();
         }
 
-        if (ActionRegistry(actionRegistry).getAction(schema.actionUID).endTime < block.timestamp) {
+        // TIMING VALIDATION: Verify action is still active
+        if (ActionRegistry(ACTION_REGISTRY).getAction(schema.actionUID).endTime < block.timestamp) {
             revert NotActiveAction();
         }
 
@@ -69,14 +86,23 @@ contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
     /// @dev This function can only be called by the contract owner.
     /// @return A boolean indicating whether the revocation is valid.
     function onRevoke(
-        Attestation calldata /*attestation*/,
+        Attestation calldata, /*attestation*/
         uint256 /*value*/
-    ) internal view override onlyOwner returns (bool) {
+    )
+        internal
+        view
+        override
+        onlyOwner
+        returns (bool)
+    {
         return true;
     }
 
     /// @notice Authorizes an upgrade to the contract's implementation.
     /// @dev This function can only be called by the contract owner.
     /// @param newImplementation The address of the new contract implementation.
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    // solhint-disable-next-line no-empty-blocks
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
+        // Intentionally empty - UUPS upgrade authorization handled by onlyOwner modifier
+    }
 }

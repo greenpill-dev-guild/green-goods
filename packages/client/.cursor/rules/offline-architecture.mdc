@@ -1,0 +1,889 @@
+---
+description: Offline-first architecture patterns for Green Goods client — job queue, sync, storage management
+globs:
+  - modules/job-queue/**
+  - modules/work/**
+  - providers/jobQueue.tsx
+alwaysApply: false
+---
+
+# Offline-First Architecture
+
+Client (PWA) — UI system, Tailwind v4, Radix, forms, offline-first, and component patterns.
+
+The Green Goods client is built offline-first, allowing gardeners to submit work without internet connectivity. This rule covers the job queue system, synchronization patterns, and storage management.
+
+## Core Principle: Event-Driven, No Polling
+
+**✅ DO:** Use event bus for reactive updates
+```typescript
+import { jobQueueEventBus } from '@/modules/job-queue/event-bus';
+
+jobQueueEventBus.emit('job:completed', { jobId, job, txHash });
+jobQueueEventBus.on('job:added', ({ jobId, job }) => {
+  // React to new job
+});
+```
+
+**❌ DON'T:** Poll for updates
+```typescript
+// Wrong - no setInterval polling
+setInterval(() => {
+  const stats = await jobQueue.getStats();
+}, 5000);
+```
+
+## Job Queue System
+
+### Architecture Overview
+
+```
+JobQueue (index.ts)
+  ├── JobQueueDB (db.ts) — IndexedDB storage
+  ├── JobProcessor (job-processor.ts) — Execute jobs
+  ├── SyncManager (sync-manager.ts) — Online/offline coordination
+  ├── EventBus (event-bus.ts) — Event-driven updates
+  └── MediaResourceManager (media-resource-manager.ts) — URL lifecycle
+```
+
+### Job Lifecycle
+
+```typescript
+// 1. Add job to queue
+const jobId = await jobQueue.addJob('work', payload, { chainId: 84532 });
+// Emits: 'job:added'
+
+// 2. Provider processes inline (if online and client available)
+await processWorkJobInline(jobId, chainId, smartAccountClient);
+// Emits: 'job:processing' → 'job:completed' or 'job:failed'
+
+// 3. Job cleaned up after success
+await jobQueueDB.deleteJob(jobId);
+```
+
+### Inline Processing Pattern
+
+**Current Pattern:** Jobs are processed immediately inline by providers, not by background queue:
+
+```typescript
+// packages/client/src/providers/work.tsx
+const workMutation = useMutation({
+  mutationFn: async ({ draft, images }) => {
+    // Always persist to queue first
+    const { txHash, jobId } = await submitWorkToQueue(/*...*/);
+    
+    // If client available, try inline processing
+    if (smartAccountClient) {
+      try {
+        await processWorkJobInline(jobId, chainId, smartAccountClient);
+      } catch {
+        // Job remains queued for later
+      }
+    }
+    return txHash;
+  }
+});
+```
+
+**Why inline processing:**
+- Immediate feedback to user
+- Simpler state management
+- Queue as fallback, not primary path
+- Provider has access to latest smart account client
+
+### Job Types
+
+```typescript
+interface JobKindMap {
+  work: WorkJobPayload;       // Work submissions
+  approval: ApprovalJobPayload; // Work approvals
+}
+
+interface WorkJobPayload {
+  title?: string;
+  feedback: string;
+  plantSelection: string[];
+  plantCount: number;
+  actionUID: number;
+  gardenAddress: string;
+  media?: File[];  // Stored separately in job_images table
+}
+
+interface ApprovalJobPayload {
+  actionUID: number;
+  workUID: string;
+  gardenerAddress: string;
+  approved: boolean;
+  feedback?: string;
+}
+```
+
+## IndexedDB Schema
+
+### Database Structure
+
+```typescript
+// green-goods-job-queue (DB_VERSION = 2)
+interface JobQueueDB {
+  jobs: Job;           // Main job records
+  job_images: JobQueueDBImage;  // Media files with blob URLs
+  cached_work: CachedWork;      // Legacy cache table
+}
+```
+
+### Jobs Table
+
+```typescript
+interface Job<T = unknown> {
+  id: string;           // UUID
+  kind: string;         // 'work' | 'approval'
+  payload: T;           // Job-specific data
+  meta?: Record<string, unknown>;
+  createdAt: number;    // Timestamp
+  attempts: number;     // Retry count
+  lastError?: string;   // Error message
+  synced: boolean;      // Completion status
+  chainId?: number;     // Target chain
+}
+
+// Indexes:
+// - kind
+// - synced
+// - createdAt
+// - attempts
+// - [kind, synced] (compound)
+```
+
+### Job Images Table
+
+```typescript
+interface JobQueueDBImage {
+  id: string;        // UUID
+  jobId: string;     // Foreign key to jobs
+  file: File;        // Original file object
+  url: string;       // Blob URL (managed by MediaResourceManager)
+  createdAt: number; // Timestamp
+}
+
+// Index: jobId
+```
+
+### Usage Pattern
+
+```typescript
+// Add job with images
+const jobId = await jobQueueDB.addJob({
+  kind: 'work',
+  payload: { ...workData, media: [file1, file2] },
+  chainId: 84532
+});
+
+// Retrieve job with images
+const job = await jobQueueDB.getJob(jobId);
+const images = await jobQueueDB.getImagesForJob(jobId);
+// images = [{ id, file, url }, ...]
+
+// Clean up after sync
+await jobQueueDB.markJobSynced(jobId, txHash);
+await jobQueueDB.deleteJob(jobId);  // Also cleans up images
+```
+
+## Media Resource Management
+
+### MediaResourceManager Pattern
+
+Centralized blob URL lifecycle management to prevent memory leaks:
+
+```typescript
+import { mediaResourceManager } from '@/modules/job-queue/media-resource-manager';
+
+// Create tracked URLs
+const url = mediaResourceManager.createUrl(file, 'job-123');
+
+// Create multiple URLs
+const urls = mediaResourceManager.createUrls([file1, file2], 'job-123');
+
+// Cleanup by tracking ID
+mediaResourceManager.cleanupUrls('job-123');
+
+// Cleanup specific URL
+mediaResourceManager.cleanupUrl(url);
+
+// Cleanup all (on unmount/unload)
+mediaResourceManager.cleanupAll();
+```
+
+**When to use:**
+- Displaying job images in UI
+- Preview images before upload
+- Any blob URL creation
+
+**Automatic cleanup:**
+- On job deletion
+- On page unload (window.beforeunload)
+- After 1 hour of URL staleness
+
+### Example: Job Image Display
+
+```typescript
+function JobCard({ jobId }: { jobId: string }) {
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  
+  useEffect(() => {
+    jobQueueDB.getImagesForJob(jobId).then(images => {
+      // URLs already created and tracked by jobQueueDB
+      setImageUrls(images.map(img => img.url));
+    });
+    
+    // Cleanup when component unmounts
+    return () => {
+      mediaResourceManager.cleanupUrls(jobId);
+    };
+  }, [jobId]);
+  
+  return (
+    <div>
+      {imageUrls.map(url => <img key={url} src={url} alt="" />)}
+    </div>
+  );
+}
+```
+
+## Synchronization Patterns
+
+### Event-Driven Sync
+
+**✅ DO:** React to events
+```typescript
+// Providers listen to events and invalidate queries
+useJobQueueEvents(['job:completed'], () => {
+  queryClient.invalidateQueries({ queryKey: ['works', gardenId] });
+});
+```
+
+**❌ DON'T:** Poll with intervals
+```typescript
+// Wrong - removed from codebase
+useEffect(() => {
+  const interval = setInterval(() => {
+    jobQueue.flush();
+  }, 10000);
+  return () => clearInterval(interval);
+}, []);
+```
+
+### Sync Triggers
+
+Jobs sync automatically on:
+1. **Online event**: `window.addEventListener('online', ...)`
+2. **Job added**: When client is available, inline processing
+3. **Service worker**: Background sync message (if SW enabled)
+4. **Manual flush**: User triggers from WorkDashboard
+
+### SyncManager Pattern
+
+```typescript
+import { SyncManager } from '@/modules/job-queue/sync-manager';
+
+const syncManager = new SyncManager(jobProcessor);
+
+// Flush pending jobs (debounced, race-condition safe)
+const result = await syncManager.flush();
+// Returns: { processed, failed, skipped }
+
+// Check sync status
+const inProgress = syncManager.isSyncInProgress();
+```
+
+**Key features:**
+- Debouncing (1000ms window)
+- Race condition prevention (single flush promise)
+- Empty queue optimization (no events for 0 items)
+- Online-only (throws if offline)
+
+## Storage Management
+
+### StorageManager Pattern
+
+```typescript
+import { defaultStorageManager } from '@/modules/work/storage-manager';
+
+// Get storage analytics
+const analytics = await defaultStorageManager.getAnalytics();
+/*
+{
+  quota: { used, total, available, percentage },
+  breakdown: { workItems, images, cache, metadata, total },
+  needsCleanup: boolean,
+  recommendedActions: string[]
+}
+*/
+
+// Perform cleanup
+const result = await defaultStorageManager.performCleanup();
+/*
+{
+  itemsRemoved: number,
+  spaceFreed: number,
+  categories: { old_completed, failed_items, large_images, cache }
+}
+*/
+```
+
+### Cleanup Policies
+
+```typescript
+interface CleanupPolicy {
+  maxAge: number;              // 30 days default
+  maxItems: number;            // 1000 items default
+  thresholdPercentage: number; // 80% default
+  priorityOrder: [
+    'old_completed',    // Synced work >30 days old
+    'failed_items',     // Permanently failed jobs
+    'large_images',     // Images >1MB
+    'cache'             // Browser cache
+  ]
+}
+```
+
+**Automatic triggers:**
+- Storage >80% full
+- >1000 items stored
+- 24 hours since last cleanup
+
+## Deduplication System
+
+### Current Status: Disabled
+
+Deduplication is **currently a no-op** and performs no actual checks:
+
+```typescript
+// modules/work/deduplication.ts
+async performComprehensiveCheck(workData: any): Promise<DuplicateCheckResult> {
+  // No-op while deduplication is disabled
+  return {
+    isDuplicate: false,
+    conflictType: 'none',
+  };
+}
+```
+
+### Re-enabling Deduplication (Future)
+
+To enable:
+1. Implement remote API endpoint for duplicate checking
+2. Remove early returns in `performComprehensiveCheck()`
+3. Configure time windows and thresholds
+4. Add UI for duplicate warnings
+
+### Hash Generation (Still Active)
+
+Content hashing is still used for potential future features:
+
+```typescript
+// Generates stable hash from work content
+const hash = deduplicationManager.generateContentHash(work);
+
+// Hashes core content fields:
+// - gardenAddress
+// - feedback
+// - actionUID with chainId
+// - imageHashes (if enabled)
+```
+
+## Retry Policy
+
+### RetryPolicy Pattern
+
+```typescript
+import { defaultRetryPolicy } from '@/modules/work/retry-policy';
+
+// Check if should retry
+if (defaultRetryPolicy.shouldRetry(itemId)) {
+  // Retry the operation
+}
+
+// Record attempt
+defaultRetryPolicy.recordAttempt(itemId, errorMessage, 'high');
+
+// Record success (removes from retry queue)
+defaultRetryPolicy.recordSuccess(itemId);
+
+// Get retryable items
+const items = defaultRetryPolicy.getRetryableItems();
+```
+
+### Configuration
+
+```typescript
+interface RetryConfig {
+  maxRetries: 5;
+  initialDelay: 1000;      // 1 second
+  maxDelay: 300000;        // 5 minutes
+  backoffMultiplier: 2;    // Exponential backoff
+  jitter: true;            // Prevent thundering herd
+}
+```
+
+### Priority Levels
+
+- **high**: 0.5x delay multiplier (faster retry)
+- **medium**: 1x delay multiplier (normal)
+- **low**: 2x delay multiplier (slower retry)
+
+## Offline Work Submission Flow
+
+### Complete Example
+
+```typescript
+// views/Garden/index.tsx
+const handleWorkSubmission = async () => {
+  const errors = validateWorkDraft(draft, gardenAddress, actionUID, images);
+  if (errors.length > 0) {
+    toast.error(errors[0]);
+    return;
+  }
+  
+  try {
+    // Submit to queue (creates offline tx hash)
+    const { txHash, jobId } = await submitWorkToQueue(
+      draft,
+      gardenAddress!,
+      actionUID!,
+      actionsData,
+      DEFAULT_CHAIN_ID,
+      images
+    );
+    
+    // Navigate with offline tx hash
+    navigate(`/garden/completed/${txHash}`);
+    
+    // Auto-open dashboard after submission
+    sessionStorage.setItem('openWorkDashboard', 'true');
+    navigate('/home');
+  } catch (err) {
+    console.error('[Garden] Submission failed:', err);
+    toast.error('Failed to submit work');
+  }
+};
+```
+
+### submitWorkToQueue Implementation
+
+```typescript
+// modules/work/work-submission.ts
+export async function submitWorkToQueue(
+  draft: WorkDraft,
+  gardenAddress: string,
+  actionUID: number,
+  actions: Action[],
+  chainId: number,
+  images: File[]
+): Promise<{ txHash: `0x${string}`; jobId: string }> {
+  // Add to queue (persists to IndexedDB)
+  const jobId = await jobQueue.addJob('work', {
+    ...draft,
+    title: `${actionTitle} - ${new Date().toISOString()}`,
+    actionUID,
+    gardenAddress,
+    media: images,  // Stored in job_images table
+  }, { chainId });
+  
+  // Return offline transaction hash
+  return {
+    txHash: createOfflineTxHash(jobId),
+    jobId
+  };
+}
+
+// Creates UI-compatible offline hash
+function createOfflineTxHash(jobId: string): `0x${string}` {
+  const paddedId = jobId.replace(/-/g, '').substring(0, 56).padStart(56, '0');
+  return `0xoffline_${paddedId}`;
+}
+```
+
+## Inline Processing
+
+### Provider-Driven Processing
+
+Jobs process inline when smart account client available:
+
+```typescript
+// providers/work.tsx
+const workMutation = useMutation({
+  mutationFn: async ({ draft, images }) => {
+    // Queue persists job first
+    const { txHash, jobId } = await submitWorkToQueue(/*...*/);
+    
+    // Immediate processing if client ready
+    if (smartAccountClient) {
+      try {
+        await processWorkJobInline(jobId, chainId, smartAccountClient);
+      } catch {
+        // Job stays queued, will retry on next sync
+      }
+    }
+    return txHash;
+  }
+});
+```
+
+### processWorkJobInline
+
+```typescript
+// modules/job-queue/inline-processor.ts
+export async function processWorkJobInline(
+  jobId: string,
+  chainId: number,
+  smartAccountClient: SmartAccountClient
+): Promise<{ success: boolean; txHash?: string; error?: string }> {
+  const job = await jobQueueDB.getJob(jobId);
+  if (!job || job.kind !== 'work') return { success: false };
+  
+  try {
+    // Load images from IndexedDB
+    const images = await jobQueueDB.getImagesForJob(jobId);
+    const payload = {
+      ...(job.payload as WorkJobPayload),
+      media: images.map(img => img.file)
+    };
+    
+    // Encode and execute via processor
+    const encoded = await workProcessor.encodePayload(payload, chainId);
+    const txHash = await workProcessor.execute(encoded, job.meta || {}, smartAccountClient);
+    
+    // Mark synced and cleanup
+    await jobQueueDB.markJobSynced(jobId, txHash);
+    await jobQueueDB.deleteJob(jobId);
+    
+    jobQueueEventBus.emit('job:completed', { jobId, job, txHash });
+    return { success: true, txHash };
+  } catch (err: any) {
+    await jobQueueDB.markJobFailed(jobId, err.message);
+    jobQueueEventBus.emit('job:failed', { jobId, job, error: err.message });
+    return { success: false, error: err.message };
+  }
+}
+```
+
+## Event Bus System
+
+### Event Types
+
+```typescript
+interface JobQueueEventMap {
+  'job:added': { jobId: string; job: Job };
+  'job:processing': { jobId: string; job: Job };
+  'job:completed': { jobId: string; job: Job; txHash: string };
+  'job:failed': { jobId: string; job: Job; error: string };
+  'job:retrying': { jobId: string; job: Job; attempt: number };
+  'queue:stats-changed': { stats: QueueStats };
+  'queue:sync-started': {};
+  'queue:sync-completed': { result: { processed, failed, skipped } };
+  'queue:sync-failed': { error: string };
+  'offline:status-changed': { isOnline: boolean };
+}
+```
+
+### Usage in Components/Hooks
+
+```typescript
+import { useJobQueueEvents } from '@/modules/job-queue/event-bus';
+
+// React to multiple events
+useJobQueueEvents(
+  ['job:added', 'job:completed', 'job:failed'],
+  (_eventType, data) => {
+    if ('job' in data && data.job.kind === 'work') {
+      const gardenId = (data.job.payload as WorkJobPayload).gardenAddress;
+      queryClient.invalidateQueries({ queryKey: ['works', gardenId] });
+    }
+  }
+);
+
+// React to single event
+useJobQueueEvent('job:completed', ({ txHash }) => {
+  console.log('Job completed with tx:', txHash);
+});
+```
+
+## Query Invalidation Strategy
+
+### Centralized Query Keys
+
+**✅ ALWAYS** use centralized query keys:
+
+```typescript
+import { queryKeys } from '@/hooks/query-keys';
+
+// Correct
+queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
+queryClient.invalidateQueries({ queryKey: queryKeys.queue.stats() });
+
+// Wrong - don't construct ad-hoc
+queryClient.invalidateQueries({ queryKey: ['works', gardenId] });
+```
+
+### Event-Driven Invalidation
+
+```typescript
+// providers/jobQueue.tsx
+useEffect(() => {
+  const handleQueueEvent = (event: QueueEvent) => {
+    switch (event.type) {
+      case 'job_completed':
+        if (event.job?.kind === 'work') {
+          const gardenId = (event.job.payload as WorkJobPayload).gardenAddress;
+          const chainId = event.job.chainId || DEFAULT_CHAIN_ID;
+          
+          // Invalidate specific garden queries
+          queryClient.invalidateQueries({ queryKey: queryKeys.works.online(gardenId, chainId) });
+          queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
+        }
+        break;
+        
+      case 'job_added':
+        // Update queue stats
+        queryClient.invalidateQueries({ queryKey: queryKeys.queue.stats() });
+        queryClient.invalidateQueries({ queryKey: queryKeys.queue.pendingCount() });
+        break;
+    }
+  };
+  
+  const unsubscribe = jobQueue.subscribe(handleQueueEvent);
+  return unsubscribe;
+}, []);
+```
+
+## Toast Notification Patterns
+
+### Job Processing Toasts
+
+```typescript
+// providers/jobQueue.tsx
+case 'job_processing':
+  if (event.job?.kind === 'work') {
+    toast.loading('Uploading work...', { id: `job-${event.job.id}-processing` });
+  } else if (event.job?.kind === 'approval') {
+    toast.loading('Submitting approval...', { id: `job-${event.job.id}-processing` });
+  }
+  break;
+
+case 'job_completed':
+  if (event.job?.kind === 'work') {
+    toast.success('Work uploaded', { id: `job-${event.job.id}-processing` });
+  } else if (event.job?.kind === 'approval') {
+    toast.success('Approval submitted', { id: `job-${event.job.id}-processing` });
+  }
+  break;
+
+case 'job_failed':
+  const isWork = event.job?.kind === 'work';
+  toast.error(isWork ? 'Work upload failed' : 'Approval failed', {
+    id: `job-${event.job.id}-processing`
+  });
+  break;
+```
+
+**Key pattern:** Use consistent toast IDs to replace loading with success/error.
+
+### Suppressing Empty Sync Toasts
+
+**✅ DO:** Check for empty queue before toasting
+```typescript
+const pendingJobs = await jobQueueDB.getJobs({ synced: false });
+if (pendingJobs.length === 0) {
+  return { processed: 0, failed: 0, skipped: 0 }; // No toast
+}
+
+// Only emit events if there was work
+jobQueueEventBus.emit('queue:sync-started', {});
+```
+
+**❌ DON'T:** Toast on empty syncs
+```typescript
+// Wrong - creates confusing "synced 0 items" toasts
+toast.success('All work synced!');
+```
+
+## Offline/Online Detection
+
+### useOffline Hook
+
+```typescript
+export function useOffline() {
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'error'>('idle');
+  
+  const { data: pendingCount = 0 } = usePendingWorksCount();
+  const { data: stats } = useQueueStatistics();
+  
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      setSyncStatus('syncing');
+      // Sync happens via SyncManager, not here
+    };
+    
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+  
+  return { isOnline, pendingCount, syncStatus };
+}
+```
+
+## Work Merging Pattern
+
+### useMerged Hook
+
+Merges online (blockchain) and offline (local) data:
+
+```typescript
+import { useMerged } from '@/hooks/app/useMerged';
+
+const merged = useMerged<OnlineWork[], OfflineJob[], Work[]>({
+  onlineKey: queryKeys.works.online(gardenId, chainId),
+  offlineKey: queryKeys.works.offline(gardenId),
+  mergedKey: queryKeys.works.merged(gardenId, chainId),
+  
+  fetchOnline: () => getWorks(gardenId, chainId),
+  fetchOffline: async () => {
+    const jobs = await jobQueue.getJobs({ kind: 'work', synced: false });
+    return jobs.filter(job => job.payload.gardenAddress === gardenId);
+  },
+  
+  merge: async (onlineWorks, offlineJobs) => {
+    // Convert jobs to Work format
+    const offlineWorks = await Promise.all(
+      offlineJobs.map(async job => {
+        const work = jobToWork(job);
+        const images = await jobQueueDB.getImagesForJob(job.id);
+        work.media = images.map(img => img.url);
+        return work;
+      })
+    );
+    
+    // Deduplicate (avoid showing same work twice)
+    const workMap = new Map<string, Work>();
+    onlineWorks.forEach(work => workMap.set(work.id, work));
+    offlineWorks.forEach(work => {
+      const isDuplicate = onlineWorks.some(onlineWork => {
+        const timeDiff = Math.abs(onlineWork.createdAt - work.createdAt);
+        return onlineWork.actionUID === work.actionUID && timeDiff < 5 * 60 * 1000;
+      });
+      if (!isDuplicate) workMap.set(work.id, work);
+    });
+    
+    return Array.from(workMap.values()).sort((a, b) => b.createdAt - a.createdAt);
+  },
+  
+  // Auto-invalidate on events
+  events: [{
+    subscribe: (listener) => jobQueueEventBus.onMultiple(
+      ['job:added', 'job:completed', 'job:failed'],
+      () => listener()
+    )
+  }]
+});
+
+// Access merged data
+const works = merged.merged.data || [];
+```
+
+## Anti-Patterns
+
+### ❌ Don't Poll for Updates
+
+```typescript
+// Wrong
+useEffect(() => {
+  const interval = setInterval(async () => {
+    const stats = await jobQueue.getStats();
+    setStats(stats);
+  }, 5000);
+  return () => clearInterval(interval);
+}, []);
+
+// Correct - use events
+useJobQueueEvent('queue:stats-changed', ({ stats }) => {
+  setStats(stats);
+});
+```
+
+### ❌ Don't Create Orphan Blob URLs
+
+```typescript
+// Wrong - memory leak
+const url = URL.createObjectURL(file);
+setImageUrl(url);
+// URL never revoked
+
+// Correct - use MediaResourceManager
+const url = mediaResourceManager.createUrl(file, trackingId);
+// Auto-cleaned on component unmount or job deletion
+```
+
+### ❌ Don't Process Jobs in Background Loop
+
+```typescript
+// Wrong - removed from codebase
+setInterval(async () => {
+  await jobQueue.flush();
+}, 30000);
+
+// Correct - event-driven
+window.addEventListener('online', () => {
+  syncManager.flush();
+});
+```
+
+### ❌ Don't Duplicate Job Processing Logic
+
+```typescript
+// Wrong - implement once in processors/
+async function submitWork(data) {
+  const encoded = encodeWorkData(data);
+  const tx = await smartAccountClient.sendTransaction({...});
+}
+
+// Correct - use processor
+import { workProcessor } from '@/modules/job-queue/processors/work';
+const encoded = await workProcessor.encodePayload(payload, chainId);
+const txHash = await workProcessor.execute(encoded, meta, smartAccountClient);
+```
+
+## MCP Integration for Testing
+
+Use Playwright MCP for offline testing:
+
+```bash
+# Test offline work submission
+@playwright: Execute E2E test "offline work submission with sync recovery"
+
+# Visual validation
+@playwright: Capture screenshots of WorkDashboard in offline vs online states
+
+# Performance testing
+@playwright: Run performance test for job queue with 100 pending items
+```
+
+## Reference Files
+
+- Job Queue: `src/modules/job-queue/index.ts`
+- Database: `src/modules/job-queue/db.ts`
+- Event Bus: `src/modules/job-queue/event-bus.ts`
+- Sync Manager: `src/modules/job-queue/sync-manager.ts`
+- Storage Manager: `src/modules/work/storage-manager.ts`
+- Deduplication: `src/modules/work/deduplication.ts`
+- Retry Policy: `src/modules/work/retry-policy.ts`
+- Work Submission: `src/modules/work/work-submission.ts`
+- Inline Processors: `src/modules/job-queue/inline-processor.ts`
+- Media Manager: `src/modules/job-queue/media-resource-manager.ts`

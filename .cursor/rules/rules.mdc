@@ -1,0 +1,38 @@
+---
+description: Green Goods — project-wide engineering principles, tooling, DX, and repo workflow.
+alwaysApply: false
+---
+# Green Goods — Project-Wide Rules
+
+## Monorepo & Packages
+- This is a pnpm workspace monorepo with packages: `client` (PWA), `contracts` (Foundry), `indexer` (Envio), `mcp` (Model Context Protocol server). Keep inter-package boundaries clean; share via published interfaces, not deep imports.
+
+## Tooling & Quality Gates
+- Use **TypeScript strict** everywhere. Generate small, focused modules with explicit exports.
+- **Formatting/Linting:** use **Biome** for formatting and **oxlint (0xlint)** for linting; do not add Prettier/ESLint. Ensure staged changes pass hooks (Husky runs format/lint/tests).
+- Keep CI fast: write tests that are deterministic and parallel-safe. Prefer unit tests at package level; add E2E in `/tests` for cross-package flows.
+
+## Secrets & Env
+- Never commit secrets. Provide `.env.example` in each package with doc comments. Read from `process.env` at the edge; validate via Zod (or package-native schema).
+
+## Git & PRs
+- Conventional commits. Small PRs with: summary, screenshots/GIFs for UI, checklist (lint/type/tests), and notes on DX/ops impact.
+- When adding features, update relevant READMEs and runbooks in `/docs`.
+
+## Observability & Errors
+- Standardize error shapes (`{ code, message, details? }`) across API/client. In UI, surface friendly copy + a “Copy error details” affordance.
+
+## Accessibility & i18n
+- Follow WCAG AA, keyboard navigability, focus rings, ARIA where needed. All user-facing copy in i18n dictionaries; avoid hard-coded strings.
+
+# Lifecycle & PR Expectations
+
+## Stage-gated deliverables
+- **Seedling/Alpha:** ship 1–2 core features, a landing page, brand kit basics, ToS/Privacy, basic QA notes.
+- **Beta:** refine flows, add user guide, GTM notes, app metrics (active users, task completion, photo doc rate).
+- **Release:** perf budgets, error budgets, observability, and scale/readiness items documented.
+
+## Every Feature PR Must Include
+- Update to `.env.example` if new env vars introduced.
+- Tests: unit (touched files ≥80% coverage) + at least one E2E happy path if user-critical.
+- Migration/rollback notes if data or contracts change.

@@ -2,20 +2,23 @@
 pragma solidity >=0.8.25;
 
 import { Test } from "forge-std/Test.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 // import { Attestation } from "@eas/IEAS.sol";
 
 // import { WorkApprovalSchema } from "../src/Schemas.sol";
 // import { NotInActionRegistry } from "../src/Constants.sol";
 import { GardenAccount } from "../src/accounts/Garden.sol";
 import { ActionRegistry } from "../src/registries/Action.sol";
-import { WorkApprovalResolver, NotGardenOperator, NotInWorkRegistry } from "../src/resolvers/WorkApproval.sol";
+import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
 import { MockEAS } from "../src/mocks/EAS.sol";
+import { MockERC20 } from "../src/mocks/ERC20.sol";
 
 contract WorkApprovalResolverTest is Test {
     WorkApprovalResolver private workApprovalResolver;
     ActionRegistry private mockActionRegistry;
     GardenAccount private mockGardenAccount;
     MockEAS private mockIEAS;
+    MockERC20 private mockCommunityToken;
 
     address private owner = address(this);
     address private multisig = address(0x123);
@@ -23,14 +26,30 @@ contract WorkApprovalResolverTest is Test {
     address private recipient = address(0x789);
 
     function setUp() public {
+        // Deploy mock community token
+        mockCommunityToken = new MockERC20();
+
+        // Create minimal mock contracts with code (use non-precompile addresses)
+        vm.etch(address(0x1002), hex"00"); // multicallForwarder
+        vm.etch(address(0x1003), hex"00"); // erc6551Registry
+        vm.etch(address(0x1004), hex"00"); // guardian
+
         // Deploy the mock contracts
-        mockActionRegistry = new ActionRegistry();
-        mockGardenAccount = new GardenAccount(address(mockIEAS), address(0x002), address(0x003), address(0x004));
         mockIEAS = new MockEAS();
 
-        mockActionRegistry.initialize(multisig);
-        mockGardenAccount.initialize(
-            address(0x555),
+        ActionRegistry actionImpl = new ActionRegistry();
+        bytes memory actionInitData = abi.encodeWithSelector(ActionRegistry.initialize.selector, multisig);
+        ERC1967Proxy actionProxy = new ERC1967Proxy(address(actionImpl), actionInitData);
+        mockActionRegistry = ActionRegistry(address(actionProxy));
+
+        // Deploy mock garden account (needs proxy for upgradeable contract)
+        GardenAccount gardenAccountImpl = new GardenAccount(
+            address(mockIEAS), address(0x1002), address(0x1003), address(0x1004), address(0x2001), address(0x2002)
+        );
+
+        bytes memory gardenAccountInitData = abi.encodeWithSelector(
+            GardenAccount.initialize.selector,
+            address(mockCommunityToken),
             "Test Garden",
             "Test Description",
             "Test Location",
@@ -39,14 +58,21 @@ contract WorkApprovalResolverTest is Test {
             new address[](0)
         );
 
-        // Deploy the WorkApprovalResolver contract
-        workApprovalResolver = new WorkApprovalResolver(address(address(0x007)), address(mockActionRegistry));
-        workApprovalResolver.initialize(multisig);
+        ERC1967Proxy gardenAccountProxy = new ERC1967Proxy(address(gardenAccountImpl), gardenAccountInitData);
+        mockGardenAccount = GardenAccount(payable(address(gardenAccountProxy)));
+
+        // Deploy the WorkApprovalResolver implementation
+        WorkApprovalResolver resolverImpl = new WorkApprovalResolver(address(mockIEAS), address(mockActionRegistry));
+
+        // Deploy with proxy and initialize
+        bytes memory resolverInitData = abi.encodeWithSelector(WorkApprovalResolver.initialize.selector, multisig);
+        ERC1967Proxy resolverProxy = new ERC1967Proxy(address(resolverImpl), resolverInitData);
+        workApprovalResolver = WorkApprovalResolver(payable(address(resolverProxy)));
     }
 
     function testInitialize() public {
         // Test that the contract is properly initialized
-        assertEq(workApprovalResolver.owner(), owner, "Owner should be the multisig address");
+        assertEq(workApprovalResolver.owner(), multisig, "Owner should be the multisig address");
     }
 
     function testIsPayable() public {
@@ -54,6 +80,17 @@ contract WorkApprovalResolverTest is Test {
         assertTrue(workApprovalResolver.isPayable(), "Resolver should be payable");
     }
 
+    function testActionRegistrySet() public {
+        // Test that action registry is properly configured
+        assertEq(workApprovalResolver.ACTION_REGISTRY(), address(mockActionRegistry), "Action registry should be set");
+    }
+
+    function testOwnerIsMultisig() public {
+        // Verify owner is the multisig
+        assertEq(workApprovalResolver.owner(), multisig, "Owner should be multisig");
+    }
+
+    // Note: Full integration tests for onAttest validation are in Integration.t.sol
     // function testOnAttestValid() public {
     //     // Mock a valid action and garden account
     //     mockGardenAccount.addGardenOperator(attester);

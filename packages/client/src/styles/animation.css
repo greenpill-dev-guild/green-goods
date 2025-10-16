@@ -60,6 +60,15 @@
   }
 }
 
+.loader {
+  position: absolute;
+  opacity: 0.27;
+  animation: dot-fade 1s infinite;
+  @apply w-4;
+  @apply h-4;
+  @apply rounded-full;
+}
+
 .upload-spinner {
   border-bottom-color: transparent;
   border-radius: 50%;
@@ -106,4 +115,73 @@
 
 .animate-slideUpBounce {
   animation: slideUpBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+
+/* Native-like modal animations with hardware acceleration */
+@keyframes modalBackdropFadeIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(4px);
+  }
+}
+
+@keyframes modalBackdropFadeOut {
+  from {
+    opacity: 1;
+    backdrop-filter: blur(4px);
+  }
+  to {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+}
+
+@keyframes modalSlideIn {
+  from {
+    transform: translate3d(0, 100%, 0);
+    opacity: 0.8;
+  }
+  60% {
+    transform: translate3d(0, -2%, 0);
+    opacity: 1;
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+}
+
+@keyframes modalSlideOut {
+  from {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+  to {
+    transform: translate3d(0, 100%, 0);
+    opacity: 0.8;
+  }
+}
+
+.modal-backdrop-enter {
+  animation: modalBackdropFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.modal-backdrop-exit {
+  animation: modalBackdropFadeOut 0.25s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+.modal-slide-enter {
+  animation: modalSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform: translate3d(0, 0, 0); /* Enable hardware acceleration */
+  will-change: transform;
+}
+
+.modal-slide-exit {
+  animation: modalSlideOut 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
+  transform: translate3d(0, 0, 0); /* Enable hardware acceleration */
+  will-change: transform;
 }

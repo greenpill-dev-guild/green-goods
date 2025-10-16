@@ -1,18 +1,16 @@
-import { cn } from "@/utils/cn";
+import type { RemixiconComponentType } from "@remixicon/react";
 import type * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
-import { Card } from "../Card/Card";
+import { cn } from "@/utils/styles/cn";
 import { Avatar } from "../Avatar/Avatar";
-import type { RemixiconComponentType } from "@remixicon/react";
+import { Card } from "../Card/Card";
 
 const modalVariants = tv({
   slots: {
     root: "flex flex-col items-center rounded-4xl border p-8 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-nowrap whitespace-nowrap",
     icon: "flex",
-    avatar:
-      "relative border-0 w-20 h-20 p-2 rounded-full flex items-center justify-center",
-    spinner:
-      "absolute left-0 top-0 w-full h-full upload-spinner border-success-base/50 border-3",
+    avatar: "relative border-0 w-20 h-20 p-2 rounded-full flex items-center justify-center",
+    spinner: "absolute left-0 top-0 w-full h-full upload-spinner border-success-base/50 border-3",
   },
   variants: {
     variant: {
@@ -62,7 +60,7 @@ function UploadModal({
           <h6>{headerText}</h6>
         </div>
       )}
-      <Card {...props} className={root()}>
+      <Card {...props} className={cn(root(), className)}>
         <div className="relative flex flex-col gap-4 items-center justify-center">
           <Avatar className={avatar()}>
             <div className={cn(showSpinner && "animate-spin" && spinner())} />
@@ -71,10 +69,9 @@ function UploadModal({
             </div>
           </Avatar>
           <h6>{titleText}</h6>
-          <div
-            className="flex mx-4 max-w-full text-wrap text-center"
-            dangerouslySetInnerHTML={{ __html: bodyText }}
-          />
+          <div className="flex mx-4 max-w-full text-wrap text-center">
+            <div>{bodyText}</div>
+          </div>
         </div>
       </Card>
     </>

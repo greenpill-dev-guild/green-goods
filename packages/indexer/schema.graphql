@@ -12,6 +12,7 @@ enum Capital {
 
 type Action {
   id: ID!
+  chainId: Int!
   ownerAddress: String! # Address
   startTime: BigInt!
   endTime: BigInt!
@@ -24,6 +25,7 @@ type Action {
 
 type Garden {
   id: ID! # Address
+  chainId: Int!
   tokenAddress: String! # Address
   tokenID: BigInt!
   name: String!
@@ -34,4 +36,20 @@ type Garden {
 
   gardeners: [String!]! # Address
   operators: [String!]! # Address
+  
+  # Karma GAP Integration
+  gapProjectUID: String # Karma GAP project attestation UID (bytes32)
+}
+
+type Gardener {
+  id: ID! # Smart account address
+  chainId: Int!
+  createdAt: Int!
+  firstGarden: String # First garden joined
+  gardens: [String!]! # All gardens this gardener belongs to
+  # Future extensibility:
+  # - totalWork: Int
+  # - approvals: [WorkApproval!]
+  # - reputation: Int
+  # - attestations: [Attestation!]
 }

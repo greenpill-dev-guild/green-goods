@@ -2,39 +2,51 @@
   "name": "contracts",
   "version": "0.0.8",
   "private": true,
-  "descripticon": "Contracts for Green Goods Protocol",
+  "description": "Contracts for Green Goods Protocol",
   "scripts": {
-    "account": "node script/ListAccount.js",
-    "chain": "anvil --config-out localhost.json",
-    "compile": "forge compile",
-    "dev": "forge build --via-ir",
-    "prettier": "prettier --write 'src/**/*.sol'",
-    "solhint": "solhint --config ./.solhint.json 'src/**/*.sol' --fix",
-    "lint": "pnpm run prettier && pnpm run solhint",
-    "anvil": "source .env && anvil --fork-url $ANVIL_FORK_URL --chain-id $ANVIL_CHAIN_ID",
+    "predev": "lsof -ti:8545 | xargs kill -9 2>/dev/null || true",
+    "dev": "anvil --config-out localhost.json",
+    "format": "forge fmt",
+    "lint": "forge fmt && solhint --config ./.solhint.json 'src/**/*.sol' 'script/**/*.sol' 'test/**/*.sol' --fix",
     "build": "forge build --via-ir",
-    "test": "pnpm run build && forge test -f https://eth-sepolia.g.alchemy.com/v2/i2qnBKk5GQ8pVGPLA-G3D9il5o0ULQO3 --gas-report",
-    "deploy:counter": "source .env && forge script script/Counter.s.sol:CounterScript --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN",
-    "deploy:action": "source .env && forge script script/DeployActionRegistry.s.sol:DeployActionRegistry --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN",
-    "deploy:garden": "source .env && forge script script/DeployGardenToken.s.sol:DeployGardenToken --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN",
-    "deploy:resolvers": "source .env && forge script script/DeployResolvers.s.sol:DeployResolvers --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN",
-    "deploy:operators": "source .env && forge script script/DeployGardenOperators.s.sol:DeployGardenOperators --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN",
-    "deploy:new-garden": "source .env && forge script script/DeployGarden.s.sol:DeployGarden --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN",
-    "deploy:new-action": "source .env && forge script script/DeployAction.s.sol:DeployAction --private-key $PRIVATE_KEY --etherscan-api-key $API_KEY_ETHERSCAN"
+
+    "test": "bun run build && ARBITRUM_RPC_URL=http://localhost:8545 BASE_SEPOLIA_RPC_URL=http://localhost:8545 CELO_RPC_URL=http://localhost:8545 forge test --gas-report --no-match-contract 'E2E'",
+    "test:e2e": "bun run build && forge test --match-contract 'E2EWorkflowTest' -vv && dotenv -e ../../.env -- forge test --match-contract 'E2EKarmaGAPForkTest' -vv",
+    "test:e2e:workflow": "bun run build && forge test --match-contract 'E2EWorkflowTest' -vv",
+    "test:e2e:karma": "bun run build && dotenv -e ../../.env -- forge test --match-contract 'E2EKarmaGAPForkTest' -vv",
+    "test:e2e:testnet": "bun run build && dotenv -e ../../.env -- forge test --match-test 'testFork.*BaseSepolia' -vvv",
+    "test:e2e:arbitrum": "bun run build && dotenv -e ../../.env -- forge test --match-test 'testFork.*Arbitrum' -vvv",
+    "test:e2e:celo": "bun run build && dotenv -e ../../.env -- forge test --match-test 'testFork.*Celo' -vvv",
+
+    "deploy": "node script/deploy.js core",
+    "deploy:dry:testnet": "node script/deploy.js core --network baseSepolia",
+    "deploy:dry:arbitrum": "node script/deploy.js core --network arbitrum",
+    "deploy:dry:celo": "node script/deploy.js core --network celo",
+    "deploy:testnet": "node script/deploy.js core --network baseSepolia --broadcast",
+    "deploy:arbitrum": "node script/deploy.js core --network arbitrum --broadcast",
+    "deploy:celo": "node script/deploy.js core --network celo --broadcast",
+
+    "upgrade": "node script/upgrade.js",
+    "upgrade:dry:testnet": "node script/upgrade.js all --network baseSepolia",
+    "upgrade:dry:arbitrum": "node script/upgrade.js all --network arbitrum",
+    "upgrade:dry:celo": "node script/upgrade.js all --network celo",
+    "upgrade:testnet": "node script/upgrade.js all --network baseSepolia --broadcast",
+    "upgrade:arbitrum": "node script/upgrade.js all --network arbitrum --broadcast",
+    "upgrade:celo": "node script/upgrade.js all --network celo --broadcast",
+
+    "status": "node script/deploy.js status",
+    "envio:local": "node script/utils/envio-integration.js enable-local",
+    "envio:cleanup": "node script/utils/envio-integration.js cleanup",
+
+    "ipfs:upload": "dotenv -e ../../.env -- node script/utils/ipfs-uploader.js",
+    "ipfs:cache": "cat .ipfs-cache.json"
   },
   "dependencies": {
-    "@ethereum-attestation-service/eas-contracts": "1.7.1",
+    "@ethereum-attestation-service/eas-contracts": "^1.8.0",
     "@openzeppelin/contracts-upgradeable": "4.9.6"
   },
   "devDependencies": {
-    "@types/prettier": "2",
-    "@types/qrcode": "1",
-    "envfile": "~6.18.0",
-    "qrcode": "~1.5.4",
-    "toml": "~3.0.0",
-    "solidity-coverage": "^0.8.14",
-    "solhint": "^5.0.5",
-    "prettier": "^3.5.3",
-    "prettier-plugin-solidity": "^1.4.2"
+    "@pinata/sdk": "^2.1.0",
+    "solhint": "^6.0.1"
   }
 }

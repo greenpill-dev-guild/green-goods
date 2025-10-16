@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem"],
+      "env": {
+        "ALLOWED_DIRECTORIES": ["${workspaceFolder}"]
+      }
+    },
+    "vercel": {
+      "url": "https://mcp.vercel.com"
+    },
+    "figma": {
+      "url": "https://mcp.figma.com/mcp"
+    },
+    "chrome-devtools": {
+      "command": "npx chrome-devtools-mcp@latest"
+    }
+  }
+}

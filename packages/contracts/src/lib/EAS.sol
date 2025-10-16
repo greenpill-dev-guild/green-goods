@@ -1,7 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { EAS_ARBITRUM, EAS_SEPOLIA, EAS_SCHEMA_REGISTRY_ARBITRUM, EAS_SCHEMA_REGISTRY_SEPOLIA } from "../Constants.sol";
+import {
+    EAS_ARBITRUM,
+    EAS_BASE_SEPOLIA,
+    EAS_CELO,
+    EAS_SCHEMA_REGISTRY_ARBITRUM,
+    EAS_SCHEMA_REGISTRY_BASE_SEPOLIA,
+    EAS_SCHEMA_REGISTRY_CELO
+} from "../Constants.sol";
 
 error InvalidChainId();
 
@@ -13,20 +20,28 @@ library EASLib {
     /// @dev Reverts with `InvalidChainId` if the chain ID is not recognized.
     /// @return The address of the EAS.
     function getEAS() internal view returns (address) {
-        if (block.chainid == 42161) {
+        if (block.chainid == 42_161) {
             return EAS_ARBITRUM;
-        } else if (block.chainid == 11155111) {
-            return EAS_SEPOLIA;
+        } else if (block.chainid == 84_532) {
+            return EAS_BASE_SEPOLIA;
+        } else if (block.chainid == 42_220) {
+            return EAS_CELO;
+        } else if (block.chainid == 31_337) {
+            return EAS_CELO; // Use Celo EAS for localhost fork testing
         } else {
             revert InvalidChainId();
         }
     }
 
     function getSchemaRegistry() internal view returns (address) {
-        if (block.chainid == 42161) {
+        if (block.chainid == 42_161) {
             return EAS_SCHEMA_REGISTRY_ARBITRUM;
-        } else if (block.chainid == 11155111) {
-            return EAS_SCHEMA_REGISTRY_SEPOLIA;
+        } else if (block.chainid == 84_532) {
+            return EAS_SCHEMA_REGISTRY_BASE_SEPOLIA;
+        } else if (block.chainid == 42_220) {
+            return EAS_SCHEMA_REGISTRY_CELO;
+        } else if (block.chainid == 31_337) {
+            return EAS_SCHEMA_REGISTRY_CELO; // Use Celo schema registry for localhost fork testing
         } else {
             revert InvalidChainId();
         }

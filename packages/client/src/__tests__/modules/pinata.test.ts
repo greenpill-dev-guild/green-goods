@@ -1,17 +1,23 @@
-import { describe, it } from "vitest";
+import { describe, it, vi } from "vitest";
+
+// Mock the pinata module to prevent real API calls
+vi.mock("../../modules/pinata", () => ({
+  getFileByHash: vi.fn().mockResolvedValue({
+    data: "mocked file content",
+    url: "https://mock-gateway.pinata.cloud/ipfs/bafybeie6wzt62apqp57vtpdtkuth6cakc5ir64nfzd3jpjpmw36r3hbriq",
+  }),
+}));
 
 import {
   getFileByHash,
   // uploadFileToIPFS,
   // uploadFilesToIPFS,
   // uploadJSONToIPFS,
-} from "../../modules/pinata";
+} from "../../modules/data/pinata";
 
 describe("pinata", () => {
   it("should get file by hash", async () => {
-    const file = await getFileByHash(
-      "bafybeie6wzt62apqp57vtpdtkuth6cakc5ir64nfzd3jpjpmw36r3hbriq"
-    );
+    const file = await getFileByHash("bafybeie6wzt62apqp57vtpdtkuth6cakc5ir64nfzd3jpjpmw36r3hbriq");
 
     console.log(file);
   });

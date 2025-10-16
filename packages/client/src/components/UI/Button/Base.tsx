@@ -1,11 +1,10 @@
 // AlignUI Button v0.0.0
 
-import * as React from "react";
-
 import { Slot } from "@radix-ui/react-slot";
-import type { PolymorphicComponentProps } from "../../../utils/polymorphic";
-import { recursiveCloneChildren } from "../../../utils/recursive-clone-children";
+import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
+import type { PolymorphicComponentProps } from "../../../utils/styles/polymorphic";
+import { recursiveCloneChildren } from "../../../utils/app/recursive-clone-children";
 
 const BUTTON_ROOT_NAME = "ButtonRoot";
 const BUTTON_ICON_NAME = "ButtonIcon";
@@ -268,10 +267,7 @@ export type ButtonRootProps = VariantProps<typeof buttonVariants> &
   };
 
 const ButtonRoot = React.forwardRef<HTMLButtonElement, ButtonRootProps>(
-  (
-    { children, variant, mode, size, asChild, className, shape, ...rest },
-    forwardedRef
-  ) => {
+  ({ children, variant, mode, size, asChild, className, shape, ...rest }, forwardedRef) => {
     const uniqueId = React.useId();
     const Component = asChild ? Slot : "button";
     const { root } = buttonVariants({ variant, mode, size, shape });
@@ -292,11 +288,7 @@ const ButtonRoot = React.forwardRef<HTMLButtonElement, ButtonRootProps>(
     );
 
     return (
-      <Component
-        ref={forwardedRef}
-        className={root({ class: className })}
-        {...rest}
-      >
+      <Component ref={forwardedRef} className={root({ class: className })} {...rest}>
         {extendedChildren}
       </Component>
     );

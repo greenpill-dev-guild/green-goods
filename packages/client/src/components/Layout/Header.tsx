@@ -1,13 +1,9 @@
-import { APP_NAME } from "@/constants";
-import { useApp } from "@/providers/app";
-import {
-  RiGithubLine,
-  RiTwitterLine,
-  type RemixiconComponentType,
-} from "@remixicon/react";
+import { type RemixiconComponentType, RiGithubLine, RiTwitterLine } from "@remixicon/react";
 import type React from "react";
+import { APP_NAME } from "@/config/app";
+import { useApp } from "@/providers/app";
 
-interface HeaderProps {}
+type HeaderProps = Record<string, never>;
 
 const links: Link<RemixiconComponentType>[] = [
   {
@@ -25,8 +21,7 @@ const links: Link<RemixiconComponentType>[] = [
 export const Header: React.FC<HeaderProps> = () => {
   const { isMobile } = useApp();
 
-  const filterLinks =
-    isMobile ? links.filter(({ title }) => title === "twitter") : links;
+  const filterLinks = isMobile ? links.filter(({ title }) => title === "twitter") : links;
 
   return (
     <header className="w-full h-16 lg:h-24 flex justify-between items-center py-4 lg:py-6 text-[#367D42]">

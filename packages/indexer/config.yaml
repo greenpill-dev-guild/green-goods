@@ -1,37 +1,54 @@
-# yaml-language-server: $schema=./node_modules/envio/evm.schema.json
 name: Green Goods
 description: Green Goods Indexer
 contracts:
   - name: ActionRegistry
-    abi_file_path: abis/ActionRegistry.json
     handler: src/EventHandlers.ts
     events:
-      - event: ActionRegistered
-      - event: ActionStartTimeUpdated
-      - event: ActionEndTimeUpdated
-      - event: ActionTitleUpdated
-      - event: ActionInstructionsUpdated
-      - event: ActionMediaUpdated
+      - event: ActionRegistered(address owner, uint256 indexed actionUID, uint256 indexed startTime, uint256 indexed endTime, string title, string instructions, uint8[] capitals, string[] media)
+      - event: ActionStartTimeUpdated(address indexed owner, uint256 indexed actionUID, uint256 indexed startTime)
+      - event: ActionEndTimeUpdated(address indexed owner, uint256 indexed actionUID, uint256 indexed endTime)
+      - event: ActionTitleUpdated(address indexed owner, uint256 indexed actionUID, string indexed title)
+      - event: ActionInstructionsUpdated(address indexed owner, uint256 indexed actionUID, string indexed instructions)
+      - event: ActionMediaUpdated(address indexed owner, uint256 indexed actionUID, string[] indexed media)
   - name: GardenToken
-    abi_file_path: abis/GardenToken.json
     handler: src/EventHandlers.ts
     events:
-      - event: GardenMinted
+      - event: GardenMinted(uint256 indexed tokenId, address indexed account, string name, string description, string location, string bannerImage, address[] gardeners, address[] gardenOperators)
   - name: GardenAccount
-    abi_file_path: abis/GardenAccount.json
     handler: src/EventHandlers.ts
     events:
-      - event: NameUpdated
-      - event: DescriptionUpdated
-      - event: GardenerAdded
-      - event: GardenerRemoved
-      - event: GardenOperatorAdded
-      - event: GardenOperatorRemoved
+      - event: NameUpdated(address indexed updater, string newName)
+      - event: DescriptionUpdated(address indexed updater, string newDescription)
+      - event: GardenerAdded(address indexed updater, address indexed gardener)
+      - event: GardenerRemoved(address indexed updater, address indexed gardener)
+      - event: GardenOperatorAdded(address indexed updater, address indexed operator)
+      - event: GardenOperatorRemoved(address indexed updater, address indexed operator)
+      - event: GAPProjectCreated(bytes32 indexed projectUID, address indexed gardenAddress, string projectName)
 networks:
-  - id: 42161 # Arbitrum
-    start_block: 242630858
+  - id: 84532
+    start_block: 0
     contracts:
       - name: ActionRegistry
-        address: 0x933b88Ef33a25d14a68354C88b2eb31e475cd482
+        address: "0x9685E9E5430C13AFF7ef32D9E8fc93d516e121E0"
       - name: GardenToken
-        address: 0x508198C3f071987D5eEb0030825628F9B10c6037
+        address: "0x0B0EA0FfB996B0b04335507Ef1523124480f7310"
+      - name: GardenAccount
+        address: "0x14353dD1B89618127B55fAd16d70450f54F3E67D"
+  - id: 42220
+    start_block: 0
+    contracts:
+      - name: ActionRegistry
+        address: "0x0747ED4f1915b8f3A6eA8a9d8216E8F53EE80f92"
+      - name: GardenToken
+        address: "0xDcA639287A392E17cad0deA4E72F5B3cfA429e6B"
+      - name: GardenAccount
+        address: "0x3B4A3ACA9D52b01086F625a0EB6E6e24b65C810D"
+  - id: 42161
+    start_block: 0
+    contracts:
+      - name: ActionRegistry
+        address: "0x8578004FD468212B9056052856c7cF282760Ef25"
+      - name: GardenToken
+        address: "0x3DEc3c42C5872a86Fb0e60A4AaDD7aD51CaF076a"
+      - name: GardenAccount
+        address: "0xB9e374493bB9cea972C6d26f8a7634AEEcd71daA"

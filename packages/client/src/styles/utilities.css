@@ -7,30 +7,26 @@
   --shadow-regular-md: 0 16px 32px -12px rgba(14, 18, 27, 0.1);
 
   /* Button focus shadows */
-  --shadow-button-primary-focus: 0 0 0 2px var(--color-bg-white-0),
-    0 0 0 4px var(--color-primary-alpha-10);
-  --shadow-button-important-focus: 0 0 0 2px var(--color-bg-white-0),
-    0 0 0 4px var(--color-neutral-alpha-16);
-  --shadow-button-error-focus: 0 0 0 2px var(--color-bg-white-0),
-    0 0 0 4px var(--color-red-alpha-10);
+  --shadow-button-primary-focus: 0 0 0 2px var(--color-bg-white-0), 0 0 0 4px
+    var(--color-primary-alpha-10);
+  --shadow-button-important-focus: 0 0 0 2px var(--color-bg-white-0), 0 0 0 4px
+    var(--color-neutral-alpha-16);
+  --shadow-button-error-focus: 0 0 0 2px var(--color-bg-white-0), 0 0 0 4px
+    var(--color-red-alpha-10);
 
   /* Fancy button shadows */
-  --shadow-fancy-buttons-neutral: 0 1px 2px 0 rgba(27, 28, 29, 0.48),
-    0 0 0 1px #242628;
-  --shadow-fancy-buttons-primary: 0 1px 2px 0 rgba(14, 18, 27, 0.24),
-    0 0 0 1px var(--color-primary-base);
-  --shadow-fancy-buttons-error: 0 1px 2px 0 rgba(14, 18, 27, 0.24),
-    0 0 0 1px var(--color-error-base);
-  --shadow-fancy-buttons-stroke: 0 1px 3px 0 rgba(14, 18, 27, 0.12),
-    0 0 0 1px var(--color-stroke-soft-200);
+  --shadow-fancy-buttons-neutral: 0 1px 2px 0 rgba(27, 28, 29, 0.48), 0 0 0 1px #242628;
+  --shadow-fancy-buttons-primary: 0 1px 2px 0 rgba(14, 18, 27, 0.24), 0 0 0 1px
+    var(--color-primary-base);
+  --shadow-fancy-buttons-error: 0 1px 2px 0 rgba(14, 18, 27, 0.24), 0 0 0 1px
+    var(--color-error-base);
+  --shadow-fancy-buttons-stroke: 0 1px 3px 0 rgba(14, 18, 27, 0.12), 0 0 0 1px
+    var(--color-stroke-soft-200);
 
   /* Component-specific shadows */
-  --shadow-toggle-switch: 0 6px 10px 0 rgba(14, 18, 27, 0.06),
-    0 2px 4px 0 rgba(14, 18, 27, 0.03);
-  --shadow-switch-thumb: 0 4px 8px 0 rgba(27, 28, 29, 0.06),
-    0 2px 4px 0 rgba(14, 18, 27, 0.08);
-  --shadow-tooltip: 0 12px 24px 0 rgba(14, 18, 27, 0.06),
-    0 1px 2px 0 rgba(14, 18, 27, 0.03);
+  --shadow-toggle-switch: 0 6px 10px 0 rgba(14, 18, 27, 0.06), 0 2px 4px 0 rgba(14, 18, 27, 0.03);
+  --shadow-switch-thumb: 0 4px 8px 0 rgba(27, 28, 29, 0.06), 0 2px 4px 0 rgba(14, 18, 27, 0.08);
+  --shadow-tooltip: 0 12px 24px 0 rgba(14, 18, 27, 0.06), 0 1px 2px 0 rgba(14, 18, 27, 0.03);
 }
 
 @layer utilities {
@@ -99,9 +95,52 @@
     border-radius: 1.25rem;
   }
 
-  .noscroll {
-    overflow: auto; /* Allow scrolling */
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* Internet Explorer 10+ */
+  /* Modal Scroll Lock Utilities */
+  .modal-open {
+    overflow: hidden;
+    height: 100vh;
+  }
+  
+  .modal-open body {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Universal Icon Button Class */
+  .btn-icon {
+    @apply relative flex items-center justify-center w-8 h-8 p-1 rounded-lg border;
+    @apply bg-white border-slate-200 text-slate-500;
+    @apply transition-all duration-200 active:scale-95;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary active:border-primary;
+  }
+
+  .btn-icon svg {
+    @apply focus:text-primary active:text-primary;
+  }
+
+  /* Increase hit area for touch without changing visual size */
+  .btn-icon::after {
+    content: "";
+    position: absolute;
+    /* Expand by 8px on all sides: 32px + 16px = 48px touch target */
+    inset: -8px;
+    border-radius: inherit;
+    background: transparent;
+    pointer-events: auto;
+  }
+
+  /* Reusable large touch target utility */
+  .tap-target-lg {
+    position: relative;
+  }
+  .tap-target-lg::after {
+    content: "";
+    position: absolute;
+    inset: -8px; /* 16px expansion → 48px total if base is 32px */
+    border-radius: inherit;
+    background: transparent;
+    pointer-events: auto;
   }
 }

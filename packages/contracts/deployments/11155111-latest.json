@@ -1,0 +1,28 @@
+{
+  "accountProxy": "0xad621aF21dBfdaCe0A078C021Ab2FDDA080a52D1",
+  "actionRegistry": "0x547e82BF9c8496f41927583793242f6b91C182A6",
+  "deploymentRegistry": "0xBb2180ebd78ce97360503434eD37fcf4a1Df61c3",
+  "eas": {
+    "address": "0xC2679fBD37d54388Ce493F1DB75320D236e1815e",
+    "schemaRegistry": "0x0a7E2Ff54e76B8E6659aedc9103FB21c038050D0"
+  },
+  "gardenAccountImpl": "0x83287652b4e1514e101a4053c9bcAFf6a24d051C",
+  "gardenToken": "0xEcbB6E69BE882d2e4E35CCe0E6637c7e1D64c791",
+  "guardian": "0xFdF620FEafE1f15B9f3725283A72088791eDFC74",
+  "schemas": {
+    "assessmentDescription": "Biodiversity assessment schema for Green Goods garden spaces. Captures soil health, carbon metrics, species diversity, and ecological observations to verify regenerative agriculture practices.",
+    "assessmentName": "Green Goods Garden Assessment v2",
+    "assessmentSchema": "uint8 soilMoisturePercentage,uint256 carbonTonStock,uint256 carbonTonPotential,uint256 gardenSquareMeters,string biome,string remoteReportPDF,string speciesRegistryJSON,string[] polygonCoordinates,string[] treeGenusesObserved,string[] weedGenusesObserved,string[] issues,string[] tags",
+    "assessmentSchemaUID": "0x76ea40f6c854813bed0224a4334298e63bf77818680bebe1b2921171f2eeb0f6",
+    "workApprovalDescription": "Work approval schema for Green Goods protocol. Allows validators to approve or reject submitted work with feedback, enabling trustless verification of regenerative agriculture activities.",
+    "workApprovalName": "Green Goods Work Approval",
+    "workApprovalSchema": "uint256 actionUID,bytes32 workUID,bool approved,string feedback",
+    "workApprovalSchemaUID": "0xe78119e86d307e45dff2e7d96653cf005590a7d66928d63184a57ade94742ff9",
+    "workDescription": "Work submission schema for Green Goods protocol. Enables gardeners to submit completed regenerative agriculture tasks with media evidence and metadata for verification and payment.",
+    "workName": "Green Goods Work Submission",
+    "workSchema": "uint256 actionUID,string title,string feedback,string metadata,string[] media",
+    "workSchemaUID": "0xf9ce74169b144a8cca8976114bb169509d6e2bd4d8fa5f3aefabcd60eeed67e7"
+  },
+  "workApprovalResolver": "0x4708E9b199412cc2Cf4d394430BD3DF1f31F2Be5",
+  "workResolver": "0x054814d58b3A160ca0243FFC77f2F5d62709f396"
+}

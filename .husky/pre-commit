@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Ensure nvm is available and use Node 22 if possible
+export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+# Try to use project Node version (22) silently; ignore errors if nvm is missing
+nvm use --silent 22 >/dev/null 2>&1 || true
+
+# Try bun first, fall back to npm
+if command -v bun >/dev/null 2>&1; then
+  bunx lint-staged
+elif command -v npm >/dev/null 2>&1; then
+  npx lint-staged
+else
+  echo "Error: Neither bun nor npm found. Install bun: https://bun.sh"
+  exit 1
+fi

@@ -1,6 +1,6 @@
 import type { RemixiconComponentType } from "@remixicon/react";
+import { cn } from "@/utils/styles/cn";
 import { Card } from "../Card/Card";
-import { cn } from "@/utils/cn";
 
 interface FormInfoProps {
   title: string;

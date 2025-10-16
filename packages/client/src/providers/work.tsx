@@ -1,84 +1,73 @@
-import {
-  QueryObserverResult,
-  useMutation,
-  useQuery,
-} from "@tanstack/react-query";
-import {
-  NO_EXPIRATION,
-  ZERO_BYTES32,
-} from "@ethereum-attestation-service/eas-sdk";
-import React, { useContext, useState } from "react";
-// import { encodeFunctionData, parseEther, zeroAddress } from "viem";
-// import { zodResolver } from "@hookform/resolvers/zod";
-import { Control, FormState, useForm, UseFormRegister } from "react-hook-form";
+import { useMutation } from "@tanstack/react-query";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z, type ZodType } from "zod";
+import React, { useContext } from "react";
+import { type Control, type FormState, type UseFormRegister, useForm } from "react-hook-form";
+import toast from "react-hot-toast";
+// import { decodeErrorResult } from "viem";
+import { DEFAULT_CHAIN_ID } from "@/config/blockchain";
+// import { jobQueue } from "@/modules/job-queue";
+import { validateWorkDraft, formatJobError } from "@/modules/work/work-submission";
+import { submitWorkDirectly } from "@/modules/work/wallet-submission";
+import { submitWorkWithPasskey } from "@/modules/work/passkey-submission";
+// import { abi as WorkResolverABI } from "@/utils/abis/WorkResolver.json";
 
-import { EAS } from "@/constants";
-
-import { getWorkApprovals } from "@/modules/eas";
-import { queryClient } from "@/modules/react-query";
-
-import { encodeWorkData } from "@/utils/eas";
-import { abi } from "@/utils/abis/EAS.json";
-
-import { useUser } from "./user";
-import { useGardens } from "./garden";
-import { arbitrum } from "viem/chains";
-import { encodeFunctionData } from "viem/utils";
-import { Chain, TransactionRequest } from "viem";
+import { useUser } from "@/hooks/auth/useUser";
+import { useActions, useGardens } from "@/hooks/blockchain/useBaseLists";
+import { useWorkFlowStore, type WorkFlowState } from "@/state/useWorkFlowStore";
 
 export enum WorkTab {
   Intro = "Intro",
   Media = "Media",
   Details = "Details",
   Review = "Review",
-  Complete = "Complete",
 }
 
 export interface WorkDataProps {
   gardens: Garden[];
   actions: Action[];
+  isLoading?: boolean;
   workMutation: ReturnType<
-    typeof useMutation<`0x${string}`, Error, WorkDraft, void>
-  >;
-  workApprovals: WorkApproval[];
-  workApprovalMap: Record<string, WorkApproval>;
-  refetchWorkApprovals: () => Promise<
-    QueryObserverResult<WorkApproval[], Error>
+    typeof useMutation<`0x${string}`, unknown, { draft: WorkDraft; images: File[] }, void>
   >;
   form: {
-    state: FormState<WorkDraft>;
+    state: FormState<WorkFormData>;
     actionUID: number | null;
     images: File[];
     setImages: React.Dispatch<React.SetStateAction<File[]>>;
     setActionUID: React.Dispatch<React.SetStateAction<number | null>>;
-    register: UseFormRegister<WorkDraft>;
-    control: Control<WorkDraft>;
+    register: UseFormRegister<WorkFormData>;
+    control: Control<WorkFormData>;
     uploadWork: (e?: React.BaseSyntheticEvent) => Promise<void>;
     gardenAddress: string | null;
     setGardenAddress: React.Dispatch<React.SetStateAction<string | null>>;
     feedback: string;
     plantSelection: string[];
-    plantCount: number;
+    plantCount: number | undefined;
+    values: Record<string, unknown>;
     reset: () => void;
   };
   activeTab: WorkTab;
   setActiveTab: React.Dispatch<React.SetStateAction<WorkTab>>;
 }
 
-// const workSchema = z.object({
-//   title: z.string().optional(),
-//   feedback: z.string().optional(),
-//   metadata: z.string().optional(),
-//   plantSelection: z.array(z.string()).optional(),
-//   plantCount: z.number(),
-//   media: z.array(z.instanceof(File)).optional(),
-// });
+// Zod schema for work submission form validation
+// Note: Only validating form fields (feedback, plantSelection, plantCount)
+// actionUID, title, and media are managed outside the form
+const workFormSchema: ZodType<{
+  feedback: string;
+  plantSelection: string[];
+  plantCount?: number;
+}> = z.object({
+  feedback: z.string().min(1, "Feedback is required"),
+  plantSelection: z.array(z.string()),
+  plantCount: z.number().nonnegative().optional(),
+});
+
+// Infer form type from Zod schema (single source of truth)
+type WorkFormData = z.infer<typeof workFormSchema>;
 
 const WorkContext = React.createContext<WorkDataProps>({
-  gardens: [],
-  actions: [],
-  workApprovals: [],
-  workApprovalMap: {},
   form: {
     // @ts-ignore
     register: () => {},
@@ -91,126 +80,165 @@ const WorkContext = React.createContext<WorkDataProps>({
     setGardenAddress: () => {},
     reset: () => {},
   },
-});
+} as unknown as WorkDataProps);
 
 export const useWork = () => {
   return useContext(WorkContext);
 };
 
 export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
-  const { smartAccountClient } = useUser();
-  const { actions, gardens } = useGardens();
+  const { smartAccountClient, authMode } = useUser();
+  const chainId = DEFAULT_CHAIN_ID;
 
-  // QUERIES
-  const { data: workApprovals, refetch: refetchWorkApprovals } = useQuery<
-    WorkApproval[]
-  >({
-    queryKey: ["workApprovals"],
-    queryFn: () => getWorkApprovals(),
+  // Base lists via React Query
+  const { data: actionsData = [], isLoading: actionsLoading } = useActions(chainId);
+  const { data: gardensData = [], isLoading: gardensLoading } = useGardens(chainId);
+
+  // UI state via Zustand
+  const actionUID = useWorkFlowStore((s: WorkFlowState) => s.actionUID);
+  const gardenAddress = useWorkFlowStore((s: WorkFlowState) => s.gardenAddress);
+  const images = useWorkFlowStore((s: WorkFlowState) => s.images);
+  const activeTab = useWorkFlowStore((s: WorkFlowState) => s.activeTab);
+  const _setActionUID = useWorkFlowStore((s: WorkFlowState) => s.setActionUID);
+  const _setGardenAddress = useWorkFlowStore((s: WorkFlowState) => s.setGardenAddress);
+  const _setImages = useWorkFlowStore((s: WorkFlowState) => s.setImages);
+  const _setActiveTab = useWorkFlowStore((s: WorkFlowState) => s.setActiveTab);
+
+  // Adapters to maintain React.Dispatch API for consumers
+  const setActionUID: React.Dispatch<React.SetStateAction<number | null>> = (
+    updater: React.SetStateAction<number | null>
+  ) => {
+    const next =
+      typeof updater === "function"
+        ? (updater as (prev: number | null) => number | null)(actionUID)
+        : updater;
+    _setActionUID(next);
+  };
+  const setGardenAddress: React.Dispatch<React.SetStateAction<string | null>> = (
+    updater: React.SetStateAction<string | null>
+  ) => {
+    const next =
+      typeof updater === "function"
+        ? (updater as (prev: string | null) => string | null)(gardenAddress)
+        : updater;
+    _setGardenAddress(next);
+  };
+  const setImages: React.Dispatch<React.SetStateAction<File[]>> = (
+    updater: React.SetStateAction<File[]>
+  ) => {
+    const next =
+      typeof updater === "function" ? (updater as (prev: File[]) => File[])(images) : updater;
+    _setImages(next);
+  };
+  const setActiveTab: React.Dispatch<React.SetStateAction<WorkTab>> = (
+    updater: React.SetStateAction<WorkTab>
+  ) => {
+    const next =
+      typeof updater === "function" ? (updater as (prev: WorkTab) => WorkTab)(activeTab) : updater;
+    _setActiveTab(next);
+  };
+
+  const { control, register, handleSubmit, formState, watch, reset } = useForm<WorkFormData>({
+    defaultValues: {
+      feedback: "",
+      plantSelection: [],
+      // plantCount is optional
+    },
+    shouldUseNativeValidation: true,
+    mode: "onChange",
+    // Compatibility note: older @hookform/resolvers versions had a signature mismatch with Zod.
+    // Current versions compile cleanly; keeping the context here for future regressions.
+    resolver: zodResolver(workFormSchema as any),
   });
-
-  // MUTATIONS
-  const [actionUID, setActionUID] = useState<number | null>(null);
-  const [gardenAddress, setGardenAddress] = useState<string | null>(null);
-  const [images, setImages] = useState<File[]>([]);
-  const [activeTab, setActiveTab] = useState(WorkTab.Intro);
-
-  const { control, register, handleSubmit, formState, watch, reset } =
-    useForm<WorkDraft>({
-      defaultValues: {
-        feedback: "",
-        plantSelection: [],
-        plantCount: 0,
-      },
-      shouldUseNativeValidation: true,
-      mode: "onChange",
-      // resolver: zodResolver(workSchema),
-    });
 
   const feedback = watch("feedback");
   const plantSelection = watch("plantSelection");
   const plantCount = watch("plantCount");
+  const values = watch() as unknown as Record<string, unknown>;
 
   const workMutation = useMutation({
-    mutationFn: async (draft: WorkDraft) => {
-      if (!smartAccountClient) throw new Error("No smart account client found");
-      if (!gardenAddress) throw new Error("No garden address found");
-      if (typeof actionUID !== "number") throw new Error("No action UID found");
-
-      const action = actions.find((action) => action.id === actionUID);
-
-      const encodedAttestationData = await encodeWorkData({
-        ...draft,
-        title: `${action?.title} - ${new Date().toISOString()}`,
-        actionUID,
-        media: images,
+    mutationFn: async ({ draft, images }: { draft: WorkDraft; images: File[] }) => {
+      const ctxActions = actionsData as Action[];
+      const action = ctxActions.find((a) => {
+        const idPart = a.id?.split("-").pop();
+        return Number(idPart) === actionUID;
       });
+      const actionTitle = action?.title || "Unknown Action";
 
-      const encodedData = encodeFunctionData({
-        abi,
-        args: [
-          {
-            schema: EAS["42161"].WORK.uid,
-            data: {
-              recipient: gardenAddress as `0x${string}`,
-              expirationTime: NO_EXPIRATION,
-              revocable: true,
-              refUID: ZERO_BYTES32,
-              data: encodedAttestationData,
-              value: 0n,
-            },
-          },
-        ],
-        functionName: "attest",
+      // Branch based on authentication mode
+      if (authMode === "wallet") {
+        // Direct wallet transaction - no queue
+        return await submitWorkDirectly(
+          draft,
+          gardenAddress!,
+          actionUID!,
+          actionTitle,
+          chainId,
+          images
+        );
+      }
+
+      if (!smartAccountClient) {
+        throw new Error("Passkey session not ready. Please refresh and try again.");
+      }
+
+      return await submitWorkWithPasskey({
+        client: smartAccountClient,
+        draft,
+        gardenAddress: gardenAddress!,
+        actionUID: actionUID!,
+        actionTitle,
+        chainId,
+        images,
       });
-
-      const transactionRequest: TransactionRequest & { chain: Chain } = {
-        chain: arbitrum,
-        to: EAS["42161"].EAS.address as `0x${string}`,
-        value: 0n,
-        data: encodedData,
-      };
-
-      const receipt =
-        await smartAccountClient.sendTransaction(transactionRequest);
-
-      return receipt;
     },
     onMutate: () => {
-      // toast.loading("Uploading work..."); @dev deprecated
+      const message =
+        authMode === "wallet" ? "Awaiting wallet confirmation..." : "Submitting work...";
+      toast.loading(message, { id: "work-upload" });
     },
     onSuccess: () => {
-      // toast.remove();
-      // toast.success("Work uploaded!"); @dev deprecated
-      queryClient.invalidateQueries({ queryKey: ["works"] });
+      toast.dismiss("work-upload");
+      const message =
+        authMode === "wallet" ? "Transaction confirmed!" : "Work submitted successfully!";
+      toast.success(message);
     },
-    onError: (error) => {
-      console.error("Upload Work", error);
-      // toast.remove();
-      // toast.error("Work upload failed!"); @dev deprecated
+    onError: (error: unknown) => {
+      const message = formatJobError(
+        typeof error === "object" && error && "message" in (error as { message?: unknown })
+          ? String((error as { message?: unknown }).message)
+          : String(error)
+      );
+      toast.error(message);
+      toast.dismiss("work-upload");
     },
   });
 
-  const uploadWork = handleSubmit((data) => {
-    workMutation.mutate(data);
+  const uploadWork = handleSubmit(async (data) => {
+    // Build draft from form data (partial) - validation will check for required fields
+    const draft = {
+      feedback: data.feedback,
+      plantSelection: data.plantSelection,
+      ...(typeof data.plantCount === "number" ? { plantCount: data.plantCount } : {}),
+    };
+
+    const errors = validateWorkDraft(draft as any, gardenAddress, actionUID, images);
+    if (errors.length > 0) {
+      toast.error(errors[0]);
+      return;
+    }
+    // Snapshot images to avoid race with state clearing after navigation
+    const imagesSnapshot = images.slice();
+    await workMutation.mutateAsync({ draft: draft as any, images: imagesSnapshot });
   });
 
   return (
     <WorkContext.Provider
       value={{
-        gardens,
-        actions,
+        gardens: gardensData,
+        actions: actionsData,
+        isLoading: actionsLoading || gardensLoading,
         workMutation,
-        workApprovals: workApprovals ?? [],
-        workApprovalMap:
-          workApprovals?.reduce(
-            (acc, work) => {
-              acc[work.workUID] = work;
-              return acc;
-            },
-            {} as Record<string, WorkApproval>
-          ) ?? {},
-        refetchWorkApprovals,
         form: {
           state: formState,
           control,
@@ -225,6 +253,8 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
           feedback,
           plantSelection,
           plantCount,
+          values,
+
           reset,
         },
         activeTab,

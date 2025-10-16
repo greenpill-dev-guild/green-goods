@@ -3,5 +3,5 @@ erc6551/=lib/tokenbound/lib/erc6551/src/
 forge-std=./lib/tokenbound/lib/forge-std/src/
 ds-test=./lib/tokenbound/lib/forge-std/lib/ds-test/src/
 @eas=./node_modules/@ethereum-attestation-service/eas-contracts/contracts/
-@openzeppelin/contracts=lib/tokenbound/lib/openzeppelin-contracts/contracts/
+@openzeppelin/contracts=./lib/tokenbound/lib/openzeppelin-contracts/contracts/
 @openzeppelin/contracts-upgradeable=./node_modules/@openzeppelin/contracts-upgradeable/

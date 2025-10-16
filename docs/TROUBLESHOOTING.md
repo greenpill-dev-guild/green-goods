@@ -1,0 +1,348 @@
+# Troubleshooting Guide
+
+This guide covers common issues and their solutions when working with Green Goods.
+
+## Quick Fixes
+
+**Services not starting?**
+```bash
+bun dev:stop && bun dev  # Restart all services
+```
+
+**Port conflicts?**
+```bash
+lsof -i :3001 && lsof -i :8080  # Find conflicting processes
+pkill -f "dev:"  # Kill all dev processes
+```
+
+**Environment issues?**
+```bash
+cp .env.example .env  # Reset environment
+# Edit .env with correct values
+```
+
+**Node/bun version issues?**
+```bash
+nvm use 20        # Switch to Node 20
+npm install -g bun@9  # Install correct bun
+```
+
+## 🚨 Common Issues
+
+### Installation Issues
+
+#### Node.js Version Mismatch
+
+**Problem**: Error about incompatible Node.js version
+
+```
+Error: The engine "node" is incompatible with this module. Expected version "20.x". Got "23.2.0"
+```
+
+**Solution**:
+
+1. Install nvm (Node Version Manager)
+2. Switch to Node.js 20:
+   ```bash
+   nvm install 20
+   nvm use 20
+   ```
+
+#### bun Version Mismatch
+
+**Problem**: Error about incompatible bun version
+
+```
+Error: The engine "bun" is incompatible with this module. Expected version "^9.x". Got "10.11.0"
+```
+
+**Solution**:
+
+1. Install correct bun version:
+   ```bash
+   npm install -g bun@9
+   ```
+
+### Development Environment Issues
+
+#### Module Not Found Errors
+
+**Problem**: Missing dependencies
+
+```
+Error: Cannot find module '@privy-io/server-auth'
+```
+
+**Solution**:
+
+1. Clear node_modules and reinstall:
+
+   ```bash
+   rm -rf node_modules
+   bun install
+   ```
+
+2. If issue persists, try installing the specific package:
+   ```bash
+   bun add @privy-io/server-auth
+   ```
+3. Verify bun v9+ and Node 20+ are installed.
+
+#### Port Conflicts
+
+**Problem**: Port already in use
+
+```
+Error: listen EADDRINUSE: address already in use :::3001
+```
+
+**Solution**:
+
+1. Find and kill the process:
+
+   ```bash
+   # On macOS/Linux
+   lsof -i :3001
+   kill -9 <PID>
+
+   # On Windows
+   netstat -ano | findstr :3001
+   taskkill /PID <PID> /F
+   ```
+
+2. Or use a different port:
+   ```bash
+   PORT=3002 bun --filter client dev
+   ```
+
+### Smart Contract Issues
+
+#### Contract Deployment Failures
+
+**Problem**: Contract deployment fails with gas errors
+
+```
+Error: insufficient funds for gas * price + value
+```
+
+**Solution**:
+
+1. Check wallet balance
+2. Ensure correct network
+3. Adjust gas settings in `.env`:
+   ```
+   GAS_LIMIT=5000000
+   GAS_PRICE=20000000000
+   ```
+
+#### Contract Verification Failures
+
+**Problem**: Contract verification fails
+
+```
+Error: Contract source code not verified
+```
+
+**Solution**:
+
+1. Check compiler settings match deployment
+2. Verify constructor arguments
+3. Ensure network is supported
+
+### Frontend Issues
+
+#### Build Failures
+
+**Problem**: Build fails with TypeScript errors
+
+```
+Error: Type 'X' is not assignable to type 'Y'
+```
+
+**Solution**:
+
+1. Run type checking:
+   ```bash
+   bun --filter client typecheck
+   ```
+2. Fix type errors
+3. Rebuild:
+   ```bash
+   bun --filter client build
+   ```
+
+#### Hot Reload Not Working
+
+**Problem**: Changes not reflecting in development
+
+```
+No changes detected
+```
+
+**Solution**:
+
+1. Clear cache:
+   ```bash
+   bun --filter client clean
+   ```
+2. Restart dev server (note: dev server uses HTTPS via mkcert):
+   ```bash
+   bun --filter client dev
+   ```
+
+### Backend Issues
+
+#### Database Connection Issues
+
+**Problem**: Cannot connect to database
+
+```
+Error: connect ECONNREFUSED
+```
+
+**Solution**:
+
+1. Check database service is running
+2. Verify connection string in `.env`
+3. Check network/firewall settings
+
+#### API Rate Limiting
+
+**Problem**: API requests failing with 429
+
+```
+Error: Too Many Requests
+```
+
+**Solution**:
+
+1. Implement rate limiting
+2. Add retry logic
+3. Cache responses
+
+## 🔧 Environment Setup Issues
+
+### Missing Environment Variables
+
+**Problem**: Required environment variables not set
+
+```
+Error: Missing required environment variable: PRIVY_APP_ID
+```
+
+**Solution**:
+
+1. Copy example env files:
+   ```bash
+   cp packages/client/.env.example packages/client/.env
+   cp packages/contracts/.env.example packages/contracts/.env
+   ```
+2. Fill in required values
+
+### Invalid API Keys
+
+**Problem**: API calls failing with 401/403
+
+```
+Error: Invalid API key
+```
+
+**Solution**:
+
+1. Verify API keys in `.env`
+2. Check key permissions
+3. Generate new keys if needed
+
+## 🐛 Debugging Tips
+
+### Client Debugging
+
+1. **Browser DevTools**
+
+   - Use React DevTools
+   - Check Network tab
+   - Monitor Console for errors
+
+2. **Logging**
+
+   ```typescript
+   console.log("Debug:", { variable });
+   ```
+
+3. **Error Boundaries**
+   ```typescript
+   <ErrorBoundary fallback={<ErrorComponent />}>
+     <YourComponent />
+   </ErrorBoundary>
+   ```
+
+### Server Debugging
+
+1. **Logging**
+
+   ```typescript
+   console.log("Debug:", { variable });
+   ```
+
+### Contract Debugging
+
+1. **Foundry Debug**
+
+   ```bash
+   bun --filter contracts test -vvv
+   ```
+
+2. **Gas Profiling**
+
+   ```bash
+   bun --filter contracts test:gas
+   ```
+
+3. **Event Logging**
+   ```solidity
+   event DebugLog(string message, uint256 value);
+   emit DebugLog("Debug", value);
+   ```
+
+## 🔄 Performance Issues
+
+### Slow Build Times
+
+**Solution**:
+
+1. Use build cache:
+   ```bash
+   bun --filter client build --cache
+   ```
+2. Optimize dependencies
+3. Use production mode:
+   ```bash
+   NODE_ENV=production bun --filter client build
+   ```
+
+### High Memory Usage
+
+**Solution**:
+
+1. Increase Node.js memory limit:
+   ```bash
+   NODE_OPTIONS="--max-old-space-size=4096" bun --filter client dev
+   ```
+2. Optimize bundle size
+3. Use code splitting
+
+### Slow API Responses
+
+**Solution**:
+
+1. Implement caching
+2. Optimize database queries
+3. Use pagination
+4. Add indexes
+
+## 📚 Additional Resources
+
+- [GitHub Issues](https://github.com/your-org/green-goods/issues)
+- [Discord Community](https://discord.gg/your-server)
+- [Documentation](https://docs.greengoods.app)
+- [Stack Overflow](https://stackoverflow.com/questions/tagged/greengoods) 

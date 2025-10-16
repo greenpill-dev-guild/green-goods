@@ -1,5 +1,5 @@
-import { cn } from "@/utils/cn";
-import { RiCheckFill, RiArrowRightSLine } from "@remixicon/react";
+import { RiArrowRightSLine, RiCheckFill } from "@remixicon/react";
+import { cn } from "@/utils/styles/cn";
 
 interface FormProgressProps {
   currentStep: number;
@@ -13,10 +13,7 @@ export const FormProgress = ({ currentStep, steps }: FormProgressProps) => {
         const isCurrentStep = currentStep === index + 1;
         const isFutureStep = currentStep > index + 1;
         return (
-          <div
-            key={step}
-            className="flex flex-col justify-center items-center flex-1 group"
-          >
+          <div key={step} className="flex flex-col justify-center items-center flex-1 group">
             <div className="inline-flex items-center text-xs align-middle">
               <span
                 className={cn(
@@ -26,14 +23,11 @@ export const FormProgress = ({ currentStep, steps }: FormProgressProps) => {
                     "border border-primary before:absolute before:-inset-1 before:bg-primary before:rounded-full before:w-6 before:h-6 before:z-[-10] before:m-auto "
                 )}
               >
-                {isFutureStep ?
+                {isFutureStep ? (
                   <RiCheckFill className="w-3 h-3 text-white" />
-                : <div
-                    className={cn(isCurrentStep ? "text-white" : "text-black")}
-                  >
-                    {index + 1}
-                  </div>
-                }
+                ) : (
+                  <div className={cn(isCurrentStep ? "text-white" : "text-black")}>{index + 1}</div>
+                )}
               </span>
               <div
                 className={`${currentStep > index + 1 ? "bg-primary" : "bg-slate-400"} ms-2 w-full h-px flex-1 group-last:hidden`}

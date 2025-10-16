@@ -1,10 +1,9 @@
 "use client";
 
+import useEmblaCarousel, { type UseEmblaCarouselType } from "embla-carousel-react";
 import * as React from "react";
-import useEmblaCarousel, {
-  type UseEmblaCarouselType,
-} from "embla-carousel-react";
-import { cn } from "@/utils/cn";
+import { cn } from "@/utils/styles/cn";
+import { ImagePreviewDialog } from "../ImagePreviewDialog";
 
 type CarouselApi = UseEmblaCarouselType[1];
 type UseCarouselParameters = Parameters<typeof useEmblaCarousel>;
@@ -16,6 +15,8 @@ type CarouselProps = {
   plugins?: CarouselPlugin;
   orientation?: "horizontal" | "vertical";
   setApi?: (api: CarouselApi) => void;
+  enablePreview?: boolean;
+  previewImages?: string[];
 };
 
 type CarouselContextProps = {
@@ -25,6 +26,7 @@ type CarouselContextProps = {
   scrollNext: () => void;
   canScrollPrev: boolean;
   canScrollNext: boolean;
+  openPreview?: (index: number) => void;
 } & CarouselProps;
 
 const CarouselContext = React.createContext<CarouselContextProps | null>(null);
@@ -51,6 +53,8 @@ const Carousel = React.forwardRef<
       plugins,
       className,
       children,
+      enablePreview = false,
+      previewImages = [],
       ...props
     },
     ref
@@ -64,6 +68,8 @@ const Carousel = React.forwardRef<
     );
     const [canScrollPrev, setCanScrollPrev] = React.useState(false);
     const [canScrollNext, setCanScrollNext] = React.useState(false);
+    const [previewOpen, setPreviewOpen] = React.useState(false);
+    const [previewIndex, setPreviewIndex] = React.useState(0);
 
     const onSelect = React.useCallback((api: CarouselApi) => {
       if (!api) {
@@ -95,6 +101,16 @@ const Carousel = React.forwardRef<
       [scrollPrev, scrollNext]
     );
 
+    const openPreview = React.useCallback(
+      (index: number) => {
+        if (enablePreview && previewImages.length > 0) {
+          setPreviewIndex(index);
+          setPreviewOpen(true);
+        }
+      },
+      [enablePreview, previewImages]
+    );
+
     React.useEffect(() => {
       if (!api || !setApi) {
         return;
@@ -123,12 +139,14 @@ const Carousel = React.forwardRef<
           carouselRef,
           api: api,
           opts,
-          orientation:
-            orientation || (opts?.axis === "y" ? "vertical" : "horizontal"),
+          orientation: orientation || (opts?.axis === "y" ? "vertical" : "horizontal"),
           scrollPrev,
           scrollNext,
           canScrollPrev,
           canScrollNext,
+          enablePreview,
+          previewImages,
+          openPreview,
         }}
       >
         <div
@@ -141,39 +159,53 @@ const Carousel = React.forwardRef<
         >
           {children}
         </div>
+        {enablePreview && (
+          <ImagePreviewDialog
+            isOpen={previewOpen}
+            onClose={() => setPreviewOpen(false)}
+            images={previewImages}
+            initialIndex={previewIndex}
+          />
+        )}
       </CarouselContext.Provider>
     );
   }
 );
 Carousel.displayName = "Carousel";
 
-const CarouselContent = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => {
-  const { carouselRef, orientation } = useCarousel();
+const CarouselContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => {
+    const { carouselRef, orientation } = useCarousel();
 
-  return (
-    <div ref={carouselRef} className="overflow-hidden">
-      <div
-        ref={ref}
-        className={cn(
-          "flex",
-          orientation === "horizontal" ? "mr-4" : "-mt-4 flex-col",
-          className
-        )}
-        {...props}
-      />
-    </div>
-  );
-});
+    return (
+      <div ref={carouselRef} className="overflow-hidden">
+        <div
+          ref={ref}
+          className={cn(
+            "flex",
+            orientation === "horizontal" ? "mr-4" : "-mt-4 flex-col",
+            className
+          )}
+          {...props}
+        />
+      </div>
+    );
+  }
+);
 CarouselContent.displayName = "CarouselContent";
 
 const CarouselItem = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => {
-  const { orientation } = useCarousel();
+  React.HTMLAttributes<HTMLDivElement> & { index?: number }
+>(({ className, index, children, onClick, ...props }, ref) => {
+  const { orientation, enablePreview, openPreview } = useCarousel();
+
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (enablePreview && openPreview && index !== undefined) {
+      openPreview(index);
+    }
+    onClick?.(e);
+  };
 
   return (
     <div
@@ -183,10 +215,20 @@ const CarouselItem = React.forwardRef<
       className={cn(
         "min-w-0 shrink-0 grow-0 basis-full max-w-[90%]",
         orientation === "horizontal" ? "pl-4" : "pt-4",
+        enablePreview && "cursor-pointer",
         className
       )}
+      onClick={handleClick}
+      onKeyDown={(e) => {
+        if (enablePreview && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          handleClick(e as unknown as React.MouseEvent<HTMLDivElement>);
+        }
+      }}
       {...props}
-    />
+    >
+      {children}
+    </div>
   );
 });
 CarouselItem.displayName = "CarouselItem";
@@ -196,11 +238,13 @@ const GardenCarousel = React.forwardRef<
   React.HTMLAttributes<HTMLDivElement> & { garden: Garden }
 >(({ className, children, garden, ...props }, ref) => {
   return (
-    <div ref={ref} className="flex flex-col" {...props}>
+    <div ref={ref} className={cn("flex flex-col", className)} {...props}>
       <img
         src={garden.bannerImage}
         alt={garden.description}
         className="max-h-26 object-cover"
+        loading="lazy"
+        decoding="async"
       />
       <div className="p-2">
         <h5 className="text-xl font-medium">{garden.name}</h5>
@@ -211,10 +255,4 @@ const GardenCarousel = React.forwardRef<
 });
 GardenCarousel.displayName = "GardenCarousel";
 
-export {
-  type CarouselApi,
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  GardenCarousel,
-};
+export { type CarouselApi, Carousel, CarouselContent, CarouselItem, GardenCarousel };

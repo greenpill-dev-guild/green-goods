@@ -1,71 +1,78 @@
-import type React from "react";
 import { RiHeadphoneLine, RiSettings2Fill } from "@remixicon/react";
+import { useState } from "react";
+import { useIntl } from "react-intl";
 import { Profile as UserProfile } from "@/components/UI/Profile/Profile";
-
-import { formatAddress } from "@/utils/text";
-
-import { useUser } from "@/providers/user";
-
-import { ProfileHelp } from "./Help";
+import { type StandardTab, StandardTabs } from "@/components/UI/Tabs";
+import { useUser } from "@/hooks/auth/useUser";
+import { formatAddress } from "@/utils/app/text";
 import { ProfileAccount } from "./Account";
-import {
-  Tabs,
-  TabsTrigger,
-  TabsContent,
-  TabsList,
-} from "@/components/UI/Tabs/Tabs";
-
-const availableTabs = {
-  help: { value: "help", Icon: RiHeadphoneLine, label: "Help" },
-  account: { value: "account", Icon: RiSettings2Fill, label: "Account" },
-};
+import { ProfileHelp } from "./Help";
 
 const Profile: React.FC = () => {
-  const { user } = useUser();
+  const { smartAccountAddress, eoa } = useUser();
+  const intl = useIntl();
+  const [activeTab, setActiveTab] = useState("account");
+
+  // Primary address is smart account (if available) or EOA
+  const primaryAddress = smartAccountAddress || eoa?.address;
+  const displayName = primaryAddress ? formatAddress(primaryAddress) : "Unknown";
+
+  const tabs: StandardTab[] = [
+    {
+      id: "account",
+      label: intl.formatMessage({
+        id: "app.profile.account",
+        description: "Account",
+      }),
+      icon: <RiSettings2Fill className="w-4" />,
+    },
+    {
+      id: "help",
+      label: intl.formatMessage({
+        id: "app.profile.help",
+        description: "Help",
+      }),
+      icon: <RiHeadphoneLine className="w-4" />,
+    },
+  ];
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "account":
+        return <ProfileAccount />;
+      case "help":
+        return <ProfileHelp />;
+      default:
+        return <ProfileAccount />;
+    }
+  };
 
   return (
-    <section className={"flex"}>
-      <Tabs defaultValue="help" className="w-full h-full px-4 pt-72 pb-4">
-        <div className="fixed flex flex-col gap-1 top-0 left-0 px-4 pt-8 bg-white z-10">
+    <section className="flex flex-col h-full">
+      {/* Fixed Header */}
+      <div className="fixed w-full top-0 left-0 bg-white z-10">
+        <div className="px-4 pt-6 pb-4">
           <UserProfile
-            displayName={
-              user?.email?.address ||
-              user?.phone?.number ||
-              user?.id ||
-              "Unknown"
-            }
-            avatar={user?.farcaster?.pfp || "/images/avatar.png"}
-            location={(user?.customMetadata?.location as string) || undefined}
-            wallet={
-              user?.wallet?.address && formatAddress(user?.wallet?.address)
-            }
-            registration={user?.createdAt.toLocaleDateString() || undefined}
-            email={user?.email?.address || undefined}
-            telephone={user?.phone?.number || undefined}
+            displayName={displayName}
+            avatar="/images/avatar.png"
+            wallet={primaryAddress ? formatAddress(primaryAddress) : undefined}
           />
-          <TabsList className="flex items-center justify-center mt-2">
-            {Object.values(availableTabs).map((tab) => {
-              const Icon = tab.Icon;
-              return (
-                <TabsTrigger
-                  key={tab.value}
-                  value={tab.value}
-                  variant="gardenTabs"
-                >
-                  {<Icon className="w-4 mx-1" />}
-                  {tab.label}
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
         </div>
-        <TabsContent value="account">
-          <ProfileAccount />
-        </TabsContent>
-        <TabsContent value="help">
-          <ProfileHelp />
-        </TabsContent>
-      </Tabs>
+
+        {/* Full Screen Tabs - outside padding */}
+        <StandardTabs
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          variant="compact"
+          scrollTargetSelector="#profile-scroll"
+        />
+      </div>
+
+      {/* Content */}
+      <div id="profile-scroll" className="flex-1 pt-64 pb-4 overflow-y-auto">
+        <div className="padded flex flex-col gap-4 my-4">{renderTabContent()}</div>
+      </div>
     </section>
   );
 };

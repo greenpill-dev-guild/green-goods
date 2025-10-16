@@ -2,7 +2,8 @@
   "files": [],
   "references": [
     { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
+    { "path": "./tsconfig.node.json" },
+    { "path": "./tsconfig.test.json" }
   ] /* Plugins */,
   "compilerOptions": {
     "plugins": [
@@ -11,7 +12,7 @@
         "schemas": [
           {
             "name": "Green Goods",
-            "schema": "https://indexer.dev.hyperindex.xyz/80e789b/v1/graphql",
+            "schema": "https://indexer.dev.hyperindex.xyz/2e23bea/v1/graphql",
             "tadaOutputLocation": "./src/types/green-goods.d.ts"
           },
           {
