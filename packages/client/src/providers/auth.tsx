@@ -10,7 +10,7 @@
 import { createSmartAccountClient, type SmartAccountClient } from "permissionless";
 import { toKernelSmartAccount } from "permissionless/accounts";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { type Hex, http } from "viem";
+import { type Hex } from "viem";
 import {
   createWebAuthnCredential,
   entryPoint07Address,
@@ -38,30 +38,19 @@ export type AuthMode = "passkey" | "wallet" | null;
  * Authentication context value
  */
 interface AuthContextType {
-  // Auth mode
   authMode: AuthMode;
-
-  // Passkey state
   credential: P256Credential | null;
   smartAccountAddress: Hex | null;
   smartAccountClient: SmartAccountClient | null;
-
-  // Wallet state
   walletAddress: Hex | null;
   walletConnector: Connector | null;
-
-  // Status flags - separate concerns
-  isCreating: boolean; // Currently creating passkey/credential
-  isAuthenticating: boolean; // Currently in auth flow (passkey creation, wallet connection)
-  isReady: boolean; // Provider has finished initialization
-  isAuthenticated: boolean; // User has valid credentials AND smart account is ready
+  isCreating: boolean;
+  isAuthenticating: boolean;
+  isReady: boolean;
+  isAuthenticated: boolean;
   error: Error | null;
-
-  // Passkey actions
-  createPasskey: () => Promise<void>;
+  createPasskey: () => Promise<SmartAccountClient>;
   clearPasskey: () => void;
-
-  // Wallet actions
   connectWallet: (connector: Connector) => Promise<void>;
   disconnectWallet: () => void;
 }
@@ -120,6 +109,32 @@ interface AuthProviderProps {
   chainId?: number;
 }
 
+interface AuthState {
+  authMode: AuthMode;
+  credential: P256Credential | null;
+  smartAccountAddress: Hex | null;
+  smartAccountClient: SmartAccountClient | null;
+  walletAddress: Hex | null;
+  walletConnector: Connector | null;
+  isCreating: boolean;
+  isAuthenticating: boolean;
+  isReady: boolean;
+  error: Error | null;
+}
+
+const initialState: AuthState = {
+  authMode: null,
+  credential: null,
+  smartAccountAddress: null,
+  smartAccountClient: null,
+  walletAddress: null,
+  walletConnector: null,
+  isCreating: false,
+  isAuthenticating: false,
+  isReady: false,
+  error: null,
+};
+
 /**
  * Authentication Provider Component
  *
@@ -133,127 +148,22 @@ interface AuthProviderProps {
  * 4. Set isReady to true when initialization complete
  */
 export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProviderProps) {
-  // Auth mode
-  const [authMode, setAuthMode] = useState<AuthMode>(null);
+  const [state, setState] = useState<AuthState>(initialState);
 
-  // Passkey state
-  const [credential, setCredential] = useState<P256Credential | null>(null);
-  const [smartAccountAddress, setSmartAccountAddress] = useState<Hex | null>(null);
-  const [smartAccountClient, setSmartAccountClient] = useState<SmartAccountClient | null>(null);
-
-  // Wallet state
-  const [walletAddress, setWalletAddress] = useState<Hex | null>(null);
-  const [walletConnector, setWalletConnector] = useState<Connector | null>(null);
-
-  // Status
-  const [isCreating, setIsCreating] = useState(false);
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-
-  // Load saved auth mode and credentials on mount
-  useEffect(() => {
-    const savedAuthMode = localStorage.getItem(AUTH_MODE_STORAGE_KEY) as AuthMode;
-
-    if (savedAuthMode === "passkey") {
-      // Load passkey credential
-      try {
-        const saved = localStorage.getItem(PASSKEY_STORAGE_KEY);
-        if (saved) {
-          const serialized = JSON.parse(saved) as SerializedCredential;
-          // Reconstruct P256Credential from serialized public data
-          const reconstructed: P256Credential = {
-            id: serialized.id,
-            publicKey: serialized.publicKey as Hex,
-            raw: serialized.raw as any, // Raw authenticator data
-          };
-          setCredential(reconstructed);
-          setAuthMode("passkey");
-          console.log("Restored passkey from storage", { credentialId: serialized.id });
-        }
-      } catch (err) {
-        console.error("Failed to load saved credential", err);
-        // Clear corrupted data
-        localStorage.removeItem(PASSKEY_STORAGE_KEY);
-        localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
-      }
-    } else if (savedAuthMode === "wallet") {
-      // Check for existing wallet connection
-      const account = getAccount(wagmiConfig);
-      if (account.address) {
-        setWalletAddress(account.address as Hex);
-        setWalletConnector(account.connector || null);
-        setAuthMode("wallet");
-      }
-    }
-
-    // Mark as initialized after checking localStorage
-    setIsInitialized(true);
+  const setStatePartial = useCallback((patch: Partial<AuthState>) => {
+    setState((prev) => ({ ...prev, ...patch }));
   }, []);
 
-  // Watch for wallet account changes
-  useEffect(() => {
-    if (authMode !== "wallet") return;
+  const initializeSmartAccount = useCallback(
+    async (credential: P256Credential): Promise<SmartAccountClient> => {
+      setStatePartial({ isAuthenticating: true, error: null });
 
-    const unwatch = watchAccount(wagmiConfig, {
-      onChange(account) {
-        if (account.address) {
-          setWalletAddress(account.address as Hex);
-          setWalletConnector(account.connector || null);
-        } else {
-          // Wallet disconnected
-          setWalletAddress(null);
-          setWalletConnector(null);
-          setAuthMode(null);
-          localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
-        }
-      },
-    });
-
-    return () => unwatch();
-  }, [authMode]);
-
-  // Initialize smart account when credential is available
-  useEffect(() => {
-    if (!credential) {
-      setSmartAccountAddress(null);
-      setSmartAccountClient(null);
-      return;
-    }
-
-    const initializeSmartAccount = async () => {
       try {
-        console.log("Starting smart account initialization", {
-          credentialId: credential.id,
-          chainId,
-        });
-
-        // Step 1: Get chain and clients
-        console.log("Setting up blockchain clients");
         const chain = getChainFromId(chainId);
         const publicClient = createPublicClientForChain(chainId);
         const pimlicoClient = createPimlicoClientForChain(chainId);
-
-        console.log("Blockchain clients ready", {
-          chainName: chain.name,
-          pimlicoEndpoint: (pimlicoClient.transport as { url?: string }).url,
-        });
-
-        // Step 2: Create WebAuthn account from credential
-        console.log("Creating WebAuthn account from credential");
         const webAuthnAccount = toWebAuthnAccount({ credential });
-        console.log("WebAuthn account created", {
-          accountType: webAuthnAccount.type,
-        });
-
-        // Step 3: Create Kernel smart account
-        console.log("Initializing Kernel smart account", {
-          version: "0.3.1",
-          entryPointVersion: "0.7",
-          ownersCount: 1,
-        });
-
-        const account = await toKernelSmartAccount({
+        const kernelAccount = await toKernelSmartAccount({
           client: publicClient,
           version: "0.3.1",
           owners: [webAuthnAccount],
@@ -263,230 +173,237 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
           },
         });
 
-        console.log("Kernel smart account created", {
-          smartAccountAddress: account.address,
-          accountType: account.type,
-        });
-
-        setSmartAccountAddress(account.address);
-
-        // Step 4: Create smart account client with Pimlico bundler
-        console.log("Setting up Pimlico smart account client", {
-          bundlerUrl: (pimlicoClient.transport as { url?: string }).url,
-        });
-
         const client = createSmartAccountClient({
-          account,
+          account: kernelAccount,
           chain,
-          bundlerTransport: http((pimlicoClient.transport as { url?: string }).url || ""),
+          bundlerTransport: pimlicoClient.transport,
           paymaster: pimlicoClient,
-          userOperation: {
-            estimateFeesPerGas: async () => {
-              console.log("Estimating gas prices with Pimlico");
-              const gasPrice = await pimlicoClient.getUserOperationGasPrice();
-              console.log("Gas prices estimated", {
-                slow: gasPrice.slow,
-                standard: gasPrice.standard,
-                fast: gasPrice.fast,
-              });
-              return gasPrice.fast;
-            },
-          },
         });
 
-        console.log("Pimlico smart account client created", {
-          smartAccountAddress: account.address,
-          bundlerUrl: (pimlicoClient.transport as { url?: string }).url,
+        localStorage.setItem(AUTH_MODE_STORAGE_KEY, "passkey");
+
+        setStatePartial({
+          authMode: "passkey",
+          credential,
+          smartAccountAddress: kernelAccount.address,
+          smartAccountClient: client,
+          isAuthenticating: false,
         });
 
-        setSmartAccountClient(client);
-        setAuthMode("passkey"); // Only set when smart account is fully ready
-        setIsAuthenticating(false); // Authentication flow complete
-
-        console.log("Smart account initialization completed successfully", {
-          smartAccountAddress: account.address,
-          credentialId: credential.id,
-        });
+        return client;
       } catch (err) {
-        console.error("Smart account initialization failed", {
-          error: err,
-          credentialId: credential.id,
-          chainId,
+        const error =
+          err instanceof Error ? err : new Error("Failed to initialize smart account. Please try again.");
+        setStatePartial({
+          authMode: null,
+          smartAccountAddress: null,
+          smartAccountClient: null,
+          isAuthenticating: false,
+          error,
         });
-        setError(err instanceof Error ? err : new Error("Failed to initialize smart account"));
+        throw error;
+      }
+    },
+    [chainId, setStatePartial]
+  );
+
+  const restorePasskeyFromStorage = useCallback(async () => {
+    try {
+      const saved = localStorage.getItem(PASSKEY_STORAGE_KEY);
+      if (!saved) return;
+
+      const serialized = JSON.parse(saved) as SerializedCredential;
+      const reconstructed: P256Credential = {
+        id: serialized.id,
+        publicKey: serialized.publicKey as Hex,
+        raw: serialized.raw as unknown as P256Credential["raw"],
+      };
+
+      await initializeSmartAccount(reconstructed);
+    } catch (err) {
+      console.error("Failed to restore passkey from storage", err);
+      localStorage.removeItem(PASSKEY_STORAGE_KEY);
+      localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
+    }
+  }, [initializeSmartAccount]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const bootstrap = async () => {
+      const savedAuthMode = localStorage.getItem(AUTH_MODE_STORAGE_KEY) as AuthMode;
+
+      if (savedAuthMode === "passkey") {
+        await restorePasskeyFromStorage();
+      } else if (savedAuthMode === "wallet") {
+        const account = getAccount(wagmiConfig);
+        if (account.address) {
+          setStatePartial({
+            authMode: "wallet",
+            walletAddress: account.address as Hex,
+            walletConnector: account.connector || null,
+          });
+        } else {
+          localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
+        }
+      }
+
+      if (!cancelled) {
+        setStatePartial({ isReady: true });
       }
     };
 
-    initializeSmartAccount();
-  }, [credential, chainId]);
+    void bootstrap();
 
-  /**
-   * Create a new passkey credential using WebAuthn.
-   *
-   * Process:
-   * 1. Prompts user for biometric authentication (Face ID, Touch ID, Windows Hello, etc.)
-   * 2. Generates P256 key pair (private key stays in device's secure enclave)
-   * 3. Saves public credential data to localStorage
-   * 4. Smart account initialization happens automatically via useEffect
-   *
-   * Security:
-   * - Private key never leaves the device
-   * - Only public credential data is persisted (id, publicKey, type)
-   * - WebAuthn standard ensures phishing resistance
-   *
-   * @throws If WebAuthn is not supported or user cancels
-   */
+    return () => {
+      cancelled = true;
+    };
+  }, [restorePasskeyFromStorage, setStatePartial]);
+
+  useEffect(() => {
+    const unwatch = watchAccount(wagmiConfig, {
+      onChange(account) {
+        if (account.address) {
+          setStatePartial({
+            authMode: "wallet",
+            walletAddress: account.address as Hex,
+            walletConnector: account.connector || null,
+            error: null,
+          });
+          localStorage.setItem(AUTH_MODE_STORAGE_KEY, "wallet");
+        } else {
+          setStatePartial({
+            authMode: null,
+            walletAddress: null,
+            walletConnector: null,
+          });
+          localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
+        }
+      },
+    });
+
+    return () => {
+      unwatch();
+    };
+  }, [setStatePartial]);
+
   const createPasskey = useCallback(async () => {
-    setIsAuthenticating(true);
-    setIsCreating(true);
-    setError(null);
+    setStatePartial({ isAuthenticating: true, isCreating: true, error: null });
 
     try {
-      // Create WebAuthn credential
-      const newCredential = await createWebAuthnCredential({
-        name: "Green Goods Wallet",
-      });
-
-      // Serialize only public data for storage
+      const newCredential = await createWebAuthnCredential({ name: "Green Goods Wallet" });
       const serialized: SerializedCredential = {
         id: newCredential.id,
         publicKey: newCredential.publicKey,
-        raw: newCredential.raw as any, // Raw authenticator data needed for verification
+        raw: newCredential.raw as unknown,
       };
 
-      // Save to localStorage (only public data)
       localStorage.setItem(PASSKEY_STORAGE_KEY, JSON.stringify(serialized));
-      localStorage.setItem(AUTH_MODE_STORAGE_KEY, "passkey");
-      // Note: userOnboarded flag will be set after successful garden join in Login component
 
-      setCredential(newCredential);
-      // Don't set auth mode here - let the useEffect handle it after smart account is ready
-
-      console.log("Passkey created successfully", { credentialId: newCredential.id });
+      const client = await initializeSmartAccount(newCredential);
+      return client;
     } catch (err) {
-      console.error("Passkey creation failed", err);
       const error =
         err instanceof Error ? err : new Error("Failed to create passkey. Please try again.");
-      setError(error);
+      setStatePartial({ error, isAuthenticating: false });
       throw error;
     } finally {
-      setIsCreating(false);
+      setStatePartial({ isCreating: false });
     }
-  }, []);
+  }, [initializeSmartAccount, setStatePartial]);
 
-  /**
-   * Clear passkey credential and reset auth state.
-   * Used for logout or account reset.
-   */
   const clearPasskey = useCallback(() => {
     localStorage.removeItem(PASSKEY_STORAGE_KEY);
     localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
-    setCredential(null);
-    setSmartAccountAddress(null);
-    setSmartAccountClient(null);
-    setAuthMode(null);
-    setError(null);
-    console.log("Passkey cleared");
+    setState((prev) => ({ ...initialState, isReady: prev.isReady }));
   }, []);
 
-  /**
-   * Connect a traditional wallet (MetaMask, WalletConnect, Coinbase Wallet, etc.)
-   *
-   * Used primarily by operators and admins who prefer traditional wallet management.
-   * Does NOT create a smart account - uses EOA directly.
-   *
-   * @throws If connection fails or user rejects
-   */
-  const connectWallet = useCallback(async (connector: Connector) => {
-    setIsAuthenticating(true);
-    setIsCreating(true);
-    setError(null);
+  const connectWallet = useCallback(
+    async (connector: Connector) => {
+      setStatePartial({ isAuthenticating: true, isCreating: true, error: null });
 
-    try {
-      // Connect without specifying chainId to allow wallet's default network
-      const result = await connect(wagmiConfig, { connector });
+      try {
+        const result = await connect(wagmiConfig, { connector });
 
-      setWalletAddress(result.accounts[0] as Hex);
-      setWalletConnector(connector);
-      setAuthMode("wallet");
-      localStorage.setItem(AUTH_MODE_STORAGE_KEY, "wallet");
+        setStatePartial({
+          authMode: "wallet",
+          walletAddress: result.accounts[0] as Hex,
+          walletConnector: connector,
+          isAuthenticating: false,
+        });
 
-      console.log("Wallet connected", { account: result.accounts[0] });
-    } catch (err) {
-      console.error("Wallet connection failed", err);
-      const error =
-        err instanceof Error ? err : new Error("Failed to connect wallet. Please try again.");
-      setError(error);
-      throw error;
-    } finally {
-      setIsCreating(false);
-    }
-  }, []);
+        localStorage.setItem(AUTH_MODE_STORAGE_KEY, "wallet");
+      } catch (err) {
+        const error =
+          err instanceof Error ? err : new Error("Failed to connect wallet. Please try again.");
+        setStatePartial({ error, isAuthenticating: false });
+        throw error;
+      } finally {
+        setStatePartial({ isCreating: false });
+      }
+    },
+    [setStatePartial]
+  );
 
-  /**
-   * Disconnect traditional wallet and reset auth state.
-   */
   const disconnectWallet = useCallback(() => {
     disconnect(wagmiConfig);
     localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
-    setWalletAddress(null);
-    setWalletConnector(null);
-    setAuthMode(null);
-    setError(null);
-    console.log("Wallet disconnected");
-  }, []);
+    setStatePartial({
+      authMode: null,
+      walletAddress: null,
+      walletConnector: null,
+      error: null,
+    });
+  }, [setStatePartial]);
 
-  // isReady means auth provider has finished initialization (checked localStorage, etc.)
-  const isReady = isInitialized;
-
-  // isAuthenticated means user has valid credentials AND smart account is ready
   const isAuthenticated = useMemo(() => {
-    if (authMode === "passkey") {
-      // Only consider authenticated when smart account client is fully ready
-      return Boolean(credential && smartAccountAddress && smartAccountClient);
-    } else if (authMode === "wallet") {
-      return Boolean(walletAddress && walletConnector);
+    if (state.authMode === "passkey") {
+      return Boolean(state.smartAccountAddress && state.smartAccountClient);
     }
+
+    if (state.authMode === "wallet") {
+      return Boolean(state.walletAddress && state.walletConnector);
+    }
+
     return false;
   }, [
-    authMode,
-    credential,
-    smartAccountAddress,
-    smartAccountClient,
-    walletAddress,
-    walletConnector,
+    state.authMode,
+    state.smartAccountAddress,
+    state.smartAccountClient,
+    state.walletAddress,
+    state.walletConnector,
   ]);
 
   const contextValue: AuthContextType = useMemo(
     () => ({
-      authMode,
-      credential,
-      smartAccountAddress,
-      smartAccountClient,
-      walletAddress,
-      walletConnector,
-      isCreating,
-      isAuthenticating,
-      isReady,
+      authMode: state.authMode,
+      credential: state.credential,
+      smartAccountAddress: state.smartAccountAddress,
+      smartAccountClient: state.smartAccountClient,
+      walletAddress: state.walletAddress,
+      walletConnector: state.walletConnector,
+      isCreating: state.isCreating,
+      isAuthenticating: state.isAuthenticating,
+      isReady: state.isReady,
       isAuthenticated,
-      error,
+      error: state.error,
       createPasskey,
       clearPasskey,
       connectWallet,
       disconnectWallet,
     }),
     [
-      authMode,
-      credential,
-      smartAccountAddress,
-      smartAccountClient,
-      walletAddress,
-      walletConnector,
-      isCreating,
-      isAuthenticating,
-      isReady,
+      state.authMode,
+      state.credential,
+      state.smartAccountAddress,
+      state.smartAccountClient,
+      state.walletAddress,
+      state.walletConnector,
+      state.isCreating,
+      state.isAuthenticating,
+      state.isReady,
+      state.error,
       isAuthenticated,
-      error,
       createPasskey,
       clearPasskey,
       connectWallet,

@@ -10,6 +10,10 @@ import { BrowserRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Login } from "../../views/Login";
 
+const { mockOpenWalletModal } = vi.hoisted(() => ({
+  mockOpenWalletModal: vi.fn(),
+}));
+
 // Mock useAuth hook
 const mockCreatePasskey = vi.fn();
 const mockConnectWallet = vi.fn();
@@ -19,6 +23,7 @@ const mockUseAuth = vi.fn(() => ({
   createPasskey: mockCreatePasskey,
   connectWallet: mockConnectWallet,
   isCreating: false,
+  isAuthenticating: false,
   isAuthenticated: false,
   error: null,
 }));
@@ -44,7 +49,6 @@ vi.mock("@/hooks/garden/useAutoJoinRootGarden", () => ({
 }));
 
 // Mock AppKit hooks
-const mockOpenWalletModal = vi.fn();
 const mockUseAppKit = vi.fn(() => ({
   open: mockOpenWalletModal,
 }));
@@ -57,6 +61,10 @@ const mockUseAppKitAccount = vi.fn(() => ({
 vi.mock("@reown/appkit/react", () => ({
   useAppKit: () => mockUseAppKit(),
   useAppKitAccount: () => mockUseAppKitAccount(),
+}));
+
+vi.mock("@/config/appkit", () => ({
+  appKit: { open: mockOpenWalletModal },
 }));
 
 // Mock wagmi
@@ -138,6 +146,7 @@ describe("Login", () => {
       createPasskey: mockCreatePasskey,
       connectWallet: mockConnectWallet,
       isCreating: false,
+      isAuthenticating: false,
       isAuthenticated: false,
       error: new Error("Test error message"),
     });
@@ -158,6 +167,7 @@ describe("Login", () => {
       createPasskey: mockCreatePasskey,
       connectWallet: mockConnectWallet,
       isCreating: false,
+      isAuthenticating: false,
       isAuthenticated: true,
       error: null,
     });
