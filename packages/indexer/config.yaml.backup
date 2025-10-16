@@ -23,28 +23,32 @@ contracts:
       - event: GardenerRemoved(address indexed updater, address indexed gardener)
       - event: GardenOperatorAdded(address indexed updater, address indexed operator)
       - event: GardenOperatorRemoved(address indexed updater, address indexed operator)
-      - event: InviteCreated(bytes32 indexed inviteCode, address indexed garden, address indexed creator, uint256 maxUses, uint256 expiresAt, string role)
-      - event: InviteUsed(bytes32 indexed inviteCode, address indexed garden, address indexed user)
-      - event: InviteRevoked(bytes32 indexed inviteCode, address indexed garden)
       - event: GAPProjectCreated(bytes32 indexed projectUID, address indexed gardenAddress, string projectName)
 networks:
   - id: 84532
     start_block: 0
+    contracts:
+      - name: ActionRegistry
+        address: "0x9685E9E5430C13AFF7ef32D9E8fc93d516e121E0"
+      - name: GardenToken
+        address: "0x0B0EA0FfB996B0b04335507Ef1523124480f7310"
+      - name: GardenAccount
+        address: "0x14353dD1B89618127B55fAd16d70450f54F3E67D"
   - id: 42220
     start_block: 0
     contracts:
       - name: ActionRegistry
-        address: "0x1f10E7DE76CfC5F1175d74d714D495e30B740C2E"
+        address: "0x0747ED4f1915b8f3A6eA8a9d8216E8F53EE80f92"
       - name: GardenToken
-        address: "0x5Bb743A7E2F07970c00A87f45915A3b1176de226"
+        address: "0xDcA639287A392E17cad0deA4E72F5B3cfA429e6B"
       - name: GardenAccount
-        address: "0x2c6FB6128cA1177b58A8b361Cf799F0De4D031ac"
+        address: "0x3B4A3ACA9D52b01086F625a0EB6E6e24b65C810D"
   - id: 42161
-    start_block: 0
+    start_block: 200000000
     contracts:
       - name: ActionRegistry
-        address: "0xd94a6ef8A3f685dEdc7d69304564F8497e32cB1c"
+        address: "0xc1641a23757Ec6C62b549Aa2CeE8c3C90cf5b439"
       - name: GardenToken
-        address: "0x89Cc1aB4dE7b9e837E4935EAa1f170eF46E0A6A7"
+        address: "0xE3c5d9276F92Ff0D4001B1F11B8eBDEd2fa75aA9"
       - name: GardenAccount
-        address: "0x62aae8bfAeC3a3e858ad05c21096f47dF16D9668"
+        address: "0x3B4A3ACA9D52b01086F625a0EB6E6e24b65C810D"

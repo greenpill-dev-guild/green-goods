@@ -1,8 +1,16 @@
 import { PinataSDK } from "pinata";
 
+const isDev = import.meta.env.DEV;
+const devOrigin =
+  typeof window !== "undefined" && window.location.origin
+    ? window.location.origin
+    : "https://localhost:3001";
+
 export const pinata = new PinataSDK({
   pinataJwt: import.meta.env.VITE_PINATA_JWT as string,
-  pinataGateway: "greengoods.mypinata.cloud",
+  pinataGateway: isDev ? `${devOrigin}/pinata/gateway` : "greengoods.mypinata.cloud",
+  uploadUrl: isDev ? `${devOrigin}/pinata/uploads/v3` : undefined,
+  endpointUrl: isDev ? `${devOrigin}/pinata/api/v3` : undefined,
 });
 
 export async function uploadFileToIPFS(file: File) {

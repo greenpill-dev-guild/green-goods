@@ -1,5 +1,4 @@
 import { render, screen } from "@testing-library/react";
-import React from "react";
 import { beforeEach, describe, it, vi } from "vitest";
 
 import { Root } from "../main";

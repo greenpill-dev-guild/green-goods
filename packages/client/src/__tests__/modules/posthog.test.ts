@@ -10,7 +10,7 @@ vi.mock("posthog-js", () => ({
   },
 }));
 
-import { track, identify, reset, getDistinctId } from "../../modules/posthog";
+import { track, identify, reset, getDistinctId } from "../../modules/app/posthog";
 
 describe("modules/posthog", () => {
   beforeEach(() => {

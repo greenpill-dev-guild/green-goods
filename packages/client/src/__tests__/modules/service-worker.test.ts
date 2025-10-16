@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import { serviceWorkerManager } from "../../modules/service-worker";
+import { serviceWorkerManager } from "../../modules/app/service-worker";
 
 describe("modules/service-worker", () => {
   beforeEach(() => {

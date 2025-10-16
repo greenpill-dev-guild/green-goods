@@ -12,12 +12,12 @@ contract StringUtilsTest is Test {
 
     function testTimestampToISO_2024() public {
         // Test: 2024-01-01T00:00:00.000Z (1704067200)
-        assertEq(StringUtils.timestampToISO(1704067200), "2024-01-01T00:00:00.000Z");
+        assertEq(StringUtils.timestampToISO(1_704_067_200), "2024-01-01T00:00:00.000Z");
     }
 
     function testTimestampToISO_WithTime() public {
         // Test: 2024-10-08T07:00:00.000Z (1728370800)
-        assertEq(StringUtils.timestampToISO(1728370800), "2024-10-08T07:00:00.000Z");
+        assertEq(StringUtils.timestampToISO(1_728_370_800), "2024-10-08T07:00:00.000Z");
     }
 
     function testTimestampToISO_CurrentBlock() public {
@@ -33,4 +33,3 @@ contract StringUtilsTest is Test {
         assertEq(bytes(result)[23], bytes1("Z"), "Index 23 should be Z");
     }
 }
-

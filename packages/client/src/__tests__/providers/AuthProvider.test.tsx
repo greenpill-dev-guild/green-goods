@@ -6,7 +6,7 @@
 
 import { render, renderHook, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AuthProvider, useAuth } from "../../providers/AuthProvider";
+import { AuthProvider, useAuth } from "../../providers/auth";
 
 // Mock viem account abstraction
 vi.mock("viem/account-abstraction", () => ({

@@ -30,6 +30,10 @@ export interface AdminState {
   updateTransactionStatus: (txHash: string, status: "confirmed" | "failed") => void;
   clearPendingTransactions: () => void;
 
+  // Attestation tracking
+  lastAttestationId: string | null;
+  setLastAttestationId: (id: string | null) => void;
+
   // UI state
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
@@ -63,6 +67,10 @@ export const useAdminStore = create<AdminState>()(
       }
     },
     clearPendingTransactions: () => set({ pendingTransactions: new Map() }),
+
+    // Attestation tracking
+    lastAttestationId: null,
+    setLastAttestationId: (id) => set({ lastAttestationId: id }),
 
     // UI state
     sidebarOpen: false,

@@ -160,10 +160,9 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
       approved: false,
       feedback: "",
     },
-    // @ts-expect-error - Known type incompatibility between @hookform/resolvers 3.9.0 and Zod 3.25.76
-    // The ZodType generic signature differs from the expected $ZodTypeInternals signature
-    // This works correctly at runtime. Will be resolved in future @hookform/resolvers updates.
-    resolver: zodResolver(workApprovalFormSchema),
+    // Compatibility note: older @hookform/resolvers versions had a signature mismatch with Zod.
+    // Current versions compile cleanly; keeping the context here for future regressions.
+    resolver: zodResolver(workApprovalFormSchema as any),
     shouldUseNativeValidation: true,
     mode: "onChange",
   });

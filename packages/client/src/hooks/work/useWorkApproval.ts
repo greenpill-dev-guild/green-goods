@@ -4,7 +4,7 @@
  * Provides unified interface for work approval submission that branches
  * based on authentication mode:
  * - Wallet mode: Direct transaction via wallet client
- * - Passkey mode: Job queue with offline support
+ * - Passkey mode: Direct smart-account transaction (Pimlico sponsored)
  *
  * @module hooks/work/useWorkApproval
  */
@@ -12,7 +12,7 @@
 import { useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { submitApprovalDirectly } from "@/modules/work/wallet-submission";
-import { submitApprovalToQueue } from "@/modules/work/work-submission";
+import { submitApprovalWithPasskey } from "@/modules/work/passkey-submission";
 import { useUser } from "@/hooks/auth/useUser";
 import { DEFAULT_CHAIN_ID } from "@/config/blockchain";
 import { createLogger } from "@/utils/app/logger";
@@ -29,7 +29,7 @@ interface UseWorkApprovalParams {
  *
  * Automatically branches based on authentication mode:
  * - Wallet users: Direct blockchain transaction
- * - Passkey users: Job queue with offline support
+ * - Passkey users: Sponsored smart-account transaction
  *
  * @returns TanStack Query mutation for approval submission
  *
@@ -57,7 +57,7 @@ interface UseWorkApprovalParams {
  * ```
  */
 export function useWorkApproval() {
-  const { authMode } = useUser();
+  const { authMode, smartAccountClient } = useUser();
   const chainId = DEFAULT_CHAIN_ID;
 
   return useMutation({
@@ -68,11 +68,15 @@ export function useWorkApproval() {
         // Direct wallet submission
         logger.log("Using direct wallet submission");
         return await submitApprovalDirectly(draft, work.gardenerAddress || "", chainId);
-      } else {
-        // Job queue submission for passkey users
-        logger.log("Using job queue submission");
-        return await submitApprovalToQueue(draft, work, chainId);
       }
+
+      logger.log("Using passkey smart account submission");
+      return await submitApprovalWithPasskey({
+        client: smartAccountClient,
+        draft,
+        gardenerAddress: work.gardenerAddress || "",
+        chainId,
+      });
     },
     onMutate: () => {
       const message =

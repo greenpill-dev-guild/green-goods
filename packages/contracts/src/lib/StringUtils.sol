@@ -108,10 +108,10 @@ library StringUtils {
     /// @return ISO 8601 formatted date string in UTC with milliseconds
     function timestampToISO(uint256 timestamp) internal pure returns (string memory) {
         // Calculate date components using Neri-Schneider algorithm
-        uint256 z = timestamp / 86400 + 719468;
-        uint256 era = (z >= 0 ? z : z - 146096) / 146097;
-        uint256 doe = z - era * 146097;
-        uint256 yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+        uint256 z = timestamp / 86_400 + 719_468;
+        uint256 era = (z >= 0 ? z : z - 146_096) / 146_097;
+        uint256 doe = z - era * 146_097;
+        uint256 yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
         uint256 y = yoe + era * 400;
         uint256 doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
         uint256 mp = (5 * doy + 2) / 153;
@@ -122,7 +122,7 @@ library StringUtils {
         }
 
         // Calculate time components
-        uint256 secondsInDay = timestamp % 86400;
+        uint256 secondsInDay = timestamp % 86_400;
         uint256 hour = secondsInDay / 3600;
         uint256 minute = (secondsInDay % 3600) / 60;
         uint256 second = secondsInDay % 60;

@@ -1,6 +1,9 @@
 import { describe, it, expect } from "vitest";
 
-import { DeduplicationManager, defaultDeduplicationManager } from "../../modules/deduplication";
+import {
+  DeduplicationManager,
+  defaultDeduplicationManager,
+} from "../../modules/work/deduplication";
 
 describe("modules/deduplication", () => {
   it("generates stable content hashes", () => {

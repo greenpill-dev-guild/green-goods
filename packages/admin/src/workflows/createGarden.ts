@@ -1,27 +1,100 @@
-import { createMachine, assign } from "xstate";
-import type { CreateGardenParams } from "@/types/contracts";
+import { assign, setup } from "xstate";
+
+import { useCreateGardenStore } from "@/stores/createGarden";
 
 export interface CreateGardenContext {
-  gardenParams?: CreateGardenParams;
   txHash?: string;
   error?: string;
   retryCount: number;
 }
 
-export type CreateGardenEvent =
-  | { type: "START"; params: CreateGardenParams }
-  | { type: "SUBMIT" }
-  | { type: "SUCCESS"; txHash: string }
-  | { type: "FAILURE"; error: string }
-  | { type: "RETRY" }
-  | { type: "RESET" };
+type SubmitDoneEvent = { type: "done.invoke.submitGarden"; output: string };
+type SubmitErrorEvent = { type: "error.platform.submitGarden"; error: unknown };
 
-export const createGardenMachine = createMachine({
-  id: "createGarden",
-  types: {} as {
-    context: CreateGardenContext;
-    events: CreateGardenEvent;
+type BaseEvents =
+  | { type: "OPEN" }
+  | { type: "CLOSE" }
+  | { type: "RESET" }
+  | { type: "NEXT" }
+  | { type: "BACK" }
+  | { type: "REVIEW" }
+  | { type: "SUBMIT" }
+  | { type: "EDIT" }
+  | { type: "RETRY" }
+  | { type: "CREATE_ANOTHER" };
+
+export type CreateGardenEvent = BaseEvents | SubmitDoneEvent | SubmitErrorEvent;
+
+const createGardenSetup = setup({
+  types: {
+    context: {} as CreateGardenContext,
+    events: {} as CreateGardenEvent,
   },
+  actions: {
+    clearContext: assign({ txHash: undefined, error: undefined, retryCount: 0 }),
+    clearError: assign({ error: undefined }),
+    storeTxHash: assign({
+      txHash: ({ event }) => (event as SubmitDoneEvent).output,
+      retryCount: 0,
+    }),
+    storeFailure: assign({
+      error: ({ event }) => {
+        const error = (event as SubmitErrorEvent).error;
+        if (error instanceof Error) {
+          return error.message;
+        }
+        if (typeof error === "string") {
+          return error;
+        }
+        try {
+          return JSON.stringify(error);
+        } catch {
+          return "Failed to create garden";
+        }
+      },
+    }),
+    incrementRetry: assign({
+      retryCount: ({ context }) => context.retryCount + 1,
+    }),
+    advanceStep: () => {
+      useCreateGardenStore.getState().nextStep();
+    },
+    goBackStep: () => {
+      useCreateGardenStore.getState().previousStep();
+    },
+    resetFormData: () => {
+      useCreateGardenStore.getState().reset();
+    },
+    goToReviewStep: () => {
+      useCreateGardenStore.getState().goToReview();
+    },
+    ensureReviewStep: () => {
+      useCreateGardenStore.getState().goToReview();
+    },
+    goToFirstIncompleteStep: () => {
+      useCreateGardenStore.getState().goToFirstIncompleteStep();
+    },
+  },
+  guards: {
+    canGoForward: () => useCreateGardenStore.getState().canProceed(),
+    isReviewStep: () => {
+      const state = useCreateGardenStore.getState();
+      return state.currentStep === state.steps.length - 2 && state.canProceed();
+    },
+    canGoBack: () => useCreateGardenStore.getState().currentStep > 0,
+    isReviewReady: () => useCreateGardenStore.getState().isReviewReady(),
+    canSubmit: () => useCreateGardenStore.getState().isReviewReady(),
+    canRetry: ({ context }) => context.retryCount < 3,
+  },
+  actors: {
+    submitGarden: () => {
+      throw new Error("submitGarden actor not implemented");
+    },
+  } as any,
+});
+
+export const createGardenMachine = createGardenSetup.createMachine({
+  id: "createGarden",
   initial: "idle",
   context: {
     retryCount: 0,
@@ -29,123 +102,110 @@ export const createGardenMachine = createMachine({
   states: {
     idle: {
       on: {
-        START: {
-          target: "validating",
-          actions: assign({
-            gardenParams: ({ event }) => event.params,
-            error: undefined,
-            txHash: undefined,
-          }),
+        OPEN: {
+          target: "collecting",
+          actions: ["clearContext", "resetFormData"],
         },
       },
     },
-    validating: {
-      always: [
-        {
-          target: "ready",
-          guard: ({ context }) => {
-            const params = context.gardenParams;
-            return !!(
-              params?.name &&
-              params?.description &&
-              params?.location &&
-              params?.communityToken &&
-              /^0x[a-fA-F0-9]{40}$/.test(params.communityToken)
-            );
-          },
-        },
-        {
-          target: "invalid",
-        },
-      ],
-    },
-    invalid: {
+    collecting: {
       on: {
-        START: {
-          target: "validating",
-          actions: assign({
-            gardenParams: ({ event }) => event.params,
-            error: undefined,
-          }),
+        NEXT: [
+          {
+            guard: "isReviewStep",
+            target: "review",
+            actions: "advanceStep",
+          },
+          {
+            guard: "canGoForward",
+            actions: "advanceStep",
+          },
+        ],
+        BACK: {
+          guard: "canGoBack",
+          actions: "goBackStep",
+        },
+        REVIEW: {
+          guard: "isReviewReady",
+          target: "review",
+          actions: "goToReviewStep",
+        },
+        CLOSE: {
+          target: "idle",
+          actions: ["clearContext", "resetFormData"],
         },
         RESET: {
           target: "idle",
-          actions: assign({
-            gardenParams: undefined,
-            error: undefined,
-            txHash: undefined,
-            retryCount: 0,
-          }),
+          actions: ["clearContext", "resetFormData"],
         },
       },
     },
-    ready: {
+    review: {
+      entry: "ensureReviewStep",
       on: {
+        EDIT: {
+          target: "collecting",
+          actions: "goToFirstIncompleteStep",
+        },
+        BACK: {
+          guard: "canGoBack",
+          target: "collecting",
+          actions: "goBackStep",
+        },
         SUBMIT: {
+          guard: "canSubmit",
           target: "submitting",
         },
-        START: {
-          target: "validating",
-          actions: assign({
-            gardenParams: ({ event }) => event.params,
-          }),
-        },
-        RESET: {
+        CLOSE: {
           target: "idle",
-          actions: assign({
-            gardenParams: undefined,
-            error: undefined,
-            txHash: undefined,
-            retryCount: 0,
-          }),
+          actions: ["clearContext", "resetFormData"],
         },
       },
     },
     submitting: {
-      on: {
-        SUCCESS: {
+      entry: "clearError",
+      invoke: {
+        src: "submitGarden",
+        onDone: {
           target: "success",
-          actions: assign({
-            txHash: ({ event }) => event.txHash,
-            error: undefined,
-          }),
+          actions: "storeTxHash",
         },
-        FAILURE: {
+        onError: {
           target: "error",
-          actions: assign({
-            error: ({ event }) => event.error,
-            retryCount: ({ context }) => context.retryCount + 1,
-          }),
+          actions: ["storeFailure", "incrementRetry"],
+        },
+      } as any,
+      on: {
+        CLOSE: {
+          target: "idle",
+          actions: ["clearContext", "resetFormData"],
         },
       },
     },
     success: {
       on: {
-        RESET: {
+        CLOSE: {
           target: "idle",
-          actions: assign({
-            gardenParams: undefined,
-            error: undefined,
-            txHash: undefined,
-            retryCount: 0,
-          }),
+          actions: ["clearContext", "resetFormData"],
+        },
+        CREATE_ANOTHER: {
+          target: "collecting",
+          actions: ["clearContext", "resetFormData"],
         },
       },
     },
     error: {
       on: {
         RETRY: {
+          guard: "canRetry",
           target: "submitting",
-          guard: ({ context }) => context.retryCount < 3,
         },
-        RESET: {
+        EDIT: {
+          target: "collecting",
+        },
+        CLOSE: {
           target: "idle",
-          actions: assign({
-            gardenParams: undefined,
-            error: undefined,
-            txHash: undefined,
-            retryCount: 0,
-          }),
+          actions: ["clearContext", "resetFormData"],
         },
       },
     },

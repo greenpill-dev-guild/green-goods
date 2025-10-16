@@ -18,18 +18,16 @@ vi.mock("../../modules/job-queue", async (_orig) => {
 describe("modules/job-queue/sync-manager", () => {
   beforeEach(() => {
     Object.defineProperty(navigator, "onLine", { value: true, writable: true });
-    vi.spyOn(global, "setTimeout").mockImplementation(((fn: () => void) => {
+    vi.spyOn(global, "setTimeout").mockImplementation((fn: () => void) => {
       // immediately execute
       fn();
-      return 0 as unknown;
-    }) as unknown);
+      return 0 as any;
+    });
   });
 
   it("returns zeros on empty queue and emits no failure", async () => {
     const sm = new SyncManager(new JobProcessor());
-    (
-      jobQueueDB.getJobs as unknown as jest.MockedFunction<typeof jobQueueDB.getJobs>
-    ).mockResolvedValueOnce([]);
+    (jobQueueDB.getJobs as any).mockResolvedValueOnce([]);
     const res = await sm.flush();
     expect(res).toMatchObject({ processed: 0, failed: 0, skipped: 0 });
   });

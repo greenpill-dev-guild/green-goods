@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { StorageManager, defaultStorageManager } from "../../modules/storage-manager";
+import { StorageManager, defaultStorageManager } from "../../modules/work/storage-manager";
 
 describe("modules/storage-manager", () => {
   it("returns quota and breakdown without throwing", async () => {

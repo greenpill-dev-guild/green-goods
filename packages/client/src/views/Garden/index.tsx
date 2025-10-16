@@ -119,7 +119,7 @@ const Work: React.FC = () => {
         images={images}
         values={form.values}
         feedback={feedback}
-        plantCount={plantCount}
+        plantCount={plantCount ?? 0}
         plantSelection={plantSelection}
       />
     );
@@ -228,9 +228,6 @@ const Work: React.FC = () => {
         // Check for duplicates before submission and proceed based on result
         const proceeded = await handleWorkSubmission();
         if (proceeded) {
-          try {
-            sessionStorage.setItem("openWorkDashboard", "1");
-          } catch {}
           navigate("/home");
           form.reset();
           setImages([]);

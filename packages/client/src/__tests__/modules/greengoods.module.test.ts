@@ -12,7 +12,7 @@ vi.mock("../../modules/pinata", () => ({
 
 vi.mock("../../config", () => ({ DEFAULT_CHAIN_ID: 84532 }));
 
-import { getActions, getGardens } from "../../modules/greengoods";
+import { getActions, getGardens } from "../../modules/data/greengoods";
 
 describe("modules/greengoods", () => {
   it("returns arrays for actions and gardens", async () => {

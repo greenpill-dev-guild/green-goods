@@ -18,7 +18,7 @@ vi.mock("../../modules/urql", () => ({
   }),
 }));
 
-import { getGardenAssessments, getWorks, getWorkApprovals } from "../../modules/eas";
+import { getGardenAssessments, getWorks, getWorkApprovals } from "../../modules/data/eas";
 
 describe("modules/eas", () => {
   it("returns arrays for list functions", async () => {

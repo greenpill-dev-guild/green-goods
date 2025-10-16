@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { DeduplicationManager } from "../../modules/deduplication";
+import { DeduplicationManager } from "../../modules/work/deduplication";
 
 describe("modules/deduplication similarity and stats", () => {
   it("finds similar work based on simple hash similarity and reports stats", () => {

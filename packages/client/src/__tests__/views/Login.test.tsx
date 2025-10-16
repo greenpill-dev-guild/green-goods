@@ -18,9 +18,10 @@ const mockUseAuth = vi.fn(() => ({
   smartAccountClient: null,
   createPasskey: mockCreatePasskey,
   connectWallet: mockConnectWallet,
-  isCreating: false,
+  authMode: null as "passkey" | "wallet" | null,
   isAuthenticated: false,
   error: null,
+  isAuthenticating: false,
 }));
 
 vi.mock("@/hooks/auth/useAuth", () => ({
@@ -44,19 +45,17 @@ vi.mock("@/hooks/garden/useAutoJoinRootGarden", () => ({
 }));
 
 // Mock AppKit hooks
-const mockOpenWalletModal = vi.fn();
-const mockUseAppKit = vi.fn(() => ({
-  open: mockOpenWalletModal,
+const { mockOpenWalletModal } = vi.hoisted(() => ({
+  mockOpenWalletModal: vi.fn(),
 }));
 
-const mockUseAppKitAccount = vi.fn(() => ({
-  address: null,
-  isConnected: false,
+vi.mock("@/config/appkit", () => ({
+  appKit: { open: mockOpenWalletModal },
+  wagmiConfig: {},
 }));
 
-vi.mock("@reown/appkit/react", () => ({
-  useAppKit: () => mockUseAppKit(),
-  useAppKitAccount: () => mockUseAppKitAccount(),
+vi.mock("wagmi", () => ({
+  useAccount: () => ({ address: null, isConnected: false }),
 }));
 
 // Mock wagmi
@@ -137,9 +136,10 @@ describe("Login", () => {
       smartAccountClient: null,
       createPasskey: mockCreatePasskey,
       connectWallet: mockConnectWallet,
-      isCreating: false,
+      authMode: null,
       isAuthenticated: false,
-      error: new Error("Test error message"),
+      error: null,
+      isAuthenticating: false,
     });
 
     render(
@@ -154,12 +154,13 @@ describe("Login", () => {
   it("should redirect to home when authenticated", () => {
     mockUseAuth.mockReturnValue({
       walletAddress: null,
-      smartAccountClient: { account: {} },
+      smartAccountClient: { account: {} } as any,
       createPasskey: mockCreatePasskey,
       connectWallet: mockConnectWallet,
-      isCreating: false,
+      authMode: "passkey" as "passkey" | "wallet" | null,
       isAuthenticated: true,
       error: null,
+      isAuthenticating: false,
     });
 
     render(

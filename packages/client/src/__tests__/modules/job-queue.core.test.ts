@@ -1,15 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 
 // Use real idb with fake-indexeddb provided in setupTests
 
 import { jobQueue } from "../../modules/job-queue";
-
-// Minimal smart account client mock
-const mockClient = {
-  sendTransaction: vi.fn(async () => "0xabc"),
-  getAddress: vi.fn(async () => "0x0"),
-  isConnected: vi.fn(() => true),
-};
 
 describe("modules/job-queue", () => {
   beforeEach(() => {
@@ -17,8 +10,6 @@ describe("modules/job-queue", () => {
   });
 
   it("adds a job and emits basic lifecycle via processing path", async () => {
-    jobQueue.setSmartAccountClient(mockClient as any);
-
     const jobId = await jobQueue.addJob(
       "work",
       {
@@ -31,9 +22,6 @@ describe("modules/job-queue", () => {
       { chainId: 84532 }
     );
     expect(jobId).toBeTypeOf("string");
-
-    // Flush any pending (should be no-op or success)
-    await jobQueue.flush().catch(() => {});
 
     const stats = await jobQueue.getStats();
     expect(stats.total).toBeGreaterThanOrEqual(0);

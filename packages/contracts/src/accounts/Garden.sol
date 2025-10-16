@@ -7,7 +7,7 @@ import { AttestationRequest, AttestationRequestData } from "@eas/IEAS.sol";
 
 import { KarmaLib } from "../lib/Karma.sol";
 import { StringUtils } from "../lib/StringUtils.sol";
-import { IGap, IProjectResolver } from "../interfaces/IKarmaGap.sol";
+import { IGap } from "../interfaces/IKarmaGap.sol";
 
 error NotGardenOwner();
 error NotGardenOperator();
@@ -20,6 +20,8 @@ error GAPProjectNotInitialized();
 error GAPNotSupportedOnChain();
 error GAPImpactCreationFailed();
 error GAPMilestoneCreationFailed();
+error InvalidGAPOwner();
+error GAPOwnershipTransferFailed();
 
 /// @title GardenAccount Contract
 /// @notice Manages gardeners and operators for a Garden, and supports community token management.
@@ -293,7 +295,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         if (gardeners[_msgSender()]) revert AlreadyGardener();
 
         gardeners[_msgSender()] = true;
-        
+
         emit GardenerAdded(address(this), _msgSender());
     }
 
@@ -527,10 +529,8 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     function _addGAPProjectAdmin(address admin) private {
         if (gapProjectUID == bytes32(0)) return; // No project, skip silently
 
-        IProjectResolver resolver = IProjectResolver(KarmaLib.getProjectResolver());
-
         // solhint-disable-next-line no-empty-blocks
-        try resolver.addAdmin(gapProjectUID, admin) {
+        try IGap(KarmaLib.getGapContract()).addProjectAdmin(gapProjectUID, admin) {
             // Success: admin added to GAP project
         } catch Error(string memory) /* reason */ { // solhint-disable-line no-empty-blocks
                 // Non-critical: GAP sync failed but operator added successfully
@@ -544,15 +544,27 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     function _removeGAPProjectAdmin(address admin) private {
         if (gapProjectUID == bytes32(0)) return; // No project, skip silently
 
-        IProjectResolver resolver = IProjectResolver(KarmaLib.getProjectResolver());
-
         // solhint-disable-next-line no-empty-blocks
-        try resolver.removeAdmin(gapProjectUID, admin) {
+        try IGap(KarmaLib.getGapContract()).removeProjectAdmin(gapProjectUID, admin) {
             // Success: admin removed from GAP project
         } catch Error(string memory) /* reason */ { // solhint-disable-line no-empty-blocks
                 // Non-critical: GAP sync failed but operator removed successfully
         } catch (bytes memory) /* lowLevelData */ { // solhint-disable-line no-empty-blocks
                 // Non-critical: GAP sync failed but operator removed successfully
+        }
+    }
+
+    /// @notice Transfers ownership of the GAP project to a new owner
+    /// @param newOwner Address that will receive project ownership
+    function transferGAPProjectOwnership(address newOwner) external onlyOperator {
+        if (gapProjectUID == bytes32(0)) revert GAPProjectNotInitialized();
+        if (!KarmaLib.isSupported()) revert GAPNotSupportedOnChain();
+        if (newOwner == address(0)) revert InvalidGAPOwner();
+
+        try IGap(KarmaLib.getGapContract()).transferProjectOwnership(gapProjectUID, newOwner) {
+            // Ownership transferred successfully
+        } catch {
+            revert GAPOwnershipTransferFailed();
         }
     }
 

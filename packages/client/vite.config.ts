@@ -190,6 +190,32 @@ export default defineConfig(({ mode }) => {
       host: true,
       hmr: { overlay: true },
       watch: { usePolling: true, interval: 100 },
+      proxy: {
+        "/pinata/uploads": {
+          target: "https://uploads.pinata.cloud",
+          changeOrigin: true,
+          secure: false,
+          rewrite: (path) => path.replace(/^\/pinata\/uploads/, ""),
+        },
+        "/pinata/api": {
+          target: "https://api.pinata.cloud",
+          changeOrigin: true,
+          secure: false,
+          rewrite: (path) => path.replace(/^\/pinata\/api/, ""),
+        },
+        "/pinata/gateway": {
+          target: "https://greengoods.mypinata.cloud",
+          changeOrigin: true,
+          secure: false,
+          rewrite: (path) => path.replace(/^\/pinata\/gateway/, ""),
+        },
+        "/indexer": {
+          target: "https://indexer.hyperindex.xyz/0bf0e0f/v1",
+          changeOrigin: true,
+          secure: false,
+          rewrite: (path) => path.replace(/^\/indexer/, ""),
+        },
+      },
     },
   };
 });
