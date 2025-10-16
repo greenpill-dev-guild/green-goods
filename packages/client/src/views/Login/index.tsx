@@ -18,11 +18,8 @@ import toast from "react-hot-toast";
 import { Splash, type LoadingState } from "@/components/Layout/Splash";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useAutoJoinRootGarden } from "@/hooks/garden/useAutoJoinRootGarden";
-import { createLogger } from "@/utils/app/logger";
 import { getAccount } from "@wagmi/core";
 import { wagmiConfig, appKit } from "@/config/appkit";
-
-const logger = createLogger("Login");
 
 const ONBOARDED_STORAGE_KEY = "greengoods_user_onboarded";
 
@@ -64,7 +61,7 @@ export function Login() {
   useEffect(() => {
     const isOnboarded = localStorage.getItem(ONBOARDED_STORAGE_KEY) === "true";
     setIsFirstTime(!isOnboarded);
-    logger.log("User onboarding status", { isOnboarded, isFirstTime: !isOnboarded });
+    console.log("User onboarding status", { isOnboarded, isFirstTime: !isOnboarded });
   }, []);
 
   // Handle redirects when authentication is complete
@@ -89,9 +86,9 @@ export function Login() {
       // Sync wallet connection to our auth provider
       const connector = getAccount(wagmiConfig).connector;
       if (connector) {
-        logger.log("Syncing wallet connection to auth provider", { address: wagmiAddress });
+        console.log("Syncing wallet connection to auth provider", { address: wagmiAddress });
         connectWallet(connector).catch((err) => {
-          logger.error("Failed to sync wallet connection", err);
+          console.error("Failed to sync wallet connection", err);
         });
       }
     }
@@ -109,7 +106,7 @@ export function Login() {
 
     for (let i = 0; i < maxAttempts; i++) {
       if (isAuthenticated && smartAccountClient) {
-        logger.log("Authentication ready", { attempt: i });
+        console.log("Authentication ready", { attempt: i });
         return;
       }
       await new Promise((resolve) => setTimeout(resolve, interval));
@@ -139,27 +136,27 @@ export function Login() {
         setLoadingState("creating-account");
       }
 
-      logger.log("Starting passkey creation", { isFirstTime });
+      console.log("Starting passkey creation", { isFirstTime });
 
       await createPasskey();
-      logger.log("Passkey created successfully");
+      console.log("Passkey created successfully");
 
       // Wait for authentication to be ready
       // await waitForAuthenticationReady();
-      logger.log("Authentication ready");
+      console.log("Authentication ready");
 
       // First-time users: Auto-join root garden with sponsored transaction
       if (isFirstTime) {
         setLoadingState("joining-garden");
-        logger.log("Starting root garden join for first-time user");
+        console.log("Starting root garden join for first-time user");
 
         try {
           await joinGarden();
-          logger.log("Garden join successful");
+          console.log("Garden join successful");
 
           // Mark user as onboarded
           localStorage.setItem(ONBOARDED_STORAGE_KEY, "true");
-          logger.log("User marked as onboarded");
+          console.log("User marked as onboarded");
 
           // Brief success state before navigation
           setTimeout(() => {
@@ -167,7 +164,7 @@ export function Login() {
           }, 1000);
         } catch (joinErr) {
           // Garden join failed - continue to home anyway
-          logger.error("Garden join failed during onboarding", joinErr);
+          console.error("Garden join failed during onboarding", joinErr);
           toast("Welcome! You can join the community garden from your profile.", {
             icon: "ℹ️",
           });
@@ -183,7 +180,7 @@ export function Login() {
       }
     } catch (err) {
       setLoadingState(null);
-      logger.error("Passkey creation failed", err);
+      console.error("Passkey creation failed", err);
       toast.error("Failed to create passkey. Please try again.");
     }
   };
@@ -193,7 +190,7 @@ export function Login() {
    * Opens the wallet selection bottom sheet.
    */
   const handleWalletLogin = () => {
-    logger.log("Opening AppKit wallet modal");
+    console.log("Opening AppKit wallet modal");
     appKit.open();
   };
 

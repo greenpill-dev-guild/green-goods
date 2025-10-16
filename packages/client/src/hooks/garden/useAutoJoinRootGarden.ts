@@ -13,9 +13,6 @@ import { getNetworkConfig } from "@/config/blockchain";
 import { useWriteContract, useReadContract } from "wagmi";
 import { encodeFunctionData } from "viem";
 import GardenAccountABI from "@/utils/blockchain/abis/GardenAccount.json";
-import { createLogger } from "@/utils/app/logger";
-
-const logger = createLogger("AutoJoinRootGarden");
 
 const ONBOARDED_STORAGE_KEY = "greengoods_user_onboarded";
 const ROOT_GARDEN_PROMPTED_KEY = "rootGardenPrompted";
@@ -82,14 +79,14 @@ export function useAutoJoinRootGarden(autoJoin = false) {
 
     const isOnboarded = localStorage.getItem(ONBOARDED_STORAGE_KEY) === "true";
     if (isOnboarded) {
-      logger.log("User already onboarded, skipping auto-join");
+      console.log("User already onboarded, skipping auto-join");
       return;
     }
 
     // This auto-join is mainly a fallback - primary flow is in Login component
-    logger.log("Auto-joining root garden (fallback)");
+    console.log("Auto-joining root garden (fallback)");
     joinGarden().catch((err) => {
-      logger.error("Auto-join failed", err);
+      console.error("Auto-join failed", err);
     });
   }, [autoJoin, ready, smartAccountAddress, rootGarden, isGardener, checkingMembership]);
 
@@ -104,12 +101,12 @@ export function useAutoJoinRootGarden(autoJoin = false) {
    */
   const joinGarden = async () => {
     if (!rootGarden || !smartAccountAddress) {
-      logger.warn("Cannot join: missing root garden or address");
+      console.warn("Cannot join: missing root garden or address");
       return;
     }
 
     try {
-      logger.log("Joining root garden", {
+      console.log("Joining root garden", {
         address: rootGarden.address,
         mode: smartAccountClient ? "passkey" : "wallet",
       });
@@ -128,7 +125,7 @@ export function useAutoJoinRootGarden(autoJoin = false) {
           }),
         });
 
-        logger.log("Successfully joined root garden with passkey (sponsored)");
+        console.log("Successfully joined root garden with passkey (sponsored)");
       } else {
         // Use wagmi for wallet authentication (user pays gas)
         await writeContractAsync({
@@ -138,7 +135,7 @@ export function useAutoJoinRootGarden(autoJoin = false) {
           args: [],
         });
 
-        logger.log("Successfully joined root garden with wallet");
+        console.log("Successfully joined root garden with wallet");
       }
 
       // Set appropriate localStorage flags
@@ -151,9 +148,9 @@ export function useAutoJoinRootGarden(autoJoin = false) {
         hasPrompted: true,
       }));
 
-      logger.log("Root garden join complete");
+      console.log("Root garden join complete");
     } catch (error) {
-      logger.error("Failed to join root garden", error);
+      console.error("Failed to join root garden", error);
       throw error;
     }
   };
@@ -164,7 +161,7 @@ export function useAutoJoinRootGarden(autoJoin = false) {
    * Used for wallet users who can manually join later.
    */
   const dismissPrompt = () => {
-    logger.log("Dismissing root garden prompt");
+    console.log("Dismissing root garden prompt");
     localStorage.setItem(ROOT_GARDEN_PROMPTED_KEY, "true");
     setState((prev) => ({ ...prev, showPrompt: false, hasPrompted: true }));
   };

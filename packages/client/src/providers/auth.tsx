@@ -20,7 +20,6 @@ import {
 import { connect, disconnect, getAccount, watchAccount, type Connector } from "@wagmi/core";
 import { DEFAULT_CHAIN_ID } from "@/config/blockchain";
 import { wagmiConfig } from "@/config/appkit";
-import { createLogger } from "@/utils/app/logger";
 import {
   createPimlicoClientForChain,
   createPublicClientForChain,
@@ -113,8 +112,6 @@ interface SerializedCredential {
   };
 }
 
-const logger = createLogger("Auth");
-
 /**
  * Props for AuthProvider component
  */
@@ -172,10 +169,10 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
           };
           setCredential(reconstructed);
           setAuthMode("passkey");
-          logger.log("Restored passkey from storage", { credentialId: serialized.id });
+          console.log("Restored passkey from storage", { credentialId: serialized.id });
         }
       } catch (err) {
-        logger.error("Failed to load saved credential", err);
+        console.error("Failed to load saved credential", err);
         // Clear corrupted data
         localStorage.removeItem(PASSKEY_STORAGE_KEY);
         localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
@@ -226,31 +223,31 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
 
     const initializeSmartAccount = async () => {
       try {
-        logger.log("Starting smart account initialization", {
+        console.log("Starting smart account initialization", {
           credentialId: credential.id,
           chainId,
         });
 
         // Step 1: Get chain and clients
-        logger.log("Setting up blockchain clients");
+        console.log("Setting up blockchain clients");
         const chain = getChainFromId(chainId);
         const publicClient = createPublicClientForChain(chainId);
         const pimlicoClient = createPimlicoClientForChain(chainId);
 
-        logger.log("Blockchain clients ready", {
+        console.log("Blockchain clients ready", {
           chainName: chain.name,
           pimlicoEndpoint: (pimlicoClient.transport as { url?: string }).url,
         });
 
         // Step 2: Create WebAuthn account from credential
-        logger.log("Creating WebAuthn account from credential");
+        console.log("Creating WebAuthn account from credential");
         const webAuthnAccount = toWebAuthnAccount({ credential });
-        logger.log("WebAuthn account created", {
+        console.log("WebAuthn account created", {
           accountType: webAuthnAccount.type,
         });
 
         // Step 3: Create Kernel smart account
-        logger.log("Initializing Kernel smart account", {
+        console.log("Initializing Kernel smart account", {
           version: "0.3.1",
           entryPointVersion: "0.7",
           ownersCount: 1,
@@ -266,7 +263,7 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
           },
         });
 
-        logger.log("Kernel smart account created", {
+        console.log("Kernel smart account created", {
           smartAccountAddress: account.address,
           accountType: account.type,
         });
@@ -274,7 +271,7 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
         setSmartAccountAddress(account.address);
 
         // Step 4: Create smart account client with Pimlico bundler
-        logger.log("Setting up Pimlico smart account client", {
+        console.log("Setting up Pimlico smart account client", {
           bundlerUrl: (pimlicoClient.transport as { url?: string }).url,
         });
 
@@ -285,9 +282,9 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
           paymaster: pimlicoClient,
           userOperation: {
             estimateFeesPerGas: async () => {
-              logger.log("Estimating gas prices with Pimlico");
+              console.log("Estimating gas prices with Pimlico");
               const gasPrice = await pimlicoClient.getUserOperationGasPrice();
-              logger.log("Gas prices estimated", {
+              console.log("Gas prices estimated", {
                 slow: gasPrice.slow,
                 standard: gasPrice.standard,
                 fast: gasPrice.fast,
@@ -297,7 +294,7 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
           },
         });
 
-        logger.log("Pimlico smart account client created", {
+        console.log("Pimlico smart account client created", {
           smartAccountAddress: account.address,
           bundlerUrl: (pimlicoClient.transport as { url?: string }).url,
         });
@@ -306,12 +303,12 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
         setAuthMode("passkey"); // Only set when smart account is fully ready
         setIsAuthenticating(false); // Authentication flow complete
 
-        logger.log("Smart account initialization completed successfully", {
+        console.log("Smart account initialization completed successfully", {
           smartAccountAddress: account.address,
           credentialId: credential.id,
         });
       } catch (err) {
-        logger.error("Smart account initialization failed", {
+        console.error("Smart account initialization failed", {
           error: err,
           credentialId: credential.id,
           chainId,
@@ -365,9 +362,9 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
       setCredential(newCredential);
       // Don't set auth mode here - let the useEffect handle it after smart account is ready
 
-      logger.log("Passkey created successfully", { credentialId: newCredential.id });
+      console.log("Passkey created successfully", { credentialId: newCredential.id });
     } catch (err) {
-      logger.error("Passkey creation failed", err);
+      console.error("Passkey creation failed", err);
       const error =
         err instanceof Error ? err : new Error("Failed to create passkey. Please try again.");
       setError(error);
@@ -389,7 +386,7 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
     setSmartAccountClient(null);
     setAuthMode(null);
     setError(null);
-    logger.log("Passkey cleared");
+    console.log("Passkey cleared");
   }, []);
 
   /**
@@ -414,9 +411,9 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
       setAuthMode("wallet");
       localStorage.setItem(AUTH_MODE_STORAGE_KEY, "wallet");
 
-      logger.log("Wallet connected", { account: result.accounts[0] });
+      console.log("Wallet connected", { account: result.accounts[0] });
     } catch (err) {
-      logger.error("Wallet connection failed", err);
+      console.error("Wallet connection failed", err);
       const error =
         err instanceof Error ? err : new Error("Failed to connect wallet. Please try again.");
       setError(error);
@@ -436,7 +433,7 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
     setWalletConnector(null);
     setAuthMode(null);
     setError(null);
-    logger.log("Wallet disconnected");
+    console.log("Wallet disconnected");
   }, []);
 
   // isReady means auth provider has finished initialization (checked localStorage, etc.)
