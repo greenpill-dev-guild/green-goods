@@ -40,7 +40,7 @@ describe("modules/work-submission", () => {
       84532,
       []
     );
-    expect(tx.startsWith("0xoffline_")).toBe(true);
+    expect(tx.txHash.startsWith("0xoffline_")).toBe(true);
     expect(jobQueue.addJob).toHaveBeenCalled();
   });
 

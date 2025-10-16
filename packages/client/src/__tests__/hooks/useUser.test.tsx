@@ -4,7 +4,6 @@
  * Tests the user data hook that wraps authentication state
  */
 
-import React from "react";
 import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useUser } from "../../hooks/auth/useUser";

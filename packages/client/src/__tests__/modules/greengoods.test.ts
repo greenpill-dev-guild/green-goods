@@ -4,7 +4,7 @@ import {
   getActions,
   // getGardeners,
   getGardens,
-} from "../../modules/greengoods";
+} from "../../modules/data/greengoods";
 
 describe("greengoods", () => {
   it("should get gardens", async () => {

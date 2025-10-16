@@ -11,7 +11,7 @@ import RequireAuth from "../../routes/RequireAuth";
 
 // Mock useAuth hook
 const mockUseAuth = vi.fn(() => ({
-  smartAccountAddress: null,
+  smartAccountAddress: null as `0x${string}` | null,
   isReady: false,
 }));
 
@@ -65,7 +65,7 @@ describe("RequireAuth", () => {
 
   it("should render children when authenticated", () => {
     mockUseAuth.mockReturnValue({
-      smartAccountAddress: "0x1234567890123456789012345678901234567890",
+      smartAccountAddress: "0x1234567890123456789012345678901234567890" as `0x${string}` | null,
       isReady: true,
     });
 

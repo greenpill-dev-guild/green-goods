@@ -18,7 +18,7 @@ const mockUseAuth = vi.fn(() => ({
   smartAccountClient: null,
   createPasskey: mockCreatePasskey,
   connectWallet: mockConnectWallet,
-  authMode: null,
+  authMode: null as "passkey" | "wallet" | null,
   isAuthenticated: false,
   error: null,
   isAuthenticating: false,
@@ -138,7 +138,7 @@ describe("Login", () => {
       connectWallet: mockConnectWallet,
       authMode: null,
       isAuthenticated: false,
-      error: new Error("Test error message"),
+      error: null,
       isAuthenticating: false,
     });
 
@@ -154,10 +154,10 @@ describe("Login", () => {
   it("should redirect to home when authenticated", () => {
     mockUseAuth.mockReturnValue({
       walletAddress: null,
-      smartAccountClient: { account: {} },
+      smartAccountClient: { account: {} } as any,
       createPasskey: mockCreatePasskey,
       connectWallet: mockConnectWallet,
-      authMode: "passkey",
+      authMode: "passkey" as "passkey" | "wallet" | null,
       isAuthenticated: true,
       error: null,
       isAuthenticating: false,

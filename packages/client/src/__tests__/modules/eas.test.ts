@@ -4,7 +4,7 @@ import {
   getGardenAssessments,
   // getWorks,
   // getWorkApprovals,
-} from "../../modules/eas";
+} from "../../modules/data/eas";
 
 describe("eas", () => {
   it("should get garden assessments", async () => {

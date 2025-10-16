@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 
-import { track } from "../../modules/posthog";
+import { track } from "../../modules/app/posthog";
 
 describe("modules/posthog throttling", () => {
   it("throttles frequent identical events", () => {
