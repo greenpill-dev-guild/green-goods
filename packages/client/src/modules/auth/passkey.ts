@@ -53,7 +53,10 @@ export function clearStoredCredential() {
   localStorage.removeItem(PASSKEY_STORAGE_KEY);
 }
 
-async function createPasskeySession(chainId: number, credential: P256Credential): Promise<PasskeySession> {
+async function createPasskeySession(
+  chainId: number,
+  credential: P256Credential
+): Promise<PasskeySession> {
   const chain = getChainFromId(chainId);
   const publicClient = createPublicClientForChain(chainId);
   const pimlicoClient = createPimlicoClientForChain(chainId);
@@ -102,8 +105,6 @@ export async function restorePasskeySession(chainId: number): Promise<PasskeySes
     return await createPasskeySession(chainId, credential);
   } catch (error) {
     clearStoredCredential();
-    throw error instanceof Error
-      ? error
-      : new Error("Failed to restore saved passkey credential");
+    throw error instanceof Error ? error : new Error("Failed to restore saved passkey credential");
   }
 }
