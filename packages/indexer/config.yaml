@@ -38,17 +38,17 @@ networks:
     start_block: 0
     contracts:
       - name: ActionRegistry
-        address: "0x1f10E7DE76CfC5F1175d74d714D495e30B740C2E"
+        address: "0x0747ED4f1915b8f3A6eA8a9d8216E8F53EE80f92"
       - name: GardenToken
-        address: "0x5Bb743A7E2F07970c00A87f45915A3b1176de226"
+        address: "0xDcA639287A392E17cad0deA4E72F5B3cfA429e6B"
       - name: GardenAccount
-        address: "0x2c6FB6128cA1177b58A8b361Cf799F0De4D031ac"
+        address: "0x3B4A3ACA9D52b01086F625a0EB6E6e24b65C810D"
   - id: 42161
     start_block: 200000000
     contracts:
       - name: ActionRegistry
-        address: "0xd94a6ef8A3f685dEdc7d69304564F8497e32cB1c"
+        address: "0xc1641a23757Ec6C62b549Aa2CeE8c3C90cf5b439"
       - name: GardenToken
-        address: "0x89Cc1aB4dE7b9e837E4935EAa1f170eF46E0A6A7"
+        address: "0xE3c5d9276F92Ff0D4001B1F11B8eBDEd2fa75aA9"
       - name: GardenAccount
-        address: "0x62aae8bfAeC3a3e858ad05c21096f47dF16D9668"
+        address: "0x3B4A3ACA9D52b01086F625a0EB6E6e24b65C810D"

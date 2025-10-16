@@ -617,27 +617,6 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         return StringUtils.generateSlug(str);
     }
 
-    // ============================================
-    // GAP STATE QUERY HELPERS
-    // ============================================
-
-    /// @notice Check if address is GAP project admin or owner
-    /// @dev Queries GAP contract via KarmaLib.isAdmin()
-    /// @param account The address to check
-    /// @return True if account is a project admin or owner
-    function isGAPAdmin(address account) external view returns (bool) {
-        return KarmaLib.isAdmin(gapProjectUID, account);
-    }
-
-    /// @notice Get GAP project metadata
-    /// @dev Returns combined project info from GAP
-    /// @return projectUID The project attestation UID
-    /// @return isInitialized Whether GAP project exists
-    function getGAPProjectMetadata() external view returns (bytes32 projectUID, bool isInitialized) {
-        projectUID = gapProjectUID;
-        isInitialized = projectUID != bytes32(0);
-    }
-
     /// @notice Storage gap for upgradeable contract
     /// @dev Reserve 50 slots total for future upgrades
     /// Inherited storage (5 slots):
