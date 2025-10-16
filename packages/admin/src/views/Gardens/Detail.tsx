@@ -82,10 +82,10 @@ export default function GardenDetail() {
     query: GET_GARDEN_ASSESSMENTS,
     variables: {
       recipient: id!,
-      schemaId: contracts.assessmentSchema!,
+      schemaId: contracts.eas!,
       limit: 5, // Fetch latest 5 assessments for the detail view
     },
-    pause: !id || !contracts.assessmentSchema,
+    pause: !id || !contracts.eas,
   });
   const assessments = assessmentData?.Attestation || [];
 
@@ -367,14 +367,14 @@ export default function GardenDetail() {
           }}
           isLoading={isLoading}
         />
-      </div>
-
       {/* Create Assessment Modal */}
       <CreateAssessmentModal
         isOpen={addAssessmentModalOpen}
         onClose={() => setAddAssessmentModalOpen(false)}
         gardenId={garden.id}
       />
+      </div>
+
     </div>
   );
 }
