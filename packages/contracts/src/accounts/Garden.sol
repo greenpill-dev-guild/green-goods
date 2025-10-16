@@ -216,6 +216,8 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         if (KarmaLib.isSupported()) {
             _createGAPProject();
 
+            _addGAPProjectAdmin(_msgSender());
+
             // Add all operators as GAP project admins
             for (uint256 i = 0; i < _gardenOperators.length; i++) {
                 _addGAPProjectAdmin(_gardenOperators[i]);
