@@ -1,9 +1,27 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-// REMOVED - IKarmaGap interface no longer needed
-// We attest directly to EAS using schema UIDs
-// Only IProjectResolver is needed for admin management
+import { AttestationRequest, MultiAttestationRequest } from "@eas/IEAS.sol";
+
+/// @title IGap
+/// @notice Interface for Karma GAP main contract
+/// @dev Source: https://github.com/show-karma/gap-contracts
+interface IGap {
+    struct AttestationRequestNode {
+        bytes32 uid;
+        MultiAttestationRequest multiRequest;
+        uint256 refIdx;
+    }
+
+    /// @notice Creates a single attestation
+    /// @param request The attestation request
+    /// @return The UID of the created attestation
+    function attest(AttestationRequest calldata request) external payable returns (bytes32);
+
+    /// @notice Creates multiple attestations with sequential references
+    /// @param requestNodes Array of attestation nodes with reference indices
+    function multiSequentialAttest(AttestationRequestNode[] calldata requestNodes) external payable;
+}
 
 /// @title IProjectResolver
 /// @notice Interface for the Karma GAP Project Resolver contract

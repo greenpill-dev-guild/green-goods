@@ -161,17 +161,21 @@ contract Deploy is Script, DeploymentBase {
         // Iterate through gardens array in config
         for (uint256 i = 0; i < 100; i++) {
             string memory basePath = string.concat(".gardens[", vm.toString(i), "]");
-            
+
             // Try to read garden name - if it fails, we've reached the end
             try vm.parseJson(json, string.concat(basePath, ".name")) returns (bytes memory nameBytes) {
                 if (nameBytes.length == 0) break;
 
                 string memory name = abi.decode(nameBytes, (string));
-                string memory description = abi.decode(vm.parseJson(json, string.concat(basePath, ".description")), (string));
+                string memory description =
+                    abi.decode(vm.parseJson(json, string.concat(basePath, ".description")), (string));
                 string memory location = abi.decode(vm.parseJson(json, string.concat(basePath, ".location")), (string));
-                string memory bannerImage = abi.decode(vm.parseJson(json, string.concat(basePath, ".bannerImage")), (string));
-                address[] memory gardeners = abi.decode(vm.parseJson(json, string.concat(basePath, ".gardeners")), (address[]));
-                address[] memory operators = abi.decode(vm.parseJson(json, string.concat(basePath, ".operators")), (address[]));
+                string memory bannerImage =
+                    abi.decode(vm.parseJson(json, string.concat(basePath, ".bannerImage")), (string));
+                address[] memory gardeners =
+                    abi.decode(vm.parseJson(json, string.concat(basePath, ".gardeners")), (address[]));
+                address[] memory operators =
+                    abi.decode(vm.parseJson(json, string.concat(basePath, ".operators")), (address[]));
 
                 // Mint garden
                 gardenToken.mintGarden(communityToken, name, description, location, bannerImage, gardeners, operators);
@@ -387,7 +391,7 @@ contract Deploy is Script, DeploymentBase {
         // Use first garden as "root" for backward compatibility
         address rootGardenAddress = gardenAddresses.length > 0 ? gardenAddresses[0] : address(0);
         uint256 rootGardenTokenId = gardenTokenIds.length > 0 ? gardenTokenIds[0] : 0;
-        
+
         DeploymentResult memory result = DeploymentResult({
             deploymentRegistry: address(deploymentRegistry),
             guardian: guardian,
@@ -407,12 +411,12 @@ contract Deploy is Script, DeploymentBase {
 
         // Use DeployHelper's comprehensive save method
         _saveDeployment(result);
-        
+
         // Also save all garden addresses and token IDs to a separate file for reference
         if (gardenAddresses.length > 0) {
             string memory chainIdStr = vm.toString(block.chainid);
             string memory gardensPath = string.concat(vm.projectRoot(), "/deployments/", chainIdStr, "-gardens.json");
-            
+
             // Build JSON manually for array of gardens
             string memory gardensJson = "{\"gardens\":[";
             for (uint256 i = 0; i < gardenAddresses.length; i++) {
@@ -427,7 +431,7 @@ contract Deploy is Script, DeploymentBase {
                 );
             }
             gardensJson = string.concat(gardensJson, "]}");
-            
+
             vm.writeFile(gardensPath, gardensJson);
         }
     }

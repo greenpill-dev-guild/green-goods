@@ -13,7 +13,7 @@ library StringUtils {
         uint256 quoteCount = 0;
 
         for (uint256 i = 0; i < b.length; i++) {
-            if (b[i] == '"') quoteCount++;
+            if (b[i] == "\"") quoteCount++;
         }
 
         if (quoteCount == 0) return str;
@@ -22,7 +22,7 @@ library StringUtils {
         uint256 j = 0;
 
         for (uint256 i = 0; i < b.length; i++) {
-            if (b[i] == '"') {
+            if (b[i] == "\"") {
                 escaped[j++] = "\\";
             }
             escaped[j++] = b[i];
@@ -54,5 +54,52 @@ library StringUtils {
         }
 
         return string(buffer);
+    }
+
+    /// @notice Generates a URL-safe slug from a string
+    /// @param str The string to convert to slug
+    /// @return The slug (lowercase, hyphens for spaces, alphanumeric only)
+    function generateSlug(string memory str) internal pure returns (string memory) {
+        bytes memory strBytes = bytes(str);
+        bytes memory result = new bytes(strBytes.length);
+        uint256 resultLen = 0;
+
+        for (uint256 i = 0; i < strBytes.length; i++) {
+            bytes1 char = strBytes[i];
+
+            // Convert uppercase A-Z to lowercase a-z
+            if (char >= 0x41 && char <= 0x5A) {
+                result[resultLen++] = bytes1(uint8(char) + 32);
+            }
+            // Keep lowercase a-z
+            else if (char >= 0x61 && char <= 0x7A) {
+                result[resultLen++] = char;
+            }
+            // Keep numbers 0-9
+            else if (char >= 0x30 && char <= 0x39) {
+                result[resultLen++] = char;
+            }
+            // Convert space to hyphen
+            else if (char == 0x20) {
+                // Avoid double hyphens
+                if (resultLen > 0 && result[resultLen - 1] != 0x2D) {
+                    result[resultLen++] = 0x2D; // hyphen
+                }
+            }
+            // Skip all other characters (special chars, punctuation)
+        }
+
+        // Trim trailing hyphen if exists
+        if (resultLen > 0 && result[resultLen - 1] == 0x2D) {
+            resultLen--;
+        }
+
+        // Copy to correctly sized bytes array
+        bytes memory finalResult = new bytes(resultLen);
+        for (uint256 i = 0; i < resultLen; i++) {
+            finalResult[i] = result[i];
+        }
+
+        return string(finalResult);
     }
 }

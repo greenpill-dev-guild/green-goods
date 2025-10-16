@@ -118,7 +118,7 @@ contract AssessmentMetadataEscapingTest is Test {
         uint256 quoteCount = 0;
 
         for (uint256 i = 0; i < b.length; i++) {
-            if (b[i] == '"') quoteCount++;
+            if (b[i] == "'") quoteCount++;
         }
 
         if (quoteCount == 0) return str;
@@ -127,7 +127,7 @@ contract AssessmentMetadataEscapingTest is Test {
         uint256 j = 0;
 
         for (uint256 i = 0; i < b.length; i++) {
-            if (b[i] == '"') {
+            if (b[i] == "'") {
                 escaped[j++] = "\\";
             }
             escaped[j++] = b[i];
@@ -199,7 +199,7 @@ contract AssessmentMetadataEscapingTest is Test {
             }
             if (b[i] == "\\") {
                 escaped = true;
-            } else if (b[i] == '"') {
+            } else if (b[i] == "'") {
                 inString = !inString;
             } else if (!inString) {
                 if (b[i] == "{") openBraces++;
