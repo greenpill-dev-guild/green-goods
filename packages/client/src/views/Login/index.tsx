@@ -53,8 +53,8 @@ export function Login() {
   } = useAuth();
 
   const [loadingState, setLoadingState] = useState<LoadingState | null>(null);
-  const [hasOnboarded, setHasOnboarded] = useState(() =>
-    localStorage.getItem(ONBOARDED_STORAGE_KEY) === "true"
+  const [hasOnboarded, setHasOnboarded] = useState(
+    () => localStorage.getItem(ONBOARDED_STORAGE_KEY) === "true"
   );
   const { joinGarden, isPending: isJoiningGarden } = useAutoJoinRootGarden(false);
 
