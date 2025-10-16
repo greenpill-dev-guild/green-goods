@@ -70,7 +70,7 @@ const Profile: React.FC = () => {
       </div>
 
       {/* Content */}
-      <div id="profile-scroll" className="flex-1 pt-72 pb-4 overflow-y-auto">
+      <div id="profile-scroll" className="flex-1 pt-64 pb-4 overflow-y-auto">
         <div className="padded flex flex-col gap-4 my-4">{renderTabContent()}</div>
       </div>
     </section>

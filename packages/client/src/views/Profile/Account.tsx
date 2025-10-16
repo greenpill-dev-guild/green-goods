@@ -211,13 +211,13 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
         </Card>
       )}
 
-      <h5>
+      {/* <h5>
         {intl.formatMessage({
           id: "app.profile.editAccount",
           description: "Edit Account",
         })}
-      </h5>
-      <Card>
+      </h5> */}
+      {/* <Card>
         <div className="flex flex-col gap-3">
           <FormInput
             id="display-name"
@@ -248,7 +248,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
             />
           </div>
         </div>
-      </Card>
+      </Card> */}
 
       <Button
         variant="neutral"
