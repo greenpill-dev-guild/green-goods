@@ -13,6 +13,7 @@ import { getNetworkConfig } from "@/config/blockchain";
 import { useWriteContract, useReadContract } from "wagmi";
 import { encodeFunctionData } from "viem";
 import GardenAccountABI from "@/utils/blockchain/abis/GardenAccount.json";
+import type { PasskeySession } from "@/modules/auth/passkey";
 
 const ONBOARDED_STORAGE_KEY = "greengoods_user_onboarded";
 const ROOT_GARDEN_PROMPTED_KEY = "rootGardenPrompted";
@@ -99,8 +100,11 @@ export function useAutoJoinRootGarden(autoJoin = false) {
    *
    * @throws {Error} If join transaction fails
    */
-  const joinGarden = async () => {
-    if (!rootGarden || !smartAccountAddress) {
+  const joinGarden = async (sessionOverride?: PasskeySession) => {
+    const targetAddress = sessionOverride?.address ?? smartAccountAddress;
+    const clientOverride = sessionOverride?.client;
+
+    if (!rootGarden || !targetAddress) {
       console.warn("Cannot join: missing root garden or address");
       return;
     }
@@ -108,14 +112,16 @@ export function useAutoJoinRootGarden(autoJoin = false) {
     try {
       console.log("Joining root garden", {
         address: rootGarden.address,
-        mode: smartAccountClient ? "passkey" : "wallet",
+        mode: clientOverride || smartAccountClient ? "passkey" : "wallet",
       });
 
-      if (smartAccountClient?.account) {
+      const client = clientOverride ?? smartAccountClient;
+
+      if (client?.account) {
         // Use smart account for passkey authentication (sponsored transaction)
-        await smartAccountClient.sendTransaction({
-          account: smartAccountClient.account,
-          chain: smartAccountClient.chain,
+        await client.sendTransaction({
+          account: client.account,
+          chain: client.chain,
           to: rootGarden.address,
           value: 0n,
           data: encodeFunctionData({

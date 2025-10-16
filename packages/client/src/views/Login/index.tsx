@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { Navigate } from "react-router-dom";
 import { useAccount } from "wagmi";
 import toast from "react-hot-toast";
 import { Splash, type LoadingState } from "@/components/Layout/Splash";
@@ -46,39 +47,21 @@ export function Login() {
     connectWallet,
     isAuthenticating,
     smartAccountClient,
+    authMode,
     error,
     isAuthenticated,
   } = useAuth();
 
   const [loadingState, setLoadingState] = useState<LoadingState | null>(null);
-  const [isFirstTime, setIsFirstTime] = useState<boolean>(false);
+  const [hasOnboarded, setHasOnboarded] = useState(() =>
+    localStorage.getItem(ONBOARDED_STORAGE_KEY) === "true"
+  );
   const { joinGarden, isPending: isJoiningGarden } = useAutoJoinRootGarden(false);
 
   // Use wagmi's useAccount hook to detect wallet connection
   const { address: wagmiAddress, isConnected: wagmiConnected } = useAccount();
 
-  // Check if user is onboarded on mount
-  useEffect(() => {
-    const isOnboarded = localStorage.getItem(ONBOARDED_STORAGE_KEY) === "true";
-    setIsFirstTime(!isOnboarded);
-    console.log("User onboarding status", { isOnboarded, isFirstTime: !isOnboarded });
-  }, []);
-
-  // Handle redirects when authentication is complete
-  useEffect(() => {
-    // Only redirect when fully authenticated and not in loading state
-    if (isAuthenticated && !loadingState && smartAccountClient) {
-      // Show welcome back briefly for returning users
-      if (!isFirstTime) {
-        setLoadingState("welcome-back");
-        setTimeout(() => {
-          // Navigate will happen automatically
-        }, 1500);
-      } else {
-        // Navigate immediately for first-time users
-      }
-    }
-  }, [isAuthenticated, loadingState, smartAccountClient, isFirstTime]);
+  const isFirstTime = !hasOnboarded;
 
   // Watch wagmi connection and sync to auth provider
   useEffect(() => {
@@ -93,27 +76,6 @@ export function Login() {
       }
     }
   }, [wagmiConnected, wagmiAddress, walletAddress, connectWallet]);
-
-  /**
-   * Wait for authentication to be fully ready after passkey creation.
-   * Polls for up to 10 seconds with 100ms intervals.
-   *
-   * @throws {Error} If authentication is not ready within timeout
-   */
-  const waitForAuthenticationReady = async (): Promise<void> => {
-    const maxAttempts = 100; // 10 seconds
-    const interval = 100; // 100ms
-
-    for (let i = 0; i < maxAttempts; i++) {
-      if (isAuthenticated && smartAccountClient) {
-        console.log("Authentication ready", { attempt: i });
-        return;
-      }
-      await new Promise((resolve) => setTimeout(resolve, interval));
-    }
-
-    throw new Error("Authentication not ready after timeout");
-  };
 
   /**
    * Handle passkey creation and auto-join root garden.
@@ -131,52 +93,24 @@ export function Login() {
    */
   const handleCreatePasskey = async () => {
     try {
-      // First-time users: Show account creation state
-      if (isFirstTime) {
-        setLoadingState("creating-account");
-      }
+      setLoadingState(isFirstTime ? "creating-account" : "welcome-back");
 
-      console.log("Starting passkey creation", { isFirstTime });
+      const session = await createPasskey();
 
-      await createPasskey();
-      console.log("Passkey created successfully");
-
-      // Wait for authentication to be ready
-      // await waitForAuthenticationReady();
-      console.log("Authentication ready");
-
-      // First-time users: Auto-join root garden with sponsored transaction
       if (isFirstTime) {
         setLoadingState("joining-garden");
-        console.log("Starting root garden join for first-time user");
-
         try {
-          await joinGarden();
-          console.log("Garden join successful");
-
-          // Mark user as onboarded
+          await joinGarden(session);
           localStorage.setItem(ONBOARDED_STORAGE_KEY, "true");
-          console.log("User marked as onboarded");
-
-          // Brief success state before navigation
-          setTimeout(() => {
-            // Navigate will happen automatically via the Navigate component
-          }, 1000);
+          setHasOnboarded(true);
         } catch (joinErr) {
-          // Garden join failed - continue to home anyway
           console.error("Garden join failed during onboarding", joinErr);
           toast("Welcome! You can join the community garden from your profile.", {
             icon: "ℹ️",
           });
-          // Still mark as onboarded so they don't see the flow again
           localStorage.setItem(ONBOARDED_STORAGE_KEY, "true");
+          setHasOnboarded(true);
         }
-      } else {
-        // Returning user: Show welcome back
-        setLoadingState("welcome-back");
-        setTimeout(() => {
-          // Navigate will happen automatically
-        }, 1000);
       }
     } catch (err) {
       setLoadingState(null);
@@ -193,6 +127,10 @@ export function Login() {
     console.log("Opening AppKit wallet modal");
     appKit.open();
   };
+
+  if (isAuthenticated && (authMode === "wallet" || smartAccountClient)) {
+    return <Navigate to="/home" replace />;
+  }
 
   // Loading screen during passkey creation, garden join, or welcome back
   if (loadingState) {
