@@ -235,10 +235,45 @@ All packages use strict mode:
 ```
 
 **Rules:**
-- No `any` without comment justification
+- **Never use `any`** — Always use proper typing or documented type assertions
 - Prefer `unknown` for untrusted data
 - Use type guards for narrowing
 - Explicit return types on exported functions
+
+### Zod Type Inference
+
+When using Zod for validation (forms, APIs, etc.), always infer types from schemas:
+
+**✅ Correct:**
+```typescript
+import { z, type ZodType } from 'zod';
+
+// Define schema with explicit type annotation
+const userSchema: ZodType<{
+  name: string;
+  email: string;
+  age?: number;
+}> = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+  age: z.number().optional(),
+});
+
+// Infer type from schema (single source of truth)
+type User = z.infer<typeof userSchema>;
+```
+
+**❌ Wrong:**
+```typescript
+// Don't use 'any'
+const schema = z.object({ name: z.string() }) as any;
+
+// Don't manually duplicate types
+const schema = z.object({ name: z.string() });
+type User = { name: string }; // Should use z.infer instead
+```
+
+**See Also:** `packages/client/.cursor/rules/form-validation.mdc` for complete patterns
 
 ### Import Organization
 
