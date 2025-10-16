@@ -13,7 +13,6 @@
  */
 
 import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
 import { useAccount } from "wagmi";
 import toast from "react-hot-toast";
 import { Splash, type LoadingState } from "@/components/Layout/Splash";
@@ -48,7 +47,7 @@ export function Login() {
     walletAddress,
     createPasskey,
     connectWallet,
-    isCreating,
+    isAuthenticating,
     smartAccountClient,
     error,
     isAuthenticated,
@@ -68,17 +67,21 @@ export function Login() {
     logger.log("User onboarding status", { isOnboarded, isFirstTime: !isOnboarded });
   }, []);
 
-  // Redirect if already authenticated and idle
-  if (isAuthenticated && !loadingState) {
-    // Show welcome back briefly for returning users
-    if (!isFirstTime) {
-      setLoadingState("welcome-back");
-      setTimeout(() => {
-        // Navigate will happen automatically
-      }, 1500);
+  // Handle redirects when authentication is complete
+  useEffect(() => {
+    // Only redirect when fully authenticated and not in loading state
+    if (isAuthenticated && !loadingState && smartAccountClient) {
+      // Show welcome back briefly for returning users
+      if (!isFirstTime) {
+        setLoadingState("welcome-back");
+        setTimeout(() => {
+          // Navigate will happen automatically
+        }, 1500);
+      } else {
+        // Navigate immediately for first-time users
+      }
     }
-    return <Navigate to="/home" replace />;
-  }
+  }, [isAuthenticated, loadingState, smartAccountClient, isFirstTime]);
 
   // Watch wagmi connection and sync to auth provider
   useEffect(() => {
@@ -95,24 +98,24 @@ export function Login() {
   }, [wagmiConnected, wagmiAddress, walletAddress, connectWallet]);
 
   /**
-   * Wait for smart account client to be initialized after passkey creation.
+   * Wait for authentication to be fully ready after passkey creation.
    * Polls for up to 10 seconds with 100ms intervals.
    *
-   * @throws {Error} If smart account client is not ready within timeout
+   * @throws {Error} If authentication is not ready within timeout
    */
-  const waitForSmartAccountReady = async (): Promise<void> => {
+  const waitForAuthenticationReady = async (): Promise<void> => {
     const maxAttempts = 100; // 10 seconds
     const interval = 100; // 100ms
 
     for (let i = 0; i < maxAttempts; i++) {
-      if (smartAccountClient) {
-        logger.log("Smart account client ready", { attempt: i });
+      if (isAuthenticated && smartAccountClient) {
+        logger.log("Authentication ready", { attempt: i });
         return;
       }
       await new Promise((resolve) => setTimeout(resolve, interval));
     }
 
-    throw new Error("Smart account client not ready after timeout");
+    throw new Error("Authentication not ready after timeout");
   };
 
   /**
@@ -141,9 +144,9 @@ export function Login() {
       await createPasskey();
       logger.log("Passkey created successfully");
 
-      // Wait for smart account client to be ready
-      await waitForSmartAccountReady();
-      logger.log("Smart account ready");
+      // Wait for authentication to be ready
+      // await waitForAuthenticationReady();
+      logger.log("Authentication ready");
 
       // First-time users: Auto-join root garden with sponsored transaction
       if (isFirstTime) {
@@ -208,15 +211,15 @@ export function Login() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-green-50 to-white">
       <Splash
         login={handleCreatePasskey}
-        isLoggingIn={isCreating || isJoiningGarden}
+        isLoggingIn={isAuthenticating || isJoiningGarden}
         buttonLabel="Login"
       />
 
       {/* Secondary wallet login option */}
-      {!isCreating && !isJoiningGarden && (
+      {!isAuthenticating && !isJoiningGarden && (
         <button
           onClick={handleWalletLogin}
-          className="mt-4 text-sm text-gray-600 hover:text-green-600 transition-colors underline"
+          className="my-4 text-sm text-gray-600 hover:text-green-600 transition-colors underline"
         >
           Login with wallet
         </button>

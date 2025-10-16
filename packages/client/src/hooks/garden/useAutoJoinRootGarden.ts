@@ -93,19 +93,6 @@ export function useAutoJoinRootGarden(autoJoin = false) {
     });
   }, [autoJoin, ready, smartAccountAddress, rootGarden, isGardener, checkingMembership]);
 
-  // Manual prompt effect (when autoJoin=false, shows prompt for wallet users to join)
-  useEffect(() => {
-    if (autoJoin) return; // Skip if auto-join is enabled
-    if (!ready || !smartAccountAddress || !rootGarden) return;
-    if (checkingMembership) return;
-
-    const hasPromptedBefore = localStorage.getItem(ROOT_GARDEN_PROMPTED_KEY) === "true";
-
-    if (!isGardener && !hasPromptedBefore) {
-      setState((prev) => ({ ...prev, showPrompt: true, isLoading: false }));
-    }
-  }, [autoJoin, ready, smartAccountAddress, rootGarden, isGardener, checkingMembership]);
-
   /**
    * Join the root garden using direct joinGarden() function (no invite codes).
    *
@@ -129,7 +116,9 @@ export function useAutoJoinRootGarden(autoJoin = false) {
 
       if (smartAccountClient?.account) {
         // Use smart account for passkey authentication (sponsored transaction)
-        await (smartAccountClient.sendTransaction as any)({
+        await smartAccountClient.sendTransaction({
+          account: smartAccountClient.account,
+          chain: smartAccountClient.chain,
           to: rootGarden.address,
           value: 0n,
           data: encodeFunctionData({

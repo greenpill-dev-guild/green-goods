@@ -51,10 +51,11 @@ interface AuthContextType {
   walletAddress: Hex | null;
   walletConnector: Connector | null;
 
-  // Status flags
-  isCreating: boolean;
+  // Status flags - separate concerns
+  isCreating: boolean; // Currently creating passkey/credential
+  isAuthenticating: boolean; // Currently in auth flow (passkey creation, wallet connection)
   isReady: boolean; // Provider has finished initialization
-  isAuthenticated: boolean; // User has valid credentials
+  isAuthenticated: boolean; // User has valid credentials AND smart account is ready
   error: Error | null;
 
   // Passkey actions
@@ -149,6 +150,7 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
 
   // Status
   const [isCreating, setIsCreating] = useState(false);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -301,6 +303,8 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
         });
 
         setSmartAccountClient(client);
+        setAuthMode("passkey"); // Only set when smart account is fully ready
+        setIsAuthenticating(false); // Authentication flow complete
 
         logger.log("Smart account initialization completed successfully", {
           smartAccountAddress: account.address,
@@ -336,6 +340,7 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
    * @throws If WebAuthn is not supported or user cancels
    */
   const createPasskey = useCallback(async () => {
+    setIsAuthenticating(true);
     setIsCreating(true);
     setError(null);
 
@@ -358,7 +363,7 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
       // Note: userOnboarded flag will be set after successful garden join in Login component
 
       setCredential(newCredential);
-      setAuthMode("passkey");
+      // Don't set auth mode here - let the useEffect handle it after smart account is ready
 
       logger.log("Passkey created successfully", { credentialId: newCredential.id });
     } catch (err) {
@@ -396,6 +401,7 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
    * @throws If connection fails or user rejects
    */
   const connectWallet = useCallback(async (connector: Connector) => {
+    setIsAuthenticating(true);
     setIsCreating(true);
     setError(null);
 
@@ -436,10 +442,23 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
   // isReady means auth provider has finished initialization (checked localStorage, etc.)
   const isReady = isInitialized;
 
-  // isAuthenticated means user has valid credentials
-  const isAuthenticated =
-    (authMode === "passkey" && Boolean(credential && smartAccountAddress && smartAccountClient)) ||
-    (authMode === "wallet" && Boolean(walletAddress));
+  // isAuthenticated means user has valid credentials AND smart account is ready
+  const isAuthenticated = useMemo(() => {
+    if (authMode === "passkey") {
+      // Only consider authenticated when smart account client is fully ready
+      return Boolean(credential && smartAccountAddress && smartAccountClient);
+    } else if (authMode === "wallet") {
+      return Boolean(walletAddress && walletConnector);
+    }
+    return false;
+  }, [
+    authMode,
+    credential,
+    smartAccountAddress,
+    smartAccountClient,
+    walletAddress,
+    walletConnector,
+  ]);
 
   const contextValue: AuthContextType = useMemo(
     () => ({
@@ -450,6 +469,7 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
       walletAddress,
       walletConnector,
       isCreating,
+      isAuthenticating,
       isReady,
       isAuthenticated,
       error,
@@ -466,6 +486,7 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
       walletAddress,
       walletConnector,
       isCreating,
+      isAuthenticating,
       isReady,
       isAuthenticated,
       error,

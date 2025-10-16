@@ -1,5 +1,5 @@
 import browserLang from "browser-lang";
-import { PostHogProvider } from "posthog-js/react";
+// import { PostHogProvider } from "posthog-js/react";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { IntlProvider } from "react-intl";
 

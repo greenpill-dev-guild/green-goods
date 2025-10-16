@@ -22,7 +22,7 @@ const IS_DEBUG = import.meta.env.VITE_DEBUG === "true";
  */
 function formatMessage(prefix: string, message: string, context?: LogContext): string {
   if (context) {
-    return `${prefix} ${message} ${JSON.stringify(context)}`;
+    return `${prefix} ${message}`;
   }
   return `${prefix} ${message}`;
 }
