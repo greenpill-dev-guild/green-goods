@@ -2,13 +2,25 @@ import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "urql";
 import { graphql } from "gql.tada";
-import { RiArrowLeftLine, RiUserLine, RiDeleteBinLine, RiUserAddLine } from "@remixicon/react";
+import {
+  RiAddLine,
+  RiFileList3Line,
+  RiArrowLeftLine,
+  RiExternalLinkLine,
+  RiUserLine,
+  RiDeleteBinLine,
+  RiUserAddLine,
+} from "@remixicon/react";
 import { useGardenPermissions } from "@/hooks/useGardenPermissions";
 import { useGardenOperations } from "@/hooks/useGardenOperations";
+import { useGardenAssessments } from "@/hooks/useGardenAssessments";
+
 import { AddMemberModal } from "@/components/Garden/AddMemberModal";
 import { AddressDisplay } from "@/components/ui/AddressDisplay";
 import { resolveIPFSUrl } from "@/utils/pinata";
+import { CreateAssessmentModal } from "@/components/Garden/CreateAssessmentModal";
 
+const EAS_EXPLORER_URL = "https://explorer.easscan.org";
 const GET_GARDEN_DETAIL = graphql(`
   query GetGardenDetail($id: String!) {
     Garden(where: {id: {_eq: $id}}) {
@@ -31,6 +43,7 @@ export default function GardenDetail() {
   const { id } = useParams<{ id: string }>();
   const gardenPermissions = useGardenPermissions();
   const [addMemberModalOpen, setAddMemberModalOpen] = useState(false);
+  const [addAssessmentModalOpen, setAddAssessmentModalOpen] = useState(false);
   const [memberType, setMemberType] = useState<"gardener" | "operator">("gardener");
 
   const openAddMemberModal = (type: "gardener" | "operator") => {
@@ -38,11 +51,23 @@ export default function GardenDetail() {
     setAddMemberModalOpen(true);
   };
 
+  const openCreateAssessmentModal = () => {
+    setAddAssessmentModalOpen(true);
+  };
+
   const [{ data, fetching, error }, refetch] = useQuery({
     query: GET_GARDEN_DETAIL,
     variables: { id: id! },
     pause: !id,
   });
+
+  const {
+    data: assessmentList = [],
+    isLoading: fetchingAssessments,
+    error: assessmentsError,
+  } = useGardenAssessments(id, 5);
+
+  const assessments = assessmentList;
 
   const { addGardener, removeGardener, addOperator, removeOperator, isLoading } =
     useGardenOperations(id!);
@@ -98,6 +123,15 @@ export default function GardenDetail() {
               </div>
             </div>
           </div>
+          <div className="flex items-center space-x-2">
+            <Link
+              to={`/gardens/${id}/assessments`}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+            >
+              <RiFileList3Line className="mr-2 h-4 w-4" />
+              View Assessments
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -138,7 +172,7 @@ export default function GardenDetail() {
         </div>
 
         {/* Members Management */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Operators */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="p-6 border-b border-gray-200">
@@ -241,6 +275,68 @@ export default function GardenDetail() {
             </div>
           </div>
         </div>
+        {/* Assessments */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mt-8">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium text-gray-900">Recent Assessments</h3>
+              <Link
+                to={`/gardens/${id}/assessments`}
+                className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200"
+              >
+                View All
+              </Link>
+            </div>
+          </div>
+          <div className="p-6">
+            {fetchingAssessments ? (
+              <p className="text-gray-500 text-center py-4">Loading assessments...</p>
+            ) : assessmentsError ? (
+              <p className="text-center py-4 text-red-600">
+                Failed to load assessments:{" "}
+                {assessmentsError instanceof Error ? assessmentsError.message : "Unknown error"}
+              </p>
+            ) : assessments.length === 0 ? (
+              <p className="text-gray-500 text-center py-4">No assessments found</p>
+            ) : (
+              <div className="space-y-3">
+                {assessments.map((attestation) => {
+                  const assessmentData = attestation.decodedDataJson
+                    ? JSON.parse(attestation.decodedDataJson)
+                    : {};
+                  return (
+                    <div
+                      key={attestation.id}
+                      className="flex items-center justify-between rounded-md bg-gray-50 p-3"
+                    >
+                      <div className="flex min-w-0 flex-1 items-center space-x-3">
+                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-purple-100">
+                          <RiFileList3Line className="h-4 w-4 text-purple-600" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-gray-900">
+                            CO2 Stock: {assessmentData.carbonTonStock ?? "-"} T
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {new Date(attestation.time * 1000).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <a
+                        href={`${EAS_EXPLORER_URL}/attestation/view/${attestation.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center text-sm text-green-600 hover:text-green-900"
+                      >
+                        View <RiExternalLinkLine className="ml-1 h-4 w-4" />
+                      </a>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Add Member Modal */}
         <AddMemberModal
@@ -259,6 +355,13 @@ export default function GardenDetail() {
           isLoading={isLoading}
         />
       </div>
+
+      {/* Create Assessment Modal */}
+      <CreateAssessmentModal
+        isOpen={addAssessmentModalOpen}
+        onClose={() => setAddAssessmentModalOpen(false)}
+        gardenId={garden.id}
+      />
     </div>
   );
 }
