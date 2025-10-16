@@ -89,17 +89,12 @@ export function getIndexerUrl() {
     return import.meta.env.VITE_ENVIO_INDEXER_URL;
   }
 
-  // Default to local development URL
-  const isDev = import.meta.env.DEV;
-  const isLocalhost =
-    window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-
-  if (isDev || isLocalhost) {
-    return "http://localhost:8080/v1/graphql";
+  if (import.meta.env.DEV) {
+    return "/indexer/graphql";
   }
 
   // Production URL (update when deployed)
-  return "https://api.greengoods.app/indexer";
+  return "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
 }
 
 // Get EAS GraphQL URL based on chain

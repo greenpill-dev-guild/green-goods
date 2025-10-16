@@ -10,8 +10,16 @@ interface WorkDetailsProps {
   instruction: string;
   feedbackPlaceholder: string;
   inputs: WorkInput[];
-  register: UseFormRegister<WorkDraft>;
-  control: Control<WorkDraft>;
+  register: UseFormRegister<{
+    feedback: string;
+    plantSelection: string[];
+    plantCount?: number;
+  }>;
+  control: Control<{
+    feedback: string;
+    plantSelection: string[];
+    plantCount?: number;
+  }>;
 }
 
 export const WorkDetails: React.FC<WorkDetailsProps> = ({

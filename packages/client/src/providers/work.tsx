@@ -7,13 +7,9 @@ import toast from "react-hot-toast";
 // import { decodeErrorResult } from "viem";
 import { DEFAULT_CHAIN_ID } from "@/config/blockchain";
 // import { jobQueue } from "@/modules/job-queue";
-import { processWorkJobInline } from "@/modules/job-queue/inline-processor";
-import {
-  submitWorkToQueue,
-  validateWorkDraft,
-  formatJobError,
-} from "@/modules/work/work-submission";
+import { validateWorkDraft, formatJobError } from "@/modules/work/work-submission";
 import { submitWorkDirectly } from "@/modules/work/wallet-submission";
+import { submitWorkWithPasskey } from "@/modules/work/passkey-submission";
 // import { abi as WorkResolverABI } from "@/utils/abis/WorkResolver.json";
 
 import { useUser } from "@/hooks/auth/useUser";
@@ -181,31 +177,25 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
           chainId,
           images
         );
-      } else {
-        // Passkey mode - use job queue for offline support
-        const { txHash, jobId } = await submitWorkToQueue(
-          draft,
-          gardenAddress!,
-          actionUID!,
-          ctxActions,
-          chainId,
-          images
-        );
-
-        // If a client is available, try to process inline immediately
-        if (smartAccountClient) {
-          try {
-            await processWorkJobInline(jobId, chainId, smartAccountClient);
-          } catch {
-            // best-effort inline processing; job remains queued otherwise
-          }
-        }
-        return txHash;
       }
+
+      if (!smartAccountClient) {
+        throw new Error("Passkey session not ready. Please refresh and try again.");
+      }
+
+      return await submitWorkWithPasskey({
+        client: smartAccountClient,
+        draft,
+        gardenAddress: gardenAddress!,
+        actionUID: actionUID!,
+        actionTitle,
+        chainId,
+        images,
+      });
     },
     onMutate: () => {
       const message =
-        authMode === "wallet" ? "Awaiting wallet confirmation..." : "Uploading work...";
+        authMode === "wallet" ? "Awaiting wallet confirmation..." : "Submitting work...";
       toast.loading(message, { id: "work-upload" });
     },
     onSuccess: () => {

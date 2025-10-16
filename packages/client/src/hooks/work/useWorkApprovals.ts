@@ -1,8 +1,6 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { DEFAULT_CHAIN_ID, getEASConfig } from "@/config/blockchain";
 import { easGraphQL } from "@/modules/data/graphql";
-import { jobQueue } from "@/modules/job-queue";
-import { useJobQueueEvents } from "@/modules/job-queue/event-bus";
 import { createEasClient } from "@/modules/data/urql";
 import { queryKeys } from "../query-keys";
 
@@ -104,7 +102,6 @@ async function getWorkApprovalsByAttester(
  */
 export function useWorkApprovals(attesterAddress?: string) {
   const chainId = DEFAULT_CHAIN_ID;
-  const queryClient = useQueryClient();
 
   // Online work approvals query (where user is attester)
   const onlineApprovalsQuery = useQuery({
@@ -128,29 +125,6 @@ export function useWorkApprovals(attesterAddress?: string) {
     throwOnError: false, // Don't throw errors
   });
 
-  // Offline approval jobs query
-  const offlineApprovalsQuery = useQuery({
-    queryKey: queryKeys.workApprovals?.offline?.(attesterAddress) || [
-      "workApprovals",
-      "offline",
-      attesterAddress,
-    ],
-    queryFn: async () => {
-      try {
-        const jobs = await jobQueue.getJobs({ kind: "approval", synced: false });
-        // Do not filter out by gardenerAddress; show all local approval jobs
-        return jobs;
-      } catch (error) {
-        console.warn("Error fetching offline approval jobs:", error);
-        return []; // Return empty array on error
-      }
-    },
-    enabled: !!attesterAddress,
-    staleTime: 5000, // 5 seconds
-    gcTime: 30000, // 30 seconds
-    throwOnError: false, // Don't throw errors
-  });
-
   // Convert to enhanced format for UI
   const enhancedApprovals: EnhancedWorkApproval[] = [
     // Online approvals (completed)
@@ -167,61 +141,14 @@ export function useWorkApprovals(attesterAddress?: string) {
         gardenId: approval.workUID || approval.id, // Use workUID as gardenId fallback
       })
     ),
-
-    // Offline approvals (pending/uploading)
-    ...(offlineApprovalsQuery.data || []).map((job: unknown): EnhancedWorkApproval => {
-      const payload = (job as { payload: unknown }).payload as {
-        gardenerAddress?: string;
-        actionUID?: number;
-        workUID?: string;
-        approved?: boolean;
-        feedback?: string;
-      };
-      return {
-        id: (job as { id: string }).id,
-        operatorAddress: attesterAddress || "",
-        gardenerAddress: payload.gardenerAddress || "",
-        actionUID: payload.actionUID || 0,
-        workUID: payload.workUID || "",
-        approved: payload.approved || false,
-        feedback: payload.feedback || "",
-        createdAt: (job as { createdAt: number }).createdAt,
-        type: "work_approval" as const,
-        status: (job as { synced?: boolean; lastError?: string }).synced
-          ? "approved"
-          : (job as { synced?: boolean; lastError?: string }).lastError
-            ? "failed"
-            : "pending",
-        size: JSON.stringify(job).length,
-        // Add missing UI properties to prevent errors
-        title: `Work ${(payload.workUID || "").slice(0, 8) || "Unknown"}...`,
-        description:
-          payload.feedback || `${payload.approved ? "Approved work" : "Work submission"}`,
-        gardenId: payload.workUID || (job as { id: string }).id, // Use workUID as gardenId fallback
-      };
-    }),
   ];
-
-  // Event-driven invalidation for approval jobs
-  useJobQueueEvents(["job:added", "job:completed", "job:failed"], (_eventType, data) => {
-    if ("job" in data && data.job.kind === "approval") {
-      queryClient.invalidateQueries({
-        queryKey: ["workApprovals", "byAttester", attesterAddress, chainId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["workApprovals", "offline", attesterAddress],
-      });
-    }
-  });
 
   // Sort by creation date (newest first)
   const sortedApprovals = enhancedApprovals.sort((a, b) => b.createdAt - a.createdAt);
 
   // Check if we have any errors
-  const hasError = !!onlineApprovalsQuery.error || !!offlineApprovalsQuery.error;
-  const errorMessage =
-    (onlineApprovalsQuery.error as Error)?.message ||
-    (offlineApprovalsQuery.error as Error)?.message;
+  const hasError = !!onlineApprovalsQuery.error;
+  const errorMessage = (onlineApprovalsQuery.error as Error)?.message;
 
   return {
     approvals: sortedApprovals,
@@ -233,13 +160,12 @@ export function useWorkApprovals(attesterAddress?: string) {
     rejectedCount: sortedApprovals.filter((a) => a.status === "rejected").length,
     pendingCount: sortedApprovals.filter((a) => ["pending", "syncing", "failed"].includes(a.status))
       .length,
-    isLoading: onlineApprovalsQuery.isLoading || offlineApprovalsQuery.isLoading,
-    error: onlineApprovalsQuery.error || offlineApprovalsQuery.error,
+    isLoading: onlineApprovalsQuery.isLoading,
+    error: onlineApprovalsQuery.error,
     hasError,
     errorMessage,
     refetch: () => {
       onlineApprovalsQuery.refetch();
-      offlineApprovalsQuery.refetch();
     },
   };
 }

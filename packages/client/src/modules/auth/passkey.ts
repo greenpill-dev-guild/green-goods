@@ -53,6 +53,8 @@ export function clearStoredCredential() {
   localStorage.removeItem(PASSKEY_STORAGE_KEY);
 }
 
+const DEFAULT_SPONSORSHIP_POLICY_ID = "sp_next_monster_badoon";
+
 async function createPasskeySession(
   chainId: number,
   credential: P256Credential
@@ -73,11 +75,15 @@ async function createPasskeySession(
     },
   });
 
+  const sponsorshipPolicyId =
+    import.meta.env.VITE_PIMLICO_SPONSORSHIP_POLICY_ID || DEFAULT_SPONSORSHIP_POLICY_ID;
+
   const client = createSmartAccountClient({
     account,
     chain,
     bundlerTransport: http(bundlerUrl),
     paymaster: pimlicoClient,
+    paymasterContext: { sponsorshipPolicyId },
     userOperation: {
       estimateFeesPerGas: async () => {
         const { fast } = await pimlicoClient.getUserOperationGasPrice();

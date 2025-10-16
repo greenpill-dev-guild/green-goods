@@ -93,24 +93,38 @@ export function Login() {
    */
   const handleCreatePasskey = async () => {
     try {
-      setLoadingState(isFirstTime ? "creating-account" : "welcome-back");
+      const initialState = isFirstTime ? "creating-account" : "welcome-back";
+      setLoadingState(initialState);
 
       const session = await createPasskey();
 
+      const joinLabel = "joining-garden";
       if (isFirstTime) {
         setLoadingState("joining-garden");
-        try {
-          await joinGarden(session);
-          localStorage.setItem(ONBOARDED_STORAGE_KEY, "true");
-          setHasOnboarded(true);
-        } catch (joinErr) {
-          console.error("Garden join failed during onboarding", joinErr);
+      }
+
+      try {
+        await joinGarden(session);
+      } catch (joinErr) {
+        const message =
+          joinErr instanceof Error ? joinErr.message : String(joinErr ?? "failed to join");
+
+        // Ignore AlreadyGardener (0x42375a1e) to keep the flow simple
+        if (!message.includes("AlreadyGardener") && !message.includes("0x42375a1e")) {
+          console.error("Garden join failed", joinErr);
           toast("Welcome! You can join the community garden from your profile.", {
             icon: "ℹ️",
           });
-          localStorage.setItem(ONBOARDED_STORAGE_KEY, "true");
-          setHasOnboarded(true);
         }
+      }
+
+      localStorage.setItem(ONBOARDED_STORAGE_KEY, "true");
+      setHasOnboarded(true);
+
+      if (!isFirstTime) {
+        setLoadingState(null);
+      } else {
+        setLoadingState(joinLabel);
       }
     } catch (err) {
       setLoadingState(null);

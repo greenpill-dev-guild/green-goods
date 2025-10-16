@@ -1,12 +1,11 @@
 import { RiEarthFill, RiKeyLine, RiLogoutBoxRLine, RiWalletLine } from "@remixicon/react";
-import { ReactNode, useState } from "react";
+import { ReactNode } from "react";
 import toast from "react-hot-toast";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { Avatar } from "@/components/UI/Avatar/Avatar";
 import { Button } from "@/components/UI/Button";
 import { Card } from "@/components/UI/Card/Card";
-import { FormInput } from "@/components/UI/Form/Input";
 import {
   Select,
   SelectContent,
@@ -15,7 +14,6 @@ import {
   SelectValue,
 } from "@/components/UI/Select/Select";
 import { useAuth } from "@/hooks/auth/useAuth";
-import { useUser } from "@/hooks/auth/useUser";
 import { type Locale, useApp } from "@/providers/app";
 import { capitalize } from "@/utils/app/text";
 
@@ -37,32 +35,9 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
     credential,
     walletAddress,
   } = useAuth();
-  const { user } = useUser();
   const navigate = useNavigate();
   const { locale, switchLanguage, availableLocales } = useApp();
   const intl = useIntl();
-
-  const [displayName, setDisplayName] = useState<string>(
-    ((user?.wallet?.address as string) || "").slice(0, 8) ?? ""
-  );
-  const [saving, setSaving] = useState(false);
-
-  async function handleSave() {
-    if (!user?.id) return;
-    try {
-      setSaving(true);
-      // Profile updates can be implemented when backend supports it
-      toast.success(
-        intl.formatMessage({ id: "app.toast.profileUpdated", defaultMessage: "Profile updated" })
-      );
-    } catch {
-      toast.error(
-        intl.formatMessage({ id: "app.toast.profileUpdateFailed", defaultMessage: "Update failed" })
-      );
-    } finally {
-      setSaving(false);
-    }
-  }
 
   const handleLogout = () => {
     if (authMode === "passkey") {
