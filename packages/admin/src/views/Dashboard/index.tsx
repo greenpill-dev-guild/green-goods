@@ -3,7 +3,8 @@ import { graphql } from "gql.tada";
 import { useRole } from "@/hooks/useRole";
 import { useChainId } from "wagmi";
 import type { Garden } from "@/types/garden";
-import { RiPlantLine, RiUserLine } from "@remixicon/react";
+import { RiCalendarLine, RiLeafLine, RiPlantLine, RiTimerLine, RiUserLine } from "@remixicon/react";
+import { useAssessmentSummary } from "@/hooks/useAssessmentSummary";
 
 const GET_DASHBOARD_STATS = graphql(`
   query GetDashboardStats($chainId: Int!) {
@@ -24,11 +25,16 @@ export default function Dashboard() {
     variables: { chainId },
   });
 
-  const gardens = data?.Garden || [];
+  const gardens = (data?.Garden || []) as Garden[];
   const totalGardens = gardens.length;
   const userOperatorGardens = operatorGardens.length;
-  const totalOperators = new Set((gardens as Garden[]).flatMap((g) => g.operators)).size;
-  const totalGardeners = new Set((gardens as Garden[]).flatMap((g) => g.gardeners)).size;
+  const totalOperators = new Set(gardens.flatMap((g) => g.operators)).size;
+  const totalGardeners = new Set(gardens.flatMap((g) => g.gardeners)).size;
+  const {
+    summary: assessmentSummary,
+    isLoading: assessmentsLoading,
+    error: assessmentsError,
+  } = useAssessmentSummary(gardens);
 
   if (fetching) {
     return (
@@ -128,6 +134,53 @@ export default function Dashboard() {
               ? `Manage your ${operatorGardens.length} garden${operatorGardens.length !== 1 ? "s" : ""}`
               : "View gardens and explore the Green Goods ecosystem"}
         </p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mb-8">
+        {[{ label: "Avg. Carbon Stock", icon: <RiLeafLine className="h-5 w-5" />, value: assessmentsLoading
+              ? "Calculating..."
+              : assessmentSummary.averageCarbonTonStock !== null
+                ? `${assessmentSummary.averageCarbonTonStock.toLocaleString()} T`
+                : "–",
+          },
+          {
+            label: "Last Assessment",
+            icon: <RiCalendarLine className="h-5 w-5" />,
+            value: assessmentsLoading
+              ? "Loading..."
+              : assessmentSummary.lastAssessmentDate
+                ? assessmentSummary.lastAssessmentDate.toLocaleDateString()
+                : "No assessments yet",
+          },
+          {
+            label: "Gardens Pending Review",
+            icon: <RiTimerLine className="h-5 w-5" />,
+            value: assessmentsLoading ? "Syncing..." : assessmentSummary.pendingAssessments,
+          }].map((metric, index) => (
+            <div
+              key={metric.label}
+              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-5"
+            >
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium text-gray-500 dark:text-gray-300">
+                  {metric.label}
+                </div>
+                <div className="text-green-600 dark:text-green-400 bg-green-100/70 dark:bg-green-900/30 rounded-full p-2">
+                  {metric.icon}
+                </div>
+              </div>
+              <div className="mt-3 text-2xl font-semibold text-gray-900 dark:text-gray-100">
+                {metric.value}
+              </div>
+              {assessmentsError && index === 0 && (
+                <p className="mt-2 text-xs text-red-500">
+                  {assessmentsError instanceof Error
+                    ? assessmentsError.message
+                    : "Unable to load assessments"}
+                </p>
+              )}
+            </div>
+          ))}
       </div>
 
       {/* Stats Grid */}

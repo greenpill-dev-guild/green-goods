@@ -4,8 +4,12 @@ import { easGraphQL } from "./graphql";
 import { createEasClient } from "./urql";
 
 const GARDEN_ASSESSMENTS_QUERY = easGraphQL(/* GraphQL */ `
-  query GardenAssessments($where: AttestationWhereInput) {
-    attestations(where: $where) {
+  query GardenAssessments(
+    $where: AttestationWhereInput
+    $take: Int
+    $orderBy: [AttestationOrderByWithRelationInput!]
+  ) {
+    attestations(where: $where, take: $take, orderBy: $orderBy) {
       id
       attester
       recipient
@@ -24,7 +28,7 @@ export interface GardenAssessmentAttestation {
 }
 
 interface FetchGardenAssessmentsOptions {
-  gardenAddress: string;
+  gardenAddress?: string;
   chainId?: number | string;
   limit?: number;
 }
@@ -33,7 +37,7 @@ export async function fetchGardenAssessments({
   gardenAddress,
   chainId,
   limit,
-}: FetchGardenAssessmentsOptions): Promise<GardenAssessmentAttestation[]> {
+}: FetchGardenAssessmentsOptions = {}): Promise<GardenAssessmentAttestation[]> {
   const client = createEasClient(chainId);
   const schemaId = { equals: getEASConfig(chainId).GARDEN_ASSESSMENT.uid };
 
@@ -41,9 +45,11 @@ export async function fetchGardenAssessments({
     .query(GARDEN_ASSESSMENTS_QUERY, {
       where: {
         schemaId,
-        recipient: { equals: gardenAddress },
         revoked: { equals: false },
+        ...(gardenAddress ? { recipient: { equals: gardenAddress } } : {}),
       },
+      take: limit,
+      orderBy: [{ timeCreated: "desc" }],
     })
     .toPromise();
 

@@ -1,20 +1,29 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 
-import { fetchGardenAssessments } from "@/modules/eas";
+import {
+  fetchGardenAssessments,
+  type GardenAssessmentAttestation,
+} from "@/modules/eas";
 import { useAdminStore } from "@/stores/admin";
+import { parseAssessment, type GardenAssessmentWithParsed } from "@/utils/assessments";
 
-export function useGardenAssessments(gardenAddress?: string, limit?: number) {
+export function useGardenAssessments(
+  gardenAddress?: string,
+  limit?: number
+): UseQueryResult<GardenAssessmentWithParsed[], Error> {
   const selectedChainId = useAdminStore((state) => state.selectedChainId);
 
-  return useQuery({
+  return useQuery<
+    GardenAssessmentAttestation[],
+    Error,
+    GardenAssessmentWithParsed[],
+    [string, number, string | undefined, number | undefined]
+  >({
     queryKey: ["garden-assessments", selectedChainId, gardenAddress, limit],
-    queryFn: () => {
-      if (!gardenAddress) {
-        return Promise.resolve([]);
-      }
-      return fetchGardenAssessments({ gardenAddress, chainId: selectedChainId, limit });
-    },
-    enabled: Boolean(gardenAddress),
+    queryFn: () =>
+      fetchGardenAssessments({ gardenAddress, chainId: selectedChainId, limit }),
+    select: (data) => data.map((attestation) => parseAssessment(attestation)),
+    enabled: Boolean(selectedChainId),
     staleTime: 30_000,
     refetchInterval: 60_000,
   });

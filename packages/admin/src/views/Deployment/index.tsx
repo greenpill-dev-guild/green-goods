@@ -11,6 +11,7 @@ import {
 import { useDeploymentRegistry } from "@/hooks/useDeploymentRegistry";
 import { useAdminStore } from "@/stores/admin";
 import { getChainById } from "@/utils/contracts";
+import { toast } from "react-hot-toast";
 
 export default function Deployment() {
   const { selectedChainId } = useAdminStore();
@@ -29,10 +30,12 @@ export default function Deployment() {
       );
       await new Promise((resolve) => setTimeout(resolve, 3000)); // Mock deployment
       setDeploymentResult("✅ Deployment completed successfully!");
+      toast.success("Contracts deployed successfully");
     } catch (error) {
       setDeploymentResult(
         `❌ Deployment failed: ${error instanceof Error ? error.message : "Unknown error"}`
       );
+      toast.error(error instanceof Error ? error.message : "Failed to deploy contracts");
     } finally {
       setIsDeploying(false);
     }

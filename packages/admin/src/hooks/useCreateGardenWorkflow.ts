@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useMachine } from "@xstate/react";
 import { useAccount, useWalletClient } from "wagmi";
+import { toast } from "react-hot-toast";
 
 import { createGardenMachine } from "@/workflows/createGarden";
 import { getNetworkContracts, GardenTokenABI } from "@/utils/contracts";
@@ -58,8 +59,12 @@ export function useCreateGardenWorkflow() {
   useEffect(() => {
     if (state.matches("success") && state.context.txHash) {
       updateTransactionStatus(state.context.txHash, "confirmed");
+      toast.success("Garden deployment transaction confirmed");
     }
-  }, [state.value, state.context.txHash, updateTransactionStatus]);
+    if (state.matches("error") && state.context.error) {
+      toast.error(state.context.error);
+    }
+  }, [state.value, state.context.txHash, state.context.error, updateTransactionStatus]);
 
   const openFlow = useCallback(() => send({ type: "OPEN" }), [send]);
   const closeFlow = useCallback(() => send({ type: "CLOSE" }), [send]);

@@ -8,6 +8,7 @@ import { useGardenPermissions } from "@/hooks/useGardenPermissions";
 import { CreateGardenModal } from "@/components/Garden/CreateGardenModal";
 import { useChainId } from "wagmi";
 import { resolveIPFSUrl } from "@/utils/pinata";
+import { gradientForSeed } from "@/utils/colors";
 import type { Garden } from "@/types/garden";
 
 const GET_GARDENS = graphql(`
@@ -178,7 +179,7 @@ export default function Gardens() {
           {(gardens as Garden[]).map((garden: Garden) => {
             const canManage = gardenPermissions.canManageGarden(garden);
             const resolvedBannerImage = garden.bannerImage
-              ? resolveIPFSUrl(garden.bannerImage)
+              ? resolveIPFSUrl(garden.bannerImage, { width: 800, quality: 70 })
               : null;
 
             return (
@@ -186,7 +187,14 @@ export default function Gardens() {
                 key={garden.id}
                 className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow min-w-[320px]"
               >
-                <div className="h-48 relative">
+                <div
+                  className="h-48 relative"
+                  style={{
+                    backgroundImage: resolvedBannerImage ? undefined : gradientForSeed(garden.id),
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }}
+                >
                   {resolvedBannerImage ? (
                     <img
                       src={resolvedBannerImage}
@@ -204,7 +212,7 @@ export default function Gardens() {
                   ) : null}
                   {/* Gradient placeholder */}
                   <div
-                    className={`absolute inset-0 bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 ${resolvedBannerImage ? "hidden" : "flex"} items-center justify-center`}
+                    className={`absolute inset-0 ${resolvedBannerImage ? "hidden" : "flex"} items-center justify-center`}
                     style={{ display: resolvedBannerImage ? "none" : "flex" }}
                   >
                     <div className="text-white text-center">

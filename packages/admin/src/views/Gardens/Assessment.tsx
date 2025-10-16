@@ -27,12 +27,12 @@ export default function GardenAssessment() {
             <RiArrowLeftLine className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              Garden Assessments
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Viewing all assessments for this garden.
-            </p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                Garden Assessments
+              </h1>
+              <p className="text-gray-600 dark:text-gray-300 mt-1">
+                Viewing all assessments for this garden.
+              </p>
           </div>
         </div>
         <button
@@ -63,21 +63,21 @@ export default function GardenAssessment() {
             <div className="text-center py-16">
               <RiFileList3Line className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">No assessments found</h3>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 This garden does not have any assessments yet.
               </p>
             </div>
           ) : (
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-700/70">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-200 uppercase tracking-wider">
                     Attestation UID
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-200 uppercase tracking-wider">
                     Date
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-200 uppercase tracking-wider">
                     CO2 Stock (T)
                   </th>
                   <th className="relative px-6 py-3">
@@ -86,18 +86,15 @@ export default function GardenAssessment() {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {assessments.map((attestation: any) => {
-                  const assessmentData = attestation.decodedDataJson
-                    ? JSON.parse(attestation.decodedDataJson)
-                    : {};
+                {assessments.map((attestation) => {
                   return (
                     <tr key={attestation.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">{`${attestation.id.slice(0, 10)}...`}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-600 dark:text-gray-300">{`${attestation.id.slice(0, 10)}...`}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                         {new Date(attestation.time * 1000).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                        {assessmentData.carbonTonStock ?? "-"}
+                        {attestation.parsed.carbonTonStock ?? "-"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <a

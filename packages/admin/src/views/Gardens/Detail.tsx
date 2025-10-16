@@ -141,7 +141,7 @@ export default function GardenDetail() {
           <div className="h-64 rounded-t-lg overflow-hidden relative">
             {garden.bannerImage ? (
               <img
-                src={resolveIPFSUrl(garden.bannerImage)}
+                src={resolveIPFSUrl(garden.bannerImage, { width: 1200, quality: 80 })}
                 alt={garden.name}
                 className="w-full h-full object-cover"
                 onError={(e) => {
@@ -300,9 +300,6 @@ export default function GardenDetail() {
             ) : (
               <div className="space-y-3">
                 {assessments.map((attestation) => {
-                  const assessmentData = attestation.decodedDataJson
-                    ? JSON.parse(attestation.decodedDataJson)
-                    : {};
                   return (
                     <div
                       key={attestation.id}
@@ -313,10 +310,10 @@ export default function GardenDetail() {
                           <RiFileList3Line className="h-4 w-4 text-purple-600" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-gray-900">
-                            CO2 Stock: {assessmentData.carbonTonStock ?? "-"} T
+                          <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
+                            CO2 Stock: {attestation.parsed.carbonTonStock ?? "-"} T
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
                             {new Date(attestation.time * 1000).toLocaleDateString()}
                           </p>
                         </div>

@@ -1,5 +1,6 @@
 import { Provider as UrqlProvider } from "urql";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Suspense, lazy } from "react";
 import { Toaster } from "react-hot-toast";
 
 import { urqlClient } from "@/utils/urql";
@@ -11,8 +12,8 @@ import Dashboard from "@/views/Dashboard";
 import Gardens from "@/views/Gardens";
 import GardenDetail from "@/views/Gardens/Detail";
 import Contracts from "@/views/Contracts";
-import Deployment from "@/views/Deployment";
-import GardenAssessment from "@/views/Gardens/Assessment";
+const Deployment = lazy(() => import("@/views/Deployment"));
+const GardenAssessment = lazy(() => import("@/views/Gardens/Assessment"));
 
 function App() {
   return (
@@ -27,10 +28,24 @@ function App() {
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/gardens" element={<Gardens />} />
                 <Route path="/gardens/:id" element={<GardenDetail />} />
-                <Route path="/gardens/:id/assessments" element={<GardenAssessment />} />
+                <Route
+                  path="/gardens/:id/assessments"
+                  element={
+                    <Suspense fallback={<div className="p-6 text-gray-500">Loading assessments…</div>}>
+                      <GardenAssessment />
+                    </Suspense>
+                  }
+                />
                 <Route element={<RequireRole allowedRoles={["deployer"]} />}>
                   <Route path="/contracts" element={<Contracts />} />
-                  <Route path="/deployment" element={<Deployment />} />
+                  <Route
+                    path="/deployment"
+                    element={
+                      <Suspense fallback={<div className="p-6 text-gray-500">Loading deployment tools…</div>}>
+                        <Deployment />
+                      </Suspense>
+                    }
+                  />
                 </Route>
               </Route>
             </Route>

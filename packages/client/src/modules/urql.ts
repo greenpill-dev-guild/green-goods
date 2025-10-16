@@ -1,13 +1,10 @@
 import { Client, cacheExchange, fetchExchange } from "@urql/core";
+import { createEasClient as baseCreateEasClient } from "@green-goods/eas-shared";
 
 import { getEasGraphqlUrl, getIndexerUrl } from "@/config";
 
-// Create EAS client for a specific chain
 export function createEasClient(chainId?: number | string) {
-  return new Client({
-    url: getEasGraphqlUrl(chainId),
-    exchanges: [cacheExchange, fetchExchange],
-  });
+  return baseCreateEasClient({ chainId, resolveUrl: getEasGraphqlUrl });
 }
 
 export const greenGoodsIndexer = new Client({

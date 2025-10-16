@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
+import { ContractInspector } from "@/components/Debug/ContractInspector";
 
 export function DashboardLayout() {
   return (
@@ -8,8 +9,9 @@ export function DashboardLayout() {
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header />
-        <main className="flex-1 overflow-y-auto">
+        <main className="relative flex-1 overflow-y-auto">
           <Outlet />
+          <ContractInspector />
         </main>
       </div>
     </div>
