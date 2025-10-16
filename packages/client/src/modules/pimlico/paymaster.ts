@@ -1,5 +1,10 @@
 import { type Hex, keccak256, toHex } from "viem";
-import { getPimlicoPaymasterUrl } from "./config";
+import type { PimlicoClient } from "permissionless/clients/pimlico";
+import {
+  entryPoint07Address,
+  type GetPaymasterStubDataParameters,
+  type GetPaymasterStubDataReturnType,
+} from "viem/account-abstraction";
 
 // Garden joining function signature
 const JOIN_GARDEN_SELECTOR = "0x" + keccak256(toHex("joinGarden()")).slice(2, 10);
@@ -10,7 +15,11 @@ const JOIN_GARDEN_SELECTOR = "0x" + keccak256(toHex("joinGarden()")).slice(2, 10
  * @param chainId The chain ID
  * @returns true if the operation should be sponsored
  */
-export function shouldSponsorOperation(callData: Hex, _chainId: number): boolean {
+export function shouldSponsorOperation(callData: Hex | undefined, _chainId: number): boolean {
+  if (!callData || callData === "0x") {
+    return false;
+  }
+
   const selector = callData.slice(0, 10) as Hex;
 
   // Sponsor direct garden joins (no invite system)
@@ -27,58 +36,67 @@ export function shouldSponsorOperation(callData: Hex, _chainId: number): boolean
  */
 export interface PaymasterConfig {
   chainId: number;
+  pimlicoClient: PimlicoClient;
   sponsorshipPolicyId?: string; // Optional sponsorship policy ID from Pimlico dashboard
+  sponsorName?: string;
+  sponsorIcon?: string;
 }
 
+type SponsoredPaymasterReturn = GetPaymasterStubDataReturnType & {
+  callGasLimit: bigint;
+  preVerificationGas: bigint;
+  verificationGasLimit: bigint;
+};
+
+const DEFAULT_SPONSOR_NAME = "Pimlico";
+
 /**
- * Gets paymaster data for a user operation
+ * Requests Pimlico to sponsor the provided user operation and
+ * returns the paymaster data in the format expected by permissionless.
  */
-export async function getPaymasterData(
-  userOperation: any,
+export async function requestSponsoredPaymasterData(
+  userOperation: GetPaymasterStubDataParameters,
   config: PaymasterConfig
-): Promise<{ paymasterAndData: Hex }> {
-  const { chainId, sponsorshipPolicyId } = config;
-  const paymasterUrl = getPimlicoPaymasterUrl(chainId);
+): Promise<SponsoredPaymasterReturn> {
+  const { chainId, pimlicoClient, sponsorshipPolicyId, sponsorIcon, sponsorName } = config;
 
-  try {
-    // Validate that we should sponsor this operation
-    if (!shouldSponsorOperation(userOperation.callData, chainId)) {
-      throw new Error("Operation not eligible for sponsorship");
-    }
-
-    // Call Pimlico paymaster API
-    const response = await fetch(paymasterUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "pm_sponsorUserOperation",
-        params: [
-          userOperation,
-          {
-            entryPoint: "0x0000000071727De22E5E9d8BAf0edAc6f37da032", // EntryPoint v0.7
-            sponsorshipPolicyId: sponsorshipPolicyId || undefined,
-          },
-        ],
-      }),
-    });
-
-    const data = await response.json();
-
-    if (data.error) {
-      throw new Error(`Paymaster error: ${data.error.message}`);
-    }
-
-    return {
-      paymasterAndData: data.result.paymasterAndData,
-    };
-  } catch (error) {
-    console.error("[Paymaster] Failed to get paymaster data:", error);
-    throw error;
+  if (!shouldSponsorOperation(userOperation.callData as Hex, chainId)) {
+    throw new Error("Operation not eligible for sponsorship");
   }
+
+  if (isRateLimited(userOperation.sender)) {
+    throw new Error("Passkey sponsorship temporarily rate limited. Please try again later.");
+  }
+
+  const { context: _context, ...operation } = userOperation as GetPaymasterStubDataParameters & {
+    context?: unknown;
+  };
+
+  const sponsorship = await pimlicoClient.sponsorUserOperation({
+    userOperation: operation,
+    entryPoint: {
+      address: entryPoint07Address,
+      version: "0.7",
+    },
+    sponsorshipPolicyId,
+  });
+
+  recordSponsoredOperation(userOperation.sender);
+
+  return {
+    callGasLimit: sponsorship.callGasLimit,
+    preVerificationGas: sponsorship.preVerificationGas,
+    verificationGasLimit: sponsorship.verificationGasLimit,
+    paymaster: sponsorship.paymaster,
+    paymasterData: sponsorship.paymasterData,
+    paymasterVerificationGasLimit: sponsorship.paymasterVerificationGasLimit,
+    paymasterPostOpGasLimit: sponsorship.paymasterPostOpGasLimit,
+    isFinal: true,
+    sponsor: {
+      name: sponsorName ?? DEFAULT_SPONSOR_NAME,
+      ...(sponsorIcon ? { icon: sponsorIcon } : {}),
+    },
+  } satisfies SponsoredPaymasterReturn;
 }
 
 /**

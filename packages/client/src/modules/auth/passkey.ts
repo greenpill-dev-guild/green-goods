@@ -7,6 +7,7 @@ import {
   toWebAuthnAccount,
   entryPoint07Address,
 } from "viem/account-abstraction";
+import type { GetPaymasterStubDataParameters } from "viem/account-abstraction";
 
 import {
   createPimlicoClientForChain,
@@ -14,6 +15,7 @@ import {
   getChainFromId,
   getPimlicoBundlerUrl,
 } from "@/modules/pimlico/config";
+import { requestSponsoredPaymasterData } from "@/modules/pimlico/paymaster";
 
 export interface PasskeySession {
   credential: P256Credential;
@@ -59,6 +61,10 @@ async function createPasskeySession(chainId: number, credential: P256Credential)
   const pimlicoClient = createPimlicoClientForChain(chainId);
   const bundlerUrl = getPimlicoBundlerUrl(chainId);
 
+  const sponsorshipPolicyId = import.meta.env.VITE_PIMLICO_SPONSORSHIP_POLICY_ID;
+  const sponsorName = import.meta.env.VITE_PIMLICO_SPONSOR_NAME;
+  const sponsorIcon = import.meta.env.VITE_PIMLICO_SPONSOR_ICON;
+
   const webAuthnAccount = toWebAuthnAccount({ credential });
   const account = await toKernelSmartAccount({
     client: publicClient,
@@ -74,7 +80,25 @@ async function createPasskeySession(chainId: number, credential: P256Credential)
     account,
     chain,
     bundlerTransport: http(bundlerUrl),
-    paymaster: pimlicoClient,
+    paymaster: {
+      getPaymasterStubData: async (args: GetPaymasterStubDataParameters) =>
+        requestSponsoredPaymasterData(args, {
+          chainId,
+          pimlicoClient,
+          sponsorshipPolicyId,
+          sponsorIcon,
+          sponsorName,
+        }),
+    },
+    userOperation: {
+      estimateFeesPerGas: async () => {
+        const { fast } = await pimlicoClient.getUserOperationGasPrice();
+        return {
+          maxFeePerGas: fast.maxFeePerGas,
+          maxPriorityFeePerGas: fast.maxPriorityFeePerGas,
+        };
+      },
+    },
   });
 
   return {
@@ -85,7 +109,30 @@ async function createPasskeySession(chainId: number, credential: P256Credential)
 }
 
 export async function registerPasskeySession(chainId: number): Promise<PasskeySession> {
-  const credential = await createWebAuthnCredential({ name: "Green Goods Wallet" });
+  const credential = await createWebAuthnCredential({
+    name: "Green Goods Wallet",
+    createFn: async (options) => {
+      const publicKeyOptions = (options as PublicKeyCredentialCreationOptions | undefined)?.publicKey;
+      if (publicKeyOptions) {
+        const existing = publicKeyOptions.pubKeyCredParams ?? [];
+        const seen = new Set(existing.map((param) => param.alg));
+        const withDefaults = [
+          { type: "public-key", alg: -7 },
+          ...existing,
+          { type: "public-key", alg: -257 },
+        ].filter((param) => {
+          if (seen.has(param.alg)) {
+            return false;
+          }
+          seen.add(param.alg);
+          return true;
+        });
+        publicKeyOptions.pubKeyCredParams = withDefaults;
+      }
+
+      return window.navigator.credentials.create(options ?? undefined);
+    },
+  });
   persistCredential(credential);
   return createPasskeySession(chainId, credential);
 }
