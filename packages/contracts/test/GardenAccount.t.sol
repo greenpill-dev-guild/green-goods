@@ -4,7 +4,7 @@ pragma solidity >=0.8.25;
 import { Test } from "forge-std/Test.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-import { GardenAccount, NotGardenOperator, TooManyGardeners, TooManyOperators } from "../src/accounts/Garden.sol";
+import { GardenAccount, TooManyGardeners, TooManyOperators } from "../src/accounts/Garden.sol";
 import { MockERC20 } from "../src/mocks/ERC20.sol";
 import { ERC6551Helper } from "./helpers/ERC6551Helper.sol";
 import { TOKENBOUND_REGISTRY } from "../src/Constants.sol";
@@ -20,7 +20,7 @@ contract GardenAccountTest is Test, ERC6551Helper {
     function setUp() public {
         // Deploy ERC6551 Registry at canonical Tokenbound address
         _deployERC6551Registry();
-        
+
         // Deploy mock community token
         mockCommunityToken = new MockERC20();
         mockGardenToken = new MockERC20(); // Mock for the garden NFT
@@ -65,14 +65,10 @@ contract GardenAccountTest is Test, ERC6551Helper {
 
         ERC1967Proxy gardenAccountProxy = new ERC1967Proxy(address(gardenAccountImpl), gardenAccountInitData);
         gardenAccount = GardenAccount(payable(address(gardenAccountProxy)));
-        
+
         // Mock the garden token to have a specific owner for TBA checks
         // Mock ownerOf to return mockTokenOwner for any token ID
-        vm.mockCall(
-            address(mockGardenToken),
-            abi.encodeWithSignature("ownerOf(uint256)", 1),
-            abi.encode(mockTokenOwner)
-        );
+        vm.mockCall(address(mockGardenToken), abi.encodeWithSignature("ownerOf(uint256)", 1), abi.encode(mockTokenOwner));
     }
 
     function testInitialize() public {
