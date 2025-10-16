@@ -102,4 +102,60 @@ library StringUtils {
 
         return string(finalResult);
     }
+
+    /// @notice Converts Unix timestamp to ISO 8601 string (YYYY-MM-DDTHH:MM:SS.000Z)
+    /// @param timestamp Unix timestamp (seconds since epoch)
+    /// @return ISO 8601 formatted date string in UTC with milliseconds
+    function timestampToISO(uint256 timestamp) internal pure returns (string memory) {
+        // Calculate date components using Neri-Schneider algorithm
+        uint256 z = timestamp / 86400 + 719468;
+        uint256 era = (z >= 0 ? z : z - 146096) / 146097;
+        uint256 doe = z - era * 146097;
+        uint256 yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+        uint256 y = yoe + era * 400;
+        uint256 doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+        uint256 mp = (5 * doy + 2) / 153;
+        uint256 d = doy - (153 * mp + 2) / 5 + 1;
+        uint256 m = mp < 10 ? mp + 3 : mp - 9;
+        if (m <= 2) {
+            y += 1;
+        }
+
+        // Calculate time components
+        uint256 secondsInDay = timestamp % 86400;
+        uint256 hour = secondsInDay / 3600;
+        uint256 minute = (secondsInDay % 3600) / 60;
+        uint256 second = secondsInDay % 60;
+
+        // Format: YYYY-MM-DDTHH:MM:SS.000Z (milliseconds always .000 since Unix timestamp is seconds)
+        return string(
+            abi.encodePacked(
+                _padZero(y, 4),
+                "-",
+                _padZero(m, 2),
+                "-",
+                _padZero(d, 2),
+                "T",
+                _padZero(hour, 2),
+                ":",
+                _padZero(minute, 2),
+                ":",
+                _padZero(second, 2),
+                ".000Z"
+            )
+        );
+    }
+
+    /// @notice Pads number with leading zeros
+    /// @param num Number to pad
+    /// @param length Desired string length
+    /// @return Zero-padded string
+    function _padZero(uint256 num, uint256 length) private pure returns (string memory) {
+        bytes memory buffer = new bytes(length);
+        for (uint256 i = length; i > 0; i--) {
+            buffer[i - 1] = bytes1(uint8(48 + (num % 10)));
+            num /= 10;
+        }
+        return string(buffer);
+    }
 }

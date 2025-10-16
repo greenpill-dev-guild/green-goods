@@ -6,7 +6,11 @@
       "capitals": ["LIVING", "MATERIAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2025-12-31T23:59:59Z",
-      "media": [],
+      "media": [
+        "QmY6h53RyAY6VQfqqUTBwkVkG8JpCon9SdVkqtB5YzPVwx",
+        "QmZAeu9sEtNqXZBmiYiAt7bd4M38TmE73ekj47n7JDU2xm",
+        "QmdYz2JsVhyzZe591vR1sBQQjLWjGCTp1yJ1t1EicrAnYH"
+      ],
       "uiConfig": {
         "media": {
           "title": "Photograph the Plot",
@@ -58,7 +62,11 @@
       "capitals": ["LIVING", "INTELLECTUAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2025-12-31T23:59:59Z",
-      "media": [],
+      "media": [
+        "QmVvKqpnfJm8UwRq9SF15V2jgJ86yCBsmMBmpEaoQU92bD",
+        "QmXeV9zWpXHzTGFS3jJRBRYBTHkcVE23qpdhhtQKX1uC4L",
+        "QmXp5fEnjHbsLniCE5BD1LyjoGgvoHKuajqQnDCPAZih2X"
+      ],
       "uiConfig": {
         "media": {
           "title": "Capture Plant Photos",
@@ -118,7 +126,7 @@
       "capitals": ["MATERIAL", "SOCIAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2025-12-31T23:59:59Z",
-      "media": [],
+      "media": ["bafkreiemwmci42u7cb23xacktk5nfspo5kfsbmflvh6sixjahjbdk2bsie"],
       "uiConfig": {
         "media": {
           "title": "Capture the Waste Cleanup",
