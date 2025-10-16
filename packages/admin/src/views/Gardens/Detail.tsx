@@ -13,8 +13,7 @@ import {
 } from "@remixicon/react";
 import { useGardenPermissions } from "@/hooks/useGardenPermissions";
 import { useGardenOperations } from "@/hooks/useGardenOperations";
-import { useAdminStore } from "@/stores/admin";
-import { getNetworkContracts } from "@/utils/contracts";
+import { useGardenAssessments } from "@/hooks/useGardenAssessments";
 
 import { AddMemberModal } from "@/components/Garden/AddMemberModal";
 import { AddressDisplay } from "@/components/ui/AddressDisplay";
@@ -36,20 +35,6 @@ const GET_GARDEN_DETAIL = graphql(`
       createdAt
       gardeners
       operators
-    }
-  }
-`);
-
-const GET_GARDEN_ASSESSMENTS = graphql(`
-  query GetGardenAssessments($recipient: String!, $schemaId: String!, $limit: Int!) {
-    Attestation(
-      where: { recipient: { _eq: $recipient }, schemaId: { _eq: $schemaId } }
-      orderBy: { time: desc }
-      limit: $limit
-    ) {
-      id
-      time
-      decodedDataJson
     }
   }
 `);
@@ -76,18 +61,13 @@ export default function GardenDetail() {
     pause: !id,
   });
 
-  const { selectedChainId } = useAdminStore();
-  const contracts = getNetworkContracts(selectedChainId);
-  const [{ data: assessmentData, fetching: fetchingAssessments }] = useQuery({
-    query: GET_GARDEN_ASSESSMENTS,
-    variables: {
-      recipient: id!,
-      schemaId: contracts.assessmentSchema!,
-      limit: 5, // Fetch latest 5 assessments for the detail view
-    },
-    pause: !id || !contracts.assessmentSchema,
-  });
-  const assessments = assessmentData?.Attestation || [];
+  const {
+    data: assessmentList = [],
+    isLoading: fetchingAssessments,
+    error: assessmentsError,
+  } = useGardenAssessments(id, 5);
+
+  const assessments = assessmentList;
 
   const { addGardener, removeGardener, addOperator, removeOperator, isLoading } =
     useGardenOperations(id!);
@@ -311,24 +291,30 @@ export default function GardenDetail() {
           <div className="p-6">
             {fetchingAssessments ? (
               <p className="text-gray-500 text-center py-4">Loading assessments...</p>
+            ) : assessmentsError ? (
+              <p className="text-center py-4 text-red-600">
+                Failed to load assessments: {assessmentsError instanceof Error ? assessmentsError.message : "Unknown error"}
+              </p>
             ) : assessments.length === 0 ? (
               <p className="text-gray-500 text-center py-4">No assessments found</p>
             ) : (
               <div className="space-y-3">
                 {assessments.map((attestation) => {
-                  const assessmentData = JSON.parse(attestation.decodedDataJson);
+                  const assessmentData = attestation.decodedDataJson
+                    ? JSON.parse(attestation.decodedDataJson)
+                    : {};
                   return (
                     <div
                       key={attestation.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-md"
+                      className="flex items-center justify-between rounded-md bg-gray-50 p-3"
                     >
-                      <div className="flex items-center space-x-3 flex-1 min-w-0">
-                        <div className="h-8 w-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <div className="flex min-w-0 flex-1 items-center space-x-3">
+                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-purple-100">
                           <RiFileList3Line className="h-4 w-4 text-purple-600" />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            CO2 Stock: {assessmentData.carbonTonStock} T
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-gray-900">
+                            CO2 Stock: {assessmentData.carbonTonStock ?? "-"} T
                           </p>
                           <p className="text-xs text-gray-500">
                             {new Date(attestation.time * 1000).toLocaleDateString()}
@@ -339,7 +325,7 @@ export default function GardenDetail() {
                         href={`${EAS_EXPLORER_URL}/attestation/view/${attestation.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-green-600 hover:text-green-900 inline-flex items-center text-sm"
+                        className="inline-flex items-center text-sm text-green-600 hover:text-green-900"
                       >
                         View <RiExternalLinkLine className="ml-1 h-4 w-4" />
                       </a>

@@ -1,175 +1,152 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { createActor } from "xstate";
+
 import { createGardenMachine } from "@/workflows/createGarden";
-import type { CreateGardenParams } from "@/types/contracts";
+import {
+  resetCreateGardenStore,
+  useCreateGardenStore,
+} from "@/stores/createGarden";
+
+const GARDENER_ONE = "0x1234567890123456789012345678901234567890";
+const GARDENER_TWO = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd";
+
+function populateGardenDetails() {
+  const store = useCreateGardenStore.getState();
+  store.setField("name", "Test Garden");
+  store.setField("description", "A lively test garden");
+  store.setField("location", "Testville");
+  store.setField("communityToken", "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+}
+
+function populateGardenTeam() {
+  const store = useCreateGardenStore.getState();
+  store.addGardener(GARDENER_ONE);
+  store.addGardener(GARDENER_TWO);
+}
 
 describe("createGarden workflow", () => {
-  let actor: ReturnType<typeof createActor>;
-
   beforeEach(() => {
-    actor = createActor(createGardenMachine);
-    actor.start();
+    resetCreateGardenStore();
   });
 
-  afterEach(() => {
+  it("starts idle and opens into collecting state", () => {
+    const actor = createActor(createGardenMachine);
+    actor.start();
+
+    expect(actor.getSnapshot().value).toBe("idle");
+
+    actor.send({ type: "OPEN" });
+    expect(actor.getSnapshot().value).toBe("collecting");
+    expect(useCreateGardenStore.getState().currentStep).toBe(0);
+
     actor.stop();
   });
 
-  it("should start in idle state", () => {
-    expect(actor.getSnapshot().value).toBe("idle");
-    expect(actor.getSnapshot().context.retryCount).toBe(0);
+  it("prevents advancing without required details", () => {
+    const actor = createActor(createGardenMachine);
+    actor.start();
+    actor.send({ type: "OPEN" });
+
+    actor.send({ type: "NEXT" });
+    expect(useCreateGardenStore.getState().currentStep).toBe(0);
+
+    actor.stop();
   });
 
-  it("should transition through validating to ready when started with valid params", () => {
-    const params: CreateGardenParams = {
-      name: "Test Garden",
-      description: "A test garden",
-      location: "Test Location",
-      bannerImage: "https://example.com/banner.jpg",
-      communityToken: "0x1234567890123456789012345678901234567890",
-      operators: ["0x123"],
-      gardeners: ["0x456"],
-    };
+  it("progresses through steps when the form is valid", () => {
+    const actor = createActor(createGardenMachine);
+    actor.start();
+    actor.send({ type: "OPEN" });
 
-    actor.send({ type: "START", params });
+    populateGardenDetails();
+    actor.send({ type: "NEXT" });
+    expect(useCreateGardenStore.getState().currentStep).toBe(1);
 
-    // The machine automatically validates and transitions to ready if params are valid
-    expect(actor.getSnapshot().value).toBe("ready");
-    expect(actor.getSnapshot().context.gardenParams).toEqual(params);
+    populateGardenTeam();
+    actor.send({ type: "NEXT" });
+    expect(actor.getSnapshot().value).toBe("review");
+    expect(useCreateGardenStore.getState().currentStep).toBe(2);
+
+    actor.stop();
   });
 
-  it("should transition to ready after successful validation", () => {
-    const validParams: CreateGardenParams = {
-      name: "Test Garden",
-      description: "A test garden",
-      location: "Test Location",
-      bannerImage: "https://example.com/banner.jpg",
-      communityToken: "0x1234567890123456789012345678901234567890",
-      operators: ["0x123"],
-      gardeners: ["0x456"],
-    };
+  it("invokes the submit service and transitions to success", async () => {
+    const actor = createActor(
+      createGardenMachine.provide({
+        services: {
+          submitGarden: async () => "0xhash",
+        },
+      })
+    );
 
-    actor.send({ type: "START", params: validParams });
+    actor.start();
+    actor.send({ type: "OPEN" });
+    populateGardenDetails();
+    actor.send({ type: "NEXT" });
+    populateGardenTeam();
+    actor.send({ type: "NEXT" });
 
-    // Should automatically transition to ready if params are valid
-    expect(actor.getSnapshot().value).toBe("ready");
-  });
-
-  it("should transition to submitting when submit is triggered", () => {
-    const validParams: CreateGardenParams = {
-      name: "Test Garden",
-      description: "A test garden",
-      location: "Test Location",
-      bannerImage: "https://example.com/banner.jpg",
-      communityToken: "0x1234567890123456789012345678901234567890",
-      operators: ["0x123"],
-      gardeners: ["0x456"],
-    };
-
-    actor.send({ type: "START", params: validParams });
     actor.send({ type: "SUBMIT" });
-
-    expect(actor.getSnapshot().value).toBe("submitting");
-  });
-
-  it("should transition to success when transaction succeeds", () => {
-    const validParams: CreateGardenParams = {
-      name: "Test Garden",
-      description: "A test garden",
-      location: "Test Location",
-      bannerImage: "https://example.com/banner.jpg",
-      communityToken: "0x1234567890123456789012345678901234567890",
-      operators: ["0x123"],
-      gardeners: ["0x456"],
-    };
-
-    actor.send({ type: "START", params: validParams });
-    actor.send({ type: "SUBMIT" });
-    actor.send({ type: "SUCCESS", txHash: "0xabcdef" });
+    await Promise.resolve();
 
     expect(actor.getSnapshot().value).toBe("success");
-    expect(actor.getSnapshot().context.txHash).toBe("0xabcdef");
+    expect(actor.getSnapshot().context.txHash).toBe("0xhash");
+
+    actor.stop();
   });
 
-  it("should transition to error when transaction fails", () => {
-    const validParams: CreateGardenParams = {
-      name: "Test Garden",
-      description: "A test garden",
-      location: "Test Location",
-      bannerImage: "https://example.com/banner.jpg",
-      communityToken: "0x1234567890123456789012345678901234567890",
-      operators: ["0x123"],
-      gardeners: ["0x456"],
-    };
+  it("handles submission errors and allows retry", async () => {
+    let attempt = 0;
+    const actor = createActor(
+      createGardenMachine.provide({
+        services: {
+          submitGarden: async () => {
+            attempt += 1;
+            if (attempt === 1) {
+              throw new Error("boom");
+            }
+            return "0xhash";
+          },
+        },
+      })
+    );
 
-    actor.send({ type: "START", params: validParams });
+    actor.start();
+    actor.send({ type: "OPEN" });
+    populateGardenDetails();
+    actor.send({ type: "NEXT" });
+    populateGardenTeam();
+    actor.send({ type: "NEXT" });
+
     actor.send({ type: "SUBMIT" });
-    actor.send({ type: "FAILURE", error: "Transaction failed" });
+    await Promise.resolve();
 
     expect(actor.getSnapshot().value).toBe("error");
-    expect(actor.getSnapshot().context.error).toBe("Transaction failed");
-  });
-
-  it("should handle retry from error state", () => {
-    const validParams: CreateGardenParams = {
-      name: "Test Garden",
-      description: "A test garden",
-      location: "Test Location",
-      bannerImage: "https://example.com/banner.jpg",
-      communityToken: "0x1234567890123456789012345678901234567890",
-      operators: ["0x123"],
-      gardeners: ["0x456"],
-    };
-
-    actor.send({ type: "START", params: validParams });
-    actor.send({ type: "SUBMIT" });
-    actor.send({ type: "FAILURE", error: "Transaction failed" });
-
-    expect(actor.getSnapshot().value).toBe("error");
+    expect(actor.getSnapshot().context.error).toBe("boom");
+    expect(actor.getSnapshot().context.retryCount).toBe(1);
 
     actor.send({ type: "RETRY" });
+    await Promise.resolve();
 
-    // After retry, should go back to submitting state
-    expect(actor.getSnapshot().value).toBe("submitting");
-    expect(actor.getSnapshot().context.retryCount).toBe(1);
+    expect(actor.getSnapshot().value).toBe("success");
+    expect(actor.getSnapshot().context.txHash).toBe("0xhash");
+
+    actor.stop();
   });
 
-  it("should reset to idle state", () => {
-    const validParams: CreateGardenParams = {
-      name: "Test Garden",
-      description: "A test garden",
-      location: "Test Location",
-      bannerImage: "https://example.com/banner.jpg",
-      communityToken: "0x1234567890123456789012345678901234567890",
-      operators: ["0x123"],
-      gardeners: ["0x456"],
-    };
+  it("resets to idle when closed", () => {
+    const actor = createActor(createGardenMachine);
+    actor.start();
+    actor.send({ type: "OPEN" });
+    populateGardenDetails();
+    actor.send({ type: "NEXT" });
 
-    actor.send({ type: "START", params: validParams });
-    actor.send({ type: "SUBMIT" });
-    actor.send({ type: "SUCCESS", txHash: "0xabcdef" });
-    actor.send({ type: "RESET" });
+    actor.send({ type: "CLOSE" });
 
     expect(actor.getSnapshot().value).toBe("idle");
     expect(actor.getSnapshot().context.retryCount).toBe(0);
-    expect(actor.getSnapshot().context.txHash).toBeUndefined();
-    expect(actor.getSnapshot().context.error).toBeUndefined();
-  });
+    expect(useCreateGardenStore.getState().currentStep).toBe(0);
 
-  it("should reject invalid params during validation", () => {
-    const invalidParams: CreateGardenParams = {
-      name: "", // Invalid: empty name
-      description: "A test garden",
-      location: "Test Location",
-      bannerImage: "https://example.com/banner.jpg",
-      communityToken: "invalid-token", // Invalid: not a proper address
-      operators: ["0x123"],
-      gardeners: ["0x456"],
-    };
-
-    actor.send({ type: "START", params: invalidParams });
-
-    // Should transition to invalid state due to validation failure
-    expect(actor.getSnapshot().value).toBe("invalid");
+    actor.stop();
   });
 });

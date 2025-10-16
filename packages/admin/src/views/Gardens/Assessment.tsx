@@ -1,47 +1,20 @@
 import { useParams, Link } from "react-router-dom";
-import { useQuery } from "urql";
-import { graphql } from "gql.tada";
 import { useState } from "react";
 import { CreateAssessmentModal } from "@/components/Garden/CreateAssessmentModal";
 import { RiArrowLeftLine, RiExternalLinkLine, RiFileList3Line } from "@remixicon/react";
-// import { getNetworkContracts } from "@/utils/contracts";
-// import { useAdminStore } from "@/stores/admin";
+
+import { useGardenAssessments } from "@/hooks/useGardenAssessments";
 
 const EAS_EXPLORER_URL = "https://explorer.easscan.org";
-const EAS_GARDEN_ASSESSMENT_SCHEMA =
-  process.env.VITE_PUBLIC_EAS_GARDEN_ASSESSMENT_SCHEMA ||
-  "0x76ea40f6c854813bed0224a4334298e63bf77818680bebe1b2921171f2eeb0f6"; // Base Sepolia
-
-const GET_GARDEN_ASSESSMENTS = graphql(`
-  query GetGardenAssessments($recipient: String!, $schemaId: String!) {
-    Attestation(
-      where: { recipient: { _eq: $recipient }, schemaId: { _eq: $schemaId } }
-      orderBy: { time: desc }
-    ) {
-      id
-      attester
-      time
-      decodedDataJson
-    }
-  }
-`);
 
 export default function GardenAssessment() {
   const { id } = useParams<{ id: string }>();
-  // const { selectedChainId } = useAdminStore();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  // const contracts = getNetworkContracts(selectedChainId);
-
-  const [{ data, fetching, error }] = useQuery({
-    query: GET_GARDEN_ASSESSMENTS,
-    variables: {
-      recipient: id!,
-      schemaId: EAS_GARDEN_ASSESSMENT_SCHEMA!,
-    },
-    pause: !id || !EAS_GARDEN_ASSESSMENT_SCHEMA,
-  });
-
-  const assessments = data?.Attestation || [];
+  const {
+    data: assessments = [],
+    isLoading: fetching,
+    error,
+  } = useGardenAssessments(id);
 
   return (
     <div className="p-6">
@@ -78,7 +51,9 @@ export default function GardenAssessment() {
 
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
-          <p className="text-red-800">Error loading assessments: {error.message}</p>
+          <p className="text-red-800">
+            Error loading assessments: {error instanceof Error ? error.message : "Unknown error"}
+          </p>
         </div>
       )}
 
@@ -112,7 +87,9 @@ export default function GardenAssessment() {
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {assessments.map((attestation: any) => {
-                  const assessmentData = JSON.parse(attestation.decodedDataJson);
+                  const assessmentData = attestation.decodedDataJson
+                    ? JSON.parse(attestation.decodedDataJson)
+                    : {};
                   return (
                     <tr key={attestation.id}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">{`${attestation.id.slice(0, 10)}...`}</td>
@@ -120,7 +97,7 @@ export default function GardenAssessment() {
                         {new Date(attestation.time * 1000).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                        {assessmentData.carbonTonStock}
+                        {assessmentData.carbonTonStock ?? "-"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <a

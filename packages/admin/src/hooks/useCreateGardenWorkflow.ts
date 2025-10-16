@@ -1,70 +1,86 @@
+import { useCallback, useEffect, useMemo } from "react";
 import { useMachine } from "@xstate/react";
 import { useAccount, useWalletClient } from "wagmi";
+
 import { createGardenMachine } from "@/workflows/createGarden";
 import { getNetworkContracts, GardenTokenABI } from "@/utils/contracts";
 import { useAdminStore } from "@/stores/admin";
-import type { CreateGardenParams } from "@/types/contracts";
+import { useCreateGardenStore } from "@/stores/createGarden";
 
 export function useCreateGardenWorkflow() {
-  const [state, send] = useMachine(createGardenMachine);
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
-  const { selectedChainId } = useAdminStore();
+  const selectedChainId = useAdminStore((state) => state.selectedChainId);
+  const addPendingTransaction = useAdminStore((state) => state.addPendingTransaction);
+  const updateTransactionStatus = useAdminStore((state) => state.updateTransactionStatus);
 
-  const startCreation = (params: CreateGardenParams) => {
-    send({ type: "START", params });
-  };
+  const machine = useMemo(
+    () =>
+      createGardenMachine.provide({
+        services: {
+          submitGarden: async () => {
+            const params = useCreateGardenStore.getState().getParams();
+            if (!params) {
+              throw new Error("Garden form is incomplete");
+            }
 
-  const submitCreation = async () => {
-    if (!walletClient || !address || !state.context.gardenParams) {
-      send({ type: "FAILURE", error: "Wallet not connected or invalid parameters" });
-      return;
+            if (!walletClient || !address) {
+              throw new Error("Connect a wallet to deploy the garden");
+            }
+
+            const contracts = getNetworkContracts(selectedChainId);
+            const txHash = await walletClient.writeContract({
+              address: contracts.gardenToken as `0x${string}`,
+              abi: GardenTokenABI.abi,
+              functionName: "mintGarden",
+              account: address,
+              args: [
+                params.communityToken,
+                params.name,
+                params.description,
+                params.location,
+                params.bannerImage,
+                params.gardeners,
+                params.gardenOperators,
+              ],
+            });
+
+            addPendingTransaction(txHash, "garden:create");
+            return txHash;
+          },
+        },
+      }),
+    [address, walletClient, selectedChainId, addPendingTransaction]
+  );
+
+  const [state, send] = useMachine(machine);
+
+  useEffect(() => {
+    if (state.matches("success") && state.context.txHash) {
+      updateTransactionStatus(state.context.txHash, "confirmed");
     }
+  }, [state.value, state.context.txHash, updateTransactionStatus]);
 
-    send({ type: "SUBMIT" });
-
-    try {
-      const contracts = getNetworkContracts(selectedChainId);
-      const params = state.context.gardenParams;
-
-      const hash = await walletClient.writeContract({
-        address: contracts.gardenToken as `0x${string}`,
-        abi: GardenTokenABI.abi,
-        functionName: "mintGarden",
-        account: address,
-        args: [
-          params.communityToken,
-          params.name,
-          params.description,
-          params.location,
-          params.bannerImage,
-          params.gardeners,
-          params.gardenOperators,
-        ],
-      });
-
-      send({ type: "SUCCESS", txHash: hash });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error occurred";
-      send({ type: "FAILURE", error: message });
-    }
-  };
-
-  const retry = () => {
-    send({ type: "RETRY" });
-    submitCreation();
-  };
-
-  const reset = () => {
-    send({ type: "RESET" });
-  };
+  const openFlow = useCallback(() => send({ type: "OPEN" }), [send]);
+  const closeFlow = useCallback(() => send({ type: "CLOSE" }), [send]);
+  const goNext = useCallback(() => send({ type: "NEXT" }), [send]);
+  const goBack = useCallback(() => send({ type: "BACK" }), [send]);
+  const goToReview = useCallback(() => send({ type: "REVIEW" }), [send]);
+  const submitCreation = useCallback(() => send({ type: "SUBMIT" }), [send]);
+  const retry = useCallback(() => send({ type: "RETRY" }), [send]);
+  const edit = useCallback(() => send({ type: "EDIT" }), [send]);
+  const createAnother = useCallback(() => send({ type: "CREATE_ANOTHER" }), [send]);
 
   return {
     state,
-    startCreation,
+    openFlow,
+    closeFlow,
+    goNext,
+    goBack,
+    goToReview,
     submitCreation,
     retry,
-    reset,
-    canRetry: state.matches("error") && state.context.retryCount < 3,
+    edit,
+    createAnother,
   };
 }
