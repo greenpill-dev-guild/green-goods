@@ -47,8 +47,8 @@ networks:
     start_block: 200000000
     contracts:
       - name: ActionRegistry
-        address: "0x5623083b1908Eadf000F1763A1Bb7048C25EC44D"
+        address: "0x6B3294202C97498f08F25B15a662D43223c152c7"
       - name: GardenToken
-        address: "0x31f17092A3A4f591f8B6B2469E747243d1356E78"
+        address: "0xc8dBEaA0e60e508776e7AE0D3ad297E61d943ac1"
       - name: GardenAccount
-        address: "0xC0Fe482A5cB88894929381A3A30b238b4511ab17"
+        address: "0x1Ffe3fcf6459Fb4803cc8184b4F5eeCcF3d15c6B"
