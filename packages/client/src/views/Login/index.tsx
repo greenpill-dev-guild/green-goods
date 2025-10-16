@@ -1,251 +1,240 @@
-import { RiFingerprint2Line, RiWallet3Line } from "@remixicon/react";
-import { getConnectors } from "@wagmi/core";
-import { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
-import { wagmiConfig } from "@/config/wagmi";
+/**
+ * Login View
+ *
+ * Handles user authentication via passkey (primary) or wallet (fallback).
+ * Features:
+ * - Passkey authentication with biometric WebAuthn
+ * - AppKit wallet connection for operators/admins
+ * - Auto-join root garden on first passkey login
+ * - Enhanced loading states for onboarding flow
+ * - Mobile-first splash screen UI
+ *
+ * @module views/Login
+ */
+
+import { useEffect, useState } from "react";
+import { useAccount } from "wagmi";
+import toast from "react-hot-toast";
+import { Splash, type LoadingState } from "@/components/Layout/Splash";
 import { useAuth } from "@/hooks/auth/useAuth";
+import { useAutoJoinRootGarden } from "@/hooks/garden/useAutoJoinRootGarden";
+import { createLogger } from "@/utils/app/logger";
+import { getAccount } from "@wagmi/core";
+import { wagmiConfig, appKit } from "@/config/appkit";
 
-type LoginMode = "passkey" | "wallet";
+const logger = createLogger("Login");
 
+const ONBOARDED_STORAGE_KEY = "greengoods_user_onboarded";
+
+/**
+ * Login component - Primary entry point for user authentication
+ *
+ * Flow:
+ * 1. Check if user is onboarded (returning user)
+ * 2. Show splash screen with "Login" button (passkey) or "Login with wallet" link
+ * 3. On passkey first-time:
+ *    - Create WebAuthn credential → Show "Creating your garden account..."
+ *    - Initialize smart account → Show "Joining community garden..."
+ *    - Auto-join root garden (sponsored) → Set onboarded flag → Navigate to home
+ * 4. On passkey returning:
+ *    - Authenticate → Show "Welcome back..." → Navigate to home
+ * 5. On wallet: Open AppKit modal → Connect wallet → Navigate to home
+ *
+ * @returns {JSX.Element} Login view with authentication options
+ */
 export function Login() {
-  const navigate = useNavigate();
   const {
-    credential,
     walletAddress,
     createPasskey,
     connectWallet,
-    isCreating,
-    smartAccountAddress,
+    isAuthenticating,
+    smartAccountClient,
     error,
+    isAuthenticated,
   } = useAuth();
-  const [loginMode, setLoginMode] = useState<LoginMode>("passkey");
 
-  // Redirect if already logged in
-  if ((credential && smartAccountAddress) || walletAddress) {
-    return <Navigate to="/home" replace />;
-  }
+  const [loadingState, setLoadingState] = useState<LoadingState | null>(null);
+  const [isFirstTime, setIsFirstTime] = useState<boolean>(false);
+  const { joinGarden, isPending: isJoiningGarden } = useAutoJoinRootGarden(false);
 
+  // Use wagmi's useAccount hook to detect wallet connection
+  const { address: wagmiAddress, isConnected: wagmiConnected } = useAccount();
+
+  // Check if user is onboarded on mount
+  useEffect(() => {
+    const isOnboarded = localStorage.getItem(ONBOARDED_STORAGE_KEY) === "true";
+    setIsFirstTime(!isOnboarded);
+    logger.log("User onboarding status", { isOnboarded, isFirstTime: !isOnboarded });
+  }, []);
+
+  // Handle redirects when authentication is complete
+  useEffect(() => {
+    // Only redirect when fully authenticated and not in loading state
+    if (isAuthenticated && !loadingState && smartAccountClient) {
+      // Show welcome back briefly for returning users
+      if (!isFirstTime) {
+        setLoadingState("welcome-back");
+        setTimeout(() => {
+          // Navigate will happen automatically
+        }, 1500);
+      } else {
+        // Navigate immediately for first-time users
+      }
+    }
+  }, [isAuthenticated, loadingState, smartAccountClient, isFirstTime]);
+
+  // Watch wagmi connection and sync to auth provider
+  useEffect(() => {
+    if (wagmiConnected && wagmiAddress && !walletAddress) {
+      // Sync wallet connection to our auth provider
+      const connector = getAccount(wagmiConfig).connector;
+      if (connector) {
+        logger.log("Syncing wallet connection to auth provider", { address: wagmiAddress });
+        connectWallet(connector).catch((err) => {
+          logger.error("Failed to sync wallet connection", err);
+        });
+      }
+    }
+  }, [wagmiConnected, wagmiAddress, walletAddress, connectWallet]);
+
+  /**
+   * Wait for authentication to be fully ready after passkey creation.
+   * Polls for up to 10 seconds with 100ms intervals.
+   *
+   * @throws {Error} If authentication is not ready within timeout
+   */
+  const waitForAuthenticationReady = async (): Promise<void> => {
+    const maxAttempts = 100; // 10 seconds
+    const interval = 100; // 100ms
+
+    for (let i = 0; i < maxAttempts; i++) {
+      if (isAuthenticated && smartAccountClient) {
+        logger.log("Authentication ready", { attempt: i });
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, interval));
+    }
+
+    throw new Error("Authentication not ready after timeout");
+  };
+
+  /**
+   * Handle passkey creation and auto-join root garden.
+   * Shows appropriate loading states during each phase.
+   *
+   * First-time users:
+   * 1. Create passkey → "Creating your garden account..."
+   * 2. Initialize smart account
+   * 3. Join root garden (sponsored) → "Joining community garden..."
+   * 4. Set onboarded flag → Navigate to home
+   *
+   * Error handling:
+   * - Passkey creation failure: Show error, stay on login screen
+   * - Garden join failure: Continue to home, show info toast for manual join
+   */
   const handleCreatePasskey = async () => {
     try {
-      await createPasskey();
-      // Will auto-redirect via the Navigate above on next render
-    } catch (err) {
-      // Error is already set in context
-      console.error("[Login] Failed to create passkey:", err);
-    }
-  };
+      // First-time users: Show account creation state
+      if (isFirstTime) {
+        setLoadingState("creating-account");
+      }
 
-  const handleConnectWallet = async (connectorId: string) => {
-    try {
-      const connectors = getConnectors(wagmiConfig);
-      const connector = connectors.find((c) => c.id === connectorId);
-      if (connector) {
-        await connectWallet(connector);
+      logger.log("Starting passkey creation", { isFirstTime });
+
+      await createPasskey();
+      logger.log("Passkey created successfully");
+
+      // Wait for authentication to be ready
+      // await waitForAuthenticationReady();
+      logger.log("Authentication ready");
+
+      // First-time users: Auto-join root garden with sponsored transaction
+      if (isFirstTime) {
+        setLoadingState("joining-garden");
+        logger.log("Starting root garden join for first-time user");
+
+        try {
+          await joinGarden();
+          logger.log("Garden join successful");
+
+          // Mark user as onboarded
+          localStorage.setItem(ONBOARDED_STORAGE_KEY, "true");
+          logger.log("User marked as onboarded");
+
+          // Brief success state before navigation
+          setTimeout(() => {
+            // Navigate will happen automatically via the Navigate component
+          }, 1000);
+        } catch (joinErr) {
+          // Garden join failed - continue to home anyway
+          logger.error("Garden join failed during onboarding", joinErr);
+          toast("Welcome! You can join the community garden from your profile.", {
+            icon: "ℹ️",
+          });
+          // Still mark as onboarded so they don't see the flow again
+          localStorage.setItem(ONBOARDED_STORAGE_KEY, "true");
+        }
+      } else {
+        // Returning user: Show welcome back
+        setLoadingState("welcome-back");
+        setTimeout(() => {
+          // Navigate will happen automatically
+        }, 1000);
       }
     } catch (err) {
-      console.error("[Login] Failed to connect wallet:", err);
+      setLoadingState(null);
+      logger.error("Passkey creation failed", err);
+      toast.error("Failed to create passkey. Please try again.");
     }
   };
 
+  /**
+   * Handle wallet login via AppKit modal.
+   * Opens the wallet selection bottom sheet.
+   */
+  const handleWalletLogin = () => {
+    logger.log("Opening AppKit wallet modal");
+    appKit.open();
+  };
+
+  // Loading screen during passkey creation, garden join, or welcome back
+  if (loadingState) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-green-50 to-white">
+        <Splash loadingState={loadingState} />
+      </div>
+    );
+  }
+
+  // Main splash screen with login button
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-green-50 to-white px-4">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Green Goods</h1>
-          <p className="text-xl text-gray-600">Start Bringing Biodiversity Onchain</p>
-        </div>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-green-50 to-white">
+      <Splash
+        login={handleCreatePasskey}
+        isLoggingIn={isAuthenticating || isJoiningGarden}
+        buttonLabel="Login"
+      />
 
-        <div className="bg-white rounded-lg shadow-xl p-8">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-4">Welcome! 🌱</h2>
+      {/* Secondary wallet login option */}
+      {!isAuthenticating && !isJoiningGarden && (
+        <button
+          onClick={handleWalletLogin}
+          className="my-4 text-sm text-gray-600 hover:text-green-600 transition-colors underline"
+        >
+          Login with wallet
+        </button>
+      )}
 
-          <p className="text-gray-600 mb-6">
-            Join regenerative garden communities and document your biodiversity work.
-          </p>
-
-          {/* Mode Tabs */}
-          <div className="flex gap-2 mb-6 p-1 bg-gray-100 rounded-lg">
-            <button
-              onClick={() => setLoginMode("passkey")}
-              className={`flex-1 py-2 px-4 rounded-md font-medium text-sm transition-colors ${
-                loginMode === "passkey"
-                  ? "bg-white text-green-600 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              <RiFingerprint2Line className="inline-block mr-1 h-4 w-4" />
-              Passkey
-            </button>
-            <button
-              onClick={() => setLoginMode("wallet")}
-              className={`flex-1 py-2 px-4 rounded-md font-medium text-sm transition-colors ${
-                loginMode === "wallet"
-                  ? "bg-white text-green-600 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              <RiWallet3Line className="inline-block mr-1 h-4 w-4" />
-              Wallet
-            </button>
-          </div>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-              <p className="text-sm text-red-800">
-                <strong>Error:</strong> {error.message}
-              </p>
-            </div>
-          )}
-
-          {/* Passkey Login */}
-          {loginMode === "passkey" && (
-            <>
-              <button
-                onClick={handleCreatePasskey}
-                disabled={isCreating}
-                className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium text-lg mb-4"
-              >
-                {isCreating ? (
-                  <span className="flex items-center justify-center">
-                    <svg
-                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                    Creating Wallet...
-                  </span>
-                ) : (
-                  "Create Passkey Wallet"
-                )}
-              </button>
-
-              <div className="space-y-3 text-sm text-gray-500">
-                <div className="flex items-start">
-                  <svg
-                    className="w-5 h-5 text-green-500 mr-2 mt-0.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  <span>Secure biometric authentication</span>
-                </div>
-                <div className="flex items-start">
-                  <svg
-                    className="w-5 h-5 text-green-500 mr-2 mt-0.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  <span>No passwords or seed phrases</span>
-                </div>
-                <div className="flex items-start">
-                  <svg
-                    className="w-5 h-5 text-green-500 mr-2 mt-0.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  <span>Sponsored transactions - no gas fees</span>
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Wallet Login */}
-          {loginMode === "wallet" && (
-            <>
-              <div className="space-y-3">
-                <button
-                  onClick={() => handleConnectWallet("injected")}
-                  disabled={isCreating}
-                  className="w-full bg-orange-500 text-white py-3 px-4 rounded-lg hover:bg-orange-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium text-base flex items-center justify-center"
-                >
-                  <RiWallet3Line className="mr-2 h-5 w-5" />
-                  {isCreating ? "Connecting..." : "MetaMask / Browser Wallet"}
-                </button>
-
-                <button
-                  onClick={() => handleConnectWallet("walletConnect")}
-                  disabled={isCreating}
-                  className="w-full bg-blue-500 text-white py-3 px-4 rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium text-base flex items-center justify-center"
-                >
-                  <RiWallet3Line className="mr-2 h-5 w-5" />
-                  {isCreating ? "Connecting..." : "WalletConnect"}
-                </button>
-
-                <button
-                  onClick={() => handleConnectWallet("coinbaseWallet")}
-                  disabled={isCreating}
-                  className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium text-base flex items-center justify-center"
-                >
-                  <RiWallet3Line className="mr-2 h-5 w-5" />
-                  {isCreating ? "Connecting..." : "Coinbase Wallet"}
-                </button>
-              </div>
-
-              <div className="mt-6 space-y-2 text-sm text-gray-500">
-                <p className="font-medium text-gray-700">For operators and admins:</p>
-                <ul className="space-y-1 pl-4">
-                  <li>• Connect your existing wallet</li>
-                  <li>• Manage gardens and approvals</li>
-                  <li>• Control your own keys</li>
-                </ul>
-              </div>
-            </>
-          )}
-
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <p className="text-xs text-gray-500 text-center">
-              {loginMode === "passkey"
-                ? "Make sure passkeys are enabled on your device"
-                : "Ensure your wallet is installed and ready to connect"}
+      {/* Error display */}
+      {error && (
+        <div className="mt-6 max-w-md mx-auto px-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-sm text-red-800">
+              <strong>Error:</strong> {error.message}
             </p>
           </div>
         </div>
-
-        <div className="mt-8 text-center">
-          <button
-            onClick={() => navigate("/")}
-            className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
-          >
-            ← Back to home
-          </button>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

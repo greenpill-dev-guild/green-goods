@@ -11,7 +11,7 @@ When asked about production readiness for Base Sepolia or any network, execute t
 
 **Command to run:**
 ```bash
-cd packages/contracts && pnpm test
+cd packages/contracts && bun test
 ```
 
 **Requirements:**
@@ -69,7 +69,7 @@ cat packages/contracts/deployments/84532-latest.json | jq
 
 **Command to run:**
 ```bash
-cd packages/contracts && pnpm network:verify
+cd packages/contracts && bun network:verify
 ```
 
 **Verifies:**
@@ -104,7 +104,7 @@ cd packages/contracts && forge test --gas-report
 
 **Command to run:**
 ```bash
-cd packages/contracts && pnpm build
+cd packages/contracts && bun run build
 ```
 
 **Requirements:**
@@ -120,14 +120,14 @@ cd packages/contracts && pnpm build
 **Pre-flight checks:**
 ```bash
 cd packages/contracts
-pnpm test                    # All tests pass
-pnpm network:verify          # Network config valid
-pnpm deploy:dryrun          # Simulation successful
+bun test                    # All tests pass
+bun network:verify          # Network config valid
+bun deploy:dryrun          # Simulation successful
 ```
 
 **Deployment:**
 ```bash
-pnpm deploy:testnet
+bun deploy:testnet
 ```
 
 **Post-deployment verification:**
@@ -158,7 +158,7 @@ forge verify-contract --chain-id 84532 $CONTRACT_ADDRESS src/Contract.sol:Contra
 **Deployment:**
 ```bash
 # Only after ALL mainnet requirements met
-pnpm deploy:base  # or deploy:celo, deploy:arbitrum
+bun deploy:base  # or deploy:celo, deploy:arbitrum
 ```
 
 ## Red Flags (BLOCK DEPLOYMENT)
@@ -284,7 +284,7 @@ Key test suites:
 
 ### Issue: "DeploymentTest failing"
 **Cause:** Requires actual deployment files
-**Solution:** Run `pnpm deploy:local` first or mock file operations
+**Solution:** Run `bun deploy:local` first or mock file operations
 
 ### Issue: "Resolver tests commented out"
 **Cause:** Tests need EAS integration

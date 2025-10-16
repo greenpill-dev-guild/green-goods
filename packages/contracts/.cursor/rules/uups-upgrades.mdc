@@ -48,7 +48,7 @@ Gap size = 50 - (number of state variables used)
 ### When to Deploy (New Addresses)
 
 ```bash
-pnpm deploy:testnet  # Creates new contracts
+bun deploy:testnet  # Creates new contracts
 ```
 
 **Use when:**
@@ -59,7 +59,7 @@ pnpm deploy:testnet  # Creates new contracts
 ### When to Upgrade (Same Addresses)
 
 ```bash
-pnpm upgrade:testnet  # Upgrades existing proxies
+bun upgrade:testnet  # Upgrades existing proxies
 ```
 
 **Use when:**

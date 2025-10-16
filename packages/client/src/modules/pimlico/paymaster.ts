@@ -1,10 +1,8 @@
 import { type Hex, keccak256, toHex } from "viem";
 import { getPimlicoPaymasterUrl } from "./config";
 
-// Garden joining function signatures
+// Garden joining function signature
 const JOIN_GARDEN_SELECTOR = "0x" + keccak256(toHex("joinGarden()")).slice(2, 10);
-const JOIN_GARDEN_WITH_INVITE_SELECTOR =
-  "0x" + keccak256(toHex("joinGardenWithInvite(bytes32)")).slice(2, 10);
 
 /**
  * Validates if a user operation should be sponsored by the paymaster
@@ -15,8 +13,8 @@ const JOIN_GARDEN_WITH_INVITE_SELECTOR =
 export function shouldSponsorOperation(callData: Hex, _chainId: number): boolean {
   const selector = callData.slice(0, 10) as Hex;
 
-  // Sponsor both open garden joins and invite-based joins
-  if (selector === JOIN_GARDEN_SELECTOR || selector === JOIN_GARDEN_WITH_INVITE_SELECTOR) {
+  // Sponsor direct garden joins (no invite system)
+  if (selector === JOIN_GARDEN_SELECTOR) {
     return true;
   }
 

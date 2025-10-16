@@ -1,12 +1,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { RiCheckFill, RiCloseFill } from "@remixicon/react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";
 import { Form, useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { useLocation, useParams, useOutletContext } from "react-router-dom";
 
-import { z } from "zod";
+import { z, type ZodType } from "zod";
 import { Button } from "@/components/UI/Button";
 import { FormText } from "@/components/UI/Form/Text";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
@@ -15,10 +15,9 @@ import { WorkViewSkeleton } from "@/components/UI/WorkView/WorkView";
 import toast from "react-hot-toast";
 import { useNavigateToTop } from "@/hooks/app/useNavigateToTop";
 import { DEFAULT_CHAIN_ID } from "@/config/blockchain";
-import { createOfflineTxHash, jobQueue } from "@/modules/job-queue";
-import { processApprovalJobInline } from "@/modules/job-queue/inline-processor";
 import { useUser } from "@/hooks/auth/useUser";
 import { useJobQueueEvents } from "@/modules/job-queue/event-bus";
+import { useWorkApproval } from "@/hooks/work/useWorkApproval";
 import { isValidAttestationId, openEASExplorer } from "@/utils/eas/explorers";
 import {
   downloadWorkData,
@@ -34,14 +33,21 @@ import { getFileByHash } from "@/modules/data/pinata";
 
 type GardenWorkProps = {};
 
-const workApprovalSchema = z.object({
+// Zod schema for work approval form validation
+const workApprovalFormSchema: ZodType<{
+  actionUID: number;
+  workUID: string;
+  approved: boolean;
+  feedback?: string;
+}> = z.object({
   actionUID: z.number(),
   workUID: z.string(),
   approved: z.boolean(),
   feedback: z.string().optional(),
 });
 
-type WorkApprovalDraft = z.infer<typeof workApprovalSchema>;
+// Infer form type from Zod schema (single source of truth)
+type WorkApprovalFormData = z.infer<typeof workApprovalFormSchema>;
 
 export const GardenWork: React.FC<GardenWorkProps> = () => {
   const intl = useIntl();
@@ -147,55 +153,22 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
     }
     openEASExplorer(chainId, work.id);
   };
-  const { register, handleSubmit, control } = useForm<WorkApprovalDraft>({
+  const { register, handleSubmit, control } = useForm<WorkApprovalFormData>({
     defaultValues: {
-      actionUID: work?.actionUID,
-      workUID: work?.id,
+      actionUID: work?.actionUID ?? 0,
+      workUID: work?.id ?? "",
       approved: false,
       feedback: "",
     },
-    resolver: zodResolver(workApprovalSchema),
+    // @ts-expect-error - Known type incompatibility between @hookform/resolvers 3.9.0 and Zod 3.25.76
+    // The ZodType generic signature differs from the expected $ZodTypeInternals signature
+    // This works correctly at runtime. Will be resolved in future @hookform/resolvers updates.
+    resolver: zodResolver(workApprovalFormSchema),
     shouldUseNativeValidation: true,
     mode: "onChange",
   });
 
-  const workApprovalMutation = useMutation<string, unknown, WorkApprovalDraft>({
-    mutationFn: async (draft: WorkApprovalDraft) => {
-      // Add approval job to queue - this handles both offline and online scenarios
-      const jobId = await jobQueue.addJob(
-        "approval",
-        {
-          ...draft,
-          gardenerAddress: work?.gardenerAddress || "",
-        },
-        {
-          chainId,
-        }
-      );
-
-      // Return an offline transaction hash for UI compatibility
-      const offlineHash = createOfflineTxHash(jobId);
-      // If a client is available, try to process inline immediately
-      const { smartAccountClient } = useUser();
-      if (smartAccountClient) {
-        try {
-          await processApprovalJobInline(jobId, chainId, smartAccountClient);
-        } catch {
-          // best-effort inline processing; job remains queued otherwise
-        }
-      }
-      return offlineHash;
-    },
-    onMutate: () => {
-      toast.loading(
-        intl.formatMessage({
-          id: "app.toast.submittingApproval",
-          defaultMessage: "Submitting approval...",
-        }),
-        { id: "approval-upload" }
-      );
-    },
-  });
+  const workApprovalMutation = useWorkApproval();
 
   // Toasts + cache invalidation from queue events
   useJobQueueEvents(
@@ -369,8 +342,14 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
         confirmLabel={intl.formatMessage({ id: "app.common.confirm", defaultMessage: "Confirm" })}
         confirmVariant="primary"
         onConfirm={handleSubmit((data) => {
-          data.approved = true;
-          workApprovalMutation.mutate(data);
+          if (!work) return;
+          const draft: WorkApprovalDraft = {
+            actionUID: data.actionUID,
+            workUID: data.workUID,
+            approved: true,
+            feedback: data.feedback,
+          };
+          workApprovalMutation.mutate({ draft, work });
           setApproveDialogOpen(false);
         })}
       >
@@ -398,8 +377,14 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
         confirmLabel={intl.formatMessage({ id: "app.common.confirm", defaultMessage: "Confirm" })}
         confirmVariant="error"
         onConfirm={handleSubmit((data) => {
-          data.approved = false;
-          workApprovalMutation.mutate(data);
+          if (!work) return;
+          const draft: WorkApprovalDraft = {
+            actionUID: data.actionUID,
+            workUID: data.workUID,
+            approved: false,
+            feedback: data.feedback,
+          };
+          workApprovalMutation.mutate({ draft, work });
           setRejectDialogOpen(false);
         })}
       >
@@ -426,7 +411,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
                     defaultMessage: "You've {status} the work!",
                   },
                   {
-                    status: workApprovalMutation.variables.approved
+                    status: workApprovalMutation.variables?.draft.approved
                       ? intl
                           .formatMessage({
                             id: "app.home.workApproval.approved",
@@ -443,7 +428,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
                 ),
                 variant: "success",
                 title: `${
-                  workApprovalMutation.variables.approved
+                  workApprovalMutation.variables?.draft.approved
                     ? intl.formatMessage({
                         id: "app.home.workApproval.approved",
                         defaultMessage: "Approved",
@@ -459,7 +444,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
                     defaultMessage: "You've {status} the work!<br/><br/>Excellent work!",
                   },
                   {
-                    status: workApprovalMutation.variables.approved
+                    status: workApprovalMutation.variables?.draft.approved
                       ? intl
                           .formatMessage({
                             id: "app.home.workApproval.approved",
@@ -474,7 +459,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
                           .toLocaleLowerCase(),
                   }
                 ),
-                icon: workApprovalMutation.variables.approved ? RiCheckFill : RiCloseFill,
+                icon: workApprovalMutation.variables?.draft.approved ? RiCheckFill : RiCloseFill,
                 spinner: false,
               },
             }}

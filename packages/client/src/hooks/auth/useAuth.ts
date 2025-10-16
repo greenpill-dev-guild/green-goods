@@ -15,4 +15,4 @@
  * }
  * ```
  */
-export { useAuth } from "@/providers/auth";
+export { useAuth, type AuthMode } from "@/providers/auth";

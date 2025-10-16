@@ -15,7 +15,7 @@ Green Goods contracts use a unified deploy.js system. This rule documents mandat
 
 **✅ ALWAYS:**
 ```bash
-pnpm deploy:testnet
+bun deploy:testnet
 node script/deploy.js core --network baseSepolia --broadcast
 ```
 
@@ -76,7 +76,7 @@ const profiles = {
 node script/deploy.js core --network celo --profile production --broadcast
 
 # Default profile (testing for testnet, production for mainnet)
-pnpm deploy:testnet
+bun deploy:testnet
 ```
 
 ## Deployment Flags
@@ -155,10 +155,10 @@ After deployment:
 
 ```bash
 # Update indexer
-cd packages/indexer && pnpm codegen
+cd packages/indexer && bun codegen
 
 # Rebuild frontend
-cd packages/client && pnpm build
+cd packages/client && bun build
 ```
 
 ## Reference Files

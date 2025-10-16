@@ -2,12 +2,14 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/auth/useAuth";
 
 export default function RequireAuth() {
-  const { smartAccountAddress, isReady } = useAuth();
+  const { isReady, isAuthenticated } = useAuth();
   const location = useLocation();
 
-  if (!isReady) return null; // Router fallback will render global loader
+  // Wait for auth provider to finish initialization
+  if (!isReady) return null;
 
-  if (!smartAccountAddress) {
+  // Check if user has valid credentials (either passkey or wallet)
+  if (!isAuthenticated) {
     const redirectTo = encodeURIComponent(location.pathname + location.search + location.hash);
     return <Navigate to={`/login?redirectTo=${redirectTo}`} replace />;
   }

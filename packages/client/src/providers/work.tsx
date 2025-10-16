@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { z, type ZodType } from "zod";
 import React, { useContext } from "react";
 import { type Control, type FormState, type UseFormRegister, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
@@ -13,6 +13,7 @@ import {
   validateWorkDraft,
   formatJobError,
 } from "@/modules/work/work-submission";
+import { submitWorkDirectly } from "@/modules/work/wallet-submission";
 // import { abi as WorkResolverABI } from "@/utils/abis/WorkResolver.json";
 
 import { useUser } from "@/hooks/auth/useUser";
@@ -34,19 +35,19 @@ export interface WorkDataProps {
     typeof useMutation<`0x${string}`, unknown, { draft: WorkDraft; images: File[] }, void>
   >;
   form: {
-    state: FormState<WorkDraft>;
+    state: FormState<WorkFormData>;
     actionUID: number | null;
     images: File[];
     setImages: React.Dispatch<React.SetStateAction<File[]>>;
     setActionUID: React.Dispatch<React.SetStateAction<number | null>>;
-    register: UseFormRegister<WorkDraft>;
-    control: Control<WorkDraft>;
+    register: UseFormRegister<WorkFormData>;
+    control: Control<WorkFormData>;
     uploadWork: (e?: React.BaseSyntheticEvent) => Promise<void>;
     gardenAddress: string | null;
     setGardenAddress: React.Dispatch<React.SetStateAction<string | null>>;
     feedback: string;
     plantSelection: string[];
-    plantCount: number;
+    plantCount: number | undefined;
     values: Record<string, unknown>;
     reset: () => void;
   };
@@ -54,11 +55,21 @@ export interface WorkDataProps {
   setActiveTab: React.Dispatch<React.SetStateAction<WorkTab>>;
 }
 
-const workSchema = z.object({
+// Zod schema for work submission form validation
+// Note: Only validating form fields (feedback, plantSelection, plantCount)
+// actionUID, title, and media are managed outside the form
+const workFormSchema: ZodType<{
+  feedback: string;
+  plantSelection: string[];
+  plantCount?: number;
+}> = z.object({
   feedback: z.string().min(1, "Feedback is required"),
-  plantSelection: z.array(z.string()).default([]),
+  plantSelection: z.array(z.string()),
   plantCount: z.number().nonnegative().optional(),
 });
+
+// Infer form type from Zod schema (single source of truth)
+type WorkFormData = z.infer<typeof workFormSchema>;
 
 const WorkContext = React.createContext<WorkDataProps>({
   form: {
@@ -80,7 +91,7 @@ export const useWork = () => {
 };
 
 export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
-  const { smartAccountClient } = useUser();
+  const { smartAccountClient, authMode } = useUser();
   const chainId = DEFAULT_CHAIN_ID;
 
   // Base lists via React Query
@@ -131,7 +142,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
     _setActiveTab(next);
   };
 
-  const { control, register, handleSubmit, formState, watch, reset } = useForm<WorkDraft>({
+  const { control, register, handleSubmit, formState, watch, reset } = useForm<WorkFormData>({
     defaultValues: {
       feedback: "",
       plantSelection: [],
@@ -139,7 +150,10 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
     },
     shouldUseNativeValidation: true,
     mode: "onChange",
-    resolver: zodResolver(workSchema),
+    // @ts-expect-error - Known type incompatibility between @hookform/resolvers 3.9.0 and Zod 3.25.76
+    // The ZodType generic signature differs from the expected $ZodTypeInternals signature
+    // This works correctly at runtime. Will be resolved in future @hookform/resolvers updates.
+    resolver: zodResolver(workFormSchema),
   });
 
   const feedback = watch("feedback");
@@ -149,34 +163,56 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
 
   const workMutation = useMutation({
     mutationFn: async ({ draft, images }: { draft: WorkDraft; images: File[] }) => {
-      // Use consolidated submission utility with actions from React Query
       const ctxActions = actionsData as Action[];
-      // Always persist job to queue first
-      const { txHash, jobId } = await submitWorkToQueue(
-        draft,
-        gardenAddress!,
-        actionUID!,
-        ctxActions,
-        chainId,
-        images
-      );
+      const action = ctxActions.find((a) => {
+        const idPart = a.id?.split("-").pop();
+        return Number(idPart) === actionUID;
+      });
+      const actionTitle = action?.title || "Unknown Action";
 
-      // If a client is available, try to process inline immediately
-      if (smartAccountClient) {
-        try {
-          await processWorkJobInline(jobId, chainId, smartAccountClient);
-        } catch {
-          // best-effort inline processing; job remains queued otherwise
+      // Branch based on authentication mode
+      if (authMode === "wallet") {
+        // Direct wallet transaction - no queue
+        return await submitWorkDirectly(
+          draft,
+          gardenAddress!,
+          actionUID!,
+          actionTitle,
+          chainId,
+          images
+        );
+      } else {
+        // Passkey mode - use job queue for offline support
+        const { txHash, jobId } = await submitWorkToQueue(
+          draft,
+          gardenAddress!,
+          actionUID!,
+          ctxActions,
+          chainId,
+          images
+        );
+
+        // If a client is available, try to process inline immediately
+        if (smartAccountClient) {
+          try {
+            await processWorkJobInline(jobId, chainId, smartAccountClient);
+          } catch {
+            // best-effort inline processing; job remains queued otherwise
+          }
         }
+        return txHash;
       }
-      return txHash;
     },
     onMutate: () => {
-      toast.loading("Uploading work...", { id: "work-upload" });
+      const message =
+        authMode === "wallet" ? "Awaiting wallet confirmation..." : "Uploading work...";
+      toast.loading(message, { id: "work-upload" });
     },
     onSuccess: () => {
-      // Queue add succeeded; dismiss loading. Actual upload success is toasted via queue events.
       toast.dismiss("work-upload");
+      const message =
+        authMode === "wallet" ? "Transaction confirmed!" : "Work submitted successfully!";
+      toast.success(message);
     },
     onError: (error: unknown) => {
       const message = formatJobError(
@@ -189,22 +225,22 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
     },
   });
 
-  const uploadWork = handleSubmit(async (data: WorkDraft) => {
-    // Ensure optional plantCount is handled; react-hook-form may provide undefined
-    const draft: WorkDraft = {
+  const uploadWork = handleSubmit(async (data) => {
+    // Build draft from form data (partial) - validation will check for required fields
+    const draft = {
       feedback: data.feedback,
       plantSelection: data.plantSelection,
       ...(typeof data.plantCount === "number" ? { plantCount: data.plantCount } : {}),
-    } as WorkDraft;
+    };
 
-    const errors = validateWorkDraft(draft, gardenAddress, actionUID, images);
+    const errors = validateWorkDraft(draft as any, gardenAddress, actionUID, images);
     if (errors.length > 0) {
       toast.error(errors[0]);
       return;
     }
     // Snapshot images to avoid race with state clearing after navigation
     const imagesSnapshot = images.slice();
-    await workMutation.mutateAsync({ draft, images: imagesSnapshot });
+    await workMutation.mutateAsync({ draft: draft as any, images: imagesSnapshot });
   });
 
   return (

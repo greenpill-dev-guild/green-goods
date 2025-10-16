@@ -453,7 +453,6 @@ function testMultipleGardensIndependence() public
 function testBatchMinting() public
 function testActionLifecycle() public
 function testGardenMemberManagement() public
-function testInviteSystemWorkflow() public
 function testAccessControlAcrossContracts() public
 ```
 
@@ -492,7 +491,7 @@ Expected gas costs for key operations (see `docs/GAS_LIMITS.md` for details):
 - Action registration: ~250K gas
 - Work submission: ~150K gas
 - Work approval: ~180K gas
-- Invite code usage: ~60K gas
+- Direct garden join: ~50K gas
 
 ## Admin Dashboard Testing
 

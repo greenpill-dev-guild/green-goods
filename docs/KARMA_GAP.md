@@ -59,9 +59,10 @@ Green Goods maps to Karma GAP's three-level structure:
 
 ```
 GAP Project (Garden)
-  ├── GAP Milestone (Assessment) - NOT IMPLEMENTED
-  └── GAP Impact (Approved Work)
-      └── Activities, verification, evidence
+  ├── GAP Milestone (Assessment) ✅
+  │   └── Periodic assessments with capitals and metrics
+  └── GAP Impact (Approved Work) ✅
+      └── Individual work submissions with evidence
 ```
 
 ### Garden → GAP Project
@@ -97,9 +98,24 @@ GAP Project (Garden)
 
 **Who Creates:** Garden operator approving work
 
-### Assessment Status
+### Assessment → GAP Milestone
 
-**Note:** Assessment-to-milestone mapping is **not currently implemented**. Assessments create EAS attestations but do not create GAP milestones. This is a planned future enhancement.
+| GAP Field | Green Goods Source | Notes |
+|-----------|-------------------|-------|
+| Project Reference | Garden.gapProjectUID | Links to project |
+| Milestone Title (title) | Assessment.title | Assessment name |
+| Milestone Text (text) | Assessment.description | Assessment description |
+| Milestone Date | Assessment timestamp | Assessment creation time |
+| Milestone Metadata | Assessment.capitals, assessmentType, metricsJSON | JSON metadata |
+| Assessment Type | Assessment.assessmentType | biodiversity, soil, water, etc. |
+| Capitals Measured | Assessment.capitals | Array of 8 capital types |
+| Metrics | Assessment.metricsJSON | Custom metrics IPFS CID |
+| Evidence | Assessment.evidenceMedia | Photo/video IPFS CIDs |
+| Verified By | Operator address | Assessing operator |
+
+**When Created:** Assessment submission (AssessmentResolver.onAttest)
+
+**Who Creates:** Garden operator creating assessment
 
 ## Integration Flows
 
@@ -152,148 +168,96 @@ WorkApprovalResolver.onAttest()
 
 **Result:** Impact attestation recorded on Karma GAP.
 
+### 4. Assessment Creation → Milestone Attestation
+
+When an assessment is submitted via `AssessmentResolver.onAttest()`:
+
+```
+AssessmentResolver.onAttest()
+  ├─> Decode assessment schema
+  ├─> Verify operator identity
+  ├─> Validate required fields (title, assessmentType, capitals)
+  ├─> Validate capital types (8 forms of capital)
+  └─> _createGAPProjectMilestone()
+      ├─> Skip if GAP not supported or no project
+      ├─> Build milestone metadata JSON
+      │   ├─> capitals array
+      │   ├─> assessmentType
+      │   └─> metricsJSON
+      └─> GardenAccount.createProjectMilestone()
+          └─> Create milestone attestation
+```
+
+**Result:** Milestone attestation recorded on Karma GAP with assessment data.
+
 ## Testing
 
-### Fork Test Commands
-
-All testing is done via fork tests against live networks:
+All testing is done via fork tests against live networks. Set RPC URLs in `.env` and run:
 
 ```bash
 # Test all networks
 bun test:gap
 
-# Test specific networks
+# Test specific network
 bun test:gap:fork:arbitrum
-bun test:gap:fork:celo
-bun test:gap:fork:base
-bun test:gap:fork:optimism
-bun test:gap:fork:sepolia
-bun test:gap:fork:sei
 ```
 
-### Test Coverage
-
-- ✅ Garden creation with GAP project
-- ✅ Operator becomes GAP project admin
-- ✅ Full workflow (garden → work → approval → impact)
-
-### Running Fork Tests
-
-Set RPC URLs in `.env`:
-
-```bash
-ARBITRUM_RPC_URL=https://arb1.arbitrum.io/rpc
-CELO_RPC_URL=https://forno.celo.org
-BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
-OPTIMISM_RPC_URL=https://mainnet.optimism.io
-SEPOLIA_RPC_URL=https://rpc.sepolia.org
-SEI_RPC_URL=https://evm-rpc.sei-apis.com
-```
-
-Then run:
-
-```bash
-bun test:gap:fork:all
-```
+**Coverage:** Garden creation, operator admin assignment, full work approval workflow, assessment milestones.  
+**Details:** See `test/E2EKarmaGAPFork.t.sol` and [KARMA_GAP_IMPLEMENTATION.md](./KARMA_GAP_IMPLEMENTATION.md)
 
 ## Deployment
 
-When deploying to a GAP-supported chain:
+**The integration is fully automatic.** When deploying to a GAP-supported chain:
 
-1. Deploy core contracts
-2. Gardens automatically create GAP projects
-3. Operators automatically become project admins
-4. Approved work automatically creates impact attestations
+1. Gardens automatically create GAP projects during initialization
+2. Operators automatically become project admins
+3. Work approvals automatically create impact attestations
+4. Assessments automatically create milestone attestations
 
-**No additional configuration needed** - the integration is automatic!
-
-### Automatic Integration
-
-- GAP projects are created during garden initialization
-- Operators are added as project admins when added to gardens
-- Impact attestations are created when work is approved
-- All handled automatically by smart contracts
+No additional configuration required.
 
 ## Querying Impact Data
 
 ### Via Karma GAP Platform
-
-Green Goods impact attestations are visible on:
-- https://gap.karmahq.xyz/ (project profile pages)
-- View by project UID (garden address)
-- Aggregated impact metrics
+- https://gap.karmahq.xyz/ - View project profiles and aggregated metrics
 
 ### Via EAS Explorer
-
-Direct blockchain verification:
+Direct on-chain verification at:
 - https://arbitrum.easscan.org/ (Arbitrum)
-- https://celo.easscan.org/ (Celo)
+- https://celo.easscan.org/ (Celo)  
 - https://base-sepolia.easscan.org/ (Base Sepolia)
-- Search by attestation UID
-- View raw attestation data
-- Verify on-chain integrity
 
 ### Via Karma GAP SDK
-
 ```typescript
 import { KarmaGAP } from '@show-karma/karma-gap-sdk';
-
-// Initialize SDK
 const gap = new KarmaGAP(chainId);
-
-// Get project by garden address
 const project = await gap.getProjectByOwner(gardenAddress);
-
-// Get project impacts
-const impacts = await gap.getProjectUpdates(project.uid, {
-  type: 'project-impact'
-});
-```
-
-### Via EAS GraphQL
-
-```graphql
-query KarmaGAPImpacts($projectUID: String!) {
-  attestations(
-    where: {
-      schemaId: {_eq: $GAP_PROJECT_UPDATE_SCHEMA_UID}
-      decodedDataJson: {_contains: {type: "project-impact"}}
-      refUID: {_eq: $projectUID}
-    }
-  ) {
-    id
-    attester
-    decodedDataJson
-    time
-  }
-}
+const impacts = await project.getUpdates();
 ```
 
 ### Via Green Goods Indexer
+The indexer stores `gapProjectUID` for each garden. Query the garden, then use the UID with Karma GAP SDK.  
+**Details:** See [KARMA_GAP_QUERIES.md](../indexer/KARMA_GAP_QUERIES.md)
 
-**Note:** Green Goods indexer tracks gardens and work but does not index GAP attestations. Use Karma GAP SDK or EAS directly for impact data.
+## Implemented Features
 
-## What's NOT Implemented
+The following Karma GAP features are **fully implemented and working**:
 
-The following features are **not currently implemented** but may be added in future versions:
+1. **Gardens → GAP Projects** ✅
+   - Gardens automatically create GAP projects during initialization
+   - Project details stored on-chain with garden metadata
+   - Operators automatically added as project admins
 
-1. **Assessments → Milestones**
-   - Assessment submissions do NOT create GAP milestone attestations
-   - Assessments create standard EAS attestations only
-   - This is a planned future enhancement
+2. **Work Approvals → GAP Impacts** ✅
+   - Approved work submissions automatically create GAP impact attestations
+   - Includes action title, approval feedback, and media evidence
+   - Linked to garden's GAP project via refUID
 
-2. **Green Goods Indexer GAP Entities**
-   - The indexer does NOT track GAPProject, GAPMilestone, or GAPImpact entities
-   - Query GAP data directly via Karma GAP SDK or EAS
-   - Indexer tracks gardens and work only
-
-3. **Admin Dashboard Impact Reports**
-   - Impact Reports view queries Karma GAP directly (future implementation)
-   - Not querying Green Goods indexer for GAP data
-
-4. **Localhost GAP Testing**
-   - GAP integration not supported on localhost
-   - Use fork tests to test GAP integration
+3. **Assessments → GAP Milestones** ✅
+   - Assessment submissions automatically create GAP milestone attestations
+   - Includes assessment title, description, capitals, and metrics
+   - Linked to garden's GAP project via refUID
+   - Milestone metadata includes assessment type and measured capitals
 
 ## Troubleshooting
 

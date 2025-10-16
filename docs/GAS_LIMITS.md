@@ -49,8 +49,7 @@ To prevent gas exhaustion and ensure predictable transaction costs, the followin
 | `removeGardener()` | ~30K | Simple mapping update |
 | `addGardenOperator()` | ~50K | Simple mapping update |
 | `removeGardenOperator()` | ~30K | Simple mapping update |
-| `createInviteCode()` | ~70K | Multiple mappings updated |
-| `joinGardenWithInvite()` | ~60K | Invite validation + membership |
+| `joinGarden()` | ~50K | Direct join without invite system |
 | `updateDescription()` | ~50K-80K | Varies with string length |
 
 ### Resolver Operations

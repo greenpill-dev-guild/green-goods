@@ -27,16 +27,21 @@ library KarmaLib {
     address internal constant GAP_PROJECT_RESOLVER_SEI_TESTNET = 0xdA2c62101851365EEdC5A1f7087d92Ffde7345B4;
 
     // ============================================================================
+    // GAP CONTRACT ADDRESSES (Main Contract)
+    // ============================================================================
+    address internal constant GAP_CONTRACT_ARBITRUM = 0x6dC1D6b864e8BEf815806f9e4677123496e12026;
+    address internal constant GAP_CONTRACT_CELO = 0x8791Ac8c099314bB1D1514D76de13a1E80275950;
+    address internal constant GAP_CONTRACT_BASE_SEPOLIA = 0x4Ca7230fB6b78875bdd1B1e4F665B7B7f1891239;
+
+    // ============================================================================
     // SCHEMA UIDs - OPTIMISM (Chain ID: 10)
     // ============================================================================
     bytes32 internal constant GAP_PROJECT_SCHEMA_OPTIMISM =
         0x5b873b6e7a16207b526dde366e8164e95bcda2f009272306519667c5e94d2191;
     bytes32 internal constant GAP_DETAILS_SCHEMA_OPTIMISM =
         0x70a3f615f738fc6a4f56100692ada93d947c028b840940d97af7e7d6f0fa0577;
-    bytes32 internal constant GAP_MILESTONE_SCHEMA_OPTIMISM =
-        0xdc3f4d0938b1d029d825c01b3c53ad955e0ef3eabc1f57c1ebde90de2bf527ae;
-    bytes32 internal constant GAP_PROJECT_UPDATE_SCHEMA_OPTIMISM =
-        0xdc3f4d0938b1d029d825c01b3c53ad955e0ef3eabc1f57c1ebde90de2bf527ae;
+    bytes32 internal constant GAP_MEMBEROF_SCHEMA_OPTIMISM =
+        0x7fbb8a65924d8ad2ae12356e04b1418043e8361ba3b1b6c917de2e23df3ec81c;
 
     // ============================================================================
     // SCHEMA UIDs - OPTIMISM SEPOLIA (Chain ID: 11155420)
@@ -45,10 +50,8 @@ library KarmaLib {
         0xf9bbd118dd100459a7d093403af21c6e7f847fd7f331b7a4e6bfb94a1366bd76;
     bytes32 internal constant GAP_DETAILS_SCHEMA_OPTIMISM_SEPOLIA =
         0xd193e75f420a69910f98fa79cacdfd9d0dcbf5933edce8f8bde9a10bd204d996;
-    bytes32 internal constant GAP_MILESTONE_SCHEMA_OPTIMISM_SEPOLIA =
-        0x6f8e6a1394bdc398f8d93a99b0ecca326d04470a4f0ee5c379bb85a458a322e4;
-    bytes32 internal constant GAP_PROJECT_UPDATE_SCHEMA_OPTIMISM_SEPOLIA =
-        0x6f8e6a1394bdc398f8d93a99b0ecca326d04470a4f0ee5c379bb85a458a322e4;
+    bytes32 internal constant GAP_MEMBEROF_SCHEMA_OPTIMISM_SEPOLIA =
+        0x611f9655188f372e27dce116a803fa9081ca3e2907986368d54fcad538ca3853;
 
     // ============================================================================
     // SCHEMA UIDs - ARBITRUM (Chain ID: 42161)
@@ -57,10 +60,8 @@ library KarmaLib {
         0xac2a06e955a7e25e6729efe1a6532237e3435b21ccd3dc827ae3c94e624d25b3;
     bytes32 internal constant GAP_DETAILS_SCHEMA_ARBITRUM =
         0x16bfe4783b7a9c743c401222c56a07ecb77ed42afc84b61ff1f62f5936c0b9d7;
-    bytes32 internal constant GAP_MILESTONE_SCHEMA_ARBITRUM =
-        0x93391c496898c63995f23797835c8e0468be338f0dbc2df62edfd70856cde1d4;
-    bytes32 internal constant GAP_PROJECT_UPDATE_SCHEMA_ARBITRUM =
-        0x93391c496898c63995f23797835c8e0468be338f0dbc2df62edfd70856cde1d4;
+    bytes32 internal constant GAP_MEMBEROF_SCHEMA_ARBITRUM =
+        0x5f430aec9d04f0dcb3729775c5dfe10752e436469a7607f8c64ae44ef996e477;
 
     // ============================================================================
     // SCHEMA UIDs - SEPOLIA (Chain ID: 11155111)
@@ -69,10 +70,8 @@ library KarmaLib {
         0xec77990a252b54b17673955c774b9712766de5eecb22ca5aa2c440e0e93257fb;
     bytes32 internal constant GAP_DETAILS_SCHEMA_SEPOLIA =
         0x2c270e35bfcdc4d611f0e9d3d2ab6924ec6c673505abc22a1dd07e19b67211af;
-    bytes32 internal constant GAP_MILESTONE_SCHEMA_SEPOLIA =
-        0xcdef0e492d2e7ad25d0b0fdb868f6dcd1f5e5c30e42fd5fa0debdc12f7618322;
-    bytes32 internal constant GAP_PROJECT_UPDATE_SCHEMA_SEPOLIA =
-        0xcdef0e492d2e7ad25d0b0fdb868f6dcd1f5e5c30e42fd5fa0debdc12f7618322;
+    bytes32 internal constant GAP_MEMBEROF_SCHEMA_SEPOLIA =
+        0xdd87b3500457931252424f4439365534ba72a367503a8805ff3482353fb90301;
 
     // ============================================================================
     // SCHEMA UIDs - BASE SEPOLIA (Chain ID: 84532)
@@ -81,28 +80,23 @@ library KarmaLib {
         0x5ddd6b7a11406771308431ca9bd146cc717848b74b52993a532dc1aad0ccc83f;
     bytes32 internal constant GAP_DETAILS_SCHEMA_BASE_SEPOLIA =
         0x9b06f811608d135f913c18295486693fe626f35e213a7d132be87b1f952e508c;
-    bytes32 internal constant GAP_MILESTONE_SCHEMA_BASE_SEPOLIA =
-        0xe9cce07bd9295aafc78faa7afdd88a6fad6fd61834a048fb8c3dbc86cb471f81;
-    bytes32 internal constant GAP_PROJECT_UPDATE_SCHEMA_BASE_SEPOLIA =
-        0xe9cce07bd9295aafc78faa7afdd88a6fad6fd61834a048fb8c3dbc86cb471f81;
+    bytes32 internal constant GAP_MEMBEROF_SCHEMA_BASE_SEPOLIA =
+        0x857398d86e2d31bec5af882b950ee7b00d1fefefba2432737ab28b68ee041eb8;
 
     // ============================================================================
     // SCHEMA UIDs - CELO (Chain ID: 42220)
     // ============================================================================
     bytes32 internal constant GAP_PROJECT_SCHEMA_CELO = 0xf3f753b41e04d1052b5a5ec7624d1dfdb6c2da288a985120e477ddbcac071022;
     bytes32 internal constant GAP_DETAILS_SCHEMA_CELO = 0x9895e82115987d8e3e02b35ced92e6a0509293890333f58f50ec291b34853dac;
-    bytes32 internal constant GAP_MILESTONE_SCHEMA_CELO = 0x80f0701853e862d920f87e8ae5b359a1625ad417a9523af2ed12bc3504b04088;
-    bytes32 internal constant GAP_PROJECT_UPDATE_SCHEMA_CELO =
-        0x80f0701853e862d920f87e8ae5b359a1625ad417a9523af2ed12bc3504b04088;
+    bytes32 internal constant GAP_MEMBEROF_SCHEMA_CELO = 0xb4186a2401f40a4c78768941ef9140e1fbe5fe595053a65d44f31d6df180b712;
 
     // ============================================================================
     // SCHEMA UIDs - SEI (Chain ID: 1329)
     // ============================================================================
     bytes32 internal constant GAP_PROJECT_SCHEMA_SEI = 0xf6b89107f8096220051240b89a48abb66e0a23e529c914953b80f5a2bc5ea44c;
     bytes32 internal constant GAP_DETAILS_SCHEMA_SEI = 0x1b4365b92aa47de3f67cdfb53127518381c1e66e0d9e0f8a15bbfa7250950967;
-    bytes32 internal constant GAP_MILESTONE_SCHEMA_SEI = 0xc3b9bee0be3a6ea92f76fa459922a088824e29798becdc82d81f6b2309442563;
-    bytes32 internal constant GAP_PROJECT_UPDATE_SCHEMA_SEI =
-        0xc3b9bee0be3a6ea92f76fa459922a088824e29798becdc82d81f6b2309442563;
+    bytes32 internal constant GAP_MEMBEROF_SCHEMA_SEI = 0xb7278b94cea2b9f1a8fdd1c4bb52ed66906516a0ff9d59d0f80daffcf147ea5d; // Note:
+        // SEI mainnet schema not yet deployed
 
     // ============================================================================
     // SCHEMA UIDs - SEI TESTNET (Chain ID: 1328)
@@ -111,10 +105,8 @@ library KarmaLib {
         0x9de9294fbb62391b393332a33bfc28b4e0e728dd094aee4bda3955df62f8401a;
     bytes32 internal constant GAP_DETAILS_SCHEMA_SEI_TESTNET =
         0x76f38d22f88a0df52a8ff0763e1c0af912b0822e758be2e0c9cded91aef71d22;
-    bytes32 internal constant GAP_MILESTONE_SCHEMA_SEI_TESTNET =
-        0xb25551d21dc886be83a07c241c46de318704cb6f485191fdedcf80f4b8b28188;
-    bytes32 internal constant GAP_PROJECT_UPDATE_SCHEMA_SEI_TESTNET =
-        0xb25551d21dc886be83a07c241c46de318704cb6f485191fdedcf80f4b8b28188;
+    bytes32 internal constant GAP_MEMBEROF_SCHEMA_SEI_TESTNET =
+        0x222fa508c0cdb5954905dd30611a940f6402da2b3c49ce0c88d33e22f72121e7;
 
     // ============================================================================
     // HELPER FUNCTIONS
@@ -155,6 +147,16 @@ library KarmaLib {
         _revertUnsupported();
     }
 
+    /// @notice Returns GAP main contract address for current chain
+    /// @return GAP contract address
+    function getGapContract() internal view returns (address) {
+        uint256 chainId = block.chainid;
+        if (chainId == 42_161) return GAP_CONTRACT_ARBITRUM;
+        if (chainId == 42_220) return GAP_CONTRACT_CELO;
+        if (chainId == 84_532) return GAP_CONTRACT_BASE_SEPOLIA;
+        _revertUnsupported();
+    }
+
     /// @notice Returns GAP project schema UID for current chain
     /// @return Project schema UID
     function getProjectSchemaUID() internal view returns (bytes32) {
@@ -185,35 +187,19 @@ library KarmaLib {
         _revertUnsupported();
     }
 
-    /// @notice Returns GAP milestone schema UID for current chain
-    /// @dev Used for project milestone attestations (assessments)
-    /// @return Milestone schema UID
-    function getMilestoneSchemaUID() internal view returns (bytes32) {
+    /// @notice Returns GAP memberOf schema UID for current chain
+    /// @dev Used for project membership attestations
+    /// @return MemberOf schema UID
+    function getMemberOfSchemaUID() internal view returns (bytes32) {
         uint256 chainId = block.chainid;
-        if (chainId == 10) return GAP_MILESTONE_SCHEMA_OPTIMISM;
-        if (chainId == 11_155_420) return GAP_MILESTONE_SCHEMA_OPTIMISM_SEPOLIA;
-        if (chainId == 42_161) return GAP_MILESTONE_SCHEMA_ARBITRUM;
-        if (chainId == 11_155_111) return GAP_MILESTONE_SCHEMA_SEPOLIA;
-        if (chainId == 84_532) return GAP_MILESTONE_SCHEMA_BASE_SEPOLIA;
-        if (chainId == 42_220) return GAP_MILESTONE_SCHEMA_CELO;
-        if (chainId == 1329) return GAP_MILESTONE_SCHEMA_SEI;
-        if (chainId == 1328) return GAP_MILESTONE_SCHEMA_SEI_TESTNET;
-        _revertUnsupported();
-    }
-
-    /// @notice Returns GAP project update schema UID for current chain
-    /// @dev Used for project impact attestations
-    /// @return Project update schema UID
-    function getProjectUpdateSchemaUID() internal view returns (bytes32) {
-        uint256 chainId = block.chainid;
-        if (chainId == 10) return GAP_PROJECT_UPDATE_SCHEMA_OPTIMISM;
-        if (chainId == 11_155_420) return GAP_PROJECT_UPDATE_SCHEMA_OPTIMISM_SEPOLIA;
-        if (chainId == 42_161) return GAP_PROJECT_UPDATE_SCHEMA_ARBITRUM;
-        if (chainId == 11_155_111) return GAP_PROJECT_UPDATE_SCHEMA_SEPOLIA;
-        if (chainId == 84_532) return GAP_PROJECT_UPDATE_SCHEMA_BASE_SEPOLIA;
-        if (chainId == 42_220) return GAP_PROJECT_UPDATE_SCHEMA_CELO;
-        if (chainId == 1329) return GAP_PROJECT_UPDATE_SCHEMA_SEI;
-        if (chainId == 1328) return GAP_PROJECT_UPDATE_SCHEMA_SEI_TESTNET;
+        if (chainId == 10) return GAP_MEMBEROF_SCHEMA_OPTIMISM;
+        if (chainId == 11_155_420) return GAP_MEMBEROF_SCHEMA_OPTIMISM_SEPOLIA;
+        if (chainId == 42_161) return GAP_MEMBEROF_SCHEMA_ARBITRUM;
+        if (chainId == 11_155_111) return GAP_MEMBEROF_SCHEMA_SEPOLIA;
+        if (chainId == 84_532) return GAP_MEMBEROF_SCHEMA_BASE_SEPOLIA;
+        if (chainId == 42_220) return GAP_MEMBEROF_SCHEMA_CELO;
+        if (chainId == 1329) return GAP_MEMBEROF_SCHEMA_SEI;
+        if (chainId == 1328) return GAP_MEMBEROF_SCHEMA_SEI_TESTNET;
         _revertUnsupported();
     }
 

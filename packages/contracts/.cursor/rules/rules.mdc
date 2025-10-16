@@ -47,7 +47,7 @@ try externalCall() {
 - Use custom errors with parameters for longer/dynamic error messages
 
 ### Linting Workflow
-1. Run `pnpm run lint` before committing
+1. Run `bun run lint` before committing
 2. Fix all errors (red) - these block merges
 3. Fix or justify all warnings (yellow) - use solhint-disable comments when intentional
 4. Accepted patterns: empty blocks in UUPS `_authorizeUpgrade`, intentional empty try/catch for non-critical operations

@@ -1,5 +1,7 @@
 # Green Goods Contracts - Final Test Report
 
+> **Note:** This report documents historical testing. The invite system referenced in this document has been removed in favor of direct root garden joining (updated 2025-10-16).
+
 ## Executive Summary
 
 **Test Pass Rate:** 101/119 tests passing (85%)

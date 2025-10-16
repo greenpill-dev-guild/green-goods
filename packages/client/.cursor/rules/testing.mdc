@@ -667,7 +667,7 @@ describe('AuthProvider', () => {
 
 ```bash
 # Generate coverage report
-pnpm --filter client coverage
+cd packages/client && bun coverage
 
 # Open in browser
 open packages/client/coverage/index.html

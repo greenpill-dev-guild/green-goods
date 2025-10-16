@@ -67,6 +67,9 @@ Different tools for different state concerns:
 
 ### Work Submission Workflow
 
+Green Goods uses **two distinct submission paths** based on authentication mode:
+
+**Passkey Mode (Offline-First):**
 ```
 User fills form → Submit → Add to job queue → Process inline (if online)
                                             → Queue for later (if offline)
@@ -74,35 +77,71 @@ User fills form → Submit → Add to job queue → Process inline (if online)
 Queue processes → Upload media to IPFS → Create EAS attestation → Mark synced
 ```
 
-**Files:**
+**Wallet Mode (Direct Transaction):**
+```
+User fills form → Submit → Upload media to IPFS → Create EAS attestation
+→ Send transaction via wallet → Wait for confirmation → Done
+```
+
+**Implementation:**
 - Form: `src/views/Garden/index.tsx`
-- Submission: `src/modules/work/work-submission.ts`
+- Wallet submission: `src/modules/work/wallet-submission.ts`
+- Queue submission: `src/modules/work/work-submission.ts`
 - Processing: `src/modules/job-queue/inline-processor.ts`
-- Provider: `src/providers/work.tsx`
+- Provider: `src/providers/work.tsx` (branches on `authMode`)
 
 ### Work Approval Workflow
 
+**Passkey Mode:**
 ```
 Operator views work → Reviews media/details → Approves/rejects with feedback
 → Creates approval job → Process inline → EAS attestation created
 ```
 
-**Files:**
+**Wallet Mode:**
+```
+Operator views work → Reviews media/details → Approves/rejects with feedback
+→ Encode approval data → Send transaction via wallet → Done
+```
+
+**Implementation:**
 - View: `src/views/Home/Garden/Work.tsx`
-- Hook: `src/hooks/work/useWorkApprovals.ts`
+- Hook: `src/hooks/work/useWorkApproval.ts` (branches on `authMode`)
+- Wallet submission: `src/modules/work/wallet-submission.ts`
+- Queue submission: `src/modules/work/work-submission.ts`
 - Provider: `src/providers/jobQueue.tsx`
 
-### Garden Join with Invite
+### Root Garden Auto-Join
 
+**First-time users (passkey):**
 ```
-User clicks invite link → Validates invite code → Creates passkey (if needed)
-→ Joins garden (sponsored tx) → Redirects to garden view
+Create passkey → Show "Creating your garden account..."
+→ Initialize smart account → Show "Joining community garden..."
+→ Auto-join root garden (sponsored tx) → Set onboarded flag
+→ Navigate to home
 ```
+
+**Returning users (passkey):**
+```
+Authenticate → Show "Welcome back..." → Navigate to home
+```
+
+**Wallet users:**
+```
+Connect wallet → Manual prompt to join root garden (optional)
+→ User can join later from profile
+```
+
+**Storage Pattern:**
+- `greengoods_user_onboarded`: Set to "true" after first-time onboarding complete
+- `rootGardenPrompted`: Set to "true" after wallet user prompted or dismissed
 
 **Files:**
-- Component: `src/components/Garden/GardenOnboarding.tsx`
-- Hook: `src/hooks/garden/useGardenJoin.ts`
-- Paymaster: `src/modules/pimlico/paymaster.ts`
+- Login flow: `src/views/Login/index.tsx`
+- Splash screen: `src/components/Layout/Splash.tsx` (with loading states)
+- Hook: `src/hooks/garden/useAutoJoinRootGarden.ts`
+- Auth provider: `src/providers/auth.tsx`
+- Paymaster: `src/modules/pimlico/paymaster.ts` (sponsors joinGarden)
 
 ## Module Architecture
 

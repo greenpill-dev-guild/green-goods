@@ -1,3 +1,5 @@
+/// <reference types="../types/app.d.ts" />
+
 import { cleanup } from "@testing-library/react";
 import { afterEach, beforeAll, vi } from "vitest";
 

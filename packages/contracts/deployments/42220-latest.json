@@ -1,33 +1,33 @@
 {
-  "accountProxy": "0x62aae8bfAeC3a3e858ad05c21096f47dF16D9668",
-  "actionRegistry": "0xe0E832C5D7778B937F31BE78551479B4AFc4C0F7",
-  "assessmentResolver": "0x89158C3647E169d5316d939Ef949eF12929bC148",
-  "deploymentRegistry": "0x69f2ff5Db8346600B0333F1Dac6a296100D7FE7e",
+  "accountProxy": "0x2c6FB6128cA1177b58A8b361Cf799F0De4D031ac",
+  "actionRegistry": "0x1f10E7DE76CfC5F1175d74d714D495e30B740C2E",
+  "assessmentResolver": "0x55A7F4A3e23ba4204fA21B09aEBe47Dd786Cc77c",
+  "deploymentRegistry": "0x4C2094a188B6616356F65aE47cB63152D1c60F9b",
   "eas": {
     "address": "0x72E1d8ccf5299fb36fEfD8CC4394B8ef7e98Af92",
     "schemaRegistry": "0x5ece93bE4BDCF293Ed61FA78698B594F2135AF34"
   },
-  "gardenAccountImpl": "0x3203D4a55074E4733CCf995EEcdc0802925680E7",
-  "gardenToken": "0x64be27A63dF8E2cd5DA205e4BD01FA636260324c",
-  "guardian": "0xe0885CFB57b23316e89Bd64b4e982664DeDeD0f1",
+  "gardenAccountImpl": "0x9Caee3c65112aDa34042763a4c0F106dAf5d575f",
+  "gardenToken": "0x5Bb743A7E2F07970c00A87f45915A3b1176de226",
+  "guardian": "0x90E26A666E90C044142Dcf534d2410212f4f7388",
   "rootGarden": {
-    "address": "0x06Fec5ed004F0F6FCcd49A5987AC2Da8396E10CF",
+    "address": "0xE9a4140874f39Eb0738cf7614EE79B0E2cbec2FC",
     "tokenId": 1
   },
   "schemas": {
     "assessmentDescription": "Flexible assessment schema for Green Goods gardens. Captures impact across 8 forms of capital with flexible metrics stored in IPFS JSON, along with evidence media and impact attestation references.",
     "assessmentName": "Green Goods Assessment",
     "assessmentSchema": "string title,string description,string assessmentType,string[] capitals,string metricsJSON,string[] evidenceMedia,string[] reportDocuments,bytes32[] impactAttestations,uint256 startDate,uint256 endDate,string location,string[] tags",
-    "assessmentSchemaUID": "0x1e9ecf809c1070ea13f92c1868de785f009d790eaafd5b13c3c481e8f677c593",
+    "assessmentSchemaUID": "0x320fe3c140f17dda6d150059be845dde2002ba3ad52c47056fbab67dd29fbebb",
     "workApprovalDescription": "Work approval schema for Green Goods protocol. Allows validators to approve or reject submitted work with feedback, enabling trustless verification of regenerative agriculture activities.",
     "workApprovalName": "Green Goods Work Approval",
     "workApprovalSchema": "uint256 actionUID,bytes32 workUID,bool approved,string feedback",
-    "workApprovalSchemaUID": "0x39fca8e2b4998677f266c2e423b5064f223eb9e5e7839ed41f5b551601768cd4",
+    "workApprovalSchemaUID": "0xf073752a6ab28e251281cee1b2c99f37f6f44882a9d5ad7206aa6d6ab59603fb",
     "workDescription": "Work submission schema for Green Goods protocol. Enables gardeners to submit completed regenerative agriculture tasks with media evidence and metadata for verification and payment.",
     "workName": "Green Goods Work Submission",
     "workSchema": "uint256 actionUID,string title,string feedback,string metadata,string[] media",
-    "workSchemaUID": "0x5534c44a92e5bb4394a0ab8cc16053d1f8a3d878caa7aff3d236ee15e98aebe9"
+    "workSchemaUID": "0x6a4d4f9b8f6c4db5e23e32c7bef65e1970c1072cb95bf9c36632f4abbb23737f"
   },
-  "workApprovalResolver": "0x3725b631D289334c966A4C1868F0497eDd91E8Dc",
-  "workResolver": "0xd220591CF18C31e3611F17521E76e7b40091D7d8"
+  "workApprovalResolver": "0xF2986F89003B11Ef5821eB331c4d3Df981E81F92",
+  "workResolver": "0x5AA23920691A707b749411BbB5B9647FB071bAD0"
 }
