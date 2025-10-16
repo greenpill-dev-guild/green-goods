@@ -17,7 +17,7 @@ export function useCreateGardenWorkflow() {
   const machine = useMemo(
     () =>
       createGardenMachine.provide({
-        services: {
+        actors: {
           submitGarden: async () => {
             const params = useCreateGardenStore.getState().getParams();
             if (!params) {
@@ -49,14 +49,14 @@ export function useCreateGardenWorkflow() {
             return txHash;
           },
         },
-      }),
+      } as any),
     [address, walletClient, selectedChainId, addPendingTransaction]
   );
 
   const [state, send] = useMachine(machine);
 
   useEffect(() => {
-    if (state.matches("success") && state.context.txHash) {
+    if (state.value === "success" && state.context.txHash) {
       updateTransactionStatus(state.context.txHash, "confirmed");
     }
   }, [state.value, state.context.txHash, updateTransactionStatus]);

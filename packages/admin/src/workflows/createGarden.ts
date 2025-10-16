@@ -86,11 +86,11 @@ const createGardenSetup = setup({
     canSubmit: () => useCreateGardenStore.getState().isReviewReady(),
     canRetry: ({ context }) => context.retryCount < 3,
   },
-  services: {
-    submitGarden: async () => {
-      throw new Error("submitGarden service not implemented");
+  actors: {
+    submitGarden: () => {
+      throw new Error("submitGarden actor not implemented");
     },
-  },
+  } as any,
 });
 
 export const createGardenMachine = createGardenSetup.createMachine({
@@ -174,7 +174,7 @@ export const createGardenMachine = createGardenSetup.createMachine({
           target: "error",
           actions: ["storeFailure", "incrementRetry"],
         },
-      },
+      } as any,
       on: {
         CLOSE: {
           target: "idle",

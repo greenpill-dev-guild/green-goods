@@ -3,7 +3,6 @@ import { useParams, Link } from "react-router-dom";
 import { useQuery } from "urql";
 import { graphql } from "gql.tada";
 import {
-  RiAddLine,
   RiFileList3Line,
   RiArrowLeftLine,
   RiExternalLinkLine,
@@ -49,10 +48,6 @@ export default function GardenDetail() {
   const openAddMemberModal = (type: "gardener" | "operator") => {
     setMemberType(type);
     setAddMemberModalOpen(true);
-  };
-
-  const openCreateAssessmentModal = () => {
-    setAddAssessmentModalOpen(true);
   };
 
   const [{ data, fetching, error }, refetch] = useQuery({

@@ -39,9 +39,9 @@ export function CreateGardenModal({ isOpen, onClose }: CreateGardenModalProps) {
   const [operatorError, setOperatorError] = useState<string | null>(null);
   const [showValidation, setShowValidation] = useState(false);
 
-  const isSubmitting = state.matches("submitting");
-  const hasError = state.matches("error");
-  const isSuccess = state.matches("success");
+  const isSubmitting = state.value === "submitting";
+  const hasError = state.value === "error";
+  const isSuccess = state.value === "success";
 
   useEffect(() => {
     if (isOpen) {
