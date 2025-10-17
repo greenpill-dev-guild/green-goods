@@ -1,0 +1,101 @@
+{
+  "folders": [
+    {
+      "name": "green-goods",
+      "path": "../"
+    },
+    {
+      "name": "contracts",
+      "path": "../packages/contracts"
+    },
+    {
+      "name": "indexer",
+      "path": "../packages/indexer"
+    },
+    {
+      "name": "admin",
+      "path": "../packages/admin"
+    },
+    {
+      "name": "client",
+      "path": "../packages/client"
+    },
+    {
+      "name": "src",
+      "path": "../packages/client/src"
+    },
+    {
+      "name": "hooks",
+      "path": "../packages/client/src/hooks"
+    },
+    {
+      "name": "routes",
+      "path": "../packages/client/src/routes"
+    },
+    {
+      "name": "providers",
+      "path": "../packages/client/src/providers"
+    },
+    {
+      "name": "components",
+      "path": "../packages/client/src/components"
+    },
+    {
+      "name": "modules",
+      "path": "../packages/client/src/modules"
+    },
+    {
+      "name": "utils",
+      "path": "../packages/client/src/utils"
+    },
+    {
+      "name": "views",
+      "path": "../packages/client/src/views"
+    }
+  ],
+  "settings": {
+  "[solidity]": {
+    "editor.defaultFormatter": "JuanBlanco.solidity",
+    "editor.formatOnSave": true,
+    "editor.rulers": [120],
+    "editor.wordWrap": "bounded",
+    "editor.wordWrapColumn": 120
+  },
+  "[toml]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[css]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports.biome": "explicit",
+    "source.fixAll.biome": "explicit"
+  },
+  "solidity.formatter": "forge",
+  "solidity.defaultCompiler": "localNodeModule",
+  "solidity.compileUsingRemoteVersion": "v0.8.25+commit.b61c2a91",
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/contracts/lib": true,
+    "**/*.code-search": true
+  }
+  }
+}

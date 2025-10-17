@@ -2,7 +2,7 @@ name: Admin Dashboard Tests
 
 on:
   push:
-    branches: [ main, develop, 'cursor/implement-admin-dashboard-package-*' ]
+    branches: [ main, develop ]
     paths: 
       - 'packages/admin/**'
   pull_request:
