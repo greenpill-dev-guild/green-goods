@@ -37,7 +37,7 @@ export default defineConfig(({ mode }) => {
       proxy: {
         // Proxy indexer requests to avoid CORS issues in development
         '/api/graphql': {
-          target: localEnv.VITE_ENVIO_INDEXER_URL || '',
+          target: process.env.NODE_ENV === "development" ? "http://localhost:8080/v1/graphql" : localEnv.VITE_ENVIO_INDEXER_URL || '',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api\/graphql/, ''),
           configure: (proxy) => {

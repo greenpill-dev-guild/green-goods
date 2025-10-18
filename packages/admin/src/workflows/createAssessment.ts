@@ -46,12 +46,17 @@ export const createAssessmentMachine = createMachine({
           guard: ({ context }) => {
             const params = context.assessmentParams;
             return !!(
-              params?.soilMoisturePercentage !== undefined &&
-              params.carbonTonStock !== undefined &&
-              params.carbonTonPotential !== undefined &&
-              params.gardenSquareMeters !== undefined &&
-              params.biome &&
-              params.polygonCoordinates?.length > 0
+              params &&
+              params.title.trim().length > 0 &&
+              params.description.trim().length > 0 &&
+              params.assessmentType.trim().length > 0 &&
+              Array.isArray(params.capitals) &&
+              params.capitals.length > 0 &&
+              params.metrics &&
+              params.location.trim().length > 0 &&
+              params.startDate &&
+              params.endDate &&
+              new Date(params.endDate).getTime() >= new Date(params.startDate).getTime()
             );
           },
         },

@@ -1,19 +1,13 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/providers/AuthProvider";
+import { DashboardLayoutSkeleton } from "@/components/Layout/DashboardLayoutSkeleton";
 
 export function RequireAuth() {
   const { isConnected, address, ready } = useAuth();
   const location = useLocation();
 
   if (!ready) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div
-          className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"
-          data-testid="loading-spinner"
-        ></div>
-      </div>
-    );
+    return <DashboardLayoutSkeleton />;
   }
 
   const isAuthenticated = isConnected && address;

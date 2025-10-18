@@ -3,22 +3,16 @@ import { screen, render } from "@testing-library/react";
 import React from "react";
 import { RequireAuth } from "@/components/RequireAuth";
 
-// Mock the user provider
-const mockUseUser = vi.fn();
-vi.mock("@/providers/user", () => ({
-  useUser: () => mockUseUser(),
+const mockUseAuth = vi.fn();
+
+vi.mock("@/providers/AuthProvider", () => ({
+  useAuth: () => mockUseAuth(),
 }));
 
-// Mock Privy
-const mockUsePrivy = vi.fn();
-vi.mock("@privy-io/react-auth", () => ({
-  usePrivy: () => mockUsePrivy(),
-}));
-
-// Mock react-router-dom
 const mockUseLocation = vi.fn();
+
 vi.mock("react-router-dom", async () => {
-  const actual = await vi.importActual("react-router-dom");
+  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
   return {
     ...actual,
     Navigate: ({ to }: { to: string }) =>
@@ -31,6 +25,18 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
+function buildAuthState(overrides: Partial<ReturnType<typeof mockUseAuth>> = {}) {
+  return {
+    address: undefined,
+    isConnected: false,
+    isConnecting: false,
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+    ready: true,
+    ...overrides,
+  };
+}
+
 describe("RequireAuth", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -41,29 +47,22 @@ describe("RequireAuth", () => {
     });
   });
 
-  it("should show loading spinner when user is not ready", () => {
-    mockUseUser.mockReturnValue({
-      ready: false,
-      address: null,
-    });
-    mockUsePrivy.mockReturnValue({
-      authenticated: false,
-    });
+  it("renders the layout skeleton while auth state is resolving", () => {
+    mockUseAuth.mockReturnValue(
+      buildAuthState({
+        ready: false,
+      })
+    );
 
     render(<RequireAuth />);
 
-    expect(screen.getByTestId("loading-spinner")).toBeInTheDocument();
+    expect(screen.getByTestId("dashboard-layout-skeleton")).toBeInTheDocument();
+    expect(screen.queryByTestId("navigate")).not.toBeInTheDocument();
     expect(screen.queryByTestId("outlet")).not.toBeInTheDocument();
   });
 
-  it("should redirect to login when not authenticated", () => {
-    mockUseUser.mockReturnValue({
-      ready: true,
-      address: null,
-    });
-    mockUsePrivy.mockReturnValue({
-      authenticated: false,
-    });
+  it("redirects to login when the user is disconnected", () => {
+    mockUseAuth.mockReturnValue(buildAuthState());
 
     render(<RequireAuth />);
 
@@ -72,14 +71,13 @@ describe("RequireAuth", () => {
     expect(navigate).toHaveAttribute("data-to", "/login?redirectTo=%2Fdashboard");
   });
 
-  it("should redirect to login when authenticated but no address", () => {
-    mockUseUser.mockReturnValue({
-      ready: true,
-      address: null,
-    });
-    mockUsePrivy.mockReturnValue({
-      authenticated: true,
-    });
+  it("redirects to login when the user lacks an address", () => {
+    mockUseAuth.mockReturnValue(
+      buildAuthState({
+        isConnected: true,
+        address: undefined,
+      })
+    );
 
     render(<RequireAuth />);
 
@@ -88,35 +86,27 @@ describe("RequireAuth", () => {
     expect(navigate).toHaveAttribute("data-to", "/login?redirectTo=%2Fdashboard");
   });
 
-  it("should render protected content when authenticated with address", () => {
-    mockUseUser.mockReturnValue({
-      ready: true,
-      address: "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
-    });
-    mockUsePrivy.mockReturnValue({
-      authenticated: true,
-    });
+  it("renders protected content when authenticated", () => {
+    mockUseAuth.mockReturnValue(
+      buildAuthState({
+        isConnected: true,
+        address: "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
+      })
+    );
 
     render(<RequireAuth />);
 
     expect(screen.getByTestId("outlet")).toBeInTheDocument();
-    expect(screen.getByText("Protected Content")).toBeInTheDocument();
     expect(screen.queryByTestId("navigate")).not.toBeInTheDocument();
   });
 
-  it("should preserve redirect path with search and hash", () => {
+  it("preserves redirect path including search and hash", () => {
     mockUseLocation.mockReturnValue({
       pathname: "/gardens/123",
       search: "?tab=details",
       hash: "#section1",
     });
-    mockUseUser.mockReturnValue({
-      ready: true,
-      address: null,
-    });
-    mockUsePrivy.mockReturnValue({
-      authenticated: false,
-    });
+    mockUseAuth.mockReturnValue(buildAuthState());
 
     render(<RequireAuth />);
 

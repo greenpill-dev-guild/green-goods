@@ -1,5 +1,6 @@
 import { Outlet } from "react-router-dom";
 import { useRole, type UserRole } from "@/hooks/useRole";
+import { DashboardLayoutSkeleton } from "@/components/Layout/DashboardLayoutSkeleton";
 
 interface RequireRoleProps {
   allowedRoles: UserRole[];
@@ -9,14 +10,7 @@ export function RequireRole({ allowedRoles }: RequireRoleProps) {
   const { role, loading } = useRole();
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div
-          className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"
-          data-testid="loading-spinner"
-        ></div>
-      </div>
-    );
+    return <DashboardLayoutSkeleton />;
   }
 
   if (!allowedRoles.includes(role)) {

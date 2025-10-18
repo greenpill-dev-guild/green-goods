@@ -6,17 +6,15 @@ import { createAssessmentMachine } from "@/workflows/createAssessment";
 import { useAdminStore } from "@/stores/admin";
 import type { CreateAssessmentForm } from "@/components/Garden/CreateAssessmentModal";
 import { getNetworkContracts } from "@/utils/contracts";
+import { getEASConfig } from "@/config";
 import { useAuth } from "@/providers/AuthProvider";
+import { uploadFileToIPFS, uploadJSONToIPFS } from "@/utils/pinata";
 
 export function useCreateAssessmentWorkflow() {
   const [state, send] = useMachine(createAssessmentMachine);
   const { address, connector } = useAccount();
   const { user } = useAuth();
   const { selectedChainId } = useAdminStore();
-
-  const EAS_GARDEN_ASSESSMENT_SCHEMA =
-    process.env.VITE_PUBLIC_EAS_GARDEN_ASSESSMENT_SCHEMA ||
-    "0x76ea40f6c854813bed0224a4334298e63bf77818680bebe1b2921171f2eeb0f6"; // Base Sepolia
 
   const startCreation = (params: CreateAssessmentForm & { gardenId: string }) => {
     send({ type: "START", params });
@@ -56,7 +54,12 @@ export function useCreateAssessmentWorkflow() {
 
     try {
       const contracts = getNetworkContracts(selectedChainId);
-      if (!contracts?.eas || !EAS_GARDEN_ASSESSMENT_SCHEMA) {
+      const easConfig = getEASConfig(selectedChainId);
+      if (
+        !contracts?.eas ||
+        !easConfig.GARDEN_ASSESSMENT.uid ||
+        !easConfig.GARDEN_ASSESSMENT.schema
+      ) {
         throw new Error(`EAS configuration missing for chain ${selectedChainId}`);
       }
 
@@ -73,28 +76,61 @@ export function useCreateAssessmentWorkflow() {
       const signer = await ethersProvider.getSigner();
       eas.connect(signer);
 
-      const schemaEncoder = new SchemaEncoder(
-        "uint8 soilMoisturePercentage,uint256 carbonTonStock,uint256 carbonTonPotential,uint256 gardenSquareMeters,string biome,string remoteReportPDF,string speciesRegistryJSON,string[] polygonCoordinates,string[] treeGenusesObserved,string[] weedGenusesObserved,string[] issues,string[] tags"
+      const schemaEncoder = new SchemaEncoder(easConfig.GARDEN_ASSESSMENT.schema);
+
+      let metricsCid = "";
+      try {
+        const metricsPayload =
+          typeof params.metrics === "string" ? JSON.parse(params.metrics) : params.metrics;
+        const uploadedMetrics = await uploadJSONToIPFS(metricsPayload);
+        metricsCid = uploadedMetrics.cid;
+      } catch (error) {
+        console.error("Failed to upload assessment metrics JSON", error);
+        throw new Error("Invalid metrics JSON. Please provide valid JSON content.");
+      }
+
+      let evidenceMediaCids: string[] = [];
+      if (params.evidenceMedia?.length) {
+        evidenceMediaCids = await Promise.all(
+          params.evidenceMedia.map(async (file) => {
+            const uploaded = await uploadFileToIPFS(file);
+            return uploaded.cid;
+          })
+        );
+      }
+
+      const reportDocuments = (params.reportDocuments || []).filter(Boolean);
+
+      const impactAttestations = (params.impactAttestations || []).map((uid) =>
+        uid.trim().toLowerCase()
       );
 
+      const toUnixSeconds = (value?: string | number | null) => {
+        if (!value) return 0;
+        if (typeof value === "number") return Math.floor(value);
+        const timestamp = new Date(value).getTime();
+        if (Number.isNaN(timestamp)) return 0;
+        return Math.floor(timestamp / 1000);
+      };
+
       const encodedData = schemaEncoder.encodeData([
-        { name: "soilMoisturePercentage", value: params.soilMoisturePercentage, type: "uint8" },
-        { name: "carbonTonStock", value: params.carbonTonStock, type: "uint256" },
-        { name: "carbonTonPotential", value: params.carbonTonPotential, type: "uint256" },
-        { name: "gardenSquareMeters", value: params.gardenSquareMeters, type: "uint256" },
-        { name: "biome", value: params.biome, type: "string" },
-        { name: "remoteReportPDF", value: params.remoteReportPDF, type: "string" },
-        { name: "speciesRegistryJSON", value: params.speciesRegistryJSON, type: "string" },
-        { name: "polygonCoordinates", value: params.polygonCoordinates, type: "string[]" },
-        { name: "treeGenusesObserved", value: params.treeGenusesObserved, type: "string[]" },
-        { name: "weedGenusesObserved", value: params.weedGenusesObserved, type: "string[]" },
-        { name: "issues", value: params.issues, type: "string[]" },
+        { name: "title", value: params.title, type: "string" },
+        { name: "description", value: params.description, type: "string" },
+        { name: "assessmentType", value: params.assessmentType, type: "string" },
+        { name: "capitals", value: params.capitals, type: "string[]" },
+        { name: "metricsJSON", value: metricsCid, type: "string" },
+        { name: "evidenceMedia", value: evidenceMediaCids, type: "string[]" },
+        { name: "reportDocuments", value: reportDocuments, type: "string[]" },
+        { name: "impactAttestations", value: impactAttestations, type: "bytes32[]" },
+        { name: "startDate", value: toUnixSeconds(params.startDate), type: "uint256" },
+        { name: "endDate", value: toUnixSeconds(params.endDate), type: "uint256" },
+        { name: "location", value: params.location, type: "string" },
         { name: "tags", value: params.tags, type: "string[]" },
       ]);
 
       // The SDK may return a bytes32 UID or a transaction-like object depending on version.
       const attestResult = await eas.attest({
-        schema: EAS_GARDEN_ASSESSMENT_SCHEMA,
+        schema: easConfig.GARDEN_ASSESSMENT.uid,
         data: {
           // machine context stores CreateAssessmentForm; caller adds gardenId at startCreation
           recipient: (params as any).gardenId,
