@@ -12,6 +12,7 @@ interface EncodedWorkData {
   actionTitle: string;
 }
 
+/** Handles encoding and execution of queued work attestations. */
 export const workProcessor: JobProcessor<WorkJobPayload, EncodedWorkData> = {
   async encodePayload(payload: WorkJobPayload, chainId: number): Promise<EncodedWorkData> {
     // Get action title from action UID - we'll need to look this up
@@ -94,7 +95,7 @@ export const workProcessor: JobProcessor<WorkJobPayload, EncodedWorkData> = {
   },
 };
 
-// Helper function to get action title - this can be enhanced to lookup from actions context
+/** Derives a user-facing action title using cached action metadata when available. */
 export function getActionTitle(
   actionUID: number,
   actions?: Array<{ id: string; title: string }>,

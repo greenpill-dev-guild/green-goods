@@ -29,6 +29,7 @@ The root `.env` file is automatically loaded by:
 - `VITE_CHAIN_ID`: Chain selection (e.g., 42161 for Arbitrum, 84532 for Base Sepolia)
 - `VITE_ENVIO_INDEXER_URL`: Envio GraphQL endpoint (optional; defaults to localhost in dev)
 - `VITE_DESKTOP_DEV`: Set to bypass PWA download checks during desktop development
+- `VITE_DEBUG_MODE`: Optional toggle to skip the two-media requirement in the Garden submission flow and enable verbose debug logging (use for manual testing only)
 - `VITE_PRIVY_APP_ID`: **Deprecated** - Legacy Privy authentication (being migrated away)
 
 **Setup:**

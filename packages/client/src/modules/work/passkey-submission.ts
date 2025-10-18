@@ -3,11 +3,9 @@ import type { SmartAccountClient } from "permissionless";
 import { encodeFunctionData } from "viem";
 
 import { getEASConfig } from "@/config/blockchain";
-import { createLogger } from "@/utils/app/logger";
 import { abi as EASAbi } from "@/utils/blockchain/abis/EAS.json";
 import { encodeWorkData, encodeWorkApprovalData } from "@/utils/eas/encoders";
-
-const logger = createLogger("PasskeySubmission");
+import { debugLog } from "@/utils/debug";
 
 function assertSmartAccount(
   client: SmartAccountClient | null
@@ -30,6 +28,7 @@ export interface PasskeyWorkSubmissionParams {
   images: File[];
 }
 
+/** Submits a work attestation via the passkey smart account flow. */
 export async function submitWorkWithPasskey({
   client,
   draft,
@@ -39,7 +38,11 @@ export async function submitWorkWithPasskey({
   chainId,
   images,
 }: PasskeyWorkSubmissionParams): Promise<`0x${string}`> {
-  logger.log("Submitting work via passkey", { gardenAddress, actionUID, chainId });
+  debugLog("[PasskeySubmission] Submitting work via passkey", {
+    gardenAddress,
+    actionUID,
+    chainId,
+  });
 
   assertSmartAccount(client);
 
@@ -84,7 +87,7 @@ export async function submitWorkWithPasskey({
     value: 0n,
   });
 
-  logger.log("Passkey work submission sent", { hash });
+  debugLog("[PasskeySubmission] Passkey work submission sent", { hash });
 
   return hash;
 }
@@ -96,13 +99,17 @@ export interface PasskeyApprovalSubmissionParams {
   chainId: number;
 }
 
+/** Submits a work approval attestation using the authenticated passkey session. */
 export async function submitApprovalWithPasskey({
   client,
   draft,
   gardenerAddress,
   chainId,
 }: PasskeyApprovalSubmissionParams): Promise<`0x${string}`> {
-  logger.log("Submitting approval via passkey", { gardenerAddress, chainId });
+  debugLog("[PasskeySubmission] Submitting approval via passkey", {
+    gardenerAddress,
+    chainId,
+  });
 
   assertSmartAccount(client);
 
@@ -138,7 +145,7 @@ export async function submitApprovalWithPasskey({
     value: 0n,
   });
 
-  logger.log("Passkey approval submission sent", { hash });
+  debugLog("[PasskeySubmission] Passkey approval submission sent", { hash });
 
   return hash;
 }

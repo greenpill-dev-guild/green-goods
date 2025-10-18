@@ -1,3 +1,4 @@
+/** Shortens an Ethereum address or ENS name for display in the UI. */
 export const formatAddress: (arg0: string) => string = (address) => {
   if (!address) return "no address provided";
   if (address.includes(".eth")) return address;
@@ -7,10 +8,12 @@ export const formatAddress: (arg0: string) => string = (address) => {
   return `${start}...${end}`;
 };
 
+/** Truncates a string and appends an ellipsis when it exceeds the provided length. */
 export function truncate(str: string, n: number) {
   return str.length > n ? `${str.slice(0, n - 1)}...` : str;
 }
 
+/** Basic e-mail validation for user inputs. */
 export function isValidEmail(email: string) {
   // eslint-disable-next-line no-useless-escape
   return /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(
@@ -18,10 +21,12 @@ export function isValidEmail(email: string) {
   );
 }
 
+/** Generates a short description preview capped at 80 characters. */
 export function truncateDescription(description: string) {
   return description.length > 80 ? `${description.slice(0, 80 - 1)}...` : description;
 }
 
+/** Formats token prices or fiat amounts with a currency label. */
 export function formatPrice(price: number | null, currency?: "ETH" | "USDC" | "OP") {
   return price?.toLocaleString("en-US", {
     style: "currency",
@@ -29,6 +34,7 @@ export function formatPrice(price: number | null, currency?: "ETH" | "USDC" | "O
   });
 }
 
+/** Converts a timestamp string into a human friendly "time ago" label. */
 export function formatLastUpdated(updatedAt: string) {
   const updatedDate = new Date(updatedAt).getSeconds();
   const now = new Date().getSeconds();
@@ -54,5 +60,6 @@ export function formatLastUpdated(updatedAt: string) {
   return "just now";
 }
 
+/** Ensures the first character of a string is capitalized. */
 export const capitalize = (s: string): string =>
   (s && String(s[0]).toUpperCase() + String(s).slice(1)) || "";

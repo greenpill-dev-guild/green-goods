@@ -11,13 +11,11 @@
 
 import { useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { submitApprovalDirectly } from "@/modules/work/wallet-submission";
-import { submitApprovalWithPasskey } from "@/modules/work/passkey-submission";
-import { useUser } from "@/hooks/auth/useUser";
 import { DEFAULT_CHAIN_ID } from "@/config/blockchain";
-import { createLogger } from "@/utils/app/logger";
-
-const logger = createLogger("useWorkApproval");
+import { useUser } from "@/hooks/auth/useUser";
+import { submitApprovalWithPasskey } from "@/modules/work/passkey-submission";
+import { submitApprovalDirectly } from "@/modules/work/wallet-submission";
+import { DEBUG_ENABLED, debugError, debugLog } from "@/utils/debug";
 
 interface UseWorkApprovalParams {
   draft: WorkApprovalDraft;
@@ -62,15 +60,32 @@ export function useWorkApproval() {
 
   return useMutation({
     mutationFn: async ({ draft, work }: UseWorkApprovalParams) => {
-      logger.log("Starting approval submission", { authMode, workUID: draft.workUID });
+      if (DEBUG_ENABLED) {
+        debugLog("[useWorkApproval] Starting approval submission", {
+          authMode,
+          workUID: draft.workUID,
+          approved: draft.approved,
+          chainId,
+        });
+      }
 
       if (authMode === "wallet") {
         // Direct wallet submission
-        logger.log("Using direct wallet submission");
+        if (DEBUG_ENABLED) {
+          debugLog("[useWorkApproval] Using direct wallet submission", {
+            chainId,
+            workUID: draft.workUID,
+          });
+        }
         return await submitApprovalDirectly(draft, work.gardenerAddress || "", chainId);
       }
 
-      logger.log("Using passkey smart account submission");
+      if (DEBUG_ENABLED) {
+        debugLog("[useWorkApproval] Using passkey smart account submission", {
+          chainId,
+          workUID: draft.workUID,
+        });
+      }
       return await submitApprovalWithPasskey({
         client: smartAccountClient,
         draft,
@@ -78,24 +93,47 @@ export function useWorkApproval() {
         chainId,
       });
     },
-    onMutate: () => {
+    onMutate: (variables) => {
+      if (DEBUG_ENABLED && variables) {
+        debugLog("[useWorkApproval] Submitting approval mutation", {
+          authMode,
+          chainId,
+          workUID: variables.draft.workUID,
+          approved: variables.draft.approved,
+        });
+      }
       const message =
         authMode === "wallet" ? "Awaiting wallet confirmation..." : "Submitting approval...";
       toast.loading(message, { id: "approval-submit" });
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       toast.dismiss("approval-submit");
       const message =
         authMode === "wallet" ? "Approval transaction confirmed!" : "Approval submitted!";
       toast.success(message);
-      logger.log("Approval submission successful");
+      if (DEBUG_ENABLED) {
+        debugLog("[useWorkApproval] Approval submission successful", {
+          authMode,
+          chainId,
+          workUID: variables?.draft.workUID,
+        });
+      }
     },
-    onError: (error: unknown) => {
+    onError: (error: unknown, variables) => {
       const message =
         error instanceof Error ? error.message : "Failed to submit approval. Please try again.";
       toast.error(message);
       toast.dismiss("approval-submit");
-      logger.error("Approval submission failed", error);
+      if (DEBUG_ENABLED) {
+        debugError("[useWorkApproval] Approval submission failed", error, {
+          authMode,
+          chainId,
+          workUID: variables?.draft.workUID,
+          approved: variables?.draft.approved,
+          gardenerAddress: variables?.work?.gardenerAddress,
+          message,
+        });
+      }
     },
   });
 }

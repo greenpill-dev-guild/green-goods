@@ -3,6 +3,7 @@ import { SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
 import { getEASConfig } from "@/config/blockchain";
 import { uploadFileToIPFS, uploadJSONToIPFS } from "@/modules/data/pinata";
 
+/** Uploads supporting files and encodes a work attestation payload for EAS. */
 export async function encodeWorkData(data: WorkDraft, chainId: number | string) {
   const easConfig = getEASConfig(chainId);
   const schema = easConfig.WORK.schema as `0x${string}`;
@@ -30,6 +31,7 @@ export async function encodeWorkData(data: WorkDraft, chainId: number | string) 
   return encodedData;
 }
 
+/** Produces an EAS payload for work approval attestations without side effects. */
 export function encodeWorkApprovalData(data: WorkApprovalDraft, chainId: number | string) {
   const easConfig = getEASConfig(chainId);
   const schema = easConfig.WORK_APPROVAL.schema as `0x${string}`;
@@ -45,6 +47,7 @@ export function encodeWorkApprovalData(data: WorkApprovalDraft, chainId: number 
   return encodedData;
 }
 
+/** Prepares assessment attestation data, including IPFS uploads for metrics and media. */
 export async function encodeAssessmentData(data: AssessmentDraft, chainId: number | string) {
   const easConfig = getEASConfig(chainId);
   const schema = easConfig.ASSESSMENT.schema as `0x${string}`;

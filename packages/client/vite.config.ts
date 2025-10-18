@@ -180,7 +180,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     envDir: rootDir,
-    envPrefix: ["VITE_", "PRIVY_", "SKIP_"],
+    envPrefix: ["VITE_", "SKIP_"],
     build: { target: "es2020", sourcemap: true, chunkSizeWarningLimit: 2000 },
     plugins,
     resolve: { alias: { "@": resolve(__dirname, "./src") } },
@@ -210,7 +210,10 @@ export default defineConfig(({ mode }) => {
           rewrite: (path) => path.replace(/^\/pinata\/gateway/, ""),
         },
         "/indexer": {
-          target: "https://indexer.hyperindex.xyz/0bf0e0f/v1",
+          target:
+            process.env.NODE_ENV === "development"
+              ? "http://localhost:8080/v1/graphql"
+              : "https://indexer.hyperindex.xyz/0bf0e0f/v1",
           changeOrigin: true,
           secure: false,
           rewrite: (path) => path.replace(/^\/indexer/, ""),

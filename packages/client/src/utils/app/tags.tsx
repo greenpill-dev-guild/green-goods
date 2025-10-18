@@ -1,5 +1,6 @@
 import type { IntlShape } from "react-intl";
 
+/** Resolves a localized tag label with sensible fallbacks when translations are missing. */
 const getTag = (intl: IntlShape, tag: string) => {
   const tagName = tag.replace(" ", "_");
   return intl.formatMessage({

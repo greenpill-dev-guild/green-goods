@@ -10,6 +10,7 @@ interface EncodedApprovalData {
   gardenerAddress: string;
 }
 
+/** Encodes and submits work approval attestations through the job queue. */
 export const approvalProcessor: JobProcessor<ApprovalJobPayload, EncodedApprovalData> = {
   async encodePayload(payload: ApprovalJobPayload, chainId: number): Promise<EncodedApprovalData> {
     // Encode work approval data for EAS attestation

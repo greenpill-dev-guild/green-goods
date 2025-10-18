@@ -1,6 +1,7 @@
 import { type QueryKey, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 
+/** Configuration for combining online and offline sources into a merged query. */
 type UseMergedOptions<TOnline, TOffline, TMerged> = {
   onlineKey: QueryKey;
   offlineKey: QueryKey;
@@ -19,6 +20,7 @@ type UseMergedOptions<TOnline, TOffline, TMerged> = {
   gcTimeMerged?: number;
 };
 
+/** Synchronises remote data with offline caches and exposes dedicated queries for each source. */
 export function useMerged<TOnline, TOffline, TMerged>(
   options: UseMergedOptions<TOnline, TOffline, TMerged>
 ) {

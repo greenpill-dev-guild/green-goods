@@ -5,7 +5,7 @@ import { queryKeys } from "@/hooks/query-keys";
 // import { jobToWork } from "@/hooks/useWorks";
 import { jobQueue } from "@/modules/job-queue";
 // import { jobQueueEventBus } from "@/modules/job-queue/event-bus";
-import { queryClient } from "@/modules/react-query";
+import { queryClient } from "@/config/react-query";
 import { useUser } from "@/hooks/auth/useUser";
 
 interface JobQueueContextValue {

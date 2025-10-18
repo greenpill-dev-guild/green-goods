@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { queryClient } from "../../modules/react-query";
+import { queryClient } from "../../config/react-query";
 
 describe("modules/react-query", () => {
   it("exports a configured QueryClient", () => {

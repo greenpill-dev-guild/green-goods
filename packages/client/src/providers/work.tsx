@@ -1,20 +1,21 @@
-import { useMutation } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z, type ZodType } from "zod";
+import { useMutation } from "@tanstack/react-query";
 import React, { useContext } from "react";
 import { type Control, type FormState, type UseFormRegister, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
+import { type ZodType, z } from "zod";
 // import { decodeErrorResult } from "viem";
 import { DEFAULT_CHAIN_ID } from "@/config/blockchain";
-// import { jobQueue } from "@/modules/job-queue";
-import { validateWorkDraft, formatJobError } from "@/modules/work/work-submission";
-import { submitWorkDirectly } from "@/modules/work/wallet-submission";
 import { submitWorkWithPasskey } from "@/modules/work/passkey-submission";
+import { submitWorkDirectly } from "@/modules/work/wallet-submission";
+// import { jobQueue } from "@/modules/job-queue";
+import { formatJobError, validateWorkDraft } from "@/modules/work/work-submission";
 // import { abi as WorkResolverABI } from "@/utils/abis/WorkResolver.json";
 
 import { useUser } from "@/hooks/auth/useUser";
 import { useActions, useGardens } from "@/hooks/blockchain/useBaseLists";
 import { useWorkFlowStore, type WorkFlowState } from "@/state/useWorkFlowStore";
+import { DEBUG_ENABLED, debugError, debugLog, debugWarn } from "@/utils/debug";
 
 export enum WorkTab {
   Intro = "Intro",
@@ -158,6 +159,22 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
 
   const workMutation = useMutation({
     mutationFn: async ({ draft, images }: { draft: WorkDraft; images: File[] }) => {
+      if (DEBUG_ENABLED) {
+        const draftSummary = {
+          hasFeedback: Boolean(draft.feedback),
+          feedbackLength: draft.feedback?.length ?? 0,
+          plantSelection: draft.plantSelection,
+          plantCount: draft.plantCount ?? null,
+        };
+        debugLog("[GardenFlow] Preparing work submission payload", {
+          authMode,
+          gardenAddress,
+          actionUID,
+          imageCount: images.length,
+          draftSummary,
+        });
+      }
+
       const ctxActions = actionsData as Action[];
       const action = ctxActions.find((a) => {
         const idPart = a.id?.split("-").pop();
@@ -168,6 +185,13 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       // Branch based on authentication mode
       if (authMode === "wallet") {
         // Direct wallet transaction - no queue
+        if (DEBUG_ENABLED) {
+          debugLog("[GardenFlow] Submitting work via wallet flow", {
+            gardenAddress,
+            actionUID,
+            actionTitle,
+          });
+        }
         return await submitWorkDirectly(
           draft,
           gardenAddress!,
@@ -182,6 +206,14 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         throw new Error("Passkey session not ready. Please refresh and try again.");
       }
 
+      if (DEBUG_ENABLED) {
+        debugLog("[GardenFlow] Submitting work via passkey flow", {
+          gardenAddress,
+          actionUID,
+          actionTitle,
+        });
+      }
+
       return await submitWorkWithPasskey({
         client: smartAccountClient,
         draft,
@@ -192,7 +224,15 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         images,
       });
     },
-    onMutate: () => {
+    onMutate: (variables) => {
+      if (DEBUG_ENABLED && variables) {
+        debugLog("[GardenFlow] Starting work submission", {
+          gardenAddress,
+          actionUID,
+          imageCount: variables.images.length,
+        });
+      }
+
       const message =
         authMode === "wallet" ? "Awaiting wallet confirmation..." : "Submitting work...";
       toast.loading(message, { id: "work-upload" });
@@ -202,8 +242,15 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       const message =
         authMode === "wallet" ? "Transaction confirmed!" : "Work submitted successfully!";
       toast.success(message);
+      if (DEBUG_ENABLED) {
+        debugLog("[GardenFlow] Work submission completed", {
+          gardenAddress,
+          actionUID,
+          authMode,
+        });
+      }
     },
-    onError: (error: unknown) => {
+    onError: (error: unknown, variables) => {
       const message = formatJobError(
         typeof error === "object" && error && "message" in (error as { message?: unknown })
           ? String((error as { message?: unknown }).message)
@@ -211,6 +258,15 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       );
       toast.error(message);
       toast.dismiss("work-upload");
+      if (DEBUG_ENABLED) {
+        debugError("[GardenFlow] Work submission failed", error, {
+          gardenAddress,
+          actionUID,
+          authMode,
+          imageCount: variables?.images.length ?? 0,
+          message,
+        });
+      }
     },
   });
 
@@ -225,10 +281,20 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
     const errors = validateWorkDraft(draft as any, gardenAddress, actionUID, images);
     if (errors.length > 0) {
       toast.error(errors[0]);
+      if (DEBUG_ENABLED) {
+        debugWarn("[GardenFlow] Work draft validation failed", { errors });
+      }
       return;
     }
     // Snapshot images to avoid race with state clearing after navigation
     const imagesSnapshot = images.slice();
+    if (DEBUG_ENABLED) {
+      debugLog("[GardenFlow] Submitting work with validated draft", {
+        gardenAddress,
+        actionUID,
+        imageCount: imagesSnapshot.length,
+      });
+    }
     await workMutation.mutateAsync({ draft: draft as any, images: imagesSnapshot });
   });
 

@@ -1,36 +1,18 @@
-/**
- * Authentication Provider
- *
- * Manages user authentication via passkey (WebAuthn) or traditional wallets.
- * Handles smart account initialization with Pimlico for gasless transactions.
- *
- * @module providers/auth
- */
-
+import { type Connector, connect, disconnect, getAccount, watchAccount } from "@wagmi/core";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { type Hex } from "viem";
 import { type P256Credential } from "viem/account-abstraction";
-import { connect, disconnect, getAccount, watchAccount, type Connector } from "@wagmi/core";
-import { DEFAULT_CHAIN_ID } from "@/config/blockchain";
 import { wagmiConfig } from "@/config/appkit";
+import { DEFAULT_CHAIN_ID } from "@/config/blockchain";
 import {
   clearStoredCredential,
+  type PasskeySession,
   registerPasskeySession,
   restorePasskeySession,
-  type PasskeySession,
 } from "@/modules/auth/passkey";
 
-/**
- * Authentication mode type
- * - passkey: WebAuthn biometric authentication (primary for gardeners)
- * - wallet: Traditional wallet connection (MetaMask, WalletConnect, etc.) for operators
- * - null: Not authenticated
- */
 export type AuthMode = "passkey" | "wallet" | null;
 
-/**
- * Authentication context value
- */
 interface AuthContextType {
   // Auth mode
   authMode: AuthMode;
@@ -61,12 +43,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-/**
- * Hook to access authentication context.
- * Must be used within AuthProvider.
- *
- * @throws If used outside AuthProvider
- */
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
   if (!context) {
@@ -77,26 +53,11 @@ export function useAuth(): AuthContextType {
 
 const AUTH_MODE_STORAGE_KEY = "greengoods_auth_mode";
 
-/**
- * Props for AuthProvider component
- */
 interface AuthProviderProps {
   children: React.ReactNode;
   chainId?: number;
 }
 
-/**
- * Authentication Provider Component
- *
- * Provides authentication context to the entire app.
- * Manages passkey and wallet authentication, smart account initialization.
- *
- * Initialization Flow:
- * 1. Load saved auth mode from localStorage
- * 2. If passkey mode: Load credential and initialize smart account
- * 3. If wallet mode: Check for existing wallet connection
- * 4. Set isReady to true when initialization complete
- */
 export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProviderProps) {
   // Auth mode
   const [authMode, setAuthMode] = useState<AuthMode>(null);
@@ -207,10 +168,6 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
     }
   }, [chainId]);
 
-  /**
-   * Clear passkey credential and reset auth state.
-   * Used for logout or account reset.
-   */
   const clearPasskey = useCallback(() => {
     clearStoredCredential();
     localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
@@ -220,14 +177,6 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
     console.log("Passkey cleared");
   }, []);
 
-  /**
-   * Connect a traditional wallet (MetaMask, WalletConnect, Coinbase Wallet, etc.)
-   *
-   * Used primarily by operators and admins who prefer traditional wallet management.
-   * Does NOT create a smart account - uses EOA directly.
-   *
-   * @throws If connection fails or user rejects
-   */
   const connectWallet = useCallback(async (connector: Connector) => {
     setIsAuthenticating(true);
     setError(null);
@@ -252,9 +201,6 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
     }
   }, []);
 
-  /**
-   * Disconnect traditional wallet and reset auth state.
-   */
   const disconnectWallet = useCallback(() => {
     disconnect(wagmiConfig);
     localStorage.removeItem(AUTH_MODE_STORAGE_KEY);

@@ -1,3 +1,4 @@
+/** Utility types that enable polymorphic React components while preserving props and refs. */
 type AsProp<T extends React.ElementType> = {
   as?: T;
 };

@@ -90,7 +90,7 @@ export function getIndexerUrl() {
   }
 
   if (import.meta.env.DEV) {
-    return "/indexer/graphql";
+    return "http://localhost:8080/v1/graphql";
   }
 
   // Production URL (update when deployed)

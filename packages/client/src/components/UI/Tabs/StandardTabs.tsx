@@ -16,7 +16,6 @@ export interface StandardTabsProps {
   className?: string;
   variant?: "default" | "compact";
   isLoading?: boolean;
-  /** Optional CSS selector for the scrollable container to reset on tab change */
   scrollTargetSelector?: string;
 }
 

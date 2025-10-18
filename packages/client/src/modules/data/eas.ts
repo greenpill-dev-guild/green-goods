@@ -4,6 +4,50 @@ import { easGraphQL } from "./graphql";
 import { getFileByHash } from "./pinata";
 import { createEasClient } from "./urql";
 
+const PINATA_GATEWAY_BASE =
+  import.meta.env.DEV && typeof window !== "undefined"
+    ? `${window.location.origin}/pinata/gateway`
+    : "https://greengoods.mypinata.cloud";
+
+const toGatewayUrl = (hash?: string) => {
+  if (!hash) return "";
+  if (hash.startsWith("http")) return hash;
+  if (hash.startsWith("ipfs://")) {
+    return `${PINATA_GATEWAY_BASE.replace(/\/$/, "")}/ipfs/${hash.replace("ipfs://", "")}`;
+  }
+  return `${PINATA_GATEWAY_BASE.replace(/\/$/, "")}/ipfs/${hash}`;
+};
+
+const toNumberFromField = (value: any): number | null => {
+  if (value === undefined || value === null) return null;
+  if (typeof value === "number") return value;
+  if (typeof value === "bigint") return Number(value);
+  if (typeof value === "string") {
+    if (value.startsWith("0x")) {
+      try {
+        return Number(BigInt(value));
+      } catch {
+        return null;
+      }
+    }
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+  if (typeof value === "object") {
+    if ("hex" in value && typeof value.hex === "string") {
+      try {
+        return Number(BigInt(value.hex));
+      } catch {
+        return null;
+      }
+    }
+    if ("value" in value) {
+      return toNumberFromField(value.value);
+    }
+  }
+  return null;
+};
+
 const parseDataToGardenAssessment = async (
   gardenAssessmentUID: string,
   attestation: {
@@ -13,70 +57,79 @@ const parseDataToGardenAssessment = async (
   },
   decodedDataJson: any
 ): Promise<GardenAssessment> => {
-  const data = JSON.parse(decodedDataJson);
+  const fields = Array.isArray(decodedDataJson)
+    ? decodedDataJson
+    : JSON.parse(decodedDataJson ?? "[]");
+  const findField = (name: string) => fields.find((field: any) => field.name === name);
+  const readValue = (name: string) => findField(name)?.value?.value;
 
-  const report = await getFileByHash(
-    data.filter((d: any) => d.name === "remoteReportPDF")[0].value.value!
+  const title = readValue("title") ?? "";
+  const description = readValue("description") ?? "";
+  const assessmentType = readValue("assessmentType") ?? "";
+  const capitals = (readValue("capitals") as string[]) ?? [];
+  const metricsCid: string | null = readValue("metricsJSON") ?? null;
+  const evidenceMediaHashes = (readValue("evidenceMedia") as string[]) ?? [];
+  const reportDocumentsRaw = (readValue("reportDocuments") as string[]) ?? [];
+  const impactAttestationsRaw = (readValue("impactAttestations") as string[]) ?? [];
+  const startDateRaw = readValue("startDate");
+  const endDateRaw = readValue("endDate");
+  const location = readValue("location") ?? "";
+  const tags = (readValue("tags") as string[]) ?? [];
+
+  let metrics: Record<string, unknown> | null = null;
+  if (metricsCid) {
+    try {
+      const file = await getFileByHash(metricsCid);
+      if (file?.data) {
+        if (file.data instanceof Blob) {
+          const text = await file.data.text();
+          metrics = JSON.parse(text);
+        } else if (typeof file.data === "string") {
+          metrics = JSON.parse(file.data);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch metrics JSON for assessment", gardenAssessmentUID, error);
+    }
+  }
+
+  const evidenceMedia = await Promise.all(
+    evidenceMediaHashes.map(async (hash) => {
+      try {
+        const file = await getFileByHash(hash);
+        if (file?.data instanceof Blob) {
+          return URL.createObjectURL(file.data as Blob);
+        }
+        if (typeof file?.data === "string") {
+          return file.data;
+        }
+        return toGatewayUrl(hash);
+      } catch (error) {
+        console.error("Failed to fetch evidence media", hash, error);
+        return toGatewayUrl(hash);
+      }
+    })
   );
-  const species = await getFileByHash(
-    data.filter((d: any) => d.name === "speciesRegistryJSON")[0].value.value!
-  );
 
-  const speciesRegistry: SpeciesRegistry = species.data as any;
-
-  const issues = data
-    .filter((d: any) => d.name === "issues")[0]
-    .value.value.map((issue: string) => issue.replace("_", " "));
-  const tags = data
-    .filter((d: any) => d.name === "tags")[0]
-    .value.value.map((tag: string) => tag.replace("_", " "));
+  const startDate = toNumberFromField(startDateRaw);
+  const endDate = toNumberFromField(endDateRaw);
 
   return {
     id: gardenAssessmentUID,
     authorAddress: attestation.attester,
     gardenAddress: attestation.recipient,
-    soilMoisturePercentage: data.filter((d: any) => d.name === "soilMoisturePercentage")[0].value
-      .value!,
-    carbonTonStock: Number(
-      data.filter((d: any) => d.name === "carbonTonStock")[0].value.value.hex!
-    ),
-    carbonTonPotential: Number(
-      data.filter((d: any) => d.name === "carbonTonPotential")[0].value.value.hex!
-    ),
-    gardenSquareMeters: Number(
-      data.filter((d: any) => d.name === "gardenSquareMeters")[0].value.value.hex!
-    ),
-    biome: data.filter((d: any) => d.name === "biome")[0].value.value!,
-    remoteReport:
-      typeof report.data === "string" ? report.data : URL.createObjectURL(report.data as Blob),
-    speciesRegistry: {
-      trees: await Promise.all(
-        speciesRegistry.trees.map(async (tree: any) => ({
-          genus: tree.genus,
-          height: tree.height_in_meters,
-          latitude: tree.coordinates.latitude,
-          longitude: tree.coordinates.longitude,
-          image: await getFileByHash(tree.image_cid).then((file) =>
-            URL.createObjectURL(file.data as Blob)
-          ),
-        }))
-      ),
-      weeds: await Promise.all(
-        speciesRegistry.weeds.map(async (weed: any) => ({
-          genus: weed.genus,
-          height: weed.height_in_meters,
-          latitude: weed.coordinates.latitude,
-          longitude: weed.coordinates.longitude,
-          image: await getFileByHash(weed.image_cid).then((file) =>
-            URL.createObjectURL(file.data as Blob)
-          ),
-        }))
-      ),
-    },
-    polygonCoordinates: data.filter((d: any) => d.name === "polygonCoordinates")[0].value.value!,
-    treeGenusesObserved: data.filter((d: any) => d.name === "treeGenusesObserved")[0].value.value!,
-    weedGenusesObserved: data.filter((d: any) => d.name === "weedGenusesObserved")[0].value.value!,
-    issues,
+    title,
+    description,
+    assessmentType,
+    capitals,
+    metricsCid,
+    metrics,
+    evidenceMedia,
+    reportDocuments: reportDocumentsRaw.map((doc) => toGatewayUrl(doc)),
+    impactAttestations: impactAttestationsRaw,
+    startDate,
+    endDate,
+    location,
     tags,
     createdAt: attestation.time,
   };
@@ -155,6 +208,7 @@ const parseDataToWorkApproval = (
   };
 };
 
+/** Fetches garden assessment attestations and resolves media references into view models. */
 export const getGardenAssessments = async (
   gardenAddress?: string,
   chainId?: number | string
@@ -194,21 +248,22 @@ export const getGardenAssessments = async (
   if (!data) console.error("No assessment data found");
 
   return await Promise.all(
-    data?.attestations.map(
-      async ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
-        await parseDataToGardenAssessment(
-          id,
-          {
-            attester,
-            recipient,
-            time: timeCreated,
-          },
-          decodedDataJson
-        )
-    ) ?? []
+    data?.attestations.map(async ({ id, attester, recipient, timeCreated, decodedDataJson }) => {
+      const timestamp = typeof timeCreated === "string" ? Number(timeCreated) : (timeCreated ?? 0);
+      return await parseDataToGardenAssessment(
+        id,
+        {
+          attester,
+          recipient,
+          time: timestamp,
+        },
+        decodedDataJson
+      );
+    }) ?? []
   );
 };
 
+/** Queries work attestations for a garden and resolves associated media assets. */
 export const getWorks = async (
   gardenAddress?: string,
   chainId?: number | string
@@ -257,7 +312,7 @@ export const getWorks = async (
   return works;
 };
 
-// Fetch works by gardener (attester) across all gardens
+/** Retrieves work attestations submitted by a specific gardener across gardens. */
 export const getWorksByGardener = async (
   gardenerAddress?: string,
   chainId?: number | string
@@ -306,6 +361,7 @@ export const getWorksByGardener = async (
   );
 };
 
+/** Loads work approval attestations, optionally filtered to a gardener recipient. */
 export const getWorkApprovals = async (
   gardenerAddress?: string,
   chainId?: number | string

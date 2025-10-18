@@ -14,6 +14,7 @@ export enum Capital {
   CULTURAL = 7,
 }
 
+/** Fetches action definitions from the indexer and enriches media + UI config. */
 export async function getActions(): Promise<Action[]> {
   try {
     const chainId = DEFAULT_CHAIN_ID;
@@ -98,6 +99,7 @@ export async function getActions(): Promise<Action[]> {
   }
 }
 
+/** Returns gardens with resolved banner assets for the current chain. */
 export async function getGardens(): Promise<Garden[]> {
   try {
     const chainId = DEFAULT_CHAIN_ID;
@@ -158,6 +160,7 @@ export async function getGardens(): Promise<Garden[]> {
   }
 }
 
+/** Retrieves gardener registrations for operator views. */
 export async function getGardeners(): Promise<GardenerCard[]> {
   try {
     const chainId = DEFAULT_CHAIN_ID;
@@ -193,6 +196,7 @@ export async function getGardeners(): Promise<GardenerCard[]> {
   }
 }
 
+/** Updates the authenticated user's profile metadata via the API. */
 export async function updateUserProfile(
   id: string,
   customMetadata: Record<string, unknown>,

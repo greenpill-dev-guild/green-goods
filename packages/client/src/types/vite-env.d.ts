@@ -13,6 +13,7 @@ interface ImportMetaEnv {
   readonly VITE_CHAIN_ID?: string;
   readonly VITE_DESKTOP_DEV?: string;
   readonly VITE_MOCK_PWA_INSTALLED?: string;
+  readonly VITE_DEBUG_MODE?: string;
 }
 
 interface ImportMeta {

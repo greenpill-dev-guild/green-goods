@@ -1,18 +1,17 @@
-// Barrel exports for hooks
+/** Convenience re-exports for frequently used application hooks. */
 
-// App hooks
-export { useOffline } from "./app/useOffline";
 export { useBrowserNavigation } from "./app/useBrowserNavigation";
 export { useMerged } from "./app/useMerged";
 export { useNavigateToTop } from "./app/useNavigateToTop";
+// App hooks
+export { useOffline } from "./app/useOffline";
 
 // Auth hooks
 export { useAuth } from "./auth/useAuth";
 export { useUser } from "./auth/useUser";
-
+export { useActions, useGardeners, useGardens } from "./blockchain/useBaseLists";
 // Blockchain hooks
 export { useChainConfig } from "./blockchain/useChainConfig";
-export { useActions, useGardens, useGardeners } from "./blockchain/useBaseLists";
 
 // Garden hooks
 export { useAutoJoinRootGarden } from "./garden/useAutoJoinRootGarden";

@@ -9,7 +9,7 @@ import { useEffect } from "react";
 import { RouterProvider } from "react-router-dom";
 import { AppErrorBoundary } from "@/components/UI/ErrorBoundary/AppErrorBoundary";
 
-import { queryClient } from "@/modules/react-query";
+import { queryClient } from "@/config/react-query";
 import { ensureBaseLists } from "@/hooks/blockchain/prefetch";
 import "@/modules/app/service-worker"; // Initialize service worker
 import { router } from "@/router";

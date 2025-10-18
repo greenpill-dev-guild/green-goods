@@ -1,36 +1,37 @@
-import { RiArrowRightSLine, RiImage2Fill, RiHammerFill, RiPlantFill } from "@remixicon/react";
+import { RiArrowRightSLine, RiHammerFill, RiImage2Fill, RiPlantFill } from "@remixicon/react";
 import React, { useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/UI/Button";
+import { ActionCardSkeleton } from "@/components/UI/Card/ActionCardSkeleton";
+import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
 import { DuplicateWorkWarning } from "@/components/UI/DuplicateWorkWarning/DuplicateWorkWarning";
+import { FormInfo } from "@/components/UI/Form/Info";
 import { FormProgress } from "@/components/UI/Form/Progress";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
 import { DEFAULT_CHAIN_ID } from "@/config/blockchain";
 import {
-  defaultDeduplicationManager,
   type DuplicateCheckResult,
+  defaultDeduplicationManager,
 } from "@/modules/work/deduplication";
-import { ActionCardSkeleton } from "@/components/UI/Card/ActionCardSkeleton";
-import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
-import { FormInfo } from "@/components/UI/Form/Info";
+
 // import { ActionCardSkeleton } from "@/components/UI/Card/ActionCardSkeleton";
 // import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
 
+import { WorkViewSkeleton } from "@/components/UI/WorkView/WorkView";
 import { useWork, WorkTab } from "@/providers/work";
-
 import { WorkDetails } from "./Details";
 import { WorkIntro } from "./Intro";
 import { WorkMedia } from "./Media";
 import { WorkReview } from "./Review";
-import { WorkViewSkeleton } from "@/components/UI/WorkView/WorkView";
 
 const Work: React.FC = () => {
   const intl = useIntl();
   const navigate = useNavigate();
   const chainId = DEFAULT_CHAIN_ID;
   const { form, activeTab, setActiveTab, actions, gardens, isLoading, workMutation } = useWork();
+  const canBypassMediaRequirement = import.meta.env.VITE_DEBUG_MODE === "true";
 
   // State for duplicate warning modal
   const [duplicateWarning, setDuplicateWarning] = useState<{
@@ -205,7 +206,7 @@ const Work: React.FC = () => {
         id: "app.garden.submit.tab.media.label",
         defaultMessage: "Add Details",
       }),
-      primaryDisabled: images.length < 2,
+      primaryDisabled: !canBypassMediaRequirement && images.length < 2,
       secondary: () => document.getElementById("work-media-upload")?.click(),
       secondaryLabel: intl.formatMessage({
         id: "app.garden.submit.tab.media.secondaryLabel",

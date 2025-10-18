@@ -6,6 +6,7 @@ export enum GardenTab {
   Gardeners = "gardeners",
 }
 
+/** Manages garden view tabs while preserving scroll position per section. */
 export const useGardenTabs = () => {
   const [activeTab, setActiveTab] = useState<GardenTab>(GardenTab.Work);
   const [scrollPositions, setScrollPositions] = useState({

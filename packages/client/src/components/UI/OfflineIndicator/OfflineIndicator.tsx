@@ -5,9 +5,7 @@ import { cn } from "@/utils/styles/cn";
 
 interface OfflineIndicatorProps {
   className?: string;
-  /** For testing purposes - force show indicator */
   forceShow?: boolean;
-  /** For testing purposes - override state */
   testState?: "offline" | "back-online" | null;
 }
 

@@ -5,6 +5,7 @@ import {
   type StorageAnalytics,
 } from "../../modules/work/storage-manager";
 
+/** Aggregate of offline storage metrics, status flags, and actions exposed by `useStorageManager`. */
 export interface UseStorageManagerReturn {
   storageInfo: StorageAnalytics | null;
   isLoading: boolean;
@@ -15,6 +16,7 @@ export interface UseStorageManagerReturn {
   shouldPerformCleanup: () => Promise<boolean>;
 }
 
+/** Tracks storage quotas, performs cleanup, and keeps analytics data fresh for offline workflows. */
 export const useStorageManager = (): UseStorageManagerReturn => {
   const [storageInfo, setStorageInfo] = useState<StorageAnalytics | null>(null);
   const [isLoading, setIsLoading] = useState(true);

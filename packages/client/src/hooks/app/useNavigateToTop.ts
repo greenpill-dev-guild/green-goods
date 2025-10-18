@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 
+/** Navigates to a route after resetting the main scroll container to the top. */
 export const useNavigateToTop = () => {
   const navigate = useNavigate();
 

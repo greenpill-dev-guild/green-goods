@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 // import { jobQueue } from "@/modules/job-queue";
 import { usePendingWorksCount, useQueueStatistics } from "../work/useWorks";
 
+/** Reports offline status and queue metrics derived from TanStack Query subscriptions. */
 export function useOffline() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "error">("idle");

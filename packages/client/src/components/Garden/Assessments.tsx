@@ -1,10 +1,11 @@
-import { RiCoinFill, RiSeedlingLine, RiTreeLine } from "@remixicon/react";
+import { RiCalendarLine, RiExternalLinkLine, RiPriceTag3Line, RiStackLine } from "@remixicon/react";
 import { forwardRef, memo } from "react";
 import { FixedSizeList as List } from "react-window";
 import { useIntl } from "react-intl";
 import getTag from "@/utils/app/tags";
 import { Badge } from "../UI/Badge/Badge";
 import { Card } from "../UI/Card/Card";
+import { Link } from "react-router-dom";
 
 interface GardenAssessmentsProps {
   assessments: GardenAssessment[];
@@ -22,67 +23,100 @@ const AssessmentCard = memo(function AssessmentCard({
   assessment: GardenAssessment;
 }) {
   const intl = useIntl();
+  const startDate = assessment.startDate
+    ? new Date(
+        (assessment.startDate ?? 0) > 10_000_000_000
+          ? (assessment.startDate ?? 0)
+          : (assessment.startDate ?? 0) * 1000
+      ).toLocaleDateString()
+    : null;
+  const endDate = assessment.endDate
+    ? new Date(
+        (assessment.endDate ?? 0) > 10_000_000_000
+          ? (assessment.endDate ?? 0)
+          : (assessment.endDate ?? 0) * 1000
+      ).toLocaleDateString()
+    : null;
+
+  const metricsPreview =
+    assessment.metrics && typeof assessment.metrics === "object"
+      ? Object.entries(assessment.metrics).slice(0, 3)
+      : [];
+
   return (
     <Card key={assessment.id} className="flex flex-col gap-2">
-      <h6>
-        #{assessment.id.slice(0, 4)}{" "}
-        {intl.formatMessage({
-          id: "app.garden.assessments.title",
-          description: "Assessment title",
-        })}
-      </h6>
-      <span className="text-xs uppercase">
-        {intl.formatMessage({ id: "app.garden.assessments.tags" })}
-      </span>
-      <ul className="flex flex-wrap gap-2">
-        {assessment.tags.map((tag) => (
-          <Badge variant="pill" key={`${assessment.id}-${tag}`} tint="primary">
-            {getTag(intl, tag)}
-          </Badge>
-        ))}
-      </ul>
-      <span className="text-xs uppercase">
-        {intl.formatMessage({ id: "app.garden.assessments.issues" })}
-      </span>
-      <ul className="flex flex-wrap gap-2">
-        {assessment.issues.map((issue) => (
-          <Badge variant="pill" key={`${assessment.id}-${issue}`} tint="tertiary">
-            {getTag(intl, issue)}
-          </Badge>
-        ))}
-      </ul>
-      <hr className="my-2" />
-      <div className="grid grid-cols-2 gap-4 text-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h6 className="truncate text-base font-semibold text-slate-900">{assessment.title}</h6>
+          <p className="text-xs uppercase tracking-wide text-slate-500">
+            {assessment.assessmentType ||
+              intl.formatMessage({ id: "app.garden.assessments.title" })}
+          </p>
+          <p className="mt-2 line-clamp-3 text-sm text-slate-600">{assessment.description}</p>
+        </div>
+        <Link
+          to={`assessments/${assessment.id}`}
+          className="inline-flex shrink-0 items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-100"
+        >
+          <RiExternalLinkLine className="h-3.5 w-3.5" />
+          {intl.formatMessage({ id: "app.actions.view" })}
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
         <div className="flex flex-col gap-1">
-          <Badge leadingIcon={<RiTreeLine className="w-4 h-4 text-primary" />} variant="pill">
-            {intl.formatMessage({ id: "app.garden.assessments.observed" })}
+          <Badge leadingIcon={<RiCalendarLine className="h-4 w-4 text-primary" />} variant="pill">
+            {intl.formatMessage({ id: "app.garden.assessments.dateRange" })}
           </Badge>
-          <div className="px-2 pb-2">
-            {assessment.treeGenusesObserved.length + assessment.weedGenusesObserved.length}
+          <span className="px-2 text-xs text-slate-600">
+            {startDate || endDate ? [startDate, endDate].filter(Boolean).join(" — ") : "—"}
+          </span>
+        </div>
+        <div className="flex flex-col gap-1">
+          <Badge leadingIcon={<RiStackLine className="h-4 w-4 text-primary" />} variant="pill">
+            {intl.formatMessage({ id: "app.garden.assessments.capitals" })}
+          </Badge>
+          <div className="flex flex-wrap gap-1 px-2">
+            {assessment.capitals.length
+              ? assessment.capitals.map((capital) => (
+                  <Badge key={`${assessment.id}-${capital}`} variant="pill" tint="tertiary">
+                    {capital}
+                  </Badge>
+                ))
+              : intl.formatMessage({ id: "app.status.notAvailable" })}
           </div>
         </div>
-        <div className="flex flex-col gap-1">
-          <Badge leadingIcon={<RiCoinFill className="w-4 h-4 text-primary" />} variant="pill">
-            {intl.formatMessage({ id: "app.garden.assessments.co2Stock" })}
+        <div className="flex flex-col gap-1 sm:col-span-2">
+          <Badge leadingIcon={<RiPriceTag3Line className="h-4 w-4 text-primary" />} variant="pill">
+            {intl.formatMessage({ id: "app.garden.assessments.tags" })}
           </Badge>
-          <div className="px-2 pb-2">{assessment.carbonTonStock} T</div>
-        </div>
-        <div className="flex flex-col gap-1">
-          <Badge leadingIcon={<RiSeedlingLine className="w-4 h-4 text-primary" />} variant="pill">
-            {intl.formatMessage({ id: "app.garden.assessments.soilMoisture" })}
-          </Badge>
-          <div className="px-2 pb-2">
-            {assessment.soilMoisturePercentage > 0 ? assessment.soilMoisturePercentage : "-"}
+          <div className="flex flex-wrap gap-1 px-2">
+            {assessment.tags.length
+              ? assessment.tags.map((tag) => (
+                  <Badge variant="pill" key={`${assessment.id}-${tag}`} tint="primary">
+                    {getTag(intl, tag)}
+                  </Badge>
+                ))
+              : intl.formatMessage({ id: "app.status.notAvailable" })}
           </div>
-        </div>
-        <div className="flex flex-col gap-1">
-          <Badge leadingIcon={<RiCoinFill className="w-4 h-4 text-primary" />} variant="pill">
-            {intl.formatMessage({ id: "app.garden.assessments.co2Potential" })}
-          </Badge>
-          <div className="px-2 pb-2">{assessment.carbonTonPotential} T</div>
         </div>
       </div>
-      <hr className="my-2" />
+
+      {metricsPreview.length ? (
+        <div className="rounded-md bg-slate-50 p-3 text-xs text-slate-600">
+          <p className="mb-1 font-medium text-slate-700">
+            {intl.formatMessage({ id: "app.garden.assessments.metricsPreview" })}
+          </p>
+          <ul className="space-y-1">
+            {metricsPreview.map(([key, value]) => (
+              <li key={`${assessment.id}-${key}`}>
+                <span className="font-medium">{key}:</span>{" "}
+                <span className="break-all">{formatMetricValue(value)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </Card>
   );
 });
@@ -116,7 +150,7 @@ const AssessmentList = ({ assessments, asessmentFetchStatus }: AssessmentListPro
     case "success":
       return assessments.length ? (
         assessments.length > 40 ? (
-          <List height={600} itemCount={assessments.length} itemSize={200} width={"100%"}>
+          <List height={600} itemCount={assessments.length} itemSize={240} width={"100%"}>
             {({ index, style }: { index: number; style: React.CSSProperties }) => (
               <div style={style} className="px-0.5">
                 <AssessmentCard assessment={assessments[index]} />
@@ -155,3 +189,15 @@ export const GardenAssessments = forwardRef<HTMLUListElement, GardenAssessmentsP
     );
   }
 );
+
+function formatMetricValue(value: unknown) {
+  if (value === null || value === undefined) return "—";
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return "[object]";
+    }
+  }
+  return String(value);
+}

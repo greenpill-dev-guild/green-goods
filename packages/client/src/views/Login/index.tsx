@@ -1,45 +1,14 @@
-/**
- * Login View
- *
- * Handles user authentication via passkey (primary) or wallet (fallback).
- * Features:
- * - Passkey authentication with biometric WebAuthn
- * - AppKit wallet connection for operators/admins
- * - Auto-join root garden on first passkey login
- * - Enhanced loading states for onboarding flow
- * - Mobile-first splash screen UI
- *
- * @module views/Login
- */
-
+import { getAccount } from "@wagmi/core";
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import { Navigate } from "react-router-dom";
 import { useAccount } from "wagmi";
-import toast from "react-hot-toast";
-import { Splash, type LoadingState } from "@/components/Layout/Splash";
+import { type LoadingState, Splash } from "@/components/Layout/Splash";
+import { ONBOARDED_STORAGE_KEY } from "@/config/app";
+import { appKit, wagmiConfig } from "@/config/appkit";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useAutoJoinRootGarden } from "@/hooks/garden/useAutoJoinRootGarden";
-import { getAccount } from "@wagmi/core";
-import { wagmiConfig, appKit } from "@/config/appkit";
 
-const ONBOARDED_STORAGE_KEY = "greengoods_user_onboarded";
-
-/**
- * Login component - Primary entry point for user authentication
- *
- * Flow:
- * 1. Check if user is onboarded (returning user)
- * 2. Show splash screen with "Login" button (passkey) or "Login with wallet" link
- * 3. On passkey first-time:
- *    - Create WebAuthn credential → Show "Creating your garden account..."
- *    - Initialize smart account → Show "Joining community garden..."
- *    - Auto-join root garden (sponsored) → Set onboarded flag → Navigate to home
- * 4. On passkey returning:
- *    - Authenticate → Show "Welcome back..." → Navigate to home
- * 5. On wallet: Open AppKit modal → Connect wallet → Navigate to home
- *
- * @returns {JSX.Element} Login view with authentication options
- */
 export function Login() {
   const {
     walletAddress,
@@ -76,24 +45,9 @@ export function Login() {
       }
     }
   }, [wagmiConnected, wagmiAddress, walletAddress, connectWallet]);
-
-  /**
-   * Handle passkey creation and auto-join root garden.
-   * Shows appropriate loading states during each phase.
-   *
-   * First-time users:
-   * 1. Create passkey → "Creating your garden account..."
-   * 2. Initialize smart account
-   * 3. Join root garden (sponsored) → "Joining community garden..."
-   * 4. Set onboarded flag → Navigate to home
-   *
-   * Error handling:
-   * - Passkey creation failure: Show error, stay on login screen
-   * - Garden join failure: Continue to home, show info toast for manual join
-   */
   const handleCreatePasskey = async () => {
     try {
-      const initialState = isFirstTime ? "creating-account" : "welcome-back";
+      const initialState = "welcome";
       setLoadingState(initialState);
 
       const session = await createPasskey();
@@ -133,10 +87,6 @@ export function Login() {
     }
   };
 
-  /**
-   * Handle wallet login via AppKit modal.
-   * Opens the wallet selection bottom sheet.
-   */
   const handleWalletLogin = () => {
     console.log("Opening AppKit wallet modal");
     appKit.open();
@@ -148,43 +98,27 @@ export function Login() {
 
   // Loading screen during passkey creation, garden join, or welcome back
   if (loadingState) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-green-50 to-white">
-        <Splash loadingState={loadingState} />
-      </div>
-    );
+    return <Splash loadingState={loadingState} />;
   }
+
+  const errorMessage = !isAuthenticating && !isJoiningGarden && error ? error.message : null;
 
   // Main splash screen with login button
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-green-50 to-white">
-      <Splash
-        login={handleCreatePasskey}
-        isLoggingIn={isAuthenticating || isJoiningGarden}
-        buttonLabel="Login"
-      />
-
-      {/* Secondary wallet login option */}
-      {!isAuthenticating && !isJoiningGarden && (
-        <button
-          onClick={handleWalletLogin}
-          className="my-4 text-sm text-gray-600 hover:text-green-600 transition-colors underline"
-        >
-          Login with wallet
-        </button>
-      )}
-
-      {/* Error display */}
-      {error && (
-        <div className="mt-6 max-w-md mx-auto px-4">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-sm text-red-800">
-              <strong>Error:</strong> {error.message}
-            </p>
-          </div>
-        </div>
-      )}
-    </div>
+    <Splash
+      login={handleCreatePasskey}
+      isLoggingIn={isAuthenticating || isJoiningGarden}
+      buttonLabel="Login"
+      errorMessage={errorMessage}
+      secondaryAction={
+        !isAuthenticating && !isJoiningGarden
+          ? {
+              label: "Login with wallet",
+              onSelect: handleWalletLogin,
+            }
+          : undefined
+      }
+    />
   );
 }
 

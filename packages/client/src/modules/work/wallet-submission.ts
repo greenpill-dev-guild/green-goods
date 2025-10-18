@@ -19,9 +19,7 @@ import { wagmiConfig } from "@/config/appkit";
 import { getEASConfig } from "@/config/blockchain";
 import { abi } from "@/utils/blockchain/abis/EAS.json";
 import { encodeWorkData, encodeWorkApprovalData } from "@/utils/eas/encoders";
-import { createLogger } from "@/utils/app/logger";
-
-const logger = createLogger("WalletSubmission");
+import { DEBUG_ENABLED, debugError, debugLog } from "@/utils/debug";
 
 /**
  * Submit work directly using wallet client (no job queue)
@@ -50,18 +48,23 @@ export async function submitWorkDirectly(
   chainId: number,
   images: File[]
 ): Promise<`0x${string}`> {
-  logger.log("Starting direct work submission", { gardenAddress, actionUID });
+  debugLog("[WalletSubmission] Starting direct work submission", { gardenAddress, actionUID });
 
   // 1. Get wallet client from wagmi
   const walletClient = await getWalletClient(wagmiConfig, { chainId });
   if (!walletClient) {
-    logger.error("Wallet client not available");
+    const message = "[WalletSubmission] Wallet client not available";
+    if (DEBUG_ENABLED) {
+      debugError(message);
+    } else {
+      console.error(message);
+    }
     throw new Error("Wallet not connected. Please connect your wallet and try again.");
   }
 
   try {
     // 2. Encode work data (uploads to IPFS internally)
-    logger.log("Encoding work data and uploading to IPFS");
+    debugLog("[WalletSubmission] Encoding work data and uploading to IPFS");
     const attestationData = await encodeWorkData(
       {
         ...draft,
@@ -92,7 +95,7 @@ export async function submitWorkDirectly(
       ],
     });
 
-    logger.log("Sending transaction", { to: easConfig.EAS.address });
+    debugLog("[WalletSubmission] Sending transaction", { to: easConfig.EAS.address });
 
     // 4. Send transaction directly via wallet
     const hash = await walletClient.sendTransaction({
@@ -103,15 +106,20 @@ export async function submitWorkDirectly(
       account: walletClient.account,
     });
 
-    logger.log("Transaction sent", { hash });
+    debugLog("[WalletSubmission] Transaction sent", { hash });
 
     // 5. Wait for transaction receipt
     await waitForTransactionReceipt(wagmiConfig, { hash, chainId });
 
-    logger.log("Transaction confirmed", { hash });
+    debugLog("[WalletSubmission] Transaction confirmed", { hash });
     return hash;
   } catch (err: any) {
-    logger.error("Work submission failed", err);
+    const message = "[WalletSubmission] Work submission failed";
+    if (DEBUG_ENABLED) {
+      debugError(message, err);
+    } else {
+      console.error(message, err);
+    }
 
     // Handle common wallet errors with user-friendly messages
     if (err.message?.includes("User rejected") || err.message?.includes("user rejected")) {
@@ -153,18 +161,23 @@ export async function submitApprovalDirectly(
   gardenerAddress: string,
   chainId: number
 ): Promise<`0x${string}`> {
-  logger.log("Starting direct approval submission", { gardenerAddress });
+  debugLog("[WalletSubmission] Starting direct approval submission", { gardenerAddress });
 
   // 1. Get wallet client from wagmi
   const walletClient = await getWalletClient(wagmiConfig, { chainId });
   if (!walletClient) {
-    logger.error("Wallet client not available");
+    const message = "[WalletSubmission] Wallet client not available";
+    if (DEBUG_ENABLED) {
+      debugError(message);
+    } else {
+      console.error(message);
+    }
     throw new Error("Wallet not connected. Please connect your wallet and try again.");
   }
 
   try {
     // 2. Encode approval data
-    logger.log("Encoding approval data");
+    debugLog("[WalletSubmission] Encoding approval data");
     const attestationData = encodeWorkApprovalData(draft, chainId);
 
     // 3. Prepare EAS attestation transaction
@@ -187,7 +200,7 @@ export async function submitApprovalDirectly(
       ],
     });
 
-    logger.log("Sending approval transaction", { to: easConfig.EAS.address });
+    debugLog("[WalletSubmission] Sending approval transaction", { to: easConfig.EAS.address });
 
     // 4. Send transaction directly via wallet
     const hash = await walletClient.sendTransaction({
@@ -198,15 +211,20 @@ export async function submitApprovalDirectly(
       account: walletClient.account,
     });
 
-    logger.log("Approval transaction sent", { hash });
+    debugLog("[WalletSubmission] Approval transaction sent", { hash });
 
     // 5. Wait for transaction receipt
     await waitForTransactionReceipt(wagmiConfig, { hash, chainId });
 
-    logger.log("Approval transaction confirmed", { hash });
+    debugLog("[WalletSubmission] Approval transaction confirmed", { hash });
     return hash;
   } catch (err: any) {
-    logger.error("Approval submission failed", err);
+    const message = "[WalletSubmission] Approval submission failed";
+    if (DEBUG_ENABLED) {
+      debugError(message, err);
+    } else {
+      console.error(message, err);
+    }
 
     // Handle common wallet errors with user-friendly messages
     if (err.message?.includes("User rejected") || err.message?.includes("user rejected")) {

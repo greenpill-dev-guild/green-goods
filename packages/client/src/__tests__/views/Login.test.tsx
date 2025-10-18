@@ -13,16 +13,7 @@ import { Login } from "../../views/Login";
 // Mock useAuth hook
 const mockCreatePasskey = vi.fn();
 const mockConnectWallet = vi.fn();
-const mockUseAuth = vi.fn(() => ({
-  walletAddress: null,
-  smartAccountClient: null,
-  createPasskey: mockCreatePasskey,
-  connectWallet: mockConnectWallet,
-  authMode: null as "passkey" | "wallet" | null,
-  isAuthenticated: false,
-  error: null,
-  isAuthenticating: false,
-}));
+const mockUseAuth = vi.fn();
 
 vi.mock("@/hooks/auth/useAuth", () => ({
   useAuth: () => mockUseAuth(),
@@ -30,15 +21,7 @@ vi.mock("@/hooks/auth/useAuth", () => ({
 
 // Mock useAutoJoinRootGarden hook
 const mockJoinGarden = vi.fn();
-const mockUseAutoJoinRootGarden = vi.fn(() => ({
-  joinGarden: mockJoinGarden,
-  isPending: false,
-  isGardener: false,
-  isLoading: false,
-  hasPrompted: false,
-  showPrompt: false,
-  dismissPrompt: vi.fn(),
-}));
+const mockUseAutoJoinRootGarden = vi.fn();
 
 vi.mock("@/hooks/garden/useAutoJoinRootGarden", () => ({
   useAutoJoinRootGarden: () => mockUseAutoJoinRootGarden(),
@@ -69,15 +52,6 @@ vi.mock("react-hot-toast", () => ({
   error: vi.fn(),
 }));
 
-// Mock logger
-vi.mock("@/utils/app/logger", () => ({
-  createLogger: () => ({
-    log: vi.fn(),
-    error: vi.fn(),
-    warn: vi.fn(),
-  }),
-}));
-
 // Mock Navigate component
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
@@ -90,6 +64,29 @@ vi.mock("react-router-dom", async () => {
 describe("Login", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    const baseAuthState = {
+      walletAddress: null,
+      smartAccountClient: null,
+      createPasskey: mockCreatePasskey,
+      connectWallet: mockConnectWallet,
+      authMode: null as "passkey" | "wallet" | null,
+      isAuthenticated: false,
+      error: null as Error | null,
+      isAuthenticating: false,
+    };
+
+    mockUseAuth.mockImplementation(() => ({ ...baseAuthState }));
+
+    mockUseAutoJoinRootGarden.mockImplementation(() => ({
+      joinGarden: mockJoinGarden,
+      isPending: false,
+      isGardener: false,
+      isLoading: false,
+      hasPrompted: false,
+      showPrompt: false,
+      dismissPrompt: vi.fn(),
+    }));
   });
 
   it("should render Splash component with primary login button", () => {
@@ -110,7 +107,7 @@ describe("Login", () => {
       </BrowserRouter>
     );
 
-    const walletLink = screen.getByText(/Login with wallet/i);
+    const walletLink = screen.getByRole("button", { name: /Login with wallet/i });
     expect(walletLink).toBeInTheDocument();
     expect(walletLink).toHaveClass("underline");
   });
@@ -131,16 +128,16 @@ describe("Login", () => {
   });
 
   it("should show error message when there is an error", () => {
-    mockUseAuth.mockReturnValue({
+    mockUseAuth.mockImplementation(() => ({
       walletAddress: null,
       smartAccountClient: null,
       createPasskey: mockCreatePasskey,
       connectWallet: mockConnectWallet,
-      authMode: null,
+      authMode: null as "passkey" | "wallet" | null,
       isAuthenticated: false,
-      error: null,
+      error: new Error("Test error message"),
       isAuthenticating: false,
-    });
+    }));
 
     render(
       <BrowserRouter>
@@ -149,6 +146,27 @@ describe("Login", () => {
     );
 
     expect(screen.getByText(/Test error message/i)).toBeInTheDocument();
+  });
+
+  it("should hide error message while authenticating (cleared on retry)", () => {
+    mockUseAuth.mockImplementation(() => ({
+      walletAddress: null,
+      smartAccountClient: null,
+      createPasskey: mockCreatePasskey,
+      connectWallet: mockConnectWallet,
+      authMode: null as "passkey" | "wallet" | null,
+      isAuthenticated: false,
+      error: new Error("Test error message"),
+      isAuthenticating: true,
+    }));
+
+    render(
+      <BrowserRouter>
+        <Login />
+      </BrowserRouter>
+    );
+
+    expect(screen.queryByText(/Test error message/i)).not.toBeInTheDocument();
   });
 
   it("should redirect to home when authenticated", () => {

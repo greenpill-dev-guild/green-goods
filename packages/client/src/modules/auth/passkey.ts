@@ -13,8 +13,9 @@ import {
   createPublicClientForChain,
   getChainFromId,
   getPimlicoBundlerUrl,
-} from "@/modules/pimlico/config";
+} from "@/config/pimlico";
 
+/** Session data for interacting with Pimlico smart accounts via WebAuthn. */
 export interface PasskeySession {
   credential: P256Credential;
   address: Hex;
@@ -49,6 +50,7 @@ function persistCredential(credential: P256Credential) {
   localStorage.setItem(PASSKEY_STORAGE_KEY, JSON.stringify(serializeCredential(credential)));
 }
 
+/** Removes any persisted passkey credential from local storage. */
 export function clearStoredCredential() {
   localStorage.removeItem(PASSKEY_STORAGE_KEY);
 }
@@ -102,6 +104,7 @@ async function createPasskeySession(
   };
 }
 
+/** Creates a new WebAuthn credential and hydrates a smart account client for the given chain. */
 export async function registerPasskeySession(chainId: number): Promise<PasskeySession> {
   const credential = await createWebAuthnCredential({
     name: "Green Goods Wallet",
@@ -136,6 +139,7 @@ export async function registerPasskeySession(chainId: number): Promise<PasskeySe
   return createPasskeySession(chainId, credential);
 }
 
+/** Restores a previously saved credential and rebuilds the associated smart account session. */
 export async function restorePasskeySession(chainId: number): Promise<PasskeySession | null> {
   const stored = localStorage.getItem(PASSKEY_STORAGE_KEY);
   if (!stored) {
