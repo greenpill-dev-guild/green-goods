@@ -38,7 +38,10 @@ interface AuthContextType {
 
   // Wallet actions
   connectWallet: (connector: Connector) => Promise<void>;
-  disconnectWallet: () => void;
+  disconnectWallet: () => Promise<void>;
+
+  // Session actions
+  signOut: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -51,7 +54,7 @@ export function useAuth(): AuthContextType {
   return context;
 }
 
-const AUTH_MODE_STORAGE_KEY = "greengoods_auth_mode";
+export const AUTH_MODE_STORAGE_KEY = "greengoods_auth_mode";
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -77,6 +80,18 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
   const credential = session?.credential ?? null;
   const smartAccountAddress = session?.address ?? null;
   const smartAccountClient = session?.client ?? null;
+  const syncWalletAccount = useCallback((accountOverride?: ReturnType<typeof getAccount>) => {
+    const account = accountOverride ?? getAccount(wagmiConfig);
+    if (!account.address || !account.connector) {
+      return false;
+    }
+
+    setWalletAddress(account.address as Hex);
+    setWalletConnector(account.connector);
+    setAuthMode("wallet");
+    localStorage.setItem(AUTH_MODE_STORAGE_KEY, "wallet");
+    return true;
+  }, []);
 
   // Load saved auth mode and credentials on mount
   useEffect(() => {
@@ -152,11 +167,26 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
     setError(null);
 
     try {
-      const newSession = await registerPasskeySession(chainId);
-      setSession(newSession);
+      let sessionToUse: PasskeySession | null = null;
+
+      try {
+        sessionToUse = await restorePasskeySession(chainId);
+        if (sessionToUse) {
+          console.log("Restored existing passkey session", { address: sessionToUse.address });
+        }
+      } catch (restoreError) {
+        console.warn("Failed to restore saved passkey session, creating a new one", restoreError);
+      }
+
+      if (!sessionToUse) {
+        sessionToUse = await registerPasskeySession(chainId);
+        console.log("Created new passkey session", { address: sessionToUse.address });
+      }
+
+      setSession(sessionToUse);
       setAuthMode("passkey");
       localStorage.setItem(AUTH_MODE_STORAGE_KEY, "passkey");
-      return newSession;
+      return sessionToUse;
     } catch (err) {
       console.error("Passkey creation failed", err);
       const error =
@@ -168,48 +198,76 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
     }
   }, [chainId]);
 
-  const clearPasskey = useCallback(() => {
-    clearStoredCredential();
+  const signOut = useCallback(() => {
     localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
     setSession(null);
-    setAuthMode(null);
-    setError(null);
-    console.log("Passkey cleared");
-  }, []);
-
-  const connectWallet = useCallback(async (connector: Connector) => {
-    setIsAuthenticating(true);
-    setError(null);
-
-    try {
-      const result = await connect(wagmiConfig, { connector });
-
-      setWalletAddress(result.accounts[0] as Hex);
-      setWalletConnector(connector);
-      setAuthMode("wallet");
-      localStorage.setItem(AUTH_MODE_STORAGE_KEY, "wallet");
-
-      console.log("Wallet connected", { account: result.accounts[0] });
-    } catch (err) {
-      console.error("Wallet connection failed", err);
-      const error =
-        err instanceof Error ? err : new Error("Failed to connect wallet. Please try again.");
-      setError(error);
-      throw error;
-    } finally {
-      setIsAuthenticating(false);
-    }
-  }, []);
-
-  const disconnectWallet = useCallback(() => {
-    disconnect(wagmiConfig);
-    localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
     setWalletAddress(null);
     setWalletConnector(null);
     setAuthMode(null);
+    setIsAuthenticating(false);
     setError(null);
-    console.log("Wallet disconnected");
   }, []);
+
+  const clearPasskey = useCallback(() => {
+    clearStoredCredential();
+    signOut();
+    console.log("Passkey cleared");
+  }, [signOut]);
+
+  const connectWallet = useCallback(
+    async (connector: Connector) => {
+      setIsAuthenticating(true);
+      setError(null);
+
+      try {
+        const account = getAccount(wagmiConfig);
+        const isAlreadyConnected =
+          Boolean(account.address) && account.connector?.id === connector.id;
+
+        if (isAlreadyConnected && syncWalletAccount(account)) {
+          console.log("Wallet session restored", { account: account.address });
+          return;
+        }
+
+        const result = await connect(wagmiConfig, { connector });
+
+        setWalletAddress(result.accounts[0] as Hex);
+        setWalletConnector(connector);
+        setAuthMode("wallet");
+        localStorage.setItem(AUTH_MODE_STORAGE_KEY, "wallet");
+
+        console.log("Wallet connected", { account: result.accounts[0] });
+      } catch (err) {
+        if (err instanceof Error && err.name === "ConnectorAlreadyConnectedError") {
+          const hydrated = syncWalletAccount();
+          if (hydrated) {
+            console.info("Wallet already connected; hydrated existing session");
+            return;
+          }
+        }
+
+        console.error("Wallet connection failed", err);
+        const error =
+          err instanceof Error ? err : new Error("Failed to connect wallet. Please try again.");
+        setError(error);
+        throw error;
+      } finally {
+        setIsAuthenticating(false);
+      }
+    },
+    [syncWalletAccount]
+  );
+
+  const disconnectWallet = useCallback(async () => {
+    try {
+      await disconnect(wagmiConfig);
+    } catch (err) {
+      console.error("Wallet disconnect failed", err);
+    } finally {
+      signOut();
+      console.log("Wallet disconnected");
+    }
+  }, [signOut]);
 
   // isReady means auth provider has finished initialization (checked localStorage, etc.)
   const isReady = isInitialized;
@@ -248,6 +306,7 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
       clearPasskey,
       connectWallet,
       disconnectWallet,
+      signOut,
     }),
     [
       authMode,
@@ -264,6 +323,7 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
       clearPasskey,
       connectWallet,
       disconnectWallet,
+      signOut,
     ]
   );
 

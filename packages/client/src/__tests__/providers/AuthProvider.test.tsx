@@ -82,6 +82,15 @@ describe("AuthProvider", () => {
     expect(typeof result.current.clearPasskey).toBe("function");
   });
 
+  it("should have signOut function", () => {
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: ({ children }) => <AuthProvider>{children}</AuthProvider>,
+    });
+
+    expect(result.current.signOut).toBeDefined();
+    expect(typeof result.current.signOut).toBe("function");
+  });
+
   it("should render children", () => {
     render(
       <AuthProvider>

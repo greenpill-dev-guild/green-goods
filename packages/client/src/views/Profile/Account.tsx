@@ -27,28 +27,30 @@ interface ApplicationSettings {
 type ProfileAccountProps = {};
 
 export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
-  const {
-    authMode,
-    clearPasskey,
-    disconnectWallet,
-    smartAccountAddress,
-    credential,
-    walletAddress,
-  } = useAuth();
+  const { authMode, signOut, disconnectWallet, smartAccountAddress, credential, walletAddress } =
+    useAuth();
   const navigate = useNavigate();
   const { locale, switchLanguage, availableLocales } = useApp();
   const intl = useIntl();
 
-  const handleLogout = () => {
-    if (authMode === "passkey") {
-      clearPasskey();
-    } else if (authMode === "wallet") {
-      disconnectWallet();
+  const handleLogout = async () => {
+    try {
+      if (authMode === "passkey") {
+        signOut();
+      } else if (authMode === "wallet") {
+        await disconnectWallet();
+      } else {
+        signOut();
+      }
+
+      navigate("/login");
+      toast.success(
+        intl.formatMessage({ id: "app.toast.loggedOut", defaultMessage: "Logged out successfully" })
+      );
+    } catch (err) {
+      console.error("Logout failed", err);
+      toast.error("Failed to log out. Please try again.");
     }
-    navigate("/login");
-    toast.success(
-      intl.formatMessage({ id: "app.toast.loggedOut", defaultMessage: "Logged out successfully" })
-    );
   };
 
   const applicationSettings: ApplicationSettings[] = [
