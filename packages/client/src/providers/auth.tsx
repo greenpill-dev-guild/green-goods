@@ -35,6 +35,7 @@ interface AuthContextType {
   // Passkey actions
   createPasskey: () => Promise<PasskeySession>;
   clearPasskey: () => void;
+  setPasskeySession: (session: PasskeySession) => void;
 
   // Wallet actions
   connectWallet: (connector: Connector) => Promise<void>;
@@ -214,6 +215,13 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
     console.log("Passkey cleared");
   }, [signOut]);
 
+  const setPasskeySession = useCallback((newSession: PasskeySession) => {
+    setSession(newSession);
+    setAuthMode("passkey");
+    localStorage.setItem(AUTH_MODE_STORAGE_KEY, "passkey");
+    console.log("Passkey session set", { address: newSession.address });
+  }, []);
+
   const connectWallet = useCallback(
     async (connector: Connector) => {
       setIsAuthenticating(true);
@@ -304,6 +312,7 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
       error,
       createPasskey,
       clearPasskey,
+      setPasskeySession,
       connectWallet,
       disconnectWallet,
       signOut,
@@ -321,6 +330,7 @@ export function AuthProvider({ children, chainId = DEFAULT_CHAIN_ID }: AuthProvi
       error,
       createPasskey,
       clearPasskey,
+      setPasskeySession,
       connectWallet,
       disconnectWallet,
       signOut,

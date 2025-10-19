@@ -1,5 +1,5 @@
 /* eslint-disable */
-/* biome-ignore format: generated file */
+/* prettier-ignore */
 
 export type introspection_types = {
   Action: {
@@ -20,6 +20,14 @@ export type introspection_types = {
               ofType: { kind: "SCALAR"; name: "capital"; ofType: null };
             };
           };
+        };
+      };
+      chainId: {
+        name: "chainId";
+        type: {
+          kind: "NON_NULL";
+          name: never;
+          ofType: { kind: "SCALAR"; name: "Int"; ofType: null };
         };
       };
       createdAt: {
@@ -142,6 +150,11 @@ export type introspection_types = {
         defaultValue: null;
       },
       {
+        name: "chainId";
+        type: { kind: "INPUT_OBJECT"; name: "Int_comparison_exp"; ofType: null };
+        defaultValue: null;
+      },
+      {
         name: "createdAt";
         type: { kind: "INPUT_OBJECT"; name: "Int_comparison_exp"; ofType: null };
         defaultValue: null;
@@ -199,6 +212,11 @@ export type introspection_types = {
         defaultValue: null;
       },
       {
+        name: "chainId";
+        type: { kind: "ENUM"; name: "order_by"; ofType: null };
+        defaultValue: null;
+      },
+      {
         name: "createdAt";
         type: { kind: "ENUM"; name: "order_by"; ofType: null };
         defaultValue: null;
@@ -237,6 +255,7 @@ export type introspection_types = {
     name: "Action_select_column";
     enumValues:
       | "capitals"
+      | "chainId"
       | "createdAt"
       | "db_write_timestamp"
       | "endTime"
@@ -286,6 +305,7 @@ export type introspection_types = {
         };
         defaultValue: null;
       },
+      { name: "chainId"; type: { kind: "SCALAR"; name: "Int"; ofType: null }; defaultValue: null },
       {
         name: "createdAt";
         type: { kind: "SCALAR"; name: "Int"; ofType: null };
@@ -390,6 +410,14 @@ export type introspection_types = {
           ofType: { kind: "SCALAR"; name: "String"; ofType: null };
         };
       };
+      chainId: {
+        name: "chainId";
+        type: {
+          kind: "NON_NULL";
+          name: never;
+          ofType: { kind: "SCALAR"; name: "Int"; ofType: null };
+        };
+      };
       createdAt: {
         name: "createdAt";
         type: {
@@ -409,6 +437,10 @@ export type introspection_types = {
           name: never;
           ofType: { kind: "SCALAR"; name: "String"; ofType: null };
         };
+      };
+      gapProjectUID: {
+        name: "gapProjectUID";
+        type: { kind: "SCALAR"; name: "String"; ofType: null };
       };
       gardeners: {
         name: "gardeners";
@@ -526,6 +558,11 @@ export type introspection_types = {
         defaultValue: null;
       },
       {
+        name: "chainId";
+        type: { kind: "INPUT_OBJECT"; name: "Int_comparison_exp"; ofType: null };
+        defaultValue: null;
+      },
+      {
         name: "createdAt";
         type: { kind: "INPUT_OBJECT"; name: "Int_comparison_exp"; ofType: null };
         defaultValue: null;
@@ -537,6 +574,11 @@ export type introspection_types = {
       },
       {
         name: "description";
+        type: { kind: "INPUT_OBJECT"; name: "String_comparison_exp"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "gapProjectUID";
         type: { kind: "INPUT_OBJECT"; name: "String_comparison_exp"; ofType: null };
         defaultValue: null;
       },
@@ -588,6 +630,11 @@ export type introspection_types = {
         defaultValue: null;
       },
       {
+        name: "chainId";
+        type: { kind: "ENUM"; name: "order_by"; ofType: null };
+        defaultValue: null;
+      },
+      {
         name: "createdAt";
         type: { kind: "ENUM"; name: "order_by"; ofType: null };
         defaultValue: null;
@@ -599,6 +646,11 @@ export type introspection_types = {
       },
       {
         name: "description";
+        type: { kind: "ENUM"; name: "order_by"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "gapProjectUID";
         type: { kind: "ENUM"; name: "order_by"; ofType: null };
         defaultValue: null;
       },
@@ -635,9 +687,11 @@ export type introspection_types = {
     name: "Garden_select_column";
     enumValues:
       | "bannerImage"
+      | "chainId"
       | "createdAt"
       | "db_write_timestamp"
       | "description"
+      | "gapProjectUID"
       | "gardeners"
       | "id"
       | "location"
@@ -677,6 +731,7 @@ export type introspection_types = {
         type: { kind: "SCALAR"; name: "String"; ofType: null };
         defaultValue: null;
       },
+      { name: "chainId"; type: { kind: "SCALAR"; name: "Int"; ofType: null }; defaultValue: null },
       {
         name: "createdAt";
         type: { kind: "SCALAR"; name: "Int"; ofType: null };
@@ -689,6 +744,11 @@ export type introspection_types = {
       },
       {
         name: "description";
+        type: { kind: "SCALAR"; name: "String"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "gapProjectUID";
         type: { kind: "SCALAR"; name: "String"; ofType: null };
         defaultValue: null;
       },
@@ -733,6 +793,364 @@ export type introspection_types = {
       {
         name: "tokenID";
         type: { kind: "SCALAR"; name: "numeric"; ofType: null };
+        defaultValue: null;
+      },
+    ];
+  };
+  Gardener: {
+    kind: "OBJECT";
+    name: "Gardener";
+    fields: {
+      bio: { name: "bio"; type: { kind: "SCALAR"; name: "String"; ofType: null } };
+      chainId: {
+        name: "chainId";
+        type: {
+          kind: "NON_NULL";
+          name: never;
+          ofType: { kind: "SCALAR"; name: "Int"; ofType: null };
+        };
+      };
+      contactInfo: { name: "contactInfo"; type: { kind: "SCALAR"; name: "String"; ofType: null } };
+      createdAt: {
+        name: "createdAt";
+        type: {
+          kind: "NON_NULL";
+          name: never;
+          ofType: { kind: "SCALAR"; name: "Int"; ofType: null };
+        };
+      };
+      db_write_timestamp: {
+        name: "db_write_timestamp";
+        type: { kind: "SCALAR"; name: "timestamp"; ofType: null };
+      };
+      firstGarden: { name: "firstGarden"; type: { kind: "SCALAR"; name: "String"; ofType: null } };
+      gardens: {
+        name: "gardens";
+        type: {
+          kind: "NON_NULL";
+          name: never;
+          ofType: {
+            kind: "LIST";
+            name: never;
+            ofType: {
+              kind: "NON_NULL";
+              name: never;
+              ofType: { kind: "SCALAR"; name: "String"; ofType: null };
+            };
+          };
+        };
+      };
+      id: {
+        name: "id";
+        type: {
+          kind: "NON_NULL";
+          name: never;
+          ofType: { kind: "SCALAR"; name: "String"; ofType: null };
+        };
+      };
+      imageURI: { name: "imageURI"; type: { kind: "SCALAR"; name: "String"; ofType: null } };
+      location: { name: "location"; type: { kind: "SCALAR"; name: "String"; ofType: null } };
+      name: { name: "name"; type: { kind: "SCALAR"; name: "String"; ofType: null } };
+      owner: { name: "owner"; type: { kind: "SCALAR"; name: "String"; ofType: null } };
+      profileUpdatedAt: {
+        name: "profileUpdatedAt";
+        type: { kind: "SCALAR"; name: "Int"; ofType: null };
+      };
+      socialLinks: {
+        name: "socialLinks";
+        type: {
+          kind: "LIST";
+          name: never;
+          ofType: {
+            kind: "NON_NULL";
+            name: never;
+            ofType: { kind: "SCALAR"; name: "String"; ofType: null };
+          };
+        };
+      };
+    };
+  };
+  Gardener_bool_exp: {
+    kind: "INPUT_OBJECT";
+    name: "Gardener_bool_exp";
+    isOneOf: false;
+    inputFields: [
+      {
+        name: "_and";
+        type: {
+          kind: "LIST";
+          name: never;
+          ofType: {
+            kind: "NON_NULL";
+            name: never;
+            ofType: { kind: "INPUT_OBJECT"; name: "Gardener_bool_exp"; ofType: null };
+          };
+        };
+        defaultValue: null;
+      },
+      {
+        name: "_not";
+        type: { kind: "INPUT_OBJECT"; name: "Gardener_bool_exp"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "_or";
+        type: {
+          kind: "LIST";
+          name: never;
+          ofType: {
+            kind: "NON_NULL";
+            name: never;
+            ofType: { kind: "INPUT_OBJECT"; name: "Gardener_bool_exp"; ofType: null };
+          };
+        };
+        defaultValue: null;
+      },
+      {
+        name: "bio";
+        type: { kind: "INPUT_OBJECT"; name: "String_comparison_exp"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "chainId";
+        type: { kind: "INPUT_OBJECT"; name: "Int_comparison_exp"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "contactInfo";
+        type: { kind: "INPUT_OBJECT"; name: "String_comparison_exp"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "createdAt";
+        type: { kind: "INPUT_OBJECT"; name: "Int_comparison_exp"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "db_write_timestamp";
+        type: { kind: "INPUT_OBJECT"; name: "timestamp_comparison_exp"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "firstGarden";
+        type: { kind: "INPUT_OBJECT"; name: "String_comparison_exp"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "gardens";
+        type: { kind: "INPUT_OBJECT"; name: "String_array_comparison_exp"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "id";
+        type: { kind: "INPUT_OBJECT"; name: "String_comparison_exp"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "imageURI";
+        type: { kind: "INPUT_OBJECT"; name: "String_comparison_exp"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "location";
+        type: { kind: "INPUT_OBJECT"; name: "String_comparison_exp"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "name";
+        type: { kind: "INPUT_OBJECT"; name: "String_comparison_exp"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "owner";
+        type: { kind: "INPUT_OBJECT"; name: "String_comparison_exp"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "profileUpdatedAt";
+        type: { kind: "INPUT_OBJECT"; name: "Int_comparison_exp"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "socialLinks";
+        type: { kind: "INPUT_OBJECT"; name: "String_array_comparison_exp"; ofType: null };
+        defaultValue: null;
+      },
+    ];
+  };
+  Gardener_order_by: {
+    kind: "INPUT_OBJECT";
+    name: "Gardener_order_by";
+    isOneOf: false;
+    inputFields: [
+      { name: "bio"; type: { kind: "ENUM"; name: "order_by"; ofType: null }; defaultValue: null },
+      {
+        name: "chainId";
+        type: { kind: "ENUM"; name: "order_by"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "contactInfo";
+        type: { kind: "ENUM"; name: "order_by"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "createdAt";
+        type: { kind: "ENUM"; name: "order_by"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "db_write_timestamp";
+        type: { kind: "ENUM"; name: "order_by"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "firstGarden";
+        type: { kind: "ENUM"; name: "order_by"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "gardens";
+        type: { kind: "ENUM"; name: "order_by"; ofType: null };
+        defaultValue: null;
+      },
+      { name: "id"; type: { kind: "ENUM"; name: "order_by"; ofType: null }; defaultValue: null },
+      {
+        name: "imageURI";
+        type: { kind: "ENUM"; name: "order_by"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "location";
+        type: { kind: "ENUM"; name: "order_by"; ofType: null };
+        defaultValue: null;
+      },
+      { name: "name"; type: { kind: "ENUM"; name: "order_by"; ofType: null }; defaultValue: null },
+      { name: "owner"; type: { kind: "ENUM"; name: "order_by"; ofType: null }; defaultValue: null },
+      {
+        name: "profileUpdatedAt";
+        type: { kind: "ENUM"; name: "order_by"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "socialLinks";
+        type: { kind: "ENUM"; name: "order_by"; ofType: null };
+        defaultValue: null;
+      },
+    ];
+  };
+  Gardener_select_column: {
+    name: "Gardener_select_column";
+    enumValues:
+      | "bio"
+      | "chainId"
+      | "contactInfo"
+      | "createdAt"
+      | "db_write_timestamp"
+      | "firstGarden"
+      | "gardens"
+      | "id"
+      | "imageURI"
+      | "location"
+      | "name"
+      | "owner"
+      | "profileUpdatedAt"
+      | "socialLinks";
+  };
+  Gardener_stream_cursor_input: {
+    kind: "INPUT_OBJECT";
+    name: "Gardener_stream_cursor_input";
+    isOneOf: false;
+    inputFields: [
+      {
+        name: "initial_value";
+        type: {
+          kind: "NON_NULL";
+          name: never;
+          ofType: {
+            kind: "INPUT_OBJECT";
+            name: "Gardener_stream_cursor_value_input";
+            ofType: null;
+          };
+        };
+        defaultValue: null;
+      },
+      {
+        name: "ordering";
+        type: { kind: "ENUM"; name: "cursor_ordering"; ofType: null };
+        defaultValue: null;
+      },
+    ];
+  };
+  Gardener_stream_cursor_value_input: {
+    kind: "INPUT_OBJECT";
+    name: "Gardener_stream_cursor_value_input";
+    isOneOf: false;
+    inputFields: [
+      { name: "bio"; type: { kind: "SCALAR"; name: "String"; ofType: null }; defaultValue: null },
+      { name: "chainId"; type: { kind: "SCALAR"; name: "Int"; ofType: null }; defaultValue: null },
+      {
+        name: "contactInfo";
+        type: { kind: "SCALAR"; name: "String"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "createdAt";
+        type: { kind: "SCALAR"; name: "Int"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "db_write_timestamp";
+        type: { kind: "SCALAR"; name: "timestamp"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "firstGarden";
+        type: { kind: "SCALAR"; name: "String"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "gardens";
+        type: {
+          kind: "LIST";
+          name: never;
+          ofType: {
+            kind: "NON_NULL";
+            name: never;
+            ofType: { kind: "SCALAR"; name: "String"; ofType: null };
+          };
+        };
+        defaultValue: null;
+      },
+      { name: "id"; type: { kind: "SCALAR"; name: "String"; ofType: null }; defaultValue: null },
+      {
+        name: "imageURI";
+        type: { kind: "SCALAR"; name: "String"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "location";
+        type: { kind: "SCALAR"; name: "String"; ofType: null };
+        defaultValue: null;
+      },
+      { name: "name"; type: { kind: "SCALAR"; name: "String"; ofType: null }; defaultValue: null },
+      { name: "owner"; type: { kind: "SCALAR"; name: "String"; ofType: null }; defaultValue: null },
+      {
+        name: "profileUpdatedAt";
+        type: { kind: "SCALAR"; name: "Int"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "socialLinks";
+        type: {
+          kind: "LIST";
+          name: never;
+          ofType: {
+            kind: "NON_NULL";
+            name: never;
+            ofType: { kind: "SCALAR"; name: "String"; ofType: null };
+          };
+        };
         defaultValue: null;
       },
     ];
@@ -1927,14 +2345,6 @@ export type introspection_types = {
           ofType: { kind: "SCALAR"; name: "Int"; ofType: null };
         };
       };
-      block_timestamp: {
-        name: "block_timestamp";
-        type: {
-          kind: "NON_NULL";
-          name: never;
-          ofType: { kind: "SCALAR"; name: "Int"; ofType: null };
-        };
-      };
       chain_id: {
         name: "chain_id";
         type: {
@@ -2004,11 +2414,6 @@ export type introspection_types = {
         defaultValue: null;
       },
       {
-        name: "block_timestamp";
-        type: { kind: "INPUT_OBJECT"; name: "Int_comparison_exp"; ofType: null };
-        defaultValue: null;
-      },
-      {
         name: "chain_id";
         type: { kind: "INPUT_OBJECT"; name: "Int_comparison_exp"; ofType: null };
         defaultValue: null;
@@ -2031,11 +2436,6 @@ export type introspection_types = {
         defaultValue: null;
       },
       {
-        name: "block_timestamp";
-        type: { kind: "ENUM"; name: "order_by"; ofType: null };
-        defaultValue: null;
-      },
-      {
         name: "chain_id";
         type: { kind: "ENUM"; name: "order_by"; ofType: null };
         defaultValue: null;
@@ -2044,7 +2444,7 @@ export type introspection_types = {
   };
   end_of_block_range_scanned_data_select_column: {
     name: "end_of_block_range_scanned_data_select_column";
-    enumValues: "block_hash" | "block_number" | "block_timestamp" | "chain_id";
+    enumValues: "block_hash" | "block_number" | "chain_id";
   };
   end_of_block_range_scanned_data_stream_cursor_input: {
     kind: "INPUT_OBJECT";
@@ -2086,11 +2486,6 @@ export type introspection_types = {
         type: { kind: "SCALAR"; name: "Int"; ofType: null };
         defaultValue: null;
       },
-      {
-        name: "block_timestamp";
-        type: { kind: "SCALAR"; name: "Int"; ofType: null };
-        defaultValue: null;
-      },
       { name: "chain_id"; type: { kind: "SCALAR"; name: "Int"; ofType: null }; defaultValue: null },
     ];
   };
@@ -2124,11 +2519,7 @@ export type introspection_types = {
       };
       is_pre_registering_dynamic_contracts: {
         name: "is_pre_registering_dynamic_contracts";
-        type: {
-          kind: "NON_NULL";
-          name: never;
-          ofType: { kind: "SCALAR"; name: "Boolean"; ofType: null };
-        };
+        type: { kind: "SCALAR"; name: "Boolean"; ofType: null };
       };
       log_index: {
         name: "log_index";
@@ -2721,6 +3112,26 @@ export type introspection_types = {
       Garden_by_pk: {
         name: "Garden_by_pk";
         type: { kind: "OBJECT"; name: "Garden"; ofType: null };
+      };
+      Gardener: {
+        name: "Gardener";
+        type: {
+          kind: "NON_NULL";
+          name: never;
+          ofType: {
+            kind: "LIST";
+            name: never;
+            ofType: {
+              kind: "NON_NULL";
+              name: never;
+              ofType: { kind: "OBJECT"; name: "Gardener"; ofType: null };
+            };
+          };
+        };
+      };
+      Gardener_by_pk: {
+        name: "Gardener_by_pk";
+        type: { kind: "OBJECT"; name: "Gardener"; ofType: null };
       };
       chain_metadata: {
         name: "chain_metadata";
@@ -3327,6 +3738,42 @@ export type introspection_types = {
           };
         };
       };
+      Gardener: {
+        name: "Gardener";
+        type: {
+          kind: "NON_NULL";
+          name: never;
+          ofType: {
+            kind: "LIST";
+            name: never;
+            ofType: {
+              kind: "NON_NULL";
+              name: never;
+              ofType: { kind: "OBJECT"; name: "Gardener"; ofType: null };
+            };
+          };
+        };
+      };
+      Gardener_by_pk: {
+        name: "Gardener_by_pk";
+        type: { kind: "OBJECT"; name: "Gardener"; ofType: null };
+      };
+      Gardener_stream: {
+        name: "Gardener_stream";
+        type: {
+          kind: "NON_NULL";
+          name: never;
+          ofType: {
+            kind: "LIST";
+            name: never;
+            ofType: {
+              kind: "NON_NULL";
+              name: never;
+              ofType: { kind: "OBJECT"; name: "Gardener"; ofType: null };
+            };
+          };
+        };
+      };
       chain_metadata: {
         name: "chain_metadata";
         type: {
@@ -3700,3 +4147,5 @@ export type introspection = {
   subscription: "subscription_root";
   types: introspection_types;
 };
+
+import * as gqlTada from "gql.tada";

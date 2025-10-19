@@ -29,6 +29,8 @@ abstract contract DeployHelper is Script {
         address multicallForwarder;
         address greenGoodsSafe;
         address multisig;
+        address ensRegistry;
+        address ensResolver;
     }
 
     struct DeploymentResult {
@@ -41,6 +43,8 @@ abstract contract DeployHelper is Script {
         address assessmentResolver;
         address workResolver;
         address workApprovalResolver;
+        address gardenerAccountLogic; // GardenerAccount implementation for user smart accounts
+        address ensRegistrar; // ENS Registrar (mainnet only, address(0) on L2s)
         bytes32 assessmentSchemaUID;
         bytes32 workSchemaUID;
         bytes32 workApprovalSchemaUID;
@@ -77,6 +81,23 @@ abstract contract DeployHelper is Script {
         config.erc4337EntryPoint = json.readAddress(string.concat(basePath, ".contracts.erc4337EntryPoint"));
         config.multicallForwarder = json.readAddress(string.concat(basePath, ".contracts.multicallForwarder"));
 
+        // ENS is only on mainnet and sepolia (testnets)
+        // solhint-disable-next-line no-empty-blocks
+        try vm.parseJson(json, string.concat(basePath, ".contracts.ensRegistry")) returns (bytes memory data) {
+            config.ensRegistry = abi.decode(data, (address));
+            // solhint-disable-next-line no-empty-blocks
+        } catch {
+            // ENS not configured for this network (L2 chains) - defaults to address(0)
+        }
+
+        // solhint-disable-next-line no-empty-blocks
+        try vm.parseJson(json, string.concat(basePath, ".contracts.ensResolver")) returns (bytes memory data) {
+            config.ensResolver = abi.decode(data, (address));
+            // solhint-disable-next-line no-empty-blocks
+        } catch {
+            // ENS not configured for this network (L2 chains) - defaults to address(0)
+        }
+
         // Get deployment defaults
         config.safe = json.readAddress(".deploymentDefaults.safe");
         config.safeFactory = json.readAddress(".deploymentDefaults.safeFactory");
@@ -86,12 +107,18 @@ abstract contract DeployHelper is Script {
 
         console.log("EAS:", config.eas);
         console.log("EAS Schema Registry:", config.easSchemaRegistry);
+        if (config.ensRegistry != address(0)) {
+            console.log("ENS Registry:", config.ensRegistry);
+            console.log("ENS Resolver:", config.ensResolver);
+        }
 
         return config;
     }
 
     /// @notice Get network name from chain ID
     function _getNetworkName(uint256 chainId) internal pure returns (string memory) {
+        if (chainId == 1) return "mainnet";
+        if (chainId == 11_155_111) return "sepolia";
         if (chainId == 31_337) return "localhost";
         if (chainId == 42_161) return "arbitrum";
         if (chainId == 84_532) return "baseSepolia";
@@ -161,6 +188,7 @@ abstract contract DeployHelper is Script {
         console.log("DeploymentRegistry:", result.deploymentRegistry);
         console.log("Guardian:", result.guardian);
         console.log("GardenAccountImpl:", result.gardenAccountImpl);
+        console.log("GardenerAccountLogic:", result.gardenerAccountLogic);
         console.log("GardenToken:", result.gardenToken);
         console.log("ActionRegistry:", result.actionRegistry);
 
@@ -174,6 +202,8 @@ abstract contract DeployHelper is Script {
         vm.serializeAddress(obj, "assessmentResolver", result.assessmentResolver);
         vm.serializeAddress(obj, "workResolver", result.workResolver);
         vm.serializeAddress(obj, "workApprovalResolver", result.workApprovalResolver);
+        vm.serializeAddress(obj, "gardenerAccountLogic", result.gardenerAccountLogic);
+        vm.serializeAddress(obj, "ensRegistrar", result.ensRegistrar);
 
         // Serialize root garden info
         console.log("\nRoot Garden:");

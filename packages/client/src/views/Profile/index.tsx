@@ -6,6 +6,7 @@ import { type StandardTab, StandardTabs } from "@/components/UI/Tabs";
 import { useUser } from "@/hooks/auth/useUser";
 import { formatAddress } from "@/utils/app/text";
 import { ProfileAccount } from "./Account";
+import { GardenerProfile } from "./GardenerProfile";
 import { ProfileHelp } from "./Help";
 
 const Profile: React.FC = () => {
@@ -27,6 +28,14 @@ const Profile: React.FC = () => {
       icon: <RiSettings2Fill className="w-4" />,
     },
     {
+      id: "profile",
+      label: intl.formatMessage({
+        id: "app.profile.gardenerProfile",
+        defaultMessage: "Profile",
+      }),
+      icon: <RiSettings2Fill className="w-4" />,
+    },
+    {
       id: "help",
       label: intl.formatMessage({
         id: "app.profile.help",
@@ -40,6 +49,8 @@ const Profile: React.FC = () => {
     switch (activeTab) {
       case "account":
         return <ProfileAccount />;
+      case "profile":
+        return <GardenerProfile />;
       case "help":
         return <ProfileHelp />;
       default:

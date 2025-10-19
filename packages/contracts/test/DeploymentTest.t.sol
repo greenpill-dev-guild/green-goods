@@ -279,6 +279,8 @@ contract DeploymentTest is ForgeTest.Test, DeployHelperModule.DeployHelper, ERC6
             assessmentResolver: abi.decode(vm.parseJson(deploymentJson, ".assessmentResolver"), (address)),
             workResolver: abi.decode(vm.parseJson(deploymentJson, ".workResolver"), (address)),
             workApprovalResolver: abi.decode(vm.parseJson(deploymentJson, ".workApprovalResolver"), (address)),
+            gardenerAccountLogic: abi.decode(vm.parseJson(deploymentJson, ".gardenerAccountLogic"), (address)),
+            ensRegistrar: abi.decode(vm.parseJson(deploymentJson, ".ensRegistrar"), (address)),
             assessmentSchemaUID: abi.decode(vm.parseJson(deploymentJson, ".schemas.assessmentSchemaUID"), (bytes32)),
             workSchemaUID: abi.decode(vm.parseJson(deploymentJson, ".schemas.workSchemaUID"), (bytes32)),
             workApprovalSchemaUID: abi.decode(vm.parseJson(deploymentJson, ".schemas.workApprovalSchemaUID"), (bytes32)),

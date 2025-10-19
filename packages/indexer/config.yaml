@@ -24,7 +24,31 @@ contracts:
       - event: GardenOperatorAdded(address indexed updater, address indexed operator)
       - event: GardenOperatorRemoved(address indexed updater, address indexed operator)
       - event: GAPProjectCreated(bytes32 indexed projectUID, address indexed gardenAddress, string projectName)
+  - name: ENSRegistrar
+    handler: src/EventHandlers.ts
+    events:
+      - event: SubdomainRegistered(string indexed name, address indexed owner, uint256 timestamp)
+  - name: Gardener
+    handler: src/EventHandlers.ts
+    events:
+      - event: AccountDeployed(address indexed account, address indexed owner, uint256 timestamp)
+      - event: ENSClaimed(address indexed account, string indexed ensName, bytes32 indexed credentialId, uint256 timestamp)
+      - event: ENSUpdated(address indexed account, string oldName, string newName, uint256 timestamp)
 networks:
+  - id: 1
+    start_block: 0
+    contracts:
+      - name: ENSRegistrar
+        address: "${ENS_REGISTRAR_MAINNET}"
+      - name: Gardener
+        address: "${GARDENER_LOGIC_MAINNET}"
+  - id: 11155111
+    start_block: 0
+    contracts:
+      - name: ENSRegistrar
+        address: "${ENS_REGISTRAR_SEPOLIA}"
+      - name: Gardener
+        address: "${GARDENER_LOGIC_SEPOLIA}"
   - id: 84532
     start_block: 0
     contracts:
@@ -34,6 +58,8 @@ networks:
         address: "0x0B0EA0FfB996B0b04335507Ef1523124480f7310"
       - name: GardenAccount
         address: "0x14353dD1B89618127B55fAd16d70450f54F3E67D"
+      - name: Gardener
+        address: "${GARDENER_LOGIC_BASE_SEPOLIA}"
   - id: 42220
     start_block: 0
     contracts:
@@ -43,6 +69,8 @@ networks:
         address: "0xDcA639287A392E17cad0deA4E72F5B3cfA429e6B"
       - name: GardenAccount
         address: "0x3B4A3ACA9D52b01086F625a0EB6E6e24b65C810D"
+      - name: Gardener
+        address: "${GARDENER_LOGIC_CELO}"
   - id: 42161
     start_block: 0
     contracts:
@@ -52,3 +80,5 @@ networks:
         address: "0x3DEc3c42C5872a86Fb0e60A4AaDD7aD51CaF076a"
       - name: GardenAccount
         address: "0xB9e374493bB9cea972C6d26f8a7634AEEcd71daA"
+      - name: Gardener
+        address: "${GARDENER_LOGIC_ARBITRUM}"

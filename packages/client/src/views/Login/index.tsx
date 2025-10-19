@@ -1,7 +1,7 @@
 import { getAccount } from "@wagmi/core";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { Navigate } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAccount } from "wagmi";
 import { type LoadingState, Splash } from "@/components/Layout/Splash";
 import { ONBOARDED_STORAGE_KEY } from "@/config/app";
@@ -13,6 +13,7 @@ const buildOnboardedKey = (address?: string | null) =>
   address ? `${ONBOARDED_STORAGE_KEY}:${address.toLowerCase()}` : ONBOARDED_STORAGE_KEY;
 
 export function Login() {
+  const location = useLocation();
   const {
     walletAddress,
     createPasskey,
@@ -39,6 +40,9 @@ export function Login() {
 
   // Use wagmi's useAccount hook to detect wallet connection
   const { address: wagmiAddress, isConnected: wagmiConnected } = useAccount();
+
+  // Check if we're on a nested route (like /login/recover)
+  const isNestedRoute = location.pathname !== "/login";
 
   useEffect(() => {
     const key = buildOnboardedKey(smartAccountAddress);
@@ -128,6 +132,11 @@ export function Login() {
     appKit.open();
   };
 
+  // If on a nested route (like /login/recover), render the child route
+  if (isNestedRoute) {
+    return <Outlet />;
+  }
+
   if (isAuthenticated && (authMode === "wallet" || smartAccountClient)) {
     return <Navigate to="/home" replace />;
   }
@@ -151,6 +160,14 @@ export function Login() {
           ? {
               label: "Login with wallet",
               onSelect: handleWalletLogin,
+            }
+          : undefined
+      }
+      tertiaryAction={
+        !isAuthenticating && !isJoiningGarden
+          ? {
+              label: "Recover account",
+              href: "/login/recover",
             }
           : undefined
       }

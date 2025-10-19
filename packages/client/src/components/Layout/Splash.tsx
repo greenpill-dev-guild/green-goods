@@ -1,4 +1,5 @@
 import type React from "react";
+import { Link } from "react-router-dom";
 
 import { APP_NAME } from "@/config/app";
 
@@ -12,6 +13,11 @@ interface SecondaryActionConfig {
   isDisabled?: boolean;
 }
 
+interface TertiaryActionConfig {
+  label: string;
+  href: string;
+}
+
 interface SplashProps {
   login?: () => void;
   isLoggingIn?: boolean;
@@ -20,6 +26,7 @@ interface SplashProps {
   message?: string;
   errorMessage?: string | null;
   secondaryAction?: SecondaryActionConfig;
+  tertiaryAction?: TertiaryActionConfig;
 }
 
 export const Splash: React.FC<SplashProps> = ({
@@ -30,6 +37,7 @@ export const Splash: React.FC<SplashProps> = ({
   message,
   errorMessage,
   secondaryAction,
+  tertiaryAction,
 }) => {
   // If loadingState is provided, show loading view with animation
   if (loadingState) {
@@ -110,6 +118,15 @@ export const Splash: React.FC<SplashProps> = ({
           >
             {secondaryAction.label}
           </button>
+        )}
+
+        {tertiaryAction && (
+          <Link
+            to={tertiaryAction.href}
+            className="text-xs text-gray-500 underline transition-colors hover:text-green-600"
+          >
+            {tertiaryAction.label}
+          </Link>
         )}
       </div>
     </div>

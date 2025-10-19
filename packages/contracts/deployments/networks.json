@@ -1,5 +1,57 @@
 {
   "networks": {
+    "mainnet": {
+      "chainId": 1,
+      "name": "Ethereum Mainnet",
+      "rpcUrl": "${MAINNET_RPC_URL}",
+      "nativeCurrency": {
+        "name": "Ethereum",
+        "symbol": "ETH",
+        "decimals": 18
+      },
+      "blockExplorer": "https://etherscan.io",
+      "verifyApiUrl": "https://api.etherscan.io/api",
+      "verifyApiKey": "${ETHERSCAN_API_KEY}",
+      "deployConfig": {
+        "gasPrice": "auto",
+        "gasLimit": "auto",
+        "confirmations": 2
+      },
+      "contracts": {
+        "eas": "0xA1207F3BBa224E2c9c3c6D5aF63D0eb1582Ce587",
+        "easSchemaRegistry": "0xA7b39296258348C78294F95B872b282326A97BDF",
+        "ensRegistry": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
+        "ensResolver": "0x231b0Ee14048e9dCcD1d247744d114a4EB5E8E63",
+        "erc4337EntryPoint": "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
+        "multicallForwarder": "0xcA11bde05977b3631167028862bE2a173976CA11"
+      }
+    },
+    "sepolia": {
+      "chainId": 11155111,
+      "name": "Sepolia Testnet",
+      "rpcUrl": "${SEPOLIA_RPC_URL}",
+      "nativeCurrency": {
+        "name": "Sepolia Ether",
+        "symbol": "ETH",
+        "decimals": 18
+      },
+      "blockExplorer": "https://sepolia.etherscan.io",
+      "verifyApiUrl": "https://api-sepolia.etherscan.io/api",
+      "verifyApiKey": "${ETHERSCAN_API_KEY}",
+      "deployConfig": {
+        "gasPrice": "auto",
+        "gasLimit": "auto",
+        "confirmations": 2
+      },
+      "contracts": {
+        "eas": "0xC2679fBD37d54388Ce493F1DB75320D236e1815e",
+        "easSchemaRegistry": "0x0a7E2Ff54e76B8E6659aedc9103FB21c038050D0",
+        "ensRegistry": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
+        "ensResolver": "0x8FADE66B79cC9f707aB26799354482EB93a5B7dD",
+        "erc4337EntryPoint": "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
+        "multicallForwarder": "0xcA11bde05977b3631167028862bE2a173976CA11"
+      }
+    },
     "localhost": {
       "chainId": 31337,
       "name": "Localhost",

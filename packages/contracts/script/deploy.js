@@ -441,6 +441,7 @@ For UUPS upgrades, use: bun run upgrade <contract> --network <network> --broadca
         console.log(`   Action Registry: ${addresses.actionRegistry}`);
         console.log(`   Community Token: ${communityToken}`);
         console.log(`   Deployment Registry: ${addresses.deploymentRegistry}`);
+        console.log(`   Gardener Account Logic: ${addresses.gardenerAccountLogic}`);
         console.log(`   Work Resolver: ${addresses.workResolver}`);
         console.log(`   Work Approval Resolver: ${addresses.workApprovalResolver}`);
         console.log(`   Assessment Resolver: ${addresses.assessmentResolver}`);

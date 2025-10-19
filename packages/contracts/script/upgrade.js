@@ -5,6 +5,7 @@ const { execSync } = require("child_process");
 const CONTRACT_FUNCTIONS = {
   "action-registry": "upgradeActionRegistry()",
   "garden-token": "upgradeGardenToken()",
+  "gardener-account": "upgradeGardenerAccount()",
   "work-resolver": "upgradeWorkResolver()",
   "work-approval-resolver": "upgradeWorkApprovalResolver()",
   "assessment-resolver": "upgradeAssessmentResolver()",
@@ -21,6 +22,7 @@ Usage: node script/upgrade.js <contract> [options]
 Contracts:
   action-registry          Upgrade ActionRegistry
   garden-token            Upgrade GardenToken
+  gardener-account        Upgrade GardenerAccount (user smart account logic)
   work-resolver           Upgrade WorkResolver
   work-approval-resolver  Upgrade WorkApprovalResolver
   assessment-resolver     Upgrade AssessmentResolver

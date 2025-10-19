@@ -1,13 +1,15 @@
 import { createPimlicoClient } from "permissionless/clients/pimlico";
 import { type Chain, createPublicClient, http } from "viem";
-import { arbitrum, baseSepolia, celo } from "viem/chains";
 import { entryPoint07Address } from "viem/account-abstraction";
+import { arbitrum, baseSepolia, celo, mainnet, sepolia } from "viem/chains";
 
 // Pimlico API endpoints by chain
 const PIMLICO_API_ENDPOINTS = {
-  42161: "https://api.pimlico.io/v2/42161/rpc",
-  42220: "https://api.pimlico.io/v2/42220/rpc",
-  84532: "https://api.pimlico.io/v2/84532/rpc",
+  1: "https://api.pimlico.io/v2/1/rpc", // Mainnet
+  11155111: "https://api.pimlico.io/v2/11155111/rpc", // Sepolia
+  42161: "https://api.pimlico.io/v2/42161/rpc", // Arbitrum
+  42220: "https://api.pimlico.io/v2/42220/rpc", // Celo
+  84532: "https://api.pimlico.io/v2/84532/rpc", // Base Sepolia
 } as const;
 
 export function getPimlicoApiKey(): string {
@@ -32,6 +34,10 @@ export function getPimlicoPaymasterUrl(chainId: number): string {
 
 export function getChainFromId(chainId: number): Chain {
   switch (chainId) {
+    case 1:
+      return mainnet;
+    case 11155111:
+      return sepolia;
     case 42161:
       return arbitrum;
     case 42220:
@@ -65,6 +71,12 @@ export function createPublicClientForChain(chainId: number) {
   if (import.meta.env.VITE_ALCHEMY_API_KEY) {
     const alchemyKey = import.meta.env.VITE_ALCHEMY_API_KEY;
     switch (chainId) {
+      case 1: // Mainnet
+        rpcUrl = `https://eth-mainnet.g.alchemy.com/v2/${alchemyKey}`;
+        break;
+      case 11155111: // Sepolia
+        rpcUrl = `https://eth-sepolia.g.alchemy.com/v2/${alchemyKey}`;
+        break;
       case 42161: // Arbitrum
         rpcUrl = `https://arb-mainnet.g.alchemy.com/v2/${alchemyKey}`;
         break;

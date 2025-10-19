@@ -1,5 +1,5 @@
 /* eslint-disable */
-/* biome-ignore format: generated file */
+/* prettier-ignore */
 
 export type introspection_types = {
   AffectedRowsOutput: {
@@ -9431,3 +9431,5 @@ export type introspection = {
   subscription: never;
   types: introspection_types;
 };
+
+import * as gqlTada from "gql.tada";

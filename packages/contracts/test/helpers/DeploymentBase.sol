@@ -11,6 +11,10 @@ import { DeploymentRegistry } from "../../src/DeploymentRegistry.sol";
 import { AccountGuardian } from "@tokenbound/AccountGuardian.sol";
 import { AccountProxy } from "@tokenbound/AccountProxy.sol";
 import { GardenAccount } from "../../src/accounts/Garden.sol";
+import { Gardener } from "../../src/accounts/Gardener.sol";
+import { ENSRegistrar } from "../../src/registries/ENSRegistrar.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { IEntryPoint } from "account-abstraction/interfaces/IEntryPoint.sol";
 import { GardenToken } from "../../src/tokens/Garden.sol";
 import { ActionRegistry } from "../../src/registries/Action.sol";
 import { WorkResolver } from "../../src/resolvers/Work.sol";
@@ -71,6 +75,8 @@ abstract contract DeploymentBase is Test, DeployHelper {
     WorkResolver public workResolver;
     WorkApprovalResolver public workApprovalResolver;
     AssessmentResolver public assessmentResolver;
+    address public gardenerAccountLogic; // Gardener implementation for user smart accounts (Kernel v3)
+    ENSRegistrar public ensRegistrar; // ENS Registrar (mainnet/sepolia only, null on L2s)
 
     // Schema UIDs
     bytes32 public workSchemaUID;
@@ -79,8 +85,8 @@ abstract contract DeploymentBase is Test, DeployHelper {
 
     address public deployer;
 
-    /// @notice Deploy FULL production stack (exact same as production Deploy.s.sol)
-    /// @dev Uses CREATE2, UUPS proxies, Guardian, governance - everything
+    /// @notice Deploy stack based on chain type (mainnet ENS vs L2 protocol)
+    /// @dev Mainnet: ENS infrastructure only. L2s: Full protocol.
     /// @param communityToken The community token address for the network
     /// @param owner The owner address (msg.sender in scripts, address(this) in tests)
     function deployFullStack(address communityToken, address owner) internal virtual {
@@ -90,24 +96,63 @@ abstract contract DeploymentBase is Test, DeployHelper {
         // Use owner for contract ownership (can be same as deployer or different)
         address contractOwner = owner != address(0) ? owner : msg.sender;
 
-        // Get EAS addresses for current chain
-        (address eas, address easSchemaRegistry) = _getEASForChain(block.chainid);
+        uint256 chainId = block.chainid;
         (bytes32 salt, address factory, address tokenboundRegistry) = getDeploymentDefaults();
 
-        // 1. Deploy DeploymentRegistry with contractOwner as owner
-        deploymentRegistry = DeploymentRegistry(deployDeploymentRegistryWithGovernance(contractOwner, deployer));
+        // Chain-aware deployment
+        if (_isMainnetChain(chainId)) {
+            // MAINNET: Only ENS infrastructure
+            _deployMainnetENS(contractOwner, salt, factory);
+        } else {
+            // L2: Full protocol deployment
+            _deployL2Protocol(communityToken, contractOwner, salt, factory, tokenboundRegistry);
+        }
+    }
 
-        // 2. Deploy core contracts with contractOwner as owner
-        _deployCoreContracts(communityToken, contractOwner, eas, easSchemaRegistry, salt, factory, tokenboundRegistry);
+    /// @notice Check if chain is mainnet (supports ENS)
+    function _isMainnetChain(uint256 chainId) internal pure returns (bool) {
+        return chainId == 1 || chainId == 11_155_111; // Mainnet or Sepolia
+    }
 
-        // 3. Register EAS schemas with name/description attestations
+    /// @notice Deploy mainnet ENS infrastructure only
+    function _deployMainnetENS(address owner, bytes32 salt, address factory) internal {
+        (address entryPoint,,) = _getNetworkAddresses();
+
+        // 1. Deploy ENSRegistrar (mainnet only)
+        address ensRegistrarAddress = _deployENSRegistrar(owner, salt, factory);
+
+        // 2. Deploy Gardener logic with ENS support
+        gardenerAccountLogic = address(new Gardener(IEntryPoint(entryPoint), ensRegistrarAddress));
+    }
+
+    /// @notice Deploy full L2 protocol
+    function _deployL2Protocol(
+        address communityToken,
+        address owner,
+        bytes32 salt,
+        address factory,
+        address tokenboundRegistry
+    )
+        internal
+    {
+        // Get EAS addresses for current L2 chain
+        (address eas, address easSchemaRegistry) = _getEASForChain(block.chainid);
+
+        // 1. Deploy DeploymentRegistry
+        deploymentRegistry = DeploymentRegistry(deployDeploymentRegistryWithGovernance(owner, deployer));
+
+        // 2. Deploy core protocol contracts
+        _deployCoreContracts(communityToken, owner, eas, easSchemaRegistry, salt, factory, tokenboundRegistry);
+
+        // 3. Register EAS schemas
         _registerSchemas(eas, easSchemaRegistry);
 
         // 4. Configure deployment registry
         _configureRegistry(communityToken, eas, easSchemaRegistry);
     }
 
-    /// @notice Deploy core contracts with FULL production features (CREATE2, UUPS, Guardian)
+    /// @notice Deploy L2 core contracts with FULL production features (CREATE2, UUPS, Guardian)
+    /// @dev Only for L2 chains - mainnet uses _deployMainnetENS instead
     function _deployCoreContracts(
         address, /* communityToken */
         address owner,
@@ -125,16 +170,20 @@ abstract contract DeploymentBase is Test, DeployHelper {
         // 1. Deploy Guardian with CREATE2
         address guardian = deployGuardian(owner, salt, factory);
 
-        // 2. Deploy ActionRegistry with CREATE2 + proxy (owner will own it)
+        // 2. Deploy Gardener logic (Kernel v3 smart account for users)
+        // L2 chains: Pass address(0) for ENS registrar (graceful degradation)
+        gardenerAccountLogic = address(new Gardener(IEntryPoint(entryPoint), address(0)));
+
+        // 3. Deploy ActionRegistry with CREATE2 + proxy (owner will own it)
         actionRegistry = ActionRegistry(deployActionRegistry(owner, salt, factory));
 
-        // 3. Deploy resolvers with UUPS proxies + CREATE2 (owner will own them)
+        // 4. Deploy resolvers with UUPS proxies + CREATE2 (owner will own them)
         workResolver = WorkResolver(payable(_deployWorkResolver(eas, address(actionRegistry), owner, salt, factory)));
         workApprovalResolver =
             WorkApprovalResolver(payable(_deployWorkApprovalResolver(eas, address(actionRegistry), owner, salt, factory)));
         assessmentResolver = AssessmentResolver(payable(_deployAssessmentResolver(eas, owner, salt, factory)));
 
-        // 4. Deploy GardenAccount with CREATE2
+        // 5. Deploy GardenAccount (TBA) with CREATE2
         gardenAccountImpl = GardenAccount(
             payable(
                 deployGardenAccount(
@@ -150,10 +199,10 @@ abstract contract DeploymentBase is Test, DeployHelper {
             )
         );
 
-        // 5. Deploy AccountProxy with CREATE2
+        // 6. Deploy AccountProxy with CREATE2
         deployAccountProxy(guardian, address(gardenAccountImpl), salt, factory);
 
-        // 6. Deploy GardenToken with CREATE2 + proxy (owner will own it)
+        // 7. Deploy GardenToken with CREATE2 + proxy (owner will own it)
         gardenToken =
             GardenToken(deployGardenToken(address(gardenAccountImpl), owner, address(deploymentRegistry), salt, factory));
     }
@@ -397,6 +446,49 @@ abstract contract DeploymentBase is Test, DeployHelper {
             UUPSUpgradeable(deployed).upgradeTo(address(implementation));
         }
 
+        return predicted;
+    }
+
+    /// @notice Deploy ENSRegistrar with CREATE2 (mainnet/sepolia only)
+    /// @param owner The initial owner
+    /// @param salt The CREATE2 salt
+    /// @param factory The CREATE2 factory address
+    /// @return The ENSRegistrar address (address(0) on L2 chains)
+    function _deployENSRegistrar(address owner, bytes32 salt, address factory) internal returns (address) {
+        // Only deploy on mainnet (1) or sepolia (11155111)
+        uint256 chainId = block.chainid;
+        if (chainId != 1 && chainId != 11_155_111) {
+            return address(0);
+        }
+
+        // Load ENS configuration
+        NetworkConfig memory config = loadNetworkConfig();
+        if (config.ensRegistry == address(0)) {
+            return address(0);
+        }
+
+        // Compute greengoods.eth base node
+        // namehash("eth") = 0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae
+        bytes32 ethNode = 0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
+        bytes32 baseNode = keccak256(abi.encodePacked(ethNode, keccak256(bytes("greengoods"))));
+
+        // Deploy ENSRegistrar directly (non-upgradeable to avoid stack-too-deep)
+        bytes32 ensRegistrarSalt = keccak256(abi.encodePacked(salt, "ENSRegistrar"));
+        bytes memory bytecode = abi.encodePacked(
+            type(ENSRegistrar).creationCode,
+            abi.encode(config.ensRegistry, config.ensResolver, baseNode, owner)
+        );
+
+        address predicted = Create2.computeAddress(ensRegistrarSalt, keccak256(bytecode), factory);
+
+        if (!_isDeployed(predicted)) {
+            address deployed = _deployCreate2(bytecode, ensRegistrarSalt, factory);
+            if (deployed != predicted) {
+                revert("ENSRegistrar deployment address mismatch");
+            }
+        }
+
+        ensRegistrar = ENSRegistrar(predicted);
         return predicted;
     }
 

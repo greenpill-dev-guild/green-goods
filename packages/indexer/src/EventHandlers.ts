@@ -1,6 +1,13 @@
 // @ts-nocheck
 
-import { ActionRegistry, type Capital, GardenAccount, GardenToken } from "generated";
+import {
+  ActionRegistry,
+  type Capital,
+  ENSRegistrar,
+  GardenAccount,
+  Gardener as GardenerContract,
+  GardenToken,
+} from "generated";
 
 type Action = {
   id: string;
@@ -36,7 +43,15 @@ type Gardener = {
   createdAt: number;
   firstGarden?: string;
   gardens: string[];
-  joinedVia?: string;
+  owner?: string;
+  ensName?: string;
+  passkeyCredentialId?: string;
+  claimedAt?: number;
+  ensAvatar?: string;
+  ensDescription?: string;
+  ensTwitter?: string;
+  ensGithub?: string;
+  ensEmail?: string;
 };
 
 // Handler for the ActionRegistered event
@@ -349,5 +364,118 @@ GardenAccount.GAPProjectCreated.handler(async ({ event, context }) => {
     context.log.info(`Updated Garden ${gardenId} with GAP project UID: ${event.params.projectUID}`);
   } else {
     context.log.warn(`Garden ${gardenId} not found when processing GAPProjectCreated event`);
+  }
+});
+
+// ============================================================================
+// ENS & GARDENER IDENTITY EVENT HANDLERS
+// ============================================================================
+
+// Handler for ENSRegistrar SubdomainRegistered event (Mainnet only)
+ENSRegistrar.SubdomainRegistered.handler(async ({ event, context }) => {
+  const name = event.params.name;
+  const owner = event.params.owner;
+  const timestamp = event.params.timestamp;
+
+  context.log.info(`ENS subdomain registered: ${name}.greengoods.eth for ${owner}`);
+
+  // Note: This event is emitted on mainnet, but the Gardener entity
+  // will be created/updated by the Gardener.ENSClaimed event handler
+});
+
+// Handler for Gardener ENSClaimed event (Mainnet only)
+GardenerContract.ENSClaimed.handler(async ({ event, context }) => {
+  const accountAddress = event.params.account;
+  const ensName = event.params.ensName;
+  const credentialId = event.params.credentialId;
+  const timestamp = event.params.timestamp;
+
+  // Gardener entities use chain-specific IDs
+  const gardenerId = `${event.chainId}-${accountAddress}`;
+
+  const existingGardener = await context.Gardener.get(gardenerId);
+
+  if (existingGardener) {
+    // Update existing gardener with ENS info
+    const updatedGardener: Gardener = {
+      ...existingGardener,
+      ensName,
+      passkeyCredentialId: credentialId,
+      claimedAt: Number(timestamp),
+    };
+    context.Gardener.set(updatedGardener);
+    context.log.info(`Updated Gardener ${gardenerId} with ENS: ${ensName}`);
+  } else {
+    // Create new gardener entity (mainnet-first registration)
+    const newGardener: Gardener = {
+      id: gardenerId,
+      chainId: event.chainId,
+      createdAt: Number(timestamp),
+      gardens: [],
+      ensName,
+      passkeyCredentialId: credentialId,
+      claimedAt: Number(timestamp),
+    };
+    context.Gardener.set(newGardener);
+    context.log.info(`Created new Gardener ${gardenerId} with ENS: ${ensName}`);
+  }
+});
+
+// Handler for Gardener ENSUpdated event (Mainnet only)
+GardenerContract.ENSUpdated.handler(async ({ event, context }) => {
+  const accountAddress = event.params.account;
+  const oldName = event.params.oldName;
+  const newName = event.params.newName;
+  const timestamp = event.params.timestamp;
+
+  const gardenerId = `${event.chainId}-${accountAddress}`;
+  const existingGardener = await context.Gardener.get(gardenerId);
+
+  if (!existingGardener) {
+    context.log.warn(`Gardener ${gardenerId} not found when processing ENSUpdated event`);
+    return;
+  }
+
+  const updatedGardener: Gardener = {
+    ...existingGardener,
+    ensName: newName,
+  };
+
+  context.Gardener.set(updatedGardener);
+  context.log.info(`Updated ENS for Gardener ${gardenerId}: ${oldName} -> ${newName}`);
+});
+
+// Handler for Gardener AccountDeployed event (All chains: mainnet + L2s)
+// This replaces the old GardenerAccount.AccountDeployed handler
+GardenerContract.AccountDeployed.handler(async ({ event, context }) => {
+  const accountAddress = event.params.account;
+  const ownerAddress = event.params.owner;
+  const timestamp = event.params.timestamp;
+
+  // Create unique gardener ID with chain prefix
+  const gardenerId = `${event.chainId}-${accountAddress}`;
+
+  // Check if gardener entity already exists (from ENSClaimed or GardenerAdded events)
+  const existingGardener = await context.Gardener.get(gardenerId);
+
+  if (existingGardener) {
+    // Update existing gardener with owner info
+    const updatedGardener: Gardener = {
+      ...existingGardener,
+      owner: ownerAddress,
+    };
+    context.Gardener.set(updatedGardener);
+    context.log.info(`Updated existing Gardener ${gardenerId} with owner: ${ownerAddress}`);
+  } else {
+    // Create new gardener entity (L2-first registration without ENS)
+    const newGardener: Gardener = {
+      id: gardenerId,
+      chainId: event.chainId,
+      createdAt: Number(timestamp),
+      owner: ownerAddress,
+      gardens: [],
+    };
+    context.Gardener.set(newGardener);
+    context.log.info(`Created new Gardener ${gardenerId} from AccountDeployed event (L2)`);
   }
 });

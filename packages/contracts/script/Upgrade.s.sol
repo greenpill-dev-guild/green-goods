@@ -10,6 +10,8 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgrade
 import { ActionRegistry } from "../src/registries/Action.sol";
 import { GardenToken } from "../src/tokens/Garden.sol";
 import { GardenAccount } from "../src/accounts/Garden.sol";
+import { Gardener } from "../src/accounts/Gardener.sol";
+import { IEntryPoint } from "account-abstraction/interfaces/IEntryPoint.sol";
 import { WorkResolver } from "../src/resolvers/Work.sol";
 import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
 import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
@@ -253,6 +255,41 @@ contract Upgrade is Script {
         vm.stopBroadcast();
     }
 
+    /// @notice Upgrade Gardener logic (Kernel v3 smart account)
+    function upgradeGardenerAccount() public {
+        string memory chainIdStr = vm.toString(block.chainid);
+        string memory deploymentPath = string.concat(vm.projectRoot(), "/deployments/", chainIdStr, "-latest.json");
+        
+        console.log("Upgrading Gardener logic");
+        
+        vm.startBroadcast();
+        
+        // Load network config
+        string memory json = vm.readFile(deploymentPath);
+        address entryPoint = abi.decode(vm.parseJson(json, ".entryPoint"), (address));
+        
+        // Load ENS registrar (will be address(0) on L2 chains)
+        address ensRegistrar = address(0);
+        // solhint-disable-next-line no-empty-blocks
+        try vm.parseJson(json, ".ensRegistrar") returns (bytes memory data) {
+            ensRegistrar = abi.decode(data, (address));
+            // solhint-disable-next-line no-empty-blocks
+        } catch {
+            // ENS not configured for this network (L2 chains)
+        }
+        
+        // Deploy new logic with IEntryPoint and ENS registrar
+        Gardener newLogic = new Gardener(IEntryPoint(entryPoint), ensRegistrar);
+        
+        console.log("New Gardener logic deployed at:", address(newLogic));
+        
+        // Update deployment file
+        vm.writeJson(vm.toString(address(newLogic)), deploymentPath, ".gardenerAccountLogic");
+        console.log("Gardener logic upgraded successfully");
+        
+        vm.stopBroadcast();
+    }
+
     /// @notice Upgrade all contracts
     function upgradeAll() public {
         upgradeActionRegistry();
@@ -261,6 +298,7 @@ contract Upgrade is Script {
         upgradeWorkApprovalResolver();
         upgradeAssessmentResolver();
         upgradeDeploymentRegistry();
+        upgradeGardenerAccount();
     }
 
     /// @notice Deploy new GardenAccount implementation with updated resolver addresses

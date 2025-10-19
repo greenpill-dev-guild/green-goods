@@ -7,12 +7,9 @@ import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
 import { DeploymentBase } from "../test/helpers/DeploymentBase.sol";
 import { DeploymentRegistry } from "../src/DeploymentRegistry.sol";
 import { Capital } from "../src/registries/Action.sol";
-import { TBALib } from "../src/lib/TBA.sol";
 import { WorkResolver } from "../src/resolvers/Work.sol";
 import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
 import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
-import { AccountGuardian } from "@tokenbound/AccountGuardian.sol";
-import { AccountProxy } from "@tokenbound/AccountProxy.sol";
 
 /// @title Deploy
 /// @notice Production deployment script - orchestrates DeploymentBase + seed data
@@ -26,8 +23,6 @@ contract Deploy is Script, DeploymentBase {
     // ===== STATE =====
     address[] private gardenAddresses;
     uint256[] private gardenTokenIds;
-    address private guardian;
-    address private accountProxy;
 
     /// @notice Deployment mode flags
     struct DeploymentMode {
@@ -40,18 +35,23 @@ contract Deploy is Script, DeploymentBase {
         DeploymentMode memory mode = _parseDeploymentMode();
         NetworkConfig memory config = loadNetworkConfig();
 
+        // Log chain-aware deployment strategy
+        _logDeploymentStrategy();
+
         vm.startBroadcast();
 
         if (!mode.updateSchemasOnly) {
-            // 1. Deploy FULL production stack (from DeploymentBase)
+            // 1. Deploy stack based on chain (ENS infra for mainnet, protocol for L2)
             // Deployer (msg.sender) is the owner for all contracts
             deployFullStack(config.communityToken, msg.sender);
 
-            // 2. Add production-specific governance features
-            _addProductionFeatures(config);
-
-            // 3. Deploy seed data (gardens + actions)
-            _deploySeedData(config);
+            // 2. Add production-specific governance features (L2 only)
+            if (!_isMainnetChain(block.chainid)) {
+                _addProductionFeatures(config);
+                
+                // 3. Deploy seed data (gardens + actions) (L2 only)
+                _deploySeedData(config);
+            }
         } else {
             // Schema-only update mode - load existing deployment
             string memory chainIdStr = vm.toString(block.chainid);
@@ -84,35 +84,6 @@ contract Deploy is Script, DeploymentBase {
             }
         }
         _generateVerificationCommands();
-    }
-
-    // ============================================
-    // DEPLOYMENT OVERRIDES
-    // ============================================
-
-    /// @notice Override to capture guardian and accountProxy addresses
-    function _deployCoreContracts(
-        address communityToken,
-        address owner,
-        address eas,
-        address easSchemaRegistry,
-        bytes32 salt,
-        address factory,
-        address tokenboundRegistry
-    )
-        internal
-        override
-    {
-        // Call parent implementation
-        super._deployCoreContracts(communityToken, owner, eas, easSchemaRegistry, salt, factory, tokenboundRegistry);
-
-        // Capture guardian and accountProxy addresses using deterministic CREATE2
-        bytes memory guardianBytecode = abi.encodePacked(type(AccountGuardian).creationCode, abi.encode(owner));
-        guardian = Create2.computeAddress(salt, keccak256(guardianBytecode), factory);
-
-        bytes memory proxyBytecode =
-            abi.encodePacked(type(AccountProxy).creationCode, abi.encode(guardian, address(gardenAccountImpl)));
-        accountProxy = Create2.computeAddress(salt, keccak256(proxyBytecode), factory);
     }
 
     // ============================================
@@ -156,8 +127,13 @@ contract Deploy is Script, DeploymentBase {
     /// @notice Deploy the root garden with hardcoded values (no JSON parsing)
     function _deployGardens(address communityToken) internal {
         string memory name = "Green Goods Community Garden";
-        string memory description =
-            "The global community garden for all Green Goods participants. This is the root garden that serves as the entry point for new users and community activities. All participants start here and can join specialized gardens as they engage with the platform.";
+        string memory description = string(
+            abi.encodePacked(
+                "The global community garden for all Green Goods participants. ",
+                "This is the root garden that serves as the entry point for new users and community activities. ",
+                "All participants start here and can join specialized gardens as they engage with the platform."
+            )
+        );
         string memory location = "Mama Earth";
         string memory bannerImage = "QmS8mL4x9fnNutV63pSfwRhhVgoVpw4gaDCCGaTpv6oMGW";
 
@@ -177,11 +153,14 @@ contract Deploy is Script, DeploymentBase {
         operators[5] = 0x5F56E995e8D3bd05a70a63f0d7531437e873772e;
         operators[6] = 0x560F876431dfA6eFe1aaf9fAa0D3A4512782DD8c;
 
-        address gardenAddress =  gardenToken.mintGarden(communityToken, name, description, location, bannerImage, gardeners, operators);
+        address gardenAddress = gardenToken.mintGarden(
+            communityToken, name, description, location, bannerImage, gardeners, operators
+        );
 
         gardenAddresses.push(gardenAddress);
         gardenTokenIds.push(1);
 
+        // solhint-disable-next-line no-console
         console.log("Garden address:", gardenAddress);
     }
 
@@ -261,6 +240,32 @@ contract Deploy is Script, DeploymentBase {
     // ============================================
     // HELPER METHODS
     // ============================================
+
+    /// @notice Log deployment strategy based on chain
+    // solhint-disable-next-line no-console
+    function _logDeploymentStrategy() internal view {
+        uint256 chainId = block.chainid;
+        
+        console.log("\n=== Green Goods Deployment ===");
+        console.log("Chain ID:", chainId);
+        
+        if (_isMainnetChain(chainId)) {
+            console.log("Mode: MAINNET - ENS Infrastructure Only");
+            console.log("  - ENSRegistrar (greengoods.eth subdomain manager)");
+            console.log("  - Gardener logic (with ENS support)");
+            console.log("\nNote: Full protocol lives on L2 chains (Arbitrum, Celo, Base Sepolia)");
+        } else {
+            console.log("Mode: L2 - Full Protocol Deployment");
+            console.log("  - DeploymentRegistry");
+            console.log("  - GardenToken + GardenAccount (TBA)");
+            console.log("  - ActionRegistry");
+            console.log("  - Work/Approval/Assessment Resolvers");
+            console.log("  - Gardener logic (L2 mode, no ENS)");
+            console.log("  - Seed data (root garden + actions)");
+            console.log("\nNote: ENS subdomains managed on mainnet");
+        }
+        console.log("==============================\n");
+    }
 
     /// @notice Parse deployment mode from environment
     function _parseDeploymentMode() internal view returns (DeploymentMode memory) {
@@ -376,30 +381,34 @@ contract Deploy is Script, DeploymentBase {
         return vm.readFile(string.concat(vm.projectRoot(), "/config/schemas.json"));
     }
 
-    /// @notice Save deployment results to JSON
-    function _saveDeploymentResults() internal {
-        // Build comprehensive deployment result
-        // Use first garden as "root" for backward compatibility
-        address rootGardenAddress = gardenAddresses.length > 0 ? gardenAddresses[0] : address(0);
-        uint256 rootGardenTokenId = gardenTokenIds.length > 0 ? gardenTokenIds[0] : 0;
-
-        DeploymentResult memory result = DeploymentResult({
+    /// @notice Build deployment result structure
+    /// @dev Guardian and accountProxy addresses can be computed via CREATE2 post-deployment
+    function _buildDeploymentResult() private view returns (DeploymentResult memory) {
+        return DeploymentResult({
             deploymentRegistry: address(deploymentRegistry),
-            guardian: guardian,
+            guardian: address(0), // Computed via CREATE2, populated post-deployment
             gardenAccountImpl: address(gardenAccountImpl),
-            accountProxy: accountProxy,
+            accountProxy: address(0), // Computed via CREATE2, populated post-deployment  
             gardenToken: address(gardenToken),
             actionRegistry: address(actionRegistry),
             assessmentResolver: address(assessmentResolver),
             workResolver: address(workResolver),
             workApprovalResolver: address(workApprovalResolver),
+            gardenerAccountLogic: gardenerAccountLogic,
+            ensRegistrar: address(ensRegistrar),
             assessmentSchemaUID: assessmentSchemaUID,
             workSchemaUID: workSchemaUID,
             workApprovalSchemaUID: workApprovalSchemaUID,
-            rootGardenAddress: rootGardenAddress,
-            rootGardenTokenId: rootGardenTokenId
+            rootGardenAddress: gardenAddresses.length > 0 ? gardenAddresses[0] : address(0),
+            rootGardenTokenId: gardenTokenIds.length > 0 ? gardenTokenIds[0] : 0
         });
+    }
 
+    /// @notice Save deployment results to JSON
+    function _saveDeploymentResults() internal {
+        // Build result with core addresses
+        DeploymentResult memory result = _buildDeploymentResult();
+        
         // Use DeployHelper's comprehensive save method
         _saveDeployment(result);
 
