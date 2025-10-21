@@ -2,7 +2,7 @@
   "folders": [
     {
       "name": "green-goods",
-      "path": "../"
+      "path": ".."
     },
     {
       "name": "contracts",
@@ -17,6 +17,10 @@
       "path": "../packages/admin"
     },
     {
+      "name": "src",
+      "path": "../packages/admin/src"
+    },
+    {
       "name": "client",
       "path": "../packages/client"
     },
@@ -25,32 +29,11 @@
       "path": "../packages/client/src"
     },
     {
-      "name": "hooks",
-      "path": "../packages/client/src/hooks"
+      "name": "shared",
+      "path": "../packages/shared"
     },
     {
-      "name": "routes",
-      "path": "../packages/client/src/routes"
-    },
-    {
-      "name": "providers",
-      "path": "../packages/client/src/providers"
-    },
-    {
-      "name": "components",
-      "path": "../packages/client/src/components"
-    },
-    {
-      "name": "modules",
-      "path": "../packages/client/src/modules"
-    },
-    {
-      "name": "utils",
-      "path": "../packages/client/src/utils"
-    },
-    {
-      "name": "views",
-      "path": "../packages/client/src/views"
+      "path": "../packages/shared/src"
     }
   ],
   "settings": {

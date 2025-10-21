@@ -29,7 +29,7 @@
 
     "format": "biome format --write .",
     "format:check": "biome format .",
-    "lint": "oxlint packages/client/src packages/indexer/src packages/admin/src packages/contracts/script",
+    "lint": "oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/contracts/script",
     "test": "bun run test:client && bun run test:admin && bun run test:indexer && bun run test:contracts",
 
     "test:e2e": "playwright test",
@@ -38,7 +38,8 @@
     "test:indexer": "cd packages/indexer && bun run test",
     "test:contracts": "cd packages/contracts && bun run test",
 
-    "build": "bun run build:contracts && bun run build:indexer && bun run build:client && bun run build:admin",
+    "build": "bun run build:contracts && bun run build:shared && bun run build:indexer && bun run build:client && bun run build:admin",
+    "build:shared": "cd packages/shared && bun run build",
     "build:client": "cd packages/client && bun run build",
     "build:admin": "cd packages/admin && bun run build",
     "build:indexer": "cd packages/indexer && bun run build",
