@@ -4,23 +4,17 @@ pragma solidity ^0.8.25;
 import { Kernel } from "@kernel/Kernel.sol";
 import { IEntryPoint } from "account-abstraction/interfaces/IEntryPoint.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import { IENSRegistrar } from "../interfaces/IENSRegistrar.sol";
 
 /// @title Gardener
-/// @notice Custom Kernel v3 compatible smart account with ENS identity
-/// @dev Extends ZeroDev's Kernel v3 with ENS identity and passkey recovery
-/// @dev Supports multi-L2: mainnet for ENS, L2s for operations (ENS_REGISTRAR = 0x0)
+/// @notice Custom Kernel v3 compatible smart account for Green Goods protocol
+/// @dev Extends ZeroDev's Kernel v3 with minimal overhead
+/// @dev Works across all chains; ENS registration handled separately on mainnet via ENSRegistrar
 contract Gardener is Kernel {
     // ============================================================================
     // ERRORS
     // ============================================================================
 
     error NotAuthorized();
-    error AlreadyClaimed();
-    error InvalidENSName();
-    error InvalidCredentialId();
-    error NameNotAvailable();
-    error ENSNotSupportedOnChain();
     error NotInitialized();
     error AlreadyInitialized();
 
@@ -34,41 +28,12 @@ contract Gardener is Kernel {
     /// @param timestamp The deployment timestamp
     event AccountDeployed(address indexed account, address indexed owner, uint256 timestamp);
 
-    /// @notice Emitted when ENS name is claimed
-    /// @param account The Gardener account address
-    /// @param ensName The full ENS name (e.g., "alice.greengoods.eth")
-    /// @param credentialId The passkey credential ID for recovery
-    /// @param timestamp The claim timestamp
-    event ENSClaimed(
-        address indexed account,
-        string indexed ensName,
-        bytes32 indexed credentialId,
-        uint256 timestamp
-    );
-
-    /// @notice Emitted when ENS name is updated
-    /// @param account The Gardener account address
-    /// @param oldName The previous ENS name
-    /// @param newName The new ENS name
-    /// @param timestamp The update timestamp
-    event ENSUpdated(address indexed account, string oldName, string newName, uint256 timestamp);
-
     // ============================================================================
     // STATE VARIABLES
     // ============================================================================
 
-    // ENS identity (stored on mainnet)
-    string public ensName; // Full ENS name (e.g., "alice.greengoods.eth")
-    bytes32 public passkeyCredentialId; // WebAuthn credential ID for recovery
-    uint256 public claimedAt; // Timestamp of ENS claim
-
-    // ENS Registrar reference (immutable)
-    // address(0) on L2 chains (Arbitrum, Celo, Base Sepolia)
-    // Non-zero on mainnet only
-    address public immutable ENS_REGISTRAR;
-
-    // Validation limits
-    uint256 private constant MAX_NAME_LENGTH = 50;
+    // Minimal state - only track initialization
+    uint256 public deployedAt; // Timestamp when account was initialized
 
     // ============================================================================
     // MODIFIERS
@@ -90,11 +55,10 @@ contract Gardener is Kernel {
 
     /// @notice Construct the Gardener account
     /// @param _entryPoint The ERC-4337 EntryPoint address
-    /// @param _ensRegistrar The ENS Registrar address (address(0) on L2 chains)
-    /// @dev Constructor sets up Kernel base and ENS registrar reference
-    /// @dev For multi-L2 support: mainnet has real ENS registrar, L2s have address(0)
-    constructor(IEntryPoint _entryPoint, address _ensRegistrar) Kernel(_entryPoint) {
-        ENS_REGISTRAR = _ensRegistrar;
+    /// @dev Constructor sets up Kernel base with no additional configuration
+    /// @dev Same constructor across all chains (mainnet + L2s)
+    constructor(IEntryPoint _entryPoint) Kernel(_entryPoint) {
+        // No additional setup needed
     }
 
     // ============================================================================
@@ -110,10 +74,10 @@ contract Gardener is Kernel {
         if (accountOwner == address(0)) revert NotInitialized();
 
         // Only emit once (check if already initialized)
-        if (claimedAt != 0) revert AlreadyInitialized();
+        if (deployedAt != 0) revert AlreadyInitialized();
 
         // Mark as initialized
-        claimedAt = 1;
+        deployedAt = block.timestamp;
 
         // Emit custom event for indexer
         emit AccountDeployed(address(this), accountOwner, block.timestamp);
@@ -124,62 +88,6 @@ contract Gardener is Kernel {
     /// @dev Exposes Kernel's internal owner storage for convenience
     function owner() external view returns (address) {
         return getKernelStorage().owner;
-    }
-
-    // ============================================================================
-    // ENS MANAGEMENT
-    // ============================================================================
-
-    /// @notice Claim ENS subdomain for this Gardener account
-    /// @param _ensName The subdomain name (e.g., "alice" for alice.greengoods.eth)
-    /// @param _credentialId The passkey credential ID for recovery
-    /// @dev Only works on mainnet where ENS_REGISTRAR != address(0)
-    /// @dev Gracefully reverts on L2 chains with clear error message
-    function claimENSName(string calldata _ensName, bytes32 _credentialId) external onlyOwner {
-        // Gracefully handle L2 chains where ENS is not supported
-        if (ENS_REGISTRAR == address(0)) revert ENSNotSupportedOnChain();
-
-        // Validate not already claimed
-        if (bytes(ensName).length > 0) revert AlreadyClaimed();
-
-        // Validate input
-        if (bytes(_ensName).length == 0 || bytes(_ensName).length > MAX_NAME_LENGTH) revert InvalidENSName();
-        if (_credentialId == bytes32(0)) revert InvalidCredentialId();
-
-        // Check name availability
-        if (!IENSRegistrar(ENS_REGISTRAR).available(_ensName)) revert NameNotAvailable();
-
-        // Register subdomain (ENSRegistrar will set ENS records)
-        IENSRegistrar(ENS_REGISTRAR).register(_ensName, address(this));
-
-        // Store data
-        string memory fullName = string(abi.encodePacked(_ensName, ".greengoods.eth"));
-        ensName = fullName;
-        passkeyCredentialId = _credentialId;
-        claimedAt = block.timestamp;
-
-        emit ENSClaimed(address(this), fullName, _credentialId, block.timestamp);
-    }
-
-    /// @notice Verify if a credential ID matches the stored one
-    /// @param _credentialId The credential ID to verify
-    /// @return True if matches, false otherwise
-    /// @dev Used during recovery to validate passkey
-    function verifyCredentialId(bytes32 _credentialId) external view returns (bool) {
-        return passkeyCredentialId == _credentialId;
-    }
-
-    /// @notice Get recovery data for this account
-    /// @return _ensName The ENS name
-    /// @return _credentialId The passkey credential ID
-    /// @return _owner Current owner address
-    /// @dev Used during account recovery flow
-    function getRecoveryData()
-        external
-        view
-        returns (string memory _ensName, bytes32 _credentialId, address _owner)
-    {
-        return (ensName, passkeyCredentialId, getKernelStorage().owner);
     }
 
     // ============================================================================

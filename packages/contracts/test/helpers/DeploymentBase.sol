@@ -121,8 +121,8 @@ abstract contract DeploymentBase is Test, DeployHelper {
         // 1. Deploy ENSRegistrar (mainnet only)
         address ensRegistrarAddress = _deployENSRegistrar(owner, salt, factory);
 
-        // 2. Deploy Gardener logic with ENS support
-        gardenerAccountLogic = address(new Gardener(IEntryPoint(entryPoint), ensRegistrarAddress));
+        // 2. Deploy Gardener logic (same across all chains)
+        gardenerAccountLogic = address(new Gardener(IEntryPoint(entryPoint)));
     }
 
     /// @notice Deploy full L2 protocol
@@ -171,8 +171,8 @@ abstract contract DeploymentBase is Test, DeployHelper {
         address guardian = deployGuardian(owner, salt, factory);
 
         // 2. Deploy Gardener logic (Kernel v3 smart account for users)
-        // L2 chains: Pass address(0) for ENS registrar (graceful degradation)
-        gardenerAccountLogic = address(new Gardener(IEntryPoint(entryPoint), address(0)));
+        // Same constructor across all chains (ENS registration handled separately)
+        gardenerAccountLogic = address(new Gardener(IEntryPoint(entryPoint)));
 
         // 3. Deploy ActionRegistry with CREATE2 + proxy (owner will own it)
         actionRegistry = ActionRegistry(deployActionRegistry(owner, salt, factory));

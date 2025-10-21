@@ -171,6 +171,7 @@ function loadCache() {
     }
   } catch (error) {
     // Failed to load cache, will proceed without it
+    console.warn("IPFS uploader: unable to load cache, continuing without cached data.", error);
   }
   return {};
 }
@@ -183,6 +184,7 @@ function saveCache(cache) {
     fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
   } catch (error) {
     // Failed to save cache, will continue without it
+    console.warn("IPFS uploader: unable to persist cache to disk.", error);
   }
 }
 

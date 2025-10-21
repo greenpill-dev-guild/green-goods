@@ -268,18 +268,8 @@ contract Upgrade is Script {
         string memory json = vm.readFile(deploymentPath);
         address entryPoint = abi.decode(vm.parseJson(json, ".entryPoint"), (address));
         
-        // Load ENS registrar (will be address(0) on L2 chains)
-        address ensRegistrar = address(0);
-        // solhint-disable-next-line no-empty-blocks
-        try vm.parseJson(json, ".ensRegistrar") returns (bytes memory data) {
-            ensRegistrar = abi.decode(data, (address));
-            // solhint-disable-next-line no-empty-blocks
-        } catch {
-            // ENS not configured for this network (L2 chains)
-        }
-        
-        // Deploy new logic with IEntryPoint and ENS registrar
-        Gardener newLogic = new Gardener(IEntryPoint(entryPoint), ensRegistrar);
+        // Deploy new logic with IEntryPoint only (no ENS registrar needed)
+        Gardener newLogic = new Gardener(IEntryPoint(entryPoint));
         
         console.log("New Gardener logic deployed at:", address(newLogic));
         
