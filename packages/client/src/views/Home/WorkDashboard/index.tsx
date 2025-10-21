@@ -9,25 +9,22 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useWorkApprovals } from "@/hooks/work/useWorkApprovals";
-import { useUser } from "@/hooks/auth/useUser";
-import { cn } from "@/utils/styles/cn";
+import { jobToWork, queryKeys, useUser, useWorkApprovals } from "@green-goods/shared/hooks";
+import { cn } from "@green-goods/shared/utils";
 import { CompletedTab } from "./Completed";
 import { PendingTab } from "./Pending";
 import { UploadingTab } from "./Uploading";
 import { TimeFilterControl } from "./TimeFilterControl";
 
 import { type StandardTab, StandardTabs } from "@/components/UI/Tabs";
-import { getGardens } from "@/modules/data/greengoods";
 import {
+  getGardens,
   getWorks,
   getWorkApprovals as fetchWorkApprovals,
   getWorksByGardener,
-} from "@/modules/data/eas";
-import { jobQueue, jobQueueDB } from "@/modules/job-queue";
-import { jobToWork } from "@/hooks/work/useWorks";
-import { jobQueueEventBus } from "@/modules/job-queue/event-bus";
-import { queryKeys } from "@/hooks/query-keys";
+  jobQueueEventBus,
+} from "@green-goods/shared/modules";
+import { jobQueue, jobQueueDB } from "@green-goods/shared/modules/job-queue";
 
 export interface WorkDashboardProps {
   className?: string;

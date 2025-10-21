@@ -4,7 +4,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { Footer } from "@/components/Layout/Footer";
 import { Header } from "@/components/Layout/Header";
 import { Hero } from "@/components/Layout/Hero";
-import { useApp } from "@/providers/app";
+import { useApp } from "@green-goods/shared/providers/app";
 
 type LandingProps = {};
 

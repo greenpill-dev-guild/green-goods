@@ -1,15 +1,16 @@
+import { SUPPORTED_CHAINS } from "@green-goods/shared/config/chains";
+import { useAdminStore } from "@green-goods/shared/stores";
+import { getNetworkContracts } from "@green-goods/shared/utils/contracts";
+import { RiRefreshLine, RiSettings3Line, RiUploadLine } from "@remixicon/react";
 import { useState } from "react";
-import { RiSettings3Line, RiUploadLine, RiRefreshLine } from "@remixicon/react";
-import { useAdminStore } from "@/stores/admin";
-import { getNetworkContracts } from "@/utils/contracts";
-import { SUPPORTED_CHAINS } from "@/config";
 
 export default function Contracts() {
   const { selectedChainId } = useAdminStore();
   const [activeTab, setActiveTab] = useState<"deployed" | "deploy" | "upgrade">("deployed");
 
   const contracts = getNetworkContracts(selectedChainId);
-  const currentChain = SUPPORTED_CHAINS.find((c) => c.id === selectedChainId);
+  const chains = Object.values(SUPPORTED_CHAINS);
+  const currentChain = chains.find((c) => c.id === selectedChainId);
 
   const contractList = [
     { name: "Garden Token", address: contracts.gardenToken, type: "core" },

@@ -1,16 +1,15 @@
-import { useState, useRef, useEffect } from "react";
+import { useDarkMode, useRole } from "@green-goods/shared/hooks";
+import { useWalletAuth as useAuth } from "@green-goods/shared/providers";
+import { cn } from "@green-goods/shared/utils";
 import {
+  RiArrowDownSLine,
+  RiComputerLine,
   RiLogoutBoxLine,
   RiMoonLine,
   RiSunLine,
   RiUserLine,
-  RiArrowDownSLine,
-  RiComputerLine,
 } from "@remixicon/react";
-import { useAuth } from "@/providers/AuthProvider";
-import { useRole } from "@/hooks/useRole";
-import { useDarkMode } from "@/hooks/useDarkMode";
-import { cn } from "@/utils/cn";
+import { useEffect, useRef, useState } from "react";
 
 export function UserProfile() {
   const [isOpen, setIsOpen] = useState(false);

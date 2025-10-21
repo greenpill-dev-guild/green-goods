@@ -1,8 +1,8 @@
 import { Outlet, ScrollRestoration } from "react-router-dom";
 import { AppBar } from "@/components/Layout/AppBar";
 import { OfflineIndicator } from "@/components/UI/OfflineIndicator/OfflineIndicator";
-import { JobQueueProvider } from "@/providers/jobQueue";
-import { WorkProvider } from "@/providers/work";
+import { JobQueueProvider } from "@green-goods/shared/providers/jobQueue";
+import { WorkProvider } from "@green-goods/shared/providers/work";
 
 export default function AppShell() {
   return (

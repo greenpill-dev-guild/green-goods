@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useGardenInvites } from "@green-goods/shared/hooks/garden";
 import { formatDistanceToNow } from "date-fns";
-import { CreateInviteModal } from "./CreateInviteModal";
-import { useGardenInvites } from "@/hooks/useGardenInvites";
+import { useState } from "react";
 import { AddressDisplay } from "@/components/ui/AddressDisplay";
+import { CreateInviteModal } from "./CreateInviteModal";
 
 interface InviteManagementProps {
   gardenAddress: string;

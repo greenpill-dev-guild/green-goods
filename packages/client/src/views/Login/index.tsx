@@ -1,13 +1,12 @@
+import { ONBOARDED_STORAGE_KEY, wagmiConfig } from "@green-goods/shared/config";
+import { usePasskeyAuth as useAuth, useAutoJoinRootGarden } from "@green-goods/shared/hooks";
+import { useAppKit } from "@green-goods/shared/providers";
 import { getAccount } from "@wagmi/core";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAccount } from "wagmi";
 import { type LoadingState, Splash } from "@/components/Layout/Splash";
-import { ONBOARDED_STORAGE_KEY } from "@/config/app";
-import { appKit, wagmiConfig } from "@/config/appkit";
-import { useAuth } from "@/hooks/auth/useAuth";
-import { useAutoJoinRootGarden } from "@/hooks/garden/useAutoJoinRootGarden";
 
 const buildOnboardedKey = (address?: string | null) =>
   address ? `${ONBOARDED_STORAGE_KEY}:${address.toLowerCase()}` : ONBOARDED_STORAGE_KEY;
@@ -20,7 +19,6 @@ export function Login() {
     connectWallet,
     isAuthenticating,
     smartAccountClient,
-    smartAccountAddress,
     authMode,
     error,
     isAuthenticated,
@@ -28,9 +26,7 @@ export function Login() {
 
   const [loadingState, setLoadingState] = useState<LoadingState | null>(null);
   const [loadingMessage, setLoadingMessage] = useState<string | undefined>(undefined);
-  const [hasOnboarded, setHasOnboarded] = useState<boolean>(() =>
-    typeof window !== "undefined" ? localStorage.getItem(ONBOARDED_STORAGE_KEY) === "true" : false
-  );
+  const { open: openAppKit } = useAppKit();
   const {
     joinGarden,
     isPending: isJoiningGarden,
@@ -44,13 +40,7 @@ export function Login() {
   // Check if we're on a nested route (like /login/recover)
   const isNestedRoute = location.pathname !== "/login";
 
-  useEffect(() => {
-    const key = buildOnboardedKey(smartAccountAddress);
-    const isStored =
-      localStorage.getItem(key) === "true" ||
-      localStorage.getItem(ONBOARDED_STORAGE_KEY) === "true";
-    setHasOnboarded(isStored);
-  }, [smartAccountAddress]);
+  // Onboarding status is tracked in localStorage directly via buildOnboardedKey
 
   // Watch wagmi connection and sync to auth provider
   useEffect(() => {
@@ -85,7 +75,6 @@ export function Login() {
 
       if (alreadyGardener || alreadyOnboarded) {
         localStorage.setItem(onboardingKey, "true");
-        setHasOnboarded(true);
         setLoadingState(null);
         setLoadingMessage(undefined);
         return;
@@ -100,7 +89,6 @@ export function Login() {
       try {
         await joinGarden(session);
         localStorage.setItem(onboardingKey, "true");
-        setHasOnboarded(true);
         toast.success("Welcome! You're now part of the Green Goods community garden.");
       } catch (joinErr) {
         const message =
@@ -114,7 +102,6 @@ export function Login() {
           });
         } else {
           localStorage.setItem(onboardingKey, "true");
-          setHasOnboarded(true);
         }
       }
     } catch (err) {
@@ -129,7 +116,7 @@ export function Login() {
 
   const handleWalletLogin = () => {
     console.log("Opening AppKit wallet modal");
-    appKit.open();
+    openAppKit();
   };
 
   // If on a nested route (like /login/recover), render the child route

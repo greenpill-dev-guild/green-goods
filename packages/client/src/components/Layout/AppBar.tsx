@@ -10,8 +10,8 @@ import {
 import { useIntl } from "react-intl";
 import { Link, useLocation } from "react-router-dom";
 
-import { useNavigateToTop } from "@/hooks/app/useNavigateToTop";
-import { cn } from "@/utils/styles/cn";
+import { useNavigateToTop } from "@green-goods/shared/hooks";
+import { cn } from "@green-goods/shared/utils";
 
 export const AppBar = () => {
   const { pathname } = useLocation();

@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { RiArrowLeftLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 
-import { cn } from "@/utils/cn";
+import { cn } from "@green-goods/shared/utils";
 
 type BackLinkConfig = {
   to: string;

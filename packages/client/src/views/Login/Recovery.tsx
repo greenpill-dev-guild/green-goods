@@ -1,11 +1,11 @@
+import { APP_NAME } from "@green-goods/shared/config";
+import { usePasskeyAuth as useAuth } from "@green-goods/shared/hooks";
+import { recoverPasskeyAccount } from "@green-goods/shared/modules";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/UI/Button";
 import { FormInput } from "@/components/UI/Form/Input";
-import { APP_NAME } from "@/config/app";
-import { useAuth } from "@/hooks/auth/useAuth";
-import { recoverPasskeyAccount } from "@/modules/auth/passkey";
 
 export function Recovery() {
   const navigate = useNavigate();
@@ -101,7 +101,7 @@ export function Recovery() {
           <p className="font-semibold">How Recovery Works:</p>
           <ol className="ml-4 list-decimal space-y-1 text-xs">
             <li>Your username looks up your account address on mainnet ENS</li>
-            <li>You'll be prompted to verify with your passkey (biometric or security key)</li>
+            <li>You&apos;ll be prompted to verify with your passkey (biometric or security key)</li>
             <li>If the passkey matches, your account is recovered instantly</li>
           </ol>
           <p className="mt-2 text-xs">

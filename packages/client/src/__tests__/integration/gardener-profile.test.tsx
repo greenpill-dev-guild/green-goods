@@ -2,10 +2,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { useGardenerProfile } from "@/hooks/gardener/useGardenerProfile";
+import { useGardenerProfile } from "@green-goods/shared/hooks";
 
 // Mock auth context
-vi.mock("@/hooks/auth/useAuth", () => ({
+vi.mock("@green-goods/shared/hooks", () => ({
   useAuth: vi.fn(() => ({
     smartAccountClient: {
       sendTransaction: vi.fn(async () => "0x1234567890abcdef"),
@@ -80,7 +80,7 @@ describe("Gardener Profile Integration Tests", () => {
       const toast = await import("react-hot-toast");
 
       // Mock auth to return null client (simulate error)
-      vi.mocked(await import("@/hooks/auth/useAuth")).useAuth.mockReturnValue({
+      vi.mocked(await import("@green-goods/shared/hooks")).useAuth.mockReturnValue({
         smartAccountClient: null,
         smartAccountAddress: null,
         isReady: true,

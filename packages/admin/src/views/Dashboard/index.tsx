@@ -1,9 +1,9 @@
-import { useQuery } from "urql";
-import { graphql } from "gql.tada";
-import { useRole } from "@/hooks/useRole";
-import { useChainId } from "wagmi";
-import type { Garden } from "@/types/garden";
+import { useRole } from "@green-goods/shared/hooks";
+// Garden type is now global - no import needed
 import { RiPlantLine, RiUserLine } from "@remixicon/react";
+import { graphql } from "gql.tada";
+import { useQuery } from "urql";
+import { useChainId } from "wagmi";
 
 const GET_DASHBOARD_STATS = graphql(`
   query GetDashboardStats($chainId: Int!) {

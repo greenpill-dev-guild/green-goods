@@ -6,7 +6,7 @@ import {
   RiWifiOffLine,
 } from "@remixicon/react";
 import { Component, ErrorInfo, ReactNode } from "react";
-import { track } from "@/modules/app/posthog";
+import { track } from "@green-goods/shared/modules";
 import { Button } from "../Button";
 
 interface Props {

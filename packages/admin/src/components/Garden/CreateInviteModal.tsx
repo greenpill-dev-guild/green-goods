@@ -1,7 +1,7 @@
+import { useGardenInvites } from "@green-goods/shared/hooks/garden";
+import { cn } from "@green-goods/shared/utils";
+import { RiClipboardLine, RiCloseLine } from "@remixicon/react";
 import { useState } from "react";
-import { RiCloseLine, RiClipboardLine } from "@remixicon/react";
-import { cn } from "@/utils/cn";
-import { useGardenInvites } from "@/hooks/useGardenInvites";
 
 interface CreateInviteModalProps {
   isOpen: boolean;

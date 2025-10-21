@@ -1,15 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import {
-  useForm,
-  useFieldArray,
-  useWatch,
-  type Control,
-  type FieldError,
-  type FieldErrorsImpl,
-  type Path,
-  type SubmitErrorHandler,
-} from "react-hook-form";
-import { z } from "zod";
+import { useCreateAssessmentWorkflow } from "@green-goods/shared/hooks";
+import { useAdminStore } from "@green-goods/shared/stores";
+import { cn } from "@green-goods/shared/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   RiAddLine,
@@ -19,12 +10,20 @@ import {
   RiErrorWarningLine,
   RiLoader4Line,
 } from "@remixicon/react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type Control,
+  type FieldError,
+  type FieldErrorsImpl,
+  type Path,
+  type SubmitErrorHandler,
+  useFieldArray,
+  useForm,
+  useWatch,
+} from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { useAccount } from "wagmi";
-
-import { useCreateAssessmentWorkflow } from "@/hooks/useCreateAssessmentWorkflow";
-import { useAdminStore } from "@/stores/admin";
-import { cn } from "@/utils/cn";
+import { z } from "zod";
 
 const EAS_EXPLORER_URL = "https://base-sepolia.easscan.org";
 const CAPITALS_HINT =
@@ -120,6 +119,7 @@ type CreateAssessmentFormValues = z.infer<typeof createAssessmentSchema>;
 
 export type CreateAssessmentForm = CreateAssessmentFormValues & {
   evidenceMedia: File[];
+  metrics: string; // Will be parsed to Record<string, unknown> before submission
 };
 
 type StepId = "overview" | "timeline" | "evidence" | "review";
@@ -181,6 +181,7 @@ export function CreateAssessmentModal({ isOpen, onClose, gardenId }: CreateAsses
   const evidenceCacheRef = useRef<File[]>([]);
   const shouldPersistOnCloseRef = useRef(true);
   const [currentStep, setCurrentStep] = useState(0);
+  const [submittedTitle, setSubmittedTitle] = useState<string | null>(null);
 
   const {
     register,
@@ -192,6 +193,7 @@ export function CreateAssessmentModal({ isOpen, onClose, gardenId }: CreateAsses
     getValues,
     setValue,
   } = useForm<CreateAssessmentForm>({
+    // @ts-expect-error - Complex Zod schema type incompatibility with react-hook-form
     resolver: zodResolver(createAssessmentSchema),
     defaultValues: defaultValuesRef.current,
     mode: "onChange",
@@ -255,6 +257,7 @@ export function CreateAssessmentModal({ isOpen, onClose, gardenId }: CreateAsses
 
   const onValid = async (formData: CreateAssessmentForm) => {
     try {
+      setSubmittedTitle(formData.title);
       if (!address) {
         toast.error("Please connect your wallet first.");
         return;
@@ -270,9 +273,19 @@ export function CreateAssessmentModal({ isOpen, onClose, gardenId }: CreateAsses
         return;
       }
 
-      const payload: CreateAssessmentForm = {
+      // Parse metrics from string to object
+      let metricsObj: Record<string, unknown> = {};
+      try {
+        metricsObj = JSON.parse(formData.metrics.trim() || "{}");
+      } catch (error) {
+        console.error("Invalid JSON in metrics field", error);
+        toast.error("Invalid JSON in metrics field");
+        return;
+      }
+
+      const payload = {
         ...formData,
-        metrics: formData.metrics.trim(),
+        metrics: metricsObj,
         capitals: formData.capitals.map((capital) => capital.trim()),
         reportDocuments: formData.reportDocuments.map((doc) => doc.trim()),
         impactAttestations: formData.impactAttestations.map((uid) => uid.trim()),
@@ -282,9 +295,12 @@ export function CreateAssessmentModal({ isOpen, onClose, gardenId }: CreateAsses
         description: formData.description.trim(),
         assessmentType: formData.assessmentType.trim(),
         evidenceMedia: evidenceFiles,
+        gardenId,
+        startDate: Number(new Date(formData.startDate).getTime() / 1000),
+        endDate: Number(new Date(formData.endDate).getTime() / 1000),
       };
 
-      startCreation({ ...payload, gardenId });
+      startCreation(payload as any);
       const uid = await submitCreation();
       setLastAttestationId(uid);
       toast.success("Assessment submitted successfully!");
@@ -379,12 +395,14 @@ export function CreateAssessmentModal({ isOpen, onClose, gardenId }: CreateAsses
       role="dialog"
       aria-modal="true"
     >
-      <div
+      <button
+        type="button"
         className={cn(
           "fixed inset-0 bg-black/30 transition-opacity",
           isOpen ? "opacity-100" : "opacity-0"
         )}
         onClick={handleDismiss}
+        aria-label="Dismiss create assessment modal"
       />
       <div
         className={cn(
@@ -392,7 +410,6 @@ export function CreateAssessmentModal({ isOpen, onClose, gardenId }: CreateAsses
           "max-h-[calc(100vh-80px)]",
           isOpen ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
         )}
-        onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4 dark:border-gray-700 dark:bg-gray-900/80">
           <div>
@@ -577,14 +594,14 @@ export function CreateAssessmentModal({ isOpen, onClose, gardenId }: CreateAsses
                       />
                     </LabeledField>
                     <ArrayInput
-                      control={control}
+                      control={control as any}
                       name="capitals"
                       label="Forms of capital"
                       placeholder="e.g. natural capital"
                       helper={CAPITALS_HINT}
                       emptyHint="No capitals selected yet."
                       disabled={isSubmitting}
-                      error={extractErrorMessage(errors.capitals)}
+                      error={extractErrorMessage(errors.capitals as any)}
                       addLabel="Add capital"
                     />
                   </Section>
@@ -623,14 +640,14 @@ export function CreateAssessmentModal({ isOpen, onClose, gardenId }: CreateAsses
                       />
                     </LabeledField>
                     <ArrayInput
-                      control={control}
+                      control={control as any}
                       name="tags"
                       label="Tags"
                       placeholder="water-quality"
                       helper="Add labels to group similar assessments."
                       emptyHint="No tags added."
                       disabled={isSubmitting}
-                      error={extractErrorMessage(errors.tags)}
+                      error={extractErrorMessage(errors.tags as any)}
                       addLabel="Add tag"
                     />
                   </Section>
@@ -707,25 +724,25 @@ export function CreateAssessmentModal({ isOpen, onClose, gardenId }: CreateAsses
                       )}
                     </div>
                     <ArrayInput
-                      control={control}
+                      control={control as any}
                       name="reportDocuments"
                       label="Report documents"
                       placeholder="https://..."
                       helper="Paste URLs or IPFS CIDs for supporting documents."
                       emptyHint="No report documents added."
                       disabled={isSubmitting}
-                      error={extractErrorMessage(errors.reportDocuments)}
+                      error={extractErrorMessage(errors.reportDocuments as any)}
                       addLabel="Add document"
                     />
                     <ArrayInput
-                      control={control}
+                      control={control as any}
                       name="impactAttestations"
                       label="Related impact attestations"
                       placeholder="0x..."
                       helper="Reference related EAS attestations using their 32-byte UID."
                       emptyHint="No attestation references added."
                       disabled={isSubmitting}
-                      error={extractErrorMessage(errors.impactAttestations)}
+                      error={extractErrorMessage(errors.impactAttestations as any)}
                       addLabel="Add attestation"
                       transformValue={(value) => value.toLowerCase()}
                     />
@@ -931,8 +948,8 @@ function ArrayInput<TName extends Path<CreateAssessmentFormValues>>({
   error,
   transformValue,
 }: ArrayInputProps<TName>) {
-  const { fields, append, remove } = useFieldArray<CreateAssessmentFormValues, TName>({
-    control,
+  const { fields, append, remove } = useFieldArray({
+    control: control as any,
     name,
   });
   const values = (useWatch({ control, name }) as string[] | undefined) ?? [];
@@ -943,7 +960,7 @@ function ArrayInput<TName extends Path<CreateAssessmentFormValues>>({
     if (!trimmed) {
       return;
     }
-    append(transformValue ? transformValue(trimmed) : trimmed);
+    append(transformValue ? transformValue(trimmed) : (trimmed as any));
     setInputValue("");
   };
 

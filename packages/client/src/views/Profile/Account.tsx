@@ -13,9 +13,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/UI/Select/Select";
-import { useAuth } from "@/hooks/auth/useAuth";
-import { type Locale, useApp } from "@/providers/app";
-import { capitalize } from "@/utils/app/text";
+import { useAuth } from "@green-goods/shared/hooks";
+import { type Locale, useApp } from "@green-goods/shared/providers/app";
+import { capitalize } from "@green-goods/shared/utils/app/text";
 
 interface ApplicationSettings {
   title: string;

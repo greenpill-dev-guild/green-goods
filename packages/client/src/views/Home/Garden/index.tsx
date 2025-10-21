@@ -5,23 +5,26 @@ import {
   RiHammerFill,
   RiMapPin2Fill,
 } from "@remixicon/react";
-import React from "react";
+import React, { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation, useParams } from "react-router-dom";
 import { GardenAssessments } from "@/components/Garden/Assessments";
-import { GardenGardeners } from "@/components/Garden/Gardeners";
+import { GardenGardeners, type GardenMember } from "@/components/Garden/Gardeners";
 import { GardenWork } from "@/components/Garden/Work";
 import { GardenErrorBoundary } from "@/components/UI/ErrorBoundary/ErrorBoundary";
 import { type StandardTab, StandardTabs } from "@/components/UI/Tabs";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
-import { useNavigateToTop } from "@/hooks/app/useNavigateToTop";
-import { useBrowserNavigation } from "@/hooks/app/useBrowserNavigation";
-import { GardenTab, useGardenTabs } from "@/hooks/garden/useGardenTabs";
-//
-// import { useQueryClient } from "@tanstack/react-query";
-import { useActions, useGardeners, useGardens } from "@/hooks/blockchain/useBaseLists";
-import { useWorks } from "@/hooks/work/useWorks";
-import { DEFAULT_CHAIN_ID } from "@/config/blockchain";
+import {
+  GardenTab,
+  useActions,
+  useBrowserNavigation,
+  useGardenTabs,
+  useGardeners,
+  useGardens,
+  useNavigateToTop,
+  useWorks,
+} from "@green-goods/shared/hooks";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
 
 type GardenProps = {};
 
@@ -63,20 +66,42 @@ export const Garden: React.FC<GardenProps> = () => {
   const { data: allGardeners = [] } = useGardeners();
   const { data: actions = [] } = useActions(chainId);
   const { works: mergedWorks } = useWorks(gardenIdParam || "");
-  const gardeners: GardenerCard[] = garden?.gardeners
-    ? garden.gardeners.map((address) => {
-        const match = allGardeners.find((g) => g.account?.toLowerCase() === address.toLowerCase());
-        return {
-          id: match?.id || address,
-          account: address,
-          username: match?.username || undefined,
-          email: match?.email || undefined,
-          phone: match?.phone || undefined,
-          avatar: match?.avatar || undefined,
-          registeredAt: match?.registeredAt || Math.floor(Date.now() / 1000),
-        };
-      })
-    : [];
+  const members = useMemo<GardenMember[]>(() => {
+    if (!garden) return [];
+
+    const operatorSet = new Set((garden.operators ?? []).map((addr) => addr.toLowerCase()));
+    const gardenerSet = new Set((garden.gardeners ?? []).map((addr) => addr.toLowerCase()));
+    const seen = new Set<string>();
+    const orderedAddresses: string[] = [];
+
+    for (const list of [garden.operators ?? [], garden.gardeners ?? []]) {
+      for (const address of list) {
+        const normalized = address.toLowerCase();
+        if (seen.has(normalized)) continue;
+        seen.add(normalized);
+        orderedAddresses.push(address);
+      }
+    }
+
+    const fallbackRegisteredAt = garden.createdAt ?? Date.now();
+
+    return orderedAddresses.map((address) => {
+      const normalized = address.toLowerCase();
+      const match = allGardeners.find((g) => g.account?.toLowerCase() === normalized);
+
+      return {
+        id: match?.id || address,
+        account: address,
+        username: match?.username || undefined,
+        email: match?.email || undefined,
+        phone: match?.phone || undefined,
+        avatar: match?.avatar || undefined,
+        registeredAt: match?.registeredAt ?? fallbackRegisteredAt,
+        isOperator: operatorSet.has(normalized),
+        isGardener: gardenerSet.has(normalized),
+      };
+    });
+  }, [allGardeners, garden]);
 
   if (!garden) return null;
 
@@ -120,7 +145,7 @@ export const Garden: React.FC<GardenProps> = () => {
           />
         );
       case GardenTab.Gardeners:
-        return <GardenGardeners gardeners={gardeners} garden={garden} />;
+        return <GardenGardeners members={members} garden={garden} />;
     }
   };
 

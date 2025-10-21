@@ -1,11 +1,7 @@
+import { AppKitProvider, WalletAuthProvider } from "@green-goods/shared/providers";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { WagmiProvider } from "wagmi";
-import { QueryClientProvider } from "@tanstack/react-query";
-
 import App from "@/App.tsx";
-import { AuthProvider } from "@/providers/AuthProvider";
-import { wagmiConfig, queryClient } from "@/config";
 
 import "@/index.css";
 
@@ -33,13 +29,22 @@ function initializeTheme() {
 initializeTheme();
 
 export const Root = () => (
-  <WagmiProvider config={wagmiConfig}>
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-    </QueryClientProvider>
-  </WagmiProvider>
+  <AppKitProvider
+    projectId={
+      import.meta.env.VITE_REOWN_PROJECT_ID || import.meta.env.VITE_WALLETCONNECT_PROJECT_ID
+    }
+    metadata={{
+      name: "Green Goods Admin",
+      description: "Garden management dashboard for Green Goods protocol",
+      url: "https://admin.greengoods.app",
+      icons: ["https://greengoods.app/icon.png"],
+    }}
+    defaultChainId={42161}
+  >
+    <WalletAuthProvider>
+      <App />
+    </WalletAuthProvider>
+  </AppKitProvider>
 );
 
 const container = document.getElementById("root");

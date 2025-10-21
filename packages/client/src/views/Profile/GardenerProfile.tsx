@@ -1,12 +1,13 @@
+import { useGardenerProfile } from "@green-goods/shared/hooks";
+import { uploadFileToIPFS } from "@green-goods/shared/modules";
 import { RiImageAddLine, RiLoader4Line, RiSaveLine } from "@remixicon/react";
 import { useState } from "react";
+import toast from "react-hot-toast";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/UI/Button";
 import { Card } from "@/components/UI/Card/Card";
 import { FormInput } from "@/components/UI/Form/Input";
 import { FormText } from "@/components/UI/Form/Text";
-import { useGardenerProfile } from "@/hooks/gardener/useGardenerProfile";
-import { uploadToIPFS } from "@/modules/data/pinata";
 
 export const GardenerProfile: React.FC = () => {
   const intl = useIntl();
@@ -71,7 +72,7 @@ export const GardenerProfile: React.FC = () => {
 
     setUploadingImage(true);
     try {
-      const ipfsHash = await uploadToIPFS(file);
+      const ipfsHash = await uploadFileToIPFS(file);
       setFormData((prev) => ({ ...prev, imageURI: `ipfs://${ipfsHash}` }));
     } catch (error) {
       console.error("Image upload failed:", error);

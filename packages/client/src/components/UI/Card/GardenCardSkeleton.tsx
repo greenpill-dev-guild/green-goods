@@ -1,5 +1,5 @@
 import * as React from "react";
-import { cn } from "@/utils/styles/cn";
+import { cn } from "@green-goods/shared/utils";
 import { Card } from "./Card";
 import { cardVariants as gardenCardVariants, type GardenCardVariantProps } from "./GardenCard";
 

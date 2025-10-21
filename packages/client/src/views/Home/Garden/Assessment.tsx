@@ -1,12 +1,12 @@
-import { useMemo, type FC } from "react";
-import { useParams } from "react-router-dom";
-import { useGardens } from "@/hooks/blockchain/useBaseLists";
-import { DEFAULT_CHAIN_ID } from "@/config/blockchain";
-import { WorkViewSkeleton } from "@/components/UI/WorkView/WorkView";
-import { TopNav } from "@/components/UI/TopNav/TopNav";
-import { Badge } from "@/components/UI/Badge/Badge";
-import getTag from "@/utils/app/tags";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
+import { useGardens } from "@green-goods/shared/hooks";
+import { getTag } from "@green-goods/shared/utils";
+import { type FC, useMemo } from "react";
 import { useIntl } from "react-intl";
+import { useParams } from "react-router-dom";
+import { Badge } from "@/components/UI/Badge/Badge";
+import { TopNav } from "@/components/UI/TopNav/TopNav";
+import { WorkViewSkeleton } from "@/components/UI/WorkView/WorkView";
 
 type GardenAssessmentProps = {};
 
@@ -56,9 +56,7 @@ export const GardenAssessment: FC<GardenAssessmentProps> = () => {
       <TopNav onBackClick={() => window.history.back()} />
       <div className="padded flex flex-col gap-8 pt-16">
         <header className="space-y-3">
-          <p className="text-xs uppercase tracking-wide text-slate-500">
-            {garden.title ?? garden.name}
-          </p>
+          <p className="text-xs uppercase tracking-wide text-slate-500">{garden.name}</p>
           <h1 className="text-2xl font-semibold text-slate-900">{assessment.title}</h1>
           <p className="text-sm text-slate-600">{assessment.description}</p>
           <div className="flex flex-wrap gap-2">

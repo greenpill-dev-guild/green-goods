@@ -13,23 +13,25 @@ import { TopNav } from "@/components/UI/TopNav/TopNav";
 import ConfirmDrawer from "@/components/UI/ModalDrawer/ConfirmDrawer";
 import { WorkViewSkeleton } from "@/components/UI/WorkView/WorkView";
 import toast from "react-hot-toast";
-import { useNavigateToTop } from "@/hooks/app/useNavigateToTop";
-import { DEFAULT_CHAIN_ID } from "@/config/blockchain";
-import { useUser } from "@/hooks/auth/useUser";
-import { useJobQueueEvents } from "@/modules/job-queue/event-bus";
-import { useWorkApproval } from "@/hooks/work/useWorkApproval";
-import { isValidAttestationId, openEASExplorer } from "@/utils/eas/explorers";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
+import {
+  useActions,
+  useGardens,
+  useNavigateToTop,
+  useUser,
+  useWorkApproval,
+  useWorks,
+} from "@green-goods/shared/hooks";
+import { getFileByHash, useJobQueueEvents } from "@green-goods/shared/modules";
+import { isValidAttestationId, openEASExplorer } from "@green-goods/shared/utils/eas/explorers";
 import {
   downloadWorkData,
   downloadWorkMedia,
   shareWork,
   type WorkData,
-} from "@/utils/work/workActions";
+} from "@green-goods/shared/utils/work/workActions";
 import { WorkCompleted } from "../../Garden/Completed";
 import WorkViewSection from "./WorkViewSection";
-import { useActions, useGardens } from "@/hooks/blockchain/useBaseLists";
-import { useWorks } from "@/hooks/work/useWorks";
-import { getFileByHash } from "@/modules/data/pinata";
 
 type GardenWorkProps = {};
 

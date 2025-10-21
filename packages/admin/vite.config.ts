@@ -27,7 +27,23 @@ export default defineConfig(({ mode }) => {
     envPrefix: ["VITE_", "PRIVY_", "SKIP_"],
     build: { target: "es2020", sourcemap: true, chunkSizeWarningLimit: 2000 },
     plugins,
-    resolve: { alias: { "@": resolve(__dirname, "./src") } },
+    resolve: {
+      alias: {
+        "@": resolve(__dirname, "./src"),
+        "@green-goods/shared": resolve(__dirname, "../shared/src"),
+        "@green-goods/shared/hooks": resolve(__dirname, "../shared/src/hooks"),
+        "@green-goods/shared/providers": resolve(__dirname, "../shared/src/providers"),
+        "@green-goods/shared/modules": resolve(__dirname, "../shared/src/modules"),
+        "@green-goods/shared/utils": resolve(__dirname, "../shared/src/utils"),
+        "@green-goods/shared/config": resolve(__dirname, "../shared/src/config"),
+        "@green-goods/shared/types": resolve(__dirname, "../shared/src/types"),
+        "@green-goods/shared/stores": resolve(__dirname, "../shared/src/stores"),
+        "@green-goods/shared/mocks": resolve(__dirname, "../shared/src/mocks"),
+        "@green-goods/shared/i18n": resolve(__dirname, "../shared/src/i18n"),
+        "@green-goods/shared/workflows": resolve(__dirname, "../shared/src/workflows"),
+        "@green-goods/shared/constants": resolve(__dirname, "../shared/src/constants"),
+      }
+    },
     server: {
       port: 3002,
       strictPort: true,

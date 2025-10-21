@@ -1,8 +1,12 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
+import {
+  type DuplicateCheckResult,
+  defaultDeduplicationManager,
+} from "@green-goods/shared/modules";
 import { RiArrowRightSLine, RiHammerFill, RiImage2Fill, RiPlantFill } from "@remixicon/react";
 import React, { useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-
 import { Button } from "@/components/UI/Button";
 import { ActionCardSkeleton } from "@/components/UI/Card/ActionCardSkeleton";
 import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
@@ -10,17 +14,12 @@ import { DuplicateWorkWarning } from "@/components/UI/DuplicateWorkWarning/Dupli
 import { FormInfo } from "@/components/UI/Form/Info";
 import { FormProgress } from "@/components/UI/Form/Progress";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
-import { DEFAULT_CHAIN_ID } from "@/config/blockchain";
-import {
-  type DuplicateCheckResult,
-  defaultDeduplicationManager,
-} from "@/modules/work/deduplication";
 
 // import { ActionCardSkeleton } from "@/components/UI/Card/ActionCardSkeleton";
 // import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
 
+import { useWork, WorkTab } from "@green-goods/shared/providers/work";
 import { WorkViewSkeleton } from "@/components/UI/WorkView/WorkView";
-import { useWork, WorkTab } from "@/providers/work";
 import { WorkDetails } from "./Details";
 import { WorkIntro } from "./Intro";
 import { WorkMedia } from "./Media";
@@ -81,8 +80,9 @@ const Work: React.FC = () => {
       garden ||
       ({
         id: gardenAddress || "",
+        chainId: 84532, // Default to Base Sepolia
         tokenAddress: "",
-        tokenID: 0,
+        tokenID: BigInt(0),
         name: intl.formatMessage({ id: "app.garden.unknown", defaultMessage: "Unknown Garden" }),
         description: "",
         location: "",

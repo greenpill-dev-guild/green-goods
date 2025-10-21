@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { RiCloseLine, RiClipboardLine } from "@remixicon/react";
-import { cn } from "@/utils/cn";
+import { cn } from "@green-goods/shared/utils";
 
 interface AddMemberModalProps {
   isOpen: boolean;

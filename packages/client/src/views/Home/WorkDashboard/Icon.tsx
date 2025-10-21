@@ -1,8 +1,8 @@
 import { RiCloudOffLine, RiLoader4Line, RiTaskLine } from "@remixicon/react";
 import React, { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
-import { useOffline } from "@/hooks/app/useOffline";
-import { cn } from "@/utils/styles/cn";
+import { useOffline } from "@green-goods/shared/hooks";
+import { cn } from "@green-goods/shared/utils";
 import { WorkDashboard } from ".";
 
 interface WorkDashboardIconProps {

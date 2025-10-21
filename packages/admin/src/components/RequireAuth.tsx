@@ -1,5 +1,5 @@
+import { useWalletAuth as useAuth } from "@green-goods/shared/providers";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useAuth } from "@/providers/AuthProvider";
 import { DashboardLayoutSkeleton } from "@/components/Layout/DashboardLayoutSkeleton";
 
 export function RequireAuth() {

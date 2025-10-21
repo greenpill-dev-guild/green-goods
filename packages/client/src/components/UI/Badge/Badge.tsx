@@ -1,6 +1,6 @@
 import type * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
-import { cn } from "@/utils/styles/cn";
+import { cn } from "@green-goods/shared/utils";
 
 const badgeVariants = tv({
   base: "items-center rounded-md border px-.5 py-.25 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-nowrap whitespace-nowrap flex flex-row gap-1",

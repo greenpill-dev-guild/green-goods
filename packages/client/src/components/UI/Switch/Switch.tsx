@@ -1,5 +1,5 @@
 import React from "react";
-import { cn } from "@/utils/styles/cn";
+import { cn } from "@green-goods/shared/utils";
 
 export interface SwitchProps {
   checked?: boolean;

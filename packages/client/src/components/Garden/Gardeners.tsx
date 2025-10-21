@@ -1,10 +1,10 @@
 import React, { forwardRef, memo, useMemo, useState } from "react";
 import { FixedSizeList as List } from "react-window";
 import { useIntl } from "react-intl";
-import { formatAddress } from "@/utils/app/text";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/UI/Avatar/Avatar";
-// import { ModalDrawer } from "@/components/UI/ModalDrawer/ModalDrawer";
 import { Button } from "@/components/UI/Button";
+import { Badge } from "@/components/UI/Badge/Badge";
 import {
   RiFileCopyLine,
   RiMailFill,
@@ -14,31 +14,39 @@ import {
 } from "@remixicon/react";
 import toast from "react-hot-toast";
 
+export type GardenMember = GardenerCard & {
+  account: string;
+  isOperator: boolean;
+  isGardener: boolean;
+};
+
 interface GardenGardenersProps {
-  gardeners: GardenerCard[];
+  members: GardenMember[];
   garden?: Garden;
 }
 
-const GardenerItem = memo(function GardenerItem({
-  user,
+const GardenMemberItem = memo(function GardenMemberItem({
+  member,
   garden,
   onClick,
 }: {
-  user: GardenerCard;
+  member: GardenMember;
   garden?: Garden;
   onClick?: () => void;
 }) {
   const intl = useIntl();
   const displayName =
-    user.username ||
-    user.email ||
-    user.phone ||
-    (user.account ? formatAddress(user.account) : null) ||
+    member.username ||
+    member.email ||
+    member.phone ||
+    (member.account ? formatAddress(member.account) : null) ||
     intl.formatMessage({
       id: "app.garden.gardeners.unknownUser",
       description: "Unknown User",
     });
-  const subline = user.account ? formatAddress(user.account) : user.email || user.phone || "";
+  const subline = member.account
+    ? formatAddress(member.account)
+    : member.email || member.phone || "";
   return (
     <button
       className="flex items-center gap-3 border-slate-200 border rounded-lg p-2 bg-white cursor-pointer hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-sm hover:shadow w-full text-left"
@@ -47,7 +55,7 @@ const GardenerItem = memo(function GardenerItem({
     >
       <Avatar className="w-10 h-10">
         <AvatarImage
-          src={user.avatar ?? "/images/avatar.png"}
+          src={member.avatar ?? "/images/avatar.png"}
           alt="Profile"
           loading="lazy"
           decoding="async"
@@ -55,12 +63,30 @@ const GardenerItem = memo(function GardenerItem({
         <AvatarFallback />
       </Avatar>
       <div className="flex flex-col">
-        <span className="font-semibold">{displayName}</span>
+        <div className="flex items-center gap-2">
+          <span className="font-semibold">{displayName}</span>
+          {member.isOperator ? (
+            <Badge
+              variant="pill"
+              tint="secondary"
+              className="text-xs font-semibold"
+              aria-label={intl.formatMessage({
+                id: "app.garden.gardeners.operatorBadge",
+                defaultMessage: "Operator",
+              })}
+            >
+              {intl.formatMessage({
+                id: "app.garden.gardeners.operatorBadge",
+                defaultMessage: "Operator",
+              })}
+            </Badge>
+          ) : null}
+        </div>
         {subline ? <span className="text-xs text-slate-600">{subline}</span> : null}
         <span className="text-xs text-slate-500 flex items-center gap-1">
           <RiCalendarEventFill className="w-3.5 h-3.5 text-primary" />
           {intl.formatMessage({ id: "app.garden.gardeners.registered", description: "Registered" })}
-          : {new Date(user.registeredAt || garden?.createdAt || Date.now()).toDateString()}
+          : {new Date(member.registeredAt || garden?.createdAt || Date.now()).toDateString()}
         </span>
       </div>
     </button>
@@ -68,10 +94,10 @@ const GardenerItem = memo(function GardenerItem({
 });
 
 export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps>(
-  ({ gardeners, garden }, ref) => {
+  ({ members, garden }, ref) => {
     const intl = useIntl();
-    const shouldVirtualize = gardeners.length > 40;
-    const [selected, setSelected] = useState<GardenerCard | null>(null);
+    const shouldVirtualize = members.length > 40;
+    const [selected, setSelected] = useState<GardenMember | null>(null);
     const title = useMemo(() => {
       if (!selected) return "";
       return (
@@ -96,27 +122,27 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
 
     return (
       <ul className="flex-1" ref={ref}>
-        {gardeners.length ? (
+        {members.length ? (
           shouldVirtualize ? (
-            <List height={600} itemCount={gardeners.length} itemSize={64} width={"100%"}>
+            <List height={600} itemCount={members.length} itemSize={64} width={"100%"}>
               {({ index, style }: { index: number; style: React.CSSProperties }) => (
                 <div style={style} className="px-0.5">
-                  <GardenerItem
-                    user={gardeners[index]}
+                  <GardenMemberItem
+                    member={members[index]}
                     garden={garden}
-                    onClick={() => setSelected(gardeners[index])}
+                    onClick={() => setSelected(members[index])}
                   />
                 </div>
               )}
             </List>
           ) : (
             <div className="flex flex-col gap-4">
-              {gardeners.map((user) => (
-                <GardenerItem
-                  key={user.account ?? user.id}
-                  user={user}
+              {members.map((member) => (
+                <GardenMemberItem
+                  key={member.account ?? member.id}
+                  member={member}
                   garden={garden}
-                  onClick={() => setSelected(user)}
+                  onClick={() => setSelected(member)}
                 />
               ))}
             </div>

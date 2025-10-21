@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolvePackageJsonExports": false,
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["node"],
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["./src/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"],
+  "exclude": ["node_modules", "dist", "src/__tests__/**", "src/__mocks__/**"],
+  "plugins": [
+    {
+      "name": "gql.tada/ts-plugin",
+      "schemas": [
+        {
+          "name": "Indexer",
+          "schema": "http://localhost:8080/v1/graphql",
+          "tadaOutputLocation": "./src/types/indexer.d.ts"
+        },
+        {
+          "name": "EAS",
+          "schema": "https://arbitrum.easscan.org/graphql",
+          "tadaOutputLocation": "./src/types/eas.d.ts"
+        }
+      ]
+    }
+  ]
+}

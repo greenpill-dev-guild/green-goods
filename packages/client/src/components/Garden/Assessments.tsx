@@ -2,7 +2,7 @@ import { RiCalendarLine, RiExternalLinkLine, RiPriceTag3Line, RiStackLine } from
 import { forwardRef, memo } from "react";
 import { FixedSizeList as List } from "react-window";
 import { useIntl } from "react-intl";
-import getTag from "@/utils/app/tags";
+import { getTag } from "@green-goods/shared/utils";
 import { Badge } from "../UI/Badge/Badge";
 import { Card } from "../UI/Card/Card";
 import { Link } from "react-router-dom";

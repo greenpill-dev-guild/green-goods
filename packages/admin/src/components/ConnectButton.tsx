@@ -1,6 +1,6 @@
 import { useAccount } from "wagmi";
 import { useAppKit } from "@reown/appkit/react";
-import { cn } from "@/utils/cn";
+import { cn } from "@green-goods/shared/utils";
 
 interface ConnectButtonProps {
   className?: string;

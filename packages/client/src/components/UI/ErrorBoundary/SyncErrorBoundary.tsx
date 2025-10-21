@@ -1,6 +1,6 @@
 import React, { Component, type ReactNode } from "react";
 import toast from "react-hot-toast";
-import { track } from "@/modules/app/posthog";
+import { track } from "@green-goods/shared/modules";
 
 interface Props {
   children: ReactNode;

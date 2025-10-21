@@ -3,9 +3,9 @@ import { useIntl } from "react-intl";
 import { FixedSizeList as List } from "react-window";
 import { MinimalWorkCard } from "@/components/UI/Card/WorkCard";
 import { BeatLoader } from "@/components/UI/Loader";
-import { useNavigateToTop } from "@/hooks/app/useNavigateToTop";
+import { useNavigateToTop } from "@green-goods/shared/hooks";
 
-// import { cn } from "@/utils/cn";
+// import { cn } from "@green-goods/shared/utils/cn";
 
 interface GardenWorkProps {
   actions: Action[];

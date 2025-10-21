@@ -1,23 +1,23 @@
-import { useState } from "react";
+import { useDeploymentRegistry } from "@green-goods/shared/hooks";
+import { useAdminStore } from "@green-goods/shared/stores";
+import { getChain } from "@green-goods/shared/utils/contracts";
 import {
-  RiUploadLine,
-  RiShieldCheckLine,
-  RiErrorWarningLine,
-  RiSettings3Line,
   RiCodeBoxLine,
+  RiErrorWarningLine,
   RiGitBranchLine,
   RiLoaderLine,
+  RiSettings3Line,
+  RiShieldCheckLine,
+  RiUploadLine,
 } from "@remixicon/react";
-import { useDeploymentRegistry } from "@/hooks/useDeploymentRegistry";
-import { useAdminStore } from "@/stores/admin";
-import { getChainById } from "@/utils/contracts";
+import { useState } from "react";
 
 export default function Deployment() {
   const { selectedChainId } = useAdminStore();
   const permissions = useDeploymentRegistry();
   const [isDeploying, setIsDeploying] = useState(false);
   const [deploymentResult, setDeploymentResult] = useState<string>("");
-  const chain = getChainById(selectedChainId);
+  const chain = getChain(selectedChainId);
 
   const handleDeploy = async () => {
     setIsDeploying(true);

@@ -1,10 +1,9 @@
 // AlignUI Button v0.0.0
 
+import { recursiveCloneChildren, type PolymorphicComponentProps } from "@green-goods/shared/utils";
 import { Slot } from "@radix-ui/react-slot";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
-import type { PolymorphicComponentProps } from "../../../utils/styles/polymorphic";
-import { recursiveCloneChildren } from "../../../utils/app/recursive-clone-children";
 
 const BUTTON_ROOT_NAME = "ButtonRoot";
 const BUTTON_ICON_NAME = "ButtonIcon";

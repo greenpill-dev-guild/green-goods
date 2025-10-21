@@ -5,8 +5,8 @@ import { Books } from "@/components/Garden/BooksIcon";
 import { Badge } from "@/components/UI/Badge/Badge";
 import { FormInfo } from "@/components/UI/Form/Info";
 import { ImagePreviewDialog } from "@/components/UI/ImagePreviewDialog";
-import { track } from "@/modules/app/posthog";
-import { imageCompressor } from "@/utils/work/image-compression";
+import { track } from "@green-goods/shared/modules";
+import { imageCompressor } from "@green-goods/shared/utils/work/image-compression";
 
 interface WorkMediaProps {
   instruction: string;

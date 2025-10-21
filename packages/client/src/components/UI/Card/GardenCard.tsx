@@ -2,8 +2,8 @@ import { RiGroupFill, RiMapPinFill, RiMapPinUserFill } from "@remixicon/react";
 import * as React from "react";
 import { useIntl } from "react-intl";
 import { tv, type VariantProps } from "tailwind-variants";
-import { cn } from "@/utils/styles/cn";
-import { formatAddress } from "@/utils/app/text";
+import { cn } from "@green-goods/shared/utils";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { Badge } from "../Badge/Badge";
 import { Card, type CardRootProps } from "./Card";
 

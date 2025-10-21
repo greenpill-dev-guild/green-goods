@@ -1,3 +1,4 @@
+import { cn } from "@green-goods/shared/utils";
 import {
   RiCheckLine,
   RiCloseLine,
@@ -6,7 +7,6 @@ import {
   RiTimeLine,
 } from "@remixicon/react";
 import React from "react";
-import { cn } from "../../../utils/styles/cn";
 
 export interface StatusBadgeProps {
   status: "approved" | "rejected" | "pending" | "syncing" | "failed";

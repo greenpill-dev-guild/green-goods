@@ -1,12 +1,11 @@
-import { useParams } from "react-router-dom";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { CreateAssessmentModal } from "@/components/Garden/CreateAssessmentModal";
+import { useGardenAssessments } from "@green-goods/shared/hooks/garden";
+import { useAdminStore } from "@green-goods/shared/stores";
 import { RiExternalLinkLine, RiFileList3Line } from "@remixicon/react";
-
-import { useGardenAssessments } from "@/hooks/useGardenAssessments";
-import { DEFAULT_CHAIN_ID } from "@/config";
-import { useAdminStore } from "@/stores/admin";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { useParams } from "react-router-dom";
+import { CreateAssessmentModal } from "@/components/Garden/CreateAssessmentModal";
 import { PageHeader } from "@/components/Layout/PageHeader";
+import { DEFAULT_CHAIN_ID } from "../../config";
 
 const EAS_EXPLORER_URL = "https://explorer.easscan.org";
 

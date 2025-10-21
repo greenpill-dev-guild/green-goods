@@ -1,13 +1,13 @@
-import { useState, type ReactNode } from "react";
+import { useGardenPermissions } from "@green-goods/shared/hooks/garden";
+// Garden type is now global - no import needed
+import { resolveIPFSUrl } from "@green-goods/shared/utils/pinata";
+import { RiAddLine, RiEyeLine, RiPlantLine, RiShieldCheckLine, RiUserLine } from "@remixicon/react";
+import { graphql } from "gql.tada";
+import { type ReactNode, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "urql";
-import { graphql } from "gql.tada";
-import { RiAddLine, RiPlantLine, RiUserLine, RiEyeLine, RiShieldCheckLine } from "@remixicon/react";
-import { useGardenPermissions } from "@/hooks/useGardenPermissions";
-import { CreateGardenModal } from "@/components/Garden/CreateGardenModal";
 import { useChainId } from "wagmi";
-import { resolveIPFSUrl } from "@/utils/pinata";
-import type { Garden } from "@/types/garden";
+import { CreateGardenModal } from "@/components/Garden/CreateGardenModal";
 import { PageHeader } from "@/components/Layout/PageHeader";
 
 const GET_GARDENS = graphql(`
@@ -144,7 +144,7 @@ export default function Gardens() {
     content = (
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {gardens.map((garden) => {
-          const canManage = gardenPermissions.canManageGarden(garden);
+          const canManage = gardenPermissions.canManageGarden(garden as any);
           const resolvedBannerImage = garden.bannerImage
             ? resolveIPFSUrl(garden.bannerImage)
             : null;

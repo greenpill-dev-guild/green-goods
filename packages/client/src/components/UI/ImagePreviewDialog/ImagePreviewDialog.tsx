@@ -6,7 +6,7 @@ import {
   RiZoomOutLine,
 } from "@remixicon/react";
 import React, { TouchEvent, useCallback, useEffect, useRef, useState, WheelEvent } from "react";
-import { cn } from "@/utils/styles/cn";
+import { cn } from "@green-goods/shared/utils";
 
 export interface ImagePreviewDialogProps {
   isOpen: boolean;

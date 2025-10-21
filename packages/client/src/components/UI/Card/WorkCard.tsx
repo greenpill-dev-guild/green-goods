@@ -1,3 +1,4 @@
+import { cn } from "@green-goods/shared/utils";
 import {
   RiCheckLine,
   RiCloseLine,
@@ -11,10 +12,9 @@ import {
 } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
-import { cn } from "../../../utils/styles/cn";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { Card } from "./Card";
 import { StatusBadge } from "./StatusBadge";
-import { formatAddress } from "@/utils/app/text";
 
 export interface WorkCardItem {
   id: string;

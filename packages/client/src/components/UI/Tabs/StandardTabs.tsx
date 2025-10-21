@@ -1,5 +1,5 @@
+import { cn } from "@green-goods/shared/utils";
 import React from "react";
-import { cn } from "@/utils/styles/cn";
 
 export interface StandardTab {
   id: string;

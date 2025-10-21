@@ -1,20 +1,22 @@
-import { Provider as UrqlProvider } from "urql";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { getIndexerUrl } from "@green-goods/shared/config";
+import { createUrqlClient } from "@green-goods/shared/utils/urql";
 import { Toaster } from "react-hot-toast";
-
-import { urqlClient } from "@/utils/urql";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { Provider as UrqlProvider } from "urql";
+import { DashboardLayout } from "@/components/Layout/DashboardLayout";
 import { RequireAuth } from "@/components/RequireAuth";
 import { RequireRole } from "@/components/RequireRole";
-import { DashboardLayout } from "@/components/Layout/DashboardLayout";
-import Login from "@/views/Login";
-import Dashboard from "@/views/Dashboard";
-import Gardens from "@/views/Gardens";
-import GardenDetail from "@/views/Gardens/Detail";
 import Contracts from "@/views/Contracts";
+import Dashboard from "@/views/Dashboard";
 import Deployment from "@/views/Deployment";
+import Gardens from "@/views/Gardens";
 import GardenAssessment from "@/views/Gardens/Assessment";
+import GardenDetail from "@/views/Gardens/Detail";
+import Login from "@/views/Login";
 
 function App() {
+  const urqlClient = createUrqlClient(getIndexerUrl(import.meta.env, import.meta.env.DEV));
+
   return (
     <UrqlProvider value={urqlClient}>
       <BrowserRouter>

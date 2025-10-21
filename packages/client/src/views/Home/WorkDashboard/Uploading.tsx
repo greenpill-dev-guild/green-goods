@@ -1,6 +1,6 @@
 import React from "react";
 import { useIntl } from "react-intl";
-import { useQueueFlush } from "@/providers/jobQueue";
+import { useQueueFlush } from "@green-goods/shared/providers/jobQueue";
 import { MinimalWorkCard } from "@/components/UI/Card/WorkCard";
 
 interface UploadingTabProps {

@@ -1,3 +1,6 @@
+import { useCreateGardenWorkflow } from "@green-goods/shared/hooks";
+import { ADDRESS_REGEX, isValidAddress, useCreateGardenStore } from "@green-goods/shared/stores";
+import { cn } from "@green-goods/shared/utils";
 import {
   RiAddLine,
   RiArrowLeftLine,
@@ -8,10 +11,6 @@ import {
   RiLoader4Line,
 } from "@remixicon/react";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-
-import { useCreateGardenWorkflow } from "@/hooks/useCreateGardenWorkflow";
-import { ADDRESS_REGEX, isValidAddress, useCreateGardenStore } from "@/stores/createGarden";
-import { cn } from "@/utils/cn";
 
 interface CreateGardenModalProps {
   isOpen: boolean;
@@ -178,12 +177,14 @@ export function CreateGardenModal({ isOpen, onClose }: CreateGardenModalProps) {
       role="dialog"
       aria-modal="true"
     >
-      <div
+      <button
+        type="button"
         className={cn(
           "fixed inset-0 bg-black/30 transition-opacity",
           isOpen ? "opacity-100" : "opacity-0"
         )}
         onClick={handleDismiss}
+        aria-label="Dismiss create garden modal"
       />
       <div
         className={cn(
@@ -191,7 +192,6 @@ export function CreateGardenModal({ isOpen, onClose }: CreateGardenModalProps) {
           "max-h-[calc(100vh-80px)]",
           isOpen ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
         )}
-        onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4 dark:border-gray-700 dark:bg-gray-900/80">
           <div>
@@ -254,7 +254,7 @@ export function CreateGardenModal({ isOpen, onClose }: CreateGardenModalProps) {
               <RiErrorWarningLine className="mt-0.5 h-5 w-5" />
               <div>
                 <p className="font-medium text-red-700 dark:text-red-200">
-                  We couldn't deploy the garden
+                  We couldn&apos;t deploy the garden
                 </p>
                 <p className="mt-1 text-red-600 dark:text-red-200/80">
                   {state.context.error ?? "Please review the details and try again."}
@@ -447,11 +447,15 @@ export function CreateGardenModal({ isOpen, onClose }: CreateGardenModalProps) {
 
                   <div className="space-y-4">
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">
+                      <label
+                        className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200"
+                        htmlFor="create-garden-gardener-address"
+                      >
                         Gardeners *
                       </label>
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                         <input
+                          id="create-garden-gardener-address"
                           value={gardenerInput}
                           onChange={(event) => setGardenerInput(event.target.value)}
                           placeholder="0x..."
@@ -493,11 +497,15 @@ export function CreateGardenModal({ isOpen, onClose }: CreateGardenModalProps) {
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">
+                      <label
+                        className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200"
+                        htmlFor="create-garden-operator-address"
+                      >
                         Garden operators
                       </label>
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                         <input
+                          id="create-garden-operator-address"
                           value={operatorInput}
                           onChange={(event) => setOperatorInput(event.target.value)}
                           placeholder="0x..."
@@ -581,7 +589,7 @@ export function CreateGardenModal({ isOpen, onClose }: CreateGardenModalProps) {
                         </p>
                         {!ADDRESS_REGEX.test(form.communityToken.trim()) && (
                           <p className="mt-1 text-xs text-red-600 dark:text-red-400">
-                            The address doesn't look valid.
+                            The address doesn&apos;t look valid.
                           </p>
                         )}
                       </div>

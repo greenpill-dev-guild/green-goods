@@ -1,5 +1,5 @@
+import { type UserRole, useRole } from "@green-goods/shared/hooks";
 import { Outlet } from "react-router-dom";
-import { useRole, type UserRole } from "@/hooks/useRole";
 import { DashboardLayoutSkeleton } from "@/components/Layout/DashboardLayoutSkeleton";
 
 interface RequireRoleProps {
