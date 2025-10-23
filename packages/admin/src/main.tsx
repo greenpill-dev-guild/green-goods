@@ -1,9 +1,19 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config";
 import { AppKitProvider, WalletAuthProvider } from "@green-goods/shared/providers";
+import { AppProvider } from "@green-goods/shared/providers/app";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "@/App.tsx";
 
 import "@/index.css";
+
+type ReactRoot = ReturnType<typeof createRoot>;
+
+declare global {
+  interface Window {
+    __ADMIN_ROOT__?: ReactRoot;
+  }
+}
 
 // Initialize theme on app start
 function initializeTheme() {
@@ -39,10 +49,12 @@ export const Root = () => (
       url: "https://admin.greengoods.app",
       icons: ["https://greengoods.app/icon.png"],
     }}
-    defaultChainId={42161}
+    defaultChainId={DEFAULT_CHAIN_ID}
   >
     <WalletAuthProvider>
-      <App />
+      <AppProvider>
+        <App />
+      </AppProvider>
     </WalletAuthProvider>
   </AppKitProvider>
 );
@@ -50,9 +62,18 @@ export const Root = () => (
 const container = document.getElementById("root");
 if (!container) throw new Error("Root container not found");
 
-const root = createRoot(container);
+const root = window.__ADMIN_ROOT__ ?? createRoot(container);
+window.__ADMIN_ROOT__ = root;
+
 root.render(
   <StrictMode>
     <Root />
   </StrictMode>
 );
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    root.unmount();
+    delete window.__ADMIN_ROOT__;
+  });
+}

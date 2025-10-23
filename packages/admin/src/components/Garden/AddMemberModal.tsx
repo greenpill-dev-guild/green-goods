@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { RiCloseLine, RiClipboardLine } from "@remixicon/react";
-import { cn } from "@green-goods/shared/utils";
+import { cn, formatAddress, resolveEnsAddress } from "@green-goods/shared/utils";
+import { useEnsAddress } from "@green-goods/shared/hooks";
+import { isAddress } from "viem";
 
 interface AddMemberModalProps {
   isOpen: boolean;
@@ -20,22 +22,36 @@ export function AddMemberModal({
   const [address, setAddress] = useState("");
   const [error, setError] = useState("");
 
+  const trimmed = address.trim();
+  const isHexAddress = useMemo(() => (trimmed ? isAddress(trimmed) : false), [trimmed]);
+  const shouldResolveEns = trimmed.length > 2 && !isHexAddress;
+  const { data: resolvedEnsAddress, isFetching: resolvingEns } = useEnsAddress(
+    shouldResolveEns ? trimmed : null,
+    { enabled: shouldResolveEns }
+  );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    if (!address) {
+    if (!trimmed) {
       setError("Address is required");
       return;
     }
 
-    if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-      setError("Invalid Ethereum address");
-      return;
-    }
-
     try {
-      await onAdd(address);
+      let addressToAdd = trimmed;
+
+      if (!isAddress(addressToAdd)) {
+        const lookup = resolvedEnsAddress ?? (await resolveEnsAddress(addressToAdd));
+        if (!lookup || !isAddress(lookup)) {
+          setError("Could not resolve ENS name");
+          return;
+        }
+        addressToAdd = lookup;
+      }
+
+      await onAdd(addressToAdd);
       setAddress("");
       onClose();
     } catch (error) {
@@ -98,14 +114,17 @@ export function AddMemberModal({
               htmlFor="member-address"
               className="block text-sm font-medium text-gray-700 mb-2"
             >
-              Ethereum Address
+              Ethereum Address or ENS Name
             </label>
             <div className="relative">
               <input
                 id="member-address"
                 type="text"
                 value={address}
-                onChange={(e) => setAddress(e.target.value)}
+                onChange={(e) => {
+                  setAddress(e.target.value);
+                  setError("");
+                }}
                 className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 placeholder="0x..."
                 disabled={isLoading}
@@ -120,6 +139,15 @@ export function AddMemberModal({
                 <RiClipboardLine className="h-4 w-4" />
               </button>
             </div>
+            {shouldResolveEns && (
+              <p className="mt-2 text-xs text-gray-500">
+                {resolvingEns
+                  ? "Resolving ENS name..."
+                  : resolvedEnsAddress
+                    ? `Resolves to ${formatAddress(resolvedEnsAddress)}`
+                    : "Enter a valid ENS name or 0x address."}
+              </p>
+            )}
             {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
           </div>
 
@@ -135,10 +163,10 @@ export function AddMemberModal({
             </button>
             <button
               type="submit"
-              disabled={isLoading || !address}
+              disabled={isLoading || !trimmed || (shouldResolveEns && resolvingEns)}
               className={cn(
                 "px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500",
-                isLoading || !address
+                isLoading || !trimmed || (shouldResolveEns && resolvingEns)
                   ? "bg-gray-400 cursor-not-allowed"
                   : "bg-green-600 hover:bg-green-700"
               )}

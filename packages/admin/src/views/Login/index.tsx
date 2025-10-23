@@ -7,10 +7,6 @@ export default function Login() {
   const { address, isConnected } = useAccount();
   const redirectTo = new URLSearchParams(location.search).get("redirectTo") || "/dashboard";
 
-  console.log("isConnected", isConnected);
-  console.log("address", address);
-  console.log("redirectTo", redirectTo);
-
   // Redirect once connected and have address
   if (isConnected && address) {
     return <Navigate to={redirectTo} replace />;

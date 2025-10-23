@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { RiFileCopyLine, RiCheckLine } from "@remixicon/react";
-import { cn } from "@green-goods/shared/utils";
+import { useEnsName } from "@green-goods/shared/hooks";
+import { copyToClipboard, formatAddress, cn } from "@green-goods/shared/utils";
+import { useEffect, useState } from "react";
+import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
 
 interface AddressDisplayProps {
   address: string;
@@ -13,19 +14,27 @@ export function AddressDisplay({
   address,
   className,
   showCopyButton = true,
-  truncateLength = 6,
+  truncateLength: _truncateLength = 6,
 }: AddressDisplayProps) {
   const [copied, setCopied] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
+  const { data: ensName } = useEnsName(address);
+  const display = formatAddress(address, {
+    ensName,
+    variant: ensName ? "default" : "card",
+  });
 
-  const truncatedAddress = `${address.slice(0, truncateLength)}...${address.slice(-truncateLength)}`;
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timer);
+  }, [copied]);
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      await navigator.clipboard.writeText(address);
+      await copyToClipboard(address);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error("Failed to copy address:", err);
     }
@@ -38,13 +47,19 @@ export function AddressDisplay({
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
       >
-        <span className="text-sm font-mono cursor-pointer">{truncatedAddress}</span>
+        <span className="text-sm font-mono cursor-pointer">{display}</span>
 
-        {/* Tooltip */}
         {showTooltip && (
           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50">
-            {address}
-            <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+            {ensName ? (
+              <div className="flex flex-col text-left">
+                <span>{ensName}</span>
+                <span className="text-[10px] text-gray-300">{address}</span>
+              </div>
+            ) : (
+              address
+            )}
+            <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900" />
           </div>
         )}
       </div>

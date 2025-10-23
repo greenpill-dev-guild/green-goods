@@ -21,7 +21,7 @@ import {
   useForm,
   useWatch,
 } from "react-hook-form";
-import { toast } from "react-hot-toast";
+import { toastService } from "@green-goods/shared";
 import { useAccount } from "wagmi";
 import { z } from "zod";
 
@@ -259,17 +259,31 @@ export function CreateAssessmentModal({ isOpen, onClose, gardenId }: CreateAsses
     try {
       setSubmittedTitle(formData.title);
       if (!address) {
-        toast.error("Please connect your wallet first.");
+        toastService.error({
+          title: "Wallet required",
+          message: "Please connect your wallet before submitting an assessment.",
+          context: "assessment submission",
+          suppressLogging: true,
+        });
         return;
       }
 
       if (!gardenId) {
-        toast.error("No garden selected for this assessment.");
+        toastService.error({
+          title: "Select a garden",
+          message: "Choose a garden to link this assessment.",
+          context: "assessment submission",
+          suppressLogging: true,
+        });
         return;
       }
 
       if (typeof window === "undefined" || typeof window.ethereum === "undefined") {
-        toast.error("Web3 provider not found. Please open MetaMask or another web3 wallet.");
+        toastService.error({
+          title: "Wallet provider missing",
+          message: "Open MetaMask or another Web3 wallet, then try again.",
+          context: "assessment submission",
+        });
         return;
       }
 
@@ -279,7 +293,12 @@ export function CreateAssessmentModal({ isOpen, onClose, gardenId }: CreateAsses
         metricsObj = JSON.parse(formData.metrics.trim() || "{}");
       } catch (error) {
         console.error("Invalid JSON in metrics field", error);
-        toast.error("Invalid JSON in metrics field");
+        toastService.error({
+          title: "Invalid metrics JSON",
+          message: "Check the metrics format and try again.",
+          context: "assessment submission",
+          error,
+        });
         return;
       }
 
@@ -303,18 +322,31 @@ export function CreateAssessmentModal({ isOpen, onClose, gardenId }: CreateAsses
       startCreation(payload as any);
       const uid = await submitCreation();
       setLastAttestationId(uid);
-      toast.success("Assessment submitted successfully!");
+      toastService.success({
+        title: "Assessment submitted",
+        message: "We'll post it as soon as it's confirmed.",
+        context: "assessment submission",
+        suppressLogging: true,
+      });
       setCurrentStep(0);
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Error submitting assessment. Please try again.";
-      toast.error(message);
+      toastService.error({
+        title: "Submission failed",
+        message: "Something went wrong. Please try again.",
+        context: "assessment submission",
+        error,
+      });
       console.error("Assessment submission error:", error);
     }
   };
 
   const onInvalid: SubmitErrorHandler<CreateAssessmentForm> = () => {
-    toast.error("Check the highlighted fields and try again.");
+    toastService.error({
+      title: "Incomplete form",
+      message: "Check the highlighted fields and try again.",
+      context: "assessment submission",
+      suppressLogging: true,
+    });
   };
 
   const handleFormSubmit = handleSubmit(onValid, onInvalid);
