@@ -41,9 +41,9 @@ export const Garden: React.FC<GardenProps> = () => {
       id: "app.garden.work",
       defaultMessage: "Work",
     }),
-    [GardenTab.Reports]: intl.formatMessage({
-      id: "app.garden.reports",
-      defaultMessage: "Reports",
+    [GardenTab.Insights]: intl.formatMessage({
+      id: "app.garden.insights",
+      defaultMessage: "Insights",
     }),
     [GardenTab.Gardeners]: intl.formatMessage({
       id: "app.garden.gardeners",
@@ -105,7 +105,7 @@ export const Garden: React.FC<GardenProps> = () => {
 
   if (!garden) return null;
 
-  const { name, bannerImage, location, createdAt, assessments } = garden;
+  const { name, bannerImage, location, createdAt, assessments, description } = garden;
 
   // Restore scroll position when switching tabs
 
@@ -117,8 +117,8 @@ export const Garden: React.FC<GardenProps> = () => {
       icon: <RiHammerFill className="w-4 h-4" />,
     },
     {
-      id: GardenTab.Reports,
-      label: tabNames[GardenTab.Reports],
+      id: GardenTab.Insights,
+      label: tabNames[GardenTab.Insights],
       icon: <RiFileChartFill className="w-4 h-4" />,
     },
     {
@@ -137,11 +137,12 @@ export const Garden: React.FC<GardenProps> = () => {
           <GardenWork workFetchStatus={workFetchStatus} actions={actions} works={mergedWorks} />
         );
       }
-      case GardenTab.Reports:
+      case GardenTab.Insights:
         return (
           <GardenAssessments
             asessmentFetchStatus={isFetching ? "pending" : gardenStatus}
             assessments={assessments}
+            description={description}
           />
         );
       case GardenTab.Gardeners:

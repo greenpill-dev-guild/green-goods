@@ -3,20 +3,23 @@ import { useState } from "react";
 import { useIntl } from "react-intl";
 import { Profile as UserProfile } from "@/components/UI/Profile/Profile";
 import { type StandardTab, StandardTabs } from "@/components/UI/Tabs";
-import { useUser } from "@green-goods/shared/hooks";
-import { formatAddress } from "@green-goods/shared/utils/app/text";
+import { useGardenerProfile, useUser } from "@green-goods/shared/hooks";
+import { formatAddress } from "@green-goods/shared/utils";
 import { ProfileAccount } from "./Account";
 import { GardenerProfile } from "./GardenerProfile";
 import { ProfileHelp } from "./Help";
 
+const DEFAULT_AVATAR = "/images/avatar.png";
+const PINATA_GATEWAY = import.meta.env.VITE_PINATA_GATEWAY ?? "https://greengoods.mypinata.cloud";
+
 const Profile: React.FC = () => {
-  const { smartAccountAddress, eoa } = useUser();
+  const { smartAccountAddress, eoa, ensName } = useUser();
   const intl = useIntl();
   const [activeTab, setActiveTab] = useState("account");
 
   // Primary address is smart account (if available) or EOA
   const primaryAddress = smartAccountAddress || eoa?.address;
-  const displayName = primaryAddress ? formatAddress(primaryAddress) : "Unknown";
+  const displayName = ensName || (primaryAddress ? formatAddress(primaryAddress) : "Unknown");
 
   const tabs: StandardTab[] = [
     {
@@ -66,7 +69,7 @@ const Profile: React.FC = () => {
           <UserProfile
             displayName={displayName}
             avatar="/images/avatar.png"
-            wallet={primaryAddress ? formatAddress(primaryAddress) : undefined}
+            wallet={primaryAddress ? formatAddress(primaryAddress, { ensName }) : undefined}
           />
         </div>
 

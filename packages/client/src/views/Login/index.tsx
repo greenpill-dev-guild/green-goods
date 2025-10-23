@@ -2,8 +2,8 @@ import { ONBOARDED_STORAGE_KEY, wagmiConfig } from "@green-goods/shared/config";
 import { usePasskeyAuth as useAuth, useAutoJoinRootGarden } from "@green-goods/shared/hooks";
 import { useAppKit } from "@green-goods/shared/providers";
 import { getAccount } from "@wagmi/core";
+import { toastService } from "@green-goods/shared";
 import { useEffect, useState } from "react";
-import toast from "react-hot-toast";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAccount } from "wagmi";
 import { type LoadingState, Splash } from "@/components/Layout/Splash";
@@ -82,14 +82,24 @@ export function Login() {
 
       setLoadingState("joining-garden");
       setLoadingMessage("Approve the next passkey prompt to join the community garden.");
-      toast("Please approve the next passkey prompt to join the community garden.", {
+      toastService.info({
+        title: "Approve passkey prompt",
+        message: "Confirm the next passkey request to join the community garden.",
         icon: "🪴",
+        context: "garden join",
+        suppressLogging: true,
       });
 
       try {
         await joinGarden(session);
         localStorage.setItem(onboardingKey, "true");
-        toast.success("Welcome! You're now part of the Green Goods community garden.");
+        toastService.success({
+          title: "Welcome to Green Goods",
+          message: "You're now part of the community garden.",
+          icon: "🪴",
+          context: "garden join",
+          suppressLogging: true,
+        });
       } catch (joinErr) {
         const message =
           joinErr instanceof Error ? joinErr.message : String(joinErr ?? "failed to join");
@@ -97,8 +107,12 @@ export function Login() {
         // Ignore AlreadyGardener (0x42375a1e) to keep the flow simple
         if (!message.includes("AlreadyGardener") && !message.includes("0x42375a1e")) {
           console.error("Garden join failed", joinErr);
-          toast("Welcome! You can join the community garden from your profile.", {
+          toastService.info({
+            title: "Welcome!",
+            message: "You can join the community garden anytime from your profile.",
             icon: "ℹ️",
+            context: "garden join",
+            suppressLogging: true,
           });
         } else {
           localStorage.setItem(onboardingKey, "true");
@@ -107,7 +121,12 @@ export function Login() {
     } catch (err) {
       setLoadingState(null);
       console.error("Passkey creation failed", err);
-      toast.error("Failed to create passkey. Please try again.");
+      toastService.error({
+        title: "Passkey setup failed",
+        message: "Please try again.",
+        context: "passkey setup",
+        error: err,
+      });
     } finally {
       setLoadingState(null);
       setLoadingMessage(undefined);

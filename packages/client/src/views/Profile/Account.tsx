@@ -1,6 +1,5 @@
 import { RiEarthFill, RiKeyLine, RiLogoutBoxRLine, RiWalletLine } from "@remixicon/react";
 import { ReactNode } from "react";
-import toast from "react-hot-toast";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { Avatar } from "@/components/UI/Avatar/Avatar";
@@ -13,9 +12,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/UI/Select/Select";
-import { useAuth } from "@green-goods/shared/hooks";
+import { useAuth, useEnsName } from "@green-goods/shared/hooks";
 import { type Locale, useApp } from "@green-goods/shared/providers/app";
-import { capitalize } from "@green-goods/shared/utils/app/text";
+import { AddressCopy } from "@/components/UI/Clipboard";
+import { capitalize } from "@green-goods/shared/utils";
+import { toastService } from "@green-goods/shared";
 
 interface ApplicationSettings {
   title: string;
@@ -29,6 +30,8 @@ type ProfileAccountProps = {};
 export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
   const { authMode, signOut, disconnectWallet, smartAccountAddress, credential, walletAddress } =
     useAuth();
+  const primaryAddress = smartAccountAddress || walletAddress;
+  const { data: primaryEnsName } = useEnsName(primaryAddress);
   const navigate = useNavigate();
   const { locale, switchLanguage, availableLocales } = useApp();
   const intl = useIntl();
@@ -44,12 +47,33 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
       }
 
       navigate("/login");
-      toast.success(
-        intl.formatMessage({ id: "app.toast.loggedOut", defaultMessage: "Logged out successfully" })
-      );
+      const message = intl.formatMessage({
+        id: "app.toast.loggedOut",
+        defaultMessage: "Logged out successfully",
+      });
+      toastService.success({
+        title: intl.formatMessage({
+          id: "app.account.sessionClosed",
+          defaultMessage: "Signed out",
+        }),
+        message,
+        context: "logout",
+        suppressLogging: true,
+      });
     } catch (err) {
       console.error("Logout failed", err);
-      toast.error("Failed to log out. Please try again.");
+      toastService.error({
+        title: intl.formatMessage({
+          id: "app.account.logoutFailed",
+          defaultMessage: "Failed to log out",
+        }),
+        message: intl.formatMessage({
+          id: "app.account.logoutRetry",
+          defaultMessage: "Please try again.",
+        }),
+        context: "logout",
+        error: err,
+      });
     }
   };
 
@@ -180,9 +204,12 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
                   })}
                 </div>
               </div>
-              <div className="text-xs text-gray-500 font-mono break-all">
-                {smartAccountAddress || walletAddress}
-              </div>
+              <AddressCopy
+                address={primaryAddress}
+                ensName={primaryEnsName}
+                size="compact"
+                className="mt-2"
+              />
             </div>
           </div>
         </Card>

@@ -12,7 +12,7 @@ import { FormText } from "@/components/UI/Form/Text";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
 import ConfirmDrawer from "@/components/UI/ModalDrawer/ConfirmDrawer";
 import { WorkViewSkeleton } from "@/components/UI/WorkView/WorkView";
-import toast from "react-hot-toast";
+import { toastService } from "@green-goods/shared";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
 import {
   useActions,
@@ -30,6 +30,7 @@ import {
   shareWork,
   type WorkData,
 } from "@green-goods/shared/utils/work/workActions";
+import { debugWarn } from "@green-goods/shared/utils/debug";
 import { WorkCompleted } from "../../Garden/Completed";
 import WorkViewSection from "./WorkViewSection";
 
@@ -56,6 +57,10 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   const { id: gardenIdParam, workId } = useParams<{ id: string; workId: string }>();
   const { gardenId: gardenIdFromContext } = (useOutletContext() as { gardenId?: string }) || {};
   const [workMetadata, setWorkMetadata] = useState<WorkMetadata | null>(null);
+  const [metadataStatus, setMetadataStatus] = useState<"idle" | "loading" | "success" | "error">(
+    "loading"
+  );
+  const [metadataError, setMetadataError] = useState<string | null>(null);
   const [isApproveDialogOpen, setApproveDialogOpen] = useState(false);
   const [isRejectDialogOpen, setRejectDialogOpen] = useState(false);
   const navigateToTop = useNavigateToTop();
@@ -181,18 +186,29 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
       if (payload.workUID !== work.id) return;
 
       if (type === "job:completed") {
-        toast.success(
-          payload.approved
-            ? intl.formatMessage({ id: "app.toast.workApproved", defaultMessage: "Work approved" })
-            : intl.formatMessage({ id: "app.toast.workRejected", defaultMessage: "Work rejected" })
-        );
-        toast.dismiss("approval-upload");
+        const message = payload.approved
+          ? intl.formatMessage({ id: "app.toast.workApproved", defaultMessage: "Work approved" })
+          : intl.formatMessage({ id: "app.toast.workRejected", defaultMessage: "Work rejected" });
+        toastService.success({
+          id: "approval-submit",
+          title: message,
+          message,
+          context: "approval submission",
+          suppressLogging: true,
+        });
       }
       if (type === "job:failed") {
-        toast.error(
-          intl.formatMessage({ id: "app.toast.actionFailed", defaultMessage: "Action failed" })
-        );
-        toast.dismiss("approval-upload");
+        const failureMessage = intl.formatMessage({
+          id: "app.toast.actionFailed",
+          defaultMessage: "Action failed",
+        });
+        toastService.error({
+          id: "approval-submit",
+          title: failureMessage,
+          message: failureMessage,
+          context: "approval submission",
+          error: data.error,
+        });
       }
       queryClient.invalidateQueries({ queryKey: ["workApprovals"] });
       if (garden?.id) {
@@ -206,32 +222,78 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
 
   useEffect(() => {
     let mounted = true;
-    (async () => {
+    const loadMetadata = async () => {
+      if (mounted) {
+        setMetadataStatus("loading");
+        setMetadataError(null);
+        setWorkMetadata(null);
+      }
+
       if (!work) {
-        if (mounted) setWorkMetadata(null);
+        if (mounted) {
+          setMetadataStatus("idle");
+        }
         return;
       }
+
       const raw = work.metadata;
-      if (raw && typeof raw === "string") {
-        // Try to parse JSON (offline jobs). Otherwise, fetch by hash.
-        try {
-          if (raw.trim().startsWith("{") || raw.trim().startsWith("[")) {
-            const parsed = JSON.parse(raw) as unknown;
-            if (mounted) setWorkMetadata(parsed as WorkMetadata);
-            return;
-          }
-        } catch {}
-        try {
-          const file = await getFileByHash(raw);
-          const data = file.data as unknown as WorkMetadata;
-          if (mounted) setWorkMetadata(data ?? null);
-        } catch {
-          if (mounted) setWorkMetadata(null);
+      if (!raw || typeof raw !== "string") {
+        if (mounted) {
+          setWorkMetadata(null);
+          setMetadataStatus("success");
         }
-      } else {
-        if (mounted) setWorkMetadata(null);
+        return;
       }
-    })();
+
+      const trimmed = raw.trim();
+
+      if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+        try {
+          const parsed = JSON.parse(trimmed) as unknown;
+          if (mounted) {
+            setWorkMetadata(parsed as WorkMetadata);
+            setMetadataStatus("success");
+          }
+          return;
+        } catch (error) {
+          if (mounted) {
+            debugWarn(
+              `[GardenWork] Failed to parse inline metadata for work ${work.id}: ${
+                error instanceof Error ? error.message : String(error)
+              }`
+            );
+          }
+          // Continue to gateway fetch fallback
+        }
+      }
+
+      try {
+        const file = await getFileByHash(trimmed);
+        const data = file.data as unknown as WorkMetadata | null | undefined;
+        if (!mounted) return;
+
+        if (data) {
+          setWorkMetadata(data);
+          setMetadataStatus("success");
+        } else {
+          setWorkMetadata(null);
+          setMetadataStatus("error");
+          setMetadataError("Empty metadata response");
+          debugWarn(
+            `[GardenWork] Received empty metadata response from gateway for work ${work.id}`
+          );
+        }
+      } catch (error) {
+        if (!mounted) return;
+        const message = error instanceof Error ? error.message : String(error);
+        setWorkMetadata(null);
+        setMetadataStatus("error");
+        setMetadataError(message);
+        debugWarn(`[GardenWork] Failed to fetch metadata for work ${work.id}: ${message}`);
+      }
+    };
+
+    void loadMetadata();
     return () => {
       mounted = false;
     };
@@ -256,7 +318,55 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
       </article>
     );
 
+  const isMetadataLoading = metadataStatus === "loading" || metadataStatus === "idle";
   const hasMedia = Array.isArray(work.media) && work.media.length > 0;
+  const resolvedActionTitle =
+    actionTitle ??
+    intl.formatMessage({
+      id: "app.home.work.unknownAction",
+      defaultMessage: "Unknown Action",
+    });
+  const canViewAttestation = Boolean(work?.id && isValidAttestationId(work.id));
+  const approvalFooter =
+    viewingMode === "operator" && work.status === "pending" ? (
+      <div className="fixed left-0 right-0 bottom-0 bg-white border-t border-slate-200 p-4 flex gap-4">
+        <Button
+          onClick={() => setRejectDialogOpen(true)}
+          label={intl.formatMessage({
+            id: "app.home.workApproval.reject",
+            defaultMessage: "Reject",
+          })}
+          className="flex-1"
+          variant="error"
+          type="button"
+          shape="pilled"
+          mode="stroke"
+        />
+        <Button
+          onClick={() => setApproveDialogOpen(true)}
+          type="button"
+          label={intl.formatMessage({
+            id: "app.home.workApproval.approve",
+            defaultMessage: "Approve",
+          })}
+          className="flex-1"
+          variant="primary"
+          mode="filled"
+          size="medium"
+          shape="pilled"
+        />
+      </div>
+    ) : null;
+  const metadataErrorDetail =
+    metadataStatus === "error" && metadataError
+      ? intl.formatMessage(
+          {
+            id: "app.home.work.metadataFallbackNotice.detail",
+            defaultMessage: "Details: {message}",
+          },
+          { message: metadataError }
+        )
+      : null;
 
   return (
     <article>
@@ -269,62 +379,38 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
         >
           <>
             <div className="padded">
-              {!workMetadata && <WorkViewSkeleton showMedia showActions={false} numDetails={3} />}
+              {isMetadataLoading ? (
+                <WorkViewSkeleton showMedia showActions={false} numDetails={3} />
+              ) : (
+                <WorkViewSection
+                  garden={garden}
+                  work={work}
+                  workMetadata={workMetadata}
+                  viewingMode={viewingMode}
+                  actionTitle={resolvedActionTitle}
+                  onDownloadData={handleDownloadData}
+                  onDownloadMedia={hasMedia ? handleDownloadMedia : undefined}
+                  onShare={handleShare}
+                  onViewAttestation={canViewAttestation ? handleViewAttestation : undefined}
+                  footer={approvalFooter}
+                />
+              )}
+
+              {metadataStatus === "error" && (
+                <div className="mt-4 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800">
+                  {intl.formatMessage({
+                    id: "app.home.work.metadataFallbackNotice",
+                    defaultMessage:
+                      "We couldn't load all work details from storage. Some fields may be unavailable.",
+                  })}
+                  {metadataErrorDetail ? (
+                    <span className="mt-1 block text-xs text-orange-700">
+                      {metadataErrorDetail}
+                    </span>
+                  ) : null}
+                </div>
+              )}
             </div>
-            {workMetadata && (
-              <WorkViewSection
-                garden={garden}
-                work={work}
-                workMetadata={workMetadata}
-                viewingMode={viewingMode}
-                actionTitle={
-                  actionTitle ??
-                  intl.formatMessage({
-                    id: "app.home.work.unknownAction",
-                    defaultMessage: "Unknown Action",
-                  })
-                }
-                onDownloadData={handleDownloadData}
-                onDownloadMedia={hasMedia ? handleDownloadMedia : undefined}
-                onShare={handleShare}
-                onViewAttestation={
-                  work && work.id && isValidAttestationId(work.id)
-                    ? handleViewAttestation
-                    : undefined
-                }
-                footer={
-                  viewingMode === "operator" && work && work.status === "pending" ? (
-                    <div className="fixed left-0 right-0 bottom-0 bg-white border-t border-slate-200 p-4 flex gap-4">
-                      <Button
-                        onClick={() => setRejectDialogOpen(true)}
-                        label={intl.formatMessage({
-                          id: "app.home.workApproval.reject",
-                          defaultMessage: "Reject",
-                        })}
-                        className="flex-1"
-                        variant="error"
-                        type="button"
-                        shape="pilled"
-                        mode="stroke"
-                      />
-                      <Button
-                        onClick={() => setApproveDialogOpen(true)}
-                        type="button"
-                        label={intl.formatMessage({
-                          id: "app.home.workApproval.approve",
-                          defaultMessage: "Approve",
-                        })}
-                        className="flex-1"
-                        variant="primary"
-                        mode="filled"
-                        size="medium"
-                        shape="pilled"
-                      />
-                    </div>
-                  ) : null
-                }
-              />
-            )}
           </>
         </Form>
       )}

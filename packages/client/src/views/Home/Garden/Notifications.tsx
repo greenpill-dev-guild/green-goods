@@ -2,11 +2,46 @@ import { RiAlertFill, RiSeedlingFill } from "@remixicon/react";
 import type React from "react";
 import { useIntl } from "react-intl";
 import { Link, useNavigate } from "react-router-dom";
-import { formatAddress } from "@green-goods/shared/utils/app/text";
+import { useEnsName } from "@green-goods/shared/hooks";
+import { formatAddress } from "@green-goods/shared/utils";
 
 interface GardenNotificationsProps {
   garden: Garden;
   notifications: Work[];
+}
+
+function GardenNotificationItem({ garden, work }: { garden: Garden; work: Work }) {
+  const intl = useIntl();
+  const { data: gardenerEnsName } = useEnsName(work.gardenerAddress);
+
+  return (
+    <Link
+      key={work.id}
+      to={`/home/${garden.id}/work/${work.id}`}
+      state={{ from: "garden" }}
+      className="w-full flex flex-col gap-2 p-4 text-black bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl transition-all duration-200 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] border border-amber-200 cursor-pointer group"
+    >
+      <div className="inline-flex gap-2 items-center">
+        <RiAlertFill size={20} className="text-amber-600 group-hover:animate-pulse" />
+        <span className="text-sm font-semibold text-slate-900">
+          {intl.formatMessage({
+            id: "app.home.notifications.pendingWorkApproval",
+            defaultMessage: "Pending Work Approval",
+          })}
+        </span>
+      </div>
+      <p className="text-sm text-slate-700">
+        <span className="font-medium">
+          {formatAddress(work.gardenerAddress, { ensName: gardenerEnsName, variant: "card" })}
+        </span>{" "}
+        {intl.formatMessage({
+          id: "app.home.notifications.completedWorkApproval",
+          defaultMessage: "completed work on",
+        })}{" "}
+        <span className="font-medium">{garden.name}</span>
+      </p>
+    </Link>
+  );
 }
 
 export const GardenNotifications: React.FC<GardenNotificationsProps> = ({
@@ -54,31 +89,8 @@ export const GardenNotifications: React.FC<GardenNotificationsProps> = ({
               defaultMessage: "Work to Review",
             })}
           </h3>
-          {pendingNotifications.map(({ id, gardenerAddress }) => (
-            <Link
-              key={id}
-              to={`/home/${garden.id}/work/${id}`}
-              state={{ from: "garden" }}
-              className="w-full flex flex-col gap-2 p-4 text-black bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl transition-all duration-200 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] border border-amber-200 cursor-pointer group"
-            >
-              <div className="inline-flex gap-2 items-center">
-                <RiAlertFill size={20} className="text-amber-600 group-hover:animate-pulse" />
-                <span className="text-sm font-semibold text-slate-900">
-                  {intl.formatMessage({
-                    id: "app.home.notifications.pendingWorkApproval",
-                    defaultMessage: "Pending Work Approval",
-                  })}
-                </span>
-              </div>
-              <p className="text-sm text-slate-700">
-                <span className="font-medium">{formatAddress(gardenerAddress)}</span>{" "}
-                {intl.formatMessage({
-                  id: "app.home.notifications.completedWorkApproval",
-                  defaultMessage: "completed work on",
-                })}{" "}
-                <span className="font-medium">{garden.name}</span>
-              </p>
-            </Link>
+          {pendingNotifications.map((work) => (
+            <GardenNotificationItem key={work.id} garden={garden} work={work} />
           ))}
         </>
       )}

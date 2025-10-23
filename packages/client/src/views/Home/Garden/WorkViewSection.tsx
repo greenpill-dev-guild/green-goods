@@ -74,6 +74,23 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       : []),
   ];
 
+  const metadataUnavailable = intl.formatMessage({
+    id: "app.status.notAvailable",
+    defaultMessage: "Not available",
+  });
+  const plantSelectionValue =
+    workMetadata?.plantSelection && workMetadata.plantSelection.length > 0
+      ? workMetadata.plantSelection.join(", ")
+      : workMetadata
+        ? ""
+        : metadataUnavailable;
+  const plantCountValue =
+    typeof workMetadata?.plantCount === "number"
+      ? workMetadata.plantCount.toString()
+      : workMetadata
+        ? ""
+        : metadataUnavailable;
+
   return (
     <WorkView
       title={
@@ -114,7 +131,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
             id: "app.home.workApproval.plantTypes",
             defaultMessage: "Plant Types",
           }),
-          value: workMetadata?.plantSelection.join(", ") || "",
+          value: plantSelectionValue,
           icon: RiPlantFill,
         },
         ...(feedback
@@ -134,7 +151,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
             id: "app.home.workApproval.plantAmount",
             defaultMessage: "Plant Amount",
           }),
-          value: workMetadata?.plantCount?.toString() || "",
+          value: plantCountValue,
           icon: RiLeafFill,
         },
       ]}

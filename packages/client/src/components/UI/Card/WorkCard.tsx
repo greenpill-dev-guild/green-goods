@@ -1,4 +1,5 @@
-import { cn } from "@green-goods/shared/utils";
+import { useEnsName } from "@green-goods/shared/hooks";
+import { cn, formatAddress } from "@green-goods/shared/utils";
 import {
   RiCheckLine,
   RiCloseLine,
@@ -12,7 +13,6 @@ import {
 } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
-import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { Card } from "./Card";
 import { StatusBadge } from "./StatusBadge";
 
@@ -312,6 +312,10 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   badges,
 }) => {
   const intl = useIntl();
+  const { data: gardenerEnsName } = useEnsName(work.gardenerAddress);
+  const { data: gardenEnsName } = useEnsName(showGardenInfo ? work.gardenAddress : null, {
+    enabled: Boolean(showGardenInfo && work.gardenAddress),
+  });
   const displayStatus = work.status.charAt(0).toUpperCase() + work.status.slice(1);
   // Resolve thumbnail from media entry (supports string URL, {url}, or File)
   const initialCandidate =
@@ -352,7 +356,7 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   }, [work.media]);
   const hasFeedback = Boolean(work.feedback && work.feedback.trim().length > 0);
   const mediaCount = Array.isArray(work.media) ? work.media.length : 0;
-  const name = gardenerName || formatAddress(work.gardenerAddress);
+  const name = gardenerName || formatAddress(work.gardenerAddress, { ensName: gardenerEnsName });
   const action = actionTitle || work.title;
   const timeAgo = formatTimeAgo(work.createdAt);
 
@@ -421,7 +425,7 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
             <div className="flex items-center gap-2 text-slate-500">
               <span>
                 {intl.formatMessage({ id: "app.workCard.garden", defaultMessage: "Garden:" })}{" "}
-                {formatAddress(work.gardenAddress)}
+                {formatAddress(work.gardenAddress, { ensName: gardenEnsName, variant: "card" })}
               </span>
             </div>
           )}

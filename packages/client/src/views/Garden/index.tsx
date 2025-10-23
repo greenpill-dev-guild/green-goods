@@ -4,7 +4,7 @@ import {
   defaultDeduplicationManager,
 } from "@green-goods/shared/modules";
 import { RiArrowRightSLine, RiHammerFill, RiImage2Fill, RiPlantFill } from "@remixicon/react";
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/UI/Button";
@@ -68,16 +68,160 @@ const Work: React.FC = () => {
     const num = Number(last);
     return Number.isFinite(num) ? num : null;
   };
-  const renderReview = (actionsList: Action[], gardensList: Garden[]) => {
-    const garden = gardensList.find((g) => g.id === gardenAddress);
-    const action = actionsList.find((a: Action) => {
-      if (!actionUID) return false;
-      const uid = getActionUIDFromId(a.id);
-      return uid !== null && uid === actionUID;
-    });
 
-    const fallbackGarden: Garden =
-      garden ||
+  const selectedAction = useMemo(() => {
+    if (!actions.length || typeof actionUID !== "number") return null;
+    return (
+      actions.find((a: Action) => {
+        const uid = getActionUIDFromId(a.id);
+        return uid !== null && uid === actionUID;
+      }) || null
+    );
+  }, [actions, actionUID]);
+
+  const selectedGarden = useMemo(() => {
+    if (!gardens.length || !gardenAddress) return null;
+    return gardens.find((g) => g.id === gardenAddress) || null;
+  }, [gardens, gardenAddress]);
+
+  const defaultMediaConfig = useMemo(
+    () => ({
+      title: intl.formatMessage({
+        id: "app.garden.upload.title",
+        description: "Upload Media",
+      }),
+      description: intl.formatMessage({
+        id: "app.garden.submit.tab.media.instruction",
+        defaultMessage: "Please take a clear photo of the plants in the garden",
+      }),
+      required: false,
+      needed: [] as string[],
+      optional: [] as string[],
+      maxImageCount: 0,
+    }),
+    [intl]
+  );
+
+  const mediaConfig = useMemo(() => {
+    if (!selectedAction?.mediaInfo) {
+      return defaultMediaConfig;
+    }
+
+    const {
+      needed = [],
+      optional = [],
+      maxImageCount = defaultMediaConfig.maxImageCount,
+      ...rest
+    } = selectedAction.mediaInfo;
+
+    return {
+      ...defaultMediaConfig,
+      ...rest,
+      needed: Array.isArray(needed) ? needed : [],
+      optional: Array.isArray(optional) ? optional : [],
+      maxImageCount,
+    };
+  }, [selectedAction, defaultMediaConfig]);
+
+  const defaultDetailsConfig = useMemo(
+    () => ({
+      title: intl.formatMessage({
+        id: "app.garden.details.title",
+        description: "Enter Details",
+      }),
+      description: intl.formatMessage({
+        id: "app.garden.submit.tab.details.instruction",
+        defaultMessage: "Provide detailed information and feedback",
+      }),
+      feedbackPlaceholder: intl.formatMessage({
+        id: "app.garden.details.feedbackPlaceholder",
+        defaultMessage: "Provide feedback or any observations",
+      }),
+    }),
+    [intl]
+  );
+
+  const detailsConfig = useMemo(() => {
+    if (!selectedAction?.details) {
+      return defaultDetailsConfig;
+    }
+    return {
+      ...defaultDetailsConfig,
+      ...selectedAction.details,
+    };
+  }, [selectedAction, defaultDetailsConfig]);
+
+  const defaultReviewConfig = useMemo(
+    () => ({
+      title: intl.formatMessage({ id: "app.garden.review.title", defaultMessage: "Review Work" }),
+      description: intl.formatMessage({
+        id: "app.garden.submit.tab.review.instruction",
+        defaultMessage: "Check if the information is correct",
+      }),
+    }),
+    [intl]
+  );
+
+  const reviewConfig = useMemo(() => {
+    if (!selectedAction?.review) {
+      return defaultReviewConfig;
+    }
+    return {
+      ...defaultReviewConfig,
+      ...selectedAction.review,
+    };
+  }, [selectedAction, defaultReviewConfig]);
+
+  const detailInputs = useMemo(() => selectedAction?.inputs ?? [], [selectedAction]);
+
+  useEffect(() => {
+    if (actions.length) {
+      console.log(
+        "[GardenFlow] Actions resolved from indexer",
+        actions.map((action) => ({
+          id: action.id,
+          title: action.title,
+          hasMediaInfo: Boolean(action.mediaInfo),
+          detailInputKeys: action.inputs?.map((input) => input.key) ?? [],
+          reviewHasCopy: Boolean(action.review),
+        }))
+      );
+    }
+  }, [actions]);
+
+  useEffect(() => {
+    if (selectedAction) {
+      console.log("[GardenFlow] Selected action state", {
+        id: selectedAction.id,
+        title: selectedAction.title,
+        mediaInfo: selectedAction.mediaInfo,
+        details: selectedAction.details,
+        review: selectedAction.review,
+      });
+    } else if (typeof actionUID === "number") {
+      console.log("[GardenFlow] No action matched for selected UID", {
+        actionUID,
+        availableIds: actions.map((action) => action.id),
+      });
+    }
+  }, [selectedAction, actionUID, actions]);
+
+  useEffect(() => {
+    if (selectedGarden) {
+      console.log("[GardenFlow] Selected garden state", {
+        id: selectedGarden.id,
+        name: selectedGarden.name,
+      });
+    } else if (gardenAddress) {
+      console.log("[GardenFlow] No garden matched for address", {
+        gardenAddress,
+        availableIds: gardens.map((garden) => garden.id),
+      });
+    }
+  }, [selectedGarden, gardenAddress, gardens]);
+  const renderReview = () => {
+    const garden: Garden =
+      selectedGarden ||
       ({
         id: gardenAddress || "",
         chainId: 84532, // Default to Base Sepolia
@@ -94,29 +238,36 @@ const Work: React.FC = () => {
         createdAt: Date.now(),
       } as Garden);
 
-    const fallbackAction: Action =
-      action ||
-      ({
-        id: `${chainId}-${actionUID ?? 0}`,
-        startTime: Date.now(),
-        endTime: Date.now(),
-        title: intl.formatMessage({ id: "app.action.selected", defaultMessage: "Selected Action" }),
-        instructions: "",
-        capitals: [],
-        media: ["/images/no-image-placeholder.png"],
-        createdAt: Date.now(),
-        description: "",
-        inputs: [],
-      } as unknown as Action);
+    const fallbackAction: Action = {
+      id: `${chainId}-${actionUID ?? 0}`,
+      startTime: Date.now(),
+      endTime: Date.now(),
+      title: intl.formatMessage({ id: "app.action.selected", defaultMessage: "Selected Action" }),
+      instructions: "",
+      capitals: [],
+      media: ["/images/no-image-placeholder.png"],
+      createdAt: Date.now(),
+      description: "",
+      inputs: detailInputs,
+      mediaInfo: mediaConfig,
+      details: detailsConfig,
+      review: reviewConfig,
+    };
+
+    const action = selectedAction ?? (fallbackAction as Action);
+
+    console.log("[GardenFlow] Rendering review", {
+      actionId: action?.id,
+      usingActionFallback: !selectedAction,
+      gardenId: garden?.id,
+      usingGardenFallback: !selectedGarden,
+    });
 
     return (
       <WorkReview
-        instruction={intl.formatMessage({
-          id: "app.garden.submit.tab.review.instruction",
-          defaultMessage: "Check if the information is correct",
-        })}
-        garden={fallbackGarden}
-        action={fallbackAction}
+        reviewConfig={reviewConfig}
+        garden={garden}
+        action={action}
         images={images}
         values={form.values}
         feedback={feedback}
@@ -163,6 +314,7 @@ const Work: React.FC = () => {
       images,
     };
 
+    let bypassDuplicateCheck = false;
     try {
       const duplicateResult = await defaultDeduplicationManager.performComprehensiveCheck(workData);
 
@@ -173,14 +325,17 @@ const Work: React.FC = () => {
         });
         return false;
       }
+    } catch (error) {
+      console.warn("[GardenFlow] Duplicate check failed, continuing with submission", error);
+      bypassDuplicateCheck = true;
+    }
 
-      // No duplicates, proceed with normal submission
-      uploadWork();
-      return true;
-    } catch {
-      // Proceed with submission if duplicate check fails
-      uploadWork();
-      return true;
+    try {
+      const result = await uploadWork();
+      return Boolean(result);
+    } catch (error) {
+      console.error("[GardenFlow] Work submission threw", error, { bypassDuplicateCheck });
+      return false;
     }
   };
 
@@ -232,6 +387,7 @@ const Work: React.FC = () => {
           navigate("/home");
           form.reset();
           setImages([]);
+          setActiveTab(WorkTab.Intro);
         }
       },
       primaryLabel: intl.formatMessage({
@@ -297,45 +453,23 @@ const Work: React.FC = () => {
           />
         );
       case WorkTab.Media:
+        return <WorkMedia config={mediaConfig} images={images} setImages={setImages} />;
+      case WorkTab.Details:
         return (
-          <WorkMedia
-            instruction={intl.formatMessage({
-              id: "app.garden.submit.tab.media.instruction",
-              defaultMessage: "Please take a clear photo of the plants in the garden",
-            })}
-            needed={["whole_plant"]}
-            optional={["leaves", "flowers", "fruits", "bark"]}
-            images={images}
-            setImages={setImages}
+          <WorkDetails
+            config={detailsConfig}
+            inputs={detailInputs}
+            register={register}
+            control={control}
           />
         );
-      case WorkTab.Details:
-        return (() => {
-          const found = (actions || []).find((a) => {
-            if (!actionUID) return false;
-            const uid = getActionUIDFromId(a.id);
-            return uid !== null && uid === actionUID;
-          });
-          return (
-            <WorkDetails
-              instruction={intl.formatMessage({
-                id: "app.garden.submit.tab.details.instruction",
-                defaultMessage: "Provide detailed information and feedback",
-              })}
-              feedbackPlaceholder=""
-              inputs={found?.inputs ?? []}
-              register={register}
-              control={control}
-            />
-          );
-        })();
       case WorkTab.Review:
         return isLoading && actions.length === 0 && gardens.length === 0 ? (
           <div className="padded">
             <WorkViewSkeleton showMedia={true} showActions={false} numDetails={4} />
           </div>
         ) : (
-          renderReview(actions, gardens)
+          renderReview()
         );
     }
   };

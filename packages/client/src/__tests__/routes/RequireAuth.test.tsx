@@ -5,19 +5,26 @@
  */
 
 import { render, screen } from "@testing-library/react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { waitFor } from "@testing-library/react";
 import RequireAuth from "../../routes/RequireAuth";
 
-// Mock useAuth hook
+// Mock useAuth hook from shared package
 const mockUseAuth = vi.fn(() => ({
-  smartAccountAddress: null as `0x${string}` | null,
   isReady: false,
+  isAuthenticated: false,
 }));
 
-vi.mock("@/hooks/useAuth", () => ({
-  useAuth: () => mockUseAuth(),
-}));
+vi.mock("@green-goods/shared/hooks", async () => {
+  const actual = await vi.importActual<typeof import("@green-goods/shared/hooks")>(
+    "@green-goods/shared/hooks"
+  );
+  return {
+    ...actual,
+    useAuth: () => mockUseAuth(),
+  };
+});
 
 describe("RequireAuth", () => {
   beforeEach(() => {
@@ -26,57 +33,59 @@ describe("RequireAuth", () => {
 
   it("should render nothing when not ready", () => {
     mockUseAuth.mockReturnValue({
-      smartAccountAddress: null,
       isReady: false,
+      isAuthenticated: false,
     });
 
     const { container } = render(
-      <BrowserRouter>
+      <MemoryRouter initialEntries={["/protected"]}>
         <Routes>
           <Route element={<RequireAuth />}>
             <Route path="*" element={<div>Protected Content</div>} />
           </Route>
         </Routes>
-      </BrowserRouter>
+      </MemoryRouter>
     );
 
     expect(container.firstChild).toBeNull();
   });
 
-  it("should redirect to login when not authenticated", () => {
+  it("should redirect to login when not authenticated", async () => {
     mockUseAuth.mockReturnValue({
-      smartAccountAddress: null,
       isReady: true,
+      isAuthenticated: false,
     });
 
     render(
-      <BrowserRouter>
+      <MemoryRouter initialEntries={["/protected"]}>
         <Routes>
           <Route path="/login" element={<div>Login Page</div>} />
           <Route element={<RequireAuth />}>
             <Route path="*" element={<div>Protected Content</div>} />
           </Route>
         </Routes>
-      </BrowserRouter>
+      </MemoryRouter>
     );
 
-    expect(screen.getByText("Login Page")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Login Page")).toBeInTheDocument();
+    });
   });
 
   it("should render children when authenticated", () => {
     mockUseAuth.mockReturnValue({
-      smartAccountAddress: "0x1234567890123456789012345678901234567890" as `0x${string}` | null,
       isReady: true,
+      isAuthenticated: true,
     });
 
     render(
-      <BrowserRouter>
+      <MemoryRouter initialEntries={["/protected"]}>
         <Routes>
           <Route element={<RequireAuth />}>
             <Route path="*" element={<div>Protected Content</div>} />
           </Route>
         </Routes>
-      </BrowserRouter>
+      </MemoryRouter>
     );
 
     expect(screen.getByText("Protected Content")).toBeInTheDocument();

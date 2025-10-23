@@ -3,29 +3,32 @@ import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useGardenerProfile } from "@green-goods/shared/hooks";
+import { toastService } from "@green-goods/shared";
 
 // Mock auth context
-vi.mock("@green-goods/shared/hooks", () => ({
-  useAuth: vi.fn(() => ({
-    smartAccountClient: {
-      sendTransaction: vi.fn(async () => "0x1234567890abcdef"),
-    },
-    smartAccountAddress: "0xGardenerSmartAccountAddress",
-    isReady: true,
-    isAuthenticated: true,
-  })),
+const mockUseAuth = vi.fn(() => ({
+  smartAccountClient: {
+    sendTransaction: vi.fn(async () => "0x1234567890abcdef"),
+  },
+  smartAccountAddress: "0xGardenerSmartAccountAddress",
+  isReady: true,
+  isAuthenticated: true,
 }));
 
-// Mock toast
-vi.mock("react-hot-toast", () => ({
-  default: {
-    success: vi.fn(),
-    error: vi.fn(),
-  },
-}));
+vi.mock("@green-goods/shared/hooks", async () => {
+  const actual = await vi.importActual<typeof import("@green-goods/shared/hooks")>(
+    "@green-goods/shared/hooks"
+  );
+  return {
+    ...actual,
+    useAuth: () => mockUseAuth(),
+  };
+});
 
 describe("Gardener Profile Integration Tests", () => {
   let queryClient: QueryClient;
+  const toastSuccessSpy = vi.spyOn(toastService, "success").mockImplementation(vi.fn());
+  const toastErrorSpy = vi.spyOn(toastService, "error").mockImplementation(vi.fn());
 
   beforeEach(() => {
     queryClient = new QueryClient({
@@ -35,6 +38,17 @@ describe("Gardener Profile Integration Tests", () => {
       },
     });
     vi.clearAllMocks();
+    mockUseAuth.mockReset();
+    mockUseAuth.mockReturnValue({
+      smartAccountClient: {
+        sendTransaction: vi.fn(async () => "0x1234567890abcdef"),
+      },
+      smartAccountAddress: "0xGardenerSmartAccountAddress",
+      isReady: true,
+      isAuthenticated: true,
+    });
+    toastSuccessSpy.mockClear();
+    toastErrorSpy.mockClear();
   });
 
   const wrapper = ({ children }: { children: ReactNode }) => (
@@ -77,15 +91,13 @@ describe("Gardener Profile Integration Tests", () => {
     });
 
     it("should handle update errors gracefully", async () => {
-      const toast = await import("react-hot-toast");
-
       // Mock auth to return null client (simulate error)
-      vi.mocked(await import("@green-goods/shared/hooks")).useAuth.mockReturnValue({
+      mockUseAuth.mockReturnValue({
         smartAccountClient: null,
         smartAccountAddress: null,
         isReady: true,
         isAuthenticated: false,
-      } as any);
+      });
 
       const { result } = renderHook(() => useGardenerProfile(), { wrapper });
 
@@ -101,7 +113,7 @@ describe("Gardener Profile Integration Tests", () => {
       result.current.updateProfile(profileData);
 
       await waitFor(() => {
-        expect(toast.default.error).toHaveBeenCalled();
+        expect(toastErrorSpy).toHaveBeenCalled();
       });
     });
   });

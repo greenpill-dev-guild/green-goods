@@ -1,8 +1,8 @@
 import { APP_NAME } from "@green-goods/shared/config";
 import { usePasskeyAuth as useAuth } from "@green-goods/shared/hooks";
 import { recoverPasskeyAccount } from "@green-goods/shared/modules";
+import { toastService } from "@green-goods/shared";
 import { useState } from "react";
-import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/UI/Button";
 import { FormInput } from "@/components/UI/Form/Input";
@@ -27,12 +27,23 @@ export function Recovery() {
       const cleanUsername = ensName.trim().toLowerCase();
 
       // Call recovery function from passkey module
-      toast.loading("Looking up your account...", { id: "recovery" });
+      toastService.loading({
+        id: "recovery",
+        title: "Looking up your account",
+        message: "Hold on while we find your profile…",
+        context: "account recovery",
+        suppressLogging: true,
+      });
 
       const session = await recoverPasskeyAccount(cleanUsername);
 
-      toast.dismiss("recovery");
-      toast.success("Account recovered successfully!");
+      toastService.success({
+        id: "recovery",
+        title: "Account recovered",
+        message: "Welcome back!",
+        context: "account recovery",
+        suppressLogging: true,
+      });
 
       // Set the session in the auth provider
       setPasskeySession(session);
@@ -40,10 +51,16 @@ export function Recovery() {
       // Navigate to home
       navigate("/home", { replace: true });
     } catch (err) {
-      toast.dismiss("recovery");
       const message = err instanceof Error ? err.message : "Failed to recover account";
       setError(message);
       console.error("Account recovery failed", err);
+      toastService.error({
+        id: "recovery",
+        title: "Recovery failed",
+        message,
+        context: "account recovery",
+        error: err,
+      });
     } finally {
       setIsRecovering(false);
     }

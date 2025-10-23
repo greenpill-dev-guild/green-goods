@@ -1,8 +1,8 @@
 import { useGardenerProfile } from "@green-goods/shared/hooks";
 import { uploadFileToIPFS } from "@green-goods/shared/modules";
 import { RiImageAddLine, RiLoader4Line, RiSaveLine } from "@remixicon/react";
+import { toastService } from "@green-goods/shared";
 import { useState } from "react";
-import toast from "react-hot-toast";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/UI/Button";
 import { Card } from "@/components/UI/Card/Card";
@@ -76,7 +76,18 @@ export const GardenerProfile: React.FC = () => {
       setFormData((prev) => ({ ...prev, imageURI: `ipfs://${ipfsHash}` }));
     } catch (error) {
       console.error("Image upload failed:", error);
-      toast.error("Failed to upload image");
+      toastService.error({
+        title: intl.formatMessage({
+          id: "app.profile.imageUploadFailedTitle",
+          defaultMessage: "Image upload failed",
+        }),
+        message: intl.formatMessage({
+          id: "app.profile.imageUploadFailedMessage",
+          defaultMessage: "Please try again.",
+        }),
+        context: "profile image upload",
+        error,
+      });
     } finally {
       setUploadingImage(false);
     }
@@ -86,7 +97,18 @@ export const GardenerProfile: React.FC = () => {
     e.preventDefault();
 
     if (!validate()) {
-      toast.error("Please fix validation errors");
+      toastService.error({
+        title: intl.formatMessage({
+          id: "app.profile.validationErrorsTitle",
+          defaultMessage: "Please review your profile",
+        }),
+        message: intl.formatMessage({
+          id: "app.profile.validationErrorsMessage",
+          defaultMessage: "Fix the highlighted fields before saving.",
+        }),
+        context: "profile form validation",
+        suppressLogging: true,
+      });
       return;
     }
 
@@ -101,7 +123,18 @@ export const GardenerProfile: React.FC = () => {
 
   const addSocialLink = () => {
     if (formData.socialLinks.length >= 5) {
-      toast.error("Maximum 5 social links allowed");
+      toastService.error({
+        title: intl.formatMessage({
+          id: "app.profile.socialLimitTitle",
+          defaultMessage: "Limit reached",
+        }),
+        message: intl.formatMessage({
+          id: "app.profile.socialLimitMessage",
+          defaultMessage: "You can add up to five links.",
+        }),
+        context: "profile social links",
+        suppressLogging: true,
+      });
       return;
     }
     setFormData((prev) => ({ ...prev, socialLinks: [...prev.socialLinks, ""] }));

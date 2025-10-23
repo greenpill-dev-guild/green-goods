@@ -424,10 +424,7 @@ Service layer and business logic:
   - `index.ts`: Main job queue interface and configuration
   - `db.ts`: IndexedDB integration for persistent storage
   - `event-bus.ts`: Event-driven communication for job updates
-  - `job-processor.ts`: Background job processing logic
-  - `media-resource-manager.ts`: Media file handling and compression
-  - `sync-manager.ts`: Online/offline synchronization management
-  - `processors/`: Specific job processors for work and approval submissions
+  - `media-resource-manager.ts`: Media file handling and cleanup helpers
 
 ### Components (`components/`)
 Reusable UI components organized by scope:

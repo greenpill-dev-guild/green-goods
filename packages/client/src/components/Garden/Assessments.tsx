@@ -10,6 +10,7 @@ import { Link } from "react-router-dom";
 interface GardenAssessmentsProps {
   assessments: GardenAssessment[];
   asessmentFetchStatus: "pending" | "success" | "error";
+  description?: string | null;
 }
 
 interface AssessmentListProps {
@@ -181,9 +182,36 @@ const AssessmentList = ({ assessments, asessmentFetchStatus }: AssessmentListPro
 };
 
 export const GardenAssessments = forwardRef<HTMLUListElement, GardenAssessmentsProps>(
-  ({ assessments, asessmentFetchStatus }, ref) => {
+  ({ assessments, asessmentFetchStatus, description }, ref) => {
+    const intl = useIntl();
+    const hasDescription = Boolean(description && description.trim().length > 0);
+
+    const aboutTitle = intl.formatMessage({
+      id: "app.garden.description.title",
+      defaultMessage: "About this garden",
+    });
+    const assessmentsTitle = intl.formatMessage({
+      id: "app.garden.assessments.listTitle",
+      defaultMessage: "Assessments",
+    });
+
     return (
-      <ul className="flex flex-col gap-2" ref={ref}>
+      <ul className="flex flex-col gap-3" ref={ref}>
+        {hasDescription ? (
+          <li className="space-y-2">
+            <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+              {aboutTitle}
+            </span>
+            <Card className="bg-slate-50 border-slate-200 text-sm text-slate-600 leading-relaxed">
+              <p className="whitespace-pre-line">{description}</p>
+            </Card>
+          </li>
+        ) : null}
+        <li>
+          <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+            {assessmentsTitle}
+          </span>
+        </li>
         <AssessmentList assessments={assessments} asessmentFetchStatus={asessmentFetchStatus} />
       </ul>
     );

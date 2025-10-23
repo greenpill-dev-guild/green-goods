@@ -9,30 +9,35 @@ interface FormSelectProps<T extends FieldValues = FieldValues> {
   label: string;
   placeholder: string;
   error?: string;
-  options: { label: string; value: string }[];
+  options: { label: string; value: string }[] | undefined;
   control: Control<T>;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const FormSelectComponent = forwardRef<HTMLSelectElement, FormSelectProps<any>>(
-  ({ name, label, options, control }, _ref) => {
+  ({ name, label, options, placeholder, control }, _ref) => {
+    const normalizedOptions = Array.isArray(options) ? options : [];
+
     return (
       <Controller
         name={name}
         control={control}
-        render={(field) => (
+        defaultValue={[]}
+        render={({ field }) => (
           <div className="">
             <label htmlFor={name} className="font-semibold text-slate-800  text-label-sm">
               {label}
             </label>
             <Select
               id={name}
-              value={field.field.value.map((v: string) => ({
-                label: v,
-                value: v,
-              }))}
-              options={options}
-              onChange={(val) => field.field.onChange(val.map((v) => v.value))}
+              placeholder={placeholder}
+              value={
+                Array.isArray(field.value)
+                  ? field.value.map((v: string) => ({ label: v, value: v }))
+                  : []
+              }
+              options={normalizedOptions}
+              onChange={(val) => field.onChange(Array.isArray(val) ? val.map((v) => v.value) : [])}
               isMulti
               classNamePrefix="select"
             />
