@@ -10,12 +10,13 @@
  */
 
 import { useMutation } from "@tanstack/react-query";
-import toast from "react-hot-toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { useUser } from "../auth/useUser";
-import { submitApprovalWithPasskey } from "../../modules/work/passkey-submission";
+import { jobQueue } from "../../modules/job-queue";
 import { submitApprovalDirectly } from "../../modules/work/wallet-submission";
-import { DEBUG_ENABLED, debugError, debugLog } from "../../utils/debug";
+import { submitApprovalToQueue } from "../../modules/work/work-submission";
+import { toastService } from "../../toast";
+import { DEBUG_ENABLED, debugError, debugLog, debugWarn } from "../../utils/debug";
 
 interface UseWorkApprovalParams {
   draft: WorkApprovalDraft;
@@ -71,27 +72,59 @@ export function useWorkApproval() {
 
       if (authMode === "wallet") {
         // Direct wallet submission
-        if (DEBUG_ENABLED) {
-          debugLog("[useWorkApproval] Using direct wallet submission", {
-            chainId,
-            workUID: draft.workUID,
-          });
-        }
-        return await submitApprovalDirectly(draft, work.gardenerAddress || "", chainId);
-      }
-
       if (DEBUG_ENABLED) {
-        debugLog("[useWorkApproval] Using passkey smart account submission", {
+        debugLog("[useWorkApproval] Using direct wallet submission", {
           chainId,
           workUID: draft.workUID,
         });
       }
-      return await submitApprovalWithPasskey({
-        client: smartAccountClient,
+      return await submitApprovalDirectly(draft, work.gardenerAddress || "", chainId);
+    }
+
+      if (DEBUG_ENABLED) {
+        debugLog("[useWorkApproval] Queuing approval for passkey flow", {
+          chainId,
+          workUID: draft.workUID,
+          approved: draft.approved,
+        });
+      }
+
+      const { txHash: offlineTxHash, jobId } = await submitApprovalToQueue(
         draft,
-        gardenerAddress: work.gardenerAddress || "",
-        chainId,
-      });
+        work,
+        chainId
+      );
+
+      if (DEBUG_ENABLED) {
+        debugLog("[useWorkApproval] Approval queued", {
+          jobId,
+          workUID: draft.workUID,
+          isOnline: navigator.onLine,
+        });
+      }
+
+      if (navigator.onLine && smartAccountClient) {
+        try {
+          const result = await jobQueue.processJob(jobId, { smartAccountClient });
+          if (DEBUG_ENABLED) {
+            debugLog("[useWorkApproval] Inline processing attempt finished", {
+              jobId,
+              success: result.success,
+              skipped: result.skipped,
+              error: result.error,
+            });
+          }
+          if (result.success && result.txHash) {
+            return result.txHash as `0x${string}`;
+          }
+        } catch (error) {
+          if (DEBUG_ENABLED) {
+            debugWarn("[useWorkApproval] Inline approval processing threw", { jobId, error });
+          }
+        }
+      }
+
+      return offlineTxHash;
     },
     onMutate: (variables) => {
       if (DEBUG_ENABLED && variables) {
@@ -102,28 +135,78 @@ export function useWorkApproval() {
           approved: variables.draft.approved,
         });
       }
+      const actionLabel = variables?.draft.approved ? "approval" : "decision";
       const message =
-        authMode === "wallet" ? "Awaiting wallet confirmation..." : "Submitting approval...";
-      toast.loading(message, { id: "approval-submit" });
+        authMode === "wallet"
+          ? "Waiting for wallet confirmation..."
+          : !navigator.onLine
+            ? `Saving ${actionLabel} offline...`
+            : `Submitting ${actionLabel}...`;
+      const title =
+        authMode === "wallet"
+          ? "Confirm in your wallet"
+          : !navigator.onLine
+            ? "Working offline"
+            : "Submitting approval";
+      toastService.loading({
+        id: "approval-submit",
+        title,
+        message,
+        context: authMode === "wallet" ? "wallet confirmation" : "approval submission",
+        suppressLogging: true,
+      });
     },
-    onSuccess: (_, variables) => {
-      toast.dismiss("approval-submit");
+    onSuccess: (txHash, variables) => {
+      const isApproval = variables?.draft.approved ?? false;
+      const isOfflineHash = typeof txHash === "string" && txHash.startsWith("0xoffline_");
+      const successMessage = isApproval ? "Decision recorded." : "Feedback recorded.";
+      const title =
+        authMode === "wallet"
+          ? isApproval ? "Approval submitted" : "Decision submitted"
+          : isOfflineHash
+            ? isApproval ? "Approval saved offline" : "Decision saved offline"
+            : isApproval
+              ? "Approval submitted"
+              : "Decision submitted";
       const message =
-        authMode === "wallet" ? "Approval transaction confirmed!" : "Approval submitted!";
-      toast.success(message);
+        authMode === "wallet"
+          ? "Transaction confirmed."
+          : isOfflineHash
+            ? "We'll sync this automatically when you're back online."
+            : successMessage;
+      toastService.success({
+        id: "approval-submit",
+        title,
+        message,
+        context: authMode === "wallet" ? "wallet confirmation" : "approval submission",
+        suppressLogging: true,
+      });
       if (DEBUG_ENABLED) {
         debugLog("[useWorkApproval] Approval submission successful", {
           authMode,
           chainId,
           workUID: variables?.draft.workUID,
+          txHash,
+          wasOffline: isOfflineHash,
         });
       }
     },
     onError: (error: unknown, variables) => {
-      const message =
-        error instanceof Error ? error.message : "Failed to submit approval. Please try again.";
-      toast.error(message);
-      toast.dismiss("approval-submit");
+      const isApproval = variables?.draft.approved ?? false;
+      const message = authMode === "wallet"
+        ? "Transaction failed. Check your wallet and try again."
+        : `We couldn't send the ${isApproval ? "approval" : "decision"}. We'll retry shortly.`;
+      toastService.error({
+        id: "approval-submit",
+        title: isApproval ? "Approval failed" : "Decision failed",
+        message,
+        context: authMode === "wallet" ? "wallet confirmation" : "approval submission",
+        description:
+          authMode === "wallet"
+            ? "If this keeps happening, reconnect your wallet before resubmitting."
+            : "Keep the app open; the queue will keep trying in the background.",
+        error,
+      });
       if (DEBUG_ENABLED) {
         debugError("[useWorkApproval] Approval submission failed", error, {
           authMode,

@@ -31,6 +31,21 @@ import { getEASConfig, getNetworkConfig } from "@green-goods/shared/config";
 import { createEasClient, uploadFileToIPFS } from "@green-goods/shared/modules";
 ```
 
+### Toast Utilities
+```typescript
+import { toastService, ToastViewport } from "@green-goods/shared";
+
+toastService.error({
+  title: "Work submission failed",
+  message: "We'll retry in the background.",
+  context: "work upload",
+  error, // optional diagnostics logged in dev
+});
+
+// Render once in your root layout to apply shared styling
+<ToastViewport />;
+```
+
 ### Types
 ```typescript
 import type { Garden, WorkCard } from "@green-goods/shared/types";
@@ -44,6 +59,7 @@ src/
 ├── config/         # Configuration (blockchain, chains)
 ├── modules/        # Data modules (EAS, Pinata, URQL, GraphQL)
 ├── types/          # TypeScript type definitions
+├── toast/          # Toast service + shared viewport component
 └── constants/      # Constants (chain IDs, etc.)
 ```
 
@@ -56,4 +72,3 @@ bun format
 # Lint code
 bun lint
 ```
-

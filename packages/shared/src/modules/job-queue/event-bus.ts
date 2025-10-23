@@ -11,14 +11,8 @@ interface JobQueueEventMap {
   "job:processing": { jobId: string; job: Job };
   "job:completed": { jobId: string; job: Job; txHash: string };
   "job:failed": { jobId: string; job: Job; error: string };
-  "job:retrying": { jobId: string; job: Job; attempt: number };
-  "queue:stats-changed": { stats: QueueStats };
-  "queue:sync-started": {};
   "queue:sync-completed": { result: { processed: number; failed: number; skipped: number } };
-  "queue:sync-failed": { error: string };
   "offline:status-changed": { isOnline: boolean };
-  "performance:update": { metrics: any };
-  "error:boundary": { error: string; context: string };
 }
 
 type JobQueueEventType = keyof JobQueueEventMap;

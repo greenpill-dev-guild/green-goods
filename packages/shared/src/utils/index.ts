@@ -9,6 +9,8 @@ export { getTag } from './app/tags';
 // From app/text.ts
 export {
   formatAddress,
+  type FormatAddressOptions,
+  type FormatAddressVariant,
   truncate,
   isValidEmail,
   truncateDescription,
@@ -16,6 +18,13 @@ export {
   formatLastUpdated,
   capitalize,
 } from './app/text';
+export {
+  buildGardenMemberSets,
+  gardenHasMember,
+  resolveGardenMemberKey,
+} from './app/garden';
+export type { GardenMemberLike } from './app/garden';
+export { copyToClipboard } from './app/clipboard';
 
 // From blockchain/chainId.ts
 export {
@@ -83,5 +92,11 @@ export {
   downloadWorkData,
   getWorkShareUrl,
 } from './work/workActions';
+export {
+  resolveEnsName,
+  resolveEnsAddress,
+  type ResolveEnsOptions,
+  type ResolveEnsAddressOptions,
+} from './blockchain/ens';
 
 // Note: pinata functions exported from modules/data/pinata via modules/index.ts

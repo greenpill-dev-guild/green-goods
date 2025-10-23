@@ -1,11 +1,33 @@
+export type FormatAddressVariant = "default" | "card" | "long";
+
+export interface FormatAddressOptions {
+  variant?: FormatAddressVariant;
+  ensName?: string | null;
+  fallbackLabel?: string;
+}
+
 /** Shortens an Ethereum address or ENS name for display in the UI. */
-export const formatAddress: (arg0: string) => string = (address) => {
-  if (!address) return "no address provided";
+export const formatAddress = (
+  address?: string | null,
+  options: FormatAddressOptions = {}
+): string => {
+  const { variant = "default", ensName, fallbackLabel } = options;
+  if (ensName) return ensName;
+  if (!address) return fallbackLabel ?? "no address provided";
   if (address.includes(".eth")) return address;
 
-  const start = address.slice(0, 6);
-  const end = address.slice(address.length - 4);
-  return `${start}...${end}`;
+  const slices = {
+    default: { start: 6, end: 4 },
+    card: { start: 4, end: 3 },
+    long: { start: 8, end: 6 },
+  } as const satisfies Record<FormatAddressVariant, { start: number; end: number }>;
+
+  const { start, end } = slices[variant] ?? slices.default;
+  if (address.length <= start + end) return address;
+
+  const startSlice = address.slice(0, start);
+  const endSlice = address.slice(address.length - end);
+  return `${startSlice}...${endSlice}`;
 };
 
 /** Truncates a string and appends an ellipsis when it exceeds the provided length. */

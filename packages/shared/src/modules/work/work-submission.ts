@@ -52,7 +52,7 @@ export async function submitApprovalToQueue(
   draft: WorkApprovalDraft,
   work: Work | undefined,
   chainId: number
-): Promise<`0x${string}`> {
+): Promise<{ txHash: `0x${string}`; jobId: string }> {
   if (!draft.workUID) {
     throw new Error("Work UID is required");
   }
@@ -72,7 +72,7 @@ export async function submitApprovalToQueue(
   );
 
   // Return an offline transaction hash for UI compatibility
-  return createOfflineTxHash(jobId);
+  return { txHash: createOfflineTxHash(jobId), jobId };
 }
 
 /**

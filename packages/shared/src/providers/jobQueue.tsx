@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import toast from "react-hot-toast";
+import { toastService } from "../toast";
 import { DEFAULT_CHAIN_ID } from "../config/blockchain";
 import { queryKeys } from "../hooks/query-keys";
 // import { jobToWork } from "../hooks/useWorks";
@@ -54,6 +54,19 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastEvent, setLastEvent] = useState<QueueEvent | null>(null);
 
+  const refreshStats = React.useCallback(
+    async (signal?: AbortSignal) => {
+      try {
+        const newStats = await jobQueue.getStats();
+        if (signal?.aborted) return;
+        setStats(newStats);
+      } catch {
+        if (signal?.aborted) return;
+      }
+    },
+    []
+  );
+
   // Subscribe to queue events
   useEffect(() => {
     const abortController = new AbortController();
@@ -72,19 +85,6 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
     };
 
-    const updateStats = async () => {
-      try {
-        if (!abortController.signal.aborted) {
-          const newStats = await jobQueue.getStats();
-          setStats(newStats);
-        }
-      } catch {
-        if (!abortController.signal.aborted) {
-          // Error handled by returning empty stats
-        }
-      }
-    };
-
     const handleQueueEvent = (event: QueueEvent) => {
       setLastEvent(event);
 
@@ -95,21 +95,39 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
           if (event.job) {
             const baseId = `job-${event.job.id}-processing`;
             if (event.job.kind === "work") {
-              toast.loading("Uploading work...", { id: baseId });
+              toastService.loading({
+                id: baseId,
+                title: "Uploading work",
+                message: "We're sending your work submission.",
+                context: "work upload",
+                suppressLogging: true,
+              });
             } else if (event.job.kind === "approval") {
-              toast.loading("Submitting approval...", { id: baseId });
+              toastService.loading({
+                id: baseId,
+                title: "Submitting approval",
+                message: "We're finalizing your decision.",
+                context: "approval submission",
+                suppressLogging: true,
+              });
             }
           }
           break;
         case "job_completed":
           setIsProcessing(false);
-          updateStats();
+          void refreshStats(abortController.signal);
 
           // Handle optimistic updates for completed jobs
           if (event.job && event.txHash) {
             if (event.job.kind === "work") {
               // Toast success for work upload
-              toast.success("Work uploaded", { id: `job-${event.job.id}-processing` });
+              toastService.success({
+                id: `job-${event.job.id}-processing`,
+                title: "Work uploaded",
+                message: "Submission confirmed.",
+                context: "work upload",
+                suppressLogging: true,
+              });
               const workPayload = event.job.payload as WorkJobPayload;
               const gardenId = workPayload.gardenAddress;
               const chainId = (event.job.chainId as number) || DEFAULT_CHAIN_ID;
@@ -118,7 +136,13 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
               invalidateOnJobCompletedWork(gardenId, chainId);
             } else if (event.job.kind === "approval") {
               // Toast success for approval submission
-              toast.success("Approval submitted", { id: `job-${event.job.id}-processing` });
+              toastService.success({
+                id: `job-${event.job.id}-processing`,
+                title: "Approval sent",
+                message: "Status updated.",
+                context: "approval submission",
+                suppressLogging: true,
+              });
               const approvalPayload = event.job.payload as ApprovalJobPayload;
 
               // Invalidate work approvals to show the new approval
@@ -149,14 +173,21 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
           break;
         case "job_failed":
           setIsProcessing(false);
-          updateStats();
+          void refreshStats(abortController.signal);
 
           // Handle failed jobs
           if (event.job) {
             // Toast error for failure
             const isWork = event.job.kind === "work";
-            toast.error(isWork ? "Work upload failed" : "Approval failed", {
+            toastService.error({
               id: `job-${event.job.id}-processing`,
+              title: isWork ? "Work upload failed" : "Approval failed",
+              message: isWork
+                ? "We'll retry the upload shortly."
+                : "We'll retry the submission shortly.",
+              context: isWork ? "work upload" : "approval submission",
+              description: "You can leave this page; the queue will keep trying.",
+              error: event.error ?? event.job.lastError,
             });
             if (event.job.kind === "work") {
               const workPayload = event.job.payload as WorkJobPayload;
@@ -172,7 +203,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
           }
           break;
         case "job_added":
-          updateStats();
+          void refreshStats(abortController.signal);
 
           // Refresh offline work queries when new jobs are added
           if (event.job?.kind === "work") {
@@ -189,15 +220,13 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
           queryClient.invalidateQueries({ queryKey: queryKeys.queue.pendingCount() });
           queryClient.invalidateQueries({ queryKey: queryKeys.queue.stats() });
           break;
-        case "job_retrying":
-          // Suppress retry toast to reduce flashing; still update stats
-          updateStats();
+        default:
           break;
       }
     };
 
     // Initial stats load
-    updateStats();
+    void refreshStats(abortController.signal);
 
     // Subscribe to events
     const unsubscribe = jobQueue.subscribe(handleQueueEvent);
@@ -206,7 +235,44 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       abortController.abort(); // Cancel any pending async operations
       unsubscribe();
     };
-  }, [smartAccountAddress]);
+  }, [smartAccountAddress, refreshStats]);
+
+  useEffect(() => {
+    if (!smartAccountClient) {
+      return;
+    }
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const abortController = new AbortController();
+
+    const attemptFlush = async () => {
+      try {
+        await jobQueue.flush({ smartAccountClient });
+        await refreshStats(abortController.signal);
+      } catch {
+        if (abortController.signal.aborted) {
+          return;
+        }
+      }
+    };
+
+    if (navigator.onLine) {
+      void attemptFlush();
+    }
+
+    const handleOnline = () => {
+      void attemptFlush();
+    };
+
+    window.addEventListener("online", handleOnline);
+
+    return () => {
+      abortController.abort();
+      window.removeEventListener("online", handleOnline);
+    };
+  }, [smartAccountClient, refreshStats]);
 
   // Removed queue-level sync toasts; provider now handles processing inline
 
@@ -215,43 +281,56 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
     isProcessing,
     lastEvent,
     flush: async () => {
-      // Provider-driven flush: iterate pending jobs and process inline
       try {
-        const pendingWork = await jobQueue.getJobs({ kind: "work", synced: false });
-        const pendingApprovals = await jobQueue.getJobs({ kind: "approval", synced: false });
+        const result = await jobQueue.flush({ smartAccountClient: smartAccountClient ?? null });
+        await refreshStats();
 
-        let processed = 0;
-        // Mark jobs as synced - processing happens elsewhere
-        for (const j of pendingWork) {
-          if (smartAccountClient) {
-            try {
-              // Jobs are processed by the background sync or other mechanisms
-              // Here we just skip them for now - actual processing needs to be implemented
-              console.log('Work job pending:', j.id);
-            } catch (error) {
-              console.error('Failed to process work job:', error);
-            }
-          }
+        if (result.processed > 0) {
+          toastService.success({
+            id: "job-queue-flush",
+            title: "Offline jobs synced",
+            message: `Processed ${result.processed} item${result.processed === 1 ? "" : "s"}.`,
+            context: "job queue",
+            suppressLogging: true,
+          });
+        } else if (result.failed > 0) {
+          toastService.error({
+            id: "job-queue-flush",
+            title: "Some jobs failed to sync",
+            message: "We'll retry automatically in the background.",
+            context: "job queue",
+          });
+        } else if (result.skipped > 0) {
+          const isOnline = typeof navigator === "undefined" ? true : navigator.onLine;
+          const reason = !isOnline
+            ? "Reconnect to the internet to finish syncing."
+            : !smartAccountClient
+              ? "Unlock your passkey session to continue syncing."
+              : "We'll retry shortly.";
+          toastService.info({
+            id: "job-queue-flush",
+            title: "Still queued",
+            message: reason,
+            context: "job queue",
+            suppressLogging: true,
+          });
+        } else {
+          toastService.info({
+            id: "job-queue-flush",
+            title: "Queue is clear",
+            message: "No pending jobs to sync.",
+            context: "job queue",
+            suppressLogging: true,
+          });
         }
-        for (const j of pendingApprovals) {
-          if (smartAccountClient) {
-            try {
-              // Jobs are processed by the background sync or other mechanisms
-              // Here we just skip them for now - actual processing needs to be implemented
-              console.log('Approval job pending:', j.id);
-            } catch (error) {
-              console.error('Failed to process approval job:', error);
-            }
-          }
-        }
-        const newStats = await jobQueue.getStats();
-        setStats(newStats);
-        if (processed > 0) {
-          queryClient.invalidateQueries({ queryKey: queryKeys.queue.stats() });
-          queryClient.invalidateQueries({ queryKey: queryKeys.queue.pendingCount() });
-        }
-      } catch {
-        // best-effort; errors are surfaced via per-job events
+      } catch (error) {
+        toastService.error({
+          id: "job-queue-flush",
+          title: "Queue sync failed",
+          message: "Please try again.",
+          context: "job queue",
+          error,
+        });
       }
     },
     hasPendingJobs: () => jobQueue.hasPendingJobs(),

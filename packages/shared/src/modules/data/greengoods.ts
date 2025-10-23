@@ -74,6 +74,23 @@ export async function getActions(): Promise<Action[]> {
             console.error(`Failed to fetch instructions for action ${id}:`, error);
           }
 
+          if (actionConfig) {
+            console.log("[getActions] Loaded instruction config", {
+              id,
+              title,
+              hasMediaConfig: Boolean(actionConfig?.uiConfig?.media),
+              detailInputKeys: Array.isArray(actionConfig?.uiConfig?.details?.inputs)
+                ? (actionConfig.uiConfig.details.inputs as WorkInput[]).map((input) => input.key)
+                : [],
+              reviewHasCopy: Boolean(actionConfig?.uiConfig?.review),
+            });
+          } else {
+            console.log("[getActions] No instruction config found for action", {
+              id,
+              title,
+            });
+          }
+
           return {
             id, // composite id stays for uniqueness but downstream selection matches numeric UID
             title,
@@ -85,9 +102,20 @@ export async function getActions(): Promise<Action[]> {
             inputs: (actionConfig?.uiConfig?.details?.inputs as WorkInput[]) || [],
             mediaInfo: actionConfig?.uiConfig?.media || {
               title: "Capture Media",
+              description: "",
               maxImageCount: 5,
+              required: false,
+              minImageCount: 1,
+              needed: [],
+              optional: [],
             },
-            details: actionConfig?.uiConfig?.details || { title: "Details", inputs: [] },
+            details:
+              actionConfig?.uiConfig?.details || {
+                title: "Details",
+                description: "",
+                feedbackPlaceholder: "",
+                inputs: [],
+              },
             review: actionConfig?.uiConfig?.review || { title: "Review", description: "" },
             createdAt: createdAt ? Number(createdAt) * 1000 : Date.now(),
           };

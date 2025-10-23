@@ -2,19 +2,18 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import React, { useContext } from "react";
 import { type Control, type FormState, type UseFormRegister, useForm } from "react-hook-form";
-import toast from "react-hot-toast";
 import { type ZodType, z } from "zod";
 // import { decodeErrorResult } from "viem";
 import { DEFAULT_CHAIN_ID } from "../config/blockchain";
-import { submitWorkWithPasskey } from "../modules/work/passkey-submission";
+import { jobQueue } from "../modules/job-queue";
 import { submitWorkDirectly } from "../modules/work/wallet-submission";
-// import { jobQueue } from "../modules/job-queue";
-import { formatJobError, validateWorkDraft } from "../modules/work/work-submission";
+import { formatJobError, submitWorkToQueue, validateWorkDraft } from "../modules/work/work-submission";
 // import { abi as WorkResolverABI } from "../utils/abis/WorkResolver.json";
 
 import { useUser } from "../hooks/auth/useUser";
 import { useActions, useGardens } from "../hooks/blockchain/useBaseLists";
 import { useWorkFlowStore, type WorkFlowState } from "../stores/useWorkFlowStore";
+import { toastService } from "../toast";
 import { DEBUG_ENABLED, debugError, debugLog, debugWarn } from "../utils/debug";
 
 export enum WorkTab {
@@ -39,7 +38,7 @@ export interface WorkDataProps {
     setActionUID: React.Dispatch<React.SetStateAction<number | null>>;
     register: UseFormRegister<WorkFormData>;
     control: Control<WorkFormData>;
-    uploadWork: (e?: React.BaseSyntheticEvent) => Promise<void>;
+    uploadWork: (e?: React.BaseSyntheticEvent) => Promise<boolean>;
     gardenAddress: string | null;
     setGardenAddress: React.Dispatch<React.SetStateAction<string | null>>;
     feedback: string;
@@ -61,8 +60,29 @@ const workFormSchema: ZodType<{
   plantCount?: number;
 }> = z.object({
   feedback: z.string().min(1, "Feedback is required"),
-  plantSelection: z.array(z.string()),
-  plantCount: z.number().nonnegative().optional(),
+  plantSelection: z.preprocess((val) => {
+    if (Array.isArray(val)) {
+      return val.filter((item) => typeof item === "string" && item.trim().length > 0);
+    }
+    if (typeof val === "string") {
+      const trimmed = val.trim();
+      return trimmed.length > 0 ? [trimmed] : [];
+    }
+    return [];
+  }, z.array(z.string())),
+  plantCount: z.preprocess((val) => {
+    if (val === "" || val === null || val === undefined) {
+      return undefined;
+    }
+    if (typeof val === "number") {
+      return Number.isNaN(val) ? undefined : val;
+    }
+    if (typeof val === "string") {
+      const parsed = Number(val);
+      return Number.isNaN(parsed) ? undefined : parsed;
+    }
+    return undefined;
+  }, z.number().nonnegative().optional()),
 });
 
 // Infer form type from Zod schema (single source of truth)
@@ -76,7 +96,7 @@ const WorkContext = React.createContext<WorkDataProps>({
     control: () => {},
     actionUID: null,
     setActionUID: () => {},
-    uploadWork: async () => {},
+    uploadWork: async () => false,
     gardenAddress: null,
     setGardenAddress: () => {},
     reset: () => {},
@@ -153,8 +173,22 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   });
 
   const feedback = watch("feedback");
-  const plantSelection = watch("plantSelection");
-  const plantCount = watch("plantCount");
+  const plantSelectionRaw = watch("plantSelection");
+  const plantCountRaw = watch("plantCount");
+  const plantSelection = Array.isArray(plantSelectionRaw)
+    ? (plantSelectionRaw as string[])
+    : typeof plantSelectionRaw === "string" && plantSelectionRaw.trim().length > 0
+    ? [plantSelectionRaw.trim()]
+    : [];
+  const plantCount =
+    typeof plantCountRaw === "number"
+      ? plantCountRaw
+      : typeof plantCountRaw === "string" && plantCountRaw.trim().length > 0
+      ? (() => {
+          const parsed = Number(plantCountRaw);
+          return Number.isNaN(parsed) ? undefined : parsed;
+        })()
+      : undefined;
   const values = watch() as unknown as Record<string, unknown>;
 
   const workMutation = useMutation({
@@ -184,7 +218,6 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
 
       // Branch based on authentication mode
       if (authMode === "wallet") {
-        // Direct wallet transaction - no queue
         if (DEBUG_ENABLED) {
           debugLog("[GardenFlow] Submitting work via wallet flow", {
             gardenAddress,
@@ -202,27 +235,56 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         );
       }
 
-      if (!smartAccountClient) {
-        throw new Error("Passkey session not ready. Please refresh and try again.");
-      }
-
       if (DEBUG_ENABLED) {
-        debugLog("[GardenFlow] Submitting work via passkey flow", {
+        debugLog("[GardenFlow] Queuing work submission for passkey flow", {
           gardenAddress,
           actionUID,
           actionTitle,
         });
       }
 
-      return await submitWorkWithPasskey({
-        client: smartAccountClient,
-        draft,
-        gardenAddress: gardenAddress!,
-        actionUID: actionUID!,
-        actionTitle,
+      const { txHash: offlineTxHash, jobId } = await submitWorkToQueue(
+        {
+          ...draft,
+        } as any,
+        gardenAddress!,
+        actionUID!,
+        ctxActions,
         chainId,
-        images,
-      });
+        images
+      );
+
+      if (DEBUG_ENABLED) {
+        debugLog("[GardenFlow] Work queued", {
+          jobId,
+          gardenAddress,
+          actionUID,
+          isOnline: navigator.onLine,
+        });
+      }
+
+      if (navigator.onLine && smartAccountClient) {
+        try {
+          const result = await jobQueue.processJob(jobId, { smartAccountClient });
+          if (DEBUG_ENABLED) {
+            debugLog("[GardenFlow] Inline processing attempt finished", {
+              jobId,
+              success: result.success,
+              skipped: result.skipped,
+              error: result.error,
+            });
+          }
+          if (result.success && result.txHash) {
+            return result.txHash as `0x${string}`;
+          }
+        } catch (error) {
+          if (DEBUG_ENABLED) {
+            debugWarn("[GardenFlow] Inline processing threw", { jobId, error });
+          }
+        }
+      }
+
+      return offlineTxHash;
     },
     onMutate: (variables) => {
       if (DEBUG_ENABLED && variables) {
@@ -233,31 +295,80 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         });
       }
 
+      const isOffline = !navigator.onLine && authMode !== "wallet";
       const message =
-        authMode === "wallet" ? "Awaiting wallet confirmation..." : "Submitting work...";
-      toast.loading(message, { id: "work-upload" });
+        authMode === "wallet"
+          ? "Waiting for wallet confirmation..."
+          : isOffline
+            ? "Saving work offline..."
+            : "Submitting your work...";
+      const title =
+        authMode === "wallet"
+          ? "Confirm in your wallet"
+          : isOffline
+            ? "Working offline"
+            : "Submitting work";
+      toastService.loading({
+        id: "work-upload",
+        title,
+        message,
+        context: authMode === "wallet" ? "wallet confirmation" : "work upload",
+        suppressLogging: true,
+      });
     },
-    onSuccess: () => {
-      toast.dismiss("work-upload");
+    onSuccess: (txHash) => {
+      const isOfflineHash = typeof txHash === "string" && txHash.startsWith("0xoffline_");
+      const title =
+        authMode === "wallet"
+          ? "Work submitted"
+          : isOfflineHash
+            ? "Work saved offline"
+            : "Work submitted";
       const message =
-        authMode === "wallet" ? "Transaction confirmed!" : "Work submitted successfully!";
-      toast.success(message);
+        authMode === "wallet"
+          ? "Transaction confirmed. You're all set!"
+          : isOfflineHash
+            ? "We'll sync this work automatically when you're back online."
+            : "Work submitted successfully.";
+      toastService.success({
+        id: "work-upload",
+        title,
+        message,
+        context: authMode === "wallet" ? "wallet confirmation" : "work upload",
+        suppressLogging: true,
+      });
       if (DEBUG_ENABLED) {
         debugLog("[GardenFlow] Work submission completed", {
           gardenAddress,
           actionUID,
           authMode,
+          txHash,
+          wasOffline: isOfflineHash,
         });
       }
     },
     onError: (error: unknown, variables) => {
-      const message = formatJobError(
+      const raw =
         typeof error === "object" && error && "message" in (error as { message?: unknown })
           ? String((error as { message?: unknown }).message)
-          : String(error)
-      );
-      toast.error(message);
-      toast.dismiss("work-upload");
+          : String(error);
+      const formatted = formatJobError(raw);
+      const message =
+        formatted === raw
+          ? authMode === "wallet"
+            ? "Transaction failed. Check your wallet and try again."
+            : "We couldn't submit your work. It'll retry shortly."
+          : formatted;
+      toastService.error({
+        id: "work-upload",
+        title: "Work submission failed",
+        message,
+        context: authMode === "wallet" ? "wallet confirmation" : "work upload",
+        description: authMode === "wallet"
+          ? "If the issue persists, reconnect your wallet and resubmit."
+          : "You can stay on this page; the queue will keep retrying.",
+        error,
+      });
       if (DEBUG_ENABLED) {
         debugError("[GardenFlow] Work submission failed", error, {
           gardenAddress,
@@ -279,12 +390,17 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const errors = validateWorkDraft(draft as any, gardenAddress, actionUID, images);
-    if (errors.length > 0) {
-      toast.error(errors[0]);
+   if (errors.length > 0) {
+      toastService.error({
+        title: "Check your submission",
+        message: errors[0],
+        context: "work form validation",
+        suppressLogging: true,
+      });
       if (DEBUG_ENABLED) {
         debugWarn("[GardenFlow] Work draft validation failed", { errors });
       }
-      return;
+      return false;
     }
     // Snapshot images to avoid race with state clearing after navigation
     const imagesSnapshot = images.slice();
@@ -295,7 +411,18 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         imageCount: imagesSnapshot.length,
       });
     }
-    await workMutation.mutateAsync({ draft: draft as any, images: imagesSnapshot });
+    try {
+      await workMutation.mutateAsync({ draft: draft as any, images: imagesSnapshot });
+      return true;
+    } catch (error) {
+      if (DEBUG_ENABLED) {
+        debugError("[GardenFlow] mutateAsync threw", error, {
+          gardenAddress,
+          actionUID,
+        });
+      }
+      return false;
+    }
   });
 
   return (

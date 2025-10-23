@@ -9,6 +9,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useUser } from "../../hooks/auth/useUser";
 import { AuthProvider } from "../../providers/auth";
 
+vi.mock("../../hooks/blockchain/useEnsName", () => ({
+  useEnsName: vi.fn(() => ({ data: null })),
+}));
+
 // Mock the useAuth hook
 vi.mock("@/hooks/useAuth", () => ({
   useAuth: vi.fn(() => ({
@@ -33,6 +37,7 @@ describe("useUser", () => {
     expect(result.current.ready).toBe(false);
     expect(result.current.eoa).toBeNull();
     expect(result.current.smartAccountAddress).toBeNull();
+    expect(result.current.ensName).toBeNull();
   });
 
   it("should have correct return shape", () => {
@@ -45,5 +50,6 @@ describe("useUser", () => {
     expect(result.current).toHaveProperty("eoa");
     expect(result.current).toHaveProperty("smartAccountAddress");
     expect(result.current).toHaveProperty("smartAccountClient");
+    expect(result.current).toHaveProperty("ensName");
   });
 });

@@ -1,3 +1,5 @@
+import { copyToClipboard } from "../app/clipboard";
+
 /**
  * Utility functions for work-related actions like download and share
  */
@@ -97,25 +99,6 @@ export async function shareWork(work: WorkData): Promise<void> {
 
   // Fallback: Copy to clipboard
   await copyToClipboard(shareData.url);
-}
-
-/**
- * Copies text to clipboard
- */
-async function copyToClipboard(text: string): Promise<void> {
-  if (navigator.clipboard && window.isSecureContext) {
-    await navigator.clipboard.writeText(text);
-  } else {
-    // Fallback for older browsers
-    const textArea = document.createElement("textarea");
-    textArea.value = text;
-    textArea.style.position = "fixed";
-    textArea.style.opacity = "0";
-    document.body.appendChild(textArea);
-    textArea.select();
-    document.execCommand("copy");
-    document.body.removeChild(textArea);
-  }
 }
 
 /**

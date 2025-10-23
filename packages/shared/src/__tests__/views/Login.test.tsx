@@ -9,6 +9,7 @@ import userEvent from "@testing-library/user-event";
 import { BrowserRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Login } from "../../../../client/src/views/Login";
+import { toastService } from "@green-goods/shared";
 
 // Mock useAuth hook
 const mockCreatePasskey = vi.fn();
@@ -46,12 +47,6 @@ vi.mock("@wagmi/core", () => ({
   getAccount: vi.fn(() => ({ connector: null })),
 }));
 
-// Mock toast
-vi.mock("react-hot-toast", () => ({
-  default: vi.fn(),
-  error: vi.fn(),
-}));
-
 // Mock Navigate component
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
@@ -62,8 +57,15 @@ vi.mock("react-router-dom", async () => {
 });
 
 describe("Login", () => {
+  const toastInfoSpy = vi.spyOn(toastService, "info").mockImplementation(vi.fn());
+  const toastSuccessSpy = vi.spyOn(toastService, "success").mockImplementation(vi.fn());
+  const toastErrorSpy = vi.spyOn(toastService, "error").mockImplementation(vi.fn());
+
   beforeEach(() => {
     vi.clearAllMocks();
+    toastInfoSpy.mockClear();
+    toastSuccessSpy.mockClear();
+    toastErrorSpy.mockClear();
 
     const baseAuthState = {
       walletAddress: null,

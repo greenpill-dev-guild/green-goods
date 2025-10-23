@@ -141,8 +141,12 @@ declare interface Action extends ActionCard {
 	inputs: WorkInput[];
 	mediaInfo?: {
 		title: string;
-		description: string;
-		maxImageCount: number;
+		description?: string;
+		maxImageCount?: number;
+		required?: boolean;
+		minImageCount?: number;
+		needed?: string[];
+		optional?: string[];
 	};
 	details?: {
 		title: string;
@@ -215,4 +219,3 @@ declare interface WorkApproval extends WorkApprovalDraft {
 	operatorAddress: string;
 	createdAt: number;
 }
-

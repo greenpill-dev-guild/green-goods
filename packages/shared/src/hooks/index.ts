@@ -27,6 +27,8 @@ export {
   useNetworkConfig,
   useChainConfig,
 } from "./blockchain/useChainConfig";
+export { useEnsName } from "./blockchain/useEnsName";
+export { useEnsAddress } from "./blockchain/useEnsAddress";
 export { useDeploymentRegistry } from "./blockchain/useDeploymentRegistry";
 export type { DeploymentRegistryPermissions } from "./blockchain/useDeploymentRegistry";
 

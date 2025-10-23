@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import toast from "react-hot-toast";
 import { encodeFunctionData } from "viem";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { useAuth } from "../auth/useAuth";
+import { toastService } from "../../toast";
 
 // GardenerAccount ABI (minimal - just the functions we need)
 const GARDENER_ACCOUNT_ABI = [
@@ -171,11 +171,21 @@ export function useGardenerProfile() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["gardener-profile"] });
-      toast.success("Profile updated successfully");
+      toastService.success({
+        title: "Profile updated",
+        message: "Your profile changes were saved.",
+        context: "profile update",
+        suppressLogging: true,
+      });
     },
     onError: (error) => {
       console.error("Profile update failed:", error);
-      toast.error(`Failed to update profile: ${error.message}`);
+      toastService.error({
+        title: "Profile update failed",
+        message: "Please try again.",
+        context: "profile update",
+        error,
+      });
     },
   });
 
@@ -205,7 +215,12 @@ export function useGardenerProfile() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["gardener-profile"] });
-      toast.success("Name updated");
+      toastService.success({
+        title: "Name updated",
+        message: "Your profile name has been updated.",
+        context: "profile update",
+        suppressLogging: true,
+      });
     },
   });
 
@@ -234,7 +249,12 @@ export function useGardenerProfile() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["gardener-profile"] });
-      toast.success("Bio updated");
+      toastService.success({
+        title: "Bio updated",
+        message: "Your biography has been updated.",
+        context: "profile update",
+        suppressLogging: true,
+      });
     },
   });
 
@@ -263,7 +283,12 @@ export function useGardenerProfile() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["gardener-profile"] });
-      toast.success("Location updated");
+      toastService.success({
+        title: "Location updated",
+        message: "Your location has been saved.",
+        context: "profile update",
+        suppressLogging: true,
+      });
     },
   });
 
@@ -292,7 +317,12 @@ export function useGardenerProfile() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["gardener-profile"] });
-      toast.success("Profile image updated");
+      toastService.success({
+        title: "Profile image updated",
+        message: "Your new image is on the way.",
+        context: "profile update",
+        suppressLogging: true,
+      });
     },
   });
 

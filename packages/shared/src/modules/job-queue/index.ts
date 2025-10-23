@@ -1,4 +1,7 @@
+import type { SmartAccountClient } from "permissionless";
 import { track } from "../app/posthog";
+import { DEFAULT_CHAIN_ID } from "../../config";
+import { submitApprovalWithPasskey, submitWorkWithPasskey } from "../work/passkey-submission";
 import { jobQueueDB } from "./db";
 import { jobQueueEventBus } from "./event-bus";
 
@@ -9,13 +12,84 @@ export function createOfflineTxHash(jobId: string): `0x${string}` {
   return `0xoffline_${paddedId}` as `0x${string}`;
 }
 
+interface ProcessJobContext {
+  smartAccountClient: SmartAccountClient | null;
+}
+
+interface ProcessJobResult {
+  success: boolean;
+  txHash?: string;
+  error?: string;
+  skipped?: boolean;
+}
+
+interface FlushContext extends ProcessJobContext {}
+
+export interface FlushResult {
+  processed: number;
+  failed: number;
+  skipped: number;
+}
+
+function ensureArray<T>(value: T[] | T | undefined): T[] {
+  if (Array.isArray(value)) return value;
+  if (typeof value === "undefined") return [];
+  return [value as T];
+}
+
+async function executeWorkJob(
+  jobId: string,
+  job: Job<WorkJobPayload>,
+  chainId: number,
+  smartAccountClient: SmartAccountClient
+): Promise<string> {
+  const images = await jobQueueDB.getImagesForJob(jobId);
+  const files = images.map((img) => img.file);
+  const payload = job.payload as WorkJobPayload;
+  const actionTitle = payload.title || `Action ${payload.actionUID}`;
+
+  return await submitWorkWithPasskey({
+    client: smartAccountClient,
+    draft: {
+      actionUID: payload.actionUID,
+      title: actionTitle,
+      plantSelection: ensureArray<string>(payload.plantSelection),
+      plantCount: typeof payload.plantCount === "number" ? payload.plantCount : 0,
+      feedback: payload.feedback,
+      media: files,
+    } as WorkDraft,
+    gardenAddress: payload.gardenAddress,
+    actionUID: payload.actionUID,
+    actionTitle,
+    chainId,
+    images: files,
+  });
+}
+
+async function executeApprovalJob(
+  job: Job<ApprovalJobPayload>,
+  chainId: number,
+  smartAccountClient: SmartAccountClient
+): Promise<string> {
+  const payload = job.payload as ApprovalJobPayload;
+
+  return await submitApprovalWithPasskey({
+    client: smartAccountClient,
+    draft: {
+      actionUID: payload.actionUID,
+      workUID: payload.workUID,
+      approved: payload.approved,
+      feedback: payload.feedback,
+    } as WorkApprovalDraft,
+    gardenerAddress: payload.gardenerAddress || "",
+    chainId,
+  });
+}
+
 /**
- * Simplified JobQueue class that delegates to specialized classes
- * Main responsibilities: job creation and coordination
+ * Job queue responsible for persisting and processing offline work/approval jobs.
  */
 class JobQueue {
-  constructor() {}
-
   /**
    * Add a job to the queue
    */
@@ -24,7 +98,7 @@ class JobQueue {
     payload: JobKindMap[K],
     meta?: Record<string, unknown>
   ): Promise<string> {
-    const chainId = (meta as { chainId?: number })?.chainId || 84532;
+    const chainId = (meta as { chainId?: number })?.chainId || DEFAULT_CHAIN_ID;
     const isOnline = navigator.onLine;
 
     const jobId = await jobQueueDB.addJob({
@@ -34,7 +108,6 @@ class JobQueue {
       chainId,
     });
 
-    // Create full job object for event
     const job: Job = {
       id: jobId,
       kind,
@@ -46,7 +119,6 @@ class JobQueue {
       synced: false,
     };
 
-    // Track job creation
     track("offline_job_created", {
       job_id: jobId,
       job_kind: kind,
@@ -55,7 +127,7 @@ class JobQueue {
       will_process_immediately: false,
     });
 
-    if (import.meta.env?.VITE_QUEUE_DEBUG === "true") {
+    if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
       let mediaCount = 0;
       if (
         payload &&
@@ -75,17 +147,131 @@ class JobQueue {
       });
     }
 
-    // Emit event using the event bus
     jobQueueEventBus.emit("job:added", { jobId, job });
 
-    // Hint service worker to register background sync (if supported/configured)
     try {
       navigator.serviceWorker?.controller?.postMessage({ type: "REGISTER_SYNC" });
     } catch {}
 
-    // Immediate processing removed; providers handle processing inline
-
     return jobId;
+  }
+
+  /**
+   * Process a single job in place.
+   */
+  async processJob(jobId: string, context: ProcessJobContext): Promise<ProcessJobResult> {
+    const job = await jobQueueDB.getJob(jobId);
+    if (!job) {
+      return { success: true, skipped: true };
+    }
+
+    if (job.synced) {
+      const txHash = typeof job.meta?.txHash === "string" ? (job.meta.txHash as string) : undefined;
+      return { success: true, txHash, skipped: true };
+    }
+
+    if (!navigator.onLine) {
+      return { success: false, error: "offline", skipped: true };
+    }
+
+    const smartAccountClient = context.smartAccountClient;
+    if (!smartAccountClient) {
+      return { success: false, error: "smart_account_unavailable", skipped: true };
+    }
+
+    jobQueueEventBus.emit("job:processing", { jobId, job });
+
+    const chainId = job.chainId || DEFAULT_CHAIN_ID;
+    const startTime = Date.now();
+
+    try {
+      let txHash: string;
+
+      if (job.kind === "work") {
+        txHash = await executeWorkJob(jobId, job as Job<WorkJobPayload>, chainId, smartAccountClient);
+      } else if (job.kind === "approval") {
+        txHash = await executeApprovalJob(job as Job<ApprovalJobPayload>, chainId, smartAccountClient);
+      } else {
+        throw new Error(`Unsupported job kind: ${job.kind}`);
+      }
+
+      await jobQueueDB.markJobSynced(jobId, txHash);
+      try {
+        await jobQueueDB.deleteJob(jobId);
+      } catch {}
+
+      const completedJob: Job = {
+        ...job,
+        synced: true,
+        meta: { ...(job.meta || {}), txHash },
+      };
+
+      jobQueueEventBus.emit("job:completed", { jobId, job: completedJob, txHash });
+
+      track("offline_job_processed", {
+        job_id: jobId,
+        job_kind: job.kind,
+        processing_time_ms: Date.now() - startTime,
+        attempts: job.attempts + 1,
+        tx_hash: txHash,
+      });
+
+      return { success: true, txHash };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
+      await jobQueueDB.markJobFailed(jobId, errorMessage);
+      const updated = (await jobQueueDB.getJob(jobId)) ?? job;
+
+      jobQueueEventBus.emit("job:failed", { jobId, job: updated, error: errorMessage });
+
+      track("offline_job_failed", {
+        job_id: jobId,
+        job_kind: job.kind,
+        error: errorMessage,
+        attempts: job.attempts + 1,
+        will_retry: true,
+      });
+
+      return { success: false, error: errorMessage };
+    }
+  }
+
+  /**
+   * Flush unsynced jobs sequentially.
+   */
+  async flush(context: FlushContext): Promise<FlushResult> {
+    const jobs = await jobQueueDB.getJobs({ synced: false });
+    if (jobs.length === 0) {
+      const emptyResult = { processed: 0, failed: 0, skipped: 0 };
+      jobQueueEventBus.emit("queue:sync-completed", { result: emptyResult });
+      return emptyResult;
+    }
+
+    let processed = 0;
+    let failed = 0;
+    let skipped = 0;
+
+    for (const job of jobs) {
+      try {
+        const result = await this.processJob(job.id, context);
+        if (result.success) {
+          processed += 1;
+        } else if (result.skipped) {
+          skipped += 1;
+        } else {
+          failed += 1;
+        }
+      } catch (error) {
+        failed += 1;
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        jobQueueEventBus.emit("job:failed", { jobId: job.id, job, error: errorMessage });
+      }
+    }
+
+    const result = { processed, failed, skipped };
+    jobQueueEventBus.emit("queue:sync-completed", { result });
+    return result;
   }
 
   /**
@@ -118,13 +304,10 @@ class JobQueue {
     return jobs.length;
   }
 
-  // Processing APIs removed; providers handle processing inline
-
   /**
    * Subscribe to queue events (for backward compatibility)
    */
   subscribe(listener: (event: QueueEvent) => void): () => void {
-    // Convert new event format to old format for backward compatibility
     const unsubscribeFunctions: (() => void)[] = [];
 
     unsubscribeFunctions.push(
@@ -151,13 +334,6 @@ class JobQueue {
       })
     );
 
-    unsubscribeFunctions.push(
-      jobQueueEventBus.on("job:retrying", ({ jobId, job }) => {
-        listener({ type: "job_retrying", jobId, job });
-      })
-    );
-
-    // Return function to unsubscribe from all events
     return () => {
       unsubscribeFunctions.forEach((unsub) => unsub());
     };
@@ -171,11 +347,7 @@ class JobQueue {
   }
 }
 
-// Export singleton instance
 export const jobQueue = new JobQueue();
 
-// Re-export for convenience
 export { jobQueueDB } from "./db";
 export { jobQueueEventBus, useJobQueueEvents } from "./event-bus";
-
-// No client adaptation here; providers perform uploads inline

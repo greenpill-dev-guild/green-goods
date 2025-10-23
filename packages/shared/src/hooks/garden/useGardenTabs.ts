@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from "react";
 
 export enum GardenTab {
   Work = "work",
-  Reports = "reports",
+  Insights = "insights",
   Gardeners = "gardeners",
 }
 
@@ -11,7 +11,7 @@ export const useGardenTabs = () => {
   const [activeTab, setActiveTab] = useState<GardenTab>(GardenTab.Work);
   const [scrollPositions, setScrollPositions] = useState({
     [GardenTab.Work]: 0,
-    [GardenTab.Reports]: 0,
+    [GardenTab.Insights]: 0,
     [GardenTab.Gardeners]: 0,
   });
 
@@ -23,7 +23,7 @@ export const useGardenTabs = () => {
   // Create tabRefs object using individual refs
   const tabRefs = useRef({
     [GardenTab.Work]: workRef,
-    [GardenTab.Reports]: reportsRef,
+    [GardenTab.Insights]: reportsRef,
     [GardenTab.Gardeners]: gardenersRef,
   }).current;
 

@@ -21,6 +21,7 @@
  * ```
  */
 
+import { useEnsName } from "../blockchain/useEnsName";
 import { useAuth } from "./useAuth";
 import type { SmartAccountClient } from "permissionless";
 
@@ -38,6 +39,7 @@ interface UseUserReturn {
   smartAccountAddress: string | null;
   smartAccountClient: SmartAccountClient | null;
   authMode: "wallet" | null;
+  ensName: string | null;
 }
 
 export function useUser(): UseUserReturn {
@@ -47,6 +49,7 @@ export function useUser(): UseUserReturn {
   const address = ('address' in auth ? auth.address : (auth.walletAddress || auth.smartAccountAddress)) as string | undefined;
   const ready = ('ready' in auth ? auth.ready : auth.isReady) as boolean;
   const isConnected = ('isConnected' in auth ? auth.isConnected : auth.isAuthenticated) as boolean;
+  const { data: ensName } = useEnsName(address);
   
   // Get smart account details if using PasskeyAuth
   const smartAccountAddress = ('smartAccountAddress' in auth ? auth.smartAccountAddress : null) as string | null;
@@ -70,5 +73,6 @@ export function useUser(): UseUserReturn {
     smartAccountAddress,
     smartAccountClient,
     authMode: isConnected ? "wallet" : null,
+    ensName: ensName ?? null,
   };
 }

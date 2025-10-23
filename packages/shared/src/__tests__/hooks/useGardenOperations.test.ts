@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useGardenOperations } from "@/hooks/useGardenOperations";
 import { mockWalletClient, MOCK_TX_HASH } from "../mocks/viem";
-import toast from "react-hot-toast";
 
 // Mock dependencies
 const mockUseWallets = vi.fn();

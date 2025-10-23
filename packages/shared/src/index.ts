@@ -208,3 +208,13 @@ export type {
   WorkData,
 } from "./utils/index";
 
+// ============================================================================
+// TOAST
+// ============================================================================
+export { ToastViewport, toastService } from "./toast";
+export type {
+  ToastViewportProps,
+  ToastDescriptor,
+  ToastStatus,
+  ToastAction,
+} from "./toast";

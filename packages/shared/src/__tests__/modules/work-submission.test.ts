@@ -1,28 +1,17 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  formatJobError,
+  submitApprovalToQueue,
   submitWorkToQueue,
   validateWorkDraft,
-  formatJobError,
 } from "../../modules/work/work-submission";
 import { jobQueue } from "../../modules/job-queue";
 
-vi.mock("../../modules/job-queue", async () => {
-  const mod = await import("../../modules/job-queue");
-  return {
-    ...mod,
-    jobQueue: {
-      addJob: vi.fn(async () => "job-1"),
-      setSmartAccountClient: vi.fn(),
-      flush: vi.fn(async () => ({ processed: 0, failed: 0, skipped: 0 })),
-      getStats: vi.fn(async () => ({ total: 0, pending: 0, failed: 0, synced: 0 })),
-    },
-  };
-});
-
 describe("modules/work-submission", () => {
   beforeEach(() => {
-    (jobQueue.addJob as any).mockClear?.();
+    vi.restoreAllMocks();
+    vi.spyOn(jobQueue, "addJob").mockResolvedValue("job-1");
   });
 
   it("validates drafts and returns errors", () => {
@@ -42,6 +31,20 @@ describe("modules/work-submission", () => {
     );
     expect(tx.txHash.startsWith("0xoffline_")).toBe(true);
     expect(jobQueue.addJob).toHaveBeenCalled();
+  });
+
+  it("queues approval jobs", async () => {
+    const result = await submitApprovalToQueue(
+      {
+        workUID: "0xwork",
+        actionUID: 1,
+        approved: true,
+      },
+      { gardenerAddress: "0xabc" } as any,
+      84532
+    );
+    expect(result.jobId).toBe("job-1");
+    expect(result.txHash.startsWith("0xoffline_")).toBe(true);
   });
 
   it("formats job errors", () => {

@@ -15,7 +15,7 @@ declare global {
   }
 
   interface QueueEvent {
-    type: "job_added" | "job_processing" | "job_completed" | "job_failed" | "job_retrying";
+    type: "job_added" | "job_processing" | "job_completed" | "job_failed";
     jobId: string;
     job?: Job;
     error?: string;
