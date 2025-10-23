@@ -25,32 +25,6 @@ const BASE_TOAST_OPTIONS: ToastOptions = {
     lineHeight: "20px",
     textAlign: "center",
   },
-  success: {
-    duration: 3000,
-    style: {
-      borderLeft: "4px solid var(--color-success-base)",
-    },
-    iconTheme: {
-      primary: "var(--color-success-base)",
-      secondary: "var(--color-white)",
-    },
-  },
-  error: {
-    duration: 4500,
-    style: {
-      borderLeft: "4px solid var(--color-error-base)",
-    },
-    iconTheme: {
-      primary: "var(--color-error-base)",
-      secondary: "var(--color-white)",
-    },
-  },
-  loading: {
-    duration: 60000,
-    style: {
-      borderLeft: "4px solid var(--color-information-base)",
-    },
-  },
 };
 
 function mergeToastOptions(
@@ -83,14 +57,10 @@ function mergeToastOptions(
 
   if (base.iconTheme || overrides.iconTheme) {
     merged.iconTheme = {
-      ...(base.iconTheme ?? {}),
-      ...(overrides.iconTheme ?? {}),
+      primary: (overrides.iconTheme as any)?.primary ?? (base.iconTheme as any)?.primary ?? "",
+      secondary: (overrides.iconTheme as any)?.secondary ?? (base.iconTheme as any)?.secondary ?? "",
     };
   }
-
-  merged.success = mergeToastOptions(base.success, overrides.success);
-  merged.error = mergeToastOptions(base.error, overrides.error);
-  merged.loading = mergeToastOptions(base.loading, overrides.loading);
 
   return merged;
 }

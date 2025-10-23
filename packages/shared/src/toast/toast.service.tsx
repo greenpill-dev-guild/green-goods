@@ -302,7 +302,7 @@ function showToast(descriptor: ToastDescriptor) {
     },
   };
   if (typeof resolved.icon !== "undefined") {
-    toastOptions.icon = resolved.icon;
+    toastOptions.icon = resolved.icon as any;
   }
 
   const toastId = toastFn(

@@ -2,7 +2,7 @@ import { isAddress, type Address, type PublicClient } from "viem";
 import { createPublicClientForChain } from "../../config/pimlico";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 
-type ResolveEnsOptions = {
+export type ResolveEnsOptions = {
   /** Preferred chain id for ENS lookup. Defaults to DEFAULT_CHAIN_ID. */
   chainId?: number;
   /**
@@ -12,7 +12,7 @@ type ResolveEnsOptions = {
   fallbackChainId?: number;
 };
 
-type ResolveEnsAddressOptions = {
+export type ResolveEnsAddressOptions = {
   chainId?: number;
   fallbackChainId?: number;
 };

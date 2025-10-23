@@ -1,3 +1,4 @@
+import { toastService } from "@green-goods/shared";
 import { useCreateAssessmentWorkflow } from "@green-goods/shared/hooks";
 import { useAdminStore } from "@green-goods/shared/stores";
 import { cn } from "@green-goods/shared/utils";
@@ -21,7 +22,6 @@ import {
   useForm,
   useWatch,
 } from "react-hook-form";
-import { toastService } from "@green-goods/shared";
 import { useAccount } from "wagmi";
 import { z } from "zod";
 
@@ -193,8 +193,8 @@ export function CreateAssessmentModal({ isOpen, onClose, gardenId }: CreateAsses
     getValues,
     setValue,
   } = useForm<CreateAssessmentForm>({
-    // @ts-expect-error - Complex Zod schema type incompatibility with react-hook-form
-    resolver: zodResolver(createAssessmentSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(createAssessmentSchema as any) as any,
     defaultValues: defaultValuesRef.current,
     mode: "onChange",
     shouldUnregister: false,

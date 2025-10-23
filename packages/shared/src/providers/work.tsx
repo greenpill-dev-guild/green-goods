@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import React, { useContext } from "react";
 import { type Control, type FormState, type UseFormRegister, useForm } from "react-hook-form";
-import { type ZodType, z } from "zod";
+import { z } from "zod";
 // import { decodeErrorResult } from "viem";
 import { DEFAULT_CHAIN_ID } from "../config/blockchain";
 import { jobQueue } from "../modules/job-queue";
@@ -38,7 +38,7 @@ export interface WorkDataProps {
     setActionUID: React.Dispatch<React.SetStateAction<number | null>>;
     register: UseFormRegister<WorkFormData>;
     control: Control<WorkFormData>;
-    uploadWork: (e?: React.BaseSyntheticEvent) => Promise<boolean>;
+    uploadWork: (e?: React.BaseSyntheticEvent) => Promise<void>;
     gardenAddress: string | null;
     setGardenAddress: React.Dispatch<React.SetStateAction<string | null>>;
     feedback: string;
@@ -54,11 +54,7 @@ export interface WorkDataProps {
 // Zod schema for work submission form validation
 // Note: Only validating form fields (feedback, plantSelection, plantCount)
 // actionUID, title, and media are managed outside the form
-const workFormSchema: ZodType<{
-  feedback: string;
-  plantSelection: string[];
-  plantCount?: number;
-}> = z.object({
+const workFormSchema = z.object({
   feedback: z.string().min(1, "Feedback is required"),
   plantSelection: z.preprocess((val) => {
     if (Array.isArray(val)) {
@@ -96,7 +92,7 @@ const WorkContext = React.createContext<WorkDataProps>({
     control: () => {},
     actionUID: null,
     setActionUID: () => {},
-    uploadWork: async () => false,
+    uploadWork: async () => {},
     gardenAddress: null,
     setGardenAddress: () => {},
     reset: () => {},
@@ -177,15 +173,15 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   const plantCountRaw = watch("plantCount");
   const plantSelection = Array.isArray(plantSelectionRaw)
     ? (plantSelectionRaw as string[])
-    : typeof plantSelectionRaw === "string" && plantSelectionRaw.trim().length > 0
-    ? [plantSelectionRaw.trim()]
+    : typeof plantSelectionRaw === "string" && (plantSelectionRaw as string).trim().length > 0
+    ? [(plantSelectionRaw as string).trim()]
     : [];
   const plantCount =
     typeof plantCountRaw === "number"
       ? plantCountRaw
-      : typeof plantCountRaw === "string" && plantCountRaw.trim().length > 0
+      : typeof plantCountRaw === "string" && (plantCountRaw as string).trim().length > 0
       ? (() => {
-          const parsed = Number(plantCountRaw);
+          const parsed = Number(plantCountRaw as string);
           return Number.isNaN(parsed) ? undefined : parsed;
         })()
       : undefined;
@@ -400,7 +396,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       if (DEBUG_ENABLED) {
         debugWarn("[GardenFlow] Work draft validation failed", { errors });
       }
-      return false;
+      return;
     }
     // Snapshot images to avoid race with state clearing after navigation
     const imagesSnapshot = images.slice();
@@ -413,7 +409,6 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
     }
     try {
       await workMutation.mutateAsync({ draft: draft as any, images: imagesSnapshot });
-      return true;
     } catch (error) {
       if (DEBUG_ENABLED) {
         debugError("[GardenFlow] mutateAsync threw", error, {
@@ -421,7 +416,6 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
           actionUID,
         });
       }
-      return false;
     }
   });
 
