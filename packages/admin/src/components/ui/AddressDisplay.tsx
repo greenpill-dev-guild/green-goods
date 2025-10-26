@@ -1,7 +1,7 @@
 import { useEnsName } from "@green-goods/shared/hooks";
-import { copyToClipboard, formatAddress, cn } from "@green-goods/shared/utils";
-import { useEffect, useState } from "react";
+import { cn, copyToClipboard, formatAddress } from "@green-goods/shared/utils";
 import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
+import { useEffect, useState } from "react";
 
 interface AddressDisplayProps {
   address: string;
@@ -47,10 +47,10 @@ export function AddressDisplay({
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
       >
-        <span className="text-sm font-mono cursor-pointer">{display}</span>
+        <span className="text-sm font-mono cursor-pointer text-text-strong">{display}</span>
 
         {showTooltip && (
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50">
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-bg-strong text-white text-xs rounded whitespace-nowrap z-50">
             {ensName ? (
               <div className="flex flex-col text-left">
                 <span>{ensName}</span>
@@ -67,7 +67,7 @@ export function AddressDisplay({
       {showCopyButton && (
         <button
           onClick={handleCopy}
-          className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+          className="p-1 text-text-soft hover:text-text-sub transition-colors"
           title="Copy address"
         >
           {copied ? (

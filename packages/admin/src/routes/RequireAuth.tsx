@@ -2,7 +2,7 @@ import { useWalletAuth as useAuth } from "@green-goods/shared/providers";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { DashboardLayoutSkeleton } from "@/components/Layout/DashboardLayoutSkeleton";
 
-export function RequireAuth() {
+export default function RequireAuth() {
   const { isConnected, address, ready } = useAuth();
   const location = useLocation();
 

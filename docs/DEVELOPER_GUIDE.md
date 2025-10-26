@@ -46,6 +46,12 @@ bun format && bun lint && bun test   # formatting + lint + package unit tests
 bun --filter contracts test          # foundry suite with gas report
 ```
 
+### Toast Notifications
+
+- Render the shared `<ToastViewport />` once per surface (client `Root`, admin `App`) to ensure consistent styling and stacking.
+- Use `toastService` from `@green-goods/shared` for all notifications. Provide a short, user-friendly `message` and optional `title`; pass the caught `error` so dev builds log full diagnostics to the console.
+- Avoid showing raw stack traces or RPC errors in toasts—keep the copy actionable (“Check your wallet and try again”) while background retries and logs handle details.
+
 ### Playwright E2E Suite
 
 The CLI runner in `tests/run-tests.js` wraps Playwright projects and enforces the right options.

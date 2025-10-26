@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
-import { RiCloseLine, RiClipboardLine } from "@remixicon/react";
-import { cn, formatAddress, resolveEnsAddress } from "@green-goods/shared/utils";
 import { useEnsAddress } from "@green-goods/shared/hooks";
+import { cn, formatAddress, resolveEnsAddress } from "@green-goods/shared/utils";
+import { RiClipboardLine, RiCloseLine } from "@remixicon/react";
+import { useMemo, useState } from "react";
 import { isAddress } from "viem";
 
 interface AddMemberModalProps {
@@ -86,21 +86,21 @@ export function AddMemberModal({
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black bg-opacity-20"
+        className="absolute inset-0 bg-black/30 backdrop-blur-sm"
         onClick={handleClose}
         aria-hidden="true"
       />
 
       {/* Modal Content */}
-      <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6 z-10">
+      <div className="relative bg-bg-white rounded-lg shadow-2xl ring-1 ring-black/5 max-w-md w-full p-6 z-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-medium text-gray-900">
+          <h3 className="text-lg font-medium text-text-strong">
             Add {memberType === "gardener" ? "Gardener" : "Operator"}
           </h3>
           <button
             onClick={handleClose}
-            className="p-2 text-gray-400 hover:text-gray-600 rounded-md"
+            className="p-2 text-text-soft hover:text-text-sub rounded-md"
             type="button"
           >
             <RiCloseLine className="h-5 w-5" />
@@ -112,7 +112,7 @@ export function AddMemberModal({
           <div>
             <label
               htmlFor="member-address"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-sm font-medium text-text-sub mb-2"
             >
               Ethereum Address or ENS Name
             </label>
@@ -125,7 +125,7 @@ export function AddMemberModal({
                   setAddress(e.target.value);
                   setError("");
                 }}
-                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="w-full px-3 py-2 pr-10 border border-stroke-sub bg-bg-white text-text-strong rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 placeholder="0x..."
                 disabled={isLoading}
               />
@@ -133,14 +133,14 @@ export function AddMemberModal({
                 type="button"
                 onClick={handlePaste}
                 disabled={isLoading}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-text-soft hover:text-text-sub disabled:opacity-50"
                 title="Paste from clipboard"
               >
                 <RiClipboardLine className="h-4 w-4" />
               </button>
             </div>
             {shouldResolveEns && (
-              <p className="mt-2 text-xs text-gray-500">
+              <p className="mt-2 text-xs text-text-soft">
                 {resolvingEns
                   ? "Resolving ENS name..."
                   : resolvedEnsAddress
@@ -152,12 +152,12 @@ export function AddMemberModal({
           </div>
 
           {/* Buttons */}
-          <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200">
+          <div className="flex items-center justify-end space-x-3 pt-6 border-t border-stroke-soft">
             <button
               type="button"
               onClick={handleClose}
               disabled={isLoading}
-              className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+              className="px-4 py-2 border border-stroke-sub text-sm font-medium rounded-md text-text-sub bg-bg-white hover:bg-bg-weak focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
             >
               Cancel
             </button>
@@ -167,7 +167,7 @@ export function AddMemberModal({
               className={cn(
                 "px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500",
                 isLoading || !trimmed || (shouldResolveEns && resolvingEns)
-                  ? "bg-gray-400 cursor-not-allowed"
+                  ? "bg-bg-surface cursor-not-allowed"
                   : "bg-green-600 hover:bg-green-700"
               )}
             >

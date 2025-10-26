@@ -99,4 +99,11 @@ export {
   type ResolveEnsAddressOptions,
 } from './blockchain/ens';
 
+// From formStorage.ts
+export {
+  saveFormDraft,
+  loadFormDraft,
+  clearFormDraft,
+} from './formStorage';
+
 // Note: pinata functions exported from modules/data/pinata via modules/index.ts

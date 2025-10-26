@@ -1,13 +1,13 @@
-import React, { useEffect, useId, useState } from "react";
-import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
-import { useIntl } from "react-intl";
-import toast from "react-hot-toast";
 import {
   cn,
   copyToClipboard,
-  formatAddress,
   type FormatAddressVariant,
+  formatAddress,
 } from "@green-goods/shared/utils";
+import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
+import React, { useEffect, useId, useState } from "react";
+import toast from "react-hot-toast";
+import { useIntl } from "react-intl";
 
 interface AddressCopyProps {
   address?: string | null;

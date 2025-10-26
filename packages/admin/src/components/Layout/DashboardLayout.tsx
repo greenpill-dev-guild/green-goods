@@ -4,11 +4,14 @@ import { Sidebar } from "./Sidebar";
 
 export function DashboardLayout() {
   return (
-    <div className="flex flex-1 min-h-0 bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-1 min-h-0 bg-bg-weak">
       <Sidebar />
       <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
         <Header />
-        <main className="flex-1 overflow-y-auto overscroll-y-auto">
+        <main
+          className="flex-1 overflow-y-auto"
+          style={{ overscrollBehaviorY: "contain", WebkitOverflowScrolling: "touch" }}
+        >
           <Outlet />
         </main>
       </div>

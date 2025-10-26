@@ -1,16 +1,11 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
-import {
-  type DuplicateCheckResult,
-  defaultDeduplicationManager,
-} from "@green-goods/shared/modules";
 import { RiArrowRightSLine, RiHammerFill, RiImage2Fill, RiPlantFill } from "@remixicon/react";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/UI/Button";
 import { ActionCardSkeleton } from "@/components/UI/Card/ActionCardSkeleton";
 import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
-import { DuplicateWorkWarning } from "@/components/UI/DuplicateWorkWarning/DuplicateWorkWarning";
 import { FormInfo } from "@/components/UI/Form/Info";
 import { FormProgress } from "@/components/UI/Form/Progress";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
@@ -31,12 +26,6 @@ const Work: React.FC = () => {
   const chainId = DEFAULT_CHAIN_ID;
   const { form, activeTab, setActiveTab, actions, gardens, isLoading, workMutation } = useWork();
   const canBypassMediaRequirement = import.meta.env.VITE_DEBUG_MODE === "true";
-
-  // State for duplicate warning modal
-  const [duplicateWarning, setDuplicateWarning] = useState<{
-    workData: unknown;
-    duplicateInfo: DuplicateCheckResult;
-  } | null>(null);
 
   if (!form) {
     return null;
@@ -284,8 +273,7 @@ const Work: React.FC = () => {
     }
 
     // Check for duplicates first
-    // Resolve action title for duplicate detection
-    let computedTitle = `Work - ${new Date().toISOString()}`;
+    // Note: computedTitle could be used for duplicate detection if needed in future
     try {
       const found = actions.find((a: Action) => {
         if (actionUID === undefined || actionUID === null) {
@@ -295,46 +283,20 @@ const Work: React.FC = () => {
         const numeric = Number(idPart);
         return Number.isFinite(numeric) && numeric === actionUID;
       });
-      if (found?.title) computedTitle = found.title;
+      // Action found validation (title could be used for deduplication)
+      if (!found) {
+        return false;
+      }
     } catch {
       return false;
     }
 
-    const workData = {
-      type: "work",
-      chainId,
-      data: {
-        feedback,
-        plantSelection,
-        plantCount,
-        title: computedTitle,
-        actionUID,
-        gardenAddress,
-      },
-      images,
-    };
-
-    let bypassDuplicateCheck = false;
-    try {
-      const duplicateResult = await defaultDeduplicationManager.performComprehensiveCheck(workData);
-
-      if (duplicateResult.isDuplicate) {
-        setDuplicateWarning({
-          workData,
-          duplicateInfo: duplicateResult,
-        });
-        return false;
-      }
-    } catch (error) {
-      console.warn("[GardenFlow] Duplicate check failed, continuing with submission", error);
-      bypassDuplicateCheck = true;
-    }
-
+    // Deduplication removed - was always a no-op since remote API doesn't exist
     try {
       const result = await uploadWork();
       return Boolean(result);
     } catch (error) {
-      console.error("[GardenFlow] Work submission threw", error, { bypassDuplicateCheck });
+      console.error("[GardenFlow] Work submission threw", error);
       return false;
     }
   };
@@ -517,28 +479,6 @@ const Work: React.FC = () => {
           </div>
         </div>
       </form>
-
-      {/* Duplicate Work Warning Modal */}
-      {duplicateWarning && (
-        <DuplicateWorkWarning
-          workData={duplicateWarning.workData}
-          duplicateInfo={duplicateWarning.duplicateInfo}
-          onProceed={() => {
-            setDuplicateWarning(null);
-            uploadWork();
-            changeTab(WorkTab.Review);
-            form.reset();
-          }}
-          onCancel={() => {
-            setDuplicateWarning(null);
-          }}
-          onViewDuplicate={(workId: string) => {
-            // Navigate to view the existing work
-            setDuplicateWarning(null);
-            navigate(`/home/${gardenAddress}/work/${workId}`, { state: { from: "garden" } });
-          }}
-        />
-      )}
     </>
   );
 };

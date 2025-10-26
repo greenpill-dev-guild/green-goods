@@ -1,16 +1,13 @@
+import { useUser } from "@green-goods/shared/hooks";
+import { formatAddress } from "@green-goods/shared/utils";
 import { RiHeadphoneLine, RiSettings2Fill } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { Profile as UserProfile } from "@/components/UI/Profile/Profile";
 import { type StandardTab, StandardTabs } from "@/components/UI/Tabs";
-import { useGardenerProfile, useUser } from "@green-goods/shared/hooks";
-import { formatAddress } from "@green-goods/shared/utils";
 import { ProfileAccount } from "./Account";
 import { GardenerProfile } from "./GardenerProfile";
 import { ProfileHelp } from "./Help";
-
-const DEFAULT_AVATAR = "/images/avatar.png";
-const PINATA_GATEWAY = import.meta.env.VITE_PINATA_GATEWAY ?? "https://greengoods.mypinata.cloud";
 
 const Profile: React.FC = () => {
   const { smartAccountAddress, eoa, ensName } = useUser();

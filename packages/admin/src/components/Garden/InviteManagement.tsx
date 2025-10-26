@@ -1,7 +1,7 @@
 import { useGardenInvites } from "@green-goods/shared/hooks/garden";
 import { formatDistanceToNow } from "date-fns";
 import { useState } from "react";
-import { AddressDisplay } from "@/components/ui/AddressDisplay";
+import { AddressDisplay } from "@/components/UI/AddressDisplay";
 import { CreateInviteModal } from "./CreateInviteModal";
 
 interface InviteManagementProps {
@@ -28,10 +28,8 @@ export function InviteManagement({ gardenAddress }: InviteManagementProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-            Garden Invitations
-          </h3>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <h3 className="text-lg font-medium text-text-strong">Garden Invitations</h3>
+          <p className="mt-1 text-sm text-text-soft">
             Create and manage invite codes for new gardeners to join.
           </p>
         </div>
@@ -48,13 +46,13 @@ export function InviteManagement({ gardenAddress }: InviteManagementProps) {
 
       {/* Active Invites */}
       <div>
-        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+        <h4 className="text-sm font-medium text-text-sub mb-3">
           Active Invites ({activeInvites.length})
         </h4>
         {activeInvites.length === 0 ? (
-          <div className="text-center py-8 bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700">
+          <div className="text-center py-8 bg-bg-weak rounded-lg border-2 border-dashed border-stroke-sub">
             <svg
-              className="mx-auto h-12 w-12 text-gray-400"
+              className="mx-auto h-12 w-12 text-text-disabled"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -66,25 +64,20 @@ export function InviteManagement({ gardenAddress }: InviteManagementProps) {
                 d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
               />
             </svg>
-            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">No active invites</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500">
-              Create an invite code to onboard new gardeners
-            </p>
+            <p className="mt-2 text-sm text-text-soft">No active invites</p>
+            <p className="text-xs text-text-soft">Create an invite code to onboard new gardeners</p>
           </div>
         ) : (
           <div className="space-y-3">
             {activeInvites.map((invite) => (
-              <div
-                key={invite.id}
-                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4"
-              >
+              <div key={invite.id} className="bg-bg-white border border-stroke-soft rounded-lg p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2 mb-2">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-lighter text-success-dark">
                         Active
                       </span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                      <span className="text-xs text-text-soft">
                         Created{" "}
                         {formatDistanceToNow(new Date(invite.createdAt * 1000), {
                           addSuffix: true,
@@ -93,18 +86,16 @@ export function InviteManagement({ gardenAddress }: InviteManagementProps) {
                     </div>
                     <div className="space-y-1">
                       <div className="flex items-center space-x-2">
-                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                          Code:
-                        </span>
-                        <code className="text-xs bg-gray-100 dark:bg-gray-900 px-2 py-1 rounded font-mono">
+                        <span className="text-xs font-medium text-text-soft">Code:</span>
+                        <code className="text-xs bg-bg-soft px-2 py-1 rounded font-mono">
                           {invite.id}
                         </code>
                       </div>
-                      <div className="flex items-center space-x-2 text-xs text-gray-600 dark:text-gray-400">
+                      <div className="flex items-center space-x-2 text-xs text-text-sub">
                         <span>Creator:</span>
                         <AddressDisplay address={invite.creator} />
                       </div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400">
+                      <div className="text-xs text-text-sub">
                         Expires: {new Date(Number(invite.expiry) * 1000).toLocaleDateString()}
                       </div>
                     </div>
@@ -112,7 +103,7 @@ export function InviteManagement({ gardenAddress }: InviteManagementProps) {
                   <button
                     onClick={() => revokeInvite(invite.id)}
                     disabled={isRevoking}
-                    className="ml-4 inline-flex items-center px-3 py-1.5 border border-red-300 dark:border-red-700 text-xs font-medium rounded text-red-700 dark:text-red-400 bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="ml-4 inline-flex items-center px-3 py-1.5 border border-error-light text-xs font-medium rounded text-error-dark bg-bg-white hover:bg-error-lighter focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-error-base disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Revoke
                   </button>
@@ -126,37 +117,35 @@ export function InviteManagement({ gardenAddress }: InviteManagementProps) {
       {/* Used Invites */}
       {usedInvites.length > 0 && (
         <div>
-          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+          <h4 className="text-sm font-medium text-text-sub mb-3">
             Used Invites ({usedInvites.length})
           </h4>
           <div className="space-y-3">
             {usedInvites.map((invite) => (
               <div
                 key={invite.id}
-                className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4 opacity-75"
+                className="bg-bg-weak/50 border border-stroke-soft rounded-lg p-4 opacity-75"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2 mb-2">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-bg-soft text-text-strong">
                         Used
                       </span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                      <span className="text-xs text-text-soft">
                         {invite.usedAt &&
                           formatDistanceToNow(new Date(invite.usedAt * 1000), { addSuffix: true })}
                       </span>
                     </div>
                     <div className="space-y-1">
                       <div className="flex items-center space-x-2">
-                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                          Code:
-                        </span>
-                        <code className="text-xs bg-gray-100 dark:bg-gray-900 px-2 py-1 rounded font-mono">
+                        <span className="text-xs font-medium text-text-soft">Code:</span>
+                        <code className="text-xs bg-bg-soft px-2 py-1 rounded font-mono">
                           {invite.id}
                         </code>
                       </div>
                       {invite.usedBy && (
-                        <div className="flex items-center space-x-2 text-xs text-gray-600 dark:text-gray-400">
+                        <div className="flex items-center space-x-2 text-xs text-text-sub">
                           <span>Used by:</span>
                           <AddressDisplay address={invite.usedBy} />
                         </div>

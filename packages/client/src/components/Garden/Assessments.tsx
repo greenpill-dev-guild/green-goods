@@ -1,11 +1,11 @@
+import { getTag } from "@green-goods/shared/utils";
 import { RiCalendarLine, RiExternalLinkLine, RiPriceTag3Line, RiStackLine } from "@remixicon/react";
 import { forwardRef, memo } from "react";
-import { FixedSizeList as List } from "react-window";
 import { useIntl } from "react-intl";
-import { getTag } from "@green-goods/shared/utils";
+import { Link } from "react-router-dom";
+import { FixedSizeList as List } from "react-window";
 import { Badge } from "../UI/Badge/Badge";
 import { Card } from "../UI/Card/Card";
-import { Link } from "react-router-dom";
 
 interface GardenAssessmentsProps {
   assessments: GardenAssessment[];

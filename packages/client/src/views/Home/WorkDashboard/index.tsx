@@ -1,3 +1,13 @@
+import { jobToWork, queryKeys, useUser, useWorkApprovals } from "@green-goods/shared/hooks";
+import {
+  getWorkApprovals as fetchWorkApprovals,
+  getGardens,
+  getWorks,
+  getWorksByGardener,
+  jobQueueEventBus,
+} from "@green-goods/shared/modules";
+import { jobQueue, jobQueueDB } from "@green-goods/shared/modules/job-queue";
+import { cn } from "@green-goods/shared/utils";
 import {
   RiCheckboxCircleLine,
   RiCheckLine,
@@ -5,26 +15,15 @@ import {
   RiTimeLine,
   RiUploadLine,
 } from "@remixicon/react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { jobToWork, queryKeys, useUser, useWorkApprovals } from "@green-goods/shared/hooks";
-import { cn } from "@green-goods/shared/utils";
+import { type StandardTab, StandardTabs } from "@/components/UI/Tabs";
 import { CompletedTab } from "./Completed";
 import { PendingTab } from "./Pending";
-import { UploadingTab } from "./Uploading";
 import { TimeFilterControl } from "./TimeFilterControl";
-
-import { type StandardTab, StandardTabs } from "@/components/UI/Tabs";
-import {
-  getGardens,
-  getWorks,
-  getWorkApprovals as fetchWorkApprovals,
-  getWorksByGardener,
-  jobQueueEventBus,
-} from "@green-goods/shared/modules";
-import { jobQueue, jobQueueDB } from "@green-goods/shared/modules/job-queue";
+import { UploadingTab } from "./Uploading";
 
 export interface WorkDashboardProps {
   className?: string;
@@ -91,6 +90,16 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       const lists = await Promise.all(operatorGardenIds.map((g) => getWorks(g)));
       const online = lists.flat().map((w) => ({ ...w, status: "pending" as const }));
 
+      // Get uploading job IDs to exclude from pending
+      const uploadingJobs = await jobQueue.getJobs({ kind: "work", synced: false });
+      const uploadingWorkIds = new Set(
+        uploadingJobs.map((j) => {
+          // Convert job ID to offline transaction hash format
+          const paddedId = j.id.replace(/-/g, "").substring(0, 56).padStart(56, "0");
+          return `0xoffline_${paddedId}`;
+        })
+      );
+
       // Merge with any optimistic works cached in React Query for these gardens
       const optimistic: Work[] = [];
       for (const gardenId of operatorGardenIds) {
@@ -103,10 +112,18 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         );
       }
 
-      // Deduplicate by id, prefer online entries
+      // Deduplicate by id, prefer online entries, exclude uploading items
       const byId = new Map<string, Work>();
-      for (const w of optimistic) byId.set(w.id, w);
-      for (const w of online) byId.set(w.id, w);
+      for (const w of optimistic) {
+        if (!uploadingWorkIds.has(w.id)) {
+          byId.set(w.id, w);
+        }
+      }
+      for (const w of online) {
+        if (!uploadingWorkIds.has(w.id)) {
+          byId.set(w.id, w);
+        }
+      }
       return Array.from(byId.values()).sort((a, b) => b.createdAt - a.createdAt);
     },
     enabled: operatorGardenIds.length > 0,
@@ -153,9 +170,11 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // Invalidate uploading jobs on queue events
   useEffect(() => {
     const unsub = jobQueueEventBus.onMultiple(
-      ["job:added", "job:completed", "job:failed", "job:retrying", "queue:sync-completed"],
+      ["job:added", "job:completed", "job:failed", "queue:sync-completed"],
       () => {
         queryClient.invalidateQueries({ queryKey: queryKeys.queue.uploading() });
+        // Also invalidate stats for badge counts
+        queryClient.invalidateQueries({ queryKey: queryKeys.queue.stats() });
       }
     );
     return () => unsub();

@@ -1,3 +1,14 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
+import {
+  GardenTab,
+  useActions,
+  useBrowserNavigation,
+  useGardeners,
+  useGardens,
+  useGardenTabs,
+  useNavigateToTop,
+  useWorks,
+} from "@green-goods/shared/hooks";
 import {
   RiCalendarEventFill,
   RiFileChartFill,
@@ -14,17 +25,6 @@ import { GardenWork } from "@/components/Garden/Work";
 import { GardenErrorBoundary } from "@/components/UI/ErrorBoundary/ErrorBoundary";
 import { type StandardTab, StandardTabs } from "@/components/UI/Tabs";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
-import {
-  GardenTab,
-  useActions,
-  useBrowserNavigation,
-  useGardenTabs,
-  useGardeners,
-  useGardens,
-  useNavigateToTop,
-  useWorks,
-} from "@green-goods/shared/hooks";
-import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
 
 type GardenProps = {};
 

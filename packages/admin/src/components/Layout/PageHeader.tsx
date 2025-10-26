@@ -1,8 +1,7 @@
-import { Link } from "react-router-dom";
+import { cn } from "@green-goods/shared/utils";
 import { RiArrowLeftLine } from "@remixicon/react";
 import type { ReactNode } from "react";
-
-import { cn } from "@green-goods/shared/utils";
+import { Link } from "react-router-dom";
 
 type BackLinkConfig = {
   to: string;
@@ -37,39 +36,39 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        "border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-700 dark:bg-gray-900",
+        "border-b border-stroke-soft bg-bg-white px-4 py-3 sm:px-6 sm:py-4",
         sticky &&
-          "sticky top-0 z-30 bg-white/95 dark:bg-gray-900/95 supports-[backdrop-filter]:bg-white/70 dark:supports-[backdrop-filter]:bg-gray-900/70 backdrop-blur",
+          "sticky top-0 z-30 bg-bg-white/95 supports-[backdrop-filter]:bg-bg-white/70 backdrop-blur",
         className
       )}
     >
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex min-w-0 flex-1 items-start gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
+        <div className="flex min-w-0 flex-1 items-start gap-3 sm:gap-4">
           {backLink ? (
             <Link
               to={backLink.to}
-              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:text-gray-700 dark:border-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-stroke-soft text-text-soft transition hover:text-text-sub active:scale-95 sm:h-10 sm:w-10"
               aria-label={backLink.label ?? "Go back"}
             >
               <RiArrowLeftLine className="h-5 w-5" />
             </Link>
           ) : null}
 
-          <div className="min-w-0 flex-1 space-y-1">
-            <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{title}</h1>
+          <div className="min-w-0 flex-1 space-y-0.5 sm:space-y-1">
+            <h1 className="truncate text-lg font-semibold text-text-strong sm:text-2xl">{title}</h1>
             {description ? (
-              <p className="text-sm text-gray-600 dark:text-gray-400">{description}</p>
+              <p className="line-clamp-2 text-xs text-text-sub sm:text-sm">{description}</p>
             ) : null}
-            {metadata ? (
-              <div className="text-sm text-gray-500 dark:text-gray-400">{metadata}</div>
-            ) : null}
+            {metadata ? <div className="text-xs text-text-soft sm:text-sm">{metadata}</div> : null}
           </div>
         </div>
 
-        {actions ? <div className="flex flex-shrink-0 items-center gap-2">{actions}</div> : null}
+        {actions ? (
+          <div className="flex flex-shrink-0 items-center gap-1.5 sm:gap-2">{actions}</div>
+        ) : null}
       </div>
 
-      {children ? <div className="mt-4">{children}</div> : null}
+      {children ? <div className="mt-3 sm:mt-4">{children}</div> : null}
     </header>
   );
 }

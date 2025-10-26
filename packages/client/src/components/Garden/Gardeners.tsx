@@ -1,19 +1,19 @@
-import React, { forwardRef, memo, useMemo, useState } from "react";
-import { FixedSizeList as List } from "react-window";
-import { useIntl } from "react-intl";
 import { useEnsName } from "@green-goods/shared/hooks";
 import { copyToClipboard, formatAddress } from "@green-goods/shared/utils";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/UI/Avatar/Avatar";
-import { Button } from "@/components/UI/Button";
-import { Badge } from "@/components/UI/Badge/Badge";
 import {
+  RiCalendarEventFill,
   RiFileCopyLine,
   RiMailFill,
   RiPhoneLine,
   RiWallet3Fill,
-  RiCalendarEventFill,
 } from "@remixicon/react";
+import React, { forwardRef, memo, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { useIntl } from "react-intl";
+import { FixedSizeList as List } from "react-window";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/UI/Avatar/Avatar";
+import { Badge } from "@/components/UI/Badge/Badge";
+import { Button } from "@/components/UI/Button";
 import { AddressCopy } from "@/components/UI/Clipboard";
 
 export type GardenMember = GardenerCard & {

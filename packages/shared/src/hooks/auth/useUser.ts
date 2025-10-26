@@ -38,7 +38,7 @@ interface UseUserReturn {
   eoa: { address: string } | null;
   smartAccountAddress: string | null;
   smartAccountClient: SmartAccountClient | null;
-  authMode: "wallet" | null;
+  authMode: "wallet" | "passkey" | null;
   ensName: string | null;
 }
 
@@ -72,7 +72,7 @@ export function useUser(): UseUserReturn {
     eoa,
     smartAccountAddress,
     smartAccountClient,
-    authMode: isConnected ? "wallet" : null,
+    authMode: 'authMode' in auth ? auth.authMode : (isConnected ? "wallet" : null),
     ensName: ensName ?? null,
   };
 }

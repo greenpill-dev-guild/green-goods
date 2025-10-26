@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen, render } from "@testing-library/react";
 import React from "react";
-import { RequireRole } from "@/components/RequireRole";
+import RequireRole from "@/routes/RequireRole";
 
 const mockUseRole = vi.fn();
 

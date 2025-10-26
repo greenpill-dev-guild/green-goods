@@ -1,3 +1,4 @@
+import { initTheme } from "@green-goods/shared";
 import { AppKitProvider, PasskeyAuthProvider } from "@green-goods/shared/providers";
 import { AppProvider } from "@green-goods/shared/providers/app";
 import { StrictMode } from "react";
@@ -6,6 +7,9 @@ import App from "@/App.tsx";
 
 import "@/index.css";
 import "@/pinata";
+
+// Initialize theme system
+initTheme();
 
 // In development, ensure no stale service worker or caches make the app appear to run offline
 if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_SW_DEV !== "true") {

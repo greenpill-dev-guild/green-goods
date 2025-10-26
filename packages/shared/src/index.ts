@@ -99,18 +99,12 @@ export {
   jobQueueDB,
   jobQueueEventBus,
   useJobQueueEvents,
-  // work/deduplication.ts
-  DeduplicationManager,
-  defaultDeduplicationManager,
+  // work/deduplication.ts - REMOVED (implementation missing)
+  // DeduplicationManager,
+  // defaultDeduplicationManager,
   // work/passkey-submission.ts
   submitWorkWithPasskey,
   submitApprovalWithPasskey,
-  // work/retry-policy.ts
-  RetryPolicy,
-  defaultRetryPolicy,
-  // work/storage-manager.ts
-  StorageManager,
-  defaultStorageManager,
   // work/work-submission.ts
   validateWorkDraft,
   validateApprovalDraft,
@@ -123,19 +117,8 @@ export type {
   FragmentOf,
   ResultOf,
   VariablesOf,
-  DuplicationConfig,
-  DuplicateCheckResult,
-  LocalDuplicateResult,
   PasskeyWorkSubmissionParams,
   PasskeyApprovalSubmissionParams,
-  RetryConfig,
-  RetryAttempt,
-  RetryableItem,
-  StorageQuota,
-  StorageBreakdown,
-  CleanupPolicy,
-  CleanupResult,
-  StorageAnalytics,
 } from "./modules/index";
 
 // ============================================================================
@@ -207,6 +190,18 @@ export type {
   CompressionStats,
   WorkData,
 } from "./utils/index";
+
+// ============================================================================
+// THEME
+// ============================================================================
+export {
+  getTheme,
+  setTheme,
+  toggle,
+  getResolvedTheme,
+  initTheme,
+} from "./theme";
+export type { Theme, Resolved } from "./theme";
 
 // ============================================================================
 // TOAST

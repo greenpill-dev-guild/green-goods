@@ -1,17 +1,3 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { RiCheckFill, RiCloseFill } from "@remixicon/react";
-import { useQueryClient } from "@tanstack/react-query";
-import React, { useEffect, useMemo, useState } from "react";
-import { Form, useForm } from "react-hook-form";
-import { useIntl } from "react-intl";
-import { useLocation, useParams, useOutletContext } from "react-router-dom";
-
-import { z, type ZodType } from "zod";
-import { Button } from "@/components/UI/Button";
-import { FormText } from "@/components/UI/Form/Text";
-import { TopNav } from "@/components/UI/TopNav/TopNav";
-import ConfirmDrawer from "@/components/UI/ModalDrawer/ConfirmDrawer";
-import { WorkViewSkeleton } from "@/components/UI/WorkView/WorkView";
 import { toastService } from "@green-goods/shared";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
 import {
@@ -23,6 +9,7 @@ import {
   useWorks,
 } from "@green-goods/shared/hooks";
 import { getFileByHash, useJobQueueEvents } from "@green-goods/shared/modules";
+import { debugWarn } from "@green-goods/shared/utils/debug";
 import { isValidAttestationId, openEASExplorer } from "@green-goods/shared/utils/eas/explorers";
 import {
   downloadWorkData,
@@ -30,7 +17,19 @@ import {
   shareWork,
   type WorkData,
 } from "@green-goods/shared/utils/work/workActions";
-import { debugWarn } from "@green-goods/shared/utils/debug";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { RiCheckFill, RiCloseFill } from "@remixicon/react";
+import { useQueryClient } from "@tanstack/react-query";
+import React, { useEffect, useMemo, useState } from "react";
+import { Form, useForm } from "react-hook-form";
+import { useIntl } from "react-intl";
+import { useLocation, useOutletContext, useParams } from "react-router-dom";
+import { type ZodType, z } from "zod";
+import { Button } from "@/components/UI/Button";
+import { FormText } from "@/components/UI/Form/Text";
+import ConfirmDrawer from "@/components/UI/ModalDrawer/ConfirmDrawer";
+import { TopNav } from "@/components/UI/TopNav/TopNav";
+import { WorkViewSkeleton } from "@/components/UI/WorkView/WorkView";
 import { WorkCompleted } from "../../Garden/Completed";
 import WorkViewSection from "./WorkViewSection";
 
@@ -207,7 +206,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
           title: failureMessage,
           message: failureMessage,
           context: "approval submission",
-          error: data.error,
+          error: "error" in data ? data.error : undefined,
         });
       }
       queryClient.invalidateQueries({ queryKey: ["workApprovals"] });

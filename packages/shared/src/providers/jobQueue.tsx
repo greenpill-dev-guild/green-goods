@@ -7,6 +7,7 @@ import { jobQueue } from "../modules/job-queue";
 // import { jobQueueEventBus } from "../modules/job-queue/event-bus";
 import { queryClient } from "../config/react-query";
 import { useUser } from "../hooks/auth/useUser";
+import { useAuth } from "../hooks/auth/useAuth";
 
 interface JobQueueContextValue {
   stats: QueueStats;
@@ -50,6 +51,7 @@ interface JobQueueProviderProps {
 
 const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) => {
   const { smartAccountAddress, smartAccountClient } = useUser();
+  const { authMode } = useAuth();
   const [stats, setStats] = useState<QueueStats>({ total: 0, pending: 0, failed: 0, synced: 0 });
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastEvent, setLastEvent] = useState<QueueEvent | null>(null);
@@ -258,12 +260,16 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       }
     };
 
-    if (navigator.onLine) {
+    // Only auto-flush on mount if online and passkey user
+    if (navigator.onLine && authMode === "passkey") {
       void attemptFlush();
     }
 
     const handleOnline = () => {
-      void attemptFlush();
+      // Only auto-flush for passkey users
+      if (authMode === "passkey") {
+        void attemptFlush();
+      }
     };
 
     window.addEventListener("online", handleOnline);
@@ -272,7 +278,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       abortController.abort();
       window.removeEventListener("online", handleOnline);
     };
-  }, [smartAccountClient, refreshStats]);
+  }, [smartAccountClient, refreshStats, authMode]);
 
   // Removed queue-level sync toasts; provider now handles processing inline
 

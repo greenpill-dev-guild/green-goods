@@ -76,16 +76,17 @@ export {
   useJobQueueEvents,
 } from './job-queue';
 
-// From work/deduplication.ts
-export type {
-  DuplicationConfig,
-  DuplicateCheckResult,
-  LocalDuplicateResult,
-} from './work/deduplication';
-export {
-  DeduplicationManager,
-  defaultDeduplicationManager,
-} from './work/deduplication';
+// Note: work/deduplication.ts has been removed or is not yet implemented
+// Tests exist but implementation is missing - commented out until implemented
+// export type {
+//   DuplicationConfig,
+//   DuplicateCheckResult,
+//   LocalDuplicateResult,
+// } from './work/deduplication';
+// export {
+//   DeduplicationManager,
+//   defaultDeduplicationManager,
+// } from './work/deduplication';
 
 // From work/passkey-submission.ts
 export type {
@@ -96,30 +97,6 @@ export {
   submitWorkWithPasskey,
   submitApprovalWithPasskey,
 } from './work/passkey-submission';
-
-// From work/retry-policy.ts
-export type {
-  RetryConfig,
-  RetryAttempt,
-  RetryableItem,
-} from './work/retry-policy';
-export {
-  RetryPolicy,
-  defaultRetryPolicy,
-} from './work/retry-policy';
-
-// From work/storage-manager.ts
-export type {
-  StorageQuota,
-  StorageBreakdown,
-  CleanupPolicy,
-  CleanupResult,
-  StorageAnalytics,
-} from './work/storage-manager';
-export {
-  StorageManager,
-  defaultStorageManager,
-} from './work/storage-manager';
 
 // From work/wallet-submission.ts (if exists)
 // Note: wallet-submission.ts may not have public exports - verify

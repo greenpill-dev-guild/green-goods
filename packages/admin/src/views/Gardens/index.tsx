@@ -3,11 +3,10 @@ import { useGardenPermissions } from "@green-goods/shared/hooks/garden";
 import { resolveIPFSUrl } from "@green-goods/shared/utils/pinata";
 import { RiAddLine, RiEyeLine, RiPlantLine, RiShieldCheckLine, RiUserLine } from "@remixicon/react";
 import { graphql } from "gql.tada";
-import { type ReactNode, useState } from "react";
+import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "urql";
 import { useChainId } from "wagmi";
-import { CreateGardenModal } from "@/components/Garden/CreateGardenModal";
 import { PageHeader } from "@/components/Layout/PageHeader";
 
 const GET_GARDENS = graphql(`
@@ -30,7 +29,6 @@ const GET_GARDENS = graphql(`
 
 export default function Gardens() {
   const gardenPermissions = useGardenPermissions();
-  const [createModalOpen, setCreateModalOpen] = useState(false);
   const chainId = useChainId();
   const [{ data, fetching, error }] = useQuery({
     query: GET_GARDENS,
@@ -45,15 +43,13 @@ export default function Gardens() {
     : "View all gardens. Manage gardens where you are an operator.";
 
   const headerActions = (
-    <button
-      type="button"
-      onClick={() => setCreateModalOpen(true)}
-      disabled={fetching}
+    <Link
+      to="/gardens/create"
       className="inline-flex items-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
     >
       <RiAddLine className="mr-2 h-4 w-4" />
       Create Garden
-    </button>
+    </Link>
   );
 
   let content: ReactNode;
@@ -64,22 +60,22 @@ export default function Gardens() {
         {[...Array(8)].map((_, i) => (
           <div
             key={i}
-            className="min-w-[320px] animate-pulse overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800"
+            className="min-w-[320px] animate-pulse overflow-hidden rounded-lg border border-stroke-soft bg-bg-white shadow-sm"
           >
-            <div className="h-48 bg-gray-200 dark:bg-gray-700" />
+            <div className="h-48 bg-bg-soft" />
             <div className="space-y-4 p-6">
               <div className="space-y-2">
-                <div className="h-6 rounded bg-gray-200 dark:bg-gray-700" />
-                <div className="h-4 w-24 rounded bg-gray-200 dark:bg-gray-700" />
+                <div className="h-6 rounded bg-bg-soft" />
+                <div className="h-4 w-24 rounded bg-bg-soft" />
               </div>
-              <div className="h-4 rounded bg-gray-200 dark:bg-gray-700" />
-              <div className="h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700" />
+              <div className="h-4 rounded bg-bg-soft" />
+              <div className="h-4 w-3/4 rounded bg-bg-soft" />
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  <div className="h-4 w-20 rounded bg-gray-200 dark:bg-gray-700" />
-                  <div className="h-4 w-20 rounded bg-gray-200 dark:bg-gray-700" />
+                  <div className="h-4 w-20 rounded bg-bg-soft" />
+                  <div className="h-4 w-20 rounded bg-bg-soft" />
                 </div>
-                <div className="h-8 w-20 rounded bg-gray-200 dark:bg-gray-700" />
+                <div className="h-8 w-20 rounded bg-bg-soft" />
               </div>
             </div>
           </div>
@@ -89,10 +85,10 @@ export default function Gardens() {
   } else if (errorMessage) {
     content = (
       <div className="space-y-8">
-        <div className="rounded-md border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-400/20 dark:bg-yellow-500/10">
+        <div className="rounded-md border border-warning-light bg-warning-lighter p-4">
           <div className="flex items-start gap-3">
             <svg
-              className="h-5 w-5 flex-shrink-0 text-yellow-500"
+              className="h-5 w-5 flex-shrink-0 text-warning-base"
               viewBox="0 0 20 20"
               fill="currentColor"
             >
@@ -103,10 +99,8 @@ export default function Gardens() {
               />
             </svg>
             <div>
-              <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                Indexer Connection Issue
-              </h3>
-              <div className="mt-2 space-y-1 text-sm text-yellow-700 dark:text-yellow-100/80">
+              <h3 className="text-sm font-medium text-warning-dark">Indexer Connection Issue</h3>
+              <div className="mt-2 space-y-1 text-sm text-warning-dark/80">
                 <p>Unable to load gardens from indexer: {errorMessage}</p>
                 <p>
                   Garden management features are still available if you have direct garden
@@ -117,12 +111,10 @@ export default function Gardens() {
           </div>
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-6 text-center shadow-sm dark:border-gray-700 dark:bg-gray-800">
-          <RiPlantLine className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">
-            Gardens Unavailable
-          </h3>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        <div className="rounded-lg border border-stroke-soft bg-bg-white p-6 text-center shadow-sm">
+          <RiPlantLine className="mx-auto h-12 w-12 text-text-soft" />
+          <h3 className="mt-2 text-sm font-medium text-text-strong">Gardens Unavailable</h3>
+          <p className="mt-1 text-sm text-text-soft">
             Cannot load gardens due to indexer connection issues. Please check back later.
           </p>
         </div>
@@ -130,14 +122,10 @@ export default function Gardens() {
     );
   } else if (gardens.length === 0) {
     content = (
-      <div className="rounded-lg border border-dashed border-gray-300 p-12 text-center dark:border-gray-700">
-        <RiPlantLine className="mx-auto h-12 w-12 text-gray-400" />
-        <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">
-          No gardens yet
-        </h3>
-        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-          Get started by creating your first garden.
-        </p>
+      <div className="rounded-lg border border-dashed border-stroke-sub p-12 text-center">
+        <RiPlantLine className="mx-auto h-12 w-12 text-text-soft" />
+        <h3 className="mt-4 text-lg font-medium text-text-strong">No gardens yet</h3>
+        <p className="mt-2 text-sm text-text-soft">Get started by creating your first garden.</p>
       </div>
     );
   } else {
@@ -152,7 +140,7 @@ export default function Gardens() {
           return (
             <div
               key={garden.id}
-              className="min-w-[320px] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
+              className="min-w-[320px] overflow-hidden rounded-lg border border-stroke-soft bg-bg-white shadow-sm transition-shadow hover:shadow-md"
             >
               <div className="relative h-48">
                 {resolvedBannerImage ? (
@@ -180,7 +168,7 @@ export default function Gardens() {
                   </div>
                 </div>
                 {canManage && (
-                  <div className="absolute top-2 right-2 flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
+                  <div className="absolute top-2 right-2 flex items-center rounded-full bg-success-lighter px-2 py-1 text-xs font-medium text-success-dark">
                     <RiShieldCheckLine className="mr-1 h-3 w-3" />
                     Operator
                   </div>
@@ -189,23 +177,19 @@ export default function Gardens() {
               <div className="p-6">
                 <div className="mb-2 flex items-start justify-between">
                   <div className="flex-1">
-                    <h3 className="mb-1 text-lg font-medium text-gray-900 dark:text-gray-100">
-                      {garden.name}
-                    </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{garden.location}</p>
+                    <h3 className="mb-1 text-lg font-medium text-text-strong">{garden.name}</h3>
+                    <p className="text-sm text-text-soft">{garden.location}</p>
                   </div>
                   {!resolvedBannerImage && canManage && (
-                    <div className="ml-2 flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
+                    <div className="ml-2 flex items-center rounded-full bg-success-lighter px-2 py-1 text-xs font-medium text-success-dark">
                       <RiShieldCheckLine className="mr-1 h-3 w-3" />
                       Operator
                     </div>
                   )}
                 </div>
-                <p className="mb-4 line-clamp-2 text-sm text-gray-600 dark:text-gray-300">
-                  {garden.description}
-                </p>
+                <p className="mb-4 line-clamp-2 text-sm text-text-sub">{garden.description}</p>
 
-                <div className="mb-4 flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
+                <div className="mb-4 flex items-center justify-between text-sm text-text-soft">
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center">
                       <RiUserLine className="mr-1 h-4 w-4" />
@@ -221,7 +205,7 @@ export default function Gardens() {
                 <div className="flex items-center justify-end">
                   <Link
                     to={`/gardens/${garden.id}`}
-                    className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                    className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-1.5 text-sm font-medium text-text-sub transition hover:bg-bg-weak focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                   >
                     <RiEyeLine className="mr-1 h-4 w-4" />
                     {canManage ? "Manage" : "View"}
@@ -239,7 +223,6 @@ export default function Gardens() {
     <div className="pb-6">
       <PageHeader title="Gardens" description={headerDescription} actions={headerActions} />
       <div className="mt-6 px-6">{content}</div>
-      <CreateGardenModal isOpen={createModalOpen} onClose={() => setCreateModalOpen(false)} />
     </div>
   );
 }

@@ -13,29 +13,32 @@ export function Header() {
   const currentChain = chains.find((chain) => chain.id === chainId) || chains[0];
 
   return (
-    <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+    <header className="bg-bg-soft shadow-sm border-b border-stroke-sub">
       <div className="flex items-center justify-between h-16 px-6">
         {/* Mobile menu button */}
         <button
           onClick={() => setSidebarOpen(true)}
-          className="lg:hidden p-2 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+          className="lg:hidden p-2 rounded-md text-text-soft hover:text-text-sub"
         >
           <RiMenuLine className="h-6 w-6" />
         </button>
 
         {/* Page title - will be dynamic based on route */}
         {/* <div className="flex-1 lg:ml-0">
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Green Goods</h1>
+          <h1 className="text-xl font-semibold text-text-strong">Green Goods</h1>
         </div> */}
 
-        {/* Left side controls */}
-        <div className="flex items-center space-x-4">
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Right side - Chain selector and User profile */}
+        <div className="flex items-center gap-4">
           {/* Chain selector */}
           <select
             value={currentChain.id}
             onChange={(e) => switchChain({ chainId: Number(e.target.value) })}
             disabled={isSwitching}
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 disabled:opacity-50"
+            className="px-3 py-2 border border-stroke-sub rounded-md text-sm bg-bg-white text-text-strong focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 disabled:opacity-50"
           >
             {chains.map((chain) => (
               <option key={chain.id} value={chain.id}>
@@ -43,13 +46,9 @@ export function Header() {
               </option>
             ))}
           </select>
+
+          <UserProfile />
         </div>
-
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Right side - User profile */}
-        <UserProfile />
       </div>
     </header>
   );

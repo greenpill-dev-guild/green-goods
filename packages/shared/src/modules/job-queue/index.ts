@@ -90,6 +90,9 @@ async function executeApprovalJob(
  * Job queue responsible for persisting and processing offline work/approval jobs.
  */
 class JobQueue {
+  private isFlushing = false;
+  private flushPromise: Promise<FlushResult> | null = null;
+
   /**
    * Add a job to the queue
    */
@@ -239,8 +242,29 @@ class JobQueue {
 
   /**
    * Flush unsynced jobs sequentially.
+   * Uses mutex to prevent concurrent flush operations.
    */
   async flush(context: FlushContext): Promise<FlushResult> {
+    // Return existing promise if flush already in progress
+    if (this.isFlushing && this.flushPromise) {
+      return this.flushPromise;
+    }
+
+    this.isFlushing = true;
+    this.flushPromise = this._flushInternal(context);
+
+    try {
+      return await this.flushPromise;
+    } finally {
+      this.isFlushing = false;
+      this.flushPromise = null;
+    }
+  }
+
+  /**
+   * Internal flush implementation
+   */
+  private async _flushInternal(context: FlushContext): Promise<FlushResult> {
     const jobs = await jobQueueDB.getJobs({ synced: false });
     if (jobs.length === 0) {
       const emptyResult = { processed: 0, failed: 0, skipped: 0 };

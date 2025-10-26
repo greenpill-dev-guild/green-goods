@@ -188,11 +188,11 @@ class JobQueueDatabase {
     const index = tx.objectStore("job_images").index("jobId");
     const images = await index.getAll(jobId);
 
-    // Always create fresh object URLs on access (stored URLs may be stale across reloads)
+    // Use getOrCreateUrl to prevent memory leaks from duplicate URLs on re-renders
     return images.map((img) => ({
       id: img.id,
       file: img.file,
-      url: mediaResourceManager.createUrl(img.file, jobId),
+      url: mediaResourceManager.getOrCreateUrl(img.file, jobId),
     }));
   }
 

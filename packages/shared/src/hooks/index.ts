@@ -2,11 +2,10 @@
 
 // From app/
 export { useBrowserNavigation } from "./app/useBrowserNavigation";
-export { useDarkMode } from "./app/useDarkMode";
-export type { ThemeMode } from "./app/useDarkMode";
 export { useMerged } from "./app/useMerged";
 export { useNavigateToTop } from "./app/useNavigateToTop";
 export { useOffline } from "./app/useOffline";
+export { useTheme } from "./app/useTheme";
 export { useToastAction } from "./app/useToastAction";
 export type { ToastActionOptions } from "./app/useToastAction";
 
@@ -50,8 +49,6 @@ export { useRole } from "./gardener/useRole";
 export type { UserRole, RoleInfo } from "./gardener/useRole";
 
 // From work/
-export { useStorageManager } from "./work/useStorageManager";
-export type { UseStorageManagerReturn } from "./work/useStorageManager";
 export { useWorkApproval } from "./work/useWorkApproval";
 export { useWorkApprovals } from "./work/useWorkApprovals";
 export type { EnhancedWorkApproval } from "./work/useWorkApprovals";

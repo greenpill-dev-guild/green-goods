@@ -1,8 +1,8 @@
+import { toastService } from "@green-goods/shared";
 import { ONBOARDED_STORAGE_KEY, wagmiConfig } from "@green-goods/shared/config";
 import { usePasskeyAuth as useAuth, useAutoJoinRootGarden } from "@green-goods/shared/hooks";
 import { useAppKit } from "@green-goods/shared/providers";
 import { getAccount } from "@wagmi/core";
-import { toastService } from "@green-goods/shared";
 import { useEffect, useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAccount } from "wagmi";

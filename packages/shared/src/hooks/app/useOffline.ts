@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQueueFlush } from "../../providers/jobQueue";
 import { usePendingWorksCount, useQueueStatistics } from "../work/useWorks";
+import { jobQueueEventBus } from "../../modules/job-queue/event-bus";
 
 /** Reports offline status and queue metrics derived from TanStack Query subscriptions. */
 export function useOffline() {
@@ -16,24 +17,12 @@ export function useOffline() {
   const pendingWork = stats ? stats.pending + stats.failed : 0;
   void pendingWork; // avoid unused value since we return aggregated values separately
 
+  // Listen to online/offline events
   useEffect(() => {
-    let cancelled = false;
-
     const handleOnline = () => {
       setIsOnline(true);
       setSyncStatus("syncing");
-
-      flush()
-        .then(() => {
-          if (!cancelled) {
-            setSyncStatus("idle");
-          }
-        })
-        .catch(() => {
-          if (!cancelled) {
-            setSyncStatus("error");
-          }
-        });
+      // DON'T call flush() here - JobQueueProvider handles auto-sync for passkey users
     };
 
     const handleOffline = () => {
@@ -44,11 +33,18 @@ export function useOffline() {
     window.addEventListener("offline", handleOffline);
 
     return () => {
-      cancelled = true;
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, [flush]);
+  }, []);
+
+  // Listen to queue events to update sync status
+  useEffect(() => {
+    const unsub = jobQueueEventBus.on("queue:sync-completed", () => {
+      setSyncStatus("idle");
+    });
+    return () => unsub();
+  }, []);
 
   return {
     isOnline,

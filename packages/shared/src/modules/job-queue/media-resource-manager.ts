@@ -5,6 +5,7 @@
 class MediaResourceManager {
   private urlMap = new Map<string, string[]>();
   private globalUrls = new Set<string>();
+  private urlCache = new Map<string, { file: File; url: string }>();
 
   /**
    * Create object URLs for files and track them for cleanup
@@ -40,6 +41,23 @@ class MediaResourceManager {
   }
 
   /**
+   * Get or create URL - returns cached URL if file already has one
+   * Prevents memory leaks from creating duplicate URLs on re-renders
+   */
+  getOrCreateUrl(file: File, trackingId: string): string {
+    const cacheKey = `${trackingId}-${file.name}-${file.size}-${file.lastModified}`;
+    const cached = this.urlCache.get(cacheKey);
+
+    if (cached && cached.file === file) {
+      return cached.url;
+    }
+
+    const url = this.createUrl(file, trackingId);
+    this.urlCache.set(cacheKey, { file, url });
+    return url;
+  }
+
+  /**
    * Cleanup URLs associated with a specific tracking ID
    */
   cleanupUrls(trackingId: string): void {
@@ -55,6 +73,13 @@ class MediaResourceManager {
         }
       });
       this.urlMap.delete(trackingId);
+    }
+
+    // Clear cache entries for this tracking ID
+    for (const [key] of this.urlCache.entries()) {
+      if (key.startsWith(trackingId)) {
+        this.urlCache.delete(key);
+      }
     }
   }
 

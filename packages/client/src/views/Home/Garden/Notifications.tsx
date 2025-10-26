@@ -1,9 +1,9 @@
+import { useEnsName } from "@green-goods/shared/hooks";
+import { formatAddress } from "@green-goods/shared/utils";
 import { RiAlertFill, RiSeedlingFill } from "@remixicon/react";
 import type React from "react";
 import { useIntl } from "react-intl";
 import { Link, useNavigate } from "react-router-dom";
-import { useEnsName } from "@green-goods/shared/hooks";
-import { formatAddress } from "@green-goods/shared/utils";
 
 interface GardenNotificationsProps {
   garden: Garden;

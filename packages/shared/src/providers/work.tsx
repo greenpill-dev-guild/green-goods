@@ -13,6 +13,7 @@ import { formatJobError, submitWorkToQueue, validateWorkDraft } from "../modules
 import { useUser } from "../hooks/auth/useUser";
 import { useActions, useGardens } from "../hooks/blockchain/useBaseLists";
 import { useWorkFlowStore, type WorkFlowState } from "../stores/useWorkFlowStore";
+import { useUIStore } from "../stores/useUIStore";
 import { toastService } from "../toast";
 import { DEBUG_ENABLED, debugError, debugLog, debugWarn } from "../utils/debug";
 
@@ -120,6 +121,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   const _setGardenAddress = useWorkFlowStore((s: WorkFlowState) => s.setGardenAddress);
   const _setImages = useWorkFlowStore((s: WorkFlowState) => s.setImages);
   const _setActiveTab = useWorkFlowStore((s: WorkFlowState) => s.setActiveTab);
+  const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
 
   // Adapters to maintain React.Dispatch API for consumers
   const setActionUID: React.Dispatch<React.SetStateAction<number | null>> = (
@@ -214,6 +216,27 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
 
       // Branch based on authentication mode
       if (authMode === "wallet") {
+        // Check if offline - wallet users also queue when offline
+        if (!navigator.onLine) {
+          if (DEBUG_ENABLED) {
+            debugLog("[GardenFlow] Wallet user offline - queuing work", {
+              gardenAddress,
+              actionUID,
+              actionTitle,
+            });
+          }
+          const { txHash: offlineTxHash, jobId: _jobId } = await submitWorkToQueue(
+            { ...draft } as any,
+            gardenAddress!,
+            actionUID!,
+            ctxActions,
+            chainId,
+            images
+          );
+          return offlineTxHash;
+        }
+
+        // Online wallet users: direct submission
         if (DEBUG_ENABLED) {
           debugLog("[GardenFlow] Submitting work via wallet flow", {
             gardenAddress,
@@ -291,16 +314,20 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         });
       }
 
-      const isOffline = !navigator.onLine && authMode !== "wallet";
+      const isOffline = !navigator.onLine;
       const message =
         authMode === "wallet"
-          ? "Waiting for wallet confirmation..."
+          ? isOffline
+            ? "Saving work offline... You'll need to retry when online."
+            : "Waiting for wallet confirmation..."
           : isOffline
             ? "Saving work offline..."
             : "Submitting your work...";
       const title =
         authMode === "wallet"
-          ? "Confirm in your wallet"
+          ? isOffline
+            ? "Working offline"
+            : "Confirm in your wallet"
           : isOffline
             ? "Working offline"
             : "Submitting work";
@@ -316,13 +343,17 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       const isOfflineHash = typeof txHash === "string" && txHash.startsWith("0xoffline_");
       const title =
         authMode === "wallet"
-          ? "Work submitted"
+          ? isOfflineHash
+            ? "Work saved offline"
+            : "Work submitted"
           : isOfflineHash
             ? "Work saved offline"
             : "Work submitted";
       const message =
         authMode === "wallet"
-          ? "Transaction confirmed. You're all set!"
+          ? isOfflineHash
+            ? "Open the dashboard to retry when you're back online."
+            : "Transaction confirmed. You're all set!"
           : isOfflineHash
             ? "We'll sync this work automatically when you're back online."
             : "Work submitted successfully.";
@@ -333,6 +364,10 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         context: authMode === "wallet" ? "wallet confirmation" : "work upload",
         suppressLogging: true,
       });
+
+      // Auto-open work dashboard
+      openWorkDashboard();
+
       if (DEBUG_ENABLED) {
         debugLog("[GardenFlow] Work submission completed", {
           gardenAddress,
