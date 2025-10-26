@@ -56,6 +56,28 @@ export const router = createBrowserRouter([
                     }),
                   },
                   {
+                    path: "actions",
+                    lazy: async () => ({ Component: (await import("@/views/Actions")).default }),
+                  },
+                  {
+                    path: "actions/create",
+                    lazy: async () => ({
+                      Component: (await import("@/views/Actions/CreateAction")).default,
+                    }),
+                  },
+                  {
+                    path: "actions/:id",
+                    lazy: async () => ({
+                      Component: (await import("@/views/Actions/ActionDetail")).default,
+                    }),
+                  },
+                  {
+                    path: "actions/:id/edit",
+                    lazy: async () => ({
+                      Component: (await import("@/views/Actions/EditAction")).default,
+                    }),
+                  },
+                  {
                     lazy: async () => ({
                       Component: (await import("@/routes/RequireDeployer")).default,
                     }),

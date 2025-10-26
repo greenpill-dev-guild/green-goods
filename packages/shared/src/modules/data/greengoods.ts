@@ -1,7 +1,9 @@
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { greenGoodsGraphQL } from "./graphql";
-import { getFileByHash } from "./pinata";
+import { getFileByHash, resolveIPFSUrl } from "./pinata";
 import { greenGoodsIndexer } from "./urql";
+
+const GATEWAY_BASE_URL = "https://greengoods.mypinata.cloud";
 
 export enum Capital {
   SOCIAL = 0,
@@ -43,17 +45,11 @@ export async function getActions(): Promise<Action[]> {
     return await Promise.all(
       data.Action.map(
         async ({ id, title, startTime, endTime, capitals, media, instructions, createdAt }) => {
-          // Fetch image from first media item
-          const image =
-            media && media.length > 0
-              ? await getFileByHash(media[0])
-                  .then((res) => res)
-                  .catch(() => null)
-              : null;
-
-          const mediaImage = image
-            ? URL.createObjectURL(image.data as Blob)
-            : "/images/no-image-placeholder.png";
+          // Resolve media CIDs to gateway URLs
+          const resolvedMedia =
+            media && Array.isArray(media)
+              ? media.map((cid: string) => resolveIPFSUrl(cid, GATEWAY_BASE_URL))
+              : [];
 
           // Fetch action instructions from IPFS using existing pinata module
           let actionConfig: any = null;
@@ -97,7 +93,7 @@ export async function getActions(): Promise<Action[]> {
             startTime: startTime ? Number(startTime) * 1000 : Date.now(),
             endTime: endTime ? Number(endTime) * 1000 : Date.now() + 365 * 24 * 60 * 60 * 1000, // Default to 1 year from now
             capitals: Array.isArray(capitals) ? capitals.map((c: unknown) => c as Capital) : [],
-            media: [mediaImage],
+            media: resolvedMedia.length > 0 ? resolvedMedia : ["/images/no-image-placeholder.png"],
             description: actionConfig?.description || "",
             inputs: (actionConfig?.uiConfig?.details?.inputs as WorkInput[]) || [],
             mediaInfo: actionConfig?.uiConfig?.media || {
@@ -155,35 +151,27 @@ export async function getGardens(): Promise<Garden[]> {
 
     if (!data || !data.Garden || !Array.isArray(data.Garden)) return [];
 
-    return await Promise.all(
-      data.Garden.map(async (garden) => {
-        const image = garden.bannerImage
-          ? await getFileByHash(garden.bannerImage)
-              .then((res) => res)
-              .catch(() => null)
-          : null;
+    return data.Garden.map((garden) => {
+      const bannerImage = garden.bannerImage
+        ? resolveIPFSUrl(garden.bannerImage, GATEWAY_BASE_URL)
+        : "/images/no-image-placeholder.png";
 
-        const bannerImage = image
-          ? URL.createObjectURL(image.data as Blob)
-          : "/images/no-image-placeholder.png";
-
-        return {
-          id: garden.id,
-          chainId: garden.chainId,
-          tokenAddress: garden.tokenAddress,
-          tokenID: BigInt(garden.tokenID),
-          name: garden.name || "Unnamed Garden",
-          description: garden.description || "",
-          location: garden.location || "Unknown Location",
-          bannerImage,
-          gardeners: garden.gardeners || [],
-          operators: garden.operators || [],
-          assessments: [],
-          works: [],
-          createdAt: garden.createdAt ? (garden.createdAt as number) * 1000 : Date.now(),
-        };
-      })
-    );
+      return {
+        id: garden.id,
+        chainId: garden.chainId,
+        tokenAddress: garden.tokenAddress,
+        tokenID: BigInt(garden.tokenID),
+        name: garden.name || "Unnamed Garden",
+        description: garden.description || "",
+        location: garden.location || "Unknown Location",
+        bannerImage,
+        gardeners: garden.gardeners || [],
+        operators: garden.operators || [],
+        assessments: [],
+        works: [],
+        createdAt: garden.createdAt ? (garden.createdAt as number) * 1000 : Date.now(),
+      };
+    });
   } catch {
     return [];
   }

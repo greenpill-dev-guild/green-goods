@@ -219,3 +219,32 @@ declare interface WorkApproval extends WorkApprovalDraft {
 	operatorAddress: string;
 	createdAt: number;
 }
+
+// ============================================
+// Action Instruction Types
+// ============================================
+
+declare interface ActionInstructionConfig {
+	description: string;
+	uiConfig: {
+		media: {
+			title: string;
+			description: string;
+			maxImageCount: number;
+			minImageCount: number;
+			required: boolean;
+			needed: string[];
+			optional: string[];
+		};
+		details: {
+			title: string;
+			description: string;
+			feedbackPlaceholder: string;
+			inputs: WorkInput[];
+		};
+		review: {
+			title: string;
+			description: string;
+		};
+	};
+}

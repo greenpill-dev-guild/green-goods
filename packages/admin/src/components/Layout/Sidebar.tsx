@@ -4,6 +4,7 @@ import { useAdminStore } from "@green-goods/shared/stores";
 import { cn } from "@green-goods/shared/utils";
 import {
   RiDashboardLine,
+  RiHammerFill,
   RiLogoutBoxLine,
   RiPlantLine,
   RiSettings3Line,
@@ -19,6 +20,7 @@ const navigation = [
     roles: ["deployer", "operator", "user"],
   },
   { name: "Gardens", href: "/gardens", icon: RiPlantLine, roles: ["deployer", "operator", "user"] },
+  { name: "Actions", href: "/actions", icon: RiHammerFill, roles: ["deployer", "operator"] },
   { name: "Contracts", href: "/contracts", icon: RiSettings3Line, roles: ["deployer"] },
   { name: "Deployment", href: "/deployment", icon: RiUploadLine, roles: ["deployer"] },
 ];

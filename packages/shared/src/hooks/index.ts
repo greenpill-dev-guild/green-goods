@@ -1,5 +1,8 @@
 // Re-export all hooks organized by domain - EXPLICIT EXPORTS for tree-shaking
 
+// From action/
+export { useActionOperations } from "./action/useActionOperations";
+
 // From app/
 export { useBrowserNavigation } from "./app/useBrowserNavigation";
 export { useMerged } from "./app/useMerged";
