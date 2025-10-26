@@ -17,6 +17,7 @@ import type { PasskeySession } from "../../modules/auth/passkey";
 import { ONBOARDED_STORAGE_KEY } from "../../config/app";
 import { useGardens } from "../blockchain/useBaseLists";
 import { useQueryClient } from "@tanstack/react-query";
+import { parseAndFormatError, isAlreadyGardenerError } from "../../utils/errors";
 
 const ROOT_GARDEN_PROMPTED_KEY = "rootGardenPrompted";
 
@@ -236,7 +237,29 @@ export function useAutoJoinRootGarden(autoJoin = false) {
         });
         await checkMembership(targetAddress);
       } catch (error) {
-        console.error("Failed to join root garden", error);
+        const { parsed } = parseAndFormatError(error);
+        
+        // Special handling for AlreadyGardener error - not actually an error
+        if (isAlreadyGardenerError(error)) {
+          console.log("User is already a gardener, treating as success");
+          localStorage.setItem(ROOT_GARDEN_PROMPTED_KEY, "true");
+          const onboardKey = getOnboardedKey(targetAddress);
+          localStorage.setItem(onboardKey, "true");
+          localStorage.setItem(ONBOARDED_STORAGE_KEY, "true");
+          setState((prev) => ({
+            ...prev,
+            isGardener: true,
+            showPrompt: false,
+            hasPrompted: true,
+            isLoading: false,
+          }));
+          return; // Exit successfully
+        }
+        
+        console.error("Failed to join root garden", error, {
+          errorName: parsed.name,
+          errorMessage: parsed.message,
+        });
         throw error;
       }
     },

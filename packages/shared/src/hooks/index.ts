@@ -37,7 +37,7 @@ export type { DeploymentRegistryPermissions } from "./blockchain/useDeploymentRe
 // From garden/
 export { useAutoJoinRootGarden } from "./garden/useAutoJoinRootGarden";
 export { useGardenTabs, GardenTab } from "./garden/useGardenTabs";
-export { useGardenAssessments } from "./garden/useGardenAssessments";
+export { useGardenAssessments } from "./assessment/useGardenAssessments";
 export { useGardenInvites } from "./garden/useGardenInvites";
 export type { GardenInvite } from "./garden/useGardenInvites";
 export { useGardenOperations } from "./garden/useGardenOperations";

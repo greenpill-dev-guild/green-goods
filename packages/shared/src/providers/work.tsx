@@ -16,6 +16,7 @@ import { useWorkFlowStore, type WorkFlowState } from "../stores/useWorkFlowStore
 import { useUIStore } from "../stores/useUIStore";
 import { toastService } from "../toast";
 import { DEBUG_ENABLED, debugError, debugLog, debugWarn } from "../utils/debug";
+import { parseAndFormatError } from "../utils/errors";
 
 export enum WorkTab {
   Intro = "Intro",
@@ -379,34 +380,40 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       }
     },
     onError: (error: unknown, variables) => {
-      const raw =
-        typeof error === "object" && error && "message" in (error as { message?: unknown })
-          ? String((error as { message?: unknown }).message)
-          : String(error);
-      const formatted = formatJobError(raw);
-      const message =
-        formatted === raw
-          ? authMode === "wallet"
-            ? "Transaction failed. Check your wallet and try again."
-            : "We couldn't submit your work. It'll retry shortly."
-          : formatted;
+      // Parse contract error for user-friendly message
+      const { title, message, parsed } = parseAndFormatError(error);
+      
+      // Use parsed error if known, otherwise provide fallback based on auth mode
+      const displayTitle = parsed.isKnown ? title : "Work submission failed";
+      const displayMessage = parsed.isKnown
+        ? message
+        : authMode === "wallet"
+          ? "Transaction failed. Check your wallet and try again."
+          : "We couldn't submit your work. It'll retry shortly.";
+      
+      const description = parsed.isKnown
+        ? parsed.action || undefined
+        : authMode === "wallet"
+          ? "If the issue persists, reconnect your wallet and resubmit."
+          : "You can stay on this page; the queue will keep retrying.";
+
       toastService.error({
         id: "work-upload",
-        title: "Work submission failed",
-        message,
+        title: displayTitle,
+        message: displayMessage,
         context: authMode === "wallet" ? "wallet confirmation" : "work upload",
-        description: authMode === "wallet"
-          ? "If the issue persists, reconnect your wallet and resubmit."
-          : "You can stay on this page; the queue will keep retrying.",
+        description,
         error,
       });
+      
       if (DEBUG_ENABLED) {
         debugError("[GardenFlow] Work submission failed", error, {
           gardenAddress,
           actionUID,
           authMode,
           imageCount: variables?.images.length ?? 0,
-          message,
+          parsedError: parsed.name,
+          message: displayMessage,
         });
       }
     },

@@ -12,7 +12,7 @@
   "guardian": "0x3a8e1cdd577c2843aFA007b6cB40EFF56A87021b",
   "rootGarden": {
     "address": "0x1a48bB7b20eeEf4EbC8651F4E113136f0aacfCd4",
-    "tokenId": 1
+    "tokenId": 0
   },
   "schemas": {
     "assessmentDescription": "Flexible assessment schema for Green Goods gardens. Captures impact across 8 forms of capital with flexible metrics stored in IPFS JSON, along with evidence media and impact attestation references.",

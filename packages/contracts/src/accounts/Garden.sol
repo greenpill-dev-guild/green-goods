@@ -301,6 +301,13 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         emit GardenerAdded(address(this), _msgSender());
     }
 
+    /// @notice Enable or disable open joining for the garden
+    /// @dev Only callable by garden operators
+    /// @param _openJoining Whether to enable open joining
+    function setOpenJoining(bool _openJoining) external onlyOperator {
+        openJoining = _openJoining;
+    }
+
     /// @notice Returns the Karma GAP project UID for this garden
     /// @return The GAP project UID, or bytes32(0) if not initialized
     function getGAPProjectUID() external view returns (bytes32) {

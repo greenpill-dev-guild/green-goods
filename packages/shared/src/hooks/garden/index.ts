@@ -1,7 +1,7 @@
 // Re-export all garden hooks
 export * from "./useAutoJoinRootGarden";
 export * from "./useGardenTabs";
-export * from "./useGardenAssessments";
+export * from "../assessment/useGardenAssessments";
 export * from "./useGardenInvites";
 export * from "./useGardenOperations";
 export * from "./useGardenPermissions";

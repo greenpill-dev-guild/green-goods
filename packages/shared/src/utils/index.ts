@@ -53,6 +53,17 @@ export {
   debugError,
 } from './debug';
 
+// From errors/contract-errors.ts
+export {
+  parseContractError,
+  isNotGardenerError,
+  isAlreadyGardenerError,
+  formatErrorForToast,
+  parseAndFormatError,
+  registerErrorSignature,
+  type ParsedContractError,
+} from './errors';
+
 // From eas/encoders.ts
 export { encodeWorkApprovalData } from './eas/encoders';
 
