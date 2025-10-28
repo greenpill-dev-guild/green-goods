@@ -225,6 +225,15 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         }
     }
 
+    /// @notice Updates the community token of the garden.
+    /// @dev Only callable by garden operators.
+    /// @param _communityToken The new community token of the garden.
+    function updateCommunityToken(address _communityToken) external onlyOperator {
+        communityToken = _communityToken;
+
+        emit CommunityTokenUpdated(_msgSender(), _communityToken);
+    }
+
     /// @notice Updates the name of the garden.
     /// @dev Only callable by a valid signer of the contract.
     /// @param _name The new name of the garden.
@@ -241,6 +250,24 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         description = _description;
 
         emit DescriptionUpdated(_msgSender(), _description);
+    }
+
+    /// @notice Updates the location of the garden.
+    /// @dev Only callable by garden operators.
+    /// @param _location The new location of the garden.
+    function updateLocation(string memory _location) external onlyOperator {
+        location = _location;
+
+        emit LocationUpdated(_msgSender(), _location);
+    }
+
+    /// @notice Updates the banner image of the garden.
+    /// @dev Only callable by garden operators.
+    /// @param _bannerImage The new banner image of the garden.
+    function updateBannerImage(string memory _bannerImage) external onlyOperator {
+        bannerImage = _bannerImage;
+
+        emit BannerImageUpdated(_msgSender(), _bannerImage);
     }
 
     /// @notice Adds a new gardener to the garden.
@@ -594,10 +621,10 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
                 StringUtils.escapeJSON(description),
                 "\",",
                 "\"problem\":\"",
-                StringUtils.escapeJSON(description),
+                "\"\"",
                 "\",",
                 "\"solution\":\"",
-                StringUtils.escapeJSON(description),
+                "\"\"",
                 "\",",
                 "\"missionSummary\":\"",
                 StringUtils.escapeJSON(description),

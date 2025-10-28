@@ -1,9 +1,9 @@
-import { useEnsName } from "@green-goods/shared/hooks";
+import { useEnsName, useNavigateToTop } from "@green-goods/shared/hooks";
 import { formatAddress } from "@green-goods/shared/utils";
 import { RiAlertFill, RiSeedlingFill } from "@remixicon/react";
 import type React from "react";
 import { useIntl } from "react-intl";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 interface GardenNotificationsProps {
   garden: Garden;
@@ -49,11 +49,11 @@ export const GardenNotifications: React.FC<GardenNotificationsProps> = ({
   notifications,
 }) => {
   const intl = useIntl();
-  const navigate = useNavigate();
+  const navigate = useNavigateToTop();
   const pendingNotifications = notifications.filter((work) => work.status === "pending");
 
   return (
-    <div className="relative p-3 gap-3 border border-slate-200 rounded-2xl w-80 flex flex-col items-center overflow-y-auto bg-white shadow-xl mx-auto min-h-[400px] max-h-[80vh] transition-all duration-300 transform translate-y-0">
+    <div className="relative p-3 gap-3 border border-slate-200 rounded-2xl w-80 flex flex-col items-center overflow-y-auto overflow-x-hidden bg-white shadow-xl mx-auto min-h-[400px] max-h-[80vh] transition-all duration-300 transform translate-y-0">
       {pendingNotifications.length === 0 ? (
         <div className="flex flex-col items-center justify-center text-center py-12 px-6">
           <div className="text-6xl mb-4">🌱</div>
@@ -71,7 +71,9 @@ export const GardenNotifications: React.FC<GardenNotificationsProps> = ({
             })}
           </p>
           <button
-            onClick={() => navigate(`/home/${garden.id}`)}
+            onClick={() => {
+              navigate("/garden", { state: { gardenId: garden.id } });
+            }}
             className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-medium text-sm rounded-lg hover:from-emerald-600 hover:to-green-700 transition-all duration-200 hover:shadow-lg hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
           >
             <RiSeedlingFill className="w-4 h-4" />

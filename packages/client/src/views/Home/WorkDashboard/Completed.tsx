@@ -52,7 +52,7 @@ export const CompletedTab: React.FC<CompletedTabProps> = ({
         {headerContent}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 pb-4">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4">
         {isLoading ? (
           <div className="space-y-3">
             {Array.from({ length: 3 }).map((_, i) => (
@@ -107,12 +107,14 @@ export const CompletedTab: React.FC<CompletedTabProps> = ({
           </div>
         ) : (
           <div className="space-y-3">
-            {completedWork.map((work) => (
+            {completedWork.map((work, index) => (
               <MinimalWorkCard
                 key={work.id}
                 work={work}
                 onClick={() => onWorkClick(work)}
                 badges={renderBadges?.(work)}
+                className="stagger-item"
+                style={{ animationDelay: `${index * 30}ms` } as React.CSSProperties}
               />
             ))}
           </div>

@@ -167,7 +167,7 @@ export function parseContractError(error: unknown): ParsedContractError {
   }
 
   // Check if error string contains known error name
-  for (const [sig, errorInfo] of Object.entries(ERROR_SIGNATURES)) {
+  for (const [_sig, errorInfo] of Object.entries(ERROR_SIGNATURES)) {
     if (errorStr.toLowerCase().includes(errorInfo.name.toLowerCase())) {
       return {
         raw: signature ?? errorStr,

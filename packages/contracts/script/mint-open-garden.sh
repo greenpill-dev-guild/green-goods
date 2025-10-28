@@ -6,8 +6,27 @@ set -e
 
 echo "🌱 Minting Green Goods Open Garden to Arbitrum..."
 
-# Load environment
-export $(grep -v '^#' ../../../.env | xargs)
+# Determine the script directory and navigate to contracts directory
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+CONTRACTS_DIR="$(dirname "$SCRIPT_DIR")"
+ROOT_DIR="$(dirname "$(dirname "$CONTRACTS_DIR")")"
+ENV_FILE="$ROOT_DIR/.env"
+
+# Navigate to contracts directory
+cd "$CONTRACTS_DIR"
+echo "Working directory: $(pwd)"
+
+# Load environment variables from .env file
+# Properly handle comments and special characters
+if [ -f "$ENV_FILE" ]; then
+  set -a  # Automatically export all variables
+  source <(grep -v '^#' "$ENV_FILE" | sed 's/#.*//' | sed '/^$/d')
+  set +a
+  echo "✅ Loaded environment variables from $ENV_FILE"
+else
+  echo "❌ Error: .env file not found at $ENV_FILE"
+  exit 1
+fi
 
 # Garden configuration from gardens.json (index 1)
 export GARDEN_NAME="Green Goods Open Garden"

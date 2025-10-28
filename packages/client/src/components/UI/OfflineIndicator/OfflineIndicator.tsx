@@ -76,7 +76,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
       case "back-online":
         return (
           <div
-            className={`${baseBarClasses} bg-green-500/95 text-white pointer-events-auto`}
+            className={`${baseBarClasses} bg-green-500/95 text-white pointer-events-auto pulse-success`}
             role="status"
             aria-live="polite"
             aria-label="App is back online"

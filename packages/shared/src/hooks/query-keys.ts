@@ -50,6 +50,25 @@ export const queryKeys = {
     all: ["jobQueue", "media"] as const,
     forJob: (jobId: string) => ["jobQueue", "media", "job", jobId] as const,
   },
+
+  // Garden related keys
+  gardens: {
+    all: ["gardens"] as const,
+    byChain: (chainId: number) => ["gardens", chainId] as const,
+    detail: (gardenId: string, chainId: number) => ["gardens", "detail", gardenId, chainId] as const,
+  },
+
+  // Action related keys
+  actions: {
+    all: ["actions"] as const,
+    byChain: (chainId: number) => ["actions", chainId] as const,
+  },
+
+  // Gardener related keys
+  gardeners: {
+    all: ["gardeners"] as const,
+    byAddress: (address: string) => ["gardeners", "byAddress", address] as const,
+  },
 } as const;
 
 // Utility functions for invalidating related queries
@@ -93,6 +112,18 @@ export const queryInvalidation = {
 
   // Get queries to invalidate when sync is completed
   onSyncCompleted: () => [queryKeys.queue.all, queryKeys.works.all, queryKeys.offline.sync()],
+
+  // Invalidate gardens (e.g., after joining/leaving)
+  invalidateGardens: (chainId: number) => [
+    queryKeys.gardens.all,
+    queryKeys.gardens.byChain(chainId),
+  ],
+
+  // Invalidate specific garden
+  invalidateGarden: (gardenId: string, chainId: number) => [
+    queryKeys.gardens.byChain(chainId),
+    queryKeys.gardens.detail(gardenId, chainId),
+  ],
 };
 
 // Type-safe query key helpers

@@ -41,7 +41,9 @@ export function AddressCopy({
     try {
       await copyToClipboard(address);
       setCopied(true);
-      toast.success(intl.formatMessage({ id: "app.toast.copied", defaultMessage: "Copied" }));
+      toast.success(
+        intl.formatMessage({ id: "app.toast.addressCopied", defaultMessage: "Address copied" })
+      );
     } catch {
       toast.error(
         intl.formatMessage({ id: "app.toast.copyFailed", defaultMessage: "Copy failed" })
@@ -64,8 +66,8 @@ export function AddressCopy({
         onClick={handleCopy}
         aria-labelledby={statusId}
         className={cn(
-          "flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white text-left shadow-sm transition-all duration-150",
-          "hover:border-primary/40 hover:shadow-md active:scale-[0.99]",
+          "flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white text-left shadow-sm transition-all duration-150 tap-feedback",
+          "active:scale-[0.99]",
           "focus:outline-none focus:ring-2 focus:ring-primary/30",
           sizeClasses
         )}

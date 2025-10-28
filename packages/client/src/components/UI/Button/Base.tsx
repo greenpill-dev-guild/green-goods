@@ -12,12 +12,13 @@ export const buttonVariants = tv({
   slots: {
     root: [
       // base
-      "group relative inline-flex items-center justify-center whitespace-nowrap outline-none",
-      "transition duration-200 ease-out",
+      "group relative inline-flex items-center justify-center whitespace-nowrap outline-none overflow-hidden",
+      "transition-all duration-200 ease-out",
       // focus
       "focus:outline-none",
       // disabled
       "disabled:pointer-events-none disabled:bg-weak-50 disabled:text-disabled-300 disabled:outline-transparent",
+      // Mobile-first: only active state, no hover
       "active:scale-95",
       "user-select-none",
     ],

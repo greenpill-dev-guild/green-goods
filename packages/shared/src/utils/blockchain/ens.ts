@@ -101,3 +101,44 @@ export async function resolveEnsAddress(
 
   return fetchEnsAddressForChain(normalized, fallbackChainId);
 }
+
+async function fetchEnsAvatarForChain(address: Address, chainId: number): Promise<string | null> {
+  try {
+    const client = getClient(chainId);
+    return await client.getEnsAvatar({ name: await client.getEnsName({ address }) ?? undefined });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Resolves the ENS avatar for a given address.
+ * Falls back to mainnet lookups when the default chain lacks ENS data.
+ */
+export async function resolveEnsAvatar(
+  address?: string | null,
+  options: ResolveEnsOptions = {}
+): Promise<string | null> {
+  if (!address || !isAddress(address)) {
+    return null;
+  }
+
+  const chainId = options.chainId ?? DEFAULT_CHAIN_ID;
+  const fallbackChainId = options.fallbackChainId ?? 1; // Ethereum mainnet
+
+  const normalized = address as Address;
+
+  // If we're already pointing at the fallback chain (mainnet), resolve directly.
+  if (chainId === fallbackChainId) {
+    return fetchEnsAvatarForChain(normalized, fallbackChainId);
+  }
+
+  // Prefer mainnet lookups to avoid unsupported chain errors.
+  if (chainId === 1) {
+    const mainnetResult = await fetchEnsAvatarForChain(normalized, chainId);
+    if (mainnetResult) return mainnetResult;
+  }
+
+  // For non-mainnet chains, skip directly to fallback (mainnet).
+  return fetchEnsAvatarForChain(normalized, fallbackChainId);
+}

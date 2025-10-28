@@ -1,21 +1,19 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { useIntl } from "react-intl";
-import { Outlet, useLocation } from "react-router-dom";
-import { RiFilterLine } from "@remixicon/react";
-
-import { GardenCard } from "@/components/UI/Card/GardenCard";
-import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
-
-import { WorkDashboardIcon } from "./WorkDashboard/Icon";
-import { Button } from "@/components/UI/Button";
-import { ModalDrawer } from "@/components/UI/ModalDrawer/ModalDrawer";
 import {
   useAuth,
   useBrowserNavigation,
-  useNavigateToTop,
   useGardens,
+  useNavigateToTop,
 } from "@green-goods/shared/hooks";
 import { cn, gardenHasMember } from "@green-goods/shared/utils";
+import { RiFilterLine } from "@remixicon/react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useIntl } from "react-intl";
+import { Outlet, useLocation } from "react-router-dom";
+import { Button } from "@/components/UI/Button";
+import { GardenCard } from "@/components/UI/Card/GardenCard";
+import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
+import { ModalDrawer } from "@/components/UI/ModalDrawer/ModalDrawer";
+import { WorkDashboardIcon } from "./WorkDashboard/Icon";
 
 type GardenFilterScope = "all" | "mine";
 type GardenSortOrder = "default" | "name" | "recent";
@@ -45,12 +43,9 @@ const FilterOptionButton = ({
     onClick={onClick}
     disabled={disabled}
     className={cn(
-      "w-full rounded-2xl border border-stroke-soft-200 bg-white p-3 text-left text-sm transition-all duration-200 min-h-[56px] flex flex-col justify-center",
-      selected
-        ? "border-primary bg-primary/10 text-primary shadow-sm"
-        : "hover:border-primary/50 hover:bg-primary/5 hover:text-primary",
-      disabled &&
-        "cursor-not-allowed opacity-60 hover:border-stroke-soft-200 hover:bg-white hover:text-slate-600"
+      "w-full rounded-2xl border border-stroke-soft-200 bg-white p-3 text-left text-sm transition-all duration-200 min-h-[56px] flex flex-col justify-center tap-feedback",
+      selected ? "border-primary bg-primary/10 text-primary shadow-sm" : "",
+      disabled && "cursor-not-allowed opacity-60"
     )}
     aria-pressed={selected}
   >
@@ -152,11 +147,11 @@ const GardensFilterDrawer = ({
       header={{
         title: intl.formatMessage({
           id: "app.home.filters.title",
-          defaultMessage: "Filter gardens",
+          defaultMessage: "Filter Gardens",
         }),
         description: intl.formatMessage({
           id: "app.home.filters.description",
-          defaultMessage: "Refine the garden list by membership or sort order.",
+          defaultMessage: "Filter by membership or sort order.",
         }),
       }}
     >
@@ -381,8 +376,8 @@ const Gardens: React.FC = () => {
                 type="button"
                 onClick={() => setFilterOpen(true)}
                 className={cn(
-                  "relative p-1 rounded-lg border transition-all duration-200",
-                  "hover:shadow-lg hover:scale-105 active:scale-95",
+                  "relative p-1 rounded-lg border transition-all duration-200 tap-feedback",
+                  "active:scale-95",
                   "flex items-center justify-center w-8 h-8 tap-target-lg",
                   "focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-600 active:border-emerald-600",
                   isFilterActive ? "border-primary text-primary" : "border-slate-200 text-slate-500"
@@ -402,7 +397,7 @@ const Gardens: React.FC = () => {
               <WorkDashboardIcon />
             </div>
           </div>
-          <div className={"padded flex-1 flex flex-col gap-4 overflow-y-scroll"}>
+          <div className={"padded flex-1 flex flex-col gap-4 overflow-y-scroll overflow-x-hidden"}>
             {renderGardens()}
           </div>
           <GardensFilterDrawer

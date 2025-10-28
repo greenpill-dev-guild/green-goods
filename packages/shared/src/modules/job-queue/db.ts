@@ -125,27 +125,39 @@ class JobQueueDatabase {
 
   async getJobs(filter?: { kind?: string; synced?: boolean }): Promise<Job[]> {
     const db = await this.init();
+    console.log("[JobQueueDB] getJobs called with filter:", filter);
+
+    let result: Job[];
 
     if (filter?.kind && filter?.synced !== undefined) {
       const tx = db.transaction("jobs", "readonly");
       const index = tx.objectStore("jobs").index("kind_synced");
       // Query using boolean to match the index schema (kind: string, synced: boolean)
-      return await index.getAll([filter.kind, filter.synced] as unknown as IDBValidKey);
-    }
-
-    if (filter?.kind) {
+      result = await index.getAll([filter.kind, filter.synced] as unknown as IDBValidKey);
+    } else if (filter?.kind) {
       const tx = db.transaction("jobs", "readonly");
       const index = tx.objectStore("jobs").index("kind");
-      return await index.getAll(filter.kind);
-    }
-
-    if (filter?.synced !== undefined) {
+      result = await index.getAll(filter.kind);
+    } else if (filter?.synced !== undefined) {
       // IndexedDB doesn't support boolean indexes directly, so we get all and filter
       const allJobs = await db.getAll("jobs");
-      return allJobs.filter((job) => job.synced === filter.synced);
+      result = allJobs.filter((job) => job.synced === filter.synced);
+    } else {
+      result = await db.getAll("jobs");
     }
 
-    return db.getAll("jobs");
+    console.log("[JobQueueDB] getJobs returning:", {
+      count: result.length,
+      jobs: result.map(j => ({
+        id: j.id,
+        kind: j.kind,
+        synced: j.synced,
+        attempts: j.attempts,
+        lastError: j.lastError,
+      }))
+    });
+
+    return result;
   }
 
   async getJob(id: string): Promise<Job | undefined> {
@@ -188,12 +200,36 @@ class JobQueueDatabase {
     const index = tx.objectStore("job_images").index("jobId");
     const images = await index.getAll(jobId);
 
+    console.log("[JobQueueDB] getImagesForJob called:", {
+      jobId,
+      rawImagesCount: images.length,
+      rawImages: images.map(img => ({
+        id: img.id,
+        hasFile: !!img.file,
+        fileName: img.file?.name,
+        fileSize: img.file?.size,
+        fileType: img.file?.type
+      }))
+    });
+
     // Use getOrCreateUrl to prevent memory leaks from duplicate URLs on re-renders
-    return images.map((img) => ({
+    const result = images.map((img) => ({
       id: img.id,
       file: img.file,
       url: mediaResourceManager.getOrCreateUrl(img.file, jobId),
     }));
+    
+    console.log("[JobQueueDB] getImagesForJob returning:", {
+      jobId,
+      resultCount: result.length,
+      urls: result.map(r => ({
+        id: r.id,
+        url: r.url?.substring(0, 60) + '...',
+        urlIsBlob: r.url?.startsWith('blob:')
+      }))
+    });
+    
+    return result;
   }
 
   /**

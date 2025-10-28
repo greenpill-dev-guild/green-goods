@@ -1,4 +1,4 @@
-import { useEnsName } from "@green-goods/shared/hooks";
+import { useEnsName, useEnsAvatar } from "@green-goods/shared/hooks";
 import { copyToClipboard, formatAddress } from "@green-goods/shared/utils";
 import {
   RiCalendarEventFill,
@@ -11,7 +11,7 @@ import React, { forwardRef, memo, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useIntl } from "react-intl";
 import { FixedSizeList as List } from "react-window";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/UI/Avatar/Avatar";
+import { Avatar, AvatarFallback, AvatarImage, AvatarSkeleton } from "@/components/UI/Avatar/Avatar";
 import { Badge } from "@/components/UI/Badge/Badge";
 import { Button } from "@/components/UI/Button";
 import { AddressCopy } from "@/components/UI/Clipboard";
@@ -38,6 +38,7 @@ const GardenMemberItem = memo(function GardenMemberItem({
 }) {
   const intl = useIntl();
   const { data: ensName } = useEnsName(member.account);
+  const { data: ensAvatar, isLoading: isLoadingAvatar } = useEnsAvatar(member.account);
   const displayName =
     member.username ||
     member.email ||
@@ -50,9 +51,14 @@ const GardenMemberItem = memo(function GardenMemberItem({
   const subline = member.account
     ? formatAddress(member.account, { variant: "card", ensName })
     : member.email || member.phone || "";
+
+  // Priority: uploaded avatar > ENS avatar > fallback
+  const avatarSrc = member.avatar || ensAvatar || "/images/avatar.png";
+  const showLoading = !member.avatar && isLoadingAvatar;
+
   return (
     <button
-      className="relative flex items-center gap-3 border-slate-200 border rounded-lg p-2 bg-white cursor-pointer hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-sm hover:shadow w-full text-left"
+      className="relative flex items-center gap-3 border-slate-200 border rounded-lg p-2 bg-white cursor-pointer transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-sm w-full text-left tap-feedback"
       onClick={onClick}
       type="button"
     >
@@ -73,13 +79,14 @@ const GardenMemberItem = memo(function GardenMemberItem({
         </Badge>
       ) : null}
       <Avatar className="w-10 h-10">
-        <AvatarImage
-          src={member.avatar ?? "/images/avatar.png"}
-          alt="Profile"
-          loading="lazy"
-          decoding="async"
-        />
-        <AvatarFallback />
+        {showLoading ? (
+          <AvatarSkeleton />
+        ) : (
+          <>
+            <AvatarImage src={avatarSrc} alt="Profile" loading="lazy" decoding="async" />
+            <AvatarFallback />
+          </>
+        )}
       </Avatar>
       <div className="flex flex-col pr-14">
         <span className="font-semibold">{displayName}</span>

@@ -1,4 +1,5 @@
 import { createOfflineTxHash, jobQueue } from "../job-queue";
+import { v4 as uuidv4 } from "uuid";
 
 /**
  * Consolidated work submission utility
@@ -27,17 +28,30 @@ export async function submitWorkToQueue(
   });
   const actionTitle = action?.title || "Unknown Action";
 
+  // Generate unique client-side ID for deduplication
+  const clientWorkId = uuidv4();
+
+  // Add to metadata for deduplication
+  const enrichedDraft = {
+    ...draft,
+    metadata: {
+      ...(draft.metadata || {}),
+      clientWorkId,
+      submittedAt: Date.now(),
+    },
+  };
+
   // Add job to queue - this handles both offline and online scenarios
   const jobId = await jobQueue.addJob(
     "work",
     {
-      ...draft,
+      ...enrichedDraft,
       title: `${actionTitle} - ${new Date().toISOString()}`,
       actionUID,
       gardenAddress,
       media: images,
     },
-    { chainId }
+    { chainId, clientWorkId }
   );
 
   // Return an offline transaction hash for UI compatibility

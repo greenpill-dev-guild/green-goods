@@ -30,6 +30,7 @@ export {
   useChainConfig,
 } from "./blockchain/useChainConfig";
 export { useEnsName } from "./blockchain/useEnsName";
+export { useEnsAvatar } from "./blockchain/useEnsAvatar";
 export { useEnsAddress } from "./blockchain/useEnsAddress";
 export { useDeploymentRegistry } from "./blockchain/useDeploymentRegistry";
 export type { DeploymentRegistryPermissions } from "./blockchain/useDeploymentRegistry";

@@ -18,6 +18,8 @@ export async function encodeWorkData(data: WorkDraft, chainId: number | string) 
   const metadata = await uploadJSONToIPFS({
     plantSelection: data.plantSelection,
     plantCount: data.plantCount,
+    clientWorkId: (data.metadata as any)?.clientWorkId, // Include for deduplication
+    submittedAt: (data.metadata as any)?.submittedAt,
   });
 
   const encodedData = schemaEncoder.encodeData([

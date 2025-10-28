@@ -6,7 +6,7 @@ const badgeVariants = tv({
   base: "items-center rounded-md border px-.5 py-.25 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-nowrap whitespace-nowrap flex flex-row gap-1",
   variants: {
     variant: {
-      transparent: "font-medium border-transparent bg-primary text-foreground hover:bg-primary/80",
+      transparent: "font-medium border-transparent bg-primary text-foreground tap-feedback",
       pill: "border-0 border-transparent rounded-2xl text-sm p-0.5 px-2 font-medium",
       outline: "text-foreground border-stroke-soft-200 p-1 px-1.5 text-xs",
     },

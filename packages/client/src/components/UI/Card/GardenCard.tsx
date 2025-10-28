@@ -4,6 +4,7 @@ import { useIntl } from "react-intl";
 import { tv, type VariantProps } from "tailwind-variants";
 import { useEnsName } from "@green-goods/shared/hooks";
 import { buildGardenMemberSets, cn, formatAddress } from "@green-goods/shared/utils";
+import { ImageWithFallback } from "@/components/UI/Image/ImageWithFallback";
 import { Badge } from "../Badge/Badge";
 import { Card, type CardRootProps } from "./Card";
 
@@ -66,7 +67,6 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardRootProps>(
 
     const [imageError, setImageError] = React.useState(false);
     const hasProvidedSrc = Boolean(garden.bannerImage);
-    const showImage = showBanner && hasProvidedSrc && !imageError;
     const membership = React.useMemo(
       () => buildGardenMemberSets(garden.gardeners, garden.operators),
       [garden.gardeners, garden.operators]
@@ -79,29 +79,40 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardRootProps>(
     const operatorCount = operatorAddresses.length;
 
     const classes = cardVariants({ media, height, class: className });
+
+    // Placeholder for missing/failed banner images
+    const BannerFallback = () => (
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-100 to-slate-200" />
+        <div className="absolute inset-0 opacity-50 bg-[repeating-linear-gradient(45deg,rgba(0,0,0,0.04)_0px,rgba(0,0,0,0.04)_10px,transparent_10px,transparent_20px)]" />
+        <div className="absolute inset-0 grid place-items-center">
+          <span className="text-5xl font-semibold text-slate-400 select-none">
+            {(garden.name?.charAt(0) || "G").toUpperCase()}
+          </span>
+        </div>
+      </div>
+    );
+
     return (
-      <Card ref={ref} className={cn(classes, selected && "")} onClick={onClick}>
+      <Card
+        ref={ref}
+        className={cn(classes, "tap-feedback transition-all duration-300", selected && "")}
+        onClick={onClick}
+      >
         {showBanner && (
           <div
             className={cn(media === "large" ? "h-40" : "h-26", "relative w-full overflow-hidden")}
           >
-            {showImage ? (
-              <img
+            {hasProvidedSrc && !imageError ? (
+              <ImageWithFallback
                 src={garden.bannerImage}
                 alt={garden.name || garden.description || "Garden"}
                 className="absolute inset-0 w-full h-full object-cover image-lut z-1"
-                onError={() => setImageError(true)}
+                fallbackClassName="absolute inset-0 w-full h-full"
+                onErrorCallback={() => setImageError(true)}
               />
             ) : (
-              <div className="absolute inset-0">
-                <div className="absolute inset-0 bg-gradient-to-br from-slate-100 to-slate-200" />
-                <div className="absolute inset-0 opacity-50 bg-[repeating-linear-gradient(45deg,rgba(0,0,0,0.04)_0px,rgba(0,0,0,0.04)_10px,transparent_10px,transparent_20px)]" />
-                <div className="absolute inset-0 grid place-items-center">
-                  <span className="text-5xl font-semibold text-slate-400 select-none">
-                    {(garden.name?.charAt(0) || "G").toUpperCase()}
-                  </span>
-                </div>
-              </div>
+              <BannerFallback />
             )}
           </div>
         )}
@@ -115,7 +126,7 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardRootProps>(
           <div className="flex flex-col gap-2 flex-1">
             <div
               className={cn(
-                "absolute top-0 left-0 right-0 bottom-0 w-full h-full border-2 border-primary/50 rounded-lg opacity-0 transition-opacity z-10 pointer-events-none",
+                "absolute top-0 left-0 right-0 bottom-0 w-full h-full border-2 border-primary/50 rounded-lg opacity-0 status-transition z-10 pointer-events-none",
                 selected && "opacity-100"
               )}
             />

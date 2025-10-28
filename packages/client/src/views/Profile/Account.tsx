@@ -1,10 +1,22 @@
-import { RiEarthFill, RiKeyLine, RiLogoutBoxRLine, RiWalletLine } from "@remixicon/react";
+import { toastService } from "@green-goods/shared";
+import { useAuth, useAutoJoinRootGarden, useEnsName } from "@green-goods/shared/hooks";
+import { type Locale, useApp } from "@green-goods/shared/providers/app";
+import { capitalize } from "@green-goods/shared/utils";
+import {
+  RiEarthFill,
+  RiKeyLine,
+  RiLogoutBoxRLine,
+  RiLogoutCircleLine,
+  RiPlantLine,
+  RiWalletLine,
+} from "@remixicon/react";
 import { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { Avatar } from "@/components/UI/Avatar/Avatar";
 import { Button } from "@/components/UI/Button";
 import { Card } from "@/components/UI/Card/Card";
+import { AddressCopy } from "@/components/UI/Clipboard";
 import {
   Select,
   SelectContent,
@@ -12,11 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/UI/Select/Select";
-import { useAuth, useEnsName } from "@green-goods/shared/hooks";
-import { type Locale, useApp } from "@green-goods/shared/providers/app";
-import { AddressCopy } from "@/components/UI/Clipboard";
-import { capitalize } from "@green-goods/shared/utils";
-import { toastService } from "@green-goods/shared";
 
 interface ApplicationSettings {
   title: string;
@@ -35,6 +42,60 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
   const navigate = useNavigate();
   const { locale, switchLanguage, availableLocales } = useApp();
   const intl = useIntl();
+
+  // Root garden membership check
+  const {
+    isGardener: isRootGardener,
+    isLoading: isCheckingRootGarden,
+    joinGarden,
+    isPending: isJoiningRootGarden,
+  } = useAutoJoinRootGarden(false);
+
+  const handleJoinRootGarden = async () => {
+    console.log("[ProfileAccount] Join root garden button clicked", {
+      isRootGardener,
+      isCheckingRootGarden,
+      isJoiningRootGarden,
+      primaryAddress,
+    });
+
+    try {
+      console.log("[ProfileAccount] Calling joinGarden()");
+      await joinGarden();
+
+      console.log("[ProfileAccount] joinGarden() succeeded");
+      toastService.success({
+        title: intl.formatMessage({
+          id: "app.account.joinedRootGarden",
+          defaultMessage: "Joined Community Garden",
+        }),
+        message: intl.formatMessage({
+          id: "app.account.joinedRootGardenMessage",
+          defaultMessage: "Welcome to the community!",
+        }),
+        context: "joinRootGarden",
+      });
+    } catch (err) {
+      console.error("[ProfileAccount] Failed to join root garden", {
+        error: err,
+        errorMessage: (err as any)?.message,
+        errorCode: (err as any)?.code,
+      });
+
+      toastService.error({
+        title: intl.formatMessage({
+          id: "app.account.joinRootGardenFailed",
+          defaultMessage: "Failed to join garden",
+        }),
+        message: intl.formatMessage({
+          id: "app.account.joinRootGardenRetry",
+          defaultMessage: "Please try again.",
+        }),
+        context: "joinRootGarden",
+        error: err,
+      });
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -96,7 +157,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
       Icon: <RiEarthFill className="w-4" />,
       Option: () => (
         <Select onValueChange={(val) => switchLanguage(val as Locale)}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[220px]">
             <SelectValue
               className="capitalize"
               placeholder={capitalize(intl.formatDisplayName(locale, { type: "language" }) || "")}
@@ -116,7 +177,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
 
   return (
     <>
-      <h5>
+      <h5 className="text-label-md text-slate-900">
         {intl.formatMessage({
           id: "app.profile.settings",
           description: "Settings",
@@ -141,12 +202,52 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
         </Card>
       ))}
 
-      <h5>
+      <h5 className="text-label-md text-slate-900">
         {intl.formatMessage({
           id: "app.profile.account",
           description: "Account",
         })}
       </h5>
+
+      {/* Root Garden Membership Button */}
+      {!isCheckingRootGarden && primaryAddress && (
+        <>
+          {!isRootGardener ? (
+            <Button
+              variant="primary"
+              mode="filled"
+              onClick={handleJoinRootGarden}
+              label={
+                isJoiningRootGarden
+                  ? intl.formatMessage({
+                      id: "app.profile.joiningRootGarden",
+                      defaultMessage: "Joining...",
+                    })
+                  : intl.formatMessage({
+                      id: "app.profile.joinRootGarden",
+                      defaultMessage: "Join Community Garden",
+                    })
+              }
+              leadingIcon={<RiPlantLine className="w-4" />}
+              disabled={isJoiningRootGarden}
+              className="w-full"
+            />
+          ) : (
+            <Button
+              variant="neutral"
+              mode="stroke"
+              onClick={() => {}}
+              label={intl.formatMessage({
+                id: "app.profile.leaveRootGarden",
+                defaultMessage: "Leave Community Garden",
+              })}
+              leadingIcon={<RiLogoutCircleLine className="w-4" />}
+              disabled={true}
+              className="w-full"
+            />
+          )}
+        </>
+      )}
 
       {/* Auth Mode Info */}
       <Card>
@@ -263,6 +364,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
           description: "Logout",
         })}
         leadingIcon={<RiLogoutBoxRLine className="w-4" />}
+        className="w-full"
       />
     </>
   );

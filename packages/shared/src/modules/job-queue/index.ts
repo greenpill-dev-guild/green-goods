@@ -223,9 +223,24 @@ class JobQueue {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
+      console.log("[JobQueue] Job failed, marking as failed:", {
+        jobId,
+        jobKind: job.kind,
+        error: errorMessage,
+        currentAttempts: job.attempts,
+      });
+
       await jobQueueDB.markJobFailed(jobId, errorMessage);
       const updated = (await jobQueueDB.getJob(jobId)) ?? job;
 
+      console.log("[JobQueue] Job after markJobFailed:", {
+        jobId: updated.id,
+        synced: updated.synced,
+        attempts: updated.attempts,
+        lastError: updated.lastError,
+      });
+
+      console.log("[JobQueue] Emitting job:failed event for:", jobId);
       jobQueueEventBus.emit("job:failed", { jobId, job: updated, error: errorMessage });
 
       track("offline_job_failed", {

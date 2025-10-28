@@ -107,7 +107,7 @@ export function Recovery() {
             <button
               onClick={handleBack}
               disabled={isRecovering}
-              className="w-full text-sm text-gray-600 underline transition-colors hover:text-green-600 disabled:cursor-not-allowed disabled:text-gray-400"
+              className="w-full text-sm text-gray-600 underline transition-colors tap-feedback disabled:cursor-not-allowed disabled:text-gray-400"
             >
               Back to Login
             </button>

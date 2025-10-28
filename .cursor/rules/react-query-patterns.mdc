@@ -1,0 +1,326 @@
+# React Query State Management Patterns
+
+This rule ensures consistent React Query state updates across all user actions in Green Goods.
+
+## Core Principle
+
+**MANDATORY:** All user actions that modify blockchain state MUST invalidate relevant React Query caches to ensure UI reflects the latest data.
+
+## Centralized Query Keys
+
+All query keys are defined in `/packages/shared/src/hooks/query-keys.ts`:
+
+```typescript
+import { queryKeys, queryInvalidation } from "@green-goods/shared/hooks/query-keys";
+```
+
+### Available Query Key Namespaces
+
+```typescript
+queryKeys.gardens.byChain(chainId)           // All gardens for a chain
+queryKeys.gardens.detail(gardenId, chainId)  // Specific garden details
+queryKeys.actions.byChain(chainId)           // All actions for a chain
+queryKeys.gardeners.all                      // All gardener profiles
+queryKeys.works.online(gardenId, chainId)    // Online works for a garden
+queryKeys.works.offline(gardenId)            // Offline works for a garden
+queryKeys.works.merged(gardenId, chainId)    // Merged online + offline works
+queryKeys.works.approvals(userAddress, chainId) // Work approvals
+queryKeys.queue.stats()                      // Job queue statistics
+queryKeys.queue.pendingCount()               // Pending job count
+```
+
+## Query Invalidation Utilities
+
+Use the pre-built invalidation utilities for common scenarios:
+
+```typescript
+// After joining/leaving a garden
+const keys = queryInvalidation.invalidateGardens(chainId);
+await Promise.all(
+  keys.map((key) => queryClient.invalidateQueries({ queryKey: key }))
+);
+
+// After submitting work
+const keys = queryInvalidation.onJobAdded(gardenId, chainId);
+await Promise.all(
+  keys.map((key) => queryClient.invalidateQueries({ queryKey: key }))
+);
+
+// After work is approved/rejected
+const keys = queryInvalidation.onJobCompleted(gardenId, chainId);
+await Promise.all(
+  keys.map((key) => queryClient.invalidateQueries({ queryKey: key }))
+);
+
+// After sync completes
+const keys = queryInvalidation.onSyncCompleted();
+await Promise.all(
+  keys.map((key) => queryClient.invalidateQueries({ queryKey: key }))
+);
+```
+
+## Pattern: User Action with State Update
+
+### ✅ Correct Pattern
+
+```typescript
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys, queryInvalidation } from "@green-goods/shared/hooks/query-keys";
+import { toastService } from "@green-goods/shared";
+
+const handleUserAction = async () => {
+  const queryClient = useQueryClient();
+  
+  try {
+    // 1. Execute the blockchain transaction
+    await writeContractAsync({
+      address: gardenAddress,
+      abi: GardenAccountABI,
+      functionName: "joinGarden",
+      args: [],
+    });
+    
+    // 2. Invalidate relevant queries using centralized utilities
+    const keysToInvalidate = queryInvalidation.invalidateGardens(chainId);
+    await Promise.all(
+      keysToInvalidate.map((key) =>
+        queryClient.invalidateQueries({ queryKey: key })
+      )
+    );
+    
+    // 3. Show success feedback
+    toastService.success({
+      title: "Success!",
+      message: "Garden joined successfully",
+    });
+  } catch (error) {
+    // 4. Handle errors gracefully
+    console.error("Failed to join garden", error);
+    toastService.error({
+      title: "Failed",
+      message: "Could not join garden",
+      error,
+    });
+  }
+};
+```
+
+### ❌ Wrong Pattern
+
+```typescript
+// DON'T: Hardcoded query keys
+await queryClient.invalidateQueries({ queryKey: ["gardens"] });
+
+// DON'T: Forgetting to invalidate
+await writeContractAsync({ ... });
+// Missing invalidation!
+
+// DON'T: Only invalidating one related query
+await queryClient.invalidateQueries({ queryKey: ["gardens", chainId] });
+// Should also invalidate garden details, works, etc.
+```
+
+## Action-to-Invalidation Mapping
+
+### Garden Actions
+
+| Action | Invalidate |
+|--------|------------|
+| Join Garden | `queryInvalidation.invalidateGardens(chainId)` |
+| Leave Garden | `queryInvalidation.invalidateGardens(chainId)` |
+| Create Garden | `queryInvalidation.invalidateGardens(chainId)` |
+| Update Garden Metadata | `queryInvalidation.invalidateGarden(gardenId, chainId)` |
+
+### Work Actions
+
+| Action | Invalidate |
+|--------|------------|
+| Submit Work | `queryInvalidation.onJobAdded(gardenId, chainId)` |
+| Approve Work | `queryInvalidation.onJobCompleted(gardenId, chainId)` |
+| Reject Work | `queryInvalidation.onJobCompleted(gardenId, chainId)` |
+
+### Offline Actions
+
+| Action | Invalidate |
+|--------|------------|
+| Queue Job | `queryKeys.queue.stats()`, `queryKeys.queue.pendingCount()` |
+| Sync Complete | `queryInvalidation.onSyncCompleted()` |
+| Job Failed | `queryKeys.queue.stats()`, `queryKeys.works.offline(gardenId)` |
+
+## Event-Driven Updates
+
+For real-time updates, listen to job queue events:
+
+```typescript
+import { useJobQueueEvents } from "@green-goods/shared/modules/job-queue/event-bus";
+import { useQueryClient } from "@tanstack/react-query";
+
+const queryClient = useQueryClient();
+
+// Listen to job queue events and invalidate queries
+useJobQueueEvents(["job:completed"], (eventType, data) => {
+  if ("job" in data && data.job.kind === "work") {
+    const gardenId = (data.job.payload as WorkJobPayload).gardenAddress;
+    const keys = queryInvalidation.onJobCompleted(gardenId, chainId);
+    keys.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
+  }
+});
+```
+
+## Optimistic Updates (Advanced)
+
+For immediate UI feedback before blockchain confirmation:
+
+```typescript
+const handleJoinGarden = async () => {
+  const queryClient = useQueryClient();
+  const previousGardens = queryClient.getQueryData(queryKeys.gardens.byChain(chainId));
+  
+  // Optimistically update UI
+  queryClient.setQueryData(queryKeys.gardens.byChain(chainId), (old) => {
+    return old?.map((garden) =>
+      garden.id === gardenId
+        ? { ...garden, gardeners: [...garden.gardeners, userAddress] }
+        : garden
+    );
+  });
+  
+  try {
+    await writeContractAsync({ ... });
+    
+    // Confirm with server data
+    const keys = queryInvalidation.invalidateGardens(chainId);
+    await Promise.all(
+      keys.map((key) => queryClient.invalidateQueries({ queryKey: key }))
+    );
+  } catch (error) {
+    // Rollback on error
+    queryClient.setQueryData(queryKeys.gardens.byChain(chainId), previousGardens);
+    toastService.error({ ... });
+  }
+};
+```
+
+## Testing Invalidation
+
+When testing user actions, verify query invalidation:
+
+```typescript
+it("invalidates garden queries after joining", async () => {
+  const { result } = renderHook(() => useJoinGarden(), {
+    wrapper: createQueryWrapper(),
+  });
+  
+  const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+  
+  await act(async () => {
+    await result.current.joinGarden(gardenId);
+  });
+  
+  expect(invalidateSpy).toHaveBeenCalledWith({
+    queryKey: queryKeys.gardens.byChain(chainId),
+  });
+  expect(invalidateSpy).toHaveBeenCalledWith({
+    queryKey: queryKeys.gardens.all,
+  });
+});
+```
+
+## Checklist for New User Actions
+
+When implementing a new user action:
+
+- [ ] Import `queryClient` from `useQueryClient()`
+- [ ] Import `queryKeys` and `queryInvalidation` from shared hooks
+- [ ] Execute blockchain transaction or API call
+- [ ] Use appropriate `queryInvalidation.*` utility for the action type
+- [ ] Invalidate all related queries (not just one)
+- [ ] Show success/error toast notifications
+- [ ] Add event-driven updates if using job queue
+- [ ] Test that queries are invalidated correctly
+
+## Common Pitfalls
+
+### 1. Forgetting Related Queries
+
+```typescript
+// ❌ Wrong: Only invalidating gardens
+await queryClient.invalidateQueries({ queryKey: queryKeys.gardens.byChain(chainId) });
+
+// ✅ Correct: Invalidate all related queries
+const keys = queryInvalidation.invalidateGardens(chainId);
+await Promise.all(keys.map((key) => queryClient.invalidateQueries({ queryKey: key })));
+```
+
+### 2. Hardcoding Query Keys
+
+```typescript
+// ❌ Wrong: Hardcoded string keys
+await queryClient.invalidateQueries({ queryKey: ["gardens", 84532] });
+
+// ✅ Correct: Use centralized query keys
+await queryClient.invalidateQueries({ queryKey: queryKeys.gardens.byChain(chainId) });
+```
+
+### 3. Not Awaiting Invalidation
+
+```typescript
+// ❌ Wrong: Fire and forget
+queryClient.invalidateQueries({ queryKey: queryKeys.gardens.byChain(chainId) });
+navigate("/home");
+
+// ✅ Correct: Await invalidation before navigation
+await queryClient.invalidateQueries({ queryKey: queryKeys.gardens.byChain(chainId) });
+navigate("/home");
+```
+
+### 4. Invalidating Too Broadly
+
+```typescript
+// ❌ Wrong: Nuclear option (invalidates everything)
+await queryClient.invalidateQueries();
+
+// ✅ Correct: Targeted invalidation
+const keys = queryInvalidation.invalidateGardens(chainId);
+await Promise.all(keys.map((key) => queryClient.invalidateQueries({ queryKey: key })));
+```
+
+## Adding New Query Keys
+
+When adding a new feature that needs caching:
+
+1. Add query keys to `/packages/shared/src/hooks/query-keys.ts`
+2. Add invalidation utility if commonly used together
+3. Update TypeScript types (QueryKey union type)
+4. Document in this rule file
+
+Example:
+
+```typescript
+// In query-keys.ts
+export const queryKeys = {
+  // ... existing keys
+  
+  newFeature: {
+    all: ["newFeature"] as const,
+    byId: (id: string) => ["newFeature", id] as const,
+  },
+} as const;
+
+export const queryInvalidation = {
+  // ... existing utilities
+  
+  invalidateNewFeature: (id: string) => [
+    queryKeys.newFeature.all,
+    queryKeys.newFeature.byId(id),
+  ],
+};
+```
+
+## Reference
+
+- Query Keys: `/packages/shared/src/hooks/query-keys.ts`
+- Base Hooks: `/packages/shared/src/hooks/blockchain/useBaseLists.ts`
+- Work Hooks: `/packages/shared/src/hooks/work/useWorks.ts`
+- Job Queue Events: `/packages/shared/src/modules/job-queue/event-bus.ts`
+- React Query Docs: https://tanstack.com/query/latest/docs/react/overview

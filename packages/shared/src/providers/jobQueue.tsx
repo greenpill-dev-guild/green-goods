@@ -93,8 +93,9 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       switch (event.type) {
         case "job_processing":
           setIsProcessing(true);
-          // Toast: show uploading/submitting depending on kind
-          if (event.job) {
+          // Skip toast if this is inline processing (will be handled by mutation)
+          if (event.job && event.job.attempts !== undefined && event.job.attempts > 0) {
+            // Only show toast for retries (attempts > 0)
             const baseId = `job-${event.job.id}-processing`;
             if (event.job.kind === "work") {
               toastService.loading({
@@ -268,7 +269,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
     const handleOnline = () => {
       // Only auto-flush for passkey users
       if (authMode === "passkey") {
-        void attemptFlush();
+      void attemptFlush();
       }
     };
 

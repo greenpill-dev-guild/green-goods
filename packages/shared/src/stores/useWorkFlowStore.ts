@@ -12,7 +12,9 @@ export type WorkDraftState = {
 
 export type WorkFlowState = WorkDraftState & {
   activeTab: WorkTab;
+  submissionCompleted: boolean;
   setActiveTab: (tab: WorkTab) => void;
+  setSubmissionCompleted: (completed: boolean) => void;
 
   setGardenAddress: (id: string | null) => void;
   setActionUID: (uid: number | null) => void;
@@ -32,15 +34,33 @@ const initial: WorkDraftState = {
   images: [],
 };
 
-export const useWorkFlowStore = create<WorkFlowState>((set) => ({
+export const useWorkFlowStore = create<WorkFlowState>((set, get) => ({
   ...initial,
   activeTab: WorkTab.Intro,
+  submissionCompleted: false,
   setActiveTab: (tab) => set({ activeTab: tab }),
-  setGardenAddress: (id) => set({ gardenAddress: id }),
+  setSubmissionCompleted: (completed) => set({ submissionCompleted: completed }),
+  setGardenAddress: (id) => {
+    const currentState = get();
+    console.log("[useWorkFlowStore] setGardenAddress called:", {
+      oldValue: currentState.gardenAddress,
+      newValue: id,
+      timestamp: new Date().toISOString(),
+      stack: new Error().stack?.split('\n').slice(2, 5).join('\n'), // Show caller
+    });
+    set({ gardenAddress: id });
+  },
   setActionUID: (uid) => set({ actionUID: uid }),
   setFeedback: (text) => set({ feedback: text }),
   setPlantSelection: (vals) => set({ plantSelection: vals }),
   setPlantCount: (n) => set({ plantCount: n }),
   setImages: (files) => set({ images: files }),
-  reset: () => set({ ...initial, activeTab: WorkTab.Intro }),
+  reset: () => {
+    console.log("[useWorkFlowStore] reset() called - clearing all state including gardenAddress", {
+      currentGardenAddress: get().gardenAddress,
+      timestamp: new Date().toISOString(),
+      stack: new Error().stack?.split('\n').slice(2, 5).join('\n'),
+    });
+    set({ ...initial, activeTab: WorkTab.Intro, submissionCompleted: false });
+  },
 }));

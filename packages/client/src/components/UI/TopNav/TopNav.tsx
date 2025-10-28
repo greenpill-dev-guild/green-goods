@@ -65,8 +65,8 @@ const BUTTON_VARIANTS = {
 const NAV_BUTTON_BASE = [
   "relative flex items-center justify-center w-8 h-8 p-1 rounded-lg border",
   "bg-white border-slate-200 text-slate-500",
-  "transition-all duration-200",
-  "hover:shadow-lg hover:scale-105 active:scale-95",
+  "transition-all duration-200 tap-feedback",
+  "active:scale-95",
   "focus:outline-none focus:ring-2",
 ] as const;
 
@@ -155,8 +155,8 @@ export const TopNav: React.FC<TopNavProps> = ({
   );
 
   const backButtonClasses = cn(
-    "p-0 px-2 z-1 transition-all duration-200 tap-target-lg",
-    "focus:outline-none focus:ring-2 hover:shadow-lg hover:scale-105 active:scale-95",
+    "p-0 px-2 z-1 transition-all duration-200 tap-target-lg tap-feedback",
+    "focus:outline-none focus:ring-2 active:scale-95",
     backButtonStyles.focusStyles
   );
 

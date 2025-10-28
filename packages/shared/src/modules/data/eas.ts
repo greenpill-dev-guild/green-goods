@@ -1,6 +1,9 @@
 import { getEASConfig } from "../../config/blockchain";
 import { easGraphQL } from "./graphql";
 import { createEasClient } from "./urql";
+import { resolveIPFSUrl } from "./pinata";
+
+const GATEWAY_BASE_URL = "https://greengoods.mypinata.cloud";
 
 const toNumberFromField = (value: any): number | null => {
   if (value === undefined || value === null) return null;
@@ -97,7 +100,10 @@ const parseDataToWork = (
 
   // Safely extract media with error handling
   const mediaData = data.find((d: any) => d.name === "media");
-  const media: string[] = mediaData?.value?.value || [];
+  const mediaCIDs: string[] = mediaData?.value?.value || [];
+  
+  // Resolve IPFS CIDs to gateway URLs
+  const media = mediaCIDs.map((cid: string) => resolveIPFSUrl(cid, GATEWAY_BASE_URL));
 
   // Safely extract optional fields with null handling
   const feedbackData = data.find((d: any) => d.name === "feedback");
@@ -113,7 +119,7 @@ const parseDataToWork = (
     title: titleData?.value?.value || "Untitled Work",
     feedback: feedbackData?.value?.value || "",
     metadata: metadataData?.value?.value || "",
-    media, // Return hashes only, not blob URLs
+    media, // Now returns proper gateway URLs
     createdAt: attestation.time,
   };
 };

@@ -7,7 +7,7 @@ import { z } from "zod";
 import { DEFAULT_CHAIN_ID } from "../config/blockchain";
 import { jobQueue } from "../modules/job-queue";
 import { submitWorkDirectly } from "../modules/work/wallet-submission";
-import { formatJobError, submitWorkToQueue, validateWorkDraft } from "../modules/work/work-submission";
+import { submitWorkToQueue, validateWorkDraft } from "../modules/work/work-submission";
 // import { abi as WorkResolverABI } from "../utils/abis/WorkResolver.json";
 
 import { useUser } from "../hooks/auth/useUser";
@@ -106,12 +106,37 @@ export const useWork = () => {
 };
 
 export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
-  const { smartAccountClient, authMode } = useUser();
+  const { smartAccountClient, authMode, eoa, smartAccountAddress } = useUser();
   const chainId = DEFAULT_CHAIN_ID;
 
   // Base lists via React Query
   const { data: actionsData = [], isLoading: actionsLoading } = useActions(chainId);
   const { data: gardensData = [], isLoading: gardensLoading } = useGardens(chainId);
+
+  // Get current user address (prioritize smart account for passkey users)
+  const userAddress = (smartAccountAddress || eoa?.address)?.toLowerCase();
+
+  // Filter gardens to only show ones user is a member of
+  const userGardens = React.useMemo(() => {
+    if (!userAddress || !gardensData) return [];
+    
+    return gardensData.filter((garden: Garden) => {
+      // Check if user is in gardeners list (case-insensitive)
+      const isGardener = garden.gardeners?.some(
+        (gardenerAddress: string) => gardenerAddress.toLowerCase() === userAddress
+      );
+      
+      if (DEBUG_ENABLED && isGardener) {
+        debugLog("[WorkProvider] User is gardener in garden", {
+          gardenId: garden.id,
+          gardenName: garden.name,
+          userAddress,
+        });
+      }
+      
+      return isGardener;
+    });
+  }, [gardensData, userAddress]);
 
   // UI state via Zustand
   const actionUID = useWorkFlowStore((s: WorkFlowState) => s.actionUID);
@@ -192,6 +217,17 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
 
   const workMutation = useMutation({
     mutationFn: async ({ draft, images }: { draft: WorkDraft; images: File[] }) => {
+      // DEBUG: Log the gardenAddress from multiple sources
+      const currentStoreState = useWorkFlowStore.getState();
+      console.log("[WorkProvider] mutationFn called - garden sources:", {
+        gardenAddressFromProvider: gardenAddress,
+        gardenAddressFromStore: currentStoreState.gardenAddress,
+        actionUID,
+        authMode,
+        match: gardenAddress === currentStoreState.gardenAddress,
+        timestamp: new Date().toISOString(),
+      });
+      
       if (DEBUG_ENABLED) {
         const draftSummary = {
           hasFeedback: Boolean(draft.feedback),
@@ -285,7 +321,15 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (navigator.onLine && smartAccountClient) {
         try {
+          console.log("[WorkProvider] Attempting inline processing for job:", jobId);
           const result = await jobQueue.processJob(jobId, { smartAccountClient });
+          console.log("[WorkProvider] Inline processing result:", {
+            jobId,
+            success: result.success,
+            skipped: result.skipped,
+            error: result.error,
+            txHash: result.txHash,
+          });
           if (DEBUG_ENABLED) {
             debugLog("[GardenFlow] Inline processing attempt finished", {
               jobId,
@@ -298,6 +342,11 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
             return result.txHash as `0x${string}`;
           }
         } catch (error) {
+          console.log("[WorkProvider] Inline processing threw exception:", {
+            jobId,
+            error,
+            errorMessage: error instanceof Error ? error.message : String(error)
+          });
           if (DEBUG_ENABLED) {
             debugWarn("[GardenFlow] Inline processing threw", { jobId, error });
           }
@@ -316,58 +365,55 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       const isOffline = !navigator.onLine;
-      const message =
-        authMode === "wallet"
-          ? isOffline
-            ? "Saving work offline... You'll need to retry when online."
-            : "Waiting for wallet confirmation..."
-          : isOffline
-            ? "Saving work offline..."
-            : "Submitting your work...";
-      const title =
-        authMode === "wallet"
-          ? isOffline
-            ? "Working offline"
-            : "Confirm in your wallet"
-          : isOffline
-            ? "Working offline"
-            : "Submitting work";
+      
+      if (isOffline) {
+        // Offline: brief save notification
+        toastService.info({
+          id: "work-upload",
+          title: "Saved offline",
+          message: "Work added to upload queue",
+          context: "work upload",
+          duration: 2000,
+          suppressLogging: true,
+        });
+      } else {
+        // Online: loading toast
       toastService.loading({
         id: "work-upload",
-        title,
-        message,
-        context: authMode === "wallet" ? "wallet confirmation" : "work upload",
+          title: "Submitting work",
+          message: "Processing your submission...",
+          context: "work upload",
         suppressLogging: true,
       });
+      }
     },
     onSuccess: (txHash) => {
       const isOfflineHash = typeof txHash === "string" && txHash.startsWith("0xoffline_");
-      const title =
-        authMode === "wallet"
-          ? isOfflineHash
-            ? "Work saved offline"
-            : "Work submitted"
-          : isOfflineHash
-            ? "Work saved offline"
-            : "Work submitted";
-      const message =
-        authMode === "wallet"
-          ? isOfflineHash
-            ? "Open the dashboard to retry when you're back online."
-            : "Transaction confirmed. You're all set!"
-          : isOfflineHash
-            ? "We'll sync this work automatically when you're back online."
-            : "Work submitted successfully.";
+      
+      // Mark submission as complete (triggers checkmark)
+      useWorkFlowStore.getState().setSubmissionCompleted(true);
+      
+      if (isOfflineHash) {
+        // Offline: dismiss info toast after brief delay
+        setTimeout(() => {
+          toastService.dismiss("work-upload");
+        }, 1500);
+      } else {
+        // Online: show success
       toastService.success({
         id: "work-upload",
-        title,
-        message,
-        context: authMode === "wallet" ? "wallet confirmation" : "work upload",
+          title: "Work submitted",
+          message: "Your work is now on-chain",
+          context: "work upload",
         suppressLogging: true,
       });
+      }
 
-      // Auto-open work dashboard
-      openWorkDashboard();
+      // Navigate after short delay to show checkmark
+      setTimeout(() => {
+        openWorkDashboard();
+        // Navigation will happen in Garden view via useEffect watching submissionCompleted
+      }, isOfflineHash ? 1000 : 1500);
 
       if (DEBUG_ENABLED) {
         debugLog("[GardenFlow] Work submission completed", {
@@ -388,7 +434,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       const displayMessage = parsed.isKnown
         ? message
         : authMode === "wallet"
-          ? "Transaction failed. Check your wallet and try again."
+            ? "Transaction failed. Check your wallet and try again."
           : "We couldn't submit your work. It'll retry shortly.";
       
       const description = parsed.isKnown
@@ -464,7 +510,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <WorkContext.Provider
       value={{
-        gardens: gardensData,
+        gardens: userGardens,
         actions: actionsData,
         isLoading: actionsLoading || gardensLoading,
         workMutation,

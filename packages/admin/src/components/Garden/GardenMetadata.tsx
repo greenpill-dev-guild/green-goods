@@ -64,7 +64,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
   return (
     <div
       className={cn(
-        "grid gap-3 rounded-lg border border-stroke-soft bg-bg-white p-3 shadow-sm transition-shadow duration-200 hover:shadow-md sm:p-4 md:grid-cols-2 lg:grid-cols-3",
+        "grid gap-3 rounded-lg border border-stroke-soft bg-bg-white p-3 shadow-md transition-shadow duration-200 hover:shadow-md sm:p-4 md:grid-cols-2 lg:grid-cols-3",
         className
       )}
     >

@@ -1,3 +1,4 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
 import { jobToWork, queryKeys, useUser, useWorkApprovals } from "@green-goods/shared/hooks";
 import {
   getWorkApprovals as fetchWorkApprovals,
@@ -21,6 +22,7 @@ import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { type StandardTab, StandardTabs } from "@/components/UI/Tabs";
 import { CompletedTab } from "./Completed";
+import { MyWorkTab } from "./MyWork";
 import { PendingTab } from "./Pending";
 import { TimeFilterControl } from "./TimeFilterControl";
 import { UploadingTab } from "./Uploading";
@@ -41,7 +43,9 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   );
 
   // State management
-  const [activeTab, setActiveTab] = useState<"uploading" | "pending" | "completed">("uploading");
+  const [activeTab, setActiveTab] = useState<"my-work" | "uploading" | "pending" | "completed">(
+    "my-work"
+  );
   const [isClosing, setIsClosing] = useState(false);
   const [pendingFilter, setPendingFilter] = useState<"all" | "needsReview" | "mySubmissions">(
     "all"
@@ -145,11 +149,131 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
 
   const queryClient = useQueryClient();
 
+  // Fetch user's own works (online + offline merged with deduplication)
+  const { data: myWorks = [], isLoading: isLoadingMyWorks } = useQuery({
+    queryKey: ["myWorks", smartAccountAddress, DEFAULT_CHAIN_ID],
+    queryFn: async () => {
+      if (!smartAccountAddress) return [];
+
+      // Get online works by this user
+      const onlineWorks = await getWorksByGardener(smartAccountAddress);
+
+      // Get offline jobs by this user
+      const offlineJobs = await jobQueue.getJobs({ kind: "work", synced: false });
+
+      // Convert offline jobs to Work format
+      const offlineWorks = await Promise.all(
+        offlineJobs.map(async (job) => {
+          const work = jobToWork(job);
+          const images = await jobQueueDB.getImagesForJob(job.id);
+
+          console.log("[MyWork] Loading images for job:", {
+            jobId: job.id,
+            imagesCount: images.length,
+            imageData: images.map((img) => ({
+              id: img.id,
+              hasFile: !!img.file,
+              fileSize: img.file?.size,
+              url: img.url?.substring(0, 60) + "...",
+              urlIsBlob: img.url?.startsWith("blob:"),
+            })),
+          });
+
+          work.media = images.map((img: any) => img.url);
+          work.gardenerAddress = smartAccountAddress;
+
+          console.log("[MyWork] Work object after media assignment:", {
+            workId: work.id,
+            mediaCount: work.media.length,
+            mediaUrls: work.media.map((url) => url?.substring(0, 60) + "..."),
+          });
+
+          return work;
+        })
+      );
+
+      // Deduplicate: remove offline if matching online found by clientWorkId
+      const onlineWorkIds = new Set(
+        onlineWorks
+          .map((w) => {
+            try {
+              const meta = JSON.parse(w.metadata || "{}");
+              return meta.clientWorkId;
+            } catch {
+              return null;
+            }
+          })
+          .filter(Boolean)
+      );
+
+      const dedupedOffline = offlineWorks.filter((work) => {
+        const jobMeta = offlineJobs.find((j) => j.id === work.id)?.meta;
+        const clientWorkId = jobMeta?.clientWorkId;
+        return !clientWorkId || !onlineWorkIds.has(clientWorkId);
+      });
+
+      // Merge and sort by creation time
+      return [...onlineWorks, ...dedupedOffline]
+        .sort((a, b) => b.createdAt - a.createdAt)
+        .slice(0, 20); // Show last 20 items
+    },
+    enabled: !!smartAccountAddress,
+    staleTime: 10_000,
+  });
+
+  // Cleanup offline works when matching online work appears
+  useEffect(() => {
+    if (!myWorks || myWorks.length === 0) return;
+
+    const cleanupOfflineWorks = async () => {
+      // Get all offline jobs
+      const offlineJobs = await jobQueue.getJobs({ kind: "work", synced: false });
+
+      // Get online work client IDs
+      const onlineClientIds = new Set(
+        myWorks
+          .filter((w) => w.id.startsWith("0x") && !w.id.startsWith("0xoffline_"))
+          .map((w) => {
+            try {
+              const meta = JSON.parse(w.metadata || "{}");
+              return meta.clientWorkId;
+            } catch {
+              return null;
+            }
+          })
+          .filter(Boolean)
+      );
+
+      // Delete offline jobs that have matching online work
+      for (const job of offlineJobs) {
+        const clientWorkId = job.meta?.clientWorkId;
+        if (clientWorkId && onlineClientIds.has(clientWorkId)) {
+          console.log("[MyWork] Removing offline job with matching online work:", job.id);
+          await jobQueueDB.deleteJob(job.id);
+        }
+      }
+    };
+
+    void cleanupOfflineWorks();
+  }, [myWorks]);
+
   // Uploading work (from offline work jobs)
   const { data: uploadingWork = [], isLoading: isLoadingUploading } = useQuery({
     queryKey: queryKeys.queue.uploading(),
     queryFn: async () => {
+      console.log("[WorkDashboard] Fetching uploading jobs...");
       const jobs = await jobQueue.getJobs({ kind: "work", synced: false });
+      console.log("[WorkDashboard] Retrieved jobs from queue:", {
+        count: jobs.length,
+        jobs: jobs.map((j) => ({
+          id: j.id,
+          synced: j.synced,
+          attempts: j.attempts,
+          lastError: j.lastError,
+          createdAt: j.createdAt,
+        })),
+      });
+
       const works = await Promise.all(
         jobs.map(async (job: any) => {
           const work = jobToWork(job);
@@ -158,11 +282,27 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
           if (smartAccountAddress) {
             work.gardenerAddress = smartAccountAddress;
           }
+
+          console.log("[WorkDashboard] Converted job to work:", {
+            jobId: job.id,
+            workId: work.id,
+            status: work.status,
+            mediaCount: work.media.length,
+            lastError: job.lastError,
+          });
+
           return work;
         })
       );
+
       // Newest first
-      return works.sort((a, b) => b.createdAt - a.createdAt);
+      const sorted = works.sort((a, b) => b.createdAt - a.createdAt);
+      console.log("[WorkDashboard] Final uploadingWork array:", {
+        count: sorted.length,
+        works: sorted.map((w) => ({ id: w.id, status: w.status, title: w.title })),
+      });
+
+      return sorted;
     },
     staleTime: 5000,
   });
@@ -171,14 +311,29 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   useEffect(() => {
     const unsub = jobQueueEventBus.onMultiple(
       ["job:added", "job:completed", "job:failed", "queue:sync-completed"],
-      () => {
+      (event) => {
+        console.log("[WorkDashboard] Received job queue event:", event);
+        console.log("[WorkDashboard] Invalidating uploading query...");
         queryClient.invalidateQueries({ queryKey: queryKeys.queue.uploading() });
         // Also invalidate stats for badge counts
         queryClient.invalidateQueries({ queryKey: queryKeys.queue.stats() });
+        // Invalidate myWorks to update My Work tab
+        queryClient.invalidateQueries({
+          queryKey: ["myWorks", smartAccountAddress, DEFAULT_CHAIN_ID],
+        });
       }
     );
     return () => unsub();
-  }, [queryClient]);
+  }, [queryClient, smartAccountAddress]);
+
+  // Log when uploadingWork changes
+  useEffect(() => {
+    console.log("[WorkDashboard] uploadingWork state changed:", {
+      count: uploadingWork.length,
+      isLoading: isLoadingUploading,
+      works: uploadingWork.map((w) => ({ id: w.id, title: w.title, status: w.status })),
+    });
+  }, [uploadingWork, isLoadingUploading]);
 
   // Which works have you already reviewed?
   const reviewedByYou = useMemo(
@@ -192,9 +347,11 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     return map;
   }, [operatorWorks]);
 
-  // Pending work needing your review (from gardens you operate)
+  // Pending work needing your review (from gardens you operate, excluding your own submissions)
   const pendingNeedsReview: any[] = (operatorWorks || []).filter(
-    (w: any) => !reviewedByYou.has(w.id)
+    (w: any) =>
+      !reviewedByYou.has(w.id) &&
+      w.gardenerAddress?.toLowerCase() !== smartAccountAddress?.toLowerCase()
   );
 
   // Completed approvals (approved/rejected by you)
@@ -368,6 +525,15 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // Enhanced tabs without counts (will be in content)
   const tabs: StandardTab[] = [
     {
+      id: "my-work",
+      label: intl.formatMessage({
+        id: "app.workDashboard.tabs.myWork",
+        defaultMessage: "My Work",
+      }),
+      icon: <RiCheckLine className="w-4 h-4" />,
+      count: myWorks.length,
+    },
+    {
       id: "uploading",
       label: intl.formatMessage({
         id: "app.workDashboard.tabs.uploading",
@@ -406,6 +572,10 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
 
   const renderTabContent = () => {
     switch (activeTab) {
+      case "my-work":
+        return (
+          <MyWorkTab works={myWorks} isLoading={isLoadingMyWorks} onWorkClick={handleWorkClick} />
+        );
       case "uploading":
         return (
           <UploadingTab
@@ -567,7 +737,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
           tabs={tabs}
           activeTab={activeTab}
           onTabChange={(tabId: string) =>
-            setActiveTab(tabId as "uploading" | "pending" | "completed")
+            setActiveTab(tabId as "my-work" | "uploading" | "pending" | "completed")
           }
           isLoading={isLoading}
         />

@@ -70,4 +70,15 @@ const AvatarFallback = React.forwardRef<
 ));
 AvatarFallback.displayName = AvatarPrimitive.Fallback.displayName;
 
-export { Avatar, AvatarImage, AvatarFallback };
+const AvatarSkeleton = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn("h-full w-full rounded-full bg-slate-200 animate-pulse", className)}
+      {...props}
+    />
+  )
+);
+AvatarSkeleton.displayName = "AvatarSkeleton";
+
+export { Avatar, AvatarImage, AvatarFallback, AvatarSkeleton };

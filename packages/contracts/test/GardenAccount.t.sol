@@ -79,6 +79,20 @@ contract GardenAccountTest is Test, ERC6551Helper {
         assertTrue(gardenAccount.gardenOperators(address(0x200)), "Garden operator should be added");
     }
 
+    function testUpdateCommunityToken() public {
+        // Operator should be able to update community token
+        vm.prank(address(0x200)); // Garden operator
+        gardenAccount.updateCommunityToken(address(mockGardenToken));
+        assertEq(gardenAccount.communityToken(), address(mockGardenToken), "Community token should be updated");
+    }
+
+    function testUpdateCommunityTokenRevertsIfNotOperator() public {
+        // Operator should be able to update community token
+        vm.prank(address(0x200)); // Garden operator
+        gardenAccount.updateCommunityToken(address(mockGardenToken));
+        assertEq(gardenAccount.communityToken(), address(mockGardenToken), "Community token should be updated");
+    }
+
     function testUpdateDescription() public {
         // Operator should be able to update description
         vm.prank(address(0x200)); // Garden operator
@@ -94,6 +108,34 @@ contract GardenAccountTest is Test, ERC6551Helper {
         vm.prank(address(0x200)); // Garden operator
         gardenAccount.updateDescription("Operator Update");
         assertEq(gardenAccount.description(), "Operator Update", "Description should be updated");
+    }
+
+    function testUpdateLocation() public {
+        // Operator should be able to update location
+        vm.prank(address(0x200)); // Garden operator
+        gardenAccount.updateLocation("New Location");
+        assertEq(gardenAccount.location(), "New Location", "Location should be updated");
+    }
+
+    function testUpdateLocationRevertsIfNotOperator() public {
+        // Operator should be able to update location
+        vm.prank(address(0x200)); // Garden operator
+        gardenAccount.updateLocation("Operator Update");
+        assertEq(gardenAccount.location(), "Operator Update", "Location should be updated");
+    }
+
+    function testUpdateBannerImage() public {
+        // Operator should be able to update banner image
+        vm.prank(address(0x200)); // Garden operator
+        gardenAccount.updateBannerImage("New Banner Image");
+        assertEq(gardenAccount.bannerImage(), "New Banner Image", "Banner image should be updated");
+    }
+
+    function testUpdateBannerImageRevertsIfNotOperator() public {
+        // Operator should be able to update banner image
+        vm.prank(address(0x200)); // Garden operator
+        gardenAccount.updateBannerImage("Operator Update");
+        assertEq(gardenAccount.bannerImage(), "Operator Update", "Banner image should be updated");
     }
 
     function testAddGardener() public {

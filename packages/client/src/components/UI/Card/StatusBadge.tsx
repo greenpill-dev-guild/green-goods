@@ -86,7 +86,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-1.5 px-2 py-1 rounded-full border",
+        "inline-flex items-center gap-1.5 px-2 py-1 rounded-full border status-transition",
         config.bgColor,
         config.textColor,
         config.borderColor,

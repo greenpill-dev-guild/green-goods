@@ -6,7 +6,6 @@ import {
   uploadJSONToIPFS as sharedUploadJSONToIPFS,
 } from "@green-goods/shared/modules";
 
-// Admin gateway configuration
 const GATEWAY_BASE_URL = "https://greengoods.mypinata.cloud";
 
 // Initialize Pinata SDK with admin configuration

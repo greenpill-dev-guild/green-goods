@@ -22,6 +22,14 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
   const { isOnline } = useOffline();
   const flush = useQueueFlush();
 
+  console.log("[UploadingTab] Rendering with:", {
+    uploadingWorkCount: uploadingWork.length,
+    isLoading,
+    isOnline,
+    authMode,
+    works: uploadingWork.map((w) => ({ id: w.id, title: w.title, status: w.status })),
+  });
+
   const handleSyncAll = async () => {
     try {
       await flush();
@@ -53,7 +61,7 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
           {uploadingWork.length > 0 &&
             (isOnline ? (
               <button
-                className="text-sm text-primary font-medium px-3 py-1 rounded-lg border border-slate-200 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary active:border-primary active:scale-95"
+                className="text-sm text-primary font-medium px-3 py-1 rounded-lg border border-slate-200 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary active:border-primary active:scale-95 tap-feedback"
                 onClick={handleSyncAll}
               >
                 {authMode === "wallet"
@@ -77,13 +85,13 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 pb-4">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4">
         {isLoading ? (
           <div className="space-y-3">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="p-4 border rounded-xl bg-white animate-pulse">
-                <div className="h-4 w-40 bg-slate-200 rounded mb-2" />
-                <div className="h-3 w-64 bg-slate-200 rounded" />
+              <div key={i} className="p-4 border rounded-xl bg-white">
+                <div className="h-4 w-40 rounded mb-2 skeleton" />
+                <div className="h-3 w-64 rounded skeleton" />
               </div>
             ))}
           </div>
@@ -105,11 +113,13 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
           </div>
         ) : (
           <div className="space-y-3">
-            {uploadingWork.map((work) => (
+            {uploadingWork.map((work, index) => (
               <MinimalWorkCard
                 key={work.id}
                 work={work as unknown as Work}
                 onClick={() => onWorkClick(work)}
+                className="stagger-item"
+                style={{ animationDelay: `${index * 30}ms` } as React.CSSProperties}
                 badges={[
                   <span
                     key="uploading"

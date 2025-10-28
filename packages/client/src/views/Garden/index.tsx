@@ -2,7 +2,7 @@ import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
 import { RiArrowRightSLine, RiHammerFill, RiImage2Fill, RiPlantFill } from "@remixicon/react";
 import React, { useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/UI/Button";
 import { ActionCardSkeleton } from "@/components/UI/Card/ActionCardSkeleton";
 import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
@@ -14,6 +14,7 @@ import { TopNav } from "@/components/UI/TopNav/TopNav";
 // import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
 
 import { useWork, WorkTab } from "@green-goods/shared/providers/work";
+import { useWorkFlowStore } from "@green-goods/shared/stores/useWorkFlowStore";
 import { WorkViewSkeleton } from "@/components/UI/WorkView/WorkView";
 import { WorkDetails } from "./Details";
 import { WorkIntro } from "./Intro";
@@ -23,9 +24,11 @@ import { WorkReview } from "./Review";
 const Work: React.FC = () => {
   const intl = useIntl();
   const navigate = useNavigate();
+  const location = useLocation();
   const chainId = DEFAULT_CHAIN_ID;
   const { form, activeTab, setActiveTab, actions, gardens, isLoading, workMutation } = useWork();
   const canBypassMediaRequirement = import.meta.env.VITE_DEBUG_MODE === "true";
+  const submissionCompleted = useWorkFlowStore((s) => s.submissionCompleted);
 
   if (!form) {
     return null;
@@ -46,6 +49,30 @@ const Work: React.FC = () => {
     plantSelection,
     plantCount,
   } = form;
+
+  // Pre-select garden from navigation state (e.g., from notifications)
+  useEffect(() => {
+    const navigationState = location.state as { gardenId?: string } | null;
+    if (navigationState?.gardenId && gardens.length > 0) {
+      console.log("[Garden] Pre-selecting garden from navigation:", navigationState.gardenId);
+      console.log(
+        "[Garden] Available gardens:",
+        gardens.map((g) => g.id)
+      );
+      console.log("[Garden] Current gardenAddress:", gardenAddress);
+      setGardenAddress(navigationState.gardenId);
+    }
+  }, [location.state, gardens, gardenAddress, setGardenAddress]);
+
+  // Navigate when submission completes
+  useEffect(() => {
+    if (submissionCompleted) {
+      const timer = setTimeout(() => {
+        navigate("/home");
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [submissionCompleted, navigate]);
 
   // mutation state handled via toasts inside uploadWork()
 
@@ -70,7 +97,16 @@ const Work: React.FC = () => {
 
   const selectedGarden = useMemo(() => {
     if (!gardens.length || !gardenAddress) return null;
-    return gardens.find((g) => g.id === gardenAddress) || null;
+    const found = gardens.find((g) => g.id === gardenAddress) || null;
+
+    console.log("[GardenFlow] selectedGarden computed:", {
+      gardenAddress,
+      found: found ? { id: found.id, name: found.name } : null,
+      totalGardens: gardens.length,
+      allGardenIds: gardens.map((g) => g.id),
+    });
+
+    return found;
   }, [gardens, gardenAddress]);
 
   const defaultMediaConfig = useMemo(
@@ -346,10 +382,18 @@ const Work: React.FC = () => {
         // Check for duplicates before submission and proceed based on result
         const proceeded = await handleWorkSubmission();
         if (proceeded) {
+          // Show step 4 as checked
+          setShowCompletionState(true);
+
+          // Brief delay to show completion state
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+
+          // Then navigate
           navigate("/home");
           form.reset();
           setImages([]);
           setActiveTab(WorkTab.Intro);
+          setShowCompletionState(false);
         }
       },
       primaryLabel: intl.formatMessage({
@@ -440,7 +484,7 @@ const Work: React.FC = () => {
     <>
       <TopNav onBackClick={tabActions[activeTab].backButton} overlay>
         <FormProgress
-          currentStep={Object.values(WorkTab).indexOf(activeTab) + 1}
+          currentStep={submissionCompleted ? 5 : Object.values(WorkTab).indexOf(activeTab) + 1}
           steps={Object.values(WorkTab).slice(0, 4)}
         />
       </TopNav>

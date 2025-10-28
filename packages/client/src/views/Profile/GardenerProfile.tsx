@@ -1,17 +1,33 @@
 import { toastService } from "@green-goods/shared";
-import { useGardenerProfile } from "@green-goods/shared/hooks";
+import { useGardenerProfile, useEnsAvatar, useUser } from "@green-goods/shared/hooks";
 import { uploadFileToIPFS } from "@green-goods/shared/modules";
 import { RiImageAddLine, RiLoader4Line, RiSaveLine } from "@remixicon/react";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/UI/Button";
 import { Card } from "@/components/UI/Card/Card";
 import { FormInput } from "@/components/UI/Form/Input";
 import { FormText } from "@/components/UI/Form/Text";
 
+const DEFAULT_AVATAR = "/images/avatar.png";
+const PINATA_GATEWAY = import.meta.env.VITE_PINATA_GATEWAY ?? "https://greengoods.mypinata.cloud";
+
+const resolveImageUrl = (uri: string) => {
+  if (uri.startsWith("ipfs://")) {
+    return `${PINATA_GATEWAY}/ipfs/${uri.replace("ipfs://", "")}`;
+  }
+  if (uri.startsWith("ar://")) {
+    return `https://arweave.net/${uri.replace("ar://", "")}`;
+  }
+  return uri;
+};
+
 export const GardenerProfile: React.FC = () => {
   const intl = useIntl();
   const { profile, updateProfile, isUpdating } = useGardenerProfile();
+  const { smartAccountAddress, eoa } = useUser();
+  const primaryAddress = smartAccountAddress || eoa?.address;
+  const { data: ensAvatar, isLoading: isLoadingAvatar } = useEnsAvatar(primaryAddress);
 
   const [formData, setFormData] = useState({
     name: profile?.name || "",
@@ -24,6 +40,29 @@ export const GardenerProfile: React.FC = () => {
 
   const [uploadingImage, setUploadingImage] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const imageInputId = "gardener-profile-image-upload";
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!profile) return;
+    setFormData({
+      name: profile.name || "",
+      bio: profile.bio || "",
+      location: profile.location || "",
+      imageURI: profile.imageURI || "",
+      socialLinks: profile.socialLinks || [],
+      contactInfo: profile.contactInfo || "",
+    });
+  }, [profile]);
+
+  const profileImagePreview = useMemo(() => {
+    if (formData.imageURI) {
+      return resolveImageUrl(formData.imageURI);
+    }
+    return ensAvatar || DEFAULT_AVATAR;
+  }, [formData.imageURI, ensAvatar]);
+
+  const canAddSocialLink = formData.socialLinks.length < 5;
 
   // Validation
   const validate = (): boolean => {
@@ -147,7 +186,7 @@ export const GardenerProfile: React.FC = () => {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <h5>
+      <h5 className="text-label-md text-slate-900">
         {intl.formatMessage({
           id: "app.profile.gardenerProfile",
           defaultMessage: "Gardener Profile",
@@ -155,7 +194,7 @@ export const GardenerProfile: React.FC = () => {
       </h5>
 
       {/* Basic Info */}
-      <Card>
+      <Card className="flex flex-col gap-4 py-4">
         <div className="flex flex-col gap-3">
           <FormInput
             id="name"
@@ -200,82 +239,130 @@ export const GardenerProfile: React.FC = () => {
       </Card>
 
       {/* Profile Image */}
-      <Card>
+      <Card className="flex flex-col gap-4 py-4">
         <div className="flex flex-col gap-3">
-          <label className="font-semibold text-slate-800">
+          <p className="text-label-sm font-semibold text-slate-800">
             {intl.formatMessage({
               id: "app.profile.image",
               defaultMessage: "Profile Image",
             })}
-          </label>
+          </p>
 
-          {formData.imageURI && (
-            <div className="flex justify-center">
+          {/* Show uploaded image, ENS avatar, or fallback */}
+          <div className="flex justify-center">
+            <div className="relative h-24 w-24">
               <img
-                src={formData.imageURI.replace(
-                  "ipfs://",
-                  "https://greengoods.mypinata.cloud/ipfs/"
-                )}
-                alt="Profile"
-                className="w-24 h-24 rounded-full object-cover"
+                src={profileImagePreview}
+                alt={intl.formatMessage({
+                  id: "app.profile.imagePreviewAlt",
+                  defaultMessage: "Profile preview",
+                })}
+                className="h-24 w-24 rounded-full object-cover shadow-md"
               />
+              {!formData.imageURI && isLoadingAvatar && (
+                <div className="absolute inset-0 rounded-full bg-slate-200/80 animate-pulse backdrop-blur-sm" />
+              )}
             </div>
+          </div>
+
+          {/* Show ENS avatar source if no custom upload */}
+          {!formData.imageURI && ensAvatar && (
+            <p className="text-xs text-center text-slate-500">
+              {intl.formatMessage({
+                id: "app.profile.usingENSAvatar",
+                defaultMessage: "Using ENS avatar",
+              })}
+            </p>
           )}
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <input
               type="file"
               accept="image/*"
               onChange={handleImageUpload}
               className="hidden"
-              id="image-upload"
+              id={imageInputId}
+              ref={fileInputRef}
               disabled={uploadingImage}
             />
-            <label htmlFor="image-upload">
-              <Button
-                type="button"
-                variant="neutral"
-                mode="stroke"
-                size="small"
-                label={
-                  uploadingImage
+            <Button
+              type="button"
+              variant="neutral"
+              mode="stroke"
+              size="small"
+              label={
+                uploadingImage
+                  ? intl.formatMessage({
+                      id: "app.common.uploading",
+                      defaultMessage: "Uploading...",
+                    })
+                  : formData.imageURI
                     ? intl.formatMessage({
-                        id: "app.common.uploading",
-                        defaultMessage: "Uploading...",
+                        id: "app.profile.changeImage",
+                        defaultMessage: "Change Image",
                       })
                     : intl.formatMessage({
                         id: "app.profile.uploadImage",
                         defaultMessage: "Upload Image",
                       })
-                }
-                leadingIcon={
-                  uploadingImage ? <RiLoader4Line className="animate-spin" /> : <RiImageAddLine />
-                }
+              }
+              leadingIcon={
+                uploadingImage ? <RiLoader4Line className="animate-spin" /> : <RiImageAddLine />
+              }
+              disabled={uploadingImage}
+              onClick={() => fileInputRef.current?.click()}
+            />
+            {formData.imageURI && (
+              <Button
+                type="button"
+                variant="error"
+                mode="stroke"
+                size="small"
+                label={intl.formatMessage({
+                  id: "app.profile.removeImage",
+                  defaultMessage: "Remove",
+                })}
+                onClick={() => setFormData((prev) => ({ ...prev, imageURI: "" }))}
                 disabled={uploadingImage}
-                onClick={() => document.getElementById("image-upload")?.click()}
               />
-            </label>
+            )}
           </div>
+
+          {ensAvatar && !formData.imageURI && (
+            <p className="text-xs text-slate-500">
+              {intl.formatMessage({
+                id: "app.profile.ensAvatarHint",
+                defaultMessage:
+                  "💡 Upload a custom image to override your ENS avatar, or leave empty to use your ENS avatar.",
+              })}
+            </p>
+          )}
 
           {errors.imageURI && <p className="text-xs text-red-600">{errors.imageURI}</p>}
         </div>
       </Card>
 
       {/* Social Links */}
-      <Card>
+      <Card className="flex flex-col gap-4 py-4">
         <div className="flex flex-col gap-3">
-          <label className="font-semibold text-slate-800">
+          <p className="text-label-sm font-semibold text-slate-800">
             {intl.formatMessage({
               id: "app.profile.socialLinks",
               defaultMessage: "Social Links",
             })}
-          </label>
+          </p>
 
           {formData.socialLinks.map((link, index) => (
-            <div key={index} className="flex gap-2">
+            <div key={index} className="flex flex-col gap-2 sm:flex-row">
               <FormInput
                 id={`social-link-${index}`}
-                label=""
+                label={intl.formatMessage(
+                  {
+                    id: "app.profile.socialLinks.linkLabel",
+                    defaultMessage: "Social link {index}",
+                  },
+                  { index: index + 1 }
+                )}
                 value={link}
                 onChange={(e) => handleSocialLinkChange(index, e.target.value)}
                 placeholder="https://twitter.com/username"
@@ -286,13 +373,17 @@ export const GardenerProfile: React.FC = () => {
                 variant="error"
                 mode="stroke"
                 size="small"
-                label="Remove"
+                label={intl.formatMessage({
+                  id: "app.profile.socialLinks.remove",
+                  defaultMessage: "Remove",
+                })}
                 onClick={() => removeSocialLink(index)}
+                className="sm:w-auto"
               />
             </div>
           ))}
 
-          {formData.socialLinks.length < 5 && (
+          {canAddSocialLink && (
             <Button
               type="button"
               variant="neutral"
@@ -303,6 +394,7 @@ export const GardenerProfile: React.FC = () => {
                 defaultMessage: "Add Social Link",
               })}
               onClick={addSocialLink}
+              className="self-start"
             />
           )}
 
@@ -311,7 +403,7 @@ export const GardenerProfile: React.FC = () => {
       </Card>
 
       {/* Contact Info */}
-      <Card>
+      <Card className="flex flex-col gap-4 py-4">
         <FormInput
           id="contact"
           label={intl.formatMessage({
@@ -344,6 +436,7 @@ export const GardenerProfile: React.FC = () => {
         }
         leadingIcon={isUpdating ? <RiLoader4Line className="animate-spin" /> : <RiSaveLine />}
         disabled={isUpdating || uploadingImage}
+        className="w-full"
       />
 
       {/* Gas Cost Info */}
