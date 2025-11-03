@@ -14,7 +14,7 @@
     "test:ui": "vitest --ui",
     "format": "biome format --write .",
     "lint": "oxlint src",
-    "build": "tsc -b && vite build",
+    "build": "tsc --noEmit && vite build",
     "preview": "vite preview"
   },
   "overrides": {
