@@ -199,6 +199,24 @@ class JobQueue {
       }
 
       await jobQueueDB.markJobSynced(jobId, txHash);
+      
+      // Store clientWorkId mapping for instant deduplication
+      if (job.kind === "work" && job.meta?.clientWorkId) {
+        try {
+          await jobQueueDB.storeClientWorkIdMapping(
+            job.meta.clientWorkId as string,
+            txHash, // attestation ID
+            jobId
+          );
+          console.log("[JobQueue] Stored clientWorkId mapping:", {
+            clientWorkId: job.meta.clientWorkId,
+            attestationId: txHash,
+          });
+        } catch (error) {
+          console.warn("[JobQueue] Failed to store clientWorkId mapping:", error);
+        }
+      }
+      
       try {
         await jobQueueDB.deleteJob(jobId);
       } catch {}

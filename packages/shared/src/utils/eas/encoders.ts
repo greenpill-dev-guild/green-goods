@@ -10,8 +10,31 @@ export async function encodeWorkData(data: WorkDraft, chainId: number | string) 
   const schemaEncoder = new SchemaEncoder(schema);
 
   const media = await Promise.all(
-    data.media.map(async (file: File) => {
-      return (await uploadFileToIPFS(file)).cid;
+    data.media.map(async (maybeFile: File, index: number) => {
+      // Normalize to proper File object (IndexedDB may strip metadata)
+      const file =
+        maybeFile instanceof File
+          ? maybeFile
+          : new File([maybeFile as Blob], `work-media-${Date.now()}-${index}.jpg`, {
+              type: (maybeFile as Blob).type || "image/jpeg",
+              lastModified: Date.now(),
+            });
+
+      console.log("[encodeWorkData] Uploading file to IPFS:", {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        isFile: file instanceof File,
+      });
+
+      const result = await uploadFileToIPFS(file);
+      
+      console.log("[encodeWorkData] File uploaded:", {
+        fileName: file.name,
+        cid: result.cid,
+      });
+
+      return result.cid;
     })
   );
 

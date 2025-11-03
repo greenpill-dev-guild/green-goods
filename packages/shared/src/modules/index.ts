@@ -18,6 +18,7 @@ export { serviceWorkerManager } from './app/service-worker';
 export type { PasskeySession } from './auth/passkey';
 export {
   PASSKEY_STORAGE_KEY,
+  authenticatePasskey,
   clearStoredCredential,
   recoverPasskeyAccount,
   registerPasskeySession,

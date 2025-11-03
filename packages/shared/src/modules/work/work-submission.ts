@@ -12,7 +12,7 @@ export async function submitWorkToQueue(
   actions: Action[],
   chainId: number,
   images: File[]
-): Promise<{ txHash: `0x${string}`; jobId: string }> {
+): Promise<{ txHash: `0x${string}`; jobId: string; clientWorkId: string }> {
   if (!gardenAddress) {
     throw new Error("Garden address is required");
   }
@@ -28,8 +28,12 @@ export async function submitWorkToQueue(
   });
   const actionTitle = action?.title || "Unknown Action";
 
-  // Generate unique client-side ID for deduplication
-  const clientWorkId = uuidv4();
+  // Use existing clientWorkId if provided, otherwise generate new one
+  const incomingId =
+    draft.metadata && typeof draft.metadata === "object"
+      ? ((draft.metadata as Record<string, unknown>).clientWorkId as string | undefined)
+      : undefined;
+  const clientWorkId = incomingId && incomingId.length > 0 ? incomingId : uuidv4();
 
   // Add to metadata for deduplication
   const enrichedDraft = {
@@ -54,8 +58,8 @@ export async function submitWorkToQueue(
     { chainId, clientWorkId }
   );
 
-  // Return an offline transaction hash for UI compatibility
-  return { txHash: createOfflineTxHash(jobId), jobId };
+  // Return an offline transaction hash for UI compatibility and clientWorkId for deduplication
+  return { txHash: createOfflineTxHash(jobId), jobId, clientWorkId };
 }
 
 /**

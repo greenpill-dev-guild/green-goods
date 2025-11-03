@@ -1,12 +1,12 @@
 import { RiDownloadLine, RiExternalLinkLine } from "@remixicon/react";
 import React from "react";
-import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
 import { useIntl } from "react-intl";
+import { Button } from "@/components/UI/Button";
 import { GardenCard } from "@/components/UI/Card/GardenCard";
+import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/UI/Carousel/Carousel";
 import { FormCard } from "@/components/UI/Form/Card";
 import { FormInfo } from "@/components/UI/Form/Info";
-import { Button } from "@/components/UI/Button";
 import { ImageWithFallback } from "@/components/UI/Image/ImageWithFallback";
 
 export type WorkViewAction = {
@@ -126,7 +126,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
             {visibleActions.map((a) => {
               // Approval actions get special styling
               const isApprovalAction = a.id === "approve" || a.id === "reject";
-              const isApprove = a.id === "approve";
+              const _isApprove = a.id === "approve";
               const isReject = a.id === "reject";
 
               return (

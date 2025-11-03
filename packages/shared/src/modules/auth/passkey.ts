@@ -57,6 +57,37 @@ export function clearStoredCredential() {
 }
 
 /**
+ * Converts a Base64URL-encoded string to a Uint8Array.
+ * Base64URL uses `-` and `_` instead of `+` and `/`, and omits padding.
+ *
+ * @param base64Url - Base64URL-encoded string
+ * @returns Uint8Array of decoded bytes
+ */
+function base64UrlDecode(base64Url: string): Uint8Array {
+  // Replace URL-safe characters with standard Base64 characters
+  let base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+
+  // Calculate and restore padding
+  const padding = base64.length % 4;
+  if (padding === 2) {
+    base64 += "==";
+  } else if (padding === 3) {
+    base64 += "=";
+  }
+
+  // Decode the Base64 string
+  const decodedData = atob(base64);
+
+  // Convert the decoded string to a Uint8Array
+  const uint8Array = new Uint8Array(decodedData.length);
+  for (let i = 0; i < decodedData.length; i++) {
+    uint8Array[i] = decodedData.charCodeAt(i);
+  }
+
+  return uint8Array;
+}
+
+/**
  * Recovers a passkey account using ENS name.
  *
  * @param ensName - The ENS subdomain name (e.g., "alice" for alice.greengoods.eth)
@@ -371,5 +402,97 @@ export async function restorePasskeySession(chainId: number): Promise<PasskeySes
   } catch (error) {
     clearStoredCredential();
     throw error instanceof Error ? error : new Error("Failed to restore saved passkey credential");
+  }
+}
+
+/**
+ * Authenticates with an existing passkey credential.
+ * Prompts user for WebAuthn authentication (biometric/password).
+ *
+ * @param chainId - The chain ID for operations (defaults to env VITE_CHAIN_ID)
+ * @returns PasskeySession with authenticated account
+ *
+ * @remarks
+ * This function:
+ * 1. Loads the stored credential from localStorage
+ * 2. Prompts user to authenticate with their passkey (navigator.credentials.get)
+ * 3. Recreates the session with the authenticated credential
+ *
+ * Use this for returning users who already have a passkey.
+ * This will always prompt for biometric/password authentication.
+ */
+export async function authenticatePasskey(
+  chainId: number = Number(import.meta.env.VITE_CHAIN_ID || 84532)
+): Promise<PasskeySession> {
+  const stored = localStorage.getItem(PASSKEY_STORAGE_KEY);
+  if (!stored) {
+    throw new Error("No passkey found. Please create a new account.");
+  }
+
+  try {
+    const parsed = JSON.parse(stored) as SerializedCredential;
+    const storedCredential = deserializeCredential(parsed);
+
+    // Convert credential ID to BufferSource for WebAuthn
+    // WebAuthn credential IDs are Base64URL-encoded (uses `-` and `_` instead of `+` and `/`)
+    let credentialIdBytes: Uint8Array;
+    try {
+      // Try decoding as Base64URL (standard WebAuthn format)
+      credentialIdBytes = base64UrlDecode(storedCredential.id);
+    } catch {
+      // If Base64URL decoding fails, try hex decoding as fallback
+      // (some older credentials might be stored as hex)
+      try {
+        const hex = storedCredential.id.replace(/^0x/, "");
+        const bytes = hex.match(/.{1,2}/g)?.map((byte) => parseInt(byte, 16)) || [];
+        // Validate hex decoding didn't produce NaN values
+        if (bytes.some((b) => isNaN(b))) {
+          throw new Error("Invalid hex format");
+        }
+        credentialIdBytes = new Uint8Array(bytes);
+      } catch {
+        throw new Error(
+          `Failed to decode credential ID. Expected Base64URL or hex format, got: ${storedCredential.id.substring(0, 20)}...`
+        );
+      }
+    }
+
+    // Prompt user to authenticate with their passkey
+    // This will trigger biometric/password prompt
+    const credentialResponse = await window.navigator.credentials.get({
+      publicKey: {
+        challenge: crypto.getRandomValues(new Uint8Array(32)), // Random challenge for authentication
+        rpId: window.location.hostname,
+        userVerification: "required",
+        allowCredentials: [
+          {
+            id: credentialIdBytes as BufferSource,
+            type: "public-key",
+          },
+        ],
+        timeout: 60000, // 60 second timeout
+      },
+    });
+
+    if (!credentialResponse) {
+      throw new Error("Passkey authentication was cancelled");
+    }
+
+    // Use the stored credential (the WebAuthn response is just for verification)
+    // The actual credential we use is the one from localStorage
+    return await createPasskeySession(chainId, storedCredential);
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.name === "NotAllowedError") {
+        throw new Error("Passkey authentication was cancelled");
+      }
+      if (error.name === "SecurityError" || error.name === "NotSupportedError") {
+        throw new Error("Passkey authentication failed. Please try again.");
+      }
+      if (error.name === "InvalidStateError") {
+        throw new Error("Passkey authentication failed. Please try again.");
+      }
+    }
+    throw error instanceof Error ? error : new Error("Failed to authenticate with passkey");
   }
 }

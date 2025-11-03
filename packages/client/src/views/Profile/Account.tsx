@@ -2,11 +2,11 @@ import { toastService } from "@green-goods/shared";
 import { useAuth, useAutoJoinRootGarden, useEnsName } from "@green-goods/shared/hooks";
 import { type Locale, useApp } from "@green-goods/shared/providers/app";
 import { capitalize } from "@green-goods/shared/utils";
+import { parseAndFormatError } from "@green-goods/shared/utils/errors";
 import {
   RiEarthFill,
   RiKeyLine,
   RiLogoutBoxRLine,
-  RiLogoutCircleLine,
   RiPlantLine,
   RiWalletLine,
 } from "@remixicon/react";
@@ -46,24 +46,14 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
   // Root garden membership check
   const {
     isGardener: isRootGardener,
-    isLoading: isCheckingRootGarden,
+    isLoading: isJoiningOrCheckingRootGarden,
     joinGarden,
-    isPending: isJoiningRootGarden,
-  } = useAutoJoinRootGarden(false);
+  } = useAutoJoinRootGarden();
 
   const handleJoinRootGarden = async () => {
-    console.log("[ProfileAccount] Join root garden button clicked", {
-      isRootGardener,
-      isCheckingRootGarden,
-      isJoiningRootGarden,
-      primaryAddress,
-    });
-
     try {
-      console.log("[ProfileAccount] Calling joinGarden()");
       await joinGarden();
 
-      console.log("[ProfileAccount] joinGarden() succeeded");
       toastService.success({
         title: intl.formatMessage({
           id: "app.account.joinedRootGarden",
@@ -76,21 +66,14 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
         context: "joinRootGarden",
       });
     } catch (err) {
-      console.error("[ProfileAccount] Failed to join root garden", {
-        error: err,
-        errorMessage: (err as any)?.message,
-        errorCode: (err as any)?.code,
-      });
+      console.error("Failed to join root garden", err);
+
+      // Parse the error for user-friendly message
+      const { title, message } = parseAndFormatError(err);
 
       toastService.error({
-        title: intl.formatMessage({
-          id: "app.account.joinRootGardenFailed",
-          defaultMessage: "Failed to join garden",
-        }),
-        message: intl.formatMessage({
-          id: "app.account.joinRootGardenRetry",
-          defaultMessage: "Please try again.",
-        }),
+        title: title,
+        message: message,
         context: "joinRootGarden",
         error: err,
       });
@@ -210,43 +193,31 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
       </h5>
 
       {/* Root Garden Membership Button */}
-      {!isCheckingRootGarden && primaryAddress && (
-        <>
-          {!isRootGardener ? (
-            <Button
-              variant="primary"
-              mode="filled"
-              onClick={handleJoinRootGarden}
-              label={
-                isJoiningRootGarden
-                  ? intl.formatMessage({
-                      id: "app.profile.joiningRootGarden",
-                      defaultMessage: "Joining...",
-                    })
-                  : intl.formatMessage({
-                      id: "app.profile.joinRootGarden",
-                      defaultMessage: "Join Community Garden",
-                    })
-              }
-              leadingIcon={<RiPlantLine className="w-4" />}
-              disabled={isJoiningRootGarden}
-              className="w-full"
-            />
-          ) : (
-            <Button
-              variant="neutral"
-              mode="stroke"
-              onClick={() => {}}
-              label={intl.formatMessage({
-                id: "app.profile.leaveRootGarden",
-                defaultMessage: "Leave Community Garden",
-              })}
-              leadingIcon={<RiLogoutCircleLine className="w-4" />}
-              disabled={true}
-              className="w-full"
-            />
-          )}
-        </>
+      {primaryAddress && (
+        <Button
+          variant="primary"
+          mode="filled"
+          onClick={isRootGardener ? undefined : handleJoinRootGarden}
+          label={
+            isJoiningOrCheckingRootGarden
+              ? intl.formatMessage({
+                  id: "app.profile.joiningRootGarden",
+                  defaultMessage: "Joining...",
+                })
+              : isRootGardener
+                ? intl.formatMessage({
+                    id: "app.profile.leaveRootGarden",
+                    defaultMessage: "Leave Community Garden",
+                  })
+                : intl.formatMessage({
+                    id: "app.profile.joinRootGarden",
+                    defaultMessage: "Join Community Garden",
+                  })
+          }
+          leadingIcon={<RiPlantLine className="w-4" />}
+          disabled={isJoiningOrCheckingRootGarden || isRootGardener}
+          className="w-full"
+        />
       )}
 
       {/* Auth Mode Info */}

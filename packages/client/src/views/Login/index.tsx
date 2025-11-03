@@ -1,15 +1,18 @@
 import { toastService } from "@green-goods/shared";
-import { ONBOARDED_STORAGE_KEY, wagmiConfig } from "@green-goods/shared/config";
+import { wagmiConfig } from "@green-goods/shared/config";
 import { usePasskeyAuth as useAuth, useAutoJoinRootGarden } from "@green-goods/shared/hooks";
+import {
+  authenticatePasskey,
+  PASSKEY_STORAGE_KEY,
+  type PasskeySession,
+} from "@green-goods/shared/modules";
 import { useAppKit } from "@green-goods/shared/providers";
 import { getAccount } from "@wagmi/core";
 import { useEffect, useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAccount } from "wagmi";
 import { type LoadingState, Splash } from "@/components/Layout/Splash";
-
-const buildOnboardedKey = (address?: string | null) =>
-  address ? `${ONBOARDED_STORAGE_KEY}:${address.toLowerCase()}` : ONBOARDED_STORAGE_KEY;
+import { checkMembership } from "@/hooks/garden/useAutoJoinRootGarden";
 
 export function Login() {
   const location = useLocation();
@@ -22,6 +25,7 @@ export function Login() {
     authMode,
     error,
     isAuthenticated,
+    setPasskeySession,
   } = useAuth();
 
   const [loadingState, setLoadingState] = useState<LoadingState | null>(null);
@@ -29,18 +33,15 @@ export function Login() {
   const { open: openAppKit } = useAppKit();
   const {
     joinGarden,
-    isPending: isJoiningGarden,
-    isGardener,
-    checkMembership,
-  } = useAutoJoinRootGarden(false);
+    isLoading: isJoiningGarden,
+    isGardener: _isGardener,
+  } = useAutoJoinRootGarden();
 
   // Use wagmi's useAccount hook to detect wallet connection
   const { address: wagmiAddress, isConnected: wagmiConnected } = useAccount();
 
   // Check if we're on a nested route (like /login/recover)
   const isNestedRoute = location.pathname !== "/login";
-
-  // Onboarding status is tracked in localStorage directly via buildOnboardedKey
 
   // Watch wagmi connection and sync to auth provider
   useEffect(() => {
@@ -62,50 +63,48 @@ export function Login() {
     try {
       setLoadingState("welcome");
 
-      const session = await createPasskey();
-      const onboardingKey = buildOnboardedKey(session.address);
-      const alreadyOnboarded =
-        localStorage.getItem(onboardingKey) === "true" ||
-        localStorage.getItem(ONBOARDED_STORAGE_KEY) === "true";
+      // Check if user has existing passkey credential
+      const hasExistingCredential = !!localStorage.getItem(PASSKEY_STORAGE_KEY);
 
-      let alreadyGardener = isGardener;
-      if (!alreadyOnboarded || !alreadyGardener) {
-        alreadyGardener = await checkMembership(session.address);
+      let session: PasskeySession;
+
+      if (hasExistingCredential) {
+        // Returning user: prompt for passkey authentication
+        setLoadingMessage("Authenticating with your passkey…");
+        session = await authenticatePasskey();
+        // Set the session in the auth provider
+        setPasskeySession(session);
+      } else {
+        // New user: create passkey
+        session = await createPasskey();
       }
 
-      if (alreadyGardener || alreadyOnboarded) {
-        localStorage.setItem(onboardingKey, "true");
-        setLoadingState(null);
-        setLoadingMessage(undefined);
-        return;
-      }
+      // Check membership BEFORE showing any toast
+      const membershipStatus = await checkMembership(session.address);
+      const isAlreadyGardener = membershipStatus.isGardener || membershipStatus.hasBeenOnboarded;
 
-      setLoadingState("joining-garden");
-      setLoadingMessage("Approve the next passkey prompt to join the community garden.");
-      toastService.info({
-        title: "Approve passkey prompt",
-        message: "Confirm the next passkey request to join the community garden.",
-        icon: "🪴",
-        context: "garden join",
-        suppressLogging: true,
-      });
-
-      try {
-        await joinGarden(session);
-        localStorage.setItem(onboardingKey, "true");
-        toastService.success({
-          title: "Welcome to Green Goods",
-          message: "You're now part of the community garden.",
+      // Only show join flow if user is NOT already a gardener
+      if (!isAlreadyGardener) {
+        setLoadingState("joining-garden");
+        setLoadingMessage("Approve the next passkey prompt to join the community garden.");
+        toastService.info({
+          title: "Approve passkey prompt",
+          message: "Confirm the next passkey request to join the community garden.",
           icon: "🪴",
           context: "garden join",
           suppressLogging: true,
         });
-      } catch (joinErr) {
-        const message =
-          joinErr instanceof Error ? joinErr.message : String(joinErr ?? "failed to join");
 
-        // Ignore AlreadyGardener (0x42375a1e) to keep the flow simple
-        if (!message.includes("AlreadyGardener") && !message.includes("0x42375a1e")) {
+        try {
+          await joinGarden(session);
+          toastService.success({
+            title: "Welcome to Green Goods",
+            message: "You're now part of the community garden.",
+            icon: "🪴",
+            context: "garden join",
+            suppressLogging: true,
+          });
+        } catch (joinErr) {
           console.error("Garden join failed", joinErr);
           toastService.info({
             title: "Welcome!",
@@ -114,16 +113,20 @@ export function Login() {
             context: "garden join",
             suppressLogging: true,
           });
-        } else {
+        }
+      } else {
+        // Already a gardener, just mark as onboarded (if not already)
+        if (!membershipStatus.hasBeenOnboarded) {
+          const onboardingKey = `greengoods_onboarded:${session.address.toLowerCase()}`;
           localStorage.setItem(onboardingKey, "true");
         }
       }
     } catch (err) {
       setLoadingState(null);
-      console.error("Passkey creation failed", err);
+      console.error("Passkey authentication failed", err);
       toastService.error({
-        title: "Passkey setup failed",
-        message: "Please try again.",
+        title: "Authentication failed",
+        message: err instanceof Error ? err.message : "Please try again.",
         context: "passkey setup",
         error: err,
       });
@@ -166,14 +169,6 @@ export function Login() {
           ? {
               label: "Login with wallet",
               onSelect: handleWalletLogin,
-            }
-          : undefined
-      }
-      tertiaryAction={
-        !isAuthenticating && !isJoiningGarden
-          ? {
-              label: "Recover account",
-              href: "/login/recover",
             }
           : undefined
       }

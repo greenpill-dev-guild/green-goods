@@ -1,6 +1,6 @@
+import { cn } from "@green-goods/shared/utils";
 import { RiImageLine } from "@remixicon/react";
 import React, { useState } from "react";
-import { cn } from "@green-goods/shared/utils";
 
 export interface ImageWithFallbackProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string;

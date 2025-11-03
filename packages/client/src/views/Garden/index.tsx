@@ -29,6 +29,7 @@ const Work: React.FC = () => {
   const { form, activeTab, setActiveTab, actions, gardens, isLoading, workMutation } = useWork();
   const canBypassMediaRequirement = import.meta.env.VITE_DEBUG_MODE === "true";
   const submissionCompleted = useWorkFlowStore((s) => s.submissionCompleted);
+  const [_showCompletionState, setShowCompletionState] = React.useState(false);
 
   if (!form) {
     return null;

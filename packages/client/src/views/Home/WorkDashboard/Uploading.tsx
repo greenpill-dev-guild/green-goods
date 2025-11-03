@@ -43,7 +43,7 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
       <div className="mb-4 px-4 pt-4 flex items-center justify-between gap-3">
         <div>
           {isLoading ? null : (
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-slate-600 capitalize">
               {uploadingWork.length > 0
                 ? intl.formatMessage(
                     {
@@ -89,9 +89,21 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
         {isLoading ? (
           <div className="space-y-3">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="p-4 border rounded-xl bg-white">
-                <div className="h-4 w-40 rounded mb-2 skeleton" />
-                <div className="h-3 w-64 rounded skeleton" />
+              <div key={i} className="flex gap-3 p-3 border border-slate-200 rounded-lg bg-white">
+                {/* Image skeleton */}
+                <div className="w-16 h-16 bg-slate-100 rounded-lg flex-shrink-0 skeleton" />
+
+                {/* Content skeleton */}
+                <div className="flex-1 min-w-0 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="h-4 w-32 rounded skeleton" />
+                    <div className="h-5 w-16 rounded-full skeleton" />
+                  </div>
+                  <div className="h-3 w-24 rounded skeleton" />
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className="h-5 w-20 rounded-full skeleton" />
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -113,24 +125,33 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
           </div>
         ) : (
           <div className="space-y-3">
-            {uploadingWork.map((work, index) => (
-              <MinimalWorkCard
-                key={work.id}
-                work={work as unknown as Work}
-                onClick={() => onWorkClick(work)}
-                className="stagger-item"
-                style={{ animationDelay: `${index * 30}ms` } as React.CSSProperties}
-                badges={[
-                  <span
-                    key="uploading"
-                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border bg-blue-50 text-blue-600 border-blue-100"
-                  >
-                    <span className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
-                    Uploading
-                  </span>,
-                ]}
-              />
-            ))}
+            {uploadingWork.map((work, index) => {
+              // Only show "Uploading" badge for offline work (not yet synced to EAS)
+              const isOffline = work.id.startsWith("0xoffline_");
+              const badges = isOffline
+                ? [
+                    <span
+                      key="uploading"
+                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border bg-blue-50 text-blue-600 border-blue-100"
+                    >
+                      <span className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
+                      Uploading
+                    </span>,
+                  ]
+                : [];
+
+              return (
+                <MinimalWorkCard
+                  key={work.id}
+                  work={work as unknown as Work}
+                  onClick={() => onWorkClick(work)}
+                  className="stagger-item"
+                  style={{ animationDelay: `${index * 30}ms` } as React.CSSProperties}
+                  variant="dashboard"
+                  badges={badges}
+                />
+              );
+            })}
           </div>
         )}
       </div>

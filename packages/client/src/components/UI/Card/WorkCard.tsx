@@ -52,6 +52,8 @@ export interface MinimalWorkCardProps {
   gardenerName?: string;
   showGardenInfo?: boolean;
   badges?: React.ReactNode[];
+  style?: React.CSSProperties;
+  variant?: "default" | "dashboard"; // dashboard variant hides gardener info
 }
 
 const WorkTypeIcon: React.FC<{ type: string; className?: string }> = ({ type, className }) => {
@@ -316,13 +318,16 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   gardenerName,
   showGardenInfo = false,
   badges,
+  variant = "default",
 }) => {
   const intl = useIntl();
   const { data: gardenerEnsName } = useEnsName(work.gardenerAddress);
   const { data: gardenEnsName } = useEnsName(showGardenInfo ? work.gardenAddress : null, {
     enabled: Boolean(showGardenInfo && work.gardenAddress),
   });
-  const displayStatus = work.status.charAt(0).toUpperCase() + work.status.slice(1);
+  const displayStatus = work.status
+    ? work.status.charAt(0).toUpperCase() + work.status.slice(1)
+    : "Pending";
 
   // DEBUG: Log media data
   console.log("[MinimalWorkCard] Rendering work:", {
@@ -419,8 +424,8 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
         className
       )}
     >
-      {/* Media thumbnail - flush to left edge */}
-      <div className="w-20 h-20 flex-shrink-0 bg-slate-100 overflow-hidden relative">
+      {/* Media thumbnail - flush to edges with 1:1 aspect ratio */}
+      <div className="w-22 flex-shrink-0 bg-slate-100 overflow-hidden relative aspect-square">
         {(() => {
           console.log("[MinimalWorkCard] Rendering thumbnail:", {
             workId: work.id,
@@ -432,8 +437,8 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
             <ImageWithFallback
               src={thumbUrl}
               alt=""
-              className="w-full h-full object-cover aspect-square"
-              fallbackClassName="w-20 h-20"
+              className="w-full h-full object-cover"
+              fallbackClassName="w-22 aspect-square"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-slate-400">
@@ -458,12 +463,24 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
           </span>
         </div>
 
-        {/* Subtitle: gardener and time */}
-        <div className="mt-0.5 text-xs text-slate-600 truncate">
-          {name}
-          <span className="mx-1">•</span>
-          {timeAgo}
-        </div>
+        {/* Subtitle: conditionally show gardener info based on variant */}
+        {variant === "dashboard" ? (
+          <div className="mt-0.5 text-xs text-slate-600 truncate">
+            {timeAgo}
+            {showGardenInfo && gardenEnsName && (
+              <>
+                <span className="mx-1">•</span>
+                {gardenEnsName}
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="mt-0.5 text-xs text-slate-600 truncate">
+            {name}
+            <span className="mx-1">•</span>
+            {timeAgo}
+          </div>
+        )}
 
         {/* Meta / Tags */}
         <div className="mt-2 flex items-center justify-between text-xs">
@@ -483,7 +500,7 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
               <React.Fragment key={i}>{badge}</React.Fragment>
             ))}
           </div>
-          {showGardenInfo && (
+          {showGardenInfo && variant !== "dashboard" && (
             <div className="flex items-center gap-2 text-slate-500">
               <span>
                 {intl.formatMessage({ id: "app.workCard.garden", defaultMessage: "Garden:" })}{" "}

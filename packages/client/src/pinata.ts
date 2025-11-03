@@ -13,7 +13,9 @@ if (!pinataJwt) {
   initializePinata({
     jwt: pinataJwt,
     gatewayBaseUrl,
-    uploadUrl: import.meta.env.VITE_PINATA_UPLOAD_URL,
-    endpointUrl: import.meta.env.VITE_PINATA_ENDPOINT_URL,
+    // uploadUrl: "https://greengoods.mypinata.cloud",
+
+    // uploadUrl: import.meta.env.VITE_PINATA_UPLOAD_URL,
+    // endpointUrl: import.meta.env.VITE_PINATA_ENDPOINT_URL,
   });
 }

@@ -38,12 +38,12 @@ export function getPinataClient(): PinataSDK {
 
 /** Uploads a file to IPFS using the configured Pinata client. */
 export async function uploadFileToIPFS(file: File) {
-  return await getPinataClient().upload.private.file(file);
+  return await getPinataClient().upload.public.file(file);
 }
 
 /** Uploads JSON metadata to IPFS and returns the resulting CID. */
 export async function uploadJSONToIPFS(json: Record<string, unknown>) {
-  return await getPinataClient().upload.private.json(json);
+  return await getPinataClient().upload.public.json(json);
 }
 
 /** Reads a file from the Pinata gateway by its CID or hash. */

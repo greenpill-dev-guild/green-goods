@@ -2,12 +2,20 @@ import { type IDBPDatabase, openDB } from "idb";
 import { mediaResourceManager } from "./media-resource-manager";
 
 const DB_NAME = "green-goods-job-queue";
-const DB_VERSION = 2;
+const DB_VERSION = 3; // Incremented for client_work_id_mappings store
+
+interface ClientWorkIdMapping {
+  clientWorkId: string;
+  attestationId: string; // EAS attestation ID
+  jobId: string; // Original job ID
+  createdAt: number;
+}
 
 interface JobQueueDB {
   jobs: Job;
   job_images: JobQueueDBImage;
   cached_work: CachedWork;
+  client_work_id_mappings: ClientWorkIdMapping;
 }
 
 class JobQueueDatabase {
@@ -41,6 +49,16 @@ class JobQueueDatabase {
           const cachedWorkStore = db.createObjectStore("cached_work", { keyPath: "id" });
           cachedWorkStore.createIndex("gardenAddress", "gardenAddress");
           cachedWorkStore.createIndex("gardenerAddress", "gardenerAddress");
+        }
+
+        // Create client work ID mappings store for fast deduplication
+        if (!db.objectStoreNames.contains("client_work_id_mappings")) {
+          const mappingsStore = db.createObjectStore("client_work_id_mappings", {
+            keyPath: "clientWorkId",
+          });
+          mappingsStore.createIndex("attestationId", "attestationId");
+          mappingsStore.createIndex("jobId", "jobId");
+          mappingsStore.createIndex("createdAt", "createdAt");
         }
 
         // Migration from old offline-db schema
@@ -212,12 +230,22 @@ class JobQueueDatabase {
       }))
     });
 
-    // Use getOrCreateUrl to prevent memory leaks from duplicate URLs on re-renders
-    const result = images.map((img) => ({
-      id: img.id,
-      file: img.file,
-      url: mediaResourceManager.getOrCreateUrl(img.file, jobId),
-    }));
+    // Normalize files: IndexedDB may strip File metadata, so reconstruct if needed
+    const result = images.map((img) => {
+      const normalizedFile =
+        img.file instanceof File
+          ? img.file
+          : new File([img.file], img.file?.name || `work-${jobId}-${img.id}.jpg`, {
+              type: (img.file as Blob)?.type || "image/jpeg",
+              lastModified: Date.now(),
+            });
+
+      return {
+        id: img.id,
+        file: normalizedFile,
+        url: mediaResourceManager.getOrCreateUrl(normalizedFile, jobId),
+      };
+    });
     
     console.log("[JobQueueDB] getImagesForJob returning:", {
       jobId,
@@ -225,7 +253,9 @@ class JobQueueDatabase {
       urls: result.map(r => ({
         id: r.id,
         url: r.url?.substring(0, 60) + '...',
-        urlIsBlob: r.url?.startsWith('blob:')
+        urlIsBlob: r.url?.startsWith('blob:'),
+        fileName: r.file.name,
+        fileType: r.file.type,
       }))
     });
     
@@ -276,6 +306,66 @@ class JobQueueDatabase {
   }
 
   /**
+   * Store clientWorkId -> attestationId mapping for fast deduplication
+   */
+  async storeClientWorkIdMapping(
+    clientWorkId: string,
+    attestationId: string,
+    jobId: string
+  ): Promise<void> {
+    const db = await this.init();
+    await db.put("client_work_id_mappings", {
+      clientWorkId,
+      attestationId,
+      jobId,
+      createdAt: Date.now(),
+    });
+  }
+
+  /**
+   * Get attestation ID for a clientWorkId (instant lookup, no IPFS fetch)
+   */
+  async getAttestationIdByClientWorkId(clientWorkId: string): Promise<string | null> {
+    const db = await this.init();
+    const mapping = await db.get("client_work_id_mappings", clientWorkId);
+    return mapping?.attestationId || null;
+  }
+
+  /**
+   * Check if a clientWorkId has been uploaded (fast local check)
+   */
+  async isClientWorkIdUploaded(clientWorkId: string): Promise<boolean> {
+    const attestationId = await this.getAttestationIdByClientWorkId(clientWorkId);
+    return attestationId !== null;
+  }
+
+  /**
+   * Get all uploaded clientWorkIds for batch deduplication
+   */
+  async getAllUploadedClientWorkIds(): Promise<Set<string>> {
+    const db = await this.init();
+    const allMappings = await db.getAll("client_work_id_mappings");
+    return new Set(allMappings.map((m) => m.clientWorkId));
+  }
+
+  /**
+   * Cleanup old mappings (older than 30 days)
+   */
+  async cleanupOldMappings(): Promise<void> {
+    const db = await this.init();
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const tx = db.transaction("client_work_id_mappings", "readwrite");
+    const index = tx.objectStore("client_work_id_mappings").index("createdAt");
+    const oldMappings = await index.getAll(IDBKeyRange.upperBound(thirtyDaysAgo));
+
+    for (const mapping of oldMappings) {
+      await tx.objectStore("client_work_id_mappings").delete(mapping.clientWorkId);
+    }
+
+    await tx.done;
+  }
+
+  /**
    * Cleanup all resources when database is no longer needed
    */
   async cleanup(): Promise<void> {
@@ -284,6 +374,9 @@ class JobQueueDatabase {
 
     // Cleanup stale URLs in database
     await this.cleanupStaleUrls();
+    
+    // Cleanup old clientWorkId mappings
+    await this.cleanupOldMappings();
   }
 }
 

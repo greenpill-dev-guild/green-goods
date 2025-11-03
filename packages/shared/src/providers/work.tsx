@@ -262,7 +262,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
               actionTitle,
             });
           }
-          const { txHash: offlineTxHash, jobId: _jobId } = await submitWorkToQueue(
+          const { txHash: offlineTxHash, jobId: _jobId, clientWorkId: _clientWorkId } = await submitWorkToQueue(
             { ...draft } as any,
             gardenAddress!,
             actionUID!,
@@ -299,7 +299,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         });
       }
 
-      const { txHash: offlineTxHash, jobId } = await submitWorkToQueue(
+      const { txHash: offlineTxHash, jobId, clientWorkId } = await submitWorkToQueue(
         {
           ...draft,
         } as any,
@@ -313,6 +313,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       if (DEBUG_ENABLED) {
         debugLog("[GardenFlow] Work queued", {
           jobId,
+          clientWorkId,
           gardenAddress,
           actionUID,
           isOnline: navigator.onLine,
@@ -333,6 +334,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
           if (DEBUG_ENABLED) {
             debugLog("[GardenFlow] Inline processing attempt finished", {
               jobId,
+              clientWorkId,
               success: result.success,
               skipped: result.skipped,
               error: result.error,
@@ -398,15 +400,19 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         setTimeout(() => {
           toastService.dismiss("work-upload");
         }, 1500);
-      } else {
-        // Online: show success
-      toastService.success({
-        id: "work-upload",
+      } else if (authMode === "wallet") {
+        // Wallet mode: show success toast (passkey mode handled by queue events)
+        toastService.success({
+          id: "work-upload",
           title: "Work submitted",
           message: "Your work is now on-chain",
           context: "work upload",
-        suppressLogging: true,
-      });
+          suppressLogging: true,
+        });
+      } else {
+        // Passkey mode with inline processing: dismiss loading toast
+        // Success will be shown by job queue event handler
+        toastService.dismiss("work-upload");
       }
 
       // Navigate after short delay to show checkmark
