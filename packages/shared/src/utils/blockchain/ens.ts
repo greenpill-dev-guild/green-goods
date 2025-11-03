@@ -105,7 +105,9 @@ export async function resolveEnsAddress(
 async function fetchEnsAvatarForChain(address: Address, chainId: number): Promise<string | null> {
   try {
     const client = getClient(chainId);
-    return await client.getEnsAvatar({ name: await client.getEnsName({ address }) ?? undefined });
+    const ensName = await client.getEnsName({ address });
+    if (!ensName) return null;
+    return await client.getEnsAvatar({ name: ensName });
   } catch {
     return null;
   }

@@ -17,7 +17,7 @@ import type { PasskeySession } from "../../modules/auth/passkey";
 import { ONBOARDED_STORAGE_KEY } from "../../config/app";
 import { useGardens } from "../blockchain/useBaseLists";
 import { useQueryClient } from "@tanstack/react-query";
-import { parseAndFormatError, isAlreadyGardenerError } from "../../utils/errors";
+import { isAlreadyGardenerError } from "../../utils/errors";
 import { queryInvalidation } from "../query-keys";
 
 const ROOT_GARDEN_PROMPTED_KEY = "rootGardenPrompted";
@@ -109,7 +109,6 @@ export function useAutoJoinRootGarden(autoJoin = false) {
     data: isGardenerOnchain,
     isLoading: isCheckingOnchain,
     refetch: refetchOnchainStatus,
-    error: onchainCheckError,
   } = useReadContract({
     address: rootGarden?.address,
     abi: GardenAccountABI,

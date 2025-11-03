@@ -35,7 +35,7 @@ declare global {
   interface WorkJobPayload {
     title?: string;
     feedback: string;
-    metadata?: string;
+    metadata?: Record<string, unknown>;
     plantSelection: string[];
     plantCount: number;
     actionUID: number;

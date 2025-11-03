@@ -21,7 +21,15 @@
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"],
-  "exclude": ["node_modules", "dist", "src/__tests__/**", "src/__mocks__/**"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/__tests__/**",
+    "src/__mocks__/**",
+    "**/__tests__/**",
+    "**/*.test.ts",
+    "**/*.test.tsx"
+  ],
   "plugins": [
     {
       "name": "gql.tada/ts-plugin",

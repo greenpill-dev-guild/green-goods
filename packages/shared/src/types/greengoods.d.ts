@@ -179,6 +179,7 @@ declare interface WorkDraft {
 	plantCount: number;
 	feedback: string;
 	media: File[];
+	metadata?: Record<string, unknown>;
 }
 
 declare interface WorkCard {
