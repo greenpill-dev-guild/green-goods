@@ -178,7 +178,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       // Convert offline jobs to Work format
       const offlineWorks = await Promise.all(
         offlineJobs.map(async (job) => {
-          const work = jobToWork(job);
+          const work = jobToWork(job as Job<WorkJobPayload>);
           const images = await jobQueueDB.getImagesForJob(job.id);
 
           console.log("[MyWork] Loading images for job:", {
