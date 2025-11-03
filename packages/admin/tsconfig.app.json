@@ -53,7 +53,7 @@
       "@green-goods/shared/constants": ["../shared/src/constants/index.ts"]
     }
   },
-  "include": ["src/**/*", "src/types/**/*.d.ts", "../shared/src/types/**/*.d.ts"],
+  "include": ["src/**/*", "src/types/**/*.d.ts", "../shared/src/**/*"],
   "exclude": [
     "src/__tests__",
     "src/**/__tests__/**",
@@ -61,6 +61,9 @@
     "src/**/*.test.tsx",
     "src/__mocks__",
     "../shared/src/__tests__/**",
-    "../shared/src/__mocks__/**"
+    "../shared/src/__mocks__/**",
+    "../shared/**/__tests__/**",
+    "../shared/**/*.test.ts",
+    "../shared/**/*.test.tsx"
   ]
 }
