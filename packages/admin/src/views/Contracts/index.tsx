@@ -1,15 +1,16 @@
+import { SUPPORTED_CHAINS } from "@green-goods/shared/config/chains";
+import { useAdminStore } from "@green-goods/shared/stores";
+import { getNetworkContracts } from "@green-goods/shared/utils/contracts";
+import { RiRefreshLine, RiSettings3Line, RiUploadLine } from "@remixicon/react";
 import { useState } from "react";
-import { RiSettings3Line, RiUploadLine, RiRefreshLine } from "@remixicon/react";
-import { useAdminStore } from "@/stores/admin";
-import { getNetworkContracts } from "@/utils/contracts";
-import { SUPPORTED_CHAINS } from "@/config";
 
 export default function Contracts() {
   const { selectedChainId } = useAdminStore();
   const [activeTab, setActiveTab] = useState<"deployed" | "deploy" | "upgrade">("deployed");
 
   const contracts = getNetworkContracts(selectedChainId);
-  const currentChain = SUPPORTED_CHAINS.find((c) => c.id === selectedChainId);
+  const chains = Object.values(SUPPORTED_CHAINS);
+  const currentChain = chains.find((c) => c.id === selectedChainId);
 
   const contractList = [
     { name: "Garden Token", address: contracts.gardenToken, type: "core" },
@@ -24,9 +25,9 @@ export default function Contracts() {
 
   const getStatusColor = (address: string) => {
     if (address === "0x0000000000000000000000000000000000000000") {
-      return "bg-red-100 text-red-800";
+      return "bg-error-lighter text-error-dark";
     }
-    return "bg-green-100 text-green-800";
+    return "bg-success-lighter text-success-dark";
   };
 
   const getStatusText = (address: string) => {
@@ -45,14 +46,14 @@ export default function Contracts() {
   return (
     <div className="p-6">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Contract Management</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-2xl font-bold text-text-strong">Contract Management</h1>
+        <p className="text-text-sub mt-1">
           Deploy and manage smart contracts on {currentChain?.name}
         </p>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 mb-8">
+      <div className="border-b border-stroke-soft mb-8">
         <nav className="-mb-px flex space-x-8">
           {tabs.map((tab) => (
             <button
@@ -61,7 +62,7 @@ export default function Contracts() {
               className={`flex items-center py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === tab.id
                   ? "border-green-500 text-green-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  : "border-transparent text-text-soft hover:text-text-sub hover:border-stroke-sub"
               }`}
             >
               <tab.icon className="mr-2 h-4 w-4" />
@@ -73,41 +74,41 @@ export default function Contracts() {
 
       {/* Tab Content */}
       {activeTab === "deployed" && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900">Deployed Contracts</h2>
-            <p className="text-sm text-gray-600 mt-1">
+        <div className="bg-bg-white rounded-lg shadow-sm border border-stroke-soft">
+          <div className="p-6 border-b border-stroke-soft">
+            <h2 className="text-lg font-medium text-text-strong">Deployed Contracts</h2>
+            <p className="text-sm text-text-sub mt-1">
               Current contract deployments on {currentChain?.name}
             </p>
           </div>
           <div className="overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-stroke-soft">
+              <thead className="bg-bg-weak">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-text-soft uppercase tracking-wider">
                     Contract
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-text-soft uppercase tracking-wider">
                     Type
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-text-soft uppercase tracking-wider">
                     Address
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-text-soft uppercase tracking-wider">
                     Status
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-bg-white divide-y divide-stroke-soft">
                 {contractList.map((contract) => (
                   <tr key={contract.name}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-text-strong">
                       {contract.name}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-text-soft capitalize">
                       {contract.type}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-text-strong">
                       {contract.address}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -126,18 +127,18 @@ export default function Contracts() {
       )}
 
       {activeTab === "deploy" && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900">Deploy New Contract</h2>
-            <p className="text-sm text-gray-600 mt-1">
+        <div className="bg-bg-white rounded-lg shadow-sm border border-stroke-soft">
+          <div className="p-6 border-b border-stroke-soft">
+            <h2 className="text-lg font-medium text-text-strong">Deploy New Contract</h2>
+            <p className="text-sm text-text-sub mt-1">
               Deploy new contracts to {currentChain?.name}
             </p>
           </div>
           <div className="p-6">
             <div className="text-center py-12">
-              <RiUploadLine className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">Contract Deployment</h3>
-              <p className="mt-1 text-sm text-gray-500">
+              <RiUploadLine className="mx-auto h-12 w-12 text-text-soft" />
+              <h3 className="mt-2 text-sm font-medium text-text-strong">Contract Deployment</h3>
+              <p className="mt-1 text-sm text-text-soft">
                 Contract deployment functionality coming soon.
               </p>
             </div>
@@ -146,18 +147,18 @@ export default function Contracts() {
       )}
 
       {activeTab === "upgrade" && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900">Upgrade Contracts</h2>
-            <p className="text-sm text-gray-600 mt-1">
+        <div className="bg-bg-white rounded-lg shadow-sm border border-stroke-soft">
+          <div className="p-6 border-b border-stroke-soft">
+            <h2 className="text-lg font-medium text-text-strong">Upgrade Contracts</h2>
+            <p className="text-sm text-text-sub mt-1">
               Upgrade existing contracts on {currentChain?.name}
             </p>
           </div>
           <div className="p-6">
             <div className="text-center py-12">
-              <RiRefreshLine className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">Contract Upgrades</h3>
-              <p className="mt-1 text-sm text-gray-500">
+              <RiRefreshLine className="mx-auto h-12 w-12 text-text-soft" />
+              <h3 className="mt-2 text-sm font-medium text-text-strong">Contract Upgrades</h3>
+              <p className="mt-1 text-sm text-text-soft">
                 Contract upgrade functionality coming soon.
               </p>
             </div>

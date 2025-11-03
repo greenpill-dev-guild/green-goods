@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useAuth } from "@/hooks/auth/useAuth";
+import { useAuth } from "@green-goods/shared/hooks";
 
 export default function RequireAuth() {
   const { isReady, isAuthenticated } = useAuth();

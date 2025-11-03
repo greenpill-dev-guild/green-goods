@@ -2,180 +2,205 @@
  * Auto-Join Root Garden Hook
  *
  * Manages joining the root community garden on first login.
- * Supports automatic joining for passkey users and manual prompt for wallet users.
+ * Uses onchain contract read as source of truth for membership.
  *
  * @module hooks/garden/useAutoJoinRootGarden
  */
 
-import { useEffect, useState } from "react";
-import { useUser } from "../auth/useUser";
-import { getNetworkConfig } from "@/config/blockchain";
-import { useWriteContract, useReadContract } from "wagmi";
+import { DEFAULT_CHAIN_ID, getDefaultChain, wagmiConfig } from "@green-goods/shared/config";
+import { queryInvalidation, useUser } from "@green-goods/shared/hooks";
+import type { PasskeySession } from "@green-goods/shared/modules";
+import { GardenAccountABI, isAlreadyGardenerError } from "@green-goods/shared/utils";
+import { useQueryClient } from "@tanstack/react-query";
+import { readContract } from "@wagmi/core";
+import { useCallback, useMemo } from "react";
 import { encodeFunctionData } from "viem";
-import GardenAccountABI from "@/utils/blockchain/abis/GardenAccount.json";
-import type { PasskeySession } from "@/modules/auth/passkey";
+import { useReadContract, useWriteContract } from "wagmi";
 
-const ONBOARDED_STORAGE_KEY = "greengoods_user_onboarded";
-const ROOT_GARDEN_PROMPTED_KEY = "rootGardenPrompted";
+// Single storage key for tracking if user has been onboarded (per-address)
+const getOnboardedKey = (address: string) => `greengoods_onboarded:${address.toLowerCase()}`;
 
 /**
- * Join state for the root garden
+ * Checks if a user is already a gardener in the root garden.
+ * Uses wagmi's readContract to share the same config and RPC transports.
+ *
+ * @param address - The user's address to check
+ * @returns Object with isGardener (on-chain status) and hasBeenOnboarded (localStorage flag)
  */
-interface JoinState {
+export async function checkMembership(address: string): Promise<{
   isGardener: boolean;
-  isLoading: boolean;
-  hasPrompted: boolean;
-  showPrompt: boolean;
+  hasBeenOnboarded: boolean;
+}> {
+  const onboardingKey = getOnboardedKey(address);
+  const hasBeenOnboarded = localStorage.getItem(onboardingKey) === "true";
+
+  // Get network config and root garden address
+  const networkConfig = getDefaultChain();
+  const rootGarden = networkConfig.rootGarden;
+
+  if (!rootGarden?.address) {
+    // No root garden configured, can't check membership
+    return {
+      isGardener: false,
+      hasBeenOnboarded,
+    };
+  }
+
+  try {
+    // Use wagmi's readContract - shares the same config as useReadContract hook
+    const isGardener = await readContract(wagmiConfig, {
+      address: rootGarden.address,
+      abi: GardenAccountABI,
+      functionName: "gardeners",
+      args: [address as `0x${string}`],
+    });
+
+    // Update localStorage if on-chain status shows they're a gardener
+    if (isGardener && !hasBeenOnboarded) {
+      localStorage.setItem(onboardingKey, "true");
+    }
+
+    return {
+      isGardener: Boolean(isGardener),
+      hasBeenOnboarded: Boolean(isGardener) || hasBeenOnboarded,
+    };
+  } catch (error) {
+    // Offline or RPC error: fall back to localStorage
+    // This allows the app to work offline while still being conservative
+    console.warn("Failed to check on-chain membership, using localStorage fallback:", error);
+    return {
+      isGardener: hasBeenOnboarded, // Conservative: assume localStorage is correct
+      hasBeenOnboarded,
+    };
+  }
 }
 
 /**
  * Hook for managing root garden membership.
  *
  * Features:
- * - Checks if user is already a member
- * - Auto-joins on first login for passkey users (when autoJoin=true)
- * - Shows manual prompt for wallet users (when autoJoin=false)
- * - Uses direct joinGarden() function (no invite codes)
- * - Stores join status in localStorage to prevent duplicate prompts
+ * - Checks membership via onchain contract read (source of truth)
+ * - Provides joinGarden function for both passkey (sponsored) and wallet (user pays) flows
+ * - Stores onboarded flag in localStorage per address
  *
- * Storage Keys:
- * - greengoods_user_onboarded: Set to "true" after successful first-time onboarding
- * - rootGardenPrompted: Set to "true" when wallet user has been prompted or dismissed
- *
- * @param autoJoin - If true, automatically joins without user prompt (passkey flow)
- * @returns Join state and functions for manual join/dismiss
+ * @returns Membership status, loading state, and join function
  */
-export function useAutoJoinRootGarden(autoJoin = false) {
+export function useAutoJoinRootGarden() {
   const { smartAccountAddress, smartAccountClient, ready } = useUser();
-  const networkConfig = getNetworkConfig();
+  const networkConfig = getDefaultChain();
   const rootGarden = networkConfig.rootGarden;
+  const chainId = Number(networkConfig.chainId ?? DEFAULT_CHAIN_ID);
+  const queryClient = useQueryClient();
 
-  const [state, setState] = useState<JoinState>({
-    isGardener: false,
-    isLoading: true,
-    hasPrompted: false,
-    showPrompt: false,
-  });
-
-  // Check if user is already a gardener
-  const { data: isGardener, isLoading: checkingMembership } = useReadContract({
+  // Single source of truth: onchain contract read
+  const {
+    data: isGardener = false,
+    isLoading,
+    refetch: refetchMembership,
+  } = useReadContract({
     address: rootGarden?.address,
     abi: GardenAccountABI,
     functionName: "gardeners",
-    args: [smartAccountAddress],
+    args: smartAccountAddress ? [smartAccountAddress] : undefined,
     query: {
-      enabled: !!smartAccountAddress && !!rootGarden,
-      refetchInterval: false,
+      enabled: !!rootGarden?.address && !!smartAccountAddress && ready,
+      staleTime: 5000, // 5 seconds - refetch frequently for membership changes
     },
   });
 
   const { writeContractAsync, isPending } = useWriteContract();
 
-  // Auto-join effect (when autoJoin=true, joins automatically on first login)
-  // Note: This is primarily called manually from Login component for controlled flow
-  useEffect(() => {
-    if (!autoJoin) return;
-    if (!ready || !smartAccountAddress || !rootGarden) return;
-    if (checkingMembership || isGardener) return;
-
-    const isOnboarded = localStorage.getItem(ONBOARDED_STORAGE_KEY) === "true";
-    if (isOnboarded) {
-      console.log("User already onboarded, skipping auto-join");
-      return;
-    }
-
-    // This auto-join is mainly a fallback - primary flow is in Login component
-    console.log("Auto-joining root garden (fallback)");
-    joinGarden().catch((err) => {
-      console.error("Auto-join failed", err);
-    });
-  }, [autoJoin, ready, smartAccountAddress, rootGarden, isGardener, checkingMembership]);
+  // Check if user has been onboarded (ever joined root garden)
+  const hasBeenOnboarded = useMemo(() => {
+    if (!smartAccountAddress) return false;
+    return localStorage.getItem(getOnboardedKey(smartAccountAddress)) === "true";
+  }, [smartAccountAddress]);
 
   /**
-   * Join the root garden using direct joinGarden() function (no invite codes).
+   * Join the root garden.
    *
-   * Supports both passkey (smart account) and wallet (wagmi) authentication.
-   * For passkey users: Transaction is sponsored via Pimlico paymaster.
-   * For wallet users: User pays gas fees directly.
+   * For passkey users: Transaction is sponsored via Pimlico paymaster
+   * For wallet users: User pays gas fees directly
    *
-   * @throws {Error} If join transaction fails
+   * @param sessionOverride - Optional passkey session for onboarding flow
+   * @throws {Error} If join transaction fails (unless AlreadyGardener)
    */
-  const joinGarden = async (sessionOverride?: PasskeySession) => {
-    const targetAddress = sessionOverride?.address ?? smartAccountAddress;
-    const clientOverride = sessionOverride?.client;
+  const joinGarden = useCallback(
+    async (sessionOverride?: PasskeySession) => {
+      const targetAddress = sessionOverride?.address ?? smartAccountAddress;
+      const client = sessionOverride?.client ?? smartAccountClient;
 
-    if (!rootGarden || !targetAddress) {
-      console.warn("Cannot join: missing root garden or address");
-      return;
-    }
+      if (!rootGarden?.address || !targetAddress) {
+        throw new Error("Missing root garden address or user address");
+      }
 
-    try {
-      console.log("Joining root garden", {
-        address: rootGarden.address,
-        mode: clientOverride || smartAccountClient ? "passkey" : "wallet",
-      });
+      try {
+        let txHash: string;
 
-      const client = clientOverride ?? smartAccountClient;
-
-      if (client?.account) {
-        // Use smart account for passkey authentication (sponsored transaction)
-        await client.sendTransaction({
-          account: client.account,
-          chain: client.chain,
-          to: rootGarden.address,
-          value: 0n,
-          data: encodeFunctionData({
+        if (client?.account) {
+          // Passkey flow: sponsored transaction
+          txHash = await client.sendTransaction({
+            account: client.account,
+            chain: client.chain,
+            to: rootGarden.address,
+            value: 0n,
+            data: encodeFunctionData({
+              abi: GardenAccountABI,
+              functionName: "joinGarden",
+              args: [],
+            }),
+          });
+        } else {
+          // Wallet flow: user pays gas
+          txHash = await writeContractAsync({
+            address: rootGarden.address,
             abi: GardenAccountABI,
             functionName: "joinGarden",
             args: [],
-          }),
-        });
+          });
+        }
 
-        console.log("Successfully joined root garden with passkey (sponsored)");
-      } else {
-        // Use wagmi for wallet authentication (user pays gas)
-        await writeContractAsync({
-          address: rootGarden.address,
-          abi: GardenAccountABI,
-          functionName: "joinGarden",
-          args: [],
-        });
+        // Mark as onboarded
+        localStorage.setItem(getOnboardedKey(targetAddress), "true");
 
-        console.log("Successfully joined root garden with wallet");
+        // Invalidate garden queries
+        const keysToInvalidate = queryInvalidation.invalidateGardens(chainId);
+        await Promise.all(
+          keysToInvalidate.map((key: readonly unknown[]) =>
+            queryClient.invalidateQueries({ queryKey: key })
+          )
+        );
+
+        // Refetch membership status
+        await refetchMembership();
+
+        return txHash;
+      } catch (error) {
+        // AlreadyGardener is not actually an error - user is already a member
+        if (isAlreadyGardenerError(error)) {
+          localStorage.setItem(getOnboardedKey(targetAddress), "true");
+          await refetchMembership();
+          return null; // Successfully handled, no tx hash
+        }
+        throw error;
       }
-
-      // Set appropriate localStorage flags
-      localStorage.setItem(ROOT_GARDEN_PROMPTED_KEY, "true");
-
-      setState((prev) => ({
-        ...prev,
-        isGardener: true,
-        showPrompt: false,
-        hasPrompted: true,
-      }));
-
-      console.log("Root garden join complete");
-    } catch (error) {
-      console.error("Failed to join root garden", error);
-      throw error;
-    }
-  };
-
-  /**
-   * Dismiss the join prompt without joining.
-   * Sets localStorage flag to prevent showing prompt again.
-   * Used for wallet users who can manually join later.
-   */
-  const dismissPrompt = () => {
-    console.log("Dismissing root garden prompt");
-    localStorage.setItem(ROOT_GARDEN_PROMPTED_KEY, "true");
-    setState((prev) => ({ ...prev, showPrompt: false, hasPrompted: true }));
-  };
+    },
+    [
+      chainId,
+      queryClient,
+      refetchMembership,
+      rootGarden?.address,
+      smartAccountAddress,
+      smartAccountClient,
+      writeContractAsync,
+    ]
+  );
 
   return {
-    ...state,
-    isPending,
+    isGardener,
+    isLoading: isLoading || isPending,
+    hasBeenOnboarded,
     joinGarden,
-    dismissPrompt,
+    refetchMembership,
   };
 }

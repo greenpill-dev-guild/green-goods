@@ -1,11 +1,11 @@
-import React, { forwardRef, memo, useMemo, useCallback, UIEvent } from "react";
+import { useNavigateToTop } from "@green-goods/shared/hooks";
+import React, { forwardRef, memo, UIEvent, useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { FixedSizeList as List } from "react-window";
 import { MinimalWorkCard } from "@/components/UI/Card/WorkCard";
 import { BeatLoader } from "@/components/UI/Loader";
-import { useNavigateToTop } from "@/hooks/app/useNavigateToTop";
 
-// import { cn } from "@/utils/cn";
+// import { cn } from "@green-goods/shared/utils/cn";
 
 interface GardenWorkProps {
   actions: Action[];
@@ -46,7 +46,7 @@ const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
       return (
         <div className="grid gap-3">
           {[...Array(8)].map((_, i) => (
-            <li key={i} className="p-2">
+            <li key={i}>
               <div className="flex flex-col gap-2 rounded-lg border border-slate-200 p-3 bg-white">
                 <div className="h-4 w-40 bg-slate-200 rounded animate-pulse" />
                 <div className="h-3 w-64 bg-slate-200 rounded animate-pulse" />
@@ -82,7 +82,7 @@ const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
           [work.gardenAddress, work.id]
         );
         return (
-          <li style={style} className="p-2">
+          <li style={style}>
             <MinimalWorkCard onClick={onOpen} work={work as unknown as Work} actionTitle={title} />
           </li>
         );
@@ -135,7 +135,7 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
         onScroll={handleScroll}
         className={
           !isEmpty && !hasError && !isLoading
-            ? "grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 w-full"
+            ? "grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 w-full"
             : "flex items-center justify-center w-full"
         }
       >

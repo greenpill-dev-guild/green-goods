@@ -22,7 +22,7 @@ class DeploymentAddresses {
     }
 
     const deploymentData = JSON.parse(fs.readFileSync(deploymentFile, "utf8"));
-    const requiredAddresses = ["actionRegistry", "gardenToken", "deploymentRegistry"];
+    const requiredAddresses = ["actionRegistry", "gardenToken", "deploymentRegistry", "gardenerAccountLogic"];
     const missing = requiredAddresses.filter((addr) => !deploymentData[addr]);
 
     if (missing.length > 0) {

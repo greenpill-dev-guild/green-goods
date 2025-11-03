@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { screen, waitFor, render } from "@testing-library/react";
+import { screen, waitFor, render, renderHook } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
 import Gardens from "@/views/Gardens";
-import toast from "react-hot-toast";
+import { toastService } from "@green-goods/shared";
 
 // Mock the useRole hook
 const mockUseRole = vi.fn();
@@ -36,7 +36,12 @@ vi.mock("@/components/Garden/CreateGardenModal", () => ({
               "data-testid": "create-garden-submit",
               onClick: () => {
                 // Simulate unauthorized action
-                toast.error("Unauthorized: Admin role required");
+                toastService.error({
+                  title: "Unauthorized",
+                  message: "Unauthorized: Admin role required",
+                  context: "admin action",
+                  suppressLogging: true,
+                });
                 onClose();
               },
             },
@@ -48,6 +53,8 @@ vi.mock("@/components/Garden/CreateGardenModal", () => ({
 }));
 
 describe("Unauthorized Actions", () => {
+  const toastErrorSpy = vi.spyOn(toastService, "error").mockImplementation(vi.fn());
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseGardenOperations.mockReturnValue({
@@ -55,6 +62,7 @@ describe("Unauthorized Actions", () => {
       removeGardener: vi.fn(),
       isLoading: false,
     });
+    toastErrorSpy.mockClear();
   });
 
   it("should show error toast when unauthorized user tries to create garden", async () => {
@@ -107,7 +115,9 @@ describe("Unauthorized Actions", () => {
     const submitButton = screen.getByTestId("create-garden-submit");
     await user.click(submitButton);
 
-    expect(toast.error).toHaveBeenCalledWith("Unauthorized: Admin role required");
+    expect(toastErrorSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "Unauthorized: Admin role required" })
+    );
   });
 
   it("should prevent unauthorized garden operations", async () => {
@@ -121,6 +131,7 @@ describe("Unauthorized Actions", () => {
       isLoading: false,
     });
 
+    const { useGardenOperations } = await import("@/hooks/useGardenOperations");
     const { result } = renderHook(() => useGardenOperations("0x123"));
 
     try {

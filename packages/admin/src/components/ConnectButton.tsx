@@ -1,6 +1,6 @@
-import { useAccount } from "wagmi";
+import { cn } from "@green-goods/shared/utils";
 import { useAppKit } from "@reown/appkit/react";
-import { cn } from "@/utils/cn";
+import { useAccount } from "wagmi";
 
 interface ConnectButtonProps {
   className?: string;
@@ -19,13 +19,13 @@ export function ConnectButton({
   const { open } = useAppKit();
 
   const baseStyles =
-    "inline-flex items-center justify-center font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
+    "inline-flex items-center justify-center font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
 
   const variantStyles = {
     primary:
-      "border border-transparent text-white bg-green-600 hover:bg-green-700 focus:ring-green-500",
+      "border border-transparent text-white bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 shadow-sm hover:shadow-md focus:ring-green-500",
     secondary:
-      "border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:ring-green-500",
+      "border border-stroke-sub text-text-sub bg-bg-white hover:bg-bg-weak focus:ring-green-500",
   };
 
   const sizeStyles = {

@@ -42,141 +42,64 @@ Enable wallet users to optionally use the job queue for consistency.
 
 **Implementation Steps:**
 
-1. **Update Job Processor Interface**
+1. **Extend the processing context**
 
 ```typescript
-// packages/client/src/modules/job-queue/job-processor.ts
+// packages/shared/src/modules/job-queue/index.ts
 
-import type { SmartAccountClient } from "permissionless";
-import type { WalletClient } from "viem";
-
-// Add wallet client support to processor interface
-interface JobProcessor<T, E> {
-  encodePayload(payload: T, chainId: number): Promise<E>;
-  execute(
-    encoded: E,
-    meta: Record<string, unknown>,
-    client: SmartAccountClient | WalletClient // Updated to accept both
-  ): Promise<string>;
+interface ProcessJobContext {
+  smartAccountClient: SmartAccountClient | null;
+  walletClient?: WalletClient | null; // add optional wallet client
 }
 ```
 
-2. **Update Work Processor**
+2. **Branch inside `executeWorkJob` / `executeApprovalJob`**
 
 ```typescript
-// packages/client/src/modules/job-queue/processors/work.ts
+// packages/shared/src/modules/job-queue/index.ts
 
-import type { SmartAccountClient } from "permissionless";
-import type { WalletClient } from "viem";
-
-export const workProcessor: JobProcessor<WorkJobPayload, EncodedWorkData> = {
-  async execute(
-    encoded: EncodedWorkData,
-    _meta: Record<string, unknown>,
-    client: SmartAccountClient | WalletClient
-  ): Promise<string> {
-    const encodedData = encodeFunctionData({ /* ... */ });
-
-    // Branch based on client type
-    if ('account' in client && 'sendTransaction' in client) {
-      // Smart account client
-      const receipt = await (client as SmartAccountClient).sendTransaction({
-        to: encoded.easConfig.EAS.address as `0x${string}`,
-        value: 0n,
-        data: encodedData,
-      });
-      return receipt;
-    } else {
-      // Wallet client
-      const hash = await (client as WalletClient).sendTransaction({
-        to: encoded.easConfig.EAS.address as `0x${string}`,
-        value: 0n,
-        data: encodedData,
-        chain: client.chain,
-        account: client.account,
-      });
-      return hash;
-    }
-  },
-};
-```
-
-3. **Update JobProcessor Class**
-
-```typescript
-// packages/client/src/modules/job-queue/job-processor.ts
-
-import { getWalletClient } from "@wagmi/core";
-import { wagmiConfig } from "@/config/appkit";
-
-class JobProcessor {
-  private client: SmartAccountClient | WalletClient | null = null;
-
-  setClient(client: SmartAccountClient | WalletClient) {
-    this.client = client;
-  }
-
-  async refreshClient(chainId: number) {
-    // Try wallet client first
-    const walletClient = await getWalletClient(wagmiConfig, { chainId });
-    if (walletClient) {
-      this.client = walletClient;
-      return;
-    }
-
-    // Fall back to smart account client
-    // ... existing smart account refresh logic
-  }
-}
-```
-
-4. **Update WorkProvider**
-
-```typescript
-// packages/client/src/providers/work.tsx
-
-const workMutation = useMutation({
-  mutationFn: async ({ draft, images }: { draft: WorkDraft; images: File[] }) => {
-    // Always use job queue for both modes
-    const { txHash, jobId } = await submitWorkToQueue(
-      draft,
-      gardenAddress!,
-      actionUID!,
-      ctxActions,
+async function executeWorkJob(
+  jobId: string,
+  job: Job<WorkJobPayload>,
+  chainId: number,
+  context: ProcessJobContext
+): Promise<string> {
+  if (context.walletClient) {
+    return await submitWorkDirectly(
+      job.payload as WorkDraft,
+      (job.payload as WorkJobPayload).gardenAddress,
+      (job.payload as WorkJobPayload).actionUID,
+      (job.payload as WorkJobPayload).title ?? "Unknown Action",
       chainId,
       images
     );
+  }
 
-    // Process inline based on available client
-    if (authMode === "wallet") {
-      const walletClient = await getWalletClient(wagmiConfig, { chainId });
-      if (walletClient) {
-        await processWorkJobInlineWithClient(jobId, chainId, walletClient);
-      }
-    } else if (smartAccountClient) {
-      await processWorkJobInline(jobId, chainId, smartAccountClient);
-    }
+  if (!context.smartAccountClient) {
+    throw new Error("No client available for processing");
+  }
 
-    return txHash;
-  },
+  return await submitWorkWithPasskey({
+    client: context.smartAccountClient,
+    /* existing params */
+  });
+}
+```
+
+3. **Update `jobQueue.processJob` calls**
+
+Pass the appropriate client from the provider:
+
+```typescript
+// packages/shared/src/providers/work.tsx
+
+const result = await jobQueue.processJob(jobId, {
+  smartAccountClient,
+  walletClient,
 });
 ```
 
-5. **Add User Preference Toggle**
-
-```typescript
-// packages/client/src/state/useSettingsStore.ts
-
-interface SettingsState {
-  useDirectTransactions: boolean; // Wallet users can choose
-  setUseDirectTransactions: (value: boolean) => void;
-}
-
-export const useSettingsStore = create<SettingsState>((set) => ({
-  useDirectTransactions: true, // Default for wallet users
-  setUseDirectTransactions: (value) => set({ useDirectTransactions: value }),
-}));
-```
+4. **Optionally surface a user toggle** so wallet users can choose between direct transactions and queued submissions (existing Zustand settings store is a good fit).
 
 ### Option B: Hybrid Approach (Fallback Queue)
 
@@ -208,7 +131,6 @@ const workMutation = useMutation({
       } catch (err: any) {
         // On network error, fall back to queue
         if (err.message?.includes("network")) {
-          logger.log("Network error, falling back to queue");
           const { txHash, jobId } = await submitWorkToQueue(
             draft,
             gardenAddress!,
@@ -217,14 +139,30 @@ const workMutation = useMutation({
             chainId,
             images
           );
+
+          if (navigator.onLine && smartAccountClient) {
+            await jobQueue.processJob(jobId, { smartAccountClient });
+          }
+
           return txHash;
         }
         throw err; // Re-throw other errors
       }
     } else {
       // Passkey mode continues using queue
-      const { txHash, jobId } = await submitWorkToQueue(/* ... */);
-      // ... process inline
+      const { txHash, jobId } = await submitWorkToQueue(
+        draft,
+        gardenAddress!,
+        actionUID!,
+        ctxActions,
+        chainId,
+        images
+      );
+
+      if (navigator.onLine && smartAccountClient) {
+        await jobQueue.processJob(jobId, { smartAccountClient });
+      }
+
       return txHash;
     }
   },
@@ -326,4 +264,3 @@ Before implementing unified queue:
 - Job queue system: `packages/client/src/modules/job-queue/`
 - Work provider: `packages/client/src/providers/work.tsx`
 - Authentication: `packages/client/src/providers/auth.tsx`
-

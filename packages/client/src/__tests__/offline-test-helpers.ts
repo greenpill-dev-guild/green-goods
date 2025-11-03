@@ -111,7 +111,7 @@ global.URL = global.URL || {
 
 // Mock IndexedDB if not available
 if (!global.indexedDB) {
-  const { openDB } = await import("../__mocks__/indexeddb");
+  const { openDB } = await import("../../../shared/src/__mocks__/browser/indexeddb");
   global.indexedDB = {
     open: openDB as any,
     deleteDatabase: vi.fn(),

@@ -1,3 +1,0 @@
-schema:
-  - https://sepolia.easscan.org/graphql
-documents: '**/*.graphql'

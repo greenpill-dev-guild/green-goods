@@ -1,11 +1,22 @@
-import { RiEarthFill, RiKeyLine, RiLogoutBoxRLine, RiWalletLine } from "@remixicon/react";
+import { toastService } from "@green-goods/shared";
+import { useAuth, useAutoJoinRootGarden, useEnsName } from "@green-goods/shared/hooks";
+import { type Locale, useApp } from "@green-goods/shared/providers/app";
+import { capitalize } from "@green-goods/shared/utils";
+import { parseAndFormatError } from "@green-goods/shared/utils/errors";
+import {
+  RiEarthFill,
+  RiKeyLine,
+  RiLogoutBoxRLine,
+  RiPlantLine,
+  RiWalletLine,
+} from "@remixicon/react";
 import { ReactNode } from "react";
-import toast from "react-hot-toast";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { Avatar } from "@/components/UI/Avatar/Avatar";
 import { Button } from "@/components/UI/Button";
 import { Card } from "@/components/UI/Card/Card";
+import { AddressCopy } from "@/components/UI/Clipboard";
 import {
   Select,
   SelectContent,
@@ -13,9 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/UI/Select/Select";
-import { useAuth } from "@/hooks/auth/useAuth";
-import { type Locale, useApp } from "@/providers/app";
-import { capitalize } from "@/utils/app/text";
 
 interface ApplicationSettings {
   title: string;
@@ -27,28 +35,90 @@ interface ApplicationSettings {
 type ProfileAccountProps = {};
 
 export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
-  const {
-    authMode,
-    clearPasskey,
-    disconnectWallet,
-    smartAccountAddress,
-    credential,
-    walletAddress,
-  } = useAuth();
+  const { authMode, signOut, disconnectWallet, smartAccountAddress, credential, walletAddress } =
+    useAuth();
+  const primaryAddress = smartAccountAddress || walletAddress;
+  const { data: primaryEnsName } = useEnsName(primaryAddress);
   const navigate = useNavigate();
   const { locale, switchLanguage, availableLocales } = useApp();
   const intl = useIntl();
 
-  const handleLogout = () => {
-    if (authMode === "passkey") {
-      clearPasskey();
-    } else if (authMode === "wallet") {
-      disconnectWallet();
+  // Root garden membership check
+  const {
+    isGardener: isRootGardener,
+    isLoading: isJoiningOrCheckingRootGarden,
+    joinGarden,
+  } = useAutoJoinRootGarden();
+
+  const handleJoinRootGarden = async () => {
+    try {
+      await joinGarden();
+
+      toastService.success({
+        title: intl.formatMessage({
+          id: "app.account.joinedRootGarden",
+          defaultMessage: "Joined Community Garden",
+        }),
+        message: intl.formatMessage({
+          id: "app.account.joinedRootGardenMessage",
+          defaultMessage: "Welcome to the community!",
+        }),
+        context: "joinRootGarden",
+      });
+    } catch (err) {
+      console.error("Failed to join root garden", err);
+
+      // Parse the error for user-friendly message
+      const { title, message } = parseAndFormatError(err);
+
+      toastService.error({
+        title: title,
+        message: message,
+        context: "joinRootGarden",
+        error: err,
+      });
     }
-    navigate("/login");
-    toast.success(
-      intl.formatMessage({ id: "app.toast.loggedOut", defaultMessage: "Logged out successfully" })
-    );
+  };
+
+  const handleLogout = async () => {
+    try {
+      if (authMode === "passkey") {
+        signOut();
+      } else if (authMode === "wallet") {
+        await disconnectWallet();
+      } else {
+        signOut();
+      }
+
+      navigate("/login");
+      const message = intl.formatMessage({
+        id: "app.toast.loggedOut",
+        defaultMessage: "Logged out successfully",
+      });
+      toastService.success({
+        title: intl.formatMessage({
+          id: "app.account.sessionClosed",
+          defaultMessage: "Signed out",
+        }),
+        message,
+        context: "logout",
+        suppressLogging: true,
+      });
+    } catch (err) {
+      console.error("Logout failed", err);
+      toastService.error({
+        title: intl.formatMessage({
+          id: "app.account.logoutFailed",
+          defaultMessage: "Failed to log out",
+        }),
+        message: intl.formatMessage({
+          id: "app.account.logoutRetry",
+          defaultMessage: "Please try again.",
+        }),
+        context: "logout",
+        error: err,
+      });
+    }
   };
 
   const applicationSettings: ApplicationSettings[] = [
@@ -70,7 +140,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
       Icon: <RiEarthFill className="w-4" />,
       Option: () => (
         <Select onValueChange={(val) => switchLanguage(val as Locale)}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[220px]">
             <SelectValue
               className="capitalize"
               placeholder={capitalize(intl.formatDisplayName(locale, { type: "language" }) || "")}
@@ -90,7 +160,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
 
   return (
     <>
-      <h5>
+      <h5 className="text-label-md text-slate-900">
         {intl.formatMessage({
           id: "app.profile.settings",
           description: "Settings",
@@ -115,12 +185,40 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
         </Card>
       ))}
 
-      <h5>
+      <h5 className="text-label-md text-slate-900">
         {intl.formatMessage({
           id: "app.profile.account",
           description: "Account",
         })}
       </h5>
+
+      {/* Root Garden Membership Button */}
+      {primaryAddress && (
+        <Button
+          variant="primary"
+          mode="filled"
+          onClick={isRootGardener ? undefined : handleJoinRootGarden}
+          label={
+            isJoiningOrCheckingRootGarden
+              ? intl.formatMessage({
+                  id: "app.profile.joiningRootGarden",
+                  defaultMessage: "Joining...",
+                })
+              : isRootGardener
+                ? intl.formatMessage({
+                    id: "app.profile.leaveRootGarden",
+                    defaultMessage: "Leave Community Garden",
+                  })
+                : intl.formatMessage({
+                    id: "app.profile.joinRootGarden",
+                    defaultMessage: "Join Community Garden",
+                  })
+          }
+          leadingIcon={<RiPlantLine className="w-4" />}
+          disabled={isJoiningOrCheckingRootGarden || isRootGardener}
+          className="w-full"
+        />
+      )}
 
       {/* Auth Mode Info */}
       <Card>
@@ -178,9 +276,12 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
                   })}
                 </div>
               </div>
-              <div className="text-xs text-gray-500 font-mono break-all">
-                {smartAccountAddress || walletAddress}
-              </div>
+              <AddressCopy
+                address={primaryAddress}
+                ensName={primaryEnsName}
+                size="compact"
+                className="mt-2"
+              />
             </div>
           </div>
         </Card>
@@ -234,6 +335,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
           description: "Logout",
         })}
         leadingIcon={<RiLogoutBoxRLine className="w-4" />}
+        className="w-full"
       />
     </>
   );

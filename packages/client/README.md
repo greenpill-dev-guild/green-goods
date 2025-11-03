@@ -29,6 +29,7 @@ The root `.env` file is automatically loaded by:
 - `VITE_CHAIN_ID`: Chain selection (e.g., 42161 for Arbitrum, 84532 for Base Sepolia)
 - `VITE_ENVIO_INDEXER_URL`: Envio GraphQL endpoint (optional; defaults to localhost in dev)
 - `VITE_DESKTOP_DEV`: Set to bypass PWA download checks during desktop development
+- `VITE_DEBUG_MODE`: Optional toggle to skip the two-media requirement in the Garden submission flow and enable verbose debug logging (use for manual testing only)
 - `VITE_PRIVY_APP_ID`: **Deprecated** - Legacy Privy authentication (being migrated away)
 
 **Setup:**
@@ -423,10 +424,7 @@ Service layer and business logic:
   - `index.ts`: Main job queue interface and configuration
   - `db.ts`: IndexedDB integration for persistent storage
   - `event-bus.ts`: Event-driven communication for job updates
-  - `job-processor.ts`: Background job processing logic
-  - `media-resource-manager.ts`: Media file handling and compression
-  - `sync-manager.ts`: Online/offline synchronization management
-  - `processors/`: Specific job processors for work and approval submissions
+  - `media-resource-manager.ts`: Media file handling and cleanup helpers
 
 ### Components (`components/`)
 Reusable UI components organized by scope:

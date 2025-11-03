@@ -180,10 +180,33 @@ export default defineConfig(({ mode }) => {
 
   return {
     envDir: rootDir,
-    envPrefix: ["VITE_", "PRIVY_", "SKIP_"],
+    envPrefix: ["VITE_", "SKIP_"],
     build: { target: "es2020", sourcemap: true, chunkSizeWarningLimit: 2000 },
     plugins,
-    resolve: { alias: { "@": resolve(__dirname, "./src") } },
+    // Deduplicate React and PostHog to prevent multiple instances
+    resolve: {
+      dedupe: ["react", "react-dom", "posthog-js"],
+      alias: {
+        "@": resolve(__dirname, "./src"),
+        "@green-goods/shared": resolve(__dirname, "../shared/src"),
+        "@green-goods/shared/hooks": resolve(__dirname, "../shared/src/hooks"),
+        "@green-goods/shared/providers": resolve(__dirname, "../shared/src/providers"),
+        "@green-goods/shared/modules": resolve(__dirname, "../shared/src/modules"),
+        "@green-goods/shared/utils": resolve(__dirname, "../shared/src/utils"),
+        "@green-goods/shared/config": resolve(__dirname, "../shared/src/config"),
+        "@green-goods/shared/types": resolve(__dirname, "../shared/src/types"),
+        "@green-goods/shared/stores": resolve(__dirname, "../shared/src/stores"),
+        "@green-goods/shared/mocks": resolve(__dirname, "../shared/src/mocks"),
+        "@green-goods/shared/i18n": resolve(__dirname, "../shared/src/i18n"),
+        "@green-goods/shared/workflows": resolve(__dirname, "../shared/src/workflows"),
+        "@green-goods/shared/constants": resolve(__dirname, "../shared/src/constants"),
+      },
+    },
+    // Optimize dependency pre-bundling
+    optimizeDeps: {
+      include: ["react", "react-dom", "posthog-js"],
+      exclude: ["@green-goods/shared"],
+    },
     server: {
       port: 3001,
       strictPort: true,
@@ -210,7 +233,10 @@ export default defineConfig(({ mode }) => {
           rewrite: (path) => path.replace(/^\/pinata\/gateway/, ""),
         },
         "/indexer": {
-          target: "https://indexer.hyperindex.xyz/0bf0e0f/v1",
+          target:
+            process.env.NODE_ENV === "development"
+              ? "http://localhost:8080/v1/graphql"
+              : "https://indexer.hyperindex.xyz/0bf0e0f/v1",
           changeOrigin: true,
           secure: false,
           rewrite: (path) => path.replace(/^\/indexer/, ""),
