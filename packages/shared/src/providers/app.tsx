@@ -1,5 +1,5 @@
 import browserLang from "browser-lang";
-// import { PostHogProvider } from "posthog-js/react";
+import { PostHogProvider } from "posthog-js/react";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { IntlProvider } from "react-intl";
 
@@ -160,14 +160,14 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   }, [handleAppInstalled, handleBeforeInstall, handleInstallCheck]);
 
   return (
-    // <PostHogProvider
-    //   apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
-    //   options={{
-    //     api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
-    //     capture_exceptions: true,
-    //     debug: import.meta.env.VITE_POSTHOG_DEBUG === "true",
-    //   }}
-    // >
+    <PostHogProvider
+      apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
+      options={{
+        api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+        capture_exceptions: true,
+        debug: import.meta.env.VITE_POSTHOG_DEBUG === "true",
+      }}
+    >
     <AppContext.Provider
       value={{
         isMobile: platform === "ios" || platform === "android" || platform === "windows",
@@ -185,6 +185,6 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         {children}
       </IntlProvider>
     </AppContext.Provider>
-    // </PostHogProvider>
+  </PostHogProvider>
   );
 };

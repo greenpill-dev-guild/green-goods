@@ -46,7 +46,7 @@
     "gql.tada": "^1.8.10",
     "permissionless": "^0.2.57",
     "pinata": "^2.5.0",
-    "posthog-js": "^1.276.0",
+    "posthog-js": "^1.284.0",
     "react-router-dom": "^7.9.4",
     "tailwind-merge": "3.0.2",
     "tailwind-variants": "0.3.1",

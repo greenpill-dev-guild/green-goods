@@ -27,7 +27,9 @@ export default defineConfig(({ mode }) => {
     envPrefix: ["VITE_", "PRIVY_", "SKIP_"],
     build: { target: "es2020", sourcemap: true, chunkSizeWarningLimit: 2000 },
     plugins,
+    // Deduplicate React and PostHog to prevent multiple instances
     resolve: {
+      dedupe: ['react', 'react-dom', 'posthog-js'],
       alias: {
         "@": resolve(__dirname, "./src"),
         "@green-goods/shared": resolve(__dirname, "../shared/src"),
@@ -43,6 +45,15 @@ export default defineConfig(({ mode }) => {
         "@green-goods/shared/workflows": resolve(__dirname, "../shared/src/workflows"),
         "@green-goods/shared/constants": resolve(__dirname, "../shared/src/constants"),
       }
+    },
+    // Optimize dependency pre-bundling
+    optimizeDeps: {
+      include: [
+        'react',
+        'react-dom',
+        'posthog-js',
+      ],
+      exclude: ['@green-goods/shared'],
     },
     server: {
       port: 3002,
