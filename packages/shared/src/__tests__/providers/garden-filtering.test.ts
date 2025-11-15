@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 /**
  * Unit tests for garden filtering logic
- * 
+ *
  * Tests the filtering behavior that ensures gardeners only see gardens they're members of
  */
 
@@ -60,9 +60,9 @@ describe("Garden Filtering Logic", () => {
    */
   function filterGardensByUser(gardens: Garden[], userAddress: string | undefined): Garden[] {
     if (!userAddress) return [];
-    
+
     const normalizedUserAddress = userAddress.toLowerCase();
-    
+
     return gardens.filter((garden) =>
       garden.gardeners?.some(
         (gardenerAddress: string) => gardenerAddress.toLowerCase() === normalizedUserAddress
@@ -152,14 +152,3 @@ describe("Garden Filtering Logic", () => {
     expect(filtered[0].id).toBe("84532-1");
   });
 });
-
-
-
-
-
-
-
-
-
-
-
