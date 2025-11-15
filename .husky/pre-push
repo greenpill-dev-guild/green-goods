@@ -4,8 +4,8 @@ echo "🔍 Running format check and linting before push..."
 
 # Try bun first, fall back to npm
 if command -v bun >/dev/null 2>&1; then
-  bunx biome format .
-  bunx oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/contracts/script
+  bunx --bun biome format .
+  bunx --bun oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/contracts/script
 elif command -v npm >/dev/null 2>&1; then
   npx biome format .
   npx oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/contracts/script
