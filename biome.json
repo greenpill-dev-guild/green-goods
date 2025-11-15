@@ -44,7 +44,10 @@
       "!**/*.css",
       "!**/packages/contracts/out/**",
       "!**/packages/contracts/broadcast/**",
-      "!**/packages/contracts/cache/**"
+      "!**/packages/contracts/cache/**",
+      "!**/packages/contracts/lib/**",
+      "!**/lib/**",
+      "!**/.bun/**"
     ]
   },
   "javascript": {
@@ -86,6 +89,9 @@
       "!**/packages/contracts/out/**",
       "!**/packages/contracts/broadcast/**",
       "!**/packages/contracts/cache/**",
+      "!**/packages/contracts/lib/**",
+      "!**/lib/**",
+      "!**/.bun/**",
       "!.biomeignore",
       "!.gitignore"
     ]
