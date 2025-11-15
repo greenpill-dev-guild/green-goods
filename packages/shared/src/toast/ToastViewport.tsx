@@ -58,7 +58,8 @@ function mergeToastOptions(
   if (base.iconTheme || overrides.iconTheme) {
     merged.iconTheme = {
       primary: (overrides.iconTheme as any)?.primary ?? (base.iconTheme as any)?.primary ?? "",
-      secondary: (overrides.iconTheme as any)?.secondary ?? (base.iconTheme as any)?.secondary ?? "",
+      secondary:
+        (overrides.iconTheme as any)?.secondary ?? (base.iconTheme as any)?.secondary ?? "",
     };
   }
 
@@ -80,10 +81,7 @@ export function ToastViewport({
   const locale = intl.locale;
 
   useEffect(() => {
-    const titleDescriptors: Record<
-      ToastStatus,
-      { id: string; defaultMessage: string }
-    > = {
+    const titleDescriptors: Record<ToastStatus, { id: string; defaultMessage: string }> = {
       success: {
         id: "app.toast.default.successTitle",
         defaultMessage: "Success",
@@ -102,10 +100,7 @@ export function ToastViewport({
       },
     };
 
-    const messageDescriptors: Record<
-      ToastStatus,
-      { id: string; defaultMessage: string }
-    > = {
+    const messageDescriptors: Record<ToastStatus, { id: string; defaultMessage: string }> = {
       success: {
         id: "app.toast.default.successMessage",
         defaultMessage: "All set.",

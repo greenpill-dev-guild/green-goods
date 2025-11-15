@@ -28,4 +28,3 @@ export function clearFormDraft(key: string): void {
     console.warn("Failed to clear form draft", error);
   }
 }
-

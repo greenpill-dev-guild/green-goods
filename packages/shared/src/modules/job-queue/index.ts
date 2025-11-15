@@ -191,15 +191,24 @@ class JobQueue {
       let txHash: string;
 
       if (job.kind === "work") {
-        txHash = await executeWorkJob(jobId, job as Job<WorkJobPayload>, chainId, smartAccountClient);
+        txHash = await executeWorkJob(
+          jobId,
+          job as Job<WorkJobPayload>,
+          chainId,
+          smartAccountClient
+        );
       } else if (job.kind === "approval") {
-        txHash = await executeApprovalJob(job as Job<ApprovalJobPayload>, chainId, smartAccountClient);
+        txHash = await executeApprovalJob(
+          job as Job<ApprovalJobPayload>,
+          chainId,
+          smartAccountClient
+        );
       } else {
         throw new Error(`Unsupported job kind: ${job.kind}`);
       }
 
       await jobQueueDB.markJobSynced(jobId, txHash);
-      
+
       // Store clientWorkId mapping for instant deduplication
       if (job.kind === "work" && job.meta?.clientWorkId) {
         try {
@@ -216,7 +225,7 @@ class JobQueue {
           console.warn("[JobQueue] Failed to store clientWorkId mapping:", error);
         }
       }
-      
+
       try {
         await jobQueueDB.deleteJob(jobId);
       } catch {}

@@ -15,9 +15,8 @@ vi.mock("@/toast", () => ({
 }));
 
 describe("useToastAction", () => {
-  const wrapper = ({ children }: { children: ReactNode }) => (
-    createElement(IntlProvider, { locale: "en", messages: enMessages }, children)
-  );
+  const wrapper = ({ children }: { children: ReactNode }) =>
+    createElement(IntlProvider, { locale: "en", messages: enMessages }, children);
 
   beforeEach(() => {
     vi.clearAllMocks();

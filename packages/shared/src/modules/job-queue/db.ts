@@ -166,13 +166,13 @@ class JobQueueDatabase {
 
     console.log("[JobQueueDB] getJobs returning:", {
       count: result.length,
-      jobs: result.map(j => ({
+      jobs: result.map((j) => ({
         id: j.id,
         kind: j.kind,
         synced: j.synced,
         attempts: j.attempts,
         lastError: j.lastError,
-      }))
+      })),
     });
 
     return result;
@@ -221,13 +221,13 @@ class JobQueueDatabase {
     console.log("[JobQueueDB] getImagesForJob called:", {
       jobId,
       rawImagesCount: images.length,
-      rawImages: images.map(img => ({
+      rawImages: images.map((img) => ({
         id: img.id,
         hasFile: !!img.file,
         fileName: img.file?.name,
         fileSize: img.file?.size,
-        fileType: img.file?.type
-      }))
+        fileType: img.file?.type,
+      })),
     });
 
     // Normalize files: IndexedDB may strip File metadata, so reconstruct if needed
@@ -246,19 +246,19 @@ class JobQueueDatabase {
         url: mediaResourceManager.getOrCreateUrl(normalizedFile, jobId),
       };
     });
-    
+
     console.log("[JobQueueDB] getImagesForJob returning:", {
       jobId,
       resultCount: result.length,
-      urls: result.map(r => ({
+      urls: result.map((r) => ({
         id: r.id,
-        url: r.url?.substring(0, 60) + '...',
-        urlIsBlob: r.url?.startsWith('blob:'),
+        url: r.url?.substring(0, 60) + "...",
+        urlIsBlob: r.url?.startsWith("blob:"),
         fileName: r.file.name,
         fileType: r.file.type,
-      }))
+      })),
     });
-    
+
     return result;
   }
 
@@ -374,7 +374,7 @@ class JobQueueDatabase {
 
     // Cleanup stale URLs in database
     await this.cleanupStaleUrls();
-    
+
     // Cleanup old clientWorkId mappings
     await this.cleanupOldMappings();
   }

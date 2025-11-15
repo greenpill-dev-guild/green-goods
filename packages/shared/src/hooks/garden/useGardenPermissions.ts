@@ -1,10 +1,6 @@
 import { useMemo } from "react";
-import {
-  useOptionalPasskeyAuth,
-} from "../../providers/PasskeyAuthProvider";
-import {
-  useOptionalWalletAuth,
-} from "../../providers/WalletAuthProvider";
+import { useOptionalPasskeyAuth } from "../../providers/PasskeyAuthProvider";
+import { useOptionalWalletAuth } from "../../providers/WalletAuthProvider";
 
 export interface GardenPermissions {
   canManageGarden: (garden: Garden) => boolean;

@@ -54,24 +54,27 @@ class MediaResourceManager {
       fileSize: file.size,
       cacheKey,
       hasCached: !!cached,
-      cachedUrl: cached?.url?.substring(0, 60) + '...'
+      cachedUrl: cached?.url?.substring(0, 60) + "...",
     });
 
     if (cached && cached.file === file) {
-      console.log("[MediaResourceManager] Returning cached URL:", cached.url.substring(0, 60) + '...');
+      console.log(
+        "[MediaResourceManager] Returning cached URL:",
+        cached.url.substring(0, 60) + "..."
+      );
       return cached.url;
     }
 
     const url = this.createUrl(file, trackingId);
     this.urlCache.set(cacheKey, { file, url });
-    
+
     console.log("[MediaResourceManager] Created new URL:", {
       trackingId,
       fileName: file.name,
-      url: url.substring(0, 60) + '...',
-      isBlob: url.startsWith('blob:')
+      url: url.substring(0, 60) + "...",
+      isBlob: url.startsWith("blob:"),
     });
-    
+
     return url;
   }
 

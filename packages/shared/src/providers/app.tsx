@@ -168,23 +168,23 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         debug: import.meta.env.VITE_POSTHOG_DEBUG === "true",
       }}
     >
-    <AppContext.Provider
-      value={{
-        isMobile: platform === "ios" || platform === "android" || platform === "windows",
-        isInstalled: installState === "installed",
-        platform,
-        locale,
-        availableLocales: supportedLanguages,
-        deferredPrompt,
-        promptInstall,
-        handleInstallCheck,
-        switchLanguage,
-      }}
-    >
-      <IntlProvider locale={locale} messages={messages[locale]}>
-        {children}
-      </IntlProvider>
-    </AppContext.Provider>
-  </PostHogProvider>
+      <AppContext.Provider
+        value={{
+          isMobile: platform === "ios" || platform === "android" || platform === "windows",
+          isInstalled: installState === "installed",
+          platform,
+          locale,
+          availableLocales: supportedLanguages,
+          deferredPrompt,
+          promptInstall,
+          handleInstallCheck,
+          switchLanguage,
+        }}
+      >
+        <IntlProvider locale={locale} messages={messages[locale]}>
+          {children}
+        </IntlProvider>
+      </AppContext.Provider>
+    </PostHogProvider>
   );
 };

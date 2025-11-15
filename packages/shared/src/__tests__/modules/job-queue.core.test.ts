@@ -10,7 +10,10 @@ vi.mock("../../modules/work/passkey-submission", () => ({
 }));
 
 import { jobQueue, jobQueueDB } from "../../modules/job-queue";
-import { submitWorkWithPasskey, submitApprovalWithPasskey } from "../../modules/work/passkey-submission";
+import {
+  submitWorkWithPasskey,
+  submitApprovalWithPasskey,
+} from "../../modules/work/passkey-submission";
 
 describe("modules/job-queue", () => {
   beforeEach(() => {

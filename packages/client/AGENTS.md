@@ -432,7 +432,7 @@ For detailed patterns, see package-specific .mdc files:
 ## Reference Documentation
 
 - Client README: `/packages/client/README.md`
-- Architecture: `/docs/ARCHITECTURE.md`
-- Features: `/docs/FEATURES.md`
-- Testing: `/docs/TESTING.md`
+- Architecture: `/docs/developer/architecture.md`
+- Features: `/docs/features/overview.md`
+- Testing: `/docs/developer/testing.md`
 - Root agent guide: `/AGENTS.md`

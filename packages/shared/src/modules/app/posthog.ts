@@ -78,12 +78,23 @@ export function getDistinctId() {
 }
 
 /**
+ * Generate a cryptographically secure random string
+ */
+function generateSecureRandomString(length: number): string {
+  const array = new Uint8Array(length);
+  crypto.getRandomValues(array);
+  return Array.from(array, (byte) => byte.toString(36).padStart(2, "0"))
+    .join("")
+    .substring(0, length);
+}
+
+/**
  * Get or create a session ID for tracking user sessions
  */
 function getSessionId(): string {
   let sessionId = sessionStorage.getItem("posthog_session_id");
   if (!sessionId) {
-    sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    sessionId = `session_${Date.now()}_${generateSecureRandomString(9)}`;
     sessionStorage.setItem("posthog_session_id", sessionId);
   }
   return sessionId;

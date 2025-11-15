@@ -1,11 +1,7 @@
 import { useQuery } from "urql";
 import { useDeploymentRegistry } from "../blockchain/useDeploymentRegistry";
-import {
-	useOptionalPasskeyAuth,
-} from "../../providers/PasskeyAuthProvider";
-import {
-	useOptionalWalletAuth,
-} from "../../providers/WalletAuthProvider";
+import { useOptionalPasskeyAuth } from "../../providers/PasskeyAuthProvider";
+import { useOptionalWalletAuth } from "../../providers/WalletAuthProvider";
 import { graphql } from "gql.tada";
 
 const GET_OPERATOR_GARDENS = graphql(`
@@ -20,10 +16,10 @@ const GET_OPERATOR_GARDENS = graphql(`
 export type UserRole = "deployer" | "operator" | "user";
 
 export interface RoleInfo {
-	role: UserRole;
-	isDeployer: boolean;
-	isOperator: boolean;
-	operatorGardens: Array<{ id: string; name: string }>;
+  role: UserRole;
+  isDeployer: boolean;
+  isOperator: boolean;
+  operatorGardens: Array<{ id: string; name: string }>;
   loading: boolean;
   deploymentPermissions: {
     canDeploy: boolean;
@@ -37,10 +33,8 @@ export function useRole(): RoleInfo {
   const walletAuth = useOptionalWalletAuth();
 
   const address =
-    passkeyAuth?.walletAddress ??
-    passkeyAuth?.smartAccountAddress ??
-    walletAuth?.address;
-  const ready = passkeyAuth ? passkeyAuth.isReady : walletAuth?.ready ?? false;
+    passkeyAuth?.walletAddress ?? passkeyAuth?.smartAccountAddress ?? walletAuth?.address;
+  const ready = passkeyAuth ? passkeyAuth.isReady : (walletAuth?.ready ?? false);
   const deploymentRegistry = useDeploymentRegistry();
 
   const [{ data: operatorData, fetching }] = useQuery({

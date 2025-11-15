@@ -119,4 +119,3 @@ export function initTheme(): (() => void) | undefined {
   apply(getTheme());
   return listenToSystemChanges();
 }
-
