@@ -1,0 +1,79 @@
+---
+description: Envio conventions — entity patterns, event handlers, multi-chain requirements
+globs:
+  - schema.graphql
+  - src/EventHandlers.ts
+  - config.yaml
+alwaysApply: false
+---
+
+# Envio Indexer Conventions
+
+This rule covers Envio-specific patterns for Green Goods indexer.
+
+## Entity Requirements
+
+### Mandatory: chainId Field
+
+**All entities must include chainId:**
+
+```graphql
+type Garden @entity {
+  id: ID!
+  chainId: Int!  # ← REQUIRED
+  # ...
+}
+
+type Action @entity {
+  id: ID!
+  chainId: Int!  # ← REQUIRED
+  # ...
+}
+```
+
+**Why:** Multi-chain support. Frontend filters by chainId.
+
+### Composite ID Pattern
+
+```typescript
+// Format: chainId-identifier
+const gardenId = `${event.chainId}-${tokenId}`;
+const actionId = `${event.chainId}-${actionUID}`;
+```
+
+## Event Handler Pattern
+
+```typescript
+ContractName.EventName.handler(async ({ event, context }) => {
+  const chainId = event.chainId;
+  
+  try {
+    // 1. Extract event data
+    const tokenId = event.params.tokenId.toString();
+    
+    // 2. Create composite ID
+    const entityId = `${chainId}-${tokenId}`;
+    
+    // 3. Fetch additional data if needed
+    const metadata = await context.ContractName.method(tokenId);
+    
+    // 4. Set entity
+    context.EntityName.set({
+      id: entityId,
+      chainId: chainId,
+      // ... fields
+      createdAt: event.block.timestamp,
+    });
+  } catch (error) {
+    console.error(`[EventName] Error processing event:`, error);
+    // Graceful degradation — create with minimal data
+  }
+});
+```
+
+## Reference Files
+
+- Schema: `schema.graphql`
+- Handlers: `src/EventHandlers.ts`
+- Config: `config.yaml`
+- README: `AGENTS.md`

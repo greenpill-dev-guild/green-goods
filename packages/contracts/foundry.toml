@@ -1,0 +1,84 @@
+[profile.default]
+solc = "0.8.25"
+ffi = true
+auto_detect_solc = false
+block_timestamp = 1_680_220_800 # March 31, 2023 at 00:00 GMT
+bytecode_hash = "none"
+evm_version = "shanghai"
+fuzz = { runs = 1_000 }
+gas_reports = []         # Disabled by default for speed
+optimizer = true
+optimizer_runs = 1000
+verbosity = 1            # Less verbose by default
+libs = ['lib']
+out = 'out'
+script = "script"
+src = 'src'
+test = 'test'
+via_ir = true            # Required for stack depth
+sparse_mode = true       # Faster incremental builds
+fs_permissions = [
+  { access = "read-write", path = "./" }
+]
+
+[profile.production]
+  via_ir = true
+  optimizer_runs = 1       # Optimized for deployment size (lower = smaller bytecode)
+  gas_reports = ["*"]      # Full gas reports for production
+  verbosity = 2
+
+[profile.ci]
+  fuzz = { runs = 10_000 }
+  verbosity = 4
+
+[profile.e2e]
+  match_contract = "E2E"  # Only run e2e tests
+  verbosity = 3           # More verbose for debugging RPC issues
+
+[etherscan]
+  arbitrum = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "42161" }
+  baseSepolia = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "84532" }
+  celo = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "42220" }
+
+[fmt]
+  bracket_spacing = true
+  int_types = "long"
+  line_length = 124
+  multiline_func_header = "all"
+  number_underscore = "thousands"
+  quote_style = "double"
+  tab_width = 4
+  wrap_comments = true
+
+[lint]
+exclude_lints = [
+  "mixed-case-function",
+  "mixed-case-variable",
+  "erc20-unchecked-transfer",
+  "incorrect-shift"
+]
+
+extra_output_files = [
+  "abi",
+  "evm.bytecode"
+]
+
+# RPC endpoints for different networks
+# Note: Fork test RPC URLs are loaded via vm.envString() to avoid initialization errors
+[rpc_endpoints]
+localhost = "http://localhost:8545"
+
+# Network-specific profiles
+[profile.local]
+eth_rpc_url = "http://localhost:8545"
+
+[profile.arbitrum]
+eth_rpc_url = "${ARBITRUM_RPC_URL}"
+
+[profile.baseSepolia]
+eth_rpc_url = "${BASE_SEPOLIA_RPC_URL}"
+
+[profile.celo]
+eth_rpc_url = "${CELO_RPC_URL}"
+
+# See more config options https://github.com/foundry-rs/foundry/tree/master/config

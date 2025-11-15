@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Ensure nvm is available and use Node version from .nvmrc if possible
+export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+# Try to use project Node version from .nvmrc silently; ignore errors if nvm is missing
+if [ -f .nvmrc ]; then
+  nvm use --silent >/dev/null 2>&1 || true
+fi
+
+# Try bun first, fall back to npm
+if command -v bun >/dev/null 2>&1; then
+  bunx lint-staged
+elif command -v npm >/dev/null 2>&1; then
+  npx lint-staged
+else
+  echo "Error: Neither bun nor npm found. Install bun: https://bun.sh"
+  exit 1
+fi

@@ -1,0 +1,357 @@
+# Form Validation Patterns — Zod + React Hook Form
+
+This rule defines type-safe patterns for form validation using Zod schemas with React Hook Form, avoiding the use of `any` types.
+
+## Core Principles
+
+1. **Schema as Single Source of Truth**: Define Zod schema first, then infer TypeScript types
+2. **Never Use `any`**: Always use proper typing or documented type assertions
+3. **Explicit Type Annotations**: Use `ZodType<T>` to resolve resolver type compatibility
+4. **Type Inference with `z.infer`**: Let Zod generate TypeScript types from schemas
+
+## Pattern: Form Validation with Zod
+
+### ✅ Correct Pattern
+
+```typescript
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z, type ZodType } from "zod";
+
+// 1. Define Zod schema with explicit ZodType annotation
+const userFormSchema: ZodType<{
+  name: string;
+  email: string;
+  age?: number;
+}> = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Invalid email"),
+  age: z.number().positive().optional(),
+});
+
+// 2. Infer TypeScript type from schema (single source of truth)
+type UserFormData = z.infer<typeof userFormSchema>;
+
+// 3. Use in form with type-safe resolver
+function UserForm() {
+  const { register, handleSubmit, formState } = useForm<UserFormData>({
+    defaultValues: {
+      name: "",
+      email: "",
+      // age is optional
+    },
+    resolver: zodResolver(userFormSchema),
+    mode: "onChange",
+  });
+
+  const onSubmit = handleSubmit((data: UserFormData) => {
+    // data is fully typed
+    console.log(data.name, data.email, data.age);
+  });
+
+  return (
+    <form onSubmit={onSubmit}>
+      <input {...register("name")} />
+      {formState.errors.name && <span>{formState.errors.name.message}</span>}
+      <input {...register("email")} />
+      {formState.errors.email && <span>{formState.errors.email.message}</span>}
+      <input type="number" {...register("age", { valueAsNumber: true })} />
+      <button type="submit">Submit</button>
+    </form>
+  );
+}
+```
+
+### ❌ Anti-Patterns
+
+**Don't use `any`:**
+```typescript
+// WRONG - defeats TypeScript's purpose
+const schema = z.object({
+  name: z.string(),
+}) as any;
+```
+
+**Don't manually duplicate types:**
+```typescript
+// WRONG - creates maintenance burden and drift
+const schema = z.object({
+  name: z.string(),
+  email: z.string(),
+});
+
+// Manually duplicating instead of using z.infer
+type UserForm = {
+  name: string;
+  email: string;
+};
+```
+
+**Don't skip schema type annotation:**
+```typescript
+// SUBOPTIMAL - may cause resolver type errors
+const schema = z.object({
+  name: z.string(),
+});
+
+// Better to explicitly type with ZodType<T>
+```
+
+## Handling Type Incompatibilities
+
+### Known Issue: @hookform/resolvers + Zod Type Mismatch
+
+Due to version mismatches between `@hookform/resolvers` and Zod's internal types, you may encounter:
+
+```
+Argument of type 'ZodType<...>' is not assignable to parameter of type 'ZodType<any, any, $ZodTypeInternals<any, any>>'
+```
+
+**Solution: Document with `@ts-expect-error`**
+
+```typescript
+const { register, handleSubmit } = useForm<UserFormData>({
+  defaultValues: { name: "", email: "" },
+  // @ts-expect-error - Known type incompatibility between @hookform/resolvers 3.9.0 and Zod 3.25.76
+  // The ZodType generic signature differs from the expected $ZodTypeInternals signature
+  // This works correctly at runtime. Will be resolved in future @hookform/resolvers updates.
+  resolver: zodResolver(userFormSchema),
+});
+```
+
+**Why this is acceptable:**
+- Code compiles and runs correctly at runtime
+- Type assertion is documented with exact versions and reason
+- More maintainable than using `any` which loses all type safety
+- Clear path to resolution (package updates)
+
+**Alternative: Update packages (preferred long-term)**
+
+```bash
+bun update @hookform/resolvers zod
+```
+
+Then test if type errors are resolved.
+
+## Complex Validation Patterns
+
+### Nested Objects
+
+```typescript
+const addressSchema: ZodType<{
+  street: string;
+  city: string;
+  zip?: string;
+}> = z.object({
+  street: z.string().min(1),
+  city: z.string().min(1),
+  zip: z.string().regex(/^\d{5}$/).optional(),
+});
+
+const userWithAddressSchema: ZodType<{
+  name: string;
+  address: {
+    street: string;
+    city: string;
+    zip?: string;
+  };
+}> = z.object({
+  name: z.string(),
+  address: addressSchema,
+});
+
+type UserWithAddress = z.infer<typeof userWithAddressSchema>;
+```
+
+### Arrays
+
+```typescript
+const workFormSchema: ZodType<{
+  feedback: string;
+  plantSelection: string[];
+  plantCount?: number;
+}> = z.object({
+  feedback: z.string().min(1, "Feedback is required"),
+  plantSelection: z.array(z.string()),
+  plantCount: z.number().nonnegative().optional(),
+});
+
+type WorkFormData = z.infer<typeof workFormSchema>;
+```
+
+### Discriminated Unions
+
+```typescript
+const paymentSchema: ZodType<
+  | { type: "card"; cardNumber: string; cvv: string }
+  | { type: "paypal"; email: string }
+> = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("card"),
+    cardNumber: z.string(),
+    cvv: z.string(),
+  }),
+  z.object({
+    type: z.literal("paypal"),
+    email: z.string().email(),
+  }),
+]);
+
+type PaymentData = z.infer<typeof paymentSchema>;
+```
+
+## Partial Forms vs Domain Models
+
+When forms only collect a subset of domain model fields:
+
+```typescript
+// Domain model (global type)
+declare interface WorkDraft {
+  actionUID: number;
+  title: string;
+  plantSelection: string[];
+  plantCount: number;
+  feedback: string;
+  media: File[];
+}
+
+// Form only collects subset
+const workFormSchema: ZodType<{
+  feedback: string;
+  plantSelection: string[];
+  plantCount?: number;
+}> = z.object({
+  feedback: z.string().min(1, "Feedback is required"),
+  plantSelection: z.array(z.string()),
+  plantCount: z.number().nonnegative().optional(),
+});
+
+type WorkFormData = z.infer<typeof workFormSchema>;
+
+// In component
+const { handleSubmit } = useForm<WorkFormData>({ ... });
+
+const onSubmit = handleSubmit((formData) => {
+  // Build complete domain model from form data + other sources
+  const draft: WorkDraft = {
+    ...formData,
+    actionUID: selectedActionUID,
+    title: selectedActionTitle,
+    media: uploadedFiles,
+  };
+  
+  submitWork(draft);
+});
+```
+
+## Integration with Other Patterns
+
+### With Offline Job Queue
+
+```typescript
+const workFormSchema: ZodType<{
+  feedback: string;
+  plantSelection: string[];
+}> = z.object({
+  feedback: z.string().min(1),
+  plantSelection: z.array(z.string()),
+});
+
+type WorkFormData = z.infer<typeof workFormSchema>;
+
+function WorkForm() {
+  const { handleSubmit } = useForm<WorkFormData>({
+    // @ts-expect-error - Known @hookform/resolvers + Zod type incompatibility (see above)
+    resolver: zodResolver(workFormSchema),
+  });
+
+  const workMutation = useMutation({
+    mutationFn: async (data: WorkFormData) => {
+      // Queue for offline support
+      return await submitWorkToQueue(data);
+    },
+  });
+
+  const onSubmit = handleSubmit(async (data) => {
+    await workMutation.mutateAsync(data);
+  });
+
+  return <form onSubmit={onSubmit}>...</form>;
+}
+```
+
+### With TanStack Query
+
+```typescript
+const { mutate } = useMutation({
+  mutationFn: async (data: UserFormData) => {
+    // Validate before submission
+    const validated = userFormSchema.parse(data);
+    return await api.createUser(validated);
+  },
+  onSuccess: () => {
+    toast.success("User created!");
+  },
+  onError: (error) => {
+    if (error instanceof z.ZodError) {
+      toast.error(error.errors[0].message);
+    }
+  },
+});
+```
+
+## Testing Form Validation
+
+```typescript
+import { describe, it, expect } from "vitest";
+import { z } from "zod";
+
+describe("userFormSchema", () => {
+  it("validates correct data", () => {
+    const data = { name: "Alice", email: "alice@example.com" };
+    expect(() => userFormSchema.parse(data)).not.toThrow();
+  });
+
+  it("rejects invalid email", () => {
+    const data = { name: "Alice", email: "invalid" };
+    expect(() => userFormSchema.parse(data)).toThrow(z.ZodError);
+  });
+
+  it("allows optional age", () => {
+    const data = { name: "Alice", email: "alice@example.com" };
+    const result = userFormSchema.parse(data);
+    expect(result.age).toBeUndefined();
+  });
+
+  it("validates positive age", () => {
+    const data = { name: "Alice", email: "alice@example.com", age: -5 };
+    expect(() => userFormSchema.parse(data)).toThrow(z.ZodError);
+  });
+});
+```
+
+## Naming Conventions
+
+- **Schema constants**: `{domain}FormSchema` (e.g., `userFormSchema`, `workApprovalFormSchema`)
+- **Inferred types**: `{Domain}FormData` (e.g., `UserFormData`, `WorkApprovalFormData`)
+- **Domain models**: Keep existing global types (e.g., `WorkDraft`, `WorkApprovalDraft`)
+
+## Migration Checklist
+
+When refactoring existing forms to use Zod:
+
+- [ ] Define Zod schema with explicit `ZodType<T>` annotation
+- [ ] Use `z.infer<typeof schema>` to derive TypeScript type
+- [ ] Remove manual type definitions that duplicate the schema
+- [ ] Update `useForm` to use inferred type
+- [ ] Add `zodResolver` with documented `@ts-expect-error` if needed
+- [ ] Add validation error messages to schema
+- [ ] Update tests to validate schema parsing
+- [ ] Verify form submission still works correctly
+
+## References
+
+- Zod Documentation: https://zod.dev
+- React Hook Form: https://react-hook-form.com
+- @hookform/resolvers: https://github.com/react-hook-form/resolvers
+- Type Inference: https://zod.dev/api?id=type-inference

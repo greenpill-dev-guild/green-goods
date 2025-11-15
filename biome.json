@@ -1,0 +1,93 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.0.0-beta.6/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
+  "linter": {
+    "enabled": false
+  },
+  "formatter": {
+    "enabled": true,
+    "formatWithErrors": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineEnding": "lf",
+    "lineWidth": 100,
+    "attributePosition": "auto",
+    "bracketSpacing": true,
+    "bracketSameLine": false,
+    "includes": [
+      "**/packages/client/src/**/*.{ts,tsx,js,jsx,json}",
+      "**/packages/client/*.{ts,tsx,js,jsx}",
+      "**/packages/client/*.config.{ts,js}",
+      "**/packages/admin/src/**/*.{ts,tsx,js,jsx}",
+      "**/packages/admin/*.{ts,tsx,js,jsx}",
+      "**/packages/admin/*.config.{ts,js}",
+      "**/packages/shared/src/**/*.{ts,tsx,js,jsx,json}",
+      "**/packages/indexer/src/**/*.{ts,tsx,js,jsx,json}",
+      "**/packages/contracts/src/**/*.{ts,tsx,js,jsx}",
+      "**/packages/contracts/script/**/*.{ts,tsx,js,jsx}",
+      "**/tests/**/*.{ts,tsx,js,jsx,json}",
+      "*.config.{ts,js}",
+      "**/*.json",
+      "**/*.md",
+      "!**/node_modules/**",
+      "!**/dist/**",
+      "!**/build/**",
+      "!**/coverage/**",
+      "!**/dev-dist/**",
+      "!**/*.min.js",
+      "!**/*.bundle.js",
+      "!**/*.css",
+      "!**/packages/contracts/out/**",
+      "!**/packages/contracts/broadcast/**",
+      "!**/packages/contracts/cache/**"
+    ]
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "trailingCommas": "es5",
+      "semicolons": "always",
+      "arrowParentheses": "always",
+      "bracketSpacing": true,
+      "bracketSameLine": false,
+      "quoteProperties": "asNeeded",
+      "attributePosition": "auto"
+    }
+  },
+  "json": {
+    "formatter": {
+      "trailingCommas": "none"
+    }
+  },
+  "files": {
+    "includes": [
+      "**/packages/client/src/**/*.{ts,tsx,js,jsx,json}",
+      "**/packages/admin/src/**/*.{ts,tsx,js,jsx,json}",
+      "**/packages/shared/src/**/*.{ts,tsx,js,jsx,json}",
+      "**/packages/indexer/src/**/*.{ts,tsx,js,jsx,json}",
+      "**/packages/contracts/src/**/*.{ts,tsx,js,jsx}",
+      "**/packages/contracts/script/**/*.{ts,tsx,js,jsx}",
+      "**/packages/client/*.config.{ts,js}",
+      "**/tests/**/*.{ts,tsx,js,jsx,json}",
+      "*.config.{ts,js}",
+      "**/*.json",
+      "**/*.md",
+      "!**/node_modules/**",
+      "!**/dist/**",
+      "!**/build/**",
+      "!**/coverage/**",
+      "!**/dev-dist/**",
+      "!**/*.css",
+      "!**/packages/contracts/out/**",
+      "!**/packages/contracts/broadcast/**",
+      "!**/packages/contracts/cache/**",
+      "!.biomeignore",
+      "!.gitignore"
+    ]
+  }
+}

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no"
+    />
+    <meta
+      key="description"
+      name="description"
+      content="Bringing Biodiversity Onchain"
+    />
+    <meta name="author" content="Green Goods" />
+
+    <meta property="og:image" content="/social-image.webp" />
+    <meta property="og:image:alt" content="Banner for the site" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1280" />
+    <meta property="og:image:height" content="675" />
+
+    <meta property="og:title" content="Green Goods" />
+    <meta property="og:site_name" content="Green Goods" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://greengoods.app" />
+    <meta property="og:description" content="Bringing Biodiversity Onchain" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:description" content="Bringing Biodiversity Onchain" />
+    <meta name="twitter:title" content="Green Goods" />
+    <meta name="twitter:site" content="greengoodsapp" />
+    <meta name="twitter:creator" content="time_is_oba" />
+    <meta name="twitter:image" content="/social-image.webp" />
+    <link
+      rel="apple-touch-icon"
+      sizes="57x57"
+      href="/images/apple-icon-57x57.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="60x60"
+      href="/images/apple-icon-60x60.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="72x72"
+      href="/images/apple-icon-72x72.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="120x120"
+      href="/images/apple-icon-120x120.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="144x144"
+      href="/images/apple-icon-144x144.png"
+    />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-icon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/apple-icon.png" />
+    <meta name="msapplication-TileColor" content="#f367d42" />
+    <meta
+      name="msapplication-TileImage"
+      content="/images/ms-icon-144x144.png"
+    />
+    <meta name="theme-color" content="#fff" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+      rel="stylesheet"
+    />
+
+    <title>Green Goods</title>
+    <script>
+      (function() {
+        const KEY = 'theme';
+        try {
+          const stored = localStorage.getItem(KEY) || 'system';
+          const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          const resolved = stored === 'dark' || (stored === 'system' && systemDark);
+          document.documentElement.dataset.theme = resolved ? 'dark' : 'light';
+        } catch (_) {
+          const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.dataset.theme = systemDark ? 'dark' : 'light';
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

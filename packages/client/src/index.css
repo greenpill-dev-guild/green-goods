@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@import "./styles/colors.css";
+@import "./styles/typography.css";
+@import "./styles/utilities.css";
+@import "./styles/animation.css";
+
+:root {
+  color-scheme: light dark;
+  background-color: #fff;
+
+  scrollbar-width: none;
+  -ms-overflow-style: none; /* IE and Edge */
+
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-synthesis: none;
+  font-optical-sizing: auto;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  @apply relative overflow-x-hidden;
+}
+body {
+  @apply relative m-0 w-screen h-screen bg-white dark:bg-white text-foreground overflow-x-hidden;
+}
+
+#root {
+  @apply w-full h-full mx-auto flex flex-col overflow-x-hidden;
+}
+
+#root > div {
+  @apply w-full h-full mx-auto flex flex-col overflow-x-hidden;
+}
+
+#landing-root {
+  @apply w-full h-full mx-auto flex flex-col max-w-[var(--breakpoint-xl)];
+}
+
+.padded {
+  @apply mx-4 sm:mx-6 md:mx-12;
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+ul::-webkit-scrollbar {
+  display: none;
+}
+
+div::-webkit-scrollbar {
+  display: none;
+}
+
+hr {
+  @apply opacity-10;
+}
