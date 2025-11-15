@@ -4,11 +4,11 @@ echo "🔍 Running format check and linting before push..."
 
 # Try bun first, fall back to npm
 if command -v bun >/dev/null 2>&1; then
-  bun run format:check
-  bun run lint
+  bunx biome format .
+  bunx oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/contracts/script
 elif command -v npm >/dev/null 2>&1; then
-  npm run format:check
-  npm run lint
+  npx biome format .
+  npx oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/contracts/script
 else
   echo "Error: Neither bun nor npm found. Install bun: https://bun.sh"
   exit 1
