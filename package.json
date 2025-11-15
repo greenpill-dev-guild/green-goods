@@ -27,9 +27,9 @@
     "dev:indexer": "cd packages/indexer && bun run dev",
     "dev:contracts": "cd packages/contracts && bun run dev",
 
-    "format": "biome format --write .",
-    "format:check": "biome format .",
-    "lint": "oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/contracts/script",
+    "format": "bunx @biomejs/biome format --write .",
+    "format:check": "bunx @biomejs/biome format .",
+    "lint": "bunx oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/contracts/script",
     "test": "bun run test:client && bun run test:admin && bun run test:indexer && bun run test:contracts",
 
     "test:e2e": "playwright test",
