@@ -26,6 +26,7 @@
       "**/packages/admin/src/**/*.{ts,tsx,js,jsx}",
       "**/packages/admin/*.{ts,tsx,js,jsx}",
       "**/packages/admin/*.config.{ts,js}",
+      "**/packages/shared/src/**/*.{ts,tsx,js,jsx,json}",
       "**/packages/indexer/src/**/*.{ts,tsx,js,jsx,json}",
       "**/packages/contracts/src/**/*.{ts,tsx,js,jsx}",
       "**/packages/contracts/script/**/*.{ts,tsx,js,jsx}",
@@ -67,6 +68,7 @@
     "includes": [
       "**/packages/client/src/**/*.{ts,tsx,js,jsx,json}",
       "**/packages/admin/src/**/*.{ts,tsx,js,jsx,json}",
+      "**/packages/shared/src/**/*.{ts,tsx,js,jsx,json}",
       "**/packages/indexer/src/**/*.{ts,tsx,js,jsx,json}",
       "**/packages/contracts/src/**/*.{ts,tsx,js,jsx}",
       "**/packages/contracts/script/**/*.{ts,tsx,js,jsx}",

@@ -40,11 +40,11 @@ Scripts live in `package.json`; contract-specific flows are described in the Con
 
 ## Documentation
 
-- [Architecture](./docs/ARCHITECTURE.md) — full system map and package summaries
-- [Developer Guide](./docs/DEVELOPER_GUIDE.md) — environment setup, testing, troubleshooting
-- [Contracts Handbook](./docs/CONTRACTS_HANDBOOK.md) — deployment, upgrades, schema care, validation
-- [Platform Overview](./docs/PLATFORM_OVERVIEW.md) — product architecture and data flow
-- [Karma GAP Integration](./docs/KARMA_GAP_INTEGRATION.md) — appendix for the GAP attestation bridge
+- [System Architecture](./docs/developer/architecture.md) — full system map and package summaries (GitBook canonical doc)
+- [Developer Getting Started](./docs/developer/getting-started.md) — environment setup, testing, troubleshooting
+- [Contracts Handbook](./docs/developer/contracts-handbook.md) — deployment, upgrades, schema care, validation
+- [Product Overview](./docs/features/overview.md) — product architecture and data flow
+- [Karma GAP Integration](./docs/developer/karma-gap.md) — appendix for the GAP attestation bridge
 
 Package-specific READMEs:
 

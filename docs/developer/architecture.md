@@ -1,5 +1,9 @@
 # Architecture
 
+> **Audience:** Contributors who need an end-to-end view across packages.
+> **Networks:** Arbitrum One (42161), Celo (42220), Base Sepolia (84532). Deployment data lives in `packages/contracts/deployments/*.json`. Updated November 2024.
+> **External references:** Review [Envio docs](https://docs.envio.dev/) and [EAS docs](https://docs.attest.org/) when working on indexer or attestation flows.
+
 This guide maps the Green Goods monorepo, summarising package responsibilities, technology stacks, and operational entry points. It pulls together the essentials that previously lived in package-level READMEs.
 
 ## System Layers
@@ -60,7 +64,7 @@ All packages share the root `.env`; Base Sepolia (`84532`) is the default networ
   bun --filter contracts deploy:testnet   # wraps deploy.js (Base Sepolia)
   bun --filter contracts upgrade:testnet  # UUPS upgrade wrapper
   ```
-- **Checklist**: See the [Contracts Handbook](./CONTRACTS_HANDBOOK.md) for deployment, upgrade, schema, and validation procedures.
+- **Checklist**: See the [Contracts Handbook](contracts-handbook.md) for deployment, upgrade, schema, and validation procedures.
 
 ## Data & Integration Flow
 
@@ -80,7 +84,7 @@ All packages share the root `.env`; Base Sepolia (`84532`) is the default networ
 
 ## Related References
 
-- [Platform Overview](./PLATFORM_OVERVIEW.md) — condensed product & data map
-- [Developer Guide](./DEVELOPER_GUIDE.md) — environment, testing, troubleshooting
-- [Contracts Handbook](./CONTRACTS_HANDBOOK.md) — lifecycle workflows
+- [Product Overview](../features/overview.md) — condensed product & data map
+- [Developer Docs](../developer/getting-started.md) — environment, testing, troubleshooting
+- [Contracts Handbook](../developer/contracts-handbook.md) — lifecycle workflows
 - Package-specific deep dives remain in their respective `AGENTS.md` and README files for implementation details.

@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Ensure nvm is available and use Node 22 if possible
+# Ensure nvm is available and use Node version from .nvmrc if possible
 export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-# Try to use project Node version (22) silently; ignore errors if nvm is missing
-nvm use --silent 22 >/dev/null 2>&1 || true
+# Try to use project Node version from .nvmrc silently; ignore errors if nvm is missing
+if [ -f .nvmrc ]; then
+  nvm use --silent >/dev/null 2>&1 || true
+fi
 
 # Try bun first, fall back to npm
 if command -v bun >/dev/null 2>&1; then

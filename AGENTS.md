@@ -32,7 +32,7 @@ Default to local commands (rg, bun, forge) when the task is small. Escalate to M
    - Document non-obvious flows with concise comments
 3. **Before handing off**
    - Run `bun format && bun lint && bun test` or the package-specific equivalent
-   - Update documentation alongside behaviour changes (see `docs/DEVELOPER_GUIDE.md`, package READMEs)
+- Update documentation alongside behaviour changes (see `docs/developer/getting-started.md` and `docs/developer/contributing.md`, package READMEs)
    - Surface remaining risks, manual steps, or test gaps in the final message
 
 ## Common Patterns
@@ -44,9 +44,9 @@ Default to local commands (rg, bun, forge) when the task is small. Escalate to M
 
 ## Reference Materials
 
-- [Developer Guide](./docs/DEVELOPER_GUIDE.md) — environment, testing, troubleshooting
-- [Contracts Handbook](./docs/CONTRACTS_HANDBOOK.md) — deployment + upgrade playbooks
-- [Platform Overview](./docs/PLATFORM_OVERVIEW.md) — architecture snapshot
-- [Karma GAP Integration](./docs/KARMA_GAP_INTEGRATION.md) — GAP-specific context
+- [Developer Docs](./docs/developer/getting-started.md) — environment, testing, troubleshooting
+- [Contracts Handbook](./docs/developer/contracts-handbook.md) — deployment + upgrade playbooks
+- [Product Overview](./docs/features/overview.md) — architecture snapshot
+- [Karma GAP Integration](./docs/developer/karma-gap.md) — GAP-specific context
 
 When in doubt, check recent commits for precedent, or ask for clarification instead of guessing. Consistency across packages is the priority.
