@@ -10,4 +10,3 @@ export const cn = (...inputs: ClassValue[]) => {
 };
 
 export type { ClassValue };
-

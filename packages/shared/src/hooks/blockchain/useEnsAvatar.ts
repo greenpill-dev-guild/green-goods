@@ -38,4 +38,3 @@ export function useEnsAvatar(address?: string | null, options: UseEnsAvatarOptio
     enabled,
   });
 }
-

@@ -46,7 +46,7 @@ export const useWorkFlowStore = create<WorkFlowState>((set, get) => ({
       oldValue: currentState.gardenAddress,
       newValue: id,
       timestamp: new Date().toISOString(),
-      stack: new Error().stack?.split('\n').slice(2, 5).join('\n'), // Show caller
+      stack: new Error().stack?.split("\n").slice(2, 5).join("\n"), // Show caller
     });
     set({ gardenAddress: id });
   },
@@ -59,7 +59,7 @@ export const useWorkFlowStore = create<WorkFlowState>((set, get) => ({
     console.log("[useWorkFlowStore] reset() called - clearing all state including gardenAddress", {
       currentGardenAddress: get().gardenAddress,
       timestamp: new Date().toISOString(),
-      stack: new Error().stack?.split('\n').slice(2, 5).join('\n'),
+      stack: new Error().stack?.split("\n").slice(2, 5).join("\n"),
     });
     set({ ...initial, activeTab: WorkTab.Intro, submissionCompleted: false });
   },

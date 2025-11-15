@@ -105,13 +105,12 @@ export async function getActions(): Promise<Action[]> {
               needed: [],
               optional: [],
             },
-            details:
-              actionConfig?.uiConfig?.details || {
-                title: "Details",
-                description: "",
-                feedbackPlaceholder: "",
-                inputs: [],
-              },
+            details: actionConfig?.uiConfig?.details || {
+              title: "Details",
+              description: "",
+              feedbackPlaceholder: "",
+              inputs: [],
+            },
             review: actionConfig?.uiConfig?.review || { title: "Review", description: "" },
             createdAt: createdAt ? Number(createdAt) * 1000 : Date.now(),
           };

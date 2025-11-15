@@ -101,7 +101,7 @@ const parseDataToWork = (
   // Safely extract media with error handling
   const mediaData = data.find((d: any) => d.name === "media");
   const mediaCIDs: string[] = mediaData?.value?.value || [];
-  
+
   // Resolve IPFS CIDs to gateway URLs
   const media = mediaCIDs.map((cid: string) => resolveIPFSUrl(cid, GATEWAY_BASE_URL));
 
@@ -348,4 +348,3 @@ export const getWorkApprovals = async (
     ) ?? []
   );
 };
-

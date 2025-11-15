@@ -72,14 +72,14 @@ export function useWorkApproval() {
 
       if (authMode === "wallet") {
         // Direct wallet submission
-      if (DEBUG_ENABLED) {
-        debugLog("[useWorkApproval] Using direct wallet submission", {
-          chainId,
-          workUID: draft.workUID,
-        });
+        if (DEBUG_ENABLED) {
+          debugLog("[useWorkApproval] Using direct wallet submission", {
+            chainId,
+            workUID: draft.workUID,
+          });
+        }
+        return await submitApprovalDirectly(draft, work.gardenerAddress || "", chainId);
       }
-      return await submitApprovalDirectly(draft, work.gardenerAddress || "", chainId);
-    }
 
       if (DEBUG_ENABLED) {
         debugLog("[useWorkApproval] Queuing approval for passkey flow", {
@@ -89,11 +89,7 @@ export function useWorkApproval() {
         });
       }
 
-      const { txHash: offlineTxHash, jobId } = await submitApprovalToQueue(
-        draft,
-        work,
-        chainId
-      );
+      const { txHash: offlineTxHash, jobId } = await submitApprovalToQueue(draft, work, chainId);
 
       if (DEBUG_ENABLED) {
         debugLog("[useWorkApproval] Approval queued", {
@@ -162,9 +158,13 @@ export function useWorkApproval() {
       const successMessage = isApproval ? "Decision recorded." : "Feedback recorded.";
       const title =
         authMode === "wallet"
-          ? isApproval ? "Approval submitted" : "Decision submitted"
+          ? isApproval
+            ? "Approval submitted"
+            : "Decision submitted"
           : isOfflineHash
-            ? isApproval ? "Approval saved offline" : "Decision saved offline"
+            ? isApproval
+              ? "Approval saved offline"
+              : "Decision saved offline"
             : isApproval
               ? "Approval submitted"
               : "Decision submitted";
@@ -193,9 +193,10 @@ export function useWorkApproval() {
     },
     onError: (error: unknown, variables) => {
       const isApproval = variables?.draft.approved ?? false;
-      const message = authMode === "wallet"
-        ? "Transaction failed. Check your wallet and try again."
-        : `We couldn't send the ${isApproval ? "approval" : "decision"}. We'll retry shortly.`;
+      const message =
+        authMode === "wallet"
+          ? "Transaction failed. Check your wallet and try again."
+          : `We couldn't send the ${isApproval ? "approval" : "decision"}. We'll retry shortly.`;
       toastService.error({
         id: "approval-submit",
         title: isApproval ? "Approval failed" : "Decision failed",

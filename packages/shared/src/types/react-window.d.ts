@@ -145,4 +145,3 @@ declare module "react-window" {
     config: Record<string, unknown>
   ): React.ComponentType<FixedSizeGridProps<TData>>;
 }
-

@@ -39,24 +39,24 @@ export function getPimlicoPaymasterUrl(chainId: number): string {
  * extends with additional test networks (mainnet, sepolia)
  */
 function getPimlicoChain(chainId: number): Chain {
-	// Use shared chain config for supported chains
-	if (isChainSupported(chainId)) {
-		return getChain(chainId);
-	}
-	
-	// Extended chains for testing (not in SUPPORTED_CHAINS)
-	switch (chainId) {
-		case 1:
-			return mainnet;
-		case 11155111:
-			return sepolia;
-		default:
-			throw new Error(`Unsupported chain ID for Pimlico: ${chainId}`);
-	}
+  // Use shared chain config for supported chains
+  if (isChainSupported(chainId)) {
+    return getChain(chainId);
+  }
+
+  // Extended chains for testing (not in SUPPORTED_CHAINS)
+  switch (chainId) {
+    case 1:
+      return mainnet;
+    case 11155111:
+      return sepolia;
+    default:
+      throw new Error(`Unsupported chain ID for Pimlico: ${chainId}`);
+  }
 }
 
 export function createPimlicoClientForChain(chainId: number) {
-	const chain = getPimlicoChain(chainId);
+  const chain = getPimlicoChain(chainId);
   const bundlerUrl = getPimlicoBundlerUrl(chainId);
 
   return createPimlicoClient({
@@ -75,12 +75,12 @@ export function createPimlicoClientForChain(chainId: number) {
  */
 function buildAlchemyRpcUrl(chainId: number, chain: Chain): string {
   const alchemyKey = import.meta.env.VITE_ALCHEMY_API_KEY;
-  
+
   if (!alchemyKey) {
     // No Alchemy key, use chain's default RPC
     return chain.rpcUrls.default.http[0];
   }
-  
+
   // Build Alchemy RPC URL based on chain
   switch (chainId) {
     case 1: // Mainnet
@@ -100,7 +100,7 @@ function buildAlchemyRpcUrl(chainId: number, chain: Chain): string {
 }
 
 export function createPublicClientForChain(chainId: number) {
-	const chain = getPimlicoChain(chainId);
+  const chain = getPimlicoChain(chainId);
   const rpcUrl = buildAlchemyRpcUrl(chainId, chain);
 
   return createPublicClient({

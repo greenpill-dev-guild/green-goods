@@ -112,4 +112,3 @@ export function removeCachedAvatar(address: string): void {
   cache.entries = cache.entries.filter((e) => e.address !== normalized);
   setCache(cache);
 }
-

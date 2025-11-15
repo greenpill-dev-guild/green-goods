@@ -1,4 +1,4 @@
 // Re-export all browser mocks
-export * from './crypto';
-export * from './indexeddb';
-export * from './navigator';
+export * from "./crypto";
+export * from "./indexeddb";
+export * from "./navigator";

@@ -15,4 +15,3 @@ export {
   registerErrorSignature,
   type ParsedContractError,
 } from "./contract-errors";
-
