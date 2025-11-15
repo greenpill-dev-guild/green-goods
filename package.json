@@ -29,7 +29,7 @@
 
     "format": "bunx @biomejs/biome format --write .",
     "format:check": "bunx @biomejs/biome format .",
-    "lint": "bunx oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/contracts/script",
+    "lint": "bun oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/contracts/script",
     "test": "bun run test:client && bun run test:admin && bun run test:indexer && bun run test:contracts",
 
     "test:e2e": "playwright test",
@@ -74,8 +74,7 @@
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json}": [
-      "bunx @biomejs/biome format --write",
-      "bunx oxlint"
+      "bunx @biomejs/biome format --write"
     ],
     "*.sol": [
       "cd packages/contracts && bun run format"
