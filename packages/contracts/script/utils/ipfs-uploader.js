@@ -24,126 +24,52 @@ const CACHE_FILE = path.join(process.cwd(), ".ipfs-cache.json");
 const ACTIONS_FILE = path.join(process.cwd(), "config", "actions.json");
 
 /**
- * Generate enhanced instructions document for an action
+ * Get template for an action based on its title
+ * Templates are loaded from actions.json and matched by keyword in title
+ *
+ * @param {string} title - Action title
+ * @param {object} templates - Template definitions from actions.json
+ * @returns {object} Template with steps, requirements, and tips
  */
-function generateInstructionsDocument(action) {
-  const title = action.title.toLowerCase();
+function getTemplateForAction(title, templates) {
+  const lowerTitle = title.toLowerCase();
 
-  // Generate action-specific steps
-  let steps = [];
-  if (title.includes("plant")) {
-    steps = [
-      "Photograph the planting location before starting",
-      "Prepare the soil and planting area according to plant requirements",
-      "Plant at appropriate depth and spacing for the species",
-      "Water thoroughly if needed",
-      "Take after photos documenting the completed planting",
-      "Record plant type, species/name, count, and any observations",
-    ];
-  } else if (title.includes("identify") || title.includes("observe")) {
-    steps = [
-      "Locate and photograph the plants you are identifying",
-      "Document visual characteristics (leaves, bark, flowers, fruits)",
-      "Note the plant's size, shape, and growth pattern",
-      "Record environmental conditions and habitat",
-      "Assess overall health and note any issues",
-      "Upload photos and complete the identification form",
-    ];
-  } else if (title.includes("litter")) {
-    steps = [
-      "Photograph the area before cleanup begins",
-      "Safely collect and sort litter by type",
-      "Count and weigh collected items if possible",
-      "Take photos of collected litter for documentation",
-      "Properly dispose of or recycle collected materials",
-      "Photograph the cleaned area and submit your report",
-    ];
-  } else {
-    steps = [
-      "Review the action requirements carefully",
-      "Gather necessary materials and tools",
-      "Document the before state with photos",
-      "Complete the action according to guidelines",
-      "Document the after state with photos",
-      "Submit your completed work for verification",
-    ];
+  // Define priority order for keyword matching (more specific first)
+  const keywordPriority = ["identify", "observe", "water", "litter", "waste", "plant"];
+
+  // Try priority keywords first
+  for (const keyword of keywordPriority) {
+    if (lowerTitle.includes(keyword)) {
+      const template = templates[keyword];
+      if (!template) continue;
+
+      // Handle aliases (e.g., 'observe' → 'identify')
+      if (template.aliasFor) {
+        return templates[template.aliasFor] || templates.default;
+      }
+
+      return template;
+    }
   }
 
-  // Generate requirements
-  let requirements = {
-    materials: [],
-    skills: [],
-    timeEstimate: "30-60 minutes",
-  };
+  // Fallback to default template
+  return (
+    templates.default || {
+      steps: [],
+      requirements: { materials: [], skills: [], timeEstimate: "30-60 minutes" },
+      tips: [],
+    }
+  );
+}
 
-  if (title.includes("plant")) {
-    requirements = {
-      materials: [
-        "Plants (trees, seedlings, shrubs, or other vegetation)",
-        "Digging tools if needed (shovel, trowel)",
-        "Water source (if required)",
-        "Mulch or soil amendments (optional)",
-        "Camera or smartphone",
-      ],
-      skills: ["Basic plant identification", "Proper planting techniques", "Soil preparation"],
-      timeEstimate: "30 minutes - 2 hours",
-    };
-  } else if (title.includes("identify") || title.includes("observe")) {
-    requirements = {
-      materials: [
-        "Camera or smartphone",
-        "Field notebook or digital device",
-        "Measuring tools (optional)",
-        "Plant identification resources (optional)",
-      ],
-      skills: ["Plant observation", "Species recognition", "Note-taking"],
-      timeEstimate: "15-40 minutes",
-    };
-  } else if (title.includes("litter")) {
-    requirements = {
-      materials: [
-        "Gloves",
-        "Bags for collection",
-        "Grabber tool (optional)",
-        "Scale for weighing (optional)",
-        "Camera or smartphone",
-      ],
-      skills: ["Safe litter handling", "Waste type identification", "Proper disposal knowledge"],
-      timeEstimate: "30-90 minutes",
-    };
-  }
-
-  // Generate tips
-  let tips = [];
-  if (title.includes("plant")) {
-    tips = [
-      "Choose planting time based on climate and plant type",
-      "Research proper depth and spacing for your specific plant",
-      "Take clear before/after photos from the same angle",
-      "Label plants or keep records for future reference",
-    ];
-  } else if (title.includes("identify") || title.includes("observe")) {
-    tips = [
-      "Take photos from consistent angles for comparison over time",
-      "Note weather and seasonal conditions",
-      "Use custom names to track specific plants (e.g., 'Oak Tree by Front Gate')",
-      "Regular observations help identify patterns and issues early",
-    ];
-  } else if (title.includes("litter")) {
-    tips = [
-      "Wear gloves for safety and hygiene",
-      "Take before/after comparison photos",
-      "Sort items for proper recycling when possible",
-      "Work in teams for larger areas and safety",
-    ];
-  } else {
-    tips = [
-      "Document your work thoroughly with clear photos",
-      "Provide detailed descriptions in your submission",
-      "Ask questions if any requirements are unclear",
-      "Share learnings with your community",
-    ];
-  }
+/**
+ * Generate enhanced instructions document for an action
+ * @param {object} action - Action configuration from actions.json
+ * @param {object} templates - Template definitions from actions.json
+ * @returns {object} Complete instructions document for IPFS
+ */
+function generateInstructionsDocument(action, templates) {
+  const template = getTemplateForAction(action.title, templates);
 
   return {
     title: action.title,
@@ -154,9 +80,9 @@ function generateInstructionsDocument(action) {
       end: action.endTime,
     },
     uiConfig: action.uiConfig,
-    steps,
-    requirements,
-    tips,
+    steps: template.steps,
+    requirements: template.requirements,
+    tips: template.tips,
   };
 }
 
@@ -226,9 +152,15 @@ async function main() {
 
     const actionsData = JSON.parse(fs.readFileSync(ACTIONS_FILE, "utf8"));
     const actions = actionsData.actions;
+    const templates = actionsData.templates;
 
     if (!actions || !Array.isArray(actions)) {
-      console.error("Error: Invalid actions.json format", { toStderr: true });
+      console.error("Error: Invalid actions.json format - missing or invalid 'actions' array", { toStderr: true });
+      process.exit(1);
+    }
+
+    if (!templates || typeof templates !== "object") {
+      console.error("Error: Invalid actions.json format - missing or invalid 'templates' object", { toStderr: true });
       process.exit(1);
     }
 
@@ -281,7 +213,7 @@ async function main() {
       }
 
       // Generate instructions document
-      const instructionsDoc = generateInstructionsDocument(action);
+      const instructionsDoc = generateInstructionsDocument(action, templates);
 
       // Upload to IPFS (silent to avoid Forge error logs)
       try {
