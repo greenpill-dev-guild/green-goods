@@ -1,0 +1,134 @@
+@import "tailwindcss";
+@import "@green-goods/shared/styles/theme.css";
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Open Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Hide scrollbars globally */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+*::-webkit-scrollbar {
+  display: none; /* WebKit */
+}
+
+/* Lock the root document to prevent double scrollbars; delegate scroll to app shell */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+#root {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================================================
+ * DESIGN SYSTEM - Shadows & Elevation
+ * ============================================================================ */
+
+/* Shadow system for depth */
+.shadow-xs {
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+.shadow-sm {
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+}
+
+.shadow-md {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+.shadow-lg {
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+.shadow-xl {
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+.shadow-2xl {
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+}
+
+/* Dark mode - stronger shadows */
+[data-theme="dark"] .shadow-sm {
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.5), 0 1px 2px -1px rgb(0 0 0 / 0.5);
+}
+
+[data-theme="dark"] .shadow-md {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.5);
+}
+
+[data-theme="dark"] .shadow-lg {
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.7), 0 4px 6px -4px rgb(0 0 0 / 0.7);
+}
+
+[data-theme="dark"] .shadow-xl {
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.7), 0 8px 10px -6px rgb(0 0 0 / 0.7);
+}
+
+[data-theme="dark"] .shadow-2xl {
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.8);
+}
+
+/* ============================================================================
+ * FORM INPUTS - Theme-Adaptive Styling
+ * ============================================================================ */
+
+/* Form inputs that adapt to theme */
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  background: inherit;
+  border: 1px solid rgb(var(--stroke-sub-300));
+  color: rgb(var(--text-strong-950));
+  transition: all 200ms ease;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: rgb(var(--focus-ring));
+  box-shadow: 0 0 0 3px rgb(var(--focus-ring) / 0.1);
+}
+
+input:not([type="checkbox"]):not([type="radio"]):disabled,
+select:disabled,
+textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: rgb(var(--bg-soft-200));
+}
+
+/* Placeholder text */
+input::placeholder,
+textarea::placeholder {
+  color: rgb(var(--text-soft-400));
+}
+
+/* ============================================================================
+ * SKELETON LOADING - Shimmer Animation
+ * ============================================================================ */
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

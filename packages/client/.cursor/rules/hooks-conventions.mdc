@@ -1,0 +1,552 @@
+---
+description: Hook naming conventions, query key patterns, event-driven hooks, blockchain hooks
+globs:
+  - hooks/**
+alwaysApply: false
+---
+
+# Hook Conventions & Patterns
+
+Green Goods client uses custom hooks extensively. This rule documents naming conventions, composition patterns, and common hook structures.
+
+## Naming Conventions
+
+### Pattern: `use[Entity][Action]`
+
+```typescript
+// Entity + Action
+useGardens()              // Fetch gardens
+useGardenJoin()           // Join garden action
+useWorkApprovals()        // Fetch work approvals
+useAutoJoinRootGarden()   // Auto-join action
+
+// Entity only (implies fetch/get)
+useUser()                 // Get current user
+useAuth()                 // Get auth state
+useOffline()              // Get offline status
+
+// Feature-specific
+useBrowserNavigation()    // Browser back/forward handling
+useNavigateToTop()        // Navigate with scroll reset
+useMerged()               // Merge online/offline data
+```
+
+### Prefixes
+
+- **`use`** — Required for all hooks
+- **`useJob`** — Job queue related
+- **`useGarden`** — Garden operations
+- **`useWork`** — Work submissions
+- **`useChain`** — Blockchain config
+
+## Query Hooks Pattern
+
+### Standard Query Hook
+
+```typescript
+// hooks/blockchain/useBaseLists.ts
+export function useActions(chainId: number = DEFAULT_CHAIN_ID) {
+  return useQuery({
+    queryKey: ['actions', chainId],
+    queryFn: () => getActions(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useGardens(chainId: number = DEFAULT_CHAIN_ID) {
+  return useQuery({
+    queryKey: ['gardens', chainId],
+    queryFn: () => getGardens(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+```
+
+**Always:**
+- Return query object directly (don't destructure)
+- Use centralized query keys
+- Set appropriate staleTime
+- Default chainId to DEFAULT_CHAIN_ID
+
+### Query Hook with Params
+
+```typescript
+export function useWorks(gardenId: string) {
+  const chainId = useCurrentChain();
+  
+  return useQuery({
+    queryKey: queryKeys.works.online(gardenId, chainId),
+    queryFn: () => getWorks(gardenId, chainId),
+    enabled: !!gardenId,  // Only run if gardenId provided
+    staleTime: 30000,
+  });
+}
+```
+
+### Merged Query Hook
+
+```typescript
+// hooks/work/useWorks.ts
+export function useWorks(gardenId: string) {
+  const merged = useMerged<WorkCard[], Job<WorkJobPayload>[], Work[]>({
+    onlineKey: queryKeys.works.online(gardenId, chainId),
+    offlineKey: queryKeys.works.offline(gardenId),
+    mergedKey: queryKeys.works.merged(gardenId, chainId),
+    
+    fetchOnline: () => getWorks(gardenId, chainId),
+    fetchOffline: async () => {
+      const jobs = await jobQueue.getJobs({ kind: 'work', synced: false });
+      return jobs.filter(job => job.payload.gardenAddress === gardenId);
+    },
+    
+    merge: async (online, offline) => {
+      // Merge + deduplicate logic
+      return mergedWorks;
+    },
+    
+    events: [{ subscribe: (listener) => /* ... */ }]
+  });
+  
+  return {
+    works: merged.merged.data || [],
+    isLoading: merged.merged.isLoading,
+    error: merged.merged.error,
+    offlineCount: (merged.offline.data || []).length,
+    onlineCount: (merged.online.data || []).length,
+    refetch: () => {
+      merged.online.refetch();
+      merged.offline.refetch();
+      merged.merged.refetch();
+    },
+  };
+}
+```
+
+## Event-Driven Hooks
+
+### useJobQueueEvents Pattern
+
+```typescript
+import { useJobQueueEvents } from '@/modules/job-queue/event-bus';
+
+// In component or hook
+useJobQueueEvents(
+  ['job:added', 'job:completed', 'job:failed'],
+  (_eventType, data) => {
+    if ('job' in data && data.job.kind === 'work') {
+      queryClient.invalidateQueries({ queryKey: queryKeys.works.offline(gardenId) });
+    }
+  },
+  [gardenId]  // Dependencies
+);
+```
+
+### Custom Event Hook
+
+```typescript
+export function usePendingWorksCount() {
+  const queryClient = useQueryClient();
+  
+  const query = useQuery({
+    queryKey: queryKeys.queue.pendingCount(),
+    queryFn: async () => {
+      const jobs = await jobQueue.getJobs({ kind: 'work', synced: false });
+      return jobs.length;
+    },
+    staleTime: 10000,
+  });
+  
+  // Auto-invalidate on events
+  useJobQueueEvents(['job:added', 'job:completed', 'job:failed'], () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.queue.pendingCount() });
+  });
+  
+  return query;
+}
+```
+
+## Blockchain Hooks
+
+### Chain Config Hooks
+
+```typescript
+// hooks/blockchain/useChainConfig.ts
+
+// MANDATORY: Use env-based chain, not wallet
+export function useCurrentChain() {
+  return useMemo(() => DEFAULT_CHAIN_ID, []);
+}
+
+// Get EAS configuration
+export function useEASConfig() {
+  const chainId = useCurrentChain();
+  return useMemo(() => getEASConfig(chainId), [chainId]);
+}
+
+// Get network configuration
+export function useNetworkConfig() {
+  const chainId = useCurrentChain();
+  return useMemo(() => getNetworkConfig(chainId), [chainId]);
+}
+
+// Combined config
+export function useChainConfig() {
+  const chainId = useCurrentChain();
+  const easConfig = useEASConfig();
+  const networkConfig = useNetworkConfig();
+  
+  return useMemo(
+    () => ({ chainId, eas: easConfig, network: networkConfig }),
+    [chainId, easConfig, networkConfig]
+  );
+}
+```
+
+**Critical:** Chain ID comes from environment ONLY, never from wallet.
+
+### Garden Join Hook
+
+```typescript
+// hooks/garden/useGardenJoin.ts
+export function useGardenJoin() {
+  const { smartAccountClient, smartAccountAddress, isReady } = useAuth();
+  const chainId = useCurrentChain();
+  const [isJoining, setIsJoining] = useState(false);
+  
+  const validateInvite = async (gardenAddress: Hex, inviteCode: Hex): Promise<InviteValidation> => {
+    const publicClient = createPublicClientForChain(chainId);
+    
+    const isValid = await publicClient.readContract({
+      address: gardenAddress,
+      abi: GARDEN_ACCOUNT_ABI,
+      functionName: 'gardenInvites',
+      args: [inviteCode],
+    });
+    
+    // Check expiry, used status, etc.
+    return { isValid, isExpired, isUsed };
+  };
+  
+  const joinWithInvite = async (gardenAddress: Hex, inviteCode: Hex) => {
+    if (!smartAccountClient || !isReady) {
+      return { success: false, error: 'Wallet not ready' };
+    }
+    
+    // Validate first
+    const validation = await validateInvite(gardenAddress, inviteCode);
+    if (!validation.isValid) {
+      return { success: false, error: validation.error };
+    }
+    
+    setIsJoining(true);
+    try {
+      const data = encodeFunctionData({
+        abi: GARDEN_ACCOUNT_ABI,
+        functionName: 'joinGardenWithInvite',
+        args: [inviteCode],
+      });
+      
+      const txHash = await smartAccountClient.sendTransaction({
+        to: gardenAddress,
+        data,
+        value: 0n,
+      });
+      
+      return { success: true, transactionHash: txHash };
+    } catch (err) {
+      return { success: false, error: err.message };
+    } finally {
+      setIsJoining(false);
+    }
+  };
+  
+  return { joinWithInvite, validateInvite, isJoining };
+}
+```
+
+## Hook Return Types
+
+### Consistent Return Structure
+
+**Query hooks:**
+```typescript
+interface QueryHookReturn<T> {
+  data: T | undefined;
+  isLoading: boolean;
+  error: Error | null;
+  refetch: () => void;
+}
+```
+
+**Action hooks:**
+```typescript
+interface ActionHookReturn {
+  execute: (...args) => Promise<Result>;
+  isExecuting: boolean;
+  error: Error | null;
+  reset: () => void;
+}
+```
+
+**Combined hooks:**
+```typescript
+interface CombinedHookReturn<T> {
+  data: T[];
+  isLoading: boolean;
+  error: Error | null;
+  actions: {
+    create: (item: T) => Promise<void>;
+    update: (id: string, item: Partial<T>) => Promise<void>;
+    delete: (id: string) => Promise<void>;
+  };
+}
+```
+
+## Custom Hook Composition
+
+### Composing Multiple Hooks
+
+```typescript
+export function useWorkDashboard() {
+  const { smartAccountAddress } = useUser();
+  const { data: stats } = useQueueStatistics();
+  const { data: pendingCount } = usePendingWorksCount();
+  const { works } = useWorks(gardenId);
+  const { approvals } = useWorkApprovals(smartAccountAddress);
+  
+  // Derived state
+  const pendingWork = useMemo(
+    () => works.filter(w => w.status === 'pending'),
+    [works]
+  );
+  
+  const uploadingWork = useMemo(
+    () => stats ? stats.pending + stats.failed : 0,
+    [stats]
+  );
+  
+  return {
+    stats,
+    pendingCount,
+    pendingWork,
+    uploadingWork,
+    approvals,
+    works,
+  };
+}
+```
+
+### Extract-Hook Refactoring
+
+When components get complex, extract hooks:
+
+```typescript
+// Before - component too large
+function WorkDashboard() {
+  const [activeTab, setActiveTab] = useState('pending');
+  const [pendingWork, setPendingWork] = useState([]);
+  const [stats, setStats] = useState(null);
+  // ... 50 more lines
+}
+
+// After - extracted to custom hook
+function useWorkDashboardState() {
+  // All state logic
+  return { activeTab, setActiveTab, pendingWork, stats, /* ... */ };
+}
+
+function WorkDashboard() {
+  const state = useWorkDashboardState();
+  return <UI {...state} />;
+}
+```
+
+## Memoization Patterns
+
+### useMemo for Expensive Computations
+
+```typescript
+const actionById = useMemo(() => {
+  const map = new Map<string, Action>();
+  for (const action of actions) {
+    const idPart = String(action.id).split('-').pop();
+    if (idPart) map.set(idPart, action);
+  }
+  return map;
+}, [actions]);
+```
+
+### useCallback for Event Handlers
+
+```typescript
+const handleWorkClick = useCallback(
+  (workId: string) => {
+    navigate(`/home/${gardenAddress}/work/${workId}`);
+  },
+  [gardenAddress, navigate]
+);
+```
+
+**When to use:**
+- Expensive computations (filtering large lists, creating maps)
+- Functions passed to child components (prevent re-renders)
+- Dependencies in other hooks
+
+**When NOT to use:**
+- Simple primitive calculations
+- Functions not passed as props
+- Over-optimization (hurts readability)
+
+## Dependency Array Best Practices
+
+### Include All Dependencies
+
+```typescript
+// Correct
+useEffect(() => {
+  if (gardenId && chainId) {
+    fetchData(gardenId, chainId);
+  }
+}, [gardenId, chainId]);  // All used variables
+
+// Wrong
+useEffect(() => {
+  fetchData(gardenId, chainId);
+}, []);  // ❌ Missing dependencies
+```
+
+### Stable References
+
+```typescript
+// Problem: Function recreated every render
+function MyComponent({ onUpdate }) {
+  useEffect(() => {
+    onUpdate();
+  }, [onUpdate]);  // Will trigger on every render
+}
+
+// Solution 1: useCallback in parent
+<MyComponent onUpdate={useCallback(() => { /* ... */ }, [])} />
+
+// Solution 2: useEvent (React 19)
+const onUpdateEvent = useEvent(onUpdate);
+useEffect(() => {
+  onUpdateEvent();
+}, []);
+```
+
+## Error Handling in Hooks
+
+### Try-Catch Pattern
+
+```typescript
+export function useStorageManager() {
+  const [storageInfo, setStorageInfo] = useState<StorageAnalytics | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  
+  const refreshStorageInfo = useCallback(async () => {
+    try {
+      setError(null);
+      const analytics = await defaultStorageManager.getAnalytics();
+      setStorageInfo(analytics);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch storage info');
+      console.error('[StorageManager]', err);
+    }
+  }, []);
+  
+  return { storageInfo, error, refreshStorageInfo };
+}
+```
+
+### Query Error Handling
+
+```typescript
+const { data, error, isError } = useQuery({
+  queryKey: ['gardens'],
+  queryFn: getGardens,
+  throwOnError: false,  // Handle gracefully
+  retry: 1,
+});
+
+// In component
+if (isError) {
+  return <ErrorMessage error={error} />;
+}
+```
+
+## Anti-Patterns
+
+### ❌ Don't Create God Hooks
+
+```typescript
+// Wrong - too many responsibilities
+function useEverything() {
+  const auth = useAuth();
+  const gardens = useGardens();
+  const works = useWorks();
+  const approvals = useApprovals();
+  const jobs = useJobs();
+  // ... returns 50 properties
+}
+
+// Correct - focused hooks
+function MyComponent() {
+  const { user } = useUser();
+  const { gardens } = useGardens();
+  const { works } = useWorks(gardenId);
+}
+```
+
+### ❌ Don't Duplicate Query Logic
+
+```typescript
+// Wrong - duplicating fetch logic
+function useMyGardens() {
+  const { data } = useQuery({
+    queryKey: ['gardens'],
+    queryFn: async () => {
+      const res = await fetch('/api/gardens');
+      return res.json();
+    }
+  });
+}
+
+// Correct - use existing hook
+function useMyGardens() {
+  const { data: allGardens } = useGardens();
+  const { user } = useUser();
+  
+  return useMemo(
+    () => allGardens?.filter(g => g.operators.includes(user?.address)),
+    [allGardens, user]
+  );
+}
+```
+
+### ❌ Don't Ignore Hook Rules
+
+```typescript
+// Wrong - conditional hook
+if (condition) {
+  const data = useQuery(/*...*/);  // ❌ Breaks rules of hooks
+}
+
+// Correct - hook always called
+const { data } = useQuery({
+  /* ... */,
+  enabled: condition  // Conditionally enable
+});
+```
+
+## Reference Files
+
+- Query keys: `src/hooks/query-keys.ts`
+- Base lists: `src/hooks/blockchain/useBaseLists.ts`
+- Chain config: `src/hooks/blockchain/useChainConfig.ts`
+- Auth: `src/hooks/auth/useAuth.ts`, `useUser.ts`
+- Garden: `src/hooks/garden/useGardenJoin.ts`, `useAutoJoinRootGarden.ts`, `useGardenTabs.ts`
+- Work: `src/hooks/work/useWorks.ts`, `useWorkApprovals.ts`, `useStorageManager.ts`
+- App: `src/hooks/app/useOffline.ts`, `useMerged.ts`, `useNavigateToTop.ts`, `useBrowserNavigation.ts`
+- Prefetch: `src/hooks/blockchain/prefetch.ts`
+- Hook index: `src/hooks/index.ts`

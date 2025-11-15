@@ -1,3 +1,5 @@
+import { useNavigateToTop } from "@green-goods/shared/hooks";
+import { cn } from "@green-goods/shared/utils";
 import {
   type RemixiconComponentType,
   RiHomeFill,
@@ -9,9 +11,6 @@ import {
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link, useLocation } from "react-router-dom";
-
-import { useNavigateToTop } from "@/hooks";
-import { cn } from "@/utils/cn";
 
 export const AppBar = () => {
   const { pathname } = useLocation();

@@ -1,4 +1,5 @@
 import { cleanup } from "@testing-library/react";
+import { createRequire } from "node:module";
 import { afterEach, beforeAll, vi } from "vitest";
 
 // import "@testing-library/jest-dom"; // Extend expect with custom matchers
@@ -8,6 +9,35 @@ import "@testing-library/jest-dom/vitest";
 import "fake-indexeddb/auto";
 import "../__mocks__/navigator";
 import "../__mocks__/crypto";
+
+const ensureDiagnosticsChannel = () => {
+  const require = createRequire(import.meta.url);
+  const stub = () => ({
+    subscribe: () => undefined,
+    unsubscribe: () => undefined,
+    hasSubscribers: false,
+  });
+
+  try {
+    const diagCjs = require("node:diagnostics_channel");
+    if (typeof diagCjs.tracingChannel !== "function") {
+      diagCjs.tracingChannel = stub;
+    }
+  } catch {
+    // ignore
+  }
+};
+
+ensureDiagnosticsChannel();
+
+vi.mock("@reown/appkit", () => ({
+  AppKit: class {
+    initialize() {
+      return Promise.resolve();
+    }
+    destroy() {}
+  },
+}));
 
 // Setup global mocks
 beforeAll(() => {

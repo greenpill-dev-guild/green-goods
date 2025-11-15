@@ -1,17 +1,16 @@
+import { queryClient } from "@green-goods/shared/config/react-query";
+import { ensureBaseLists } from "@green-goods/shared/hooks";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
-  PersistQueryClientProvider,
-  type Persister,
   type PersistedClient,
+  type Persister,
+  PersistQueryClientProvider,
 } from "@tanstack/react-query-persist-client";
-import { set as idbSet, get as idbGet, del as idbDel, createStore } from "idb-keyval";
+import { createStore, del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
 import { useEffect } from "react";
 import { RouterProvider } from "react-router-dom";
 import { AppErrorBoundary } from "@/components/UI/ErrorBoundary/AppErrorBoundary";
-
-import { queryClient } from "@/modules/react-query";
-import { ensureBaseLists } from "@/hooks/prefetch";
-import "@/modules/service-worker"; // Initialize service worker
+import "@green-goods/shared/modules/app/service-worker"; // Initialize service worker
 import { router } from "@/router";
 
 const createSyncStoragePersister = ({ storage }: { storage: Storage }): Persister => {

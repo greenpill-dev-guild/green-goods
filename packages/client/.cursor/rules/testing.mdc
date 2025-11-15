@@ -1,0 +1,754 @@
+---
+description: Testing conventions — Vitest, Playwright MCP, mocks, test helpers, coverage targets
+globs:
+  - __tests__/**
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - __mocks__/**
+alwaysApply: false
+---
+
+# Testing Conventions & Patterns
+
+Green Goods client uses Vitest for unit/integration tests and Playwright (via MCP) for E2E tests. This rule documents testing patterns, mock structures, and quality expectations.
+
+## Test Framework: Vitest
+
+### Why Vitest
+
+- Native Vite integration
+- Fast test execution
+- Built-in coverage
+- Compatible with Jest APIs
+- TypeScript support
+
+### Test Organization
+
+```
+src/
+├── __tests__/
+│   ├── components/           # Component tests
+│   │   └── ImagePreviewDialog.test.tsx
+│   ├── hooks/                # Hook tests
+│   │   └── useUser.test.tsx
+│   ├── modules/              # Service layer tests
+│   │   ├── deduplication.test.ts
+│   │   ├── job-queue.core.test.ts
+│   │   └── pinata.test.ts
+│   ├── integration/          # Multi-component flows
+│   ├── providers/            # Context provider tests
+│   │   └── AuthProvider.test.tsx
+│   ├── routes/               # Route guard tests
+│   │   └── RequireAuth.test.tsx
+│   ├── views/                # View tests
+│   │   └── Login.test.tsx
+│   ├── setupTests.ts         # Global test setup
+│   ├── offline-test-helpers.ts  # Offline-specific utilities
+│   └── utils/
+│       └── test-helpers.tsx  # Shared test utilities
+├── __mocks__/
+│   ├── crypto.ts             # Web Crypto API mock
+│   ├── indexeddb.ts          # IndexedDB mock
+│   └── navigator.ts          # Navigator API mock
+```
+
+## Test Setup
+
+### setupTests.ts
+
+```typescript
+// __tests__/setupTests.ts
+import { cleanup } from '@testing-library/react';
+import { afterEach, beforeAll, vi } from 'vitest';
+import '@testing-library/jest-dom/vitest';
+
+// Import mocks
+import 'fake-indexeddb/auto';
+import '../__mocks__/navigator';
+import '../__mocks__/crypto';
+
+beforeAll(() => {
+  // Mock fetch
+  global.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: vi.fn().mockResolvedValue({}),
+  });
+  
+  // Mock console to reduce noise
+  global.console = {
+    ...console,
+    warn: vi.fn(),
+    error: vi.fn(),
+    log: console.log,  // Keep for debugging
+  };
+  
+  // Mock window properties
+  Object.defineProperty(window, 'matchMedia', {
+    value: vi.fn().mockImplementation(query => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  });
+  
+  // Mock URL.createObjectURL
+  global.URL.createObjectURL = vi.fn(() => `blob:mock-${Math.random()}`);
+  global.URL.revokeObjectURL = vi.fn();
+});
+
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
+```
+
+## Mock Structure
+
+### IndexedDB Mock
+
+```typescript
+// __mocks__/indexeddb.ts
+export class MockIDBDatabase {
+  stores = new Map();
+  
+  createObjectStore(name: string, options?: any) {
+    const store = new MockIDBObjectStore(name, options);
+    this.stores.set(name, store);
+    return store;
+  }
+  
+  transaction(storeNames: string | string[], mode = 'readonly') {
+    return new MockIDBTransaction(this);
+  }
+  
+  // Convenience methods like IDBPDatabase
+  add(storeName: string, value: any) { /* ... */ }
+  get(storeName: string, key: any) { /* ... */ }
+  getAll(storeName: string) { /* ... */ }
+}
+
+export const openDB = (name: string, version: number, config?: any) => {
+  const db = new MockIDBDatabase(name, version);
+  if (config?.upgrade) {
+    config.upgrade(db, 0, version);
+  }
+  return Promise.resolve(db);
+};
+```
+
+**Used by:** Job queue tests, offline storage tests
+
+### Navigator Mock
+
+```typescript
+// __mocks__/navigator.ts
+Object.defineProperty(global, 'navigator', {
+  value: {
+    onLine: true,
+    storage: {
+      estimate: () => Promise.resolve({
+        quota: 100 * 1024 * 1024,
+        usage: 20 * 1024 * 1024,
+      }),
+    },
+  },
+  writable: true,
+});
+
+export const mockOnlineStatus = (isOnline: boolean) => {
+  Object.defineProperty(global.navigator, 'onLine', {
+    value: isOnline,
+    writable: true,
+  });
+};
+```
+
+## Test Patterns
+
+### Component Testing
+
+```typescript
+import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+
+describe('ImagePreviewDialog', () => {
+  it('locks scroll, traps focus, and restores on close', async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+    
+    const closeBtn = await screen.findByTestId('image-preview-close');
+    expect(closeBtn).toHaveFocus();
+    expect(document.documentElement.classList.contains('modal-open')).toBe(true);
+    
+    // Escape closes
+    await user.keyboard('{Escape}');
+    expect(screen.queryByTestId('image-preview-dialog')).not.toBeInTheDocument();
+  });
+  
+  it('navigates with arrow keys', async () => {
+    const user = userEvent.setup();
+    render(<ImagePreviewDialog images={IMAGES} />);
+    
+    const img = screen.getByAltText('Preview 1');
+    expect(img.src).toContain('text=1');
+    
+    await user.keyboard('{ArrowRight}');
+    const img2 = screen.getByAltText('Preview 2');
+    expect(img2.src).toContain('text=2');
+  });
+});
+```
+
+### Hook Testing
+
+```typescript
+import { renderHook } from '@testing-library/react';
+
+describe('useUser', () => {
+  it('should return null user when not authenticated', () => {
+    const { result } = renderHook(() => useUser(), {
+      wrapper: ({ children }) => <AuthProvider>{children}</AuthProvider>,
+    });
+    
+    expect(result.current.user).toBeNull();
+    expect(result.current.ready).toBe(false);
+  });
+});
+```
+
+### Module Testing with Mocks
+
+```typescript
+// __tests__/modules/job-queue.core.test.ts
+import { jobQueue } from '@/modules/job-queue';
+
+const mockClient = {
+  sendTransaction: vi.fn(async () => '0xabc'),
+  getAddress: vi.fn(async () => '0x0'),
+};
+
+describe('modules/job-queue', () => {
+  beforeEach(() => {
+    navigator.onLine = true;
+  });
+  
+  it('adds job and processes with smart account client', async () => {
+    jobQueue.setSmartAccountClient(mockClient as any);
+    
+    const jobId = await jobQueue.addJob('work', {
+      title: 'Test',
+      actionUID: 1,
+      gardenAddress: '0x123',
+      media: [new File(['x'], 'x.jpg')],
+      feedback: 'ok',
+    }, { chainId: 84532 });
+    
+    expect(jobId).toBeTypeOf('string');
+    
+    const stats = await jobQueue.getStats();
+    expect(stats.total).toBeGreaterThanOrEqual(0);
+  });
+});
+```
+
+## Test Utilities
+
+### Shared Test Helpers
+
+```typescript
+// __tests__/utils/test-helpers.tsx
+
+// Mock factories
+export const createMockWork = (overrides = {}): MockWork => ({
+  id: `work-${Date.now()}`,
+  title: 'Test Work',
+  actionUID: 1,
+  gardenerAddress: '0x742d35Cc6634C0532925a3b8D162a59395b3afc9',
+  gardenAddress: '0x1234...',
+  feedback: 'Great work!',
+  images: [createMockImage()],
+  createdAt: Date.now(),
+  status: 'pending',
+  ...overrides,
+});
+
+export const createMockJob = (overrides = {}): MockJob => ({
+  id: `job-${Date.now()}`,
+  kind: 'work',
+  payload: { /* ... */ },
+  createdAt: Date.now(),
+  synced: false,
+  attempts: 0,
+  ...overrides,
+});
+
+// Query client wrapper
+export const createTestQueryClient = () => new QueryClient({
+  defaultOptions: {
+    queries: { retry: false, gcTime: 0, staleTime: 0 },
+    mutations: { retry: false },
+  },
+});
+
+export const renderWithQuery = (ui: ReactElement, options = {}) => {
+  const queryClient = options.queryClient || createTestQueryClient();
+  const Wrapper = ({ children }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+  return render(ui, { wrapper: Wrapper, ...options });
+};
+```
+
+### Offline Test Helpers
+
+```typescript
+// __tests__/offline-test-helpers.ts
+
+export const simulateNetworkConditions = {
+  offline: () => {
+    Object.defineProperty(navigator, 'onLine', { value: false });
+    window.dispatchEvent(new Event('offline'));
+  },
+  
+  online: () => {
+    Object.defineProperty(navigator, 'onLine', { value: true });
+    window.dispatchEvent(new Event('online'));
+  },
+  
+  slow: () => {
+    // Mock slow network with fetch delay
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn(async (input, init) => {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return originalFetch(input, init);
+    });
+  },
+};
+
+export const createMockFile = (name = 'test.jpg', size = 1024): File => {
+  const content = new Array(size).fill('a').join('');
+  return new File([content], name, { type: 'image/jpeg' });
+};
+```
+
+## E2E Testing with Playwright MCP
+
+### Running E2E Tests via MCP
+
+```bash
+# Execute full test suite
+@playwright: Run all E2E tests in tests/specs/
+
+# Specific test
+@playwright: Run garden creation E2E test
+
+# Visual regression
+@playwright: Capture screenshots for work submission flow
+
+# Mobile testing
+@playwright: Run tests on mobile viewport
+```
+
+### E2E Test Structure
+
+```typescript
+// tests/specs/work-submission.spec.ts (in root tests/)
+import { test, expect } from '@playwright/test';
+
+test.describe('Work Submission Flow', () => {
+  test('should submit work offline and sync when online', async ({ page }) => {
+    // Login
+    await page.goto('/login');
+    await page.click('[data-testid="create-passkey"]');
+    
+    // Navigate to garden
+    await page.goto('/garden');
+    await page.click('[data-testid="select-action"]');
+    
+    // Go offline
+    await page.context().setOffline(true);
+    
+    // Submit work
+    await page.fill('[name="feedback"]', 'Test work');
+    await page.setInputFiles('[name="media"]', 'test-image.jpg');
+    await page.click('[type="submit"]');
+    
+    // Verify offline submission
+    expect(await page.textContent('.toast')).toContain('Saved Offline');
+    
+    // Go online
+    await page.context().setOffline(false);
+    
+    // Wait for sync
+    await page.waitForSelector('.toast:has-text("Work uploaded")', { timeout: 10000 });
+  });
+});
+```
+
+## Coverage Targets
+
+### Package Coverage
+
+```bash
+# Run with coverage
+pnpm --filter client coverage
+
+# View coverage report
+open packages/client/coverage/index.html
+```
+
+### Module-Specific Targets
+
+- **Offline systems**: 80%+ (job-queue, sync-manager, storage-manager)
+- **Authentication**: 85%+ (auth provider, guards)
+- **Components**: 70%+ (UI components, views)
+- **Hooks**: 75%+ (custom hooks)
+- **Utils**: 80%+ (utility functions)
+
+## Testing Checklist
+
+For every new feature:
+
+- [ ] Unit tests for core logic
+- [ ] Component tests with user interactions
+- [ ] Integration test for full workflow
+- [ ] Error case handling
+- [ ] Edge cases (empty data, null values)
+- [ ] Loading states
+- [ ] Cleanup (unmount, URL revocation)
+- [ ] Accessibility (keyboard nav, ARIA)
+
+## Mock Service Modules
+
+### Mocking External Services
+
+```typescript
+// __tests__/modules/pinata.test.ts
+vi.mock('@/modules/pinata', () => ({
+  uploadFileToIPFS: vi.fn(async (f: File) => ({ IpfsHash: `hash:${f.name}` })),
+  uploadJSONToIPFS: vi.fn(async (j: any) => ({ IpfsHash: `hash:${Object.keys(j).length}` })),
+  getFileByHash: vi.fn(async (hash: string) => ({ data: `mock:${hash}` })),
+}));
+
+import { uploadFileToIPFS } from '@/modules/data/pinata';
+
+it('uploads file to IPFS (mocked)', async () => {
+  const result = await uploadFileToIPFS(new File(['hi'], 'hi.txt'));
+  expect(result).toHaveProperty('IpfsHash');
+  expect(result.IpfsHash).toContain('hash:');
+});
+```
+
+### Mocking Blockchain Calls
+
+```typescript
+vi.mock('viem/account-abstraction', () => ({
+  createWebAuthnCredential: vi.fn(),
+  toWebAuthnAccount: vi.fn(),
+  entryPoint07Address: '0x0000000000000000000000000000000000000007',
+}));
+
+vi.mock('permissionless', () => ({
+  createSmartAccountClient: vi.fn(),
+}));
+
+vi.mock('@/modules/pimlico/config', () => ({
+  createPimlicoClientForChain: vi.fn(() => ({
+    getUserOperationGasPrice: vi.fn(() => Promise.resolve({ fast: {} })),
+  })),
+  createPublicClientForChain: vi.fn(() => ({})),
+}));
+```
+
+## Testing Offline Features
+
+### Simulating Network Conditions
+
+```typescript
+import { simulateNetworkConditions } from '@/__tests__/offline-test-helpers';
+
+it('should queue work when offline', async () => {
+  simulateNetworkConditions.offline();
+  
+  const jobId = await jobQueue.addJob('work', payload);
+  expect(jobId).toBeDefined();
+  
+  const stats = await jobQueue.getStats();
+  expect(stats.pending).toBeGreaterThan(0);
+  
+  // Simulate coming back online
+  simulateNetworkConditions.online();
+  
+  // Should trigger sync
+  await waitFor(() => {
+    expect(stats.pending).toBe(0);
+  });
+});
+```
+
+### Testing Job Queue
+
+```typescript
+// __tests__/modules/job-queue.core.test.ts
+describe('modules/job-queue', () => {
+  beforeEach(() => {
+    navigator.onLine = true;
+  });
+  
+  it('adds job and emits basic lifecycle', async () => {
+    jobQueue.setSmartAccountClient(mockClient);
+    
+    const jobId = await jobQueue.addJob('work', {
+      title: 'Test',
+      actionUID: 1,
+      gardenAddress: '0x123',
+      media: [new File(['x'], 'x.jpg')],
+      feedback: 'ok',
+    }, { chainId: 84532 });
+    
+    expect(jobId).toBeTypeOf('string');
+    
+    const stats = await jobQueue.getStats();
+    expect(stats.total).toBeGreaterThanOrEqual(0);
+  });
+});
+```
+
+## Testing React Components
+
+### Component Test Pattern
+
+```typescript
+describe('OfflineIndicator', () => {
+  it('shows offline state when navigator.onLine is false', () => {
+    mockOnlineStatus(false);
+    
+    render(<OfflineIndicator />);
+    
+    expect(screen.getByText(/Offline Mode/i)).toBeInTheDocument();
+  });
+  
+  it('shows back online message after transition', async () => {
+    mockOnlineStatus(false);
+    const { rerender } = render(<OfflineIndicator />);
+    
+    mockOnlineStatus(true);
+    rerender(<OfflineIndicator />);
+    
+    expect(screen.getByText(/Back Online/i)).toBeInTheDocument();
+    
+    // Message should auto-hide after 3s
+    await waitFor(() => {
+      expect(screen.queryByText(/Back Online/i)).not.toBeInTheDocument();
+    }, { timeout: 4000 });
+  });
+});
+```
+
+### Testing User Interactions
+
+```typescript
+it('handles form submission', async () => {
+  const user = userEvent.setup();
+  const onSubmit = vi.fn();
+  
+  render(<WorkForm onSubmit={onSubmit} />);
+  
+  // Fill form
+  await user.type(screen.getByLabelText('Feedback'), 'Great work!');
+  await user.selectOptions(screen.getByLabelText('Action'), '1');
+  
+  // Submit
+  await user.click(screen.getByRole('button', { name: /submit/i }));
+  
+  // Verify
+  expect(onSubmit).toHaveBeenCalledWith({
+    feedback: 'Great work!',
+    actionUID: 1,
+  });
+});
+```
+
+## Testing Hooks
+
+### Hook Testing Pattern
+
+```typescript
+import { renderHook, waitFor } from '@testing-library/react';
+
+describe('useWorkApprovals', () => {
+  it('fetches and merges online and offline approvals', async () => {
+    const { result } = renderHook(
+      () => useWorkApprovals('0xoperator'),
+      {
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={testQueryClient}>
+            {children}
+          </QueryClientProvider>
+        ),
+      }
+    );
+    
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+    
+    expect(Array.isArray(result.current.approvals)).toBe(true);
+  });
+});
+```
+
+## Testing Providers
+
+### Provider Test Pattern
+
+```typescript
+describe('AuthProvider', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.clearAllMocks();
+  });
+  
+  it('provides auth context', () => {
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: ({ children }) => <AuthProvider>{children}</AuthProvider>,
+    });
+    
+    expect(result.current.credential).toBeNull();
+    expect(result.current.isReady).toBe(false);
+  });
+  
+  it('throws error when used outside provider', () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    
+    expect(() => {
+      renderHook(() => useAuth());
+    }).toThrow('useAuth must be used within AuthProvider');
+    
+    consoleError.mockRestore();
+  });
+});
+```
+
+## Playwright E2E via MCP
+
+### Visual Regression Testing
+
+```bash
+# Capture baseline
+@playwright: Run visual regression test suite and save baseline screenshots
+
+# Compare changes
+@playwright: Compare current screenshots against baseline for WorkDashboard
+
+# Update baseline
+@playwright: Update baseline screenshots for garden creation flow
+```
+
+### E2E Test Scenarios
+
+```bash
+# Critical flows
+@playwright: Run E2E test "offline work submission with sync recovery"
+@playwright: Run E2E test "garden operator approval workflow"
+@playwright: Run E2E test "passkey creation and garden join"
+
+# Accessibility
+@playwright: Run accessibility audit on entire app
+
+# Performance
+@playwright: Run performance test and generate Lighthouse report
+```
+
+## Coverage Reporting
+
+### Viewing Coverage
+
+```bash
+# Generate coverage report
+cd packages/client && bun coverage
+
+# Open in browser
+open packages/client/coverage/index.html
+```
+
+### Coverage Configuration
+
+```typescript
+// vitest.config.ts
+export default defineConfig({
+  test: {
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/',
+        '__tests__/',
+        '__mocks__/',
+        '**/*.test.{ts,tsx}',
+        '**/*.d.ts',
+      ],
+      thresholds: {
+        lines: 70,
+        functions: 70,
+        branches: 70,
+        statements: 70,
+      },
+    },
+  },
+});
+```
+
+## Anti-Patterns
+
+### ❌ Don't Test Implementation Details
+
+```typescript
+// Wrong - testing internal state
+expect(component.state.internalCounter).toBe(5);
+
+// Correct - test observable behavior
+expect(screen.getByText('Count: 5')).toBeInTheDocument();
+```
+
+### ❌ Don't Skip Cleanup
+
+```typescript
+// Wrong - leaking state between tests
+it('test 1', () => {
+  localStorage.setItem('key', 'value');
+  // No cleanup
+});
+
+// Correct - clean up
+afterEach(() => {
+  localStorage.clear();
+  vi.clearAllMocks();
+});
+```
+
+### ❌ Don't Use Real Network Calls
+
+```typescript
+// Wrong - calling actual API
+it('fetches gardens', async () => {
+  const gardens = await fetch('https://api.greengoods.app/gardens');
+});
+
+// Correct - mock the call
+vi.mock('@/modules/data/greengoods', () => ({
+  getGardens: vi.fn(() => Promise.resolve([])),
+}));
+```
+
+## Reference Files
+
+- Test setup: `src/__tests__/setupTests.ts`
+- Test helpers: `src/__tests__/utils/test-helpers.tsx`
+- Offline helpers: `src/__tests__/offline-test-helpers.ts`
+- Mocks: `src/__mocks__/`
+- Vitest config: `vitest.config.ts`
+- Playwright config: `/playwright.config.ts` (root)
+- E2E tests: `/tests/specs/` (root)
+- Test README: `src/__tests__/README.md`

@@ -3,16 +3,183 @@
 require("dotenv").config();
 const { ethers } = require("ethers");
 const fs = require("node:fs");
-const {
-  ACTION_REGISTRY_ABI,
-  CAPITAL_TYPES,
-  setupProvider,
-  executeWithRetry,
-  estimateTransactionCost,
-  exportToJSON,
-  getExplorerUrl,
-  loadDeploymentAddresses,
-} = require("./utils/garden-utils");
+const path = require("node:path");
+
+// Action Registry ABI
+const ACTION_REGISTRY_ABI = [
+  "function registerAction(uint256 startTime, uint256 endTime, string memory title, string memory instructions, uint8[] memory capitals, string[] memory media) external returns (uint256)",
+  "function updateActionStartTime(uint256 actionUID, uint256 startTime) external",
+  "function updateActionEndTime(uint256 actionUID, uint256 endTime) external",
+  "function updateActionTitle(uint256 actionUID, string memory title) external",
+  "function updateActionInstructions(uint256 actionUID, string memory instructions) external",
+  "function updateActionCapitals(uint256 actionUID, uint8[] memory capitals) external",
+  "function updateActionMedia(uint256 actionUID, string[] memory media) external",
+  "function getAction(uint256 actionUID) external view returns (tuple(uint256 startTime, uint256 endTime, string title, string instructions, uint8[] capitals, string[] media))",
+  "function actionCounter() external view returns (uint256)",
+];
+
+// Capital types enum
+const CAPITAL_TYPES = {
+  SOCIAL: 0,
+  MATERIAL: 1,
+  FINANCIAL: 2,
+  LIVING: 3,
+  INTELLECTUAL: 4,
+  EXPERIENTIAL: 5,
+  SPIRITUAL: 6,
+  CULTURAL: 7,
+};
+
+// Network configurations
+const NETWORK_CONFIG = {
+  localhost: {
+    rpcUrl: "http://127.0.0.1:8545",
+    chainId: 31337,
+    blockTime: 1,
+  },
+  arbitrum: {
+    rpcUrl: process.env.ARBITRUM_RPC_URL || "https://arb1.arbitrum.io/rpc",
+    chainId: 42161,
+    blockTime: 0.25,
+  },
+  "base-sepolia": {
+    rpcUrl: process.env.BASE_SEPOLIA_RPC_URL || "https://sepolia.base.org",
+    chainId: 84532,
+    blockTime: 2,
+  },
+  celo: {
+    rpcUrl: process.env.CELO_RPC_URL || "https://forno.celo.org",
+    chainId: 42220,
+    blockTime: 5,
+  },
+};
+
+/**
+ * Sleep function for delays
+ */
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Get private key from environment variables
+ */
+function getPrivateKey() {
+  const privateKey = process.env.PRIVATE_KEY;
+
+  if (!privateKey) {
+    throw new Error(
+      "Missing required environment variable: PRIVATE_KEY\n" +
+        "Please set PRIVATE_KEY in your .env file\n" +
+        "For production deployments, use Foundry keystore instead:\n" +
+        "  1. Import your key: cast wallet import <account-name> --interactive\n" +
+        "  2. Use --account flag: forge script --account <account-name>",
+    );
+  }
+
+  return privateKey;
+}
+
+/**
+ * Setup provider and signer for a network
+ */
+async function setupProvider(network) {
+  const networkConfig = NETWORK_CONFIG[network];
+  if (!networkConfig) {
+    throw new Error(`Unsupported network: ${network}`);
+  }
+
+  const provider = new ethers.JsonRpcProvider(networkConfig.rpcUrl);
+  const privateKey = getPrivateKey();
+  const signer = new ethers.Wallet(privateKey, provider);
+
+  return { provider, signer, networkConfig };
+}
+
+/**
+ * Execute function with retry logic
+ */
+async function executeWithRetry(fn, retries = 3, delay = 2000) {
+  try {
+    return await fn();
+  } catch (error) {
+    if (retries > 0 && (error.code === "NETWORK_ERROR" || error.code === "TIMEOUT")) {
+      console.log(`  ⚠️  Network error, retrying... (${retries} attempts left)`);
+      await sleep(delay);
+      return executeWithRetry(fn, retries - 1, delay);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Estimate gas and cost for a transaction
+ */
+async function estimateTransactionCost(contract, method, args, provider) {
+  try {
+    const gasEstimate = await contract[method].estimateGas(...args);
+    const feeData = await provider.getFeeData();
+    const estimatedCost = gasEstimate * feeData.gasPrice;
+
+    return {
+      gasLimit: gasEstimate,
+      gasPrice: feeData.gasPrice,
+      estimatedCost: ethers.formatEther(estimatedCost),
+      estimatedCostGwei: ethers.formatUnits(feeData.gasPrice, "gwei"),
+    };
+  } catch (error) {
+    console.warn("  ⚠️  Could not estimate gas:", error.message);
+    return null;
+  }
+}
+
+/**
+ * Export data to JSON file
+ */
+function exportToJSON(data, filename) {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const finalFilename = filename || `export-${timestamp}.json`;
+  fs.writeFileSync(finalFilename, JSON.stringify(data, null, 2));
+  console.log(`💾 Data exported to ${finalFilename}`);
+  return finalFilename;
+}
+
+/**
+ * Get block explorer URL for transaction
+ */
+function getExplorerUrl(network, txHash) {
+  const urls = {
+    sepolia: `https://sepolia.etherscan.io/tx/${txHash}`,
+    arbitrum: `https://arbiscan.io/tx/${txHash}`,
+    "arbitrum-sepolia": `https://sepolia.arbiscan.io/tx/${txHash}`,
+    celo: `https://celoscan.io/tx/${txHash}`,
+    "celo-testnet": `https://alfajores.celoscan.io/tx/${txHash}`,
+    base: `https://basescan.org/tx/${txHash}`,
+    "base-sepolia": `https://sepolia.basescan.org/tx/${txHash}`,
+    optimism: `https://optimistic.etherscan.io/tx/${txHash}`,
+  };
+
+  return urls[network] || `Transaction: ${txHash}`;
+}
+
+/**
+ * Load deployment addresses for a network
+ */
+function loadDeploymentAddresses(network) {
+  const deploymentFile = path.join(
+    __dirname,
+    "..",
+    "deployments",
+    `${NETWORK_CONFIG[network]?.chainId || network}-latest.json`,
+  );
+
+  if (fs.existsSync(deploymentFile)) {
+    const deployment = JSON.parse(fs.readFileSync(deploymentFile, "utf8"));
+    return deployment.contracts || {};
+  }
+
+  return {};
+}
 
 class ActionManager {
   constructor(options = {}) {

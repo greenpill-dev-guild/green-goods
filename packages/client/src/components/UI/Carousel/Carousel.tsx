@@ -2,7 +2,7 @@
 
 import useEmblaCarousel, { type UseEmblaCarouselType } from "embla-carousel-react";
 import * as React from "react";
-import { cn } from "@/utils/cn";
+import { cn } from "@green-goods/shared/utils";
 import { ImagePreviewDialog } from "../ImagePreviewDialog";
 
 type CarouselApi = UseEmblaCarouselType[1];
@@ -219,6 +219,12 @@ const CarouselItem = React.forwardRef<
         className
       )}
       onClick={handleClick}
+      onKeyDown={(e) => {
+        if (enablePreview && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          handleClick(e as unknown as React.MouseEvent<HTMLDivElement>);
+        }
+      }}
       {...props}
     >
       {children}

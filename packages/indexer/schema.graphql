@@ -36,4 +36,38 @@ type Garden {
 
   gardeners: [String!]! # Address
   operators: [String!]! # Address
+  
+  # Karma GAP Integration
+  gapProjectUID: String # Karma GAP project attestation UID (bytes32)
+}
+
+type Gardener {
+  id: ID! # Smart account address
+  chainId: Int!
+  createdAt: Int!
+  firstGarden: String # First garden joined
+  gardens: [String!]! # All gardens this gardener belongs to
+  
+  # Identity (from Gardener smart contract on mainnet or L2)
+  owner: String # Current owner key (EOA from passkey)
+  
+  # ENS Identity (from mainnet Gardener contract)
+  ensName: String # Full ENS name (e.g., "alice.greengoods.eth")
+  passkeyCredentialId: String # WebAuthn credential ID (bytes32) for recovery
+  claimedAt: Int # Timestamp of ENS claim on mainnet
+  
+  # Profile data stored in ENS text records (mainnet only)
+  # These fields are read from ENS resolver on mainnet
+  # Query via ENS resolver: resolver.text(node, "avatar"), resolver.text(node, "description"), etc.
+  ensAvatar: String # ENS text record: avatar
+  ensDescription: String # ENS text record: description
+  ensTwitter: String # ENS text record: com.twitter
+  ensGithub: String # ENS text record: com.github
+  ensEmail: String # ENS text record: email
+  
+  # Future extensibility:
+  # - totalWork: Int
+  # - approvals: [WorkApproval!]
+  # - reputation: Int
+  # - attestations: [Attestation!]
 }

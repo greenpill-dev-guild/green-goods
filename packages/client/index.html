@@ -73,6 +73,20 @@
     />
 
     <title>Green Goods</title>
+    <script>
+      (function() {
+        const KEY = 'theme';
+        try {
+          const stored = localStorage.getItem(KEY) || 'system';
+          const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          const resolved = stored === 'dark' || (stored === 'system' && systemDark);
+          document.documentElement.dataset.theme = resolved ? 'dark' : 'light';
+        } catch (_) {
+          const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.dataset.theme = systemDark ? 'dark' : 'light';
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

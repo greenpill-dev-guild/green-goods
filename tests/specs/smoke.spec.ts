@@ -11,7 +11,7 @@ test.describe("Smoke Tests", () => {
       console.log(`✅ Client: ${clientResponse.status()}`);
       expect(clientResponse.status()).toBeLessThan(500);
     } catch (error) {
-      console.log("❌ Client not available - start with: pnpm dev:app");
+      console.log("❌ Client not available - start with: bun dev:app");
       test.skip();
     }
 
@@ -26,7 +26,7 @@ test.describe("Smoke Tests", () => {
       console.log(`✅ Indexer: ${indexerResponse.status()}`);
       expect(indexerResponse.status()).toBe(200);
     } catch (error) {
-      console.log("❌ Indexer not available - start with: pnpm dev:indexer");
+      console.log("❌ Indexer not available - start with: bun dev:indexer");
     }
   });
 
@@ -77,7 +77,7 @@ test.describe("Smoke Tests", () => {
       console.log("✅ Performance timing API is available");
     } catch (error) {
       console.log("❌ Cannot access client service to test performance API");
-      console.log("💡 Please start the client service with: pnpm dev:app");
+      console.log("💡 Please start the client service with: bun dev:app");
       test.skip();
     }
   });

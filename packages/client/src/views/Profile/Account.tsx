@@ -1,18 +1,22 @@
-import { usePrivy } from "@privy-io/react-auth";
+import { toastService } from "@green-goods/shared";
+import { useAuth, useAutoJoinRootGarden, useEnsName } from "@green-goods/shared/hooks";
+import { type Locale, useApp } from "@green-goods/shared/providers/app";
+import { capitalize } from "@green-goods/shared/utils";
+import { parseAndFormatError } from "@green-goods/shared/utils/errors";
 import {
   RiEarthFill,
   RiKeyLine,
   RiLogoutBoxRLine,
-  RiMailFill,
-  RiPhoneLine,
+  RiPlantLine,
   RiWalletLine,
 } from "@remixicon/react";
-import { ReactNode, useState } from "react";
+import { ReactNode } from "react";
 import { useIntl } from "react-intl";
+import { useNavigate } from "react-router-dom";
 import { Avatar } from "@/components/UI/Avatar/Avatar";
 import { Button } from "@/components/UI/Button";
 import { Card } from "@/components/UI/Card/Card";
-import { FormInput } from "@/components/UI/Form/Input";
+import { AddressCopy } from "@/components/UI/Clipboard";
 import {
   Select,
   SelectContent,
@@ -20,19 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/UI/Select/Select";
-
-import { type Locale, useApp } from "@/providers/app";
-import { capitalize } from "@/utils/text";
-import toast from "react-hot-toast";
-
-interface LinkedAccount {
-  title: string;
-  description: string;
-  isLinked: boolean;
-  Icon: React.ReactNode;
-  link: () => void;
-  unlink: () => void;
-}
 
 interface ApplicationSettings {
   title: string;
@@ -44,50 +35,91 @@ interface ApplicationSettings {
 type ProfileAccountProps = {};
 
 export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
-  const {
-    user,
-    linkEmail,
-    linkPhone,
-    linkPasskey,
-    linkWallet,
-    unlinkEmail,
-    unlinkPhone,
-    // unlinkPasskey,
-    unlinkWallet,
-    logout,
-  } = usePrivy();
-
+  const { authMode, signOut, disconnectWallet, smartAccountAddress, credential, walletAddress } =
+    useAuth();
+  const primaryAddress = smartAccountAddress || walletAddress;
+  const { data: primaryEnsName } = useEnsName(primaryAddress);
+  const navigate = useNavigate();
   const { locale, switchLanguage, availableLocales } = useApp();
   const intl = useIntl();
-  const [displayName, setDisplayName] = useState<string>(
-    ((user?.customMetadata?.username as string) || "") ?? ""
-  );
-  const [saving, setSaving] = useState(false);
 
-  async function handleSave() {
-    if (!user?.id) return;
+  // Root garden membership check
+  const {
+    isGardener: isRootGardener,
+    isLoading: isJoiningOrCheckingRootGarden,
+    joinGarden,
+  } = useAutoJoinRootGarden();
+
+  const handleJoinRootGarden = async () => {
     try {
-      setSaving(true);
-      const { updateUserProfile } = await import("@/modules/greengoods");
-      let accessToken: string | undefined;
-      try {
-        const maybeTokenGetter = (usePrivy() as any)?.getAccessToken;
-        if (typeof maybeTokenGetter === "function") {
-          accessToken = (await maybeTokenGetter()) as string | undefined;
-        }
-      } catch {}
-      await updateUserProfile(user.id, { username: displayName }, accessToken);
-      toast.success(
-        intl.formatMessage({ id: "app.toast.profileUpdated", defaultMessage: "Profile updated" })
-      );
-    } catch (e) {
-      toast.error(
-        intl.formatMessage({ id: "app.toast.profileUpdateFailed", defaultMessage: "Update failed" })
-      );
-    } finally {
-      setSaving(false);
+      await joinGarden();
+
+      toastService.success({
+        title: intl.formatMessage({
+          id: "app.account.joinedRootGarden",
+          defaultMessage: "Joined Community Garden",
+        }),
+        message: intl.formatMessage({
+          id: "app.account.joinedRootGardenMessage",
+          defaultMessage: "Welcome to the community!",
+        }),
+        context: "joinRootGarden",
+      });
+    } catch (err) {
+      console.error("Failed to join root garden", err);
+
+      // Parse the error for user-friendly message
+      const { title, message } = parseAndFormatError(err);
+
+      toastService.error({
+        title: title,
+        message: message,
+        context: "joinRootGarden",
+        error: err,
+      });
     }
-  }
+  };
+
+  const handleLogout = async () => {
+    try {
+      if (authMode === "passkey") {
+        signOut();
+      } else if (authMode === "wallet") {
+        await disconnectWallet();
+      } else {
+        signOut();
+      }
+
+      navigate("/login");
+      const message = intl.formatMessage({
+        id: "app.toast.loggedOut",
+        defaultMessage: "Logged out successfully",
+      });
+      toastService.success({
+        title: intl.formatMessage({
+          id: "app.account.sessionClosed",
+          defaultMessage: "Signed out",
+        }),
+        message,
+        context: "logout",
+        suppressLogging: true,
+      });
+    } catch (err) {
+      console.error("Logout failed", err);
+      toastService.error({
+        title: intl.formatMessage({
+          id: "app.account.logoutFailed",
+          defaultMessage: "Failed to log out",
+        }),
+        message: intl.formatMessage({
+          id: "app.account.logoutRetry",
+          defaultMessage: "Please try again.",
+        }),
+        context: "logout",
+        error: err,
+      });
+    }
+  };
 
   const applicationSettings: ApplicationSettings[] = [
     {
@@ -108,7 +140,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
       Icon: <RiEarthFill className="w-4" />,
       Option: () => (
         <Select onValueChange={(val) => switchLanguage(val as Locale)}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[220px]">
             <SelectValue
               className="capitalize"
               placeholder={capitalize(intl.formatDisplayName(locale, { type: "language" }) || "")}
@@ -126,76 +158,9 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
     },
   ];
 
-  const accountSettings: LinkedAccount[] = [
-    {
-      title: intl.formatMessage({
-        id: "app.account.email",
-        description: "Email",
-      }),
-      description:
-        user?.email?.address ||
-        intl.formatMessage({
-          id: "app.account.notLinked",
-          description: "Not Linked",
-        }),
-      isLinked: !!user?.email?.address,
-      Icon: <RiMailFill className="w-4" />,
-      link: linkEmail,
-      unlink: () => user?.email?.address && unlinkEmail(user?.email?.address),
-    },
-    {
-      title: intl.formatMessage({
-        id: "app.account.phone",
-        description: "Phone",
-      }),
-      description:
-        user?.phone?.number ||
-        intl.formatMessage({
-          id: "app.account.notLinked",
-          description: "Not Linked",
-        }),
-      isLinked: !!user?.phone?.number,
-      Icon: <RiPhoneLine className="w-4" />,
-      link: linkPhone,
-      unlink: () => user?.phone?.number && unlinkPhone(user?.phone?.number),
-    },
-    {
-      title: intl.formatMessage({
-        id: "app.account.passkey",
-        description: "Passkey",
-      }),
-      description: user?.mfaMethods.includes("passkey")
-        ? ""
-        : intl.formatMessage({
-            id: "app.account.notLinked",
-            description: "Not Linked",
-          }),
-      isLinked: !!user?.mfaMethods.includes("passkey"),
-      Icon: <RiKeyLine className="w-4" />,
-      link: linkPasskey,
-      unlink: () => {},
-    },
-    {
-      title: intl.formatMessage({
-        id: "app.account.wallet",
-        description: "Wallet",
-      }),
-      description: user?.wallet
-        ? ""
-        : intl.formatMessage({
-            id: "app.account.notLinked",
-            description: "Not Linked",
-          }),
-      isLinked: !!user?.wallet,
-      Icon: <RiWalletLine className="w-4" />,
-      link: linkWallet,
-      unlink: () => user?.wallet?.address && unlinkWallet(user?.wallet?.address),
-    },
-  ];
-
   return (
     <>
-      <h5>
+      <h5 className="text-label-md text-slate-900">
         {intl.formatMessage({
           id: "app.profile.settings",
           description: "Settings",
@@ -220,13 +185,115 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
         </Card>
       ))}
 
-      <h5>
+      <h5 className="text-label-md text-slate-900">
+        {intl.formatMessage({
+          id: "app.profile.account",
+          description: "Account",
+        })}
+      </h5>
+
+      {/* Root Garden Membership Button */}
+      {primaryAddress && (
+        <Button
+          variant="primary"
+          mode="filled"
+          onClick={isRootGardener ? undefined : handleJoinRootGarden}
+          label={
+            isJoiningOrCheckingRootGarden
+              ? intl.formatMessage({
+                  id: "app.profile.joiningRootGarden",
+                  defaultMessage: "Joining...",
+                })
+              : isRootGardener
+                ? intl.formatMessage({
+                    id: "app.profile.leaveRootGarden",
+                    defaultMessage: "Leave Community Garden",
+                  })
+                : intl.formatMessage({
+                    id: "app.profile.joinRootGarden",
+                    defaultMessage: "Join Community Garden",
+                  })
+          }
+          leadingIcon={<RiPlantLine className="w-4" />}
+          disabled={isJoiningOrCheckingRootGarden || isRootGardener}
+          className="w-full"
+        />
+      )}
+
+      {/* Auth Mode Info */}
+      <Card>
+        <div className="flex flex-row items-center gap-3 justify-center w-full">
+          <Avatar>
+            <div className="flex items-center justify-center text-center mx-auto text-primary">
+              {authMode === "passkey" ? (
+                <RiKeyLine className="w-4" />
+              ) : (
+                <RiWalletLine className="w-4" />
+              )}
+            </div>
+          </Avatar>
+          <div className="flex flex-col gap-1 grow">
+            <div className="flex items-center font-sm gap-1">
+              <div className="line-clamp-1 text-sm">
+                {authMode === "passkey"
+                  ? intl.formatMessage({
+                      id: "app.account.passkey",
+                      description: "Passkey Wallet",
+                    })
+                  : intl.formatMessage({
+                      id: "app.account.wallet",
+                      description: "External Wallet",
+                    })}
+              </div>
+            </div>
+            <div className="text-xs text-gray-500">
+              {authMode === "passkey" && credential
+                ? "Active"
+                : authMode === "wallet" && walletAddress
+                  ? "Connected"
+                  : "Not configured"}
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Address Display */}
+      {(smartAccountAddress || walletAddress) && (
+        <Card>
+          <div className="flex flex-row items-center gap-3 justify-center w-full">
+            <Avatar>
+              <div className="flex items-center justify-center text-center mx-auto text-primary">
+                <RiWalletLine className="w-4" />
+              </div>
+            </Avatar>
+            <div className="flex flex-col gap-1 grow">
+              <div className="flex items-center font-sm gap-1">
+                <div className="line-clamp-1 text-sm">
+                  {intl.formatMessage({
+                    id: "app.account.address",
+                    description:
+                      authMode === "passkey" ? "Smart Account Address" : "Wallet Address",
+                  })}
+                </div>
+              </div>
+              <AddressCopy
+                address={primaryAddress}
+                ensName={primaryEnsName}
+                size="compact"
+                className="mt-2"
+              />
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* <h5>
         {intl.formatMessage({
           id: "app.profile.editAccount",
           description: "Edit Account",
         })}
-      </h5>
-      <Card>
+      </h5> */}
+      {/* <Card>
         <div className="flex flex-col gap-3">
           <FormInput
             id="display-name"
@@ -257,51 +324,18 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
             />
           </div>
         </div>
-      </Card>
-      {accountSettings.map(({ title, Icon, description, isLinked, link, unlink }) => (
-        <Card key={title}>
-          <div className="flex flex-row items-center gap-3 justify-center w-full">
-            <Avatar>
-              <div className="flex items-center justify-center text-center mx-auto text-primary">
-                {Icon}
-              </div>
-            </Avatar>
-            <div className="flex flex-col gap-1 grow">
-              <div className="flex items-center font-sm gap-1">
-                <div className="line-clamp-1 text-sm">{title}</div>
-              </div>
-              <div className="text-xs text-gray-500">{description}</div>
-            </div>
-            <Button
-              variant={isLinked ? "neutral" : "primary"}
-              label={
-                isLinked
-                  ? intl.formatMessage({
-                      id: "app.account.unlink",
-                      description: "Unlink",
-                    })
-                  : intl.formatMessage({
-                      id: "app.account.link",
-                      description: "Link",
-                    })
-              }
-              onClick={isLinked ? unlink : link}
-              mode={isLinked ? "stroke" : "filled"}
-              size="xxsmall"
-              className="min-w-18"
-            />
-          </div>
-        </Card>
-      ))}
+      </Card> */}
+
       <Button
         variant="neutral"
         mode="stroke"
-        onClick={logout}
+        onClick={handleLogout}
         label={intl.formatMessage({
           id: "app.profile.logout",
           description: "Logout",
         })}
         leadingIcon={<RiLogoutBoxRLine className="w-4" />}
+        className="w-full"
       />
     </>
   );

@@ -1,5 +1,5 @@
 import type { RemixiconComponentType } from "@remixicon/react";
-import { cn } from "@/utils/cn";
+import { cn } from "@green-goods/shared/utils";
 import { Card } from "../Card/Card";
 
 interface FormInfoProps {
@@ -11,9 +11,9 @@ interface FormInfoProps {
 }
 
 const variants = {
-  primary: "bg-slate-100",
-  secondary: "bg-green-100 text-green-700",
-  tertiary: "bg-yellow-100 text-yellow-700",
+  primary: "bg-bg-weak-50 text-text-strong-950",
+  secondary: "bg-success-lighter text-success-dark border border-success-light",
+  tertiary: "bg-warning-lighter text-warning-dark border border-warning-light",
 };
 
 export const FormInfo = ({
@@ -34,13 +34,13 @@ export const FormInfo = ({
       {...props}
     >
       {Icon && (
-        <div className="bg-white h-12 w-12 p-3 rounded-full">
+        <div className="bg-bg-white-0 h-12 w-12 p-3 rounded-full border border-stroke-soft-200">
           <Icon size={24} className="text-primary" />
         </div>
       )}
       <div className="flex flex-col gap-0.5 grow">
-        <h6>{title}</h6>
-        <div className="text-xs leading-tight text-slate-700">{info}</div>
+        <h6 className="text-text-strong-950">{title}</h6>
+        <div className="text-xs leading-tight text-text-sub-600">{info}</div>
       </div>
     </Card>
   );

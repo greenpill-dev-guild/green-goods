@@ -1,459 +1,86 @@
-# Green Goods Architecture
-
-This document provides a comprehensive overview of the Green Goods platform architecture, covering all components from the frontend to blockchain infrastructure.
-
-## Quick Overview
-
-- **Client**: React PWA frontend with offline support
-- **API**: Node.js backend with Fastify and Privy auth  
-- **Indexer**: GraphQL blockchain data indexer (Envio)
-- **Contracts**: Solidity smart contracts with EAS integration
-- **Networks**: Celo, Arbitrum, Base, Sepolia
-- **Storage**: IPFS via Pinata for decentralized file storage
-
-## 🏗️ System Overview
-
-Green Goods is a decentralized platform for biodiversity conservation that enables Garden Operators and Gardeners to document and get approval for conservation work through blockchain-based attestations.
-
-### High-Level Architecture
-
-```mermaid
-graph TB
-    subgraph "Frontend Layer"
-        PWA[Client PWA<br/>React + Vite]
-    end
-    
-    subgraph "API Layer"
-        API[API Server<br/>Fastify + TypeScript]
-        GQL[GraphQL Indexer<br/>Envio]
-    end
-    
-    subgraph "Blockchain Layer"
-        EAS[EAS Contracts<br/>Attestations]
-        GG[Green Goods Contracts<br/>Gardens + Actions]
-        TB[Tokenbound Accounts<br/>ERC-6551]
-    end
-    
-    subgraph "Storage Layer"
-        IPFS[IPFS<br/>Pinata]
-        RPC[RPC Providers<br/>Multiple Networks]
-    end
-    
-    subgraph "Networks"
-        CELO[Celo Mainnet]
-        ARB[Arbitrum One]
-        SEP[Sepolia Testnet]
-        BASE[Base]
-    end
-    
-    PWA --> API
-    PWA --> GQL
-    PWA --> EAS
-    PWA --> GG
-    
-    API --> IPFS
-    GQL --> RPC
-    
-    EAS --> CELO
-    EAS --> ARB
-    EAS --> SEP
-    EAS --> BASE
-    
-    GG --> CELO
-    GG --> ARB
-    GG --> SEP
-    GG --> BASE
-    
-    TB --> GG
-```
-
-## 📦 Component Architecture
-
-### Client (Progressive Web App)
-
-**Technology Stack:**
-- **Framework**: React 18 with TypeScript
-- **Build Tool**: Vite with experimental Rolldown support
-- **Styling**: Tailwind CSS v4 + Radix UI primitives
-- **State Management**: TanStack Query + React Context
-- **Authentication**: Privy for wallet management
-- **Blockchain**: Viem + EAS SDK
-
-**Key Features:**
-- **PWA Capabilities**: Offline support, installable, mobile-optimized
-- **Dynamic Imports**: Lazy-loaded views for optimal performance
-- **Bundle Optimization**: 4.4MB main bundle with code splitting
-- **Multi-language Support**: English, Spanish, Portuguese
-
-**Component Structure:**
-```
-src/
-├── components/           # Reusable UI components
-│   ├── UI/              # Generic components (Button, Card, etc.)
-│   ├── Garden/          # Garden-specific components
-│   └── Layout/          # Navigation and layout
-├── views/               # Main application views
-│   ├── Home/            # Garden management hub
-│   ├── Garden/          # Garden details and work flows
-│   ├── Profile/         # User account management
-│   ├── Landing/         # Public landing page
-│   └── Login/           # Authentication flow
-├── providers/           # React context providers
-├── modules/             # Service integrations
-├── utils/               # Utility functions
-└── types/               # TypeScript definitions
-```
-
-### API Server
-
-**Technology Stack:**
-- **Framework**: Fastify with TypeScript
-- **Deployment**: Railway with auto-deployment
-- **Authentication**: Privy server SDK
-- **CORS**: Configured for frontend integration
-
-**Endpoints:**
-- `GET /` - API information and version
-- `GET /health` - Health check endpoint
-- `GET /users` - User management (Privy integration)
-- `PATCH /users/me` - Update current user's metadata
-- `POST /subscribe` - Email subscription service
-
-**Deployment:**
-- **Platform**: Railway with `railway.toml` configuration
-- **Environment**: Automatic staging and production deployment
-- **Monitoring**: Built-in health checks and metrics
-
-### GraphQL Indexer
-
-**Technology Stack:**
-- **Framework**: Envio for blockchain indexing
-- **Database**: PostgreSQL (managed by Envio)
-- **API**: GraphQL with real-time subscriptions
-- **Networks**: Multi-chain support (Celo, Arbitrum, Sepolia, Base)
-
-**Data Entities:**
-- **Gardens**: NFT-based garden representations
-- **Work**: Task submissions with metadata
-- **Assessments**: Biodiversity evaluations
-- **Work Approvals**: Approval status and feedback
-- **Attestations**: EAS-based verifiable credentials
-
-**Event Processing:**
-```typescript
-// Key blockchain events indexed
-- GardenCreated          // New garden registration
-- GardenUpdated          // Metadata updates
-- WorkSubmitted          // New work submissions
-- WorkApproved           // Approval decisions
-- AttestationCreated     // EAS attestations
-- AttestationRevoked     // Revoked attestations
-```
-
-### Smart Contracts
-
-**Contract Architecture:**
-
-1. **Core Contracts**
-   - `GardenToken` (ERC-721): Garden NFT with metadata
-   - `GardenAccount` (ERC-6551): Tokenbound account implementation
-   - `ActionRegistry`: Action definitions and work submissions
-   - `DeploymentRegistry`: Network-specific contract addresses
-
-2. **EAS Integration**
-   - `WorkResolver`: Custom resolver for work attestations
-   - `WorkApprovalResolver`: Custom resolver for approval attestations
-   - Schema definitions for structured data
-
-3. **Deployment System**
-   - Multi-network deployment with profiles
-   - Deterministic addresses using CREATE2
-   - Automatic schema deployment and verification
-
-**Supported Networks:**
-- **Celo** (42220): Primary production network
-- **Arbitrum One** (42161): Secondary production network
-- **Sepolia** (11155111): Primary testnet
-- **Base** (8453): Additional production network
-- **Optimism** (10): Additional production network
-
-## 🔄 Data Flow
-
-### Garden Creation Flow
-
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant C as Client
-    participant BC as Blockchain
-    participant I as Indexer
-    participant API as API Server
-    
-    U->>C: Create Garden Form
-    C->>BC: Deploy Garden NFT
-    BC-->>C: Transaction Hash
-    C->>API: Upload Metadata to IPFS
-    API-->>C: IPFS Hash
-    C->>BC: Update NFT Metadata
-    BC->>I: Event: GardenCreated
-    I->>I: Index Garden Data
-    C->>I: Query Updated Garden
-    I-->>C: Garden Details
-    C-->>U: Garden Created
-```
-
-### Work Submission Flow
-
-```mermaid
-sequenceDiagram
-    participant G as Gardener
-    participant C as Client
-    participant BC as Blockchain
-    participant EAS as EAS Contract
-    participant I as Indexer
-    
-    G->>C: Submit Work Form
-    C->>BC: Upload Work Files to IPFS
-    BC-->>C: IPFS Hashes
-    C->>EAS: Create Work Attestation
-    EAS-->>C: Attestation UID
-    C->>BC: Register Work in ActionRegistry
-    BC->>I: Event: WorkSubmitted
-    I->>I: Index Work Submission
-    C-->>G: Work Submitted
-```
-
-### Work Approval Flow
-
-```mermaid
-sequenceDiagram
-    participant O as Garden Operator
-    participant C as Client
-    participant EAS as EAS Contract
-    participant I as Indexer
-    
-    O->>C: Review Work Submission
-    C->>C: Evaluate Work Quality
-    O->>C: Submit Approval Decision
-    C->>EAS: Create Approval Attestation
-    EAS-->>C: Approval UID
-    EAS->>I: Event: AttestationCreated
-    I->>I: Index Approval Decision
-    C-->>O: Approval Recorded
-```
-
-## 🛠️ Development Architecture
-
-### Build System
-
-**Frontend Build Pipeline:**
-1. **TypeScript Compilation**: Strict type checking
-2. **Vite Bundling**: Fast builds with HMR
-3. **Code Splitting**: Dynamic imports for optimal loading
-4. **PWA Generation**: Service worker and manifest
-5. **Asset Optimization**: Image compression and caching
-
-**Smart Contract Pipeline:**
-1. **Foundry Compilation**: Solidity compilation with optimizations
-2. **Testing**: Comprehensive test suite with gas reporting
-3. **Deployment**: Multi-network deployment with verification
-4. **Integration**: Automatic indexer configuration updates
-
-### Quality Assurance
-
-**Code Quality Stack:**
-- **Biome**: Fast formatting (35x faster than Prettier)
-- **0xlint**: Ultra-fast linting (30ms for entire codebase)
-- **Husky**: Automated git hooks for quality checks
-- **TypeScript**: Strict type checking across all packages
-
-**Testing Strategy:**
-- **Unit Tests**: Vitest for React components and utilities
-- **Integration Tests**: API and contract integration testing
-- **E2E Tests**: Playwright for full user workflows
-- **Contract Tests**: Foundry for smart contract logic
-
-### Deployment Strategy
-
-**Multi-Environment Setup:**
-- **Development**: Local services with hot reload
-- **Staging**: Testnet deployment for integration testing
-- **Production**: Mainnet deployment with monitoring
-
-**Infrastructure:**
-- **Frontend**: Static hosting (Vercel, Netlify, Railway)
-- **API**: Railway with auto-deployment and scaling
-- **Indexer**: Envio Cloud or self-hosted
-- **Contracts**: Deployed to multiple EVM networks
-
-## 🔐 Security Architecture
-
-### Authentication & Authorization
-
-**User Authentication:**
-- **Privy Integration**: Secure wallet connection and session management
-- **Multi-wallet Support**: MetaMask, WalletConnect, email-based wallets
-- **Session Management**: Secure token handling and refresh
-
-**Role-based Access:**
-- **Garden Operators**: Can approve work submissions
-- **Gardeners**: Can submit work and create assessments
-- **Public**: Read-only access to garden information
-
-### Smart Contract Security
-
-**Security Measures:**
-- **Access Control**: Role-based permissions for critical functions
-- **Reentrancy Protection**: SafeERC patterns and checks
-- **Input Validation**: Comprehensive parameter validation
-- **Upgrade Patterns**: Proxy contracts for safe upgrades
-
-**Audit Considerations:**
-- External security audits for production contracts
-- Automated security scanning in CI/CD
-- Bug bounty program for responsible disclosure
-
-### Data Security
-
-**IPFS Integration:**
-- **Pinata Service**: Reliable IPFS pinning with redundancy
-- **Content Addressing**: Tamper-proof file storage
-- **Access Control**: Private and public content management
-
-**Private Data Handling:**
-- **Environment Variables**: Secure API key management
-- **Client-side Encryption**: Sensitive data encryption before storage
-- **HTTPS Everywhere**: All communications over TLS
-
-## 📊 Performance Architecture
-
-### Frontend Performance
-
-**Optimization Strategies:**
-- **Bundle Splitting**: Separate chunks for vendor libraries
-- **Lazy Loading**: Dynamic imports for views and components
-- **Tree Shaking**: Elimination of unused code
-- **Image Optimization**: WebP format and responsive images
-
-**Performance Metrics:**
-- **Bundle Size**: 4.4MB main bundle with optimal chunking
-- **Load Time**: <3s initial load on 3G networks
-- **Core Web Vitals**: Optimized for Google's performance metrics
-
-### Backend Performance
-
-**API Optimization:**
-- **Fastify Framework**: High-performance Node.js server
-- **Connection Pooling**: Efficient database connections
-- **Caching**: Redis for frequently accessed data
-- **Rate Limiting**: Protection against abuse
-
-**Indexer Performance:**
-- **Real-time Indexing**: Sub-second event processing
-- **Query Optimization**: Efficient GraphQL resolvers
-- **Database Indexing**: Optimized PostgreSQL schemas
-- **Horizontal Scaling**: Multi-instance deployment support
-
-### Blockchain Performance
-
-**Gas Optimization:**
-- **Contract Optimization**: Minimal gas usage patterns
-- **Batch Operations**: Multiple operations in single transaction
-- **Gas Price Monitoring**: Dynamic gas price adjustment
-- **Layer 2 Integration**: Reduced costs on Arbitrum and Base
-
-## 🔄 Integration Architecture
-
-### External Services
-
-**Blockchain Infrastructure:**
-- **RPC Providers**: Alchemy, Infura, public nodes
-- **Block Explorers**: Etherscan family for contract verification
-- **Gas Tracking**: Real-time gas price monitoring
-
-**Storage Services:**
-- **Pinata**: Primary IPFS provider for file storage
-- **Backup Providers**: Secondary IPFS nodes for redundancy
-
-**Authentication Services:**
-- **Privy**: Primary authentication and wallet management
-- **WalletConnect**: Multi-wallet support protocol
-
-### Inter-component Communication
-
-**Frontend ↔ Blockchain:**
-- **Viem**: Type-safe Ethereum client
-- **EAS SDK**: Direct attestation creation and querying
-- **Contract ABIs**: Type-safe contract interactions
-
-**Frontend ↔ API:**
-- **REST API**: Standard HTTP endpoints for user management
-- **Error Handling**: Comprehensive error responses and retry logic
-
-**Frontend ↔ Indexer:**
-- **GraphQL**: Efficient data querying with gql.tada
-- **Real-time Updates**: Subscriptions for live data
-- **Caching**: TanStack Query for intelligent caching
-
-**Contracts ↔ Indexer:**
-- **Event Listening**: Real-time blockchain event processing
-- **ABI Synchronization**: Automatic contract interface updates
-- **Network Configuration**: Multi-chain indexing coordination
-
-## 🚀 Scalability Architecture
-
-### Horizontal Scaling
-
-**Frontend Scaling:**
-- **CDN Distribution**: Global content delivery network
-- **Edge Caching**: Regional cache for faster access
-- **Load Balancing**: Multiple deployment regions
-
-**Backend Scaling:**
-- **Microservices**: Independent service scaling
-- **Database Sharding**: Horizontal database scaling
-- **Queue Systems**: Asynchronous task processing
-
-### Blockchain Scaling
-
-**Multi-chain Strategy:**
-- **Primary Networks**: Celo and Arbitrum for main operations
-- **Secondary Networks**: Base and Optimism for expansion
-- **Testnet Mirrors**: Parallel testing infrastructure
-
-**Data Scaling:**
-- **IPFS Distribution**: Decentralized file storage
-- **Indexer Scaling**: Multiple indexer instances per network
-- **Cache Layers**: Multi-level caching strategy
-
-## 📈 Monitoring & Observability
-
-### Application Monitoring
-
-**Frontend Monitoring:**
-- **Error Tracking**: Comprehensive error reporting
-- **Performance Monitoring**: Core Web Vitals tracking
-- **User Analytics**: Privacy-respecting usage analytics
-
-**Backend Monitoring:**
-- **Health Checks**: Automated service health monitoring
-- **API Metrics**: Request/response time tracking
-- **Resource Usage**: CPU, memory, and disk monitoring
-
-### Blockchain Monitoring
-
-**Contract Monitoring:**
-- **Transaction Tracking**: Deployment and interaction monitoring
-- **Gas Usage**: Transaction cost optimization
-- **Event Monitoring**: Real-time event processing status
-
-**Network Monitoring:**
-- **RPC Health**: Provider reliability tracking
-- **Block Progression**: Network synchronization status
-- **Error Rates**: Failed transaction analysis
-
-For implementation details, see the individual package documentation:
-- [Client Architecture](./packages/client/README.md)
-- [API Architecture](./packages/api/README.md)
-- [Contract Architecture](./packages/contracts/DEPLOYMENT.md)
-- [Indexer Architecture](./packages/indexer/README.md) 
+# Architecture
+
+This guide maps the Green Goods monorepo, summarising package responsibilities, technology stacks, and operational entry points. It pulls together the essentials that previously lived in package-level READMEs.
+
+## System Layers
+
+- **Client (`packages/client`)** — offline-first PWA for gardeners and operators. Persists submissions locally, syncs to the contracts/indexer pipeline, and handles sign-in via Pimlico passkeys and WalletConnect.
+- **Admin (`packages/admin`)** — administrative console for garden setup, membership management, and contract lifecycle actions. Provides operator-scoped views via the indexer.
+- **Indexer (`packages/indexer`)** — Envio project ingesting contract events and exposing a GraphQL API consumed by both frontends.
+- **Contracts (`packages/contracts`)** — Solidity suite implementing gardens, actions, attestation resolvers, and the Karma GAP bridge. Managed through `deploy.js` wrappers.
+
+All packages share the root `.env`; Base Sepolia (`84532`) is the default network. Use `bun dev` at the repository root for a full stack dev environment.
+
+## Package Snapshots
+
+### Client PWA
+
+- **Stack**: React 18, Vite, Tailwind v4, Radix UI, TanStack Query (with offline persister), Viem, Zustand.
+- **Auth**: Pimlico passkey smart accounts (primary) and Reown AppKit wallet connections. Privy variables exist only for legacy migrations.
+- **Offline architecture**: IndexedDB queue (`src/modules/offline`), service worker via `vite-plugin-pwa`, background sync to replay submissions.
+- **Useful commands**:
+  ```bash
+  bun --filter client dev        # HTTPS dev server on https://localhost:3001
+  bun --filter client test       # Vitest suite
+  bun --filter client format     # Biome formatter
+  ```
+- **Key docs**: `packages/client/AGENTS.md` covers offline patterns, queue APIs, and Pimlico setup.
+
+### Admin Dashboard
+
+- **Stack**: React 18, Tailwind v4, Zustand, XState workflows, Urql (GraphQL + subscriptions), Viem.
+- **Roles**: Admin allow list (see `src/config.ts`) and operator scope resolved from the indexer via the `useRole` hook.
+- **Features**: Garden creation & membership management, contract deployment helpers, Karma GAP impact viewing (via SDK), planned impact exports.
+- **Commands**:
+  ```bash
+  bun --filter admin dev         # http://localhost:3002
+  bun --filter admin test        # Vitest suite
+  ```
+- **Note**: Karma GAP data is fetched through the SDK using `gapProjectUID` exposed by the indexer; see the appendix below.
+
+### Indexer (Envio)
+
+- **Purpose**: Tracks gardens, actions, submissions, approvals, and attestation metadata for frontends.
+- **Runbook**:
+  ```bash
+  bun --filter indexer dev       # launches Envio stack + playground on http://localhost:8080
+  bun --filter indexer codegen   # regenerate Envio types from config/schema
+  ```
+- **Troubleshooting**: Use `bun reset` or `./reset-indexer.sh` to clear Docker volumes when Envio state is corrupted. ReScript-generated artifacts live in `generated/`; run `npm install --legacy-peer-deps` inside that folder if codegen complains about missing packages.
+- **GAP queries**: Gardens expose `gapProjectUID` in GraphQL; consumers should fetch impacts/milestones with the Karma GAP SDK (see the hook skeleton in `packages/indexer/KARMA_GAP_QUERIES.md`).
+
+### Contracts
+
+- **Scope**: GardenToken (ERC-721), GardenAccount (ERC-6551), ActionRegistry, Work/Assessment resolvers, Karma GAP integration (`KarmaLib`).
+- **Tooling**: Foundry (forge/anvil), custom deployment scripts (`script/deploy.js`, `script/upgrade.js`), schema config in `config/schemas.json` (read-only).
+- **Commands**:
+  ```bash
+  bun --filter contracts build
+  bun --filter contracts test             # includes gas report
+  bun --filter contracts deploy:testnet   # wraps deploy.js (Base Sepolia)
+  bun --filter contracts upgrade:testnet  # UUPS upgrade wrapper
+  ```
+- **Checklist**: See the [Contracts Handbook](./CONTRACTS_HANDBOOK.md) for deployment, upgrade, schema, and validation procedures.
+
+## Data & Integration Flow
+
+1. **Garden creation** (admin) → `GardenToken` mints and initialises a `GardenAccount` (token-bound account). Supported chains create a Karma GAP project via `KarmaLib`.
+2. **Action setup** (admin) → `ActionRegistry` entries define allowable work activities.
+3. **Work submission** (client) → Offline queue stores media + metadata, then submits on reconnect. Indexer captures `WorkSubmitted` events.
+4. **Approval** (operator) → `WorkApprovalResolver` validates roles, records EAS attestation, and, when available, creates a GAP impact attestation via `GardenAccount`.
+5. **Assessment** (operator) → `AssessmentResolver` generates milestone attestations (also synced to GAP where supported).
+6. **Consumption** → Frontends query Envio for state. GAP impact data is fetched directly with the SDK using stored project UIDs.
+
+## Karma GAP At a Glance
+
+- **Supported chains**: Optimism, Arbitrum, Celo, Base Sepolia, Sepolia, Optimism Sepolia, Sei, Sei Testnet.
+- **UID storage**: `GardenAccount.gapProjectUID` (bytes32) exposed through the indexer as strings.
+- **SDK usage**: Install `@show-karma/karma-gap-sdk`, map chain ID to network string, and fetch impacts/milestones using the project UID. Example hook lives in `packages/indexer/KARMA_GAP_QUERIES.md`.
+- **Resilience**: GAP calls are best-effort; failures emit logs but do not revert the parent transaction.
+
+## Related References
+
+- [Platform Overview](./PLATFORM_OVERVIEW.md) — condensed product & data map
+- [Developer Guide](./DEVELOPER_GUIDE.md) — environment, testing, troubleshooting
+- [Contracts Handbook](./CONTRACTS_HANDBOOK.md) — lifecycle workflows
+- Package-specific deep dives remain in their respective `AGENTS.md` and README files for implementation details.

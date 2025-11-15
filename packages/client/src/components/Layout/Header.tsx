@@ -1,7 +1,7 @@
+import { APP_NAME } from "@green-goods/shared/config";
+import { useApp } from "@green-goods/shared/providers";
 import { type RemixiconComponentType, RiGithubLine, RiTwitterLine } from "@remixicon/react";
 import type React from "react";
-import { APP_NAME } from "@/config";
-import { useApp } from "@/providers/app";
 
 type HeaderProps = Record<string, never>;
 

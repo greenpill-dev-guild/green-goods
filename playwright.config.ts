@@ -8,6 +8,7 @@ loadEnv({ path: path.resolve(__dirname, ".env") });
 // Environment configuration (focused on localhost as requested)
 const environments = {
   local: {
+    admin: "https://localhost:3002", // HTTPS because of mkcert plugin
     client: "https://localhost:3001", // HTTPS because of mkcert plugin
     indexer: "http://localhost:8080/v1/graphql",
     chain: "base-sepolia", // Using deployed contracts on Base Sepolia
@@ -92,9 +93,9 @@ export default defineConfig({
     ? undefined
     : [
         {
-          // Use npm/pnpm based on availability
-          command: process.env.npm_execpath?.includes("pnpm")
-            ? "pnpm dev:indexer"
+          // Use bun/npm based on availability
+          command: process.env.npm_execpath?.includes("bun")
+            ? "bun dev:indexer"
             : "npm run dev:indexer",
           port: 8080,
           reuseExistingServer: !process.env.CI,
@@ -104,7 +105,7 @@ export default defineConfig({
           },
         },
         {
-          command: process.env.npm_execpath?.includes("pnpm") ? "pnpm dev:app" : "npm run dev:app",
+          command: process.env.npm_execpath?.includes("bun") ? "bun dev:app" : "npm run dev:app",
           port: 3001,
           reuseExistingServer: !process.env.CI,
           timeout: 120000, // Allow time for Vite to start

@@ -1,8 +1,9 @@
+import { useOffline } from "@green-goods/shared/hooks";
+import { useUIStore } from "@green-goods/shared/stores";
+import { cn } from "@green-goods/shared/utils";
 import { RiCloudOffLine, RiLoader4Line, RiTaskLine } from "@remixicon/react";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useIntl } from "react-intl";
-import { useOffline } from "../../../hooks/useOffline";
-import { cn } from "../../../utils/cn";
 import { WorkDashboard } from ".";
 
 interface WorkDashboardIconProps {
@@ -12,17 +13,7 @@ interface WorkDashboardIconProps {
 export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className }) => {
   const intl = useIntl();
   const { isOnline, pendingCount, syncStatus } = useOffline();
-  const [showDashboard, setShowDashboard] = useState(false);
-
-  // Auto-open dashboard if flagged (e.g., after submission)
-  useEffect(() => {
-    try {
-      if (sessionStorage.getItem("openWorkDashboard") === "1") {
-        setShowDashboard(true);
-        sessionStorage.removeItem("openWorkDashboard");
-      }
-    } catch {}
-  }, []);
+  const { isWorkDashboardOpen, openWorkDashboard, closeWorkDashboard } = useUIStore();
 
   // Only show notifications for actual pending work items
   const isSyncing = syncStatus === "syncing";
@@ -58,7 +49,7 @@ export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className 
   return (
     <>
       <button
-        onClick={() => setShowDashboard(true)}
+        onClick={openWorkDashboard}
         className={cn(
           "relative p-1 rounded-lg border transition-all duration-200",
           "hover:shadow-lg hover:scale-105 active:scale-95",
@@ -117,7 +108,7 @@ export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className 
       </button>
 
       {/* Dashboard Modal */}
-      {showDashboard && <WorkDashboard onClose={() => setShowDashboard(false)} />}
+      {isWorkDashboardOpen && <WorkDashboard onClose={closeWorkDashboard} />}
     </>
   );
 };

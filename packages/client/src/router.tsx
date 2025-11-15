@@ -12,6 +12,12 @@ export const router = createBrowserRouter([
       {
         path: "login",
         lazy: async () => ({ Component: (await import("@/views/Login")).default }),
+        children: [
+          {
+            path: "recover",
+            lazy: async () => ({ Component: (await import("@/views/Login/Recovery")).default }),
+          },
+        ],
       },
       {
         lazy: async () => ({ Component: (await import("@/routes/RequireInstalled")).default }),

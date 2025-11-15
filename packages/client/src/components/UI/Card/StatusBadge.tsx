@@ -1,3 +1,4 @@
+import { cn } from "@green-goods/shared/utils";
 import {
   RiCheckLine,
   RiCloseLine,
@@ -6,7 +7,6 @@ import {
   RiTimeLine,
 } from "@remixicon/react";
 import React from "react";
-import { cn } from "../../../utils/cn";
 
 export interface StatusBadgeProps {
   status: "approved" | "rejected" | "pending" | "syncing" | "failed";
@@ -86,7 +86,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-1.5 px-2 py-1 rounded-full border",
+        "inline-flex items-center gap-1.5 px-2 py-1 rounded-full border status-transition",
         config.bgColor,
         config.textColor,
         config.borderColor,

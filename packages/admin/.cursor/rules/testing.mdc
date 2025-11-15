@@ -1,0 +1,112 @@
+---
+description: Testing patterns — integration focus, mock utilities, workflow testing
+globs:
+  - __tests__/**
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+alwaysApply: false
+---
+
+# Testing Patterns for Admin
+
+Admin testing focuses on integration tests for workflows and role-based access.
+
+## Test Organization
+
+```
+src/__tests__/
+├── components/          # Component tests
+│   ├── RequireAuth.test.tsx
+│   └── RequireRole.test.tsx
+├── hooks/               # Hook tests
+│   ├── useRole.test.ts
+│   └── useToastAction.test.ts
+├── integration/         # Integration tests
+│   ├── end-to-end.test.ts
+│   └── garden-lifecycle.test.ts
+├── workflows/           # XState workflow tests
+│   └── createGarden.test.ts
+├── utils/               # Test utilities
+│   ├── mock-providers.tsx
+│   └── test-utils.tsx
+└── setup.ts            # Test setup
+```
+
+## Mock Utilities
+
+### renderWithProviders
+
+```typescript
+// __tests__/utils/test-utils.tsx
+export function renderWithProviders(
+  ui: ReactElement,
+  options: { userRole?: 'admin' | 'operator' | 'unauthorized' } = {}
+) {
+  const { userRole = 'admin' } = options;
+  const mockUser = createMockUser(userRole);
+  const urqlClient = createMockUrqlClient();
+  
+  return render(ui, {
+    wrapper: ({ children }) => (
+      <UrqlProvider value={urqlClient}>
+        <AuthProvider initialUser={mockUser}>
+          {children}
+        </AuthProvider>
+      </UrqlProvider>
+    ),
+  });
+}
+```
+
+### createMockUrqlClient
+
+```typescript
+export function createMockUrqlClient(customHandlers = {}) {
+  return {
+    executeQuery: vi.fn(() => ({
+      toPromise: () => Promise.resolve({
+        data: customHandlers.data || {},
+        error: customHandlers.error || null,
+      }),
+    })),
+  };
+}
+```
+
+## Integration Test Pattern
+
+```typescript
+// __tests__/integration/garden-lifecycle.test.ts
+describe('Garden Lifecycle', () => {
+  it('creates garden, adds members, removes members', async () => {
+    const { user } = render(<App />, {
+      wrapper: ({ children }) => (
+        <AuthProvider role="admin">{children}</AuthProvider>
+      ),
+    });
+    
+    // Create garden
+    await user.click(screen.getByRole('button', { name: /create garden/i }));
+    await user.type(screen.getByLabelText('Name'), 'Test Garden');
+    await user.click(screen.getByRole('button', { name: /submit/i }));
+    
+    await waitFor(() => {
+      expect(screen.getByText('Test Garden')).toBeInTheDocument();
+    });
+    
+    // Add gardener
+    await user.click(screen.getByRole('button', { name: /add gardener/i }));
+    await user.type(screen.getByLabelText('Address'), '0x123...');
+    await user.click(screen.getByRole('button', { name: /add/i }));
+    
+    // Verify
+    expect(screen.getByText('0x123...')).toBeInTheDocument();
+  });
+});
+```
+
+## Reference Files
+
+- Test utils: `src/__tests__/utils/test-utils.tsx`
+- Mock providers: `src/__tests__/utils/mock-providers.tsx`
+- Urql mocks: `src/__tests__/utils/urql-mock.ts`

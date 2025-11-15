@@ -1,89 +1,62 @@
 # Green Goods
 
-Green Goods is a decentralized platform for biodiversity conservation, enabling Garden Operators and Gardeners to document and get approval for conservation work through blockchain-based attestations.
+Green Goods is an offline-first, single-chain platform for documenting conservation work and proving impact on-chain. Operators approve gardener submissions, and the protocol anchors the results in Ethereum attestation infrastructure.
 
-## 🏗️ Repository Structure
-
-```
-green-goods/
-├── packages/
-│   ├── client/           # React PWA frontend
-│   ├── api/              # Node.js backend API
-│   ├── mcp/              # AI assistant integration
-│   ├── indexer/          # GraphQL blockchain indexer
-│   └── contracts/        # Solidity smart contracts
-├── docs/                 # Documentation
-└── tests/                # End-to-end testing
-```
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- **Node.js** v20+ • **pnpm** v9.x • **Docker** • **Foundry**
-
-### Setup & Run
+## Quick Start
 
 ```bash
-# Clone and install
 git clone https://github.com/your-org/green-goods.git
 cd green-goods
-pnpm install
+bun install
 
-# Configure environment
-cp .env.example .env
-# Edit .env with your API keys (see .env.example)
+cp .env.example .env          # All packages share the root env file
+vi .env                       # Populate keys (Base Sepolia is the default chain: 84532)
 
-# Start all services (pm2: client, api, indexer)
-pnpm dev
-
-# Tail logs
-pnpm dev:logs:client
-pnpm dev:logs:api
-pnpm dev:logs:indexer
+bun dev                       # Starts client, admin, indexer via pm2
 ```
 
-## 🛠️ Development
+Useful follow-ups:
 
-### Essential Commands
+- `bun dev:stop` — stop the pm2 services
+- `bun exec pm2 logs <service>` — stream logs for `client`, `admin`, or `indexer`
+
+## Common Commands
 
 ```bash
-# Development
-pnpm dev                              # Start all services
-pnpm --filter <package> dev           # Start individual service
+# Format, lint, test across the workspace
+bun format && bun lint && bun test
 
-# Building  
-pnpm build                            # Build all packages
-pnpm --filter <package> build         # Build specific package
+# Build everything or target a package
+bun build
+bun --filter client build
 
-# Smart Contracts
-pnpm --filter contracts test          # Test contracts
-pnpm --filter contracts deploy:sepolia # Deploy to testnet
-
-# Quality
-pnpm format && pnpm lint && pnpm test # Quality checks
+# Contracts: compile, test, deploy through the wrappers
+bun --filter contracts build
+bun --filter contracts test
+bun --filter contracts deploy:testnet    # runs deploy.js with the correct profile
 ```
 
-## 🤝 Contributing
+Scripts live in `package.json`; contract-specific flows are described in the Contracts Handbook.
 
-1. **Fork** → **Branch** → **Code** → **Test** → **PR**
-2. Use [conventional commits](https://www.conventionalcommits.org/): `feat:`, `fix:`, `docs:`
-3. Git hooks auto-format and lint on commit/push
+## Documentation
 
-## 📚 Documentation
+- [Architecture](./docs/ARCHITECTURE.md) — full system map and package summaries
+- [Developer Guide](./docs/DEVELOPER_GUIDE.md) — environment setup, testing, troubleshooting
+- [Contracts Handbook](./docs/CONTRACTS_HANDBOOK.md) — deployment, upgrades, schema care, validation
+- [Platform Overview](./docs/PLATFORM_OVERVIEW.md) — product architecture and data flow
+- [Karma GAP Integration](./docs/KARMA_GAP_INTEGRATION.md) — appendix for the GAP attestation bridge
 
-| Guide | Purpose |
-|-------|---------|
-| [Environment Setup](./docs/ENVIRONMENT_SETUP.md) | API keys & configuration |
-| [Testing](./docs/TESTING.md) | E2E testing guide |
-| [Architecture](./docs/ARCHITECTURE.md) | System design |
-| [Troubleshooting](./docs/TROUBLESHOOTING.md) | Common issues |
+Package-specific READMEs:
 
-**Package docs:** [client](./packages/client/README.md) • [api](./packages/api/README.md) • [mcp](./packages/mcp/README.md) • [indexer](./packages/indexer/README.md) • [contracts](./packages/contracts/README.md)
+- `packages/client/README.md` — offline-first PWA
+- `packages/admin/README.md` — operator dashboard
+- `packages/indexer/README.md` — Envio indexer
+- `packages/contracts/README.md` — foundry project layout and scripts
 
----
+## Contributing
 
-**Stack:** React • Node.js • Solidity • GraphQL • TypeScript  
-**Tools:** Biome • 0xlint • Solhint • Playwright • Foundry
+- Stick to conventional commits (`feat(client): …`)
+- Run `bun format && bun lint && bun test` before opening PRs
+- Keep environment-only secrets in the root `.env` and never add package-level `.env` files
 
-**License:** MIT • **Setup:** [Environment Guide](./docs/ENVIRONMENT_SETUP.md)
+For more project background, automation guidelines, and tooling policies see `AGENTS.md` and the package-specific agent guides.

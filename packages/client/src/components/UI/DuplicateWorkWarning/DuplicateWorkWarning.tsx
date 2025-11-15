@@ -1,6 +1,6 @@
+import type { DuplicateCheckResult } from "@green-goods/shared/modules";
+import { cn } from "@green-goods/shared/utils";
 import React, { useState } from "react";
-import type { DuplicateCheckResult } from "../../../modules/deduplication";
-import { cn } from "../../../utils/cn";
 
 interface DuplicateWorkWarningProps {
   workData: unknown;
