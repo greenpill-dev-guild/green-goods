@@ -74,8 +74,8 @@
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json}": [
-      "biome format --write",
-      "oxlint"
+      "bunx @biomejs/biome format --write",
+      "bunx oxlint"
     ],
     "*.sol": [
       "cd packages/contracts && bun run format"
