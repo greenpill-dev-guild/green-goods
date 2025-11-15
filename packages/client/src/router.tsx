@@ -12,6 +12,12 @@ export const router = createBrowserRouter([
       {
         path: "login",
         lazy: async () => ({ Component: (await import("@/views/Login")).default }),
+        children: [
+          {
+            path: "recover",
+            lazy: async () => ({ Component: (await import("@/views/Login/Recovery")).default }),
+          },
+        ],
       },
       {
         lazy: async () => ({ Component: (await import("@/routes/RequireInstalled")).default }),
@@ -27,7 +33,6 @@ export const router = createBrowserRouter([
                     id: "home",
                     path: "home",
                     lazy: async () => ({ Component: (await import("@/views/Home")).default }),
-                    loader: async (args) => (await import("@/views/Home/loader")).homeLoader(args),
                     children: [
                       {
                         id: "garden",
@@ -35,18 +40,12 @@ export const router = createBrowserRouter([
                         lazy: async () => ({
                           Component: (await import("@/views/Home/Garden")).Garden,
                         }),
-                        loader: async (args) =>
-                          (await import("@/views/Home/Garden/gardenLoader")).gardenRouteLoader(
-                            args
-                          ),
                         children: [
                           {
                             path: "work/:workId",
                             lazy: async () => ({
                               Component: (await import("@/views/Home/Garden/Work")).GardenWork,
                             }),
-                            loader: async (args) =>
-                              (await import("@/views/Home/Garden/loader")).workRouteLoader(args),
                           },
                           {
                             path: "assessments/:assessmentId",
@@ -63,8 +62,6 @@ export const router = createBrowserRouter([
                     id: "garden-submit",
                     path: "garden",
                     lazy: async () => ({ Component: (await import("@/views/Garden")).default }),
-                    loader: async (args) =>
-                      (await import("@/views/Garden/loader")).gardenSubmitLoader(args),
                   },
                   {
                     path: "profile",

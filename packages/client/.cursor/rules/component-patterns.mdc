@@ -1,0 +1,1037 @@
+---
+description: UI component patterns — cards, forms, Radix UI, error boundaries, modals
+globs:
+  - components/**
+  - views/**
+alwaysApply: false
+---
+
+# Component Patterns & UI Conventions
+
+Green Goods client uses a design system built on Tailwind CSS v4 and Radix UI primitives. This rule documents component patterns, variants, and composition strategies.
+
+## Component Organization
+
+```
+src/components/
+├── UI/              # Generic, reusable components
+│   ├── Button/
+│   ├── Card/        # Card, ActionCard, GardenCard, WorkCard
+│   ├── Form/        # FormInput, FormText, FormSelect
+│   ├── Badge/
+│   ├── Avatar/
+│   ├── Tabs/
+│   ├── Select/
+│   ├── Switch/
+│   ├── Accordion/
+│   ├── Carousel/
+│   ├── ModalDrawer/
+│   ├── ErrorBoundary/
+│   ├── Loader/
+│   └── OfflineIndicator/
+├── Garden/          # Garden-specific components
+│   ├── Work.tsx
+│   ├── Gardeners.tsx
+│   ├── Assessments.tsx
+│   └── GardenOnboarding.tsx
+└── Layout/          # Navigation and layout
+    ├── AppBar.tsx
+    ├── TopNav.tsx
+    ├── Header.tsx
+    ├── Footer.tsx
+    └── Splash.tsx
+```
+
+## Card Components
+
+### Base Card Component
+
+```typescript
+// components/UI/Card/Card.tsx
+import { tv, type VariantProps } from 'tailwind-variants';
+
+export const cardVariants = tv({
+  base: 'rounded-2xl border flex gap-0.5 justify-between border-border p-1 px-4 bg-white',
+  variants: {
+    variant: {
+      primary: '',
+      avatar: '',
+    },
+    mode: {
+      'no-outline': 'border-0 shadow-0',
+      outline: 'border-border border shadow-xs',
+      filled: 'bg-card border-0',
+    },
+    size: {
+      large: 'min-h-18',
+      small: 'h-auto py-4',
+    },
+  },
+  defaultVariants: {
+    variant: 'primary',
+    mode: 'outline',
+    size: 'large',
+  },
+});
+
+export const Card = forwardRef<HTMLDivElement, CardProps>(
+  ({ className, variant, mode, size, ...props }, ref) => {
+    const classes = cardVariants({ variant, mode, size, class: className });
+    return <div ref={ref} className={cn(classes)} {...props} />;
+  }
+);
+```
+
+### ActionCard Pattern
+
+```typescript
+// components/UI/Card/ActionCard.tsx
+export interface ActionCardRootProps {
+  action: Action;
+  selected: boolean;
+  media?: 'large' | 'small';
+  height?: 'home' | 'selection' | 'default';
+  onClick?: () => void;
+}
+
+const ActionCard = forwardRef<HTMLDivElement, ActionCardRootProps>(
+  ({ action, selected, media, height, onClick }, ref) => {
+    return (
+      <Card ref={ref} onClick={onClick}>
+        <img
+          src={action.media[0]}
+          alt={action.description}
+          className={cn(media === 'large' ? 'h-40' : 'h-26', 'object-cover')}
+        />
+        <div className={cn(
+          'p-5 flex flex-col gap-2',
+          selected && 'border-2 border-primary/50'
+        )}>
+          <h5 className={cn(selected && 'text-primary')}>
+            {action.title}
+          </h5>
+          <p className="text-sm text-slate-500">{action.description}</p>
+        </div>
+      </Card>
+    );
+  }
+);
+```
+
+**When to use:** Displaying selectable actions with media.
+
+### GardenCard Pattern
+
+```typescript
+export interface GardenCardRootProps {
+  garden: Garden;
+  selected: boolean;
+  showOperators?: boolean;
+  showDescription?: boolean;
+  showBanner?: boolean;
+  onClick?: () => void;
+}
+```
+
+**Features:**
+- Optional banner image with fallback gradient
+- Garden name, location, gardener count
+- Optional operators list
+- Selection state styling
+
+### WorkCard Pattern (MinimalWorkCard)
+
+```typescript
+export interface MinimalWorkCardProps {
+  work: Work;
+  onClick: () => void;
+  actionTitle?: string;
+  gardenerName?: string;
+  showGardenInfo?: boolean;
+  badges?: React.ReactNode[];
+}
+```
+
+**Features:**
+- Thumbnail from work.media[0]
+- Status badge with color coding
+- Action title as primary text
+- Gardener name as subtitle
+- Time ago display
+- Media count and feedback badges
+
+**Usage:**
+```typescript
+<MinimalWorkCard
+  work={work}
+  onClick={() => navigate(`/home/${work.gardenAddress}/work/${work.id}`)}
+  actionTitle={action?.title ?? `Action ${work.actionUID}`}
+  gardenerName={formatAddress(work.gardenerAddress)}
+/>
+```
+
+## Form Components
+
+### FormInput Pattern
+
+Consistent API across all form components:
+
+```typescript
+interface FormInputProps extends InputHTMLAttributes<HTMLInputElement> {
+  label: string;
+  helperText?: string;
+  error?: string;
+}
+
+export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
+  ({ label, helperText, error, className, ...props }, ref) => (
+    <div className={`${className} flex flex-col gap-1`}>
+      <label className="font-semibold text-slate-800" htmlFor={props.id}>
+        {label}
+      </label>
+      <input
+        className="border border-stroke-sub-300 rounded-lg py-3 px-4"
+        {...props}
+        ref={ref}
+      />
+      {(helperText || error) && (
+        <p className={`text-xs ${error ? 'text-red-600' : 'text-slate-600'}`}>
+          {error || helperText}
+        </p>
+      )}
+    </div>
+  )
+);
+```
+
+**Usage with React Hook Form:**
+```typescript
+<FormInput
+  label="Feedback"
+  {...register('feedback')}
+  error={formState.errors.feedback?.message}
+  helperText="Describe your work"
+/>
+```
+
+### FormText (Textarea)
+
+Same API as FormInput but for multiline:
+
+```typescript
+<FormText
+  rows={4}
+  label="Description"
+  {...register('description')}
+  error={formState.errors.description?.message}
+/>
+```
+
+### FormSelect (Multi-select)
+
+```typescript
+<FormSelect
+  name="plantSelection"
+  label="Plant Types"
+  control={control}
+  options={[
+    { label: 'Trees', value: 'trees' },
+    { label: 'Flowers', value: 'flowers' },
+  ]}
+/>
+```
+
+## Radix UI Integration
+
+### When to Use Radix Primitives
+
+**✅ Use Radix for:**
+- Accordions (`@radix-ui/react-accordion`)
+- Dialogs/Modals (`@radix-ui/react-dialog`)
+- Selects (`@radix-ui/react-select`)
+- Tabs (`@radix-ui/react-tabs`)
+- Avatars (`@radix-ui/react-avatar`)
+
+**✅ Wrap with Tailwind styles:**
+```typescript
+// components/UI/Select/Select.tsx
+const SelectTrigger = forwardRef((props, ref) => (
+  <SelectPrimitive.Trigger
+    ref={ref}
+    className={cn(
+      'flex h-9 w-full items-center justify-between',
+      'rounded-md border border-stroke-soft-200 bg-transparent px-3',
+      'focus:outline-none focus:ring-1 focus:ring-stroke-soft-200',
+      props.className
+    )}
+    {...props}
+  />
+));
+```
+
+### Accordion Example
+
+```typescript
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/UI/Accordion';
+
+<Accordion type="single" collapsible>
+  <AccordionItem value="item-1">
+    <AccordionTrigger>Question</AccordionTrigger>
+    <AccordionContent>Answer content</AccordionContent>
+  </AccordionItem>
+</Accordion>
+```
+
+### Dialog/Modal Pattern
+
+Use Radix Dialog wrapped in ModalDrawer:
+
+```typescript
+// components/UI/ModalDrawer/ModalDrawer.tsx
+export const ModalDrawer: React.FC<ModalDrawerProps> = ({
+  isOpen,
+  onClose,
+  header,
+  tabs,
+  children,
+}) => {
+  if (!isOpen) return null;
+  
+  return (
+    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[7777]"
+         onClick={onClose}>
+      <div className="bg-white rounded-t-3xl shadow-2xl"
+           onClick={e => e.stopPropagation()}>
+        {/* Header with close button */}
+        {/* Optional tabs */}
+        {/* Content */}
+      </div>
+    </div>
+  );
+};
+```
+
+**Usage:**
+```typescript
+<ModalDrawer
+  isOpen={isOpen}
+  onClose={() => setOpen(false)}
+  header={{ title: 'Work Dashboard', description: 'Sync status' }}
+  tabs={[
+    { id: 'pending', label: 'Pending', count: pendingCount },
+    { id: 'completed', label: 'Completed' }
+  ]}
+  activeTab={activeTab}
+  onTabChange={setActiveTab}
+>
+  {children}
+</ModalDrawer>
+```
+
+## Button Patterns
+
+### Button Component
+
+Uses tailwind-variants for composable styles:
+
+```typescript
+// components/UI/Button/index.tsx
+export interface ButtonProps {
+  label: string;
+  leadingIcon?: React.ReactNode;
+  trailingIcon?: React.ReactNode;
+  onClick?: (e: SyntheticEvent<HTMLButtonElement>) => void;
+  variant?: 'primary' | 'neutral' | 'error';
+  mode?: 'filled' | 'stroke' | 'lighter' | 'ghost';
+  size?: 'medium' | 'small' | 'xsmall' | 'xxsmall';
+  shape?: 'regular' | 'pilled';
+  disabled?: boolean;
+}
+
+<Button
+  label="Submit Work"
+  variant="primary"
+  mode="filled"
+  size="medium"
+  shape="pilled"
+  leadingIcon={<RiCheckLine />}
+  onClick={handleSubmit}
+  disabled={!isValid}
+/>
+```
+
+### Button States
+
+```typescript
+// Loading state
+<Button
+  label={isLoading ? 'Submitting...' : 'Submit'}
+  disabled={isLoading}
+  leadingIcon={isLoading ? <RiLoader4Line className="animate-spin" /> : undefined}
+/>
+```
+
+## Error Boundary Patterns
+
+### AppErrorBoundary (Top-level)
+
+```typescript
+// components/UI/ErrorBoundary/AppErrorBoundary.tsx
+export class AppErrorBoundary extends Component<Props, State> {
+  static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error };
+  }
+  
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Track in PostHog
+    track('error_boundary_triggered', {
+      error_message: error.message,
+      is_offline_error: this.isOfflineError(error),
+      is_network_error: this.isNetworkError(error),
+    });
+  }
+  
+  isOfflineError(error: Error): boolean {
+    const keywords = ['offline', 'job_queue', 'sync', 'IndexedDB'];
+    return keywords.some(kw => error.message.toLowerCase().includes(kw));
+  }
+  
+  render() {
+    if (this.state.hasError) {
+      // Custom error UI with retry button
+      return <ErrorFallback error={this.state.error} />;
+    }
+    return this.props.children;
+  }
+}
+```
+
+### GardenErrorBoundary (Feature-level)
+
+```typescript
+// components/UI/ErrorBoundary/ErrorBoundary.tsx
+export class GardenErrorBoundary extends Component {
+  // Scoped to garden features
+  // Provides garden-specific fallback UI
+}
+```
+
+### SyncErrorBoundary (Silent)
+
+```typescript
+// components/UI/ErrorBoundary/SyncErrorBoundary.tsx
+export class SyncErrorBoundary extends Component {
+  componentDidCatch(error: Error) {
+    // Log but don't block UI
+    track('sync_error_boundary_triggered', { error });
+    
+    // Show toast instead of full error screen
+    toast.error('Sync temporarily unavailable');
+    
+    // Reset error state (don't unmount children)
+    this.setState({ hasError: false });
+  }
+  
+  render() {
+    // Always render children
+    return this.props.children;
+  }
+}
+```
+
+**Usage:**
+```typescript
+<SyncErrorBoundary>
+  <WorkDashboard />
+</SyncErrorBoundary>
+```
+
+## Status Badge Pattern
+
+```typescript
+// components/UI/Card/StatusBadge.tsx
+export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
+  const getStatusConfig = () => {
+    switch (status) {
+      case 'approved':
+        return {
+          icon: <RiCheckLine className="w-3 h-3" />,
+          label: 'Approved',
+          bgColor: 'bg-green-50',
+          textColor: 'text-green-700',
+          borderColor: 'border-green-200',
+        };
+      case 'rejected':
+        return {
+          icon: <RiCloseLine className="w-3 h-3" />,
+          label: 'Rejected',
+          bgColor: 'bg-red-50',
+          textColor: 'text-red-700',
+          borderColor: 'border-red-200',
+        };
+      case 'pending':
+        return {
+          icon: <RiTimeLine className="w-3 h-3" />,
+          label: 'Pending',
+          bgColor: 'bg-slate-50',
+          textColor: 'text-slate-700',
+          borderColor: 'border-slate-200',
+        };
+      case 'syncing':
+        return {
+          icon: <RiLoader4Line className="w-3 h-3 animate-spin" />,
+          label: 'Syncing',
+          bgColor: 'bg-blue-50',
+          textColor: 'text-blue-700',
+          borderColor: 'border-blue-200',
+        };
+    }
+  };
+  
+  const config = getStatusConfig();
+  
+  return (
+    <div className={cn(
+      'inline-flex items-center gap-1.5 px-2 py-1 rounded-full border',
+      config.bgColor, config.textColor, config.borderColor
+    )}>
+      {config.icon}
+      <span>{config.label}</span>
+    </div>
+  );
+};
+```
+
+## Badge Component
+
+```typescript
+// components/UI/Badge/Badge.tsx
+export type BadgeProps = {
+  variant?: 'transparent' | 'pill' | 'outline';
+  tint?: 'primary' | 'secondary' | 'tertiary' | 'accent' | 'destructive';
+  leadingIcon?: React.ReactNode;
+  trailingIcon?: React.ReactNode;
+  children: React.ReactNode;
+};
+
+<Badge variant="pill" tint="primary" leadingIcon={<RiPlantLine />}>
+  5 Gardeners
+</Badge>
+```
+
+## Tailwind Variants Pattern
+
+Use `tailwind-variants` for complex, composable styles:
+
+```typescript
+import { tv, type VariantProps } from 'tailwind-variants';
+
+export const buttonVariants = tv({
+  slots: {
+    root: 'inline-flex items-center justify-center',
+    icon: 'flex size-5 shrink-0',
+  },
+  variants: {
+    variant: {
+      primary: {},
+      neutral: {},
+      error: {},
+    },
+    mode: {
+      filled: { root: 'bg-primary text-white' },
+      stroke: { root: 'border border-primary text-primary' },
+    },
+    size: {
+      medium: { root: 'h-10 px-3.5', icon: '-mx-1' },
+      small: { root: 'h-9 px-3', icon: '-mx-1' },
+    },
+  },
+  compoundVariants: [
+    {
+      variant: 'primary',
+      mode: 'filled',
+      class: { root: 'bg-primary-base hover:bg-primary-darker' }
+    }
+  ],
+  defaultVariants: {
+    variant: 'primary',
+    mode: 'filled',
+    size: 'medium',
+  },
+});
+```
+
+## Skeleton Loading States
+
+### Pattern for List Loading
+
+```typescript
+case 'pending':
+  return (
+    <div className="grid gap-3">
+      {[...Array(8)].map((_, i) => (
+        <div key={i} className="p-4 border rounded-xl bg-white">
+          <div className="h-4 w-40 bg-slate-200 rounded animate-pulse mb-3" />
+          <div className="h-3 w-64 bg-slate-200 rounded animate-pulse" />
+        </div>
+      ))}
+    </div>
+  );
+```
+
+### Skeleton Components
+
+```typescript
+// components/UI/Card/GardenCardSkeleton.tsx
+export const GardenCardSkeleton = ({ media, height, showBanner }) => (
+  <Card className={cardVariants({ media, height })}>
+    {showBanner && (
+      <div className={cn(
+        media === 'large' ? 'h-40' : 'h-26',
+        'w-full bg-slate-200 animate-pulse'
+      )} />
+    )}
+    <div className="p-5 flex flex-col gap-2">
+      <div className="h-6 w-40 bg-slate-200 rounded animate-pulse" />
+      <div className="h-4 w-full bg-slate-200 rounded animate-pulse" />
+    </div>
+  </Card>
+);
+```
+
+## Image Handling Patterns
+
+### Image Preview Dialog
+
+```typescript
+// components/UI/ImagePreviewDialog/ImagePreviewDialog.tsx
+export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
+  isOpen,
+  onClose,
+  images,
+  initialIndex = 0,
+}) => {
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  
+  // Keyboard navigation
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      switch (e.key) {
+        case 'Escape': onClose(); break;
+        case 'ArrowLeft': navigatePrev(); break;
+        case 'ArrowRight': navigateNext(); break;
+        case '+': zoomIn(); break;
+        case '-': zoomOut(); break;
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, currentIndex]);
+  
+  // Mouse wheel zoom, pinch-to-zoom, drag panning
+  // Focus trap, scroll lock, restore focus on close
+  
+  return (/* full-screen image viewer */);
+};
+```
+
+**Features:**
+- Full-screen preview with zoom/pan
+- Keyboard navigation (arrows, +/-, Escape)
+- Touch gestures (pinch-to-zoom, swipe)
+- Download button
+- Thumbnail navigation
+- Focus management and scroll lock
+
+### Carousel with Preview
+
+```typescript
+import { Carousel, CarouselContent, CarouselItem } from '@/components/UI/Carousel';
+
+<Carousel enablePreview previewImages={mediaUrls}>
+  <CarouselContent>
+    {mediaUrls.map((url, index) => (
+      <CarouselItem key={url} index={index}>
+        <img src={url} alt="" className="w-full aspect-3/4 object-cover rounded-2xl" />
+      </CarouselItem>
+    ))}
+  </CarouselContent>
+</Carousel>
+```
+
+**Clicking item opens ImagePreviewDialog automatically.**
+
+## Modal/Drawer Patterns
+
+### ModalDrawer with Tabs
+
+```typescript
+<ModalDrawer
+  isOpen={isOpen}
+  onClose={onClose}
+  header={{
+    title: 'Work Dashboard',
+    description: 'Sync status and pending items',
+    actions: <SyncAllButton />
+  }}
+  tabs={[
+    { id: 'pending', label: 'Pending', icon: '⏳', count: pendingCount },
+    { id: 'completed', label: 'Completed', icon: '✅', count: completedCount },
+    { id: 'uploading', label: 'Uploading', icon: '📤', count: uploadingCount },
+  ]}
+  activeTab={activeTab}
+  onTabChange={setActiveTab}
+  maxHeight="95vh"
+  contentClassName="p-4"
+>
+  {renderTabContent()}
+</ModalDrawer>
+```
+
+### ConfirmDrawer Pattern
+
+```typescript
+import { ConfirmDrawer } from '@/components/UI/ModalDrawer/ConfirmDrawer';
+
+<ConfirmDrawer
+  isOpen={isOpen}
+  onClose={onClose}
+  title="Confirm Approval"
+  description="Are you sure you want to approve this work?"
+  confirmLabel="Approve"
+  confirmVariant="primary"
+  onConfirm={handleConfirm}
+>
+  {/* Optional additional content */}
+</ConfirmDrawer>
+```
+
+## Offline Indicator
+
+### OfflineIndicator Component
+
+```typescript
+// components/UI/OfflineIndicator/OfflineIndicator.tsx
+export const OfflineIndicator: React.FC = () => {
+  const { isOnline } = useOffline();
+  const [showBackOnline, setShowBackOnline] = useState(false);
+  const [wasOffline, setWasOffline] = useState(!isOnline);
+  
+  useEffect(() => {
+    if (wasOffline && isOnline) {
+      setShowBackOnline(true);
+      setTimeout(() => setShowBackOnline(false), 3000);
+    }
+    setWasOffline(!isOnline);
+  }, [isOnline, wasOffline]);
+  
+  const displayState = showBackOnline ? 'back-online'
+                     : !isOnline ? 'offline'
+                     : null;
+  
+  if (!displayState) return null;
+  
+  return (
+    <div className="fixed top-0 left-0 right-0 z-30">
+      {displayState === 'offline' && (
+        <div className="bg-gray-500/95 text-white text-xs py-0.5 text-center">
+          <RiCloudOffLine size={8} /> Offline Mode
+        </div>
+      )}
+      {displayState === 'back-online' && (
+        <div className="bg-green-500/95 text-white text-xs py-0.5 text-center">
+          <RiCheckLine size={10} /> Back Online
+        </div>
+      )}
+    </div>
+  );
+};
+```
+
+## Virtualization Pattern
+
+Use react-window for large lists:
+
+```typescript
+import { FixedSizeList as List } from 'react-window';
+
+const shouldVirtualize = items.length > 40;
+
+{shouldVirtualize ? (
+  <List height={600} itemCount={items.length} itemSize={80} width="100%">
+    {({ index, style }) => (
+      <div style={style}>
+        <ItemCard item={items[index]} />
+      </div>
+    )}
+  </List>
+) : (
+  items.map(item => <ItemCard key={item.id} item={item} />)
+)}
+```
+
+**When to virtualize:** >40 items in list
+
+## Animation Patterns
+
+### CSS Animations
+
+```css
+/* styles/animation.css */
+@keyframes spring-bump {
+  from { transform: scale(0.8); }
+  60% { transform: scale(1.1); }
+  70% { transform: scale(0.95); }
+  to { transform: scale(1); }
+}
+
+.animate-spring-bump {
+  animation: spring-bump 0.56s ease-in-out;
+}
+```
+
+### Conditional Animations
+
+```typescript
+<RiCamera3Line
+  className={cn(
+    'w-8 inline-flex mr-2',
+    selected && 'animate-spring-bump'
+  )}
+/>
+```
+
+## Responsive Design
+
+### Mobile-First Approach
+
+```typescript
+// Base styles for mobile, add breakpoints for larger screens
+<div className={cn(
+  'flex flex-col gap-4',           // Mobile: vertical stack
+  'lg:flex-row lg:gap-6',          // Desktop: horizontal
+  'lg:grid lg:grid-cols-3'         // Large desktop: grid
+)}>
+```
+
+### PWA-Specific Patterns
+
+```typescript
+// Detect standalone mode (installed as PWA)
+const isPWA = window.matchMedia('(display-mode: standalone)').matches;
+
+// Adjust UI for PWA
+<div className={cn(
+  'h-screen',
+  isPWA && 'safe-area-inset' // Respect notches/safe areas
+)}>
+```
+
+## Accessibility Patterns
+
+### ARIA Labels
+
+```typescript
+<button
+  aria-label="Close preview"
+  aria-pressed={isSelected}
+  onClick={onClose}
+>
+  <RiCloseLine />
+</button>
+```
+
+### Keyboard Navigation
+
+```typescript
+const handleKeyDown = (e: KeyboardEvent) => {
+  switch (e.key) {
+    case 'Enter':
+    case ' ':
+      e.preventDefault();
+      handleSelect();
+      break;
+    case 'Escape':
+      handleClose();
+      break;
+  }
+};
+
+<div
+  role="button"
+  tabIndex={0}
+  onKeyDown={handleKeyDown}
+  onClick={handleSelect}
+>
+```
+
+### Focus Management
+
+```typescript
+// Trap focus within modal
+const trapFocus = (e: React.KeyboardEvent) => {
+  if (e.key !== 'Tab') return;
+  
+  const focusables = containerRef.current?.querySelectorAll(
+    'a[href], button:not([disabled]), input, select, [tabindex]:not([tabindex="-1"])'
+  );
+  
+  const first = focusables?.[0];
+  const last = focusables?.[focusables.length - 1];
+  
+  if (e.shiftKey && document.activeElement === first) {
+    last?.focus();
+    e.preventDefault();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    first?.focus();
+    e.preventDefault();
+  }
+};
+```
+
+## Icon Usage
+
+### Remixicon Integration
+
+```typescript
+import {
+  RiPlantLine,        // Outline for inactive
+  RiPlantFill,        // Fill for active
+  RiCheckLine,        // Actions
+  RiLoader4Line,      // Loading (with animate-spin)
+} from '@remixicon/react';
+
+<RiPlantFill className="w-6 h-6 text-primary" />
+```
+
+### Icon Sizing
+
+```typescript
+// Consistent sizes
+<Icon className="w-4 h-4" />   // Small (16px)
+<Icon className="w-5 h-5" />   // Medium (20px)
+<Icon className="w-6 h-6" />   // Large (24px)
+```
+
+## Anti-Patterns
+
+### ❌ Don't Inline Styles
+
+```typescript
+// Wrong
+<div style={{ backgroundColor: 'red', padding: '10px' }}>
+
+// Correct
+<div className="bg-red-500 p-2.5">
+```
+
+### ❌ Don't Create One-Off Components
+
+```typescript
+// Wrong - creating similar components
+function PrimaryButton() { /* ... */ }
+function SecondaryButton() { /* ... */ }
+function DangerButton() { /* ... */ }
+
+// Correct - use variants
+<Button variant="primary" />
+<Button variant="neutral" />
+<Button variant="error" />
+```
+
+### ❌ Don't Duplicate Card Logic
+
+```typescript
+// Wrong - creating separate card components
+function WorkCardPending() { /* ... */ }
+function WorkCardApproved() { /* ... */ }
+
+// Correct - single component with variants
+function WorkCard({ work, variant }) {
+  const styles = getStylesForStatus(work.status);
+  // ...
+}
+```
+
+## Component Composition
+
+### Compound Components
+
+```typescript
+// Accordion example
+<Accordion>
+  <AccordionItem>
+    <AccordionTrigger>Question</AccordionTrigger>
+    <AccordionContent>Answer</AccordionContent>
+  </AccordionItem>
+</Accordion>
+
+// Card example
+<Card>
+  <CardHeader>
+    <CardTitle>Title</CardTitle>
+    <CardDescription>Description</CardDescription>
+  </CardHeader>
+  <CardContent>Content</CardContent>
+  <CardFooter>Footer</CardFooter>
+</Card>
+```
+
+### Slot Pattern (Radix)
+
+```typescript
+import { Slot } from '@radix-ui/react-slot';
+
+export const Button = ({ asChild, children, ...props }) => {
+  const Comp = asChild ? Slot : 'button';
+  return <Comp {...props}>{children}</Comp>;
+};
+
+// Usage - button renders as child element
+<Button asChild>
+  <a href="/path">Link Button</a>
+</Button>
+```
+
+## MCP Integration for UI Testing
+
+Use Playwright MCP for component testing:
+
+```bash
+# Visual regression
+@playwright: Capture screenshots of all card variants (ActionCard, GardenCard, WorkCard)
+
+# Accessibility testing
+@playwright: Run accessibility audit on WorkDashboard modal
+
+# Responsive testing
+@playwright: Test ModalDrawer on mobile viewport sizes
+```
+
+Use Figma MCP for design sync (if configured):
+
+```bash
+# Get design specs
+@figma: Extract button component styles from design file
+
+# Generate components
+@figma: Generate React component from Figma node [node-id]
+```
+
+## Reference Files
+
+- Base Card: `src/components/UI/Card/Card.tsx`
+- Card variants: `src/components/UI/Card/ActionCard.tsx`, `GardenCard.tsx`, `WorkCard.tsx`
+- Forms: `src/components/UI/Form/Input.tsx`, `Text.tsx`, `Select.tsx`
+- Button: `src/components/UI/Button/index.tsx`, `Base.tsx`
+- Badge: `src/components/UI/Badge/Badge.tsx`
+- Modals: `src/components/UI/ModalDrawer/ModalDrawer.tsx`
+- Error boundaries: `src/components/UI/ErrorBoundary/`
+- Carousel: `src/components/UI/Carousel/Carousel.tsx`
+- Tabs: `src/components/UI/Tabs/StandardTabs.tsx`, `Tabs.tsx`
+- Design system: `src/styles/colors.css`, `animation.css`, `typography.css`

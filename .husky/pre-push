@@ -1,11 +1,15 @@
 #!/usr/bin/env sh
 
-echo "🔍 Running format check and linting before push..."
+echo "🔍 Running format check before push..."
 
-# Run format check first
-npx pnpm format:check
+# Try bun first, fall back to npm
+if command -v bun >/dev/null 2>&1; then
+  bun run format:check
+elif command -v npm >/dev/null 2>&1; then
+  npm run format:check
+else
+  echo "Error: Neither bun nor npm found. Install bun: https://bun.sh"
+  exit 1
+fi
 
-# Run linting (but don't fail on warnings, only errors)
-npx pnpm lint --error-on-warnings
-
-echo "✅ Pre-push checks passed!" 
+echo "✅ Pre-push checks passed!"

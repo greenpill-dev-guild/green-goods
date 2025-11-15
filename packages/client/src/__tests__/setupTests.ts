@@ -1,13 +1,43 @@
 import { cleanup } from "@testing-library/react";
+import { createRequire } from "node:module";
 import { afterEach, beforeAll, vi } from "vitest";
 
 // import "@testing-library/jest-dom"; // Extend expect with custom matchers
 import "@testing-library/jest-dom/vitest";
 
 // Import test mocks - use relative paths instead of alias for test setup
-import "../__mocks__/indexeddb";
+import "fake-indexeddb/auto";
 import "../__mocks__/navigator";
 import "../__mocks__/crypto";
+
+const ensureDiagnosticsChannel = () => {
+  const require = createRequire(import.meta.url);
+  const stub = () => ({
+    subscribe: () => undefined,
+    unsubscribe: () => undefined,
+    hasSubscribers: false,
+  });
+
+  try {
+    const diagCjs = require("node:diagnostics_channel");
+    if (typeof diagCjs.tracingChannel !== "function") {
+      diagCjs.tracingChannel = stub;
+    }
+  } catch {
+    // ignore
+  }
+};
+
+ensureDiagnosticsChannel();
+
+vi.mock("@reown/appkit", () => ({
+  AppKit: class {
+    initialize() {
+      return Promise.resolve();
+    }
+    destroy() {}
+  },
+}));
 
 // Setup global mocks
 beforeAll(() => {
@@ -75,6 +105,40 @@ beforeAll(() => {
     clearMarks: vi.fn(),
     clearMeasures: vi.fn(),
   };
+
+  // Polyfill URL.createObjectURL / revokeObjectURL
+  if (!global.URL) {
+    (global as any).URL = {} as any;
+  }
+  if (!(global.URL as any).createObjectURL) {
+    (global.URL as any).createObjectURL = vi.fn(
+      () => `blob:mock-${Math.random().toString(36).slice(2)}`
+    );
+  }
+  if (!(global.URL as any).revokeObjectURL) {
+    (global.URL as any).revokeObjectURL = vi.fn();
+  }
+
+  // Polyfill sessionStorage / localStorage
+  const createMemoryStorage = () => {
+    const store = new Map<string, string>();
+    return {
+      getItem: (k: string) => (store.has(k) ? store.get(k)! : null),
+      setItem: (k: string, v: string) => void store.set(k, String(v)),
+      removeItem: (k: string) => void store.delete(k),
+      clear: () => void store.clear(),
+      key: (i: number) => Array.from(store.keys())[i] || null,
+      get length() {
+        return store.size;
+      },
+    } as unknown as Storage;
+  };
+  if (!(global as any).sessionStorage) {
+    (global as any).sessionStorage = createMemoryStorage();
+  }
+  if (!(global as any).localStorage) {
+    (global as any).localStorage = createMemoryStorage();
+  }
 
   // Mock Storage APIs
   const createMockStorage = () => ({

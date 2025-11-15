@@ -1,13 +1,11 @@
+import { cn } from "@green-goods/shared/utils";
 import { RiCheckLine, RiCloudOffLine } from "@remixicon/react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useOffline } from "@/hooks/useOffline";
-import { cn } from "@/utils/cn";
+import { useOffline } from "@green-goods/shared/hooks";
 
 interface OfflineIndicatorProps {
   className?: string;
-  /** For testing purposes - force show indicator */
   forceShow?: boolean;
-  /** For testing purposes - override state */
   testState?: "offline" | "back-online" | null;
 }
 
@@ -78,7 +76,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
       case "back-online":
         return (
           <div
-            className={`${baseBarClasses} bg-green-500/95 text-white pointer-events-auto`}
+            className={`${baseBarClasses} bg-green-500/95 text-white pointer-events-auto pulse-success`}
             role="status"
             aria-live="polite"
             aria-label="App is back online"

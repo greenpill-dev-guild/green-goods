@@ -1,11 +1,11 @@
+import { ToastViewport } from "@green-goods/shared";
 import { Outlet } from "react-router-dom";
-import { Toaster } from "react-hot-toast";
 
 export default function Root() {
   return (
-    <>
+    <div className="overflow-x-hidden w-full h-full">
       <Outlet />
-      <Toaster />
-    </>
+      <ToastViewport />
+    </div>
   );
 }

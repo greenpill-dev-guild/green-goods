@@ -425,23 +425,23 @@
   }
 
   h3 {
-    font-size: 1.17em;
+    font-size: 1.25em;
     font-weight: bold;
   }
 
   h4 {
-    font-size: 1em;
+    font-size: 1.125em;
     font-weight: bold;
   }
 
   h5 {
-    font-size: 0.83em;
+    font-size: 1.125em;
     font-weight: bold;
   }
 
   h6 {
-    font-size: 0.67em;
-    font-weight: bold;
+    font-size: 1em;
+    font-weight: 600;
   }
 
   p {
@@ -454,11 +454,11 @@
   }
 
   ul {
-    list-style: disc;
+    list-style: none;
   }
 
   ol {
-    list-style: decimal;
+    list-style: none;
   }
 
   blockquote {

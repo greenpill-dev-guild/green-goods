@@ -53,14 +53,15 @@ export default defineConfig({
       // Phase 1.5: Exclude tests with complex mocking issues for now
       "**/App.test.tsx", // Privy HTTPS issues
       // Phase 1.6: Temporarily skip complex logic tests to establish baseline
-      "**/modules/deduplication.test.ts", // Hash generation logic issues
-      "**/modules/storage-manager.test.ts", // Storage API mocking issues
       "**/providers/app.test.tsx", // JSX compilation issues
     ],
   },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      pino: path.resolve(__dirname, "./src/__mocks__/pino.ts"),
+      "node:diagnostics_channel": path.resolve(__dirname, "./src/__mocks__/diagnostics-channel.ts"),
+      diagnostics_channel: path.resolve(__dirname, "./src/__mocks__/diagnostics-channel.ts"),
     },
   },
 });

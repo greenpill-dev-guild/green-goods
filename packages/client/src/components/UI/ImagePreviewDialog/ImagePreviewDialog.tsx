@@ -5,8 +5,9 @@ import {
   RiZoomInLine,
   RiZoomOutLine,
 } from "@remixicon/react";
-import React, { TouchEvent, useEffect, useRef, useState, WheelEvent } from "react";
-import { cn } from "@/utils/cn";
+import React, { TouchEvent, useCallback, useEffect, useRef, useState, WheelEvent } from "react";
+import { cn } from "@green-goods/shared/utils";
+import { ImageWithFallback } from "@/components/UI/Image/ImageWithFallback";
 
 export interface ImagePreviewDialogProps {
   isOpen: boolean;
@@ -42,6 +43,19 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
     initialDistance: null,
     initialScale: 1,
   });
+
+  // Navigation functions
+  const navigatePrev = useCallback(() => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    }
+  }, [currentIndex]);
+
+  const navigateNext = useCallback(() => {
+    if (currentIndex < images.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    }
+  }, [currentIndex, images.length]);
 
   // Reset transform when image changes
   useEffect(() => {
@@ -84,7 +98,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, currentIndex, images.length, onClose]);
+  }, [isOpen, currentIndex, images.length, onClose, navigateNext, navigatePrev]);
 
   // Scroll lock + initial focus + restore focus
   useEffect(() => {
@@ -167,18 +181,6 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
       case "0":
         resetZoom();
         break;
-    }
-  };
-
-  const navigatePrev = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-    }
-  };
-
-  const navigateNext = () => {
-    if (currentIndex < images.length - 1) {
-      setCurrentIndex(currentIndex + 1);
     }
   };
 
@@ -309,6 +311,11 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
         className
       )}
       onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          onClose();
+        }
+      }}
       data-testid="image-preview-dialog"
     >
       <div
@@ -333,7 +340,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
             {/* Zoom Controls */}
             <button
               onClick={zoomOut}
-              className="btn-icon bg-white/10 hover:bg-white/20 text-white rounded-full"
+              className="btn-icon bg-white/10 tap-feedback text-white rounded-full"
               aria-label="Zoom out"
               type="button"
             >
@@ -341,7 +348,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
             </button>
             <button
               onClick={resetZoom}
-              className="btn-icon bg-white/10 hover:bg-white/20 text-white rounded-full"
+              className="btn-icon bg-white/10 tap-feedback text-white rounded-full"
               aria-label="Reset zoom"
               type="button"
             >
@@ -349,7 +356,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
             </button>
             <button
               onClick={zoomIn}
-              className="btn-icon bg-white/10 hover:bg-white/20 text-white rounded-full"
+              className="btn-icon bg-white/10 tap-feedback text-white rounded-full"
               aria-label="Zoom in"
               type="button"
             >
@@ -359,7 +366,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
             {/* Download Button */}
             <button
               onClick={handleDownload}
-              className="btn-icon bg-white/10 hover:bg-white/20 text-white rounded-full ml-2"
+              className="btn-icon bg-white/10 tap-feedback text-white rounded-full ml-2"
               aria-label="Download image"
               type="button"
               data-testid="image-preview-download"
@@ -371,7 +378,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
             <button
               ref={closeBtnRef}
               onClick={onClose}
-              className="btn-icon bg-white/10 hover:bg-white/20 text-white rounded-full ml-4"
+              className="btn-icon bg-white/10 tap-feedback text-white rounded-full ml-4"
               aria-label="Close preview"
               data-testid="image-preview-close"
               type="button"
@@ -395,10 +402,11 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
           onMouseLeave={handleMouseUp}
           style={{ touchAction: "none" }}
         >
-          <img
+          <ImageWithFallback
             src={images[currentIndex]}
             alt={`Preview ${currentIndex + 1}`}
             className="max-w-full max-h-full object-contain select-none"
+            fallbackClassName="w-64 h-64"
             decoding="async"
             style={{
               transform: `scale(${scale}) translate(${position.x / scale}px, ${position.y / scale}px)`,
@@ -415,7 +423,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
             {currentIndex > 0 && (
               <button
                 onClick={navigatePrev}
-                className="absolute left-4 top-1/2 -translate-y-1/2 btn-icon bg-white/10 hover:bg-white/20 text-white rounded-full"
+                className="absolute left-4 top-1/2 -translate-y-1/2 btn-icon bg-white/10 tap-feedback text-white rounded-full"
                 aria-label="Previous image"
                 type="button"
               >
@@ -433,7 +441,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
             {currentIndex < images.length - 1 && (
               <button
                 onClick={navigateNext}
-                className="absolute right-4 top-1/2 -translate-y-1/2 btn-icon bg-white/10 hover:bg-white/20 text-white rounded-full"
+                className="absolute right-4 top-1/2 -translate-y-1/2 btn-icon bg-white/10 tap-feedback text-white rounded-full"
                 aria-label="Next image"
                 type="button"
               >
@@ -459,18 +467,19 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                   key={index}
                   onClick={() => setCurrentIndex(index)}
                   className={cn(
-                    "flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all",
+                    "flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all relative",
                     index === currentIndex
                       ? "border-white shadow-lg scale-110"
-                      : "border-white/30 hover:border-white/60"
+                      : "border-white/30 tap-feedback"
                   )}
                   type="button"
                   aria-label={`Go to image ${index + 1}`}
                 >
-                  <img
+                  <ImageWithFallback
                     src={image}
                     alt={`Thumbnail ${index + 1}`}
                     className="w-full h-full object-cover"
+                    fallbackClassName="w-16 h-16"
                   />
                 </button>
               ))}

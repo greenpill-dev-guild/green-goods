@@ -73,22 +73,22 @@ src/test-utils/               # Test utilities and helpers
 
 ```bash
 # Run all tests
-pnpm test
+bun test
 
 # Run tests in watch mode
-pnpm test:watch
+bun test:watch
 
 # Generate coverage report
-pnpm coverage
+bun coverage
 
 # Run specific test files
-pnpm test retry-policy
-pnpm test offline-workflow
-pnpm test OfflineIndicator
+bun test retry-policy
+bun test offline-workflow
+bun test OfflineIndicator
 
 # Run tests by pattern
-pnpm test --grep "deduplication"
-pnpm test --grep "conflict"
+bun test --grep "deduplication"
+bun test --grep "conflict"
 ```
 
 ## 📊 Test Scenarios Covered

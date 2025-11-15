@@ -3,7 +3,7 @@
 import * as AvatarPrimitive from "@radix-ui/react-avatar";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
-import { cn } from "@/utils/cn";
+import { cn } from "@green-goods/shared/utils";
 
 export const avatarVariants = tv({
   base: "relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full",
@@ -70,4 +70,15 @@ const AvatarFallback = React.forwardRef<
 ));
 AvatarFallback.displayName = AvatarPrimitive.Fallback.displayName;
 
-export { Avatar, AvatarImage, AvatarFallback };
+const AvatarSkeleton = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn("h-full w-full rounded-full bg-slate-200 animate-pulse", className)}
+      {...props}
+    />
+  )
+);
+AvatarSkeleton.displayName = "AvatarSkeleton";
+
+export { Avatar, AvatarImage, AvatarFallback, AvatarSkeleton };

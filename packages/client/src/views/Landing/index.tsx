@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import toast from "react-hot-toast";
 import { Navigate, useLocation } from "react-router-dom";
 import { Footer } from "@/components/Layout/Footer";
 import { Header } from "@/components/Layout/Header";
 import { Hero } from "@/components/Layout/Hero";
-import { useApp } from "@/providers/app";
+import { useApp } from "@green-goods/shared/providers/app";
+import { toastService } from "@green-goods/shared";
 
 type LandingProps = {};
 
@@ -36,13 +36,23 @@ const Landing: React.FC<LandingProps> = () => {
           // ERROR
           throw new Error("Network response was not ok.");
         }
-        toast.success("Successfully subscribed!");
+        toastService.success({
+          title: "Subscribed",
+          message: "Thanks for joining the waitlist!",
+          context: "email subscription",
+          suppressLogging: true,
+        });
 
         setSubscribeState("subscribed");
       })
       .catch((_error) => {
         setSubscribeState("error");
-        toast.error("Something went wrong. Please try again.");
+        toastService.error({
+          title: "Subscription failed",
+          message: "Something went wrong. Please try again.",
+          context: "email subscription",
+          error: _error,
+        });
       });
   }
 

@@ -3,7 +3,7 @@
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import { RiAddLine, RiQuestionLine } from "@remixicon/react";
 import * as React from "react";
-import { cn } from "@/utils/cn";
+import { cn } from "@green-goods/shared/utils";
 import { FlexCard } from "../Card/Card";
 
 const Accordion = AccordionPrimitive.Root;

@@ -1,15 +1,15 @@
-import { PrivyProvider } from "@privy-io/react-auth";
-import { SmartWalletsProvider } from "@privy-io/react-auth/smart-wallets";
+import { initTheme } from "@green-goods/shared";
+import { AppKitProvider, PasskeyAuthProvider } from "@green-goods/shared/providers";
+import { AppProvider } from "@green-goods/shared/providers/app";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { arbitrum, baseSepolia, celo } from "viem/chains";
-
 import App from "@/App.tsx";
-import { APP_DESCRIPTION, getDefaultChain } from "@/config";
-import { AppProvider } from "@/providers/app";
-import { UserProvider } from "@/providers/user";
 
 import "@/index.css";
+import "@/pinata";
+
+// Initialize theme system
+initTheme();
 
 // In development, ensure no stale service worker or caches make the app appear to run offline
 if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_SW_DEV !== "true") {
@@ -34,43 +34,34 @@ if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_SW_DEV !== "true") {
 }
 
 export const Root = () => (
-  <AppProvider>
-    <PrivyProvider
-      appId={import.meta.env.VITE_PRIVY_APP_ID as string}
-      config={{
-        loginMethods: ["email", "sms"],
-        appearance: {
-          theme: "light",
-          loginMessage: APP_DESCRIPTION,
-          landingHeader: "",
-          logo: "",
-        },
-        embeddedWallets: {
-          createOnLogin: "users-without-wallets",
-        },
-        defaultChain: getDefaultChain(),
-        supportedChains: [arbitrum, celo, baseSepolia],
-        intl: {
-          defaultCountry:
-            navigator.language === "pt-BR" ? "BR" : navigator.language === "es-ES" ? "ES" : "US",
-        },
-      }}
-    >
-      <SmartWalletsProvider>
-        <UserProvider>
-          <App />
-        </UserProvider>
-      </SmartWalletsProvider>
-    </PrivyProvider>
-  </AppProvider>
+  <AppKitProvider
+    projectId={
+      import.meta.env.VITE_REOWN_PROJECT_ID || import.meta.env.VITE_WALLETCONNECT_PROJECT_ID
+    }
+    metadata={{
+      name: "Green Goods",
+      description: "Start Bringing Biodiversity Onchain",
+      url: "https://greengoods.app",
+      icons: ["https://greengoods.app/icon.png"],
+    }}
+    defaultChainId={84532}
+  >
+    <PasskeyAuthProvider>
+      <AppProvider>
+        <App />
+      </AppProvider>
+    </PasskeyAuthProvider>
+  </AppKitProvider>
 );
 
 const container = document.getElementById("root");
-
-if (container) {
-  createRoot(container).render(
-    <StrictMode>
-      <Root />
-    </StrictMode>
-  );
+if (!container) {
+  throw new Error("Root container missing in index.html");
 }
+
+const root = createRoot(container);
+root.render(
+  <StrictMode>
+    <Root />
+  </StrictMode>
+);

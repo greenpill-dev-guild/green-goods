@@ -1,8 +1,8 @@
+import { useOffline } from "@green-goods/shared/hooks";
+import { cn } from "@green-goods/shared/utils";
 import { RiArrowLeftFill, RiNotificationFill, RiNotificationLine } from "@remixicon/react";
 import { forwardRef, useRef } from "react";
 import { createPortal } from "react-dom";
-import { useOffline } from "@/hooks";
-import { cn } from "@/utils/cn";
 import { GardenNotifications } from "@/views/Home/Garden/Notifications";
 import { Button } from "../Button";
 
@@ -65,8 +65,8 @@ const BUTTON_VARIANTS = {
 const NAV_BUTTON_BASE = [
   "relative flex items-center justify-center w-8 h-8 p-1 rounded-lg border",
   "bg-white border-slate-200 text-slate-500",
-  "transition-all duration-200",
-  "hover:shadow-lg hover:scale-105 active:scale-95",
+  "transition-all duration-200 tap-feedback",
+  "active:scale-95",
   "focus:outline-none focus:ring-2",
 ] as const;
 
@@ -140,23 +140,23 @@ export const TopNav: React.FC<TopNavProps> = ({
   overlay,
   ...props
 }: TopNavProps) => {
-  const { pendingCount, syncStatus, isOnline } = useOffline();
-  const hasOfflineIssues = !navigator.onLine || pendingCount > 0 || syncStatus === "error";
+  const { syncStatus, isOnline } = useOffline();
+  const hasOfflineIssues = !navigator.onLine;
 
   // Get appropriate button styling variant
   const buttonVariant = getButtonVariant(syncStatus, isOnline);
   const backButtonStyles = createButtonStyles(buttonVariant);
 
   const containerClasses = cn(
-    "relative flex z-[1000] flex-row w-full justify-evenly items-center gap-4 p-6 h-14 top-0",
+    "relative flex z-[1000] flex-row w-full justify-evenly items-center gap-4 p-6 h-14 top-2",
     overlay && "fixed bg-white",
-    overlay && hasOfflineIssues && "top-6", // Space for offline indicator
+    overlay && hasOfflineIssues && "top-2", // Space for offline indicator
     overlay && !hasOfflineIssues && "top-0"
   );
 
   const backButtonClasses = cn(
-    "p-0 px-2 z-1 transition-all duration-200 tap-target-lg",
-    "focus:outline-none focus:ring-2 hover:shadow-lg hover:scale-105 active:scale-95",
+    "p-0 px-2 z-1 transition-all duration-200 tap-target-lg tap-feedback",
+    "focus:outline-none focus:ring-2 active:scale-95",
     backButtonStyles.focusStyles
   );
 

@@ -8,7 +8,6 @@ export type ButtonProps = {
   onClick?: (e: SyntheticEvent<HTMLButtonElement>) => void;
 } & ButtonRootProps;
 
-/** Primary UI component for user interaction */
 export const Button = ({ label, leadingIcon, trailingIcon, ...props }: ButtonProps) => {
   return (
     <Root {...props}>

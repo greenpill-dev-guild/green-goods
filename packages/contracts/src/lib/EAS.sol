@@ -3,14 +3,10 @@ pragma solidity ^0.8.25;
 
 import {
     EAS_ARBITRUM,
-    EAS_SEPOLIA,
-    EAS_BASE,
-    EAS_OPTIMISM,
+    EAS_BASE_SEPOLIA,
     EAS_CELO,
     EAS_SCHEMA_REGISTRY_ARBITRUM,
-    EAS_SCHEMA_REGISTRY_SEPOLIA,
-    EAS_SCHEMA_REGISTRY_BASE,
-    EAS_SCHEMA_REGISTRY_OPTIMISM,
+    EAS_SCHEMA_REGISTRY_BASE_SEPOLIA,
     EAS_SCHEMA_REGISTRY_CELO
 } from "../Constants.sol";
 
@@ -26,14 +22,8 @@ library EASLib {
     function getEAS() internal view returns (address) {
         if (block.chainid == 42_161) {
             return EAS_ARBITRUM;
-        } else if (block.chainid == 11_155_111) {
-            return EAS_SEPOLIA;
-        } else if (block.chainid == 8453) {
-            return EAS_BASE;
         } else if (block.chainid == 84_532) {
-            return EAS_BASE; // Base Sepolia uses same EAS address as Base
-        } else if (block.chainid == 10) {
-            return EAS_OPTIMISM;
+            return EAS_BASE_SEPOLIA;
         } else if (block.chainid == 42_220) {
             return EAS_CELO;
         } else if (block.chainid == 31_337) {
@@ -46,14 +36,8 @@ library EASLib {
     function getSchemaRegistry() internal view returns (address) {
         if (block.chainid == 42_161) {
             return EAS_SCHEMA_REGISTRY_ARBITRUM;
-        } else if (block.chainid == 11_155_111) {
-            return EAS_SCHEMA_REGISTRY_SEPOLIA;
-        } else if (block.chainid == 8453) {
-            return EAS_SCHEMA_REGISTRY_BASE;
         } else if (block.chainid == 84_532) {
-            return EAS_SCHEMA_REGISTRY_BASE; // Base Sepolia uses same schema registry as Base
-        } else if (block.chainid == 10) {
-            return EAS_SCHEMA_REGISTRY_OPTIMISM;
+            return EAS_SCHEMA_REGISTRY_BASE_SEPOLIA;
         } else if (block.chainid == 42_220) {
             return EAS_SCHEMA_REGISTRY_CELO;
         } else if (block.chainid == 31_337) {

@@ -1,0 +1,126 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity >=0.8.25;
+
+import { Test } from "forge-std/Test.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+
+import { GardenAccount, TooManyGardeners, TooManyOperators } from "../src/accounts/Garden.sol";
+import { MockERC20 } from "../src/mocks/ERC20.sol";
+import { ERC6551Helper } from "./helpers/ERC6551Helper.sol";
+import { TOKENBOUND_REGISTRY } from "../src/Constants.sol";
+
+/// @title GardenAccountSimpleTest
+/// @notice Simplified unit tests for GardenAccount focusing on initialization and state
+/// @dev Full access control tests require TBA setup - see Integration.t.sol for complete tests
+contract GardenAccountSimpleTest is Test, ERC6551Helper {
+    GardenAccount private gardenAccount;
+    MockERC20 private mockCommunityToken;
+
+    function setUp() public {
+        // Deploy ERC6551 Registry
+        _deployERC6551Registry();
+
+        // Deploy mock community token
+        mockCommunityToken = new MockERC20();
+
+        // Deploy mock contracts
+        vm.etch(address(0x1001), hex"00"); // erc4337EntryPoint
+        vm.etch(address(0x1002), hex"00"); // multicallForwarder
+        vm.etch(address(0x1004), hex"00"); // guardian
+
+        // Deploy mock resolvers
+        address mockWorkApprovalResolver = address(0x2001);
+        address mockAssessmentResolver = address(0x2002);
+
+        // Deploy GardenAccount implementation
+        GardenAccount gardenAccountImpl = new GardenAccount(
+            address(0x1001),
+            address(0x1002),
+            TOKENBOUND_REGISTRY,
+            address(0x1004),
+            mockWorkApprovalResolver,
+            mockAssessmentResolver
+        );
+
+        // Initialize with gardeners and operators
+        address[] memory gardeners = new address[](1);
+        address[] memory gardenOperators = new address[](1);
+        gardeners[0] = address(0x100);
+        gardenOperators[0] = address(0x200);
+
+        bytes memory gardenAccountInitData = abi.encodeWithSelector(
+            GardenAccount.initialize.selector,
+            address(mockCommunityToken),
+            "Test Garden",
+            "Test Description",
+            "Test Location",
+            "",
+            gardeners,
+            gardenOperators
+        );
+
+        ERC1967Proxy gardenAccountProxy = new ERC1967Proxy(address(gardenAccountImpl), gardenAccountInitData);
+        gardenAccount = GardenAccount(payable(address(gardenAccountProxy)));
+    }
+
+    function testInitialize() public {
+        assertEq(gardenAccount.communityToken(), address(mockCommunityToken), "Community token should match");
+        assertEq(gardenAccount.name(), "Test Garden", "Name should match");
+        assertTrue(gardenAccount.gardeners(address(0x100)), "Gardener should be added");
+        assertTrue(gardenAccount.gardenOperators(address(0x200)), "Garden operator should be added");
+    }
+
+    function testInitializeRevertsWithTooManyGardeners() public {
+        GardenAccount gardenAccountImpl = new GardenAccount(
+            address(0x1001), address(0x1002), TOKENBOUND_REGISTRY, address(0x1004), address(0x2001), address(0x2002)
+        );
+
+        address[] memory gardeners = new address[](51); // Over the limit of 50
+        address[] memory gardenOperators = new address[](1);
+        for (uint256 i = 0; i < 51; i++) {
+            gardeners[i] = address(uint160(0x1000 + i));
+        }
+        gardenOperators[0] = address(0x200);
+
+        bytes memory gardenAccountInitData = abi.encodeWithSelector(
+            GardenAccount.initialize.selector,
+            address(mockCommunityToken),
+            "Test Garden",
+            "Test Description",
+            "Test Location",
+            "",
+            gardeners,
+            gardenOperators
+        );
+
+        vm.expectRevert(TooManyGardeners.selector);
+        new ERC1967Proxy(address(gardenAccountImpl), gardenAccountInitData);
+    }
+
+    function testInitializeRevertsWithTooManyOperators() public {
+        GardenAccount gardenAccountImpl = new GardenAccount(
+            address(0x1001), address(0x1002), TOKENBOUND_REGISTRY, address(0x1004), address(0x2001), address(0x2002)
+        );
+
+        address[] memory gardeners = new address[](1);
+        address[] memory gardenOperators = new address[](21); // Over the limit of 20
+        gardeners[0] = address(0x100);
+        for (uint256 i = 0; i < 21; i++) {
+            gardenOperators[i] = address(uint160(0x2000 + i));
+        }
+
+        bytes memory gardenAccountInitData = abi.encodeWithSelector(
+            GardenAccount.initialize.selector,
+            address(mockCommunityToken),
+            "Test Garden",
+            "Test Description",
+            "Test Location",
+            "",
+            gardeners,
+            gardenOperators
+        );
+
+        vm.expectRevert(TooManyOperators.selector);
+        new ERC1967Proxy(address(gardenAccountImpl), gardenAccountInitData);
+    }
+}

@@ -1,3 +1,4 @@
+// TODO: Scap component not needed and take any useful parts and implement elsewhere
 import {
   type RemixiconComponentType,
   RiCheckFill,
@@ -9,8 +10,8 @@ import {
 import React, { useEffect } from "react";
 import { useIntl } from "react-intl";
 import { type ModalVariantRoot, UploadModal } from "@/components/UI/UploadModal/UploadModal";
-import { useOffline } from "@/hooks/useOffline";
-import { track } from "@/modules/posthog";
+import { useOffline } from "@green-goods/shared/hooks";
+import { track } from "@green-goods/shared/modules";
 
 export type completedMessage = {
   header: string;

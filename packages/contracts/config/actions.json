@@ -1,36 +1,386 @@
 {
+  "templates": {
+    "identify": {
+      "steps": [
+        "Locate and photograph the plants you are identifying",
+        "Document visual characteristics (leaves, bark, flowers, fruits)",
+        "Note the plant's size, shape, and growth pattern",
+        "Record environmental conditions and habitat",
+        "Assess overall health and note any issues",
+        "Upload photos and complete the identification form"
+      ],
+      "requirements": {
+        "materials": [
+          "Camera or smartphone",
+          "Field notebook or digital device",
+          "Measuring tools (optional)",
+          "Plant identification resources (optional)"
+        ],
+        "skills": ["Plant observation", "Species recognition", "Note-taking"],
+        "timeEstimate": "15-40 minutes"
+      },
+      "tips": [
+        "Take photos from consistent angles for comparison over time",
+        "Note weather and seasonal conditions",
+        "Use custom names to track specific plants (e.g., 'Oak Tree by Front Gate')",
+        "Regular observations help identify patterns and issues early"
+      ]
+    },
+    "observe": {
+      "aliasFor": "identify"
+    },
+    "water": {
+      "steps": [
+        "Check soil moisture before watering",
+        "Photograph the plants and area before watering",
+        "Select appropriate watering method for the plants",
+        "Water plants thoroughly according to their needs",
+        "Record water amount used and method applied",
+        "Take after photos and document any plant observations"
+      ],
+      "requirements": {
+        "materials": [
+          "Water source (hose, watering can, bucket, etc.)",
+          "Measuring container (optional)",
+          "Gloves (optional)",
+          "Camera or smartphone"
+        ],
+        "skills": ["Plant water requirements knowledge", "Soil assessment", "Proper watering technique"],
+        "timeEstimate": "15-60 minutes"
+      },
+      "tips": [
+        "Check soil moisture before watering (stick your finger 2-3 inches deep)",
+        "Water early morning or late evening to reduce evaporation",
+        "Deep, infrequent watering is better than frequent shallow watering",
+        "Adjust watering based on weather conditions and plant needs",
+        "Document soil condition before and after for tracking"
+      ]
+    },
+    "litter": {
+      "steps": [
+        "Photograph the area before cleanup begins",
+        "Safely collect and sort litter by type",
+        "Count and weigh collected items if possible",
+        "Take photos of collected litter for documentation",
+        "Properly dispose of or recycle collected materials",
+        "Photograph the cleaned area and submit your report"
+      ],
+      "requirements": {
+        "materials": [
+          "Gloves",
+          "Bags for collection",
+          "Grabber tool (optional)",
+          "Scale for weighing (optional)",
+          "Camera or smartphone"
+        ],
+        "skills": ["Safe litter handling", "Waste type identification", "Proper disposal knowledge"],
+        "timeEstimate": "30-90 minutes"
+      },
+      "tips": [
+        "Wear gloves for safety and hygiene",
+        "Take before/after comparison photos",
+        "Sort items for proper recycling when possible",
+        "Work in teams for larger areas and safety"
+      ]
+    },
+    "waste": {
+      "aliasFor": "litter"
+    },
+    "plant": {
+      "steps": [
+        "Photograph the planting location before starting",
+        "Prepare the soil and planting area according to plant requirements",
+        "Plant at appropriate depth and spacing for the species",
+        "Water thoroughly if needed",
+        "Take after photos documenting the completed planting",
+        "Record plant type, species/name, count, and any observations"
+      ],
+      "requirements": {
+        "materials": [
+          "Plants (trees, seedlings, shrubs, or other vegetation)",
+          "Digging tools if needed (shovel, trowel)",
+          "Water source (if required)",
+          "Mulch or soil amendments (optional)",
+          "Camera or smartphone"
+        ],
+        "skills": ["Basic plant identification", "Proper planting techniques", "Soil preparation"],
+        "timeEstimate": "30 minutes - 2 hours"
+      },
+      "tips": [
+        "Choose planting time based on climate and plant type",
+        "Research proper depth and spacing for your specific plant",
+        "Take clear before/after photos from the same angle",
+        "Label plants or keep records for future reference"
+      ]
+    },
+    "default": {
+      "steps": [
+        "Review the action requirements carefully",
+        "Gather necessary materials and tools",
+        "Document the before state with photos",
+        "Complete the action according to guidelines",
+        "Document the after state with photos",
+        "Submit your completed work for verification"
+      ],
+      "requirements": {
+        "materials": ["Camera or smartphone", "Any required tools or materials"],
+        "skills": ["Attention to detail", "Documentation"],
+        "timeEstimate": "30-60 minutes"
+      },
+      "tips": [
+        "Document your work thoroughly with clear photos",
+        "Provide detailed descriptions in your submission",
+        "Ask questions if any requirements are unclear",
+        "Share learnings with your community"
+      ]
+    }
+  },
   "actions": [
     {
-      "title": "Soil Health Assessment",
-      "instructions": "Measure soil moisture, pH, and organic matter content using provided testing kit. Document findings with photos and measurements.",
+      "title": "Planting",
+      "description": "Document planting activities for any plant type including trees, seedlings, shrubs, or other vegetation. Record species information and provide photographic evidence of the plot before and after planting.",
+      "capitals": ["LIVING", "MATERIAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
-      "endTime": "2024-12-31T23:59:59Z",
-      "capitals": ["LIVING", "INTELLECTUAL", "MATERIAL"],
-      "media": ["QmSampleSoilTestingInstructionsHash", "QmSampleSoilHealthGuideHash", "QmSampleReportingTemplateHash"]
+      "endTime": "2025-12-31T23:59:59Z",
+      "media": [
+        "QmY6h53RyAY6VQfqqUTBwkVkG8JpCon9SdVkqtB5YzPVwx",
+        "QmZAeu9sEtNqXZBmiYiAt7bd4M38TmE73ekj47n7JDU2xm",
+        "QmdYz2JsVhyzZe591vR1sBQQjLWjGCTp1yJ1t1EicrAnYH"
+      ],
+      "uiConfig": {
+        "media": {
+          "title": "Photograph the Plot",
+          "description": "Please take a photo of the location where you will be planting Seedlings or Saplings.",
+          "maxImageCount": 8,
+          "required": true
+        },
+        "details": {
+          "title": "Input Planting Details",
+          "description": "Please provide the following details about the planting process.",
+          "feedbackPlaceholder": "Provide feedback or any issues during the planting process",
+          "inputs": [
+            {
+              "key": "plantType",
+              "title": "Plant Type",
+              "placeholder": "Select the type of plant",
+              "type": "select",
+              "required": true,
+              "options": ["Tree", "Seedling", "Shrub", "Flower", "Vegetable", "Herb", "Grass", "Other"]
+            },
+            {
+              "key": "plantSelection",
+              "title": "Plant Species/Name",
+              "placeholder": "Enter the plant species (e.g., Acacia, Eucalyptus, Pine)",
+              "type": "text",
+              "required": true,
+              "options": []
+            },
+            {
+              "key": "plantCount",
+              "title": "How many plants were planted?",
+              "placeholder": "Enter the number of plants planted",
+              "type": "number",
+              "required": true,
+              "min": 1,
+              "options": []
+            }
+          ]
+        },
+        "review": {
+          "title": "Review Planting Details",
+          "description": "Please review the details you have provided before submitting."
+        }
+      }
     },
     {
-      "title": "Biodiversity Survey",
-      "instructions": "Conduct a comprehensive survey of plant and animal species in the garden area. Use iNaturalist app for species identification.",
-      "startTime": "2024-01-01T00:00:00Z",
-      "endTime": "2024-12-31T23:59:59Z",
+      "title": "Identify Plant",
+      "description": "Identify and observe plants in their environment. Document species information, health status, and environmental conditions. This action helps track biodiversity and ecosystem health over time.",
       "capitals": ["LIVING", "INTELLECTUAL", "EXPERIENTIAL"],
-      "media": ["QmSampleBiodiversityGuideHash", "QmSampleSpeciesIdentificationHash", "QmSampleDataCollectionFormHash"]
+      "startTime": "2024-01-01T00:00:00Z",
+      "endTime": "2025-12-31T23:59:59Z",
+      "media": [
+        "QmVvKqpnfJm8UwRq9SF15V2jgJ86yCBsmMBmpEaoQU92bD",
+        "QmXeV9zWpXHzTGFS3jJRBRYBTHkcVE23qpdhhtQKX1uC4L",
+        "QmXp5fEnjHbsLniCE5BD1LyjoGgvoHKuajqQnDCPAZih2X"
+      ],
+      "uiConfig": {
+        "media": {
+          "title": "Capture Plant Photos",
+          "description": "Please take photos of the plants you are identifying. Document their current state and any notable features.",
+          "maxImageCount": 7,
+          "required": true
+        },
+        "details": {
+          "title": "Input Plant Identification Details",
+          "description": "Please provide the following details about the plant you are identifying.",
+          "feedbackPlaceholder": "Provide feedback or any observations during this process",
+          "inputs": [
+            {
+              "key": "plantType",
+              "title": "Plant Type",
+              "placeholder": "Select the type of plant",
+              "type": "select",
+              "required": true,
+              "options": ["Tree", "Seedling", "Shrub", "Flower", "Vegetable", "Herb", "Grass", "Other"]
+            },
+            {
+              "key": "plantName",
+              "title": "Plant Species/Name",
+              "placeholder": "Enter the plant species or custom name (e.g., Oak Tree in North Garden)",
+              "type": "text",
+              "required": true,
+              "options": []
+            },
+            {
+              "key": "plantCount",
+              "title": "Number of Plants Identified",
+              "placeholder": "Enter the number of plants identified",
+              "type": "number",
+              "required": false,
+              "min": 0,
+              "options": []
+            },
+            {
+              "key": "healthStatus",
+              "title": "Plant Health Status",
+              "placeholder": "Select the overall health status",
+              "type": "select",
+              "required": false,
+              "options": ["Excellent", "Good", "Fair", "Poor", "Critical"]
+            }
+          ]
+        },
+        "review": {
+          "title": "Review Plant Identification Details",
+          "description": "Please review the details you have provided before submitting."
+        }
+      }
     },
     {
-      "title": "Carbon Sequestration Measurement",
-      "instructions": "Measure tree diameter at breast height (DBH) and calculate carbon storage potential using provided formulas.",
+      "title": "Waste Cleanup",
+      "description": "Document waste removal activities including type, quantity, and estimated weight. Helps maintain clean environments and track waste reduction impact.",
+      "capitals": ["MATERIAL", "SOCIAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
-      "endTime": "2024-12-31T23:59:59Z",
-      "capitals": ["LIVING", "INTELLECTUAL", "MATERIAL"],
-      "media": ["QmSampleCarbonMeasurementGuideHash", "QmSampleCalculationFormulaHash", "QmSampleReportingTemplateHash"]
+      "endTime": "2025-12-31T23:59:59Z",
+      "media": ["bafkreiemwmci42u7cb23xacktk5nfspo5kfsbmflvh6sixjahjbdk2bsie"],
+      "uiConfig": {
+        "media": {
+          "title": "Capture the Waste Cleanup",
+          "description": "Please take a photo of the location where you will be picking up the waste. You can also take photos of the waste to document its condition.",
+          "maxImageCount": 8,
+          "required": true
+        },
+        "details": {
+          "title": "Input Waste Cleanup Details",
+          "description": "Please provide the following details about the waste cleanup process.",
+          "feedbackPlaceholder": "Provide feedback or any issues during the waste cleanup process",
+          "inputs": [
+            {
+              "key": "wasteSelection",
+              "title": "Waste Type",
+              "placeholder": "Select the different waste picked up",
+              "type": "select",
+              "required": true,
+              "multiple": true,
+              "options": ["Plastic", "Metal", "Glass", "Paper", "Organic", "Other"]
+            },
+            {
+              "key": "wasteCount",
+              "title": "Waste Removed",
+              "placeholder": "Enter the number of pieces of waste removed",
+              "type": "number",
+              "required": true,
+              "min": 1,
+              "options": []
+            },
+            {
+              "key": "estimatedWeight",
+              "title": "Estimated Weight (kg)",
+              "placeholder": "Estimate the total weight of waste collected",
+              "type": "number",
+              "required": false,
+              "min": 0,
+              "step": 0.1,
+              "options": []
+            }
+          ]
+        },
+        "review": {
+          "title": "Review Waste Cleanup",
+          "description": "Please review the details you have provided before submitting."
+        }
+      }
     },
     {
-      "title": "Harvest Produce",
-      "instructions": "Capture harvest details including crops and quantities. Photograph the harvest and provide any relevant notes.",
+      "title": "Watering",
+      "description": "Document watering activities for plants and vegetation. Record water amount, method, and soil conditions to track maintenance efforts and support healthy plant growth.",
+      "capitals": ["LIVING", "MATERIAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
-      "endTime": "2024-12-31T23:59:59Z",
-      "capitals": ["LIVING", "EXPERIENTIAL", "MATERIAL"],
-      "media": ["QmSampleHarvestGuideHash", "QmSamplePostHarvestHandlingHash", "QmSampleHarvestTemplateHash"]
+      "endTime": "2025-12-31T23:59:59Z",
+      "media": ["QmWateringPlaceholder1", "QmWateringPlaceholder2", "QmWateringPlaceholder3"],
+      "uiConfig": {
+        "media": {
+          "title": "Capture the Watering Activity",
+          "description": "Please take photos of the watering process, including before and after shots of the plants, watering equipment used, and the general area being watered.",
+          "maxImageCount": 7,
+          "required": false
+        },
+        "details": {
+          "title": "Input Watering Details",
+          "description": "Please provide the following details about the watering session.",
+          "feedbackPlaceholder": "Provide feedback about the watering process, plant condition, or any issues encountered",
+          "inputs": [
+            {
+              "key": "plantSelection",
+              "title": "Plants Watered",
+              "placeholder": "Select the different species watered",
+              "type": "select",
+              "required": false,
+              "multiple": true,
+              "options": ["Tree", "Seedling", "Shrub", "Flower", "Vegetable", "Herb", "Grass", "Other"]
+            },
+            {
+              "key": "plantCount",
+              "title": "Number of Plants Watered",
+              "placeholder": "Enter the number of plants watered",
+              "type": "number",
+              "required": false,
+              "min": 0,
+              "options": []
+            },
+            {
+              "key": "waterAmount",
+              "title": "Water Amount (liters)",
+              "placeholder": "Enter the amount of water used in liters",
+              "type": "number",
+              "required": true,
+              "min": 0,
+              "step": 0.1,
+              "options": []
+            },
+            {
+              "key": "wateringMethod",
+              "title": "Watering Method",
+              "placeholder": "Select the watering method used",
+              "type": "select",
+              "required": true,
+              "options": ["Watering can", "Hose", "Sprinkler", "Drip irrigation", "Bucket", "Other"]
+            },
+            {
+              "key": "soilCondition",
+              "title": "Soil Condition Before Watering",
+              "placeholder": "Describe the soil condition",
+              "type": "select",
+              "required": false,
+              "options": ["Very dry", "Dry", "Slightly moist", "Moist", "Wet"]
+            }
+          ]
+        },
+        "review": {
+          "title": "Review Watering Details",
+          "description": "Please review the watering details you have provided before submitting."
+        }
+      }
     }
   ]
 }

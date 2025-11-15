@@ -8,28 +8,43 @@ This section assumes you have already set up the main Green Goods project as out
 
 ### Prerequisites
 
-- Ensure Node.js (version 20 or higher) and pnpm are installed.
-- The main project dependencies should be installed by running `pnpm install` in the root directory.
+- Ensure Node.js (version 20 or higher) and bun are installed.
+- The main project dependencies should be installed by running `bun install` in the root directory.
 
 ### Environment Variables
 
-Client-specific environment variables are managed in a `.env` file within the `packages/client` directory.
+**All environment variables are configured in the root `.env` file** (at the monorepo root, not in this package).
 
-1.  **Copy the example file:**
-    ```bash
-    cp .env.example .env
-    ```
-2.  **Populate the variables:**
-    You will need to populate this file with necessary API keys and configuration values. Key variables include:
+The root `.env` file is automatically loaded by:
+- Vite development server (via `vite.config.ts`)
+- Build scripts
+- All package scripts
 
-    - `VITE_PRIVY_APP_ID`: Your Privy application ID for authentication.
-    - `VITE_WALLETCONNECT_PROJECT_ID`: Your WalletConnect project ID.
-    - `VITE_PINATA_GATEWAY_URL`: URL for your Pinata IPFS gateway.
-    - `VITE_PINATA_API_URL`: Pinata API endpoint for file uploads.
-    - `VITE_PINATA_API_KEY`: Your Pinata API key.
-    - `VITE_DESKTOP_DEV`: Set to bypass PWA download checks during desktop development.
+**Client-relevant environment variables:**
 
-    _Refer to the main project's [README.md](../../README.md#configure-environment-variables) for guidance on obtaining these values, typically by reaching out to the Green Goods team._
+- `VITE_WALLETCONNECT_PROJECT_ID`: **Required** - Reown AppKit project ID for wallet connections (get from [cloud.reown.com](https://cloud.reown.com/))
+- `VITE_PIMLICO_API_KEY`: **Required** - Pimlico API key for passkey smart accounts (get from [pimlico.io](https://pimlico.io))
+- `VITE_APP_URL`: Application URL for AppKit metadata (e.g., `https://greengoods.app` or `http://localhost:3001` for dev)
+- `VITE_PINATA_JWT`: Pinata JWT token for uploads (client-side)
+- `VITE_CHAIN_ID`: Chain selection (e.g., 42161 for Arbitrum, 84532 for Base Sepolia)
+- `VITE_ENVIO_INDEXER_URL`: Envio GraphQL endpoint (optional; defaults to localhost in dev)
+- `VITE_DESKTOP_DEV`: Set to bypass PWA download checks during desktop development
+- `VITE_DEBUG_MODE`: Optional toggle to skip the two-media requirement in the Garden submission flow and enable verbose debug logging (use for manual testing only)
+- `VITE_PRIVY_APP_ID`: **Deprecated** - Legacy Privy authentication (being migrated away)
+
+**Setup:**
+1. Copy the root `.env.example` to `.env` at the project root
+2. Get your WalletConnect Project ID from [cloud.reown.com](https://cloud.reown.com/)
+3. Get your Pimlico API key from [pimlico.io](https://pimlico.io)
+4. Add the required environment variables to your `.env` file
+5. Variables are automatically loaded when running `bun dev` from root or package directory
+
+**Authentication Setup:**
+Green Goods uses a dual authentication strategy:
+- **Passkey (Primary)**: WebAuthn biometric authentication via Pimlico smart accounts - recommended for gardeners
+- **Wallet (Fallback)**: Traditional wallet connection via AppKit - for operators who prefer EOA control
+
+_Refer to the main project's [README.md](../../README.md#configure-environment-variables) for complete environment setup instructions._
 
 ## Development
 
@@ -41,16 +56,16 @@ To run the client application in a local development environment:
     cd packages/client
     ```
 
-    _(Note: If you are in the root directory, you can often run client scripts directly using pnpm's workspace features, e.g., `pnpm --filter client dev`)_
+    _(Note: If you are in the root directory, you can often run client scripts directly using bun's workspace features, e.g., `bun --filter client dev`)_
 
 2.  **Start the development server:**
     ```bash
-    pnpm run dev
+    bun run dev
     ```
 
     **Alternative development server (experimental):**
     ```bash
-    pnpm run dev:rolldown
+    bun run dev:rolldown
     ```
 
 The application should typically be accessible at `https://localhost:3001` (note: HTTPS due to mkcert plugin for PWA features). The Vite server will provide live reloading and HMR (Hot Module Replacement).
@@ -87,10 +102,10 @@ Vite provides instant HMR for:
 **Code Quality Commands:**
 ```bash
 # Format code
-pnpm run format
+bun run format
 
 # Run linting (ultra-fast)
-pnpm run lint
+bun run lint
 
 # The lint command runs both Biome checks and 0xlint
 ```
@@ -98,13 +113,13 @@ pnpm run lint
 **Testing Commands:**
 ```bash
 # Run tests once
-pnpm run test
+bun run test
 
 # Run tests in watch mode (for interactive development)
-pnpm run test:watch
+bun run test:watch
 
 # Generate test coverage report
-pnpm run coverage
+bun run coverage
 ```
 
 **Component Development Workflow:**
@@ -148,11 +163,11 @@ For PWA testing:
 1. Restart VS Code
 2. Check Biome extension is enabled
 3. Verify `node_modules/.bin/biome` exists
-4. Run `pnpm install` to ensure dependencies
+4. Run `bun install` to ensure dependencies
 
 **Development server issues:**
 ```bash
-# Check if port 3001 is in use
+# Check if port 3001 is in use (dev server runs on HTTPS)
 lsof -i :3001
 
 # Kill process if needed
@@ -168,7 +183,7 @@ rm -rf node_modules/.vite
 - Verify PWA manifest is correctly generated
 
 **Performance issues:**
-- Use `pnpm run build` to check production bundle size
+- Use `bun run build` to check production bundle size
 - Enable React DevTools Profiler for component performance
 - Check Network tab for slow API calls or large assets
 
@@ -182,8 +197,8 @@ rm -rf node_modules/.vite
 
 **Production Preview:**
 ```bash
-pnpm run build
-pnpm run preview
+bun run build
+bun run preview
 ```
 - Tests production build locally
 - Mimics production environment
@@ -195,7 +210,7 @@ The client supports dual build systems for different use cases:
 
 ### Production Build (Recommended)
 ```bash
-pnpm run build
+bun run build
 ```
 - **Optimized**: Full Vite optimization with code splitting
 - **Bundle Size**: ~4.4MB main bundle with dynamic imports
@@ -203,7 +218,7 @@ pnpm run build
 
 ### Experimental Build
 ```bash
-pnpm run build:rolldown
+bun run build:rolldown
 ```
 - **Purpose**: Testing next-generation Rolldown bundling
 - **Performance**: Similar output with experimental Rust-based bundling
@@ -213,21 +228,21 @@ Both commands will compile TypeScript, bundle the application, and output static
 
 ## Testing
 
-The client application uses [Vitest](https://vitest.dev/) for unit and integration testing.
+The client application uses [Vitest](https://vitest.dev/) for unit/integration testing and Playwright for E2E.
 
 - **Run tests once:**
   ```bash
-  pnpm run test
+  bun run test
   ```
 
 - **Run tests in watch mode (for interactive development):**
   ```bash
-  pnpm run test:watch
+  bun run test:watch
   ```
 
 - **Generate test coverage report:**
   ```bash
-  pnpm run coverage
+  bun run coverage
   ```
 
 ## Code Quality and Formatting
@@ -236,12 +251,12 @@ The project uses a high-performance linting setup:
 
 - **Format code:**
   ```bash
-  pnpm run format
+  bun run format
   ```
 
 - **Run linting (ultra-fast):**
   ```bash
-  pnpm run lint
+  bun run lint
   ```
 
 The `lint` command runs both Biome checks and 0xlint to ensure code quality and consistency in milliseconds.
@@ -274,7 +289,7 @@ The client application is built with a modern frontend stack:
 ### Authentication & Blockchain
 - **[Privy](https://www.privy.io/):** User authentication and wallet management
 - **[EAS SDK](https://github.com/ethereum-attestation-service/eas-sdk):** Ethereum Attestation Service integration
-- **[Wagmi](https://wagmi.sh/):** React hooks for Ethereum
+- **[Viem](https://viem.sh/):** Type-safe Ethereum client
 
 ### Development & Quality
 - **[Vitest](https://vitest.dev/):** Vite-native testing framework
@@ -314,6 +329,63 @@ The application uses a comprehensive design system built with:
 - **State Management**: React Query for server state, React Hook Form for forms
 - **Real-time Updates**: GraphQL subscriptions for live data updates
 
+### Dual Authentication & Submission Paths
+
+Green Goods supports two distinct authentication modes with optimized submission workflows:
+
+**Passkey Mode (Gardeners):**
+- **Authentication**: WebAuthn biometric authentication (Face ID, Touch ID, fingerprint)
+- **Accounts**: Kernel smart accounts via Pimlico
+- **Submission**: Offline-first job queue with automatic sync
+- **Gas**: Sponsored transactions (gasless for users)
+- **Target Users**: Mobile-first gardeners who need offline support
+
+**Wallet Mode (Operators):**
+- **Authentication**: Traditional wallet connection (MetaMask, WalletConnect, Coinbase Wallet)
+- **Accounts**: Standard EOA (Externally Owned Accounts)
+- **Submission**: Direct blockchain transactions (bypasses job queue)
+- **Gas**: User pays gas fees
+- **Target Users**: Operators and admins who prefer traditional web3 UX
+
+**Implementation Files:**
+- Direct wallet submission: `src/modules/work/wallet-submission.ts`
+- Job queue submission: `src/modules/work/work-submission.ts`
+- Unified hooks: `src/hooks/work/useWorkApproval.ts`
+- Provider branching: `src/providers/work.tsx`
+- Future integration path: `docs/WALLET_QUEUE_INTEGRATION.md`
+
+The system automatically branches based on `authMode` from the authentication provider, ensuring each user type gets an optimized experience.
+
+### Schema Integration
+
+The client integrates with EAS (Ethereum Attestation Service) using versioned schemas for future-proof attestation encoding.
+
+**V2 Schema Encoding:**
+```typescript
+// Work attestations include version field
+const SCHEMA_VERSION_V2 = 2;
+
+encodeWorkData([
+  { name: "version", value: SCHEMA_VERSION_V2, type: "uint8" },
+  { name: "actionUID", value: actionUID, type: "uint256" },
+  { name: "title", value: title, type: "string" },
+  // ... other fields
+]);
+```
+
+**Key Features:**
+- **Version field**: All attestations include schema version for backward compatibility
+- **Automatic encoding**: `src/utils/eas/encoders.ts` handles V2 encoding
+- **Schema UIDs**: Retrieved from deployment JSON files
+- **Backward compatible**: Frontend can decode both V1 and V2 attestations
+
+**Schema Configuration:**
+- Schema UIDs loaded from contract deployment artifacts
+- Version detection for proper decoding
+- Support for gradual V1 → V2 migration
+
+See `docs/UPGRADES.md` for schema versioning strategy.
+
 ## Project Structure Highlights
 
 The `packages/client/src` directory is organized as follows:
@@ -352,10 +424,7 @@ Service layer and business logic:
   - `index.ts`: Main job queue interface and configuration
   - `db.ts`: IndexedDB integration for persistent storage
   - `event-bus.ts`: Event-driven communication for job updates
-  - `job-processor.ts`: Background job processing logic
-  - `media-resource-manager.ts`: Media file handling and compression
-  - `sync-manager.ts`: Online/offline synchronization management
-  - `processors/`: Specific job processors for work and approval submissions
+  - `media-resource-manager.ts`: Media file handling and cleanup helpers
 
 ### Components (`components/`)
 Reusable UI components organized by scope:
@@ -476,7 +545,7 @@ The client is optimized for static hosting:
 
 ### Build Output
 ```bash
-pnpm run build
+bun run build
 ```
 Produces:
 - Static HTML, CSS, JS files in `dist/`

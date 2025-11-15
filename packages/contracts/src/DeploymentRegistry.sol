@@ -3,8 +3,7 @@ pragma solidity ^0.8.25;
 
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
-import { EnumerableSetUpgradeable } from
-    "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
+import { EnumerableSetUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 
 /// @title DeploymentRegistry
 /// @notice A governance-controlled registry for managing contract deployments across networks
@@ -56,6 +55,14 @@ contract DeploymentRegistry is OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Emergency pause state
     bool public emergencyPaused;
 
+    /**
+     * @dev Storage gap for future upgrades
+     * Reserves 46 slots (50 total - 4 used: networks, _allowlist, pendingOwner, emergencyPaused)
+     * Note: EnumerableSetUpgradeable uses internal storage that counts in this calculation
+     * Allows adding new state variables without breaking storage layout in upgrades
+     */
+    uint256[46] private __gap;
+
     /// @notice Error thrown when trying to access unconfigured network
     error NetworkNotConfigured(uint256 chainId);
 
@@ -70,6 +77,12 @@ contract DeploymentRegistry is OwnableUpgradeable, UUPSUpgradeable {
 
     /// @notice Error thrown when caller is not pending owner
     error NotPendingOwner();
+
+    /// @notice Error thrown when trying to add zero address
+    error CannotAddZeroAddress();
+
+    /// @notice Error thrown when new owner is current owner
+    error NewOwnerCannotBeCurrentOwner();
 
     /// @notice Modifier to check if caller is owner or in allowlist
     modifier onlyOwnerOrAllowlist() {
@@ -103,14 +116,7 @@ contract DeploymentRegistry is OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Sets the network configuration for a specific chain
     /// @param chainId The chain ID to configure
     /// @param config The network configuration
-    function setNetworkConfig(
-        uint256 chainId,
-        NetworkConfig calldata config
-    )
-        external
-        onlyOwnerOrAllowlist
-        whenNotPaused
-    {
+    function setNetworkConfig(uint256 chainId, NetworkConfig calldata config) external onlyOwnerOrAllowlist whenNotPaused {
         networks[chainId] = config;
         emit NetworkConfigUpdated(chainId, config);
     }
@@ -118,7 +124,7 @@ contract DeploymentRegistry is OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Adds an address to the allowlist (owner only)
     /// @param account The address to add
     function addToAllowlist(address account) external onlyOwner {
-        require(account != address(0), "Cannot add zero address");
+        if (account == address(0)) revert CannotAddZeroAddress();
         if (_allowlist.add(account)) {
             emit AllowlistAdded(account);
         }
@@ -154,8 +160,8 @@ contract DeploymentRegistry is OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Initiates a governance transfer to a new owner
     /// @param newOwner The address of the new owner
     function initiateGovernanceTransfer(address newOwner) external onlyOwner {
-        require(newOwner != address(0), "New owner cannot be zero address");
-        require(newOwner != owner(), "New owner cannot be current owner");
+        if (newOwner == address(0)) revert CannotAddZeroAddress();
+        if (newOwner == owner()) revert NewOwnerCannotBeCurrentOwner();
 
         pendingOwner = newOwner;
         emit GovernanceTransferInitiated(owner(), newOwner);
@@ -204,7 +210,7 @@ contract DeploymentRegistry is OwnableUpgradeable, UUPSUpgradeable {
     /// @param accounts Array of addresses to add
     function batchAddToAllowlist(address[] calldata accounts) external onlyOwner {
         for (uint256 i = 0; i < accounts.length; i++) {
-            require(accounts[i] != address(0), "Cannot add zero address");
+            if (accounts[i] == address(0)) revert CannotAddZeroAddress();
             if (_allowlist.add(accounts[i])) {
                 emit AllowlistAdded(accounts[i]);
             }
@@ -289,5 +295,8 @@ contract DeploymentRegistry is OwnableUpgradeable, UUPSUpgradeable {
 
     /// @notice Authorizes an upgrade to a new implementation
     /// @param newImplementation The address of the new implementation
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner { }
+    // solhint-disable-next-line no-empty-blocks
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
+        // Intentionally empty - UUPS upgrade authorization handled by onlyOwner modifier
+    }
 }

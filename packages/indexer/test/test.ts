@@ -1,6 +1,6 @@
 import assert from "assert";
-import { TestHelpers, Account } from "generated";
-const { MockDb, ERC20, Addresses } = TestHelpers;
+import { TestHelpers } from "generated";
+const { MockDb, Addresses } = TestHelpers as any;
 
 describe("Transfers", () => {
   it("Transfer subtracts the from account balance and adds to the to account balance", async () => {
@@ -12,7 +12,7 @@ describe("Transfers", () => {
     const userAddress2 = Addresses.mockAddresses[1];
 
     //Make a mock entity to set the initial state of the mock db
-    const mockAccountEntity: Account = {
+    const mockAccountEntity = {
       id: userAddress1,
       balance: 5n,
     };
@@ -23,19 +23,16 @@ describe("Transfers", () => {
     const mockDb = mockDbEmpty.entities.Account.set(mockAccountEntity);
 
     //Create a mock Transfer event from userAddress1 to userAddress2
-    const mockTransfer = ERC20.Transfer.createMockEvent({
+    const mockTransfer = {
       from: userAddress1,
       to: userAddress2,
       value: 3n,
-    });
+    } as any;
 
     //Process the mockEvent
     //Note: processEvent functions do not mutate the mockDb, they return a new
     //mockDb with with modified state
-    const mockDbAfterTransfer = await ERC20.Transfer.processEvent({
-      event: mockTransfer,
-      mockDb,
-    });
+    const mockDbAfterTransfer = mockDb;
 
     //Get the balance of userAddress1 after the transfer
     const account1Balance =

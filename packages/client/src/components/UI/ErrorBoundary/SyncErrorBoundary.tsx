@@ -1,6 +1,6 @@
 import React, { Component, type ReactNode } from "react";
-import toast from "react-hot-toast";
-import { track } from "@/modules/posthog";
+import { track } from "@green-goods/shared/modules";
+import { toastService } from "@green-goods/shared";
 
 interface Props {
   children: ReactNode;
@@ -33,9 +33,13 @@ export class SyncErrorBoundary extends Component<Props, State> {
 
     // Only show toast for unexpected errors, not network/fetch errors
     if (!error.message?.includes("fetch") && !error.message?.includes("network")) {
-      toast.error("Sync temporarily unavailable", {
+      toastService.error({
+        id: "sync-error",
+        title: "Sync temporarily unavailable",
+        message: "Please try again shortly.",
+        context: "sync error",
         duration: 4000,
-        id: "sync-error", // Prevent duplicate toasts
+        suppressLogging: true,
       });
     }
 

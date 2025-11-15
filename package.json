@@ -13,54 +13,42 @@
     "react",
     "tailwind",
     "typescript",
-    "pnpm",
+    "bun",
     "foundry"
   ],
   "scripts": {
     "setup": "node scripts/setup.js",
-    "foundry:up": "curl -L https://foundry.paradigm.xyz | bash && bash $HOME/.foundry/bin/foundryup",
     "prepare": "husky",
-    "node:update": "nvm install 22 --reinstall-packages-from=22 && nvm alias default 22",
-    "node:update:latest": "nvm install node && nvm alias node default",
-    "build": "pnpm recursive run build",
-    "format": "biome format --write .",
-    "format:check": "biome format .",
-    "lint": "biome check --write --unsafe packages/client/src/**/*.{ts,tsx} packages/contracts/src packages/indexer/src",
-    "lint:oxlint": "oxlint packages/client/src packages/indexer/src",
-    "lint-staged": "lint-staged",
-    "test": "pnpm recursive run test",
+
+    "dev": "trap 'bunx pm2 delete all' EXIT; bunx pm2 start ecosystem.config.js && bunx pm2 logs --raw",
+    "dev:stop": "bunx pm2 delete all",
+    "dev:client": "cd packages/client && bun run dev",
+    "dev:admin": "cd packages/admin && bun run dev",
+    "dev:indexer": "cd packages/indexer && bun run dev",
+    "dev:contracts": "cd packages/contracts && bun run dev",
+
+    "format": "bunx @biomejs/biome format --write .",
+    "format:check": "bunx @biomejs/biome format .",
+    "lint": "bun oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/contracts/script",
+    "test": "bun run test:client && bun run test:admin && bun run test:indexer && bun run test:contracts",
+
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "test:e2e:debug": "playwright test --debug",
-    "test:e2e:smoke": "playwright test tests/specs/smoke",
-    "test:e2e:mobile": "playwright test --project=mobile-chrome --project=mobile-safari",
-    "test:e2e:integration": "playwright test tests/specs/integration",
-    "test:e2e:blockchain": "playwright test tests/specs/blockchain",
-    "test:e2e:pwa": "playwright test tests/specs/pwa",
-    "test:e2e:performance": "playwright test tests/specs/performance",
-    "test:e2e:quick": "playwright test tests/specs/smoke tests/specs/integration/basic-integration.spec.ts --project=chromium",
-    "test:offline": "node tests/run-offline-tests.js",
-    "test:offline:debug": "node tests/run-offline-tests.js --debug --headed",
-    "test:all": "pnpm test && pnpm test:e2e",
-    "dev": "trap 'pnpm exec pm2 delete all' EXIT; pnpm exec pm2 start ecosystem.config.js && pnpm exec pm2 logs --raw",
-    "dev:status": "pnpm exec pm2 list",
-    "dev:logs:client": "pnpm exec pm2 logs client --raw",
-    "dev:logs:api": "pnpm exec pm2 logs api --raw",
-    "dev:logs:indexer": "pnpm exec pm2 logs indexer --raw",
-    "dev:stop": "pnpm exec pm2 delete all",
-    "dev:app": "pnpm --filter 'client' run dev",
-    "dev:app:pwa-e2e": "pnpm --filter 'client' run dev:pwa-e2e",
-    "dev:api": "pnpm --filter 'api' run dev",
-    "dev:indexer": "pnpm --filter 'indexer' run dev",
-    "dev:contracts": "pnpm --filter 'contracts' run  dev"
+    "test:client": "cd packages/client && bun run test",
+    "test:admin": "cd packages/admin && bun run test",
+    "test:indexer": "cd packages/indexer && bun run test",
+    "test:contracts": "cd packages/contracts && bun run test",
+
+    "build": "bun run build:contracts && bun run build:shared && bun run build:indexer && bun run build:client && bun run build:admin",
+    "build:shared": "cd packages/shared && bun run build",
+    "build:client": "cd packages/client && bun run build",
+    "build:admin": "cd packages/admin && bun run build",
+    "build:indexer": "cd packages/indexer && bun run build",
+    "build:contracts": "cd packages/contracts && bun run build"
   },
-  "pnpm": {
-    "overrides": {
-      "vite": "npm:rolldown-vite@7.1.0"
-    }
+  "overrides": {
+    "vite": "npm:rolldown-vite@7.1.0"
   },
   "dependencies": {
-    "@privy-io/server-auth": "^1.31.0",
     "dotenv": "^17.2.1",
     "ethers": "^6.15.0",
     "viem": "^2.33.3"
@@ -69,6 +57,7 @@
     "@biomejs/biome": "2.1.4",
     "@playwright/test": "^1.54.2",
     "@types/node": "^24.2.1",
+    "dotenv-cli": "^10.0.0",
     "husky": "^9.1.7",
     "js-yaml": "^4.1.0",
     "lint-staged": "16.1.5",
@@ -81,15 +70,17 @@
   },
   "engines": {
     "node": ">=20.x",
-    "pnpm": ">=9.x"
+    "bun": ">=1.x"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json}": [
-      "biome format --write",
-      "oxlint"
+      "bunx @biomejs/biome format --write"
     ],
     "*.sol": [
-      "pnpm --filter contracts format"
+      "cd packages/contracts && bun run format"
     ]
-  }
+  },
+  "workspaces": [
+    "packages/*"
+  ]
 }

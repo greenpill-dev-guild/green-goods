@@ -1,9 +1,9 @@
+import type { DuplicateCheckResult } from "@green-goods/shared/modules";
+import { cn } from "@green-goods/shared/utils";
 import React, { useState } from "react";
-import type { DuplicateCheckResult } from "../../../modules/deduplication";
-import { cn } from "../../../utils/cn";
 
 interface DuplicateWorkWarningProps {
-  workData: any;
+  workData: unknown;
   duplicateInfo: DuplicateCheckResult;
   onProceed: () => void;
   onCancel: () => void;
@@ -55,9 +55,30 @@ export const DuplicateWorkWarning: React.FC<DuplicateWorkWarningProps> = ({
     return `${Math.round(similarity * 100)}% similar`;
   };
 
-  const formatWorkData = (data: any): string => {
-    return JSON.stringify(data, null, 2);
+  const formatWorkData = (data: unknown): string => {
+    try {
+      return JSON.stringify(data, null, 2);
+    } catch {
+      return String(data);
+    }
   };
+
+  // Safely extract fields from unknown work data
+  const getDisplayFields = (
+    data: unknown
+  ): { title?: string; gardenId?: string; type?: string } => {
+    try {
+      const anyData = data as any;
+      const title = anyData?.title || anyData?.data?.title;
+      const gardenId = anyData?.gardenId || anyData?.gardenAddress || anyData?.data?.gardenAddress;
+      const type = anyData?.type || "work";
+      return { title, gardenId, type };
+    } catch {
+      return {};
+    }
+  };
+
+  const display = getDisplayFields(workData);
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -86,7 +107,7 @@ export const DuplicateWorkWarning: React.FC<DuplicateWorkWarningProps> = ({
 
             <div className="text-sm space-y-1">
               <p>
-                <strong>Current Work:</strong> {workData.title || "Untitled"}
+                <strong>Current Work:</strong> {display.title || "Untitled"}
               </p>
               {duplicateInfo.existingWorkId && (
                 <p>
@@ -94,10 +115,10 @@ export const DuplicateWorkWarning: React.FC<DuplicateWorkWarningProps> = ({
                 </p>
               )}
               <p>
-                <strong>Garden:</strong> {workData.gardenId}
+                <strong>Garden:</strong> {display.gardenId || "Unknown"}
               </p>
               <p>
-                <strong>Type:</strong> {workData.type || "work"}
+                <strong>Type:</strong> {display.type || "work"}
               </p>
             </div>
           </div>
@@ -190,9 +211,9 @@ export const DuplicateWorkWarning: React.FC<DuplicateWorkWarningProps> = ({
         <div className="p-6 border-t border-neutral-border bg-neutral-base/5">
           <div className="flex items-center justify-between">
             <div className="text-sm text-neutral-foreground">
-              {info.severity === "high" && "⚠️ High risk of duplicate submission"}
-              {info.severity === "medium" && "⚠️ Moderate risk of duplicate submission"}
-              {info.severity === "low" && "ℹ️ Low risk of duplicate submission"}
+              {info.severity === "high" ? "⚠️ High risk of duplicate submission" : null}
+              {info.severity === "medium" ? "⚠️ Moderate risk of duplicate submission" : null}
+              {info.severity === "low" ? "ℹ️ Low risk of duplicate submission" : null}
             </div>
 
             <div className="flex items-center gap-3">

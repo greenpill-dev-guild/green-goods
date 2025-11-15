@@ -6,7 +6,7 @@ import "react-device-frameset/styles/marvel-devices.min.css";
 
 import { RiCloseLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { useApp } from "@/providers/app";
+import { useApp } from "@green-goods/shared/providers/app";
 
 interface HeroProps {
   handleSubscribe: (e: React.FormEvent<HTMLFormElement>) => void;

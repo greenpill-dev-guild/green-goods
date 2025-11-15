@@ -9,11 +9,8 @@ class DeploymentAddresses {
   loadForChain(chainId) {
     const chainMap = {
       localhost: "31337",
-      sepolia: "11155111",
       arbitrum: "42161",
-      base: "8453",
       baseSepolia: "84532",
-      optimism: "10",
       celo: "42220",
     };
 
@@ -25,7 +22,7 @@ class DeploymentAddresses {
     }
 
     const deploymentData = JSON.parse(fs.readFileSync(deploymentFile, "utf8"));
-    const requiredAddresses = ["actionRegistry", "gardenToken", "deploymentRegistry"];
+    const requiredAddresses = ["actionRegistry", "gardenToken", "deploymentRegistry", "gardenerAccountLogic"];
     const missing = requiredAddresses.filter((addr) => !deploymentData[addr]);
 
     if (missing.length > 0) {
