@@ -83,4 +83,3 @@ export function resolveIPFSUrl(url: string, gatewayBaseUrl: string): string {
   // Return original URL if no IPFS pattern matched
   return url;
 }
-

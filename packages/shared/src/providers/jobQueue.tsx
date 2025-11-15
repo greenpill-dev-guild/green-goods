@@ -56,18 +56,15 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastEvent, setLastEvent] = useState<QueueEvent | null>(null);
 
-  const refreshStats = React.useCallback(
-    async (signal?: AbortSignal) => {
-      try {
-        const newStats = await jobQueue.getStats();
-        if (signal?.aborted) return;
-        setStats(newStats);
-      } catch {
-        if (signal?.aborted) return;
-      }
-    },
-    []
-  );
+  const refreshStats = React.useCallback(async (signal?: AbortSignal) => {
+    try {
+      const newStats = await jobQueue.getStats();
+      if (signal?.aborted) return;
+      setStats(newStats);
+    } catch {
+      if (signal?.aborted) return;
+    }
+  }, []);
 
   // Subscribe to queue events
   useEffect(() => {
@@ -269,7 +266,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
     const handleOnline = () => {
       // Only auto-flush for passkey users
       if (authMode === "passkey") {
-      void attemptFlush();
+        void attemptFlush();
       }
     };
 

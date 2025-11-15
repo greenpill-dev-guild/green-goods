@@ -37,8 +37,7 @@ describe("parseContractError", () => {
   });
 
   it("extracts error code from UserOperation revert message", () => {
-    const errorMessage =
-      "UserOperation reverted during simulation with reason: 0x8cb4ae3b";
+    const errorMessage = "UserOperation reverted during simulation with reason: 0x8cb4ae3b";
     const result = parseContractError(errorMessage);
 
     expect(result.name).toBe("NotGardenerAccount");
@@ -100,8 +99,7 @@ describe("formatErrorForToast", () => {
 
     expect(result).toEqual({
       title: "Not Gardener Account",
-      message:
-        "You are not a member of this garden. Please join the garden before submitting work",
+      message: "You are not a member of this garden. Please join the garden before submitting work",
     });
   });
 
@@ -147,4 +145,3 @@ describe("parseAndFormatError", () => {
     expect(result.title).toContain("Garden Operator");
   });
 });
-

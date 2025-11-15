@@ -8,7 +8,7 @@
  * @example Client package:
  * ```tsx
  * import { usePasskeyAuth } from '@greengoods/shared/hooks/auth';
- * 
+ *
  * function MyComponent() {
  *   const { smartAccountAddress, isReady, createPasskey } = usePasskeyAuth();
  *   // ...
@@ -18,7 +18,7 @@
  * @example Admin package:
  * ```tsx
  * import { useWalletAuth } from '@greengoods/shared/hooks/auth';
- * 
+ *
  * function MyComponent() {
  *   const { address, isConnected, connect } = useWalletAuth();
  *   // ...
@@ -26,8 +26,8 @@
  * ```
  */
 export {
-	usePasskeyAuth,
-	type AuthMode,
+  usePasskeyAuth,
+  type AuthMode,
 } from "../../providers/PasskeyAuthProvider";
 export { useWalletAuth } from "../../providers/WalletAuthProvider";
 

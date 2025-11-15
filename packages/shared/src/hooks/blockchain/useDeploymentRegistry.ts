@@ -1,11 +1,7 @@
 import { useState, useEffect } from "react";
 import { createPublicClient, http } from "viem";
-import {
-	useOptionalPasskeyAuth,
-} from "../../providers/PasskeyAuthProvider";
-import {
-	useOptionalWalletAuth,
-} from "../../providers/WalletAuthProvider";
+import { useOptionalPasskeyAuth } from "../../providers/PasskeyAuthProvider";
+import { useOptionalWalletAuth } from "../../providers/WalletAuthProvider";
 import { useAdminStore, type AdminState } from "../../stores/useAdminStore";
 import { getNetworkContracts, getChain } from "../../utils/contracts";
 
@@ -28,28 +24,25 @@ const DEPLOYMENT_REGISTRY_ABI = [
 ] as const;
 
 export interface DeploymentRegistryPermissions {
-	isOwner: boolean;
-	isInAllowlist: boolean;
-	canDeploy: boolean;
-	loading: boolean;
+  isOwner: boolean;
+  isInAllowlist: boolean;
+  canDeploy: boolean;
+  loading: boolean;
   error?: string;
 }
 
 export function useDeploymentRegistry(): DeploymentRegistryPermissions {
-	const passkeyAuth = useOptionalPasskeyAuth();
-	const walletAuth = useOptionalWalletAuth();
+  const passkeyAuth = useOptionalPasskeyAuth();
+  const walletAuth = useOptionalWalletAuth();
 
-	const address =
-		passkeyAuth?.smartAccountAddress ??
-		passkeyAuth?.walletAddress ??
-		walletAuth?.address ??
-		null;
-	const ready = passkeyAuth ? passkeyAuth.isReady : walletAuth?.ready ?? false;
-	const selectedChainId = useAdminStore((state: AdminState) => state.selectedChainId);
-	const [permissions, setPermissions] = useState<DeploymentRegistryPermissions>({
-		isOwner: false,
-		isInAllowlist: false,
-		canDeploy: false,
+  const address =
+    passkeyAuth?.smartAccountAddress ?? passkeyAuth?.walletAddress ?? walletAuth?.address ?? null;
+  const ready = passkeyAuth ? passkeyAuth.isReady : (walletAuth?.ready ?? false);
+  const selectedChainId = useAdminStore((state: AdminState) => state.selectedChainId);
+  const [permissions, setPermissions] = useState<DeploymentRegistryPermissions>({
+    isOwner: false,
+    isInAllowlist: false,
+    canDeploy: false,
     loading: true,
   });
 
@@ -141,7 +134,7 @@ export function useDeploymentRegistry(): DeploymentRegistryPermissions {
     }
 
     checkPermissions();
-	}, [address, ready, selectedChainId]);
+  }, [address, ready, selectedChainId]);
 
-	return permissions;
+  return permissions;
 }

@@ -1,10 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  type Theme,
-  getTheme,
-  getResolvedTheme,
-  setTheme as setThemeAPI,
-} from "../../theme";
+import { type Theme, getTheme, getResolvedTheme, setTheme as setThemeAPI } from "../../theme";
 
 /**
  * React hook for theme management
@@ -65,4 +60,3 @@ export function useTheme() {
     toggleTheme,
   } as const;
 }
-

@@ -28,7 +28,7 @@ export async function encodeWorkData(data: WorkDraft, chainId: number | string) 
       });
 
       const result = await uploadFileToIPFS(file);
-      
+
       console.log("[encodeWorkData] File uploaded:", {
         fileName: file.name,
         cid: result.cid,

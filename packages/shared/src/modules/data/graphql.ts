@@ -25,4 +25,3 @@ export const greenGoodsGraphQL = initGraphQLTada<{
 }>();
 
 export type { FragmentOf, ResultOf, VariablesOf } from "gql.tada";
-

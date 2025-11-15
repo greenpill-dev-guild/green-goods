@@ -103,7 +103,7 @@ export function useAutoJoinRootGarden(autoJoin = false) {
   }, [gardens, normalizeAddress, rootGardenAddressNormalized, rootGardenTokenId]);
 
   const { writeContractAsync, isPending } = useWriteContract();
-  
+
   // Onchain check: directly read from the gardeners mapping on the contract
   const {
     data: isGardenerOnchain,
@@ -199,7 +199,7 @@ export function useAutoJoinRootGarden(autoJoin = false) {
       rootGardenAddressNormalized,
       rootGardenTokenId,
       smartAccountAddress,
-    ],
+    ]
   );
 
   /**
@@ -263,14 +263,12 @@ export function useAutoJoinRootGarden(autoJoin = false) {
         // Invalidate all garden-related queries using centralized pattern
         const keysToInvalidate = queryInvalidation.invalidateGardens(chainId);
         await Promise.all(
-          keysToInvalidate.map((key) =>
-            queryClient.invalidateQueries({ queryKey: key })
-          )
+          keysToInvalidate.map((key) => queryClient.invalidateQueries({ queryKey: key }))
         );
 
         // Refetch gardens to ensure UI is updated
         await refetchGardens();
-        
+
         // Check membership to ensure state is accurate
         await checkMembership(targetAddress);
       } catch (error) {
@@ -291,7 +289,7 @@ export function useAutoJoinRootGarden(autoJoin = false) {
           await refetchGardens();
           return; // Exit successfully
         }
-        
+
         throw error;
       }
     },
@@ -304,7 +302,7 @@ export function useAutoJoinRootGarden(autoJoin = false) {
       smartAccountAddress,
       smartAccountClient,
       writeContractAsync,
-    ],
+    ]
   );
 
   // Auto-join effect (when autoJoin=true, joins automatically on first login)

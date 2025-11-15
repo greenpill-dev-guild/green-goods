@@ -12,7 +12,9 @@ export function useCreateGardenWorkflow() {
   const { data: walletClient } = useWalletClient();
   const selectedChainId = useAdminStore((state: AdminState) => state.selectedChainId);
   const addPendingTransaction = useAdminStore((state: AdminState) => state.addPendingTransaction);
-  const updateTransactionStatus = useAdminStore((state: AdminState) => state.updateTransactionStatus);
+  const updateTransactionStatus = useAdminStore(
+    (state: AdminState) => state.updateTransactionStatus
+  );
 
   const machine = useMemo(
     () =>

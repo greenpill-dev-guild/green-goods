@@ -119,13 +119,13 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   // Filter gardens to only show ones user is a member of
   const userGardens = React.useMemo(() => {
     if (!userAddress || !gardensData) return [];
-    
+
     return gardensData.filter((garden: Garden) => {
       // Check if user is in gardeners list (case-insensitive)
       const isGardener = garden.gardeners?.some(
         (gardenerAddress: string) => gardenerAddress.toLowerCase() === userAddress
       );
-      
+
       if (DEBUG_ENABLED && isGardener) {
         debugLog("[WorkProvider] User is gardener in garden", {
           gardenId: garden.id,
@@ -133,7 +133,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
           userAddress,
         });
       }
-      
+
       return isGardener;
     });
   }, [gardensData, userAddress]);
@@ -202,17 +202,17 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   const plantSelection = Array.isArray(plantSelectionRaw)
     ? (plantSelectionRaw as string[])
     : typeof plantSelectionRaw === "string" && (plantSelectionRaw as string).trim().length > 0
-    ? [(plantSelectionRaw as string).trim()]
-    : [];
+      ? [(plantSelectionRaw as string).trim()]
+      : [];
   const plantCount =
     typeof plantCountRaw === "number"
       ? plantCountRaw
       : typeof plantCountRaw === "string" && (plantCountRaw as string).trim().length > 0
-      ? (() => {
-          const parsed = Number(plantCountRaw as string);
-          return Number.isNaN(parsed) ? undefined : parsed;
-        })()
-      : undefined;
+        ? (() => {
+            const parsed = Number(plantCountRaw as string);
+            return Number.isNaN(parsed) ? undefined : parsed;
+          })()
+        : undefined;
   const values = watch() as unknown as Record<string, unknown>;
 
   const workMutation = useMutation({
@@ -227,7 +227,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         match: gardenAddress === currentStoreState.gardenAddress,
         timestamp: new Date().toISOString(),
       });
-      
+
       if (DEBUG_ENABLED) {
         const draftSummary = {
           hasFeedback: Boolean(draft.feedback),
@@ -262,7 +262,11 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
               actionTitle,
             });
           }
-          const { txHash: offlineTxHash, jobId: _jobId, clientWorkId: _clientWorkId } = await submitWorkToQueue(
+          const {
+            txHash: offlineTxHash,
+            jobId: _jobId,
+            clientWorkId: _clientWorkId,
+          } = await submitWorkToQueue(
             { ...draft } as any,
             gardenAddress!,
             actionUID!,
@@ -299,7 +303,11 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         });
       }
 
-      const { txHash: offlineTxHash, jobId, clientWorkId } = await submitWorkToQueue(
+      const {
+        txHash: offlineTxHash,
+        jobId,
+        clientWorkId,
+      } = await submitWorkToQueue(
         {
           ...draft,
         } as any,
@@ -347,7 +355,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
           console.log("[WorkProvider] Inline processing threw exception:", {
             jobId,
             error,
-            errorMessage: error instanceof Error ? error.message : String(error)
+            errorMessage: error instanceof Error ? error.message : String(error),
           });
           if (DEBUG_ENABLED) {
             debugWarn("[GardenFlow] Inline processing threw", { jobId, error });
@@ -367,7 +375,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       const isOffline = !navigator.onLine;
-      
+
       if (isOffline) {
         // Offline: brief save notification
         toastService.info({
@@ -380,21 +388,21 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         });
       } else {
         // Online: loading toast
-      toastService.loading({
-        id: "work-upload",
+        toastService.loading({
+          id: "work-upload",
           title: "Submitting work",
           message: "Processing your submission...",
           context: "work upload",
-        suppressLogging: true,
-      });
+          suppressLogging: true,
+        });
       }
     },
     onSuccess: (txHash) => {
       const isOfflineHash = typeof txHash === "string" && txHash.startsWith("0xoffline_");
-      
+
       // Mark submission as complete (triggers checkmark)
       useWorkFlowStore.getState().setSubmissionCompleted(true);
-      
+
       if (isOfflineHash) {
         // Offline: dismiss info toast after brief delay
         setTimeout(() => {
@@ -416,10 +424,13 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       // Navigate after short delay to show checkmark
-      setTimeout(() => {
-        openWorkDashboard();
-        // Navigation will happen in Garden view via useEffect watching submissionCompleted
-      }, isOfflineHash ? 1000 : 1500);
+      setTimeout(
+        () => {
+          openWorkDashboard();
+          // Navigation will happen in Garden view via useEffect watching submissionCompleted
+        },
+        isOfflineHash ? 1000 : 1500
+      );
 
       if (DEBUG_ENABLED) {
         debugLog("[GardenFlow] Work submission completed", {
@@ -434,15 +445,15 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
     onError: (error: unknown, variables) => {
       // Parse contract error for user-friendly message
       const { title, message, parsed } = parseAndFormatError(error);
-      
+
       // Use parsed error if known, otherwise provide fallback based on auth mode
       const displayTitle = parsed.isKnown ? title : "Work submission failed";
       const displayMessage = parsed.isKnown
         ? message
         : authMode === "wallet"
-            ? "Transaction failed. Check your wallet and try again."
+          ? "Transaction failed. Check your wallet and try again."
           : "We couldn't submit your work. It'll retry shortly.";
-      
+
       const description = parsed.isKnown
         ? parsed.action || undefined
         : authMode === "wallet"
@@ -457,7 +468,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         description,
         error,
       });
-      
+
       if (DEBUG_ENABLED) {
         debugError("[GardenFlow] Work submission failed", error, {
           gardenAddress,
@@ -480,7 +491,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const errors = validateWorkDraft(draft as any, gardenAddress, actionUID, images);
-   if (errors.length > 0) {
+    if (errors.length > 0) {
       toastService.error({
         title: "Check your submission",
         message: errors[0],

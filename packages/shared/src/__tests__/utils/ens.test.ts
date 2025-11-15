@@ -10,12 +10,14 @@ vi.mock("../../config/pimlico", () => ({
 
 describe("ens utils", () => {
   it("resolves ENS name", async () => {
-    await expect(resolveEnsName("0x1234567890123456789012345678901234567890"))
-      .resolves.toBe("alice.eth");
+    await expect(resolveEnsName("0x1234567890123456789012345678901234567890")).resolves.toBe(
+      "alice.eth"
+    );
   });
 
   it("resolves ENS address", async () => {
-    await expect(resolveEnsAddress("alice.eth"))
-      .resolves.toBe("0x1234567890123456789012345678901234567890");
+    await expect(resolveEnsAddress("alice.eth")).resolves.toBe(
+      "0x1234567890123456789012345678901234567890"
+    );
   });
 });

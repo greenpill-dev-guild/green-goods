@@ -23,4 +23,3 @@ export interface DeploymentConfig {
     tokenId: number;
   };
 }
-

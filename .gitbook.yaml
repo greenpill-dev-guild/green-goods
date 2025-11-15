@@ -1,0 +1,42 @@
+# GitBook Configuration for Green Goods
+# Documentation: https://docs.gitbook.com/getting-started/git-sync/content-configuration
+
+root: ./docs/
+
+structure:
+  readme: README.md
+  summary: SUMMARY.md
+  glossary: GLOSSARY.md
+
+# Git Sync Configuration
+# Only include the docs directory and relevant markdown files
+# Exclude build artifacts, node_modules, and package-specific content
+include:
+  - docs/**/*.md
+  - docs/**/*.png
+  - docs/**/*.jpg
+  - docs/**/*.jpeg
+  - docs/**/*.gif
+  - docs/**/*.svg
+  - LICENSE
+
+exclude:
+  - node_modules/**
+  - packages/**/node_modules/**
+  - packages/**/dist/**
+  - packages/**/build/**
+  - packages/**/out/**
+  - packages/**/generated/**
+  - packages/**/.next/**
+  - "**/.git/**"
+  - "**/.vscode/**"
+  - "**/.cursor/**"
+  - "**/bun.lock"
+  - "**/pnpm-lock.yaml"
+  - "**/package-lock.json"
+  - "**/*.log"
+
+# GitBook metadata
+title: Green Goods Documentation
+description: Bringing community and environmental actions onchain to better measure, track and reward impact in local communities.
+

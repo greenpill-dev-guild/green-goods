@@ -272,4 +272,3 @@ export function registerErrorSignature(
 ): void {
   ERROR_SIGNATURES[signature.toLowerCase()] = { name, message, action };
 }
-

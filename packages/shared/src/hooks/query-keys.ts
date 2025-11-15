@@ -55,7 +55,8 @@ export const queryKeys = {
   gardens: {
     all: ["gardens"] as const,
     byChain: (chainId: number) => ["gardens", chainId] as const,
-    detail: (gardenId: string, chainId: number) => ["gardens", "detail", gardenId, chainId] as const,
+    detail: (gardenId: string, chainId: number) =>
+      ["gardens", "detail", gardenId, chainId] as const,
   },
 
   // Action related keys
