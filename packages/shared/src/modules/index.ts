@@ -77,6 +77,10 @@ export {
   useJobQueueEvents,
 } from "./job-queue";
 
+// From translation/
+export { browserTranslator } from "./translation/browser-translator";
+export { translationCache } from "./translation/db";
+
 // Note: work/deduplication.ts has been removed or is not yet implemented
 // Tests exist but implementation is missing - commented out until implemented
 // export type {

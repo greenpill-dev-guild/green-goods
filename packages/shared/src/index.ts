@@ -99,6 +99,9 @@ export {
   jobQueueDB,
   jobQueueEventBus,
   useJobQueueEvents,
+  // translation/
+  browserTranslator,
+  translationCache,
   // work/deduplication.ts - REMOVED (implementation missing)
   // DeduplicationManager,
   // defaultDeduplicationManager,
