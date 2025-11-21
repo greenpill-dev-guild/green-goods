@@ -1,3 +1,5 @@
+import { track } from "@green-goods/shared/modules";
+import { imageCompressor } from "@green-goods/shared/utils/work/image-compression";
 import {
   RiCameraFill,
   RiCloseLine,
@@ -11,8 +13,6 @@ import { Books } from "@/components/Garden/BooksIcon";
 import { Badge } from "@/components/UI/Badge/Badge";
 import { FormInfo } from "@/components/UI/Form/Info";
 import { ImagePreviewDialog } from "@/components/UI/ImagePreviewDialog";
-import { track } from "@green-goods/shared/modules";
-import { imageCompressor } from "@green-goods/shared/utils/work/image-compression";
 
 interface WorkMediaProps {
   config?: Action["mediaInfo"];
@@ -241,7 +241,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({ config, images, setImages 
       <div className="flex flex-col gap-4">
         {images.length ? (
           images.map((file, index) => (
-            <div key={file.name} className="carousel-item relative w-full">
+            <div key={`${file.name}-${index}`} className="carousel-item relative w-full">
               <button
                 type="button"
                 className="relative group cursor-pointer w-full"

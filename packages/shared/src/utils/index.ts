@@ -86,10 +86,25 @@ export type {
   PolymorphicComponentPropsWithRef,
   PolymorphicRef,
 } from "./styles/polymorphic";
+// From time.ts
+export {
+  filterByTimeRange,
+  getTimeCutoff,
+  normalizeTimestamp,
+  sortByCreatedAt,
+  type TimeFilter,
+} from "./time";
 // From translation-diagnostics.ts
 export { runTranslationDiagnostics } from "./translation-diagnostics";
 // From urql.ts
 export { createUrqlClient } from "./urql";
+// From work/deduplication.ts
+export {
+  deduplicateByFuzzyMatch,
+  deduplicateById,
+  extractClientWorkId,
+  mergeAndDeduplicateByClientId,
+} from "./work/deduplication";
 // From work/image-compression.ts
 export type {
   CompressionOptions,
@@ -101,6 +116,8 @@ export {
   formatFileSize,
   imageCompressor,
 } from "./work/image-compression";
+// From work/offline.ts
+export { convertJobsToWorks, fetchOfflineWorks } from "./work/offline";
 // From work/workActions.ts
 export type { WorkData } from "./work/workActions";
 export {

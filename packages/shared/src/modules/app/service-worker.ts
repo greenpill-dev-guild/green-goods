@@ -93,8 +93,6 @@ class ServiceWorkerManager {
    */
   private async handleMessage(event: MessageEvent) {
     if (event.data?.type === "BACKGROUND_SYNC") {
-      console.log("Background sync triggered by service worker");
-
       track("background_sync_triggered", {
         timestamp: event.data.payload.timestamp,
       });
@@ -140,11 +138,7 @@ if (typeof window !== "undefined") {
   const enableDevServiceWorker = (import.meta as any).env?.VITE_ENABLE_SW_DEV === "true";
 
   if ((import.meta as any).env?.PROD || enableDevServiceWorker) {
-    serviceWorkerManager.register().then((success) => {
-      if (success) {
-        console.log("Service Worker registered successfully");
-      }
-    });
+    serviceWorkerManager.register();
   }
 
   // In development (and when not explicitly enabled), ensure no SW interferes with HMR

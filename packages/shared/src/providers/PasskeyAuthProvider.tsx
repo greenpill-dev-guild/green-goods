@@ -193,20 +193,12 @@ export function PasskeyAuthProvider({
 
       try {
         sessionToUse = await restorePasskeySession(chainId);
-        if (sessionToUse) {
-          console.log("Restored existing passkey session", {
-            address: sessionToUse.address,
-          });
-        }
       } catch (restoreError) {
         console.warn("Failed to restore saved passkey session, creating a new one", restoreError);
       }
 
       if (!sessionToUse) {
         sessionToUse = await registerPasskeySession(chainId);
-        console.log("Created new passkey session", {
-          address: sessionToUse.address,
-        });
       }
 
       setSession(sessionToUse);
@@ -237,14 +229,12 @@ export function PasskeyAuthProvider({
   const clearPasskey = useCallback(() => {
     clearStoredCredential();
     signOut();
-    console.log("Passkey cleared");
   }, [signOut]);
 
   const setPasskeySession = useCallback((newSession: PasskeySession) => {
     setSession(newSession);
     setAuthMode("passkey");
     localStorage.setItem(AUTH_MODE_STORAGE_KEY, "passkey");
-    console.log("Passkey session set", { address: newSession.address });
   }, []);
 
   const connectWallet = useCallback(
@@ -267,8 +257,6 @@ export function PasskeyAuthProvider({
         setWalletConnector(connector);
         setAuthMode("wallet");
         localStorage.setItem(AUTH_MODE_STORAGE_KEY, "wallet");
-
-        console.log("Wallet connected", { account: result.accounts[0] });
       } catch (err) {
         if (err instanceof Error && err.name === "ConnectorAlreadyConnectedError") {
           const hydrated = syncWalletAccount();
@@ -297,7 +285,6 @@ export function PasskeyAuthProvider({
       console.error("Wallet disconnect failed", err);
     } finally {
       signOut();
-      console.log("Wallet disconnected");
     }
   }, [signOut, wagmiConfig]);
 

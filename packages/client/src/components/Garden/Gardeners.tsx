@@ -1,10 +1,12 @@
-import { useEnsName, useEnsAvatar } from "@green-goods/shared/hooks";
+import { useEnsAvatar, useEnsName } from "@green-goods/shared/hooks";
 import { copyToClipboard, formatAddress } from "@green-goods/shared/utils";
 import {
   RiCalendarEventFill,
+  RiCloseLine,
   RiFileCopyLine,
   RiMailFill,
   RiPhoneLine,
+  RiUserLine,
   RiWallet3Fill,
 } from "@remixicon/react";
 import React, { forwardRef, memo, useMemo, useState } from "react";
@@ -189,22 +191,63 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="text-base font-semibold truncate">{title}</div>
-                <Button
-                  variant="neutral"
-                  mode="stroke"
-                  size="xxsmall"
-                  label={intl.formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
+                <button
                   onClick={() => setSelected(null)}
-                />
+                  className="p-1 rounded-full border border-slate-200 transition-all duration-200 flex-shrink-0 tap-feedback focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-600 active:border-emerald-600 active:scale-95"
+                  aria-label="Close modal"
+                  type="button"
+                >
+                  <RiCloseLine className="w-5 h-5 text-slate-400 focus:text-emerald-700 active:text-emerald-700" />
+                </button>
               </div>
-              <div className="flex flex-col gap-3">
-                {selected.account && (
-                  <AddressCopy
-                    address={selected.account}
-                    ensName={selectedEnsName}
-                    icon={<RiWallet3Fill className="h-4 w-4" />}
-                  />
-                )}
+              <div className="flex flex-col gap-8">
+                {selected.account &&
+                  (selectedEnsName ? (
+                    <>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 text-sm">
+                          <RiUserLine className="w-4 h-4 text-primary" />
+                          <span className="font-semibold">{selectedEnsName}</span>
+                        </div>
+                        <Button
+                          variant="neutral"
+                          mode="stroke"
+                          size="xxsmall"
+                          label={intl.formatMessage({
+                            id: "app.common.copy",
+                            defaultMessage: "Copy",
+                          })}
+                          leadingIcon={<RiFileCopyLine className="w-4 h-4" />}
+                          onClick={() => copy(selectedEnsName)}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 text-sm">
+                          <RiWallet3Fill className="w-4 h-4 text-primary" />
+                          <span className="text-slate-500 font-mono text-xs">
+                            {formatAddress(selected.account)}
+                          </span>
+                        </div>
+                        <Button
+                          variant="neutral"
+                          mode="stroke"
+                          size="xxsmall"
+                          label={intl.formatMessage({
+                            id: "app.common.copy",
+                            defaultMessage: "Copy",
+                          })}
+                          leadingIcon={<RiFileCopyLine className="w-4 h-4" />}
+                          onClick={() => copy(selected.account)}
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <AddressCopy
+                      address={selected.account}
+                      ensName={selectedEnsName}
+                      icon={<RiWallet3Fill className="h-4 w-4" />}
+                    />
+                  ))}
                 {selected.email && (
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 text-sm">

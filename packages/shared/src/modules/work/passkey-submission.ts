@@ -1,11 +1,14 @@
 import { NO_EXPIRATION, ZERO_BYTES32 } from "@ethereum-attestation-service/eas-sdk";
+import { getPublicClient } from "@wagmi/core";
 import type { SmartAccountClient } from "permissionless";
 import { encodeFunctionData } from "viem";
 
+import { wagmiConfig } from "../../config/appkit";
 import { getEASConfig } from "../../config/blockchain";
 import EASAbiJson from "../../abis/EAS.json";
-import { encodeWorkData, encodeWorkApprovalData } from "../../utils/eas/encoders";
-import { debugLog } from "../../utils/debug";
+import { encodeWorkApprovalData, encodeWorkData, simulateWorkData } from "../../utils/eas/encoders";
+import { parseContractError } from "../../utils/errors/contract-errors";
+import { debugError, debugLog } from "../../utils/debug";
 
 const { abi: EASAbi } = EASAbiJson;
 
@@ -52,6 +55,67 @@ export async function submitWorkWithPasskey({
   const smartClient = client as SmartAccountClient;
 
   const easConfig = getEASConfig(chainId);
+
+  // Simulate contract interaction before uploading
+  const publicClient = getPublicClient(wagmiConfig, { chainId });
+  if (publicClient) {
+    try {
+      debugLog("[PasskeySubmission] Simulating transaction before upload...");
+
+      // Prepare simulation data (dummy CIDs)
+      const simulationData = simulateWorkData(
+        {
+          ...draft,
+          title: `${actionTitle} - ${new Date().toISOString()}`,
+          actionUID,
+          media: images,
+        },
+        chainId
+      );
+
+      // Simulate the attest call using the smart account address as the sender
+      // This verifies that the smart account is a gardener and the action is valid
+      await publicClient.simulateContract({
+        address: easConfig.EAS.address as `0x${string}`,
+        abi: EASAbi,
+        functionName: "attest",
+        args: [
+          {
+            schema: easConfig.WORK.uid,
+            data: {
+              recipient: gardenAddress as `0x${string}`,
+              expirationTime: NO_EXPIRATION,
+              revocable: true,
+              refUID: ZERO_BYTES32,
+              data: simulationData,
+              value: 0n,
+            },
+          },
+        ],
+        account: smartClient.account!.address, // Use address for simulation
+      });
+      debugLog("[PasskeySubmission] Simulation successful - proceeding to upload");
+    } catch (err: any) {
+      debugError("[PasskeySubmission] Simulation failed", err);
+
+      const parsed = parseContractError(err);
+      if (parsed.isKnown) {
+        // Include error name so the UI provider can recognize it as a known error
+        throw new Error(
+          `[${parsed.name}] ${parsed.message}${parsed.action ? ` ${parsed.action}` : ""}`
+        );
+      }
+
+      // Fallback to cause reason if available
+      if (err.cause?.reason) {
+        throw new Error(`Validation failed: ${err.cause.reason}`);
+      }
+
+      throw new Error(
+        `Validation failed: ${parsed.message || err.message || "Unknown error during simulation"}`
+      );
+    }
+  }
 
   const attestationData = await encodeWorkData(
     {

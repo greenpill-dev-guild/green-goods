@@ -35,12 +35,6 @@ export function useCreateAssessmentWorkflow() {
   };
 
   const submitCreation = async (): Promise<string> => {
-    console.log("Debug - Validation check:", {
-      address,
-      hasParams: !!state.context.assessmentParams,
-      state: state.value,
-    });
-
     if (!address) {
       throw new Error("Wallet not connected");
     }

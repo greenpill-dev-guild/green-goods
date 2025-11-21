@@ -1,14 +1,18 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
-import { jobToWork, queryKeys, useUser, useWorkApprovals } from "@green-goods/shared/hooks";
+import { queryKeys, useMyOnlineWorks, useUser, useWorkApprovals } from "@green-goods/shared/hooks";
 import {
   getWorkApprovals as fetchWorkApprovals,
   getGardens,
   getWorks,
-  getWorksByGardener,
   jobQueueEventBus,
 } from "@green-goods/shared/modules";
-import { jobQueue, jobQueueDB } from "@green-goods/shared/modules/job-queue";
-import { cn } from "@green-goods/shared/utils";
+import { jobQueue } from "@green-goods/shared/modules/job-queue";
+import {
+  cn,
+  convertJobsToWorks,
+  filterByTimeRange,
+  type TimeFilter,
+} from "@green-goods/shared/utils";
 import { RiCheckLine, RiCloseLine, RiTimeLine } from "@remixicon/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";
@@ -28,20 +32,18 @@ export interface WorkDashboardProps {
 export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose }) => {
   const intl = useIntl();
   const navigate = useNavigate();
-  const { smartAccountAddress, user } = useUser();
+  const { user } = useUser();
+  const activeAddress = user?.id;
 
-  // Helper to check if an address matches the current user (smart account or wallet)
+  // Helper to check if an address matches the current user
   const isUserAddress = (address: string | undefined): boolean => {
-    if (!address) return false;
-    const addr = address.toLowerCase();
-    const sa = smartAccountAddress?.toLowerCase();
-    const wallet = user?.wallet?.address?.toLowerCase();
-    return Boolean((sa && addr === sa) || (wallet && addr === wallet));
+    if (!address || !activeAddress) return false;
+    return address.toLowerCase() === activeAddress.toLowerCase();
   };
 
   // Use the new hook for work approvals
   const { completedApprovals, isLoading, hasError, errorMessage } = useWorkApprovals(
-    smartAccountAddress || undefined
+    activeAddress || undefined
   );
 
   // State management
@@ -53,9 +55,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   const [completedFilter, setCompletedFilter] = useState<"reviewedByYou" | "myWorkReviewed">(
     "reviewedByYou"
   );
-  const [timeFilter, setTimeFilter] = useState<"day" | "week" | "month" | "year">("month");
-
-  // TimeFilterControl moved to its own component
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>("month");
 
   // Prevent background scrolling when modal is open
   useEffect(() => {
@@ -76,20 +76,19 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     () =>
       (gardens || [])
         .filter((g) => {
+          if (!activeAddress) return false;
           const operators = (g.operators || []).map((op: string) => op.toLowerCase());
-          const sa = smartAccountAddress?.toLowerCase();
-          const wallet = user?.wallet?.address?.toLowerCase();
-          // Operator can be either the smart account or the wallet address (EOA)
-          return (sa && operators.includes(sa)) || (wallet && operators.includes(wallet));
+          return operators.includes(activeAddress.toLowerCase());
         })
         .map((g) => g.id),
-    [gardens, smartAccountAddress, user]
+    [gardens, activeAddress]
   );
 
   // Fetch works for gardens the user operates (online + offline merged)
   const { data: operatorWorks = [], isLoading: isLoadingOperatorWorks } = useQuery({
-    queryKey: ["operatorWorks", smartAccountAddress, operatorGardenIds],
+    queryKey: ["operatorWorks", activeAddress, operatorGardenIds],
     queryFn: async () => {
+      if (!activeAddress) return [];
       const allWorks: Work[] = [];
 
       for (const gardenId of operatorGardenIds) {
@@ -102,17 +101,10 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
           (job) => (job.payload as WorkJobPayload).gardenAddress === gardenId
         );
 
-        // Convert offline jobs to Work format
-        const offline = await Promise.all(
-          gardenOfflineJobs.map(async (job) => {
-            const work = jobToWork(job as Job<WorkJobPayload>);
-            const images = await jobQueueDB.getImagesForJob(job.id);
-            work.media = images.map((img) => img.url);
-            if (smartAccountAddress) {
-              work.gardenerAddress = smartAccountAddress;
-            }
-            return work;
-          })
+        // Convert offline jobs to Work format using utility
+        const offline = await convertJobsToWorks(
+          gardenOfflineJobs as Job<WorkJobPayload>[],
+          activeAddress
         );
 
         // Merge and deduplicate (prefer online, exclude duplicates)
@@ -133,255 +125,31 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
 
       return allWorks.sort((a, b) => b.createdAt - a.createdAt);
     },
-    enabled: operatorGardenIds.length > 0,
+    enabled: operatorGardenIds.length > 0 && !!activeAddress,
     staleTime: 30_000,
   });
 
-  // Fetch your own online works across all gardens
-  const { data: myOnlineWorks = [], isLoading: isLoadingMyOnlineWorks } = useQuery({
-    queryKey: ["myOnlineWorks", smartAccountAddress, user?.wallet?.address],
-    queryFn: async () => {
-      const sa = smartAccountAddress;
-      const wallet = user?.wallet?.address;
-
-      if (!sa && !wallet) return [] as Work[];
-
-      const queries = [];
-      if (sa) queries.push(getWorksByGardener(sa));
-      if (wallet && wallet !== sa) queries.push(getWorksByGardener(wallet));
-
-      const results = await Promise.all(queries);
-      const allWorks = results.flat();
-
-      // Deduplicate
-      const seen = new Set<string>();
-      const unique = allWorks.filter((w) => {
-        if (seen.has(w.id)) return false;
-        seen.add(w.id);
-        return true;
-      });
-
-      // Normalize shape to Work with pending status by default (until approved/rejected)
-      return unique.map((w) => ({ ...w, status: "pending" as const }));
-    },
-    enabled: !!(smartAccountAddress || user?.wallet?.address),
-    staleTime: 30_000,
+  // Use new hooks for user's works
+  const { data: myOnlineWorks = [], isLoading: isLoadingMyOnlineWorks } = useMyOnlineWorks();
+  const { data: recentOnlineWork = [], isLoading: isLoadingRecentOnline } = useMyOnlineWorks({
+    timeFilter,
   });
 
   const queryClient = useQueryClient();
-
-  // Fetch user's own works (online + offline merged with deduplication)
-  const { data: myWorks = [] } = useQuery({
-    queryKey: ["myWorks", smartAccountAddress, user?.wallet?.address, DEFAULT_CHAIN_ID],
-    queryFn: async () => {
-      const sa = smartAccountAddress;
-      const wallet = user?.wallet?.address;
-
-      if (!sa && !wallet) return [];
-
-      // Get online works by this user (check both)
-      const queries = [];
-      if (sa) queries.push(getWorksByGardener(sa));
-      if (wallet && wallet !== sa) queries.push(getWorksByGardener(wallet));
-
-      const results = await Promise.all(queries);
-      const onlineWorksRaw = results.flat();
-
-      // Deduplicate online works
-      const seenOnline = new Set<string>();
-      const onlineWorks = onlineWorksRaw.filter((w) => {
-        if (seenOnline.has(w.id)) return false;
-        seenOnline.add(w.id);
-        return true;
-      });
-
-      // Get offline jobs by this user
-      const offlineJobs = await jobQueue.getJobs({ kind: "work", synced: false });
-
-      // Convert offline jobs to Work format
-      const offlineWorks = await Promise.all(
-        offlineJobs.map(async (job) => {
-          const work = jobToWork(job as Job<WorkJobPayload>);
-          const images = await jobQueueDB.getImagesForJob(job.id);
-
-          work.media = images.map((img: any) => img.url);
-          // Use SA if available, otherwise wallet, otherwise nothing
-          if (sa) work.gardenerAddress = sa;
-          else if (wallet) work.gardenerAddress = wallet;
-
-          return work;
-        })
-      );
-
-      // Build set of clientWorkIds from online works for deduplication
-      const onlineClientWorkIds = new Set(
-        onlineWorks
-          .map((w) => {
-            try {
-              const meta = JSON.parse(w.metadata || "{}");
-              return meta.clientWorkId;
-            } catch {
-              return null;
-            }
-          })
-          .filter(Boolean)
-      );
-
-      // Filter out offline works that have been uploaded (matching clientWorkId)
-      const dedupedOffline = offlineWorks.filter((work) => {
-        const jobMeta = offlineJobs.find((j) => j.id === work.id)?.meta;
-        const clientWorkId = jobMeta?.clientWorkId;
-        const isDuplicate = clientWorkId && onlineClientWorkIds.has(clientWorkId);
-
-        return !isDuplicate;
-      });
-
-      // Merge and sort by creation time
-      const merged = [...onlineWorks, ...dedupedOffline]
-        .sort((a, b) => b.createdAt - a.createdAt)
-        .slice(0, 50); // Show last 50 items
-
-      return merged;
-    },
-    enabled: !!(smartAccountAddress || user?.wallet?.address),
-    staleTime: 10_000,
-  });
-
-  // Cleanup offline works when matching online work appears
-  useEffect(() => {
-    if (!myWorks || myWorks.length === 0) return;
-
-    const cleanupOfflineWorks = async () => {
-      // Get all offline jobs
-      const offlineJobs = await jobQueue.getJobs({ kind: "work", synced: false });
-
-      // Get online work client IDs from metadata
-      const onlineClientIds = new Set(
-        myWorks
-          .filter((w) => w.id.startsWith("0x") && !w.id.startsWith("0xoffline_"))
-          .map((w) => {
-            try {
-              const meta = JSON.parse(w.metadata || "{}");
-              return meta.clientWorkId;
-            } catch {
-              return null;
-            }
-          })
-          .filter(Boolean)
-      );
-
-      // Delete offline jobs that have matching online work (by clientWorkId)
-      for (const job of offlineJobs) {
-        const clientWorkId = job.meta?.clientWorkId;
-        if (clientWorkId && onlineClientIds.has(clientWorkId)) {
-          await jobQueueDB.deleteJob(job.id);
-        }
-      }
-    };
-
-    void cleanupOfflineWorks();
-  }, [myWorks]);
-
-  // Fetch recent online work by this gardener (time-filtered)
-  const { data: recentOnlineWork = [], isLoading: isLoadingRecentOnline } = useQuery({
-    queryKey: [
-      "recentOnlineWork",
-      smartAccountAddress,
-      user?.wallet?.address,
-      timeFilter,
-      DEFAULT_CHAIN_ID,
-    ],
-    queryFn: async () => {
-      const sa = smartAccountAddress;
-      const wallet = user?.wallet?.address;
-
-      if (!sa && !wallet) return [];
-
-      // Fetch all work by this gardener (check both)
-      const queries = [];
-      if (sa) queries.push(getWorksByGardener(sa, DEFAULT_CHAIN_ID));
-      if (wallet && wallet !== sa) queries.push(getWorksByGardener(wallet, DEFAULT_CHAIN_ID));
-
-      const results = await Promise.all(queries);
-      const allWorkRaw = results.flat();
-
-      // Deduplicate
-      const seen = new Set<string>();
-      const allWork = allWorkRaw.filter((w) => {
-        if (seen.has(w.id)) return false;
-        seen.add(w.id);
-        return true;
-      });
-
-      // Calculate time cutoff based on filter
-      const now = Date.now();
-      let cutoffTime: number;
-      switch (timeFilter) {
-        case "day":
-          cutoffTime = now - 24 * 60 * 60 * 1000;
-          break;
-        case "week":
-          cutoffTime = now - 7 * 24 * 60 * 60 * 1000;
-          break;
-        case "month":
-          cutoffTime = now - 30 * 24 * 60 * 60 * 1000;
-          break;
-        case "year":
-          cutoffTime = now - 365 * 24 * 60 * 60 * 1000;
-          break;
-        default:
-          cutoffTime = now - 30 * 24 * 60 * 60 * 1000;
-      }
-
-      // Filter by time and sort newest first
-      const recentWork = allWork
-        .filter((w) => {
-          const workTime = w.createdAt < 1e12 ? w.createdAt * 1000 : w.createdAt;
-          return workTime >= cutoffTime;
-        })
-        .sort((a, b) => b.createdAt - a.createdAt);
-
-      return recentWork;
-    },
-    enabled: !!(smartAccountAddress || user?.wallet?.address),
-    staleTime: 10_000,
-  });
 
   // Uploading work (offline queue jobs only)
   const { data: offlineQueueWork = [], isLoading: isLoadingOfflineQueue } = useQuery({
     queryKey: queryKeys.queue.uploading(),
     queryFn: async () => {
       const jobs = await jobQueue.getJobs({ kind: "work", synced: false });
-
-      const works = await Promise.all(
-        jobs.map(async (job: any) => {
-          const work = jobToWork(job);
-          const images = await jobQueueDB.getImagesForJob(job.id);
-          work.media = images.map((img: any) => img.url);
-
-          // Assign address correctly
-          if (smartAccountAddress) {
-            work.gardenerAddress = smartAccountAddress;
-          } else if (user?.wallet?.address) {
-            work.gardenerAddress = user.wallet.address;
-          }
-
-          return work;
-        })
-      );
-
-      // Newest first
-      const sorted = works.sort((a, b) => b.createdAt - a.createdAt);
-
-      return sorted;
+      const works = await convertJobsToWorks(jobs as Job<WorkJobPayload>[], activeAddress);
+      return works.sort((a, b) => b.createdAt - a.createdAt);
     },
     staleTime: 5000,
   });
 
   // Combine offline queue + recent online work for "Recent Work" tab
   const recentWorkCombined = useMemo(() => {
-    // For now, use simple deduplication (will be enhanced with async lookup)
-    // Offline work always comes first, then recent online work
     const combined = [...offlineQueueWork, ...recentOnlineWork];
 
     // Remove duplicates by ID
@@ -404,7 +172,6 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     });
   }, [offlineQueueWork, recentOnlineWork]);
 
-  // For backwards compatibility, keep uploadingWork as alias
   const uploadingWork = recentWorkCombined;
   const isLoadingUploading = isLoadingOfflineQueue || isLoadingRecentOnline;
 
@@ -414,16 +181,14 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       ["job:added", "job:completed", "job:failed", "queue:sync-completed"],
       () => {
         queryClient.invalidateQueries({ queryKey: queryKeys.queue.uploading() });
-        // Also invalidate stats for badge counts
         queryClient.invalidateQueries({ queryKey: queryKeys.queue.stats() });
-        // Invalidate myWorks to update My Work tab
         queryClient.invalidateQueries({
-          queryKey: ["myWorks", smartAccountAddress, user?.wallet?.address, DEFAULT_CHAIN_ID],
+          queryKey: ["myWorks", activeAddress, DEFAULT_CHAIN_ID],
         });
       }
     );
     return () => unsub();
-  }, [queryClient, smartAccountAddress]);
+  }, [queryClient, activeAddress]);
 
   // Which works have you already reviewed?
   const reviewedByYou = useMemo(
@@ -449,14 +214,13 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
 
   // Completed: approvals for your own submissions (you as gardener)
   const { data: myReceivedApprovals = [], isLoading: isLoadingMyApprovals } = useQuery({
-    queryKey: ["approvals", "byGardener", smartAccountAddress],
-    queryFn: () => fetchWorkApprovals(smartAccountAddress || undefined),
-    enabled: !!smartAccountAddress,
+    queryKey: ["approvals", "byGardener", activeAddress],
+    queryFn: () => fetchWorkApprovals(activeAddress || undefined),
+    enabled: !!activeAddress,
     staleTime: 30_000,
   });
 
   // Pending: your submissions across ALL gardens (online and awaiting review)
-  // Exclude any that already have approvals (approved/rejected)
   const approvedOrRejectedForMe = useMemo(
     () => new Set((myReceivedApprovals || []).map((a) => a.workUID)),
     [myReceivedApprovals]
@@ -501,35 +265,14 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   const completedWork =
     completedFilter === "reviewedByYou" ? completedReviewedByYou : completedMyWorkReviewed;
 
-  // Time filter helpers
-  const toMs = (timestamp: number): number => (timestamp < 1e12 ? timestamp * 1000 : timestamp);
-  const cutoffMs = useMemo(() => {
-    const now = Date.now();
-    switch (timeFilter) {
-      case "day":
-        return now - 1 * 24 * 60 * 60 * 1000;
-      case "week":
-        return now - 7 * 24 * 60 * 60 * 1000;
-      case "month":
-        return now - 30 * 24 * 60 * 60 * 1000;
-      case "year":
-        return now - 365 * 24 * 60 * 60 * 1000;
-      default:
-        return now - 30 * 24 * 60 * 60 * 1000;
-    }
-  }, [timeFilter]);
-
-  const filterByTime = <T extends { createdAt: number }>(items: T[]): T[] =>
-    (items || []).filter((i) => toMs(i.createdAt) >= cutoffMs);
-
-  const filteredUploading = filterByTime(uploadingWork);
-  const filteredPending = filterByTime(pendingWork);
-  const filteredCompleted = filterByTime(completedWork as any);
+  // Apply time filtering using utility
+  const filteredUploading = filterByTimeRange(uploadingWork, timeFilter);
+  const filteredPending = filterByTimeRange(pendingWork, timeFilter);
+  const filteredCompleted = filterByTimeRange(completedWork as any, timeFilter);
 
   // Navigation handler
   const handleWorkClick = (work: any) => {
     try {
-      // Resolve garden/work for both Work and WorkApproval items
       let workId = work.id || work.workUID;
       let gardenId = work.gardenAddress || work.gardenId;
 
@@ -564,7 +307,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     const badges: React.ReactNode[] = [];
     const isGardener = isUserAddress(item.gardenerAddress);
     const isOperator =
-      smartAccountAddress &&
+      activeAddress &&
       operatorGardenIds.some((id) => id.toLowerCase() === item.gardenAddress?.toLowerCase());
     const reviewed = reviewedByYou.has(item.id);
 
@@ -606,7 +349,6 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     return [badge("Your work was reviewed", "bg-slate-50 text-slate-600 border-slate-200")];
   };
 
-  // Tabs without counts (counts shown in tab content instead)
   const tabs: StandardTab[] = [
     {
       id: "recent",
@@ -633,10 +375,9 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
 
   const handleClose = () => {
     setIsClosing(true);
-    // Start close animation, then call onClose after animation completes
     setTimeout(() => {
       onClose?.();
-    }, 300); // Match the modal-slide-exit animation duration
+    }, 300);
   };
 
   const renderTabContent = () => {

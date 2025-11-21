@@ -14,8 +14,8 @@ const DEFAULT_AVATAR = "/images/avatar.png";
 export const GardenerProfile: React.FC = () => {
   const intl = useIntl();
   const { profile, updateProfile, isUpdating } = useGardenerProfile();
-  const { smartAccountAddress, eoa } = useUser();
-  const primaryAddress = smartAccountAddress || eoa?.address;
+  const { user } = useUser();
+  const primaryAddress = user?.id;
   const { data: ensAvatar, isLoading: isLoadingAvatar } = useEnsAvatar(primaryAddress);
 
   const [formData, setFormData] = useState({

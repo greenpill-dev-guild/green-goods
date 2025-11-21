@@ -8,7 +8,7 @@ evm_version = "shanghai"
 fuzz = { runs = 1_000 }
 gas_reports = []         # Disabled by default for speed
 optimizer = true
-optimizer_runs = 1000
+optimizer_runs = 100
 verbosity = 1            # Less verbose by default
 libs = ['lib']
 out = 'out'
@@ -17,6 +17,7 @@ src = 'src'
 test = 'test'
 via_ir = true            # Required for stack depth
 sparse_mode = true       # Faster incremental builds
+ignore = ["lib/**"]      # Ignore tests in library dependencies
 fs_permissions = [
   { access = "read-write", path = "./" }
 ]

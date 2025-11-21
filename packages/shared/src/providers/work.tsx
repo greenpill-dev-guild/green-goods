@@ -255,17 +255,6 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
 
   const workMutation = useMutation({
     mutationFn: async ({ draft, images }: { draft: WorkDraft; images: File[] }) => {
-      // DEBUG: Log the gardenAddress from multiple sources
-      const currentStoreState = useWorkFlowStore.getState();
-      console.log("[WorkProvider] mutationFn called - garden sources:", {
-        gardenAddressFromProvider: gardenAddress,
-        gardenAddressFromStore: currentStoreState.gardenAddress,
-        actionUID,
-        authMode,
-        match: gardenAddress === currentStoreState.gardenAddress,
-        timestamp: new Date().toISOString(),
-      });
-
       if (DEBUG_ENABLED) {
         const draftSummary = {
           hasFeedback: Boolean(draft.feedback),
@@ -368,15 +357,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (navigator.onLine && smartAccountClient) {
         try {
-          console.log("[WorkProvider] Attempting inline processing for job:", jobId);
           const result = await jobQueue.processJob(jobId, { smartAccountClient });
-          console.log("[WorkProvider] Inline processing result:", {
-            jobId,
-            success: result.success,
-            skipped: result.skipped,
-            error: result.error,
-            txHash: result.txHash,
-          });
           if (DEBUG_ENABLED) {
             debugLog("[GardenFlow] Inline processing attempt finished", {
               jobId,
@@ -390,11 +371,6 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
             return result.txHash as `0x${string}`;
           }
         } catch (error) {
-          console.log("[WorkProvider] Inline processing threw exception:", {
-            jobId,
-            error,
-            errorMessage: error instanceof Error ? error.message : String(error),
-          });
           if (DEBUG_ENABLED) {
             debugWarn("[GardenFlow] Inline processing threw", { jobId, error });
           }

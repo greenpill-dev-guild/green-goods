@@ -1,6 +1,10 @@
 import { toastService } from "@green-goods/shared";
 import { wagmiConfig } from "@green-goods/shared/config";
-import { usePasskeyAuth as useAuth, useAutoJoinRootGarden } from "@green-goods/shared/hooks";
+import {
+  checkMembership,
+  usePasskeyAuth as useAuth,
+  useAutoJoinRootGarden,
+} from "@green-goods/shared/hooks";
 import {
   authenticatePasskey,
   PASSKEY_STORAGE_KEY,
@@ -12,7 +16,6 @@ import { useEffect, useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAccount } from "wagmi";
 import { type LoadingState, Splash } from "@/components/Layout/Splash";
-import { checkMembership } from "@/hooks/garden/useAutoJoinRootGarden";
 
 export function Login() {
   const location = useLocation();
@@ -31,10 +34,15 @@ export function Login() {
   const [loadingState, setLoadingState] = useState<LoadingState | null>(null);
   const [loadingMessage, setLoadingMessage] = useState<string | undefined>(undefined);
   const { open: openAppKit } = useAppKit();
+
+  // Check if DevConnect is enabled via environment variable
+  const isDevConnectEnabled = import.meta.env.VITE_DEVCONNECT === "true";
+
   const {
     joinGarden,
     isLoading: isJoiningGarden,
     isGardener: _isGardener,
+    devConnect,
   } = useAutoJoinRootGarden();
 
   // Use wagmi's useAccount hook to detect wallet connection
@@ -42,6 +50,9 @@ export function Login() {
 
   // Check if we're on a nested route (like /login/recover)
   const isNestedRoute = location.pathname !== "/login";
+
+  // Extract redirectTo parameter from URL query string
+  const redirectTo = new URLSearchParams(location.search).get("redirectTo") || "/home";
 
   // Watch wagmi connection and sync to auth provider
   useEffect(() => {
@@ -120,6 +131,25 @@ export function Login() {
           localStorage.setItem(onboardingKey, "true");
         }
       }
+
+      // 2. DevConnect Join (New)
+      if (isDevConnectEnabled && devConnect.isEnabled && !devConnect.isMember) {
+        // Check local storage to avoid re-prompting if they skipped or are pending
+        const dcKey = `greengoods_devconnect_onboarded:${session.address.toLowerCase()}`;
+        const isDcOnboarded = localStorage.getItem(dcKey) === "true";
+
+        if (!isDcOnboarded) {
+          setLoadingState("joining-garden"); // Re-use loading state
+          setLoadingMessage("Joining DevConnect Garden...");
+          try {
+            await devConnect.join(session);
+            toastService.success({ title: "Joined DevConnect!", context: "devconnect" });
+          } catch (e) {
+            console.error("DevConnect join failed", e);
+            // Non-blocking failure
+          }
+        }
+      }
     } catch (err) {
       setLoadingState(null);
       console.error("Passkey authentication failed", err);
@@ -145,7 +175,13 @@ export function Login() {
   }
 
   if (isAuthenticated && (authMode === "wallet" || smartAccountClient)) {
-    return <Navigate to="/home" replace />;
+    return <Navigate to={redirectTo} replace />;
+  }
+
+  // Fix: If wallet is connected but auth sync hasn't finished, show loading
+  // This prevents the login screen from flashing while syncing auth state
+  if (wagmiConnected && !isAuthenticated && !error && !isAuthenticating) {
+    return <Splash loadingState="default" message="Connecting wallet..." />;
   }
 
   // Loading screen during passkey creation, garden join, or welcome back

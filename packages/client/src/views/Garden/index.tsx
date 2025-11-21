@@ -1,4 +1,5 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
+import { useActionTranslation, useGardenTranslation } from "@green-goods/shared/hooks";
 import {
   RiArrowRightSLine,
   RiCameraFill,
@@ -16,8 +17,6 @@ import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
 import { FormInfo } from "@/components/UI/Form/Info";
 import { FormProgress } from "@/components/UI/Form/Progress";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
-import { useActionTranslation } from "@/hooks/useActionTranslation";
-import { useGardenTranslation } from "@/hooks/useGardenTranslation";
 
 // import { ActionCardSkeleton } from "@/components/UI/Card/ActionCardSkeleton";
 // import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
@@ -107,7 +106,7 @@ const Work: React.FC = () => {
   }, [actions, actionUID]);
 
   // Translate the selected action
-  const { translatedAction, isTranslating: isTranslatingAction } =
+  const { translatedAction, isTranslating: _isTranslatingAction } =
     useActionTranslation(selectedAction);
 
   const selectedGarden = useMemo(() => {
@@ -118,7 +117,7 @@ const Work: React.FC = () => {
   }, [gardens, gardenAddress]);
 
   // Translate the selected garden
-  const { translatedGarden, isTranslating: isTranslatingGarden } =
+  const { translatedGarden, isTranslating: _isTranslatingGarden } =
     useGardenTranslation(selectedGarden);
 
   const defaultMediaConfig = useMemo(

@@ -13,14 +13,15 @@
  */
 
 import { NO_EXPIRATION, ZERO_BYTES32 } from "@ethereum-attestation-service/eas-sdk";
-import { getWalletClient, waitForTransactionReceipt } from "@wagmi/core";
+import { getPublicClient, getWalletClient, waitForTransactionReceipt } from "@wagmi/core";
 import { encodeFunctionData } from "viem";
 import EASAbiJson from "../../abis/EAS.json";
 import { wagmiConfig } from "../../config/appkit";
 import { getEASConfig } from "../../config/blockchain";
 import { queryKeys } from "../../hooks/query-keys";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../utils/debug";
-import { encodeWorkApprovalData, encodeWorkData } from "../../utils/eas/encoders";
+import { encodeWorkApprovalData, encodeWorkData, simulateWorkData } from "../../utils/eas/encoders";
+import { parseContractError } from "../../utils/errors/contract-errors";
 import { pollQueriesAfterTransaction } from "../../utils/transaction-polling";
 
 const { abi } = EASAbiJson;
@@ -64,6 +65,67 @@ export async function submitWorkDirectly(
       console.error(message);
     }
     throw new Error("Wallet not connected. Please connect your wallet and try again.");
+  }
+
+  // 1.5. Simulate contract interaction before uploading
+  const publicClient = getPublicClient(wagmiConfig, { chainId });
+  if (publicClient) {
+    try {
+      debugLog("[WalletSubmission] Simulating transaction before upload...");
+      const easConfig = getEASConfig(chainId);
+
+      // Prepare simulation data (dummy CIDs)
+      const simulationData = simulateWorkData(
+        {
+          ...draft,
+          title: `${actionTitle} - ${new Date().toISOString()}`,
+          actionUID,
+          media: images,
+        },
+        chainId
+      );
+
+      // Simulate the attest call
+      await publicClient.simulateContract({
+        address: easConfig.EAS.address as `0x${string}`,
+        abi,
+        functionName: "attest",
+        args: [
+          {
+            schema: easConfig.WORK.uid,
+            data: {
+              recipient: gardenAddress as `0x${string}`,
+              expirationTime: NO_EXPIRATION,
+              revocable: true,
+              refUID: ZERO_BYTES32,
+              data: simulationData,
+              value: 0n,
+            },
+          },
+        ],
+        account: walletClient.account,
+      });
+      debugLog("[WalletSubmission] Simulation successful - proceeding to upload");
+    } catch (err: any) {
+      debugError("[WalletSubmission] Simulation failed", err);
+
+      const parsed = parseContractError(err);
+      if (parsed.isKnown) {
+        // Include error name so the UI provider can recognize it as a known error
+        throw new Error(
+          `[${parsed.name}] ${parsed.message}${parsed.action ? ` ${parsed.action}` : ""}`
+        );
+      }
+
+      // Fallback to cause reason if available
+      if (err.cause?.reason) {
+        throw new Error(`Validation failed: ${err.cause.reason}`);
+      }
+
+      throw new Error(
+        `Validation failed: ${parsed.message || err.message || "Unknown error during simulation"}`
+      );
+    }
   }
 
   try {

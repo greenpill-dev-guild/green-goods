@@ -129,7 +129,6 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   }, [platform, locale, installState]);
 
   function switchLanguage(lang: Locale) {
-    console.log(`🌐 [Language] Switching from "${locale}" to "${lang}"`);
     setLocale(lang);
     localStorage.setItem("gg-language", lang);
   }

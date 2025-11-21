@@ -86,8 +86,6 @@ export function EvidenceStep({
           const compressedFile = results[0]?.file;
           if (compressedFile) {
             finalFiles.push(compressedFile);
-            const stats = imageCompressor.getCompressionStats(results);
-            console.log(`Compression stats for ${file.name}:`, stats);
           } else {
             // If compression returned nothing, keep original
             finalFiles.push(file);

@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { Script, console } from "forge-std/Script.sol";
-import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
+import {Script, console} from "forge-std/Script.sol";
 
-import { DeploymentBase } from "../test/helpers/DeploymentBase.sol";
-import { DeploymentRegistry } from "../src/DeploymentRegistry.sol";
-import { Capital } from "../src/registries/Action.sol";
-import { WorkResolver } from "../src/resolvers/Work.sol";
-import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
-import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
+import {DeploymentBase} from "../test/helpers/DeploymentBase.sol";
+import {DeploymentRegistry} from "../src/DeploymentRegistry.sol";
+import {GardenToken} from "../src/tokens/Garden.sol";
+import {Capital} from "../src/registries/Action.sol";
+import {WorkResolver} from "../src/resolvers/Work.sol";
+import {WorkApprovalResolver} from "../src/resolvers/WorkApproval.sol";
+import {AssessmentResolver} from "../src/resolvers/Assessment.sol";
 
 /// @title Deploy
 /// @notice Production deployment script - orchestrates DeploymentBase + seed data
@@ -153,8 +153,17 @@ contract Deploy is Script, DeploymentBase {
         operators[5] = 0x5F56E995e8D3bd05a70a63f0d7531437e873772e;
         operators[6] = 0x560F876431dfA6eFe1aaf9fAa0D3A4512782DD8c;
 
-        address gardenAddress =
-            gardenToken.mintGarden(communityToken, name, description, location, bannerImage, "", gardeners, operators);
+        GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
+            communityToken: communityToken,
+            name: name,
+            description: description,
+            location: location,
+            bannerImage: bannerImage,
+            metadata: "",
+            gardeners: gardeners,
+            gardenOperators: operators
+        });
+        address gardenAddress = gardenToken.mintGarden(config);
 
         gardenAddresses.push(gardenAddress);
         gardenTokenIds.push(1);
@@ -226,9 +235,11 @@ contract Deploy is Script, DeploymentBase {
         string memory title = abi.decode(vm.parseJson(json, string.concat(basePath, ".title")), (string));
         uint256 startTime =
             _parseISOTimestamp(abi.decode(vm.parseJson(json, string.concat(basePath, ".startTime")), (string)));
-        uint256 endTime = _parseISOTimestamp(abi.decode(vm.parseJson(json, string.concat(basePath, ".endTime")), (string)));
+        uint256 endTime =
+            _parseISOTimestamp(abi.decode(vm.parseJson(json, string.concat(basePath, ".endTime")), (string)));
 
-        string[] memory capitalStrings = abi.decode(vm.parseJson(json, string.concat(basePath, ".capitals")), (string[]));
+        string[] memory capitalStrings =
+            abi.decode(vm.parseJson(json, string.concat(basePath, ".capitals")), (string[]));
         Capital[] memory capitals = new Capital[](capitalStrings.length);
         for (uint256 j = 0; j < capitalStrings.length; j++) {
             capitals[j] = _parseCapital(capitalStrings[j]);
@@ -325,15 +336,15 @@ contract Deploy is Script, DeploymentBase {
         bytes memory timestampBytes = bytes(isoTimestamp);
 
         if (
-            timestampBytes.length >= 10 && timestampBytes[0] == "2" && timestampBytes[1] == "0" && timestampBytes[2] == "2"
-                && timestampBytes[3] == "4"
+            timestampBytes.length >= 10 && timestampBytes[0] == "2" && timestampBytes[1] == "0"
+                && timestampBytes[2] == "2" && timestampBytes[3] == "4"
         ) {
             return 1_704_067_200; // 2024-01-01
         }
 
         if (
-            timestampBytes.length >= 10 && timestampBytes[0] == "2" && timestampBytes[1] == "0" && timestampBytes[2] == "2"
-                && timestampBytes[3] == "5"
+            timestampBytes.length >= 10 && timestampBytes[0] == "2" && timestampBytes[1] == "0"
+                && timestampBytes[2] == "2" && timestampBytes[3] == "5"
         ) {
             return 1_767_225_599; // 2025-12-31
         }

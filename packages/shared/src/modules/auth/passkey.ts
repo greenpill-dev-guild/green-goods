@@ -121,8 +121,6 @@ export async function recoverPasskeyAccount(
   // 2. Get the account address
   // 3. Verify the account exists
 
-  console.log(`Recovering account for ENS name: ${cleanName}.greengoods.eth`);
-
   // Prompt user to authenticate with their passkey
   // This will trigger the WebAuthn authentication flow
   let credential: P256Credential;

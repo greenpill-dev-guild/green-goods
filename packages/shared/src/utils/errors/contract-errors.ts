@@ -179,6 +179,18 @@ export function parseContractError(error: unknown): ParsedContractError {
     }
   }
 
+  // Check for manual validation errors (from simulation)
+  if (errorStr.includes("Validation failed")) {
+    // Clean up the message (remove "Error: " prefix if present)
+    const cleanMessage = errorStr.replace(/^Error:\s*/, "");
+    return {
+      raw: signature ?? errorStr,
+      name: "Validation Error",
+      message: cleanMessage,
+      isKnown: true,
+    };
+  }
+
   // Unknown error - return generic message
   return {
     raw: signature ?? errorStr,

@@ -68,33 +68,30 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
     return match?.title ?? null;
   }, [actions, chainId, work]);
 
-  const { user, smartAccountClient, smartAccountAddress } = useUser();
-  const userAddress = user?.wallet?.address;
+  const { user, smartAccountClient } = useUser();
+  const activeAddress = user?.id;
   const [isRetrying, setIsRetrying] = useState(false);
 
-  // Helper to check if an address matches the current user (smart account or wallet)
+  // Helper to check if an address matches the current user
   const isUserAddress = (address: string | undefined): boolean => {
-    if (!address) return false;
-    const addr = address.toLowerCase();
-    const sa = smartAccountAddress?.toLowerCase();
-    const wallet = userAddress?.toLowerCase();
-    return (sa && addr === sa) || (wallet && addr === wallet);
+    if (!address || !activeAddress) return false;
+    return address.toLowerCase() === activeAddress.toLowerCase();
   };
 
   // Determine user role and viewing mode
   const viewingMode = useMemo<"operator" | "gardener" | "viewer">(() => {
     if (!garden || !work) return "viewer";
 
-    // Check if user is garden operator (check both smart account and wallet)
+    // Check if user is garden operator
     const isOperator = garden.operators?.some((op) => isUserAddress(op));
 
-    // Check if user is the gardener who submitted the work (check both smart account and wallet)
+    // Check if user is the gardener who submitted the work
     const isGardener = isUserAddress(work.gardenerAddress);
 
     if (isOperator) return "operator";
     if (isGardener) return "gardener";
     return "viewer";
-  }, [garden, work, userAddress, smartAccountAddress]);
+  }, [garden, work, activeAddress]);
 
   // Detect if this is offline work
   const isOfflineWork =

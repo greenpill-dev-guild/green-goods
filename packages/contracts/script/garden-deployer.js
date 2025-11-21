@@ -47,7 +47,7 @@ function runForgeScript(network, startIndex, endIndex) {
     const env = {
       ...process.env,
       START_INDEX: startIndex.toString(),
-      MAX_GARDENS: endIndex.toString(),
+      MAX_GARDENS: (endIndex + 1).toString(),
     };
 
     console.log(`\n🌱 Deploying gardens ${startIndex}-${endIndex} to ${network}...`);

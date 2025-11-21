@@ -30,12 +30,10 @@ class BrowserTranslator {
     // Check for new AI Translation API (Chrome 127+)
     if (typeof self !== "undefined" && "ai" in self && "translator" in (self as any).ai) {
       this.aiApi = (self as any).ai.translator;
-      console.log("🌐 [Translation] Chrome AI Translation API detected (window.ai.translator)");
     }
     // Check for Legacy Translation API (Chrome 125-126)
     else if (typeof self !== "undefined" && "translation" in self) {
       this.legacyApi = (self as unknown as { translation: LegacyTranslatorAPI }).translation;
-      console.log("🌐 [Translation] Legacy Browser Translation API detected (window.translation)");
     } else {
       // Browser Translation API not available - silently fall back to English
       // Only log in debug mode to reduce console noise
@@ -86,10 +84,6 @@ class BrowserTranslator {
               );
               return null;
             }
-
-            if (availability === "after-download") {
-              console.log(`⏳ [Translation] Downloading language model for ${targetLang}...`);
-            }
           }
 
           translator = await this.aiApi.create({
@@ -112,10 +106,6 @@ class BrowserTranslator {
               );
               return null;
             }
-
-            if (availability === "after-download") {
-              console.log(`⏳ [Translation] Downloading language model for ${targetLang}...`);
-            }
           }
 
           translator = await this.legacyApi.createTranslator({
@@ -126,7 +116,6 @@ class BrowserTranslator {
 
         if (translator) {
           this.translators.set(key, translator);
-          console.log(`✅ [Translation] Translator ready: ${sourceLang} → ${targetLang}`);
         }
       }
 

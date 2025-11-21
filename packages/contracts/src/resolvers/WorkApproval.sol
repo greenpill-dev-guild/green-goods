@@ -139,10 +139,10 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
         string memory proof = workSchema.media.length > 0 ? workSchema.media[0] : "";
 
         // SECURITY: Use try/catch to prevent GAP failures from reverting approval
-        // The gardenAccount.createProjectImpact() has onlyOperator modifier
+        // The gardenAccount.createProjectImpact() has onlyWorkApprovalResolver modifier
         // Since we already validated operator in onAttest(), this is secure
         // solhint-disable-next-line no-empty-blocks
-        try gardenAccount.createProjectImpact(workTitle, impactDesc, proof) {
+        try gardenAccount.createProjectImpact(workTitle, impactDesc, proof, schema.workUID) {
             // Success - event emitted by GardenAccount, no additional action needed
             // solhint-disable-next-line no-empty-blocks
         } catch {

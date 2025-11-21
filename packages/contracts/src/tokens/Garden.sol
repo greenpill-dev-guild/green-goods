@@ -29,21 +29,9 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Emitted when a new Garden is minted.
     /// @param tokenId The unique identifier of the minted Garden token.
     /// @param account The address of the associated Garden account.
-    /// @param name The name of the Garden.
-    /// @param description The description of the Garden.
-    /// @param location The location of the Garden.
-    /// @param bannerImage The URL of the banner image of the Garden.
-    /// @param gardeners An array of addresses representing the gardeners of the Garden.
-    /// @param gardenOperators An array of addresses representing the operators of the Garden.
     event GardenMinted(
         uint256 indexed tokenId,
-        address indexed account,
-        string name,
-        string description,
-        string location,
-        string bannerImage,
-        address[] gardeners,
-        address[] gardenOperators
+        address indexed account
     );
 
     /// @notice Configuration for batch garden minting (Gas Optimized)
@@ -125,45 +113,42 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     }
 
     /// @notice Mints a new Garden token and creates the associated Garden account.
-    /// @dev The Garden account is initialized with the provided parameters.
-    /// @param communityToken The address of the community token associated with the Garden.
-    /// @param name The name of the Garden.
-    /// @param description The description of the Garden.
-    /// @param location The location of the Garden.
-    /// @param bannerImage The IPFS CID of the banner image.
-    /// @param metadata The IPFS CID containing additional metadata as JSON.
-    /// @param gardeners An array of addresses representing the gardeners of the Garden.
-    /// @param gardenOperators An array of addresses representing the operators of the Garden.
-    function mintGarden(
-        address communityToken,
-        string calldata name,
-        string calldata description,
-        string calldata location,
-        string calldata bannerImage,
-        string calldata metadata,
-        address[] calldata gardeners,
-        address[] calldata gardenOperators
-    )
+    /// @dev The Garden account is initialized with the provided parameters. Uses GardenConfig struct to avoid stack too deep.
+    /// @param config Garden configuration struct containing all initialization parameters
+    function mintGarden(GardenConfig calldata config)
         external
         onlyAuthorizedMinter
         returns (address)
     {
         // Validate community token early for better error messages
-        _validateCommunityToken(communityToken);
+        _validateCommunityToken(config.communityToken);
 
         uint256 tokenId = _nextTokenId++;
         _safeMint(_msgSender(), tokenId);
 
         address gardenAccount = TBALib.createAccount(_GARDEN_ACCOUNT_IMPLEMENTATION, address(this), tokenId);
 
-        GardenAccount(payable(gardenAccount)).initialize(
-            communityToken, name, description, location, bannerImage, metadata, gardeners, gardenOperators
-        );
+        // Emit event BEFORE initialization so indexer creates entity first
+        emit GardenMinted(tokenId, gardenAccount);
 
-        emit GardenMinted(tokenId, gardenAccount, name, description, location, bannerImage, gardeners, gardenOperators);
+        // Prepare initialization parameters
+        GardenAccount.InitParams memory params = GardenAccount.InitParams({
+            communityToken: config.communityToken,
+            name: config.name,
+            description: config.description,
+            location: config.location,
+            bannerImage: config.bannerImage,
+            metadata: config.metadata,
+            gardeners: config.gardeners,
+            gardenOperators: config.gardenOperators
+        });
+
+        GardenAccount(payable(gardenAccount)).initialize(params);
 
         return gardenAccount;
     }
+
+    // _mintGardenInternal removed as it is no longer needed
 
     /// @notice Batch mint multiple gardens (40% gas savings)
     /// @param configs Array of garden configurations (max 10 for gas limit protection)
@@ -202,29 +187,24 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
 
             address gardenAccount = TBALib.createAccount(_GARDEN_ACCOUNT_IMPLEMENTATION, address(this), tokenId);
 
-            GardenAccount(payable(gardenAccount)).initialize(
-                config.communityToken,
-                config.name,
-                config.description,
-                config.location,
-                config.bannerImage,
-                config.metadata,
-                config.gardeners,
-                config.gardenOperators
-            );
+            // Emit event BEFORE initialization so indexer creates entity first
+            emit GardenMinted(tokenId, gardenAccount);
+
+            // Prepare initialization parameters
+            GardenAccount.InitParams memory params = GardenAccount.InitParams({
+                communityToken: config.communityToken,
+                name: config.name,
+                description: config.description,
+                location: config.location,
+                bannerImage: config.bannerImage,
+                metadata: config.metadata,
+                gardeners: config.gardeners,
+                gardenOperators: config.gardenOperators
+            });
+
+            GardenAccount(payable(gardenAccount)).initialize(params);
 
             gardenAccounts[i] = gardenAccount;
-
-            emit GardenMinted(
-                tokenId,
-                gardenAccount,
-                config.name,
-                config.description,
-                config.location,
-                config.bannerImage,
-                config.gardeners,
-                config.gardenOperators
-            );
 
             unchecked {
                 ++i;

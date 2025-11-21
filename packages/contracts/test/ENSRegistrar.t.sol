@@ -19,8 +19,8 @@ contract ENSRegistrarTest is Test {
     address private unauthorized = address(0x999);
 
     // Mock ENS addresses (for testing)
-    address private constant MOCK_ENS_REGISTRY = address(0x1);
-    address private constant MOCK_ENS_RESOLVER = address(0x2);
+    address private constant MOCK_ENS_REGISTRY = address(0xCAD0);
+    address private constant MOCK_ENS_RESOLVER = address(0xCAD1);
     // Precomputed: keccak256(abi.encodePacked(namehash("eth"), keccak256("greengoods")))
     bytes32 private constant GREENGOODS_BASE_NODE = 0x0b35b2d5b2f667f75a0da49b3b77e5ffb07f5e5c0e1c6f8e3a0f1e7b2d4c9a6b;
 

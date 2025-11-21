@@ -48,8 +48,15 @@ contract DeployAdditionalGardens is Script {
 
         // Start from index 2 (skip root garden at index 0 and open garden at index 1 if already deployed)
         // You can adjust the starting index based on what's already deployed
-        uint256 startIndex = vm.envOr("START_INDEX", uint256(2));
-        uint256 maxGardens = vm.envOr("MAX_GARDENS", uint256(10));
+        uint256 startIndex = 2;
+        try vm.envUint("START_INDEX") returns (uint256 val) {
+            startIndex = val;
+        } catch {} // solhint-disable-line no-empty-blocks
+
+        uint256 maxGardens = 10;
+        try vm.envUint("MAX_GARDENS") returns (uint256 val) {
+            maxGardens = val;
+        } catch {} // solhint-disable-line no-empty-blocks
 
         for (uint256 i = startIndex; i < maxGardens; i++) {
             string memory basePath = string.concat(".gardens[", vm.toString(i), "]");
@@ -113,8 +120,17 @@ contract DeployAdditionalGardens is Script {
         console.log("Operators:", operators.length);
 
         // Mint the garden
-        address gardenAddress =
-            gardenToken.mintGarden(communityToken, name, description, location, bannerImage, metadata, gardeners, operators);
+        GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
+            communityToken: communityToken,
+            name: name,
+            description: description,
+            location: location,
+            bannerImage: bannerImage,
+            metadata: metadata,
+            gardeners: gardeners,
+            gardenOperators: operators
+        });
+        address gardenAddress = gardenToken.mintGarden(config);
 
         console.log("Garden Address:", gardenAddress);
 

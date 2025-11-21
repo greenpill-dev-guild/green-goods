@@ -43,11 +43,15 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
   const { locale, switchLanguage, availableLocales } = useApp();
   const intl = useIntl();
 
+  // Check if DevConnect is enabled via environment variable
+  const isDevConnectEnabled = import.meta.env.VITE_DEVCONNECT === "true";
+
   // Root garden membership check
   const {
     isGardener: isRootGardener,
     isLoading: isJoiningOrCheckingRootGarden,
     joinGarden,
+    devConnect,
   } = useAutoJoinRootGarden();
 
   const handleJoinRootGarden = async () => {
@@ -77,6 +81,15 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
         context: "joinRootGarden",
         error: err,
       });
+    }
+  };
+
+  const handleJoinDevConnect = async () => {
+    try {
+      await devConnect.join();
+      toastService.success({ title: "Joined DevConnect", context: "account" });
+    } catch (err) {
+      toastService.error({ title: "Failed to join", error: err, context: "account" });
     }
   };
 
@@ -194,30 +207,45 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
 
       {/* Root Garden Membership Button */}
       {primaryAddress && (
-        <Button
-          variant="primary"
-          mode="filled"
-          onClick={isRootGardener ? undefined : handleJoinRootGarden}
-          label={
-            isJoiningOrCheckingRootGarden
-              ? intl.formatMessage({
-                  id: "app.profile.joiningRootGarden",
-                  defaultMessage: "Joining...",
-                })
-              : isRootGardener
+        <div className="flex flex-col gap-3 w-full">
+          <Button
+            variant="primary"
+            mode="filled"
+            onClick={isRootGardener ? undefined : handleJoinRootGarden}
+            label={
+              isJoiningOrCheckingRootGarden
                 ? intl.formatMessage({
-                    id: "app.profile.leaveRootGarden",
-                    defaultMessage: "Leave Community Garden",
+                    id: "app.profile.joiningRootGarden",
+                    defaultMessage: "Joining...",
                   })
-                : intl.formatMessage({
-                    id: "app.profile.joinRootGarden",
-                    defaultMessage: "Join Community Garden",
-                  })
-          }
-          leadingIcon={<RiPlantLine className="w-4" />}
-          disabled={isJoiningOrCheckingRootGarden || isRootGardener}
-          className="w-full"
-        />
+                : isRootGardener
+                  ? intl.formatMessage({
+                      id: "app.profile.leaveRootGarden",
+                      defaultMessage: "Leave Community Garden",
+                    })
+                  : intl.formatMessage({
+                      id: "app.profile.joinRootGarden",
+                      defaultMessage: "Join Community Garden",
+                    })
+            }
+            leadingIcon={<RiPlantLine className="w-4" />}
+            disabled={isJoiningOrCheckingRootGarden || isRootGardener}
+            className="w-full"
+          />
+
+          {/* DevConnect Button */}
+          {isDevConnectEnabled && devConnect.isEnabled && (
+            <Button
+              variant="primary"
+              mode="filled"
+              onClick={devConnect.isMember ? undefined : handleJoinDevConnect}
+              label={devConnect.isMember ? "DevConnect Member" : "Join DevConnect"}
+              leadingIcon={<RiPlantLine className="w-4" />}
+              disabled={devConnect.isLoading || devConnect.isMember}
+              className="w-full mt-2"
+            />
+          )}
+        </div>
       )}
 
       {/* Auth Mode Info */}
@@ -286,45 +314,6 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
           </div>
         </Card>
       )}
-
-      {/* <h5>
-        {intl.formatMessage({
-          id: "app.profile.editAccount",
-          description: "Edit Account",
-        })}
-      </h5> */}
-      {/* <Card>
-        <div className="flex flex-col gap-3">
-          <FormInput
-            id="display-name"
-            label={intl.formatMessage({
-              id: "app.profile.displayName",
-              defaultMessage: "Display name",
-            })}
-            value={displayName}
-            onChange={(e) => setDisplayName(e.currentTarget.value)}
-            placeholder={intl.formatMessage({
-              id: "app.profile.displayName.placeholder",
-              defaultMessage: "e.g. Maria",
-            })}
-            className="mt-1"
-          />
-          <div className="flex justify-end">
-            <Button
-              variant="primary"
-              mode="filled"
-              size="xxsmall"
-              label={
-                saving
-                  ? intl.formatMessage({ id: "app.common.saving", defaultMessage: "Saving..." })
-                  : intl.formatMessage({ id: "app.common.save", defaultMessage: "Save" })
-              }
-              onClick={handleSave}
-              disabled={saving || !displayName?.trim()}
-            />
-          </div>
-        </div>
-      </Card> */}
 
       <Button
         variant="neutral"

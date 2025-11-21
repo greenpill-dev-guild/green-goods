@@ -1,26 +1,26 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { Test } from "forge-std/Test.sol";
-import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
-import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {Test} from "forge-std/Test.sol";
+import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-import { DeployHelper } from "../../script/DeployHelper.sol";
-import { DeploymentRegistry } from "../../src/DeploymentRegistry.sol";
-import { AccountGuardian } from "@tokenbound/AccountGuardian.sol";
-import { AccountProxy } from "@tokenbound/AccountProxy.sol";
-import { GardenAccount } from "../../src/accounts/Garden.sol";
-import { Gardener } from "../../src/accounts/Gardener.sol";
-import { ENSRegistrar } from "../../src/registries/ENSRegistrar.sol";
-import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import { IEntryPoint } from "account-abstraction/interfaces/IEntryPoint.sol";
-import { GardenToken } from "../../src/tokens/Garden.sol";
-import { ActionRegistry } from "../../src/registries/Action.sol";
-import { WorkResolver } from "../../src/resolvers/Work.sol";
-import { WorkApprovalResolver } from "../../src/resolvers/WorkApproval.sol";
-import { AssessmentResolver } from "../../src/resolvers/Assessment.sol";
-import { ResolverStub } from "../../src/resolvers/ResolverStub.sol";
+import {DeployHelper} from "../../script/DeployHelper.sol";
+import {DeploymentRegistry} from "../../src/DeploymentRegistry.sol";
+import {AccountGuardian} from "@tokenbound/AccountGuardian.sol";
+import {AccountProxy} from "@tokenbound/AccountProxy.sol";
+import {GardenAccount} from "../../src/accounts/Garden.sol";
+import {Gardener} from "../../src/accounts/Gardener.sol";
+import {ENSRegistrar} from "../../src/registries/ENSRegistrar.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import {IEntryPoint} from "account-abstraction/interfaces/IEntryPoint.sol";
+import {GardenToken} from "../../src/tokens/Garden.sol";
+import {ActionRegistry} from "../../src/registries/Action.sol";
+import {WorkResolver} from "../../src/resolvers/Work.sol";
+import {WorkApprovalResolver} from "../../src/resolvers/WorkApproval.sol";
+import {AssessmentResolver} from "../../src/resolvers/Assessment.sol";
+import {ResolverStub} from "../../src/resolvers/ResolverStub.sol";
 
 /// @notice Schema registry interface
 interface ISchemaRegistry {
@@ -65,7 +65,8 @@ abstract contract DeploymentBase is Test, DeployHelper {
 
     // ===== SCHEMA CONSTANTS =====
     bytes32 public constant SCHEMA_NAME_SCHEMA = 0x44d562ac1d7cd77e232978687fea027ace48f719cf1d58c7888e509663bb87fc;
-    bytes32 public constant SCHEMA_DESCRIPTION_SCHEMA = 0x21cbc60aac46ba22125ff85dd01882ebe6e87eb4fc46628589931ccbef9b8c94;
+    bytes32 public constant SCHEMA_DESCRIPTION_SCHEMA =
+        0x21cbc60aac46ba22125ff85dd01882ebe6e87eb4fc46628589931ccbef9b8c94;
 
     // ===== DEPLOYED CONTRACTS =====
     DeploymentRegistry public deploymentRegistry;
@@ -119,7 +120,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
         (address entryPoint,,) = _getNetworkAddresses();
 
         // 1. Deploy ENSRegistrar (mainnet only)
-        address ensRegistrarAddress = _deployENSRegistrar(owner, salt, factory);
+        _deployENSRegistrar(owner, salt, factory);
 
         // 2. Deploy Gardener logic (same across all chains)
         gardenerAccountLogic = address(new Gardener(IEntryPoint(entryPoint)));
@@ -132,9 +133,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
         bytes32 salt,
         address factory,
         address tokenboundRegistry
-    )
-        internal
-    {
+    ) internal {
         // Get EAS addresses for current L2 chain
         (address eas, address easSchemaRegistry) = _getEASForChain(block.chainid);
 
@@ -161,10 +160,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
         bytes32 salt,
         address factory,
         address tokenboundRegistry
-    )
-        internal
-        virtual
-    {
+    ) internal virtual {
         (address entryPoint, address multicallForwarder,) = _getNetworkAddresses();
 
         // 1. Deploy Guardian with CREATE2
@@ -179,8 +175,9 @@ abstract contract DeploymentBase is Test, DeployHelper {
 
         // 4. Deploy resolvers with UUPS proxies + CREATE2 (owner will own them)
         workResolver = WorkResolver(payable(_deployWorkResolver(eas, address(actionRegistry), owner, salt, factory)));
-        workApprovalResolver =
-            WorkApprovalResolver(payable(_deployWorkApprovalResolver(eas, address(actionRegistry), owner, salt, factory)));
+        workApprovalResolver = WorkApprovalResolver(
+            payable(_deployWorkApprovalResolver(eas, address(actionRegistry), owner, salt, factory))
+        );
         assessmentResolver = AssessmentResolver(payable(_deployAssessmentResolver(eas, owner, salt, factory)));
 
         // 5. Deploy GardenAccount (TBA) with CREATE2
@@ -203,8 +200,9 @@ abstract contract DeploymentBase is Test, DeployHelper {
         deployAccountProxy(guardian, address(gardenAccountImpl), salt, factory);
 
         // 7. Deploy GardenToken with CREATE2 + proxy (owner will own it)
-        gardenToken =
-            GardenToken(deployGardenToken(address(gardenAccountImpl), owner, address(deploymentRegistry), salt, factory));
+        gardenToken = GardenToken(
+            deployGardenToken(address(gardenAccountImpl), owner, address(deploymentRegistry), salt, factory)
+        );
     }
 
     /// @notice Deploy DeploymentRegistry with governance and proxy
@@ -253,13 +251,12 @@ abstract contract DeploymentBase is Test, DeployHelper {
         address _assessmentResolver,
         bytes32 salt,
         address factory
-    )
-        public
-        returns (address)
-    {
+    ) public returns (address) {
         bytes memory bytecode = abi.encodePacked(
             type(GardenAccount).creationCode,
-            abi.encode(entryPoint, multicallForwarder, tokenRegistry, guardian, _workApprovalResolver, _assessmentResolver)
+            abi.encode(
+                entryPoint, multicallForwarder, tokenRegistry, guardian, _workApprovalResolver, _assessmentResolver
+            )
         );
         address predicted = Create2.computeAddress(salt, keccak256(bytecode), factory);
 
@@ -274,12 +271,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
     }
 
     /// @notice Deploy AccountProxy with CREATE2
-    function deployAccountProxy(
-        address guardian,
-        address implementation,
-        bytes32 salt,
-        address factory
-    )
+    function deployAccountProxy(address guardian, address implementation, bytes32 salt, address factory)
         public
         returns (address)
     {
@@ -303,10 +295,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
         address _deploymentRegistry,
         bytes32 salt,
         address factory
-    )
-        public
-        returns (address)
-    {
+    ) public returns (address) {
         GardenToken gardenTokenImpl = new GardenToken(implementation);
         // Initialize with owner so they can manage the token
         bytes memory initData = abi.encodeWithSelector(GardenToken.initialize.selector, owner, _deploymentRegistry);
@@ -344,13 +333,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
     }
 
     /// @notice Deploy WorkResolver with ResolverStub + UUPS + CREATE2
-    function _deployWorkResolver(
-        address eas,
-        address _actionRegistry,
-        address owner,
-        bytes32 salt,
-        address factory
-    )
+    function _deployWorkResolver(address eas, address _actionRegistry, address owner, bytes32 salt, address factory)
         internal
         returns (address)
     {
@@ -384,10 +367,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
         address owner,
         bytes32 salt,
         address factory
-    )
-        internal
-        returns (address)
-    {
+    ) internal returns (address) {
         WorkApprovalResolver implementation = new WorkApprovalResolver(eas, _actionRegistry);
         bytes32 stubSalt = keccak256(abi.encodePacked(salt, "ResolverStub"));
         bytes memory stubBytecode = type(ResolverStub).creationCode;
@@ -416,12 +396,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
     }
 
     /// @notice Deploy AssessmentResolver with ResolverStub + UUPS + CREATE2
-    function _deployAssessmentResolver(
-        address eas,
-        address owner,
-        bytes32 salt,
-        address factory
-    )
+    function _deployAssessmentResolver(address eas, address owner, bytes32 salt, address factory)
         internal
         returns (address)
     {
@@ -497,8 +472,9 @@ abstract contract DeploymentBase is Test, DeployHelper {
         ISchemaRegistry registry = ISchemaRegistry(easSchemaRegistry);
         IEAS easContract = IEAS(eas);
 
-        workSchemaUID =
-            registry.register(_generateSchemaString("work"), address(workResolver), _getSchemaRevocable(schemaJson, "work"));
+        workSchemaUID = registry.register(
+            _generateSchemaString("work"), address(workResolver), _getSchemaRevocable(schemaJson, "work")
+        );
 
         workApprovalSchemaUID = registry.register(
             _generateSchemaString("workApproval"),
@@ -507,7 +483,9 @@ abstract contract DeploymentBase is Test, DeployHelper {
         );
 
         assessmentSchemaUID = registry.register(
-            _generateSchemaString("assessment"), address(assessmentResolver), _getSchemaRevocable(schemaJson, "assessment")
+            _generateSchemaString("assessment"),
+            address(assessmentResolver),
+            _getSchemaRevocable(schemaJson, "assessment")
         );
 
         // Create name attestations (always)
@@ -587,16 +565,18 @@ abstract contract DeploymentBase is Test, DeployHelper {
     }
 
     /// @notice Get schema name
-    function _getSchemaName(string memory json, string memory schemaName) internal view virtual returns (string memory) {
+    function _getSchemaName(string memory json, string memory schemaName)
+        internal
+        view
+        virtual
+        returns (string memory)
+    {
         bytes memory data = vm.parseJson(json, string.concat(".schemas.", schemaName, ".name"));
         return abi.decode(data, (string));
     }
 
     /// @notice Get schema description
-    function _getSchemaDescription(
-        string memory json,
-        string memory schemaName
-    )
+    function _getSchemaDescription(string memory json, string memory schemaName)
         internal
         view
         virtual

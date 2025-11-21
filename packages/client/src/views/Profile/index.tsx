@@ -12,15 +12,12 @@ import { ProfileHelp } from "./Help";
 const DEFAULT_AVATAR = "/images/avatar.png";
 
 const Profile: React.FC = () => {
-  const { smartAccountAddress, eoa, ensName } = useUser();
+  const { user, ensName } = useUser();
   const { profile } = useGardenerProfile();
   const intl = useIntl();
   const [activeTab, setActiveTab] = useState<"account" | "help">("account");
 
-  const primaryAddress = useMemo(
-    () => smartAccountAddress || eoa?.address || null,
-    [smartAccountAddress, eoa?.address]
-  );
+  const primaryAddress = user?.id;
   const formattedAddress = primaryAddress ? formatAddress(primaryAddress, { ensName }) : null;
 
   const { data: ensAvatar, isLoading: isLoadingAvatar } = useEnsAvatar(primaryAddress ?? undefined);

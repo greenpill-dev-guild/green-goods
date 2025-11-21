@@ -63,7 +63,7 @@ export const Splash: React.FC<SplashProps> = ({
         </div>
 
         {/* Button/Loader/Secondary action container - shared space, fixed height */}
-        <div className="w-full flex flex-col items-center gap-3" style={{ height: "76px" }}>
+        <div className="w-full flex flex-col items-center gap-3" style={{ height: "100px" }}>
           <div className="w-full flex items-center justify-center h-10">
             {loadingState ? (
               <div className="h-12 w-12 animate-spin rounded-full border-4 border-green-600 border-t-transparent" />
@@ -82,19 +82,22 @@ export const Splash: React.FC<SplashProps> = ({
           </div>
 
           {/* Secondary action (Login with wallet) - fixed height slot */}
-          <div className="flex h-6 items-center justify-center">
+          <div className="flex w-full h-10 items-center justify-center">
             {!loadingState ? (
-              <button
+              <Button
+                variant="neutral"
+                mode="stroke"
+                size="small"
+                shape="pilled"
                 onClick={secondaryAction?.onSelect}
                 disabled={!secondaryAction || secondaryAction.isDisabled || isLoggingIn}
-                className={`text-sm underline transition-all duration-200 ${
+                label={secondaryAction?.label || "Login with wallet"}
+                className={`w-full transition-all duration-200 ${
                   secondaryAction && !secondaryAction.isDisabled && !isLoggingIn
-                    ? "text-gray-600 hover:text-green-600 opacity-100"
-                    : "text-gray-400 cursor-default opacity-0 pointer-events-none"
+                    ? "opacity-100"
+                    : "opacity-0 pointer-events-none"
                 }`}
-              >
-                {secondaryAction?.label || "Login with wallet"}
-              </button>
+              />
             ) : (
               <span className="text-sm text-transparent">\u00A0</span>
             )}

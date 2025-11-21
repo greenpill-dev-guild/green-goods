@@ -57,7 +57,17 @@ contract DeployGarden is Script {
         GardenToken gardenToken = GardenToken(gardenTokenAddress);
 
         console.log("\nMinting garden...");
-        gardenToken.mintGarden(communityTokenAddress, name, description, location, bannerImage, gardeners, operators);
+        GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
+            communityToken: communityTokenAddress,
+            name: name,
+            description: description,
+            location: location,
+            bannerImage: bannerImage,
+            metadata: "",
+            gardeners: gardeners,
+            gardenOperators: operators
+        });
+        gardenToken.mintGarden(config);
 
         vm.stopBroadcast();
 
