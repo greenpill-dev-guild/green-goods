@@ -28,9 +28,7 @@ export const CompletedTab: React.FC<CompletedTabProps> = ({
     <div className="h-full flex flex-col">
       <div className="mb-4 px-4 pt-4 flex items-center justify-between gap-3">
         <div>
-          {isLoading ? (
-            <BeatLoader />
-          ) : hasError ? (
+          {isLoading ? null : hasError ? (
             <p className="text-sm text-red-600">
               {intl.formatMessage({
                 id: "app.workDashboard.error.fetchingData",
@@ -54,25 +52,14 @@ export const CompletedTab: React.FC<CompletedTabProps> = ({
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4">
         {isLoading ? (
-          <div className="space-y-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="flex gap-3 p-3 border border-slate-200 rounded-lg bg-white">
-                {/* Image skeleton */}
-                <div className="w-16 h-16 bg-slate-100 rounded-lg flex-shrink-0 skeleton" />
-
-                {/* Content skeleton */}
-                <div className="flex-1 min-w-0 space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="h-4 w-32 rounded skeleton" />
-                    <div className="h-5 w-16 rounded-full skeleton" />
-                  </div>
-                  <div className="h-3 w-24 rounded skeleton" />
-                  <div className="flex items-center gap-2 mt-2">
-                    <div className="h-5 w-20 rounded-full skeleton" />
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="h-full flex flex-col items-center justify-center pb-12">
+            <BeatLoader />
+            <p className="text-sm text-slate-400 mt-4">
+              {intl.formatMessage({
+                id: "app.workDashboard.loading",
+                defaultMessage: "Loading completed work...",
+              })}
+            </p>
           </div>
         ) : hasError ? (
           <div className="text-center py-12">

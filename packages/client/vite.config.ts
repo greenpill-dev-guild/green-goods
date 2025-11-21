@@ -101,15 +101,6 @@ export default defineConfig(({ mode }) => {
             },
           },
           {
-            urlPattern: /^https:\/\/api\.pinata\.cloud/,
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "api-cache",
-              networkTimeoutSeconds: 5,
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
             urlPattern: /graphql/,
             handler: "NetworkFirst",
             options: {
@@ -214,24 +205,6 @@ export default defineConfig(({ mode }) => {
       hmr: { overlay: true },
       watch: { usePolling: true, interval: 100 },
       proxy: {
-        "/pinata/uploads": {
-          target: "https://uploads.pinata.cloud",
-          changeOrigin: true,
-          secure: false,
-          rewrite: (path) => path.replace(/^\/pinata\/uploads/, ""),
-        },
-        "/pinata/api": {
-          target: "https://api.pinata.cloud",
-          changeOrigin: true,
-          secure: false,
-          rewrite: (path) => path.replace(/^\/pinata\/api/, ""),
-        },
-        "/pinata/gateway": {
-          target: "https://greengoods.mypinata.cloud",
-          changeOrigin: true,
-          secure: false,
-          rewrite: (path) => path.replace(/^\/pinata\/gateway/, ""),
-        },
         "/indexer": {
           target:
             process.env.NODE_ENV === "development"

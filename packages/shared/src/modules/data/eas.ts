@@ -1,9 +1,9 @@
 import { getEASConfig } from "../../config/blockchain";
 import { easGraphQL } from "./graphql";
-import { createEasClient } from "./urql";
 import { resolveIPFSUrl } from "./pinata";
+import { createEasClient } from "./urql";
 
-const GATEWAY_BASE_URL = "https://greengoods.mypinata.cloud";
+const GATEWAY_BASE_URL = "https://w3s.link";
 
 const toNumberFromField = (value: any): number | null => {
   if (value === undefined || value === null) return null;
@@ -206,9 +206,9 @@ export const getGardenAssessments = async (
   );
 };
 
-/** Queries work attestations for a garden */
+/** Queries work attestations for a garden or multiple gardens */
 export const getWorks = async (
-  gardenAddress?: string,
+  gardenAddress?: string | string[],
   chainId?: number | string
 ): Promise<any[]> => {
   const QUERY = easGraphQL(/* GraphQL */ `
@@ -227,20 +227,23 @@ export const getWorks = async (
   const schemaId = { equals: easConfig.WORK.uid };
   const client = createEasClient(chainId);
 
-  const { data, error } = await client
-    .query(QUERY, {
-      where: gardenAddress
-        ? {
-            schemaId,
-            recipient: { equals: gardenAddress },
-            revoked: { equals: false },
-          }
-        : {
-            schemaId,
-            revoked: { equals: false },
-          },
-    })
-    .toPromise();
+  // Handle both single address and array of addresses
+  let recipientCondition;
+  if (Array.isArray(gardenAddress)) {
+    if (gardenAddress.length > 0) {
+      recipientCondition = { in: gardenAddress };
+    }
+  } else if (gardenAddress) {
+    recipientCondition = { equals: gardenAddress };
+  }
+
+  const where = {
+    schemaId,
+    revoked: { equals: false },
+    ...(recipientCondition ? { recipient: recipientCondition } : {}),
+  };
+
+  const { data, error } = await client.query(QUERY, { where }).toPromise();
 
   if (error) console.error(error);
   if (!data) console.error("No data found");

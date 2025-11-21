@@ -101,4 +101,3 @@ contract Gardener is Kernel {
         return interfaceId == type(IERC165).interfaceId;
     }
 }
-

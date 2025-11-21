@@ -15,7 +15,6 @@
 // Environment variables should be passed by the deployment script
 const fs = require("node:fs");
 const path = require("node:path");
-const pinataSDK = require("@pinata/sdk");
 const dotenv = require("dotenv");
 
 dotenv.config({ path: path.join(__dirname, "../../../../", ".env") });
@@ -115,19 +114,46 @@ function saveCache(cache) {
 }
 
 /**
- * Upload action to IPFS with retry logic
+ * Initialize Pinata client (Just returns JWT)
  */
-async function uploadToIPFS(pinata, name, data, retries = 3) {
+function initPinata() {
+  const pinataJwt = process.env.VITE_PINATA_JWT;
+
+  if (!pinataJwt) {
+    throw new Error("VITE_PINATA_JWT environment variable required");
+  }
+
+  return pinataJwt;
+}
+
+/**
+ * Upload action to IPFS via Pinata with retry logic
+ */
+async function uploadToIPFS(jwt, name, data, retries = 3) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const result = await pinata.pinJSONToIPFS(data, {
-        pinataMetadata: {
-          name: `green-goods-action-${name}`,
+      const res = await fetch("https://api.pinata.cloud/pinning/pinJSONToIPFS", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${jwt}`,
         },
-        pinataOptions: {
-          cidVersion: 0,
-        },
+        body: JSON.stringify({
+          pinataContent: data,
+          pinataMetadata: {
+            name: name,
+          },
+          pinataOptions: {
+            cidVersion: 1,
+          },
+        }),
       });
+
+      if (!res.ok) {
+        throw new Error(`Pinata upload failed: ${res.statusText}`);
+      }
+
+      const result = await res.json();
       return result.IpfsHash;
     } catch (error) {
       if (attempt === retries) {
@@ -175,11 +201,11 @@ async function main() {
       return cache[cacheKey]?.hash;
     });
 
-    // Get Pinata JWT (check both PINATA_JWT and VITE_PINATA_JWT)
-    const pinataJWT = process.env.PINATA_JWT || process.env.VITE_PINATA_JWT;
+    // Get Pinata credentials
+    const pinataJwt = process.env.VITE_PINATA_JWT;
 
-    // If PINATA_JWT is not set and we have cache, use cache
-    if (!pinataJWT) {
+    // If credentials not set and we have cache, use cache
+    if (!pinataJwt) {
       if (allCached) {
         // Note: Don't write to stderr when using cache to avoid Forge error logs
         for (let i = 0; i < actions.length; i++) {
@@ -190,7 +216,7 @@ async function main() {
         console.log(JSON.stringify(ipfsHashes));
         process.exit(0);
       } else {
-        console.error("Error: PINATA_JWT or VITE_PINATA_JWT environment variable required and no valid cache found", {
+        console.error("Error: VITE_PINATA_JWT environment variable required and no valid cache found", {
           toStderr: true,
         });
         process.exit(1);
@@ -198,7 +224,7 @@ async function main() {
     }
 
     // Initialize Pinata
-    const pinata = new pinataSDK({ pinataJWTKey: pinataJWT });
+    const jwt = initPinata();
 
     // Process each action
     for (let i = 0; i < actions.length; i++) {
@@ -217,7 +243,7 @@ async function main() {
 
       // Upload to IPFS (silent to avoid Forge error logs)
       try {
-        const hash = await uploadToIPFS(pinata, action.title.replace(/\s+/g, "-").toLowerCase(), instructionsDoc);
+        const hash = await uploadToIPFS(jwt, action.title.replace(/\s+/g, "-").toLowerCase(), instructionsDoc);
 
         // Upload successful
         ipfsHashes.push(hash);

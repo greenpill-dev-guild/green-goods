@@ -96,7 +96,7 @@
       "contracts": {
         "eas": "0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458",
         "easSchemaRegistry": "0xA310da9c5B885E7fb3fbA9D66E9Ba6Df512b78eB",
-        "communityToken": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+        "communityToken": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
         "erc4337EntryPoint": "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
         "multicallForwarder": "0xcA11bde05977b3631167028862bE2a173976CA11"
       }

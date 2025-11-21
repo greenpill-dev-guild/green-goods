@@ -1,5 +1,12 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
-import { RiArrowRightSLine, RiHammerFill, RiImage2Fill, RiPlantFill } from "@remixicon/react";
+import {
+  RiArrowRightSLine,
+  RiCameraFill,
+  RiHammerFill,
+  RiImage2Fill,
+  RiImageFill,
+  RiPlantFill,
+} from "@remixicon/react";
 import React, { useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -9,6 +16,8 @@ import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
 import { FormInfo } from "@/components/UI/Form/Info";
 import { FormProgress } from "@/components/UI/Form/Progress";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
+import { useActionTranslation } from "@/hooks/useActionTranslation";
+import { useGardenTranslation } from "@/hooks/useGardenTranslation";
 
 // import { ActionCardSkeleton } from "@/components/UI/Card/ActionCardSkeleton";
 // import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
@@ -27,6 +36,7 @@ const Work: React.FC = () => {
   const location = useLocation();
   const chainId = DEFAULT_CHAIN_ID;
   const { form, activeTab, setActiveTab, actions, gardens, isLoading, workMutation } = useWork();
+
   const canBypassMediaRequirement = import.meta.env.VITE_DEBUG_MODE === "true";
   const submissionCompleted = useWorkFlowStore((s) => s.submissionCompleted);
   const [_showCompletionState, setShowCompletionState] = React.useState(false);
@@ -55,12 +65,6 @@ const Work: React.FC = () => {
   useEffect(() => {
     const navigationState = location.state as { gardenId?: string } | null;
     if (navigationState?.gardenId && gardens.length > 0) {
-      console.log("[Garden] Pre-selecting garden from navigation:", navigationState.gardenId);
-      console.log(
-        "[Garden] Available gardens:",
-        gardens.map((g) => g.id)
-      );
-      console.log("[Garden] Current gardenAddress:", gardenAddress);
       setGardenAddress(navigationState.gardenId);
     }
   }, [location.state, gardens, gardenAddress, setGardenAddress]);
@@ -68,12 +72,18 @@ const Work: React.FC = () => {
   // Navigate when submission completes
   useEffect(() => {
     if (submissionCompleted) {
+      setShowCompletionState(true);
       const timer = setTimeout(() => {
+        form.reset();
+        setImages([]);
+        setActiveTab(WorkTab.Intro);
+        setShowCompletionState(false);
+        useWorkFlowStore.getState().setSubmissionCompleted(false);
         navigate("/home");
-      }, 500);
+      }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [submissionCompleted, navigate]);
+  }, [submissionCompleted, navigate, form, setImages, setActiveTab]);
 
   // mutation state handled via toasts inside uploadWork()
 
@@ -96,19 +106,20 @@ const Work: React.FC = () => {
     );
   }, [actions, actionUID]);
 
+  // Translate the selected action
+  const { translatedAction, isTranslating: isTranslatingAction } =
+    useActionTranslation(selectedAction);
+
   const selectedGarden = useMemo(() => {
     if (!gardens.length || !gardenAddress) return null;
     const found = gardens.find((g) => g.id === gardenAddress) || null;
 
-    console.log("[GardenFlow] selectedGarden computed:", {
-      gardenAddress,
-      found: found ? { id: found.id, name: found.name } : null,
-      totalGardens: gardens.length,
-      allGardenIds: gardens.map((g) => g.id),
-    });
-
     return found;
   }, [gardens, gardenAddress]);
+
+  // Translate the selected garden
+  const { translatedGarden, isTranslating: isTranslatingGarden } =
+    useGardenTranslation(selectedGarden);
 
   const defaultMediaConfig = useMemo(
     () => ({
@@ -129,7 +140,7 @@ const Work: React.FC = () => {
   );
 
   const mediaConfig = useMemo(() => {
-    if (!selectedAction?.mediaInfo) {
+    if (!translatedAction?.mediaInfo) {
       return defaultMediaConfig;
     }
 
@@ -138,7 +149,7 @@ const Work: React.FC = () => {
       optional = [],
       maxImageCount = defaultMediaConfig.maxImageCount,
       ...rest
-    } = selectedAction.mediaInfo;
+    } = translatedAction.mediaInfo;
 
     return {
       ...defaultMediaConfig,
@@ -147,7 +158,7 @@ const Work: React.FC = () => {
       optional: Array.isArray(optional) ? optional : [],
       maxImageCount,
     };
-  }, [selectedAction, defaultMediaConfig]);
+  }, [translatedAction, defaultMediaConfig]);
 
   const defaultDetailsConfig = useMemo(
     () => ({
@@ -168,14 +179,14 @@ const Work: React.FC = () => {
   );
 
   const detailsConfig = useMemo(() => {
-    if (!selectedAction?.details) {
+    if (!translatedAction?.details) {
       return defaultDetailsConfig;
     }
     return {
       ...defaultDetailsConfig,
-      ...selectedAction.details,
+      ...translatedAction.details,
     };
-  }, [selectedAction, defaultDetailsConfig]);
+  }, [translatedAction, defaultDetailsConfig]);
 
   const defaultReviewConfig = useMemo(
     () => ({
@@ -189,65 +200,19 @@ const Work: React.FC = () => {
   );
 
   const reviewConfig = useMemo(() => {
-    if (!selectedAction?.review) {
+    if (!translatedAction?.review) {
       return defaultReviewConfig;
     }
     return {
       ...defaultReviewConfig,
-      ...selectedAction.review,
+      ...translatedAction.review,
     };
-  }, [selectedAction, defaultReviewConfig]);
+  }, [translatedAction, defaultReviewConfig]);
 
-  const detailInputs = useMemo(() => selectedAction?.inputs ?? [], [selectedAction]);
-
-  useEffect(() => {
-    if (actions.length) {
-      console.log(
-        "[GardenFlow] Actions resolved from indexer",
-        actions.map((action) => ({
-          id: action.id,
-          title: action.title,
-          hasMediaInfo: Boolean(action.mediaInfo),
-          detailInputKeys: action.inputs?.map((input) => input.key) ?? [],
-          reviewHasCopy: Boolean(action.review),
-        }))
-      );
-    }
-  }, [actions]);
-
-  useEffect(() => {
-    if (selectedAction) {
-      console.log("[GardenFlow] Selected action state", {
-        id: selectedAction.id,
-        title: selectedAction.title,
-        mediaInfo: selectedAction.mediaInfo,
-        details: selectedAction.details,
-        review: selectedAction.review,
-      });
-    } else if (typeof actionUID === "number") {
-      console.log("[GardenFlow] No action matched for selected UID", {
-        actionUID,
-        availableIds: actions.map((action) => action.id),
-      });
-    }
-  }, [selectedAction, actionUID, actions]);
-
-  useEffect(() => {
-    if (selectedGarden) {
-      console.log("[GardenFlow] Selected garden state", {
-        id: selectedGarden.id,
-        name: selectedGarden.name,
-      });
-    } else if (gardenAddress) {
-      console.log("[GardenFlow] No garden matched for address", {
-        gardenAddress,
-        availableIds: gardens.map((garden) => garden.id),
-      });
-    }
-  }, [selectedGarden, gardenAddress, gardens]);
+  const detailInputs = useMemo(() => translatedAction?.inputs ?? [], [translatedAction]);
   const renderReview = () => {
     const garden: Garden =
-      selectedGarden ||
+      translatedGarden ||
       ({
         id: gardenAddress || "",
         chainId: 84532, // Default to Base Sepolia
@@ -280,14 +245,7 @@ const Work: React.FC = () => {
       review: reviewConfig,
     };
 
-    const action = selectedAction ?? (fallbackAction as Action);
-
-    console.log("[GardenFlow] Rendering review", {
-      actionId: action?.id,
-      usingActionFallback: !selectedAction,
-      gardenId: garden?.id,
-      usingGardenFallback: !selectedGarden,
-    });
+    const action = translatedAction ?? (fallbackAction as Action);
 
     return (
       <WorkReview
@@ -352,6 +310,8 @@ const Work: React.FC = () => {
       }),
       primaryDisabled: !gardenAddress || typeof actionUID !== "number",
       secondary: null,
+      secondaryLabel: null,
+      customSecondary: null,
       backButton: () => navigate("/home"),
     },
     [WorkTab.Media]: {
@@ -361,11 +321,32 @@ const Work: React.FC = () => {
         defaultMessage: "Add Details",
       }),
       primaryDisabled: !canBypassMediaRequirement && images.length < 2,
-      secondary: () => document.getElementById("work-media-upload")?.click(),
-      secondaryLabel: intl.formatMessage({
-        id: "app.garden.submit.tab.media.secondaryLabel",
-        defaultMessage: "Upload Media",
-      }),
+      secondary: null,
+      secondaryLabel: null,
+      customSecondary: (
+        <>
+          <Button
+            onClick={() => document.getElementById("work-media-upload")?.click()}
+            label=""
+            className="w-12 px-0 shrink-0"
+            variant="neutral"
+            type="button"
+            shape="pilled"
+            mode="stroke"
+            leadingIcon={<RiImageFill className="text-primary w-5 h-5" />}
+          />
+          <Button
+            onClick={() => document.getElementById("work-media-camera")?.click()}
+            label=""
+            className="w-12 px-0 shrink-0"
+            variant="neutral"
+            type="button"
+            shape="pilled"
+            mode="stroke"
+            leadingIcon={<RiCameraFill className="text-primary w-5 h-5" />}
+          />
+        </>
+      ),
       backButton: () => changeTab(WorkTab.Intro),
     },
     [WorkTab.Details]: {
@@ -376,26 +357,14 @@ const Work: React.FC = () => {
       }),
       primaryDisabled: !state.isValid,
       secondary: null,
+      secondaryLabel: null,
+      customSecondary: null,
       backButton: () => changeTab(WorkTab.Media),
     },
     [WorkTab.Review]: {
       primary: async () => {
         // Check for duplicates before submission and proceed based on result
-        const proceeded = await handleWorkSubmission();
-        if (proceeded) {
-          // Show step 4 as checked
-          setShowCompletionState(true);
-
-          // Brief delay to show completion state
-          await new Promise((resolve) => setTimeout(resolve, 1500));
-
-          // Then navigate
-          navigate("/home");
-          form.reset();
-          setImages([]);
-          setActiveTab(WorkTab.Intro);
-          setShowCompletionState(false);
-        }
+        await handleWorkSubmission();
       },
       primaryLabel: intl.formatMessage({
         id: "app.garden.submit.tab.review.label",
@@ -403,6 +372,8 @@ const Work: React.FC = () => {
       }),
       primaryDisabled: !state.isValid || state.isSubmitting || workMutation.isPending,
       secondary: null,
+      secondaryLabel: null,
+      customSecondary: null,
       backButton: () => changeTab(WorkTab.Details),
     },
   };
@@ -492,23 +463,25 @@ const Work: React.FC = () => {
 
       <form
         id="work-form"
-        className="relative py-6 pt-16 flex flex-col gap-4 min-h-[calc(100vh-7.5rem)]"
+        className="relative py-6 pt-20 flex flex-col gap-4 min-h-[calc(100vh-7.5rem)]"
       >
         <div className="padded relative flex flex-col gap-4 flex-1">{renderTabContent()}</div>
         <div className="flex fixed left-0 bottom-0 py-3 w-full z-[10000] bg-white border-t border-stroke-soft-200">
           <div className="flex flex-row gap-4 w-full padded">
-            {tabActions[activeTab].secondary && (
-              <Button
-                onClick={tabActions[activeTab].secondary}
-                label={tabActions[activeTab].secondaryLabel}
-                className="w-full"
-                variant="neutral"
-                type="button"
-                shape="pilled"
-                mode="stroke"
-                leadingIcon={<RiImage2Fill className="text-primary w-5 h-5" />}
-              />
-            )}
+            {tabActions[activeTab].customSecondary
+              ? tabActions[activeTab].customSecondary
+              : tabActions[activeTab].secondary && (
+                  <Button
+                    onClick={tabActions[activeTab].secondary!}
+                    label={tabActions[activeTab].secondaryLabel!}
+                    className="w-full"
+                    variant="neutral"
+                    type="button"
+                    shape="pilled"
+                    mode="stroke"
+                    leadingIcon={<RiImage2Fill className="text-primary w-5 h-5" />}
+                  />
+                )}
             <Button
               onClick={tabActions[activeTab].primary}
               label={tabActions[activeTab].primaryLabel}

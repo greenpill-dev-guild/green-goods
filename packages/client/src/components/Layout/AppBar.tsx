@@ -15,6 +15,7 @@ import { Link, useLocation } from "react-router-dom";
 export const AppBar = () => {
   const { pathname } = useLocation();
   const isGarden = pathname.startsWith("/garden");
+  const isWorkDetail = pathname.includes("/work/");
   const intl = useIntl();
   const navigate = useNavigateToTop();
 
@@ -48,7 +49,7 @@ export const AppBar = () => {
     <nav
       className={cn(
         "fixed bottom-0 bg-white border-t border-t-stroke-soft-200 flex flex-row justify-evenly items-center w-full py-3 z-[10000] transition-transform duration-300",
-        isGarden ? "translate-y-full" : "translate-y-0"
+        isGarden || isWorkDetail ? "translate-y-full" : "translate-y-0"
       )}
     >
       {tabs.map(({ path, ActiveIcon, InactiveIcon, title }) => {

@@ -43,15 +43,6 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({ config, register, cont
       defaultMessage: "Provide feedback or any observations",
     });
 
-  useEffect(() => {
-    console.log("[WorkDetails] Received configuration", {
-      title: config?.title,
-      description: config?.description,
-      feedbackPlaceholder,
-      inputKeys: inputs.map((input) => input.key),
-    });
-  }, [config?.title, config?.description, feedbackPlaceholder, inputs]);
-
   return (
     <div className="flex flex-col gap-4">
       <FormInfo title={detailsTitle} info={detailsDescription} Icon={RiFileFill} />

@@ -42,7 +42,8 @@
     "envio:local": "node script/utils/envio-integration.js enable-local",
     "envio:cleanup": "node script/utils/envio-integration.js cleanup",
     "ipfs:upload": "dotenv -e ../../.env -- node script/utils/ipfs-uploader.js",
-    "ipfs:cache": "cat .ipfs-cache.json"
+    "ipfs:cache": "cat .ipfs-cache.json",
+    "garden:deploy": "node script/garden-deployer.js"
   },
   "dependencies": {
     "@ensdomains/ens-contracts": "^1.6.0",
@@ -50,7 +51,6 @@
     "@openzeppelin/contracts-upgradeable": "4.9.6"
   },
   "devDependencies": {
-    "@pinata/sdk": "^2.1.0",
     "solhint": "^6.0.1"
   }
 }

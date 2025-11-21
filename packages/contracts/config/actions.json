@@ -478,6 +478,134 @@
           "description": "Please review the harvest details you have provided before submitting."
         }
       }
+    },
+    {
+      "title": "Web3 Workshop",
+      "description": "Record your participation in a Web3 workshop, demo, or learning session. Document what you explored, what tools you tried, and your next steps in the regenerative Web3 ecosystem.",
+      "capitals": ["INTELLECTUAL", "SOCIAL", "EXPERIENTIAL"],
+      "startTime": "2024-01-01T00:00:00Z",
+      "endTime": "2026-12-31T23:59:59Z",
+      "media": [
+        "bafkreif5wny2fxpytkdjbunw3l7dn6eqyfuccn2pgzvk3wlas4h6k6m7wu",
+        "bafybeid6frbhr36uahittuajemjabkiimuhjncbtjt2i5pjwvj4uhdgyyu"
+      ],
+      "uiConfig": {
+        "media": {
+          "title": "Capture Workshop Moments",
+          "description": "Take photos during the workshop (optional): your setup, screens, team activities, or prototypes.",
+          "maxImageCount": 5,
+          "required": false
+        },
+        "details": {
+          "title": "Workshop Participation Details",
+          "description": "Share what you learned and explored in this session.",
+          "feedbackPlaceholder": "Any other observations, learnings, or feedback from the workshop",
+          "inputs": [
+            {
+              "key": "eventName",
+              "title": "Event Name",
+              "placeholder": "e.g., DevConnect Istanbul, ETHDenver, Greenpill NYC Meetup",
+              "type": "text",
+              "required": true,
+              "options": []
+            },
+            {
+              "key": "sessionTitle",
+              "title": "Workshop/Session Title",
+              "placeholder": "e.g., Intro to Green Goods, Regen Stack 101",
+              "type": "text",
+              "required": true,
+              "options": []
+            },
+            {
+              "key": "duration",
+              "title": "Duration (minutes)",
+              "placeholder": "How long did you participate?",
+              "type": "number",
+              "required": true,
+              "min": 15,
+              "max": 480,
+              "options": []
+            },
+            {
+              "key": "role",
+              "title": "Your Role",
+              "placeholder": "Select your primary role",
+              "type": "select",
+              "required": true,
+              "options": ["Developer", "Designer/Product", "Community/Chapter", "Funder/Grants", "Researcher", "Other"]
+            },
+            {
+              "key": "experienceLevel",
+              "title": "Web3 Experience Level",
+              "placeholder": "Select your experience level",
+              "type": "select",
+              "required": true,
+              "options": ["New to Web3", "Beginner", "Intermediate", "Advanced"]
+            },
+            {
+              "key": "ecosystem",
+              "title": "Primary Chain/Ecosystem Explored",
+              "placeholder": "Select the ecosystem discussed",
+              "type": "select",
+              "required": false,
+              "options": ["Ethereum/L2s", "Arbitrum", "Optimism", "Base", "Celo", "Polygon", "Multi-chain", "Other"]
+            },
+            {
+              "key": "topics",
+              "title": "Topics Explored",
+              "placeholder": "Select all that apply",
+              "type": "select",
+              "required": true,
+              "multiple": true,
+              "options": [
+                "Regenerative finance",
+                "Impact measurement",
+                "Grant funding/Allo",
+                "Identity & attestations",
+                "DeFi/staking",
+                "Governance",
+                "Developer tooling",
+                "Smart accounts",
+                "Other"
+              ]
+            },
+            {
+              "key": "triedDapp",
+              "title": "Did you try a Web3 tool or dApp live?",
+              "placeholder": "Select yes or no",
+              "type": "select",
+              "required": true,
+              "options": ["Yes", "No"]
+            },
+            {
+              "key": "nextAction",
+              "title": "Your Next Step",
+              "placeholder": "e.g., Pilot Green Goods with local chapter, Run an Allo round",
+              "type": "text",
+              "required": false,
+              "options": []
+            },
+            {
+              "key": "followUp",
+              "title": "Follow-up Interest",
+              "placeholder": "Select your interest level",
+              "type": "select",
+              "required": false,
+              "options": [
+                "Just exploring",
+                "Interested in using",
+                "Interested in contributing",
+                "Interested in funding/partnering"
+              ]
+            }
+          ]
+        },
+        "review": {
+          "title": "Review Workshop Details",
+          "description": "Please review your workshop participation details before submitting."
+        }
+      }
     }
   ]
 }

@@ -83,7 +83,6 @@ export {
   updateUserProfile,
   // data/pinata.ts
   initializePinata,
-  getPinataClient,
   resolveIPFSUrl,
   getFileByHash,
   uploadFileToIPFS,
@@ -180,6 +179,8 @@ export {
   // work/workActions.ts
   downloadWorkData,
   getWorkShareUrl,
+  // translation-diagnostics.ts
+  runTranslationDiagnostics,
 } from "./utils/index";
 
 export type {

@@ -90,28 +90,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       switch (event.type) {
         case "job_processing":
           setIsProcessing(true);
-          // Skip toast if this is inline processing (will be handled by mutation)
-          if (event.job && event.job.attempts !== undefined && event.job.attempts > 0) {
-            // Only show toast for retries (attempts > 0)
-            const baseId = `job-${event.job.id}-processing`;
-            if (event.job.kind === "work") {
-              toastService.loading({
-                id: baseId,
-                title: "Uploading work",
-                message: "We're sending your work submission.",
-                context: "work upload",
-                suppressLogging: true,
-              });
-            } else if (event.job.kind === "approval") {
-              toastService.loading({
-                id: baseId,
-                title: "Submitting approval",
-                message: "We're finalizing your decision.",
-                context: "approval submission",
-                suppressLogging: true,
-              });
-            }
-          }
+          // Suppress toasts for background processing/retries to reduce noise
           break;
         case "job_completed":
           setIsProcessing(false);
@@ -157,17 +136,20 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
 
               // Update work status in cache if available
               const workUID = approvalPayload.workUID;
-              queryClient.setQueriesData<Work[]>({ queryKey: ["works"] }, (oldWorks = []) => {
-                return oldWorks.map((work) => {
-                  if (work.id === workUID) {
-                    return {
-                      ...work,
-                      status: approvalPayload.approved ? "approved" : "rejected",
-                    };
-                  }
-                  return work;
-                });
-              });
+              queryClient.setQueriesData<Work[]>(
+                { queryKey: queryKeys.works.all },
+                (oldWorks = []) => {
+                  return oldWorks.map((work) => {
+                    if (work.id === workUID) {
+                      return {
+                        ...work,
+                        status: approvalPayload.approved ? "approved" : "rejected",
+                      };
+                    }
+                    return work;
+                  });
+                }
+              );
             }
           }
           break;
@@ -177,18 +159,9 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
 
           // Handle failed jobs
           if (event.job) {
-            // Toast error for failure
-            const isWork = event.job.kind === "work";
-            toastService.error({
-              id: `job-${event.job.id}-processing`,
-              title: isWork ? "Work upload failed" : "Approval failed",
-              message: isWork
-                ? "We'll retry the upload shortly."
-                : "We'll retry the submission shortly.",
-              context: isWork ? "work upload" : "approval submission",
-              description: "You can leave this page; the queue will keep trying.",
-              error: event.error ?? event.job.lastError,
-            });
+            // Suppress error toasts for background retries
+            // Failures are visible in Work Dashboard/status UI
+
             if (event.job.kind === "work") {
               const workPayload = event.job.payload as WorkJobPayload;
               const gardenId = workPayload.gardenAddress;

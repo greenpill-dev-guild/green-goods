@@ -53,6 +53,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         string description;
         string location;
         string bannerImage;
+        string metadata;
         address[] gardeners;
         address[] gardenOperators;
     }
@@ -128,6 +129,9 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     /// @param communityToken The address of the community token associated with the Garden.
     /// @param name The name of the Garden.
     /// @param description The description of the Garden.
+    /// @param location The location of the Garden.
+    /// @param bannerImage The IPFS CID of the banner image.
+    /// @param metadata The IPFS CID containing additional metadata as JSON.
     /// @param gardeners An array of addresses representing the gardeners of the Garden.
     /// @param gardenOperators An array of addresses representing the operators of the Garden.
     function mintGarden(
@@ -136,6 +140,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         string calldata description,
         string calldata location,
         string calldata bannerImage,
+        string calldata metadata,
         address[] calldata gardeners,
         address[] calldata gardenOperators
     )
@@ -152,7 +157,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         address gardenAccount = TBALib.createAccount(_GARDEN_ACCOUNT_IMPLEMENTATION, address(this), tokenId);
 
         GardenAccount(payable(gardenAccount)).initialize(
-            communityToken, name, description, location, bannerImage, gardeners, gardenOperators
+            communityToken, name, description, location, bannerImage, metadata, gardeners, gardenOperators
         );
 
         emit GardenMinted(tokenId, gardenAccount, name, description, location, bannerImage, gardeners, gardenOperators);
@@ -203,6 +208,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
                 config.description,
                 config.location,
                 config.bannerImage,
+                config.metadata,
                 config.gardeners,
                 config.gardenOperators
             );

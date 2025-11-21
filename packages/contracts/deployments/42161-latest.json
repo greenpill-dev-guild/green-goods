@@ -2,6 +2,7 @@
   "accountProxy": "0xB9e374493bB9cea972C6d26f8a7634AEEcd71daA",
   "actionRegistry": "0x8578004FD468212B9056052856c7cF282760Ef25",
   "assessmentResolver": "0xF17147bF0A349363516Af9dA632d0Af18b6d801e",
+  "communityToken": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
   "deploymentRegistry": "0x3bffD4dBA5d2d38F2Fa5c657b576224EAb75469B",
   "eas": {
     "address": "0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458",

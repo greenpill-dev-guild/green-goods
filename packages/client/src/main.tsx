@@ -41,7 +41,7 @@ export const Root = () => (
     metadata={{
       name: "Green Goods",
       description: "Start Bringing Biodiversity Onchain",
-      url: "https://greengoods.app",
+      url: import.meta.env.VITE_APP_URL || window.location.origin,
       icons: ["https://greengoods.app/icon.png"],
     }}
     defaultChainId={84532}

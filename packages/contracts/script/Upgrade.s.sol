@@ -259,24 +259,24 @@ contract Upgrade is Script {
     function upgradeGardenerAccount() public {
         string memory chainIdStr = vm.toString(block.chainid);
         string memory deploymentPath = string.concat(vm.projectRoot(), "/deployments/", chainIdStr, "-latest.json");
-        
+
         console.log("Upgrading Gardener logic");
-        
+
         vm.startBroadcast();
-        
+
         // Load network config
         string memory json = vm.readFile(deploymentPath);
         address entryPoint = abi.decode(vm.parseJson(json, ".entryPoint"), (address));
-        
+
         // Deploy new logic with IEntryPoint only (no ENS registrar needed)
         Gardener newLogic = new Gardener(IEntryPoint(entryPoint));
-        
+
         console.log("New Gardener logic deployed at:", address(newLogic));
-        
+
         // Update deployment file
         vm.writeJson(vm.toString(address(newLogic)), deploymentPath, ".gardenerAccountLogic");
         console.log("Gardener logic upgraded successfully");
-        
+
         vm.stopBroadcast();
     }
 

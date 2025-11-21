@@ -1,4 +1,5 @@
-import { useGardenerProfile, useEnsAvatar, useUser } from "@green-goods/shared/hooks";
+import { useEnsAvatar, useGardenerProfile, useUser } from "@green-goods/shared/hooks";
+import { resolveAvatarUrl } from "@green-goods/shared/modules";
 import { formatAddress } from "@green-goods/shared/utils";
 import { RiHeadphoneLine, RiSettings2Fill } from "@remixicon/react";
 import { useMemo, useState } from "react";
@@ -9,21 +10,6 @@ import { ProfileAccount } from "./Account";
 import { ProfileHelp } from "./Help";
 
 const DEFAULT_AVATAR = "/images/avatar.png";
-const PINATA_GATEWAY = import.meta.env.VITE_PINATA_GATEWAY ?? "https://greengoods.mypinata.cloud";
-
-const resolveAvatarUrl = (uri?: string | null) => {
-  if (!uri) return DEFAULT_AVATAR;
-
-  if (uri.startsWith("ipfs://")) {
-    return `${PINATA_GATEWAY}/ipfs/${uri.replace("ipfs://", "")}`;
-  }
-
-  if (uri.startsWith("ar://")) {
-    return `https://arweave.net/${uri.replace("ar://", "")}`;
-  }
-
-  return uri;
-};
 
 const Profile: React.FC = () => {
   const { smartAccountAddress, eoa, ensName } = useUser();

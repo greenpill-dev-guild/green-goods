@@ -18,7 +18,7 @@ import { ONBOARDED_STORAGE_KEY } from "../../config/app";
 import { useGardens } from "../blockchain/useBaseLists";
 import { useQueryClient } from "@tanstack/react-query";
 import { isAlreadyGardenerError } from "../../utils/errors";
-import { queryInvalidation } from "../query-keys";
+import { queryInvalidation, queryKeys } from "../query-keys";
 
 const ROOT_GARDEN_PROMPTED_KEY = "rootGardenPrompted";
 
@@ -129,11 +129,9 @@ export function useAutoJoinRootGarden(autoJoin = false) {
   }, [rootGardenRecord?.gardeners, smartAccountAddress, normalizeAddress]);
 
   const hasIndexerRecord = rootGardenRecord !== null;
-  const derivedIsGardener: boolean = hasIndexerRecord
-    ? derivedIsGardenerFromIndexer
-    : typeof isGardenerOnchain === "boolean"
-      ? isGardenerOnchain
-      : false;
+  const derivedIsGardener: boolean =
+    (typeof isGardenerOnchain === "boolean" && isGardenerOnchain) ||
+    (hasIndexerRecord ? derivedIsGardenerFromIndexer : false);
 
   useEffect(() => {
     setState((prev) => ({
@@ -260,6 +258,38 @@ export function useAutoJoinRootGarden(autoJoin = false) {
           isLoading: false,
         }));
 
+        // Optimistic update: update the cache immediately so UI reflects membership
+        // This ensures WorkProvider sees the user as a member without waiting for indexer
+        queryClient.setQueryData(
+          queryKeys.gardens.byChain(chainId),
+          (oldGardens: any[] | undefined) => {
+            if (!oldGardens) return oldGardens;
+            return oldGardens.map((garden) => {
+              // Check if this is the root garden
+              const isRoot =
+                normalizeAddress(garden.tokenAddress) === rootGardenAddressNormalized &&
+                (typeof rootGardenTokenId === "number"
+                  ? Number(garden.tokenID) === rootGardenTokenId
+                  : true);
+
+              if (isRoot) {
+                // Add user to gardeners list if not already there
+                const currentGardeners = garden.gardeners || [];
+                const isAlreadyInList = currentGardeners.some(
+                  (g: string) => normalizeAddress(g) === normalizeAddress(targetAddress)
+                );
+                if (!isAlreadyInList) {
+                  return {
+                    ...garden,
+                    gardeners: [...currentGardeners, targetAddress],
+                  };
+                }
+              }
+              return garden;
+            });
+          }
+        );
+
         // Invalidate all garden-related queries using centralized pattern
         const keysToInvalidate = queryInvalidation.invalidateGardens(chainId);
         await Promise.all(
@@ -302,6 +332,9 @@ export function useAutoJoinRootGarden(autoJoin = false) {
       smartAccountAddress,
       smartAccountClient,
       writeContractAsync,
+      normalizeAddress,
+      rootGardenAddressNormalized,
+      rootGardenTokenId,
     ]
   );
 

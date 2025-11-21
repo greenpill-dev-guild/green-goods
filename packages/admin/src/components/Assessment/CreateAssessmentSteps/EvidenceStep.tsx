@@ -1,5 +1,5 @@
 import { imageCompressor, toastService } from "@green-goods/shared";
-import { uploadFileToIPFS } from "@green-goods/shared/modules";
+import { resolveIPFSUrl, uploadFileToIPFS } from "@green-goods/shared/modules";
 import { RiLoader4Line, RiUploadCloudLine } from "@remixicon/react";
 import { useMemo, useRef, useState } from "react";
 import {
@@ -141,7 +141,7 @@ export function EvidenceStep({
     for (const file of fileArray) {
       try {
         const result = await uploadFileToIPFS(file);
-        const url = `https://greengoods.mypinata.cloud/ipfs/${result.cid}`;
+        const url = resolveIPFSUrl(result.cid);
         results.push({ file, url });
       } catch (error) {
         console.error(`Failed to upload ${file.name}:`, error);
@@ -216,7 +216,7 @@ export function EvidenceStep({
     for (const file of failedFiles) {
       try {
         const result = await uploadFileToIPFS(file);
-        const url = `https://greengoods.mypinata.cloud/ipfs/${result.cid}`;
+        const url = resolveIPFSUrl(result.cid);
         results.push({ file, url });
       } catch (error) {
         console.error(`Failed to upload ${file.name}:`, error);

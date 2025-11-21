@@ -1,19 +1,19 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
+// import { abi as WorkResolverABI } from "../utils/abis/WorkResolver.json";
+import { get as idbGet, set as idbSet } from "idb-keyval";
 import React, { useContext } from "react";
 import { type Control, type FormState, type UseFormRegister, useForm } from "react-hook-form";
 import { z } from "zod";
 // import { decodeErrorResult } from "viem";
 import { DEFAULT_CHAIN_ID } from "../config/blockchain";
+import { useUser } from "../hooks/auth/useUser";
+import { useActions, useGardens } from "../hooks/blockchain/useBaseLists";
 import { jobQueue } from "../modules/job-queue";
 import { submitWorkDirectly } from "../modules/work/wallet-submission";
 import { submitWorkToQueue, validateWorkDraft } from "../modules/work/work-submission";
-// import { abi as WorkResolverABI } from "../utils/abis/WorkResolver.json";
-
-import { useUser } from "../hooks/auth/useUser";
-import { useActions, useGardens } from "../hooks/blockchain/useBaseLists";
-import { useWorkFlowStore, type WorkFlowState } from "../stores/useWorkFlowStore";
 import { useUIStore } from "../stores/useUIStore";
+import { useWorkFlowStore, type WorkFlowState } from "../stores/useWorkFlowStore";
 import { toastService } from "../toast";
 import { DEBUG_ENABLED, debugError, debugLog, debugWarn } from "../utils/debug";
 import { parseAndFormatError } from "../utils/errors";
@@ -105,6 +105,8 @@ export const useWork = () => {
   return useContext(WorkContext);
 };
 
+const WORK_IMAGES_KEY = "work_images_draft";
+
 export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   const { smartAccountClient, authMode, eoa, smartAccountAddress } = useUser();
   const chainId = DEFAULT_CHAIN_ID;
@@ -113,8 +115,13 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   const { data: actionsData = [], isLoading: actionsLoading } = useActions(chainId);
   const { data: gardensData = [], isLoading: gardensLoading } = useGardens(chainId);
 
-  // Get current user address (prioritize smart account for passkey users)
-  const userAddress = (smartAccountAddress || eoa?.address)?.toLowerCase();
+  // Get current user address based on auth mode
+  const userAddress = React.useMemo(() => {
+    if (authMode === "wallet") return eoa?.address?.toLowerCase();
+    if (authMode === "passkey") return smartAccountAddress?.toLowerCase();
+    // Fallback to whatever is available
+    return (smartAccountAddress || eoa?.address)?.toLowerCase();
+  }, [authMode, eoa?.address, smartAccountAddress]);
 
   // Filter gardens to only show ones user is a member of
   const userGardens = React.useMemo(() => {
@@ -126,15 +133,12 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         (gardenerAddress: string) => gardenerAddress.toLowerCase() === userAddress
       );
 
-      if (DEBUG_ENABLED && isGardener) {
-        debugLog("[WorkProvider] User is gardener in garden", {
-          gardenId: garden.id,
-          gardenName: garden.name,
-          userAddress,
-        });
-      }
+      // Check if user is in operators list (case-insensitive)
+      const isOperator = garden.operators?.some(
+        (operatorAddress: string) => operatorAddress.toLowerCase() === userAddress
+      );
 
-      return isGardener;
+      return isGardener || isOperator;
     });
   }, [gardensData, userAddress]);
 
@@ -148,6 +152,40 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   const _setImages = useWorkFlowStore((s: WorkFlowState) => s.setImages);
   const _setActiveTab = useWorkFlowStore((s: WorkFlowState) => s.setActiveTab);
   const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
+
+  // Persistence: Load images from IDB on mount
+  React.useEffect(() => {
+    const loadImages = async () => {
+      try {
+        const storedImages = (await idbGet(WORK_IMAGES_KEY)) as File[] | undefined;
+        if (storedImages && Array.isArray(storedImages) && storedImages.length > 0) {
+          if (DEBUG_ENABLED) {
+            debugLog("[WorkProvider] Restored images from IDB", {
+              count: storedImages.length,
+            });
+          }
+          _setImages(storedImages);
+        }
+      } catch (error) {
+        console.error("[WorkProvider] Failed to load images from IDB", error);
+      }
+    };
+    loadImages();
+  }, [_setImages]);
+
+  // Persistence: Save images to IDB on change
+  React.useEffect(() => {
+    const saveImages = async () => {
+      try {
+        // If images is empty, we still save it (as empty array) to clear IDB
+        // This handles the reset case as well
+        await idbSet(WORK_IMAGES_KEY, images);
+      } catch (error) {
+        console.error("[WorkProvider] Failed to save images to IDB", error);
+      }
+    };
+    saveImages();
+  }, [images]);
 
   // Adapters to maintain React.Dispatch API for consumers
   const setActionUID: React.Dispatch<React.SetStateAction<number | null>> = (

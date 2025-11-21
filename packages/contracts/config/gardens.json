@@ -5,42 +5,38 @@
       "description": "The global community garden for all Green Goods participants. This is the root garden that serves as the entry point for new users and community activities. All participants start here and can join specialized gardens as they engage with the platform.",
       "location": "Mama Earth",
       "bannerImage": "QmS8mL4x9fnNutV63pSfwRhhVgoVpw4gaDCCGaTpv6oMGW",
+      "metadata": "",
+      "openJoining": true,
       "gardeners": [
-        "0xa9d20b435A85fAAa002f32d66F7D21564130E9cf",
-        "0x6166E1964447E0959bC7c8d543DB3ab82dB65044",
         "0x476E2651BF97dE8a26e4A05a9c8e00A6EFa1390c",
         "0x23fBb98BBa894b2de086350bD60ef39860e92e43",
-        "0x3f649dbfafbe454940b8a82c5058b8d176dd3871"
+        "0x3f649dbfafbe454940b8a82c5058b8d176dd3871",
+        "0x5F56E995e8D3bd05a70a63f0d7531437e873772e"
       ],
       "operators": [
         "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
+        "0x6166E1964447E0959bC7c8d543DB3ab82dB65044",
         "0xAcD59e854adf632d2322404198624F757C868C97",
         "0xED47B5f719eA74405Eb96ff700C11D1685b953B1",
         "0x5c79d252f458b3720f7f230f8490fd1ee81d32fb",
+        "0x3f649dbfafbe454940b8a82c5058b8d176dd3871",
         "0xbaD8bcc9Eb5749829cF12189fDD5c1230D6C85e8",
-        "0x5F56E995e8D3bd05a70a63f0d7531437e873772e"
+        "0xa9d20b435A85fAAa002f32d66F7D21564130E9cf"
       ]
     },
     {
-      "name": "Green Goods Open Garden",
-      "description": "The open garden for all Green Goods participants. This is the open garden that serves as the entry point for new users and community activities. All participants can join this garden and engage with the platform.",
-      "location": "Mama Earth",
-      "bannerImage": "QmS8mL4x9fnNutV63pSfwRhhVgoVpw4gaDCCGaTpv6oMGW",
-      "gardeners": [
-        "0xa9d20b435A85fAAa002f32d66F7D21564130E9cf",
-        "0x6166E1964447E0959bC7c8d543DB3ab82dB65044",
-        "0x476E2651BF97dE8a26e4A05a9c8e00A6EFa1390c",
-        "0x23fBb98BBa894b2de086350bD60ef39860e92e43",
-        "0x3f649DbFAFBE454940B8a82c5058b8d176dD3871"
-      ],
+      "name": "DevConnect",
+      "description": "A garden created during DevConnect to turn Web3 builders into gardeners. Participants engage with regenerative actions and record their impact onchain. This demonstrates how regens can use Green Goods for event-based community engagement.",
+      "location": "Buenos Aires, Argentina",
+      "bannerImage": "bafybeiguhorfplqktq33rwnyaphbncmb4o4thombdyyzbzo3hel6csu7im",
+      "metadata": "",
+      "openJoining": true,
+      "gardeners": ["0x476E2651BF97dE8a26e4A05a9c8e00A6EFa1390c", "0x809C9f8dd8CA93A41c3adca4972Fa234C28F7714"],
       "operators": [
-        "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
-        "0xAcD59e854adf632d2322404198624F757C868C97",
-        "0xED47B5f719eA74405Eb96ff700C11D1685b953B1",
-        "0x5c79d252F458b3720f7f230f8490fd1eE81d32FB",
         "0xbaD8bcc9Eb5749829cF12189fDD5c1230D6C85e8",
-        "0x5F56E995e8D3bd05a70a63f0d7531437e873772e",
-        "0x560F876431dfA6eFe1aaf9fAa0D3A4512782DD8c"
+        "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
+        "0x6166E1964447E0959bC7c8d543DB3ab82dB65044",
+        "0xAcD59e854adf632d2322404198624F757C868C97"
       ]
     }
   ]

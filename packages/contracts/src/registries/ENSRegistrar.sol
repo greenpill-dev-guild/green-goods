@@ -27,9 +27,9 @@ contract ENSRegistrar is IENSRegistrar, Ownable {
 
     /// @notice ENS profile data with recovery information
     struct ENSProfile {
-        address owner;           // Gardener account address
-        bytes32 credentialId;    // WebAuthn credential for recovery
-        uint256 claimedAt;       // Registration timestamp
+        address owner; // Gardener account address
+        bytes32 credentialId; // WebAuthn credential for recovery
+        uint256 claimedAt; // Registration timestamp
     }
 
     /// @notice Subdomain name → ENS profile data
@@ -50,11 +50,11 @@ contract ENSRegistrar is IENSRegistrar, Ownable {
         if (_registry == address(0) || _resolver == address(0) || _baseNode == bytes32(0)) {
             revert ENSNotConfigured();
         }
-        
+
         ENS_REGISTRY = _registry;
         ENS_RESOLVER = _resolver;
         BASE_NODE = _baseNode;
-        
+
         _transferOwnership(_owner);
     }
 
@@ -76,17 +76,13 @@ contract ENSRegistrar is IENSRegistrar, Ownable {
         if (msg.sender != owner) revert UnauthorizedCaller();
         if (profiles[name].owner != address(0)) revert NameNotAvailable();
         if (credentialId == bytes32(0)) revert InvalidCredentialId();
-        
+
         uint256 nameLength = bytes(name).length;
         if (nameLength == 0 || nameLength > 50) revert InvalidName();
 
         // Store profile data (single storage location)
-        profiles[name] = ENSProfile({
-            owner: owner,
-            credentialId: credentialId,
-            claimedAt: block.timestamp
-        });
-        
+        profiles[name] = ENSProfile({ owner: owner, credentialId: credentialId, claimedAt: block.timestamp });
+
         // Store mappings for compatibility
         subdomains[name] = owner;
         accountToName[owner] = name;
@@ -97,10 +93,10 @@ contract ENSRegistrar is IENSRegistrar, Ownable {
 
         // Set subnode owner (this contract)
         IENS(ENS_REGISTRY).setSubnodeOwner(BASE_NODE, label, address(this));
-        
+
         // Set resolver for the node
         IENS(ENS_REGISTRY).setResolver(node, ENS_RESOLVER);
-        
+
         // Set address in resolver (points to Gardener account)
         IENSResolver(ENS_RESOLVER).setAddr(node, owner);
 
@@ -135,4 +131,3 @@ contract ENSRegistrar is IENSRegistrar, Ownable {
         return (profile.owner, profile.credentialId, profile.claimedAt);
     }
 }
-

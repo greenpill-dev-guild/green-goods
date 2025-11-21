@@ -475,8 +475,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
         // Deploy ENSRegistrar directly (non-upgradeable to avoid stack-too-deep)
         bytes32 ensRegistrarSalt = keccak256(abi.encodePacked(salt, "ENSRegistrar"));
         bytes memory bytecode = abi.encodePacked(
-            type(ENSRegistrar).creationCode,
-            abi.encode(config.ensRegistry, config.ensResolver, baseNode, owner)
+            type(ENSRegistrar).creationCode, abi.encode(config.ensRegistry, config.ensResolver, baseNode, owner)
         );
 
         address predicted = Create2.computeAddress(ensRegistrarSalt, keccak256(bytecode), factory);

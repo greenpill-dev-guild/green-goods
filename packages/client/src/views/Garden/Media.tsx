@@ -1,4 +1,10 @@
-import { RiCloseLine, RiImageFill, RiLoader4Line, RiZoomInLine } from "@remixicon/react";
+import {
+  RiCameraFill,
+  RiCloseLine,
+  RiImageFill,
+  RiLoader4Line,
+  RiZoomInLine,
+} from "@remixicon/react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Books } from "@/components/Garden/BooksIcon";
@@ -62,30 +68,6 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({ config, images, setImages 
         }
       )
     : "";
-
-  useEffect(() => {
-    console.log("[WorkMedia] Received configuration", {
-      title: config?.title,
-      description: config?.description,
-      required: config?.required,
-      minImageCount: requiredImageCount,
-      maxImageCount,
-      needed: neededItems,
-      optional: optionalItems,
-    });
-  }, [
-    config?.title,
-    config?.description,
-    config?.required,
-    requiredImageCount,
-    maxImageCount,
-    neededItems,
-    optionalItems,
-  ]);
-
-  useEffect(() => {
-    console.log("[WorkMedia] Current image count", images.length);
-  }, [images]);
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -212,15 +194,25 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({ config, images, setImages 
           </div>
         </div>
       ) : null}
-      <input
-        id="work-media-upload"
-        type="file"
-        accept="image/*"
-        onChange={handleImageUpload}
-        multiple
-        className="input input-bordered hidden"
-        disabled={isCompressing}
-      />
+      <div className="hidden">
+        <input
+          id="work-media-upload"
+          type="file"
+          accept="image/*"
+          onChange={handleImageUpload}
+          multiple
+          disabled={isCompressing}
+        />
+
+        <input
+          id="work-media-camera"
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleImageUpload}
+          disabled={isCompressing}
+        />
+      </div>
 
       {/* Compression Progress Indicator */}
       {isCompressing && (

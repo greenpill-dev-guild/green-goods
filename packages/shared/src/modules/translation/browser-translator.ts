@@ -37,11 +37,15 @@ class BrowserTranslator {
       this.legacyApi = (self as unknown as { translation: LegacyTranslatorAPI }).translation;
       console.log("🌐 [Translation] Legacy Browser Translation API detected (window.translation)");
     } else {
-      console.warn(
-        "⚠️ [Translation] Browser Translation API not available. " +
-          "Auto-translation requires Chrome 125+ or Edge 125+. " +
-          "Content will display in English."
-      );
+      // Browser Translation API not available - silently fall back to English
+      // Only log in debug mode to reduce console noise
+      if (import.meta.env.DEV && import.meta.env.VITE_DEBUG_MODE === "true") {
+        console.warn(
+          "⚠️ [Translation] Browser Translation API not available. " +
+            "Auto-translation requires Chrome 125+ or Edge 125+. " +
+            "Content will display in English."
+        );
+      }
     }
   }
 

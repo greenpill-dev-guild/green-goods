@@ -13,13 +13,15 @@
  */
 
 import { NO_EXPIRATION, ZERO_BYTES32 } from "@ethereum-attestation-service/eas-sdk";
-import { encodeFunctionData } from "viem";
 import { getWalletClient, waitForTransactionReceipt } from "@wagmi/core";
+import { encodeFunctionData } from "viem";
+import EASAbiJson from "../../abis/EAS.json";
 import { wagmiConfig } from "../../config/appkit";
 import { getEASConfig } from "../../config/blockchain";
-import EASAbiJson from "../../abis/EAS.json";
-import { encodeWorkData, encodeWorkApprovalData } from "../../utils/eas/encoders";
+import { queryKeys } from "../../hooks/query-keys";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../utils/debug";
+import { encodeWorkApprovalData, encodeWorkData } from "../../utils/eas/encoders";
+import { pollQueriesAfterTransaction } from "../../utils/transaction-polling";
 
 const { abi } = EASAbiJson;
 
@@ -114,6 +116,19 @@ export async function submitWorkDirectly(
     await waitForTransactionReceipt(wagmiConfig, { hash, chainId });
 
     debugLog("[WalletSubmission] Transaction confirmed", { hash });
+
+    // 6. Poll for indexer updates (account for 2-6s indexer lag)
+    await pollQueriesAfterTransaction({
+      queryKeys: [
+        queryKeys.works.online(gardenAddress, chainId),
+        queryKeys.works.merged(gardenAddress, chainId),
+      ],
+      onAttempt: (attempt, delay) => {
+        debugLog(`[WalletSubmission] Polling indexer (attempt ${attempt}, waited ${delay}ms)`);
+      },
+    });
+
+    debugLog("[WalletSubmission] Work submission complete with indexer sync", { hash });
     return hash;
   } catch (err: any) {
     const message = "[WalletSubmission] Work submission failed";
@@ -219,6 +234,23 @@ export async function submitApprovalDirectly(
     await waitForTransactionReceipt(wagmiConfig, { hash, chainId });
 
     debugLog("[WalletSubmission] Approval transaction confirmed", { hash });
+
+    // 6. Poll for indexer updates (account for 2-6s indexer lag)
+    // Note: gardenerAddress is the recipient of the approval attestation
+    await pollQueriesAfterTransaction({
+      queryKeys: [
+        queryKeys.workApprovals.all,
+        // Invalidate works to update approval status
+        queryKeys.works.all,
+      ],
+      onAttempt: (attempt, delay) => {
+        debugLog(
+          `[WalletSubmission] Polling indexer for approval (attempt ${attempt}, waited ${delay}ms)`
+        );
+      },
+    });
+
+    debugLog("[WalletSubmission] Approval submission complete with indexer sync", { hash });
     return hash;
   } catch (err: any) {
     const message = "[WalletSubmission] Approval submission failed";

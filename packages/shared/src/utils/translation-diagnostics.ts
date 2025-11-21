@@ -2,11 +2,11 @@
  * Translation System Diagnostics
  *
  * Run this in browser console to check translation support:
- * import { runTranslationDiagnostics } from '@/utils/translation-diagnostics';
+ * import { runTranslationDiagnostics } from '@green-goods/shared';
  * runTranslationDiagnostics();
  */
 
-import { browserTranslator, translationCache } from "@green-goods/shared";
+import { browserTranslator, translationCache } from "../modules/index";
 
 export async function runTranslationDiagnostics() {
   console.group("🌐 Translation System Diagnostics");

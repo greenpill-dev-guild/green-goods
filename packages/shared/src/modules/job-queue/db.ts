@@ -143,7 +143,6 @@ class JobQueueDatabase {
 
   async getJobs(filter?: { kind?: string; synced?: boolean }): Promise<Job[]> {
     const db = await this.init();
-    console.log("[JobQueueDB] getJobs called with filter:", filter);
 
     let result: Job[];
 

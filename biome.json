@@ -23,7 +23,7 @@
       "**/packages/client/src/**/*.{ts,tsx,js,jsx,json}",
       "**/packages/client/*.{ts,tsx,js,jsx}",
       "**/packages/client/*.config.{ts,js}",
-      "**/packages/admin/src/**/*.{ts,tsx,js,jsx}",
+      "**/packages/admin/src/**/*.{ts,tsx,js,jsx,json}",
       "**/packages/admin/*.{ts,tsx,js,jsx}",
       "**/packages/admin/*.config.{ts,js}",
       "**/packages/shared/src/**/*.{ts,tsx,js,jsx,json}",

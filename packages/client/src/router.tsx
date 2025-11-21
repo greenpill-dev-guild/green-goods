@@ -4,6 +4,7 @@ export const router = createBrowserRouter([
   {
     id: "root",
     lazy: async () => ({ Component: (await import("@/routes/Root")).default }),
+    hydrateFallbackElement: <div>Loading...</div>,
     children: [
       {
         path: "landing",

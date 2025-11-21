@@ -52,7 +52,6 @@ export function Login() {
     const account = getAccount(wagmiConfig);
     const connector = account.connector;
     if (connector) {
-      console.log("Syncing wallet connection to auth provider", { address: wagmiAddress });
       connectWallet(connector).catch((err) => {
         console.error("Failed to sync wallet connection", err);
       });
@@ -137,7 +136,6 @@ export function Login() {
   };
 
   const handleWalletLogin = () => {
-    console.log("Opening AppKit wallet modal");
     openAppKit();
   };
 

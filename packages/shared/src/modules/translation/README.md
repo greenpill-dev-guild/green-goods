@@ -332,3 +332,5 @@ When adding new content types:
 - [Green Goods Translation Architecture](../../../docs/developer/translation.md)
 
 
+
+

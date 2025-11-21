@@ -9,7 +9,7 @@ import { type Connector, connect, disconnect, getAccount, watchAccount } from "@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { type Hex } from "viem";
 import { type P256Credential } from "viem/account-abstraction";
-import { wagmiConfig } from "../config/appkit";
+import { useConfig } from "wagmi";
 import { DEFAULT_CHAIN_ID } from "../config/blockchain";
 import {
   clearStoredCredential,
@@ -77,6 +77,9 @@ export function PasskeyAuthProvider({
   children,
   chainId = DEFAULT_CHAIN_ID,
 }: PasskeyAuthProviderProps) {
+  // Get Wagmi config from WagmiProvider context (ensures we use the same instance)
+  const wagmiConfig = useConfig();
+
   // Auth mode
   const [authMode, setAuthMode] = useState<AuthMode>(null);
 
@@ -96,18 +99,21 @@ export function PasskeyAuthProvider({
   const smartAccountAddress = session?.address ?? null;
   const smartAccountClient = session?.client ?? null;
 
-  const syncWalletAccount = useCallback((accountOverride?: ReturnType<typeof getAccount>) => {
-    const account = accountOverride ?? getAccount(wagmiConfig);
-    if (!account.address || !account.connector) {
-      return false;
-    }
+  const syncWalletAccount = useCallback(
+    (accountOverride?: ReturnType<typeof getAccount>) => {
+      const account = accountOverride ?? getAccount(wagmiConfig);
+      if (!account.address || !account.connector) {
+        return false;
+      }
 
-    setWalletAddress(account.address as Hex);
-    setWalletConnector(account.connector);
-    setAuthMode("wallet");
-    localStorage.setItem(AUTH_MODE_STORAGE_KEY, "wallet");
-    return true;
-  }, []);
+      setWalletAddress(account.address as Hex);
+      setWalletConnector(account.connector);
+      setAuthMode("wallet");
+      localStorage.setItem(AUTH_MODE_STORAGE_KEY, "wallet");
+      return true;
+    },
+    [wagmiConfig]
+  );
 
   // Load saved auth mode and credentials on mount
   useEffect(() => {
@@ -154,7 +160,7 @@ export function PasskeyAuthProvider({
     return () => {
       cancelled = true;
     };
-  }, [chainId]);
+  }, [chainId, wagmiConfig]);
 
   // Watch for wallet account changes
   useEffect(() => {
@@ -176,7 +182,7 @@ export function PasskeyAuthProvider({
     });
 
     return () => unwatch();
-  }, [authMode]);
+  }, [authMode, wagmiConfig]);
 
   const createPasskey = useCallback(async () => {
     setIsAuthenticating(true);
@@ -252,7 +258,6 @@ export function PasskeyAuthProvider({
           Boolean(account.address) && account.connector?.id === connector.id;
 
         if (isAlreadyConnected && syncWalletAccount(account)) {
-          console.log("Wallet session restored", { account: account.address });
           return;
         }
 
@@ -282,7 +287,7 @@ export function PasskeyAuthProvider({
         setIsAuthenticating(false);
       }
     },
-    [syncWalletAccount]
+    [syncWalletAccount, wagmiConfig]
   );
 
   const disconnectWallet = useCallback(async () => {
@@ -294,7 +299,7 @@ export function PasskeyAuthProvider({
       signOut();
       console.log("Wallet disconnected");
     }
-  }, [signOut]);
+  }, [signOut, wagmiConfig]);
 
   // isReady means auth provider has finished initialization (checked localStorage, etc.)
   const isReady = isInitialized;

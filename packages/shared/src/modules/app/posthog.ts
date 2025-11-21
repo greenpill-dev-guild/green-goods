@@ -3,10 +3,26 @@ import { posthog } from "posthog-js";
 const IS_DEV = import.meta.env.DEV;
 const IS_DEBUG = import.meta.env.VITE_POSTHOG_DEBUG === "true";
 
-posthog.init(import.meta.env.VITE_PUBLIC_POSTHOG_KEY, {
-  api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
-  debug: IS_DEBUG,
-});
+// Initialize PostHog only if not already initialized
+// PostHogProvider will also initialize, but it checks for existing initialization
+// Check if PostHog is already initialized by checking for config
+const isAlreadyInitialized =
+  typeof (posthog as any).config !== "undefined" && (posthog as any).config?.api_host !== undefined;
+
+if (!isAlreadyInitialized && import.meta.env.VITE_PUBLIC_POSTHOG_KEY) {
+  try {
+    posthog.init(import.meta.env.VITE_PUBLIC_POSTHOG_KEY, {
+      api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+      debug: IS_DEBUG,
+    });
+  } catch (error) {
+    // PostHog may already be initialized by PostHogProvider
+    // This is expected and safe to ignore
+    if (IS_DEBUG) {
+      console.debug("[PostHog] Initialization skipped - already initialized");
+    }
+  }
+}
 
 // Event throttling to prevent excessive events
 const eventThrottle = new Map<string, number>();

@@ -48,6 +48,7 @@
   "overrides": {
     "vite": "npm:rolldown-vite@7.1.0"
   },
+  "resolutions": {},
   "dependencies": {
     "dotenv": "^17.2.1",
     "ethers": "^6.15.0",

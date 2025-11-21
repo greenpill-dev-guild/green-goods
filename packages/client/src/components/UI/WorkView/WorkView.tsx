@@ -16,6 +16,7 @@ export type WorkViewAction = {
   icon?: React.ReactNode;
   disabled?: boolean;
   visible?: boolean;
+  className?: string;
 };
 
 type WorkViewProps = {
@@ -122,27 +123,31 @@ export const WorkView: React.FC<WorkViewProps> = ({
           <h6 className="text-text-strong-950 mt-2">
             {intl.formatMessage({ id: "app.home.work.actions", defaultMessage: "Actions" })}
           </h6>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-3">
             {visibleActions.map((a) => {
               // Approval actions get special styling
               const isApprovalAction = a.id === "approve" || a.id === "reject";
-              const _isApprove = a.id === "approve";
               const isReject = a.id === "reject";
+
+              // Use custom styling for utility actions (no variant colors)
+              const hasCustomStyling = !!a.className;
 
               return (
                 <Button
                   key={a.id}
                   onClick={a.onClick}
                   label={a.label}
-                  className={`min-h-[44px] touch-manipulation ${
-                    isApprovalAction ? "col-span-1" : ""
-                  }`}
-                  variant={isReject ? "error" : "primary"}
+                  className={
+                    a.className
+                      ? `w-full touch-manipulation ${a.className}`
+                      : "w-full touch-manipulation"
+                  }
+                  variant={hasCustomStyling ? undefined : isReject ? "error" : "primary"}
                   type="button"
                   shape="pilled"
-                  mode={isApprovalAction ? "filled" : "lighter"}
-                  size="small"
-                  leadingIcon={(a.icon as any) ?? <RiDownloadLine className="w-5 h-5" />}
+                  mode={hasCustomStyling ? undefined : isApprovalAction ? "filled" : "stroke"}
+                  size="medium"
+                  leadingIcon={(a.icon as any) ?? <RiDownloadLine className="w-6 h-6" />}
                   disabled={a.disabled}
                 />
               );

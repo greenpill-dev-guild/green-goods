@@ -60,7 +60,7 @@ function getMobileOperatingSystem(): Platform {
   return "unknown";
 }
 
-const AppContext = React.createContext<AppDataProps>({
+export const AppContext = React.createContext<AppDataProps>({
   isMobile: false,
   isInstalled: false,
   locale: "en",
@@ -129,6 +129,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   }, [platform, locale, installState]);
 
   function switchLanguage(lang: Locale) {
+    console.log(`🌐 [Language] Switching from "${locale}" to "${lang}"`);
     setLocale(lang);
     localStorage.setItem("gg-language", lang);
   }

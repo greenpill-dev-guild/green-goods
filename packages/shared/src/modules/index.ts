@@ -2,13 +2,13 @@
 
 // From app/posthog.ts
 export {
-  track,
+  getDistinctId,
   identify,
   reset,
-  getDistinctId,
+  track,
+  trackAppLifecycle,
   trackOfflineEvent,
   trackSyncPerformance,
-  trackAppLifecycle,
 } from "./app/posthog";
 
 // From app/service-worker.ts
@@ -17,9 +17,9 @@ export { serviceWorkerManager } from "./app/service-worker";
 // From auth/passkey.ts
 export type { PasskeySession } from "./auth/passkey";
 export {
-  PASSKEY_STORAGE_KEY,
   authenticatePasskey,
   clearStoredCredential,
+  PASSKEY_STORAGE_KEY,
   recoverPasskeyAccount,
   registerPasskeySession,
   registerPasskeySessionWithENS,
@@ -29,33 +29,35 @@ export {
 // From data/eas.ts
 export {
   getGardenAssessments,
+  getWorkApprovals,
   getWorks,
   getWorksByGardener,
-  getWorkApprovals,
 } from "./data/eas";
-
+export type { FragmentOf, ResultOf, VariablesOf } from "./data/graphql";
 // From data/graphql.ts
 export {
   easGraphQL,
   greenGoodsGraphQL,
 } from "./data/graphql";
-export type { FragmentOf, ResultOf, VariablesOf } from "./data/graphql";
 
 // From data/greengoods.ts
 export {
   Capital,
   getActions,
-  getGardens,
   getGardeners,
+  getGardens,
   updateUserProfile,
 } from "./data/greengoods";
 
 // From data/pinata.ts
 export {
-  initializePinata,
-  getPinataClient,
-  resolveIPFSUrl,
   getFileByHash,
+  initializePinata,
+  // Alias for backward compatibility during migration if needed, or update consumers
+  initializePinata as initializeStoracha,
+  resolveAvatarUrl,
+  resolveImageUrl,
+  resolveIPFSUrl,
   uploadFileToIPFS,
   uploadJSONToIPFS,
 } from "./data/pinata";
@@ -63,8 +65,8 @@ export {
 // From data/urql.ts
 export {
   createEasClient,
-  createIndexerClient,
   createGreenGoodsIndexerClient,
+  createIndexerClient,
   greenGoodsIndexer,
 } from "./data/urql";
 
@@ -95,12 +97,12 @@ export { translationCache } from "./translation/db";
 
 // From work/passkey-submission.ts
 export type {
-  PasskeyWorkSubmissionParams,
   PasskeyApprovalSubmissionParams,
+  PasskeyWorkSubmissionParams,
 } from "./work/passkey-submission";
 export {
-  submitWorkWithPasskey,
   submitApprovalWithPasskey,
+  submitWorkWithPasskey,
 } from "./work/passkey-submission";
 
 // From work/wallet-submission.ts (if exists)
@@ -108,8 +110,8 @@ export {
 
 // From work/work-submission.ts
 export {
-  validateWorkDraft,
-  validateApprovalDraft,
-  getSubmissionStatusText,
   formatJobError,
+  getSubmissionStatusText,
+  validateApprovalDraft,
+  validateWorkDraft,
 } from "./work/work-submission";

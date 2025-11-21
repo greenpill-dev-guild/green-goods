@@ -48,7 +48,7 @@ contract Deploy is Script, DeploymentBase {
             // 2. Add production-specific governance features (L2 only)
             if (!_isMainnetChain(block.chainid)) {
                 _addProductionFeatures(config);
-                
+
                 // 3. Deploy seed data (gardens + actions) (L2 only)
                 _deploySeedData(config);
             }
@@ -153,15 +153,17 @@ contract Deploy is Script, DeploymentBase {
         operators[5] = 0x5F56E995e8D3bd05a70a63f0d7531437e873772e;
         operators[6] = 0x560F876431dfA6eFe1aaf9fAa0D3A4512782DD8c;
 
-        address gardenAddress = gardenToken.mintGarden(
-            communityToken, name, description, location, bannerImage, gardeners, operators
-        );
+        address gardenAddress =
+            gardenToken.mintGarden(communityToken, name, description, location, bannerImage, "", gardeners, operators);
 
         gardenAddresses.push(gardenAddress);
         gardenTokenIds.push(1);
 
         // solhint-disable-next-line no-console
         console.log("Garden address:", gardenAddress);
+
+        // Note: Root garden (tokenId 1) has openJoining enabled by default in GardenAccount.initialize()
+        // No need to explicitly set it here
     }
 
     /// @notice Upload actions to IPFS and return hashes
@@ -245,10 +247,10 @@ contract Deploy is Script, DeploymentBase {
     // solhint-disable-next-line no-console
     function _logDeploymentStrategy() internal view {
         uint256 chainId = block.chainid;
-        
+
         console.log("\n=== Green Goods Deployment ===");
         console.log("Chain ID:", chainId);
-        
+
         if (_isMainnetChain(chainId)) {
             console.log("Mode: MAINNET - ENS Infrastructure Only");
             console.log("  - ENSRegistrar (greengoods.eth subdomain manager)");
@@ -388,7 +390,7 @@ contract Deploy is Script, DeploymentBase {
             deploymentRegistry: address(deploymentRegistry),
             guardian: address(0), // Computed via CREATE2, populated post-deployment
             gardenAccountImpl: address(gardenAccountImpl),
-            accountProxy: address(0), // Computed via CREATE2, populated post-deployment  
+            accountProxy: address(0), // Computed via CREATE2, populated post-deployment
             gardenToken: address(gardenToken),
             actionRegistry: address(actionRegistry),
             assessmentResolver: address(assessmentResolver),
@@ -408,7 +410,7 @@ contract Deploy is Script, DeploymentBase {
     function _saveDeploymentResults() internal {
         // Build result with core addresses
         DeploymentResult memory result = _buildDeploymentResult();
-        
+
         // Use DeployHelper's comprehensive save method
         _saveDeployment(result);
 

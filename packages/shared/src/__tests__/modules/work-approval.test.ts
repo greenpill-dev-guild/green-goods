@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock modules
-vi.mock("../../modules/pinata", () => ({
+vi.mock("../../modules/data/pinata", () => ({
   getFileByHash: vi.fn().mockResolvedValue({
     data: new Blob(["test"], { type: "image/png" }),
   }),

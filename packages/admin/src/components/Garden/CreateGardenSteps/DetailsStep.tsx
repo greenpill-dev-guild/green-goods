@@ -1,8 +1,8 @@
 import { imageCompressor, toastService } from "@green-goods/shared";
 import { useEnsAddress } from "@green-goods/shared/hooks";
-import { uploadFileToIPFS } from "@green-goods/shared/modules";
 import { type CreateGardenFormState, isValidAddress } from "@green-goods/shared/stores";
 import { cn, formatAddress } from "@green-goods/shared/utils";
+import { uploadFileToIPFS, resolveIPFSUrl } from "@green-goods/shared/modules";
 import { RiLoader4Line } from "@remixicon/react";
 import { useEffect, useMemo, useState } from "react";
 import { isAddress } from "viem";
@@ -99,7 +99,7 @@ export function DetailsStep({ form, setField, showValidation }: DetailsStepProps
       setBannerUploadProgress(uploadStartProgress);
 
       const uploadResult = await uploadFileToIPFS(file);
-      const ipfsUrl = `https://greengoods.mypinata.cloud/ipfs/${uploadResult.cid}`;
+      const ipfsUrl = resolveIPFSUrl(uploadResult.cid);
 
       setField("bannerImage", ipfsUrl);
       setBannerFile(file);

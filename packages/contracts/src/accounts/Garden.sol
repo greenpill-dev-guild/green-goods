@@ -37,6 +37,11 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     /// @param newDescription The new description of the garden.
     event DescriptionUpdated(address indexed updater, string newDescription);
 
+    /// @notice Emitted when the garden metadata is updated.
+    /// @param updater The address of the entity that updated the metadata.
+    /// @param newMetadata The new IPFS CID containing metadata JSON.
+    event MetadataUpdated(address indexed updater, string newMetadata);
+
     /// @notice Emitted when a new gardener is added.
     /// @param updater The address of the entity that added the gardener.
     /// @param gardener The address of the added gardener.
@@ -77,6 +82,9 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
 
     /// @notice The CID of the banner image of the garden.
     string public bannerImage;
+
+    /// @notice The IPFS CID containing additional garden metadata as JSON
+    string public metadata;
 
     /// @notice Mapping of gardener addresses to their status.
     mapping(address gardener => bool isGardener) public gardeners;
@@ -164,6 +172,9 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     /// @param _communityToken The address of the community token associated with the garden.
     /// @param _name The name of the garden.
     /// @param _description The description of the garden.
+    /// @param _location The location of the garden.
+    /// @param _bannerImage The IPFS CID of the banner image.
+    /// @param _metadata The IPFS CID containing additional metadata as JSON.
     /// @param _gardeners An array of addresses representing the initial gardeners.
     /// @param _gardenOperators An array of addresses representing the initial garden operators.
     function initialize(
@@ -172,6 +183,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         string calldata _description,
         string calldata _location,
         string calldata _bannerImage,
+        string calldata _metadata,
         address[] calldata _gardeners,
         address[] calldata _gardenOperators
     )
@@ -188,6 +200,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         description = _description;
         location = _location;
         bannerImage = _bannerImage;
+        metadata = _metadata;
 
         // Enable open joining for root garden (tokenId 1)
         (,, uint256 tokenId) = token();
@@ -268,6 +281,15 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         bannerImage = _bannerImage;
 
         emit BannerImageUpdated(_msgSender(), _bannerImage);
+    }
+
+    /// @notice Updates the metadata of the garden.
+    /// @dev Only callable by garden operators.
+    /// @param _metadata The new IPFS CID containing metadata JSON.
+    function updateMetadata(string memory _metadata) external onlyOperator {
+        metadata = _metadata;
+
+        emit MetadataUpdated(_msgSender(), _metadata);
     }
 
     /// @notice Adds a new gardener to the garden.
@@ -607,9 +629,8 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     /// @notice Builds JSON for GAP project details
     function _buildGAPDetailsJSON() private view returns (string memory) {
         // Prefix banner image CID with IPFS gateway if not empty
-        string memory imageURL = bytes(bannerImage).length > 0
-            ? string(abi.encodePacked("https://greengoods.mypinata.cloud/ipfs/", bannerImage))
-            : "";
+        string memory imageURL =
+            bytes(bannerImage).length > 0 ? string(abi.encodePacked("https://w3s.link/ipfs/", bannerImage)) : "";
 
         return string(
             abi.encodePacked(
@@ -675,10 +696,10 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     ///   - ERC6551Account: 1 slot (_state)
     /// GardenAccount storage (13 slots):
     ///   - communityToken(1) + name(1) + description(1) + location(1) +
-    ///   - bannerImage(1) + gardeners(1) + gardenOperators(1) + gardenInvites(1) +
+    ///   - bannerImage(1) + metadata(1) + gardeners(1) + gardenOperators(1) + gardenInvites(1) +
     ///   - inviteToGarden(1) + inviteExpiry(1) + inviteUsed(1) + openJoining(1) +
     ///   - gapProjectUID(1)
     /// Note: WORK_APPROVAL_RESOLVER and ASSESSMENT_RESOLVER are immutables (no storage slots)
-    /// Gap calculation: 50 - (5 + 13) = 32 slots
-    uint256[32] private __gap;
+    /// Gap calculation: 50 - (5 + 14) = 31 slots
+    uint256[31] private __gap;
 }
