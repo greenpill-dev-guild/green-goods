@@ -24,9 +24,11 @@ fs_permissions = [
 
 [profile.production]
   via_ir = true
+  optimizer = true
   optimizer_runs = 1       # Optimized for deployment size (lower = smaller bytecode)
   gas_reports = ["*"]      # Full gas reports for production
   verbosity = 2
+  bytecode_hash = "none"   # Remove metadata hash for smaller bytecode
 
 [profile.ci]
   fuzz = { runs = 10_000 }

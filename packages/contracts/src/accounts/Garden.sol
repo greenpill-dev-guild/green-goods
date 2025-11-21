@@ -20,8 +20,6 @@ error GAPProjectNotInitialized();
 error GAPNotSupportedOnChain();
 error GAPImpactCreationFailed();
 error GAPMilestoneCreationFailed();
-error InvalidGAPOwner();
-error GAPOwnershipTransferFailed();
 
 /// @title GardenAccount Contract
 /// @notice Manages gardeners and operators for a Garden, and supports community token management.
@@ -243,193 +241,145 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         }
     }
 
-    /// @notice Updates the community token of the garden.
-    /// @dev Only callable by garden operators.
-    /// @param _communityToken The new community token of the garden.
-    function updateCommunityToken(address _communityToken) external onlyOperator {
-        communityToken = _communityToken;
+    /// @dev Temporarily disabled to reduce contract size - can be re-enabled via upgrade
+    // function updateCommunityToken(address _communityToken) external onlyOperator {
+    //     communityToken = _communityToken;
+    //     emit CommunityTokenUpdated(_msgSender(), _communityToken);
+    // }
 
-        emit CommunityTokenUpdated(_msgSender(), _communityToken);
-    }
-
-    /// @notice Updates the name of the garden.
-    /// @dev Only callable by a valid signer of the contract.
-    /// @param _name The new name of the garden.
+    /// @notice Updates the name of the garden
     function updateName(string memory _name) external onlyGardenOwner {
         name = _name;
-
         emit NameUpdated(_msgSender(), _name);
     }
 
-    /// @notice Updates the description of the garden.
-    /// @dev Only callable by garden operators.
-    /// @param _description The new description of the garden.
+    /// @notice Updates the description of the garden
     function updateDescription(string memory _description) external onlyOperator {
         description = _description;
-
         emit DescriptionUpdated(_msgSender(), _description);
     }
 
-    /// @notice Updates the location of the garden.
-    /// @dev Only callable by garden operators.
-    /// @param _location The new location of the garden.
-    function updateLocation(string memory _location) external onlyOperator {
-        location = _location;
+    /// @dev Temporarily disabled to reduce contract size - can be re-enabled via upgrade
+    // function updateLocation(string memory _location) external onlyOperator {
+    //     location = _location;
+    //     emit LocationUpdated(_msgSender(), _location);
+    // }
 
-        emit LocationUpdated(_msgSender(), _location);
-    }
+    /// @dev Temporarily disabled to reduce contract size - can be re-enabled via upgrade
+    // function updateBannerImage(string memory _bannerImage) external onlyOperator {
+    //     bannerImage = _bannerImage;
+    //     emit BannerImageUpdated(_msgSender(), _bannerImage);
+    // }
 
-    /// @notice Updates the banner image of the garden.
-    /// @dev Only callable by garden operators.
-    /// @param _bannerImage The new banner image of the garden.
-    function updateBannerImage(string memory _bannerImage) external onlyOperator {
-        bannerImage = _bannerImage;
+    /// @dev Temporarily disabled to reduce contract size - can be re-enabled via upgrade
+    // function updateMetadata(string memory _metadata) external onlyOperator {
+    //     metadata = _metadata;
+    //     emit MetadataUpdated(_msgSender(), _metadata);
+    // }
 
-        emit BannerImageUpdated(_msgSender(), _bannerImage);
-    }
-
-    /// @notice Updates the metadata of the garden.
-    /// @dev Only callable by garden operators.
-    /// @param _metadata The new IPFS CID containing metadata JSON.
-    function updateMetadata(string memory _metadata) external onlyOperator {
-        metadata = _metadata;
-
-        emit MetadataUpdated(_msgSender(), _metadata);
-    }
-
-    /// @notice Adds a new gardener to the garden.
-    /// @dev Only callable by a valid signer of the contract.
-    /// @param gardener The address of the gardener to add.
+    /// @notice Adds a new gardener to the garden
     function addGardener(address gardener) external onlyOperator {
         gardeners[gardener] = true;
-
         emit GardenerAdded(_msgSender(), gardener);
     }
 
-    /// @notice Removes an existing gardener from the garden.
-    /// @dev Only callable by a valid signer of the contract.
-    /// @param gardener The address of the gardener to remove.
+    /// @notice Removes an existing gardener from the garden
     function removeGardener(address gardener) external onlyOperator {
         gardeners[gardener] = false;
-
         emit GardenerRemoved(_msgSender(), gardener);
     }
 
-    /// @notice Adds a new operator to the garden.
-    /// @dev Only callable by a valid signer of the contract.
-    /// @param operator The address of the operator to add.
+    /// @notice Adds a new operator to the garden
     function addGardenOperator(address operator) external onlyOperator {
         gardenOperators[operator] = true;
         gardeners[operator] = true;
-
         emit GardenOperatorAdded(_msgSender(), operator);
-
-        // Add as GAP project admin if GAP supported and project exists
         if (KarmaLib.isSupported() && gapProjectUID != bytes32(0)) {
             _addGAPProjectAdmin(operator);
         }
     }
 
-    /// @notice Removes an existing operator from the garden.
-    /// @dev Only callable by a valid signer of the contract.
-    /// @param operator The address of the operator to remove.
+    /// @notice Removes an existing operator from the garden
     function removeGardenOperator(address operator) external onlyGardenOwner {
         gardenOperators[operator] = false;
-
         emit GardenOperatorRemoved(_msgSender(), operator);
-
-        // Remove from GAP project admin if GAP supported and project exists
         if (KarmaLib.isSupported() && gapProjectUID != bytes32(0)) {
             _removeGAPProjectAdmin(operator);
         }
     }
 
     /// @notice Join garden if open joining is enabled
-    /// @dev Allows anyone to join without invite code if openJoining is true
     function joinGarden() external {
         if (!openJoining) revert InvalidInvite();
         if (gardeners[_msgSender()]) revert AlreadyGardener();
-
         gardeners[_msgSender()] = true;
-
         emit GardenerAdded(address(this), _msgSender());
     }
 
     /// @notice Enable or disable open joining for the garden
-    /// @dev Only callable by garden operators
-    /// @param _openJoining Whether to enable open joining
     function setOpenJoining(bool _openJoining) external onlyOperator {
         openJoining = _openJoining;
     }
 
     /// @notice Returns the Karma GAP project UID for this garden
-    /// @return The GAP project UID, or bytes32(0) if not initialized
     function getGAPProjectUID() external view returns (bytes32) {
         return gapProjectUID;
     }
 
     /// @notice Creates Karma GAP project via GAP contract
-    /// @dev Atomic operation: all three attestations succeed or entire operation reverts
-    /// @dev Project UID is captured directly from return value
     function _createGAPProject() private {
         IGap gap = IGap(KarmaLib.getGapContract());
 
-        // 1. Create Project attestation - captures UID directly
-        bytes memory projectData = abi.encode(true);
-        AttestationRequest memory projectReq = AttestationRequest({
-            schema: KarmaLib.getProjectSchemaUID(),
-            data: AttestationRequestData({
-                recipient: address(this),
-                expirationTime: 0,
-                revocable: true,
-                refUID: bytes32(0),
-                data: projectData,
-                value: 0
-            })
-        });
-
-        // Atomic operation: all three attestations or none
-        try gap.attest(projectReq) returns (bytes32 projectUID) {
-            gapProjectUID = projectUID;
-
-            // 2. Create MemberOf attestation - references project UID
-            bytes memory memberData = abi.encode(true);
-            AttestationRequest memory memberReq = AttestationRequest({
-                schema: KarmaLib.getMemberOfSchemaUID(),
+        // 1. Create Project attestation
+        try gap.attest(
+            AttestationRequest({
+                schema: KarmaLib.getProjectSchemaUID(),
                 data: AttestationRequestData({
-                    recipient: _msgSender(), // The creator becomes a member
+                    recipient: address(this),
                     expirationTime: 0,
                     revocable: true,
-                    refUID: projectUID, // Reference the project
-                    data: memberData,
+                    refUID: bytes32(0),
+                    data: abi.encode(true),
                     value: 0
                 })
-            });
+            })
+        ) returns (bytes32 projectUID) {
+            gapProjectUID = projectUID;
 
-            try gap.attest(memberReq) {
-                // 3. Create Details attestation - references project UID
-                bytes memory detailsData = abi.encode(_buildGAPDetailsJSON());
-                AttestationRequest memory detailsReq = AttestationRequest({
-                    schema: KarmaLib.getDetailsSchemaUID(),
+            // 2. Create MemberOf attestation
+            try gap.attest(
+                AttestationRequest({
+                    schema: KarmaLib.getMemberOfSchemaUID(),
                     data: AttestationRequestData({
-                        recipient: address(this),
+                        recipient: _msgSender(),
                         expirationTime: 0,
                         revocable: true,
-                        refUID: projectUID, // Reference the project
-                        data: detailsData,
+                        refUID: projectUID,
+                        data: abi.encode(true),
                         value: 0
                     })
-                });
-
-                try gap.attest(detailsReq) {
+                })
+            ) {
+                // 3. Create Details attestation
+                try gap.attest(
+                    AttestationRequest({
+                        schema: KarmaLib.getDetailsSchemaUID(),
+                        data: AttestationRequestData({
+                            recipient: address(this),
+                            expirationTime: 0,
+                            revocable: true,
+                            refUID: projectUID,
+                            data: abi.encode(_buildGAPDetailsJSON()),
+                            value: 0
+                        })
+                    })
+                ) {
                     emit GAPProjectCreated(gapProjectUID, address(this), name);
                 } catch {
-                    // Rollback: clear projectUID on details failure
                     gapProjectUID = bytes32(0);
                     revert GAPImpactCreationFailed();
                 }
             } catch {
-                // Rollback: clear projectUID on member failure
                 gapProjectUID = bytes32(0);
                 revert GAPImpactCreationFailed();
             }
@@ -461,32 +411,19 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         if (gapProjectUID == bytes32(0)) revert GAPProjectNotInitialized();
         if (!KarmaLib.isSupported()) revert GAPNotSupportedOnChain();
 
-        IGap gap = IGap(KarmaLib.getGapContract());
-
-        // Build project update JSON with required structure and dynamic links
-        bytes memory impactData = abi.encode(
-            string(
-                abi.encodePacked(
-                    _buildImpactJSONPart1(workTitle, impactDescription),
-                    _buildImpactJSONPart2(impactDescription, proofIPFS, workUID)
-                )
-            )
-        );
-
-        AttestationRequest memory req = AttestationRequest({
-            schema: KarmaLib.getDetailsSchemaUID(), // Note: Uses details schema with type "project-update"
-            data: AttestationRequestData({
-                recipient: address(this),
-                expirationTime: 0,
-                revocable: false,
-                refUID: gapProjectUID,
-                data: impactData,
-                value: 0
+        try IGap(KarmaLib.getGapContract()).attest(
+            AttestationRequest({
+                schema: KarmaLib.getDetailsSchemaUID(),
+                data: AttestationRequestData({
+                    recipient: address(this),
+                    expirationTime: 0,
+                    revocable: false,
+                    refUID: gapProjectUID,
+                    data: abi.encode(_buildImpactJSON(workTitle, impactDescription, proofIPFS, workUID)),
+                    value: 0
+                })
             })
-        });
-
-        // Attest via GAP contract with error handling
-        try gap.attest(req) returns (bytes32 impactUID) {
+        ) returns (bytes32 impactUID) {
             return impactUID;
         } catch {
             revert GAPImpactCreationFailed();
@@ -514,41 +451,31 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         if (gapProjectUID == bytes32(0)) revert GAPProjectNotInitialized();
         if (!KarmaLib.isSupported()) revert GAPNotSupportedOnChain();
 
-        IGap gap = IGap(KarmaLib.getGapContract());
-
-        // Build milestone JSON - including the metadata passed from resolver
-        bytes memory milestoneData = abi.encode(
-            string(
-                abi.encodePacked(
-                    "{",
-                    "\"title\":\"",
-                    StringUtils.escapeJSON(milestoneTitle),
-                    "\",",
-                    "\"text\":\"",
-                    StringUtils.escapeJSON(milestoneDescription),
-                    "\",",
-                    "\"type\":\"project-milestone\",",
-                    "\"data\":",
-                    milestoneMeta,
-                    "}"
-                )
-            )
-        );
-
-        AttestationRequest memory req = AttestationRequest({
-            schema: KarmaLib.getDetailsSchemaUID(), // Note: Uses details schema, not milestone schema
-            data: AttestationRequestData({
-                recipient: address(this),
-                expirationTime: 0,
-                revocable: false,
-                refUID: gapProjectUID, // References project
-                data: milestoneData,
-                value: 0
+        try IGap(KarmaLib.getGapContract()).attest(
+            AttestationRequest({
+                schema: KarmaLib.getDetailsSchemaUID(),
+                data: AttestationRequestData({
+                    recipient: address(this),
+                    expirationTime: 0,
+                    revocable: false,
+                    refUID: gapProjectUID,
+                    data: abi.encode(
+                        string(
+                            abi.encodePacked(
+                                "{\"title\":\"",
+                                StringUtils.escapeJSON(milestoneTitle),
+                                "\",\"text\":\"",
+                                StringUtils.escapeJSON(milestoneDescription),
+                                "\",\"type\":\"project-milestone\",\"data\":",
+                                milestoneMeta,
+                                "}"
+                            )
+                        )
+                    ),
+                    value: 0
+                })
             })
-        });
-
-        // Attest via GAP contract with error handling
-        try gap.attest(req) returns (bytes32 milestoneUID) {
+        ) returns (bytes32 milestoneUID) {
             return milestoneUID;
         } catch {
             revert GAPMilestoneCreationFailed();
@@ -558,205 +485,89 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     /// @notice Internal function to add GAP project admin
     /// @param admin Address to add as project admin
     function _addGAPProjectAdmin(address admin) private {
-        if (gapProjectUID == bytes32(0)) return; // No project, skip silently
-
+        if (gapProjectUID == bytes32(0)) return;
         // solhint-disable-next-line no-empty-blocks
         try IGap(KarmaLib.getGapContract()).addProjectAdmin(gapProjectUID, admin) {
-            // Success: admin added to GAP project
-        } catch Error(string memory) /* reason */ { // solhint-disable-line no-empty-blocks
-                // Non-critical: GAP sync failed but operator added successfully
-        } catch (bytes memory) /* lowLevelData */ { // solhint-disable-line no-empty-blocks
-                // Non-critical: GAP sync failed but operator added successfully
-        }
+        } catch { /* Non-critical: GAP sync failed */ }
     }
 
     /// @notice Internal function to remove GAP project admin
     /// @param admin Address to remove as project admin
     function _removeGAPProjectAdmin(address admin) private {
-        if (gapProjectUID == bytes32(0)) return; // No project, skip silently
-
+        if (gapProjectUID == bytes32(0)) return;
         // solhint-disable-next-line no-empty-blocks
         try IGap(KarmaLib.getGapContract()).removeProjectAdmin(gapProjectUID, admin) {
-            // Success: admin removed from GAP project
-        } catch Error(string memory) /* reason */ { // solhint-disable-line no-empty-blocks
-                // Non-critical: GAP sync failed but operator removed successfully
-        } catch (bytes memory) /* lowLevelData */ { // solhint-disable-line no-empty-blocks
-                // Non-critical: GAP sync failed but operator removed successfully
-        }
+        } catch { /* Non-critical: GAP sync failed */ }
     }
 
     /// @notice Transfers ownership of the GAP project to a new owner
-    /// @param newOwner Address that will receive project ownership
-    function transferGAPProjectOwnership(address newOwner) external onlyOperator {
-        if (gapProjectUID == bytes32(0)) revert GAPProjectNotInitialized();
-        if (!KarmaLib.isSupported()) revert GAPNotSupportedOnChain();
-        if (newOwner == address(0)) revert InvalidGAPOwner();
+    /// @dev Temporarily disabled to reduce contract size - can be re-enabled via upgrade
+    // function transferGAPProjectOwnership(address newOwner) external onlyOperator {
+    //     if (gapProjectUID == bytes32(0)) revert GAPProjectNotInitialized();
+    //     if (!KarmaLib.isSupported()) revert GAPNotSupportedOnChain();
+    //     if (newOwner == address(0)) revert InvalidGAPOwner();
 
-        try IGap(KarmaLib.getGapContract()).transferProjectOwnership(gapProjectUID, newOwner) {
-            // Ownership transferred successfully
-        } catch {
-            revert GAPOwnershipTransferFailed();
-        }
-    }
+    //     try IGap(KarmaLib.getGapContract()).transferProjectOwnership(gapProjectUID, newOwner) {
+    //     } catch {
+    //         revert GAPOwnershipTransferFailed();
+    //     }
+    // }
 
-    /// @notice Builds JSON for GAP project details
+    /// @notice Builds simplified JSON for GAP project details (removed empty fields)
     function _buildGAPDetailsJSON() private view returns (string memory) {
-        return string(abi.encodePacked(_buildGAPDetailsPart1(), _buildGAPDetailsPart2()));
-    }
-
-    /// @notice Builds first part of GAP details JSON
-    function _buildGAPDetailsPart1() private view returns (string memory) {
-        return string(
-            abi.encodePacked(
-                "{",
-                "\"title\":\"",
-                StringUtils.escapeJSON(name),
-                "\",",
-                "\"description\":\"",
-                StringUtils.escapeJSON(description),
-                "\",",
-                "\"problem\":\"\",",
-                "\"solution\":\"\",",
-                "\"missionSummary\":\"\","
-            )
-        );
-    }
-
-    /// @notice Builds second part of GAP details JSON
-    function _buildGAPDetailsPart2() private view returns (string memory) {
         string memory imageURL =
             bytes(bannerImage).length > 0 ? string(abi.encodePacked("https://w3s.link/ipfs/", bannerImage)) : "";
 
         return string(
             abi.encodePacked(
-                "\"locationOfImpact\":\"",
+                "{\"title\":\"",
+                StringUtils.escapeJSON(name),
+                "\",\"description\":\"",
+                StringUtils.escapeJSON(description),
+                "\",\"locationOfImpact\":\"",
                 StringUtils.escapeJSON(location),
-                "\",",
-                "\"imageURL\":\"",
+                "\",\"imageURL\":\"",
                 StringUtils.escapeJSON(imageURL),
-                "\",",
-                "\"links\":[],",
-                "\"slug\":\"",
-                StringUtils.escapeJSON(_generateSlug(name)),
-                "\",",
-                "\"businessModel\":\"\",",
-                "\"stageIn\":\"\",",
-                "\"raisedMoney\":\"\",",
-                "\"pathToTake\":\"\",",
-                "\"type\":\"project-details\"",
-                "}"
+                "\",\"slug\":\"",
+                StringUtils.escapeJSON(StringUtils.generateSlug(name)),
+                "\",\"type\":\"project-details\"}"
             )
         );
     }
 
-    /// @notice Generates a URL-safe slug from garden name
-    /// @param str The string to convert to slug
-    /// @return The slug (lowercase, hyphens for spaces, alphanumeric only)
-    function _generateSlug(string memory str) private pure returns (string memory) {
-        return StringUtils.generateSlug(str);
-    }
-
-    /// @notice Builds first part of impact JSON (title, text, dates, grants, indicators)
-    /// @param workTitle The title of the work
-    /// @param impactDescription The description of the impact
-    /// @return First part of the JSON string
-    function _buildImpactJSONPart1(string calldata workTitle, string calldata impactDescription)
-        private
-        view
-        returns (string memory)
-    {
-        string memory isoDate = StringUtils.timestampToISO(block.timestamp);
-        return string(
-            abi.encodePacked(
-                "{",
-                "\"title\":\"",
-                StringUtils.escapeJSON(workTitle),
-                "\",",
-                "\"text\":\"",
-                StringUtils.escapeJSON(impactDescription),
-                "\",",
-                "\"startDate\":\"",
-                isoDate,
-                "\",",
-                "\"endDate\":\"",
-                isoDate,
-                "\",",
-                "\"grants\":[],",
-                "\"indicators\":[],"
-            )
-        );
-    }
-
-    /// @notice Builds second part of impact JSON (deliverables, links, type)
-    /// @param impactDescription The description of the impact
-    /// @param proofIPFS The IPFS CID for proof
-    /// @param workUID The work attestation UID
-    /// @return Second part of the JSON string
-    function _buildImpactJSONPart2(string calldata impactDescription, string calldata proofIPFS, bytes32 workUID)
-        private
-        view
-        returns (string memory)
-    {
-        return string(
-            abi.encodePacked(
-                "\"deliverables\":[{",
-                "\"name\":\"Work Evidence\",",
-                "\"proof\":\"ipfs://",
-                StringUtils.escapeJSON(proofIPFS),
-                "\",",
-                "\"description\":\"",
-                StringUtils.escapeJSON(impactDescription),
-                "\"",
-                "}],",
-                "\"links\":[",
-                "{\"type\":\"other\",\"url\":\"",
-                _getAppLink(workUID),
-                "\",\"label\":\"View in Green Goods\"},",
-                "{\"type\":\"other\",\"url\":\"",
-                _getEASAttestationUrl(workUID),
-                "\",\"label\":\"Work Attestation\"}",
-                "],",
-                "\"type\":\"project-update\"",
-                "}"
-            )
-        );
-    }
-
-    /// @notice Generates the Green Goods app link for a specific work item
-    /// @param workUID The UID of the work attestation
-    /// @return The full URL to view the work in the Green Goods app
-    function _getAppLink(bytes32 workUID) private view returns (string memory) {
+    /// @notice Builds simplified impact JSON
+    function _buildImpactJSON(
+        string calldata workTitle,
+        string calldata impactDescription,
+        string calldata proofIPFS,
+        bytes32 workUID
+    ) private view returns (string memory) {
         (,, uint256 tokenId) = token();
+        string memory isoDate = StringUtils.timestampToISO(block.timestamp);
+
         return string(
             abi.encodePacked(
-                "https://greengoods.me/garden/",
+                "{\"title\":\"",
+                StringUtils.escapeJSON(workTitle),
+                "\",\"text\":\"",
+                StringUtils.escapeJSON(impactDescription),
+                "\",\"startDate\":\"",
+                isoDate,
+                "\",\"endDate\":\"",
+                isoDate,
+                "\",\"deliverables\":[{\"name\":\"Work Evidence\",\"proof\":\"ipfs://",
+                StringUtils.escapeJSON(proofIPFS),
+                "\",\"description\":\"",
+                StringUtils.escapeJSON(impactDescription),
+                "\"}],\"links\":[{\"type\":\"other\",\"url\":\"https://greengoods.me/garden/",
                 StringUtils.uint2str(block.chainid),
                 "/",
                 StringUtils.uint2str(tokenId),
                 "/work/0x",
-                StringUtils.bytes32ToHexString(workUID)
+                StringUtils.bytes32ToHexString(workUID),
+                "\",\"label\":\"View in Green Goods\"}],\"type\":\"project-update\"}"
             )
         );
-    }
-
-    /// @notice Generates the EAS Explorer link based on the current chain
-    /// @param uid The attestation UID to link to
-    /// @return The full URL to view the attestation on EAS Explorer
-    function _getEASAttestationUrl(bytes32 uid) private view returns (string memory) {
-        string memory baseUrl;
-        if (block.chainid == 8453) {
-            baseUrl = "https://base.easscan.org/attestation/view/0x";
-        } else if (block.chainid == 84_532) {
-            baseUrl = "https://base-sepolia.easscan.org/attestation/view/0x";
-        } else if (block.chainid == 42_220) {
-            baseUrl = "https://celo.easscan.org/attestation/view/0x";
-        } else if (block.chainid == 42_161) {
-            baseUrl = "https://arbitrum.easscan.org/attestation/view/0x";
-        } else {
-            baseUrl = "https://easscan.org/attestation/view/0x";
-        }
-
-        return string(abi.encodePacked(baseUrl, StringUtils.bytes32ToHexString(uid)));
     }
 
     /// @notice Storage gap for upgradeable contract

@@ -134,7 +134,7 @@ class EnvioIntegration {
       const deployment = JSON.parse(fs.readFileSync(deploymentFile, "utf8"));
 
       // Validate required addresses
-      const requiredAddresses = ["actionRegistry", "gardenToken", "accountProxy"];
+      const requiredAddresses = ["actionRegistry", "gardenToken", "gardenAccountImpl"];
       const missingAddresses = requiredAddresses.filter((addr) => !deployment[addr]);
 
       if (missingAddresses.length > 0) {
@@ -174,7 +174,13 @@ class EnvioIntegration {
           },
           {
             name: "GardenAccount",
-            address: String(deployment.accountProxy), // Ensure string
+            // Use gardenAccountImpl (new) or accountProxy (old deployments) - check for zero address
+            address: String(
+              deployment.gardenAccountImpl &&
+                deployment.gardenAccountImpl !== "0x0000000000000000000000000000000000000000"
+                ? deployment.gardenAccountImpl
+                : deployment.accountProxy,
+            ),
           },
         ],
       };
@@ -225,10 +231,15 @@ class EnvioIntegration {
       console.log("✅ Envio config updated successfully");
 
       // Display the updated addresses
+      const gardenAccountAddress =
+        deployment.gardenAccountImpl && deployment.gardenAccountImpl !== "0x0000000000000000000000000000000000000000"
+          ? deployment.gardenAccountImpl
+          : deployment.accountProxy;
+
       console.log(`\n📋 Contract addresses updated in Envio for chain ${chainId}:`);
       console.log(`   ActionRegistry: ${deployment.actionRegistry}`);
       console.log(`   GardenToken: ${deployment.gardenToken}`);
-      console.log(`   GardenAccount: ${deployment.accountProxy}`);
+      console.log(`   GardenAccount: ${gardenAccountAddress}`);
 
       return deployment;
     } catch (error) {
