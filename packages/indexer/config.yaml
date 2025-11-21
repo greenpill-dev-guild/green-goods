@@ -52,7 +52,7 @@ networks:
       - name: GardenAccount
         address: "0x3B4A3ACA9D52b01086F625a0EB6E6e24b65C810D"
   - id: 42161
-    start_block: 200000000
+    start_block: 0
     contracts:
       - name: ActionRegistry
         address: "0xB1DD51F5809BddC9146dA833b53C49e5Ff75B8d4"
