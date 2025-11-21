@@ -37,9 +37,7 @@ if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_SW_DEV !== "true") {
 export const Root = () => (
   <AppErrorBoundary>
     <AppKitProvider
-      projectId={
-        import.meta.env.VITE_REOWN_PROJECT_ID || import.meta.env.VITE_WALLETCONNECT_PROJECT_ID
-      }
+      projectId={import.meta.env.VITE_WALLETCONNECT_PROJECT_ID}
       metadata={{
         name: "Green Goods",
         description: "Start Bringing Biodiversity Onchain",

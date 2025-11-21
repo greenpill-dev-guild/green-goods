@@ -54,7 +54,7 @@ export function AppKitProvider({
   // Initialize AppKit once
   useEffect(() => {
     if (!projectId) {
-      console.error(
+      console.warn(
         "AppKit: Project ID is missing. Set VITE_REOWN_PROJECT_ID or VITE_WALLETCONNECT_PROJECT_ID in .env"
       );
       return;
