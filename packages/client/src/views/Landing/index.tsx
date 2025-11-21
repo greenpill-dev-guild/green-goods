@@ -1,7 +1,6 @@
 import { toastService } from "@green-goods/shared";
 import { useApp } from "@green-goods/shared/providers/app";
 import React, { useState } from "react";
-import { Navigate, useLocation } from "react-router-dom";
 import { Footer } from "@/components/Layout/Footer";
 import { Header } from "@/components/Layout/Header";
 import { Hero } from "@/components/Layout/Hero";
@@ -11,8 +10,7 @@ type LandingProps = {};
 type SubscribeState = "idle" | "subscribing" | "subscribed" | "error";
 
 const Landing: React.FC<LandingProps> = () => {
-  const { isMobile, isInstalled } = useApp();
-  const location = useLocation();
+  const { isMobile } = useApp();
 
   const [_state, setSubscribeState] = useState<SubscribeState>("idle");
 
@@ -55,9 +53,6 @@ const Landing: React.FC<LandingProps> = () => {
         });
       });
   }
-
-  const redirectTo = new URLSearchParams(location.search).get("redirectTo");
-  if (isInstalled) return <Navigate to={redirectTo || "/home"} replace />;
 
   return (
     <div id="landing-root" className="px-8">

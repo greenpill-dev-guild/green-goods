@@ -23,7 +23,7 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        lazy: async () => ({ Component: (await import("@/views/Landing")).default }),
+        lazy: async () => ({ Component: (await import("@/views/PlatformRouter")).default }),
       },
       {
         path: "landing",
@@ -48,7 +48,6 @@ export const router = createBrowserRouter([
               {
                 lazy: async () => ({ Component: (await import("@/routes/AppShell")).default }),
                 children: [
-                  { index: true, loader: () => redirect("/home") },
                   {
                     id: "home",
                     path: "home",
@@ -93,7 +92,7 @@ export const router = createBrowserRouter([
           },
         ],
       },
-      { path: "*", loader: () => redirect("/landing") },
+      { path: "*", loader: () => redirect("/") },
     ],
   },
 ]);

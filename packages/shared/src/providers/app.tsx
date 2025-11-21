@@ -99,6 +99,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         return "installed";
       }
     }
+    // Use "idle" to indicate we haven't checked yet (will trigger useEffect check)
     return "idle";
   });
 
@@ -163,7 +164,11 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    handleInstallCheck(null);
+    // Only run install check if not already detected as installed during initialization
+    // This prevents state changes that could trigger redirects mid-render
+    if (installState !== "installed") {
+      handleInstallCheck(null);
+    }
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstall);
     window.addEventListener("appinstalled", handleAppInstalled);
@@ -172,7 +177,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
       window.removeEventListener("appinstalled", handleAppInstalled);
     };
-  }, [handleAppInstalled, handleBeforeInstall, handleInstallCheck]);
+  }, [handleAppInstalled, handleBeforeInstall, handleInstallCheck, installState]);
 
   return (
     <PostHogProvider
