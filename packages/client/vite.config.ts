@@ -78,9 +78,15 @@ export default defineConfig(({ mode }) => {
       workbox: {
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
         globPatterns: ["**/*.{html,js,css,ico,png,svg}"],
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
         runtimeCaching: [
           {
-            urlPattern: /.*\.js$/,
+            // Only cache JS files from the same origin (avoids caching external analytics/ads)
+            // Note: 'self' refers to the ServiceWorkerGlobalScope when running, but here we construct the config.
+            // We use a regex that matches relative paths (same origin) ending in .js
+            urlPattern: /^\/.*\.js$/,
             handler: "NetworkFirst",
             options: {
               cacheName: "js-cache",
