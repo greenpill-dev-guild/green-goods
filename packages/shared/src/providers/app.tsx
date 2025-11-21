@@ -1,4 +1,3 @@
-import browserLang from "browser-lang";
 import { PostHogProvider } from "posthog-js/react";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { IntlProvider } from "react-intl";
@@ -36,6 +35,21 @@ export interface AppDataProps {
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
+
+function getBrowserLocale(available: readonly string[], fallback: string): string {
+  if (typeof navigator === "undefined") return fallback;
+
+  const browserLocales = navigator.languages || [navigator.language];
+
+  for (const locale of browserLocales) {
+    const lang = locale.split("-")[0]; // "en-US" -> "en"
+    if (available.includes(lang)) {
+      return lang;
+    }
+  }
+
+  return fallback;
 }
 
 function getMobileOperatingSystem(): Platform {
@@ -79,10 +93,7 @@ export const useApp = () => {
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const defaultLocale = localStorage.getItem("gg-language")
     ? (localStorage.getItem("gg-language") as Locale)
-    : browserLang({
-        languages: [...supportedLanguages],
-        fallback: "en",
-      });
+    : (getBrowserLocale(supportedLanguages, "en") as Locale); // Use helper instead of browserLang
   const [locale, setLocale] = useState<Locale>(defaultLocale as Locale);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   // Initialize state synchronously to prevent PWA landing page flash
