@@ -22,6 +22,7 @@ export type Platform = "ios" | "android" | "windows" | "unknown";
 export interface AppDataProps {
   isMobile: boolean;
   isInstalled: boolean;
+  isStandalone: boolean;
   platform: Platform;
   locale: Locale;
   availableLocales: readonly Locale[];
@@ -77,6 +78,7 @@ function getMobileOperatingSystem(): Platform {
 export const AppContext = React.createContext<AppDataProps>({
   isMobile: false,
   isInstalled: false,
+  isStandalone: false,
   locale: "en",
   availableLocales: supportedLanguages,
   deferredPrompt: null,
@@ -115,6 +117,16 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   });
 
   const platform = getMobileOperatingSystem();
+
+  const isStandalone = React.useMemo(() => {
+    if (typeof window === "undefined") return false;
+    return (
+      window.matchMedia("(display-mode: standalone)").matches ||
+      window.matchMedia("(display-mode: fullscreen)").matches ||
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window.navigator as any).standalone
+    );
+  }, []);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleInstallCheck = useCallback(async (e: any) => {
@@ -203,6 +215,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         value={{
           isMobile: platform === "ios" || platform === "android" || platform === "windows",
           isInstalled: installState === "installed",
+          isStandalone,
           platform,
           locale,
           availableLocales: supportedLanguages,

@@ -13,14 +13,14 @@ import Landing from "@/views/Landing";
  * Authentication checking is delegated to RequireAuth guard for simplicity.
  */
 export default function PlatformRouter() {
-  const { isMobile, isInstalled } = useApp();
+  const { isMobile, isStandalone } = useApp();
   const location = useLocation();
 
   const redirectTo = new URLSearchParams(location.search).get("redirectTo");
 
   // Mobile users with installed app: redirect to /home
   // The RequireAuth guard will handle authentication checks and login redirect if needed
-  if (isMobile && isInstalled) {
+  if (isMobile && isStandalone) {
     return <Navigate to={redirectTo || "/home"} replace />;
   }
 
