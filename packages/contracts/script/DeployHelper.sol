@@ -2,10 +2,10 @@
 pragma solidity ^0.8.25;
 /* solhint-disable no-console */
 
-import {Script} from "forge-std/Script.sol";
-import {console} from "forge-std/console.sol";
-import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
-import {stdJson} from "forge-std/StdJson.sol";
+import { Script } from "forge-std/Script.sol";
+import { console } from "forge-std/console.sol";
+import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
+import { stdJson } from "forge-std/StdJson.sol";
 
 /// @title DeployHelper
 /// @notice Helper contract for deployment scripts
@@ -136,7 +136,7 @@ abstract contract DeployHelper is Script {
 
         // Generate salt from string for fresh deployment
         // Increment this number for complete redeployment to new addresses
-        salt = keccak256(bytes("greenGoodsCleanDeploy2025:8"));
+        salt = keccak256(bytes("greenGoodsCleanDeploy2025:10"));
         factory = json.readAddress(".deploymentDefaults.factory");
         tokenboundRegistry = json.readAddress(".deploymentDefaults.tokenboundRegistry");
     }
@@ -274,7 +274,10 @@ abstract contract DeployHelper is Script {
     }
 
     /// @notice Find a schema by ID in the object structure and return its name and description
-    function _findSchemaDataInArray(string memory json, string memory schemaId)
+    function _findSchemaDataInArray(
+        string memory json,
+        string memory schemaId
+    )
         internal
         pure
         returns (string memory name, string memory description)

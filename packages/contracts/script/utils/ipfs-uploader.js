@@ -34,7 +34,7 @@ function getTemplateForAction(title, templates) {
   const lowerTitle = title.toLowerCase();
 
   // Define priority order for keyword matching (more specific first)
-  const keywordPriority = ["identify", "observe", "water", "litter", "waste", "plant"];
+  const keywordPriority = ["identify", "observe", "water", "litter", "waste", "plant", "harvest", "workshop"];
 
   // Try priority keywords first
   for (const keyword of keywordPriority) {

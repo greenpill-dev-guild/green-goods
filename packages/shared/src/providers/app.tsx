@@ -85,7 +85,22 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       });
   const [locale, setLocale] = useState<Locale>(defaultLocale as Locale);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [installState, setInstalledState] = useState<InstallState>("idle");
+  // Initialize state synchronously to prevent PWA landing page flash
+  const [installState, setInstalledState] = useState<InstallState>(() => {
+    if (typeof window !== "undefined") {
+      const mockInstalled = import.meta.env.VITE_MOCK_PWA_INSTALLED === "true";
+      if (
+        mockInstalled ||
+        window.matchMedia("(display-mode: standalone)").matches ||
+        window.matchMedia("(display-mode: fullscreen)").matches ||
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (window.navigator as any).standalone
+      ) {
+        return "installed";
+      }
+    }
+    return "idle";
+  });
 
   const platform = getMobileOperatingSystem();
 

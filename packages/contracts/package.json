@@ -26,7 +26,7 @@
     "deploy:sepolia": "node script/deploy.js core --network sepolia --broadcast",
     "deploy:testnet": "node script/deploy.js core --network baseSepolia --broadcast",
     "deploy:arbitrum": "node script/deploy.js core --network arbitrum --broadcast",
-    "deploy:celo": "node script/deploy.js core --network celo --broadcast",
+    "deploy:celo": "node script/deploy.js core --network celo --broadcast --update-schemas",
     "upgrade": "node script/upgrade.js",
     "upgrade:dry:mainnet": "node script/upgrade.js all --network mainnet",
     "upgrade:dry:sepolia": "node script/upgrade.js all --network sepolia",

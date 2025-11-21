@@ -179,95 +179,168 @@ ActionRegistry.ActionMediaUpdated.handler(async ({ event, context }) => {
   }
 });
 
-// Register new GardenAccount contracts when gardens are minted
-GardenToken.GardenMinted.contractRegister(({ event, context }) => {
+// Handler for the GardenMinted event
+GardenToken.GardenMinted.handler(async ({ event, context }) => {
   // Register the newly created garden account contract for event listening
   context.addGardenAccount(event.params.account);
 
   context.log.info(
     `Registered new GardenAccount at ${event.params.account} (tokenId: ${event.params.tokenId})`
   );
-});
 
-// Handler for the GardenMinted event
-GardenToken.GardenMinted.handler(async ({ event, context }) => {
-  // Create a minimal Garden entity - details will be populated by GardenAccount events
-  // (NameUpdated, DescriptionUpdated, GardenerAdded, etc.) emitted during initialization
+  const gardenId = event.params.account;
+
+  // 1. Create Garden Entity
   const gardenEntity: Garden = {
-    id: event.params.account,
+    id: gardenId,
     chainId: event.chainId,
-    name: "", // Will be set by NameUpdated event
-    description: "", // Will be set by DescriptionUpdated event
-    bannerImage: "", // Will be set by BannerImageUpdated event (if applicable)
-    location: "", // Will be set by LocationUpdated event (if applicable)
-    gardeners: [], // Will be populated by GardenerAdded events
-    operators: [], // Will be populated by GardenOperatorAdded events
+    name: event.params.name,
+    description: event.params.description,
+    location: event.params.location,
+    bannerImage: event.params.bannerImage,
+    gardeners: event.params.gardeners,
+    operators: event.params.operators,
     tokenAddress: event.srcAddress,
     tokenID: event.params.tokenId,
     createdAt: event.block.timestamp,
   };
-
   context.Garden.set(gardenEntity);
+
+  // 2. Create/Update Gardener Entities
+  for (const gardenerAddress of event.params.gardeners) {
+    const gardenerId = `${event.chainId}-${gardenerAddress}`;
+    const existingGardener = await context.Gardener.get(gardenerId);
+
+    if (existingGardener) {
+      const updatedGardens = [...new Set([...existingGardener.gardens, gardenId])];
+      context.Gardener.set({ ...existingGardener, gardens: updatedGardens });
+    } else {
+      context.Gardener.set({
+        id: gardenerId,
+        chainId: event.chainId,
+        createdAt: event.block.timestamp,
+        firstGarden: gardenId,
+        gardens: [gardenId],
+      });
+    }
+  }
 });
 
 // Handler for the NameUpdated event
 GardenAccount.NameUpdated.handler(async ({ event, context }) => {
   const gardenId = event.srcAddress;
-  const existingGarden = await context.Garden.get(gardenId);
+  let existingGarden = await context.Garden.get(gardenId);
 
-  if (existingGarden) {
-    const updatedGarden: Garden = {
-      ...existingGarden,
-      name: event.params.newName,
+  if (!existingGarden) {
+    // Create minimal garden if it doesn't exist yet
+    existingGarden = {
+      id: gardenId,
+      chainId: event.chainId,
+      tokenAddress: "",
+      tokenID: 0n,
+      name: "",
+      description: "",
+      location: "",
+      bannerImage: "",
+      gardeners: [],
+      operators: [],
+      createdAt: event.block.timestamp,
     };
-
-    context.Garden.set(updatedGarden);
   }
+
+  const updatedGarden: Garden = {
+    ...existingGarden,
+    name: event.params.newName,
+  };
+
+  context.Garden.set(updatedGarden);
 });
 
 // Handler for the DescriptionUpdated event
 GardenAccount.DescriptionUpdated.handler(async ({ event, context }) => {
   const gardenId = event.srcAddress;
-  const existingGarden = await context.Garden.get(gardenId);
+  let existingGarden = await context.Garden.get(gardenId);
 
-  if (existingGarden) {
-    const updatedGarden: Garden = {
-      ...existingGarden,
-      description: event.params.newDescription,
+  if (!existingGarden) {
+    existingGarden = {
+      id: gardenId,
+      chainId: event.chainId,
+      tokenAddress: "",
+      tokenID: 0n,
+      name: "",
+      description: "",
+      location: "",
+      bannerImage: "",
+      gardeners: [],
+      operators: [],
+      createdAt: event.block.timestamp,
     };
-
-    context.Garden.set(updatedGarden);
   }
+
+  const updatedGarden: Garden = {
+    ...existingGarden,
+    description: event.params.newDescription,
+  };
+
+  context.Garden.set(updatedGarden);
 });
 
 // Handler for the LocationUpdated event
 GardenAccount.LocationUpdated.handler(async ({ event, context }) => {
   const gardenId = event.srcAddress;
-  const existingGarden = await context.Garden.get(gardenId);
+  let existingGarden = await context.Garden.get(gardenId);
 
-  if (existingGarden) {
-    const updatedGarden: Garden = {
-      ...existingGarden,
-      location: event.params.newLocation,
+  if (!existingGarden) {
+    existingGarden = {
+      id: gardenId,
+      chainId: event.chainId,
+      tokenAddress: "",
+      tokenID: 0n,
+      name: "",
+      description: "",
+      location: "",
+      bannerImage: "",
+      gardeners: [],
+      operators: [],
+      createdAt: event.block.timestamp,
     };
-
-    context.Garden.set(updatedGarden);
   }
+
+  const updatedGarden: Garden = {
+    ...existingGarden,
+    location: event.params.newLocation,
+  };
+
+  context.Garden.set(updatedGarden);
 });
 
 // Handler for the BannerImageUpdated event
 GardenAccount.BannerImageUpdated.handler(async ({ event, context }) => {
   const gardenId = event.srcAddress;
-  const existingGarden = await context.Garden.get(gardenId);
+  let existingGarden = await context.Garden.get(gardenId);
 
-  if (existingGarden) {
-    const updatedGarden: Garden = {
-      ...existingGarden,
-      bannerImage: event.params.newBannerImage,
+  if (!existingGarden) {
+    existingGarden = {
+      id: gardenId,
+      chainId: event.chainId,
+      tokenAddress: "",
+      tokenID: 0n,
+      name: "",
+      description: "",
+      location: "",
+      bannerImage: "",
+      gardeners: [],
+      operators: [],
+      createdAt: event.block.timestamp,
     };
-
-    context.Garden.set(updatedGarden);
   }
+
+  const updatedGarden: Garden = {
+    ...existingGarden,
+    bannerImage: event.params.newBannerImage,
+  };
+
+  context.Garden.set(updatedGarden);
 });
 
 // Handler for the GardenerAdded event

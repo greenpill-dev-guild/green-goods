@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.25;
 
-import {AccountV3Upgradable} from "@tokenbound/AccountV3Upgradable.sol";
-import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import {AttestationRequest, AttestationRequestData} from "@eas/IEAS.sol";
+import { AccountV3Upgradable } from "@tokenbound/AccountV3Upgradable.sol";
+import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import { AttestationRequest, AttestationRequestData } from "@eas/IEAS.sol";
 
-import {KarmaLib} from "../lib/Karma.sol";
-import {StringUtils} from "../lib/StringUtils.sol";
-import {IGap} from "../interfaces/IKarmaGap.sol";
+import { KarmaLib } from "../lib/Karma.sol";
+import { StringUtils } from "../lib/StringUtils.sol";
+import { IGap } from "../interfaces/IKarmaGap.sol";
 
 error NotGardenOwner();
 error NotGardenOperator();
@@ -172,7 +172,9 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         address guardian,
         address workApprovalResolver,
         address assessmentResolver
-    ) AccountV3Upgradable(erc4337EntryPoint, multicallForwarder, erc6551Registry, guardian) {
+    )
+        AccountV3Upgradable(erc4337EntryPoint, multicallForwarder, erc6551Registry, guardian)
+    {
         WORK_APPROVAL_RESOLVER = workApprovalResolver;
         ASSESSMENT_RESOLVER = assessmentResolver;
         _disableInitializers();
@@ -203,7 +205,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         description = params.description;
         location = params.location;
         bannerImage = params.bannerImage;
-        metadata = params.metadata;
+        // metadata = params.metadata;
 
         // Enable open joining for root garden (tokenId 1)
         (,, uint256 tokenId) = token();
@@ -214,19 +216,11 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
 
         for (uint256 i = 0; i < params.gardeners.length; i++) {
             gardeners[params.gardeners[i]] = true;
-            emit GardenerAdded(_msgSender(), params.gardeners[i]);
         }
 
         for (uint256 i = 0; i < params.gardenOperators.length; i++) {
             gardenOperators[params.gardenOperators[i]] = true;
-            emit GardenOperatorAdded(_msgSender(), params.gardenOperators[i]);
         }
-
-        emit NameUpdated(_msgSender(), params.name);
-        emit DescriptionUpdated(_msgSender(), params.description);
-
-        emit GardenerAdded(_msgSender(), _msgSender());
-        emit GardenOperatorAdded(_msgSender(), _msgSender());
 
         // Create GAP project if supported on current chain
         if (KarmaLib.isSupported()) {
@@ -407,7 +401,11 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         string calldata impactDescription,
         string calldata proofIPFS,
         bytes32 workUID
-    ) external onlyWorkApprovalResolver returns (bytes32) {
+    )
+        external
+        onlyWorkApprovalResolver
+        returns (bytes32)
+    {
         if (gapProjectUID == bytes32(0)) revert GAPProjectNotInitialized();
         if (!KarmaLib.isSupported()) revert GAPNotSupportedOnChain();
 
@@ -447,7 +445,11 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         string calldata milestoneTitle,
         string calldata milestoneDescription,
         string calldata milestoneMeta
-    ) external onlyAssessmentResolver returns (bytes32) {
+    )
+        external
+        onlyAssessmentResolver
+        returns (bytes32)
+    {
         if (gapProjectUID == bytes32(0)) revert GAPProjectNotInitialized();
         if (!KarmaLib.isSupported()) revert GAPNotSupportedOnChain();
 
@@ -487,8 +489,8 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     function _addGAPProjectAdmin(address admin) private {
         if (gapProjectUID == bytes32(0)) return;
         // solhint-disable-next-line no-empty-blocks
-        try IGap(KarmaLib.getGapContract()).addProjectAdmin(gapProjectUID, admin) {
-        } catch { /* Non-critical: GAP sync failed */ }
+        try IGap(KarmaLib.getGapContract()).addProjectAdmin(gapProjectUID, admin) { }
+            catch { /* Non-critical: GAP sync failed */ }
     }
 
     /// @notice Internal function to remove GAP project admin
@@ -496,8 +498,8 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     function _removeGAPProjectAdmin(address admin) private {
         if (gapProjectUID == bytes32(0)) return;
         // solhint-disable-next-line no-empty-blocks
-        try IGap(KarmaLib.getGapContract()).removeProjectAdmin(gapProjectUID, admin) {
-        } catch { /* Non-critical: GAP sync failed */ }
+        try IGap(KarmaLib.getGapContract()).removeProjectAdmin(gapProjectUID, admin) { }
+            catch { /* Non-critical: GAP sync failed */ }
     }
 
     /// @notice Transfers ownership of the GAP project to a new owner
@@ -541,7 +543,11 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         string calldata impactDescription,
         string calldata proofIPFS,
         bytes32 workUID
-    ) private view returns (string memory) {
+    )
+        private
+        view
+        returns (string memory)
+    {
         (,, uint256 tokenId) = token();
         string memory isoDate = StringUtils.timestampToISO(block.timestamp);
 

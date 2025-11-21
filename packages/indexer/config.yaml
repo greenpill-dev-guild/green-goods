@@ -13,7 +13,7 @@ contracts:
   - name: GardenToken
     handler: src/EventHandlers.ts
     events:
-      - event: GardenMinted(uint256 indexed tokenId, address indexed account)
+      - event: GardenMinted(uint256 indexed tokenId, address indexed account, string name, string description, string location, string bannerImage, address[] gardeners, address[] operators)
   - name: GardenAccount
     handler: src/EventHandlers.ts
     events:
@@ -54,12 +54,14 @@ networks:
       - name: GardenAccount
         address: "0x3B4A3ACA9D52b01086F625a0EB6E6e24b65C810D"
   - id: 42161
-    start_block: 0
+    start_block: 200000000
     contracts:
       - name: ActionRegistry
-        address: "0xB1DD51F5809BddC9146dA833b53C49e5Ff75B8d4"
+        address: "0xac033393575fE76619Dc146Ee0a0482751376Cb0"
       - name: GardenToken
-        address: "0xB34e21BB86E0674d1b3d2d2Ae7a8C960a61Ec31f"
+        address: "0xFBC692bb6087cfAe03Abb432291a27780063222E"
+      - name: GardenAccount
+        address: "0x797789D3AaBDfDD9Aaa403a2ac2f12827d7cF6D4"
   - id: 1
     start_block: 0
     contracts:
