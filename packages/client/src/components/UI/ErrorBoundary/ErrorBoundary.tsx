@@ -60,7 +60,7 @@ export class GardenErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoun
                 onClick={() => window.history.back()}
               />
             </div>
-            {import.meta.env.DEV && this.state.error && (
+            {this.state.error && (
               <details className="mt-6 text-left">
                 <summary className="cursor-pointer text-sm text-gray-500">
                   Technical details

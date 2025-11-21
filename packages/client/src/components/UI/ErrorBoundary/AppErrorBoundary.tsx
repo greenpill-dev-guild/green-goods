@@ -1,3 +1,4 @@
+import { track } from "@green-goods/shared/modules";
 import {
   RiBugLine,
   RiErrorWarningLine,
@@ -6,7 +7,6 @@ import {
   RiWifiOffLine,
 } from "@remixicon/react";
 import { Component, ErrorInfo, ReactNode } from "react";
-import { track } from "@green-goods/shared/modules";
 import { Button } from "../Button";
 
 interface Props {
@@ -142,7 +142,7 @@ export class AppErrorBoundary extends Component<Props, State> {
                 </div>
 
                 {/* Development details */}
-                {import.meta.env.DEV && this.state.error && (
+                {this.state.error && (
                   <details className="mb-8 text-left w-full group">
                     <summary className="cursor-pointer font-medium text-sm text-gray-700 hover:text-gray-900 transition-colors p-3 bg-gray-50 rounded-lg border border-gray-200 group-open:rounded-b-none">
                       <span className="flex items-center justify-between">
