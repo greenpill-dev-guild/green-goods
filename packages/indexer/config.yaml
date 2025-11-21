@@ -13,12 +13,14 @@ contracts:
   - name: GardenToken
     handler: src/EventHandlers.ts
     events:
-      - event: GardenMinted(uint256 indexed tokenId, address indexed account, string name, string description, string location, string bannerImage, address[] gardeners, address[] gardenOperators)
+      - event: GardenMinted(uint256 indexed tokenId, address indexed account)
   - name: GardenAccount
     handler: src/EventHandlers.ts
     events:
       - event: NameUpdated(address indexed updater, string newName)
       - event: DescriptionUpdated(address indexed updater, string newDescription)
+      - event: LocationUpdated(address indexed updater, string newLocation)
+      - event: BannerImageUpdated(address indexed updater, string newBannerImage)
       - event: GardenerAdded(address indexed updater, address indexed gardener)
       - event: GardenerRemoved(address indexed updater, address indexed gardener)
       - event: GardenOperatorAdded(address indexed updater, address indexed operator)
