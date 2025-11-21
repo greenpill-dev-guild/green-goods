@@ -1,17 +1,15 @@
+import { initTheme } from "@green-goods/shared";
+import { AppKitProvider, PasskeyAuthProvider } from "@green-goods/shared/providers";
+import { AppProvider } from "@green-goods/shared/providers/app";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { WagmiProvider } from "wagmi";
-
 import App from "@/App.tsx";
-import { DEFAULT_CHAIN_ID } from "@/config/blockchain";
-import { wagmiConfig } from "@/config/appkit"; // Import from appkit.ts (single source of truth)
-import { AuthProvider } from "@/providers/auth";
-import { AppProvider } from "@/providers/app";
-
-// Initialize AppKit for wallet connection UI
-import "@/config/appkit";
 
 import "@/index.css";
+import "@/pinata";
+
+// Initialize theme system
+initTheme();
 
 // In development, ensure no stale service worker or caches make the app appear to run offline
 if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_SW_DEV !== "true") {
@@ -36,13 +34,24 @@ if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_SW_DEV !== "true") {
 }
 
 export const Root = () => (
-  <WagmiProvider config={wagmiConfig}>
-    <AuthProvider chainId={DEFAULT_CHAIN_ID}>
+  <AppKitProvider
+    projectId={
+      import.meta.env.VITE_REOWN_PROJECT_ID || import.meta.env.VITE_WALLETCONNECT_PROJECT_ID
+    }
+    metadata={{
+      name: "Green Goods",
+      description: "Start Bringing Biodiversity Onchain",
+      url: import.meta.env.VITE_APP_URL || window.location.origin,
+      icons: ["https://greengoods.app/icon.png"],
+    }}
+    defaultChainId={84532}
+  >
+    <PasskeyAuthProvider>
       <AppProvider>
         <App />
       </AppProvider>
-    </AuthProvider>
-  </WagmiProvider>
+    </PasskeyAuthProvider>
+  </AppKitProvider>
 );
 
 const container = document.getElementById("root");

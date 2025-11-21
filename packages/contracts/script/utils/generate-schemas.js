@@ -22,7 +22,7 @@ function loadSchemasWithGenerated(configPath) {
   const schemasObj = config.schemas || {};
 
   // Generate schema strings for each schema
-  for (const [id, schemaConfig] of Object.entries(schemasObj)) {
+  for (const [_id, schemaConfig] of Object.entries(schemasObj)) {
     if (schemaConfig.fields && Array.isArray(schemaConfig.fields)) {
       schemaConfig.generatedSchema = generateSchemaString(schemaConfig.fields);
     }

@@ -1,8 +1,9 @@
 import { RiCamera3Line } from "@remixicon/react";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
-import { cn } from "@/utils/styles/cn";
+import { cn } from "@green-goods/shared/utils";
 import { Card, type CardRootProps } from "./Card";
+import { ImageWithFallback } from "../Image/ImageWithFallback";
 
 export const cardVariants = tv({
   base: "relative flex flex-col grow border-0 rounded-lg overflow-clip rounded-b-lg justify-between p-0 gap-0 h-max-content", // Fixed height to match garden cards
@@ -33,14 +34,19 @@ const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
   ({ media, height, className, selected, action, ...props }, ref) => {
     const classes = cardVariants({ media, height, class: className });
     return (
-      <Card ref={ref} className={cn(classes)} {...props}>
-        <img
+      <Card
+        ref={ref}
+        className={cn(classes, "tap-feedback transition-all duration-300")}
+        {...props}
+      >
+        <ImageWithFallback
           src={action.media[0]}
           alt={action.description}
           className={cn(
             media === "large" ? "h-40" : "h-26", // Consistent with garden cards
-            "object-cover image-lut z-1"
+            "w-full object-cover image-lut z-1"
           )}
+          fallbackClassName={cn(media === "large" ? "h-40" : "h-26", "w-full")}
         />
         <div
           data-selected={selected}
@@ -49,7 +55,7 @@ const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
           <div className="flex flex-row gap-2">
             <div
               className={cn(
-                "absolute top-0 left-0 right-0 bottom-0 w-full h-full border-2 border-primary/50 rounded-lg opacity-0 transition-opacity z-10 pointer-events-none",
+                "absolute top-0 left-0 right-0 bottom-0 w-full h-full border-2 border-primary/50 rounded-lg opacity-0 status-transition z-10 pointer-events-none",
                 selected && "opacity-100"
               )}
             />

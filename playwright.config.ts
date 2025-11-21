@@ -8,6 +8,7 @@ loadEnv({ path: path.resolve(__dirname, ".env") });
 // Environment configuration (focused on localhost as requested)
 const environments = {
   local: {
+    admin: "https://localhost:3002", // HTTPS because of mkcert plugin
     client: "https://localhost:3001", // HTTPS because of mkcert plugin
     indexer: "http://localhost:8080/v1/graphql",
     chain: "base-sepolia", // Using deployed contracts on Base Sepolia

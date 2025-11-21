@@ -1,3 +1,5 @@
+import { useEnsName } from "@green-goods/shared/hooks";
+import { cn, formatAddress } from "@green-goods/shared/utils";
 import {
   RiCheckLine,
   RiCloseLine,
@@ -11,10 +13,9 @@ import {
 } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
-import { cn } from "../../../utils/styles/cn";
+import { ImageWithFallback } from "@/components/UI/Image/ImageWithFallback";
 import { Card } from "./Card";
 import { StatusBadge } from "./StatusBadge";
-import { formatAddress } from "@/utils/app/text";
 
 export interface WorkCardItem {
   id: string;
@@ -51,6 +52,8 @@ export interface MinimalWorkCardProps {
   gardenerName?: string;
   showGardenInfo?: boolean;
   badges?: React.ReactNode[];
+  style?: React.CSSProperties;
+  variant?: "default" | "dashboard"; // dashboard variant hides gardener info
 }
 
 const WorkTypeIcon: React.FC<{ type: string; className?: string }> = ({ type, className }) => {
@@ -126,7 +129,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({
         onClick={onClick}
         type="button"
         className={cn(
-          "flex gap-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer w-full text-left",
+          "flex gap-3 p-3 border border-slate-200 rounded-lg transition-all duration-300 cursor-pointer w-full text-left tap-feedback",
           className
         )}
       >
@@ -141,7 +144,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({
             <h4 className="font-medium text-sm text-slate-900 truncate pr-2">{work.title}</h4>
             <span
               className={cn(
-                "text-xs font-medium px-2 py-0.5 rounded-full border flex-shrink-0",
+                "text-xs font-medium px-2 py-0.5 rounded-full border flex-shrink-0 status-transition",
                 getStatusColor(work.status)
               )}
             >
@@ -168,7 +171,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({
   return (
     <Card
       className={cn(
-        "p-4 border-l-4 transition-all duration-200",
+        "p-4 border-l-4 transition-all duration-300 tap-feedback",
         isCompleted && "border-l-green-400 bg-green-50/30",
         isPending && "border-l-blue-400 bg-blue-50/30",
         isFailed && "border-l-red-400 bg-red-50/30",
@@ -216,12 +219,17 @@ export const WorkCard: React.FC<WorkCardProps> = ({
           {work.mediaPreview && work.mediaPreview.length > 0 && (
             <div className="flex -space-x-1">
               {work.mediaPreview.slice(0, 3).map((url, i) => (
-                <img
+                <div
                   key={i}
-                  src={url}
-                  alt=""
-                  className="w-6 h-6 rounded-full border-2 border-white object-cover"
-                />
+                  className="relative w-6 h-6 rounded-full border-2 border-white overflow-hidden"
+                >
+                  <ImageWithFallback
+                    src={url}
+                    alt=""
+                    className="w-full h-full object-cover"
+                    fallbackClassName="w-6 h-6 rounded-full"
+                  />
+                </div>
               ))}
               {work.mediaPreview.length > 3 && (
                 <div className="w-6 h-6 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-xs text-slate-500">
@@ -310,20 +318,30 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   gardenerName,
   showGardenInfo = false,
   badges,
+  variant = "default",
 }) => {
   const intl = useIntl();
-  const displayStatus = work.status.charAt(0).toUpperCase() + work.status.slice(1);
+  const { data: gardenerEnsName } = useEnsName(work.gardenerAddress);
+  const { data: gardenEnsName } = useEnsName(showGardenInfo ? work.gardenAddress : null, {
+    enabled: Boolean(showGardenInfo && work.gardenAddress),
+  });
+  const displayStatus = work.status
+    ? work.status.charAt(0).toUpperCase() + work.status.slice(1)
+    : "Pending";
+
   // Resolve thumbnail from media entry (supports string URL, {url}, or File)
   const initialCandidate =
     Array.isArray(work.media) && work.media.length > 0 ? work.media[0] : undefined;
   const [thumbUrl, setThumbUrl] = React.useState<string | undefined>(
     typeof initialCandidate === "string" ? initialCandidate : undefined
   );
+
   React.useEffect(() => {
     let createdUrl: string | undefined;
     try {
       const m0 =
         Array.isArray(work.media) && work.media.length > 0 ? (work.media as any[])[0] : undefined;
+
       let url: string | undefined;
       if (typeof m0 === "string") {
         url = m0;
@@ -338,8 +356,10 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
           url = createdUrl;
         }
       }
+
       setThumbUrl(url);
-    } catch {
+    } catch (error) {
+      console.error("[MinimalWorkCard] Error processing media:", error);
       setThumbUrl(undefined);
     }
     return () => {
@@ -349,10 +369,10 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
         } catch {}
       }
     };
-  }, [work.media]);
+  }, [work.media, work.id]);
   const hasFeedback = Boolean(work.feedback && work.feedback.trim().length > 0);
   const mediaCount = Array.isArray(work.media) ? work.media.length : 0;
-  const name = gardenerName || formatAddress(work.gardenerAddress);
+  const name = gardenerName || formatAddress(work.gardenerAddress, { ensName: gardenerEnsName });
   const action = actionTitle || work.title;
   const timeAgo = formatTimeAgo(work.createdAt);
 
@@ -361,15 +381,19 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
       onClick={onClick}
       type="button"
       className={cn(
-        "flex items-stretch gap-0 border border-slate-200 rounded-lg overflow-hidden transition-colors cursor-pointer bg-white w-full text-left",
-        "hover:bg-slate-50",
+        "flex items-stretch gap-0 border border-slate-200 rounded-lg overflow-hidden transition-all duration-300 cursor-pointer bg-white w-full text-left tap-feedback",
         className
       )}
     >
-      {/* Media thumbnail - flush to left edge */}
-      <div className="w-20 h-20 flex-shrink-0 bg-slate-100 overflow-hidden">
+      {/* Media thumbnail - flush to edges with 1:1 aspect ratio */}
+      <div className="w-22 flex-shrink-0 bg-slate-100 overflow-hidden relative aspect-square">
         {thumbUrl ? (
-          <img src={thumbUrl} alt="" className="w-full h-full object-cover aspect-square" />
+          <ImageWithFallback
+            src={thumbUrl}
+            alt=""
+            className="w-full h-full object-cover"
+            fallbackClassName="w-22 aspect-square"
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-slate-400">
             <RiImageLine className="w-6 h-6" />
@@ -384,7 +408,7 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
           <h4 className="font-medium text-sm text-slate-900 truncate pr-2">{action}</h4>
           <span
             className={cn(
-              "text-xs font-medium px-2 py-0.5 rounded-full border flex-shrink-0",
+              "text-xs font-medium px-2 py-0.5 rounded-full border flex-shrink-0 status-transition",
               getStatusColor(work.status)
             )}
           >
@@ -392,12 +416,24 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
           </span>
         </div>
 
-        {/* Subtitle: gardener and time */}
-        <div className="mt-0.5 text-xs text-slate-600 truncate">
-          {name}
-          <span className="mx-1">•</span>
-          {timeAgo}
-        </div>
+        {/* Subtitle: conditionally show gardener info based on variant */}
+        {variant === "dashboard" ? (
+          <div className="mt-0.5 text-xs text-slate-600 truncate">
+            {timeAgo}
+            {showGardenInfo && gardenEnsName && (
+              <>
+                <span className="mx-1">•</span>
+                {gardenEnsName}
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="mt-0.5 text-xs text-slate-600 truncate">
+            {name}
+            <span className="mx-1">•</span>
+            {timeAgo}
+          </div>
+        )}
 
         {/* Meta / Tags */}
         <div className="mt-2 flex items-center justify-between text-xs">
@@ -417,11 +453,11 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
               <React.Fragment key={i}>{badge}</React.Fragment>
             ))}
           </div>
-          {showGardenInfo && (
+          {showGardenInfo && variant !== "dashboard" && (
             <div className="flex items-center gap-2 text-slate-500">
               <span>
                 {intl.formatMessage({ id: "app.workCard.garden", defaultMessage: "Garden:" })}{" "}
-                {formatAddress(work.gardenAddress)}
+                {formatAddress(work.gardenAddress, { ensName: gardenEnsName, variant: "card" })}
               </span>
             </div>
           )}

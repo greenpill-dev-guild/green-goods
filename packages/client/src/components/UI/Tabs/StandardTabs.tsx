@@ -1,5 +1,5 @@
+import { cn } from "@green-goods/shared/utils";
 import React from "react";
-import { cn } from "@/utils/styles/cn";
 
 export interface StandardTab {
   id: string;
@@ -14,9 +14,9 @@ export interface StandardTabsProps {
   activeTab: string;
   onTabChange: (tabId: string) => void;
   className?: string;
+  triggerClassName?: string;
   variant?: "default" | "compact";
   isLoading?: boolean;
-  /** Optional CSS selector for the scrollable container to reset on tab change */
   scrollTargetSelector?: string;
 }
 
@@ -25,6 +25,7 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
   activeTab,
   onTabChange,
   className,
+  triggerClassName,
   variant = "default",
   isLoading = false,
   scrollTargetSelector,
@@ -80,10 +81,11 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
           }}
           disabled={tab.disabled}
           className={cn(
-            "flex items-center justify-center gap-1.5 text-sm font-medium transition-colors relative flex-1 min-w-0",
+            "flex items-center justify-center gap-1.5 text-sm font-medium transition-all duration-200 relative flex-1 min-w-0 tap-feedback",
             variant === "compact" ? "py-2.5" : "py-3",
-            activeTab === tab.id ? "text-primary bg-slate-50" : "text-slate-600 hover:bg-slate-50",
-            tab.disabled && "opacity-50 cursor-not-allowed"
+            activeTab === tab.id ? "text-primary bg-slate-50" : "text-slate-600",
+            tab.disabled && "opacity-50 cursor-not-allowed",
+            triggerClassName
           )}
           data-testid={`tab-${tab.id}`}
         >

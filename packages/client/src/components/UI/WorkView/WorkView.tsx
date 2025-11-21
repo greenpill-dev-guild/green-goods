@@ -1,12 +1,13 @@
 import { RiDownloadLine, RiExternalLinkLine } from "@remixicon/react";
 import React from "react";
-import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
 import { useIntl } from "react-intl";
+import { Button } from "@/components/UI/Button";
 import { GardenCard } from "@/components/UI/Card/GardenCard";
+import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/UI/Carousel/Carousel";
 import { FormCard } from "@/components/UI/Form/Card";
 import { FormInfo } from "@/components/UI/Form/Info";
-import { Button } from "@/components/UI/Button";
+import { ImageWithFallback } from "@/components/UI/Image/ImageWithFallback";
 
 export type WorkViewAction = {
   id: string;
@@ -15,6 +16,7 @@ export type WorkViewAction = {
   icon?: React.ReactNode;
   disabled?: boolean;
   visible?: boolean;
+  className?: string;
 };
 
 type WorkViewProps = {
@@ -26,6 +28,7 @@ type WorkViewProps = {
   details: Array<{ label: string; value: string; icon?: React.ComponentType<any> | null }>;
   headerIcon?: React.ComponentType<any> | null;
   primaryActions?: WorkViewAction[]; // shown near header or under details
+  feedbackSection?: React.ReactNode; // optional feedback input section
   footer?: React.ReactNode; // e.g., fixed approval bar
   showMedia?: boolean;
 };
@@ -39,6 +42,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
   details,
   headerIcon: HeaderIcon,
   primaryActions = [],
+  feedbackSection,
   footer,
   showMedia = true,
 }) => {
@@ -71,12 +75,16 @@ export const WorkView: React.FC<WorkViewProps> = ({
           </h6>
           <Carousel enablePreview previewImages={media}>
             <CarouselContent>
-              {media.map((item) => (
-                <CarouselItem key={item} className="max-w-40 aspect-3/4 rounded-2xl">
-                  <img
+              {media.map((item, index) => (
+                <CarouselItem
+                  key={item}
+                  className="max-w-40 aspect-3/4 rounded-2xl relative overflow-hidden"
+                >
+                  <ImageWithFallback
                     src={item}
-                    alt={item}
+                    alt={`Work media ${index + 1}`}
                     className="w-full h-full aspect-3/4 object-cover rounded-2xl"
+                    fallbackClassName="w-full h-full aspect-3/4 rounded-2xl"
                   />
                 </CarouselItem>
               ))}
@@ -108,23 +116,44 @@ export const WorkView: React.FC<WorkViewProps> = ({
           />
         ))}
 
+      {feedbackSection}
+
       {visibleActions.length > 0 && (
-        <div className="flex flex-row gap-3">
-          {visibleActions.map((a) => (
-            <Button
-              key={a.id}
-              onClick={a.onClick}
-              label={a.label}
-              className="flex-1"
-              variant="neutral"
-              type="button"
-              shape="pilled"
-              mode="stroke"
-              leadingIcon={(a.icon as any) ?? <RiDownloadLine className="w-5 h-5" />}
-              disabled={a.disabled}
-            />
-          ))}
-        </div>
+        <>
+          <h6 className="text-text-strong-950 mt-2">
+            {intl.formatMessage({ id: "app.home.work.actions", defaultMessage: "Actions" })}
+          </h6>
+          <div className="flex flex-col gap-3">
+            {visibleActions.map((a) => {
+              // Approval actions get special styling
+              const isApprovalAction = a.id === "approve" || a.id === "reject";
+              const isReject = a.id === "reject";
+
+              // Use custom styling for utility actions (no variant colors)
+              const hasCustomStyling = !!a.className;
+
+              return (
+                <Button
+                  key={a.id}
+                  onClick={a.onClick}
+                  label={a.label}
+                  className={
+                    a.className
+                      ? `w-full touch-manipulation ${a.className}`
+                      : "w-full touch-manipulation"
+                  }
+                  variant={hasCustomStyling ? undefined : isReject ? "error" : "primary"}
+                  type="button"
+                  shape="pilled"
+                  mode={hasCustomStyling ? undefined : isApprovalAction ? "filled" : "stroke"}
+                  size="medium"
+                  leadingIcon={(a.icon as any) ?? <RiDownloadLine className="w-6 h-6" />}
+                  disabled={a.disabled}
+                />
+              );
+            })}
+          </div>
+        </>
       )}
 
       {footer}

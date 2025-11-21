@@ -1,7 +1,7 @@
+import { useGardenInvites } from "@green-goods/shared/hooks/garden";
+import { cn } from "@green-goods/shared/utils";
+import { RiClipboardLine, RiCloseLine } from "@remixicon/react";
 import { useState } from "react";
-import { RiCloseLine, RiClipboardLine } from "@remixicon/react";
-import { cn } from "@/utils/cn";
-import { useGardenInvites } from "@/hooks/useGardenInvites";
 
 interface CreateInviteModalProps {
   isOpen: boolean;
@@ -58,15 +58,15 @@ export function CreateInviteModal({ isOpen, onClose, gardenAddress }: CreateInvi
       />
 
       {/* Modal Content */}
-      <div className="relative bg-white rounded-lg shadow-xl max-w-lg w-full p-6 z-10">
+      <div className="relative bg-bg-white rounded-lg shadow-xl max-w-lg w-full p-6 z-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-medium text-gray-900">
+          <h3 className="text-lg font-medium text-text-strong">
             {step === "config" ? "Create Garden Invite" : "Invite Created"}
           </h3>
           <button
             onClick={handleClose}
-            className="p-2 text-gray-400 hover:text-gray-600 rounded-md"
+            className="p-2 text-text-soft hover:text-text-sub rounded-md"
             type="button"
           >
             <RiCloseLine className="h-5 w-5" />
@@ -76,14 +76,14 @@ export function CreateInviteModal({ isOpen, onClose, gardenAddress }: CreateInvi
         {step === "config" ? (
           <div className="space-y-4">
             <div>
-              <label htmlFor="expiry" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="expiry" className="block text-sm font-medium text-text-sub mb-2">
                 Invite Expiration
               </label>
               <select
                 id="expiry"
                 value={expiryDays}
                 onChange={(e) => setExpiryDays(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="w-full px-3 py-2 border border-stroke-sub rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 disabled={isLoading}
               >
                 <option value={1}>1 day</option>
@@ -94,8 +94,8 @@ export function CreateInviteModal({ isOpen, onClose, gardenAddress }: CreateInvi
               </select>
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm text-blue-800">
+            <div className="bg-information-lighter border border-information-light rounded-lg p-4">
+              <p className="text-sm text-information-dark">
                 <strong>Note:</strong> Invite codes are single-use and will expire after the
                 selected duration. The transaction to join the garden will be sponsored (no gas fees
                 for the user).
@@ -103,12 +103,12 @@ export function CreateInviteModal({ isOpen, onClose, gardenAddress }: CreateInvi
             </div>
 
             {/* Buttons */}
-            <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200">
+            <div className="flex items-center justify-end space-x-3 pt-6 border-t border-stroke-soft">
               <button
                 type="button"
                 onClick={handleClose}
                 disabled={isLoading}
-                className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+                className="px-4 py-2 border border-stroke-sub text-sm font-medium rounded-md text-text-sub hover:bg-bg-weak focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -118,7 +118,7 @@ export function CreateInviteModal({ isOpen, onClose, gardenAddress }: CreateInvi
                 disabled={isLoading}
                 className={cn(
                   "px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500",
-                  isLoading ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
+                  isLoading ? "bg-bg-surface cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
                 )}
               >
                 {isLoading ? "Creating..." : "Create Invite"}
@@ -127,11 +127,11 @@ export function CreateInviteModal({ isOpen, onClose, gardenAddress }: CreateInvi
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <p className="text-sm text-green-800 mb-2">
+            <div className="bg-success-lighter border border-success-light rounded-lg p-4">
+              <p className="text-sm text-success-dark mb-2">
                 <strong>✓ Invite created successfully!</strong>
               </p>
-              <p className="text-xs text-green-700">
+              <p className="text-xs text-success-dark">
                 Share this link or QR code with people you want to invite to your garden.
               </p>
             </div>
@@ -139,7 +139,7 @@ export function CreateInviteModal({ isOpen, onClose, gardenAddress }: CreateInvi
             <div>
               <label
                 htmlFor="invite-link-input"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-text-sub mb-2"
               >
                 Invite Link
               </label>
@@ -149,26 +149,26 @@ export function CreateInviteModal({ isOpen, onClose, gardenAddress }: CreateInvi
                   type="text"
                   value={inviteLink}
                   readOnly
-                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md bg-gray-50 text-sm font-mono"
+                  className="w-full px-3 py-2 pr-10 border border-stroke-sub rounded-md bg-bg-weak text-sm font-mono"
                 />
                 <button
                   type="button"
                   onClick={handleCopy}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-text-soft hover:text-text-sub"
                   title="Copy to clipboard"
                 >
                   <RiClipboardLine className="h-4 w-4" />
                 </button>
               </div>
-              {copied && <p className="text-xs text-green-600 mt-1">✓ Copied to clipboard!</p>}
+              {copied && <p className="text-xs text-success-base mt-1">✓ Copied to clipboard!</p>}
             </div>
 
             {/* Buttons */}
-            <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200">
+            <div className="flex items-center justify-end space-x-3 pt-6 border-t border-stroke-soft">
               <button
                 type="button"
                 onClick={handleClose}
-                className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                className="px-4 py-2 border border-stroke-sub text-sm font-medium rounded-md text-text-sub hover:bg-bg-weak focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
               >
                 Done
               </button>

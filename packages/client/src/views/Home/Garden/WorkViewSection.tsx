@@ -1,4 +1,12 @@
-import { RiCheckDoubleFill, RiLeafFill, RiPencilFill, RiPlantFill } from "@remixicon/react";
+import {
+  RiCheckDoubleFill,
+  RiDownloadLine,
+  RiExternalLinkLine,
+  RiLeafFill,
+  RiPencilFill,
+  RiPlantFill,
+  RiShareLine,
+} from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
 import { WorkView, type WorkViewAction } from "@/components/UI/WorkView/WorkView";
@@ -32,8 +40,9 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
 }) => {
   const intl = useIntl();
 
-  const { feedback, media } = work;
+  const { feedback: workFeedback, media } = work;
 
+  // Utility actions (download, share, view attestation)
   const primaryActions: WorkViewAction[] = [
     {
       id: "download-data",
@@ -42,6 +51,9 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
         defaultMessage: "Download Data",
       }),
       onClick: onDownloadData,
+      icon: <RiDownloadLine className="w-6 h-6" />,
+      className:
+        "!bg-white !border-2 !border-[#3E8E4E] !text-[#3E8E4E] hover:!bg-[#3E8E4E]/5 !outline-none",
     },
     ...(media && media.length > 0 && onDownloadMedia
       ? [
@@ -52,6 +64,9 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
               defaultMessage: "Download Media",
             }),
             onClick: onDownloadMedia,
+            icon: <RiDownloadLine className="w-6 h-6" />,
+            className:
+              "!bg-white !border-2 !border-[#FF7533] !text-[#FF7533] hover:!bg-[#FF7533]/5 !outline-none",
           },
         ]
       : []),
@@ -59,6 +74,9 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       id: "share",
       label: intl.formatMessage({ id: "app.home.work.share", defaultMessage: "Share Work" }),
       onClick: onShare,
+      icon: <RiShareLine className="w-6 h-6" />,
+      className:
+        "!bg-white !border-2 !border-[#D28560] !text-[#D28560] hover:!bg-[#D28560]/5 !outline-none",
     },
     ...(onViewAttestation
       ? [
@@ -69,10 +87,30 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
               defaultMessage: "View Attestation",
             }),
             onClick: onViewAttestation,
+            icon: <RiExternalLinkLine className="w-6 h-6" />,
+            className:
+              "!bg-white !border-2 !border-[#6EE0F7] !text-[#6EE0F7] hover:!bg-[#6EE0F7]/5 !outline-none",
           },
         ]
       : []),
   ];
+
+  const metadataUnavailable = intl.formatMessage({
+    id: "app.status.notAvailable",
+    defaultMessage: "Not available",
+  });
+  const plantSelectionValue =
+    workMetadata?.plantSelection && workMetadata.plantSelection.length > 0
+      ? workMetadata.plantSelection.join(", ")
+      : workMetadata
+        ? ""
+        : metadataUnavailable;
+  const plantCountValue =
+    typeof workMetadata?.plantCount === "number"
+      ? workMetadata.plantCount.toString()
+      : workMetadata
+        ? ""
+        : metadataUnavailable;
 
   return (
     <WorkView
@@ -114,17 +152,17 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
             id: "app.home.workApproval.plantTypes",
             defaultMessage: "Plant Types",
           }),
-          value: workMetadata?.plantSelection.join(", ") || "",
+          value: plantSelectionValue,
           icon: RiPlantFill,
         },
-        ...(feedback
+        ...(workFeedback
           ? [
               {
                 label: intl.formatMessage({
                   id: "app.home.workApproval.description",
                   defaultMessage: "Description",
                 }),
-                value: feedback,
+                value: workFeedback,
                 icon: RiPencilFill,
               },
             ]
@@ -134,7 +172,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
             id: "app.home.workApproval.plantAmount",
             defaultMessage: "Plant Amount",
           }),
-          value: workMetadata?.plantCount?.toString() || "",
+          value: plantCountValue,
           icon: RiLeafFill,
         },
       ]}

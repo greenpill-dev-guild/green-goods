@@ -1,3 +1,5 @@
+import { useNavigateToTop } from "@green-goods/shared/hooks";
+import { cn } from "@green-goods/shared/utils";
 import {
   type RemixiconComponentType,
   RiHomeFill,
@@ -10,12 +12,10 @@ import {
 import { useIntl } from "react-intl";
 import { Link, useLocation } from "react-router-dom";
 
-import { useNavigateToTop } from "@/hooks/app/useNavigateToTop";
-import { cn } from "@/utils/styles/cn";
-
 export const AppBar = () => {
   const { pathname } = useLocation();
   const isGarden = pathname.startsWith("/garden");
+  const isWorkDetail = pathname.includes("/work/");
   const intl = useIntl();
   const navigate = useNavigateToTop();
 
@@ -49,7 +49,7 @@ export const AppBar = () => {
     <nav
       className={cn(
         "fixed bottom-0 bg-white border-t border-t-stroke-soft-200 flex flex-row justify-evenly items-center w-full py-3 z-[10000] transition-transform duration-300",
-        isGarden ? "translate-y-full" : "translate-y-0"
+        isGarden || isWorkDetail ? "translate-y-full" : "translate-y-0"
       )}
     >
       {tabs.map(({ path, ActiveIcon, InactiveIcon, title }) => {

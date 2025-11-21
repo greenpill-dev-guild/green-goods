@@ -1,21 +1,37 @@
+import { useEnsAvatar, useGardenerProfile, useUser } from "@green-goods/shared/hooks";
+import { resolveAvatarUrl } from "@green-goods/shared/modules";
+import { formatAddress } from "@green-goods/shared/utils";
 import { RiHeadphoneLine, RiSettings2Fill } from "@remixicon/react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Profile as UserProfile } from "@/components/UI/Profile/Profile";
 import { type StandardTab, StandardTabs } from "@/components/UI/Tabs";
-import { useUser } from "@/hooks/auth/useUser";
-import { formatAddress } from "@/utils/app/text";
 import { ProfileAccount } from "./Account";
 import { ProfileHelp } from "./Help";
 
-const Profile: React.FC = () => {
-  const { smartAccountAddress, eoa } = useUser();
-  const intl = useIntl();
-  const [activeTab, setActiveTab] = useState("account");
+const DEFAULT_AVATAR = "/images/avatar.png";
 
-  // Primary address is smart account (if available) or EOA
-  const primaryAddress = smartAccountAddress || eoa?.address;
-  const displayName = primaryAddress ? formatAddress(primaryAddress) : "Unknown";
+const Profile: React.FC = () => {
+  const { user, ensName } = useUser();
+  const { profile } = useGardenerProfile();
+  const intl = useIntl();
+  const [activeTab, setActiveTab] = useState<"account" | "help">("account");
+
+  const primaryAddress = user?.id;
+  const formattedAddress = primaryAddress ? formatAddress(primaryAddress, { ensName }) : null;
+
+  const { data: ensAvatar, isLoading: isLoadingAvatar } = useEnsAvatar(primaryAddress ?? undefined);
+
+  const fallbackDisplayName = intl.formatMessage({
+    id: "app.garden.gardeners.unknownUser",
+    defaultMessage: "Unknown User",
+  });
+
+  const displayName = profile?.name?.trim() || ensName || formattedAddress || fallbackDisplayName;
+
+  const headerAvatar = profile?.imageURI
+    ? resolveAvatarUrl(profile.imageURI)
+    : ensAvatar || DEFAULT_AVATAR;
 
   const tabs: StandardTab[] = [
     {
@@ -36,26 +52,16 @@ const Profile: React.FC = () => {
     },
   ];
 
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case "account":
-        return <ProfileAccount />;
-      case "help":
-        return <ProfileHelp />;
-      default:
-        return <ProfileAccount />;
-    }
-  };
-
   return (
-    <section className="flex flex-col h-full">
+    <section className="flex h-full flex-col">
       {/* Fixed Header */}
-      <div className="fixed w-full top-0 left-0 bg-white z-10">
+      <div className="fixed left-0 top-0 z-10 w-full bg-white">
         <div className="px-4 pt-6 pb-4">
           <UserProfile
             displayName={displayName}
-            avatar="/images/avatar.png"
-            wallet={primaryAddress ? formatAddress(primaryAddress) : undefined}
+            avatar={headerAvatar}
+            isLoadingAvatar={isLoadingAvatar && !profile?.imageURI}
+            location={profile?.location?.trim() || undefined}
           />
         </div>
 
@@ -63,15 +69,17 @@ const Profile: React.FC = () => {
         <StandardTabs
           tabs={tabs}
           activeTab={activeTab}
-          onTabChange={setActiveTab}
+          onTabChange={(tabId) => setActiveTab(tabId as "account" | "help")}
           variant="compact"
           scrollTargetSelector="#profile-scroll"
         />
       </div>
 
       {/* Content */}
-      <div id="profile-scroll" className="flex-1 pt-64 pb-4 overflow-y-auto">
-        <div className="padded flex flex-col gap-4 my-4">{renderTabContent()}</div>
+      <div id="profile-scroll" className="flex-1 overflow-x-hidden overflow-y-auto pt-64 pb-4">
+        <div className="padded my-4 flex flex-col gap-4">
+          {activeTab === "help" ? <ProfileHelp /> : <ProfileAccount />}
+        </div>
       </div>
     </section>
   );

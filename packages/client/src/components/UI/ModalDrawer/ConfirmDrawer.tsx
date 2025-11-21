@@ -11,6 +11,7 @@ export type ConfirmDrawerProps = {
   confirmLabel: string;
   cancelLabel?: string;
   confirmVariant?: "primary" | "error" | "neutral";
+  confirmDisabled?: boolean;
   onConfirm: () => void;
   children?: React.ReactNode;
 };
@@ -23,6 +24,7 @@ export const ConfirmDrawer: React.FC<ConfirmDrawerProps> = ({
   confirmLabel,
   cancelLabel,
   confirmVariant = "primary",
+  confirmDisabled = false,
   onConfirm,
   children,
 }) => {
@@ -48,6 +50,7 @@ export const ConfirmDrawer: React.FC<ConfirmDrawerProps> = ({
             variant={confirmVariant}
             mode="filled"
             className="flex-1"
+            disabled={confirmDisabled}
           />
         </div>
       </div>

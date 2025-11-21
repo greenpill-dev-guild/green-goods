@@ -1,9 +1,25 @@
 import { createBrowserRouter, redirect } from "react-router-dom";
 
+const HydrationLoader = () => (
+  <div
+    className="min-h-screen flex items-center justify-center bg-white"
+    role="status"
+    aria-live="polite"
+    aria-busy="true"
+  >
+    <div className="flex flex-col items-center gap-3">
+      {/* Minimal spinner */}
+      <div className="h-10 w-10 animate-spin rounded-full border-3 border-green-200 border-t-green-600" />
+      <span className="sr-only">Loading Green Goods</span>
+    </div>
+  </div>
+);
+
 export const router = createBrowserRouter([
   {
     id: "root",
     lazy: async () => ({ Component: (await import("@/routes/Root")).default }),
+    hydrateFallbackElement: <HydrationLoader />,
     children: [
       {
         path: "landing",
@@ -12,6 +28,12 @@ export const router = createBrowserRouter([
       {
         path: "login",
         lazy: async () => ({ Component: (await import("@/views/Login")).default }),
+        children: [
+          {
+            path: "recover",
+            lazy: async () => ({ Component: (await import("@/views/Login/Recovery")).default }),
+          },
+        ],
       },
       {
         lazy: async () => ({ Component: (await import("@/routes/RequireInstalled")).default }),

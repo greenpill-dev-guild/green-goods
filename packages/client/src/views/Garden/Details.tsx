@@ -1,4 +1,5 @@
 import { RiFileFill } from "@remixicon/react";
+import { useEffect } from "react";
 import type { Control, UseFormRegister } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { FormInfo } from "@/components/UI/Form/Info";
@@ -7,8 +8,7 @@ import { FormSelect } from "@/components/UI/Form/Select";
 import { FormText } from "@/components/UI/Form/Text";
 
 interface WorkDetailsProps {
-  instruction: string;
-  feedbackPlaceholder: string;
+  config?: Action["details"];
   inputs: WorkInput[];
   register: UseFormRegister<{
     feedback: string;
@@ -22,35 +22,71 @@ interface WorkDetailsProps {
   }>;
 }
 
-export const WorkDetails: React.FC<WorkDetailsProps> = ({
-  instruction,
-  feedbackPlaceholder,
-  register,
-  control,
-  inputs,
-}) => {
+export const WorkDetails: React.FC<WorkDetailsProps> = ({ config, register, control, inputs }) => {
   const intl = useIntl();
+  const detailsTitle =
+    config?.title ??
+    intl.formatMessage({
+      id: "app.garden.details.title",
+      description: "Enter Details",
+    });
+  const detailsDescription =
+    config?.description ??
+    intl.formatMessage({
+      id: "app.garden.submit.tab.details.instruction",
+      defaultMessage: "Provide detailed information and feedback",
+    });
+  const feedbackPlaceholder =
+    config?.feedbackPlaceholder ??
+    intl.formatMessage({
+      id: "app.garden.details.feedbackPlaceholder",
+      defaultMessage: "Provide feedback or any observations",
+    });
+
   return (
     <div className="flex flex-col gap-4">
-      <FormInfo
-        title={intl.formatMessage({
-          id: "app.garden.details.title",
-          description: "Enter Details",
-        })}
-        info={instruction}
-        Icon={RiFileFill}
-      />
-      {inputs.map(({ placeholder, options, required, title, key, type }) => {
+      <FormInfo title={detailsTitle} info={detailsDescription} Icon={RiFileFill} />
+      {inputs.map((input) => {
+        if (!input) return null;
+
+        const {
+          placeholder = "",
+          options = [],
+          required = false,
+          title = "",
+          key,
+          type,
+        } = input as WorkInput & { options?: string[] };
+
+        const selectOptions = Array.isArray(options) ? options : [];
+        const registerOptions =
+          type === "number"
+            ? {
+                setValueAs: (value: unknown) => {
+                  if (value === "" || value === null || value === undefined) {
+                    return undefined;
+                  }
+                  if (typeof value === "number") return value;
+                  if (typeof value === "string") {
+                    const parsed = Number(value);
+                    return Number.isNaN(parsed) ? undefined : parsed;
+                  }
+                  return undefined;
+                },
+              }
+            : undefined;
+
         if (type === "number") {
           return (
             <FormInput
               key={key}
               // @ts-ignore
-              {...register(key)}
+              {...register(key, registerOptions)}
               label={title}
               type="number"
               placeholder={placeholder}
               required={required}
+              inputMode="numeric"
             />
           );
         }
@@ -58,11 +94,10 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
           return (
             <FormSelect
               key={key}
-              // @ts-ignore
-              {...register(key)}
+              name={key}
               label={title}
               placeholder={placeholder}
-              options={options.map((option) => ({
+              options={selectOptions.map((option) => ({
                 label: option,
                 value: option,
               }))}
@@ -75,7 +110,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
             <FormInput
               key={key}
               // @ts-ignore
-              {...register(key)}
+              {...register(key, registerOptions)}
               label={title}
               placeholder={placeholder}
               required={required}
@@ -87,7 +122,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
             <FormText
               key={key}
               // @ts-ignore
-              {...register(key)}
+              {...register(key, registerOptions)}
               label={title}
               rows={3}
               placeholder={placeholder}

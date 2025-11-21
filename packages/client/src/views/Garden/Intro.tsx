@@ -138,7 +138,12 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
 
           {gardens.length > 0 &&
             gardens.map((garden) => (
-              <CarouselItem key={garden.id} onClick={() => setGardenAddress(garden.id)}>
+              <CarouselItem
+                key={garden.id}
+                onClick={() => {
+                  setGardenAddress(garden.id);
+                }}
+              >
                 <GardenCard
                   garden={garden}
                   height="selection"

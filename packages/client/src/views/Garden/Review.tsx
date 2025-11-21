@@ -1,9 +1,10 @@
-import { RiFileFill, RiHammerFill, RiLeafFill, RiPencilFill, RiPlantFill } from "@remixicon/react";
+import { RiFileFill, RiLeafFill, RiPencilFill, RiPlantFill } from "@remixicon/react";
+import { useEffect } from "react";
 import { useIntl } from "react-intl";
 import { WorkView } from "@/components/UI/WorkView/WorkView";
 
 interface WorkReviewProps {
-  instruction: string;
+  reviewConfig?: Action["review"];
   garden: Garden;
   action: Action;
   images: File[];
@@ -16,7 +17,7 @@ interface WorkReviewProps {
 export const WorkReview: React.FC<WorkReviewProps> = ({
   action,
   garden,
-  instruction,
+  reviewConfig,
   images,
   values,
   plantSelection,
@@ -24,6 +25,15 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
   feedback,
 }) => {
   const intl = useIntl();
+  const reviewTitle =
+    reviewConfig?.title ??
+    intl.formatMessage({ id: "app.garden.review.title", defaultMessage: "Review Work" });
+  const reviewDescription =
+    reviewConfig?.description ??
+    intl.formatMessage({
+      id: "app.garden.submit.tab.review.instruction",
+      defaultMessage: "Check if the information is correct",
+    });
 
   const dynamicDetails = (action.inputs || [])
     .map((input) => {
@@ -46,11 +56,6 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
     .filter(Boolean) as Array<{ label: string; value: string; icon: any }>;
 
   const baseDetails = [
-    {
-      label: intl.formatMessage({ id: "app.garden.review.action", defaultMessage: "Action" }),
-      value: action.title,
-      icon: RiHammerFill,
-    },
     {
       label: intl.formatMessage({
         id: "app.garden.review.plantTypes",
@@ -83,8 +88,8 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
 
   return (
     <WorkView
-      title={intl.formatMessage({ id: "app.garden.review.title", defaultMessage: "Review Work" })}
-      info={instruction}
+      title={reviewTitle}
+      info={reviewDescription}
       garden={garden}
       actionTitle={action.title}
       media={images.map((f) => URL.createObjectURL(f))}

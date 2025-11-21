@@ -11,14 +11,16 @@ interface FormTextProps extends InputHTMLAttributes<HTMLTextAreaElement> {
 export const FormText = forwardRef<HTMLTextAreaElement, FormTextProps>(
   ({ rows, label, error, className, helperText, ...props }, ref) => {
     return (
-      <div className={`${className} flex flex-col gap-1`}>
+      <div className={`flex flex-col gap-1 ${className ?? ""} ${error ? "shake-error" : ""}`}>
         <label htmlFor={props.id} className="font-semibold text-slate-800  text-label-sm">
           {label}
         </label>
         <textarea
           ref={ref}
           id={props.id}
-          className="py-3 px-4 block w-full border-stroke-sub-300 bg-white rounded-lg text-sm disabled:opacity-50 disabled:pointer-events-none border"
+          className={`py-3 px-4 block w-full border-stroke-sub-300 bg-white rounded-lg text-sm disabled:opacity-50 disabled:pointer-events-none border transition-all duration-200 ${
+            error ? "border-error-base focus:ring-error-lighter" : "focus:input-focus-animation"
+          }`}
           rows={rows}
           {...props}
         />

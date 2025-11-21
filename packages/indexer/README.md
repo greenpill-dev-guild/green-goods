@@ -4,11 +4,45 @@ This package contains the Envio indexer for Green Goods contracts. It exposes a 
 
 ### Run
 
+**First, ensure Docker Desktop is running:**
+```bash
+open -a Docker
+# Wait 30 seconds for it to fully start
+```
+
+**Then start the indexer:**
 ```bash
 bun dev
 ```
 
+This command:
+1. Checks Docker is accessible (fails fast with clear instructions if not)
+2. Stops any running indexer instances
+3. Installs ReScript dependencies in the `generated/` folder
+4. Builds the ReScript code
+5. Starts the indexer
+
 Visit http://localhost:8080 to see the GraphQL Playground, local password is `testing`.
+
+**Alternative commands:**
+```bash
+# Stop the indexer
+bun stop
+
+# Just setup ReScript dependencies
+bun run setup-generated
+
+# Start without automatic setup (assumes already setup)
+bun run dev:manual
+```
+
+**If you get "Docker is not running" error:**
+```bash
+open -a Docker
+# Wait 30 seconds
+docker ps  # Verify it's working
+bun dev
+```
 
 ### Generate files from `config.yaml` or `schema.graphql`
 
@@ -16,11 +50,13 @@ Visit http://localhost:8080 to see the GraphQL Playground, local password is `te
 bun codegen
 ```
 
+After codegen, run `bun run setup-generated` to rebuild ReScript.
+
 ### Pre-requisites
 
 - [Node.js (use v18 or newer)](https://nodejs.org/en/download/current)
 - [bun (use v9 or newer)](https://bun.io/installation)
-- [Docker desktop](https://www.docker.com/products/docker-desktop/)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) - **Required** (script auto-starts it)
 
 ### Environment Variables
 
@@ -89,18 +125,29 @@ Or directly run:
 
 ### ReScript Compilation Errors
 
-If you encounter `Error: package @rescript/react not found or built` during codegen, or `Cannot find module './src/db/Migrations.res.js'` when running dev:
+If you encounter `Error: Cannot find module 'rescript-envsafe/src/EnvSafe.res.js'` or similar ReScript errors:
 
 **Solution:**
+
+The `bun dev` command now automatically handles this. If you still encounter issues:
+
 ```bash
-cd generated
-npm install --legacy-peer-deps
-npm run build
-cd ..
-bun dev
+# Reset and setup
+bun reset
+bun run setup-generated
+bun run dev:manual
 ```
 
-This is a workaround for bun workspace hoisting. The `generated` folder needs its own `node_modules` with ReScript packages to compile the generated code.
+**Manual fix:**
+```bash
+cd generated
+pnpm install
+pnpm run build
+cd ..
+bun run dev:manual
+```
+
+**Why this happens:** ReScript needs dependencies installed locally in the `generated/` folder. Envio uses pnpm for proper Node.js module resolution, while bun's workspace hoisting puts dependencies at the root.
 
 ### Other Common Issues
 

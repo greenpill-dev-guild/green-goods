@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.25;
 
-import { AccountV3Upgradable } from "@tokenbound/AccountV3Upgradable.sol";
-import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import { AttestationRequest, AttestationRequestData } from "@eas/IEAS.sol";
+import {AccountV3Upgradable} from "@tokenbound/AccountV3Upgradable.sol";
+import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import {AttestationRequest, AttestationRequestData} from "@eas/IEAS.sol";
 
-import { KarmaLib } from "../lib/Karma.sol";
-import { StringUtils } from "../lib/StringUtils.sol";
-import { IGap } from "../interfaces/IKarmaGap.sol";
+import {KarmaLib} from "../lib/Karma.sol";
+import {StringUtils} from "../lib/StringUtils.sol";
+import {IGap} from "../interfaces/IKarmaGap.sol";
 
 error NotGardenOwner();
 error NotGardenOperator();
@@ -20,8 +20,6 @@ error GAPProjectNotInitialized();
 error GAPNotSupportedOnChain();
 error GAPImpactCreationFailed();
 error GAPMilestoneCreationFailed();
-error InvalidGAPOwner();
-error GAPOwnershipTransferFailed();
 
 /// @title GardenAccount Contract
 /// @notice Manages gardeners and operators for a Garden, and supports community token management.
@@ -36,6 +34,26 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     /// @param updater The address of the entity that updated the description.
     /// @param newDescription The new description of the garden.
     event DescriptionUpdated(address indexed updater, string newDescription);
+
+    /// @notice Emitted when the garden metadata is updated.
+    /// @param updater The address of the entity that updated the metadata.
+    /// @param newMetadata The new IPFS CID containing metadata JSON.
+    event MetadataUpdated(address indexed updater, string newMetadata);
+
+    /// @notice Emitted when the community token is updated.
+    /// @param updater The address of the entity that updated the token.
+    /// @param newToken The new community token address.
+    event CommunityTokenUpdated(address indexed updater, address newToken);
+
+    /// @notice Emitted when the garden location is updated.
+    /// @param updater The address of the entity that updated the location.
+    /// @param newLocation The new location of the garden.
+    event LocationUpdated(address indexed updater, string newLocation);
+
+    /// @notice Emitted when the garden banner image is updated.
+    /// @param updater The address of the entity that updated the banner.
+    /// @param newBannerImage The new banner image CID.
+    event BannerImageUpdated(address indexed updater, string newBannerImage);
 
     /// @notice Emitted when a new gardener is added.
     /// @param updater The address of the entity that added the gardener.
@@ -77,6 +95,9 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
 
     /// @notice The CID of the banner image of the garden.
     string public bannerImage;
+
+    /// @notice The IPFS CID containing additional garden metadata as JSON
+    string public metadata;
 
     /// @notice Mapping of gardener addresses to their status.
     mapping(address gardener => bool isGardener) public gardeners;
@@ -151,43 +172,38 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         address guardian,
         address workApprovalResolver,
         address assessmentResolver
-    )
-        AccountV3Upgradable(erc4337EntryPoint, multicallForwarder, erc6551Registry, guardian)
-    {
+    ) AccountV3Upgradable(erc4337EntryPoint, multicallForwarder, erc6551Registry, guardian) {
         WORK_APPROVAL_RESOLVER = workApprovalResolver;
         ASSESSMENT_RESOLVER = assessmentResolver;
         _disableInitializers();
     }
 
+    struct InitParams {
+        address communityToken;
+        string name;
+        string description;
+        string location;
+        string bannerImage;
+        string metadata;
+        address[] gardeners;
+        address[] gardenOperators;
+    }
+
     /// @notice Initializes the GardenAccount with initial gardeners and operators.
     /// @dev This function must be called after the contract is deployed.
-    /// @param _communityToken The address of the community token associated with the garden.
-    /// @param _name The name of the garden.
-    /// @param _description The description of the garden.
-    /// @param _gardeners An array of addresses representing the initial gardeners.
-    /// @param _gardenOperators An array of addresses representing the initial garden operators.
-    function initialize(
-        address _communityToken,
-        string calldata _name,
-        string calldata _description,
-        string calldata _location,
-        string calldata _bannerImage,
-        address[] calldata _gardeners,
-        address[] calldata _gardenOperators
-    )
-        external
-        initializer
-    {
+    /// @param params Initialization parameters struct
+    function initialize(InitParams calldata params) external initializer {
         // Validate array lengths to prevent gas exhaustion
-        if (_gardeners.length > 50) revert TooManyGardeners();
-        if (_gardenOperators.length > 20) revert TooManyOperators();
+        if (params.gardeners.length > 50) revert TooManyGardeners();
+        if (params.gardenOperators.length > 20) revert TooManyOperators();
 
         // Note: Community token validation is performed by GardenToken before minting
-        communityToken = _communityToken;
-        name = _name;
-        description = _description;
-        location = _location;
-        bannerImage = _bannerImage;
+        communityToken = params.communityToken;
+        name = params.name;
+        description = params.description;
+        location = params.location;
+        bannerImage = params.bannerImage;
+        metadata = params.metadata;
 
         // Enable open joining for root garden (tokenId 1)
         (,, uint256 tokenId) = token();
@@ -196,18 +212,18 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         gardeners[_msgSender()] = true;
         gardenOperators[_msgSender()] = true;
 
-        for (uint256 i = 0; i < _gardeners.length; i++) {
-            gardeners[_gardeners[i]] = true;
-            emit GardenerAdded(_msgSender(), _gardeners[i]);
+        for (uint256 i = 0; i < params.gardeners.length; i++) {
+            gardeners[params.gardeners[i]] = true;
+            emit GardenerAdded(_msgSender(), params.gardeners[i]);
         }
 
-        for (uint256 i = 0; i < _gardenOperators.length; i++) {
-            gardenOperators[_gardenOperators[i]] = true;
-            emit GardenOperatorAdded(_msgSender(), _gardenOperators[i]);
+        for (uint256 i = 0; i < params.gardenOperators.length; i++) {
+            gardenOperators[params.gardenOperators[i]] = true;
+            emit GardenOperatorAdded(_msgSender(), params.gardenOperators[i]);
         }
 
-        emit NameUpdated(_msgSender(), _name);
-        emit DescriptionUpdated(_msgSender(), _description);
+        emit NameUpdated(_msgSender(), params.name);
+        emit DescriptionUpdated(_msgSender(), params.description);
 
         emit GardenerAdded(_msgSender(), _msgSender());
         emit GardenOperatorAdded(_msgSender(), _msgSender());
@@ -219,156 +235,151 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
             _addGAPProjectAdmin(_msgSender());
 
             // Add all operators as GAP project admins
-            for (uint256 i = 0; i < _gardenOperators.length; i++) {
-                _addGAPProjectAdmin(_gardenOperators[i]);
+            for (uint256 i = 0; i < params.gardenOperators.length; i++) {
+                _addGAPProjectAdmin(params.gardenOperators[i]);
             }
         }
     }
 
-    /// @notice Updates the name of the garden.
-    /// @dev Only callable by a valid signer of the contract.
-    /// @param _name The new name of the garden.
+    /// @dev Temporarily disabled to reduce contract size - can be re-enabled via upgrade
+    // function updateCommunityToken(address _communityToken) external onlyOperator {
+    //     communityToken = _communityToken;
+    //     emit CommunityTokenUpdated(_msgSender(), _communityToken);
+    // }
+
+    /// @notice Updates the name of the garden
     function updateName(string memory _name) external onlyGardenOwner {
         name = _name;
-
         emit NameUpdated(_msgSender(), _name);
     }
 
-    /// @notice Updates the description of the garden.
-    /// @dev Only callable by garden operators.
-    /// @param _description The new description of the garden.
+    /// @notice Updates the description of the garden
     function updateDescription(string memory _description) external onlyOperator {
         description = _description;
-
         emit DescriptionUpdated(_msgSender(), _description);
     }
 
-    /// @notice Adds a new gardener to the garden.
-    /// @dev Only callable by a valid signer of the contract.
-    /// @param gardener The address of the gardener to add.
+    /// @dev Temporarily disabled to reduce contract size - can be re-enabled via upgrade
+    // function updateLocation(string memory _location) external onlyOperator {
+    //     location = _location;
+    //     emit LocationUpdated(_msgSender(), _location);
+    // }
+
+    /// @dev Temporarily disabled to reduce contract size - can be re-enabled via upgrade
+    // function updateBannerImage(string memory _bannerImage) external onlyOperator {
+    //     bannerImage = _bannerImage;
+    //     emit BannerImageUpdated(_msgSender(), _bannerImage);
+    // }
+
+    /// @dev Temporarily disabled to reduce contract size - can be re-enabled via upgrade
+    // function updateMetadata(string memory _metadata) external onlyOperator {
+    //     metadata = _metadata;
+    //     emit MetadataUpdated(_msgSender(), _metadata);
+    // }
+
+    /// @notice Adds a new gardener to the garden
     function addGardener(address gardener) external onlyOperator {
         gardeners[gardener] = true;
-
         emit GardenerAdded(_msgSender(), gardener);
     }
 
-    /// @notice Removes an existing gardener from the garden.
-    /// @dev Only callable by a valid signer of the contract.
-    /// @param gardener The address of the gardener to remove.
+    /// @notice Removes an existing gardener from the garden
     function removeGardener(address gardener) external onlyOperator {
         gardeners[gardener] = false;
-
         emit GardenerRemoved(_msgSender(), gardener);
     }
 
-    /// @notice Adds a new operator to the garden.
-    /// @dev Only callable by a valid signer of the contract.
-    /// @param operator The address of the operator to add.
+    /// @notice Adds a new operator to the garden
     function addGardenOperator(address operator) external onlyOperator {
         gardenOperators[operator] = true;
         gardeners[operator] = true;
-
         emit GardenOperatorAdded(_msgSender(), operator);
-
-        // Add as GAP project admin if GAP supported and project exists
         if (KarmaLib.isSupported() && gapProjectUID != bytes32(0)) {
             _addGAPProjectAdmin(operator);
         }
     }
 
-    /// @notice Removes an existing operator from the garden.
-    /// @dev Only callable by a valid signer of the contract.
-    /// @param operator The address of the operator to remove.
+    /// @notice Removes an existing operator from the garden
     function removeGardenOperator(address operator) external onlyGardenOwner {
         gardenOperators[operator] = false;
-
         emit GardenOperatorRemoved(_msgSender(), operator);
-
-        // Remove from GAP project admin if GAP supported and project exists
         if (KarmaLib.isSupported() && gapProjectUID != bytes32(0)) {
             _removeGAPProjectAdmin(operator);
         }
     }
 
     /// @notice Join garden if open joining is enabled
-    /// @dev Allows anyone to join without invite code if openJoining is true
     function joinGarden() external {
         if (!openJoining) revert InvalidInvite();
         if (gardeners[_msgSender()]) revert AlreadyGardener();
-
         gardeners[_msgSender()] = true;
-
         emit GardenerAdded(address(this), _msgSender());
     }
 
+    /// @notice Enable or disable open joining for the garden
+    function setOpenJoining(bool _openJoining) external onlyOperator {
+        openJoining = _openJoining;
+    }
+
     /// @notice Returns the Karma GAP project UID for this garden
-    /// @return The GAP project UID, or bytes32(0) if not initialized
     function getGAPProjectUID() external view returns (bytes32) {
         return gapProjectUID;
     }
 
     /// @notice Creates Karma GAP project via GAP contract
-    /// @dev Atomic operation: all three attestations succeed or entire operation reverts
-    /// @dev Project UID is captured directly from return value
     function _createGAPProject() private {
         IGap gap = IGap(KarmaLib.getGapContract());
 
-        // 1. Create Project attestation - captures UID directly
-        bytes memory projectData = abi.encode(true);
-        AttestationRequest memory projectReq = AttestationRequest({
-            schema: KarmaLib.getProjectSchemaUID(),
-            data: AttestationRequestData({
-                recipient: address(this),
-                expirationTime: 0,
-                revocable: true,
-                refUID: bytes32(0),
-                data: projectData,
-                value: 0
-            })
-        });
-
-        // Atomic operation: all three attestations or none
-        try gap.attest(projectReq) returns (bytes32 projectUID) {
-            gapProjectUID = projectUID;
-
-            // 2. Create MemberOf attestation - references project UID
-            bytes memory memberData = abi.encode(true);
-            AttestationRequest memory memberReq = AttestationRequest({
-                schema: KarmaLib.getMemberOfSchemaUID(),
+        // 1. Create Project attestation
+        try gap.attest(
+            AttestationRequest({
+                schema: KarmaLib.getProjectSchemaUID(),
                 data: AttestationRequestData({
-                    recipient: _msgSender(), // The creator becomes a member
+                    recipient: address(this),
                     expirationTime: 0,
                     revocable: true,
-                    refUID: projectUID, // Reference the project
-                    data: memberData,
+                    refUID: bytes32(0),
+                    data: abi.encode(true),
                     value: 0
                 })
-            });
+            })
+        ) returns (bytes32 projectUID) {
+            gapProjectUID = projectUID;
 
-            try gap.attest(memberReq) {
-                // 3. Create Details attestation - references project UID
-                bytes memory detailsData = abi.encode(_buildGAPDetailsJSON());
-                AttestationRequest memory detailsReq = AttestationRequest({
-                    schema: KarmaLib.getDetailsSchemaUID(),
+            // 2. Create MemberOf attestation
+            try gap.attest(
+                AttestationRequest({
+                    schema: KarmaLib.getMemberOfSchemaUID(),
                     data: AttestationRequestData({
-                        recipient: address(this),
+                        recipient: _msgSender(),
                         expirationTime: 0,
                         revocable: true,
-                        refUID: projectUID, // Reference the project
-                        data: detailsData,
+                        refUID: projectUID,
+                        data: abi.encode(true),
                         value: 0
                     })
-                });
-
-                try gap.attest(detailsReq) {
+                })
+            ) {
+                // 3. Create Details attestation
+                try gap.attest(
+                    AttestationRequest({
+                        schema: KarmaLib.getDetailsSchemaUID(),
+                        data: AttestationRequestData({
+                            recipient: address(this),
+                            expirationTime: 0,
+                            revocable: true,
+                            refUID: projectUID,
+                            data: abi.encode(_buildGAPDetailsJSON()),
+                            value: 0
+                        })
+                    })
+                ) {
                     emit GAPProjectCreated(gapProjectUID, address(this), name);
                 } catch {
-                    // Rollback: clear projectUID on details failure
                     gapProjectUID = bytes32(0);
                     revert GAPImpactCreationFailed();
                 }
             } catch {
-                // Rollback: clear projectUID on member failure
                 gapProjectUID = bytes32(0);
                 revert GAPImpactCreationFailed();
             }
@@ -389,71 +400,30 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     /// @param workTitle Action title from approved work
     /// @param impactDescription Approval feedback
     /// @param proofIPFS IPFS CID for evidence
+    /// @param workUID The UID of the work attestation
     /// @return impactUID The impact attestation UID
     function createProjectImpact(
         string calldata workTitle,
         string calldata impactDescription,
-        string calldata proofIPFS
-    )
-        external
-        onlyWorkApprovalResolver
-        returns (bytes32)
-    {
+        string calldata proofIPFS,
+        bytes32 workUID
+    ) external onlyWorkApprovalResolver returns (bytes32) {
         if (gapProjectUID == bytes32(0)) revert GAPProjectNotInitialized();
         if (!KarmaLib.isSupported()) revert GAPNotSupportedOnChain();
 
-        IGap gap = IGap(KarmaLib.getGapContract());
-
-        // Build project update JSON with required structure
-        string memory isoDate = StringUtils.timestampToISO(block.timestamp);
-
-        bytes memory impactData = abi.encode(
-            string(
-                abi.encodePacked(
-                    "{",
-                    "\"title\":\"",
-                    StringUtils.escapeJSON(workTitle),
-                    "\",",
-                    "\"text\":\"",
-                    StringUtils.escapeJSON(impactDescription),
-                    "\",",
-                    "\"startDate\":\"",
-                    isoDate,
-                    "\",",
-                    "\"endDate\":\"",
-                    isoDate,
-                    "\",",
-                    "\"grants\":[],",
-                    "\"indicators\":[],",
-                    "\"deliverables\":[{",
-                    "\"name\":\"Work Evidence\",",
-                    "\"proof\":\"ipfs://",
-                    StringUtils.escapeJSON(proofIPFS),
-                    "\",",
-                    "\"description\":\"",
-                    StringUtils.escapeJSON(impactDescription),
-                    "\"",
-                    "}],",
-                    "\"type\":\"project-update\"",
-                    "}"
-                )
-            )
-        );
-
-        AttestationRequest memory req = AttestationRequest({
-            schema: KarmaLib.getDetailsSchemaUID(), // Note: Uses details schema with type "project-update"
-            data: AttestationRequestData({
-                recipient: address(this),
-                expirationTime: 0,
-                revocable: false,
-                refUID: gapProjectUID,
-                data: impactData,
-                value: 0
+        try IGap(KarmaLib.getGapContract()).attest(
+            AttestationRequest({
+                schema: KarmaLib.getDetailsSchemaUID(),
+                data: AttestationRequestData({
+                    recipient: address(this),
+                    expirationTime: 0,
+                    revocable: false,
+                    refUID: gapProjectUID,
+                    data: abi.encode(_buildImpactJSON(workTitle, impactDescription, proofIPFS, workUID)),
+                    value: 0
+                })
             })
-        });
-
-        // Attest via GAP contract with error handling
-        try gap.attest(req) returns (bytes32 impactUID) {
+        ) returns (bytes32 impactUID) {
             return impactUID;
         } catch {
             revert GAPImpactCreationFailed();
@@ -471,55 +441,41 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     ///
     /// @param milestoneTitle Assessment title
     /// @param milestoneDescription Assessment description
-    /// @dev Third parameter (milestoneMeta) is intentionally unused - kept for API compatibility with AssessmentResolver
+    /// @param milestoneMeta Additional metadata JSON from assessment (capitals, metricsJSON)
     /// @return milestoneUID The milestone attestation UID
     function createProjectMilestone(
         string calldata milestoneTitle,
         string calldata milestoneDescription,
-        string calldata /* milestoneMeta */
-    )
-        external
-        onlyAssessmentResolver
-        returns (bytes32)
-    {
-        // Note: milestoneMeta is not used in simplified GAP milestone format
-        // Keeping parameter for API compatibility with AssessmentResolver
+        string calldata milestoneMeta
+    ) external onlyAssessmentResolver returns (bytes32) {
         if (gapProjectUID == bytes32(0)) revert GAPProjectNotInitialized();
         if (!KarmaLib.isSupported()) revert GAPNotSupportedOnChain();
 
-        IGap gap = IGap(KarmaLib.getGapContract());
-
-        // Build milestone JSON - simple structure with title, text, type
-        bytes memory milestoneData = abi.encode(
-            string(
-                abi.encodePacked(
-                    "{",
-                    "\"title\":\"",
-                    StringUtils.escapeJSON(milestoneTitle),
-                    "\",",
-                    "\"text\":\"",
-                    StringUtils.escapeJSON(milestoneDescription),
-                    "\",",
-                    "\"type\":\"project-milestone\"",
-                    "}"
-                )
-            )
-        );
-
-        AttestationRequest memory req = AttestationRequest({
-            schema: KarmaLib.getDetailsSchemaUID(), // Note: Uses details schema, not milestone schema
-            data: AttestationRequestData({
-                recipient: address(this),
-                expirationTime: 0,
-                revocable: false,
-                refUID: gapProjectUID, // References project
-                data: milestoneData,
-                value: 0
+        try IGap(KarmaLib.getGapContract()).attest(
+            AttestationRequest({
+                schema: KarmaLib.getDetailsSchemaUID(),
+                data: AttestationRequestData({
+                    recipient: address(this),
+                    expirationTime: 0,
+                    revocable: false,
+                    refUID: gapProjectUID,
+                    data: abi.encode(
+                        string(
+                            abi.encodePacked(
+                                "{\"title\":\"",
+                                StringUtils.escapeJSON(milestoneTitle),
+                                "\",\"text\":\"",
+                                StringUtils.escapeJSON(milestoneDescription),
+                                "\",\"type\":\"project-milestone\",\"data\":",
+                                milestoneMeta,
+                                "}"
+                            )
+                        )
+                    ),
+                    value: 0
+                })
             })
-        });
-
-        // Attest via GAP contract with error handling
-        try gap.attest(req) returns (bytes32 milestoneUID) {
+        ) returns (bytes32 milestoneUID) {
             return milestoneUID;
         } catch {
             revert GAPMilestoneCreationFailed();
@@ -529,106 +485,89 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     /// @notice Internal function to add GAP project admin
     /// @param admin Address to add as project admin
     function _addGAPProjectAdmin(address admin) private {
-        if (gapProjectUID == bytes32(0)) return; // No project, skip silently
-
+        if (gapProjectUID == bytes32(0)) return;
         // solhint-disable-next-line no-empty-blocks
         try IGap(KarmaLib.getGapContract()).addProjectAdmin(gapProjectUID, admin) {
-            // Success: admin added to GAP project
-        } catch Error(string memory) /* reason */ { // solhint-disable-line no-empty-blocks
-                // Non-critical: GAP sync failed but operator added successfully
-        } catch (bytes memory) /* lowLevelData */ { // solhint-disable-line no-empty-blocks
-                // Non-critical: GAP sync failed but operator added successfully
-        }
+        } catch { /* Non-critical: GAP sync failed */ }
     }
 
     /// @notice Internal function to remove GAP project admin
     /// @param admin Address to remove as project admin
     function _removeGAPProjectAdmin(address admin) private {
-        if (gapProjectUID == bytes32(0)) return; // No project, skip silently
-
+        if (gapProjectUID == bytes32(0)) return;
         // solhint-disable-next-line no-empty-blocks
         try IGap(KarmaLib.getGapContract()).removeProjectAdmin(gapProjectUID, admin) {
-            // Success: admin removed from GAP project
-        } catch Error(string memory) /* reason */ { // solhint-disable-line no-empty-blocks
-                // Non-critical: GAP sync failed but operator removed successfully
-        } catch (bytes memory) /* lowLevelData */ { // solhint-disable-line no-empty-blocks
-                // Non-critical: GAP sync failed but operator removed successfully
-        }
+        } catch { /* Non-critical: GAP sync failed */ }
     }
 
     /// @notice Transfers ownership of the GAP project to a new owner
-    /// @param newOwner Address that will receive project ownership
-    function transferGAPProjectOwnership(address newOwner) external onlyOperator {
-        if (gapProjectUID == bytes32(0)) revert GAPProjectNotInitialized();
-        if (!KarmaLib.isSupported()) revert GAPNotSupportedOnChain();
-        if (newOwner == address(0)) revert InvalidGAPOwner();
+    /// @dev Temporarily disabled to reduce contract size - can be re-enabled via upgrade
+    // function transferGAPProjectOwnership(address newOwner) external onlyOperator {
+    //     if (gapProjectUID == bytes32(0)) revert GAPProjectNotInitialized();
+    //     if (!KarmaLib.isSupported()) revert GAPNotSupportedOnChain();
+    //     if (newOwner == address(0)) revert InvalidGAPOwner();
 
-        try IGap(KarmaLib.getGapContract()).transferProjectOwnership(gapProjectUID, newOwner) {
-            // Ownership transferred successfully
-        } catch {
-            revert GAPOwnershipTransferFailed();
-        }
-    }
+    //     try IGap(KarmaLib.getGapContract()).transferProjectOwnership(gapProjectUID, newOwner) {
+    //     } catch {
+    //         revert GAPOwnershipTransferFailed();
+    //     }
+    // }
 
-    /// @notice Builds JSON for GAP project details
+    /// @notice Builds simplified JSON for GAP project details (removed empty fields)
     function _buildGAPDetailsJSON() private view returns (string memory) {
-        // Prefix banner image CID with IPFS gateway if not empty
-        string memory imageURL = bytes(bannerImage).length > 0
-            ? string(abi.encodePacked("https://greengoods.mypinata.cloud/ipfs/", bannerImage))
-            : "";
+        string memory imageURL =
+            bytes(bannerImage).length > 0 ? string(abi.encodePacked("https://w3s.link/ipfs/", bannerImage)) : "";
 
         return string(
             abi.encodePacked(
-                "{",
-                "\"title\":\"",
+                "{\"title\":\"",
                 StringUtils.escapeJSON(name),
-                "\",",
-                "\"description\":\"",
+                "\",\"description\":\"",
                 StringUtils.escapeJSON(description),
-                "\",",
-                "\"problem\":\"",
-                StringUtils.escapeJSON(description),
-                "\",",
-                "\"solution\":\"",
-                StringUtils.escapeJSON(description),
-                "\",",
-                "\"missionSummary\":\"",
-                StringUtils.escapeJSON(description),
-                "\",",
-                "\"locationOfImpact\":\"",
+                "\",\"locationOfImpact\":\"",
                 StringUtils.escapeJSON(location),
-                "\",",
-                "\"imageURL\":\"",
+                "\",\"imageURL\":\"",
                 StringUtils.escapeJSON(imageURL),
-                "\",",
-                "\"links\":[",
-                "{\"type\":\"twitter\",\"url\":\"\"},",
-                "{\"type\":\"github\",\"url\":\"\"},",
-                "{\"type\":\"discord\",\"url\":\"\"},",
-                "{\"type\":\"website\",\"url\":\"\"},",
-                "{\"type\":\"linkedin\",\"url\":\"\"},",
-                "{\"type\":\"pitchDeck\",\"url\":\"\"},",
-                "{\"type\":\"demoVideo\",\"url\":\"\"},",
-                "{\"type\":\"farcaster\",\"url\":\"\"}",
-                "],",
-                "\"slug\":\"",
-                StringUtils.escapeJSON(_generateSlug(name)),
-                "\",",
-                "\"businessModel\":\"\",",
-                "\"stageIn\":\"\",",
-                "\"raisedMoney\":\"\",",
-                "\"pathToTake\":\"\",",
-                "\"type\":\"project-details\"",
-                "}"
+                "\",\"slug\":\"",
+                StringUtils.escapeJSON(StringUtils.generateSlug(name)),
+                "\",\"type\":\"project-details\"}"
             )
         );
     }
 
-    /// @notice Generates a URL-safe slug from garden name
-    /// @param str The string to convert to slug
-    /// @return The slug (lowercase, hyphens for spaces, alphanumeric only)
-    function _generateSlug(string memory str) private pure returns (string memory) {
-        return StringUtils.generateSlug(str);
+    /// @notice Builds simplified impact JSON
+    function _buildImpactJSON(
+        string calldata workTitle,
+        string calldata impactDescription,
+        string calldata proofIPFS,
+        bytes32 workUID
+    ) private view returns (string memory) {
+        (,, uint256 tokenId) = token();
+        string memory isoDate = StringUtils.timestampToISO(block.timestamp);
+
+        return string(
+            abi.encodePacked(
+                "{\"title\":\"",
+                StringUtils.escapeJSON(workTitle),
+                "\",\"text\":\"",
+                StringUtils.escapeJSON(impactDescription),
+                "\",\"startDate\":\"",
+                isoDate,
+                "\",\"endDate\":\"",
+                isoDate,
+                "\",\"deliverables\":[{\"name\":\"Work Evidence\",\"proof\":\"ipfs://",
+                StringUtils.escapeJSON(proofIPFS),
+                "\",\"description\":\"",
+                StringUtils.escapeJSON(impactDescription),
+                "\"}],\"links\":[{\"type\":\"other\",\"url\":\"https://greengoods.me/garden/",
+                StringUtils.uint2str(block.chainid),
+                "/",
+                StringUtils.uint2str(tokenId),
+                "/work/0x",
+                StringUtils.bytes32ToHexString(workUID),
+                "\",\"label\":\"View in Green Goods\"}],\"type\":\"project-update\"}"
+            )
+        );
     }
 
     /// @notice Storage gap for upgradeable contract
@@ -641,10 +580,10 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     ///   - ERC6551Account: 1 slot (_state)
     /// GardenAccount storage (13 slots):
     ///   - communityToken(1) + name(1) + description(1) + location(1) +
-    ///   - bannerImage(1) + gardeners(1) + gardenOperators(1) + gardenInvites(1) +
+    ///   - bannerImage(1) + metadata(1) + gardeners(1) + gardenOperators(1) + gardenInvites(1) +
     ///   - inviteToGarden(1) + inviteExpiry(1) + inviteUsed(1) + openJoining(1) +
     ///   - gapProjectUID(1)
     /// Note: WORK_APPROVAL_RESOLVER and ASSESSMENT_RESOLVER are immutables (no storage slots)
-    /// Gap calculation: 50 - (5 + 13) = 32 slots
-    uint256[32] private __gap;
+    /// Gap calculation: 50 - (5 + 14) = 31 slots
+    uint256[31] private __gap;
 }

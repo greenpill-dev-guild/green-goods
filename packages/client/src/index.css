@@ -23,18 +23,18 @@
 }
 
 html {
-  @apply relative;
+  @apply relative overflow-x-hidden;
 }
 body {
-  @apply relative m-0 w-screen h-screen bg-white dark:bg-white text-foreground;
+  @apply relative m-0 w-screen h-screen bg-white dark:bg-white text-foreground overflow-x-hidden;
 }
 
 #root {
-  @apply w-full h-full mx-auto flex flex-col;
+  @apply w-full h-full mx-auto flex flex-col overflow-x-hidden;
 }
 
 #root > div {
-  @apply w-full h-full mx-auto flex flex-col;
+  @apply w-full h-full mx-auto flex flex-col overflow-x-hidden;
 }
 
 #landing-root {

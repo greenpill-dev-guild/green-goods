@@ -3,7 +3,7 @@
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import { RiAddLine, RiQuestionLine } from "@remixicon/react";
 import * as React from "react";
-import { cn } from "@/utils/styles/cn";
+import { cn } from "@green-goods/shared/utils";
 import { FlexCard } from "../Card/Card";
 
 type FaqProps = Omit<AccordionPrimitive.AccordionSingleProps, "type"> & {

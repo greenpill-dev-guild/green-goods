@@ -1,131 +1,62 @@
 # Green Goods
 
-Green Goods is a decentralized platform for biodiversity conservation, enabling Garden Operators and Gardeners to document and get approval for conservation work through blockchain-based attestations.
+Green Goods is an offline-first, single-chain platform for documenting conservation work and proving impact on-chain. Operators approve gardener submissions, and the protocol anchors the results in Ethereum attestation infrastructure.
 
-## 🏗️ Repository Structure
-
-```
-green-goods/
-├── packages/
-│   ├── client/           # React PWA frontend (Gardener/Operator app)
-│   ├── admin/            # Admin dashboard (Garden & contract management)
-│   ├── indexer/          # GraphQL blockchain indexer
-│   └── contracts/        # Solidity smart contracts
-├── docs/                 # Documentation
-├── tests/                # End-to-end testing (Playwright)
-└── scripts/              # Setup and utility scripts
-```
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- **Node.js** v20+ • **bun** v9.x • **Docker** • **Foundry**
-
-### Setup & Run
+## Quick Start
 
 ```bash
-# Clone and install
 git clone https://github.com/your-org/green-goods.git
 cd green-goods
 bun install
 
-# Configure environment (REQUIRED - all packages use root .env)
-cp .env.example .env
-# Edit .env with your API keys (see .env.example)
+cp .env.example .env          # All packages share the root env file
+vi .env                       # Populate keys (Base Sepolia is the default chain: 84532)
 
-# Start all services (pm2: client, admin, indexer)
-bun dev
-
-# Tail logs
-bun exec pm2 logs client
-bun exec pm2 logs admin
-bun exec pm2 logs indexer
+bun dev                       # Starts client, admin, indexer via pm2
 ```
 
-## ⚙️ Environment Configuration
+Useful follow-ups:
 
-**All packages use a single root `.env` file for configuration** — no package-level `.env` files are used.
+- `bun dev:stop` — stop the pm2 services
+- `bun exec pm2 logs <service>` — stream logs for `client`, `admin`, or `indexer`
 
-### Key Environment Variables
+## Common Commands
 
 ```bash
-# Client & Admin (Vite)
-VITE_PRIVY_APP_ID=your_privy_app_id
-VITE_CHAIN_ID=42161                     # Default chain (84532=Base Sepolia, 42161=Arbitrum, 42220=Celo)
-VITE_ENVIO_INDEXER_URL=http://localhost:8080/v1/graphql
-VITE_WALLETCONNECT_PROJECT_ID=your_project_id
-VITE_PINATA_JWT=your_pinata_jwt
+# Format, lint, test across the workspace
+bun format && bun lint && bun test
 
-# Contracts (Foundry)
-FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer
-BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
-ARBITRUM_RPC_URL=https://arb1.arbitrum.io/rpc
-CELO_RPC_URL=https://forno.celo.org
-ETHERSCAN_API_KEY=your_etherscan_api_key
+# Build everything or target a package
+bun build
+bun --filter client build
 
-# Indexer (Envio)
-# Most config in packages/indexer/config.yaml
-# Add any overrides here if needed
+# Contracts: compile, test, deploy through the wrappers
+bun --filter contracts build
+bun --filter contracts test
+bun --filter contracts deploy:testnet    # runs deploy.js with the correct profile
 ```
 
-**How it works:**
-- Vite packages (client, admin) load `.env` via `vite.config.ts`
-- Contracts load `.env` via deployment scripts and `foundry.toml`
-- Indexer loads `.env` via Docker Compose and scripts
-- All commands (dev, build, deploy) automatically reference root `.env`
+Scripts live in `package.json`; contract-specific flows are described in the Contracts Handbook.
 
-See [Environment Setup Guide](./docs/ENVIRONMENT_SETUP.md) for detailed configuration.
+## Documentation
 
-## 🛠️ Development
+- [System Architecture](./docs/developer/architecture.md) — full system map and package summaries (GitBook canonical doc)
+- [Developer Getting Started](./docs/developer/getting-started.md) — environment setup, testing, troubleshooting
+- [Contracts Handbook](./docs/developer/contracts-handbook.md) — deployment, upgrades, schema care, validation
+- [Product Overview](./docs/features/overview.md) — product architecture and data flow
+- [Karma GAP Integration](./docs/developer/karma-gap.md) — appendix for the GAP attestation bridge
 
-### Essential Commands
+Package-specific READMEs:
 
-```bash
-# Development
-bun dev                              # Start all services
-bun --filter <package> dev           # Start individual service
+- `packages/client/README.md` — offline-first PWA
+- `packages/admin/README.md` — operator dashboard
+- `packages/indexer/README.md` — Envio indexer
+- `packages/contracts/README.md` — foundry project layout and scripts
 
-# Building  
-bun build                            # Build all packages
-bun --filter <package> build         # Build specific package
+## Contributing
 
-# Smart Contracts
-bun --filter contracts test             # Test contracts
-bun --filter contracts deploy:local     # Deploy locally
-bun --filter contracts deploy:testnet   # Deploy to testnet
-bun --filter contracts deploy:arbitrum  # Deploy to Arbitrum
-bun --filter contracts deploy:celo      # Deploy to Celo mainnet
+- Stick to conventional commits (`feat(client): …`)
+- Run `bun format && bun lint && bun test` before opening PRs
+- Keep environment-only secrets in the root `.env` and never add package-level `.env` files
 
-# Quality
-bun format && bun lint && bun test # Quality checks
-```
-
-## 🤝 Contributing
-
-1. **Fork** → **Branch** → **Code** → **Test** → **PR**
-2. Use [conventional commits](https://www.conventionalcommits.org/): `feat:`, `fix:`, `docs:`
-3. Git hooks auto-format and lint on commit/push
-
-## 📚 Documentation
-
-| Document | Description |
-|----------|-------------|
-| [Architecture](./docs/ARCHITECTURE.md) | System design and architecture |
-| [Deployment](./docs/DEPLOYMENT.md) | Contract deployment guide |
-| [Karma GAP](./docs/KARMA_GAP.md) | Impact attestation integration |
-| [Upgrades](./docs/UPGRADES.md) | UUPS upgrade guide |
-| [Testing](./docs/TESTING.md) | E2E and contract testing |
-| [Features](./docs/FEATURES.md) | Core platform features |
-| [Gas Limits](./docs/GAS_LIMITS.md) | Gas optimization guide |
-| [Production Readiness](./docs/PRODUCTION_READINESS.md) | Production deployment checklist |
-| [Troubleshooting](./docs/TROUBLESHOOTING.md) | Common issues and solutions |
-
-**Package docs:** [client](./packages/client/README.md) • [admin](./packages/admin/README.md) • [indexer](./packages/indexer/README.md) • [contracts](./packages/contracts/README.md)
-
----
-
-**Stack:** React • Node.js • Solidity • GraphQL • TypeScript  
-**Tools:** Biome • 0xlint • Solhint • Playwright • Foundry
-
-**License:** MIT • **Setup:** [Environment Guide](./docs/ENVIRONMENT_SETUP.md)
+For more project background, automation guidelines, and tooling policies see `AGENTS.md` and the package-specific agent guides.

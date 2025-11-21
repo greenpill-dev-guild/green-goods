@@ -4,10 +4,15 @@ The indexer exposes Green Goods blockchain data via GraphQL using Envio.
 
 ## Quick Reference
 
-**Start:** `bun dev`  
+**Prerequisites:** Ensure Docker Desktop is running (`open -a Docker`)  
+**Start:** `bun dev` (checks Docker, stops existing instances, sets up ReScript, starts indexer)  
+**Stop:** `bun stop`  
 **GraphQL Playground:** http://localhost:8080 (password: `testing`)  
-**Codegen:** `bun codegen`  
-**Reset:** `bun reset` or `./reset-indexer.sh`
+**Codegen:** `bun codegen` (then run `bun run setup-generated`)  
+**Reset:** `bun reset` or `./reset-indexer.sh`  
+**Setup Only:** `bun run setup-generated`
+
+**If "Docker not running" error:** Run `open -a Docker`, wait 30 seconds, then `bun dev`
 
 ## Architecture
 
@@ -157,6 +162,7 @@ Run codegen after:
 
 ```bash
 bun codegen
+bun run setup-generated  # Rebuild ReScript after codegen
 ```
 
 ### Docker Management
@@ -177,14 +183,21 @@ docker compose logs -f envio
 
 ### ReScript Compilation
 
-If you encounter ReScript errors:
+ReScript dependencies are automatically installed when running `bun dev`.
+
+If you encounter ReScript errors manually run:
+
+```bash
+bun run setup-generated
+```
+
+Or manually:
 
 ```bash
 cd generated
-npm install --legacy-peer-deps
-npm run build
+pnpm install
+pnpm run build
 cd ..
-bun dev
 ```
 
 ## Troubleshooting

@@ -1,46 +1,24 @@
-/**
- * Login View
- *
- * Handles user authentication via passkey (primary) or wallet (fallback).
- * Features:
- * - Passkey authentication with biometric WebAuthn
- * - AppKit wallet connection for operators/admins
- * - Auto-join root garden on first passkey login
- * - Enhanced loading states for onboarding flow
- * - Mobile-first splash screen UI
- *
- * @module views/Login
- */
-
-import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
-import { useAccount } from "wagmi";
-import toast from "react-hot-toast";
-import { Splash, type LoadingState } from "@/components/Layout/Splash";
-import { useAuth } from "@/hooks/auth/useAuth";
-import { useAutoJoinRootGarden } from "@/hooks/garden/useAutoJoinRootGarden";
+import { toastService } from "@green-goods/shared";
+import { wagmiConfig } from "@green-goods/shared/config";
+import {
+  checkMembership,
+  usePasskeyAuth as useAuth,
+  useAutoJoinRootGarden,
+} from "@green-goods/shared/hooks";
+import {
+  authenticatePasskey,
+  PASSKEY_STORAGE_KEY,
+  type PasskeySession,
+} from "@green-goods/shared/modules";
+import { useAppKit } from "@green-goods/shared/providers";
 import { getAccount } from "@wagmi/core";
-import { wagmiConfig, appKit } from "@/config/appkit";
+import { useEffect, useState } from "react";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { useAccount } from "wagmi";
+import { type LoadingState, Splash } from "@/components/Layout/Splash";
 
-const ONBOARDED_STORAGE_KEY = "greengoods_user_onboarded";
-
-/**
- * Login component - Primary entry point for user authentication
- *
- * Flow:
- * 1. Check if user is onboarded (returning user)
- * 2. Show splash screen with "Login" button (passkey) or "Login with wallet" link
- * 3. On passkey first-time:
- *    - Create WebAuthn credential → Show "Creating your garden account..."
- *    - Initialize smart account → Show "Joining community garden..."
- *    - Auto-join root garden (sponsored) → Set onboarded flag → Navigate to home
- * 4. On passkey returning:
- *    - Authenticate → Show "Welcome back..." → Navigate to home
- * 5. On wallet: Open AppKit modal → Connect wallet → Navigate to home
- *
- * @returns {JSX.Element} Login view with authentication options
- */
 export function Login() {
+  const location = useLocation();
   const {
     walletAddress,
     createPasskey,
@@ -50,141 +28,185 @@ export function Login() {
     authMode,
     error,
     isAuthenticated,
+    setPasskeySession,
   } = useAuth();
 
   const [loadingState, setLoadingState] = useState<LoadingState | null>(null);
-  const [hasOnboarded, setHasOnboarded] = useState(
-    () => localStorage.getItem(ONBOARDED_STORAGE_KEY) === "true"
-  );
-  const { joinGarden, isPending: isJoiningGarden } = useAutoJoinRootGarden(false);
+  const [loadingMessage, setLoadingMessage] = useState<string | undefined>(undefined);
+  const { open: openAppKit } = useAppKit();
+
+  // Check if DevConnect is enabled via environment variable
+  const isDevConnectEnabled = import.meta.env.VITE_DEVCONNECT === "true";
+
+  const {
+    joinGarden,
+    isLoading: isJoiningGarden,
+    isGardener: _isGardener,
+    devConnect,
+  } = useAutoJoinRootGarden();
 
   // Use wagmi's useAccount hook to detect wallet connection
   const { address: wagmiAddress, isConnected: wagmiConnected } = useAccount();
 
-  const isFirstTime = !hasOnboarded;
+  // Check if we're on a nested route (like /login/recover)
+  const isNestedRoute = location.pathname !== "/login";
+
+  // Extract redirectTo parameter from URL query string
+  const redirectTo = new URLSearchParams(location.search).get("redirectTo") || "/home";
 
   // Watch wagmi connection and sync to auth provider
   useEffect(() => {
-    if (wagmiConnected && wagmiAddress && !walletAddress) {
-      // Sync wallet connection to our auth provider
-      const connector = getAccount(wagmiConfig).connector;
-      if (connector) {
-        console.log("Syncing wallet connection to auth provider", { address: wagmiAddress });
-        connectWallet(connector).catch((err) => {
-          console.error("Failed to sync wallet connection", err);
-        });
-      }
+    if (!wagmiConnected || !wagmiAddress || walletAddress || isAuthenticating) {
+      return;
     }
-  }, [wagmiConnected, wagmiAddress, walletAddress, connectWallet]);
 
-  /**
-   * Handle passkey creation and auto-join root garden.
-   * Shows appropriate loading states during each phase.
-   *
-   * First-time users:
-   * 1. Create passkey → "Creating your garden account..."
-   * 2. Initialize smart account
-   * 3. Join root garden (sponsored) → "Joining community garden..."
-   * 4. Set onboarded flag → Navigate to home
-   *
-   * Error handling:
-   * - Passkey creation failure: Show error, stay on login screen
-   * - Garden join failure: Continue to home, show info toast for manual join
-   */
+    const account = getAccount(wagmiConfig);
+    const connector = account.connector;
+    if (connector) {
+      connectWallet(connector).catch((err) => {
+        console.error("Failed to sync wallet connection", err);
+      });
+    }
+  }, [wagmiConnected, wagmiAddress, walletAddress, connectWallet, isAuthenticating]);
   const handleCreatePasskey = async () => {
+    setLoadingMessage("Preparing your Green Goods wallet…");
     try {
-      const initialState = isFirstTime ? "creating-account" : "welcome-back";
-      setLoadingState(initialState);
+      setLoadingState("welcome");
 
-      const session = await createPasskey();
+      // Check if user has existing passkey credential
+      const hasExistingCredential = !!localStorage.getItem(PASSKEY_STORAGE_KEY);
 
-      const joinLabel = "joining-garden";
-      if (isFirstTime) {
-        setLoadingState("joining-garden");
+      let session: PasskeySession;
+
+      if (hasExistingCredential) {
+        // Returning user: prompt for passkey authentication
+        setLoadingMessage("Authenticating with your passkey…");
+        session = await authenticatePasskey();
+        // Set the session in the auth provider
+        setPasskeySession(session);
+      } else {
+        // New user: create passkey
+        session = await createPasskey();
       }
 
-      try {
-        await joinGarden(session);
-      } catch (joinErr) {
-        const message =
-          joinErr instanceof Error ? joinErr.message : String(joinErr ?? "failed to join");
+      // Check membership BEFORE showing any toast
+      const membershipStatus = await checkMembership(session.address);
+      const isAlreadyGardener = membershipStatus.isGardener || membershipStatus.hasBeenOnboarded;
 
-        // Ignore AlreadyGardener (0x42375a1e) to keep the flow simple
-        if (!message.includes("AlreadyGardener") && !message.includes("0x42375a1e")) {
-          console.error("Garden join failed", joinErr);
-          toast("Welcome! You can join the community garden from your profile.", {
-            icon: "ℹ️",
+      // Only show join flow if user is NOT already a gardener
+      if (!isAlreadyGardener) {
+        setLoadingState("joining-garden");
+        setLoadingMessage("Approve the next passkey prompt to join the community garden.");
+        toastService.info({
+          title: "Approve passkey prompt",
+          message: "Confirm the next passkey request to join the community garden.",
+          icon: "🪴",
+          context: "garden join",
+          suppressLogging: true,
+        });
+
+        try {
+          await joinGarden(session);
+          toastService.success({
+            title: "Welcome to Green Goods",
+            message: "You're now part of the community garden.",
+            icon: "🪴",
+            context: "garden join",
+            suppressLogging: true,
           });
+        } catch (joinErr) {
+          console.error("Garden join failed", joinErr);
+          toastService.info({
+            title: "Welcome!",
+            message: "You can join the community garden anytime from your profile.",
+            icon: "ℹ️",
+            context: "garden join",
+            suppressLogging: true,
+          });
+        }
+      } else {
+        // Already a gardener, just mark as onboarded (if not already)
+        if (!membershipStatus.hasBeenOnboarded) {
+          const onboardingKey = `greengoods_onboarded:${session.address.toLowerCase()}`;
+          localStorage.setItem(onboardingKey, "true");
         }
       }
 
-      localStorage.setItem(ONBOARDED_STORAGE_KEY, "true");
-      setHasOnboarded(true);
+      // 2. DevConnect Join (New)
+      if (isDevConnectEnabled && devConnect.isEnabled && !devConnect.isMember) {
+        // Check local storage to avoid re-prompting if they skipped or are pending
+        const dcKey = `greengoods_devconnect_onboarded:${session.address.toLowerCase()}`;
+        const isDcOnboarded = localStorage.getItem(dcKey) === "true";
 
-      if (!isFirstTime) {
-        setLoadingState(null);
-      } else {
-        setLoadingState(joinLabel);
+        if (!isDcOnboarded) {
+          setLoadingState("joining-garden"); // Re-use loading state
+          setLoadingMessage("Joining DevConnect Garden...");
+          try {
+            await devConnect.join(session);
+            toastService.success({ title: "Joined DevConnect!", context: "devconnect" });
+          } catch (e) {
+            console.error("DevConnect join failed", e);
+            // Non-blocking failure
+          }
+        }
       }
     } catch (err) {
       setLoadingState(null);
-      console.error("Passkey creation failed", err);
-      toast.error("Failed to create passkey. Please try again.");
+      console.error("Passkey authentication failed", err);
+      toastService.error({
+        title: "Authentication failed",
+        message: err instanceof Error ? err.message : "Please try again.",
+        context: "passkey setup",
+        error: err,
+      });
+    } finally {
+      setLoadingState(null);
+      setLoadingMessage(undefined);
     }
   };
 
-  /**
-   * Handle wallet login via AppKit modal.
-   * Opens the wallet selection bottom sheet.
-   */
   const handleWalletLogin = () => {
-    console.log("Opening AppKit wallet modal");
-    appKit.open();
+    openAppKit();
   };
 
+  // If on a nested route (like /login/recover), render the child route
+  if (isNestedRoute) {
+    return <Outlet />;
+  }
+
   if (isAuthenticated && (authMode === "wallet" || smartAccountClient)) {
-    return <Navigate to="/home" replace />;
+    return <Navigate to={redirectTo} replace />;
+  }
+
+  // Fix: If wallet is connected but auth sync hasn't finished, show loading
+  // This prevents the login screen from flashing while syncing auth state
+  if (wagmiConnected && !isAuthenticated && !error && !isAuthenticating) {
+    return <Splash loadingState="default" message="Connecting wallet..." />;
   }
 
   // Loading screen during passkey creation, garden join, or welcome back
   if (loadingState) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-green-50 to-white">
-        <Splash loadingState={loadingState} />
-      </div>
-    );
+    return <Splash loadingState={loadingState} message={loadingMessage} />;
   }
+
+  const errorMessage = !isAuthenticating && !isJoiningGarden && error ? error.message : null;
 
   // Main splash screen with login button
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-green-50 to-white">
-      <Splash
-        login={handleCreatePasskey}
-        isLoggingIn={isAuthenticating || isJoiningGarden}
-        buttonLabel="Login"
-      />
-
-      {/* Secondary wallet login option */}
-      {!isAuthenticating && !isJoiningGarden && (
-        <button
-          onClick={handleWalletLogin}
-          className="my-4 text-sm text-gray-600 hover:text-green-600 transition-colors underline"
-        >
-          Login with wallet
-        </button>
-      )}
-
-      {/* Error display */}
-      {error && (
-        <div className="mt-6 max-w-md mx-auto px-4">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-sm text-red-800">
-              <strong>Error:</strong> {error.message}
-            </p>
-          </div>
-        </div>
-      )}
-    </div>
+    <Splash
+      login={handleCreatePasskey}
+      isLoggingIn={isAuthenticating || isJoiningGarden}
+      buttonLabel="Login"
+      errorMessage={errorMessage}
+      secondaryAction={
+        !isAuthenticating && !isJoiningGarden
+          ? {
+              label: "Login with wallet",
+              onSelect: handleWalletLogin,
+            }
+          : undefined
+      }
+    />
   );
 }
 

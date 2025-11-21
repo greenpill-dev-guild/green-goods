@@ -95,6 +95,71 @@ Complex flows with retry logic:
 
 **See:** `.cursor/rules/state-workflows.mdc`
 
+## Theme System
+
+### CSS Variables-Based Theming
+
+The admin dashboard uses semantic CSS variable tokens for all styling:
+
+**Core principle:** Use semantic tokens that adapt to light/dark mode automatically.
+
+```typescript
+// ✅ Correct - Semantic tokens
+<div className="bg-bg-white text-text-strong border border-stroke-soft">
+
+// ❌ Wrong - Hardcoded colors
+<div className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
+```
+
+### Token Categories
+
+**Background tokens:**
+- `bg-white` - Primary backgrounds (inverts in dark mode)
+- `bg-weak` - Subtle backgrounds
+- `bg-soft` - Soft backgrounds
+- `bg-surface` - Surface backgrounds
+
+**Text tokens:**
+- `text-strong` - Primary text
+- `text-sub` - Secondary text
+- `text-soft` - Tertiary text
+- `text-disabled` - Disabled text
+
+**Border tokens:**
+- `border-stroke-soft` - Soft borders
+- `border-stroke-sub` - Medium borders
+
+**State tokens:**
+- `success-*` (green) - Success states, approval badges
+- `error-*` (red) - Error states, validation errors, remove actions
+- `warning-*` (orange) - Warning states, pending statuses
+- `information-*` (blue) - Information states, help text
+
+### When to Use Brand Colors
+
+**Keep green brand colors for:**
+- Primary CTAs: `bg-green-600 hover:bg-green-700 text-white`
+- Active navigation: `border-green-500 text-green-600`
+- Focus rings: `focus:ring-green-500`
+
+**Use semantic tokens for:**
+- Status badges: `bg-success-lighter text-success-dark`
+- Form validation: `border-error-base focus:ring-error-lighter`
+- Alert banners: `bg-warning-lighter text-warning-dark`
+- Remove buttons: `text-error-base hover:bg-error-lighter`
+
+### Component Testing Checklist
+
+When creating new components:
+- [ ] Use semantic tokens for neutral colors
+- [ ] Use state tokens for status indicators
+- [ ] Keep brand green for primary actions
+- [ ] Test in both light and dark modes
+- [ ] No `dark:` utility classes
+- [ ] Accessible contrast in both themes
+
+**See:** `/docs/CSS_VARIABLES_THEME.md` for complete guide
+
 ## Key Patterns
 
 ### 1. Toast Notifications for All Transactions

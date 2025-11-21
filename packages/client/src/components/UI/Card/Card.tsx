@@ -1,6 +1,6 @@
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
-import { cn } from "@/utils/styles/cn";
+import { cn } from "@green-goods/shared/utils";
 
 export const cardVariants = tv({
   base: "rounded-2xl border flex gap-0.5 justify-between border-border p-1 px-4 bg-white",

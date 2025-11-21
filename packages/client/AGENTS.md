@@ -87,7 +87,7 @@ User fills form → Submit → Upload media to IPFS → Create EAS attestation
 - Form: `src/views/Garden/index.tsx`
 - Wallet submission: `src/modules/work/wallet-submission.ts`
 - Queue submission: `src/modules/work/work-submission.ts`
-- Processing: `src/modules/job-queue/inline-processor.ts`
+- Processing: `packages/shared/src/modules/job-queue/index.ts` (`processJob`, `flush`)
 - Provider: `src/providers/work.tsx` (branches on `authMode`)
 
 ### Work Approval Workflow
@@ -148,15 +148,10 @@ Connect wallet → Manual prompt to join root garden (optional)
 ### modules/job-queue/
 
 **Core offline system:**
-- `index.ts` — JobQueue class, job creation
+- `index.ts` — JobQueue service (`addJob`, `processJob`, `flush`)
 - `db.ts` — IndexedDB interface
 - `event-bus.ts` — Event-driven updates
-- `job-processor.ts` — Job execution logic
-- `inline-processor.ts` — Provider-driven processing
-- `sync-manager.ts` — Sync coordination
-- `media-resource-manager.ts` — Blob URL lifecycle
-- `processors/work.ts` — Work encoding/execution
-- `processors/approval.ts` — Approval encoding/execution
+- `media-resource-manager.ts` — Blob URL lifecycle / cleanup
 
 ### modules/data/
 
@@ -381,12 +376,11 @@ const message = intl.formatMessage({
 ### Adding Offline Support
 
 1. Define job payload type in `src/types/job-queue.d.ts`
-2. Create processor in `src/modules/job-queue/processors/`
-3. Add to JobProcessor registry
-4. Create inline processor in `src/modules/job-queue/inline-processor.ts`
-5. Wire to provider for inline processing
-6. Add event handling in `src/providers/jobQueue.tsx`
-7. Add tests for offline/online scenarios
+2. Extend `jobQueue.processJob`/`flush` in `packages/shared/src/modules/job-queue/index.ts`
+3. Persist any extra IndexedDB state in `db.ts`
+4. Queue the job from the relevant provider/hook using `submit*ToQueue`
+5. Add event invalidations or optimistic updates (`providers/jobQueue.tsx`, hooks)
+6. Cover new paths with unit tests (queue + provider) and integration tests
 
 ### Adding GraphQL Query
 
@@ -438,7 +432,7 @@ For detailed patterns, see package-specific .mdc files:
 ## Reference Documentation
 
 - Client README: `/packages/client/README.md`
-- Architecture: `/docs/ARCHITECTURE.md`
-- Features: `/docs/FEATURES.md`
-- Testing: `/docs/TESTING.md`
+- Architecture: `/docs/developer/architecture.md`
+- Features: `/docs/features/overview.md`
+- Testing: `/docs/developer/testing.md`
 - Root agent guide: `/AGENTS.md`

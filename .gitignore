@@ -86,11 +86,16 @@ web_modules/
 
 # Next.js build output
 .next
-out
 
 # Nuxt.js build / generate output
 .nuxt
 dist
+
+# Foundry build artifacts (ABI JSON) are stored in `packages/contracts/out/`. Only keep those tracked files; ignore every other `out/` directory.
+out/
+**/out/
+!packages/contracts/out/
+!packages/contracts/out/**
 
 # Vite dev build output
 dev-dist

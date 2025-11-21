@@ -11,6 +11,8 @@
     "isolatedModules": true,
     "moduleDetection": "force",
     "noEmit": true,
+    "incremental": true,
+    "tsBuildInfoFile": "./.tsbuildinfo/test.tsbuildinfo",
     "jsx": "react-jsx",
     "strict": true,
     "noUnusedLocals": true,

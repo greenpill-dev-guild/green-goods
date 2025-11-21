@@ -158,4 +158,17 @@ library StringUtils {
         }
         return string(buffer);
     }
+
+    /// @notice Converts bytes32 to hex string (without 0x prefix)
+    /// @param _bytes The bytes32 value to convert
+    /// @return The hex string representation (64 characters)
+    function bytes32ToHexString(bytes32 _bytes) internal pure returns (string memory) {
+        bytes memory hexString = new bytes(64);
+        bytes memory hexAlphabet = "0123456789abcdef";
+        for (uint256 i = 0; i < 32; i++) {
+            hexString[i * 2] = hexAlphabet[uint8(_bytes[i] >> 4)];
+            hexString[i * 2 + 1] = hexAlphabet[uint8(_bytes[i] & 0x0f)];
+        }
+        return string(hexString);
+    }
 }

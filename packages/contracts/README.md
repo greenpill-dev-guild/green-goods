@@ -826,16 +826,14 @@ echo $CELO_RPC_URL
 ## Documentation
 
 **Core Guides:**
-- 📘 [Deployment Guide](../../docs/DEPLOYMENT.md) - Complete deployment workflows
-- 🔄 [Upgrade Guide](../../docs/UPGRADES.md) - Contract upgrade procedures
-- 📊 [Schema Migration Guide](../../docs/SCHEMA_MIGRATION.md) - EAS schema evolution strategies
-
+- 📘 [Contracts Handbook](../../docs/developer/contracts-handbook.md) - deployment, upgrades, schema management, validation
+- 📋 [Deployment Checklist](../../docs/DEPLOYMENT_CHECKLIST.md) - GitBook release validation for docs
 **Configuration:**
 - 📝 [Schema Definitions](./config/schemas.json) - EAS schema configuration
 - 🌐 [Network Configuration](./deployments/networks.json) - Multi-chain settings
 - 🏗️ [Action Definitions](./config/actions.json) - Core garden actions
 
 **Additional:**
-- 📐 [Architecture Overview](../../docs/ARCHITECTURE.md)
-- ✅ [Testing Guide](../../docs/TESTING.md)
-- 🚀 [Production Readiness](../../docs/PRODUCTION_READINESS.md) 
+- 📐 [Architecture Overview](../../docs/developer/architecture.md)
+- ✅ [Testing Guide](../../docs/developer/testing.md)
+- 🌍 [Product Overview](../../docs/features/overview.md)

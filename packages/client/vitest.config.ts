@@ -59,6 +59,9 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      pino: path.resolve(__dirname, "./src/__mocks__/pino.ts"),
+      "node:diagnostics_channel": path.resolve(__dirname, "./src/__mocks__/diagnostics-channel.ts"),
+      diagnostics_channel: path.resolve(__dirname, "./src/__mocks__/diagnostics-channel.ts"),
     },
   },
 });
