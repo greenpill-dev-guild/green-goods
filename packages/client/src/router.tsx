@@ -22,6 +22,10 @@ export const router = createBrowserRouter([
     hydrateFallbackElement: <HydrationLoader />,
     children: [
       {
+        index: true,
+        lazy: async () => ({ Component: (await import("@/views/Landing")).default }),
+      },
+      {
         path: "landing",
         lazy: async () => ({ Component: (await import("@/views/Landing")).default }),
       },
@@ -89,7 +93,7 @@ export const router = createBrowserRouter([
           },
         ],
       },
-      { path: "*", loader: () => redirect("/home") },
+      { path: "*", loader: () => redirect("/landing") },
     ],
   },
 ]);
