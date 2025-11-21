@@ -58,8 +58,6 @@ networks:
         address: "0xB1DD51F5809BddC9146dA833b53C49e5Ff75B8d4"
       - name: GardenToken
         address: "0xB34e21BB86E0674d1b3d2d2Ae7a8C960a61Ec31f"
-      - name: GardenAccount
-        address: "0x121A372fdaB663dC6e05aaA6423bB517c8b8a8AE"
   - id: 1
     start_block: 0
     contracts:
