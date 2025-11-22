@@ -62,8 +62,3 @@ networks:
         address: "0xFBC692bb6087cfAe03Abb432291a27780063222E"
       - name: GardenAccount
         address: "0x797789D3AaBDfDD9Aaa403a2ac2f12827d7cF6D4"
-  - id: 1
-    start_block: 0
-    contracts:
-      - name: ENSRegistrar
-        address: "0x0000000000000000000000000000000000000000"
