@@ -26,18 +26,9 @@ contracts:
       - event: GardenOperatorAdded(address indexed updater, address indexed operator)
       - event: GardenOperatorRemoved(address indexed updater, address indexed operator)
       - event: GAPProjectCreated(bytes32 indexed projectUID, address indexed gardenAddress, string projectName)
-  # ENSRegistrar and Gardener contracts not yet deployed - handlers ready in EventHandlers.ts for future deployment
-  # - name: ENSRegistrar
-  #   handler: src/EventHandlers.ts
-  #   events:
-  #     - event: SubdomainRegistered(string indexed name, address indexed owner, bytes32 indexed credentialId, uint256 timestamp)
-  # - name: Gardener
-  #   handler: src/EventHandlers.ts
-  #   events:
-  #     - event: AccountDeployed(address indexed account, address indexed owner, uint256 timestamp)
 networks:
   - id: 42161
-    start_block: 200000000
+    start_block: 0
     contracts:
       - name: ActionRegistry
         address: "0xac033393575fE76619Dc146Ee0a0482751376Cb0"
