@@ -23,6 +23,7 @@ export interface AppDataProps {
   isMobile: boolean;
   isInstalled: boolean;
   isStandalone: boolean;
+  wasInstalled: boolean;
   platform: Platform;
   locale: Locale;
   availableLocales: readonly Locale[];
@@ -79,6 +80,7 @@ export const AppContext = React.createContext<AppDataProps>({
   isMobile: false,
   isInstalled: false,
   isStandalone: false,
+  wasInstalled: false,
   locale: "en",
   availableLocales: supportedLanguages,
   deferredPrompt: null,
@@ -98,6 +100,15 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     : (getBrowserLocale(supportedLanguages, "en") as Locale); // Use helper instead of browserLang
   const [locale, setLocale] = useState<Locale>(defaultLocale as Locale);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+
+  // Track if app was ever installed on this browser (persistent)
+  const [wasInstalled, setWasInstalled] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("gg-pwa-installed") === "true";
+    }
+    return false;
+  });
+
   // Initialize state synchronously to prevent PWA landing page flash
   const [installState, setInstalledState] = useState<InstallState>(() => {
     if (typeof window !== "undefined") {
@@ -160,6 +171,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
   const handleAppInstalled = useCallback(() => {
     setInstalledState("installed");
+    setWasInstalled(true);
+    localStorage.setItem("gg-pwa-installed", "true");
     track("App Installed", {
       platform,
       locale,
@@ -216,6 +229,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           isMobile: platform === "ios" || platform === "android" || platform === "windows",
           isInstalled: installState === "installed",
           isStandalone,
+          wasInstalled,
           platform,
           locale,
           availableLocales: supportedLanguages,

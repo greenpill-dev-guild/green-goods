@@ -28,7 +28,7 @@ contracts:
       - event: GAPProjectCreated(bytes32 indexed projectUID, address indexed gardenAddress, string projectName)
 networks:
   - id: 42161
-    start_block: 402713932
+    start_block: 400713932
     contracts:
       - name: ActionRegistry
         address: "0xac033393575fE76619Dc146Ee0a0482751376Cb0"

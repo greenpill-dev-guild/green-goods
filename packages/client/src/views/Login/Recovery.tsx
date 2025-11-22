@@ -1,7 +1,7 @@
 import { APP_NAME } from "@green-goods/shared/config";
-import { usePasskeyAuth as useAuth } from "@green-goods/shared/hooks";
 import { recoverPasskeyAccount } from "@green-goods/shared/modules";
 import { toastService } from "@green-goods/shared";
+import { useClientAuth } from "@green-goods/shared/providers";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/UI/Button";
@@ -9,7 +9,7 @@ import { FormInput } from "@/components/UI/Form/Input";
 
 export function Recovery() {
   const navigate = useNavigate();
-  const { setPasskeySession } = useAuth();
+  const { setPasskeySession } = useClientAuth();
   const [ensName, setEnsName] = useState("");
   const [isRecovering, setIsRecovering] = useState(false);
   const [error, setError] = useState<string | null>(null);

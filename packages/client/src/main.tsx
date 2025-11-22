@@ -1,5 +1,5 @@
 import { initTheme } from "@green-goods/shared";
-import { AppKitProvider, PasskeyAuthProvider } from "@green-goods/shared/providers";
+import { AppKitProvider, ClientAuthProvider } from "@green-goods/shared/providers";
 import { AppProvider } from "@green-goods/shared/providers/app";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
@@ -46,11 +46,11 @@ export const Root = () => (
       }}
       defaultChainId={84532}
     >
-      <PasskeyAuthProvider>
+      <ClientAuthProvider>
         <AppProvider>
           <App />
         </AppProvider>
-      </PasskeyAuthProvider>
+      </ClientAuthProvider>
     </AppKitProvider>
   </AppErrorBoundary>
 );

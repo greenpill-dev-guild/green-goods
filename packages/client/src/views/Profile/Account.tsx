@@ -35,8 +35,7 @@ interface ApplicationSettings {
 type ProfileAccountProps = {};
 
 export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
-  const { authMode, signOut, disconnectWallet, smartAccountAddress, credential, walletAddress } =
-    useAuth();
+  const { authMode, signOut, smartAccountAddress, credential, walletAddress } = useAuth();
   const primaryAddress = smartAccountAddress || walletAddress;
   const { data: primaryEnsName } = useEnsName(primaryAddress);
   const navigate = useNavigate();
@@ -95,13 +94,8 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
 
   const handleLogout = async () => {
     try {
-      if (authMode === "passkey") {
-        signOut();
-      } else if (authMode === "wallet") {
-        await disconnectWallet();
-      } else {
-        signOut();
-      }
+      // signOut() handles both passkey and wallet cleanup
+      await signOut();
 
       navigate("/login");
       const message = intl.formatMessage({

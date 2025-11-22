@@ -9,6 +9,7 @@ import {
   RiAddBoxLine,
   RiCloseLine,
   RiDownloadLine,
+  RiExternalLinkLine,
   RiMore2Fill,
   RiUploadLine,
 } from "@remixicon/react";
@@ -20,7 +21,7 @@ interface HeroProps {
 
 export const Hero: React.FC<HeroProps> = () => {
   const intl = useIntl();
-  const { isMobile, platform, deferredPrompt, promptInstall } = useApp();
+  const { isMobile, platform, deferredPrompt, promptInstall, isInstalled, wasInstalled } = useApp();
 
   return (
     <main className="w-full min-h-[calc(100lvh-9rem)] lg:min-h-[calc(100lvh-6rem)] flex flex-col lg:flex-row lg:justify-center gap-16">
@@ -48,7 +49,7 @@ export const Hero: React.FC<HeroProps> = () => {
           </span>
         </p>
 
-        {isMobile && (
+        {isMobile && !isInstalled && (
           <>
             {deferredPrompt ? (
               /* NATIVE INSTALL - Direct trigger, no modal */
@@ -65,6 +66,18 @@ export const Hero: React.FC<HeroProps> = () => {
                   defaultMessage: "Install App",
                 })}
               </button>
+            ) : wasInstalled ? (
+              /* OPEN APP - App was previously installed */
+              <a
+                href="/home"
+                className="px-6 py-4 bg-[#367D42] text-white rounded-full w-full font-bold shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-2 no-underline"
+              >
+                <RiExternalLinkLine className="w-5 h-5" />
+                {intl.formatMessage({
+                  id: "app.hero.open",
+                  defaultMessage: "Open App",
+                })}
+              </a>
             ) : (
               /* MANUAL INSTALL - Show modal with instructions */
               <Dialog.Root>

@@ -1,35 +1,22 @@
 import { toastService } from "@green-goods/shared";
-import { wagmiConfig } from "@green-goods/shared/config";
-import {
-  checkMembership,
-  usePasskeyAuth as useAuth,
-  useAutoJoinRootGarden,
-} from "@green-goods/shared/hooks";
-import {
-  authenticatePasskey,
-  PASSKEY_STORAGE_KEY,
-  type PasskeySession,
-} from "@green-goods/shared/modules";
-import { useAppKit } from "@green-goods/shared/providers";
-import { getAccount } from "@wagmi/core";
-import { useEffect, useState } from "react";
+import { checkMembership, useAutoJoinRootGarden } from "@green-goods/shared/hooks";
+import { PASSKEY_STORAGE_KEY, type PasskeySession } from "@green-goods/shared/modules";
+import { useAppKit, useClientAuth } from "@green-goods/shared/providers";
+import { useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useAccount } from "wagmi";
 import { type LoadingState, Splash } from "@/components/Layout/Splash";
 
 export function Login() {
   const location = useLocation();
   const {
-    walletAddress,
-    createPasskey,
-    connectWallet,
+    signInWithPasskey,
     isAuthenticating,
     smartAccountClient,
     authMode,
     error,
     isAuthenticated,
     setPasskeySession,
-  } = useAuth();
+  } = useClientAuth();
 
   const [loadingState, setLoadingState] = useState<LoadingState | null>(null);
   const [loadingMessage, setLoadingMessage] = useState<string | undefined>(undefined);
@@ -45,29 +32,14 @@ export function Login() {
     devConnect,
   } = useAutoJoinRootGarden();
 
-  // Use wagmi's useAccount hook to detect wallet connection
-  const { address: wagmiAddress, isConnected: wagmiConnected } = useAccount();
-
   // Check if we're on a nested route (like /login/recover)
   const isNestedRoute = location.pathname !== "/login";
 
   // Extract redirectTo parameter from URL query string
   const redirectTo = new URLSearchParams(location.search).get("redirectTo") || "/home";
 
-  // Watch wagmi connection and sync to auth provider
-  useEffect(() => {
-    if (!wagmiConnected || !wagmiAddress || walletAddress || isAuthenticating) {
-      return;
-    }
-
-    const account = getAccount(wagmiConfig);
-    const connector = account.connector;
-    if (connector) {
-      connectWallet(connector).catch((err) => {
-        console.error("Failed to sync wallet connection", err);
-      });
-    }
-  }, [wagmiConnected, wagmiAddress, walletAddress, connectWallet, isAuthenticating]);
+  // Note: Wallet connection is automatically synced by PasskeyAuthProvider's watchAccount effect
+  // No manual sync needed here
   const handleCreatePasskey = async () => {
     setLoadingMessage("Preparing your Green Goods wallet…");
     try {
@@ -76,18 +48,9 @@ export function Login() {
       // Check if user has existing passkey credential
       const hasExistingCredential = !!localStorage.getItem(PASSKEY_STORAGE_KEY);
 
-      let session: PasskeySession;
-
-      if (hasExistingCredential) {
-        // Returning user: prompt for passkey authentication
-        setLoadingMessage("Authenticating with your passkey…");
-        session = await authenticatePasskey();
-        // Set the session in the auth provider
-        setPasskeySession(session);
-      } else {
-        // New user: create passkey
-        session = await createPasskey();
-      }
+      setLoadingMessage(hasExistingCredential ? "Authenticating with your passkey…" : undefined);
+      const session: PasskeySession = await signInWithPasskey();
+      setPasskeySession(session);
 
       // Check membership BEFORE showing any toast
       const membershipStatus = await checkMembership(session.address);
@@ -176,12 +139,6 @@ export function Login() {
 
   if (isAuthenticated && (authMode === "wallet" || smartAccountClient)) {
     return <Navigate to={redirectTo} replace />;
-  }
-
-  // Fix: If wallet is connected but auth sync hasn't finished, show loading
-  // This prevents the login screen from flashing while syncing auth state
-  if (wagmiConnected && !isAuthenticated && !error && !isAuthenticating) {
-    return <Splash loadingState="default" message="Connecting wallet..." />;
   }
 
   // Loading screen during passkey creation, garden join, or welcome back

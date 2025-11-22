@@ -179,15 +179,18 @@ ActionRegistry.ActionMediaUpdated.handler(async ({ event, context }) => {
   }
 });
 
-// Handler for the GardenMinted event
-GardenToken.GardenMinted.handler(async ({ event, context }) => {
+// Register new GardenAccount contracts when gardens are minted
+GardenToken.GardenMinted.contractRegister(({ event, context }) => {
   // Register the newly created garden account contract for event listening
   context.addGardenAccount(event.params.account);
 
   context.log.info(
     `Registered new GardenAccount at ${event.params.account} (tokenId: ${event.params.tokenId})`
   );
+});
 
+// Handler for the GardenMinted event
+GardenToken.GardenMinted.handler(async ({ event, context }) => {
   const gardenId = event.params.account;
 
   // 1. Create Garden Entity

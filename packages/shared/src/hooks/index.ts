@@ -16,7 +16,7 @@ export type { CreateAssessmentForm } from "./assessment/useCreateAssessmentWorkf
 export { useCreateAssessmentWorkflow } from "./assessment/useCreateAssessmentWorkflow";
 export { useGardenAssessments } from "./assessment/useGardenAssessments";
 // From auth/
-export { useAuth, usePasskeyAuth } from "./auth/useAuth";
+export { useAuth, useClientAuth, usePasskeyAuth, useWalletAuth } from "./auth/useAuth";
 export { useUser } from "./auth/useUser";
 // From blockchain/
 export { ensureBaseLists } from "./blockchain/prefetch";
