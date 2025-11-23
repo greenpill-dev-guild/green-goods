@@ -279,12 +279,12 @@ export function useAutoJoinRootGarden(autoJoin = false) {
       const targetAddress = sessionOverride?.address ?? primaryAddress;
 
       // Use token ID 0 garden from indexer instead of deployment config
-      if (!rootGardenRecord?.tokenAddress) {
+      if (!rootGardenRecord?.id) {
         throw new Error("Root garden (Token ID 0) not found. Please try again later.");
       }
 
       try {
-        await executeJoin(rootGardenRecord.tokenAddress, sessionOverride);
+        await executeJoin(rootGardenRecord.id, sessionOverride);
 
         // Set appropriate localStorage flags
         localStorage.setItem(ROOT_GARDEN_PROMPTED_KEY, "true");
@@ -370,7 +370,7 @@ export function useAutoJoinRootGarden(autoJoin = false) {
     async (sessionOverride?: PasskeySession) => {
       if (!VITE_DEVCONNECT) return;
       // Try to get address from record, fallback to fetch not needed as useGardens covers it
-      const address = devConnectGardenRecord?.tokenAddress;
+      const address = devConnectGardenRecord?.id;
       if (!address) throw new Error("DevConnect garden not found (Token ID 1)");
 
       const targetAddress = sessionOverride?.address ?? primaryAddress;
@@ -445,7 +445,7 @@ export function useAutoJoinRootGarden(autoJoin = false) {
       isMember: derivedIsDevConnectMember,
       isLoading: gardensLoading || gardensFetching,
       join: joinDevConnect,
-      gardenAddress: devConnectGardenRecord?.tokenAddress,
+      gardenAddress: devConnectGardenRecord?.id,
     },
   };
 }
