@@ -160,6 +160,8 @@
   "app.home.workApproval.title": "You've {status} the work!",
   "app.home.workApproval.verifyIfTheWorkIsAcceptable": "Verify if the work is acceptable",
   "app.login": "Login",
+  "app.login.preparingWallet": "Preparing your wallet…",
+  "app.login.authenticating": "Authenticating...",
   "app.logout": "Logout",
   "app.profile": "Profile",
   "app.profile.account": "Account",

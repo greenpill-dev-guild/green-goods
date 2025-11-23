@@ -97,7 +97,8 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
       // signOut() handles both passkey and wallet cleanup
       await signOut();
 
-      navigate("/login");
+      // Always redirect to /login (not /profile) to ensure clean login flow
+      navigate("/login", { replace: true });
       const message = intl.formatMessage({
         id: "app.toast.loggedOut",
         defaultMessage: "Logged out successfully",

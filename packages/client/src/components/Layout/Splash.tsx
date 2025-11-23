@@ -85,7 +85,7 @@ export const Splash: React.FC<SplashProps> = ({
           <div className="flex w-full h-10 items-center justify-center">
             {!loadingState ? (
               <Button
-                variant="neutral"
+                variant="primary"
                 mode="stroke"
                 size="small"
                 shape="pilled"

@@ -144,20 +144,11 @@ export function useAutoJoinRootGarden(autoJoin = false) {
   });
 
   const rootGardenRecord = useMemo(() => {
-    if (!gardens || !rootGardenAddressNormalized) return null;
+    if (!gardens) return null;
 
-    return (
-      gardens.find((garden) => {
-        const matchesAddress =
-          normalizeAddress(garden.tokenAddress) === rootGardenAddressNormalized;
-        const matchesToken =
-          typeof rootGardenTokenId === "number"
-            ? Number(garden.tokenID) === rootGardenTokenId
-            : true;
-        return matchesAddress && matchesToken;
-      }) ?? null
-    );
-  }, [gardens, normalizeAddress, rootGardenAddressNormalized, rootGardenTokenId]);
+    // Always use token ID 0 (the first garden)
+    return gardens.find((garden) => Number(garden.tokenID) === 0) ?? null;
+  }, [gardens]);
 
   // --- DEVCONNECT LOGIC ---
   const devConnectGardenRecord = useMemo(() => {
@@ -168,17 +159,18 @@ export function useAutoJoinRootGarden(autoJoin = false) {
   const { writeContractAsync, isPending } = useWriteContract();
 
   // Onchain check: directly read from the gardeners mapping on the contract
+  // Use token ID 0 garden's address from the indexer
   const {
     data: isGardenerOnchain,
     isLoading: isCheckingOnchain,
     refetch: refetchOnchainStatus,
   } = useReadContract({
-    address: rootGarden?.address,
+    address: rootGardenRecord?.tokenAddress as `0x${string}` | undefined,
     abi: GardenAccountABI,
     functionName: "gardeners",
     args: smartAccountAddress ? [smartAccountAddress] : undefined,
     query: {
-      enabled: !!rootGarden?.address && !!smartAccountAddress,
+      enabled: !!rootGardenRecord?.tokenAddress && !!smartAccountAddress,
       staleTime: 10000, // 10 seconds - refetch more frequently for membership changes
     },
   });
@@ -287,12 +279,13 @@ export function useAutoJoinRootGarden(autoJoin = false) {
     async (sessionOverride?: PasskeySession) => {
       const targetAddress = sessionOverride?.address ?? smartAccountAddress;
 
-      if (!rootGarden) {
-        throw new Error("Missing required data for joining garden");
+      // Use token ID 0 garden from indexer instead of deployment config
+      if (!rootGardenRecord?.tokenAddress) {
+        throw new Error("Root garden (Token ID 0) not found. Please try again later.");
       }
 
       try {
-        await executeJoin(rootGarden.address, sessionOverride);
+        await executeJoin(rootGardenRecord.tokenAddress, sessionOverride);
 
         // Set appropriate localStorage flags
         localStorage.setItem(ROOT_GARDEN_PROMPTED_KEY, "true");
@@ -315,12 +308,8 @@ export function useAutoJoinRootGarden(autoJoin = false) {
           (oldGardens: any[] | undefined) => {
             if (!oldGardens) return oldGardens;
             return oldGardens.map((garden) => {
-              // Check if this is the root garden
-              const isRoot =
-                normalizeAddress(garden.tokenAddress) === rootGardenAddressNormalized &&
-                (typeof rootGardenTokenId === "number"
-                  ? Number(garden.tokenID) === rootGardenTokenId
-                  : true);
+              // Check if this is the root garden (Token ID 0)
+              const isRoot = Number(garden.tokenID) === 0;
 
               if (isRoot) {
                 // Add user to gardeners list if not already there
@@ -366,15 +355,14 @@ export function useAutoJoinRootGarden(autoJoin = false) {
     },
     [
       chainId,
+      chainId,
       executeJoin,
+      normalizeAddress,
       queryClient,
       refetchGardens,
       refetchOnchainStatus,
-      rootGarden,
+      rootGardenRecord,
       smartAccountAddress,
-      normalizeAddress,
-      rootGardenAddressNormalized,
-      rootGardenTokenId,
     ]
   );
 
@@ -410,7 +398,7 @@ export function useAutoJoinRootGarden(autoJoin = false) {
   // Note: This is primarily called manually from Login component for controlled flow
   useEffect(() => {
     if (!autoJoin) return;
-    if (!ready || !smartAccountAddress || !rootGarden) return;
+    if (!ready || !smartAccountAddress || !rootGardenRecord) return;
     if (gardensLoading || gardensFetching || derivedIsGardener) return;
 
     const onboardedKey = getOnboardedKey(smartAccountAddress);
@@ -429,7 +417,7 @@ export function useAutoJoinRootGarden(autoJoin = false) {
     autoJoin,
     ready,
     smartAccountAddress,
-    rootGarden,
+    rootGardenRecord,
     derivedIsGardener,
     gardensLoading,
     gardensFetching,

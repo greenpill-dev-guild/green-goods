@@ -163,6 +163,8 @@
   "app.home.workApproval.title": "¡Has {status} el trabajo!",
   "app.home.workApproval.verifyIfTheWorkIsAcceptable": "Verifica si el trabajo es aceptable",
   "app.login": "Iniciar Sesión",
+  "app.login.preparingWallet": "Preparando tu billetera…",
+  "app.login.authenticating": "Autenticando...",
   "app.logout": "Cerrar Sesión",
   "app.profile": "Perfil",
   "app.profile.account": "Cuenta",

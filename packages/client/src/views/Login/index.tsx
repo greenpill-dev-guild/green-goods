@@ -1,7 +1,7 @@
 import { toastService } from "@green-goods/shared";
+import { appKit } from "@green-goods/shared/config/appkit";
 import { checkMembership, useAutoJoinRootGarden } from "@green-goods/shared/hooks";
 import { PASSKEY_STORAGE_KEY, type PasskeySession } from "@green-goods/shared/modules";
-import { appKit } from "@green-goods/shared/config/appkit";
 import { useClientAuth } from "@green-goods/shared/providers";
 import { useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
@@ -9,18 +9,12 @@ import { type LoadingState, Splash } from "@/components/Layout/Splash";
 
 export function Login() {
   const location = useLocation();
-  const {
-    signInWithPasskey,
-    isAuthenticating,
-    smartAccountClient,
-    authMode,
-    error,
-    isAuthenticated,
-    setPasskeySession,
-  } = useClientAuth();
+  const { signInWithPasskey, isAuthenticating, isAuthenticated, setPasskeySession } =
+    useClientAuth();
 
   const [loadingState, setLoadingState] = useState<LoadingState | null>(null);
   const [loadingMessage, setLoadingMessage] = useState<string | undefined>(undefined);
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   // Check if DevConnect is enabled via environment variable
   const isDevConnectEnabled = import.meta.env.VITE_DEVCONNECT === "true";
@@ -35,20 +29,22 @@ export function Login() {
   // Check if we're on a nested route (like /login/recover)
   const isNestedRoute = location.pathname !== "/login";
 
-  // Extract redirectTo parameter from URL query string
+  // Extract redirectTo parameter from URL query string, default to /home
   const redirectTo = new URLSearchParams(location.search).get("redirectTo") || "/home";
 
   // Note: Wallet connection is automatically synced by PasskeyAuthProvider's watchAccount effect
   // No manual sync needed here
   const handleCreatePasskey = async () => {
-    setLoadingMessage("Preparing your Green Goods wallet…");
+    // Clear any previous errors
+    setLoginError(null);
+    setLoadingMessage("Preparing your wallet…");
     try {
       setLoadingState("welcome");
 
       // Check if user has existing passkey credential
       const hasExistingCredential = !!localStorage.getItem(PASSKEY_STORAGE_KEY);
 
-      setLoadingMessage(hasExistingCredential ? "Authenticating with your passkey…" : undefined);
+      setLoadingMessage(hasExistingCredential ? "Authenticating..." : undefined);
       const session: PasskeySession = await signInWithPasskey();
       setPasskeySession(session);
 
@@ -116,16 +112,48 @@ export function Login() {
     } catch (err) {
       setLoadingState(null);
       console.error("Passkey authentication failed", err);
-      toastService.error({
-        title: "Authentication failed",
-        message: err instanceof Error ? err.message : "Please try again.",
-        context: "passkey setup",
-        error: err,
-      });
+
+      // Set user-friendly error message without toast
+      const friendlyMessage = getFriendlyErrorMessage(err);
+      setLoginError(friendlyMessage);
     } finally {
       setLoadingState(null);
       setLoadingMessage(undefined);
     }
+  };
+
+  // Convert technical errors to user-friendly messages
+  const getFriendlyErrorMessage = (err: unknown): string => {
+    if (err instanceof Error) {
+      const message = err.message.toLowerCase();
+
+      // User cancelled passkey prompt
+      if (
+        message.includes("cancel") ||
+        message.includes("abort") ||
+        message.includes("user deny")
+      ) {
+        return "Login cancelled. Please try again when ready.";
+      }
+
+      // Passkey not supported or available
+      if (message.includes("not support") || message.includes("unavailable")) {
+        return "Passkey authentication is not available on this device. Try using 'Login with wallet' instead.";
+      }
+
+      // Network or timeout issues
+      if (message.includes("network") || message.includes("timeout") || message.includes("fetch")) {
+        return "Connection issue. Please check your internet and try again.";
+      }
+
+      // Generic passkey errors
+      if (message.includes("credential") || message.includes("passkey")) {
+        return "Couldn't verify your passkey. Please try again or use 'Login with wallet'.";
+      }
+    }
+
+    // Fallback for unknown errors
+    return "Something went wrong. Please try again or use 'Login with wallet'.";
   };
 
   const handleWalletLogin = () => {
@@ -137,7 +165,8 @@ export function Login() {
     return <Outlet />;
   }
 
-  if (isAuthenticated && (authMode === "wallet" || smartAccountClient)) {
+  // Redirect to app once authenticated (both passkey and wallet)
+  if (isAuthenticated) {
     return <Navigate to={redirectTo} replace />;
   }
 
@@ -146,7 +175,8 @@ export function Login() {
     return <Splash loadingState={loadingState} message={loadingMessage} />;
   }
 
-  const errorMessage = !isAuthenticating && !isJoiningGarden && error ? error.message : null;
+  // Use local error state instead of provider error for better control
+  const errorMessage = !isAuthenticating && !isJoiningGarden ? loginError : null;
 
   // Main splash screen with login button
   return (
