@@ -204,17 +204,54 @@ contract Deploy is Script, DeploymentBase {
             }
 
             string memory resultJson = string(result);
+            bytes memory parsed;
 
-            // Try to parse as JSON
-            try vm.parseJson(resultJson) returns (bytes memory parsed) {
-                string[] memory hashes = abi.decode(parsed, (string[]));
-                if (hashes.length != expectedCount) {
-                    return _handleIPFSMismatch(expectedCount, hashes.length);
-                }
-                return hashes;
+            // Try to parse as JSON directly
+            try vm.parseJson(resultJson) returns (bytes memory directParsed) {
+                parsed = directParsed;
             } catch {
-                return _handleIPFSMismatch(expectedCount, 0);
+                // Strip any non-JSON prefix/suffix (e.g., dotenv logs) by locating the LAST '[' and LAST ']'
+                bytes memory resultBytes = bytes(resultJson);
+                int256 start = -1;
+                int256 end = -1;
+
+                for (uint256 i = resultBytes.length; i > 0; i--) {
+                    if (resultBytes[i - 1] == "]" && end == -1) {
+                        end = int256(i);
+                        break;
+                    }
+                }
+
+                if (end > 0) {
+                    for (uint256 i = uint256(end); i > 0; i--) {
+                        if (resultBytes[i - 1] == "[") {
+                            start = int256(i - 1);
+                            break;
+                        }
+                    }
+                }
+
+                if (start >= 0 && end > start) {
+                    bytes memory sliced = new bytes(uint256(end - start));
+                    for (uint256 i = uint256(start); i < uint256(end); i++) {
+                        sliced[i - uint256(start)] = resultBytes[i];
+                    }
+
+                    try vm.parseJson(string(sliced)) returns (bytes memory cleanedParsed) {
+                        parsed = cleanedParsed;
+                    } catch {
+                        return _handleIPFSMismatch(expectedCount, 0);
+                    }
+                } else {
+                    return _handleIPFSMismatch(expectedCount, 0);
+                }
             }
+
+            string[] memory hashes = abi.decode(parsed, (string[]));
+            if (hashes.length != expectedCount) {
+                return _handleIPFSMismatch(expectedCount, hashes.length);
+            }
+            return hashes;
         } catch {
             return _handleIPFSMismatch(expectedCount, 0);
         }

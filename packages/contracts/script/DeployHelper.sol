@@ -136,7 +136,7 @@ abstract contract DeployHelper is Script {
 
         // Generate salt from string for fresh deployment
         // Increment this number for complete redeployment to new addresses
-        salt = keccak256(bytes("greenGoodsCleanDeploy2025:10"));
+        salt = keccak256(bytes("greenGoodsCleanDeploy2025:11"));
         factory = json.readAddress(".deploymentDefaults.factory");
         tokenboundRegistry = json.readAddress(".deploymentDefaults.tokenboundRegistry");
     }

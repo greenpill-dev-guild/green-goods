@@ -14,8 +14,6 @@ export {
   APP_ICON,
   ONBOARDED_STORAGE_KEY,
   // appkit.ts
-  networks,
-  wagmiAdapter,
   wagmiConfig,
   appKit,
   // blockchain.ts

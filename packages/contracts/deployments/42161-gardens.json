@@ -1,1 +1,6 @@
-{ "gardens": [{ "tokenId": 1, "address": "0x447fb6d68E8604f21cAab4F60cc67E479A7bdeC9" }] }
+{
+  "gardens": [
+    { "tokenId": 1, "address": "0x6DC507e4Fc10563fC26F5c6150E5B886eD84AEC7" },
+    { "tokenId": 2, "address": "0xf06aB49F0a6D48CC4598c27cbF64E9b912C722dB" }
+  ]
+}
