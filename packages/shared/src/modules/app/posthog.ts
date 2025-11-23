@@ -3,10 +3,26 @@ import { posthog } from "posthog-js";
 const IS_DEV = import.meta.env.DEV;
 const IS_DEBUG = import.meta.env.VITE_POSTHOG_DEBUG === "true";
 
-posthog.init(import.meta.env.VITE_PUBLIC_POSTHOG_KEY, {
-  api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
-  debug: IS_DEBUG,
-});
+// Initialize PostHog only if not already initialized
+// PostHogProvider will also initialize, but it checks for existing initialization
+// Check if PostHog is already initialized by checking for config
+const isAlreadyInitialized =
+  typeof (posthog as any).config !== "undefined" && (posthog as any).config?.api_host !== undefined;
+
+if (!isAlreadyInitialized && import.meta.env.VITE_PUBLIC_POSTHOG_KEY) {
+  try {
+    posthog.init(import.meta.env.VITE_PUBLIC_POSTHOG_KEY, {
+      api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+      debug: IS_DEBUG,
+    });
+  } catch (error) {
+    // PostHog may already be initialized by PostHogProvider
+    // This is expected and safe to ignore
+    if (IS_DEBUG) {
+      console.debug("[PostHog] Initialization skipped - already initialized");
+    }
+  }
+}
 
 // Event throttling to prevent excessive events
 const eventThrottle = new Map<string, number>();
@@ -89,13 +105,33 @@ function generateSecureRandomString(length: number): string {
 }
 
 /**
+ * Safely get item from storage without throwing
+ */
+function safeGetItem(storage: Storage, key: string): string | null {
+  try {
+    return storage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Safely set item in storage without throwing
+ */
+function safeSetItem(storage: Storage, key: string, value: string): void {
+  try {
+    storage.setItem(key, value);
+  } catch {}
+}
+
+/**
  * Get or create a session ID for tracking user sessions
  */
 function getSessionId(): string {
-  let sessionId = sessionStorage.getItem("posthog_session_id");
+  let sessionId = safeGetItem(sessionStorage, "posthog_session_id");
   if (!sessionId) {
     sessionId = `session_${Date.now()}_${generateSecureRandomString(9)}`;
-    sessionStorage.setItem("posthog_session_id", sessionId);
+    safeSetItem(sessionStorage, "posthog_session_id", sessionId);
   }
   return sessionId;
 }
@@ -148,7 +184,7 @@ export function trackAppLifecycle(event: "app_start" | "app_resume" | "app_backg
  * Get offline duration if available
  */
 function getOfflineDuration(): number | null {
-  const offlineStart = localStorage.getItem("offline_start_time");
+  const offlineStart = safeGetItem(localStorage, "offline_start_time");
   if (offlineStart && !navigator.onLine) {
     return Date.now() - parseInt(offlineStart);
   }
@@ -160,7 +196,7 @@ function getOfflineDuration(): number | null {
  */
 function getQueueSize(): number {
   try {
-    const jobQueueData = localStorage.getItem("job-queue-stats");
+    const jobQueueData = safeGetItem(localStorage, "job-queue-stats");
     return jobQueueData ? JSON.parse(jobQueueData).pending || 0 : 0;
   } catch {
     return 0;
@@ -227,21 +263,23 @@ function getStorageQuota(): Promise<Record<string, unknown> | null> {
 let lastOnlineStatus = navigator.onLine;
 window.addEventListener("online", () => {
   if (!lastOnlineStatus) {
-    const offlineStart = localStorage.getItem("offline_start_time");
+    const offlineStart = safeGetItem(localStorage, "offline_start_time");
     const offlineDuration = offlineStart ? Date.now() - parseInt(offlineStart) : null;
 
     trackOfflineEvent("connection_restored", {
       offline_duration: offlineDuration,
     });
 
-    localStorage.removeItem("offline_start_time");
+    try {
+      localStorage.removeItem("offline_start_time");
+    } catch {}
   }
   lastOnlineStatus = true;
 });
 
 window.addEventListener("offline", () => {
   if (lastOnlineStatus) {
-    localStorage.setItem("offline_start_time", Date.now().toString());
+    safeSetItem(localStorage, "offline_start_time", Date.now().toString());
     trackOfflineEvent("connection_lost", {});
   }
   lastOnlineStatus = false;
@@ -253,5 +291,9 @@ document.addEventListener("visibilitychange", () => {
   trackAppLifecycle(event);
 });
 
-// Track app start
-trackAppLifecycle("app_start");
+// Track app start (wrapped in try/catch to be safe at module level)
+try {
+  trackAppLifecycle("app_start");
+} catch (e) {
+  if (IS_DEBUG) console.error("[PostHog] Failed to track app start:", e);
+}

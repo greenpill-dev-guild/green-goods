@@ -3,8 +3,7 @@ import {
   useGardenOperations,
   useGardenPermissions,
 } from "@green-goods/shared/hooks/garden";
-import { getWorks } from "@green-goods/shared/modules";
-import { resolveIPFSUrl } from "@green-goods/shared/utils/pinata";
+import { getWorks, resolveIPFSUrl } from "@green-goods/shared/modules";
 import {
   RiCheckboxCircleLine,
   RiDeleteBinLine,

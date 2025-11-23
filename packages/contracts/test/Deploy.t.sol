@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { Test } from "forge-std/Test.sol";
-import { Deploy } from "../script/Deploy.s.sol";
+import {Test} from "forge-std/Test.sol";
+import {Deploy} from "../script/Deploy.s.sol";
 
 contract DeployTest is Test {
     Deploy public deployer;
@@ -27,20 +27,20 @@ contract DeployTest is Test {
         try deployer.run() {
             // Deployment successful
             // solhint-disable-next-line no-empty-blocks
-        } catch (bytes memory reason) {
+        } catch (bytes memory) /* reason */ {
             // Some deployments may fail in test environment due to environment differences
         }
 
         vm.stopBroadcast();
     }
 
-    function testDeploymentRegistry() public {
+    function testDeploymentRegistry() public view {
         // SKIPPED: testDeploymentRegistry - method removed in refactor
         // Registry deployment is now handled by DeploymentBase.deployFullStack()
         return;
     }
 
-    function testNetworkConfiguration() public {
+    function testNetworkConfiguration() public view {
         // SKIPPED: testNetworkConfiguration - method removed in refactor
         // Registry configuration is now handled by DeploymentBase._configureRegistry()
         return;

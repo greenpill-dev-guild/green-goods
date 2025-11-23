@@ -17,13 +17,13 @@ contract GardenerTest is Test {
     function setUp() public {
         // Deploy mock EntryPoint
         entryPoint = IEntryPoint(address(0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789));
-        
+
         // Deploy Gardener logic contract (same for all chains)
         account = new Gardener(entryPoint);
-        
+
         // Initialize with owner
         account.initialize(owner);
-        
+
         // Initialize Gardener-specific logic (prank as owner)
         vm.prank(owner);
         account.initializeGardener();
@@ -42,7 +42,7 @@ contract GardenerTest is Test {
         // Deploy new account
         Gardener newAccount = new Gardener(entryPoint);
         newAccount.initialize(owner);
-        
+
         vm.startPrank(owner);
         vm.expectEmit(true, true, true, true);
         emit Gardener.AccountDeployed(address(newAccount), owner, block.timestamp);
@@ -60,7 +60,7 @@ contract GardenerTest is Test {
     function testCannotInitializeBeforeKernelInitialize() public {
         // Deploy new account without Kernel initialization
         Gardener uninitializedAccount = new Gardener(entryPoint);
-        
+
         vm.expectRevert(Gardener.NotInitialized.selector);
         uninitializedAccount.initializeGardener();
     }
@@ -81,4 +81,3 @@ contract GardenerTest is Test {
         assertTrue(account.supportsInterface(type(IERC165).interfaceId), "Should support ERC-165");
     }
 }
-

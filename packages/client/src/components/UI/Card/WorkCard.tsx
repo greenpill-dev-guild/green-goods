@@ -329,16 +329,6 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
     ? work.status.charAt(0).toUpperCase() + work.status.slice(1)
     : "Pending";
 
-  // DEBUG: Log media data
-  console.log("[MinimalWorkCard] Rendering work:", {
-    workId: work.id,
-    title: work.title,
-    mediaIsArray: Array.isArray(work.media),
-    mediaLength: work.media?.length || 0,
-    mediaFirstItem: work.media?.[0],
-    mediaType: typeof work.media?.[0],
-  });
-
   // Resolve thumbnail from media entry (supports string URL, {url}, or File)
   const initialCandidate =
     Array.isArray(work.media) && work.media.length > 0 ? work.media[0] : undefined;
@@ -346,55 +336,26 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
     typeof initialCandidate === "string" ? initialCandidate : undefined
   );
 
-  console.log("[MinimalWorkCard] Initial thumbnail state:", {
-    workId: work.id,
-    initialCandidate,
-    initialCandidateType: typeof initialCandidate,
-    thumbUrl,
-  });
   React.useEffect(() => {
     let createdUrl: string | undefined;
     try {
       const m0 =
         Array.isArray(work.media) && work.media.length > 0 ? (work.media as any[])[0] : undefined;
 
-      console.log("[MinimalWorkCard] Processing media in useEffect:", {
-        workId: work.id,
-        m0,
-        m0Type: typeof m0,
-        isString: typeof m0 === "string",
-        isObject: m0 && typeof m0 === "object",
-        hasUrlProp: m0 && typeof (m0 as any).url === "string",
-        isFile: m0 instanceof File,
-      });
-
       let url: string | undefined;
       if (typeof m0 === "string") {
         url = m0;
-        console.log("[MinimalWorkCard] Media is string URL:", url.substring(0, 60) + "...");
       } else if (m0 && typeof m0 === "object") {
         if (typeof (m0 as any).url === "string") {
           url = (m0 as any).url as string;
-          console.log(
-            "[MinimalWorkCard] Media is object with url property:",
-            url.substring(0, 60) + "..."
-          );
         } else if ((m0 as any).file instanceof File) {
           createdUrl = URL.createObjectURL((m0 as any).file as File);
           url = createdUrl;
-          console.log("[MinimalWorkCard] Media is object with File, created blob URL:", url);
         } else if (m0 instanceof File) {
           createdUrl = URL.createObjectURL(m0 as File);
           url = createdUrl;
-          console.log("[MinimalWorkCard] Media is File, created blob URL:", url);
         }
       }
-
-      console.log("[MinimalWorkCard] Final thumbUrl being set:", {
-        workId: work.id,
-        url: url?.substring(0, 60) + "...",
-        urlType: typeof url,
-      });
 
       setThumbUrl(url);
     } catch (error) {
@@ -426,26 +387,18 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
     >
       {/* Media thumbnail - flush to edges with 1:1 aspect ratio */}
       <div className="w-22 flex-shrink-0 bg-slate-100 overflow-hidden relative aspect-square">
-        {(() => {
-          console.log("[MinimalWorkCard] Rendering thumbnail:", {
-            workId: work.id,
-            thumbUrl: thumbUrl?.substring(0, 60) + "...",
-            hasThumbUrl: !!thumbUrl,
-          });
-
-          return thumbUrl ? (
-            <ImageWithFallback
-              src={thumbUrl}
-              alt=""
-              className="w-full h-full object-cover"
-              fallbackClassName="w-22 aspect-square"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-slate-400">
-              <RiImageLine className="w-6 h-6" />
-            </div>
-          );
-        })()}
+        {thumbUrl ? (
+          <ImageWithFallback
+            src={thumbUrl}
+            alt=""
+            className="w-full h-full object-cover"
+            fallbackClassName="w-22 aspect-square"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-slate-400">
+            <RiImageLine className="w-6 h-6" />
+          </div>
+        )}
       </div>
 
       {/* Content */}

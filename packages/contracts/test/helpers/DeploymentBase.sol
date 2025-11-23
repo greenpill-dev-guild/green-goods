@@ -2,6 +2,7 @@
 pragma solidity ^0.8.25;
 
 import { Test } from "forge-std/Test.sol";
+import { console } from "forge-std/console.sol";
 import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
@@ -13,7 +14,6 @@ import { AccountProxy } from "@tokenbound/AccountProxy.sol";
 import { GardenAccount } from "../../src/accounts/Garden.sol";
 import { Gardener } from "../../src/accounts/Gardener.sol";
 import { ENSRegistrar } from "../../src/registries/ENSRegistrar.sol";
-import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { IEntryPoint } from "account-abstraction/interfaces/IEntryPoint.sol";
 import { GardenToken } from "../../src/tokens/Garden.sol";
 import { ActionRegistry } from "../../src/registries/Action.sol";
@@ -62,6 +62,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
     error SchemaNameAttestationFailed();
     error SchemaDescriptionAttestationFailed();
     error UnsupportedChain();
+    error ENSRegistrarDeploymentAddressMismatch();
 
     // ===== SCHEMA CONSTANTS =====
     bytes32 public constant SCHEMA_NAME_SCHEMA = 0x44d562ac1d7cd77e232978687fea027ace48f719cf1d58c7888e509663bb87fc;
@@ -114,12 +115,18 @@ abstract contract DeploymentBase is Test, DeployHelper {
         return chainId == 1 || chainId == 11_155_111; // Mainnet or Sepolia
     }
 
+    /// @notice Log CREATE2 prediction details for clarity
+    function _logCreate2Prediction(string memory label, bytes32 salt, address factory, address predicted) internal view {
+        console.log("CREATE2 target:", label);
+        console.log("  predicted", predicted);
+    }
+
     /// @notice Deploy mainnet ENS infrastructure only
     function _deployMainnetENS(address owner, bytes32 salt, address factory) internal {
         (address entryPoint,,) = _getNetworkAddresses();
 
         // 1. Deploy ENSRegistrar (mainnet only)
-        address ensRegistrarAddress = _deployENSRegistrar(owner, salt, factory);
+        _deployENSRegistrar(owner, salt, factory);
 
         // 2. Deploy Gardener logic (same across all chains)
         gardenerAccountLogic = address(new Gardener(IEntryPoint(entryPoint)));
@@ -232,6 +239,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
     function deployGuardian(address greenGoodsSafe, bytes32 salt, address factory) public returns (address) {
         bytes memory bytecode = abi.encodePacked(type(AccountGuardian).creationCode, abi.encode(greenGoodsSafe));
         address predicted = Create2.computeAddress(salt, keccak256(bytecode), factory);
+        _logCreate2Prediction("Guardian", salt, factory, predicted);
 
         if (!_isDeployed(predicted)) {
             address deployed = _deployCreate2(bytecode, salt, factory);
@@ -262,6 +270,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
             abi.encode(entryPoint, multicallForwarder, tokenRegistry, guardian, _workApprovalResolver, _assessmentResolver)
         );
         address predicted = Create2.computeAddress(salt, keccak256(bytecode), factory);
+        _logCreate2Prediction("GardenAccount implementation", salt, factory, predicted);
 
         if (!_isDeployed(predicted)) {
             address deployed = _deployCreate2(bytecode, salt, factory);
@@ -285,6 +294,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
     {
         bytes memory bytecode = abi.encodePacked(type(AccountProxy).creationCode, abi.encode(guardian, implementation));
         address predicted = Create2.computeAddress(salt, keccak256(bytecode), factory);
+        _logCreate2Prediction("AccountProxy", salt, factory, predicted);
 
         if (!_isDeployed(predicted)) {
             address deployed = _deployCreate2(bytecode, salt, factory);
@@ -313,6 +323,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
         bytes memory proxyBytecode =
             abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(address(gardenTokenImpl), initData));
         address predicted = Create2.computeAddress(salt, keccak256(proxyBytecode), factory);
+        _logCreate2Prediction("GardenToken proxy", salt, factory, predicted);
 
         if (!_isDeployed(predicted)) {
             address deployed = _deployCreate2(proxyBytecode, salt, factory);
@@ -332,6 +343,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
         bytes memory proxyBytecode =
             abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(address(actionRegistryImpl), initData));
         address predicted = Create2.computeAddress(salt, keccak256(proxyBytecode), factory);
+        _logCreate2Prediction("ActionRegistry proxy", salt, factory, predicted);
 
         if (!_isDeployed(predicted)) {
             address deployed = _deployCreate2(proxyBytecode, salt, factory);
@@ -358,6 +370,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
         bytes32 stubSalt = keccak256(abi.encodePacked(salt, "ResolverStub"));
         bytes memory stubBytecode = type(ResolverStub).creationCode;
         address stubAddress = _deployCreate2(stubBytecode, stubSalt, factory);
+        _logCreate2Prediction("WorkResolver stub", stubSalt, factory, stubAddress);
 
         bytes32 resolverSalt = keccak256(abi.encodePacked(salt, "WorkResolverProxy"));
         // Initialize with owner so they can manage the contract
@@ -365,6 +378,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
         bytes memory fullProxyBytecode =
             abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(stubAddress, stubInitData));
         address predicted = Create2.computeAddress(resolverSalt, keccak256(fullProxyBytecode), factory);
+        _logCreate2Prediction("WorkResolver proxy", resolverSalt, factory, predicted);
 
         if (!_isDeployed(predicted)) {
             address deployed = _deployCreate2(fullProxyBytecode, resolverSalt, factory);
@@ -396,6 +410,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
         if (!_isDeployed(stubAddress)) {
             _deployCreate2(stubBytecode, stubSalt, factory);
         }
+        _logCreate2Prediction("WorkApprovalResolver stub", stubSalt, factory, stubAddress);
 
         bytes32 approvalResolverSalt = keccak256(abi.encodePacked(salt, "WorkApprovalResolverProxy"));
         // Initialize with owner so they can manage the contract
@@ -403,6 +418,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
         bytes memory fullProxyBytecode =
             abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(stubAddress, stubInitData));
         address predicted = Create2.computeAddress(approvalResolverSalt, keccak256(fullProxyBytecode), factory);
+        _logCreate2Prediction("WorkApprovalResolver proxy", approvalResolverSalt, factory, predicted);
 
         if (!_isDeployed(predicted)) {
             address deployed = _deployCreate2(fullProxyBytecode, approvalResolverSalt, factory);
@@ -433,6 +449,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
         if (!_isDeployed(stubAddress)) {
             _deployCreate2(stubBytecode, stubSalt, factory);
         }
+        _logCreate2Prediction("AssessmentResolver stub", stubSalt, factory, stubAddress);
 
         bytes32 assessmentResolverSalt = keccak256(abi.encodePacked(salt, "AssessmentResolverProxy"));
         // Initialize with owner so they can manage the contract
@@ -440,6 +457,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
         bytes memory fullProxyBytecode =
             abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(stubAddress, stubInitData));
         address predicted = Create2.computeAddress(assessmentResolverSalt, keccak256(fullProxyBytecode), factory);
+        _logCreate2Prediction("AssessmentResolver proxy", assessmentResolverSalt, factory, predicted);
 
         if (!_isDeployed(predicted)) {
             address deployed = _deployCreate2(fullProxyBytecode, assessmentResolverSalt, factory);
@@ -475,16 +493,16 @@ abstract contract DeploymentBase is Test, DeployHelper {
         // Deploy ENSRegistrar directly (non-upgradeable to avoid stack-too-deep)
         bytes32 ensRegistrarSalt = keccak256(abi.encodePacked(salt, "ENSRegistrar"));
         bytes memory bytecode = abi.encodePacked(
-            type(ENSRegistrar).creationCode,
-            abi.encode(config.ensRegistry, config.ensResolver, baseNode, owner)
+            type(ENSRegistrar).creationCode, abi.encode(config.ensRegistry, config.ensResolver, baseNode, owner)
         );
 
         address predicted = Create2.computeAddress(ensRegistrarSalt, keccak256(bytecode), factory);
+        _logCreate2Prediction("ENSRegistrar", ensRegistrarSalt, factory, predicted);
 
         if (!_isDeployed(predicted)) {
             address deployed = _deployCreate2(bytecode, ensRegistrarSalt, factory);
             if (deployed != predicted) {
-                revert("ENSRegistrar deployment address mismatch");
+                revert ENSRegistrarDeploymentAddressMismatch();
             }
         }
 
@@ -510,6 +528,14 @@ abstract contract DeploymentBase is Test, DeployHelper {
         assessmentSchemaUID = registry.register(
             _generateSchemaString("assessment"), address(assessmentResolver), _getSchemaRevocable(schemaJson, "assessment")
         );
+
+        console.log("Schemas registered:");
+        console.log("  work");
+        console.logBytes32(workSchemaUID);
+        console.log("  workApproval");
+        console.logBytes32(workApprovalSchemaUID);
+        console.log("  assessment");
+        console.logBytes32(assessmentSchemaUID);
 
         // Create name attestations (always)
         _createSchemaNameAttestation(easContract, workSchemaUID, _getSchemaName(schemaJson, "work"));

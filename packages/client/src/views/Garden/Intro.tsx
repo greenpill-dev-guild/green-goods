@@ -141,22 +141,7 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
               <CarouselItem
                 key={garden.id}
                 onClick={() => {
-                  console.log("[Intro] Garden clicked:", {
-                    clickedGardenId: garden.id,
-                    clickedGardenName: garden.name,
-                    currentSelectedGarden: selectedGardenAddress,
-                    timestamp: new Date().toISOString(),
-                  });
                   setGardenAddress(garden.id);
-
-                  // Check state immediately after setting
-                  setTimeout(() => {
-                    console.log("[Intro] Garden state after set (100ms later):", {
-                      expectedGardenId: garden.id,
-                      actualSelectedGarden: selectedGardenAddress,
-                      match: selectedGardenAddress === garden.id,
-                    });
-                  }, 100);
                 }}
               >
                 <GardenCard

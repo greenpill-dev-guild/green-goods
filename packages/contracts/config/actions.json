@@ -168,7 +168,7 @@
       "description": "Document planting activities for any plant type including trees, seedlings, shrubs, or other vegetation. Record species information and provide photographic evidence of the plot before and after planting.",
       "capitals": ["LIVING", "MATERIAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
-      "endTime": "2025-12-31T23:59:59Z",
+      "endTime": "2026-03-22T23:59:59Z",
       "media": [
         "QmY6h53RyAY6VQfqqUTBwkVkG8JpCon9SdVkqtB5YzPVwx",
         "QmZAeu9sEtNqXZBmiYiAt7bd4M38TmE73ekj47n7JDU2xm",
@@ -224,7 +224,7 @@
       "description": "Identify and observe plants in their environment. Document species information, health status, and environmental conditions. This action helps track biodiversity and ecosystem health over time.",
       "capitals": ["LIVING", "INTELLECTUAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
-      "endTime": "2025-12-31T23:59:59Z",
+      "endTime": "2026-03-22T23:59:59Z",
       "media": [
         "QmVvKqpnfJm8UwRq9SF15V2jgJ86yCBsmMBmpEaoQU92bD",
         "QmXeV9zWpXHzTGFS3jJRBRYBTHkcVE23qpdhhtQKX1uC4L",
@@ -288,7 +288,7 @@
       "description": "Document waste removal activities including type, quantity, and estimated weight. Helps maintain clean environments and track waste reduction impact.",
       "capitals": ["MATERIAL", "SOCIAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
-      "endTime": "2025-12-31T23:59:59Z",
+      "endTime": "2026-03-22T23:59:59Z",
       "media": ["bafkreiemwmci42u7cb23xacktk5nfspo5kfsbmflvh6sixjahjbdk2bsie"],
       "uiConfig": {
         "media": {
@@ -343,8 +343,11 @@
       "description": "Document watering activities for plants and vegetation. Record water amount, method, and soil conditions to track maintenance efforts and support healthy plant growth.",
       "capitals": ["LIVING", "MATERIAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
-      "endTime": "2025-12-31T23:59:59Z",
-      "media": ["QmWateringPlaceholder1", "QmWateringPlaceholder2", "QmWateringPlaceholder3"],
+      "endTime": "2026-03-22T23:59:59Z",
+      "media": [
+        "bafkreieeukroa2cj7nzn2sjefy7d4nx5u36nq6w5otk53rsaktxawm2f2e",
+        "bafybeieach3glpg5bvgobrwdnh6oaj3tgxe52ak5v44jpytwmk4qx3g2ba"
+      ],
       "uiConfig": {
         "media": {
           "title": "Capture the Watering Activity",
@@ -414,8 +417,11 @@
       "description": "Document harvest activities including crop type, quantity, and quality assessment. Track yields and support food production efforts in the garden.",
       "capitals": ["LIVING", "MATERIAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
-      "endTime": "2025-12-31T23:59:59Z",
-      "media": ["QmHarvestPlaceholder1", "QmHarvestPlaceholder2", "QmHarvestPlaceholder3"],
+      "endTime": "2026-03-22T23:59:59Z",
+      "media": [
+        "bafybeic7vpaqse3jydfc7mlmrjkk3q5qq5pfexka4mdvildjidg4i5mxy4",
+        "bafkreiau3b3qryulqy7pm4472k7crh35fyjjvkawgrru2rzyx76hlsl5oi"
+      ],
       "uiConfig": {
         "media": {
           "title": "Capture Harvest Photos",
@@ -476,6 +482,134 @@
         "review": {
           "title": "Review Harvest Details",
           "description": "Please review the harvest details you have provided before submitting."
+        }
+      }
+    },
+    {
+      "title": "Web3 Workshop",
+      "description": "Record your participation in a Web3 workshop, demo, or learning session. Document what you explored, what tools you tried, and your next steps in the regenerative Web3 ecosystem.",
+      "capitals": ["INTELLECTUAL", "SOCIAL", "EXPERIENTIAL"],
+      "startTime": "2024-01-01T00:00:00Z",
+      "endTime": "2026-03-22T23:59:59Z",
+      "media": [
+        "bafkreif5wny2fxpytkdjbunw3l7dn6eqyfuccn2pgzvk3wlas4h6k6m7wu",
+        "bafybeid6frbhr36uahittuajemjabkiimuhjncbtjt2i5pjwvj4uhdgyyu"
+      ],
+      "uiConfig": {
+        "media": {
+          "title": "Capture Workshop Moments",
+          "description": "Take photos during the workshop (optional): your setup, screens, team activities, or prototypes.",
+          "maxImageCount": 5,
+          "required": false
+        },
+        "details": {
+          "title": "Workshop Participation Details",
+          "description": "Share what you learned and explored in this session.",
+          "feedbackPlaceholder": "Any other observations, learnings, or feedback from the workshop",
+          "inputs": [
+            {
+              "key": "eventName",
+              "title": "Event Name",
+              "placeholder": "e.g., DevConnect Istanbul, ETHDenver, Greenpill NYC Meetup",
+              "type": "text",
+              "required": true,
+              "options": []
+            },
+            {
+              "key": "sessionTitle",
+              "title": "Workshop/Session Title",
+              "placeholder": "e.g., Intro to Green Goods, Regen Stack 101",
+              "type": "text",
+              "required": true,
+              "options": []
+            },
+            {
+              "key": "duration",
+              "title": "Duration (minutes)",
+              "placeholder": "How long did you participate?",
+              "type": "number",
+              "required": true,
+              "min": 15,
+              "max": 480,
+              "options": []
+            },
+            {
+              "key": "role",
+              "title": "Your Role",
+              "placeholder": "Select your primary role",
+              "type": "select",
+              "required": true,
+              "options": ["Developer", "Designer/Product", "Community/Chapter", "Funder/Grants", "Researcher", "Other"]
+            },
+            {
+              "key": "experienceLevel",
+              "title": "Web3 Experience Level",
+              "placeholder": "Select your experience level",
+              "type": "select",
+              "required": true,
+              "options": ["New to Web3", "Beginner", "Intermediate", "Advanced"]
+            },
+            {
+              "key": "ecosystem",
+              "title": "Primary Chain/Ecosystem Explored",
+              "placeholder": "Select the ecosystem discussed",
+              "type": "select",
+              "required": false,
+              "options": ["Ethereum/L2s", "Arbitrum", "Optimism", "Base", "Celo", "Polygon", "Multi-chain", "Other"]
+            },
+            {
+              "key": "topics",
+              "title": "Topics Explored",
+              "placeholder": "Select all that apply",
+              "type": "select",
+              "required": true,
+              "multiple": true,
+              "options": [
+                "Regenerative finance",
+                "Impact measurement",
+                "Grant funding/Allo",
+                "Identity & attestations",
+                "DeFi/staking",
+                "Governance",
+                "Developer tooling",
+                "Smart accounts",
+                "Other"
+              ]
+            },
+            {
+              "key": "triedDapp",
+              "title": "Did you try a Web3 tool or dApp live?",
+              "placeholder": "Select yes or no",
+              "type": "select",
+              "required": true,
+              "options": ["Yes", "No"]
+            },
+            {
+              "key": "nextAction",
+              "title": "Your Next Step",
+              "placeholder": "e.g., Pilot Green Goods with local chapter, Run an Allo round",
+              "type": "text",
+              "required": false,
+              "options": []
+            },
+            {
+              "key": "followUp",
+              "title": "Follow-up Interest",
+              "placeholder": "Select your interest level",
+              "type": "select",
+              "required": false,
+              "options": [
+                "Just exploring",
+                "Interested in using",
+                "Interested in contributing",
+                "Interested in funding/partnering"
+              ]
+            }
+          ]
+        },
+        "review": {
+          "title": "Review Workshop Details",
+          "description": "Please review your workshop participation details before submitting."
         }
       }
     }

@@ -120,7 +120,7 @@ export function useWorkApprovals(attesterAddress?: string) {
       }
     },
     enabled: !!attesterAddress,
-    staleTime: 30000, // 30 seconds
+    staleTime: 10000, // 10 seconds (reduced for faster approval updates)
     gcTime: 300000, // 5 minutes
     throwOnError: false, // Don't throw errors
   });

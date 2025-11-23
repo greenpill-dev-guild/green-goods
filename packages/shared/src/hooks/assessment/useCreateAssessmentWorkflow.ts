@@ -1,12 +1,12 @@
-import { useMachine } from "@xstate/react";
-import { useAccount } from "wagmi";
-import { ethers } from "ethers";
 import { EAS, SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
-import { createAssessmentMachine } from "../../workflows/createAssessment";
-import { useAdminStore, type AdminState } from "../../stores/useAdminStore";
-import { getNetworkContracts } from "../../utils/contracts";
+import { useMachine } from "@xstate/react";
+import { ethers } from "ethers";
+import { useAccount } from "wagmi";
 import { getEASConfig } from "../../config/blockchain";
 import { uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/pinata";
+import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
+import { getNetworkContracts } from "../../utils/contracts";
+import { createAssessmentMachine } from "../../workflows/createAssessment";
 
 // Define CreateAssessmentForm inline
 export interface CreateAssessmentForm {
@@ -35,12 +35,6 @@ export function useCreateAssessmentWorkflow() {
   };
 
   const submitCreation = async (): Promise<string> => {
-    console.log("Debug - Validation check:", {
-      address,
-      hasParams: !!state.context.assessmentParams,
-      state: state.value,
-    });
-
     if (!address) {
       throw new Error("Wallet not connected");
     }

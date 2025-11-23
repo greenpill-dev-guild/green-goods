@@ -41,13 +41,6 @@ export const useWorkFlowStore = create<WorkFlowState>((set, get) => ({
   setActiveTab: (tab) => set({ activeTab: tab }),
   setSubmissionCompleted: (completed) => set({ submissionCompleted: completed }),
   setGardenAddress: (id) => {
-    const currentState = get();
-    console.log("[useWorkFlowStore] setGardenAddress called:", {
-      oldValue: currentState.gardenAddress,
-      newValue: id,
-      timestamp: new Date().toISOString(),
-      stack: new Error().stack?.split("\n").slice(2, 5).join("\n"), // Show caller
-    });
     set({ gardenAddress: id });
   },
   setActionUID: (uid) => set({ actionUID: uid }),
@@ -56,11 +49,6 @@ export const useWorkFlowStore = create<WorkFlowState>((set, get) => ({
   setPlantCount: (n) => set({ plantCount: n }),
   setImages: (files) => set({ images: files }),
   reset: () => {
-    console.log("[useWorkFlowStore] reset() called - clearing all state including gardenAddress", {
-      currentGardenAddress: get().gardenAddress,
-      timestamp: new Date().toISOString(),
-      stack: new Error().stack?.split("\n").slice(2, 5).join("\n"),
-    });
     set({ ...initial, activeTab: WorkTab.Intro, submissionCompleted: false });
   },
 }));

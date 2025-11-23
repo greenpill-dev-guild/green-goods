@@ -1,9 +1,10 @@
 import { initTheme } from "@green-goods/shared";
-import { AppKitProvider, PasskeyAuthProvider } from "@green-goods/shared/providers";
+import { AppKitProvider, ClientAuthProvider } from "@green-goods/shared/providers";
 import { AppProvider } from "@green-goods/shared/providers/app";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "@/App.tsx";
+import { AppErrorBoundary } from "@/components/UI/ErrorBoundary/AppErrorBoundary";
 
 import "@/index.css";
 import "@/pinata";
@@ -34,24 +35,24 @@ if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_SW_DEV !== "true") {
 }
 
 export const Root = () => (
-  <AppKitProvider
-    projectId={
-      import.meta.env.VITE_REOWN_PROJECT_ID || import.meta.env.VITE_WALLETCONNECT_PROJECT_ID
-    }
-    metadata={{
-      name: "Green Goods",
-      description: "Start Bringing Biodiversity Onchain",
-      url: "https://greengoods.app",
-      icons: ["https://greengoods.app/icon.png"],
-    }}
-    defaultChainId={84532}
-  >
-    <PasskeyAuthProvider>
-      <AppProvider>
-        <App />
-      </AppProvider>
-    </PasskeyAuthProvider>
-  </AppKitProvider>
+  <AppErrorBoundary>
+    <AppKitProvider
+      projectId={import.meta.env.VITE_WALLETCONNECT_PROJECT_ID}
+      metadata={{
+        name: "Green Goods",
+        description: "Start Bringing Biodiversity Onchain",
+        url: import.meta.env.VITE_APP_URL || window.location.origin,
+        icons: ["https://greengoods.app/icon.png"],
+      }}
+      defaultChainId={84532}
+    >
+      <ClientAuthProvider>
+        <AppProvider>
+          <App />
+        </AppProvider>
+      </ClientAuthProvider>
+    </AppKitProvider>
+  </AppErrorBoundary>
 );
 
 const container = document.getElementById("root");

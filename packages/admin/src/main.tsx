@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 import App from "@/App.tsx";
 
 import "@/index.css";
+import "@/config/pinata";
 
 type ReactRoot = ReturnType<typeof createRoot>;
 
@@ -20,9 +21,7 @@ const cleanupTheme = initTheme();
 
 export const Root = () => (
   <AppKitProvider
-    projectId={
-      import.meta.env.VITE_REOWN_PROJECT_ID || import.meta.env.VITE_WALLETCONNECT_PROJECT_ID
-    }
+    projectId={import.meta.env.VITE_WALLETCONNECT_PROJECT_ID}
     metadata={{
       name: "Green Goods Admin",
       description: "Garden management dashboard for Green Goods protocol",

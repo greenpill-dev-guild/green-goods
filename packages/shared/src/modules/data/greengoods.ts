@@ -3,7 +3,7 @@ import { greenGoodsGraphQL } from "./graphql";
 import { getFileByHash, resolveIPFSUrl } from "./pinata";
 import { greenGoodsIndexer } from "./urql";
 
-const GATEWAY_BASE_URL = "https://greengoods.mypinata.cloud";
+const GATEWAY_BASE_URL = "https://w3s.link";
 
 export enum Capital {
   SOCIAL = 0,
@@ -71,20 +71,7 @@ export async function getActions(): Promise<Action[]> {
           }
 
           if (actionConfig) {
-            console.log("[getActions] Loaded instruction config", {
-              id,
-              title,
-              hasMediaConfig: Boolean(actionConfig?.uiConfig?.media),
-              detailInputKeys: Array.isArray(actionConfig?.uiConfig?.details?.inputs)
-                ? (actionConfig.uiConfig.details.inputs as WorkInput[]).map((input) => input.key)
-                : [],
-              reviewHasCopy: Boolean(actionConfig?.uiConfig?.review),
-            });
-          } else {
-            console.log("[getActions] No instruction config found for action", {
-              id,
-              title,
-            });
+            // Instruction config loaded successfully
           }
 
           return {

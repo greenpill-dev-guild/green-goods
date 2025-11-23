@@ -67,10 +67,6 @@ export function FileUploadField({
 
           const compressedFiles = results.map((result) => result.file);
           finalFiles = [...finalFiles, ...compressedFiles];
-
-          // Log compression stats
-          const stats = imageCompressor.getCompressionStats(results);
-          console.log("Compression stats:", stats);
         }
 
         onFilesChange(finalFiles);

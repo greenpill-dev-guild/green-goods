@@ -1,6 +1,6 @@
 import { useGardenPermissions } from "@green-goods/shared/hooks/garden";
 // Garden type is now global - no import needed
-import { resolveIPFSUrl } from "@green-goods/shared/utils/pinata";
+import { resolveIPFSUrl } from "@green-goods/shared/modules";
 import { RiAddLine, RiEyeLine, RiPlantLine, RiShieldCheckLine, RiUserLine } from "@remixicon/react";
 import { graphql } from "gql.tada";
 import type { ReactNode } from "react";

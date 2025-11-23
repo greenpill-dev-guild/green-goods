@@ -13,18 +13,6 @@ export const MyWorkTab: React.FC<MyWorkTabProps> = ({ works, isLoading, onWorkCl
   const { isOnline } = useOffline();
   const flush = useQueueFlush();
 
-  // DEBUG: Log what works we're receiving
-  console.log("[MyWorkTab] Received works:", {
-    count: works.length,
-    works: works.map((w) => ({
-      id: w.id,
-      title: w.title,
-      mediaCount: w.media?.length || 0,
-      firstMediaUrl: w.media?.[0]?.substring(0, 60) || "no media",
-      allMediaUrls: w.media?.map((url) => url?.substring(0, 60) + "...") || [],
-    })),
-  });
-
   const handleFlushAll = async () => {
     try {
       await flush();

@@ -19,9 +19,7 @@ import {
   shareWork,
   type WorkData,
 } from "@green-goods/shared/utils/work/workActions";
-import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  RiCheckDoubleFill,
   RiCheckFill,
   RiCheckLine,
   RiCloseFill,
@@ -32,35 +30,15 @@ import {
 } from "@remixicon/react";
 import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";
-import { Form, useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { useLocation, useOutletContext, useParams } from "react-router-dom";
-import { type ZodType, z } from "zod";
 import { Button } from "@/components/UI/Button";
-import { FormText } from "@/components/UI/Form/Text";
-import ConfirmDrawer from "@/components/UI/ModalDrawer/ConfirmDrawer";
 import { TopNav } from "@/components/UI/TopNav/TopNav";
 import { WorkViewSkeleton } from "@/components/UI/WorkView/WorkView";
 import { WorkCompleted } from "../../Garden/Completed";
 import WorkViewSection from "./WorkViewSection";
 
 type GardenWorkProps = {};
-
-// Zod schema for work approval form validation
-const workApprovalFormSchema: ZodType<{
-  actionUID: number;
-  workUID: string;
-  approved: boolean;
-  feedback?: string;
-}> = z.object({
-  actionUID: z.number(),
-  workUID: z.string(),
-  approved: z.boolean(),
-  feedback: z.string().optional(),
-});
-
-// Infer form type from Zod schema (single source of truth)
-type WorkApprovalFormData = z.infer<typeof workApprovalFormSchema>;
 
 export const GardenWork: React.FC<GardenWorkProps> = () => {
   const intl = useIntl();
@@ -71,8 +49,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
     "loading"
   );
   const [metadataError, setMetadataError] = useState<string | null>(null);
-  const [isApproveDialogOpen, setApproveDialogOpen] = useState(false);
-  const [isRejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [feedbackMode, setFeedbackMode] = useState<"approve" | "reject" | null>(null);
   const [inlineFeedback, setInlineFeedback] = useState<string>("");
   const navigateToTop = useNavigateToTop();
   const location = useLocation();
@@ -91,25 +68,30 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
     return match?.title ?? null;
   }, [actions, chainId, work]);
 
-  const { smartAccountAddress, smartAccountClient } = useUser();
+  const { user, smartAccountClient } = useUser();
+  const activeAddress = user?.id;
   const [isRetrying, setIsRetrying] = useState(false);
+
+  // Helper to check if an address matches the current user
+  const isUserAddress = (address: string | undefined): boolean => {
+    if (!address || !activeAddress) return false;
+    return address.toLowerCase() === activeAddress.toLowerCase();
+  };
 
   // Determine user role and viewing mode
   const viewingMode = useMemo<"operator" | "gardener" | "viewer">(() => {
     if (!garden || !work) return "viewer";
 
     // Check if user is garden operator
-    const isOperator = garden.operators?.some(
-      (op) => op.toLowerCase() === smartAccountAddress?.toLowerCase()
-    );
+    const isOperator = garden.operators?.some((op) => isUserAddress(op));
 
     // Check if user is the gardener who submitted the work
-    const isGardener = work.gardenerAddress?.toLowerCase() === smartAccountAddress?.toLowerCase();
+    const isGardener = isUserAddress(work.gardenerAddress);
 
     if (isOperator) return "operator";
     if (isGardener) return "gardener";
     return "viewer";
-  }, [garden, work, smartAccountAddress]);
+  }, [garden, work, activeAddress]);
 
   // Detect if this is offline work
   const isOfflineWork =
@@ -209,26 +191,61 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
     }
     openEASExplorer(chainId, work.id);
   };
-  const { register, handleSubmit, control, setValue } = useForm<WorkApprovalFormData>({
-    defaultValues: {
-      actionUID: work?.actionUID ?? 0,
-      workUID: work?.id ?? "",
-      approved: false,
+
+  // Approval feedback handlers
+  const handleApprovePress = () => {
+    if (navigator.vibrate) navigator.vibrate([50]);
+    setFeedbackMode("approve");
+    // Focus feedback input after animation
+    setTimeout(() => {
+      document.getElementById("approval-feedback-input")?.focus();
+    }, 300);
+  };
+
+  const handleRejectPress = () => {
+    if (navigator.vibrate) navigator.vibrate([30, 10, 30]);
+    setFeedbackMode("reject");
+    setTimeout(() => {
+      document.getElementById("approval-feedback-input")?.focus();
+    }, 300);
+  };
+
+  const handleCancelFeedback = () => {
+    setFeedbackMode(null);
+    setInlineFeedback("");
+  };
+
+  const handleSubmitApproval = () => {
+    if (!work) return;
+
+    if (feedbackMode === "reject" && !inlineFeedback) {
+      toastService.error({
+        title: intl.formatMessage({
+          id: "app.home.workApproval.feedbackRequired",
+          defaultMessage: "Feedback required",
+        }),
+        message: intl.formatMessage({
+          id: "app.home.workApproval.feedbackRequiredMessage",
+          defaultMessage: "Please provide feedback when rejecting work.",
+        }),
+        context: "work approval",
+      });
+      return;
+    }
+
+    const draft: WorkApprovalDraft = {
+      actionUID: work.actionUID,
+      workUID: work.id,
+      approved: feedbackMode === "approve",
       feedback: inlineFeedback,
-    },
-    // Compatibility note: older @hookform/resolvers versions had a signature mismatch with Zod.
-    // Current versions compile cleanly; keeping the context here for future regressions.
-    resolver: zodResolver(workApprovalFormSchema as any),
-    shouldUseNativeValidation: true,
-    mode: "onChange",
-  });
+    };
+
+    workApprovalMutation.mutate({ draft, work });
+    setFeedbackMode(null);
+    setInlineFeedback("");
+  };
 
   const workApprovalMutation = useWorkApproval();
-
-  // Sync inline feedback with form feedback field
-  useEffect(() => {
-    setValue("feedback", inlineFeedback);
-  }, [inlineFeedback, setValue]);
 
   // Toasts + cache invalidation from queue events
   useJobQueueEvents(
@@ -264,9 +281,10 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
           error: "error" in data ? data.error : undefined,
         });
       }
-      queryClient.invalidateQueries({ queryKey: ["workApprovals"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.workApprovals.all });
       if (garden?.id) {
-        queryClient.invalidateQueries({ queryKey: ["works", garden.id] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(garden.id, chainId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.works.online(garden.id, chainId) });
       }
     },
     [work?.id, garden?.id]
@@ -434,66 +452,145 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
 
   const approvalFooter =
     viewingMode === "operator" && work.status === "pending" ? (
-      <div className="fixed left-0 right-0 bottom-0 bg-bg-white-0 border-t border-stroke-soft-200 shadow-[0_-4px_16px_rgba(0,0,0,0.12)] backdrop-blur-sm p-4 pb-6 z-[100] animate-in slide-in-from-bottom-4 duration-300">
-        <div className="max-w-screen-sm mx-auto space-y-3">
-          {/* Action Info Bar */}
-          <div className="flex items-center justify-between text-xs text-text-sub-600 px-1">
-            <span className="flex items-center gap-1.5">
-              <RiCheckDoubleFill className="w-4 h-4 text-primary" />
-              {intl.formatMessage({
-                id: "app.home.workApproval.reviewAction",
-                defaultMessage: "Review & Decision",
-              })}
-            </span>
-            <span className="font-medium text-text-strong-950">
-              {intl.formatMessage({
-                id: "app.home.workApproval.actionRequired",
-                defaultMessage: "Action Required",
-              })}
-            </span>
+      <>
+        {/* Backdrop - Fades in over content */}
+        <div
+          className={cn(
+            "fixed inset-0 bg-black/40 backdrop-blur-sm z-[190] transition-opacity duration-300",
+            feedbackMode ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+          )}
+          onClick={handleCancelFeedback}
+          aria-hidden="true"
+        />
+
+        {/* Footer Container */}
+        <div className="fixed left-0 right-0 bottom-0 z-[200]">
+          {/* Feedback Drawer - Slides up from behind the footer bar */}
+          <div
+            className={cn(
+              "absolute bottom-full left-0 right-0 bg-bg-white-0 rounded-t-2xl shadow-xl overflow-hidden transition-transform duration-300 ease-out origin-bottom",
+              feedbackMode ? "translate-y-0" : "translate-y-full"
+            )}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 space-y-3 max-w-screen-sm mx-auto">
+              <div className="flex items-center justify-between">
+                <h6 className="text-sm font-medium text-text-strong-950">
+                  {feedbackMode === "approve"
+                    ? intl.formatMessage({
+                        id: "app.home.workApproval.addFeedbackOptional",
+                        defaultMessage: "Add Feedback (Optional)",
+                      })
+                    : intl.formatMessage({
+                        id: "app.home.workApproval.addFeedbackRequired",
+                        defaultMessage: "Add Feedback (Required)",
+                      })}
+                </h6>
+              </div>
+
+              <textarea
+                id="approval-feedback-input"
+                value={inlineFeedback}
+                onChange={(e) => setInlineFeedback(e.target.value)}
+                placeholder={intl.formatMessage({
+                  id: "app.home.workApproval.feedbackPlaceholder",
+                  defaultMessage: "Add your feedback here...",
+                })}
+                className="w-full min-h-[120px] p-3 rounded-xl border border-stroke-soft-200 bg-bg-weak-50 text-text-strong-950 placeholder:text-text-soft-400 focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              />
+            </div>
+
+            {/* Visual separator */}
+            <div className="h-px w-full bg-stroke-soft-200" />
           </div>
 
-          {/* Button Group */}
-          <div className="flex gap-3">
-            <Button
-              onClick={() => {
-                if (navigator.vibrate) navigator.vibrate([30, 10, 30]);
-                setRejectDialogOpen(true);
-              }}
-              label={intl.formatMessage({
-                id: "app.home.workApproval.reject",
-                defaultMessage: "Reject",
-              })}
-              className="flex-1 min-h-[48px] touch-manipulation"
-              variant="error"
-              type="button"
-              shape="pilled"
-              mode="stroke"
-              size="medium"
-              leadingIcon={<RiCloseLine className="w-5 h-5" />}
-              disabled={workApprovalMutation.isPending}
-            />
-            <Button
-              onClick={() => {
-                if (navigator.vibrate) navigator.vibrate([50]);
-                setApproveDialogOpen(true);
-              }}
-              type="button"
-              label={intl.formatMessage({
-                id: "app.home.workApproval.approve",
-                defaultMessage: "Approve",
-              })}
-              className="flex-1 min-h-[48px] touch-manipulation"
-              variant="primary"
-              mode="filled"
-              size="medium"
-              shape="pilled"
-              leadingIcon={<RiCheckLine className="w-5 h-5" />}
-              disabled={workApprovalMutation.isPending}
-            />
+          {/* Action Bar - Always visible */}
+          <div className="bg-bg-white-0 border-t border-stroke-soft-200 shadow-[0_-4px_16px_rgba(0,0,0,0.12)] p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] relative">
+            <div className="max-w-screen-sm mx-auto">
+              {/* Button Group - changes based on mode */}
+              <div className="flex gap-3">
+                {!feedbackMode ? (
+                  // Initial state: Approve/Reject
+                  <>
+                    <Button
+                      onClick={handleRejectPress}
+                      label={intl.formatMessage({
+                        id: "app.home.workApproval.reject",
+                        defaultMessage: "Reject",
+                      })}
+                      className="flex-1 touch-manipulation"
+                      variant="error"
+                      type="button"
+                      shape="pilled"
+                      mode="stroke"
+                      size="medium"
+                      leadingIcon={<RiCloseLine className="w-5 h-5" />}
+                      disabled={workApprovalMutation.isPending}
+                    />
+                    <Button
+                      onClick={handleApprovePress}
+                      type="button"
+                      label={intl.formatMessage({
+                        id: "app.home.workApproval.approve",
+                        defaultMessage: "Approve",
+                      })}
+                      className="flex-1 touch-manipulation"
+                      variant="primary"
+                      mode="filled"
+                      size="medium"
+                      shape="pilled"
+                      leadingIcon={<RiCheckLine className="w-5 h-5" />}
+                      disabled={workApprovalMutation.isPending}
+                    />
+                  </>
+                ) : (
+                  // Feedback mode: Cancel/Submit
+                  <>
+                    <Button
+                      onClick={handleCancelFeedback}
+                      label={intl.formatMessage({
+                        id: "app.common.cancel",
+                        defaultMessage: "Cancel",
+                      })}
+                      className="flex-1 touch-manipulation"
+                      variant="neutral"
+                      type="button"
+                      shape="pilled"
+                      mode="stroke"
+                      size="medium"
+                      disabled={workApprovalMutation.isPending}
+                    />
+                    <Button
+                      onClick={handleSubmitApproval}
+                      type="button"
+                      label={intl.formatMessage({
+                        id: "app.common.submit",
+                        defaultMessage: "Submit",
+                      })}
+                      className="flex-1 touch-manipulation"
+                      variant={feedbackMode === "reject" ? "error" : "primary"}
+                      mode="filled"
+                      size="medium"
+                      shape="pilled"
+                      leadingIcon={
+                        feedbackMode === "approve" ? (
+                          <RiCheckLine className="w-5 h-5" />
+                        ) : (
+                          <RiCloseLine className="w-5 h-5" />
+                        )
+                      }
+                      disabled={
+                        workApprovalMutation.isPending ||
+                        (feedbackMode === "reject" && !inlineFeedback)
+                      }
+                    />
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </>
     ) : null;
   const metadataErrorDetail =
     metadataStatus === "error" && metadataError
@@ -508,70 +605,48 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
 
   return (
     <article>
-      <TopNav onBackClick={handleBack} />
+      <TopNav onBackClick={handleBack} overlay />
       {workApprovalMutation.isIdle && (
-        <Form id="work-approve" control={control} className="relative min-h-screen">
-          <>
-            <div className={cn("padded", (retryFooter || approvalFooter) && "pb-32")}>
-              {isMetadataLoading ? (
-                <WorkViewSkeleton showMedia showActions={false} numDetails={3} />
-              ) : (
-                <WorkViewSection
-                  garden={garden}
-                  work={work}
-                  workMetadata={workMetadata}
-                  viewingMode={viewingMode}
-                  actionTitle={resolvedActionTitle}
-                  onDownloadData={handleDownloadData}
-                  onDownloadMedia={hasMedia ? handleDownloadMedia : undefined}
-                  onShare={handleShare}
-                  onViewAttestation={canViewAttestation ? handleViewAttestation : undefined}
-                  onApprove={
-                    viewingMode === "operator" && work.status === "pending"
-                      ? () => {
-                          if (navigator.vibrate) navigator.vibrate([50]);
-                          setApproveDialogOpen(true);
-                        }
-                      : undefined
-                  }
-                  onReject={
-                    viewingMode === "operator" && work.status === "pending"
-                      ? () => {
-                          if (navigator.vibrate) navigator.vibrate([30, 10, 30]);
-                          setRejectDialogOpen(true);
-                        }
-                      : undefined
-                  }
-                  feedback={inlineFeedback}
-                  onFeedbackChange={setInlineFeedback}
-                  footer={retryFooter || approvalFooter}
-                />
-              )}
+        <div className={cn("padded pt-20", (retryFooter || approvalFooter) && "pb-8")}>
+          {isMetadataLoading ? (
+            <WorkViewSkeleton showMedia showActions={false} numDetails={3} />
+          ) : (
+            <WorkViewSection
+              garden={garden}
+              work={work}
+              workMetadata={workMetadata}
+              viewingMode={viewingMode}
+              actionTitle={resolvedActionTitle}
+              onDownloadData={handleDownloadData}
+              onDownloadMedia={hasMedia ? handleDownloadMedia : undefined}
+              onShare={handleShare}
+              onViewAttestation={canViewAttestation ? handleViewAttestation : undefined}
+              footer={retryFooter || approvalFooter}
+            />
+          )}
 
-              {metadataStatus === "error" && (
-                <div className="mt-4 rounded-xl border border-error-light bg-error-lighter px-4 py-3 flex items-start gap-3">
-                  <RiErrorWarningLine className="w-5 h-5 text-error-base flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-sm text-error-dark font-medium">
-                      {intl.formatMessage({
-                        id: "app.home.work.metadataFallbackNotice",
-                        defaultMessage:
-                          "We couldn't load all work details from storage. Some fields may be unavailable.",
-                      })}
-                    </p>
-                    {metadataErrorDetail && (
-                      <p className="mt-1 text-xs text-error-base">{metadataErrorDetail}</p>
-                    )}
-                  </div>
-                </div>
-              )}
+          {metadataStatus === "error" && (
+            <div className="mt-4 rounded-xl border border-error-light bg-error-lighter px-4 py-3 flex items-start gap-3">
+              <RiErrorWarningLine className="w-5 h-5 text-error-base flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm text-error-dark font-medium">
+                  {intl.formatMessage({
+                    id: "app.home.work.metadataFallbackNotice",
+                    defaultMessage:
+                      "We couldn't load all work details from storage. Some fields may be unavailable.",
+                  })}
+                </p>
+                {metadataErrorDetail && (
+                  <p className="mt-1 text-xs text-error-base">{metadataErrorDetail}</p>
+                )}
+              </div>
             </div>
-          </>
-        </Form>
+          )}
+        </div>
       )}
 
       {workApprovalMutation.isPending && (
-        <div className="fixed left-0 right-0 bottom-0 bg-bg-white-0 border-t border-stroke-soft-200 p-4 pb-6 z-[101]">
+        <div className="fixed left-0 right-0 bottom-0 bg-bg-white-0 border-t border-stroke-soft-200 p-4 pb-6 z-[201]">
           <div className="flex items-center justify-center gap-2 text-text-sub-600">
             <RiLoader4Line className="w-5 h-5 animate-spin" />
             <span className="text-sm">
@@ -580,116 +655,6 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
           </div>
         </div>
       )}
-
-      <ConfirmDrawer
-        isOpen={isApproveDialogOpen}
-        onClose={() => setApproveDialogOpen(false)}
-        title={intl.formatMessage({
-          id: "app.home.workApproval.confirmApprove",
-          defaultMessage: "Confirm Approval",
-        })}
-        description={
-          inlineFeedback
-            ? intl.formatMessage({
-                id: "app.home.workApproval.confirmApproveWithFeedback",
-                defaultMessage: "You're about to approve this work with your feedback. Proceed?",
-              })
-            : intl.formatMessage({
-                id: "app.home.workApproval.confirmApproveNoFeedback",
-                defaultMessage:
-                  "You're about to approve this work. You can still add feedback below if needed.",
-              })
-        }
-        confirmLabel={intl.formatMessage({ id: "app.common.confirm", defaultMessage: "Confirm" })}
-        confirmVariant="primary"
-        onConfirm={handleSubmit((data) => {
-          if (!work) return;
-          const draft: WorkApprovalDraft = {
-            actionUID: data.actionUID,
-            workUID: data.workUID,
-            approved: true,
-            feedback: data.feedback || inlineFeedback,
-          };
-          workApprovalMutation.mutate({ draft, work });
-          setApproveDialogOpen(false);
-        })}
-      >
-        <FormText
-          rows={4}
-          label={intl.formatMessage({
-            id: "app.home.workApproval.feedback",
-            defaultMessage: "Feedback",
-          })}
-          placeholder={intl.formatMessage({
-            id: "app.home.workApproval.feedbackOptional",
-            defaultMessage: "Optional feedback...",
-          })}
-          {...register("feedback")}
-        />
-      </ConfirmDrawer>
-
-      <ConfirmDrawer
-        isOpen={isRejectDialogOpen}
-        onClose={() => setRejectDialogOpen(false)}
-        title={intl.formatMessage({
-          id: "app.home.workApproval.confirmReject",
-          defaultMessage: "Confirm Rejection",
-        })}
-        description={
-          inlineFeedback
-            ? intl.formatMessage({
-                id: "app.home.workApproval.confirmRejectWithFeedback",
-                defaultMessage: "You're about to reject this work with your feedback. Proceed?",
-              })
-            : intl.formatMessage({
-                id: "app.home.workApproval.confirmRejectNeedsFeedback",
-                defaultMessage:
-                  "Feedback is required when rejecting work. Please add feedback below.",
-              })
-        }
-        confirmLabel={intl.formatMessage({ id: "app.common.confirm", defaultMessage: "Confirm" })}
-        confirmVariant="error"
-        confirmDisabled={!inlineFeedback && !register("feedback").name}
-        onConfirm={handleSubmit((data) => {
-          if (!work) return;
-          const finalFeedback = data.feedback || inlineFeedback;
-          if (!finalFeedback) {
-            toastService.error({
-              title: intl.formatMessage({
-                id: "app.home.workApproval.feedbackRequired",
-                defaultMessage: "Feedback required",
-              }),
-              message: intl.formatMessage({
-                id: "app.home.workApproval.feedbackRequiredMessage",
-                defaultMessage: "Please provide feedback when rejecting work.",
-              }),
-              context: "work approval",
-            });
-            return;
-          }
-          const draft: WorkApprovalDraft = {
-            actionUID: data.actionUID,
-            workUID: data.workUID,
-            approved: false,
-            feedback: finalFeedback,
-          };
-          workApprovalMutation.mutate({ draft, work });
-          setRejectDialogOpen(false);
-        })}
-      >
-        <FormText
-          rows={4}
-          label={intl.formatMessage({
-            id: "app.home.workApproval.feedback",
-            defaultMessage: "Feedback",
-          })}
-          placeholder={intl.formatMessage({
-            id: "app.home.workApproval.feedbackRequired",
-            defaultMessage: "Feedback required",
-          })}
-          {...register("feedback", { required: !inlineFeedback })}
-        />
-      </ConfirmDrawer>
       {!workApprovalMutation.isIdle && (
         <div className="padded">
           <WorkCompleted

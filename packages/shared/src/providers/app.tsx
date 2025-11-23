@@ -1,4 +1,3 @@
-import browserLang from "browser-lang";
 import { PostHogProvider } from "posthog-js/react";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { IntlProvider } from "react-intl";
@@ -23,6 +22,8 @@ export type Platform = "ios" | "android" | "windows" | "unknown";
 export interface AppDataProps {
   isMobile: boolean;
   isInstalled: boolean;
+  isStandalone: boolean;
+  wasInstalled: boolean;
   platform: Platform;
   locale: Locale;
   availableLocales: readonly Locale[];
@@ -36,6 +37,21 @@ export interface AppDataProps {
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
+
+function getBrowserLocale(available: readonly string[], fallback: string): string {
+  if (typeof navigator === "undefined") return fallback;
+
+  const browserLocales = navigator.languages || [navigator.language];
+
+  for (const locale of browserLocales) {
+    const lang = locale.split("-")[0]; // "en-US" -> "en"
+    if (available.includes(lang)) {
+      return lang;
+    }
+  }
+
+  return fallback;
 }
 
 function getMobileOperatingSystem(): Platform {
@@ -60,9 +76,11 @@ function getMobileOperatingSystem(): Platform {
   return "unknown";
 }
 
-const AppContext = React.createContext<AppDataProps>({
+export const AppContext = React.createContext<AppDataProps>({
   isMobile: false,
   isInstalled: false,
+  isStandalone: false,
+  wasInstalled: false,
   locale: "en",
   availableLocales: supportedLanguages,
   deferredPrompt: null,
@@ -79,15 +97,47 @@ export const useApp = () => {
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const defaultLocale = localStorage.getItem("gg-language")
     ? (localStorage.getItem("gg-language") as Locale)
-    : browserLang({
-        languages: [...supportedLanguages],
-        fallback: "en",
-      });
+    : (getBrowserLocale(supportedLanguages, "en") as Locale); // Use helper instead of browserLang
   const [locale, setLocale] = useState<Locale>(defaultLocale as Locale);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [installState, setInstalledState] = useState<InstallState>("idle");
+
+  // Track if app was ever installed on this browser (persistent)
+  const [wasInstalled, setWasInstalled] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("gg-pwa-installed") === "true";
+    }
+    return false;
+  });
+
+  // Initialize state synchronously to prevent PWA landing page flash
+  const [installState, setInstalledState] = useState<InstallState>(() => {
+    if (typeof window !== "undefined") {
+      const mockInstalled = import.meta.env.VITE_MOCK_PWA_INSTALLED === "true";
+      if (
+        mockInstalled ||
+        window.matchMedia("(display-mode: standalone)").matches ||
+        window.matchMedia("(display-mode: fullscreen)").matches ||
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (window.navigator as any).standalone
+      ) {
+        return "installed";
+      }
+    }
+    // Use "idle" to indicate we haven't checked yet (will trigger useEffect check)
+    return "idle";
+  });
 
   const platform = getMobileOperatingSystem();
+
+  const isStandalone = React.useMemo(() => {
+    if (typeof window === "undefined") return false;
+    return (
+      window.matchMedia("(display-mode: standalone)").matches ||
+      window.matchMedia("(display-mode: fullscreen)").matches ||
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window.navigator as any).standalone
+    );
+  }, []);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleInstallCheck = useCallback(async (e: any) => {
@@ -121,6 +171,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
   const handleAppInstalled = useCallback(() => {
     setInstalledState("installed");
+    setWasInstalled(true);
+    localStorage.setItem("gg-pwa-installed", "true");
     track("App Installed", {
       platform,
       locale,
@@ -148,7 +200,11 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    handleInstallCheck(null);
+    // Only run install check if not already detected as installed during initialization
+    // This prevents state changes that could trigger redirects mid-render
+    if (installState !== "installed") {
+      handleInstallCheck(null);
+    }
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstall);
     window.addEventListener("appinstalled", handleAppInstalled);
@@ -157,7 +213,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
       window.removeEventListener("appinstalled", handleAppInstalled);
     };
-  }, [handleAppInstalled, handleBeforeInstall, handleInstallCheck]);
+  }, [handleAppInstalled, handleBeforeInstall, handleInstallCheck, installState]);
 
   return (
     <PostHogProvider
@@ -172,6 +228,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         value={{
           isMobile: platform === "ios" || platform === "android" || platform === "windows",
           isInstalled: installState === "installed",
+          isStandalone,
+          wasInstalled,
           platform,
           locale,
           availableLocales: supportedLanguages,

@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { Script, console } from "forge-std/Script.sol";
-import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
+import {Script, console} from "forge-std/Script.sol";
 
-import { DeploymentBase } from "../test/helpers/DeploymentBase.sol";
-import { DeploymentRegistry } from "../src/DeploymentRegistry.sol";
-import { Capital } from "../src/registries/Action.sol";
-import { WorkResolver } from "../src/resolvers/Work.sol";
-import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
-import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
+import {DeploymentBase} from "../test/helpers/DeploymentBase.sol";
+import {DeploymentRegistry} from "../src/DeploymentRegistry.sol";
+import {GardenAccount} from "../src/accounts/Garden.sol";
+import {GardenToken} from "../src/tokens/Garden.sol";
+import {Capital} from "../src/registries/Action.sol";
+import {WorkResolver} from "../src/resolvers/Work.sol";
+import {WorkApprovalResolver} from "../src/resolvers/WorkApproval.sol";
+import {AssessmentResolver} from "../src/resolvers/Assessment.sol";
 
 /// @title Deploy
 /// @notice Production deployment script - orchestrates DeploymentBase + seed data
@@ -48,7 +49,7 @@ contract Deploy is Script, DeploymentBase {
             // 2. Add production-specific governance features (L2 only)
             if (!_isMainnetChain(block.chainid)) {
                 _addProductionFeatures(config);
-                
+
                 // 3. Deploy seed data (gardens + actions) (L2 only)
                 _deploySeedData(config);
             }
@@ -117,55 +118,81 @@ contract Deploy is Script, DeploymentBase {
     /// @notice Deploy seed data (gardens from config + core actions)
     function _deploySeedData(NetworkConfig memory config) internal {
         // 1. Mint gardens from config
-        _deployGardens(config.communityToken);
+        string memory gardensJson = _loadGardensConfig();
+        _deployGardensFromConfig(gardensJson, config.communityToken);
 
         // 2. Deploy core actions
-        string[] memory actionIPFSHashes = _uploadActionsToIPFS();
-        _deployCoreActions(actionIPFSHashes);
+        string memory actionsJson = _loadActionsConfig();
+        uint256 actionsCount = _getActionsCount(actionsJson);
+        string[] memory actionIPFSHashes = _uploadActionsToIPFS(actionsCount);
+        _deployCoreActions(actionsJson, actionIPFSHashes, actionsCount);
     }
 
-    /// @notice Deploy the root garden with hardcoded values (no JSON parsing)
-    function _deployGardens(address communityToken) internal {
-        string memory name = "Green Goods Community Garden";
-        string memory description = string(
-            abi.encodePacked(
-                "The global community garden for all Green Goods participants. ",
-                "This is the root garden that serves as the entry point for new users and community activities. ",
-                "All participants start here and can join specialized gardens as they engage with the platform."
-            )
-        );
-        string memory location = "Mama Earth";
-        string memory bannerImage = "QmS8mL4x9fnNutV63pSfwRhhVgoVpw4gaDCCGaTpv6oMGW";
+    /// @notice Deploy gardens from config/gardens.json
+    function _deployGardensFromConfig(string memory gardensJson, address communityToken) internal {
+        for (uint256 i = 0; i < 50; i++) {
+            string memory basePath = string.concat(".gardens[", vm.toString(i), "]");
 
-        address[] memory gardeners = new address[](5);
-        gardeners[0] = 0xa9d20b435A85fAAa002f32d66F7D21564130E9cf;
-        gardeners[1] = 0x6166E1964447E0959bC7c8d543DB3ab82dB65044;
-        gardeners[2] = 0x476E2651BF97dE8a26e4A05a9c8e00A6EFa1390c;
-        gardeners[3] = 0x23fBb98BBa894b2de086350bD60ef39860e92e43;
-        gardeners[4] = 0x3f649DbFAFBE454940B8a82c5058b8d176dD3871;
+            try vm.parseJson(gardensJson, string.concat(basePath, ".name")) returns (bytes memory nameBytes) {
+                if (nameBytes.length == 0) break;
 
-        address[] memory operators = new address[](7);
-        operators[0] = 0x2aa64E6d80390F5C017F0313cB908051BE2FD35e;
-        operators[1] = 0xAcD59e854adf632d2322404198624F757C868C97;
-        operators[2] = 0xED47B5f719eA74405Eb96ff700C11D1685b953B1;
-        operators[3] = 0x5c79d252F458b3720f7f230f8490fd1eE81d32FB;
-        operators[4] = 0xbaD8bcc9Eb5749829cF12189fDD5c1230D6C85e8;
-        operators[5] = 0x5F56E995e8D3bd05a70a63f0d7531437e873772e;
-        operators[6] = 0x560F876431dfA6eFe1aaf9fAa0D3A4512782DD8c;
+                string memory name = abi.decode(nameBytes, (string));
+                string memory description =
+                    abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".description")), (string));
+                string memory location =
+                    abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".location")), (string));
+                string memory bannerImage =
+                    abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".bannerImage")), (string));
 
-        address gardenAddress = gardenToken.mintGarden(
-            communityToken, name, description, location, bannerImage, gardeners, operators
-        );
+                string memory metadata = "";
+                try vm.parseJson(gardensJson, string.concat(basePath, ".metadata")) returns (bytes memory metadataBytes) {
+                    metadata = abi.decode(metadataBytes, (string));
+                } catch {}
 
-        gardenAddresses.push(gardenAddress);
-        gardenTokenIds.push(1);
+                bool openJoining = false;
+                try vm.parseJson(gardensJson, string.concat(basePath, ".openJoining")) returns (
+                    bytes memory openJoiningBytes
+                ) {
+                    openJoining = abi.decode(openJoiningBytes, (bool));
+                } catch {}
 
-        // solhint-disable-next-line no-console
-        console.log("Garden address:", gardenAddress);
+                address[] memory gardeners =
+                    abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".gardeners")), (address[]));
+                address[] memory operators =
+                    abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".operators")), (address[]));
+
+                GardenToken.GardenConfig memory gardenConfig = GardenToken.GardenConfig({
+                    communityToken: communityToken,
+                    name: name,
+                    description: description,
+                    location: location,
+                    bannerImage: bannerImage,
+                    metadata: metadata,
+                    gardeners: gardeners,
+                    gardenOperators: operators
+                });
+
+                address gardenAddress = gardenToken.mintGarden(gardenConfig);
+                gardenAddresses.push(gardenAddress);
+                gardenTokenIds.push(i + 1);
+
+                // Only the root garden gets open joining automatically from tokenId == 1. Others require operator call.
+                if (openJoining && GardenAccount(payable(gardenAddress)).gardenOperators(msg.sender)) {
+                    GardenAccount(payable(gardenAddress)).setOpenJoining(true);
+                }
+
+                console.log("Garden created");
+                console.log("  name", name);
+                console.log("  tokenId", i + 1);
+                console.log("  address", gardenAddress);
+            } catch {
+                break;
+            }
+        }
     }
 
     /// @notice Upload actions to IPFS and return hashes
-    function _uploadActionsToIPFS() internal returns (string[] memory) {
+    function _uploadActionsToIPFS(uint256 expectedCount) internal returns (string[] memory) {
         string[] memory inputs = new string[](2);
         inputs[0] = "node";
         inputs[1] = "script/utils/ipfs-uploader.js";
@@ -173,49 +200,103 @@ contract Deploy is Script, DeploymentBase {
         try vm.ffi(inputs) returns (bytes memory result) {
             // Check if result is empty or just whitespace
             if (result.length == 0) {
-                return _getPlaceholderIPFSHashes();
+                return _handleIPFSMismatch(expectedCount, 0);
             }
 
             string memory resultJson = string(result);
+            bytes memory parsed;
 
-            // Try to parse as JSON
-            try vm.parseJson(resultJson) returns (bytes memory parsed) {
-                return abi.decode(parsed, (string[]));
+            // Try to parse as JSON directly
+            try vm.parseJson(resultJson) returns (bytes memory directParsed) {
+                parsed = directParsed;
             } catch {
-                return _getPlaceholderIPFSHashes();
+                // Strip any non-JSON prefix/suffix (e.g., dotenv logs) by locating the LAST '[' and LAST ']'
+                bytes memory resultBytes = bytes(resultJson);
+                int256 start = -1;
+                int256 end = -1;
+
+                for (uint256 i = resultBytes.length; i > 0; i--) {
+                    if (resultBytes[i - 1] == "]" && end == -1) {
+                        end = int256(i);
+                        break;
+                    }
+                }
+
+                if (end > 0) {
+                    for (uint256 i = uint256(end); i > 0; i--) {
+                        if (resultBytes[i - 1] == "[") {
+                            start = int256(i - 1);
+                            break;
+                        }
+                    }
+                }
+
+                if (start >= 0 && end > start) {
+                    bytes memory sliced = new bytes(uint256(end - start));
+                    for (uint256 i = uint256(start); i < uint256(end); i++) {
+                        sliced[i - uint256(start)] = resultBytes[i];
+                    }
+
+                    try vm.parseJson(string(sliced)) returns (bytes memory cleanedParsed) {
+                        parsed = cleanedParsed;
+                    } catch {
+                        return _handleIPFSMismatch(expectedCount, 0);
+                    }
+                } else {
+                    return _handleIPFSMismatch(expectedCount, 0);
+                }
             }
+
+            string[] memory hashes = abi.decode(parsed, (string[]));
+            if (hashes.length != expectedCount) {
+                return _handleIPFSMismatch(expectedCount, hashes.length);
+            }
+            return hashes;
         } catch {
-            return _getPlaceholderIPFSHashes();
+            return _handleIPFSMismatch(expectedCount, 0);
         }
     }
 
-    /// @notice Get placeholder IPFS hashes for dry-runs
-    function _getPlaceholderIPFSHashes() internal pure returns (string[] memory) {
-        string[] memory hashes = new string[](3);
-        hashes[0] = "Qmcw9vnuChG1X88zomB6Xrot5jCFRdbEsvscHzi2sJvto8";
-        hashes[1] = "QmPHfYyqUC8T5aKwR4b3xsb1EjNiVgZ7uWti8voKCB7sGK";
-        hashes[2] = "QmZxTqtJKBwRM1i2ACdH7YJyGjwcWzEfGVKW9DKUWkjNfo";
+    /// @notice Handle IPFS upload mismatch scenarios
+    function _handleIPFSMismatch(uint256 expectedCount, uint256 /* actualCount */)
+        internal
+        view
+        returns (string[] memory)
+    {
+        if (_isBroadcasting()) {
+            revert ActionIPFSUploadFailed();
+        }
+
+        // For simulations, return placeholders matching the expected count so the loop runs fully.
+        string[] memory hashes = new string[](expectedCount);
+        string[3] memory defaults = [
+            string("Qmcw9vnuChG1X88zomB6Xrot5jCFRdbEsvscHzi2sJvto8"),
+            string("QmPHfYyqUC8T5aKwR4b3xsb1EjNiVgZ7uWti8voKCB7sGK"),
+            string("QmZxTqtJKBwRM1i2ACdH7YJyGjwcWzEfGVKW9DKUWkjNfo")
+        ];
+        for (uint256 i = 0; i < expectedCount; i++) {
+            hashes[i] = defaults[i % defaults.length];
+        }
         return hashes;
     }
 
     /// @notice Deploy core actions from config
-    function _deployCoreActions(string[] memory ipfsHashes) internal {
-        string memory configPath = string.concat(vm.projectRoot(), "/config/actions.json");
+    function _deployCoreActions(string memory json, string[] memory ipfsHashes, uint256 actionsCount) internal {
+        if (ipfsHashes.length < actionsCount) revert ActionIPFSUploadFailed();
 
-        try vm.readFile(configPath) returns (string memory json) {
-            for (uint256 i = 0; i < ipfsHashes.length && i < 50; i++) {
-                string memory basePath = string.concat(".actions[", vm.toString(i), "]");
+        for (uint256 i = 0; i < actionsCount && i < 50; i++) {
+            string memory basePath = string.concat(".actions[", vm.toString(i), "]");
+            try vm.parseJson(json, string.concat(basePath, ".title")) returns (bytes memory titleBytes) {
+                if (titleBytes.length == 0) break;
+                _registerSingleAction(json, basePath, ipfsHashes[i]);
 
-                try vm.parseJson(json, string.concat(basePath, ".title")) returns (bytes memory titleBytes) {
-                    if (titleBytes.length == 0) break;
-
-                    _registerSingleAction(json, basePath, ipfsHashes[i]);
-                } catch {
-                    break;
-                }
+                string memory title = abi.decode(titleBytes, (string));
+                console.log("Action registered");
+                console.log("  title", title);
+                console.log("  index", i);
+            } catch {
+                revert ActionDeploymentFailed();
             }
-        } catch {
-            revert ActionDeploymentFailed();
         }
     }
 
@@ -224,9 +305,11 @@ contract Deploy is Script, DeploymentBase {
         string memory title = abi.decode(vm.parseJson(json, string.concat(basePath, ".title")), (string));
         uint256 startTime =
             _parseISOTimestamp(abi.decode(vm.parseJson(json, string.concat(basePath, ".startTime")), (string)));
-        uint256 endTime = _parseISOTimestamp(abi.decode(vm.parseJson(json, string.concat(basePath, ".endTime")), (string)));
+        uint256 endTime =
+            _parseISOTimestamp(abi.decode(vm.parseJson(json, string.concat(basePath, ".endTime")), (string)));
 
-        string[] memory capitalStrings = abi.decode(vm.parseJson(json, string.concat(basePath, ".capitals")), (string[]));
+        string[] memory capitalStrings =
+            abi.decode(vm.parseJson(json, string.concat(basePath, ".capitals")), (string[]));
         Capital[] memory capitals = new Capital[](capitalStrings.length);
         for (uint256 j = 0; j < capitalStrings.length; j++) {
             capitals[j] = _parseCapital(capitalStrings[j]);
@@ -245,10 +328,10 @@ contract Deploy is Script, DeploymentBase {
     // solhint-disable-next-line no-console
     function _logDeploymentStrategy() internal view {
         uint256 chainId = block.chainid;
-        
+
         console.log("\n=== Green Goods Deployment ===");
         console.log("Chain ID:", chainId);
-        
+
         if (_isMainnetChain(chainId)) {
             console.log("Mode: MAINNET - ENS Infrastructure Only");
             console.log("  - ENSRegistrar (greengoods.eth subdomain manager)");
@@ -323,15 +406,15 @@ contract Deploy is Script, DeploymentBase {
         bytes memory timestampBytes = bytes(isoTimestamp);
 
         if (
-            timestampBytes.length >= 10 && timestampBytes[0] == "2" && timestampBytes[1] == "0" && timestampBytes[2] == "2"
-                && timestampBytes[3] == "4"
+            timestampBytes.length >= 10 && timestampBytes[0] == "2" && timestampBytes[1] == "0"
+                && timestampBytes[2] == "2" && timestampBytes[3] == "4"
         ) {
             return 1_704_067_200; // 2024-01-01
         }
 
         if (
-            timestampBytes.length >= 10 && timestampBytes[0] == "2" && timestampBytes[1] == "0" && timestampBytes[2] == "2"
-                && timestampBytes[3] == "5"
+            timestampBytes.length >= 10 && timestampBytes[0] == "2" && timestampBytes[1] == "0"
+                && timestampBytes[2] == "2" && timestampBytes[3] == "5"
         ) {
             return 1_767_225_599; // 2025-12-31
         }
@@ -353,6 +436,33 @@ contract Deploy is Script, DeploymentBase {
         if (hash == keccak256(bytes("SPIRITUAL"))) return Capital.SPIRITUAL;
 
         revert InvalidCapitalType();
+    }
+
+    /// @notice Load gardens config JSON
+    function _loadGardensConfig() internal view returns (string memory) {
+        string memory configPath = string.concat(vm.projectRoot(), "/config/gardens.json");
+        return vm.readFile(configPath);
+    }
+
+    /// @notice Load actions config JSON
+    function _loadActionsConfig() internal view returns (string memory) {
+        string memory configPath = string.concat(vm.projectRoot(), "/config/actions.json");
+        return vm.readFile(configPath);
+    }
+
+    /// @notice Count actions defined in the JSON
+    function _getActionsCount(string memory json) internal view returns (uint256) {
+        for (uint256 i = 0; i < 50; i++) {
+            string memory basePath = string.concat(".actions[", vm.toString(i), "].title");
+            try vm.parseJson(json, basePath) returns (bytes memory titleBytes) {
+                if (titleBytes.length == 0) {
+                    return i;
+                }
+            } catch {
+                return i;
+            }
+        }
+        return 50;
     }
 
     // ============================================
@@ -388,7 +498,7 @@ contract Deploy is Script, DeploymentBase {
             deploymentRegistry: address(deploymentRegistry),
             guardian: address(0), // Computed via CREATE2, populated post-deployment
             gardenAccountImpl: address(gardenAccountImpl),
-            accountProxy: address(0), // Computed via CREATE2, populated post-deployment  
+            accountProxy: address(0), // Computed via CREATE2, populated post-deployment
             gardenToken: address(gardenToken),
             actionRegistry: address(actionRegistry),
             assessmentResolver: address(assessmentResolver),
@@ -408,7 +518,7 @@ contract Deploy is Script, DeploymentBase {
     function _saveDeploymentResults() internal {
         // Build result with core addresses
         DeploymentResult memory result = _buildDeploymentResult();
-        
+
         // Use DeployHelper's comprehensive save method
         _saveDeployment(result);
 

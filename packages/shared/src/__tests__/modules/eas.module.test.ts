@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 
-vi.mock("../../modules/pinata", () => ({
+vi.mock("../../modules/data/pinata", () => ({
   getFileByHash: vi.fn(async () => ({ data: new Blob(["x"]) })),
 }));
 

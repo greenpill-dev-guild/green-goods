@@ -1,4 +1,4 @@
-import { resolveIPFSUrl } from "@green-goods/shared/utils/pinata";
+import { resolveIPFSUrl } from "@green-goods/shared/modules";
 import { RiImageLine, RiTimeLine, RiUserLine } from "@remixicon/react";
 import { Link } from "react-router-dom";
 import { AddressDisplay } from "@/components/UI/AddressDisplay";

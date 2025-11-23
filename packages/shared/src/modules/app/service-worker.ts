@@ -8,13 +8,23 @@ import { track } from "./posthog";
 class ServiceWorkerManager {
   private registration: ServiceWorkerRegistration | null = null;
   private isSupported = false;
+  private hasController = false;
+  private hasReloadedForUpdate = false;
 
   constructor() {
+    const hasNavigator = typeof navigator !== "undefined";
+    const hasWindow = typeof window !== "undefined";
+
     this.isSupported =
+      hasNavigator &&
+      hasWindow &&
       "serviceWorker" in navigator &&
       "ServiceWorkerRegistration" in window &&
       // @ts-ignore - prototype check for Background Sync support in browsers that implement it
       "sync" in (window.ServiceWorkerRegistration.prototype as any);
+
+    this.hasController =
+      hasNavigator && "serviceWorker" in navigator && navigator.serviceWorker.controller !== null;
   }
 
   /**
@@ -33,6 +43,7 @@ class ServiceWorkerManager {
 
       // Set up message handler for background sync notifications
       navigator.serviceWorker.addEventListener("message", this.handleMessage.bind(this));
+      navigator.serviceWorker.addEventListener("controllerchange", this.handleControllerChange);
 
       // Wait for service worker to be ready
       await navigator.serviceWorker.ready;
@@ -51,6 +62,24 @@ class ServiceWorkerManager {
       return false;
     }
   }
+
+  /**
+   * Reload the page once a new service worker takes control
+   */
+  private handleControllerChange = () => {
+    // Avoid reloading on the very first install when there was no controller
+    if (!this.hasController) {
+      this.hasController = true;
+      return;
+    }
+
+    if (this.hasReloadedForUpdate) {
+      return;
+    }
+
+    this.hasReloadedForUpdate = true;
+    window.location.reload();
+  };
 
   /**
    * Check if Background Sync is supported
@@ -93,8 +122,6 @@ class ServiceWorkerManager {
    */
   private async handleMessage(event: MessageEvent) {
     if (event.data?.type === "BACKGROUND_SYNC") {
-      console.log("Background sync triggered by service worker");
-
       track("background_sync_triggered", {
         timestamp: event.data.payload.timestamp,
       });
@@ -140,11 +167,7 @@ if (typeof window !== "undefined") {
   const enableDevServiceWorker = (import.meta as any).env?.VITE_ENABLE_SW_DEV === "true";
 
   if ((import.meta as any).env?.PROD || enableDevServiceWorker) {
-    serviceWorkerManager.register().then((success) => {
-      if (success) {
-        console.log("Service Worker registered successfully");
-      }
-    });
+    serviceWorkerManager.register();
   }
 
   // In development (and when not explicitly enabled), ensure no SW interferes with HMR

@@ -3,6 +3,35 @@ import { SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
 import { getEASConfig } from "../../config/blockchain";
 import { uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/pinata";
 
+/**
+ * Simulates work data encoding with dummy IPFS hashes.
+ * Used to validate contract interactions before performing expensive uploads.
+ */
+export function simulateWorkData(data: WorkDraft, chainId: number | string) {
+  const easConfig = getEASConfig(chainId);
+  const schema = easConfig.WORK.schema as `0x${string}`;
+  const schemaEncoder = new SchemaEncoder(schema);
+
+  // Use dummy CID for simulation to avoid IPFS uploads
+  const DUMMY_CID = "QmSimulationDummyHashForValidation000000000000";
+
+  // Map media files to dummy CIDs - strictly maintaining array length
+  const media = data.media.map(() => DUMMY_CID);
+
+  // Use dummy CID for metadata JSON
+  const metadataCID = DUMMY_CID;
+
+  const encodedData = schemaEncoder.encodeData([
+    { name: "actionUID", value: data.actionUID, type: "uint256" },
+    { name: "title", value: data.title, type: "string" },
+    { name: "feedback", value: data.feedback, type: "string" },
+    { name: "metadata", value: metadataCID, type: "string" },
+    { name: "media", value: media, type: "string[]" },
+  ]) as `0x${string}`;
+
+  return encodedData;
+}
+
 /** Uploads supporting files and encodes a work attestation payload for EAS. */
 export async function encodeWorkData(data: WorkDraft, chainId: number | string) {
   const easConfig = getEASConfig(chainId);
@@ -20,19 +49,7 @@ export async function encodeWorkData(data: WorkDraft, chainId: number | string) 
               lastModified: Date.now(),
             });
 
-      console.log("[encodeWorkData] Uploading file to IPFS:", {
-        fileName: file.name,
-        fileSize: file.size,
-        fileType: file.type,
-        isFile: file instanceof File,
-      });
-
       const result = await uploadFileToIPFS(file);
-
-      console.log("[encodeWorkData] File uploaded:", {
-        fileName: file.name,
-        cid: result.cid,
-      });
 
       return result.cid;
     })

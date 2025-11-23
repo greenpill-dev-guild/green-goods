@@ -8,7 +8,7 @@ export function useActions(chainId: number = DEFAULT_CHAIN_ID) {
   return useQuery({
     queryKey: queryKeys.actions.byChain(chainId),
     queryFn: () => getActions(),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000, // 1 minute
   });
 }
 
@@ -17,7 +17,7 @@ export function useGardens(chainId: number = DEFAULT_CHAIN_ID) {
   return useQuery({
     queryKey: queryKeys.gardens.byChain(chainId),
     queryFn: () => getGardens(),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000, // 1 minute
   });
 }
 
@@ -26,6 +26,6 @@ export function useGardeners() {
   return useQuery({
     queryKey: queryKeys.gardeners.all,
     queryFn: () => getGardeners(),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000, // 1 minute
   });
 }

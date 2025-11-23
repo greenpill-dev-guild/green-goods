@@ -77,10 +77,16 @@ export default defineConfig(({ mode }) => {
       registerType: "autoUpdate",
       workbox: {
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
-        globPatterns: ["**/*.{html,ico,png,svg}", "**/assets/*.css"],
+        globPatterns: ["**/*.{html,js,css,ico,png,svg}"],
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
         runtimeCaching: [
           {
-            urlPattern: /.*\.js$/,
+            // Only cache JS files from the same origin (avoids caching external analytics/ads)
+            // Note: 'self' refers to the ServiceWorkerGlobalScope when running, but here we construct the config.
+            // We use a regex that matches relative paths (same origin) ending in .js
+            urlPattern: /^\/.*\.js$/,
             handler: "NetworkFirst",
             options: {
               cacheName: "js-cache",
@@ -97,15 +103,6 @@ export default defineConfig(({ mode }) => {
                 maxEntries: 100,
                 maxAgeSeconds: 30 * 24 * 60 * 60,
               },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            urlPattern: /^https:\/\/api\.pinata\.cloud/,
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "api-cache",
-              networkTimeoutSeconds: 5,
               cacheableResponse: { statuses: [0, 200] },
             },
           },
@@ -214,24 +211,6 @@ export default defineConfig(({ mode }) => {
       hmr: { overlay: true },
       watch: { usePolling: true, interval: 100 },
       proxy: {
-        "/pinata/uploads": {
-          target: "https://uploads.pinata.cloud",
-          changeOrigin: true,
-          secure: false,
-          rewrite: (path) => path.replace(/^\/pinata\/uploads/, ""),
-        },
-        "/pinata/api": {
-          target: "https://api.pinata.cloud",
-          changeOrigin: true,
-          secure: false,
-          rewrite: (path) => path.replace(/^\/pinata\/api/, ""),
-        },
-        "/pinata/gateway": {
-          target: "https://greengoods.mypinata.cloud",
-          changeOrigin: true,
-          secure: false,
-          rewrite: (path) => path.replace(/^\/pinata\/gateway/, ""),
-        },
         "/indexer": {
           target:
             process.env.NODE_ENV === "development"

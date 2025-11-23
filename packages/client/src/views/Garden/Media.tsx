@@ -1,12 +1,18 @@
-import { RiCloseLine, RiImageFill, RiLoader4Line, RiZoomInLine } from "@remixicon/react";
+import { track } from "@green-goods/shared/modules";
+import { imageCompressor } from "@green-goods/shared/utils/work/image-compression";
+import {
+  RiCameraFill,
+  RiCloseLine,
+  RiImageFill,
+  RiLoader4Line,
+  RiZoomInLine,
+} from "@remixicon/react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Books } from "@/components/Garden/BooksIcon";
 import { Badge } from "@/components/UI/Badge/Badge";
 import { FormInfo } from "@/components/UI/Form/Info";
 import { ImagePreviewDialog } from "@/components/UI/ImagePreviewDialog";
-import { track } from "@green-goods/shared/modules";
-import { imageCompressor } from "@green-goods/shared/utils/work/image-compression";
 
 interface WorkMediaProps {
   config?: Action["mediaInfo"];
@@ -62,30 +68,6 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({ config, images, setImages 
         }
       )
     : "";
-
-  useEffect(() => {
-    console.log("[WorkMedia] Received configuration", {
-      title: config?.title,
-      description: config?.description,
-      required: config?.required,
-      minImageCount: requiredImageCount,
-      maxImageCount,
-      needed: neededItems,
-      optional: optionalItems,
-    });
-  }, [
-    config?.title,
-    config?.description,
-    config?.required,
-    requiredImageCount,
-    maxImageCount,
-    neededItems,
-    optionalItems,
-  ]);
-
-  useEffect(() => {
-    console.log("[WorkMedia] Current image count", images.length);
-  }, [images]);
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -212,15 +194,25 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({ config, images, setImages 
           </div>
         </div>
       ) : null}
-      <input
-        id="work-media-upload"
-        type="file"
-        accept="image/*"
-        onChange={handleImageUpload}
-        multiple
-        className="input input-bordered hidden"
-        disabled={isCompressing}
-      />
+      <div className="hidden">
+        <input
+          id="work-media-upload"
+          type="file"
+          accept="image/*"
+          onChange={handleImageUpload}
+          multiple
+          disabled={isCompressing}
+        />
+
+        <input
+          id="work-media-camera"
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleImageUpload}
+          disabled={isCompressing}
+        />
+      </div>
 
       {/* Compression Progress Indicator */}
       {isCompressing && (
@@ -249,7 +241,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({ config, images, setImages 
       <div className="flex flex-col gap-4">
         {images.length ? (
           images.map((file, index) => (
-            <div key={file.name} className="carousel-item relative w-full">
+            <div key={`${file.name}-${index}`} className="carousel-item relative w-full">
               <button
                 type="button"
                 className="relative group cursor-pointer w-full"

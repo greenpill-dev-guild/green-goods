@@ -7,7 +7,7 @@
 
 import React, { createContext, useContext } from "react";
 import { useAccount, useDisconnect } from "wagmi";
-import { useAppKit } from "@reown/appkit/react";
+import { appKit } from "../config/appkit";
 
 interface WalletAuthContextType {
   // Wallet connection state
@@ -52,7 +52,6 @@ export function useUser() {
 export function WalletAuthProvider({ children }: { children: React.ReactNode }) {
   const { address, isConnected, isConnecting } = useAccount();
   const { disconnect } = useDisconnect();
-  const { open } = useAppKit();
 
   // Create legacy-compatible user object
   const user = address
@@ -66,7 +65,7 @@ export function WalletAuthProvider({ children }: { children: React.ReactNode }) 
     address,
     isConnected,
     isConnecting,
-    connect: open,
+    connect: () => appKit.open(),
     disconnect,
     ready: !isConnecting, // Ready when we've finished checking connection status
     user,

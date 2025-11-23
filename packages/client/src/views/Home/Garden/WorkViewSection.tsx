@@ -1,15 +1,15 @@
 import {
   RiCheckDoubleFill,
-  RiCheckLine,
-  RiCloseLine,
+  RiDownloadLine,
+  RiExternalLinkLine,
   RiLeafFill,
   RiPencilFill,
   RiPlantFill,
+  RiShareLine,
 } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
 import { WorkView, type WorkViewAction } from "@/components/UI/WorkView/WorkView";
-import { FormText } from "@/components/UI/Form/Text";
 
 type ViewingMode = "operator" | "gardener" | "viewer";
 
@@ -23,10 +23,6 @@ type WorkViewSectionProps = {
   onDownloadMedia?: () => void;
   onShare: () => void;
   onViewAttestation?: () => void;
-  onApprove?: () => void;
-  onReject?: () => void;
-  feedback?: string;
-  onFeedbackChange?: (value: string) => void;
   footer?: React.ReactNode;
 };
 
@@ -40,43 +36,14 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
   onDownloadMedia,
   onShare,
   onViewAttestation,
-  onApprove,
-  onReject,
-  feedback,
-  onFeedbackChange,
   footer,
 }) => {
   const intl = useIntl();
 
   const { feedback: workFeedback, media } = work;
 
-  // Approval actions for operators (shown at the top for easy access)
-  const approvalActions: WorkViewAction[] =
-    viewingMode === "operator" && work.status === "pending" && onApprove && onReject
-      ? [
-          {
-            id: "approve",
-            label: intl.formatMessage({
-              id: "app.home.workApproval.approve",
-              defaultMessage: "Approve",
-            }),
-            onClick: onApprove,
-            icon: <RiCheckLine className="w-5 h-5" />,
-          },
-          {
-            id: "reject",
-            label: intl.formatMessage({
-              id: "app.home.workApproval.reject",
-              defaultMessage: "Reject",
-            }),
-            onClick: onReject,
-            icon: <RiCloseLine className="w-5 h-5" />,
-          },
-        ]
-      : [];
-
   // Utility actions (download, share, view attestation)
-  const utilityActions: WorkViewAction[] = [
+  const primaryActions: WorkViewAction[] = [
     {
       id: "download-data",
       label: intl.formatMessage({
@@ -84,6 +51,9 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
         defaultMessage: "Download Data",
       }),
       onClick: onDownloadData,
+      icon: <RiDownloadLine className="w-6 h-6" />,
+      className:
+        "!bg-white !border-2 !border-[#3E8E4E] !text-[#3E8E4E] hover:!bg-[#3E8E4E]/5 !outline-none",
     },
     ...(media && media.length > 0 && onDownloadMedia
       ? [
@@ -94,6 +64,9 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
               defaultMessage: "Download Media",
             }),
             onClick: onDownloadMedia,
+            icon: <RiDownloadLine className="w-6 h-6" />,
+            className:
+              "!bg-white !border-2 !border-[#FF7533] !text-[#FF7533] hover:!bg-[#FF7533]/5 !outline-none",
           },
         ]
       : []),
@@ -101,6 +74,9 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       id: "share",
       label: intl.formatMessage({ id: "app.home.work.share", defaultMessage: "Share Work" }),
       onClick: onShare,
+      icon: <RiShareLine className="w-6 h-6" />,
+      className:
+        "!bg-white !border-2 !border-[#D28560] !text-[#D28560] hover:!bg-[#D28560]/5 !outline-none",
     },
     ...(onViewAttestation
       ? [
@@ -111,46 +87,13 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
               defaultMessage: "View Attestation",
             }),
             onClick: onViewAttestation,
+            icon: <RiExternalLinkLine className="w-6 h-6" />,
+            className:
+              "!bg-white !border-2 !border-[#6EE0F7] !text-[#6EE0F7] hover:!bg-[#6EE0F7]/5 !outline-none",
           },
         ]
       : []),
   ];
-
-  // Primary actions: approval actions first (if applicable), then utility actions
-  const primaryActions: WorkViewAction[] = [...approvalActions, ...utilityActions];
-
-  // Feedback section for operators reviewing pending work
-  const feedbackSection =
-    viewingMode === "operator" && work.status === "pending" && onFeedbackChange ? (
-      <>
-        <h6 className="text-text-strong-950 mt-2">
-          {intl.formatMessage({
-            id: "app.home.workApproval.feedback",
-            defaultMessage: "Feedback",
-          })}
-        </h6>
-        <div className="bg-bg-weak-50 border border-stroke-soft-200 rounded-xl p-4">
-          <FormText
-            rows={4}
-            placeholder={intl.formatMessage({
-              id: "app.home.workApproval.feedbackPlaceholder",
-              defaultMessage:
-                "Add feedback for the gardener (optional for approval, required for rejection)...",
-            })}
-            value={feedback || ""}
-            onChange={(e) => onFeedbackChange(e.target.value)}
-            className="bg-bg-white-0"
-          />
-          <p className="text-xs text-text-soft-400 mt-2">
-            {intl.formatMessage({
-              id: "app.home.workApproval.feedbackHint",
-              defaultMessage:
-                "This feedback will be included with your approval or rejection decision.",
-            })}
-          </p>
-        </div>
-      </>
-    ) : undefined;
 
   const metadataUnavailable = intl.formatMessage({
     id: "app.status.notAvailable",
@@ -235,7 +178,6 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       ]}
       headerIcon={RiCheckDoubleFill}
       primaryActions={primaryActions}
-      feedbackSection={feedbackSection}
       footer={footer}
     />
   );

@@ -14,8 +14,6 @@ export {
   APP_ICON,
   ONBOARDED_STORAGE_KEY,
   // appkit.ts
-  networks,
-  wagmiAdapter,
   wagmiConfig,
   appKit,
   // blockchain.ts
@@ -83,7 +81,6 @@ export {
   updateUserProfile,
   // data/pinata.ts
   initializePinata,
-  getPinataClient,
   resolveIPFSUrl,
   getFileByHash,
   uploadFileToIPFS,
@@ -99,6 +96,9 @@ export {
   jobQueueDB,
   jobQueueEventBus,
   useJobQueueEvents,
+  // translation/
+  browserTranslator,
+  translationCache,
   // work/deduplication.ts - REMOVED (implementation missing)
   // DeduplicationManager,
   // defaultDeduplicationManager,
@@ -177,6 +177,8 @@ export {
   // work/workActions.ts
   downloadWorkData,
   getWorkShareUrl,
+  // translation-diagnostics.ts
+  runTranslationDiagnostics,
 } from "./utils/index";
 
 export type {

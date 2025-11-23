@@ -15,7 +15,7 @@
 // Environment variables should be passed by the deployment script
 const fs = require("node:fs");
 const path = require("node:path");
-const pinataSDK = require("@pinata/sdk");
+const { createHash } = require("node:crypto");
 const dotenv = require("dotenv");
 
 dotenv.config({ path: path.join(__dirname, "../../../../", ".env") });
@@ -35,7 +35,7 @@ function getTemplateForAction(title, templates) {
   const lowerTitle = title.toLowerCase();
 
   // Define priority order for keyword matching (more specific first)
-  const keywordPriority = ["identify", "observe", "water", "litter", "waste", "plant"];
+  const keywordPriority = ["identify", "observe", "water", "litter", "waste", "plant", "harvest", "workshop"];
 
   // Try priority keywords first
   for (const keyword of keywordPriority) {
@@ -115,19 +115,59 @@ function saveCache(cache) {
 }
 
 /**
- * Upload action to IPFS with retry logic
+ * Build deterministic cache key from action contents to avoid stale uploads
  */
-async function uploadToIPFS(pinata, name, data, retries = 3) {
+function buildCacheKey(action, index) {
+  const serialized = JSON.stringify(action);
+  const hash = createHash("sha256").update(serialized).digest("hex");
+  return `${index}-${hash}`;
+}
+
+/**
+ * Initialize Pinata client (Just returns JWT)
+ */
+function initPinata() {
+  const pinataJwt = process.env.VITE_PINATA_JWT;
+
+  if (!pinataJwt) {
+    throw new Error("VITE_PINATA_JWT environment variable required");
+  }
+
+  return pinataJwt;
+}
+
+/**
+ * Upload action to IPFS via Pinata with retry logic
+ */
+async function uploadToIPFS(jwt, name, data, retries = 3) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const result = await pinata.pinJSONToIPFS(data, {
-        pinataMetadata: {
-          name: `green-goods-action-${name}`,
+      const res = await fetch("https://api.pinata.cloud/pinning/pinJSONToIPFS", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${jwt}`,
         },
-        pinataOptions: {
-          cidVersion: 0,
-        },
+        body: JSON.stringify({
+          pinataContent: data,
+          pinataMetadata: {
+            name: name,
+          },
+          pinataOptions: {
+            cidVersion: 1,
+          },
+        }),
       });
+
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`Pinata upload failed (${res.status}): ${body || res.statusText}`);
+      }
+
+      const result = await res.json();
+      if (!result?.IpfsHash) {
+        throw new Error("Pinata upload succeeded without IpfsHash");
+      }
       return result.IpfsHash;
     } catch (error) {
       if (attempt === retries) {
@@ -153,6 +193,7 @@ async function main() {
     const actionsData = JSON.parse(fs.readFileSync(ACTIONS_FILE, "utf8"));
     const actions = actionsData.actions;
     const templates = actionsData.templates;
+    console.error(`IPFS uploader: processing ${actions.length} actions from config/actions.json`, { toStderr: true });
 
     if (!actions || !Array.isArray(actions)) {
       console.error("Error: Invalid actions.json format - missing or invalid 'actions' array", { toStderr: true });
@@ -168,18 +209,20 @@ async function main() {
     const cache = loadCache();
     const ipfsHashes = [];
     let hasChanges = false;
+    let cacheHits = 0;
+    let uploads = 0;
 
     // Check if we have valid cache for all actions
     const allCached = actions.every((action, idx) => {
-      const cacheKey = `${action.title}-${idx}`;
+      const cacheKey = buildCacheKey(action, idx);
       return cache[cacheKey]?.hash;
     });
 
-    // Get Pinata JWT (check both PINATA_JWT and VITE_PINATA_JWT)
-    const pinataJWT = process.env.PINATA_JWT || process.env.VITE_PINATA_JWT;
+    // Get Pinata credentials
+    const pinataJwt = process.env.VITE_PINATA_JWT;
 
-    // If PINATA_JWT is not set and we have cache, use cache
-    if (!pinataJWT) {
+    // If credentials not set and we have cache, use cache
+    if (!pinataJwt) {
       if (allCached) {
         // Note: Don't write to stderr when using cache to avoid Forge error logs
         for (let i = 0; i < actions.length; i++) {
@@ -190,7 +233,7 @@ async function main() {
         console.log(JSON.stringify(ipfsHashes));
         process.exit(0);
       } else {
-        console.error("Error: PINATA_JWT or VITE_PINATA_JWT environment variable required and no valid cache found", {
+        console.error("Error: VITE_PINATA_JWT environment variable required and no valid cache found", {
           toStderr: true,
         });
         process.exit(1);
@@ -198,16 +241,17 @@ async function main() {
     }
 
     // Initialize Pinata
-    const pinata = new pinataSDK({ pinataJWTKey: pinataJWT });
+    const jwt = initPinata();
 
     // Process each action
     for (let i = 0; i < actions.length; i++) {
       const action = actions[i];
-      const cacheKey = `${action.title}-${i}`;
+      const cacheKey = buildCacheKey(action, i);
 
       // Check cache first
       if (cache[cacheKey]?.hash) {
-        // Using cached hash (silent to avoid Forge error logs)
+        cacheHits += 1;
+        console.error(`Cache hit for action ${i}: ${action.title} -> ${cache[cacheKey].hash}`, { toStderr: true });
         ipfsHashes.push(cache[cacheKey].hash);
         continue;
       }
@@ -217,17 +261,15 @@ async function main() {
 
       // Upload to IPFS (silent to avoid Forge error logs)
       try {
-        const hash = await uploadToIPFS(pinata, action.title.replace(/\s+/g, "-").toLowerCase(), instructionsDoc);
+        const hash = await uploadToIPFS(jwt, action.title.replace(/\s+/g, "-").toLowerCase(), instructionsDoc);
+        uploads += 1;
 
         // Upload successful
         ipfsHashes.push(hash);
 
         // Update cache
-        cache[cacheKey] = {
-          hash,
-          title: action.title,
-          uploadedAt: new Date().toISOString(),
-        };
+        cache[cacheKey] = { hash, title: action.title, uploadedAt: new Date().toISOString() };
+        console.error(`Uploaded action ${i}: ${action.title} -> ${hash}`, { toStderr: true });
         hasChanges = true;
       } catch (error) {
         const errorMsg = error?.message || error?.toString() || "Unknown error";
@@ -248,6 +290,17 @@ async function main() {
     if (hasChanges) {
       saveCache(cache);
     }
+
+    if (ipfsHashes.length !== actions.length) {
+      console.error(`Error: IPFS hash count (${ipfsHashes.length}) does not match actions count (${actions.length})`, {
+        toStderr: true,
+      });
+      process.exit(1);
+    }
+
+    console.error(`IPFS uploader complete: ${uploads} uploaded, ${cacheHits} cached, ${ipfsHashes.length} total`, {
+      toStderr: true,
+    });
 
     // Output hashes as JSON array
     console.log(JSON.stringify(ipfsHashes));

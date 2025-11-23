@@ -6,7 +6,7 @@ vi.mock("../../modules/urql", () => ({
   },
 }));
 
-vi.mock("../../modules/pinata", () => ({
+vi.mock("../../modules/data/pinata", () => ({
   getFileByHash: vi.fn(async () => ({ data: new Blob(["x"]) })),
 }));
 

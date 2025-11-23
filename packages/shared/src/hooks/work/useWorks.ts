@@ -3,9 +3,9 @@ import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { getWorks } from "../../modules/data/eas";
 import { jobQueue, jobQueueDB } from "../../modules/job-queue";
 import { jobQueueEventBus, useJobQueueEvents } from "../../modules/job-queue/event-bus";
+import { useMerged } from "../app/useMerged";
 import { useUser } from "../auth/useUser";
 import { queryKeys } from "../query-keys";
-import { useMerged } from "../app/useMerged";
 
 // Helper function to convert job payload to Work model
 export function jobToWork(job: Job<WorkJobPayload>): Work {
@@ -49,6 +49,9 @@ export function useWorks(gardenId: string) {
         (job) => (job.payload as WorkJobPayload).gardenAddress === gardenId
       ) as Job<WorkJobPayload>[];
     },
+    // Reduce stale times for faster updates after transactions
+    staleTimeOnline: 15_000, // 15 seconds (previously 30s default)
+    staleTimeMerged: 5_000, // 5 seconds (keep responsive)
     merge: async (onlineWorks, offlineJobs) => {
       const offlineWorks = await Promise.all(
         (offlineJobs || []).map(async (job) => {
@@ -130,7 +133,7 @@ export function usePendingWorksCount() {
       const jobs = await jobQueue.getJobs({ kind: "work", synced: false });
       return jobs.length;
     },
-    staleTime: 10000, // 10 seconds
+    staleTime: 5000, // 5 seconds (reduced for faster badge updates)
     gcTime: 30000, // 30 seconds
   });
 
@@ -151,7 +154,7 @@ export function useQueueStatistics() {
   const query = useQuery({
     queryKey: queryKeys.queue.stats(),
     queryFn: () => jobQueue.getStats(),
-    staleTime: 10000, // 10 seconds
+    staleTime: 5000, // 5 seconds (reduced for faster updates)
     gcTime: 30000, // 30 seconds
   });
 

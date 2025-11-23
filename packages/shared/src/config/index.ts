@@ -2,21 +2,19 @@
 
 // From app.ts
 export {
-  APP_NAME,
   APP_DEFAULT_TITLE,
-  APP_TITLE_TEMPLATE,
   APP_DESCRIPTION,
-  APP_URL,
   APP_ICON,
+  APP_NAME,
+  APP_TITLE_TEMPLATE,
+  APP_URL,
   ONBOARDED_STORAGE_KEY,
 } from "./app";
 
 // From appkit.ts
 export {
-  networks,
-  wagmiAdapter,
-  wagmiConfig,
   appKit,
+  wagmiConfig,
 } from "./appkit";
 
 // From blockchain.ts
@@ -25,30 +23,29 @@ export type {
   NetworkConfig,
 } from "./blockchain";
 export {
-  getEasGraphqlUrl,
-  getEASConfig,
-  getNetworkConfig,
   DEFAULT_CHAIN_ID,
   getDefaultChain,
+  getEASConfig,
+  getEasGraphqlUrl,
   getIndexerUrl,
+  getNetworkConfig,
 } from "./blockchain";
-
+export type { SupportedChainId } from "./chains";
 // From chains.ts
 export {
-  SUPPORTED_CHAINS,
   getChain,
   getChainName,
   isChainSupported,
+  SUPPORTED_CHAINS,
 } from "./chains";
-export type { SupportedChainId } from "./chains";
 
 // From pimlico.ts
 export {
+  createPimlicoClientForChain,
+  createPublicClientForChain,
   getPimlicoApiKey,
   getPimlicoBundlerUrl,
   getPimlicoPaymasterUrl,
-  createPimlicoClientForChain,
-  createPublicClientForChain,
 } from "./pimlico";
 
 // From react-query.ts

@@ -13,55 +13,26 @@ contracts:
   - name: GardenToken
     handler: src/EventHandlers.ts
     events:
-      - event: GardenMinted(uint256 indexed tokenId, address indexed account, string name, string description, string location, string bannerImage, address[] gardeners, address[] gardenOperators)
+      - event: GardenMinted(uint256 indexed tokenId, address indexed account, string name, string description, string location, string bannerImage, address[] gardeners, address[] operators)
   - name: GardenAccount
     handler: src/EventHandlers.ts
     events:
       - event: NameUpdated(address indexed updater, string newName)
       - event: DescriptionUpdated(address indexed updater, string newDescription)
+      - event: LocationUpdated(address indexed updater, string newLocation)
+      - event: BannerImageUpdated(address indexed updater, string newBannerImage)
       - event: GardenerAdded(address indexed updater, address indexed gardener)
       - event: GardenerRemoved(address indexed updater, address indexed gardener)
       - event: GardenOperatorAdded(address indexed updater, address indexed operator)
       - event: GardenOperatorRemoved(address indexed updater, address indexed operator)
       - event: GAPProjectCreated(bytes32 indexed projectUID, address indexed gardenAddress, string projectName)
-  - name: ENSRegistrar
-    handler: src/EventHandlers.ts
-    events:
-      - event: SubdomainRegistered(string indexed name, address indexed owner, bytes32 indexed credentialId, uint256 timestamp)
-  - name: Gardener
-    handler: src/EventHandlers.ts
-    events:
-      - event: AccountDeployed(address indexed account, address indexed owner, uint256 timestamp)
 networks:
-  - id: 84532
-    start_block: 0
-    contracts:
-      - name: ActionRegistry
-        address: "0x9685E9E5430C13AFF7ef32D9E8fc93d516e121E0"
-      - name: GardenToken
-        address: "0x0B0EA0FfB996B0b04335507Ef1523124480f7310"
-      - name: GardenAccount
-        address: "0x14353dD1B89618127B55fAd16d70450f54F3E67D"
-  - id: 42220
-    start_block: 0
-    contracts:
-      - name: ActionRegistry
-        address: "0x0747ED4f1915b8f3A6eA8a9d8216E8F53EE80f92"
-      - name: GardenToken
-        address: "0xDcA639287A392E17cad0deA4E72F5B3cfA429e6B"
-      - name: GardenAccount
-        address: "0x3B4A3ACA9D52b01086F625a0EB6E6e24b65C810D"
   - id: 42161
-    start_block: 0
+    start_block: 403157656
     contracts:
       - name: ActionRegistry
-        address: "0x8578004FD468212B9056052856c7cF282760Ef25"
+        address: "0x51f4Fd2c75a2FEC0dd60aF05E6D3A3aA7A070010"
       - name: GardenToken
-        address: "0x3DEc3c42C5872a86Fb0e60A4AaDD7aD51CaF076a"
+        address: "0xEcCB8515A349Ee4BC3861658eb7dEC4B05d34236"
       - name: GardenAccount
-        address: "0xB9e374493bB9cea972C6d26f8a7634AEEcd71daA"
-  - id: 1
-    start_block: 0
-    contracts:
-      - name: ENSRegistrar
-        address: "0x0000000000000000000000000000000000000000" # TODO: Update with actual mainnet deployment address
+        address: "0x78D227c545de19484173F4371F1fC9C309D532f9"

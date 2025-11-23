@@ -1,6 +1,6 @@
 import { toastService } from "@green-goods/shared";
-import { useGardenerProfile, useEnsAvatar, useUser } from "@green-goods/shared/hooks";
-import { uploadFileToIPFS } from "@green-goods/shared/modules";
+import { useEnsAvatar, useGardenerProfile, useUser } from "@green-goods/shared/hooks";
+import { resolveAvatarUrl, resolveImageUrl, uploadFileToIPFS } from "@green-goods/shared/modules";
 import { RiImageAddLine, RiLoader4Line, RiSaveLine } from "@remixicon/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
@@ -10,23 +10,12 @@ import { FormInput } from "@/components/UI/Form/Input";
 import { FormText } from "@/components/UI/Form/Text";
 
 const DEFAULT_AVATAR = "/images/avatar.png";
-const PINATA_GATEWAY = import.meta.env.VITE_PINATA_GATEWAY ?? "https://greengoods.mypinata.cloud";
-
-const resolveImageUrl = (uri: string) => {
-  if (uri.startsWith("ipfs://")) {
-    return `${PINATA_GATEWAY}/ipfs/${uri.replace("ipfs://", "")}`;
-  }
-  if (uri.startsWith("ar://")) {
-    return `https://arweave.net/${uri.replace("ar://", "")}`;
-  }
-  return uri;
-};
 
 export const GardenerProfile: React.FC = () => {
   const intl = useIntl();
   const { profile, updateProfile, isUpdating } = useGardenerProfile();
-  const { smartAccountAddress, eoa } = useUser();
-  const primaryAddress = smartAccountAddress || eoa?.address;
+  const { user } = useUser();
+  const primaryAddress = user?.id;
   const { data: ensAvatar, isLoading: isLoadingAvatar } = useEnsAvatar(primaryAddress);
 
   const [formData, setFormData] = useState({

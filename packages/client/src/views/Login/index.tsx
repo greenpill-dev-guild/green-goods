@@ -1,83 +1,52 @@
 import { toastService } from "@green-goods/shared";
-import { wagmiConfig } from "@green-goods/shared/config";
-import { usePasskeyAuth as useAuth, useAutoJoinRootGarden } from "@green-goods/shared/hooks";
-import {
-  authenticatePasskey,
-  PASSKEY_STORAGE_KEY,
-  type PasskeySession,
-} from "@green-goods/shared/modules";
-import { useAppKit } from "@green-goods/shared/providers";
-import { getAccount } from "@wagmi/core";
-import { useEffect, useState } from "react";
+import { appKit } from "@green-goods/shared/config/appkit";
+import { checkMembership, useAutoJoinRootGarden } from "@green-goods/shared/hooks";
+import { PASSKEY_STORAGE_KEY, type PasskeySession } from "@green-goods/shared/modules";
+import { useClientAuth } from "@green-goods/shared/providers";
+import { useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useAccount } from "wagmi";
 import { type LoadingState, Splash } from "@/components/Layout/Splash";
-import { checkMembership } from "@/hooks/garden/useAutoJoinRootGarden";
 
 export function Login() {
   const location = useLocation();
-  const {
-    walletAddress,
-    createPasskey,
-    connectWallet,
-    isAuthenticating,
-    smartAccountClient,
-    authMode,
-    error,
-    isAuthenticated,
-    setPasskeySession,
-  } = useAuth();
+  const { signInWithPasskey, isAuthenticating, isAuthenticated, setPasskeySession } =
+    useClientAuth();
 
   const [loadingState, setLoadingState] = useState<LoadingState | null>(null);
   const [loadingMessage, setLoadingMessage] = useState<string | undefined>(undefined);
-  const { open: openAppKit } = useAppKit();
+  const [loginError, setLoginError] = useState<string | null>(null);
+
+  // Check if DevConnect is enabled via environment variable
+  const isDevConnectEnabled = import.meta.env.VITE_DEVCONNECT === "true";
+
   const {
     joinGarden,
     isLoading: isJoiningGarden,
     isGardener: _isGardener,
+    devConnect,
   } = useAutoJoinRootGarden();
-
-  // Use wagmi's useAccount hook to detect wallet connection
-  const { address: wagmiAddress, isConnected: wagmiConnected } = useAccount();
 
   // Check if we're on a nested route (like /login/recover)
   const isNestedRoute = location.pathname !== "/login";
 
-  // Watch wagmi connection and sync to auth provider
-  useEffect(() => {
-    if (!wagmiConnected || !wagmiAddress || walletAddress || isAuthenticating) {
-      return;
-    }
+  // Extract redirectTo parameter from URL query string, default to /home
+  const redirectTo = new URLSearchParams(location.search).get("redirectTo") || "/home";
 
-    const account = getAccount(wagmiConfig);
-    const connector = account.connector;
-    if (connector) {
-      console.log("Syncing wallet connection to auth provider", { address: wagmiAddress });
-      connectWallet(connector).catch((err) => {
-        console.error("Failed to sync wallet connection", err);
-      });
-    }
-  }, [wagmiConnected, wagmiAddress, walletAddress, connectWallet, isAuthenticating]);
+  // Note: Wallet connection is automatically synced by PasskeyAuthProvider's watchAccount effect
+  // No manual sync needed here
   const handleCreatePasskey = async () => {
-    setLoadingMessage("Preparing your Green Goods wallet…");
+    // Clear any previous errors
+    setLoginError(null);
+    setLoadingMessage("Preparing your wallet…");
     try {
       setLoadingState("welcome");
 
       // Check if user has existing passkey credential
       const hasExistingCredential = !!localStorage.getItem(PASSKEY_STORAGE_KEY);
 
-      let session: PasskeySession;
-
-      if (hasExistingCredential) {
-        // Returning user: prompt for passkey authentication
-        setLoadingMessage("Authenticating with your passkey…");
-        session = await authenticatePasskey();
-        // Set the session in the auth provider
-        setPasskeySession(session);
-      } else {
-        // New user: create passkey
-        session = await createPasskey();
-      }
+      setLoadingMessage(hasExistingCredential ? "Authenticating..." : undefined);
+      const session: PasskeySession = await signInWithPasskey();
+      setPasskeySession(session);
 
       // Check membership BEFORE showing any toast
       const membershipStatus = await checkMembership(session.address);
@@ -121,24 +90,74 @@ export function Login() {
           localStorage.setItem(onboardingKey, "true");
         }
       }
+
+      // 2. DevConnect Join (New)
+      if (isDevConnectEnabled && devConnect.isEnabled && !devConnect.isMember) {
+        // Check local storage to avoid re-prompting if they skipped or are pending
+        const dcKey = `greengoods_devconnect_onboarded:${session.address.toLowerCase()}`;
+        const isDcOnboarded = localStorage.getItem(dcKey) === "true";
+
+        if (!isDcOnboarded) {
+          setLoadingState("joining-garden"); // Re-use loading state
+          setLoadingMessage("Joining DevConnect Garden...");
+          try {
+            await devConnect.join(session);
+            toastService.success({ title: "Joined DevConnect!", context: "devconnect" });
+          } catch (e) {
+            console.error("DevConnect join failed", e);
+            // Non-blocking failure
+          }
+        }
+      }
     } catch (err) {
       setLoadingState(null);
       console.error("Passkey authentication failed", err);
-      toastService.error({
-        title: "Authentication failed",
-        message: err instanceof Error ? err.message : "Please try again.",
-        context: "passkey setup",
-        error: err,
-      });
+
+      // Set user-friendly error message without toast
+      const friendlyMessage = getFriendlyErrorMessage(err);
+      setLoginError(friendlyMessage);
     } finally {
       setLoadingState(null);
       setLoadingMessage(undefined);
     }
   };
 
+  // Convert technical errors to user-friendly messages
+  const getFriendlyErrorMessage = (err: unknown): string => {
+    if (err instanceof Error) {
+      const message = err.message.toLowerCase();
+
+      // User cancelled passkey prompt
+      if (
+        message.includes("cancel") ||
+        message.includes("abort") ||
+        message.includes("user deny")
+      ) {
+        return "Login cancelled. Please try again when ready.";
+      }
+
+      // Passkey not supported or available
+      if (message.includes("not support") || message.includes("unavailable")) {
+        return "Passkey authentication is not available on this device. Try using 'Login with wallet' instead.";
+      }
+
+      // Network or timeout issues
+      if (message.includes("network") || message.includes("timeout") || message.includes("fetch")) {
+        return "Connection issue. Please check your internet and try again.";
+      }
+
+      // Generic passkey errors
+      if (message.includes("credential") || message.includes("passkey")) {
+        return "Couldn't verify your passkey. Please try again or use 'Login with wallet'.";
+      }
+    }
+
+    // Fallback for unknown errors
+    return "Something went wrong. Please try again or use 'Login with wallet'.";
+  };
+
   const handleWalletLogin = () => {
-    console.log("Opening AppKit wallet modal");
-    openAppKit();
+    appKit.open();
   };
 
   // If on a nested route (like /login/recover), render the child route
@@ -146,8 +165,9 @@ export function Login() {
     return <Outlet />;
   }
 
-  if (isAuthenticated && (authMode === "wallet" || smartAccountClient)) {
-    return <Navigate to="/home" replace />;
+  // Redirect to app once authenticated (both passkey and wallet)
+  if (isAuthenticated) {
+    return <Navigate to={redirectTo} replace />;
   }
 
   // Loading screen during passkey creation, garden join, or welcome back
@@ -155,7 +175,8 @@ export function Login() {
     return <Splash loadingState={loadingState} message={loadingMessage} />;
   }
 
-  const errorMessage = !isAuthenticating && !isJoiningGarden && error ? error.message : null;
+  // Use local error state instead of provider error for better control
+  const errorMessage = !isAuthenticating && !isJoiningGarden ? loginError : null;
 
   // Main splash screen with login button
   return (

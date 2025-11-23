@@ -134,7 +134,7 @@ class EnvioIntegration {
       const deployment = JSON.parse(fs.readFileSync(deploymentFile, "utf8"));
 
       // Validate required addresses
-      const requiredAddresses = ["actionRegistry", "gardenToken", "accountProxy"];
+      const requiredAddresses = ["actionRegistry", "gardenToken", "gardenAccountImpl"];
       const missingAddresses = requiredAddresses.filter((addr) => !deployment[addr]);
 
       if (missingAddresses.length > 0) {
@@ -160,9 +160,10 @@ class EnvioIntegration {
       const targetChainId = Number.parseInt(chainId);
       const networkIndex = envioConfig.networks.findIndex((n) => n.id === targetChainId);
 
+      const startBlock = this.getStartBlock(chainId);
       const networkConfig = {
         id: targetChainId,
-        start_block: this.getStartBlock(chainId),
+        start_block: startBlock,
         contracts: [
           {
             name: "ActionRegistry",
@@ -174,7 +175,13 @@ class EnvioIntegration {
           },
           {
             name: "GardenAccount",
-            address: String(deployment.accountProxy), // Ensure string
+            // Use gardenAccountImpl (new) or accountProxy (old deployments) - check for zero address
+            address: String(
+              deployment.gardenAccountImpl &&
+                deployment.gardenAccountImpl !== "0x0000000000000000000000000000000000000000"
+                ? deployment.gardenAccountImpl
+                : deployment.accountProxy,
+            ),
           },
         ],
       };
@@ -225,10 +232,16 @@ class EnvioIntegration {
       console.log("✅ Envio config updated successfully");
 
       // Display the updated addresses
+      const gardenAccountAddress =
+        deployment.gardenAccountImpl && deployment.gardenAccountImpl !== "0x0000000000000000000000000000000000000000"
+          ? deployment.gardenAccountImpl
+          : deployment.accountProxy;
+
       console.log(`\n📋 Contract addresses updated in Envio for chain ${chainId}:`);
       console.log(`   ActionRegistry: ${deployment.actionRegistry}`);
       console.log(`   GardenToken: ${deployment.gardenToken}`);
-      console.log(`   GardenAccount: ${deployment.accountProxy}`);
+      console.log(`   GardenAccount: ${gardenAccountAddress}`);
+      console.log(`   start_block: ${startBlock}`);
 
       return deployment;
     } catch (error) {
@@ -239,19 +252,53 @@ class EnvioIntegration {
 
   /**
    * Get appropriate start block for chain
-   * Per Envio docs: Use 0 to let HyperSync find the first block automatically
+   * Uses latest deploy broadcast to rewind slightly before deployment for indexing
    */
   getStartBlock(chainId) {
     // For localhost/anvil, start from block 1
     if (chainId === "31337") return 1;
 
-    // For production chains, let Envio's HyperSync find the optimal start block
-    // unless we have a specific known start block
-    const knownStartBlocks = {
-      42161: 200000000, // Arbitrum One - known deployment block
-    };
+    // Try to infer from latest broadcast file
+    const inferred = this.getStartBlockFromBroadcast(chainId);
+    if (inferred !== null) return inferred;
 
-    return knownStartBlocks[chainId] || 0;
+    // Fallback: let HyperSync find start
+    return 0;
+  }
+
+  /**
+   * Infer start block from broadcast run-latest.json (rewind 50 blocks as buffer)
+   */
+  getStartBlockFromBroadcast(chainId) {
+    try {
+      const broadcastPath = path.join(__dirname, "../../broadcast/Deploy.s.sol", chainId, "run-latest.json");
+      if (!fs.existsSync(broadcastPath)) {
+        return null;
+      }
+
+      const data = JSON.parse(fs.readFileSync(broadcastPath, "utf8"));
+      const blockNumbers = [];
+
+      const pushBlock = (val) => {
+        if (!val) return;
+        const num = typeof val === "string" && val.startsWith("0x") ? Number.parseInt(val, 16) : Number(val);
+        if (Number.isFinite(num)) {
+          blockNumbers.push(num);
+        }
+      };
+
+      (data.transactions || []).forEach((tx) => pushBlock(tx.blockNumber));
+      (data.receipts || []).forEach((receipt) => pushBlock(receipt.blockNumber));
+
+      if (blockNumbers.length === 0) return null;
+
+      const minBlock = Math.min(...blockNumbers);
+      const buffer = 50;
+      return Math.max(minBlock - buffer, 0);
+    } catch (error) {
+      console.warn(`⚠️  Unable to derive start block from broadcast for chain ${chainId}: ${error.message}`);
+      return null;
+    }
   }
 
   /**

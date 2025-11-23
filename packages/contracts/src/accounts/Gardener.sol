@@ -4,6 +4,7 @@ pragma solidity ^0.8.25;
 import { Kernel } from "@kernel/Kernel.sol";
 import { IEntryPoint } from "account-abstraction/interfaces/IEntryPoint.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import { StorageSlot } from "@openzeppelin/contracts/utils/StorageSlot.sol";
 
 /// @title Gardener
 /// @notice Custom Kernel v3 compatible smart account for Green Goods protocol
@@ -32,8 +33,9 @@ contract Gardener is Kernel {
     // STATE VARIABLES
     // ============================================================================
 
-    // Minimal state - only track initialization
-    uint256 public deployedAt; // Timestamp when account was initialized
+    /// @dev Storage slot for Gardener storage
+    /// keccak256("greengoods.gardener.storage")
+    bytes32 private constant GARDENER_STORAGE_SLOT = 0x5074774145180348193468478435513382878818585518818188181818181818;
 
     // ============================================================================
     // MODIFIERS
@@ -73,14 +75,22 @@ contract Gardener is Kernel {
         address accountOwner = getKernelStorage().owner;
         if (accountOwner == address(0)) revert NotInitialized();
 
-        // Only emit once (check if already initialized)
-        if (deployedAt != 0) revert AlreadyInitialized();
+        // Check if already initialized using assembly to avoid stack depth issues
+        bytes32 slot = GARDENER_STORAGE_SLOT;
+        uint256 existing;
+        assembly {
+            existing := sload(slot)
+        }
+        if (existing != 0) revert AlreadyInitialized();
 
         // Mark as initialized
-        deployedAt = block.timestamp;
+        uint256 ts = block.timestamp;
+        assembly {
+            sstore(slot, ts)
+        }
 
         // Emit custom event for indexer
-        emit AccountDeployed(address(this), accountOwner, block.timestamp);
+        emit AccountDeployed(address(this), accountOwner, ts);
     }
 
     /// @notice Get the owner of this account
@@ -88,6 +98,16 @@ contract Gardener is Kernel {
     /// @dev Exposes Kernel's internal owner storage for convenience
     function owner() external view returns (address) {
         return getKernelStorage().owner;
+    }
+
+    /// @notice Get the deployment timestamp
+    function deployedAt() external view returns (uint256) {
+        bytes32 slot = GARDENER_STORAGE_SLOT;
+        uint256 value;
+        assembly {
+            value := sload(slot)
+        }
+        return value;
     }
 
     // ============================================================================
@@ -101,4 +121,3 @@ contract Gardener is Kernel {
         return interfaceId == type(IERC165).interfaceId;
     }
 }
-

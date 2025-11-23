@@ -12,8 +12,8 @@ importers:
         specifier: ^1.5.0
         version: 1.5.0
       envio:
-        specifier: 2.31.1
-        version: 2.31.1(typescript@5.2.2)
+        specifier: 2.32.2
+        version: 2.32.2(typescript@5.2.2)
       postgres:
         specifier: ^3.4.7
         version: 3.4.7
@@ -336,28 +336,28 @@ packages:
   end-of-stream@1.4.5:
     resolution: {integrity: sha512-ooEGc6HP26xXq/N+GCGOT0JKCLDGrq2bQUZrQ7gyrJiZANJ/8YDTxTpQBXGMn+WbIQXNVpyWymm7KYVICQnyOg==}
 
-  envio-darwin-arm64@2.31.1:
-    resolution: {integrity: sha512-KuSBzqcOiYAQhXfgSofBy04sMIQ80nCzPKD6rb5K7aHH+rUVx5fSctq6nss9Z6kg/FqRmRB8ATdBlzjiIhLC3w==}
+  envio-darwin-arm64@2.32.2:
+    resolution: {integrity: sha512-tCyzTAJ6X/L9lISYQtddNUCu/WdZu88/4nBpVD2sJ5cDGdSCcEsuwQlREQ888H5OL2ai2c7YcIJM0N+jh8plPg==}
     cpu: [arm64]
     os: [darwin]
 
-  envio-darwin-x64@2.31.1:
-    resolution: {integrity: sha512-XHYnUe5w6pbLXtCw7Xv/M7tQY732lhQxQUQTzdSShr/P2K4V6I0Is6MsQXFiYO6lI0X26mXPj3gttT4xbGiohQ==}
+  envio-darwin-x64@2.32.2:
+    resolution: {integrity: sha512-e1pM8UCSbVt/V5ONc8pFLycPqOyPBgQTLuZpPCRDdw1vFXpFy0Tz/0hbK9eMXJqBkZmunYYy3m62NAkLb4bAuQ==}
     cpu: [x64]
     os: [darwin]
 
-  envio-linux-arm64@2.31.1:
-    resolution: {integrity: sha512-C7ZXxd+y+QLB/sZUchklCQjqbVsYkWqKfhZc4Lt6gsj6d1HBPv3guY9Vy5E3DPKJaeZpwr4eUX9qYQdgpCbbng==}
+  envio-linux-arm64@2.32.2:
+    resolution: {integrity: sha512-eRXYiMLujWLq167leiktcHaejjpCQS0nJcixEAXRzeqYMYfiEr3N8SnTjqUOM4StEoaj6D3LGjpS4621OaOcDw==}
     cpu: [arm64]
     os: [linux]
 
-  envio-linux-x64@2.31.1:
-    resolution: {integrity: sha512-0ENEkG5YUeNjuitkT+PGuiiAGLJvHxEaTve7J7jm1hUjmUOWqj1urWx19Ygo4y0dusMu8J03QpfC0U7yl3+Sjg==}
+  envio-linux-x64@2.32.2:
+    resolution: {integrity: sha512-zdNjjjis1p4ens+lKHyfbzwHNvvjWUIzPguOLVQZyOCjWsNhr2LGI30yTjvGaAJ6haEm+dYFR0e0CD+ZLGrvpw==}
     cpu: [x64]
     os: [linux]
 
-  envio@2.31.1:
-    resolution: {integrity: sha512-4L5UIqxv1ekmEr/NsgaFOAS7ZkoD0dXAbeYEd1irWOIb0iCteEvmkGBG3FvHHmw6fBeAacfKKDR24mxBRVZYpg==}
+  envio@2.32.2:
+    resolution: {integrity: sha512-5tK8DErwbsmDa90IC7MNv4P1GvhAQ2ALHChBkXsTT47KB3K6P+kMNeyxQzLtf5pZKdmc7plsghfjxdBadxb6cQ==}
     hasBin: true
 
   escalade@3.2.0:
@@ -1079,19 +1079,19 @@ snapshots:
     dependencies:
       once: 1.4.0
 
-  envio-darwin-arm64@2.31.1:
+  envio-darwin-arm64@2.32.2:
     optional: true
 
-  envio-darwin-x64@2.31.1:
+  envio-darwin-x64@2.32.2:
     optional: true
 
-  envio-linux-arm64@2.31.1:
+  envio-linux-arm64@2.32.2:
     optional: true
 
-  envio-linux-x64@2.31.1:
+  envio-linux-x64@2.32.2:
     optional: true
 
-  envio@2.31.1(typescript@5.2.2):
+  envio@2.32.2(typescript@5.2.2):
     dependencies:
       '@elastic/ecs-pino-format': 1.4.0
       '@envio-dev/hyperfuel-client': 1.2.2
@@ -1104,10 +1104,10 @@ snapshots:
       rescript-schema: 9.3.0(rescript@11.1.3)
       viem: 2.21.0(typescript@5.2.2)
     optionalDependencies:
-      envio-darwin-arm64: 2.31.1
-      envio-darwin-x64: 2.31.1
-      envio-linux-arm64: 2.31.1
-      envio-linux-x64: 2.31.1
+      envio-darwin-arm64: 2.32.2
+      envio-darwin-x64: 2.32.2
+      envio-linux-arm64: 2.32.2
+      envio-linux-x64: 2.32.2
     transitivePeerDependencies:
       - bufferutil
       - typescript

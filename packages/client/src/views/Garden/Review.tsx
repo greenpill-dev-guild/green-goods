@@ -35,28 +35,6 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
       defaultMessage: "Check if the information is correct",
     });
 
-  useEffect(() => {
-    console.log("[WorkReview] Rendering with props", {
-      title: reviewConfig?.title,
-      description: reviewConfig?.description,
-      actionTitle: action.title,
-      gardenName: garden.name,
-      imageCount: images.length,
-      plantSelection,
-      plantCount,
-      feedbackLength: feedback?.length ?? 0,
-    });
-  }, [
-    reviewConfig?.title,
-    reviewConfig?.description,
-    action,
-    garden,
-    images,
-    plantSelection,
-    plantCount,
-    feedback,
-  ]);
-
   const dynamicDetails = (action.inputs || [])
     .map((input) => {
       const raw = values?.[input.key];
