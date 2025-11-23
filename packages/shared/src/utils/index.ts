@@ -46,6 +46,13 @@ export {
   GardenTokenABI,
   getNetworkContracts,
 } from "./contracts";
+// From contract/simulation.ts
+export {
+  simulateTransaction,
+  simulateJoinGarden,
+  batchSimulate,
+  type SimulationResult,
+} from "./contract";
 // From debug.ts
 export {
   DEBUG_ENABLED,

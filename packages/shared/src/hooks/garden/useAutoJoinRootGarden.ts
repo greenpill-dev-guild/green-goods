@@ -11,11 +11,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { encodeFunctionData } from "viem";
-import { useReadContract, useWriteContract } from "wagmi";
+import { useWriteContract } from "wagmi";
 import { ONBOARDED_STORAGE_KEY } from "../../config/app";
 import { wagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
 import type { PasskeySession } from "../../modules/auth/passkey";
+import { simulateJoinGarden } from "../../utils/contract/simulation";
 import { GardenAccountABI } from "../../utils/contracts";
 import { isAlreadyGardenerError } from "../../utils/errors";
 import { useUser } from "../auth/useUser";
@@ -114,7 +115,11 @@ interface JoinState {
  * @returns Join state and functions for manual join/dismiss
  */
 export function useAutoJoinRootGarden(autoJoin = false) {
-  const { smartAccountAddress, smartAccountClient, ready } = useUser();
+  const { smartAccountAddress, smartAccountClient, ready, eoa } = useUser();
+  // Support both passkey (smartAccountAddress) and wallet (eoa.address) users
+  const walletAddress = eoa?.address;
+  const primaryAddress = smartAccountAddress || walletAddress;
+
   const networkConfig = getDefaultChain();
   const rootGarden = networkConfig.rootGarden;
   const chainId = Number(networkConfig.chainId ?? DEFAULT_CHAIN_ID);
@@ -158,72 +163,54 @@ export function useAutoJoinRootGarden(autoJoin = false) {
 
   const { writeContractAsync, isPending } = useWriteContract();
 
-  // Onchain check: directly read from the gardeners mapping on the contract
-  // Use token ID 0 garden's address from the indexer
-  const {
-    data: isGardenerOnchain,
-    isLoading: isCheckingOnchain,
-    refetch: refetchOnchainStatus,
-  } = useReadContract({
-    address: rootGardenRecord?.tokenAddress as `0x${string}` | undefined,
-    abi: GardenAccountABI,
-    functionName: "gardeners",
-    args: smartAccountAddress ? [smartAccountAddress] : undefined,
-    query: {
-      enabled: !!rootGardenRecord?.tokenAddress && !!smartAccountAddress,
-      staleTime: 10000, // 10 seconds - refetch more frequently for membership changes
-    },
-  });
+  // Check membership from indexer data (Token ID 0)
+  // User is a member if they're in either gardeners OR operators array
+  const derivedIsMember = useMemo(() => {
+    if (!rootGardenRecord || !primaryAddress) return false;
 
-  const {
-    data: isDevConnectMemberOnchain,
-    isLoading: isCheckingDevConnect,
-    refetch: refetchDevConnectStatus,
-  } = useReadContract({
-    address: devConnectGardenRecord?.tokenAddress as `0x${string}` | undefined,
-    abi: GardenAccountABI,
-    functionName: "gardeners",
-    args: smartAccountAddress ? [smartAccountAddress] : undefined,
-    query: {
-      enabled: !!devConnectGardenRecord?.tokenAddress && !!smartAccountAddress && VITE_DEVCONNECT,
-      staleTime: 10000,
-    },
-  });
+    const normalized = normalizeAddress(primaryAddress);
 
-  // Derived State
-  const derivedIsGardener = useMemo(() => {
-    if (isGardenerOnchain) return true;
-    if (rootGardenRecord && smartAccountAddress) {
-      return rootGardenRecord.gardeners.some(
-        (m) => normalizeAddress(m) === normalizeAddress(smartAccountAddress)
-      );
-    }
-    return false;
-  }, [isGardenerOnchain, rootGardenRecord, smartAccountAddress, normalizeAddress]);
+    // Check if user is a gardener (coalesce to boolean)
+    const isGardener =
+      rootGardenRecord.gardeners?.some((m) => normalizeAddress(m) === normalized) ?? false;
 
+    // Check if user is an operator (coalesce to boolean)
+    const isOperator =
+      rootGardenRecord.operators?.some((m) => normalizeAddress(m) === normalized) ?? false;
+
+    return isGardener || isOperator;
+  }, [rootGardenRecord, primaryAddress, normalizeAddress]);
+
+  // DevConnect membership check (Token ID 1)
   const derivedIsDevConnectMember = useMemo(() => {
-    if (!VITE_DEVCONNECT) return false;
-    if (isDevConnectMemberOnchain) return true;
-    if (devConnectGardenRecord && smartAccountAddress) {
-      return devConnectGardenRecord.gardeners.some(
-        (m) => normalizeAddress(m) === normalizeAddress(smartAccountAddress)
-      );
-    }
-    return false;
-  }, [isDevConnectMemberOnchain, devConnectGardenRecord, smartAccountAddress, normalizeAddress]);
+    if (!VITE_DEVCONNECT || !devConnectGardenRecord || !primaryAddress) return false;
+
+    const normalized = normalizeAddress(primaryAddress);
+
+    // Coalesce to boolean to avoid undefined
+    const isGardener =
+      devConnectGardenRecord.gardeners?.some((m) => normalizeAddress(m) === normalized) ?? false;
+
+    const isOperator =
+      devConnectGardenRecord.operators?.some((m) => normalizeAddress(m) === normalized) ?? false;
+
+    return isGardener || isOperator;
+  }, [devConnectGardenRecord, primaryAddress, normalizeAddress]);
 
   useEffect(() => {
     setState((prev) => ({
       ...prev,
-      isGardener: derivedIsGardener,
-      isLoading: gardensLoading || gardensFetching || isPending || isCheckingOnchain,
+      isGardener: derivedIsMember,
+      isLoading: gardensLoading || gardensFetching || isPending,
     }));
-  }, [derivedIsGardener, gardensLoading, gardensFetching, isPending, isCheckingOnchain]);
+  }, [derivedIsMember, gardensLoading, gardensFetching, isPending]);
 
   // Generic Join Function
   const executeJoin = useCallback(
     async (gardenAddress: string, sessionOverride?: PasskeySession) => {
-      const targetAddress = sessionOverride?.address ?? smartAccountAddress;
+      // For session override (auto-join on login), use session address/client
+      // Otherwise, use primaryAddress and smartAccountClient (if available)
+      const targetAddress = sessionOverride?.address ?? primaryAddress;
       const client = sessionOverride?.client ?? smartAccountClient;
 
       if (!gardenAddress || !targetAddress) throw new Error("Missing join data");
@@ -231,6 +218,7 @@ export function useAutoJoinRootGarden(autoJoin = false) {
       let txHash: string;
       if (client?.account) {
         // Use smart account for passkey authentication (sponsored transaction)
+        // Skip simulation for sponsored transactions - let them fail with paymaster error if needed
         txHash = await client.sendTransaction({
           account: client.account,
           chain: client.chain,
@@ -240,6 +228,24 @@ export function useAutoJoinRootGarden(autoJoin = false) {
         });
       } else {
         // Use wagmi for wallet authentication (user pays gas)
+        // Simulate first to catch errors before user pays gas
+        const simulation = await simulateJoinGarden(
+          gardenAddress as `0x${string}`,
+          targetAddress as `0x${string}`
+        );
+
+        // If simulation failed, throw error BEFORE transaction to avoid wasting gas
+        if (!simulation.success) {
+          if (simulation.error) {
+            // Use parsed error message if available
+            const error = new Error(simulation.error.message);
+            error.name = simulation.error.name;
+            throw error;
+          }
+          // Fallback if error object is missing
+          throw new Error("Transaction simulation failed. Please try again.");
+        }
+
         txHash = await writeContractAsync({
           address: gardenAddress as `0x${string}`,
           abi: GardenAccountABI,
@@ -256,14 +262,7 @@ export function useAutoJoinRootGarden(autoJoin = false) {
       await refetchGardens();
       return txHash;
     },
-    [
-      smartAccountAddress,
-      smartAccountClient,
-      writeContractAsync,
-      chainId,
-      queryClient,
-      refetchGardens,
-    ]
+    [primaryAddress, smartAccountClient, writeContractAsync, chainId, queryClient, refetchGardens]
   );
 
   /**
@@ -277,7 +276,7 @@ export function useAutoJoinRootGarden(autoJoin = false) {
    */
   const joinGarden = useCallback(
     async (sessionOverride?: PasskeySession) => {
-      const targetAddress = sessionOverride?.address ?? smartAccountAddress;
+      const targetAddress = sessionOverride?.address ?? primaryAddress;
 
       // Use token ID 0 garden from indexer instead of deployment config
       if (!rootGardenRecord?.tokenAddress) {
@@ -303,34 +302,36 @@ export function useAutoJoinRootGarden(autoJoin = false) {
 
         // Optimistic update: update the cache immediately so UI reflects membership
         // This ensures WorkProvider sees the user as a member without waiting for indexer
-        queryClient.setQueryData(
-          queryKeys.gardens.byChain(chainId),
-          (oldGardens: any[] | undefined) => {
-            if (!oldGardens) return oldGardens;
-            return oldGardens.map((garden) => {
-              // Check if this is the root garden (Token ID 0)
-              const isRoot = Number(garden.tokenID) === 0;
+        if (targetAddress) {
+          queryClient.setQueryData(
+            queryKeys.gardens.byChain(chainId),
+            (oldGardens: any[] | undefined) => {
+              if (!oldGardens) return oldGardens;
+              return oldGardens.map((garden) => {
+                // Check if this is the root garden (Token ID 0)
+                const isRoot = Number(garden.tokenID) === 0;
 
-              if (isRoot) {
-                // Add user to gardeners list if not already there
-                const currentGardeners = garden.gardeners || [];
-                const isAlreadyInList = currentGardeners.some(
-                  (g: string) => normalizeAddress(g) === normalizeAddress(targetAddress)
-                );
-                if (!isAlreadyInList) {
-                  return {
-                    ...garden,
-                    gardeners: [...currentGardeners, targetAddress],
-                  };
+                if (isRoot) {
+                  // Add user to gardeners list if not already there
+                  const currentGardeners = garden.gardeners || [];
+                  const isAlreadyInList = currentGardeners.some(
+                    (g: string) => normalizeAddress(g) === normalizeAddress(targetAddress)
+                  );
+                  if (!isAlreadyInList) {
+                    return {
+                      ...garden,
+                      gardeners: [...currentGardeners, targetAddress],
+                    };
+                  }
                 }
-              }
-              return garden;
-            });
-          }
-        );
+                return garden;
+              });
+            }
+          );
+        }
 
-        // Check membership to ensure state is accurate
-        await refetchOnchainStatus();
+        // Refetch gardens to get updated membership list
+        await refetchGardens();
       } catch (error) {
         // Special handling for AlreadyGardener error - not actually an error
         if (isAlreadyGardenerError(error)) {
@@ -355,14 +356,12 @@ export function useAutoJoinRootGarden(autoJoin = false) {
     },
     [
       chainId,
-      chainId,
       executeJoin,
       normalizeAddress,
       queryClient,
       refetchGardens,
-      refetchOnchainStatus,
       rootGardenRecord,
-      smartAccountAddress,
+      primaryAddress,
     ]
   );
 
@@ -374,34 +373,34 @@ export function useAutoJoinRootGarden(autoJoin = false) {
       const address = devConnectGardenRecord?.tokenAddress;
       if (!address) throw new Error("DevConnect garden not found (Token ID 1)");
 
-      const targetAddress = sessionOverride?.address ?? smartAccountAddress;
+      const targetAddress = sessionOverride?.address ?? primaryAddress;
 
       try {
         await executeJoin(address, sessionOverride);
         const key = getDevConnectOnboardedKey(targetAddress ?? "");
         localStorage.setItem(key, "true");
-        await refetchDevConnectStatus();
+        await refetchGardens();
       } catch (error) {
         if (isAlreadyGardenerError(error)) {
           const key = getDevConnectOnboardedKey(targetAddress ?? "");
           localStorage.setItem(key, "true");
-          await refetchDevConnectStatus();
+          await refetchGardens();
           return;
         }
         throw error;
       }
     },
-    [devConnectGardenRecord, executeJoin, smartAccountAddress, refetchDevConnectStatus]
+    [devConnectGardenRecord, executeJoin, primaryAddress, refetchGardens]
   );
 
   // Auto-join effect (when autoJoin=true, joins automatically on first login)
   // Note: This is primarily called manually from Login component for controlled flow
   useEffect(() => {
     if (!autoJoin) return;
-    if (!ready || !smartAccountAddress || !rootGardenRecord) return;
-    if (gardensLoading || gardensFetching || derivedIsGardener) return;
+    if (!ready || !primaryAddress || !rootGardenRecord) return;
+    if (gardensLoading || gardensFetching || derivedIsMember) return;
 
-    const onboardedKey = getOnboardedKey(smartAccountAddress);
+    const onboardedKey = getOnboardedKey(primaryAddress);
     const isOnboarded =
       localStorage.getItem(onboardedKey) === "true" ||
       localStorage.getItem(ONBOARDED_STORAGE_KEY) === "true";
@@ -416,9 +415,9 @@ export function useAutoJoinRootGarden(autoJoin = false) {
   }, [
     autoJoin,
     ready,
-    smartAccountAddress,
+    primaryAddress,
     rootGardenRecord,
-    derivedIsGardener,
+    derivedIsMember,
     gardensLoading,
     gardensFetching,
     joinGarden,
@@ -439,12 +438,12 @@ export function useAutoJoinRootGarden(autoJoin = false) {
     isPending,
     joinGarden,
     dismissPrompt,
-    isGardener: derivedIsGardener || state.isGardener,
+    isGardener: derivedIsMember || state.isGardener,
     // DevConnect specific
     devConnect: {
       isEnabled: VITE_DEVCONNECT,
       isMember: derivedIsDevConnectMember,
-      isLoading: isCheckingDevConnect,
+      isLoading: gardensLoading || gardensFetching,
       join: joinDevConnect,
       gardenAddress: devConnectGardenRecord?.tokenAddress,
     },

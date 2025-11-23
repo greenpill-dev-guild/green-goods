@@ -80,7 +80,9 @@ export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
 
   return (
     <>
-      <h5 className="">{intl.formatMessage({ id: "app.profile.help.getInTouch" })}</h5>
+      <h5 className="text-label-md text-slate-900">
+        {intl.formatMessage({ id: "app.profile.help.getInTouch" })}
+      </h5>
       {socials.map((social) => (
         <a key={social.title} href={social.url} target="_blank" rel="noopener noreferrer">
           <FlexCard>
@@ -121,7 +123,9 @@ export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
           </div>
         </FlexCard>
       </a>
-      <h5>{intl.formatMessage({ id: "app.profile.help.questions" })}</h5>
+      <h5 className="text-label-md text-slate-900">
+        {intl.formatMessage({ id: "app.profile.help.questions" })}
+      </h5>
       <Faq>
         {faqs.map((faq) => {
           return (
