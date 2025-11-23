@@ -144,14 +144,15 @@ abstract contract DeployHelper is Script {
     /// @notice Deploy a contract using CREATE2
     function _deployCreate2(bytes memory bytecode, bytes32 salt, address factory) internal returns (address) {
         address predicted = Create2.computeAddress(salt, keccak256(bytecode), factory);
-        console.log("Predicted CREATE2 address:", predicted);
+        console.log("CREATE2 target");
+        console.log("  predicted", predicted);
 
         if (predicted.code.length > 0) {
-            console.log("Contract already deployed at predicted address");
+            console.log("  already deployed");
             return predicted;
         }
 
-        console.log("Deploying via CREATE2 factory:", factory);
+        console.log("  deploying via factory", factory);
         // Deploy using CREATE2 through factory
         // solhint-disable-next-line avoid-low-level-calls
         (bool success, bytes memory data) = factory.call(abi.encodePacked(salt, bytecode));

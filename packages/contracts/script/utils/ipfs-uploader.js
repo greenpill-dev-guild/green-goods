@@ -15,6 +15,7 @@
 // Environment variables should be passed by the deployment script
 const fs = require("node:fs");
 const path = require("node:path");
+const { createHash } = require("node:crypto");
 const dotenv = require("dotenv");
 
 dotenv.config({ path: path.join(__dirname, "../../../../", ".env") });
@@ -114,6 +115,15 @@ function saveCache(cache) {
 }
 
 /**
+ * Build deterministic cache key from action contents to avoid stale uploads
+ */
+function buildCacheKey(action, index) {
+  const serialized = JSON.stringify(action);
+  const hash = createHash("sha256").update(serialized).digest("hex");
+  return `${index}-${hash}`;
+}
+
+/**
  * Initialize Pinata client (Just returns JWT)
  */
 function initPinata() {
@@ -150,10 +160,14 @@ async function uploadToIPFS(jwt, name, data, retries = 3) {
       });
 
       if (!res.ok) {
-        throw new Error(`Pinata upload failed: ${res.statusText}`);
+        const body = await res.text();
+        throw new Error(`Pinata upload failed (${res.status}): ${body || res.statusText}`);
       }
 
       const result = await res.json();
+      if (!result?.IpfsHash) {
+        throw new Error("Pinata upload succeeded without IpfsHash");
+      }
       return result.IpfsHash;
     } catch (error) {
       if (attempt === retries) {
@@ -179,6 +193,7 @@ async function main() {
     const actionsData = JSON.parse(fs.readFileSync(ACTIONS_FILE, "utf8"));
     const actions = actionsData.actions;
     const templates = actionsData.templates;
+    console.error(`IPFS uploader: processing ${actions.length} actions from config/actions.json`, { toStderr: true });
 
     if (!actions || !Array.isArray(actions)) {
       console.error("Error: Invalid actions.json format - missing or invalid 'actions' array", { toStderr: true });
@@ -194,10 +209,12 @@ async function main() {
     const cache = loadCache();
     const ipfsHashes = [];
     let hasChanges = false;
+    let cacheHits = 0;
+    let uploads = 0;
 
     // Check if we have valid cache for all actions
     const allCached = actions.every((action, idx) => {
-      const cacheKey = `${action.title}-${idx}`;
+      const cacheKey = buildCacheKey(action, idx);
       return cache[cacheKey]?.hash;
     });
 
@@ -229,11 +246,12 @@ async function main() {
     // Process each action
     for (let i = 0; i < actions.length; i++) {
       const action = actions[i];
-      const cacheKey = `${action.title}-${i}`;
+      const cacheKey = buildCacheKey(action, i);
 
       // Check cache first
       if (cache[cacheKey]?.hash) {
-        // Using cached hash (silent to avoid Forge error logs)
+        cacheHits += 1;
+        console.error(`Cache hit for action ${i}: ${action.title} -> ${cache[cacheKey].hash}`, { toStderr: true });
         ipfsHashes.push(cache[cacheKey].hash);
         continue;
       }
@@ -244,16 +262,14 @@ async function main() {
       // Upload to IPFS (silent to avoid Forge error logs)
       try {
         const hash = await uploadToIPFS(jwt, action.title.replace(/\s+/g, "-").toLowerCase(), instructionsDoc);
+        uploads += 1;
 
         // Upload successful
         ipfsHashes.push(hash);
 
         // Update cache
-        cache[cacheKey] = {
-          hash,
-          title: action.title,
-          uploadedAt: new Date().toISOString(),
-        };
+        cache[cacheKey] = { hash, title: action.title, uploadedAt: new Date().toISOString() };
+        console.error(`Uploaded action ${i}: ${action.title} -> ${hash}`, { toStderr: true });
         hasChanges = true;
       } catch (error) {
         const errorMsg = error?.message || error?.toString() || "Unknown error";
@@ -274,6 +290,17 @@ async function main() {
     if (hasChanges) {
       saveCache(cache);
     }
+
+    if (ipfsHashes.length !== actions.length) {
+      console.error(`Error: IPFS hash count (${ipfsHashes.length}) does not match actions count (${actions.length})`, {
+        toStderr: true,
+      });
+      process.exit(1);
+    }
+
+    console.error(`IPFS uploader complete: ${uploads} uploaded, ${cacheHits} cached, ${ipfsHashes.length} total`, {
+      toStderr: true,
+    });
 
     // Output hashes as JSON array
     console.log(JSON.stringify(ipfsHashes));
