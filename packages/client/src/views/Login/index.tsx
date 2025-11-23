@@ -1,7 +1,8 @@
 import { toastService } from "@green-goods/shared";
 import { checkMembership, useAutoJoinRootGarden } from "@green-goods/shared/hooks";
 import { PASSKEY_STORAGE_KEY, type PasskeySession } from "@green-goods/shared/modules";
-import { useAppKit, useClientAuth } from "@green-goods/shared/providers";
+import { appKit } from "@green-goods/shared/config/appkit";
+import { useClientAuth } from "@green-goods/shared/providers";
 import { useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { type LoadingState, Splash } from "@/components/Layout/Splash";
@@ -20,7 +21,6 @@ export function Login() {
 
   const [loadingState, setLoadingState] = useState<LoadingState | null>(null);
   const [loadingMessage, setLoadingMessage] = useState<string | undefined>(undefined);
-  const { open: openAppKit } = useAppKit();
 
   // Check if DevConnect is enabled via environment variable
   const isDevConnectEnabled = import.meta.env.VITE_DEVCONNECT === "true";
@@ -129,7 +129,7 @@ export function Login() {
   };
 
   const handleWalletLogin = () => {
-    openAppKit();
+    appKit.open();
   };
 
   // If on a nested route (like /login/recover), render the child route
