@@ -41,6 +41,11 @@ export { useGardenOperations } from "./garden/useGardenOperations";
 export type { GardenPermissions } from "./garden/useGardenPermissions";
 export { useGardenPermissions } from "./garden/useGardenPermissions";
 export { GardenTab, useGardenTabs } from "./garden/useGardenTabs";
+export {
+  checkGardenOpenJoining,
+  isGardenMember,
+  useJoinGarden,
+} from "./garden/useJoinGarden";
 export type { GardenerProfile } from "./gardener/useGardenerProfile";
 // From gardener/
 export { useGardenerProfile } from "./gardener/useGardenerProfile";

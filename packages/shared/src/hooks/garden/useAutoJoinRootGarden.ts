@@ -278,13 +278,28 @@ export function useAutoJoinRootGarden(autoJoin = false) {
     async (sessionOverride?: PasskeySession) => {
       const targetAddress = sessionOverride?.address ?? primaryAddress;
 
-      // Use token ID 0 garden from indexer instead of deployment config
-      if (!rootGardenRecord?.id) {
+      // Wait for gardens data to be available if not ready yet
+      // This fixes the race condition where joinGarden is called before useGardens resolves
+      let gardenId = rootGardenRecord?.id;
+      if (!gardenId) {
+        const maxAttempts = 20; // 10 seconds max (20 * 500ms)
+        let attempts = 0;
+
+        while (!gardenId && attempts < maxAttempts) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          const { data: freshGardens } = await refetchGardens();
+          const freshRootGarden = freshGardens?.find((g) => Number(g.tokenID) === 0);
+          gardenId = freshRootGarden?.id;
+          attempts++;
+        }
+      }
+
+      if (!gardenId) {
         throw new Error("Root garden (Token ID 0) not found. Please try again later.");
       }
 
       try {
-        await executeJoin(rootGardenRecord.id, sessionOverride);
+        await executeJoin(gardenId, sessionOverride);
 
         // Set appropriate localStorage flags
         localStorage.setItem(ROOT_GARDEN_PROMPTED_KEY, "true");

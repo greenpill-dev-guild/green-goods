@@ -1,16 +1,25 @@
 import { toastService } from "@green-goods/shared";
-import { useAuth, useAutoJoinRootGarden, useEnsName } from "@green-goods/shared/hooks";
-import { type Locale, useApp } from "@green-goods/shared/providers/app";
-import { capitalize } from "@green-goods/shared/utils";
-import { parseAndFormatError } from "@green-goods/shared/utils/errors";
 import {
+  checkGardenOpenJoining,
+  isGardenMember,
+  useAutoJoinRootGarden,
+  useEnsName,
+  useGardens,
+  useJoinGarden,
+} from "@green-goods/shared/hooks";
+import { useClientAuth } from "@green-goods/shared/providers";
+import { type Locale, useApp } from "@green-goods/shared/providers/app";
+import { capitalize, parseAndFormatError } from "@green-goods/shared/utils";
+import {
+  RiCheckLine,
   RiEarthFill,
   RiKeyLine,
   RiLogoutBoxRLine,
+  RiMapPinLine,
   RiPlantLine,
   RiWalletLine,
 } from "@remixicon/react";
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { Avatar } from "@/components/UI/Avatar/Avatar";
@@ -35,7 +44,7 @@ interface ApplicationSettings {
 type ProfileAccountProps = {};
 
 export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
-  const { authMode, signOut, smartAccountAddress, credential, walletAddress } = useAuth();
+  const { authMode, signOut, smartAccountAddress, credential, walletAddress } = useClientAuth();
   const primaryAddress = smartAccountAddress || walletAddress;
   const { data: primaryEnsName } = useEnsName(primaryAddress);
   const navigate = useNavigate();
@@ -45,39 +54,94 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
   // Check if DevConnect is enabled via environment variable
   const isDevConnectEnabled = import.meta.env.VITE_DEVCONNECT === "true";
 
-  // Root garden membership check
-  const {
-    isGardener: isRootGardener,
-    isLoading: isJoiningOrCheckingRootGarden,
-    joinGarden,
-    devConnect,
-  } = useAutoJoinRootGarden();
+  // Fetch all gardens
+  const { data: gardens = [], isLoading: gardensLoading } = useGardens();
 
-  const handleJoinRootGarden = async () => {
+  // Join garden hook
+  const { joinGarden, isJoining, joiningGardenId } = useJoinGarden();
+
+  // Root garden membership check (for DevConnect and legacy support)
+  const { devConnect } = useAutoJoinRootGarden();
+
+  // Track which gardens have openJoining enabled
+  const [openGardensMap, setOpenGardensMap] = useState<Map<string, boolean>>(new Map());
+  const [checkingOpenJoining, setCheckingOpenJoining] = useState(false);
+
+  // Filter gardens into member and non-member lists
+  const { memberGardens, nonMemberGardens } = useMemo(() => {
+    if (!primaryAddress || !gardens.length) {
+      return { memberGardens: [], nonMemberGardens: [] };
+    }
+
+    const members: Garden[] = [];
+    const nonMembers: Garden[] = [];
+
+    for (const garden of gardens) {
+      if (isGardenMember(primaryAddress, garden.gardeners, garden.operators)) {
+        members.push(garden);
+      } else {
+        nonMembers.push(garden);
+      }
+    }
+
+    return { memberGardens: members, nonMemberGardens: nonMembers };
+  }, [gardens, primaryAddress]);
+
+  // Check openJoining status for non-member gardens
+  useEffect(() => {
+    const checkOpenJoiningStatus = async () => {
+      if (nonMemberGardens.length === 0) return;
+
+      setCheckingOpenJoining(true);
+      const results = new Map<string, boolean>();
+
+      // Check all non-member gardens in parallel
+      await Promise.all(
+        nonMemberGardens.map(async (garden) => {
+          const isOpen = await checkGardenOpenJoining(garden.id);
+          results.set(garden.id, isOpen);
+        })
+      );
+
+      setOpenGardensMap(results);
+      setCheckingOpenJoining(false);
+    };
+
+    checkOpenJoiningStatus();
+  }, [nonMemberGardens]);
+
+  // Filter to only show gardens with openJoining = true
+  const joinableGardens = useMemo(() => {
+    return nonMemberGardens.filter((garden) => openGardensMap.get(garden.id) === true);
+  }, [nonMemberGardens, openGardensMap]);
+
+  const handleJoinGarden = async (garden: Garden) => {
     try {
-      await joinGarden();
+      await joinGarden(garden.id);
 
       toastService.success({
-        title: intl.formatMessage({
-          id: "app.account.joinedRootGarden",
-          defaultMessage: "Joined Community Garden",
-        }),
+        title: intl.formatMessage(
+          {
+            id: "app.account.joinedGarden",
+            defaultMessage: "Joined {gardenName}",
+          },
+          { gardenName: garden.name }
+        ),
         message: intl.formatMessage({
-          id: "app.account.joinedRootGardenMessage",
-          defaultMessage: "Welcome to the community!",
+          id: "app.account.joinedGardenMessage",
+          defaultMessage: "Welcome to the garden!",
         }),
-        context: "joinRootGarden",
+        context: "joinGarden",
       });
     } catch (err) {
-      console.error("Failed to join root garden", err);
+      console.error(`Failed to join garden ${garden.id}`, err);
 
-      // Parse the error for user-friendly message
       const { title, message } = parseAndFormatError(err);
 
       toastService.error({
-        title: title,
-        message: message,
-        context: "joinRootGarden",
+        title,
+        message,
+        context: "joinGarden",
         error: err,
       });
     }
@@ -94,10 +158,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
 
   const handleLogout = async () => {
     try {
-      // signOut() handles both passkey and wallet cleanup
       await signOut();
-
-      // Always redirect to /login (not /profile) to ensure clean login flow
       navigate("/login", { replace: true });
       const message = intl.formatMessage({
         id: "app.toast.loggedOut",
@@ -193,55 +254,156 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
         </Card>
       ))}
 
+      {/* Gardens Section */}
+      {primaryAddress && (
+        <>
+          {/* My Gardens - Member gardens */}
+          {memberGardens.length > 0 && (
+            <>
+              <h5 className="text-label-md text-slate-900">
+                {intl.formatMessage({
+                  id: "app.profile.myGardens",
+                  defaultMessage: "My Gardens",
+                })}
+              </h5>
+              <div className="flex flex-col gap-2">
+                {memberGardens.map((garden) => (
+                  <Card key={garden.id}>
+                    <div className="flex flex-row items-center gap-3 justify-between w-full">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <Avatar>
+                          <div className="flex items-center justify-center text-center mx-auto text-primary">
+                            <RiPlantLine className="w-4" />
+                          </div>
+                        </Avatar>
+                        <div className="flex flex-col gap-0.5 min-w-0">
+                          <div className="text-sm font-medium line-clamp-1">{garden.name}</div>
+                          {garden.location && (
+                            <div className="flex items-center gap-1 text-xs text-gray-500">
+                              <RiMapPinLine className="w-3 h-3 shrink-0" />
+                              <span className="line-clamp-1">{garden.location}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-primary shrink-0">
+                        <RiCheckLine className="w-4 h-4" />
+                        <span>
+                          {intl.formatMessage({
+                            id: "app.profile.member",
+                            defaultMessage: "Member",
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Available Gardens - Joinable gardens with openJoining = true */}
+          <h5 className="text-label-md text-slate-900">
+            {intl.formatMessage({
+              id: "app.profile.availableGardens",
+              defaultMessage: "Available Gardens",
+            })}
+          </h5>
+
+          {gardensLoading || checkingOpenJoining ? (
+            <Card>
+              <div className="flex flex-row items-center justify-center w-full py-2">
+                <span className="text-sm text-slate-500">
+                  {intl.formatMessage({
+                    id: "app.profile.loadingGardens",
+                    defaultMessage: "Loading gardens...",
+                  })}
+                </span>
+              </div>
+            </Card>
+          ) : joinableGardens.length > 0 ? (
+            <div className="flex flex-col gap-2">
+              {joinableGardens.map((garden) => {
+                const isJoiningThis = isJoining && joiningGardenId === garden.id;
+
+                return (
+                  <Card key={garden.id}>
+                    <div className="flex flex-row items-center gap-3 justify-between w-full">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <Avatar>
+                          <div className="flex items-center justify-center text-center mx-auto text-primary">
+                            <RiPlantLine className="w-4" />
+                          </div>
+                        </Avatar>
+                        <div className="flex flex-col gap-0.5 min-w-0">
+                          <div className="text-sm font-medium line-clamp-1">{garden.name}</div>
+                          {garden.location && (
+                            <div className="flex items-center gap-1 text-xs text-gray-500">
+                              <RiMapPinLine className="w-3 h-3 shrink-0" />
+                              <span className="line-clamp-1">{garden.location}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <Button
+                        variant="primary"
+                        mode="filled"
+                        size="xsmall"
+                        onClick={() => handleJoinGarden(garden)}
+                        label={
+                          isJoiningThis
+                            ? intl.formatMessage({
+                                id: "app.profile.joining",
+                                defaultMessage: "Joining...",
+                              })
+                            : intl.formatMessage({
+                                id: "app.profile.join",
+                                defaultMessage: "Join",
+                              })
+                        }
+                        disabled={isJoining}
+                        className="shrink-0"
+                      />
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <Card>
+              <div className="flex flex-row items-center gap-3 justify-center w-full py-2">
+                <RiPlantLine className="w-5 text-slate-400" />
+                <span className="text-sm text-slate-500">
+                  {intl.formatMessage({
+                    id: "app.profile.noJoinableGardens",
+                    defaultMessage: "No open gardens available to join",
+                  })}
+                </span>
+              </div>
+            </Card>
+          )}
+
+          {/* DevConnect Button - Optional */}
+          {isDevConnectEnabled && devConnect.isEnabled && !devConnect.isMember && (
+            <Button
+              variant="primary"
+              mode="filled"
+              onClick={handleJoinDevConnect}
+              label={devConnect.isLoading ? "Joining..." : "Join DevConnect"}
+              leadingIcon={<RiPlantLine className="w-4" />}
+              disabled={devConnect.isLoading}
+              className="w-full"
+            />
+          )}
+        </>
+      )}
+
       <h5 className="text-label-md text-slate-900">
         {intl.formatMessage({
           id: "app.profile.account",
           description: "Account",
         })}
       </h5>
-
-      {/* Root Garden Membership Button */}
-      {primaryAddress && (
-        <div className="flex flex-col gap-3 w-full">
-          <Button
-            variant="primary"
-            mode="filled"
-            onClick={isRootGardener ? undefined : handleJoinRootGarden}
-            label={
-              isJoiningOrCheckingRootGarden
-                ? intl.formatMessage({
-                    id: "app.profile.joiningRootGarden",
-                    defaultMessage: "Joining...",
-                  })
-                : isRootGardener
-                  ? intl.formatMessage({
-                      id: "app.profile.leaveRootGarden",
-                      defaultMessage: "Leave Community Garden",
-                    })
-                  : intl.formatMessage({
-                      id: "app.profile.joinRootGarden",
-                      defaultMessage: "Join Community Garden",
-                    })
-            }
-            leadingIcon={<RiPlantLine className="w-4" />}
-            disabled={isJoiningOrCheckingRootGarden || isRootGardener}
-            className="w-full"
-          />
-
-          {/* DevConnect Button */}
-          {isDevConnectEnabled && devConnect.isEnabled && (
-            <Button
-              variant="primary"
-              mode="filled"
-              onClick={devConnect.isMember ? undefined : handleJoinDevConnect}
-              label={devConnect.isMember ? "DevConnect Member" : "Join DevConnect"}
-              leadingIcon={<RiPlantLine className="w-4" />}
-              disabled={devConnect.isLoading || devConnect.isMember}
-              className="w-full mt-2"
-            />
-          )}
-        </div>
-      )}
 
       {/* Auth Mode Info */}
       <Card>

@@ -46,17 +46,18 @@ export function useUser(): UseUserReturn {
   const auth = useAuth();
 
   // Support both PasskeyAuth and WalletAuth
-  const address = (
-    "address" in auth ? auth.address : auth.walletAddress || auth.smartAccountAddress
-  ) as string | undefined;
-  const ready = ("ready" in auth ? auth.ready : auth.isReady) as boolean;
-  const isConnected = ("isConnected" in auth ? auth.isConnected : auth.isAuthenticated) as boolean;
-  const { data: ensName } = useEnsName(address);
+  const eoaAddress = (
+    "walletAddress" in auth ? auth.walletAddress : (auth as any).smartAccountAddress
+  ) as `0x${string}` | undefined;
+  const smartAccountAddress = (auth as any).smartAccountAddress as `0x${string}` | null;
+  const address = (eoaAddress || smartAccountAddress) as string | undefined;
+  const ready = ("ready" in auth ? auth.ready : (auth as any).isReady) as boolean;
+  const isConnected = (
+    "isConnected" in auth ? auth.isConnected : (auth as any).isAuthenticated
+  ) as boolean;
+  const { data: ensName } = useEnsName(eoaAddress); // Use eoaAddress for ENS lookup
 
   // Get smart account details if using PasskeyAuth
-  const smartAccountAddress = ("smartAccountAddress" in auth ? auth.smartAccountAddress : null) as
-    | string
-    | null;
   const smartAccountClient = "smartAccountClient" in auth ? auth.smartAccountClient : null;
 
   // For simple wallet-only auth (admin), we only have EOA
@@ -75,8 +76,8 @@ export function useUser(): UseUserReturn {
     ready,
     eoa,
     smartAccountAddress,
-    smartAccountClient,
-    authMode: "authMode" in auth ? auth.authMode : isConnected ? "wallet" : null,
+    smartAccountClient: smartAccountClient as any,
+    authMode: "authMode" in auth ? (auth.authMode as any) : isConnected ? "wallet" : null,
     ensName: ensName ?? null,
   };
 }

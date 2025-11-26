@@ -198,7 +198,7 @@ export function getIndexerUrl(env: any, isDev: boolean): string {
 }
 
 // Default chain ID from environment variable
-export const DEFAULT_CHAIN_ID = Number(import.meta.env.VITE_CHAIN_ID) || 84532;
+export const DEFAULT_CHAIN_ID = Number((import.meta as any).env?.VITE_CHAIN_ID) || 84532;
 
 // Get default chain configuration
 export function getDefaultChain() {

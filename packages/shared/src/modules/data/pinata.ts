@@ -55,7 +55,7 @@ export async function uploadFileToIPFS(file: File): Promise<{ cid: string }> {
       throw new Error(`Pinata upload failed: ${res.statusText}`);
     }
 
-    const data = await res.json();
+    const data = (await res.json()) as any;
     return { cid: data.IpfsHash };
   } catch (error) {
     console.error("Failed to upload file to Pinata:", error);
@@ -90,7 +90,7 @@ export async function uploadJSONToIPFS(json: Record<string, unknown>): Promise<{
       throw new Error(`Pinata upload failed: ${res.statusText}`);
     }
 
-    const data = await res.json();
+    const data = (await res.json()) as any;
     return { cid: data.IpfsHash };
   } catch (error) {
     console.error("Failed to upload JSON to Pinata:", error);

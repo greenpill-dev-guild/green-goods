@@ -6,7 +6,15 @@
  */
 
 import { disconnect, watchAccount } from "@wagmi/core";
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { type Hex } from "viem";
 import { type P256Credential } from "viem/account-abstraction";
 import { type Connector, useConfig } from "wagmi";
@@ -15,6 +23,36 @@ import { type PasskeySession } from "../modules/auth/passkey";
 import { PasskeyAuthProvider, usePasskeyAuth } from "./PasskeyAuthProvider";
 
 export type AuthMode = "passkey" | "wallet" | null;
+
+// Session marker to detect reinstalls - shared with PasskeyAuthProvider
+const SESSION_MARKER_KEY = "greengoods_active_session";
+
+/**
+ * Check if this is a fresh app start (after reinstall or cold launch).
+ * Returns true if we should clear auth state due to fresh start.
+ *
+ * This is called once on mount and handles both passkey and wallet auth.
+ * The session marker is set by PasskeyAuthProvider, so we just check if
+ * there was saved auth state but no active session (indicating reinstall).
+ */
+function checkAndHandleFreshStart(savedAuthMode: AuthMode): boolean {
+  // If session marker exists, this is a continuing session - not a fresh start
+  const hasActiveSession = sessionStorage.getItem(SESSION_MARKER_KEY) === "true";
+
+  if (hasActiveSession) {
+    return false;
+  }
+
+  // No active session - this is a fresh start
+  // If there was a saved auth mode, we need to clear it
+  if (savedAuthMode) {
+    console.log("[Auth] Detected fresh app start - clearing saved auth state");
+    localStorage.removeItem("greengoods_auth_mode");
+    return true;
+  }
+
+  return false;
+}
 
 interface ClientAuthContextType {
   // Auth mode
@@ -70,18 +108,38 @@ function ClientAuthProviderInner({ children }: { children: React.ReactNode }) {
 
   const [authMode, setAuthMode] = useState<AuthMode>(null);
   const [walletAddress, setWalletAddress] = useState<Hex | null>(null);
+  const freshStartChecked = useRef(false);
+  // Track if we should block wallet auto-reconnection due to fresh start
+  const blockWalletReconnect = useRef(false);
 
-  // Load saved auth mode on mount
+  // Handle fresh start detection and clear auth state if needed
+  // This runs once on mount before other effects
   useEffect(() => {
-    const savedAuthMode = localStorage.getItem(AUTH_MODE_STORAGE_KEY) as AuthMode | null;
+    if (freshStartChecked.current) return;
+    freshStartChecked.current = true;
 
+    const savedAuthMode = localStorage.getItem(AUTH_MODE_STORAGE_KEY) as AuthMode | null;
+    const isFreshStart = checkAndHandleFreshStart(savedAuthMode);
+
+    if (isFreshStart) {
+      // Fresh start detected - block wallet auto-reconnection
+      blockWalletReconnect.current = true;
+      // Disconnect wallet if it was connected
+      void disconnect(wagmiConfig).catch(() => {
+        // Ignore disconnect errors - wallet may not be connected
+      });
+      // Don't restore any auth mode - user must re-authenticate
+      return;
+    }
+
+    // Not a fresh start - restore saved auth mode
     if (savedAuthMode === "passkey" && passkeyAuth.isAuthenticated) {
       setAuthMode("passkey");
     } else if (savedAuthMode === "wallet") {
       // Will be picked up by watchAccount below
       setAuthMode("wallet");
     }
-  }, [passkeyAuth.isAuthenticated]);
+  }, [passkeyAuth.isAuthenticated, wagmiConfig]);
 
   // Watch for wallet connections/disconnections
   // Always watch, but only update state when appropriate
@@ -89,6 +147,14 @@ function ClientAuthProviderInner({ children }: { children: React.ReactNode }) {
     const unwatch = watchAccount(wagmiConfig, {
       onChange(account) {
         if (account.address && account.connector) {
+          // Block wallet auto-reconnection after fresh start
+          if (blockWalletReconnect.current) {
+            console.log("[Auth] Blocking wallet auto-reconnection after fresh start");
+            blockWalletReconnect.current = false; // Only block once
+            void disconnect(wagmiConfig);
+            return;
+          }
+
           // Wallet connected - only update if not in passkey mode
           if (authMode === "passkey") {
             void disconnect(wagmiConfig);

@@ -26,6 +26,7 @@
     "dev:admin": "cd packages/admin && bun run dev",
     "dev:indexer": "cd packages/indexer && bun run dev",
     "dev:contracts": "cd packages/contracts && bun run dev",
+    "dev:telegram": "cd packages/telegram && bun run dev",
 
     "format": "npx @biomejs/biome format --write .",
     "format:check": "npx @biomejs/biome format .",
@@ -43,7 +44,8 @@
     "build:client": "cd packages/client && bun run build",
     "build:admin": "cd packages/admin && bun run build",
     "build:indexer": "cd packages/indexer && bun run build",
-    "build:contracts": "cd packages/contracts && bun run build"
+    "build:contracts": "cd packages/contracts && bun run build",
+    "build:telegram": "cd packages/telegram && bun run build"
   },
   "overrides": {
     "vite": "npm:rolldown-vite@7.1.0"
@@ -83,5 +85,8 @@
   },
   "workspaces": [
     "packages/*"
+  ],
+  "trustedDependencies": [
+    "sharp"
   ]
 }

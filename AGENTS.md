@@ -25,6 +25,7 @@ Default to local commands (rg, bun, forge) when the task is small. Escalate to M
    - `packages/client/AGENTS.md`
    - `packages/admin/AGENTS.md`
    - `packages/indexer/AGENTS.md`
+   - `packages/telegram/AGENTS.md`
    - `packages/contracts/.cursor/rules/*`
 2. **During implementation**
    - Keep TypeScript strict (`noImplicitAny`, etc.)
