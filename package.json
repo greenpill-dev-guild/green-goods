@@ -20,15 +20,15 @@
     "setup": "node scripts/setup.js",
     "prepare": "husky",
 
-    "dev": "trap 'bunx pm2 delete all' EXIT; bunx pm2 start ecosystem.config.js && bunx pm2 logs --raw",
-    "dev:stop": "bunx pm2 delete all",
+    "dev": "trap 'npx pm2 delete all' EXIT; npx pm2 start ecosystem.config.js && npx pm2 logs --raw",
+    "dev:stop": "npx pm2 delete all",
     "dev:client": "cd packages/client && bun run dev",
     "dev:admin": "cd packages/admin && bun run dev",
     "dev:indexer": "cd packages/indexer && bun run dev",
     "dev:contracts": "cd packages/contracts && bun run dev",
 
-    "format": "bunx @biomejs/biome format --write .",
-    "format:check": "bunx @biomejs/biome format .",
+    "format": "npx @biomejs/biome format --write .",
+    "format:check": "npx @biomejs/biome format .",
     "lint": "bun oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/contracts/script",
     "test": "bun run test:client && bun run test:admin && bun run test:indexer && bun run test:contracts",
 
@@ -75,10 +75,10 @@
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json}": [
-      "bunx @biomejs/biome format --write"
+      "npx @biomejs/biome format --write"
     ],
     "*.sol": [
-      "cd packages/contracts && bun run format"
+      "npx forge fmt"
     ]
   },
   "workspaces": [
