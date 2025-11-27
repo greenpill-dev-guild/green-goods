@@ -67,37 +67,17 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
   const [openGardensMap, setOpenGardensMap] = useState<Map<string, boolean>>(new Map());
   const [checkingOpenJoining, setCheckingOpenJoining] = useState(false);
 
-  // Filter gardens into member and non-member lists
-  const { memberGardens, nonMemberGardens } = useMemo(() => {
-    if (!primaryAddress || !gardens.length) {
-      return { memberGardens: [], nonMemberGardens: [] };
-    }
-
-    const members: Garden[] = [];
-    const nonMembers: Garden[] = [];
-
-    for (const garden of gardens) {
-      if (isGardenMember(primaryAddress, garden.gardeners, garden.operators)) {
-        members.push(garden);
-      } else {
-        nonMembers.push(garden);
-      }
-    }
-
-    return { memberGardens: members, nonMemberGardens: nonMembers };
-  }, [gardens, primaryAddress]);
-
-  // Check openJoining status for non-member gardens
+  // Check openJoining status for all gardens (cached)
   useEffect(() => {
     const checkOpenJoiningStatus = async () => {
-      if (nonMemberGardens.length === 0) return;
+      if (gardens.length === 0) return;
 
       setCheckingOpenJoining(true);
       const results = new Map<string, boolean>();
 
-      // Check all non-member gardens in parallel
+      // Check all gardens in parallel
       await Promise.all(
-        nonMemberGardens.map(async (garden) => {
+        gardens.map(async (garden) => {
           const isOpen = await checkGardenOpenJoining(garden.id);
           results.set(garden.id, isOpen);
         })
@@ -108,12 +88,24 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
     };
 
     checkOpenJoiningStatus();
-  }, [nonMemberGardens]);
+  }, [gardens]);
 
-  // Filter to only show gardens with openJoining = true
-  const joinableGardens = useMemo(() => {
-    return nonMemberGardens.filter((garden) => openGardensMap.get(garden.id) === true);
-  }, [nonMemberGardens, openGardensMap]);
+  // Consolidated list: all open gardens with membership status
+  const openGardens = useMemo(() => {
+    if (!primaryAddress || !gardens.length) return [];
+
+    return gardens
+      .filter((garden) => {
+        // Show gardens that are either open for joining OR user is already a member
+        const isOpen = openGardensMap.get(garden.id) === true;
+        const isMember = isGardenMember(primaryAddress, garden.gardeners, garden.operators);
+        return isOpen || isMember;
+      })
+      .map((garden) => ({
+        ...garden,
+        isMember: isGardenMember(primaryAddress, garden.gardeners, garden.operators),
+      }));
+  }, [gardens, primaryAddress, openGardensMap]);
 
   const handleJoinGarden = async (garden: Garden) => {
     try {
@@ -159,17 +151,13 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
   const handleLogout = async () => {
     try {
       await signOut();
-      navigate("/login", { replace: true });
-      const message = intl.formatMessage({
-        id: "app.toast.loggedOut",
-        defaultMessage: "Logged out successfully",
-      });
+      // Pass fromLogout state to prevent redirect back to profile
+      navigate("/login", { replace: true, state: { fromLogout: true } });
       toastService.success({
         title: intl.formatMessage({
           id: "app.account.sessionClosed",
           defaultMessage: "Signed out",
         }),
-        message,
         context: "logout",
         suppressLogging: true,
       });
@@ -254,59 +242,13 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
         </Card>
       ))}
 
-      {/* Gardens Section */}
+      {/* Open Gardens Section - Consolidated list with membership status */}
       {primaryAddress && (
         <>
-          {/* My Gardens - Member gardens */}
-          {memberGardens.length > 0 && (
-            <>
-              <h5 className="text-label-md text-slate-900">
-                {intl.formatMessage({
-                  id: "app.profile.myGardens",
-                  defaultMessage: "My Gardens",
-                })}
-              </h5>
-              <div className="flex flex-col gap-2">
-                {memberGardens.map((garden) => (
-                  <Card key={garden.id}>
-                    <div className="flex flex-row items-center gap-3 justify-between w-full">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <Avatar>
-                          <div className="flex items-center justify-center text-center mx-auto text-primary">
-                            <RiPlantLine className="w-4" />
-                          </div>
-                        </Avatar>
-                        <div className="flex flex-col gap-0.5 min-w-0">
-                          <div className="text-sm font-medium line-clamp-1">{garden.name}</div>
-                          {garden.location && (
-                            <div className="flex items-center gap-1 text-xs text-gray-500">
-                              <RiMapPinLine className="w-3 h-3 shrink-0" />
-                              <span className="line-clamp-1">{garden.location}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 text-xs text-primary shrink-0">
-                        <RiCheckLine className="w-4 h-4" />
-                        <span>
-                          {intl.formatMessage({
-                            id: "app.profile.member",
-                            defaultMessage: "Member",
-                          })}
-                        </span>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </>
-          )}
-
-          {/* Available Gardens - Joinable gardens with openJoining = true */}
           <h5 className="text-label-md text-slate-900">
             {intl.formatMessage({
-              id: "app.profile.availableGardens",
-              defaultMessage: "Available Gardens",
+              id: "app.profile.openGardens",
+              defaultMessage: "Open Gardens",
             })}
           </h5>
 
@@ -321,9 +263,9 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
                 </span>
               </div>
             </Card>
-          ) : joinableGardens.length > 0 ? (
+          ) : openGardens.length > 0 ? (
             <div className="flex flex-col gap-2">
-              {joinableGardens.map((garden) => {
+              {openGardens.map((garden) => {
                 const isJoiningThis = isJoining && joiningGardenId === garden.id;
 
                 return (
@@ -345,25 +287,37 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
                           )}
                         </div>
                       </div>
-                      <Button
-                        variant="primary"
-                        mode="filled"
-                        size="xsmall"
-                        onClick={() => handleJoinGarden(garden)}
-                        label={
-                          isJoiningThis
-                            ? intl.formatMessage({
-                                id: "app.profile.joining",
-                                defaultMessage: "Joining...",
-                              })
-                            : intl.formatMessage({
-                                id: "app.profile.join",
-                                defaultMessage: "Join",
-                              })
-                        }
-                        disabled={isJoining}
-                        className="shrink-0"
-                      />
+                      {garden.isMember ? (
+                        <div className="flex items-center gap-1 text-xs text-primary shrink-0">
+                          <RiCheckLine className="w-4 h-4" />
+                          <span>
+                            {intl.formatMessage({
+                              id: "app.profile.member",
+                              defaultMessage: "Member",
+                            })}
+                          </span>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="primary"
+                          mode="filled"
+                          size="xsmall"
+                          onClick={() => handleJoinGarden(garden)}
+                          label={
+                            isJoiningThis
+                              ? intl.formatMessage({
+                                  id: "app.profile.joining",
+                                  defaultMessage: "Joining...",
+                                })
+                              : intl.formatMessage({
+                                  id: "app.profile.join",
+                                  defaultMessage: "Join",
+                                })
+                          }
+                          disabled={isJoining}
+                          className="shrink-0"
+                        />
+                      )}
                     </div>
                   </Card>
                 );

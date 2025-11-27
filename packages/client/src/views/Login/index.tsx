@@ -29,8 +29,18 @@ export function Login() {
   // Check if we're on a nested route (like /login/recover)
   const isNestedRoute = location.pathname !== "/login";
 
+  // Check if user came from explicit logout - ignore redirectTo in that case
+  const locationState = location.state as { fromLogout?: boolean } | null;
+  const fromLogout = locationState?.fromLogout === true;
+
   // Extract redirectTo parameter from URL query string, default to /home
-  const redirectTo = new URLSearchParams(location.search).get("redirectTo") || "/home";
+  // If coming from explicit logout, always go to /home
+  const redirectTo = fromLogout
+    ? "/home"
+    : new URLSearchParams(location.search).get("redirectTo") || "/home";
+
+  // Get auth ready state to prevent flash during restoration
+  const { isReady } = useClientAuth();
 
   // Note: Wallet connection is automatically synced by PasskeyAuthProvider's watchAccount effect
   // No manual sync needed here
@@ -163,6 +173,12 @@ export function Login() {
   // If on a nested route (like /login/recover), render the child route
   if (isNestedRoute) {
     return <Outlet />;
+  }
+
+  // Wait for auth to be ready before showing login or redirecting
+  // This prevents the login screen flash during auth restoration on page refresh
+  if (!isReady) {
+    return <Splash loadingState="welcome" />;
   }
 
   // Redirect to app once authenticated (both passkey and wallet)

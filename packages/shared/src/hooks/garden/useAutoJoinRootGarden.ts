@@ -4,6 +4,8 @@
  * Manages joining the root community garden on first login.
  * Also handles joining the DevConnect garden (Token ID 1) if enabled via VITE_DEVCONNECT.
  *
+ * Uses deployment data for root garden address (not indexer) to avoid race conditions.
+ *
  * @module hooks/garden/useAutoJoinRootGarden
  */
 
@@ -272,30 +274,20 @@ export function useAutoJoinRootGarden(autoJoin = false) {
    * For passkey users: Transaction is sponsored via Pimlico paymaster.
    * For wallet users: User pays gas fees directly.
    *
+   * Uses deployment data for root garden address to avoid indexer race conditions.
+   *
    * @throws {Error} If join transaction fails
    */
   const joinGarden = useCallback(
     async (sessionOverride?: PasskeySession) => {
       const targetAddress = sessionOverride?.address ?? primaryAddress;
 
-      // Wait for gardens data to be available if not ready yet
-      // This fixes the race condition where joinGarden is called before useGardens resolves
-      let gardenId = rootGardenRecord?.id;
-      if (!gardenId) {
-        const maxAttempts = 20; // 10 seconds max (20 * 500ms)
-        let attempts = 0;
-
-        while (!gardenId && attempts < maxAttempts) {
-          await new Promise((resolve) => setTimeout(resolve, 500));
-          const { data: freshGardens } = await refetchGardens();
-          const freshRootGarden = freshGardens?.find((g) => Number(g.tokenID) === 0);
-          gardenId = freshRootGarden?.id;
-          attempts++;
-        }
-      }
+      // Use deployment data for root garden address (avoids indexer race condition)
+      // This is more reliable than waiting for the indexer to return gardens
+      const gardenId = rootGarden?.address;
 
       if (!gardenId) {
-        throw new Error("Root garden (Token ID 0) not found. Please try again later.");
+        throw new Error("Root garden not configured for this network. Please contact support.");
       }
 
       try {
@@ -375,7 +367,7 @@ export function useAutoJoinRootGarden(autoJoin = false) {
       normalizeAddress,
       queryClient,
       refetchGardens,
-      rootGardenRecord,
+      rootGarden,
       primaryAddress,
     ]
   );
@@ -412,8 +404,8 @@ export function useAutoJoinRootGarden(autoJoin = false) {
   // Note: This is primarily called manually from Login component for controlled flow
   useEffect(() => {
     if (!autoJoin) return;
-    if (!ready || !primaryAddress || !rootGardenRecord) return;
-    if (gardensLoading || gardensFetching || derivedIsMember) return;
+    if (!ready || !primaryAddress || !rootGarden?.address) return;
+    if (derivedIsMember) return;
 
     const onboardedKey = getOnboardedKey(primaryAddress);
     const isOnboarded =
@@ -427,16 +419,7 @@ export function useAutoJoinRootGarden(autoJoin = false) {
     joinGarden().catch((err) => {
       console.error("Auto-join failed", err);
     });
-  }, [
-    autoJoin,
-    ready,
-    primaryAddress,
-    rootGardenRecord,
-    derivedIsMember,
-    gardensLoading,
-    gardensFetching,
-    joinGarden,
-  ]);
+  }, [autoJoin, ready, primaryAddress, rootGarden, derivedIsMember, joinGarden]);
 
   /**
    * Dismiss the join prompt without joining.

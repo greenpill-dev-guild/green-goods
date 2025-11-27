@@ -26,6 +26,8 @@ export type AuthMode = "passkey" | "wallet" | null;
 
 // Session marker to detect reinstalls - shared with PasskeyAuthProvider
 const SESSION_MARKER_KEY = "greengoods_active_session";
+// Key to track explicit sign-out - blocks auto-reconnection until explicit login
+const SIGNED_OUT_KEY = "greengoods_signed_out";
 
 /**
  * Check if this is a fresh app start (after reinstall or cold launch).
@@ -52,6 +54,28 @@ function checkAndHandleFreshStart(savedAuthMode: AuthMode): boolean {
   }
 
   return false;
+}
+
+/**
+ * Check if user explicitly signed out.
+ * This blocks wallet auto-reconnection until they explicitly log in again.
+ */
+function wasExplicitlySignedOut(): boolean {
+  return sessionStorage.getItem(SIGNED_OUT_KEY) === "true";
+}
+
+/**
+ * Mark that user explicitly signed out - blocks auto-reconnection.
+ */
+function setSignedOut(): void {
+  sessionStorage.setItem(SIGNED_OUT_KEY, "true");
+}
+
+/**
+ * Clear signed-out flag - called on explicit login action.
+ */
+function clearSignedOut(): void {
+  sessionStorage.removeItem(SIGNED_OUT_KEY);
 }
 
 interface ClientAuthContextType {
@@ -155,6 +179,13 @@ function ClientAuthProviderInner({ children }: { children: React.ReactNode }) {
             return;
           }
 
+          // Block wallet auto-reconnection after explicit sign-out
+          if (wasExplicitlySignedOut()) {
+            console.log("[Auth] Blocking wallet auto-reconnection after sign-out");
+            void disconnect(wagmiConfig);
+            return;
+          }
+
           // Wallet connected - only update if not in passkey mode
           if (authMode === "passkey") {
             void disconnect(wagmiConfig);
@@ -192,6 +223,9 @@ function ClientAuthProviderInner({ children }: { children: React.ReactNode }) {
   }, [passkeyAuth.isAuthenticated, authMode]);
 
   const signInWithPasskey = useCallback(async () => {
+    // Clear signed-out flag on explicit login
+    clearSignedOut();
+
     // Disconnect wallet to enforce exclusivity
     try {
       await disconnect(wagmiConfig);
@@ -207,29 +241,25 @@ function ClientAuthProviderInner({ children }: { children: React.ReactNode }) {
   }, [passkeyAuth, wagmiConfig]);
 
   const signOut = useCallback(async () => {
+    // Set signed-out flag FIRST to prevent wallet auto-reconnection
+    setSignedOut();
+
     // Clear passkey session
     passkeyAuth.signOut();
 
-    // Disconnect wallet if in wallet mode
-    // The watchAccount callback will automatically clear wallet state
-    if (authMode === "wallet") {
-      try {
-        await disconnect(wagmiConfig);
-      } catch (err) {
-        console.error("Failed to disconnect wallet", err);
-        // Manually clear state if disconnect fails
-        setWalletAddress(null);
-        setAuthMode(null);
-        localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
-      }
-    } else {
-      // Not in wallet mode, just clear state
-      setWalletAddress(null);
-      setAuthMode(null);
-      localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
+    // Disconnect wallet regardless of mode
+    try {
+      await disconnect(wagmiConfig);
+    } catch (err) {
+      console.error("Failed to disconnect wallet", err);
     }
+
+    // Clear all auth state
+    setWalletAddress(null);
+    setAuthMode(null);
+    localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
     queryClient.clear();
-  }, [authMode, passkeyAuth, wagmiConfig]);
+  }, [passkeyAuth, wagmiConfig]);
 
   const isReady = passkeyAuth.isReady;
   const isAuthenticating = passkeyAuth.isAuthenticating;
