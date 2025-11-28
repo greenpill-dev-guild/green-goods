@@ -2,6 +2,12 @@ import { Database } from "bun:sqlite";
 import path from "path";
 import fs from "fs";
 import type { ParsedWorkData } from "./ai";
+import {
+  getPrivateKey,
+  prepareKeyForStorage,
+  isValidAddress,
+  isValidPrivateKey,
+} from "./crypto";
 
 // ============================================================================
 // TYPES
@@ -179,24 +185,77 @@ export class StorageService {
 
   /**
    * Retrieves a user by Telegram ID.
+   * Automatically decrypts the private key.
    * Returns undefined if user doesn't exist.
    */
   getUser(telegramId: number): User | undefined {
-    const result = this.db.query("SELECT * FROM users WHERE telegramId = ?").get(telegramId);
-    return result ? (result as User) : undefined;
+    const result = this.db.query("SELECT * FROM users WHERE telegramId = ?").get(telegramId) as
+      | { telegramId: number; privateKey: string; address: string; currentGarden?: string; role?: string }
+      | null;
+
+    if (!result) return undefined;
+
+    // Decrypt the private key
+    const { privateKey, needsMigration } = getPrivateKey(result.privateKey);
+
+    // If the key was stored unencrypted, migrate it now
+    if (needsMigration) {
+      this.migrateUserKey(telegramId, privateKey);
+    }
+
+    return {
+      telegramId: result.telegramId,
+      privateKey,
+      address: result.address,
+      currentGarden: result.currentGarden,
+      role: result.role as User["role"],
+    };
   }
 
-  createUser(user: User) {
-    this.db.query(`
+  /**
+   * Migrates an unencrypted key to encrypted storage.
+   * Called automatically when getting a user with a legacy key.
+   */
+  private migrateUserKey(telegramId: number, plainKey: string): void {
+    const encryptedKey = prepareKeyForStorage(plainKey);
+    this.db
+      .query("UPDATE users SET privateKey = $privateKey WHERE telegramId = $telegramId")
+      .run({ $telegramId: telegramId, $privateKey: encryptedKey });
+    console.log(`Migrated key for user ${telegramId} to encrypted storage`);
+  }
+
+  /**
+   * Creates a new user with encrypted private key.
+   *
+   * @param user - User data with plaintext private key
+   * @throws Error if private key or address format is invalid
+   */
+  createUser(user: User): void {
+    // Validate inputs
+    if (!isValidPrivateKey(user.privateKey)) {
+      throw new Error("Invalid private key format");
+    }
+    if (!isValidAddress(user.address)) {
+      throw new Error("Invalid address format");
+    }
+
+    // Encrypt the private key before storing
+    const encryptedKey = prepareKeyForStorage(user.privateKey);
+
+    this.db
+      .query(
+        `
       INSERT INTO users (telegramId, privateKey, address, currentGarden, role)
       VALUES ($telegramId, $privateKey, $address, $currentGarden, $role)
-    `).run({
-      $telegramId: user.telegramId,
-      $privateKey: user.privateKey,
-      $address: user.address,
-      $currentGarden: user.currentGarden,
-      $role: user.role
-    });
+    `
+      )
+      .run({
+        $telegramId: user.telegramId,
+        $privateKey: encryptedKey,
+        $address: user.address,
+        $currentGarden: user.currentGarden ?? null,
+        $role: user.role ?? "gardener",
+      });
   }
 
   updateUser(user: Partial<User> & { telegramId: number }) {

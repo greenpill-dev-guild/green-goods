@@ -5,10 +5,31 @@
  * Uses an in-memory database for isolation.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from "bun:test";
 import { StorageService, type User, type PendingWork } from "../services/storage";
 import fs from "fs";
 import path from "path";
+
+// Set up encryption secret for tests
+const originalSecret = process.env.ENCRYPTION_SECRET;
+const originalToken = process.env.TELEGRAM_BOT_TOKEN;
+
+beforeAll(() => {
+  process.env.ENCRYPTION_SECRET = "test-secret-key-for-storage-tests-32!";
+});
+
+afterAll(() => {
+  if (originalSecret) {
+    process.env.ENCRYPTION_SECRET = originalSecret;
+  } else {
+    delete process.env.ENCRYPTION_SECRET;
+  }
+  if (originalToken) {
+    process.env.TELEGRAM_BOT_TOKEN = originalToken;
+  } else {
+    delete process.env.TELEGRAM_BOT_TOKEN;
+  }
+});
 
 describe("StorageService", () => {
   let storage: StorageService;

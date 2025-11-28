@@ -12,6 +12,8 @@ import dotenv from "dotenv";
 import path from "path";
 import { createBot } from "./bot";
 import { storage } from "./services/storage";
+import { rateLimiter } from "./services/rate-limiter";
+import { verificationService } from "./services/verification";
 
 // ============================================================================
 // ENVIRONMENT SETUP
@@ -54,12 +56,17 @@ bot.launch(() => {
 
 /**
  * Handles graceful shutdown on process termination signals.
- * Ensures database connections are properly closed.
+ * Ensures all services are properly cleaned up.
  */
 function shutdown(signal: string): void {
   console.log(`\n📴 Received ${signal}, shutting down gracefully...`);
 
+  // Stop bot
   bot.stop(signal);
+
+  // Clean up services
+  rateLimiter.destroy();
+  verificationService.clearCache();
   storage.close();
 
   console.log("👋 Goodbye!");

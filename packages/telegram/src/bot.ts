@@ -3,6 +3,17 @@ import { message } from "telegraf/filters";
 import type { Message, Update } from "telegraf/types";
 import { storage, type User } from "./services/storage";
 import { ai, type ParsedWorkData } from "./services/ai";
+import {
+  generateSecurePrivateKey,
+  generateSecureId,
+  isValidAddress,
+} from "./services/crypto";
+import {
+  rateLimiter,
+  formatRateLimitWait,
+  type RateLimitType,
+} from "./services/rate-limiter";
+import { verificationService } from "./services/verification";
 import { submitWorkBot } from "@green-goods/shared";
 import {
   createWalletClient,
@@ -15,7 +26,6 @@ import { baseSepolia } from "viem/chains";
 import fs from "fs";
 import path from "path";
 import https from "https";
-import crypto from "crypto";
 
 // ============================================================================
 // TYPES
@@ -77,23 +87,21 @@ async function downloadFile(url: string, dest: string): Promise<void> {
 }
 
 /**
- * Generates a cryptographically secure private key.
- *
- * WARNING: For MVP/demo only. In production, use proper key management:
- * - Hardware security modules (HSM)
- * - Key management services (KMS)
- * - User-controlled wallets (non-custodial)
+ * Rate limit check helper.
+ * Returns error message if rate limited, undefined if allowed.
  */
-function generatePrivateKey(): Hex {
-  const randomBytes = crypto.randomBytes(32);
-  return `0x${randomBytes.toString("hex")}` as Hex;
-}
+async function checkRateLimit(
+  ctx: BotContext,
+  type: RateLimitType
+): Promise<string | undefined> {
+  if (!ctx.from) return undefined;
 
-/**
- * Generates a unique ID for pending work submissions.
- */
-function generateWorkId(): string {
-  return crypto.randomBytes(8).toString("hex");
+  const result = rateLimiter.check(ctx.from.id, type);
+  if (!result.allowed) {
+    const waitTime = formatRateLimitWait(result.resetIn);
+    return `⏳ ${result.message}\n\nPlease wait ${waitTime} before trying again.`;
+  }
+  return undefined;
 }
 
 /**
@@ -153,12 +161,16 @@ export function createBot(token: string): Telegraf<BotContext> {
    * /start - Initialize user account and wallet
    */
   bot.command("start", async (ctx) => {
+    // Rate limit wallet creation
+    const rateLimitError = await checkRateLimit(ctx, "wallet");
+    if (rateLimitError) return ctx.reply(rateLimitError);
+
     const telegramId = ctx.from.id;
     let user = storage.getUser(telegramId);
 
     if (!user) {
-      // Create new custodial wallet
-      const privateKey = generatePrivateKey();
+      // Create new custodial wallet with encrypted key
+      const privateKey = generateSecurePrivateKey();
       const account = privateKeyToAccount(privateKey);
 
       user = {
@@ -195,6 +207,10 @@ export function createBot(token: string): Telegraf<BotContext> {
    * /join - Join a garden by address
    */
   bot.command("join", async (ctx) => {
+    // Rate limit command
+    const rateLimitError = await checkRateLimit(ctx, "command");
+    if (rateLimitError) return ctx.reply(rateLimitError);
+
     const args = ctx.message.text.split(" ").slice(1);
     const gardenAddress = args[0];
 
@@ -207,7 +223,7 @@ export function createBot(token: string): Telegraf<BotContext> {
     }
 
     // Validate address format
-    if (!/^0x[a-fA-F0-9]{40}$/.test(gardenAddress)) {
+    if (!isValidAddress(gardenAddress)) {
       return ctx.reply(
         "❌ Invalid address format.\n\n" +
           "Please provide a valid Ethereum address (0x followed by 40 hex characters)."
@@ -219,7 +235,19 @@ export function createBot(token: string): Telegraf<BotContext> {
       return ctx.reply("Please run /start first to create your wallet.");
     }
 
-    // TODO: Verify garden exists on-chain
+    // Verify garden exists on-chain
+    await ctx.reply("🔍 Verifying garden...");
+    const gardenInfo = await verificationService.getGardenInfo(gardenAddress);
+
+    if (!gardenInfo.exists) {
+      return ctx.reply(
+        "❌ *Garden not found*\n\n" +
+          "This address doesn't appear to be a valid Green Goods garden contract.\n\n" +
+          "Please verify the address and try again.",
+        { parse_mode: "Markdown" }
+      );
+    }
+
     storage.updateUser({
       telegramId: user.telegramId,
       currentGarden: gardenAddress,
@@ -227,7 +255,8 @@ export function createBot(token: string): Telegraf<BotContext> {
 
     await ctx.reply(
       `✅ *Joined garden successfully!*\n\n` +
-        `Garden: \`${formatAddress(gardenAddress)}\`\n\n` +
+        `Garden: ${gardenInfo.name ? `*${gardenInfo.name}*` : ""}\n` +
+        `Address: \`${formatAddress(gardenAddress)}\`\n\n` +
         `You can now submit work by sending me a text or voice message.`,
       { parse_mode: "Markdown" }
     );
@@ -237,19 +266,25 @@ export function createBot(token: string): Telegraf<BotContext> {
    * /status - Show current user status
    */
   bot.command("status", async (ctx) => {
+    // Rate limit command
+    const rateLimitError = await checkRateLimit(ctx, "command");
+    if (rateLimitError) return ctx.reply(rateLimitError);
+
     const user = ctx.user;
     if (!user) {
       return ctx.reply("Please run /start first to create your wallet.");
     }
 
     const pendingSession = storage.getSession(user.telegramId);
+    const rateLimitStats = rateLimiter.peek(user.telegramId, "submission");
 
     await ctx.reply(
       `📊 *Your Status*\n\n` +
         `*Wallet:* \`${user.address}\`\n` +
         `*Role:* ${user.role || "gardener"}\n` +
         `*Garden:* ${user.currentGarden ? `\`${formatAddress(user.currentGarden)}\`` : "_Not joined_"}\n` +
-        `*Session:* ${pendingSession?.step || "idle"}`,
+        `*Session:* ${pendingSession?.step || "idle"}\n` +
+        `*Submissions remaining:* ${rateLimitStats.remaining}/${rateLimitStats.limit}`,
       { parse_mode: "Markdown" }
     );
   });
@@ -333,6 +368,10 @@ export function createBot(token: string): Telegraf<BotContext> {
    * Voice message handler - Transcribe and process
    */
   bot.on(message("voice"), async (ctx) => {
+    // Rate limit voice messages (more expensive to process)
+    const rateLimitError = await checkRateLimit(ctx, "voice");
+    if (rateLimitError) return ctx.reply(rateLimitError);
+
     const user = ctx.user;
     if (!user) {
       return ctx.reply("Please run /start first to create your wallet.");
@@ -396,6 +435,10 @@ export function createBot(token: string): Telegraf<BotContext> {
     // Ignore commands (handled separately)
     if (text.startsWith("/")) return;
 
+    // Rate limit messages
+    const rateLimitError = await checkRateLimit(ctx, "message");
+    if (rateLimitError) return ctx.reply(rateLimitError);
+
     const user = ctx.user;
     if (!user) {
       return ctx.reply("Please run /start first to create your wallet.");
@@ -450,6 +493,16 @@ export function createBot(token: string): Telegraf<BotContext> {
     const telegramId = ctx.from?.id;
     if (!telegramId) return;
 
+    // Rate limit submissions
+    const result = rateLimiter.check(telegramId, "submission");
+    if (!result.allowed) {
+      const waitTime = formatRateLimitWait(result.resetIn);
+      await ctx.answerCbQuery("Rate limited");
+      return ctx.reply(
+        `⏳ ${result.message}\n\nPlease wait ${waitTime} before submitting again.`
+      );
+    }
+
     const session = storage.getSession(telegramId);
     const user = storage.getUser(telegramId);
 
@@ -480,7 +533,7 @@ export function createBot(token: string): Telegraf<BotContext> {
       };
 
       // Generate unique ID for pending work
-      const pendingId = generateWorkId();
+      const pendingId = generateSecureId();
 
       // Store pending work for operator approval
       storage.addPendingWork({
@@ -545,6 +598,10 @@ export function createBot(token: string): Telegraf<BotContext> {
    * /approve - Approve a pending work submission
    */
   bot.command("approve", async (ctx) => {
+    // Rate limit approvals
+    const rateLimitError = await checkRateLimit(ctx, "approval");
+    if (rateLimitError) return ctx.reply(rateLimitError);
+
     const args = ctx.message.text.split(" ");
     const workId = args[1];
 
@@ -560,10 +617,26 @@ export function createBot(token: string): Telegraf<BotContext> {
       return ctx.reply("Please run /start first.");
     }
 
-    // TODO: Verify user is an operator for the garden
     const pendingWork = storage.getPendingWork(workId);
     if (!pendingWork) {
       return ctx.reply("❌ Work not found or already processed.");
+    }
+
+    // Verify user is an operator for the garden
+    const gardenAddress = pendingWork.gardenAddress || user.currentGarden;
+    if (!gardenAddress) {
+      return ctx.reply("❌ Cannot determine garden for this work.");
+    }
+
+    await ctx.reply("🔍 Verifying operator permissions...");
+
+    const verification = await verificationService.isOperator(gardenAddress, user.address);
+    if (!verification.verified) {
+      return ctx.reply(
+        `❌ *Permission Denied*\n\n${verification.reason}\n\n` +
+          `Only registered operators can approve work for this garden.`,
+        { parse_mode: "Markdown" }
+      );
     }
 
     await ctx.reply(`⛓️ Approving work ${workId}...`);
@@ -623,6 +696,10 @@ export function createBot(token: string): Telegraf<BotContext> {
    * /reject - Reject a pending work submission
    */
   bot.command("reject", async (ctx) => {
+    // Rate limit approvals (same limit as approve)
+    const rateLimitError = await checkRateLimit(ctx, "approval");
+    if (rateLimitError) return ctx.reply(rateLimitError);
+
     const args = ctx.message.text.split(" ");
     const workId = args[1];
     const reason = args.slice(2).join(" ") || "No reason provided";
@@ -643,6 +720,21 @@ export function createBot(token: string): Telegraf<BotContext> {
     const pendingWork = storage.getPendingWork(workId);
     if (!pendingWork) {
       return ctx.reply("❌ Work not found or already processed.");
+    }
+
+    // Verify user is an operator for the garden
+    const gardenAddress = pendingWork.gardenAddress || user.currentGarden;
+    if (!gardenAddress) {
+      return ctx.reply("❌ Cannot determine garden for this work.");
+    }
+
+    const verification = await verificationService.isOperator(gardenAddress, user.address);
+    if (!verification.verified) {
+      return ctx.reply(
+        `❌ *Permission Denied*\n\n${verification.reason}\n\n` +
+          `Only registered operators can reject work for this garden.`,
+        { parse_mode: "Markdown" }
+      );
     }
 
     // Remove pending work
