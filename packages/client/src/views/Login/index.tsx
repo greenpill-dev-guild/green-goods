@@ -16,15 +16,7 @@ export function Login() {
   const [loadingMessage, setLoadingMessage] = useState<string | undefined>(undefined);
   const [loginError, setLoginError] = useState<string | null>(null);
 
-  // Check if DevConnect is enabled via environment variable
-  const isDevConnectEnabled = import.meta.env.VITE_DEVCONNECT === "true";
-
-  const {
-    joinGarden,
-    isLoading: isJoiningGarden,
-    isGardener: _isGardener,
-    devConnect,
-  } = useAutoJoinRootGarden();
+  const { joinGarden, isLoading: isJoiningGarden } = useAutoJoinRootGarden();
 
   // Check if we're on a nested route (like /login/recover)
   const isNestedRoute = location.pathname !== "/login";
@@ -98,25 +90,6 @@ export function Login() {
         if (!membershipStatus.hasBeenOnboarded) {
           const onboardingKey = `greengoods_onboarded:${session.address.toLowerCase()}`;
           localStorage.setItem(onboardingKey, "true");
-        }
-      }
-
-      // 2. DevConnect Join (New)
-      if (isDevConnectEnabled && devConnect.isEnabled && !devConnect.isMember) {
-        // Check local storage to avoid re-prompting if they skipped or are pending
-        const dcKey = `greengoods_devconnect_onboarded:${session.address.toLowerCase()}`;
-        const isDcOnboarded = localStorage.getItem(dcKey) === "true";
-
-        if (!isDcOnboarded) {
-          setLoadingState("joining-garden"); // Re-use loading state
-          setLoadingMessage("Joining DevConnect Garden...");
-          try {
-            await devConnect.join(session);
-            toastService.success({ title: "Joined DevConnect!", context: "devconnect" });
-          } catch (e) {
-            console.error("DevConnect join failed", e);
-            // Non-blocking failure
-          }
         }
       }
     } catch (err) {

@@ -2,14 +2,13 @@ import { toastService } from "@green-goods/shared";
 import {
   checkGardenOpenJoining,
   isGardenMember,
-  useAutoJoinRootGarden,
   useEnsName,
   useGardens,
   useJoinGarden,
 } from "@green-goods/shared/hooks";
 import { useClientAuth } from "@green-goods/shared/providers";
 import { type Locale, useApp } from "@green-goods/shared/providers/app";
-import { capitalize, parseAndFormatError } from "@green-goods/shared/utils";
+import { capitalize, isAlreadyGardenerError, parseAndFormatError } from "@green-goods/shared/utils";
 import {
   RiCheckLine,
   RiEarthFill,
@@ -51,23 +50,17 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
   const { locale, switchLanguage, availableLocales } = useApp();
   const intl = useIntl();
 
-  // Check if DevConnect is enabled via environment variable
-  const isDevConnectEnabled = import.meta.env.VITE_DEVCONNECT === "true";
-
   // Fetch all gardens
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
 
   // Join garden hook
   const { joinGarden, isJoining, joiningGardenId } = useJoinGarden();
 
-  // Root garden membership check (for DevConnect and legacy support)
-  const { devConnect } = useAutoJoinRootGarden();
-
-  // Track which gardens have openJoining enabled
+  // Track which gardens have openJoining enabled (for join button state)
   const [openGardensMap, setOpenGardensMap] = useState<Map<string, boolean>>(new Map());
   const [checkingOpenJoining, setCheckingOpenJoining] = useState(false);
 
-  // Check openJoining status for all gardens (cached)
+  // Check openJoining status for all gardens
   useEffect(() => {
     const checkOpenJoiningStatus = async () => {
       if (gardens.length === 0) return;
@@ -90,15 +83,15 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
     checkOpenJoiningStatus();
   }, [gardens]);
 
-  // Consolidated list: all open gardens with membership status
-  const openGardens = useMemo(() => {
+  // Show only open gardens or gardens where user is a member
+  const allGardens = useMemo(() => {
     if (!primaryAddress || !gardens.length) return [];
 
     return gardens
       .filter((garden) => {
-        // Show gardens that are either open for joining OR user is already a member
         const isOpen = openGardensMap.get(garden.id) === true;
         const isMember = isGardenMember(primaryAddress, garden.gardeners, garden.operators);
+        // Only show gardens that are open OR user is already a member
         return isOpen || isMember;
       })
       .map((garden) => ({
@@ -126,6 +119,25 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
         context: "joinGarden",
       });
     } catch (err) {
+      // Handle "already a member" as success, not error
+      if (isAlreadyGardenerError(err)) {
+        toastService.success({
+          title: intl.formatMessage({
+            id: "app.account.alreadyMember",
+            defaultMessage: "Already a member",
+          }),
+          message: intl.formatMessage(
+            {
+              id: "app.account.alreadyMemberMessage",
+              defaultMessage: "You're already a member of {gardenName}",
+            },
+            { gardenName: garden.name }
+          ),
+          context: "joinGarden",
+        });
+        return;
+      }
+
       console.error(`Failed to join garden ${garden.id}`, err);
 
       const { title, message } = parseAndFormatError(err);
@@ -136,15 +148,6 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
         context: "joinGarden",
         error: err,
       });
-    }
-  };
-
-  const handleJoinDevConnect = async () => {
-    try {
-      await devConnect.join();
-      toastService.success({ title: "Joined DevConnect", context: "account" });
-    } catch (err) {
-      toastService.error({ title: "Failed to join", error: err, context: "account" });
     }
   };
 
@@ -242,13 +245,13 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
         </Card>
       ))}
 
-      {/* Open Gardens Section - Consolidated list with membership status */}
+      {/* Gardens Section - All available gardens with membership status */}
       {primaryAddress && (
         <>
           <h5 className="text-label-md text-slate-900">
             {intl.formatMessage({
-              id: "app.profile.openGardens",
-              defaultMessage: "Open Gardens",
+              id: "app.profile.gardens",
+              defaultMessage: "Gardens",
             })}
           </h5>
 
@@ -263,9 +266,9 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
                 </span>
               </div>
             </Card>
-          ) : openGardens.length > 0 ? (
+          ) : allGardens.length > 0 ? (
             <div className="flex flex-col gap-2">
-              {openGardens.map((garden) => {
+              {allGardens.map((garden) => {
                 const isJoiningThis = isJoining && joiningGardenId === garden.id;
 
                 return (
@@ -303,18 +306,11 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
                           mode="filled"
                           size="xsmall"
                           onClick={() => handleJoinGarden(garden)}
-                          label={
-                            isJoiningThis
-                              ? intl.formatMessage({
-                                  id: "app.profile.joining",
-                                  defaultMessage: "Joining...",
-                                })
-                              : intl.formatMessage({
-                                  id: "app.profile.join",
-                                  defaultMessage: "Join",
-                                })
-                          }
-                          disabled={isJoining}
+                          label={intl.formatMessage({
+                            id: "app.profile.join",
+                            defaultMessage: "Join",
+                          })}
+                          disabled={isJoiningThis}
                           className="shrink-0"
                         />
                       )}
@@ -329,25 +325,12 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
                 <RiPlantLine className="w-5 text-slate-400" />
                 <span className="text-sm text-slate-500">
                   {intl.formatMessage({
-                    id: "app.profile.noJoinableGardens",
-                    defaultMessage: "No open gardens available to join",
+                    id: "app.profile.noGardens",
+                    defaultMessage: "No gardens available",
                   })}
                 </span>
               </div>
             </Card>
-          )}
-
-          {/* DevConnect Button - Optional */}
-          {isDevConnectEnabled && devConnect.isEnabled && !devConnect.isMember && (
-            <Button
-              variant="primary"
-              mode="filled"
-              onClick={handleJoinDevConnect}
-              label={devConnect.isLoading ? "Joining..." : "Join DevConnect"}
-              leadingIcon={<RiPlantLine className="w-4" />}
-              disabled={devConnect.isLoading}
-              className="w-full"
-            />
           )}
         </>
       )}

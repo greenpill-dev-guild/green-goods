@@ -80,7 +80,7 @@
       "npx @biomejs/biome format --write"
     ],
     "*.sol": [
-      "npx forge fmt"
+      "forge fmt"
     ]
   },
   "workspaces": [

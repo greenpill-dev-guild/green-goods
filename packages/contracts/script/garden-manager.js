@@ -11,7 +11,7 @@ const fs = require("node:fs");
 
 // Garden Token and Account ABIs
 const GARDEN_TOKEN_ABI = [
-  "function mintGarden(address communityToken, string calldata name, string calldata description, string calldata location, string calldata bannerImage, address[] calldata gardeners, address[] calldata gardenOperators) external returns (address)",
+  "function mintGarden((address communityToken, string name, string description, string location, string bannerImage, string metadata, bool openJoining, address[] gardeners, address[] gardenOperators) config) external returns (address)",
   "function owner() external view returns (address)",
 ];
 
@@ -113,16 +113,20 @@ async function deployGarden(signer, gardenTokenAddress, communityToken, gardenCo
   console.log(`Operators: ${gardenConfig.operators.length}`);
   console.log(`Open Joining: ${gardenConfig.openJoining || false}`);
 
-  // Mint the garden
-  const tx = await gardenToken.mintGarden(
-    communityToken,
-    gardenConfig.name,
-    gardenConfig.description,
-    gardenConfig.location,
-    gardenConfig.bannerImage,
-    gardenConfig.gardeners,
-    gardenConfig.operators,
-  );
+  // Mint the garden with config struct (openJoining is set during initialization)
+  const config = {
+    communityToken: communityToken,
+    name: gardenConfig.name,
+    description: gardenConfig.description,
+    location: gardenConfig.location,
+    bannerImage: gardenConfig.bannerImage,
+    metadata: gardenConfig.metadata || "",
+    openJoining: gardenConfig.openJoining || false,
+    gardeners: gardenConfig.gardeners,
+    gardenOperators: gardenConfig.operators,
+  };
+
+  const tx = await gardenToken.mintGarden(config);
 
   console.log(`Transaction hash: ${tx.hash}`);
   const receipt = await tx.wait();
@@ -146,21 +150,8 @@ async function deployGarden(signer, gardenTokenAddress, communityToken, gardenCo
   const gardenAddress = parsedEvent.args.account;
   console.log(`Garden deployed at: ${gardenAddress}`);
 
-  // Set openJoining if specified
   if (gardenConfig.openJoining) {
-    console.log("Setting open joining...");
-    const gardenAccount = new ethers.Contract(gardenAddress, GARDEN_ACCOUNT_ABI, signer);
-
-    // Check if signer is an operator
-    const isOperator = await gardenAccount.gardenOperators(await signer.getAddress());
-    if (isOperator) {
-      const setTx = await gardenAccount.setOpenJoining(true);
-      console.log(`Set openJoining transaction: ${setTx.hash}`);
-      await setTx.wait();
-      console.log("Open joining enabled");
-    } else {
-      console.warn("WARNING: Signer is not an operator, cannot enable open joining");
-    }
+    console.log("Open joining: enabled (set during initialization)");
   }
 
   return gardenAddress;

@@ -27,10 +27,10 @@ const ERROR_SIGNATURES: Record<string, { name: string; message: string; action?:
     name: "NotGardenOperator",
     message: "Only garden operators can perform this action",
   },
-  "0x5d4c2485": {
+  "0xdb926eba": {
     name: "InvalidInvite",
-    message: "Invalid or expired garden invite",
-    action: "Please request a new invite from a garden operator",
+    message: "This garden is invite-only",
+    action: "Request an invite from a garden operator to join",
   },
   "0x42375a1e": {
     name: "AlreadyGardener",
