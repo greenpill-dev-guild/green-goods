@@ -69,6 +69,7 @@
 * [Client (PWA)](developer/architecture/client-package.md)
 * [Admin Dashboard](developer/architecture/admin-package.md)
 * [Indexer](developer/architecture/indexer-package.md)
+* [Telegram Bot](developer/architecture/telegram-bot.md)
 * [Contracts](developer/architecture/contracts-package.md)
 * [System Architecture (Technical)](developer/architecture.md)
 

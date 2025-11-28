@@ -117,13 +117,30 @@ export async function submitWorkDirectly(
         );
       }
 
+      // Check for common simulation failures and provide specific messages
+      const errMessage = err.message?.toLowerCase() || "";
+
+      // Not a gardener in the garden
+      if (errMessage.includes("notgardener") || errMessage.includes("not a gardener")) {
+        throw new Error(
+          "You're not a member of this garden. Please join the garden first from your profile."
+        );
+      }
+
+      // Reverted without reason (common for access control)
+      if (errMessage.includes("reverted") && !err.cause?.reason) {
+        throw new Error(
+          "Transaction would fail. Make sure you're a member of the selected garden."
+        );
+      }
+
       // Fallback to cause reason if available
       if (err.cause?.reason) {
-        throw new Error(`Validation failed: ${err.cause.reason}`);
+        throw new Error(`Transaction check failed: ${err.cause.reason}`);
       }
 
       throw new Error(
-        `Validation failed: ${parsed.message || err.message || "Unknown error during simulation"}`
+        `Transaction check failed: ${parsed.message || err.message || "Please verify you're a member of the selected garden."}`
       );
     }
   }

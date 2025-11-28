@@ -51,10 +51,13 @@ export function track(event: string, properties: Record<string, unknown>) {
   // Add offline context to all events
   const enrichedProperties = {
     ...properties,
-    is_online: navigator.onLine,
-    connection_type: (navigator as any).connection?.effectiveType || "unknown",
+    is_online: typeof navigator !== "undefined" ? navigator.onLine : true,
+    connection_type:
+      typeof navigator !== "undefined"
+        ? (navigator as any).connection?.effectiveType || "unknown"
+        : "unknown",
     timestamp: Date.now(),
-    user_agent: navigator.userAgent,
+    user_agent: typeof navigator !== "undefined" ? navigator.userAgent : "node",
     session_id: getSessionId(),
   };
 
@@ -260,36 +263,39 @@ function getStorageQuota(): Promise<Record<string, unknown> | null> {
 }
 
 // Track network status changes
-let lastOnlineStatus = navigator.onLine;
-window.addEventListener("online", () => {
-  if (!lastOnlineStatus) {
-    const offlineStart = safeGetItem(localStorage, "offline_start_time");
-    const offlineDuration = offlineStart ? Date.now() - parseInt(offlineStart) : null;
+let lastOnlineStatus = typeof navigator !== "undefined" ? navigator.onLine : true;
 
-    trackOfflineEvent("connection_restored", {
-      offline_duration: offlineDuration,
-    });
+if (typeof window !== "undefined") {
+  window.addEventListener("online", () => {
+    if (!lastOnlineStatus) {
+      const offlineStart = safeGetItem(localStorage, "offline_start_time");
+      const offlineDuration = offlineStart ? Date.now() - parseInt(offlineStart) : null;
 
-    try {
-      localStorage.removeItem("offline_start_time");
-    } catch {}
-  }
-  lastOnlineStatus = true;
-});
+      trackOfflineEvent("connection_restored", {
+        offline_duration: offlineDuration,
+      });
 
-window.addEventListener("offline", () => {
-  if (lastOnlineStatus) {
-    safeSetItem(localStorage, "offline_start_time", Date.now().toString());
-    trackOfflineEvent("connection_lost", {});
-  }
-  lastOnlineStatus = false;
-});
+      try {
+        localStorage.removeItem("offline_start_time");
+      } catch {}
+    }
+    lastOnlineStatus = true;
+  });
 
-// Track page visibility changes for better offline analytics
-document.addEventListener("visibilitychange", () => {
-  const event = document.hidden ? "app_background" : "app_resume";
-  trackAppLifecycle(event);
-});
+  window.addEventListener("offline", () => {
+    if (lastOnlineStatus) {
+      safeSetItem(localStorage, "offline_start_time", Date.now().toString());
+      trackOfflineEvent("connection_lost", {});
+    }
+    lastOnlineStatus = false;
+  });
+
+  // Track page visibility changes for better offline analytics
+  document.addEventListener("visibilitychange", () => {
+    const event = document.hidden ? "app_background" : "app_resume";
+    trackAppLifecycle(event);
+  });
+}
 
 // Track app start (wrapped in try/catch to be safe at module level)
 try {

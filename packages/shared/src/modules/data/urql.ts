@@ -31,5 +31,5 @@ export function createGreenGoodsIndexerClient(env: any, isDev: boolean) {
 /** Singleton Green Goods indexer client */
 export const greenGoodsIndexer = createGreenGoodsIndexerClient(
   typeof import.meta !== "undefined" ? import.meta.env : {},
-  typeof import.meta !== "undefined" ? import.meta.env.DEV : false
+  typeof import.meta !== "undefined" ? !!import.meta.env.DEV : false
 );

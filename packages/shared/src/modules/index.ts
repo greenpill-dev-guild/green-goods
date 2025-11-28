@@ -115,3 +115,9 @@ export {
   validateApprovalDraft,
   validateWorkDraft,
 } from "./work/work-submission";
+
+// From work/bot-submission.ts
+export {
+  submitWorkBot,
+  submitApprovalBot,
+} from "./work/bot-submission";

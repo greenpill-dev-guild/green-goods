@@ -31,6 +31,7 @@ type Garden = {
   description: string;
   location: string;
   bannerImage: string;
+  openJoining: boolean;
   createdAt: number;
   gardeners: string[];
   operators: string[];
@@ -201,6 +202,7 @@ GardenToken.GardenMinted.handler(async ({ event, context }) => {
     description: event.params.description,
     location: event.params.location,
     bannerImage: event.params.bannerImage,
+    openJoining: event.params.openJoining,
     gardeners: event.params.gardeners,
     operators: event.params.operators,
     tokenAddress: event.srcAddress,
@@ -245,6 +247,7 @@ GardenAccount.NameUpdated.handler(async ({ event, context }) => {
       description: "",
       location: "",
       bannerImage: "",
+      openJoining: false,
       gardeners: [],
       operators: [],
       createdAt: event.block.timestamp,
@@ -274,6 +277,7 @@ GardenAccount.DescriptionUpdated.handler(async ({ event, context }) => {
       description: "",
       location: "",
       bannerImage: "",
+      openJoining: false,
       gardeners: [],
       operators: [],
       createdAt: event.block.timestamp,
@@ -303,6 +307,7 @@ GardenAccount.LocationUpdated.handler(async ({ event, context }) => {
       description: "",
       location: "",
       bannerImage: "",
+      openJoining: false,
       gardeners: [],
       operators: [],
       createdAt: event.block.timestamp,
@@ -332,6 +337,7 @@ GardenAccount.BannerImageUpdated.handler(async ({ event, context }) => {
       description: "",
       location: "",
       bannerImage: "",
+      openJoining: false,
       gardeners: [],
       operators: [],
       createdAt: event.block.timestamp,
@@ -471,6 +477,25 @@ GardenAccount.GAPProjectCreated.handler(async ({ event, context }) => {
     context.log.info(`Updated Garden ${gardenId} with GAP project UID: ${event.params.projectUID}`);
   } else {
     context.log.warn(`Garden ${gardenId} not found when processing GAPProjectCreated event`);
+  }
+});
+
+// Handler for the OpenJoiningUpdated event
+GardenAccount.OpenJoiningUpdated.handler(async ({ event, context }) => {
+  const gardenId = event.srcAddress;
+  const existingGarden = await context.Garden.get(gardenId);
+
+  if (existingGarden) {
+    const updatedGarden: Garden = {
+      ...existingGarden,
+      openJoining: event.params.openJoining,
+    };
+
+    context.Garden.set(updatedGarden);
+
+    context.log.info(`Updated Garden ${gardenId} openJoining to: ${event.params.openJoining}`);
+  } else {
+    context.log.warn(`Garden ${gardenId} not found when processing OpenJoiningUpdated event`);
   }
 });
 

@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.25;
 
-import { AccountV3Upgradable } from "@tokenbound/AccountV3Upgradable.sol";
-import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import { AttestationRequest, AttestationRequestData } from "@eas/IEAS.sol";
+import {AccountV3Upgradable} from "@tokenbound/AccountV3Upgradable.sol";
+import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import {AttestationRequest, AttestationRequestData} from "@eas/IEAS.sol";
 
-import { KarmaLib } from "../lib/Karma.sol";
-import { StringUtils } from "../lib/StringUtils.sol";
-import { IGap } from "../interfaces/IKarmaGap.sol";
+import {KarmaLib} from "../lib/Karma.sol";
+import {StringUtils} from "../lib/StringUtils.sol";
+import {IGap} from "../interfaces/IKarmaGap.sol";
 
 error NotGardenOwner();
 error NotGardenOperator();
@@ -74,6 +74,11 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     /// @param updater The address of the entity that removed the operator.
     /// @param operator The address of the removed garden operator.
     event GardenOperatorRemoved(address indexed updater, address indexed operator);
+
+    /// @notice Emitted when open joining status is updated.
+    /// @param updater The address of the entity that updated the setting.
+    /// @param openJoining The new open joining status.
+    event OpenJoiningUpdated(address indexed updater, bool openJoining);
 
     /// @notice Emitted when a Karma GAP project is created for this garden.
     /// @param projectUID The Karma GAP project attestation UID.
@@ -172,9 +177,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         address guardian,
         address workApprovalResolver,
         address assessmentResolver
-    )
-        AccountV3Upgradable(erc4337EntryPoint, multicallForwarder, erc6551Registry, guardian)
-    {
+    ) AccountV3Upgradable(erc4337EntryPoint, multicallForwarder, erc6551Registry, guardian) {
         WORK_APPROVAL_RESOLVER = workApprovalResolver;
         ASSESSMENT_RESOLVER = assessmentResolver;
         _disableInitializers();
@@ -187,6 +190,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         string location;
         string bannerImage;
         string metadata;
+        bool openJoining;
         address[] gardeners;
         address[] gardenOperators;
     }
@@ -206,10 +210,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         location = params.location;
         bannerImage = params.bannerImage;
         // metadata = params.metadata;
-
-        // Enable open joining for root garden (tokenId 1)
-        (,, uint256 tokenId) = token();
-        openJoining = (tokenId == 1);
+        openJoining = params.openJoining;
 
         gardeners[_msgSender()] = true;
         gardenOperators[_msgSender()] = true;
@@ -313,6 +314,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     /// @notice Enable or disable open joining for the garden
     function setOpenJoining(bool _openJoining) external onlyOperator {
         openJoining = _openJoining;
+        emit OpenJoiningUpdated(_msgSender(), _openJoining);
     }
 
     /// @notice Returns the Karma GAP project UID for this garden
@@ -401,11 +403,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         string calldata impactDescription,
         string calldata proofIPFS,
         bytes32 workUID
-    )
-        external
-        onlyWorkApprovalResolver
-        returns (bytes32)
-    {
+    ) external onlyWorkApprovalResolver returns (bytes32) {
         if (gapProjectUID == bytes32(0)) revert GAPProjectNotInitialized();
         if (!KarmaLib.isSupported()) revert GAPNotSupportedOnChain();
 
@@ -445,11 +443,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         string calldata milestoneTitle,
         string calldata milestoneDescription,
         string calldata milestoneMeta
-    )
-        external
-        onlyAssessmentResolver
-        returns (bytes32)
-    {
+    ) external onlyAssessmentResolver returns (bytes32) {
         if (gapProjectUID == bytes32(0)) revert GAPProjectNotInitialized();
         if (!KarmaLib.isSupported()) revert GAPNotSupportedOnChain();
 
@@ -489,7 +483,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     function _addGAPProjectAdmin(address admin) private {
         if (gapProjectUID == bytes32(0)) return;
         // solhint-disable-next-line no-empty-blocks
-        try IGap(KarmaLib.getGapContract()).addProjectAdmin(gapProjectUID, admin) { }
+        try IGap(KarmaLib.getGapContract()).addProjectAdmin(gapProjectUID, admin) {}
             catch { /* Non-critical: GAP sync failed */ }
     }
 
@@ -498,7 +492,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     function _removeGAPProjectAdmin(address admin) private {
         if (gapProjectUID == bytes32(0)) return;
         // solhint-disable-next-line no-empty-blocks
-        try IGap(KarmaLib.getGapContract()).removeProjectAdmin(gapProjectUID, admin) { }
+        try IGap(KarmaLib.getGapContract()).removeProjectAdmin(gapProjectUID, admin) {}
             catch { /* Non-critical: GAP sync failed */ }
     }
 
@@ -543,11 +537,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         string calldata impactDescription,
         string calldata proofIPFS,
         bytes32 workUID
-    )
-        private
-        view
-        returns (string memory)
-    {
+    ) private view returns (string memory) {
         (,, uint256 tokenId) = token();
         string memory isoDate = StringUtils.timestampToISO(block.timestamp);
 

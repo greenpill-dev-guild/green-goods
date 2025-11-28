@@ -32,6 +32,7 @@ type Garden {
   description: String!
   location: String!
   bannerImage: String!
+  openJoining: Boolean!
   createdAt: Int!
 
   gardeners: [String!]! # Address

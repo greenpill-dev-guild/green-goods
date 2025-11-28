@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.25;
 
-import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
-import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import { ERC721Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import { TBALib } from "../lib/TBA.sol";
-import { GardenAccount } from "../accounts/Garden.sol";
-import { DeploymentRegistry } from "../DeploymentRegistry.sol";
+import {TBALib} from "../lib/TBA.sol";
+import {GardenAccount} from "../accounts/Garden.sol";
+import {DeploymentRegistry} from "../DeploymentRegistry.sol";
 
 /// @title GardenToken Contract
 /// @notice This contract manages the minting of Garden tokens and the creation of associated Garden accounts.
@@ -36,6 +36,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         string description,
         string location,
         string bannerImage,
+        bool openJoining,
         address[] gardeners,
         address[] operators
     );
@@ -48,6 +49,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         string location;
         string bannerImage;
         string metadata;
+        bool openJoining;
         address[] gardeners;
         address[] gardenOperators;
     }
@@ -139,6 +141,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
             config.description,
             config.location,
             config.bannerImage,
+            config.openJoining,
             config.gardeners,
             config.gardenOperators
         );
@@ -151,6 +154,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
             location: config.location,
             bannerImage: config.bannerImage,
             metadata: config.metadata,
+            openJoining: config.openJoining,
             gardeners: config.gardeners,
             gardenOperators: config.gardenOperators
         });
@@ -207,6 +211,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
                 config.description,
                 config.location,
                 config.bannerImage,
+                config.openJoining,
                 config.gardeners,
                 config.gardenOperators
             );
@@ -219,6 +224,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
                 location: config.location,
                 bannerImage: config.bannerImage,
                 metadata: config.metadata,
+                openJoining: config.openJoining,
                 gardeners: config.gardeners,
                 gardenOperators: config.gardenOperators
             });

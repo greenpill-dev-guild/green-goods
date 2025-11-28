@@ -10,9 +10,9 @@ import { type Hex } from "viem";
 import { type P256Credential } from "viem/account-abstraction";
 import { DEFAULT_CHAIN_ID } from "../config/blockchain";
 import {
+  authenticatePasskey,
   clearStoredCredential,
   type PasskeySession,
-  authenticatePasskey,
   registerPasskeySession,
   restorePasskeySession,
 } from "../modules/auth/passkey";
@@ -53,6 +53,39 @@ export function useOptionalPasskeyAuth(): PasskeyAuthContextType | undefined {
 
 export const PASSKEY_STORAGE_KEY = "greengoods_passkey_credential";
 const PASSKEY_SIGNED_OUT_KEY = "greengoods_passkey_signed_out";
+// Session marker to detect reinstalls - sessionStorage clears when app is fully closed
+const SESSION_MARKER_KEY = "greengoods_active_session";
+
+/**
+ * Check if this is a fresh app start (after reinstall or cold launch).
+ * If localStorage has auth but sessionStorage is empty, it's likely a reinstall.
+ *
+ * sessionStorage is cleared when:
+ * - PWA is fully closed and reopened
+ * - PWA is uninstalled and reinstalled
+ * - Browser tab/window is closed
+ *
+ * This ensures users must re-authenticate after reinstalling the app,
+ * while preserving local work data in IndexedDB.
+ */
+function checkFreshAppStart(): boolean {
+  const hasStoredCredential = !!localStorage.getItem(PASSKEY_STORAGE_KEY);
+  const hasActiveSession = sessionStorage.getItem(SESSION_MARKER_KEY) === "true";
+
+  // First run after install/reinstall: mark session as active
+  if (!hasActiveSession) {
+    sessionStorage.setItem(SESSION_MARKER_KEY, "true");
+
+    // If we have credentials but no active session, this is a reinstall/cold start
+    // Clear auth state to require re-authentication
+    if (hasStoredCredential) {
+      console.log("[Auth] Detected fresh app start - requiring re-authentication");
+      return true;
+    }
+  }
+
+  return false;
+}
 
 interface PasskeyAuthProviderProps {
   children: React.ReactNode;
@@ -77,6 +110,16 @@ export function PasskeyAuthProvider({
     let cancelled = false;
 
     const initialize = async () => {
+      // Check for fresh app start (reinstall detection)
+      // If detected, don't auto-restore - require user to re-authenticate
+      const isFreshStart = checkFreshAppStart();
+      if (isFreshStart) {
+        if (!cancelled) {
+          setIsInitialized(true);
+        }
+        return;
+      }
+
       const hasStoredCredential = !!localStorage.getItem(PASSKEY_STORAGE_KEY);
       const wasSignedOut = localStorage.getItem(PASSKEY_SIGNED_OUT_KEY) === "true";
 

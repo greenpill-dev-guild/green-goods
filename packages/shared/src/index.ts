@@ -110,6 +110,8 @@ export {
   validateApprovalDraft,
   getSubmissionStatusText,
   formatJobError,
+  submitWorkBot,
+  submitApprovalBot,
 } from "./modules/index";
 
 export type {
