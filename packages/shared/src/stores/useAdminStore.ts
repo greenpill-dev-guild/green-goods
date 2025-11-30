@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
+import { DEFAULT_CHAIN_ID } from "../config/blockchain";
 
 export interface Garden {
   id: string;
@@ -42,7 +43,7 @@ export interface AdminState {
 export const useAdminStore = create<AdminState>()(
   subscribeWithSelector((set, get) => ({
     // Chain management
-    selectedChainId: 42161, // Arbitrum default
+    selectedChainId: DEFAULT_CHAIN_ID,
     setSelectedChainId: (chainId) => set({ selectedChainId: chainId }),
 
     // Garden management

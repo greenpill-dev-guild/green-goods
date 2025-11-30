@@ -81,6 +81,7 @@ export {
   updateUserProfile,
   // data/pinata.ts
   initializePinata,
+  initializePinataFromEnv,
   resolveIPFSUrl,
   getFileByHash,
   uploadFileToIPFS,
@@ -133,9 +134,47 @@ export type {
 } from "./types/index";
 
 // ============================================================================
+// COMPONENTS
+// ============================================================================
+export {
+  StatusBadge,
+  getStatusColors,
+  Spinner,
+  CenteredSpinner,
+  HydrationFallback,
+  TranslationBadge,
+  // Form components
+  FormInput,
+  FormTextarea,
+  FormLayout,
+} from "./components/index";
+
+export type {
+  StatusBadgeProps,
+  WorkStatus,
+  SpinnerProps,
+  CenteredSpinnerProps,
+  HydrationFallbackProps,
+  // Form types
+  FormInputProps,
+  FormTextareaProps,
+  FormLayoutProps,
+} from "./components/index";
+
+// ============================================================================
 // UTILITIES
 // ============================================================================
 export {
+  // address.ts
+  compareAddresses,
+  isUserAddress,
+  isAddressInList,
+  truncateAddress,
+  normalizeAddress,
+  isValidAddressFormat,
+  // dispatch-adapter.ts
+  createDispatchAdapter,
+  createDispatchAdapters,
   // app/recursive-clone-children.tsx
   recursiveCloneChildren,
   // app/tags.tsx
@@ -179,6 +218,12 @@ export {
   // work/workActions.ts
   downloadWorkData,
   getWorkShareUrl,
+  // time.ts
+  formatRelativeTime,
+  normalizeTimestamp,
+  filterByTimeRange,
+  getTimeCutoff,
+  sortByCreatedAt,
   // translation-diagnostics.ts
   runTranslationDiagnostics,
 } from "./utils/index";

@@ -53,6 +53,7 @@ export {
 export {
   getFileByHash,
   initializePinata,
+  initializePinataFromEnv,
   // Alias for backward compatibility during migration if needed, or update consumers
   initializePinata as initializeStoracha,
   resolveAvatarUrl,

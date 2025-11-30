@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { createPublicClient, http } from "viem";
+import { DEFAULT_CHAIN_ID, getNetworkConfig } from "../../config/blockchain";
 import { useOptionalPasskeyAuth } from "../../providers/PasskeyAuthProvider";
 import { useOptionalWalletAuth } from "../../providers/WalletAuthProvider";
 import { useAdminStore, type AdminState } from "../../stores/useAdminStore";
@@ -39,6 +40,7 @@ export function useDeploymentRegistry(): DeploymentRegistryPermissions {
     passkeyAuth?.smartAccountAddress ?? passkeyAuth?.walletAddress ?? walletAuth?.address ?? null;
   const ready = passkeyAuth ? passkeyAuth.isReady : (walletAuth?.ready ?? false);
   const selectedChainId = useAdminStore((state: AdminState) => state.selectedChainId);
+  const chainId = selectedChainId || DEFAULT_CHAIN_ID;
   const [permissions, setPermissions] = useState<DeploymentRegistryPermissions>({
     isOwner: false,
     isInAllowlist: false,
@@ -61,8 +63,9 @@ export function useDeploymentRegistry(): DeploymentRegistryPermissions {
       setPermissions((prev) => ({ ...prev, loading: true, error: undefined }));
 
       try {
-        const contracts = getNetworkContracts(selectedChainId);
-        const chain = getChain(selectedChainId);
+        const contracts = getNetworkContracts(chainId);
+        const chain = getChain(chainId);
+        const networkConfig = getNetworkConfig(chainId);
 
         // If deployment registry is not configured, return false
         if (contracts.deploymentRegistry === "0x0000000000000000000000000000000000000000") {
@@ -75,26 +78,9 @@ export function useDeploymentRegistry(): DeploymentRegistryPermissions {
           return;
         }
 
-        const alchemyKey = import.meta.env.VITE_ALCHEMY_API_KEY || "demo";
-
-        let rpcUrl = "";
-        switch (selectedChainId) {
-          case 42161: // Arbitrum
-            rpcUrl = `https://arb-mainnet.g.alchemy.com/v2/${alchemyKey}`;
-            break;
-          case 42220: // Celo
-            rpcUrl = "https://forno.celo.org";
-            break;
-          case 84532: // Base Sepolia
-            rpcUrl = `https://base-sepolia.g.alchemy.com/v2/${alchemyKey}`;
-            break;
-          default:
-            rpcUrl = `https://arb-mainnet.g.alchemy.com/v2/${alchemyKey}`;
-        }
-
         const publicClient = createPublicClient({
           chain,
-          transport: http(rpcUrl),
+          transport: http(networkConfig.rpcUrl),
         });
 
         // Check if user is owner
@@ -134,7 +120,7 @@ export function useDeploymentRegistry(): DeploymentRegistryPermissions {
     }
 
     checkPermissions();
-  }, [address, ready, selectedChainId]);
+  }, [address, ready, chainId]);
 
   return permissions;
 }

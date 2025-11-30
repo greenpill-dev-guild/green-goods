@@ -1,9 +1,9 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared";
 import { useRole } from "@green-goods/shared/hooks";
 // Garden type is now global - no import needed
 import { RiPlantLine, RiUserLine } from "@remixicon/react";
 import { graphql } from "gql.tada";
 import { useQuery } from "urql";
-import { useChainId } from "wagmi";
 
 const GET_DASHBOARD_STATS = graphql(`
   query GetDashboardStats($chainId: Int!) {
@@ -18,10 +18,9 @@ const GET_DASHBOARD_STATS = graphql(`
 
 export default function Dashboard() {
   const { role, operatorGardens } = useRole();
-  const chainId = useChainId();
   const [{ data, fetching, error }] = useQuery({
     query: GET_DASHBOARD_STATS,
-    variables: { chainId },
+    variables: { chainId: DEFAULT_CHAIN_ID },
   });
 
   const gardens = data?.Garden || [];

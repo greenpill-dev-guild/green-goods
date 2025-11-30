@@ -1,13 +1,12 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared";
 import { useActions } from "@green-goods/shared/hooks";
 import { RiEditLine } from "@remixicon/react";
 import { Link, useParams } from "react-router-dom";
-import { useChainId } from "wagmi";
 import { PageHeader } from "@/components/Layout/PageHeader";
 
 export default function ActionDetail() {
   const { id } = useParams<{ id: string }>();
-  const chainId = useChainId();
-  const { data: actions = [] } = useActions(chainId);
+  const { data: actions = [] } = useActions(DEFAULT_CHAIN_ID);
   const action = actions.find((a) => a.id === id);
 
   if (!action) {

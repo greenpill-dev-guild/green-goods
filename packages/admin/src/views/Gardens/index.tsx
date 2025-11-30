@@ -1,3 +1,4 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared";
 import { useGardenPermissions } from "@green-goods/shared/hooks/garden";
 // Garden type is now global - no import needed
 import { resolveIPFSUrl } from "@green-goods/shared/modules";
@@ -6,7 +7,6 @@ import { graphql } from "gql.tada";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "urql";
-import { useChainId } from "wagmi";
 import { PageHeader } from "@/components/Layout/PageHeader";
 
 const GET_GARDENS = graphql(`
@@ -29,10 +29,9 @@ const GET_GARDENS = graphql(`
 
 export default function Gardens() {
   const gardenPermissions = useGardenPermissions();
-  const chainId = useChainId();
   const [{ data, fetching, error }] = useQuery({
     query: GET_GARDENS,
-    variables: { chainId },
+    variables: { chainId: DEFAULT_CHAIN_ID },
   });
 
   const gardens = (data?.Garden ?? []) as Garden[];

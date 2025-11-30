@@ -1,4 +1,4 @@
-import { initTheme } from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID, initTheme } from "@green-goods/shared";
 import { AppKitProvider, ClientAuthProvider } from "@green-goods/shared/providers";
 import { AppProvider } from "@green-goods/shared/providers/app";
 import { StrictMode } from "react";
@@ -44,7 +44,7 @@ export const Root = () => (
         url: import.meta.env.VITE_APP_URL || window.location.origin,
         icons: ["https://greengoods.app/icon.png"],
       }}
-      defaultChainId={84532}
+      defaultChainId={DEFAULT_CHAIN_ID}
     >
       <ClientAuthProvider>
         <AppProvider>

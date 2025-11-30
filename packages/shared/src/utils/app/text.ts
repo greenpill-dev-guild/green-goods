@@ -58,10 +58,8 @@ export function formatPrice(price: number | null, currency?: "ETH" | "USDC" | "O
 
 /** Converts a timestamp string into a human friendly "time ago" label. */
 export function formatLastUpdated(updatedAt: string) {
-  const updatedDate = new Date(updatedAt).getSeconds();
-  const now = new Date().getSeconds();
-
-  const differenceInSeconds = Math.floor((now - updatedDate) / 1000);
+  const updatedDate = new Date(updatedAt);
+  const differenceInSeconds = Math.floor((Date.now() - updatedDate.getTime()) / 1000);
 
   const intervals = [
     { label: "year", seconds: 31536000 },

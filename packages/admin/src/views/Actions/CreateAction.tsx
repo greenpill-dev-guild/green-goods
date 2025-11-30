@@ -1,10 +1,9 @@
-import { cn, toastService, uploadFileToIPFS } from "@green-goods/shared";
+import { cn, DEFAULT_CHAIN_ID, toastService, uploadFileToIPFS } from "@green-goods/shared";
 import { useActionOperations } from "@green-goods/shared/hooks";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import { useChainId } from "wagmi";
 import { z } from "zod";
 import { InstructionsBuilder } from "@/components/Action/InstructionsBuilder";
 import { FormWizard } from "@/components/Form/FormWizard";
@@ -55,8 +54,7 @@ const stepConfigs: Step[] = [
 
 export default function CreateAction() {
   const navigate = useNavigate();
-  const chainId = useChainId();
-  const { registerAction, isLoading } = useActionOperations(chainId);
+  const { registerAction, isLoading } = useActionOperations(DEFAULT_CHAIN_ID);
   const [currentStep, setCurrentStep] = useState(0);
 
   const form = useForm<CreateActionForm>({

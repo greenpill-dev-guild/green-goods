@@ -1,5 +1,21 @@
 // Re-export all utils organized by domain - EXPLICIT EXPORTS for tree-shaking
 
+// From address.ts
+export {
+  compareAddresses,
+  isUserAddress,
+  isAddressInList,
+  truncateAddress,
+  normalizeAddress,
+  isValidAddressFormat,
+} from "./address";
+
+// From dispatch-adapter.ts
+export {
+  createDispatchAdapter,
+  createDispatchAdapters,
+} from "./dispatch-adapter";
+
 export { copyToClipboard } from "./app/clipboard";
 export type { GardenMemberLike } from "./app/garden";
 export {
@@ -99,6 +115,7 @@ export {
   getTimeCutoff,
   normalizeTimestamp,
   sortByCreatedAt,
+  formatRelativeTime,
   type TimeFilter,
 } from "./time";
 // From translation-diagnostics.ts
