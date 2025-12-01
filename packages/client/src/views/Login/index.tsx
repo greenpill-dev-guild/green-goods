@@ -5,7 +5,7 @@ import { PASSKEY_STORAGE_KEY, type PasskeySession } from "@green-goods/shared/mo
 import { useClientAuth } from "@green-goods/shared/providers";
 import { useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { type LoadingState, Splash } from "@/components/Layout/Splash";
+import { type LoadingState, Splash } from "@/components/Layout";
 
 export function Login() {
   const location = useLocation();

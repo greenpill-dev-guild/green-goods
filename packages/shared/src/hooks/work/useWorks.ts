@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
 import { getWorks } from "../../modules/data/eas";
 import { jobQueue, jobQueueDB } from "../../modules/job-queue";
 import { jobQueueEventBus, useJobQueueEvents } from "../../modules/job-queue/event-bus";
@@ -49,12 +50,16 @@ export function useWorks(gardenId: string) {
         (job) => (job.payload as WorkJobPayload).gardenAddress === gardenId
       ) as Job<WorkJobPayload>[];
     },
-    // Reduce stale times for faster updates after transactions
-    staleTimeOnline: 15_000, // 15 seconds (previously 30s default)
-    staleTimeMerged: 5_000, // 5 seconds (keep responsive)
+    // Use centralized stale times
+    staleTimeOnline: STALE_TIMES.works,
+    staleTimeMerged: STALE_TIMES.merged,
     merge: async (onlineWorks, offlineJobs) => {
+      // Handle undefined data gracefully
+      const safeOnlineWorks = onlineWorks ?? [];
+      const safeOfflineJobs = offlineJobs ?? [];
+
       const offlineWorks = await Promise.all(
-        (offlineJobs || []).map(async (job) => {
+        safeOfflineJobs.map(async (job) => {
           const work = jobToWork(job as Job<WorkJobPayload>);
           const images = await jobQueueDB.getImagesForJob(job.id);
           work.media = images.map((img) => img.url);
@@ -66,11 +71,11 @@ export function useWorks(gardenId: string) {
       );
 
       const workMap = new Map<string, Work>();
-      (onlineWorks || []).forEach((work) => {
+      safeOnlineWorks.forEach((work) => {
         workMap.set(work.id, { ...work, status: "pending" as const });
       });
       offlineWorks.forEach((work) => {
-        const isDuplicate = (onlineWorks || []).some((onlineWork) => {
+        const isDuplicate = safeOnlineWorks.some((onlineWork) => {
           const timeDiff = Math.abs(onlineWork.createdAt - work.createdAt);
           return onlineWork.actionUID === work.actionUID && timeDiff < 5 * 60 * 1000;
         });
@@ -133,8 +138,8 @@ export function usePendingWorksCount() {
       const jobs = await jobQueue.getJobs({ kind: "work", synced: false });
       return jobs.length;
     },
-    staleTime: 5000, // 5 seconds (reduced for faster badge updates)
-    gcTime: 30000, // 30 seconds
+    staleTime: STALE_TIMES.queue,
+    gcTime: GC_TIMES.queue,
   });
 
   // Listen to events to update count
@@ -154,8 +159,8 @@ export function useQueueStatistics() {
   const query = useQuery({
     queryKey: queryKeys.queue.stats(),
     queryFn: () => jobQueue.getStats(),
-    staleTime: 5000, // 5 seconds (reduced for faster updates)
-    gcTime: 30000, // 30 seconds
+    staleTime: STALE_TIMES.queue,
+    gcTime: GC_TIMES.queue,
   });
 
   // Listen to events to update stats

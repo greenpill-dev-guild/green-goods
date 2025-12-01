@@ -2,8 +2,8 @@ import { useNavigateToTop } from "@green-goods/shared/hooks";
 import React, { forwardRef, memo, UIEvent, useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { FixedSizeList as List } from "react-window";
-import { MinimalWorkCard } from "@/components/UI/Card/WorkCard";
-import { BeatLoader } from "@/components/UI/Loader";
+import { MinimalWorkCard } from "@/components/Cards";
+import { BeatLoader } from "@/components/Communication";
 
 // import { cn } from "@green-goods/shared/utils/cn";
 

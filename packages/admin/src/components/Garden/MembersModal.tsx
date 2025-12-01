@@ -1,6 +1,6 @@
 import { RiCloseLine, RiDeleteBinLine, RiUserLine } from "@remixicon/react";
 import { type ReactNode, useEffect } from "react";
-import { AddressDisplay } from "../UI/AddressDisplay";
+import { AddressDisplay } from "../AddressDisplay";
 
 type MembersModalProps = {
   isOpen: boolean;

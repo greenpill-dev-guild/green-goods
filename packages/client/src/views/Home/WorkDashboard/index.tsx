@@ -9,8 +9,10 @@ import {
 import { jobQueue } from "@green-goods/shared/modules/job-queue";
 import {
   cn,
+  compareAddresses,
   convertJobsToWorks,
   filterByTimeRange,
+  isUserAddress as sharedIsUserAddress,
   type TimeFilter,
 } from "@green-goods/shared/utils";
 import { RiCheckLine, RiCloseLine, RiTimeLine } from "@remixicon/react";
@@ -18,7 +20,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { type StandardTab, StandardTabs } from "@/components/UI/Tabs";
+import { type StandardTab, StandardTabs } from "@/components/Navigation";
 import { CompletedTab } from "./Completed";
 import { PendingTab } from "./Pending";
 import { TimeFilterControl } from "./TimeFilterControl";
@@ -35,11 +37,9 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   const { user } = useUser();
   const activeAddress = user?.id;
 
-  // Helper to check if an address matches the current user
-  const isUserAddress = (address: string | undefined): boolean => {
-    if (!address || !activeAddress) return false;
-    return address.toLowerCase() === activeAddress.toLowerCase();
-  };
+  // Helper to check if an address matches the current user (wrapping shared util)
+  const isUserAddress = (address: string | undefined): boolean =>
+    sharedIsUserAddress(address, activeAddress);
 
   // Use the new hook for work approvals
   const { completedApprovals, isLoading, hasError, errorMessage } = useWorkApprovals(
@@ -307,8 +307,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     const badges: React.ReactNode[] = [];
     const isGardener = isUserAddress(item.gardenerAddress);
     const isOperator =
-      activeAddress &&
-      operatorGardenIds.some((id) => id.toLowerCase() === item.gardenAddress?.toLowerCase());
+      activeAddress && operatorGardenIds.some((id) => compareAddresses(id, item.gardenAddress));
     const reviewed = reviewedByYou.has(item.id);
 
     if (isOperator && !reviewed) {

@@ -1,5 +1,6 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
 import { useActionTranslation, useGardenTranslation } from "@green-goods/shared/hooks";
+import { findActionByUID } from "@green-goods/shared/utils";
 import {
   RiArrowRightSLine,
   RiCameraFill,
@@ -11,19 +12,17 @@ import {
 import React, { useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Button } from "@/components/UI/Button";
-import { ActionCardSkeleton } from "@/components/UI/Card/ActionCardSkeleton";
-import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
-import { FormInfo } from "@/components/UI/Form/Info";
-import { FormProgress } from "@/components/UI/Form/Progress";
-import { TopNav } from "@/components/UI/TopNav/TopNav";
+import { Button } from "@/components/Actions";
+import { ActionCardSkeleton, FormInfo, GardenCardSkeleton } from "@/components/Cards";
+import { FormProgress } from "@/components/Communication";
+import { TopNav } from "@/components/Navigation";
 
-// import { ActionCardSkeleton } from "@/components/UI/Card/ActionCardSkeleton";
-// import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
+// import { ActionCardSkeleton } from "@/components/CardsSkeleton";
+// import { GardenCardSkeleton } from "@/components/CardsSkeleton";
 
-import { useWork, WorkTab } from "@green-goods/shared/providers/work";
+import { useWork, WorkTab } from "@green-goods/shared/providers";
 import { useWorkFlowStore } from "@green-goods/shared/stores/useWorkFlowStore";
-import { WorkViewSkeleton } from "@/components/UI/WorkView/WorkView";
+import { WorkViewSkeleton } from "@/components/Work";
 import { WorkDetails } from "./Details";
 import { WorkIntro } from "./Intro";
 import { WorkMedia } from "./Media";
@@ -88,21 +87,9 @@ const Work: React.FC = () => {
 
   // Prefer resolved data from React Query
   // Helper to render Review step with data (never block UI; use fallbacks)
-  const getActionUIDFromId = (id?: string): number | null => {
-    if (!id) return null;
-    const last = String(id).split("-").pop();
-    const num = Number(last);
-    return Number.isFinite(num) ? num : null;
-  };
-
   const selectedAction = useMemo(() => {
     if (!actions.length || typeof actionUID !== "number") return null;
-    return (
-      actions.find((a: Action) => {
-        const uid = getActionUIDFromId(a.id);
-        return uid !== null && uid === actionUID;
-      }) || null
-    );
+    return findActionByUID(actions, actionUID);
   }, [actions, actionUID]);
 
   // Translate the selected action
@@ -268,20 +255,9 @@ const Work: React.FC = () => {
 
     // Check for duplicates first
     // Note: computedTitle could be used for duplicate detection if needed in future
-    try {
-      const found = actions.find((a: Action) => {
-        if (actionUID === undefined || actionUID === null) {
-          return false;
-        }
-        const idPart = a.id?.split("-").pop();
-        const numeric = Number(idPart);
-        return Number.isFinite(numeric) && numeric === actionUID;
-      });
-      // Action found validation (title could be used for deduplication)
-      if (!found) {
-        return false;
-      }
-    } catch {
+    const found = findActionByUID(actions, actionUID);
+    // Action found validation (title could be used for deduplication)
+    if (!found) {
       return false;
     }
 

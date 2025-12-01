@@ -1,13 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { toastService } from "../toast";
+import { queueToasts, toastService } from "../components/toast";
 import { DEFAULT_CHAIN_ID } from "../config/blockchain";
-import { queryKeys } from "../hooks/query-keys";
-// import { jobToWork } from "../hooks/useWorks";
-import { jobQueue } from "../modules/job-queue";
-// import { jobQueueEventBus } from "../modules/job-queue/event-bus";
 import { queryClient } from "../config/react-query";
-import { useUser } from "../hooks/auth/useUser";
 import { useAuth } from "../hooks/auth/useAuth";
+import { useUser } from "../hooks/auth/useUser";
+import { queryKeys } from "../hooks/query-keys";
+import { jobQueue } from "../modules/job-queue";
 
 interface JobQueueContextValue {
   stats: QueueStats;
@@ -84,118 +82,91 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
     };
 
+    // Event handlers organized by event type
+    const handleJobProcessing = () => {
+      setIsProcessing(true);
+      // Suppress toasts for background processing/retries to reduce noise
+    };
+
+    const handleJobCompleted = (event: QueueEvent) => {
+      setIsProcessing(false);
+      void refreshStats(abortController.signal);
+
+      if (!event.job || !event.txHash) return;
+
+      if (event.job.kind === "work") {
+        queueToasts.jobCompleted("work");
+        const workPayload = event.job.payload as WorkJobPayload;
+        const gardenId = workPayload.gardenAddress;
+        const chainId = (event.job.chainId as number) || DEFAULT_CHAIN_ID;
+        invalidateOnJobCompletedWork(gardenId, chainId);
+      } else if (event.job.kind === "approval") {
+        queueToasts.jobCompleted("approval");
+        const approvalPayload = event.job.payload as ApprovalJobPayload;
+
+        // Invalidate work approvals to show the new approval
+        if (smartAccountAddress) {
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.workApprovals.byAttester(smartAccountAddress, DEFAULT_CHAIN_ID),
+          });
+        }
+
+        // Update work status in cache if available
+        const workUID = approvalPayload.workUID;
+        queryClient.setQueriesData<Work[]>({ queryKey: queryKeys.works.all }, (oldWorks = []) =>
+          oldWorks.map((work) =>
+            work.id === workUID
+              ? { ...work, status: approvalPayload.approved ? "approved" : "rejected" }
+              : work
+          )
+        );
+      }
+    };
+
+    const handleJobFailed = (event: QueueEvent) => {
+      setIsProcessing(false);
+      void refreshStats(abortController.signal);
+
+      if (!event.job) return;
+
+      // Suppress error toasts for background retries
+      // Failures are visible in Work Dashboard/status UI
+      if (event.job.kind === "work") {
+        const workPayload = event.job.payload as WorkJobPayload;
+        const gardenId = workPayload.gardenAddress;
+        const chainId = (event.job.chainId as number) || DEFAULT_CHAIN_ID;
+        queryClient.invalidateQueries({ queryKey: queryKeys.works.offline(gardenId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
+      }
+    };
+
+    const handleJobAdded = (event: QueueEvent) => {
+      void refreshStats(abortController.signal);
+
+      if (event.job?.kind === "work") {
+        const workPayload = event.job.payload as WorkJobPayload;
+        const gardenId = workPayload.gardenAddress;
+        const chainId = (event.job.chainId as number) || DEFAULT_CHAIN_ID;
+        invalidateOnJobAddedWork(gardenId, chainId);
+      }
+
+      // Update global counts
+      queryClient.invalidateQueries({ queryKey: queryKeys.queue.pendingCount() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.queue.stats() });
+    };
+
+    // Handler map for cleaner event routing
+    const eventHandlers: Record<string, (event: QueueEvent) => void> = {
+      job_processing: handleJobProcessing,
+      job_completed: handleJobCompleted,
+      job_failed: handleJobFailed,
+      job_added: handleJobAdded,
+    };
+
     const handleQueueEvent = (event: QueueEvent) => {
       setLastEvent(event);
-
-      switch (event.type) {
-        case "job_processing":
-          setIsProcessing(true);
-          // Suppress toasts for background processing/retries to reduce noise
-          break;
-        case "job_completed":
-          setIsProcessing(false);
-          void refreshStats(abortController.signal);
-
-          // Handle optimistic updates for completed jobs
-          if (event.job && event.txHash) {
-            if (event.job.kind === "work") {
-              // Toast success for work upload
-              toastService.success({
-                id: `job-${event.job.id}-processing`,
-                title: "Work uploaded",
-                message: "Submission confirmed.",
-                context: "work upload",
-                suppressLogging: true,
-              });
-              const workPayload = event.job.payload as WorkJobPayload;
-              const gardenId = workPayload.gardenAddress;
-              const chainId = (event.job.chainId as number) || DEFAULT_CHAIN_ID;
-
-              // Invalidate specific garden queries using centralized keys
-              invalidateOnJobCompletedWork(gardenId, chainId);
-            } else if (event.job.kind === "approval") {
-              // Toast success for approval submission
-              toastService.success({
-                id: `job-${event.job.id}-processing`,
-                title: "Approval sent",
-                message: "Status updated.",
-                context: "approval submission",
-                suppressLogging: true,
-              });
-              const approvalPayload = event.job.payload as ApprovalJobPayload;
-
-              // Invalidate work approvals to show the new approval
-              if (smartAccountAddress) {
-                queryClient.invalidateQueries({
-                  queryKey: queryKeys.workApprovals.byAttester(
-                    smartAccountAddress,
-                    DEFAULT_CHAIN_ID
-                  ),
-                });
-              }
-
-              // Update work status in cache if available
-              const workUID = approvalPayload.workUID;
-              queryClient.setQueriesData<Work[]>(
-                { queryKey: queryKeys.works.all },
-                (oldWorks = []) => {
-                  return oldWorks.map((work) => {
-                    if (work.id === workUID) {
-                      return {
-                        ...work,
-                        status: approvalPayload.approved ? "approved" : "rejected",
-                      };
-                    }
-                    return work;
-                  });
-                }
-              );
-            }
-          }
-          break;
-        case "job_failed":
-          setIsProcessing(false);
-          void refreshStats(abortController.signal);
-
-          // Handle failed jobs
-          if (event.job) {
-            // Suppress error toasts for background retries
-            // Failures are visible in Work Dashboard/status UI
-
-            if (event.job.kind === "work") {
-              const workPayload = event.job.payload as WorkJobPayload;
-              const gardenId = workPayload.gardenAddress;
-
-              // Invalidate specific garden offline works to update status
-              const chainId = (event.job.chainId as number) || DEFAULT_CHAIN_ID;
-              queryClient.invalidateQueries({ queryKey: queryKeys.works.offline(gardenId) });
-              queryClient.invalidateQueries({
-                queryKey: queryKeys.works.merged(gardenId, chainId),
-              });
-            }
-          }
-          break;
-        case "job_added":
-          void refreshStats(abortController.signal);
-
-          // Refresh offline work queries when new jobs are added
-          if (event.job?.kind === "work") {
-            const workPayload = event.job.payload as WorkJobPayload;
-            const gardenId = workPayload.gardenAddress;
-            const chainId = (event.job.chainId as number) || DEFAULT_CHAIN_ID;
-
-            // Invalidate specific garden queries
-            invalidateOnJobAddedWork(gardenId, chainId);
-            // Reduce toast noise: avoid success on queued; optional subtle UI can reflect state
-          }
-
-          // Update global counts
-          queryClient.invalidateQueries({ queryKey: queryKeys.queue.pendingCount() });
-          queryClient.invalidateQueries({ queryKey: queryKeys.queue.stats() });
-          break;
-        default:
-          break;
-      }
+      const handler = eventHandlers[event.type];
+      if (handler) handler(event);
     };
 
     // Initial stats load
@@ -263,20 +234,9 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
         await refreshStats();
 
         if (result.processed > 0) {
-          toastService.success({
-            id: "job-queue-flush",
-            title: "Offline jobs synced",
-            message: `Processed ${result.processed} item${result.processed === 1 ? "" : "s"}.`,
-            context: "job queue",
-            suppressLogging: true,
-          });
+          queueToasts.syncSuccess(result.processed);
         } else if (result.failed > 0) {
-          toastService.error({
-            id: "job-queue-flush",
-            title: "Some jobs failed to sync",
-            message: "We'll retry automatically in the background.",
-            context: "job queue",
-          });
+          queueToasts.syncError();
         } else if (result.skipped > 0) {
           const isOnline = typeof navigator === "undefined" ? true : navigator.onLine;
           const reason = !isOnline
@@ -284,21 +244,9 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
             : !smartAccountClient
               ? "Unlock your passkey session to continue syncing."
               : "We'll retry shortly.";
-          toastService.info({
-            id: "job-queue-flush",
-            title: "Still queued",
-            message: reason,
-            context: "job queue",
-            suppressLogging: true,
-          });
+          queueToasts.stillQueued(reason);
         } else {
-          toastService.info({
-            id: "job-queue-flush",
-            title: "Queue is clear",
-            message: "No pending jobs to sync.",
-            context: "job queue",
-            suppressLogging: true,
-          });
+          queueToasts.queueClear();
         }
       } catch (error) {
         toastService.error({

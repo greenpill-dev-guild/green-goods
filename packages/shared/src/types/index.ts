@@ -1,12 +1,42 @@
-// Re-export all types - EXPLICIT EXPORTS for tree-shaking
+/**
+ * Type Exports
+ *
+ * This folder contains several categories of types:
+ *
+ * GLOBAL DECLARATIONS (*.d.ts - automatically available, not exported):
+ * - greengoods.d.ts - Core domain types (Garden, Work, Action, etc.)
+ * - job-queue.d.ts - Job queue and offline sync types
+ * - eas-responses.d.ts - EAS GraphQL response parsing types
+ * - offline.d.ts - Offline feature types
+ * - global.d.ts - JSX intrinsic elements (AppKit)
+ * - react-window.d.ts - React window virtualization types
+ *
+ * GRAPHQL INTROSPECTION (large generated files for gql.tada):
+ * - green-goods.d.ts - Green Goods indexer GraphQL types
+ * - eas.d.ts - EAS GraphQL types
+ *
+ * EXPORTED TYPES:
+ * - contracts.ts - Contract deployment types
+ * - blockchain.d.ts - Chain config types
+ * - auth.d.ts - Authentication context types
+ */
 
 // From contracts.ts
-export type {
-  NetworkContracts,
-  CreateGardenParams,
-  DeploymentParams,
-} from "./contracts";
+export type { CreateGardenParams, DeploymentParams, NetworkContracts } from "./contracts";
 
-// Note: Declaration files (*.d.ts) are automatically available globally and should not be exported
-// This includes: blockchain.d.ts, eas.d.ts, green-goods.d.ts, greengoods.d.ts, job-queue.d.ts,
-// global.d.ts, offline.d.ts, react-window.d.ts
+// From blockchain.d.ts
+export type { Address, ChainId, DeploymentConfig } from "./blockchain";
+
+// From auth.d.ts
+export type {
+  AuthMode,
+  BaseAuthContext,
+  ClientAuthContext,
+  PasskeyAuthContext,
+  UnifiedAuthContext,
+  WalletAuthContext,
+} from "./auth";
+export { hasSmartAccount, isPasskeyAuth, isWalletAuth } from "./auth";
+
+// Note: Global declaration files (*.d.ts with 'declare global' or 'declare interface')
+// are automatically available and should NOT be exported here.

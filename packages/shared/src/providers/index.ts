@@ -1,8 +1,30 @@
-// Re-export all providers
-export * from "./app";
-export * from "./AppKitProvider"; // Exports: AppKitProvider, useAppKit
-export * from "./WalletAuthProvider"; // Exports: WalletAuthProvider, useWalletAuth (Admin only)
-export * from "./PasskeyAuthProvider"; // Exports: PasskeyAuthProvider, usePasskeyAuth (Base passkey provider)
-export * from "./ClientAuthProvider"; // Exports: ClientAuthProvider, useClientAuth (Client orchestrator)
-export * from "./jobQueue";
-export * from "./work";
+// Providers — EXPLICIT EXPORTS for tree-shaking
+
+// App Provider
+export type {
+  AppDataProps,
+  InstallState,
+  Locale,
+  Platform,
+} from "./App";
+export {
+  AppContext,
+  AppProvider,
+  supportedLanguages,
+  useApp,
+} from "./App";
+
+// AppKit Provider
+export { AppKitProvider, useAppKit } from "./AppKitProvider";
+
+// Auth Providers
+export { WalletAuthProvider, useWalletAuth, useOptionalWalletAuth } from "./WalletAuth";
+export { PasskeyAuthProvider } from "./PasskeyAuth";
+export { ClientAuthProvider, useClientAuth } from "./ClientAuth";
+
+// Job Queue Provider
+export { JobQueueProvider, useJobQueue, useQueueFlush, useQueueStats } from "./JobQueue";
+
+// Work Provider
+export type { WorkDataProps } from "./Work";
+export { useWork, WorkProvider, WorkTab } from "./Work";

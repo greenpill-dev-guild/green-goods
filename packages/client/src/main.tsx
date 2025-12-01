@@ -4,10 +4,10 @@ import { AppProvider } from "@green-goods/shared/providers/app";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "@/App.tsx";
-import { AppErrorBoundary } from "@/components/UI/ErrorBoundary/AppErrorBoundary";
+import { AppErrorBoundary } from "@/components/Errors";
 
 import "@/index.css";
-import "@/pinata";
+import "@/config";
 
 // Initialize theme system
 initTheme();

@@ -19,7 +19,7 @@ import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
 import type { PasskeySession } from "../../modules/auth/passkey";
 import { simulateJoinGarden } from "../../utils/contract/simulation";
 import { GardenAccountABI } from "../../utils/contracts";
-import { isAlreadyGardenerError } from "../../utils/errors";
+import { isAlreadyGardenerError } from "../../utils/errors/contract-errors";
 import { useUser } from "../auth/useUser";
 import { useGardens } from "../blockchain/useBaseLists";
 import { queryInvalidation, queryKeys } from "../query-keys";

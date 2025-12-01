@@ -21,17 +21,17 @@ import {
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { Avatar } from "@/components/UI/Avatar/Avatar";
-import { Button } from "@/components/UI/Button";
-import { Card } from "@/components/UI/Card/Card";
-import { AddressCopy } from "@/components/UI/Clipboard";
+import { Avatar } from "@/components/Display";
+import { Button } from "@/components/Actions";
+import { Card } from "@/components/Cards";
 import {
+  AddressCopy,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/UI/Select/Select";
+} from "@/components/Inputs";
 
 interface ApplicationSettings {
   title: string;

@@ -1,9 +1,8 @@
 import { toastService } from "@green-goods/shared";
 import { useApp } from "@green-goods/shared/providers/app";
 import React, { useState } from "react";
-import { Footer } from "@/components/Layout/Footer";
-import { Header } from "@/components/Layout/Header";
-import { Hero } from "@/components/Layout/Hero";
+import { Footer, Header } from "@/components/Navigation";
+import { Hero } from "@/components/Layout";
 
 type LandingProps = {};
 

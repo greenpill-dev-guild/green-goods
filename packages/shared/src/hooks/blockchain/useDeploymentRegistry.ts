@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createPublicClient, http } from "viem";
 import { DEFAULT_CHAIN_ID, getNetworkConfig } from "../../config/blockchain";
-import { useOptionalPasskeyAuth } from "../../providers/PasskeyAuthProvider";
-import { useOptionalWalletAuth } from "../../providers/WalletAuthProvider";
-import { useAdminStore, type AdminState } from "../../stores/useAdminStore";
-import { getNetworkContracts, getChain } from "../../utils/contracts";
+import { useOptionalPasskeyAuth } from "../../providers/PasskeyAuth";
+import { useOptionalWalletAuth } from "../../providers/WalletAuth";
+import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
+import { compareAddresses } from "../../utils/address";
+import { getChain, getNetworkContracts } from "../../utils/contracts";
 
 // DeploymentRegistry ABI - only the functions we need
 const DEPLOYMENT_REGISTRY_ABI = [
@@ -98,7 +99,7 @@ export function useDeploymentRegistry(): DeploymentRegistryPermissions {
           args: [address as `0x${string}`],
         });
 
-        const isOwner = owner.toLowerCase() === address.toLowerCase();
+        const isOwner = compareAddresses(owner, address);
         const canDeploy = isOwner || isInAllowlist;
 
         setPermissions({

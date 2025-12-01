@@ -9,10 +9,9 @@ import { RiFilterLine } from "@remixicon/react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation } from "react-router-dom";
-import { Button } from "@/components/UI/Button";
-import { GardenCard } from "@/components/UI/Card/GardenCard";
-import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
-import { ModalDrawer } from "@/components/UI/ModalDrawer/ModalDrawer";
+import { Button } from "@/components/Actions";
+import { GardenCard, GardenCardSkeleton } from "@/components/Cards";
+import { ModalDrawer } from "@/components/Dialogs/ModalDrawer";
 import { WorkDashboardIcon } from "./WorkDashboard/Icon";
 
 type GardenFilterScope = "all" | "mine";

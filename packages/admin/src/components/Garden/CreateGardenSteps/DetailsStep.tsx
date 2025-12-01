@@ -6,7 +6,7 @@ import { uploadFileToIPFS, resolveIPFSUrl } from "@green-goods/shared/modules";
 import { RiLoader4Line } from "@remixicon/react";
 import { useEffect, useMemo, useState } from "react";
 import { isAddress } from "viem";
-import { FileUploadField } from "../../UI/FileUploadField";
+import { FileUploadField } from "../../FileUploadField";
 
 interface DetailsStepProps {
   form: {

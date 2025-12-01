@@ -24,56 +24,84 @@ export interface NetworkConfig {
   rootGarden?: { address: `0x${string}`; tokenId: number };
 }
 
+// Internal type for deployment JSON structure
+interface DeploymentConfig {
+  schemas?: {
+    gardenAssessmentSchemaUID?: string;
+    gardenAssessmentSchema?: string;
+    assessmentSchemaUID?: string;
+    assessmentSchema?: string;
+    workSchemaUID?: string;
+    workSchema?: string;
+    workApprovalSchemaUID?: string;
+    workApprovalSchema?: string;
+  };
+  eas?: {
+    address?: string;
+    schemaRegistry?: string;
+  };
+  gardenToken?: string;
+  actionRegistry?: string;
+  workResolver?: string;
+  workApprovalResolver?: string;
+  deploymentRegistry?: string;
+  rootGarden?: {
+    address: string;
+    tokenId: number;
+  };
+}
+
+// Internal type for network JSON structure
+interface NetworkJsonConfig {
+  chainId: number;
+  name: string;
+  rpcUrl: string;
+  blockExplorer: string | null;
+  nativeCurrency: { name: string; symbol: string; decimals: number };
+  contracts?: Record<string, string>;
+}
+
+// Configuration maps for chain-specific data
+const DEPLOYMENT_CONFIGS: Record<string, DeploymentConfig> = {
+  "31337": deployment31337 as DeploymentConfig,
+  "42161": deployment42161 as DeploymentConfig,
+  "42220": deployment42220 as DeploymentConfig,
+  "84532": deployment84532 as DeploymentConfig,
+};
+
+const EAS_GRAPHQL_URLS: Record<string, string> = {
+  "42161": "https://arbitrum.easscan.org/graphql",
+  "42220": "https://celo.easscan.org/graphql",
+  "84532": "https://base-sepolia.easscan.org/graphql",
+};
+
+const DEFAULT_EAS_GRAPHQL_URL = "https://base-sepolia.easscan.org/graphql";
+
 // Helper function to get network config by chain ID
-function getNetworkConfigFromNetworksJson(chainId: number) {
+function getNetworkConfigFromNetworksJson(chainId: number): NetworkJsonConfig {
   const networks = networksConfig.networks;
 
   // Find network by chain ID
   for (const config of Object.values(networks)) {
-    if ((config as any).chainId === chainId) {
-      return config as any;
+    if ((config as NetworkJsonConfig).chainId === chainId) {
+      return config as NetworkJsonConfig;
     }
   }
 
   // Fallback to Base Sepolia if not found
-  return networks.baseSepolia;
+  return networks.baseSepolia as NetworkJsonConfig;
 }
 
-// Function to safely import deployment files
-function getDeploymentConfig(chainId: number | string): any {
+// Function to safely get deployment config using map lookup
+function getDeploymentConfig(chainId: number | string): DeploymentConfig {
   const chain = String(chainId);
-  try {
-    switch (chain) {
-      case "31337":
-        return deployment31337;
-      case "42161":
-        return deployment42161;
-      case "42220":
-        return deployment42220;
-      case "84532":
-        return deployment84532;
-      default:
-        return {};
-    }
-  } catch {
-    return {};
-  }
+  return DEPLOYMENT_CONFIGS[chain] ?? {};
 }
 
-// Get EAS GraphQL URL based on chain
+// Get EAS GraphQL URL based on chain using map lookup
 export function getEasGraphqlUrl(chainId?: number | string): string {
   const chain = String(chainId ?? 84532);
-
-  switch (chain) {
-    case "42161":
-      return "https://arbitrum.easscan.org/graphql";
-    case "42220":
-      return "https://celo.easscan.org/graphql";
-    case "84532":
-      return "https://base-sepolia.easscan.org/graphql";
-    default:
-      return "https://base-sepolia.easscan.org/graphql";
-  }
+  return EAS_GRAPHQL_URLS[chain] ?? DEFAULT_EAS_GRAPHQL_URL;
 }
 
 // Function to get EAS config for a specific chain
@@ -108,10 +136,10 @@ export function getEASConfig(chainId?: number | string): EASConfig {
       schema: deployment.schemas?.workApprovalSchema || "",
     },
     EAS: {
-      address: deployment.eas?.address || networkConfig.contracts?.eas,
+      address: deployment.eas?.address || networkConfig.contracts?.eas || "",
     },
     SCHEMA_REGISTRY: {
-      address: deployment.eas?.schemaRegistry || networkConfig.contracts?.easSchemaRegistry,
+      address: deployment.eas?.schemaRegistry || networkConfig.contracts?.easSchemaRegistry || "",
     },
   };
 }
@@ -183,7 +211,7 @@ export function getNetworkConfig(chainId?: number | string, alchemyKey = "demo")
 }
 
 // Dynamically determine indexer URL based on environment
-export function getIndexerUrl(env: any, isDev: boolean): string {
+export function getIndexerUrl(env: { VITE_ENVIO_INDEXER_URL?: string }, isDev: boolean): string {
   // If explicitly set, use that
   if (env.VITE_ENVIO_INDEXER_URL) {
     return env.VITE_ENVIO_INDEXER_URL;

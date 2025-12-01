@@ -26,18 +26,85 @@
  * }
  * ```
  */
-import { useOptionalClientAuth } from "../../providers/ClientAuthProvider";
-import { useOptionalWalletAuth } from "../../providers/WalletAuthProvider";
 
-export { useClientAuth, type AuthMode } from "../../providers/ClientAuthProvider";
-export { usePasskeyAuth } from "../../providers/PasskeyAuthProvider";
-export { useWalletAuth } from "../../providers/WalletAuthProvider";
+import type { SmartAccountClient } from "permissionless";
+import type { Hex } from "viem";
+import { useOptionalClientAuth } from "../../providers/ClientAuth";
+import { useOptionalWalletAuth } from "../../providers/WalletAuth";
 
-export function useAuth() {
+export { type AuthMode, useClientAuth } from "../../providers/ClientAuth";
+export { usePasskeyAuth } from "../../providers/PasskeyAuth";
+export { useWalletAuth } from "../../providers/WalletAuth";
+
+/**
+ * Unified auth context returned by useAuth
+ * Contains common properties from both WalletAuth and ClientAuth
+ */
+interface UseAuthReturn {
+  // Unified auth interface properties
+  authMode: "wallet" | "passkey" | null;
+  eoaAddress: Hex | undefined;
+  smartAccountAddress: Hex | null | undefined;
+  smartAccountClient: SmartAccountClient | null | undefined;
+  isReady: boolean;
+  isAuthenticated: boolean;
+  isAuthenticating: boolean;
+
+  // Additional wallet properties (from ClientAuth)
+  walletAddress?: Hex | null;
+}
+
+/**
+ * Default auth state for when no provider is available
+ */
+const DEFAULT_AUTH: UseAuthReturn = {
+  authMode: null,
+  eoaAddress: undefined,
+  smartAccountAddress: undefined,
+  smartAccountClient: undefined,
+  isReady: false,
+  isAuthenticated: false,
+  isAuthenticating: false,
+};
+
+/**
+ * Universal auth hook that works with both Client and Admin auth providers
+ *
+ * Returns the active auth context, prioritizing ClientAuth (passkey + wallet)
+ * over WalletAuth (wallet only). If neither is available, returns a default
+ * unauthenticated state.
+ */
+export function useAuth(): UseAuthReturn {
   const clientAuth = useOptionalClientAuth();
   const walletAuth = useOptionalWalletAuth();
 
-  // Return whichever context is available, prioritizing client auth (more specific)
-  // If neither is available, return empty object (useUser handles this safely)
-  return clientAuth ?? walletAuth ?? {};
+  // Prioritize client auth (more specific - supports both passkey and wallet)
+  if (clientAuth) {
+    return {
+      authMode: clientAuth.authMode,
+      eoaAddress: clientAuth.eoaAddress,
+      smartAccountAddress: clientAuth.smartAccountAddress,
+      smartAccountClient: clientAuth.smartAccountClient,
+      isReady: clientAuth.isReady,
+      isAuthenticated: clientAuth.isAuthenticated,
+      isAuthenticating: clientAuth.isAuthenticating,
+      walletAddress: clientAuth.walletAddress,
+    };
+  }
+
+  // Fall back to wallet auth (admin package)
+  if (walletAuth) {
+    return {
+      authMode: walletAuth.authMode,
+      eoaAddress: walletAuth.eoaAddress,
+      smartAccountAddress: undefined,
+      smartAccountClient: undefined,
+      isReady: walletAuth.isReady,
+      isAuthenticated: walletAuth.isAuthenticated,
+      isAuthenticating: walletAuth.isAuthenticating,
+    };
+  }
+
+  // No provider available - return default unauthenticated state
+  return DEFAULT_AUTH;
 }

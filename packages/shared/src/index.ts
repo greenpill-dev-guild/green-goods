@@ -1,264 +1,411 @@
 // Main entry point for @green-goods/shared
-// EXPLICIT EXPORTS for tree-shaking
-
-// ============================================================================
-// CONFIG
-// ============================================================================
-export {
-  // app.ts
-  APP_NAME,
-  APP_DEFAULT_TITLE,
-  APP_TITLE_TEMPLATE,
-  APP_DESCRIPTION,
-  APP_URL,
-  APP_ICON,
-  ONBOARDED_STORAGE_KEY,
-  // appkit.ts
-  wagmiConfig,
-  appKit,
-  // blockchain.ts
-  getEasGraphqlUrl,
-  getEASConfig,
-  getNetworkConfig,
-  DEFAULT_CHAIN_ID,
-  getDefaultChain,
-  getIndexerUrl,
-  // chains.ts
-  SUPPORTED_CHAINS,
-  getChain,
-  getChainName,
-  isChainSupported,
-  // pimlico.ts
-  getPimlicoApiKey,
-  getPimlicoBundlerUrl,
-  getPimlicoPaymasterUrl,
-  createPimlicoClientForChain,
-  createPublicClientForChain,
-  // react-query.ts
-  queryClient,
-} from "./config/index";
-
-export type {
-  EASConfig,
-  NetworkConfig,
-  SupportedChainId,
-} from "./config/index";
-
-// ============================================================================
-// MODULES
-// ============================================================================
-export {
-  // app/posthog.ts
-  track,
-  identify,
-  reset,
-  getDistinctId,
-  trackOfflineEvent,
-  trackSyncPerformance,
-  trackAppLifecycle,
-  // app/service-worker.ts
-  serviceWorkerManager,
-  // auth/passkey.ts
-  PASSKEY_STORAGE_KEY,
-  clearStoredCredential,
-  recoverPasskeyAccount,
-  registerPasskeySession,
-  registerPasskeySessionWithENS,
-  restorePasskeySession,
-  // data/eas.ts
-  getGardenAssessments,
-  getWorks,
-  getWorksByGardener,
-  getWorkApprovals,
-  // data/graphql.ts
-  easGraphQL,
-  greenGoodsGraphQL,
-  // data/greengoods.ts
-  Capital,
-  getActions,
-  getGardens,
-  getGardeners,
-  updateUserProfile,
-  // data/pinata.ts
-  initializePinata,
-  initializePinataFromEnv,
-  resolveIPFSUrl,
-  getFileByHash,
-  uploadFileToIPFS,
-  uploadJSONToIPFS,
-  // data/urql.ts
-  createEasClient,
-  createIndexerClient,
-  createGreenGoodsIndexerClient,
-  greenGoodsIndexer,
-  // job-queue/index.ts
-  createOfflineTxHash,
-  jobQueue,
-  jobQueueDB,
-  jobQueueEventBus,
-  useJobQueueEvents,
-  // translation/
-  browserTranslator,
-  translationCache,
-  // work/deduplication.ts - REMOVED (implementation missing)
-  // DeduplicationManager,
-  // defaultDeduplicationManager,
-  // work/passkey-submission.ts
-  submitWorkWithPasskey,
-  submitApprovalWithPasskey,
-  // work/work-submission.ts
-  validateWorkDraft,
-  validateApprovalDraft,
-  getSubmissionStatusText,
-  formatJobError,
-  submitWorkBot,
-  submitApprovalBot,
-} from "./modules/index";
-
-export type {
-  PasskeySession,
-  FragmentOf,
-  ResultOf,
-  VariablesOf,
-  PasskeyWorkSubmissionParams,
-  PasskeyApprovalSubmissionParams,
-} from "./modules/index";
-
-// ============================================================================
-// TYPES
-// ============================================================================
-export type {
-  NetworkContracts,
-  CreateGardenParams,
-  DeploymentParams,
-} from "./types/index";
+// EXPLICIT EXPORTS for tree-shaking - organized by category
 
 // ============================================================================
 // COMPONENTS
 // ============================================================================
-export {
-  StatusBadge,
-  getStatusColors,
-  Spinner,
-  CenteredSpinner,
-  HydrationFallback,
-  TranslationBadge,
-  // Form components
-  FormInput,
-  FormTextarea,
-  FormLayout,
-} from "./components/index";
-
 export type {
-  StatusBadgeProps,
-  WorkStatus,
-  SpinnerProps,
   CenteredSpinnerProps,
-  HydrationFallbackProps,
-  // Form types
   FormInputProps,
-  FormTextareaProps,
   FormLayoutProps,
+  FormTextareaProps,
+  HydrationFallbackProps,
+  SpinnerProps,
+  StatusBadgeProps,
+  ToastAction,
+  ToastDescriptor,
+  ToastHandle,
+  ToastStatus,
+  ToastTranslator,
+  ToastViewportProps,
+  WorkStatus,
+} from "./components/index";
+export {
+  CenteredSpinner,
+  FormInput,
+  FormLayout,
+  FormTextarea,
+  getStatusColors,
+  HydrationFallback,
+  Spinner,
+  StatusBadge,
+  setToastTranslator,
+  ToastViewport,
+  TranslationBadge,
+  toastService,
 } from "./components/index";
 
+// ============================================================================
+// CONFIG
+// ============================================================================
+export type { EASConfig, NetworkConfig, SupportedChainId } from "./config/index";
+export {
+  APP_DEFAULT_TITLE,
+  APP_DESCRIPTION,
+  APP_ICON,
+  APP_NAME,
+  APP_TITLE_TEMPLATE,
+  APP_URL,
+  appKit,
+  createPimlicoClientForChain,
+  createPublicClientForChain,
+  DEFAULT_CHAIN_ID,
+  GC_TIMES,
+  getChain,
+  getChainName,
+  getDefaultChain,
+  getEASConfig,
+  getEasGraphqlUrl,
+  getIndexerUrl,
+  getNetworkConfig,
+  getPimlicoApiKey,
+  getPimlicoBundlerUrl,
+  getPimlicoPaymasterUrl,
+  isChainSupported,
+  ONBOARDED_STORAGE_KEY,
+  queryClient,
+  STALE_TIMES,
+  SUPPORTED_CHAINS,
+  wagmiConfig,
+} from "./config/index";
+
+// ============================================================================
+// HOOKS
+// ============================================================================
+export type {
+  CreateAssessmentForm,
+  DeploymentRegistryPermissions,
+  EnhancedWorkApproval,
+  GardenerProfile,
+  GardenInvite,
+  GardenOperationConfig,
+  GardenPermissions,
+  QueryKey,
+  QueueQueryKey,
+  RoleInfo,
+  ToastActionOptions,
+  UserRole,
+  WorkFormData,
+  WorksQueryKey,
+} from "./hooks/index";
+export {
+  checkGardenOpenJoining,
+  checkMembership,
+  createGardenOperation,
+  ensureBaseLists,
+  GARDEN_OPERATIONS,
+  GardenTab,
+  isGardenMember,
+  jobToWork,
+  queryInvalidation,
+  queryKeys,
+  useActionOperations,
+  useActions,
+  useActionTranslation,
+  useAuth,
+  useAutoJoinRootGarden,
+  useBrowserNavigation,
+  useChainConfig,
+  useClientAuth,
+  useCreateAssessmentWorkflow,
+  useCreateGardenWorkflow,
+  useCurrentChain,
+  useDeploymentRegistry,
+  useEASConfig,
+  useEnsAddress,
+  useEnsAvatar,
+  useEnsName,
+  useGardenAssessments,
+  useGardenerProfile,
+  useGardeners,
+  useGardenInvites,
+  useGardenOperations,
+  useGardenPermissions,
+  useGardens,
+  useGardenTabs,
+  useGardenTranslation,
+  useJoinGarden,
+  useMerged,
+  useMyMergedWorks,
+  useMyOnlineWorks,
+  useMyWorks,
+  useNavigateToTop,
+  useNetworkConfig,
+  useOffline,
+  usePasskeyAuth,
+  usePendingWorksCount,
+  useQueueStatistics,
+  useRole,
+  useScrollReveal,
+  useTheme,
+  useToastAction,
+  useTranslation,
+  useUser,
+  useWalletAuth,
+  useWorkApproval,
+  useWorkApprovals,
+  useWorkForm,
+  useWorkImages,
+  useWorkMutation,
+  useWorks,
+  workFormSchema,
+} from "./hooks/index";
+// ============================================================================
+// I18N
+// ============================================================================
+export { en, es, pt } from "./i18n/index";
+// ============================================================================
+// MODULES
+// ============================================================================
+export type {
+  FragmentOf,
+  PasskeyApprovalSubmissionParams,
+  PasskeySession,
+  PasskeyWorkSubmissionParams,
+  ResultOf,
+  VariablesOf,
+} from "./modules/index";
+export {
+  // Session management
+  AUTH_MODE_STORAGE_KEY,
+  authenticatePasskey,
+  browserTranslator,
+  Capital,
+  checkAndHandleFreshStart,
+  clearAllAuthStorage,
+  clearAuthMode,
+  clearPasskeySignedOut,
+  clearSignedOut,
+  clearStoredCredential,
+  createEasClient,
+  createGreenGoodsIndexerClient,
+  createIndexerClient,
+  createOfflineTxHash,
+  easGraphQL,
+  formatJobError,
+  getActions,
+  getDistinctId,
+  getFileByHash,
+  getGardenAssessments,
+  getGardeners,
+  getGardens,
+  getSavedAuthMode,
+  getSubmissionStatusText,
+  getWorkApprovals,
+  getWorks,
+  getWorksByGardener,
+  greenGoodsGraphQL,
+  greenGoodsIndexer,
+  hasStoredPasskeyCredential,
+  identify,
+  initializePinata,
+  initializePinataFromEnv,
+  isFreshAppStart,
+  jobQueue,
+  jobQueueDB,
+  jobQueueEventBus,
+  markSessionActive,
+  PASSKEY_SIGNED_OUT_KEY,
+  PASSKEY_STORAGE_KEY,
+  recoverPasskeyAccount,
+  registerPasskeySession,
+  registerPasskeySessionWithENS,
+  reset,
+  resolveAvatarUrl,
+  resolveImageUrl,
+  resolveIPFSUrl,
+  restorePasskeySession,
+  runTranslationDiagnostics,
+  SESSION_MARKER_KEY,
+  SIGNED_OUT_KEY,
+  saveAuthMode,
+  serviceWorkerManager,
+  setPasskeySignedOut,
+  setSignedOut,
+  submitApprovalBot,
+  submitApprovalWithPasskey,
+  submitWorkBot,
+  submitWorkWithPasskey,
+  track,
+  trackAppLifecycle,
+  trackOfflineEvent,
+  trackSyncPerformance,
+  translationCache,
+  updateUserProfile,
+  uploadFileToIPFS,
+  uploadJSONToIPFS,
+  useJobQueueEvents,
+  validateApprovalDraft,
+  validateWorkDraft,
+  wasExplicitlySignedOut,
+  wasPasskeySignedOut,
+} from "./modules/index";
+// ============================================================================
+// PROVIDERS (re-export via subpath import recommended: @green-goods/shared/providers)
+// ============================================================================
+export {
+  AppKitProvider,
+  AppProvider,
+  ClientAuthProvider,
+  JobQueueProvider,
+  PasskeyAuthProvider,
+  useAppKit,
+  useClientAuth as useClientAuthProvider,
+  useJobQueue,
+  useWork,
+  WalletAuthProvider,
+  WorkProvider,
+} from "./providers/index";
+// ============================================================================
+// STORES (re-export via subpath import recommended: @green-goods/shared/stores)
+// ============================================================================
+export {
+  type AdminState,
+  type CreateGardenFormState,
+  type CreateGardenStep,
+  type UIState,
+  useAdminStore,
+  useCreateGardenStore,
+  useUIStore,
+  useWorkFlowStore,
+  type WorkDraftState,
+  type WorkFlowState,
+  WorkTab,
+} from "./stores/index";
+// ============================================================================
+// TYPES
+// ============================================================================
+export type {
+  Address,
+  AuthMode,
+  BaseAuthContext,
+  ChainId,
+  ClientAuthContext,
+  CreateGardenParams,
+  DeploymentConfig,
+  DeploymentParams,
+  NetworkContracts,
+  PasskeyAuthContext,
+  UnifiedAuthContext,
+  WalletAuthContext,
+} from "./types/index";
+export { hasSmartAccount, isPasskeyAuth, isWalletAuth } from "./types/index";
 // ============================================================================
 // UTILITIES
 // ============================================================================
-export {
-  // address.ts
-  compareAddresses,
-  isUserAddress,
-  isAddressInList,
-  truncateAddress,
-  normalizeAddress,
-  isValidAddressFormat,
-  // dispatch-adapter.ts
-  createDispatchAdapter,
-  createDispatchAdapters,
-  // app/recursive-clone-children.tsx
-  recursiveCloneChildren,
-  // app/tags.tsx
-  getTag,
-  // app/text.ts
-  formatAddress,
-  truncate,
-  isValidEmail,
-  truncateDescription,
-  formatPrice,
-  formatLastUpdated,
-  capitalize,
-  // blockchain/chainId.ts
-  extractIdFromChainString,
-  compareChainId,
-  // cn.ts
-  cn,
-  // contracts.ts
-  GardenTokenABI,
-  GardenAccountABI,
-  ActionRegistryABI,
-  getNetworkContracts,
-  createClients,
-  // debug.ts
-  DEBUG_ENABLED,
-  debugLog,
-  debugWarn,
-  debugError,
-  // eas/encoders.ts
-  encodeWorkApprovalData,
-  // eas/explorers.ts
-  getEASExplorerUrl,
-  openEASExplorer,
-  isValidAttestationId,
-  // urql.ts
-  createUrqlClient,
-  // work/image-compression.ts
-  imageCompressor,
-  formatFileSize,
-  calculateCompressionRatio,
-  // work/workActions.ts
-  downloadWorkData,
-  getWorkShareUrl,
-  // time.ts
-  formatRelativeTime,
-  normalizeTimestamp,
-  filterByTimeRange,
-  getTimeCutoff,
-  sortByCreatedAt,
-  // translation-diagnostics.ts
-  runTranslationDiagnostics,
-} from "./utils/index";
-
 export type {
   ClassValue,
-  PolymorphicRef,
-  PolymorphicComponentPropsWithRef,
-  PolymorphicComponentProps,
-  PolymorphicComponent,
   CompressionOptions,
   CompressionResult,
   CompressionStats,
+  FormatAddressOptions,
+  FormatAddressVariant,
+  GardenMemberLike,
+  ParsedContractError,
+  PolymorphicComponent,
+  PolymorphicComponentProps,
+  PolymorphicComponentPropsWithRef,
+  PolymorphicRef,
+  Resolved,
+  ResolveEnsAddressOptions,
+  ResolveEnsOptions,
+  SimulationResult,
+  Theme,
+  TimeFilter,
   WorkData,
+} from "./utils/index";
+export {
+  ActionRegistryABI,
+  batchSimulate,
+  buildGardenMemberSets,
+  calculateCompressionRatio,
+  capitalize,
+  clearFormDraft,
+  cn,
+  compareAddresses,
+  compareChainId,
+  convertJobsToWorks,
+  copyToClipboard,
+  createClients,
+  createDispatchAdapter,
+  createDispatchAdapters,
+  createUrqlClient,
+  DEBUG_ENABLED,
+  debugError,
+  debugLog,
+  debugWarn,
+  deduplicateByFuzzyMatch,
+  deduplicateById,
+  defaultTemplate,
+  downloadWorkData,
+  encodeWorkApprovalData,
+  extractClientWorkId,
+  extractIdFromChainString,
+  fetchOfflineWorks,
+  filterByTimeRange,
+  formatAddress,
+  formatErrorForToast,
+  formatFileSize,
+  formatLastUpdated,
+  formatPrice,
+  formatRelativeTime,
+  formatUserError,
+  formatWalletError,
+  GardenAccountABI,
+  GardenTokenABI,
+  gardenHasMember,
+  getEASExplorerUrl,
+  getNetworkContracts,
+  getResolvedTheme,
+  getTag,
+  getTheme,
+  getTimeCutoff,
+  getWorkShareUrl,
+  imageCompressor,
+  initTheme,
+  instructionTemplates,
+  isAddressInList,
+  isAlreadyGardenerError,
+  isNotGardenerError,
+  isUserAddress,
+  isValidAddressFormat,
+  isValidAttestationId,
+  isValidEmail,
+  listenToSystemChanges,
+  loadFormDraft,
+  mergeAndDeduplicateByClientId,
+  normalizeAddress,
+  normalizeTimestamp,
+  openEASExplorer,
+  parseAndFormatError,
+  parseContractError,
+  pollQueriesAfterTransaction,
+  pollQueryAfterTransaction,
+  recursiveCloneChildren,
+  registerErrorSignature,
+  resolveEnsAddress,
+  resolveEnsName,
+  resolveGardenMemberKey,
+  saveFormDraft,
+  setTheme,
+  simulateJoinGarden,
+  simulateTransaction,
+  sortByCreatedAt,
+  toggle,
+  truncate,
+  truncateAddress,
+  truncateDescription,
+  USER_FRIENDLY_ERRORS,
 } from "./utils/index";
 
 // ============================================================================
-// THEME
+// WORKFLOWS (re-export via subpath import recommended: @green-goods/shared/workflows)
 // ============================================================================
 export {
-  getTheme,
-  setTheme,
-  toggle,
-  getResolvedTheme,
-  initTheme,
-} from "./theme";
-export type { Theme, Resolved } from "./theme";
-
-// ============================================================================
-// TOAST
-// ============================================================================
-export { ToastViewport, toastService } from "./toast";
-export type {
-  ToastViewportProps,
-  ToastDescriptor,
-  ToastStatus,
-  ToastAction,
-} from "./toast";
+  type AssessmentContext,
+  type AssessmentEvent,
+  type CreateGardenContext,
+  type CreateGardenEvent,
+  createAssessmentMachine,
+  createGardenMachine,
+} from "./workflows/index";

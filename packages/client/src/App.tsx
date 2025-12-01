@@ -9,7 +9,7 @@ import {
 import { createStore, del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
 import { useEffect } from "react";
 import { RouterProvider } from "react-router-dom";
-import { AppErrorBoundary } from "@/components/UI/ErrorBoundary/AppErrorBoundary";
+import { AppErrorBoundary } from "@/components/Errors";
 import "@green-goods/shared/modules/app/service-worker"; // Initialize service worker
 import { router } from "@/router";
 

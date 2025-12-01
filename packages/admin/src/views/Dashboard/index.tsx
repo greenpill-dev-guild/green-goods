@@ -1,35 +1,15 @@
-import { DEFAULT_CHAIN_ID } from "@green-goods/shared";
-import { useRole } from "@green-goods/shared/hooks";
-// Garden type is now global - no import needed
+import { useGardens, useRole } from "@green-goods/shared/hooks";
 import { RiPlantLine, RiUserLine } from "@remixicon/react";
-import { graphql } from "gql.tada";
-import { useQuery } from "urql";
-
-const GET_DASHBOARD_STATS = graphql(`
-  query GetDashboardStats($chainId: Int!) {
-    Garden(where: {chainId: {_eq: $chainId}}) {
-      id
-      name
-      operators
-      gardeners
-    }
-  }
-`);
 
 export default function Dashboard() {
   const { role, operatorGardens } = useRole();
-  const [{ data, fetching, error }] = useQuery({
-    query: GET_DASHBOARD_STATS,
-    variables: { chainId: DEFAULT_CHAIN_ID },
-  });
-
-  const gardens = data?.Garden || [];
+  const { data: gardens = [], isLoading, error } = useGardens();
   const totalGardens = gardens.length;
   const userOperatorGardens = operatorGardens.length;
-  const totalOperators = new Set((gardens as Garden[]).flatMap((g) => g.operators)).size;
-  const totalGardeners = new Set((gardens as Garden[]).flatMap((g) => g.gardeners)).size;
+  const totalOperators = new Set(gardens.flatMap((g) => g.operators)).size;
+  const totalGardeners = new Set(gardens.flatMap((g) => g.gardeners)).size;
 
-  if (fetching) {
+  if (isLoading) {
     return (
       <div className="p-6">
         <div className="animate-pulse space-y-4">
@@ -61,7 +41,10 @@ export default function Dashboard() {
             <div className="ml-3">
               <h3 className="text-sm font-medium text-warning-dark">Indexer Connection Issue</h3>
               <div className="mt-2 text-sm text-warning-dark">
-                <p>Unable to connect to the indexer: {error.message}</p>
+                <p>
+                  Unable to connect to the indexer:{" "}
+                  {error instanceof Error ? error.message : "Unknown error"}
+                </p>
                 <p className="mt-1">
                   The dashboard will work with limited functionality. Garden operations are still
                   available.
@@ -197,7 +180,7 @@ export default function Dashboard() {
                   </div>
                 </div>
               ))
-            : (gardens as Garden[]).slice(0, 5).map((garden: Garden) => (
+            : gardens.slice(0, 5).map((garden) => (
                 <div
                   key={garden.id}
                   className="flex items-center justify-between py-3 border-b border-stroke-soft last:border-b-0"

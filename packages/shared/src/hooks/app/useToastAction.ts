@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useIntl } from "react-intl";
-import { toastService } from "../../toast";
+import { toastService } from "../../components/toast";
 
 export interface ToastActionOptions {
   loadingMessage?: string;

@@ -1,6 +1,6 @@
 import { useContext } from "react";
-import { AppContext } from "../providers/app";
 import { browserTranslator } from "../modules/translation/browser-translator";
+import { AppContext } from "../providers/App";
 
 export function TranslationBadge() {
   const { locale } = useContext(AppContext);

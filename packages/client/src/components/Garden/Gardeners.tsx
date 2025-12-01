@@ -13,10 +13,10 @@ import React, { forwardRef, memo, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useIntl } from "react-intl";
 import { FixedSizeList as List } from "react-window";
-import { Avatar, AvatarFallback, AvatarImage, AvatarSkeleton } from "@/components/UI/Avatar/Avatar";
-import { Badge } from "@/components/UI/Badge/Badge";
-import { Button } from "@/components/UI/Button";
-import { AddressCopy } from "@/components/UI/Clipboard";
+import { Avatar, AvatarFallback, AvatarImage, AvatarSkeleton } from "@/components/Display";
+import { Badge } from "@/components/Communication";
+import { Button } from "@/components/Actions";
+import { AddressCopy } from "@/components/Inputs";
 
 export type GardenMember = GardenerCard & {
   account: string;

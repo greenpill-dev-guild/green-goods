@@ -1,6 +1,7 @@
 import { useMemo } from "react";
-import { useOptionalPasskeyAuth } from "../../providers/PasskeyAuthProvider";
-import { useOptionalWalletAuth } from "../../providers/WalletAuthProvider";
+import { useOptionalPasskeyAuth } from "../../providers/PasskeyAuth";
+import { useOptionalWalletAuth } from "../../providers/WalletAuth";
+import { isAddressInList } from "../../utils/address";
 
 export interface GardenPermissions {
   canManageGarden: (garden: Garden) => boolean;
@@ -19,8 +20,7 @@ export function useGardenPermissions(): GardenPermissions {
 
   const permissions = useMemo(() => {
     const isOperatorOfGarden = (garden: Garden): boolean => {
-      if (!address || !garden.operators) return false;
-      return garden.operators.map((op) => op.toLowerCase()).includes(address.toLowerCase());
+      return isAddressInList(address, garden.operators);
     };
 
     const canViewGarden = (_garden: Garden): boolean => {

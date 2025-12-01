@@ -3,7 +3,7 @@ import { StatusBadge } from "@green-goods/shared/components";
 import { formatRelativeTime } from "@green-goods/shared/utils";
 import { RiImageLine, RiTimeLine, RiUserLine } from "@remixicon/react";
 import { Link } from "react-router-dom";
-import { AddressDisplay } from "@/components/UI/AddressDisplay";
+import { AddressDisplay } from "@/components/AddressDisplay";
 
 interface WorkCardProps {
   work: Work;

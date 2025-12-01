@@ -10,7 +10,11 @@ import {
 } from "@green-goods/shared/hooks";
 import { getFileByHash, useJobQueueEvents } from "@green-goods/shared/modules";
 import { jobQueue } from "@green-goods/shared/modules/job-queue";
-import { cn } from "@green-goods/shared/utils";
+import {
+  cn,
+  isUserAddress as sharedIsUserAddress,
+  isAddressInList,
+} from "@green-goods/shared/utils";
 import { debugWarn } from "@green-goods/shared/utils/debug";
 import { isValidAttestationId, openEASExplorer } from "@green-goods/shared/utils/eas/explorers";
 import {
@@ -32,9 +36,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useOutletContext, useParams } from "react-router-dom";
-import { Button } from "@/components/UI/Button";
-import { TopNav } from "@/components/UI/TopNav/TopNav";
-import { WorkViewSkeleton } from "@/components/UI/WorkView/WorkView";
+import { Button } from "@/components/Actions";
+import { TopNav } from "@/components/Navigation";
+import { WorkViewSkeleton } from "@/components/Work";
 import { WorkCompleted } from "../../Garden/Completed";
 import WorkViewSection from "./WorkViewSection";
 
@@ -72,21 +76,15 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   const activeAddress = user?.id;
   const [isRetrying, setIsRetrying] = useState(false);
 
-  // Helper to check if an address matches the current user
-  const isUserAddress = (address: string | undefined): boolean => {
-    if (!address || !activeAddress) return false;
-    return address.toLowerCase() === activeAddress.toLowerCase();
-  };
-
   // Determine user role and viewing mode
   const viewingMode = useMemo<"operator" | "gardener" | "viewer">(() => {
     if (!garden || !work) return "viewer";
 
     // Check if user is garden operator
-    const isOperator = garden.operators?.some((op) => isUserAddress(op));
+    const isOperator = isAddressInList(activeAddress, garden.operators);
 
     // Check if user is the gardener who submitted the work
-    const isGardener = isUserAddress(work.gardenerAddress);
+    const isGardener = sharedIsUserAddress(work.gardenerAddress, activeAddress);
 
     if (isOperator) return "operator";
     if (isGardener) return "gardener";

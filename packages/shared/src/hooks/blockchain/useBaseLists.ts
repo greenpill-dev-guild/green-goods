@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
 import { getActions, getGardeners, getGardens } from "../../modules/data/greengoods";
 import { queryKeys } from "../query-keys";
 
@@ -8,7 +9,8 @@ export function useActions(chainId: number = DEFAULT_CHAIN_ID) {
   return useQuery({
     queryKey: queryKeys.actions.byChain(chainId),
     queryFn: () => getActions(),
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: STALE_TIMES.baseLists,
+    gcTime: GC_TIMES.baseLists,
   });
 }
 
@@ -17,7 +19,8 @@ export function useGardens(chainId: number = DEFAULT_CHAIN_ID) {
   return useQuery({
     queryKey: queryKeys.gardens.byChain(chainId),
     queryFn: () => getGardens(),
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: STALE_TIMES.baseLists,
+    gcTime: GC_TIMES.baseLists,
   });
 }
 
@@ -26,6 +29,7 @@ export function useGardeners() {
   return useQuery({
     queryKey: queryKeys.gardeners.all,
     queryFn: () => getGardeners(),
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: STALE_TIMES.baseLists,
+    gcTime: GC_TIMES.baseLists,
   });
 }

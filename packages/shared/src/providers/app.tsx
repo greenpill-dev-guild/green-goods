@@ -5,6 +5,14 @@ import { IntlProvider } from "react-intl";
 import enMessages from "../i18n/en.json";
 import esMessages from "../i18n/es.json";
 import ptMessages from "../i18n/pt.json";
+import { track } from "../modules/app/posthog";
+import {
+  getMobileOperatingSystem,
+  isAppInstalled,
+  isMobilePlatform,
+  isStandaloneMode,
+  type Platform,
+} from "../utils/app/pwa";
 
 const messages = {
   en: enMessages,
@@ -12,12 +20,10 @@ const messages = {
   es: esMessages,
 };
 
-import { track } from "../modules/app/posthog";
-
 export type InstallState = "idle" | "not-installed" | "installed" | "unsupported";
 export const supportedLanguages = ["en", "pt", "es"] as const;
 export type Locale = (typeof supportedLanguages)[number];
-export type Platform = "ios" | "android" | "windows" | "unknown";
+export type { Platform };
 
 export interface AppDataProps {
   isMobile: boolean;
@@ -29,8 +35,7 @@ export interface AppDataProps {
   availableLocales: readonly Locale[];
   deferredPrompt: BeforeInstallPromptEvent | null;
   promptInstall: () => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  handleInstallCheck: (e: any) => void;
+  handleInstallCheck: (e: BeforeInstallPromptEvent | null) => void;
   switchLanguage: (lang: Locale) => void;
 }
 
@@ -52,28 +57,6 @@ function getBrowserLocale(available: readonly string[], fallback: string): strin
   }
 
   return fallback;
-}
-
-function getMobileOperatingSystem(): Platform {
-  // @ts-ignore
-  const userAgent = navigator.userAgent || navigator.vendor || window.opera;
-
-  // Windows Phone must come first because its UA also contains "Android"
-  if (/windows phone/i.test(userAgent)) {
-    return "windows";
-  }
-
-  if (/android/i.test(userAgent)) {
-    return "android";
-  }
-
-  // iOS detection from: http://stackoverflow.com/a/9039885/177710
-  // @ts-ignore
-  if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
-    return "ios";
-  }
-
-  return "unknown";
 }
 
 export const AppContext = React.createContext<AppDataProps>({
@@ -111,17 +94,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Initialize state synchronously to prevent PWA landing page flash
   const [installState, setInstalledState] = useState<InstallState>(() => {
-    if (typeof window !== "undefined") {
-      const mockInstalled = import.meta.env.VITE_MOCK_PWA_INSTALLED === "true";
-      if (
-        mockInstalled ||
-        window.matchMedia("(display-mode: standalone)").matches ||
-        window.matchMedia("(display-mode: fullscreen)").matches ||
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (window.navigator as any).standalone
-      ) {
-        return "installed";
-      }
+    if (typeof window !== "undefined" && isAppInstalled()) {
+      return "installed";
     }
     // Use "idle" to indicate we haven't checked yet (will trigger useEffect check)
     return "idle";
@@ -129,38 +103,16 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
   const platform = getMobileOperatingSystem();
 
-  const isStandalone = React.useMemo(() => {
-    if (typeof window === "undefined") return false;
-    return (
-      window.matchMedia("(display-mode: standalone)").matches ||
-      window.matchMedia("(display-mode: fullscreen)").matches ||
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window.navigator as any).standalone
-    );
-  }, []);
+  const isStandalone = React.useMemo(() => isStandaloneMode(), []);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleInstallCheck = useCallback(async (e: any) => {
+  const handleInstallCheck = useCallback((e: BeforeInstallPromptEvent | null) => {
     e?.preventDefault(); // Prevent the automatic prompt
     setDeferredPrompt(e);
 
-    // Check if we should mock PWA installation for testing
-    const mockInstalled = import.meta.env.VITE_MOCK_PWA_INSTALLED === "true";
-
-    if (
-      mockInstalled ||
-      window.matchMedia("(display-mode: standalone)").matches ||
-      window.matchMedia("(display-mode: fullscreen)").matches ||
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window.navigator as any).standalone
-    ) {
+    if (isAppInstalled()) {
       setInstalledState("installed");
-
-      // App was installed or mocked as installed
     } else {
       setInstalledState("not-installed");
-
-      // App was not installed
     }
   }, []);
 
@@ -226,7 +178,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     >
       <AppContext.Provider
         value={{
-          isMobile: platform === "ios" || platform === "android" || platform === "windows",
+          isMobile: isMobilePlatform(),
           isInstalled: installState === "installed",
           isStandalone,
           wasInstalled,

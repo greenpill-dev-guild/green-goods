@@ -1,177 +1,128 @@
-// TODO: Scap component not needed and take any useful parts and implement elsewhere
-import {
-  type RemixiconComponentType,
-  RiCheckFill,
-  RiErrorWarningFill,
-  RiNotification3Line,
-  RiTelegram2Fill,
-  RiWifiOffLine,
-} from "@remixicon/react";
-import React, { useEffect } from "react";
+import { RiCheckFill, RiCloseFill, RiLoader4Line, RiArrowRightLine } from "@remixicon/react";
+import type { ComponentType } from "react";
 import { useIntl } from "react-intl";
-import { type ModalVariantRoot, UploadModal } from "@/components/UI/UploadModal/UploadModal";
-import { useOffline } from "@green-goods/shared/hooks";
-import { track } from "@green-goods/shared/modules";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/Actions";
 
-export type completedMessage = {
+interface WorkCompletedMessage {
   header: string;
+  variant: "success" | "error" | "pending";
   title: string;
   body: string;
-  variant: ModalVariantRoot["variant"];
-  icon: RemixiconComponentType;
-  spinner: boolean;
-};
-
-export type completedStatus = "error" | "success" | "pending" | "idle";
+  icon?: ComponentType<{ className?: string }>;
+  spinner?: boolean;
+}
 
 interface WorkCompletedProps {
   garden: Garden;
-  status: "error" | "success" | "pending" | "idle";
-  messages?: { [key: string]: completedMessage };
-  mutationData?: any; // The mutation result data (transaction hash or error)
+  status: "idle" | "pending" | "success" | "error";
+  mutationData?: unknown;
+  messages: {
+    success?: WorkCompletedMessage;
+    error?: WorkCompletedMessage;
+    pending?: WorkCompletedMessage;
+  };
 }
 
-export const WorkCompleted: React.FC<WorkCompletedProps> = ({
-  garden,
-  status,
-  messages,
-  mutationData,
-}) => {
+export function WorkCompleted({ garden, status, messages }: WorkCompletedProps) {
   const intl = useIntl();
-  const { isOnline } = useOffline();
+  const navigate = useNavigate();
 
-  // Detect if work was saved offline by checking if the transaction hash starts with "0xoffline_"
-  const isOfflineWork = (data: any): boolean => {
-    if (!data) return false;
-    if (typeof data === "string") {
-      return data.startsWith("0xoffline_");
+  const getMessage = (): WorkCompletedMessage | null => {
+    if (status === "success" && messages.success) return messages.success;
+    if (status === "error" && messages.error) return messages.error;
+    if (status === "pending" && messages.pending) return messages.pending;
+    // Default success message if only success is provided
+    if (status === "success") {
+      return {
+        header: intl.formatMessage({
+          id: "app.work.completed.header",
+          defaultMessage: "Success!",
+        }),
+        variant: "success",
+        title: intl.formatMessage({
+          id: "app.work.completed.title",
+          defaultMessage: "Completed",
+        }),
+        body: intl.formatMessage({
+          id: "app.work.completed.body",
+          defaultMessage: "Your action has been completed successfully.",
+        }),
+        icon: RiCheckFill,
+        spinner: false,
+      };
     }
-    // For transaction receipts, check the transactionHash
-    if (data.transactionHash && typeof data.transactionHash === "string") {
-      return data.transactionHash.startsWith("0xoffline_");
-    }
-    return false;
+    return null;
   };
 
-  const isOffline = isOfflineWork(mutationData) || !isOnline;
+  const message = getMessage();
 
-  useEffect(() => {
-    // Track work submission completion
-    track("work_submission_completed", {
-      garden_id: garden.id,
-      status,
-      is_online: isOnline,
-      is_offline_submission: isOffline,
-    });
-  }, [status, garden.id, isOnline, isOffline]);
+  if (!message) {
+    return null;
+  }
 
-  // For better UX, show success immediately when work is queued
-  const displayStatus = status === "pending" || status === "idle" ? "success" : status;
+  const IconComponent = message.icon || (message.spinner ? RiLoader4Line : RiCheckFill);
+  const iconColorClass =
+    message.variant === "success"
+      ? "text-success-base"
+      : message.variant === "error"
+        ? "text-error-base"
+        : "text-primary";
 
-  const getMessages = (garden: Garden) => ({
-    error: {
-      header: intl.formatMessage({
-        id: "app.garden.completed.messages.error.header",
-        defaultMessage: " ",
-      }),
-      title: intl.formatMessage({
-        id: "app.garden.completed.messages.error.title",
-        defaultMessage: "Unable to Save Work",
-      }),
-      body: intl.formatMessage({
-        id: "app.garden.completed.messages.error.body",
-        defaultMessage: "We couldn't save your work. Please check your connection and try again.",
-      }),
-      variant: "error",
-      icon: RiErrorWarningFill,
-      spinner: false,
-    },
-    success: {
-      header: intl.formatMessage({
-        id: "app.garden.completed.messages.success.header",
-        defaultMessage: "Work Saved Successfully!",
-      }),
-      title: intl.formatMessage({
-        id: isOffline
-          ? "app.garden.completed.messages.success.offline.title"
-          : "app.garden.completed.messages.success.title",
-        defaultMessage: "Work Saved!",
-      }),
-      body: intl.formatMessage(
-        {
-          id: isOffline
-            ? "app.garden.completed.messages.success.offline.body"
-            : "app.garden.completed.messages.success.body",
-          defaultMessage: isOffline
-            ? "Your work has been securely saved on your device!<br/><br/>It will automatically upload to the blockchain when you reconnect to the internet. Once uploaded, {operator} will be notified to review your submission."
-            : "Your work is being uploaded to the blockchain!<br/><br/>{operator} will be notified once the upload completes and will review your submission. You'll receive a notification when it's approved.",
-        },
-        {
-          operator: garden.operators[0]?.substring(0, 12) || "The operator",
-        }
-      ),
-      variant: "success",
-      icon: isOffline ? RiNotification3Line : RiCheckFill,
-      spinner: false,
-    },
-    pending: {
-      header: intl.formatMessage({
-        id: "app.garden.completed.messages.pending.header",
-        defaultMessage: " ",
-      }),
-      title: intl.formatMessage({
-        id: "app.garden.completed.messages.pending.title",
-        defaultMessage: "Saving Work...",
-      }),
-      body: intl.formatMessage({
-        id: "app.garden.completed.messages.pending.body",
-        defaultMessage: "Please wait while we save your work...",
-      }),
-      variant: "pending",
-      icon: RiTelegram2Fill,
-      spinner: true,
-    },
-    idle: {
-      header: intl.formatMessage({
-        id: "app.garden.completed.messages.idle.header",
-        defaultMessage: " ",
-      }),
-      title: intl.formatMessage({
-        id: "app.garden.completed.messages.idle.title",
-        defaultMessage: "Processing...",
-      }),
-      body: intl.formatMessage({
-        id: "app.garden.completed.messages.idle.body",
-        defaultMessage: "Your work is being processed...",
-      }),
-      variant: "pending",
-      icon: RiTelegram2Fill,
-      spinner: true,
-    },
-    ...messages,
-  });
-
-  const state = getMessages(garden)[displayStatus as keyof ReturnType<typeof getMessages>];
+  const bgColorClass =
+    message.variant === "success"
+      ? "bg-success-lighter"
+      : message.variant === "error"
+        ? "bg-error-lighter"
+        : "bg-bg-weak-50";
 
   return (
-    <>
-      <UploadModal
-        variant={state.variant as ModalVariantRoot["variant"]}
-        headerText={state.header}
-        titleText={state.title}
-        bodyText={state.body}
-        icon={state.icon}
-        spinner={state.spinner}
+    <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center">
+      {/* Icon Container */}
+      <div
+        className={`w-20 h-20 rounded-full ${bgColorClass} flex items-center justify-center mb-6`}
+      >
+        <IconComponent
+          className={`w-10 h-10 ${iconColorClass} ${message.spinner ? "animate-spin" : ""}`}
+        />
+      </div>
+
+      {/* Header */}
+      <h1 className="text-2xl font-bold text-text-strong-950 mb-2">{message.header}</h1>
+
+      {/* Title Badge */}
+      <div
+        className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${bgColorClass} ${iconColorClass} mb-4`}
+      >
+        {message.variant === "success" ? (
+          <RiCheckFill className="w-5 h-5" />
+        ) : message.variant === "error" ? (
+          <RiCloseFill className="w-5 h-5" />
+        ) : null}
+        <span className="font-semibold">{message.title}</span>
+      </div>
+
+      {/* Body */}
+      <p
+        className="text-text-sub-600 max-w-sm mb-8"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: Safe HTML from intl messages
+        dangerouslySetInnerHTML={{ __html: message.body }}
       />
-      {!isOnline && displayStatus === "success" && (
-        <div className="mt-4 mx-4 px-4 py-3 bg-orange-50 border border-orange-200 rounded-lg flex items-start gap-2">
-          <RiWifiOffLine className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-orange-800">
-            You&apos;re currently offline. Your work is safely stored on your device and will upload
-            automatically when you reconnect.
-          </p>
-        </div>
-      )}
-    </>
+
+      {/* Action Button */}
+      <Button
+        variant="primary"
+        mode="filled"
+        shape="pilled"
+        size="medium"
+        label={intl.formatMessage({
+          id: "app.work.completed.backToGarden",
+          defaultMessage: "Back to Garden",
+        })}
+        trailingIcon={<RiArrowRightLine className="w-5 h-5" />}
+        onClick={() => navigate(`/home/${garden.id}`)}
+        className="min-w-[200px]"
+      />
+    </div>
   );
-};
+}

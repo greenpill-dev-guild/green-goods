@@ -5,9 +5,8 @@ import {
   RiTwitterLine,
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { Faq, FaqContent, FaqItem, FaqTrigger } from "@/components/UI/Accordion/Faq";
-import { Avatar } from "@/components/UI/Avatar/Avatar";
-import { FlexCard } from "@/components/UI/Card/Card";
+import { Avatar, Faq, FaqContent, FaqItem, FaqTrigger } from "@/components/Display";
+import { FlexCard } from "@/components/Cards";
 
 interface Social {
   title: string;

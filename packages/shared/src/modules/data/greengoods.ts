@@ -38,7 +38,10 @@ export async function getActions(): Promise<Action[]> {
 
     const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }).toPromise();
 
-    if (error) return [];
+    if (error) {
+      console.error("[getActions] Indexer query failed:", error.message);
+      return [];
+    }
 
     if (!data || !data.Action || !Array.isArray(data.Action)) return [];
 
@@ -52,26 +55,22 @@ export async function getActions(): Promise<Action[]> {
               : [];
 
           // Fetch action instructions from IPFS using existing pinata module
-          let actionConfig: any = null;
+          let actionConfig: ActionInstructionConfig | null = null;
           try {
             if (instructions) {
               const configData = await getFileByHash(instructions);
               // Parse the data as JSON
               if (typeof configData.data === "string") {
-                actionConfig = JSON.parse(configData.data);
+                actionConfig = JSON.parse(configData.data) as ActionInstructionConfig;
               } else if (configData.data instanceof Blob) {
                 const text = await configData.data.text();
-                actionConfig = JSON.parse(text);
+                actionConfig = JSON.parse(text) as ActionInstructionConfig;
               } else {
-                actionConfig = configData.data;
+                actionConfig = configData.data as ActionInstructionConfig;
               }
             }
           } catch (error) {
-            console.error(`Failed to fetch instructions for action ${id}:`, error);
-          }
-
-          if (actionConfig) {
-            // Instruction config loaded successfully
+            console.error(`[getActions] Failed to fetch instructions for action ${id}:`, error);
           }
 
           return {
@@ -104,7 +103,8 @@ export async function getActions(): Promise<Action[]> {
         }
       )
     );
-  } catch {
+  } catch (error) {
+    console.error("[getActions] Failed to fetch actions:", error);
     return [];
   }
 }
@@ -133,7 +133,10 @@ export async function getGardens(): Promise<Garden[]> {
 
     const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }).toPromise();
 
-    if (error) return [];
+    if (error) {
+      console.error("[getGardens] Indexer query failed:", error.message);
+      return [];
+    }
 
     if (!data || !data.Garden || !Array.isArray(data.Garden)) return [];
 
@@ -158,7 +161,8 @@ export async function getGardens(): Promise<Garden[]> {
         createdAt: garden.createdAt ? (garden.createdAt as number) * 1000 : Date.now(),
       };
     });
-  } catch {
+  } catch (error) {
+    console.error("[getGardens] Failed to fetch gardens:", error);
     return [];
   }
 }
@@ -181,7 +185,10 @@ export async function getGardeners(): Promise<GardenerCard[]> {
 
     const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }).toPromise();
 
-    if (error) return [];
+    if (error) {
+      console.error("[getGardeners] Indexer query failed:", error.message);
+      return [];
+    }
     if (!data || !data.Gardener || !Array.isArray(data.Gardener)) return [];
 
     return data.Gardener.map((gardener) => ({
@@ -194,7 +201,8 @@ export async function getGardeners(): Promise<GardenerCard[]> {
       username: gardener.id.slice(0, 8), // Use short address as username
       avatar: undefined,
     }));
-  } catch {
+  } catch (error) {
+    console.error("[getGardeners] Failed to fetch gardeners:", error);
     return [];
   }
 }

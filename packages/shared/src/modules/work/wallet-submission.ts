@@ -15,16 +15,16 @@
 import { NO_EXPIRATION, ZERO_BYTES32 } from "@ethereum-attestation-service/eas-sdk";
 import { getPublicClient, getWalletClient, waitForTransactionReceipt } from "@wagmi/core";
 import { encodeFunctionData } from "viem";
-import EASAbiJson from "../../abis/EAS.json";
 import { wagmiConfig } from "../../config/appkit";
 import { getEASConfig } from "../../config/blockchain";
 import { queryKeys } from "../../hooks/query-keys";
+import { pollQueriesAfterTransaction } from "../../utils/blockchain/polling";
+import { EASABI } from "../../utils/contracts";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../utils/debug";
 import { encodeWorkApprovalData, encodeWorkData, simulateWorkData } from "../../utils/eas/encoders";
+import { buildApprovalAttestTx, buildWorkAttestTx } from "../../utils/eas/transaction-builder";
 import { parseContractError } from "../../utils/errors/contract-errors";
-import { pollQueriesAfterTransaction } from "../../utils/transaction-polling";
-
-const { abi } = EASAbiJson;
+import { formatWalletError } from "../../utils/errors/user-messages";
 
 /**
  * Submit work directly using wallet client (no job queue)
@@ -88,7 +88,7 @@ export async function submitWorkDirectly(
       // Simulate the attest call
       await publicClient.simulateContract({
         address: easConfig.EAS.address as `0x${string}`,
-        abi,
+        abi: EASABI,
         functionName: "attest",
         args: [
           {
@@ -160,31 +160,13 @@ export async function submitWorkDirectly(
 
     // 3. Prepare EAS attestation transaction
     const easConfig = getEASConfig(chainId);
-    const data = encodeFunctionData({
-      abi,
-      functionName: "attest",
-      args: [
-        {
-          schema: easConfig.WORK.uid,
-          data: {
-            recipient: gardenAddress as `0x${string}`,
-            expirationTime: NO_EXPIRATION,
-            revocable: true,
-            refUID: ZERO_BYTES32,
-            data: attestationData,
-            value: 0n,
-          },
-        },
-      ],
-    });
+    const txParams = buildWorkAttestTx(easConfig, gardenAddress as `0x${string}`, attestationData);
 
-    debugLog("[WalletSubmission] Sending transaction", { to: easConfig.EAS.address });
+    debugLog("[WalletSubmission] Sending transaction", { to: txParams.to });
 
     // 4. Send transaction directly via wallet
     const hash = await walletClient.sendTransaction({
-      to: easConfig.EAS.address as `0x${string}`,
-      data,
-      value: 0n,
+      ...txParams,
       chain: walletClient.chain,
       account: walletClient.account,
     });
@@ -209,30 +191,16 @@ export async function submitWorkDirectly(
 
     debugLog("[WalletSubmission] Work submission complete with indexer sync", { hash });
     return hash;
-  } catch (err: any) {
-    const message = "[WalletSubmission] Work submission failed";
+  } catch (err: unknown) {
+    const logMessage = "[WalletSubmission] Work submission failed";
     if (DEBUG_ENABLED) {
-      debugError(message, err);
+      debugError(logMessage, err);
     } else {
-      console.error(message, err);
+      console.error(logMessage, err);
     }
 
-    // Handle common wallet errors with user-friendly messages
-    if (err.message?.includes("User rejected") || err.message?.includes("user rejected")) {
-      throw new Error("Transaction cancelled by user");
-    }
-    if (err.message?.includes("insufficient funds")) {
-      throw new Error("Insufficient funds for gas");
-    }
-    if (err.message?.includes("nonce")) {
-      throw new Error("Transaction conflict - please try again");
-    }
-    if (err.message?.includes("network")) {
-      throw new Error("Network error - please check your connection");
-    }
-
-    // Re-throw with original error for debugging
-    throw new Error(`Transaction failed: ${err.message || "Unknown error"}`);
+    // Use centralized error formatting
+    throw new Error(formatWalletError(err));
   }
 }
 
@@ -278,31 +246,17 @@ export async function submitApprovalDirectly(
 
     // 3. Prepare EAS attestation transaction
     const easConfig = getEASConfig(chainId);
-    const data = encodeFunctionData({
-      abi,
-      functionName: "attest",
-      args: [
-        {
-          schema: easConfig.WORK_APPROVAL.uid,
-          data: {
-            recipient: gardenerAddress as `0x${string}`,
-            expirationTime: NO_EXPIRATION,
-            revocable: true,
-            refUID: ZERO_BYTES32,
-            data: attestationData,
-            value: 0n,
-          },
-        },
-      ],
-    });
+    const txParams = buildApprovalAttestTx(
+      easConfig,
+      gardenerAddress as `0x${string}`,
+      attestationData
+    );
 
-    debugLog("[WalletSubmission] Sending approval transaction", { to: easConfig.EAS.address });
+    debugLog("[WalletSubmission] Sending approval transaction", { to: txParams.to });
 
     // 4. Send transaction directly via wallet
     const hash = await walletClient.sendTransaction({
-      to: easConfig.EAS.address as `0x${string}`,
-      data,
-      value: 0n,
+      ...txParams,
       chain: walletClient.chain,
       account: walletClient.account,
     });
@@ -331,29 +285,15 @@ export async function submitApprovalDirectly(
 
     debugLog("[WalletSubmission] Approval submission complete with indexer sync", { hash });
     return hash;
-  } catch (err: any) {
-    const message = "[WalletSubmission] Approval submission failed";
+  } catch (err: unknown) {
+    const logMessage = "[WalletSubmission] Approval submission failed";
     if (DEBUG_ENABLED) {
-      debugError(message, err);
+      debugError(logMessage, err);
     } else {
-      console.error(message, err);
+      console.error(logMessage, err);
     }
 
-    // Handle common wallet errors with user-friendly messages
-    if (err.message?.includes("User rejected") || err.message?.includes("user rejected")) {
-      throw new Error("Transaction cancelled by user");
-    }
-    if (err.message?.includes("insufficient funds")) {
-      throw new Error("Insufficient funds for gas");
-    }
-    if (err.message?.includes("nonce")) {
-      throw new Error("Transaction conflict - please try again");
-    }
-    if (err.message?.includes("network")) {
-      throw new Error("Network error - please check your connection");
-    }
-
-    // Re-throw with original error for debugging
-    throw new Error(`Transaction failed: ${err.message || "Unknown error"}`);
+    // Use centralized error formatting
+    throw new Error(formatWalletError(err));
   }
 }

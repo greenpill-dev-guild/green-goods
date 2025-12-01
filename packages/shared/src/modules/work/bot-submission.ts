@@ -1,10 +1,7 @@
-import { NO_EXPIRATION, ZERO_BYTES32 } from "@ethereum-attestation-service/eas-sdk";
-import { type PublicClient, type WalletClient, encodeFunctionData } from "viem";
-import EASAbiJson from "../../abis/EAS.json";
+import { type PublicClient, type WalletClient } from "viem";
 import { getEASConfig } from "../../config/blockchain";
 import { encodeWorkApprovalData, encodeWorkData } from "../../utils/eas/encoders";
-
-const { abi } = EASAbiJson;
+import { buildApprovalAttestTx, buildWorkAttestTx } from "../../utils/eas/transaction-builder";
 
 /**
  * Submit work using a provided WalletClient (Node.js compatible)
@@ -36,29 +33,11 @@ export async function submitWorkBot(
 
   // 2. Prepare EAS attestation transaction
   const easConfig = getEASConfig(chainId);
-  const data = encodeFunctionData({
-    abi,
-    functionName: "attest",
-    args: [
-      {
-        schema: easConfig.WORK.uid,
-        data: {
-          recipient: gardenAddress as `0x${string}`,
-          expirationTime: NO_EXPIRATION,
-          revocable: true,
-          refUID: ZERO_BYTES32,
-          data: attestationData,
-          value: 0n,
-        },
-      },
-    ],
-  });
+  const txParams = buildWorkAttestTx(easConfig, gardenAddress as `0x${string}`, attestationData);
 
   // 3. Send transaction
   const hash = await client.sendTransaction({
-    to: easConfig.EAS.address as `0x${string}`,
-    data,
-    value: 0n,
+    ...txParams,
     chain: client.chain,
     account: client.account!,
   });
@@ -78,28 +57,14 @@ export async function submitApprovalBot(
   const attestationData = encodeWorkApprovalData(draft, chainId);
 
   const easConfig = getEASConfig(chainId);
-  const data = encodeFunctionData({
-    abi,
-    functionName: "attest",
-    args: [
-      {
-        schema: easConfig.WORK_APPROVAL.uid,
-        data: {
-          recipient: gardenerAddress as `0x${string}`,
-          expirationTime: NO_EXPIRATION,
-          revocable: true,
-          refUID: ZERO_BYTES32,
-          data: attestationData,
-          value: 0n,
-        },
-      },
-    ],
-  });
+  const txParams = buildApprovalAttestTx(
+    easConfig,
+    gardenerAddress as `0x${string}`,
+    attestationData
+  );
 
   const hash = await client.sendTransaction({
-    to: easConfig.EAS.address as `0x${string}`,
-    data,
-    value: 0n,
+    ...txParams,
     chain: client.chain,
     account: client.account!,
   });

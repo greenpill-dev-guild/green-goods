@@ -9,7 +9,7 @@ import {
   type UseFormSetValue,
   useWatch,
 } from "react-hook-form";
-import { FileUploadField } from "../../UI/FileUploadField";
+import { FileUploadField } from "../../FileUploadField";
 import {
   ArrayInput,
   type CreateAssessmentForm,

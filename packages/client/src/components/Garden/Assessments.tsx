@@ -10,9 +10,9 @@ import {
 import { forwardRef, memo } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { Badge } from "../UI/Badge/Badge";
-import { Card } from "../UI/Card/Card";
-import { Carousel, CarouselContent, CarouselItem } from "../UI/Carousel/Carousel";
+import { Badge } from "../Communication";
+import { Card } from "../Cards";
+import { Carousel, CarouselContent, CarouselItem } from "../Display";
 
 interface GardenAssessmentsProps {
   assessments: GardenAssessment[];

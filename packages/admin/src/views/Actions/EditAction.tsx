@@ -1,10 +1,14 @@
-import { DEFAULT_CHAIN_ID, toastService, uploadFileToIPFS } from "@green-goods/shared";
+import {
+  DEFAULT_CHAIN_ID,
+  defaultTemplate,
+  toastService,
+  uploadFileToIPFS,
+} from "@green-goods/shared";
 import { useActionOperations, useActions } from "@green-goods/shared/hooks";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { InstructionsBuilder } from "@/components/Action/InstructionsBuilder";
 import { PageHeader } from "@/components/Layout/PageHeader";
-import { defaultTemplate } from "@/utils/actionTemplates";
 
 export default function EditAction() {
   const { id } = useParams<{ id: string }>();

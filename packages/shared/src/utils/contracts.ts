@@ -22,11 +22,13 @@ import networksConfig from "../../../contracts/deployments/networks.json";
 import GardenTokenABIJson from "../../../contracts/out/Garden.sol/GardenToken.json";
 import GardenAccountABIJson from "../../../contracts/out/Garden.sol/GardenAccount.json";
 import ActionRegistryABIJson from "../../../contracts/out/Action.sol/ActionRegistry.json";
+import EASABIJson from "../../../contracts/out/EAS.sol/MockEAS.json";
 
 // Export the ABIs for viem compatibility
 export const GardenTokenABI = GardenTokenABIJson.abi as Abi;
 export const GardenAccountABI = GardenAccountABIJson.abi as Abi;
 export const ActionRegistryABI = ActionRegistryABIJson.abi as Abi;
+export const EASABI = EASABIJson.abi as Abi;
 
 function getNetworkConfigFromNetworksJson(chainId: number) {
   const networksData = networksConfig as { networks: Record<string, any> };

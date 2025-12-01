@@ -10,7 +10,7 @@
 import { simulateContract } from "@wagmi/core";
 import { type Address, encodeFunctionData, type Hex } from "viem";
 import { wagmiConfig } from "../../config/appkit";
-import { parseContractError } from "../errors";
+import { parseContractError } from "../errors/contract-errors";
 
 /**
  * Simulation result with parsed error if applicable

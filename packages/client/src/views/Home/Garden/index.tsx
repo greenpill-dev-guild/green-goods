@@ -22,9 +22,8 @@ import { Outlet, useLocation, useParams } from "react-router-dom";
 import { GardenAssessments } from "@/components/Garden/Assessments";
 import { GardenGardeners, type GardenMember } from "@/components/Garden/Gardeners";
 import { GardenWork } from "@/components/Garden/Work";
-import { GardenErrorBoundary } from "@/components/UI/ErrorBoundary/ErrorBoundary";
-import { type StandardTab, StandardTabs } from "@/components/UI/Tabs";
-import { TopNav } from "@/components/UI/TopNav/TopNav";
+import { GardenErrorBoundary } from "@/components/Errors";
+import { type StandardTab, StandardTabs, TopNav } from "@/components/Navigation";
 
 type GardenProps = {};
 

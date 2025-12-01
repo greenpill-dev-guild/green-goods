@@ -1,6 +1,8 @@
-// Re-export all modules organized by domain - EXPLICIT EXPORTS for tree-shaking
+// Modules — EXPLICIT EXPORTS for tree-shaking
 
-// From app/posthog.ts
+// ============================================================================
+// APP / ANALYTICS
+// ============================================================================
 export {
   getDistinctId,
   identify,
@@ -11,10 +13,14 @@ export {
   trackSyncPerformance,
 } from "./app/posthog";
 
-// From app/service-worker.ts
+// ============================================================================
+// APP / SERVICE WORKER
+// ============================================================================
 export { serviceWorkerManager } from "./app/service-worker";
 
-// From auth/passkey.ts
+// ============================================================================
+// AUTH / PASSKEY
+// ============================================================================
 export type { PasskeySession } from "./auth/passkey";
 export {
   authenticatePasskey,
@@ -26,21 +32,49 @@ export {
   restorePasskeySession,
 } from "./auth/passkey";
 
-// From data/eas.ts
+// ============================================================================
+// AUTH / SESSION
+// ============================================================================
+export {
+  AUTH_MODE_STORAGE_KEY,
+  checkAndHandleFreshStart,
+  clearAllAuthStorage,
+  clearAuthMode,
+  clearPasskeySignedOut,
+  clearSignedOut,
+  getSavedAuthMode,
+  hasStoredPasskeyCredential,
+  isFreshAppStart,
+  markSessionActive,
+  PASSKEY_SIGNED_OUT_KEY,
+  SESSION_MARKER_KEY,
+  SIGNED_OUT_KEY,
+  saveAuthMode,
+  setPasskeySignedOut,
+  setSignedOut,
+  wasExplicitlySignedOut,
+  wasPasskeySignedOut,
+} from "./auth/session";
+
+// ============================================================================
+// DATA / EAS
+// ============================================================================
 export {
   getGardenAssessments,
   getWorkApprovals,
   getWorks,
   getWorksByGardener,
 } from "./data/eas";
-export type { FragmentOf, ResultOf, VariablesOf } from "./data/graphql";
-// From data/graphql.ts
-export {
-  easGraphQL,
-  greenGoodsGraphQL,
-} from "./data/graphql";
 
-// From data/greengoods.ts
+// ============================================================================
+// DATA / GRAPHQL
+// ============================================================================
+export type { FragmentOf, ResultOf, VariablesOf } from "./data/graphql";
+export { easGraphQL, greenGoodsGraphQL } from "./data/graphql";
+
+// ============================================================================
+// DATA / GREENGOODS
+// ============================================================================
 export {
   Capital,
   getActions,
@@ -49,13 +83,13 @@ export {
   updateUserProfile,
 } from "./data/greengoods";
 
-// From data/pinata.ts
+// ============================================================================
+// DATA / PINATA (IPFS)
+// ============================================================================
 export {
   getFileByHash,
   initializePinata,
   initializePinataFromEnv,
-  // Alias for backward compatibility during migration if needed, or update consumers
-  initializePinata as initializeStoracha,
   resolveAvatarUrl,
   resolveImageUrl,
   resolveIPFSUrl,
@@ -63,7 +97,9 @@ export {
   uploadJSONToIPFS,
 } from "./data/pinata";
 
-// From data/urql.ts
+// ============================================================================
+// DATA / URQL
+// ============================================================================
 export {
   createEasClient,
   createGreenGoodsIndexerClient,
@@ -71,7 +107,9 @@ export {
   greenGoodsIndexer,
 } from "./data/urql";
 
-// From job-queue/index.ts
+// ============================================================================
+// JOB QUEUE
+// ============================================================================
 export {
   createOfflineTxHash,
   jobQueue,
@@ -80,23 +118,21 @@ export {
   useJobQueueEvents,
 } from "./job-queue";
 
-// From translation/
+// ============================================================================
+// TRANSLATION
+// ============================================================================
 export { browserTranslator } from "./translation/browser-translator";
 export { translationCache } from "./translation/db";
+export { runTranslationDiagnostics } from "./translation/diagnostics";
 
-// Note: work/deduplication.ts has been removed or is not yet implemented
-// Tests exist but implementation is missing - commented out until implemented
-// export type {
-//   DuplicationConfig,
-//   DuplicateCheckResult,
-//   LocalDuplicateResult,
-// } from './work/deduplication';
-// export {
-//   DeduplicationManager,
-//   defaultDeduplicationManager,
-// } from './work/deduplication';
+// ============================================================================
+// WORK / BOT SUBMISSION
+// ============================================================================
+export { submitApprovalBot, submitWorkBot } from "./work/bot-submission";
 
-// From work/passkey-submission.ts
+// ============================================================================
+// WORK / PASSKEY SUBMISSION
+// ============================================================================
 export type {
   PasskeyApprovalSubmissionParams,
   PasskeyWorkSubmissionParams,
@@ -106,19 +142,12 @@ export {
   submitWorkWithPasskey,
 } from "./work/passkey-submission";
 
-// From work/wallet-submission.ts (if exists)
-// Note: wallet-submission.ts may not have public exports - verify
-
-// From work/work-submission.ts
+// ============================================================================
+// WORK / WORK SUBMISSION
+// ============================================================================
 export {
   formatJobError,
   getSubmissionStatusText,
   validateApprovalDraft,
   validateWorkDraft,
 } from "./work/work-submission";
-
-// From work/bot-submission.ts
-export {
-  submitWorkBot,
-  submitApprovalBot,
-} from "./work/bot-submission";

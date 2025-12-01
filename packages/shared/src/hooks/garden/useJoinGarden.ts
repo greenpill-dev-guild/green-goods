@@ -15,9 +15,10 @@ import { useWriteContract } from "wagmi";
 import { wagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
 import type { PasskeySession } from "../../modules/auth/passkey";
+import { isAddressInList } from "../../utils/address";
 import { simulateJoinGarden } from "../../utils/contract/simulation";
 import { GardenAccountABI } from "../../utils/contracts";
-import { isAlreadyGardenerError } from "../../utils/errors";
+import { isAlreadyGardenerError } from "../../utils/errors/contract-errors";
 import { useUser } from "../auth/useUser";
 import { useGardens } from "../blockchain/useBaseLists";
 import { queryInvalidation, queryKeys } from "../query-keys";
@@ -49,12 +50,7 @@ export function isGardenMember(
 ): boolean {
   if (!userAddress) return false;
 
-  const normalized = userAddress.toLowerCase();
-
-  const isGardener = gardeners?.some((g) => g.toLowerCase() === normalized) ?? false;
-  const isOperator = operators?.some((o) => o.toLowerCase() === normalized) ?? false;
-
-  return isGardener || isOperator;
+  return isAddressInList(userAddress, gardeners) || isAddressInList(userAddress, operators);
 }
 
 interface JoinGardenState {
@@ -165,10 +161,7 @@ export function useJoinGarden() {
             return oldGardens.map((garden) => {
               if (garden.id === gardenAddress) {
                 const currentGardeners = garden.gardeners || [];
-                const isAlreadyInList = currentGardeners.some(
-                  (g) => g.toLowerCase() === targetAddress.toLowerCase()
-                );
-                if (!isAlreadyInList) {
+                if (!isAddressInList(targetAddress, currentGardeners)) {
                   return {
                     ...garden,
                     gardeners: [...currentGardeners, targetAddress],

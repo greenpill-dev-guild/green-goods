@@ -1,7 +1,7 @@
 import { useOffline } from "@green-goods/shared/hooks";
 import { useQueueFlush } from "@green-goods/shared/providers/jobQueue";
 import React from "react";
-import { MinimalWorkCard } from "@/components/UI/Card/WorkCard";
+import { MinimalWorkCard } from "@/components/Cards";
 
 interface MyWorkTabProps {
   works: Work[];

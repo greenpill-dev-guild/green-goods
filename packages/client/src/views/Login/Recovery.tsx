@@ -4,8 +4,8 @@ import { toastService } from "@green-goods/shared";
 import { useClientAuth } from "@green-goods/shared/providers";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/UI/Button";
-import { FormInput } from "@/components/UI/Form/Input";
+import { Button } from "@/components/Actions";
+import { FormInput } from "@/components/Inputs";
 
 export function Recovery() {
   const navigate = useNavigate();

@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from "react";
-import { AppContext } from "../providers/app";
 import { browserTranslator } from "../modules/translation/browser-translator";
+import { AppContext } from "../providers/App";
 
 type TranslatableValue = string | string[] | Record<string, unknown> | null | undefined;
 

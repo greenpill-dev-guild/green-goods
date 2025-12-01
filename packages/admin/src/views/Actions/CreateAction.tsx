@@ -1,4 +1,11 @@
-import { cn, DEFAULT_CHAIN_ID, toastService, uploadFileToIPFS } from "@green-goods/shared";
+import {
+  cn,
+  DEFAULT_CHAIN_ID,
+  defaultTemplate,
+  instructionTemplates,
+  toastService,
+  uploadFileToIPFS,
+} from "@green-goods/shared";
 import { useActionOperations } from "@green-goods/shared/hooks";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
@@ -8,8 +15,7 @@ import { z } from "zod";
 import { InstructionsBuilder } from "@/components/Action/InstructionsBuilder";
 import { FormWizard } from "@/components/Form/FormWizard";
 import type { Step } from "@/components/Form/StepIndicator";
-import { FileUploadField } from "@/components/UI/FileUploadField";
-import { defaultTemplate, instructionTemplates } from "@/utils/actionTemplates";
+import { FileUploadField } from "@/components/FileUploadField";
 
 const createActionSchema = z.object({
   title: z.string().min(1, "Title is required"),

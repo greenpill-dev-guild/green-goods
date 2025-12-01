@@ -1,11 +1,11 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared";
 import { getChainName } from "@green-goods/shared/config/chains";
-import { useAdminStore } from "@green-goods/shared/stores";
+import { useUIStore } from "@green-goods/shared/stores";
 import { RiMenuLine } from "@remixicon/react";
 import { UserProfile } from "./UserProfile";
 
 export function Header() {
-  const { setSidebarOpen } = useAdminStore();
+  const { setSidebarOpen } = useUIStore();
   const chainLabel = getChainName(DEFAULT_CHAIN_ID);
 
   return (

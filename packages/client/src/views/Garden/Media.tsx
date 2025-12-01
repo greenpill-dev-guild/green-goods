@@ -1,18 +1,12 @@
 import { track } from "@green-goods/shared/modules";
 import { imageCompressor } from "@green-goods/shared/utils/work/image-compression";
-import {
-  RiCameraFill,
-  RiCloseLine,
-  RiImageFill,
-  RiLoader4Line,
-  RiZoomInLine,
-} from "@remixicon/react";
-import React, { useEffect, useMemo, useState } from "react";
+import { RiCloseLine, RiImageFill, RiLoader4Line, RiZoomInLine } from "@remixicon/react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
+import { FormInfo } from "@/components/Cards";
+import { Badge } from "@/components/Communication";
+import { ImagePreviewDialog } from "@/components/Dialogs";
 import { Books } from "@/components/Garden/BooksIcon";
-import { Badge } from "@/components/UI/Badge/Badge";
-import { FormInfo } from "@/components/UI/Form/Info";
-import { ImagePreviewDialog } from "@/components/UI/ImagePreviewDialog";
 
 interface WorkMediaProps {
   config?: Action["mediaInfo"];
@@ -26,6 +20,25 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({ config, images, setImages 
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isCompressing, setIsCompressing] = useState(false);
   const [compressionProgress, setCompressionProgress] = useState(0);
+
+  // Memoize object URLs to prevent memory leaks
+  // Track previous URLs for cleanup
+  const prevUrlsRef = useRef<string[]>([]);
+  const imageUrls = useMemo(() => {
+    // Revoke previous URLs before creating new ones
+    prevUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    // Create new URLs
+    const urls = images.map((file) => URL.createObjectURL(file));
+    prevUrlsRef.current = urls;
+    return urls;
+  }, [images]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      prevUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, []);
 
   const mediaTitle = config?.title
     ? config.title
@@ -248,7 +261,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({ config, images, setImages 
                 onClick={() => openPreview(index)}
               >
                 <img
-                  src={URL.createObjectURL(file)}
+                  src={imageUrls[index]}
                   alt={`${intl.formatMessage({
                     id: "app.garden.upload.uploaded",
                     description: "Uploaded",
@@ -286,7 +299,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({ config, images, setImages 
       <ImagePreviewDialog
         isOpen={previewModalOpen}
         onClose={() => setPreviewModalOpen(false)}
-        images={images.map((file) => URL.createObjectURL(file))}
+        images={imageUrls}
         initialIndex={selectedImageIndex}
       />
     </div>
