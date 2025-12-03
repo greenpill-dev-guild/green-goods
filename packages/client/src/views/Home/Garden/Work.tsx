@@ -1,6 +1,7 @@
 import { toastService } from "@green-goods/shared";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
 import {
+  queryKeys,
   useActions,
   useGardens,
   useNavigateToTop,
@@ -24,9 +25,7 @@ import {
   type WorkData,
 } from "@green-goods/shared/utils/work/workActions";
 import {
-  RiCheckFill,
   RiCheckLine,
-  RiCloseFill,
   RiCloseLine,
   RiErrorWarningLine,
   RiLoader4Line,
@@ -39,7 +38,6 @@ import { useLocation, useOutletContext, useParams } from "react-router-dom";
 import { Button } from "@/components/Actions";
 import { WorkViewSkeleton } from "@/components/Features/Work";
 import { TopNav } from "@/components/Navigation";
-import { WorkCompleted } from "../../Garden/Completed";
 import WorkViewSection from "./WorkViewSection";
 
 type GardenWorkProps = {};
@@ -265,6 +263,8 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
           context: "approval submission",
           suppressLogging: true,
         });
+        // Navigate back after successful approval
+        setTimeout(() => navigateToTop(`/home/${garden?.id ?? ""}`), 500);
       }
       if (type === "job:failed") {
         const failureMessage = intl.formatMessage({
@@ -651,75 +651,6 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
               {intl.formatMessage({ id: "app.common.processing", defaultMessage: "Processing..." })}
             </span>
           </div>
-        </div>
-      )}
-      {!workApprovalMutation.isIdle && (
-        <div className="padded">
-          <WorkCompleted
-            garden={garden}
-            status={workApprovalMutation.status}
-            mutationData={workApprovalMutation.data}
-            messages={{
-              success: {
-                header: intl.formatMessage(
-                  {
-                    id: "app.home.workApproval.header",
-                    defaultMessage: "You've {status} the work!",
-                  },
-                  {
-                    status: workApprovalMutation.variables?.draft.approved
-                      ? intl
-                          .formatMessage({
-                            id: "app.home.workApproval.approved",
-                            defaultMessage: "Approved",
-                          })
-                          .toLocaleLowerCase()
-                      : intl
-                          .formatMessage({
-                            id: "app.home.workApproval.rejected",
-                            defaultMessage: "Rejected",
-                          })
-                          .toLocaleLowerCase(),
-                  }
-                ),
-                variant: "success",
-                title: `${
-                  workApprovalMutation.variables?.draft.approved
-                    ? intl.formatMessage({
-                        id: "app.home.workApproval.approved",
-                        defaultMessage: "Approved",
-                      })
-                    : intl.formatMessage({
-                        id: "app.home.workApproval.rejected",
-                        defaultMessage: "Rejected",
-                      })
-                }!`,
-                body: intl.formatMessage(
-                  {
-                    id: "app.home.workApproval.body",
-                    defaultMessage: "You've {status} the work!<br/><br/>Excellent work!",
-                  },
-                  {
-                    status: workApprovalMutation.variables?.draft.approved
-                      ? intl
-                          .formatMessage({
-                            id: "app.home.workApproval.approved",
-                            defaultMessage: "Approved",
-                          })
-                          .toLocaleLowerCase()
-                      : intl
-                          .formatMessage({
-                            id: "app.home.workApproval.rejected",
-                            defaultMessage: "Rejected",
-                          })
-                          .toLocaleLowerCase(),
-                  }
-                ),
-                icon: workApprovalMutation.variables?.draft.approved ? RiCheckFill : RiCloseFill,
-                spinner: false,
-              },
-            }}
-          />
         </div>
       )}
     </article>

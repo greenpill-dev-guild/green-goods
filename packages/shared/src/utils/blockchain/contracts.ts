@@ -8,6 +8,7 @@
 import { type Abi, createPublicClient, http } from "viem";
 import { arbitrum, baseSepolia, celo } from "viem/chains";
 import type { NetworkContracts } from "../../types/contracts";
+import { getChain as getChainFromConfig } from "../../config/chains";
 
 // Re-export chain utilities from config
 export { getChain } from "../../config/chains";
@@ -100,8 +101,7 @@ export function getNetworkContracts(chainId: number): NetworkContracts {
 }
 
 export function createClients(chainId: number) {
-  const { getChain } = require("../config/chains");
-  const chain = getChain(chainId);
+  const chain = getChainFromConfig(chainId);
   const alchemyKey = import.meta.env.VITE_ALCHEMY_API_KEY || "demo";
 
   let rpcUrl = "";

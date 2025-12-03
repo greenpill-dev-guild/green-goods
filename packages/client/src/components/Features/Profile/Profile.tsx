@@ -7,7 +7,7 @@ import {
   RiWallet3Fill,
   RiWhatsappLine,
 } from "@remixicon/react";
-import { Badge } from "../Communication";
+import { Badge } from "@/components/Communication";
 
 const ProfileDataTypes = {
   location: RiUserLocationFill,

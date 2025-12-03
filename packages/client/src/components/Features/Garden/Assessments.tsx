@@ -2,17 +2,17 @@ import { getTag } from "@green-goods/shared/utils";
 import {
   RiCalendarLine,
   RiExternalLinkLine,
-  RiPriceTag3Line,
-  RiStackLine,
   RiFileTextLine,
   RiInformationLine,
+  RiPriceTag3Line,
+  RiStackLine,
 } from "@remixicon/react";
 import { forwardRef, memo } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { Badge } from "../Communication";
-import { Card } from "../Cards";
-import { Carousel, CarouselContent, CarouselItem } from "../Display";
+import { Card } from "@/components/Cards";
+import { Badge } from "@/components/Communication";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/Display";
 
 interface GardenAssessmentsProps {
   assessments: GardenAssessment[];

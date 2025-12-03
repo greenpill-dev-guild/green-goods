@@ -162,4 +162,4 @@ export {
 } from "./work/image-compression";
 export { convertJobsToWorks, fetchOfflineWorks } from "./work/offline";
 export type { WorkData } from "./work/workActions";
-export { downloadWorkData } from "./work/workActions";
+export { downloadWorkData, downloadWorkMedia, shareWork } from "./work/workActions";
