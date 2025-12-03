@@ -29,17 +29,17 @@ export const Hero: React.FC<HeroProps> = () => {
         // onSubmit={handleSubscribe}
         className="flex-1 flex flex-col gap-2 items-center lg:items-start lg:justify-center pt-[10vh] lg:pt-0 text-center lg:text-left"
       >
-        <h2 className="font-bold lg:text-8xl lg:tracking-wide text-[#367D42] mb-2">
+        <h2 className="font-bold lg:text-7xl lg:tracking-wide text-[#367D42] mb-2">
           {intl.formatMessage({
             id: "app.hero.title",
-            defaultMessage: "Bringing Biodiversity Onchain",
+            defaultMessage: "Bringing Regenerative Actions Onchain",
           })}
         </h2>
         <p className="text-xl lg:text-2xl">
           {intl.formatMessage({
             id: "app.hero.description",
             defaultMessage:
-              "Green Goods measures, tracks, and rewards the impact on gardens with a simple progressive web app.",
+              "Green Goods measures, tracks, and rewards the impact on local hubs with a simple progressive web app.",
           })}
           <span className="font-bold text-2xl hidden sm:flex text-[#367D42]">
             {intl.formatMessage({
