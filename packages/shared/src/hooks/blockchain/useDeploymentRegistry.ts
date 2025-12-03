@@ -4,8 +4,8 @@ import { DEFAULT_CHAIN_ID, getNetworkConfig } from "../../config/blockchain";
 import { useOptionalPasskeyAuth } from "../../providers/PasskeyAuth";
 import { useOptionalWalletAuth } from "../../providers/WalletAuth";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
-import { compareAddresses } from "../../utils/address";
-import { getChain, getNetworkContracts } from "../../utils/contracts";
+import { compareAddresses } from "../../utils/blockchain/address";
+import { getChain, getNetworkContracts } from "../../utils/blockchain/contracts";
 
 // DeploymentRegistry ABI - only the functions we need
 const DEPLOYMENT_REGISTRY_ABI = [

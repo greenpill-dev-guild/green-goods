@@ -20,7 +20,7 @@ import { useWorkMutation } from "../hooks/work/useWorkMutation";
 import { validateWorkSubmissionContext } from "../modules/work/work-submission";
 import { useWorkFlowStore } from "../stores/useWorkFlowStore";
 import { WorkTab } from "../stores/workFlowTypes";
-import { isAddressInList, normalizeAddress } from "../utils/address";
+import { isAddressInList, normalizeAddress } from "../utils/blockchain/address";
 import { DEBUG_ENABLED, debugError, debugLog, debugWarn } from "../utils/debug";
 
 // Re-export WorkTab for backward compatibility

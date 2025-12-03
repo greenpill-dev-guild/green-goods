@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useOptionalPasskeyAuth } from "../../providers/PasskeyAuth";
 import { useOptionalWalletAuth } from "../../providers/WalletAuth";
-import { isAddressInList } from "../../utils/address";
+import { isAddressInList } from "../../utils/blockchain/address";
 
 export interface GardenPermissions {
   canManageGarden: (garden: Garden) => boolean;

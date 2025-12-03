@@ -6,8 +6,8 @@
  */
 
 import type { WalletClient } from "viem";
+import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import type { ToastActionOptions } from "../app/useToastAction";
-import { GardenAccountABI } from "../../utils/contracts";
 
 /**
  * Configuration for a garden operation

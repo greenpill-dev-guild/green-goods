@@ -1,5 +1,5 @@
-import { cn } from "../../utils/cn";
 import type { ReactNode } from "react";
+import { cn } from "../../utils/styles/cn";
 
 export interface FormLayoutProps {
   children: ReactNode;

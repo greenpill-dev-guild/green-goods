@@ -4,7 +4,7 @@ import { formatAddress } from "@green-goods/shared/utils";
 import { RiHeadphoneLine, RiSettings2Fill } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { Profile as UserProfile } from "@/components/Profile";
+import { Profile as UserProfile } from "@/components/Features";
 import { type StandardTab, StandardTabs } from "@/components/Navigation";
 import { ProfileAccount } from "./Account";
 import { ProfileHelp } from "./Help";

@@ -10,19 +10,6 @@ export {
   parseActionUID,
 } from "./action/parsers";
 export { defaultTemplate, instructionTemplates } from "./action/templates";
-
-// ============================================================================
-// ADDRESS
-// ============================================================================
-export {
-  compareAddresses,
-  isAddressInList,
-  isUserAddress,
-  isValidAddressFormat,
-  normalizeAddress,
-  truncateAddress,
-} from "./address";
-
 // ============================================================================
 // APP
 // ============================================================================
@@ -43,40 +30,19 @@ export {
 export { recursiveCloneChildren } from "./app/recursive-clone-children";
 export { getTag } from "./app/tags";
 export type { FormatAddressOptions, FormatAddressVariant } from "./app/text";
+export { capitalize, formatAddress, truncate } from "./app/text";
+// ============================================================================
+// ADDRESS
+// ============================================================================
 export {
-  capitalize,
-  formatAddress,
-  formatLastUpdated,
-  formatPrice,
-  isValidEmail,
-  truncate,
-  truncateDescription,
-} from "./app/text";
+  compareAddresses,
+  isAddressInList,
+  isUserAddress,
+  isValidAddressFormat,
+  normalizeAddress,
+  truncateAddress,
+} from "./blockchain/address";
 
-// ============================================================================
-// BLOCKCHAIN
-// ============================================================================
-export { compareChainId, extractIdFromChainString } from "./blockchain/chainId";
-export type { ResolveEnsAddressOptions, ResolveEnsOptions } from "./blockchain/ens";
-export { resolveEnsAddress, resolveEnsName } from "./blockchain/ens";
-// ============================================================================
-// BLOCKCHAIN POLLING
-// ============================================================================
-export { pollQueriesAfterTransaction, pollQueryAfterTransaction } from "./blockchain/polling";
-// ============================================================================
-// CN (classnames utility)
-// ============================================================================
-export type { ClassValue } from "./cn";
-export { cn } from "./cn";
-// ============================================================================
-// CONTRACT
-// ============================================================================
-export type { SimulationResult } from "./contract/simulation";
-export {
-  batchSimulate,
-  simulateJoinGarden,
-  simulateTransaction,
-} from "./contract/simulation";
 // ============================================================================
 // CONTRACTS (ABIs & clients)
 // ============================================================================
@@ -86,7 +52,18 @@ export {
   GardenAccountABI,
   GardenTokenABI,
   getNetworkContracts,
-} from "./contracts";
+} from "./blockchain/contracts";
+export type { ResolveEnsAddressOptions, ResolveEnsOptions } from "./blockchain/ens";
+export { resolveEnsAddress, resolveEnsName } from "./blockchain/ens";
+// ============================================================================
+// BLOCKCHAIN POLLING
+// ============================================================================
+export { pollQueriesAfterTransaction, pollQueryAfterTransaction } from "./blockchain/polling";
+// ============================================================================
+// CONTRACT
+// ============================================================================
+export type { SimulationResult } from "./contract/simulation";
+export { simulateJoinGarden, simulateTransaction } from "./contract/simulation";
 // ============================================================================
 // DEBUG
 // ============================================================================
@@ -94,7 +71,7 @@ export { DEBUG_ENABLED, debugError, debugLog, debugWarn } from "./debug";
 // ============================================================================
 // DISPATCH ADAPTER
 // ============================================================================
-export { createDispatchAdapter, createDispatchAdapters } from "./dispatch-adapter";
+export { createDispatchAdapter } from "./dispatch-adapter";
 // ============================================================================
 // EAS
 // ============================================================================
@@ -104,15 +81,7 @@ export {
   isValidAttestationId,
   openEASExplorer,
 } from "./eas/explorers";
-export type { AttestationRequest } from "./eas/transaction-builder";
-export {
-  buildApprovalAttestationRequest,
-  buildApprovalAttestTx,
-  buildAttestTxParams,
-  buildWorkAttestationRequest,
-  buildWorkAttestTx,
-  encodeAttestCall,
-} from "./eas/transaction-builder";
+export { buildApprovalAttestTx, buildWorkAttestTx } from "./eas/transaction-builder";
 // ============================================================================
 // ERRORS
 // ============================================================================
@@ -123,7 +92,6 @@ export {
   isNotGardenerError,
   parseAndFormatError,
   parseContractError,
-  registerErrorSignature,
 } from "./errors/contract-errors";
 export {
   formatJobError,
@@ -135,6 +103,11 @@ export {
 // FORM STORAGE
 // ============================================================================
 export { clearFormDraft, loadFormDraft, saveFormDraft } from "./storage/form";
+// ============================================================================
+// CN (classnames utility)
+// ============================================================================
+export type { ClassValue } from "./styles/cn";
+export { cn } from "./styles/cn";
 // ============================================================================
 // STYLES
 // ============================================================================
@@ -161,7 +134,6 @@ export {
   filterByTimeRange,
   formatRelativeTime,
   getTimeCutoff,
-  normalizeTimestamp,
   sortByCreatedAt,
 } from "./time";
 
@@ -174,7 +146,6 @@ export { createUrqlClient } from "./urql";
 // WORK
 // ============================================================================
 export {
-  deduplicateByFuzzyMatch,
   deduplicateById,
   extractClientWorkId,
   mergeAndDeduplicateByClientId,
@@ -191,4 +162,4 @@ export {
 } from "./work/image-compression";
 export { convertJobsToWorks, fetchOfflineWorks } from "./work/offline";
 export type { WorkData } from "./work/workActions";
-export { downloadWorkData, getWorkShareUrl } from "./work/workActions";
+export { downloadWorkData } from "./work/workActions";

@@ -1,5 +1,5 @@
 import { queryClient } from "@green-goods/shared/config/react-query";
-import { ensureBaseLists } from "@green-goods/shared/hooks";
+import { ensureBaseLists } from "@green-goods/shared";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   type PersistedClient,

@@ -3,7 +3,7 @@ import { useApp } from "@green-goods/shared/providers";
 import { type RemixiconComponentType, RiGithubLine, RiTwitterLine } from "@remixicon/react";
 import type React from "react";
 
-type HeaderProps = Record<string, never>;
+type LandingHeaderProps = Record<string, never>;
 
 const links: Link<RemixiconComponentType>[] = [
   {
@@ -18,7 +18,7 @@ const links: Link<RemixiconComponentType>[] = [
   },
 ];
 
-export const Header: React.FC<HeaderProps> = () => {
+export const LandingHeader: React.FC<LandingHeaderProps> = () => {
   const { isMobile } = useApp();
 
   const filterLinks = isMobile ? links.filter(({ title }) => title === "twitter") : links;
@@ -46,3 +46,6 @@ export const Header: React.FC<HeaderProps> = () => {
     </header>
   );
 };
+
+// Keep backward-compatible alias
+export const Header = LandingHeader;

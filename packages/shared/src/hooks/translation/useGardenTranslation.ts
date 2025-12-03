@@ -1,4 +1,4 @@
-import { useTranslation } from "../useTranslation";
+import { useTranslation } from "./useTranslation";
 
 export function useGardenTranslation(garden: Garden | null) {
   const translatedName = useTranslation(garden?.name);

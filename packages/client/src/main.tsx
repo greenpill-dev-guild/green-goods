@@ -1,6 +1,6 @@
 import { DEFAULT_CHAIN_ID, initTheme } from "@green-goods/shared";
 import { AppKitProvider, ClientAuthProvider } from "@green-goods/shared/providers";
-import { AppProvider } from "@green-goods/shared/providers/app";
+import { AppProvider } from "@green-goods/shared";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "@/App.tsx";

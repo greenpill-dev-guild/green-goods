@@ -112,11 +112,11 @@ export function useWorks(gardenId: string) {
   });
 
   return {
-    works: merged.merged.data || [],
+    works: (merged.merged.data ?? []) as Work[],
     isLoading: merged.merged.isLoading,
     error: merged.merged.error,
-    offlineCount: (merged.offline.data || []).length,
-    onlineCount: (merged.online.data || []).length,
+    offlineCount: (merged.offline.data ?? []).length,
+    onlineCount: (merged.online.data ?? []).length,
     refetch: () => {
       merged.online.refetch();
       merged.offline.refetch();

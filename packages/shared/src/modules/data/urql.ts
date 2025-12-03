@@ -1,6 +1,11 @@
 import { Client, cacheExchange, fetchExchange } from "@urql/core";
 import { getEasGraphqlUrl, getIndexerUrl } from "../../config/blockchain";
 
+/** Vite environment interface for indexer URL access */
+interface ViteEnv {
+  VITE_ENVIO_INDEXER_URL?: string;
+}
+
 /** Standard exchanges - deduplication is now built into the Client */
 const standardExchanges = [cacheExchange, fetchExchange];
 

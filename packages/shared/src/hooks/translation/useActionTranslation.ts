@@ -1,4 +1,4 @@
-import { useTranslation } from "../useTranslation";
+import { useTranslation } from "./useTranslation";
 
 export function useActionTranslation(action: Action | null) {
   // Translate only the UI-facing fields

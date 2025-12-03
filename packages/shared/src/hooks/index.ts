@@ -84,11 +84,11 @@ export { queryInvalidation, queryKeys } from "./query-keys";
 // ============================================================================
 export { useActionTranslation } from "./translation/useActionTranslation";
 export { useGardenTranslation } from "./translation/useGardenTranslation";
+export { useTranslation } from "./translation/useTranslation";
 // ============================================================================
 // UI
 // ============================================================================
 export { useScrollReveal } from "./ui/useScrollReveal";
-export { useTranslation } from "./useTranslation";
 
 // ============================================================================
 // WORK

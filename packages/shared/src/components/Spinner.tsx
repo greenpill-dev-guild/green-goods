@@ -1,5 +1,5 @@
-import { cn } from "../utils/cn";
 import React from "react";
+import { cn } from "../utils/styles/cn";
 
 export interface SpinnerProps {
   size?: "sm" | "md" | "lg";

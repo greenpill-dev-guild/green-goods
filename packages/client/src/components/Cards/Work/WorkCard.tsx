@@ -21,7 +21,7 @@ import {
 import React from "react";
 import { useIntl } from "react-intl";
 import { ImageWithFallback } from "@/components/Display";
-import { Card } from "./Card";
+import { Card } from "../Base/Card";
 
 export interface WorkCardItem {
   id: string;

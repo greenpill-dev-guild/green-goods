@@ -2,12 +2,12 @@ import { toastService } from "@green-goods/shared";
 import {
   checkGardenOpenJoining,
   isGardenMember,
+  useClientAuth,
   useEnsName,
   useGardens,
   useJoinGarden,
 } from "@green-goods/shared/hooks";
-import { useClientAuth } from "@green-goods/shared/providers";
-import { type Locale, useApp } from "@green-goods/shared/providers/app";
+import { type Locale, useApp } from "@green-goods/shared/providers";
 import { capitalize, isAlreadyGardenerError, parseAndFormatError } from "@green-goods/shared/utils";
 import {
   RiCheckLine,
@@ -21,9 +21,9 @@ import {
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { Avatar } from "@/components/Display";
 import { Button } from "@/components/Actions";
 import { Card } from "@/components/Cards";
+import { Avatar } from "@/components/Display";
 import {
   AddressCopy,
   Select,
@@ -207,7 +207,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
             />
           </SelectTrigger>
           <SelectContent>
-            {availableLocales?.map((localeOption) => (
+            {availableLocales?.map((localeOption: Locale) => (
               <SelectItem value={localeOption} key={localeOption} className="capitalize">
                 {capitalize(intl.formatDisplayName(localeOption, { type: "language" }) || "")}
               </SelectItem>

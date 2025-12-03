@@ -22,7 +22,7 @@ import { TopNav } from "@/components/Navigation";
 
 import { useWork, WorkTab } from "@green-goods/shared/providers";
 import { useWorkFlowStore } from "@green-goods/shared/stores/useWorkFlowStore";
-import { WorkViewSkeleton } from "@/components/Work";
+import { WorkViewSkeleton } from "@/components/Features/Work";
 import { WorkDetails } from "./Details";
 import { WorkIntro } from "./Intro";
 import { WorkMedia } from "./Media";

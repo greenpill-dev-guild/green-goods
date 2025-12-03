@@ -91,6 +91,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({ config, register, cont
           return (
             <FormSelect
               key={key}
+              // @ts-ignore
               name={key}
               label={title}
               placeholder={placeholder}

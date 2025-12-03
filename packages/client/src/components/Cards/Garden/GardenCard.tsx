@@ -6,7 +6,7 @@ import { useEnsName } from "@green-goods/shared/hooks";
 import { buildGardenMemberSets, cn, formatAddress } from "@green-goods/shared/utils";
 import { ImageWithFallback } from "@/components/Display";
 import { Badge } from "@/components/Communication";
-import { Card, type CardRootProps } from "./Card";
+import { Card, type CardRootProps } from "../Base/Card";
 
 export const cardVariants = tv({
   base: "relative flex flex-col grow border-0 rounded-lg overflow-clip rounded-b-lg justify-between p-0 gap-0",

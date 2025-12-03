@@ -3,7 +3,7 @@
  *
  * Re-exports shared configurations and defines client-specific constants.
  */
-import { initializePinataFromEnv } from "@green-goods/shared/modules";
+import { initializePinataFromEnv } from "@green-goods/shared";
 
 // Initialize Pinata from environment
 void initializePinataFromEnv(import.meta.env);

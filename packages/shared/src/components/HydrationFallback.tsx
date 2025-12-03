@@ -1,6 +1,6 @@
-import { cn } from "../utils/cn";
-import { Spinner } from "./Spinner";
 import React from "react";
+import { cn } from "../utils/styles/cn";
+import { Spinner } from "./Spinner";
 
 export interface HydrationFallbackProps {
   /** App name for screen reader */

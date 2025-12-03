@@ -5,7 +5,7 @@ import { encodeFunctionData } from "viem";
 
 import { wagmiConfig } from "../../config/appkit";
 import { getEASConfig } from "../../config/blockchain";
-import { EASABI } from "../../utils/contracts";
+import { EASABI } from "../../utils/blockchain/contracts";
 import { debugError, debugLog } from "../../utils/debug";
 import { encodeWorkApprovalData, encodeWorkData, simulateWorkData } from "../../utils/eas/encoders";
 import { buildApprovalAttestTx, buildWorkAttestTx } from "../../utils/eas/transaction-builder";

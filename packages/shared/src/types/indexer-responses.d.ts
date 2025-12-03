@@ -67,12 +67,3 @@ declare interface IndexerGardener {
 declare interface IndexerGardenersResponse {
   Gardener: IndexerGardener[];
 }
-
-/**
- * Vite environment interface for type-safe env access
- */
-declare interface ViteEnv {
-  VITE_INDEXER_URL?: string;
-  VITE_INDEXER_URL_DEV?: string;
-  DEV?: boolean;
-}

@@ -6,7 +6,7 @@ import { useIntl } from "react-intl";
 import { FormInfo } from "@/components/Cards";
 import { Badge } from "@/components/Communication";
 import { ImagePreviewDialog } from "@/components/Dialogs";
-import { Books } from "@/components/Garden/BooksIcon";
+import { Books } from "@/components/Features";
 
 interface WorkMediaProps {
   config?: Action["mediaInfo"];

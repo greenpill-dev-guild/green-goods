@@ -1,4 +1,4 @@
-import { HydrationFallback } from "@green-goods/shared/components";
+import { HydrationFallback } from "@green-goods/shared";
 import { createBrowserRouter, redirect } from "react-router-dom";
 
 export const router = createBrowserRouter([
@@ -18,12 +18,12 @@ export const router = createBrowserRouter([
       {
         path: "login",
         lazy: async () => ({ Component: (await import("@/views/Login")).default }),
-        children: [
-          {
-            path: "recover",
-            lazy: async () => ({ Component: (await import("@/views/Login/Recovery")).default }),
-          },
-        ],
+        // children: [
+        //   {
+        //     path: "recover",
+        //     lazy: async () => ({ Component: (await import("@/views/Login/Recovery")).default }),
+        //   },
+        // ],
       },
       {
         lazy: async () => ({ Component: (await import("@/routes/RequireInstalled")).default }),

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import toast, { type Toast as HotToast, type ToastOptions } from "react-hot-toast";
-import { cn } from "../../utils/cn";
 import { capitalize } from "../../utils/app/text";
+import { cn } from "../../utils/styles/cn";
 
 type ToastFn = typeof toast.success;
 

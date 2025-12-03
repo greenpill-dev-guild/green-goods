@@ -12,8 +12,8 @@ import { getFileByHash, useJobQueueEvents } from "@green-goods/shared/modules";
 import { jobQueue } from "@green-goods/shared/modules/job-queue";
 import {
   cn,
-  isUserAddress as sharedIsUserAddress,
   isAddressInList,
+  isUserAddress as sharedIsUserAddress,
 } from "@green-goods/shared/utils";
 import { debugWarn } from "@green-goods/shared/utils/debug";
 import { isValidAttestationId, openEASExplorer } from "@green-goods/shared/utils/eas/explorers";
@@ -37,8 +37,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useOutletContext, useParams } from "react-router-dom";
 import { Button } from "@/components/Actions";
+import { WorkViewSkeleton } from "@/components/Features/Work";
 import { TopNav } from "@/components/Navigation";
-import { WorkViewSkeleton } from "@/components/Work";
 import { WorkCompleted } from "../../Garden/Completed";
 import WorkViewSection from "./WorkViewSection";
 

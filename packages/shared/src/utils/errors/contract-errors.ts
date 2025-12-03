@@ -7,8 +7,6 @@
  * @module utils/errors/contract-errors
  */
 
-import { type Hex } from "viem";
-
 /**
  * Common contract error signatures and their human-readable messages
  */
@@ -265,22 +263,4 @@ export function parseAndFormatError(error: unknown): {
   const parsed = parseContractError(error);
   const { title, message } = formatErrorForToast(parsed);
   return { title, message, parsed };
-}
-
-/**
- * Add a custom error signature to the registry
- * Useful for application-specific errors or new contract versions
- *
- * @param signature - 4-byte error signature (e.g., "0x8cb4ae3b")
- * @param name - Error name
- * @param message - Human-readable message
- * @param action - Optional suggested action
- */
-export function registerErrorSignature(
-  signature: Hex,
-  name: string,
-  message: string,
-  action?: string
-): void {
-  ERROR_SIGNATURES[signature.toLowerCase()] = { name, message, action };
 }

@@ -10,12 +10,12 @@
 import { NO_EXPIRATION, ZERO_BYTES32 } from "@ethereum-attestation-service/eas-sdk";
 import { encodeFunctionData, type Hex } from "viem";
 import type { EASConfig } from "../../config/blockchain";
-import { EASABI } from "../contracts";
+import { EASABI } from "../blockchain/contracts";
 
 /**
- * EAS attestation request structure
+ * EAS attestation request structure (internal)
  */
-export interface AttestationRequest {
+interface AttestationRequest {
   schema: Hex;
   data: {
     recipient: `0x${string}`;
@@ -28,14 +28,9 @@ export interface AttestationRequest {
 }
 
 /**
- * Build an EAS attestation request for work submission
- *
- * @param recipient - Garden address receiving the attestation
- * @param schemaUID - EAS schema UID
- * @param attestationData - Encoded attestation data
- * @returns Attestation request object
+ * Build an EAS attestation request (internal helper)
  */
-export function buildWorkAttestationRequest(
+function buildAttestationRequest(
   recipient: `0x${string}`,
   schemaUID: Hex,
   attestationData: Hex
@@ -54,55 +49,25 @@ export function buildWorkAttestationRequest(
 }
 
 /**
- * Build an EAS attestation request for work approval
- *
- * @param recipient - Gardener address receiving the attestation
- * @param schemaUID - EAS schema UID
- * @param attestationData - Encoded attestation data
- * @returns Attestation request object
+ * Build transaction parameters for an EAS attestation (internal helper)
  */
-export function buildApprovalAttestationRequest(
-  recipient: `0x${string}`,
-  schemaUID: Hex,
-  attestationData: Hex
-): AttestationRequest {
-  return buildWorkAttestationRequest(recipient, schemaUID, attestationData);
-}
-
-/**
- * Encode an EAS attest function call
- *
- * @param request - The attestation request
- * @returns Encoded function data for the attest call
- */
-export function encodeAttestCall(request: AttestationRequest): Hex {
-  return encodeFunctionData({
-    abi: EASABI,
-    functionName: "attest",
-    args: [request],
-  });
-}
-
-/**
- * Build transaction parameters for an EAS attestation
- *
- * @param easAddress - EAS contract address
- * @param request - The attestation request
- * @returns Transaction parameters (to, data, value)
- */
-export function buildAttestTxParams(
+function buildAttestTxParams(
   easAddress: `0x${string}`,
   request: AttestationRequest
 ): { to: `0x${string}`; data: Hex; value: bigint } {
   return {
     to: easAddress,
-    data: encodeAttestCall(request),
+    data: encodeFunctionData({
+      abi: EASABI,
+      functionName: "attest",
+      args: [request],
+    }),
     value: 0n,
   };
 }
 
 /**
- * Helper to build work attestation transaction params in one call
+ * Build work attestation transaction params
  *
  * @param easConfig - EAS configuration for the chain
  * @param gardenAddress - Garden address receiving the attestation
@@ -114,7 +79,7 @@ export function buildWorkAttestTx(
   gardenAddress: `0x${string}`,
   attestationData: Hex
 ): { to: `0x${string}`; data: Hex; value: bigint } {
-  const request = buildWorkAttestationRequest(
+  const request = buildAttestationRequest(
     gardenAddress,
     easConfig.WORK.uid as Hex,
     attestationData
@@ -123,7 +88,7 @@ export function buildWorkAttestTx(
 }
 
 /**
- * Helper to build approval attestation transaction params in one call
+ * Build approval attestation transaction params
  *
  * @param easConfig - EAS configuration for the chain
  * @param gardenerAddress - Gardener address receiving the attestation
@@ -135,7 +100,7 @@ export function buildApprovalAttestTx(
   gardenerAddress: `0x${string}`,
   attestationData: Hex
 ): { to: `0x${string}`; data: Hex; value: bigint } {
-  const request = buildApprovalAttestationRequest(
+  const request = buildAttestationRequest(
     gardenerAddress,
     easConfig.WORK_APPROVAL.uid as Hex,
     attestationData

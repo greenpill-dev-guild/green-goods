@@ -5,24 +5,23 @@
  * Re-exports from config and imports ABIs directly from contracts/out.
  */
 
-import { createPublicClient, http, type Abi } from "viem";
+import { type Abi, createPublicClient, http } from "viem";
 import { arbitrum, baseSepolia, celo } from "viem/chains";
-import type { NetworkContracts } from "../types/contracts";
+import type { NetworkContracts } from "../../types/contracts";
 
 // Re-export chain utilities from config
-export { getChain } from "../config/chains";
+export { getChain } from "../../config/chains";
 
 // Import deployment configurations
-import deployment42161 from "../../../contracts/deployments/42161-latest.json";
-import deployment42220 from "../../../contracts/deployments/42220-latest.json";
-import deployment84532 from "../../../contracts/deployments/84532-latest.json";
-import networksConfig from "../../../contracts/deployments/networks.json";
-
+import deployment42161 from "../../../../contracts/deployments/42161-latest.json";
+import deployment42220 from "../../../../contracts/deployments/42220-latest.json";
+import deployment84532 from "../../../../contracts/deployments/84532-latest.json";
+import networksConfig from "../../../../contracts/deployments/networks.json";
+import ActionRegistryABIJson from "../../../../contracts/out/Action.sol/ActionRegistry.json";
+import EASABIJson from "../../../../contracts/out/EAS.sol/MockEAS.json";
+import GardenAccountABIJson from "../../../../contracts/out/Garden.sol/GardenAccount.json";
 // Import ABIs directly from contracts/out (single source of truth)
-import GardenTokenABIJson from "../../../contracts/out/Garden.sol/GardenToken.json";
-import GardenAccountABIJson from "../../../contracts/out/Garden.sol/GardenAccount.json";
-import ActionRegistryABIJson from "../../../contracts/out/Action.sol/ActionRegistry.json";
-import EASABIJson from "../../../contracts/out/EAS.sol/MockEAS.json";
+import GardenTokenABIJson from "../../../../contracts/out/Garden.sol/GardenToken.json";
 
 // Export the ABIs for viem compatibility
 export const GardenTokenABI = GardenTokenABIJson.abi as Abi;

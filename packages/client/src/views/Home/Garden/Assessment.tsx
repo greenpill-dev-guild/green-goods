@@ -5,8 +5,8 @@ import { type FC, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useParams } from "react-router-dom";
 import { Badge } from "@/components/Communication";
+import { WorkViewSkeleton } from "@/components/Features/Work";
 import { TopNav } from "@/components/Navigation";
-import { WorkViewSkeleton } from "@/components/Work";
 
 type GardenAssessmentProps = {};
 
