@@ -1,5 +1,5 @@
 import { useOffline, useUser } from "@green-goods/shared/hooks";
-import { useQueueFlush } from "@green-goods/shared/providers/jobQueue";
+import { useQueueFlush } from "@green-goods/shared/providers/JobQueue";
 import React from "react";
 import { useIntl } from "react-intl";
 import { MinimalWorkCard } from "@/components/Cards";

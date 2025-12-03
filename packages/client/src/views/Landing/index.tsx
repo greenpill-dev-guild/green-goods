@@ -1,5 +1,5 @@
 import { toastService } from "@green-goods/shared";
-import { useApp } from "@green-goods/shared/providers/app";
+import { useApp } from "@green-goods/shared/providers/App";
 import React, { useState } from "react";
 import { Footer, Header } from "@/components/Navigation";
 import { Hero } from "@/components/Layout";

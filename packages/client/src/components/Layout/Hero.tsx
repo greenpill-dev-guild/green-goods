@@ -4,7 +4,7 @@ import { DeviceFrameset } from "react-device-frameset";
 
 import "react-device-frameset/styles/marvel-devices.min.css";
 
-import { useApp } from "@green-goods/shared/providers/app";
+import { useApp } from "@green-goods/shared/providers/App";
 import {
   RiAddBoxLine,
   RiCloseLine,
