@@ -6,18 +6,32 @@ The admin dashboard provides garden management and contract deployment tools for
 
 ```
 src/
-├── components/      # UI components
-│   ├── Garden/     # Garden management components
-│   ├── Layout/     # Navigation and layout
-│   └── ui/         # Generic UI components
-├── hooks/           # Custom hooks (useRole, useGardenOperations)
-├── providers/       # React context (AuthProvider)
-├── stores/          # Zustand state (useAdminStore)
-├── workflows/       # XState state machines
-├── views/           # Main views (Dashboard, Gardens, Deployment)
-├── types/           # TypeScript definitions
-└── utils/           # Utilities (contracts, urql)
+├── components/      # Admin-specific UI components
+│   ├── Action/     # Action configuration components
+│   ├── Assessment/ # Assessment workflow steps
+│   ├── Form/       # Form layout and wizard components
+│   ├── Garden/     # Garden management (create, invite, members)
+│   ├── Layout/     # Dashboard layout (Header, Sidebar, etc.)
+│   └── Work/       # Work display components
+├── views/           # Main views
+│   ├── Actions/    # Action management
+│   ├── Contracts/  # Contract deployment status
+│   ├── Dashboard/  # Main dashboard
+│   ├── Deployment/ # Contract deployment
+│   ├── Gardens/    # Garden management
+│   └── Login/      # Authentication
+├── routes/          # Route guards
+│   ├── DashboardShell.tsx     # Dashboard wrapper
+│   ├── RequireAuth.tsx        # Auth guard
+│   ├── RequireDeployer.tsx    # Deployer role guard
+│   ├── RequireOperatorOrDeployer.tsx
+│   ├── RequireRole.tsx        # Generic role guard
+│   └── Root.tsx               # Root layout
+├── config.ts        # Admin configuration
+└── router.tsx       # React Router configuration
 ```
+
+**Important:** Core logic (hooks, providers, stores, workflows) lives in `@green-goods/shared`. See `/packages/shared/AGENTS.md` for details.
 
 ## Core Functionality
 
@@ -30,6 +44,8 @@ src/
 
 **Role detection:**
 ```typescript
+import { useRole } from '@green-goods/shared';
+
 const { role, isDeployer, isOperator, operatorGardens } = useRole();
 
 // Access patterns
@@ -41,8 +57,6 @@ if (isOperator) {
 }
 ```
 
-**See:** `.cursor/rules/access-control.mdc`
-
 ### 2. Garden Management
 
 **Admin features:**
@@ -52,10 +66,11 @@ if (isOperator) {
 - View garden statistics
 
 **Files:**
-- Create modal: `src/components/Garden/CreateGardenModal.tsx`
-- Member modal: `src/components/Garden/AddMemberModal.tsx`
-- Operations hook: `src/hooks/useGardenOperations.ts`
-- Detail view: `src/views/Gardens/Detail.tsx`
+- Create wizard: `src/views/Gardens/CreateGarden.tsx`
+- Create steps: `src/components/Garden/CreateGardenSteps/`
+- Member modal: `src/components/Garden/MembersModal.tsx`
+- Invite modal: `src/components/Garden/CreateInviteModal.tsx`
+- Detail view: `src/views/Gardens/Garden/Detail.tsx`
 
 ### 3. Contract Deployment
 
@@ -65,35 +80,79 @@ if (isOperator) {
 - Verify contracts on explorer
 
 **Files:**
-- View: `src/views/Deployment/index.tsx`
+- Deployment view: `src/views/Deployment/index.tsx`
 - Contracts view: `src/views/Contracts/index.tsx`
 
-### 4. Real-Time Updates
+### 4. Action Management
 
-**Urql subscriptions:**
-- Garden creation events
-- Operator/gardener additions
-- Contract deployments
+**Admin features:**
+- Create and edit actions
+- Configure action details, media requirements, review settings
 
-**See:** `.cursor/rules/graphql-integration.mdc`
+**Files:**
+- Actions list: `src/views/Actions/index.tsx`
+- Create action: `src/views/Actions/CreateAction.tsx`
+- Edit action: `src/views/Actions/EditAction.tsx`
+- Action detail: `src/views/Actions/ActionDetail.tsx`
+
+## Imports from Shared Package
+
+```typescript
+// Hooks
+import { 
+  useRole, useGardenOperations, useGardenPermissions,
+  useDeploymentRegistry, useGardens, useActions,
+  useToastAction, queryKeys 
+} from '@green-goods/shared';
+
+// Providers (used in main.tsx)
+import { 
+  AppKitProvider, WalletAuthProvider, AppProvider 
+} from '@green-goods/shared';
+
+// Stores
+import { 
+  useAdminStore, useCreateGardenStore, useUIStore 
+} from '@green-goods/shared';
+
+// Workflows
+import { createGardenMachine, createAssessmentMachine } from '@green-goods/shared';
+
+// Config
+import { DEFAULT_CHAIN_ID, getNetworkConfig } from '@green-goods/shared';
+
+// Types
+import type { Garden, Action, UserRole } from '@green-goods/shared';
+```
 
 ## State Management
 
 ### Zustand Store (useAdminStore)
 
-Global state:
+From `@green-goods/shared`:
 - Selected chain ID
 - Selected garden
 - Pending transactions
 - Sidebar open/closed
 
+```typescript
+import { useAdminStore } from '@green-goods/shared';
+
+const { selectedGarden, setSelectedGarden } = useAdminStore();
+```
+
 ### XState Workflows
 
-Complex flows with retry logic:
+Complex flows with retry logic from `@green-goods/shared`:
 - Garden creation workflow
-- Contract deployment workflow
+- Assessment creation workflow
 
-**See:** `.cursor/rules/state-workflows.mdc`
+```typescript
+import { createGardenMachine } from '@green-goods/shared';
+import { useMachine } from '@xstate/react';
+
+const [state, send] = useMachine(createGardenMachine);
+```
 
 ## Theme System
 
@@ -135,31 +194,6 @@ The admin dashboard uses semantic CSS variable tokens for all styling:
 - `warning-*` (orange) - Warning states, pending statuses
 - `information-*` (blue) - Information states, help text
 
-### When to Use Brand Colors
-
-**Keep green brand colors for:**
-- Primary CTAs: `bg-green-600 hover:bg-green-700 text-white`
-- Active navigation: `border-green-500 text-green-600`
-- Focus rings: `focus:ring-green-500`
-
-**Use semantic tokens for:**
-- Status badges: `bg-success-lighter text-success-dark`
-- Form validation: `border-error-base focus:ring-error-lighter`
-- Alert banners: `bg-warning-lighter text-warning-dark`
-- Remove buttons: `text-error-base hover:bg-error-lighter`
-
-### Component Testing Checklist
-
-When creating new components:
-- [ ] Use semantic tokens for neutral colors
-- [ ] Use state tokens for status indicators
-- [ ] Keep brand green for primary actions
-- [ ] Test in both light and dark modes
-- [ ] No `dark:` utility classes
-- [ ] Accessible contrast in both themes
-
-**See:** `/docs/CSS_VARIABLES_THEME.md` for complete guide
-
 ## Key Patterns
 
 ### 1. Toast Notifications for All Transactions
@@ -167,6 +201,8 @@ When creating new components:
 **MANDATORY:** Wrap all contract calls with `useToastAction`:
 
 ```typescript
+import { useToastAction } from '@green-goods/shared';
+
 const { executeWithToast } = useToastAction();
 
 await executeWithToast(
@@ -182,6 +218,8 @@ await executeWithToast(
 ### 2. Permission Checks Before Actions
 
 ```typescript
+import { useGardenPermissions } from '@green-goods/shared';
+
 const permissions = useGardenPermissions();
 
 const handleRemoveOperator = async (garden: Garden, address: string) => {
@@ -197,17 +235,25 @@ const handleRemoveOperator = async (garden: Garden, address: string) => {
 };
 ```
 
-### 3. Optimistic UI Updates
+### 3. Role-Based Route Protection
 
-```typescript
-// Update UI immediately, invalidate after confirmation
-await writeContractAsync({/*...*/});
-
-// Optimistic update
-setGardens(prev => prev.filter(g => g.id !== gardenId));
-
-// Confirm with query invalidation
-queryClient.invalidateQueries({ queryKey: ['gardens'] });
+```tsx
+// router.tsx
+<Route element={<RequireAuth />}>
+  <Route element={<DashboardShell />}>
+    {/* Admin-only routes */}
+    <Route element={<RequireDeployer />}>
+      <Route path="/deployment" element={<Deployment />} />
+      <Route path="/contracts" element={<Contracts />} />
+    </Route>
+    
+    {/* Admin + Operator routes */}
+    <Route element={<RequireOperatorOrDeployer />}>
+      <Route path="/gardens" element={<Gardens />} />
+      <Route path="/gardens/:id/*" element={<GardenDetail />} />
+    </Route>
+  </Route>
+</Route>
 ```
 
 ## Testing Strategy
@@ -235,13 +281,11 @@ it('admin can create garden and add members', async () => {
 });
 ```
 
-**See:** `.cursor/rules/testing.mdc`
-
 ## Tech Stack
 
 - **UI:** React 18 + TypeScript + Vite
 - **Styling:** Tailwind CSS v4
-- **State:** Zustand + XState
+- **State:** Zustand + XState (from `@green-goods/shared`)
 - **GraphQL:** Urql with subscriptions
 - **Blockchain:** Viem + Wagmi
 - **Forms:** React Hook Form + Zod
@@ -253,28 +297,19 @@ it('admin can create garden and add members', async () => {
 
 1. Check role requirements (deployer vs operator)
 2. Create component in `src/components/` or `src/views/`
-3. Add route in `App.tsx` with `<RequireRole>`
-4. Use `useToastAction` for blockchain calls
-5. Add integration test
-6. Update admin AGENTS.md if establishing new pattern
+3. Add route in `router.tsx` with appropriate guard (`RequireDeployer`, `RequireOperatorOrDeployer`)
+4. Import hooks from `@green-goods/shared`
+5. Use `useToastAction` for blockchain calls
+6. Add integration test
+7. Update admin AGENTS.md if establishing new pattern
 
 ### Adding Garden Operation
 
-1. Add function to `hooks/useGardenOperations.ts`
-2. Add permission check to `hooks/useGardenPermissions.ts`
+1. Use `useGardenOperations` from `@green-goods/shared`
+2. Check permissions with `useGardenPermissions`
 3. Create modal/form component if needed
 4. Use `executeWithToast` for transaction
 5. Add test for authorized and unauthorized cases
-
-## MCP Integration
-
-```bash
-# Feature tracking
-@github: Create issue "Add bulk gardener import feature" with label admin
-
-# Deployment tracking
-@github: Create issue "Deploy admin dashboard to Vercel" with label deployment
-```
 
 ## Deep Dive Rules
 
@@ -287,5 +322,5 @@ it('admin can create garden and add members', async () => {
 ## Reference Documentation
 
 - Admin README: `/packages/admin/README.md`
+- Shared AGENTS.md: `/packages/shared/AGENTS.md`
 - Root guide: `/AGENTS.md`
-

@@ -1,6 +1,6 @@
 # Green Goods — Agent Guide
 
-Reference for AI agents collaborating on the Green Goods monorepo.
+Reference for AI agents collaborating on the Green Goods monorepo (6 packages: client, admin, shared, indexer, contracts, telegram).
 
 ## Non-Negotiable Rules
 
@@ -22,26 +22,30 @@ Default to local commands (rg, bun, forge) when the task is small. Escalate to M
 ## Workflow Checklist
 
 1. **Before editing** — read relevant package agent guides:
-   - `packages/client/AGENTS.md`
-   - `packages/admin/AGENTS.md`
-   - `packages/indexer/AGENTS.md`
-   - `packages/telegram/AGENTS.md`
-   - `packages/contracts/.cursor/rules/*`
+   - `packages/shared/AGENTS.md` — common hooks, providers, stores, modules
+   - `packages/client/AGENTS.md` — PWA views and components
+   - `packages/admin/AGENTS.md` — dashboard views and components
+   - `packages/indexer/AGENTS.md` — Envio GraphQL indexer
+   - `packages/telegram/AGENTS.md` — Telegram bot
+   - `packages/contracts/AGENTS.md` — Solidity contracts overview
+   - `packages/contracts/.cursor/rules/*.mdc` — detailed contract patterns
 2. **During implementation**
    - Keep TypeScript strict (`noImplicitAny`, etc.)
    - Prefer existing helper utilities over duplicating logic
    - Document non-obvious flows with concise comments
 3. **Before handing off**
    - Run `bun format && bun lint && bun test` or the package-specific equivalent
-- Update documentation alongside behaviour changes (see `docs/developer/getting-started.md` and `docs/developer/contributing.md`, package READMEs)
+   - Update documentation alongside behaviour changes (see `docs/developer/getting-started.md` and `docs/developer/contributing.md`, package READMEs)
    - Surface remaining risks, manual steps, or test gaps in the final message
 
 ## Common Patterns
 
+- Import hooks, providers, and utilities from `@green-goods/shared` — don't duplicate logic across packages.
 - Import deployment data from `packages/contracts/deployments/*.json` instead of hard-coding addresses.
+- Use centralized query keys from `@green-goods/shared` for TanStack Query cache management.
 - Use TanStack Query mutations with proper loading/error states; toast success/failure with actionable copy.
 - Contracts should revert with custom errors and emit events for state changes.
-- Offline workflows persist to IndexedDB (see `packages/client/src/modules/offline`); respect existing queue APIs when adding new flows.
+- Offline workflows persist to IndexedDB (see `packages/shared/src/modules/job-queue`); respect existing queue APIs when adding new flows.
 
 ## Reference Materials
 

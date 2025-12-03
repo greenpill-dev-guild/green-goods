@@ -1,0 +1,235 @@
+---
+description: Cross-package import patterns for shared code
+globs:
+  - "packages/client/src/**/*"
+  - "packages/admin/src/**/*"
+alwaysApply: false
+---
+
+# Cross-Package Import Patterns
+
+This rule documents how client and admin packages should import from the shared package.
+
+## Import from @green-goods/shared
+
+### Hooks
+
+```typescript
+// Auth hooks
+import { useAuth, useUser, useClientAuth, useWalletAuth } from '@green-goods/shared';
+
+// Garden hooks
+import { 
+  useGardens, 
+  useGardenOperations, 
+  useGardenPermissions,
+  useJoinGarden,
+  useAutoJoinRootGarden 
+} from '@green-goods/shared';
+
+// Work hooks
+import { 
+  useWorks, 
+  useWorkApproval, 
+  useWorkMutation,
+  useMyWorks,
+  usePendingWorksCount 
+} from '@green-goods/shared';
+
+// Blockchain hooks
+import { 
+  useCurrentChain, 
+  useNetworkConfig, 
+  useChainConfig,
+  useEnsName,
+  useEnsAddress,
+  useDeploymentRegistry 
+} from '@green-goods/shared';
+
+// Role hooks (admin)
+import { useRole } from '@green-goods/shared';
+
+// App hooks
+import { useOffline, useToastAction, useMerged } from '@green-goods/shared';
+
+// Query keys
+import { queryKeys, queryInvalidation } from '@green-goods/shared';
+```
+
+### Providers
+
+```typescript
+import { 
+  AppProvider,
+  AppKitProvider,
+  ClientAuthProvider,
+  PasskeyAuthProvider,
+  WalletAuthProvider,
+  JobQueueProvider,
+  WorkProvider 
+} from '@green-goods/shared';
+```
+
+### Stores
+
+```typescript
+import { 
+  useAdminStore,
+  useUIStore,
+  useWorkFlowStore,
+  useCreateGardenStore 
+} from '@green-goods/shared';
+```
+
+### Workflows
+
+```typescript
+import { 
+  createGardenMachine,
+  createAssessmentMachine 
+} from '@green-goods/shared';
+```
+
+### Config
+
+```typescript
+import { 
+  DEFAULT_CHAIN_ID,
+  getDefaultChain,
+  getNetworkConfig,
+  getEASConfig,
+  pimlicoConfig 
+} from '@green-goods/shared';
+```
+
+### Modules
+
+```typescript
+// Job queue
+import { 
+  jobQueue, 
+  jobQueueDB, 
+  jobQueueEventBus,
+  useJobQueueEvents,
+  createOfflineTxHash 
+} from '@green-goods/shared';
+
+// Data
+import { 
+  createEasClient,
+  uploadFileToIPFS,
+  getGardens,
+  getActions 
+} from '@green-goods/shared';
+
+// Work submission
+import { 
+  submitWorkWithPasskey,
+  submitApprovalWithPasskey,
+  submitWorkToQueue 
+} from '@green-goods/shared';
+```
+
+### Types
+
+```typescript
+import type { 
+  Garden, 
+  Work, 
+  WorkDraft, 
+  Action,
+  WorkApproval,
+  WorkApprovalDraft,
+  Job,
+  QueueStats,
+  AuthMode,
+  UserRole 
+} from '@green-goods/shared';
+```
+
+### Components
+
+```typescript
+import { 
+  Spinner,
+  StatusBadge,
+  ToastViewport,
+  toastService,
+  FormInput,
+  FormTextarea 
+} from '@green-goods/shared';
+```
+
+### Utils
+
+```typescript
+import { 
+  cn,
+  formatAddress,
+  formatDate,
+  encodeWorkData,
+  decodeWorkData 
+} from '@green-goods/shared';
+```
+
+## What NOT to Import from Shared
+
+### Package-Specific Components
+
+Client and admin have their own UI components tailored to their use cases:
+
+```typescript
+// ❌ Wrong - these don't exist in shared
+import { WorkCard, GardenCard } from '@green-goods/shared';
+
+// ✅ Correct - use package-specific components
+// In client:
+import { WorkCard } from '@/components/Cards/Work/WorkCard';
+
+// In admin:
+import { WorkCard } from '@/components/Work/WorkCard';
+```
+
+### View Components
+
+Views are package-specific:
+
+```typescript
+// ❌ Wrong
+import { Home, Profile } from '@green-goods/shared';
+
+// ✅ Correct - views are in each package
+// Client views in packages/client/src/views/
+// Admin views in packages/admin/src/views/
+```
+
+## Migration Guide
+
+If you encounter imports from old paths, update them:
+
+```typescript
+// Old (client-local) — no longer works
+import { useAuth } from '@/hooks/auth/useAuth';
+import { jobQueue } from '@/modules/job-queue';
+import { useAdminStore } from '@/stores/useAdminStore';
+
+// New (shared package)
+import { useAuth, jobQueue, useAdminStore } from '@green-goods/shared';
+```
+
+## Checking Import Health
+
+Run this to find outdated imports:
+
+```bash
+# Find old-style hook imports in client
+grep -r "from '@/hooks/" packages/client/src/
+
+# Find old-style module imports in client
+grep -r "from '@/modules/" packages/client/src/
+
+# Find old-style provider imports in client
+grep -r "from '@/providers/" packages/client/src/
+```
+
+These should all point to `@green-goods/shared` now (except for client-specific overrides).

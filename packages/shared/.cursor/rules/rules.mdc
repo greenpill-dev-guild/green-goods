@@ -1,0 +1,228 @@
+---
+description: Shared package — common code for client and admin apps
+globs:
+  - "packages/shared/src/**/*"
+alwaysApply: false
+---
+
+# Shared Package Rules
+
+The shared package contains all common code used by both client (PWA) and admin (dashboard) apps.
+
+## Package Purpose
+
+This package centralizes:
+- **Hooks** — All custom React hooks (auth, garden, work, blockchain, etc.)
+- **Providers** — React context providers (Auth, JobQueue, Work, App)
+- **Stores** — Zustand state management (admin, UI, workFlow)
+- **Modules** — Core business logic (job-queue, data, work, auth)
+- **Workflows** — XState state machines (createGarden, createAssessment)
+- **Utils** — Utility functions and helpers
+- **Types** — TypeScript definitions
+- **Config** — App, blockchain, chains, pimlico configuration
+- **i18n** — Translations (en, es, pt)
+
+## Export Patterns
+
+### Explicit Exports Only
+
+All exports must be explicit for tree-shaking:
+
+```typescript
+// ✅ Correct - explicit exports in index.ts
+export { useAuth } from "./auth/useAuth";
+export { useUser } from "./auth/useUser";
+export type { UserRole } from "./gardener/useRole";
+
+// ❌ Wrong - wildcard exports
+export * from "./auth";
+```
+
+### Type-Only Exports
+
+Use `export type` for types:
+
+```typescript
+// ✅ Correct
+export type { Garden, Work, WorkDraft } from "./types";
+
+// ❌ Wrong - can cause runtime issues
+export { Garden, Work, WorkDraft } from "./types";
+```
+
+## Import Patterns
+
+### From Client/Admin
+
+```typescript
+// ✅ Correct - import from package root
+import { useAuth, useWorks, DEFAULT_CHAIN_ID } from '@green-goods/shared';
+import type { Garden, Work } from '@green-goods/shared';
+
+// ❌ Wrong - deep imports break encapsulation
+import { useAuth } from '@green-goods/shared/src/hooks/auth/useAuth';
+```
+
+### Within Shared Package
+
+```typescript
+// ✅ Correct - relative imports within package
+import { DEFAULT_CHAIN_ID } from "../../config";
+import { jobQueueDB } from "./db";
+
+// ❌ Wrong - self-referencing package import
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared";
+```
+
+## Module Guidelines
+
+### Job Queue Module
+
+**Location:** `src/modules/job-queue/`
+
+Key patterns:
+- Event-driven updates via `jobQueueEventBus`
+- IndexedDB for persistence via `jobQueueDB`
+- No polling — use events for reactivity
+- Media URLs managed by `mediaResourceManager`
+
+### Data Module
+
+**Location:** `src/modules/data/`
+
+Key patterns:
+- Use `gql.tada` for type-safe GraphQL
+- Configure urql clients per endpoint (EAS, Green Goods indexer)
+- Handle offline gracefully
+
+### Work Module
+
+**Location:** `src/modules/work/`
+
+Key patterns:
+- Separate passkey and wallet submission paths
+- Use job queue for passkey mode
+- Direct transactions for wallet mode
+
+## Hook Guidelines
+
+### Query Key Centralization
+
+**MANDATORY:** Use centralized query keys from `hooks/query-keys.ts`:
+
+```typescript
+import { queryKeys } from "./query-keys";
+
+// ✅ Correct
+const { data } = useQuery({
+  queryKey: queryKeys.works.merged(gardenId, chainId),
+  queryFn: () => fetchWorks(gardenId, chainId),
+});
+
+// ❌ Wrong - ad-hoc keys
+const { data } = useQuery({
+  queryKey: ['works', gardenId],
+  queryFn: () => fetchWorks(gardenId, chainId),
+});
+```
+
+### Hook Naming
+
+- `use{Resource}` — Data fetching hooks (useGardens, useWorks)
+- `use{Action}` — Action hooks (useJoinGarden, useWorkApproval)
+- `use{Feature}Operations` — CRUD operations (useGardenOperations)
+- `use{Feature}Permissions` — Permission checks (useGardenPermissions)
+
+## Provider Guidelines
+
+### Provider Hierarchy
+
+Providers must be nested in this order:
+
+```tsx
+<WagmiProvider>
+  <AppProvider>
+    <ClientAuthProvider>
+      <QueryClientProvider>
+        <JobQueueProvider>
+          <WorkProvider>
+            {children}
+          </WorkProvider>
+        </JobQueueProvider>
+      </QueryClientProvider>
+    </ClientAuthProvider>
+  </AppProvider>
+</WagmiProvider>
+```
+
+**Why:** Each provider depends on ancestors. Changing order breaks functionality.
+
+## Store Guidelines
+
+### Zustand Patterns
+
+```typescript
+// Store definition
+interface UIState {
+  sidebarOpen: boolean;
+  setSidebarOpen: (open: boolean) => void;
+}
+
+export const useUIStore = create<UIState>((set) => ({
+  sidebarOpen: false,
+  setSidebarOpen: (open) => set({ sidebarOpen: open }),
+}));
+```
+
+### Store Separation
+
+- `useAdminStore` — Admin dashboard state
+- `useUIStore` — Generic UI state
+- `useWorkFlowStore` — Work submission flow state
+- `useCreateGardenStore` — Garden creation wizard state
+
+## Testing Requirements
+
+- All hooks must have corresponding tests in `src/__tests__/hooks/`
+- All modules must have tests in `src/__tests__/modules/`
+- Mock IndexedDB for job queue tests
+- Mock network requests for data module tests
+
+## Anti-Patterns
+
+### ❌ Don't Create Circular Dependencies
+
+```typescript
+// Wrong - module A imports from B, B imports from A
+// utils/foo.ts
+import { bar } from './bar';
+
+// utils/bar.ts  
+import { foo } from './foo';  // Circular!
+```
+
+### ❌ Don't Store Sensitive Data
+
+```typescript
+// Wrong - storing private keys
+localStorage.setItem('private_key', key);
+
+// Correct - use WebAuthn credentials (no private key exposure)
+const credential = await createWebAuthnCredential({ name: 'Green Goods' });
+```
+
+### ❌ Don't Duplicate Configuration
+
+```typescript
+// Wrong - hardcoded chain ID
+const chainId = 84532;
+
+// Correct - use centralized config
+import { DEFAULT_CHAIN_ID } from '../config';
+```
+
+## Reference Files
+
+- AGENTS.md: `/packages/shared/AGENTS.md`
+- README: `/packages/shared/README.md`
+- Root guide: `/AGENTS.md`
