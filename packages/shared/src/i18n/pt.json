@@ -402,5 +402,9 @@
   "app.toast.profileUpdateFailed": "Falha na atualização",
   "app.toast.copied": "Copiado",
   "app.toast.addressCopied": "Endereço copiado",
-  "app.toast.copyFailed": "Falha ao copiar"
+  "app.toast.copyFailed": "Falha ao copiar",
+  "app.garden.draft.title": "Continuar Trabalho Anterior?",
+  "app.garden.draft.description": "Você tem um envio de trabalho inacabado{imageInfo}. Gostaria de continuar de onde parou?",
+  "app.garden.draft.continue": "Continuar Rascunho",
+  "app.garden.draft.startFresh": "Começar do Zero"
 }

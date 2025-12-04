@@ -397,5 +397,9 @@
   "app.toast.profileUpdateFailed": "Update failed",
   "app.toast.copied": "Copied",
   "app.toast.addressCopied": "Address copied",
-  "app.toast.copyFailed": "Copy failed"
+  "app.toast.copyFailed": "Copy failed",
+  "app.garden.draft.title": "Continue Previous Work?",
+  "app.garden.draft.description": "You have an unfinished work submission{imageInfo}. Would you like to continue where you left off?",
+  "app.garden.draft.continue": "Continue Draft",
+  "app.garden.draft.startFresh": "Start Fresh"
 }
