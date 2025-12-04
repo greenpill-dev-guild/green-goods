@@ -12,48 +12,133 @@ This rule documents how client and admin packages should import from the shared 
 
 ## Import from @green-goods/shared
 
-### Hooks
+### Auth Hooks
 
 ```typescript
-// Auth hooks
-import { useAuth, useUser, useClientAuth, useWalletAuth } from '@green-goods/shared';
+import { 
+  useAuth, 
+  useUser, 
+  useClientAuth, 
+  usePasskeyAuth, 
+  useWalletAuth 
+} from '@green-goods/shared';
+```
 
-// Garden hooks
+### Garden Hooks
+
+```typescript
 import { 
   useGardens, 
   useGardenOperations, 
   useGardenPermissions,
+  useGardenInvites,
+  useGardenTabs,
   useJoinGarden,
-  useAutoJoinRootGarden 
+  useAutoJoinRootGarden,
+  useCreateGardenWorkflow
 } from '@green-goods/shared';
+```
 
-// Work hooks
+### Work Hooks
+
+```typescript
 import { 
   useWorks, 
-  useWorkApproval, 
-  useWorkMutation,
   useMyWorks,
-  usePendingWorksCount 
+  useMyMergedWorks,
+  useMyOnlineWorks,
+  useWorkApproval, 
+  useWorkApprovals,
+  useWorkMutation,
+  useWorkForm,
+  useWorkImages,
+  usePendingWorksCount,
+  useQueueStatistics,
+  workFormSchema,
+  jobToWork
 } from '@green-goods/shared';
+```
 
-// Blockchain hooks
+### Blockchain Hooks
+
+```typescript
 import { 
   useCurrentChain, 
   useNetworkConfig, 
   useChainConfig,
+  useEASConfig,
   useEnsName,
   useEnsAddress,
-  useDeploymentRegistry 
+  useEnsAvatar,
+  useDeploymentRegistry,
+  useActions,
+  useGardeners,
+  ensureBaseLists
 } from '@green-goods/shared';
+```
 
-// Role hooks (admin)
-import { useRole } from '@green-goods/shared';
+### App Hooks
 
-// App hooks
-import { useOffline, useToastAction, useMerged } from '@green-goods/shared';
+```typescript
+import { 
+  useOffline, 
+  useToastAction, 
+  useMerged,
+  useTheme,
+  useBrowserNavigation,
+  useNavigateToTop
+} from '@green-goods/shared';
+```
 
-// Query keys
+### UI Hooks
+
+```typescript
+import { useScrollReveal } from '@green-goods/shared';
+```
+
+### Translation Hooks
+
+```typescript
+import { 
+  useTranslation, 
+  useActionTranslation, 
+  useGardenTranslation 
+} from '@green-goods/shared';
+```
+
+### Role & Profile Hooks
+
+```typescript
+import { useRole, useGardenerProfile } from '@green-goods/shared';
+```
+
+### Assessment Hooks
+
+```typescript
+import { 
+  useGardenAssessments, 
+  useCreateAssessmentWorkflow 
+} from '@green-goods/shared';
+```
+
+### Action Hooks
+
+```typescript
+import { useActionOperations } from '@green-goods/shared';
+```
+
+### Query Keys
+
+```typescript
 import { queryKeys, queryInvalidation } from '@green-goods/shared';
+
+// Usage
+queryKeys.gardens.all(chainId)
+queryKeys.gardens.detail(gardenId, chainId)
+queryKeys.works.merged(gardenId, chainId)
+queryKeys.works.online(gardenId, chainId)
+queryKeys.queue.stats()
+queryKeys.queue.pending()
 ```
 
 ### Providers
@@ -66,7 +151,11 @@ import {
   PasskeyAuthProvider,
   WalletAuthProvider,
   JobQueueProvider,
-  WorkProvider 
+  WorkProvider,
+  useAppKit,
+  useClientAuthProvider,
+  useJobQueue,
+  useWork
 } from '@green-goods/shared';
 ```
 
@@ -77,7 +166,14 @@ import {
   useAdminStore,
   useUIStore,
   useWorkFlowStore,
-  useCreateGardenStore 
+  useCreateGardenStore,
+  WorkTab,
+  type AdminState,
+  type UIState,
+  type WorkFlowState,
+  type WorkDraftState,
+  type CreateGardenStep,
+  type CreateGardenFormState
 } from '@green-goods/shared';
 ```
 
@@ -86,7 +182,11 @@ import {
 ```typescript
 import { 
   createGardenMachine,
-  createAssessmentMachine 
+  createAssessmentMachine,
+  type CreateGardenContext,
+  type CreateGardenEvent,
+  type AssessmentContext,
+  type AssessmentEvent
 } from '@green-goods/shared';
 ```
 
@@ -98,14 +198,35 @@ import {
   getDefaultChain,
   getNetworkConfig,
   getEASConfig,
-  pimlicoConfig 
+  getChain,
+  getChainName,
+  isChainSupported,
+  SUPPORTED_CHAINS,
+  wagmiConfig,
+  queryClient,
+  appKit,
+  createPimlicoClientForChain,
+  createPublicClientForChain,
+  getPimlicoApiKey,
+  getPimlicoBundlerUrl,
+  getPimlicoPaymasterUrl,
+  getIndexerUrl,
+  getEasGraphqlUrl,
+  STALE_TIMES,
+  GC_TIMES,
+  APP_NAME,
+  APP_URL,
+  APP_DESCRIPTION,
+  APP_ICON,
+  APP_DEFAULT_TITLE,
+  APP_TITLE_TEMPLATE,
+  ONBOARDED_STORAGE_KEY
 } from '@green-goods/shared';
 ```
 
-### Modules
+### Job Queue Module
 
 ```typescript
-// Job queue
 import { 
   jobQueue, 
   jobQueueDB, 
@@ -113,20 +234,120 @@ import {
   useJobQueueEvents,
   createOfflineTxHash 
 } from '@green-goods/shared';
+```
 
-// Data
+### Data Module
+
+```typescript
 import { 
-  createEasClient,
-  uploadFileToIPFS,
+  // EAS
+  getWorks,
+  getWorksByGardener,
+  getWorkApprovals,
+  getGardenAssessments,
+  
+  // Green Goods Indexer
   getGardens,
-  getActions 
+  getGardeners,
+  getActions,
+  updateUserProfile,
+  Capital,
+  
+  // GraphQL clients
+  createEasClient,
+  createGreenGoodsIndexerClient,
+  createIndexerClient,
+  greenGoodsIndexer,
+  easGraphQL,
+  greenGoodsGraphQL,
+  
+  // IPFS
+  uploadFileToIPFS,
+  uploadJSONToIPFS,
+  getFileByHash,
+  resolveIPFSUrl,
+  resolveImageUrl,
+  resolveAvatarUrl,
+  initializePinata,
+  initializePinataFromEnv
 } from '@green-goods/shared';
+```
 
-// Work submission
+### Work Submission Module
+
+```typescript
 import { 
   submitWorkWithPasskey,
   submitApprovalWithPasskey,
-  submitWorkToQueue 
+  submitWorkBot,
+  submitApprovalBot,
+  validateWorkDraft,
+  validateApprovalDraft,
+  formatJobError,
+  getSubmissionStatusText
+} from '@green-goods/shared';
+```
+
+### Auth Module
+
+```typescript
+import { 
+  // Passkey
+  registerPasskeySession,
+  registerPasskeySessionWithENS,
+  authenticatePasskey,
+  recoverPasskeyAccount,
+  restorePasskeySession,
+  clearStoredCredential,
+  hasStoredPasskeyCredential,
+  PASSKEY_STORAGE_KEY,
+  
+  // Session
+  saveAuthMode,
+  getSavedAuthMode,
+  clearAuthMode,
+  clearAllAuthStorage,
+  setSignedOut,
+  clearSignedOut,
+  wasExplicitlySignedOut,
+  setPasskeySignedOut,
+  clearPasskeySignedOut,
+  wasPasskeySignedOut,
+  isFreshAppStart,
+  markSessionActive,
+  checkAndHandleFreshStart,
+  AUTH_MODE_STORAGE_KEY,
+  SIGNED_OUT_KEY,
+  PASSKEY_SIGNED_OUT_KEY,
+  SESSION_MARKER_KEY
+} from '@green-goods/shared';
+```
+
+### App Module
+
+```typescript
+import { 
+  // Analytics
+  track,
+  identify,
+  reset,
+  getDistinctId,
+  trackAppLifecycle,
+  trackOfflineEvent,
+  trackSyncPerformance,
+  
+  // Service Worker
+  serviceWorkerManager
+} from '@green-goods/shared';
+```
+
+### Translation Module
+
+```typescript
+import { 
+  browserTranslator,
+  translationCache,
+  runTranslationDiagnostics
 } from '@green-goods/shared';
 ```
 
@@ -134,16 +355,70 @@ import {
 
 ```typescript
 import type { 
-  Garden, 
-  Work, 
-  WorkDraft, 
-  Action,
+  // Auth
+  AuthMode,
+  BaseAuthContext,
+  ClientAuthContext,
+  PasskeyAuthContext,
+  WalletAuthContext,
+  UnifiedAuthContext,
+  PasskeySession,
+  
+  // Garden
+  Garden,
+  GardenInvite,
+  GardenPermissions,
+  GardenOperationConfig,
+  CreateGardenParams,
+  
+  // Work
+  Work,
+  WorkDraft,
   WorkApproval,
   WorkApprovalDraft,
+  WorkFormData,
+  EnhancedWorkApproval,
+  
+  // Action
+  Action,
+  
+  // Queue
   Job,
   QueueStats,
-  AuthMode,
-  UserRole 
+  
+  // Role
+  UserRole,
+  RoleInfo,
+  
+  // Blockchain
+  Address,
+  ChainId,
+  NetworkConfig,
+  EASConfig,
+  SupportedChainId,
+  DeploymentConfig,
+  DeploymentParams,
+  NetworkContracts,
+  
+  // GraphQL
+  FragmentOf,
+  ResultOf,
+  VariablesOf,
+  
+  // Query Keys
+  QueryKey,
+  WorksQueryKey,
+  QueueQueryKey
+} from '@green-goods/shared';
+```
+
+### Type Guards
+
+```typescript
+import { 
+  isPasskeyAuth, 
+  isWalletAuth, 
+  hasSmartAccount 
 } from '@green-goods/shared';
 ```
 
@@ -152,11 +427,17 @@ import type {
 ```typescript
 import { 
   Spinner,
+  CenteredSpinner,
   StatusBadge,
   ToastViewport,
   toastService,
+  setToastTranslator,
   FormInput,
-  FormTextarea 
+  FormTextarea,
+  FormLayout,
+  TranslationBadge,
+  HydrationFallback,
+  getStatusColors
 } from '@green-goods/shared';
 ```
 
@@ -164,12 +445,121 @@ import {
 
 ```typescript
 import { 
+  // Styling
   cn,
+  
+  // Address formatting
   formatAddress,
-  formatDate,
-  encodeWorkData,
-  decodeWorkData 
+  truncateAddress,
+  normalizeAddress,
+  compareAddresses,
+  isUserAddress,
+  isValidAddressFormat,
+  isAddressInList,
+  
+  // ENS
+  resolveEnsName,
+  resolveEnsAddress,
+  
+  // Time
+  formatRelativeTime,
+  filterByTimeRange,
+  getTimeCutoff,
+  
+  // Text
+  capitalize,
+  truncate,
+  
+  // Work
+  encodeWorkApprovalData,
+  downloadWorkData,
+  extractClientWorkId,
+  
+  // EAS
+  getEASExplorerUrl,
+  openEASExplorer,
+  isValidAttestationId,
+  buildWorkAttestTx,
+  buildApprovalAttestTx,
+  
+  // Garden
+  buildGardenMemberSets,
+  gardenHasMember,
+  resolveGardenMemberKey,
+  
+  // Errors
+  formatErrorForToast,
+  formatUserError,
+  formatWalletError,
+  parseContractError,
+  parseAndFormatError,
+  isAlreadyGardenerError,
+  isNotGardenerError,
+  USER_FRIENDLY_ERRORS,
+  
+  // Simulation
+  simulateTransaction,
+  simulateJoinGarden,
+  
+  // Contracts
+  getNetworkContracts,
+  GardenTokenABI,
+  GardenAccountABI,
+  ActionRegistryABI,
+  
+  // Theme
+  getTheme,
+  setTheme,
+  initTheme,
+  getResolvedTheme,
+  toggle,
+  listenToSystemChanges,
+  
+  // Storage
+  saveFormDraft,
+  loadFormDraft,
+  clearFormDraft,
+  
+  // Clipboard
+  copyToClipboard,
+  
+  // Image
+  imageCompressor,
+  calculateCompressionRatio,
+  
+  // Offline
+  fetchOfflineWorks,
+  convertJobsToWorks,
+  mergeAndDeduplicateByClientId,
+  
+  // Misc
+  createClients,
+  createUrqlClient,
+  createDispatchAdapter,
+  pollQueryAfterTransaction,
+  pollQueriesAfterTransaction,
+  deduplicateById,
+  sortByCreatedAt,
+  recursiveCloneChildren,
+  formatFileSize,
+  getTag,
+  
+  // Actions
+  instructionTemplates,
+  defaultTemplate,
+  
+  // Debug
+  DEBUG_ENABLED,
+  debugLog,
+  debugWarn,
+  debugError
 } from '@green-goods/shared';
+```
+
+### i18n
+
+```typescript
+import { en, es, pt } from '@green-goods/shared';
 ```
 
 ## What NOT to Import from Shared
@@ -203,6 +593,19 @@ import { Home, Profile } from '@green-goods/shared';
 // Admin views in packages/admin/src/views/
 ```
 
+### Deep Imports
+
+Never import from internal paths:
+
+```typescript
+// ❌ Wrong - deep imports
+import { useAuth } from '@green-goods/shared/src/hooks/auth/useAuth';
+import { jobQueueDB } from '@green-goods/shared/src/modules/job-queue/db';
+
+// ✅ Correct - always use package root
+import { useAuth, jobQueueDB } from '@green-goods/shared';
+```
+
 ## Migration Guide
 
 If you encounter imports from old paths, update them:
@@ -230,6 +633,39 @@ grep -r "from '@/modules/" packages/client/src/
 
 # Find old-style provider imports in client
 grep -r "from '@/providers/" packages/client/src/
+
+# Find old-style store imports
+grep -r "from '@/stores/" packages/client/src/
 ```
 
 These should all point to `@green-goods/shared` now (except for client-specific overrides).
+
+## Import Organization
+
+When importing from shared, organize imports by category:
+
+```typescript
+// 1. Hooks
+import { useAuth, useWorks, useGardens } from '@green-goods/shared';
+
+// 2. Providers
+import { AppProvider, JobQueueProvider } from '@green-goods/shared';
+
+// 3. Stores
+import { useAdminStore, useUIStore } from '@green-goods/shared';
+
+// 4. Modules
+import { jobQueue, track } from '@green-goods/shared';
+
+// 5. Config
+import { DEFAULT_CHAIN_ID, getNetworkConfig } from '@green-goods/shared';
+
+// 6. Utils
+import { cn, formatAddress } from '@green-goods/shared';
+
+// 7. Components
+import { Spinner, ToastViewport } from '@green-goods/shared';
+
+// 8. Types (always last, using 'import type')
+import type { Garden, Work, UserRole } from '@green-goods/shared';
+```
