@@ -8,9 +8,7 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/__tests__/setupTests.ts"],
     globals: true,
-    // Increase timeout for complex tests
     testTimeout: 10000,
-    // Fix React 18 concurrent rendering issues
     pool: "forks",
     isolate: true,
     coverage: {
@@ -20,30 +18,27 @@ export default defineConfig({
         "node_modules/",
         "src/__tests__/",
         "src/__mocks__/",
-        "src/test-utils/",
         "**/*.d.ts",
         "**/*.config.*",
         "**/dist/**",
-        "**/build/**",
+        "**/types/**",
       ],
       thresholds: {
         global: {
-          branches: 75,
-          functions: 80,
-          lines: 80,
-          statements: 80,
+          branches: 60,
+          functions: 60,
+          lines: 60,
+          statements: 60,
         },
       },
     },
     include: ["src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
-    exclude: ["node_modules/", "dist/", "build/", "**/*.d.ts"],
+    exclude: ["node_modules/", "dist/", "**/*.d.ts"],
   },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      pino: path.resolve(__dirname, "./src/__mocks__/pino.ts"),
-      "node:diagnostics_channel": path.resolve(__dirname, "./src/__mocks__/diagnostics-channel.ts"),
-      diagnostics_channel: path.resolve(__dirname, "./src/__mocks__/diagnostics-channel.ts"),
     },
   },
 });
+

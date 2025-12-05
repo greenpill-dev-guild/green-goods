@@ -4,26 +4,95 @@
  * @vitest-environment jsdom
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+// Must mock before imports
+vi.mock("@wagmi/core", () => ({
+  getWalletClient: vi.fn(),
+  getPublicClient: vi.fn(),
+  waitForTransactionReceipt: vi.fn(),
+}));
+
+vi.mock("../../config/appkit", () => ({
+  wagmiConfig: {},
+}));
+
+vi.mock("../../config/blockchain", () => ({
+  getEASConfig: () => ({
+    EAS_CONTRACT: "0xEASAddress",
+    WORK: { uid: "0x" + "1".repeat(64) },
+    WORK_APPROVAL: { uid: "0x" + "2".repeat(64) },
+  }),
+}));
+
+vi.mock("../../utils/eas/encoders", () => ({
+  encodeWorkData: vi.fn(),
+  encodeWorkApprovalData: vi.fn(),
+  simulateWorkData: vi.fn(),
+}));
+
+vi.mock("../../utils/eas/transaction-builder", () => ({
+  buildWorkAttestTx: vi.fn(() => ({
+    to: "0xEASAddress" as `0x${string}`,
+    data: "0xWorkTxData" as `0x${string}`,
+    value: 0n,
+  })),
+  buildApprovalAttestTx: vi.fn(() => ({
+    to: "0xEASAddress" as `0x${string}`,
+    data: "0xApprovalTxData" as `0x${string}`,
+    value: 0n,
+  })),
+}));
+
+vi.mock("../../utils/blockchain/polling", () => ({
+  pollQueriesAfterTransaction: vi.fn(),
+}));
+
+vi.mock("../../utils/debug", () => ({
+  DEBUG_ENABLED: false,
+  debugLog: vi.fn(),
+  debugError: vi.fn(),
+}));
+
+vi.mock("../../hooks/query-keys", () => ({
+  queryKeys: {
+    works: {
+      all: ["greengoods", "works"],
+      online: (gardenId: string, chainId: number) => [
+        "greengoods",
+        "works",
+        "online",
+        gardenId,
+        chainId,
+      ],
+      offline: (gardenId: string) => ["greengoods", "works", "offline", gardenId],
+      merged: (gardenId: string, chainId: number) => [
+        "greengoods",
+        "works",
+        "merged",
+        gardenId,
+        chainId,
+      ],
+    },
+    workApprovals: {
+      all: ["greengoods", "workApprovals"],
+      byAttester: (address?: string, chainId?: number) => [
+        "greengoods",
+        "workApprovals",
+        "byAttester",
+        address,
+        chainId,
+      ],
+      offline: (address?: string) => ["greengoods", "workApprovals", "offline", address],
+    },
+  },
+}));
+
 import * as wagmiCore from "@wagmi/core";
 import type { WalletClient } from "viem";
 
-import { submitWorkDirectly, submitApprovalDirectly } from "../../modules/work/wallet-submission";
+import { submitApprovalDirectly, submitWorkDirectly } from "../../modules/work/wallet-submission";
 import * as encoders from "../../utils/eas/encoders";
-
-// Mock dependencies
-vi.mock("@wagmi/core");
-vi.mock("@/utils/eas/encoders");
-vi.mock("@/config/appkit", () => ({
-  wagmiConfig: {},
-}));
-vi.mock("@/config/blockchain", () => ({
-  getEASConfig: () => ({
-    EAS: { address: "0xEASAddress" },
-    WORK: { uid: "0xWorkSchemaUID" },
-    WORK_APPROVAL: { uid: "0xApprovalSchemaUID" },
-  }),
-}));
 
 describe("wallet-submission", () => {
   const mockWalletClient: Partial<WalletClient> = {
@@ -101,7 +170,7 @@ describe("wallet-submission", () => {
 
     it("should throw error when wallet is not connected", async () => {
       // Setup: no wallet client
-      vi.mocked(wagmiCore.getWalletClient).mockResolvedValue(null);
+      vi.mocked(wagmiCore.getWalletClient).mockResolvedValue(null as any);
 
       // Execute & Verify
       await expect(
@@ -243,7 +312,7 @@ describe("wallet-submission", () => {
 
     it("should throw error when wallet is not connected", async () => {
       // Setup: no wallet client
-      vi.mocked(wagmiCore.getWalletClient).mockResolvedValue(null);
+      vi.mocked(wagmiCore.getWalletClient).mockResolvedValue(null as any);
 
       // Execute & Verify
       await expect(

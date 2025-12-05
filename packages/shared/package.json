@@ -28,7 +28,9 @@
   },
   "scripts": {
     "build": "echo 'Shared package uses source files directly - no build needed'",
-    "test": "echo 'No tests yet for shared package'",
+    "test": "vitest run",
+    "test:watch": "vitest --standalone",
+    "coverage": "vitest run --coverage",
     "format": "biome format --write .",
     "lint": "oxlint src"
   },
@@ -70,12 +72,20 @@
     "zustand": "^5.0.6"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.2",
     "@types/browser-lang": "^0.1.2",
     "@types/node": "^24.2.1",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.1",
     "@types/uuid": "^11.0.0",
+    "@vitejs/plugin-react": "^5.0.4",
+    "@vitest/coverage-v8": "^3.2.4",
+    "fake-indexeddb": "^6.1.0",
+    "jsdom": "^25.0.1",
     "typescript": "^5.9.2",
-    "vite": "^6.0.0"
+    "vite": "^6.0.0",
+    "vitest": "^3.2.4"
   }
 }

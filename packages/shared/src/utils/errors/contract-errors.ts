@@ -107,7 +107,14 @@ export interface ParsedContractError {
 function extractErrorSignature(error: unknown): string | null {
   if (!error) return null;
 
-  const errorStr = String(error);
+  // Handle error objects with message property FIRST
+  // This ensures { message: "...", code: "..." } objects are handled correctly
+  let errorStr: string;
+  if (typeof error === "object" && error !== null && "message" in error) {
+    errorStr = String((error as { message: unknown }).message);
+  } else {
+    errorStr = String(error);
+  }
 
   // Match hex error codes like 0x8cb4ae3b
   const hexMatch = errorStr.match(/0x[a-fA-F0-9]{8}/);
@@ -149,7 +156,13 @@ function extractErrorSignature(error: unknown): string | null {
  * ```
  */
 export function parseContractError(error: unknown): ParsedContractError {
-  const errorStr = String(error);
+  // Handle error objects with message property
+  let errorStr: string;
+  if (typeof error === "object" && error !== null && "message" in error) {
+    errorStr = String((error as { message: unknown }).message);
+  } else {
+    errorStr = String(error);
+  }
   const signature = extractErrorSignature(error);
 
   // Check if we have a known error
