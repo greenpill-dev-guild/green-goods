@@ -8,9 +8,9 @@
  */
 
 import { simulateContract } from "@wagmi/core";
-import { type Address, encodeFunctionData, type Hex } from "viem";
+import type { Abi, Address } from "viem";
 import { wagmiConfig } from "../../config/appkit";
-import { parseContractError } from "../errors";
+import { parseContractError } from "../errors/contract-errors";
 
 /**
  * Simulation result with parsed error if applicable
@@ -26,7 +26,7 @@ export interface SimulationResult {
     raw: string;
   };
   /** Original simulation result from wagmi */
-  result?: any;
+  result?: unknown;
 }
 
 /**
@@ -63,9 +63,9 @@ export interface SimulationResult {
  */
 export async function simulateTransaction(
   address: Address,
-  abi: any,
+  abi: Abi,
   functionName: string,
-  args: any[] = [],
+  args: unknown[] = [],
   account: Address
 ): Promise<SimulationResult> {
   try {
@@ -108,32 +108,16 @@ export async function simulateTransaction(
 export async function simulateJoinGarden(
   gardenAddress: Address,
   userAddress: Address,
-  abi?: any
+  abi?: Abi
 ): Promise<SimulationResult> {
   // Import GardenAccountABI dynamically to avoid circular deps
-  const { GardenAccountABI } = await import("../contracts");
+  const { GardenAccountABI } = await import("../blockchain/contracts");
 
-  return simulateTransaction(gardenAddress, abi || GardenAccountABI, "joinGarden", [], userAddress);
-}
-
-/**
- * Batch simulate multiple transactions
- *
- * @param simulations - Array of simulation configs
- * @returns Array of simulation results
- */
-export async function batchSimulate(
-  simulations: Array<{
-    address: Address;
-    abi: any;
-    functionName: string;
-    args?: any[];
-    account: Address;
-  }>
-): Promise<SimulationResult[]> {
-  return Promise.all(
-    simulations.map((sim) =>
-      simulateTransaction(sim.address, sim.abi, sim.functionName, sim.args || [], sim.account)
-    )
+  return simulateTransaction(
+    gardenAddress,
+    abi || (GardenAccountABI as Abi),
+    "joinGarden",
+    [],
+    userAddress
   );
 }

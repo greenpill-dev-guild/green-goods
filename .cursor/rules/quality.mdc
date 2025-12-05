@@ -24,7 +24,7 @@ Green Goods maintains high code quality through automated tooling, comprehensive
 bun format
 
 # Format specific package
-bun --filter client format
+cd packages/client && bun run format
 
 # Auto-format on save (VS Code)
 # Already configured in .vscode/settings.json
@@ -46,7 +46,7 @@ bun --filter client format
 **Usage:**
 ```bash
 # Lint client
-bun --filter client lint
+cd packages/client && bun run lint
 
 # Lint all packages
 bun lint
@@ -350,7 +350,7 @@ modules/job-queue/
 
 ```bash
 # Run Solhint
-bun --filter contracts lint
+cd packages/contracts && bun run lint
 
 # Auto-format Solidity
 forge fmt
@@ -517,6 +517,124 @@ Before pushing code:
 - [ ] Updated documentation
 - [ ] Added tests for new features
 - [ ] Removed console.logs and debuggers
+
+## Agent Validation Protocol
+
+**MANDATORY:** After completing ANY code modification task, agents MUST run validation commands before reporting task completion. Do NOT skip validation.
+
+### When to Validate
+
+Run validation after:
+- Adding new features
+- Fixing bugs
+- Refactoring code
+- Modifying types or interfaces
+- Changing imports or exports
+- Updating configuration
+
+### Package-Specific Validation Commands
+
+Determine which package(s) you modified and run the corresponding commands:
+
+**Client** (`packages/client/src/**`):
+```bash
+cd packages/client && bun run build   # TypeScript check + Vite build
+cd packages/client && bun run lint    # oxlint
+cd packages/client && bun run test    # Vitest
+```
+
+**Admin** (`packages/admin/src/**`):
+```bash
+cd packages/admin && bun run build    # TypeScript check + Vite build
+cd packages/admin && bun run lint     # oxlint
+cd packages/admin && bun run test     # Vitest
+```
+
+**Shared** (`packages/shared/src/**`):
+```bash
+cd packages/shared && npx tsc --noEmit   # TypeScript check (no build script)
+cd packages/shared && bun run lint       # oxlint
+cd packages/shared && bun run test       # Vitest
+```
+
+**Contracts** (`packages/contracts/src/**` or `test/**`):
+```bash
+cd packages/contracts && bun run build   # forge build --via-ir
+cd packages/contracts && bun run lint    # forge fmt + solhint
+cd packages/contracts && bun run test    # forge test
+```
+
+**Indexer** (`packages/indexer/src/**`):
+```bash
+cd packages/indexer && bun run build     # tsc --build
+cd packages/indexer && bun run lint      # oxlint
+cd packages/indexer && bun run test      # mocha
+```
+
+### Validation by Task Type
+
+| Task Type | Required Validation |
+|-----------|-------------------|
+| New feature | `build` + `lint` + `format` + `test` |
+| Bug fix | `build` + `lint` + `test` (affected tests) |
+| Refactor | `build` + `lint` + `test` |
+| Type changes | `build` + `lint` |
+| Config change | `build` (verify no breakage) |
+| Docs only | `bun format` only |
+
+### Cross-Package Changes
+
+When changes span multiple packages, validate ALL affected packages:
+
+```bash
+# Example: Changed shared hooks used by client
+cd packages/shared && npx tsc --noEmit && bun run lint && bun run test
+cd packages/client && bun run build && bun run lint && bun run test
+```
+
+### Failure Handling
+
+If ANY validation command fails:
+
+1. **DO NOT** report the task as complete
+2. **READ** the error output carefully
+3. **FIX** all errors in your code
+4. **RE-RUN** the failed validation command
+5. **REPEAT** until all validations pass
+6. Only then report task completion
+
+### Quick Validation (Minimum Required)
+
+For small, isolated changes, at minimum run:
+
+```bash
+# For TypeScript packages (client/admin/shared/indexer)
+cd packages/{package} && bun run build && bun run lint
+
+# For contracts
+cd packages/contracts && bun run build && bun run lint
+```
+
+This catches:
+- TypeScript type errors
+- Import/export issues
+- Linting violations
+- Build-time failures
+
+### Full Validation (Recommended)
+
+For any non-trivial change:
+
+```bash
+# From repo root
+bun format && bun lint && bun test
+```
+
+Or package-specific:
+
+```bash
+cd packages/{package} && bun run format && bun run lint && bun run build && bun run test
+```
 
 ## Reference Documents
 

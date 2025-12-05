@@ -1,5 +1,6 @@
-import { createOfflineTxHash, jobQueue } from "../job-queue";
 import { v4 as uuidv4 } from "uuid";
+import { getActionTitle } from "../../utils/action/parsers";
+import { createOfflineTxHash, jobQueue } from "../job-queue";
 
 /**
  * Consolidated work submission utility
@@ -21,12 +22,7 @@ export async function submitWorkToQueue(
     throw new Error("Action UID must be a number");
   }
 
-  const action = actions.find((a) => {
-    const idPart = a.id?.split("-").pop();
-    const numeric = Number(idPart);
-    return Number.isFinite(numeric) && numeric === actionUID;
-  });
-  const actionTitle = action?.title || "Unknown Action";
+  const actionTitle = getActionTitle(actions, actionUID);
 
   // Use existing clientWorkId if provided, otherwise generate new one
   const incomingId =
@@ -94,10 +90,21 @@ export async function submitApprovalToQueue(
 }
 
 /**
- * Validate work draft before submission
+ * Maximum file size for work images (10MB)
  */
-export function validateWorkDraft(
-  draft: WorkDraft,
+export const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
+
+/**
+ * Validate submission context before work submission.
+ * Note: Form field validation (feedback, plantSelection, plantCount) is handled
+ * by the Zod schema in useWorkForm.ts. This function only validates context.
+ *
+ * @param gardenAddress - Selected garden address
+ * @param actionUID - Selected action UID
+ * @param images - Work images to upload
+ * @returns Array of error messages (empty if valid)
+ */
+export function validateWorkSubmissionContext(
   gardenAddress: string | null,
   actionUID: number | null,
   images: File[]
@@ -112,27 +119,30 @@ export function validateWorkDraft(
     errors.push("Action must be selected");
   }
 
-  if (!draft.feedback || draft.feedback.trim().length === 0) {
-    errors.push("Feedback is required");
-  }
-
-  // Plant count is optional; only validate if provided and negative
-  if (typeof (draft as any).plantCount === "number" && (draft as any).plantCount < 0) {
-    errors.push("Plant count cannot be negative");
-  }
-
   if (images.length === 0) {
     errors.push("At least one image is required");
   }
 
-  // Check image file sizes (e.g., max 10MB each)
-  const maxSize = 10 * 1024 * 1024; // 10MB
-  const oversizedImages = images.filter((img) => img.size > maxSize);
+  // Check image file sizes
+  const oversizedImages = images.filter((img) => img.size > MAX_IMAGE_SIZE_BYTES);
   if (oversizedImages.length > 0) {
     errors.push(`${oversizedImages.length} image(s) exceed 10MB limit`);
   }
 
   return errors;
+}
+
+/**
+ * @deprecated Use validateWorkSubmissionContext instead.
+ * This function is kept for backward compatibility.
+ */
+export function validateWorkDraft(
+  _draft: WorkDraft,
+  gardenAddress: string | null,
+  actionUID: number | null,
+  images: File[]
+): string[] {
+  return validateWorkSubmissionContext(gardenAddress, actionUID, images);
 }
 
 /**
@@ -182,27 +192,5 @@ export function getSubmissionStatusText(
   }
 }
 
-/**
- * Format job error for user display
- */
-export function formatJobError(error: string): string {
-  // Common error patterns and their user-friendly messages
-  const errorMappings: Record<string, string> = {
-    gardener: "You don't have permission to submit work to this garden",
-    permission: "Permission denied - check your garden access",
-    unauthorized: "You're not authorized to perform this action",
-    network: "Network connection error - your work is saved offline",
-    quota: "Storage quota exceeded - please free up space",
-    invalid: "Invalid data - please check your submission",
-  };
-
-  // Check for known error patterns
-  for (const [pattern, message] of Object.entries(errorMappings)) {
-    if (error.toLowerCase().includes(pattern)) {
-      return message;
-    }
-  }
-
-  // Return original error if no pattern matches
-  return error;
-}
+// Re-export formatJobError from centralized error utilities
+export { formatJobError } from "../../utils/errors/user-messages";

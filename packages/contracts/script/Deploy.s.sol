@@ -145,7 +145,8 @@ contract Deploy is Script, DeploymentBase {
                     abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".bannerImage")), (string));
 
                 string memory metadata = "";
-                try vm.parseJson(gardensJson, string.concat(basePath, ".metadata")) returns (bytes memory metadataBytes) {
+                try vm.parseJson(gardensJson, string.concat(basePath, ".metadata")) returns (bytes memory metadataBytes)
+                {
                     metadata = abi.decode(metadataBytes, (string));
                 } catch {}
 
@@ -168,6 +169,7 @@ contract Deploy is Script, DeploymentBase {
                     location: location,
                     bannerImage: bannerImage,
                     metadata: metadata,
+                    openJoining: openJoining,
                     gardeners: gardeners,
                     gardenOperators: operators
                 });
@@ -175,11 +177,6 @@ contract Deploy is Script, DeploymentBase {
                 address gardenAddress = gardenToken.mintGarden(gardenConfig);
                 gardenAddresses.push(gardenAddress);
                 gardenTokenIds.push(i + 1);
-
-                // Only the root garden gets open joining automatically from tokenId == 1. Others require operator call.
-                if (openJoining && GardenAccount(payable(gardenAddress)).gardenOperators(msg.sender)) {
-                    GardenAccount(payable(gardenAddress)).setOpenJoining(true);
-                }
 
                 console.log("Garden created");
                 console.log("  name", name);
@@ -258,7 +255,7 @@ contract Deploy is Script, DeploymentBase {
     }
 
     /// @notice Handle IPFS upload mismatch scenarios
-    function _handleIPFSMismatch(uint256 expectedCount, uint256 /* actualCount */)
+    function _handleIPFSMismatch(uint256 expectedCount, uint256 /* actualCount */ )
         internal
         view
         returns (string[] memory)

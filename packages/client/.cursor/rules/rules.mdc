@@ -9,7 +9,8 @@ alwaysApply: false
 # Client UI & Styling Rules
 
 ## Foundations
-- **Stack:** React + Vite + TypeScript, **Tailwind CSS v4** utilities, **Radix UI** primitives, TanStack Query for data, React Hook Form for forms, Privy for auth/wallet.
+- **Stack:** React + Vite + TypeScript, **Tailwind CSS v4** utilities, **Radix UI** primitives.
+- **Shared code:** Hooks, providers, modules, and stores come from `@green-goods/shared`. See `/packages/shared/AGENTS.md`.
 - **Design language:** utility-first classes; avoid inline styles. Prefer semantic HTML (`<main>`, `<section>`, etc.) and accessible Radix components.
 - **Class composition:** use a `cn()` helper for conditional classes; keep class lists ordered layout→spacing→typography→color→state.
 

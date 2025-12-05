@@ -1,7 +1,14 @@
-import { useState } from "react";
+/**
+ * Garden Operations Hook
+ *
+ * Provides functions to manage garden members (gardeners and operators).
+ * Uses the createGardenOperation factory for consistent behavior.
+ */
+
+import { useMemo, useState } from "react";
 import { useAccount, useWalletClient } from "wagmi";
 import { useToastAction } from "../app/useToastAction";
-import { GardenAccountABI } from "../../utils/contracts";
+import { createGardenOperation, GARDEN_OPERATIONS } from "./createGardenOperation";
 
 export function useGardenOperations(gardenId: string) {
   const [isLoading, setIsLoading] = useState(false);
@@ -9,143 +16,59 @@ export function useGardenOperations(gardenId: string) {
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
 
-  const addGardener = async (gardenerAddress: string) => {
+  // Create memoized operations using the factory
+  const operations = useMemo(() => {
     if (!walletClient || !address) {
-      throw new Error("Wallet not connected");
+      // Return no-op functions when wallet is not connected
+      const notConnected = async () => {
+        throw new Error("Wallet not connected");
+      };
+      return {
+        addGardener: notConnected,
+        removeGardener: notConnected,
+        addOperator: notConnected,
+        removeOperator: notConnected,
+      };
     }
 
-    setIsLoading(true);
-
-    try {
-      const result = await executeWithToast(
-        async () => {
-          const hash = await walletClient.writeContract({
-            address: gardenId as `0x${string}`,
-            abi: GardenAccountABI,
-            functionName: "addGardener",
-            account: address,
-            args: [gardenerAddress],
-          });
-
-          return hash;
-        },
-        {
-          loadingMessage: "Adding gardener...",
-          successMessage: "Gardener added successfully",
-          errorMessage: "Failed to add gardener",
-        }
-      );
-
-      return result;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const removeGardener = async (gardenerAddress: string) => {
-    if (!walletClient || !address) {
-      throw new Error("Wallet not connected");
-    }
-
-    setIsLoading(true);
-
-    try {
-      const result = await executeWithToast(
-        async () => {
-          const hash = await walletClient.writeContract({
-            address: gardenId as `0x${string}`,
-            abi: GardenAccountABI,
-            functionName: "removeGardener",
-            account: address,
-            args: [gardenerAddress],
-          });
-
-          return hash;
-        },
-        {
-          loadingMessage: "Removing gardener...",
-          successMessage: "Gardener removed successfully",
-          errorMessage: "Failed to remove gardener",
-        }
-      );
-
-      return result;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const addOperator = async (operatorAddress: string) => {
-    if (!walletClient || !address) {
-      throw new Error("Wallet not connected");
-    }
-
-    setIsLoading(true);
-
-    try {
-      const result = await executeWithToast(
-        async () => {
-          const hash = await walletClient.writeContract({
-            address: gardenId as `0x${string}`,
-            abi: GardenAccountABI,
-            functionName: "addGardenOperator",
-            account: address,
-            args: [operatorAddress],
-          });
-
-          return hash;
-        },
-        {
-          loadingMessage: "Adding operator...",
-          successMessage: "Operator added successfully",
-          errorMessage: "Failed to add operator",
-        }
-      );
-
-      return result;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const removeOperator = async (operatorAddress: string) => {
-    if (!walletClient || !address) {
-      throw new Error("Wallet not connected");
-    }
-
-    setIsLoading(true);
-
-    try {
-      const result = await executeWithToast(
-        async () => {
-          const hash = await walletClient.writeContract({
-            address: gardenId as `0x${string}`,
-            abi: GardenAccountABI,
-            functionName: "removeGardenOperator",
-            account: address,
-            args: [operatorAddress],
-          });
-
-          return hash;
-        },
-        {
-          loadingMessage: "Removing operator...",
-          successMessage: "Operator removed successfully",
-          errorMessage: "Failed to remove operator",
-        }
-      );
-
-      return result;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    return {
+      addGardener: createGardenOperation(
+        gardenId,
+        GARDEN_OPERATIONS.addGardener,
+        walletClient,
+        address,
+        executeWithToast,
+        setIsLoading
+      ),
+      removeGardener: createGardenOperation(
+        gardenId,
+        GARDEN_OPERATIONS.removeGardener,
+        walletClient,
+        address,
+        executeWithToast,
+        setIsLoading
+      ),
+      addOperator: createGardenOperation(
+        gardenId,
+        GARDEN_OPERATIONS.addOperator,
+        walletClient,
+        address,
+        executeWithToast,
+        setIsLoading
+      ),
+      removeOperator: createGardenOperation(
+        gardenId,
+        GARDEN_OPERATIONS.removeOperator,
+        walletClient,
+        address,
+        executeWithToast,
+        setIsLoading
+      ),
+    };
+  }, [gardenId, walletClient, address, executeWithToast]);
 
   return {
-    addGardener,
-    removeGardener,
-    addOperator,
-    removeOperator,
+    ...operations,
     isLoading,
   };
 }

@@ -111,11 +111,15 @@ export function useJobQueueEvents<T extends JobQueueEventType>(
   listener: (type: T, data: JobQueueEventData<T>) => void,
   deps: React.DependencyList = []
 ): void {
+  // Memoize types array to prevent unnecessary re-subscriptions
+  // Using JSON.stringify creates a stable dependency
+  const typesKey = JSON.stringify(types);
+
   React.useEffect(() => {
     const unsubscribe = jobQueueEventBus.onMultiple(types, listener);
     return unsubscribe;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [types, listener, ...deps]);
+  }, [typesKey, ...deps]);
 }
 
 // Cleanup event bus on page unload

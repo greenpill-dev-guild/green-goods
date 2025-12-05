@@ -5,76 +5,77 @@
 
 // Base query key factory
 export const queryKeys = {
-  // Top-level keys
-  all: ["jobQueue"] as const,
+  // Top-level key for all Green Goods queries
+  all: ["greengoods"] as const,
 
   // Job queue related keys
   queue: {
-    all: ["jobQueue", "queue"] as const,
-    stats: () => ["jobQueue", "queue", "stats"] as const,
+    all: ["greengoods", "queue"] as const,
+    stats: () => ["greengoods", "queue", "stats"] as const,
     jobs: (filter?: { kind?: string; synced?: boolean }) =>
-      ["jobQueue", "queue", "jobs", filter] as const,
-    pendingCount: () => ["jobQueue", "queue", "pendingCount"] as const,
-    uploading: () => ["jobQueue", "queue", "uploading"] as const,
+      ["greengoods", "queue", "jobs", filter] as const,
+    pendingCount: () => ["greengoods", "queue", "pendingCount"] as const,
+    uploading: () => ["greengoods", "queue", "uploading"] as const,
   },
 
   // Works related keys
   works: {
-    all: ["jobQueue", "works"] as const,
+    all: ["greengoods", "works"] as const,
     online: (gardenId: string, chainId: number) =>
-      ["jobQueue", "works", "online", gardenId, chainId] as const,
-    offline: (gardenId: string) => ["jobQueue", "works", "offline", gardenId] as const,
+      ["greengoods", "works", "online", gardenId, chainId] as const,
+    offline: (gardenId: string) => ["greengoods", "works", "offline", gardenId] as const,
     merged: (gardenId: string, chainId: number) =>
-      ["jobQueue", "works", "merged", gardenId, chainId] as const,
+      ["greengoods", "works", "merged", gardenId, chainId] as const,
     approvals: (userAddress?: string, chainId?: number) =>
-      ["jobQueue", "works", "approvals", userAddress, chainId] as const,
+      ["greengoods", "works", "approvals", userAddress, chainId] as const,
   },
 
   // Work approvals related keys
   workApprovals: {
-    all: ["workApprovals"] as const,
+    all: ["greengoods", "workApprovals"] as const,
     byAttester: (attesterAddress?: string, chainId?: number) =>
-      ["workApprovals", "byAttester", attesterAddress, chainId] as const,
-    offline: (attesterAddress?: string) => ["workApprovals", "offline", attesterAddress] as const,
+      ["greengoods", "workApprovals", "byAttester", attesterAddress, chainId] as const,
+    offline: (attesterAddress?: string) =>
+      ["greengoods", "workApprovals", "offline", attesterAddress] as const,
   },
 
   // Offline state keys
   offline: {
-    all: ["jobQueue", "offline"] as const,
-    status: () => ["jobQueue", "offline", "status"] as const,
-    sync: () => ["jobQueue", "offline", "sync"] as const,
+    all: ["greengoods", "offline"] as const,
+    status: () => ["greengoods", "offline", "status"] as const,
+    sync: () => ["greengoods", "offline", "sync"] as const,
   },
 
   // Media related keys
   media: {
-    all: ["jobQueue", "media"] as const,
-    forJob: (jobId: string) => ["jobQueue", "media", "job", jobId] as const,
+    all: ["greengoods", "media"] as const,
+    forJob: (jobId: string) => ["greengoods", "media", "job", jobId] as const,
   },
 
   // Garden related keys
   gardens: {
-    all: ["gardens"] as const,
-    byChain: (chainId: number) => ["gardens", chainId] as const,
+    all: ["greengoods", "gardens"] as const,
+    byChain: (chainId: number) => ["greengoods", "gardens", chainId] as const,
     detail: (gardenId: string, chainId: number) =>
-      ["gardens", "detail", gardenId, chainId] as const,
+      ["greengoods", "gardens", "detail", gardenId, chainId] as const,
   },
 
   // Action related keys
   actions: {
-    all: ["actions"] as const,
-    byChain: (chainId: number) => ["actions", chainId] as const,
+    all: ["greengoods", "actions"] as const,
+    byChain: (chainId: number) => ["greengoods", "actions", chainId] as const,
   },
 
   // Gardener related keys
   gardeners: {
-    all: ["gardeners"] as const,
-    byAddress: (address: string) => ["gardeners", "byAddress", address] as const,
+    all: ["greengoods", "gardeners"] as const,
+    byAddress: (address: string) => ["greengoods", "gardeners", "byAddress", address] as const,
   },
 } as const;
 
 // Utility functions for invalidating related queries
 export const queryInvalidation = {
-  // Invalidate all job queue related queries
+  // Invalidate all Green Goods related queries
   invalidateAll: () => queryKeys.all,
 
   // Invalidate queue statistics

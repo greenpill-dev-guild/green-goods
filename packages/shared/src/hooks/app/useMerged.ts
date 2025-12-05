@@ -1,5 +1,5 @@
 import { type QueryKey, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 /** Configuration for combining online and offline sources into a merged query. */
 type UseMergedOptions<TOnline, TOffline, TMerged> = {
@@ -8,7 +8,7 @@ type UseMergedOptions<TOnline, TOffline, TMerged> = {
   mergedKey: QueryKey;
   fetchOnline: () => Promise<TOnline>;
   fetchOffline: () => Promise<TOffline>;
-  merge: (online: TOnline, offline: TOffline) => Promise<TMerged> | TMerged;
+  merge: (online: TOnline | undefined, offline: TOffline | undefined) => Promise<TMerged> | TMerged;
   events?: Array<{
     subscribe: (listener: () => void) => () => void;
   }>;
@@ -18,6 +18,8 @@ type UseMergedOptions<TOnline, TOffline, TMerged> = {
   gcTimeOnline?: number;
   gcTimeOffline?: number;
   gcTimeMerged?: number;
+  /** Default value for merged data when sources are loading */
+  defaultMergedValue?: TMerged;
 };
 
 /** Synchronises remote data with offline caches and exposes dedicated queries for each source. */
@@ -25,6 +27,9 @@ export function useMerged<TOnline, TOffline, TMerged>(
   options: UseMergedOptions<TOnline, TOffline, TMerged>
 ) {
   const queryClient = useQueryClient();
+  // Track previous data timestamps to detect updates
+  const prevOnlineUpdatedAt = useRef<number | undefined>(undefined);
+  const prevOfflineUpdatedAt = useRef<number | undefined>(undefined);
 
   const onlineQuery = useQuery({
     queryKey: options.onlineKey,
@@ -42,12 +47,39 @@ export function useMerged<TOnline, TOffline, TMerged>(
 
   const mergedQuery = useQuery({
     queryKey: options.mergedKey,
-    queryFn: () => options.merge(onlineQuery.data as TOnline, offlineQuery.data as TOffline),
-    enabled: !onlineQuery.isLoading && !offlineQuery.isLoading,
+    queryFn: async () => {
+      // Handle undefined data gracefully - pass to merge function to handle
+      return options.merge(onlineQuery.data, offlineQuery.data);
+    },
+    // Enable when at least one source has data or both are done loading
+    enabled: !onlineQuery.isLoading || !offlineQuery.isLoading,
     staleTime: options.staleTimeMerged ?? 5_000,
     gcTime: options.gcTimeMerged ?? 30_000,
+    // Use placeholder data for smoother transitions
+    placeholderData: (previousData) => previousData ?? options.defaultMergedValue,
   });
 
+  // Invalidate merged query when source data changes
+  useEffect(() => {
+    const onlineUpdatedAt = onlineQuery.dataUpdatedAt;
+    const offlineUpdatedAt = offlineQuery.dataUpdatedAt;
+
+    // Check if either source has new data
+    const hasNewOnlineData = onlineUpdatedAt > 0 && onlineUpdatedAt !== prevOnlineUpdatedAt.current;
+    const hasNewOfflineData =
+      offlineUpdatedAt > 0 && offlineUpdatedAt !== prevOfflineUpdatedAt.current;
+
+    if (hasNewOnlineData || hasNewOfflineData) {
+      // Update refs
+      prevOnlineUpdatedAt.current = onlineUpdatedAt;
+      prevOfflineUpdatedAt.current = offlineUpdatedAt;
+
+      // Invalidate merged query to trigger re-merge
+      queryClient.invalidateQueries({ queryKey: options.mergedKey });
+    }
+  }, [onlineQuery.dataUpdatedAt, offlineQuery.dataUpdatedAt, options.mergedKey, queryClient]);
+
+  // Handle external events (job queue updates, etc.)
   useEffect(() => {
     const unsubs = (options.events || []).map(({ subscribe }) =>
       subscribe(() => {

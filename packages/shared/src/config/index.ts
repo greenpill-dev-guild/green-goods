@@ -49,4 +49,4 @@ export {
 } from "./pimlico";
 
 // From react-query.ts
-export { queryClient } from "./react-query";
+export { GC_TIMES, queryClient, STALE_TIMES } from "./react-query";

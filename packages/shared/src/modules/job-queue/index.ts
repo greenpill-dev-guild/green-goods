@@ -1,6 +1,6 @@
 import type { SmartAccountClient } from "permissionless";
-import { track } from "../app/posthog";
 import { DEFAULT_CHAIN_ID } from "../../config";
+import { track } from "../app/posthog";
 import { submitApprovalWithPasskey, submitWorkWithPasskey } from "../work/passkey-submission";
 import { jobQueueDB } from "./db";
 import { jobQueueEventBus } from "./event-bus";
@@ -86,6 +86,9 @@ async function executeApprovalJob(
   });
 }
 
+/** Maximum number of retry attempts before a job is marked as permanently failed */
+const MAX_RETRIES = 5;
+
 /**
  * Job queue responsible for persisting and processing offline work/approval jobs.
  */
@@ -154,9 +157,34 @@ class JobQueue {
 
     try {
       navigator.serviceWorker?.controller?.postMessage({ type: "REGISTER_SYNC" });
-    } catch {}
+    } catch (error) {
+      // Log service worker registration failures for debugging
+      console.debug("[JobQueue] Failed to register background sync:", error);
+    }
 
     return jobId;
+  }
+
+  /**
+   * Calculate exponential backoff delay for a job
+   * @param attempts Number of previous attempts
+   * @returns Delay in milliseconds (max 60 seconds)
+   */
+  private calculateBackoffDelay(attempts: number): number {
+    // Base delay of 1 second, doubles each attempt, max 60 seconds
+    return Math.min(1000 * Math.pow(2, attempts), 60_000);
+  }
+
+  /**
+   * Check if a job is within its backoff window
+   */
+  private isWithinBackoffWindow(job: Job): boolean {
+    if (!job.lastAttemptAt || job.attempts === 0) {
+      return false; // Never attempted or first attempt
+    }
+    const backoffDelay = this.calculateBackoffDelay(job.attempts);
+    const timeSinceLastAttempt = Date.now() - job.lastAttemptAt;
+    return timeSinceLastAttempt < backoffDelay;
   }
 
   /**
@@ -175,6 +203,34 @@ class JobQueue {
 
     if (!navigator.onLine) {
       return { success: false, error: "offline", skipped: true };
+    }
+
+    // Check exponential backoff - skip if we're still in the backoff window
+    if (this.isWithinBackoffWindow(job)) {
+      const remainingBackoff =
+        this.calculateBackoffDelay(job.attempts) - (Date.now() - (job.lastAttemptAt || 0));
+      return {
+        success: false,
+        error: `backoff_${Math.ceil(remainingBackoff / 1000)}s`,
+        skipped: true,
+      };
+    }
+
+    // Check max retries - permanently fail job if exceeded
+    if (job.attempts >= MAX_RETRIES) {
+      const errorMessage = `Max retries (${MAX_RETRIES}) exceeded`;
+      await jobQueueDB.markJobFailed(jobId, errorMessage);
+
+      jobQueueEventBus.emit("job:failed", { jobId, job, error: errorMessage });
+
+      track("offline_job_permanently_failed", {
+        job_id: jobId,
+        job_kind: job.kind,
+        attempts: job.attempts,
+        last_error: job.lastError,
+      });
+
+      return { success: false, error: errorMessage };
     }
 
     const smartAccountClient = context.smartAccountClient;
@@ -256,7 +312,7 @@ class JobQueue {
         job_kind: job.kind,
         error: errorMessage,
         attempts: job.attempts + 1,
-        will_retry: true,
+        will_retry: job.attempts + 1 < MAX_RETRIES,
       });
 
       return { success: false, error: errorMessage };

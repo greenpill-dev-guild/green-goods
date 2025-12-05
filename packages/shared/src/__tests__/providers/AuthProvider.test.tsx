@@ -1,12 +1,12 @@
 /**
- * AuthProvider Test Suite
+ * PasskeyAuthProvider Test Suite
  *
  * Tests passkey-based authentication context provider
  */
 
 import { render, renderHook, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AuthProvider, useAuth } from "../../providers/auth";
+import { PasskeyAuthProvider, usePasskeyAuth } from "../../providers/PasskeyAuth";
 
 // Mock viem account abstraction
 vi.mock("viem/account-abstraction", () => ({
@@ -25,17 +25,30 @@ vi.mock("permissionless/accounts", () => ({
   toKernelSmartAccount: vi.fn(),
 }));
 
-// Mock pimlico config
-vi.mock("@/services/pimlicoConfig", () => ({
-  createPimlicoClientForChain: vi.fn(() => ({
-    getUserOperationGasPrice: vi.fn(() => Promise.resolve({ fast: {} })),
-    transport: {},
-  })),
-  createPublicClientForChain: vi.fn(() => ({})),
-  getChainFromId: vi.fn(() => ({ id: 84532, name: "Base Sepolia" })),
+// Mock config
+vi.mock("../../config/blockchain", () => ({
+  DEFAULT_CHAIN_ID: 84532,
 }));
 
-describe("AuthProvider", () => {
+// Mock auth modules
+vi.mock("../../modules/auth/passkey", () => ({
+  authenticatePasskey: vi.fn(),
+  clearStoredCredential: vi.fn(),
+  registerPasskeySession: vi.fn(),
+  restorePasskeySession: vi.fn().mockResolvedValue(null),
+}));
+
+vi.mock("../../modules/auth/session", () => ({
+  clearPasskeySignedOut: vi.fn(),
+  hasStoredPasskeyCredential: vi.fn().mockReturnValue(false),
+  isFreshAppStart: vi.fn().mockReturnValue(true),
+  markSessionActive: vi.fn(),
+  PASSKEY_STORAGE_KEY: "greengoods_passkey_credential",
+  setPasskeySignedOut: vi.fn(),
+  wasPasskeySignedOut: vi.fn().mockReturnValue(false),
+}));
+
+describe("PasskeyAuthProvider", () => {
   beforeEach(() => {
     // Clear localStorage before each test
     localStorage.clear();
@@ -43,30 +56,30 @@ describe("AuthProvider", () => {
   });
 
   it("should provide auth context", () => {
-    const { result } = renderHook(() => useAuth(), {
-      wrapper: ({ children }) => <AuthProvider>{children}</AuthProvider>,
+    const { result } = renderHook(() => usePasskeyAuth(), {
+      wrapper: ({ children }) => <PasskeyAuthProvider>{children}</PasskeyAuthProvider>,
     });
 
     expect(result.current).toBeDefined();
     expect(result.current.credential).toBeNull();
     expect(result.current.smartAccountAddress).toBeNull();
-    expect(result.current.isReady).toBe(false);
+    expect(result.current.isReady).toBe(true); // Ready after initialization
   });
 
-  it("should throw error when useAuth is used outside provider", () => {
+  it("should throw error when usePasskeyAuth is used outside provider", () => {
     // Suppress console.error for this test
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
 
     expect(() => {
-      renderHook(() => useAuth());
-    }).toThrow("useAuth must be used within AuthProvider");
+      renderHook(() => usePasskeyAuth());
+    }).toThrow("usePasskeyAuth must be used within PasskeyAuthProvider");
 
     consoleError.mockRestore();
   });
 
   it("should have createPasskey function", () => {
-    const { result } = renderHook(() => useAuth(), {
-      wrapper: ({ children }) => <AuthProvider>{children}</AuthProvider>,
+    const { result } = renderHook(() => usePasskeyAuth(), {
+      wrapper: ({ children }) => <PasskeyAuthProvider>{children}</PasskeyAuthProvider>,
     });
 
     expect(result.current.createPasskey).toBeDefined();
@@ -74,8 +87,8 @@ describe("AuthProvider", () => {
   });
 
   it("should have clearPasskey function", () => {
-    const { result } = renderHook(() => useAuth(), {
-      wrapper: ({ children }) => <AuthProvider>{children}</AuthProvider>,
+    const { result } = renderHook(() => usePasskeyAuth(), {
+      wrapper: ({ children }) => <PasskeyAuthProvider>{children}</PasskeyAuthProvider>,
     });
 
     expect(result.current.clearPasskey).toBeDefined();
@@ -83,8 +96,8 @@ describe("AuthProvider", () => {
   });
 
   it("should have signOut function", () => {
-    const { result } = renderHook(() => useAuth(), {
-      wrapper: ({ children }) => <AuthProvider>{children}</AuthProvider>,
+    const { result } = renderHook(() => usePasskeyAuth(), {
+      wrapper: ({ children }) => <PasskeyAuthProvider>{children}</PasskeyAuthProvider>,
     });
 
     expect(result.current.signOut).toBeDefined();
@@ -93,11 +106,28 @@ describe("AuthProvider", () => {
 
   it("should render children", () => {
     render(
-      <AuthProvider>
+      <PasskeyAuthProvider>
         <div>Test Child</div>
-      </AuthProvider>
+      </PasskeyAuthProvider>
     );
 
     expect(screen.getByText("Test Child")).toBeInTheDocument();
+  });
+
+  it("should start with isAuthenticated as false", () => {
+    const { result } = renderHook(() => usePasskeyAuth(), {
+      wrapper: ({ children }) => <PasskeyAuthProvider>{children}</PasskeyAuthProvider>,
+    });
+
+    expect(result.current.isAuthenticated).toBe(false);
+  });
+
+  it("should have resumePasskey function", () => {
+    const { result } = renderHook(() => usePasskeyAuth(), {
+      wrapper: ({ children }) => <PasskeyAuthProvider>{children}</PasskeyAuthProvider>,
+    });
+
+    expect(result.current.resumePasskey).toBeDefined();
+    expect(typeof result.current.resumePasskey).toBe("function");
   });
 });

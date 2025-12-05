@@ -67,4 +67,3 @@ mapping(uint256 => string) public workHistory;  // Expensive
 
 - Foundry config: `foundry.toml`
 - Gas report: Run `forge test --gas-report`
-- Gas limits doc: `docs/GAS_LIMITS.md`

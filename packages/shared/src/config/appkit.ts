@@ -33,7 +33,9 @@ type AppKitInitOptions = {
 const defaultMetadata: AppKitMetadata = {
   name: "Green Goods",
   description: "Start Bringing Biodiversity Onchain",
-  url: import.meta.env.VITE_APP_URL || window.location.origin,
+  url:
+    import.meta.env.VITE_APP_URL ||
+    (typeof window !== "undefined" ? window.location.origin : "https://greengoods.app"),
   icons: ["https://greengoods.app/icon.png"],
 };
 
@@ -47,6 +49,14 @@ let wagmiAdapterInstance: WagmiAdapter | null = null;
  * Accepts optional overrides but will not re-initialize once created.
  */
 export function ensureAppKit(options?: AppKitInitOptions) {
+  // Skip initialization in Node.js/Server environment
+  if (typeof window === "undefined") {
+    return {
+      appKit: null as any,
+      wagmiConfig: null as any,
+    };
+  }
+
   if (appKitInstance && wagmiAdapterInstance) {
     return {
       appKit: appKitInstance,

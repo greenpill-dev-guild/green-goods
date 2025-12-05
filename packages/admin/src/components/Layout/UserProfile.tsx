@@ -10,7 +10,7 @@ import {
   RiUserLine,
 } from "@remixicon/react";
 import { useEffect, useRef, useState } from "react";
-import { AddressDisplay } from "../UI/AddressDisplay";
+import { AddressDisplay } from "../AddressDisplay";
 
 export function UserProfile() {
   const [isOpen, setIsOpen] = useState(false);

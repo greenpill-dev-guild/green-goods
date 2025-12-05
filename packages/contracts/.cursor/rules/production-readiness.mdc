@@ -21,14 +21,9 @@ Execute these checks in order when asked about production readiness:
 cd packages/contracts && bun test
 ```
 
-**Test Report:**
-```bash
-# Generate and review test report
-cd packages/contracts && bun test
-cat FINAL_TEST_REPORT.md
-```
-
-**Required:** FINAL_TEST_REPORT.md must exist and show ≥80% pass rate for testnet.
+**Review test output for pass rate:**
+- Check total tests passed vs failed
+- Review any skipped tests and their justification
 
 **Requirements:**
 - **Testnet (Base Sepolia):** ≥80% pass rate acceptable
@@ -191,7 +186,6 @@ All must be true:
 
 ## Reference Files
 
-- Test summary: `/packages/contracts/FINAL_TEST_REPORT.md`
-- Deployment guide: `/docs/DEPLOYMENT.md`
+- Deployment checklist: `/docs/DEPLOYMENT_CHECKLIST.md`
 - Network config: `/packages/contracts/deployments/networks.json`
 - Test suites: `/packages/contracts/test/`

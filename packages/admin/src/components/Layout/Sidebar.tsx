@@ -1,6 +1,6 @@
 import { useRole } from "@green-goods/shared/hooks";
 import { useWalletAuth as useAuth } from "@green-goods/shared/providers";
-import { useAdminStore } from "@green-goods/shared/stores";
+import { useUIStore } from "@green-goods/shared/stores";
 import { cn } from "@green-goods/shared/utils";
 import {
   RiDashboardLine,
@@ -29,7 +29,7 @@ export function Sidebar() {
   const location = useLocation();
   const { disconnect } = useAuth();
   const { role } = useRole();
-  const { sidebarOpen, setSidebarOpen } = useAdminStore();
+  const { sidebarOpen, setSidebarOpen } = useUIStore();
 
   const filteredNavigation = navigation.filter((item) => item.roles.includes(role));
 

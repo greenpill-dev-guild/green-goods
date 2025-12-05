@@ -1,13 +1,13 @@
-import { initTheme } from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID, initTheme } from "@green-goods/shared";
 import { AppKitProvider, ClientAuthProvider } from "@green-goods/shared/providers";
-import { AppProvider } from "@green-goods/shared/providers/app";
+import { AppProvider } from "@green-goods/shared";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "@/App.tsx";
-import { AppErrorBoundary } from "@/components/UI/ErrorBoundary/AppErrorBoundary";
+import { AppErrorBoundary } from "@/components/Errors";
 
 import "@/index.css";
-import "@/pinata";
+import "@/config";
 
 // Initialize theme system
 initTheme();
@@ -44,7 +44,7 @@ export const Root = () => (
         url: import.meta.env.VITE_APP_URL || window.location.origin,
         icons: ["https://greengoods.app/icon.png"],
       }}
-      defaultChainId={84532}
+      defaultChainId={DEFAULT_CHAIN_ID}
     >
       <ClientAuthProvider>
         <AppProvider>

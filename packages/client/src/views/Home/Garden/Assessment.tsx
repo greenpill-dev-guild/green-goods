@@ -4,9 +4,9 @@ import { getTag } from "@green-goods/shared/utils";
 import { type FC, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useParams } from "react-router-dom";
-import { Badge } from "@/components/UI/Badge/Badge";
-import { TopNav } from "@/components/UI/TopNav/TopNav";
-import { WorkViewSkeleton } from "@/components/UI/WorkView/WorkView";
+import { Badge } from "@/components/Communication";
+import { WorkViewSkeleton } from "@/components/Features/Work";
+import { TopNav } from "@/components/Navigation";
 
 type GardenAssessmentProps = {};
 

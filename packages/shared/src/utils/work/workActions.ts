@@ -1,7 +1,5 @@
-import { copyToClipboard } from "../app/clipboard";
-
 /**
- * Utility functions for work-related actions like download and share
+ * Utility functions for work-related actions like download
  */
 
 export interface WorkData {
@@ -11,25 +9,9 @@ export interface WorkData {
   status: string;
   createdAt: number;
   media: string[];
-  metadata?: any;
+  metadata?: unknown;
   feedback?: string;
   gardenId: string;
-}
-
-/**
- * Downloads work media files as a zip (simplified - downloads each file individually)
- */
-export async function downloadWorkMedia(work: WorkData): Promise<void> {
-  if (!work.media || work.media.length === 0) {
-    throw new Error("No media files to download");
-  }
-
-  // For multiple files, download each individually
-  for (let i = 0; i < work.media.length; i++) {
-    const mediaUrl = work.media[i];
-    const fileName = `work-${work.id}-media-${i + 1}.jpg`;
-    await downloadFile(mediaUrl, fileName);
-  }
 }
 
 /**
@@ -63,48 +45,64 @@ export function downloadWorkData(work: WorkData): void {
 }
 
 /**
- * Downloads a file from URL
+ * Downloads work media files as a zip or individually
  */
-async function downloadFile(url: string, fileName: string): Promise<void> {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+export async function downloadWorkMedia(work: WorkData): Promise<void> {
+  if (!work.media || work.media.length === 0) return;
 
-  const blob = await response.blob();
-  const blobUrl = URL.createObjectURL(blob);
-
-  const link = document.createElement("a");
-  link.href = blobUrl;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(blobUrl);
-}
-
-/**
- * Shares work using Web Share API or fallback to clipboard
- */
-export async function shareWork(work: WorkData): Promise<void> {
-  const shareData = {
-    title: `Work Submission: ${work.title}`,
-    text: `Check out this work submission in the garden: ${work.title}`,
-    url: window.location.href,
-  };
-
-  // Check if Web Share API is supported
-  if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
-    await navigator.share(shareData);
+  // For single file, download directly
+  if (work.media.length === 1) {
+    const url = work.media[0];
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `work-${work.id}-media`;
+    link.target = "_blank";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
     return;
   }
 
-  // Fallback: Copy to clipboard
-  await copyToClipboard(shareData.url);
+  // For multiple files, download each one
+  for (let i = 0; i < work.media.length; i++) {
+    const url = work.media[i];
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `work-${work.id}-media-${i + 1}`;
+    link.target = "_blank";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    // Small delay between downloads
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
 }
 
 /**
- * Creates a shareable link for work
+ * Shares work using the Web Share API or copies to clipboard
  */
-export function getWorkShareUrl(gardenId: string, workId: string): string {
-  const baseUrl = window.location.origin;
-  return `${baseUrl}/home/${gardenId}/work/${workId}`;
+export async function shareWork(work: WorkData): Promise<void> {
+  const shareData = {
+    title: work.title || `Work ${work.id}`,
+    text: work.description || work.feedback || `Check out this work from garden ${work.gardenId}`,
+    url: typeof window !== "undefined" ? window.location.href : "",
+  };
+
+  // Try Web Share API first
+  if (typeof navigator !== "undefined" && navigator.share) {
+    try {
+      await navigator.share(shareData);
+      return;
+    } catch (err) {
+      // User cancelled or share failed, fall back to clipboard
+      if ((err as Error).name === "AbortError") {
+        return; // User cancelled
+      }
+    }
+  }
+
+  // Fall back to copying URL to clipboard
+  if (typeof navigator !== "undefined" && navigator.clipboard) {
+    await navigator.clipboard.writeText(shareData.url);
+  }
 }

@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useMemo } from "react";
 import { useMachine } from "@xstate/react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useAccount, useWalletClient } from "wagmi";
-
-import { createGardenMachine } from "../../workflows/createGarden";
-import { getNetworkContracts, GardenTokenABI } from "../../utils/contracts";
-import { useAdminStore, type AdminState } from "../../stores/useAdminStore";
+import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { useCreateGardenStore } from "../../stores/useCreateGardenStore";
+import { GardenTokenABI, getNetworkContracts } from "../../utils/blockchain/contracts";
+import { createGardenMachine } from "../../workflows/createGarden";
 
 export function useCreateGardenWorkflow() {
   const { address } = useAccount();

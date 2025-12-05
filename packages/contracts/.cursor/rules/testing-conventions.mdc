@@ -92,4 +92,4 @@ Monitor these functions:
 
 - Test files: `test/*.t.sol`
 - Test helpers: `test/helpers/`
-- Gas limits: `docs/GAS_LIMITS.md`
+- Gas report: Run `forge test --gas-report`

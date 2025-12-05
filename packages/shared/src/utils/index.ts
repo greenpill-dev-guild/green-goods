@@ -1,5 +1,18 @@
-// Re-export all utils organized by domain - EXPLICIT EXPORTS for tree-shaking
+// Utilities — EXPLICIT EXPORTS for tree-shaking
 
+// ============================================================================
+// ACTION
+// ============================================================================
+export {
+  buildActionId,
+  findActionByUID,
+  getActionTitle,
+  parseActionUID,
+} from "./action/parsers";
+export { defaultTemplate, instructionTemplates } from "./action/templates";
+// ============================================================================
+// APP
+// ============================================================================
 export { copyToClipboard } from "./app/clipboard";
 export type { GardenMemberLike } from "./app/garden";
 export {
@@ -7,112 +20,136 @@ export {
   gardenHasMember,
   resolveGardenMemberKey,
 } from "./app/garden";
-// From app/recursive-clone-children.tsx
+export type { Platform } from "./app/pwa";
+export {
+  getMobileOperatingSystem,
+  isAppInstalled,
+  isMobilePlatform,
+  isStandaloneMode,
+} from "./app/pwa";
 export { recursiveCloneChildren } from "./app/recursive-clone-children";
-// From app/tags.tsx
 export { getTag } from "./app/tags";
-// From app/text.ts
+export type { FormatAddressOptions, FormatAddressVariant } from "./app/text";
+export { capitalize, formatAddress, truncate } from "./app/text";
+// ============================================================================
+// ADDRESS
+// ============================================================================
 export {
-  capitalize,
-  type FormatAddressOptions,
-  type FormatAddressVariant,
-  formatAddress,
-  formatLastUpdated,
-  formatPrice,
-  isValidEmail,
-  truncate,
-  truncateDescription,
-} from "./app/text";
+  compareAddresses,
+  isAddressInList,
+  isUserAddress,
+  isValidAddressFormat,
+  normalizeAddress,
+  truncateAddress,
+} from "./blockchain/address";
 
-// From blockchain/chainId.ts
-export {
-  compareChainId,
-  extractIdFromChainString,
-} from "./blockchain/chainId";
-export {
-  type ResolveEnsAddressOptions,
-  type ResolveEnsOptions,
-  resolveEnsAddress,
-  resolveEnsName,
-} from "./blockchain/ens";
-export type { ClassValue } from "./cn";
-// From cn.ts
-export { cn } from "./cn";
-// From contracts.ts
+// ============================================================================
+// CONTRACTS (ABIs & clients)
+// ============================================================================
 export {
   ActionRegistryABI,
   createClients,
   GardenAccountABI,
   GardenTokenABI,
   getNetworkContracts,
-} from "./contracts";
-// From contract/simulation.ts
-export {
-  simulateTransaction,
-  simulateJoinGarden,
-  batchSimulate,
-  type SimulationResult,
-} from "./contract";
-// From debug.ts
-export {
-  DEBUG_ENABLED,
-  debugError,
-  debugLog,
-  debugWarn,
-} from "./debug";
-
-// From eas/encoders.ts
+} from "./blockchain/contracts";
+export type { ResolveEnsAddressOptions, ResolveEnsOptions } from "./blockchain/ens";
+export { resolveEnsAddress, resolveEnsName } from "./blockchain/ens";
+// ============================================================================
+// BLOCKCHAIN POLLING
+// ============================================================================
+export { pollQueriesAfterTransaction, pollQueryAfterTransaction } from "./blockchain/polling";
+// ============================================================================
+// CONTRACT
+// ============================================================================
+export type { SimulationResult } from "./contract/simulation";
+export { simulateJoinGarden, simulateTransaction } from "./contract/simulation";
+// ============================================================================
+// DEBUG
+// ============================================================================
+export { DEBUG_ENABLED, debugError, debugLog, debugWarn } from "./debug";
+// ============================================================================
+// DISPATCH ADAPTER
+// ============================================================================
+export { createDispatchAdapter } from "./dispatch-adapter";
+// ============================================================================
+// EAS
+// ============================================================================
 export { encodeWorkApprovalData } from "./eas/encoders";
-
-// From eas/explorers.ts
 export {
   getEASExplorerUrl,
   isValidAttestationId,
   openEASExplorer,
 } from "./eas/explorers";
-// From errors/contract-errors.ts
+export { buildApprovalAttestTx, buildWorkAttestTx } from "./eas/transaction-builder";
+// ============================================================================
+// ERRORS
+// ============================================================================
+export type { ParsedContractError } from "./errors/contract-errors";
 export {
   formatErrorForToast,
   isAlreadyGardenerError,
   isNotGardenerError,
-  type ParsedContractError,
   parseAndFormatError,
   parseContractError,
-  registerErrorSignature,
-} from "./errors";
-// From formStorage.ts
+} from "./errors/contract-errors";
 export {
-  clearFormDraft,
-  loadFormDraft,
-  saveFormDraft,
-} from "./formStorage";
-// From styles/polymorphic.ts
+  formatJobError,
+  formatUserError,
+  formatWalletError,
+  USER_FRIENDLY_ERRORS,
+} from "./errors/user-messages";
+// ============================================================================
+// FORM STORAGE
+// ============================================================================
+export { clearFormDraft, loadFormDraft, saveFormDraft } from "./storage/form";
+// ============================================================================
+// CN (classnames utility)
+// ============================================================================
+export type { ClassValue } from "./styles/cn";
+export { cn } from "./styles/cn";
+// ============================================================================
+// STYLES
+// ============================================================================
 export type {
   PolymorphicComponent,
   PolymorphicComponentProps,
   PolymorphicComponentPropsWithRef,
   PolymorphicRef,
 } from "./styles/polymorphic";
-// From time.ts
+export type { Resolved, Theme } from "./styles/theme";
+export {
+  getResolvedTheme,
+  getTheme,
+  initTheme,
+  listenToSystemChanges,
+  setTheme,
+  toggle,
+} from "./styles/theme";
+// ============================================================================
+// TIME
+// ============================================================================
+export type { TimeFilter } from "./time";
 export {
   filterByTimeRange,
+  formatRelativeTime,
   getTimeCutoff,
-  normalizeTimestamp,
   sortByCreatedAt,
-  type TimeFilter,
 } from "./time";
-// From translation-diagnostics.ts
-export { runTranslationDiagnostics } from "./translation-diagnostics";
-// From urql.ts
+
+// ============================================================================
+// URQL
+// ============================================================================
 export { createUrqlClient } from "./urql";
-// From work/deduplication.ts
+
+// ============================================================================
+// WORK
+// ============================================================================
 export {
-  deduplicateByFuzzyMatch,
   deduplicateById,
   extractClientWorkId,
   mergeAndDeduplicateByClientId,
 } from "./work/deduplication";
-// From work/image-compression.ts
 export type {
   CompressionOptions,
   CompressionResult,
@@ -123,11 +160,6 @@ export {
   formatFileSize,
   imageCompressor,
 } from "./work/image-compression";
-// From work/offline.ts
 export { convertJobsToWorks, fetchOfflineWorks } from "./work/offline";
-// From work/workActions.ts
 export type { WorkData } from "./work/workActions";
-export {
-  downloadWorkData,
-  getWorkShareUrl,
-} from "./work/workActions";
+export { downloadWorkData, downloadWorkMedia, shareWork } from "./work/workActions";

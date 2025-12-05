@@ -2,7 +2,7 @@ import { type IDBPDatabase, openDB } from "idb";
 import { mediaResourceManager } from "./media-resource-manager";
 
 const DB_NAME = "green-goods-job-queue";
-const DB_VERSION = 3; // Incremented for client_work_id_mappings store
+const DB_VERSION = 4; // Incremented for lastAttemptAt field
 
 interface ClientWorkIdMapping {
   clientWorkId: string;
@@ -196,6 +196,7 @@ class JobQueueDatabase {
     if (job) {
       job.lastError = error;
       job.attempts += 1;
+      job.lastAttemptAt = Date.now();
       await db.put("jobs", job);
     }
   }

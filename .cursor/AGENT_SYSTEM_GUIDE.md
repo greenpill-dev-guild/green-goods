@@ -15,6 +15,11 @@ green-goods/
 │       └── quality.mdc              # Always applied
 ├── AGENTS.md                         # Root agent guide (high-level)
 └── packages/
+    ├── shared/                       # Common code for client + admin
+    │   ├── AGENTS.md                # Shared architecture overview
+    │   └── .cursor/rules/
+    │       ├── rules.mdc                 # Package conventions
+    │       └── cross-package-imports.mdc # Import patterns
     ├── client/
     │   ├── AGENTS.md                # Client architecture overview
     │   └── .cursor/rules/
@@ -37,6 +42,8 @@ green-goods/
     │   └── .cursor/rules/
     │       ├── envio-conventions.mdc     # Entity patterns
     │       └── development.mdc          # Workflow, Docker
+    ├── telegram/
+    │   └── AGENTS.md                # Telegram bot overview
     └── contracts/
         ├── .cursorrules             # Legacy (to be migrated)
         └── .cursor/rules/
@@ -65,20 +72,21 @@ Rules auto-attach when working with matching files:
 - `deployment.mdc` → `packages/contracts/**`
 - `environment.mdc` → `**/.env*`, `**/config.*`
 
+**Shared:**
+- `rules.mdc` → `packages/shared/src/**`
+- `cross-package-imports.mdc` → `packages/client/src/**`, `packages/admin/src/**`
+
 **Client:**
-- `offline-architecture.mdc` → `modules/job-queue/**`, `modules/work/**`
-- `state-management.mdc` → `providers/**`, `hooks/**`
 - `component-patterns.mdc` → `components/**`, `views/**`
-- `hooks-conventions.mdc` → `hooks/**`
-- `authentication.mdc` → `providers/auth.tsx`, `hooks/auth/**`
 - `testing.mdc` → `__tests__/**`, `**/*.test.*`
 
 **Admin:**
-- `access-control.mdc` → `hooks/useRole.ts`, `components/Require*.tsx`
-- `state-workflows.mdc` → `stores/**`, `workflows/**`
+- `access-control.mdc` → `routes/Require*.tsx`
 - `graphql-integration.mdc` → `**/*.graphql`, urql imports
 - `component-workflows.mdc` → `components/Garden/**`
 - `testing.mdc` → `__tests__/**`
+
+Note: Many rules previously in client/admin (offline-architecture, state-management, authentication, hooks-conventions, state-workflows) now apply to the shared package where the code lives.
 
 **Indexer:**
 - `envio-conventions.mdc` → `schema.graphql`, `src/EventHandlers.ts`, `config.yaml`
@@ -180,13 +188,22 @@ These rules are enforced across ALL packages:
 
 ## Package-Specific Priorities
 
-### Client (Highest Complexity)
+### Shared (Highest Complexity)
 
 **Focus areas:**
 - Offline-first architecture (job queue, sync, storage)
 - State management (TanStack Query, Zustand, RHF)
-- Component patterns (cards, forms, modals)
 - Authentication (passkey, smart accounts)
+- Hooks, providers, stores, workflows
+
+**Rule count:** 2 MDC files + AGENTS.md
+
+### Client (Medium Complexity)
+
+**Focus areas:**
+- Component patterns (cards, forms, modals)
+- Views and routing
+- PWA-specific features
 
 **Rule count:** 6 MDC files + AGENTS.md
 
@@ -194,7 +211,6 @@ These rules are enforced across ALL packages:
 
 **Focus areas:**
 - Role-based access control
-- XState workflows
 - GraphQL subscriptions
 - Modal workflows
 
@@ -218,6 +234,15 @@ These rules are enforced across ALL packages:
 - UUPS upgrades
 
 **Rule count:** 6 MDC files
+
+### Telegram (Low Complexity)
+
+**Focus areas:**
+- Bot interface
+- Custodial wallet management
+- AI integration
+
+**Rule count:** AGENTS.md only
 
 ## Quality Baseline
 
@@ -306,16 +331,18 @@ Agent documentation is successful when:
 | Package | AGENTS.md | Rule Count | Focus |
 |---------|-----------|------------|-------|
 | Root | ✅ | 4 | Cross-package standards |
-| Client | ✅ | 6 | Offline-first, state, auth |
+| Shared | ✅ | 2 | Hooks, providers, modules, stores |
+| Client | ✅ | 6 | Components, views, PWA |
 | Admin | ✅ | 5 | Access control, workflows |
 | Indexer | ✅ | 2 | Envio conventions |
+| Telegram | ✅ | 0 | Bot interface |
 | Contracts | ➖ | 6 | Deployment, safety |
 
-**Total:** 5 AGENTS.md files, 23 MDC rule files, 1 MCP config
+**Total:** 7 AGENTS.md files, 25 MDC rule files, 1 MCP config
 
 ---
 
-**Last Updated:** 2025-10-10  
+**Last Updated:** 2025-12-03  
 **Maintained by:** Green Goods core team  
 **For questions:** greengoods@greenpill.builders
 

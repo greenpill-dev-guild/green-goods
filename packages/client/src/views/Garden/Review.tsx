@@ -1,7 +1,6 @@
 import { RiFileFill, RiLeafFill, RiPencilFill, RiPlantFill } from "@remixicon/react";
-import { useEffect } from "react";
 import { useIntl } from "react-intl";
-import { WorkView } from "@/components/UI/WorkView/WorkView";
+import { WorkView } from "@/components/Features/Work";
 
 interface WorkReviewProps {
   reviewConfig?: Action["review"];

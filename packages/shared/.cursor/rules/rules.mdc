@@ -1,0 +1,361 @@
+---
+description: Shared package — common code for client and admin apps
+globs:
+  - "packages/shared/src/**/*"
+alwaysApply: false
+---
+
+# Shared Package Rules
+
+The shared package contains all common code used by both client (PWA) and admin (dashboard) apps.
+
+## Package Purpose
+
+This package centralizes:
+- **Hooks** — All custom React hooks (auth, garden, work, blockchain, translation, UI, etc.)
+- **Providers** — React context providers (Auth, JobQueue, Work, App)
+- **Stores** — Zustand state management (admin, UI, workFlow, createGarden)
+- **Modules** — Core business logic (job-queue, data, work, auth, app, translation)
+- **Workflows** — XState state machines (createGarden, createAssessment)
+- **Utils** — Utility functions and helpers
+- **Types** — TypeScript definitions
+- **Config** — App, blockchain, chains, pimlico configuration
+- **i18n** — Translations (en, es, pt)
+- **Components** — Shared UI (Toast, Spinner, Forms, StatusBadge)
+
+## Export Patterns
+
+### Explicit Exports Only
+
+All exports must be explicit for tree-shaking:
+
+```typescript
+// ✅ Correct - explicit exports in index.ts
+export { useAuth } from "./auth/useAuth";
+export { useUser } from "./auth/useUser";
+export type { UserRole } from "./gardener/useRole";
+
+// ❌ Wrong - wildcard exports
+export * from "./auth";
+```
+
+### Type-Only Exports
+
+Use `export type` for types:
+
+```typescript
+// ✅ Correct
+export type { Garden, Work, WorkDraft } from "./types";
+
+// ❌ Wrong - can cause runtime issues
+export { Garden, Work, WorkDraft } from "./types";
+```
+
+## Import Patterns
+
+### From Client/Admin
+
+```typescript
+// ✅ Correct - import from package root
+import { useAuth, useWorks, DEFAULT_CHAIN_ID } from '@green-goods/shared';
+import type { Garden, Work } from '@green-goods/shared';
+
+// ❌ Wrong - deep imports break encapsulation
+import { useAuth } from '@green-goods/shared/src/hooks/auth/useAuth';
+```
+
+### Within Shared Package
+
+```typescript
+// ✅ Correct - relative imports within package
+import { DEFAULT_CHAIN_ID } from "../../config";
+import { jobQueueDB } from "./db";
+
+// ❌ Wrong - self-referencing package import
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared";
+```
+
+## Hook Categories
+
+### Auth Hooks (`hooks/auth/`)
+- `useAuth` — Unified auth context (passkey + wallet)
+- `useUser` — Current user state and addresses
+- `useClientAuth`, `usePasskeyAuth`, `useWalletAuth` — Mode-specific auth
+
+### Garden Hooks (`hooks/garden/`)
+- `useGardens` — Fetch all gardens
+- `useGardenOperations` — CRUD operations (add/remove members)
+- `useGardenPermissions` — Permission checks
+- `useGardenInvites` — Invite management
+- `useGardenTabs` — Tab navigation state
+- `useJoinGarden` — Join garden flow
+- `useAutoJoinRootGarden` — Auto-join on first login
+- `useCreateGardenWorkflow` — Garden creation wizard
+
+### Work Hooks (`hooks/work/`)
+- `useWorks` — Fetch works for a garden
+- `useMyWorks`, `useMyMergedWorks`, `useMyOnlineWorks` — User's works
+- `useWorkApproval` — Approve/reject works
+- `useWorkApprovals` — Fetch approvals
+- `useWorkMutation` — Work submission mutation
+- `useWorkForm` — Form state and validation
+- `useWorkImages` — Image handling
+- `usePendingWorksCount` — Pending count badge
+- `useQueueStatistics` — Queue stats
+
+### Blockchain Hooks (`hooks/blockchain/`)
+- `useCurrentChain` — Current chain from env (NOT wallet)
+- `useNetworkConfig`, `useChainConfig`, `useEASConfig` — Network configs
+- `useDeploymentRegistry` — Contract deployment data
+- `useEnsName`, `useEnsAddress`, `useEnsAvatar` — ENS resolution
+- `useActions`, `useGardeners` — Base entity lists
+
+### App Hooks (`hooks/app/`)
+- `useOffline` — Online/offline state
+- `useToastAction` — Toast notifications for async operations
+- `useMerged` — Merge online/offline data
+- `useTheme` — Theme switching
+- `useBrowserNavigation` — Browser nav helpers
+- `useNavigateToTop` — Scroll to top on navigate
+
+### Translation Hooks (`hooks/translation/`)
+- `useTranslation` — Generic translation hook
+- `useActionTranslation` — Translate action content
+- `useGardenTranslation` — Translate garden content
+
+### UI Hooks (`hooks/ui/`)
+- `useScrollReveal` — Scroll-triggered animations
+
+### Role & Profile Hooks (`hooks/gardener/`)
+- `useRole` — User role detection (deployer, operator, user)
+- `useGardenerProfile` — Profile management
+
+### Assessment Hooks (`hooks/assessment/`)
+- `useGardenAssessments` — Fetch assessments
+- `useCreateAssessmentWorkflow` — Assessment creation
+
+## Module Guidelines
+
+### Job Queue Module (`modules/job-queue/`)
+
+Key patterns:
+- Event-driven updates via `jobQueueEventBus`
+- IndexedDB for persistence via `jobQueueDB`
+- No polling — use events for reactivity
+- Media URLs managed by `mediaResourceManager`
+- Use `useJobQueueEvents` hook for React components
+
+```typescript
+import { jobQueue, useJobQueueEvents, queryKeys } from '@green-goods/shared';
+
+// React component
+useJobQueueEvents(['job:completed', 'job:failed'], () => {
+  queryClient.invalidateQueries({ queryKey: queryKeys.queue.stats() });
+});
+
+// Add job
+await jobQueue.addJob('work', payload, { chainId });
+```
+
+### Data Module (`modules/data/`)
+
+Key patterns:
+- Use `gql.tada` for type-safe GraphQL
+- Configure urql clients per endpoint (EAS, Green Goods indexer)
+- Handle offline gracefully
+- Use `greenGoodsIndexer` for indexer queries
+- Use `createEasClient` for EAS queries
+
+### Work Module (`modules/work/`)
+
+Key patterns:
+- Separate passkey and wallet submission paths
+- Use job queue for passkey mode (offline-capable)
+- Direct transactions for wallet mode
+- Validate drafts before submission
+
+### App Module (`modules/app/`)
+
+Key patterns:
+- Use `track()` for analytics events
+- Service worker manager for PWA lifecycle
+- Track offline events and sync performance
+
+### Auth Module (`modules/auth/`)
+
+Key patterns:
+- WebAuthn credentials via `registerPasskeySession`
+- Session storage for auth mode persistence
+- Clear storage on sign out
+
+### Translation Module (`modules/translation/`)
+
+Key patterns:
+- Browser-based translation via `browserTranslator`
+- Cache translations in IndexedDB
+- Use diagnostics for debugging
+
+## Query Key Centralization
+
+**MANDATORY:** Use centralized query keys from `hooks/query-keys.ts`:
+
+```typescript
+import { queryKeys } from '@green-goods/shared';
+
+// ✅ Correct
+const { data } = useQuery({
+  queryKey: queryKeys.works.merged(gardenId, chainId),
+  queryFn: () => fetchWorks(gardenId, chainId),
+});
+
+// ❌ Wrong - ad-hoc keys
+const { data } = useQuery({
+  queryKey: ['works', gardenId],
+  queryFn: () => fetchWorks(gardenId, chainId),
+});
+```
+
+## Hook Naming Conventions
+
+- `use{Resource}` — Data fetching hooks (useGardens, useWorks)
+- `use{Action}` — Action hooks (useJoinGarden, useWorkApproval)
+- `use{Feature}Operations` — CRUD operations (useGardenOperations)
+- `use{Feature}Permissions` — Permission checks (useGardenPermissions)
+- `use{Feature}Translation` — Translation hooks (useActionTranslation)
+- `use{Feature}Workflow` — Multi-step flows (useCreateGardenWorkflow)
+
+## Provider Guidelines
+
+### Provider Hierarchy
+
+Providers must be nested in this order:
+
+```tsx
+<WagmiProvider>
+  <AppProvider>
+    <ClientAuthProvider>
+      <QueryClientProvider>
+        <JobQueueProvider>
+          <WorkProvider>
+            {children}
+          </WorkProvider>
+        </JobQueueProvider>
+      </QueryClientProvider>
+    </ClientAuthProvider>
+  </AppProvider>
+</WagmiProvider>
+```
+
+**Why:** Each provider depends on ancestors. Changing order breaks functionality.
+
+## Store Guidelines
+
+### Zustand Patterns
+
+```typescript
+// Store definition
+interface UIState {
+  sidebarOpen: boolean;
+  setSidebarOpen: (open: boolean) => void;
+}
+
+export const useUIStore = create<UIState>((set) => ({
+  sidebarOpen: false,
+  setSidebarOpen: (open) => set({ sidebarOpen: open }),
+}));
+```
+
+### Store Separation
+
+- `useAdminStore` — Admin dashboard state (selected garden, pending txs)
+- `useUIStore` — Generic UI state (sidebar, modals)
+- `useWorkFlowStore` — Work submission flow state (draft, media)
+- `useCreateGardenStore` — Garden creation wizard state (step, form data)
+
+## Component Guidelines
+
+### Shared Components
+
+Only generic, reusable components belong in shared:
+- `Spinner`, `CenteredSpinner` — Loading states
+- `StatusBadge` — Work/transaction status display
+- `ToastViewport`, `toastService` — Toast notifications
+- `FormInput`, `FormTextarea`, `FormLayout` — Form primitives
+- `TranslationBadge` — Translation indicator
+- `HydrationFallback` — SSR hydration fallback
+
+### Package-Specific Components
+
+Keep in respective packages:
+- Cards (WorkCard, GardenCard, ActionCard)
+- Views and pages
+- Navigation components
+- Layout components
+
+## Testing Requirements
+
+- All hooks must have corresponding tests in `src/__tests__/hooks/`
+- All modules must have tests in `src/__tests__/modules/`
+- Mock IndexedDB for job queue tests
+- Mock network requests for data module tests
+- Use `@testing-library/react` for hook tests
+
+## Anti-Patterns
+
+### ❌ Don't Create Circular Dependencies
+
+```typescript
+// Wrong - module A imports from B, B imports from A
+// utils/foo.ts
+import { bar } from './bar';
+
+// utils/bar.ts  
+import { foo } from './foo';  // Circular!
+```
+
+### ❌ Don't Store Sensitive Data
+
+```typescript
+// Wrong - storing private keys
+localStorage.setItem('private_key', key);
+
+// Correct - use WebAuthn credentials (no private key exposure)
+const credential = await createWebAuthnCredential({ name: 'Green Goods' });
+```
+
+### ❌ Don't Duplicate Configuration
+
+```typescript
+// Wrong - hardcoded chain ID
+const chainId = 84532;
+
+// Correct - use centralized config
+import { DEFAULT_CHAIN_ID } from '@green-goods/shared';
+```
+
+### ❌ Don't Use Wallet Chain ID
+
+```typescript
+// Wrong - chain from wallet
+const { chainId } = useAccount();
+
+// Correct - chain from environment
+import { useCurrentChain } from '@green-goods/shared';
+const chainId = useCurrentChain();
+```
+
+### ❌ Don't Poll for Updates
+
+```typescript
+// Wrong - polling
+setInterval(() => refetch(), 5000);
+
+// Correct - event-driven
+useJobQueueEvents(['job:completed'], () => refetch());
+```
+
+## Reference Files
+
+- AGENTS.md: `/packages/shared/AGENTS.md`
+- README: `/packages/shared/README.md`
+- Root guide: `/AGENTS.md`

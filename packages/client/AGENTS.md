@@ -1,5 +1,3 @@
-## Client (PWA) — UI system, Tailwind v4, Radix, forms, offline-first, and component patterns.
-
 # Green Goods Client — Architecture Guide
 
 The Green Goods client is an **offline-first Progressive Web App (PWA)** built with React, TypeScript, and Vite. This guide provides AI agents with essential architectural context.
@@ -8,18 +6,41 @@ The Green Goods client is an **offline-first Progressive Web App (PWA)** built w
 
 ```
 src/
-├── components/      # UI components (Radix + Tailwind)
-├── views/           # Main app views (lazy-loaded)
-├── providers/       # React context providers
-├── hooks/           # Custom React hooks
-├── modules/         # Service layer (data, job queue, auth)
-├── state/           # Zustand stores
-├── utils/           # Utility functions
-├── types/           # TypeScript definitions
-├── styles/          # Tailwind CSS + animations
-├── i18n/            # Translations (en, es, pt)
-└── router.tsx       # React Router config
+├── components/      # Client-specific UI components
+│   ├── Actions/    # Action buttons and controls
+│   ├── Cards/      # Card components (Action, Garden, Work)
+│   ├── Communication/ # Badges, offline indicator, loaders
+│   ├── Dialogs/    # Modals and drawers
+│   ├── Display/    # Accordion, Avatar, Carousel, Image
+│   ├── Errors/     # Error boundaries
+│   ├── Features/   # Feature-specific (Garden/, Profile/, Work/)
+│   ├── Inputs/     # Form inputs (Clipboard, Date, Select, TextField)
+│   ├── Layout/     # AppBar, Hero, Splash
+│   ├── Navigation/ # Headers, footers, tabs, TopNav
+│   └── Selection/  # Switch and selection controls
+├── views/           # Route views (lazy-loaded)
+│   ├── Garden/     # Work submission flow (Details, Intro, Media, Review)
+│   ├── Home/       # Home view
+│   │   ├── Garden/ # Garden detail (Assessment, Work, Notifications)
+│   │   └── WorkDashboard/ # User's work status (Pending, Uploading, Completed)
+│   ├── Landing/    # Landing page
+│   ├── Login/      # Authentication
+│   └── Profile/    # User profile (Account, Help)
+├── routes/          # Route guards and shells
+│   ├── AppShell.tsx      # Authenticated app wrapper
+│   ├── RequireAuth.tsx   # Auth guard
+│   ├── RequireInstalled.tsx # PWA install guard
+│   └── Root.tsx          # Root layout
+├── styles/          # CSS files
+│   ├── animation.css
+│   ├── colors.css
+│   ├── typography.css
+│   └── utilities.css
+├── config.ts        # Client configuration
+└── router.tsx       # React Router configuration
 ```
+
+**Important:** Core logic (hooks, providers, modules, stores, workflows) lives in `@green-goods/shared`. See `/packages/shared/AGENTS.md` for details.
 
 ## Core Design Principles
 
@@ -31,7 +52,7 @@ src/
 - MediaResourceManager for blob URLs
 - No polling, only event-based updates
 
-**See:** `.cursor/rules/offline-architecture.mdc`
+**Implementation:** `@green-goods/shared` — see `packages/shared/src/modules/job-queue/`
 
 ### 2. Passkey Authentication
 
@@ -41,7 +62,7 @@ src/
 - Pimlico sponsorship for garden joins
 - Wagmi fallback for operators/admins
 
-**See:** `.cursor/rules/authentication.mdc`
+**Implementation:** `@green-goods/shared` — see `packages/shared/src/providers/`
 
 ### 3. Component-Driven UI
 
@@ -51,17 +72,13 @@ src/
 - Form components with consistent API
 - Modal/drawer patterns
 
-**See:** `.cursor/rules/component-patterns.mdc`
-
 ### 4. State Specialization
 
-Different tools for different state concerns:
+Different tools for different state concerns (all from `@green-goods/shared`):
 - **Server state:** TanStack Query
 - **UI state:** Zustand
 - **Form state:** React Hook Form
 - **Global context:** React Context
-
-**See:** `.cursor/rules/state-management.mdc`
 
 ## Key Workflows
 
@@ -85,10 +102,7 @@ User fills form → Submit → Upload media to IPFS → Create EAS attestation
 
 **Implementation:**
 - Form: `src/views/Garden/index.tsx`
-- Wallet submission: `src/modules/work/wallet-submission.ts`
-- Queue submission: `src/modules/work/work-submission.ts`
-- Processing: `packages/shared/src/modules/job-queue/index.ts` (`processJob`, `flush`)
-- Provider: `src/providers/work.tsx` (branches on `authMode`)
+- Shared logic: `@green-goods/shared` modules
 
 ### Work Approval Workflow
 
@@ -106,10 +120,7 @@ Operator views work → Reviews media/details → Approves/rejects with feedback
 
 **Implementation:**
 - View: `src/views/Home/Garden/Work.tsx`
-- Hook: `src/hooks/work/useWorkApproval.ts` (branches on `authMode`)
-- Wallet submission: `src/modules/work/wallet-submission.ts`
-- Queue submission: `src/modules/work/work-submission.ts`
-- Provider: `src/providers/jobQueue.tsx`
+- Hook: `@green-goods/shared` — `useWorkApproval`
 
 ### Root Garden Auto-Join
 
@@ -121,88 +132,38 @@ Create passkey → Show "Creating your garden account..."
 → Navigate to home
 ```
 
-**Returning users (passkey):**
-```
-Authenticate → Show "Welcome back..." → Navigate to home
-```
-
-**Wallet users:**
-```
-Connect wallet → Manual prompt to join root garden (optional)
-→ User can join later from profile
-```
-
-**Storage Pattern:**
-- `greengoods_user_onboarded`: Set to "true" after first-time onboarding complete
-- `rootGardenPrompted`: Set to "true" after wallet user prompted or dismissed
-
-**Files:**
+**Implementation:**
 - Login flow: `src/views/Login/index.tsx`
-- Splash screen: `src/components/Layout/Splash.tsx` (with loading states)
-- Hook: `src/hooks/garden/useAutoJoinRootGarden.ts`
-- Auth provider: `src/providers/auth.tsx`
-- Pimlico client setup: `src/modules/auth/passkey.ts`, `src/modules/pimlico/config.ts`
+- Splash screen: `src/components/Layout/Splash.tsx`
+- Hook: `@green-goods/shared` — `useAutoJoinRootGarden`
 
-## Module Architecture
+## Imports from Shared Package
 
-### modules/job-queue/
+```typescript
+// Hooks
+import { 
+  useAuth, useUser, useWorks, useWorkApproval, 
+  useGardens, useCurrentChain, useRole,
+  queryKeys 
+} from '@green-goods/shared';
 
-**Core offline system:**
-- `index.ts` — JobQueue service (`addJob`, `processJob`, `flush`)
-- `db.ts` — IndexedDB interface
-- `event-bus.ts` — Event-driven updates
-- `media-resource-manager.ts` — Blob URL lifecycle / cleanup
+// Providers
+import { 
+  AppProvider, ClientAuthProvider, JobQueueProvider, WorkProvider 
+} from '@green-goods/shared';
 
-### modules/data/
+// Modules
+import { jobQueue, jobQueueEventBus } from '@green-goods/shared';
 
-**Data fetching:**
-- `eas.ts` — EAS attestation queries
-- `greengoods.ts` — Indexer queries (gardens, actions)
-- `pinata.ts` — IPFS uploads
-- `urql.ts` — GraphQL client config
-- `graphql.ts` — Type-safe GraphQL (gql.tada)
+// Stores
+import { useWorkFlowStore, useUIStore } from '@green-goods/shared';
 
-### modules/app/
+// Config
+import { DEFAULT_CHAIN_ID, getNetworkConfig } from '@green-goods/shared';
 
-**App infrastructure:**
-- `posthog.ts` — Analytics with offline context
-- `service-worker.ts` — PWA service worker registration
-
-### modules/work/
-
-**Work-specific logic:**
-- `work-submission.ts` — Submission utilities
-- `deduplication.ts` — Duplicate detection (currently disabled)
-- `retry-policy.ts` — Retry logic with exponential backoff
-- `storage-manager.ts` — Storage quota management
-
-### modules/pimlico/
-
-**Account abstraction:**
-- `config.ts` — Pimlico client configuration
-- `paymaster.ts` — Sponsorship logic and rate limiting
-
-## Provider Hierarchy
-
-**Required nesting order:**
-
-```tsx
-<WagmiProvider>                    // 1. Wallet infrastructure
-  <AppProvider>                    // 2. App settings (i18n, PWA)
-    <AuthProvider chainId={chainId}> // 3. Passkey or wallet auth
-      <QueryClientProvider>        // 4. TanStack Query
-        <JobQueueProvider>         // 5. Offline job processing
-          <WorkProvider>           // 6. Work submission
-            <Routes />
-          </WorkProvider>
-        </JobQueueProvider>
-      </QueryClientProvider>
-    </AuthProvider>
-  </AppProvider>
-</WagmiProvider>
+// Types
+import type { Garden, Work, WorkDraft, Action } from '@green-goods/shared';
 ```
-
-**Why this order:** Each provider depends on ancestors. Changing order breaks functionality.
 
 ## Routing Structure
 
@@ -239,7 +200,7 @@ Connect wallet → Manual prompt to join root garden (optional)
 
 ```typescript
 // ✅ Correct
-import { DEFAULT_CHAIN_ID } from '@/config/blockchain';
+import { DEFAULT_CHAIN_ID } from '@green-goods/shared';
 const chainId = DEFAULT_CHAIN_ID;  // Reads VITE_CHAIN_ID
 
 // ❌ Wrong
@@ -250,7 +211,7 @@ const { chainId } = useAccount();  // Never use wallet chain
 
 ```typescript
 // ✅ Correct
-import { queryKeys } from '@/hooks/query-keys';
+import { queryKeys } from '@green-goods/shared';
 queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
 
 // ❌ Wrong
@@ -261,6 +222,8 @@ queryClient.invalidateQueries({ queryKey: ['works', gardenId] });
 
 ```typescript
 // ✅ Correct
+import { useJobQueueEvents } from '@green-goods/shared';
+
 useJobQueueEvents(['job:completed'], () => {
   queryClient.invalidateQueries({ queryKey: queryKeys.queue.stats() });
 });
@@ -271,61 +234,28 @@ setInterval(() => {
 }, 5000);
 ```
 
-### 4. Media URL Lifecycle
+## Component Patterns
 
-```typescript
-// ✅ Correct
-const url = mediaResourceManager.createUrl(file, jobId);
-useEffect(() => () => mediaResourceManager.cleanupUrls(jobId), [jobId]);
+### Card Components
 
-// ❌ Wrong
-const url = URL.createObjectURL(file);  // Never revoked = memory leak
-```
+Located in `src/components/Cards/`:
+- `ActionCard` — Display garden actions
+- `GardenCard` — Display garden info
+- `WorkCard` — Display work submissions
 
-## Performance Optimizations
+### Form Components
 
-### Bundle Splitting
+Located in `src/components/Inputs/`:
+- `Input` — Text input
+- `FormSelect` — Select dropdown
+- `Date` — Date picker
 
-**Dynamic imports for views:**
-```typescript
-const Home = lazy(() => import('@/views/Home'));
-const Garden = lazy(() => import('@/views/Garden'));
-const Profile = lazy(() => import('@/views/Profile'));
-```
+### Dialog Components
 
-**Result:**
-- Main bundle: ~4.4MB
-- Assessment chunk: 0.36KB
-- Garden chunk: 10.81KB
-- WorkApproval chunk: 66.11KB
-
-### Image Optimization
-
-```typescript
-import { imageCompressor } from '@/utils/work/image-compression';
-
-// Compress before upload
-const compressed = await imageCompressor.compressImage(file, {
-  maxSizeMB: 1,
-  maxWidthOrHeight: 1920,
-  useWebWorker: true,
-});
-```
-
-### Virtualization
-
-```typescript
-import { FixedSizeList as List } from 'react-window';
-
-// Use for lists >40 items
-{items.length > 40 ? (
-  <List height={600} itemCount={items.length} itemSize={80} width="100%">
-    {({ index, style }) => <Item item={items[index]} style={style} />}
-  </List>
-) : (
-  items.map(item => <Item item={item} />)
-)}
-```
+Located in `src/components/Dialogs/`:
+- `ModalDrawer` — Responsive modal/drawer
+- `ConfirmDrawer` — Confirmation dialog
+- `ImagePreviewDialog` — Image preview
 
 ## Testing Strategy
 
@@ -342,14 +272,14 @@ import { FixedSizeList as List } from 'react-window';
 - **Critical paths:** 80%+ (offline queue, auth, sync)
 - **Security:** 100% (authentication, encryption)
 
-**See:** `.cursor/rules/testing.mdc`
-
 ## Internationalization
 
 **Supported languages:**
 - English (en.json)
 - Spanish (es.json)
 - Portuguese (pt.json)
+
+**Translations are in `@green-goods/shared`:** `packages/shared/src/i18n/`
 
 **Usage:**
 ```typescript
@@ -367,72 +297,40 @@ const message = intl.formatMessage({
 ### Adding a New Feature
 
 1. Create component in `src/components/` or `src/views/`
-2. Add tests in `src/__tests__/components/` or `src/__tests__/views/`
-3. Update provider if needed (`src/providers/`)
-4. Add translations to `src/i18n/*.json`
-5. Update routing in `src/router.tsx`
-6. Document pattern in relevant `.mdc` file if establishing new convention
+2. Add tests in `src/__tests__/`
+3. Import hooks/providers from `@green-goods/shared`
+4. Update routing in `src/router.tsx` if needed
+5. Document pattern in relevant `.mdc` file if establishing new convention
 
-### Adding Offline Support
+### Adding a New View
 
-1. Define job payload type in `src/types/job-queue.d.ts`
-2. Extend `jobQueue.processJob`/`flush` in `packages/shared/src/modules/job-queue/index.ts`
-3. Persist any extra IndexedDB state in `db.ts`
-4. Queue the job from the relevant provider/hook using `submit*ToQueue`
-5. Add event invalidations or optimistic updates (`providers/jobQueue.tsx`, hooks)
-6. Cover new paths with unit tests (queue + provider) and integration tests
+1. Create view in `src/views/{ViewName}/index.tsx`
+2. Add route in `src/router.tsx` with lazy loading
+3. Add route guard if authentication required
+4. Use shared hooks for data fetching
 
-### Adding GraphQL Query
+### Adding a New Component
 
-1. Add query to modules (e.g., `src/modules/data/eas.ts`)
-2. Create hook in `src/hooks/` (e.g., `useWorks.ts`)
-3. Add query keys to `src/hooks/query-keys.ts`
-4. Set up event-driven invalidation
-5. Use in component via hook
-
-## MCP Integration
-
-### GitHub MCP for Client
-
-```bash
-# Create feature issues
-@github: Create issue "Add garden search functionality" with labels: feature, client
-
-# Track bugs
-@github: Create issue from error "Job queue sync timeout" with label bug, priority:high
-
-# PR management
-@github: List open PRs modifying client package
-```
-
-### Playwright MCP for Testing
-
-```bash
-# Run E2E tests
-@playwright: Execute all client E2E tests
-
-# Visual regression
-@playwright: Compare WorkDashboard screenshots before/after changes
-
-# Accessibility
-@playwright: Run accessibility audit on garden submission flow
-```
+1. Create component in appropriate `src/components/{Category}/` directory
+2. Export from `src/components/{Category}/index.ts`
+3. Add tests in `src/__tests__/components/`
+4. Follow existing patterns for props and styling
 
 ## Deep Dive Rules
 
 For detailed patterns, see package-specific .mdc files:
 
-- **Offline Architecture:** `.cursor/rules/offline-architecture.mdc`
-- **State Management:** `.cursor/rules/state-management.mdc`
-- **Components:** `.cursor/rules/component-patterns.mdc`
-- **Hooks:** `.cursor/rules/hooks-conventions.mdc`
-- **Authentication:** `.cursor/rules/authentication.mdc`
+- **Component Patterns:** `.cursor/rules/component-patterns.mdc`
 - **Testing:** `.cursor/rules/testing.mdc`
+
+For shared code patterns:
+
+- **Offline Architecture:** `packages/shared/.cursor/rules/rules.mdc`
+- **State Management:** `packages/shared/AGENTS.md`
+- **Authentication:** `packages/shared/AGENTS.md`
 
 ## Reference Documentation
 
 - Client README: `/packages/client/README.md`
-- Architecture: `/docs/developer/architecture.md`
-- Features: `/docs/features/overview.md`
-- Testing: `/docs/developer/testing.md`
+- Shared AGENTS.md: `/packages/shared/AGENTS.md`
 - Root agent guide: `/AGENTS.md`

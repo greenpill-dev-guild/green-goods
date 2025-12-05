@@ -1,14 +1,16 @@
 ---
 description: State management — Zustand stores, XState workflows, when to use state machines
 globs:
-  - stores/**
-  - workflows/**
+  - "packages/shared/src/stores/**"
+  - "packages/shared/src/workflows/**"
 alwaysApply: false
 ---
 
 # State Management & Workflows
 
 Admin dashboard uses **Zustand** for global state and **XState** for complex workflows with retries. This rule documents when to use each and common patterns.
+
+**Note:** Stores and workflows are in `@green-goods/shared`. See `/packages/shared/AGENTS.md`.
 
 ## Zustand Store Pattern
 
@@ -292,6 +294,15 @@ const { state, retry } = useCreateGardenWorkflow();
 
 ## Reference Files
 
-- Zustand store: `src/stores/admin.ts`
-- XState workflow: `src/workflows/createGarden.ts`
-- Workflow hook: `src/hooks/useCreateGardenWorkflow.ts`
+All state management code is in `@green-goods/shared`:
+
+- Zustand stores: `packages/shared/src/stores/`
+  - `useAdminStore.ts`
+  - `useUIStore.ts`
+  - `useWorkFlowStore.ts`
+  - `useCreateGardenStore.ts`
+- XState workflows: `packages/shared/src/workflows/`
+  - `createGarden.ts`
+  - `createAssessment.ts`
+- Workflow hooks: `packages/shared/src/hooks/garden/`
+  - `useCreateGardenWorkflow.ts`

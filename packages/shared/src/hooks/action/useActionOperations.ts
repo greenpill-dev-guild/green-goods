@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useAccount, useWalletClient } from "wagmi";
-import { useToastAction } from "../app/useToastAction";
-import { ActionRegistryABI, getNetworkContracts } from "../../utils/contracts";
 import { Capital } from "../../modules/data/greengoods";
+import { ActionRegistryABI, getNetworkContracts } from "../../utils/blockchain/contracts";
+import { useToastAction } from "../app/useToastAction";
 
 export function useActionOperations(chainId: number) {
   const [isLoading, setIsLoading] = useState(false);

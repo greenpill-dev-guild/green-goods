@@ -1,16 +1,17 @@
 ---
 description: Role-based access control patterns for admin dashboard
 globs:
-  - hooks/useRole.ts
-  - hooks/useGardenPermissions.ts
-  - components/RequireAuth.tsx
-  - components/RequireRole.tsx
+  - "packages/shared/src/hooks/gardener/useRole.ts"
+  - "packages/shared/src/hooks/garden/useGardenPermissions.ts"
+  - "packages/admin/src/routes/Require*.tsx"
 alwaysApply: false
 ---
 
 # Access Control & Role Management
 
 The admin dashboard uses role-based access control with three levels: admin (allowlist), operator (indexer query), and unauthorized.
+
+**Note:** Role hooks are in `@green-goods/shared`. Route guards are in `packages/admin/src/routes/`.
 
 ## Role Hierarchy
 
@@ -434,9 +435,16 @@ const { isDeployer, operatorGardens } = useRole();
 
 ## Reference Files
 
-- useRole: `src/hooks/useRole.ts`
-- useGardenPermissions: `src/hooks/useGardenPermissions.ts`
-- useDeploymentRegistry: `src/hooks/useDeploymentRegistry.ts`
-- RequireAuth: `src/components/RequireAuth.tsx`
-- RequireRole: `src/components/RequireRole.tsx`
-- Config: `src/config.ts`
+**Hooks (in `@green-goods/shared`):**
+- `packages/shared/src/hooks/gardener/useRole.ts`
+- `packages/shared/src/hooks/garden/useGardenPermissions.ts`
+- `packages/shared/src/hooks/blockchain/useDeploymentRegistry.ts`
+
+**Route Guards (in admin):**
+- `packages/admin/src/routes/RequireAuth.tsx`
+- `packages/admin/src/routes/RequireRole.tsx`
+- `packages/admin/src/routes/RequireDeployer.tsx`
+- `packages/admin/src/routes/RequireOperatorOrDeployer.tsx`
+
+**Config:**
+- `packages/admin/src/config.ts` — Admin allowlist, chain config

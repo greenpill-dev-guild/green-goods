@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
+import { DEFAULT_CHAIN_ID } from "../config/blockchain";
 
 export interface Garden {
   id: string;
@@ -15,6 +16,13 @@ export interface Garden {
   operators: string[];
 }
 
+export type TransactionStatus = "pending" | "confirmed" | "failed";
+
+export interface TransactionInfo {
+  type: string;
+  status: TransactionStatus;
+}
+
 export interface AdminState {
   // Selected chain
   selectedChainId: number;
@@ -24,25 +32,22 @@ export interface AdminState {
   selectedGarden: Garden | null;
   setSelectedGarden: (garden: Garden | null) => void;
 
-  // Transaction tracking
-  pendingTransactions: Map<string, { type: string; status: "pending" | "confirmed" | "failed" }>;
+  // Transaction tracking (Record for proper reactivity)
+  pendingTransactions: Record<string, TransactionInfo>;
   addPendingTransaction: (txHash: string, type: string) => void;
-  updateTransactionStatus: (txHash: string, status: "confirmed" | "failed") => void;
+  updateTransactionStatus: (txHash: string, status: TransactionStatus) => void;
+  removeTransaction: (txHash: string) => void;
   clearPendingTransactions: () => void;
 
   // Attestation tracking
   lastAttestationId: string | null;
   setLastAttestationId: (id: string | null) => void;
-
-  // UI state
-  sidebarOpen: boolean;
-  setSidebarOpen: (open: boolean) => void;
 }
 
 export const useAdminStore = create<AdminState>()(
   subscribeWithSelector((set, get) => ({
     // Chain management
-    selectedChainId: 42161, // Arbitrum default
+    selectedChainId: DEFAULT_CHAIN_ID,
     setSelectedChainId: (chainId) => set({ selectedChainId: chainId }),
 
     // Garden management
@@ -50,30 +55,36 @@ export const useAdminStore = create<AdminState>()(
     setSelectedGarden: (garden) => set({ selectedGarden: garden }),
 
     // Transaction tracking
-    pendingTransactions: new Map(),
+    pendingTransactions: {},
     addPendingTransaction: (txHash, type) => {
-      const current = get().pendingTransactions;
-      const updated = new Map(current);
-      updated.set(txHash, { type, status: "pending" });
-      set({ pendingTransactions: updated });
+      set((state) => ({
+        pendingTransactions: {
+          ...state.pendingTransactions,
+          [txHash]: { type, status: "pending" },
+        },
+      }));
     },
     updateTransactionStatus: (txHash, status) => {
-      const current = get().pendingTransactions;
-      const existing = current.get(txHash);
+      const existing = get().pendingTransactions[txHash];
       if (existing) {
-        const updated = new Map(current);
-        updated.set(txHash, { ...existing, status });
-        set({ pendingTransactions: updated });
+        set((state) => ({
+          pendingTransactions: {
+            ...state.pendingTransactions,
+            [txHash]: { ...existing, status },
+          },
+        }));
       }
     },
-    clearPendingTransactions: () => set({ pendingTransactions: new Map() }),
+    removeTransaction: (txHash) => {
+      set((state) => {
+        const { [txHash]: _, ...rest } = state.pendingTransactions;
+        return { pendingTransactions: rest };
+      });
+    },
+    clearPendingTransactions: () => set({ pendingTransactions: {} }),
 
     // Attestation tracking
     lastAttestationId: null,
     setLastAttestationId: (id) => set({ lastAttestationId: id }),
-
-    // UI state
-    sidebarOpen: false,
-    setSidebarOpen: (open) => set({ sidebarOpen: open }),
   }))
 );

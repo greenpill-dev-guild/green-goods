@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { getAddress, isAddress } from "viem";
 
 import type { CreateGardenParams } from "../types/contracts";
 
@@ -74,12 +75,24 @@ export function createEmptyGardenForm(): CreateGardenFormState {
   };
 }
 
-function sanitizeAddress(address: string) {
-  return address.trim();
+/**
+ * Sanitizes and normalizes an Ethereum address.
+ * Returns checksummed address if valid, otherwise returns trimmed input.
+ */
+function sanitizeAddress(address: string): string {
+  const trimmed = address.trim();
+  if (isAddress(trimmed)) {
+    return getAddress(trimmed); // Returns checksummed address
+  }
+  return trimmed;
 }
 
-export function isValidAddress(address: string) {
-  return ADDRESS_REGEX.test(address);
+/**
+ * Validates an Ethereum address using viem's isAddress.
+ * Accepts both checksummed and non-checksummed addresses.
+ */
+export function isValidAddress(address: string): boolean {
+  return isAddress(address.trim());
 }
 
 export const useCreateGardenStore = create<CreateGardenStore>((set, get) => ({
@@ -90,7 +103,7 @@ export const useCreateGardenStore = create<CreateGardenStore>((set, get) => ({
     set((state) => ({
       form: {
         ...state.form,
-        [field]: typeof value === "string" ? value : value,
+        [field]: value,
       },
     })),
   addGardener: (address) => {
@@ -99,17 +112,24 @@ export const useCreateGardenStore = create<CreateGardenStore>((set, get) => ({
       return { success: false, error: "Enter a valid wallet address" };
     }
 
-    set((state) => {
-      if (state.form.gardeners.includes(sanitized)) {
-        return state;
-      }
-      return {
-        form: {
-          ...state.form,
-          gardeners: [...state.form.gardeners, sanitized],
-        },
-      };
-    });
+    const { form } = get();
+
+    // Check if already a gardener (case-insensitive via checksummed comparison)
+    if (form.gardeners.includes(sanitized)) {
+      return { success: false, error: "Address already added as gardener" };
+    }
+
+    // Check if already an operator
+    if (form.operators.includes(sanitized)) {
+      return { success: false, error: "Address is already an operator" };
+    }
+
+    set((state) => ({
+      form: {
+        ...state.form,
+        gardeners: [...state.form.gardeners, sanitized],
+      },
+    }));
 
     return { success: true };
   },
@@ -126,17 +146,24 @@ export const useCreateGardenStore = create<CreateGardenStore>((set, get) => ({
       return { success: false, error: "Enter a valid wallet address" };
     }
 
-    set((state) => {
-      if (state.form.operators.includes(sanitized)) {
-        return state;
-      }
-      return {
-        form: {
-          ...state.form,
-          operators: [...state.form.operators, sanitized],
-        },
-      };
-    });
+    const { form } = get();
+
+    // Check if already an operator (case-insensitive via checksummed comparison)
+    if (form.operators.includes(sanitized)) {
+      return { success: false, error: "Address already added as operator" };
+    }
+
+    // Check if already a gardener
+    if (form.gardeners.includes(sanitized)) {
+      return { success: false, error: "Address is already a gardener" };
+    }
+
+    set((state) => ({
+      form: {
+        ...state.form,
+        operators: [...state.form.operators, sanitized],
+      },
+    }));
 
     return { success: true };
   },

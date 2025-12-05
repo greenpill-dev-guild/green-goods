@@ -1,6 +1,6 @@
+import { getChain } from "@green-goods/shared/config";
 import { useDeploymentRegistry } from "@green-goods/shared/hooks";
 import { useAdminStore } from "@green-goods/shared/stores";
-import { getChain } from "@green-goods/shared/utils/contracts";
 import {
   RiCodeBoxLine,
   RiErrorWarningLine,

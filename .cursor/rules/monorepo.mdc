@@ -6,7 +6,7 @@ alwaysApply: true
 
 # Monorepo Structure & Conventions
 
-Green Goods is a bun monorepo with 4 packages. This rule provides guidance on cross-package patterns and when to share vs duplicate code.
+Green Goods is a bun monorepo with 6 packages. This rule provides guidance on cross-package patterns and when to share vs duplicate code.
 
 ## Package Architecture
 
@@ -14,8 +14,10 @@ Green Goods is a bun monorepo with 4 packages. This rule provides guidance on cr
 packages/
 ├── client/       # React PWA (offline-first, gardener/operator app)
 ├── admin/        # Admin dashboard (garden/contract management)
+├── shared/       # Common code (hooks, providers, stores, modules)
 ├── indexer/      # Envio GraphQL (blockchain data indexer)
-└── contracts/    # Solidity (EAS integration, TBA accounts)
+├── contracts/    # Solidity (EAS integration, TBA accounts)
+└── telegram/     # Telegram bot for garden interactions
 ```
 
 ## Cross-Package Dependencies
@@ -25,40 +27,53 @@ packages/
 **✅ Allowed Cross-Package Imports:**
 
 ```typescript
+// Client/Admin importing from shared package
+import { useAuth, useRole, queryKeys } from '@green-goods/shared';
+import { AppProvider, JobQueueProvider } from '@green-goods/shared';
+import type { Garden, Work } from '@green-goods/shared';
+
 // Client/Admin importing contract artifacts
 import deployment from '../../../contracts/deployments/84532-latest.json';
 import networks from '../../../contracts/deployments/networks.json';
 import GardenABI from '../../../contracts/out/Garden.sol/Garden.json';
-
-// Indexer importing contract ABIs
-import ActionRegistryABI from '../abis/ActionRegistry.json';
 ```
 
 **❌ Forbidden Cross-Package Imports:**
 
 ```typescript
-// Don't import source code across packages
+// Don't import source code directly across packages
 import { someUtil } from '../../client/src/utils/helper';
 
 // Don't import from other package internals
 import { SomeComponent } from '../../admin/src/components/Foo';
+
+// Don't deep-import from shared (breaks encapsulation)
+import { useAuth } from '@green-goods/shared/src/hooks/auth/useAuth';
 ```
 
 ### When to Share vs Duplicate
 
-**Share (via contracts/deployments/):**
+**Share via `@green-goods/shared`:**
+- React hooks (auth, garden, work, blockchain)
+- React providers (Auth, JobQueue, Work, App)
+- Zustand stores (admin, UI, workFlow)
+- Core modules (job-queue, data, work, auth)
+- TypeScript types and utilities
+- i18n translations
+
+**Share via `contracts/deployments/`:**
 - Contract addresses
 - Network configurations
 - ABI files
 - Deployment metadata
 
-**Duplicate (in each package):**
-- Utility functions
-- Type definitions (unless from contract ABIs)
-- Component logic
-- Business logic
+**Keep in each package:**
+- UI components (client/admin have different UX patterns)
+- Route configurations
+- Package-specific views
+- Package-specific configuration
 
-**Why:** Each package should be independently deployable. Shared code creates coupling.
+**Why:** The shared package provides common logic while keeping UI concerns separate.
 
 ## Workspace Commands
 
@@ -142,9 +157,11 @@ When features span packages:
 Packages have build dependencies:
 
 1. **contracts** (must build first — generates ABIs)
-2. **indexer** (needs contract ABIs)
-3. **client** (needs deployment artifacts)
-4. **admin** (needs deployment artifacts)
+2. **shared** (needs deployment artifacts, provides hooks/modules)
+3. **indexer** (needs contract ABIs)
+4. **client** (needs shared package and deployment artifacts)
+5. **admin** (needs shared package and deployment artifacts)
+6. **telegram** (needs shared package)
 
 **Build all in order:**
 ```bash
@@ -157,9 +174,16 @@ bun handles dependency graph automatically.
 
 ### File Locations by Concern
 
+**Shared Logic (`@green-goods/shared`):**
+- Hooks: `packages/shared/src/hooks/`
+- Providers: `packages/shared/src/providers/`
+- Stores: `packages/shared/src/stores/`
+- Modules: `packages/shared/src/modules/`
+- Types: `packages/shared/src/types/`
+
 **Blockchain logic:**
 - Solidity: `packages/contracts/src/`
-- TypeScript wrappers: `packages/client/src/modules/data/`
+- TypeScript wrappers: `packages/shared/src/modules/data/`
 
 **UI Components:**
 - Client: `packages/client/src/components/`
@@ -167,11 +191,12 @@ bun handles dependency graph automatically.
 - **Never share** between client/admin (different UX patterns)
 
 **Data Fetching:**
-- GraphQL queries: `packages/*/src/` (each package owns queries)
+- GraphQL clients: `packages/shared/src/modules/data/`
 - Indexer schema: `packages/indexer/schema.graphql`
 
 **Configuration:**
-- Shared: `packages/contracts/deployments/`
+- Deployment artifacts: `packages/contracts/deployments/`
+- Shared config: `packages/shared/src/config/`
 - Package-specific: Each package's `src/config.ts`
 
 ## TypeScript Configuration
@@ -233,11 +258,11 @@ const GARDEN_TOKEN = deployment.gardenToken;
 ### ❌ Don't Import Across Frontend Packages
 
 ```typescript
-// Wrong
+// Wrong - direct cross-package import
 import { useRole } from '../../admin/src/hooks/useRole';
 
-// Correct
-// Duplicate the hook in client if needed, or extract to shared package
+// Correct - use shared package
+import { useRole } from '@green-goods/shared';
 ```
 
 ### ❌ Don't Skip Build Order

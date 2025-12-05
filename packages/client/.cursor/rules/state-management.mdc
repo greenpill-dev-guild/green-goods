@@ -1,15 +1,17 @@
 ---
 description: State management patterns — TanStack Query, Zustand, React Hook Form, provider hierarchy
 globs:
-  - providers/**
-  - hooks/**
-  - state/**
+  - "packages/shared/src/providers/**"
+  - "packages/shared/src/hooks/**"
+  - "packages/shared/src/stores/**"
 alwaysApply: false
 ---
 
 # State Management Patterns
 
-Green Goods client uses specialized tools for different state concerns: TanStack Query for server state, Zustand for UI state, React Hook Form for forms, and React Context for cross-cutting concerns.
+Green Goods uses specialized tools for different state concerns: TanStack Query for server state, Zustand for UI state, React Hook Form for forms, and React Context for cross-cutting concerns.
+
+**Note:** All hooks, providers, and stores are located in `@green-goods/shared`. See `/packages/shared/AGENTS.md`.
 
 ## State Categories
 

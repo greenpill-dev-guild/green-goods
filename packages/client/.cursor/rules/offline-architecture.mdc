@@ -1,23 +1,23 @@
 ---
 description: Offline-first architecture patterns for Green Goods client — job queue, sync, storage management
 globs:
-  - modules/job-queue/**
-  - modules/work/**
-  - providers/jobQueue.tsx
+  - "packages/shared/src/modules/job-queue/**"
+  - "packages/shared/src/modules/work/**"
+  - "packages/shared/src/providers/JobQueue.tsx"
 alwaysApply: false
 ---
 
 # Offline-First Architecture
 
-Client (PWA) — UI system, Tailwind v4, Radix, forms, offline-first, and component patterns.
-
 The Green Goods client is built offline-first, allowing gardeners to submit work without internet connectivity. This rule covers the job queue system, synchronization patterns, and storage management.
+
+**Note:** The job queue modules are located in `@green-goods/shared`. See `/packages/shared/AGENTS.md` for the full architecture.
 
 ## Core Principle: Event-Driven, No Polling
 
 **✅ DO:** Use event bus for reactive updates
 ```typescript
-import { jobQueueEventBus } from '@/modules/job-queue/event-bus';
+import { jobQueueEventBus } from '@green-goods/shared';
 
 jobQueueEventBus.emit('job:completed', { jobId, job, txHash });
 jobQueueEventBus.on('job:added', ({ jobId, job }) => {
@@ -38,13 +38,14 @@ setInterval(() => {
 ### Architecture Overview
 
 ```
-JobQueue (index.ts)
-  ├── JobQueueDB (db.ts) — IndexedDB storage
-  ├── JobProcessor (job-processor.ts) — Execute jobs
-  ├── SyncManager (sync-manager.ts) — Online/offline coordination
-  ├── EventBus (event-bus.ts) — Event-driven updates
-  └── MediaResourceManager (media-resource-manager.ts) — URL lifecycle
+packages/shared/src/modules/job-queue/
+├── index.ts                  — JobQueue class (addJob, getJobs, deleteJob)
+├── db.ts                     — IndexedDB storage layer
+├── event-bus.ts              — Event-driven updates
+└── media-resource-manager.ts — Blob URL lifecycle management
 ```
+
+**Note:** Job processing is handled inline by providers (not a separate processor file). Sync coordination is event-driven via `online`/`offline` browser events.
 
 ### Job Lifecycle
 
@@ -280,156 +281,92 @@ Jobs sync automatically on:
 3. **Service worker**: Background sync message (if SW enabled)
 4. **Manual flush**: User triggers from WorkDashboard
 
-### SyncManager Pattern
+### Sync Pattern
+
+Sync is handled through event-driven processing in providers, not a separate SyncManager class:
 
 ```typescript
-import { SyncManager } from '@/modules/job-queue/sync-manager';
-
-const syncManager = new SyncManager(jobProcessor);
-
-// Flush pending jobs (debounced, race-condition safe)
-const result = await syncManager.flush();
-// Returns: { processed, failed, skipped }
-
-// Check sync status
-const inProgress = syncManager.isSyncInProgress();
+// In WorkProvider or JobQueueProvider
+useEffect(() => {
+  const handleOnline = () => {
+    // Process pending jobs when back online
+    processPendingJobs();
+  };
+  
+  window.addEventListener('online', handleOnline);
+  return () => window.removeEventListener('online', handleOnline);
+}, []);
 ```
 
-**Key features:**
-- Debouncing (1000ms window)
-- Race condition prevention (single flush promise)
-- Empty queue optimization (no events for 0 items)
-- Online-only (throws if offline)
+**Key behaviors:**
+- Jobs process inline when submitted (if online + client ready)
+- Jobs remain queued when offline
+- Online event triggers processing of queued jobs
+- Event bus notifies UI of job status changes
 
 ## Storage Management
 
-### StorageManager Pattern
+Storage is managed through IndexedDB cleanup in the job queue database:
 
 ```typescript
-import { defaultStorageManager } from '@/modules/work/storage-manager';
+// Clean up completed jobs
+await jobQueueDB.deleteJob(jobId);
 
-// Get storage analytics
-const analytics = await defaultStorageManager.getAnalytics();
-/*
-{
-  quota: { used, total, available, percentage },
-  breakdown: { workItems, images, cache, metadata, total },
-  needsCleanup: boolean,
-  recommendedActions: string[]
-}
-*/
+// Get all pending jobs
+const pendingJobs = await jobQueueDB.getJobs({ synced: false });
 
-// Perform cleanup
-const result = await defaultStorageManager.performCleanup();
-/*
-{
-  itemsRemoved: number,
-  spaceFreed: number,
-  categories: { old_completed, failed_items, large_images, cache }
-}
-*/
+// Clean up images for a job
+// (handled automatically when job is deleted)
 ```
 
-### Cleanup Policies
+**Current cleanup approach:**
+- Jobs are deleted after successful sync
+- Images are cleaned up with their parent jobs
+- MediaResourceManager handles blob URL lifecycle
+- Service worker manages cache for app shell
 
-```typescript
-interface CleanupPolicy {
-  maxAge: number;              // 30 days default
-  maxItems: number;            // 1000 items default
-  thresholdPercentage: number; // 80% default
-  priorityOrder: [
-    'old_completed',    // Synced work >30 days old
-    'failed_items',     // Permanently failed jobs
-    'large_images',     // Images >1MB
-    'cache'             // Browser cache
-  ]
-}
-```
+**Future enhancements** (not yet implemented):
+- Storage quota monitoring
+- Automatic cleanup of old completed jobs
+- Image compression before storage
 
-**Automatic triggers:**
-- Storage >80% full
-- >1000 items stored
-- 24 hours since last cleanup
+## Deduplication (Future Feature)
 
-## Deduplication System
+**Current Status:** Not implemented
 
-### Current Status: Disabled
+Deduplication would prevent submitting the same work twice by:
+- Comparing content hashes of pending vs submitted work
+- Checking timestamps to find near-duplicate submissions
+- Warning users before resubmitting similar work
 
-Deduplication is **currently a no-op** and performs no actual checks:
-
-```typescript
-// modules/work/deduplication.ts
-async performComprehensiveCheck(workData: any): Promise<DuplicateCheckResult> {
-  // No-op while deduplication is disabled
-  return {
-    isDuplicate: false,
-    conflictType: 'none',
-  };
-}
-```
-
-### Re-enabling Deduplication (Future)
-
-To enable:
-1. Implement remote API endpoint for duplicate checking
-2. Remove early returns in `performComprehensiveCheck()`
-3. Configure time windows and thresholds
-4. Add UI for duplicate warnings
-
-### Hash Generation (Still Active)
-
-Content hashing is still used for potential future features:
-
-```typescript
-// Generates stable hash from work content
-const hash = deduplicationManager.generateContentHash(work);
-
-// Hashes core content fields:
-// - gardenAddress
-// - feedback
-// - actionUID with chainId
-// - imageHashes (if enabled)
-```
+**Implementation approach when needed:**
+1. Add content hash generation in work submission
+2. Store hashes in IndexedDB alongside jobs
+3. Check against recent submissions before adding new job
+4. Show UI warning with option to proceed anyway
 
 ## Retry Policy
 
-### RetryPolicy Pattern
+## Retry Behavior
+
+**Current approach:** Jobs track attempts via the `attempts` field in IndexedDB:
 
 ```typescript
-import { defaultRetryPolicy } from '@/modules/work/retry-policy';
-
-// Check if should retry
-if (defaultRetryPolicy.shouldRetry(itemId)) {
-  // Retry the operation
-}
-
-// Record attempt
-defaultRetryPolicy.recordAttempt(itemId, errorMessage, 'high');
-
-// Record success (removes from retry queue)
-defaultRetryPolicy.recordSuccess(itemId);
-
-// Get retryable items
-const items = defaultRetryPolicy.getRetryableItems();
-```
-
-### Configuration
-
-```typescript
-interface RetryConfig {
-  maxRetries: 5;
-  initialDelay: 1000;      // 1 second
-  maxDelay: 300000;        // 5 minutes
-  backoffMultiplier: 2;    // Exponential backoff
-  jitter: true;            // Prevent thundering herd
+interface Job {
+  id: string;
+  attempts: number;     // Incremented on each failure
+  lastError?: string;   // Last error message
+  // ...
 }
 ```
 
-### Priority Levels
+When processing fails:
+1. Error is logged to `lastError`
+2. `attempts` is incremented
+3. Job remains in queue for next online event
+4. After multiple failures, job stays queued (no automatic removal)
 
-- **high**: 0.5x delay multiplier (faster retry)
-- **medium**: 1x delay multiplier (normal)
-- **low**: 2x delay multiplier (slower retry)
+**Future enhancement:** Implement exponential backoff and max retry limits.
 
 ## Offline Work Submission Flow
 
@@ -529,43 +466,30 @@ const workMutation = useMutation({
 });
 ```
 
-### processWorkJobInline
+### Inline Processing Pattern
+
+Job processing happens inline in the WorkProvider when a smart account client is available:
 
 ```typescript
-// modules/job-queue/inline-processor.ts
-export async function processWorkJobInline(
-  jobId: string,
-  chainId: number,
-  smartAccountClient: SmartAccountClient
-): Promise<{ success: boolean; txHash?: string; error?: string }> {
-  const job = await jobQueueDB.getJob(jobId);
-  if (!job || job.kind !== 'work') return { success: false };
-  
-  try {
-    // Load images from IndexedDB
-    const images = await jobQueueDB.getImagesForJob(jobId);
-    const payload = {
-      ...(job.payload as WorkJobPayload),
-      media: images.map(img => img.file)
-    };
+// In WorkProvider mutation
+const workMutation = useMutation({
+  mutationFn: async ({ draft, images }) => {
+    // 1. Add to queue (persists to IndexedDB)
+    const { txHash, jobId } = await submitWorkToQueue(/*...*/);
     
-    // Encode and execute via processor
-    const encoded = await workProcessor.encodePayload(payload, chainId);
-    const txHash = await workProcessor.execute(encoded, job.meta || {}, smartAccountClient);
+    // 2. If online and client available, process immediately
+    if (smartAccountClient) {
+      // Upload to IPFS, create attestation, send transaction
+      await processJob(jobId, smartAccountClient);
+    }
+    // Otherwise, job stays queued for later
     
-    // Mark synced and cleanup
-    await jobQueueDB.markJobSynced(jobId, txHash);
-    await jobQueueDB.deleteJob(jobId);
-    
-    jobQueueEventBus.emit('job:completed', { jobId, job, txHash });
-    return { success: true, txHash };
-  } catch (err: any) {
-    await jobQueueDB.markJobFailed(jobId, err.message);
-    jobQueueEventBus.emit('job:failed', { jobId, job, error: err.message });
-    return { success: false, error: err.message };
+    return txHash;
   }
-}
+});
 ```
+
+Processing logic is in `modules/work/passkey-submission.ts` for passkey mode and `modules/work/wallet-submission.ts` for wallet mode.
 
 ## Event Bus System
 
@@ -589,23 +513,20 @@ interface JobQueueEventMap {
 ### Usage in Components/Hooks
 
 ```typescript
-import { useJobQueueEvents } from '@/modules/job-queue/event-bus';
+import { jobQueueEventBus, queryKeys } from '@green-goods/shared';
 
-// React to multiple events
-useJobQueueEvents(
-  ['job:added', 'job:completed', 'job:failed'],
-  (_eventType, data) => {
-    if ('job' in data && data.job.kind === 'work') {
-      const gardenId = (data.job.payload as WorkJobPayload).gardenAddress;
-      queryClient.invalidateQueries({ queryKey: ['works', gardenId] });
+// React to events
+useEffect(() => {
+  const unsubscribe = jobQueueEventBus.on('job:completed', ({ jobId, job, txHash }) => {
+    if (job.kind === 'work') {
+      const gardenId = (job.payload as WorkJobPayload).gardenAddress;
+      queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
     }
-  }
-);
-
-// React to single event
-useJobQueueEvent('job:completed', ({ txHash }) => {
-  console.log('Job completed with tx:', txHash);
-});
+  });
+  
+  return unsubscribe;
+}, []);
+```
 ```
 
 ## Query Invalidation Strategy
@@ -877,13 +798,20 @@ Use Playwright MCP for offline testing:
 
 ## Reference Files
 
-- Job Queue: `src/modules/job-queue/index.ts`
-- Database: `src/modules/job-queue/db.ts`
-- Event Bus: `src/modules/job-queue/event-bus.ts`
-- Sync Manager: `src/modules/job-queue/sync-manager.ts`
-- Storage Manager: `src/modules/work/storage-manager.ts`
-- Deduplication: `src/modules/work/deduplication.ts`
-- Retry Policy: `src/modules/work/retry-policy.ts`
-- Work Submission: `src/modules/work/work-submission.ts`
-- Inline Processors: `src/modules/job-queue/inline-processor.ts`
-- Media Manager: `src/modules/job-queue/media-resource-manager.ts`
+All offline modules are in `@green-goods/shared` (`packages/shared/src/`):
+
+**Job Queue Module (`modules/job-queue/`):**
+- `index.ts` — JobQueue class
+- `db.ts` — IndexedDB storage layer
+- `event-bus.ts` — Event-driven updates
+- `media-resource-manager.ts` — Blob URL lifecycle
+
+**Work Module (`modules/work/`):**
+- `work-submission.ts` — Submit work to queue
+- `passkey-submission.ts` — Passkey-based processing
+- `wallet-submission.ts` — Wallet-based processing
+- `bot-submission.ts` — Telegram bot submission
+
+**Providers (`providers/`):**
+- `JobQueue.tsx` — Job queue React provider
+- `Work.tsx` — Work submission provider

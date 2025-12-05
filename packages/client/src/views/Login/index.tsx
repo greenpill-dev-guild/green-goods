@@ -5,7 +5,7 @@ import { PASSKEY_STORAGE_KEY, type PasskeySession } from "@green-goods/shared/mo
 import { useClientAuth } from "@green-goods/shared/providers";
 import { useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { type LoadingState, Splash } from "@/components/Layout/Splash";
+import { type LoadingState, Splash } from "@/components/Layout";
 
 export function Login() {
   const location = useLocation();
@@ -16,21 +16,23 @@ export function Login() {
   const [loadingMessage, setLoadingMessage] = useState<string | undefined>(undefined);
   const [loginError, setLoginError] = useState<string | null>(null);
 
-  // Check if DevConnect is enabled via environment variable
-  const isDevConnectEnabled = import.meta.env.VITE_DEVCONNECT === "true";
-
-  const {
-    joinGarden,
-    isLoading: isJoiningGarden,
-    isGardener: _isGardener,
-    devConnect,
-  } = useAutoJoinRootGarden();
+  const { joinGarden, isLoading: isJoiningGarden } = useAutoJoinRootGarden();
 
   // Check if we're on a nested route (like /login/recover)
   const isNestedRoute = location.pathname !== "/login";
 
+  // Check if user came from explicit logout - ignore redirectTo in that case
+  const locationState = location.state as { fromLogout?: boolean } | null;
+  const fromLogout = locationState?.fromLogout === true;
+
   // Extract redirectTo parameter from URL query string, default to /home
-  const redirectTo = new URLSearchParams(location.search).get("redirectTo") || "/home";
+  // If coming from explicit logout, always go to /home
+  const redirectTo = fromLogout
+    ? "/home"
+    : new URLSearchParams(location.search).get("redirectTo") || "/home";
+
+  // Get auth ready state to prevent flash during restoration
+  const { isReady } = useClientAuth();
 
   // Note: Wallet connection is automatically synced by PasskeyAuthProvider's watchAccount effect
   // No manual sync needed here
@@ -90,25 +92,6 @@ export function Login() {
           localStorage.setItem(onboardingKey, "true");
         }
       }
-
-      // 2. DevConnect Join (New)
-      if (isDevConnectEnabled && devConnect.isEnabled && !devConnect.isMember) {
-        // Check local storage to avoid re-prompting if they skipped or are pending
-        const dcKey = `greengoods_devconnect_onboarded:${session.address.toLowerCase()}`;
-        const isDcOnboarded = localStorage.getItem(dcKey) === "true";
-
-        if (!isDcOnboarded) {
-          setLoadingState("joining-garden"); // Re-use loading state
-          setLoadingMessage("Joining DevConnect Garden...");
-          try {
-            await devConnect.join(session);
-            toastService.success({ title: "Joined DevConnect!", context: "devconnect" });
-          } catch (e) {
-            console.error("DevConnect join failed", e);
-            // Non-blocking failure
-          }
-        }
-      }
     } catch (err) {
       setLoadingState(null);
       console.error("Passkey authentication failed", err);
@@ -163,6 +146,12 @@ export function Login() {
   // If on a nested route (like /login/recover), render the child route
   if (isNestedRoute) {
     return <Outlet />;
+  }
+
+  // Wait for auth to be ready before showing login or redirecting
+  // This prevents the login screen flash during auth restoration on page refresh
+  if (!isReady) {
+    return <Splash loadingState="welcome" />;
   }
 
   // Redirect to app once authenticated (both passkey and wallet)

@@ -1,13 +1,15 @@
 ---
 description: Hook naming conventions, query key patterns, event-driven hooks, blockchain hooks
 globs:
-  - hooks/**
+  - "packages/shared/src/hooks/**"
 alwaysApply: false
 ---
 
 # Hook Conventions & Patterns
 
-Green Goods client uses custom hooks extensively. This rule documents naming conventions, composition patterns, and common hook structures.
+Green Goods uses custom hooks extensively. This rule documents naming conventions, composition patterns, and common hook structures.
+
+**Note:** All hooks are located in `@green-goods/shared`. See `/packages/shared/AGENTS.md`.
 
 ## Naming Conventions
 

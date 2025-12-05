@@ -123,5 +123,5 @@ function testUpgrade_maintainsState() public {
 ## Reference Files
 
 - Upgrade script: `script/upgrade.js`
-- Upgrade tests: `test/UpgradeSafety.t.sol`
-- Upgrade guide: `/docs/UPGRADES.md`
+- Upgrade tests: `test/UpgradeSafety.t.sol.skip` (currently skipped)
+- Deployment docs: `/docs/DEPLOYMENT_CHECKLIST.md`

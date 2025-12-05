@@ -9,7 +9,7 @@ import {
 } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
-import { WorkView, type WorkViewAction } from "@/components/UI/WorkView/WorkView";
+import { WorkView, type WorkViewAction } from "@/components/Features/Work";
 
 type ViewingMode = "operator" | "gardener" | "viewer";
 

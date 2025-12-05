@@ -1,17 +1,19 @@
 ---
 description: Authentication patterns — passkey-first, WebAuthn, Pimlico, smart accounts, Wagmi fallback
 globs:
-  - providers/auth.tsx
-  - providers/AuthProvider.tsx
-  - hooks/auth/**
-  - routes/RequireAuth.tsx
-  - routes/RequireInstalled.tsx
+  - "packages/shared/src/providers/*Auth*.tsx"
+  - "packages/shared/src/hooks/auth/**"
+  - "packages/shared/src/modules/auth/**"
+  - "packages/client/src/routes/RequireAuth.tsx"
+  - "packages/client/src/routes/RequireInstalled.tsx"
 alwaysApply: false
 ---
 
 # Authentication & Account Abstraction
 
 Green Goods client uses **passkey-first authentication** with WebAuthn credentials and Kernel smart accounts via Pimlico. Wagmi provides fallback for operators and admins.
+
+**Note:** Auth providers and hooks are located in `@green-goods/shared`. See `/packages/shared/AGENTS.md`.
 
 ## Authentication Modes
 
@@ -824,14 +826,22 @@ Use GitHub MCP for auth issue tracking:
 
 ## Reference Files
 
-- Auth provider: `src/providers/auth.tsx`
-- useAuth hook: `src/hooks/auth/useAuth.ts`
-- useUser adapter: `src/hooks/auth/useUser.ts`
-- Garden join: `src/hooks/garden/useGardenJoin.ts`
-- Auto-join: `src/hooks/garden/useAutoJoinRootGarden.ts`
-- Pimlico config: `src/modules/pimlico/config.ts`
-- Paymaster: `src/modules/pimlico/paymaster.ts`
-- RequireAuth guard: `src/routes/RequireAuth.tsx`
-- RequireInstalled guard: `src/routes/RequireInstalled.tsx`
-- Login view: `src/views/Login/index.tsx`
-- Onboarding: `src/components/Garden/GardenOnboarding.tsx`
+**Providers (in `@green-goods/shared`):**
+- `packages/shared/src/providers/ClientAuth.tsx` — Unified auth provider
+- `packages/shared/src/providers/PasskeyAuth.tsx` — Passkey-only auth
+- `packages/shared/src/providers/WalletAuth.tsx` — Wallet-only auth
+
+**Hooks (in `@green-goods/shared`):**
+- `packages/shared/src/hooks/auth/useAuth.ts`
+- `packages/shared/src/hooks/auth/useUser.ts`
+- `packages/shared/src/hooks/garden/useJoinGarden.ts`
+- `packages/shared/src/hooks/garden/useAutoJoinRootGarden.ts`
+
+**Config (in `@green-goods/shared`):**
+- `packages/shared/src/config/pimlico.ts` — Pimlico API configuration
+- `packages/shared/src/modules/auth/passkey.ts` — WebAuthn utilities
+
+**Client-specific:**
+- `packages/client/src/routes/RequireAuth.tsx` — Auth route guard
+- `packages/client/src/routes/RequireInstalled.tsx` — PWA install guard
+- `packages/client/src/views/Login/index.tsx` — Login view

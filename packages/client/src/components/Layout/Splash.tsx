@@ -2,7 +2,7 @@ import { APP_NAME } from "@green-goods/shared/config";
 import type React from "react";
 import { Link } from "react-router-dom";
 
-import { Button } from "../UI/Button";
+import { Button } from "../Actions";
 
 export type LoadingState = "welcome" | "joining-garden" | "default";
 

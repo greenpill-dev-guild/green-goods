@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { type Theme, getTheme, getResolvedTheme, setTheme as setThemeAPI } from "../../theme";
+import {
+  getResolvedTheme,
+  getTheme,
+  setTheme as setThemeAPI,
+  type Theme,
+} from "../../utils/styles/theme";
 
 /**
  * React hook for theme management

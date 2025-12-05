@@ -59,28 +59,3 @@ export function mergeAndDeduplicateByClientId<T extends { metadata?: string; cre
   // Merge and sort by creation time (newest first)
   return [...onlineWorks, ...dedupedOffline].sort((a, b) => b.createdAt - a.createdAt);
 }
-
-/**
- * Deduplicate works using fuzzy matching (actionUID + time proximity)
- *
- * Used when clientWorkId is not available. Considers works duplicates if they have
- * the same actionUID and were created within a 5-minute window.
- *
- * @param onlineWorks - Works fetched from blockchain/indexer
- * @param offlineWorks - Pending local works from job queue
- * @param timeWindowMs - Time window for fuzzy matching (default: 5 minutes)
- * @returns Deduplicated offline works (online works are always kept)
- */
-export function deduplicateByFuzzyMatch<T extends { actionUID: number; createdAt: number }>(
-  onlineWorks: T[],
-  offlineWorks: T[],
-  timeWindowMs = 5 * 60 * 1000
-): T[] {
-  return offlineWorks.filter((offlineWork) => {
-    const isDuplicate = onlineWorks.some((onlineWork) => {
-      const timeDiff = Math.abs(onlineWork.createdAt - offlineWork.createdAt);
-      return onlineWork.actionUID === offlineWork.actionUID && timeDiff < timeWindowMs;
-    });
-    return !isDuplicate;
-  });
-}

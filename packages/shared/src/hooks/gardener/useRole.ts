@@ -1,8 +1,8 @@
-import { useQuery } from "urql";
-import { useDeploymentRegistry } from "../blockchain/useDeploymentRegistry";
-import { useOptionalPasskeyAuth } from "../../providers/PasskeyAuthProvider";
-import { useOptionalWalletAuth } from "../../providers/WalletAuthProvider";
 import { graphql } from "gql.tada";
+import { useQuery } from "urql";
+import { useOptionalPasskeyAuth } from "../../providers/PasskeyAuth";
+import { useOptionalWalletAuth } from "../../providers/WalletAuth";
+import { useDeploymentRegistry } from "../blockchain/useDeploymentRegistry";
 
 const GET_OPERATOR_GARDENS = graphql(`
   query GetOperatorGardens($operator: [String!]!) {
