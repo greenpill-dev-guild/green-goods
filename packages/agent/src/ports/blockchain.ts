@@ -99,10 +99,7 @@ export interface BlockchainPort {
    * @param userAddress - Address to check
    * @returns Verification result
    */
-  isOperator(
-    gardenAddress: string,
-    userAddress: string
-  ): Promise<VerificationResult>;
+  isOperator(gardenAddress: string, userAddress: string): Promise<VerificationResult>;
 
   /**
    * Check if an address is a gardener in a garden.
@@ -111,10 +108,7 @@ export interface BlockchainPort {
    * @param userAddress - Address to check
    * @returns Verification result
    */
-  isGardener(
-    gardenAddress: string,
-    userAddress: string
-  ): Promise<VerificationResult>;
+  isGardener(gardenAddress: string, userAddress: string): Promise<VerificationResult>;
 
   /**
    * Get garden information from on-chain.
@@ -138,4 +132,3 @@ export interface BlockchainPort {
    */
   clearCache(): void;
 }
-

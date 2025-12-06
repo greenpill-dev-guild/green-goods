@@ -167,16 +167,12 @@ export class WhisperAI implements AIPort {
         return this.transcriber;
       } catch (error) {
         this.modelLoading = null;
-        const message =
-          error instanceof Error ? error.message : "Unknown error";
+        const message = error instanceof Error ? error.message : "Unknown error";
         console.error("Failed to load Whisper model:", message);
-        throw new Error(
-          `Voice processing unavailable: ${message}. Please use text input instead.`
-        );
+        throw new Error(`Voice processing unavailable: ${message}. Please use text input instead.`);
       }
     })();
 
     return this.modelLoading;
   }
 }
-

@@ -21,4 +21,3 @@ export function formatWaitTime(ms: number): string {
   const remainingSeconds = seconds % 60;
   return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
 }
-

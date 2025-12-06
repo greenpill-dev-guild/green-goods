@@ -52,4 +52,3 @@ export interface AIPort {
    */
   isModelLoaded(): boolean;
 }
-

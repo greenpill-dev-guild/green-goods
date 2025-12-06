@@ -103,6 +103,36 @@ export class Orchestrator {
   }
 
   /**
+   * Apply session updates from a handler result
+   */
+  private async applySessionUpdates(
+    platform: string,
+    platformId: string,
+    result: { updateSession?: { step?: string; draft?: unknown }; clearSession?: boolean }
+  ): Promise<void> {
+    if (result.clearSession) {
+      await this.deps.storage.clearSession(
+        platform as "telegram" | "discord" | "whatsapp",
+        platformId
+      );
+    } else if (result.updateSession) {
+      await this.deps.storage.setSession({
+        platform: platform as "telegram" | "discord" | "whatsapp",
+        platformId,
+        step: (result.updateSession.step || "idle") as
+          | "idle"
+          | "joining_garden"
+          | "submitting_work"
+          | "confirming_work"
+          | "approving_work"
+          | "rejecting_work",
+        draft: result.updateSession.draft,
+        updatedAt: Date.now(),
+      });
+    }
+  }
+
+  /**
    * Handle an inbound message and return a response
    */
   async handle(message: InboundMessage): Promise<OutboundResponse> {
@@ -180,8 +210,7 @@ export class Orchestrator {
       case "status": {
         const result = await handleStatus(message, user, {
           storage: this.deps.storage,
-          getRateLimitStats: (platformId, type) =>
-            this.deps.rateLimiter.peek(platformId, type),
+          getRateLimitStats: (platformId, type) => this.deps.rateLimiter.peek(platformId, type),
         });
         return result.response;
       }
@@ -253,32 +282,16 @@ export class Orchestrator {
           generateId: this.deps.crypto.generateSecureId,
           notifyOperator: this.deps.notifier
             ? async (operatorId, msg) => {
-                const operator = await this.deps.storage.getOperatorForGarden(
-                  user.currentGarden!
-                );
+                const operator = await this.deps.storage.getOperatorForGarden(user.currentGarden!);
                 if (operator) {
-                  await this.deps.notifier!.notify(
-                    operator.platform,
-                    operator.platformId,
-                    msg
-                  );
+                  await this.deps.notifier!.notify(operator.platform, operator.platformId, msg);
                 }
               }
             : undefined,
         });
 
         // Apply session updates
-        if (result.clearSession) {
-          await this.deps.storage.clearSession(platform, sender.platformId);
-        } else if (result.updateSession) {
-          await this.deps.storage.setSession({
-            platform,
-            platformId: sender.platformId,
-            step: result.updateSession.step || "idle",
-            draft: result.updateSession.draft,
-            updatedAt: Date.now(),
-          });
-        }
+        await this.applySessionUpdates(platform, sender.platformId, result);
 
         return result.response;
       }
@@ -311,18 +324,14 @@ export class Orchestrator {
     }
 
     if (!user.currentGarden) {
-      return textResponse(
-        "Please join a garden first with `/join <GardenAddress>`",
-      );
+      return textResponse("Please join a garden first with `/join <GardenAddress>`");
     }
 
     const rateCheck = this.checkRateLimit(sender.platformId, "voice");
     if (rateCheck) return rateCheck;
 
     if (!this.deps.voiceProcessor) {
-      return textResponse(
-        "Voice processing is not available. Please send a text message instead."
-      );
+      return textResponse("Voice processing is not available. Please send a text message instead.");
     }
 
     try {
@@ -331,32 +340,18 @@ export class Orchestrator {
         voiceContent.audioUrl
       );
 
-      const result = await handleVoiceSubmission(
-        message,
-        user,
-        transcribedText,
-        {
-          storage: this.deps.storage,
-          ai: this.deps.ai,
-          generateId: this.deps.crypto.generateSecureId,
-        }
-      );
+      const result = await handleVoiceSubmission(message, user, transcribedText, {
+        storage: this.deps.storage,
+        ai: this.deps.ai,
+        generateId: this.deps.crypto.generateSecureId,
+      });
 
       // Apply session updates
-      if (result.updateSession) {
-        await this.deps.storage.setSession({
-          platform: message.platform,
-          platformId: sender.platformId,
-          step: result.updateSession.step || "idle",
-          draft: result.updateSession.draft,
-          updatedAt: Date.now(),
-        });
-      }
+      await this.applySessionUpdates(message.platform, sender.platformId, result);
 
       return result.response;
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       console.error("Voice processing error:", error);
       return textResponse(
         `❌ Sorry, I couldn't process that audio.\n\n` +
@@ -380,9 +375,7 @@ export class Orchestrator {
     }
 
     if (!user.currentGarden) {
-      return textResponse(
-        "Please join a garden first with `/join <GardenAddress>`"
-      );
+      return textResponse("Please join a garden first with `/join <GardenAddress>`");
     }
 
     const rateCheck = this.checkRateLimit(sender.platformId, "message");
@@ -396,40 +389,24 @@ export class Orchestrator {
       });
 
       // Apply session updates
-      if (result.updateSession) {
-        await this.deps.storage.setSession({
-          platform,
-          platformId: sender.platformId,
-          step: result.updateSession.step || "idle",
-          draft: result.updateSession.draft,
-          updatedAt: Date.now(),
-        });
-      }
+      await this.applySessionUpdates(platform, sender.platformId, result);
 
       return result.response;
     } catch (error) {
       console.error("Text processing error:", error);
-      return textResponse(
-        "❌ Sorry, I couldn't process that message. Please try again."
-      );
+      return textResponse("❌ Sorry, I couldn't process that message. Please try again.");
     }
   }
 
   /**
    * Check rate limit and return error response if limited
    */
-  private checkRateLimit(
-    platformId: string,
-    type: string
-  ): OutboundResponse | undefined {
+  private checkRateLimit(platformId: string, type: string): OutboundResponse | undefined {
     const result = this.deps.rateLimiter.check(platformId, type);
     if (!result.allowed) {
       const waitTime = formatWaitTime(result.resetIn || 0);
-      return textResponse(
-        `⏳ ${result.message}\n\nPlease wait ${waitTime} before trying again.`
-      );
+      return textResponse(`⏳ ${result.message}\n\nPlease wait ${waitTime} before trying again.`);
     }
     return undefined;
   }
 }
-

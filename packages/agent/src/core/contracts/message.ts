@@ -80,36 +80,27 @@ export function isTextContent(content: MessageContent): content is TextContent {
 /**
  * Type guard for command content
  */
-export function isCommandContent(
-  content: MessageContent
-): content is CommandContent {
+export function isCommandContent(content: MessageContent): content is CommandContent {
   return content.type === "command";
 }
 
 /**
  * Type guard for voice content
  */
-export function isVoiceContent(
-  content: MessageContent
-): content is VoiceContent {
+export function isVoiceContent(content: MessageContent): content is VoiceContent {
   return content.type === "voice";
 }
 
 /**
  * Type guard for callback content
  */
-export function isCallbackContent(
-  content: MessageContent
-): content is CallbackContent {
+export function isCallbackContent(content: MessageContent): content is CallbackContent {
   return content.type === "callback";
 }
 
 /**
  * Type guard for image content
  */
-export function isImageContent(
-  content: MessageContent
-): content is ImageContent {
+export function isImageContent(content: MessageContent): content is ImageContent {
   return content.type === "image";
 }
-

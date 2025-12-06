@@ -5,11 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import {
-  RateLimiter,
-  formatRateLimitWait,
-  RATE_LIMITS,
-} from "../services/rate-limiter";
+import { RateLimiter, formatRateLimitWait, RATE_LIMITS } from "../services/rate-limiter";
 
 describe("RateLimiter", () => {
   let limiter: RateLimiter;
@@ -161,15 +157,9 @@ describe("RateLimiter", () => {
       limiter.resetAll(userId);
 
       // All should be at full capacity
-      expect(limiter.peek(userId, "message").remaining).toBe(
-        RATE_LIMITS.message.maxRequests
-      );
-      expect(limiter.peek(userId, "voice").remaining).toBe(
-        RATE_LIMITS.voice.maxRequests
-      );
-      expect(limiter.peek(userId, "submission").remaining).toBe(
-        RATE_LIMITS.submission.maxRequests
-      );
+      expect(limiter.peek(userId, "message").remaining).toBe(RATE_LIMITS.message.maxRequests);
+      expect(limiter.peek(userId, "voice").remaining).toBe(RATE_LIMITS.voice.maxRequests);
+      expect(limiter.peek(userId, "submission").remaining).toBe(RATE_LIMITS.submission.maxRequests);
     });
   });
 
@@ -237,14 +227,10 @@ describe("RATE_LIMITS configuration", () => {
 
   it("has reasonable limits", () => {
     // Voice should be more restrictive than text
-    expect(RATE_LIMITS.voice.maxRequests).toBeLessThan(
-      RATE_LIMITS.message.maxRequests
-    );
+    expect(RATE_LIMITS.voice.maxRequests).toBeLessThan(RATE_LIMITS.message.maxRequests);
 
     // Operators should have higher approval limits
-    expect(RATE_LIMITS.approval.maxRequests).toBeGreaterThan(
-      RATE_LIMITS.submission.maxRequests
-    );
+    expect(RATE_LIMITS.approval.maxRequests).toBeGreaterThan(RATE_LIMITS.submission.maxRequests);
   });
 
   it("has all required fields for each limit type", () => {

@@ -32,9 +32,7 @@ export async function handleJoin(
   if (!gardenAddress) {
     return {
       response: {
-        text:
-          "📍 *Usage:* `/join <GardenAddress>`\n\n" +
-          "Example: `/join 0x1234...abcd`",
+        text: "📍 *Usage:* `/join <GardenAddress>`\n\n" + "Example: `/join 0x1234...abcd`",
         parseMode: "markdown",
       },
     };
@@ -82,4 +80,3 @@ export async function handleJoin(
     },
   };
 }
-

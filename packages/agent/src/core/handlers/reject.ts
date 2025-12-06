@@ -10,11 +10,7 @@ import type { BlockchainPort } from "../../ports/blockchain";
 export interface RejectDeps {
   storage: StoragePort;
   blockchain: BlockchainPort;
-  notifyGardener?: (
-    platform: string,
-    platformId: string,
-    message: string
-  ) => Promise<void>;
+  notifyGardener?: (platform: string, platformId: string, message: string) => Promise<void>;
 }
 
 /**
@@ -98,4 +94,3 @@ export async function handleReject(
     },
   };
 }
-

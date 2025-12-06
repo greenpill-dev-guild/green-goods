@@ -114,10 +114,7 @@ export function createTelegramNotifier(bot: Telegraf<BotContext>): Notifier {
 /**
  * Create and configure the Telegram bot
  */
-export function createTelegramBot(
-  token: string,
-  orchestrator: Orchestrator
-): Telegraf<BotContext> {
+export function createTelegramBot(token: string, orchestrator: Orchestrator): Telegraf<BotContext> {
   const bot = new Telegraf<BotContext>(token);
 
   // Session middleware
@@ -198,4 +195,3 @@ export function createTelegramBot(
 
   return bot;
 }
-

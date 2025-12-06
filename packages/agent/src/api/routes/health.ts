@@ -14,10 +14,7 @@ export interface HealthDeps {
 /**
  * Register health check routes
  */
-export async function healthRoutes(
-  app: FastifyInstance,
-  deps: HealthDeps
-): Promise<void> {
+export async function healthRoutes(app: FastifyInstance, deps: HealthDeps): Promise<void> {
   /**
    * Basic health check - always returns 200 if server is running
    */
@@ -87,4 +84,3 @@ export async function healthRoutes(
     };
   });
 }
-

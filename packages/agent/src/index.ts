@@ -17,7 +17,7 @@ import path from "path";
 dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 
 import { getConfig } from "./config";
-import { Orchestrator } from "./core/orchestrator";
+import { Orchestrator, type OrchestratorDeps } from "./core/orchestrator";
 import { SQLiteStorage } from "./adapters/storage/sqlite";
 import { WhisperAI } from "./adapters/ai/whisper";
 import { ViemBlockchain } from "./adapters/blockchain/viem";
@@ -27,12 +27,34 @@ import {
   createTelegramNotifier,
 } from "./adapters/telegram";
 import { createServer, startServer } from "./api/server";
-import { rateLimiter } from "./services/rate-limiter";
-import {
-  generateSecurePrivateKey,
-  generateSecureId,
-  isValidAddress,
-} from "./services/crypto";
+import { rateLimiter, type RateLimitType } from "./services/rate-limiter";
+import { generateSecurePrivateKey, generateSecureId, isValidAddress } from "./services/crypto";
+
+// ============================================================================
+// FACTORIES
+// ============================================================================
+
+/**
+ * Creates a rate limiter adapter for the orchestrator
+ */
+function createRateLimiterAdapter() {
+  return {
+    check: (platformId: string, type: string) =>
+      rateLimiter.check(platformId, type as RateLimitType),
+    peek: (platformId: string, type: string) => rateLimiter.peek(platformId, type as RateLimitType),
+  };
+}
+
+/**
+ * Creates a crypto service adapter for the orchestrator
+ */
+function createCryptoAdapter() {
+  return {
+    generateSecurePrivateKey,
+    generateSecureId,
+    isValidAddress,
+  };
+}
 
 // ============================================================================
 // INITIALIZATION
@@ -53,47 +75,30 @@ async function main(): Promise<void> {
   const ai = new WhisperAI();
   const blockchain = new ViemBlockchain(config.chain);
 
-  // Create orchestrator
-  const orchestrator = new Orchestrator({
+  // Create shared adapter instances
+  const rateLimiterAdapter = createRateLimiterAdapter();
+  const cryptoAdapter = createCryptoAdapter();
+
+  // Create base orchestrator dependencies
+  const baseDeps: OrchestratorDeps = {
     storage,
     ai,
     blockchain,
-    rateLimiter: {
-      check: (platformId, type) =>
-        rateLimiter.check(platformId, type as keyof typeof import("./services/rate-limiter").RATE_LIMITS),
-      peek: (platformId, type) =>
-        rateLimiter.peek(platformId, type as keyof typeof import("./services/rate-limiter").RATE_LIMITS),
-    },
-    crypto: {
-      generateSecurePrivateKey,
-      generateSecureId,
-      isValidAddress,
-    },
-  });
+    rateLimiter: rateLimiterAdapter,
+    crypto: cryptoAdapter,
+  };
 
-  // Create Telegram bot
+  // Create initial orchestrator for bot setup
+  const orchestrator = new Orchestrator(baseDeps);
+
+  // Create Telegram bot and platform-specific adapters
   const bot = createTelegramBot(config.telegramToken, orchestrator);
-
-  // Add voice processor and notifier to orchestrator
   const voiceProcessor = createTelegramVoiceProcessor(bot, ai);
   const notifier = createTelegramNotifier(bot);
 
-  // Re-create orchestrator with voice processor and notifier
+  // Create full orchestrator with all adapters
   const fullOrchestrator = new Orchestrator({
-    storage,
-    ai,
-    blockchain,
-    rateLimiter: {
-      check: (platformId, type) =>
-        rateLimiter.check(platformId, type as keyof typeof import("./services/rate-limiter").RATE_LIMITS),
-      peek: (platformId, type) =>
-        rateLimiter.peek(platformId, type as keyof typeof import("./services/rate-limiter").RATE_LIMITS),
-    },
-    crypto: {
-      generateSecurePrivateKey,
-      generateSecureId,
-      isValidAddress,
-    },
+    ...baseDeps,
     voiceProcessor,
     notifier,
   });

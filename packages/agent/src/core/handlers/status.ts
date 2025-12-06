@@ -9,10 +9,7 @@ import { formatAddress } from "./utils";
 
 export interface StatusDeps {
   storage: StoragePort;
-  getRateLimitStats: (
-    platformId: string,
-    type: string
-  ) => { remaining: number; limit: number };
+  getRateLimitStats: (platformId: string, type: string) => { remaining: number; limit: number };
 }
 
 /**
@@ -42,4 +39,3 @@ export async function handleStatus(
     },
   };
 }
-

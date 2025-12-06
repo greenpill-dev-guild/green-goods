@@ -5,11 +5,7 @@
  */
 
 import type { Context } from "telegraf";
-import type {
-  InboundMessage,
-  MessageContent,
-  Platform,
-} from "../../core/contracts/message";
+import type { InboundMessage, MessageContent, Platform } from "../../core/contracts/message";
 import type { OutboundResponse } from "../../core/contracts/response";
 
 /**
@@ -158,4 +154,3 @@ export function outboundToTelegram(response: OutboundResponse): {
     options,
   };
 }
-

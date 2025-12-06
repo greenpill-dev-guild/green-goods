@@ -15,10 +15,7 @@ export interface WebhookDeps {
 /**
  * Register webhook routes
  */
-export async function webhookRoutes(
-  app: FastifyInstance,
-  _deps: WebhookDeps
-): Promise<void> {
+export async function webhookRoutes(app: FastifyInstance, _deps: WebhookDeps): Promise<void> {
   /**
    * Telegram webhook verification (for setting up webhook)
    */
@@ -109,4 +106,3 @@ export async function webhookRoutes(
     });
   });
 }
-

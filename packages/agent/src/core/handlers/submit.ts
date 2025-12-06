@@ -11,10 +11,7 @@ export interface SubmitDeps {
   storage: StoragePort;
   ai: AIPort;
   generateId: () => string;
-  notifyOperator?: (
-    operatorPlatformId: string,
-    message: string
-  ) => Promise<void>;
+  notifyOperator?: (operatorPlatformId: string, message: string) => Promise<void>;
 }
 
 /**
@@ -142,10 +139,7 @@ export async function handleConfirmSubmission(
     actionUID: 0, // Default action
     title: "Submission",
     plantSelection: workData.tasks.filter((t) => t.species).map((t) => t.species),
-    plantCount: workData.tasks.reduce(
-      (acc, t) => acc + (t.count || t.amount || 0),
-      0
-    ),
+    plantCount: workData.tasks.reduce((acc, t) => acc + (t.count || t.amount || 0), 0),
     feedback: workData.notes,
     media: [],
   };
@@ -211,4 +205,3 @@ export async function handleCancelSubmission(
     clearSession: true,
   };
 }
-

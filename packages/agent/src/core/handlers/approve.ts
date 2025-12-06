@@ -11,11 +11,7 @@ import type { BlockchainPort } from "../../ports/blockchain";
 export interface ApproveDeps {
   storage: StoragePort;
   blockchain: BlockchainPort;
-  notifyGardener?: (
-    platform: string,
-    platformId: string,
-    message: string
-  ) => Promise<void>;
+  notifyGardener?: (platform: string, platformId: string, message: string) => Promise<void>;
 }
 
 /**
@@ -36,8 +32,7 @@ export async function handleApprove(
   if (!workId) {
     return {
       response: {
-        text:
-          "📍 *Usage:* `/approve <WorkID>`\n\nExample: `/approve abc123`",
+        text: "📍 *Usage:* `/approve <WorkID>`\n\nExample: `/approve abc123`",
         parseMode: "markdown",
       },
     };
@@ -99,9 +94,7 @@ export async function handleApprove(
       await notifyGardener(
         pendingWork.gardenerPlatform,
         pendingWork.gardenerPlatformId,
-        `🎉 *Your work has been approved!*\n\n` +
-          `ID: \`${workId}\`\n` +
-          `Tx: \`${tx}\``
+        `🎉 *Your work has been approved!*\n\n` + `ID: \`${workId}\`\n` + `Tx: \`${tx}\``
       );
     }
 
@@ -112,8 +105,7 @@ export async function handleApprove(
       },
     };
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("Approval error:", error);
 
     return {
@@ -123,4 +115,3 @@ export async function handleApprove(
     };
   }
 }
-

@@ -27,7 +27,10 @@ import type {
 // Garden contract ABI (minimal interface for verification)
 const GARDEN_ABI = [
   {
-    inputs: [{ name: "account", type: "address" }],
+    inputs: [
+      { name: "role", type: "bytes32" },
+      { name: "account", type: "address" },
+    ],
     name: "hasRole",
     outputs: [{ name: "", type: "bool" }],
     stateMutability: "view",
@@ -130,10 +133,7 @@ export class ViemBlockchain implements BlockchainPort {
   // VERIFICATION
   // ============================================================================
 
-  async isOperator(
-    gardenAddress: string,
-    userAddress: string
-  ): Promise<VerificationResult> {
+  async isOperator(gardenAddress: string, userAddress: string): Promise<VerificationResult> {
     const cacheKey = `${gardenAddress}:${userAddress}:operator`;
 
     // Check cache
@@ -153,7 +153,9 @@ export class ViemBlockchain implements BlockchainPort {
         client: this.publicClient,
       });
 
-      const hasRole = await contract.read.hasRole([userAddress as Address]);
+      // Get the operator role bytes32 and check if user has it
+      const operatorRole = await contract.read.OPERATOR_ROLE();
+      const hasRole = await contract.read.hasRole([operatorRole, userAddress as Address]);
 
       // Cache result
       this.operatorCache.set(cacheKey, {
@@ -183,10 +185,7 @@ export class ViemBlockchain implements BlockchainPort {
     }
   }
 
-  async isGardener(
-    gardenAddress: string,
-    userAddress: string
-  ): Promise<VerificationResult> {
+  async isGardener(gardenAddress: string, userAddress: string): Promise<VerificationResult> {
     const cacheKey = `${gardenAddress}:${userAddress}:gardener`;
 
     // Check cache
@@ -206,7 +205,9 @@ export class ViemBlockchain implements BlockchainPort {
         client: this.publicClient,
       });
 
-      const hasRole = await contract.read.hasRole([userAddress as Address]);
+      // Get the gardener role bytes32 and check if user has it
+      const gardenerRole = await contract.read.GARDENER_ROLE();
+      const hasRole = await contract.read.hasRole([gardenerRole, userAddress as Address]);
 
       // Cache result
       this.gardenerCache.set(cacheKey, {
@@ -287,4 +288,3 @@ export class ViemBlockchain implements BlockchainPort {
     this.gardenCache.clear();
   }
 }
-

@@ -91,10 +91,7 @@ export function emptyResponse(): OutboundResponse {
 /**
  * Create a simple text response
  */
-export function textResponse(
-  text: string,
-  parseMode?: "markdown" | "html"
-): OutboundResponse {
+export function textResponse(text: string, parseMode?: "markdown" | "html"): OutboundResponse {
   return { text, parseMode };
 }
 
@@ -108,4 +105,3 @@ export function buttonResponse(
 ): OutboundResponse {
   return { text, buttons, parseMode };
 }
-

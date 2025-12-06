@@ -103,9 +103,7 @@ export function validateConfig(config: Config): void {
 
   // Check encryption secret
   if (!config.encryptionSecret) {
-    warnings.push(
-      "ENCRYPTION_SECRET not set. Using derived key from TELEGRAM_BOT_TOKEN."
-    );
+    warnings.push("ENCRYPTION_SECRET not set. Using derived key from TELEGRAM_BOT_TOKEN.");
   } else if (config.encryptionSecret.length < 32) {
     warnings.push("ENCRYPTION_SECRET should be at least 32 characters.");
   }
@@ -113,9 +111,7 @@ export function validateConfig(config: Config): void {
   // Check webhook mode requirements
   if (config.mode === "webhook") {
     if (!config.telegramWebhookSecret) {
-      warnings.push(
-        "TELEGRAM_WEBHOOK_SECRET not set. Webhook requests won't be verified."
-      );
+      warnings.push("TELEGRAM_WEBHOOK_SECRET not set. Webhook requests won't be verified.");
     }
   }
 
@@ -138,4 +134,3 @@ export function getConfig(): Config {
   }
   return _config;
 }
-

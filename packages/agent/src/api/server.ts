@@ -37,10 +37,7 @@ export function createServer(deps: ServerDeps, config: ServerConfig): FastifyIns
 /**
  * Start the server
  */
-export async function startServer(
-  app: FastifyInstance,
-  config: ServerConfig
-): Promise<void> {
+export async function startServer(app: FastifyInstance, config: ServerConfig): Promise<void> {
   try {
     await app.listen({
       port: config.port,
@@ -138,4 +135,3 @@ function registerWebhookRoutes(app: FastifyInstance, _deps: ServerDeps): void {
     }
   });
 }
-

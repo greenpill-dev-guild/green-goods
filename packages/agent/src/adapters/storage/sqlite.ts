@@ -108,20 +108,16 @@ export class SQLiteStorage implements StoragePort {
 
   async getUser(platform: Platform, platformId: string): Promise<User | undefined> {
     const result = this.db
-      .query(
-        "SELECT * FROM users WHERE platform = ? AND platformId = ?"
-      )
-      .get(platform, platformId) as
-      | {
-          platform: string;
-          platformId: string;
-          privateKey: string;
-          address: string;
-          currentGarden: string | null;
-          role: string | null;
-          createdAt: number;
-        }
-      | null;
+      .query("SELECT * FROM users WHERE platform = ? AND platformId = ?")
+      .get(platform, platformId) as {
+      platform: string;
+      platformId: string;
+      privateKey: string;
+      address: string;
+      currentGarden: string | null;
+      role: string | null;
+      createdAt: number;
+    } | null;
 
     if (!result) return undefined;
 
@@ -151,9 +147,7 @@ export class SQLiteStorage implements StoragePort {
   ): Promise<void> {
     const encryptedKey = prepareKeyForStorage(plainKey);
     this.db
-      .query(
-        "UPDATE users SET privateKey = ? WHERE platform = ? AND platformId = ?"
-      )
+      .query("UPDATE users SET privateKey = ? WHERE platform = ? AND platformId = ?")
       .run(encryptedKey, platform, platformId);
     console.log(`Migrated key for user ${platform}:${platformId} to encrypted storage`);
   }
@@ -217,28 +211,22 @@ export class SQLiteStorage implements StoragePort {
     if (setClauses.length === 0) return;
 
     this.db
-      .query(
-        `UPDATE users SET ${setClauses.join(", ")} WHERE platform = ? AND platformId = ?`
-      )
+      .query(`UPDATE users SET ${setClauses.join(", ")} WHERE platform = ? AND platformId = ?`)
       .run(...values, platform, platformId);
   }
 
   async getOperatorForGarden(gardenAddress: string): Promise<User | undefined> {
     const result = this.db
-      .query(
-        "SELECT * FROM users WHERE role = 'operator' AND currentGarden = ? LIMIT 1"
-      )
-      .get(gardenAddress) as
-      | {
-          platform: string;
-          platformId: string;
-          privateKey: string;
-          address: string;
-          currentGarden: string | null;
-          role: string | null;
-          createdAt: number;
-        }
-      | null;
+      .query("SELECT * FROM users WHERE role = 'operator' AND currentGarden = ? LIMIT 1")
+      .get(gardenAddress) as {
+      platform: string;
+      platformId: string;
+      privateKey: string;
+      address: string;
+      currentGarden: string | null;
+      role: string | null;
+      createdAt: number;
+    } | null;
 
     if (!result) return undefined;
 
@@ -259,15 +247,16 @@ export class SQLiteStorage implements StoragePort {
   // SESSION MANAGEMENT
   // ============================================================================
 
-  async getSession(
-    platform: Platform,
-    platformId: string
-  ): Promise<Session | undefined> {
+  async getSession(platform: Platform, platformId: string): Promise<Session | undefined> {
     const row = this.db
       .query("SELECT * FROM sessions WHERE platform = ? AND platformId = ?")
-      .get(platform, platformId) as
-      | { platform: string; platformId: string; step: string; draft: string | null; updatedAt: number }
-      | null;
+      .get(platform, platformId) as {
+      platform: string;
+      platformId: string;
+      step: string;
+      draft: string | null;
+      updatedAt: number;
+    } | null;
 
     if (!row) return undefined;
 
@@ -334,20 +323,16 @@ export class SQLiteStorage implements StoragePort {
   }
 
   async getPendingWork(id: string): Promise<PendingWork | undefined> {
-    const row = this.db
-      .query("SELECT * FROM pending_works WHERE id = ?")
-      .get(id) as
-      | {
-          id: string;
-          actionUID: number;
-          gardenerAddress: string;
-          gardenerPlatform: string;
-          gardenerPlatformId: string;
-          gardenAddress: string;
-          data: string;
-          createdAt: number;
-        }
-      | null;
+    const row = this.db.query("SELECT * FROM pending_works WHERE id = ?").get(id) as {
+      id: string;
+      actionUID: number;
+      gardenerAddress: string;
+      gardenerPlatform: string;
+      gardenerPlatformId: string;
+      gardenAddress: string;
+      data: string;
+      createdAt: number;
+    } | null;
 
     if (!row) return undefined;
 
@@ -365,9 +350,7 @@ export class SQLiteStorage implements StoragePort {
 
   async getPendingWorksForGarden(gardenAddress: string): Promise<PendingWork[]> {
     const rows = this.db
-      .query(
-        "SELECT * FROM pending_works WHERE gardenAddress = ? ORDER BY createdAt DESC"
-      )
+      .query("SELECT * FROM pending_works WHERE gardenAddress = ? ORDER BY createdAt DESC")
       .all(gardenAddress) as Array<{
       id: string;
       actionUID: number;
@@ -403,4 +386,3 @@ export class SQLiteStorage implements StoragePort {
     this.db.close();
   }
 }
-
