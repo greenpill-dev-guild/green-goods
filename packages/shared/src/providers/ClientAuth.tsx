@@ -28,7 +28,6 @@ import { queryClient } from "../config/react-query";
 import { type PasskeySession } from "../modules/auth/passkey";
 import {
   type AuthMode,
-  clearAllAuth,
   clearAuthMode,
   getAuthMode,
   setAuthMode as saveAuthMode,
@@ -83,12 +82,12 @@ export function useOptionalClientAuth(): ClientAuthContextType | undefined {
 }
 
 // Re-export for backwards compatibility
-export { AUTH_MODE_STORAGE_KEY } from "../modules/auth/session";
+export { AUTH_MODE_STORAGE_KEY, type AuthMode } from "../modules/auth/session";
 
 function ClientAuthProviderInner({ children }: { children: React.ReactNode }) {
   const wagmiConfig = useConfig();
   const passkeyAuth = usePasskeyAuth();
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, isConnecting } = useAccount();
 
   const [authMode, setAuthMode] = useState<AuthMode>(null);
   const [isReady, setIsReady] = useState(false);
@@ -126,17 +125,20 @@ function ClientAuthProviderInner({ children }: { children: React.ReactNode }) {
   }, []); // Run exactly once on mount
 
   // ============================================================
-  // SYNC: Handle wallet disconnection
+  // SYNC: Handle wallet state changes
   // ============================================================
+  // Handles both runtime disconnect and stale state on page reload.
+  // When wallet connects, useAccount() updates isConnected/address,
+  // which triggers isAuthenticated to recompute automatically.
   useEffect(() => {
     if (!isReady) return;
 
-    // Wallet disconnected while in wallet mode
-    if (!isConnected && authMode === "wallet") {
+    // Wallet disconnected or was never connected while in wallet mode
+    if (!isConnected && !isConnecting && authMode === "wallet") {
       setAuthMode(null);
       clearAuthMode();
     }
-  }, [isConnected, authMode, isReady]);
+  }, [isConnected, isConnecting, authMode, isReady]);
 
   // ============================================================
   // SYNC: Handle passkey authentication changes
@@ -223,6 +225,9 @@ function ClientAuthProviderInner({ children }: { children: React.ReactNode }) {
     return false;
   }, [authMode, passkeyAuth.isAuthenticated, isConnected, address]);
 
+  // Include wallet connecting state in isAuthenticating for better UX
+  const isAuthenticating = passkeyAuth.isAuthenticating || (authMode === "wallet" && isConnecting);
+
   const walletAddress = authMode === "wallet" && isConnected ? (address as Hex) : null;
   const eoaAddress = walletAddress ?? undefined;
 
@@ -235,7 +240,7 @@ function ClientAuthProviderInner({ children }: { children: React.ReactNode }) {
       authMode,
       isReady: isReady && passkeyAuth.isReady,
       isAuthenticated,
-      isAuthenticating: passkeyAuth.isAuthenticating,
+      isAuthenticating,
 
       // Addresses
       eoaAddress,
@@ -266,6 +271,7 @@ function ClientAuthProviderInner({ children }: { children: React.ReactNode }) {
       authMode,
       isReady,
       isAuthenticated,
+      isAuthenticating,
       passkeyAuth,
       eoaAddress,
       walletAddress,

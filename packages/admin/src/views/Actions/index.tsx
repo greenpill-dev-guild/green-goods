@@ -25,11 +25,13 @@ export default function Actions() {
           {[...Array(6)].map((_, i) => (
             <div
               key={i}
-              className="animate-pulse rounded-lg border border-stroke-soft bg-bg-white p-6"
+              className="animate-pulse overflow-hidden rounded-lg border border-stroke-soft bg-bg-white"
             >
-              <div className="h-40 bg-bg-soft rounded mb-4" />
-              <div className="h-6 bg-bg-soft rounded mb-2" />
-              <div className="h-4 bg-bg-soft rounded w-3/4" />
+              <div className="h-40 bg-bg-soft" />
+              <div className="p-6">
+                <div className="h-6 bg-bg-soft rounded mb-2" />
+                <div className="h-4 bg-bg-soft rounded w-3/4" />
+              </div>
             </div>
           ))}
         </div>
@@ -50,35 +52,33 @@ export default function Actions() {
           <Link
             key={action.id}
             to={`/actions/${action.id}`}
-            className="group rounded-lg border border-stroke-soft bg-bg-white p-6 transition hover:border-green-500 hover:shadow-md"
+            className="group overflow-hidden rounded-lg border border-stroke-soft bg-bg-white transition hover:border-green-500 hover:shadow-md"
           >
             {action.media[0] && (
-              <img
-                src={action.media[0]}
-                alt={action.title}
-                className="w-full h-40 object-cover rounded mb-4"
-              />
+              <img src={action.media[0]} alt={action.title} className="w-full h-40 object-cover" />
             )}
 
-            <h3 className="text-xl font-semibold text-text-strong mb-2 group-hover:text-green-600">
-              {action.title}
-            </h3>
+            <div className="p-6">
+              <h3 className="text-xl font-semibold text-text-strong mb-2 group-hover:text-green-600">
+                {action.title}
+              </h3>
 
-            <p className="text-sm text-text-sub mb-4 line-clamp-2">
-              {action.description || "No description"}
-            </p>
+              <p className="text-sm text-text-sub mb-4 line-clamp-2">
+                {action.description || "No description"}
+              </p>
 
-            <div className="flex items-center justify-between text-xs text-text-soft">
-              <div className="flex items-center gap-1">
-                <RiCalendarLine className="h-4 w-4" />
-                <span>
-                  {new Date(action.startTime).toLocaleDateString()} -{" "}
-                  {new Date(action.endTime).toLocaleDateString()}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <RiEyeLine className="h-4 w-4" />
-                <RiEditLine className="h-4 w-4" />
+              <div className="flex items-center justify-between text-xs text-text-soft">
+                <div className="flex items-center gap-1">
+                  <RiCalendarLine className="h-4 w-4" />
+                  <span>
+                    {new Date(action.startTime).toLocaleDateString()} -{" "}
+                    {new Date(action.endTime).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RiEyeLine className="h-4 w-4" />
+                  <RiEditLine className="h-4 w-4" />
+                </div>
               </div>
             </div>
           </Link>

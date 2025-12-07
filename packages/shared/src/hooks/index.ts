@@ -3,6 +3,7 @@
 // ============================================================================
 // ACTION
 // ============================================================================
+export type { ActionOperationResult } from "./action/useActionOperations";
 export { useActionOperations } from "./action/useActionOperations";
 
 // ============================================================================
@@ -49,7 +50,11 @@ export { useEnsName } from "./blockchain/useEnsName";
 // ============================================================================
 // GARDEN
 // ============================================================================
-export type { GardenOperationConfig } from "./garden/createGardenOperation";
+export type {
+  GardenOperationConfig,
+  GardenOperationResult,
+  OptimisticUpdateCallback,
+} from "./garden/createGardenOperation";
 export { createGardenOperation, GARDEN_OPERATIONS } from "./garden/createGardenOperation";
 export { checkMembership, useAutoJoinRootGarden } from "./garden/useAutoJoinRootGarden";
 export { useCreateGardenWorkflow } from "./garden/useCreateGardenWorkflow";

@@ -2,11 +2,14 @@
  * Garden Operation Factory
  *
  * Creates standardized garden contract operations with consistent
- * error handling, loading state, and toast notifications.
+ * error handling, loading state, toast notifications, transaction simulation,
+ * and optimistic update support.
  */
 
-import type { WalletClient } from "viem";
+import type { Abi, WalletClient } from "viem";
+import { toastService } from "../../components/toast";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
+import { simulateTransaction } from "../../utils/contract/simulation";
 import type { ToastActionOptions } from "../app/useToastAction";
 
 /**
@@ -21,6 +24,10 @@ export interface GardenOperationConfig {
     success: string;
     error: string;
   };
+  /** Type of member being modified (for optimistic updates) */
+  memberType: "gardener" | "operator";
+  /** Whether this is an add or remove operation */
+  operationType: "add" | "remove";
 }
 
 /**
@@ -34,6 +41,8 @@ export const GARDEN_OPERATIONS: Record<string, GardenOperationConfig> = {
       success: "Gardener added successfully",
       error: "Failed to add gardener",
     },
+    memberType: "gardener",
+    operationType: "add",
   },
   removeGardener: {
     functionName: "removeGardener",
@@ -42,6 +51,8 @@ export const GARDEN_OPERATIONS: Record<string, GardenOperationConfig> = {
       success: "Gardener removed successfully",
       error: "Failed to remove gardener",
     },
+    memberType: "gardener",
+    operationType: "remove",
   },
   addOperator: {
     functionName: "addGardenOperator",
@@ -50,6 +61,8 @@ export const GARDEN_OPERATIONS: Record<string, GardenOperationConfig> = {
       success: "Operator added successfully",
       error: "Failed to add operator",
     },
+    memberType: "operator",
+    operationType: "add",
   },
   removeOperator: {
     functionName: "removeGardenOperator",
@@ -58,6 +71,8 @@ export const GARDEN_OPERATIONS: Record<string, GardenOperationConfig> = {
       success: "Operator removed successfully",
       error: "Failed to remove operator",
     },
+    memberType: "operator",
+    operationType: "remove",
   },
 };
 
@@ -67,8 +82,40 @@ export const GARDEN_OPERATIONS: Record<string, GardenOperationConfig> = {
 type ExecuteWithToast = <T>(action: () => Promise<T>, options: ToastActionOptions) => Promise<T>;
 
 /**
+ * Result of a garden operation including optimistic update info
+ */
+export interface GardenOperationResult {
+  /** Transaction hash if successful */
+  hash?: `0x${string}`;
+  /** Whether the operation was successful */
+  success: boolean;
+  /** Optimistic update data */
+  optimisticUpdate?: {
+    memberType: "gardener" | "operator";
+    operationType: "add" | "remove";
+    targetAddress: string;
+  };
+  /** Error if operation failed */
+  error?: {
+    name: string;
+    message: string;
+    action?: string;
+  };
+}
+
+/**
+ * Callback for applying optimistic updates
+ */
+export type OptimisticUpdateCallback = (update: {
+  memberType: "gardener" | "operator";
+  operationType: "add" | "remove";
+  targetAddress: string;
+}) => void;
+
+/**
  * Creates a garden operation function that handles contract calls
- * with consistent error handling and toast notifications.
+ * with transaction simulation, optimistic updates, consistent error handling,
+ * and toast notifications.
  *
  * @param gardenId - The garden contract address
  * @param config - Operation configuration (function name and messages)
@@ -76,7 +123,8 @@ type ExecuteWithToast = <T>(action: () => Promise<T>, options: ToastActionOption
  * @param address - The user's wallet address
  * @param executeWithToast - Toast action executor from useToastAction
  * @param setIsLoading - Loading state setter
- * @returns An async function that executes the operation
+ * @param onOptimisticUpdate - Optional callback for optimistic updates
+ * @returns An async function that executes the operation with simulation
  */
 export function createGardenOperation(
   gardenId: string,
@@ -84,19 +132,62 @@ export function createGardenOperation(
   walletClient: WalletClient,
   address: `0x${string}`,
   executeWithToast: ExecuteWithToast,
-  setIsLoading: (loading: boolean) => void
-): (targetAddress: string) => Promise<`0x${string}` | undefined> {
-  return async (targetAddress: string) => {
+  setIsLoading: (loading: boolean) => void,
+  onOptimisticUpdate?: OptimisticUpdateCallback
+): (targetAddress: string) => Promise<GardenOperationResult> {
+  return async (targetAddress: string): Promise<GardenOperationResult> => {
     if (!walletClient || !address) {
-      throw new Error("Wallet not connected");
+      return {
+        success: false,
+        error: {
+          name: "WalletNotConnected",
+          message: "Please connect your wallet to continue",
+        },
+      };
     }
 
     setIsLoading(true);
 
     try {
-      const result = await executeWithToast(
+      // Step 1: Simulate the transaction using shared utility
+      const simulation = await simulateTransaction(
+        gardenId as `0x${string}`,
+        GardenAccountABI as Abi,
+        config.functionName,
+        [targetAddress],
+        address
+      );
+
+      if (!simulation.success) {
+        // Show error toast for simulation failure
+        toastService.error({
+          title: simulation.error?.name ?? "Transaction Failed",
+          message: simulation.error?.message ?? "Transaction simulation failed",
+          context: "garden operation",
+        });
+
+        setIsLoading(false);
+        return {
+          success: false,
+          error: simulation.error,
+        };
+      }
+
+      // Step 2: Apply optimistic update before transaction
+      const optimisticUpdate = {
+        memberType: config.memberType,
+        operationType: config.operationType,
+        targetAddress,
+      };
+
+      if (onOptimisticUpdate) {
+        onOptimisticUpdate(optimisticUpdate);
+      }
+
+      // Step 3: Execute the actual transaction
+      const hash = await executeWithToast(
         async () => {
-          const hash = await walletClient.writeContract({
+          return await walletClient.writeContract({
             address: gardenId as `0x${string}`,
             abi: GardenAccountABI,
             functionName: config.functionName,
@@ -104,8 +195,6 @@ export function createGardenOperation(
             args: [targetAddress],
             chain: walletClient.chain,
           });
-
-          return hash;
         },
         {
           loadingMessage: config.messages.loading,
@@ -114,7 +203,23 @@ export function createGardenOperation(
         }
       );
 
-      return result;
+      return {
+        hash,
+        success: true,
+        optimisticUpdate,
+      };
+    } catch (error) {
+      // Parse and return the error - optimistic update will be rolled back by caller
+      const { parseContractError } = await import("../../utils/errors/contract-errors");
+      const parsed = parseContractError(error);
+      return {
+        success: false,
+        error: {
+          name: parsed.name,
+          message: parsed.message,
+          action: parsed.action,
+        },
+      };
     } finally {
       setIsLoading(false);
     }
