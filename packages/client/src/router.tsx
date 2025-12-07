@@ -1,7 +1,11 @@
 import { HydrationFallback } from "@green-goods/shared";
-import { createBrowserRouter, redirect } from "react-router-dom";
+import { createBrowserRouter, createHashRouter, redirect } from "react-router-dom";
 
-export const router = createBrowserRouter([
+// Use hash router for IPFS builds to ensure proper SPA routing on IPFS gateways
+const createRouter =
+  import.meta.env.VITE_USE_HASH_ROUTER === "true" ? createHashRouter : createBrowserRouter;
+
+export const router = createRouter([
   {
     id: "root",
     lazy: async () => ({ Component: (await import("@/routes/Root")).default }),

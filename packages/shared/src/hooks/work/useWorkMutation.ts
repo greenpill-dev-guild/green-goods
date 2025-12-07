@@ -137,24 +137,25 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       }
 
       if (navigator.onLine && smartAccountClient) {
-        try {
-          const result = await jobQueue.processJob(jobId, { smartAccountClient });
-          if (DEBUG_ENABLED) {
-            debugLog("[WorkMutation] Inline processing attempt finished", {
-              jobId,
-              clientWorkId,
-              success: result.success,
-              skipped: result.skipped,
-              error: result.error,
-            });
-          }
-          if (result.success && result.txHash) {
-            return result.txHash as `0x${string}`;
-          }
-        } catch (error) {
-          if (DEBUG_ENABLED) {
-            debugWarn("[WorkMutation] Inline processing threw", { jobId, error });
-          }
+        const result = await jobQueue.processJob(jobId, { smartAccountClient });
+
+        if (DEBUG_ENABLED) {
+          debugLog("[WorkMutation] Inline processing attempt finished", {
+            jobId,
+            clientWorkId,
+            success: result.success,
+            skipped: result.skipped,
+            error: result.error,
+          });
+        }
+
+        // If processing failed with an actual error (not just skipped), surface it
+        if (!result.success && result.error && !result.skipped) {
+          throw new Error(result.error);
+        }
+
+        if (result.success && result.txHash) {
+          return result.txHash as `0x${string}`;
         }
       }
 

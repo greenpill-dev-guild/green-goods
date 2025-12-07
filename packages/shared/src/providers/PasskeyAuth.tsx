@@ -2,10 +2,18 @@
  * Passkey Auth Provider
  *
  * Manages passkey (WebAuthn) authentication and smart account state.
- * Does NOT handle wallet connections - use ClientAuthProvider for that.
+ * Automatically restores session on mount if credentials exist.
  */
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { type Hex } from "viem";
 import { type P256Credential } from "viem/account-abstraction";
 import { DEFAULT_CHAIN_ID } from "../config/blockchain";
@@ -16,33 +24,24 @@ import {
   registerPasskeySession,
   restorePasskeySession,
 } from "../modules/auth/passkey";
-import {
-  clearPasskeySignedOut,
-  hasStoredPasskeyCredential,
-  isFreshAppStart,
-  markSessionActive,
-  PASSKEY_STORAGE_KEY,
-  setPasskeySignedOut,
-  wasPasskeySignedOut,
-} from "../modules/auth/session";
+import { clearStoredPasskey, hasStoredPasskey, PASSKEY_STORAGE_KEY } from "../modules/auth/session";
 
 interface PasskeyAuthContextType {
-  // Unified auth interface properties
+  // State
   authMode: "passkey" | null;
-  eoaAddress?: Hex | undefined;
-  /** Wallet address (alias for compatibility - same as eoaAddress) */
-  walletAddress?: Hex | undefined;
+  isReady: boolean;
+  isAuthenticated: boolean;
+  isAuthenticating: boolean;
+  error: Error | null;
 
-  // Passkey state
+  // Passkey data
   credential: P256Credential | null;
   smartAccountAddress: Hex | null;
   smartAccountClient: PasskeySession["client"] | null;
 
-  // Status flags
-  isAuthenticating: boolean;
-  isReady: boolean;
-  isAuthenticated: boolean;
-  error: Error | null;
+  // Legacy aliases
+  eoaAddress?: Hex | undefined;
+  walletAddress?: Hex | undefined;
 
   // Actions
   createPasskey: () => Promise<PasskeySession>;
@@ -80,112 +79,74 @@ export function PasskeyAuthProvider({
 }: PasskeyAuthProviderProps) {
   const [session, setSession] = useState<PasskeySession | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const initRef = useRef(false);
 
   const credential = session?.credential ?? null;
   const smartAccountAddress = session?.address ?? null;
   const smartAccountClient = session?.client ?? null;
+  const isAuthenticated = Boolean(credential && smartAccountAddress && smartAccountClient);
 
-  // Restore passkey session on mount
+  // ============================================================
+  // INITIALIZE: Restore session on mount
+  // ============================================================
   useEffect(() => {
-    let cancelled = false;
+    if (initRef.current) return;
+    initRef.current = true;
 
-    const initialize = async () => {
-      // Check for fresh app start (reinstall detection)
-      // If detected, don't auto-restore - require user to re-authenticate
-      if (isFreshAppStart()) {
-        markSessionActive();
-        if (hasStoredPasskeyCredential()) {
-          console.log("[Auth] Detected fresh app start - requiring re-authentication");
-        }
-        if (!cancelled) {
-          setIsInitialized(true);
-        }
-        return;
-      }
-
-      // Mark session as active for subsequent checks
-      markSessionActive();
-
-      if (hasStoredPasskeyCredential() && !wasPasskeySignedOut()) {
+    const restore = async () => {
+      if (hasStoredPasskey()) {
         setIsAuthenticating(true);
         try {
           const restored = await restorePasskeySession(chainId);
-          if (!cancelled && restored) {
+          if (restored) {
             setSession(restored);
           }
         } catch (err) {
-          if (!cancelled) {
-            console.error("Failed to restore passkey session", err);
-            setError(err instanceof Error ? err : new Error("Failed to restore passkey"));
-            clearStoredCredential();
-          }
+          console.error("[PasskeyAuth] Failed to restore session:", err);
+          setError(err instanceof Error ? err : new Error("Failed to restore passkey"));
+          // Clear invalid credential
+          clearStoredCredential();
         } finally {
-          if (!cancelled) {
-            setIsAuthenticating(false);
-          }
+          setIsAuthenticating(false);
         }
       }
-
-      if (!cancelled) {
-        setIsInitialized(true);
-      }
+      setIsReady(true);
     };
 
-    void initialize();
-
-    return () => {
-      cancelled = true;
-    };
+    void restore();
   }, [chainId]);
 
-  const resumePasskey = useCallback(async () => {
-    setIsAuthenticating(true);
-    setError(null);
-
-    try {
-      const sessionToUse = await authenticatePasskey(chainId);
-      setSession(sessionToUse);
-      clearPasskeySignedOut();
-      return sessionToUse;
-    } catch (err) {
-      console.error("Passkey authentication failed", err);
-      const error =
-        err instanceof Error ? err : new Error("Failed to authenticate passkey. Please try again.");
-      setError(error);
-      throw error;
-    } finally {
-      setIsAuthenticating(false);
-    }
-  }, [chainId]);
-
+  // ============================================================
+  // CREATE: Register new passkey or authenticate existing
+  // ============================================================
   const createPasskey = useCallback(async () => {
     setIsAuthenticating(true);
     setError(null);
 
     try {
-      let sessionToUse: PasskeySession | null = null;
+      let newSession: PasskeySession | null = null;
 
-      if (hasStoredPasskeyCredential()) {
+      // Try to authenticate with existing credential first
+      if (hasStoredPasskey()) {
         try {
-          sessionToUse = await authenticatePasskey(chainId);
+          newSession = await authenticatePasskey(chainId);
         } catch (resumeError) {
-          console.warn("Failed to authenticate existing passkey, creating a new one", resumeError);
+          console.warn("[PasskeyAuth] Existing credential failed, creating new:", resumeError);
         }
       }
 
-      if (!sessionToUse) {
-        sessionToUse = await registerPasskeySession(chainId);
+      // Create new passkey if no existing or authentication failed
+      if (!newSession) {
+        newSession = await registerPasskeySession(chainId);
       }
 
-      setSession(sessionToUse);
-      clearPasskeySignedOut();
-      return sessionToUse;
+      setSession(newSession);
+      return newSession;
     } catch (err) {
-      console.error("Passkey creation failed", err);
-      const error =
-        err instanceof Error ? err : new Error("Failed to create passkey. Please try again.");
+      console.error("[PasskeyAuth] Create failed:", err);
+      const error = err instanceof Error ? err : new Error("Failed to create passkey");
       setError(error);
       throw error;
     } finally {
@@ -193,59 +154,91 @@ export function PasskeyAuthProvider({
     }
   }, [chainId]);
 
+  // ============================================================
+  // RESUME: Authenticate with existing passkey
+  // ============================================================
+  const resumePasskey = useCallback(async () => {
+    setIsAuthenticating(true);
+    setError(null);
+
+    try {
+      const resumed = await authenticatePasskey(chainId);
+      setSession(resumed);
+      return resumed;
+    } catch (err) {
+      console.error("[PasskeyAuth] Resume failed:", err);
+      const error = err instanceof Error ? err : new Error("Failed to authenticate passkey");
+      setError(error);
+      throw error;
+    } finally {
+      setIsAuthenticating(false);
+    }
+  }, [chainId]);
+
+  // ============================================================
+  // SIGN OUT: Clear session
+  // ============================================================
   const signOut = useCallback(() => {
     setSession(null);
-    setIsAuthenticating(false);
     setError(null);
-    setPasskeySignedOut();
   }, []);
 
-  const clearPasskeyHandler = useCallback(() => {
+  // ============================================================
+  // CLEAR: Remove stored credential and sign out
+  // ============================================================
+  const clearPasskey = useCallback(() => {
     clearStoredCredential();
-    clearPasskeySignedOut();
+    clearStoredPasskey();
     signOut();
   }, [signOut]);
 
+  // ============================================================
+  // SET SESSION: Manual session update
+  // ============================================================
   const setPasskeySession = useCallback((newSession: PasskeySession) => {
     setSession(newSession);
-    clearPasskeySignedOut();
+    setError(null);
   }, []);
 
-  const isReady = isInitialized;
-  const isAuthenticated = Boolean(credential && smartAccountAddress && smartAccountClient);
-
+  // ============================================================
+  // CONTEXT VALUE
+  // ============================================================
   const contextValue: PasskeyAuthContextType = useMemo(
     () => ({
-      // Unified auth interface
+      // State
       authMode: isAuthenticated ? "passkey" : null,
-      eoaAddress: undefined,
-      walletAddress: undefined,
+      isReady,
+      isAuthenticated,
+      isAuthenticating,
+      error,
 
-      // Passkey state
+      // Passkey data
       credential,
       smartAccountAddress,
       smartAccountClient,
-      isAuthenticating,
-      isReady,
-      isAuthenticated,
-      error,
+
+      // Legacy aliases
+      eoaAddress: undefined,
+      walletAddress: undefined,
+
+      // Actions
       createPasskey,
       resumePasskey,
-      clearPasskey: clearPasskeyHandler,
+      clearPasskey,
       setPasskeySession,
       signOut,
     }),
     [
+      isReady,
+      isAuthenticated,
+      isAuthenticating,
+      error,
       credential,
       smartAccountAddress,
       smartAccountClient,
-      isAuthenticating,
-      isReady,
-      isAuthenticated,
-      error,
       createPasskey,
       resumePasskey,
-      clearPasskeyHandler,
+      clearPasskey,
       setPasskeySession,
       signOut,
     ]

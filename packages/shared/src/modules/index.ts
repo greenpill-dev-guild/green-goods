@@ -36,24 +36,38 @@ export {
 // AUTH / SESSION
 // ============================================================================
 export {
+  // Storage keys
   AUTH_MODE_STORAGE_KEY,
-  checkAndHandleFreshStart,
-  clearAllAuthStorage,
+  // Auth mode
+  type AuthMode,
+  getAuthMode,
+  setAuthMode,
   clearAuthMode,
-  clearPasskeySignedOut,
-  clearSignedOut,
-  getSavedAuthMode,
-  hasStoredPasskeyCredential,
-  isFreshAppStart,
-  markSessionActive,
+  // Passkey
+  hasStoredPasskey,
+  clearStoredPasskey,
+  // Sign out
+  clearAllAuth,
+  // Legacy exports (deprecated but kept for backward compatibility)
   PASSKEY_SIGNED_OUT_KEY,
   SESSION_MARKER_KEY,
   SIGNED_OUT_KEY,
+  getSavedAuthMode,
   saveAuthMode,
+  hasStoredPasskeyCredential,
+  clearAllAuthStorage,
+  wasPasskeySignedOut,
   setPasskeySignedOut,
+  clearPasskeySignedOut,
+  isFreshAppStart,
+  setWalletConnectIntent,
+  consumeWalletConnectIntent,
+  clearWalletConnectIntent,
+  clearSignedOut,
   setSignedOut,
   wasExplicitlySignedOut,
-  wasPasskeySignedOut,
+  markSessionActive,
+  checkAndHandleFreshStart,
 } from "./auth/session";
 
 // ============================================================================

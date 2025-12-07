@@ -1,7 +1,6 @@
 import { toastService } from "@green-goods/shared";
-import { appKit } from "@green-goods/shared/config/appkit";
 import { checkMembership, useAutoJoinRootGarden } from "@green-goods/shared/hooks";
-import { PASSKEY_STORAGE_KEY, type PasskeySession } from "@green-goods/shared/modules";
+import { hasStoredPasskey, type PasskeySession } from "@green-goods/shared/modules";
 import { useClientAuth } from "@green-goods/shared/providers";
 import { useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
@@ -9,8 +8,14 @@ import { type LoadingState, Splash } from "@/components/Layout";
 
 export function Login() {
   const location = useLocation();
-  const { signInWithPasskey, isAuthenticating, isAuthenticated, setPasskeySession } =
-    useClientAuth();
+  const {
+    loginWithPasskey,
+    loginWithWallet,
+    isAuthenticating,
+    isAuthenticated,
+    isReady,
+    setPasskeySession,
+  } = useClientAuth();
 
   const [loadingState, setLoadingState] = useState<LoadingState | null>(null);
   const [loadingMessage, setLoadingMessage] = useState<string | undefined>(undefined);
@@ -31,23 +36,16 @@ export function Login() {
     ? "/home"
     : new URLSearchParams(location.search).get("redirectTo") || "/home";
 
-  // Get auth ready state to prevent flash during restoration
-  const { isReady } = useClientAuth();
-
-  // Note: Wallet connection is automatically synced by PasskeyAuthProvider's watchAccount effect
-  // No manual sync needed here
-  const handleCreatePasskey = async () => {
-    // Clear any previous errors
+  const handlePasskeyLogin = async () => {
     setLoginError(null);
     setLoadingMessage("Preparing your wallet…");
     try {
       setLoadingState("welcome");
 
-      // Check if user has existing passkey credential
-      const hasExistingCredential = !!localStorage.getItem(PASSKEY_STORAGE_KEY);
-
+      const hasExistingCredential = hasStoredPasskey();
       setLoadingMessage(hasExistingCredential ? "Authenticating..." : undefined);
-      const session: PasskeySession = await signInWithPasskey();
+
+      const session: PasskeySession = await loginWithPasskey();
       setPasskeySession(session);
 
       // Check membership BEFORE showing any toast
@@ -140,7 +138,7 @@ export function Login() {
   };
 
   const handleWalletLogin = () => {
-    appKit.open();
+    loginWithWallet();
   };
 
   // If on a nested route (like /login/recover), render the child route
@@ -170,7 +168,7 @@ export function Login() {
   // Main splash screen with login button
   return (
     <Splash
-      login={handleCreatePasskey}
+      login={handlePasskeyLogin}
       isLoggingIn={isAuthenticating || isJoiningGarden}
       buttonLabel="Login"
       errorMessage={errorMessage}

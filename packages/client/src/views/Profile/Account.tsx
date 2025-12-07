@@ -90,13 +90,18 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
     return gardens
       .filter((garden) => {
         const isOpen = openGardensMap.get(garden.id) === true;
-        const isMember = isGardenMember(primaryAddress, garden.gardeners, garden.operators);
+        const isMember = isGardenMember(
+          primaryAddress,
+          garden.gardeners,
+          garden.operators,
+          garden.id
+        );
         // Only show gardens that are open OR user is already a member
         return isOpen || isMember;
       })
       .map((garden) => ({
         ...garden,
-        isMember: isGardenMember(primaryAddress, garden.gardeners, garden.operators),
+        isMember: isGardenMember(primaryAddress, garden.gardeners, garden.operators, garden.id),
       }));
   }, [gardens, primaryAddress, openGardensMap]);
 

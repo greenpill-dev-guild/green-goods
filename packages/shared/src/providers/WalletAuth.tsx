@@ -5,20 +5,19 @@
  * Uses AppKit for wallet connection UI.
  */
 
-import React, { createContext, useContext, useEffect, useRef } from "react";
+import React, { createContext, useContext } from "react";
 import { useAccount, useDisconnect } from "wagmi";
 import { appKit } from "../config/appkit";
-import { isFreshAppStart, markSessionActive } from "../modules/auth/session";
 
 interface WalletAuthContextType {
-  // Unified auth interface properties
+  // State
   authMode: "wallet" | null;
   eoaAddress: `0x${string}` | undefined;
   isReady: boolean;
   isAuthenticated: boolean;
   isAuthenticating: boolean;
 
-  // Wallet connection state (legacy aliases)
+  // Legacy aliases
   address?: `0x${string}`;
   isConnected: boolean;
   isConnecting: boolean;
@@ -27,7 +26,7 @@ interface WalletAuthContextType {
   connect: () => void;
   disconnect: () => void;
 
-  // Legacy compatibility (will be replaced with onchain roles)
+  // Legacy compatibility
   ready: boolean;
   user: { id: string; wallet: { address: string } } | null;
 }
@@ -46,7 +45,7 @@ export function useOptionalWalletAuth(): WalletAuthContextType | undefined {
   return useContext(WalletAuthContext);
 }
 
-// Legacy hook for compatibility during migration
+// Legacy hook for compatibility
 export function useUser() {
   const { address, ready, user } = useWalletAuth();
   return {
@@ -60,31 +59,11 @@ export function useUser() {
 export function WalletAuthProvider({ children }: { children: React.ReactNode }) {
   const { address, isConnected, isConnecting } = useAccount();
   const { disconnect } = useDisconnect();
-  const freshStartChecked = useRef(false);
-  const shouldDisconnectOnConnect = useRef(false);
 
-  // Handle fresh start detection - disconnect wallet on reinstall
-  // This needs to handle the case where wagmi reconnects after the initial render
-  useEffect(() => {
-    // Check for fresh start only once
-    if (!freshStartChecked.current) {
-      freshStartChecked.current = true;
-      if (isFreshAppStart()) {
-        // Mark session as active and flag for disconnect
-        markSessionActive();
-        shouldDisconnectOnConnect.current = true;
-      }
-    }
+  const isReady = !isConnecting;
+  const isAuthenticated = isConnected && Boolean(address);
 
-    // Disconnect if we detected fresh start and wallet is now connected
-    if (shouldDisconnectOnConnect.current && isConnected) {
-      console.log("[Auth] Detected fresh app start - disconnecting wallet");
-      shouldDisconnectOnConnect.current = false; // Only disconnect once
-      disconnect();
-    }
-  }, [isConnected, disconnect]);
-
-  // Create legacy-compatible user object
+  // Legacy user object
   const user = address
     ? {
         id: `user-${address}`,
@@ -92,11 +71,8 @@ export function WalletAuthProvider({ children }: { children: React.ReactNode }) 
       }
     : null;
 
-  const isReady = !isConnecting;
-  const isAuthenticated = isConnected && Boolean(address);
-
   const contextValue: WalletAuthContextType = {
-    // Unified auth interface
+    // State
     authMode: isAuthenticated ? "wallet" : null,
     eoaAddress: address,
     isReady,

@@ -1,154 +1,115 @@
 /**
- * Shared Authentication Session Utilities
+ * Authentication Session Utilities
  *
- * Provides session management functions for both passkey and wallet auth providers.
- * These utilities handle fresh app start detection, sign-out state, and session markers.
+ * Minimal session management with just 2 storage keys:
+ * - PASSKEY_STORAGE_KEY: WebAuthn credential for passkey auth
+ * - AUTH_MODE_STORAGE_KEY: Which auth method is active ("passkey" | "wallet")
  */
 
-/** Session marker to detect reinstalls - sessionStorage clears when app is fully closed */
-export const SESSION_MARKER_KEY = "greengoods_active_session";
+// ============================================================================
+// STORAGE KEYS
+// ============================================================================
 
-/** Key to track explicit sign-out - blocks auto-reconnection until explicit login */
-export const SIGNED_OUT_KEY = "greengoods_signed_out";
-
-/** Auth mode persistence key */
-export const AUTH_MODE_STORAGE_KEY = "greengoods_auth_mode";
-
-/** Passkey credential storage key */
+/** Passkey credential storage */
 export const PASSKEY_STORAGE_KEY = "greengoods_passkey_credential";
 
-/** Passkey signed out key */
-export const PASSKEY_SIGNED_OUT_KEY = "greengoods_passkey_signed_out";
+/** Active auth mode */
+export const AUTH_MODE_STORAGE_KEY = "greengoods_auth_mode";
 
-/**
- * Check if this is a fresh app start (after reinstall or cold launch).
- *
- * sessionStorage is cleared when:
- * - PWA is fully closed and reopened
- * - PWA is uninstalled and reinstalled
- * - Browser tab/window is closed
- *
- * @returns true if this is a fresh app start (no active session)
- */
-export function isFreshAppStart(): boolean {
-  const hasActiveSession = sessionStorage.getItem(SESSION_MARKER_KEY) === "true";
-  return !hasActiveSession;
+// ============================================================================
+// AUTH MODE
+// ============================================================================
+
+export type AuthMode = "passkey" | "wallet" | null;
+
+/** Get the active auth mode */
+export function getAuthMode(): AuthMode {
+  return localStorage.getItem(AUTH_MODE_STORAGE_KEY) as AuthMode;
 }
 
-/**
- * Mark the current session as active.
- * Should be called once on app initialization.
- */
-export function markSessionActive(): void {
-  sessionStorage.setItem(SESSION_MARKER_KEY, "true");
-}
-
-/**
- * Check if this is a fresh app start and handle accordingly.
- * If detected, clears the auth mode and returns true.
- *
- * @param savedAuthMode - The saved auth mode from localStorage
- * @returns true if this is a fresh start that required clearing auth state
- */
-export function checkAndHandleFreshStart(savedAuthMode: string | null): boolean {
-  const hasActiveSession = sessionStorage.getItem(SESSION_MARKER_KEY) === "true";
-
-  if (hasActiveSession) {
-    return false;
-  }
-
-  // Mark session as active for future checks
-  markSessionActive();
-
-  // If there was a saved auth mode but no active session, this is a reinstall
-  if (savedAuthMode) {
-    console.log("[Auth] Detected fresh app start - clearing saved auth state");
-    localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
-    return true;
-  }
-
-  return false;
-}
-
-/**
- * Check if user explicitly signed out.
- * This blocks wallet auto-reconnection until they explicitly log in again.
- */
-export function wasExplicitlySignedOut(): boolean {
-  return sessionStorage.getItem(SIGNED_OUT_KEY) === "true";
-}
-
-/**
- * Mark that user explicitly signed out - blocks auto-reconnection.
- */
-export function setSignedOut(): void {
-  sessionStorage.setItem(SIGNED_OUT_KEY, "true");
-}
-
-/**
- * Clear signed-out flag - called on explicit login action.
- */
-export function clearSignedOut(): void {
-  sessionStorage.removeItem(SIGNED_OUT_KEY);
-}
-
-/**
- * Get the saved auth mode from localStorage.
- */
-export function getSavedAuthMode(): "passkey" | "wallet" | null {
-  return localStorage.getItem(AUTH_MODE_STORAGE_KEY) as "passkey" | "wallet" | null;
-}
-
-/**
- * Save the auth mode to localStorage.
- */
-export function saveAuthMode(mode: "passkey" | "wallet"): void {
+/** Set the active auth mode */
+export function setAuthMode(mode: "passkey" | "wallet"): void {
   localStorage.setItem(AUTH_MODE_STORAGE_KEY, mode);
 }
 
-/**
- * Clear the saved auth mode.
- */
+/** Clear the auth mode (on sign out) */
 export function clearAuthMode(): void {
   localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
 }
 
-/**
- * Check if there's a stored passkey credential.
- */
-export function hasStoredPasskeyCredential(): boolean {
+// ============================================================================
+// PASSKEY
+// ============================================================================
+
+/** Check if there's a stored passkey credential */
+export function hasStoredPasskey(): boolean {
   return !!localStorage.getItem(PASSKEY_STORAGE_KEY);
 }
 
-/**
- * Check if passkey was explicitly signed out.
- */
-export function wasPasskeySignedOut(): boolean {
-  return localStorage.getItem(PASSKEY_SIGNED_OUT_KEY) === "true";
-}
-
-/**
- * Mark passkey as signed out.
- */
-export function setPasskeySignedOut(): void {
-  localStorage.setItem(PASSKEY_SIGNED_OUT_KEY, "true");
-}
-
-/**
- * Clear passkey signed out state.
- */
-export function clearPasskeySignedOut(): void {
-  localStorage.removeItem(PASSKEY_SIGNED_OUT_KEY);
-}
-
-/**
- * Clear all auth-related storage.
- * Use with caution - this will log out the user completely.
- */
-export function clearAllAuthStorage(): void {
-  localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
+/** Clear the stored passkey credential */
+export function clearStoredPasskey(): void {
   localStorage.removeItem(PASSKEY_STORAGE_KEY);
-  localStorage.removeItem(PASSKEY_SIGNED_OUT_KEY);
-  sessionStorage.removeItem(SIGNED_OUT_KEY);
-  // Don't clear SESSION_MARKER_KEY as that would trigger fresh start detection
+}
+
+// ============================================================================
+// SIGN OUT
+// ============================================================================
+
+/**
+ * Clear all auth storage including passkey credential.
+ *
+ * WARNING: This removes the passkey credential permanently.
+ * For regular logout, use clearAuthMode() instead to keep the credential.
+ * Only use this for complete account/passkey deletion.
+ */
+export function clearAllAuth(): void {
+  localStorage.removeItem(PASSKEY_STORAGE_KEY);
+  localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
+}
+
+// ============================================================================
+// LEGACY EXPORTS (for backward compatibility during migration)
+// ============================================================================
+
+/** @deprecated Use getAuthMode */
+export const getSavedAuthMode = getAuthMode;
+
+/** @deprecated Use setAuthMode */
+export const saveAuthMode = setAuthMode;
+
+/** @deprecated Use hasStoredPasskey */
+export const hasStoredPasskeyCredential = hasStoredPasskey;
+
+/** @deprecated Use clearAllAuth */
+export const clearAllAuthStorage = clearAllAuth;
+
+/** @deprecated No longer used */
+export const PASSKEY_SIGNED_OUT_KEY = "greengoods_passkey_signed_out";
+export const SESSION_MARKER_KEY = "greengoods_session_active";
+export const SIGNED_OUT_KEY = "greengoods_signed_out";
+
+/** @deprecated No longer used - passkey handles its own state */
+export function wasPasskeySignedOut(): boolean {
+  return false;
+}
+export function setPasskeySignedOut(): void {}
+export function clearPasskeySignedOut(): void {}
+
+/** @deprecated No longer used */
+export function isFreshAppStart(): boolean {
+  return false;
+}
+export function setWalletConnectIntent(): void {}
+export function consumeWalletConnectIntent(): boolean {
+  return true;
+}
+export function clearWalletConnectIntent(): void {}
+export function markSessionActive(): void {}
+export function checkAndHandleFreshStart(): boolean {
+  return false;
+}
+export function setSignedOut(): void {}
+export function clearSignedOut(): void {}
+export function wasExplicitlySignedOut(): boolean {
+  return false;
 }

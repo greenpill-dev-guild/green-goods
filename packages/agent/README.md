@@ -15,6 +15,35 @@ bun run dev
 bun run build && bun run start
 ```
 
+## Deploy to Railway
+
+> Cheapest/quickest path: start in polling mode so you don't need HTTPS/Webhook yet.
+
+**Prereqs**
+- Telegram token (`TELEGRAM_BOT_TOKEN`) from BotFather
+- 32+ char `ENCRYPTION_SECRET`
+- Railway project + a volume (e.g., `/data`)
+
+**Build artifact**
+- Dockerfile: `packages/agent/Dockerfile`
+
+**Railway setup**
+1) Create a new Service from this repo and select `packages/agent/Dockerfile`.
+2) Add a Volume (e.g., name `agent-data`, mount path `/data`).
+3) Set environment:
+   - `TELEGRAM_BOT_TOKEN=...`
+   - `ENCRYPTION_SECRET=...`
+   - `BOT_MODE=polling` (recommended to start; switch to `webhook` later)
+   - `DB_PATH=/data/agent.db`
+   - Optional for webhook: `WEBHOOK_URL=https://your-domain.com/telegram/webhook`, `PORT=3000`, `TELEGRAM_WEBHOOK_SECRET=...`
+4) Deploy: Railway will run `bun run start` from `packages/agent` (see Dockerfile).
+5) Verify health: `curl https://<railway-url>/health` (or `/health/ready`).
+6) Talk to the bot in Telegram (`/start`, `/status`) to confirm.
+
+Notes:
+- The bot pulls chain config from the shared `getDefaultChain()` (VITE_CHAIN_ID); ensure root `.env` matches your target chain.
+- SQLite lives on the mounted volume; no DB = fresh state each deploy.
+
 ## Environment Variables
 
 Create a `.env` file in the repo root:

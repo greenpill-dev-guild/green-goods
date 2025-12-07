@@ -10,7 +10,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 import { useCallback, useState } from "react";
-import { encodeFunctionData, type Hex } from "viem";
+import { encodeFunctionData } from "viem";
 import { useWriteContract } from "wagmi";
 import { wagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
@@ -20,8 +20,7 @@ import { simulateJoinGarden } from "../../utils/contract/simulation";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { isAlreadyGardenerError } from "../../utils/errors/contract-errors";
 import { useUser } from "../auth/useUser";
-import { useGardens } from "../blockchain/useBaseLists";
-import { queryInvalidation, queryKeys } from "../query-keys";
+import { queryKeys } from "../query-keys";
 
 /**
  * Check if a garden has openJoining enabled on-chain
@@ -40,17 +39,64 @@ export async function checkGardenOpenJoining(gardenAddress: string): Promise<boo
   }
 }
 
+// Pending joins storage for optimistic UI
+const PENDING_JOINS_KEY = "greengoods:pending-joins";
+const PENDING_JOIN_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getPendingJoins(): Record<string, { address: string; timestamp: number }> {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(localStorage.getItem(PENDING_JOINS_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function addPendingJoin(gardenId: string, userAddress: string) {
+  if (typeof window === "undefined") return;
+  const pending = getPendingJoins();
+  pending[gardenId] = { address: userAddress, timestamp: Date.now() };
+  localStorage.setItem(PENDING_JOINS_KEY, JSON.stringify(pending));
+}
+
+function removePendingJoin(gardenId: string) {
+  if (typeof window === "undefined") return;
+  const pending = getPendingJoins();
+  delete pending[gardenId];
+  localStorage.setItem(PENDING_JOINS_KEY, JSON.stringify(pending));
+}
+
 /**
- * Check if user is a member of a garden (gardener or operator)
+ * Check if user is a member of a garden (gardener or operator).
+ * Also checks pending joins for immediate UI feedback after successful transaction.
  */
 export function isGardenMember(
   userAddress: string | null | undefined,
   gardeners: string[] | null | undefined,
-  operators: string[] | null | undefined
+  operators: string[] | null | undefined,
+  gardenId?: string
 ): boolean {
   if (!userAddress) return false;
 
-  return isAddressInList(userAddress, gardeners) || isAddressInList(userAddress, operators);
+  // Check actual membership
+  if (isAddressInList(userAddress, gardeners) || isAddressInList(userAddress, operators)) {
+    if (gardenId) removePendingJoin(gardenId); // Cleanup if confirmed
+    return true;
+  }
+
+  // Check pending joins for optimistic UI
+  if (gardenId) {
+    const pending = getPendingJoins()[gardenId];
+    if (pending && pending.address.toLowerCase() === userAddress.toLowerCase()) {
+      if (Date.now() - pending.timestamp > PENDING_JOIN_TTL) {
+        removePendingJoin(gardenId);
+        return false;
+      }
+      return true;
+    }
+  }
+
+  return false;
 }
 
 interface JoinGardenState {
@@ -78,7 +124,6 @@ export function useJoinGarden() {
 
   const networkConfig = getDefaultChain();
   const chainId = Number(networkConfig.chainId ?? DEFAULT_CHAIN_ID);
-  const { refetch: refetchGardens } = useGardens(chainId);
   const queryClient = useQueryClient();
 
   const { writeContractAsync, isPending } = useWriteContract();
@@ -153,6 +198,9 @@ export function useJoinGarden() {
           });
         }
 
+        // Store pending join for immediate UI feedback
+        addPendingJoin(gardenAddress, targetAddress);
+
         // Optimistic update: add user to garden's gardeners list
         queryClient.setQueryData(
           queryKeys.gardens.byChain(chainId),
@@ -173,12 +221,10 @@ export function useJoinGarden() {
           }
         );
 
-        // Invalidate all garden-related queries
-        const keysToInvalidate = queryInvalidation.invalidateGardens(chainId);
-        await Promise.all(
-          keysToInvalidate.map((key) => queryClient.invalidateQueries({ queryKey: key }))
-        );
-        await refetchGardens();
+        // Delayed sync - give indexer time to process the event
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: queryKeys.gardens.byChain(chainId) });
+        }, 10000);
 
         setState((prev) => ({
           ...prev,
@@ -191,7 +237,7 @@ export function useJoinGarden() {
       } catch (error) {
         // Special handling for AlreadyGardener error - not actually an error
         if (isAlreadyGardenerError(error)) {
-          await refetchGardens();
+          addPendingJoin(gardenAddress, targetAddress);
           setState((prev) => ({
             ...prev,
             isJoining: false,
@@ -211,7 +257,7 @@ export function useJoinGarden() {
         throw error;
       }
     },
-    [primaryAddress, smartAccountClient, writeContractAsync, chainId, queryClient, refetchGardens]
+    [primaryAddress, smartAccountClient, writeContractAsync, chainId, queryClient]
   );
 
   return {

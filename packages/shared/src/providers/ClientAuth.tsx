@@ -1,11 +1,16 @@
 /**
  * Client Auth Provider
  *
- * Orchestrates authentication for the client package.
- * Supports both passkey (primary) and wallet (fallback) auth modes.
+ * Simple authentication for the client package.
+ * Supports passkey (primary) and wallet (fallback) auth modes.
+ *
+ * Core methods:
+ * - loginWithPasskey() - Create/authenticate passkey
+ * - loginWithWallet() - Open wallet modal
+ * - signOut() - Clear all auth state
  */
 
-import { disconnect, watchAccount } from "@wagmi/core";
+import { disconnect } from "@wagmi/core";
 import React, {
   createContext,
   useCallback,
@@ -17,53 +22,50 @@ import React, {
 } from "react";
 import { type Hex } from "viem";
 import { type P256Credential } from "viem/account-abstraction";
-import { type Connector, useConfig } from "wagmi";
+import { useAccount, useConfig } from "wagmi";
+import { appKit } from "../config/appkit";
 import { queryClient } from "../config/react-query";
 import { type PasskeySession } from "../modules/auth/passkey";
 import {
-  AUTH_MODE_STORAGE_KEY,
-  checkAndHandleFreshStart,
+  type AuthMode,
+  clearAllAuth,
   clearAuthMode,
-  clearSignedOut,
-  saveAuthMode,
-  setSignedOut,
-  wasExplicitlySignedOut,
+  getAuthMode,
+  setAuthMode as saveAuthMode,
 } from "../modules/auth/session";
 import { PasskeyAuthProvider, usePasskeyAuth } from "./PasskeyAuth";
 
-export type AuthMode = "passkey" | "wallet" | null;
-
 interface ClientAuthContextType {
-  // Unified auth interface properties
+  // State
   authMode: AuthMode;
-  eoaAddress: Hex | undefined;
   isReady: boolean;
   isAuthenticated: boolean;
   isAuthenticating: boolean;
 
-  // Passkey state (from PasskeyAuthProvider)
-  credential: P256Credential | null;
+  // Addresses
+  eoaAddress: Hex | undefined;
+  walletAddress: Hex | null;
   smartAccountAddress: Hex | null;
+
+  // Passkey
+  credential: P256Credential | null;
   smartAccountClient: PasskeySession["client"] | null;
 
-  // Wallet state (from Wagmi)
-  walletAddress: Hex | null;
-
-  // Error state
+  // Error
   error: Error | null;
 
-  // Passkey actions
+  // Actions
+  loginWithPasskey: () => Promise<PasskeySession>;
+  loginWithWallet: () => void;
+  signOut: () => Promise<void>;
+
+  // Legacy aliases
   signInWithPasskey: () => Promise<PasskeySession>;
   createPasskey: () => Promise<PasskeySession>;
   clearPasskey: () => void;
   setPasskeySession: (session: PasskeySession) => void;
-
-  // Wallet actions
-  connectWallet?: (connector: Connector) => Promise<void>;
+  connectWallet: () => void;
   disconnectWallet: () => Promise<void>;
-
-  // Session actions
-  signOut: () => Promise<void>;
 }
 
 const ClientAuthContext = createContext<ClientAuthContextType | undefined>(undefined);
@@ -86,193 +88,191 @@ export { AUTH_MODE_STORAGE_KEY } from "../modules/auth/session";
 function ClientAuthProviderInner({ children }: { children: React.ReactNode }) {
   const wagmiConfig = useConfig();
   const passkeyAuth = usePasskeyAuth();
+  const { address, isConnected } = useAccount();
 
   const [authMode, setAuthMode] = useState<AuthMode>(null);
-  const [walletAddress, setWalletAddress] = useState<Hex | null>(null);
-  const freshStartChecked = useRef(false);
-  // Track if we should block wallet auto-reconnection due to fresh start
-  const blockWalletReconnect = useRef(false);
+  const [isReady, setIsReady] = useState(false);
+  const initRef = useRef(false);
 
-  // Handle fresh start detection and clear auth state if needed
-  // This runs once on mount before other effects
-  useEffect(() => {
-    if (freshStartChecked.current) return;
-    freshStartChecked.current = true;
-
-    const savedAuthMode = localStorage.getItem(AUTH_MODE_STORAGE_KEY) as AuthMode;
-    const isFreshStart = checkAndHandleFreshStart(savedAuthMode);
-
-    if (isFreshStart) {
-      // Fresh start detected - block wallet auto-reconnection
-      blockWalletReconnect.current = true;
-      // Disconnect wallet if it was connected
-      void disconnect(wagmiConfig).catch(() => {
-        // Ignore disconnect errors - wallet may not be connected
-      });
-      // Don't restore any auth mode - user must re-authenticate
-      return;
+  // Helper to disconnect wallet
+  const disconnectWallet = useCallback(async () => {
+    try {
+      await disconnect(wagmiConfig);
+    } catch {
+      // Ignore disconnect errors
     }
+  }, [wagmiConfig]);
 
-    // Not a fresh start - restore saved auth mode
-    if (savedAuthMode === "passkey" && passkeyAuth.isAuthenticated) {
+  // ============================================================
+  // INITIALIZE: Check for existing session on mount
+  // ============================================================
+  useEffect(() => {
+    if (initRef.current) return;
+    initRef.current = true;
+
+    const savedMode = getAuthMode();
+
+    if (savedMode === "passkey") {
+      // Trust PasskeyAuth to restore - set mode immediately
+      // If passkey restore fails, the sync effect will handle it
       setAuthMode("passkey");
-    } else if (savedAuthMode === "wallet") {
-      // Will be picked up by watchAccount below
+    } else if (savedMode === "wallet") {
+      // Wallet mode - wagmi will handle reconnection
       setAuthMode("wallet");
     }
-  }, [passkeyAuth.isAuthenticated, wagmiConfig]);
+    // No else - if no saved mode, authMode stays null
 
-  // Watch for wallet connections/disconnections
-  // Always watch, but only update state when appropriate
+    setIsReady(true);
+  }, []); // Run exactly once on mount
+
+  // ============================================================
+  // SYNC: Handle wallet disconnection
+  // ============================================================
   useEffect(() => {
-    const unwatch = watchAccount(wagmiConfig, {
-      onChange(account) {
-        if (account.address && account.connector) {
-          // Block wallet auto-reconnection after fresh start
-          if (blockWalletReconnect.current) {
-            console.log("[Auth] Blocking wallet auto-reconnection after fresh start");
-            blockWalletReconnect.current = false; // Only block once
-            void disconnect(wagmiConfig);
-            return;
-          }
+    if (!isReady) return;
 
-          // Block wallet auto-reconnection after explicit sign-out
-          if (wasExplicitlySignedOut()) {
-            console.log("[Auth] Blocking wallet auto-reconnection after sign-out");
-            void disconnect(wagmiConfig);
-            return;
-          }
+    // Wallet disconnected while in wallet mode
+    if (!isConnected && authMode === "wallet") {
+      setAuthMode(null);
+      clearAuthMode();
+    }
+  }, [isConnected, authMode, isReady]);
 
-          // Wallet connected - only update if not in passkey mode
-          if (authMode === "passkey") {
-            void disconnect(wagmiConfig);
-            return;
-          }
-
-          // Drop any existing passkey session when switching to wallet
-          if (passkeyAuth.isAuthenticated) {
-            passkeyAuth.signOut();
-          }
-
-          setWalletAddress(account.address as Hex);
-          setAuthMode("wallet");
-          saveAuthMode("wallet");
-        } else {
-          // Wallet disconnected - clear wallet state regardless of mode
-          setWalletAddress(null);
-          if (authMode === "wallet") {
-            setAuthMode(null);
-            clearAuthMode();
-          }
-        }
-      },
-    });
-
-    return () => unwatch();
-  }, [authMode, passkeyAuth, wagmiConfig]);
-
-  // When passkey auth completes, set authMode
+  // ============================================================
+  // SYNC: Handle passkey authentication changes
+  // ============================================================
   useEffect(() => {
+    if (!isReady) return;
+
+    // Passkey just authenticated - ensure mode is set
     if (passkeyAuth.isAuthenticated && authMode !== "passkey") {
       setAuthMode("passkey");
       saveAuthMode("passkey");
     }
-  }, [passkeyAuth.isAuthenticated, authMode]);
 
-  const signInWithPasskey = useCallback(async () => {
-    // Clear signed-out flag on explicit login
-    clearSignedOut();
+    // Passkey was expected but failed to restore - clear mode
+    if (
+      !passkeyAuth.isAuthenticated &&
+      !passkeyAuth.isAuthenticating &&
+      authMode === "passkey" &&
+      passkeyAuth.isReady
+    ) {
+      setAuthMode(null);
+      clearAuthMode();
+    }
+  }, [
+    passkeyAuth.isAuthenticated,
+    passkeyAuth.isAuthenticating,
+    passkeyAuth.isReady,
+    authMode,
+    isReady,
+  ]);
 
-    // Disconnect wallet to enforce exclusivity
-    try {
-      await disconnect(wagmiConfig);
-      setWalletAddress(null);
-    } catch {
-      // ignore disconnect errors
+  // ============================================================
+  // LOGIN: Passkey
+  // ============================================================
+  const loginWithPasskey = useCallback(async () => {
+    // Disconnect wallet if connected
+    if (isConnected) {
+      await disconnectWallet();
     }
 
     const session = await passkeyAuth.createPasskey();
     setAuthMode("passkey");
     saveAuthMode("passkey");
     return session;
-  }, [passkeyAuth, wagmiConfig]);
+  }, [passkeyAuth, isConnected, disconnectWallet]);
 
+  // ============================================================
+  // LOGIN: Wallet
+  // ============================================================
+  const loginWithWallet = useCallback(() => {
+    // Clear passkey if authenticated
+    if (passkeyAuth.isAuthenticated) {
+      passkeyAuth.signOut();
+    }
+
+    // Set mode and open wallet modal
+    setAuthMode("wallet");
+    saveAuthMode("wallet");
+    appKit.open();
+  }, [passkeyAuth]);
+
+  // ============================================================
+  // SIGN OUT
+  // ============================================================
   const signOut = useCallback(async () => {
-    // Set signed-out flag FIRST to prevent wallet auto-reconnection
-    setSignedOut();
-
-    // Clear passkey session
+    // Clear passkey session (but keep credential for next login)
     passkeyAuth.signOut();
 
-    // Disconnect wallet regardless of mode
-    try {
-      await disconnect(wagmiConfig);
-    } catch (err) {
-      console.error("Failed to disconnect wallet", err);
-    }
+    // Disconnect wallet
+    await disconnectWallet();
 
-    // Clear all auth state
-    setWalletAddress(null);
+    // Clear auth mode (but NOT passkey credential - user should be able to log back in)
     setAuthMode(null);
-    clearAuthMode();
+    clearAuthMode(); // Only clear auth mode, not credential
     queryClient.clear();
-  }, [passkeyAuth, wagmiConfig]);
+  }, [passkeyAuth, disconnectWallet]);
 
-  const isReady = passkeyAuth.isReady;
-  const isAuthenticating = passkeyAuth.isAuthenticating;
+  // ============================================================
+  // COMPUTED STATE
+  // ============================================================
   const isAuthenticated = useMemo(() => {
-    if (authMode === "passkey") {
-      return passkeyAuth.isAuthenticated;
-    }
-    if (authMode === "wallet") {
-      return Boolean(walletAddress);
-    }
+    if (authMode === "passkey") return passkeyAuth.isAuthenticated;
+    if (authMode === "wallet") return isConnected && Boolean(address);
     return false;
-  }, [authMode, passkeyAuth.isAuthenticated, walletAddress]);
+  }, [authMode, passkeyAuth.isAuthenticated, isConnected, address]);
 
-  // eoaAddress is walletAddress when in wallet mode, undefined otherwise
-  const eoaAddress = authMode === "wallet" ? (walletAddress ?? undefined) : undefined;
+  const walletAddress = authMode === "wallet" && isConnected ? (address as Hex) : null;
+  const eoaAddress = walletAddress ?? undefined;
 
+  // ============================================================
+  // CONTEXT VALUE
+  // ============================================================
   const contextValue: ClientAuthContextType = useMemo(
     () => ({
-      // Unified auth interface
+      // State
       authMode,
-      eoaAddress,
-      isReady,
+      isReady: isReady && passkeyAuth.isReady,
       isAuthenticated,
-      isAuthenticating,
+      isAuthenticating: passkeyAuth.isAuthenticating,
 
-      // Passkey state
-      credential: passkeyAuth.credential,
+      // Addresses
+      eoaAddress,
+      walletAddress,
       smartAccountAddress: passkeyAuth.smartAccountAddress,
+
+      // Passkey
+      credential: passkeyAuth.credential,
       smartAccountClient: passkeyAuth.smartAccountClient,
 
-      // Wallet state
-      walletAddress,
-
-      // Error state
+      // Error
       error: passkeyAuth.error,
 
       // Actions
-      signInWithPasskey,
+      loginWithPasskey,
+      loginWithWallet,
+      signOut,
+
+      // Legacy aliases
+      signInWithPasskey: loginWithPasskey,
       createPasskey: passkeyAuth.createPasskey,
       clearPasskey: passkeyAuth.clearPasskey,
       setPasskeySession: passkeyAuth.setPasskeySession,
-      connectWallet: async () => {},
-      disconnectWallet: () => disconnect(wagmiConfig),
-      signOut,
+      connectWallet: loginWithWallet,
+      disconnectWallet,
     }),
     [
       authMode,
-      eoaAddress,
-      passkeyAuth,
-      walletAddress,
-      isAuthenticating,
       isReady,
       isAuthenticated,
+      passkeyAuth,
+      eoaAddress,
+      walletAddress,
+      loginWithPasskey,
+      loginWithWallet,
       signOut,
-      signInWithPasskey,
-      wagmiConfig,
+      disconnectWallet,
     ]
   );
 

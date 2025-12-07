@@ -57,6 +57,18 @@ const ERROR_SIGNATURES: Record<string, { name: string; message: string; action?:
     message: "Invalid action configuration",
   },
 
+  // WorkResolver errors
+  "0x2ff9aed3": {
+    name: "NotActiveAction",
+    message: "This action has expired and is no longer accepting work submissions",
+    action: "Select an active action to submit work for",
+  },
+  "0x5b634bd2": {
+    name: "NotInActionRegistry",
+    message: "This action does not exist in the registry",
+    action: "Select a valid action to submit work for",
+  },
+
   // WorkApprovalResolver errors
   "0x48f5c3ed": {
     name: "InvalidAttestation",

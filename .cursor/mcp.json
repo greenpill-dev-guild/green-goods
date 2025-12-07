@@ -12,9 +12,6 @@
     },
     "figma": {
       "url": "https://mcp.figma.com/mcp"
-    },
-    "chrome-devtools": {
-      "command": "npx chrome-devtools-mcp@latest"
     }
   }
 }
