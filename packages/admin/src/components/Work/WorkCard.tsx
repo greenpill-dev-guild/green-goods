@@ -1,12 +1,12 @@
-import { resolveIPFSUrl } from "@green-goods/shared/modules";
 import { StatusBadge } from "@green-goods/shared/components";
+import { resolveIPFSUrl } from "@green-goods/shared/modules";
 import { formatRelativeTime } from "@green-goods/shared/utils";
 import { RiImageLine, RiTimeLine, RiUserLine } from "@remixicon/react";
 import { Link } from "react-router-dom";
 import { AddressDisplay } from "@/components/AddressDisplay";
 
 interface WorkCardProps {
-  work: Work;
+  work: EASWork & { status?: "pending" | "approved" | "rejected" };
 }
 
 export const WorkCard: React.FC<WorkCardProps> = ({ work }) => {

@@ -10,11 +10,11 @@ void initializePinataFromEnv(import.meta.env);
 
 // Re-export shared configs (use relative path within monorepo)
 export {
+  DEFAULT_CHAIN_ID,
+  getDefaultChain,
   getEASConfig,
   getIndexerUrl,
   getNetworkConfig,
-  DEFAULT_CHAIN_ID,
-  getDefaultChain,
 } from "../../shared/src/config/blockchain";
 export {
   getChain,

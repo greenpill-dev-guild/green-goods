@@ -23,9 +23,12 @@ export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({ garden
   });
 
   // Filter works based on active filter
+  // EASWork doesn't have status - it needs to be computed from approvals
+  // For now, treat all works as pending unless status is added
   const filteredWorks = works.filter((work) => {
     if (activeFilter === "all") return true;
-    return (work.status || "pending") === activeFilter;
+    const status = (work as EASWork & { status?: string }).status || "pending";
+    return status === activeFilter;
   });
 
   const filterButtons: Array<{ id: FilterType; label: string; icon: React.ReactNode }> = [

@@ -37,6 +37,8 @@
       "@green-goods/shared/modules/*": ["../shared/src/modules/*/index.ts"],
       "@green-goods/shared/utils": ["../shared/src/utils/index.ts"],
       "@green-goods/shared/utils/*": ["../shared/src/utils/*.ts"],
+      "@green-goods/shared/components": ["../shared/src/components/index.ts"],
+      "@green-goods/shared/components/*": ["../shared/src/components/*.tsx"],
       "@green-goods/shared/config": ["../shared/src/config/index.ts"],
       "@green-goods/shared/config/*": ["../shared/src/config/*.ts"],
       "@green-goods/shared/types": ["../shared/src/types/index.ts"],

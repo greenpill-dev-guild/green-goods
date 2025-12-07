@@ -1,9 +1,11 @@
 import { DEFAULT_CHAIN_ID, initTheme, queryClient } from "@green-goods/shared";
+import { greenGoodsIndexer } from "@green-goods/shared/modules";
 import { AppKitProvider, WalletAuthProvider } from "@green-goods/shared/providers";
 import { AppProvider } from "@green-goods/shared/providers/App";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { Provider as UrqlProvider } from "urql";
 import App from "@/App.tsx";
 
 import "@/index.css";
@@ -22,22 +24,24 @@ const cleanupTheme = initTheme();
 
 export const Root = () => (
   <QueryClientProvider client={queryClient}>
-    <AppKitProvider
-      projectId={import.meta.env.VITE_WALLETCONNECT_PROJECT_ID}
-      metadata={{
-        name: "Green Goods Admin",
-        description: "Garden management dashboard for Green Goods protocol",
-        url: "https://admin.greengoods.app",
-        icons: ["https://greengoods.app/icon.png"],
-      }}
-      defaultChainId={DEFAULT_CHAIN_ID}
-    >
-      <WalletAuthProvider>
-        <AppProvider>
-          <App />
-        </AppProvider>
-      </WalletAuthProvider>
-    </AppKitProvider>
+    <UrqlProvider value={greenGoodsIndexer}>
+      <AppKitProvider
+        projectId={import.meta.env.VITE_WALLETCONNECT_PROJECT_ID}
+        metadata={{
+          name: "Green Goods Admin",
+          description: "Garden management dashboard for Green Goods protocol",
+          url: "https://admin.greengoods.app",
+          icons: ["https://greengoods.app/icon.png"],
+        }}
+        defaultChainId={DEFAULT_CHAIN_ID}
+      >
+        <WalletAuthProvider>
+          <AppProvider>
+            <App />
+          </AppProvider>
+        </WalletAuthProvider>
+      </AppKitProvider>
+    </UrqlProvider>
   </QueryClientProvider>
 );
 
