@@ -1,3 +1,7 @@
+---
+alwaysApply: false
+---
+
 # React Query State Management Patterns
 
 This rule ensures consistent React Query state updates across all user actions in Green Goods.

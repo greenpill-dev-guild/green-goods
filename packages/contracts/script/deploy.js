@@ -749,6 +749,7 @@ For UUPS upgrades, use: bun run upgrade <contract> --network <network> --broadca
       // Validate dates
       const startTime = new Date(action.startTime);
       const endTime = new Date(action.endTime);
+      const now = new Date();
 
       if (Number.isNaN(startTime.getTime()) || Number.isNaN(endTime.getTime())) {
         throw new Error(`Action ${index}: Invalid date format. Use ISO 8601 format`);
@@ -758,6 +759,19 @@ For UUPS upgrades, use: bun run upgrade <contract> --network <network> --broadca
         throw new Error(`Action ${index}: Start time must be before end time`);
       }
 
+      // Warn if endTime is in the past or very close to now
+      if (endTime <= now) {
+        throw new Error(
+          `Action ${index} "${action.title}": End time ${action.endTime} is in the past! ` +
+            `Current time: ${now.toISOString()}`,
+        );
+      }
+
+      const hoursUntilEnd = (endTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+      if (hoursUntilEnd < 24) {
+        console.warn(`⚠️  Warning: Action ${index} "${action.title}" ends in less than 24 hours (${action.endTime})`);
+      }
+
       if (!Array.isArray(action.media) || action.media.length === 0) {
         throw new Error(`Action ${index}: Media must be a non-empty array`);
       }
@@ -765,6 +779,19 @@ For UUPS upgrades, use: bun run upgrade <contract> --network <network> --broadca
   }
 
   generateActionScript(actions, actionRegistryAddress) {
+    // Log action deployment details for verification
+    console.log("\n📋 Actions to be deployed:");
+    console.log("─".repeat(60));
+    actions.forEach((action, index) => {
+      const startTime = Math.floor(new Date(action.startTime).getTime() / 1000);
+      const endTime = Math.floor(new Date(action.endTime).getTime() / 1000);
+      console.log(`  ${index}: ${action.title}`);
+      console.log(`     Start: ${action.startTime} → ${startTime}`);
+      console.log(`     End:   ${action.endTime} → ${endTime}`);
+      console.log(`     End (verified): ${new Date(endTime * 1000).toISOString()}`);
+    });
+    console.log("─".repeat(60));
+
     const actionsCode = actions
       .map((action, index) => {
         const startTime = Math.floor(new Date(action.startTime).getTime() / 1000);

@@ -1,8 +1,11 @@
+import { DEFAULT_CHAIN_ID, STALE_TIMES } from "@green-goods/shared";
 import {
+  queryKeys,
   useGardenAssessments,
   useGardenOperations,
   useGardenPermissions,
-} from "@green-goods/shared/hooks/garden";
+  useGardens,
+} from "@green-goods/shared/hooks";
 import { getWorks, resolveIPFSUrl } from "@green-goods/shared/modules";
 import {
   RiCheckboxCircleLine,
@@ -13,41 +16,23 @@ import {
   RiUserAddLine,
   RiUserLine,
 } from "@remixicon/react";
-import { useQuery as useTanstackQuery } from "@tanstack/react-query";
-import { graphql } from "gql.tada";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { useQuery } from "urql";
+import { AddressDisplay } from "@/components/AddressDisplay";
 import { AddMemberModal } from "@/components/Garden/AddMemberModal";
 import { GardenMetadata } from "@/components/Garden/GardenMetadata";
 import { MembersModal } from "@/components/Garden/MembersModal";
-import { StatCard } from "@/components/Garden/StatCard";
 import { PageHeader } from "@/components/Layout/PageHeader";
-import { AddressDisplay } from "@/components/UI/AddressDisplay";
+import { StatCard } from "@/components/StatCard";
 import { WorkSubmissionsView } from "@/components/Work/WorkSubmissionsView";
 import "./GardenDetailLayout.css";
 
 const EAS_EXPLORER_URL = "https://explorer.easscan.org";
-const GET_GARDEN_DETAIL = graphql(`
-  query GetGardenDetail($id: String!) {
-    Garden(where: { id: { _eq: $id } }) {
-      id
-      chainId
-      tokenAddress
-      tokenID
-      name
-      description
-      location
-      bannerImage
-      createdAt
-      gardeners
-      operators
-    }
-  }
-`);
 
 export default function GardenDetail() {
   const { id } = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
   const gardenPermissions = useGardenPermissions();
   const [addMemberModalOpen, setAddMemberModalOpen] = useState(false);
   const [memberType, setMemberType] = useState<"gardener" | "operator">("gardener");
@@ -64,11 +49,14 @@ export default function GardenDetail() {
     setMembersModalOpen(true);
   };
 
-  const [{ data, fetching, error }, refetch] = useQuery({
-    query: GET_GARDEN_DETAIL,
-    variables: { id: id! },
-    pause: !id,
-  });
+  // Use shared useGardens hook and find the specific garden
+  const { data: gardens = [], isLoading: fetching, error } = useGardens();
+  const garden = gardens.find((g) => g.id === id);
+
+  // Refetch function to invalidate gardens query
+  const refetch = async () => {
+    await queryClient.invalidateQueries({ queryKey: queryKeys.gardens.byChain(DEFAULT_CHAIN_ID) });
+  };
 
   const {
     data: assessmentList = [],
@@ -81,15 +69,14 @@ export default function GardenDetail() {
   const { addGardener, removeGardener, addOperator, removeOperator, isLoading } =
     useGardenOperations(id!);
 
-  const garden = data?.Garden?.[0];
   const canManage = garden ? gardenPermissions.canManageGarden(garden) : false;
 
   // Fetch work submissions for this garden
-  const { data: works = [] } = useTanstackQuery({
-    queryKey: ["works", id],
+  const { data: works = [] } = useQuery({
+    queryKey: queryKeys.works.online(id!, DEFAULT_CHAIN_ID),
     queryFn: () => getWorks(id),
     enabled: !!id,
-    staleTime: 30_000,
+    staleTime: STALE_TIMES.works,
   });
 
   const baseHeaderProps = {
@@ -278,7 +265,7 @@ export default function GardenDetail() {
                         <button
                           onClick={async () => {
                             await removeOperator(operator);
-                            await refetch({ requestPolicy: "network-only" });
+                            await refetch();
                           }}
                           disabled={isLoading}
                           className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded text-error-base transition hover:bg-error-lighter active:scale-95 disabled:opacity-50/20"
@@ -346,7 +333,7 @@ export default function GardenDetail() {
                         <button
                           onClick={async () => {
                             await removeGardener(gardener);
-                            await refetch({ requestPolicy: "network-only" });
+                            await refetch();
                           }}
                           disabled={isLoading}
                           className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded text-error-base transition hover:bg-error-lighter active:scale-95 disabled:opacity-50/20"
@@ -448,7 +435,7 @@ export default function GardenDetail() {
           } else {
             await addOperator(address);
           }
-          await refetch({ requestPolicy: "network-only" });
+          await refetch();
         }}
         isLoading={isLoading}
       />
@@ -465,7 +452,7 @@ export default function GardenDetail() {
           } else {
             await removeGardener(member);
           }
-          await refetch({ requestPolicy: "network-only" });
+          await refetch();
         }}
         isLoading={isLoading}
         icon={<RiUserLine className="h-5 w-5" />}

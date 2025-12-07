@@ -2,10 +2,10 @@ import { useEnsAvatar, useGardenerProfile, useUser } from "@green-goods/shared/h
 import { resolveAvatarUrl } from "@green-goods/shared/modules";
 import { formatAddress } from "@green-goods/shared/utils";
 import { RiHeadphoneLine, RiSettings2Fill } from "@remixicon/react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useIntl } from "react-intl";
-import { Profile as UserProfile } from "@/components/UI/Profile/Profile";
-import { type StandardTab, StandardTabs } from "@/components/UI/Tabs";
+import { Profile as UserProfile } from "@/components/Features";
+import { type StandardTab, StandardTabs } from "@/components/Navigation";
 import { ProfileAccount } from "./Account";
 import { ProfileHelp } from "./Help";
 

@@ -16,6 +16,10 @@ export default defineConfig(({ mode }) => {
   const localEnv = loadEnv(mode, __dirname, "");
   dotenvExpand.expand({ parsed: localEnv });
 
+  // Use relative paths for IPFS builds
+  const isIPFSBuild =
+    rootEnv.VITE_USE_HASH_ROUTER === "true" || localEnv.VITE_USE_HASH_ROUTER === "true";
+
   const plugins = [
     mkcert(),
     tailwindcss(),
@@ -23,6 +27,7 @@ export default defineConfig(({ mode }) => {
   ];
 
   return {
+    base: isIPFSBuild ? "./" : "/",
     envDir: rootDir,
     envPrefix: ["VITE_", "PRIVY_", "SKIP_"],
     build: { target: "es2020", sourcemap: true, chunkSizeWarningLimit: 2000 },

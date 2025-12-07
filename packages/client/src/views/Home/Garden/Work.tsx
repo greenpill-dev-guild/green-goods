@@ -1,6 +1,7 @@
 import { toastService } from "@green-goods/shared";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
 import {
+  queryKeys,
   useActions,
   useGardens,
   useNavigateToTop,
@@ -10,7 +11,11 @@ import {
 } from "@green-goods/shared/hooks";
 import { getFileByHash, useJobQueueEvents } from "@green-goods/shared/modules";
 import { jobQueue } from "@green-goods/shared/modules/job-queue";
-import { cn } from "@green-goods/shared/utils";
+import {
+  cn,
+  isAddressInList,
+  isUserAddress as sharedIsUserAddress,
+} from "@green-goods/shared/utils";
 import { debugWarn } from "@green-goods/shared/utils/debug";
 import { isValidAttestationId, openEASExplorer } from "@green-goods/shared/utils/eas/explorers";
 import {
@@ -20,9 +25,7 @@ import {
   type WorkData,
 } from "@green-goods/shared/utils/work/workActions";
 import {
-  RiCheckFill,
   RiCheckLine,
-  RiCloseFill,
   RiCloseLine,
   RiErrorWarningLine,
   RiLoader4Line,
@@ -32,10 +35,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useOutletContext, useParams } from "react-router-dom";
-import { Button } from "@/components/UI/Button";
-import { TopNav } from "@/components/UI/TopNav/TopNav";
-import { WorkViewSkeleton } from "@/components/UI/WorkView/WorkView";
-import { WorkCompleted } from "../../Garden/Completed";
+import { Button } from "@/components/Actions";
+import { WorkViewSkeleton } from "@/components/Features/Work";
+import { TopNav } from "@/components/Navigation";
 import WorkViewSection from "./WorkViewSection";
 
 type GardenWorkProps = {};
@@ -72,21 +74,15 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   const activeAddress = user?.id;
   const [isRetrying, setIsRetrying] = useState(false);
 
-  // Helper to check if an address matches the current user
-  const isUserAddress = (address: string | undefined): boolean => {
-    if (!address || !activeAddress) return false;
-    return address.toLowerCase() === activeAddress.toLowerCase();
-  };
-
   // Determine user role and viewing mode
   const viewingMode = useMemo<"operator" | "gardener" | "viewer">(() => {
     if (!garden || !work) return "viewer";
 
     // Check if user is garden operator
-    const isOperator = garden.operators?.some((op) => isUserAddress(op));
+    const isOperator = isAddressInList(activeAddress, garden.operators);
 
     // Check if user is the gardener who submitted the work
-    const isGardener = isUserAddress(work.gardenerAddress);
+    const isGardener = sharedIsUserAddress(work.gardenerAddress, activeAddress);
 
     if (isOperator) return "operator";
     if (isGardener) return "gardener";
@@ -267,6 +263,8 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
           context: "approval submission",
           suppressLogging: true,
         });
+        // Navigate back after successful approval
+        setTimeout(() => navigateToTop(`/home/${garden?.id ?? ""}`), 500);
       }
       if (type === "job:failed") {
         const failureMessage = intl.formatMessage({
@@ -653,75 +651,6 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
               {intl.formatMessage({ id: "app.common.processing", defaultMessage: "Processing..." })}
             </span>
           </div>
-        </div>
-      )}
-      {!workApprovalMutation.isIdle && (
-        <div className="padded">
-          <WorkCompleted
-            garden={garden}
-            status={workApprovalMutation.status}
-            mutationData={workApprovalMutation.data}
-            messages={{
-              success: {
-                header: intl.formatMessage(
-                  {
-                    id: "app.home.workApproval.header",
-                    defaultMessage: "You've {status} the work!",
-                  },
-                  {
-                    status: workApprovalMutation.variables?.draft.approved
-                      ? intl
-                          .formatMessage({
-                            id: "app.home.workApproval.approved",
-                            defaultMessage: "Approved",
-                          })
-                          .toLocaleLowerCase()
-                      : intl
-                          .formatMessage({
-                            id: "app.home.workApproval.rejected",
-                            defaultMessage: "Rejected",
-                          })
-                          .toLocaleLowerCase(),
-                  }
-                ),
-                variant: "success",
-                title: `${
-                  workApprovalMutation.variables?.draft.approved
-                    ? intl.formatMessage({
-                        id: "app.home.workApproval.approved",
-                        defaultMessage: "Approved",
-                      })
-                    : intl.formatMessage({
-                        id: "app.home.workApproval.rejected",
-                        defaultMessage: "Rejected",
-                      })
-                }!`,
-                body: intl.formatMessage(
-                  {
-                    id: "app.home.workApproval.body",
-                    defaultMessage: "You've {status} the work!<br/><br/>Excellent work!",
-                  },
-                  {
-                    status: workApprovalMutation.variables?.draft.approved
-                      ? intl
-                          .formatMessage({
-                            id: "app.home.workApproval.approved",
-                            defaultMessage: "Approved",
-                          })
-                          .toLocaleLowerCase()
-                      : intl
-                          .formatMessage({
-                            id: "app.home.workApproval.rejected",
-                            defaultMessage: "Rejected",
-                          })
-                          .toLocaleLowerCase(),
-                  }
-                ),
-                icon: workApprovalMutation.variables?.draft.approved ? RiCheckFill : RiCloseFill,
-                spinner: false,
-              },
-            }}
-          />
         </div>
       )}
     </article>

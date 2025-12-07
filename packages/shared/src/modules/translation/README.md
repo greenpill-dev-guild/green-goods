@@ -219,7 +219,7 @@ console.log(browserTranslator.isSupported); // Should be true
 
 2. Check language selection:
 ```typescript
-import { AppContext } from "@green-goods/shared/providers/app";
+import { AppContext } from "@green-goods/shared/providers/App";
 const { locale } = useContext(AppContext);
 console.log(locale); // Should be 'es' or 'pt', not 'en'
 ```

@@ -1,17 +1,19 @@
-import { toastService, uploadFileToIPFS } from "@green-goods/shared";
+import {
+  DEFAULT_CHAIN_ID,
+  defaultTemplate,
+  toastService,
+  uploadFileToIPFS,
+} from "@green-goods/shared";
 import { useActionOperations, useActions } from "@green-goods/shared/hooks";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { useChainId } from "wagmi";
 import { InstructionsBuilder } from "@/components/Action/InstructionsBuilder";
 import { PageHeader } from "@/components/Layout/PageHeader";
-import { defaultTemplate } from "@/utils/actionTemplates";
 
 export default function EditAction() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const chainId = useChainId();
-  const { data: actions = [] } = useActions(chainId);
+  const { data: actions = [] } = useActions(DEFAULT_CHAIN_ID);
   const action = actions.find((a) => a.id === id);
   const {
     updateActionTitle,
@@ -19,7 +21,7 @@ export default function EditAction() {
     updateActionEndTime,
     updateActionInstructions,
     isLoading,
-  } = useActionOperations(chainId);
+  } = useActionOperations(DEFAULT_CHAIN_ID);
 
   const [title, setTitle] = useState(action?.title || "");
   const [startTime, setStartTime] = useState(action ? new Date(action.startTime) : new Date());

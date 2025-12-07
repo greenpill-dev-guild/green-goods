@@ -1,9 +1,9 @@
 import { resolveIPFSUrl } from "@green-goods/shared/modules";
+import { StatusBadge } from "@green-goods/shared/components";
+import { formatRelativeTime } from "@green-goods/shared/utils";
 import { RiImageLine, RiTimeLine, RiUserLine } from "@remixicon/react";
 import { Link } from "react-router-dom";
-import { AddressDisplay } from "@/components/UI/AddressDisplay";
-import { formatRelativeTime } from "@/utils/formatters";
-import { StatusBadge } from "./StatusBadge";
+import { AddressDisplay } from "@/components/AddressDisplay";
 
 interface WorkCardProps {
   work: Work;
@@ -64,7 +64,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({ work }) => {
           <h4 className="truncate text-sm font-medium text-text-strong">
             {work.title || "Untitled Work"}
           </h4>
-          <StatusBadge status={work.status || "pending"} />
+          <StatusBadge status={work.status || "pending"} variant="semantic" />
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-xs text-text-soft">

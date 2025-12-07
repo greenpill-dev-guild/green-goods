@@ -1,6 +1,6 @@
 #!/bin/bash
-# Update the root garden reference to the new "Open Garden" with tokenId 1
-# Run this AFTER successfully minting the new garden
+# Update the root garden reference in deployment files
+# Run this AFTER successfully minting/updating a garden
 
 set -e
 
@@ -54,16 +54,16 @@ fi
 
 echo "📍 Garden Account Address: $GARDEN_ACCOUNT"
 
-# Verify openJoining is true
-echo "🔍 Verifying openJoining status..."
+# Check openJoining status
+echo "🔍 Checking openJoining status..."
 OPEN_JOINING=$(cast call "$GARDEN_ACCOUNT" "openJoining()(bool)" --rpc-url "$RPC_URL")
 
 if [ "$OPEN_JOINING" = "true" ]; then
-  echo "✅ openJoining is TRUE - Perfect!"
+  echo "✅ openJoining is TRUE"
 else
-  echo "❌ openJoining is FALSE - This shouldn't happen for tokenId 1!"
-  echo "Contract logic should auto-enable for tokenId 1."
-  exit 1
+  echo "⚠️  openJoining is FALSE"
+  echo "If this garden should be open, an operator needs to call setOpenJoining(true)"
+  echo "Run: cast send $GARDEN_ACCOUNT 'setOpenJoining(bool)' true --rpc-url $RPC_URL --account <OPERATOR>"
 fi
 
 # Update the deployment file

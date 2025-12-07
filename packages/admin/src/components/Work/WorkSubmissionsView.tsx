@@ -1,3 +1,5 @@
+import { DEFAULT_CHAIN_ID, STALE_TIMES } from "@green-goods/shared";
+import { queryKeys } from "@green-goods/shared/hooks";
 import { getWorks } from "@green-goods/shared/modules";
 import { RiCheckboxCircleLine, RiCloseLine, RiFileList3Line, RiTimeLine } from "@remixicon/react";
 import { useQuery } from "@tanstack/react-query";
@@ -15,9 +17,9 @@ export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({ garden
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
 
   const { data: works = [], isLoading } = useQuery({
-    queryKey: ["works", gardenId],
+    queryKey: queryKeys.works.online(gardenId, DEFAULT_CHAIN_ID),
     queryFn: () => getWorks(gardenId),
-    staleTime: 30_000,
+    staleTime: STALE_TIMES.works,
   });
 
   // Filter works based on active filter

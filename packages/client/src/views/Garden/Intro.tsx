@@ -1,20 +1,22 @@
 import { RiHammerFill, RiPlantFill } from "@remixicon/react";
 import type React from "react";
 import { useIntl } from "react-intl";
-import { ActionCard } from "@/components/UI/Card/ActionCard";
-import { ActionCardSkeleton } from "@/components/UI/Card/ActionCardSkeleton";
-import { GardenCard } from "@/components/UI/Card/GardenCard";
-import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
-import { Carousel, CarouselContent, CarouselItem } from "@/components/UI/Carousel/Carousel";
-import { FormInfo } from "@/components/UI/Form/Info";
+import {
+  ActionCard,
+  ActionCardSkeleton,
+  FormInfo,
+  GardenCard,
+  GardenCardSkeleton,
+} from "@/components/Cards";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/Display";
 
 interface WorkIntroProps {
   actions: Action[];
   gardens: Garden[];
   selectedActionUID: number | null;
   selectedGardenAddress: string | null;
-  setActionUID: React.Dispatch<React.SetStateAction<number | null>>;
-  setGardenAddress: React.Dispatch<React.SetStateAction<string | null>>;
+  setActionUID: (value: number | null) => void;
+  setGardenAddress: (value: string | null) => void;
 }
 
 export const WorkIntro: React.FC<WorkIntroProps> = ({

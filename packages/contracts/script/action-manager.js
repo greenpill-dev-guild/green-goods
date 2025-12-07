@@ -257,12 +257,26 @@ class ActionManager {
         // Parse timestamps
         const startTime = Math.floor(new Date(action.startTime).getTime() / 1000);
         const endTime = Math.floor(new Date(action.endTime).getTime() / 1000);
+        const now = Math.floor(Date.now() / 1000);
+
+        // Validate endTime is in the future
+        if (endTime <= now) {
+          throw new Error(
+            `End time ${action.endTime} (${endTime}) is in the past! Current time: ${new Date().toISOString()} (${now})`,
+          );
+        }
+
+        // Warn if endTime is very close to now
+        const hoursUntilEnd = (endTime - now) / 3600;
+        if (hoursUntilEnd < 24) {
+          console.warn(`  ⚠️  Warning: Action ends in less than 24 hours!`);
+        }
 
         // Parse capitals
         const capitals = this.parseCapitals(action.capitals);
 
-        console.log(`  Start: ${new Date(startTime * 1000).toISOString()}`);
-        console.log(`  End: ${new Date(endTime * 1000).toISOString()}`);
+        console.log(`  Start: ${new Date(startTime * 1000).toISOString()} (${startTime})`);
+        console.log(`  End: ${new Date(endTime * 1000).toISOString()} (${endTime})`);
         console.log(`  Capitals: ${action.capitals.join(", ")}`);
         console.log(`  Media items: ${action.media.length}`);
 

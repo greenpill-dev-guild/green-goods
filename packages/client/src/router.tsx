@@ -1,29 +1,19 @@
-import { createBrowserRouter, redirect } from "react-router-dom";
+import { HydrationFallback } from "@green-goods/shared";
+import { createBrowserRouter, createHashRouter, redirect } from "react-router-dom";
 
-const HydrationLoader = () => (
-  <div
-    className="min-h-screen flex items-center justify-center bg-white"
-    role="status"
-    aria-live="polite"
-    aria-busy="true"
-  >
-    <div className="flex flex-col items-center gap-3">
-      {/* Minimal spinner */}
-      <div className="h-10 w-10 animate-spin rounded-full border-3 border-green-200 border-t-green-600" />
-      <span className="sr-only">Loading Green Goods</span>
-    </div>
-  </div>
-);
+// Use hash router for IPFS builds to ensure proper SPA routing on IPFS gateways
+const createRouter =
+  import.meta.env.VITE_USE_HASH_ROUTER === "true" ? createHashRouter : createBrowserRouter;
 
-export const router = createBrowserRouter([
+export const router = createRouter([
   {
     id: "root",
     lazy: async () => ({ Component: (await import("@/routes/Root")).default }),
-    hydrateFallbackElement: <HydrationLoader />,
+    hydrateFallbackElement: <HydrationFallback appName="Green Goods" />,
     children: [
       {
         index: true,
-        lazy: async () => ({ Component: (await import("@/views/PlatformRouter")).default }),
+        lazy: async () => ({ Component: (await import("@/routes/PlatformRouter")).default }),
       },
       {
         path: "landing",
@@ -32,12 +22,12 @@ export const router = createBrowserRouter([
       {
         path: "login",
         lazy: async () => ({ Component: (await import("@/views/Login")).default }),
-        children: [
-          {
-            path: "recover",
-            lazy: async () => ({ Component: (await import("@/views/Login/Recovery")).default }),
-          },
-        ],
+        // children: [
+        //   {
+        //     path: "recover",
+        //     lazy: async () => ({ Component: (await import("@/views/Login/Recovery")).default }),
+        //   },
+        // ],
       },
       {
         lazy: async () => ({ Component: (await import("@/routes/RequireInstalled")).default }),

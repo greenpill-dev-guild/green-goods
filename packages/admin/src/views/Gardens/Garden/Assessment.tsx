@@ -1,4 +1,4 @@
-import { useGardenAssessments } from "@green-goods/shared/hooks/garden";
+import { useGardenAssessments } from "@green-goods/shared/hooks";
 import { useAdminStore } from "@green-goods/shared/stores";
 import { RiAddLine, RiExternalLinkLine, RiFileList3Line } from "@remixicon/react";
 import { type ReactNode, useEffect, useMemo } from "react";

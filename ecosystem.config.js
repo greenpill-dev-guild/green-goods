@@ -41,5 +41,18 @@ module.exports = {
       max_restarts: 10,
       min_uptime: "10s",
     },
+    {
+      name: "telegram",
+      script: "sh",
+      args: '-c "cd packages/telegram && bun run dev"',
+      cwd: ".",
+      env: {
+        NODE_ENV: "development",
+      },
+      merge_logs: true,
+      autorestart: true,
+      max_restarts: 10,
+      min_uptime: "10s",
+    },
   ],
 };

@@ -1,9 +1,11 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createPublicClient, http } from "viem";
-import { useOptionalPasskeyAuth } from "../../providers/PasskeyAuthProvider";
-import { useOptionalWalletAuth } from "../../providers/WalletAuthProvider";
-import { useAdminStore, type AdminState } from "../../stores/useAdminStore";
-import { getNetworkContracts, getChain } from "../../utils/contracts";
+import { DEFAULT_CHAIN_ID, getNetworkConfig } from "../../config/blockchain";
+import { useOptionalPasskeyAuth } from "../../providers/PasskeyAuth";
+import { useOptionalWalletAuth } from "../../providers/WalletAuth";
+import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
+import { compareAddresses } from "../../utils/blockchain/address";
+import { getChain, getNetworkContracts } from "../../utils/blockchain/contracts";
 
 // DeploymentRegistry ABI - only the functions we need
 const DEPLOYMENT_REGISTRY_ABI = [
@@ -39,6 +41,7 @@ export function useDeploymentRegistry(): DeploymentRegistryPermissions {
     passkeyAuth?.smartAccountAddress ?? passkeyAuth?.walletAddress ?? walletAuth?.address ?? null;
   const ready = passkeyAuth ? passkeyAuth.isReady : (walletAuth?.ready ?? false);
   const selectedChainId = useAdminStore((state: AdminState) => state.selectedChainId);
+  const chainId = selectedChainId || DEFAULT_CHAIN_ID;
   const [permissions, setPermissions] = useState<DeploymentRegistryPermissions>({
     isOwner: false,
     isInAllowlist: false,
@@ -61,8 +64,9 @@ export function useDeploymentRegistry(): DeploymentRegistryPermissions {
       setPermissions((prev) => ({ ...prev, loading: true, error: undefined }));
 
       try {
-        const contracts = getNetworkContracts(selectedChainId);
-        const chain = getChain(selectedChainId);
+        const contracts = getNetworkContracts(chainId);
+        const chain = getChain(chainId);
+        const networkConfig = getNetworkConfig(chainId);
 
         // If deployment registry is not configured, return false
         if (contracts.deploymentRegistry === "0x0000000000000000000000000000000000000000") {
@@ -75,26 +79,9 @@ export function useDeploymentRegistry(): DeploymentRegistryPermissions {
           return;
         }
 
-        const alchemyKey = import.meta.env.VITE_ALCHEMY_API_KEY || "demo";
-
-        let rpcUrl = "";
-        switch (selectedChainId) {
-          case 42161: // Arbitrum
-            rpcUrl = `https://arb-mainnet.g.alchemy.com/v2/${alchemyKey}`;
-            break;
-          case 42220: // Celo
-            rpcUrl = "https://forno.celo.org";
-            break;
-          case 84532: // Base Sepolia
-            rpcUrl = `https://base-sepolia.g.alchemy.com/v2/${alchemyKey}`;
-            break;
-          default:
-            rpcUrl = `https://arb-mainnet.g.alchemy.com/v2/${alchemyKey}`;
-        }
-
         const publicClient = createPublicClient({
           chain,
-          transport: http(rpcUrl),
+          transport: http(networkConfig.rpcUrl),
         });
 
         // Check if user is owner
@@ -112,7 +99,7 @@ export function useDeploymentRegistry(): DeploymentRegistryPermissions {
           args: [address as `0x${string}`],
         });
 
-        const isOwner = owner.toLowerCase() === address.toLowerCase();
+        const isOwner = compareAddresses(owner, address);
         const canDeploy = isOwner || isInAllowlist;
 
         setPermissions({
@@ -134,7 +121,7 @@ export function useDeploymentRegistry(): DeploymentRegistryPermissions {
     }
 
     checkPermissions();
-  }, [address, ready, selectedChainId]);
+  }, [address, ready, chainId]);
 
   return permissions;
 }

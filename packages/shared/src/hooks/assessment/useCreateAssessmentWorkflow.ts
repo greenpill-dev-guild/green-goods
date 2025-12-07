@@ -5,7 +5,7 @@ import { useAccount } from "wagmi";
 import { getEASConfig } from "../../config/blockchain";
 import { uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/pinata";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
-import { getNetworkContracts } from "../../utils/contracts";
+import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { createAssessmentMachine } from "../../workflows/createAssessment";
 
 // Define CreateAssessmentForm inline

@@ -7,8 +7,6 @@
  * @module utils/errors/contract-errors
  */
 
-import { type Hex } from "viem";
-
 /**
  * Common contract error signatures and their human-readable messages
  */
@@ -27,10 +25,10 @@ const ERROR_SIGNATURES: Record<string, { name: string; message: string; action?:
     name: "NotGardenOperator",
     message: "Only garden operators can perform this action",
   },
-  "0x5d4c2485": {
+  "0xdb926eba": {
     name: "InvalidInvite",
-    message: "Invalid or expired garden invite",
-    action: "Please request a new invite from a garden operator",
+    message: "This garden is invite-only",
+    action: "Request an invite from a garden operator to join",
   },
   "0x42375a1e": {
     name: "AlreadyGardener",
@@ -57,6 +55,18 @@ const ERROR_SIGNATURES: Record<string, { name: string; message: string; action?:
   "0x8baa579f": {
     name: "InvalidAction",
     message: "Invalid action configuration",
+  },
+
+  // WorkResolver errors
+  "0x2ff9aed3": {
+    name: "NotActiveAction",
+    message: "This action has expired and is no longer accepting work submissions",
+    action: "Select an active action to submit work for",
+  },
+  "0x5b634bd2": {
+    name: "NotInActionRegistry",
+    message: "This action does not exist in the registry",
+    action: "Select a valid action to submit work for",
   },
 
   // WorkApprovalResolver errors
@@ -109,7 +119,14 @@ export interface ParsedContractError {
 function extractErrorSignature(error: unknown): string | null {
   if (!error) return null;
 
-  const errorStr = String(error);
+  // Handle error objects with message property FIRST
+  // This ensures { message: "...", code: "..." } objects are handled correctly
+  let errorStr: string;
+  if (typeof error === "object" && error !== null && "message" in error) {
+    errorStr = String((error as { message: unknown }).message);
+  } else {
+    errorStr = String(error);
+  }
 
   // Match hex error codes like 0x8cb4ae3b
   const hexMatch = errorStr.match(/0x[a-fA-F0-9]{8}/);
@@ -151,7 +168,13 @@ function extractErrorSignature(error: unknown): string | null {
  * ```
  */
 export function parseContractError(error: unknown): ParsedContractError {
-  const errorStr = String(error);
+  // Handle error objects with message property
+  let errorStr: string;
+  if (typeof error === "object" && error !== null && "message" in error) {
+    errorStr = String((error as { message: unknown }).message);
+  } else {
+    errorStr = String(error);
+  }
   const signature = extractErrorSignature(error);
 
   // Check if we have a known error
@@ -265,22 +288,4 @@ export function parseAndFormatError(error: unknown): {
   const parsed = parseContractError(error);
   const { title, message } = formatErrorForToast(parsed);
   return { title, message, parsed };
-}
-
-/**
- * Add a custom error signature to the registry
- * Useful for application-specific errors or new contract versions
- *
- * @param signature - 4-byte error signature (e.g., "0x8cb4ae3b")
- * @param name - Error name
- * @param message - Human-readable message
- * @param action - Optional suggested action
- */
-export function registerErrorSignature(
-  signature: Hex,
-  name: string,
-  message: string,
-  action?: string
-): void {
-  ERROR_SIGNATURES[signature.toLowerCase()] = { name, message, action };
 }

@@ -7,12 +7,12 @@ import {
   type P256Credential,
   toWebAuthnAccount,
 } from "viem/account-abstraction";
+import { getChain } from "../../config/chains";
 import {
   createPimlicoClientForChain,
   createPublicClientForChain,
   getPimlicoBundlerUrl,
 } from "../../config/pimlico";
-import { getChain } from "../../config/chains";
 
 /** Session data for interacting with Pimlico smart accounts via WebAuthn. */
 export interface PasskeySession {
@@ -325,7 +325,12 @@ export async function registerPasskeySessionWithENS(
   const l2Session = await createPasskeySession(chainId, credential);
 
   // 3. Claim ENS on mainnet (optional)
-  if (!options?.skipENSClaim) {
+  // ENS claiming requires VITE_ENS_REGISTRAR_ADDRESS to be configured
+  const ensRegistrarAddress = import.meta.env.VITE_ENS_REGISTRAR_ADDRESS as Hex | undefined;
+  const isEnsConfigured =
+    ensRegistrarAddress && ensRegistrarAddress !== "0x0000000000000000000000000000000000000000";
+
+  if (!options?.skipENSClaim && isEnsConfigured) {
     try {
       const mainnetSession = await createPasskeySession(1, credential); // Mainnet
 
@@ -359,14 +364,10 @@ export async function registerPasskeySessionWithENS(
         throw new Error("Smart account not available for ENS claiming");
       }
 
-      // TODO: Get ENS_REGISTRAR_ADDRESS from deployment config
-      // For now, this is a placeholder address
-      const ENS_REGISTRAR_ADDRESS = "0x0000000000000000000000000000000000000000" as Hex;
-
       // Send gasless transaction to ENSRegistrar directly (more gas efficient)
       await mainnetSession.client.sendTransaction({
         account: mainnetSession.client.account,
-        to: ENS_REGISTRAR_ADDRESS, // Call registrar directly, not the account
+        to: ensRegistrarAddress,
         data,
         chain: undefined,
       });
@@ -381,6 +382,12 @@ export async function registerPasskeySessionWithENS(
       // Continue with L2-only session
       return l2Session;
     }
+  } else if (!options?.skipENSClaim && !isEnsConfigured) {
+    // Log that ENS claiming is skipped due to missing configuration
+    console.debug(
+      "[Passkey] ENS claiming skipped: VITE_ENS_REGISTRAR_ADDRESS not configured. " +
+        "Set this environment variable to enable ENS subdomain claiming."
+    );
   }
 
   return l2Session;

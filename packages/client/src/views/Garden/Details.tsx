@@ -1,11 +1,8 @@
 import { RiFileFill } from "@remixicon/react";
-import { useEffect } from "react";
 import type { Control, UseFormRegister } from "react-hook-form";
 import { useIntl } from "react-intl";
-import { FormInfo } from "@/components/UI/Form/Info";
-import { FormInput } from "@/components/UI/Form/Input";
-import { FormSelect } from "@/components/UI/Form/Select";
-import { FormText } from "@/components/UI/Form/Text";
+import { FormInfo } from "@/components/Cards";
+import { FormInput, FormSelect, FormText } from "@/components/Inputs";
 
 interface WorkDetailsProps {
   config?: Action["details"];
@@ -94,6 +91,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({ config, register, cont
           return (
             <FormSelect
               key={key}
+              // @ts-ignore
               name={key}
               label={title}
               placeholder={placeholder}

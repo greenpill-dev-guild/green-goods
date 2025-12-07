@@ -1,12 +1,11 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared";
 import { useActions } from "@green-goods/shared/hooks";
 import { RiAddLine, RiCalendarLine, RiEditLine, RiEyeLine } from "@remixicon/react";
 import { Link } from "react-router-dom";
-import { useChainId } from "wagmi";
 import { PageHeader } from "@/components/Layout/PageHeader";
 
 export default function Actions() {
-  const chainId = useChainId();
-  const { data: actions = [], isLoading } = useActions(chainId);
+  const { data: actions = [], isLoading } = useActions(DEFAULT_CHAIN_ID);
 
   const headerActions = (
     <Link

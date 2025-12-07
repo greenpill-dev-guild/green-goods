@@ -1,16 +1,12 @@
-import { SUPPORTED_CHAINS } from "@green-goods/shared/config/chains";
-import { useAdminStore } from "@green-goods/shared/stores";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared";
+import { getChainName } from "@green-goods/shared/config/chains";
+import { useUIStore } from "@green-goods/shared/stores";
 import { RiMenuLine } from "@remixicon/react";
-import { useChainId, useSwitchChain } from "wagmi";
 import { UserProfile } from "./UserProfile";
 
 export function Header() {
-  const { switchChain, isPending: isSwitching } = useSwitchChain();
-  const chainId = useChainId();
-  const { setSidebarOpen } = useAdminStore();
-
-  const chains = Object.values(SUPPORTED_CHAINS);
-  const currentChain = chains.find((chain) => chain.id === chainId) || chains[0];
+  const { setSidebarOpen } = useUIStore();
+  const chainLabel = getChainName(DEFAULT_CHAIN_ID);
 
   return (
     <header className="bg-bg-soft shadow-sm border-b border-stroke-sub">
@@ -33,19 +29,9 @@ export function Header() {
 
         {/* Right side - Chain selector and User profile */}
         <div className="flex items-center gap-4">
-          {/* Chain selector */}
-          <select
-            value={currentChain.id}
-            onChange={(e) => switchChain({ chainId: Number(e.target.value) })}
-            disabled={isSwitching}
-            className="px-3 py-2 border border-stroke-sub rounded-md text-sm bg-bg-white text-text-strong focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 disabled:opacity-50"
-          >
-            {chains.map((chain) => (
-              <option key={chain.id} value={chain.id}>
-                {chain.name}
-              </option>
-            ))}
-          </select>
+          <div className="px-3 py-2 rounded-md border border-stroke-sub bg-bg-white text-sm text-text-strong">
+            {chainLabel}
+          </div>
 
           <UserProfile />
         </div>

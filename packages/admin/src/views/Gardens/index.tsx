@@ -1,42 +1,15 @@
-import { useGardenPermissions } from "@green-goods/shared/hooks/garden";
-// Garden type is now global - no import needed
+import { useGardenPermissions, useGardens } from "@green-goods/shared/hooks";
 import { resolveIPFSUrl } from "@green-goods/shared/modules";
 import { RiAddLine, RiEyeLine, RiPlantLine, RiShieldCheckLine, RiUserLine } from "@remixicon/react";
-import { graphql } from "gql.tada";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { useQuery } from "urql";
-import { useChainId } from "wagmi";
 import { PageHeader } from "@/components/Layout/PageHeader";
-
-const GET_GARDENS = graphql(`
-  query GetGardens($chainId: Int!) {
-    Garden(where: { chainId: { _eq: $chainId } }) {
-      id
-      chainId
-      tokenAddress
-      tokenID
-      name
-      description
-      location
-      bannerImage
-      createdAt
-      gardeners
-      operators
-    }
-  }
-`);
 
 export default function Gardens() {
   const gardenPermissions = useGardenPermissions();
-  const chainId = useChainId();
-  const [{ data, fetching, error }] = useQuery({
-    query: GET_GARDENS,
-    variables: { chainId },
-  });
+  const { data: gardens = [], isLoading, error } = useGardens();
 
-  const gardens = (data?.Garden ?? []) as Garden[];
-  const errorMessage = error?.message;
+  const errorMessage = error instanceof Error ? error.message : error ? "Unknown error" : null;
 
   const headerDescription = errorMessage
     ? "Indexer offline — limited functionality available."
@@ -54,7 +27,7 @@ export default function Gardens() {
 
   let content: ReactNode;
 
-  if (fetching) {
+  if (isLoading) {
     content = (
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {[...Array(8)].map((_, i) => (

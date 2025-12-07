@@ -5,7 +5,24 @@ import { createEasClient } from "./urql";
 
 const GATEWAY_BASE_URL = "https://w3s.link";
 
-const toNumberFromField = (value: any): number | null => {
+/**
+ * Value that can be converted to a number from EAS decoded fields
+ * Handles various formats: number, bigint, hex string, or nested value objects
+ */
+type NumberConvertibleValue =
+  | number
+  | bigint
+  | string
+  | { hex: string }
+  | { value: NumberConvertibleValue }
+  | null
+  | undefined;
+
+/**
+ * Converts various EAS field value formats to a number.
+ * Handles: raw numbers, bigints, hex strings, and nested value objects.
+ */
+const toNumberFromField = (value: NumberConvertibleValue): number | null => {
   if (value === undefined || value === null) return null;
   if (typeof value === "number") return value;
   if (typeof value === "bigint") return Number(value);
@@ -42,12 +59,12 @@ const parseDataToGardenAssessment = (
     recipient: string;
     time: number;
   },
-  decodedDataJson: any
-): any => {
-  const fields = Array.isArray(decodedDataJson)
+  decodedDataJson: string | EASDecodedField[]
+): EASGardenAssessment => {
+  const fields: EASDecodedField[] = Array.isArray(decodedDataJson)
     ? decodedDataJson
     : JSON.parse(decodedDataJson ?? "[]");
-  const findField = (name: string) => fields.find((field: any) => field.name === name);
+  const findField = (name: string) => fields.find((field) => field.name === name);
   const readValue = (name: string) => findField(name)?.value?.value;
 
   const title = readValue("title") ?? "";
@@ -94,31 +111,36 @@ const parseDataToWork = (
     recipient: string;
     time: number;
   },
-  decodedDataJson: any
-): any => {
-  const data = JSON.parse(decodedDataJson);
+  decodedDataJson: string
+): EASWork => {
+  const data: EASDecodedField[] = JSON.parse(decodedDataJson);
 
   // Safely extract media with error handling
-  const mediaData = data.find((d: any) => d.name === "media");
-  const mediaCIDs: string[] = mediaData?.value?.value || [];
+  const mediaData = data.find((d) => d.name === "media");
+  const mediaCIDs: string[] = (mediaData?.value?.value as string[]) || [];
 
   // Resolve IPFS CIDs to gateway URLs
   const media = mediaCIDs.map((cid: string) => resolveIPFSUrl(cid, GATEWAY_BASE_URL));
 
   // Safely extract optional fields with null handling
-  const feedbackData = data.find((d: any) => d.name === "feedback");
-  const metadataData = data.find((d: any) => d.name === "metadata");
-  const titleData = data.find((d: any) => d.name === "title");
-  const actionUIDData = data.find((d: any) => d.name === "actionUID");
+  const feedbackData = data.find((d) => d.name === "feedback");
+  const metadataData = data.find((d) => d.name === "metadata");
+  const titleData = data.find((d) => d.name === "title");
+  const actionUIDData = data.find((d) => d.name === "actionUID");
+
+  // Handle actionUID which can be a number, hex string, or object with hex property
+  const actionUIDValue = actionUIDData?.value?.value;
+  const actionUIDHex = actionUIDData?.value?.hex;
+  const actionUID = toNumberFromField(actionUIDHex ?? actionUIDValue) ?? 0;
 
   return {
     id: workUID,
     gardenerAddress: attestation.attester,
     gardenAddress: attestation.recipient,
-    actionUID: Number(actionUIDData?.value?.value?.hex || actionUIDData?.value?.value || 0),
-    title: titleData?.value?.value || "Untitled Work",
-    feedback: feedbackData?.value?.value || "",
-    metadata: metadataData?.value?.value || "",
+    actionUID,
+    title: (titleData?.value?.value as string) || "Untitled Work",
+    feedback: (feedbackData?.value?.value as string) || "",
+    metadata: (metadataData?.value?.value as string) || "",
     media, // Now returns proper gateway URLs
     createdAt: attestation.time,
   };
@@ -131,22 +153,27 @@ const parseDataToWorkApproval = (
     recipient: string;
     time: number;
   },
-  decodedDataJson: any
-): any => {
-  const data = JSON.parse(decodedDataJson);
+  decodedDataJson: string
+): EASWorkApproval => {
+  const data: EASDecodedField[] = JSON.parse(decodedDataJson);
 
-  // Safely extract feedback with null/undefined handling
-  const feedbackData = data.find((d: any) => d.name === "feedback");
-  const feedback = feedbackData?.value?.value || "";
+  // Helper to find field by name
+  const findField = (name: string) => data.find((d) => d.name === name);
+
+  // Safely extract fields with null/undefined handling
+  const feedbackData = findField("feedback");
+  const actionUIDData = findField("actionUID");
+  const workUIDData = findField("workUID");
+  const approvedData = findField("approved");
 
   return {
     id: workApprovalUID,
     operatorAddress: attestation.attester,
     gardenerAddress: attestation.recipient,
-    actionUID: data.filter((d: any) => d.name === "actionUID")[0].value.value!,
-    workUID: data.filter((d: any) => d.name === "workUID")[0].value.value!,
-    approved: data.filter((d: any) => d.name === "approved")[0].value.value!,
-    feedback: feedback,
+    actionUID: toNumberFromField(actionUIDData?.value?.value as NumberConvertibleValue) ?? 0,
+    workUID: (workUIDData?.value?.value as string) || "",
+    approved: (approvedData?.value?.value as boolean) ?? false,
+    feedback: (feedbackData?.value?.value as string) || "",
     createdAt: attestation.time,
   };
 };
@@ -155,7 +182,7 @@ const parseDataToWorkApproval = (
 export const getGardenAssessments = async (
   gardenAddress?: string,
   chainId?: number | string
-): Promise<any[]> => {
+): Promise<EASGardenAssessment[]> => {
   const QUERY = easGraphQL(/* GraphQL */ `
     query Attestations($where: AttestationWhereInput) {
       attestations(where: $where) {
@@ -210,7 +237,7 @@ export const getGardenAssessments = async (
 export const getWorks = async (
   gardenAddress?: string | string[],
   chainId?: number | string
-): Promise<any[]> => {
+): Promise<EASWork[]> => {
   const QUERY = easGraphQL(/* GraphQL */ `
     query Attestations($where: AttestationWhereInput) {
       attestations(where: $where) {
@@ -248,20 +275,18 @@ export const getWorks = async (
   if (error) console.error(error);
   if (!data) console.error("No data found");
 
-  const works = Promise.all(
-    data?.attestations.map(async ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
+  return (
+    data?.attestations.map(({ id, attester, recipient, timeCreated, decodedDataJson }) =>
       parseDataToWork(id, { attester, recipient, time: timeCreated }, decodedDataJson)
     ) ?? []
   );
-
-  return works;
 };
 
 /** Retrieves work attestations submitted by a specific gardener */
 export const getWorksByGardener = async (
   gardenerAddress?: string,
   chainId?: number | string
-): Promise<any[]> => {
+): Promise<EASWork[]> => {
   if (!gardenerAddress) return [];
 
   const QUERY = easGraphQL(/* GraphQL */ `
@@ -298,11 +323,9 @@ export const getWorksByGardener = async (
     return [];
   }
 
-  return await Promise.all(
-    (data.attestations || []).map(
-      async ({ id, attester, recipient, timeCreated, decodedDataJson }: any) =>
-        parseDataToWork(id, { attester, recipient, time: timeCreated }, decodedDataJson)
-    )
+  return (data.attestations || []).map(
+    ({ id, attester, recipient, timeCreated, decodedDataJson }: EASAttestationRaw) =>
+      parseDataToWork(id, { attester, recipient, time: timeCreated as number }, decodedDataJson)
   );
 };
 
@@ -310,7 +333,7 @@ export const getWorksByGardener = async (
 export const getWorkApprovals = async (
   gardenerAddress?: string,
   chainId?: number | string
-): Promise<any[]> => {
+): Promise<EASWorkApproval[]> => {
   const QUERY = easGraphQL(/* GraphQL */ `
     query Attestations($where: AttestationWhereInput) {
       attestations(where: $where) {

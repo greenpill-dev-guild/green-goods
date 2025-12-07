@@ -1,51 +1,51 @@
 import { toastService } from "@green-goods/shared";
-import { appKit } from "@green-goods/shared/config/appkit";
 import { checkMembership, useAutoJoinRootGarden } from "@green-goods/shared/hooks";
-import { PASSKEY_STORAGE_KEY, type PasskeySession } from "@green-goods/shared/modules";
+import { hasStoredPasskey, type PasskeySession } from "@green-goods/shared/modules";
 import { useClientAuth } from "@green-goods/shared/providers";
 import { useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { type LoadingState, Splash } from "@/components/Layout/Splash";
+import { type LoadingState, Splash } from "@/components/Layout";
 
 export function Login() {
   const location = useLocation();
-  const { signInWithPasskey, isAuthenticating, isAuthenticated, setPasskeySession } =
-    useClientAuth();
+  const {
+    loginWithPasskey,
+    loginWithWallet,
+    isAuthenticating,
+    isAuthenticated,
+    isReady,
+    setPasskeySession,
+  } = useClientAuth();
 
   const [loadingState, setLoadingState] = useState<LoadingState | null>(null);
   const [loadingMessage, setLoadingMessage] = useState<string | undefined>(undefined);
   const [loginError, setLoginError] = useState<string | null>(null);
 
-  // Check if DevConnect is enabled via environment variable
-  const isDevConnectEnabled = import.meta.env.VITE_DEVCONNECT === "true";
-
-  const {
-    joinGarden,
-    isLoading: isJoiningGarden,
-    isGardener: _isGardener,
-    devConnect,
-  } = useAutoJoinRootGarden();
+  const { joinGarden, isLoading: isJoiningGarden } = useAutoJoinRootGarden();
 
   // Check if we're on a nested route (like /login/recover)
   const isNestedRoute = location.pathname !== "/login";
 
-  // Extract redirectTo parameter from URL query string, default to /home
-  const redirectTo = new URLSearchParams(location.search).get("redirectTo") || "/home";
+  // Check if user came from explicit logout - ignore redirectTo in that case
+  const locationState = location.state as { fromLogout?: boolean } | null;
+  const fromLogout = locationState?.fromLogout === true;
 
-  // Note: Wallet connection is automatically synced by PasskeyAuthProvider's watchAccount effect
-  // No manual sync needed here
-  const handleCreatePasskey = async () => {
-    // Clear any previous errors
+  // Extract redirectTo parameter from URL query string, default to /home
+  // If coming from explicit logout, always go to /home
+  const redirectTo = fromLogout
+    ? "/home"
+    : new URLSearchParams(location.search).get("redirectTo") || "/home";
+
+  const handlePasskeyLogin = async () => {
     setLoginError(null);
     setLoadingMessage("Preparing your wallet…");
     try {
       setLoadingState("welcome");
 
-      // Check if user has existing passkey credential
-      const hasExistingCredential = !!localStorage.getItem(PASSKEY_STORAGE_KEY);
-
+      const hasExistingCredential = hasStoredPasskey();
       setLoadingMessage(hasExistingCredential ? "Authenticating..." : undefined);
-      const session: PasskeySession = await signInWithPasskey();
+
+      const session: PasskeySession = await loginWithPasskey();
       setPasskeySession(session);
 
       // Check membership BEFORE showing any toast
@@ -88,25 +88,6 @@ export function Login() {
         if (!membershipStatus.hasBeenOnboarded) {
           const onboardingKey = `greengoods_onboarded:${session.address.toLowerCase()}`;
           localStorage.setItem(onboardingKey, "true");
-        }
-      }
-
-      // 2. DevConnect Join (New)
-      if (isDevConnectEnabled && devConnect.isEnabled && !devConnect.isMember) {
-        // Check local storage to avoid re-prompting if they skipped or are pending
-        const dcKey = `greengoods_devconnect_onboarded:${session.address.toLowerCase()}`;
-        const isDcOnboarded = localStorage.getItem(dcKey) === "true";
-
-        if (!isDcOnboarded) {
-          setLoadingState("joining-garden"); // Re-use loading state
-          setLoadingMessage("Joining DevConnect Garden...");
-          try {
-            await devConnect.join(session);
-            toastService.success({ title: "Joined DevConnect!", context: "devconnect" });
-          } catch (e) {
-            console.error("DevConnect join failed", e);
-            // Non-blocking failure
-          }
         }
       }
     } catch (err) {
@@ -157,12 +138,18 @@ export function Login() {
   };
 
   const handleWalletLogin = () => {
-    appKit.open();
+    loginWithWallet();
   };
 
   // If on a nested route (like /login/recover), render the child route
   if (isNestedRoute) {
     return <Outlet />;
+  }
+
+  // Wait for auth to be ready before showing login or redirecting
+  // This prevents the login screen flash during auth restoration on page refresh
+  if (!isReady) {
+    return <Splash loadingState="welcome" />;
   }
 
   // Redirect to app once authenticated (both passkey and wallet)
@@ -181,7 +168,7 @@ export function Login() {
   // Main splash screen with login button
   return (
     <Splash
-      login={handleCreatePasskey}
+      login={handlePasskeyLogin}
       isLoggingIn={isAuthenticating || isJoiningGarden}
       buttonLabel="Login"
       errorMessage={errorMessage}

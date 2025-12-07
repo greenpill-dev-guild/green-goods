@@ -9,6 +9,7 @@ declare global {
     meta?: Record<string, unknown>;
     createdAt: number;
     attempts: number;
+    lastAttemptAt?: number;
     lastError?: string;
     synced: boolean;
     chainId?: number;

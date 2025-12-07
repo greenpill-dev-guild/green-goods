@@ -48,6 +48,10 @@ export default defineConfig(({ mode }) => {
         ] as NonNullable<NonNullable<VitePWAOptions["workbox"]>["runtimeCaching"]>)
       : ([] as NonNullable<NonNullable<VitePWAOptions["workbox"]>["runtimeCaching"]>);
 
+  // Use relative paths for IPFS builds
+  const isIPFSBuild =
+    rootEnv.VITE_USE_HASH_ROUTER === "true" || localEnv.VITE_USE_HASH_ROUTER === "true";
+
   const plugins = [
     mkcert(),
     tailwindcss(),
@@ -176,6 +180,7 @@ export default defineConfig(({ mode }) => {
   ];
 
   return {
+    base: isIPFSBuild ? "./" : "/",
     envDir: rootDir,
     envPrefix: ["VITE_", "SKIP_"],
     build: { target: "es2020", sourcemap: true, chunkSizeWarningLimit: 2000 },

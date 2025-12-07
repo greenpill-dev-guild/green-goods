@@ -5,12 +5,11 @@ import { encodeFunctionData } from "viem";
 
 import { wagmiConfig } from "../../config/appkit";
 import { getEASConfig } from "../../config/blockchain";
-import EASAbiJson from "../../abis/EAS.json";
-import { encodeWorkApprovalData, encodeWorkData, simulateWorkData } from "../../utils/eas/encoders";
-import { parseContractError } from "../../utils/errors/contract-errors";
+import { EASABI } from "../../utils/blockchain/contracts";
 import { debugError, debugLog } from "../../utils/debug";
-
-const { abi: EASAbi } = EASAbiJson;
+import { encodeWorkApprovalData, encodeWorkData, simulateWorkData } from "../../utils/eas/encoders";
+import { buildApprovalAttestTx, buildWorkAttestTx } from "../../utils/eas/transaction-builder";
+import { parseContractError } from "../../utils/errors/contract-errors";
 
 function assertSmartAccount(
   client: SmartAccountClient | null
@@ -77,7 +76,7 @@ export async function submitWorkWithPasskey({
       // This verifies that the smart account is a gardener and the action is valid
       await publicClient.simulateContract({
         address: easConfig.EAS.address as `0x${string}`,
-        abi: EASAbi,
+        abi: EASABI,
         functionName: "attest",
         args: [
           {
@@ -127,30 +126,12 @@ export async function submitWorkWithPasskey({
     chainId
   );
 
-  const data = encodeFunctionData({
-    abi: EASAbi,
-    functionName: "attest",
-    args: [
-      {
-        schema: easConfig.WORK.uid,
-        data: {
-          recipient: gardenAddress as `0x${string}`,
-          expirationTime: NO_EXPIRATION,
-          revocable: true,
-          refUID: ZERO_BYTES32,
-          data: attestationData,
-          value: 0n,
-        },
-      },
-    ],
-  });
+  const txParams = buildWorkAttestTx(easConfig, gardenAddress as `0x${string}`, attestationData);
 
   const hash = await smartClient.sendTransaction({
     account: smartClient.account!,
     chain: smartClient.chain,
-    to: easConfig.EAS.address as `0x${string}`,
-    data,
-    value: 0n,
+    ...txParams,
   });
 
   debugLog("[PasskeySubmission] Passkey work submission sent", { hash });
@@ -185,30 +166,16 @@ export async function submitApprovalWithPasskey({
   const easConfig = getEASConfig(chainId);
   const attestationData = encodeWorkApprovalData(draft, chainId);
 
-  const data = encodeFunctionData({
-    abi: EASAbi,
-    functionName: "attest",
-    args: [
-      {
-        schema: easConfig.WORK_APPROVAL.uid,
-        data: {
-          recipient: gardenerAddress as `0x${string}`,
-          expirationTime: NO_EXPIRATION,
-          revocable: true,
-          refUID: ZERO_BYTES32,
-          data: attestationData,
-          value: 0n,
-        },
-      },
-    ],
-  });
+  const txParams = buildApprovalAttestTx(
+    easConfig,
+    gardenerAddress as `0x${string}`,
+    attestationData
+  );
 
   const hash = await smartClient.sendTransaction({
     account: smartClient.account!,
     chain: smartClient.chain,
-    to: easConfig.EAS.address as `0x${string}`,
-    data,
-    value: 0n,
+    ...txParams,
   });
 
   debugLog("[PasskeySubmission] Passkey approval submission sent", { hash });

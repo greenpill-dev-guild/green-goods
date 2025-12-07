@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useApp } from "@green-goods/shared/providers/app";
+import { useApp } from "@green-goods/shared/providers";
 
 export default function RequireInstalled() {
   const { isMobile, isStandalone } = useApp();

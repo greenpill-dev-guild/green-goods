@@ -10,11 +10,11 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { jobQueue } from "../../modules/job-queue";
 import { submitApprovalDirectly } from "../../modules/work/wallet-submission";
 import { submitApprovalToQueue } from "../../modules/work/work-submission";
-import { toastService } from "../../toast";
 import { DEBUG_ENABLED, debugError, debugLog, debugWarn } from "../../utils/debug";
 import { useUser } from "../auth/useUser";
 import { queryKeys } from "../query-keys";

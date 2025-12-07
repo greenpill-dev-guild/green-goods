@@ -1,6 +1,6 @@
 #!/bin/bash
 # Mint the "Green Goods Open Garden" to Arbitrum
-# This garden will have tokenId 1 and therefore openJoining = true
+# openJoining is set based on gardens.json config, not tokenId
 
 set -e
 

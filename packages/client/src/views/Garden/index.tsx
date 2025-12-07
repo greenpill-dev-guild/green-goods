@@ -1,5 +1,8 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
 import { useActionTranslation, useGardenTranslation } from "@green-goods/shared/hooks";
+import { useWork, WorkTab } from "@green-goods/shared/providers";
+import { useWorkFlowStore } from "@green-goods/shared/stores/useWorkFlowStore";
+import { findActionByUID } from "@green-goods/shared/utils";
 import {
   RiArrowRightSLine,
   RiCameraFill,
@@ -8,22 +11,15 @@ import {
   RiImageFill,
   RiPlantFill,
 } from "@remixicon/react";
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Button } from "@/components/UI/Button";
-import { ActionCardSkeleton } from "@/components/UI/Card/ActionCardSkeleton";
-import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
-import { FormInfo } from "@/components/UI/Form/Info";
-import { FormProgress } from "@/components/UI/Form/Progress";
-import { TopNav } from "@/components/UI/TopNav/TopNav";
-
-// import { ActionCardSkeleton } from "@/components/UI/Card/ActionCardSkeleton";
-// import { GardenCardSkeleton } from "@/components/UI/Card/GardenCardSkeleton";
-
-import { useWork, WorkTab } from "@green-goods/shared/providers/work";
-import { useWorkFlowStore } from "@green-goods/shared/stores/useWorkFlowStore";
-import { WorkViewSkeleton } from "@/components/UI/WorkView/WorkView";
+import { Button } from "@/components/Actions";
+import { ActionCardSkeleton, FormInfo, GardenCardSkeleton } from "@/components/Cards";
+import { FormProgress } from "@/components/Communication";
+import { DraftDialog } from "@/components/Dialogs";
+import { WorkViewSkeleton } from "@/components/Features/Work";
+import { TopNav } from "@/components/Navigation";
 import { WorkDetails } from "./Details";
 import { WorkIntro } from "./Intro";
 import { WorkMedia } from "./Media";
@@ -38,7 +34,11 @@ const Work: React.FC = () => {
 
   const canBypassMediaRequirement = import.meta.env.VITE_DEBUG_MODE === "true";
   const submissionCompleted = useWorkFlowStore((s) => s.submissionCompleted);
-  const [_showCompletionState, setShowCompletionState] = React.useState(false);
+  const [_showCompletionState, setShowCompletionState] = useState(false);
+
+  // Draft detection state
+  const [showDraftDialog, setShowDraftDialog] = useState(false);
+  const hasCheckedDraft = useRef(false);
 
   if (!form) {
     return null;
@@ -68,41 +68,62 @@ const Work: React.FC = () => {
     }
   }, [location.state, gardens, gardenAddress, setGardenAddress]);
 
+  // Check for existing draft on mount (only once)
+  // Only show dialog if there's meaningful progress:
+  // - Has uploaded images (primary indicator of work done)
+  // - OR has both garden AND action selected with additional input (feedback/plants)
+  useEffect(() => {
+    if (hasCheckedDraft.current) return;
+    hasCheckedDraft.current = true;
+
+    // Images are the strongest indicator of draft progress
+    const hasImages = images.length > 0;
+
+    // Having both selections + some form input indicates progress
+    const hasBothSelections = gardenAddress !== null && actionUID !== null;
+    const hasFormInput = feedback.length > 0 || plantSelection.length > 0 || (plantCount ?? 0) > 0;
+    const hasProgressWithSelections = hasBothSelections && hasFormInput;
+
+    const hasMeaningfulDraft = hasImages || hasProgressWithSelections;
+
+    if (hasMeaningfulDraft && activeTab === WorkTab.Intro) {
+      setShowDraftDialog(true);
+    }
+  }, [images.length, gardenAddress, actionUID, feedback, plantSelection, plantCount, activeTab]);
+
+  const handleContinueDraft = () => {
+    setShowDraftDialog(false);
+    // Draft is already loaded, just continue
+  };
+
+  const handleStartFresh = () => {
+    setShowDraftDialog(false);
+    // Reset all draft state
+    useWorkFlowStore.getState().reset();
+    form.reset();
+  };
+
   // Navigate when submission completes
   useEffect(() => {
     if (submissionCompleted) {
       setShowCompletionState(true);
       const timer = setTimeout(() => {
+        // Full reset of store and form
+        useWorkFlowStore.getState().reset();
         form.reset();
-        setImages([]);
-        setActiveTab(WorkTab.Intro);
-        setShowCompletionState(false);
-        useWorkFlowStore.getState().setSubmissionCompleted(false);
         navigate("/home");
       }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [submissionCompleted, navigate, form, setImages, setActiveTab]);
+  }, [submissionCompleted, navigate, form]);
 
   // mutation state handled via toasts inside uploadWork()
 
   // Prefer resolved data from React Query
   // Helper to render Review step with data (never block UI; use fallbacks)
-  const getActionUIDFromId = (id?: string): number | null => {
-    if (!id) return null;
-    const last = String(id).split("-").pop();
-    const num = Number(last);
-    return Number.isFinite(num) ? num : null;
-  };
-
   const selectedAction = useMemo(() => {
     if (!actions.length || typeof actionUID !== "number") return null;
-    return (
-      actions.find((a: Action) => {
-        const uid = getActionUIDFromId(a.id);
-        return uid !== null && uid === actionUID;
-      }) || null
-    );
+    return findActionByUID(actions, actionUID);
   }, [actions, actionUID]);
 
   // Translate the selected action
@@ -268,20 +289,9 @@ const Work: React.FC = () => {
 
     // Check for duplicates first
     // Note: computedTitle could be used for duplicate detection if needed in future
-    try {
-      const found = actions.find((a: Action) => {
-        if (actionUID === undefined || actionUID === null) {
-          return false;
-        }
-        const idPart = a.id?.split("-").pop();
-        const numeric = Number(idPart);
-        return Number.isFinite(numeric) && numeric === actionUID;
-      });
-      // Action found validation (title could be used for deduplication)
-      if (!found) {
-        return false;
-      }
-    } catch {
+    const found = findActionByUID(actions, actionUID);
+    // Action found validation (title could be used for deduplication)
+    if (!found) {
       return false;
     }
 
@@ -453,6 +463,14 @@ const Work: React.FC = () => {
 
   return (
     <>
+      {/* Draft Detection Dialog */}
+      <DraftDialog
+        isOpen={showDraftDialog}
+        onContinue={handleContinueDraft}
+        onStartFresh={handleStartFresh}
+        imageCount={images.length}
+      />
+
       <TopNav onBackClick={tabActions[activeTab].backButton} overlay>
         <FormProgress
           currentStep={submissionCompleted ? 5 : Object.values(WorkTab).indexOf(activeTab) + 1}

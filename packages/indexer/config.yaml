@@ -13,7 +13,7 @@ contracts:
   - name: GardenToken
     handler: src/EventHandlers.ts
     events:
-      - event: GardenMinted(uint256 indexed tokenId, address indexed account, string name, string description, string location, string bannerImage, address[] gardeners, address[] operators)
+      - event: GardenMinted(uint256 indexed tokenId, address indexed account, string name, string description, string location, string bannerImage, bool openJoining, address[] gardeners, address[] operators)
   - name: GardenAccount
     handler: src/EventHandlers.ts
     events:
@@ -26,6 +26,7 @@ contracts:
       - event: GardenOperatorAdded(address indexed updater, address indexed operator)
       - event: GardenOperatorRemoved(address indexed updater, address indexed operator)
       - event: GAPProjectCreated(bytes32 indexed projectUID, address indexed gardenAddress, string projectName)
+      - event: OpenJoiningUpdated(address indexed updater, bool openJoining)
 networks:
   - id: 42161
     start_block: 403157656

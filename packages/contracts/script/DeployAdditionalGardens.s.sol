@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { Script } from "forge-std/Script.sol";
-import { console } from "forge-std/console.sol";
+import {Script} from "forge-std/Script.sol";
+import {console} from "forge-std/console.sol";
 
-import { GardenToken } from "../src/tokens/Garden.sol";
-import { GardenAccount } from "../src/accounts/Garden.sol";
+import {GardenToken} from "../src/tokens/Garden.sol";
+import {GardenAccount} from "../src/accounts/Garden.sol";
 
 /**
  * @title Deploy Additional Gardens
@@ -83,9 +83,7 @@ contract DeployAdditionalGardens is Script {
         string memory json,
         string memory basePath,
         uint256 index
-    )
-        internal
-    {
+    ) internal {
         console.log("\n--- Deploying Garden", index, "---");
 
         // Parse garden config
@@ -119,7 +117,7 @@ contract DeployAdditionalGardens is Script {
         console.log("Gardeners:", gardeners.length);
         console.log("Operators:", operators.length);
 
-        // Mint the garden
+        // Mint the garden with openJoining from config
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
             communityToken: communityToken,
             name: name,
@@ -127,23 +125,15 @@ contract DeployAdditionalGardens is Script {
             location: location,
             bannerImage: bannerImage,
             metadata: metadata,
+            openJoining: openJoining,
             gardeners: gardeners,
             gardenOperators: operators
         });
         address gardenAddress = gardenToken.mintGarden(config);
 
         console.log("Garden Address:", gardenAddress);
-
-        // Set openJoining if specified in config
         if (openJoining) {
-            GardenAccount garden = GardenAccount(payable(gardenAddress));
-            // Check if caller is operator before trying to set
-            if (garden.gardenOperators(msg.sender)) {
-                garden.setOpenJoining(true);
-                console.log("Open joining enabled");
-            } else {
-                console.log("WARNING: Cannot enable open joining - caller not an operator");
-            }
+            console.log("Open joining: enabled");
         }
     }
 }

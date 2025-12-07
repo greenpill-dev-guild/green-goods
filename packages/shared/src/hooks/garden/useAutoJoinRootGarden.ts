@@ -2,7 +2,8 @@
  * Auto-Join Root Garden Hook
  *
  * Manages joining the root community garden on first login.
- * Also handles joining the DevConnect garden (Token ID 1) if enabled via VITE_DEVCONNECT.
+ *
+ * Uses deployment data for root garden address (not indexer) to avoid race conditions.
  *
  * @module hooks/garden/useAutoJoinRootGarden
  */
@@ -16,16 +17,14 @@ import { ONBOARDED_STORAGE_KEY } from "../../config/app";
 import { wagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
 import type { PasskeySession } from "../../modules/auth/passkey";
+import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { simulateJoinGarden } from "../../utils/contract/simulation";
-import { GardenAccountABI } from "../../utils/contracts";
-import { isAlreadyGardenerError } from "../../utils/errors";
+import { isAlreadyGardenerError } from "../../utils/errors/contract-errors";
 import { useUser } from "../auth/useUser";
 import { useGardens } from "../blockchain/useBaseLists";
 import { queryInvalidation, queryKeys } from "../query-keys";
 
-const VITE_DEVCONNECT = import.meta.env.VITE_DEVCONNECT === "true";
 const ROOT_GARDEN_PROMPTED_KEY = "rootGardenPrompted";
-const DEVCONNECT_TOKEN_ID = 1;
 
 const getOnboardedKey = (address?: string | null) => {
   if (!address) {
@@ -33,9 +32,6 @@ const getOnboardedKey = (address?: string | null) => {
   }
   return `${ONBOARDED_STORAGE_KEY}:${address.toLowerCase()}`;
 };
-
-const getDevConnectOnboardedKey = (address: string) =>
-  `greengoods_devconnect_onboarded:${address.toLowerCase()}`;
 
 /**
  * Standalone check for membership (used in Login flow before hook initialization)
@@ -104,12 +100,10 @@ interface JoinState {
  * - Shows manual prompt for wallet users (when autoJoin=false)
  * - Uses direct joinGarden() function (no invite codes)
  * - Stores join status in localStorage to prevent duplicate prompts
- * - Supports DevConnect garden joining (Token ID 1)
  *
  * Storage Keys:
  * - greengoods_user_onboarded: Set to "true" after successful first-time onboarding
  * - rootGardenPrompted: Set to "true" when wallet user has been prompted or dismissed
- * - greengoods_devconnect_onboarded: Set to "true" after joining DevConnect garden
  *
  * @param autoJoin - If true, automatically joins without user prompt (passkey flow)
  * @returns Join state and functions for manual join/dismiss
@@ -155,12 +149,6 @@ export function useAutoJoinRootGarden(autoJoin = false) {
     return gardens.find((garden) => Number(garden.tokenID) === 0) ?? null;
   }, [gardens]);
 
-  // --- DEVCONNECT LOGIC ---
-  const devConnectGardenRecord = useMemo(() => {
-    if (!VITE_DEVCONNECT || !gardens) return null;
-    return gardens.find((garden) => Number(garden.tokenID) === DEVCONNECT_TOKEN_ID) ?? null;
-  }, [gardens]);
-
   const { writeContractAsync, isPending } = useWriteContract();
 
   // Check membership from indexer data (Token ID 0)
@@ -180,22 +168,6 @@ export function useAutoJoinRootGarden(autoJoin = false) {
 
     return isGardener || isOperator;
   }, [rootGardenRecord, primaryAddress, normalizeAddress]);
-
-  // DevConnect membership check (Token ID 1)
-  const derivedIsDevConnectMember = useMemo(() => {
-    if (!VITE_DEVCONNECT || !devConnectGardenRecord || !primaryAddress) return false;
-
-    const normalized = normalizeAddress(primaryAddress);
-
-    // Coalesce to boolean to avoid undefined
-    const isGardener =
-      devConnectGardenRecord.gardeners?.some((m) => normalizeAddress(m) === normalized) ?? false;
-
-    const isOperator =
-      devConnectGardenRecord.operators?.some((m) => normalizeAddress(m) === normalized) ?? false;
-
-    return isGardener || isOperator;
-  }, [devConnectGardenRecord, primaryAddress, normalizeAddress]);
 
   useEffect(() => {
     setState((prev) => ({
@@ -272,19 +244,24 @@ export function useAutoJoinRootGarden(autoJoin = false) {
    * For passkey users: Transaction is sponsored via Pimlico paymaster.
    * For wallet users: User pays gas fees directly.
    *
+   * Uses deployment data for root garden address to avoid indexer race conditions.
+   *
    * @throws {Error} If join transaction fails
    */
   const joinGarden = useCallback(
     async (sessionOverride?: PasskeySession) => {
       const targetAddress = sessionOverride?.address ?? primaryAddress;
 
-      // Use token ID 0 garden from indexer instead of deployment config
-      if (!rootGardenRecord?.id) {
-        throw new Error("Root garden (Token ID 0) not found. Please try again later.");
+      // Use deployment data for root garden address (avoids indexer race condition)
+      // This is more reliable than waiting for the indexer to return gardens
+      const gardenId = rootGarden?.address;
+
+      if (!gardenId) {
+        throw new Error("Root garden not configured for this network. Please contact support.");
       }
 
       try {
-        await executeJoin(rootGardenRecord.id, sessionOverride);
+        await executeJoin(gardenId, sessionOverride);
 
         // Set appropriate localStorage flags
         localStorage.setItem(ROOT_GARDEN_PROMPTED_KEY, "true");
@@ -360,45 +337,17 @@ export function useAutoJoinRootGarden(autoJoin = false) {
       normalizeAddress,
       queryClient,
       refetchGardens,
-      rootGardenRecord,
+      rootGarden,
       primaryAddress,
     ]
-  );
-
-  // Join DevConnect
-  const joinDevConnect = useCallback(
-    async (sessionOverride?: PasskeySession) => {
-      if (!VITE_DEVCONNECT) return;
-      // Try to get address from record, fallback to fetch not needed as useGardens covers it
-      const address = devConnectGardenRecord?.id;
-      if (!address) throw new Error("DevConnect garden not found (Token ID 1)");
-
-      const targetAddress = sessionOverride?.address ?? primaryAddress;
-
-      try {
-        await executeJoin(address, sessionOverride);
-        const key = getDevConnectOnboardedKey(targetAddress ?? "");
-        localStorage.setItem(key, "true");
-        await refetchGardens();
-      } catch (error) {
-        if (isAlreadyGardenerError(error)) {
-          const key = getDevConnectOnboardedKey(targetAddress ?? "");
-          localStorage.setItem(key, "true");
-          await refetchGardens();
-          return;
-        }
-        throw error;
-      }
-    },
-    [devConnectGardenRecord, executeJoin, primaryAddress, refetchGardens]
   );
 
   // Auto-join effect (when autoJoin=true, joins automatically on first login)
   // Note: This is primarily called manually from Login component for controlled flow
   useEffect(() => {
     if (!autoJoin) return;
-    if (!ready || !primaryAddress || !rootGardenRecord) return;
-    if (gardensLoading || gardensFetching || derivedIsMember) return;
+    if (!ready || !primaryAddress || !rootGarden?.address) return;
+    if (derivedIsMember) return;
 
     const onboardedKey = getOnboardedKey(primaryAddress);
     const isOnboarded =
@@ -412,16 +361,7 @@ export function useAutoJoinRootGarden(autoJoin = false) {
     joinGarden().catch((err) => {
       console.error("Auto-join failed", err);
     });
-  }, [
-    autoJoin,
-    ready,
-    primaryAddress,
-    rootGardenRecord,
-    derivedIsMember,
-    gardensLoading,
-    gardensFetching,
-    joinGarden,
-  ]);
+  }, [autoJoin, ready, primaryAddress, rootGarden, derivedIsMember, joinGarden]);
 
   /**
    * Dismiss the join prompt without joining.
@@ -439,13 +379,5 @@ export function useAutoJoinRootGarden(autoJoin = false) {
     joinGarden,
     dismissPrompt,
     isGardener: derivedIsMember || state.isGardener,
-    // DevConnect specific
-    devConnect: {
-      isEnabled: VITE_DEVCONNECT,
-      isMember: derivedIsDevConnectMember,
-      isLoading: gardensLoading || gardensFetching,
-      join: joinDevConnect,
-      gardenAddress: devConnectGardenRecord?.id,
-    },
   };
 }

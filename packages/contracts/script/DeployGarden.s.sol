@@ -4,10 +4,10 @@
 /* solhint-disable no-console */
 pragma solidity ^0.8.25;
 
-import { Script } from "forge-std/Script.sol";
-import { console } from "forge-std/console.sol";
+import {Script} from "forge-std/Script.sol";
+import {console} from "forge-std/console.sol";
 
-import { GardenToken } from "../src/tokens/Garden.sol";
+import {GardenToken} from "../src/tokens/Garden.sol";
 
 /// @title DeployGarden
 /// @notice Script for deploying the GardenToken contract and minting a garden.
@@ -64,6 +64,7 @@ contract DeployGarden is Script {
             location: location,
             bannerImage: bannerImage,
             metadata: "",
+            openJoining: false,
             gardeners: gardeners,
             gardenOperators: operators
         });

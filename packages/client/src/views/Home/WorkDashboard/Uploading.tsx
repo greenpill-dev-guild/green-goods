@@ -1,9 +1,9 @@
 import { useOffline, useUser } from "@green-goods/shared/hooks";
-import { useQueueFlush } from "@green-goods/shared/providers/jobQueue";
+import { useQueueFlush } from "@green-goods/shared/providers/JobQueue";
 import React from "react";
 import { useIntl } from "react-intl";
-import { MinimalWorkCard } from "@/components/UI/Card/WorkCard";
-import { BeatLoader } from "@/components/UI/Loader";
+import { MinimalWorkCard } from "@/components/Cards";
+import { BeatLoader } from "@/components/Communication";
 
 interface UploadingTabProps {
   uploadingWork: Work[];

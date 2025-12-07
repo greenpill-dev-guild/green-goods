@@ -55,7 +55,7 @@ export async function uploadFileToIPFS(file: File): Promise<{ cid: string }> {
       throw new Error(`Pinata upload failed: ${res.statusText}`);
     }
 
-    const data = await res.json();
+    const data = (await res.json()) as any;
     return { cid: data.IpfsHash };
   } catch (error) {
     console.error("Failed to upload file to Pinata:", error);
@@ -90,7 +90,7 @@ export async function uploadJSONToIPFS(json: Record<string, unknown>): Promise<{
       throw new Error(`Pinata upload failed: ${res.statusText}`);
     }
 
-    const data = await res.json();
+    const data = (await res.json()) as any;
     return { cid: data.IpfsHash };
   } catch (error) {
     console.error("Failed to upload JSON to Pinata:", error);
@@ -181,3 +181,27 @@ export const initializeStoracha = initializePinata;
 export const getStorachaClient = () => {
   throw new Error("Pinata client does not expose a raw client instance");
 };
+
+/**
+ * Convenience initializer that reads Vite-style env vars.
+ * Returns true on successful initialization, false if missing configuration.
+ */
+export async function initializePinataFromEnv(
+  env: any = typeof import.meta !== "undefined" ? import.meta.env : {}
+) {
+  const jwt = env?.VITE_PINATA_JWT;
+  const gatewayBaseUrl = env?.VITE_PINATA_GATEWAY;
+
+  if (!jwt) {
+    console.warn("VITE_PINATA_JWT is not configured. Media features will be unavailable.");
+    return false;
+  }
+
+  try {
+    await initializePinata({ jwt, gatewayBaseUrl });
+    return true;
+  } catch (err) {
+    console.error("Failed to initialize Pinata:", err);
+    return false;
+  }
+}
