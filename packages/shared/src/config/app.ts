@@ -21,7 +21,7 @@ if (import.meta.env.DEV) {
 export const APP_NAME = "Green Goods";
 export const APP_DEFAULT_TITLE = "Green Goods";
 export const APP_TITLE_TEMPLATE = "%s - Green Goods";
-export const APP_DESCRIPTION = "Start Bringing Biodiversity Onchain";
+export const APP_DESCRIPTION = "Start Bringing Your Impact Onchain";
 export const APP_URL = "https://greengoods.app";
 export const APP_ICON = "https://greengoods.app/icon.png";
 

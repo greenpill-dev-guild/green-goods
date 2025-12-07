@@ -1,6 +1,6 @@
 # Green Goods Client
 
-This package contains the frontend application for Green Goods, a Progressive Web App (PWA) designed to revolutionize biodiversity conservation. It enables Garden Operators and Gardeners to document and get approval for conservation work, interact with blockchain components for attestations, and view impact data.
+This package contains the frontend application for Green Goods, a Progressive Web App (PWA) designed to revolutionize community impact reporting. It enables Garden Operators and Gardeners to document and get approval for community actions, interact with blockchain components for attestations, and view impact data.
 
 ## Getting Started
 

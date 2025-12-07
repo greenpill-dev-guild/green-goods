@@ -32,7 +32,7 @@ type AppKitInitOptions = {
 
 const defaultMetadata: AppKitMetadata = {
   name: "Green Goods",
-  description: "Start Bringing Biodiversity Onchain",
+  description: "Start Bringing Your Impact Onchain",
   url:
     import.meta.env.VITE_APP_URL ||
     (typeof window !== "undefined" ? window.location.origin : "https://greengoods.app"),

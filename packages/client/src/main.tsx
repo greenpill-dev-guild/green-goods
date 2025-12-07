@@ -1,6 +1,5 @@
-import { DEFAULT_CHAIN_ID, initTheme } from "@green-goods/shared";
+import { AppProvider, DEFAULT_CHAIN_ID, initTheme } from "@green-goods/shared";
 import { AppKitProvider, ClientAuthProvider } from "@green-goods/shared/providers";
-import { AppProvider } from "@green-goods/shared";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "@/App.tsx";
@@ -40,7 +39,7 @@ export const Root = () => (
       projectId={import.meta.env.VITE_WALLETCONNECT_PROJECT_ID}
       metadata={{
         name: "Green Goods",
-        description: "Start Bringing Biodiversity Onchain",
+        description: "Start Bringing Your Impact Onchain",
         url: import.meta.env.VITE_APP_URL || window.location.origin,
         icons: ["https://greengoods.app/icon.png"],
       }}

@@ -1,5 +1,5 @@
-import { queryClient } from "@green-goods/shared/config/react-query";
 import { ensureBaseLists } from "@green-goods/shared";
+import { queryClient } from "@green-goods/shared/config/react-query";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   type PersistedClient,
@@ -77,6 +77,7 @@ function App() {
   useEffect(() => {
     void ensureBaseLists();
   }, []);
+
   return (
     <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
       <QueryClientProvider client={queryClient}>

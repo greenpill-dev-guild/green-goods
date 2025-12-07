@@ -110,5 +110,11 @@ declare interface ConflictResolutionModalProps {
   onResolve: (resolution: "keep_local" | "keep_remote" | "merge") => Promise<void>;
 }
 
+declare interface DuplicateCheckResult {
+  conflictType?: string;
+  similarity?: number;
+  existingWorkId?: string;
+}
+
 // Moved to component file - DuplicateWorkWarningProps is now defined locally
 // in /components/UI/DuplicateWorkWarning/DuplicateWorkWarning.tsx

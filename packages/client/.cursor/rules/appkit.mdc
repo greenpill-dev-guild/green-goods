@@ -103,7 +103,7 @@ Use dynamic URLs to avoid localhost/production mismatches:
 ```typescript
 const metadata = {
   name: "Green Goods",
-  description: "Start Bringing Biodiversity Onchain",
+  description: "Start Bringing Your Impact Onchain",
   url: import.meta.env.VITE_APP_URL || window.location.origin, // ✅ Dynamic
   icons: ["https://greengoods.app/icon.png"],
 };
@@ -136,7 +136,7 @@ if (!projectId) {
 
 const metadata = {
   name: "Green Goods",
-  description: "Start Bringing Biodiversity Onchain",
+  description: "Start Bringing Your Impact Onchain",
   url: import.meta.env.VITE_APP_URL || window.location.origin,
   icons: ["https://greengoods.app/icon.png"],
 };

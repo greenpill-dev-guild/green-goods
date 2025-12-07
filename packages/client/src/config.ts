@@ -26,6 +26,6 @@ export {
 
 // Client-specific config
 export const CLIENT_NAME = "Green Goods";
-export const CLIENT_DESCRIPTION = "Start Bringing Biodiversity Onchain";
+export const CLIENT_DESCRIPTION = "Start Bringing Your Impact Onchain";
 export const CLIENT_URL = "https://greengoods.app";
 export const CLIENT_ICON = "https://greengoods.app/icon.png";
