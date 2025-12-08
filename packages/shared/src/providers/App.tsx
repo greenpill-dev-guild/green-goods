@@ -77,7 +77,14 @@ export const useApp = () => {
   return useContext(AppContext);
 };
 
-export const AppProvider = ({ children }: { children: React.ReactNode }) => {
+interface AppProviderProps {
+  children: React.ReactNode;
+  posthogKey?: string;
+}
+
+export const AppProvider = ({ children, posthogKey }: AppProviderProps) => {
+  // Use provided key or fall back to default client key
+  const apiKey = posthogKey || import.meta.env.VITE_POSTHOG_KEY;
   const defaultLocale = localStorage.getItem("gg-language")
     ? (localStorage.getItem("gg-language") as Locale)
     : (getBrowserLocale(supportedLanguages, "en") as Locale); // Use helper instead of browserLang
@@ -169,9 +176,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <PostHogProvider
-      apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
+      apiKey={apiKey}
       options={{
-        api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+        api_host: import.meta.env.VITE_POSTHOG_HOST,
         capture_exceptions: true,
         debug: import.meta.env.VITE_POSTHOG_DEBUG === "true",
       }}

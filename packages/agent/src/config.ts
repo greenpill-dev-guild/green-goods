@@ -40,6 +40,11 @@ export interface Config {
   // Security
   encryptionSecret?: string;
 
+  // Analytics
+  posthogApiKey?: string;
+  posthogHost: string;
+  analyticsEnabled: boolean;
+
   // Environment
   nodeEnv: string;
   isDevelopment: boolean;
@@ -68,6 +73,10 @@ export function loadConfig(): Config {
     throw new Error(`Invalid BOT_MODE: ${mode}. Must be 'polling' or 'webhook'`);
   }
 
+  // Analytics configuration
+  const posthogApiKey = process.env.POSTHOG_AGENT_KEY;
+  const analyticsEnabled = process.env.ANALYTICS_ENABLED !== "false" && nodeEnv === "production";
+
   return {
     // Chain
     chain,
@@ -87,6 +96,11 @@ export function loadConfig(): Config {
 
     // Security
     encryptionSecret: process.env.ENCRYPTION_SECRET,
+
+    // Analytics
+    posthogApiKey,
+    posthogHost: process.env.POSTHOG_HOST || "https://us.i.posthog.com",
+    analyticsEnabled,
 
     // Environment
     nodeEnv,
@@ -115,12 +129,22 @@ export function validateConfig(config: Config): void {
     }
   }
 
+  // Check analytics configuration
+  if (config.isProduction && !config.posthogApiKey) {
+    warnings.push("POSTHOG_AGENT_KEY not set. Analytics will be disabled.");
+  }
+
   // Log warnings
   if (warnings.length > 0) {
     console.warn("⚠️  Configuration warnings:");
     for (const warning of warnings) {
       console.warn(`   - ${warning}`);
     }
+  }
+
+  // Log analytics status
+  if (config.analyticsEnabled) {
+    console.log("📊 Analytics enabled");
   }
 }
 

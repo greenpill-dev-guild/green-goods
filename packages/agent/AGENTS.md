@@ -40,6 +40,7 @@ src/
 │       └── transformer.ts  # Telegram <-> core envelope conversion
 │
 ├── services/                # Reusable utilities
+│   ├── analytics.ts        # PostHog analytics tracking
 │   ├── crypto.ts           # Key encryption, secure random
 │   └── rate-limiter.ts     # Sliding window rate limiting
 │
@@ -152,6 +153,9 @@ BOT_MODE=webhook PORT=3000 WEBHOOK_URL=https://your-domain.com bun run start
 | `WEBHOOK_URL` | Public URL for webhooks | For webhook mode |
 | `TELEGRAM_WEBHOOK_SECRET` | Secret for webhook verification | No |
 | `DB_PATH` | SQLite database path (default: data/agent.db) | No |
+| `POSTHOG_AGENT_KEY` | PostHog API key for analytics | For production |
+| `POSTHOG_HOST` | PostHog host (default: https://us.i.posthog.com) | No |
+| `ANALYTICS_ENABLED` | Enable/disable analytics (default: true in prod) | No |
 
 ## Running the Agent
 
@@ -226,6 +230,45 @@ interface VoiceProcessor {
 }
 ```
 
+### 5. Analytics Tracking
+
+Analytics are tracked via the Analytics service:
+
+```typescript
+import { getAnalytics, createTimer, hashPlatformId } from './services/analytics';
+
+// Get singleton analytics instance
+const analytics = getAnalytics();
+
+// Track command execution
+analytics.trackCommand(hashPlatformId('telegram', platformId), 'start', {
+  platform: 'telegram',
+});
+
+// Measure performance
+const timer = createTimer();
+// ... do work ...
+const metrics = timer.stop('handlerName');
+analytics.trackPerformance(distinctId, metrics);
+
+// Track errors
+analytics.trackError(distinctId, error, { handler: 'submit' });
+
+// Shutdown on process exit
+await analytics.shutdown();
+```
+
+**Tracked Events:**
+- `user_created` - New user wallet creation
+- `command_executed` / `command_failed` - Command execution
+- `message_processed` - Text/voice message handling
+- `work_submitted` / `work_confirmed` - Work submission flow
+- `work_approved` / `work_rejected` - Operator actions
+- `garden_joined` - User joining a garden
+- `rate_limited` - Rate limit hits
+- `error_occurred` - Error tracking
+- `performance_measured` - Latency metrics
+
 ## Adding a New Platform
 
 1. Create adapter in `src/adapters/{platform}/`:
@@ -262,6 +305,7 @@ bun test --coverage
 | `viem` | Ethereum wallet/blockchain operations |
 | `@xenova/transformers` | Local Whisper model for STT |
 | `@green-goods/shared` | Shared business logic |
+| `posthog-node` | Analytics tracking |
 
 ## Future Improvements
 
@@ -271,6 +315,7 @@ bun test --coverage
 - [ ] LLM-based NLU for better parsing
 - [ ] Multi-language support
 - [ ] HSM/KMS for key management
+- [ ] Analytics dashboard integration
 
 ## Reference Documents
 

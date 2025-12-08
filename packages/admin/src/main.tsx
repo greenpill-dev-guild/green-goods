@@ -36,7 +36,7 @@ export const Root = () => (
         defaultChainId={DEFAULT_CHAIN_ID}
       >
         <WalletAuthProvider>
-          <AppProvider>
+          <AppProvider posthogKey={import.meta.env.VITE_POSTHOG_ADMIN_KEY}>
             <App />
           </AppProvider>
         </WalletAuthProvider>

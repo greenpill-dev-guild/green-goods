@@ -43,6 +43,7 @@ Scripts live in `package.json`; contract-specific flows are described in the Con
 - [System Architecture](./docs/developer/architecture.md) — full system map and package summaries (GitBook canonical doc)
 - [Developer Getting Started](./docs/developer/getting-started.md) — environment setup, testing, troubleshooting
 - [Contracts Handbook](./docs/developer/contracts-handbook.md) — deployment, upgrades, schema care, validation
+- [IPFS Deployment](./docs/developer/ipfs-deployment.md) — decentralized app deployment via Storacha + Pinata
 - [Product Overview](./docs/features/overview.md) — product architecture and data flow
 - [Karma GAP Integration](./docs/developer/karma-gap.md) — appendix for the GAP attestation bridge
 

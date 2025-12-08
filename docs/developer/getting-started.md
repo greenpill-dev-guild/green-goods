@@ -63,9 +63,10 @@ green-goods/
 
 ### Infrastructure
 
-**Storage**: IPFS via Pinata
+**Storage**: IPFS via Storacha (primary) + Pinata (redundancy)
 **Auth**: Pimlico smart accounts + Reown AppKit
 **Attestations**: EAS (Ethereum Attestation Service)
+**Deployment**: Decentralized via IPFS ([deployment guide](ipfs-deployment.md))
 
 ---
 

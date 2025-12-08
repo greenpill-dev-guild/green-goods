@@ -9,10 +9,10 @@ const IS_DEBUG = import.meta.env.VITE_POSTHOG_DEBUG === "true";
 const isAlreadyInitialized =
   typeof (posthog as any).config !== "undefined" && (posthog as any).config?.api_host !== undefined;
 
-if (!isAlreadyInitialized && import.meta.env.VITE_PUBLIC_POSTHOG_KEY) {
+if (!isAlreadyInitialized && import.meta.env.VITE_POSTHOG_KEY) {
   try {
-    posthog.init(import.meta.env.VITE_PUBLIC_POSTHOG_KEY, {
-      api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+    posthog.init(import.meta.env.VITE_POSTHOG_KEY, {
+      api_host: import.meta.env.VITE_POSTHOG_HOST,
       debug: IS_DEBUG,
     });
   } catch (error) {

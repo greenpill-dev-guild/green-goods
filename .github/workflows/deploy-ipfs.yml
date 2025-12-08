@@ -7,6 +7,11 @@ on:
       - 'packages/client/**'
       - 'packages/admin/**'
       - 'packages/shared/**'
+  pull_request:
+    paths:
+      - 'packages/client/**'
+      - 'packages/admin/**'
+      - 'packages/shared/**'
   workflow_dispatch:
     inputs:
       app:
@@ -18,10 +23,17 @@ on:
           - client
           - admin
 
+# Required permissions for PR comments and commit status
+permissions:
+  contents: read
+  pull-requests: write
+  statuses: write
+
 jobs:
   deploy-client:
     if: >
       (github.event_name == 'push') ||
+      (github.event_name == 'pull_request') ||
       (github.event.inputs.app == 'both' || github.event.inputs.app == 'client')
     runs-on: ubuntu-latest
     outputs:
@@ -68,26 +80,32 @@ jobs:
           VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID }}
           VITE_PIMLICO_API_KEY: ${{ secrets.VITE_PIMLICO_API_KEY }}
           VITE_ENVIO_INDEXER_URL: ${{ secrets.VITE_ENVIO_INDEXER_URL }}
-          VITE_PUBLIC_POSTHOG_KEY: ${{ secrets.VITE_PUBLIC_POSTHOG_KEY }}
-          VITE_PUBLIC_POSTHOG_HOST: "https://app.posthog.com"
+          VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
+          VITE_POSTHOG_HOST: "https://app.posthog.com"
           VITE_APP_URL: ${{ steps.env.outputs.app_url }}
 
-      - name: Deploy to IPFS (Pinata)
+      - name: Deploy to IPFS
         id: ipfs
         uses: ipshipyard/ipfs-deploy-action@v1
         with:
           path-to-deploy: packages/client/dist
-          pinata-jwt: ${{ secrets.PINATA_JWT }}
+          # Primary: Storacha (free, permanent storage)
+          storacha-key: ${{ secrets.STORACHA_KEY }}
+          storacha-proof: ${{ secrets.STORACHA_PROOF }}
+          # Secondary: Pinata (fast gateway, redundancy)
+          pinata-jwt-token: ${{ secrets.PINATA_JWT }}
+          # PR features (comments, commit status)
+          github-token: ${{ github.token }}
 
       - name: Deployment Summary
         run: |
-          echo "## Client deployed to IPFS" >> $GITHUB_STEP_SUMMARY
+          echo "## 🌱 Client deployed to IPFS" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Environment:** ${{ steps.env.outputs.env }}" >> $GITHUB_STEP_SUMMARY
           echo "**Chain ID:** ${{ steps.env.outputs.chain_id }}" >> $GITHUB_STEP_SUMMARY
           echo "**CID:** \`${{ steps.ipfs.outputs.cid }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Update DNSLink" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 Update DNSLink" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Set TXT record \`${{ steps.env.outputs.dnslink_name }}\` on \`${{ steps.env.outputs.domain }}\` to:" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -95,15 +113,17 @@ jobs:
           echo "dnslink=/ipfs/${{ steps.ipfs.outputs.cid }}" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Gateway Links" >> $GITHUB_STEP_SUMMARY
+          echo "### 🌐 Gateway Links" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- [Storacha Gateway](https://${{ steps.ipfs.outputs.cid }}.ipfs.w3s.link)" >> $GITHUB_STEP_SUMMARY
           echo "- [dweb.link](https://${{ steps.ipfs.outputs.cid }}.ipfs.dweb.link)" >> $GITHUB_STEP_SUMMARY
-          echo "- [w3s.link](https://${{ steps.ipfs.outputs.cid }}.ipfs.w3s.link)" >> $GITHUB_STEP_SUMMARY
-          echo "- [cloudflare-ipfs.com](https://${{ steps.ipfs.outputs.cid }}.ipfs.cf-ipfs.com)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Service Worker Gateway](https://${{ steps.ipfs.outputs.cid }}.ipfs.inbrowser.link)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Cloudflare](https://${{ steps.ipfs.outputs.cid }}.ipfs.cf-ipfs.com)" >> $GITHUB_STEP_SUMMARY
 
   deploy-admin:
     if: >
       (github.event_name == 'push') ||
+      (github.event_name == 'pull_request') ||
       (github.event.inputs.app == 'both' || github.event.inputs.app == 'admin')
     runs-on: ubuntu-latest
     outputs:
@@ -150,26 +170,32 @@ jobs:
           VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID }}
           VITE_PIMLICO_API_KEY: ${{ secrets.VITE_PIMLICO_API_KEY }}
           VITE_ENVIO_INDEXER_URL: ${{ secrets.VITE_ENVIO_INDEXER_URL }}
-          VITE_PUBLIC_POSTHOG_KEY: ${{ secrets.VITE_PUBLIC_POSTHOG_KEY }}
-          VITE_PUBLIC_POSTHOG_HOST: "https://app.posthog.com"
+          VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
+          VITE_POSTHOG_HOST: "https://app.posthog.com"
           VITE_APP_URL: ${{ steps.env.outputs.app_url }}
 
-      - name: Deploy to IPFS (Pinata)
+      - name: Deploy to IPFS
         id: ipfs
         uses: ipshipyard/ipfs-deploy-action@v1
         with:
           path-to-deploy: packages/admin/dist
-          pinata-jwt: ${{ secrets.PINATA_JWT }}
+          # Primary: Storacha (free, permanent storage)
+          storacha-key: ${{ secrets.STORACHA_KEY }}
+          storacha-proof: ${{ secrets.STORACHA_PROOF }}
+          # Secondary: Pinata (fast gateway, redundancy)
+          pinata-jwt-token: ${{ secrets.PINATA_JWT }}
+          # PR features (comments, commit status)
+          github-token: ${{ github.token }}
 
       - name: Deployment Summary
         run: |
-          echo "## Admin deployed to IPFS" >> $GITHUB_STEP_SUMMARY
+          echo "## 🛠️ Admin deployed to IPFS" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Environment:** ${{ steps.env.outputs.env }}" >> $GITHUB_STEP_SUMMARY
           echo "**Chain ID:** ${{ steps.env.outputs.chain_id }}" >> $GITHUB_STEP_SUMMARY
           echo "**CID:** \`${{ steps.ipfs.outputs.cid }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Update DNSLink" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 Update DNSLink" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Set TXT record \`${{ steps.env.outputs.dnslink_name }}\` on \`${{ steps.env.outputs.domain }}\` to:" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -177,10 +203,9 @@ jobs:
           echo "dnslink=/ipfs/${{ steps.ipfs.outputs.cid }}" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Gateway Links" >> $GITHUB_STEP_SUMMARY
+          echo "### 🌐 Gateway Links" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- [Storacha Gateway](https://${{ steps.ipfs.outputs.cid }}.ipfs.w3s.link)" >> $GITHUB_STEP_SUMMARY
           echo "- [dweb.link](https://${{ steps.ipfs.outputs.cid }}.ipfs.dweb.link)" >> $GITHUB_STEP_SUMMARY
-          echo "- [w3s.link](https://${{ steps.ipfs.outputs.cid }}.ipfs.w3s.link)" >> $GITHUB_STEP_SUMMARY
-          echo "- [cloudflare-ipfs.com](https://${{ steps.ipfs.outputs.cid }}.ipfs.cf-ipfs.com)" >> $GITHUB_STEP_SUMMARY
-
-
+          echo "- [Service Worker Gateway](https://${{ steps.ipfs.outputs.cid }}.ipfs.inbrowser.link)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Cloudflare](https://${{ steps.ipfs.outputs.cid }}.ipfs.cf-ipfs.com)" >> $GITHUB_STEP_SUMMARY

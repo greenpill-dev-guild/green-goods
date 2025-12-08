@@ -94,8 +94,8 @@ VITE_WALLETCONNECT_PROJECT_ID=your-wc-project-id
 VITE_PINATA_JWT=your-pinata-jwt
 
 # PostHog (analytics)
-VITE_PUBLIC_POSTHOG_KEY=phc_...
-VITE_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
+VITE_POSTHOG_KEY=phc_...
+VITE_POSTHOG_HOST=https://us.i.posthog.com
 ```
 
 ### 3. Deployment Configuration
@@ -163,7 +163,7 @@ PRIVATE_KEY=0x...  # If using raw key (not recommended)
 # Pattern: [PREFIX_][SERVICE_][RESOURCE]_[DESCRIPTOR]
 VITE_PIMLICO_API_KEY           # Client, Pimlico service, API key
 BASE_SEPOLIA_RPC_URL           # Server, Base Sepolia network, RPC URL
-VITE_PUBLIC_POSTHOG_HOST       # Client, PostHog, public host
+VITE_POSTHOG_HOST       # Client, PostHog, public host
 ```
 
 ## Configuration Files
@@ -264,8 +264,8 @@ VITE_PINATA_JWT=get-from-pinata-dashboard
 
 # Analytics (OPTIONAL)
 # Get from: https://posthog.com
-VITE_PUBLIC_POSTHOG_KEY=get-from-posthog-dashboard
-VITE_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
+VITE_POSTHOG_KEY=get-from-posthog-dashboard
+VITE_POSTHOG_HOST=https://us.i.posthog.com
 
 # Never include actual values - always use placeholders with instructions
 # VITE_PIMLICO_API_KEY=pk_real_key_here ❌ WRONG
@@ -368,7 +368,7 @@ VITE_CHAIN_ID=42161
 VITE_PIMLICO_API_KEY=pk_...
 VITE_PINATA_JWT=...
 VITE_WALLETCONNECT_PROJECT_ID=...
-VITE_PUBLIC_POSTHOG_KEY=phc_...
+VITE_POSTHOG_KEY=phc_...
 VITE_ENVIO_INDEXER_URL=https://indexer.greengoods.app/v1/graphql
 
 # No debug flags

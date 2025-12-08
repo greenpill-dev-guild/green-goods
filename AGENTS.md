@@ -47,10 +47,27 @@ Default to local commands (rg, bun, forge) when the task is small. Escalate to M
 - Contracts should revert with custom errors and emit events for state changes.
 - Offline workflows persist to IndexedDB (see `packages/shared/src/modules/job-queue`); respect existing queue APIs when adding new flows.
 
+## IPFS Deployment
+
+Client and admin apps are deployed to IPFS via GitHub Actions (`.github/workflows/deploy-ipfs.yml`).
+
+**Triggers:**
+- Push to `main` → Production (Arbitrum)
+- Push to `develop` → Staging (Base Sepolia)
+- Pull requests → Preview deployment with PR comment
+
+**Required GitHub Secrets:**
+- `STORACHA_KEY` — Storacha signing key
+- `STORACHA_PROOF` — UCAN delegation proof
+- `PINATA_JWT` — Pinata JWT for redundancy
+
+See [IPFS Deployment Guide](./docs/developer/ipfs-deployment.md) for setup and troubleshooting.
+
 ## Reference Materials
 
 - [Developer Docs](./docs/developer/getting-started.md) — environment, testing, troubleshooting
 - [Contracts Handbook](./docs/developer/contracts-handbook.md) — deployment + upgrade playbooks
+- [IPFS Deployment](./docs/developer/ipfs-deployment.md) — decentralized app deployment
 - [Product Overview](./docs/features/overview.md) — architecture snapshot
 - [Karma GAP Integration](./docs/developer/karma-gap.md) — GAP-specific context
 

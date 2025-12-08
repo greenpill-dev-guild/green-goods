@@ -78,6 +78,7 @@
 * [Testing & QA](developer/testing.md)
 * [API & Integration Reference](developer/api-reference.md)
 * [Contract Deployments & Upgrades](developer/contracts-handbook.md)
+* [IPFS Deployment](developer/ipfs-deployment.md)
 * [Karma GAP Integration](developer/karma-gap.md)
 * [Theme System](developer/theming.md)
 

@@ -60,14 +60,17 @@ FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer
 BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
 
 # Optional
-VITE_PINATA_JWT=your_pinata_jwt
 ETHERSCAN_API_KEY=your_etherscan_key
+
+# File Storage (Storacha/IPFS) - for work uploads
+STORACHA_KEY=your_storacha_key
+STORACHA_PROOF=your_storacha_proof
 ```
 
 **Get API Keys**:
 - Reown: [cloud.reown.com](https://cloud.reown.com/)
 - Pimlico: [dashboard.pimlico.io](https://dashboard.pimlico.io/)
-- Pinata: [app.pinata.cloud](https://app.pinata.cloud/)
+- Storacha: [console.storacha.network](https://console.storacha.network/) (see [IPFS Deployment Guide](ipfs-deployment.md) for key generation)
 
 ### 4. Start Development
 

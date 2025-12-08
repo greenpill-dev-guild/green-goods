@@ -46,7 +46,7 @@ export const Root = () => (
       defaultChainId={DEFAULT_CHAIN_ID}
     >
       <ClientAuthProvider>
-        <AppProvider>
+        <AppProvider posthogKey={import.meta.env.VITE_POSTHOG_KEY}>
           <App />
         </AppProvider>
       </ClientAuthProvider>
