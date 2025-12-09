@@ -1,123 +1,122 @@
 # Green Goods Agent — Architecture Guide
 
-The agent package provides a platform-agnostic bot for Green Goods that currently supports Telegram, with architecture designed for future Discord and WhatsApp integrations.
+The agent package provides a platform-agnostic bot for Green Goods that currently supports Telegram, with architecture designed for future Discord, WhatsApp, and SMS integrations.
 
 ## Architecture Overview
 
 ```
 src/
-├── core/                    # Platform-agnostic business logic
-│   ├── contracts/          # Message envelope types
-│   │   ├── message.ts      # InboundMessage, MessageContent types
-│   │   └── response.ts     # OutboundResponse, HandlerResult types
-│   ├── handlers/           # Command and message handlers
-│   │   ├── start.ts        # /start - wallet creation
-│   │   ├── join.ts         # /join - garden membership
-│   │   ├── status.ts       # /status - user status
-│   │   ├── help.ts         # /help - command list
-│   │   ├── pending.ts      # /pending - operator work list
-│   │   ├── submit.ts       # Work submission (text/voice)
-│   │   ├── approve.ts      # /approve - operator approval
-│   │   ├── reject.ts       # /reject - operator rejection
-│   │   └── utils.ts        # Handler utilities
-│   └── orchestrator.ts     # Routes messages to handlers
+├── types.ts               # All shared types (messages, responses, users, etc.)
+├── index.ts               # Entry point — initializes services & launches bot
+├── config.ts              # Configuration loader
 │
-├── ports/                   # Interfaces for external dependencies
-│   ├── storage.ts          # StoragePort - user/session/work persistence
-│   ├── ai.ts               # AIPort - STT and NLU
-│   ├── blockchain.ts       # BlockchainPort - on-chain operations
-│   └── index.ts
+├── handlers/              # Command & message handlers
+│   ├── index.ts           # Message router (handleMessage function)
+│   ├── start.ts           # /start — wallet creation
+│   ├── join.ts            # /join — garden membership
+│   ├── status.ts          # /status — user status
+│   ├── help.ts            # /help — command list
+│   ├── pending.ts         # /pending — operator work list
+│   ├── approve.ts         # /approve — operator approval
+│   ├── reject.ts          # /reject — operator rejection
+│   ├── submit.ts          # Work submission (text/voice)
+│   └── utils.ts           # Handler utilities
 │
-├── adapters/                # Platform-specific implementations
-│   ├── storage/
-│   │   └── sqlite.ts       # SQLite storage (platform-agnostic schema)
-│   ├── ai/
-│   │   └── whisper.ts      # Whisper STT + regex NLU
-│   ├── blockchain/
-│   │   └── viem.ts         # Viem blockchain operations
-│   └── telegram/
-│       ├── index.ts        # Telegraf bot setup
-│       └── transformer.ts  # Telegram <-> core envelope conversion
+├── services/              # External integrations (direct, singleton pattern)
+│   ├── index.ts           # Re-exports
+│   ├── db.ts              # SQLite database
+│   ├── blockchain.ts      # Viem blockchain operations
+│   ├── ai.ts              # Whisper STT + regex NLU
+│   ├── crypto.ts          # Key encryption, secure random
+│   └── rate-limiter.ts    # Sliding window rate limiting
 │
-├── services/                # Reusable utilities
-│   ├── analytics.ts        # PostHog analytics tracking
-│   ├── crypto.ts           # Key encryption, secure random
-│   └── rate-limiter.ts     # Sliding window rate limiting
+├── platforms/             # Platform adapters
+│   ├── index.ts           # Re-exports
+│   └── telegram.ts        # Telegram bot, transformer, voice processor
 │
-├── api/                     # HTTP API layer
-│   ├── server.ts           # Fastify server
-│   └── routes/
-│       ├── health.ts       # Health/readiness endpoints
-│       └── webhook.ts      # Platform webhook receivers
-│
-├── config.ts               # Centralized configuration
-└── index.ts                # Entry point
+└── api/                   # HTTP API layer
+    ├── index.ts           # Re-exports
+    └── server.ts          # Fastify health + webhooks
 ```
 
 ## Core Concepts
 
-### 1. Platform-Agnostic Message Contract
+### 1. Unified Types
 
-All platforms are normalized to a common message format:
+All types are centralized in `types.ts`:
 
 ```typescript
+// Messages
 interface InboundMessage {
   id: string;
-  platform: 'telegram' | 'discord' | 'whatsapp';
+  platform: "telegram" | "discord" | "whatsapp" | "sms";
   sender: { platformId: string; displayName?: string };
-  content: MessageContent;  // text | command | voice | callback | image
+  content: MessageContent; // text | command | voice | callback | image
   locale?: string;
   timestamp: number;
 }
 
+// Responses
 interface OutboundResponse {
   text: string;
-  parseMode?: 'markdown' | 'html';
-  buttons?: { label: string; callbackData: string }[];
+  parseMode?: "markdown" | "html";
+  buttons?: ResponseButton[];
 }
+
+// Users, sessions, pending work, etc.
 ```
 
-### 2. Ports & Adapters Pattern
+### 2. Direct Services (No Interfaces)
 
-Dependencies are abstracted behind port interfaces:
+Services are simple singletons initialized at startup:
 
 ```typescript
-// Storage port
-interface StoragePort {
-  getUser(platform: Platform, platformId: string): Promise<User | undefined>;
-  createUser(input: CreateUserInput): Promise<User>;
-  // ... sessions, pending work
-}
+import { initDB, getUser, createUser } from "./services/db";
+import { initBlockchain, submitWork, isOperator } from "./services/blockchain";
+import { initAI, transcribe, parseWorkText } from "./services/ai";
 
-// AI port
-interface AIPort {
-  transcribe(audioPath: string): Promise<string>;
-  parseWorkText(text: string): Promise<ParsedWorkData>;
-}
+// Initialize once at startup
+initDB("data/agent.db");
+initBlockchain(baseSepolia);
+initAI();
 
-// Blockchain port
-interface BlockchainPort {
-  submitWork(params: SubmitWorkParams): Promise<Hex>;
-  isOperator(gardenAddress: string, userAddress: string): Promise<boolean>;
-}
+// Use directly in handlers
+const user = await getUser("telegram", platformId);
 ```
 
-### 3. Orchestrator
+### 3. Message Router
 
-The orchestrator routes messages to handlers:
+The `handleMessage` function in `handlers/index.ts` routes all messages:
 
 ```typescript
-const orchestrator = new Orchestrator({
-  storage,
-  ai,
-  blockchain,
-  rateLimiter,
-  crypto,
-  voiceProcessor,
-  notifier,
-});
+import { handleMessage, setHandlerContext } from "./handlers";
 
-const response = await orchestrator.handle(inboundMessage);
+// Set platform-specific context
+setHandlerContext({ voiceProcessor, notifier });
+
+// Route any message
+const response = await handleMessage(inboundMessage);
+```
+
+### 4. Platform Adapters
+
+Each platform has a single file with:
+- Message transformation (platform → InboundMessage)
+- Response transformation (OutboundResponse → platform format)
+- Bot setup and lifecycle
+- Voice processor (if supporting voice)
+- Notifier (for outbound messages)
+
+```typescript
+import {
+  createTelegramBot,
+  createVoiceProcessor,
+  createNotifier,
+} from "./platforms/telegram";
+
+const bot = createTelegramBot({ token }, handleMessage);
+const voiceProcessor = createVoiceProcessor(bot, transcribe);
+const notifier = createNotifier(bot);
 ```
 
 ## Bot Modes
@@ -140,7 +139,7 @@ BOT_MODE=webhook PORT=3000 WEBHOOK_URL=https://your-domain.com bun run start
 
 - Uses HTTP webhooks
 - Requires public URL
-- Includes health endpoints: `/health`, `/health/ready`
+- Includes health endpoints: `/health`, `/ready`
 
 ## Environment Variables
 
@@ -153,9 +152,6 @@ BOT_MODE=webhook PORT=3000 WEBHOOK_URL=https://your-domain.com bun run start
 | `WEBHOOK_URL` | Public URL for webhooks | For webhook mode |
 | `TELEGRAM_WEBHOOK_SECRET` | Secret for webhook verification | No |
 | `DB_PATH` | SQLite database path (default: data/agent.db) | No |
-| `POSTHOG_AGENT_KEY` | PostHog API key for analytics | For production |
-| `POSTHOG_HOST` | PostHog host (default: https://us.i.posthog.com) | No |
-| `ANALYTICS_ENABLED` | Enable/disable analytics (default: true in prod) | No |
 
 ## Running the Agent
 
@@ -184,15 +180,26 @@ NODE_ENV=production bun run start
 
 ### 1. Handler Structure
 
-Each handler is a pure function that takes a message and dependencies:
+Handlers are pure functions with minimal dependencies:
 
 ```typescript
+export interface StartDeps {
+  generatePrivateKey: () => `0x${string}`;
+}
+
 export async function handleStart(
   message: InboundMessage,
-  deps: { storage: StoragePort; generatePrivateKey: () => Hex }
+  deps: StartDeps
 ): Promise<HandlerResult> {
-  // Business logic
-  return { response: { text: '...' } };
+  const { platform, sender } = message;
+  const user = await db.getUser(platform, sender.platformId);
+
+  if (!user) {
+    const privateKey = deps.generatePrivateKey();
+    // ... create user
+  }
+
+  return { response: { text: "Welcome!", parseMode: "markdown" } };
 }
 ```
 
@@ -203,12 +210,12 @@ Sessions track multi-step flows (e.g., work confirmation):
 ```typescript
 // Set session in handler result
 return {
-  response: { text: 'Confirm?', buttons: [...] },
-  updateSession: { step: 'confirming_work', draft: workData },
+  response: { text: "Confirm?", buttons: [...] },
+  updateSession: { step: "confirming_work", draft: workData },
 };
 
 // Clear session after completion
-return { response: { text: 'Done!' }, clearSession: true };
+return { response: { text: "Done!" }, clearSession: true };
 ```
 
 ### 3. Rate Limiting
@@ -216,72 +223,49 @@ return { response: { text: 'Done!' }, clearSession: true };
 Rate limits are checked per action type:
 
 ```typescript
-const rateCheck = this.checkRateLimit(platformId, 'submission');
-if (rateCheck) return rateCheck;  // Returns error response if limited
+import { rateLimiter } from "./services/rate-limiter";
+
+const result = rateLimiter.check(platformId, "submission");
+if (!result.allowed) {
+  return textResponse(`⏳ ${result.message}`);
+}
 ```
 
 ### 4. Voice Processing
 
-Voice messages are processed through the VoiceProcessor:
+Voice messages are processed through platform-specific processors:
 
 ```typescript
-interface VoiceProcessor {
-  downloadAndTranscribe(audioUrl: string): Promise<string>;
+// In platforms/telegram.ts
+export function createVoiceProcessor(bot: Telegraf, transcribe: TranscribeFn) {
+  return {
+    async downloadAndTranscribe(fileId: string): Promise<string> {
+      const fileLink = await bot.telegram.getFileLink(fileId);
+      // Download, convert, transcribe...
+      return transcribedText;
+    },
+  };
 }
 ```
 
-### 5. Analytics Tracking
-
-Analytics are tracked via the Analytics service:
-
-```typescript
-import { getAnalytics, createTimer, hashPlatformId } from './services/analytics';
-
-// Get singleton analytics instance
-const analytics = getAnalytics();
-
-// Track command execution
-analytics.trackCommand(hashPlatformId('telegram', platformId), 'start', {
-  platform: 'telegram',
-});
-
-// Measure performance
-const timer = createTimer();
-// ... do work ...
-const metrics = timer.stop('handlerName');
-analytics.trackPerformance(distinctId, metrics);
-
-// Track errors
-analytics.trackError(distinctId, error, { handler: 'submit' });
-
-// Shutdown on process exit
-await analytics.shutdown();
-```
-
-**Tracked Events:**
-- `user_created` - New user wallet creation
-- `command_executed` / `command_failed` - Command execution
-- `message_processed` - Text/voice message handling
-- `work_submitted` / `work_confirmed` - Work submission flow
-- `work_approved` / `work_rejected` - Operator actions
-- `garden_joined` - User joining a garden
-- `rate_limited` - Rate limit hits
-- `error_occurred` - Error tracking
-- `performance_measured` - Latency metrics
-
 ## Adding a New Platform
 
-1. Create adapter in `src/adapters/{platform}/`:
-   - `transformer.ts` - Convert platform events <-> core envelopes
-   - `index.ts` - Platform client setup
+1. Create `src/platforms/{platform}.ts`:
+   - `toInboundMessage()` — Convert platform event → InboundMessage
+   - `toResponse()` — Convert OutboundResponse → platform format
+   - `create{Platform}Bot()` — Bot setup and message routing
+   - `createVoiceProcessor()` — If supporting voice
+   - `createNotifier()` — For outbound messages
 
-2. Create voice processor (if supporting voice)
+2. Add webhook route in `src/api/server.ts`:
 
-3. Create notifier (for outbound messages)
+```typescript
+case "discord":
+  // Handle Discord webhook
+  break;
+```
 
-4. Add webhook route in `src/api/routes/webhook.ts`
-
-5. Update entry point to initialize the new adapter
+3. Update `src/index.ts` to initialize the new platform
 
 ## Testing
 
@@ -305,17 +289,17 @@ bun test --coverage
 | `viem` | Ethereum wallet/blockchain operations |
 | `@xenova/transformers` | Local Whisper model for STT |
 | `@green-goods/shared` | Shared business logic |
-| `posthog-node` | Analytics tracking |
 
 ## Future Improvements
 
 - [ ] Discord adapter
 - [ ] WhatsApp adapter (Meta Cloud API)
+- [ ] SMS adapter (Twilio)
 - [ ] Photo/media attachments
 - [ ] LLM-based NLU for better parsing
 - [ ] Multi-language support
 - [ ] HSM/KMS for key management
-- [ ] Analytics dashboard integration
+- [ ] Analytics integration (PostHog)
 
 ## Reference Documents
 

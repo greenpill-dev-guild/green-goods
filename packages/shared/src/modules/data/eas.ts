@@ -65,20 +65,22 @@ const parseDataToGardenAssessment = (
     ? decodedDataJson
     : JSON.parse(decodedDataJson ?? "[]");
   const findField = (name: string) => fields.find((field) => field.name === name);
-  const readValue = (name: string) => findField(name)?.value?.value;
+  const readValue = (name: string): unknown => findField(name)?.value?.value;
+  const readString = (name: string): string => (readValue(name) as string) ?? "";
+  const readStringArray = (name: string): string[] => (readValue(name) as string[]) ?? [];
 
-  const title = readValue("title") ?? "";
-  const description = readValue("description") ?? "";
-  const assessmentType = readValue("assessmentType") ?? "";
-  const capitals = (readValue("capitals") as string[]) ?? [];
-  const metricsCid: string | null = readValue("metricsJSON") ?? null;
-  const evidenceMediaHashes = (readValue("evidenceMedia") as string[]) ?? [];
-  const reportDocumentsRaw = (readValue("reportDocuments") as string[]) ?? [];
-  const impactAttestationsRaw = (readValue("impactAttestations") as string[]) ?? [];
-  const startDateRaw = readValue("startDate");
-  const endDateRaw = readValue("endDate");
-  const location = readValue("location") ?? "";
-  const tags = (readValue("tags") as string[]) ?? [];
+  const title = readString("title");
+  const description = readString("description");
+  const assessmentType = readString("assessmentType");
+  const capitals = readStringArray("capitals");
+  const metricsCid: string | null = (readValue("metricsJSON") as string) ?? null;
+  const evidenceMediaHashes = readStringArray("evidenceMedia");
+  const reportDocumentsRaw = readStringArray("reportDocuments");
+  const impactAttestationsRaw = readStringArray("impactAttestations");
+  const startDateRaw = readValue("startDate") as NumberConvertibleValue;
+  const endDateRaw = readValue("endDate") as NumberConvertibleValue;
+  const location = readString("location");
+  const tags = readStringArray("tags");
 
   const startDate = toNumberFromField(startDateRaw);
   const endDate = toNumberFromField(endDateRaw);
@@ -129,8 +131,8 @@ const parseDataToWork = (
   const actionUIDData = data.find((d) => d.name === "actionUID");
 
   // Handle actionUID which can be a number, hex string, or object with hex property
-  const actionUIDValue = actionUIDData?.value?.value;
-  const actionUIDHex = actionUIDData?.value?.hex;
+  const actionUIDValue = actionUIDData?.value?.value as NumberConvertibleValue;
+  const actionUIDHex = actionUIDData?.value?.hex as string | undefined;
   const actionUID = toNumberFromField(actionUIDHex ?? actionUIDValue) ?? 0;
 
   return {
@@ -166,11 +168,13 @@ const parseDataToWorkApproval = (
   const workUIDData = findField("workUID");
   const approvedData = findField("approved");
 
+  const actionUIDValue = actionUIDData?.value?.value as NumberConvertibleValue;
+
   return {
     id: workApprovalUID,
     operatorAddress: attestation.attester,
     gardenerAddress: attestation.recipient,
-    actionUID: toNumberFromField(actionUIDData?.value?.value as NumberConvertibleValue) ?? 0,
+    actionUID: toNumberFromField(actionUIDValue) ?? 0,
     workUID: (workUIDData?.value?.value as string) || "",
     approved: (approvedData?.value?.value as boolean) ?? false,
     feedback: (feedbackData?.value?.value as string) || "",

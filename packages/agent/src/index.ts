@@ -1,144 +1,117 @@
 /**
  * Green Goods Agent
  *
- * Multi-platform agent for Green Goods that supports:
+ * Multi-platform bot supporting:
  * - Telegram (polling and webhook modes)
  * - HTTP API for health checks and webhooks
  *
- * Future platforms:
- * - Discord
- * - WhatsApp
+ * Future platforms: Discord, WhatsApp, SMS
  */
 
 import dotenv from "dotenv";
 import path from "path";
 
-// Load environment variables from root .env file
+// Load environment from root .env
 dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 
-import { getConfig } from "./config";
-import { Orchestrator, type OrchestratorDeps } from "./core/orchestrator";
-import { SQLiteStorage } from "./adapters/storage/sqlite";
-import { WhisperAI } from "./adapters/ai/whisper";
-import { ViemBlockchain } from "./adapters/blockchain/viem";
-import {
-  createTelegramBot,
-  createTelegramVoiceProcessor,
-  createTelegramNotifier,
-} from "./adapters/telegram";
 import { createServer, startServer } from "./api/server";
-import { rateLimiter, type RateLimitType } from "./services/rate-limiter";
-import { generateSecurePrivateKey, generateSecureId, isValidAddress } from "./services/crypto";
-
-// ============================================================================
-// FACTORIES
-// ============================================================================
-
-/**
- * Creates a rate limiter adapter for the orchestrator
- */
-function createRateLimiterAdapter() {
-  return {
-    check: (platformId: string, type: string) =>
-      rateLimiter.check(platformId, type as RateLimitType),
-    peek: (platformId: string, type: string) => rateLimiter.peek(platformId, type as RateLimitType),
-  };
-}
-
-/**
- * Creates a crypto service adapter for the orchestrator
- */
-function createCryptoAdapter() {
-  return {
-    generateSecurePrivateKey,
-    generateSecureId,
-    isValidAddress,
-  };
-}
+import { getConfig } from "./config";
+import { handleMessage, setHandlerContext } from "./handlers";
+import {
+  createNotifier,
+  createPhotoProcessor,
+  createTelegramBot,
+  createVoiceProcessor,
+} from "./platforms/telegram";
+import { initAI, isAIModelLoaded } from "./services/ai";
+import { clearBlockchainCache, initBlockchain } from "./services/blockchain";
+import { closeDB, initDB } from "./services/db";
+import { logger } from "./services/logger";
+import { initMedia, isMediaConfigured } from "./services/media";
+import { rateLimiter } from "./services/rate-limiter";
 
 // ============================================================================
 // INITIALIZATION
 // ============================================================================
 
 async function main(): Promise<void> {
-  // Load configuration
   const config = getConfig();
 
-  console.log("🌿 Green Goods Agent");
-  console.log(`   Environment: ${config.nodeEnv}`);
-  console.log(`   Mode: ${config.mode}`);
-  console.log(`   Chain: ${config.chain.name} (${config.chainId})`);
-  console.log(`   Database: ${config.dbPath}`);
+  logger.info(
+    {
+      environment: config.nodeEnv,
+      mode: config.mode,
+      chain: config.chain.name,
+      chainId: config.chainId,
+      database: config.dbPath,
+    },
+    "🌿 Green Goods Agent starting"
+  );
 
-  // Initialize adapters
-  const storage = new SQLiteStorage(config.dbPath);
-  const ai = new WhisperAI();
-  const blockchain = new ViemBlockchain(config.chain);
+  // Initialize services
+  initDB(config.dbPath);
+  initBlockchain(config.chain);
+  const ai = initAI();
 
-  // Create shared adapter instances
-  const rateLimiterAdapter = createRateLimiterAdapter();
-  const cryptoAdapter = createCryptoAdapter();
+  // Initialize media service if Pinata JWT is available
+  const pinataJwt = process.env.PINATA_JWT || process.env.VITE_PINATA_JWT;
+  if (pinataJwt) {
+    initMedia(pinataJwt, process.env.VITE_PINATA_GATEWAY);
+    logger.info("Media service (Pinata) initialized");
+  } else {
+    logger.warn("PINATA_JWT not configured - photo uploads will be disabled");
+  }
 
-  // Create base orchestrator dependencies
-  const baseDeps: OrchestratorDeps = {
-    storage,
-    ai,
-    blockchain,
-    rateLimiter: rateLimiterAdapter,
-    crypto: cryptoAdapter,
-  };
+  // Create Telegram bot
+  const bot = createTelegramBot({ token: config.telegramToken }, handleMessage);
 
-  // Create initial orchestrator for bot setup
-  const orchestrator = new Orchestrator(baseDeps);
+  // Create platform-specific adapters
+  const voiceProcessor = createVoiceProcessor(bot, (audioPath) => ai.transcribe(audioPath));
+  const photoProcessor = isMediaConfigured() ? createPhotoProcessor(bot) : undefined;
+  const notifier = createNotifier(bot);
 
-  // Create Telegram bot and platform-specific adapters
-  const bot = createTelegramBot(config.telegramToken, orchestrator);
-  const voiceProcessor = createTelegramVoiceProcessor(bot, ai);
-  const notifier = createTelegramNotifier(bot);
-
-  // Create full orchestrator with all adapters
-  const fullOrchestrator = new Orchestrator({
-    ...baseDeps,
-    voiceProcessor,
-    notifier,
-  });
+  // Set handler context with platform adapters
+  setHandlerContext({ voiceProcessor, photoProcessor, notifier });
 
   // ============================================================================
   // LAUNCH
   // ============================================================================
 
   if (config.mode === "webhook") {
-    // Webhook mode: Start HTTP server with Telegram webhook
-    const server = createServer(
-      {
-        orchestrator: fullOrchestrator,
-        telegramToken: config.telegramToken,
-        isAIReady: () => ai.isModelLoaded(),
-      },
-      {
-        port: config.port,
-        host: config.host,
-        logger: config.isDevelopment,
-      }
-    );
+    // Webhook mode: Start HTTP server
+    const server = createServer({
+      isAIReady: isAIModelLoaded,
+    });
 
-    // Set up Telegram webhook handler
+    // Set up Telegram webhook
     const webhookPath = `/webhook/telegram`;
     await bot.telegram.setWebhook(`${process.env.WEBHOOK_URL}${webhookPath}`, {
       secret_token: config.telegramWebhookSecret,
     });
 
-    // Start webhook mode
+    // Add Telegram webhook handler to server
+    server.post(webhookPath, async (request, reply) => {
+      const secretToken = request.headers["x-telegram-bot-api-secret-token"];
+      if (config.telegramWebhookSecret && secretToken !== config.telegramWebhookSecret) {
+        return reply.status(401).send({ error: "Unauthorized" });
+      }
+      await bot.handleUpdate(request.body as Parameters<typeof bot.handleUpdate>[0]);
+      return { ok: true };
+    });
+
     await startServer(server, { port: config.port, host: config.host });
 
-    console.log("✅ Agent running in webhook mode!");
-    console.log(`   Webhook: ${process.env.WEBHOOK_URL}${webhookPath}`);
-    console.log(`   Health: http://${config.host}:${config.port}/health`);
+    logger.info(
+      {
+        webhook: `${process.env.WEBHOOK_URL}${webhookPath}`,
+        health: `http://${config.host}:${config.port}/health`,
+      },
+      "✅ Agent running in webhook mode"
+    );
   } else {
-    // Polling mode: Start bot with long polling
+    // Polling mode
     await bot.launch(() => {
-      console.log("✅ Agent running in polling mode!");
-      console.log("   Press Ctrl+C to stop.\n");
+      logger.info("✅ Agent running in polling mode");
     });
   }
 
@@ -147,36 +120,31 @@ async function main(): Promise<void> {
   // ============================================================================
 
   async function shutdown(signal: string): Promise<void> {
-    console.log(`\n📴 Received ${signal}, shutting down gracefully...`);
+    logger.info({ signal }, "📴 Shutting down gracefully");
 
-    // Stop bot
     bot.stop(signal);
-
-    // Clean up services
     rateLimiter.destroy();
-    blockchain.clearCache();
-    await storage.close();
+    clearBlockchainCache();
+    await closeDB();
 
-    console.log("👋 Goodbye!");
+    logger.info("👋 Agent shutdown complete");
     process.exit(0);
   }
 
   process.once("SIGINT", () => shutdown("SIGINT"));
   process.once("SIGTERM", () => shutdown("SIGTERM"));
 
-  // Handle uncaught errors
   process.on("uncaughtException", (error) => {
-    console.error("Uncaught exception:", error);
+    logger.fatal({ err: error }, "Uncaught exception");
     shutdown("uncaughtException");
   });
 
   process.on("unhandledRejection", (reason, promise) => {
-    console.error("Unhandled rejection at:", promise, "reason:", reason);
+    logger.error({ reason, promise }, "Unhandled rejection");
   });
 }
 
-// Run
 main().catch((error) => {
-  console.error("Failed to start agent:", error);
+  logger.fatal({ err: error }, "Failed to start agent");
   process.exit(1);
 });

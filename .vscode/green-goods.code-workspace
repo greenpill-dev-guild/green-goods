@@ -33,7 +33,12 @@
       "path": "../packages/shared"
     },
     {
+      "name": "src",
       "path": "../packages/shared/src"
+    },
+    {
+      "name": "agent",
+      "path": "../packages/agent"
     }
   ],
   "settings": {

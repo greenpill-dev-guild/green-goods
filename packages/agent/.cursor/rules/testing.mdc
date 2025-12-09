@@ -1,0 +1,172 @@
+# Agent Testing Conventions
+
+Testing patterns and requirements for the Green Goods agent package.
+
+## Test Structure
+
+### Test Organization
+
+```
+src/__tests__/
+├── handlers.test.ts       # Command handler tests
+├── storage.test.ts        # SQLite operations
+├── crypto.test.ts         # Encryption/validation
+├── rate-limiter.test.ts   # Rate limiting
+└── orchestrator.test.ts   # Message routing (legacy)
+```
+
+**Total:** 132+ test cases
+
+### Test File Naming
+
+- Pattern: `{module}.test.ts`
+- Place in `src/__tests__/`
+- One test file per module/feature
+
+## Coverage Targets
+
+| Component | Target | Priority |
+|-----------|--------|----------|
+| **Crypto (security)** | 100% | Critical |
+| **Rate Limiter** | 100% | Critical |
+| **Handlers** | 90%+ | High |
+| **Message Router** | 90%+ | High |
+| **Storage** | 85%+ | High |
+| **Platform Adapters** | 70%+ | Medium |
+
+**Overall Target:** 80%+
+
+## Test Patterns
+
+### 1. Handler Tests
+
+Handlers are pure functions - easy to test:
+
+```typescript
+describe("handleStart", () => {
+  beforeAll(() => {
+    initDB(":memory:");
+  });
+
+  afterAll(() => {
+    closeDB();
+  });
+
+  it("creates new user", async () => {
+    const message: InboundMessage = {
+      id: "msg1",
+      platform: "telegram",
+      sender: { platformId: "123" },
+      content: { type: "command", name: "start", args: [] },
+      timestamp: Date.now(),
+    };
+
+    const result = await handleStart(message, {
+      generatePrivateKey: () => "0x" + "a".repeat(64),
+    });
+
+    expect(result.response.text).toContain("Welcome");
+  });
+});
+```
+
+### 2. Storage Tests
+
+Test real database operations:
+
+```typescript
+describe("SQLite Storage", () => {
+  beforeAll(() => {
+    initDB(":memory:");
+  });
+
+  afterAll(() => {
+    closeDB();
+  });
+
+  it("creates and retrieves user", async () => {
+    await createUser({
+      platform: "telegram",
+      platformId: "123",
+      privateKey: "encrypted-key",
+      address: "0xabc...",
+    });
+
+    const user = await getUser("telegram", "123");
+    expect(user?.address).toBe("0xabc...");
+  });
+});
+```
+
+### 3. Crypto Tests
+
+100% coverage for encryption:
+
+```typescript
+describe("encryption", () => {
+  const secret = "test-secret-32-chars-minimum!!!!";
+  const privateKey = "0x" + "1".repeat(64);
+
+  it("encrypts and decrypts correctly", async () => {
+    const encrypted = await encryptPrivateKey(privateKey, secret);
+    const decrypted = await decryptPrivateKey(encrypted, secret);
+    expect(decrypted).toBe(privateKey);
+  });
+
+  it("throws on wrong secret", async () => {
+    const encrypted = await encryptPrivateKey(privateKey, secret);
+    await expect(
+      decryptPrivateKey(encrypted, "wrong-secret")
+    ).rejects.toThrow();
+  });
+});
+```
+
+### 4. Rate Limiter Tests
+
+```typescript
+describe("RateLimiter", () => {
+  it("blocks after limit exceeded", () => {
+    const limiter = new RateLimiter();
+
+    // Exhaust limit
+    for (let i = 0; i < 10; i++) {
+      limiter.check("user1", "messages");
+    }
+
+    const result = limiter.check("user1", "messages");
+    expect(result.allowed).toBe(false);
+  });
+});
+```
+
+## Running Tests
+
+```bash
+# All tests
+bun test
+
+# Watch mode
+bun test --watch
+
+# Coverage
+bun test --coverage
+
+# Specific file
+bun test storage.test.ts
+```
+
+## Test Quality Checklist
+
+- [ ] Unit tests for handlers
+- [ ] Integration tests for storage
+- [ ] Error case coverage
+- [ ] Edge cases (empty, null)
+- [ ] Service initialization in beforeAll
+- [ ] Cleanup in afterAll
+- [ ] No flaky tests
+
+## References
+
+- Test files: `src/__tests__/`
+- Bun test docs: https://bun.sh/docs/cli/test

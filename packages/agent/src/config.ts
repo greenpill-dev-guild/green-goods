@@ -6,8 +6,9 @@
  */
 
 import { getDefaultChain } from "@green-goods/shared";
-import { baseSepolia, arbitrum, celo, base, optimism } from "viem/chains";
 import type { Chain } from "viem";
+import { arbitrum, base, baseSepolia, celo, optimism } from "viem/chains";
+import { logger } from "./services/logger";
 
 // Map chain IDs to viem Chain objects
 const CHAIN_MAP: Record<number, Chain> = {
@@ -136,15 +137,14 @@ export function validateConfig(config: Config): void {
 
   // Log warnings
   if (warnings.length > 0) {
-    console.warn("⚠️  Configuration warnings:");
     for (const warning of warnings) {
-      console.warn(`   - ${warning}`);
+      logger.warn({ warning }, "Configuration warning");
     }
   }
 
   // Log analytics status
   if (config.analyticsEnabled) {
-    console.log("📊 Analytics enabled");
+    logger.info("Analytics enabled");
   }
 }
 

@@ -1,0 +1,291 @@
+# Agent Security Patterns
+
+Security best practices and patterns for the Green Goods agent package.
+
+## Threat Model
+
+### Attack Vectors
+
+1. **Custodial Key Compromise** — Private keys stored in database
+2. **Rate Limit Bypass** — Spam/DoS via bot commands
+3. **Injection Attacks** — Malicious input in messages
+4. **Man-in-the-Middle** — Webhook interception
+5. **Replay Attacks** — Reusing old messages/signatures
+6. **Data Exfiltration** — Unauthorized access to user data
+
+### Mitigations
+
+All mitigations implemented and tested:
+- ✅ Private key encryption (AES-256-GCM)
+- ✅ Rate limiting (sliding window)
+- ✅ Input validation (addresses, commands)
+- ✅ TLS/HTTPS only (webhook mode)
+- ✅ Webhook signature verification
+
+## Encryption
+
+### Private Key Storage
+
+**Never store private keys in plaintext.**
+
+```typescript
+import { prepareKeyForStorage, getPrivateKey } from './services/crypto';
+
+// Encrypt before storage
+const encrypted = prepareKeyForStorage(privateKey);
+await db.createUser({
+  platform: "telegram",
+  platformId: userId,
+  privateKey: encrypted,  // Encrypted
+  address,
+});
+
+// Decrypt for use
+const user = await db.getUser(platform, platformId);
+const { privateKey } = getPrivateKey(user.privateKey);
+```
+
+### Encryption Algorithm
+
+**AES-256-GCM** with PBKDF2 key derivation:
+
+```typescript
+// Key derivation
+const key = await subtle.deriveKey(
+  {
+    name: "PBKDF2",
+    salt: saltBuffer,
+    iterations: 100_000,  // High iteration count
+    hash: "SHA-256",
+  },
+  keyMaterial,
+  { name: "AES-GCM", length: 256 },
+  false,
+  ["encrypt", "decrypt"]
+);
+```
+
+**Format:** `{salt}:{iv}:{encrypted}`
+- **Salt:** 16 bytes (random per key)
+- **IV:** 12 bytes (random per encryption)
+- **Encrypted:** Variable length + 16-byte auth tag
+
+### Encryption Secret Management
+
+**Production requirements:**
+
+```typescript
+// Correct - from environment
+const secret = process.env.ENCRYPTION_SECRET;
+if (!secret || secret.length < 32) {
+  throw new Error("ENCRYPTION_SECRET must be 32+ characters");
+}
+
+// Wrong - hardcoded
+const secret = "my-secret-key";
+```
+
+**Generate secure secret:**
+```bash
+openssl rand -base64 48  # 64-char output
+```
+
+## Rate Limiting
+
+### Implementation
+
+Sliding window rate limiter per action type:
+
+```typescript
+import { rateLimiter } from './services/rate-limiter';
+
+// Check limit before expensive operation
+const result = rateLimiter.check(userId, 'submission');
+if (!result.allowed) {
+  return textResponse(`Rate limit exceeded. Try again in ${result.waitSeconds}s.`);
+}
+
+// Proceed with operation
+```
+
+### Rate Limits
+
+| Action | Limit | Window | Rationale |
+|--------|-------|--------|-----------|
+| `messages` | 10 | 1 min | Prevent spam |
+| `voice` | 3 | 1 min | Resource-intensive (Whisper) |
+| `submissions` | 5 | 5 min | Prevent work spam |
+| `commands` | 20 | 1 min | Allow rapid exploration |
+| `approvals` | 30 | 1 min | Operator workflow |
+
+**Configuration:** `src/services/rate-limiter.ts`
+
+### Rate Limit Bypass Prevention
+
+**Never skip rate limiting:**
+
+```typescript
+// Wrong - no rate limit check
+async handleSubmission(message: InboundMessage) {
+  return await this.processSubmission(message);
+}
+
+// Correct - check first
+async handleSubmission(message: InboundMessage) {
+  const rateCheck = rateLimiter.check(
+    message.sender.platformId,
+    'submission'
+  );
+  if (!rateCheck.allowed) {
+    return textResponse(rateCheck.message);
+  }
+  
+  return await this.processSubmission(message);
+}
+```
+
+## Input Validation
+
+### Address Validation
+
+**Always validate Ethereum addresses:**
+
+```typescript
+import { isValidAddress } from './services/crypto';
+
+export function handleJoin(message: InboundMessage): HandlerResult {
+  const address = extractAddress(message.content.text);
+  
+  if (!address || !isValidAddress(address)) {
+    return {
+      response: {
+        text: 'Invalid garden address. Please provide a valid Ethereum address.',
+      },
+    };
+  }
+  
+  // Proceed with join
+}
+```
+
+**Validation criteria:**
+- Starts with `0x`
+- 42 characters total (0x + 40 hex chars)
+- Valid hexadecimal characters only
+
+### Private Key Validation
+
+```typescript
+import { isValidPrivateKey } from './services/crypto';
+
+if (!isValidPrivateKey(key)) {
+  throw new Error("Invalid private key format");
+}
+```
+
+**Validation criteria:**
+- 66 characters (0x + 64 hex chars)
+- Valid hexadecimal characters
+- Not all zeros
+
+## Webhook Security
+
+### Webhook Verification
+
+**Production must verify webhook signatures:**
+
+```typescript
+app.post('/telegram/webhook', async (request, reply) => {
+  const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
+  
+  if (secret) {
+    const signature = request.headers['x-telegram-bot-api-secret-token'];
+    if (signature !== secret) {
+      return reply.code(403).send({ error: 'Invalid webhook signature' });
+    }
+  }
+  
+  // Process webhook
+});
+```
+
+**Set webhook with secret:**
+```bash
+curl -X POST "https://api.telegram.org/bot${TOKEN}/setWebhook" \
+  -d "url=https://agent.greengoods.app/telegram/webhook" \
+  -d "secret_token=${WEBHOOK_SECRET}"
+```
+
+### TLS Requirements
+
+**Production must use HTTPS:**
+
+```typescript
+// Config validation
+if (config.mode === 'webhook') {
+  if (!config.webhookUrl?.startsWith('https://')) {
+    throw new Error("Webhook URL must use HTTPS in production");
+  }
+}
+```
+
+## Error Handling
+
+### Safe Error Messages
+
+**Never expose sensitive data in errors:**
+
+```typescript
+// Correct - generic error
+try {
+  const { privateKey } = getPrivateKey(encrypted);
+} catch (error) {
+  console.error('Decrypt error:', error);
+  return {
+    response: {
+      text: 'Failed to process request. Please try again later.',
+    },
+  };
+}
+
+// Wrong - exposes details
+catch (error) {
+  return {
+    response: {
+      text: `Decryption failed: ${error.message}`,  // Leaks crypto details
+    },
+  };
+}
+```
+
+## Security Checklist
+
+### Development
+- [ ] No hardcoded secrets in code
+- [ ] All user input validated
+- [ ] Private keys encrypted before storage
+- [ ] Rate limiting on all endpoints
+- [ ] Error messages don't leak sensitive data
+
+### Deployment
+- [ ] `ENCRYPTION_SECRET` 32+ characters
+- [ ] `TELEGRAM_WEBHOOK_SECRET` set
+- [ ] TLS/HTTPS enabled
+- [ ] Webhook signature verification enabled
+- [ ] Database on persistent volume
+
+## Future Enhancements
+
+- [ ] Hardware Security Module (HSM) for key storage
+- [ ] User authentication (require verification)
+- [ ] IP-based rate limiting
+- [ ] Transaction simulation before submission
+- [ ] Multi-signature support
+- [ ] Audit logging
+
+## References
+
+- **Crypto Service:** `src/services/crypto.ts`
+- **Rate Limiter:** `src/services/rate-limiter.ts`
+- **API Server:** `src/api/server.ts`
+- **OWASP Top 10:** https://owasp.org/www-project-top-ten/

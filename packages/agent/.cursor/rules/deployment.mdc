@@ -1,0 +1,373 @@
+# Agent Deployment Guide
+
+Production deployment patterns and Railway configuration for the Green Goods agent.
+
+## Deployment Modes
+
+### Polling Mode (Development)
+
+**Use case:** Local development, testing
+
+```bash
+BOT_MODE=polling bun run dev
+```
+
+**Pros:**
+- No external URL required
+- Easy to debug
+- Works behind firewalls
+
+**Cons:**
+- Less efficient (polling overhead)
+- Not suitable for production scale
+
+### Webhook Mode (Production)
+
+**Use case:** Production deployment
+
+```bash
+BOT_MODE=webhook PORT=3000 WEBHOOK_URL=https://agent.greengoods.app bun run start
+```
+
+**Pros:**
+- Real-time message delivery
+- Efficient (no polling overhead)
+- Production-ready
+
+**Cons:**
+- Requires public HTTPS URL
+- Webhook setup required
+
+## Railway Deployment
+
+### Prerequisites
+
+1. **Telegram Bot Token** from [@BotFather](https://t.me/BotFather)
+2. **Encryption Secret** (32+ characters)
+3. **Railway Account** with project created
+4. **Custom Domain** (e.g., `agent.greengoods.app`)
+
+### Step-by-Step Setup
+
+#### 1. Create Railway Service
+
+```bash
+# Create service from repo
+railway up --service agent
+
+# Or via dashboard: New > GitHub Repo > Select green-goods > packages/agent/Dockerfile
+```
+
+#### 2. Add Persistent Volume
+
+**Critical:** Database must persist across deployments.
+
+```bash
+# Via CLI
+railway volume create agent-data --mount-path /data
+
+# Or via dashboard:
+# Service > Settings > Volumes > New Volume
+# Name: agent-data
+# Mount Path: /data
+```
+
+#### 3. Configure Environment Variables
+
+**Required:**
+```bash
+NODE_ENV=production
+TELEGRAM_BOT_TOKEN=<bot-token-from-botfather>
+ENCRYPTION_SECRET=<64-char-base64-secret>
+BOT_MODE=webhook
+WEBHOOK_URL=https://agent.greengoods.app
+DB_PATH=/data/agent.db
+```
+
+**Optional but Recommended:**
+```bash
+TELEGRAM_WEBHOOK_SECRET=<random-secret>
+PORT=3000
+```
+
+**Chain Configuration (from root .env):**
+```bash
+VITE_CHAIN_ID=84532  # Base Sepolia (testnet)
+# Or: 42161 (Arbitrum), 8453 (Base), 42220 (Celo)
+```
+
+#### 4. Set Custom Domain
+
+```bash
+# Via CLI
+railway domain create agent.greengoods.app
+
+# Or via dashboard:
+# Service > Settings > Networking > Custom Domains > Add Domain
+```
+
+**DNS Configuration:**
+- Add CNAME record: `agent.greengoods.app` -> `{service}.up.railway.app`
+- Wait for TLS certificate provisioning (~5 min)
+
+#### 5. Deploy
+
+```bash
+# Railway auto-deploys on git push
+git push origin main
+
+# Or trigger manual deploy
+railway up
+```
+
+#### 6. Set Telegram Webhook
+
+After deployment succeeds, register webhook with Telegram:
+
+```bash
+curl -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"url\": \"https://agent.greengoods.app/telegram/webhook\",
+    \"secret_token\": \"${TELEGRAM_WEBHOOK_SECRET}\",
+    \"allowed_updates\": [\"message\", \"callback_query\"]
+  }"
+```
+
+**Verify webhook:**
+```bash
+curl "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getWebhookInfo"
+```
+
+#### 7. Verify Deployment
+
+**Health checks:**
+```bash
+# Basic health
+curl https://agent.greengoods.app/health
+
+# Readiness probe
+curl https://agent.greengoods.app/ready
+```
+
+**Test bot:**
+1. Open Telegram
+2. Find your bot
+3. Send `/start` command
+4. Verify wallet creation response
+
+## Docker Build
+
+### Dockerfile Overview
+
+```dockerfile
+FROM oven/bun:1 AS base
+WORKDIR /app
+
+# Install workspace dependencies
+COPY package.json bun.lock ./
+COPY packages ./packages
+RUN bun install --frozen-lockfile
+
+# Build agent
+RUN bun run build:agent
+
+FROM oven/bun:1-slim AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+
+# Copy built workspace
+COPY --from=base /app/node_modules ./node_modules
+COPY --from=base /app/packages ./packages
+
+ENV DB_PATH=/data/agent.db
+WORKDIR /app/packages/agent
+CMD ["bun", "run", "start"]
+```
+
+### Local Docker Testing
+
+```bash
+# Build image
+cd /path/to/green-goods
+docker build -f packages/agent/Dockerfile -t green-goods-agent .
+
+# Run with environment variables
+docker run -d \
+  --name agent \
+  -p 3000:3000 \
+  -v agent-data:/data \
+  -e TELEGRAM_BOT_TOKEN=<token> \
+  -e ENCRYPTION_SECRET=<secret> \
+  -e BOT_MODE=webhook \
+  -e WEBHOOK_URL=https://agent.greengoods.app \
+  -e DB_PATH=/data/agent.db \
+  green-goods-agent
+
+# View logs
+docker logs -f agent
+
+# Stop
+docker stop agent && docker rm agent
+```
+
+## Monitoring
+
+### Health Endpoints
+
+| Endpoint | Purpose | Success Criteria |
+|----------|---------|------------------|
+| `/health` | Basic uptime | Status 200 |
+| `/ready` | Service readiness | Status 200, services ready |
+
+**Railway Health Checks:**
+```yaml
+# In railway.toml (if using)
+[health]
+  path = "/ready"
+  interval = 30
+  timeout = 10
+```
+
+### Logging
+
+Logs go to stdout/stderr (Railway captures automatically):
+
+```bash
+# View logs in Railway
+railway logs --tail
+
+# Or via dashboard: Service > Deployments > [Latest] > Logs
+```
+
+## Environment Variables Reference
+
+### Required
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `TELEGRAM_BOT_TOKEN` | Bot token from @BotFather | `1234567890:ABCdef...` |
+| `ENCRYPTION_SECRET` | 32+ char secret for AES-256 | `xM4bSwrj+7vO5WE0...` |
+
+### Deployment
+
+| Variable | Description | Default | Example |
+|----------|-------------|---------|---------|
+| `NODE_ENV` | Environment mode | `development` | `production` |
+| `BOT_MODE` | Polling or webhook | `polling` | `webhook` |
+| `PORT` | HTTP server port | `3000` | `3000` |
+| `HOST` | Bind address | `0.0.0.0` | `0.0.0.0` |
+| `WEBHOOK_URL` | Public webhook URL | — | `https://agent.greengoods.app` |
+| `TELEGRAM_WEBHOOK_SECRET` | Webhook verification | — | Random 32-char string |
+
+### Storage
+
+| Variable | Description | Default | Example |
+|----------|-------------|---------|---------|
+| `DB_PATH` | SQLite database path | `data/agent.db` | `/data/agent.db` |
+
+### Blockchain
+
+| Variable | Description | Default | Example |
+|----------|-------------|---------|---------|
+| `VITE_CHAIN_ID` | Target blockchain | `84532` (Base Sepolia) | `42161` (Arbitrum) |
+
+## Production Checklist
+
+Before deploying to production:
+
+### Configuration
+- [ ] `ENCRYPTION_SECRET` set (32+ characters)
+- [ ] `TELEGRAM_BOT_TOKEN` valid and active
+- [ ] `WEBHOOK_URL` matches custom domain
+- [ ] `TELEGRAM_WEBHOOK_SECRET` set
+- [ ] `DB_PATH` points to persistent volume (`/data/agent.db`)
+- [ ] `NODE_ENV=production`
+- [ ] `BOT_MODE=webhook`
+
+### Security
+- [ ] TLS/HTTPS enabled on webhook URL
+- [ ] Webhook secret configured
+- [ ] Private keys encrypted at rest
+- [ ] Rate limiting enabled
+
+### Monitoring
+- [ ] Health checks configured
+- [ ] Log aggregation working
+- [ ] Alert rules defined
+
+### Testing
+- [ ] All tests passing (`bun test`)
+- [ ] Docker build successful
+- [ ] Webhook responds to test message
+- [ ] `/start` command works
+- [ ] Work submission flow complete
+
+## Rollback Procedure
+
+If deployment fails:
+
+```bash
+# Via Railway CLI
+railway rollback
+
+# Or via dashboard:
+# Service > Deployments > [Previous Working] > Redeploy
+```
+
+**Post-rollback:**
+1. Verify health endpoints
+2. Test bot commands
+3. Check database integrity
+4. Review error logs
+
+## Troubleshooting
+
+### Webhook Not Receiving Messages
+
+**Check:**
+```bash
+# Webhook info
+curl "https://api.telegram.org/bot${TOKEN}/getWebhookInfo"
+
+# Test endpoint manually
+curl -X POST https://agent.greengoods.app/telegram/webhook \
+  -H "Content-Type: application/json" \
+  -d '{"message": {"text": "test"}}'
+```
+
+**Solutions:**
+- Verify WEBHOOK_URL matches deployed domain
+- Check TLS certificate is valid
+- Ensure port 3000 is exposed
+- Review Railway logs for errors
+
+### Database Connection Errors
+
+**Check:**
+- Volume mounted at `/data`
+- DB_PATH environment variable correct
+- File permissions (bun user can write)
+
+**Solution:**
+```bash
+# Recreate volume
+railway volume delete agent-data
+railway volume create agent-data --mount-path /data
+```
+
+### Encryption Errors
+
+**Symptoms:** `Unsupported state or unable to authenticate data`
+
+**Solution:**
+- Verify ENCRYPTION_SECRET unchanged
+- Check secret length (32+ chars)
+- Ensure no trailing whitespace
+
+## References
+
+- **Railway Docs:** https://docs.railway.app
+- **Telegram Bot API:** https://core.telegram.org/bots/api
+- **API Server:** `src/api/server.ts`
+- **Docker Config:** `Dockerfile`

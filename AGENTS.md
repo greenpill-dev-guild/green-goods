@@ -1,6 +1,6 @@
 # Green Goods — Agent Guide
 
-Reference for AI agents collaborating on the Green Goods monorepo (6 packages: client, admin, shared, indexer, contracts, telegram).
+Reference for AI agents collaborating on the Green Goods monorepo (6 packages: client, admin, shared, indexer, contracts, agent).
 
 ## Non-Negotiable Rules
 
@@ -26,7 +26,8 @@ Default to local commands (rg, bun, forge) when the task is small. Escalate to M
    - `packages/client/AGENTS.md` — PWA views and components
    - `packages/admin/AGENTS.md` — dashboard views and components
    - `packages/indexer/AGENTS.md` — Envio GraphQL indexer
-   - `packages/telegram/AGENTS.md` — Telegram bot
+   - `packages/agent/AGENTS.md` — multi-platform bot (Telegram, Discord, WhatsApp)
+   - `packages/agent/.cursor/rules/*.mdc` — agent architecture, testing, deployment, security
    - `packages/contracts/AGENTS.md` — Solidity contracts overview
    - `packages/contracts/.cursor/rules/*.mdc` — detailed contract patterns
 2. **During implementation**

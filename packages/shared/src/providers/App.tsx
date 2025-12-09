@@ -174,34 +174,43 @@ export const AppProvider = ({ children, posthogKey }: AppProviderProps) => {
     };
   }, [handleAppInstalled, handleBeforeInstall, handleInstallCheck, installState]);
 
-  return (
-    <PostHogProvider
-      apiKey={apiKey}
-      options={{
-        api_host: import.meta.env.VITE_POSTHOG_HOST,
-        capture_exceptions: true,
-        debug: import.meta.env.VITE_POSTHOG_DEBUG === "true",
+  const appContent = (
+    <AppContext.Provider
+      value={{
+        isMobile: isMobilePlatform(),
+        isInstalled: installState === "installed",
+        isStandalone,
+        wasInstalled,
+        platform,
+        locale,
+        availableLocales: supportedLanguages,
+        deferredPrompt,
+        promptInstall,
+        handleInstallCheck,
+        switchLanguage,
       }}
     >
-      <AppContext.Provider
-        value={{
-          isMobile: isMobilePlatform(),
-          isInstalled: installState === "installed",
-          isStandalone,
-          wasInstalled,
-          platform,
-          locale,
-          availableLocales: supportedLanguages,
-          deferredPrompt,
-          promptInstall,
-          handleInstallCheck,
-          switchLanguage,
+      <IntlProvider locale={locale} messages={messages[locale]}>
+        {children}
+      </IntlProvider>
+    </AppContext.Provider>
+  );
+
+  // Only wrap with PostHogProvider if API key is available
+  if (apiKey) {
+    return (
+      <PostHogProvider
+        apiKey={apiKey}
+        options={{
+          api_host: import.meta.env.VITE_POSTHOG_HOST,
+          capture_exceptions: true,
+          debug: import.meta.env.VITE_POSTHOG_DEBUG === "true",
         }}
       >
-        <IntlProvider locale={locale} messages={messages[locale]}>
-          {children}
-        </IntlProvider>
-      </AppContext.Provider>
-    </PostHogProvider>
-  );
+        {appContent}
+      </PostHogProvider>
+    );
+  }
+
+  return appContent;
 };
