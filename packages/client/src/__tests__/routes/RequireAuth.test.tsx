@@ -30,7 +30,7 @@ describe("RequireAuth", () => {
     vi.clearAllMocks();
   });
 
-  it("should render nothing when not ready", () => {
+  it("should render loading spinner when not ready", () => {
     mockUseAuth.mockReturnValue({
       isReady: false,
       isAuthenticated: false,
@@ -46,7 +46,8 @@ describe("RequireAuth", () => {
       </MemoryRouter>
     );
 
-    expect(container.firstChild).toBeNull();
+    // Should show a loading spinner, not null
+    expect(container.querySelector(".animate-spin")).toBeInTheDocument();
   });
 
   it("should redirect to login when not authenticated", async () => {

@@ -1,0 +1,76 @@
+name: Shared Package Tests
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "packages/shared/**"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "packages/shared/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run tests
+        run: |
+          cd packages/shared
+          bun run test
+        env:
+          CI: true
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run linting
+        run: |
+          cd packages/shared
+          bun run lint
+
+      - name: Check formatting
+        run: bun run format:check
+
+      - name: Type check
+        run: |
+          cd packages/shared
+          npx tsc --noEmit
+
+

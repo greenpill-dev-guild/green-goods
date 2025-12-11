@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatAddress } from "../../../utils";
+import { formatAddress } from "../../utils";
 
 const SAMPLE_ADDRESS = "0x1234567890abcdef1234567890abcdef12345678";
 

@@ -1,53 +1,51 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { type RenderOptions, render } from "@testing-library/react";
 import React from "react";
-import { render, type RenderOptions } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
-import { Provider as UrqlProvider } from "urql";
-import { PrivyProvider } from "@privy-io/react-auth";
-import { UserProvider } from "@/providers/user";
-import { SubscriptionsProvider } from "@/providers/subscriptions";
-import { createMockUrqlClient } from "./urql-mock";
-import { createMockPrivyUser } from "../mocks/privy";
 
 interface CustomRenderOptions extends Omit<RenderOptions, "wrapper"> {
   userRole?: "admin" | "operator" | "unauthorized";
-  _initialEntries?: string[];
-  urqlClient?: unknown;
+  initialEntries?: string[];
+}
+
+// Create a fresh QueryClient for each test
+function createTestQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+        gcTime: 0,
+        staleTime: 0,
+      },
+      mutations: {
+        retry: false,
+      },
+    },
+  });
 }
 
 // Create a test wrapper component
-function createTestWrapper({
-  userRole = "admin",
-  _initialEntries = ["/"],
-  urqlClient,
-}: Omit<CustomRenderOptions, "userRole"> & { userRole: "admin" | "operator" | "unauthorized" }) {
-  const _mockUser = createMockPrivyUser(userRole);
-  const client = urqlClient || createMockUrqlClient();
+function createTestWrapper({ initialEntries = ["/"] }: Omit<CustomRenderOptions, "userRole">) {
+  const queryClient = createTestQueryClient();
 
   return function TestWrapper({ children }: { children: React.ReactNode }) {
     return (
-      <PrivyProvider appId="test-app-id">
-        <UrqlProvider value={client}>
-          <UserProvider>
-            <SubscriptionsProvider>
-              <BrowserRouter>{children}</BrowserRouter>
-            </SubscriptionsProvider>
-          </UserProvider>
-        </UrqlProvider>
-      </PrivyProvider>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>{children}</BrowserRouter>
+      </QueryClientProvider>
     );
   };
 }
 
 // Custom render function with providers
 export function renderWithProviders(ui: React.ReactElement, options: CustomRenderOptions = {}) {
-  const { userRole = "admin", _initialEntries, urqlClient, ...renderOptions } = options;
+  const { userRole = "admin", initialEntries, ...renderOptions } = options;
 
-  const Wrapper = createTestWrapper({ userRole, _initialEntries, urqlClient });
+  const Wrapper = createTestWrapper({ initialEntries });
 
   return {
     ...render(ui, { wrapper: Wrapper, ...renderOptions }),
-    // Return useful test utilities
-    mockUser: createMockPrivyUser(userRole),
+    userRole,
   };
 }
 

@@ -1,107 +1,91 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { screen, waitFor, render } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import Gardens from "@/views/Gardens";
 
-// Mock the useRole hook
-const mockUseRole = vi.fn();
-vi.mock("@/hooks/useRole", () => ({
-  useRole: () => mockUseRole(),
+// Mock the shared hooks
+const mockUseGardens = vi.fn();
+const mockUseGardenPermissions = vi.fn();
+vi.mock("@green-goods/shared/hooks", () => ({
+  useGardens: () => mockUseGardens(),
+  useGardenPermissions: () => mockUseGardenPermissions(),
 }));
 
-// Mock the useQuery hook
-const mockUseQuery = vi.fn();
-vi.mock("urql", () => ({
-  useQuery: () => mockUseQuery(),
+// Mock the shared modules
+vi.mock("@green-goods/shared/modules", () => ({
+  resolveIPFSUrl: (url: string) => url,
 }));
 
-// Mock CreateGardenModal component
-vi.mock("@/components/Garden/CreateGardenModal", () => ({
-  CreateGardenModal: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) =>
-    isOpen
-      ? React.createElement(
-          "div",
-          { "data-testid": "create-garden-modal" },
-          React.createElement("button", { onClick: onClose }, "Close Modal")
-        )
-      : null,
-}));
+// Mock react-router-dom Link
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
+  return {
+    ...actual,
+    Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) =>
+      React.createElement("a", { href: to, ...props }, children),
+  };
+});
 
 describe("Gardens View", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default mock for garden permissions
+    mockUseGardenPermissions.mockReturnValue({
+      canManageGarden: () => false,
+    });
   });
 
   it("should display loading state while fetching gardens", () => {
-    mockUseRole.mockReturnValue({
-      isAdmin: true,
-      operatorGardens: [],
+    mockUseGardens.mockReturnValue({
+      data: [],
+      isLoading: true,
+      error: null,
     });
-    mockUseQuery.mockReturnValue([
-      {
-        data: null,
-        fetching: true,
-        error: null,
-      },
-    ]);
 
     render(<Gardens />);
 
-    expect(screen.getByTestId("loading-spinner")).toBeInTheDocument();
+    // The component shows skeleton cards during loading, not a specific spinner
+    expect(document.querySelector(".animate-pulse")).toBeInTheDocument();
     expect(screen.queryByText("Test Garden")).not.toBeInTheDocument();
   });
 
   it("should display error state when query fails", () => {
-    mockUseRole.mockReturnValue({
-      isAdmin: true,
-      operatorGardens: [],
+    mockUseGardens.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: new Error("Network error"),
     });
-    mockUseQuery.mockReturnValue([
-      {
-        data: null,
-        fetching: false,
-        error: { message: "Network error" },
-      },
-    ]);
 
     render(<Gardens />);
 
-    expect(screen.getByText("Failed to load gardens: Network error")).toBeInTheDocument();
+    expect(screen.getByText(/Network error/)).toBeInTheDocument();
     expect(screen.queryByText("Test Garden")).not.toBeInTheDocument();
   });
 
   it("should display all gardens for admin users", () => {
-    mockUseRole.mockReturnValue({
-      isAdmin: true,
-      operatorGardens: [],
-    });
-    mockUseQuery.mockReturnValue([
-      {
-        data: {
-          gardens: [
-            {
-              id: "0x1234567890123456789012345678901234567890",
-              name: "Admin Garden 1",
-              description: "First admin garden",
-              location: "Location 1",
-              gardeners: ["0x123"],
-              operators: ["0x456"],
-            },
-            {
-              id: "0x2345678901234567890123456789012345678901",
-              name: "Admin Garden 2",
-              description: "Second admin garden",
-              location: "Location 2",
-              gardeners: ["0x789"],
-              operators: ["0xabc"],
-            },
-          ],
+    mockUseGardens.mockReturnValue({
+      data: [
+        {
+          id: "0x1234567890123456789012345678901234567890",
+          name: "Admin Garden 1",
+          description: "First admin garden",
+          location: "Location 1",
+          gardeners: ["0x123"],
+          operators: ["0x456"],
         },
-        fetching: false,
-        error: null,
-      },
-    ]);
+        {
+          id: "0x2345678901234567890123456789012345678901",
+          name: "Admin Garden 2",
+          description: "Second admin garden",
+          location: "Location 2",
+          gardeners: ["0x789"],
+          operators: ["0xabc"],
+        },
+      ],
+      isLoading: false,
+      error: null,
+    });
 
     render(<Gardens />);
 
@@ -111,10 +95,21 @@ describe("Gardens View", () => {
     expect(screen.getByText("Second admin garden")).toBeInTheDocument();
   });
 
-  it("should display only operator gardens for operator users", () => {
-    mockUseRole.mockReturnValue({
-      isAdmin: false,
-      operatorGardens: [
+  it("should display gardens with operator badge for managed gardens", () => {
+    mockUseGardenPermissions.mockReturnValue({
+      canManageGarden: (garden: { id: string }) =>
+        garden.id === "0x2345678901234567890123456789012345678901",
+    });
+    mockUseGardens.mockReturnValue({
+      data: [
+        {
+          id: "0x1234567890123456789012345678901234567890",
+          name: "Admin Garden",
+          description: "Admin only garden",
+          location: "Admin Location",
+          gardeners: ["0x123"],
+          operators: ["0x456"],
+        },
         {
           id: "0x2345678901234567890123456789012345678901",
           name: "Operator Garden",
@@ -124,118 +119,51 @@ describe("Gardens View", () => {
           operators: ["0x04D60647836bcA09c37B379550038BdaaFD82503"],
         },
       ],
+      isLoading: false,
+      error: null,
     });
-    mockUseQuery.mockReturnValue([
-      {
-        data: {
-          gardens: [
-            {
-              id: "0x1234567890123456789012345678901234567890",
-              name: "Admin Garden",
-              description: "Admin only garden",
-              location: "Admin Location",
-              gardeners: ["0x123"],
-              operators: ["0x456"],
-            },
-          ],
-        },
-        fetching: false,
-        error: null,
-      },
-    ]);
 
     render(<Gardens />);
 
-    // Should only see operator garden, not admin garden
+    // Both gardens should be visible (Gardens view shows all gardens, permissions show badge)
+    expect(screen.getByText("Admin Garden")).toBeInTheDocument();
     expect(screen.getByText("Operator Garden")).toBeInTheDocument();
-    expect(screen.queryByText("Admin Garden")).not.toBeInTheDocument();
   });
 
-  it("should show create garden button for admin users", () => {
-    mockUseRole.mockReturnValue({
-      isAdmin: true,
-      operatorGardens: [],
+  it("should show create garden button", () => {
+    mockUseGardens.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
     });
-    mockUseQuery.mockReturnValue([
-      {
-        data: { gardens: [] },
-        fetching: false,
-        error: null,
-      },
-    ]);
 
     render(<Gardens />);
 
     expect(screen.getByText("Create Garden")).toBeInTheDocument();
   });
 
-  it("should open create garden modal when button is clicked", async () => {
-    const user = userEvent.setup();
-    mockUseRole.mockReturnValue({
-      isAdmin: true,
-      operatorGardens: [],
+  it("should link to create garden page when button is clicked", () => {
+    mockUseGardens.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
     });
-    mockUseQuery.mockReturnValue([
-      {
-        data: { gardens: [] },
-        fetching: false,
-        error: null,
-      },
-    ]);
 
     render(<Gardens />);
 
     const createButton = screen.getByText("Create Garden");
-    await user.click(createButton);
-
-    expect(screen.getByTestId("create-garden-modal")).toBeInTheDocument();
-  });
-
-  it("should close create garden modal when close is clicked", async () => {
-    const user = userEvent.setup();
-    mockUseRole.mockReturnValue({
-      isAdmin: true,
-      operatorGardens: [],
-    });
-    mockUseQuery.mockReturnValue([
-      {
-        data: { gardens: [] },
-        fetching: false,
-        error: null,
-      },
-    ]);
-
-    render(<Gardens />);
-
-    // Open modal
-    const createButton = screen.getByText("Create Garden");
-    await user.click(createButton);
-    expect(screen.getByTestId("create-garden-modal")).toBeInTheDocument();
-
-    // Close modal
-    const closeButton = screen.getByText("Close Modal");
-    await user.click(closeButton);
-
-    await waitFor(() => {
-      expect(screen.queryByTestId("create-garden-modal")).not.toBeInTheDocument();
-    });
+    expect(createButton.closest("a")).toHaveAttribute("href", "/gardens/create");
   });
 
   it("should display empty state when no gardens are available", () => {
-    mockUseRole.mockReturnValue({
-      isAdmin: true,
-      operatorGardens: [],
+    mockUseGardens.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
     });
-    mockUseQuery.mockReturnValue([
-      {
-        data: { gardens: [] },
-        fetching: false,
-        error: null,
-      },
-    ]);
 
     render(<Gardens />);
 
-    expect(screen.getByText("No gardens")).toBeInTheDocument();
+    expect(screen.getByText("No gardens yet")).toBeInTheDocument();
   });
 });

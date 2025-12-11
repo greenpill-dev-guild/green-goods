@@ -7,7 +7,7 @@ import {
   GardenAccount,
   // Gardener as GardenerContract, // Not yet deployed
   GardenToken,
-} from "generated";
+} from "../generated";
 
 type Action = {
   id: string;

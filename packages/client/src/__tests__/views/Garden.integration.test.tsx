@@ -8,9 +8,9 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement, type ReactNode } from "react";
+import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { IntlProvider } from "react-intl";
 
 // Mock WorkProvider context
 const mockUseWork = vi.fn();
@@ -29,7 +29,7 @@ vi.mock("@green-goods/shared/providers", () => ({
   },
 }));
 
-vi.mock("@green-goods/shared/stores/useWorkFlowStore", () => ({
+vi.mock("@green-goods/shared/stores", () => ({
   useWorkFlowStore: vi.fn((selector) =>
     selector({
       submissionCompleted: false,
@@ -38,7 +38,7 @@ vi.mock("@green-goods/shared/stores/useWorkFlowStore", () => ({
   ),
 }));
 
-vi.mock("@green-goods/shared/config/blockchain", () => ({
+vi.mock("@green-goods/shared/config", () => ({
   DEFAULT_CHAIN_ID: 84532,
 }));
 

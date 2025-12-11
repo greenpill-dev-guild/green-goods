@@ -227,6 +227,100 @@ lsof -i :8080
 kill -9 <PID>
 ```
 
+## Testing
+
+### Test Commands
+
+```bash
+# Run tests (auto-bootstraps if generated/ doesn't exist)
+bun test
+
+# Explicit full setup + test
+bun run test:full
+
+# Setup generated files only (without running tests)
+bun run test:setup
+```
+
+### Test Setup
+
+Tests require the `generated/` folder which contains Envio's test helpers:
+
+1. `bun run codegen` — Generates TypeScript types and test helpers from `config.yaml` and `schema.graphql`
+2. `bun run setup-generated` — Installs pnpm dependencies and builds ReScript in `generated/`
+
+The `pretest` script automatically runs setup if `generated/src` doesn't exist.
+
+### Test Coverage
+
+Tests cover key event handler logic:
+
+**Capital Mapping (10 tests)**
+- All 8 capital types (SOCIAL, MATERIAL, FINANCIAL, LIVING, INTELLECTUAL, EXPERIENTIAL, SPIRITUAL, CULTURAL)
+- UNKNOWN fallback for invalid values
+- Multiple capitals in single action
+
+**Multi-Chain ID Collision Prevention (3 tests)**
+- Same actionUID on different chains creates separate entities
+- Same gardener address on different chains creates separate entities
+- Chain-prefixed IDs: `${chainId}-${identifier}`
+
+**Bidirectional Gardener ↔ Garden Updates (4 tests)**
+- GardenerAdded updates both Garden.gardeners and Gardener.gardens
+- GardenerRemoved updates both entities
+- Existing gardener added to second garden preserves firstGarden
+
+**Create If Not Exists Pattern (4 tests)**
+- NameUpdated creates minimal garden if not exists
+- DescriptionUpdated, LocationUpdated, BannerImageUpdated same pattern
+
+**Action/Garden CRUD (8+ tests)**
+- ActionRegistered creates action with all fields
+- Update handlers preserve other fields
+- Operator add/remove
+- OpenJoining toggle
+- GAP project integration
+
+### Writing New Tests
+
+```typescript
+import { TestHelpers, ActionRegistry, GardenToken, GardenAccount } from "generated";
+const { MockDb, Addresses } = TestHelpers;
+
+it("example test", async () => {
+  // 1. Create mock database
+  let mockDb = MockDb.createMockDb();
+  
+  // 2. Optionally pre-seed entities
+  mockDb = mockDb.entities.Garden.set({
+    id: "0x123...",
+    chainId: 42161,
+    // ... fields
+  });
+  
+  // 3. Create mock event
+  const mockEvent = GardenAccount.GardenerAdded.createMockEvent({
+    updater: "0x...",
+    gardener: "0x...",
+    mockEventData: {
+      chainId: 42161,
+      block: { timestamp: 12345 },
+      srcAddress: "0x123...", // Contract address (garden)
+    },
+  });
+  
+  // 4. Process event
+  const result = await GardenAccount.GardenerAdded.processEvent({
+    event: mockEvent,
+    mockDb,
+  });
+  
+  // 5. Assert results
+  const garden = result.entities.Garden.get("0x123...");
+  assert.ok(garden.gardeners.includes("0x..."));
+});
+```
+
 ## GraphQL Query Patterns
 
 ### Frontend Usage

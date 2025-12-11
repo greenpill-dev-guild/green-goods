@@ -2,13 +2,19 @@ name: Admin Dashboard Tests
 
 on:
   push:
-    branches: [ main, develop ]
-    paths: 
-      - 'packages/admin/**'
+    branches: [main, develop]
+    paths:
+      - "packages/admin/**"
+      - "packages/shared/**"
   pull_request:
-    branches: [ main, develop ]
-    paths: 
-      - 'packages/admin/**'
+    branches: [main, develop]
+    paths:
+      - "packages/admin/**"
+      - "packages/shared/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   unit-tests:
@@ -20,7 +26,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -37,22 +43,9 @@ jobs:
         env:
           CI: true
 
-      - name: Generate coverage report
-        run: |
-          cd packages/admin
-          bun run test:coverage
-        env:
-          CI: true
-
-      - name: Upload coverage reports
-        uses: codecov/codecov-action@v4
-        with:
-          directory: packages/admin/coverage
-          flags: admin-dashboard
-          
   integration-tests:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -60,7 +53,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -83,7 +76,7 @@ jobs:
           VITE_BASE_SEPOLIA_RPC: ${{ secrets.BASE_SEPOLIA_RPC }}
           TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
 
-  lint-and-format:
+  lint-and-build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -92,7 +85,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2

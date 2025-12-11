@@ -7,14 +7,13 @@
 import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useUser } from "../../hooks/auth/useUser";
-import { AuthProvider } from "../../providers/auth";
 
 vi.mock("../../hooks/blockchain/useEnsName", () => ({
   useEnsName: vi.fn(() => ({ data: null })),
 }));
 
 // Mock the useAuth hook
-vi.mock("@/hooks/useAuth", () => ({
+vi.mock("../../hooks/auth/useAuth", () => ({
   useAuth: vi.fn(() => ({
     smartAccountAddress: null,
     smartAccountClient: null,
@@ -29,9 +28,7 @@ describe("useUser", () => {
   });
 
   it("should return null user when not authenticated", () => {
-    const { result } = renderHook(() => useUser(), {
-      wrapper: ({ children }) => <AuthProvider>{children}</AuthProvider>,
-    });
+    const { result } = renderHook(() => useUser());
 
     expect(result.current.user).toBeNull();
     expect(result.current.ready).toBe(false);
@@ -41,9 +38,7 @@ describe("useUser", () => {
   });
 
   it("should have correct return shape", () => {
-    const { result } = renderHook(() => useUser(), {
-      wrapper: ({ children }) => <AuthProvider>{children}</AuthProvider>,
-    });
+    const { result } = renderHook(() => useUser());
 
     expect(result.current).toHaveProperty("user");
     expect(result.current).toHaveProperty("ready");

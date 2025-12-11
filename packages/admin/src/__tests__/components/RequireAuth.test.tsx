@@ -1,12 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { screen, render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import React from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import RequireAuth from "@/routes/RequireAuth";
 
 const mockUseAuth = vi.fn();
 
-vi.mock("@/providers/AuthProvider", () => ({
-  useAuth: () => mockUseAuth(),
+vi.mock("@green-goods/shared/providers", () => ({
+  useWalletAuth: () => mockUseAuth(),
 }));
 
 const mockUseLocation = vi.fn();

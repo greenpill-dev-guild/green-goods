@@ -1,8 +1,8 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { describe, it, expect, vi } from "vitest";
-import { ImagePreviewDialog } from "../../components/UI/ImagePreviewDialog";
+import { describe, expect, it, vi } from "vitest";
+import { ImagePreviewDialog } from "../../components/Dialogs/ImagePreviewDialog";
 
 const IMAGES = [
   "https://via.placeholder.co/300x300?text=1",

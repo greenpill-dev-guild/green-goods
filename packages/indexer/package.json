@@ -14,7 +14,10 @@
     "start": "envio start",
     "stop": "pkill -f 'envio dev' || true && lsof -ti:9898 -ti:8080 2>/dev/null | xargs kill -9 2>/dev/null || true",
 
+    "test:setup": "bun run codegen && bun run setup-generated",
+    "pretest": "[ -d generated/src ] || bun run test:setup",
     "test": "bun run mocha",
+    "test:full": "bun run test:setup && bun run mocha",
     "lint": "oxlint src test",
     "reset": "./reset-indexer.sh"
   },

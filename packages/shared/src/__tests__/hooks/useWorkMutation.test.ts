@@ -6,7 +6,7 @@
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor, act } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -75,18 +75,18 @@ vi.mock("../../utils/errors/contract-errors", () => ({
   })),
 }));
 
-import { submitWorkDirectly } from "../../modules/work/wallet-submission";
-import { submitWorkToQueue } from "../../modules/work/work-submission";
-import { jobQueue } from "../../modules/job-queue";
 import { workToasts } from "../../components/toast";
 import { useWorkMutation } from "../../hooks/work/useWorkMutation";
+import { jobQueue } from "../../modules/job-queue";
+import { submitWorkDirectly } from "../../modules/work/wallet-submission";
+import { submitWorkToQueue } from "../../modules/work/work-submission";
 import {
-  createMockWorkDraft,
   createMockAction,
-  createMockSmartAccountClient,
   createMockFiles,
-  MOCK_TX_HASH,
+  createMockSmartAccountClient,
+  createMockWorkDraft,
   MOCK_ADDRESSES,
+  MOCK_TX_HASH,
 } from "../test-utils";
 
 describe("hooks/work/useWorkMutation", () => {
@@ -322,7 +322,10 @@ describe("hooks/work/useWorkMutation", () => {
         }
       });
 
-      expect(result.current.isError).toBe(true);
+      // Wait for error state to be set
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true);
+      });
     });
   });
 });

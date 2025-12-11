@@ -1,9 +1,9 @@
+import { toastService } from "@green-goods/shared";
+import { useGardenerProfile } from "@green-goods/shared/hooks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { useGardenerProfile } from "@green-goods/shared/hooks";
-import { toastService } from "@green-goods/shared";
 
 // Mock auth context
 const mockUseAuth = vi.fn(() => ({
@@ -179,8 +179,8 @@ describe("Gardener Profile Integration Tests", () => {
     it("should query profile from indexer (placeholder)", async () => {
       const { result } = renderHook(() => useGardenerProfile(), { wrapper });
 
-      // Currently returns null (placeholder until indexer is live)
-      expect(result.current.profile).toBeNull();
+      // Currently returns undefined (placeholder until indexer is live)
+      expect(result.current.profile).toBeUndefined();
       expect(result.current.isLoading).toBeDefined();
     });
 

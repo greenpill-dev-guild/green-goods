@@ -40,6 +40,8 @@ vi.mock("../../modules/auth/passkey", () => ({
 
 vi.mock("../../modules/auth/session", () => ({
   clearPasskeySignedOut: vi.fn(),
+  clearStoredPasskey: vi.fn(),
+  hasStoredPasskey: vi.fn().mockReturnValue(false),
   hasStoredPasskeyCredential: vi.fn().mockReturnValue(false),
   isFreshAppStart: vi.fn().mockReturnValue(true),
   markSessionActive: vi.fn(),
