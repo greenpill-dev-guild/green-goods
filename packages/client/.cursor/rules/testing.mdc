@@ -34,7 +34,7 @@ src/
 │   ├── modules/              # Service layer tests
 │   │   ├── deduplication.test.ts
 │   │   ├── job-queue.core.test.ts
-│   │   └── pinata.test.ts
+│   │   └── ipfs.test.ts
 │   ├── integration/          # Multi-component flows
 │   ├── providers/            # Context provider tests
 │   │   └── AuthProvider.test.tsx
@@ -424,19 +424,19 @@ For every new feature:
 ### Mocking External Services
 
 ```typescript
-// __tests__/modules/pinata.test.ts
-vi.mock('@/modules/pinata', () => ({
-  uploadFileToIPFS: vi.fn(async (f: File) => ({ IpfsHash: `hash:${f.name}` })),
-  uploadJSONToIPFS: vi.fn(async (j: any) => ({ IpfsHash: `hash:${Object.keys(j).length}` })),
+// __tests__/modules/ipfs.test.ts
+vi.mock('@/modules/ipfs', () => ({
+  uploadFileToIPFS: vi.fn(async (f: File) => ({ cid: `hash:${f.name}` })),
+  uploadJSONToIPFS: vi.fn(async (j: any) => ({ cid: `hash:${Object.keys(j).length}` })),
   getFileByHash: vi.fn(async (hash: string) => ({ data: `mock:${hash}` })),
 }));
 
-import { uploadFileToIPFS } from '@/modules/data/pinata';
+import { uploadFileToIPFS } from '@/modules/data/ipfs';
 
 it('uploads file to IPFS (mocked)', async () => {
   const result = await uploadFileToIPFS(new File(['hi'], 'hi.txt'));
-  expect(result).toHaveProperty('IpfsHash');
-  expect(result.IpfsHash).toContain('hash:');
+  expect(result).toHaveProperty('cid');
+  expect(result.cid).toContain('hash:');
 });
 ```
 

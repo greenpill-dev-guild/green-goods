@@ -3,10 +3,10 @@
  *
  * Re-exports shared configurations and defines client-specific constants.
  */
-import { initializePinataFromEnv } from "@green-goods/shared";
+import { initializeIpfsFromEnv } from "@green-goods/shared";
 
-// Initialize Pinata from environment
-void initializePinataFromEnv(import.meta.env);
+// Initialize Storacha IPFS from environment
+void initializeIpfsFromEnv(import.meta.env);
 
 // Re-export shared configs (use relative path within monorepo)
 export {

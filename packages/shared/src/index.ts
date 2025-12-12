@@ -198,6 +198,8 @@ export {
   greenGoodsIndexer,
   hasStoredPasskeyCredential,
   identify,
+  initializeIpfs,
+  initializeIpfsFromEnv,
   initializePinata,
   initializePinataFromEnv,
   isFreshAppStart,

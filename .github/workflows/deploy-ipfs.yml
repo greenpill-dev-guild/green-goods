@@ -92,7 +92,7 @@ jobs:
           # Primary: Storacha (free, permanent storage)
           storacha-key: ${{ secrets.STORACHA_KEY }}
           storacha-proof: ${{ secrets.STORACHA_PROOF }}
-          # Secondary: Pinata (fast gateway, redundancy)
+          # Optional: Pinata (fast gateway, redundancy - remove if not using)
           pinata-jwt-token: ${{ secrets.PINATA_JWT }}
           # PR features (comments, commit status)
           github-token: ${{ github.token }}
@@ -182,7 +182,7 @@ jobs:
           # Primary: Storacha (free, permanent storage)
           storacha-key: ${{ secrets.STORACHA_KEY }}
           storacha-proof: ${{ secrets.STORACHA_PROOF }}
-          # Secondary: Pinata (fast gateway, redundancy)
+          # Optional: Pinata (fast gateway, redundancy - remove if not using)
           pinata-jwt-token: ${{ secrets.PINATA_JWT }}
           # PR features (comments, commit status)
           github-token: ${{ github.token }}

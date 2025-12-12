@@ -53,13 +53,14 @@ async function main(): Promise<void> {
   initBlockchain(config.chain);
   const ai = initAI();
 
-  // Initialize media service if Pinata JWT is available
-  const pinataJwt = process.env.PINATA_JWT || process.env.VITE_PINATA_JWT;
-  if (pinataJwt) {
-    initMedia(pinataJwt, process.env.VITE_PINATA_GATEWAY);
-    logger.info("Media service (Pinata) initialized");
+  // Initialize media service if Storacha credentials are available
+  const storachaKey = process.env.STORACHA_KEY;
+  const storachaProof = process.env.STORACHA_PROOF;
+  if (storachaKey && storachaProof) {
+    await initMedia(storachaKey, storachaProof, process.env.STORACHA_GATEWAY);
+    logger.info("Media service (Storacha) initialized");
   } else {
-    logger.warn("PINATA_JWT not configured - photo uploads will be disabled");
+    logger.warn("STORACHA_KEY and STORACHA_PROOF not configured - photo uploads will be disabled");
   }
 
   // Create Telegram bot

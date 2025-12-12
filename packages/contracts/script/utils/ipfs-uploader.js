@@ -3,7 +3,7 @@
 /**
  * IPFS Action Uploader
  *
- * Purpose: Upload action instruction documents to IPFS via Pinata.
+ * Purpose: Upload action instruction documents to IPFS via Storacha.
  * Called by Deploy.s.sol via FFI during deployment.
  *
  * Inputs: Reads config/actions.json
@@ -124,51 +124,41 @@ function buildCacheKey(action, index) {
 }
 
 /**
- * Initialize Pinata client (Just returns JWT)
+ * Initialize Storacha client
  */
-function initPinata() {
-  const pinataJwt = process.env.VITE_PINATA_JWT;
+async function initStoracha() {
+  const storachaKey = process.env.STORACHA_KEY;
+  const storachaProof = process.env.STORACHA_PROOF;
 
-  if (!pinataJwt) {
-    throw new Error("VITE_PINATA_JWT environment variable required");
+  if (!storachaKey || !storachaProof) {
+    throw new Error("STORACHA_KEY and STORACHA_PROOF environment variables required");
   }
 
-  return pinataJwt;
+  // Dynamic import for ES modules
+  const Client = await import("@storacha/client");
+  const client = await Client.create();
+
+  // Add proof and key to the client
+  const proof = Client.Proof.parse(storachaProof);
+  const space = await client.addSpace(proof);
+  await client.setCurrentSpace(space.did());
+
+  return client;
 }
 
 /**
- * Upload action to IPFS via Pinata with retry logic
+ * Upload action to IPFS via Storacha with retry logic
  */
-async function uploadToIPFS(jwt, name, data, retries = 3) {
+async function uploadToIPFS(client, name, data, retries = 3) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const res = await fetch("https://api.pinata.cloud/pinning/pinJSONToIPFS", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${jwt}`,
-        },
-        body: JSON.stringify({
-          pinataContent: data,
-          pinataMetadata: {
-            name: name,
-          },
-          pinataOptions: {
-            cidVersion: 1,
-          },
-        }),
-      });
+      // Convert JSON to Blob/File for upload
+      const jsonString = JSON.stringify(data);
+      const blob = new Blob([jsonString], { type: "application/json" });
+      const file = new File([blob], `${name}.json`, { type: "application/json" });
 
-      if (!res.ok) {
-        const body = await res.text();
-        throw new Error(`Pinata upload failed (${res.status}): ${body || res.statusText}`);
-      }
-
-      const result = await res.json();
-      if (!result?.IpfsHash) {
-        throw new Error("Pinata upload succeeded without IpfsHash");
-      }
-      return result.IpfsHash;
+      const cid = await client.uploadFile(file);
+      return cid.toString();
     } catch (error) {
       if (attempt === retries) {
         throw error;
@@ -218,30 +208,34 @@ async function main() {
       return cache[cacheKey]?.hash;
     });
 
-    // Get Pinata credentials
-    const pinataJwt = process.env.VITE_PINATA_JWT;
+    // Get Storacha credentials
+    const storachaKey = process.env.STORACHA_KEY;
+    const storachaProof = process.env.STORACHA_PROOF;
 
     // If credentials not set and we have cache, use cache
-    if (!pinataJwt) {
+    if (!storachaKey || !storachaProof) {
       if (allCached) {
         // Note: Don't write to stderr when using cache to avoid Forge error logs
         for (let i = 0; i < actions.length; i++) {
           const action = actions[i];
-          const cacheKey = `${action.title}-${i}`;
+          const cacheKey = buildCacheKey(action, i);
           ipfsHashes.push(cache[cacheKey].hash);
         }
         console.log(JSON.stringify(ipfsHashes));
         process.exit(0);
       } else {
-        console.error("Error: VITE_PINATA_JWT environment variable required and no valid cache found", {
-          toStderr: true,
-        });
+        console.error(
+          "Error: STORACHA_KEY and STORACHA_PROOF environment variables required and no valid cache found",
+          {
+            toStderr: true,
+          },
+        );
         process.exit(1);
       }
     }
 
-    // Initialize Pinata
-    const jwt = initPinata();
+    // Initialize Storacha
+    const client = await initStoracha();
 
     // Process each action
     for (let i = 0; i < actions.length; i++) {
@@ -261,7 +255,7 @@ async function main() {
 
       // Upload to IPFS (silent to avoid Forge error logs)
       try {
-        const hash = await uploadToIPFS(jwt, action.title.replace(/\s+/g, "-").toLowerCase(), instructionsDoc);
+        const hash = await uploadToIPFS(client, action.title.replace(/\s+/g, "-").toLowerCase(), instructionsDoc);
         uploads += 1;
 
         // Upload successful

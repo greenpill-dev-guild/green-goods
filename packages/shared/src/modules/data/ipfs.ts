@@ -1,99 +1,74 @@
-import { type Hex } from "viem";
+import * as Client from "@storacha/client";
 
-interface PinataConfig {
-  jwt: string;
+interface IpfsConfig {
+  key: string;
+  proof: string;
   gatewayBaseUrl?: string;
 }
 
-let pinataJwt: string | null = null;
-let gatewayUrl = "https://gateway.pinata.cloud";
+let storachaClient: Client.Client | null = null;
+let gatewayUrl = "https://w3s.link";
 
 const DEFAULT_AVATAR = "/images/avatar.png";
 
 /**
- * Initializes the Pinata client configuration
+ * Initializes the Storacha IPFS client configuration
  */
-export async function initializePinata(config: PinataConfig) {
-  pinataJwt = config.jwt;
-  if (config.gatewayBaseUrl) {
-    gatewayUrl = config.gatewayBaseUrl;
-  }
-  return { jwt: pinataJwt, gatewayUrl };
-}
-
-/**
- * Uploads a file to IPFS using Pinata API
- */
-export async function uploadFileToIPFS(file: File): Promise<{ cid: string }> {
-  if (!pinataJwt) {
-    throw new Error("Pinata not initialized. Call initializePinata() first.");
-  }
-
-  const formData = new FormData();
-  formData.append("file", file);
-
-  const metadata = JSON.stringify({
-    name: file.name,
-  });
-  formData.append("pinataMetadata", metadata);
-
-  const options = JSON.stringify({
-    cidVersion: 1,
-  });
-  formData.append("pinataOptions", options);
-
+export async function initializeIpfs(config: IpfsConfig) {
   try {
-    const res = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${pinataJwt}`,
-      },
-      body: formData,
-    });
+    storachaClient = await Client.create();
 
-    if (!res.ok) {
-      throw new Error(`Pinata upload failed: ${res.statusText}`);
+    // Add proof and key to the client
+    const proof = Client.Proof.parse(config.proof);
+    const space = await storachaClient.addSpace(proof);
+    await storachaClient.setCurrentSpace(space.did());
+
+    if (config.gatewayBaseUrl) {
+      gatewayUrl = config.gatewayBaseUrl;
     }
 
-    const data = (await res.json()) as any;
-    return { cid: data.IpfsHash };
+    return { client: storachaClient, gatewayUrl };
   } catch (error) {
-    console.error("Failed to upload file to Pinata:", error);
+    console.error("Failed to initialize Storacha client:", error);
     throw error;
   }
 }
 
 /**
- * Uploads JSON metadata to IPFS using Pinata API
+ * Uploads a file to IPFS using Storacha
  */
-export async function uploadJSONToIPFS(json: Record<string, unknown>): Promise<{ cid: string }> {
-  if (!pinataJwt) {
-    throw new Error("Pinata not initialized. Call initializePinata() first.");
+export async function uploadFileToIPFS(file: File): Promise<{ cid: string }> {
+  if (!storachaClient) {
+    throw new Error("Storacha not initialized. Call initializeIpfs() first.");
   }
 
   try {
-    const res = await fetch("https://api.pinata.cloud/pinning/pinJSONToIPFS", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${pinataJwt}`,
-      },
-      body: JSON.stringify({
-        pinataContent: json,
-        pinataOptions: {
-          cidVersion: 1,
-        },
-      }),
-    });
-
-    if (!res.ok) {
-      throw new Error(`Pinata upload failed: ${res.statusText}`);
-    }
-
-    const data = (await res.json()) as any;
-    return { cid: data.IpfsHash };
+    const cid = await storachaClient.uploadFile(file);
+    return { cid: cid.toString() };
   } catch (error) {
-    console.error("Failed to upload JSON to Pinata:", error);
+    console.error("Failed to upload file to Storacha:", error);
+    throw error;
+  }
+}
+
+/**
+ * Uploads JSON metadata to IPFS using Storacha
+ */
+export async function uploadJSONToIPFS(json: Record<string, unknown>): Promise<{ cid: string }> {
+  if (!storachaClient) {
+    throw new Error("Storacha not initialized. Call initializeIpfs() first.");
+  }
+
+  try {
+    // Convert JSON to a File/Blob for upload
+    const jsonString = JSON.stringify(json);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const file = new File([blob], "metadata.json", { type: "application/json" });
+
+    const cid = await storachaClient.uploadFile(file);
+    return { cid: cid.toString() };
+  } catch (error) {
+    console.error("Failed to upload JSON to Storacha:", error);
     throw error;
   }
 }
@@ -176,32 +151,39 @@ export function resolveImageUrl(uri: string): string {
   return resolveIPFSUrl(uri);
 }
 
-// Backward compatibility aliases if needed
-export const initializeStoracha = initializePinata;
-export const getStorachaClient = () => {
-  throw new Error("Pinata client does not expose a raw client instance");
-};
-
 /**
  * Convenience initializer that reads Vite-style env vars.
  * Returns true on successful initialization, false if missing configuration.
  */
-export async function initializePinataFromEnv(
+export async function initializeIpfsFromEnv(
   env: any = typeof import.meta !== "undefined" ? import.meta.env : {}
 ) {
-  const jwt = env?.VITE_PINATA_JWT;
-  const gatewayBaseUrl = env?.VITE_PINATA_GATEWAY;
+  const key = env?.VITE_STORACHA_KEY;
+  const proof = env?.VITE_STORACHA_PROOF;
+  const gatewayBaseUrl = env?.VITE_STORACHA_GATEWAY;
 
-  if (!jwt) {
-    console.warn("VITE_PINATA_JWT is not configured. Media features will be unavailable.");
+  if (!key || !proof) {
+    console.warn(
+      "VITE_STORACHA_KEY and VITE_STORACHA_PROOF are not configured. Media features will be unavailable."
+    );
     return false;
   }
 
   try {
-    await initializePinata({ jwt, gatewayBaseUrl });
+    await initializeIpfs({ key, proof, gatewayBaseUrl });
     return true;
   } catch (err) {
-    console.error("Failed to initialize Pinata:", err);
+    console.error("Failed to initialize Storacha:", err);
     return false;
   }
 }
+
+// Storacha aliases (preferred naming)
+export const initializeStoracha = initializeIpfs;
+export const initializeStorachaFromEnv = initializeIpfsFromEnv;
+
+// Backward compatibility aliases (deprecated - will be removed in future version)
+/** @deprecated Use initializeIpfs or initializeStoracha instead */
+export const initializePinata = initializeIpfs;
+/** @deprecated Use initializeIpfsFromEnv or initializeStorachaFromEnv instead */
+export const initializePinataFromEnv = initializeIpfsFromEnv;

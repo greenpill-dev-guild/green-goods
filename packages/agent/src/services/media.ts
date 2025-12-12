@@ -1,5 +1,5 @@
 /**
- * Media Service (IPFS via Pinata)
+ * Media Service (IPFS via Storacha)
  *
  * Handles media uploads to IPFS for work submissions.
  * Node.js compatible - uses Buffer instead of browser File.
@@ -30,25 +30,38 @@ export interface MediaBuffer {
 // CONFIGURATION
 // ============================================================================
 
-let pinataJwt: string | null = null;
+let storachaClient: any = null;
 let gatewayUrl = "https://w3s.link";
 
 /**
- * Initialize media service with Pinata credentials
+ * Initialize media service with Storacha credentials
  */
-export function initMedia(jwt: string, customGateway?: string): void {
-  pinataJwt = jwt;
-  if (customGateway) {
-    gatewayUrl = customGateway;
+export async function initMedia(key: string, proof: string, customGateway?: string): Promise<void> {
+  try {
+    // Dynamic import for ES modules
+    const Client = await import("@storacha/client");
+    storachaClient = await Client.create();
+
+    // Add proof and key to the client
+    const parsedProof = Client.Proof.parse(proof);
+    const space = await storachaClient.addSpace(parsedProof);
+    await storachaClient.setCurrentSpace(space.did());
+
+    if (customGateway) {
+      gatewayUrl = customGateway;
+    }
+    log.info({ gateway: gatewayUrl }, "Media service initialized");
+  } catch (error) {
+    log.error({ err: error }, "Failed to initialize Storacha client");
+    throw error;
   }
-  log.info({ gateway: gatewayUrl }, "Media service initialized");
 }
 
 /**
  * Check if media service is configured
  */
 export function isMediaConfigured(): boolean {
-  return pinataJwt !== null;
+  return storachaClient !== null;
 }
 
 // ============================================================================
@@ -56,55 +69,27 @@ export function isMediaConfigured(): boolean {
 // ============================================================================
 
 /**
- * Upload a buffer to IPFS via Pinata
+ * Upload a buffer to IPFS via Storacha
  */
 export async function uploadBufferToIPFS(media: MediaBuffer): Promise<MediaUploadResult> {
-  if (!pinataJwt) {
+  if (!storachaClient) {
     throw new Error("Media service not initialized. Call initMedia() first.");
   }
 
-  const formData = new FormData();
-
-  // Create a Blob from Buffer using Uint8Array (compatible with all Node.js versions)
-  const uint8Array = new Uint8Array(media.buffer);
-  const blob = new Blob([uint8Array], { type: media.mimeType });
-  formData.append("file", blob, media.filename);
-
-  const metadata = JSON.stringify({
-    name: media.filename,
-    keyvalues: {
-      source: "green-goods-agent",
-      uploadedAt: new Date().toISOString(),
-    },
-  });
-  formData.append("pinataMetadata", metadata);
-
-  const options = JSON.stringify({
-    cidVersion: 1,
-  });
-  formData.append("pinataOptions", options);
-
   try {
-    const res = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${pinataJwt}`,
-      },
-      body: formData,
-    });
+    // Create a Blob from Buffer using Uint8Array (compatible with all Node.js versions)
+    const uint8Array = new Uint8Array(media.buffer);
+    const blob = new Blob([uint8Array], { type: media.mimeType });
+    const file = new File([blob], media.filename, { type: media.mimeType });
 
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(`Pinata upload failed: ${res.status} ${errorText}`);
-    }
-
-    const data = (await res.json()) as { IpfsHash: string; PinSize: number };
+    const cid = await storachaClient.uploadFile(file);
+    const cidString = cid.toString();
 
     const result: MediaUploadResult = {
-      cid: data.IpfsHash,
-      url: `${gatewayUrl}/ipfs/${data.IpfsHash}`,
+      cid: cidString,
+      url: `${gatewayUrl}/ipfs/${cidString}`,
       mimeType: media.mimeType,
-      size: data.PinSize,
+      size: media.buffer.length,
     };
 
     log.info(

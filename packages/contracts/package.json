@@ -48,7 +48,8 @@
   "dependencies": {
     "@ensdomains/ens-contracts": "^1.6.0",
     "@ethereum-attestation-service/eas-contracts": "^1.8.0",
-    "@openzeppelin/contracts-upgradeable": "4.9.6"
+    "@openzeppelin/contracts-upgradeable": "4.9.6",
+    "@storacha/client": "^1.8.23"
   },
   "devDependencies": {
     "solhint": "^6.0.1"

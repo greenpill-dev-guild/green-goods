@@ -24,8 +24,8 @@ vi.mock("../../config", () => ({
   DEFAULT_CHAIN_ID: 84532,
 }));
 
-// Mock pinata
-vi.mock("../../modules/data/pinata", () => ({
+// Mock IPFS (Storacha)
+vi.mock("../../modules/data/ipfs", () => ({
   resolveIPFSUrl: vi.fn((cid) => `https://ipfs.io/ipfs/${cid}`),
   getFileByHash: vi.fn(async () => ({ data: new Blob(["x"]) })),
 }));

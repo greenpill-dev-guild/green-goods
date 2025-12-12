@@ -22,7 +22,7 @@ src/
 ├── modules/         # Core business logic
 │   ├── app/         # Analytics (posthog), service worker
 │   ├── auth/        # Passkey session management
-│   ├── data/        # API clients (eas, greengoods, pinata, urql, graphql)
+│   ├── data/        # API clients (eas, greengoods, ipfs/storacha, urql, graphql)
 │   ├── job-queue/   # Offline queue system (IndexedDB, event bus)
 │   ├── translation/ # Browser translation, cache
 │   └── work/        # Work/approval submission logic
@@ -78,7 +78,7 @@ Data fetching and API clients.
 **Files:**
 - `eas.ts` — EAS attestation queries (getWorks, getWorkApprovals, getGardenAssessments)
 - `greengoods.ts` — Indexer queries (getGardens, getActions, getGardeners)
-- `pinata.ts` — IPFS uploads (uploadFileToIPFS, uploadJSONToIPFS, resolveIPFSUrl)
+- `ipfs.ts` — IPFS uploads via Storacha (uploadFileToIPFS, uploadJSONToIPFS, resolveIPFSUrl)
 - `urql.ts` — GraphQL client configuration (createEasClient, greenGoodsIndexer)
 - `graphql.ts` — Type-safe GraphQL with gql.tada (easGraphQL, greenGoodsGraphQL)
 

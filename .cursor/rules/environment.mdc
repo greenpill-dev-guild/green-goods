@@ -90,8 +90,9 @@ VITE_PIMLICO_API_KEY=your-pimlico-key
 # WalletConnect (multi-wallet support)
 VITE_WALLETCONNECT_PROJECT_ID=your-wc-project-id
 
-# Pinata (IPFS uploads)
-VITE_PINATA_JWT=your-pinata-jwt
+# Storacha (IPFS uploads - primary)
+VITE_STORACHA_KEY=your-storacha-private-key
+VITE_STORACHA_PROOF=your-storacha-delegation-proof
 
 # PostHog (analytics)
 VITE_POSTHOG_KEY=phc_...
@@ -227,7 +228,7 @@ export function getDefaultChain() {
 ### What Goes in .env
 
 **✅ Include:**
-- API keys (Pimlico, Pinata, Alchemy, PostHog)
+- API keys (Pimlico, Storacha, Alchemy, PostHog)
 - RPC URLs with auth tokens
 - Keystore account names
 - Service configuration
@@ -258,9 +259,11 @@ ALCHEMY_API_KEY=your-alchemy-api-key
 # Get from: https://dashboard.pimlico.io
 VITE_PIMLICO_API_KEY=get-from-pimlico-dashboard
 
-# IPFS Storage (REQUIRED for media uploads)
-# Get from: https://app.pinata.cloud
-VITE_PINATA_JWT=get-from-pinata-dashboard
+# IPFS Storage via Storacha (REQUIRED for media uploads)
+# Get from: https://console.storacha.network
+# Generate: npm i -g @web3-storage/w3cli && w3 login && w3 space create green-goods
+VITE_STORACHA_KEY=get-from-storacha-console
+VITE_STORACHA_PROOF=get-from-storacha-console
 
 # Analytics (OPTIONAL)
 # Get from: https://posthog.com
@@ -366,7 +369,8 @@ VITE_ENVIO_INDEXER_URL=http://localhost:8080/v1/graphql
 # Production .env (minimal, secure)
 VITE_CHAIN_ID=42161
 VITE_PIMLICO_API_KEY=pk_...
-VITE_PINATA_JWT=...
+VITE_STORACHA_KEY=...
+VITE_STORACHA_PROOF=...
 VITE_WALLETCONNECT_PROJECT_ID=...
 VITE_POSTHOG_KEY=phc_...
 VITE_ENVIO_INDEXER_URL=https://indexer.greengoods.app/v1/graphql

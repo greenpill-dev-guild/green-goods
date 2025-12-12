@@ -1,6 +1,6 @@
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { greenGoodsGraphQL } from "./graphql";
-import { getFileByHash, resolveIPFSUrl } from "./pinata";
+import { getFileByHash, resolveIPFSUrl } from "./ipfs";
 import { greenGoodsIndexer } from "./urql";
 
 const GATEWAY_BASE_URL = "https://w3s.link";
@@ -54,7 +54,7 @@ export async function getActions(): Promise<Action[]> {
               ? media.map((cid: string) => resolveIPFSUrl(cid, GATEWAY_BASE_URL))
               : [];
 
-          // Fetch action instructions from IPFS using existing pinata module
+          // Fetch action instructions from IPFS using Storacha module
           let actionConfig: ActionInstructionConfig | null = null;
           try {
             if (instructions) {

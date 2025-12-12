@@ -40,34 +40,34 @@ export {
   AUTH_MODE_STORAGE_KEY,
   // Auth mode
   type AuthMode,
-  getAuthMode,
-  setAuthMode,
-  clearAuthMode,
-  // Passkey
-  hasStoredPasskey,
-  clearStoredPasskey,
+  checkAndHandleFreshStart,
   // Sign out
   clearAllAuth,
+  clearAllAuthStorage,
+  clearAuthMode,
+  clearPasskeySignedOut,
+  clearSignedOut,
+  clearStoredPasskey,
+  clearWalletConnectIntent,
+  consumeWalletConnectIntent,
+  getAuthMode,
+  getSavedAuthMode,
+  // Passkey
+  hasStoredPasskey,
+  hasStoredPasskeyCredential,
+  isFreshAppStart,
+  markSessionActive,
   // Legacy exports (deprecated but kept for backward compatibility)
   PASSKEY_SIGNED_OUT_KEY,
   SESSION_MARKER_KEY,
   SIGNED_OUT_KEY,
-  getSavedAuthMode,
   saveAuthMode,
-  hasStoredPasskeyCredential,
-  clearAllAuthStorage,
-  wasPasskeySignedOut,
+  setAuthMode,
   setPasskeySignedOut,
-  clearPasskeySignedOut,
-  isFreshAppStart,
-  setWalletConnectIntent,
-  consumeWalletConnectIntent,
-  clearWalletConnectIntent,
-  clearSignedOut,
   setSignedOut,
+  setWalletConnectIntent,
   wasExplicitlySignedOut,
-  markSessionActive,
-  checkAndHandleFreshStart,
+  wasPasskeySignedOut,
 } from "./auth/session";
 
 // ============================================================================
@@ -98,18 +98,24 @@ export {
 } from "./data/greengoods";
 
 // ============================================================================
-// DATA / PINATA (IPFS)
+// DATA / IPFS (Storacha)
 // ============================================================================
 export {
   getFileByHash,
+  initializeIpfs,
+  initializeIpfsFromEnv,
+  // Deprecated aliases for backward compatibility
   initializePinata,
   initializePinataFromEnv,
+  // Storacha aliases (preferred naming)
+  initializeStoracha,
+  initializeStorachaFromEnv,
   resolveAvatarUrl,
   resolveImageUrl,
   resolveIPFSUrl,
   uploadFileToIPFS,
   uploadJSONToIPFS,
-} from "./data/pinata";
+} from "./data/ipfs";
 
 // ============================================================================
 // DATA / URQL

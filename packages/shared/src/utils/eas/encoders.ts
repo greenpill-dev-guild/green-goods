@@ -1,7 +1,7 @@
 import { SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
 
 import { getEASConfig } from "../../config/blockchain";
-import { uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/pinata";
+import { uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/ipfs";
 
 /**
  * Simulates work data encoding with dummy IPFS hashes.

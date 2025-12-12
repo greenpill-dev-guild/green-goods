@@ -1,6 +1,6 @@
 import { getEASConfig } from "../../config/blockchain";
 import { easGraphQL } from "./graphql";
-import { resolveIPFSUrl } from "./pinata";
+import { resolveIPFSUrl } from "./ipfs";
 import { createEasClient } from "./urql";
 
 const GATEWAY_BASE_URL = "https://w3s.link";

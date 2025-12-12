@@ -37,6 +37,7 @@
   "dependencies": {
     "@reown/appkit": "^1.8.10",
     "@reown/appkit-adapter-wagmi": "^1.8.10",
+    "@storacha/client": "^1.8.23",
     "@wagmi/core": "^2.22.1",
     "browser-image-compression": "^2.0.2",
     "browser-lang": "^0.2.1",
