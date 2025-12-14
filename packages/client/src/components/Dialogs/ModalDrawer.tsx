@@ -45,7 +45,7 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
 
   return (
     <div
-      className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[7777] flex items-end justify-center animate-in fade-in-0 duration-150"
+      className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[20000] flex items-end justify-center animate-in fade-in-0 duration-150"
       data-testid="modal-drawer-overlay"
       onClick={onClose}
       onKeyDown={(e) => {
@@ -82,15 +82,11 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
             {header.actions}
             <button
               onClick={onClose}
-              className={cn(
-                "p-1 rounded-full border border-slate-200 transition-all duration-200 flex-shrink-0 tap-feedback",
-                "focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-600 active:border-emerald-600",
-                "active:scale-95"
-              )}
+              className="btn-icon"
               data-testid="modal-drawer-close"
               aria-label="Close modal"
             >
-              <RiCloseLine className="w-5 h-5 text-slate-400 focus:text-emerald-700 active:text-emerald-700" />
+              <RiCloseLine className="w-5 h-5 focus:text-primary active:text-primary" />
             </button>
           </div>
         </div>

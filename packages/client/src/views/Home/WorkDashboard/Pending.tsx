@@ -114,6 +114,7 @@ export const PendingTab: React.FC<PendingTabProps> = ({
                 badges={renderBadges?.(work)}
                 className="stagger-item"
                 style={{ animationDelay: `${index * 30}ms` } as React.CSSProperties}
+                variant="dashboard"
               />
             ))}
           </div>

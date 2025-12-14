@@ -15,7 +15,7 @@ import {
   isUserAddress as sharedIsUserAddress,
   type TimeFilter,
 } from "@green-goods/shared/utils";
-import { RiCheckLine, RiCloseLine, RiTimeLine } from "@remixicon/react";
+import { RiCheckLine, RiCloseLine, RiTaskLine, RiTimeLine } from "@remixicon/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -148,7 +148,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     staleTime: 5000,
   });
 
-  // Combine offline queue + recent online work for "Recent Work" tab
+  // Combine offline queue + recent online work for "Recent" tab
   const recentWorkCombined = useMemo(() => {
     const combined = [...offlineQueueWork, ...recentOnlineWork];
 
@@ -351,13 +351,15 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   const tabs: StandardTab[] = [
     {
       id: "recent",
+      icon: <RiTimeLine className="w-4 h-4" />,
       label: intl.formatMessage({
         id: "app.workDashboard.tabs.recent",
-        defaultMessage: "Recent Work",
+        defaultMessage: "Recent",
       }),
     },
     {
       id: "pending",
+      icon: <RiTaskLine className="w-4 h-4" />,
       label: intl.formatMessage({
         id: "app.workDashboard.tabs.pending",
         defaultMessage: "Pending",
@@ -365,6 +367,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     },
     {
       id: "completed",
+      icon: <RiCheckLine className="w-4 h-4" />,
       label: intl.formatMessage({
         id: "app.workDashboard.tabs.completed",
         defaultMessage: "Completed",
@@ -483,7 +486,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   return (
     <div
       className={cn(
-        "fixed inset-0 bg-black/20 backdrop-blur-sm z-[10001] flex items-end justify-center",
+        "fixed inset-0 bg-black/20 backdrop-blur-sm z-[20000] flex items-end justify-center",
         isClosing ? "modal-backdrop-exit" : "modal-backdrop-enter"
       )}
       data-testid="modal-drawer-overlay"
@@ -529,7 +532,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
           <div className="flex items-center gap-2 ml-4">
             <button
               onClick={handleClose}
-              className="btn-icon rounded-full"
+              className="btn-icon"
               data-testid="modal-drawer-close"
               aria-label="Close modal"
             >

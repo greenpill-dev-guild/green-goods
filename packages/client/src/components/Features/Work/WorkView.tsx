@@ -26,6 +26,17 @@ type WorkViewProps = {
   primaryActions?: WorkViewAction[]; // shown near header or under details
   feedbackSection?: React.ReactNode; // optional feedback input section
   footer?: React.ReactNode; // e.g., fixed approval bar
+  /**
+   * When the provided `footer` is positioned `fixed` (outside normal layout flow),
+   * set this to true so the WorkView reserves vertical space and content doesn't
+   * end up hidden behind the footer.
+   */
+  reserveFooterSpace?: boolean;
+  /**
+   * Optional override for the reserved space element used by `reserveFooterSpace`.
+   * Useful when different fixed footers have different heights.
+   */
+  footerSpacerClassName?: string;
   showMedia?: boolean;
 };
 
@@ -40,6 +51,8 @@ export const WorkView: React.FC<WorkViewProps> = ({
   primaryActions = [],
   feedbackSection,
   footer,
+  reserveFooterSpace = false,
+  footerSpacerClassName,
   showMedia = true,
 }) => {
   const intl = useIntl();
@@ -151,6 +164,13 @@ export const WorkView: React.FC<WorkViewProps> = ({
           </div>
         </>
       )}
+
+      {reserveFooterSpace ? (
+        <div
+          aria-hidden="true"
+          className={footerSpacerClassName ?? "h-[calc(96px+env(safe-area-inset-bottom))]"}
+        />
+      ) : null}
 
       {footer}
     </div>

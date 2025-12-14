@@ -24,6 +24,8 @@ type WorkViewSectionProps = {
   onShare: () => void;
   onViewAttestation?: () => void;
   footer?: React.ReactNode;
+  reserveFooterSpace?: boolean;
+  footerSpacerClassName?: string;
 };
 
 export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
@@ -37,6 +39,8 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
   onShare,
   onViewAttestation,
   footer,
+  reserveFooterSpace,
+  footerSpacerClassName,
 }) => {
   const intl = useIntl();
 
@@ -179,6 +183,8 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       headerIcon={RiCheckDoubleFill}
       primaryActions={primaryActions}
       footer={footer}
+      reserveFooterSpace={reserveFooterSpace}
+      footerSpacerClassName={footerSpacerClassName}
     />
   );
 };

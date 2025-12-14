@@ -23,6 +23,10 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
   const { isOnline } = useOffline();
   const flush = useQueueFlush();
 
+  // Only offline (unsynced) work is actively "uploading".
+  const uploadingOfflineWork = uploadingWork.filter((work) => work.id.startsWith("0xoffline_"));
+  const uploadingCount = uploadingOfflineWork.length;
+
   const handleSyncAll = async () => {
     try {
       await flush();
@@ -35,23 +39,21 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
     <div className="h-full flex flex-col">
       <div className="mb-4 px-4 pt-4 flex items-center justify-between gap-3">
         <div>
-          {isLoading ? null : (
-            <p className="text-sm text-slate-600 capitalize">
-              {uploadingWork.length > 0
-                ? intl.formatMessage(
-                    {
-                      id: "app.workDashboard.uploading.itemsUploading",
-                      defaultMessage: "{count} items uploading",
-                    },
-                    { count: uploadingWork.length }
-                  )
-                : null}
+          {isLoading ? null : uploadingWork.length > 0 ? (
+            <p className="text-sm text-slate-600">
+              {intl.formatMessage(
+                {
+                  id: "app.workDashboard.recent.itemsCount",
+                  defaultMessage: "{count} recent items",
+                },
+                { count: uploadingWork.length }
+              )}
             </p>
-          )}
+          ) : null}
         </div>
         <div className="flex items-center gap-2">
           {headerContent}
-          {uploadingWork.length > 0 &&
+          {uploadingCount > 0 &&
             (isOnline ? (
               <button
                 className="text-sm text-primary font-medium px-3 py-1 rounded-lg border border-slate-200 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary active:border-primary active:scale-95 tap-feedback"

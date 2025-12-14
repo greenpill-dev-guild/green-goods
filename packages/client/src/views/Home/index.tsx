@@ -4,6 +4,7 @@ import {
   useGardens,
   useNavigateToTop,
 } from "@green-goods/shared/hooks";
+import { useUIStore } from "@green-goods/shared/stores";
 import { cn, gardenHasMember } from "@green-goods/shared/utils";
 import { RiFilterLine } from "@remixicon/react";
 import React, { useEffect, useMemo, useState } from "react";
@@ -25,7 +26,9 @@ const Home: React.FC = () => {
   const intl = useIntl();
   const { smartAccountAddress, walletAddress } = useAuth();
   const [filters, setFilters] = useState<GardenFiltersState>({ scope: "all", sort: "default" });
-  const [isFilterOpen, setFilterOpen] = useState(false);
+
+  // Use UIStore for filter drawer state (allows AppBar to react to drawer state)
+  const { isGardenFilterOpen, openGardenFilter, closeGardenFilter } = useUIStore();
 
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
@@ -80,9 +83,9 @@ const Home: React.FC = () => {
 
   useEffect(() => {
     if (location.pathname !== "/home") {
-      setFilterOpen(false);
+      closeGardenFilter();
     }
-  }, [location.pathname]);
+  }, [location.pathname, closeGardenFilter]);
 
   function handleCardClick(id: string) {
     navigate(`/home/${id}`);
@@ -181,7 +184,7 @@ const Home: React.FC = () => {
             <div className="ml-4 flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setFilterOpen(true)}
+                onClick={openGardenFilter}
                 className={cn(
                   "relative p-1 rounded-lg border transition-all duration-200 tap-feedback",
                   "active:scale-95",
@@ -208,8 +211,8 @@ const Home: React.FC = () => {
             {renderGardens()}
           </div>
           <GardensFilterDrawer
-            isOpen={isFilterOpen}
-            onClose={() => setFilterOpen(false)}
+            isOpen={isGardenFilterOpen}
+            onClose={closeGardenFilter}
             filters={filters}
             onScopeChange={handleScopeChange}
             onSortChange={handleSortChange}

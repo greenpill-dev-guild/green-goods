@@ -605,7 +605,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
     <article>
       <TopNav onBackClick={handleBack} overlay />
       {workApprovalMutation.isIdle && (
-        <div className={cn("padded pt-20", (retryFooter || approvalFooter) && "pb-8")}>
+        <div className="padded pt-20">
           {isMetadataLoading ? (
             <WorkViewSkeleton showMedia showActions={false} numDetails={3} />
           ) : (
@@ -620,6 +620,8 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
               onShare={handleShare}
               onViewAttestation={canViewAttestation ? handleViewAttestation : undefined}
               footer={retryFooter || approvalFooter}
+              reserveFooterSpace={Boolean(retryFooter || approvalFooter)}
+              footerSpacerClassName="h-[calc(112px+env(safe-area-inset-bottom))]"
             />
           )}
 
