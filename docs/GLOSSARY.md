@@ -82,7 +82,7 @@ Green Goods assessments track impact across all eight capitals.
 Data or transactions permanently recorded on a blockchain. Green Goods stores attestations on-chain for verifiability, while larger data (photos, metadata) is stored off-chain in IPFS and referenced by on-chain records.
 
 ## IPFS (InterPlanetary File System)
-A distributed file storage system. Green Goods stores work photos, metadata, and action instructions in IPFS via Pinata, with content identifiers (CIDs) referenced in on-chain attestations.
+A distributed file storage system. Green Goods stores work photos, metadata, and action instructions in IPFS via Storacha, with content identifiers (CIDs) referenced in on-chain attestations.
 
 ## Base Sepolia
 The default testnet for Green Goods development. Base Sepolia is an Ethereum Layer 2 testnet provided by Coinbase, offering low-cost transactions for testing.

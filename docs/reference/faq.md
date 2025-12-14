@@ -212,7 +212,7 @@ Verified on-chain: [Attestation UID]
 **Frontend**: React + TypeScript + Vite + Tailwind
 **Blockchain**: Solidity + Foundry + EAS
 **Indexer**: Envio + PostgreSQL + GraphQL
-**Storage**: IPFS via Pinata
+**Storage**: IPFS via Storacha
 
 [Technical Architecture →](../developer/architecture/monorepo-structure.md)
 

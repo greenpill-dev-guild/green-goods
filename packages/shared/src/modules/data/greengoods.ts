@@ -178,7 +178,6 @@ export async function getGardeners(): Promise<GardenerCard[]> {
           chainId
           createdAt
           firstGarden
-          joinedVia
         }
       }
     `);

@@ -169,7 +169,7 @@ Location: River Valley Park
 
 **When you click "Submit"**:
 1. ✅ Data saved to IndexedDB (local)
-2. ✅ Photos uploaded to IPFS (via Pinata)
+2. ✅ Photos uploaded to IPFS (via Storacha)
 3. ✅ Attestation prepared with IPFS CIDs
 4. ✅ Transaction queued (passkey) or sent (wallet)
 5. ✅ Confirmation shown

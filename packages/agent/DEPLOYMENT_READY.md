@@ -81,9 +81,9 @@ DB_PATH=/data/agent.db
 # Chain (from root .env)
 VITE_CHAIN_ID=84532  # Base Sepolia
 
-# Media (IPFS via Pinata) - enables photo uploads
-PINATA_JWT=<your-pinata-jwt>
-VITE_PINATA_GATEWAY=https://w3s.link
+# Media (IPFS via Storacha) - enables photo uploads
+STORACHA_KEY=<your-storacha-key>
+STORACHA_PROOF=<your-storacha-proof>
 
 # Analytics (optional but recommended)
 POSTHOG_AGENT_KEY=<your-posthog-key>
@@ -117,7 +117,7 @@ ANALYTICS_ENABLED=true
 ✅ **Analytics Privacy:** User IDs hashed (SHA-256)  
 ✅ **TLS Required:** HTTPS-only for webhooks  
 ✅ **Audit Logging:** Structured Pino logs for operator actions  
-✅ **Media Uploads:** IPFS via Pinata for photo submissions
+✅ **Media Uploads:** IPFS via Storacha for photo submissions
 
 ## 📊 Health Monitoring
 
@@ -171,7 +171,7 @@ ANALYTICS_ENABLED=true
 - Docker containerization
 - Rate limiting protection
 - Structured audit logging (Pino)
-- Photo/media attachments (IPFS via Pinata)
+- Photo/media attachments (IPFS via Storacha)
 - Work approval workflow (submitApprovalBot)
 
 **Deployment can proceed immediately to `agent.greengoods.app`.**

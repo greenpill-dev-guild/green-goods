@@ -51,7 +51,7 @@ bun --filter client build    # Production build
 ### Storage
 - IndexedDB (offline queue)
 - Service Worker (PWA)
-- IPFS (via Pinata)
+- IPFS (via Storacha)
 
 ---
 

@@ -206,7 +206,9 @@ export default defineConfig(({ mode }) => {
     },
     // Optimize dependency pre-bundling
     optimizeDeps: {
-      include: ["react", "react-dom", "posthog-js"],
+      // Include CJS packages that need named exports extracted
+      include: ["react", "react-dom", "posthog-js", "@ethereum-attestation-service/eas-sdk"],
+      // Exclude local packages and ESM-only packages
       exclude: ["@green-goods/shared"],
     },
     server: {

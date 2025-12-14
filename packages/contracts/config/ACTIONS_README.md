@@ -329,7 +329,7 @@ The deployment will:
 1. Load `actions.json`
 2. Match "Harvesting" action to "harvest" template
 3. Generate complete instruction document
-4. Upload to IPFS via Pinata
+4. Upload to IPFS via Storacha
 5. Register action on-chain with IPFS hash
 
 ## Validation
@@ -371,7 +371,7 @@ For new actions, use placeholder hashes initially:
 ```
 
 Replace with actual IPFS hashes after uploading real images:
-1. Upload images to Pinata
+1. Upload images to Storacha (or Pinata)
 2. Get CID (Content Identifier)
 3. Update `media` array in `actions.json`
 4. Redeploy with `--update-schemas` flag
@@ -403,7 +403,7 @@ cast call $ACTION_REGISTRY "getAction(uint256)" 1 --rpc-url $RPC
 - Add new keyword to priority array if needed
 
 **IPFS upload failing:**
-- Verify `PINATA_JWT` or `VITE_PINATA_JWT` in `.env`
+- Verify `STORACHA_KEY` and `STORACHA_PROOF` in `.env`
 - Check `.ipfs-cache.json` for cached hashes
 - Use `--force` flag to skip cache
 

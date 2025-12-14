@@ -205,7 +205,7 @@ Developers build on, extend, or contribute to the Green Goods platform and proto
 
 **Backend**:
 - Envio GraphQL indexer
-- IPFS via Pinata
+- IPFS via Storacha
 - Pimlico account abstraction
 
 **Blockchain**:

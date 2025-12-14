@@ -27,7 +27,7 @@ Green Goods is a **full-stack regenerative impact platform** connecting mobile u
 │                  Infrastructure Layer                    │
 │                                                          │
 │  IPFS Storage      Smart Accounts        Indexer DB     │
-│  (Pinata)          (Pimlico)             (PostgreSQL)   │
+│  (Storacha)        (Pimlico)             (PostgreSQL)   │
 └─────────────────────────────────────────────────────────┘
                           ↕
 ┌─────────────────────────────────────────────────────────┐
@@ -63,7 +63,7 @@ Photos stored locally (IndexedDB)
   ↓
 Form data queued
   ↓
-When online: Photos → IPFS (via Pinata)
+When online: Photos → IPFS (via Storacha)
   ↓
 Work data → Smart Account transaction
   ↓
@@ -309,7 +309,7 @@ subscription NewApprovals {
        ↓
 ┌──────────────┐
 │     IPFS     │ ← Media storage
-│   (Pinata)   │   (photos/videos)
+│  (Storacha)  │   (photos/videos)
 └──────┬───────┘
        │ CIDs returned
        ↓

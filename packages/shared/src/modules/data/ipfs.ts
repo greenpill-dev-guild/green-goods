@@ -1,34 +1,91 @@
-import * as Client from "@storacha/client";
+import { type Client, create } from "@storacha/client";
 
 interface IpfsConfig {
+  /** Base64-encoded ed25519 private key */
   key: string;
+  /** Base64-encoded UCAN delegation proof */
   proof: string;
+  /** Optional custom IPFS gateway URL */
   gatewayBaseUrl?: string;
 }
 
-let storachaClient: Client.Client | null = null;
+let storachaClient: Client | null = null;
 let gatewayUrl = "https://w3s.link";
+
+let ipfsInitializationStatus:
+  | "not_started"
+  | "in_progress"
+  | "success"
+  | "failed"
+  | "skipped_no_config" = "not_started";
+let ipfsInitializationError: string | null = null;
+
+/**
+ * Returns the current IPFS initialization status
+ */
+export function getIpfsInitStatus() {
+  return {
+    status: ipfsInitializationStatus,
+    error: ipfsInitializationError,
+    clientReady: storachaClient !== null,
+  };
+}
 
 const DEFAULT_AVATAR = "/images/avatar.png";
 
 /**
- * Initializes the Storacha IPFS client configuration
+ * Initializes the Storacha IPFS client with delegation-based authentication.
+ *
+ * This uses pre-generated credentials (key + proof) for non-interactive
+ * initialization, suitable for client apps and CI/CD workflows.
+ *
+ * To generate credentials:
+ * 1. Install CLI: npm i -g @storacha/cli
+ * 2. Login: storacha login <your-email>
+ * 3. Create space: storacha space create green-goods
+ * 4. Create key: storacha key create --json (save the "key" field)
+ * 5. Create delegation: storacha delegation create <did:key:...> -c space/blob/add -c space/index/add -c upload/add -c filecoin/offer --base64
  */
-export async function initializeIpfs(config: IpfsConfig) {
-  try {
-    storachaClient = await Client.create();
+export async function initializeIpfs(config: IpfsConfig): Promise<{
+  client: Client;
+  gatewayUrl: string;
+}> {
+  const startTime = Date.now();
+  ipfsInitializationStatus = "in_progress";
+  ipfsInitializationError = null;
 
-    // Add proof and key to the client
-    const proof = Client.Proof.parse(config.proof);
+  try {
+    // Dynamic imports for subpath exports (workaround for TypeScript/bundler resolution)
+    const [{ Signer }, { parse: parseProof }] = await Promise.all([
+      import("@storacha/client/principal/ed25519"),
+      import("@storacha/client/proof"),
+    ]);
+
+    // Parse the principal (signing key) from base64
+    const principal = Signer.parse(config.key);
+
+    // Create client with the principal
+    storachaClient = await create({ principal });
+
+    // Parse and add the space delegation proof
+    const proof = await parseProof(config.proof);
     const space = await storachaClient.addSpace(proof);
+
+    // Set as current space for uploads
     await storachaClient.setCurrentSpace(space.did());
 
+    // Set custom gateway if provided
     if (config.gatewayBaseUrl) {
       gatewayUrl = config.gatewayBaseUrl;
     }
 
+    ipfsInitializationStatus = "success";
+    console.log(`✅ Storacha initialized (${Date.now() - startTime}ms) - Space: ${space.did()}`);
+
     return { client: storachaClient, gatewayUrl };
   } catch (error) {
+    ipfsInitializationStatus = "failed";
+    ipfsInitializationError = error instanceof Error ? error.message : String(error);
     console.error("Failed to initialize Storacha client:", error);
     throw error;
   }
@@ -154,17 +211,29 @@ export function resolveImageUrl(uri: string): string {
 /**
  * Convenience initializer that reads Vite-style env vars.
  * Returns true on successful initialization, false if missing configuration.
+ *
+ * Required env vars:
+ * - VITE_STORACHA_KEY: Base64-encoded ed25519 private key
+ * - VITE_STORACHA_PROOF: Base64-encoded UCAN delegation proof
+ *
+ * Optional:
+ * - VITE_STORACHA_GATEWAY: Custom IPFS gateway URL (default: https://storacha.link)
  */
 export async function initializeIpfsFromEnv(
-  env: any = typeof import.meta !== "undefined" ? import.meta.env : {}
-) {
+  env: Record<string, string | undefined> = typeof import.meta !== "undefined"
+    ? (import.meta.env as Record<string, string | undefined>)
+    : {}
+): Promise<boolean> {
   const key = env?.VITE_STORACHA_KEY;
   const proof = env?.VITE_STORACHA_PROOF;
   const gatewayBaseUrl = env?.VITE_STORACHA_GATEWAY;
 
   if (!key || !proof) {
+    ipfsInitializationStatus = "skipped_no_config";
     console.warn(
-      "VITE_STORACHA_KEY and VITE_STORACHA_PROOF are not configured. Media features will be unavailable."
+      "VITE_STORACHA_KEY and VITE_STORACHA_PROOF are not configured. " +
+        "Media features will be unavailable. " +
+        "See: https://docs.storacha.network/how-to/upload-from-ci/"
     );
     return false;
   }

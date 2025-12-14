@@ -248,7 +248,7 @@ event ProfileUpdated(
 
 1. Click "Upload Image" button
 2. Select image file (JPEG, PNG, etc.)
-3. Image is uploaded to IPFS via Pinata
+3. Image is uploaded to IPFS via Storacha
 4. IPFS hash is saved in your profile
 
 ### For Developers
