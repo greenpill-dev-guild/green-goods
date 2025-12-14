@@ -1,4 +1,5 @@
 import { type IDBPDatabase, openDB } from "idb";
+import { normalizeToFile } from "../../utils/app/normalizeToFile";
 import { mediaResourceManager } from "./media-resource-manager";
 
 const DB_NAME = "green-goods-job-queue";
@@ -115,27 +116,58 @@ class JobQueueDatabase {
       synced: false,
     } as Job<T>;
 
-    await db.add("jobs", jobData as Job);
+    // Normalize media up-front so we never persist a job partially.
+    const normalizedMediaFiles: File[] = [];
 
     // Store images separately if present in payload
     if (job.payload && typeof job.payload === "object" && "media" in job.payload) {
       const media = (job.payload as { media?: File[] }).media;
       if (Array.isArray(media)) {
-        for (const file of media) {
-          if (file instanceof File) {
-            const imageId = crypto.randomUUID();
-            const url = mediaResourceManager.createUrl(file, id);
+        for (let index = 0; index < media.length; index++) {
+          const input = media[index] as unknown;
+          const file = normalizeToFile(input, { fallbackName: `work-${id}-${index}.jpg` });
 
-            await db.add("job_images", {
-              id: imageId,
-              jobId: id,
-              file,
-              url,
-              createdAt: timestamp,
-            });
+          if (!file) {
+            // Avoid silently dropping images — it's better to fail fast than
+            // attest partially. This also keeps on-chain "media" consistent
+            // with what the user selected.
+            throw new Error(`Invalid work media at index ${index}`);
           }
+
+          normalizedMediaFiles.push(file);
         }
       }
+    }
+
+    // Atomically persist job + images.
+    // If anything fails, we cleanup any created object URLs and nothing is committed.
+    const tx = db.transaction(["jobs", "job_images"], "readwrite");
+    try {
+      await tx.objectStore("jobs").add(jobData as Job);
+
+      for (let index = 0; index < normalizedMediaFiles.length; index++) {
+        const file = normalizedMediaFiles[index];
+        const imageId = crypto.randomUUID();
+        const url = mediaResourceManager.createUrl(file, id);
+
+        await tx.objectStore("job_images").add({
+          id: imageId,
+          jobId: id,
+          file,
+          url,
+          createdAt: timestamp,
+        });
+      }
+
+      await tx.done;
+    } catch (error) {
+      try {
+        tx.abort();
+      } catch {}
+
+      // Ensure we don't leak object URLs for a job that never persisted.
+      mediaResourceManager.cleanupUrls(id);
+      throw error;
     }
 
     return id;

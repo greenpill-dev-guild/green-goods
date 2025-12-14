@@ -20,6 +20,11 @@ export {
   gardenHasMember,
   resolveGardenMemberKey,
 } from "./app/garden";
+// ============================================================================
+// FILES
+// ============================================================================
+export type { NormalizeToFileOptions } from "./app/normalizeToFile";
+export { normalizeToFile } from "./app/normalizeToFile";
 export type { Platform } from "./app/pwa";
 export {
   getMobileOperatingSystem,
@@ -42,7 +47,6 @@ export {
   normalizeAddress,
   truncateAddress,
 } from "./blockchain/address";
-
 // ============================================================================
 // CONTRACTS (ABIs & clients)
 // ============================================================================
