@@ -331,7 +331,7 @@ contract Deploy is Script, DeploymentBase {
 
         if (_isMainnetChain(chainId)) {
             console.log("Mode: MAINNET - ENS Infrastructure Only");
-            console.log("  - ENSRegistrar (greengoods.eth subdomain manager)");
+            console.log("  - GardenerRegistry (greengoods.eth subdomain manager)");
             console.log("  - Gardener logic (with ENS support)");
             console.log("\nNote: Full protocol lives on L2 chains (Arbitrum, Celo, Base Sepolia)");
         } else {
@@ -502,7 +502,7 @@ contract Deploy is Script, DeploymentBase {
             workResolver: address(workResolver),
             workApprovalResolver: address(workApprovalResolver),
             gardenerAccountLogic: gardenerAccountLogic,
-            ensRegistrar: address(ensRegistrar),
+            gardenerRegistry: address(gardenerRegistry),
             assessmentSchemaUID: assessmentSchemaUID,
             workSchemaUID: workSchemaUID,
             workApprovalSchemaUID: workApprovalSchemaUID,

@@ -7,7 +7,7 @@ import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC72
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {TBALib} from "../lib/TBA.sol";
-import {GardenAccount} from "../accounts/Garden.sol";
+import {IGardenAccount} from "../interfaces/IGardenAccount.sol";
 import {DeploymentRegistry} from "../DeploymentRegistry.sol";
 
 /// @title GardenToken Contract
@@ -147,7 +147,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         );
 
         // Prepare initialization parameters
-        GardenAccount.InitParams memory params = GardenAccount.InitParams({
+        IGardenAccount.InitParams memory params = IGardenAccount.InitParams({
             communityToken: config.communityToken,
             name: config.name,
             description: config.description,
@@ -159,7 +159,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
             gardenOperators: config.gardenOperators
         });
 
-        GardenAccount(payable(gardenAccount)).initialize(params);
+        IGardenAccount(gardenAccount).initialize(params);
 
         return gardenAccount;
     }
@@ -217,7 +217,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
             );
 
             // Prepare initialization parameters
-            GardenAccount.InitParams memory params = GardenAccount.InitParams({
+            IGardenAccount.InitParams memory params = IGardenAccount.InitParams({
                 communityToken: config.communityToken,
                 name: config.name,
                 description: config.description,
@@ -229,7 +229,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
                 gardenOperators: config.gardenOperators
             });
 
-            GardenAccount(payable(gardenAccount)).initialize(params);
+            IGardenAccount(gardenAccount).initialize(params);
 
             gardenAccounts[i] = gardenAccount;
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { IProjectResolver } from "../interfaces/IKarmaGap.sol";
+import {IProjectResolver} from "../interfaces/IKarma.sol";
 
 error KarmaGAPNotSupported();
 
@@ -86,16 +86,22 @@ library KarmaLib {
     // ============================================================================
     // SCHEMA UIDs - CELO (Chain ID: 42220)
     // ============================================================================
-    bytes32 internal constant GAP_PROJECT_SCHEMA_CELO = 0xf3f753b41e04d1052b5a5ec7624d1dfdb6c2da288a985120e477ddbcac071022;
-    bytes32 internal constant GAP_DETAILS_SCHEMA_CELO = 0x9895e82115987d8e3e02b35ced92e6a0509293890333f58f50ec291b34853dac;
-    bytes32 internal constant GAP_MEMBEROF_SCHEMA_CELO = 0xb4186a2401f40a4c78768941ef9140e1fbe5fe595053a65d44f31d6df180b712;
+    bytes32 internal constant GAP_PROJECT_SCHEMA_CELO =
+        0xf3f753b41e04d1052b5a5ec7624d1dfdb6c2da288a985120e477ddbcac071022;
+    bytes32 internal constant GAP_DETAILS_SCHEMA_CELO =
+        0x9895e82115987d8e3e02b35ced92e6a0509293890333f58f50ec291b34853dac;
+    bytes32 internal constant GAP_MEMBEROF_SCHEMA_CELO =
+        0xb4186a2401f40a4c78768941ef9140e1fbe5fe595053a65d44f31d6df180b712;
 
     // ============================================================================
     // SCHEMA UIDs - SEI (Chain ID: 1329)
     // ============================================================================
-    bytes32 internal constant GAP_PROJECT_SCHEMA_SEI = 0xf6b89107f8096220051240b89a48abb66e0a23e529c914953b80f5a2bc5ea44c;
-    bytes32 internal constant GAP_DETAILS_SCHEMA_SEI = 0x1b4365b92aa47de3f67cdfb53127518381c1e66e0d9e0f8a15bbfa7250950967;
-    bytes32 internal constant GAP_MEMBEROF_SCHEMA_SEI = 0xb7278b94cea2b9f1a8fdd1c4bb52ed66906516a0ff9d59d0f80daffcf147ea5d; // Note:
+    bytes32 internal constant GAP_PROJECT_SCHEMA_SEI =
+        0xf6b89107f8096220051240b89a48abb66e0a23e529c914953b80f5a2bc5ea44c;
+    bytes32 internal constant GAP_DETAILS_SCHEMA_SEI =
+        0x1b4365b92aa47de3f67cdfb53127518381c1e66e0d9e0f8a15bbfa7250950967;
+    bytes32 internal constant GAP_MEMBEROF_SCHEMA_SEI =
+        0xb7278b94cea2b9f1a8fdd1c4bb52ed66906516a0ff9d59d0f80daffcf147ea5d; // Note:
         // SEI mainnet schema not yet deployed
 
     // ============================================================================

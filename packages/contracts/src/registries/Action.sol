@@ -1,14 +1,24 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.25;
 
-import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
-import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-
-import { Capital } from "../Constants.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 error NotActionOwner();
 error EndTimeBeforeStartTime();
 error StartTimeAfterEndTime();
+
+// ENUMS
+enum Capital {
+    SOCIAL,
+    MATERIAL,
+    FINANCIAL,
+    LIVING,
+    INTELLECTUAL,
+    EXPERIENTIAL,
+    SPIRITUAL,
+    CULTURAL
+}
 
 /// @title Action Registry Contract
 /// @notice This contract allows the owner to register and manage actions.
@@ -123,10 +133,7 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
         string calldata _instructions,
         Capital[] calldata _capitals,
         string[] calldata _media
-    )
-        external
-        onlyOwner
-    {
+    ) external onlyOwner {
         if (_endTime <= _startTime) revert EndTimeBeforeStartTime();
 
         uint256 actionUID = _nextActionUID++;
@@ -169,10 +176,7 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     /// @notice Updates the instructions for an existing action.
     /// @param actionUID The unique identifier of the action to update.
     /// @param _instructions The new instructions for the action.
-    function updateActionInstructions(
-        uint256 actionUID,
-        string calldata _instructions
-    )
+    function updateActionInstructions(uint256 actionUID, string calldata _instructions)
         external
         onlyActionOwner(actionUID)
     {

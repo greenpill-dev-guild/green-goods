@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { IEAS, Attestation } from "@eas/IEAS.sol";
-import { SchemaResolver } from "@eas/resolver/SchemaResolver.sol";
-import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
-import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {IEAS, Attestation} from "@eas/IEAS.sol";
+import {SchemaResolver} from "@eas/resolver/SchemaResolver.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-import { WorkSchema } from "../Schemas.sol";
-import { GardenAccount } from "../accounts/Garden.sol";
-import { ActionRegistry } from "../registries/Action.sol";
-import { NotGardenerAccount, NotInActionRegistry } from "../Constants.sol";
+import {WorkSchema} from "../Schemas.sol";
+import {IGardenAccessControl} from "../interfaces/IGardenAccessControl.sol";
+import {ActionRegistry} from "../registries/Action.sol";
 
 error NotActiveAction();
+// ERROR MESSAGES
+error NotGardenerAccount();
+error NotInActionRegistry();
 
 /// @title WorkResolver
 /// @notice A schema resolver for the Actions event schema
@@ -60,11 +62,12 @@ contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
     /// @return bool True if attestation is valid
     function onAttest(Attestation calldata attestation, uint256 /*value*/ ) internal view override returns (bool) {
         WorkSchema memory schema = abi.decode(attestation.data, (WorkSchema));
-        GardenAccount gardenAccount = GardenAccount(payable(attestation.recipient));
+        IGardenAccessControl accessControl = IGardenAccessControl(attestation.recipient);
 
         // IDENTITY CHECK: Verify gardener status FIRST
         // This is the primary security gate - only gardeners can submit work
-        if (gardenAccount.gardeners(attestation.attester) == false) {
+        // Uses IGardenAccessControl interface for swappable access control backends
+        if (!accessControl.isGardener(attestation.attester)) {
             revert NotGardenerAccount();
         }
 
@@ -85,10 +88,7 @@ contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Handles the logic to be executed when an attestation is revoked.
     /// @dev This function can only be called by the contract owner.
     /// @return A boolean indicating whether the revocation is valid.
-    function onRevoke(
-        Attestation calldata, /*attestation*/
-        uint256 /*value*/
-    )
+    function onRevoke(Attestation calldata, /*attestation*/ uint256 /*value*/ )
         internal
         view
         override

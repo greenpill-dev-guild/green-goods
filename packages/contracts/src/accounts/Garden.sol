@@ -7,7 +7,9 @@ import {AttestationRequest, AttestationRequestData} from "@eas/IEAS.sol";
 
 import {KarmaLib} from "../lib/Karma.sol";
 import {StringUtils} from "../lib/StringUtils.sol";
-import {IGap} from "../interfaces/IKarmaGap.sol";
+import {IGap} from "../interfaces/IKarma.sol";
+import {IGardenAccessControl} from "../interfaces/IGardenAccessControl.sol";
+import {IGardenAccount} from "../interfaces/IGardenAccount.sol";
 
 error NotGardenOwner();
 error NotGardenOperator();
@@ -24,7 +26,8 @@ error GAPMilestoneCreationFailed();
 /// @title GardenAccount Contract
 /// @notice Manages gardeners and operators for a Garden, and supports community token management.
 /// @dev Inherits from AccountV3Upgradable and uses OpenZeppelin's Initializable for upgradability.
-contract GardenAccount is AccountV3Upgradable, Initializable {
+/// @dev Implements IGardenAccessControl for role verification by resolvers and modules.
+contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessControl, IGardenAccount {
     /// @notice Emitted when the garden name is updated.
     /// @param updater The address of the entity that updated the name.
     /// @param newName The new name of the garden.
@@ -134,8 +137,8 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     }
 
     modifier onlyOperator() {
-        bool isOwner = _isValidSigner(_msgSender(), "");
-        if (!isOwner && !gardenOperators[_msgSender()]) {
+        bool callerIsOwner = _isValidSigner(_msgSender(), "");
+        if (!callerIsOwner && !gardenOperators[_msgSender()]) {
             revert NotGardenOperator();
         }
 
@@ -183,22 +186,10 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
         _disableInitializers();
     }
 
-    struct InitParams {
-        address communityToken;
-        string name;
-        string description;
-        string location;
-        string bannerImage;
-        string metadata;
-        bool openJoining;
-        address[] gardeners;
-        address[] gardenOperators;
-    }
-
     /// @notice Initializes the GardenAccount with initial gardeners and operators.
     /// @dev This function must be called after the contract is deployed.
     /// @param params Initialization parameters struct
-    function initialize(InitParams calldata params) external initializer {
+    function initialize(IGardenAccount.InitParams calldata params) external initializer {
         // Validate array lengths to prevent gas exhaustion
         if (params.gardeners.length > 50) revert TooManyGardeners();
         if (params.gardenOperators.length > 20) revert TooManyOperators();
@@ -321,6 +312,29 @@ contract GardenAccount is AccountV3Upgradable, Initializable {
     function getGAPProjectUID() external view returns (bytes32) {
         return gapProjectUID;
     }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // IGardenAccessControl Implementation
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @inheritdoc IGardenAccessControl
+    function isGardener(address account) external view override returns (bool) {
+        return gardeners[account];
+    }
+
+    /// @inheritdoc IGardenAccessControl
+    function isOperator(address account) external view override returns (bool) {
+        return gardenOperators[account];
+    }
+
+    /// @inheritdoc IGardenAccessControl
+    function isOwner(address account) external view override returns (bool) {
+        return _isValidSigner(account, "");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Internal GAP Functions
+    // ═══════════════════════════════════════════════════════════════════════════
 
     /// @notice Creates Karma GAP project via GAP contract
     function _createGAPProject() private {

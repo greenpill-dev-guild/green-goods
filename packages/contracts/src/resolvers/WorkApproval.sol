@@ -1,16 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { IEAS, Attestation } from "@eas/IEAS.sol";
-import { SchemaResolver } from "@eas/resolver/SchemaResolver.sol";
-import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
-import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {IEAS, Attestation} from "@eas/IEAS.sol";
+import {SchemaResolver} from "@eas/resolver/SchemaResolver.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-import { WorkApprovalSchema, WorkSchema } from "../Schemas.sol";
-import { GardenAccount } from "../accounts/Garden.sol";
-import { ActionRegistry } from "../registries/Action.sol";
-import { NotInActionRegistry } from "../Constants.sol";
-import { KarmaLib } from "../lib/Karma.sol";
+import {WorkApprovalSchema, WorkSchema} from "../Schemas.sol";
+import {IGardenAccessControl} from "../interfaces/IGardenAccessControl.sol";
+import {IGreenGoodsResolver} from "../interfaces/IGreenGoodsResolver.sol";
+import {IGardenAccount} from "../interfaces/IGardenAccount.sol";
+import {ActionRegistry} from "../registries/Action.sol";
+import {NotInActionRegistry} from "./Work.sol";
+import {KarmaLib} from "../lib/Karma.sol";
 
 error NotInWorkRegistry();
 error NotGardenOperator();
@@ -21,13 +23,19 @@ error NotGardenOperator();
 contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
     address public immutable ACTION_REGISTRY;
 
+    /// @notice The GreenGoods resolver for triggering protocol integrations
+    IGreenGoodsResolver public greenGoodsResolver;
+
+    /// @notice Emitted when the GreenGoods resolver is updated
+    event GreenGoodsResolverUpdated(address indexed oldResolver, address indexed newResolver);
+
     /**
      * @dev Storage gap for future upgrades
-     * Reserves 50 slots (50 total - 0 used in storage)
+     * Reserves 49 slots (50 total - 1 used: greenGoodsResolver)
      * Note: ACTION_REGISTRY is immutable (not in storage)
      * Allows adding new state variables without breaking storage layout in upgrades
      */
-    uint256[50] private __gap;
+    uint256[49] private __gap;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(address easAddrs, address actionAddrs) SchemaResolver(IEAS(easAddrs)) {
@@ -41,6 +49,14 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
     function initialize(address _multisig) external initializer {
         __Ownable_init();
         _transferOwnership(_multisig);
+    }
+
+    /// @notice Sets the GreenGoods resolver address
+    /// @param _resolver The new resolver address
+    function setGreenGoodsResolver(address _resolver) external onlyOwner {
+        address oldResolver = address(greenGoodsResolver);
+        greenGoodsResolver = IGreenGoodsResolver(_resolver);
+        emit GreenGoodsResolverUpdated(oldResolver, _resolver);
     }
 
     /// @notice Indicates whether the resolver is payable.
@@ -75,11 +91,13 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
             revert NotInWorkRegistry();
         }
 
-        GardenAccount gardenAccount = GardenAccount(payable(workAttestation.recipient));
+        // Use IGardenAccessControl interface for role verification
+        IGardenAccessControl accessControl = IGardenAccessControl(workAttestation.recipient);
 
         // IDENTITY CHECK: Verify operator status
         // This is the primary authorization - only operators can approve work
-        if (gardenAccount.gardenOperators(attestation.attester) == false) {
+        // Uses IGardenAccessControl interface for swappable access control backends
+        if (!accessControl.isOperator(attestation.attester)) {
             revert NotGardenOperator();
         }
 
@@ -89,21 +107,56 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
         }
 
         // GAP INTEGRATION: Create project impact if approved
+        // Uses IGardenAccount interface for decoupled compilation
         if (schema.approved && KarmaLib.isSupported()) {
+            IGardenAccount gardenAccount = IGardenAccount(workAttestation.recipient);
             _createGAPProjectImpact(schema, workAttestation, gardenAccount);
         }
 
+        // GREENGOODS RESOLVER: Trigger all enabled integrations (Octant, Unlock, etc.)
+        // Only called for approved work; resolver uses try/catch internally
+        if (schema.approved && address(greenGoodsResolver) != address(0)) {
+            _callGreenGoodsResolver(schema, workAttestation, attestation);
+        }
+
         return (true);
+    }
+
+    /// @notice Calls the GreenGoods resolver for approved work
+    /// @dev Called after validation; uses try/catch to prevent resolver failures from reverting approval
+    function _callGreenGoodsResolver(
+        WorkApprovalSchema memory schema,
+        Attestation memory workAttestation,
+        Attestation calldata approvalAttestation
+    ) private {
+        WorkSchema memory workSchema = abi.decode(workAttestation.data, (WorkSchema));
+
+        // Get first media IPFS CID (for proof)
+        string memory mediaIPFS = workSchema.media.length > 0 ? workSchema.media[0] : "";
+
+        // Call resolver with try/catch — integration failures don't block attestations
+        // solhint-disable-next-line no-empty-blocks
+        try greenGoodsResolver.onWorkApproved(
+            workAttestation.recipient, // garden address
+            schema.workUID, // work UID
+            approvalAttestation.uid, // approval UID
+            bytes32(schema.actionUID), // action UID (converted from uint256)
+            workAttestation.attester, // worker (who submitted work)
+            approvalAttestation.attester, // operator (who approved)
+            schema.feedback, // approval feedback
+            mediaIPFS // evidence
+        ) {
+            // Success - resolver events provide observability
+        } catch {
+            // Intentionally ignore resolver failures — approval succeeds even if integrations fail
+        }
     }
 
     // solhint-disable no-unused-vars
     /// @notice Handles the logic to be executed when an attestation is revoked.
     /// @dev This function can only be called by the contract owner.
     /// @return A boolean indicating whether the revocation is valid.
-    function onRevoke(
-        Attestation calldata, /*attestation*/
-        uint256 /*value*/
-    )
+    function onRevoke(Attestation calldata, /*attestation*/ uint256 /*value*/ )
         internal
         view
         override
@@ -121,10 +174,8 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
     function _createGAPProjectImpact(
         WorkApprovalSchema memory schema,
         Attestation memory workAttestation,
-        GardenAccount gardenAccount
-    )
-        private
-    {
+        IGardenAccount gardenAccount
+    ) private {
         // Skip if garden has no GAP project
         bytes32 projectUID = gardenAccount.getGAPProjectUID();
         if (projectUID == bytes32(0)) return;
