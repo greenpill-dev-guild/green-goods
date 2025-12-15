@@ -11,11 +11,13 @@ import { type Locale, useApp } from "@green-goods/shared/providers";
 import { capitalize, isAlreadyGardenerError, parseAndFormatError } from "@green-goods/shared/utils";
 import {
   RiCheckLine,
+  RiDownloadLine,
   RiEarthFill,
   RiKeyLine,
   RiLogoutBoxRLine,
   RiMapPinLine,
   RiPlantLine,
+  RiSmartphoneLine,
   RiWalletLine,
 } from "@remixicon/react";
 import { ReactNode, useEffect, useMemo, useState } from "react";
@@ -47,7 +49,16 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
   const primaryAddress = smartAccountAddress || walletAddress;
   const { data: primaryEnsName } = useEnsName(primaryAddress);
   const navigate = useNavigate();
-  const { locale, switchLanguage, availableLocales } = useApp();
+  const {
+    locale,
+    switchLanguage,
+    availableLocales,
+    isMobile,
+    isInstalled,
+    deferredPrompt,
+    promptInstall,
+    platform,
+  } = useApp();
   const intl = useIntl();
 
   // Fetch all gardens
@@ -225,6 +236,65 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
 
   return (
     <>
+      {/* Install CTA (mobile web only, not yet installed) */}
+      {isMobile && !isInstalled && (
+        <>
+          <h5 className="text-label-md text-slate-900">
+            {intl.formatMessage({
+              id: "app.profile.install",
+              defaultMessage: "Install App",
+            })}
+          </h5>
+          <Card>
+            <div className="flex flex-row items-center gap-3 justify-between w-full">
+              <Avatar>
+                <div className="flex items-center justify-center text-center mx-auto text-primary">
+                  <RiSmartphoneLine className="w-4" />
+                </div>
+              </Avatar>
+              <div className="flex flex-col gap-1 grow">
+                <div className="text-sm font-medium">
+                  {intl.formatMessage({
+                    id: "app.profile.installTitle",
+                    defaultMessage: "Install Green Goods",
+                  })}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {deferredPrompt
+                    ? intl.formatMessage({
+                        id: "app.profile.installDescriptionPrompt",
+                        defaultMessage: "Install for the best experience with offline support.",
+                      })
+                    : platform === "ios"
+                      ? intl.formatMessage({
+                          id: "app.profile.installDescriptionIOS",
+                          defaultMessage: "Tap Share → Add to Home Screen in Safari.",
+                        })
+                      : intl.formatMessage({
+                          id: "app.profile.installDescriptionAndroid",
+                          defaultMessage: "Open in Chrome → Menu → Install app.",
+                        })}
+                </div>
+              </div>
+              {deferredPrompt ? (
+                <Button
+                  variant="primary"
+                  mode="filled"
+                  size="xsmall"
+                  onClick={promptInstall}
+                  leadingIcon={<RiDownloadLine className="w-4" />}
+                  label={intl.formatMessage({
+                    id: "app.profile.installButton",
+                    defaultMessage: "Install",
+                  })}
+                  className="shrink-0"
+                />
+              ) : null}
+            </div>
+          </Card>
+        </>
+      )}
+
       <h5 className="text-label-md text-slate-900">
         {intl.formatMessage({
           id: "app.profile.settings",

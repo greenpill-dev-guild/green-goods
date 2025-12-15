@@ -22,61 +22,51 @@ export const router = createRouter([
       {
         path: "login",
         lazy: async () => ({ Component: (await import("@/views/Login")).default }),
-        // children: [
-        //   {
-        //     path: "recover",
-        //     lazy: async () => ({ Component: (await import("@/views/Login/Recovery")).default }),
-        //   },
-        // ],
       },
+      // Install is no longer a hard gate. Auth is the gate.
       {
-        lazy: async () => ({ Component: (await import("@/routes/RequireInstalled")).default }),
+        lazy: async () => ({ Component: (await import("@/routes/RequireAuth")).default }),
         children: [
           {
-            lazy: async () => ({ Component: (await import("@/routes/RequireAuth")).default }),
+            lazy: async () => ({ Component: (await import("@/routes/AppShell")).default }),
             children: [
               {
-                lazy: async () => ({ Component: (await import("@/routes/AppShell")).default }),
+                id: "home",
+                path: "home",
+                lazy: async () => ({ Component: (await import("@/views/Home")).default }),
                 children: [
                   {
-                    id: "home",
-                    path: "home",
-                    lazy: async () => ({ Component: (await import("@/views/Home")).default }),
+                    id: "garden",
+                    path: ":id",
+                    lazy: async () => ({
+                      Component: (await import("@/views/Home/Garden")).Garden,
+                    }),
                     children: [
                       {
-                        id: "garden",
-                        path: ":id",
+                        path: "work/:workId",
                         lazy: async () => ({
-                          Component: (await import("@/views/Home/Garden")).Garden,
+                          Component: (await import("@/views/Home/Garden/Work")).GardenWork,
                         }),
-                        children: [
-                          {
-                            path: "work/:workId",
-                            lazy: async () => ({
-                              Component: (await import("@/views/Home/Garden/Work")).GardenWork,
-                            }),
-                          },
-                          {
-                            path: "assessments/:assessmentId",
-                            lazy: async () => ({
-                              Component: (await import("@/views/Home/Garden/Assessment"))
-                                .GardenAssessment,
-                            }),
-                          },
-                        ],
+                      },
+                      {
+                        path: "assessments/:assessmentId",
+                        lazy: async () => ({
+                          Component: (await import("@/views/Home/Garden/Assessment"))
+                            .GardenAssessment,
+                        }),
                       },
                     ],
                   },
-                  {
-                    id: "garden-submit",
-                    path: "garden",
-                    lazy: async () => ({ Component: (await import("@/views/Garden")).default }),
-                  },
-                  {
-                    path: "profile",
-                    lazy: async () => ({ Component: (await import("@/views/Profile")).default }),
-                  },
                 ],
+              },
+              {
+                id: "garden-submit",
+                path: "garden",
+                lazy: async () => ({ Component: (await import("@/views/Garden")).default }),
+              },
+              {
+                path: "profile",
+                lazy: async () => ({ Component: (await import("@/views/Profile")).default }),
               },
             ],
           },

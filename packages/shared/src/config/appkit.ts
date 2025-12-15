@@ -30,13 +30,28 @@ type AppKitInitOptions = {
   defaultChainId?: number;
 };
 
+/**
+ * Canonical app URL for wallet connect metadata.
+ * Production: always use www.greengoods.app (consistent across IPFS gateways, in-app browsers)
+ * Dev/preview: use actual origin for local testing
+ */
+function getCanonicalAppUrl(): string {
+  if (typeof window === "undefined") return "https://www.greengoods.app";
+
+  // Production domains: always canonical
+  if (window.location.hostname.endsWith("greengoods.app")) {
+    return "https://www.greengoods.app";
+  }
+
+  // Dev/preview: use actual origin
+  return window.location.origin;
+}
+
 const defaultMetadata: AppKitMetadata = {
   name: "Green Goods",
   description: "Start Bringing Your Impact Onchain",
-  url:
-    import.meta.env.VITE_APP_URL ||
-    (typeof window !== "undefined" ? window.location.origin : "https://greengoods.app"),
-  icons: ["https://greengoods.app/icon.png"],
+  url: getCanonicalAppUrl(),
+  icons: ["https://www.greengoods.app/icon.png"],
 };
 
 const defaultProjectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
