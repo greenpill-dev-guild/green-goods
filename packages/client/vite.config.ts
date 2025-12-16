@@ -203,11 +203,19 @@ export default defineConfig(({ mode }) => {
         "@green-goods/shared/workflows": resolve(__dirname, "../shared/src/workflows"),
         "@green-goods/shared/constants": resolve(__dirname, "../shared/src/constants"),
       },
+      // Add conditions for proper module resolution on Vercel
+      conditions: ["import", "module", "browser", "default"],
     },
     // Optimize dependency pre-bundling
     optimizeDeps: {
       // Include CJS packages that need named exports extracted
-      include: ["react", "react-dom", "posthog-js", "@ethereum-attestation-service/eas-sdk"],
+      include: [
+        "react",
+        "react-dom",
+        "posthog-js",
+        "@ethereum-attestation-service/eas-sdk",
+        "multiformats",
+      ],
       // Exclude local packages and ESM-only packages
       exclude: ["@green-goods/shared"],
     },
