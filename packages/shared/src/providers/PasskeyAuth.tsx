@@ -39,12 +39,16 @@ interface PasskeyAuthContextType {
   smartAccountAddress: Hex | null;
   smartAccountClient: PasskeySession["client"] | null;
 
+  // Check if passkey exists
+  hasStoredCredential: boolean;
+
   // Legacy aliases
   eoaAddress?: Hex | undefined;
   walletAddress?: Hex | undefined;
 
   // Actions
   createPasskey: () => Promise<PasskeySession>;
+  loginPasskey: () => Promise<PasskeySession>;
   resumePasskey: () => Promise<PasskeySession>;
   clearPasskey: () => void;
   setPasskeySession: (session: PasskeySession) => void;
@@ -87,6 +91,7 @@ export function PasskeyAuthProvider({
   const smartAccountAddress = session?.address ?? null;
   const smartAccountClient = session?.client ?? null;
   const isAuthenticated = Boolean(credential && smartAccountAddress && smartAccountClient);
+  const [hasStoredCredential, setHasStoredCredential] = useState(() => hasStoredPasskey());
 
   // ============================================================
   // INITIALIZE: Restore session on mount
@@ -119,34 +124,48 @@ export function PasskeyAuthProvider({
   }, [chainId]);
 
   // ============================================================
-  // CREATE: Register new passkey or authenticate existing
+  // CREATE: Register a NEW passkey (always creates new credential)
   // ============================================================
   const createPasskey = useCallback(async () => {
     setIsAuthenticating(true);
     setError(null);
 
     try {
-      let newSession: PasskeySession | null = null;
-
-      // Try to authenticate with existing credential first
-      if (hasStoredPasskey()) {
-        try {
-          newSession = await authenticatePasskey(chainId);
-        } catch (resumeError) {
-          console.warn("[PasskeyAuth] Existing credential failed, creating new:", resumeError);
-        }
-      }
-
-      // Create new passkey if no existing or authentication failed
-      if (!newSession) {
-        newSession = await registerPasskeySession(chainId);
-      }
-
+      // Always create a new passkey - don't try to authenticate existing
+      // This prevents silent credential creation when user expects login
+      const newSession = await registerPasskeySession(chainId);
       setSession(newSession);
+      setHasStoredCredential(true);
       return newSession;
     } catch (err) {
       console.error("[PasskeyAuth] Create failed:", err);
       const error = err instanceof Error ? err : new Error("Failed to create passkey");
+      setError(error);
+      throw error;
+    } finally {
+      setIsAuthenticating(false);
+    }
+  }, [chainId]);
+
+  // ============================================================
+  // LOGIN: Authenticate with EXISTING passkey (prompts biometric)
+  // ============================================================
+  const loginPasskey = useCallback(async () => {
+    setIsAuthenticating(true);
+    setError(null);
+
+    try {
+      // Check if there's a stored credential first
+      if (!hasStoredPasskey()) {
+        throw new Error("No passkey found. Please create a new account.");
+      }
+
+      const existingSession = await authenticatePasskey(chainId);
+      setSession(existingSession);
+      return existingSession;
+    } catch (err) {
+      console.error("[PasskeyAuth] Login failed:", err);
+      const error = err instanceof Error ? err : new Error("Failed to authenticate passkey");
       setError(error);
       throw error;
     } finally {
@@ -189,6 +208,7 @@ export function PasskeyAuthProvider({
   const clearPasskey = useCallback(() => {
     clearStoredCredential();
     clearStoredPasskey();
+    setHasStoredCredential(false);
     signOut();
   }, [signOut]);
 
@@ -217,12 +237,16 @@ export function PasskeyAuthProvider({
       smartAccountAddress,
       smartAccountClient,
 
+      // Check if passkey exists
+      hasStoredCredential,
+
       // Legacy aliases
       eoaAddress: undefined,
       walletAddress: undefined,
 
       // Actions
       createPasskey,
+      loginPasskey,
       resumePasskey,
       clearPasskey,
       setPasskeySession,
@@ -236,7 +260,9 @@ export function PasskeyAuthProvider({
       credential,
       smartAccountAddress,
       smartAccountClient,
+      hasStoredCredential,
       createPasskey,
+      loginPasskey,
       resumePasskey,
       clearPasskey,
       setPasskeySession,

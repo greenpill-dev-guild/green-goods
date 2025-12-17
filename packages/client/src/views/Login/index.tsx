@@ -1,7 +1,6 @@
 import { toastService } from "@green-goods/shared";
-import { checkMembership, useAutoJoinRootGarden } from "@green-goods/shared/hooks";
-import { hasStoredPasskey, type PasskeySession } from "@green-goods/shared/modules";
-import { useClientAuth } from "@green-goods/shared/providers";
+import { checkMembership, useAutoJoinRootGarden, useAuth } from "@green-goods/shared/hooks";
+import { hasStoredPasskey } from "@green-goods/shared/modules";
 import { useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { type LoadingState, Splash } from "@/components/Layout";
@@ -10,12 +9,14 @@ export function Login() {
   const location = useLocation();
   const {
     loginWithPasskey,
+    createAccount,
     loginWithWallet,
     isAuthenticating,
     isAuthenticated,
     isReady,
-    setPasskeySession,
-  } = useClientAuth();
+    smartAccountAddress,
+    hasStoredCredential,
+  } = useAuth();
 
   const [loadingState, setLoadingState] = useState<LoadingState | null>(null);
   const [loadingMessage, setLoadingMessage] = useState<string | undefined>(undefined);
@@ -42,14 +43,31 @@ export function Login() {
     try {
       setLoadingState("welcome");
 
-      const hasExistingCredential = hasStoredPasskey();
-      setLoadingMessage(hasExistingCredential ? "Authenticating..." : undefined);
+      // Check if user has existing passkey
+      const hasExistingCredential = hasStoredCredential || hasStoredPasskey();
+      setLoadingMessage(hasExistingCredential ? "Authenticating..." : "Creating your wallet...");
 
-      const session: PasskeySession = await loginWithPasskey();
-      setPasskeySession(session);
+      // Use the appropriate flow based on whether user has stored credential
+      if (hasExistingCredential && loginWithPasskey) {
+        await loginWithPasskey();
+      } else if (createAccount) {
+        await createAccount();
+      } else if (loginWithPasskey) {
+        // Fallback to loginWithPasskey which will create if needed
+        await loginWithPasskey();
+      }
+
+      // Wait briefly for state to update
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Get the smart account address from the auth state
+      const address = smartAccountAddress;
+      if (!address) {
+        throw new Error("Authentication succeeded but no address available");
+      }
 
       // Check membership BEFORE showing any toast
-      const membershipStatus = await checkMembership(session.address);
+      const membershipStatus = await checkMembership(address);
       const isAlreadyGardener = membershipStatus.isGardener || membershipStatus.hasBeenOnboarded;
 
       // Only show join flow if user is NOT already a gardener
@@ -65,7 +83,9 @@ export function Login() {
         });
 
         try {
-          await joinGarden(session);
+          // Create a minimal session object for joinGarden
+          const session = { address, client: null as unknown };
+          await joinGarden(session as Parameters<typeof joinGarden>[0]);
           toastService.success({
             title: "Welcome to Green Goods",
             message: "You're now part of the community garden.",
@@ -86,7 +106,7 @@ export function Login() {
       } else {
         // Already a gardener, just mark as onboarded (if not already)
         if (!membershipStatus.hasBeenOnboarded) {
-          const onboardingKey = `greengoods_onboarded:${session.address.toLowerCase()}`;
+          const onboardingKey = `greengoods_onboarded:${address.toLowerCase()}`;
           localStorage.setItem(onboardingKey, "true");
         }
       }
@@ -138,7 +158,7 @@ export function Login() {
   };
 
   const handleWalletLogin = () => {
-    loginWithWallet();
+    loginWithWallet?.();
   };
 
   // If on a nested route (like /login/recover), render the child route

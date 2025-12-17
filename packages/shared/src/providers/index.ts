@@ -18,6 +18,11 @@ export {
 export { AppKitProvider, useAppKit } from "./AppKitProvider";
 
 // Auth Providers
+// New unified XState-based provider (preferred)
+export type { AuthContextType } from "./Auth";
+export { AuthProvider, useAuthContext, useOptionalAuthContext } from "./Auth";
+
+// Legacy providers (kept for backwards compatibility during migration)
 export { WalletAuthProvider, useWalletAuth, useOptionalWalletAuth } from "./WalletAuth";
 export { PasskeyAuthProvider } from "./PasskeyAuth";
 export { ClientAuthProvider, useClientAuth } from "./ClientAuth";

@@ -38,7 +38,13 @@ export {
 // ============================================================================
 // CONFIG
 // ============================================================================
-export type { EASConfig, NetworkConfig, SupportedChainId } from "./config/index";
+export type {
+  EASConfig,
+  NetworkConfig,
+  SupportedChainId,
+  PasskeyServerClient,
+  RegistrationContext,
+} from "./config/index";
 export {
   APP_DEFAULT_TITLE,
   APP_DESCRIPTION,
@@ -47,6 +53,8 @@ export {
   APP_TITLE_TEMPLATE,
   APP_URL,
   appKit,
+  createPasskeyCredential,
+  createPasskeyServerClient,
   createPimlicoClientForChain,
   createPublicClientForChain,
   DEFAULT_CHAIN_ID,
@@ -62,6 +70,7 @@ export {
   getPimlicoBundlerUrl,
   getPimlicoPaymasterUrl,
   isChainSupported,
+  isPasskeyServerAvailable,
   ONBOARDED_STORAGE_KEY,
   queryClient,
   STALE_TIMES,
@@ -171,11 +180,8 @@ export {
   authenticatePasskey,
   browserTranslator,
   Capital,
-  checkAndHandleFreshStart,
   clearAllAuthStorage,
   clearAuthMode,
-  clearPasskeySignedOut,
-  clearSignedOut,
   clearStoredCredential,
   createEasClient,
   createGreenGoodsIndexerClient,
@@ -202,12 +208,9 @@ export {
   initializeIpfsFromEnv,
   initializePinata,
   initializePinataFromEnv,
-  isFreshAppStart,
   jobQueue,
   jobQueueDB,
   jobQueueEventBus,
-  markSessionActive,
-  PASSKEY_SIGNED_OUT_KEY,
   PASSKEY_STORAGE_KEY,
   recoverPasskeyAccount,
   registerPasskeySession,
@@ -218,12 +221,8 @@ export {
   resolveIPFSUrl,
   restorePasskeySession,
   runTranslationDiagnostics,
-  SESSION_MARKER_KEY,
-  SIGNED_OUT_KEY,
   saveAuthMode,
   serviceWorkerManager,
-  setPasskeySignedOut,
-  setSignedOut,
   submitApprovalBot,
   submitApprovalWithPasskey,
   submitWorkBot,
@@ -239,15 +238,19 @@ export {
   useJobQueueEvents,
   validateApprovalDraft,
   validateWorkDraft,
-  wasExplicitlySignedOut,
-  wasPasskeySignedOut,
 } from "./modules/index";
 // ============================================================================
 // PROVIDERS (re-export via subpath import recommended: @green-goods/shared/providers)
 // ============================================================================
+export type { AuthContextType } from "./providers/index";
 export {
   AppKitProvider,
   AppProvider,
+  // New unified XState-based auth provider (preferred)
+  AuthProvider,
+  useAuthContext,
+  useOptionalAuthContext,
+  // Legacy providers (kept for backwards compatibility)
   ClientAuthProvider,
   JobQueueProvider,
   PasskeyAuthProvider,
@@ -396,10 +399,32 @@ export {
 // WORKFLOWS (re-export via subpath import recommended: @green-goods/shared/workflows)
 // ============================================================================
 export {
+  // Assessment
   type AssessmentContext,
   type AssessmentEvent,
+  createAssessmentMachine,
+  // Garden
   type CreateGardenContext,
   type CreateGardenEvent,
-  createAssessmentMachine,
   createGardenMachine,
+  // Auth (XState Machine)
+  type AuthContext,
+  type AuthEvent,
+  type AuthMachine,
+  type AuthState,
+  type PasskeySessionResult,
+  type RestoreSessionResult,
+  authMachine,
+  // Auth Services
+  authServices,
+  restoreSessionService,
+  registerPasskeyService,
+  authenticatePasskeyService,
+  claimENSService,
+  // Auth Actor
+  type AuthActor,
+  type AuthSnapshot,
+  authActor,
+  getAuthActor,
+  authSelectors,
 } from "./workflows/index";

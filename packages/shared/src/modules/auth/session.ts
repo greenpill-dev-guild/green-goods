@@ -1,20 +1,24 @@
 /**
  * Authentication Session Utilities
  *
- * Minimal session management with just 2 storage keys:
+ * Minimal session management with 3 storage keys:
  * - PASSKEY_STORAGE_KEY: WebAuthn credential for passkey auth
  * - AUTH_MODE_STORAGE_KEY: Which auth method is active ("passkey" | "wallet")
+ * - USERNAME_STORAGE_KEY: Pimlico passkey server username (for session restore)
  */
 
 // ============================================================================
 // STORAGE KEYS
 // ============================================================================
 
-/** Passkey credential storage */
+/** Passkey credential storage (legacy - will be replaced by Pimlico server) */
 export const PASSKEY_STORAGE_KEY = "greengoods_passkey_credential";
 
 /** Active auth mode */
 export const AUTH_MODE_STORAGE_KEY = "greengoods_auth_mode";
+
+/** Username for Pimlico passkey server (only thing stored locally after migration) */
+export const USERNAME_STORAGE_KEY = "greengoods_username";
 
 // ============================================================================
 // AUTH MODE
@@ -38,7 +42,26 @@ export function clearAuthMode(): void {
 }
 
 // ============================================================================
-// PASSKEY
+// USERNAME (Pimlico Server)
+// ============================================================================
+
+/** Get stored username for Pimlico passkey server */
+export function getStoredUsername(): string | null {
+  return localStorage.getItem(USERNAME_STORAGE_KEY);
+}
+
+/** Store username for Pimlico passkey server */
+export function setStoredUsername(username: string): void {
+  localStorage.setItem(USERNAME_STORAGE_KEY, username);
+}
+
+/** Clear stored username */
+export function clearStoredUsername(): void {
+  localStorage.removeItem(USERNAME_STORAGE_KEY);
+}
+
+// ============================================================================
+// PASSKEY (Legacy - will be removed after Pimlico migration)
 // ============================================================================
 
 /** Check if there's a stored passkey credential */
@@ -56,7 +79,7 @@ export function clearStoredPasskey(): void {
 // ============================================================================
 
 /**
- * Clear all auth storage including passkey credential.
+ * Clear all auth storage including passkey credential and username.
  *
  * WARNING: This removes the passkey credential permanently.
  * For regular logout, use clearAuthMode() instead to keep the credential.
@@ -65,51 +88,21 @@ export function clearStoredPasskey(): void {
 export function clearAllAuth(): void {
   localStorage.removeItem(PASSKEY_STORAGE_KEY);
   localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
+  localStorage.removeItem(USERNAME_STORAGE_KEY);
 }
 
 // ============================================================================
-// LEGACY EXPORTS (for backward compatibility during migration)
+// LEGACY EXPORTS (kept for backward compatibility during migration)
 // ============================================================================
 
-/** @deprecated Use getAuthMode */
+/** @deprecated Use getAuthMode instead */
 export const getSavedAuthMode = getAuthMode;
 
-/** @deprecated Use setAuthMode */
+/** @deprecated Use setAuthMode instead */
 export const saveAuthMode = setAuthMode;
 
-/** @deprecated Use hasStoredPasskey */
+/** @deprecated Use hasStoredPasskey instead */
 export const hasStoredPasskeyCredential = hasStoredPasskey;
 
-/** @deprecated Use clearAllAuth */
+/** @deprecated Use clearAllAuth instead */
 export const clearAllAuthStorage = clearAllAuth;
-
-/** @deprecated No longer used */
-export const PASSKEY_SIGNED_OUT_KEY = "greengoods_passkey_signed_out";
-export const SESSION_MARKER_KEY = "greengoods_session_active";
-export const SIGNED_OUT_KEY = "greengoods_signed_out";
-
-/** @deprecated No longer used - passkey handles its own state */
-export function wasPasskeySignedOut(): boolean {
-  return false;
-}
-export function setPasskeySignedOut(): void {}
-export function clearPasskeySignedOut(): void {}
-
-/** @deprecated No longer used */
-export function isFreshAppStart(): boolean {
-  return false;
-}
-export function setWalletConnectIntent(): void {}
-export function consumeWalletConnectIntent(): boolean {
-  return true;
-}
-export function clearWalletConnectIntent(): void {}
-export function markSessionActive(): void {}
-export function checkAndHandleFreshStart(): boolean {
-  return false;
-}
-export function setSignedOut(): void {}
-export function clearSignedOut(): void {}
-export function wasExplicitlySignedOut(): boolean {
-  return false;
-}

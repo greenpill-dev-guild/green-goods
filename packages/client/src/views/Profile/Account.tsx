@@ -2,7 +2,7 @@ import { toastService } from "@green-goods/shared";
 import {
   checkGardenOpenJoining,
   isGardenMember,
-  useClientAuth,
+  useAuth,
   useEnsName,
   useGardens,
   useJoinGarden,
@@ -45,7 +45,7 @@ interface ApplicationSettings {
 type ProfileAccountProps = {};
 
 export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
-  const { authMode, signOut, smartAccountAddress, credential, walletAddress } = useClientAuth();
+  const { authMode, signOut, smartAccountAddress, credential, walletAddress } = useAuth();
   const primaryAddress = smartAccountAddress || walletAddress;
   const { data: primaryEnsName } = useEnsName(primaryAddress);
   const navigate = useNavigate();

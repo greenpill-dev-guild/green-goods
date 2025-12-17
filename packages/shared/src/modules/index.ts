@@ -38,36 +38,25 @@ export {
 export {
   // Storage keys
   AUTH_MODE_STORAGE_KEY,
+  USERNAME_STORAGE_KEY,
   // Auth mode
   type AuthMode,
-  checkAndHandleFreshStart,
-  // Sign out
   clearAllAuth,
-  clearAllAuthStorage,
   clearAuthMode,
-  clearPasskeySignedOut,
-  clearSignedOut,
   clearStoredPasskey,
-  clearWalletConnectIntent,
-  consumeWalletConnectIntent,
+  clearStoredUsername,
   getAuthMode,
-  getSavedAuthMode,
+  // Username (Pimlico server)
+  getStoredUsername,
+  setStoredUsername,
   // Passkey
   hasStoredPasskey,
-  hasStoredPasskeyCredential,
-  isFreshAppStart,
-  markSessionActive,
-  // Legacy exports (deprecated but kept for backward compatibility)
-  PASSKEY_SIGNED_OUT_KEY,
-  SESSION_MARKER_KEY,
-  SIGNED_OUT_KEY,
-  saveAuthMode,
   setAuthMode,
-  setPasskeySignedOut,
-  setSignedOut,
-  setWalletConnectIntent,
-  wasExplicitlySignedOut,
-  wasPasskeySignedOut,
+  // Legacy aliases (deprecated)
+  clearAllAuthStorage,
+  getSavedAuthMode,
+  hasStoredPasskeyCredential,
+  saveAuthMode,
 } from "./auth/session";
 
 // ============================================================================

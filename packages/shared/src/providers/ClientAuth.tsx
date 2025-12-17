@@ -49,16 +49,18 @@ interface ClientAuthContextType {
   // Passkey
   credential: P256Credential | null;
   smartAccountClient: PasskeySession["client"] | null;
+  hasStoredCredential: boolean;
 
   // Error
   error: Error | null;
 
-  // Actions
+  // Actions - New Flow
+  createAccount: () => Promise<PasskeySession>;
   loginWithPasskey: () => Promise<PasskeySession>;
   loginWithWallet: () => void;
   signOut: () => Promise<void>;
 
-  // Legacy aliases
+  // Legacy aliases (kept for backwards compatibility)
   signInWithPasskey: () => Promise<PasskeySession>;
   createPasskey: () => Promise<PasskeySession>;
   clearPasskey: () => void;
@@ -141,16 +143,14 @@ function ClientAuthProviderInner({ children }: { children: React.ReactNode }) {
   }, [isConnected, isConnecting, authMode, isReady]);
 
   // ============================================================
-  // SYNC: Handle passkey authentication changes
+  // SYNC: Handle passkey authentication FAILURE only
   // ============================================================
+  // NOTE: We intentionally do NOT auto-switch to passkey mode when passkey
+  // becomes authenticated. This prevents wallet users from being switched back
+  // to passkey mode unexpectedly. Mode changes should only happen explicitly
+  // via loginWithPasskey() or loginWithWallet().
   useEffect(() => {
     if (!isReady) return;
-
-    // Passkey just authenticated - ensure mode is set
-    if (passkeyAuth.isAuthenticated && authMode !== "passkey") {
-      setAuthMode("passkey");
-      saveAuthMode("passkey");
-    }
 
     // Passkey was expected but failed to restore - clear mode
     if (
@@ -171,7 +171,22 @@ function ClientAuthProviderInner({ children }: { children: React.ReactNode }) {
   ]);
 
   // ============================================================
-  // LOGIN: Passkey
+  // CREATE ACCOUNT: Register NEW passkey (for new users)
+  // ============================================================
+  const createAccount = useCallback(async () => {
+    // Disconnect wallet if connected
+    if (isConnected) {
+      await disconnectWallet();
+    }
+
+    const session = await passkeyAuth.createPasskey();
+    setAuthMode("passkey");
+    saveAuthMode("passkey");
+    return session;
+  }, [passkeyAuth, isConnected, disconnectWallet]);
+
+  // ============================================================
+  // LOGIN: Authenticate with EXISTING passkey (for returning users)
   // ============================================================
   const loginWithPasskey = useCallback(async () => {
     // Disconnect wallet if connected
@@ -179,7 +194,7 @@ function ClientAuthProviderInner({ children }: { children: React.ReactNode }) {
       await disconnectWallet();
     }
 
-    const session = await passkeyAuth.createPasskey();
+    const session = await passkeyAuth.loginPasskey();
     setAuthMode("passkey");
     saveAuthMode("passkey");
     return session;
@@ -250,11 +265,13 @@ function ClientAuthProviderInner({ children }: { children: React.ReactNode }) {
       // Passkey
       credential: passkeyAuth.credential,
       smartAccountClient: passkeyAuth.smartAccountClient,
+      hasStoredCredential: passkeyAuth.hasStoredCredential,
 
       // Error
       error: passkeyAuth.error,
 
-      // Actions
+      // Actions - New Flow
+      createAccount,
       loginWithPasskey,
       loginWithWallet,
       signOut,
@@ -275,6 +292,7 @@ function ClientAuthProviderInner({ children }: { children: React.ReactNode }) {
       passkeyAuth,
       eoaAddress,
       walletAddress,
+      createAccount,
       loginWithPasskey,
       loginWithWallet,
       signOut,

@@ -39,15 +39,9 @@ vi.mock("../../modules/auth/passkey", () => ({
 }));
 
 vi.mock("../../modules/auth/session", () => ({
-  clearPasskeySignedOut: vi.fn(),
   clearStoredPasskey: vi.fn(),
   hasStoredPasskey: vi.fn().mockReturnValue(false),
-  hasStoredPasskeyCredential: vi.fn().mockReturnValue(false),
-  isFreshAppStart: vi.fn().mockReturnValue(true),
-  markSessionActive: vi.fn(),
   PASSKEY_STORAGE_KEY: "greengoods_passkey_credential",
-  setPasskeySignedOut: vi.fn(),
-  wasPasskeySignedOut: vi.fn().mockReturnValue(false),
 }));
 
 describe("PasskeyAuthProvider", () => {

@@ -14,3 +14,27 @@ export type {
   CreateGardenEvent,
 } from "./createGarden";
 export { createGardenMachine } from "./createGarden";
+
+// Auth Workflow (XState Machine)
+export type {
+  AuthContext,
+  AuthEvent,
+  AuthMachine,
+  AuthState,
+  PasskeySessionResult,
+  RestoreSessionResult,
+} from "./authMachine";
+export { authMachine } from "./authMachine";
+
+// Auth Services
+export {
+  authServices,
+  restoreSessionService,
+  registerPasskeyService,
+  authenticatePasskeyService,
+  claimENSService,
+} from "./authServices";
+
+// Auth Actor (Singleton)
+export type { AuthActor, AuthSnapshot } from "./authActor";
+export { authActor, getAuthActor, authSelectors } from "./authActor";
