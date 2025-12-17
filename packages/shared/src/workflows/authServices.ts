@@ -1,42 +1,40 @@
 /**
  * Authentication Services for XState Machine
  *
- * These services handle the async operations for the auth machine:
+ * These services handle the async operations for the auth machine,
+ * using Pimlico's passkey server for credential storage.
+ *
+ * Services:
  * - restoreSession: Check for existing session on app start
  * - registerPasskey: Create new passkey (new user)
  * - authenticatePasskey: Login with existing passkey (returning user)
  * - claimENS: Claim ENS subdomain on mainnet
  *
- * Note: During migration, these services support both:
- * - Legacy: localStorage credential storage
- * - Future: Pimlico server credential storage
+ * Reference: https://docs.pimlico.io/guides/how-to/signers/passkey-server
  */
 
 import { createSmartAccountClient, type SmartAccountClient } from "permissionless";
 import { toKernelSmartAccount } from "permissionless/accounts";
-import { fromPromise } from "xstate";
 import { encodeFunctionData, type Hex, http } from "viem";
 import {
-  createWebAuthnCredential,
   entryPoint07Address,
   type P256Credential,
   toWebAuthnAccount,
 } from "viem/account-abstraction";
+import { fromPromise } from "xstate";
 
 import { getChain } from "../config/chains";
-import { type PasskeyServerClient, createPasskeyCredential } from "../config/passkeyServer";
+import {
+  createPasskeyServerClient,
+  createPasskeyWithServer,
+  type PasskeyServerClient,
+} from "../config/passkeyServer";
 import {
   createPimlicoClientForChain,
   createPublicClientForChain,
   getPimlicoBundlerUrl,
 } from "../config/pimlico";
-import {
-  getStoredUsername,
-  setStoredUsername,
-  clearStoredUsername,
-  hasStoredPasskey,
-  PASSKEY_STORAGE_KEY,
-} from "../modules/auth/session";
+import { clearStoredUsername, getStoredUsername, setStoredUsername } from "../modules/auth/session";
 
 import type { PasskeySessionResult, RestoreSessionResult } from "./authMachine";
 
@@ -117,84 +115,73 @@ async function buildSmartAccountFromCredential(
 }
 
 // ============================================================================
-// HELPER: Legacy localStorage Credential
-// ============================================================================
-
-interface SerializedCredential {
-  id: string;
-  publicKey: string;
-  raw: unknown;
-}
-
-function deserializeCredential(serialized: SerializedCredential): P256Credential {
-  return {
-    id: serialized.id,
-    publicKey: serialized.publicKey as Hex,
-    raw: serialized.raw,
-  } as P256Credential;
-}
-
-function persistCredential(credential: P256Credential): void {
-  localStorage.setItem(
-    PASSKEY_STORAGE_KEY,
-    JSON.stringify({
-      id: credential.id,
-      publicKey: credential.publicKey,
-      raw: credential.raw,
-    })
-  );
-}
-
-// ============================================================================
 // SERVICE: Restore Session
 // ============================================================================
 
 /**
- * Restore session from stored credentials
+ * Restore session from Pimlico server
  *
- * Checks:
- * 1. Pimlico server (if userName stored) - FUTURE
- * 2. Legacy localStorage credential - CURRENT
+ * Flow:
+ * 1. Check for stored username (only thing stored locally)
+ * 2. Fetch credentials from Pimlico server
+ * 3. Build smart account (silent - no biometric until first tx)
  */
 export const restoreSessionService = fromPromise<RestoreSessionResult | null, RestoreInput>(
   async ({ input }) => {
     const { chainId } = input;
 
-    // Check for stored username (Pimlico server approach)
+    console.debug("[AuthServices] restoreSession starting with chainId:", chainId);
+
+    // Check for stored username
     const storedUsername = getStoredUsername();
+    console.debug("[AuthServices] Stored username:", storedUsername);
 
-    // Check for legacy localStorage credential
-    const storedCredential = localStorage.getItem(PASSKEY_STORAGE_KEY);
-
-    if (!storedUsername && !storedCredential) {
-      // No stored session
+    if (!storedUsername) {
+      console.debug("[AuthServices] No stored username, returning null");
       return null;
     }
 
-    // For now, use legacy localStorage approach
-    // TODO: Once Pimlico server is fully integrated, check server first
-    if (storedCredential) {
-      try {
-        const parsed = JSON.parse(storedCredential) as SerializedCredential;
-        const credential = deserializeCredential(parsed);
-        const { client, address } = await buildSmartAccountFromCredential(credential, chainId);
+    // Create passkey server client
+    const passkeyClient = createPasskeyServerClient(chainId);
+    console.debug("[AuthServices] Created passkey server client for chain:", chainId);
 
-        return {
-          credential,
-          smartAccountClient: client,
-          smartAccountAddress: address,
-          userName: storedUsername || "user", // Fallback for legacy
-        };
-      } catch (error) {
-        console.error("[AuthServices] Failed to restore legacy session:", error);
-        // Clear invalid credential
-        localStorage.removeItem(PASSKEY_STORAGE_KEY);
+    try {
+      // Fetch credentials from Pimlico server
+      console.debug("[AuthServices] Fetching credentials from Pimlico for user:", storedUsername);
+      const credentials = await passkeyClient.getCredentials({
+        context: { userName: storedUsername },
+      });
+
+      console.debug("[AuthServices] Received credentials count:", credentials.length);
+
+      if (credentials.length === 0) {
+        // No credentials on server - clear local username
+        console.warn("[AuthServices] No credentials on Pimlico server, clearing local username");
         clearStoredUsername();
         return null;
       }
-    }
 
-    return null;
+      // Use first credential (most recent)
+      const credential = credentials[0];
+      console.debug("[AuthServices] Using credential:", credential.id);
+
+      // Build smart account (silent - no biometric prompt)
+      console.debug("[AuthServices] Building smart account...");
+      const { client, address } = await buildSmartAccountFromCredential(credential, chainId);
+      console.debug("[AuthServices] Smart account built:", address);
+
+      return {
+        credential,
+        smartAccountClient: client,
+        smartAccountAddress: address,
+        userName: storedUsername,
+      };
+    } catch (error) {
+      console.error("[AuthServices] Failed to restore session from Pimlico:", error);
+      // Clear username if server lookup failed
+      clearStoredUsername();
+      return null;
+    }
   }
 );
 
@@ -203,12 +190,13 @@ export const restoreSessionService = fromPromise<RestoreSessionResult | null, Re
 // ============================================================================
 
 /**
- * Register a new passkey for a new user
+ * Register a new passkey for a new user using Pimlico server
  *
  * Flow:
- * 1. Create WebAuthn credential (prompts biometric)
- * 2. Store credential (localStorage for now, server later)
- * 3. Build smart account client
+ * 1. Start registration on Pimlico server
+ * 2. Create WebAuthn credential (prompts biometric)
+ * 3. Verify registration on Pimlico server (stores credential)
+ * 4. Build smart account client
  */
 export const registerPasskeyService = fromPromise<PasskeySessionResult, RegisterInput>(
   async ({ input }) => {
@@ -218,41 +206,13 @@ export const registerPasskeyService = fromPromise<PasskeySessionResult, Register
       throw new Error("Username is required for registration");
     }
 
-    // Create new WebAuthn credential
-    const credential = await createWebAuthnCredential({
-      name: "Green Goods Wallet",
-      createFn: async (options) => {
-        const credentialOptions = options as CredentialCreationOptions | undefined;
-        const publicKeyOptions = credentialOptions?.publicKey;
+    // Create passkey server client
+    const passkeyClient = createPasskeyServerClient(chainId);
 
-        // Ensure algorithm support
-        if (publicKeyOptions) {
-          const existing = publicKeyOptions.pubKeyCredParams ?? [];
-          const defaults: PublicKeyCredentialParameters[] = [
-            { type: "public-key", alg: -7 }, // ES256
-            { type: "public-key", alg: -257 }, // RS256
-          ];
-          const merged = defaults.concat(existing);
-          const deduped: PublicKeyCredentialParameters[] = [];
-          const seen = new Set<number>();
+    // Create and register credential via Pimlico server
+    const credential = await createPasskeyWithServer(passkeyClient, userName);
 
-          for (const param of merged) {
-            if (seen.has(param.alg)) continue;
-            seen.add(param.alg);
-            deduped.push(param);
-          }
-
-          publicKeyOptions.pubKeyCredParams = deduped;
-        }
-
-        return window.navigator.credentials.create(credentialOptions);
-      },
-    });
-
-    // Store credential (legacy localStorage for now)
-    persistCredential(credential);
-
-    // Store username for session restore
+    // Store username locally for session restore
     setStoredUsername(userName);
 
     // Build smart account
@@ -272,10 +232,10 @@ export const registerPasskeyService = fromPromise<PasskeySessionResult, Register
 // ============================================================================
 
 /**
- * Authenticate with existing passkey
+ * Authenticate with existing passkey using Pimlico server
  *
  * Flow:
- * 1. Get stored credential (localStorage for now, server later)
+ * 1. Fetch credentials from Pimlico server
  * 2. Prompt biometric authentication
  * 3. Build smart account client
  */
@@ -283,14 +243,24 @@ export const authenticatePasskeyService = fromPromise<PasskeySessionResult, Auth
   async ({ input }) => {
     const { userName, chainId } = input;
 
-    // Get stored credential
-    const storedCredential = localStorage.getItem(PASSKEY_STORAGE_KEY);
-    if (!storedCredential) {
-      throw new Error("No passkey found. Please create a new account.");
+    if (!userName) {
+      throw new Error("Username is required for authentication");
     }
 
-    const parsed = JSON.parse(storedCredential) as SerializedCredential;
-    const credential = deserializeCredential(parsed);
+    // Create passkey server client
+    const passkeyClient = createPasskeyServerClient(chainId);
+
+    // Fetch credentials from Pimlico server
+    const credentials = await passkeyClient.getCredentials({
+      context: { userName },
+    });
+
+    if (credentials.length === 0) {
+      throw new Error("No passkey found for this account. Please create a new account.");
+    }
+
+    // Use first credential
+    const credential = credentials[0];
 
     // Prompt biometric authentication
     // Convert credential ID to BufferSource for WebAuthn
@@ -317,8 +287,8 @@ export const authenticatePasskeyService = fromPromise<PasskeySessionResult, Auth
       credentialIdBytes = new Uint8Array(bytes);
     }
 
-    // Prompt WebAuthn authentication
-    const credentialResponse = await window.navigator.credentials.get({
+    // Prompt WebAuthn authentication (biometric)
+    const authResponse = await window.navigator.credentials.get({
       publicKey: {
         challenge: crypto.getRandomValues(new Uint8Array(32)),
         rpId: window.location.hostname,
@@ -333,23 +303,21 @@ export const authenticatePasskeyService = fromPromise<PasskeySessionResult, Auth
       },
     });
 
-    if (!credentialResponse) {
+    if (!authResponse) {
       throw new Error("Passkey authentication was cancelled");
     }
 
-    // Store/update username
-    if (userName) {
-      setStoredUsername(userName);
-    }
+    // Store username for session restore
+    setStoredUsername(userName);
 
-    // Build smart account
+    // Build smart account with the credential from server
     const { client, address } = await buildSmartAccountFromCredential(credential, chainId);
 
     return {
       credential,
       smartAccountClient: client,
       smartAccountAddress: address,
-      userName: userName || getStoredUsername() || "user",
+      userName,
     };
   }
 );

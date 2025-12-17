@@ -1,6 +1,6 @@
 import { graphql } from "gql.tada";
 import { useQuery } from "urql";
-import { useOptionalPasskeyAuth } from "../../providers/PasskeyAuth";
+import { useOptionalAuthContext } from "../../providers/Auth";
 import { useOptionalWalletAuth } from "../../providers/WalletAuth";
 import { useDeploymentRegistry } from "../blockchain/useDeploymentRegistry";
 
@@ -29,12 +29,12 @@ export interface RoleInfo {
 }
 
 export function useRole(): RoleInfo {
-  const passkeyAuth = useOptionalPasskeyAuth();
+  const unifiedAuth = useOptionalAuthContext();
   const walletAuth = useOptionalWalletAuth();
 
   const address =
-    passkeyAuth?.walletAddress ?? passkeyAuth?.smartAccountAddress ?? walletAuth?.address;
-  const ready = passkeyAuth ? passkeyAuth.isReady : (walletAuth?.ready ?? false);
+    unifiedAuth?.walletAddress ?? unifiedAuth?.smartAccountAddress ?? walletAuth?.address;
+  const ready = unifiedAuth ? unifiedAuth.isReady : (walletAuth?.ready ?? false);
   const deploymentRegistry = useDeploymentRegistry();
 
   const [{ data: operatorData, fetching }] = useQuery({

@@ -18,7 +18,7 @@
  * EXPORTED TYPES:
  * - contracts.ts - Contract deployment types
  * - blockchain.d.ts - Chain config types
- * - auth.d.ts - Authentication context types
+ * - auth.ts - Authentication types
  */
 
 // From contracts.ts
@@ -27,16 +27,8 @@ export type { CreateGardenParams, DeploymentParams, NetworkContracts } from "./c
 // From blockchain.d.ts
 export type { Address, ChainId, DeploymentConfig } from "./blockchain";
 
-// From auth.d.ts
-export type {
-  AuthMode,
-  BaseAuthContext,
-  ClientAuthContext,
-  PasskeyAuthContext,
-  UnifiedAuthContext,
-  WalletAuthContext,
-} from "./auth";
-export { hasSmartAccount, isPasskeyAuth, isWalletAuth } from "./auth";
+// From auth.ts
+export type { AuthMode, BaseAuthContext } from "./auth";
 
 // Note: Global declaration files (*.d.ts with 'declare global' or 'declare interface')
 // are automatically available and should NOT be exported here.

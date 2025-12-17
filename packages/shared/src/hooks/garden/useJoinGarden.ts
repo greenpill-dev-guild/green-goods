@@ -7,15 +7,24 @@
  * @module hooks/garden/useJoinGarden
  */
 
+import type { SmartAccountClient } from "permissionless";
 import { useQueryClient } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 import { useCallback, useState } from "react";
-import { encodeFunctionData } from "viem";
+import { encodeFunctionData, type Hex } from "viem";
 import { useWriteContract } from "wagmi";
 import { wagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
-import type { PasskeySession } from "../../modules/auth/passkey";
 import { isAddressInList } from "../../utils/blockchain/address";
+
+/**
+ * Session data for passkey authentication.
+ * Used when calling joinGarden during login flow.
+ */
+interface PasskeySession {
+  address: Hex;
+  client: SmartAccountClient | null;
+}
 import { simulateJoinGarden } from "../../utils/contract/simulation";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { isAlreadyGardenerError } from "../../utils/errors/contract-errors";

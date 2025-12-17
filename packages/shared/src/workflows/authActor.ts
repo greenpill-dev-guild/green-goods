@@ -44,14 +44,28 @@ import { authServices } from "./authServices";
 // ============================================================================
 
 /**
+ * Get chain ID at runtime (not module load time)
+ * This ensures env vars are properly loaded before reading
+ */
+function getChainId(): number {
+  const envChainId = (import.meta as any).env?.VITE_CHAIN_ID;
+  const chainId = envChainId ? Number(envChainId) : DEFAULT_CHAIN_ID;
+  console.debug("[AuthActor] Using chainId:", chainId, "from env:", envChainId);
+  return chainId;
+}
+
+/**
  * Create the auth actor with proper services injected
  */
 function createAuthActor() {
+  // Get chain ID at runtime
+  const chainId = getChainId();
+
   // Initialize passkey server client if available
   let passkeyClient = null;
   if (isPasskeyServerAvailable()) {
     try {
-      passkeyClient = createPasskeyServerClient(DEFAULT_CHAIN_ID);
+      passkeyClient = createPasskeyServerClient(chainId);
     } catch (error) {
       console.warn("[AuthActor] Failed to create passkey server client:", error);
     }
@@ -69,7 +83,7 @@ function createAuthActor() {
     }),
     {
       input: {
-        chainId: DEFAULT_CHAIN_ID,
+        chainId,
         passkeyClient,
       },
     }

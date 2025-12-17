@@ -1,7 +1,7 @@
 import { toastService } from "@green-goods/shared";
 import { checkMembership, useAutoJoinRootGarden, useAuth } from "@green-goods/shared/hooks";
-import { hasStoredPasskey } from "@green-goods/shared/modules";
-import { useState } from "react";
+import { hasStoredUsername, getStoredUsername } from "@green-goods/shared/modules";
+import { useState, useEffect, useRef } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { type LoadingState, Splash } from "@/components/Layout";
 
@@ -22,6 +22,15 @@ export function Login() {
   const [loadingMessage, setLoadingMessage] = useState<string | undefined>(undefined);
   const [loginError, setLoginError] = useState<string | null>(null);
 
+  // Username state for new account creation
+  const [showUsernameInput, setShowUsernameInput] = useState(false);
+  const [username, setUsername] = useState("");
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+
+  // Track if we're in the middle of a login attempt (to trigger post-auth flow)
+  const [pendingPostAuth, setPendingPostAuth] = useState(false);
+  const hasRunPostAuth = useRef(false);
+
   const { joinGarden, isLoading: isJoiningGarden } = useAutoJoinRootGarden();
 
   // Check if we're on a nested route (like /login/recover)
@@ -37,35 +46,118 @@ export function Login() {
     ? "/home"
     : new URLSearchParams(location.search).get("redirectTo") || "/home";
 
-  const handlePasskeyLogin = async () => {
+  // Check on mount if user has existing credentials
+  const hasExistingAccount = hasStoredCredential || hasStoredUsername();
+  const storedUsername = getStoredUsername();
+
+  // Reset username input when returning to login screen
+  useEffect(() => {
+    if (!showUsernameInput) {
+      setUsername("");
+      setUsernameError(null);
+    }
+  }, [showUsernameInput]);
+
+  // Handle post-authentication flow when isAuthenticated becomes true
+  useEffect(() => {
+    if (pendingPostAuth && isAuthenticated && smartAccountAddress && !hasRunPostAuth.current) {
+      hasRunPostAuth.current = true;
+      completeAuthentication(smartAccountAddress);
+    }
+  }, [pendingPostAuth, isAuthenticated, smartAccountAddress]);
+
+  // Reset the post-auth flag when we start a new login attempt
+  useEffect(() => {
+    if (isAuthenticating) {
+      hasRunPostAuth.current = false;
+    }
+  }, [isAuthenticating]);
+
+  // Validate username
+  const validateUsername = (name: string): boolean => {
+    if (!name.trim()) {
+      setUsernameError("Please enter a username");
+      return false;
+    }
+    if (name.length < 3) {
+      setUsernameError("Username must be at least 3 characters");
+      return false;
+    }
+    if (name.length > 30) {
+      setUsernameError("Username must be less than 30 characters");
+      return false;
+    }
+    if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
+      setUsernameError("Username can only contain letters, numbers, underscores and hyphens");
+      return false;
+    }
+    setUsernameError(null);
+    return true;
+  };
+
+  // Handle login for existing users
+  const handleExistingUserLogin = async () => {
     setLoginError(null);
-    setLoadingMessage("Preparing your wallet…");
+    setLoadingMessage("Authenticating...");
     try {
       setLoadingState("welcome");
+      setPendingPostAuth(true);
 
-      // Check if user has existing passkey
-      const hasExistingCredential = hasStoredCredential || hasStoredPasskey();
-      setLoadingMessage(hasExistingCredential ? "Authenticating..." : "Creating your wallet...");
-
-      // Use the appropriate flow based on whether user has stored credential
-      if (hasExistingCredential && loginWithPasskey) {
-        await loginWithPasskey();
-      } else if (createAccount) {
-        await createAccount();
-      } else if (loginWithPasskey) {
-        // Fallback to loginWithPasskey which will create if needed
-        await loginWithPasskey();
+      // Use stored username for existing user authentication
+      if (loginWithPasskey) {
+        await loginWithPasskey(storedUsername || undefined);
       }
 
-      // Wait briefly for state to update
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Post-auth flow will be triggered by useEffect when isAuthenticated becomes true
+    } catch (err) {
+      setPendingPostAuth(false);
+      handleAuthError(err);
+    }
+  };
 
-      // Get the smart account address from the auth state
-      const address = smartAccountAddress;
-      if (!address) {
-        throw new Error("Authentication succeeded but no address available");
+  // Handle account creation for new users
+  const handleCreateAccount = async () => {
+    if (!showUsernameInput) {
+      // First click - show username input
+      setShowUsernameInput(true);
+      return;
+    }
+
+    // Second click - validate and create account
+    if (!validateUsername(username)) {
+      return;
+    }
+
+    setLoginError(null);
+    setLoadingMessage("Creating your wallet...");
+    try {
+      setLoadingState("welcome");
+      setPendingPostAuth(true);
+
+      if (createAccount) {
+        await createAccount(username.trim());
       }
 
+      // Post-auth flow will be triggered by useEffect when isAuthenticated becomes true
+    } catch (err) {
+      setPendingPostAuth(false);
+      handleAuthError(err);
+    }
+  };
+
+  // Main login handler - dispatches to appropriate flow
+  const handlePasskeyLogin = async () => {
+    if (hasExistingAccount) {
+      await handleExistingUserLogin();
+    } else {
+      await handleCreateAccount();
+    }
+  };
+
+  // Complete authentication and join garden if needed
+  // Called from useEffect when isAuthenticated becomes true
+  const completeAuthentication = async (address: `0x${string}`) => {
+    try {
       // Check membership BEFORE showing any toast
       const membershipStatus = await checkMembership(address);
       const isAlreadyGardener = membershipStatus.isGardener || membershipStatus.hasBeenOnboarded;
@@ -111,16 +203,23 @@ export function Login() {
         }
       }
     } catch (err) {
-      setLoadingState(null);
-      console.error("Passkey authentication failed", err);
-
-      // Set user-friendly error message without toast
-      const friendlyMessage = getFriendlyErrorMessage(err);
-      setLoginError(friendlyMessage);
+      console.error("Post-auth flow error", err);
     } finally {
       setLoadingState(null);
       setLoadingMessage(undefined);
+      setPendingPostAuth(false);
     }
+  };
+
+  // Handle authentication errors
+  const handleAuthError = (err: unknown) => {
+    setLoadingState(null);
+    setLoadingMessage(undefined);
+    console.error("Authentication failed", err);
+
+    // Set user-friendly error message without toast
+    const friendlyMessage = getFriendlyErrorMessage(err);
+    setLoginError(friendlyMessage);
   };
 
   // Convert technical errors to user-friendly messages
@@ -147,6 +246,11 @@ export function Login() {
         return "Connection issue. Please check your internet and try again.";
       }
 
+      // No passkey found on server
+      if (message.includes("no passkey found") || message.includes("no credentials")) {
+        return "No account found. Please create a new account or use 'Login with wallet'.";
+      }
+
       // Generic passkey errors
       if (message.includes("credential") || message.includes("passkey")) {
         return "Couldn't verify your passkey. Please try again or use 'Login with wallet'.";
@@ -161,6 +265,14 @@ export function Login() {
     loginWithWallet?.();
   };
 
+  // Cancel username input
+  const handleCancelUsername = () => {
+    setShowUsernameInput(false);
+    setUsername("");
+    setUsernameError(null);
+    setLoginError(null);
+  };
+
   // If on a nested route (like /login/recover), render the child route
   if (isNestedRoute) {
     return <Outlet />;
@@ -172,8 +284,8 @@ export function Login() {
     return <Splash loadingState="welcome" />;
   }
 
-  // Redirect to app once authenticated (both passkey and wallet)
-  if (isAuthenticated) {
+  // Redirect to app once authenticated and post-auth flow is complete
+  if (isAuthenticated && !pendingPostAuth) {
     return <Navigate to={redirectTo} replace />;
   }
 
@@ -182,21 +294,48 @@ export function Login() {
     return <Splash loadingState={loadingState} message={loadingMessage} />;
   }
 
+  // Determine button label based on state
+  const getButtonLabel = () => {
+    if (showUsernameInput) {
+      return "Create Account";
+    }
+    if (hasExistingAccount) {
+      return `Login${storedUsername ? ` as ${storedUsername}` : ""}`;
+    }
+    return "Get Started";
+  };
+
   // Use local error state instead of provider error for better control
-  const errorMessage = !isAuthenticating && !isJoiningGarden ? loginError : null;
+  const errorMessage = !isAuthenticating && !isJoiningGarden ? loginError || usernameError : null;
 
   // Main splash screen with login button
   return (
     <Splash
       login={handlePasskeyLogin}
       isLoggingIn={isAuthenticating || isJoiningGarden}
-      buttonLabel="Login"
+      buttonLabel={getButtonLabel()}
       errorMessage={errorMessage}
+      // Username input for new account creation
+      usernameInput={
+        showUsernameInput && !hasExistingAccount
+          ? {
+              value: username,
+              onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                setUsername(e.target.value);
+                if (usernameError) {
+                  validateUsername(e.target.value);
+                }
+              },
+              placeholder: "Choose a username",
+              onCancel: handleCancelUsername,
+            }
+          : undefined
+      }
       secondaryAction={
         !isAuthenticating && !isJoiningGarden
           ? {
-              label: "Login with wallet",
-              onSelect: handleWalletLogin,
+              label: showUsernameInput ? "Cancel" : "Login with wallet",
+              onSelect: showUsernameInput ? handleCancelUsername : handleWalletLogin,
             }
           : undefined
       }

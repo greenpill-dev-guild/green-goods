@@ -2,9 +2,8 @@
  * Authentication Hooks
  *
  * Provides unified authentication interface that works with:
- * - New XState-based AuthProvider (preferred)
- * - Legacy ClientAuth provider (passkey + wallet)
- * - Legacy WalletAuth provider (wallet only)
+ * - AuthProvider (XState-based with Pimlico passkey server)
+ * - WalletAuthProvider (wallet only, admin package)
  *
  * @example Client package:
  * ```tsx
@@ -30,16 +29,11 @@
 import type { SmartAccountClient } from "permissionless";
 import type { Hex } from "viem";
 import { useOptionalAuthContext } from "../../providers/Auth";
-import { useOptionalClientAuth } from "../../providers/ClientAuth";
 import { useOptionalWalletAuth } from "../../providers/WalletAuth";
 
-// Re-export legacy hooks for backwards compatibility
-export { type AuthMode, useClientAuth } from "../../providers/ClientAuth";
-export { usePasskeyAuth } from "../../providers/PasskeyAuth";
+// Export unified auth hook and context
+export { type AuthContextType, useAuthContext } from "../../providers/Auth";
 export { useWalletAuth } from "../../providers/WalletAuth";
-
-// Export new unified auth hook and context
-export { useAuthContext, type AuthContextType } from "../../providers/Auth";
 
 /**
  * Unified auth context returned by useAuth
@@ -88,14 +82,13 @@ const DEFAULT_AUTH: UseAuthReturn = {
  * Universal auth hook that works with all auth providers
  *
  * Priority order:
- * 1. New XState-based AuthProvider (preferred)
- * 2. Legacy ClientAuth (passkey + wallet orchestration)
- * 3. Legacy WalletAuth (wallet only, admin package)
+ * 1. AuthProvider (XState-based with Pimlico passkey server)
+ * 2. WalletAuthProvider (wallet only, admin package)
  *
  * If no provider is found, returns a default unauthenticated state.
  */
 export function useAuth(): UseAuthReturn {
-  // Try new unified auth provider first (XState-based)
+  // Try unified auth provider first (XState-based)
   const unifiedAuth = useOptionalAuthContext();
   if (unifiedAuth) {
     return {
@@ -118,28 +111,6 @@ export function useAuth(): UseAuthReturn {
     };
   }
 
-  // Fall back to legacy client auth (passkey + wallet)
-  const clientAuth = useOptionalClientAuth();
-  if (clientAuth) {
-    return {
-      authMode: clientAuth.authMode,
-      isReady: clientAuth.isReady,
-      isAuthenticated: clientAuth.isAuthenticated,
-      isAuthenticating: clientAuth.isAuthenticating,
-      error: clientAuth.error,
-      eoaAddress: clientAuth.eoaAddress,
-      smartAccountAddress: clientAuth.smartAccountAddress,
-      walletAddress: clientAuth.walletAddress,
-      smartAccountClient: clientAuth.smartAccountClient,
-      credential: clientAuth.credential,
-      hasStoredCredential: clientAuth.hasStoredCredential,
-      createAccount: clientAuth.createAccount,
-      loginWithPasskey: clientAuth.loginWithPasskey,
-      loginWithWallet: clientAuth.loginWithWallet,
-      signOut: clientAuth.signOut,
-    };
-  }
-
   // Fall back to wallet auth (admin package)
   const walletAuth = useOptionalWalletAuth();
   if (walletAuth) {
@@ -158,3 +129,9 @@ export function useAuth(): UseAuthReturn {
   // No provider available - return default unauthenticated state
   return DEFAULT_AUTH;
 }
+
+// ============================================================================
+// LEGACY EXPORTS (kept for backwards compatibility)
+// ============================================================================
+
+export type { AuthMode } from "../../modules/auth/session";

@@ -138,7 +138,7 @@ describe("providers/WorkProvider", () => {
     });
 
     it("exposes form state and methods", () => {
-      const { result } = renderHook(() => useWork(), {
+      const { result: _result } = renderHook(() => useWork(), {
         wrapper: ({ children }) => createElement(WorkProvider, null, children),
       });
 

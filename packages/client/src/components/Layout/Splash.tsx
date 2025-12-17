@@ -17,6 +17,13 @@ interface TertiaryActionConfig {
   href: string;
 }
 
+interface UsernameInputConfig {
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder?: string;
+  onCancel?: () => void;
+}
+
 interface SplashProps {
   login?: () => void;
   isLoggingIn?: boolean;
@@ -26,6 +33,7 @@ interface SplashProps {
   errorMessage?: string | null;
   secondaryAction?: SecondaryActionConfig;
   tertiaryAction?: TertiaryActionConfig;
+  usernameInput?: UsernameInputConfig;
 }
 
 export const Splash: React.FC<SplashProps> = ({
@@ -37,6 +45,7 @@ export const Splash: React.FC<SplashProps> = ({
   errorMessage,
   secondaryAction,
   tertiaryAction,
+  usernameInput,
 }) => {
   const stateMessages = {
     welcome: "Welcome",
@@ -62,6 +71,32 @@ export const Splash: React.FC<SplashProps> = ({
           <h3 className="text-center font-bold text-[#367D42]">{displayMessage}</h3>
         </div>
 
+        {/* Username input - shown when creating new account */}
+        {usernameInput && !loadingState && (
+          <div className="w-full">
+            <input
+              type="text"
+              value={usernameInput.value}
+              onChange={usernameInput.onChange}
+              placeholder={usernameInput.placeholder || "Choose a username"}
+              className="w-full px-4 py-3 rounded-full border border-gray-300 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/20 text-center text-gray-900 placeholder:text-gray-400"
+              disabled={isLoggingIn}
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && login) {
+                  login();
+                }
+                if (e.key === "Escape" && usernameInput.onCancel) {
+                  usernameInput.onCancel();
+                }
+              }}
+            />
+            <p className="mt-2 text-center text-xs text-gray-500">
+              This username identifies your passkey on our server
+            </p>
+          </div>
+        )}
+
         {/* Button/Loader/Secondary action container - shared space, fixed height */}
         <div className="w-full flex flex-col items-center gap-3" style={{ height: "100px" }}>
           <div className="w-full flex items-center justify-center h-10">
@@ -81,7 +116,7 @@ export const Splash: React.FC<SplashProps> = ({
             )}
           </div>
 
-          {/* Secondary action (Login with wallet) - fixed height slot */}
+          {/* Secondary action (Login with wallet / Cancel) - fixed height slot */}
           <div className="flex w-full h-10 items-center justify-center">
             {!loadingState ? (
               <Button

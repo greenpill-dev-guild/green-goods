@@ -1,23 +1,24 @@
 /**
  * Authentication Session Utilities
  *
- * Minimal session management with 3 storage keys:
- * - PASSKEY_STORAGE_KEY: WebAuthn credential for passkey auth
+ * Minimal session management for Pimlico passkey server integration.
+ *
+ * Storage keys:
  * - AUTH_MODE_STORAGE_KEY: Which auth method is active ("passkey" | "wallet")
  * - USERNAME_STORAGE_KEY: Pimlico passkey server username (for session restore)
+ *
+ * Note: Passkey credentials are stored on Pimlico's server, not localStorage.
+ * Only the username is stored locally to know which credentials to fetch.
  */
 
 // ============================================================================
 // STORAGE KEYS
 // ============================================================================
 
-/** Passkey credential storage (legacy - will be replaced by Pimlico server) */
-export const PASSKEY_STORAGE_KEY = "greengoods_passkey_credential";
-
 /** Active auth mode */
 export const AUTH_MODE_STORAGE_KEY = "greengoods_auth_mode";
 
-/** Username for Pimlico passkey server (only thing stored locally after migration) */
+/** Username for Pimlico passkey server (only thing stored locally for passkey auth) */
 export const USERNAME_STORAGE_KEY = "greengoods_username";
 
 // ============================================================================
@@ -60,18 +61,9 @@ export function clearStoredUsername(): void {
   localStorage.removeItem(USERNAME_STORAGE_KEY);
 }
 
-// ============================================================================
-// PASSKEY (Legacy - will be removed after Pimlico migration)
-// ============================================================================
-
-/** Check if there's a stored passkey credential */
-export function hasStoredPasskey(): boolean {
-  return !!localStorage.getItem(PASSKEY_STORAGE_KEY);
-}
-
-/** Clear the stored passkey credential */
-export function clearStoredPasskey(): void {
-  localStorage.removeItem(PASSKEY_STORAGE_KEY);
+/** Check if there's a stored username (indicates existing account) */
+export function hasStoredUsername(): boolean {
+  return Boolean(localStorage.getItem(USERNAME_STORAGE_KEY));
 }
 
 // ============================================================================
@@ -79,14 +71,13 @@ export function clearStoredPasskey(): void {
 // ============================================================================
 
 /**
- * Clear all auth storage including passkey credential and username.
+ * Clear all auth storage including username.
  *
- * WARNING: This removes the passkey credential permanently.
- * For regular logout, use clearAuthMode() instead to keep the credential.
- * Only use this for complete account/passkey deletion.
+ * WARNING: This removes the username permanently.
+ * For regular logout, use clearAuthMode() instead to keep the username.
+ * Only use this for complete account deletion.
  */
 export function clearAllAuth(): void {
-  localStorage.removeItem(PASSKEY_STORAGE_KEY);
   localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
   localStorage.removeItem(USERNAME_STORAGE_KEY);
 }
@@ -94,6 +85,22 @@ export function clearAllAuth(): void {
 // ============================================================================
 // LEGACY EXPORTS (kept for backward compatibility during migration)
 // ============================================================================
+
+/** @deprecated Legacy key - credentials now stored on Pimlico server */
+export const PASSKEY_STORAGE_KEY = "greengoods_passkey_credential";
+
+/** @deprecated Use hasStoredUsername instead */
+export function hasStoredPasskey(): boolean {
+  // Check for username (new flow) OR old credential (migration)
+  return Boolean(
+    localStorage.getItem(USERNAME_STORAGE_KEY) || localStorage.getItem(PASSKEY_STORAGE_KEY)
+  );
+}
+
+/** @deprecated Clear legacy credential if present */
+export function clearStoredPasskey(): void {
+  localStorage.removeItem(PASSKEY_STORAGE_KEY);
+}
 
 /** @deprecated Use getAuthMode instead */
 export const getSavedAuthMode = getAuthMode;

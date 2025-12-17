@@ -1,10 +1,10 @@
 /**
  * Auth Services Integration Tests
  *
- * Tests the async services that power the auth machine:
- * - restoreSessionService: Check for existing session on app start
- * - registerPasskeyService: Create new passkey (new user)
- * - authenticatePasskeyService: Login with existing passkey (returning user)
+ * Tests the async services that power the auth machine with Pimlico server:
+ * - restoreSessionService: Restore session from Pimlico server using stored username
+ * - registerPasskeyService: Create new passkey and store on Pimlico server
+ * - authenticatePasskeyService: Login with passkey from Pimlico server
  * - claimENSService: Claim ENS subdomain
  *
  * Note: These services are XState 5 `fromPromise` actors. To test them,
@@ -110,9 +110,18 @@ vi.mock("../../config/pimlico", () => ({
   getPimlicoBundlerUrl: vi.fn(() => "https://bundler.test"),
 }));
 
-// Mock passkeyServer
+// Mock Pimlico passkey server client
+const mockPasskeyServerClient = {
+  chain: { id: 84532, name: "Base Sepolia" },
+  baseUrl: "https://api.pimlico.io/v2/84532/rpc",
+  startRegistration: vi.fn(),
+  verifyRegistration: vi.fn(),
+  getCredentials: vi.fn(),
+};
+
 vi.mock("../../config/passkeyServer", () => ({
-  createPasskeyCredential: vi.fn(),
+  createPasskeyServerClient: vi.fn(() => mockPasskeyServerClient),
+  createPasskeyWithServer: vi.fn(),
 }));
 
 // Mocked session functions
@@ -127,21 +136,18 @@ vi.mock("../../modules/auth/session", () => ({
   }),
   hasStoredPasskey: vi.fn(() => false),
   PASSKEY_STORAGE_KEY: "greengoods_passkey_credential",
+  USERNAME_STORAGE_KEY: "greengoods_username",
 }));
 
 // Import after mocks
-import { createWebAuthnCredential } from "viem/account-abstraction";
+import { createPasskeyWithServer } from "../../config/passkeyServer";
+import { clearStoredUsername, setStoredUsername } from "../../modules/auth/session";
 import {
-  restoreSessionService,
-  registerPasskeyService,
   authenticatePasskeyService,
   claimENSService,
+  registerPasskeyService,
+  restoreSessionService,
 } from "../../workflows/authServices";
-import {
-  setStoredUsername,
-  clearStoredUsername,
-  PASSKEY_STORAGE_KEY,
-} from "../../modules/auth/session";
 
 // ============================================================================
 // TEST HELPERS
@@ -153,19 +159,13 @@ const MOCK_SMART_ACCOUNT_ADDRESS = "0xSmartAccount123456789012345678901234567890
 
 const MOCK_CREDENTIAL = {
   id: "dGVzdC1jcmVkZW50aWFsLWlk", // Base64URL encoded "test-credential-id"
-  publicKey: "0xTestPublicKey1234567890",
+  publicKey: "0xTestPublicKey1234567890" as `0x${string}`,
   raw: {
     id: "dGVzdC1jcmVkZW50aWFsLWlk",
     type: "public-key",
     rawId: new Uint8Array([1, 2, 3, 4]),
-  },
+  } as unknown as PublicKeyCredential,
 };
-
-const MOCK_SERIALIZED_CREDENTIAL = JSON.stringify({
-  id: MOCK_CREDENTIAL.id,
-  publicKey: MOCK_CREDENTIAL.publicKey,
-  raw: MOCK_CREDENTIAL.raw,
-});
 
 /**
  * Helper to invoke a fromPromise actor and get the result
@@ -230,7 +230,7 @@ async function invokeService<TOutput, TInput>(
 // TESTS
 // ============================================================================
 
-describe("workflows/authServices", () => {
+describe("workflows/authServices (Pimlico Server Flow)", () => {
   let mockCredentials: {
     create: ReturnType<typeof vi.fn>;
     get: ReturnType<typeof vi.fn>;
@@ -242,18 +242,21 @@ describe("workflows/authServices", () => {
     globalMockLocalStorage.clear();
     globalMockLocalStorage._setStore({});
 
+    // Reset Pimlico server mock
+    mockPasskeyServerClient.startRegistration.mockReset();
+    mockPasskeyServerClient.verifyRegistration.mockReset();
+    mockPasskeyServerClient.getCredentials.mockReset();
+
     // Setup navigator.credentials mock
     mockCredentials = {
       create: vi.fn(),
       get: vi.fn(),
     };
-    // Mock on both global.navigator and window.navigator
     Object.defineProperty(global.navigator, "credentials", {
       value: mockCredentials,
       writable: true,
       configurable: true,
     });
-    // Ensure window.navigator.credentials also points to the same mock
     (global as any).window.navigator = global.navigator;
 
     // Setup window.location
@@ -283,13 +286,12 @@ describe("workflows/authServices", () => {
   });
 
   // ==========================================================================
-  // RESTORE SESSION SERVICE
+  // RESTORE SESSION SERVICE (Pimlico Server)
   // ==========================================================================
 
-  describe("restoreSessionService", () => {
-    it("returns null when no stored username or credential", async () => {
+  describe("restoreSessionService (Pimlico Server)", () => {
+    it("returns null when no stored username", async () => {
       mockStoredUsername = null;
-      globalMockLocalStorage.getItem.mockReturnValue(null);
 
       const result = await invokeService(restoreSessionService, {
         passkeyClient: null,
@@ -299,25 +301,27 @@ describe("workflows/authServices", () => {
       expect(result).toBeNull();
     });
 
-    it("restores session from localStorage credential", async () => {
+    it("fetches credentials from Pimlico server using stored username", async () => {
       mockStoredUsername = MOCK_USERNAME;
-      globalMockLocalStorage.getItem.mockReturnValue(MOCK_SERIALIZED_CREDENTIAL);
+      mockPasskeyServerClient.getCredentials.mockResolvedValue([MOCK_CREDENTIAL]);
 
       const result = await invokeService(restoreSessionService, {
         passkeyClient: null,
         chainId: MOCK_CHAIN_ID,
       });
 
+      expect(mockPasskeyServerClient.getCredentials).toHaveBeenCalledWith({
+        context: { userName: MOCK_USERNAME },
+      });
       expect(result).not.toBeNull();
-      expect(result?.credential).toBeDefined();
-      expect(result?.smartAccountClient).toBeDefined();
+      expect(result?.credential).toEqual(MOCK_CREDENTIAL);
       expect(result?.smartAccountAddress).toBe(MOCK_SMART_ACCOUNT_ADDRESS);
       expect(result?.userName).toBe(MOCK_USERNAME);
     });
 
-    it("clears invalid credential and returns null", async () => {
-      mockStoredUsername = null;
-      globalMockLocalStorage.getItem.mockReturnValue("invalid-json-{{{");
+    it("returns null and clears username when no credentials on server", async () => {
+      mockStoredUsername = MOCK_USERNAME;
+      mockPasskeyServerClient.getCredentials.mockResolvedValue([]);
 
       const result = await invokeService(restoreSessionService, {
         passkeyClient: null,
@@ -325,28 +329,41 @@ describe("workflows/authServices", () => {
       });
 
       expect(result).toBeNull();
-      expect(globalMockLocalStorage.removeItem).toHaveBeenCalledWith(PASSKEY_STORAGE_KEY);
       expect(clearStoredUsername).toHaveBeenCalled();
     });
 
-    it("uses fallback username when not stored", async () => {
-      mockStoredUsername = null;
-      globalMockLocalStorage.getItem.mockReturnValue(MOCK_SERIALIZED_CREDENTIAL);
+    it("returns null and clears username when server fetch fails", async () => {
+      mockStoredUsername = MOCK_USERNAME;
+      mockPasskeyServerClient.getCredentials.mockRejectedValue(new Error("Server error"));
 
       const result = await invokeService(restoreSessionService, {
         passkeyClient: null,
         chainId: MOCK_CHAIN_ID,
       });
 
-      expect(result?.userName).toBe("user"); // Fallback
+      expect(result).toBeNull();
+      expect(clearStoredUsername).toHaveBeenCalled();
+    });
+
+    it("uses first credential when multiple exist on server", async () => {
+      mockStoredUsername = MOCK_USERNAME;
+      const secondCredential = { ...MOCK_CREDENTIAL, id: "second-id" };
+      mockPasskeyServerClient.getCredentials.mockResolvedValue([MOCK_CREDENTIAL, secondCredential]);
+
+      const result = await invokeService(restoreSessionService, {
+        passkeyClient: null,
+        chainId: MOCK_CHAIN_ID,
+      });
+
+      expect(result?.credential).toEqual(MOCK_CREDENTIAL);
     });
   });
 
   // ==========================================================================
-  // REGISTER PASSKEY SERVICE
+  // REGISTER PASSKEY SERVICE (Pimlico Server)
   // ==========================================================================
 
-  describe("registerPasskeyService", () => {
+  describe("registerPasskeyService (Pimlico Server)", () => {
     it("throws when username is missing", async () => {
       await expect(
         invokeService(registerPasskeyService, {
@@ -357,8 +374,8 @@ describe("workflows/authServices", () => {
       ).rejects.toThrow("Username is required for registration");
     });
 
-    it("creates credential and persists to localStorage", async () => {
-      (createWebAuthnCredential as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CREDENTIAL);
+    it("creates credential via Pimlico server flow", async () => {
+      (createPasskeyWithServer as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CREDENTIAL);
 
       const result = await invokeService(registerPasskeyService, {
         passkeyClient: null,
@@ -366,22 +383,27 @@ describe("workflows/authServices", () => {
         chainId: MOCK_CHAIN_ID,
       });
 
-      expect(createWebAuthnCredential).toHaveBeenCalledWith({
-        name: "Green Goods Wallet",
-        createFn: expect.any(Function),
-      });
-      expect(globalMockLocalStorage.setItem).toHaveBeenCalledWith(
-        PASSKEY_STORAGE_KEY,
-        expect.any(String)
-      );
+      expect(createPasskeyWithServer).toHaveBeenCalled();
       expect(setStoredUsername).toHaveBeenCalledWith(MOCK_USERNAME);
       expect(result.credential).toEqual(MOCK_CREDENTIAL);
       expect(result.userName).toBe(MOCK_USERNAME);
       expect(result.smartAccountAddress).toBe(MOCK_SMART_ACCOUNT_ADDRESS);
     });
 
-    it("builds smart account from credential", async () => {
-      (createWebAuthnCredential as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CREDENTIAL);
+    it("stores username locally after successful registration", async () => {
+      (createPasskeyWithServer as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CREDENTIAL);
+
+      await invokeService(registerPasskeyService, {
+        passkeyClient: null,
+        userName: "alice",
+        chainId: MOCK_CHAIN_ID,
+      });
+
+      expect(setStoredUsername).toHaveBeenCalledWith("alice");
+    });
+
+    it("builds smart account from registered credential", async () => {
+      (createPasskeyWithServer as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CREDENTIAL);
 
       const result = await invokeService(registerPasskeyService, {
         passkeyClient: null,
@@ -392,36 +414,25 @@ describe("workflows/authServices", () => {
       expect(result.smartAccountClient).toBeDefined();
       expect(result.smartAccountClient.account.address).toBe(MOCK_SMART_ACCOUNT_ADDRESS);
     });
-
-    it("persists credential in correct format", async () => {
-      (createWebAuthnCredential as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CREDENTIAL);
-
-      await invokeService(registerPasskeyService, {
-        passkeyClient: null,
-        userName: MOCK_USERNAME,
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      // Verify localStorage was called with serialized credential
-      const calls = globalMockLocalStorage.setItem.mock.calls;
-      const storedValue = calls.find(
-        (call: [string, string]) => call[0] === PASSKEY_STORAGE_KEY
-      )?.[1];
-      expect(storedValue).toBeDefined();
-
-      const parsed = JSON.parse(storedValue!);
-      expect(parsed.id).toBe(MOCK_CREDENTIAL.id);
-      expect(parsed.publicKey).toBe(MOCK_CREDENTIAL.publicKey);
-    });
   });
 
   // ==========================================================================
-  // AUTHENTICATE PASSKEY SERVICE
+  // AUTHENTICATE PASSKEY SERVICE (Pimlico Server)
   // ==========================================================================
 
-  describe("authenticatePasskeyService", () => {
-    it("throws when no stored credential exists", async () => {
-      globalMockLocalStorage.getItem.mockReturnValue(null);
+  describe("authenticatePasskeyService (Pimlico Server)", () => {
+    it("throws when username is not provided", async () => {
+      await expect(
+        invokeService(authenticatePasskeyService, {
+          passkeyClient: null,
+          userName: null,
+          chainId: MOCK_CHAIN_ID,
+        })
+      ).rejects.toThrow("Username is required for authentication");
+    });
+
+    it("throws when no credentials found on Pimlico server", async () => {
+      mockPasskeyServerClient.getCredentials.mockResolvedValue([]);
 
       await expect(
         invokeService(authenticatePasskeyService, {
@@ -429,11 +440,11 @@ describe("workflows/authServices", () => {
           userName: MOCK_USERNAME,
           chainId: MOCK_CHAIN_ID,
         })
-      ).rejects.toThrow("No passkey found. Please create a new account.");
+      ).rejects.toThrow("No passkey found for this account");
     });
 
-    it("authenticates with stored credential", async () => {
-      globalMockLocalStorage.getItem.mockReturnValue(MOCK_SERIALIZED_CREDENTIAL);
+    it("fetches credentials from Pimlico server and prompts biometric", async () => {
+      mockPasskeyServerClient.getCredentials.mockResolvedValue([MOCK_CREDENTIAL]);
       mockCredentials.get.mockResolvedValue({
         id: MOCK_CREDENTIAL.id,
         type: "public-key",
@@ -445,13 +456,46 @@ describe("workflows/authServices", () => {
         chainId: MOCK_CHAIN_ID,
       });
 
+      expect(mockPasskeyServerClient.getCredentials).toHaveBeenCalledWith({
+        context: { userName: MOCK_USERNAME },
+      });
+      expect(mockCredentials.get).toHaveBeenCalled();
       expect(result.credential).toBeDefined();
       expect(result.smartAccountClient).toBeDefined();
       expect(result.userName).toBe(MOCK_USERNAME);
     });
 
-    it("prompts WebAuthn authentication", async () => {
-      globalMockLocalStorage.getItem.mockReturnValue(MOCK_SERIALIZED_CREDENTIAL);
+    it("stores username after successful authentication", async () => {
+      mockPasskeyServerClient.getCredentials.mockResolvedValue([MOCK_CREDENTIAL]);
+      mockCredentials.get.mockResolvedValue({
+        id: MOCK_CREDENTIAL.id,
+        type: "public-key",
+      });
+
+      await invokeService(authenticatePasskeyService, {
+        passkeyClient: null,
+        userName: MOCK_USERNAME,
+        chainId: MOCK_CHAIN_ID,
+      });
+
+      expect(setStoredUsername).toHaveBeenCalledWith(MOCK_USERNAME);
+    });
+
+    it("throws when biometric authentication is cancelled", async () => {
+      mockPasskeyServerClient.getCredentials.mockResolvedValue([MOCK_CREDENTIAL]);
+      mockCredentials.get.mockResolvedValue(null); // User cancelled
+
+      await expect(
+        invokeService(authenticatePasskeyService, {
+          passkeyClient: null,
+          userName: MOCK_USERNAME,
+          chainId: MOCK_CHAIN_ID,
+        })
+      ).rejects.toThrow("Passkey authentication was cancelled");
+    });
+
+    it("prompts WebAuthn with correct credential ID from server", async () => {
+      mockPasskeyServerClient.getCredentials.mockResolvedValue([MOCK_CREDENTIAL]);
       mockCredentials.get.mockResolvedValue({
         id: MOCK_CREDENTIAL.id,
         type: "public-key",
@@ -468,86 +512,11 @@ describe("workflows/authServices", () => {
           rpId: "localhost",
           userVerification: "required",
           timeout: 60000,
+          allowCredentials: expect.arrayContaining([
+            expect.objectContaining({ type: "public-key" }),
+          ]),
         }),
       });
-    });
-
-    it("throws when authentication is cancelled", async () => {
-      globalMockLocalStorage.getItem.mockReturnValue(MOCK_SERIALIZED_CREDENTIAL);
-      mockCredentials.get.mockResolvedValue(null); // User cancelled
-
-      await expect(
-        invokeService(authenticatePasskeyService, {
-          passkeyClient: null,
-          userName: MOCK_USERNAME,
-          chainId: MOCK_CHAIN_ID,
-        })
-      ).rejects.toThrow("Passkey authentication was cancelled");
-    });
-
-    it("stores username after successful auth", async () => {
-      globalMockLocalStorage.getItem.mockReturnValue(MOCK_SERIALIZED_CREDENTIAL);
-      mockCredentials.get.mockResolvedValue({
-        id: MOCK_CREDENTIAL.id,
-        type: "public-key",
-      });
-
-      await invokeService(authenticatePasskeyService, {
-        passkeyClient: null,
-        userName: MOCK_USERNAME,
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(setStoredUsername).toHaveBeenCalledWith(MOCK_USERNAME);
-    });
-
-    it("uses stored username as fallback", async () => {
-      globalMockLocalStorage.getItem.mockReturnValue(MOCK_SERIALIZED_CREDENTIAL);
-      mockCredentials.get.mockResolvedValue({
-        id: MOCK_CREDENTIAL.id,
-        type: "public-key",
-      });
-      mockStoredUsername = "stored-user";
-
-      const result = await invokeService(authenticatePasskeyService, {
-        passkeyClient: null,
-        userName: null, // No username provided
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(result.userName).toBe("stored-user");
-    });
-
-    it("handles base64url credential ID decoding", async () => {
-      // Test with a valid base64url encoded ID
-      const credentialWithBase64 = JSON.stringify({
-        id: "SGVsbG8", // "Hello" in base64url
-        publicKey: "0xTestKey",
-        raw: {},
-      });
-      globalMockLocalStorage.getItem.mockReturnValue(credentialWithBase64);
-      mockCredentials.get.mockResolvedValue({
-        id: "SGVsbG8",
-        type: "public-key",
-      });
-
-      const result = await invokeService(authenticatePasskeyService, {
-        passkeyClient: null,
-        userName: MOCK_USERNAME,
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(result).toBeDefined();
-      // Verify credentials.get was called with proper allowCredentials
-      expect(mockCredentials.get).toHaveBeenCalledWith(
-        expect.objectContaining({
-          publicKey: expect.objectContaining({
-            allowCredentials: expect.arrayContaining([
-              expect.objectContaining({ type: "public-key" }),
-            ]),
-          }),
-        })
-      );
     });
   });
 
@@ -567,12 +536,66 @@ describe("workflows/authServices", () => {
   });
 
   // ==========================================================================
-  // INTEGRATION: Service Result Types
+  // INTEGRATION: Username Flow
+  // ==========================================================================
+
+  describe("username flow integration", () => {
+    it("new user: register stores username, enables restore", async () => {
+      (createPasskeyWithServer as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CREDENTIAL);
+
+      // Register new user
+      const registerResult = await invokeService(registerPasskeyService, {
+        passkeyClient: null,
+        userName: "newuser",
+        chainId: MOCK_CHAIN_ID,
+      });
+
+      expect(registerResult.userName).toBe("newuser");
+      expect(setStoredUsername).toHaveBeenCalledWith("newuser");
+    });
+
+    it("existing user: authenticate uses stored username to fetch from server", async () => {
+      mockPasskeyServerClient.getCredentials.mockResolvedValue([MOCK_CREDENTIAL]);
+      mockCredentials.get.mockResolvedValue({
+        id: MOCK_CREDENTIAL.id,
+        type: "public-key",
+      });
+
+      const result = await invokeService(authenticatePasskeyService, {
+        passkeyClient: null,
+        userName: "existinguser",
+        chainId: MOCK_CHAIN_ID,
+      });
+
+      expect(mockPasskeyServerClient.getCredentials).toHaveBeenCalledWith({
+        context: { userName: "existinguser" },
+      });
+      expect(result.userName).toBe("existinguser");
+    });
+
+    it("restore: fetches credentials from server using stored username", async () => {
+      mockStoredUsername = "restoreduser";
+      mockPasskeyServerClient.getCredentials.mockResolvedValue([MOCK_CREDENTIAL]);
+
+      const result = await invokeService(restoreSessionService, {
+        passkeyClient: null,
+        chainId: MOCK_CHAIN_ID,
+      });
+
+      expect(mockPasskeyServerClient.getCredentials).toHaveBeenCalledWith({
+        context: { userName: "restoreduser" },
+      });
+      expect(result?.userName).toBe("restoreduser");
+    });
+  });
+
+  // ==========================================================================
+  // SERVICE RESULT TYPES
   // ==========================================================================
 
   describe("service result types", () => {
     it("registerPasskeyService returns complete PasskeySessionResult", async () => {
-      (createWebAuthnCredential as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CREDENTIAL);
+      (createPasskeyWithServer as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CREDENTIAL);
 
       const result = await invokeService(registerPasskeyService, {
         passkeyClient: null,
@@ -580,20 +603,16 @@ describe("workflows/authServices", () => {
         chainId: MOCK_CHAIN_ID,
       });
 
-      // Verify all required fields are present
       expect(result).toHaveProperty("credential");
       expect(result).toHaveProperty("smartAccountClient");
       expect(result).toHaveProperty("smartAccountAddress");
       expect(result).toHaveProperty("userName");
-
-      // Verify types
-      expect(typeof result.credential.id).toBe("string");
       expect(typeof result.smartAccountAddress).toBe("string");
       expect(result.smartAccountAddress).toMatch(/^0x/);
     });
 
     it("authenticatePasskeyService returns complete PasskeySessionResult", async () => {
-      globalMockLocalStorage.getItem.mockReturnValue(MOCK_SERIALIZED_CREDENTIAL);
+      mockPasskeyServerClient.getCredentials.mockResolvedValue([MOCK_CREDENTIAL]);
       mockCredentials.get.mockResolvedValue({
         id: MOCK_CREDENTIAL.id,
         type: "public-key",
@@ -613,7 +632,7 @@ describe("workflows/authServices", () => {
 
     it("restoreSessionService returns RestoreSessionResult or null", async () => {
       mockStoredUsername = MOCK_USERNAME;
-      globalMockLocalStorage.getItem.mockReturnValue(MOCK_SERIALIZED_CREDENTIAL);
+      mockPasskeyServerClient.getCredentials.mockResolvedValue([MOCK_CREDENTIAL]);
 
       const result = await invokeService(restoreSessionService, {
         passkeyClient: null,

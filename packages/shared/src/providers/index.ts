@@ -18,14 +18,12 @@ export {
 export { AppKitProvider, useAppKit } from "./AppKitProvider";
 
 // Auth Providers
-// New unified XState-based provider (preferred)
+// Unified XState-based provider with Pimlico passkey server
 export type { AuthContextType } from "./Auth";
 export { AuthProvider, useAuthContext, useOptionalAuthContext } from "./Auth";
 
-// Legacy providers (kept for backwards compatibility during migration)
+// Wallet-only provider (for admin package)
 export { WalletAuthProvider, useWalletAuth, useOptionalWalletAuth } from "./WalletAuth";
-export { PasskeyAuthProvider } from "./PasskeyAuth";
-export { ClientAuthProvider, useClientAuth } from "./ClientAuth";
 
 // Job Queue Provider
 export { JobQueueProvider, useJobQueue, useQueueFlush, useQueueStats } from "./JobQueue";

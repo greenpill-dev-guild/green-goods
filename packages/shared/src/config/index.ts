@@ -49,10 +49,10 @@ export {
 } from "./pimlico";
 
 // From passkeyServer.ts
-export type { PasskeyServerClient, RegistrationContext } from "./passkeyServer";
+export type { PasskeyServerClient } from "./passkeyServer";
 export {
   createPasskeyServerClient,
-  createPasskeyCredential,
+  createPasskeyWithServer,
   isPasskeyServerAvailable,
 } from "./passkeyServer";
 

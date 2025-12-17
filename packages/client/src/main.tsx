@@ -1,5 +1,5 @@
 import { AppProvider, DEFAULT_CHAIN_ID, initTheme } from "@green-goods/shared";
-import { AppKitProvider, AuthProvider, ClientAuthProvider } from "@green-goods/shared/providers";
+import { AppKitProvider, AuthProvider } from "@green-goods/shared/providers";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "@/App.tsx";
@@ -45,13 +45,11 @@ export const Root = () => (
       }}
       defaultChainId={DEFAULT_CHAIN_ID}
     >
-      {/* AuthProvider (XState-based) wraps legacy ClientAuthProvider for migration */}
+      {/* AuthProvider uses XState + Pimlico passkey server */}
       <AuthProvider>
-        <ClientAuthProvider>
-          <AppProvider posthogKey={import.meta.env.VITE_POSTHOG_KEY}>
-            <App />
-          </AppProvider>
-        </ClientAuthProvider>
+        <AppProvider posthogKey={import.meta.env.VITE_POSTHOG_KEY}>
+          <App />
+        </AppProvider>
       </AuthProvider>
     </AppKitProvider>
   </AppErrorBoundary>

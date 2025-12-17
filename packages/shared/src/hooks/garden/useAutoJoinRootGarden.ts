@@ -10,14 +10,24 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
+import type { SmartAccountClient } from "permissionless";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { encodeFunctionData } from "viem";
+import { encodeFunctionData, type Hex } from "viem";
 import { useWriteContract } from "wagmi";
 import { ONBOARDED_STORAGE_KEY } from "../../config/app";
 import { wagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
-import type { PasskeySession } from "../../modules/auth/passkey";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
+
+/**
+ * Session data for passkey authentication.
+ * Used when calling joinGarden during login flow.
+ */
+interface PasskeySession {
+  address: Hex;
+  client: SmartAccountClient | null;
+}
+
 import { simulateJoinGarden } from "../../utils/contract/simulation";
 import { isAlreadyGardenerError } from "../../utils/errors/contract-errors";
 import { useUser } from "../auth/useUser";

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPublicClient, http } from "viem";
 import { DEFAULT_CHAIN_ID, getNetworkConfig } from "../../config/blockchain";
-import { useOptionalPasskeyAuth } from "../../providers/PasskeyAuth";
+import { useOptionalAuthContext } from "../../providers/Auth";
 import { useOptionalWalletAuth } from "../../providers/WalletAuth";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { compareAddresses } from "../../utils/blockchain/address";
@@ -34,12 +34,12 @@ export interface DeploymentRegistryPermissions {
 }
 
 export function useDeploymentRegistry(): DeploymentRegistryPermissions {
-  const passkeyAuth = useOptionalPasskeyAuth();
+  const unifiedAuth = useOptionalAuthContext();
   const walletAuth = useOptionalWalletAuth();
 
   const address =
-    passkeyAuth?.smartAccountAddress ?? passkeyAuth?.walletAddress ?? walletAuth?.address ?? null;
-  const ready = passkeyAuth ? passkeyAuth.isReady : (walletAuth?.ready ?? false);
+    unifiedAuth?.smartAccountAddress ?? unifiedAuth?.walletAddress ?? walletAuth?.address ?? null;
+  const ready = unifiedAuth ? unifiedAuth.isReady : (walletAuth?.ready ?? false);
   const selectedChainId = useAdminStore((state: AdminState) => state.selectedChainId);
   const chainId = selectedChainId || DEFAULT_CHAIN_ID;
   const [permissions, setPermissions] = useState<DeploymentRegistryPermissions>({

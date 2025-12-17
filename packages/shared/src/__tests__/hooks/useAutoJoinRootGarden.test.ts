@@ -5,7 +5,7 @@
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -78,9 +78,9 @@ vi.mock("../../utils/errors/contract-errors", () => ({
   isAlreadyGardenerError: vi.fn((error) => error?.message?.includes("AlreadyGardener")),
 }));
 
-import { useAutoJoinRootGarden, checkMembership } from "../../hooks/garden/useAutoJoinRootGarden";
 import { readContract } from "@wagmi/core";
-import { MOCK_ADDRESSES, createMockSmartAccountClient, createMockGarden } from "../test-utils";
+import { checkMembership, useAutoJoinRootGarden } from "../../hooks/garden/useAutoJoinRootGarden";
+import { createMockGarden, createMockSmartAccountClient, MOCK_ADDRESSES } from "../test-utils";
 
 describe("hooks/garden/useAutoJoinRootGarden", () => {
   let queryClient: QueryClient;

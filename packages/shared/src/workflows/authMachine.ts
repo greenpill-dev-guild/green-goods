@@ -15,9 +15,9 @@
  */
 
 import { type SmartAccountClient } from "permissionless";
-import { assign, setup } from "xstate";
 import { type Hex } from "viem";
 import { type P256Credential } from "viem/account-abstraction";
+import { assign, setup } from "xstate";
 
 import { type PasskeyServerClient } from "../config/passkeyServer";
 
@@ -91,6 +91,7 @@ const authSetup = setup({
   types: {
     context: {} as AuthContext,
     events: {} as AuthEvent,
+    input: {} as AuthInput,
   },
   actions: {
     // Clear all auth state
@@ -205,23 +206,32 @@ const authSetup = setup({
 });
 
 // ============================================================================
+// INPUT TYPE
+// ============================================================================
+
+export interface AuthInput {
+  chainId: number;
+  passkeyClient: PasskeyServerClient | null;
+}
+
+// ============================================================================
 // MACHINE DEFINITION
 // ============================================================================
 
 export const authMachine = authSetup.createMachine({
   id: "auth",
   initial: "initializing",
-  context: {
-    passkeyClient: null,
+  context: ({ input }) => ({
+    passkeyClient: input?.passkeyClient ?? null,
     credential: null,
     userName: null,
     smartAccountClient: null,
     smartAccountAddress: null,
     walletAddress: null,
-    chainId: 84532, // Default, will be set via input
+    chainId: input?.chainId ?? 84532, // Default to Base Sepolia
     error: null,
     retryCount: 0,
-  },
+  }),
   states: {
     // ========================================
     // INITIALIZING
@@ -229,6 +239,10 @@ export const authMachine = authSetup.createMachine({
     initializing: {
       invoke: {
         src: "restoreSession",
+        input: ({ context }: { context: AuthContext }) => ({
+          passkeyClient: context.passkeyClient,
+          chainId: context.chainId,
+        }),
         onDone: [
           {
             // Session restored successfully

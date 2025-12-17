@@ -1,12 +1,12 @@
 /**
  * Unified Auth Provider
  *
- * Single authentication provider that wraps the XState auth actor.
- * Supports both passkey (primary) and wallet (fallback) authentication.
+ * Single authentication provider using XState for state management
+ * and Pimlico passkey server for credential storage.
  *
  * Features:
  * - XState-based state management for predictable auth flows
- * - Pimlico passkey server integration (via authActor)
+ * - Pimlico passkey server integration (no localStorage for credentials)
  * - Automatic session restoration on mount
  * - Wallet fallback for admin/operator users
  *
@@ -20,24 +20,28 @@
  * // In components
  * const { authMode, smartAccountAddress, createAccount, signOut } = useAuth();
  * ```
+ *
+ * Reference: https://docs.pimlico.io/guides/how-to/signers/passkey-server
  */
 
+import { disconnect } from "@wagmi/core";
 import { useSelector } from "@xstate/react";
+import type { SmartAccountClient } from "permissionless";
 import React, { createContext, useCallback, useContext, useEffect, useMemo } from "react";
 import type { Hex } from "viem";
 import type { P256Credential } from "viem/account-abstraction";
-import type { SmartAccountClient } from "permissionless";
 import { useAccount, useConfig } from "wagmi";
-import { disconnect } from "@wagmi/core";
 
 import { appKit } from "../config/appkit";
 import { queryClient } from "../config/react-query";
 import {
   type AuthMode,
   clearAuthMode,
+  clearStoredUsername,
+  hasStoredUsername,
   setAuthMode as saveAuthModeToStorage,
 } from "../modules/auth/session";
-import { getAuthActor, type AuthActor } from "../workflows/authActor";
+import { type AuthActor, getAuthActor } from "../workflows/authActor";
 
 // ============================================================================
 // CONTEXT TYPE
@@ -78,6 +82,7 @@ export interface AuthContextType {
   clearPasskey: () => void;
   connectWallet: () => void;
   disconnectWallet: () => Promise<void>;
+  setPasskeySession?: (session: unknown) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -185,7 +190,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       // Get stored username or use provided
-      const finalUserName = userName || localStorage.getItem("greengoods_username") || "user";
+      const storedUsername =
+        typeof window !== "undefined" ? localStorage.getItem("greengoods_username") : null;
+      const finalUserName = userName || storedUsername || "user";
 
       // Send event to machine
       actor.send({ type: "LOGIN_PASSKEY_EXISTING", userName: finalUserName });
@@ -214,8 +221,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Disconnect wallet
     await disconnectWallet();
 
-    // Clear local storage mode (but NOT credential - user should be able to log back in)
+    // Clear local storage (auth mode + username to prevent auto-restore)
     clearAuthMode();
+    clearStoredUsername();
 
     // Clear query cache
     queryClient.clear();
@@ -235,9 +243,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [actor]);
 
   const clearPasskey = useCallback(() => {
-    // Clear stored credential
-    localStorage.removeItem("greengoods_passkey_credential");
-    localStorage.removeItem("greengoods_username");
+    // Clear stored username (credentials are on Pimlico server)
+    clearStoredUsername();
     if (actor) {
       actor.send({ type: "SIGN_OUT" });
     }
@@ -281,8 +288,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       snapshot.matches("wallet_connecting") ||
       isConnecting;
 
-    // Check for stored credential (legacy localStorage check)
-    const hasStoredCredential = Boolean(localStorage.getItem("greengoods_passkey_credential"));
+    // Check for stored username (indicates existing account with Pimlico server)
+    const storedCredential = hasStoredUsername();
 
     return {
       authMode,
@@ -294,7 +301,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       smartAccountAddress: snapshot.context.smartAccountAddress,
       smartAccountClient: snapshot.context.smartAccountClient,
       userName: snapshot.context.userName,
-      hasStoredCredential,
+      hasStoredCredential: storedCredential,
     };
   }, [snapshot, isConnecting]);
 

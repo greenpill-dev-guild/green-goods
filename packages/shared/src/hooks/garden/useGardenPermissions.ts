@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useOptionalPasskeyAuth } from "../../providers/PasskeyAuth";
+import { useOptionalAuthContext } from "../../providers/Auth";
 import { useOptionalWalletAuth } from "../../providers/WalletAuth";
 import { isAddressInList } from "../../utils/blockchain/address";
 
@@ -12,10 +12,10 @@ export interface GardenPermissions {
 }
 
 export function useGardenPermissions(): GardenPermissions {
-  const passkeyAuth = useOptionalPasskeyAuth();
+  const unifiedAuth = useOptionalAuthContext();
   const walletAuth = useOptionalWalletAuth();
-  const address = (passkeyAuth?.walletAddress ||
-    passkeyAuth?.smartAccountAddress ||
+  const address = (unifiedAuth?.walletAddress ||
+    unifiedAuth?.smartAccountAddress ||
     walletAuth?.address) as string | undefined;
 
   const permissions = useMemo(() => {

@@ -19,39 +19,27 @@ export {
 export { serviceWorkerManager } from "./app/service-worker";
 
 // ============================================================================
-// AUTH / PASSKEY
-// ============================================================================
-export type { PasskeySession } from "./auth/passkey";
-export {
-  authenticatePasskey,
-  clearStoredCredential,
-  PASSKEY_STORAGE_KEY,
-  recoverPasskeyAccount,
-  registerPasskeySession,
-  registerPasskeySessionWithENS,
-  restorePasskeySession,
-} from "./auth/passkey";
-
-// ============================================================================
 // AUTH / SESSION
 // ============================================================================
 export {
   // Storage keys
   AUTH_MODE_STORAGE_KEY,
   USERNAME_STORAGE_KEY,
+  PASSKEY_STORAGE_KEY,
   // Auth mode
   type AuthMode,
   clearAllAuth,
   clearAuthMode,
-  clearStoredPasskey,
-  clearStoredUsername,
   getAuthMode,
-  // Username (Pimlico server)
-  getStoredUsername,
-  setStoredUsername,
-  // Passkey
-  hasStoredPasskey,
   setAuthMode,
+  // Username (Pimlico server)
+  clearStoredUsername,
+  getStoredUsername,
+  hasStoredUsername,
+  setStoredUsername,
+  // Legacy (deprecated - credentials now on Pimlico server)
+  clearStoredPasskey,
+  hasStoredPasskey,
   // Legacy aliases (deprecated)
   clearAllAuthStorage,
   getSavedAuthMode,
