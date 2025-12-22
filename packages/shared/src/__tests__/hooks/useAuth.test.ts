@@ -1,4 +1,8 @@
 /**
+ * @vitest-environment jsdom
+ */
+
+/**
  * useAuth Hook Tests
  *
  * Tests the universal auth hook that works with both Client and Admin auth providers.
@@ -8,12 +12,12 @@ import { renderHook } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 // Mock the provider hooks
-const mockUseOptionalClientAuth = vi.fn();
+const mockUseOptionalAuthContext = vi.fn();
 const mockUseOptionalWalletAuth = vi.fn();
 
-vi.mock("../../providers/ClientAuth", () => ({
-  useOptionalClientAuth: () => mockUseOptionalClientAuth(),
-  useClientAuth: vi.fn(),
+vi.mock("../../providers/Auth", () => ({
+  useOptionalAuthContext: () => mockUseOptionalAuthContext(),
+  useAuthContext: vi.fn(),
 }));
 
 vi.mock("../../providers/WalletAuth", () => ({
@@ -26,7 +30,7 @@ import { useAuth } from "../../hooks/auth/useAuth";
 describe("hooks/auth/useAuth", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseOptionalClientAuth.mockReturnValue(null);
+    mockUseOptionalAuthContext.mockReturnValue(null);
     mockUseOptionalWalletAuth.mockReturnValue(null);
   });
 
@@ -41,12 +45,14 @@ describe("hooks/auth/useAuth", () => {
       expect(result.current.eoaAddress).toBeUndefined();
       expect(result.current.smartAccountAddress).toBeUndefined();
       expect(result.current.smartAccountClient).toBeUndefined();
+      expect(result.current.externalWalletConnected).toBe(false);
+      expect(result.current.externalWalletAddress).toBeNull();
     });
   });
 
-  describe("with ClientAuth provider (passkey mode)", () => {
+  describe("with Auth provider (passkey mode)", () => {
     it("returns passkey auth state when in passkey mode", () => {
-      mockUseOptionalClientAuth.mockReturnValue({
+      mockUseOptionalAuthContext.mockReturnValue({
         authMode: "passkey",
         eoaAddress: undefined,
         smartAccountAddress: "0xSmartAccount123",
@@ -55,6 +61,8 @@ describe("hooks/auth/useAuth", () => {
         isAuthenticated: true,
         isAuthenticating: false,
         walletAddress: null,
+        externalWalletConnected: false,
+        externalWalletAddress: null,
       });
 
       const { result } = renderHook(() => useAuth());
@@ -65,10 +73,11 @@ describe("hooks/auth/useAuth", () => {
       expect(result.current.smartAccountAddress).toBe("0xSmartAccount123");
       expect(result.current.smartAccountClient).toBeDefined();
       expect(result.current.walletAddress).toBeNull();
+      expect(result.current.externalWalletConnected).toBe(false);
     });
 
-    it("returns wallet auth state when client auth is in wallet mode", () => {
-      mockUseOptionalClientAuth.mockReturnValue({
+    it("returns wallet auth state when auth provider is in wallet mode", () => {
+      mockUseOptionalAuthContext.mockReturnValue({
         authMode: "wallet",
         eoaAddress: "0xWallet456",
         smartAccountAddress: null,
@@ -77,6 +86,8 @@ describe("hooks/auth/useAuth", () => {
         isAuthenticated: true,
         isAuthenticating: false,
         walletAddress: "0xWallet456",
+        externalWalletConnected: true,
+        externalWalletAddress: "0xWallet456",
       });
 
       const { result } = renderHook(() => useAuth());
@@ -85,10 +96,12 @@ describe("hooks/auth/useAuth", () => {
       expect(result.current.eoaAddress).toBe("0xWallet456");
       expect(result.current.walletAddress).toBe("0xWallet456");
       expect(result.current.smartAccountClient).toBeNull();
+      expect(result.current.externalWalletConnected).toBe(true);
+      expect(result.current.externalWalletAddress).toBe("0xWallet456");
     });
 
     it("returns authenticating state during passkey creation", () => {
-      mockUseOptionalClientAuth.mockReturnValue({
+      mockUseOptionalAuthContext.mockReturnValue({
         authMode: null,
         eoaAddress: undefined,
         smartAccountAddress: null,
@@ -97,12 +110,39 @@ describe("hooks/auth/useAuth", () => {
         isAuthenticated: false,
         isAuthenticating: true,
         walletAddress: null,
+        externalWalletConnected: false,
+        externalWalletAddress: null,
       });
 
       const { result } = renderHook(() => useAuth());
 
       expect(result.current.isAuthenticating).toBe(true);
       expect(result.current.isAuthenticated).toBe(false);
+    });
+
+    it("tracks external wallet even when in passkey mode", () => {
+      mockUseOptionalAuthContext.mockReturnValue({
+        authMode: "passkey",
+        eoaAddress: undefined,
+        smartAccountAddress: "0xSmartAccount123",
+        smartAccountClient: { account: { address: "0xSmartAccount123" } },
+        isReady: true,
+        isAuthenticated: true,
+        isAuthenticating: false,
+        walletAddress: null,
+        externalWalletConnected: true,
+        externalWalletAddress: "0xExternalWallet999",
+      });
+
+      const { result } = renderHook(() => useAuth());
+
+      expect(result.current.authMode).toBe("passkey");
+      expect(result.current.smartAccountAddress).toBe("0xSmartAccount123");
+      // External wallet is tracked even though passkey is the primary auth
+      expect(result.current.externalWalletConnected).toBe(true);
+      expect(result.current.externalWalletAddress).toBe("0xExternalWallet999");
+      // walletAddress is null because passkey is the primary auth
+      expect(result.current.walletAddress).toBeNull();
     });
   });
 
@@ -114,6 +154,7 @@ describe("hooks/auth/useAuth", () => {
         isReady: true,
         isAuthenticated: true,
         isAuthenticating: false,
+        connect: vi.fn(),
       });
 
       const { result } = renderHook(() => useAuth());
@@ -124,6 +165,9 @@ describe("hooks/auth/useAuth", () => {
       // Smart account properties should be undefined for wallet-only auth
       expect(result.current.smartAccountAddress).toBeUndefined();
       expect(result.current.smartAccountClient).toBeUndefined();
+      // External wallet should reflect the wallet auth state
+      expect(result.current.externalWalletConnected).toBe(true);
+      expect(result.current.externalWalletAddress).toBe("0xAdminWallet789");
     });
 
     it("returns not ready state when wallet is connecting", () => {
@@ -133,6 +177,7 @@ describe("hooks/auth/useAuth", () => {
         isReady: false,
         isAuthenticated: false,
         isAuthenticating: true,
+        connect: vi.fn(),
       });
 
       const { result } = renderHook(() => useAuth());
@@ -143,9 +188,9 @@ describe("hooks/auth/useAuth", () => {
   });
 
   describe("provider priority", () => {
-    it("prioritizes ClientAuth over WalletAuth when both available", () => {
+    it("prioritizes AuthProvider over WalletAuth when both available", () => {
       // Both providers return values
-      mockUseOptionalClientAuth.mockReturnValue({
+      mockUseOptionalAuthContext.mockReturnValue({
         authMode: "passkey",
         eoaAddress: undefined,
         smartAccountAddress: "0xPasskeyAccount",
@@ -154,6 +199,8 @@ describe("hooks/auth/useAuth", () => {
         isAuthenticated: true,
         isAuthenticating: false,
         walletAddress: null,
+        externalWalletConnected: false,
+        externalWalletAddress: null,
       });
 
       mockUseOptionalWalletAuth.mockReturnValue({
@@ -162,11 +209,12 @@ describe("hooks/auth/useAuth", () => {
         isReady: true,
         isAuthenticated: true,
         isAuthenticating: false,
+        connect: vi.fn(),
       });
 
       const { result } = renderHook(() => useAuth());
 
-      // Should use ClientAuth values
+      // Should use AuthProvider values
       expect(result.current.authMode).toBe("passkey");
       expect(result.current.smartAccountAddress).toBe("0xPasskeyAccount");
     });

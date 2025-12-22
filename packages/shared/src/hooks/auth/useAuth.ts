@@ -47,10 +47,14 @@ interface UseAuthReturn {
   isAuthenticating: boolean;
   error?: Error | null;
 
-  // Addresses
+  // Addresses (primary auth method)
   eoaAddress: Hex | undefined;
   smartAccountAddress: Hex | null | undefined;
   walletAddress?: Hex | null;
+
+  // External wallet state (always tracked, even in passkey mode)
+  externalWalletConnected: boolean;
+  externalWalletAddress: Hex | null;
 
   // Smart account (passkey mode)
   smartAccountClient: SmartAccountClient | null | undefined;
@@ -63,6 +67,9 @@ interface UseAuthReturn {
   loginWithPasskey?: (userName?: string) => Promise<unknown>;
   loginWithWallet?: () => void;
   signOut?: () => Promise<void>;
+  switchToWallet?: () => void;
+  switchToPasskey?: (userName?: string) => void;
+  dismissError?: () => void;
 }
 
 /**
@@ -76,6 +83,8 @@ const DEFAULT_AUTH: UseAuthReturn = {
   isReady: false,
   isAuthenticated: false,
   isAuthenticating: false,
+  externalWalletConnected: false,
+  externalWalletAddress: null,
 };
 
 /**
@@ -100,6 +109,8 @@ export function useAuth(): UseAuthReturn {
       eoaAddress: unifiedAuth.eoaAddress,
       smartAccountAddress: unifiedAuth.smartAccountAddress,
       walletAddress: unifiedAuth.walletAddress,
+      externalWalletConnected: unifiedAuth.externalWalletConnected,
+      externalWalletAddress: unifiedAuth.externalWalletAddress,
       smartAccountClient: unifiedAuth.smartAccountClient,
       credential: unifiedAuth.credential,
       userName: unifiedAuth.userName,
@@ -108,6 +119,9 @@ export function useAuth(): UseAuthReturn {
       loginWithPasskey: unifiedAuth.loginWithPasskey,
       loginWithWallet: unifiedAuth.loginWithWallet,
       signOut: unifiedAuth.signOut,
+      switchToWallet: unifiedAuth.switchToWallet,
+      switchToPasskey: unifiedAuth.switchToPasskey,
+      dismissError: unifiedAuth.dismissError,
     };
   }
 
@@ -122,6 +136,8 @@ export function useAuth(): UseAuthReturn {
       eoaAddress: walletAuth.eoaAddress,
       smartAccountAddress: undefined,
       smartAccountClient: undefined,
+      externalWalletConnected: walletAuth.isAuthenticated, // Wallet is always "external" in wallet-only mode
+      externalWalletAddress: walletAuth.eoaAddress ?? null,
       loginWithWallet: walletAuth.connect,
     };
   }

@@ -1,9 +1,24 @@
 /**
  * PasskeyAuthProvider Test Suite
  *
- * Tests passkey-based authentication context provider
+ * DEPRECATED: This test file tests the old PasskeyAuthProvider which has been
+ * consolidated into the unified Auth.tsx provider with XState.
+ *
+ * See these test files for the new auth system tests:
+ * - workflows/authMachine.test.ts (state machine tests)
+ * - workflows/authServices.test.ts (service integration tests)
+ * - hooks/useAuth.test.ts (useAuth hook tests)
  */
 
+import { describe, it, vi } from "vitest";
+
+// Skip all tests - old provider has been consolidated
+describe.skip("PasskeyAuthProvider (DEPRECATED)", () => {
+  it("placeholder", () => {});
+});
+
+// Original test code below (kept for reference)
+/*
 import { render, renderHook, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PasskeyAuthProvider, usePasskeyAuth } from "../../providers/PasskeyAuth";
@@ -127,3 +142,4 @@ describe("PasskeyAuthProvider", () => {
     expect(typeof result.current.resumePasskey).toBe("function");
   });
 });
+*/

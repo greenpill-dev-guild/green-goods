@@ -302,13 +302,13 @@ describe("workflows/authMachine", () => {
       expect(actor.getSnapshot().matches("wallet_connecting")).toBe(true);
     });
 
-    it("transitions to authenticated.wallet on WALLET_CONNECTED", async () => {
+    it("transitions to authenticated.wallet on EXTERNAL_WALLET_CONNECTED", async () => {
       const machine = createTestMachine();
       const actor = await startAndSettle(machine);
 
       actor.send({ type: "LOGIN_WALLET" });
       actor.send({
-        type: "WALLET_CONNECTED",
+        type: "EXTERNAL_WALLET_CONNECTED",
         address: MOCK_ADDRESSES.gardener as `0x${string}`,
       });
 
@@ -327,18 +327,43 @@ describe("workflows/authMachine", () => {
       expect(actor.getSnapshot().matches("unauthenticated")).toBe(true);
     });
 
-    it("handles WALLET_CONNECTED directly from unauthenticated", async () => {
+    it("tracks EXTERNAL_WALLET_CONNECTED in unauthenticated state but doesn't auto-authenticate", async () => {
       const machine = createTestMachine();
       const actor = await startAndSettle(machine);
 
-      // Can receive wallet connection without explicitly entering wallet_connecting
+      // Receive wallet connection from unauthenticated
       actor.send({
-        type: "WALLET_CONNECTED",
+        type: "EXTERNAL_WALLET_CONNECTED",
         address: MOCK_ADDRESSES.gardener as `0x${string}`,
       });
 
       const snapshot = actor.getSnapshot();
+      // Should still be unauthenticated (user must explicitly choose wallet auth)
+      expect(snapshot.matches("unauthenticated")).toBe(true);
+      // But external wallet should be tracked
+      expect(snapshot.context.externalWalletConnected).toBe(true);
+      expect(snapshot.context.externalWalletAddress).toBe(MOCK_ADDRESSES.gardener);
+    });
+
+    it("auto-authenticates with LOGIN_WALLET if external wallet already connected", async () => {
+      const machine = createTestMachine();
+      const actor = await startAndSettle(machine);
+
+      // First, connect wallet (tracked but not authenticated)
+      actor.send({
+        type: "EXTERNAL_WALLET_CONNECTED",
+        address: MOCK_ADDRESSES.gardener as `0x${string}`,
+      });
+
+      expect(actor.getSnapshot().matches("unauthenticated")).toBe(true);
+
+      // Now explicitly request wallet login
+      actor.send({ type: "LOGIN_WALLET" });
+
+      const snapshot = actor.getSnapshot();
+      // Should now be authenticated
       expect(snapshot.matches({ authenticated: "wallet" })).toBe(true);
+      expect(snapshot.context.walletAddress).toBe(MOCK_ADDRESSES.gardener);
     });
   });
 
@@ -386,20 +411,24 @@ describe("workflows/authMachine", () => {
   });
 
   describe("authenticated.wallet state", () => {
-    it("transitions to unauthenticated on WALLET_DISCONNECTED", async () => {
+    it("transitions to unauthenticated on EXTERNAL_WALLET_DISCONNECTED", async () => {
       const machine = createTestMachine();
       const actor = await startAndSettle(machine);
 
-      // Connect wallet
+      // First, enter wallet_connecting state
+      actor.send({ type: "LOGIN_WALLET" });
+      expect(actor.getSnapshot().matches("wallet_connecting")).toBe(true);
+
+      // Then connect wallet (this authenticates in wallet_connecting state)
       actor.send({
-        type: "WALLET_CONNECTED",
+        type: "EXTERNAL_WALLET_CONNECTED",
         address: MOCK_ADDRESSES.gardener as `0x${string}`,
       });
 
       expect(actor.getSnapshot().matches({ authenticated: "wallet" })).toBe(true);
 
       // Disconnect
-      actor.send({ type: "WALLET_DISCONNECTED" });
+      actor.send({ type: "EXTERNAL_WALLET_DISCONNECTED" });
 
       const snapshot = actor.getSnapshot();
       expect(snapshot.matches("unauthenticated")).toBe(true);
@@ -410,9 +439,12 @@ describe("workflows/authMachine", () => {
       const machine = createTestMachine();
       const actor = await startAndSettle(machine);
 
-      // Connect with wallet
+      // First, enter wallet_connecting state
+      actor.send({ type: "LOGIN_WALLET" });
+
+      // Then connect wallet
       actor.send({
-        type: "WALLET_CONNECTED",
+        type: "EXTERNAL_WALLET_CONNECTED",
         address: MOCK_ADDRESSES.gardener as `0x${string}`,
       });
 

@@ -1,13 +1,17 @@
+/**
+ * @vitest-environment jsdom
+ */
+
 import { renderHook } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock auth providers with proper relative paths
-const mockUseOptionalPasskeyAuth = vi.fn();
+const mockUseOptionalAuthContext = vi.fn();
 const mockUseOptionalWalletAuth = vi.fn();
 const mockUseDeploymentRegistry = vi.fn();
 
-vi.mock("../../providers/PasskeyAuth", () => ({
-  useOptionalPasskeyAuth: () => mockUseOptionalPasskeyAuth(),
+vi.mock("../../providers/Auth", () => ({
+  useOptionalAuthContext: () => mockUseOptionalAuthContext(),
 }));
 
 vi.mock("../../providers/WalletAuth", () => ({
@@ -28,15 +32,20 @@ vi.mock("gql.tada", () => ({
   graphql: vi.fn((query: string) => query),
 }));
 
-// Import after mocks
-const { useRole } = await import("../../hooks/gardener/useRole");
+// Import after mocks - using dynamic import inside tests to ensure mocks are applied
+let useRole: typeof import("../../hooks/gardener/useRole").useRole;
+
+beforeAll(async () => {
+  const module = await import("../../hooks/gardener/useRole");
+  useRole = module.useRole;
+});
 
 describe("useRole", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
     // Default mock values - not logged in
-    mockUseOptionalPasskeyAuth.mockReturnValue(null);
+    mockUseOptionalAuthContext.mockReturnValue(null);
     mockUseOptionalWalletAuth.mockReturnValue(null);
     mockUseDeploymentRegistry.mockReturnValue({
       canDeploy: false,
@@ -54,8 +63,9 @@ describe("useRole", () => {
   });
 
   it("should return deployer role when user can deploy", () => {
-    mockUseOptionalPasskeyAuth.mockReturnValue({
+    mockUseOptionalAuthContext.mockReturnValue({
       walletAddress: "0x123",
+      smartAccountAddress: null,
       isReady: true,
     });
     mockUseDeploymentRegistry.mockReturnValue({
@@ -74,8 +84,9 @@ describe("useRole", () => {
   });
 
   it("should return operator role for user with operator gardens", () => {
-    mockUseOptionalPasskeyAuth.mockReturnValue({
+    mockUseOptionalAuthContext.mockReturnValue({
       walletAddress: "0x456",
+      smartAccountAddress: null,
       isReady: true,
     });
     mockUseQuery.mockReturnValue([
@@ -101,8 +112,9 @@ describe("useRole", () => {
   });
 
   it("should return user role for unknown address without operator gardens", () => {
-    mockUseOptionalPasskeyAuth.mockReturnValue({
+    mockUseOptionalAuthContext.mockReturnValue({
       walletAddress: "0x789",
+      smartAccountAddress: null,
       isReady: true,
     });
     mockUseQuery.mockReturnValue([
@@ -123,8 +135,9 @@ describe("useRole", () => {
   });
 
   it("should show loading state when auth is not ready", () => {
-    mockUseOptionalPasskeyAuth.mockReturnValue({
+    mockUseOptionalAuthContext.mockReturnValue({
       walletAddress: null,
+      smartAccountAddress: null,
       isReady: false,
     });
     mockUseQuery.mockReturnValue([
@@ -141,8 +154,9 @@ describe("useRole", () => {
   });
 
   it("should show loading state when query is fetching", () => {
-    mockUseOptionalPasskeyAuth.mockReturnValue({
+    mockUseOptionalAuthContext.mockReturnValue({
       walletAddress: "0x123",
+      smartAccountAddress: null,
       isReady: true,
     });
     mockUseQuery.mockReturnValue([
@@ -159,8 +173,9 @@ describe("useRole", () => {
   });
 
   it("should show loading state when deployment registry is loading", () => {
-    mockUseOptionalPasskeyAuth.mockReturnValue({
+    mockUseOptionalAuthContext.mockReturnValue({
       walletAddress: "0x123",
+      smartAccountAddress: null,
       isReady: true,
     });
     mockUseDeploymentRegistry.mockReturnValue({
@@ -177,8 +192,9 @@ describe("useRole", () => {
 
   it("should deployer take precedence over operator role", () => {
     // Deployer address that also has operator gardens
-    mockUseOptionalPasskeyAuth.mockReturnValue({
+    mockUseOptionalAuthContext.mockReturnValue({
       walletAddress: "0x123",
+      smartAccountAddress: null,
       isReady: true,
     });
     mockUseDeploymentRegistry.mockReturnValue({
@@ -205,8 +221,8 @@ describe("useRole", () => {
     expect(result.current.operatorGardens).toHaveLength(1);
   });
 
-  it("should use wallet auth when passkey auth is not available", () => {
-    mockUseOptionalPasskeyAuth.mockReturnValue(null);
+  it("should use wallet auth when auth provider is not available", () => {
+    mockUseOptionalAuthContext.mockReturnValue(null);
     mockUseOptionalWalletAuth.mockReturnValue({
       address: "0xabc",
       ready: true,
@@ -225,9 +241,30 @@ describe("useRole", () => {
     expect(result.current.loading).toBe(false);
   });
 
+  it("should use smart account address when wallet address is null", () => {
+    mockUseOptionalAuthContext.mockReturnValue({
+      walletAddress: null,
+      smartAccountAddress: "0xSmartAccount123",
+      isReady: true,
+    });
+    mockUseQuery.mockReturnValue([
+      {
+        data: { Garden: [] },
+        fetching: false,
+        error: null,
+      },
+    ]);
+
+    const { result } = renderHook(() => useRole());
+
+    expect(result.current.role).toBe("user");
+    expect(result.current.loading).toBe(false);
+  });
+
   it("should return deployment permissions from hook state", () => {
-    mockUseOptionalPasskeyAuth.mockReturnValue({
+    mockUseOptionalAuthContext.mockReturnValue({
       walletAddress: "0x123",
+      smartAccountAddress: null,
       isReady: true,
     });
     // Note: The hook gets canDeploy from deploymentRegistry, so we test that it passes through

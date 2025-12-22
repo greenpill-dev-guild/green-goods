@@ -70,20 +70,17 @@ export const useWork = () => {
 };
 
 export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
-  const { smartAccountClient, authMode, eoa, smartAccountAddress } = useUser();
+  const { smartAccountClient, authMode, primaryAddress } = useUser();
   const chainId = DEFAULT_CHAIN_ID;
 
   // Base lists via React Query
   const { data: actionsData = [], isLoading: actionsLoading } = useActions(chainId);
   const { data: gardensData = [], isLoading: gardensLoading } = useGardens(chainId);
 
-  // Get current user address based on auth mode (normalized for comparisons)
+  // Normalize user address for comparisons (primaryAddress is already resolved by authMode)
   const userAddress = useMemo(() => {
-    if (authMode === "wallet") return normalizeAddress(eoa?.address);
-    if (authMode === "passkey") return normalizeAddress(smartAccountAddress);
-    // Fallback to whatever is available
-    return normalizeAddress(smartAccountAddress || eoa?.address);
-  }, [authMode, eoa?.address, smartAccountAddress]);
+    return normalizeAddress(primaryAddress);
+  }, [primaryAddress]);
 
   // Filter gardens to only show ones user is a member of
   const userGardens = useMemo(() => {

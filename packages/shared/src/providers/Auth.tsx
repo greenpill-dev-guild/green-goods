@@ -4,11 +4,17 @@
  * Single authentication provider using XState for state management
  * and Pimlico passkey server for credential storage.
  *
+ * Design Principles:
+ * 1. React only REPORTS events to the machine (no filtering)
+ * 2. The state machine DECIDES what to do with events
+ * 3. All auth logic lives in the machine, not in React effects
+ *
  * Features:
  * - XState-based state management for predictable auth flows
  * - Pimlico passkey server integration (no localStorage for credentials)
  * - Automatic session restoration on mount
  * - Wallet fallback for admin/operator users
+ * - External wallet tracking (available for switching)
  *
  * Usage:
  * ```tsx
@@ -27,7 +33,7 @@
 import { disconnect } from "@wagmi/core";
 import { useSelector } from "@xstate/react";
 import type { SmartAccountClient } from "permissionless";
-import React, { createContext, useCallback, useContext, useEffect, useMemo } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef } from "react";
 import type { Hex } from "viem";
 import type { P256Credential } from "viem/account-abstraction";
 import { useAccount, useConfig } from "wagmi";
@@ -62,9 +68,13 @@ export interface AuthContextType {
   userName: string | null;
   hasStoredCredential: boolean;
 
-  // Wallet state
+  // Wallet state (when wallet is the primary auth)
   walletAddress: Hex | null;
   eoaAddress: Hex | undefined;
+
+  // External wallet state (always available, even in passkey mode)
+  externalWalletConnected: boolean;
+  externalWalletAddress: Hex | null;
 
   // Actions - Primary flow
   createAccount: (userName?: string) => Promise<void>;
@@ -72,9 +82,14 @@ export interface AuthContextType {
   loginWithWallet: () => void;
   signOut: () => Promise<void>;
 
+  // Actions - Switching auth methods
+  switchToWallet: () => void;
+  switchToPasskey: (userName?: string) => void;
+
   // Actions - Additional
   claimENS: (name: string) => void;
   retry: () => void;
+  dismissError: () => void;
 
   // Legacy aliases (kept for backwards compatibility)
   signInWithPasskey: (userName?: string) => Promise<void>;
@@ -113,7 +128,7 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const wagmiConfig = useConfig();
-  const { address: walletAddress, isConnected, isConnecting } = useAccount();
+  const { address: wagmiWalletAddress, isConnected, isConnecting } = useAccount();
 
   // Get the singleton auth actor (safe for SSR)
   const actor = typeof window !== "undefined" ? getAuthActor() : null;
@@ -121,30 +136,44 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Use XState selectors for state
   const snapshot = useSelector(actor as AuthActor, (s) => s);
 
+  // Track previous wallet state to detect changes
+  const prevWalletState = useRef<{ isConnected: boolean; address: Hex | undefined }>({
+    isConnected: false,
+    address: undefined,
+  });
+
   // ============================================================
   // WALLET EVENT SYNC
   // ============================================================
-  // Sync wallet connection events to XState machine
+  // React REPORTS wallet events - the machine DECIDES what to do
+  // This is the key principle: no filtering, just reporting
   useEffect(() => {
     if (!actor) return;
 
-    // When wallet connects, notify the machine
-    if (isConnected && walletAddress && !isConnecting) {
-      const currentState = actor.getSnapshot();
-      // Only dispatch if we're in a state that expects wallet connection
-      if (currentState.matches("wallet_connecting") || currentState.matches("unauthenticated")) {
-        actor.send({ type: "WALLET_CONNECTED", address: walletAddress as Hex });
+    const prev = prevWalletState.current;
+    const currentAddress = wagmiWalletAddress as Hex | undefined;
+
+    // Detect wallet connection (wasn't connected, now is)
+    if (isConnected && currentAddress && !isConnecting) {
+      if (!prev.isConnected || prev.address !== currentAddress) {
+        // Report wallet connection to machine - it decides what to do
+        console.debug("[AuthProvider] Reporting EXTERNAL_WALLET_CONNECTED:", currentAddress);
+        actor.send({ type: "EXTERNAL_WALLET_CONNECTED", address: currentAddress });
       }
     }
 
-    // When wallet disconnects, notify the machine
-    if (!isConnected && !isConnecting) {
-      const currentState = actor.getSnapshot();
-      if (currentState.matches({ authenticated: "wallet" })) {
-        actor.send({ type: "WALLET_DISCONNECTED" });
-      }
+    // Detect wallet disconnection (was connected, now isn't)
+    if (!isConnected && !isConnecting && prev.isConnected) {
+      console.debug("[AuthProvider] Reporting EXTERNAL_WALLET_DISCONNECTED");
+      actor.send({ type: "EXTERNAL_WALLET_DISCONNECTED" });
     }
-  }, [actor, isConnected, isConnecting, walletAddress]);
+
+    // Update previous state
+    prevWalletState.current = {
+      isConnected: isConnected && !isConnecting,
+      address: currentAddress,
+    };
+  }, [actor, isConnected, isConnecting, wagmiWalletAddress]);
 
   // ============================================================
   // HELPER: Disconnect wallet
@@ -165,7 +194,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     async (userName?: string) => {
       if (!actor) return;
 
-      // Disconnect wallet if connected
+      // Disconnect wallet if connected (starting fresh with passkey)
       if (isConnected) {
         await disconnectWallet();
       }
@@ -184,7 +213,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     async (userName?: string) => {
       if (!actor) return;
 
-      // Disconnect wallet if connected
+      // Disconnect wallet if connected (switching to passkey)
       if (isConnected) {
         await disconnectWallet();
       }
@@ -204,13 +233,34 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const loginWithWallet = useCallback(() => {
     if (!actor) return;
 
-    // Send event to machine
+    // Send event to machine - it will check if external wallet is connected
     actor.send({ type: "LOGIN_WALLET" });
     saveAuthModeToStorage("wallet");
 
-    // Open wallet modal
-    appKit.open();
+    // If no external wallet connected, open the modal
+    // The machine will transition to wallet_connecting state
+    if (!isConnected) {
+      appKit.open();
+    }
+  }, [actor, isConnected]);
+
+  const switchToWallet = useCallback(() => {
+    if (!actor) return;
+    actor.send({ type: "SWITCH_TO_WALLET" });
+    saveAuthModeToStorage("wallet");
   }, [actor]);
+
+  const switchToPasskey = useCallback(
+    (userName?: string) => {
+      if (!actor) return;
+      const storedUsername =
+        typeof window !== "undefined" ? localStorage.getItem("greengoods_username") : null;
+      const finalUserName = userName || storedUsername || "user";
+      actor.send({ type: "SWITCH_TO_PASSKEY", userName: finalUserName });
+      saveAuthModeToStorage("passkey");
+    },
+    [actor]
+  );
 
   const signOut = useCallback(async () => {
     if (!actor) return;
@@ -242,6 +292,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     actor.send({ type: "RETRY" });
   }, [actor]);
 
+  const dismissError = useCallback(() => {
+    if (!actor) return;
+    actor.send({ type: "DISMISS_ERROR" });
+  }, [actor]);
+
   const clearPasskey = useCallback(() => {
     // Clear stored username (credentials are on Pimlico server)
     clearStoredUsername();
@@ -267,6 +322,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         smartAccountClient: null,
         userName: null,
         hasStoredCredential: false,
+        walletAddress: null,
+        externalWalletConnected: false,
+        externalWalletAddress: null,
       };
     }
 
@@ -302,6 +360,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       smartAccountClient: snapshot.context.smartAccountClient,
       userName: snapshot.context.userName,
       hasStoredCredential: storedCredential,
+      // Wallet address is only set when wallet is the PRIMARY auth
+      walletAddress: snapshot.context.walletAddress,
+      // External wallet state (always available)
+      externalWalletConnected: snapshot.context.externalWalletConnected,
+      externalWalletAddress: snapshot.context.externalWalletAddress,
     };
   }, [snapshot, isConnecting]);
 
@@ -325,11 +388,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       userName: computedValues.userName,
       hasStoredCredential: computedValues.hasStoredCredential,
 
-      // Wallet state
-      walletAddress:
-        computedValues.authMode === "wallet" && isConnected ? (walletAddress as Hex) : null,
-      eoaAddress:
-        computedValues.authMode === "wallet" && isConnected ? (walletAddress as Hex) : undefined,
+      // Wallet state (when wallet is PRIMARY auth)
+      walletAddress: computedValues.walletAddress,
+      eoaAddress: computedValues.walletAddress ?? undefined,
+
+      // External wallet state (always available)
+      externalWalletConnected: computedValues.externalWalletConnected,
+      externalWalletAddress: computedValues.externalWalletAddress,
 
       // Actions - Primary flow
       createAccount,
@@ -337,9 +402,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       loginWithWallet,
       signOut,
 
+      // Actions - Switching
+      switchToWallet,
+      switchToPasskey,
+
       // Actions - Additional
       claimENS,
       retry,
+      dismissError,
 
       // Legacy aliases
       signInWithPasskey: loginWithPasskey,
@@ -350,14 +420,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }),
     [
       computedValues,
-      isConnected,
-      walletAddress,
       createAccount,
       loginWithPasskey,
       loginWithWallet,
       signOut,
+      switchToWallet,
+      switchToPasskey,
       claimENS,
       retry,
+      dismissError,
       clearPasskey,
       disconnectWallet,
     ]
