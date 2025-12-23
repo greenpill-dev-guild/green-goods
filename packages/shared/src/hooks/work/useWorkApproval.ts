@@ -136,7 +136,9 @@ export function useWorkApproval() {
       return offlineTxHash;
     },
     onMutate: async (variables) => {
-      if (DEBUG_ENABLED && variables) {
+      if (!variables) return;
+
+      if (DEBUG_ENABLED) {
         debugLog("[useWorkApproval] Submitting approval mutation", {
           authMode,
           chainId,
@@ -145,81 +147,52 @@ export function useWorkApproval() {
         });
       }
 
-      // Optimistic update for wallet mode
-      if (authMode === "wallet" && variables) {
-        const { draft, work } = variables;
+      const { draft, work } = variables;
 
-        // Cancel outgoing refetches to avoid race conditions
-        await queryClient.cancelQueries({
-          queryKey: queryKeys.works.merged(work.gardenAddress, chainId),
+      // Cancel outgoing refetches for ALL modes to avoid race conditions
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.works.merged(work.gardenAddress, chainId),
+      });
+
+      // Snapshot current data for rollback
+      const previousMergedWorks = queryClient.getQueryData(
+        queryKeys.works.merged(work.gardenAddress, chainId)
+      );
+      const previousOnlineWorks = queryClient.getQueryData(
+        queryKeys.works.online(work.gardenAddress, chainId)
+      );
+
+      // Optimistic update for ALL modes (not just wallet)
+      queryClient.setQueryData(
+        queryKeys.works.merged(work.gardenAddress, chainId),
+        (old: Work[] = []) =>
+          old.map((w) =>
+            w.id === draft.workUID
+              ? { ...w, status: draft.approved ? ("approved" as const) : ("rejected" as const) }
+              : w
+          )
+      );
+
+      queryClient.setQueryData(
+        queryKeys.works.online(work.gardenAddress, chainId),
+        (old: Work[] = []) =>
+          old.map((w) =>
+            w.id === draft.workUID
+              ? { ...w, status: draft.approved ? ("approved" as const) : ("rejected" as const) }
+              : w
+          )
+      );
+
+      if (DEBUG_ENABLED) {
+        debugLog("[useWorkApproval] Applied optimistic update", {
+          authMode,
+          workUID: draft.workUID,
+          newStatus: draft.approved ? "approved" : "rejected",
         });
-
-        // Snapshot current data for rollback
-        const previousMergedWorks = queryClient.getQueryData(
-          queryKeys.works.merged(work.gardenAddress, chainId)
-        );
-        const previousOnlineWorks = queryClient.getQueryData(
-          queryKeys.works.online(work.gardenAddress, chainId)
-        );
-
-        // Optimistically update work status in cache
-        queryClient.setQueryData(
-          queryKeys.works.merged(work.gardenAddress, chainId),
-          (old: Work[] = []) =>
-            old.map((w) =>
-              w.id === draft.workUID
-                ? { ...w, status: draft.approved ? ("approved" as const) : ("rejected" as const) }
-                : w
-            )
-        );
-
-        queryClient.setQueryData(
-          queryKeys.works.online(work.gardenAddress, chainId),
-          (old: Work[] = []) =>
-            old.map((w) =>
-              w.id === draft.workUID
-                ? { ...w, status: draft.approved ? ("approved" as const) : ("rejected" as const) }
-                : w
-            )
-        );
-
-        if (DEBUG_ENABLED) {
-          debugLog("[useWorkApproval] Applied optimistic update for wallet mode", {
-            workUID: draft.workUID,
-            newStatus: draft.approved ? "approved" : "rejected",
-          });
-        }
-
-        // Return context for rollback on error
-        const context = { previousMergedWorks, previousOnlineWorks };
-
-        // Show loading toast
-        const actionLabel = variables?.draft.approved ? "approval" : "decision";
-        const message =
-          authMode === "wallet"
-            ? "Waiting for wallet confirmation..."
-            : !navigator.onLine
-              ? `Saving ${actionLabel} offline...`
-              : `Submitting ${actionLabel}...`;
-        const title =
-          authMode === "wallet"
-            ? "Confirm in your wallet"
-            : !navigator.onLine
-              ? "Working offline"
-              : "Submitting approval";
-        toastService.loading({
-          id: "approval-submit",
-          title,
-          message,
-          context: authMode === "wallet" ? "wallet confirmation" : "approval submission",
-          suppressLogging: true,
-        });
-
-        return context;
       }
 
-      // Passkey mode: just show toast (no optimistic update needed, job queue handles it)
-      const actionLabel = variables?.draft.approved ? "approval" : "decision";
+      // Show loading toast
+      const actionLabel = draft.approved ? "approval" : "decision";
       const message =
         authMode === "wallet"
           ? "Waiting for wallet confirmation..."
@@ -239,6 +212,9 @@ export function useWorkApproval() {
         context: authMode === "wallet" ? "wallet confirmation" : "approval submission",
         suppressLogging: true,
       });
+
+      // Return context for rollback on error
+      return { previousMergedWorks, previousOnlineWorks };
     },
     onSuccess: (txHash, variables) => {
       const isApproval = variables?.draft.approved ?? false;
@@ -269,6 +245,23 @@ export function useWorkApproval() {
         context: authMode === "wallet" ? "wallet confirmation" : "approval submission",
         suppressLogging: true,
       });
+
+      // Invalidate work queries to refetch from EAS after a delay
+      // (EAS indexer has 2-6 second lag)
+      if (variables) {
+        setTimeout(() => {
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.works.online(variables.work.gardenAddress, chainId),
+          });
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.works.merged(variables.work.gardenAddress, chainId),
+          });
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.workApprovals.all,
+          });
+        }, 3000); // 3 second delay for indexer
+      }
+
       if (DEBUG_ENABLED) {
         debugLog("[useWorkApproval] Approval submission successful", {
           authMode,
@@ -280,8 +273,8 @@ export function useWorkApproval() {
       }
     },
     onError: (error: unknown, variables, context) => {
-      // Rollback optimistic updates for wallet mode
-      if (authMode === "wallet" && context && variables) {
+      // Rollback optimistic updates for all modes
+      if (context && variables) {
         const { previousMergedWorks, previousOnlineWorks } = context as {
           previousMergedWorks?: Work[];
           previousOnlineWorks?: Work[];
@@ -303,6 +296,7 @@ export function useWorkApproval() {
 
         if (DEBUG_ENABLED) {
           debugLog("[useWorkApproval] Rolled back optimistic update due to error", {
+            authMode,
             workUID: variables.draft.workUID,
           });
         }

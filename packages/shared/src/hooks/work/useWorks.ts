@@ -60,6 +60,13 @@ export function useWorks(gardenId: string) {
       const safeOnlineWorks = onlineWorks ?? [];
       const safeOfflineJobs = offlineJobs ?? [];
 
+      // Get cached status map to preserve optimistic updates
+      // This prevents resetting status to "pending" when merging new data
+      const cachedWorks = queryClient.getQueryData<Work[]>(
+        queryKeys.works.merged(gardenId, chainId)
+      );
+      const cachedStatusMap = new Map((cachedWorks ?? []).map((w) => [w.id, w.status]));
+
       const offlineWorks = await Promise.all(
         safeOfflineJobs.map(async (job) => {
           const work = jobToWork(job as Job<WorkJobPayload>);
@@ -74,7 +81,10 @@ export function useWorks(gardenId: string) {
 
       const workMap = new Map<string, Work>();
       safeOnlineWorks.forEach((work) => {
-        workMap.set(work.id, { ...work, status: "pending" as const });
+        // Preserve cached status if available (from optimistic updates), otherwise default to "pending"
+        // Note: WorkCard from EAS doesn't have status - it's derived from work approvals
+        const status = cachedStatusMap.get(work.id) ?? ("pending" as const);
+        workMap.set(work.id, { ...work, status });
       });
       offlineWorks.forEach((work) => {
         const isDuplicate = safeOnlineWorks.some((onlineWork) => {
