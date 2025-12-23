@@ -185,7 +185,9 @@ describe("stores/useUIStore", () => {
     useUIStore.setState({
       isOfflineBannerVisible: false,
       isWorkDashboardOpen: false,
+      isGardenFilterOpen: false,
       sidebarOpen: false,
+      debugMode: false,
     });
   });
 
@@ -259,6 +261,53 @@ describe("stores/useUIStore", () => {
       });
 
       expect(result.current.sidebarOpen).toBe(false);
+    });
+  });
+
+  describe("debug mode", () => {
+    it("has debug mode disabled by default", () => {
+      const { result } = renderHook(() => useUIStore());
+
+      expect(result.current.debugMode).toBe(false);
+    });
+
+    it("sets debug mode on", () => {
+      const { result } = renderHook(() => useUIStore());
+
+      act(() => {
+        result.current.setDebugMode(true);
+      });
+
+      expect(result.current.debugMode).toBe(true);
+    });
+
+    it("sets debug mode off", () => {
+      const { result } = renderHook(() => useUIStore());
+
+      act(() => {
+        result.current.setDebugMode(true);
+        result.current.setDebugMode(false);
+      });
+
+      expect(result.current.debugMode).toBe(false);
+    });
+
+    it("toggles debug mode", () => {
+      const { result } = renderHook(() => useUIStore());
+
+      expect(result.current.debugMode).toBe(false);
+
+      act(() => {
+        result.current.toggleDebugMode();
+      });
+
+      expect(result.current.debugMode).toBe(true);
+
+      act(() => {
+        result.current.toggleDebugMode();
+      });
+
+      expect(result.current.debugMode).toBe(false);
     });
   });
 });

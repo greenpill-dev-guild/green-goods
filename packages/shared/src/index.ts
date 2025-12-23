@@ -81,6 +81,7 @@ export {
 // ============================================================================
 export type {
   CreateAssessmentForm,
+  DebugModeState,
   DeploymentRegistryPermissions,
   EnhancedWorkApproval,
   GardenerProfile,
@@ -116,6 +117,7 @@ export {
   useCreateAssessmentWorkflow,
   useCreateGardenWorkflow,
   useCurrentChain,
+  useDebugMode,
   useDeploymentRegistry,
   useEASConfig,
   useEnsAddress,

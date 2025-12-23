@@ -10,6 +10,8 @@ export { useActionOperations } from "./action/useActionOperations";
 // APP
 // ============================================================================
 export { useBrowserNavigation } from "./app/useBrowserNavigation";
+export type { DebugModeState } from "./app/useDebugMode";
+export { useDebugMode } from "./app/useDebugMode";
 export { useMerged } from "./app/useMerged";
 export { useNavigateToTop } from "./app/useNavigateToTop";
 export { useOffline } from "./app/useOffline";
