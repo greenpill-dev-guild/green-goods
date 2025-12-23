@@ -11,9 +11,16 @@
  * Common contract error signatures and their human-readable messages
  */
 const ERROR_SIGNATURES: Record<string, { name: string; message: string; action?: string }> = {
-  // GardenAccount errors
+  // WorkResolver errors - membership check
+  // Old selector (NotGardenerAccount) kept for backward compatibility with unupgraded contracts
   "0x8cb4ae3b": {
-    name: "NotGardenerAccount",
+    name: "NotGardenMember",
+    message: "You are not a member of this garden",
+    action: "Please join the garden before submitting work",
+  },
+  // New selector for NotGardenMember() - keccak256("NotGardenMember()")[0:4]
+  "0x1648fd01": {
+    name: "NotGardenMember",
     message: "You are not a member of this garden",
     action: "Please join the garden before submitting work",
   },
@@ -226,11 +233,20 @@ export function parseContractError(error: unknown): ParsedContractError {
 }
 
 /**
- * Check if an error is a "user not a gardener" error
+ * Check if an error is a "not a garden member" error
+ * (user is neither a gardener nor an operator of the garden)
+ */
+export function isNotGardenMemberError(error: unknown): boolean {
+  const parsed = parseContractError(error);
+  // Check for both old (NotGardenerAccount) and new (NotGardenMember) error names
+  return parsed.name === "NotGardenMember" || parsed.name === "NotGardenerAccount";
+}
+
+/**
+ * @deprecated Use isNotGardenMemberError instead
  */
 export function isNotGardenerError(error: unknown): boolean {
-  const parsed = parseContractError(error);
-  return parsed.name === "NotGardenerAccount";
+  return isNotGardenMemberError(error);
 }
 
 /**

@@ -11,8 +11,8 @@ import {IGardenAccessControl} from "../interfaces/IGardenAccessControl.sol";
 import {ActionRegistry} from "../registries/Action.sol";
 
 error NotActiveAction();
-// ERROR MESSAGES
-error NotGardenerAccount();
+/// @notice Thrown when attester is not a member (gardener or operator) of the garden
+error NotGardenMember();
 error NotInActionRegistry();
 
 /// @title WorkResolver
@@ -54,7 +54,7 @@ contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
     /// @dev Validates attester identity and action validity before allowing work submission
     ///
     /// **Validation Order (Security Critical):**
-    /// 1. IDENTITY: Verify attester is a gardener of the target garden
+    /// 1. IDENTITY: Verify attester is a gardener OR operator of the target garden
     /// 2. ACTION: Verify action exists in registry
     /// 3. TIMING: Verify action is still active (not expired)
     ///
@@ -64,11 +64,14 @@ contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
         WorkSchema memory schema = abi.decode(attestation.data, (WorkSchema));
         IGardenAccessControl accessControl = IGardenAccessControl(attestation.recipient);
 
-        // IDENTITY CHECK: Verify gardener status FIRST
-        // This is the primary security gate - only gardeners can submit work
+        // IDENTITY CHECK: Verify gardener OR operator status FIRST
+        // Both roles can submit work - explicit policy for Hats Protocol compatibility
         // Uses IGardenAccessControl interface for swappable access control backends
-        if (!accessControl.isGardener(attestation.attester)) {
-            revert NotGardenerAccount();
+        bool isGardener = accessControl.isGardener(attestation.attester);
+        bool isOperator = accessControl.isOperator(attestation.attester);
+
+        if (!isGardener && !isOperator) {
+            revert NotGardenMember();
         }
 
         // ACTION VALIDATION: Verify action exists in registry

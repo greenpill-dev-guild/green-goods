@@ -19,6 +19,8 @@ export const USER_FRIENDLY_ERRORS: Record<string, string> = {
   unauthorized: "You're not authorized to perform this action",
   "not a gardener": "You're not a member of this garden. Please join from your profile.",
   notgardener: "You're not a member of this garden. Please join from your profile.",
+  "not a member": "You're not a member of this garden. Please join from your profile.",
+  notgardenmember: "You're not a member of this garden. Please join from your profile.",
 
   // Network and connectivity errors
   network: "Network connection error - your work is saved offline",

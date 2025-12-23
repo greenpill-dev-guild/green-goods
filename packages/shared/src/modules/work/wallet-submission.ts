@@ -120,8 +120,13 @@ export async function submitWorkDirectly(
       // Check for common simulation failures and provide specific messages
       const errMessage = err.message?.toLowerCase() || "";
 
-      // Not a gardener in the garden
-      if (errMessage.includes("notgardener") || errMessage.includes("not a gardener")) {
+      // Not a member of the garden (neither gardener nor operator)
+      if (
+        errMessage.includes("notgardener") ||
+        errMessage.includes("not a gardener") ||
+        errMessage.includes("notgardenmember") ||
+        errMessage.includes("not a member")
+      ) {
         throw new Error(
           "You're not a member of this garden. Please join the garden first from your profile."
         );
