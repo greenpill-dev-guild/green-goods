@@ -5,6 +5,8 @@ import { useState, useEffect, useRef } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { type LoadingState, Splash } from "@/components/Layout";
 
+type AuthFlow = "none" | "register" | "login";
+
 export function Login() {
   const location = useLocation();
   const {
@@ -16,14 +18,15 @@ export function Login() {
     isReady,
     smartAccountAddress,
     hasStoredCredential,
+    error: authError,
   } = useAuth();
 
   const [loadingState, setLoadingState] = useState<LoadingState | null>(null);
   const [loadingMessage, setLoadingMessage] = useState<string | undefined>(undefined);
   const [loginError, setLoginError] = useState<string | null>(null);
 
-  // Username state for new account creation
-  const [showUsernameInput, setShowUsernameInput] = useState(false);
+  // Auth flow state - replaces showUsernameInput and isRecoveryMode
+  const [activeFlow, setActiveFlow] = useState<AuthFlow>("none");
   const [username, setUsername] = useState("");
   const [usernameError, setUsernameError] = useState<string | null>(null);
 
@@ -36,7 +39,7 @@ export function Login() {
   // Check if we're on a nested route (like /login/recover)
   const isNestedRoute = location.pathname !== "/login";
 
-  // Check if user came from explicit logout - ignore redirectTo in that case
+  // Check if user came from explicit logout - ignore redirectTo and stored credentials
   const locationState = location.state as { fromLogout?: boolean } | null;
   const fromLogout = locationState?.fromLogout === true;
 
@@ -46,17 +49,18 @@ export function Login() {
     ? "/home"
     : new URLSearchParams(location.search).get("redirectTo") || "/home";
 
-  // Check on mount if user has existing credentials
-  const hasExistingAccount = hasStoredCredential || hasStoredUsername();
-  const storedUsername = getStoredUsername();
+  // Check if user has existing credentials
+  // When coming from logout, treat as new user (show all 3 options)
+  const hasExistingAccount = fromLogout ? false : hasStoredCredential || hasStoredUsername();
+  const storedUsername = fromLogout ? null : getStoredUsername();
 
-  // Reset username input when returning to login screen
+  // Reset username input when returning to initial state
   useEffect(() => {
-    if (!showUsernameInput) {
+    if (activeFlow === "none") {
       setUsername("");
       setUsernameError(null);
     }
-  }, [showUsernameInput]);
+  }, [activeFlow]);
 
   // Handle post-authentication flow when isAuthenticated becomes true
   useEffect(() => {
@@ -72,6 +76,16 @@ export function Login() {
       hasRunPostAuth.current = false;
     }
   }, [isAuthenticating]);
+
+  // Clear stuck loading state on auth errors
+  useEffect(() => {
+    if (pendingPostAuth && authError && !isAuthenticating && !isJoiningGarden) {
+      setPendingPostAuth(false);
+      setLoadingState(null);
+      setLoadingMessage(undefined);
+      setLoginError(getFriendlyErrorMessage(authError));
+    }
+  }, [pendingPostAuth, authError, isAuthenticating, isJoiningGarden]);
 
   // Validate username
   const validateUsername = (name: string): boolean => {
@@ -95,7 +109,36 @@ export function Login() {
     return true;
   };
 
-  // Handle login for existing users
+  // ============================================================================
+  // FLOW HANDLERS
+  // ============================================================================
+
+  // 1. Get Started -> Shows registration flow (new users)
+  const handleGetStarted = () => {
+    setLoginError(null);
+    setActiveFlow("register");
+  };
+
+  // 2. Login -> Shows login flow (returning users without stored username)
+  const handleLoginFlow = () => {
+    setLoginError(null);
+    setActiveFlow("login");
+  };
+
+  // 3. Wallet Login -> Opens wallet modal
+  const handleWalletLogin = () => {
+    loginWithWallet?.();
+  };
+
+  // 4. Cancel -> Returns to initial state
+  const handleCancel = () => {
+    setActiveFlow("none");
+    setUsername("");
+    setUsernameError(null);
+    setLoginError(null);
+  };
+
+  // Handle login for existing users (with stored username)
   const handleExistingUserLogin = async () => {
     setLoginError(null);
     setLoadingMessage("Authenticating...");
@@ -115,15 +158,9 @@ export function Login() {
     }
   };
 
-  // Handle account creation for new users
+  // Handle account creation for new users (register flow)
   const handleCreateAccount = async () => {
-    if (!showUsernameInput) {
-      // First click - show username input
-      setShowUsernameInput(true);
-      return;
-    }
-
-    // Second click - validate and create account
+    // Validate username before creating
     if (!validateUsername(username)) {
       return;
     }
@@ -145,12 +182,39 @@ export function Login() {
     }
   };
 
-  // Main login handler - dispatches to appropriate flow
-  const handlePasskeyLogin = async () => {
-    if (hasExistingAccount) {
+  // Handle login for returning users (login flow - entering username)
+  const handleRecoveryLogin = async () => {
+    // Validate username before authenticating
+    if (!validateUsername(username)) {
+      return;
+    }
+
+    setLoginError(null);
+    setLoadingMessage("Authenticating...");
+    try {
+      setLoadingState("welcome");
+      setPendingPostAuth(true);
+
+      if (loginWithPasskey) {
+        await loginWithPasskey(username.trim());
+      }
+
+      // Post-auth flow will be triggered by useEffect when isAuthenticated becomes true
+    } catch (err) {
+      setPendingPostAuth(false);
+      handleAuthError(err);
+    }
+  };
+
+  // Main submit handler - dispatches based on state
+  const handleSubmit = async () => {
+    if (hasExistingAccount && activeFlow === "none") {
+      // Auto-login with stored username
       await handleExistingUserLogin();
-    } else {
+    } else if (activeFlow === "register") {
       await handleCreateAccount();
+    } else if (activeFlow === "login") {
+      await handleRecoveryLogin();
     }
   };
 
@@ -248,7 +312,7 @@ export function Login() {
 
       // No passkey found on server
       if (message.includes("no passkey found") || message.includes("no credentials")) {
-        return "No account found. Please create a new account or use 'Login with wallet'.";
+        return "No account found with this username. Please check your username or create a new account.";
       }
 
       // Generic passkey errors
@@ -261,16 +325,50 @@ export function Login() {
     return "Something went wrong. Please try again or use 'Login with wallet'.";
   };
 
-  const handleWalletLogin = () => {
-    loginWithWallet?.();
+  // ============================================================================
+  // RENDER HELPERS
+  // ============================================================================
+
+  // Username input shown when in register or login flow (and no stored account)
+  const shouldShowUsernameInput = activeFlow !== "none" && !hasExistingAccount;
+
+  // Determine button label based on state
+  const getButtonLabel = () => {
+    // When in username input mode
+    if (shouldShowUsernameInput) {
+      return activeFlow === "register" ? "Create Account" : "Login";
+    }
+    // When user has existing account (auto-login)
+    if (hasExistingAccount && activeFlow === "none") {
+      return `Login${storedUsername ? ` as ${storedUsername}` : ""}`;
+    }
+    // Initial state for new users
+    return "Get Started";
   };
 
-  // Cancel username input
-  const handleCancelUsername = () => {
-    setShowUsernameInput(false);
-    setUsername("");
-    setUsernameError(null);
-    setLoginError(null);
+  // Determine username hint based on flow
+  const getUsernameHint = () => {
+    if (activeFlow === "register") {
+      return "Choose a username for your new account";
+    }
+    if (activeFlow === "login") {
+      return "Enter the username you registered with";
+    }
+    return "";
+  };
+
+  // Determine primary action handler
+  const getPrimaryAction = () => {
+    // Existing user with stored credentials - auto-login
+    if (hasExistingAccount && activeFlow === "none") {
+      return handleExistingUserLogin;
+    }
+    // In username input mode - submit the form
+    if (activeFlow !== "none") {
+      return handleSubmit;
+    }
+    // New user, initial state - show registration flow
+    return handleGetStarted;
   };
 
   // If on a nested route (like /login/recover), render the child route
@@ -294,30 +392,19 @@ export function Login() {
     return <Splash loadingState={loadingState} message={loadingMessage} />;
   }
 
-  // Determine button label based on state
-  const getButtonLabel = () => {
-    if (showUsernameInput) {
-      return "Create Account";
-    }
-    if (hasExistingAccount) {
-      return `Login${storedUsername ? ` as ${storedUsername}` : ""}`;
-    }
-    return "Get Started";
-  };
-
   // Use local error state instead of provider error for better control
   const errorMessage = !isAuthenticating && !isJoiningGarden ? loginError || usernameError : null;
 
   // Main splash screen with login button
   return (
     <Splash
-      login={handlePasskeyLogin}
+      login={getPrimaryAction()}
       isLoggingIn={isAuthenticating || isJoiningGarden}
       buttonLabel={getButtonLabel()}
       errorMessage={errorMessage}
-      // Username input for new account creation
+      // Username input for registration or login flow
       usernameInput={
-        showUsernameInput && !hasExistingAccount
+        shouldShowUsernameInput
           ? {
               value: username,
               onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -326,17 +413,26 @@ export function Login() {
                   validateUsername(e.target.value);
                 }
               },
-              placeholder: "Choose a username",
-              onCancel: handleCancelUsername,
+              placeholder: activeFlow === "register" ? "Choose a username" : "Enter your username",
+              hint: getUsernameHint(),
+              onCancel: handleCancel,
             }
           : undefined
       }
+      // Secondary action: Cancel (when in flow) or Login (when showing initial buttons)
       secondaryAction={
         !isAuthenticating && !isJoiningGarden
-          ? {
-              label: showUsernameInput ? "Cancel" : "Login with wallet",
-              onSelect: showUsernameInput ? handleCancelUsername : handleWalletLogin,
-            }
+          ? activeFlow !== "none"
+            ? { label: "Cancel", onSelect: handleCancel }
+            : !hasExistingAccount
+              ? { label: "Login", onSelect: handleLoginFlow }
+              : undefined
+          : undefined
+      }
+      // Tertiary action: Login with wallet (only on initial screen)
+      tertiaryAction={
+        activeFlow === "none"
+          ? { label: "Login with wallet", onClick: handleWalletLogin }
           : undefined
       }
     />

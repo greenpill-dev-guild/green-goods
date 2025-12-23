@@ -58,6 +58,8 @@ interface UseUserReturn {
   smartAccountClient: SmartAccountClient | null;
   /** Current authentication mode */
   authMode: "wallet" | "passkey" | null;
+  /** Passkey username (only set when authMode === "passkey") */
+  userName: string | null;
   /** ENS name for the primary address */
   ensName: string | null;
   /** External wallet connected (available for switching) */
@@ -76,9 +78,10 @@ export function useUser(): UseUserReturn {
   const isReady = auth.isReady ?? false;
   const isAuthenticated = auth.isAuthenticated ?? false;
 
-  // Get addresses from auth context
+  // Get addresses and username from auth context
   const smartAccountAddress = auth.smartAccountAddress ?? null;
   const walletAddress = auth.walletAddress ?? null;
+  const userName = auth.userName ?? null;
   const externalWalletConnected = auth.externalWalletConnected ?? false;
   const externalWalletAddress = auth.externalWalletAddress ?? null;
 
@@ -128,6 +131,7 @@ export function useUser(): UseUserReturn {
     smartAccountAddress,
     smartAccountClient,
     authMode,
+    userName,
     ensName: ensName ?? null,
     externalWalletConnected,
     externalWalletAddress,

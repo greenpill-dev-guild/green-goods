@@ -178,8 +178,8 @@ export const restoreSessionService = fromPromise<RestoreSessionResult | null, Re
       };
     } catch (error) {
       console.error("[AuthServices] Failed to restore session from Pimlico:", error);
-      // Clear username if server lookup failed
-      clearStoredUsername();
+      // Don't clear username on network errors - user still has account
+      // Only clear if we successfully contacted server but found no credentials (handled above)
       return null;
     }
   }

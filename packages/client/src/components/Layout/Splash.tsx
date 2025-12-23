@@ -14,13 +14,15 @@ interface SecondaryActionConfig {
 
 interface TertiaryActionConfig {
   label: string;
-  href: string;
+  href?: string;
+  onClick?: () => void;
 }
 
 interface UsernameInputConfig {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   placeholder?: string;
+  hint?: string;
   onCancel?: () => void;
 }
 
@@ -115,7 +117,7 @@ export const Splash: React.FC<SplashProps> = ({
               showUsernameInput ? "opacity-100" : "opacity-0"
             }`}
           >
-            This username identifies your passkey on our server
+            {usernameInput?.hint || "This username identifies your passkey on our server"}
           </p>
         </div>
 
@@ -202,18 +204,35 @@ export const Splash: React.FC<SplashProps> = ({
         ───────────────────────────────────────────────────────────────────── */}
         <div className="h-5 flex items-center justify-center mt-2">
           {tertiaryAction ? (
-            <Link
-              to={tertiaryAction.href}
-              className={`text-xs underline transition-all duration-200 ${
-                !loadingState && !isLoggingIn
-                  ? "text-gray-500 hover:text-green-600 opacity-100"
-                  : "text-gray-400 opacity-0 pointer-events-none"
-              }`}
-              tabIndex={!loadingState && !isLoggingIn ? 0 : -1}
-              aria-hidden={!!loadingState || isLoggingIn}
-            >
-              {tertiaryAction.label}
-            </Link>
+            tertiaryAction.onClick ? (
+              <button
+                type="button"
+                onClick={tertiaryAction.onClick}
+                className={`text-xs underline transition-all duration-200 ${
+                  !loadingState && !isLoggingIn
+                    ? "text-gray-500 hover:text-green-600 opacity-100"
+                    : "text-gray-400 opacity-0 pointer-events-none"
+                }`}
+                tabIndex={!loadingState && !isLoggingIn ? 0 : -1}
+                aria-hidden={!!loadingState || isLoggingIn}
+                disabled={!!loadingState || isLoggingIn}
+              >
+                {tertiaryAction.label}
+              </button>
+            ) : (
+              <Link
+                to={tertiaryAction.href || "#"}
+                className={`text-xs underline transition-all duration-200 ${
+                  !loadingState && !isLoggingIn
+                    ? "text-gray-500 hover:text-green-600 opacity-100"
+                    : "text-gray-400 opacity-0 pointer-events-none"
+                }`}
+                tabIndex={!loadingState && !isLoggingIn ? 0 : -1}
+                aria-hidden={!!loadingState || isLoggingIn}
+              >
+                {tertiaryAction.label}
+              </Link>
+            )
           ) : (
             <span className="text-xs text-transparent">{"\u00A0"}</span>
           )}

@@ -159,6 +159,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // Report wallet connection to machine - it decides what to do
         console.debug("[AuthProvider] Reporting EXTERNAL_WALLET_CONNECTED:", currentAddress);
         actor.send({ type: "EXTERNAL_WALLET_CONNECTED", address: currentAddress });
+
+        // If machine is unauthenticated and wallet just connected, trigger wallet login
+        // This handles the case where user opens AppKit modal then connects
+        const currentState = actor.getSnapshot();
+        if (currentState?.matches("unauthenticated")) {
+          console.debug(
+            "[AuthProvider] Wallet connected in unauthenticated state, triggering LOGIN_WALLET"
+          );
+          actor.send({ type: "LOGIN_WALLET" });
+          saveAuthModeToStorage("wallet");
+        }
       }
     }
 
@@ -233,16 +244,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const loginWithWallet = useCallback(() => {
     if (!actor) return;
 
-    // Send event to machine - it will check if external wallet is connected
-    actor.send({ type: "LOGIN_WALLET" });
-    saveAuthModeToStorage("wallet");
-
-    // If no external wallet connected, open the modal
-    // The machine will transition to wallet_connecting state
-    if (!isConnected) {
+    // If wallet already connected, proceed with login
+    if (isConnected && wagmiWalletAddress) {
+      actor.send({ type: "LOGIN_WALLET" });
+      saveAuthModeToStorage("wallet");
+    } else {
+      // Just open modal - don't send LOGIN_WALLET yet
+      // Machine stays in current state, buttons remain enabled
+      // When wallet connects, we'll handle auth via LOGIN_WALLET
       appKit.open();
     }
-  }, [actor, isConnected]);
+  }, [actor, isConnected, wagmiWalletAddress]);
 
   const switchToWallet = useCallback(() => {
     if (!actor) return;
