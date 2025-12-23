@@ -148,6 +148,8 @@
   "app.home.location": "Ubicación",
   "app.home.messages.errorLoadingGardens": "Error al cargar jardines",
   "app.home.messages.noGardensFound": "No se encontraron jardines",
+  "app.home.offline.loading": "Estás sin conexión. Los jardines aparecerán cuando te reconectes.",
+  "app.home.offline.error": "No se pueden cargar los jardines mientras estás sin conexión.",
   "app.home.notifications.completedWorkApproval": "Trabajo completado en",
   "app.home.notifications.pendingWorkApproval": "Aprobación de Trabajo Pendiente",
   "app.home.notifications.tapToReview": "Toca la notificación para revisar",

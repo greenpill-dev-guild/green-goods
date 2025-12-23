@@ -11,6 +11,7 @@ export function useActions(chainId: number = DEFAULT_CHAIN_ID) {
     queryFn: () => getActions(),
     staleTime: STALE_TIMES.baseLists,
     gcTime: GC_TIMES.baseLists,
+    placeholderData: (previousData) => previousData ?? [],
   });
 }
 
@@ -21,6 +22,7 @@ export function useGardens(chainId: number = DEFAULT_CHAIN_ID) {
     queryFn: () => getGardens(),
     staleTime: STALE_TIMES.baseLists,
     gcTime: GC_TIMES.baseLists,
+    placeholderData: (previousData) => previousData ?? [],
   });
 }
 
@@ -31,5 +33,6 @@ export function useGardeners() {
     queryFn: () => getGardeners(),
     staleTime: STALE_TIMES.baseLists,
     gcTime: GC_TIMES.baseLists,
+    placeholderData: (previousData) => previousData ?? [],
   });
 }

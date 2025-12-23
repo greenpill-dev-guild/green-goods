@@ -126,6 +126,9 @@ async function buildSmartAccountFromCredential(
  * 2. Fetch credentials from Pimlico server
  * 3. Build smart account (silent - no biometric until first tx)
  */
+// Session restore timeout in milliseconds (5 seconds)
+const SESSION_RESTORE_TIMEOUT = 5000;
+
 export const restoreSessionService = fromPromise<RestoreSessionResult | null, RestoreInput>(
   async ({ input }) => {
     const { chainId } = input;
@@ -146,11 +149,16 @@ export const restoreSessionService = fromPromise<RestoreSessionResult | null, Re
     console.debug("[AuthServices] Created passkey server client for chain:", chainId);
 
     try {
-      // Fetch credentials from Pimlico server
+      // Fetch credentials from Pimlico server with timeout for poor network
       console.debug("[AuthServices] Fetching credentials from Pimlico for user:", storedUsername);
-      const credentials = await passkeyClient.getCredentials({
-        context: { userName: storedUsername },
-      });
+      const credentials = await Promise.race([
+        passkeyClient.getCredentials({
+          context: { userName: storedUsername },
+        }),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Session restore timeout")), SESSION_RESTORE_TIMEOUT)
+        ),
+      ]);
 
       console.debug("[AuthServices] Received credentials count:", credentials.length);
 
@@ -177,7 +185,11 @@ export const restoreSessionService = fromPromise<RestoreSessionResult | null, Re
         userName: storedUsername,
       };
     } catch (error) {
-      console.error("[AuthServices] Failed to restore session from Pimlico:", error);
+      if (error instanceof Error && error.message === "Session restore timeout") {
+        console.warn("[AuthServices] Session restore timed out - user can re-authenticate");
+      } else {
+        console.error("[AuthServices] Failed to restore session from Pimlico:", error);
+      }
       // Don't clear username on network errors - user still has account
       // Only clear if we successfully contacted server but found no credentials (handled above)
       return null;

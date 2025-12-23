@@ -145,6 +145,8 @@
   "app.home.location": "Location",
   "app.home.messages.errorLoadingGardens": "Error loading gardens",
   "app.home.messages.noGardensFound": "No gardens found",
+  "app.home.offline.loading": "You're offline. Gardens will appear when you reconnect.",
+  "app.home.offline.error": "Unable to load gardens while offline.",
   "app.home.notifications.completedWorkApproval": "Completed work on",
   "app.home.notifications.pendingWorkApproval": "Pending Work Approval",
   "app.home.notifications.tapToReview": "Tap notification to review",

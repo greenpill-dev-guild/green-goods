@@ -3,6 +3,7 @@ import {
   useBrowserNavigation,
   useGardens,
   useNavigateToTop,
+  useOffline,
 } from "@green-goods/shared/hooks";
 import { useUIStore } from "@green-goods/shared/stores";
 import { cn, gardenHasMember } from "@green-goods/shared/utils";
@@ -22,8 +23,9 @@ import { WorkDashboardIcon } from "./WorkDashboard/Icon";
 const Home: React.FC = () => {
   const navigate = useNavigateToTop();
   const location = useLocation();
-  const { data: gardensResolved = [], isLoading } = useGardens();
+  const { data: gardensResolved = [], isLoading, isError } = useGardens();
   const intl = useIntl();
+  const { isOnline } = useOffline();
   const { smartAccountAddress, walletAddress } = useAuth();
   const [filters, setFilters] = useState<GardenFiltersState>({ scope: "all", sort: "default" });
 
@@ -113,6 +115,27 @@ const Home: React.FC = () => {
           {Array.from({ length: 3 }).map((_, idx) => (
             <GardenCardSkeleton key={idx} media="large" height="home" />
           ))}
+          {!isOnline && (
+            <p className="text-center text-sm text-slate-500 mt-4 px-4">
+              {intl.formatMessage({
+                id: "app.home.offline.loading",
+                defaultMessage: "You're offline. Gardens will appear when you reconnect.",
+              })}
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    if (isError && !isOnline) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+          <p className="text-slate-600">
+            {intl.formatMessage({
+              id: "app.home.offline.error",
+              defaultMessage: "Unable to load gardens while offline.",
+            })}
+          </p>
         </div>
       );
     }

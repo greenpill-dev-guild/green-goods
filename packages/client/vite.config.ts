@@ -111,11 +111,28 @@ export default defineConfig(({ mode }) => {
             },
           },
           {
+            // Indexer API - show cached immediately, revalidate in background
+            urlPattern: /indexer\.hyperindex\.xyz|localhost:8080/,
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "indexer-cache",
+              expiration: {
+                maxAgeSeconds: 60 * 60, // 1 hour
+                maxEntries: 100,
+              },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            // GraphQL fallback (EAS, etc.) - show cached immediately, revalidate in background
             urlPattern: /graphql/,
-            handler: "NetworkFirst",
+            handler: "StaleWhileRevalidate",
             options: {
               cacheName: "graphql-cache",
-              networkTimeoutSeconds: 5,
+              expiration: {
+                maxAgeSeconds: 60 * 60, // 1 hour
+                maxEntries: 100,
+              },
               cacheableResponse: { statuses: [0, 200] },
             },
           },
