@@ -152,7 +152,12 @@ describe("hooks/work/useWorkApproval", () => {
         txHash = await result.current.mutateAsync({ draft, work });
       });
 
-      expect(submitApprovalToQueue).toHaveBeenCalledWith(draft, work, 84532);
+      expect(submitApprovalToQueue).toHaveBeenCalledWith(
+        draft,
+        work,
+        84532,
+        MOCK_ADDRESSES.smartAccount
+      );
       expect(jobQueue.processJob).toHaveBeenCalledWith("job-approval-1", {
         smartAccountClient,
       });

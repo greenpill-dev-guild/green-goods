@@ -13,6 +13,8 @@ declare global {
     lastError?: string;
     synced: boolean;
     chainId?: number;
+    /** User address (smart account or wallet) that created this job */
+    userAddress: string;
   }
 
   interface QueueEvent {

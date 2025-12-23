@@ -119,6 +119,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
     gardenAddress,
     actionUID,
     actions: actionsData,
+    userAddress,
   });
 
   // Upload work handler - memoized to prevent unnecessary re-renders

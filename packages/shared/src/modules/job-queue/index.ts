@@ -23,7 +23,10 @@ interface ProcessJobResult {
   skipped?: boolean;
 }
 
-interface FlushContext extends ProcessJobContext {}
+interface FlushContext extends ProcessJobContext {
+  /** User address to scope the flush operation */
+  userAddress: string;
+}
 
 export interface FlushResult {
   processed: number;
@@ -98,12 +101,21 @@ class JobQueue {
 
   /**
    * Add a job to the queue
+   * @param kind - Job type (work or approval)
+   * @param payload - Job payload data
+   * @param userAddress - User address who created this job (required for user scoping)
+   * @param meta - Optional metadata
    */
   async addJob<K extends keyof JobKindMap>(
     kind: K,
     payload: JobKindMap[K],
+    userAddress: string,
     meta?: Record<string, unknown>
   ): Promise<string> {
+    if (!userAddress) {
+      throw new Error("userAddress is required when adding a job");
+    }
+
     const chainId = (meta as { chainId?: number })?.chainId || DEFAULT_CHAIN_ID;
     const isOnline = navigator.onLine;
 
@@ -112,6 +124,7 @@ class JobQueue {
       payload,
       meta: { chainId, ...meta },
       chainId,
+      userAddress,
     });
 
     const job: Job = {
@@ -120,6 +133,7 @@ class JobQueue {
       payload,
       meta: { chainId, ...meta },
       chainId,
+      userAddress,
       createdAt: Date.now(),
       attempts: 0,
       synced: false,
@@ -130,6 +144,7 @@ class JobQueue {
       job_kind: kind,
       is_online: isOnline,
       chain_id: chainId,
+      user_address: userAddress,
       will_process_immediately: false,
     });
 
@@ -148,6 +163,7 @@ class JobQueue {
         jobId,
         kind,
         chainId,
+        userAddress,
         isOnline,
         mediaCount,
       });
@@ -341,10 +357,15 @@ class JobQueue {
   }
 
   /**
-   * Internal flush implementation
+   * Internal flush implementation - processes only jobs for the specified user
    */
   private async _flushInternal(context: FlushContext): Promise<FlushResult> {
-    const jobs = await jobQueueDB.getJobs({ synced: false });
+    if (!context.userAddress) {
+      throw new Error("userAddress is required for flush operation");
+    }
+
+    // Only get jobs for the current user
+    const jobs = await jobQueueDB.getJobs({ userAddress: context.userAddress, synced: false });
     if (jobs.length === 0) {
       const emptyResult = { processed: 0, failed: 0, skipped: 0 };
       jobQueueEventBus.emit("queue:sync-completed", { result: emptyResult });
@@ -378,32 +399,49 @@ class JobQueue {
   }
 
   /**
-   * Get job statistics
+   * Get job statistics for a specific user
+   * @param userAddress - User address to scope statistics
    */
-  async getStats(): Promise<QueueStats> {
-    return await jobQueueDB.getStats();
+  async getStats(userAddress: string): Promise<QueueStats> {
+    if (!userAddress) {
+      throw new Error("userAddress is required when getting stats");
+    }
+    return await jobQueueDB.getStats(userAddress);
   }
 
   /**
-   * Get jobs with optional filtering
+   * Get jobs for a specific user with optional filtering
+   * @param userAddress - User address (required)
+   * @param filter - Optional filters for kind and synced status
    */
-  async getJobs(filter?: { kind?: string; synced?: boolean }): Promise<Job[]> {
-    return await jobQueueDB.getJobs(filter);
+  async getJobs(userAddress: string, filter?: { kind?: string; synced?: boolean }): Promise<Job[]> {
+    if (!userAddress) {
+      throw new Error("userAddress is required when getting jobs");
+    }
+    return await jobQueueDB.getJobs({ userAddress, ...filter });
   }
 
   /**
-   * Check if there are pending jobs
+   * Check if there are pending jobs for a specific user
+   * @param userAddress - User address to check
    */
-  async hasPendingJobs(): Promise<boolean> {
-    const jobs = await jobQueueDB.getJobs({ synced: false });
+  async hasPendingJobs(userAddress: string): Promise<boolean> {
+    if (!userAddress) {
+      throw new Error("userAddress is required when checking pending jobs");
+    }
+    const jobs = await jobQueueDB.getJobs({ userAddress, synced: false });
     return jobs.length > 0;
   }
 
   /**
-   * Get pending jobs count
+   * Get pending jobs count for a specific user
+   * @param userAddress - User address to count
    */
-  async getPendingCount(): Promise<number> {
-    const jobs = await jobQueueDB.getJobs({ synced: false });
+  async getPendingCount(userAddress: string): Promise<number> {
+    if (!userAddress) {
+      throw new Error("userAddress is required when getting pending count");
+    }
+    const jobs = await jobQueueDB.getJobs({ userAddress, synced: false });
     return jobs.length;
   }
 

@@ -26,6 +26,8 @@ interface UseWorkMutationOptions {
   gardenAddress: string | null;
   actionUID: number | null;
   actions: Action[];
+  /** User address (smart account or wallet) for scoping jobs */
+  userAddress: string | null;
 }
 
 /**
@@ -41,12 +43,17 @@ interface UseWorkMutationOptions {
  * @returns Mutation instance
  */
 export function useWorkMutation(options: UseWorkMutationOptions) {
-  const { authMode, smartAccountClient, gardenAddress, actionUID, actions } = options;
+  const { authMode, smartAccountClient, gardenAddress, actionUID, actions, userAddress } = options;
   const chainId = DEFAULT_CHAIN_ID;
   const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
 
   return useMutation({
     mutationFn: async ({ draft, images }: { draft: WorkDraft; images: File[] }) => {
+      // Validate user address is available for queue operations
+      if (!userAddress) {
+        throw new Error("User address is required for work submission");
+      }
+
       if (DEBUG_ENABLED) {
         const draftSummary = {
           hasFeedback: Boolean(draft.feedback),
@@ -58,6 +65,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           authMode,
           gardenAddress,
           actionUID,
+          userAddress,
           imageCount: images.length,
           draftSummary,
         });
@@ -74,6 +82,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
               gardenAddress,
               actionUID,
               actionTitle,
+              userAddress,
             });
           }
           const { txHash: offlineTxHash } = await submitWorkToQueue(
@@ -82,7 +91,8 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
             actionUID!,
             actions,
             chainId,
-            images
+            images,
+            userAddress
           );
           return offlineTxHash;
         }
@@ -110,6 +120,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           gardenAddress,
           actionUID,
           actionTitle,
+          userAddress,
         });
       }
 
@@ -123,7 +134,8 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         actionUID!,
         actions,
         chainId,
-        images
+        images,
+        userAddress
       );
 
       if (DEBUG_ENABLED) {

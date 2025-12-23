@@ -88,10 +88,21 @@ export function useWorkApproval() {
           chainId,
           workUID: draft.workUID,
           approved: draft.approved,
+          userAddress: smartAccountAddress,
         });
       }
 
-      const { txHash: offlineTxHash, jobId } = await submitApprovalToQueue(draft, work, chainId);
+      // Validate user address for queue operations
+      if (!smartAccountAddress) {
+        throw new Error("User address is required for approval submission");
+      }
+
+      const { txHash: offlineTxHash, jobId } = await submitApprovalToQueue(
+        draft,
+        work,
+        chainId,
+        smartAccountAddress
+      );
 
       if (DEBUG_ENABLED) {
         debugLog("[useWorkApproval] Approval queued", {

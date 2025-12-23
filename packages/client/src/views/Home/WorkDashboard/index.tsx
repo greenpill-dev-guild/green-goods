@@ -95,8 +95,10 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         // Fetch online works from EAS
         const online = await getWorks([gardenId], DEFAULT_CHAIN_ID);
 
-        // Fetch offline works from job queue
-        const offlineJobs = await jobQueue.getJobs({ kind: "work", synced: false });
+        // Fetch offline works from job queue (scoped to current user)
+        const offlineJobs = activeAddress
+          ? await jobQueue.getJobs(activeAddress, { kind: "work", synced: false })
+          : [];
         const gardenOfflineJobs = offlineJobs.filter(
           (job) => (job.payload as WorkJobPayload).gardenAddress === gardenId
         );
@@ -137,14 +139,16 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
 
   const queryClient = useQueryClient();
 
-  // Uploading work (offline queue jobs only)
+  // Uploading work (offline queue jobs only, scoped to current user)
   const { data: offlineQueueWork = [], isLoading: isLoadingOfflineQueue } = useQuery({
     queryKey: queryKeys.queue.uploading(),
     queryFn: async () => {
-      const jobs = await jobQueue.getJobs({ kind: "work", synced: false });
+      if (!activeAddress) return [];
+      const jobs = await jobQueue.getJobs(activeAddress, { kind: "work", synced: false });
       const works = await convertJobsToWorks(jobs as Job<WorkJobPayload>[], activeAddress);
       return works.sort((a, b) => b.createdAt - a.createdAt);
     },
+    enabled: !!activeAddress,
     staleTime: 5000,
   });
 

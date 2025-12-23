@@ -3,7 +3,7 @@ import { normalizeToFile } from "../../utils/app/normalizeToFile";
 import { mediaResourceManager } from "./media-resource-manager";
 
 const DB_NAME = "green-goods-job-queue";
-const DB_VERSION = 4; // Incremented for lastAttemptAt field
+const DB_VERSION = 5; // Incremented for userAddress field
 
 interface ClientWorkIdMapping {
   clientWorkId: string;
@@ -26,7 +26,7 @@ class JobQueueDatabase {
     if (this.db) return this.db;
 
     this.db = await openDB<JobQueueDB>(DB_NAME, DB_VERSION, {
-      upgrade(db, oldVersion) {
+      upgrade(db, oldVersion, _newVersion, transaction) {
         // Create jobs store
         if (!db.objectStoreNames.contains("jobs")) {
           const jobsStore = db.createObjectStore("jobs", { keyPath: "id" });
@@ -36,6 +36,8 @@ class JobQueueDatabase {
           jobsStore.createIndex("attempts", "attempts");
           // Add compound index for better query performance
           jobsStore.createIndex("kind_synced", ["kind", "synced"]);
+          // Add userAddress index for user-scoped queries
+          jobsStore.createIndex("userAddress", "userAddress");
         }
 
         // Create job images store
@@ -62,10 +64,13 @@ class JobQueueDatabase {
           mappingsStore.createIndex("createdAt", "createdAt");
         }
 
-        // Migration from old offline-db schema
-        if (oldVersion === 1) {
-          // If upgrading from v1, we'll handle migration separately
-          // Silently migrate without logging
+        // Migration: Add userAddress index to existing jobs store (v4 -> v5)
+        if (oldVersion >= 1 && oldVersion < 5) {
+          const jobsStore = transaction.objectStore("jobs");
+          // Add userAddress index if it doesn't exist
+          if (!jobsStore.indexNames.contains("userAddress")) {
+            jobsStore.createIndex("userAddress", "userAddress");
+          }
         }
       },
     });
@@ -104,6 +109,11 @@ class JobQueueDatabase {
   async addJob<T = unknown>(
     job: Omit<Job<T>, "id" | "createdAt" | "attempts" | "synced">
   ): Promise<string> {
+    // Validate userAddress is provided (required for user-scoped queries)
+    if (!job.userAddress) {
+      throw new Error("userAddress is required when adding a job");
+    }
+
     const db = await this.init();
     const id = crypto.randomUUID();
     const timestamp = Date.now();
@@ -173,29 +183,45 @@ class JobQueueDatabase {
     return id;
   }
 
-  async getJobs(filter?: { kind?: string; synced?: boolean }): Promise<Job[]> {
+  /**
+   * Get jobs filtered by user address (required) and optional additional filters.
+   * @param filter.userAddress - Required user address to scope jobs
+   * @param filter.kind - Optional job kind filter
+   * @param filter.synced - Optional synced status filter
+   */
+  async getJobs(filter: { userAddress: string; kind?: string; synced?: boolean }): Promise<Job[]> {
+    if (!filter.userAddress) {
+      throw new Error("userAddress is required when getting jobs");
+    }
+
     const db = await this.init();
 
-    let result: Job[];
+    // Use userAddress index and filter additional criteria in memory
+    // This is more compatible with fake-indexeddb used in tests
+    const tx = db.transaction("jobs", "readonly");
+    const index = tx.objectStore("jobs").index("userAddress");
+    let result: Job[] = await index.getAll(filter.userAddress);
 
-    if (filter?.kind && filter?.synced !== undefined) {
-      const tx = db.transaction("jobs", "readonly");
-      const index = tx.objectStore("jobs").index("kind_synced");
-      // Query using boolean to match the index schema (kind: string, synced: boolean)
-      result = await index.getAll([filter.kind, filter.synced] as unknown as IDBValidKey);
-    } else if (filter?.kind) {
-      const tx = db.transaction("jobs", "readonly");
-      const index = tx.objectStore("jobs").index("kind");
-      result = await index.getAll(filter.kind);
-    } else if (filter?.synced !== undefined) {
-      // IndexedDB doesn't support boolean indexes directly, so we get all and filter
-      const allJobs = await db.getAll("jobs");
-      result = allJobs.filter((job) => job.synced === filter.synced);
-    } else {
-      result = await db.getAll("jobs");
+    // Apply synced filter in memory
+    if (filter.synced !== undefined) {
+      result = result.filter((job) => job.synced === filter.synced);
+    }
+
+    // Apply kind filter in memory
+    if (filter.kind) {
+      result = result.filter((job) => job.kind === filter.kind);
     }
 
     return result;
+  }
+
+  /**
+   * Get all jobs without user filtering (for admin/migration purposes only).
+   * WARNING: This returns jobs from ALL users - use with caution.
+   */
+  async getAllJobsUnfiltered(): Promise<Job[]> {
+    const db = await this.init();
+    return await db.getAll("jobs");
   }
 
   async getJob(id: string): Promise<Job | undefined> {
@@ -281,24 +307,41 @@ class JobQueueDatabase {
     await db.delete("jobs", id);
   }
 
-  async clearSyncedJobs(): Promise<void> {
+  /**
+   * Clear synced jobs for a specific user.
+   * @param userAddress - Required user address to scope deletion
+   */
+  async clearSyncedJobs(userAddress: string): Promise<void> {
+    if (!userAddress) {
+      throw new Error("userAddress is required when clearing synced jobs");
+    }
+
     await this.init();
-    const syncedJobs = await this.getJobs({ synced: true });
+    const syncedJobs = await this.getJobs({ userAddress, synced: true });
 
     for (const job of syncedJobs) {
       await this.deleteJob(job.id);
     }
   }
 
-  async getStats(): Promise<{ total: number; pending: number; failed: number; synced: number }> {
-    const db = await this.init();
-    const allJobs = await db.getAll("jobs");
+  /**
+   * Get job statistics for a specific user.
+   * @param userAddress - Required user address to scope statistics
+   */
+  async getStats(
+    userAddress: string
+  ): Promise<{ total: number; pending: number; failed: number; synced: number }> {
+    if (!userAddress) {
+      throw new Error("userAddress is required when getting stats");
+    }
+
+    const userJobs = await this.getJobs({ userAddress });
 
     return {
-      total: allJobs.length,
-      pending: allJobs.filter((job) => !job.synced && !job.lastError).length,
-      failed: allJobs.filter((job) => job.lastError).length,
-      synced: allJobs.filter((job) => job.synced).length,
+      total: userJobs.length,
+      pending: userJobs.filter((job) => !job.synced && !job.lastError).length,
+      failed: userJobs.filter((job) => job.lastError).length,
+      synced: userJobs.filter((job) => job.synced).length,
     };
   }
 

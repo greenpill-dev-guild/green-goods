@@ -86,10 +86,11 @@ describe("providers/JobQueueProvider", () => {
     vi.clearAllMocks();
 
     // Default mock values
-    mockUseAuth.mockReturnValue({ authMode: "passkey" });
+    mockUseAuth.mockReturnValue({ authMode: "passkey", walletAddress: null });
     mockUseUser.mockReturnValue({
       smartAccountAddress: "0xSmartAccount",
       smartAccountClient: { account: { address: "0xSmartAccount" } },
+      eoa: null,
     });
     mockJobQueue.getStats.mockResolvedValue({ total: 0, pending: 0, failed: 0, synced: 0 });
   });
@@ -163,7 +164,7 @@ describe("providers/JobQueueProvider", () => {
       expect(typeof result.current).toBe("function");
     });
 
-    it("flush calls jobQueue.flush with smart account client", async () => {
+    it("flush calls jobQueue.flush with smart account client and userAddress", async () => {
       mockJobQueue.flush.mockResolvedValue({ processed: 2, failed: 0, skipped: 0 });
 
       const { result } = renderHook(() => useQueueFlush(), {
@@ -176,6 +177,7 @@ describe("providers/JobQueueProvider", () => {
 
       expect(mockJobQueue.flush).toHaveBeenCalledWith({
         smartAccountClient: expect.objectContaining({ account: { address: "0xSmartAccount" } }),
+        userAddress: "0xSmartAccount",
       });
     });
 
@@ -270,10 +272,11 @@ describe("providers/JobQueueProvider", () => {
     });
 
     it("does not auto-flush for wallet users", async () => {
-      mockUseAuth.mockReturnValue({ authMode: "wallet" });
+      mockUseAuth.mockReturnValue({ authMode: "wallet", walletAddress: "0xWallet123" });
       mockUseUser.mockReturnValue({
         smartAccountAddress: null,
         smartAccountClient: null,
+        eoa: { address: "0xWallet123" },
       });
 
       renderHook(() => useJobQueue(), { wrapper: createWrapper() });

@@ -124,6 +124,7 @@ describe("hooks/work/useWorkMutation", () => {
     gardenAddress: MOCK_ADDRESSES.garden,
     actionUID: 1,
     actions: [createMockAction({ id: "1" })],
+    userAddress: MOCK_ADDRESSES.user,
   };
 
   describe("Wallet mode - online", () => {
@@ -202,6 +203,7 @@ describe("hooks/work/useWorkMutation", () => {
             ...defaultOptions,
             authMode: "passkey",
             smartAccountClient: smartAccountClient as any,
+            userAddress: MOCK_ADDRESSES.smartAccount, // Use smart account address for passkey mode
           }),
         { wrapper: createWrapper() }
       );
@@ -238,6 +240,7 @@ describe("hooks/work/useWorkMutation", () => {
             ...defaultOptions,
             authMode: "passkey",
             smartAccountClient: createMockSmartAccountClient() as any,
+            userAddress: MOCK_ADDRESSES.smartAccount, // Use smart account address for passkey mode
           }),
         { wrapper: createWrapper() }
       );

@@ -5,6 +5,14 @@ import { createOfflineTxHash, jobQueue } from "../job-queue";
 /**
  * Consolidated work submission utility
  * Handles both online and offline work submission scenarios
+ *
+ * @param draft - Work draft data
+ * @param gardenAddress - Garden address to submit to
+ * @param actionUID - Action UID
+ * @param actions - List of available actions (for title lookup)
+ * @param chainId - Chain ID
+ * @param images - Work images
+ * @param userAddress - User address who is submitting (required for user-scoped queue)
  */
 export async function submitWorkToQueue(
   draft: WorkDraft,
@@ -12,7 +20,8 @@ export async function submitWorkToQueue(
   actionUID: number,
   actions: Action[],
   chainId: number,
-  images: File[]
+  images: File[],
+  userAddress: string
 ): Promise<{ txHash: `0x${string}`; jobId: string; clientWorkId: string }> {
   if (!gardenAddress) {
     throw new Error("Garden address is required");
@@ -20,6 +29,10 @@ export async function submitWorkToQueue(
 
   if (typeof actionUID !== "number") {
     throw new Error("Action UID must be a number");
+  }
+
+  if (!userAddress) {
+    throw new Error("User address is required");
   }
 
   const actionTitle = getActionTitle(actions, actionUID);
@@ -51,6 +64,7 @@ export async function submitWorkToQueue(
       gardenAddress,
       media: images,
     },
+    userAddress,
     { chainId, clientWorkId }
   );
 
@@ -61,11 +75,17 @@ export async function submitWorkToQueue(
 /**
  * Consolidated work approval submission utility
  * Handles both online and offline approval scenarios
+ *
+ * @param draft - Approval draft data
+ * @param work - Work being approved/rejected
+ * @param chainId - Chain ID
+ * @param userAddress - User address who is approving (required for user-scoped queue)
  */
 export async function submitApprovalToQueue(
   draft: WorkApprovalDraft,
   work: Work | undefined,
-  chainId: number
+  chainId: number,
+  userAddress: string
 ): Promise<{ txHash: `0x${string}`; jobId: string }> {
   if (!draft.workUID) {
     throw new Error("Work UID is required");
@@ -75,6 +95,10 @@ export async function submitApprovalToQueue(
     throw new Error("Work not found");
   }
 
+  if (!userAddress) {
+    throw new Error("User address is required");
+  }
+
   // Add approval job to queue - this handles both offline and online scenarios
   const jobId = await jobQueue.addJob(
     "approval",
@@ -82,6 +106,7 @@ export async function submitApprovalToQueue(
       ...draft,
       gardenerAddress: work.gardenerAddress || "",
     },
+    userAddress,
     { chainId }
   );
 

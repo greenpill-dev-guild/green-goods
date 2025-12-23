@@ -45,7 +45,9 @@ export function useWorks(gardenId: string) {
     mergedKey: queryKeys.works.merged(gardenId, chainId),
     fetchOnline: () => getWorks(gardenId, chainId),
     fetchOffline: async () => {
-      const jobs = await jobQueue.getJobs({ kind: "work", synced: false });
+      // Only fetch offline jobs if we have a user address to scope by
+      if (!smartAccountAddress) return [];
+      const jobs = await jobQueue.getJobs(smartAccountAddress, { kind: "work", synced: false });
       return jobs.filter(
         (job) => (job.payload as WorkJobPayload).gardenAddress === gardenId
       ) as Job<WorkJobPayload>[];
@@ -127,17 +129,22 @@ export function useWorks(gardenId: string) {
 
 /**
  * Hook for getting pending work count across all gardens with event-driven updates
+ * Scoped to current user's smart account address
  */
 export function usePendingWorksCount() {
   const queryClient = useQueryClient();
+  const { smartAccountAddress } = useUser();
 
   const query = useQuery({
     queryKey: queryKeys.queue.pendingCount(),
     queryFn: async () => {
+      // Only count jobs for the current user
+      if (!smartAccountAddress) return 0;
       // Count only unsynced work jobs to align with Uploading tab
-      const jobs = await jobQueue.getJobs({ kind: "work", synced: false });
+      const jobs = await jobQueue.getJobs(smartAccountAddress, { kind: "work", synced: false });
       return jobs.length;
     },
+    enabled: !!smartAccountAddress,
     staleTime: STALE_TIMES.queue,
     gcTime: GC_TIMES.queue,
   });
@@ -152,13 +159,22 @@ export function usePendingWorksCount() {
 
 /**
  * Hook for getting queue statistics with event-driven updates
+ * Scoped to current user's smart account address
  */
 export function useQueueStatistics() {
   const queryClient = useQueryClient();
+  const { smartAccountAddress } = useUser();
 
   const query = useQuery({
     queryKey: queryKeys.queue.stats(),
-    queryFn: () => jobQueue.getStats(),
+    queryFn: async () => {
+      // Only get stats for the current user
+      if (!smartAccountAddress) {
+        return { total: 0, pending: 0, failed: 0, synced: 0 };
+      }
+      return jobQueue.getStats(smartAccountAddress);
+    },
+    enabled: !!smartAccountAddress,
     staleTime: STALE_TIMES.queue,
     gcTime: GC_TIMES.queue,
   });

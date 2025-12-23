@@ -8,6 +8,9 @@ import {
 } from "../../modules/work/work-submission";
 import { jobQueue } from "../../modules/job-queue";
 
+// Test user address for scoped queue operations
+const TEST_USER_ADDRESS = "0xTestUser123";
+
 describe("modules/work-submission", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -27,7 +30,8 @@ describe("modules/work-submission", () => {
       1,
       [{ id: "84532-1", title: "Act" }] as any,
       84532,
-      []
+      [],
+      TEST_USER_ADDRESS
     );
     expect(tx.txHash.startsWith("0xoffline_")).toBe(true);
     expect(jobQueue.addJob).toHaveBeenCalled();
@@ -41,7 +45,8 @@ describe("modules/work-submission", () => {
         approved: true,
       },
       { gardenerAddress: "0xabc" } as any,
-      84532
+      84532,
+      TEST_USER_ADDRESS
     );
     expect(result.jobId).toBe("job-1");
     expect(result.txHash.startsWith("0xoffline_")).toBe(true);
