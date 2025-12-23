@@ -604,7 +604,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   return (
     <article>
       <TopNav onBackClick={handleBack} overlay />
-      {workApprovalMutation.isIdle && (
+      {!workApprovalMutation.isPending && (
         <div className="padded pt-20">
           {isMetadataLoading ? (
             <WorkViewSkeleton showMedia showActions={false} numDetails={3} />

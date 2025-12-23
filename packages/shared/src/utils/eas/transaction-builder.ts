@@ -91,17 +91,17 @@ export function buildWorkAttestTx(
  * Build approval attestation transaction params
  *
  * @param easConfig - EAS configuration for the chain
- * @param gardenerAddress - Gardener address receiving the attestation
+ * @param gardenAddress - Garden address (EAS recipient - must match work attestation recipient)
  * @param attestationData - Encoded attestation data
  * @returns Transaction parameters (to, data, value)
  */
 export function buildApprovalAttestTx(
   easConfig: EASConfig,
-  gardenerAddress: `0x${string}`,
+  gardenAddress: `0x${string}`,
   attestationData: Hex
 ): { to: `0x${string}`; data: Hex; value: bigint } {
   const request = buildAttestationRequest(
-    gardenerAddress,
+    gardenAddress,
     easConfig.WORK_APPROVAL.uid as Hex,
     attestationData
   );

@@ -104,6 +104,7 @@ export async function submitApprovalToQueue(
     "approval",
     {
       ...draft,
+      gardenAddress: work.gardenAddress,
       gardenerAddress: work.gardenerAddress || "",
     },
     userAddress,

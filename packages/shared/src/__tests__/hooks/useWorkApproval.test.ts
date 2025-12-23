@@ -114,7 +114,7 @@ describe("hooks/work/useWorkApproval", () => {
         await result.current.mutateAsync({ draft, work });
       });
 
-      expect(submitApprovalDirectly).toHaveBeenCalledWith(draft, work.gardenerAddress, 84532);
+      expect(submitApprovalDirectly).toHaveBeenCalledWith(draft, work.gardenAddress, 84532);
       expect(submitApprovalToQueue).not.toHaveBeenCalled();
     });
   });
@@ -215,7 +215,7 @@ describe("hooks/work/useWorkApproval", () => {
 
       expect(submitApprovalDirectly).toHaveBeenCalledWith(
         expect.objectContaining({ feedback: "" }),
-        work.gardenerAddress,
+        work.gardenAddress,
         84532
       );
     });
@@ -242,7 +242,7 @@ describe("hooks/work/useWorkApproval", () => {
           approved: false,
           feedback: "Please improve the planting technique",
         }),
-        work.gardenerAddress,
+        work.gardenAddress,
         84532
       );
     });

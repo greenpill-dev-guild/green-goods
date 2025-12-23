@@ -220,17 +220,17 @@ export async function submitWorkDirectly(
  * 5. Wait for transaction receipt
  *
  * @param draft - Approval form data
- * @param gardenerAddress - Gardener receiving the approval
+ * @param gardenAddress - Garden address (EAS attestation recipient - must match work recipient)
  * @param chainId - Target chain ID
  * @returns Transaction hash
  * @throws Error if wallet not connected or transaction fails
  */
 export async function submitApprovalDirectly(
   draft: WorkApprovalDraft,
-  gardenerAddress: string,
+  gardenAddress: string,
   chainId: number
 ): Promise<`0x${string}`> {
-  debugLog("[WalletSubmission] Starting direct approval submission", { gardenerAddress });
+  debugLog("[WalletSubmission] Starting direct approval submission", { gardenAddress });
 
   // 1. Get wallet client from wagmi
   const walletClient = await getWalletClient(wagmiConfig, { chainId });
@@ -253,7 +253,7 @@ export async function submitApprovalDirectly(
     const easConfig = getEASConfig(chainId);
     const txParams = buildApprovalAttestTx(
       easConfig,
-      gardenerAddress as `0x${string}`,
+      gardenAddress as `0x${string}`,
       attestationData
     );
 

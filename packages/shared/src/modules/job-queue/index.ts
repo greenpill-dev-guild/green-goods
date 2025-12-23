@@ -84,7 +84,7 @@ async function executeApprovalJob(
       approved: payload.approved,
       feedback: payload.feedback,
     } as WorkApprovalDraft,
-    gardenerAddress: payload.gardenerAddress || "",
+    gardenAddress: payload.gardenAddress,
     chainId,
   });
 }

@@ -142,7 +142,7 @@ export async function submitWorkWithPasskey({
 export interface PasskeyApprovalSubmissionParams {
   client: SmartAccountClient | null;
   draft: WorkApprovalDraft;
-  gardenerAddress: string;
+  gardenAddress: string;
   chainId: number;
 }
 
@@ -150,11 +150,11 @@ export interface PasskeyApprovalSubmissionParams {
 export async function submitApprovalWithPasskey({
   client,
   draft,
-  gardenerAddress,
+  gardenAddress,
   chainId,
 }: PasskeyApprovalSubmissionParams): Promise<`0x${string}`> {
   debugLog("[PasskeySubmission] Submitting approval via passkey", {
-    gardenerAddress,
+    gardenAddress,
     chainId,
   });
 
@@ -168,7 +168,7 @@ export async function submitApprovalWithPasskey({
 
   const txParams = buildApprovalAttestTx(
     easConfig,
-    gardenerAddress as `0x${string}`,
+    gardenAddress as `0x${string}`,
     attestationData
   );
 

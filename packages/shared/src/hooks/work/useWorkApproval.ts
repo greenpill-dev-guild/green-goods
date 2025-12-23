@@ -80,7 +80,7 @@ export function useWorkApproval() {
             workUID: draft.workUID,
           });
         }
-        return await submitApprovalDirectly(draft, work.gardenerAddress || "", chainId);
+        return await submitApprovalDirectly(draft, work.gardenAddress, chainId);
       }
 
       if (DEBUG_ENABLED) {

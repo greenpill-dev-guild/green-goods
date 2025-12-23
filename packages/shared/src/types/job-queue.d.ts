@@ -49,6 +49,7 @@ declare global {
   interface ApprovalJobPayload {
     actionUID: number;
     workUID: string;
+    gardenAddress: string;
     gardenerAddress: string;
     approved: boolean;
     feedback?: string;
