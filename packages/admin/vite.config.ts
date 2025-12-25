@@ -35,6 +35,7 @@ export default defineConfig(({ mode }) => {
     // Deduplicate React and PostHog to prevent multiple instances
     resolve: {
       dedupe: ['react', 'react-dom', 'posthog-js'],
+      conditions: ['import', 'module', 'browser', 'default'],
       alias: {
         "@": resolve(__dirname, "./src"),
         "@green-goods/shared": resolve(__dirname, "../shared/src"),
@@ -57,8 +58,13 @@ export default defineConfig(({ mode }) => {
         'react',
         'react-dom',
         'posthog-js',
+        'multiformats',
       ],
       exclude: ['@green-goods/shared'],
+    },
+    // Fix CommonJS resolution for ESM packages
+    ssr: {
+      noExternal: ['multiformats'],
     },
     server: {
       port: 3002,
