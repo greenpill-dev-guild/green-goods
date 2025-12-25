@@ -74,29 +74,20 @@ export const MyWorkTab: React.FC<MyWorkTabProps> = ({ works, isLoading, onWorkCl
                   badges={
                     isOffline
                       ? [
-                          <span
-                            key="pending"
-                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border bg-amber-50 text-amber-600 border-amber-100"
-                          >
+                          <span key="pending" className="badge-pill-amber">
                             <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
                             Pending Upload
                           </span>,
                         ]
                       : work.status === "approved"
                         ? [
-                            <span
-                              key="approved"
-                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border bg-green-50 text-green-600 border-green-100"
-                            >
+                            <span key="approved" className="badge-pill-green">
                               Approved
                             </span>,
                           ]
                         : work.status === "rejected"
                           ? [
-                              <span
-                                key="rejected"
-                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border bg-red-50 text-red-600 border-red-100"
-                              >
+                              <span key="rejected" className="badge-pill-red">
                                 Rejected
                               </span>,
                             ]

@@ -402,12 +402,12 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
         <div className="mt-2 flex items-center justify-between text-xs">
           <div className="flex items-center gap-2">
             {mediaCount > 0 && (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border bg-blue-50 text-blue-600 border-blue-100">
+              <span className="badge-pill-blue">
                 <RiImageLine className="w-3 h-3" /> {mediaCount}
               </span>
             )}
             {hasFeedback && (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border bg-purple-50 text-purple-600 border-purple-100">
+              <span className="badge-pill-purple">
                 <RiFileTextLine className="w-3 h-3" />
                 {intl.formatMessage({ id: "app.workCard.feedback", defaultMessage: "Feedback" })}
               </span>

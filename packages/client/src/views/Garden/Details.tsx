@@ -1,22 +1,22 @@
 import { RiFileFill } from "@remixicon/react";
-import type { Control, UseFormRegister } from "react-hook-form";
+import type { Control, Path, UseFormRegister } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { FormInfo } from "@/components/Cards";
 import { FormInput, FormSelect, FormText } from "@/components/Inputs";
 
+// Form fields type - includes known fields plus dynamic ones from WorkInput
+type WorkFormFields = {
+  feedback: string;
+  plantSelection: string[];
+  plantCount?: number;
+  [key: string]: string | number | string[] | undefined;
+};
+
 interface WorkDetailsProps {
   config?: Action["details"];
   inputs: WorkInput[];
-  register: UseFormRegister<{
-    feedback: string;
-    plantSelection: string[];
-    plantCount?: number;
-  }>;
-  control: Control<{
-    feedback: string;
-    plantSelection: string[];
-    plantCount?: number;
-  }>;
+  register: UseFormRegister<WorkFormFields>;
+  control: Control<WorkFormFields>;
 }
 
 export const WorkDetails: React.FC<WorkDetailsProps> = ({ config, register, control, inputs }) => {
@@ -73,12 +73,14 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({ config, register, cont
               }
             : undefined;
 
+        // Cast key to Path for dynamic form fields
+        const fieldKey = key as Path<WorkFormFields>;
+
         if (type === "number") {
           return (
             <FormInput
               key={key}
-              // @ts-ignore
-              {...register(key, registerOptions)}
+              {...register(fieldKey, registerOptions)}
               label={title}
               type="number"
               placeholder={placeholder}
@@ -91,8 +93,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({ config, register, cont
           return (
             <FormSelect
               key={key}
-              // @ts-ignore
-              name={key}
+              name={fieldKey}
               label={title}
               placeholder={placeholder}
               options={selectOptions.map((option) => ({
@@ -107,8 +108,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({ config, register, cont
           return (
             <FormInput
               key={key}
-              // @ts-ignore
-              {...register(key, registerOptions)}
+              {...register(fieldKey, registerOptions)}
               label={title}
               placeholder={placeholder}
               required={required}
@@ -119,8 +119,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({ config, register, cont
           return (
             <FormText
               key={key}
-              // @ts-ignore
-              {...register(key, registerOptions)}
+              {...register(fieldKey, registerOptions)}
               label={title}
               rows={3}
               placeholder={placeholder}

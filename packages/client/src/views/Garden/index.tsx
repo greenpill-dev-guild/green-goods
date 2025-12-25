@@ -11,7 +11,7 @@ import {
   RiImageFill,
   RiPlantFill,
 } from "@remixicon/react";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/Actions";
@@ -34,7 +34,6 @@ const Work: React.FC = () => {
 
   const canBypassMediaRequirement = import.meta.env.VITE_DEBUG_MODE === "true";
   const submissionCompleted = useWorkFlowStore((s) => s.submissionCompleted);
-  const [_showCompletionState, setShowCompletionState] = useState(false);
 
   // Draft detection state
   const [showDraftDialog, setShowDraftDialog] = useState(false);
@@ -106,7 +105,6 @@ const Work: React.FC = () => {
   // Navigate when submission completes
   useEffect(() => {
     if (submissionCompleted) {
-      setShowCompletionState(true);
       const timer = setTimeout(() => {
         // Full reset of store and form
         useWorkFlowStore.getState().reset();
@@ -127,8 +125,7 @@ const Work: React.FC = () => {
   }, [actions, actionUID]);
 
   // Translate the selected action
-  const { translatedAction, isTranslating: _isTranslatingAction } =
-    useActionTranslation(selectedAction);
+  const { translatedAction } = useActionTranslation(selectedAction);
 
   const selectedGarden = useMemo(() => {
     if (!gardens.length || !gardenAddress) return null;
@@ -138,8 +135,7 @@ const Work: React.FC = () => {
   }, [gardens, gardenAddress]);
 
   // Translate the selected garden
-  const { translatedGarden, isTranslating: _isTranslatingGarden } =
-    useGardenTranslation(selectedGarden);
+  const { translatedGarden } = useGardenTranslation(selectedGarden);
 
   const defaultMediaConfig = useMemo(
     () => ({

@@ -201,14 +201,14 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   );
 
   const operatorWorksById = useMemo(() => {
-    const map = new Map<string, any>();
-    (operatorWorks || []).forEach((w: any) => map.set(w.id, w));
+    const map = new Map<string, Work>();
+    (operatorWorks || []).forEach((w) => map.set(w.id, w));
     return map;
   }, [operatorWorks]);
 
   // Pending work needing your review (from gardens you operate, excluding your own submissions)
-  const pendingNeedsReview: any[] = (operatorWorks || []).filter(
-    (w: any) => !reviewedByYou.has(w.id) && !isUserAddress(w.gardenerAddress)
+  const pendingNeedsReview = (operatorWorks || []).filter(
+    (w) => !reviewedByYou.has(w.id) && !isUserAddress(w.gardenerAddress)
   );
 
   // Completed approvals (approved/rejected by you)
@@ -230,13 +230,13 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     [myReceivedApprovals]
   );
 
-  const pendingMySubmissions: any[] = (myOnlineWorks || []).filter(
-    (w: any) => isUserAddress(w.gardenerAddress) && !approvedOrRejectedForMe.has(w.id)
+  const pendingMySubmissions = (myOnlineWorks || []).filter(
+    (w) => isUserAddress(w.gardenerAddress) && !approvedOrRejectedForMe.has(w.id)
   );
 
   // Combine lists and deduplicate by id when showing "all"
   const combinedPending = useMemo(() => {
-    const map = new Map<string, any>();
+    const map = new Map<string, Work>();
     for (const w of pendingNeedsReview) map.set(w.id, w);
     for (const w of pendingMySubmissions) map.set(w.id, w);
     return Array.from(map.values()).sort((a, b) => b.createdAt - a.createdAt);
@@ -272,15 +272,15 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // Apply time filtering using utility
   const filteredUploading = filterByTimeRange(uploadingWork, timeFilter);
   const filteredPending = filterByTimeRange(pendingWork, timeFilter);
-  const filteredCompleted = filterByTimeRange(completedWork as any, timeFilter);
+  const filteredCompleted = filterByTimeRange(completedWork, timeFilter);
 
-  // Navigation handler
-  const handleWorkClick = (work: any) => {
+  // Navigation handler - handles both Work and WorkApproval shapes
+  const handleWorkClick = (work: Work | { workUID?: string; gardenAddress?: string }) => {
     try {
-      let workId = work.id || work.workUID;
-      let gardenId = work.gardenAddress || work.gardenId;
+      let workId = "id" in work ? work.id : (work as { workUID?: string }).workUID;
+      let gardenId = work.gardenAddress;
 
-      if (!gardenId && work.workUID) {
+      if (!gardenId && "workUID" in work && work.workUID) {
         const found = operatorWorksById.get(work.workUID);
         if (found) {
           gardenId = found.gardenAddress;
@@ -289,25 +289,17 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       }
 
       if (!gardenId || !workId) {
-        console.error("Invalid work object for navigation:", work);
         return;
       }
 
       navigate(`/home/${gardenId}/work/${workId}`, { state: { from: "dashboard" } });
-    } catch (error) {
-      console.error("Error navigating to work:", error, work);
+    } catch {
+      // Navigation error - silently fail
     }
   };
 
-  // Badge helpers
-  const badge = (text: string, cls: string, icon?: React.ReactNode) => (
-    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border ${cls}`}>
-      {icon}
-      {text}
-    </span>
-  );
-
-  const renderWorkBadges = (item: any) => {
+  // Badge renderers using CSS utilities from utilities.css
+  const renderWorkBadges = (item: Work) => {
     const badges: React.ReactNode[] = [];
     const isGardener = isUserAddress(item.gardenerAddress);
     const isOperator =
@@ -316,41 +308,42 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
 
     if (isOperator && !reviewed) {
       badges.push(
-        badge(
-          "Needs review",
-          "bg-amber-50 text-amber-600 border-amber-200",
+        <span key="review" className="badge-pill-amber">
           <RiTimeLine className="w-3 h-3" />
-        )
+          Needs review
+        </span>
       );
     }
     if (reviewed) {
       badges.push(
-        badge(
-          "Reviewed by you",
-          "bg-emerald-50 text-emerald-600 border-emerald-200",
+        <span key="reviewed" className="badge-pill-emerald">
           <RiCheckLine className="w-3 h-3" />
-        )
+          Reviewed by you
+        </span>
       );
     }
     if (isGardener) {
-      badges.push(badge("You submitted", "bg-slate-50 text-slate-600 border-slate-200"));
+      badges.push(
+        <span key="submitted" className="badge-pill-slate">
+          You submitted
+        </span>
+      );
     }
     return badges;
   };
 
-  const renderApprovalBadges = (_item: any) => {
-    return [
-      badge(
-        "Reviewed by you",
-        "bg-emerald-50 text-emerald-600 border-emerald-200",
-        <RiCheckLine className="w-3 h-3" />
-      ),
-    ];
-  };
+  const renderApprovalBadges = () => [
+    <span key="reviewed" className="badge-pill-emerald">
+      <RiCheckLine className="w-3 h-3" />
+      Reviewed by you
+    </span>,
+  ];
 
-  const renderMyWorkReviewedBadges = (_item: any) => {
-    return [badge("Your work was reviewed", "bg-slate-50 text-slate-600 border-slate-200")];
-  };
+  const renderMyWorkReviewedBadges = () => [
+    <span key="work-reviewed" className="badge-pill-slate">
+      Your work was reviewed
+    </span>,
+  ];
 
   const tabs: StandardTab[] = [
     {

@@ -8,7 +8,7 @@ import { BeatLoader } from "@/components/Communication";
 interface UploadingTabProps {
   uploadingWork: Work[];
   isLoading: boolean;
-  onWorkClick: (work: any) => void;
+  onWorkClick: (work: Work) => void;
   headerContent?: React.ReactNode;
 }
 
@@ -114,10 +114,7 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
               const isOffline = work.id.startsWith("0xoffline_");
               const badges = isOffline
                 ? [
-                    <span
-                      key="uploading"
-                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border bg-blue-50 text-blue-600 border-blue-100"
-                    >
+                    <span key="uploading" className="badge-pill-blue">
                       <span className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
                       Uploading
                     </span>,

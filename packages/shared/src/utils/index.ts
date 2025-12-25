@@ -37,17 +37,6 @@ export { getTag } from "./app/tags";
 export type { FormatAddressOptions, FormatAddressVariant } from "./app/text";
 export { capitalize, formatAddress, truncate } from "./app/text";
 // ============================================================================
-// CONNECTIVITY
-// ============================================================================
-export type { RetryOptions, ScheduleValidationOptions } from "./app/connectivity";
-export {
-  isNetworkError,
-  isRetryableError,
-  retryWithBackoff,
-  scheduleValidation,
-  waitForOnline,
-} from "./app/connectivity";
-// ============================================================================
 // ADDRESS
 // ============================================================================
 export {
