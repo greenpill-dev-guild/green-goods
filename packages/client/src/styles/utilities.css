@@ -143,4 +143,165 @@
     background: transparent;
     pointer-events: auto;
   }
+
+  /* ============================================
+   * Status Badge Variants
+   * Used in: WorkCard, MyWork, Uploading, WorkDashboard
+   * ============================================ */
+  .badge-pill {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+  }
+
+  .badge-pill-blue {
+    @apply badge-pill bg-blue-50 text-blue-600 border-blue-100;
+  }
+
+  .badge-pill-amber {
+    @apply badge-pill bg-amber-50 text-amber-600 border-amber-100;
+  }
+
+  .badge-pill-green {
+    @apply badge-pill bg-green-50 text-green-600 border-green-100;
+  }
+
+  .badge-pill-red {
+    @apply badge-pill bg-red-50 text-red-600 border-red-100;
+  }
+
+  .badge-pill-purple {
+    @apply badge-pill bg-purple-50 text-purple-600 border-purple-100;
+  }
+
+  .badge-pill-slate {
+    @apply badge-pill bg-slate-50 text-slate-600 border-slate-200;
+  }
+
+  .badge-pill-emerald {
+    @apply badge-pill bg-emerald-50 text-emerald-600 border-emerald-200;
+  }
+
+  /* ============================================
+   * List State Component Styles
+   * Used in: PendingTab, CompletedTab, UploadingTab, MyWork
+   * ============================================ */
+  .list-state-loading {
+    @apply h-full flex flex-col items-center justify-center pb-12;
+  }
+
+  .list-state-loading-text {
+    @apply text-sm text-slate-400 mt-4;
+  }
+
+  .list-state-error,
+  .list-state-empty {
+    @apply text-center py-12;
+  }
+
+  .list-state-error-icon,
+  .list-state-empty-icon {
+    @apply text-4xl mb-3;
+  }
+
+  .list-state-error-title,
+  .list-state-empty-title {
+    @apply font-medium text-slate-900;
+  }
+
+  .list-state-error-message,
+  .list-state-empty-description {
+    @apply text-sm text-slate-600;
+  }
+
+  .list-state-error-message {
+    @apply mb-4;
+  }
+
+  .list-state-retry-btn {
+    @apply text-sm text-primary font-medium px-3 py-1 rounded-lg border border-slate-200;
+    @apply transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary;
+    @apply active:border-primary active:scale-95;
+  }
+
+  /* ============================================
+   * Form Input Variants
+   * ============================================ */
+  .input-textarea {
+    @apply w-full min-h-[120px] p-3 rounded-xl;
+    @apply border border-stroke-soft-200;
+    @apply bg-bg-weak-50 text-text-strong-950;
+    @apply placeholder:text-text-soft-400;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary;
+    @apply resize-none;
+  }
+
+  /* ============================================
+   * Modal Styles
+   * ============================================ */
+  .modal-overlay {
+    @apply fixed inset-0 bg-black/20 backdrop-blur-sm z-[20000];
+    @apply flex items-end justify-center;
+  }
+
+  .modal-container {
+    @apply bg-white rounded-t-3xl shadow-2xl w-full;
+    @apply overflow-hidden flex flex-col;
+  }
+
+  /* ============================================
+   * Success Overlay
+   * ============================================ */
+  .success-overlay {
+    @apply fixed inset-0 z-[30000];
+    @apply flex items-center justify-center;
+    background: linear-gradient(135deg, var(--color-primary-base) 0%, var(--color-primary-dark, #2d6a34) 100%);
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  .success-overlay-content {
+    @apply flex flex-col items-center gap-4 text-white;
+    animation: scaleIn 0.4s ease-out;
+  }
+
+  .success-overlay-icon {
+    @apply w-20 h-20 rounded-full;
+    @apply flex items-center justify-center;
+    background: rgba(255, 255, 255, 0.2);
+    animation: pulse 1s ease-in-out infinite;
+  }
+
+  .success-overlay-message {
+    @apply text-xl font-semibold;
+  }
+
+  @keyframes scaleIn {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* ============================================
+   * Notification Card
+   * ============================================ */
+  .notification-card {
+    @apply w-full flex flex-col gap-2 p-4;
+    @apply text-black bg-gradient-to-r from-amber-50 to-orange-50;
+    @apply rounded-xl transition-all duration-200;
+    @apply hover:shadow-md hover:scale-[1.02] active:scale-[0.98];
+    @apply border border-amber-200 cursor-pointer;
+  }
+
+  /* ============================================
+   * CTA Button (Landing Page)
+   * ============================================ */
+  .btn-cta-primary {
+    @apply px-6 py-4 bg-[#367D42] text-white rounded-full;
+    @apply w-full font-bold shadow-sm;
+    @apply active:scale-95 transition-transform;
+    @apply flex items-center justify-center gap-2;
+  }
 }
