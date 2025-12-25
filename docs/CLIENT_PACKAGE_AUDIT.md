@@ -838,4 +838,354 @@ const Carousel = React.lazy(() => import("./Carousel"));
 
 ---
 
-*Report generated: December 25, 2025*
+## Section 6: Extended Dead Code & Refactoring Analysis
+
+### 6.1 Unused Variables (Underscore-Prefixed)
+
+Found 10+ instances of unused variables with underscore prefix:
+
+| File | Variable | Line |
+|------|----------|------|
+| `views/Landing/index.tsx` | `_state` | 14 |
+| `views/Landing/index.tsx` | `_error` | 45 |
+| `views/WorkDashboard/index.tsx` | `_item` (2x) | 341, 351 |
+| `views/Garden/index.tsx` | `_showCompletionState` | 37 |
+| `views/Garden/index.tsx` | `_isTranslatingAction` | 130 |
+| `views/Garden/index.tsx` | `_isTranslatingGarden` | 141 |
+| `views/Garden/Media.tsx` | `_fileName` | 118 |
+| `components/Display/Accordion/Accordion.tsx` | `_className` | 47 |
+| `components/Inputs/Date/Date.tsx` | `_ref`, `_value` | 11, 24 |
+| `components/Inputs/Select/FormSelect.tsx` | `_ref` | 108 |
+
+**FIX:** Remove unused variables or actually use them:
+
+```tsx
+// Before
+const [_showCompletionState, setShowCompletionState] = useState(false);
+const { translatedAction, isTranslating: _isTranslatingAction } = useActionTranslation(selectedAction);
+
+// After - either remove the state entirely, or show loading states
+const { translatedAction, isTranslating } = useActionTranslation(selectedAction);
+// Use isTranslating to show loading indicator
+```
+
+### 6.2 Console Statements (21 Total)
+
+**Production console statements to review:**
+
+| File | Type | Line | Context |
+|------|------|------|---------|
+| `views/Home/WorkDashboard/Uploading.tsx` | `error` | 34 | Sync failure |
+| `views/Home/WorkDashboard/index.tsx` | `error` (2x) | 292, 298 | Navigation errors |
+| `views/Home/WorkDashboard/MyWork.tsx` | `error` | 20 | Queue flush |
+| `views/Login/index.tsx` | `error` (3x) | 253, 270, 282 | Auth errors |
+| `views/Profile/Account.tsx` | `error` (2x) | 157, 184 | Join/logout |
+| `views/Garden/index.tsx` | `error` | 303 | Work submission |
+| `components/Errors/*.tsx` | `error` (3x) | Various | Error boundaries |
+| `components/Cards/Work/WorkCard.tsx` | `error` | 325 | Media processing |
+| `App.tsx` | `warn` | 70 | IndexedDB fallback |
+
+**Recommendation:** Replace with structured logging via debug utilities:
+
+```tsx
+// Before
+console.error("[GardenFlow] Work submission threw", error);
+
+// After
+import { debugError } from "@green-goods/shared/utils";
+debugError("[GardenFlow] Work submission threw", error);
+```
+
+### 6.3 TypeScript `any` Types (38 in client, 20+ in shared)
+
+**Client package - worst offenders:**
+
+```tsx
+// WorkDashboard/index.tsx - 13 instances
+const operatorWorksById = useMemo(() => {
+  const map = new Map<string, any>();  // Should be Map<string, Work>
+  ...
+}, [operatorWorks]);
+
+const pendingNeedsReview: any[] = ...;  // Should be Work[]
+const handleWorkClick = (work: any) => { ... };  // Should be Work
+```
+
+**FIX:** Define proper types:
+
+```tsx
+// packages/client/src/views/Home/WorkDashboard/types.ts
+export interface WorkDashboardItem extends Work {
+  gardenName?: string;
+  isOperator?: boolean;
+  isGardener?: boolean;
+}
+
+export type RenderBadgesFn = (item: WorkDashboardItem) => React.ReactNode[];
+```
+
+### 6.4 `as any` Type Assertions (36 instances)
+
+Most are in test files (acceptable), but production code includes:
+
+```tsx
+// WorkDashboard/index.tsx:275
+const filteredCompleted = filterByTimeRange(completedWork as any, timeFilter);
+
+// WorkCard.tsx:306-315 - Media type handling
+const m0 = Array.isArray(work.media) && work.media.length > 0 ? (work.media as any[])[0] : undefined;
+if (typeof (m0 as any).url === "string") { ... }
+```
+
+**FIX:** Create proper media type:
+
+```tsx
+// packages/shared/src/types/media.ts
+export type MediaItem = 
+  | string  // URL string
+  | { url: string }  // Object with URL
+  | { file: File }  // Object with File
+  | File;  // Direct File
+
+export function resolveMediaUrl(item: MediaItem): string | undefined {
+  if (typeof item === "string") return item;
+  if (item instanceof File) return URL.createObjectURL(item);
+  if ("url" in item) return item.url;
+  if ("file" in item) return URL.createObjectURL(item.file);
+  return undefined;
+}
+```
+
+### 6.5 @ts-ignore Comments (4 instances)
+
+All in `views/Garden/Details.tsx`:
+
+```tsx
+// Lines 80, 94, 110, 122
+// @ts-ignore
+{...register(key, registerOptions)}
+```
+
+**Root cause:** Dynamic form field registration with variable keys.
+
+**FIX:** Use type assertion with proper typing:
+
+```tsx
+// Define dynamic field type
+type DynamicFormFields = Record<string, string | number | string[]>;
+
+// Use proper type assertion
+{...register(key as keyof DynamicFormFields, registerOptions)}
+```
+
+### 6.6 Deprecated Code in Shared Package
+
+Found 9+ deprecated functions/modules still exported:
+
+| Module | Deprecated Item | Replacement |
+|--------|-----------------|-------------|
+| `modules/data/ipfs.ts` | `initPinata` | `initializeIpfs` |
+| `modules/data/ipfs.ts` | `initPinataFromEnv` | `initializeIpfsFromEnv` |
+| `modules/auth/session.ts` | `CREDENTIAL_STORAGE_KEY` | Pimlico server |
+| `modules/auth/session.ts` | `hasStoredCredential` | `hasStoredUsername` |
+| `modules/auth/session.ts` | `clearCredential` | `clearAllAuth` |
+| `utils/errors/contract-errors.ts` | `isNotGardenerError` | `isNotGardenMemberError` |
+
+**Recommendation:** Add deprecation warnings and plan removal in next major version.
+
+### 6.7 Skeleton Loading Patterns (8 unique patterns)
+
+Multiple skeleton implementations that could be consolidated:
+
+1. `GardenCardSkeleton` - used 7 times
+2. `ActionCardSkeleton` - used 4 times
+3. `WorkViewSkeleton` - used 5 times
+4. `AvatarSkeleton` - used 1 time
+5. Inline skeleton in `MyWork.tsx` - custom pattern
+
+**FIX:** Create base skeleton utilities:
+
+```tsx
+// packages/client/src/components/Communication/Skeleton/Skeleton.tsx
+export const SkeletonBox: React.FC<{ className?: string }> = ({ className }) => (
+  <div className={cn("bg-slate-200 rounded animate-pulse", className)} />
+);
+
+export const SkeletonText: React.FC<{ width?: string }> = ({ width = "w-full" }) => (
+  <SkeletonBox className={cn("h-4", width)} />
+);
+
+export const SkeletonAvatar: React.FC<{ size?: "sm" | "md" | "lg" }> = ({ size = "md" }) => {
+  const sizes = { sm: "w-8 h-8", md: "w-10 h-10", lg: "w-12 h-12" };
+  return <SkeletonBox className={cn("rounded-full", sizes[size])} />;
+};
+```
+
+### 6.8 Repeated Array.from Skeleton Patterns
+
+Found 8 instances of similar patterns:
+
+```tsx
+// Same pattern in 5+ files
+{Array.from({ length: 4 }).map((_, idx) => (
+  <SomeCardSkeleton key={idx} />
+))}
+```
+
+**FIX:** Create reusable skeleton list component:
+
+```tsx
+// packages/client/src/components/Communication/Skeleton/SkeletonList.tsx
+interface SkeletonListProps<P> {
+  count: number;
+  component: React.ComponentType<P>;
+  componentProps?: P;
+  direction?: "row" | "column";
+  gap?: number;
+}
+
+export function SkeletonList<P extends object>({
+  count,
+  component: Component,
+  componentProps = {} as P,
+  direction = "column",
+  gap = 4,
+}: SkeletonListProps<P>) {
+  return (
+    <div className={cn("flex", direction === "row" ? "flex-row" : "flex-col", `gap-${gap}`)}>
+      {Array.from({ length: count }).map((_, idx) => (
+        <Component key={idx} {...componentProps} />
+      ))}
+    </div>
+  );
+}
+
+// Usage:
+<SkeletonList count={4} component={GardenCardSkeleton} componentProps={{ media: "small" }} />
+```
+
+---
+
+## Section 7: Additional Refactoring Opportunities
+
+### 7.1 Direct `navigator.onLine` Usage
+
+Found 3 direct usages instead of using the `useOffline` hook:
+
+```tsx
+// views/Home/Garden/Work.tsx:423,447
+disabled={isRetrying || !navigator.onLine}
+{!navigator.onLine && (...)}
+
+// components/Navigation/TopNav.tsx:144
+const hasOfflineIssues = !navigator.onLine;
+```
+
+**FIX:** Use the hook consistently:
+
+```tsx
+const { isOnline } = useOffline();
+// Then use isOnline instead of navigator.onLine
+```
+
+### 7.2 Query Invalidation Patterns
+
+Found scattered `queryClient.invalidateQueries` calls that could use centralized invalidation:
+
+**Before:**
+```tsx
+queryClient.invalidateQueries({ queryKey: queryKeys.queue.uploading() });
+queryClient.invalidateQueries({ queryKey: queryKeys.queue.stats() });
+queryClient.invalidateQueries({ queryKey: ["myWorks", activeAddress, DEFAULT_CHAIN_ID] });
+```
+
+**After:** Use the existing `queryInvalidation` utilities:
+
+```tsx
+import { queryInvalidation } from "@green-goods/shared/hooks";
+
+// Single call for related invalidations
+queryInvalidation.onJobCompleted(gardenId, chainId).forEach(key => 
+  queryClient.invalidateQueries({ queryKey: key })
+);
+```
+
+### 7.3 Badge Rendering Functions Duplication
+
+Three nearly identical badge rendering functions in `WorkDashboard/index.tsx`:
+
+- `renderWorkBadges` (lines 310-339)
+- `renderApprovalBadges` (lines 341-349)
+- `renderMyWorkReviewedBadges` (lines 351-353)
+
+**FIX:** Consolidate into a single function:
+
+```tsx
+const renderBadges = (item: Work, context: "work" | "approval" | "myWork") => {
+  const badges: React.ReactNode[] = [];
+  
+  if (context === "work") {
+    // Work-specific badges
+  } else if (context === "approval") {
+    badges.push(<span className="badge-pill-emerald">Reviewed by you</span>);
+  } else if (context === "myWork") {
+    badges.push(<span className="badge-pill-slate">Your work was reviewed</span>);
+  }
+  
+  return badges;
+};
+```
+
+---
+
+## Updated Action Items Summary
+
+### Critical (Fix Immediately)
+| Item | Files | Lines Saved |
+|------|-------|-------------|
+| Replace `any` types in WorkDashboard | 1 file | Type safety |
+| Use `ListState` component | 4 files | ~200 lines |
+| Fix @ts-ignore in Details.tsx | 1 file | 4 suppressions |
+
+### High Priority
+| Item | Files | Impact |
+|------|-------|--------|
+| Add badge-pill CSS utilities | Many | ~50 class strings |
+| Remove unused underscore variables | 10 files | Dead code |
+| Replace console.* with debugLog | 12 files | Production logs |
+| Use queryInvalidation utilities | 2 files | Consistency |
+
+### Medium Priority
+| Item | Files | Impact |
+|------|-------|--------|
+| Create SkeletonList component | 5 files | DRY skeletons |
+| Use useOffline consistently | 3 files | Consistency |
+| Remove deprecated exports | shared pkg | Technical debt |
+| Add MediaItem type | 2 files | Type safety |
+
+### Low Priority
+| Item | Files | Impact |
+|------|-------|--------|
+| Consolidate badge render functions | 1 file | ~40 lines |
+| Remove deprecated shared code | shared pkg | Cleanup |
+
+---
+
+## Files Changed in This Audit
+
+### New Files Created
+1. `packages/client/src/components/Communication/ListState/ListState.tsx`
+2. `packages/client/src/components/Communication/ListState/index.ts`
+3. `packages/client/src/components/Communication/SuccessOverlay/SuccessOverlay.tsx`
+4. `packages/client/src/components/Communication/SuccessOverlay/index.ts`
+5. `packages/shared/src/utils/app/connectivity.ts`
+
+### Files Modified
+1. `packages/client/src/styles/utilities.css` - Added utility classes
+2. `packages/client/src/components/Communication/index.ts` - Updated exports
+3. `packages/shared/src/utils/index.ts` - Added connectivity exports
+
+---
+
+*Report generated: December 25, 2025*  
+*Extended: December 25, 2025*
