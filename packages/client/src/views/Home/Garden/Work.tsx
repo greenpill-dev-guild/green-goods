@@ -1,4 +1,4 @@
-import { toastService } from "@green-goods/shared";
+import { StatusBadge, toastService } from "@green-goods/shared";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
 import {
   queryKeys,
@@ -241,9 +241,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
       feedback: inlineFeedback,
     };
 
-    // Set optimistic status BEFORE mutation for immediate UI feedback
-    setOptimisticStatus(feedbackMode === "approve" ? "approved" : "rejected");
-
+    // Optimistic status is set AFTER transaction confirms (in job:completed handler)
     workApprovalMutation.mutate({ draft, work });
     setFeedbackMode(null);
     setInlineFeedback("");
@@ -261,6 +259,9 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
       if (payload.workUID !== work.id) return;
 
       if (type === "job:completed") {
+        // Set optimistic status AFTER transaction confirms (bridges indexer lag)
+        setOptimisticStatus(payload.approved ? "approved" : "rejected");
+
         const message = payload.approved
           ? intl.formatMessage({ id: "app.toast.workApproved", defaultMessage: "Work approved" })
           : intl.formatMessage({ id: "app.toast.workRejected", defaultMessage: "Work rejected" });
@@ -271,10 +272,17 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
           context: "approval submission",
           suppressLogging: true,
         });
-        // Navigate back after successful approval
-        setTimeout(() => navigateToTop(`/home/${garden?.id ?? ""}`), 500);
+
+        // Delay navigation to show success state (2.5s instead of 500ms)
+        setTimeout(() => {
+          setOptimisticStatus(null); // Clear before navigating
+          navigateToTop(`/home/${garden?.id ?? ""}`);
+        }, 2500);
       }
       if (type === "job:failed") {
+        // Clear optimistic status on failure
+        setOptimisticStatus(null);
+
         const failureMessage = intl.formatMessage({
           id: "app.toast.actionFailed",
           defaultMessage: "Action failed",
@@ -287,6 +295,8 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
           error: "error" in data ? data.error : undefined,
         });
       }
+
+      // Invalidate queries - real data will replace optimistic when ready
       queryClient.invalidateQueries({ queryKey: queryKeys.workApprovals.all });
       if (garden?.id) {
         queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(garden.id, chainId) });
@@ -295,6 +305,14 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
     },
     [work?.id, garden?.id]
   );
+
+  // Clear optimistic status when real data arrives
+  useEffect(() => {
+    if (optimisticStatus && work?.status && work.status === optimisticStatus) {
+      // Real data caught up with optimistic state, clear it
+      setOptimisticStatus(null);
+    }
+  }, [work?.status, optimisticStatus]);
 
   // using shared ConfirmDrawer component
 
@@ -645,24 +663,40 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   return (
     <article>
       <TopNav onBackClick={handleBack} overlay />
-      <div className="padded pt-20">
+      <div
+        className={cn(
+          "padded pt-20",
+          effectiveStatus === "approved" && "bg-green-50/20",
+          effectiveStatus === "rejected" && "bg-red-50/20"
+        )}
+      >
         {isMetadataLoading ? (
           <WorkViewSkeleton showMedia showActions={false} numDetails={3} />
         ) : (
-          <WorkViewSection
-            garden={garden}
-            work={work}
-            workMetadata={workMetadata}
-            viewingMode={viewingMode}
-            actionTitle={resolvedActionTitle}
-            onDownloadData={handleDownloadData}
-            onDownloadMedia={hasMedia ? handleDownloadMedia : undefined}
-            onShare={handleShare}
-            onViewAttestation={canViewAttestation ? handleViewAttestation : undefined}
-            footer={retryFooter || approvalFooter || successFooter}
-            reserveFooterSpace={Boolean(retryFooter || approvalFooter || successFooter)}
-            footerSpacerClassName="h-[calc(112px+env(safe-area-inset-bottom))]"
-          />
+          <>
+            {/* Status Badge - Prominent display for approved/rejected work */}
+            {effectiveStatus !== "pending" && (
+              <div className="mb-4 flex justify-center">
+                <StatusBadge status={effectiveStatus} size="md" className="shadow-sm" />
+              </div>
+            )}
+
+            <WorkViewSection
+              garden={garden}
+              work={work}
+              workMetadata={workMetadata}
+              viewingMode={viewingMode}
+              actionTitle={resolvedActionTitle}
+              effectiveStatus={effectiveStatus}
+              onDownloadData={handleDownloadData}
+              onDownloadMedia={hasMedia ? handleDownloadMedia : undefined}
+              onShare={handleShare}
+              onViewAttestation={canViewAttestation ? handleViewAttestation : undefined}
+              footer={retryFooter || approvalFooter || successFooter}
+              reserveFooterSpace={Boolean(retryFooter || approvalFooter || successFooter)}
+              footerSpacerClassName="h-[calc(112px+env(safe-area-inset-bottom))]"
+            />
+          </>
         )}
 
         {metadataStatus === "error" && (

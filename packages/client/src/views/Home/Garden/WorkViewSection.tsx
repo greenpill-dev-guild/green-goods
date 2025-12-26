@@ -19,6 +19,7 @@ type WorkViewSectionProps = {
   workMetadata: WorkMetadata | null;
   viewingMode: ViewingMode;
   actionTitle: string;
+  effectiveStatus: "approved" | "rejected" | "pending";
   onDownloadData: () => void;
   onDownloadMedia?: () => void;
   onShare: () => void;
@@ -34,6 +35,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
   workMetadata,
   viewingMode,
   actionTitle,
+  effectiveStatus,
   onDownloadData,
   onDownloadMedia,
   onShare,
@@ -45,6 +47,92 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
   const intl = useIntl();
 
   const { feedback: workFeedback, media } = work;
+
+  // Dynamic title based on status and viewing mode
+  const getTitle = () => {
+    if (viewingMode === "operator") {
+      if (effectiveStatus === "approved") {
+        return intl.formatMessage({
+          id: "app.home.workApproval.workApproved",
+          defaultMessage: "Work Approved ✓",
+        });
+      }
+      if (effectiveStatus === "rejected") {
+        return intl.formatMessage({
+          id: "app.home.workApproval.workRejected",
+          defaultMessage: "Work Rejected",
+        });
+      }
+      return intl.formatMessage({
+        id: "app.home.workApproval.evaluateWork",
+        defaultMessage: "Evaluate Work",
+      });
+    }
+
+    if (viewingMode === "gardener") {
+      if (effectiveStatus === "approved") {
+        return intl.formatMessage({
+          id: "app.home.work.yourSubmissionApproved",
+          defaultMessage: "Your Work Submission ✓",
+        });
+      }
+      return intl.formatMessage({
+        id: "app.home.work.yourSubmission",
+        defaultMessage: "Your Work Submission",
+      });
+    }
+
+    return intl.formatMessage({
+      id: "app.home.work.viewWork",
+      defaultMessage: "View Work",
+    });
+  };
+
+  // Dynamic info text based on status and viewing mode
+  const getInfo = () => {
+    if (viewingMode === "operator") {
+      if (effectiveStatus === "approved") {
+        return intl.formatMessage({
+          id: "app.home.workApproval.workHasBeenApproved",
+          defaultMessage: "This work has been approved",
+        });
+      }
+      if (effectiveStatus === "rejected") {
+        return intl.formatMessage({
+          id: "app.home.workApproval.workHasBeenRejected",
+          defaultMessage: "This work has been rejected",
+        });
+      }
+      return intl.formatMessage({
+        id: "app.home.workApproval.verifyIfTheWorkIsAcceptable",
+        defaultMessage: "Verify if the work is acceptable",
+      });
+    }
+
+    if (viewingMode === "gardener") {
+      if (effectiveStatus === "approved") {
+        return intl.formatMessage({
+          id: "app.home.work.approvedByOperator",
+          defaultMessage: "Your work has been approved by the garden operator",
+        });
+      }
+      if (effectiveStatus === "rejected") {
+        return intl.formatMessage({
+          id: "app.home.work.notApproved",
+          defaultMessage: "This work was not approved",
+        });
+      }
+      return intl.formatMessage({
+        id: "app.home.work.submittedForReview",
+        defaultMessage: "Submitted for review",
+      });
+    }
+
+    return intl.formatMessage({
+      id: "app.home.work.exploreSubmission",
+      defaultMessage: "Explore this work submission",
+    });
+  };
 
   // Utility actions (download, share, view attestation)
   const primaryActions: WorkViewAction[] = [
@@ -118,35 +206,8 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
 
   return (
     <WorkView
-      title={
-        viewingMode === "operator"
-          ? intl.formatMessage({
-              id: "app.home.workApproval.evaluateWork",
-              defaultMessage: "Evaluate Work",
-            })
-          : viewingMode === "gardener"
-            ? intl.formatMessage({
-                id: "app.home.work.yourSubmission",
-                defaultMessage: "Your Work Submission",
-              })
-            : intl.formatMessage({ id: "app.home.work.viewWork", defaultMessage: "View Work" })
-      }
-      info={
-        viewingMode === "operator"
-          ? intl.formatMessage({
-              id: "app.home.workApproval.verifyIfTheWorkIsAcceptable",
-              defaultMessage: "Verify if the work is acceptable",
-            })
-          : viewingMode === "gardener"
-            ? intl.formatMessage({
-                id: "app.home.work.submittedForReview",
-                defaultMessage: "Submitted for review",
-              })
-            : intl.formatMessage({
-                id: "app.home.work.exploreSubmission",
-                defaultMessage: "Explore this work submission",
-              })
-      }
+      title={getTitle()}
+      info={getInfo()}
       garden={garden}
       actionTitle={actionTitle}
       media={media}
