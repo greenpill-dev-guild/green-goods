@@ -143,4 +143,41 @@
     background: transparent;
     pointer-events: auto;
   }
+
+  /* ============================================
+   * Status Badge Variants
+   * Used in: WorkCard, MyWork, Uploading, WorkDashboard
+   * ============================================ */
+  .badge-pill {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+  }
+
+  .badge-pill-blue {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium bg-blue-50 text-blue-600 border-blue-200;
+  }
+
+  .badge-pill-amber {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium bg-amber-50 text-amber-600 border-amber-200;
+  }
+
+  .badge-pill-green {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium bg-green-50 text-green-600 border-green-200;
+  }
+
+  .badge-pill-red {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium bg-red-50 text-red-600 border-red-200;
+  }
+
+  .badge-pill-purple {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium bg-purple-50 text-purple-600 border-purple-200;
+  }
+
+  .badge-pill-slate {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium bg-slate-50 text-slate-600 border-slate-200;
+  }
+
+  .badge-pill-emerald {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium bg-emerald-50 text-emerald-600 border-emerald-200;
+  }
+
 }

@@ -38,23 +38,9 @@ export const FormProgress = ({ currentStep, steps }: FormProgressProps) => {
                 </div>
               )}
             </div>
-            {/* <div className="mt-3">
-            <span className={`block font-medium text-lg text-teal-600`}>
-              {step}
-            </span>
-          </div> */}
           </div>
         );
       })}
     </div>
   );
 };
-
-{
-  /* <ul className="steps">
-  <li className="step step-primary">Register</li>
-  <li className="step step-primary">Choose plan</li>
-  <li className="step">Purchase</li>
-  <li className="step">Receive Product</li>
-</ul> */
-}

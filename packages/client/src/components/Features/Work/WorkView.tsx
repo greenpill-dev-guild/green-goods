@@ -15,14 +15,17 @@ export type WorkViewAction = {
   className?: string;
 };
 
+// Icon component type for details and header
+type IconComponent = React.ComponentType<{ className?: string }>;
+
 type WorkViewProps = {
   title: string;
   info: string;
   garden: Garden;
   actionTitle: string;
   media?: string[];
-  details: Array<{ label: string; value: string; icon?: React.ComponentType<any> | null }>;
-  headerIcon?: React.ComponentType<any> | null;
+  details: Array<{ label: string; value: string; icon?: IconComponent | null }>;
+  headerIcon?: IconComponent | null;
   primaryActions?: WorkViewAction[]; // shown near header or under details
   feedbackSection?: React.ReactNode; // optional feedback input section
   footer?: React.ReactNode; // e.g., fixed approval bar
@@ -156,7 +159,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
                   shape="pilled"
                   mode={hasCustomStyling ? undefined : isApprovalAction ? "filled" : "stroke"}
                   size="medium"
-                  leadingIcon={(a.icon as any) ?? <RiDownloadLine className="w-6 h-6" />}
+                  leadingIcon={a.icon ?? <RiDownloadLine className="w-6 h-6" />}
                   disabled={a.disabled}
                 />
               );

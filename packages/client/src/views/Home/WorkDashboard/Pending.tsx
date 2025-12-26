@@ -4,12 +4,12 @@ import { MinimalWorkCard } from "@/components/Cards";
 import { BeatLoader } from "@/components/Communication";
 
 interface PendingTabProps {
-  pendingWork: any[];
+  pendingWork: Work[];
   isLoading: boolean;
   hasError: boolean;
   errorMessage?: string;
-  onWorkClick: (work: any) => void;
-  renderBadges?: (work: any) => React.ReactNode[];
+  onWorkClick: (work: Work) => void;
+  renderBadges?: (work: Work) => React.ReactNode[];
   headerContent?: React.ReactNode;
 }
 

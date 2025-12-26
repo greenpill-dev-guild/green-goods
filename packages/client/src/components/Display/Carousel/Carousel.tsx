@@ -233,26 +233,4 @@ const CarouselItem = React.forwardRef<
 });
 CarouselItem.displayName = "CarouselItem";
 
-const GardenCarousel = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & { garden: Garden }
->(({ className, children, garden, ...props }, ref) => {
-  return (
-    <div ref={ref} className={cn("flex flex-col", className)} {...props}>
-      <img
-        src={garden.bannerImage}
-        alt={garden.description}
-        className="max-h-26 object-cover"
-        loading="lazy"
-        decoding="async"
-      />
-      <div className="p-2">
-        <h5 className="text-xl font-medium">{garden.name}</h5>
-      </div>
-      {children}
-    </div>
-  );
-});
-GardenCarousel.displayName = "GardenCarousel";
-
-export { type CarouselApi, Carousel, CarouselContent, CarouselItem, GardenCarousel };
+export { type CarouselApi, Carousel, CarouselContent, CarouselItem };

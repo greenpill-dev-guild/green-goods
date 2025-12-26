@@ -62,6 +62,9 @@ export interface MinimalWorkCardProps {
   variant?: "default" | "dashboard"; // dashboard variant hides gardener info
 }
 
+// Type for media items which can be strings, objects with url, or File objects
+type MediaItem = string | { url: string } | { file: File } | File;
+
 const WorkTypeIcon: React.FC<{ type: string; className?: string }> = ({ type, className }) => {
   const Icon = type === "work_approval" ? RiUserLine : RiTaskLine;
   return <Icon className={className} />;
@@ -302,20 +305,21 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   React.useEffect(() => {
     let createdUrl: string | undefined;
     try {
-      const m0 =
-        Array.isArray(work.media) && work.media.length > 0 ? (work.media as any[])[0] : undefined;
+      const mediaArray = work.media as MediaItem[] | undefined;
+      const m0: MediaItem | undefined =
+        Array.isArray(mediaArray) && mediaArray.length > 0 ? mediaArray[0] : undefined;
 
       let url: string | undefined;
       if (typeof m0 === "string") {
         url = m0;
       } else if (m0 && typeof m0 === "object") {
-        if (typeof (m0 as any).url === "string") {
-          url = (m0 as any).url as string;
-        } else if ((m0 as any).file instanceof File) {
-          createdUrl = URL.createObjectURL((m0 as any).file as File);
+        if ("url" in m0 && typeof m0.url === "string") {
+          url = m0.url;
+        } else if ("file" in m0 && m0.file instanceof File) {
+          createdUrl = URL.createObjectURL(m0.file);
           url = createdUrl;
         } else if (m0 instanceof File) {
-          createdUrl = URL.createObjectURL(m0 as File);
+          createdUrl = URL.createObjectURL(m0);
           url = createdUrl;
         }
       }
@@ -402,12 +406,12 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
         <div className="mt-2 flex items-center justify-between text-xs">
           <div className="flex items-center gap-2">
             {mediaCount > 0 && (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border bg-blue-50 text-blue-600 border-blue-100">
+              <span className="badge-pill-blue">
                 <RiImageLine className="w-3 h-3" /> {mediaCount}
               </span>
             )}
             {hasFeedback && (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border bg-purple-50 text-purple-600 border-purple-100">
+              <span className="badge-pill-purple">
                 <RiFileTextLine className="w-3 h-3" />
                 {intl.formatMessage({ id: "app.workCard.feedback", defaultMessage: "Feedback" })}
               </span>

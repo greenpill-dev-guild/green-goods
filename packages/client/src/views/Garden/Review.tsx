@@ -52,7 +52,11 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
       }
       return { label: input.title, value: display, icon: RiFileFill };
     })
-    .filter(Boolean) as Array<{ label: string; value: string; icon: any }>;
+    .filter(Boolean) as Array<{
+    label: string;
+    value: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }>;
 
   const baseDetails = [
     {

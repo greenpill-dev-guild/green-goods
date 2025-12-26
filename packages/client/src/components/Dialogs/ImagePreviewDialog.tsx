@@ -231,9 +231,18 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
   };
 
   // Touch handlers for pinch-to-zoom
+  const getTouchDistance = (touches: React.TouchList): number => {
+    const t0 = touches[0];
+    const t1 = touches[1];
+    if (!t0 || !t1) return 0;
+    const dx = t0.clientX - t1.clientX;
+    const dy = t0.clientY - t1.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
   const handleTouchStart = (e: TouchEvent<HTMLDivElement>) => {
     if (e.touches.length === 2) {
-      const distance = getTouchDistance(e.touches as unknown as unknown as any);
+      const distance = getTouchDistance(e.touches);
       setTouchState({
         initialDistance: distance,
         initialScale: scale,
@@ -249,7 +258,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
 
   const handleTouchMove = (e: TouchEvent<HTMLDivElement>) => {
     if (e.touches.length === 2 && touchState.initialDistance) {
-      const distance = getTouchDistance(e.touches as unknown as unknown as any);
+      const distance = getTouchDistance(e.touches);
       const scaleFactor = distance / touchState.initialDistance;
       const newScale = Math.max(0.5, Math.min(4, touchState.initialScale * scaleFactor));
       setScale(newScale);
@@ -264,16 +273,6 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
   const handleTouchEnd = () => {
     setTouchState({ initialDistance: null, initialScale: 1 });
     setIsDragging(false);
-  };
-
-  const getTouchDistance = (touches: any): number => {
-    // Normalize to array-like for React.TouchList compatibility
-    const t0 = touches[0];
-    const t1 = touches[1];
-    if (!t0 || !t1) return 0;
-    const dx = touches[0].clientX - touches[1].clientX;
-    const dy = touches[0].clientY - touches[1].clientY;
-    return Math.sqrt(dx * dx + dy * dy);
   };
 
   // Mouse drag handlers
