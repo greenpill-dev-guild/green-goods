@@ -117,7 +117,7 @@ export default defineConfig(({ mode }) => {
             options: {
               cacheName: "indexer-cache",
               expiration: {
-                maxAgeSeconds: 60 * 60, // 1 hour
+                maxAgeSeconds: 24 * 60 * 60, // 24 hours for offline
                 maxEntries: 100,
               },
               cacheableResponse: { statuses: [0, 200] },
@@ -130,7 +130,7 @@ export default defineConfig(({ mode }) => {
             options: {
               cacheName: "graphql-cache",
               expiration: {
-                maxAgeSeconds: 60 * 60, // 1 hour
+                maxAgeSeconds: 24 * 60 * 60, // 24 hours for offline
                 maxEntries: 100,
               },
               cacheableResponse: { statuses: [0, 200] },

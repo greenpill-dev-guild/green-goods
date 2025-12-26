@@ -1,9 +1,15 @@
-import { HydrationFallback } from "@green-goods/shared";
+import { ensureBaseLists, HydrationFallback } from "@green-goods/shared";
 import { createBrowserRouter, createHashRouter, redirect } from "react-router-dom";
 
 // Use hash router for IPFS builds to ensure proper SPA routing on IPFS gateways
 const createRouter =
   import.meta.env.VITE_USE_HASH_ROUTER === "true" ? createHashRouter : createBrowserRouter;
+
+// Prefetch base lists before rendering home (non-blocking)
+const homeLoader = () => {
+  ensureBaseLists();
+  return null;
+};
 
 export const router = createRouter([
   {
@@ -33,6 +39,7 @@ export const router = createRouter([
               {
                 id: "home",
                 path: "home",
+                loader: homeLoader,
                 lazy: async () => ({ Component: (await import("@/views/Home")).default }),
                 children: [
                   {

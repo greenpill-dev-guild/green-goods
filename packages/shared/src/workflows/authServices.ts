@@ -118,65 +118,50 @@ async function buildSmartAccountFromCredential(
 // SERVICE: Restore Session
 // ============================================================================
 
-/**
- * Restore session from Pimlico server
- *
- * Flow:
- * 1. Check for stored username (only thing stored locally)
- * 2. Fetch credentials from Pimlico server
- * 3. Build smart account (silent - no biometric until first tx)
- */
-// Session restore timeout in milliseconds (5 seconds)
-const SESSION_RESTORE_TIMEOUT = 5000;
+// Session restore: 15s timeout with 2 retries for poor networks
+const SESSION_RESTORE_TIMEOUT = 15000;
+const SESSION_RESTORE_MAX_RETRIES = 2;
 
-export const restoreSessionService = fromPromise<RestoreSessionResult | null, RestoreInput>(
-  async ({ input }) => {
-    const { chainId } = input;
-
-    console.debug("[AuthServices] restoreSession starting with chainId:", chainId);
-
-    // Check for stored username
-    const storedUsername = getStoredUsername();
-    console.debug("[AuthServices] Stored username:", storedUsername);
-
-    if (!storedUsername) {
-      console.debug("[AuthServices] No stored username, returning null");
-      return null;
-    }
-
-    // Create passkey server client
-    const passkeyClient = createPasskeyServerClient(chainId);
-    console.debug("[AuthServices] Created passkey server client for chain:", chainId);
-
+async function fetchCredentialsWithRetry(
+  passkeyClient: PasskeyServerClient,
+  storedUsername: string
+): Promise<P256Credential[] | null> {
+  for (let attempt = 0; attempt <= SESSION_RESTORE_MAX_RETRIES; attempt++) {
     try {
-      // Fetch credentials from Pimlico server with timeout for poor network
-      console.debug("[AuthServices] Fetching credentials from Pimlico for user:", storedUsername);
-      const credentials = await Promise.race([
-        passkeyClient.getCredentials({
-          context: { userName: storedUsername },
-        }),
+      return await Promise.race([
+        passkeyClient.getCredentials({ context: { userName: storedUsername } }),
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error("Session restore timeout")), SESSION_RESTORE_TIMEOUT)
         ),
       ]);
+    } catch (error) {
+      if (attempt === SESSION_RESTORE_MAX_RETRIES) throw error;
+      // Exponential backoff: 1s, 2s
+      await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, attempt)));
+    }
+  }
+  return null;
+}
 
-      console.debug("[AuthServices] Received credentials count:", credentials.length);
+export const restoreSessionService = fromPromise<RestoreSessionResult | null, RestoreInput>(
+  async ({ input }) => {
+    const { chainId } = input;
+    const storedUsername = getStoredUsername();
 
-      if (credentials.length === 0) {
-        // No credentials on server - clear local username
-        console.warn("[AuthServices] No credentials on Pimlico server, clearing local username");
+    if (!storedUsername) return null;
+
+    const passkeyClient = createPasskeyServerClient(chainId);
+
+    try {
+      const credentials = await fetchCredentialsWithRetry(passkeyClient, storedUsername);
+
+      if (!credentials || credentials.length === 0) {
         clearStoredUsername();
         return null;
       }
 
-      // Use first credential (most recent)
       const credential = credentials[0];
-      console.debug("[AuthServices] Using credential:", credential.id);
-
-      // Build smart account (silent - no biometric prompt)
-      console.debug("[AuthServices] Building smart account...");
       const { client, address } = await buildSmartAccountFromCredential(credential, chainId);
-      console.debug("[AuthServices] Smart account built:", address);
 
       return {
         credential,
@@ -184,14 +169,8 @@ export const restoreSessionService = fromPromise<RestoreSessionResult | null, Re
         smartAccountAddress: address,
         userName: storedUsername,
       };
-    } catch (error) {
-      if (error instanceof Error && error.message === "Session restore timeout") {
-        console.warn("[AuthServices] Session restore timed out - user can re-authenticate");
-      } else {
-        console.error("[AuthServices] Failed to restore session from Pimlico:", error);
-      }
+    } catch {
       // Don't clear username on network errors - user still has account
-      // Only clear if we successfully contacted server but found no credentials (handled above)
       return null;
     }
   }

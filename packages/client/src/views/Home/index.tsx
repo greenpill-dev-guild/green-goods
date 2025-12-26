@@ -6,12 +6,16 @@ import {
   useOffline,
 } from "@green-goods/shared/hooks";
 import { useUIStore } from "@green-goods/shared/stores";
+import type { Garden } from "@green-goods/shared/types";
 import { cn, gardenHasMember } from "@green-goods/shared/utils";
 import { RiFilterLine } from "@remixicon/react";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation } from "react-router-dom";
 import { GardenCard, GardenCardSkeleton } from "@/components/Cards";
+
+// Minimum time to show skeleton before revealing cached data (prevents flash)
+const MIN_SKELETON_MS = 1500;
 import {
   GardenFilterScope,
   GardenFiltersState,
@@ -28,6 +32,24 @@ const Home: React.FC = () => {
   const { isOnline } = useOffline();
   const { smartAccountAddress, walletAddress } = useAuth();
   const [filters, setFilters] = useState<GardenFiltersState>({ scope: "all", sort: "default" });
+
+  // Minimum skeleton display time to prevent flash of cached content
+  const [minTimeElapsed, setMinTimeElapsed] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    if (isLoading && !minTimeElapsed) {
+      timerRef.current = setTimeout(() => setMinTimeElapsed(true), MIN_SKELETON_MS);
+    }
+    return () => clearTimeout(timerRef.current);
+  }, [isLoading, minTimeElapsed]);
+
+  // Reset timer when navigating back to home
+  useEffect(() => {
+    if (location.pathname === "/home") {
+      setMinTimeElapsed(false);
+    }
+  }, [location.pathname]);
 
   // Use UIStore for filter drawer state (allows AppBar to react to drawer state)
   const { isGardenFilterOpen, openGardenFilter, closeGardenFilter } = useUIStore();
@@ -109,7 +131,11 @@ const Home: React.FC = () => {
   };
 
   const renderGardens = () => {
-    if (isLoading) {
+    // Show skeletons until min time elapsed OR if no cached data available
+    const hasCachedData = gardensResolved.length > 0;
+    const showSkeletons = isLoading && (!hasCachedData || !minTimeElapsed);
+
+    if (showSkeletons) {
       return (
         <div className="flex flex-col gap-4">
           {Array.from({ length: 3 }).map((_, idx) => (
@@ -127,7 +153,7 @@ const Home: React.FC = () => {
       );
     }
 
-    if (isError && !isOnline) {
+    if (isError && !hasCachedData && !isOnline) {
       return (
         <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
           <p className="text-slate-600">
@@ -184,18 +210,35 @@ const Home: React.FC = () => {
       );
     }
 
-    return filteredGardens.map((garden: Garden) => (
-      <GardenCard
-        key={garden.id}
-        garden={garden}
-        media="large"
-        height="home"
-        showOperators={true}
-        selected={garden.id === selectedGardenId}
-        {...garden}
-        onClick={() => handleCardClick(garden.id)}
-      />
-    ));
+    // Show offline/refreshing indicator when showing stale data
+    const isRefreshing = isLoading && hasCachedData;
+
+    return (
+      <>
+        {isRefreshing && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm text-amber-800 mb-2">
+            {isOnline
+              ? intl.formatMessage({ id: "app.home.refreshing", defaultMessage: "Refreshing..." })
+              : intl.formatMessage({
+                  id: "app.home.offline.cached",
+                  defaultMessage: "Showing cached data. You're offline.",
+                })}
+          </div>
+        )}
+        {filteredGardens.map((garden: Garden) => (
+          <GardenCard
+            key={garden.id}
+            garden={garden}
+            media="large"
+            height="home"
+            showOperators={true}
+            selected={garden.id === selectedGardenId}
+            {...garden}
+            onClick={() => handleCardClick(garden.id)}
+          />
+        ))}
+      </>
+    );
   };
 
   return (

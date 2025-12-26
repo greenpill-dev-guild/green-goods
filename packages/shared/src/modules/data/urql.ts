@@ -1,4 +1,6 @@
 import { Client, cacheExchange, fetchExchange } from "@urql/core";
+import { offlineExchange } from "@urql/exchange-graphcache";
+import { makeDefaultStorage } from "@urql/exchange-graphcache/default-storage";
 import { getEasGraphqlUrl, getIndexerUrl } from "../../config/blockchain";
 
 /** Vite environment interface for indexer URL access */
@@ -6,25 +8,38 @@ interface ViteEnv {
   VITE_ENVIO_INDEXER_URL?: string;
 }
 
-/** Standard exchanges - deduplication is now built into the Client */
-const standardExchanges = [cacheExchange, fetchExchange];
+// IndexedDB storage for offline cache (24-hour TTL)
+const createStorage = () =>
+  makeDefaultStorage({
+    idbName: "gg-urql-cache",
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+  });
+
+// Offline-enabled exchanges with IndexedDB persistence
+const createOfflineExchanges = () => {
+  const storage = createStorage();
+  return [offlineExchange({ storage }), fetchExchange];
+};
+
+// Fallback for SSR or non-browser environments
+const fallbackExchanges = [cacheExchange, fetchExchange];
+
+const getExchanges = () =>
+  typeof window !== "undefined" ? createOfflineExchanges() : fallbackExchanges;
 
 /** Creates a chain-specific URQL client for EAS GraphQL API */
 export function createEasClient(chainId?: number | string) {
   return new Client({
     url: getEasGraphqlUrl(chainId),
-    exchanges: standardExchanges,
+    exchanges: getExchanges(),
   });
 }
 
-/**
- * Creates a URQL client for the Green Goods indexer
- * URL must be provided by the consuming app (client or admin)
- */
+/** Creates a URQL client for the Green Goods indexer */
 export function createIndexerClient(url: string) {
   return new Client({
     url,
-    exchanges: standardExchanges,
+    exchanges: getExchanges(),
   });
 }
 
@@ -32,7 +47,7 @@ export function createIndexerClient(url: string) {
 export function createGreenGoodsIndexerClient(env: ViteEnv, isDev: boolean) {
   return new Client({
     url: getIndexerUrl(env, isDev),
-    exchanges: standardExchanges,
+    exchanges: getExchanges(),
   });
 }
 
