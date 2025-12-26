@@ -78,9 +78,9 @@ import { DEFAULT_CHAIN_ID } from "@green-goods/shared";
 ## Hook Categories
 
 ### Auth Hooks (`hooks/auth/`)
-- `useAuth` — Unified auth context (passkey + wallet)
+- `useAuth` — Unified auth hook (passkey + wallet modes)
 - `useUser` — Current user state and addresses
-- `useClientAuth`, `usePasskeyAuth`, `useWalletAuth` — Mode-specific auth
+- `useAuthContext` — Direct access to AuthProvider context
 
 ### Garden Hooks (`hooks/garden/`)
 - `useGardens` — Fetch all gardens
@@ -232,21 +232,23 @@ Providers must be nested in this order:
 
 ```tsx
 <WagmiProvider>
-  <AppProvider>
-    <ClientAuthProvider>
-      <QueryClientProvider>
-        <JobQueueProvider>
-          <WorkProvider>
-            {children}
-          </WorkProvider>
-        </JobQueueProvider>
-      </QueryClientProvider>
-    </ClientAuthProvider>
-  </AppProvider>
+  <AppKitProvider>
+    <AuthProvider>
+      <AppProvider>
+        <QueryClientProvider>
+          <JobQueueProvider>
+            <WorkProvider>
+              {children}
+            </WorkProvider>
+          </JobQueueProvider>
+        </QueryClientProvider>
+      </AppProvider>
+    </AuthProvider>
+  </AppKitProvider>
 </WagmiProvider>
 ```
 
-**Why:** Each provider depends on ancestors. Changing order breaks functionality.
+**Why:** Each provider depends on ancestors. `AuthProvider` requires `AppKitProvider` for wallet modal access.
 
 ## Store Guidelines
 

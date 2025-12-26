@@ -149,7 +149,7 @@ import {
 
 // Providers
 import { 
-  AppProvider, ClientAuthProvider, JobQueueProvider, WorkProvider 
+  AppProvider, AuthProvider, JobQueueProvider, WorkProvider 
 } from '@green-goods/shared';
 
 // Modules

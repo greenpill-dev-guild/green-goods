@@ -1,5 +1,4 @@
-import { useRole, useTheme } from "@green-goods/shared/hooks";
-import { useWalletAuth as useAuth } from "@green-goods/shared/providers";
+import { useAuth, useRole, useTheme } from "@green-goods/shared/hooks";
 import { cn } from "@green-goods/shared/utils";
 import {
   RiArrowDownSLine,
@@ -15,7 +14,7 @@ import { AddressDisplay } from "../AddressDisplay";
 export function UserProfile() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { disconnect, address } = useAuth();
+  const { signOut, eoaAddress } = useAuth();
   const { role } = useRole();
   const { theme, setTheme } = useTheme();
 
@@ -35,7 +34,7 @@ export function UserProfile() {
 
   const handleLogout = () => {
     setIsOpen(false);
-    disconnect();
+    signOut?.();
   };
 
   const getThemeIcon = (mode: string) => {
@@ -73,7 +72,7 @@ export function UserProfile() {
         <div className="text-right">
           <div className="text-sm font-medium text-text-strong capitalize">{role}</div>
           <div className="text-xs">
-            {address && <AddressDisplay address={address} showCopyButton={false} />}
+            {eoaAddress && <AddressDisplay address={eoaAddress} showCopyButton={false} />}
           </div>
         </div>
         <div className="flex items-center space-x-2">
@@ -101,7 +100,7 @@ export function UserProfile() {
                   {role} Account
                 </div>
                 <div className="text-xs">
-                  {address && <AddressDisplay address={address} showCopyButton={true} />}
+                  {eoaAddress && <AddressDisplay address={eoaAddress} showCopyButton={true} />}
                 </div>
               </div>
             </div>

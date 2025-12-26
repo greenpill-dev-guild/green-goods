@@ -18,9 +18,7 @@ This rule documents how client and admin packages should import from the shared 
 import { 
   useAuth, 
   useUser, 
-  useClientAuth, 
-  usePasskeyAuth, 
-  useWalletAuth 
+  useAuthContext 
 } from '@green-goods/shared';
 ```
 
@@ -147,13 +145,11 @@ queryKeys.queue.pending()
 import { 
   AppProvider,
   AppKitProvider,
-  ClientAuthProvider,
-  PasskeyAuthProvider,
-  WalletAuthProvider,
+  AuthProvider,
   JobQueueProvider,
   WorkProvider,
   useAppKit,
-  useClientAuthProvider,
+  useAuthContext,
   useJobQueue,
   useWork
 } from '@green-goods/shared';
@@ -357,11 +353,7 @@ import {
 import type { 
   // Auth
   AuthMode,
-  BaseAuthContext,
-  ClientAuthContext,
-  PasskeyAuthContext,
-  WalletAuthContext,
-  UnifiedAuthContext,
+  AuthContextType,
   PasskeySession,
   
   // Garden
@@ -412,14 +404,19 @@ import type {
 } from '@green-goods/shared';
 ```
 
-### Type Guards
+### Auth Mode Checks
 
 ```typescript
-import { 
-  isPasskeyAuth, 
-  isWalletAuth, 
-  hasSmartAccount 
-} from '@green-goods/shared';
+// Check auth mode directly from useAuth
+const { authMode, smartAccountClient } = useAuth();
+
+if (authMode === 'passkey' && smartAccountClient) {
+  // Passkey mode with smart account
+}
+
+if (authMode === 'wallet') {
+  // Wallet mode
+}
 ```
 
 ### Components

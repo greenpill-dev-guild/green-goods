@@ -1,7 +1,7 @@
 ---
-description: Authentication patterns — passkey-first, WebAuthn, Pimlico, smart accounts, Wagmi fallback
+description: Authentication patterns — passkey-first, WebAuthn, Pimlico, smart accounts, wallet fallback
 globs:
-  - "packages/shared/src/providers/*Auth*.tsx"
+  - "packages/shared/src/providers/Auth.tsx"
   - "packages/shared/src/hooks/auth/**"
   - "packages/shared/src/modules/auth/**"
   - "packages/client/src/routes/RequireAuth.tsx"
@@ -13,9 +13,9 @@ alwaysApply: false
 
 Green Goods uses **passkey-first authentication** with WebAuthn credentials and Kernel smart accounts via Pimlico. Wallet connection provides fallback for operators and admins.
 
-## Simplified Auth Architecture (v2)
+## Unified Auth Architecture
 
-The auth system was refactored to be minimal and avoid race conditions:
+The auth system uses a single `AuthProvider` (XState-based) that supports both passkey and wallet authentication modes.
 
 ### Storage Keys (Only 2)
 
@@ -25,9 +25,11 @@ export const PASSKEY_STORAGE_KEY = "greengoods_passkey_credential";  // WebAuthn
 export const AUTH_MODE_STORAGE_KEY = "greengoods_auth_mode";         // "passkey" | "wallet"
 ```
 
-### Core API (Only 3 Methods)
+### Core API
 
 ```typescript
+import { useAuth } from '@green-goods/shared/hooks';
+
 const {
   loginWithPasskey,   // Create/authenticate passkey
   loginWithWallet,    // Open wallet modal  
@@ -36,7 +38,10 @@ const {
   authMode,           // "passkey" | "wallet" | null
   isAuthenticated,
   isReady,
-} = useClientAuth();
+  eoaAddress,         // Wallet address (wallet mode)
+  smartAccountAddress, // Smart account address (passkey mode)
+  smartAccountClient,  // Smart account client (passkey mode)
+} = useAuth();
 ```
 
 ## Provider Hierarchy
@@ -45,71 +50,13 @@ const {
 // packages/client/src/main.tsx
 <AppErrorBoundary>
   <AppKitProvider>        {/* WagmiProvider */}
-    <ClientAuthProvider>  {/* PasskeyAuth + wallet sync */}
+    <AuthProvider>        {/* Unified XState auth - passkey + wallet */}
       <AppProvider>       {/* QueryClient + IntlProvider */}
         <App />
       </AppProvider>
-    </ClientAuthProvider>
+    </AuthProvider>
   </AppKitProvider>
 </AppErrorBoundary>
-```
-
-## Critical Implementation Rules
-
-### 1. Use `disconnect` from `@wagmi/core`, NOT `useDisconnect` hook
-
-```typescript
-// ✅ Correct - doesn't require QueryClient
-import { disconnect } from "@wagmi/core";
-import { useConfig } from "wagmi";
-
-const wagmiConfig = useConfig();
-await disconnect(wagmiConfig);
-
-// ❌ Wrong - requires QueryClientProvider ancestor
-import { useDisconnect } from "wagmi";
-const { disconnectAsync } = useDisconnect(); // Will throw if no QueryClient
-```
-
-**Why:** `useDisconnect` uses TanStack Query internally. `ClientAuthProvider` renders before `QueryClientProvider` in our hierarchy.
-
-### 2. Trust PasskeyAuth for restoration, don't clear auth mode prematurely
-
-```typescript
-// ✅ Correct - set mode immediately, sync effect handles failures
-useEffect(() => {
-  const savedMode = getAuthMode();
-  
-  if (savedMode === "passkey") {
-    setAuthMode("passkey");  // Trust PasskeyAuth to restore
-  } else if (savedMode === "wallet") {
-    setAuthMode("wallet");
-  }
-  // No else - don't clear if nothing saved
-}, []);
-
-// ❌ Wrong - creates race condition
-if (savedMode === "passkey" && passkeyAuth.isAuthenticated) {
-  // passkeyAuth.isAuthenticated may be false during async restore
-}
-```
-
-### 3. Handle failed passkey restore with sync effect
-
-```typescript
-// Sync effect catches when passkey restore fails
-useEffect(() => {
-  if (!isReady) return;
-
-  // Passkey was expected but failed to restore
-  if (!passkeyAuth.isAuthenticated && 
-      !passkeyAuth.isAuthenticating && 
-      authMode === "passkey" && 
-      passkeyAuth.isReady) {
-    setAuthMode(null);
-    clearAuthMode();
-  }
-}, [passkeyAuth.isAuthenticated, passkeyAuth.isAuthenticating, passkeyAuth.isReady, authMode, isReady]);
 ```
 
 ## Authentication Modes
@@ -141,15 +88,15 @@ export function Login() {
     isAuthenticating,
     isAuthenticated,
     isReady,
-  } = useClientAuth();
+  } = useAuth();
 
   const handlePasskeyLogin = async () => {
-    const session = await loginWithPasskey();
+    const session = await loginWithPasskey?.();
     // Auto-redirect handled by isAuthenticated check
   };
 
   const handleWalletLogin = () => {
-    loginWithWallet();  // Opens AppKit modal
+    loginWithWallet?.();  // Opens AppKit modal
   };
 
   if (!isReady) return <LoadingScreen />;
@@ -168,7 +115,7 @@ export function Login() {
 ## Auth Mode Branching for Transactions
 
 ```typescript
-const { authMode, smartAccountClient } = useClientAuth();
+const { authMode, smartAccountClient } = useAuth();
 
 if (authMode === 'wallet') {
   // Direct wallet submission
@@ -183,86 +130,12 @@ if (authMode === 'wallet') {
 }
 ```
 
-## ClientAuth Provider Implementation
-
-```typescript
-// packages/shared/src/providers/ClientAuth.tsx
-function ClientAuthProviderInner({ children }) {
-  const wagmiConfig = useConfig();
-  const passkeyAuth = usePasskeyAuth();
-  const { address, isConnected } = useAccount();
-
-  const [authMode, setAuthMode] = useState<AuthMode>(null);
-  const [isReady, setIsReady] = useState(false);
-
-  // Helper using core disconnect (NOT useDisconnect hook)
-  const disconnectWallet = useCallback(async () => {
-    await disconnect(wagmiConfig);
-  }, [wagmiConfig]);
-
-  // Initialize on mount - trust saved mode
-  useEffect(() => {
-    const savedMode = getAuthMode();
-    if (savedMode === "passkey") setAuthMode("passkey");
-    else if (savedMode === "wallet") setAuthMode("wallet");
-    setIsReady(true);
-  }, []);
-
-  // Sync wallet disconnection
-  useEffect(() => {
-    if (isReady && !isConnected && authMode === "wallet") {
-      setAuthMode(null);
-      clearAuthMode();
-    }
-  }, [isConnected, authMode, isReady]);
-
-  // Sync passkey auth changes
-  useEffect(() => {
-    if (isReady && passkeyAuth.isAuthenticated && authMode !== "passkey") {
-      setAuthMode("passkey");
-      saveAuthMode("passkey");
-    }
-    // Handle failed passkey restore
-    if (isReady && !passkeyAuth.isAuthenticated && !passkeyAuth.isAuthenticating 
-        && authMode === "passkey" && passkeyAuth.isReady) {
-      setAuthMode(null);
-      clearAuthMode();
-    }
-  }, [passkeyAuth.isAuthenticated, passkeyAuth.isAuthenticating, passkeyAuth.isReady, authMode, isReady]);
-
-  const loginWithPasskey = useCallback(async () => {
-    if (isConnected) await disconnectWallet();
-    const session = await passkeyAuth.createPasskey();
-    setAuthMode("passkey");
-    saveAuthMode("passkey");
-    return session;
-  }, [passkeyAuth, isConnected, disconnectWallet]);
-
-  const loginWithWallet = useCallback(() => {
-    if (passkeyAuth.isAuthenticated) passkeyAuth.signOut();
-    setAuthMode("wallet");
-    saveAuthMode("wallet");
-    appKit.open();
-  }, [passkeyAuth]);
-
-  const signOut = useCallback(async () => {
-    passkeyAuth.signOut();
-    await disconnectWallet();
-    setAuthMode(null);
-    clearAllAuth();
-    queryClient.clear();
-  }, [passkeyAuth, disconnectWallet]);
-
-  // ...context value
-}
-```
-
 ## Route Guards
 
 ```typescript
 // packages/client/src/routes/RequireAuth.tsx
 export default function RequireAuth() {
-  const { isAuthenticated, isReady } = useClientAuth();
+  const { isAuthenticated, isReady } = useAuth();
   const location = useLocation();
 
   if (!isReady) return null;
@@ -278,52 +151,35 @@ export default function RequireAuth() {
 
 ## Anti-Patterns
 
-### ❌ Don't use `useDisconnect` hook in ClientAuth
-
-```typescript
-// Wrong - useDisconnect requires QueryClientProvider
-const { disconnectAsync } = useDisconnect();
-
-// Correct - use core function with config
-import { disconnect } from "@wagmi/core";
-await disconnect(wagmiConfig);
-```
-
-### ❌ Don't check `passkeyAuth.isAuthenticated` on init
-
-```typescript
-// Wrong - creates race condition during async restore
-if (savedMode === "passkey" && passkeyAuth.isAuthenticated) {
-  setAuthMode("passkey");
-} else {
-  clearAuthMode();  // Clears prematurely!
-}
-
-// Correct - trust saved mode, sync effect handles failures
-if (savedMode === "passkey") {
-  setAuthMode("passkey");
-}
-```
-
 ### ❌ Don't skip isReady check
 
 ```typescript
 // Wrong
-const { smartAccountClient } = useClientAuth();
+const { smartAccountClient } = useAuth();
 await smartAccountClient.sendTransaction({/*...*/});
 
 // Correct
-const { smartAccountClient, isReady } = useClientAuth();
+const { smartAccountClient, isReady } = useAuth();
 if (!isReady || !smartAccountClient) return;
 await smartAccountClient.sendTransaction({/*...*/});
+```
+
+### ❌ Don't use wallet chain ID
+
+```typescript
+// Wrong - wallet may be on wrong chain
+const { chainId } = useAccount();
+
+// Correct - use environment chain
+import { DEFAULT_CHAIN_ID } from '@green-goods/shared';
 ```
 
 ## Testing Authentication
 
 ```typescript
 // Mock auth for testing
-vi.mock('@green-goods/shared/providers', () => ({
-  useClientAuth: () => ({
+vi.mock('@green-goods/shared/hooks', () => ({
+  useAuth: () => ({
     authMode: 'passkey',
     isAuthenticated: true,
     isReady: true,
@@ -336,14 +192,16 @@ vi.mock('@green-goods/shared/providers', () => ({
 
 ## Reference Files
 
-**Providers:**
-- `packages/shared/src/providers/ClientAuth.tsx` — Unified auth provider
-- `packages/shared/src/providers/PasskeyAuth.tsx` — Passkey-only auth
-- `packages/shared/src/providers/WalletAuth.tsx` — Wallet-only auth (admin)
+**Provider:**
+- `packages/shared/src/providers/Auth.tsx` — Unified XState auth provider
 
 **Session:**
 - `packages/shared/src/modules/auth/session.ts` — Storage utilities (2 keys only)
 - `packages/shared/src/modules/auth/passkey.ts` — WebAuthn credential management
+
+**Hooks:**
+- `packages/shared/src/hooks/auth/useAuth.ts` — Universal auth hook
+- `packages/shared/src/hooks/auth/useUser.ts` — User info hook
 
 **Route Guards:**
 - `packages/client/src/routes/RequireAuth.tsx`

@@ -5,8 +5,8 @@ import RequireAuth from "@/routes/RequireAuth";
 
 const mockUseAuth = vi.fn();
 
-vi.mock("@green-goods/shared/providers", () => ({
-  useWalletAuth: () => mockUseAuth(),
+vi.mock("@green-goods/shared/hooks", () => ({
+  useAuth: () => mockUseAuth(),
 }));
 
 const mockUseLocation = vi.fn();
@@ -27,12 +27,11 @@ vi.mock("react-router-dom", async () => {
 
 function buildAuthState(overrides: Partial<ReturnType<typeof mockUseAuth>> = {}) {
   return {
-    address: undefined,
-    isConnected: false,
-    isConnecting: false,
-    connect: vi.fn(),
-    disconnect: vi.fn(),
-    ready: true,
+    eoaAddress: undefined,
+    isAuthenticated: false,
+    isAuthenticating: false,
+    signOut: vi.fn(),
+    isReady: true,
     ...overrides,
   };
 }
@@ -50,7 +49,7 @@ describe("RequireAuth", () => {
   it("renders the layout skeleton while auth state is resolving", () => {
     mockUseAuth.mockReturnValue(
       buildAuthState({
-        ready: false,
+        isReady: false,
       })
     );
 
@@ -61,7 +60,7 @@ describe("RequireAuth", () => {
     expect(screen.queryByTestId("outlet")).not.toBeInTheDocument();
   });
 
-  it("redirects to login when the user is disconnected", () => {
+  it("redirects to login when the user is not authenticated", () => {
     mockUseAuth.mockReturnValue(buildAuthState());
 
     render(<RequireAuth />);
@@ -74,8 +73,8 @@ describe("RequireAuth", () => {
   it("redirects to login when the user lacks an address", () => {
     mockUseAuth.mockReturnValue(
       buildAuthState({
-        isConnected: true,
-        address: undefined,
+        isAuthenticated: true,
+        eoaAddress: undefined,
       })
     );
 
@@ -89,8 +88,8 @@ describe("RequireAuth", () => {
   it("renders protected content when authenticated", () => {
     mockUseAuth.mockReturnValue(
       buildAuthState({
-        isConnected: true,
-        address: "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
+        isAuthenticated: true,
+        eoaAddress: "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
       })
     );
 

@@ -41,8 +41,8 @@ export {
 export type {
   EASConfig,
   NetworkConfig,
-  SupportedChainId,
   PasskeyServerClient,
+  SupportedChainId,
 } from "./config/index";
 export {
   APP_DEFAULT_TITLE,
@@ -231,10 +231,10 @@ export {
   trackOfflineEvent,
   trackSyncPerformance,
   translationCache,
+  USERNAME_STORAGE_KEY,
   updateUserProfile,
   uploadFileToIPFS,
   uploadJSONToIPFS,
-  USERNAME_STORAGE_KEY,
   useJobQueueEvents,
   validateApprovalDraft,
   validateWorkDraft,
@@ -246,17 +246,12 @@ export type { AuthContextType } from "./providers/index";
 export {
   AppKitProvider,
   AppProvider,
-  // Unified XState-based auth provider (for client)
+  // Unified auth provider (supports both passkey and wallet)
   AuthProvider,
-  useAuthContext,
-  useOptionalAuthContext,
-  // Wallet-only auth provider (for admin)
-  WalletAuthProvider,
-  useWalletAuth,
-  useOptionalWalletAuth,
   // Job Queue & Work
   JobQueueProvider,
   useAppKit,
+  useAuthContext,
   useJobQueue,
   useWork,
   WorkProvider,
@@ -397,29 +392,29 @@ export {
   // Assessment
   type AssessmentContext,
   type AssessmentEvent,
-  createAssessmentMachine,
-  // Garden
-  type CreateGardenContext,
-  type CreateGardenEvent,
-  createGardenMachine,
+  // Auth Actor
+  type AuthActor,
   // Auth (XState Machine)
   type AuthContext,
   type AuthEvent,
   type AuthMachine,
+  type AuthSnapshot,
   type AuthState,
-  type PasskeySessionResult,
-  type RestoreSessionResult,
+  authActor,
+  authenticatePasskeyService,
   authMachine,
+  authSelectors,
   // Auth Services
   authServices,
-  restoreSessionService,
-  registerPasskeyService,
-  authenticatePasskeyService,
+  // Garden
+  type CreateGardenContext,
+  type CreateGardenEvent,
   claimENSService,
-  // Auth Actor
-  type AuthActor,
-  type AuthSnapshot,
-  authActor,
+  createAssessmentMachine,
+  createGardenMachine,
   getAuthActor,
-  authSelectors,
+  type PasskeySessionResult,
+  type RestoreSessionResult,
+  registerPasskeyService,
+  restoreSessionService,
 } from "./workflows/index";

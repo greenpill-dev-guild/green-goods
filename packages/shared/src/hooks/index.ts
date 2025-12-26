@@ -30,7 +30,7 @@ export { useGardenAssessments } from "./assessment/useGardenAssessments";
 // AUTH
 // ============================================================================
 export type { AuthContextType, AuthMode } from "./auth/useAuth";
-export { useAuth, useAuthContext, useWalletAuth } from "./auth/useAuth";
+export { useAuth, useAuthContext } from "./auth/useAuth";
 export { useUser } from "./auth/useUser";
 
 // ============================================================================

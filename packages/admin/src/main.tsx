@@ -1,6 +1,6 @@
 import { DEFAULT_CHAIN_ID, initTheme, queryClient } from "@green-goods/shared";
 import { greenGoodsIndexer } from "@green-goods/shared/modules";
-import { AppKitProvider, AuthProvider, WalletAuthProvider } from "@green-goods/shared/providers";
+import { AppKitProvider, AuthProvider } from "@green-goods/shared/providers";
 import { AppProvider } from "@green-goods/shared/providers/App";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
@@ -35,13 +35,11 @@ export const Root = () => (
         }}
         defaultChainId={DEFAULT_CHAIN_ID}
       >
-        {/* AuthProvider wraps WalletAuthProvider for unified auth interface */}
+        {/* Single AuthProvider handles both passkey and wallet auth */}
         <AuthProvider>
-          <WalletAuthProvider>
-            <AppProvider posthogKey={import.meta.env.VITE_POSTHOG_ADMIN_KEY}>
-              <App />
-            </AppProvider>
-          </WalletAuthProvider>
+          <AppProvider posthogKey={import.meta.env.VITE_POSTHOG_ADMIN_KEY}>
+            <App />
+          </AppProvider>
         </AuthProvider>
       </AppKitProvider>
     </UrqlProvider>

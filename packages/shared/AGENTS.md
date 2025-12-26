@@ -125,26 +125,26 @@ All React context providers live here and are consumed by client and admin apps.
 ```typescript
 // Provider hierarchy (required nesting order)
 <WagmiProvider>
-  <AppProvider>
-    <ClientAuthProvider chainId={chainId}>
-      <QueryClientProvider>
-        <JobQueueProvider>
-          <WorkProvider>
-            {children}
-          </WorkProvider>
-        </JobQueueProvider>
-      </QueryClientProvider>
-    </ClientAuthProvider>
-  </AppProvider>
+  <AppKitProvider>
+    <AuthProvider>
+      <AppProvider>
+        <QueryClientProvider>
+          <JobQueueProvider>
+            <WorkProvider>
+              {children}
+            </WorkProvider>
+          </JobQueueProvider>
+        </QueryClientProvider>
+      </AppProvider>
+    </AuthProvider>
+  </AppKitProvider>
 </WagmiProvider>
 ```
 
 **Available providers:**
 - `AppProvider` — App settings, i18n, PWA state
 - `AppKitProvider` — Wallet connection (Reown AppKit)
-- `ClientAuthProvider` — Unified auth (passkey + wallet)
-- `PasskeyAuthProvider` — Passkey-only auth
-- `WalletAuthProvider` — Wallet-only auth
+- `AuthProvider` — Unified auth (supports both passkey and wallet modes)
 - `JobQueueProvider` — Offline job processing
 - `WorkProvider` — Work submission state
 
@@ -154,9 +154,9 @@ All hooks are organized by domain:
 
 ### Auth Hooks
 ```typescript
-import { useAuth, useUser, useClientAuth, usePasskeyAuth, useWalletAuth } from '@green-goods/shared';
+import { useAuth, useUser } from '@green-goods/shared';
 
-const { authMode, smartAccountClient, walletAddress } = useAuth();
+const { authMode, smartAccountClient, walletAddress, eoaAddress, signOut } = useAuth();
 const { user, ready, eoa, smartAccountAddress } = useUser();
 ```
 
@@ -385,7 +385,7 @@ await executeWithToast(
 import { useAuth, useWorks, useWorkMutation, useOffline } from '@green-goods/shared';
 
 // Providers
-import { AppProvider, ClientAuthProvider, JobQueueProvider, WorkProvider } from '@green-goods/shared';
+import { AppProvider, AuthProvider, JobQueueProvider, WorkProvider } from '@green-goods/shared';
 
 // Modules
 import { jobQueue, jobQueueEventBus, submitWorkWithPasskey } from '@green-goods/shared';

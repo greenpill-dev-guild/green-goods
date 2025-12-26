@@ -107,7 +107,7 @@ import {
 
 // Providers (used in main.tsx)
 import { 
-  AppKitProvider, WalletAuthProvider, AppProvider 
+  AppKitProvider, AuthProvider, AppProvider 
 } from '@green-goods/shared';
 
 // Stores

@@ -1,43 +1,35 @@
 /**
  * Authentication Hooks
  *
- * Provides unified authentication interface that works with:
- * - AuthProvider (XState-based with Pimlico passkey server)
- * - WalletAuthProvider (wallet only, admin package)
+ * Provides unified authentication interface using AuthProvider.
+ * Supports both passkey and wallet authentication modes.
  *
- * @example Client package:
+ * @example
  * ```tsx
- * import { useAuth } from '@greengoods/shared/hooks/auth';
+ * import { useAuth } from '@green-goods/shared/hooks';
  *
  * function MyComponent() {
- *   const { smartAccountAddress, walletAddress, authMode, createAccount } = useAuth();
- *   // ...
- * }
- * ```
+ *   const { authMode, eoaAddress, smartAccountAddress, isAuthenticated, signOut } = useAuth();
  *
- * @example Admin package:
- * ```tsx
- * import { useAuth } from '@greengoods/shared/hooks/auth';
- *
- * function MyComponent() {
- *   const { eoaAddress, isAuthenticated, loginWithWallet } = useAuth();
- *   // ...
+ *   if (authMode === 'wallet') {
+ *     // Wallet user - use eoaAddress
+ *   } else if (authMode === 'passkey') {
+ *     // Passkey user - use smartAccountAddress
+ *   }
  * }
  * ```
  */
 
 import type { SmartAccountClient } from "permissionless";
 import type { Hex } from "viem";
-import { useOptionalAuthContext } from "../../providers/Auth";
-import { useOptionalWalletAuth } from "../../providers/WalletAuth";
+import { useAuthContext } from "../../providers/Auth";
 
-// Export unified auth hook and context
+// Export auth context hook and type
 export { type AuthContextType, useAuthContext } from "../../providers/Auth";
-export { useWalletAuth } from "../../providers/WalletAuth";
 
 /**
  * Unified auth context returned by useAuth
- * Contains common properties from all auth providers
+ * Contains common properties from AuthProvider
  */
 interface UseAuthReturn {
   // Core state
@@ -62,7 +54,7 @@ interface UseAuthReturn {
   userName?: string | null;
   hasStoredCredential?: boolean;
 
-  // Actions (return types are flexible to support both void and PasskeySession)
+  // Actions
   createAccount?: (userName?: string) => Promise<unknown>;
   loginWithPasskey?: (userName?: string) => Promise<unknown>;
   loginWithWallet?: () => void;
@@ -73,77 +65,46 @@ interface UseAuthReturn {
 }
 
 /**
- * Default auth state for when no provider is available
- */
-const DEFAULT_AUTH: UseAuthReturn = {
-  authMode: null,
-  eoaAddress: undefined,
-  smartAccountAddress: undefined,
-  smartAccountClient: undefined,
-  isReady: false,
-  isAuthenticated: false,
-  isAuthenticating: false,
-  externalWalletConnected: false,
-  externalWalletAddress: null,
-};
-
-/**
- * Universal auth hook that works with all auth providers
+ * Universal auth hook
  *
- * Priority order:
- * 1. AuthProvider (XState-based with Pimlico passkey server)
- * 2. WalletAuthProvider (wallet only, admin package)
- *
- * If no provider is found, returns a default unauthenticated state.
+ * Requires AuthProvider to be present in the component tree.
+ * Works with both passkey and wallet authentication modes.
  */
 export function useAuth(): UseAuthReturn {
-  // Try unified auth provider first (XState-based)
-  const unifiedAuth = useOptionalAuthContext();
-  if (unifiedAuth) {
-    return {
-      authMode: unifiedAuth.authMode,
-      isReady: unifiedAuth.isReady,
-      isAuthenticated: unifiedAuth.isAuthenticated,
-      isAuthenticating: unifiedAuth.isAuthenticating,
-      error: unifiedAuth.error,
-      eoaAddress: unifiedAuth.eoaAddress,
-      smartAccountAddress: unifiedAuth.smartAccountAddress,
-      walletAddress: unifiedAuth.walletAddress,
-      externalWalletConnected: unifiedAuth.externalWalletConnected,
-      externalWalletAddress: unifiedAuth.externalWalletAddress,
-      smartAccountClient: unifiedAuth.smartAccountClient,
-      credential: unifiedAuth.credential,
-      userName: unifiedAuth.userName,
-      hasStoredCredential: unifiedAuth.hasStoredCredential,
-      createAccount: unifiedAuth.createAccount,
-      loginWithPasskey: unifiedAuth.loginWithPasskey,
-      loginWithWallet: unifiedAuth.loginWithWallet,
-      signOut: unifiedAuth.signOut,
-      switchToWallet: unifiedAuth.switchToWallet,
-      switchToPasskey: unifiedAuth.switchToPasskey,
-      dismissError: unifiedAuth.dismissError,
-    };
-  }
+  const auth = useAuthContext();
 
-  // Fall back to wallet auth (admin package)
-  const walletAuth = useOptionalWalletAuth();
-  if (walletAuth) {
-    return {
-      authMode: walletAuth.authMode,
-      isReady: walletAuth.isReady,
-      isAuthenticated: walletAuth.isAuthenticated,
-      isAuthenticating: walletAuth.isAuthenticating,
-      eoaAddress: walletAuth.eoaAddress,
-      smartAccountAddress: undefined,
-      smartAccountClient: undefined,
-      externalWalletConnected: walletAuth.isAuthenticated, // Wallet is always "external" in wallet-only mode
-      externalWalletAddress: walletAuth.eoaAddress ?? null,
-      loginWithWallet: walletAuth.connect,
-    };
-  }
+  return {
+    // Core state
+    authMode: auth.authMode,
+    isReady: auth.isReady,
+    isAuthenticated: auth.isAuthenticated,
+    isAuthenticating: auth.isAuthenticating,
+    error: auth.error,
 
-  // No provider available - return default unauthenticated state
-  return DEFAULT_AUTH;
+    // Addresses
+    eoaAddress: auth.eoaAddress,
+    smartAccountAddress: auth.smartAccountAddress,
+    walletAddress: auth.walletAddress,
+
+    // External wallet state
+    externalWalletConnected: auth.externalWalletConnected,
+    externalWalletAddress: auth.externalWalletAddress,
+
+    // Smart account
+    smartAccountClient: auth.smartAccountClient,
+    credential: auth.credential,
+    userName: auth.userName,
+    hasStoredCredential: auth.hasStoredCredential,
+
+    // Actions
+    createAccount: auth.createAccount,
+    loginWithPasskey: auth.loginWithPasskey,
+    loginWithWallet: auth.loginWithWallet,
+    signOut: auth.signOut,
+    switchToWallet: auth.switchToWallet,
+    switchToPasskey: auth.switchToPasskey,
+    dismissError: auth.dismissError,
+  };
 }
 
 // ============================================================================

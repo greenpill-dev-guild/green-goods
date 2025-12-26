@@ -1,7 +1,7 @@
 import { graphql } from "gql.tada";
 import { useQuery } from "urql";
-import { useOptionalAuthContext } from "../../providers/Auth";
-import { useOptionalWalletAuth } from "../../providers/WalletAuth";
+import { useAccount } from "wagmi";
+import { useAuthContext } from "../../providers/Auth";
 import { useDeploymentRegistry } from "../blockchain/useDeploymentRegistry";
 
 const GET_OPERATOR_GARDENS = graphql(`
@@ -29,12 +29,15 @@ export interface RoleInfo {
 }
 
 export function useRole(): RoleInfo {
-  const unifiedAuth = useOptionalAuthContext();
-  const walletAuth = useOptionalWalletAuth();
+  const auth = useAuthContext();
+  const { address: wagmiAddress, isConnected } = useAccount();
 
-  const address =
-    unifiedAuth?.walletAddress ?? unifiedAuth?.smartAccountAddress ?? walletAuth?.address;
-  const ready = unifiedAuth ? unifiedAuth.isReady : (walletAuth?.ready ?? false);
+  // Get address - prioritize wagmi for wallet mode, then auth context (wallet or passkey)
+  const address = wagmiAddress ?? auth.walletAddress ?? auth.smartAccountAddress;
+
+  // Ready when either wagmi is connected OR auth context is authenticated
+  const ready = isConnected || (auth.isReady && auth.isAuthenticated);
+
   const deploymentRegistry = useDeploymentRegistry();
 
   const [{ data: operatorData, fetching }] = useQuery({
