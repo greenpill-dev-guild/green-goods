@@ -1,0 +1,39 @@
+name: Green Goods
+description: Green Goods Indexer
+contracts:
+  - name: ActionRegistry
+    handler: src/EventHandlers.ts
+    events:
+      - event: ActionRegistered(address owner, uint256 indexed actionUID, uint256 indexed startTime, uint256 indexed endTime, string title, string instructions, uint8[] capitals, string[] media)
+      - event: ActionStartTimeUpdated(address indexed owner, uint256 indexed actionUID, uint256 indexed startTime)
+      - event: ActionEndTimeUpdated(address indexed owner, uint256 indexed actionUID, uint256 indexed endTime)
+      - event: ActionTitleUpdated(address indexed owner, uint256 indexed actionUID, string indexed title)
+      - event: ActionInstructionsUpdated(address indexed owner, uint256 indexed actionUID, string indexed instructions)
+      - event: ActionMediaUpdated(address indexed owner, uint256 indexed actionUID, string[] indexed media)
+  - name: GardenToken
+    handler: src/EventHandlers.ts
+    events:
+      - event: GardenMinted(uint256 indexed tokenId, address indexed account, string name, string description, string location, string bannerImage, bool openJoining, address[] gardeners, address[] operators)
+  - name: GardenAccount
+    handler: src/EventHandlers.ts
+    events:
+      - event: NameUpdated(address indexed updater, string newName)
+      - event: DescriptionUpdated(address indexed updater, string newDescription)
+      - event: LocationUpdated(address indexed updater, string newLocation)
+      - event: BannerImageUpdated(address indexed updater, string newBannerImage)
+      - event: GardenerAdded(address indexed updater, address indexed gardener)
+      - event: GardenerRemoved(address indexed updater, address indexed gardener)
+      - event: GardenOperatorAdded(address indexed updater, address indexed operator)
+      - event: GardenOperatorRemoved(address indexed updater, address indexed operator)
+      - event: GAPProjectCreated(bytes32 indexed projectUID, address indexed gardenAddress, string projectName)
+      - event: OpenJoiningUpdated(address indexed updater, bool openJoining)
+networks:
+  - id: 42161
+    start_block: 403157656
+    contracts:
+      - name: ActionRegistry
+        address: "0x51f4Fd2c75a2FEC0dd60aF05E6D3A3aA7A070010"
+      - name: GardenToken
+        address: "0xEcCB8515A349Ee4BC3861658eb7dEC4B05d34236"
+      - name: GardenAccount
+        address: "0x78D227c545de19484173F4371F1fC9C309D532f9"

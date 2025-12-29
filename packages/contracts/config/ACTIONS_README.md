@@ -398,7 +398,7 @@ cast call $ACTION_REGISTRY "getAction(uint256)" 1 --rpc-url $RPC
 ## Troubleshooting
 
 **Template not matching:**
-- Check keyword priority order in `ipfs-uploader.js`
+- Check keyword priority order in `ipfs-uploader.ts`
 - Ensure action title contains the template keyword
 - Add new keyword to priority array if needed
 
@@ -415,7 +415,7 @@ cast call $ACTION_REGISTRY "getAction(uint256)" 1 --rpc-url $RPC
 ## Reference
 
 - Deployment script: `script/deploy.js`
-- IPFS uploader: `script/utils/ipfs-uploader.js`
+- IPFS uploader: `script/utils/ipfs-uploader.ts`
 - Deployment guide: `/docs/DEPLOYMENT.md`
 - Contracts handbook: `/docs/CONTRACTS_HANDBOOK.md`
 

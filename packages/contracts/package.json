@@ -46,7 +46,7 @@
     "status": "node script/deploy.js status",
     "envio:local": "node script/utils/envio-integration.js enable-local",
     "envio:cleanup": "node script/utils/envio-integration.js cleanup",
-    "ipfs:upload": "dotenv -e ../../.env -- node script/utils/ipfs-uploader.js",
+    "ipfs:upload": "bun script/utils/ipfs-uploader.ts",
     "ipfs:cache": "cat .ipfs-cache.json"
   },
   "dependencies": {

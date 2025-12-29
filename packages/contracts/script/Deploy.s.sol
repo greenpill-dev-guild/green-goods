@@ -191,8 +191,8 @@ contract Deploy is Script, DeploymentBase {
     /// @notice Upload actions to IPFS and return hashes
     function _uploadActionsToIPFS(uint256 expectedCount) internal returns (string[] memory) {
         string[] memory inputs = new string[](2);
-        inputs[0] = "node";
-        inputs[1] = "script/utils/ipfs-uploader.js";
+        inputs[0] = "bun";
+        inputs[1] = "script/utils/ipfs-uploader.ts";
 
         try vm.ffi(inputs) returns (bytes memory result) {
             // Check if result is empty or just whitespace
