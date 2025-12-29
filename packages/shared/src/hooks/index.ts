@@ -7,6 +7,14 @@ export type { ActionOperationResult } from "./action/useActionOperations";
 export { useActionOperations } from "./action/useActionOperations";
 
 // ============================================================================
+// ANALYTICS
+// ============================================================================
+export type { UseAnalyticsIdentityOptions } from "./analytics/useAnalyticsIdentity";
+export { useAnalyticsIdentity } from "./analytics/useAnalyticsIdentity";
+export type { UsePageViewOptions } from "./analytics/usePageView";
+export { usePageView } from "./analytics/usePageView";
+
+// ============================================================================
 // APP
 // ============================================================================
 export { useBrowserNavigation } from "./app/useBrowserNavigation";

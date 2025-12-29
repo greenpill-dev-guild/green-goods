@@ -1,11 +1,61 @@
 // Modules — EXPLICIT EXPORTS for tree-shaking
 
+export {
+  ANALYTICS_EVENTS,
+  trackAdminDeployFailed,
+  // Admin: deployment events
+  trackAdminDeployStarted,
+  trackAdminDeploySuccess,
+  trackAdminGardenCreateFailed,
+  // Admin: garden events
+  trackAdminGardenCreateStarted,
+  trackAdminGardenCreateSuccess,
+  trackAdminMemberAddFailed,
+  // Admin: member events
+  trackAdminMemberAddStarted,
+  trackAdminMemberAddSuccess,
+  trackAdminMemberRemoveFailed,
+  trackAdminMemberRemoveStarted,
+  trackAdminMemberRemoveSuccess,
+  trackAuthPasskeyLoginFailed,
+  trackAuthPasskeyLoginStarted,
+  trackAuthPasskeyLoginSuccess,
+  trackAuthPasskeyRegisterFailed,
+  // Auth events
+  trackAuthPasskeyRegisterStarted,
+  trackAuthPasskeyRegisterSuccess,
+  trackAuthSessionRestored,
+  trackAuthSwitchMethod,
+  trackAuthWalletConnectFailed,
+  trackAuthWalletConnectStarted,
+  trackAuthWalletConnectSuccess,
+  trackGardenAutoJoinFailed,
+  trackGardenAutoJoinStarted,
+  trackGardenAutoJoinSuccess,
+  trackGardenJoinAlreadyMember,
+  trackGardenJoinFailed,
+  // Garden join events
+  trackGardenJoinStarted,
+  trackGardenJoinSuccess,
+  trackWorkApprovalFailed,
+  // Work approval events
+  trackWorkApprovalStarted,
+  trackWorkApprovalSuccess,
+  trackWorkRejectionSuccess,
+  trackWorkSubmissionFailed,
+  trackWorkSubmissionOffline,
+  trackWorkSubmissionQueued,
+  // Work submission events
+  trackWorkSubmissionStarted,
+  trackWorkSubmissionSuccess,
+} from "./app/analytics-events";
 // ============================================================================
 // APP / ANALYTICS
 // ============================================================================
 export {
   getDistinctId,
   identify,
+  identifyWithProperties,
   reset,
   track,
   trackAppLifecycle,
@@ -24,27 +74,27 @@ export { serviceWorkerManager } from "./app/service-worker";
 export {
   // Storage keys
   AUTH_MODE_STORAGE_KEY,
-  USERNAME_STORAGE_KEY,
-  PASSKEY_STORAGE_KEY,
   // Auth mode
   type AuthMode,
   clearAllAuth,
-  clearAuthMode,
-  getAuthMode,
-  setAuthMode,
-  // Username (Pimlico server)
-  clearStoredUsername,
-  getStoredUsername,
-  hasStoredUsername,
-  setStoredUsername,
-  // Legacy (deprecated - credentials now on Pimlico server)
-  clearStoredPasskey,
-  hasStoredPasskey,
   // Legacy aliases (deprecated)
   clearAllAuthStorage,
+  clearAuthMode,
+  // Legacy (deprecated - credentials now on Pimlico server)
+  clearStoredPasskey,
+  // Username (Pimlico server)
+  clearStoredUsername,
+  getAuthMode,
   getSavedAuthMode,
+  getStoredUsername,
+  hasStoredPasskey,
   hasStoredPasskeyCredential,
+  hasStoredUsername,
+  PASSKEY_STORAGE_KEY,
   saveAuthMode,
+  setAuthMode,
+  setStoredUsername,
+  USERNAME_STORAGE_KEY,
 } from "./auth/session";
 
 // ============================================================================

@@ -15,6 +15,12 @@ import { encodeFunctionData, type Hex } from "viem";
 import { useWriteContract } from "wagmi";
 import { wagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
+import {
+  trackGardenJoinAlreadyMember,
+  trackGardenJoinFailed,
+  trackGardenJoinStarted,
+  trackGardenJoinSuccess,
+} from "../../modules/app/analytics-events";
 import { isAddressInList } from "../../utils/blockchain/address";
 
 /**
@@ -159,6 +165,13 @@ export function useJoinGarden() {
         throw new Error("Missing garden address or user address");
       }
 
+      // Track join started
+      const authMode = client?.account ? "passkey" : "wallet";
+      trackGardenJoinStarted({
+        gardenAddress,
+        authMode,
+      });
+
       setState((prev) => ({
         ...prev,
         isJoining: true,
@@ -235,6 +248,13 @@ export function useJoinGarden() {
           queryClient.invalidateQueries({ queryKey: queryKeys.gardens.byChain(chainId) });
         }, 10000);
 
+        // Track successful join
+        trackGardenJoinSuccess({
+          gardenAddress,
+          txHash,
+          authMode,
+        });
+
         setState((prev) => ({
           ...prev,
           isJoining: false,
@@ -246,6 +266,7 @@ export function useJoinGarden() {
       } catch (error) {
         // Special handling for AlreadyGardener error - not actually an error
         if (isAlreadyGardenerError(error)) {
+          trackGardenJoinAlreadyMember({ gardenAddress });
           addPendingJoin(gardenAddress, targetAddress);
           setState((prev) => ({
             ...prev,
@@ -255,6 +276,13 @@ export function useJoinGarden() {
           }));
           return "already-member";
         }
+
+        // Track failed join
+        trackGardenJoinFailed({
+          gardenAddress,
+          error: error instanceof Error ? error.message : "Unknown error",
+          authMode,
+        });
 
         setState((prev) => ({
           ...prev,

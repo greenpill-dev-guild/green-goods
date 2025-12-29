@@ -11,6 +11,13 @@ import { useMutation } from "@tanstack/react-query";
 import type { SmartAccountClient } from "permissionless";
 import { toastService, workToasts } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import {
+  trackWorkSubmissionFailed,
+  trackWorkSubmissionOffline,
+  trackWorkSubmissionQueued,
+  trackWorkSubmissionStarted,
+  trackWorkSubmissionSuccess,
+} from "../../modules/app/analytics-events";
 import { jobQueue } from "../../modules/job-queue";
 import { submitWorkDirectly } from "../../modules/work/wallet-submission";
 import { submitWorkToQueue } from "../../modules/work/work-submission";
@@ -182,6 +189,16 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         });
       }
 
+      // Track submission started
+      const actionTitle = getActionTitle(actions, actionUID);
+      trackWorkSubmissionStarted({
+        gardenAddress: gardenAddress ?? "",
+        actionUID: actionUID ?? 0,
+        actionTitle,
+        authMode,
+        imageCount: variables?.images.length ?? 0,
+      });
+
       const isOffline = !navigator.onLine;
 
       if (isOffline) {
@@ -192,6 +209,15 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     },
     onSuccess: (txHash) => {
       const isOfflineHash = typeof txHash === "string" && txHash.startsWith("0xoffline_");
+
+      // Track submission success
+      trackWorkSubmissionSuccess({
+        gardenAddress: gardenAddress ?? "",
+        actionUID: actionUID ?? 0,
+        txHash: String(txHash ?? ""),
+        authMode,
+        wasOffline: isOfflineHash,
+      });
 
       // Mark submission as complete (triggers checkmark)
       useWorkFlowStore.getState().setSubmissionCompleted(true);
@@ -230,6 +256,14 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     onError: (error: unknown, variables) => {
       // Parse contract error for user-friendly message
       const { title, message, parsed } = parseAndFormatError(error);
+
+      // Track submission failure
+      trackWorkSubmissionFailed({
+        gardenAddress: gardenAddress ?? "",
+        actionUID: actionUID ?? 0,
+        error: parsed.message || (error instanceof Error ? error.message : "Unknown error"),
+        authMode,
+      });
 
       // Use parsed error if known, otherwise provide fallback based on auth mode
       const displayTitle = parsed.isKnown ? title : "Work submission failed";

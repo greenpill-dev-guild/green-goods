@@ -12,6 +12,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import {
+  trackWorkApprovalFailed,
+  trackWorkApprovalStarted,
+  trackWorkApprovalSuccess,
+  trackWorkRejectionSuccess,
+} from "../../modules/app/analytics-events";
 import { jobQueue } from "../../modules/job-queue";
 import {
   submitApprovalDirectly,
@@ -149,6 +155,14 @@ export function useWorkApproval() {
     onMutate: async (variables) => {
       if (!variables) return;
 
+      // Track approval started
+      trackWorkApprovalStarted({
+        workUID: variables.draft.workUID,
+        gardenAddress: variables.work.gardenAddress,
+        approved: variables.draft.approved,
+        authMode,
+      });
+
       if (DEBUG_ENABLED) {
         debugLog("[useWorkApproval] Submitting approval mutation", {
           authMode,
@@ -231,6 +245,23 @@ export function useWorkApproval() {
       const { hash: txHash, walletResult } = result;
       const isApproval = variables?.draft.approved ?? false;
       const isOfflineHash = typeof txHash === "string" && txHash.startsWith("0xoffline_");
+
+      // Track approval/rejection success
+      if (isApproval) {
+        trackWorkApprovalSuccess({
+          workUID: variables?.draft.workUID ?? "",
+          gardenAddress: variables?.work.gardenAddress ?? "",
+          txHash,
+          authMode,
+        });
+      } else {
+        trackWorkRejectionSuccess({
+          workUID: variables?.draft.workUID ?? "",
+          gardenAddress: variables?.work.gardenAddress ?? "",
+          txHash,
+          authMode,
+        });
+      }
 
       // Handle wallet mode results (including timeout case)
       if (authMode === "wallet" && walletResult) {
@@ -335,6 +366,14 @@ export function useWorkApproval() {
       }
     },
     onError: (error: unknown, variables, context) => {
+      // Track approval failure
+      trackWorkApprovalFailed({
+        workUID: variables?.draft.workUID ?? "",
+        gardenAddress: variables?.work.gardenAddress ?? "",
+        error: error instanceof Error ? error.message : "Unknown error",
+        authMode,
+      });
+
       // Rollback optimistic updates for all modes
       if (context && variables) {
         const { previousMergedWorks, previousOnlineWorks } = context as {

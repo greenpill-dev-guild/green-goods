@@ -34,6 +34,15 @@ import {
   createPublicClientForChain,
   getPimlicoBundlerUrl,
 } from "../config/pimlico";
+import {
+  trackAuthPasskeyLoginFailed,
+  trackAuthPasskeyLoginStarted,
+  trackAuthPasskeyLoginSuccess,
+  trackAuthPasskeyRegisterFailed,
+  trackAuthPasskeyRegisterStarted,
+  trackAuthPasskeyRegisterSuccess,
+  trackAuthSessionRestored,
+} from "../modules/app/analytics-events";
 import { clearStoredUsername, getStoredUsername, setStoredUsername } from "../modules/auth/session";
 
 import type { PasskeySessionResult, RestoreSessionResult } from "./authMachine";
@@ -163,6 +172,12 @@ export const restoreSessionService = fromPromise<RestoreSessionResult | null, Re
       const credential = credentials[0];
       const { client, address } = await buildSmartAccountFromCredential(credential, chainId);
 
+      // Track successful session restore
+      trackAuthSessionRestored({
+        smartAccountAddress: address,
+        userName: storedUsername,
+      });
+
       return {
         credential,
         smartAccountClient: client,
@@ -197,24 +212,42 @@ export const registerPasskeyService = fromPromise<PasskeySessionResult, Register
       throw new Error("Username is required for registration");
     }
 
-    // Create passkey server client
-    const passkeyClient = createPasskeyServerClient(chainId);
+    // Track registration started
+    trackAuthPasskeyRegisterStarted({ userName });
 
-    // Create and register credential via Pimlico server
-    const credential = await createPasskeyWithServer(passkeyClient, userName);
+    try {
+      // Create passkey server client
+      const passkeyClient = createPasskeyServerClient(chainId);
 
-    // Store username locally for session restore
-    setStoredUsername(userName);
+      // Create and register credential via Pimlico server
+      const credential = await createPasskeyWithServer(passkeyClient, userName);
 
-    // Build smart account
-    const { client, address } = await buildSmartAccountFromCredential(credential, chainId);
+      // Store username locally for session restore
+      setStoredUsername(userName);
 
-    return {
-      credential,
-      smartAccountClient: client,
-      smartAccountAddress: address,
-      userName,
-    };
+      // Build smart account
+      const { client, address } = await buildSmartAccountFromCredential(credential, chainId);
+
+      // Track successful registration
+      trackAuthPasskeyRegisterSuccess({
+        smartAccountAddress: address,
+        userName,
+      });
+
+      return {
+        credential,
+        smartAccountClient: client,
+        smartAccountAddress: address,
+        userName,
+      };
+    } catch (error) {
+      // Track failed registration
+      trackAuthPasskeyRegisterFailed({
+        error: error instanceof Error ? error.message : "Unknown error",
+        userName,
+      });
+      throw error;
+    }
   }
 );
 
@@ -238,78 +271,96 @@ export const authenticatePasskeyService = fromPromise<PasskeySessionResult, Auth
       throw new Error("Username is required for authentication");
     }
 
-    // Create passkey server client
-    const passkeyClient = createPasskeyServerClient(chainId);
+    // Track login started
+    trackAuthPasskeyLoginStarted({ userName });
 
-    // Fetch credentials from Pimlico server
-    const credentials = await passkeyClient.getCredentials({
-      context: { userName },
-    });
-
-    if (credentials.length === 0) {
-      throw new Error("No passkey found for this account. Please create a new account.");
-    }
-
-    // Use first credential
-    const credential = credentials[0];
-
-    // Prompt biometric authentication
-    // Convert credential ID to BufferSource for WebAuthn
-    let credentialIdBytes: Uint8Array;
     try {
-      // Base64URL decode
-      let base64 = credential.id.replace(/-/g, "+").replace(/_/g, "/");
-      const padding = base64.length % 4;
-      if (padding === 2) base64 += "==";
-      else if (padding === 3) base64 += "=";
+      // Create passkey server client
+      const passkeyClient = createPasskeyServerClient(chainId);
 
-      const decodedData = atob(base64);
-      credentialIdBytes = new Uint8Array(decodedData.length);
-      for (let i = 0; i < decodedData.length; i++) {
-        credentialIdBytes[i] = decodedData.charCodeAt(i);
+      // Fetch credentials from Pimlico server
+      const credentials = await passkeyClient.getCredentials({
+        context: { userName },
+      });
+
+      if (credentials.length === 0) {
+        throw new Error("No passkey found for this account. Please create a new account.");
       }
-    } catch {
-      // Try hex decoding as fallback
-      const hex = credential.id.replace(/^0x/, "");
-      const bytes = hex.match(/.{1,2}/g)?.map((byte) => parseInt(byte, 16)) || [];
-      if (bytes.some((b) => isNaN(b))) {
-        throw new Error("Invalid credential ID format");
+
+      // Use first credential
+      const credential = credentials[0];
+
+      // Prompt biometric authentication
+      // Convert credential ID to BufferSource for WebAuthn
+      let credentialIdBytes: Uint8Array;
+      try {
+        // Base64URL decode
+        let base64 = credential.id.replace(/-/g, "+").replace(/_/g, "/");
+        const padding = base64.length % 4;
+        if (padding === 2) base64 += "==";
+        else if (padding === 3) base64 += "=";
+
+        const decodedData = atob(base64);
+        credentialIdBytes = new Uint8Array(decodedData.length);
+        for (let i = 0; i < decodedData.length; i++) {
+          credentialIdBytes[i] = decodedData.charCodeAt(i);
+        }
+      } catch {
+        // Try hex decoding as fallback
+        const hex = credential.id.replace(/^0x/, "");
+        const bytes = hex.match(/.{1,2}/g)?.map((byte) => parseInt(byte, 16)) || [];
+        if (bytes.some((b) => isNaN(b))) {
+          throw new Error("Invalid credential ID format");
+        }
+        credentialIdBytes = new Uint8Array(bytes);
       }
-      credentialIdBytes = new Uint8Array(bytes);
+
+      // Prompt WebAuthn authentication (biometric)
+      const authResponse = await window.navigator.credentials.get({
+        publicKey: {
+          challenge: crypto.getRandomValues(new Uint8Array(32)),
+          rpId: window.location.hostname,
+          userVerification: "required",
+          allowCredentials: [
+            {
+              id: credentialIdBytes as BufferSource,
+              type: "public-key",
+            },
+          ],
+          timeout: 60000,
+        },
+      });
+
+      if (!authResponse) {
+        throw new Error("Passkey authentication was cancelled");
+      }
+
+      // Store username for session restore
+      setStoredUsername(userName);
+
+      // Build smart account with the credential from server
+      const { client, address } = await buildSmartAccountFromCredential(credential, chainId);
+
+      // Track successful login
+      trackAuthPasskeyLoginSuccess({
+        smartAccountAddress: address,
+        userName,
+      });
+
+      return {
+        credential,
+        smartAccountClient: client,
+        smartAccountAddress: address,
+        userName,
+      };
+    } catch (error) {
+      // Track failed login
+      trackAuthPasskeyLoginFailed({
+        error: error instanceof Error ? error.message : "Unknown error",
+        userName,
+      });
+      throw error;
     }
-
-    // Prompt WebAuthn authentication (biometric)
-    const authResponse = await window.navigator.credentials.get({
-      publicKey: {
-        challenge: crypto.getRandomValues(new Uint8Array(32)),
-        rpId: window.location.hostname,
-        userVerification: "required",
-        allowCredentials: [
-          {
-            id: credentialIdBytes as BufferSource,
-            type: "public-key",
-          },
-        ],
-        timeout: 60000,
-      },
-    });
-
-    if (!authResponse) {
-      throw new Error("Passkey authentication was cancelled");
-    }
-
-    // Store username for session restore
-    setStoredUsername(userName);
-
-    // Build smart account with the credential from server
-    const { client, address } = await buildSmartAccountFromCredential(credential, chainId);
-
-    return {
-      credential,
-      smartAccountClient: client,
-      smartAccountAddress: address,
-      userName,
-    };
   }
 );
 

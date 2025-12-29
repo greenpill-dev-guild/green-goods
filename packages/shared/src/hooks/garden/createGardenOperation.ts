@@ -8,6 +8,14 @@
 
 import type { Abi, WalletClient } from "viem";
 import { toastService } from "../../components/toast";
+import {
+  trackAdminMemberAddFailed,
+  trackAdminMemberAddStarted,
+  trackAdminMemberAddSuccess,
+  trackAdminMemberRemoveFailed,
+  trackAdminMemberRemoveStarted,
+  trackAdminMemberRemoveSuccess,
+} from "../../modules/app/analytics-events";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { simulateTransaction } from "../../utils/contract/simulation";
 import type { ToastActionOptions } from "../app/useToastAction";
@@ -146,6 +154,21 @@ export function createGardenOperation(
       };
     }
 
+    // Track operation started
+    if (config.operationType === "add") {
+      trackAdminMemberAddStarted({
+        gardenAddress: gardenId,
+        memberType: config.memberType,
+        targetAddress,
+      });
+    } else {
+      trackAdminMemberRemoveStarted({
+        gardenAddress: gardenId,
+        memberType: config.memberType,
+        targetAddress,
+      });
+    }
+
     setIsLoading(true);
 
     try {
@@ -159,6 +182,23 @@ export function createGardenOperation(
       );
 
       if (!simulation.success) {
+        // Track failure
+        if (config.operationType === "add") {
+          trackAdminMemberAddFailed({
+            gardenAddress: gardenId,
+            memberType: config.memberType,
+            targetAddress,
+            error: simulation.error?.message ?? "Simulation failed",
+          });
+        } else {
+          trackAdminMemberRemoveFailed({
+            gardenAddress: gardenId,
+            memberType: config.memberType,
+            targetAddress,
+            error: simulation.error?.message ?? "Simulation failed",
+          });
+        }
+
         // Show error toast for simulation failure
         toastService.error({
           title: simulation.error?.name ?? "Transaction Failed",
@@ -203,6 +243,23 @@ export function createGardenOperation(
         }
       );
 
+      // Track operation success
+      if (config.operationType === "add") {
+        trackAdminMemberAddSuccess({
+          gardenAddress: gardenId,
+          memberType: config.memberType,
+          targetAddress,
+          txHash: hash,
+        });
+      } else {
+        trackAdminMemberRemoveSuccess({
+          gardenAddress: gardenId,
+          memberType: config.memberType,
+          targetAddress,
+          txHash: hash,
+        });
+      }
+
       return {
         hash,
         success: true,
@@ -212,6 +269,24 @@ export function createGardenOperation(
       // Parse and return the error - optimistic update will be rolled back by caller
       const { parseContractError } = await import("../../utils/errors/contract-errors");
       const parsed = parseContractError(error);
+
+      // Track operation failure
+      if (config.operationType === "add") {
+        trackAdminMemberAddFailed({
+          gardenAddress: gardenId,
+          memberType: config.memberType,
+          targetAddress,
+          error: parsed.message,
+        });
+      } else {
+        trackAdminMemberRemoveFailed({
+          gardenAddress: gardenId,
+          memberType: config.memberType,
+          targetAddress,
+          error: parsed.message,
+        });
+      }
+
       return {
         success: false,
         error: {
