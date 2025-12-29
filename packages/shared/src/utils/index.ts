@@ -139,9 +139,15 @@ export {
 export type { TimeFilter } from "./time";
 export {
   filterByTimeRange,
+  formatDate,
+  formatDateTime,
   formatRelativeTime,
+  fromDateTimeLocalValue,
   getTimeCutoff,
+  normalizeTimestamp,
   sortByCreatedAt,
+  toDateTimeLocalValue,
+  toSafeDate,
 } from "./time";
 
 // ============================================================================

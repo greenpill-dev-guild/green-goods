@@ -1,4 +1,4 @@
-import { DEFAULT_CHAIN_ID, STALE_TIMES } from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID, formatDate, STALE_TIMES } from "@green-goods/shared";
 import {
   queryKeys,
   useGardenAssessments,
@@ -409,9 +409,7 @@ export default function GardenDetail() {
                         <p className="truncate text-sm font-medium text-text-strong">
                           {assessment.title || assessment.assessmentType || "Assessment"}
                         </p>
-                        <p className="text-xs text-text-soft">
-                          {new Date(assessment.createdAt * 1000).toLocaleDateString()}
-                        </p>
+                        <p className="text-xs text-text-soft">{formatDate(assessment.createdAt)}</p>
                       </div>
                     </div>
                     <a

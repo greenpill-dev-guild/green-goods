@@ -91,3 +91,81 @@ export function formatRelativeTime(timestamp: number | string | Date): string {
   if (seconds > 10) return `${seconds} second${seconds > 1 ? "s" : ""} ago`;
   return "just now";
 }
+
+/**
+ * Creates a valid Date object or returns null if the value is invalid.
+ *
+ * Handles seconds and milliseconds timestamps automatically.
+ */
+export function toSafeDate(value: unknown): Date | null {
+  if (value == null) return null;
+
+  const timestamp = typeof value === "string" ? Number(value) : value;
+  if (typeof timestamp !== "number" || Number.isNaN(timestamp)) return null;
+
+  const ms = normalizeTimestamp(timestamp);
+  const date = new Date(ms);
+
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/**
+ * Formats a date value safely, returning a fallback string if invalid.
+ */
+export function formatDate(
+  value: unknown,
+  options?: Intl.DateTimeFormatOptions,
+  fallback = "Invalid date"
+): string {
+  const date = toSafeDate(value);
+  if (!date) return fallback;
+
+  try {
+    return date.toLocaleDateString(undefined, options);
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * Formats a datetime value safely with date and time, returning a fallback if invalid.
+ */
+export function formatDateTime(
+  value: unknown,
+  options?: Intl.DateTimeFormatOptions,
+  fallback = "Invalid date"
+): string {
+  const date = toSafeDate(value);
+  if (!date) return fallback;
+
+  try {
+    return date.toLocaleString(undefined, options);
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * Formats a date for datetime-local input value (YYYY-MM-DDTHH:mm).
+ * Returns empty string if invalid (inputs handle empty gracefully).
+ */
+export function toDateTimeLocalValue(value: unknown): string {
+  const date = toSafeDate(value);
+  if (!date) return "";
+
+  try {
+    return date.toISOString().slice(0, 16);
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Creates a Date from datetime-local input value, or returns current date if invalid.
+ */
+export function fromDateTimeLocalValue(value: string): Date {
+  if (!value) return new Date();
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? new Date() : date;
+}

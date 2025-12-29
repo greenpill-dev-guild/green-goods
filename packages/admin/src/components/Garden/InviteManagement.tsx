@@ -1,4 +1,5 @@
-import { useGardenInvites } from "@green-goods/shared/hooks/garden";
+import { formatDate } from "@green-goods/shared";
+import { useGardenInvites } from "@green-goods/shared/hooks";
 import { formatDistanceToNow } from "date-fns";
 import { useState } from "react";
 import { AddressDisplay } from "@/components/AddressDisplay";
@@ -96,7 +97,7 @@ export function InviteManagement({ gardenAddress }: InviteManagementProps) {
                         <AddressDisplay address={invite.creator} />
                       </div>
                       <div className="text-xs text-text-sub">
-                        Expires: {new Date(Number(invite.expiry) * 1000).toLocaleDateString()}
+                        Expires: {formatDate(Number(invite.expiry))}
                       </div>
                     </div>
                   </div>

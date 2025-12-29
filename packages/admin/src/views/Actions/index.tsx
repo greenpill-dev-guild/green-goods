@@ -1,4 +1,4 @@
-import { DEFAULT_CHAIN_ID } from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID, formatDate } from "@green-goods/shared";
 import { useActions } from "@green-goods/shared/hooks";
 import { RiAddLine, RiCalendarLine, RiEditLine, RiEyeLine } from "@remixicon/react";
 import { Link } from "react-router-dom";
@@ -71,8 +71,7 @@ export default function Actions() {
                 <div className="flex items-center gap-1">
                   <RiCalendarLine className="h-4 w-4" />
                   <span>
-                    {new Date(action.startTime).toLocaleDateString()} -{" "}
-                    {new Date(action.endTime).toLocaleDateString()}
+                    {formatDate(action.startTime)} - {formatDate(action.endTime)}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
