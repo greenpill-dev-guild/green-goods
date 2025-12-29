@@ -4,7 +4,7 @@
  * Tests for platform detection including iPadOS desktop UA variants.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { getMobileOperatingSystem, isMobilePlatform } from "../../utils/app/pwa";
 
 // Mock navigator and window
