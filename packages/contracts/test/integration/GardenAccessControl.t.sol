@@ -96,10 +96,11 @@ contract GardenAccessControlTest is Test {
         assertTrue(accessControl.isGardener(gardener1), "gardener1 should be a gardener");
     }
 
-    function test_isGardener_returnsTrueForInitializer() public {
-        // The initializer (owner via TBA) is automatically added as gardener
+    function test_isGardener_returnsFalseForInitializer() public {
+        // The initializer (owner via TBA) is NOT automatically added as gardener
+        // NFT owner is only an operator, not a gardener (can add themselves if needed)
         IGardenAccessControl accessControl = IGardenAccessControl(address(gardenAccount));
-        assertTrue(accessControl.isGardener(owner), "owner should be a gardener (initializer)");
+        assertFalse(accessControl.isGardener(owner), "owner should NOT be a gardener (only operator)");
     }
 
     function test_isGardener_returnsFalseForNonGardener() public {

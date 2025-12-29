@@ -209,16 +209,11 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
 
     // solhint-disable no-unused-vars
     /// @notice Handles the logic to be executed when an attestation is revoked.
-    /// @dev This function can only be called by the contract owner.
-    /// @return A boolean indicating whether the revocation is valid.
-    function onRevoke(Attestation calldata, /*attestation*/ uint256 /*value*/ )
-        internal
-        view
-        override
-        onlyOwner
-        returns (bool)
-    {
-        return true;
+    /// @dev Assessments are NOT revocable - always returns false.
+    /// @return Always false - assessments cannot be revoked.
+    function onRevoke(Attestation calldata, /*attestation*/ uint256 /*value*/ ) internal pure override returns (bool) {
+        // Assessments are permanent and cannot be revoked
+        return false;
     }
 
     /// @notice Authorizes an upgrade to the contract's implementation.

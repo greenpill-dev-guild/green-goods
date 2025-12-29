@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.25;
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // SKIPPED: Stack-too-deep compilation error
-// ═══════════════════════════════════════════════════════════════════════════════
+// ==========================================
 // GardenAccount inherits from AccountV3Upgradable (tokenbound library) which has
 // deeply nested function calls. Directly instantiating GardenAccount in tests
-// causes Yul exception even with via_ir=true.
+// causes Yul exception even with via_ir=true in foundry.toml.
 //
 // GardenAccount functionality is tested via:
 // - test/integration/GardenAccessControl.t.sol (role management)
 // - test/unit/GardenToken.t.sol (minting creates accounts)
 // - test/E2EWorkflow.t.sol (end-to-end flows)
+// - test/schema/KarmaGAPSchemaValidation.t.sol (GAP JSON format)
 //
 // To re-enable: Requires refactoring GardenAccount to reduce stack depth
-// ═══════════════════════════════════════════════════════════════════════════════
+// in its constructor and setUp() deployment, or using a factory pattern.
 
 import { Test } from "forge-std/Test.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
@@ -99,19 +99,19 @@ contract GardenAccountTest is Test, ERC6551Helper {
         assertTrue(gardenAccount.gardenOperators(address(0x200)), "Garden operator should be added");
     }
 
-//     function testUpdateCommunityToken() public {
-//         // Operator should be able to update community token
-//         vm.prank(address(0x200)); // Garden operator
-//         gardenAccount.updateCommunityToken(address(mockGardenToken));
-//         assertEq(gardenAccount.communityToken(), address(mockGardenToken), "Community token should be updated");
-//     }
+    //     function testUpdateCommunityToken() public {
+    //         // Operator should be able to update community token
+    //         vm.prank(address(0x200)); // Garden operator
+    //         gardenAccount.updateCommunityToken(address(mockGardenToken));
+    //         assertEq(gardenAccount.communityToken(), address(mockGardenToken), "Community token should be updated");
+    //     }
 
-//     function testUpdateCommunityTokenRevertsIfNotOperator() public {
-//         // Operator should be able to update community token
-//         vm.prank(address(0x200)); // Garden operator
-//         gardenAccount.updateCommunityToken(address(mockGardenToken));
-//         assertEq(gardenAccount.communityToken(), address(mockGardenToken), "Community token should be updated");
-//     }
+    //     function testUpdateCommunityTokenRevertsIfNotOperator() public {
+    //         // Operator should be able to update community token
+    //         vm.prank(address(0x200)); // Garden operator
+    //         gardenAccount.updateCommunityToken(address(mockGardenToken));
+    //         assertEq(gardenAccount.communityToken(), address(mockGardenToken), "Community token should be updated");
+    //     }
 
     function testUpdateDescription() public {
         // Operator should be able to update description
@@ -130,43 +130,43 @@ contract GardenAccountTest is Test, ERC6551Helper {
         assertEq(gardenAccount.description(), "Operator Update", "Description should be updated");
     }
 
-//     function testUpdateLocation() public {
-//         // Operator should be able to update location
-//         vm.prank(address(0x200)); // Garden operator
-//         gardenAccount.updateLocation("New Location");
-//         assertEq(gardenAccount.location(), "New Location", "Location should be updated");
-//     }
+    //     function testUpdateLocation() public {
+    //         // Operator should be able to update location
+    //         vm.prank(address(0x200)); // Garden operator
+    //         gardenAccount.updateLocation("New Location");
+    //         assertEq(gardenAccount.location(), "New Location", "Location should be updated");
+    //     }
 
-// //     function testUpdateLocationRevertsIfNotOperator() public {
-// //         // Operator should be able to update location
-// //         vm.prank(address(0x200)); // Garden operator
-// //         gardenAccount.updateLocation("Operator Update");
-// //         assertEq(gardenAccount.location(), "Operator Update", "Location should be updated");
-// //     }
-// 
-// //     function testUpdateBannerImage() public {
-// //         // Operator should be able to update banner image
-// //         vm.prank(address(0x200)); // Garden operator
-// //         gardenAccount.updateBannerImage("New Banner Image");
-// //         assertEq(gardenAccount.bannerImage(), "New Banner Image", "Banner image should be updated");
-// //     }
-// 
-// //     function testUpdateBannerImageRevertsIfNotOperator() public {
-// //         // Operator should be able to update banner image
-// //         vm.prank(address(0x200)); // Garden operator
-// //         gardenAccount.updateBannerImage("Operator Update");
-// //         assertEq(gardenAccount.bannerImage(), "Operator Update", "Banner image should be updated");
-// //     }
-// 
-//     function testAddGardener() public {
-//         // Operator should be able to add gardener
-//         vm.prank(address(0x200)); // Garden operator
-//         vm.expectEmit(true, true, true, true);
-//         emit GardenAccount.GardenerAdded(address(0x200), address(0x300));
-// 
-//         gardenAccount.addGardener(address(0x300));
-//         assertTrue(gardenAccount.gardeners(address(0x300)), "New gardener should be added");
-//     }
+    // //     function testUpdateLocationRevertsIfNotOperator() public {
+    // //         // Operator should be able to update location
+    // //         vm.prank(address(0x200)); // Garden operator
+    // //         gardenAccount.updateLocation("Operator Update");
+    // //         assertEq(gardenAccount.location(), "Operator Update", "Location should be updated");
+    // //     }
+    //
+    // //     function testUpdateBannerImage() public {
+    // //         // Operator should be able to update banner image
+    // //         vm.prank(address(0x200)); // Garden operator
+    // //         gardenAccount.updateBannerImage("New Banner Image");
+    // //         assertEq(gardenAccount.bannerImage(), "New Banner Image", "Banner image should be updated");
+    // //     }
+    //
+    // //     function testUpdateBannerImageRevertsIfNotOperator() public {
+    // //         // Operator should be able to update banner image
+    // //         vm.prank(address(0x200)); // Garden operator
+    // //         gardenAccount.updateBannerImage("Operator Update");
+    // //         assertEq(gardenAccount.bannerImage(), "Operator Update", "Banner image should be updated");
+    // //     }
+    //
+    //     function testAddGardener() public {
+    //         // Operator should be able to add gardener
+    //         vm.prank(address(0x200)); // Garden operator
+    //         vm.expectEmit(true, true, true, true);
+    //         emit GardenAccount.GardenerAdded(address(0x200), address(0x300));
+    //
+    //         gardenAccount.addGardener(address(0x300));
+    //         assertTrue(gardenAccount.gardeners(address(0x300)), "New gardener should be added");
+    //     }
 
     function testRemoveGardener() public {
         // Operator should be able to remove gardener

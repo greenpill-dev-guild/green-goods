@@ -79,7 +79,7 @@
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json}": [
-      "npx @biomejs/biome format --write"
+      "bash -c 'files=\"$@\"; filtered=$(echo \"$files\" | tr \" \" \"\\n\" | grep -v \"packages/contracts/out/\"); [ -n \"$filtered\" ] && echo \"$filtered\" | xargs npx @biomejs/biome format --write || true' --"
     ],
     "*.sol": [
       "forge fmt"

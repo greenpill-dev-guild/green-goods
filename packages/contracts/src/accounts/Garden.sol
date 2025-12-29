@@ -203,7 +203,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
         // metadata = params.metadata;
         openJoining = params.openJoining;
 
-        gardeners[_msgSender()] = true;
+        // NFT owner becomes operator only (can add themselves as gardener if needed)
         gardenOperators[_msgSender()] = true;
 
         for (uint256 i = 0; i < params.gardeners.length; i++) {
@@ -337,64 +337,77 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// @notice Creates Karma GAP project via GAP contract
+    /// @dev Refactored to use scoped blocks to avoid stack-too-deep errors
     function _createGAPProject() private {
         IGap gap = IGap(KarmaLib.getGapContract());
+        bytes32 projectUID;
 
-        // 1. Create Project attestation
-        try gap.attest(
-            AttestationRequest({
-                schema: KarmaLib.getProjectSchemaUID(),
-                data: AttestationRequestData({
-                    recipient: address(this),
-                    expirationTime: 0,
-                    revocable: true,
-                    refUID: bytes32(0),
-                    data: abi.encode(true),
-                    value: 0
-                })
-            })
-        ) returns (bytes32 projectUID) {
-            gapProjectUID = projectUID;
+        // 1. Create Project attestation (scoped to reduce stack pressure)
+        {
+            AttestationRequestData memory reqData = AttestationRequestData({
+                recipient: address(this),
+                expirationTime: 0,
+                revocable: true,
+                refUID: bytes32(0),
+                data: abi.encode(true),
+                value: 0
+            });
 
-            // 2. Create MemberOf attestation
-            try gap.attest(
-                AttestationRequest({
-                    schema: KarmaLib.getMemberOfSchemaUID(),
-                    data: AttestationRequestData({
-                        recipient: _msgSender(),
-                        expirationTime: 0,
-                        revocable: true,
-                        refUID: projectUID,
-                        data: abi.encode(true),
-                        value: 0
-                    })
-                })
-            ) {
-                // 3. Create Details attestation
-                try gap.attest(
-                    AttestationRequest({
-                        schema: KarmaLib.getDetailsSchemaUID(),
-                        data: AttestationRequestData({
-                            recipient: address(this),
-                            expirationTime: 0,
-                            revocable: true,
-                            refUID: projectUID,
-                            data: abi.encode(_buildGAPDetailsJSON()),
-                            value: 0
-                        })
-                    })
-                ) {
-                    emit GAPProjectCreated(gapProjectUID, address(this), name);
-                } catch {
-                    gapProjectUID = bytes32(0);
-                    revert GAPImpactCreationFailed();
-                }
+            AttestationRequest memory req = AttestationRequest({schema: KarmaLib.getProjectSchemaUID(), data: reqData});
+
+            try gap.attest(req) returns (bytes32 uid) {
+                projectUID = uid;
+            } catch {
+                revert GAPImpactCreationFailed();
+            }
+        }
+
+        gapProjectUID = projectUID;
+
+        // 2. Create MemberOf attestation (scoped)
+        {
+            address sender = _msgSender();
+            AttestationRequestData memory reqData = AttestationRequestData({
+                recipient: sender,
+                expirationTime: 0,
+                revocable: true,
+                refUID: projectUID,
+                data: abi.encode(true),
+                value: 0
+            });
+
+            AttestationRequest memory req = AttestationRequest({schema: KarmaLib.getMemberOfSchemaUID(), data: reqData});
+
+            try gap.attest(req) {
+                // Success - continue to details
+                // solhint-disable-next-line no-empty-blocks
             } catch {
                 gapProjectUID = bytes32(0);
                 revert GAPImpactCreationFailed();
             }
-        } catch {
-            revert GAPImpactCreationFailed();
+        }
+
+        // 3. Create Details attestation (scoped)
+        {
+            string memory detailsJson = _buildGAPDetailsJSON();
+
+            AttestationRequestData memory reqData = AttestationRequestData({
+                recipient: address(this),
+                expirationTime: 0,
+                revocable: true,
+                refUID: projectUID,
+                data: abi.encode(detailsJson),
+                value: 0
+            });
+
+            AttestationRequest memory req = AttestationRequest({schema: KarmaLib.getDetailsSchemaUID(), data: reqData});
+
+            try gap.attest(req) {
+                emit GAPProjectCreated(projectUID, address(this), name);
+            } catch {
+                gapProjectUID = bytes32(0);
+                revert GAPImpactCreationFailed();
+            }
         }
     }
 
@@ -421,19 +434,21 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
         if (gapProjectUID == bytes32(0)) revert GAPProjectNotInitialized();
         if (!KarmaLib.isSupported()) revert GAPNotSupportedOnChain();
 
-        try IGap(KarmaLib.getGapContract()).attest(
-            AttestationRequest({
-                schema: KarmaLib.getDetailsSchemaUID(),
-                data: AttestationRequestData({
-                    recipient: address(this),
-                    expirationTime: 0,
-                    revocable: false,
-                    refUID: gapProjectUID,
-                    data: abi.encode(_buildImpactJSON(workTitle, impactDescription, proofIPFS, workUID)),
-                    value: 0
-                })
-            })
-        ) returns (bytes32 impactUID) {
+        // Build impact JSON and attestation in steps to reduce stack pressure
+        string memory impactJson = _buildImpactJSON(workTitle, impactDescription, proofIPFS, workUID);
+
+        AttestationRequestData memory reqData = AttestationRequestData({
+            recipient: address(this),
+            expirationTime: 0,
+            revocable: false,
+            refUID: gapProjectUID,
+            data: abi.encode(impactJson),
+            value: 0
+        });
+
+        AttestationRequest memory req = AttestationRequest({schema: KarmaLib.getDetailsSchemaUID(), data: reqData});
+
+        try IGap(KarmaLib.getGapContract()).attest(req) returns (bytes32 impactUID) {
             return impactUID;
         } catch {
             revert GAPImpactCreationFailed();
@@ -461,35 +476,37 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
         if (gapProjectUID == bytes32(0)) revert GAPProjectNotInitialized();
         if (!KarmaLib.isSupported()) revert GAPNotSupportedOnChain();
 
-        try IGap(KarmaLib.getGapContract()).attest(
-            AttestationRequest({
-                schema: KarmaLib.getDetailsSchemaUID(),
-                data: AttestationRequestData({
-                    recipient: address(this),
-                    expirationTime: 0,
-                    revocable: false,
-                    refUID: gapProjectUID,
-                    data: abi.encode(
-                        string(
-                            abi.encodePacked(
-                                "{\"title\":\"",
-                                StringUtils.escapeJSON(milestoneTitle),
-                                "\",\"text\":\"",
-                                StringUtils.escapeJSON(milestoneDescription),
-                                "\",\"type\":\"project-milestone\",\"data\":",
-                                milestoneMeta,
-                                "}"
-                            )
-                        )
-                    ),
-                    value: 0
-                })
-            })
-        ) returns (bytes32 milestoneUID) {
+        // Build milestone JSON in steps to reduce stack pressure
+        string memory milestoneJson = _buildMilestoneJSON(milestoneTitle, milestoneDescription, milestoneMeta);
+
+        AttestationRequestData memory reqData = AttestationRequestData({
+            recipient: address(this),
+            expirationTime: 0,
+            revocable: false,
+            refUID: gapProjectUID,
+            data: abi.encode(milestoneJson),
+            value: 0
+        });
+
+        AttestationRequest memory req = AttestationRequest({schema: KarmaLib.getDetailsSchemaUID(), data: reqData});
+
+        try IGap(KarmaLib.getGapContract()).attest(req) returns (bytes32 milestoneUID) {
             return milestoneUID;
         } catch {
             revert GAPMilestoneCreationFailed();
         }
+    }
+
+    /// @notice Builds milestone JSON string (helper to reduce stack depth)
+    function _buildMilestoneJSON(string calldata title, string calldata desc, string calldata meta)
+        private
+        pure
+        returns (string memory)
+    {
+        bytes memory part1 = abi.encodePacked("{\"title\":\"", StringUtils.escapeJSON(title), "\",\"text\":\"");
+        bytes memory part2 =
+            abi.encodePacked(StringUtils.escapeJSON(desc), "\",\"type\":\"project-milestone\",\"data\":");
+        return string(abi.encodePacked(part1, part2, meta, "}"));
     }
 
     /// @notice Internal function to add GAP project admin
@@ -546,6 +563,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
     }
 
     /// @notice Builds simplified impact JSON
+    /// @dev Split into multiple parts to avoid stack-too-deep
     function _buildImpactJSON(
         string calldata workTitle,
         string calldata impactDescription,
@@ -555,29 +573,39 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
         (,, uint256 tokenId) = token();
         string memory isoDate = StringUtils.timestampToISO(block.timestamp);
 
-        return string(
-            abi.encodePacked(
-                "{\"title\":\"",
-                StringUtils.escapeJSON(workTitle),
-                "\",\"text\":\"",
-                StringUtils.escapeJSON(impactDescription),
-                "\",\"startDate\":\"",
-                isoDate,
-                "\",\"endDate\":\"",
-                isoDate,
-                "\",\"deliverables\":[{\"name\":\"Work Evidence\",\"proof\":\"ipfs://",
-                StringUtils.escapeJSON(proofIPFS),
-                "\",\"description\":\"",
-                StringUtils.escapeJSON(impactDescription),
-                "\"}],\"links\":[{\"type\":\"other\",\"url\":\"https://greengoods.me/garden/",
-                StringUtils.uint2str(block.chainid),
-                "/",
-                StringUtils.uint2str(tokenId),
-                "/work/0x",
-                StringUtils.bytes32ToHexString(workUID),
-                "\",\"label\":\"View in Green Goods\"}],\"type\":\"project-update\"}"
-            )
+        // Part 1: title, text, dates
+        bytes memory part1 = abi.encodePacked(
+            "{\"title\":\"",
+            StringUtils.escapeJSON(workTitle),
+            "\",\"text\":\"",
+            StringUtils.escapeJSON(impactDescription),
+            "\",\"startDate\":\"",
+            isoDate,
+            "\",\"endDate\":\"",
+            isoDate
         );
+
+        // Part 2: deliverables
+        bytes memory part2 = abi.encodePacked(
+            "\",\"deliverables\":[{\"name\":\"Work Evidence\",\"proof\":\"ipfs://",
+            StringUtils.escapeJSON(proofIPFS),
+            "\",\"description\":\"",
+            StringUtils.escapeJSON(impactDescription),
+            "\"}]"
+        );
+
+        // Part 3: links
+        bytes memory part3 = abi.encodePacked(
+            ",\"links\":[{\"type\":\"other\",\"url\":\"https://greengoods.me/garden/",
+            StringUtils.uint2str(block.chainid),
+            "/",
+            StringUtils.uint2str(tokenId),
+            "/work/0x",
+            StringUtils.bytes32ToHexString(workUID),
+            "\",\"label\":\"View in Green Goods\"}],\"type\":\"project-update\"}"
+        );
+
+        return string(abi.encodePacked(part1, part2, part3));
     }
 
     /// @notice Storage gap for upgradeable contract

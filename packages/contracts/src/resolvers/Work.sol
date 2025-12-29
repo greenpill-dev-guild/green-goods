@@ -89,16 +89,11 @@ contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
 
     // solhint-disable no-unused-vars
     /// @notice Handles the logic to be executed when an attestation is revoked.
-    /// @dev This function can only be called by the contract owner.
-    /// @return A boolean indicating whether the revocation is valid.
-    function onRevoke(Attestation calldata, /*attestation*/ uint256 /*value*/ )
-        internal
-        view
-        override
-        onlyOwner
-        returns (bool)
-    {
-        return true;
+    /// @dev Work submissions are NOT revocable - always returns false.
+    /// @return Always false - work submissions cannot be revoked.
+    function onRevoke(Attestation calldata, /*attestation*/ uint256 /*value*/ ) internal pure override returns (bool) {
+        // Work submissions are permanent and cannot be revoked
+        return false;
     }
 
     /// @notice Authorizes an upgrade to the contract's implementation.

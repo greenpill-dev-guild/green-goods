@@ -152,17 +152,25 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
         }
     }
 
-    // solhint-disable no-unused-vars
     /// @notice Handles the logic to be executed when an attestation is revoked.
-    /// @dev This function can only be called by the contract owner.
+    /// @dev Only garden operators can revoke work approvals.
+    ///
+    /// **Validation:**
+    /// - Verifies the revoker is an operator of the garden the approval was for
+    /// - Original approver OR any garden operator can revoke
+    ///
+    /// @param attestation The attestation being revoked
     /// @return A boolean indicating whether the revocation is valid.
-    function onRevoke(Attestation calldata, /*attestation*/ uint256 /*value*/ )
-        internal
-        view
-        override
-        onlyOwner
-        returns (bool)
-    {
+    function onRevoke(Attestation calldata attestation, uint256 /*value*/ ) internal view override returns (bool) {
+        // The approval attestation recipient is the garden address
+        IGardenAccessControl accessControl = IGardenAccessControl(attestation.recipient);
+
+        // IDENTITY CHECK: Only operators can revoke work approvals
+        // This allows the original approver or any other operator to revoke if needed
+        if (!accessControl.isOperator(attestation.attester)) {
+            revert NotGardenOperator();
+        }
+
         return true;
     }
 
