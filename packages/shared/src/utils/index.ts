@@ -81,8 +81,10 @@ export { createDispatchAdapter } from "./dispatch-adapter";
 // ============================================================================
 export { encodeWorkApprovalData } from "./eas/encoders";
 export {
+  getBlockExplorerTxUrl,
   getEASExplorerUrl,
   isValidAttestationId,
+  openBlockExplorerTx,
   openEASExplorer,
 } from "./eas/explorers";
 export { buildApprovalAttestTx, buildWorkAttestTx } from "./eas/transaction-builder";

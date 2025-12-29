@@ -121,6 +121,14 @@ export async function submitApprovalToQueue(
 export const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
 
 /**
+ * Options for validating work submission context
+ */
+export interface ValidateWorkContextOptions {
+  /** Minimum required images (from action config). Defaults to 1 if not provided. */
+  minRequired?: number;
+}
+
+/**
  * Validate submission context before work submission.
  * Note: Form field validation (feedback, plantSelection, plantCount) is handled
  * by the Zod schema in useWorkForm.ts. This function only validates context.
@@ -128,14 +136,19 @@ export const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
  * @param gardenAddress - Selected garden address
  * @param actionUID - Selected action UID
  * @param images - Work images to upload
+ * @param options - Validation options including minRequired images
  * @returns Array of error messages (empty if valid)
  */
 export function validateWorkSubmissionContext(
   gardenAddress: string | null,
   actionUID: number | null,
-  images: File[]
+  images: File[],
+  options: ValidateWorkContextOptions = {}
 ): string[] {
   const errors: string[] = [];
+
+  // Default to 1 if not specified (backward compatibility)
+  const minRequired = options.minRequired ?? 1;
 
   if (!gardenAddress) {
     errors.push("Garden must be selected");
@@ -145,8 +158,12 @@ export function validateWorkSubmissionContext(
     errors.push("Action must be selected");
   }
 
-  if (images.length === 0) {
-    errors.push("At least one image is required");
+  if (images.length < minRequired) {
+    if (minRequired === 1) {
+      errors.push("At least one image is required");
+    } else {
+      errors.push(`At least ${minRequired} images are required`);
+    }
   }
 
   // Check image file sizes
@@ -166,9 +183,10 @@ export function validateWorkDraft(
   _draft: WorkDraft,
   gardenAddress: string | null,
   actionUID: number | null,
-  images: File[]
+  images: File[],
+  options: ValidateWorkContextOptions = {}
 ): string[] {
-  return validateWorkSubmissionContext(gardenAddress, actionUID, images);
+  return validateWorkSubmissionContext(gardenAddress, actionUID, images, options);
 }
 
 /**

@@ -122,6 +122,16 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
     userAddress,
   });
 
+  // Compute minimum required images from selected action
+  const minRequiredImages = useMemo(() => {
+    if (typeof actionUID !== "number" || !actionsData.length) return 1;
+    const selectedAction = actionsData.find(
+      (a: Action) => Number(a.id.split("-").pop()) === actionUID
+    );
+    if (!selectedAction?.mediaInfo?.required) return 0;
+    return selectedAction.mediaInfo.minImageCount ?? 1;
+  }, [actionUID, actionsData]);
+
   // Upload work handler - memoized to prevent unnecessary re-renders
   const handleUploadWork = useCallback(
     async (data: WorkFormData) => {
@@ -132,7 +142,9 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         ...(typeof data.plantCount === "number" ? { plantCount: data.plantCount } : {}),
       };
 
-      const errors = validateWorkSubmissionContext(gardenAddress, actionUID, images);
+      const errors = validateWorkSubmissionContext(gardenAddress, actionUID, images, {
+        minRequired: minRequiredImages,
+      });
       if (errors.length > 0) {
         validationToasts.formError(errors[0]);
         if (DEBUG_ENABLED) {
@@ -160,7 +172,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         }
       }
     },
-    [gardenAddress, actionUID, images, workMutation]
+    [gardenAddress, actionUID, images, workMutation, minRequiredImages]
   );
 
   // Wrap with handleSubmit for form validation

@@ -13,7 +13,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { jobQueue } from "../../modules/job-queue";
-import { submitApprovalDirectly } from "../../modules/work/wallet-submission";
+import {
+  submitApprovalDirectly,
+  type WalletSubmissionResult,
+} from "../../modules/work/wallet-submission";
 import { submitApprovalToQueue } from "../../modules/work/work-submission";
 import { DEBUG_ENABLED, debugError, debugLog, debugWarn } from "../../utils/debug";
 import { useUser } from "../auth/useUser";
@@ -22,6 +25,13 @@ import { queryKeys } from "../query-keys";
 interface UseWorkApprovalParams {
   draft: WorkApprovalDraft;
   work: Work;
+}
+
+/** Mutation result including wallet submission details */
+interface ApprovalMutationResult {
+  hash: `0x${string}`;
+  /** Wallet-specific result (only present for wallet mode) */
+  walletResult?: WalletSubmissionResult;
 }
 
 /**
@@ -62,7 +72,7 @@ export function useWorkApproval() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ draft, work }: UseWorkApprovalParams) => {
+    mutationFn: async ({ draft, work }: UseWorkApprovalParams): Promise<ApprovalMutationResult> => {
       if (DEBUG_ENABLED) {
         debugLog("[useWorkApproval] Starting approval submission", {
           authMode,
@@ -80,7 +90,8 @@ export function useWorkApproval() {
             workUID: draft.workUID,
           });
         }
-        return await submitApprovalDirectly(draft, work.gardenAddress, chainId);
+        const walletResult = await submitApprovalDirectly(draft, work.gardenAddress, chainId);
+        return { hash: walletResult.hash, walletResult };
       }
 
       if (DEBUG_ENABLED) {
@@ -124,7 +135,7 @@ export function useWorkApproval() {
             });
           }
           if (result.success && result.txHash) {
-            return result.txHash as `0x${string}`;
+            return { hash: result.txHash as `0x${string}` };
           }
         } catch (error) {
           if (DEBUG_ENABLED) {
@@ -133,7 +144,7 @@ export function useWorkApproval() {
         }
       }
 
-      return offlineTxHash;
+      return { hash: offlineTxHash };
     },
     onMutate: async (variables) => {
       if (!variables) return;
@@ -216,35 +227,83 @@ export function useWorkApproval() {
       // Return context for rollback on error
       return { previousMergedWorks, previousOnlineWorks };
     },
-    onSuccess: (txHash, variables) => {
+    onSuccess: (result, variables) => {
+      const { hash: txHash, walletResult } = result;
       const isApproval = variables?.draft.approved ?? false;
       const isOfflineHash = typeof txHash === "string" && txHash.startsWith("0xoffline_");
-      const successMessage = isApproval ? "Decision recorded." : "Feedback recorded.";
-      const title =
-        authMode === "wallet"
+
+      // Handle wallet mode results (including timeout case)
+      if (authMode === "wallet" && walletResult) {
+        const { confirmed, timedOut, explorerUrl } = walletResult;
+
+        if (timedOut) {
+          // Transaction sent but confirmation timed out - show "submitted" with explorer link
+          toastService.success({
+            id: "approval-submit",
+            title: isApproval ? "Approval submitted" : "Decision submitted",
+            message: "Transaction sent. Check explorer for confirmation status.",
+            context: "wallet confirmation",
+            action: explorerUrl
+              ? {
+                  label: "View on explorer",
+                  onClick: () => window.open(explorerUrl, "_blank", "noopener,noreferrer"),
+                }
+              : undefined,
+            suppressLogging: true,
+          });
+        } else if (confirmed) {
+          // Transaction confirmed
+          toastService.success({
+            id: "approval-submit",
+            title: isApproval ? "Approval submitted" : "Decision submitted",
+            message: "Transaction confirmed.",
+            context: "wallet confirmation",
+            action: explorerUrl
+              ? {
+                  label: "View on explorer",
+                  onClick: () => window.open(explorerUrl, "_blank", "noopener,noreferrer"),
+                }
+              : undefined,
+            suppressLogging: true,
+          });
+        } else {
+          // Transaction sent but receipt fetch had issues - treat as submitted
+          toastService.success({
+            id: "approval-submit",
+            title: isApproval ? "Approval submitted" : "Decision submitted",
+            message: "Transaction sent successfully.",
+            context: "wallet confirmation",
+            action: explorerUrl
+              ? {
+                  label: "View on explorer",
+                  onClick: () => window.open(explorerUrl, "_blank", "noopener,noreferrer"),
+                }
+              : undefined,
+            suppressLogging: true,
+          });
+        }
+      } else {
+        // Passkey mode or offline
+        const successMessage = isApproval ? "Decision recorded." : "Feedback recorded.";
+        const title = isOfflineHash
           ? isApproval
+            ? "Approval saved offline"
+            : "Decision saved offline"
+          : isApproval
             ? "Approval submitted"
-            : "Decision submitted"
-          : isOfflineHash
-            ? isApproval
-              ? "Approval saved offline"
-              : "Decision saved offline"
-            : isApproval
-              ? "Approval submitted"
-              : "Decision submitted";
-      const message =
-        authMode === "wallet"
-          ? "Transaction confirmed."
-          : isOfflineHash
-            ? "We'll sync this automatically when you're back online."
-            : successMessage;
-      toastService.success({
-        id: "approval-submit",
-        title,
-        message,
-        context: authMode === "wallet" ? "wallet confirmation" : "approval submission",
-        suppressLogging: true,
-      });
+            : "Decision submitted";
+        const message = isOfflineHash
+          ? "We'll sync this automatically when you're back online."
+          : successMessage;
+
+        toastService.success({
+          id: "approval-submit",
+          title,
+          message,
+          context: "approval submission",
+          suppressLogging: true,
+        });
+      }
 
       // Invalidate work queries to refetch from EAS after a delay
       // (EAS indexer has 2-6 second lag)
@@ -269,6 +328,9 @@ export function useWorkApproval() {
           workUID: variables?.draft.workUID,
           txHash,
           wasOffline: isOfflineHash,
+          walletResult: walletResult
+            ? { confirmed: walletResult.confirmed, timedOut: walletResult.timedOut }
+            : undefined,
         });
       }
     },

@@ -1,22 +1,15 @@
+import type { WorkFormData } from "@green-goods/shared/hooks/work/useWorkForm";
 import { RiFileFill } from "@remixicon/react";
 import type { Control, Path, UseFormRegister } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { FormInfo } from "@/components/Cards";
 import { FormInput, FormSelect, FormText } from "@/components/Inputs";
 
-// Form fields type - includes known fields plus dynamic ones from WorkInput
-type WorkFormFields = {
-  feedback: string;
-  plantSelection: string[];
-  plantCount?: number;
-  [key: string]: string | number | string[] | undefined;
-};
-
 interface WorkDetailsProps {
   config?: Action["details"];
   inputs: WorkInput[];
-  register: UseFormRegister<WorkFormFields>;
-  control: Control<WorkFormFields>;
+  register: UseFormRegister<WorkFormData>;
+  control: Control<WorkFormData>;
 }
 
 export const WorkDetails: React.FC<WorkDetailsProps> = ({ config, register, control, inputs }) => {
@@ -74,7 +67,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({ config, register, cont
             : undefined;
 
         // Cast key to Path for dynamic form fields
-        const fieldKey = key as Path<WorkFormFields>;
+        const fieldKey = key as Path<WorkFormData>;
 
         if (type === "number") {
           return (

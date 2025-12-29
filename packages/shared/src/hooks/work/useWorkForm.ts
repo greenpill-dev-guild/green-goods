@@ -43,8 +43,13 @@ export const workFormSchema = z.object({
   }, z.number().nonnegative().optional()),
 });
 
-// Infer form type from Zod schema (single source of truth)
-export type WorkFormData = z.infer<typeof workFormSchema>;
+// Infer base form type from Zod schema
+type WorkFormDataBase = z.infer<typeof workFormSchema>;
+
+// Extend with index signature for dynamic action-specific fields
+export type WorkFormData = WorkFormDataBase & {
+  [key: string]: string | number | string[] | undefined;
+};
 
 /**
  * Hook to manage the work submission form

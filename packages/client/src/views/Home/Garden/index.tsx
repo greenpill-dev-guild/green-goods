@@ -7,6 +7,7 @@ import {
   useGardens,
   useGardenTabs,
   useNavigateToTop,
+  useUser,
   useWorks,
 } from "@green-goods/shared/hooks";
 import {
@@ -32,6 +33,7 @@ type GardenProps = {};
 
 export const Garden: React.FC<GardenProps> = () => {
   const intl = useIntl();
+  const { primaryAddress } = useUser();
 
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
@@ -109,6 +111,13 @@ export const Garden: React.FC<GardenProps> = () => {
 
   const { name, bannerImage, location, createdAt, assessments, description } = garden;
 
+  // Check if current user is an operator (can approve/reject work)
+  const isOperator = useMemo(() => {
+    if (!primaryAddress || !garden.operators) return false;
+    const normalizedUserAddress = primaryAddress.toLowerCase();
+    return garden.operators.some((addr) => addr.toLowerCase() === normalizedUserAddress);
+  }, [primaryAddress, garden.operators]);
+
   // Restore scroll position when switching tabs
 
   // Standard tabs configuration - removed counts
@@ -175,6 +184,7 @@ export const Garden: React.FC<GardenProps> = () => {
                     onBackClick={() => navigate("/home")}
                     works={mergedWorks}
                     garden={garden}
+                    isOperator={isOperator}
                   />
                 </div>
               </div>

@@ -3,14 +3,16 @@ import { cn } from "@green-goods/shared/utils";
 import { RiArrowLeftFill, RiNotificationFill, RiNotificationLine } from "@remixicon/react";
 import { forwardRef, useRef } from "react";
 import { createPortal } from "react-dom";
-import { GardenNotifications } from "@/views/Home/Garden/Notifications";
 import { Button } from "@/components/Actions";
+import { GardenNotifications } from "@/views/Home/Garden/Notifications";
 
 type TopNavProps = {
   onBackClick?: (e: React.SyntheticEvent<HTMLButtonElement>) => void;
   garden?: Garden;
   works?: Work[];
   overlay?: boolean;
+  /** Whether the current user is an operator of this garden */
+  isOperator?: boolean;
 } & React.HTMLAttributes<HTMLDivElement>;
 
 type NotificationsProps = {
@@ -138,6 +140,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   onBackClick,
   garden,
   overlay,
+  isOperator = false,
   ...props
 }: TopNavProps) => {
   const { syncStatus, isOnline } = useOffline();
@@ -184,7 +187,8 @@ export const TopNav: React.FC<TopNavProps> = ({
       </div>
 
       <div className="flex grow" />
-      {garden && <NotificationCenter {...props} garden={garden} />}
+      {/* Only show notifications for operators - they need to review pending work */}
+      {garden && isOperator && <NotificationCenter {...props} garden={garden} />}
     </div>
   );
 };

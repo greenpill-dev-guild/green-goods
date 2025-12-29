@@ -14,17 +14,71 @@
 
 import { NO_EXPIRATION, ZERO_BYTES32 } from "@ethereum-attestation-service/eas-sdk";
 import { getPublicClient, getWalletClient, waitForTransactionReceipt } from "@wagmi/core";
-import { encodeFunctionData } from "viem";
 import { wagmiConfig } from "../../config/appkit";
 import { getEASConfig } from "../../config/blockchain";
 import { queryKeys } from "../../hooks/query-keys";
 import { EASABI } from "../../utils/blockchain/contracts";
 import { pollQueriesAfterTransaction } from "../../utils/blockchain/polling";
-import { DEBUG_ENABLED, debugError, debugLog } from "../../utils/debug";
+import { DEBUG_ENABLED, debugError, debugLog, debugWarn } from "../../utils/debug";
 import { encodeWorkApprovalData, encodeWorkData, simulateWorkData } from "../../utils/eas/encoders";
+import { getBlockExplorerTxUrl } from "../../utils/eas/explorers";
 import { buildApprovalAttestTx, buildWorkAttestTx } from "../../utils/eas/transaction-builder";
 import { parseContractError } from "../../utils/errors/contract-errors";
 import { formatWalletError } from "../../utils/errors/user-messages";
+
+/** Default timeout for transaction receipt confirmation (60 seconds) */
+const RECEIPT_TIMEOUT_MS = 60_000;
+
+/**
+ * Wait for transaction receipt with timeout
+ *
+ * Wraps waitForTransactionReceipt with a timeout to prevent indefinite hanging
+ * (especially on iOS WalletConnect where the bridge can be unreliable).
+ *
+ * @param hash - Transaction hash
+ * @param chainId - Chain ID
+ * @param timeoutMs - Timeout in milliseconds (default: 60s)
+ * @returns Receipt if confirmed within timeout, null if timed out
+ */
+async function waitForReceiptWithTimeout(
+  hash: `0x${string}`,
+  chainId: number,
+  timeoutMs: number = RECEIPT_TIMEOUT_MS
+): Promise<{ confirmed: boolean; timedOut: boolean }> {
+  try {
+    const receipt = await Promise.race([
+      waitForTransactionReceipt(wagmiConfig, { hash, chainId }).then(() => ({ confirmed: true })),
+      new Promise<{ timedOut: true }>((resolve) =>
+        setTimeout(() => resolve({ timedOut: true }), timeoutMs)
+      ),
+    ]);
+
+    if ("timedOut" in receipt) {
+      debugWarn("[WalletSubmission] Receipt wait timed out", { hash, timeoutMs });
+      return { confirmed: false, timedOut: true };
+    }
+
+    return { confirmed: true, timedOut: false };
+  } catch (err) {
+    // Receipt fetch failed but tx may still be pending/confirmed
+    debugWarn("[WalletSubmission] Receipt wait error (tx may still succeed)", { hash, err });
+    return { confirmed: false, timedOut: false };
+  }
+}
+
+/**
+ * Submission result with explorer link support
+ */
+export interface WalletSubmissionResult {
+  /** Transaction hash */
+  hash: `0x${string}`;
+  /** Whether transaction was confirmed */
+  confirmed: boolean;
+  /** Whether we timed out waiting for confirmation */
+  timedOut: boolean;
+  /** Block explorer URL for the transaction */
+  explorerUrl: string;
+}
 
 /**
  * Submit work directly using wallet client (no job queue)
@@ -34,7 +88,8 @@ import { formatWalletError } from "../../utils/errors/user-messages";
  * 2. Encode work data (uploads media to IPFS)
  * 3. Prepare EAS attestation transaction
  * 4. Send transaction via wallet
- * 5. Wait for transaction receipt
+ * 5. Wait for transaction receipt (with timeout to prevent indefinite hanging)
+ * 6. Return result with explorer link
  *
  * @param draft - Work form data
  * @param gardenAddress - Target garden address
@@ -42,8 +97,8 @@ import { formatWalletError } from "../../utils/errors/user-messages";
  * @param actionTitle - Action title for metadata
  * @param chainId - Target chain ID
  * @param images - Work media files
- * @returns Transaction hash
- * @throws Error if wallet not connected or transaction fails
+ * @returns Submission result with hash, confirmation status, and explorer URL
+ * @throws Error if wallet not connected or transaction send fails
  */
 export async function submitWorkDirectly(
   draft: WorkDraft,
@@ -52,7 +107,7 @@ export async function submitWorkDirectly(
   actionTitle: string,
   chainId: number,
   images: File[]
-): Promise<`0x${string}`> {
+): Promise<WalletSubmissionResult> {
   debugLog("[WalletSubmission] Starting direct work submission", { gardenAddress, actionUID });
 
   // 1. Get wallet client from wagmi
@@ -106,7 +161,7 @@ export async function submitWorkDirectly(
         account: walletClient.account,
       });
       debugLog("[WalletSubmission] Simulation successful - proceeding to upload");
-    } catch (err: any) {
+    } catch (err: unknown) {
       debugError("[WalletSubmission] Simulation failed", err);
 
       const parsed = parseContractError(err);
@@ -118,7 +173,7 @@ export async function submitWorkDirectly(
       }
 
       // Check for common simulation failures and provide specific messages
-      const errMessage = err.message?.toLowerCase() || "";
+      const errMessage = (err as Error).message?.toLowerCase() || "";
 
       // Not a member of the garden (neither gardener nor operator)
       if (
@@ -133,19 +188,23 @@ export async function submitWorkDirectly(
       }
 
       // Reverted without reason (common for access control)
-      if (errMessage.includes("reverted") && !err.cause?.reason) {
+      if (
+        errMessage.includes("reverted") &&
+        !(err as Error & { cause?: { reason?: string } }).cause?.reason
+      ) {
         throw new Error(
           "Transaction would fail. Make sure you're a member of the selected garden."
         );
       }
 
       // Fallback to cause reason if available
-      if (err.cause?.reason) {
-        throw new Error(`Transaction check failed: ${err.cause.reason}`);
+      const causeReason = (err as Error & { cause?: { reason?: string } }).cause?.reason;
+      if (causeReason) {
+        throw new Error(`Transaction check failed: ${causeReason}`);
       }
 
       throw new Error(
-        `Transaction check failed: ${parsed.message || err.message || "Please verify you're a member of the selected garden."}`
+        `Transaction check failed: ${parsed.message || (err as Error).message || "Please verify you're a member of the selected garden."}`
       );
     }
   }
@@ -178,24 +237,50 @@ export async function submitWorkDirectly(
 
     debugLog("[WalletSubmission] Transaction sent", { hash });
 
-    // 5. Wait for transaction receipt
-    await waitForTransactionReceipt(wagmiConfig, { hash, chainId });
+    // Build explorer URL immediately so we can return it even if receipt times out
+    const explorerUrl = getBlockExplorerTxUrl(chainId, hash);
 
-    debugLog("[WalletSubmission] Transaction confirmed", { hash });
+    // 5. Wait for transaction receipt with timeout (don't block indefinitely)
+    const receiptResult = await waitForReceiptWithTimeout(hash, chainId);
 
-    // 6. Poll for indexer updates (account for 2-6s indexer lag)
-    await pollQueriesAfterTransaction({
-      queryKeys: [
-        queryKeys.works.online(gardenAddress, chainId),
-        queryKeys.works.merged(gardenAddress, chainId),
-      ],
-      onAttempt: (attempt, delay) => {
-        debugLog(`[WalletSubmission] Polling indexer (attempt ${attempt}, waited ${delay}ms)`);
-      },
+    if (receiptResult.confirmed) {
+      debugLog("[WalletSubmission] Transaction confirmed", { hash });
+    } else if (receiptResult.timedOut) {
+      debugLog("[WalletSubmission] Confirmation timed out, tx may still succeed", {
+        hash,
+        explorerUrl,
+      });
+    }
+
+    // 6. Poll for indexer updates in background (don't block on this)
+    // Only poll if we got confirmation - otherwise user can check explorer
+    if (receiptResult.confirmed) {
+      pollQueriesAfterTransaction({
+        queryKeys: [
+          queryKeys.works.online(gardenAddress, chainId),
+          queryKeys.works.merged(gardenAddress, chainId),
+        ],
+        onAttempt: (attempt, delay) => {
+          debugLog(`[WalletSubmission] Polling indexer (attempt ${attempt}, waited ${delay}ms)`);
+        },
+      }).catch((err) => {
+        // Non-critical: indexer polling failed but tx is confirmed
+        debugWarn("[WalletSubmission] Indexer polling failed after work submission", { hash, err });
+      });
+    }
+
+    debugLog("[WalletSubmission] Work submission complete", {
+      hash,
+      confirmed: receiptResult.confirmed,
+      timedOut: receiptResult.timedOut,
     });
 
-    debugLog("[WalletSubmission] Work submission complete with indexer sync", { hash });
-    return hash;
+    return {
+      hash,
+      confirmed: receiptResult.confirmed,
+      timedOut: receiptResult.timedOut,
+      explorerUrl,
+    };
   } catch (err: unknown) {
     const logMessage = "[WalletSubmission] Work submission failed";
     if (DEBUG_ENABLED) {
@@ -217,19 +302,20 @@ export async function submitWorkDirectly(
  * 2. Encode approval data
  * 3. Prepare EAS attestation transaction
  * 4. Send transaction via wallet
- * 5. Wait for transaction receipt
+ * 5. Wait for transaction receipt (with timeout to prevent indefinite hanging)
+ * 6. Return result with explorer link
  *
  * @param draft - Approval form data
  * @param gardenAddress - Garden address (EAS attestation recipient - must match work recipient)
  * @param chainId - Target chain ID
- * @returns Transaction hash
- * @throws Error if wallet not connected or transaction fails
+ * @returns Submission result with hash, confirmation status, and explorer URL
+ * @throws Error if wallet not connected or transaction send fails
  */
 export async function submitApprovalDirectly(
   draft: WorkApprovalDraft,
   gardenAddress: string,
   chainId: number
-): Promise<`0x${string}`> {
+): Promise<WalletSubmissionResult> {
   debugLog("[WalletSubmission] Starting direct approval submission", { gardenAddress });
 
   // 1. Get wallet client from wagmi
@@ -268,28 +354,49 @@ export async function submitApprovalDirectly(
 
     debugLog("[WalletSubmission] Approval transaction sent", { hash });
 
-    // 5. Wait for transaction receipt
-    await waitForTransactionReceipt(wagmiConfig, { hash, chainId });
+    // Build explorer URL immediately so we can return it even if receipt times out
+    const explorerUrl = getBlockExplorerTxUrl(chainId, hash);
 
-    debugLog("[WalletSubmission] Approval transaction confirmed", { hash });
+    // 5. Wait for transaction receipt with timeout (don't block indefinitely)
+    const receiptResult = await waitForReceiptWithTimeout(hash, chainId);
 
-    // 6. Poll for indexer updates (account for 2-6s indexer lag)
-    // Note: gardenerAddress is the recipient of the approval attestation
-    await pollQueriesAfterTransaction({
-      queryKeys: [
-        queryKeys.workApprovals.all,
-        // Invalidate works to update approval status
-        queryKeys.works.all,
-      ],
-      onAttempt: (attempt, delay) => {
-        debugLog(
-          `[WalletSubmission] Polling indexer for approval (attempt ${attempt}, waited ${delay}ms)`
-        );
-      },
+    if (receiptResult.confirmed) {
+      debugLog("[WalletSubmission] Approval transaction confirmed", { hash });
+    } else if (receiptResult.timedOut) {
+      debugLog("[WalletSubmission] Approval confirmation timed out, tx may still succeed", {
+        hash,
+        explorerUrl,
+      });
+    }
+
+    // 6. Poll for indexer updates in background (don't block on this)
+    // Only poll if we got confirmation - otherwise user can check explorer
+    if (receiptResult.confirmed) {
+      pollQueriesAfterTransaction({
+        queryKeys: [queryKeys.workApprovals.all, queryKeys.works.all],
+        onAttempt: (attempt, delay) => {
+          debugLog(
+            `[WalletSubmission] Polling indexer for approval (attempt ${attempt}, waited ${delay}ms)`
+          );
+        },
+      }).catch((err) => {
+        // Non-critical: indexer polling failed but tx is confirmed
+        debugWarn("[WalletSubmission] Indexer polling failed after approval", { hash, err });
+      });
+    }
+
+    debugLog("[WalletSubmission] Approval submission complete", {
+      hash,
+      confirmed: receiptResult.confirmed,
+      timedOut: receiptResult.timedOut,
     });
 
-    debugLog("[WalletSubmission] Approval submission complete with indexer sync", { hash });
-    return hash;
+    return {
+      hash,
+      confirmed: receiptResult.confirmed,
+      timedOut: receiptResult.timedOut,
+      explorerUrl,
+    };
   } catch (err: unknown) {
     const logMessage = "[WalletSubmission] Approval submission failed";
     if (DEBUG_ENABLED) {

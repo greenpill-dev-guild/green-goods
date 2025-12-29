@@ -39,6 +39,10 @@ const Work: React.FC = () => {
   const [showDraftDialog, setShowDraftDialog] = useState(false);
   const hasCheckedDraft = useRef(false);
 
+  // Media upload click handlers (exposed by WorkMedia for PostHog tracking)
+  const galleryClickRef = useRef<(() => void) | null>(null);
+  const cameraClickRef = useRef<(() => void) | null>(null);
+
   if (!form) {
     return null;
   }
@@ -151,6 +155,7 @@ const Work: React.FC = () => {
       needed: [] as string[],
       optional: [] as string[],
       maxImageCount: 0,
+      minImageCount: undefined,
     }),
     [intl]
   );
@@ -164,6 +169,7 @@ const Work: React.FC = () => {
       needed = [],
       optional = [],
       maxImageCount = defaultMediaConfig.maxImageCount,
+      minImageCount,
       ...rest
     } = translatedAction.mediaInfo;
 
@@ -173,8 +179,15 @@ const Work: React.FC = () => {
       needed: Array.isArray(needed) ? needed : [],
       optional: Array.isArray(optional) ? optional : [],
       maxImageCount,
+      minImageCount,
     };
   }, [translatedAction, defaultMediaConfig]);
+
+  // Compute minimum required images based on action configuration
+  const minRequired = useMemo(() => {
+    if (!mediaConfig.required) return 0;
+    return mediaConfig.minImageCount ?? 1;
+  }, [mediaConfig.required, mediaConfig.minImageCount]);
 
   const defaultDetailsConfig = useMemo(
     () => ({
@@ -325,13 +338,20 @@ const Work: React.FC = () => {
         id: "app.garden.submit.tab.media.label",
         defaultMessage: "Add Details",
       }),
-      primaryDisabled: !canBypassMediaRequirement && images.length < 2,
+      primaryDisabled: !canBypassMediaRequirement && images.length < minRequired,
       secondary: null,
       secondaryLabel: null,
       customSecondary: (
         <>
           <Button
-            onClick={() => document.getElementById("work-media-upload")?.click()}
+            onClick={() => {
+              // Use tracked handler if available, fallback to direct DOM click
+              if (galleryClickRef.current) {
+                galleryClickRef.current();
+              } else {
+                document.getElementById("work-media-upload")?.click();
+              }
+            }}
             label=""
             className="w-12 px-0 shrink-0"
             variant="neutral"
@@ -341,7 +361,14 @@ const Work: React.FC = () => {
             leadingIcon={<RiImageFill className="text-primary w-5 h-5" />}
           />
           <Button
-            onClick={() => document.getElementById("work-media-camera")?.click()}
+            onClick={() => {
+              // Use tracked handler if available, fallback to direct DOM click
+              if (cameraClickRef.current) {
+                cameraClickRef.current();
+              } else {
+                document.getElementById("work-media-camera")?.click();
+              }
+            }}
             label=""
             className="w-12 px-0 shrink-0"
             variant="neutral"
@@ -436,7 +463,16 @@ const Work: React.FC = () => {
           />
         );
       case WorkTab.Media:
-        return <WorkMedia config={mediaConfig} images={images} setImages={setImages} />;
+        return (
+          <WorkMedia
+            config={mediaConfig}
+            images={images}
+            setImages={setImages}
+            minRequired={minRequired}
+            onGalleryClickRef={galleryClickRef}
+            onCameraClickRef={cameraClickRef}
+          />
+        );
       case WorkTab.Details:
         return (
           <WorkDetails
