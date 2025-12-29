@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
-import { getWorks } from "../../modules/data/eas";
+import { getWorkApprovals, getWorks } from "../../modules/data/eas";
 import { jobQueue, jobQueueDB } from "../../modules/job-queue";
 import { jobQueueEventBus, useJobQueueEvents } from "../../modules/job-queue/event-bus";
 import { useMerged } from "../app/useMerged";
@@ -60,6 +60,12 @@ export function useWorks(gardenId: string) {
       const safeOnlineWorks = onlineWorks ?? [];
       const safeOfflineJobs = offlineJobs ?? [];
 
+      // Fetch work approvals to compute proper status (approved/rejected/pending)
+      // Pass undefined to get all approvals, then filter by workUID in the map
+      // This ensures work.status reflects actual on-chain approval state
+      const approvals = await getWorkApprovals(undefined, chainId);
+      const approvalMap = new Map(approvals.map((approval) => [approval.workUID, approval]));
+
       // Get cached status map to preserve optimistic updates
       // This prevents resetting status to "pending" when merging new data
       const cachedWorks = queryClient.getQueryData<Work[]>(
@@ -81,9 +87,21 @@ export function useWorks(gardenId: string) {
 
       const workMap = new Map<string, Work>();
       safeOnlineWorks.forEach((work) => {
-        // Preserve cached status if available (from optimistic updates), otherwise default to "pending"
-        // Note: WorkCard from EAS doesn't have status - it's derived from work approvals
-        const status = cachedStatusMap.get(work.id) ?? ("pending" as const);
+        // Compute status from approvals (source of truth)
+        // 1. Check if there's an approval for this work
+        // 2. If approval exists and approved=true → "approved"
+        // 3. If approval exists and approved=false → "rejected"
+        // 4. If no approval exists → "pending"
+        // 5. Preserve cached status if from optimistic updates
+        const approval = approvalMap.get(work.id);
+        const computedStatus = approval
+          ? approval.approved
+            ? ("approved" as const)
+            : ("rejected" as const)
+          : ("pending" as const);
+
+        // Use cached status if available (from optimistic updates), otherwise use computed
+        const status = cachedStatusMap.get(work.id) ?? computedStatus;
         workMap.set(work.id, { ...work, status });
       });
       offlineWorks.forEach((work) => {

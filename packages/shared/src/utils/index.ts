@@ -95,8 +95,8 @@ export type { ParsedContractError } from "./errors/contract-errors";
 export {
   formatErrorForToast,
   isAlreadyGardenerError,
-  isNotGardenMemberError,
   isNotGardenerError, // @deprecated - use isNotGardenMemberError
+  isNotGardenMemberError,
   parseAndFormatError,
   parseContractError,
 } from "./errors/contract-errors";
