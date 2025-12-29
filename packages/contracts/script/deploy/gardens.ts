@@ -1,17 +1,23 @@
-const fs = require("node:fs");
-const path = require("node:path");
-const { execFileSync } = require("node:child_process");
-const { NetworkManager } = require("../utils/network");
-const { ConfigValidator } = require("../utils/validation");
-const { DeploymentAddresses } = require("../utils/deployment-addresses");
-const { AnvilManager } = require("./anvil");
+import { execFileSync } from "node:child_process";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import type { ParsedOptions } from "../utils/cli-parser";
+import { DeploymentAddresses } from "../utils/deployment-addresses";
+import { NetworkManager } from "../utils/network";
+import { ConfigValidator, type GardenConfig } from "../utils/validation";
+import { AnvilManager } from "./anvil";
 
 /**
  * GardenDeployer - Handles garden deployment
  *
  * Extracted from deploy.js - handles deployment of individual gardens
  */
-class GardenDeployer {
+export class GardenDeployer {
+  protected networkManager: NetworkManager;
+  protected validator: ConfigValidator;
+  protected deploymentAddresses: DeploymentAddresses;
+  protected anvilManager: AnvilManager;
+
   constructor() {
     this.networkManager = new NetworkManager();
     this.validator = new ConfigValidator();
@@ -21,17 +27,17 @@ class GardenDeployer {
 
   /**
    * Deploy a garden from config file
-   * @param {string} configPath - Path to garden config JSON
-   * @param {Object} options - Deployment options
+   * @param configPath - Path to garden config JSON
+   * @param options - Deployment options
    */
-  async deployGarden(configPath, options) {
+  async deployGarden(configPath: string, options: ParsedOptions): Promise<void> {
     console.log(`Deploying garden from ${configPath} to ${options.network}`);
 
     // Set environment variables for deployment flags
     this._setEnvironmentFlags(options);
 
     // Load and validate garden config
-    const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    const config = JSON.parse(fs.readFileSync(configPath, "utf8")) as GardenConfig;
     this.validator.validateGardenConfig(config);
 
     if (options.dryRun) {
@@ -42,20 +48,21 @@ class GardenDeployer {
     }
 
     // Load deployed contract addresses
-    let contractAddresses;
-    let communityToken;
+    let contractAddresses: ReturnType<typeof this.deploymentAddresses.loadForChain>;
+    let communityToken: string;
     try {
       contractAddresses = this.deploymentAddresses.loadForChain(options.network);
       communityToken = this.deploymentAddresses.getCommunityToken(options.network);
-    } catch (error) {
-      console.error(`❌ Failed to load contract addresses: ${error.message}`);
-      console.error(`Please deploy core contracts first: node deploy.js core --network ${options.network} --broadcast`);
+    } catch (error: unknown) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error(`❌ Failed to load contract addresses: ${errorMsg}`);
+      console.error(`Please deploy core contracts first: bun deploy.ts core --network ${options.network} --broadcast`);
       process.exit(1);
     }
 
     // Set environment variables for the Solidity script
-    const env = {
-      ...process.env,
+    const env: Record<string, string> = {
+      ...(process.env as Record<string, string>),
       GARDEN_NAME: config.name,
       GARDEN_DESCRIPTION: config.description,
       GARDEN_LOCATION: config.location,
@@ -75,11 +82,15 @@ class GardenDeployer {
 
   /**
    * Execute a forge script
-   * @param {string} scriptPath - Path to Solidity script
-   * @param {Object} options - Deployment options
-   * @param {Object} env - Environment variables
+   * @param scriptPath - Path to Solidity script
+   * @param options - Deployment options
+   * @param env - Environment variables
    */
-  async _executeForgeScript(scriptPath, options, env = {}) {
+  protected async _executeForgeScript(
+    scriptPath: string,
+    options: ParsedOptions,
+    env: Record<string, string> = {},
+  ): Promise<void> {
     const networkConfig = this.networkManager.getNetwork(options.network);
 
     // Set environment variables for deployment flags
@@ -146,19 +157,19 @@ class GardenDeployer {
 
   /**
    * Set environment flags for deployment
-   * @param {Object} options - Deployment options
+   * @param options - Deployment options
    */
-  _setEnvironmentFlags(options) {
+  protected _setEnvironmentFlags(options: ParsedOptions): void {
     process.env.UPDATE_SCHEMAS_ONLY = (options.updateSchemasOnly || false).toString();
     process.env.FORCE_REDEPLOY = (options.force || false).toString();
   }
 
   /**
    * Save garden deployment record
-   * @param {Object} config - Garden configuration
-   * @param {Object} options - Deployment options
+   * @param config - Garden configuration
+   * @param options - Deployment options
    */
-  _saveGardenDeploymentRecord(config, options) {
+  private _saveGardenDeploymentRecord(config: GardenConfig, options: ParsedOptions): void {
     const keystoreName = process.env.FOUNDRY_KEYSTORE_ACCOUNT || "green-goods-deployer";
     const deploymentRecord = {
       ...config,
@@ -181,5 +192,3 @@ class GardenDeployer {
     console.log(`Deployment record saved to: ${recordPath}`);
   }
 }
-
-module.exports = { GardenDeployer };

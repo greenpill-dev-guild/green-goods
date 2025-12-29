@@ -1,24 +1,25 @@
-const { spawn } = require("node:child_process");
-const { NetworkManager } = require("../utils/network");
+import * as http from "node:http";
+import { spawn, type ChildProcess } from "node:child_process";
+import { NetworkManager } from "../utils/network";
 
 /**
  * AnvilManager - Manages Anvil local blockchain lifecycle
  *
  * Extracted from deploy.js to handle Anvil process management
  */
-class AnvilManager {
+export class AnvilManager {
+  private networkManager: NetworkManager;
+
   constructor() {
     this.networkManager = new NetworkManager();
   }
 
   /**
    * Check if Anvil is running
-   * @returns {Promise<boolean>} True if Anvil is running
+   * @returns True if Anvil is running
    */
-  async isAnvilRunning() {
+  async isAnvilRunning(): Promise<boolean> {
     try {
-      const http = require("node:http");
-
       return new Promise((resolve) => {
         const req = http.request(
           {
@@ -55,16 +56,17 @@ class AnvilManager {
         req.end();
       });
     } catch (error) {
-      console.error("Error checking anvil status:", error.message);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error("Error checking anvil status:", errorMsg);
       return false;
     }
   }
 
   /**
    * Ensure Anvil is running, starting it if necessary
-   * @param {string|null} forkNetwork - Network to fork (optional)
+   * @param forkNetwork - Network to fork (optional)
    */
-  async ensureAnvilRunning(forkNetwork = null) {
+  async ensureAnvilRunning(forkNetwork: string | null = null): Promise<void> {
     // Check if anvil is already running
     if (await this.isAnvilRunning()) {
       console.log("✅ Anvil is already running on localhost:8545");
@@ -110,10 +112,10 @@ class AnvilManager {
 
   /**
    * Start Anvil fork for a network
-   * @param {string} network - Network to fork
-   * @param {boolean} background - Run in background
+   * @param network - Network to fork
+   * @param background - Run in background
    */
-  async startFork(network, background = false) {
+  async startFork(network: string, background = false): Promise<void> {
     const networkConfig = this.networkManager.getNetwork(network);
     console.log(`Starting fork for ${network} (chainId: ${networkConfig.chainId})`);
 
@@ -147,7 +149,7 @@ class AnvilManager {
     }
 
     // Start anvil
-    const anvil = spawn("anvil", anvilArgs, {
+    const anvil: ChildProcess = spawn("anvil", anvilArgs, {
       stdio: background ? "pipe" : "inherit",
       detached: background,
     });
@@ -181,5 +183,3 @@ class AnvilManager {
     });
   }
 }
-
-module.exports = { AnvilManager };

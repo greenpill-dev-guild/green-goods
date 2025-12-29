@@ -5,8 +5,36 @@
  * for garden configs, action configs, and capital types.
  */
 
+export interface GardenConfig {
+  name: string;
+  description: string;
+  location: string;
+  bannerImage: string;
+  gardeners: string[];
+  operators: string[];
+  [key: string]: unknown;
+}
+
+export interface ActionMedia {
+  url: string;
+  type?: string;
+}
+
+export interface ActionConfig {
+  title: string;
+  instructions: string;
+  startTime: string;
+  endTime: string;
+  capitals: string[];
+  media: (string | ActionMedia)[];
+}
+
+export interface ActionsConfig {
+  actions: ActionConfig[];
+}
+
 // Capital enum mapping
-const CAPITAL_MAPPING = {
+export const CAPITAL_MAPPING: Record<string, number> = {
   SOCIAL: 0,
   MATERIAL: 1,
   FINANCIAL: 2,
@@ -17,14 +45,21 @@ const CAPITAL_MAPPING = {
   CULTURAL: 7,
 };
 
-class ConfigValidator {
+export class ConfigValidator {
   /**
    * Validate garden configuration
-   * @param {Object} config - Garden configuration object
-   * @throws {Error} If validation fails
+   * @param config - Garden configuration object
+   * @throws Error if validation fails
    */
-  validateGardenConfig(config) {
-    const required = ["name", "description", "location", "bannerImage", "gardeners", "operators"];
+  validateGardenConfig(config: GardenConfig): boolean {
+    const required: (keyof GardenConfig)[] = [
+      "name",
+      "description",
+      "location",
+      "bannerImage",
+      "gardeners",
+      "operators",
+    ];
     const missing = required.filter((field) => !config[field]);
 
     if (missing.length > 0) {
@@ -49,10 +84,10 @@ class ConfigValidator {
 
   /**
    * Validate actions configuration
-   * @param {Object} config - Actions configuration object with 'actions' array
-   * @throws {Error} If validation fails
+   * @param config - Actions configuration object with 'actions' array
+   * @throws Error if validation fails
    */
-  validateActionsConfig(config) {
+  validateActionsConfig(config: ActionsConfig): boolean {
     if (!config.actions || !Array.isArray(config.actions)) {
       throw new Error('Config must have an "actions" array');
     }
@@ -70,12 +105,12 @@ class ConfigValidator {
 
   /**
    * Validate a single action
-   * @param {Object} action - Action configuration object
-   * @param {number} index - Action index (for error messages)
-   * @throws {Error} If validation fails
+   * @param action - Action configuration object
+   * @param index - Action index (for error messages)
+   * @throws Error if validation fails
    */
-  validateSingleAction(action, index) {
-    const required = ["title", "instructions", "startTime", "endTime", "capitals", "media"];
+  validateSingleAction(action: ActionConfig, index: number): boolean {
+    const required: (keyof ActionConfig)[] = ["title", "instructions", "startTime", "endTime", "capitals", "media"];
     const missing = required.filter((field) => !action[field]);
 
     if (missing.length > 0) {
@@ -124,11 +159,11 @@ class ConfigValidator {
 
   /**
    * Parse capital strings to enum values
-   * @param {string[]} capitalStrings - Array of capital type strings
-   * @returns {number[]} Array of capital enum values
-   * @throws {Error} If invalid capital type
+   * @param capitalStrings - Array of capital type strings
+   * @returns Array of capital enum values
+   * @throws Error if invalid capital type
    */
-  parseCapitals(capitalStrings) {
+  parseCapitals(capitalStrings: string[]): number[] {
     return capitalStrings.map((capital) => {
       const upperCapital = capital.toUpperCase();
       if (CAPITAL_MAPPING[upperCapital] !== undefined) {
@@ -140,29 +175,27 @@ class ConfigValidator {
 
   /**
    * Get capital mapping object
-   * @returns {Object} Capital enum mapping
+   * @returns Capital enum mapping
    */
-  getCapitalMapping() {
+  getCapitalMapping(): Record<string, number> {
     return { ...CAPITAL_MAPPING };
   }
 
   /**
    * Validate Ethereum address format
-   * @param {string} address - Address to validate
-   * @returns {boolean} True if valid
+   * @param address - Address to validate
+   * @returns True if valid
    */
-  isValidAddress(address) {
+  isValidAddress(address: string): boolean {
     return /^0x[a-fA-F0-9]{40}$/.test(address);
   }
 
   /**
    * Validate array of Ethereum addresses
-   * @param {string[]} addresses - Array of addresses
-   * @returns {string[]} Array of invalid addresses (empty if all valid)
+   * @param addresses - Array of addresses
+   * @returns Array of invalid addresses (empty if all valid)
    */
-  getInvalidAddresses(addresses) {
+  getInvalidAddresses(addresses: string[]): string[] {
     return addresses.filter((addr) => !this.isValidAddress(addr));
   }
 }
-
-module.exports = { ConfigValidator, CAPITAL_MAPPING };

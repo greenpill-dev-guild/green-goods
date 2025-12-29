@@ -305,8 +305,8 @@ abstract contract DeployHelper is Script {
     /// @notice Generate schema string from fields array using JavaScript utility
     function _generateSchemaString(string memory schemaName) internal virtual returns (string memory) {
         string[] memory inputs = new string[](3);
-        inputs[0] = "node";
-        inputs[1] = "script/utils/generate-schemas.js";
+        inputs[0] = "bun";
+        inputs[1] = "script/utils/generate-schemas.ts";
         inputs[2] = schemaName;
 
         bytes memory result = vm.ffi(inputs);

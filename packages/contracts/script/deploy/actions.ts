@@ -1,15 +1,16 @@
-const fs = require("node:fs");
-const path = require("node:path");
-const { ConfigValidator } = require("../utils/validation");
-const { DeploymentAddresses } = require("../utils/deployment-addresses");
-const { GardenDeployer } = require("./gardens");
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { ConfigValidator, type ActionsConfig, type ActionConfig } from "../utils/validation";
+import { DeploymentAddresses } from "../utils/deployment-addresses";
+import { GardenDeployer } from "./gardens";
+import type { ParsedOptions } from "../utils/cli-parser";
 
 /**
  * ActionDeployer - Handles action deployment
  *
  * Extracted from deploy.js - handles deployment of actions from config
  */
-class ActionDeployer extends GardenDeployer {
+export class ActionDeployer extends GardenDeployer {
   constructor() {
     super();
     this.validator = new ConfigValidator();
@@ -18,17 +19,17 @@ class ActionDeployer extends GardenDeployer {
 
   /**
    * Deploy actions from config file
-   * @param {string} configPath - Path to actions config JSON
-   * @param {Object} options - Deployment options
+   * @param configPath - Path to actions config JSON
+   * @param options - Deployment options
    */
-  async deployActions(configPath, options) {
+  async deployActions(configPath: string, options: ParsedOptions): Promise<void> {
     console.log(`Deploying actions from ${configPath} to ${options.network}`);
 
     // Set environment variables for deployment flags
     this._setEnvironmentFlags(options);
 
     // Load and validate actions config
-    const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    const config = JSON.parse(fs.readFileSync(configPath, "utf8")) as ActionsConfig;
     this.validator.validateActionsConfig(config);
 
     if (options.dryRun) {
@@ -39,12 +40,13 @@ class ActionDeployer extends GardenDeployer {
     }
 
     // Load deployed contract addresses
-    let contractAddresses;
+    let contractAddresses: ReturnType<typeof this.deploymentAddresses.loadForChain>;
     try {
       contractAddresses = this.deploymentAddresses.loadForChain(options.network);
-    } catch (error) {
-      console.error(`❌ Failed to load contract addresses: ${error.message}`);
-      console.error(`Please deploy core contracts first: node deploy.js core --network ${options.network} --broadcast`);
+    } catch (error: unknown) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error(`❌ Failed to load contract addresses: ${errorMsg}`);
+      console.error(`Please deploy core contracts first: bun deploy.ts core --network ${options.network} --broadcast`);
       process.exit(1);
     }
 
@@ -66,20 +68,19 @@ class ActionDeployer extends GardenDeployer {
       try {
         fs.unlinkSync(scriptPath);
       } catch (e) {
-        console.log("❌ Failed to cleanup temp file:", e.message);
+        const errorMsg = e instanceof Error ? e.message : String(e);
+        console.log("❌ Failed to cleanup temp file:", errorMsg);
       }
     }
   }
 
   /**
    * Generate Solidity script for action deployment
-   * @param {Array} actions - Array of action configurations
-   * @param {string} actionRegistryAddress - ActionRegistry contract address
-   * @returns {string} Solidity script code
+   * @param actions - Array of action configurations
+   * @param actionRegistryAddress - ActionRegistry contract address
+   * @returns Solidity script code
    */
-  _generateActionScript(actions, actionRegistryAddress) {
-    const capitalMapping = this.validator.getCapitalMapping();
-
+  private _generateActionScript(actions: ActionConfig[], actionRegistryAddress: string): string {
     // Log action deployment details for verification
     console.log("\n📋 Actions to be deployed:");
     console.log("─".repeat(60));
@@ -142,10 +143,10 @@ contract DeployActionsGenerated is Script {
 
   /**
    * Save actions deployment record
-   * @param {Object} config - Actions configuration
-   * @param {Object} options - Deployment options
+   * @param config - Actions configuration
+   * @param options - Deployment options
    */
-  _saveActionsDeploymentRecord(config, options) {
+  private _saveActionsDeploymentRecord(config: ActionsConfig, options: ParsedOptions): void {
     const keystoreName = process.env.FOUNDRY_KEYSTORE_ACCOUNT || "green-goods-deployer";
     const deploymentRecord = {
       actions: config.actions,
@@ -162,5 +163,3 @@ contract DeployActionsGenerated is Script {
     console.log(`Deployment record saved to: ${recordPath}`);
   }
 }
-
-module.exports = { ActionDeployer };

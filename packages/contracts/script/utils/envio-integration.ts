@@ -1,9 +1,52 @@
-const fs = require("node:fs");
-const path = require("node:path");
-const { execSync } = require("node:child_process");
-const yaml = require("js-yaml");
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { execSync, spawn, type ChildProcess } from "node:child_process";
+import * as yaml from "js-yaml";
 
-class EnvioIntegration {
+interface EnvioContract {
+  name: string;
+  address: string;
+}
+
+interface EnvioNetwork {
+  id: number;
+  start_block: number;
+  contracts: EnvioContract[];
+  [key: string]: unknown;
+}
+
+interface EnvioConfig {
+  networks: EnvioNetwork[];
+  [key: string]: unknown;
+}
+
+interface DeploymentData {
+  actionRegistry: string;
+  gardenToken: string;
+  gardenAccountImpl?: string;
+  accountProxy?: string;
+  [key: string]: string | undefined;
+}
+
+interface BroadcastTransaction {
+  blockNumber?: string | number;
+}
+
+interface BroadcastReceipt {
+  blockNumber?: string | number;
+}
+
+interface BroadcastData {
+  transactions?: BroadcastTransaction[];
+  receipts?: BroadcastReceipt[];
+}
+
+export class EnvioIntegration {
+  private contractsDir: string;
+  private envioConfigPath: string;
+  private backupConfigPath: string;
+  private watchedFiles: Map<string, Date>;
+
   constructor() {
     this.contractsDir = path.join(__dirname, "../../deployments");
     this.envioConfigPath = path.join(__dirname, "../../../indexer/config.yaml");
@@ -13,10 +56,10 @@ class EnvioIntegration {
 
   /**
    * Auto-update Envio config when deployment files change
-   * @param {string[]} chainIds - Chain IDs to monitor (optional, monitors all if empty)
-   * @param {boolean} continuous - Whether to watch for continuous changes
+   * @param chainIds - Chain IDs to monitor (optional, monitors all if empty)
+   * @param continuous - Whether to watch for continuous changes
    */
-  async autoUpdateOnDeployment(chainIds = [], continuous = false) {
+  async autoUpdateOnDeployment(chainIds: string[] = [], continuous = false): Promise<void> {
     console.log("\n🔄 Setting up auto-update for Envio config...");
 
     if (continuous) {
@@ -31,7 +74,7 @@ class EnvioIntegration {
   /**
    * Check for recent deployments and update config if needed
    */
-  async checkAndUpdateRecentDeployments(chainIds = []) {
+  async checkAndUpdateRecentDeployments(chainIds: string[] = []): Promise<void> {
     try {
       const deploymentFiles = this.getDeploymentFiles(chainIds);
 
@@ -49,14 +92,15 @@ class EnvioIntegration {
         }
       }
     } catch (error) {
-      console.error("❌ Failed to check recent deployments:", error.message);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error("❌ Failed to check recent deployments:", errorMsg);
     }
   }
 
   /**
    * Start watching deployment files for changes
    */
-  startFileWatcher(chainIds = []) {
+  startFileWatcher(chainIds: string[] = []): void {
     const deploymentFiles = this.getDeploymentFiles(chainIds);
 
     deploymentFiles.forEach((filePath) => {
@@ -74,7 +118,8 @@ class EnvioIntegration {
             await this.updateEnvioConfig(chainId);
             console.log("✅ Envio config auto-updated successfully");
           } catch (error) {
-            console.error("❌ Failed to auto-update Envio config:", error.message);
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            console.error("❌ Failed to auto-update Envio config:", errorMsg);
           }
         }
       });
@@ -87,8 +132,8 @@ class EnvioIntegration {
   /**
    * Get all deployment files to monitor
    */
-  getDeploymentFiles(chainIds = []) {
-    const files = [];
+  getDeploymentFiles(chainIds: string[] = []): string[] {
+    const files: string[] = [];
 
     if (chainIds.length === 0) {
       // Monitor all deployment files
@@ -112,16 +157,17 @@ class EnvioIntegration {
   /**
    * Extract chain ID from deployment file path
    */
-  extractChainIdFromFile(filePath) {
+  extractChainIdFromFile(filePath: string): string {
     const fileName = path.basename(filePath);
     return fileName.replace("-latest.json", "");
   }
 
   /**
    * Update Envio config with deployed contract addresses
-   * @param {string} chainId - Chain ID to update config for
+   * @param chainId - Chain ID to update config for
+   * @param _isLocalhost - Whether this is a localhost deployment (unused but kept for API compatibility)
    */
-  async updateEnvioConfig(chainId = "31337") {
+  async updateEnvioConfig(chainId = "31337", _isLocalhost = false): Promise<DeploymentData> {
     try {
       console.log(`\n📝 Updating Envio configuration for chain ${chainId}...`);
 
@@ -131,7 +177,7 @@ class EnvioIntegration {
         throw new Error(`No deployment found for chain ${chainId}`);
       }
 
-      const deployment = JSON.parse(fs.readFileSync(deploymentFile, "utf8"));
+      const deployment = JSON.parse(fs.readFileSync(deploymentFile, "utf8")) as DeploymentData;
 
       // Validate required addresses
       const requiredAddresses = ["actionRegistry", "gardenToken", "gardenAccountImpl"];
@@ -154,14 +200,14 @@ class EnvioIntegration {
       // Load current Envio config with schema: 'failsafe' to preserve strings
       const envioConfig = yaml.load(fs.readFileSync(this.envioConfigPath, "utf8"), {
         schema: yaml.CORE_SCHEMA,
-      });
+      }) as EnvioConfig;
 
       // Update or add network configuration
-      const targetChainId = Number.parseInt(chainId);
+      const targetChainId = Number.parseInt(chainId, 10);
       const networkIndex = envioConfig.networks.findIndex((n) => n.id === targetChainId);
 
       const startBlock = this.getStartBlock(chainId);
-      const networkConfig = {
+      const networkConfig: EnvioNetwork = {
         id: targetChainId,
         start_block: startBlock,
         contracts: [
@@ -220,13 +266,6 @@ class EnvioIntegration {
           sortKeys: false,
           quotingType: '"',
           noRefs: true,
-          // Custom replacer to ensure addresses stay as quoted strings
-          replacer: (key, value) => {
-            if (key === "address" && typeof value === "string") {
-              return value; // Keep as string
-            }
-            return value;
-          },
         }),
       );
       console.log("✅ Envio config updated successfully");
@@ -245,16 +284,25 @@ class EnvioIntegration {
 
       return deployment;
     } catch (error) {
-      console.error("❌ Failed to update Envio config:", error.message);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error("❌ Failed to update Envio config:", errorMsg);
       throw error;
     }
+  }
+
+  /**
+   * Disable local chain config (cleanup method for localhost deployments)
+   */
+  async disableLocalChainConfig(): Promise<void> {
+    // This is a placeholder for cleanup logic
+    console.log("🧹 Disabling local chain config...");
   }
 
   /**
    * Get appropriate start block for chain
    * Uses latest deploy broadcast to rewind slightly before deployment for indexing
    */
-  getStartBlock(chainId) {
+  getStartBlock(chainId: string): number {
     // For localhost/anvil, start from block 1
     if (chainId === "31337") return 1;
 
@@ -269,17 +317,17 @@ class EnvioIntegration {
   /**
    * Infer start block from broadcast run-latest.json (rewind 50 blocks as buffer)
    */
-  getStartBlockFromBroadcast(chainId) {
+  getStartBlockFromBroadcast(chainId: string): number | null {
     try {
       const broadcastPath = path.join(__dirname, "../../broadcast/Deploy.s.sol", chainId, "run-latest.json");
       if (!fs.existsSync(broadcastPath)) {
         return null;
       }
 
-      const data = JSON.parse(fs.readFileSync(broadcastPath, "utf8"));
-      const blockNumbers = [];
+      const data = JSON.parse(fs.readFileSync(broadcastPath, "utf8")) as BroadcastData;
+      const blockNumbers: number[] = [];
 
-      const pushBlock = (val) => {
+      const pushBlock = (val: string | number | undefined): void => {
         if (!val) return;
         const num = typeof val === "string" && val.startsWith("0x") ? Number.parseInt(val, 16) : Number(val);
         if (Number.isFinite(num)) {
@@ -296,7 +344,8 @@ class EnvioIntegration {
       const buffer = 50;
       return Math.max(minBlock - buffer, 0);
     } catch (error) {
-      console.warn(`⚠️  Unable to derive start block from broadcast for chain ${chainId}: ${error.message}`);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.warn(`⚠️  Unable to derive start block from broadcast for chain ${chainId}: ${errorMsg}`);
       return null;
     }
   }
@@ -304,7 +353,7 @@ class EnvioIntegration {
   /**
    * Check if backup is older than 1 hour
    */
-  isBackupOld(backupPath) {
+  isBackupOld(backupPath: string): boolean {
     const stats = fs.statSync(backupPath);
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     return stats.mtime < oneHourAgo;
@@ -313,7 +362,7 @@ class EnvioIntegration {
   /**
    * Start Envio indexer with updated config
    */
-  async startIndexer() {
+  async startIndexer(): Promise<ChildProcess> {
     console.log("\n🚀 Starting Envio indexer...");
 
     try {
@@ -339,7 +388,6 @@ class EnvioIntegration {
 
       // Start indexer in background
       console.log("🏃 Starting indexer in background...");
-      const { spawn } = require("node:child_process");
       const indexerProcess = spawn("bun", ["run", "dev"], {
         cwd: indexerDir,
         detached: true,
@@ -360,7 +408,8 @@ class EnvioIntegration {
 
       return indexerProcess;
     } catch (error) {
-      console.error("❌ Failed to start indexer:", error.message);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error("❌ Failed to start indexer:", errorMsg);
       throw error;
     }
   }
@@ -368,7 +417,7 @@ class EnvioIntegration {
   /**
    * Stop file watching
    */
-  stopWatching() {
+  stopWatching(): void {
     this.watchedFiles.forEach((_, filePath) => {
       fs.unwatchFile(filePath);
     });
@@ -379,7 +428,7 @@ class EnvioIntegration {
   /**
    * Restore original Envio config from backup
    */
-  restoreConfig() {
+  restoreConfig(): void {
     if (fs.existsSync(this.backupConfigPath)) {
       fs.copyFileSync(this.backupConfigPath, this.envioConfigPath);
       console.log("✅ Restored original Envio config");
@@ -388,17 +437,16 @@ class EnvioIntegration {
 }
 
 // CLI interface for standalone usage
-if (require.main === module) {
+async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const integration = new EnvioIntegration();
 
-  async function main() {
-    if (args.includes("--help") || args.includes("-h")) {
-      console.log(`
+  if (args.includes("--help") || args.includes("-h")) {
+    console.log(`
 Envio Integration CLI
 
 Usage:
-  node envio-integration.js [command] [options]
+  bun envio-integration.ts [command] [options]
 
 Commands:
   update [chainId]     Update config for specific chain (default: auto-detect recent)
@@ -410,64 +458,66 @@ Options:
   --help, -h          Show this help
 
 Examples:
-  node envio-integration.js update 31337
-  node envio-integration.js watch 31337 84532
-  node envio-integration.js update && node envio-integration.js start
+  bun envio-integration.ts update 31337
+  bun envio-integration.ts watch 31337 84532
+  bun envio-integration.ts update && bun envio-integration.ts start
 
 Note: RPC URLs are now configured via environment variables.
 Set ENVIO_RPC_URL_<CHAIN_ID> for custom RPC endpoints.
-      `);
-      return;
-    }
-
-    try {
-      const command = args[0] || "update";
-
-      switch (command) {
-        case "update": {
-          const chainId = args[1];
-
-          if (chainId) {
-            await integration.updateEnvioConfig(chainId);
-          } else {
-            await integration.checkAndUpdateRecentDeployments();
-          }
-          break;
-        }
-
-        case "watch": {
-          const chainIds = args.slice(1).filter((arg) => !arg.startsWith("--"));
-          await integration.autoUpdateOnDeployment(chainIds, true);
-
-          // Keep process alive
-          process.on("SIGINT", () => {
-            integration.stopWatching();
-            process.exit(0);
-          });
-          break;
-        }
-
-        case "start": {
-          await integration.startIndexer();
-          break;
-        }
-
-        case "restore": {
-          integration.restoreConfig();
-          break;
-        }
-
-        default:
-          console.error(`Unknown command: ${command}`);
-          process.exit(1);
-      }
-    } catch (error) {
-      console.error("❌ Error:", error.message);
-      process.exit(1);
-    }
+    `);
+    return;
   }
 
-  main();
+  try {
+    const command = args[0] || "update";
+
+    switch (command) {
+      case "update": {
+        const chainId = args[1];
+
+        if (chainId) {
+          await integration.updateEnvioConfig(chainId);
+        } else {
+          await integration.checkAndUpdateRecentDeployments();
+        }
+        break;
+      }
+
+      case "watch": {
+        const chainIds = args.slice(1).filter((arg) => !arg.startsWith("--"));
+        await integration.autoUpdateOnDeployment(chainIds, true);
+
+        // Keep process alive
+        process.on("SIGINT", () => {
+          integration.stopWatching();
+          process.exit(0);
+        });
+        break;
+      }
+
+      case "start": {
+        await integration.startIndexer();
+        break;
+      }
+
+      case "restore": {
+        integration.restoreConfig();
+        break;
+      }
+
+      default:
+        console.error(`Unknown command: ${command}`);
+        process.exit(1);
+    }
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error("❌ Error:", errorMsg);
+    process.exit(1);
+  }
 }
 
-module.exports = { EnvioIntegration };
+// Run main function if called directly
+const isMain = import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith("envio-integration.ts");
+if (isMain) {
+  main();
+}

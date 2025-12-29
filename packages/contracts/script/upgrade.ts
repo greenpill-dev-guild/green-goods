@@ -1,8 +1,24 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 
-const { execSync } = require("child_process");
+import * as path from "node:path";
+import { execSync } from "node:child_process";
+import * as dotenv from "dotenv";
+import { NetworkManager } from "./utils/network";
 
-const CONTRACT_FUNCTIONS = {
+// Load environment variables from root .env
+dotenv.config({ path: path.join(__dirname, "../../../", ".env") });
+
+type ContractName =
+  | "action-registry"
+  | "garden-token"
+  | "gardener-account"
+  | "work-resolver"
+  | "work-approval-resolver"
+  | "assessment-resolver"
+  | "deployment-registry"
+  | "all";
+
+const CONTRACT_FUNCTIONS: Record<ContractName, string> = {
   "action-registry": "upgradeActionRegistry()",
   "garden-token": "upgradeGardenToken()",
   "gardener-account": "upgradeGardenerAccount()",
@@ -13,11 +29,12 @@ const CONTRACT_FUNCTIONS = {
   all: "upgradeAll()",
 };
 
-function showHelp() {
+function showHelp(): void {
+  const networkManager = new NetworkManager();
   console.log(`
 Green Goods Contract Upgrade Tool
 
-Usage: node script/upgrade.js <contract> [options]
+Usage: bun script/upgrade.ts <contract> [options]
 
 Contracts:
   action-registry          Upgrade ActionRegistry
@@ -35,6 +52,8 @@ Options:
   --broadcast            Execute upgrade (default for non-localhost)
   --help                 Show this help
 
+Available networks: ${networkManager.getAvailableNetworks().join(", ")}
+
 Rollback (manual):
   # Get current implementation address first
   cast call <PROXY> "0x5c60da1b" --rpc-url <RPC>
@@ -47,17 +66,17 @@ Rollback (manual):
 
 Examples:
   # Dry run on Base Sepolia
-  node script/upgrade.js action-registry --network baseSepolia --dry-run
+  bun script/upgrade.ts action-registry --network baseSepolia --dry-run
   
   # Execute upgrade
-  node script/upgrade.js action-registry --network baseSepolia --broadcast
+  bun script/upgrade.ts action-registry --network baseSepolia --broadcast
   
   # Upgrade all contracts
-  node script/upgrade.js all --network baseSepolia --broadcast
+  bun script/upgrade.ts all --network baseSepolia --broadcast
   `);
 }
 
-function main() {
+function main(): void {
   const args = process.argv.slice(2);
 
   if (args.length === 0 || args.includes("--help")) {
@@ -65,14 +84,29 @@ function main() {
     process.exit(0);
   }
 
-  const contract = args[0];
-  const network = args.includes("--network") ? args[args.indexOf("--network") + 1] : "localhost";
-  const dryRun = args.includes("--dry-run");
-  const broadcast = args.includes("--broadcast") || (network !== "localhost" && !dryRun);
+  const contract = args[0] as ContractName;
+  const networkIndex = args.indexOf("--network");
+  const network = networkIndex !== -1 ? args[networkIndex + 1] : "localhost";
+  // Only broadcast if explicitly requested - don't auto-enable for non-localhost
+  const broadcast = args.includes("--broadcast");
 
   if (!CONTRACT_FUNCTIONS[contract]) {
     console.error(`Unknown contract: ${contract}`);
     console.error("Run with --help to see available contracts");
+    process.exit(1);
+  }
+
+  // Resolve RPC URL from network config
+  const networkManager = new NetworkManager();
+  let rpcUrl: string;
+  let chainId: number;
+
+  try {
+    rpcUrl = networkManager.getRpcUrl(network);
+    chainId = networkManager.getChainId(network);
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error(`❌ Failed to get network config: ${errorMsg}`);
     process.exit(1);
   }
 
@@ -82,7 +116,9 @@ function main() {
     "--sig",
     `"${CONTRACT_FUNCTIONS[contract]}"`,
     "--rpc-url",
-    network,
+    rpcUrl,
+    "--chain-id",
+    chainId.toString(),
   ];
 
   if (broadcast) {
@@ -103,7 +139,7 @@ function main() {
   try {
     execSync(command, {
       stdio: "inherit",
-      cwd: process.cwd(),
+      cwd: path.join(__dirname, ".."),
       env: { ...process.env, FOUNDRY_PROFILE: "production" },
     });
     console.log("\n✅ Upgrade completed successfully");

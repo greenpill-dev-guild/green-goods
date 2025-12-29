@@ -1,16 +1,20 @@
-const fs = require("node:fs");
-const path = require("node:path");
-const { execSync } = require("node:child_process");
-const { NetworkManager } = require("../utils/network");
-const { AnvilManager } = require("./anvil");
-const { EnvioIntegration } = require("../utils/envio-integration");
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { execSync } from "node:child_process";
+import { NetworkManager } from "../utils/network";
+import { AnvilManager } from "./anvil";
+import { EnvioIntegration } from "../utils/envio-integration";
+import type { ParsedOptions } from "../utils/cli-parser";
 
 /**
  * CoreDeployer - Handles core contract deployment
  *
  * Extracted from deploy.js - handles deployment of core protocol contracts
  */
-class CoreDeployer {
+export class CoreDeployer {
+  private networkManager: NetworkManager;
+  private anvilManager: AnvilManager;
+
   constructor() {
     this.networkManager = new NetworkManager();
     this.anvilManager = new AnvilManager();
@@ -18,9 +22,9 @@ class CoreDeployer {
 
   /**
    * Deploy core contracts to a network
-   * @param {Object} options - Deployment options
+   * @param options - Deployment options
    */
-  async deployCoreContracts(options) {
+  async deployCoreContracts(options: ParsedOptions): Promise<void> {
     console.log(`Deploying core contracts to ${options.network}`);
 
     // Set environment variables for the Solidity script
@@ -103,26 +107,27 @@ class CoreDeployer {
         // Report generation would be implemented here
       }
     } catch (error) {
-      console.error("\n❌ Core contract deployment failed:", error.message);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error("\n❌ Core contract deployment failed:", errorMsg);
       process.exit(1);
     }
   }
 
   /**
    * Set environment flags for deployment
-   * @param {Object} options - Deployment options
+   * @param options - Deployment options
    */
-  _setEnvironmentFlags(options) {
+  private _setEnvironmentFlags(options: ParsedOptions): void {
     process.env.UPDATE_SCHEMAS_ONLY = options.updateSchemasOnly.toString();
     process.env.FORCE_REDEPLOY = options.force.toString();
   }
 
   /**
    * Log active deployment flags
-   * @param {Object} options - Deployment options
+   * @param options - Deployment options
    */
-  _logActiveFlags(options) {
-    const activeFlags = [];
+  private _logActiveFlags(options: ParsedOptions): void {
+    const activeFlags: string[] = [];
 
     if (options.updateSchemasOnly) activeFlags.push("Update Schemas Only");
     if (options.force) activeFlags.push("Force Redeploy");
@@ -133,7 +138,7 @@ class CoreDeployer {
 
     console.log("\nGovernance: 0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19 (Green Goods Safe)\n");
 
-    const allowlistAddresses = [];
+    const allowlistAddresses: string[] = [];
     if (process.env.DEPLOYMENT_REGISTRY_ALLOWLIST) {
       allowlistAddresses.push(process.env.DEPLOYMENT_REGISTRY_ALLOWLIST);
     }
@@ -151,12 +156,12 @@ class CoreDeployer {
 
   /**
    * Check if contracts should be verified
-   * @param {Object} options - Deployment options
-   * @returns {boolean} True if should verify
+   * @param options - Deployment options
+   * @returns True if should verify
    */
-  _shouldVerifyContracts(options) {
+  private _shouldVerifyContracts(options: ParsedOptions): boolean {
     const verifierConfig = this.networkManager.getVerifierConfig(options.network);
-    let shouldVerify = options.verify && verifierConfig && !options.skipVerification;
+    let shouldVerify = options.verify && verifierConfig !== null && !options.skipVerification;
 
     if (shouldVerify) {
       try {
@@ -168,7 +173,8 @@ class CoreDeployer {
           shouldVerify = false;
         }
       } catch (error) {
-        console.error("❌ Failed to check deployment status:", error.message);
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.error("❌ Failed to check deployment status:", errorMsg);
         // If check fails, proceed with verification
       }
     }
@@ -178,9 +184,9 @@ class CoreDeployer {
 
   /**
    * Update Envio configuration after deployment
-   * @param {Object} options - Deployment options
+   * @param options - Deployment options
    */
-  async _updateEnvioConfig(options) {
+  private async _updateEnvioConfig(options: ParsedOptions): Promise<void> {
     const chainId = this.networkManager.getChainIdString(options.network);
 
     try {
@@ -193,13 +199,14 @@ class CoreDeployer {
       if (options.network === "localhost") {
         console.log("🔄 Setting up cleanup for local chain config...");
 
-        const cleanup = async () => {
+        const cleanup = async (): Promise<void> => {
           console.log("\n🧹 Cleaning up local chain config...");
           try {
             await envioIntegration.disableLocalChainConfig();
             console.log("✅ Local chain config disabled successfully");
           } catch (error) {
-            console.warn("⚠️  Failed to disable local chain config:", error.message);
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            console.warn("⚠️  Failed to disable local chain config:", errorMsg);
           }
         };
 
@@ -215,11 +222,10 @@ class CoreDeployer {
         await envioIntegration.startIndexer();
       }
     } catch (envioError) {
-      console.warn("⚠️  Failed to update Envio config:", envioError.message);
+      const errorMsg = envioError instanceof Error ? envioError.message : String(envioError);
+      console.warn("⚠️  Failed to update Envio config:", errorMsg);
       console.warn("   You can manually update it later using:");
-      console.warn(`   node script/utils/envio-integration.js update ${chainId}`);
+      console.warn(`   bun script/utils/envio-integration.ts update ${chainId}`);
     }
   }
 }
-
-module.exports = { CoreDeployer };

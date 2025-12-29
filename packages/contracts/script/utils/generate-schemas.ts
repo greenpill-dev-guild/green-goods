@@ -1,28 +1,40 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 
-const fs = require("node:fs");
-const path = require("node:path");
+import * as fs from "node:fs";
+import * as path from "node:path";
+
+export interface SchemaField {
+  name: string;
+  type: string;
+}
+
+export interface SchemaConfig {
+  name?: string;
+  description?: string;
+  fields: SchemaField[];
+  generatedSchema?: string;
+}
+
+export interface SchemasFile {
+  schemas: Record<string, SchemaConfig>;
+}
 
 /**
  * Generate EAS schema string from fields array
- * @param {Array} fields - Array of field objects with name and type properties
- * @returns {string} - EAS schema string in format "type1 name1,type2 name2,..."
  */
-function generateSchemaString(fields) {
+export function generateSchemaString(fields: SchemaField[]): string {
   return fields.map((field) => `${field.type} ${field.name}`).join(",");
 }
 
 /**
  * Load schemas from config file and generate schema strings
- * @param {string} configPath - Path to schemas.json file
- * @returns {Object} - Object with schema strings added to each schema
  */
-function loadSchemasWithGenerated(configPath) {
-  const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+export function loadSchemasWithGenerated(configPath: string): { schemas: Record<string, SchemaConfig> } {
+  const config = JSON.parse(fs.readFileSync(configPath, "utf8")) as SchemasFile;
   const schemasObj = config.schemas || {};
 
   // Generate schema strings for each schema
-  for (const [_id, schemaConfig] of Object.entries(schemasObj)) {
+  for (const schemaConfig of Object.values(schemasObj)) {
     if (schemaConfig.fields && Array.isArray(schemaConfig.fields)) {
       schemaConfig.generatedSchema = generateSchemaString(schemaConfig.fields);
     }
@@ -33,16 +45,13 @@ function loadSchemasWithGenerated(configPath) {
 
 /**
  * Get a specific schema by ID
- * @param {string} configPath - Path to schemas.json file
- * @param {string} schemaId - ID of the schema to retrieve
- * @returns {Object} - Schema object with generated schema string
  */
-function getSchemaById(configPath, schemaId) {
-  const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+export function getSchemaById(configPath: string, schemaId: string): SchemaConfig {
+  const config = JSON.parse(fs.readFileSync(configPath, "utf8")) as SchemasFile;
   const schemasObj = config.schemas || {};
 
   // Map common aliases to actual schema keys
-  const schemaMap = {
+  const schemaMap: Record<string, string> = {
     assessment: "assessment",
     work: "work",
     workApproval: "workApproval",
@@ -64,11 +73,9 @@ function getSchemaById(configPath, schemaId) {
 
 /**
  * Get all available schema IDs
- * @param {string} configPath - Path to schemas.json file
- * @returns {Array} - Array of schema IDs
  */
-function getSchemaIds(configPath) {
-  const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+export function getSchemaIds(configPath: string): string[] {
+  const config = JSON.parse(fs.readFileSync(configPath, "utf8")) as SchemasFile;
   const schemasObj = config.schemas || {};
   return Object.keys(schemasObj);
 }
@@ -76,18 +83,19 @@ function getSchemaIds(configPath) {
 /**
  * Main function - if called directly, output schema strings for specific schema
  */
-function main() {
+function main(): void {
   const args = process.argv.slice(2);
 
   if (args.length === 0) {
-    console.error("Usage: node generate-schemas.js <schemaId>");
+    console.error("Usage: bun generate-schemas.ts <schemaId>");
 
     const configPath = path.join(__dirname, "../../config/schemas.json");
     try {
       const availableIds = getSchemaIds(configPath);
       console.error("Available schemas:", availableIds.join(", "));
     } catch (error) {
-      console.error("Error loading schemas:", error.message);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error("Error loading schemas:", errorMsg);
     }
 
     process.exit(1);
@@ -106,20 +114,14 @@ function main() {
       process.exit(1);
     }
   } catch (error) {
-    console.error("Error loading schema:", error.message);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error("Error loading schema:", errorMsg);
     process.exit(1);
   }
 }
 
-// Export functions for use in other scripts
-module.exports = {
-  generateSchemaString,
-  loadSchemasWithGenerated,
-  getSchemaById,
-  getSchemaIds,
-};
-
 // Run main function if called directly
-if (require.main === module) {
+const isMain = import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith("generate-schemas.ts");
+if (isMain) {
   main();
 }

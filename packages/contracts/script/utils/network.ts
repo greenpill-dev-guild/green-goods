@@ -1,5 +1,33 @@
-const fs = require("node:fs");
-const path = require("node:path");
+import * as fs from "node:fs";
+import * as path from "node:path";
+
+export interface NetworkConfig {
+  chainId: number;
+  rpcUrl: string;
+  verifyApiUrl?: string;
+  verifyApiKey?: string;
+  contracts?: {
+    communityToken?: string;
+    [key: string]: string | undefined;
+  };
+  name?: string;
+}
+
+export interface NetworksFile {
+  networks: Record<string, NetworkConfig>;
+}
+
+export interface VerifierConfig {
+  apiUrl: string;
+  apiKey?: string;
+}
+
+const CHAIN_ID_MAP: Record<string, string> = {
+  localhost: "31337",
+  arbitrum: "42161",
+  baseSepolia: "84532",
+  celo: "42220",
+};
 
 /**
  * NetworkManager - Single source of truth for network configuration
@@ -7,7 +35,9 @@ const path = require("node:path");
  * Consolidates network configuration handling that was previously
  * duplicated across deploy.js, garden-manager.js, and action-manager.js
  */
-class NetworkManager {
+export class NetworkManager {
+  private networksConfig: NetworksFile;
+
   constructor() {
     this.networksConfig = this._loadNetworksConfig();
   }
@@ -15,24 +45,24 @@ class NetworkManager {
   /**
    * Load networks.json configuration
    */
-  _loadNetworksConfig() {
+  private _loadNetworksConfig(): NetworksFile {
     const networksPath = path.join(__dirname, "../../deployments/networks.json");
     if (!fs.existsSync(networksPath)) {
       throw new Error(`Networks configuration not found: ${networksPath}`);
     }
-    return JSON.parse(fs.readFileSync(networksPath, "utf8"));
+    return JSON.parse(fs.readFileSync(networksPath, "utf8")) as NetworksFile;
   }
 
   /**
    * Get network configuration by name or chainId
-   * @param {string|number} networkIdentifier - Network name (e.g., 'arbitrum') or chainId (e.g., 42161)
-   * @returns {Object} Network configuration
+   * @param networkIdentifier - Network name (e.g., 'arbitrum') or chainId (e.g., 42161)
+   * @returns Network configuration
    */
-  getNetwork(networkIdentifier) {
+  getNetwork(networkIdentifier: string | number): NetworkConfig & { name: string } {
     const networks = this.networksConfig.networks;
 
     // Try by network name first
-    if (networks[networkIdentifier]) {
+    if (typeof networkIdentifier === "string" && networks[networkIdentifier]) {
       return {
         ...networks[networkIdentifier],
         name: networkIdentifier,
@@ -40,7 +70,7 @@ class NetworkManager {
     }
 
     // Try by chainId
-    const chainId = typeof networkIdentifier === "string" ? Number.parseInt(networkIdentifier) : networkIdentifier;
+    const chainId = typeof networkIdentifier === "string" ? Number.parseInt(networkIdentifier, 10) : networkIdentifier;
     for (const [name, config] of Object.entries(networks)) {
       if (config.chainId === chainId) {
         return {
@@ -55,17 +85,17 @@ class NetworkManager {
 
   /**
    * Get RPC URL for a network, handling environment variable substitution
-   * @param {string} networkName - Network name
-   * @returns {string} Resolved RPC URL
+   * @param networkName - Network name
+   * @returns Resolved RPC URL
    */
-  getRpcUrl(networkName) {
+  getRpcUrl(networkName: string): string {
     const network = this.getNetwork(networkName);
     let rpcUrl = network.rpcUrl;
 
     // Handle environment variable substitution (e.g., ${ARBITRUM_RPC_URL})
     if (rpcUrl.startsWith("${") && rpcUrl.endsWith("}")) {
       const envVar = rpcUrl.slice(2, -1);
-      rpcUrl = process.env[envVar];
+      rpcUrl = process.env[envVar] || "";
 
       if (!rpcUrl) {
         throw new Error(`Environment variable ${envVar} not set for network ${networkName}`);
@@ -77,20 +107,20 @@ class NetworkManager {
 
   /**
    * Get chain ID for a network
-   * @param {string} networkName - Network name
-   * @returns {number} Chain ID
+   * @param networkName - Network name
+   * @returns Chain ID
    */
-  getChainId(networkName) {
+  getChainId(networkName: string): number {
     const network = this.getNetwork(networkName);
     return network.chainId;
   }
 
   /**
    * Get community token address for a network
-   * @param {string} networkName - Network name
-   * @returns {string} Community token address
+   * @param networkName - Network name
+   * @returns Community token address
    */
-  getCommunityToken(networkName) {
+  getCommunityToken(networkName: string): string {
     const network = this.getNetwork(networkName);
     if (!network.contracts?.communityToken) {
       throw new Error(`Community token not configured for network ${networkName}`);
@@ -100,27 +130,27 @@ class NetworkManager {
 
   /**
    * Get all available network names
-   * @returns {string[]} Array of network names
+   * @returns Array of network names
    */
-  getAvailableNetworks() {
+  getAvailableNetworks(): string[] {
     return Object.keys(this.networksConfig.networks);
   }
 
   /**
    * Check if a network is localhost/anvil
-   * @param {string} networkName - Network name
-   * @returns {boolean} True if localhost
+   * @param networkName - Network name
+   * @returns True if localhost
    */
-  isLocalhost(networkName) {
+  isLocalhost(networkName: string): boolean {
     return networkName === "localhost";
   }
 
   /**
    * Get verifier configuration for a network
-   * @param {string} networkName - Network name
-   * @returns {Object|null} Verifier config with apiUrl and apiKey
+   * @param networkName - Network name
+   * @returns Verifier config with apiUrl and apiKey, or null
    */
-  getVerifierConfig(networkName) {
+  getVerifierConfig(networkName: string): VerifierConfig | null {
     const network = this.getNetwork(networkName);
 
     if (!network.verifyApiUrl) {
@@ -143,19 +173,10 @@ class NetworkManager {
 
   /**
    * Map network name to chain ID string for file paths
-   * @param {string} networkName - Network name
-   * @returns {string} Chain ID as string
+   * @param networkName - Network name
+   * @returns Chain ID as string
    */
-  getChainIdString(networkName) {
-    const chainMap = {
-      localhost: "31337",
-      arbitrum: "42161",
-      baseSepolia: "84532",
-      celo: "42220",
-    };
-
-    return chainMap[networkName] || this.getChainId(networkName).toString();
+  getChainIdString(networkName: string): string {
+    return CHAIN_ID_MAP[networkName] || this.getChainId(networkName).toString();
   }
 }
-
-module.exports = { NetworkManager };

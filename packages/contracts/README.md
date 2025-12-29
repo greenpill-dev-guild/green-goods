@@ -20,7 +20,7 @@ bun install
 > Green Goods deployment uses Foundry's FFI (Foreign Function Interface) to generate EAS schema strings from the `config/schemas.json` file. This is **required** for deployment to work.
 > 
 > - **Already Configured**: `ffi = true` is set in `foundry.toml`
-> - **What it does**: Calls `script/utils/generate-schemas.js` to convert schema field definitions into EAS-compatible format strings
+> - **What it does**: Calls `script/utils/generate-schemas.ts` to convert schema field definitions into EAS-compatible format strings
 > - **Security**: FFI allows execution of external scripts. Our usage is safe (controlled, audited script), but be aware when running untrusted deployment scripts
 > - **CI/CD**: Ensure your deployment environment has Node.js available and FFI enabled
 

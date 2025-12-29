@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 
 /**
  * deploy.js - Legacy entry point for backward compatibility
@@ -17,20 +17,21 @@
  * This wrapper maintains backward compatibility with existing scripts.
  */
 
-const dotenv = require("dotenv");
-const path = require("node:path");
+import dotenv from "dotenv";
+import path from "node:path";
 
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, "../../../", ".env") });
 
 // Delegate to new modular CLI
-const { DeploymentCLI } = require("./deploy/cli");
+import { DeploymentCLI } from "./deploy/cli";
 
 // Main execution
-if (require.main === module) {
+const isMain = import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith("deploy.ts");
+if (isMain) {
   const cli = new DeploymentCLI();
   cli.run(process.argv).catch(console.error);
 }
 
 // Export for programmatic use
-module.exports = { DeploymentCLI };
+export { DeploymentCLI };

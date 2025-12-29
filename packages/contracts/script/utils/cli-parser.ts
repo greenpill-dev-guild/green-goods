@@ -4,14 +4,29 @@
  * Extracts common CLI argument parsing logic
  */
 
-class CliParser {
+export interface ParsedOptions {
+  network: string;
+  broadcast: boolean;
+  verify: boolean;
+  updateSchemasOnly: boolean;
+  force: boolean;
+  dryRun: boolean;
+  skipEnvio: boolean;
+  skipVerification: boolean;
+  startIndexer: boolean;
+  saveReport: boolean;
+  help?: boolean;
+  error?: string;
+}
+
+export class CliParser {
   /**
    * Parse command line arguments into structured options
-   * @param {string[]} args - process.argv array
-   * @returns {Object} Parsed options
+   * @param args - process.argv array
+   * @returns Parsed options
    */
-  parseOptions(args) {
-    const options = {
+  parseOptions(args: string[]): ParsedOptions {
+    const options: ParsedOptions = {
       network: "localhost",
       broadcast: false,
       verify: true,
@@ -62,11 +77,11 @@ class CliParser {
           break;
         case "--help":
         case "-h":
-          return { help: true };
+          return { ...options, help: true };
         default:
           if (arg.startsWith("-")) {
             console.error(`Unknown option: ${arg}`);
-            return { error: `Unknown option: ${arg}` };
+            return { ...options, error: `Unknown option: ${arg}` };
           }
       }
     }
@@ -81,10 +96,10 @@ class CliParser {
 
   /**
    * Extract command from arguments
-   * @param {string[]} args - process.argv array
-   * @returns {string|null} Command name
+   * @param args - process.argv array
+   * @returns Command name or null
    */
-  getCommand(args) {
+  getCommand(args: string[]): string | null {
     if (args.length < 3) return null;
     const potentialCommand = args[2];
     return potentialCommand.startsWith("-") ? null : potentialCommand;
@@ -92,11 +107,11 @@ class CliParser {
 
   /**
    * Extract positional argument (e.g., config file path)
-   * @param {string[]} args - process.argv array
-   * @param {number} position - Position after command (0-indexed)
-   * @returns {string|null} Argument value
+   * @param args - process.argv array
+   * @param position - Position after command (0-indexed)
+   * @returns Argument value or null
    */
-  getPositionalArg(args, position = 0) {
+  getPositionalArg(args: string[], position = 0): string | null {
     let foundArgs = 0;
     for (let i = 2; i < args.length; i++) {
       const arg = args[i];
@@ -117,5 +132,3 @@ class CliParser {
     return null;
   }
 }
-
-module.exports = { CliParser };

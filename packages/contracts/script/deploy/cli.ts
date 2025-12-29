@@ -1,19 +1,27 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 
-const { CliParser } = require("../utils/cli-parser");
-const { NetworkManager } = require("../utils/network");
-const { DeploymentAddresses } = require("../utils/deployment-addresses");
-const { CoreDeployer } = require("./core");
-const { GardenDeployer } = require("./gardens");
-const { ActionDeployer } = require("./actions");
-const { AnvilManager } = require("./anvil");
+import { CliParser } from "../utils/cli-parser";
+import { NetworkManager } from "../utils/network";
+import { DeploymentAddresses } from "../utils/deployment-addresses";
+import { CoreDeployer } from "./core";
+import { GardenDeployer } from "./gardens";
+import { ActionDeployer } from "./actions";
+import { AnvilManager } from "./anvil";
 
 /**
  * DeploymentCLI - Main command-line interface for deployments
  *
  * Refactored from monolithic deploy.js into modular structure
  */
-class DeploymentCLI {
+export class DeploymentCLI {
+  private parser: CliParser;
+  private networkManager: NetworkManager;
+  private deploymentAddresses: DeploymentAddresses;
+  private coreDeployer: CoreDeployer;
+  private gardenDeployer: GardenDeployer;
+  private actionDeployer: ActionDeployer;
+  private anvilManager: AnvilManager;
+
   constructor() {
     this.parser = new CliParser();
     this.networkManager = new NetworkManager();
@@ -27,11 +35,11 @@ class DeploymentCLI {
   /**
    * Show help message
    */
-  showHelp() {
+  showHelp(): void {
     console.log(`
 Green Goods Deployment CLI
 
-Usage: node deploy.js <command> [options]
+Usage: bun deploy.ts <command> [options]
 
 Commands:
   core                     Deploy core contracts
@@ -50,29 +58,29 @@ Common Options:
 
 Examples:
   # Fresh deployment
-  node deploy.js core --network baseSepolia --broadcast
+  bun deploy.ts core --network baseSepolia --broadcast
   
   # Update schemas only
-  node deploy.js core --network baseSepolia --broadcast --update-schemas
+  bun deploy.ts core --network baseSepolia --broadcast --update-schemas
   
   # Deploy garden
-  node deploy.js garden config/my-garden.json --network arbitrum --broadcast
+  bun deploy.ts garden config/my-garden.json --network arbitrum --broadcast
   
   # Deploy actions
-  node deploy.js actions config/my-actions.json --network arbitrum --broadcast
+  bun deploy.ts actions config/my-actions.json --network arbitrum --broadcast
 
 Available networks: ${this.networkManager.getAvailableNetworks().join(", ")}
 
 Note: Contracts are automatically verified on all networks except localhost.
-For UUPS upgrades, use: bun run upgrade <contract> --network <network> --broadcast
+For UUPS upgrades, use: bun upgrade.ts <contract> --network <network> --broadcast
     `);
   }
 
   /**
    * Check deployment status for a network
-   * @param {string|null} network - Network name (null for all networks)
+   * @param network - Network name (null for all networks)
    */
-  async checkDeploymentStatus(network) {
+  async checkDeploymentStatus(network: string | null): Promise<void> {
     console.log("🚀 Green Goods Deployment Status\n");
 
     if (network) {
@@ -91,7 +99,8 @@ For UUPS upgrades, use: bun run upgrade <contract> --network <network> --broadca
         console.log(`   Work Approval Resolver: ${addresses.workApprovalResolver}`);
         console.log(`   Assessment Resolver: ${addresses.assessmentResolver}`);
       } catch (error) {
-        console.log(`❌ ${network}: ${error.message}`);
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.log(`❌ ${network}: ${errorMsg}`);
       }
     } else {
       // List all networks
@@ -102,7 +111,8 @@ For UUPS upgrades, use: bun run upgrade <contract> --network <network> --broadca
           this.deploymentAddresses.loadForChain(net);
           console.log(`✅ ${net} - Contracts deployed`);
         } catch (error) {
-          console.log(`❌ ${net} - ${error.message}`);
+          const errorMsg = error instanceof Error ? error.message : String(error);
+          console.log(`❌ ${net} - ${errorMsg}`);
         }
       }
     }
@@ -110,9 +120,9 @@ For UUPS upgrades, use: bun run upgrade <contract> --network <network> --broadca
 
   /**
    * Main execution function
-   * @param {string[]} args - Command line arguments
+   * @param args - Command line arguments
    */
-  async run(args) {
+  async run(args: string[]): Promise<void> {
     // Get command
     const command = this.parser.getCommand(args);
 
@@ -138,22 +148,22 @@ For UUPS upgrades, use: bun run upgrade <contract> --network <network> --broadca
           break;
 
         case "garden": {
-          const configPath = this.parser.getPositionalArg(args, 1);
-          if (!configPath) {
+          const gardenConfigPath = this.parser.getPositionalArg(args, 1);
+          if (!gardenConfigPath) {
             console.error("❌ Garden config file required");
             process.exit(1);
           }
-          await this.gardenDeployer.deployGarden(configPath, options);
+          await this.gardenDeployer.deployGarden(gardenConfigPath, options);
           break;
         }
 
         case "actions": {
-          const configPath = this.parser.getPositionalArg(args, 1);
-          if (!configPath) {
+          const actionsConfigPath = this.parser.getPositionalArg(args, 1);
+          if (!actionsConfigPath) {
             console.error("❌ Actions config file required");
             process.exit(1);
           }
-          await this.actionDeployer.deployActions(configPath, options);
+          await this.actionDeployer.deployActions(actionsConfigPath, options);
           break;
         }
 
@@ -179,16 +189,16 @@ For UUPS upgrades, use: bun run upgrade <contract> --network <network> --broadca
           process.exit(1);
       }
     } catch (error) {
-      console.error("❌ Error:", error.message);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error("❌ Error:", errorMsg);
       process.exit(1);
     }
   }
 }
 
 // Main execution
-if (require.main === module) {
+const isMain = import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith("cli.ts");
+if (isMain) {
   const cli = new DeploymentCLI();
   cli.run(process.argv).catch(console.error);
 }
-
-module.exports = { DeploymentCLI };
