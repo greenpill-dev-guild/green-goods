@@ -113,8 +113,8 @@ export function Login() {
   // FLOW HANDLERS
   // ============================================================================
 
-  // 1. Get Started -> Shows registration flow (new users)
-  const handleGetStarted = () => {
+  // 1. Sign Up -> Shows registration flow (new users)
+  const handleSignUp = () => {
     setLoginError(null);
     setActiveFlow("register");
   };
@@ -343,7 +343,7 @@ export function Login() {
       return `Login${storedUsername ? ` as ${storedUsername}` : ""}`;
     }
     // Initial state for new users
-    return "Get Started";
+    return "Sign Up";
   };
 
   // Determine username hint based on flow
@@ -368,7 +368,7 @@ export function Login() {
       return handleSubmit;
     }
     // New user, initial state - show registration flow
-    return handleGetStarted;
+    return handleSignUp;
   };
 
   // If on a nested route (like /login/recover), render the child route
