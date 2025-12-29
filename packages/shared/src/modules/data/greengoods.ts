@@ -1,7 +1,7 @@
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { greenGoodsGraphQL } from "./graphql";
 import { getFileByHash, resolveIPFSUrl } from "./ipfs";
-import { greenGoodsIndexer } from "./urql";
+import { greenGoodsIndexer, withTimeout, INDEXER_TIMEOUT_MS } from "./urql";
 
 const GATEWAY_BASE_URL = "https://w3s.link";
 
@@ -36,7 +36,11 @@ export async function getActions(): Promise<Action[]> {
       }
     `);
 
-    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }).toPromise();
+    const { data, error } = await withTimeout(
+      greenGoodsIndexer.query(QUERY, { chainId }).toPromise(),
+      INDEXER_TIMEOUT_MS,
+      "getActions"
+    );
 
     if (error) {
       console.error("[getActions] Indexer query failed:", error.message);
@@ -126,12 +130,17 @@ export async function getGardens(): Promise<Garden[]> {
           bannerImage
           gardeners
           operators
+          openJoining
           createdAt
         }
       }
     `);
 
-    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }).toPromise();
+    const { data, error } = await withTimeout(
+      greenGoodsIndexer.query(QUERY, { chainId }).toPromise(),
+      INDEXER_TIMEOUT_MS,
+      "getGardens"
+    );
 
     if (error) {
       console.error("[getGardens] Indexer query failed:", error.message);
@@ -156,6 +165,7 @@ export async function getGardens(): Promise<Garden[]> {
         bannerImage,
         gardeners: garden.gardeners || [],
         operators: garden.operators || [],
+        openJoining: Boolean(garden.openJoining),
         assessments: [],
         works: [],
         createdAt: garden.createdAt ? (garden.createdAt as number) * 1000 : Date.now(),
@@ -182,7 +192,11 @@ export async function getGardeners(): Promise<GardenerCard[]> {
       }
     `);
 
-    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }).toPromise();
+    const { data, error } = await withTimeout(
+      greenGoodsIndexer.query(QUERY, { chainId }).toPromise(),
+      INDEXER_TIMEOUT_MS,
+      "getGardeners"
+    );
 
     if (error) {
       console.error("[getGardeners] Indexer query failed:", error.message);

@@ -63,6 +63,8 @@ declare interface Garden extends GardenCard {
   communityToken?: string;
   assessments: GardenAssessment[];
   works: Work[];
+  /** Whether the garden allows open joining (from indexer, updated by OpenJoiningUpdated event) */
+  openJoining?: boolean;
 }
 
 // ============================================

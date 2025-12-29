@@ -1,4 +1,5 @@
 import {
+  queryKeys,
   useAuth,
   useBrowserNavigation,
   useGardens,
@@ -8,7 +9,8 @@ import {
 import { useUIStore } from "@green-goods/shared/stores";
 import type { Garden } from "@green-goods/shared/types";
 import { cn, gardenHasMember } from "@green-goods/shared/utils";
-import { RiFilterLine } from "@remixicon/react";
+import { RiFilterLine, RiRefreshLine } from "@remixicon/react";
+import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation } from "react-router-dom";
@@ -16,6 +18,9 @@ import { GardenCard, GardenCardSkeleton } from "@/components/Cards";
 
 // Minimum time to show skeleton before revealing cached data (prevents flash)
 const MIN_SKELETON_MS = 1500;
+// Maximum time to wait for data before showing error state (prevents infinite skeleton)
+const MAX_LOADING_MS = 15_000;
+
 import {
   GardenFilterScope,
   GardenFiltersState,
@@ -27,7 +32,8 @@ import { WorkDashboardIcon } from "./WorkDashboard/Icon";
 const Home: React.FC = () => {
   const navigate = useNavigateToTop();
   const location = useLocation();
-  const { data: gardensResolved = [], isLoading, isError } = useGardens();
+  const queryClient = useQueryClient();
+  const { data: gardensResolved = [], isLoading, isError, refetch } = useGardens();
   const intl = useIntl();
   const { isOnline } = useOffline();
   const { smartAccountAddress, walletAddress } = useAuth();
@@ -35,21 +41,46 @@ const Home: React.FC = () => {
 
   // Minimum skeleton display time to prevent flash of cached content
   const [minTimeElapsed, setMinTimeElapsed] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  // Maximum loading timeout - prevents infinite skeleton
+  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
+  const minTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const maxTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     if (isLoading && !minTimeElapsed) {
-      timerRef.current = setTimeout(() => setMinTimeElapsed(true), MIN_SKELETON_MS);
+      minTimerRef.current = setTimeout(() => setMinTimeElapsed(true), MIN_SKELETON_MS);
     }
-    return () => clearTimeout(timerRef.current);
+    return () => clearTimeout(minTimerRef.current);
   }, [isLoading, minTimeElapsed]);
 
-  // Reset timer when navigating back to home
+  // Maximum loading timeout effect
+  useEffect(() => {
+    if (isLoading && !loadingTimedOut && gardensResolved.length === 0) {
+      maxTimerRef.current = setTimeout(() => setLoadingTimedOut(true), MAX_LOADING_MS);
+    }
+    // Clear timeout if loading completes or data arrives
+    if (!isLoading || gardensResolved.length > 0) {
+      clearTimeout(maxTimerRef.current);
+      if (!isLoading) setLoadingTimedOut(false);
+    }
+    return () => clearTimeout(maxTimerRef.current);
+  }, [isLoading, loadingTimedOut, gardensResolved.length]);
+
+  // Reset timers when navigating back to home
   useEffect(() => {
     if (location.pathname === "/home") {
       setMinTimeElapsed(false);
+      setLoadingTimedOut(false);
     }
   }, [location.pathname]);
+
+  // Retry handler for timeout/error state
+  const handleRetry = () => {
+    setLoadingTimedOut(false);
+    setMinTimeElapsed(false);
+    queryClient.invalidateQueries({ queryKey: queryKeys.gardens.all });
+    refetch();
+  };
 
   // Use UIStore for filter drawer state (allows AppBar to react to drawer state)
   const { isGardenFilterOpen, openGardenFilter, closeGardenFilter } = useUIStore();
@@ -133,7 +164,32 @@ const Home: React.FC = () => {
   const renderGardens = () => {
     // Show skeletons until min time elapsed OR if no cached data available
     const hasCachedData = gardensResolved.length > 0;
-    const showSkeletons = isLoading && (!hasCachedData || !minTimeElapsed);
+    const showSkeletons = isLoading && (!hasCachedData || !minTimeElapsed) && !loadingTimedOut;
+
+    // Handle timeout or error state (online but no data after max wait)
+    if ((loadingTimedOut || isError) && !hasCachedData && isOnline) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 px-4 text-center gap-4">
+          <p className="text-slate-600">
+            {intl.formatMessage({
+              id: "app.home.loadingTimeout",
+              defaultMessage: "Unable to load gardens. The server may be slow or unavailable.",
+            })}
+          </p>
+          <button
+            type="button"
+            onClick={handleRetry}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-primary/90 transition-colors"
+          >
+            <RiRefreshLine className="w-4 h-4" />
+            {intl.formatMessage({
+              id: "app.home.retry",
+              defaultMessage: "Retry",
+            })}
+          </button>
+        </div>
+      );
+    }
 
     if (showSkeletons) {
       return (
@@ -153,7 +209,7 @@ const Home: React.FC = () => {
       );
     }
 
-    if (isError && !hasCachedData && !isOnline) {
+    if ((isError || loadingTimedOut) && !hasCachedData && !isOnline) {
       return (
         <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
           <p className="text-slate-600">

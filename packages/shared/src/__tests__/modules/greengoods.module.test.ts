@@ -6,12 +6,15 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock URQL client
+// Mock URQL client with timeout support
 const mockQuery = vi.fn();
 vi.mock("../../modules/data/urql", () => ({
   greenGoodsIndexer: {
     query: () => mockQuery(),
   },
+  // Pass through timeout utilities
+  INDEXER_TIMEOUT_MS: 12_000,
+  withTimeout: <T>(promise: Promise<T>) => promise,
 }));
 
 // Mock config
@@ -60,6 +63,7 @@ describe("modules/data/greengoods", () => {
           bannerImage: "QmBanner",
           gardeners: ["0xGardener1"],
           operators: ["0xOperator1"],
+          openJoining: true,
           createdAt: "1700000000",
         },
       ];
@@ -76,6 +80,83 @@ describe("modules/data/greengoods", () => {
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBe(1);
+    });
+
+    it("includes openJoining field from indexer", async () => {
+      const mockGardens = [
+        {
+          id: "84532-1",
+          chainId: 84532,
+          tokenAddress: "0xGarden123",
+          tokenID: "1",
+          name: "Open Garden",
+          description: "A garden with open joining",
+          location: "Test City",
+          bannerImage: "QmBanner",
+          gardeners: [],
+          operators: [],
+          openJoining: true,
+          createdAt: "1700000000",
+        },
+        {
+          id: "84532-2",
+          chainId: 84532,
+          tokenAddress: "0xGarden456",
+          tokenID: "2",
+          name: "Closed Garden",
+          description: "A garden with closed joining",
+          location: "Test City",
+          bannerImage: "QmBanner",
+          gardeners: [],
+          operators: [],
+          openJoining: false,
+          createdAt: "1700000000",
+        },
+      ];
+
+      mockQuery.mockReturnValue({
+        toPromise: vi.fn().mockResolvedValue({
+          data: { Garden: mockGardens },
+          error: null,
+        }),
+      });
+
+      const result = await getGardens();
+
+      expect(result).toHaveLength(2);
+      expect(result[0].openJoining).toBe(true);
+      expect(result[1].openJoining).toBe(false);
+    });
+
+    it("defaults openJoining to false when missing", async () => {
+      const mockGardens = [
+        {
+          id: "84532-1",
+          chainId: 84532,
+          tokenAddress: "0xGarden123",
+          tokenID: "1",
+          name: "Legacy Garden",
+          description: "A garden without openJoining field",
+          location: "Test City",
+          bannerImage: "QmBanner",
+          gardeners: [],
+          operators: [],
+          // openJoining missing - should default to false
+          createdAt: "1700000000",
+        },
+      ];
+
+      mockQuery.mockReturnValue({
+        toPromise: vi.fn().mockResolvedValue({
+          data: { Garden: mockGardens },
+          error: null,
+        }),
+      });
+
+      const result = await getGardens();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].openJoining).toBe(false);
     });
 
     it("returns empty array on GraphQL error", async () => {

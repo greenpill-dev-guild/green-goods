@@ -1,6 +1,5 @@
 import { toastService } from "@green-goods/shared";
 import {
-  checkGardenOpenJoining,
   isGardenMember,
   useAuth,
   useEnsName,
@@ -20,7 +19,7 @@ import {
   RiSmartphoneLine,
   RiWalletLine,
 } from "@remixicon/react";
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import { ReactNode, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/Actions";
@@ -61,46 +60,21 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
   } = useApp();
   const intl = useIntl();
 
-  // Fetch all gardens
+  // Fetch all gardens (openJoining is now included from indexer)
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
 
   // Join garden hook
   const { joinGarden, isJoining, joiningGardenId } = useJoinGarden();
 
-  // Track which gardens have openJoining enabled (for join button state)
-  const [openGardensMap, setOpenGardensMap] = useState<Map<string, boolean>>(new Map());
-  const [checkingOpenJoining, setCheckingOpenJoining] = useState(false);
-
-  // Check openJoining status for all gardens
-  useEffect(() => {
-    const checkOpenJoiningStatus = async () => {
-      if (gardens.length === 0) return;
-
-      setCheckingOpenJoining(true);
-      const results = new Map<string, boolean>();
-
-      // Check all gardens in parallel
-      await Promise.all(
-        gardens.map(async (garden) => {
-          const isOpen = await checkGardenOpenJoining(garden.id);
-          results.set(garden.id, isOpen);
-        })
-      );
-
-      setOpenGardensMap(results);
-      setCheckingOpenJoining(false);
-    };
-
-    checkOpenJoiningStatus();
-  }, [gardens]);
-
   // Show only open gardens or gardens where user is a member
+  // Uses garden.openJoining from indexer instead of per-garden RPC calls
   const allGardens = useMemo(() => {
     if (!primaryAddress || !gardens.length) return [];
 
     return gardens
       .filter((garden) => {
-        const isOpen = openGardensMap.get(garden.id) === true;
+        // Use openJoining from indexer (defaults to false if missing)
+        const isOpen = garden.openJoining === true;
         const isMember = isGardenMember(
           primaryAddress,
           garden.gardeners,
@@ -114,7 +88,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
         ...garden,
         isMember: isGardenMember(primaryAddress, garden.gardeners, garden.operators, garden.id),
       }));
-  }, [gardens, primaryAddress, openGardensMap]);
+  }, [gardens, primaryAddress]);
 
   const handleJoinGarden = async (garden: Garden) => {
     try {
@@ -330,7 +304,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
             })}
           </h5>
 
-          {gardensLoading || checkingOpenJoining ? (
+          {gardensLoading ? (
             <Card>
               <div className="flex flex-row items-center justify-center w-full py-2">
                 <span className="text-sm text-slate-500">
