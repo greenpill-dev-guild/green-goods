@@ -68,12 +68,16 @@ export function isAppInstalled(): boolean {
 /**
  * Detect the mobile operating system based on user agent.
  *
+ * Handles iPadOS 13+ which uses a "desktop" user agent containing "Macintosh"
+ * instead of "iPad". Detection uses maxTouchPoints > 1 to identify iPads.
+ *
  * @returns The detected platform
  */
 export function getMobileOperatingSystem(): Platform {
   if (typeof navigator === "undefined") return "unknown";
 
   const win = typeof window !== "undefined" ? (window as WindowWithExtensions) : undefined;
+  const nav = navigator as NavigatorWithStandalone;
   const userAgent = navigator.userAgent || navigator.vendor || win?.opera || "";
 
   // Windows Phone must come first because its UA also contains "Android"
@@ -87,6 +91,12 @@ export function getMobileOperatingSystem(): Platform {
 
   // iOS detection - check for iPad|iPhone|iPod and exclude MSStream (IE specific)
   if (/iPad|iPhone|iPod/.test(userAgent) && !win?.MSStream) {
+    return "ios";
+  }
+
+  // iPadOS 13+ with "Request Desktop Website" enabled (or default behavior)
+  // Reports as "Macintosh" but has touch support (maxTouchPoints > 1)
+  if (/Macintosh/.test(userAgent) && nav.maxTouchPoints && nav.maxTouchPoints > 1) {
     return "ios";
   }
 
