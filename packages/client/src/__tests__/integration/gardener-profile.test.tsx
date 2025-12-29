@@ -5,9 +5,13 @@ import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock auth context
+// Mock auth hook used by shared's `useGardenerProfile` implementation.
+// NOTE: `useGardenerProfile` imports `useAuth` via a relative path inside `packages/shared`,
+// so mocking `@green-goods/shared/hooks` doesn't intercept it.
 const mockUseAuth = vi.fn(() => ({
   smartAccountClient: {
+    // Minimal shape used by the hook. We don't need a real account object for these tests.
+    account: {},
     sendTransaction: vi.fn(async () => "0x1234567890abcdef"),
   },
   smartAccountAddress: "0xGardenerSmartAccountAddress",
@@ -15,15 +19,9 @@ const mockUseAuth = vi.fn(() => ({
   isAuthenticated: true,
 }));
 
-vi.mock("@green-goods/shared/hooks", async () => {
-  const actual = await vi.importActual<typeof import("@green-goods/shared/hooks")>(
-    "@green-goods/shared/hooks"
-  );
-  return {
-    ...actual,
-    useAuth: () => mockUseAuth(),
-  };
-});
+vi.mock("../../../../shared/src/hooks/auth/useAuth", () => ({
+  useAuth: () => mockUseAuth(),
+}));
 
 describe("Gardener Profile Integration Tests", () => {
   let queryClient: QueryClient;
