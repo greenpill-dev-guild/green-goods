@@ -43,7 +43,12 @@ import {
   trackAuthPasskeyRegisterSuccess,
   trackAuthSessionRestored,
 } from "../modules/app/analytics-events";
-import { clearStoredUsername, getStoredUsername, setStoredUsername } from "../modules/auth/session";
+import {
+  clearStoredUsername,
+  getStoredRpId,
+  getStoredUsername,
+  setStoredUsername,
+} from "../modules/auth/session";
 
 import type { PasskeySessionResult, RestoreSessionResult } from "./authMachine";
 
@@ -316,15 +321,20 @@ export const authenticatePasskeyService = fromPromise<PasskeySessionResult, Auth
       }
 
       // Prompt WebAuthn authentication (biometric)
+      // Use stored RP ID for Android compatibility (must match registration)
+      const rpId = getStoredRpId();
+
       const authResponse = await window.navigator.credentials.get({
         publicKey: {
           challenge: crypto.getRandomValues(new Uint8Array(32)),
-          rpId: window.location.hostname,
+          rpId,
           userVerification: "required",
           allowCredentials: [
             {
               id: credentialIdBytes as BufferSource,
               type: "public-key",
+              // Transports hint helps Android find the credential
+              transports: ["internal", "hybrid"],
             },
           ],
           timeout: 60000,

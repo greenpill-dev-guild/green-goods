@@ -9,6 +9,7 @@
 
 import type { Chain } from "viem";
 import { createWebAuthnCredential, type P256Credential } from "viem/account-abstraction";
+import { setStoredRpId } from "../modules/auth/session";
 import { getChain } from "./chains";
 import { getPimlicoApiKey } from "./pimlico";
 
@@ -249,6 +250,9 @@ function bufferToBase64Url(buffer: ArrayBuffer): string {
  *
  * This is the main entry point for credential creation when using
  * the Pimlico passkey server flow.
+ *
+ * IMPORTANT: Explicitly sets RP ID to current hostname for Android compatibility.
+ * Android is strict about RP ID matching between registration and authentication.
  */
 export async function createPasskeyWithServer(
   serverClient: PasskeyServerClient,
@@ -259,7 +263,10 @@ export async function createPasskeyWithServer(
     context: { userName },
   });
 
-  // 2. Create credential using WebAuthn
+  // 2. Capture current hostname as RP ID for Android compatibility
+  const rpId = window.location.hostname;
+
+  // 3. Create credential using WebAuthn
   const credential = await createWebAuthnCredential({
     name: "Green Goods Wallet",
     createFn: async (viemOptions) => {
@@ -268,12 +275,21 @@ export async function createPasskeyWithServer(
       if (mergedOptions?.publicKey && options.publicKey) {
         // Use server-provided options
         Object.assign(mergedOptions.publicKey, options.publicKey);
+        // Override RP ID to ensure consistency with authentication
+        mergedOptions.publicKey.rp = {
+          ...mergedOptions.publicKey.rp,
+          id: rpId,
+          name: mergedOptions.publicKey.rp?.name ?? "Green Goods",
+        };
       }
       return window.navigator.credentials.create(mergedOptions);
     },
   });
 
-  // 3. Verify and store on Pimlico server
+  // 4. Store RP ID for authentication (Android requires exact match)
+  setStoredRpId(rpId);
+
+  // 5. Verify and store on Pimlico server
   const verifiedCredential = await serverClient.verifyRegistration({
     credential,
     context: { userName },

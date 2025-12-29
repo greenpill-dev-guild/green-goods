@@ -21,6 +21,9 @@ export const AUTH_MODE_STORAGE_KEY = "greengoods_auth_mode";
 /** Username for Pimlico passkey server (only thing stored locally for passkey auth) */
 export const USERNAME_STORAGE_KEY = "greengoods_username";
 
+/** RP ID used during passkey registration (for cross-device consistency) */
+export const RP_ID_STORAGE_KEY = "greengoods_rp_id";
+
 // ============================================================================
 // AUTH MODE
 // ============================================================================
@@ -67,11 +70,30 @@ export function hasStoredUsername(): boolean {
 }
 
 // ============================================================================
+// RP ID (for Android passkey compatibility)
+// ============================================================================
+
+/** Get stored RP ID, fallback to current hostname */
+export function getStoredRpId(): string {
+  return localStorage.getItem(RP_ID_STORAGE_KEY) || window.location.hostname;
+}
+
+/** Store RP ID used during registration */
+export function setStoredRpId(rpId: string): void {
+  localStorage.setItem(RP_ID_STORAGE_KEY, rpId);
+}
+
+/** Clear stored RP ID */
+export function clearStoredRpId(): void {
+  localStorage.removeItem(RP_ID_STORAGE_KEY);
+}
+
+// ============================================================================
 // SIGN OUT
 // ============================================================================
 
 /**
- * Clear all auth storage including username.
+ * Clear all auth storage including username and RP ID.
  *
  * WARNING: This removes the username permanently.
  * For regular logout, use clearAuthMode() instead to keep the username.
@@ -80,6 +102,7 @@ export function hasStoredUsername(): boolean {
 export function clearAllAuth(): void {
   localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
   localStorage.removeItem(USERNAME_STORAGE_KEY);
+  localStorage.removeItem(RP_ID_STORAGE_KEY);
 }
 
 // ============================================================================

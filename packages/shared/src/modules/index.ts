@@ -82,17 +82,22 @@ export {
   clearAuthMode,
   // Legacy (deprecated - credentials now on Pimlico server)
   clearStoredPasskey,
+  clearStoredRpId,
   // Username (Pimlico server)
   clearStoredUsername,
   getAuthMode,
   getSavedAuthMode,
+  getStoredRpId,
   getStoredUsername,
   hasStoredPasskey,
   hasStoredPasskeyCredential,
   hasStoredUsername,
   PASSKEY_STORAGE_KEY,
+  // RP ID (Android passkey compatibility)
+  RP_ID_STORAGE_KEY,
   saveAuthMode,
   setAuthMode,
+  setStoredRpId,
   setStoredUsername,
   USERNAME_STORAGE_KEY,
 } from "./auth/session";
