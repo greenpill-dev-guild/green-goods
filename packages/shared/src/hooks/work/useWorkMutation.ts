@@ -9,12 +9,15 @@
 
 import { useMutation } from "@tanstack/react-query";
 import type { SmartAccountClient } from "permissionless";
-import { toastService, workToasts } from "../../components/toast";
+import {
+  showWalletProgress,
+  toastService,
+  walletProgressToasts,
+  workToasts,
+} from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import {
   trackWorkSubmissionFailed,
-  trackWorkSubmissionOffline,
-  trackWorkSubmissionQueued,
   trackWorkSubmissionStarted,
   trackWorkSubmissionSuccess,
 } from "../../modules/app/analytics-events";
@@ -24,7 +27,7 @@ import { submitWorkToQueue } from "../../modules/work/work-submission";
 import { useUIStore } from "../../stores/useUIStore";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
 import { getActionTitle } from "../../utils/action/parsers";
-import { DEBUG_ENABLED, debugError, debugLog, debugWarn } from "../../utils/debug";
+import { DEBUG_ENABLED, debugError, debugLog } from "../../utils/debug";
 import { parseAndFormatError } from "../../utils/errors/contract-errors";
 
 interface UseWorkMutationOptions {
@@ -118,7 +121,17 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           actionUID!,
           actionTitle,
           chainId,
-          images
+          images,
+          {
+            onProgress: (stage) => {
+              // Map wallet submission stages to toast updates
+              if (stage === "complete") {
+                walletProgressToasts.success();
+              } else {
+                showWalletProgress(stage);
+              }
+            },
+          }
         );
       }
 
@@ -203,9 +216,12 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
 
       if (isOffline) {
         workToasts.savedOffline();
-      } else {
+      } else if (authMode !== "wallet") {
+        // For wallet mode, progress toasts are shown via onProgress callback
         workToasts.submitting();
       }
+      // For wallet mode online, the first progress toast will be shown
+      // automatically when submitWorkDirectly calls onProgress("validating")
     },
     onSuccess: (txHash) => {
       const isOfflineHash = typeof txHash === "string" && txHash.startsWith("0xoffline_");
@@ -226,8 +242,9 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         // Offline: dismiss info toast after brief delay
         setTimeout(() => workToasts.dismiss(), 1500);
       } else if (authMode === "wallet") {
-        // Wallet mode: show success toast (passkey mode handled by queue events)
-        workToasts.success();
+        // Wallet mode: success already shown by onProgress("complete") callback
+        // Just dismiss the loading toast after a delay so user sees the success
+        setTimeout(() => walletProgressToasts.dismiss(), 2000);
       } else {
         // Passkey mode with inline processing: dismiss loading toast
         // Success will be shown by job queue event handler
@@ -266,27 +283,30 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       });
 
       // Use parsed error if known, otherwise provide fallback based on auth mode
-      const displayTitle = parsed.isKnown ? title : "Work submission failed";
       const displayMessage = parsed.isKnown
         ? message
         : authMode === "wallet"
           ? "Transaction failed. Check your wallet and try again."
           : "We couldn't submit your work. It'll retry shortly.";
 
-      const description = parsed.isKnown
-        ? parsed.action || undefined
-        : authMode === "wallet"
-          ? "If the issue persists, reconnect your wallet and resubmit."
+      if (authMode === "wallet") {
+        // Use wallet progress toast for consistent UX
+        walletProgressToasts.error(displayMessage, parsed.recoverable ?? false);
+      } else {
+        const displayTitle = parsed.isKnown ? title : "Work submission failed";
+        const description = parsed.isKnown
+          ? parsed.action || undefined
           : "You can stay on this page; the queue will keep retrying.";
 
-      toastService.error({
-        id: "work-upload",
-        title: displayTitle,
-        message: displayMessage,
-        context: authMode === "wallet" ? "wallet confirmation" : "work upload",
-        description,
-        error,
-      });
+        toastService.error({
+          id: "work-upload",
+          title: displayTitle,
+          message: displayMessage,
+          context: "work upload",
+          description,
+          error,
+        });
+      }
 
       if (DEBUG_ENABLED) {
         debugError("[WorkMutation] Work submission failed", error, {

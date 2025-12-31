@@ -34,10 +34,10 @@ vi.mock("../../utils/eas/transaction-builder", () => ({
   })),
 }));
 
-import { submitWorkBot, submitApprovalBot } from "../../modules/work/bot-submission";
-import { encodeWorkData, encodeWorkApprovalData } from "../../utils/eas/encoders";
-import { buildWorkAttestTx, buildApprovalAttestTx } from "../../utils/eas/transaction-builder";
 import { getEASConfig } from "../../config/blockchain";
+import { submitApprovalBot, submitWorkBot } from "../../modules/work/bot-submission";
+import { encodeWorkApprovalData, encodeWorkData } from "../../utils/eas/encoders";
+import { buildApprovalAttestTx, buildWorkAttestTx } from "../../utils/eas/transaction-builder";
 
 describe("modules/work/bot-submission", () => {
   const mockTxHash = ("0x" + "a".repeat(64)) as `0x${string}`;

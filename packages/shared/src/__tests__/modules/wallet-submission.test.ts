@@ -291,6 +291,7 @@ describe("wallet-submission", () => {
       const result = await submitApprovalDirectly(
         mockApprovalDraft,
         "0xGardenAddress",
+        "0xGardenerAddress",
         mockChainId
       );
 
@@ -316,7 +317,12 @@ describe("wallet-submission", () => {
 
       // Execute & Verify
       await expect(
-        submitApprovalDirectly(mockApprovalDraft, "0xGardenAddress", mockChainId)
+        submitApprovalDirectly(
+          mockApprovalDraft,
+          "0xGardenAddress",
+          "0xGardenerAddress",
+          mockChainId
+        )
       ).rejects.toThrow("Wallet not connected");
     });
 
@@ -332,7 +338,12 @@ describe("wallet-submission", () => {
 
       // Execute & Verify
       await expect(
-        submitApprovalDirectly(mockApprovalDraft, "0xGardenAddress", mockChainId)
+        submitApprovalDirectly(
+          mockApprovalDraft,
+          "0xGardenAddress",
+          "0xGardenerAddress",
+          mockChainId
+        )
       ).rejects.toThrow("Transaction cancelled by user");
     });
   });

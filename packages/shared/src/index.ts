@@ -6,6 +6,7 @@
 // ============================================================================
 export type {
   CenteredSpinnerProps,
+  FormatMessageFn,
   FormInputProps,
   FormLayoutProps,
   FormTextareaProps,
@@ -21,18 +22,31 @@ export type {
   WorkStatus,
 } from "./components/index";
 export {
+  approvalToasts,
   CenteredSpinner,
+  createApprovalToasts,
+  createLocalizedToasts,
+  createQueueToasts,
+  createValidationToasts,
+  createWalletProgressToasts,
+  createWorkToasts,
   FormInput,
   FormLayout,
   FormTextarea,
   getStatusColors,
   HydrationFallback,
+  queueToasts,
   Spinner,
   StatusBadge,
   setToastTranslator,
+  showWalletProgress,
   ToastViewport,
   TranslationBadge,
+  toastMessageIds,
   toastService,
+  validationToasts,
+  walletProgressToasts,
+  workToasts,
 } from "./components/index";
 
 // ============================================================================
@@ -348,9 +362,9 @@ export {
   formatErrorForToast,
   formatFileSize,
   formatRelativeTime,
-  fromDateTimeLocalValue,
   formatUserError,
   formatWalletError,
+  fromDateTimeLocalValue,
   GardenAccountABI,
   GardenTokenABI,
   gardenHasMember,

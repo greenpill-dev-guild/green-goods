@@ -397,6 +397,36 @@ export function trackWorkApprovalFailed(props: {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+// WALLET SUBMISSION TIMING
+// ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * Track wallet submission timing for performance analysis
+ */
+export function trackWalletSubmissionTiming(props: {
+  gardenAddress: string;
+  actionUID: number;
+  totalTimeMs: number;
+  imageCount: number;
+}) {
+  track("wallet_submission_timing", {
+    garden_address: props.gardenAddress,
+    action_uid: props.actionUID,
+    total_time_ms: props.totalTimeMs,
+    image_count: props.imageCount,
+    // Categorize for easier analysis
+    timing_bucket:
+      props.totalTimeMs < 5000
+        ? "fast"
+        : props.totalTimeMs < 10000
+          ? "normal"
+          : props.totalTimeMs < 20000
+            ? "slow"
+            : "very_slow",
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 // ADMIN: GARDEN MANAGEMENT
 // ─────────────────────────────────────────────────────────────────────────
 

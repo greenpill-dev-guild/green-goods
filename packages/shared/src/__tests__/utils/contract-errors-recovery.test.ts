@@ -1,0 +1,169 @@
+/**
+ * Tests for contract error recovery fields
+ *
+ * @vitest-environment jsdom
+ */
+
+import { describe, expect, it } from "vitest";
+
+import { parseContractError } from "../../utils/errors/contract-errors";
+
+describe("contract error recovery fields", () => {
+  describe("recoverable field", () => {
+    it("should mark NotGardenMember as not recoverable", () => {
+      const result = parseContractError("0x8cb4ae3b");
+      expect(result.recoverable).toBe(false);
+      expect(result.suggestedAction).toBe("join-garden");
+    });
+
+    it("should mark EmptyRevert as recoverable", () => {
+      const result = parseContractError("0x");
+      expect(result.recoverable).toBe(true);
+      expect(result.suggestedAction).toBe("retry");
+    });
+
+    it("should mark unknown errors as recoverable (transient)", () => {
+      const result = parseContractError("Some random error");
+      expect(result.recoverable).toBe(true);
+      expect(result.suggestedAction).toBe("retry");
+    });
+
+    it("should mark network errors as recoverable", () => {
+      const result = parseContractError(new Error("Network connection failed"));
+      expect(result.recoverable).toBe(true);
+      expect(result.suggestedAction).toBe("retry");
+      expect(result.name).toBe("NetworkError");
+    });
+
+    it("should mark timeout errors as recoverable", () => {
+      const result = parseContractError(new Error("Request timeout"));
+      expect(result.recoverable).toBe(true);
+      expect(result.suggestedAction).toBe("retry");
+      expect(result.name).toBe("NetworkError");
+    });
+
+    it("should mark user rejection as recoverable", () => {
+      const result = parseContractError(new Error("User rejected the request"));
+      expect(result.recoverable).toBe(true);
+      expect(result.suggestedAction).toBe("retry");
+      expect(result.name).toBe("UserRejected");
+    });
+
+    it("should mark permission errors as not recoverable", () => {
+      const result = parseContractError("0x30cd7471"); // NotGardenOwner
+      expect(result.recoverable).toBe(false);
+      expect(result.suggestedAction).toBe("contact-support");
+    });
+  });
+
+  describe("suggestedAction field", () => {
+    it("should suggest join-garden for membership errors", () => {
+      // Test both old and new selectors
+      expect(parseContractError("0x8cb4ae3b").suggestedAction).toBe("join-garden");
+      expect(parseContractError("0x1648fd01").suggestedAction).toBe("join-garden");
+    });
+
+    it("should suggest contact-support for permission errors", () => {
+      expect(parseContractError("0x30cd7471").suggestedAction).toBe("contact-support"); // NotGardenOwner
+      expect(parseContractError("0x5d91fb09").suggestedAction).toBe("contact-support"); // NotGardenOperator
+      expect(parseContractError("0xdb926eba").suggestedAction).toBe("contact-support"); // InvalidInvite
+    });
+
+    it("should suggest retry for transient errors", () => {
+      expect(parseContractError("Some unknown error").suggestedAction).toBe("retry");
+      expect(parseContractError(new Error("Network error")).suggestedAction).toBe("retry");
+    });
+  });
+
+  describe("known errors with recovery info", () => {
+    const testCases: Array<{
+      signature: string;
+      expectedName: string;
+      expectedRecoverable: boolean;
+      expectedSuggestedAction?: string;
+    }> = [
+      {
+        signature: "0x8cb4ae3b",
+        expectedName: "NotGardenMember",
+        expectedRecoverable: false,
+        expectedSuggestedAction: "join-garden",
+      },
+      {
+        signature: "0x30cd7471",
+        expectedName: "NotGardenOwner",
+        expectedRecoverable: false,
+        expectedSuggestedAction: "contact-support",
+      },
+      {
+        signature: "0x42375a1e",
+        expectedName: "AlreadyGardener",
+        expectedRecoverable: false,
+        // No suggested action - informational error
+      },
+      {
+        signature: "0x2ff9aed3",
+        expectedName: "NotActiveAction",
+        expectedRecoverable: false,
+        // No suggested action - need to select different action
+      },
+      {
+        signature: "0x5d91fb10",
+        expectedName: "NotAuthorizedApprover",
+        expectedRecoverable: false,
+        expectedSuggestedAction: "contact-support",
+      },
+    ];
+
+    testCases.forEach(
+      ({ signature, expectedName, expectedRecoverable, expectedSuggestedAction }) => {
+        it(`should parse ${expectedName} correctly`, () => {
+          const result = parseContractError(signature);
+          expect(result.name).toBe(expectedName);
+          expect(result.recoverable).toBe(expectedRecoverable);
+          expect(result.isKnown).toBe(true);
+          if (expectedSuggestedAction) {
+            expect(result.suggestedAction).toBe(expectedSuggestedAction);
+          }
+        });
+      }
+    );
+  });
+
+  describe("error object handling", () => {
+    it("should handle error objects with message property", () => {
+      const errorObj = { message: "User rejected the request", code: 4001 };
+      const result = parseContractError(errorObj);
+      expect(result.name).toBe("UserRejected");
+      expect(result.recoverable).toBe(true);
+    });
+
+    it("should handle nested error messages", () => {
+      const error = new Error("Connection timeout occurred");
+      const result = parseContractError(error);
+      expect(result.recoverable).toBe(true);
+      expect(result.suggestedAction).toBe("retry");
+    });
+  });
+
+  describe("validation errors", () => {
+    it("should handle validation failed errors", () => {
+      const result = parseContractError("Validation failed: Invalid input");
+      expect(result.name).toBe("Validation Error");
+      expect(result.isKnown).toBe(true);
+      expect(result.recoverable).toBe(false);
+      expect(result.suggestedAction).toBe("contact-support");
+    });
+  });
+
+  describe("ParsedContractError type completeness", () => {
+    it("should always include recoverable field", () => {
+      // Test various error types
+      const errors = ["0x8cb4ae3b", "unknown error", new Error("test"), { message: "test" }];
+
+      errors.forEach((error) => {
+        const result = parseContractError(error);
+        expect(typeof result.recoverable).toBe("boolean");
+      });
+    });
+  });
+});

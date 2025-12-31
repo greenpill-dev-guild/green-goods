@@ -3,12 +3,12 @@
  *
  * Tests for BUG-013: Wallet reject flow should not hang in pending state.
  * Verifies that:
- * - Receipt wait has a timeout mechanism
+ * - Receipt wait has a timeout mechanism (60s default)
  * - Transaction hash is returned even if receipt times out
- * - Explorer URL is provided for user to check status
+ * - Progress callback is fired at each stage
  */
 
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // ============================================================================
 // Mocks
@@ -20,9 +20,9 @@ const mockGetWalletClient = vi.fn();
 const mockGetPublicClient = vi.fn();
 
 vi.mock("@wagmi/core", () => ({
-  waitForTransactionReceipt: (...args: any[]) => mockWaitForTransactionReceipt(...args),
-  getWalletClient: (...args: any[]) => mockGetWalletClient(...args),
-  getPublicClient: (...args: any[]) => mockGetPublicClient(...args),
+  waitForTransactionReceipt: (...args: unknown[]) => mockWaitForTransactionReceipt(...args),
+  getWalletClient: (...args: unknown[]) => mockGetWalletClient(...args),
+  getPublicClient: (...args: unknown[]) => mockGetPublicClient(...args),
 }));
 
 // Mock config
@@ -37,6 +37,14 @@ vi.mock("../../config/blockchain", () => ({
     EAS: { address: "0xEAS" },
     SCHEMA_REGISTRY: { address: "0xRegistry" },
   }),
+}));
+
+vi.mock("../../config/react-query", () => ({
+  queryClient: {
+    setQueryData: vi.fn(),
+    getQueryData: vi.fn(() => []),
+    invalidateQueries: vi.fn(),
+  },
 }));
 
 // Mock other utils
@@ -88,17 +96,28 @@ vi.mock("../../utils/eas/transaction-builder", () => ({
 }));
 
 vi.mock("../../utils/errors/contract-errors", () => ({
-  parseContractError: () => ({ isKnown: false, message: "Unknown error" }),
+  parseContractError: () => ({ isKnown: false, message: "Unknown error", recoverable: true }),
 }));
 
 vi.mock("../../utils/errors/user-messages", () => ({
-  formatWalletError: (err: any) => err?.message || "Wallet error",
+  formatWalletError: (err: unknown) => (err as { message?: string })?.message || "Wallet error",
+}));
+
+vi.mock("../../modules/app/analytics-events", () => ({
+  trackWalletSubmissionTiming: vi.fn(),
+  ANALYTICS_EVENTS: {
+    WORK_APPROVAL_SUCCESS: "work_approval_success",
+  },
+}));
+
+vi.mock("../../modules/app/posthog", () => ({
+  track: vi.fn(),
 }));
 
 // Import after mocks are set up
 import {
   submitApprovalDirectly,
-  type WalletSubmissionResult,
+  type WalletSubmissionStage,
 } from "../../modules/work/wallet-submission";
 
 // ============================================================================
@@ -113,6 +132,7 @@ const mockDraft: WorkApprovalDraft = {
 };
 
 const mockGardenAddress = "0xGarden456";
+const mockGardenerAddress = "0xGardener789";
 const mockChainId = 84532;
 const mockTxHash =
   "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef" as `0x${string}`;
@@ -138,25 +158,27 @@ describe("modules/work/wallet-submission timeout handling (BUG-013)", () => {
   });
 
   describe("submitApprovalDirectly", () => {
-    it("returns result with confirmed=true when receipt arrives quickly", async () => {
+    it("returns transaction hash when receipt arrives quickly", async () => {
       const mockWalletClient = createMockWalletClient();
       mockGetWalletClient.mockResolvedValue(mockWalletClient);
       mockWaitForTransactionReceipt.mockResolvedValue({ status: "success" });
 
-      const resultPromise = submitApprovalDirectly(mockDraft, mockGardenAddress, mockChainId);
+      const resultPromise = submitApprovalDirectly(
+        mockDraft,
+        mockGardenAddress,
+        mockGardenerAddress,
+        mockChainId
+      );
 
       // Fast-forward just a bit to allow promise to resolve
       await vi.advanceTimersByTimeAsync(100);
 
       const result = await resultPromise;
 
-      expect(result.hash).toBe(mockTxHash);
-      expect(result.confirmed).toBe(true);
-      expect(result.timedOut).toBe(false);
-      expect(result.explorerUrl).toContain(mockTxHash);
+      expect(result).toBe(mockTxHash);
     });
 
-    it("returns result with timedOut=true when receipt takes too long", async () => {
+    it("returns hash and continues gracefully when receipt times out", async () => {
       const mockWalletClient = createMockWalletClient();
       mockGetWalletClient.mockResolvedValue(mockWalletClient);
 
@@ -165,61 +187,63 @@ describe("modules/work/wallet-submission timeout handling (BUG-013)", () => {
         () => new Promise(() => {}) // Never resolves
       );
 
-      const resultPromise = submitApprovalDirectly(mockDraft, mockGardenAddress, mockChainId);
+      const onProgress = vi.fn();
+      const resultPromise = submitApprovalDirectly(
+        mockDraft,
+        mockGardenAddress,
+        mockGardenerAddress,
+        mockChainId,
+        {
+          onProgress,
+          txTimeout: 1000, // Short timeout for test
+        }
+      );
 
-      // Fast-forward past the timeout (60 seconds)
-      await vi.advanceTimersByTimeAsync(61_000);
-
-      const result = await resultPromise;
-
-      expect(result.hash).toBe(mockTxHash);
-      expect(result.confirmed).toBe(false);
-      expect(result.timedOut).toBe(true);
-      expect(result.explorerUrl).toContain(mockTxHash);
-    });
-
-    it("provides block explorer URL even on timeout", async () => {
-      const mockWalletClient = createMockWalletClient();
-      mockGetWalletClient.mockResolvedValue(mockWalletClient);
-
-      // Mock receipt that never resolves
-      mockWaitForTransactionReceipt.mockImplementation(() => new Promise(() => {}));
-
-      const resultPromise = submitApprovalDirectly(mockDraft, mockGardenAddress, mockChainId);
-
-      await vi.advanceTimersByTimeAsync(61_000);
+      // Fast-forward past the timeout
+      await vi.advanceTimersByTimeAsync(1500);
 
       const result = await resultPromise;
 
-      // Should have an explorer URL for Base Sepolia
-      expect(result.explorerUrl).toBe(`https://sepolia.basescan.org/tx/${mockTxHash}`);
+      // Should return hash despite timeout
+      expect(result).toBe(mockTxHash);
+      // Should have progressed to syncing stage
+      expect(onProgress).toHaveBeenCalledWith("syncing", expect.any(String));
     });
 
-    it("does not hang indefinitely on receipt wait error", async () => {
+    it("fires progress callback at each stage", async () => {
       const mockWalletClient = createMockWalletClient();
       mockGetWalletClient.mockResolvedValue(mockWalletClient);
+      mockWaitForTransactionReceipt.mockResolvedValue({ status: "success" });
 
-      // Mock receipt that rejects (network error, etc.)
-      mockWaitForTransactionReceipt.mockRejectedValue(new Error("Network error"));
+      const stages: WalletSubmissionStage[] = [];
+      const onProgress = vi.fn((stage: WalletSubmissionStage) => {
+        stages.push(stage);
+      });
 
-      const resultPromise = submitApprovalDirectly(mockDraft, mockGardenAddress, mockChainId);
+      const resultPromise = submitApprovalDirectly(
+        mockDraft,
+        mockGardenAddress,
+        mockGardenerAddress,
+        mockChainId,
+        {
+          onProgress,
+        }
+      );
 
       await vi.advanceTimersByTimeAsync(100);
+      await resultPromise;
 
-      const result = await resultPromise;
-
-      // Should still return result - tx was sent successfully
-      expect(result.hash).toBe(mockTxHash);
-      expect(result.confirmed).toBe(false);
-      expect(result.timedOut).toBe(false); // Not timed out, just errored
-      expect(result.explorerUrl).toContain(mockTxHash);
+      expect(stages).toContain("validating");
+      expect(stages).toContain("confirming");
+      expect(stages).toContain("syncing");
+      expect(stages).toContain("complete");
     });
 
     it("throws error if wallet client is not available", async () => {
       mockGetWalletClient.mockResolvedValue(null);
 
       await expect(
-        submitApprovalDirectly(mockDraft, mockGardenAddress, mockChainId)
+        submitApprovalDirectly(mockDraft, mockGardenAddress, mockGardenerAddress, mockChainId)
       ).rejects.toThrow("Wallet not connected");
     });
 
@@ -229,50 +253,68 @@ describe("modules/work/wallet-submission timeout handling (BUG-013)", () => {
       mockGetWalletClient.mockResolvedValue(mockWalletClient);
 
       await expect(
-        submitApprovalDirectly(mockDraft, mockGardenAddress, mockChainId)
+        submitApprovalDirectly(mockDraft, mockGardenAddress, mockGardenerAddress, mockChainId)
       ).rejects.toThrow("User rejected");
     });
   });
 
-  describe("WalletSubmissionResult type", () => {
-    it("result has all required fields", async () => {
+  describe("timeout configuration", () => {
+    it("uses custom timeout when provided", async () => {
       const mockWalletClient = createMockWalletClient();
       mockGetWalletClient.mockResolvedValue(mockWalletClient);
-      mockWaitForTransactionReceipt.mockResolvedValue({ status: "success" });
 
-      const resultPromise = submitApprovalDirectly(mockDraft, mockGardenAddress, mockChainId);
+      // Mock receipt that never resolves
+      mockWaitForTransactionReceipt.mockImplementation(() => new Promise(() => {}));
 
-      await vi.advanceTimersByTimeAsync(100);
+      const resultPromise = submitApprovalDirectly(
+        mockDraft,
+        mockGardenAddress,
+        mockGardenerAddress,
+        mockChainId,
+        {
+          txTimeout: 500, // Very short timeout
+        }
+      );
+
+      // Should complete after custom timeout
+      await vi.advanceTimersByTimeAsync(600);
 
       const result = await resultPromise;
-
-      // Type check - all fields should be present
-      expect(result).toHaveProperty("hash");
-      expect(result).toHaveProperty("confirmed");
-      expect(result).toHaveProperty("timedOut");
-      expect(result).toHaveProperty("explorerUrl");
-
-      // Verify types
-      expect(typeof result.hash).toBe("string");
-      expect(typeof result.confirmed).toBe("boolean");
-      expect(typeof result.timedOut).toBe("boolean");
-      expect(typeof result.explorerUrl).toBe("string");
+      expect(result).toBe(mockTxHash);
     });
-  });
 
-  describe("Explorer URL generation", () => {
-    it("generates correct URL for Base Sepolia", async () => {
+    it("uses default 60s timeout when not specified", async () => {
       const mockWalletClient = createMockWalletClient();
       mockGetWalletClient.mockResolvedValue(mockWalletClient);
-      mockWaitForTransactionReceipt.mockResolvedValue({ status: "success" });
 
-      const resultPromise = submitApprovalDirectly(mockDraft, mockGardenAddress, 84532);
+      // Track when receipt function is called
+      let receiptResolved = false;
+      mockWaitForTransactionReceipt.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(() => {
+              receiptResolved = true;
+              resolve({ status: "success" });
+            }, 70_000); // Resolves after 70s (past default timeout)
+          })
+      );
 
-      await vi.advanceTimersByTimeAsync(100);
+      const resultPromise = submitApprovalDirectly(
+        mockDraft,
+        mockGardenAddress,
+        mockGardenerAddress,
+        mockChainId
+      );
+
+      // Advance to just past 60s default timeout
+      await vi.advanceTimersByTimeAsync(61_000);
 
       const result = await resultPromise;
 
-      expect(result.explorerUrl).toBe(`https://sepolia.basescan.org/tx/${mockTxHash}`);
+      // Should return hash (timeout handled gracefully)
+      expect(result).toBe(mockTxHash);
+      // Receipt should not have resolved yet
+      expect(receiptResolved).toBe(false);
     });
   });
 });
