@@ -171,6 +171,7 @@ export {
   jobQueue,
   jobQueueDB,
   jobQueueEventBus,
+  mediaResourceManager,
   useJobQueueEvents,
 } from "./job-queue";
 

@@ -492,3 +492,4 @@ export const jobQueue = new JobQueue();
 
 export { jobQueueDB } from "./db";
 export { jobQueueEventBus, useJobQueueEvents } from "./event-bus";
+export { mediaResourceManager } from "./media-resource-manager";

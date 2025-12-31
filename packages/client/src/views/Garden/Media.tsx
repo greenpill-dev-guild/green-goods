@@ -1,4 +1,4 @@
-import { track } from "@green-goods/shared/modules";
+import { mediaResourceManager, track } from "@green-goods/shared/modules";
 import { imageCompressor } from "@green-goods/shared/utils/work/image-compression";
 import { RiCloseLine, RiImageFill, RiLoader4Line, RiZoomInLine } from "@remixicon/react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -7,6 +7,9 @@ import { FormInfo } from "@/components/Cards";
 import { Badge } from "@/components/Communication";
 import { ImagePreviewDialog } from "@/components/Dialogs";
 import { Books } from "@/components/Features";
+
+/** Stable tracking ID for work draft media URLs */
+const WORK_DRAFT_TRACKING_ID = "work-draft";
 
 interface WorkMediaProps {
   config?: Action["mediaInfo"];
@@ -63,22 +66,16 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const lastClickSourceRef = useRef<"gallery" | "camera" | null>(null);
 
-  // Memoize object URLs to prevent memory leaks
-  // Track previous URLs for cleanup
-  const prevUrlsRef = useRef<string[]>([]);
+  // Use mediaResourceManager for stable, tracked blob URLs
+  // URLs are cached by file identity and only cleaned up on unmount/reset
   const imageUrls = useMemo(() => {
-    // Revoke previous URLs before creating new ones
-    prevUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
-    // Create new URLs
-    const urls = images.map((file) => URL.createObjectURL(file));
-    prevUrlsRef.current = urls;
-    return urls;
+    return images.map((file) => mediaResourceManager.getOrCreateUrl(file, WORK_DRAFT_TRACKING_ID));
   }, [images]);
 
-  // Cleanup on unmount
+  // Cleanup tracked URLs only on unmount (not on every re-render)
   useEffect(() => {
     return () => {
-      prevUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      mediaResourceManager.cleanupUrls(WORK_DRAFT_TRACKING_ID);
     };
   }, []);
 

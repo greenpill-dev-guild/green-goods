@@ -82,22 +82,36 @@ class JobQueueDatabase {
   }
 
   /**
-   * Clean up stale object URLs that are older than 1 hour
+   * Clean up stale object URLs that are older than 1 hour.
+   * IMPORTANT: Only delete image rows for jobs that are already synced or deleted.
+   * For pending jobs, only revoke the blob URL (to free memory) but keep the
+   * image row so files can be re-loaded when needed.
    */
   private async cleanupStaleUrls(): Promise<void> {
     try {
       const db = await this.init();
-      const tx = db.transaction("job_images", "readwrite");
-      const store = tx.objectStore("job_images");
-      const index = store.index("createdAt");
+      const tx = db.transaction(["job_images", "jobs"], "readwrite");
+      const imagesStore = tx.objectStore("job_images");
+      const jobsStore = tx.objectStore("jobs");
+      const index = imagesStore.index("createdAt");
 
       const oneHourAgo = Date.now() - 60 * 60 * 1000;
       const staleImages = await index.getAll(IDBKeyRange.upperBound(oneHourAgo));
 
       for (const image of staleImages) {
-        // Clean up the URL using MediaResourceManager
+        // Check if the parent job still exists and is pending
+        const job = await jobsStore.get(image.jobId);
+
+        // Always revoke the blob URL to free memory
         mediaResourceManager.cleanupUrl(image.url);
-        await store.delete(image.id);
+
+        // Only delete the image row if:
+        // - The parent job doesn't exist (orphaned image)
+        // - The parent job is already synced (completed)
+        // For pending jobs, keep the image row so we can regenerate URLs later
+        if (!job || job.synced) {
+          await imagesStore.delete(image.id);
+        }
       }
 
       await tx.done;
