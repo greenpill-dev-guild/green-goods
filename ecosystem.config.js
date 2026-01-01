@@ -29,9 +29,9 @@ module.exports = {
       min_uptime: "10s",
     },
     {
-      name: "indexer",
+      name: "agent",
       script: "sh",
-      args: '-c "cd packages/indexer && bun run dev"',
+      args: '-c "cd packages/agent && bun run dev"',
       cwd: ".",
       env: {
         NODE_ENV: "development",
@@ -42,9 +42,9 @@ module.exports = {
       min_uptime: "10s",
     },
     {
-      name: "telegram",
+      name: "indexer",
       script: "sh",
-      args: '-c "cd packages/telegram && bun run dev"',
+      args: '-c "cd packages/indexer && bun run dev"',
       cwd: ".",
       env: {
         NODE_ENV: "development",
