@@ -1,499 +1,118 @@
+---
+description: Agent architecture deep dive — data flow, handler context, layer patterns
+globs:
+  - src/**/*.ts
+alwaysApply: false
+---
+
 # Agent Architecture Deep Dive
 
-Detailed architecture patterns for the Green Goods agent package.
+Detailed patterns for the Green Goods agent. See `AGENTS.md` for overview.
 
-## Flat Architecture
-
-### Core Principle
-
-**Keep it simple until complexity is needed.**
+## Data Flow
 
 ```
-src/
-├── types.ts           # All types in ONE place
-├── index.ts           # Entry point
-├── config.ts          # Configuration
-│
-├── handlers/          # Business logic (pure functions)
-│   ├── index.ts       # Message router
-│   ├── start.ts       # User registration
-│   ├── join.ts        # Garden membership
-│   ├── status.ts      # User status
-│   ├── help.ts        # Help text
-│   ├── pending.ts     # Pending works (operator)
-│   ├── approve.ts     # Work approval
-│   ├── reject.ts      # Work rejection
-│   ├── submit.ts      # Work submission
-│   └── utils.ts       # Handler utilities
-│
-├── services/          # External integrations
-│   ├── db.ts          # SQLite (singleton)
-│   ├── blockchain.ts  # Viem (singleton)
-│   ├── ai.ts          # Whisper (singleton)
-│   ├── crypto.ts      # Encryption utils
-│   └── rate-limiter.ts # Rate limiting
-│
-├── platforms/         # Platform adapters
-│   └── telegram.ts    # All Telegram code
-│
-└── api/
-    └── server.ts      # Fastify health + webhooks
+User → Platform API → toInboundMessage() → handleMessage() router
+                                                    │
+                    ┌───────────────────────────────┼───────────────────────────────┐
+                    ▼                               ▼                               ▼
+            handleCommand()                  handleText()                   handleVoice()
+                    │                               │                               │
+                    └───────────────────────────────┼───────────────────────────────┘
+                                                    ▼
+                                    HandlerResult { response, updateSession? }
+                                                    ▼
+                                           toResponse() → Platform API → User
 ```
 
-### Why This Architecture
+## Layer Patterns
 
-| Pattern | Benefit |
-|---------|---------|
-| **Types in one file** | Single source of truth, easy to find |
-| **Services as singletons** | Simple initialization, no DI complexity |
-| **Platform adapters** | Each platform in ONE file |
-| **No interfaces** | Direct imports, less indirection |
+### Types Layer (`types.ts`)
 
-### Trade-offs
-
-**Pros:**
-- Easy to understand
-- Fast to navigate
-- Minimal boilerplate
-- Quick to add features
-
-**Cons:**
-- Services not mockable (use dependency injection for testable functions)
-- Adding platforms requires some duplication
-- Scaling may require refactoring
-
-## Layer Breakdown
-
-### 1. Types Layer
-
-**Location:** `src/types.ts`
-
-**All types in one file:**
+**All types in one file** — Single source of truth:
 
 ```typescript
-// Messages
 export type Platform = "telegram" | "discord" | "whatsapp" | "sms";
-
-export interface InboundMessage {
-  id: string;
-  platform: Platform;
-  sender: { platformId: string; displayName?: string };
-  content: MessageContent;
-  locale?: string;
-  timestamp: number;
-}
-
-export interface OutboundResponse {
-  text: string;
-  parseMode?: "markdown" | "html";
-  buttons?: ResponseButton[];
-}
-
-// Users, sessions, pending work, blockchain types...
+export interface InboundMessage { ... }
+export interface OutboundResponse { ... }
+export interface HandlerResult { ... }
 ```
 
-### 2. Handlers Layer
-
-**Location:** `src/handlers/`
+### Handlers Layer (`handlers/`)
 
 **Pure functions with minimal dependencies:**
 
 ```typescript
-// handlers/start.ts
-import * as db from "../services/db";
-import type { InboundMessage, HandlerResult } from "../types";
-
+// Inject only what needs mocking
 export interface StartDeps {
   generatePrivateKey: () => `0x${string}`;
 }
 
-export async function handleStart(
-  message: InboundMessage,
-  deps: StartDeps
-): Promise<HandlerResult> {
-  const { platform, sender } = message;
-  
-  // Use db service directly
-  const user = await db.getUser(platform, sender.platformId);
-  
-  if (!user) {
-    const privateKey = deps.generatePrivateKey();
-    await db.createUser({
-      platform,
-      platformId: sender.platformId,
-      privateKey,
-      address: privateKeyToAddress(privateKey),
-    });
-  }
-  
-  return { response: { text: "Welcome!" } };
+export async function handleStart(message: InboundMessage, deps: StartDeps): Promise<HandlerResult> {
+  // Use services directly
+  const user = await db.getUser(message.platform, message.sender.platformId);
+  // ...
 }
 ```
 
-**Message router (`handlers/index.ts`):**
+### Services Layer (`services/`)
+
+**Singleton pattern:**
 
 ```typescript
-export async function handleMessage(message: InboundMessage): Promise<OutboundResponse> {
-  const { platform, sender, content } = message;
-  const user = await db.getUser(platform, sender.platformId);
-
-  if (isCommandContent(content)) {
-    return handleCommand(message, user);
-  }
-  if (isVoiceContent(content)) {
-    return handleVoice(message, user);
-  }
-  if (isTextContent(content)) {
-    return handleText(message, user);
-  }
-  
-  return textResponse("Unsupported message type.");
-}
-```
-
-### 3. Services Layer
-
-**Location:** `src/services/`
-
-**Singleton pattern - initialize once, use everywhere:**
-
-```typescript
-// services/db.ts
-class DB {
-  private db: Database;
-  
-  constructor(dbPath: string) {
-    this.db = new Database(dbPath);
-    this.initSchema();
-  }
-  
-  async getUser(platform: Platform, platformId: string): Promise<User | undefined> {
-    // ... implementation
-  }
-}
-
 let _db: DB | null = null;
 
-export function initDB(dbPath: string): DB {
-  if (!_db) _db = new DB(dbPath);
-  return _db;
-}
-
-export function getDB(): DB {
-  if (!_db) throw new Error("DB not initialized");
+export function initDB(path: string): DB {
+  if (!_db) _db = new DB(path);
   return _db;
 }
 
 // Convenience exports
-export const getUser = (platform: Platform, platformId: string) => 
-  getDB().getUser(platform, platformId);
+export const getUser = (platform: Platform, id: string) => getDB().getUser(platform, id);
 ```
 
-**Usage in handlers:**
+### Platforms Layer (`platforms/`)
 
-```typescript
-import * as db from "../services/db";
+**One file per platform with all platform-specific code:**
 
-const user = await db.getUser("telegram", "123456");
-```
-
-### 4. Platforms Layer
-
-**Location:** `src/platforms/`
-
-**One file per platform with:**
-- Message transformation
-- Response transformation
-- Bot/client setup
-- Voice processing (if supported)
-- Notifications
-
-```typescript
-// platforms/telegram.ts
-
-// Transform Telegram → InboundMessage
-export function toInboundMessage(ctx: Context): InboundMessage | null {
-  // ... extract message content
-}
-
-// Transform OutboundResponse → Telegram format
-export function toTelegramReply(response: OutboundResponse) {
-  // ... format for Telegram
-}
-
-// Voice processor
-export function createVoiceProcessor(bot: Telegraf, transcribe: TranscribeFn) {
-  return {
-    async downloadAndTranscribe(fileId: string): Promise<string> {
-      // Download, convert, transcribe
-    },
-  };
-}
-
-// Notifier for outbound messages
-export function createNotifier(bot: Telegraf) {
-  return {
-    async notify(platform: string, platformId: string, message: string) {
-      await bot.telegram.sendMessage(Number(platformId), message);
-    },
-  };
-}
-
-// Bot creation
-export function createTelegramBot(config: TelegramConfig, handleMessage: MessageHandler) {
-  const bot = new Telegraf(config.token);
-  
-  bot.on(message("text"), async (ctx) => {
-    const inbound = toInboundMessage(ctx);
-    const response = await handleMessage(inbound);
-    const { text, options } = toTelegramReply(response);
-    await ctx.reply(text, options);
-  });
-  
-  return bot;
-}
-```
-
-## Data Flow
-
-### Inbound Message Flow
-
-```
-User sends message
-         │
-         ▼
-Platform API (Telegram, Discord, etc.)
-         │
-         ▼
-Platform adapter: toInboundMessage()
-         │
-         ▼
-InboundMessage (platform-agnostic)
-         │
-         ▼
-handleMessage() router
-         │
-         ├── isCommandContent → handleCommand()
-         ├── isTextContent → handleText()
-         ├── isVoiceContent → handleVoice()
-         └── isCallbackContent → handleCallback()
-         │
-         ▼
-Handler function (pure logic)
-         │
-         ▼
-HandlerResult { response, updateSession?, clearSession? }
-         │
-         ▼
-Platform adapter: toResponse()
-         │
-         ▼
-User sees response
-```
-
-### Example: Work Submission
-
-```typescript
-// 1. User sends: "I planted 5 trees today"
-
-// 2. Telegram adapter transforms
-const inbound: InboundMessage = {
-  id: "12345",
-  platform: "telegram",
-  sender: { platformId: "987654321" },
-  content: { type: "text", text: "I planted 5 trees today" },
-  timestamp: Date.now(),
-};
-
-// 3. Router delegates to handleText()
-const response = await handleMessage(inbound);
-
-// 4. Handler processes and returns
-{
-  response: {
-    text: "Confirm your work?\n\n📝 Task: planted 5 trees",
-    buttons: [
-      { label: "✅ Submit", callbackData: "confirm_submission" },
-      { label: "❌ Cancel", callbackData: "cancel_submission" }
-    ]
-  },
-  updateSession: {
-    step: "confirming_work",
-    draft: { tasks: [...], notes: "I planted 5 trees today" }
-  }
-}
-
-// 5. Telegram adapter transforms response
-await ctx.reply(response.text, {
-  reply_markup: { inline_keyboard: [[...buttons]] }
-});
-```
+- `toInboundMessage()` — Convert platform event → InboundMessage
+- `toResponse()` — Convert OutboundResponse → platform format
+- `create{Platform}Bot()` — Bot setup and lifecycle
+- `createVoiceProcessor()` — Voice handling (if supported)
+- `createNotifier()` — Outbound notifications
 
 ## Handler Context
 
-For platform-specific features (voice, notifications), use handler context:
+For platform-specific features, use handler context:
 
 ```typescript
 // handlers/index.ts
 export interface HandlerContext {
-  voiceProcessor?: {
-    downloadAndTranscribe: (fileId: string) => Promise<string>;
-  };
-  notifier?: {
-    notify: (platform: string, platformId: string, message: string) => Promise<void>;
-  };
+  voiceProcessor?: { downloadAndTranscribe: (fileId: string) => Promise<string> };
+  notifier?: { notify: (platform: string, id: string, msg: string) => Promise<void> };
 }
 
 let _context: HandlerContext = {};
-
-export function setHandlerContext(ctx: HandlerContext): void {
-  _context = ctx;
-}
-
-// Usage in handlers
-async function handleVoice(message: InboundMessage, user: User) {
-  if (!_context.voiceProcessor) {
-    return textResponse("Voice not supported");
-  }
-  
-  const text = await _context.voiceProcessor.downloadAndTranscribe(
-    (message.content as VoiceContent).audioUrl
-  );
-  // ... process transcription
-}
+export function setHandlerContext(ctx: HandlerContext): void { _context = ctx; }
 ```
 
-## Testing Strategy
+## Adding a Platform
 
-### Unit Tests (Handlers)
+1. **Create `platforms/{platform}.ts`:**
+   ```typescript
+   export function toInboundMessage(event: PlatformEvent): InboundMessage | null { ... }
+   export function toResponse(response: OutboundResponse): PlatformFormat { ... }
+   export function createBot(config, handleMessage) { ... }
+   ```
 
-Handlers are pure functions - easy to test:
+2. **Add webhook route in `api/server.ts`**
 
-```typescript
-describe("handleStart", () => {
-  beforeAll(() => {
-    initDB(":memory:");
-  });
+3. **Initialize in `index.ts`**
 
-  it("creates new user", async () => {
-    const message = createTestMessage({
-      sender: { platformId: "new-user" },
-      content: { type: "command", name: "start", args: [] },
-    });
+## Trade-offs
 
-    const result = await handleStart(message, {
-      generatePrivateKey: () => "0x" + "a".repeat(64),
-    });
-
-    expect(result.response.text).toContain("Welcome");
-  });
-});
-```
-
-### Integration Tests (Services)
-
-Test with real dependencies:
-
-```typescript
-describe("SQLite Storage", () => {
-  beforeAll(() => {
-    initDB("data/test/test.db");
-  });
-
-  it("creates and retrieves user", async () => {
-    await db.createUser({
-      platform: "telegram",
-      platformId: "123",
-      privateKey: "0x...",
-      address: "0xabc...",
-    });
-
-    const user = await db.getUser("telegram", "123");
-    expect(user?.address).toBe("0xabc...");
-  });
-});
-```
-
-## Adding a New Platform (Discord Example)
-
-1. **Create platform file:**
-
-```typescript
-// platforms/discord.ts
-import { Client, GatewayIntentBits } from "discord.js";
-
-export function toInboundMessage(message: DiscordMessage): InboundMessage | null {
-  return {
-    id: message.id,
-    platform: "discord",
-    sender: {
-      platformId: message.author.id,
-      displayName: message.author.username,
-    },
-    content: extractContent(message),
-    timestamp: message.createdTimestamp,
-  };
-}
-
-export function toDiscordReply(response: OutboundResponse) {
-  // ... format for Discord
-}
-
-export function createDiscordBot(token: string, handleMessage: MessageHandler) {
-  const client = new Client({ intents: [...] });
-  
-  client.on("messageCreate", async (msg) => {
-    const inbound = toInboundMessage(msg);
-    const response = await handleMessage(inbound);
-    await msg.reply(toDiscordReply(response));
-  });
-  
-  return client;
-}
-```
-
-2. **Add webhook route:**
-
-```typescript
-// api/server.ts
-case "discord":
-  // Handle Discord interactions webhook
-  break;
-```
-
-3. **Update entry point:**
-
-```typescript
-// index.ts
-const discordBot = createDiscordBot(config.discordToken, handleMessage);
-```
-
-## Configuration
-
-**Centralized in `src/config.ts`:**
-
-```typescript
-export interface Config {
-  nodeEnv: string;
-  chainId: number;
-  chain: Chain;
-  telegramToken: string;
-  encryptionSecret?: string;
-  mode: "polling" | "webhook";
-  port: number;
-  host: string;
-  dbPath: string;
-  // ...
-}
-
-export function getConfig(): Config {
-  // Load and validate from environment
-}
-```
-
-## References
-
-- **Main docs:** `AGENTS.md`
-- **Handler examples:** `src/handlers/`
-- **Service implementations:** `src/services/`
-- **Platform adapters:** `src/platforms/`
+| Benefit | Cost |
+|---------|------|
+| Easy to understand | Services not mockable (inject deps for testable handlers) |
+| Fast navigation | Adding platforms requires some duplication |
+| Minimal boilerplate | May need refactoring at scale |

@@ -1,15 +1,20 @@
 {
   "mcpServers": {
-    "vercel": {
-      "url": "https://mcp.vercel.com"
-    },
-    "figma": {
-      "url": "https://mcp.figma.com/mcp"
-    },
     "miro": {
       "url": "https://mcp.miro.com/",
       "disabled": false,
       "autoApprove": []
+    },
+    "figma": {
+      "url": "https://mcp.figma.com/mcp"
+    },
+    "vercel": {
+      "url": "https://mcp.vercel.com"
+    },
+    "railway": {
+      "command": "npx -y @railway/mcp-server",
+      "env": {},
+      "args": []
     }
   }
 }

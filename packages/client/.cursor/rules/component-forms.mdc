@@ -1,0 +1,219 @@
+---
+description: Form component patterns — inputs, validation, React Hook Form integration
+globs:
+  - "**/Form/**/*.tsx"
+  - "**/Inputs/**/*.tsx"
+alwaysApply: false
+---
+
+# Form Components
+
+Form patterns using React Hook Form with Zod validation.
+
+## FormInput
+
+Standard text input with label and error:
+
+```typescript
+interface FormInputProps extends InputHTMLAttributes<HTMLInputElement> {
+  label: string;
+  helperText?: string;
+  error?: string;
+}
+
+<FormInput
+  label="Title"
+  {...register("title")}
+  error={errors.title?.message}
+  helperText="Enter a descriptive title"
+/>
+```
+
+**Styling:**
+
+```typescript
+<input
+  className={cn(
+    "w-full px-4 py-3 rounded-lg",
+    "border border-stroke-soft bg-bg-white",
+    "text-text-strong placeholder:text-text-soft",
+    "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary",
+    error && "border-error-base"
+  )}
+/>
+```
+
+## FormTextarea
+
+Multi-line text input:
+
+```typescript
+<FormTextarea
+  rows={4}
+  label="Description"
+  {...register("description")}
+  error={errors.description?.message}
+/>
+```
+
+## FormSelect
+
+Multi-select dropdown:
+
+```typescript
+<FormSelect
+  name="plantTypes"
+  label="Plant Types"
+  control={control}
+  options={[
+    { label: "Trees", value: "trees" },
+    { label: "Flowers", value: "flowers" },
+  ]}
+  isMulti={true}
+/>
+```
+
+## Date Input
+
+```typescript
+import { toDateTimeLocalValue, fromDateTimeLocalValue } from "@green-goods/shared";
+
+<input
+  type="datetime-local"
+  value={toDateTimeLocalValue(startTime.getTime())}
+  onChange={(e) => setStartTime(fromDateTimeLocalValue(e.target.value))}
+  className="w-full rounded-md border border-stroke-soft px-3 py-2"
+/>
+```
+
+## React Hook Form Integration
+
+```typescript
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { workDraftSchema } from "@green-goods/shared";
+
+const form = useForm<WorkDraft>({
+  resolver: zodResolver(workDraftSchema),
+  defaultValues: {
+    title: "",
+    description: "",
+  },
+});
+
+const onSubmit = form.handleSubmit((data) => {
+  // Submit data
+});
+```
+
+## Validation Patterns
+
+### Zod Schemas
+
+```typescript
+import { z } from "zod";
+
+export const workDraftSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().min(10, "At least 10 characters"),
+  media: z.array(z.instanceof(File)).min(1, "At least one photo"),
+});
+```
+
+### Field-Level Validation
+
+```typescript
+<FormInput
+  {...register("feedback", {
+    required: "Feedback is required",
+    minLength: { value: 10, message: "At least 10 characters" },
+  })}
+  error={errors.feedback?.message}
+/>
+```
+
+## Form Layout
+
+```typescript
+import { FormLayout } from "@green-goods/shared";
+
+<FormLayout>
+  <FormInput label="Title" {...register("title")} />
+  <FormTextarea label="Description" {...register("description")} />
+  <Button type="submit" label="Submit" disabled={!formState.isValid} />
+</FormLayout>
+```
+
+## Image Upload
+
+```typescript
+const handleImageSelect = async (files: FileList) => {
+  const compressed = await Promise.all(
+    Array.from(files).map((f) => imageCompressor.compress(f))
+  );
+  setImages((prev) => [...prev, ...compressed]);
+};
+
+<input
+  type="file"
+  accept="image/*"
+  multiple
+  onChange={(e) => handleImageSelect(e.target.files)}
+  className="hidden"
+  ref={fileInputRef}
+/>
+```
+
+## Error Display
+
+```typescript
+{error && (
+  <p className="text-xs text-error-base mt-1">
+    {error}
+  </p>
+)}
+
+{helperText && !error && (
+  <p className="text-xs text-text-soft mt-1">
+    {helperText}
+  </p>
+)}
+```
+
+## Accessibility
+
+```typescript
+<label htmlFor={inputId} className="font-semibold text-text-strong">
+  {label}
+  {required && <span className="text-error-base ml-1">*</span>}
+</label>
+<input
+  id={inputId}
+  aria-describedby={error ? `${inputId}-error` : undefined}
+  aria-invalid={!!error}
+/>
+{error && (
+  <p id={`${inputId}-error`} role="alert">
+    {error}
+  </p>
+)}
+```
+
+## Anti-Patterns
+
+```typescript
+// ❌ Wrong — uncontrolled with manual state
+const [value, setValue] = useState("");
+<input value={value} onChange={(e) => setValue(e.target.value)} />
+
+// ✅ Correct — React Hook Form
+const { register } = useForm();
+<input {...register("fieldName")} />
+```
+
+## Reference Files
+
+- Input: `src/components/Inputs/Input.tsx`
+- Textarea: `src/components/Inputs/Textarea.tsx`
+- Select: `src/components/Inputs/FormSelect.tsx`
+- Validation: `@green-goods/shared` schemas

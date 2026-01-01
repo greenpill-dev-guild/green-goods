@@ -19,40 +19,50 @@ green-goods/
     │   ├── AGENTS.md                # Shared architecture overview
     │   └── .cursor/rules/
     │       ├── rules.mdc                 # Package conventions
-    │       └── cross-package-imports.mdc # Import patterns
+    │       ├── cross-package-imports.mdc # Import patterns
+    │       ├── hook-architecture.mdc     # All hooks live in shared
+    │       ├── state-patterns.mdc        # Providers, stores, query keys
+    │       ├── design-system.mdc         # Colors, typography, icons
+    │       ├── testing-patterns.mdc      # Vitest, mocks, coverage
+    │       └── appkit-integration.mdc    # Wallet connection
     ├── client/
     │   ├── AGENTS.md                # Client architecture overview
     │   └── .cursor/rules/
-    │       ├── offline-architecture.mdc   # Job queue, sync, storage
-    │       ├── state-management.mdc       # TanStack Query, Zustand, RHF
-    │       ├── component-patterns.mdc     # Cards, forms, Radix UI
-    │       ├── hooks-conventions.mdc      # Hook naming, query keys
-    │       ├── authentication.mdc         # Passkey, Pimlico, guards
-    │       └── testing.mdc               # Vitest, Playwright MCP
+    │       ├── rules.mdc                 # Package conventions
+    │       ├── offline-architecture.mdc  # Job queue, sync, storage
+    │       ├── authentication.mdc        # Passkey, Pimlico, guards
+    │       ├── component-cards.mdc       # Card patterns
+    │       ├── component-forms.mdc       # Form patterns
+    │       ├── component-modals.mdc      # Modal/drawer patterns
+    │       ├── component-radix.mdc       # Radix UI primitives
+    │       └── testing.mdc              # Vitest, Playwright MCP
     ├── admin/
     │   ├── AGENTS.md                # Admin architecture overview
     │   └── .cursor/rules/
-    │       ├── access-control.mdc        # Role-based access
-    │       ├── state-workflows.mdc       # Zustand + XState
-    │       ├── graphql-integration.mdc   # Urql subscriptions
-    │       ├── component-workflows.mdc   # Modals, forms
-    │       └── testing.mdc              # Integration tests
+    │       ├── rules.mdc                # Package conventions
+    │       ├── access-control.mdc       # Role-based access
+    │       ├── component-workflows.mdc  # Modals, forms
+    │       └── testing.mdc             # Integration tests
     ├── indexer/
     │   ├── AGENTS.md                # Indexer overview
     │   └── .cursor/rules/
-    │       ├── envio-conventions.mdc     # Entity patterns
-    │       └── development.mdc          # Workflow, Docker
-    ├── telegram/
-    │   └── AGENTS.md                # Telegram bot overview
+    │       ├── envio-conventions.mdc    # Entity patterns
+    │       └── development.mdc         # Workflow, Docker
+    ├── agent/
+    │   ├── AGENTS.md                # Multi-platform bot overview
+    │   └── .cursor/rules/
+    │       ├── rules.mdc               # Package conventions
+    │       ├── architecture.mdc        # Data flow, handlers
+    │       ├── deployment.mdc          # Railway, Docker, webhooks
+    │       ├── security.mdc            # Encryption, rate limiting
+    │       └── testing.mdc            # Coverage targets
     └── contracts/
-        ├── .cursorrules             # Legacy (to be migrated)
+        ├── AGENTS.md                # Contracts overview
         └── .cursor/rules/
-            ├── production-readiness.mdc  # Manual invocation
-            ├── schema-management.mdc     # Immutable schemas
-            ├── deployment-patterns.mdc   # deploy.js usage
-            ├── uups-upgrades.mdc        # Storage gaps
-            ├── testing-conventions.mdc   # Foundry tests
-            └── gas-optimization.mdc     # Gas patterns
+            ├── rules.mdc               # Solidity style, safety
+            ├── schema-management.mdc   # Immutable schemas
+            ├── deployment-patterns.mdc # deploy.ts usage
+            └── uups-upgrades.mdc      # Storage gaps
 ```
 
 ## Rule Activation Patterns
@@ -74,40 +84,46 @@ Rules auto-attach when working with matching files:
 
 **Shared:**
 - `rules.mdc` → `packages/shared/src/**`
+- `hook-architecture.mdc` → `packages/shared/src/hooks/**`
+- `state-patterns.mdc` → `packages/shared/src/providers/**`, `packages/shared/src/stores/**`
 - `cross-package-imports.mdc` → `packages/client/src/**`, `packages/admin/src/**`
 
 **Client:**
-- `component-patterns.mdc` → `components/**`, `views/**`
-- `testing.mdc` → `__tests__/**`, `**/*.test.*`
+- `rules.mdc` → `packages/client/src/**`
+- `component-*.mdc` → `packages/client/src/components/**`, `packages/client/src/views/**`
+- `testing.mdc` → `packages/client/src/__tests__/**`, `**/*.test.*`
 
 **Admin:**
-- `access-control.mdc` → `routes/Require*.tsx`
-- `graphql-integration.mdc` → `**/*.graphql`, urql imports
-- `component-workflows.mdc` → `components/Garden/**`
-- `testing.mdc` → `__tests__/**`
-
-Note: Many rules previously in client/admin (offline-architecture, state-management, authentication, hooks-conventions, state-workflows) now apply to the shared package where the code lives.
+- `rules.mdc` → `packages/admin/src/**`
+- `access-control.mdc` → `packages/admin/src/routes/Require*.tsx`
+- `component-workflows.mdc` → `packages/admin/src/components/Garden/**`
+- `testing.mdc` → `packages/admin/src/__tests__/**`
 
 **Indexer:**
 - `envio-conventions.mdc` → `schema.graphql`, `src/EventHandlers.ts`, `config.yaml`
 
+**Agent:**
+- `rules.mdc` → `packages/agent/src/**`
+- `architecture.mdc` → `packages/agent/src/handlers/**`, `packages/agent/src/services/**`
+- `security.mdc` → `packages/agent/src/services/encryption.ts`
+- `deployment.mdc` → `packages/agent/Dockerfile`, `packages/agent/src/api/**`
+
 **Contracts:**
-- `schema-management.mdc` → `config/schemas.json`, `script/*Schema*.sol`
-- `deployment-patterns.mdc` → `script/deploy.js`, `script/upgrade.js`
-- `uups-upgrades.mdc` → `src/**/*Upgradeable.sol`, `test/*Upgrade*.sol`
-- `testing-conventions.mdc` → `test/**`
-- `gas-optimization.mdc` → `src/**/*.sol`
+- `rules.mdc` → `packages/contracts/src/**`
+- `schema-management.mdc` → `packages/contracts/config/schemas.json`
+- `deployment-patterns.mdc` → `packages/contracts/script/deploy.ts`
+- `uups-upgrades.mdc` → `packages/contracts/src/**/*Upgradeable.sol`, `packages/contracts/test/*Upgrade*.sol`
 
 ### Manual Invocation
 
-Invoke these with `@rulename`:
+Invoke specific rules with `@rulename`:
 
 ```bash
-# Invoke production readiness
-@production-readiness
+# Check contract production readiness
+@rules: Assess contracts for Celo mainnet deployment
 
-# Check if contracts ready for mainnet
-@production-readiness: Assess readiness for Celo mainnet deployment
+# Review hook architecture
+@hook-architecture: Review this custom hook implementation
 ```
 
 ## MCP Server Configuration
@@ -116,25 +132,10 @@ Project-level MCP servers configured in `.cursor/mcp.json`:
 
 ### Available MCP Tools
 
-**Filesystem:**
-- Large file operations
-- Cross-package searches
-- Bulk directory analysis
-
 **GitHub:**
 - Issue tracking
 - PR management
 - Repo queries
-
-**Playwright:**
-- E2E test execution
-- Visual regression testing
-- Accessibility audits
-
-**Vercel:**
-- Deployment management
-- Preview URLs
-- Build status
 
 **Figma:**
 - UI code generation from designs
@@ -142,14 +143,29 @@ Project-level MCP servers configured in `.cursor/mcp.json`:
 - Design token extraction
 - Component metadata access
 
+**Vercel:**
+- Deployment management
+- Preview URLs
+- Build status
+
+**Miro:**
+- Board access
+- Diagram generation
+- Context extraction
+
+**Railway:**
+- Agent deployment management
+- Environment configuration
+- Logs and monitoring
+
 ### MCP Usage Guidelines
 
 **Use MCP for:**
 ```bash
 @github: Create issue "Add garden search" with label feature, client
-@playwright: Run E2E test for garden creation flow
-@filesystem: Find all files importing from contracts/deployments
 @figma: Generate component code from design [fileKey] [nodeId]
+@vercel: Check deployment status for latest PR
+@railway: View agent deployment logs
 ```
 
 **Use native tools for:**
@@ -163,7 +179,7 @@ These rules are enforced across ALL packages:
 
 ### 1. Root .env Only
 
-**✅ DO:** Use `/Users/afo/Code/greenpill/green-goods/.env`
+**✅ DO:** Use root `.env` file
 **❌ DON'T:** Create package-specific `.env` files
 
 ### 2. Chain from Environment
@@ -171,9 +187,9 @@ These rules are enforced across ALL packages:
 **✅ DO:** Use `VITE_CHAIN_ID` via `getDefaultChain()`
 **❌ DON'T:** Read from wallet `chainId`
 
-### 3. Deploy via deploy.js
+### 3. Deploy via deploy.ts
 
-**✅ DO:** `pnpm deploy:testnet` or `node script/deploy.js`
+**✅ DO:** `bun deploy:testnet` or `bun script/deploy.ts`
 **❌ DON'T:** `forge script script/Deploy.s.sol`
 
 ### 4. Never Modify schemas.json
@@ -183,8 +199,13 @@ These rules are enforced across ALL packages:
 
 ### 5. Centralized Query Keys
 
-**✅ DO:** Use `queryKeys` from `hooks/query-keys.ts`
+**✅ DO:** Use `queryKeys` from `@green-goods/shared`
 **❌ DON'T:** Construct ad-hoc query keys
+
+### 6. Hooks Live in Shared (CRITICAL)
+
+**✅ DO:** Create hooks in `packages/shared/src/hooks/`
+**❌ DON'T:** Create hooks in client or admin packages
 
 ## Package-Specific Priorities
 
@@ -195,8 +216,10 @@ These rules are enforced across ALL packages:
 - State management (TanStack Query, Zustand, RHF)
 - Authentication (passkey, smart accounts)
 - Hooks, providers, stores, workflows
+- Toast presets and utilities
+- Date/time formatting utilities
 
-**Rule count:** 2 MDC files + AGENTS.md
+**Rule count:** 7 MDC files + AGENTS.md
 
 ### Client (Medium Complexity)
 
@@ -205,16 +228,16 @@ These rules are enforced across ALL packages:
 - Views and routing
 - PWA-specific features
 
-**Rule count:** 6 MDC files + AGENTS.md
+**Rule count:** 8 MDC files + AGENTS.md
 
 ### Admin (Medium Complexity)
 
 **Focus areas:**
 - Role-based access control
-- GraphQL subscriptions
+- Garden management workflows
 - Modal workflows
 
-**Rule count:** 5 MDC files + AGENTS.md
+**Rule count:** 4 MDC files + AGENTS.md
 
 ### Indexer (Low Complexity)
 
@@ -225,24 +248,25 @@ These rules are enforced across ALL packages:
 
 **Rule count:** 2 MDC files + AGENTS.md
 
+### Agent (Medium Complexity)
+
+**Focus areas:**
+- Multi-platform bot (Telegram, Discord, WhatsApp)
+- Handler architecture
+- Security (encryption, rate limiting)
+- Railway deployment
+
+**Rule count:** 5 MDC files + AGENTS.md
+
 ### Contracts (Medium Complexity)
 
 **Focus areas:**
-- Production readiness
 - Schema immutability
 - Deployment safety
 - UUPS upgrades
+- Solidity style and safety
 
-**Rule count:** 6 MDC files
-
-### Telegram (Low Complexity)
-
-**Focus areas:**
-- Bot interface
-- Custodial wallet management
-- AI integration
-
-**Rule count:** AGENTS.md only
+**Rule count:** 4 MDC files + AGENTS.md
 
 ## Quality Baseline
 
@@ -250,7 +274,7 @@ All packages follow these standards:
 
 - **TypeScript:** Strict mode, no `any` without justification
 - **Formatting:** Biome (35x faster than Prettier)
-- **Linting:** 0xlint (30ms on entire codebase)
+- **Linting:** oxlint (30ms on entire codebase)
 - **Commits:** Conventional commits (`feat:`, `fix:`, `docs:`)
 - **Testing:** 70%+ overall, 80%+ for critical paths
 - **Documentation:** Update README and rules when establishing patterns
@@ -259,11 +283,11 @@ All packages follow these standards:
 
 **Formatting & Linting:**
 - Biome over Prettier (performance)
-- 0xlint over ESLint (speed)
+- oxlint over ESLint (speed)
 - Solhint for Solidity
 
 **Package Management:**
-- pnpm over npm/yarn (workspace support)
+- bun for workspace management
 
 **Blockchain:**
 - Viem over ethers (TypeScript-first, smaller bundle)
@@ -331,18 +355,17 @@ Agent documentation is successful when:
 | Package | AGENTS.md | Rule Count | Focus |
 |---------|-----------|------------|-------|
 | Root | ✅ | 4 | Cross-package standards |
-| Shared | ✅ | 2 | Hooks, providers, modules, stores |
-| Client | ✅ | 6 | Components, views, PWA |
-| Admin | ✅ | 5 | Access control, workflows |
+| Shared | ✅ | 7 | Hooks, providers, modules, stores |
+| Client | ✅ | 8 | Components, views, PWA |
+| Admin | ✅ | 4 | Access control, workflows |
 | Indexer | ✅ | 2 | Envio conventions |
-| Telegram | ✅ | 0 | Bot interface |
-| Contracts | ➖ | 6 | Deployment, safety |
+| Agent | ✅ | 5 | Multi-platform bot |
+| Contracts | ✅ | 4 | Deployment, safety |
 
-**Total:** 7 AGENTS.md files, 25 MDC rule files, 1 MCP config
+**Total:** 7 AGENTS.md files, 34 MDC rule files, 1 MCP config
 
 ---
 
-**Last Updated:** 2025-12-03  
+**Last Updated:** 2025-01-01  
 **Maintained by:** Green Goods core team  
 **For questions:** greengoods@greenpill.builders
-

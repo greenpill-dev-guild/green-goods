@@ -9,61 +9,148 @@ alwaysApply: false
 
 # Contracts Rules
 
-## Linting Standards (MANDATORY)
+Main rules for Green Goods Solidity contracts. See specialized rules for:
+- `deployment-patterns.mdc` — Deployment CLI and commands
+- `schema-management.mdc` — EAS schema immutability (CRITICAL)
+- `uups-upgrades.mdc` — Storage gaps and upgrade safety
 
-### Error Handling
-- **ALWAYS use custom errors** instead of `require()` statements for gas efficiency and better UX
-- Custom errors should be descriptive and placed at the top of the contract after events
-- Pattern: `error ErrorName()` or `error ErrorName(string param)` for parameterized errors
-- Example:
+## Custom Errors (MANDATORY)
+
 ```solidity
-error SameImplementation();
+// ✅ Define at contract top
 error ZeroAddress(string paramName);
-error NotAContract(string contractName);
+error UnauthorizedCaller(address caller);
 
-// Usage
+// ✅ Use instead of require
 if (addr == address(0)) revert ZeroAddress("tokenAddress");
+
+// ❌ Don't use require with strings
+require(addr != address(0), "Zero address");
 ```
 
-### Empty Blocks
-- Empty blocks MUST have a comment explaining why they're empty
-- Empty blocks that are intentional MUST be suppressed with `// solhint-disable-line no-empty-blocks`
-- Pattern for intentionally empty try blocks:
+## Empty Blocks
+
 ```solidity
-// solhint-disable-next-line no-empty-blocks
-try externalCall() {
-    // Success case - no action needed
-} catch Error(string memory) /* reason */ { // solhint-disable-line no-empty-blocks
-    // Non-critical: operation continues on failure
+// ✅ Justify with solhint disable
+function _authorizeUpgrade(address) internal override onlyOwner {
+    // solhint-disable-line no-empty-blocks
 }
 ```
 
-### Unused Variables
-- Remove all unused variables before committing
-- If a variable must be declared but not used (e.g., in catch blocks), comment it out: `catch Error(string memory) /* reason */`
+## Code Style
 
-### String Length Limits
-- Error messages in `require` statements max 32 characters (BUT prefer custom errors instead)
-- Use custom errors with parameters for longer/dynamic error messages
+- SPDX header; pinned `pragma solidity ^0.8.25`
+- OpenZeppelin contracts where possible
+- Checks-Effects-Interactions pattern
+- ReentrancyGuard if funds move
+- Prefer `calldata` for external args
 
-### Linting Workflow
-1. Run `bun run lint` before committing
-2. Fix all errors (red) - these block merges
-3. Fix or justify all warnings (yellow) - use solhint-disable comments when intentional
-4. Accepted patterns: empty blocks in UUPS `_authorizeUpgrade`, intentional empty try/catch for non-critical operations
+## Events
 
-## Style & Safety
-- SPDX header; pinned `pragma`. Use OpenZeppelin where possible. Checks-Effects-Interactions; add ReentrancyGuard if funds move.
-- Follow Solhint recommendations: use custom errors, avoid empty blocks without justification
+```solidity
+// ✅ Index addresses and IDs for filtering
+event WorkSubmitted(uint256 indexed actionUID, address indexed gardener, string ipfsHash);
+event ModuleExecutionSuccess(bytes32 indexed moduleId, address indexed garden, bytes32 indexed uid);
+```
 
-## Gas & Storage
-- Prefer `calldata` for external args; avoid unnecessary SSTOREs; emit succinct events for off-chain consumers.
-- Custom errors save ~50 gas compared to require statements with strings
+---
 
-## Events & Indexing
-- Emit events for new/updated work items with fields needed by indexer/UI (addresses, IDs, status, URIs).
-- Keep events concise - only emit data that changes or is needed for tracking
+## Gas Optimization
 
-## Testing & Deploy
-- Foundry tests for happy/failure paths + invariants. Scripts for repeatable deploys; document network IDs/env vars.
-- Test custom errors: `vm.expectRevert(abi.encodeWithSelector(CustomError.selector))`
+### Compiler Settings
+
+```toml
+# foundry.toml
+[profile.default]
+via_ir = true        # Required for GardenAccount
+optimizer = true
+optimizer_runs = 200
+```
+
+### Storage Packing
+
+```solidity
+// ✅ Pack into 1 slot
+uint128 public startTime;
+uint128 public endTime;
+
+// ❌ Wastes 2 slots
+uint256 public startTime;
+uint256 public endTime;
+```
+
+### Module Isolation
+
+```solidity
+// Non-blocking module calls
+try octantModule.onWorkApproved(garden, name) returns (address vault) {
+    emit ModuleExecutionSuccess(MODULE_OCTANT, garden, workUID);
+} catch {
+    emit ModuleExecutionFailed(MODULE_OCTANT, garden, workUID);
+}
+```
+
+---
+
+## Testing
+
+### Naming Convention
+
+```solidity
+// Pattern: test[Contract]_[scenario]
+function testGardenToken_mintsNewGarden() public {}
+function testGardenToken_revertsOnUnauthorized() public {}
+
+// Prefixes
+test_         // Happy path
+testRevert_   // Failure cases
+testFuzz_     // Fuzz tests
+testE2E_      // Multi-contract flows
+```
+
+### Test Structure
+
+```solidity
+contract GardenTokenTest is Test {
+    GardenToken public gardenToken;
+    
+    function setUp() public {
+        gardenToken = new GardenToken();
+        gardenToken.initialize();
+    }
+    
+    function testGardenToken_mintsNewGarden() public {
+        uint256 tokenId = gardenToken.mintGarden(address(this), "ipfs://...");
+        assertEq(gardenToken.ownerOf(tokenId), address(this));
+    }
+    
+    function testRevert_unauthorized() public {
+        vm.prank(address(0x1));
+        vm.expectRevert(abi.encodeWithSelector(UnauthorizedCaller.selector, address(0x1)));
+        gardenToken.mintGarden(address(this), "");
+    }
+}
+```
+
+### Commands
+
+```bash
+bun test              # Run all (excludes E2E)
+bun test:gas          # With gas report
+bun test:e2e          # Integration tests
+bun lint              # Format + solhint
+```
+
+### Gas Benchmarks
+
+| Function | Target |
+|----------|--------|
+| mintGarden | <500k |
+| registerAction | <200k |
+| Work attest | <150k |
+| Work approval | <100k |
+
+### Coverage
+
+- **Testnet:** ≥80% pass rate
+- **Mainnet:** 100% pass rate required

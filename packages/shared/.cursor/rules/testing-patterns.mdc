@@ -1,0 +1,570 @@
+---
+description: Testing patterns — Vitest, mocks, coverage targets, test utilities
+globs:
+  - "**/__tests__/**/*.ts"
+  - "**/__tests__/**/*.tsx"
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+alwaysApply: false
+---
+
+# Testing Patterns
+
+Unified testing patterns for Green Goods TypeScript packages.
+
+## Testing Stack
+
+| Tool | Purpose |
+|------|---------|
+| **Vitest** | Unit and integration tests |
+| **Testing Library** | React component testing |
+| **MSW** | API mocking |
+| **Playwright** | E2E testing (via MCP) |
+
+## Directory Structure
+
+```
+packages/
+├── shared/src/__tests__/
+│   ├── hooks/           # Hook tests
+│   ├── modules/         # Module tests
+│   ├── providers/       # Provider tests
+│   ├── utils/           # Utility tests
+│   └── views/           # View tests
+├── client/src/__tests__/
+│   ├── components/      # Client component tests
+│   ├── views/           # Client view tests
+│   ├── integration/     # Integration tests
+│   └── routes/          # Route tests
+└── admin/src/__tests__/
+    ├── components/      # Admin component tests
+    ├── views/           # Admin view tests
+    └── workflows/       # Workflow tests
+```
+
+## Coverage Targets
+
+| Package | Critical Paths | Overall | Notes |
+|---------|----------------|---------|-------|
+| Shared | 80%+ | 70%+ | 100% for auth/encryption |
+| Client | 80%+ | 70%+ | Focus on offline queue |
+| Admin | 70%+ | 70%+ | Focus on access control |
+
+## Test Naming
+
+### File Naming
+
+```
+useHook.test.ts          # Hook test
+Component.test.tsx       # Component test
+module.test.ts           # Module test
+feature.integration.test.ts  # Integration test
+```
+
+### Test Structure
+
+```typescript
+describe("ModuleName", () => {
+  describe("functionName", () => {
+    it("does expected behavior when condition", () => {
+      // test
+    });
+
+    it("handles error case gracefully", () => {
+      // test
+    });
+  });
+});
+```
+
+## Mocking Patterns
+
+### Viem/Wagmi Mocks
+
+```typescript
+// packages/shared/src/__mocks__/wagmi.ts
+import { vi } from "vitest";
+
+export const mockWriteContract = vi.fn();
+export const mockWaitForTransaction = vi.fn();
+
+vi.mock("wagmi", () => ({
+  useAccount: () => ({ address: "0x123...", isConnected: true }),
+  useWriteContract: () => ({ writeContractAsync: mockWriteContract }),
+  useWaitForTransactionReceipt: () => ({ data: { status: "success" } }),
+}));
+
+// In test file
+import { mockWriteContract } from "../../__mocks__/wagmi";
+
+beforeEach(() => {
+  mockWriteContract.mockReset();
+});
+
+it("submits transaction", async () => {
+  mockWriteContract.mockResolvedValueOnce("0xhash...");
+  
+  await submitWork(draft);
+  
+  expect(mockWriteContract).toHaveBeenCalledWith(
+    expect.objectContaining({
+      functionName: "attest",
+    })
+  );
+});
+```
+
+### IndexedDB Mocks
+
+```typescript
+// packages/shared/src/__mocks__/indexedDB.ts
+import { vi } from "vitest";
+import "fake-indexeddb/auto";
+
+// Reset between tests
+beforeEach(async () => {
+  const databases = await indexedDB.databases();
+  for (const db of databases) {
+    if (db.name) {
+      indexedDB.deleteDatabase(db.name);
+    }
+  }
+});
+```
+
+### Auth Mocks
+
+```typescript
+// Mock AuthProvider
+const mockAuthContext = {
+  authMode: "wallet" as const,
+  smartAccountClient: null,
+  walletAddress: "0x123...",
+  isAuthenticated: true,
+  signOut: vi.fn(),
+};
+
+const TestWrapper = ({ children }) => (
+  <AuthContext.Provider value={mockAuthContext}>
+    {children}
+  </AuthContext.Provider>
+);
+
+// In test
+const { result } = renderHook(() => useAuth(), {
+  wrapper: TestWrapper,
+});
+```
+
+### Query Client Mocks
+
+```typescript
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+        gcTime: 0,
+        staleTime: 0,
+      },
+    },
+  });
+
+const TestProviders = ({ children }) => {
+  const queryClient = createTestQueryClient();
+  return (
+    <QueryClientProvider client={queryClient}>
+      {children}
+    </QueryClientProvider>
+  );
+};
+```
+
+## Testing Hooks
+
+### Basic Hook Test
+
+```typescript
+import { renderHook, waitFor } from "@testing-library/react";
+import { useGardens } from "../../hooks";
+
+describe("useGardens", () => {
+  it("fetches gardens for chain", async () => {
+    const { result } = renderHook(() => useGardens(84532), {
+      wrapper: TestProviders,
+    });
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(result.current.data).toHaveLength(2);
+  });
+});
+```
+
+### Hook with Mutations
+
+```typescript
+import { renderHook, act } from "@testing-library/react";
+import { useWorkMutation } from "../../hooks";
+
+describe("useWorkMutation", () => {
+  it("submits work and invalidates queries", async () => {
+    const { result } = renderHook(() => useWorkMutation(), {
+      wrapper: TestProviders,
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync(mockDraft);
+    });
+
+    expect(mockWriteContract).toHaveBeenCalled();
+  });
+});
+```
+
+## Testing Components
+
+### Basic Component Test
+
+```typescript
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { WorkCard } from "../../components";
+
+describe("WorkCard", () => {
+  it("renders work details", () => {
+    render(<WorkCard work={mockWork} />);
+
+    expect(screen.getByText("Plant Trees")).toBeInTheDocument();
+    expect(screen.getByText("Pending")).toBeInTheDocument();
+  });
+
+  it("calls onApprove when button clicked", async () => {
+    const user = userEvent.setup();
+    const onApprove = vi.fn();
+
+    render(<WorkCard work={mockWork} onApprove={onApprove} />);
+
+    await user.click(screen.getByRole("button", { name: /approve/i }));
+
+    expect(onApprove).toHaveBeenCalledWith(mockWork.id);
+  });
+});
+```
+
+### Form Component Test
+
+```typescript
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { WorkForm } from "../../components";
+
+describe("WorkForm", () => {
+  it("validates required fields", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+
+    render(<WorkForm onSubmit={onSubmit} />);
+
+    await user.click(screen.getByRole("button", { name: /submit/i }));
+
+    expect(screen.getByText(/title is required/i)).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("submits valid form", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+
+    render(<WorkForm onSubmit={onSubmit} />);
+
+    await user.type(screen.getByLabelText(/title/i), "Plant Trees");
+    await user.type(screen.getByLabelText(/description/i), "Planted 10 trees");
+    await user.click(screen.getByRole("button", { name: /submit/i }));
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Plant Trees",
+        description: "Planted 10 trees",
+      })
+    );
+  });
+});
+```
+
+## Testing Modules
+
+### Job Queue Tests
+
+```typescript
+import { jobQueue, jobQueueDB } from "../../modules/job-queue";
+
+describe("JobQueue", () => {
+  beforeEach(async () => {
+    await jobQueueDB.clear();
+  });
+
+  it("adds job to queue", async () => {
+    const jobId = await jobQueue.addJob("work", mockPayload, { chainId: 84532 });
+
+    expect(jobId).toBeDefined();
+    
+    const stats = await jobQueue.getStats();
+    expect(stats.pending).toBe(1);
+  });
+
+  it("processes job successfully", async () => {
+    const jobId = await jobQueue.addJob("work", mockPayload, { chainId: 84532 });
+
+    await jobQueue.processJob(jobId, mockSmartAccountClient);
+
+    const job = await jobQueueDB.getJob(jobId);
+    expect(job.synced).toBe(true);
+  });
+});
+```
+
+### Auth Module Tests
+
+```typescript
+import { 
+  setStoredUsername, 
+  getStoredUsername, 
+  clearAllAuth 
+} from "../../modules/auth/session";
+
+describe("Auth Session", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it("stores and retrieves username", () => {
+    setStoredUsername("test@example.com");
+    
+    expect(getStoredUsername()).toBe("test@example.com");
+  });
+
+  it("clears all auth data", () => {
+    setStoredUsername("test@example.com");
+    
+    clearAllAuth();
+    
+    expect(getStoredUsername()).toBeNull();
+  });
+});
+```
+
+## Integration Tests
+
+### Multi-Component Flow
+
+```typescript
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { App } from "../../App";
+
+describe("Work Submission Flow", () => {
+  it("submits work and shows in dashboard", async () => {
+    const user = userEvent.setup();
+    
+    render(<App />, { wrapper: FullProviders });
+
+    // Navigate to work form
+    await user.click(screen.getByRole("link", { name: /submit work/i }));
+
+    // Fill form
+    await user.type(screen.getByLabelText(/title/i), "Plant Trees");
+    await user.click(screen.getByRole("button", { name: /submit/i }));
+
+    // Verify appears in dashboard
+    await waitFor(() => {
+      expect(screen.getByText("Plant Trees")).toBeInTheDocument();
+    });
+  });
+});
+```
+
+### Offline Flow Test
+
+```typescript
+describe("Offline Work Submission", () => {
+  it("queues work when offline", async () => {
+    // Simulate offline
+    vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+
+    const { result } = renderHook(() => useWorkMutation(), {
+      wrapper: TestProviders,
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync(mockDraft);
+    });
+
+    // Verify queued, not submitted
+    const stats = await jobQueue.getStats();
+    expect(stats.pending).toBe(1);
+    expect(mockWriteContract).not.toHaveBeenCalled();
+  });
+});
+```
+
+## Test Utilities
+
+### Common Test Helpers
+
+```typescript
+// packages/shared/src/__tests__/test-utils.tsx
+import { render } from "@testing-library/react";
+
+export function renderWithProviders(
+  ui: React.ReactElement,
+  options?: { userRole?: "admin" | "operator" | "user" }
+) {
+  const queryClient = createTestQueryClient();
+  
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <AuthContext.Provider value={createMockAuth(options?.userRole)}>
+        {ui}
+      </AuthContext.Provider>
+    </QueryClientProvider>
+  );
+}
+
+export function createMockWork(overrides = {}) {
+  return {
+    id: "work-1",
+    title: "Test Work",
+    description: "Test description",
+    status: "pending",
+    createdAt: Date.now(),
+    ...overrides,
+  };
+}
+
+export function createMockGarden(overrides = {}) {
+  return {
+    id: "garden-1",
+    name: "Test Garden",
+    gardeners: [],
+    operators: [],
+    ...overrides,
+  };
+}
+```
+
+### Async Helpers
+
+```typescript
+// Wait for job queue processing
+export async function waitForJobComplete(jobId: string) {
+  return new Promise((resolve) => {
+    jobQueueEventBus.once("job:completed", (event) => {
+      if (event.jobId === jobId) {
+        resolve(event);
+      }
+    });
+  });
+}
+
+// Wait for element to disappear
+export async function waitForRemoval(element: HTMLElement) {
+  await waitFor(() => {
+    expect(element).not.toBeInTheDocument();
+  });
+}
+```
+
+## Running Tests
+
+```bash
+# All tests
+bun test
+
+# Specific package
+bun --filter shared test
+
+# Watch mode
+bun test --watch
+
+# Coverage
+bun test --coverage
+
+# Specific file
+bun test useGardens.test.ts
+```
+
+## Test Configuration
+
+```typescript
+// vitest.config.ts
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  test: {
+    globals: true,
+    environment: "jsdom",
+    setupFiles: ["./src/__tests__/setup.ts"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html"],
+      exclude: [
+        "node_modules/",
+        "src/__tests__/",
+        "src/__mocks__/",
+      ],
+    },
+  },
+});
+```
+
+## Anti-Patterns
+
+### Never Test Implementation Details
+
+```typescript
+// ❌ Wrong — testing internal state
+expect(component.state.isLoading).toBe(false);
+
+// ✅ Correct — testing visible behavior
+expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+```
+
+### Never Skip Cleanup
+
+```typescript
+// ❌ Wrong — no cleanup
+it("test", () => {
+  render(<Component />);
+});
+
+// ✅ Correct — automatic cleanup with Testing Library
+// or explicit cleanup if needed
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
+```
+
+### Never Hardcode Timeouts
+
+```typescript
+// ❌ Wrong — arbitrary timeout
+await new Promise((r) => setTimeout(r, 1000));
+
+// ✅ Correct — wait for condition
+await waitFor(() => {
+  expect(screen.getByText("Success")).toBeInTheDocument();
+});
+```
+
+## Reference Files
+
+- Test setup: `packages/*/src/__tests__/setup.ts`
+- Mocks: `packages/*/src/__mocks__/`
+- Test utils: `packages/*/src/__tests__/test-utils.tsx`
+- Vitest config: `packages/*/vitest.config.ts`

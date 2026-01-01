@@ -1,60 +1,50 @@
+---
+description: Agent testing conventions — coverage targets, test patterns
+globs:
+  - src/__tests__/**/*.ts
+alwaysApply: false
+---
+
 # Agent Testing Conventions
 
-Testing patterns and requirements for the Green Goods agent package.
+Testing patterns for the Green Goods agent.
 
 ## Test Structure
 
-### Test Organization
-
 ```
 src/__tests__/
-├── handlers.test.ts       # Command handler tests
+├── handlers.test.ts       # Command handlers
 ├── storage.test.ts        # SQLite operations
-├── crypto.test.ts         # Encryption/validation
+├── crypto.test.ts         # Encryption
 ├── rate-limiter.test.ts   # Rate limiting
-└── orchestrator.test.ts   # Message routing (legacy)
 ```
-
-**Total:** 132+ test cases
-
-### Test File Naming
-
-- Pattern: `{module}.test.ts`
-- Place in `src/__tests__/`
-- One test file per module/feature
 
 ## Coverage Targets
 
 | Component | Target | Priority |
 |-----------|--------|----------|
-| **Crypto (security)** | 100% | Critical |
-| **Rate Limiter** | 100% | Critical |
-| **Handlers** | 90%+ | High |
-| **Message Router** | 90%+ | High |
-| **Storage** | 85%+ | High |
-| **Platform Adapters** | 70%+ | Medium |
+| Crypto | 100% | Critical |
+| Rate Limiter | 100% | Critical |
+| Handlers | 90%+ | High |
+| Storage | 85%+ | High |
+| Platform Adapters | 70%+ | Medium |
 
-**Overall Target:** 80%+
+**Overall:** 80%+
 
 ## Test Patterns
 
-### 1. Handler Tests
+### Handler Tests
 
-Handlers are pure functions - easy to test:
+Handlers are pure functions — easy to test:
 
 ```typescript
 describe("handleStart", () => {
-  beforeAll(() => {
-    initDB(":memory:");
-  });
-
-  afterAll(() => {
-    closeDB();
-  });
+  beforeAll(() => initDB(":memory:"));
+  afterAll(() => closeDB());
 
   it("creates new user", async () => {
     const message: InboundMessage = {
-      id: "msg1",
+      id: "1",
       platform: "telegram",
       sender: { platformId: "123" },
       content: { type: "command", name: "start", args: [] },
@@ -70,103 +60,45 @@ describe("handleStart", () => {
 });
 ```
 
-### 2. Storage Tests
-
-Test real database operations:
+### Crypto Tests (100% coverage)
 
 ```typescript
-describe("SQLite Storage", () => {
-  beforeAll(() => {
-    initDB(":memory:");
-  });
+it("encrypts and decrypts correctly", async () => {
+  const encrypted = await encryptPrivateKey(key, secret);
+  const decrypted = await decryptPrivateKey(encrypted, secret);
+  expect(decrypted).toBe(key);
+});
 
-  afterAll(() => {
-    closeDB();
-  });
-
-  it("creates and retrieves user", async () => {
-    await createUser({
-      platform: "telegram",
-      platformId: "123",
-      privateKey: "encrypted-key",
-      address: "0xabc...",
-    });
-
-    const user = await getUser("telegram", "123");
-    expect(user?.address).toBe("0xabc...");
-  });
+it("throws on wrong secret", async () => {
+  const encrypted = await encryptPrivateKey(key, secret);
+  await expect(decryptPrivateKey(encrypted, "wrong")).rejects.toThrow();
 });
 ```
 
-### 3. Crypto Tests
-
-100% coverage for encryption:
+### Rate Limiter Tests
 
 ```typescript
-describe("encryption", () => {
-  const secret = "test-secret-32-chars-minimum!!!!";
-  const privateKey = "0x" + "1".repeat(64);
-
-  it("encrypts and decrypts correctly", async () => {
-    const encrypted = await encryptPrivateKey(privateKey, secret);
-    const decrypted = await decryptPrivateKey(encrypted, secret);
-    expect(decrypted).toBe(privateKey);
-  });
-
-  it("throws on wrong secret", async () => {
-    const encrypted = await encryptPrivateKey(privateKey, secret);
-    await expect(
-      decryptPrivateKey(encrypted, "wrong-secret")
-    ).rejects.toThrow();
-  });
-});
-```
-
-### 4. Rate Limiter Tests
-
-```typescript
-describe("RateLimiter", () => {
-  it("blocks after limit exceeded", () => {
-    const limiter = new RateLimiter();
-
-    // Exhaust limit
-    for (let i = 0; i < 10; i++) {
-      limiter.check("user1", "messages");
-    }
-
-    const result = limiter.check("user1", "messages");
-    expect(result.allowed).toBe(false);
-  });
+it("blocks after limit exceeded", () => {
+  for (let i = 0; i < 10; i++) limiter.check("user1", "messages");
+  expect(limiter.check("user1", "messages").allowed).toBe(false);
 });
 ```
 
 ## Running Tests
 
 ```bash
-# All tests
-bun test
-
-# Watch mode
-bun test --watch
-
-# Coverage
-bun test --coverage
-
-# Specific file
-bun test storage.test.ts
+bun test                    # All tests
+bun test --watch            # Watch mode
+bun test --coverage         # Coverage report
+bun test storage.test.ts    # Single file
 ```
 
-## Test Quality Checklist
+## Quality Checklist
 
-- [ ] Unit tests for handlers
+- [ ] Unit tests for all handlers
 - [ ] Integration tests for storage
-- [ ] Error case coverage
+- [ ] Error cases covered
 - [ ] Edge cases (empty, null)
-- [ ] Service initialization in beforeAll
-- [ ] Cleanup in afterAll
+- [ ] `beforeAll` for service init
+- [ ] `afterAll` for cleanup
 - [ ] No flaky tests
-
-## References
-
-- Test files: `src/__tests__/`
-- Bun test docs: https://bun.sh/docs/cli/test

@@ -1,112 +1,194 @@
 ---
-description: Testing patterns — integration focus, mock utilities, workflow testing
+description: Admin-specific testing patterns
 globs:
-  - __tests__/**
-  - "**/*.test.ts"
-  - "**/*.test.tsx"
+  - "packages/admin/src/__tests__/**"
 alwaysApply: false
 ---
 
-# Testing Patterns for Admin
+# Admin Testing
 
-Admin testing focuses on integration tests for workflows and role-based access.
+Admin-specific test patterns. Common patterns are in `shared/.cursor/rules/testing-patterns.mdc`.
 
-## Test Organization
+## Test Structure
 
 ```
 src/__tests__/
-├── components/          # Component tests
-│   ├── RequireAuth.test.tsx
-│   └── RequireRole.test.tsx
-├── hooks/               # Hook tests
-│   ├── useRole.test.ts
-│   └── useToastAction.test.ts
-├── integration/         # Integration tests
-│   ├── end-to-end.test.ts
-│   └── garden-lifecycle.test.ts
-├── workflows/           # XState workflow tests
-│   └── createGarden.test.ts
-├── utils/               # Test utilities
-│   ├── mock-providers.tsx
-│   └── test-utils.tsx
-└── setup.ts            # Test setup
+├── components/      # Component unit tests
+├── views/           # View tests
+├── routes/          # Route guard tests
+├── integration/     # Multi-component flows
+├── workflows/       # XState workflow tests
+├── utils/           # Test utilities
+└── setup.ts
 ```
 
-## Mock Utilities
+## Coverage Targets
 
-### renderWithProviders
+| Area | Target |
+|------|--------|
+| **Access control** | 100% |
+| **Critical paths** | 70%+ |
+| **Overall** | 70%+ |
 
-```typescript
-// __tests__/utils/test-utils.tsx
-export function renderWithProviders(
-  ui: ReactElement,
-  options: { userRole?: 'admin' | 'operator' | 'unauthorized' } = {}
-) {
-  const { userRole = 'admin' } = options;
-  const mockUser = createMockUser(userRole);
-  const urqlClient = createMockUrqlClient();
-  
-  return render(ui, {
-    wrapper: ({ children }) => (
-      <UrqlProvider value={urqlClient}>
-        <AuthProvider initialUser={mockUser}>
-          {children}
-        </AuthProvider>
-      </UrqlProvider>
-    ),
-  });
-}
-```
-
-### createMockUrqlClient
+## Role-Based Testing
 
 ```typescript
-export function createMockUrqlClient(customHandlers = {}) {
-  return {
-    executeQuery: vi.fn(() => ({
-      toPromise: () => Promise.resolve({
-        data: customHandlers.data || {},
-        error: customHandlers.error || null,
-      }),
-    })),
-  };
-}
-```
+import { renderWithProviders } from "./utils/renderWithProviders";
 
-## Integration Test Pattern
-
-```typescript
-// __tests__/integration/garden-lifecycle.test.ts
-describe('Garden Lifecycle', () => {
-  it('creates garden, adds members, removes members', async () => {
-    const { user } = render(<App />, {
-      wrapper: ({ children }) => (
-        <AuthProvider role="admin">{children}</AuthProvider>
-      ),
+describe("Gardens View", () => {
+  it("shows all gardens for deployer", async () => {
+    const { screen } = renderWithProviders(<Gardens />, {
+      userRole: "deployer",
     });
-    
-    // Create garden
-    await user.click(screen.getByRole('button', { name: /create garden/i }));
-    await user.type(screen.getByLabelText('Name'), 'Test Garden');
-    await user.click(screen.getByRole('button', { name: /submit/i }));
     
     await waitFor(() => {
-      expect(screen.getByText('Test Garden')).toBeInTheDocument();
+      expect(screen.getByText("All Gardens")).toBeInTheDocument();
+    });
+  });
+
+  it("shows only assigned gardens for operator", async () => {
+    const { screen } = renderWithProviders(<Gardens />, {
+      userRole: "operator",
+      operatorGardens: ["garden-1"],
     });
     
-    // Add gardener
-    await user.click(screen.getByRole('button', { name: /add gardener/i }));
-    await user.type(screen.getByLabelText('Address'), '0x123...');
-    await user.click(screen.getByRole('button', { name: /add/i }));
-    
-    // Verify
-    expect(screen.getByText('0x123...')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText("Garden 2")).not.toBeInTheDocument();
+    });
   });
 });
 ```
 
-## Reference Files
+## Route Guard Testing
 
-- Test utils: `src/__tests__/utils/test-utils.tsx`
-- Mock providers: `src/__tests__/utils/mock-providers.tsx`
-- Urql mocks: `src/__tests__/utils/urql-mock.ts`
+```typescript
+describe("RequireDeployer", () => {
+  it("allows deployer access", () => {
+    const { screen } = renderWithProviders(
+      <RequireDeployer><Protected /></RequireDeployer>,
+      { userRole: "deployer" }
+    );
+    
+    expect(screen.getByText("Protected Content")).toBeInTheDocument();
+  });
+
+  it("redirects operator", () => {
+    const { history } = renderWithProviders(
+      <RequireDeployer><Protected /></RequireDeployer>,
+      { userRole: "operator" }
+    );
+    
+    expect(history.location.pathname).toBe("/gardens");
+  });
+});
+```
+
+## Workflow Testing
+
+```typescript
+import { createGardenMachine } from "@green-goods/shared";
+import { createActor } from "xstate";
+
+describe("Garden Creation Workflow", () => {
+  it("progresses through steps", () => {
+    const actor = createActor(createGardenMachine);
+    actor.start();
+
+    actor.send({ type: "NEXT" });
+    expect(actor.getSnapshot().value).toBe("step2");
+
+    actor.send({ type: "SUBMIT", data: formData });
+    expect(actor.getSnapshot().value).toBe("submitting");
+  });
+});
+```
+
+## Transaction Testing
+
+```typescript
+describe("Garden Operations", () => {
+  it("adds gardener with toast feedback", async () => {
+    const user = userEvent.setup();
+    const { screen } = renderWithProviders(<GardenDetail />);
+
+    await user.click(screen.getByText("Add Gardener"));
+    await user.type(screen.getByLabelText("Address"), "0x123...");
+    await user.click(screen.getByText("Add"));
+
+    await waitFor(() => {
+      expect(mockWriteContract).toHaveBeenCalled();
+      expect(screen.getByText("Gardener added")).toBeInTheDocument();
+    });
+  });
+});
+```
+
+## Mock Utilities
+
+```typescript
+// __tests__/utils/mockAuth.ts
+export function createMockAuth(role: "deployer" | "operator" | "user") {
+  return {
+    authMode: "wallet",
+    isAuthenticated: true,
+    isReady: true,
+    eoaAddress: "0x123...",
+    role,
+    isDeployer: role === "deployer",
+    isOperator: role === "operator",
+  };
+}
+```
+
+## Test Providers
+
+```typescript
+// __tests__/utils/renderWithProviders.tsx
+export function renderWithProviders(
+  ui: React.ReactElement,
+  { userRole = "deployer", operatorGardens = [] } = {}
+) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <AuthContext.Provider value={createMockAuth(userRole)}>
+        <RoleContext.Provider value={{ role: userRole, operatorGardens }}>
+          <MemoryRouter>{ui}</MemoryRouter>
+        </RoleContext.Provider>
+      </AuthContext.Provider>
+    </QueryClientProvider>
+  );
+}
+```
+
+## Integration Tests
+
+```typescript
+describe("Garden Management Flow", () => {
+  it("admin creates garden and adds members", async () => {
+    const user = userEvent.setup();
+    const { screen } = renderWithProviders(<App />, { userRole: "deployer" });
+
+    // Create garden
+    await user.click(screen.getByText("Create Garden"));
+    await user.type(screen.getByLabelText("Name"), "Test Garden");
+    await user.click(screen.getByText("Create"));
+
+    // Add gardener
+    await user.click(screen.getByText("Add Gardener"));
+    await user.type(screen.getByLabelText("Address"), "0x...");
+    await user.click(screen.getByText("Add"));
+
+    expect(screen.getByText("Test Garden")).toBeInTheDocument();
+  });
+});
+```
+
+## Reference
+
+- Common patterns: `shared/.cursor/rules/testing-patterns.mdc`
+- Test setup: `src/__tests__/setup.ts`
+- Mock utilities: `src/__tests__/utils/`

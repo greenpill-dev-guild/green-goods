@@ -1,0 +1,376 @@
+---
+description: Green Goods Design System — Material Design 2-inspired tokens, colors, typography, iconography
+globs:
+  - "**/*.tsx"
+  - "**/*.css"
+alwaysApply: false
+---
+
+# Green Goods Design System
+
+Material Design 2-inspired design system shared across client and admin packages.
+
+## Philosophy
+
+Green Goods follows Material Design 2 principles adapted for a regenerative app:
+- **Intentional white space** — Let content breathe
+- **Clear hierarchy** — Guide users through tasks
+- **Meaningful motion** — Provide feedback, not distraction
+- **Semantic color** — Consistent meaning across states
+
+## Token Architecture
+
+### Semantic Layers
+
+```
+Primitive → Semantic → Component
+  green-500 → success-base → StatusBadge approved
+  neutral-950 → text-strong → Card title
+```
+
+**Always use semantic tokens in components.** Never reference primitives directly.
+
+## Color System
+
+### Semantic Background Tokens
+
+```typescript
+// ✅ Correct — semantic tokens
+<div className="bg-bg-white text-text-strong">
+
+// ❌ Wrong — primitive colors
+<div className="bg-white text-gray-900">
+```
+
+| Token | Light Mode | Dark Mode | Usage |
+|-------|------------|-----------|-------|
+| `bg-white` | white | neutral-950 | Primary surface, cards |
+| `bg-weak` | neutral-50 | neutral-900 | Page background |
+| `bg-soft` | neutral-100 | neutral-850 | Elevated cards |
+| `bg-sub` | neutral-200 | neutral-700 | Higher elevation |
+| `bg-surface` | neutral-800 | neutral-600 | Prominent surfaces |
+| `bg-strong` | neutral-950 | neutral-50 | Highlights, hovers |
+
+### Semantic Text Tokens
+
+| Token | Light Mode | Dark Mode | Usage |
+|-------|------------|-----------|-------|
+| `text-strong` | neutral-950 | neutral-50 | Primary text, titles |
+| `text-sub` | neutral-600 | neutral-300 | Secondary text |
+| `text-soft` | neutral-400 | neutral-400 | Tertiary, hints |
+| `text-disabled` | neutral-300 | neutral-500 | Disabled states |
+
+### Semantic Stroke Tokens
+
+| Token | Light Mode | Dark Mode | Usage |
+|-------|------------|-----------|-------|
+| `stroke-strong` | neutral-950 | neutral-300 | Prominent borders |
+| `stroke-sub` | neutral-300 | neutral-700 | Standard borders |
+| `stroke-soft` | neutral-100 | neutral-800 | Subtle borders |
+
+### State Colors
+
+Each state color has four variants: `-dark`, `-base`, `-light`, `-lighter`
+
+| State | Base Color | Usage |
+|-------|------------|-------|
+| `success-*` | green-500 | Approved, completed, positive |
+| `error-*` | red-500 | Rejected, failed, destructive |
+| `warning-*` | orange-500 | Pending, attention needed |
+| `information-*` | blue-500 | Informational, help text |
+| `feature-*` | purple-500 | New features, special items |
+| `verified-*` | sky-500 | Verified, trusted |
+| `away-*` | yellow-500 | Idle, away status |
+
+### Brand Colors
+
+```css
+--primary-dark: green-800    /* Dark accent */
+--primary-darker: green-700  /* Darker accent */
+--primary-base: green-500    /* Primary brand color */
+```
+
+## Typography
+
+### Type Scale (Material Design 2 inspired)
+
+**Headlines (H1-H6):**
+
+| Token | Size | Line Height | Weight | Usage |
+|-------|------|-------------|--------|-------|
+| `title-h1` | 56px | 64px | 500 | Hero sections |
+| `title-h2` | 48px | 56px | 500 | Page titles |
+| `title-h3` | 40px | 48px | 500 | Section headers |
+| `title-h4` | 32px | 40px | 500 | Card titles |
+| `title-h5` | 24px | 32px | 500 | Subsections |
+| `title-h6` | 20px | 28px | 500 | Small headers |
+
+**Labels:**
+
+| Token | Size | Line Height | Weight | Usage |
+|-------|------|-------------|--------|-------|
+| `label-xl` | 24px | 32px | 500 | Large labels |
+| `label-lg` | 18px | 24px | 500 | Button text |
+| `label-md` | 16px | 24px | 500 | Form labels |
+| `label-sm` | 14px | 20px | 400 | Small labels |
+| `label-xs` | 12px | 16px | 500 | Badges, tags |
+
+**Paragraphs:**
+
+| Token | Size | Line Height | Weight | Usage |
+|-------|------|-------------|--------|-------|
+| `paragraph-xl` | 24px | 32px | 400 | Large body |
+| `paragraph-lg` | 18px | 24px | 400 | Intro text |
+| `paragraph-md` | 16px | 24px | 400 | Body text |
+| `paragraph-sm` | 14px | 20px | 400 | Secondary text |
+| `paragraph-xs` | 12px | 16px | 400 | Captions |
+
+**Subheadings:**
+
+| Token | Size | Line Height | Letter Spacing | Usage |
+|-------|------|-------------|----------------|-------|
+| `subheading-md` | 16px | 24px | 0.06em | Section subtitles |
+| `subheading-sm` | 14px | 20px | 0.06em | Card subtitles |
+| `subheading-xs` | 12px | 16px | 0.04em | Small subtitles |
+| `subheading-2xs` | 11px | 12px | 0.02em | Tiny labels |
+
+### Typography Usage
+
+```tsx
+// ✅ Correct — use Tailwind text utilities
+<h1 className="text-title-h2 text-text-strong">Garden Details</h1>
+<p className="text-paragraph-md text-text-sub">Description here</p>
+<span className="text-label-sm text-text-soft">12 members</span>
+
+// ❌ Wrong — arbitrary font sizes
+<h1 className="text-[48px] font-bold">Garden Details</h1>
+```
+
+## Spacing System
+
+Follow Material Design 8dp grid:
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `space-1` | 4px | Tight spacing |
+| `space-2` | 8px | Element gaps |
+| `space-3` | 12px | Small padding |
+| `space-4` | 16px | Standard padding |
+| `space-5` | 20px | Medium gaps |
+| `space-6` | 24px | Section padding |
+| `space-8` | 32px | Large gaps |
+| `space-10` | 40px | Major sections |
+| `space-12` | 48px | Page padding |
+| `space-16` | 64px | Hero spacing |
+
+```tsx
+// ✅ Material Design 8dp grid
+<div className="p-4 gap-2">  {/* 16px, 8px */}
+<div className="p-6 gap-4">  {/* 24px, 16px */}
+
+// ❌ Arbitrary values break rhythm
+<div className="p-[13px] gap-[7px]">
+```
+
+## Elevation & Shadows
+
+Material Design 2 elevation system:
+
+| Level | Shadow | Usage |
+|-------|--------|-------|
+| `shadow-none` | none | Flat elements |
+| `shadow-sm` | 0 1px 2px | Cards at rest |
+| `shadow` | 0 1px 3px | Hovered cards |
+| `shadow-md` | 0 4px 6px | Dropdowns |
+| `shadow-lg` | 0 10px 15px | Modals |
+| `shadow-xl` | 0 20px 25px | Popovers |
+
+```tsx
+// Card elevation on hover
+<div className="shadow-sm hover:shadow transition-shadow">
+```
+
+## Iconography
+
+### Icon Library
+
+Use **Remix Icons** (`@remixicon/react`) for consistency:
+
+```tsx
+import { RiLeafLine, RiCheckLine, RiCloseLine } from "@remixicon/react";
+```
+
+### Icon Sizes
+
+| Size | Pixels | Usage |
+|------|--------|-------|
+| `h-4 w-4` | 16px | Inline with text |
+| `h-5 w-5` | 20px | Buttons, small UI |
+| `h-6 w-6` | 24px | Standard icons |
+| `h-8 w-8` | 32px | Feature icons |
+| `h-10 w-10` | 40px | Large icons |
+| `h-12 w-12` | 48px | Hero icons |
+
+### Icon Color
+
+Icons inherit text color. Use semantic tokens:
+
+```tsx
+// ✅ Correct — inherits from parent
+<RiCheckLine className="h-5 w-5" />  {/* Inherits text color */}
+<RiCheckLine className="h-5 w-5 text-success-base" />
+
+// ❌ Wrong — hardcoded colors
+<RiCheckLine className="h-5 w-5 text-green-500" />
+```
+
+## Component Patterns
+
+### Cards
+
+```tsx
+<div className="bg-bg-white rounded-xl border border-stroke-soft p-4 shadow-sm">
+  <h3 className="text-label-md text-text-strong">Title</h3>
+  <p className="text-paragraph-sm text-text-sub">Description</p>
+</div>
+```
+
+### Buttons
+
+| Variant | Background | Text | Usage |
+|---------|------------|------|-------|
+| Primary | `bg-primary` | `text-white` | Main actions |
+| Secondary | `bg-bg-soft` | `text-text-strong` | Secondary actions |
+| Outline | `border border-stroke-sub` | `text-text-strong` | Tertiary actions |
+| Destructive | `bg-error-base` | `text-white` | Delete, remove |
+| Ghost | `bg-transparent` | `text-text-sub` | Minimal actions |
+
+### Status Badges
+
+```tsx
+// Use StatusBadge component for work states
+import { StatusBadge } from "@green-goods/shared";
+
+<StatusBadge status="pending" />   // warning colors
+<StatusBadge status="approved" />  // success colors
+<StatusBadge status="rejected" />  // error colors
+```
+
+### Form Inputs
+
+```tsx
+<input className="
+  w-full px-4 py-2 rounded-lg
+  bg-bg-white border border-stroke-soft
+  text-text-strong placeholder:text-text-soft
+  focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary
+" />
+```
+
+## Dark Mode
+
+### Implementation
+
+Use `data-theme="dark"` attribute on root element:
+
+```tsx
+// Theme toggle
+document.documentElement.setAttribute("data-theme", "dark");
+```
+
+### Testing Both Modes
+
+Always verify components in both themes:
+- Sufficient contrast ratios (WCAG AA: 4.5:1 for text)
+- State colors remain distinguishable
+- Shadows provide appropriate depth
+
+## Accessibility
+
+### Color Contrast
+
+- Text on backgrounds: minimum 4.5:1 contrast ratio
+- Large text (24px+): minimum 3:1 ratio
+- Interactive elements: minimum 3:1 against adjacent colors
+
+### Focus States
+
+```tsx
+// Always include visible focus rings
+className="focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2"
+```
+
+### Motion
+
+Respect `prefers-reduced-motion`:
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+```
+
+## Anti-Patterns
+
+### Never Use
+
+```tsx
+// ❌ Hardcoded colors
+<div className="bg-[#1fc16b] text-[#171717]">
+
+// ❌ Primitive color tokens
+<div className="bg-green-500 text-gray-900">
+
+// ❌ Arbitrary spacing
+<div className="p-[13px] mt-[7px]">
+
+// ❌ Non-standard icon sizes
+<RiIcon className="h-[22px] w-[22px]" />
+
+// ❌ Missing dark mode support
+<div className="bg-white text-black">
+```
+
+### Always Use
+
+```tsx
+// ✅ Semantic tokens
+<div className="bg-bg-white text-text-strong">
+
+// ✅ 8dp grid spacing
+<div className="p-4 mt-2">
+
+// ✅ Standard icon sizes
+<RiIcon className="h-5 w-5" />
+
+// ✅ Theme-aware styling
+<div className="bg-bg-white text-text-strong">
+```
+
+## CSS Files Reference
+
+- Colors: `packages/client/src/styles/colors.css`
+- Typography: `packages/client/src/styles/typography.css`
+- Shared theme: `packages/shared/src/styles/theme.css`
+
+## Tailwind Configuration
+
+Tokens are configured in `@theme` blocks within CSS files. Use standard Tailwind utilities:
+
+```tsx
+// Background tokens
+className="bg-bg-white bg-bg-weak bg-bg-soft"
+
+// Text tokens
+className="text-text-strong text-text-sub text-text-soft"
+
+// Stroke tokens
+className="border-stroke-soft border-stroke-sub"
+
+// State colors
+className="bg-success-lighter text-success-dark"
+className="bg-error-lighter text-error-dark"
+```

@@ -1,127 +1,122 @@
 ---
 description: UUPS upgrade patterns — storage gaps, safety checklist, upgrade testing
 globs:
-  - src/**/*Upgradeable.sol
-  - test/*Upgrade*.sol
-  - script/upgrade.js
+  - src/**/*.sol
+  - script/upgrade.ts
+  - script/Upgrade.s.sol
 alwaysApply: false
 ---
 
 # UUPS Upgrade Patterns
 
-Green Goods contracts use UUPS (Universal Upgradeable Proxy Standard). This rule documents upgrade safety requirements.
+Green Goods contracts use UUPS (Universal Upgradeable Proxy Standard).
 
 ## Storage Gap Requirement
 
-**MANDATORY:** All upgradeable contracts must include `__gap`:
+**MANDATORY:** All upgradeable contracts must have `__gap`:
 
 ```solidity
-// src/tokens/Garden.sol
-contract GardenToken is
-    ERC721Upgradeable,
-    OwnableUpgradeable,
-    UUPSUpgradeable
-{
-    // State variables
-    uint256 private _nextTokenId;
-    mapping(uint256 => string) private _tokenMetadata;
-    
-    // Storage gap for future upgrades (REQUIRED)
-    uint256[48] private __gap;  // 50 slots total - 2 used = 48 gap
+// Example: GreenGoodsResolver
+contract GreenGoodsResolver is OwnableUpgradeable, UUPSUpgradeable {
+    mapping(bytes32 => bool) private _enabledModules;      // slot 1
+    mapping(address => bool) public authorizedCallers;     // slot 2
+    OctantModule public octantModule;                       // slot 3
+    UnlockModule public unlockModule;                       // slot 4
+
+    uint256[46] private __gap;  // 50 - 4 = 46 slots reserved
+}
+
+// Example: Module (OctantModule)
+contract OctantModule is OwnableUpgradeable, UUPSUpgradeable {
+    IOctantFactory public octantFactory;                    // slot 1
+    address public defaultAsset;                            // slot 2
+    address public router;                                  // slot 3
+    mapping(address => address) public gardenVaults;        // slot 4
+    uint256 public defaultProfitUnlockTime;                 // slot 5
+
+    uint256[45] private __gap;  // 50 - 5 = 45 slots
 }
 ```
 
-**Why:** Preserves storage layout across upgrades. Without gaps, adding new state variables can corrupt existing data.
-
 ### Calculating Gap Size
-
 ```
-Gap size = 50 - (number of state variables used)
+Gap size = 50 - (number of state variables)
 ```
-
-**Example:**
-- 2 state variables used → `uint256[48] private __gap;`
-- 5 state variables used → `uint256[45] private __gap;`
 
 ## Upgrade vs Deploy
 
-### When to Deploy (New Addresses)
+| Scenario | Command |
+|----------|---------|
+| New network setup | `bun deploy:testnet` |
+| Bug fix in production | `bun upgrade:testnet` |
+| Add features | `bun upgrade:testnet` |
+| Fresh state needed | `bun deploy:testnet --force` |
+
+## Upgrade Commands
 
 ```bash
-bun deploy:testnet  # Creates new contracts
+# Dry run
+bun upgrade:dry:testnet
+bun script/upgrade.ts all --network baseSepolia
+
+# Execute
+bun upgrade:testnet
+bun script/upgrade.ts all --network baseSepolia --broadcast
+
+# Verify after upgrade
+cast call $CONTRACT "implementation()" --rpc-url $RPC
 ```
-
-**Use when:**
-- Setting up new network
-- Testing locally
-- Want fresh state
-
-### When to Upgrade (Same Addresses)
-
-```bash
-bun upgrade:testnet  # Upgrades existing proxies
-```
-
-**Use when:**
-- Fixing bugs in production
-- Adding features
-- Maintaining same addresses
 
 ## Upgrade Safety Checklist
 
 Before upgrading:
-
 - [ ] Storage gap present and correctly sized
 - [ ] No storage variable reordering
 - [ ] No storage variable type changes
 - [ ] New variables added at end only
 - [ ] Upgrade test passes
 - [ ] No breaking changes to public API
-- [ ] Upgrade path tested on fork
 
-### Upgrade Script
+## Upgradeable Contracts
 
-```bash
-# Dry run first
-node script/upgrade.js garden-token --network baseSepolia
+| Contract | Storage Slots | Gap |
+|----------|---------------|-----|
+| GardenToken | 2 | 48 |
+| GardenAccount | varies | varies |
+| GreenGoodsResolver | 4 | 46 |
+| OctantModule | 5 | 45 |
+| UnlockModule | 4 | 46 |
+| WorkResolver | 1 | 49 |
+| WorkApprovalResolver | 2 | 48 |
+| AssessmentResolver | 1 | 49 |
 
-# Execute upgrade
-node script/upgrade.js garden-token --network baseSepolia --broadcast
-
-# Verify upgrade
-cast call $GARDEN_TOKEN "owner()" --rpc-url $RPC
-cast call $PROXY "implementation()" --rpc-url $RPC
-```
-
-## Testing Upgrades
+## UUPS Implementation Pattern
 
 ```solidity
-// test/UpgradeSafety.t.sol
-function testUpgrade_maintainsState() public {
-    // 1. Deploy V1
-    GardenTokenV1 gardenV1 = new GardenTokenV1();
-    ERC1967Proxy proxy = new ERC1967Proxy(
-        address(gardenV1),
-        abi.encodeCall(gardenV1.initialize, ())
-    );
-    
-    // 2. Set state in V1
-    GardenTokenV1 garden = GardenTokenV1(address(proxy));
-    garden.mintGarden(owner, metadata);
-    uint256 tokenIdBefore = garden.totalSupply();
-    
-    // 3. Upgrade to V2
-    GardenTokenV2 gardenV2 = new GardenTokenV2();
-    garden.upgradeToAndCall(address(gardenV2), "");
-    
-    // 4. Verify state preserved
-    GardenTokenV2 gardenAfter = GardenTokenV2(address(proxy));
-    assertEq(gardenAfter.totalSupply(), tokenIdBefore, "State not preserved");
+// Required imports
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+
+contract MyModule is OwnableUpgradeable, UUPSUpgradeable {
+    // Disable initializers in constructor
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    // Initialize instead of constructor
+    function initialize(address _owner) external initializer {
+        __Ownable_init();
+        _transferOwnership(_owner);
+    }
+
+    // Authorize upgrades (owner only)
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 }
 ```
 
-## Reference Files
+## Reference
 
-- Upgrade script: `script/upgrade.js`
-- Upgrade tests: `test/UpgradeSafety.t.sol.skip` (currently skipped)
-- Deployment docs: `/docs/DEPLOYMENT_CHECKLIST.md`
+- Upgrade script: `script/upgrade.ts`
+- Upgrade Forge script: `script/Upgrade.s.sol`
+- Root deployment rule: `/.cursor/rules/deployment.mdc`

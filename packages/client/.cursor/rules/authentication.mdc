@@ -1,129 +1,81 @@
 ---
 description: Authentication patterns — passkey-first, WebAuthn, Pimlico, smart accounts, wallet fallback
 globs:
-  - "packages/shared/src/providers/Auth.tsx"
-  - "packages/shared/src/hooks/auth/**"
-  - "packages/shared/src/modules/auth/**"
+  - "packages/client/src/views/Login/**"
   - "packages/client/src/routes/RequireAuth.tsx"
-  - "packages/client/src/routes/RequireInstalled.tsx"
 alwaysApply: false
 ---
 
-# Authentication & Account Abstraction
+# Authentication
 
-Green Goods uses **passkey-first authentication** with WebAuthn credentials and Kernel smart accounts via Pimlico. Wallet connection provides fallback for operators and admins.
+Green Goods uses **passkey-first authentication** with WebAuthn and Kernel smart accounts. Wallet connection is fallback for operators/admins.
 
-## Unified Auth Architecture
+## Auth Modes
 
-The auth system uses a single `AuthProvider` (XState-based) that supports both passkey and wallet authentication modes.
+| Mode | Users | Technology | UX |
+|------|-------|------------|-----|
+| **Passkey** | Gardeners | WebAuthn + Kernel + Pimlico | Biometric, no seed phrases |
+| **Wallet** | Operators, admins | Wagmi + AppKit | Traditional wallet |
 
-### Storage Keys (Only 2)
+## Storage Keys
 
 ```typescript
 // packages/shared/src/modules/auth/session.ts
-export const PASSKEY_STORAGE_KEY = "greengoods_passkey_credential";  // WebAuthn credential
-export const AUTH_MODE_STORAGE_KEY = "greengoods_auth_mode";         // "passkey" | "wallet"
+PASSKEY_STORAGE_KEY = "greengoods_passkey_credential"  // WebAuthn credential
+AUTH_MODE_STORAGE_KEY = "greengoods_auth_mode"         // "passkey" | "wallet"
+USERNAME_STORAGE_KEY = "greengoods_username"           // Pimlico server username
+RP_ID_STORAGE_KEY = "greengoods_rp_id"                 // Relying Party ID (Android)
 ```
 
-### Core API
+**RP ID is critical for Android:** The RP ID stored during registration must match during authentication. Android is strict about this.
+
+## Using Auth
 
 ```typescript
-import { useAuth } from '@green-goods/shared/hooks';
+import { useAuth } from "@green-goods/shared";
 
 const {
-  loginWithPasskey,   // Create/authenticate passkey
-  loginWithWallet,    // Open wallet modal  
-  signOut,            // Clear all auth
-
   authMode,           // "passkey" | "wallet" | null
   isAuthenticated,
   isReady,
-  eoaAddress,         // Wallet address (wallet mode)
-  smartAccountAddress, // Smart account address (passkey mode)
-  smartAccountClient,  // Smart account client (passkey mode)
+  loginWithPasskey,
+  loginWithWallet,
+  signOut,
+  smartAccountClient, // Passkey mode only
+  smartAccountAddress,// Passkey mode only
+  eoaAddress,         // Wallet mode only
 } = useAuth();
 ```
 
-## Provider Hierarchy
-
-```tsx
-// packages/client/src/main.tsx
-<AppErrorBoundary>
-  <AppKitProvider>        {/* WagmiProvider */}
-    <AuthProvider>        {/* Unified XState auth - passkey + wallet */}
-      <AppProvider>       {/* QueryClient + IntlProvider */}
-        <App />
-      </AppProvider>
-    </AuthProvider>
-  </AppKitProvider>
-</AppErrorBoundary>
-```
-
-## Authentication Modes
+## Login Flow
 
 ```typescript
-export type AuthMode = 'passkey' | 'wallet' | null;
-```
-
-### Passkey Mode (Primary)
-
-**For:** Gardeners, general users
-**Tech:** WebAuthn + viem/account-abstraction + Kernel + Pimlico
-**UX:** Biometric authentication, no seed phrases, sponsored transactions
-
-### Wallet Mode (Fallback)
-
-**For:** Operators, admins, power users
-**Tech:** Wagmi + Reown AppKit + MetaMask/WalletConnect
-**UX:** Traditional wallet connection
-
-## Login Flow Implementation
-
-```typescript
-// packages/client/src/views/Login/index.tsx
-export function Login() {
-  const {
-    loginWithPasskey,
-    loginWithWallet,
-    isAuthenticating,
-    isAuthenticated,
-    isReady,
-  } = useAuth();
-
-  const handlePasskeyLogin = async () => {
-    const session = await loginWithPasskey?.();
-    // Auto-redirect handled by isAuthenticated check
-  };
-
-  const handleWalletLogin = () => {
-    loginWithWallet?.();  // Opens AppKit modal
-  };
+function Login() {
+  const { loginWithPasskey, loginWithWallet, isAuthenticated, isReady } = useAuth();
 
   if (!isReady) return <LoadingScreen />;
   if (isAuthenticated) return <Navigate to="/home" />;
 
   return (
     <Splash
-      login={handlePasskeyLogin}
-      isLoggingIn={isAuthenticating}
-      secondaryAction={{ label: "Login with wallet", onSelect: handleWalletLogin }}
+      login={() => loginWithPasskey?.()}
+      secondaryAction={{ label: "Wallet", onSelect: () => loginWithWallet?.() }}
     />
   );
 }
 ```
 
-## Auth Mode Branching for Transactions
+## Auth Mode Branching
 
 ```typescript
 const { authMode, smartAccountClient } = useAuth();
 
-if (authMode === 'wallet') {
-  // Direct wallet submission
-  const hash = await submitWorkDirectly(draft, gardenAddress, actionUID);
+if (authMode === "wallet") {
+  // Direct wallet transaction
+  await submitWorkDirectly(draft, gardenAddress, actionUID);
 } else {
-  // Passkey mode - use job queue
+  // Passkey — use job queue
   const { txHash, jobId } = await submitWorkToQueue(draft, gardenAddress, actionUID);
-  
   if (smartAccountClient) {
     await processWorkJobInline(jobId, chainId, smartAccountClient);
   }
@@ -133,79 +85,72 @@ if (authMode === 'wallet') {
 ## Route Guards
 
 ```typescript
-// packages/client/src/routes/RequireAuth.tsx
+// RequireAuth.tsx
 export default function RequireAuth() {
   const { isAuthenticated, isReady } = useAuth();
-  const location = useLocation();
 
   if (!isReady) return null;
-
   if (!isAuthenticated) {
-    const redirectTo = encodeURIComponent(location.pathname + location.search);
-    return <Navigate to={`/login?redirectTo=${redirectTo}`} replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return <Outlet />;
 }
 ```
 
+## Provider Hierarchy
+
+```tsx
+<AppKitProvider>
+  <QueryClientProvider>
+    <AuthProvider>       {/* XState auth machine */}
+      <AppProvider>
+        <App />
+      </AppProvider>
+    </AuthProvider>
+  </QueryClientProvider>
+</AppKitProvider>
+```
+
 ## Anti-Patterns
 
-### ❌ Don't skip isReady check
-
 ```typescript
-// Wrong
+// ❌ Wrong — missing isReady check
 const { smartAccountClient } = useAuth();
-await smartAccountClient.sendTransaction({/*...*/});
+await smartAccountClient.sendTransaction({...});
 
-// Correct
+// ✅ Correct — guard with isReady
 const { smartAccountClient, isReady } = useAuth();
 if (!isReady || !smartAccountClient) return;
-await smartAccountClient.sendTransaction({/*...*/});
+await smartAccountClient.sendTransaction({...});
 ```
 
-### ❌ Don't use wallet chain ID
-
 ```typescript
-// Wrong - wallet may be on wrong chain
+// ❌ Wrong — using wallet chain
 const { chainId } = useAccount();
 
-// Correct - use environment chain
-import { DEFAULT_CHAIN_ID } from '@green-goods/shared';
+// ✅ Correct — use environment chain
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared";
 ```
 
-## Testing Authentication
+## Testing
 
 ```typescript
-// Mock auth for testing
-vi.mock('@green-goods/shared/hooks', () => ({
+vi.mock("@green-goods/shared", () => ({
   useAuth: () => ({
-    authMode: 'passkey',
+    authMode: "passkey",
     isAuthenticated: true,
     isReady: true,
+    smartAccountClient: mockClient,
     loginWithPasskey: vi.fn(),
-    loginWithWallet: vi.fn(),
     signOut: vi.fn(),
   }),
 }));
 ```
 
-## Reference Files
+## Reference
 
-**Provider:**
-- `packages/shared/src/providers/Auth.tsx` — Unified XState auth provider
-
-**Session:**
-- `packages/shared/src/modules/auth/session.ts` — Storage utilities (2 keys only)
-- `packages/shared/src/modules/auth/passkey.ts` — WebAuthn credential management
-
-**Hooks:**
-- `packages/shared/src/hooks/auth/useAuth.ts` — Universal auth hook
-- `packages/shared/src/hooks/auth/useUser.ts` — User info hook
-
-**Route Guards:**
-- `packages/client/src/routes/RequireAuth.tsx`
-- `packages/client/src/routes/RequireInstalled.tsx`
-
-**Login:**
-- `packages/client/src/views/Login/index.tsx`
+- Auth Provider: `packages/shared/src/providers/Auth.tsx`
+- Session utilities: `packages/shared/src/modules/auth/session.ts`
+- Passkey config: `packages/shared/src/config/passkeyServer.ts`
+- AppKit integration: `shared/.cursor/rules/appkit-integration.mdc`

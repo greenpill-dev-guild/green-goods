@@ -6,16 +6,18 @@ Reference for AI agents collaborating on the Green Goods monorepo (6 packages: c
 
 - **Root `.env` only** — all packages read from the same file. Never introduce package-level env files or assume per-package overrides.
 - **Single chain** — always derive the chain from `getDefaultChain()` / `DEFAULT_CHAIN_ID` (Base Sepolia `84532` by default). Never pivot off wallet chain IDs.
-- **Deployment wrapper** — interact with contracts through `deploy.js` and the bun scripts (`bun --filter contracts deploy:*`, `upgrade:*`). Raw `forge script … --broadcast` is reserved for debugging.
-- **Schema immutability** — treat `packages/contracts/config/schemas.json` as read-only. Use `--update-schemas` via `deploy.js` for metadata refreshes and create `schemas.test.json` for experiments.
+- **Deployment wrapper** — interact with contracts through `deploy.ts` and the bun scripts (`bun --filter contracts deploy:*`, `upgrade:*`). Raw `forge script … --broadcast` is reserved for debugging.
+- **Schema immutability** — treat `packages/contracts/config/schemas.json` as read-only. Use `--update-schemas` via `deploy.ts` for metadata refreshes and create `schemas.test.json` for experiments.
 - **Secrets discipline** — do not log or commit values from `.env`. Update `.env.example` alongside any required new variables.
+- **Hooks in shared only** — all React hooks live in `@green-goods/shared`. Never create hooks in client or admin packages.
 
 ## MCP Usage
 
 - **GitHub** — list/inspect issues and PRs freely; request approval before creating or editing content.
-- **Playwright** — approval required for running tests; reading screenshots is safe.
-- **Filesystem** — use for repo-wide searches; ask for approval before bulk writes.
 - **Figma** — safe for metadata and screenshots; code generation requires review.
+- **Vercel** — deployment management and preview URLs.
+- **Miro** — board access and diagram generation.
+- **Railway** — agent deployment management.
 
 Default to local commands (rg, bun, forge) when the task is small. Escalate to MCP when you need cross-repo views, screenshots, or automated PR operations.
 
@@ -45,6 +47,9 @@ Default to local commands (rg, bun, forge) when the task is small. Escalate to M
 - Import deployment data from `packages/contracts/deployments/*.json` instead of hard-coding addresses.
 - Use centralized query keys from `@green-goods/shared` for TanStack Query cache management.
 - Use TanStack Query mutations with proper loading/error states; toast success/failure with actionable copy.
+- Use toast presets from `@green-goods/shared` (`workToasts`, `approvalToasts`, `queueToasts`, `validationToasts`).
+- Use date utilities from `@green-goods/shared` (`formatDate`, `formatDateTime`, `toDateTimeLocalValue`).
+- Use `mediaResourceManager` from `@green-goods/shared` for blob URL lifecycle management.
 - Contracts should revert with custom errors and emit events for state changes.
 - Offline workflows persist to IndexedDB (see `packages/shared/src/modules/job-queue`); respect existing queue APIs when adding new flows.
 
@@ -71,5 +76,6 @@ See [IPFS Deployment Guide](./docs/developer/ipfs-deployment.md) for setup and t
 - [IPFS Deployment](./docs/developer/ipfs-deployment.md) — decentralized app deployment
 - [Product Overview](./docs/features/overview.md) — architecture snapshot
 - [Karma GAP Integration](./docs/developer/karma-gap.md) — GAP-specific context
+- [Agent System Guide](./.cursor/AGENT_SYSTEM_GUIDE.md) — complete documentation architecture
 
 When in doubt, check recent commits for precedent, or ask for clarification instead of guessing. Consistency across packages is the priority.

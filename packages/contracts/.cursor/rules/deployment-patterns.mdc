@@ -1,22 +1,23 @@
 ---
-description: Deployment patterns — deploy.js usage, profiles, verification
+description: Deployment patterns — deploy.ts CLI, verification, Envio integration
 globs:
-  - script/deploy.js
-  - script/upgrade.js
+  - script/deploy.ts
+  - script/deploy/**
+  - script/upgrade.ts
   - script/**/*.s.sol
 alwaysApply: false
 ---
 
 # Deployment Patterns
 
-Green Goods contracts use a unified deploy.js system. This rule documents mandatory patterns and deployment profiles.
+Green Goods contracts use a TypeScript-based deployment CLI. This rule documents the deployment system.
 
-## MANDATORY: Use deploy.js
+## MANDATORY: Use deploy.ts
 
 **✅ ALWAYS:**
 ```bash
 bun deploy:testnet
-node script/deploy.js core --network baseSepolia --broadcast
+bun script/deploy.ts core --network baseSepolia --broadcast
 ```
 
 **❌ NEVER:**
@@ -24,146 +25,115 @@ node script/deploy.js core --network baseSepolia --broadcast
 forge script script/Deploy.s.sol --broadcast
 ```
 
-**Why deploy.js is required:**
-- Loads root .env correctly
-- Ensures deterministic addresses
-- Handles schema deployment
-- Implements retry logic
-- Provides dry-run validation
+**Why:**
+- Loads root `.env` correctly
+- Uses Foundry keystore (not raw private keys)
+- Auto-updates Envio indexer config
+- Handles verification automatically
 
-## Deployment Profiles
-
-```javascript
-// script/deploy.js
-const profiles = {
-  production: {
-    useOptimizedScript: false,
-    skipExisting: true,
-    forceRedeploy: false,
-    updateSchemas: false,
-  },
-  testing: {
-    useOptimizedScript: false,
-    skipExisting: false,
-    forceRedeploy: false,
-    updateSchemas: true,
-  },
-  update: {
-    useOptimizedScript: false,
-    skipExisting: true,
-    forceRedeploy: false,
-    updateSchemas: true,  // Only update schemas
-  },
-  hotfix: {
-    useOptimizedScript: false,
-    skipExisting: false,
-    forceRedeploy: true,  // Force redeploy
-    updateSchemas: false,
-  },
-  optimized: {
-    useOptimizedScript: true,  // Use OptimizedDeploy.s.sol
-    skipExisting: true,
-    forceRedeploy: false,
-    updateSchemas: false,
-  },
-};
-```
-
-### Using Profiles
+## CLI Commands
 
 ```bash
-# Use specific profile
-node script/deploy.js core --network celo --profile production --broadcast
+# Core contracts
+bun script/deploy.ts core --network <network> [--broadcast]
 
-# Default profile (testing for testnet, production for mainnet)
-bun deploy:testnet
+# Garden from config
+bun script/deploy.ts garden config/my-garden.json --network <network> [--broadcast]
+
+# Actions from config
+bun script/deploy.ts actions config/my-actions.json --network <network> [--broadcast]
+
+# Check deployment status
+bun script/deploy.ts status [network]
+
+# Start Anvil fork
+bun script/deploy.ts fork <network>
 ```
 
 ## Deployment Flags
 
-### Common Flag Combinations
-
-```bash
-# Dry run (simulation only)
-node script/deploy.js core --network baseSepolia
-
-# Deploy for real
-node script/deploy.js core --network baseSepolia --broadcast
-
-# Update schemas only (skip contracts)
-node script/deploy.js core --network baseSepolia --broadcast --update-schemas
-
-# Force fresh deployment (ignore existing)
-node script/deploy.js core --network baseSepolia --broadcast --force
-
-# Skip schemas (contracts only)
-node script/deploy.js core --network baseSepolia --broadcast --skip-schemas
-
-# Verbose logging
-node script/deploy.js core --network baseSepolia --broadcast --verbose
-```
+| Flag | Description |
+|------|-------------|
+| `--network, -n` | Target network (default: localhost) |
+| `--broadcast, -b` | Actually broadcast transactions |
+| `--update-schemas` | Only update EAS schemas |
+| `--force` | Force fresh deployment |
+| `--dry-run` | Validate without deploying |
 
 ## What Gets Deployed
 
-Every core deployment includes:
+**Core deployment includes:**
 
-1. **Core contracts:**
+1. **Infrastructure:**
    - DeploymentRegistry
-   - GardenToken
+   - GardenToken (ERC721)
+   - GardenAccount (TBA implementation)
+
+2. **Registries:**
    - ActionRegistry
+   - GardenerRegistry
+
+3. **Resolvers:**
    - WorkResolver
    - WorkApprovalResolver
    - AssessmentResolver
+   - GreenGoodsResolver (central fan-out)
 
-2. **EAS schemas:**
-   - Garden Assessment schema
+4. **Integration Modules:**
+   - OctantModule (yield vaults)
+   - UnlockModule (work badges)
+   - HatsModule (roles)
+
+5. **EAS Schemas:**
    - Work schema
    - Work Approval schema
+   - Garden Assessment schema
 
-3. **Root garden:**
-   - "Green Goods Community Garden" (tokenId: 1)
+6. **Initial Data:**
+   - Root garden (tokenId: 1)
+   - Core actions (Planting, Identify, Cleanup)
 
-4. **Core actions:**
-   - Planting (actionUID: 1)
-   - Identify Plant (actionUID: 2)
-   - Litter Cleanup (actionUID: 3)
+## Modular Architecture
 
-This infrastructure is always deployed — no flags needed.
+The deployment system is organized as:
+
+```
+script/
+├── deploy.ts              # Entry point (backward compat)
+├── deploy/
+│   ├── cli.ts            # CLI parser and router
+│   ├── core.ts           # Core contract deployment
+│   ├── gardens.ts        # Garden deployment
+│   ├── actions.ts        # Action deployment
+│   └── anvil.ts          # Anvil management
+├── utils/
+│   ├── cli-parser.ts     # Argument parsing
+│   ├── network.ts        # Network configuration
+│   ├── envio-integration.ts  # Auto-update indexer
+│   └── validation.ts     # Config validation
+├── Deploy.s.sol          # Forge deployment script
+└── Upgrade.s.sol         # Forge upgrade script
+```
 
 ## Post-Deployment
 
-### Verification
+### Verification (automatic)
+Contracts are auto-verified on broadcast for all networks except localhost.
 
+### Envio Integration (automatic)
+After successful deployment, the CLI auto-updates:
+- `packages/indexer/config.yaml` with new addresses
+- Runs codegen if needed
+
+### Manual verification
 ```bash
-# Verify on block explorer
-forge verify-contract \
-  --chain-id 84532 \
-  --watch \
-  $CONTRACT_ADDRESS \
-  src/Contract.sol:ContractName
-
-# Verify ownership
 cast call $GARDEN_TOKEN "owner()" --rpc-url $RPC
-
-# Verify schema
 cast call $EAS "getSchema(bytes32)" $SCHEMA_UID --rpc-url $RPC
-```
-
-### Integration
-
-After deployment:
-
-```bash
-# Update indexer
-cd packages/indexer && bun codegen
-
-# Rebuild frontend
-cd packages/client && bun build
 ```
 
 ## Reference Files
 
-- Deploy script: `script/deploy.js`
+- CLI entry: `script/deploy.ts`
+- Core deployer: `script/deploy/core.ts`
 - Forge script: `script/Deploy.s.sol`
-- Deployment guide: `/docs/DEPLOYMENT.md`
 - Root deployment rule: `/.cursor/rules/deployment.mdc`
