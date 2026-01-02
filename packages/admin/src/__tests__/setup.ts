@@ -1,7 +1,18 @@
-import "@testing-library/jest-dom";
-import { server } from "../__mocks__/server";
+/**
+ * Admin Package Test Setup
+ *
+ * Extends base test setup with admin-specific mocks.
+ */
 
-// Start MSW server for API mocking
+import { afterAll, afterEach, beforeAll, vi } from "vitest";
+
+// Import base setup from shared (includes common mocks)
+import "@green-goods/shared/__tests__/setupTests.base";
+
+// Import MSW server for GraphQL mocking
+import { server } from "@green-goods/shared/mocks";
+
+// Admin-specific: Start MSW server for API mocking
 beforeAll(() => {
   server.listen({ onUnhandledRequest: "error" });
 });
@@ -14,7 +25,7 @@ afterAll(() => {
   server.close();
 });
 
-// Mock environment variables
+// Admin-specific: Mock environment variables
 Object.defineProperty(import.meta, "env", {
   value: {
     VITE_PRIVY_APP_ID: "test-app-id",
@@ -28,7 +39,7 @@ Object.defineProperty(import.meta, "env", {
   writable: true,
 });
 
-// Mock react-hot-toast
+// Admin-specific: Mock react-hot-toast
 vi.mock("react-hot-toast", () => ({
   default: {
     success: vi.fn(),

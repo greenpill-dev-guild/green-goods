@@ -9,8 +9,9 @@ import { renderHook, type RenderHookOptions } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 
-// Re-export mock factories
+// Re-export mock factories and offline helpers
 export * from "./mock-factories";
+export * from "./offline-helpers";
 
 // ============================================
 // Query Client Factory

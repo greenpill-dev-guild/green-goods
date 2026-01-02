@@ -60,9 +60,16 @@ export default defineConfig({
       "@green-goods/shared/stores": path.resolve(__dirname, "../shared/src/stores"),
       "@green-goods/shared/mocks": path.resolve(__dirname, "../shared/src/mocks"),
       "@green-goods/shared/components": path.resolve(__dirname, "../shared/src/components"),
-      pino: path.resolve(__dirname, "./src/__mocks__/pino.ts"),
-      "node:diagnostics_channel": path.resolve(__dirname, "./src/__mocks__/diagnostics-channel.ts"),
-      diagnostics_channel: path.resolve(__dirname, "./src/__mocks__/diagnostics-channel.ts"),
+      // Node mocks now in shared package
+      pino: path.resolve(__dirname, "../shared/src/__mocks__/node/pino.ts"),
+      "node:diagnostics_channel": path.resolve(
+        __dirname,
+        "../shared/src/__mocks__/node/diagnostics-channel.ts"
+      ),
+      diagnostics_channel: path.resolve(
+        __dirname,
+        "../shared/src/__mocks__/node/diagnostics-channel.ts"
+      ),
     },
   },
 });
