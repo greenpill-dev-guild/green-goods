@@ -1,4 +1,6 @@
 /**
+ * @vitest-environment jsdom
+ *
  * JobQueueProvider Tests
  *
  * Tests for the job queue context provider and its hooks.
@@ -9,18 +11,17 @@ import { createElement, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
-// Mock dependencies - use vi.hoisted to ensure mocks are available at hoist time
-const { mockJobQueue, mockUseAuth, mockUseUser } = vi.hoisted(() => ({
-  mockJobQueue: {
-    getStats: vi.fn().mockResolvedValue({ total: 0, pending: 0, failed: 0, synced: 0 }),
-    flush: vi.fn().mockResolvedValue({ processed: 0, failed: 0, skipped: 0 }),
-    subscribe: vi.fn(() => vi.fn()),
-    hasPendingJobs: vi.fn().mockResolvedValue(false),
-    getPendingCount: vi.fn().mockResolvedValue(0),
-  },
-  mockUseAuth: vi.fn(),
-  mockUseUser: vi.fn(),
-}));
+// Mock dependencies
+const mockJobQueue = {
+  getStats: vi.fn().mockResolvedValue({ total: 0, pending: 0, failed: 0, synced: 0 }),
+  flush: vi.fn().mockResolvedValue({ processed: 0, failed: 0, skipped: 0 }),
+  subscribe: vi.fn(() => vi.fn()),
+  hasPendingJobs: vi.fn().mockResolvedValue(false),
+  getPendingCount: vi.fn().mockResolvedValue(0),
+};
+
+const mockUseAuth = vi.fn();
+const mockUseUser = vi.fn();
 
 vi.mock("../../modules/job-queue", () => ({
   jobQueue: mockJobQueue,

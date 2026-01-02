@@ -35,6 +35,7 @@ Reference these instead of recreating — they live in `docs/developer/architect
 | E2E Test Flow | `#e2e-test-flow` | Test infrastructure |
 | Deployment Flow | `#deployment-flow` | Contract deployment |
 | Indexer Flow | `#indexer-flow` | Event processing |
+| n8n Automation | `#n8n-automation` | Meeting → issue → Cloud Agent |
 
 **Example reference in explanations:**
 

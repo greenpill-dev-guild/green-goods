@@ -1,4 +1,6 @@
 /**
+ * @vitest-environment jsdom
+ *
  * WorkProvider Integration Tests
  *
  * Tests for work submission context provider, including:

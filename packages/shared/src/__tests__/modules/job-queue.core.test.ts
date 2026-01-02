@@ -1,4 +1,11 @@
+/**
+ * @vitest-environment jsdom
+ */
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+// Ensure fake-indexeddb is loaded before job-queue module
+import "fake-indexeddb/auto";
 
 vi.mock("../../modules/app/posthog", () => ({
   track: vi.fn(),

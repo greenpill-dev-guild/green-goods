@@ -287,9 +287,23 @@ I'll help you deploy locally (you have access to PRIVATE_KEY in .env)
 Validation: cd packages/client && bun test:e2e:smoke
 ```
 
+## n8n Fully Automated Pipeline
+
+For automated meeting-to-issue-to-agent workflows, see:
+- **n8n Guide**: `docs/developer/n8n-automation.md`
+- **Diagram**: `docs/developer/architecture/diagrams.md#n8n-automation`
+
+The n8n pipeline extends manual orchestration with:
+- Gemini notes extraction (LLM parses meeting notes)
+- Deduplication (searches existing issues first)
+- Severity/priority/size gating (auto-routes one-shot vs investigate)
+- State labels (`cursor:investigating`, `cursor:pr-open`, `triage:needed`)
+
 ## Reference Files
 
 - Full workflow guide: `docs/developer/cursor-workflows.md`
+- n8n automation: `docs/developer/n8n-automation.md`
+- Architecture diagrams: `docs/developer/architecture/diagrams.md`
 - Bugbot rules: `.cursor/BUGBOT.md`
 - Package patterns: `packages/*/.cursor/rules/*.mdc`
 - Test docs: `tests/README.md`, `tests/ARCHITECTURE.md`

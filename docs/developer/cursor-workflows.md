@@ -453,8 +453,23 @@ Validation: cd packages/indexer && bun test
 
 ---
 
+---
+
+## n8n Automated Pipeline
+
+For fully automated "meeting → issue → Cloud Agent" workflows, see [n8n Automation Guide](n8n-automation.md).
+
+This extends the manual orchestration above with:
+- **Gemini notes extraction**: LLM parses meeting notes for bugs
+- **Deduplication**: Searches existing issues before creating
+- **Severity/priority/size gating**: Auto-routes to one-shot vs investigation
+- **State tracking**: Labels like `cursor:investigating`, `cursor:pr-open`
+
+---
+
 ## Reference
 
+- [n8n Automation Guide](n8n-automation.md) — Full automated pipeline setup
 - [Cursor GitHub Integration](https://cursor.com/docs/integrations/github) — Cloud Agents + Bugbot setup
 - [Cursor Cloud Agents](https://cursor.com/docs/cloud-agent) — How Cloud Agents work
 - [Cursor Bugbot](https://cursor.com/docs/bugbot) — Automated PR review

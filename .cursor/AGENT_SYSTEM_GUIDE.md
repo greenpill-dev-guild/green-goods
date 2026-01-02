@@ -394,6 +394,7 @@ With this documentation system, agents can:
 - ✅ Leverage MCP tools effectively
 - ✅ Orchestrate Cloud Agents via GitHub MCP
 - ✅ Triage and dispatch multiple issues in parallel
+- ✅ Integrate with n8n automated pipelines (meeting → issue → agent)
 
 ## Maintenance
 

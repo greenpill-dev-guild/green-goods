@@ -297,6 +297,73 @@ sequenceDiagram
 
 ---
 
+## n8n Issue Automation {#n8n-automation}
+
+Meeting notes → GitHub issue → Cursor Cloud Agent pipeline.
+
+```mermaid
+flowchart TD
+  subgraph Meet["Google Meet + Gemini Notes"]
+    M1[Meeting ends] --> M2[Gemini notes created]
+    M2 --> M3{Notes moved to folder}
+    M3 -->|product sync| N1
+    M3 -->|community chat| N1
+  end
+
+  subgraph N8N["n8n Workflow"]
+    N1[Trigger: new doc in folder] --> N2[Fetch doc text]
+    N2 --> N3["LLM extract bug candidates<br/>(title, repro, area, severity,<br/>priority, size, confidence)"]
+    N3 --> N4["Dedup: search existing issues<br/>by keywords + error strings"]
+    N4 --> N5{Existing issue?}
+  end
+
+  subgraph GH["GitHub"]
+    G1["Update existing issue:<br/>comment + adjust labels"]
+    G2["Create new issue:<br/>priority + severity + size<br/>+ area:* + source:meeting"]
+    G3["Post @cursor comment<br/>(dispatch Cloud Agent)"]
+    G4["Cloud Agent opens PR"]
+  end
+
+  subgraph Gate["Severity / Priority / Size Gate"]
+    X1{"severity:low AND<br/>priority:P2/P3 AND<br/>size:XS/S?"}
+    X2["@cursor one-shot fix"]
+    X3["@cursor investigate only"]
+    X4{"Investigation says<br/>size ≤ M and safe?"}
+    X5["@cursor implement fix"]
+    X6["Notify humans for triage"]
+  end
+
+  subgraph Human["Humans"]
+    H1["Review PR + local tests<br/>(bun test:e2e:ui)"]
+    H2[Merge / request changes]
+  end
+
+  N5 -->|Yes| G1
+  N5 -->|No| G2
+  G1 --> X1
+  G2 --> X1
+
+  X1 -->|Yes| X2 --> G3
+  X1 -->|No| X3 --> G3
+
+  G3 --> G4 --> H1 --> H2
+
+  X3 -.-> X4
+  X4 -->|Yes| X5 --> G3
+  X4 -->|No| X6
+```
+
+**When to use:** Understanding automated issue creation, n8n setup, Cloud Agent dispatch.
+
+**Labels used:**
+- **priority** (custom field): P0, P1, P2, P3
+- **severity** (custom field): low, med, high
+- **size** (custom field): XS, S, M, L, XL
+- **area**: client, admin, shared, contracts, indexer, agent
+- **source**: meeting, bugbot, manual
+
+---
+
 ## Quick Reference
 
 | Diagram | Anchor | Use Case |
@@ -309,6 +376,7 @@ sequenceDiagram
 | E2E Test Flow | `#e2e-test-flow` | Test infrastructure, CI/CD |
 | Deployment Flow | `#deployment-flow` | Contract PRs, deploy.ts |
 | Indexer Flow | `#indexer-flow` | Indexer PRs, GraphQL issues |
+| n8n Automation | `#n8n-automation` | Meeting → issue → agent pipeline |
 
 ---
 

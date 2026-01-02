@@ -80,6 +80,7 @@
   * [E2E Test Quick Start](../tests/README.md)
   * [E2E Architecture](../tests/ARCHITECTURE.md)
 * [Cursor Agent Workflows](developer/cursor-workflows.md)
+* [n8n Issue Automation](developer/n8n-automation.md)
 * [API & Integration Reference](developer/api-reference.md)
 * [Contract Deployments & Upgrades](developer/contracts-handbook.md)
 * [IPFS Deployment](developer/ipfs-deployment.md)

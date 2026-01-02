@@ -144,11 +144,19 @@ export const simulateNetworkConditions = {
       writable: true,
       configurable: true,
     });
-    window.dispatchEvent(new Event("offline"));
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("offline"));
+    }
   },
   online: () => {
-    Object.defineProperty(navigator, "onLine", { value: true, writable: true, configurable: true });
-    window.dispatchEvent(new Event("online"));
+    Object.defineProperty(navigator, "onLine", {
+      value: true,
+      writable: true,
+      configurable: true,
+    });
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("online"));
+    }
   },
   slow: () => {
     // Mock slow network by adding delays to fetch
