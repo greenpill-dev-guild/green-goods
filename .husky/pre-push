@@ -1,15 +1,27 @@
 #!/usr/bin/env sh
+set -eu
 
-echo "🔍 Running format check before push..."
+# Enable pipefail only if supported (dash doesn't support it)
+(set -o pipefail) 2>/dev/null && set -o pipefail
 
-# Try bun first, fall back to npm
+echo "🔍 Running pre-push checks..."
+
+# Determine runner (bun preferred, npm fallback)
 if command -v bun >/dev/null 2>&1; then
-  bun run format:check
+  RUNNER="bun run"
 elif command -v npm >/dev/null 2>&1; then
-  npm run format:check
+  RUNNER="npm run"
 else
   echo "Error: Neither bun nor npm found. Install bun: https://bun.sh"
   exit 1
 fi
+
+# 1. Format check
+echo "📐 Checking formatting..."
+$RUNNER format:check
+
+# 2. Lint
+echo "🔎 Running linter..."
+$RUNNER lint
 
 echo "✅ Pre-push checks passed!"
