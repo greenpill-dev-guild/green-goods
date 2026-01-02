@@ -248,7 +248,8 @@ Verified on-chain: [Attestation UID]
 ```bash
 git clone https://github.com/greenpill-dev-guild/green-goods.git
 cd green-goods
-bun install
+bun setup    # Checks deps, installs packages, creates .env
+vi .env      # Add your API keys
 bun dev
 ```
 

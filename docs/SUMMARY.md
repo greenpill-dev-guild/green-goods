@@ -66,6 +66,7 @@
 ### Architecture & Packages
 
 * [Monorepo Structure](developer/architecture/monorepo-structure.md)
+* [Architecture Diagrams](developer/architecture/diagrams.md)
 * [Client (PWA)](developer/architecture/client-package.md)
 * [Admin Dashboard](developer/architecture/admin-package.md)
 * [Indexer](developer/architecture/indexer-package.md)
@@ -76,6 +77,9 @@
 ### Testing & Development
 
 * [Testing & QA](developer/testing.md)
+  * [E2E Test Quick Start](../tests/README.md)
+  * [E2E Architecture](../tests/ARCHITECTURE.md)
+* [Cursor Agent Workflows](developer/cursor-workflows.md)
 * [API & Integration Reference](developer/api-reference.md)
 * [Contract Deployments & Upgrades](developer/contracts-handbook.md)
 * [IPFS Deployment](developer/ipfs-deployment.md)

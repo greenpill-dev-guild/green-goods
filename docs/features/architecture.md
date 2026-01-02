@@ -8,35 +8,46 @@ A high-level overview of how Green Goods works—designed for users, operators, 
 
 Green Goods is a **full-stack regenerative impact platform** connecting mobile users, web dashboards, blockchain networks, and data infrastructure.
 
+```mermaid
+graph TD
+  subgraph Users["User Layer"]
+    G[Gardener<br/>Mobile PWA]
+    O[Operator<br/>Admin Dashboard]
+    E[Evaluator<br/>API/Explorers]
+  end
+
+  subgraph Apps["Application Layer"]
+    C[Client App<br/>React PWA]
+    A[Admin Dashboard<br/>React]
+    GQL[GraphQL API<br/>Envio]
+  end
+
+  subgraph Infra["Infrastructure Layer"]
+    IPFS[IPFS Storage<br/>Storacha]
+    SA[Smart Accounts<br/>Pimlico]
+    DB[Indexer DB<br/>PostgreSQL]
+  end
+
+  subgraph Chain["Blockchain Layer"]
+    ARB[Arbitrum One]
+    CELO[Celo]
+    BASE[Base Sepolia]
+    EAS[EAS Attestations]
+  end
+
+  G --> C
+  O --> A
+  E --> GQL
+  C --> IPFS
+  C --> SA
+  A --> GQL
+  GQL --> DB
+  SA --> ARB & CELO & BASE
+  ARB & CELO & BASE --> EAS
+  EAS --> DB
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    User Layer                            │
-│                                                          │
-│  Gardener (Mobile PWA)  ←→  Operator (Admin Dashboard)  │
-│  Evaluator (API/Explorers)                              │
-└─────────────────────────────────────────────────────────┘
-                          ↕
-┌─────────────────────────────────────────────────────────┐
-│                   Application Layer                      │
-│                                                          │
-│  Client App        Admin Dashboard        GraphQL API   │
-│  (React PWA)       (React Dashboard)      (Envio)       │
-└─────────────────────────────────────────────────────────┘
-                          ↕
-┌─────────────────────────────────────────────────────────┐
-│                  Infrastructure Layer                    │
-│                                                          │
-│  IPFS Storage      Smart Accounts        Indexer DB     │
-│  (Storacha)        (Pimlico)             (PostgreSQL)   │
-└─────────────────────────────────────────────────────────┘
-                          ↕
-┌─────────────────────────────────────────────────────────┐
-│                   Blockchain Layer                       │
-│                                                          │
-│  Arbitrum One  ←→  Celo  ←→  Base Sepolia              │
-│  (Smart Contracts + EAS Attestations)                   │
-└─────────────────────────────────────────────────────────┘
-```
+
+> **Detailed diagrams:** See [Architecture Diagrams](../developer/architecture/diagrams.md) for sequence diagrams of specific flows.
 
 ---
 
