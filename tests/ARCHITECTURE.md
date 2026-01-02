@@ -3,26 +3,30 @@
 Technical deep dive into the Green Goods E2E testing infrastructure.
 
 > **For quick start and usage:** See [`README.md`](./README.md)
+>
+> **Canonical diagrams:** See [E2E Test Flow](../docs/developer/architecture/diagrams.md#e2e-test-flow) for the execution lifecycle.
 
 ## Platform Matrix
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     GREEN GOODS E2E TESTS                    │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+  subgraph Tests["GREEN GOODS E2E TESTS"]
+    subgraph Browsers["Browser Projects"]
+      CH[Chromium<br/>Desktop]
+      AC[Android Chrome<br/>Pixel 5]
+      IS[iOS Safari<br/>iPhone 13 Pro]
+    end
 
-┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
-│   CHROMIUM       │  │  ANDROID CHROME  │  │   iOS SAFARI     │
-│  (Desktop)       │  │   (Pixel 5)      │  │  (iPhone 13 Pro) │
-└──────────────────┘  └──────────────────┘  └──────────────────┘
-         │                     │                      │
-         ▼                     ▼                      ▼
-┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
-│  ADMIN DASHBOARD │  │   CLIENT PWA     │  │   CLIENT PWA     │
-│                  │  │                  │  │                  │
-│  Auth: Wallet    │  │  Auth: Passkey   │  │  Auth: Wallet    │
-│  (Storage)       │  │  (Virtual WebAuthn)│  │  (Storage)       │
-└──────────────────┘  └──────────────────┘  └──────────────────┘
+    subgraph Apps["Target Applications"]
+      AD[Admin Dashboard<br/>Auth: Wallet Storage]
+      CP1[Client PWA<br/>Auth: Passkey Virtual WebAuthn]
+      CP2[Client PWA<br/>Auth: Wallet Storage]
+    end
+
+    CH --> AD
+    AC --> CP1
+    IS --> CP2
+  end
 ```
 
 ## Authentication Implementation
@@ -153,31 +157,32 @@ await page.goto("/dashboard");
 
 ## Test Execution Flow
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Playwright Test Run                       │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+  subgraph Setup["1. Setup Phase"]
+    GS[global-setup.ts] --> ENV[Set env vars]
+    ENV --> HC[Health check optional]
+  end
 
-1. global-setup.ts
-   ├─ Set env vars (TEST_CLIENT_URL, etc.)
-   ├─ Health check services (optional)
-   └─ Continue
+  subgraph WebServer["2. WebServer if not SKIP_WEBSERVER"]
+    HC --> IDX[Start indexer<br/>port 8080]
+    HC --> CLI[Start client<br/>port 3001]
+    HC --> ADM[Start admin<br/>port 3002]
+  end
 
-2. webServer (if not SKIP_WEBSERVER)
-   ├─ Start indexer (port 8080)
-   ├─ Start client (port 3001)
-   └─ Start admin (port 3002)
+  subgraph Execution["3. Test Execution parallel"]
+    IDX & CLI & ADM --> CS[client.smoke.spec.ts]
+    IDX & CLI & ADM --> AS[admin.smoke.spec.ts]
+    CS --> CH1[Chromium: passkey]
+    CS --> MC[mobile-chrome: passkey]
+    CS --> MS[mobile-safari: wallet]
+    AS --> CH2[Chromium: wallet]
+  end
 
-3. Run test specs in parallel
-   ├─ client.smoke.spec.ts
-   │   ├─ Chromium: passkey tests
-   │   ├─ mobile-chrome: passkey tests
-   │   └─ mobile-safari: wallet tests
-   └─ admin.smoke.spec.ts
-       └─ Chromium: wallet tests
-
-4. global-teardown.ts
-   └─ Log completion (future: cleanup test data)
+  subgraph Teardown["4. Teardown"]
+    CH1 & MC & MS & CH2 --> GT[global-teardown.ts]
+    GT --> DONE([Complete])
+  end
 ```
 
 ## Test Helper Architecture

@@ -150,23 +150,34 @@ bun tests/run-tests.ts mobile:ios
 bun tests/run-tests.ts help
 ```
 
-## Debugging
+## Watch Tests Run
 
-### Playwright UI (Recommended)
+Two ways to observe test execution:
+
+| Mode | Command | Best For |
+|------|---------|----------|
+| **Playwright UI** | `bun test:e2e:ui` | Time-travel debugging, DOM inspection |
+| **Headed Browser** | `bun tests/run-tests.ts headed` | Quick visual verification |
+
+### Playwright UI (Recommended for Debugging)
 
 ```bash
 bun test:e2e:ui
 ```
 
-Features: time-travel debugging, step-through, DOM inspection.
+Features:
+- Time-travel through test execution
+- Inspect DOM at any step
+- View network requests and console
+- Re-run individual tests
 
-### Headed Mode
+### Headed Mode (Quick Visual Check)
 
 ```bash
 bun tests/run-tests.ts headed
 ```
 
-Watch browser execute tests in real-time.
+Watch the browser execute tests in real-time. Faster startup than UI mode.
 
 ### Debug Specific Test
 
@@ -177,9 +188,13 @@ npx playwright test tests/specs/client.smoke.spec.ts --debug
 ### Trace Viewer
 
 ```bash
-# After test failure
+# After test failure, view the trace
 npx playwright show-report
 ```
+
+### Cursor + Playwright Workflow
+
+For the complete Issue → Agent → Tests → Fix workflow, see [Cursor Workflows](../docs/developer/cursor-workflows.md).
 
 ## Configuration
 
