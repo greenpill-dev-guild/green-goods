@@ -6,6 +6,12 @@ import { useAuth } from "../hooks/auth/useAuth";
 import { useUser } from "../hooks/auth/useUser";
 import { queryKeys } from "../hooks/query-keys";
 import { jobQueue } from "../modules/job-queue";
+import type {
+  QueueStats,
+  QueueEvent,
+  WorkJobPayload,
+  ApprovalJobPayload,
+} from "../types/job-queue";
 
 interface JobQueueContextValue {
   stats: QueueStats;

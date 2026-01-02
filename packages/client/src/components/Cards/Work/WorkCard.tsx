@@ -7,6 +7,7 @@ import {
   truncateAddress,
 } from "@green-goods/shared/utils";
 import { getStatusColors, StatusBadge } from "@green-goods/shared/components";
+import type { Work } from "@green-goods/shared";
 import {
   RiCheckLine,
   RiCloseLine,

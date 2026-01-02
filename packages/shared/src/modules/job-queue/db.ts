@@ -1,6 +1,7 @@
 import { type IDBPDatabase, openDB } from "idb";
 import { normalizeToFile } from "../../utils/app/normalizeToFile";
 import { mediaResourceManager } from "./media-resource-manager";
+import type { Job, JobQueueDBImage, CachedWork } from "../../types/job-queue";
 
 const DB_NAME = "green-goods-job-queue";
 const DB_VERSION = 5; // Incremented for userAddress field

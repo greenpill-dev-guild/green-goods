@@ -7,6 +7,8 @@ import { jobQueueEventBus, useJobQueueEvents } from "../../modules/job-queue/eve
 import { useMerged } from "../app/useMerged";
 import { useUser } from "../auth/useUser";
 import { queryKeys } from "../query-keys";
+import type { Job, WorkJobPayload } from "../../types/job-queue";
+import type { Work } from "../../types/domain";
 
 // Helper function to convert job payload to Work model
 export function jobToWork(job: Job<WorkJobPayload>): Work {

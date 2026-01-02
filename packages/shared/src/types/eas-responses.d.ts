@@ -1,8 +1,15 @@
 /**
- * EAS GraphQL Response Types
+ * DEPRECATED: Global EAS response types
  *
- * Type definitions for Ethereum Attestation Service GraphQL API responses.
- * These types match the structure returned by the EAS GraphQL endpoint.
+ * These global declarations are kept for backward compatibility only.
+ * Import from '@green-goods/shared' instead:
+ *
+ * @example
+ * ```typescript
+ * import type { EASAttestationRaw, EASWork, EASWorkApproval } from '@green-goods/shared';
+ * ```
+ *
+ * This file will be removed in a future version.
  */
 
 /**

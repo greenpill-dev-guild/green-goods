@@ -2,6 +2,13 @@ import { getEASConfig } from "../../config/blockchain";
 import { easGraphQL } from "./graphql";
 import { resolveIPFSUrl } from "./ipfs";
 import { createEasClient } from "./urql";
+import type {
+  EASAttestationRaw,
+  EASDecodedField,
+  EASGardenAssessment,
+  EASWork,
+  EASWorkApproval,
+} from "../../types/eas-responses";
 
 const GATEWAY_BASE_URL = "https://w3s.link";
 

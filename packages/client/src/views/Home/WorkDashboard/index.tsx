@@ -15,6 +15,7 @@ import {
   isUserAddress as sharedIsUserAddress,
   type TimeFilter,
 } from "@green-goods/shared/utils";
+import type { Work, Job, WorkJobPayload } from "@green-goods/shared";
 import { RiCheckLine, RiCloseLine, RiTaskLine, RiTimeLine } from "@remixicon/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";
@@ -26,6 +27,7 @@ import { PendingTab } from "./Pending";
 import { TimeFilterControl } from "./TimeFilterControl";
 import { UploadingTab } from "./Uploading";
 
+// Component-specific props (not a domain type)
 export interface WorkDashboardProps {
   className?: string;
   onClose?: () => void;

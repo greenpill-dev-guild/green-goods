@@ -1,7 +1,4 @@
-import type { Hex } from "viem";
-
 export type ChainId = number;
-export type Address = Hex;
 
 export interface DeploymentConfig {
   gardenToken?: Address;

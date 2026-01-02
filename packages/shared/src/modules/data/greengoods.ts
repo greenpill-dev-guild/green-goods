@@ -1,20 +1,13 @@
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { Capital } from "../../types/domain";
 import { greenGoodsGraphQL } from "./graphql";
 import { getFileByHash, resolveIPFSUrl } from "./ipfs";
 import { greenGoodsIndexer, withTimeout, INDEXER_TIMEOUT_MS } from "./urql";
 
 const GATEWAY_BASE_URL = "https://w3s.link";
 
-export enum Capital {
-  SOCIAL = 0,
-  MATERIAL = 1,
-  FINANCIAL = 2,
-  LIVING = 3,
-  INTELLECTUAL = 4,
-  EXPERIENTIAL = 5,
-  SPIRITUAL = 6,
-  CULTURAL = 7,
-}
+// Re-export Capital for backward compatibility
+export { Capital };
 
 /** Fetches action definitions from the indexer and enriches media + UI config. */
 export async function getActions(): Promise<Action[]> {

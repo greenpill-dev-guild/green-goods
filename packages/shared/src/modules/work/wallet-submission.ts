@@ -18,6 +18,7 @@ import { wagmiConfig } from "../../config/appkit";
 import { getEASConfig } from "../../config/blockchain";
 import { queryClient } from "../../config/react-query";
 import { queryKeys } from "../../hooks/query-keys";
+import type { EASWork, EASWorkApproval } from "../../types/eas-responses";
 import { ANALYTICS_EVENTS, trackWalletSubmissionTiming } from "../../modules/app/analytics-events";
 import { track } from "../../modules/app/posthog";
 import { EASABI } from "../../utils/blockchain/contracts";

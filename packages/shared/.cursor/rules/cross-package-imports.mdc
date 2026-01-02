@@ -57,10 +57,24 @@ import { useAuth } from "@green-goods/shared/src/hooks/auth/useAuth";
 | **Providers** | `src/providers/` | Auth, JobQueue, Work, App |
 | **Stores** | `src/stores/` | Zustand stores |
 | **Modules** | `src/modules/` | Core business logic |
-| **Types** | `src/types/` | Shared TypeScript types |
+| **Types** | `src/types/` | ALL domain types (explicit imports) |
 | **Utils** | `src/utils/` | Utility functions |
 | **Config** | `src/config/` | Chain, blockchain config |
 | **i18n** | `src/i18n/` | Translations |
+
+## Type Import Pattern (Required)
+
+**ALL domain types must be explicitly imported:**
+
+```typescript
+// ✅ Correct - explicit imports
+import type { Garden, Work, Action, Job, WorkJobPayload } from '@green-goods/shared';
+
+// ❌ Wrong - relying on global types
+const garden: Garden = { ... }; // Don't assume globals
+```
+
+**See:** `.cursor/rules/type-system.mdc` for complete type guidelines.
 
 ## What Stays in Packages
 

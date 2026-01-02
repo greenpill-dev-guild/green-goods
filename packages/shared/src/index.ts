@@ -192,7 +192,6 @@ export {
   // Session management
   AUTH_MODE_STORAGE_KEY,
   browserTranslator,
-  Capital,
   clearAllAuth,
   clearAllAuthStorage,
   clearAuthMode,
@@ -296,15 +295,76 @@ export {
 // TYPES
 // ============================================================================
 export type {
+  // Domain types
   Address,
-  AuthMode,
-  BaseAuthContext,
-  ChainId,
+  GardenerCard,
+  GardenCard,
+  Garden,
+  PlantInfo,
+  SpeciesRegistry,
+  GardenAssessment,
+  AssessmentDraft,
+  ActionCard,
+  Action,
+  WorkInput,
+  WorkDraft,
+  WorkCard,
+  Work,
+  WorkMetadata,
+  WorkApprovalDraft,
+  WorkApproval,
+  ActionInstructionConfig,
+  Link,
+  // Job queue types
+  Job,
+  QueueEvent,
+  JobProcessor,
+  WorkJobPayload,
+  ApprovalJobPayload,
+  JobKindMap,
+  JobKind,
+  JobPayload,
+  QueueSubscriber,
+  QueueStats,
+  JobQueueDBImage,
+  CachedWork,
+  // Offline types
+  OfflineStatus,
+  OfflineDashboardData,
+  OfflineWorkItem,
+  SyncMetrics,
+  OfflineSettings,
+  OfflineCapabilities,
+  WorkConflict,
+  DuplicateCheckResult,
+  // Indexer response types
+  IndexerGarden,
+  IndexerGardensResponse,
+  IndexerAction,
+  IndexerActionsResponse,
+  IndexerGardener,
+  IndexerGardenersResponse,
+  // EAS response types
+  EASAttestationRaw,
+  EASAttestationsResponse,
+  EASDecodedField,
+  EASGardenAssessment,
+  EASWork,
+  EASWorkApproval,
+  // Contract types
   CreateGardenParams,
-  DeploymentConfig,
   DeploymentParams,
   NetworkContracts,
+  // Blockchain types
+  ChainId,
+  DeploymentConfig,
+  // Auth types
+  AuthMode,
+  BaseAuthContext,
 } from "./types/index";
+
+// Re-export Capital enum
+export { Capital } from "./types/index";
 // ============================================================================
 // UTILITIES
 // ============================================================================
