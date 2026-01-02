@@ -1,0 +1,295 @@
+---
+description: Cloud Agent orchestration patterns — GitHub MCP dispatch, templates, triage
+alwaysApply: true
+---
+
+# Agent Orchestration Patterns
+
+This rule documents how to use Cursor's GitHub MCP (with write access) and Cloud Agents for parallel issue dispatch.
+
+## Two GitHub Integrations
+
+| Integration | Purpose | How to Use |
+|-------------|---------|------------|
+| **GitHub MCP** (global) | In-editor orchestration | `@github:` tool calls (read/write) |
+| **GitHub App** (cloud) | Cloud Agents + Bugbot | `@cursor` comments on issues/PRs |
+
+**They work together:** GitHub MCP posts `@cursor` comments → GitHub App spawns Cloud Agents.
+
+## When to Orchestrate (Cloud Agent Dispatch)
+
+Use this pattern when:
+- User asks to "tackle multiple issues"
+- User wants to "parallelize work"
+- Issues are simple bugs/docs/scaffolding
+- User mentions "Cloud Agents" or "orchestrate"
+
+**Don't use for:**
+- Single issue investigation (use local agent)
+- UI changes that need visual verification
+- Auth/passkey flows (needs `.env` secrets)
+- Contract deployment (needs private keys)
+
+## Orchestration Flow
+
+### Step 1: Triage Issues
+
+When user asks to orchestrate, first triage:
+
+```typescript
+// Use GitHub MCP to list issues
+@github: List open issues labeled "bug" or "feature" in greenpill-dev-guild/green-goods
+
+// Then analyze each:
+{
+  issueNumber: 123,
+  title: "Loading spinner not showing",
+  affectedPackages: ["client"],
+  complexity: "trivial", // trivial | medium | complex
+  recommendation: "cloud-agent", // cloud-agent | local-agent
+  reason: "Simple UI fix, good for Cloud Agent",
+  validation: "bun test:e2e:smoke"
+}
+```
+
+### Step 2: Dispatch Cloud Agents
+
+For each Cloud Agent candidate, post a dispatch comment:
+
+```typescript
+@github: Post comment on issue #123: "@cursor {template}"
+```
+
+Use the appropriate template from the section below.
+
+### Step 3: Track Progress
+
+After dispatch:
+
+```typescript
+@github: List PRs authored by cursor[bot] in greenpill-dev-guild/green-goods
+```
+
+Show user:
+- PR title and linked issue
+- CI status
+- Review state
+
+## Dispatch Templates
+
+### Bug Fix Template
+
+```
+@cursor Investigate and fix this bug.
+
+Constraints:
+- Identify root cause before implementing fix
+- Add a regression test
+- Keep changes minimal and focused
+- Follow repo patterns in .cursor/rules/
+
+Validation: bun test && bun lint
+```
+
+### Feature Scaffold Template
+
+```
+@cursor Scaffold this feature.
+
+Constraints:
+- Hooks/providers in @green-goods/shared only
+- UI components in packages/client (or admin)
+- Add unit tests for new logic
+- Add data-testid for e2e stability
+- Follow design-system.mdc tokens
+
+Validation: bun test && bun test:e2e:smoke
+```
+
+### Documentation Template
+
+```
+@cursor Update documentation.
+
+Constraints:
+- Update affected .md files and READMEs
+- Keep examples runnable
+- Update SUMMARY.md if adding new docs
+- Check for broken links
+
+Validation: grep -r "broken-link" docs/
+```
+
+### Contract Template
+
+```
+@cursor Implement this contract change.
+
+Constraints:
+- Use custom errors (not require strings)
+- Emit events for state changes
+- Add storage gaps if upgradeable
+- Don't modify config/schemas.json
+- Create test in packages/contracts/test/
+
+Validation: cd packages/contracts && bun test
+```
+
+### Indexer Template
+
+```
+@cursor Update the indexer for this event.
+
+Constraints:
+- Include chainId in all entities
+- Use composite IDs: ${chainId}-${identifier}
+- Update bidirectional relationships
+- Add test in packages/indexer/test/
+
+Validation: cd packages/indexer && bun test
+```
+
+### Admin Template
+
+```
+@cursor Implement this admin feature.
+
+Constraints:
+- Check permissions with useGardenPermissions
+- Use RequireDeployer or RequireOperatorOrDeployer guards
+- Toast feedback with useToastAction
+- Follow access-control.mdc patterns
+
+Validation: cd packages/admin && bun test
+```
+
+### Agent (Bot) Template
+
+```
+@cursor Implement this agent feature.
+
+Constraints:
+- Keep handlers pure functions
+- Use dependency injection for testability
+- Rate limit expensive operations
+- Encrypt sensitive data before storage
+- Follow architecture.mdc patterns
+
+Validation: cd packages/agent && bun test
+```
+
+## Cloud vs Local Decision Matrix
+
+| Scenario | Cloud Agent | Local Agent | Why |
+|----------|-------------|-------------|-----|
+| Simple bug fix | ✅ | ⚠️ | Fast parallel dispatch |
+| Documentation update | ✅ | ⚠️ | No secrets needed |
+| Batch scaffolding | ✅ | ❌ | Parallelize multiple |
+| UI changes | ⚠️ | ✅ | Need `bun test:e2e:ui` |
+| Auth/passkey flow | ❌ | ✅ | Needs `.env` secrets |
+| Complex refactoring | ❌ | ✅ | Needs human guidance |
+| Contract deployment | ❌ | ✅ | Needs private keys |
+| Test debugging | ❌ | ✅ | Need Playwright UI |
+
+✅ = Best choice
+⚠️ = Works but suboptimal
+❌ = Won't work or not recommended
+
+## Package-Specific Validation Commands
+
+When creating dispatch templates, use the correct validation:
+
+| Package | Validation Command |
+|---------|-------------------|
+| **client** | `cd packages/client && bun test && bun test:e2e:smoke` |
+| **admin** | `cd packages/admin && bun test` |
+| **shared** | `cd packages/shared && bun test` |
+| **contracts** | `cd packages/contracts && bun test` |
+| **indexer** | `cd packages/indexer && bun test` |
+| **agent** | `cd packages/agent && bun test` |
+| **root** | `bun test && bun lint` |
+
+## Bugbot Auto-Fix
+
+When user wants to fix Bugbot warnings in a PR:
+
+```typescript
+@github: Post comment on PR #456: "@cursor fix"
+```
+
+The Cloud Agent reads Bugbot's analysis (from `.cursor/BUGBOT.md`) and applies fixes.
+
+## Example Orchestration Session
+
+**User:** "Can you tackle the 5 open bugs labeled 'good first issue'?"
+
+**Agent response:**
+
+```
+I'll orchestrate Cloud Agents to tackle these issues in parallel.
+
+Analyzing open issues...
+
+✅ Good for Cloud Agent (3):
+- #101: Loading spinner not appearing (client, trivial)
+- #102: Missing aria-labels (client, trivial)
+- #103: Use shared formatDate (client, trivial)
+
+⚠️ Need local agent (1):
+- #104: Passkey auth failing on Android (needs .env secrets)
+
+❌ Too complex for Cloud Agent (1):
+- #105: Refactor offline queue (needs architecture discussion)
+
+Dispatching Cloud Agents for #101, #102, #103...
+[Posts dispatch comments via GitHub MCP]
+
+Tracking:
+- #101 → PR #201 (opened, CI passing)
+- #102 → PR #202 (opened, CI running)
+- #103 → PR #203 (opened, CI passing)
+
+For #104 and #105, shall I investigate locally?
+```
+
+## Common Mistakes to Avoid
+
+❌ **Don't dispatch without triage:**
+```
+@github: Post "@cursor fix everything" on all open issues
+```
+
+✅ **Do triage first:**
+```
+1. List issues
+2. Analyze each (package, complexity, secrets needed)
+3. Dispatch only suitable ones with specific templates
+```
+
+❌ **Don't use Cloud Agent for secrets:**
+```
+@cursor Deploy contracts to mainnet
+```
+
+✅ **Do use local agent:**
+```
+I'll help you deploy locally (you have access to PRIVATE_KEY in .env)
+```
+
+❌ **Don't ignore validation commands:**
+```
+@cursor Fix this. No template.
+```
+
+✅ **Do include package-specific validation:**
+```
+@cursor Fix this.
+Validation: cd packages/client && bun test:e2e:smoke
+```
+
+## Reference Files
+
+- Full workflow guide: `docs/developer/cursor-workflows.md`
+- Bugbot rules: `.cursor/BUGBOT.md`
+- Package patterns: `packages/*/.cursor/rules/*.mdc`
+- Test docs: `tests/README.md`, `tests/ARCHITECTURE.md`

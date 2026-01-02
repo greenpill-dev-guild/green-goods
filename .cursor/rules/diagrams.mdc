@@ -1,0 +1,114 @@
+---
+description: When to generate Mermaid diagrams and canonical diagram references
+globs:
+alwaysApply: true
+---
+
+# Mermaid Diagram Standards
+
+Use diagrams to clarify cross-package flows and complex workflows. Reference canonical diagrams instead of recreating them.
+
+## When to Generate Diagrams
+
+Generate a Mermaid diagram when:
+- Explaining a **cross-package flow** (client → shared → contracts → indexer)
+- Documenting a **multi-step workflow** (offline submission, approval, auth)
+- Answering "how does X work?" for non-trivial flows
+- PR descriptions that touch **3+ packages**
+
+Skip diagrams for:
+- Single-file changes
+- Simple CRUD operations
+- Code that's self-explanatory
+
+## Canonical Diagrams
+
+Reference these instead of recreating — they live in `docs/developer/architecture/diagrams.md`:
+
+| Flow | Anchor | Use When |
+|------|--------|----------|
+| System Context | `#system-context` | Explaining package relationships |
+| Work Submission | `#work-submission` | Offline queue, IPFS, attestations |
+| Work Approval | `#work-approval` | Operator review, GAP integration |
+| Auth Flow | `#auth-flow` | Passkey vs wallet branching |
+| Provider Hierarchy | `#provider-hierarchy` | React context nesting |
+| E2E Test Flow | `#e2e-test-flow` | Test infrastructure |
+| Deployment Flow | `#deployment-flow` | Contract deployment |
+| Indexer Flow | `#indexer-flow` | Event processing |
+
+**Example reference in explanations:**
+
+```markdown
+See [Work Submission Flow](docs/developer/architecture/diagrams.md#work-submission) 
+for the complete offline → online → indexed sequence.
+```
+
+## Diagram Generation Pattern
+
+Follow the C4-style approach (start detailed, abstract up):
+
+1. **Level 1 (detailed)**: Sequence diagram of specific function/handler
+2. **Level 2 (summary)**: Flowchart of component interactions
+3. **Level 3 (context)**: System map showing packages + external systems
+
+**Example prompt:** "Show me a sequence diagram of work submission from form to attestation"
+
+## Mermaid Syntax Quick Reference
+
+```mermaid
+%% Flowchart (logic, data flow)
+graph TD
+  A[Start] --> B{Decision}
+  B -->|Yes| C[Action]
+  B -->|No| D[Other]
+
+%% Sequence (interactions over time)
+sequenceDiagram
+  participant U as User
+  participant S as Server
+  U->>S: Request
+  S-->>U: Response
+```
+
+**Tips:**
+- `graph TD` = top-down, `graph LR` = left-right
+- Use `subgraph` to group related nodes
+- Wrap labels with special chars in quotes
+- Use `-->` for arrows, `-.->` for dotted
+
+## PR Diagram Ritual
+
+For PRs touching cross-package flows:
+
+1. Include a Mermaid snippet in the PR description showing affected data path
+2. Reviewers verify the diagram matches the code changes
+3. If the change affects a canonical diagram, update `diagrams.md`
+
+**Example PR description:**
+
+```markdown
+## Changes
+
+Updates work submission to include image compression.
+
+## Data Flow
+
+```mermaid
+sequenceDiagram
+  UI->>Compressor: Raw images
+  Compressor->>Queue: Compressed images
+  Queue->>IPFS: Upload
+```
+
+See [Work Submission Flow](docs/developer/architecture/diagrams.md#work-submission) for full context.
+```
+
+## Updating Canonical Diagrams
+
+If your change affects a canonical flow:
+
+1. Update the diagram in `docs/developer/architecture/diagrams.md`
+2. Include the diagram update in your PR
+3. Mention "Updates canonical diagram" in commit message
+
+**Never create parallel diagrams** — extend or update the canonical ones.

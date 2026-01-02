@@ -13,6 +13,10 @@ The admin dashboard uses role-based access control with three levels: admin (all
 
 **Note:** Role hooks are in `@green-goods/shared`. Route guards are in `packages/admin/src/routes/`.
 
+## Visual Reference
+
+See [Work Approval Flow](docs/developer/architecture/diagrams.md#work-approval) for the complete operator → attestation → GAP sequence.
+
 ## Role Hierarchy
 
 ```typescript

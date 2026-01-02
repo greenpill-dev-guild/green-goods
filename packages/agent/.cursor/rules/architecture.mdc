@@ -11,18 +11,33 @@ Detailed patterns for the Green Goods agent. See `AGENTS.md` for overview.
 
 ## Data Flow
 
-```
-User → Platform API → toInboundMessage() → handleMessage() router
-                                                    │
-                    ┌───────────────────────────────┼───────────────────────────────┐
-                    ▼                               ▼                               ▼
-            handleCommand()                  handleText()                   handleVoice()
-                    │                               │                               │
-                    └───────────────────────────────┼───────────────────────────────┘
-                                                    ▼
-                                    HandlerResult { response, updateSession? }
-                                                    ▼
-                                           toResponse() → Platform API → User
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant P as Platform API<br/>(Telegram/Discord)
+  participant A as Agent
+  participant H as Handler Router
+  participant S as Services<br/>(DB/Blockchain/AI)
+
+  U->>P: Send message/command
+  P->>A: Platform webhook event
+  A->>A: toInboundMessage()
+  A->>H: handleMessage(inboundMsg)
+  
+  alt Command
+    H->>H: handleCommand()
+  else Text
+    H->>H: handleText()
+  else Voice
+    H->>H: handleVoice()
+  end
+  
+  H->>S: Call services (DB, chain, AI)
+  S-->>H: Service response
+  H-->>A: HandlerResult
+  A->>A: toResponse()
+  A->>P: Platform message format
+  P->>U: Display response
 ```
 
 ## Layer Patterns

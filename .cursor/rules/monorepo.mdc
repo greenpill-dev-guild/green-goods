@@ -8,6 +8,10 @@ alwaysApply: true
 
 Green Goods is a bun monorepo with 6 packages. This rule provides guidance on cross-package patterns and when to share vs duplicate code.
 
+## Visual Reference
+
+See [System Context Diagram](docs/developer/architecture/diagrams.md#system-context) for package relationships and external integrations.
+
 ## Package Architecture
 
 ```
@@ -102,6 +106,14 @@ If you need new hook functionality:
 See `packages/shared/.cursor/rules/hook-architecture.mdc` for full hook documentation.
 
 ## Workspace Commands
+
+### Initial Setup
+
+```bash
+bun setup  # Checks deps, installs packages, creates .env
+```
+
+The setup script validates Node.js 20+, Bun, Git (required) and Docker, Foundry (optional), then runs `bun install` and creates `.env` from template.
 
 ### Running Commands
 

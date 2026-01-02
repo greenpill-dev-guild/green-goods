@@ -12,6 +12,10 @@ alwaysApply: false
 
 Unified testing patterns for Green Goods TypeScript packages.
 
+## Visual Reference
+
+See [E2E Test Flow](docs/developer/architecture/diagrams.md#e2e-test-flow) for the Playwright execution lifecycle.
+
 ## Testing Stack
 
 | Tool | Purpose |

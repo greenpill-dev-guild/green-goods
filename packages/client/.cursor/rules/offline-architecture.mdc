@@ -12,6 +12,10 @@ Client-specific patterns for using the offline job queue system.
 
 **Core modules live in `@green-goods/shared`.** See `shared/.cursor/rules/state-patterns.mdc` for job queue internals.
 
+## Visual Reference
+
+See [Work Submission Flow](docs/developer/architecture/diagrams.md#work-submission) for the complete offline → online → indexed sequence.
+
 ## Core Principle
 
 **Event-driven, no polling:**

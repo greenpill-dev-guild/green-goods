@@ -10,6 +10,10 @@ alwaysApply: false
 
 Green Goods uses **passkey-first authentication** with WebAuthn and Kernel smart accounts. Wallet connection is fallback for operators/admins.
 
+## Visual Reference
+
+See [Auth Flow Diagram](docs/developer/architecture/diagrams.md#auth-flow) for the complete passkey vs wallet branching logic.
+
 ## Auth Modes
 
 | Mode | Users | Technology | UX |

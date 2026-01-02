@@ -9,6 +9,10 @@ alwaysApply: false
 
 Admin-specific test patterns. Common patterns are in `shared/.cursor/rules/testing-patterns.mdc`.
 
+## Visual Reference
+
+See [E2E Test Flow](docs/developer/architecture/diagrams.md#e2e-test-flow) for the Playwright test execution lifecycle.
+
 ## Test Structure
 
 ```

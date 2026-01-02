@@ -12,6 +12,10 @@ alwaysApply: false
 
 This rule covers Envio-specific patterns for Green Goods indexer.
 
+## Visual Reference
+
+See [Indexer Flow Diagram](docs/developer/architecture/diagrams.md#indexer-flow) for the complete event processing sequence from blockchain to GraphQL.
+
 ## Entity Requirements
 
 ### Mandatory: chainId Field

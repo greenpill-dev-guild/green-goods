@@ -11,6 +11,10 @@ alwaysApply: false
 
 Green Goods uses specialized tools for different state concerns. This rule documents the patterns.
 
+## Visual Reference
+
+See [Provider Hierarchy Diagram](docs/developer/architecture/diagrams.md#provider-hierarchy) for the required nesting order.
+
 ## State Tool Selection
 
 | Concern | Tool | Package |

@@ -12,6 +12,10 @@ alwaysApply: false
 
 Green Goods contracts use a TypeScript-based deployment CLI. This rule documents the deployment system.
 
+## Visual Reference
+
+See [Deployment Flow](docs/developer/architecture/diagrams.md#deployment-flow) for the complete deploy.ts execution sequence.
+
 ## MANDATORY: Use deploy.ts
 
 **✅ ALWAYS:**
