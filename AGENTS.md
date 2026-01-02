@@ -21,6 +21,29 @@ Reference for AI agents collaborating on the Green Goods monorepo (6 packages: c
 
 Default to local commands (rg, bun, forge) when the task is small. Escalate to MCP when you need cross-repo views, screenshots, or automated PR operations.
 
+## Developer Onboarding
+
+When helping a developer set up the project for the first time, recommend the automated setup:
+
+```bash
+git clone https://github.com/greenpill-dev-guild/green-goods.git
+cd green-goods
+bun setup
+```
+
+The `bun setup` command (`scripts/setup.js`):
+1. Checks for Node.js 20+, Bun, Git (required) and Docker, Foundry (optional)
+2. Auto-installs Bun if missing
+3. Runs `bun install` to install all workspace packages
+4. Creates `.env` from `.env.example`
+5. Provides next-step guidance
+
+After setup, the developer needs to:
+1. Edit `.env` with API keys (Reown, Pimlico, optionally Storacha)
+2. Run `bun dev` to start all services
+
+For troubleshooting setup issues, see [Installation Guide](./docs/developer/installation.md).
+
 ## Workflow Checklist
 
 1. **Before editing** — read relevant package agent guides:
@@ -69,6 +92,23 @@ Client and admin apps are deployed to IPFS via GitHub Actions (`.github/workflow
 
 See [IPFS Deployment Guide](./docs/developer/ipfs-deployment.md) for setup and troubleshooting.
 
+## Diagram-First Explanations
+
+When explaining cross-package flows, reference or generate Mermaid diagrams:
+
+- **Canonical diagrams:** `docs/developer/architecture/diagrams.md`
+- **Generation guide:** `.cursor/rules/diagrams.mdc`
+
+| Flow | Use When |
+|------|----------|
+| [System Context](docs/developer/architecture/diagrams.md#system-context) | Package relationships |
+| [Work Submission](docs/developer/architecture/diagrams.md#work-submission) | Offline queue, client PRs |
+| [Work Approval](docs/developer/architecture/diagrams.md#work-approval) | Admin PRs, resolver changes |
+| [Auth Flow](docs/developer/architecture/diagrams.md#auth-flow) | Auth-related PRs |
+| [Provider Hierarchy](docs/developer/architecture/diagrams.md#provider-hierarchy) | Context nesting issues |
+
+For complex flows, start with a sequence diagram (detailed), then summarize to a flowchart (high-level).
+
 ## Reference Materials
 
 - [Developer Docs](./docs/developer/getting-started.md) — environment, testing, troubleshooting
@@ -76,6 +116,7 @@ See [IPFS Deployment Guide](./docs/developer/ipfs-deployment.md) for setup and t
 - [IPFS Deployment](./docs/developer/ipfs-deployment.md) — decentralized app deployment
 - [Product Overview](./docs/features/overview.md) — architecture snapshot
 - [Karma GAP Integration](./docs/developer/karma-gap.md) — GAP-specific context
+- [Architecture Diagrams](./docs/developer/architecture/diagrams.md) — canonical Mermaid diagrams
 - [Agent System Guide](./.cursor/AGENT_SYSTEM_GUIDE.md) — complete documentation architecture
 
 When in doubt, check recent commits for precedent, or ask for clarification instead of guessing. Consistency across packages is the priority.

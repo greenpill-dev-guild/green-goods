@@ -10,9 +10,11 @@ green-goods/
 │   ├── mcp.json                      # MCP server configuration
 │   └── rules/                        # Root-level MDC rules
 │       ├── monorepo.mdc             # Always applied
+│       ├── quality.mdc              # Always applied
+│       ├── diagrams.mdc             # Always applied (Mermaid generation)
+│       ├── orchestration.mdc        # Always applied (Cloud Agent dispatch)
 │       ├── deployment.mdc           # Auto-attached to contracts/**
-│       ├── environment.mdc          # Auto-attached to .env*, config.*
-│       └── quality.mdc              # Always applied
+│       └── environment.mdc          # Auto-attached to .env*, config.*
 ├── AGENTS.md                         # Root agent guide (high-level)
 └── packages/
     ├── shared/                       # Common code for client + admin
@@ -70,9 +72,11 @@ green-goods/
 ### Always Applied Rules
 
 These rules are always in context:
-- `/.cursor/rules/monorepo.mdc`
-- `/.cursor/rules/quality.mdc`
-- `/packages/indexer/.cursor/rules/development.mdc`
+- `/.cursor/rules/monorepo.mdc` — package structure and conventions
+- `/.cursor/rules/quality.mdc` — testing and code quality standards
+- `/.cursor/rules/diagrams.mdc` — Mermaid diagram generation guidance
+- `/.cursor/rules/orchestration.mdc` — Cloud Agent dispatch and GitHub MCP orchestration
+- `/packages/indexer/.cursor/rules/development.mdc` — indexer workflow
 
 ### Auto-Attached Rules
 
@@ -128,50 +132,84 @@ Invoke specific rules with `@rulename`:
 
 ## MCP Server Configuration
 
-Project-level MCP servers configured in `.cursor/mcp.json`:
+### Server Locations
+
+| Server | Location | Why |
+|--------|----------|-----|
+| **GitHub** | Global config | Requires `GITHUB_TOKEN` secret; has write access |
+| **Figma** | Project | Design file access, code generation |
+| **Vercel** | Project | Deployment management |
+| **Railway** | Project | Agent deployment |
+| **Miro** | Project | Diagrams and boards |
+
+### Two GitHub Integrations
+
+| Integration | Purpose | Capabilities |
+|-------------|---------|--------------|
+| **GitHub MCP** (global) | In-editor orchestration | Read/write issues, PRs, comments |
+| **GitHub App** (cloud) | Cloud Agents + Bugbot | Clone repos, push commits, open PRs |
+
+**They work together:** MCP dispatches work → GitHub App executes Cloud Agents.
 
 ### Available MCP Tools
 
-**GitHub:**
-- Issue tracking
-- PR management
-- Repo queries
+**GitHub (global, read+write):**
+- Issue tracking and triage
+- PR management and review
+- **Post `@cursor` comments to spawn Cloud Agents**
+- Create issues and PRs
+- Code search across repos
 
 **Figma:**
 - UI code generation from designs
-- Design screenshots for documentation
-- Design token extraction
-- Component metadata access
+- Design screenshots
+- Variable/token extraction
 
 **Vercel:**
 - Deployment management
 - Preview URLs
-- Build status
+- Build logs
 
 **Miro:**
 - Board access
 - Diagram generation
-- Context extraction
 
 **Railway:**
-- Agent deployment management
+- Agent deployment
 - Environment configuration
 - Logs and monitoring
 
 ### MCP Usage Guidelines
 
-**Use MCP for:**
+**Orchestrate Cloud Agents:**
 ```bash
-@github: Create issue "Add garden search" with label feature, client
-@figma: Generate component code from design [fileKey] [nodeId]
+# Triage issues
+@github: List open issues labeled "bug" in greenpill-dev-guild/green-goods
+
+# Dispatch Cloud Agent to fix an issue
+@github: Post comment on issue #123: "@cursor Investigate and fix this bug. Add a test first."
+
+# Dispatch Bugbot auto-fix on a PR
+@github: Post comment on PR #456: "@cursor fix"
+
+# Track Cloud Agent PRs
+@github: List PRs authored by cursor[bot] in greenpill-dev-guild/green-goods
+```
+
+**Other MCP tasks:**
+```bash
+@github: Create issue "Add dark mode" with labels: feature, client
+@figma: Get design context for [fileKey] node [nodeId]
 @vercel: Check deployment status for latest PR
 @railway: View agent deployment logs
 ```
 
 **Use native tools for:**
-- Feature development
+- Feature development (local agent)
 - Component creation
 - Business logic implementation
+
+**See also:** [Cursor Workflows Guide](../docs/developer/cursor-workflows.md) for complete orchestration, dispatch templates, and Cloud vs Local agent guidance.
 
 ## Critical Cross-Package Rules
 
@@ -268,6 +306,40 @@ These rules are enforced across ALL packages:
 
 **Rule count:** 4 MDC files + AGENTS.md
 
+## Visual Documentation
+
+Use Mermaid diagrams to clarify complex flows. Reference canonical diagrams instead of recreating them.
+
+### Canonical Diagrams
+
+Located in `docs/developer/architecture/diagrams.md`:
+
+| Diagram | Use When |
+|---------|----------|
+| System Context | Package relationships, onboarding |
+| Work Submission | Offline queue, client PRs |
+| Work Approval | Admin PRs, resolver changes |
+| Auth Flow | Auth-related PRs |
+| Provider Hierarchy | Context nesting issues |
+| E2E Test Flow | Test infrastructure |
+| Deployment Flow | Contract deployment |
+| Indexer Flow | Event processing |
+
+### When to Generate Diagrams
+
+- Cross-package flows (3+ packages affected)
+- Multi-step workflows
+- PR descriptions touching complex flows
+- Answering "how does X work?" questions
+
+### Diagram Generation Pattern
+
+1. **Level 1 (detailed)**: Sequence diagram of specific function
+2. **Level 2 (summary)**: Flowchart of component interactions
+3. **Level 3 (context)**: System map showing packages
+
+See `/.cursor/rules/diagrams.mdc` for full guidance.
+
 ## Quality Baseline
 
 All packages follow these standards:
@@ -320,6 +392,8 @@ With this documentation system, agents can:
 - ✅ Use appropriate state management
 - ✅ Follow code quality standards
 - ✅ Leverage MCP tools effectively
+- ✅ Orchestrate Cloud Agents via GitHub MCP
+- ✅ Triage and dispatch multiple issues in parallel
 
 ## Maintenance
 
@@ -354,7 +428,7 @@ Agent documentation is successful when:
 
 | Package | AGENTS.md | Rule Count | Focus |
 |---------|-----------|------------|-------|
-| Root | ✅ | 4 | Cross-package standards |
+| Root | ✅ | 6 | Cross-package standards, diagrams, orchestration |
 | Shared | ✅ | 7 | Hooks, providers, modules, stores |
 | Client | ✅ | 8 | Components, views, PWA |
 | Admin | ✅ | 4 | Access control, workflows |
@@ -362,7 +436,7 @@ Agent documentation is successful when:
 | Agent | ✅ | 5 | Multi-platform bot |
 | Contracts | ✅ | 4 | Deployment, safety |
 
-**Total:** 7 AGENTS.md files, 34 MDC rule files, 1 MCP config
+**Total:** 7 AGENTS.md files, 36 MDC rule files, 1 MCP config, 1 diagrams reference
 
 ---
 
