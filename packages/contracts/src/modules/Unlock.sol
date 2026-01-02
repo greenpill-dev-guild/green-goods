@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
-import {IUnlockFactory, IPublicLock} from "../interfaces/IUnlock.sol";
+import { IUnlockFactory, IPublicLock } from "../interfaces/IUnlock.sol";
 
 /// @title UnlockModule
 /// @notice Integration module for granting work badges via Unlock Protocol
@@ -111,7 +111,12 @@ contract UnlockModule is OwnableUpgradeable, UUPSUpgradeable {
     /// @param _router The integration router address
     /// @param _unlockFactory The Unlock factory address (can be zero if not yet deployed)
     /// @param _defaultDuration Default badge duration in seconds (0 = permanent)
-    function initialize(address _owner, address _router, address _unlockFactory, uint256 _defaultDuration)
+    function initialize(
+        address _owner,
+        address _router,
+        address _unlockFactory,
+        uint256 _defaultDuration
+    )
         external
         initializer
     {
@@ -141,7 +146,11 @@ contract UnlockModule is OwnableUpgradeable, UUPSUpgradeable {
     /// @param worker The worker who submitted the work
     /// @param workUID The UID of the work attestation
     /// @return tokenId The badge token ID (0 if not granted)
-    function onWorkApproved(address garden, address worker, bytes32 workUID)
+    function onWorkApproved(
+        address garden,
+        address worker,
+        bytes32 workUID
+    )
         external
         onlyRouter
         returns (uint256 tokenId)
@@ -260,7 +269,11 @@ contract UnlockModule is OwnableUpgradeable, UUPSUpgradeable {
     /// @param worker The worker to grant badge to
     /// @param workUID The work UID for tracking
     /// @return tokenId The badge token ID
-    function grantBadgeManually(address garden, address worker, bytes32 workUID)
+    function grantBadgeManually(
+        address garden,
+        address worker,
+        bytes32 workUID
+    )
         external
         onlyOwner
         returns (uint256 tokenId)
@@ -281,10 +294,7 @@ contract UnlockModule is OwnableUpgradeable, UUPSUpgradeable {
     /// @param worker The worker address
     /// @param workUID The work UID
     /// @return tokenId The granted token ID
-    function _grantBadge(address garden, address lock, address worker, bytes32 workUID)
-        private
-        returns (uint256 tokenId)
-    {
+    function _grantBadge(address garden, address lock, address worker, bytes32 workUID) private returns (uint256 tokenId) {
         // Build arrays for grantKeys
         address[] memory recipients = new address[](1);
         recipients[0] = worker;
@@ -314,5 +324,5 @@ contract UnlockModule is OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Authorizes an upgrade to a new implementation
     /// @param newImplementation The address of the new implementation
     // solhint-disable-next-line no-empty-blocks
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner { }
 }

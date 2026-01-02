@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {IHats} from "../interfaces/IHats.sol";
+import { IHats } from "../interfaces/IHats.sol";
 
 /// @title MockHats
 /// @notice Mock implementation of Hats Protocol for testing

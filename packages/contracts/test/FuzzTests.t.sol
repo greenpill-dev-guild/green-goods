@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.25;
 
-import {Test} from "forge-std/Test.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { Test } from "forge-std/Test.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-import {ActionRegistry, Capital} from "../src/registries/Action.sol";
-import {GardenToken} from "../src/tokens/Garden.sol";
-import {GardenAccount} from "../src/accounts/Garden.sol";
-import {MockERC20} from "../src/mocks/ERC20.sol";
-import {ERC6551Helper} from "./helpers/ERC6551Helper.sol";
+import { ActionRegistry, Capital } from "../src/registries/Action.sol";
+import { GardenToken } from "../src/tokens/Garden.sol";
+import { GardenAccount } from "../src/accounts/Garden.sol";
+import { MockERC20 } from "../src/mocks/ERC20.sol";
+import { ERC6551Helper } from "./helpers/ERC6551Helper.sol";
 
 /// @title FuzzTests
 /// @notice Fuzz testing for edge cases and boundary conditions

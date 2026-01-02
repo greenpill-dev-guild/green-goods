@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.25;
 
-import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { ERC721Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import {TBALib} from "../lib/TBA.sol";
-import {IGardenAccount} from "../interfaces/IGardenAccount.sol";
-import {DeploymentRegistry} from "../DeploymentRegistry.sol";
+import { TBALib } from "../lib/TBA.sol";
+import { IGardenAccount } from "../interfaces/IGardenAccount.sol";
+import { DeploymentRegistry } from "../DeploymentRegistry.sol";
 
 /// @title GardenToken Contract
 /// @notice This contract manages the minting of Garden tokens and the creation of associated Garden accounts.

@@ -2,20 +2,20 @@
 pragma solidity ^0.8.25;
 /* solhint-disable no-console */
 
-import {Script} from "forge-std/Script.sol";
-import {console} from "forge-std/console.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import { Script } from "forge-std/Script.sol";
+import { console } from "forge-std/console.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
 // Import all upgradeable contracts
-import {ActionRegistry} from "../src/registries/Action.sol";
-import {GardenToken} from "../src/tokens/Garden.sol";
-import {GardenAccount} from "../src/accounts/Garden.sol";
+import { ActionRegistry } from "../src/registries/Action.sol";
+import { GardenToken } from "../src/tokens/Garden.sol";
+import { GardenAccount } from "../src/accounts/Garden.sol";
 // NOTE: Gardener.sol removed as part of interface-based split architecture
-import {IEntryPoint} from "account-abstraction/interfaces/IEntryPoint.sol";
-import {WorkResolver} from "../src/resolvers/Work.sol";
-import {WorkApprovalResolver} from "../src/resolvers/WorkApproval.sol";
-import {AssessmentResolver} from "../src/resolvers/Assessment.sol";
-import {DeploymentRegistry} from "../src/DeploymentRegistry.sol";
+import { IEntryPoint } from "account-abstraction/interfaces/IEntryPoint.sol";
+import { WorkResolver } from "../src/resolvers/Work.sol";
+import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
+import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
+import { DeploymentRegistry } from "../src/DeploymentRegistry.sol";
 
 /// @title Upgrade Script for Green Goods Contracts
 /// @notice Handles UUPS proxy upgrades for all upgradeable contracts
@@ -274,7 +274,10 @@ contract Upgrade is Script {
     /// @param workApprovalResolver New WorkApprovalResolver address
     /// @param assessmentResolver New AssessmentResolver address
     /// @return newImplAddress Address of newly deployed GardenAccount implementation
-    function deployNewGardenAccountImplementation(address workApprovalResolver, address assessmentResolver)
+    function deployNewGardenAccountImplementation(
+        address workApprovalResolver,
+        address assessmentResolver
+    )
         public
         returns (address newImplAddress)
     {

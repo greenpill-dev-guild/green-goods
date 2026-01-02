@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.25;
 
-import {Test} from "forge-std/Test.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { Test } from "forge-std/Test.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 // import { Attestation } from "@eas/IEAS.sol";
 
 // import { WorkApprovalSchema } from "../../src/Schemas.sol";
 // import { NotInActionRegistry } from "../../src/Constants.sol";
-import {GardenAccount} from "../../src/accounts/Garden.sol";
-import {IGardenAccount} from "../../src/interfaces/IGardenAccount.sol";
-import {ActionRegistry} from "../../src/registries/Action.sol";
-import {WorkApprovalResolver} from "../../src/resolvers/WorkApproval.sol";
-import {MockEAS} from "../../src/mocks/EAS.sol";
-import {MockERC20} from "../../src/mocks/ERC20.sol";
+import { GardenAccount } from "../../src/accounts/Garden.sol";
+import { IGardenAccount } from "../../src/interfaces/IGardenAccount.sol";
+import { ActionRegistry } from "../../src/registries/Action.sol";
+import { WorkApprovalResolver } from "../../src/resolvers/WorkApproval.sol";
+import { MockEAS } from "../../src/mocks/EAS.sol";
+import { MockERC20 } from "../../src/mocks/ERC20.sol";
 
 contract WorkApprovalResolverTest is Test {
     WorkApprovalResolver private workApprovalResolver;

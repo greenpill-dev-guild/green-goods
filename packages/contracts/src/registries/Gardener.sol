@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IGardenerRegistry} from "../interfaces/IGardenerRegistry.sol";
-import {IENS, IENSResolver} from "../interfaces/IENS.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { IGardenerRegistry } from "../interfaces/IGardenerRegistry.sol";
+import { IENS, IENSResolver } from "../interfaces/IENS.sol";
 
 error NameNotAvailable();
 error InvalidName();
@@ -81,7 +81,7 @@ contract GardenerRegistry is IGardenerRegistry, Ownable {
         if (nameLength == 0 || nameLength > 50) revert InvalidName();
 
         // Store profile data (single storage location)
-        profiles[name] = EnsProfile({owner: owner, credentialId: credentialId, claimedAt: block.timestamp});
+        profiles[name] = EnsProfile({ owner: owner, credentialId: credentialId, claimedAt: block.timestamp });
 
         // Store mappings for compatibility
         subdomains[name] = owner;

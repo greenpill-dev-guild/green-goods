@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
-import {IGreenGoodsResolver} from "../interfaces/IGreenGoodsResolver.sol";
-import {IGardenAccount} from "../interfaces/IGardenAccount.sol";
-import {KarmaLib} from "../lib/Karma.sol";
-import {OctantModule} from "../modules/Octant.sol";
-import {UnlockModule} from "../modules/Unlock.sol";
+import { IGreenGoodsResolver } from "../interfaces/IGreenGoodsResolver.sol";
+import { IGardenAccount } from "../interfaces/IGardenAccount.sol";
+import { KarmaLib } from "../lib/Karma.sol";
+import { OctantModule } from "../modules/Octant.sol";
+import { UnlockModule } from "../modules/Unlock.sol";
 
 /// @title GreenGoodsResolver
 /// @notice Central fan-out resolver for protocol integrations
@@ -113,10 +113,7 @@ contract GreenGoodsResolver is IGreenGoodsResolver, OwnableUpgradeable, UUPSUpgr
     /// @param _owner The address that will own the router
     /// @param _workApprovalResolver The WorkApprovalResolver address (authorized caller)
     /// @param _assessmentResolver The AssessmentResolver address (authorized caller)
-    function initialize(address _owner, address _workApprovalResolver, address _assessmentResolver)
-        external
-        initializer
-    {
+    function initialize(address _owner, address _workApprovalResolver, address _assessmentResolver) external initializer {
         if (_owner == address(0)) revert ZeroAddress();
 
         __Ownable_init();
@@ -151,7 +148,11 @@ contract GreenGoodsResolver is IGreenGoodsResolver, OwnableUpgradeable, UUPSUpgr
         address attester,
         string calldata feedback,
         string calldata mediaIPFS
-    ) external override onlyAuthorized {
+    )
+        external
+        override
+        onlyAuthorized
+    {
         // GAP Module: Create project impact
         if (_enabledModules[MODULE_GAP]) {
             _executeGAPWorkApproved(garden, workUID, approvalUID, actionUID, attester, feedback, mediaIPFS);
@@ -179,7 +180,11 @@ contract GreenGoodsResolver is IGreenGoodsResolver, OwnableUpgradeable, UUPSUpgr
         string calldata description,
         string[] calldata capitals,
         string calldata assessmentType
-    ) external override onlyAuthorized {
+    )
+        external
+        override
+        onlyAuthorized
+    {
         // GAP Module: Create project milestone
         if (_enabledModules[MODULE_GAP]) {
             _executeGAPAssessmentCreated(garden, assessmentUID, attester, title, description, capitals, assessmentType);
@@ -244,7 +249,9 @@ contract GreenGoodsResolver is IGreenGoodsResolver, OwnableUpgradeable, UUPSUpgr
         address, /* attester */
         string calldata feedback,
         string calldata mediaIPFS
-    ) private {
+    )
+        private
+    {
         // Skip if GAP not supported on this chain
         if (!KarmaLib.isSupported()) return;
 
@@ -283,7 +290,9 @@ contract GreenGoodsResolver is IGreenGoodsResolver, OwnableUpgradeable, UUPSUpgr
         string calldata, /* description */
         string[] calldata, /* capitals */
         string calldata /* assessmentType */
-    ) private {
+    )
+        private
+    {
         // Skip if GAP not supported on this chain
         if (!KarmaLib.isSupported()) return;
 

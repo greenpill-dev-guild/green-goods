@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {Test} from "forge-std/Test.sol";
-import {DeploymentRegistry} from "../../src/DeploymentRegistry.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { Test } from "forge-std/Test.sol";
+import { DeploymentRegistry } from "../../src/DeploymentRegistry.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 contract DeploymentRegistryTest is Test {
     DeploymentRegistry public registry;
@@ -64,7 +64,7 @@ contract DeploymentRegistryTest is Test {
             unlockFactory: address(0), // Optional
             hypercerts: address(0), // Optional
             greenWillRegistry: address(0) // Optional
-        });
+         });
     }
 
     function testAddToAllowlist() public {

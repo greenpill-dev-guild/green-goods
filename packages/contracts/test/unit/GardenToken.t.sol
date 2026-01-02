@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.25;
 
-import {Test} from "forge-std/Test.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { Test } from "forge-std/Test.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-import {GardenToken} from "../../src/tokens/Garden.sol";
-import {GardenAccount} from "../../src/accounts/Garden.sol";
-import {MockERC20} from "../../src/mocks/ERC20.sol";
-import {MockNonERC20} from "../../src/mocks/NonERC20.sol";
-import {ERC6551Helper} from "../helpers/ERC6551Helper.sol";
+import { GardenToken } from "../../src/tokens/Garden.sol";
+import { GardenAccount } from "../../src/accounts/Garden.sol";
+import { MockERC20 } from "../../src/mocks/ERC20.sol";
+import { MockNonERC20 } from "../../src/mocks/NonERC20.sol";
+import { ERC6551Helper } from "../helpers/ERC6551Helper.sol";
 
 contract GardenTokenTest is Test, ERC6551Helper {
     GardenToken private gardenToken;

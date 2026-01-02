@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {Test} from "forge-std/Test.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import {HatsModule} from "../../src/modules/Hats.sol";
-import {IGardenAccessControl} from "../../src/interfaces/IGardenAccessControl.sol";
-import {MockHats} from "../../src/mocks/Hats.sol";
+import { Test } from "forge-std/Test.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { HatsModule } from "../../src/modules/Hats.sol";
+import { IGardenAccessControl } from "../../src/interfaces/IGardenAccessControl.sol";
+import { MockHats } from "../../src/mocks/Hats.sol";
 
 /// @title HatsModuleTest
 /// @notice Tests for the HatsModule contract

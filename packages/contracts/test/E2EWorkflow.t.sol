@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.25;
 
-import {Test} from "forge-std/Test.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import {Attestation} from "@eas/IEAS.sol";
+import { Test } from "forge-std/Test.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { Attestation } from "@eas/IEAS.sol";
 
-import {GardenToken} from "../src/tokens/Garden.sol";
-import {GardenAccount} from "../src/accounts/Garden.sol";
-import {ActionRegistry, Capital} from "../src/registries/Action.sol";
-import {WorkResolver} from "../src/resolvers/Work.sol";
-import {WorkApprovalResolver} from "../src/resolvers/WorkApproval.sol";
-import {AssessmentResolver} from "../src/resolvers/Assessment.sol";
-import {MockERC20} from "../src/mocks/ERC20.sol";
-import {MockEAS} from "../src/mocks/EAS.sol";
-import {WorkSchema, WorkApprovalSchema, AssessmentSchema} from "../src/Schemas.sol";
-import {ERC6551Helper} from "./helpers/ERC6551Helper.sol";
+import { GardenToken } from "../src/tokens/Garden.sol";
+import { GardenAccount } from "../src/accounts/Garden.sol";
+import { ActionRegistry, Capital } from "../src/registries/Action.sol";
+import { WorkResolver } from "../src/resolvers/Work.sol";
+import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
+import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
+import { MockERC20 } from "../src/mocks/ERC20.sol";
+import { MockEAS } from "../src/mocks/EAS.sol";
+import { WorkSchema, WorkApprovalSchema, AssessmentSchema } from "../src/Schemas.sol";
+import { ERC6551Helper } from "./helpers/ERC6551Helper.sol";
 
 /// @title E2EWorkflow Test
 /// @notice Comprehensive end-to-end integration tests for the complete Green Goods protocol workflow
@@ -86,8 +86,7 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
         ERC1967Proxy workResolverProxy = new ERC1967Proxy(address(workResolverImpl), workResolverInitData);
         workResolver = WorkResolver(payable(address(workResolverProxy)));
 
-        WorkApprovalResolver workApprovalResolverImpl =
-            new WorkApprovalResolver(address(mockEAS), address(actionRegistry));
+        WorkApprovalResolver workApprovalResolverImpl = new WorkApprovalResolver(address(mockEAS), address(actionRegistry));
         bytes memory workApprovalResolverInitData =
             abi.encodeWithSelector(WorkApprovalResolver.initialize.selector, multisig);
         ERC1967Proxy workApprovalResolverProxy =
@@ -95,10 +94,8 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
         workApprovalResolver = WorkApprovalResolver(payable(address(workApprovalResolverProxy)));
 
         AssessmentResolver assessmentResolverImpl = new AssessmentResolver(address(mockEAS));
-        bytes memory assessmentResolverInitData =
-            abi.encodeWithSelector(AssessmentResolver.initialize.selector, multisig);
-        ERC1967Proxy assessmentResolverProxy =
-            new ERC1967Proxy(address(assessmentResolverImpl), assessmentResolverInitData);
+        bytes memory assessmentResolverInitData = abi.encodeWithSelector(AssessmentResolver.initialize.selector, multisig);
+        ERC1967Proxy assessmentResolverProxy = new ERC1967Proxy(address(assessmentResolverImpl), assessmentResolverInitData);
         assessmentResolver = AssessmentResolver(payable(address(assessmentResolverProxy)));
     }
 
@@ -416,7 +413,7 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
 
         // Operator approves corrected work
         WorkApprovalSchema memory approval =
-            WorkApprovalSchema({actionUID: 0, workUID: workUID2, approved: true, feedback: "Perfect! Well done."});
+            WorkApprovalSchema({ actionUID: 0, workUID: workUID2, approved: true, feedback: "Perfect! Well done." });
 
         bytes32 approvalUID2 = bytes32(uint256(4));
         Attestation memory approvalAttest = Attestation({
@@ -727,7 +724,7 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
 
         // Measure work approval
         WorkApprovalSchema memory approval =
-            WorkApprovalSchema({actionUID: 0, workUID: workUIDGas, approved: true, feedback: "Approved"});
+            WorkApprovalSchema({ actionUID: 0, workUID: workUIDGas, approved: true, feedback: "Approved" });
 
         gasStart = gasleft();
         bytes memory approvalData = abi.encode(approval);
