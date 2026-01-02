@@ -4,6 +4,15 @@ set -eu
 # Enable pipefail only if supported (dash doesn't support it)
 (set -o pipefail) 2>/dev/null && set -o pipefail
 
+# Load nvm if available
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+# Use Node version from .nvmrc if nvm is available
+if command -v nvm >/dev/null 2>&1; then
+  nvm use 2>/dev/null || true
+fi
+
 echo "🔍 Running pre-push checks..."
 
 # Determine runner (bun preferred, npm fallback)
