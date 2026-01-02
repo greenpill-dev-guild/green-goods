@@ -13,16 +13,16 @@
       "path": "../packages/indexer"
     },
     {
+      "name": "agent",
+      "path": "../packages/agent"
+    },
+    {
       "name": "admin",
       "path": "../packages/admin"
     },
     {
       "name": "client",
       "path": "../packages/client"
-    },
-    {
-      "name": "agent",
-      "path": "../packages/agent"
     },
     {
       "name": "shared",
