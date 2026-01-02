@@ -113,6 +113,7 @@ All data publicly accessible:
 
 - TypeScript strict mode
 - 70%+ test coverage (critical paths >80%)
+- E2E smoke tests pass (Playwright)
 - Biome formatting + 0xlint
 - Conventional commits
 - Pre-commit hooks
@@ -132,7 +133,8 @@ All data publicly accessible:
 - [Developer Quickstart](../welcome/quickstart-developer.md)
 
 **Development**:
-- [Testing Guide](testing.md)
+- [Testing Guide](testing.md) - Unit, integration, and E2E tests
+- [E2E Test Reference](../../tests/README.md) - Playwright quick start
 - [API Reference](api-reference.md)
 - [Contributing Guide](contributing.md)
 

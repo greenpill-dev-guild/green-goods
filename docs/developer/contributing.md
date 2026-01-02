@@ -7,11 +7,11 @@ Green Goods is open source and welcomes contributions from developers, designers
 ## Quick Start
 
 1. **Fork the repo**: https://github.com/greenpill-dev-guild/green-goods
-2. **Clone your fork**:
+2. **Clone and setup**:
    ```bash
    git clone https://github.com/YOUR-USERNAME/green-goods.git
    cd green-goods
-   bun install
+   bun setup
    ```
 3. **Create branch**:
    ```bash
@@ -66,15 +66,21 @@ test(admin): add garden creation tests
 ## Testing Requirements
 
 **Before PR**:
-- [ ] Tests pass: `bun test`
+- [ ] Unit tests pass: `bun test`
+- [ ] E2E smoke tests pass: `bun test:e2e:smoke` (for UI changes)
 - [ ] Linter clean: `bun lint`
 - [ ] Formatted: `bun format`
 - [ ] TypeScript compiles: `bun build`
 
 **Coverage**:
-- New features: 70%+ coverage
+- New features: 70%+ unit test coverage
 - Critical paths: 80%+ coverage
 - Security code: 100% coverage
+- UI changes: Add E2E test or update existing
+
+**E2E testing** (for UI/auth changes):
+- Run `bun test:e2e:smoke` locally before pushing
+- See [Testing Guide](testing.md#e2e-testing-playwright) for writing E2E tests
 
 ---
 

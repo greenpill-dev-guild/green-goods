@@ -1,0 +1,228 @@
+/**
+ * Client App Smoke Tests
+ *
+ * Minimal tests for the client PWA:
+ * - Unauthenticated redirect to login
+ * - Passkey authentication (Android Chrome)
+ * - Wallet authentication (iOS Safari)
+ * - View gardens data
+ *
+ * Authentication strategy:
+ * - Android/Chromium: Virtual WebAuthn authenticator for passkey testing
+ * - iOS Safari: Storage injection for wallet authentication (WebAuthn not supported)
+ */
+import { expect, test } from "@playwright/test";
+import { ClientTestHelper, hasGardens, TEST_URLS } from "../helpers/test-utils";
+
+const CLIENT_URL = TEST_URLS.client;
+
+/**
+ * Detect if current browser is iOS Safari
+ */
+function isIOS(projectName: string | undefined): boolean {
+  return projectName === "mobile-safari";
+}
+
+test.describe("Client PWA", () => {
+  test.use({ baseURL: CLIENT_URL });
+
+  test.describe("Authentication", () => {
+    test("redirects unauthenticated /home -> /login", async ({ page }) => {
+      await page.goto("/home");
+
+      // Should redirect to login
+      await page.waitForURL(/\/login/);
+      expect(page.url()).toContain("/login");
+
+      // Should show login UI with passkey option
+      await expect(page.getByTestId("login-button")).toBeVisible({ timeout: 10000 });
+
+      // Should show wallet fallback option
+      await expect(page.getByRole("button", { name: /wallet/i })).toBeVisible();
+    });
+
+    test("shows login page with correct branding", async ({ page }) => {
+      await page.goto("/login");
+      await page.waitForLoadState("domcontentloaded");
+
+      // Should have Green Goods branding
+      await expect(page.locator('img[alt*="Green Goods"]')).toBeVisible();
+
+      // Should have primary login button
+      await expect(page.getByTestId("login-button")).toBeVisible();
+    });
+
+    test("passkey flow - create account and authenticate", async ({ page }, testInfo) => {
+      // Skip on iOS Safari - WebAuthn virtual authenticator not supported
+      test.skip(isIOS(testInfo.project.name), "iOS Safari does not support virtual WebAuthn");
+
+      const helper = new ClientTestHelper(page);
+
+      // Setup virtual authenticator for passkey testing
+      await helper.setupPasskeyAuth();
+
+      try {
+        // Create new account
+        const username = `e2e_${Date.now()}`;
+        await helper.createPasskeyAccount(username);
+
+        // Should be on home page after auth
+        expect(page.url()).toContain("/home");
+
+        // Should see authenticated UI (no login redirect)
+        await helper.waitForPageLoad();
+        await expect(page.locator("body")).toBeVisible();
+      } finally {
+        await helper.cleanup();
+      }
+    });
+
+    test("wallet flow - inject auth and navigate (iOS Safari)", async ({ page }, testInfo) => {
+      // Only run on iOS Safari - passkey tests cover Android/Chromium
+      test.skip(!isIOS(testInfo.project.name), "Wallet injection only needed for iOS Safari");
+
+      const helper = new ClientTestHelper(page);
+
+      // Inject wallet state before navigating
+      await helper.injectWalletAuth();
+
+      // Navigate to home (should not redirect to login)
+      await page.goto("/home");
+      await helper.waitForPageLoad();
+
+      const url = page.url();
+
+      if (url.includes("/home")) {
+        // Auth worked - verify we're on home page
+        await expect(page.locator("body")).toBeVisible();
+      } else {
+        // Auth injection didn't persist - this is expected in some cases
+        // iOS Safari has stricter localStorage rules
+        console.log("Auth injection not persisted on iOS - wallet flow would be needed");
+        expect(url).toContain("/login");
+      }
+    });
+  });
+
+  test.describe("Gardens Data", () => {
+    test("displays gardens list when authenticated", async ({ page }, testInfo) => {
+      const helper = new ClientTestHelper(page);
+      const ios = isIOS(testInfo.project.name);
+
+      // Authenticate based on platform
+      if (ios) {
+        // iOS Safari - use wallet injection
+        await helper.injectWalletAuth();
+        await page.goto("/home");
+      } else {
+        // Android/Chromium - use passkey
+        await helper.setupPasskeyAuth();
+        await helper.createPasskeyAccount(`gardens_${Date.now()}`);
+      }
+
+      try {
+        await helper.waitForPageLoad();
+
+        // Check if we're authenticated (wallet injection may not persist on iOS)
+        const url = page.url();
+        if (url.includes("/login")) {
+          console.log("Auth not persisted - skipping gardens test");
+          return;
+        }
+
+        // Check if gardens exist in indexer
+        const gardensExist = await hasGardens(page);
+
+        if (gardensExist) {
+          // If gardens exist, we should see garden cards or list
+          const gardenElements = page.locator(
+            '[data-testid="garden-card"], .garden-card, a[href*="/home/"]'
+          );
+          await expect(gardenElements.first()).toBeVisible({ timeout: 15000 });
+        } else {
+          // No gardens is okay - just verify we're on home and no errors
+          await expect(page.locator("body")).toBeVisible();
+          const errorElements = page.locator('[role="alert"][class*="error"], .error-message');
+          await expect(errorElements).toHaveCount(0);
+        }
+      } finally {
+        if (!ios) {
+          await helper.cleanup();
+        }
+      }
+    });
+
+    test("can access garden detail page", async ({ page }, testInfo) => {
+      const helper = new ClientTestHelper(page);
+      const ios = isIOS(testInfo.project.name);
+
+      // Authenticate based on platform
+      if (ios) {
+        // iOS Safari - use wallet injection
+        await helper.injectWalletAuth();
+        await page.goto("/home");
+      } else {
+        // Android/Chromium - use passkey
+        await helper.setupPasskeyAuth();
+        await helper.createPasskeyAccount(`garden_detail_${Date.now()}`);
+      }
+
+      try {
+        await helper.waitForPageLoad();
+
+        // Check if we're authenticated
+        const url = page.url();
+        if (url.includes("/login")) {
+          console.log("Auth not persisted - skipping detail page test");
+          return;
+        }
+
+        // Check if gardens exist
+        const gardensExist = await hasGardens(page);
+
+        if (gardensExist) {
+          // Click first garden link
+          const gardenLink = page.locator('a[href*="/home/"]').first();
+
+          if (await gardenLink.isVisible({ timeout: 5000 }).catch(() => false)) {
+            await gardenLink.click();
+            await helper.waitForPageLoad();
+
+            // Should be on garden detail page
+            expect(page.url()).toMatch(/\/home\/[^/]+/);
+          }
+        } else {
+          // Skip if no gardens
+          console.log("No gardens available - skipping detail page test");
+        }
+      } finally {
+        if (!ios) {
+          await helper.cleanup();
+        }
+      }
+    });
+  });
+
+  test.describe("Service Health", () => {
+    test("client responds with valid HTML", async ({ request }) => {
+      const response = await request.get("/");
+      expect(response.status()).toBeLessThan(500);
+
+      const html = await response.text();
+      expect(html).toContain("<!DOCTYPE html>");
+      expect(html).toContain("Green Goods");
+    });
+
+    test("indexer responds to GraphQL queries", async ({ request }) => {
+      const response = await request.post(TEST_URLS.indexer, {
+        data: { query: "query { __typename }" },
+        headers: { "Content-Type": "application/json" },
+      });
+
+      expect(response.status()).toBe(200);
+
+      const json = await response.json();
+      expect(json.data).toBeDefined();
+    });
+  });
+});

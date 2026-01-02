@@ -27,13 +27,18 @@ git clone https://github.com/greenpill-dev-guild/green-goods.git
 cd green-goods
 ```
 
-### 1.2 Install Dependencies
+### 1.2 Run Setup
 
 ```bash
-bun install
+bun setup
 ```
 
-This installs all dependencies across the monorepo (client, admin, indexer, contracts).
+The setup script:
+1. Checks required dependencies (Node.js 20+, Bun, Git)
+2. Checks optional dependencies (Docker, Foundry) with install instructions
+3. Runs `bun install` to install all workspace packages
+4. Creates `.env` from `.env.example`
+5. Shows next steps
 
 **What's installed**:
 - Frontend dependencies (React, Vite, TanStack Query)
@@ -41,15 +46,13 @@ This installs all dependencies across the monorepo (client, admin, indexer, cont
 - Indexer dependencies (Envio, ReScript)
 - Development tools (Biome, 0xlint, Vitest)
 
+> **Note**: For manual setup, run `bun install` then `cp .env.example .env`
+
 ---
 
 ## Step 2: Configure Environment
 
-### 2.1 Create .env File
-
-```bash
-cp .env.example .env
-```
+### 2.1 Edit .env File
 
 ### 2.2 Add Required Variables
 
@@ -233,13 +236,37 @@ bun --filter contracts test
 - Gas optimization tests
 - Upgrade safety tests
 
-### 5.4 Run All Tests
+### 5.4 E2E Tests (Playwright)
 
 ```bash
-bun test
+# Run smoke tests (client + admin)
+bun test:e2e:smoke
+
+# Platform-specific
+bun test:e2e:android   # Android Chrome (passkey)
+bun test:e2e:ios       # iOS Safari (wallet)
+
+# Debug with UI
+bun test:e2e:ui
 ```
 
-[Testing Guide →](../developer/testing.md)
+**Test Types**:
+- Login flows (passkey + wallet)
+- Data viewing (gardens, actions)
+- Mobile responsive design
+- Cross-platform compatibility
+
+### 5.5 Run All Tests
+
+```bash
+bun test            # All unit/integration tests
+bun test:e2e:smoke  # E2E smoke tests
+```
+
+**Complete testing guide**:
+- [Testing & QA](../developer/testing.md)
+- [E2E Test Reference](../../tests/README.md)
+- [E2E Architecture](../../tests/ARCHITECTURE.md)
 
 ---
 

@@ -24,7 +24,31 @@ Complete setup guide for local Green Goods development.
 
 ---
 
-## Installation Steps
+## Quick Setup (Recommended)
+
+The automated setup script handles dependency checking, installation, and environment configuration:
+
+```bash
+git clone https://github.com/greenpill-dev-guild/green-goods.git
+cd green-goods
+bun setup
+```
+
+**What `bun setup` does:**
+1. Checks required dependencies (Node.js 20+, Bun, Git)
+2. Checks optional dependencies (Docker, Foundry) with install instructions
+3. Auto-installs Bun if missing
+4. Runs `bun install` to install all packages
+5. Creates `.env` from `.env.example` template
+6. Shows next steps and configuration guidance
+
+After setup completes, edit `.env` with your API keys and run `bun dev`.
+
+---
+
+## Manual Installation
+
+If you prefer manual control or troubleshooting, follow these steps:
 
 ### 1. Clone Repository
 

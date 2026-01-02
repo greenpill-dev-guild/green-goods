@@ -1,17 +1,22 @@
 import { defineConfig, devices } from "@playwright/test";
 import { config as loadEnv } from "dotenv";
 import path from "path";
+import { fileURLToPath } from "url";
 
-// Load root .env so tests can access PRIVY_TEST_* and other variables
+// ESM-compatible __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load root .env so tests can access test variables
 loadEnv({ path: path.resolve(__dirname, ".env") });
 
-// Environment configuration (focused on localhost as requested)
+// Environment configuration
 const environments = {
   local: {
-    admin: "https://localhost:3002", // HTTPS because of mkcert plugin
-    client: "https://localhost:3001", // HTTPS because of mkcert plugin
+    client: "https://localhost:3001", // HTTPS via mkcert
+    admin: "https://localhost:3002", // HTTPS via mkcert
     indexer: "http://localhost:8080/v1/graphql",
-    chain: "base-sepolia", // Using deployed contracts on Base Sepolia
+    chain: "base-sepolia",
   },
 };
 
@@ -21,103 +26,100 @@ export default defineConfig({
   testDir: "./tests",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 3 : 1, // Enhanced retry for flaky blockchain interactions
-  workers: process.env.CI ? 2 : undefined, // Optimized for CI performance
+  retries: process.env.CI ? 2 : 1,
+  workers: process.env.CI ? 2 : undefined,
 
-  // Enhanced reporting for better monitoring
+  // Reporting
   reporter: [
     ["html", { outputFolder: "playwright-report" }],
     ["json", { outputFile: "test-results/results.json" }],
-    ["junit", { outputFile: "test-results/junit.xml" }],
     process.env.CI ? ["github"] : ["list"],
   ],
 
   use: {
+    // Default to client URL (individual tests override via test.use)
     baseURL: currentEnv.client,
 
     // Accept self-signed certificates from mkcert
     ignoreHTTPSErrors: true,
 
-    // Performance and monitoring enhancements
+    // Trace/video/screenshot on failure
     trace: "on-first-retry",
     video: "retain-on-failure",
     screenshot: "only-on-failure",
 
-    // Blockchain-specific timeouts
-    navigationTimeout: 30000, // Allow time for wallet connections
-    actionTimeout: 15000, // Allow time for blockchain transactions
-
-    // Test environment context
-    extraHTTPHeaders: {
-      "X-Test-Environment": "e2e",
-    },
+    // Timeouts for wallet/blockchain interactions
+    navigationTimeout: 30000,
+    actionTimeout: 15000,
   },
 
-  // Projects focused on mobile browsers (PWA focus)
+  // Browser matrix - Chromium for admin, mobile for client PWA
   projects: [
-    // Desktop Chrome for development and Landing Page
+    // Desktop Chrome - primary for development and admin dashboard
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
     },
 
-    // Mobile browsers - primary focus for PWA
+    // Android Chrome - PWA + passkey testing (WebAuthn support)
     {
       name: "mobile-chrome",
       use: {
         ...devices["Pixel 5"],
-        // Mobile-specific viewport for PWA testing
         viewport: { width: 375, height: 667 },
       },
     },
+
+    // iOS Safari - PWA testing with wallet auth (no WebAuthn virtual authenticator)
+    // Uses storage injection for authentication (same pattern as admin)
     {
       name: "mobile-safari",
       use: {
-        ...devices["iPhone 12"],
-        // iOS Safari for PWA compatibility
-      },
-    },
-
-    // Tablet for responsive testing
-    {
-      name: "tablet",
-      use: {
-        ...devices["iPad Pro"],
+        ...devices["iPhone 13 Pro"],
+        viewport: { width: 390, height: 844 },
       },
     },
   ],
 
-  // For manual testing without automatic service startup
-  // Comment out webServer if services are already running
+  // WebServer configuration - starts services if not running
   webServer: process.env.SKIP_WEBSERVER
     ? undefined
     : [
+        // Indexer (GraphQL)
         {
-          // Use bun/npm based on availability
-          command: process.env.npm_execpath?.includes("bun")
-            ? "bun dev:indexer"
-            : "npm run dev:indexer",
+          command: "bun dev:indexer",
           port: 8080,
           reuseExistingServer: !process.env.CI,
           timeout: 60000,
-          env: {
-            NODE_ENV: "test",
-          },
+          env: { NODE_ENV: "test" },
         },
+        // Client (PWA)
         {
-          command: process.env.npm_execpath?.includes("bun") ? "bun dev:app" : "npm run dev:app",
+          command: "bun dev:client",
           port: 3001,
           reuseExistingServer: !process.env.CI,
-          timeout: 120000, // Allow time for Vite to start
+          timeout: 120000,
           env: {
             NODE_ENV: "test",
-            VITE_CHAIN_ID: "84532", // Base Sepolia
+            VITE_CHAIN_ID: "84532",
+            VITE_ENVIO_INDEXER_URL: currentEnv.indexer,
+          },
+        },
+        // Admin (Dashboard)
+        {
+          command: "bun dev:admin",
+          port: 3002,
+          reuseExistingServer: !process.env.CI,
+          timeout: 120000,
+          env: {
+            NODE_ENV: "test",
+            VITE_CHAIN_ID: "84532",
             VITE_ENVIO_INDEXER_URL: currentEnv.indexer,
           },
         },
       ],
 
-  // Global setup and teardown for test data management
-  globalSetup: require.resolve("./tests/global-setup"),
-  globalTeardown: require.resolve("./tests/global-teardown"),
+  // Global setup/teardown (ESM-compatible paths)
+  globalSetup: "./tests/global-setup.ts",
+  globalTeardown: "./tests/global-teardown.ts",
 });
