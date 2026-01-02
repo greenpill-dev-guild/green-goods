@@ -27,12 +27,12 @@
     "./workflows": "./src/workflows/index.ts"
   },
   "scripts": {
+    "lint": "oxlint src",
+    "format": "biome format --write .",
     "build": "echo 'Shared package uses source files directly - no build needed'",
     "test": "vitest run",
     "test:watch": "vitest --standalone",
-    "coverage": "vitest run --coverage",
-    "format": "biome format --write .",
-    "lint": "oxlint src"
+    "coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@reown/appkit": "^1.8.10",

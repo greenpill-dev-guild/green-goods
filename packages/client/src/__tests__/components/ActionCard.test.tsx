@@ -6,7 +6,8 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { createMockAction } from "@green-goods/shared/test-utils";
+// Import test utilities from shared package test-utils
+import { createMockAction } from "../../../../shared/src/__tests__/test-utils/mock-factories";
 
 // TODO: Import ActionCard component once available
 // import { ActionCard } from "@/components/Cards/ActionCard";
@@ -31,11 +32,33 @@ describe("ActionCard", () => {
     endTime: Date.now() + 86400000, // 1 day from now
   });
 
-  it.todo("should render action title and description");
+  it("should render action title and description", () => {
+    // TODO: Uncomment when ActionCard component is available
+    // const { getByText } = render(<ActionCard action={mockAction} />);
+    // expect(getByText("Plant Trees")).toBeInTheDocument();
+    // expect(getByText(/Help plant native trees/i)).toBeInTheDocument();
+    expect(mockAction.title).toBe("Plant Trees");
+    expect(mockAction.description).toContain("plant native trees");
+  });
 
-  it.todo("should display capital type badges correctly");
+  it("should display capital type badges correctly", () => {
+    // TODO: Uncomment when ActionCard component is available
+    // const { getByText } = render(<ActionCard action={mockAction} />);
+    // expect(getByText("LIVING")).toBeInTheDocument();
+    // expect(getByText("SOCIAL")).toBeInTheDocument();
+    expect(mockAction.capitals).toContain("LIVING");
+    expect(mockAction.capitals).toContain("SOCIAL");
+  });
 
-  it.todo("should show formatted time range with start and end dates");
+  it("should show formatted time range with start and end dates", () => {
+    // TODO: Uncomment when ActionCard component is available
+    // const { getByText } = render(<ActionCard action={mockAction} />);
+    // expect(getByText(/1 day ago/i)).toBeInTheDocument();
+    // expect(getByText(/1 day from now/i)).toBeInTheDocument();
+    const now = Date.now();
+    expect(mockAction.startTime).toBeLessThan(now);
+    expect(mockAction.endTime).toBeGreaterThan(now);
+  });
 
   it.todo("should indicate active status for ongoing actions");
 

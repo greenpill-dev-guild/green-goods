@@ -98,7 +98,7 @@ export function formatRelativeTime(timestamp: number | string | Date): string {
  * Handles seconds and milliseconds timestamps automatically.
  */
 export function toSafeDate(value: unknown): Date | null {
-  if (value == null) return null;
+  if (value === null || value === undefined) return null;
 
   const timestamp = typeof value === "string" ? Number(value) : value;
   if (typeof timestamp !== "number" || Number.isNaN(timestamp)) return null;
