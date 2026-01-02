@@ -7,13 +7,14 @@ Green Goods is an offline-first, single-chain platform for documenting conservat
 ```bash
 git clone https://github.com/your-org/green-goods.git
 cd green-goods
-bun install
+npm setup                     # Checks deps, installs packages, creates .env from template
 
-cp .env.example .env          # All packages share the root env file
 vi .env                       # Populate keys (Base Sepolia is the default chain: 84532)
 
 bun dev                       # Starts client, admin, indexer via pm2
 ```
+
+> **Note**: `npm setup` checks for required dependencies (Node 20+, Bun, Git, Docker, Foundry), installs them if possible, runs `bun install`, and copies `.env.example` to `.env`. If you prefer manual setup, see [Installation Guide](./docs/developer/installation.md).
 
 Useful follow-ups:
 
