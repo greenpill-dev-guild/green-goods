@@ -17,28 +17,16 @@
       "path": "../packages/admin"
     },
     {
-      "name": "src",
-      "path": "../packages/admin/src"
-    },
-    {
       "name": "client",
       "path": "../packages/client"
     },
     {
-      "name": "src",
-      "path": "../packages/client/src"
+      "name": "agent",
+      "path": "../packages/agent"
     },
     {
       "name": "shared",
       "path": "../packages/shared"
-    },
-    {
-      "name": "src",
-      "path": "../packages/shared/src"
-    },
-    {
-      "name": "agent",
-      "path": "../packages/agent"
     }
   ],
   "settings": {
