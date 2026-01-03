@@ -29,10 +29,12 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 1,
   workers: process.env.CI ? 2 : undefined,
 
+  outputDir: "tests/test-results",
+
   // Reporting
   reporter: [
-    ["html", { outputFolder: "playwright-report" }],
-    ["json", { outputFile: "test-results/results.json" }],
+    ["html", { outputFolder: "tests/playwright-report" }],
+    ["json", { outputFile: "tests/test-results/results.json" }],
     process.env.CI ? ["github"] : ["list"],
   ],
 

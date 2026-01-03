@@ -20,10 +20,10 @@ vi.mock("../../modules/job-queue", () => ({
 
 vi.mock("../../modules/job-queue/event-bus", () => ({
   jobQueueEventBus: {
-    on: vi.fn(),
+    on: vi.fn(() => vi.fn()), // Return unsubscribe function
     off: vi.fn(),
     emit: vi.fn(),
-    onMultiple: vi.fn(),
+    onMultiple: vi.fn(() => vi.fn()), // Return unsubscribe function
   },
   useJobQueueEvents: vi.fn(),
 }));

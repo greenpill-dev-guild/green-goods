@@ -142,3 +142,5 @@ dev-dist
 # Playwright test results
 test-results/
 playwright-report/
+tests/test-results/
+tests/playwright-report/

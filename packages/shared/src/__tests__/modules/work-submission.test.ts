@@ -25,7 +25,12 @@ describe("modules/work-submission", () => {
   });
 
   it("validates drafts and returns errors", () => {
-    const errors = validateWorkDraft({ feedback: "" } as any, null, null, []);
+    const errors = validateWorkDraft(
+      { feedback: "", actionUID: null, title: "", plantSelection: [], plantCount: 0, media: [] },
+      null,
+      null,
+      []
+    );
     expect(errors.length).toBeGreaterThan(0);
   });
 

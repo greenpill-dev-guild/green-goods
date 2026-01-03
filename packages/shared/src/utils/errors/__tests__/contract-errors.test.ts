@@ -22,6 +22,8 @@ describe("parseContractError", () => {
       message: "You are not a member of this garden",
       action: "Please join the garden before submitting work",
       isKnown: true,
+      recoverable: false,
+      suggestedAction: "join-garden",
     });
   });
 
@@ -34,6 +36,8 @@ describe("parseContractError", () => {
       message: "You are not a member of this garden",
       action: "Please join the garden before submitting work",
       isKnown: true,
+      recoverable: false,
+      suggestedAction: "join-garden",
     });
   });
 
@@ -46,6 +50,8 @@ describe("parseContractError", () => {
       message: "You are already a member of this garden",
       action: undefined,
       isKnown: true,
+      recoverable: false,
+      suggestedAction: undefined,
     });
   });
 
@@ -65,6 +71,8 @@ describe("parseContractError", () => {
       name: "UnknownError",
       message: "Transaction failed with error code: 0xdeadbeef",
       isKnown: false,
+      recoverable: true,
+      suggestedAction: "retry",
     });
   });
 

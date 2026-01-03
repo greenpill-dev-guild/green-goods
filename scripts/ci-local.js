@@ -12,13 +12,10 @@
  * This script mimics what GitHub Actions CI runs.
  */
 
-import { exec } from "node:child_process";
+import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
-
-const execAsync = promisify(exec);
 
 // Get project root (one level up from scripts/)
 const __filename = fileURLToPath(import.meta.url);
@@ -75,30 +72,59 @@ function printError(message) {
 }
 
 /**
- * Run a command and track its result
+ * Run a command and track its result with real-time output
  */
 async function runStep(name, command, cwd = projectRoot) {
-  try {
-    await execAsync(command, { cwd, shell: true });
-    printSuccess(`${name} passed`);
-    return true;
-  } catch (error) {
-    printError(`${name} failed`);
-    failures.push(name);
-    return false;
-  }
+  return new Promise((resolve) => {
+    const startTime = Date.now();
+    console.log(`${colors.blue}Running: ${command}${colors.reset}`);
+    console.log(`${colors.blue}Working directory: ${cwd}${colors.reset}`);
+    
+    const child = spawn(command, {
+      cwd,
+      shell: true,
+      stdio: 'inherit' // Stream output directly to parent process
+    });
+
+    child.on('close', (code) => {
+      const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+      if (code === 0) {
+        printSuccess(`${name} passed (${duration}s)`);
+        resolve(true);
+      } else {
+        printError(`${name} failed (exit code: ${code}, ${duration}s)`);
+        failures.push(name);
+        resolve(false);
+      }
+    });
+
+    child.on('error', (error) => {
+      const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+      printError(`${name} failed: ${error.message} (${duration}s)`);
+      failures.push(name);
+      resolve(false);
+    });
+  });
 }
 
 /**
  * Check if a command exists
  */
 async function commandExists(cmd) {
-  try {
-    await execAsync(`command -v ${cmd}`, { shell: true });
-    return true;
-  } catch {
-    return false;
-  }
+  return new Promise((resolve) => {
+    const child = spawn(`command -v ${cmd}`, {
+      shell: true,
+      stdio: 'ignore'
+    });
+
+    child.on('close', (code) => {
+      resolve(code === 0);
+    });
+
+    child.on('error', () => {
+      resolve(false);
+    });
+  });
 }
 
 /**
@@ -154,6 +180,14 @@ for (const arg of args) {
 
 async function main() {
   printHeader("Green Goods CI Local Validation");
+
+  // Show configuration
+  console.log(`${colors.yellow}Configuration:${colors.reset}`);
+  console.log(`  Skip Contracts: ${config.skipContracts ? 'Yes' : 'No'}`);
+  console.log(`  Skip Indexer: ${config.skipIndexer ? 'Yes' : 'No'}`);
+  console.log(`  Skip Build: ${config.skipBuild ? 'Yes' : 'No'}`);
+  console.log(`  Only Lint: ${config.onlyLint ? 'Yes' : 'No'}`);
+  console.log("");
 
   // Format check
   printSection("Format Check");

@@ -76,7 +76,8 @@
     "tsc-alias": "^1.8.16",
     "tsx": "^4.20.3",
     "typescript": "^5.9.3",
-    "wait-port": "1.1.0"
+    "wait-port": "1.1.0",
+    "vitest": "4.0.16"
   },
   "engines": {
     "node": ">=20.x",
@@ -91,7 +92,8 @@
     ]
   },
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "docs"
   ],
   "trustedDependencies": [
     "sharp"

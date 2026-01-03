@@ -135,6 +135,8 @@ vi.mock("../../modules/auth/session", () => ({
     mockStoredUsername = null;
   }),
   hasStoredPasskey: vi.fn(() => false),
+  getStoredRpId: vi.fn(() => "localhost"),
+  setStoredRpId: vi.fn(),
   PASSKEY_STORAGE_KEY: "greengoods_passkey_credential",
   USERNAME_STORAGE_KEY: "greengoods_username",
 }));
@@ -332,7 +334,7 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
       expect(clearStoredUsername).toHaveBeenCalled();
     });
 
-    it("returns null and clears username when server fetch fails", async () => {
+    it("returns null but preserves username when server fetch fails (network error)", async () => {
       mockStoredUsername = MOCK_USERNAME;
       mockPasskeyServerClient.getCredentials.mockRejectedValue(new Error("Server error"));
 
@@ -341,8 +343,10 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
         chainId: MOCK_CHAIN_ID,
       });
 
+      // On network errors, we should NOT clear the username - the user's account still exists
+      // They just couldn't restore it due to a network issue
       expect(result).toBeNull();
-      expect(clearStoredUsername).toHaveBeenCalled();
+      expect(clearStoredUsername).not.toHaveBeenCalled();
     });
 
     it("uses first credential when multiple exist on server", async () => {

@@ -23,6 +23,10 @@ beforeAll(() => {
 // Mock the shared modules - must use inline function for hoisting
 vi.mock("@green-goods/shared/modules", () => ({
   track: vi.fn(),
+  mediaResourceManager: {
+    getOrCreateUrl: vi.fn((file: File) => URL.createObjectURL(file)),
+    cleanupUrls: vi.fn(),
+  },
 }));
 
 // Mock image compressor

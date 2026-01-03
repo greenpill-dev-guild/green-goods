@@ -11,28 +11,28 @@ import { createElement, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
-// Mock dependencies
-const mockJobQueue = {
-  getStats: vi.fn().mockResolvedValue({ total: 0, pending: 0, failed: 0, synced: 0 }),
-  flush: vi.fn().mockResolvedValue({ processed: 0, failed: 0, skipped: 0 }),
-  subscribe: vi.fn(() => vi.fn()),
-  hasPendingJobs: vi.fn().mockResolvedValue(false),
-  getPendingCount: vi.fn().mockResolvedValue(0),
-};
-
-const mockUseAuth = vi.fn();
-const mockUseUser = vi.fn();
-
+// Mock job queue module - inline factory to avoid hoisting issues
 vi.mock("../../modules/job-queue", () => ({
-  jobQueue: mockJobQueue,
+  jobQueue: {
+    getStats: vi.fn().mockResolvedValue({ total: 0, pending: 0, failed: 0, synced: 0 }),
+    flush: vi.fn().mockResolvedValue({ processed: 0, failed: 0, skipped: 0 }),
+    subscribe: vi.fn(() => vi.fn()),
+    hasPendingJobs: vi.fn().mockResolvedValue(false),
+    getPendingCount: vi.fn().mockResolvedValue(0),
+  },
 }));
 
+// Mock auth hooks - these will be configured in beforeEach
 vi.mock("../../hooks/auth/useAuth", () => ({
-  useAuth: () => mockUseAuth(),
+  useAuth: vi.fn(() => ({ authMode: "passkey", walletAddress: null })),
 }));
 
 vi.mock("../../hooks/auth/useUser", () => ({
-  useUser: () => mockUseUser(),
+  useUser: vi.fn(() => ({
+    smartAccountAddress: "0xSmartAccount",
+    smartAccountClient: { account: { address: "0xSmartAccount" } },
+    eoa: null,
+  })),
 }));
 
 vi.mock("../../components/toast", () => ({
@@ -67,6 +67,20 @@ import {
   useQueueFlush,
 } from "../../providers/JobQueue";
 import { queueToasts } from "../../components/toast";
+import { jobQueue } from "../../modules/job-queue";
+import { useAuth } from "../../hooks/auth/useAuth";
+import { useUser } from "../../hooks/auth/useUser";
+
+// Type helpers for mocked functions
+const mockJobQueue = jobQueue as {
+  getStats: ReturnType<typeof vi.fn>;
+  flush: ReturnType<typeof vi.fn>;
+  subscribe: ReturnType<typeof vi.fn>;
+  hasPendingJobs: ReturnType<typeof vi.fn>;
+  getPendingCount: ReturnType<typeof vi.fn>;
+};
+const mockUseAuth = useAuth as ReturnType<typeof vi.fn>;
+const mockUseUser = useUser as ReturnType<typeof vi.fn>;
 
 describe("providers/JobQueueProvider", () => {
   let queryClient: QueryClient;
@@ -86,7 +100,7 @@ describe("providers/JobQueueProvider", () => {
     });
     vi.clearAllMocks();
 
-    // Default mock values
+    // Reset mock implementations
     mockUseAuth.mockReturnValue({ authMode: "passkey", walletAddress: null });
     mockUseUser.mockReturnValue({
       smartAccountAddress: "0xSmartAccount",

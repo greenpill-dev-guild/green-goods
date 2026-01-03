@@ -4,13 +4,14 @@
  * Tests for the garden members modal component.
  */
 
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { screen, fireEvent, waitFor } from "@testing-library/react";
+import { renderWithProviders as render } from "../test-utils";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
 // Mock AddressDisplay component
-vi.mock("../AddressDisplay", () => ({
+vi.mock("../../components/AddressDisplay", () => ({
   AddressDisplay: ({ address, className }: { address: string; className?: string }) =>
     createElement("span", { className, "data-testid": "address-display" }, address.slice(0, 10)),
 }));

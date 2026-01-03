@@ -509,6 +509,8 @@ describe("GardenToken", () => {
       const tokenAddress = createMockAddress(11);
       const gardenerAddresses = [createMockAddress(1), createMockAddress(2)];
       const operatorAddresses = [createMockAddress(3)];
+      // Handler merges gardeners + operators (operators are also gardeners by contract design)
+      const expectedGardeners = [...new Set([...gardenerAddresses, ...operatorAddresses])];
 
       const mockEvent = GardenToken.GardenMinted.createMockEvent({
         tokenId: 1n,
@@ -544,7 +546,7 @@ describe("GardenToken", () => {
       assert.equal(garden.openJoining, true, "openJoining should be set");
       assert.equal(garden.tokenAddress, tokenAddress, "tokenAddress should be set");
       assert.equal(garden.tokenID, 1n, "tokenID should be set");
-      assert.deepEqual(garden.gardeners, gardenerAddresses, "gardeners should be set");
+      assert.deepEqual(garden.gardeners, expectedGardeners, "gardeners should include operators");
       assert.deepEqual(garden.operators, operatorAddresses, "operators should be set");
     });
 
