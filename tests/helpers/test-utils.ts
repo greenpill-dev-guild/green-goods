@@ -37,7 +37,12 @@ const AUTH_STORAGE_KEYS = {
  *
  * Only works in Chromium-based browsers.
  *
+ * Configuration based on best practices from:
+ * - https://www.corbado.com/blog/passkeys-e2e-playwright-testing-webauthn-virtual-authenticator
+ * - https://www.oursky.com/blogs/a-practical-guide-automating-passkey-testing-with-playwright-and-authgear
+ *
  * @see https://playwright.dev/docs/api/class-cdpsession
+ * @see https://chromedevtools.github.io/devtools-protocol/tot/WebAuthn/
  */
 export async function setupVirtualAuthenticator(page: Page): Promise<string> {
   const client = await page.context().newCDPSession(page);
@@ -51,9 +56,12 @@ export async function setupVirtualAuthenticator(page: Page): Promise<string> {
       hasResidentKey: true,
       hasUserVerification: true,
       isUserVerified: true,
+      // CRITICAL: Auto-approves "touch" prompts - without this, tests will hang
+      automaticPresenceSimulation: true,
     },
   });
 
+  console.log(`✓ Virtual authenticator created: ${authenticatorId}`);
   return authenticatorId;
 }
 
@@ -78,6 +86,8 @@ export async function removeVirtualAuthenticator(page: Page, authenticatorId: st
  * For iOS Safari, use wallet injection instead.
  */
 export class ClientTestHelper {
+  private cdpSession?: any;
+
   constructor(
     public page: Page,
     private authenticatorId?: string
@@ -91,16 +101,59 @@ export class ClientTestHelper {
    * For iOS Safari, use injectWalletAuth() instead.
    */
   async setupPasskeyAuth() {
-    this.authenticatorId = await setupVirtualAuthenticator(this.page);
+    // Create CDP session and store it for later use
+    this.cdpSession = await this.page.context().newCDPSession(this.page);
+    await this.cdpSession.send("WebAuthn.enable");
+
+    const { authenticatorId } = await this.cdpSession.send("WebAuthn.addVirtualAuthenticator", {
+      options: {
+        protocol: "ctap2",
+        transport: "internal",
+        hasResidentKey: true,
+        hasUserVerification: true,
+        isUserVerified: true,
+        automaticPresenceSimulation: true, // Auto-approve touch prompts
+      },
+    });
+
+    this.authenticatorId = authenticatorId;
+    console.log(`✓ Virtual authenticator ready: ${authenticatorId}`);
     return this.authenticatorId;
+  }
+
+  /**
+   * Manually set user verification state.
+   * Useful for simulating approval/rejection of authentication attempts.
+   *
+   * @param isVerified - true to approve, false to reject
+   */
+  async setUserVerified(isVerified: boolean) {
+    if (!this.authenticatorId || !this.cdpSession) {
+      throw new Error("Virtual authenticator not initialized. Call setupPasskeyAuth() first.");
+    }
+
+    await this.cdpSession.send("WebAuthn.setUserVerified", {
+      authenticatorId: this.authenticatorId,
+      isUserVerified: isVerified,
+    });
+
+    console.log(`✓ User verification set to: ${isVerified}`);
   }
 
   /**
    * Clean up virtual authenticator.
    */
   async cleanup() {
-    if (this.authenticatorId) {
-      await removeVirtualAuthenticator(this.page, this.authenticatorId);
+    if (this.authenticatorId && this.cdpSession) {
+      try {
+        await this.cdpSession.send("WebAuthn.removeVirtualAuthenticator", {
+          authenticatorId: this.authenticatorId,
+        });
+        console.log("✓ Virtual authenticator removed");
+      } catch (error) {
+        // Ignore errors (authenticator may already be removed)
+        console.log("⚠️  Authenticator cleanup skipped (may already be removed)");
+      }
     }
   }
 
@@ -148,61 +201,128 @@ export class ClientTestHelper {
 
   /**
    * Navigate to login and create a new passkey account.
+   *
+   * Flow: Click "Sign Up" → Enter username → Click "Create Account"
+   *       → WebAuthn registration → Garden join → Navigate to /home
    */
   async createPasskeyAccount(username: string = `test_${Date.now()}`) {
+    console.log(`🔐 Creating passkey account: ${username}`);
+
     await this.page.goto("/login");
-    await this.page.waitForLoadState("domcontentloaded");
+    await this.page.waitForLoadState("networkidle");
 
     // Wait for login UI to be ready
-    await expect(this.page.getByTestId("login-button")).toBeVisible({ timeout: 10000 });
+    const loginButton = this.page.getByTestId("login-button");
+    await expect(loginButton).toBeVisible({ timeout: 10000 });
 
-    // Click "Sign Up" to show username input
-    await this.page.getByTestId("login-button").click();
+    // Step 1: Click "Sign Up" button (shows username input)
+    const initialButtonText = await loginButton.textContent();
+    console.log(`✓ Initial button text: "${initialButtonText}"`);
 
-    // Enter username
-    const usernameInput = this.page.locator('input[placeholder*="username"]');
+    await loginButton.click();
+    await this.page.waitForTimeout(500);
+
+    // Step 2: Wait for username input to appear
+    const usernameInput = this.page.locator('input[placeholder*="username"], input[type="text"]');
     await usernameInput.waitFor({ state: "visible", timeout: 5000 });
+    console.log("✓ Username input visible");
+
+    // Step 3: Enter username
     await usernameInput.fill(username);
+    await this.page.waitForTimeout(300);
+    console.log(`✓ Username entered: ${username}`);
 
-    // Submit to create account (virtual authenticator handles WebAuthn)
-    await this.page.getByTestId("login-button").click();
+    // Step 4: Click "Create Account" button (triggers WebAuthn registration + garden join)
+    // Button text should have changed from "Sign Up" to "Create Account"
+    await loginButton.click();
+    console.log("⏳ Waiting for passkey registration + garden join...");
 
-    // Wait for redirect to home (auth success)
-    await this.page.waitForURL(/\/home/, { timeout: 30000 });
+    // Step 5: Wait for complex flow to complete:
+    //   - WebAuthn credential creation (handled by virtual authenticator)
+    //   - Garden join transaction (another passkey approval)
+    //   - Navigation to /home
+    try {
+      // Longer timeout because this includes garden join
+      await this.page.waitForURL(/\/home/, { timeout: 45000 });
+      console.log(`✅ Passkey account created and joined garden: ${username}`);
+      return username;
+    } catch (error) {
+      console.error("❌ Passkey registration failed:");
+      console.error(`   Current URL: ${this.page.url()}`);
+      console.error(`   Button text: "${await loginButton.textContent()}"`);
 
-    return username;
+      // Check for loading states
+      const isLoading = await this.page
+        .locator(".animate-spin, .animate-pulse")
+        .isVisible()
+        .catch(() => false);
+      console.error(`   Is loading: ${isLoading}`);
+
+      // Check for error messages
+      const errorText = await this.page
+        .locator('[role="alert"]')
+        .textContent()
+        .catch(() => "none");
+      console.error(`   Error message: ${errorText}`);
+
+      // Take screenshot for debugging
+      await this.page.screenshot({
+        path: `test-results/passkey-registration-failed-${Date.now()}.png`,
+      });
+      throw error;
+    }
   }
 
   /**
    * Navigate to login and authenticate with existing passkey.
-   * Requires username to be stored or provided.
+   *
+   * For new username: Click "Login" → Enter username → Submit → WebAuthn auth
+   * For stored username: Just click primary button → WebAuthn auth
    */
   async loginWithPasskey(username?: string) {
+    console.log(`🔐 Logging in with passkey${username ? `: ${username}` : " (stored)"}`);
+
     await this.page.goto("/login");
-    await this.page.waitForLoadState("domcontentloaded");
+    await this.page.waitForLoadState("networkidle");
 
-    // Wait for login UI
-    await expect(this.page.getByTestId("login-button")).toBeVisible({ timeout: 10000 });
+    const loginButton = this.page.getByTestId("login-button");
+    await expect(loginButton).toBeVisible({ timeout: 10000 });
 
-    // If username provided, we need to go through recovery flow
     if (username) {
-      // Click "Login" secondary button to show username input
-      const loginButton = this.page.getByRole("button", { name: /^login$/i });
-      if (await loginButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await loginButton.click();
+      // New username - need to enter it via login flow
+      // Step 1: Click secondary "Login" button to show username input
+      const secondaryButton = this.page.getByRole("button", { name: /^login$/i });
+      if (await secondaryButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await secondaryButton.click();
+        await this.page.waitForTimeout(500);
 
-        // Enter username
-        const usernameInput = this.page.locator('input[placeholder*="username"]');
+        // Step 2: Enter username
+        const usernameInput = this.page.locator(
+          'input[placeholder*="username"], input[type="text"]'
+        );
         await usernameInput.waitFor({ state: "visible", timeout: 5000 });
         await usernameInput.fill(username);
+        console.log(`✓ Username entered: ${username}`);
+        await this.page.waitForTimeout(300);
       }
     }
 
-    // Submit (virtual authenticator handles WebAuthn)
-    await this.page.getByTestId("login-button").click();
+    // Submit (triggers WebAuthn authentication, no garden join for existing users)
+    await loginButton.click();
+    console.log("⏳ Waiting for WebAuthn authentication...");
 
-    // Wait for redirect to home
-    await this.page.waitForURL(/\/home/, { timeout: 30000 });
+    // Existing user login is faster (no garden join)
+    try {
+      await this.page.waitForURL(/\/home/, { timeout: 30000 });
+      console.log("✅ Passkey login successful");
+    } catch (error) {
+      console.error("❌ Passkey login failed:");
+      console.error(`   Current URL: ${this.page.url()}`);
+      const buttonText = await loginButton.textContent().catch(() => "unknown");
+      console.error(`   Button text: "${buttonText}"`);
+      await this.page.screenshot({ path: `test-results/passkey-login-failed-${Date.now()}.png` });
+      throw error;
+    }
   }
 
   /**
@@ -211,6 +331,25 @@ export class ClientTestHelper {
   async isAuthenticated(): Promise<boolean> {
     const url = this.page.url();
     return url.includes("/home") || url.includes("/profile") || url.includes("/garden");
+  }
+
+  /**
+   * Set up wallet auth context (prepares for wallet injection).
+   * This is a no-op for client - wallet auth uses storage injection.
+   */
+  async setupWalletAuth() {
+    // Wallet auth uses storage injection, no CDP setup needed
+    return;
+  }
+
+  /**
+   * Authenticate using wallet injection and navigate to home.
+   * Used as alternative to passkey auth for platforms that don't support WebAuthn.
+   */
+  async authenticateWithWallet(address: string = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266") {
+    await this.injectWalletAuth(address);
+    await this.page.goto("/home");
+    await this.waitForPageLoad();
   }
 
   /**

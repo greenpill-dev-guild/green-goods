@@ -96,6 +96,7 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardRootProps>(
     return (
       <Card
         ref={ref}
+        data-testid="garden-card"
         className={cn(classes, "tap-feedback transition-all duration-300", selected && "")}
         onClick={onClick}
       >

@@ -70,7 +70,7 @@ export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className 
           id: "app.workDashboard.openButton",
           defaultMessage: "Open work dashboard",
         })}
-        data-testid="work-dashboard-icon"
+        data-testid="work-dashboard-button"
       >
         {primaryIcon}
 

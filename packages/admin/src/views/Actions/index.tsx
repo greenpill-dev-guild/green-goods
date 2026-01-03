@@ -52,6 +52,7 @@ export default function Actions() {
           <Link
             key={action.id}
             to={`/actions/${action.id}`}
+            data-testid="action-card"
             className="group overflow-hidden rounded-lg border border-stroke-soft bg-bg-white transition hover:border-green-500 hover:shadow-md"
           >
             {action.media[0] && (

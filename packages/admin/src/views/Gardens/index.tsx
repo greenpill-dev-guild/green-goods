@@ -113,6 +113,7 @@ export default function Gardens() {
           return (
             <div
               key={garden.id}
+              data-testid="garden-card"
               className="min-w-[320px] overflow-hidden rounded-lg border border-stroke-soft bg-bg-white shadow-sm transition-shadow hover:shadow-md"
             >
               <div className="relative h-48">

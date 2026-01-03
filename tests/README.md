@@ -7,20 +7,23 @@ Playwright tests for client (PWA) and admin (dashboard) with platform-specific a
 ## Quick Start
 
 ```bash
-# Start services
-bun dev
+# Run all E2E tests (auto-starts dev, runs tests, cleans up)
+bun test:e2e
 
-# Run smoke tests (fastest)
+# Run smoke tests only (faster, recommended ⚡)
 bun test:e2e:smoke
 
-# Platform-specific
-bun test:e2e:android   # Client PWA on Android (passkey)
-bun test:e2e:ios       # Client PWA on iOS (wallet)
-bun test:e2e:admin     # Admin dashboard (wallet)
-
-# Debug with UI
+# Interactive debug UI
 bun test:e2e:ui
 ```
+
+**What happens:**
+1. Script starts `bun dev` in background
+2. Waits for client (3001) and admin (3002) to be ready
+3. Runs Playwright tests
+4. Cleans up PM2 processes automatically
+
+**Note:** The indexer will crash (expected - using production instance)
 
 ## Test Structure
 

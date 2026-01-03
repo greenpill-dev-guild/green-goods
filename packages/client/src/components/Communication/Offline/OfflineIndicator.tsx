@@ -123,5 +123,9 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
     className
   );
 
-  return <div className={containerClasses}>{renderIndicator()}</div>;
+  return (
+    <div className={containerClasses} data-testid="offline-indicator">
+      {renderIndicator()}
+    </div>
+  );
 };

@@ -52,6 +52,7 @@ export const AppBar = () => {
 
   return (
     <nav
+      data-testid="authenticated-nav"
       className={cn(
         // Keep AppBar above page content (z-40), but below modal/drawer overlays (z-[20000]).
         // Hide AppBar when on garden submission routes, work detail pages, or when any drawer is open.
