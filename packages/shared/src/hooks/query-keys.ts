@@ -71,6 +71,15 @@ export const queryKeys = {
     all: ["greengoods", "gardeners"] as const,
     byAddress: (address: string) => ["greengoods", "gardeners", "byAddress", address] as const,
   },
+
+  // Draft related keys
+  drafts: {
+    all: ["greengoods", "drafts"] as const,
+    list: (userAddress: string, chainId: number) =>
+      ["greengoods", "drafts", "list", userAddress, chainId] as const,
+    detail: (draftId: string) => ["greengoods", "drafts", "detail", draftId] as const,
+    images: (draftId: string) => ["greengoods", "drafts", "images", draftId] as const,
+  },
 } as const;
 
 // Utility functions for invalidating related queries
@@ -125,6 +134,18 @@ export const queryInvalidation = {
   invalidateGarden: (gardenId: string, chainId: number) => [
     queryKeys.gardens.byChain(chainId),
     queryKeys.gardens.detail(gardenId, chainId),
+  ],
+
+  // Invalidate drafts for user
+  invalidateDrafts: (userAddress: string, chainId: number) => [
+    queryKeys.drafts.all,
+    queryKeys.drafts.list(userAddress, chainId),
+  ],
+
+  // Invalidate specific draft
+  invalidateDraft: (draftId: string) => [
+    queryKeys.drafts.detail(draftId),
+    queryKeys.drafts.images(draftId),
   ],
 };
 

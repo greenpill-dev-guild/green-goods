@@ -1,6 +1,6 @@
+import type { Work } from "@green-goods/shared";
 import { useOffline, useUser } from "@green-goods/shared/hooks";
 import { useQueueFlush } from "@green-goods/shared/providers/JobQueue";
-import type { Work } from "@green-goods/shared";
 import React from "react";
 import { useIntl } from "react-intl";
 import { MinimalWorkCard } from "@/components/Cards";
@@ -9,14 +9,22 @@ import { BeatLoader } from "@/components/Communication";
 interface UploadingTabProps {
   uploadingWork: Work[];
   isLoading: boolean;
+  isFetching?: boolean;
+  hasError?: boolean;
+  errorMessage?: string;
   onWorkClick: (work: Work) => void;
+  onRefresh?: () => void;
   headerContent?: React.ReactNode;
 }
 
 export const UploadingTab: React.FC<UploadingTabProps> = ({
   uploadingWork,
   isLoading,
+  isFetching,
+  hasError,
+  errorMessage,
   onWorkClick,
+  onRefresh,
   headerContent,
 }) => {
   const intl = useIntl();
@@ -92,6 +100,41 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
               })}
             </p>
           </div>
+        ) : hasError ? (
+          <div className="text-center py-12">
+            <div className="text-4xl mb-3">⚠️</div>
+            <p className="font-medium text-slate-900">
+              {intl.formatMessage({
+                id: "app.workDashboard.error.title",
+                defaultMessage: "Unable to load work",
+              })}
+            </p>
+            <p className="text-sm text-slate-600 mb-4">
+              {errorMessage ||
+                intl.formatMessage({
+                  id: "app.workDashboard.error.description",
+                  defaultMessage:
+                    "There was an error loading your work. Please check your connection and try again.",
+                })}
+            </p>
+            {onRefresh && (
+              <button
+                onClick={onRefresh}
+                disabled={isFetching}
+                className="text-sm text-primary font-medium px-3 py-1 rounded-lg border border-slate-200 disabled:opacity-50"
+              >
+                {isFetching
+                  ? intl.formatMessage({
+                      id: "app.common.refreshing",
+                      defaultMessage: "Refreshing...",
+                    })
+                  : intl.formatMessage({
+                      id: "app.workDashboard.error.retry",
+                      defaultMessage: "Retry",
+                    })}
+              </button>
+            )}
+          </div>
         ) : uploadingWork.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-4xl mb-3">✅</div>
@@ -101,12 +144,29 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
                 defaultMessage: "All synced!",
               })}
             </p>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-slate-600 mb-3">
               {intl.formatMessage({
                 id: "app.workDashboard.uploading.noUploading",
                 defaultMessage: "No items uploading",
               })}
             </p>
+            {onRefresh && (
+              <button
+                onClick={onRefresh}
+                disabled={isFetching}
+                className="text-xs text-text-sub font-medium px-2 py-1 rounded border border-stroke-soft hover:bg-bg-soft disabled:opacity-50"
+              >
+                {isFetching
+                  ? intl.formatMessage({
+                      id: "app.common.refreshing",
+                      defaultMessage: "Refreshing...",
+                    })
+                  : intl.formatMessage({
+                      id: "app.common.refresh",
+                      defaultMessage: "Refresh",
+                    })}
+              </button>
+            )}
           </div>
         ) : (
           <div className="space-y-3">
@@ -117,7 +177,10 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
                 ? [
                     <span key="uploading" className="badge-pill-blue">
                       <span className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
-                      Uploading
+                      {intl.formatMessage({
+                        id: "app.workDashboard.badge.uploading",
+                        defaultMessage: "Uploading",
+                      })}
                     </span>,
                   ]
                 : [];
@@ -129,7 +192,6 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
                   onClick={() => onWorkClick(work)}
                   className="stagger-item"
                   style={{ animationDelay: `${index * 30}ms` } as React.CSSProperties}
-                  variant="dashboard"
                   badges={badges}
                 />
               );

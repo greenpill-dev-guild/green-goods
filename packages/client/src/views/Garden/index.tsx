@@ -1,5 +1,5 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
-import { useActionTranslation, useGardenTranslation } from "@green-goods/shared/hooks";
+import { useActionTranslation, useDrafts, useGardenTranslation } from "@green-goods/shared/hooks";
 import { useWork, WorkTab } from "@green-goods/shared/providers";
 import { useWorkFlowStore } from "@green-goods/shared/stores/useWorkFlowStore";
 import { findActionByUID } from "@green-goods/shared/utils";
@@ -11,9 +11,9 @@ import {
   RiImageFill,
   RiPlantFill,
 } from "@remixicon/react";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/Actions";
 import { ActionCardSkeleton, FormInfo, GardenCardSkeleton } from "@/components/Cards";
 import { FormProgress } from "@/components/Communication";
@@ -29,15 +29,32 @@ const Work: React.FC = () => {
   const intl = useIntl();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const chainId = DEFAULT_CHAIN_ID;
   const { form, activeTab, setActiveTab, actions, gardens, isLoading, workMutation } = useWork();
 
   const canBypassMediaRequirement = import.meta.env.VITE_DEBUG_MODE === "true";
   const submissionCompleted = useWorkFlowStore((s) => s.submissionCompleted);
 
+  // Draft management
+  const {
+    activeDraftId,
+    setActiveDraftId,
+    createDraft,
+    updateDraft,
+    setImages: setDraftImages,
+    clearActiveDraft,
+    resumeDraft,
+  } = useDrafts();
+
   // Draft detection state
   const [showDraftDialog, setShowDraftDialog] = useState(false);
   const hasCheckedDraft = useRef(false);
+  const hasResumedDraft = useRef(false);
+  const prevImageCount = useRef(0);
+
+  // Debounce timer for auto-save
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Media upload click handlers (exposed by WorkMedia for PostHog tracking)
   const galleryClickRef = useRef<(() => void) | null>(null);
@@ -63,6 +80,28 @@ const Work: React.FC = () => {
     plantCount,
   } = form;
 
+  // Handle draft resumption from URL params (e.g., /garden?draftId=xxx)
+  useEffect(() => {
+    if (hasResumedDraft.current) return;
+
+    const draftIdFromUrl = searchParams.get("draftId");
+    if (draftIdFromUrl) {
+      hasResumedDraft.current = true;
+      resumeDraft(draftIdFromUrl)
+        .then(() => {
+          // Clear draftId from URL after resuming
+          searchParams.delete("draftId");
+          setSearchParams(searchParams, { replace: true });
+        })
+        .catch((error) => {
+          console.error("[GardenFlow] Failed to resume draft:", error);
+          // Clear invalid draftId from URL
+          searchParams.delete("draftId");
+          setSearchParams(searchParams, { replace: true });
+        });
+    }
+  }, [searchParams, setSearchParams, resumeDraft]);
+
   // Pre-select garden from navigation state (e.g., from notifications)
   useEffect(() => {
     const navigationState = location.state as { gardenId?: string } | null;
@@ -71,13 +110,121 @@ const Work: React.FC = () => {
     }
   }, [location.state, gardens, gardenAddress, setGardenAddress]);
 
-  // Check for existing draft on mount (only once)
+  // Create draft on first image added (trigger point for draft creation)
+  useEffect(() => {
+    const hadNoImages = prevImageCount.current === 0;
+    const hasImagesNow = images.length > 0;
+
+    // Only create draft when going from 0 to 1+ images
+    if (hadNoImages && hasImagesNow && !activeDraftId) {
+      createDraft({
+        gardenAddress,
+        actionUID,
+        feedback,
+        plantSelection,
+        plantCount,
+        currentStep: "media",
+        firstIncompleteStep: "media",
+      })
+        .then((draftId) => {
+          // Save images to the new draft
+          setDraftImages({ draftId, files: images });
+        })
+        .catch((error) => {
+          console.error("[GardenFlow] Failed to create draft:", error);
+        });
+    }
+
+    prevImageCount.current = images.length;
+  }, [
+    images.length,
+    images,
+    activeDraftId,
+    createDraft,
+    setDraftImages,
+    gardenAddress,
+    actionUID,
+    feedback,
+    plantSelection,
+    plantCount,
+  ]);
+
+  // Auto-save draft on changes (debounced)
+  const saveDraft = useCallback(() => {
+    if (!activeDraftId) return;
+
+    // Clear existing timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    // Debounce save by 1 second
+    saveTimeoutRef.current = setTimeout(() => {
+      updateDraft({
+        draftId: activeDraftId,
+        data: {
+          gardenAddress,
+          actionUID,
+          feedback,
+          plantSelection,
+          plantCount,
+        },
+      }).catch((error) => {
+        console.error("[GardenFlow] Failed to auto-save draft:", error);
+      });
+
+      // Also sync images if changed
+      if (images.length > 0) {
+        setDraftImages({ draftId: activeDraftId, files: images }).catch((error) => {
+          console.error("[GardenFlow] Failed to sync draft images:", error);
+        });
+      }
+    }, 1000);
+  }, [
+    activeDraftId,
+    updateDraft,
+    setDraftImages,
+    gardenAddress,
+    actionUID,
+    feedback,
+    plantSelection,
+    plantCount,
+    images,
+  ]);
+
+  // Trigger auto-save on form changes
+  useEffect(() => {
+    if (activeDraftId) {
+      saveDraft();
+    }
+    // Cleanup timeout on unmount
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [
+    gardenAddress,
+    actionUID,
+    feedback,
+    plantSelection,
+    plantCount,
+    images.length,
+    saveDraft,
+    activeDraftId,
+  ]);
+
+  // Check for existing draft on mount (only once) - legacy dialog support
   // Only show dialog if there's meaningful progress:
   // - Has uploaded images (primary indicator of work done)
   // - OR has both garden AND action selected with additional input (feedback/plants)
   useEffect(() => {
     if (hasCheckedDraft.current) return;
     hasCheckedDraft.current = true;
+
+    // Don't show dialog if resuming a draft from URL
+    const draftIdFromUrl = searchParams.get("draftId");
+    if (draftIdFromUrl) return;
 
     // Images are the strongest indicator of draft progress
     const hasImages = images.length > 0;
@@ -92,15 +239,32 @@ const Work: React.FC = () => {
     if (hasMeaningfulDraft && activeTab === WorkTab.Intro) {
       setShowDraftDialog(true);
     }
-  }, [images.length, gardenAddress, actionUID, feedback, plantSelection, plantCount, activeTab]);
+  }, [
+    images.length,
+    gardenAddress,
+    actionUID,
+    feedback,
+    plantSelection,
+    plantCount,
+    activeTab,
+    searchParams,
+  ]);
 
   const handleContinueDraft = () => {
     setShowDraftDialog(false);
     // Draft is already loaded, just continue
   };
 
-  const handleStartFresh = () => {
+  const handleStartFresh = async () => {
     setShowDraftDialog(false);
+    // Clear active draft if any
+    if (activeDraftId) {
+      try {
+        await clearActiveDraft();
+      } catch (error) {
+        console.error("[GardenFlow] Failed to clear draft:", error);
+      }
+    }
     // Reset all draft state
     useWorkFlowStore.getState().reset();
     form.reset();
@@ -109,7 +273,15 @@ const Work: React.FC = () => {
   // Navigate when submission completes
   useEffect(() => {
     if (submissionCompleted) {
-      const timer = setTimeout(() => {
+      const timer = setTimeout(async () => {
+        // Clear the draft on successful submission
+        if (activeDraftId) {
+          try {
+            await clearActiveDraft();
+          } catch (error) {
+            console.error("[GardenFlow] Failed to clear draft on submission:", error);
+          }
+        }
         // Full reset of store and form
         useWorkFlowStore.getState().reset();
         form.reset();
@@ -117,7 +289,7 @@ const Work: React.FC = () => {
       }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [submissionCompleted, navigate, form]);
+  }, [submissionCompleted, navigate, form, activeDraftId, clearActiveDraft]);
 
   // mutation state handled via toasts inside uploadWork()
 

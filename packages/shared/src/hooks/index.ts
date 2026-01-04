@@ -109,6 +109,8 @@ export { useScrollReveal } from "./ui/useScrollReveal";
 // ============================================================================
 // WORK
 // ============================================================================
+export type { DraftWithImages, UseDraftsReturn } from "./work/useDrafts";
+export { useDrafts } from "./work/useDrafts";
 export { useMyMergedWorks, useMyOnlineWorks, useMyWorks } from "./work/useMyWorks";
 export { useWorkApproval } from "./work/useWorkApproval";
 export type { EnhancedWorkApproval } from "./work/useWorkApprovals";

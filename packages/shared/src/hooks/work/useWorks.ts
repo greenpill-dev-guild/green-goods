@@ -146,7 +146,9 @@ export function useWorks(gardenId: string) {
   return {
     works: (merged.merged.data ?? []) as Work[],
     isLoading: merged.merged.isLoading,
-    error: merged.merged.error,
+    isFetching: merged.online.isFetching || merged.merged.isFetching,
+    isError: merged.online.isError || merged.merged.isError,
+    error: merged.online.error || merged.merged.error,
     offlineCount: (merged.offline.data ?? []).length,
     onlineCount: (merged.online.data ?? []).length,
     refetch: () => {

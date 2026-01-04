@@ -1,17 +1,17 @@
 import type { SmartAccountClient } from "permissionless";
 import { DEFAULT_CHAIN_ID } from "../../config";
+import type {
+  ApprovalJobPayload,
+  Job,
+  JobKindMap,
+  QueueEvent,
+  QueueStats,
+  WorkJobPayload,
+} from "../../types/job-queue";
 import { track } from "../app/posthog";
 import { submitApprovalWithPasskey, submitWorkWithPasskey } from "../work/passkey-submission";
 import { jobQueueDB } from "./db";
 import { jobQueueEventBus } from "./event-bus";
-import type {
-  Job,
-  WorkJobPayload,
-  ApprovalJobPayload,
-  JobKindMap,
-  QueueStats,
-  QueueEvent,
-} from "../../types/job-queue";
 
 // Helper to create offline transaction hash for UI compatibility
 export function createOfflineTxHash(jobId: string): `0x${string}` {
@@ -499,5 +499,6 @@ class JobQueue {
 export const jobQueue = new JobQueue();
 
 export { jobQueueDB } from "./db";
+export { computeFirstIncompleteStep, draftDB } from "./draft-db";
 export { jobQueueEventBus, useJobQueueEvents } from "./event-bus";
 export { mediaResourceManager } from "./media-resource-manager";

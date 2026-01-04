@@ -10,6 +10,7 @@ Reference for AI agents collaborating on the Green Goods monorepo (6 packages: c
 - **Schema immutability** — treat `packages/contracts/config/schemas.json` as read-only. Use `--update-schemas` via `deploy.ts` for metadata refreshes and create `schemas.test.json` for experiments.
 - **Secrets discipline** — do not log or commit values from `.env`. Update `.env.example` alongside any required new variables.
 - **Hooks in shared only** — all React hooks live in `@green-goods/shared`. Never create hooks in client or admin packages.
+- **i18n completeness** — **ANY** new user-facing string MUST be added to ALL THREE language files (`packages/shared/src/i18n/{en,es,pt}.json`) simultaneously. Use `intl.formatMessage()` with semantic keys (e.g., `app.feature.action`). Never commit hardcoded UI strings.
 
 ## MCP Usage
 
@@ -23,8 +24,15 @@ Default to local commands (rg, bun, forge) when the task is small. Escalate to M
 
 ## Developer Onboarding
 
-When helping a developer set up the project for the first time, recommend the automated setup:
+When helping a developer set up the project for the first time, recommend the **Dev Container** (Option A) for the most reliable experience, or the automated setup script (Option B).
 
+### Option A: Dev Container (Best)
+1. Install Docker Desktop + VS Code
+2. Open repo in VS Code -> "Reopen in Container"
+3. Edit `.env`
+4. `bun dev`
+
+### Option B: Local Shell
 ```bash
 git clone https://github.com/greenpill-dev-guild/green-goods.git
 cd green-goods

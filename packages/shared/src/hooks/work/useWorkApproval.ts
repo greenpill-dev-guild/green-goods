@@ -3,8 +3,11 @@
  *
  * Provides unified interface for work approval submission that branches
  * based on authentication mode:
- * - Wallet mode: Direct transaction via wallet client
- * - Passkey mode: Direct smart-account transaction (Pimlico sponsored)
+ * - Wallet mode: Direct transaction via wallet client (updates status after confirmation)
+ * - Passkey mode: Direct smart-account transaction (Pimlico sponsored, updates status after confirmation)
+ *
+ * The UI remains in a pending state until the transaction is confirmed on-chain.
+ * For offline/queued submissions, status updates occur when the job:completed event fires.
  *
  * @module hooks/work/useWorkApproval
  */
@@ -172,49 +175,7 @@ export function useWorkApproval() {
         });
       }
 
-      const { draft, work } = variables;
-
-      // Cancel outgoing refetches for ALL modes to avoid race conditions
-      await queryClient.cancelQueries({
-        queryKey: queryKeys.works.merged(work.gardenAddress, chainId),
-      });
-
-      // Snapshot current data for rollback
-      const previousMergedWorks = queryClient.getQueryData(
-        queryKeys.works.merged(work.gardenAddress, chainId)
-      );
-      const previousOnlineWorks = queryClient.getQueryData(
-        queryKeys.works.online(work.gardenAddress, chainId)
-      );
-
-      // Optimistic update for ALL modes (not just wallet)
-      queryClient.setQueryData(
-        queryKeys.works.merged(work.gardenAddress, chainId),
-        (old: Work[] = []) =>
-          old.map((w) =>
-            w.id === draft.workUID
-              ? { ...w, status: draft.approved ? ("approved" as const) : ("rejected" as const) }
-              : w
-          )
-      );
-
-      queryClient.setQueryData(
-        queryKeys.works.online(work.gardenAddress, chainId),
-        (old: Work[] = []) =>
-          old.map((w) =>
-            w.id === draft.workUID
-              ? { ...w, status: draft.approved ? ("approved" as const) : ("rejected" as const) }
-              : w
-          )
-      );
-
-      if (DEBUG_ENABLED) {
-        debugLog("[useWorkApproval] Applied optimistic update", {
-          authMode,
-          workUID: draft.workUID,
-          newStatus: draft.approved ? "approved" : "rejected",
-        });
-      }
+      const { draft } = variables;
 
       // Show loading toast
       const actionLabel = draft.approved ? "approval" : "decision";
@@ -237,9 +198,6 @@ export function useWorkApproval() {
         context: authMode === "wallet" ? "wallet confirmation" : "approval submission",
         suppressLogging: true,
       });
-
-      // Return context for rollback on error
-      return { previousMergedWorks, previousOnlineWorks };
     },
     onSuccess: (result, variables) => {
       const { hash: txHash } = result;
@@ -261,6 +219,40 @@ export function useWorkApproval() {
           txHash,
           authMode,
         });
+      }
+
+      // Update status in cache ONLY after transaction is confirmed (not for offline placeholders)
+      // This ensures UI transitions to approved/rejected state only after on-chain confirmation
+      if (variables && !isOfflineHash) {
+        const { draft, work } = variables;
+
+        queryClient.setQueryData(
+          queryKeys.works.merged(work.gardenAddress, chainId),
+          (old: Work[] = []) =>
+            old.map((w) =>
+              w.id === draft.workUID
+                ? { ...w, status: draft.approved ? ("approved" as const) : ("rejected" as const) }
+                : w
+            )
+        );
+
+        queryClient.setQueryData(
+          queryKeys.works.online(work.gardenAddress, chainId),
+          (old: Work[] = []) =>
+            old.map((w) =>
+              w.id === draft.workUID
+                ? { ...w, status: draft.approved ? ("approved" as const) : ("rejected" as const) }
+                : w
+            )
+        );
+
+        if (DEBUG_ENABLED) {
+          debugLog("[useWorkApproval] Updated status after confirmation", {
+            authMode,
+            workUID: draft.workUID,
+            newStatus: draft.approved ? "approved" : "rejected",
+          });
+        }
       }
 
       // Show success toast for wallet mode (direct submission)
@@ -321,7 +313,7 @@ export function useWorkApproval() {
         });
       }
     },
-    onError: (error: unknown, variables, context) => {
+    onError: (error: unknown, variables) => {
       // Track approval failure
       trackWorkApprovalFailed({
         workUID: variables?.draft.workUID ?? "",
@@ -329,35 +321,6 @@ export function useWorkApproval() {
         error: error instanceof Error ? error.message : "Unknown error",
         authMode,
       });
-
-      // Rollback optimistic updates for all modes
-      if (context && variables) {
-        const { previousMergedWorks, previousOnlineWorks } = context as {
-          previousMergedWorks?: Work[];
-          previousOnlineWorks?: Work[];
-        };
-
-        if (previousMergedWorks) {
-          queryClient.setQueryData(
-            queryKeys.works.merged(variables.work.gardenAddress, chainId),
-            previousMergedWorks
-          );
-        }
-
-        if (previousOnlineWorks) {
-          queryClient.setQueryData(
-            queryKeys.works.online(variables.work.gardenAddress, chainId),
-            previousOnlineWorks
-          );
-        }
-
-        if (DEBUG_ENABLED) {
-          debugLog("[useWorkApproval] Rolled back optimistic update due to error", {
-            authMode,
-            workUID: variables.draft.workUID,
-          });
-        }
-      }
 
       const isApproval = variables?.draft.approved ?? false;
       const message =

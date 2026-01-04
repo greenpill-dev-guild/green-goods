@@ -121,3 +121,34 @@ export interface CachedWork {
   createdAt: number;
   status?: "pending" | "approved" | "rejected";
 }
+
+// ============================================
+// Draft Types
+// ============================================
+
+export type DraftStep = "intro" | "media" | "details" | "review";
+
+export interface WorkDraft {
+  id: string;
+  userAddress: string;
+  chainId: number;
+  gardenAddress: string | null;
+  actionUID: number | null;
+  feedback: string;
+  plantSelection: string[];
+  plantCount: number | undefined;
+  /** Current step in the flow (for resume) */
+  currentStep: DraftStep;
+  /** First incomplete step (computed on save) */
+  firstIncompleteStep: DraftStep;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface DraftImage {
+  id: string;
+  draftId: string;
+  file: File;
+  url: string;
+  createdAt: number;
+}

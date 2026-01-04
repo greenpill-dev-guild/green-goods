@@ -1,5 +1,12 @@
+import type { Job, Work, WorkJobPayload } from "@green-goods/shared";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
-import { queryKeys, useMyOnlineWorks, useUser, useWorkApprovals } from "@green-goods/shared/hooks";
+import {
+  queryKeys,
+  useDrafts,
+  useMyOnlineWorks,
+  useUser,
+  useWorkApprovals,
+} from "@green-goods/shared/hooks";
 import {
   getWorkApprovals as fetchWorkApprovals,
   getGardens,
@@ -15,14 +22,14 @@ import {
   isUserAddress as sharedIsUserAddress,
   type TimeFilter,
 } from "@green-goods/shared/utils";
-import type { Work, Job, WorkJobPayload } from "@green-goods/shared";
-import { RiCheckLine, RiCloseLine, RiTaskLine, RiTimeLine } from "@remixicon/react";
+import { RiCheckLine, RiCloseLine, RiDraftLine, RiTaskLine, RiTimeLine } from "@remixicon/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { type StandardTab, StandardTabs } from "@/components/Navigation";
 import { CompletedTab } from "./Completed";
+import { DraftsTab } from "./Drafts";
 import { PendingTab } from "./Pending";
 import { TimeFilterControl } from "./TimeFilterControl";
 import { UploadingTab } from "./Uploading";
@@ -44,12 +51,21 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     sharedIsUserAddress(address, activeAddress);
 
   // Use the new hook for work approvals
-  const { completedApprovals, isLoading, hasError, errorMessage } = useWorkApprovals(
-    activeAddress || undefined
-  );
+  const {
+    completedApprovals,
+    isLoading,
+    hasError,
+    errorMessage,
+    refetch: refetchApprovals,
+  } = useWorkApprovals(activeAddress || undefined);
+
+  // Get draft count for badge
+  const { draftCount } = useDrafts();
 
   // State management
-  const [activeTab, setActiveTab] = useState<"recent" | "pending" | "completed">("recent");
+  const [activeTab, setActiveTab] = useState<"drafts" | "recent" | "pending" | "completed">(
+    "recent"
+  );
   const [isClosing, setIsClosing] = useState(false);
   const [pendingFilter, setPendingFilter] = useState<"all" | "needsReview" | "mySubmissions">(
     "all"
@@ -87,7 +103,13 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   );
 
   // Fetch works for gardens the user operates (online + offline merged)
-  const { data: operatorWorks = [], isLoading: isLoadingOperatorWorks } = useQuery({
+  const {
+    data: operatorWorks = [],
+    isLoading: isLoadingOperatorWorks,
+    isFetching: isFetchingOperatorWorks,
+    isError: isErrorOperatorWorks,
+    refetch: refetchOperatorWorks,
+  } = useQuery({
     queryKey: ["operatorWorks", activeAddress, operatorGardenIds],
     queryFn: async () => {
       if (!activeAddress) return [];
@@ -134,15 +156,31 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   });
 
   // Use new hooks for user's works
-  const { data: myOnlineWorks = [], isLoading: isLoadingMyOnlineWorks } = useMyOnlineWorks();
-  const { data: recentOnlineWork = [], isLoading: isLoadingRecentOnline } = useMyOnlineWorks({
+  const {
+    data: myOnlineWorks = [],
+    isLoading: isLoadingMyOnlineWorks,
+    isFetching: isFetchingMyWorks,
+    isError: isErrorMyWorks,
+    refetch: refetchMyWorks,
+  } = useMyOnlineWorks();
+  const {
+    data: recentOnlineWork = [],
+    isLoading: isLoadingRecentOnline,
+    isFetching: isFetchingRecentOnline,
+    isError: isErrorRecentOnline,
+    refetch: refetchRecentOnline,
+  } = useMyOnlineWorks({
     timeFilter,
   });
 
   const queryClient = useQueryClient();
 
   // Uploading work (offline queue jobs only, scoped to current user)
-  const { data: offlineQueueWork = [], isLoading: isLoadingOfflineQueue } = useQuery({
+  const {
+    data: offlineQueueWork = [],
+    isLoading: isLoadingOfflineQueue,
+    refetch: refetchOfflineQueue,
+  } = useQuery({
     queryKey: queryKeys.queue.uploading(),
     queryFn: async () => {
       if (!activeAddress) return [];
@@ -155,8 +193,13 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   });
 
   // Combine offline queue + recent online work for "Recent" tab
-  const recentWorkCombined = useMemo(() => {
-    const combined = [...offlineQueueWork, ...recentOnlineWork];
+  const recentWorkCombined = useMemo((): Work[] => {
+    // Convert EASWork to Work by adding status
+    const onlineWithStatus: Work[] = recentOnlineWork.map((w) => ({
+      ...w,
+      status: "pending" as const,
+    }));
+    const combined = [...offlineQueueWork, ...onlineWithStatus];
 
     // Remove duplicates by ID
     const seen = new Set<string>();
@@ -202,6 +245,24 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     [completedApprovals]
   );
 
+  // Fetch ALL approvals for operator gardens to filter out work reviewed by ANY operator
+  const { data: allOperatorGardenApprovals = [] } = useQuery({
+    queryKey: ["allApprovals", "operatorGardens", operatorGardenIds],
+    queryFn: async () => {
+      // Fetch all work approvals (not scoped to any attester)
+      const approvals = await fetchWorkApprovals(undefined);
+      return approvals;
+    },
+    enabled: operatorGardenIds.length > 0,
+    staleTime: 30_000,
+  });
+
+  // Set of work IDs that have been approved/rejected by ANY operator
+  const alreadyReviewedByAnyone = useMemo(
+    () => new Set((allOperatorGardenApprovals || []).map((a) => a.workUID)),
+    [allOperatorGardenApprovals]
+  );
+
   const operatorWorksById = useMemo(() => {
     const map = new Map<string, Work>();
     (operatorWorks || []).forEach((w) => map.set(w.id, w));
@@ -209,8 +270,9 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   }, [operatorWorks]);
 
   // Pending work needing your review (from gardens you operate, excluding your own submissions)
+  // Filter out works that have been reviewed by ANY operator, not just the current user
   const pendingNeedsReview = (operatorWorks || []).filter(
-    (w) => !reviewedByYou.has(w.id) && !isUserAddress(w.gardenerAddress)
+    (w) => !alreadyReviewedByAnyone.has(w.id) && !isUserAddress(w.gardenerAddress)
   );
 
   // Completed approvals (approved/rejected by you)
@@ -219,7 +281,13 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   );
 
   // Completed: approvals for your own submissions (you as gardener)
-  const { data: myReceivedApprovals = [], isLoading: isLoadingMyApprovals } = useQuery({
+  const {
+    data: myReceivedApprovals = [],
+    isLoading: isLoadingMyApprovals,
+    isFetching: isFetchingMyApprovals,
+    isError: isErrorMyApprovals,
+    refetch: refetchMyApprovals,
+  } = useQuery({
     queryKey: ["approvals", "byGardener", activeAddress],
     queryFn: () => fetchWorkApprovals(activeAddress || undefined),
     enabled: !!activeAddress,
@@ -232,9 +300,9 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     [myReceivedApprovals]
   );
 
-  const pendingMySubmissions = (myOnlineWorks || []).filter(
-    (w) => isUserAddress(w.gardenerAddress) && !approvedOrRejectedForMe.has(w.id)
-  );
+  const pendingMySubmissions: Work[] = (myOnlineWorks || [])
+    .filter((w) => isUserAddress(w.gardenerAddress) && !approvedOrRejectedForMe.has(w.id))
+    .map((w) => ({ ...w, status: "pending" as const }));
 
   // Combine lists and deduplicate by id when showing "all"
   const combinedPending = useMemo(() => {
@@ -274,7 +342,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // Apply time filtering using utility
   const filteredUploading = filterByTimeRange(uploadingWork, timeFilter);
   const filteredPending = filterByTimeRange(pendingWork, timeFilter);
-  const filteredCompleted = filterByTimeRange(completedWork, timeFilter);
+  const filteredCompleted = filterByTimeRange(completedWork as Work[], timeFilter);
 
   // Navigation handler - handles both Work and WorkApproval shapes
   const handleWorkClick = (work: Work | { workUID?: string; gardenAddress?: string }) => {
@@ -312,7 +380,10 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       badges.push(
         <span key="review" className="badge-pill-amber">
           <RiTimeLine className="w-3 h-3" />
-          Needs review
+          {intl.formatMessage({
+            id: "app.workDashboard.badge.needsReview",
+            defaultMessage: "Needs review",
+          })}
         </span>
       );
     }
@@ -320,14 +391,20 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       badges.push(
         <span key="reviewed" className="badge-pill-emerald">
           <RiCheckLine className="w-3 h-3" />
-          Reviewed by you
+          {intl.formatMessage({
+            id: "app.workDashboard.badge.reviewedByYou",
+            defaultMessage: "Reviewed by you",
+          })}
         </span>
       );
     }
     if (isGardener) {
       badges.push(
         <span key="submitted" className="badge-pill-slate">
-          You submitted
+          {intl.formatMessage({
+            id: "app.workDashboard.badge.youSubmitted",
+            defaultMessage: "You submitted",
+          })}
         </span>
       );
     }
@@ -337,17 +414,59 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   const renderApprovalBadges = () => [
     <span key="reviewed" className="badge-pill-emerald">
       <RiCheckLine className="w-3 h-3" />
-      Reviewed by you
+      {intl.formatMessage({
+        id: "app.workDashboard.badge.reviewedByYou",
+        defaultMessage: "Reviewed by you",
+      })}
     </span>,
   ];
 
   const renderMyWorkReviewedBadges = () => [
     <span key="work-reviewed" className="badge-pill-slate">
-      Your work was reviewed
+      {intl.formatMessage({
+        id: "app.workDashboard.badge.yourWorkReviewed",
+        defaultMessage: "Your work was reviewed",
+      })}
     </span>,
   ];
 
+  // Combined refresh functions for each tab
+  const handleRefreshRecent = () => {
+    refetchOfflineQueue();
+    refetchRecentOnline();
+  };
+
+  const handleRefreshPending = () => {
+    refetchOperatorWorks();
+    refetchMyWorks();
+    refetchApprovals();
+  };
+
+  const handleRefreshCompleted = () => {
+    refetchApprovals();
+    refetchMyApprovals();
+  };
+
+  // Combined error states
+  const hasRecentError = isErrorRecentOnline;
+  const hasPendingError = hasError || isErrorOperatorWorks || isErrorMyWorks;
+  const hasCompletedError = hasError || isErrorMyApprovals;
+
+  // Combined fetching states
+  const isFetchingRecent = isFetchingRecentOnline;
+  const isFetchingPending = isFetchingOperatorWorks || isFetchingMyWorks;
+  const isFetchingCompleted = isFetchingMyApprovals;
+
   const tabs: StandardTab[] = [
+    {
+      id: "drafts",
+      icon: <RiDraftLine className="w-4 h-4" />,
+      label: intl.formatMessage({
+        id: "app.workDashboard.tabs.drafts",
+        defaultMessage: "Drafts",
+      }),
+      count: draftCount > 0 ? draftCount : undefined,
+    },
     {
       id: "recent",
       icon: <RiTimeLine className="w-4 h-4" />,
@@ -383,12 +502,17 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
 
   const renderTabContent = () => {
     switch (activeTab) {
+      case "drafts":
+        return <DraftsTab />;
       case "recent":
         return (
           <UploadingTab
             uploadingWork={filteredUploading}
             isLoading={isLoading || isLoadingUploading}
+            isFetching={isFetchingRecent}
+            hasError={hasRecentError}
             onWorkClick={handleWorkClick}
+            onRefresh={handleRefreshRecent}
             headerContent={<TimeFilterControl value={timeFilter} onChange={setTimeFilter} />}
           />
         );
@@ -397,9 +521,11 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
           <PendingTab
             pendingWork={filteredPending}
             isLoading={isLoading || isLoadingOperatorWorks || isLoadingMyOnlineWorks}
-            hasError={hasError}
+            isFetching={isFetchingPending}
+            hasError={hasPendingError}
             errorMessage={errorMessage}
             onWorkClick={handleWorkClick}
+            onRefresh={handleRefreshPending}
             renderBadges={renderWorkBadges}
             headerContent={
               <div className="flex items-center gap-2">
@@ -437,9 +563,11 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
           <CompletedTab
             completedWork={filteredCompleted as any}
             isLoading={isLoading || (completedFilter === "myWorkReviewed" && isLoadingMyApprovals)}
-            hasError={hasError}
+            isFetching={isFetchingCompleted}
+            hasError={hasCompletedError}
             errorMessage={errorMessage}
             onWorkClick={handleWorkClick}
+            onRefresh={handleRefreshCompleted}
             renderBadges={
               completedFilter === "reviewedByYou"
                 ? renderApprovalBadges
@@ -475,7 +603,10 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
           <UploadingTab
             uploadingWork={filteredUploading}
             isLoading={isLoading || isLoadingUploading}
+            isFetching={isFetchingRecent}
+            hasError={hasRecentError}
             onWorkClick={handleWorkClick}
+            onRefresh={handleRefreshRecent}
             headerContent={<TimeFilterControl value={timeFilter} onChange={setTimeFilter} />}
           />
         );
@@ -544,7 +675,9 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         <StandardTabs
           tabs={tabs}
           activeTab={activeTab}
-          onTabChange={(tabId: string) => setActiveTab(tabId as "recent" | "pending" | "completed")}
+          onTabChange={(tabId: string) =>
+            setActiveTab(tabId as "drafts" | "recent" | "pending" | "completed")
+          }
           triggerClassName="text-xs"
         />
 

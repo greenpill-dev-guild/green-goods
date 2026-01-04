@@ -16,6 +16,7 @@ import {
   RiLogoutBoxRLine,
   RiMapPinLine,
   RiPlantLine,
+  RiRefreshLine,
   RiSmartphoneLine,
   RiWalletLine,
 } from "@remixicon/react";
@@ -143,7 +144,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
 
   const handleLogout = async () => {
     try {
-      await signOut();
+      await signOut?.();
       // Pass fromLogout state to prevent redirect back to profile
       navigate("/login", { replace: true, state: { fromLogout: true } });
       toastService.success({
@@ -168,6 +169,69 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
         context: "logout",
         error: err,
       });
+    }
+  };
+
+  /**
+   * Force refresh the app by clearing caches and reloading.
+   * Useful when users experience "weird behavior" after an update.
+   */
+  const handleRefreshApp = async () => {
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      toastService.info({
+        title: intl.formatMessage({
+          id: "app.update.offline",
+          defaultMessage: "You're offline",
+        }),
+        message: intl.formatMessage({
+          id: "app.update.offlineMessage",
+          defaultMessage: "Connect to the internet to update the app.",
+        }),
+        context: "appRefresh",
+      });
+      return;
+    }
+
+    try {
+      toastService.loading({
+        title: intl.formatMessage({
+          id: "app.update.refreshing",
+          defaultMessage: "Updating app…",
+        }),
+        message: intl.formatMessage({
+          id: "app.update.refreshingMessage",
+          defaultMessage: "Clearing cached data and reloading.",
+        }),
+        context: "appRefresh",
+      });
+
+      // Unregister all service workers
+      if ("serviceWorker" in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map((r) => r.unregister()));
+      }
+
+      // Clear all caches
+      if ("caches" in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((key) => caches.delete(key)));
+      }
+
+      // Clear React Query persisted cache (localStorage + IndexedDB)
+      try {
+        localStorage.removeItem("__rq_pc__");
+      } catch {
+        // ignore
+      }
+      try {
+        indexedDB.deleteDatabase("gg-react-query");
+      } catch {
+        // ignore
+      }
+    } catch (err) {
+      console.debug("[AppRefresh] Best-effort cache clear failed:", err);
+    } finally {
+      window.location.reload();
     }
   };
 
@@ -293,6 +357,43 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
           </div>
         </Card>
       ))}
+
+      {/* Refresh App - Clear caches and reload for updates */}
+      <Card>
+        <div className="flex flex-row items-center gap-3 justify-between w-full">
+          <Avatar>
+            <div className="flex items-center justify-center text-center mx-auto text-primary">
+              <RiRefreshLine className="w-4" />
+            </div>
+          </Avatar>
+          <div className="flex flex-col gap-1 grow">
+            <div className="line-clamp-1 text-sm">
+              {intl.formatMessage({
+                id: "app.update.title",
+                defaultMessage: "Refresh app",
+              })}
+            </div>
+            <div className="text-xs text-gray-500">
+              {intl.formatMessage({
+                id: "app.update.subtitle",
+                defaultMessage: "Use this if things look weird after an update.",
+              })}
+            </div>
+          </div>
+          <Button
+            variant="neutral"
+            mode="stroke"
+            size="xsmall"
+            onClick={handleRefreshApp}
+            leadingIcon={<RiRefreshLine className="w-4" />}
+            label={intl.formatMessage({
+              id: "app.update.button",
+              defaultMessage: "Refresh",
+            })}
+            className="shrink-0"
+          />
+        </div>
+      </Card>
 
       {/* Gardens Section - All available gardens with membership status */}
       {primaryAddress && (

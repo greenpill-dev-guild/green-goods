@@ -17,7 +17,7 @@ import { z } from "zod";
  * actionUID, title, and media are managed outside the form
  */
 export const workFormSchema = z.object({
-  feedback: z.string().min(1, "Feedback is required"),
+  feedback: z.string().optional().default(""),
   plantSelection: z.preprocess((val) => {
     if (Array.isArray(val)) {
       return val.filter((item) => typeof item === "string" && item.trim().length > 0);
@@ -63,7 +63,8 @@ export function useWorkForm() {
       plantSelection: [],
       // plantCount is optional
     },
-    shouldUseNativeValidation: true,
+    // Native validation disabled to prevent jarring auto-focus behavior
+    shouldUseNativeValidation: false,
     mode: "onChange",
     // Compatibility note: older @hookform/resolvers versions had a signature mismatch with Zod.
     // Current versions compile cleanly; keeping the context here for future regressions.

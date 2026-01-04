@@ -7,7 +7,8 @@ import {
 import { createStore, del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
 import { RouterProvider } from "react-router-dom";
 import { AppErrorBoundary } from "@/components/Errors";
-import "@green-goods/shared/modules/app/service-worker"; // Initialize service worker
+// Note: Service worker is registered by vite-plugin-pwa (registerType: "autoUpdate")
+// Auto-update logic (foreground checks + controllerchange reload) is in main.tsx
 import type { Query } from "@tanstack/react-query";
 import { router } from "@/router";
 

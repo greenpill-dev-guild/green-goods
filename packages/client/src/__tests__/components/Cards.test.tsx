@@ -269,66 +269,55 @@ describe("components/Cards/WorkCard", () => {
     },
   };
 
-  describe("full variant", () => {
+  describe("compact layout", () => {
     it("renders work title", () => {
       render(createElement(Wrapper, null, createElement(WorkCard, { work: mockWorkItem })));
 
       expect(screen.getByText("Tree Planting")).toBeInTheDocument();
     });
 
-    it("renders work description", () => {
+    it("renders status in badge", () => {
       render(createElement(Wrapper, null, createElement(WorkCard, { work: mockWorkItem })));
 
-      expect(screen.getByText("Planted 5 oak trees in the north section")).toBeInTheDocument();
+      expect(screen.getByText("Pending")).toBeInTheDocument();
     });
 
-    it("renders status badge", () => {
+    it("shows image count in badge", () => {
       render(createElement(Wrapper, null, createElement(WorkCard, { work: mockWorkItem })));
 
-      expect(screen.getByTestId("status-badge")).toHaveAttribute("data-status", "pending");
+      // Image count of 3 is shown in the badge
+      expect(screen.getByText("3")).toBeInTheDocument();
     });
 
-    it("shows image count", () => {
-      render(createElement(Wrapper, null, createElement(WorkCard, { work: mockWorkItem })));
-
-      expect(screen.getByText(/3 images/)).toBeInTheDocument();
-    });
-
-    it("shows relative time", () => {
-      render(createElement(Wrapper, null, createElement(WorkCard, { work: mockWorkItem })));
-
-      expect(screen.getByText("2 hours ago")).toBeInTheDocument();
-    });
-
-    it("shows approved status indicator", () => {
+    it("shows approved status", () => {
       const approvedWork = { ...mockWorkItem, status: "approved" as const };
       render(createElement(Wrapper, null, createElement(WorkCard, { work: approvedWork })));
 
       expect(screen.getByText("Approved")).toBeInTheDocument();
     });
 
-    it("shows rejected status indicator", () => {
+    it("shows rejected status", () => {
       const rejectedWork = { ...mockWorkItem, status: "rejected" as const };
       render(createElement(Wrapper, null, createElement(WorkCard, { work: rejectedWork })));
 
       expect(screen.getByText("Rejected")).toBeInTheDocument();
     });
 
-    it("shows syncing indicator", () => {
+    it("shows syncing status", () => {
       const syncingWork = { ...mockWorkItem, status: "syncing" as const };
       render(createElement(Wrapper, null, createElement(WorkCard, { work: syncingWork })));
 
-      expect(screen.getByText("Syncing...")).toBeInTheDocument();
+      expect(screen.getByText("Syncing")).toBeInTheDocument();
     });
 
-    it("shows error when present", () => {
+    it("shows error badge when error present", () => {
       const errorWork = { ...mockWorkItem, status: "failed" as const, error: "Network timeout" };
       render(createElement(Wrapper, null, createElement(WorkCard, { work: errorWork })));
 
-      expect(screen.getByText("Network timeout")).toBeInTheDocument();
+      expect(screen.getByText("Error")).toBeInTheDocument();
     });
 
-    it("shows retry count when retries occurred", () => {
+    it("shows retry count in badge when retries occurred", () => {
       const retriedWork = {
         ...mockWorkItem,
         retryCount: 2,
@@ -336,24 +325,11 @@ describe("components/Cards/WorkCard", () => {
       };
       render(createElement(Wrapper, null, createElement(WorkCard, { work: retriedWork })));
 
-      expect(screen.getByText(/2 retries/)).toBeInTheDocument();
-    });
-  });
-
-  describe("minimal variant", () => {
-    it("renders with minimal variant", () => {
-      render(
-        createElement(
-          Wrapper,
-          null,
-          createElement(WorkCard, { work: mockWorkItem, variant: "minimal" })
-        )
-      );
-
-      expect(screen.getByText("Tree Planting")).toBeInTheDocument();
+      // Retry count of 2 is shown in badge
+      expect(screen.getByText("2")).toBeInTheDocument();
     });
 
-    it("handles click in minimal variant", async () => {
+    it("handles click", async () => {
       const handleClick = vi.fn();
       const user = userEvent.setup();
 
@@ -361,7 +337,7 @@ describe("components/Cards/WorkCard", () => {
         createElement(
           Wrapper,
           null,
-          createElement(WorkCard, { work: mockWorkItem, variant: "minimal", onClick: handleClick })
+          createElement(WorkCard, { work: mockWorkItem, onClick: handleClick })
         )
       );
 

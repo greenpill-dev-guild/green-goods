@@ -82,6 +82,59 @@ queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chain
 queryClient.invalidateQueries({ queryKey: ['works', gardenId] });
 ```
 
+### Internationalization (i18n) — **MANDATORY**
+
+**CRITICAL:** Any new user-facing strings MUST be added to ALL THREE language files simultaneously.
+
+Supported languages:
+- English (en.json)
+- Spanish (es.json)
+- Portuguese (pt.json)
+
+**Process:**
+1. Add key to `src/i18n/en.json` with English text
+2. Add same key to `src/i18n/es.json` with Spanish translation
+3. Add same key to `src/i18n/pt.json` with Portuguese translation
+
+```typescript
+// ✅ Correct — use intl.formatMessage with i18n key
+intl.formatMessage({
+  id: "app.update.title",
+  defaultMessage: "Refresh app"  // Fallback if key missing
+})
+
+// ❌ Wrong — hardcoded strings
+<button>Refresh app</button>
+```
+
+**i18n Files:**
+```json
+// en.json
+{
+  "app.update.title": "Refresh app",
+  "app.update.subtitle": "Use this if things look weird after an update."
+}
+
+// es.json
+{
+  "app.update.title": "Actualizar app",
+  "app.update.subtitle": "Usa esto si algo se ve raro después de una actualización."
+}
+
+// pt.json
+{
+  "app.update.title": "Atualizar app",
+  "app.update.subtitle": "Use se algo parecer estranho após uma atualização."
+}
+```
+
+**Pre-commit checklist:**
+- [ ] Added key to en.json
+- [ ] Added key to es.json
+- [ ] Added key to pt.json
+- [ ] Verified JSON syntax (no trailing commas, valid escaping)
+- [ ] Used semantic key naming (e.g., `app.feature.action`)
+
 ## Provider Hierarchy
 
 Required nesting order:

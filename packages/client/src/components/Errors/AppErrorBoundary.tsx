@@ -1,4 +1,5 @@
 import { track } from "@green-goods/shared/modules";
+import { en, es, pt } from "@green-goods/shared/i18n";
 import {
   RiBugLine,
   RiErrorWarningLine,
@@ -9,6 +10,23 @@ import {
 import { Component, ErrorInfo, ReactNode } from "react";
 import { Button } from "../Actions";
 
+type Messages = typeof en;
+type Locale = "en" | "es" | "pt";
+
+const messages: Record<Locale, Messages> = { en, es, pt };
+
+function getBrowserLocale(): Locale {
+  if (typeof navigator === "undefined") return "en";
+  const browserLocales = navigator.languages || [navigator.language];
+  for (const locale of browserLocales) {
+    const lang = locale.split("-")[0] as Locale;
+    if (lang === "en" || lang === "es" || lang === "pt") {
+      return lang;
+    }
+  }
+  return "en";
+}
+
 interface Props {
   children: ReactNode;
 }
@@ -17,12 +35,22 @@ interface State {
   hasError: boolean;
   error: Error | null;
   errorInfo: ErrorInfo | null;
+  locale: Locale;
 }
 
 export class AppErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null, errorInfo: null };
+    this.state = {
+      hasError: false,
+      error: null,
+      errorInfo: null,
+      locale: getBrowserLocale(),
+    };
+  }
+
+  private t(key: keyof Messages): string {
+    return messages[this.state.locale][key];
   }
 
   static getDerivedStateFromError(error: Error): State {
@@ -107,35 +135,35 @@ export class AppErrorBoundary extends Component<Props, State> {
                 {/* Title with emoji */}
                 <h1 className="text-3xl font-bold text-gray-900 mb-3">
                   {isNetworkError
-                    ? "🌱 Garden Offline"
+                    ? `🌱 ${this.t("app.error.boundary.title.garden")}`
                     : isOfflineError
-                      ? "🔧 Garden Maintenance"
-                      : "🚧 Oops!"}
+                      ? `🔧 ${this.t("app.error.boundary.title.maintenance")}`
+                      : `🚧 ${this.t("app.error.boundary.title.error")}`}
                 </h1>
 
                 {/* Subtitle */}
                 <h2 className="text-lg font-semibold text-gray-700 mb-4">
                   {isNetworkError
-                    ? "Connection Lost"
+                    ? this.t("app.error.boundary.subtitle.connection")
                     : isOfflineError
-                      ? "Technical Hiccup"
-                      : "Something went wrong"}
+                      ? this.t("app.error.boundary.subtitle.technical")
+                      : this.t("app.error.boundary.subtitle.error")}
                 </h2>
 
                 {/* Main description */}
                 <div className="space-y-3 mb-8">
                   <p className="text-gray-600 leading-relaxed">
                     {isNetworkError
-                      ? "🌐 Your garden is temporarily offline. Don't worry - your work is safely stored locally and will sync when you're back online!"
+                      ? `🌐 ${this.t("app.error.boundary.description.network")}`
                       : isOfflineError
-                        ? "🔧 There's a technical issue with the offline features, but your data is safe and secure."
-                        : "🛠️ Something unexpected happened. Our team has been notified and is working on a fix."}
+                        ? `🔧 ${this.t("app.error.boundary.description.offline")}`
+                        : `🛠️ ${this.t("app.error.boundary.description.error")}`}
                   </p>
 
                   {(isNetworkError || isOfflineError) && (
                     <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                       <p className="text-sm text-green-700 font-medium">
-                        ✅ Your work is protected and will not be lost
+                        ✅ {this.t("app.error.boundary.protection.message")}
                       </p>
                     </div>
                   )}
@@ -146,7 +174,7 @@ export class AppErrorBoundary extends Component<Props, State> {
                   <details className="mb-8 text-left w-full group">
                     <summary className="cursor-pointer font-medium text-sm text-gray-700 hover:text-gray-900 transition-colors p-3 bg-gray-50 rounded-lg border border-gray-200 group-open:rounded-b-none">
                       <span className="flex items-center justify-between">
-                        🔍 Technical Details (Dev Mode)
+                        🔍 {this.t("app.error.boundary.devMode.title")}
                         <span className="text-xs text-gray-500 group-open:hidden">
                           Click to expand
                         </span>
@@ -174,7 +202,7 @@ export class AppErrorBoundary extends Component<Props, State> {
                     variant="primary"
                     size="medium"
                     onClick={this.handleRetry}
-                    label="Try Again"
+                    label={this.t("app.error.boundary.action.tryAgain")}
                     leadingIcon={<RiRefreshLine className="h-5 w-5" />}
                     className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
                   />
@@ -183,7 +211,7 @@ export class AppErrorBoundary extends Component<Props, State> {
                     variant="neutral"
                     size="medium"
                     onClick={() => (window.location.href = "/")}
-                    label="Return to Garden"
+                    label={this.t("app.error.boundary.action.returnHome")}
                     leadingIcon={<RiHomeLine className="h-5 w-5" />}
                     className="w-full border-2 hover:bg-gray-50 transform hover:scale-[1.02] transition-all duration-200"
                   />
@@ -192,9 +220,8 @@ export class AppErrorBoundary extends Component<Props, State> {
                 {/* Help text with animation */}
                 <div className="mt-8 p-4 bg-blue-50 rounded-xl border border-blue-200">
                   <p className="text-xs text-blue-700 leading-relaxed">
-                    💡 <strong>Need help?</strong> Try refreshing your browser, clearing your cache,
-                    or check your internet connection. If this keeps happening, our gardeners are
-                    always here to help!
+                    💡 <strong>{this.t("app.error.boundary.help.title")}</strong>{" "}
+                    {this.t("app.error.boundary.help.description")}
                   </p>
                 </div>
               </div>

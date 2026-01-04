@@ -25,76 +25,43 @@
  */
 
 // ============================================
+// Auth Types
+// ============================================
+export type { AuthMode, BaseAuthContext } from "./auth";
+// ============================================
+// Blockchain Types
+// ============================================
+export type { ChainId, DeploymentConfig } from "./blockchain.d";
+// ============================================
+// Contract Types
+// ============================================
+export type { CreateGardenParams, DeploymentParams, NetworkContracts } from "./contracts";
+// ============================================
 // Domain Types
 // ============================================
 export type {
+  Action,
+  ActionCard,
+  ActionInstructionConfig,
   Address,
-  GardenerCard,
-  GardenCard,
+  AssessmentDraft,
   Garden,
+  GardenAssessment,
+  GardenCard,
+  GardenerCard,
+  Link,
   PlantInfo,
   SpeciesRegistry,
-  GardenAssessment,
-  AssessmentDraft,
-  ActionCard,
-  Action,
-  WorkInput,
-  WorkDraft,
-  WorkCard,
   Work,
-  WorkMetadata,
-  WorkApprovalDraft,
   WorkApproval,
-  ActionInstructionConfig,
-  Link,
+  WorkApprovalDraft,
+  WorkCard,
+  WorkDraft,
+  WorkInput,
+  WorkMetadata,
 } from "./domain";
-
 // Re-export Capital enum (value export, not type)
 export { Capital } from "./domain";
-
-// ============================================
-// Job Queue Types
-// ============================================
-export type {
-  Job,
-  QueueEvent,
-  JobProcessor,
-  WorkJobPayload,
-  ApprovalJobPayload,
-  JobKindMap,
-  JobKind,
-  JobPayload,
-  QueueSubscriber,
-  QueueStats,
-  JobQueueDBImage,
-  CachedWork,
-} from "./job-queue";
-
-// ============================================
-// Offline Types
-// ============================================
-export type {
-  OfflineStatus,
-  OfflineDashboardData,
-  OfflineWorkItem,
-  SyncMetrics,
-  OfflineSettings,
-  OfflineCapabilities,
-  WorkConflict,
-  DuplicateCheckResult,
-} from "./offline";
-
-// ============================================
-// Indexer Response Types
-// ============================================
-export type {
-  IndexerGarden,
-  IndexerGardensResponse,
-  IndexerAction,
-  IndexerActionsResponse,
-  IndexerGardener,
-  IndexerGardenersResponse,
-} from "./indexer-responses";
 
 // ============================================
 // EAS Response Types
@@ -107,18 +74,48 @@ export type {
   EASWork,
   EASWorkApproval,
 } from "./eas-responses";
-
 // ============================================
-// Contract Types
+// Indexer Response Types
 // ============================================
-export type { CreateGardenParams, DeploymentParams, NetworkContracts } from "./contracts";
-
+export type {
+  IndexerAction,
+  IndexerActionsResponse,
+  IndexerGarden,
+  IndexerGardener,
+  IndexerGardenersResponse,
+  IndexerGardensResponse,
+} from "./indexer-responses";
 // ============================================
-// Blockchain Types
+// Job Queue Types
 // ============================================
-export type { ChainId, DeploymentConfig } from "./blockchain.d";
-
+export type {
+  ApprovalJobPayload,
+  CachedWork,
+  DraftImage,
+  // Draft types
+  DraftStep,
+  Job,
+  JobKind,
+  JobKindMap,
+  JobPayload,
+  JobProcessor,
+  JobQueueDBImage,
+  QueueEvent,
+  QueueStats,
+  QueueSubscriber,
+  WorkDraft as WorkDraftDB,
+  WorkJobPayload,
+} from "./job-queue";
 // ============================================
-// Auth Types
+// Offline Types
 // ============================================
-export type { AuthMode, BaseAuthContext } from "./auth";
+export type {
+  DuplicateCheckResult,
+  OfflineCapabilities,
+  OfflineDashboardData,
+  OfflineSettings,
+  OfflineStatus,
+  OfflineWorkItem,
+  SyncMetrics,
+  WorkConflict,
+} from "./offline";

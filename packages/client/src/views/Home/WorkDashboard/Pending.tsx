@@ -7,9 +7,11 @@ import { BeatLoader } from "@/components/Communication";
 interface PendingTabProps {
   pendingWork: Work[];
   isLoading: boolean;
+  isFetching?: boolean;
   hasError: boolean;
   errorMessage?: string;
   onWorkClick: (work: Work) => void;
+  onRefresh?: () => void;
   renderBadges?: (work: Work) => React.ReactNode[];
   headerContent?: React.ReactNode;
 }
@@ -17,9 +19,11 @@ interface PendingTabProps {
 export const PendingTab: React.FC<PendingTabProps> = ({
   pendingWork,
   isLoading,
+  isFetching,
   hasError,
   errorMessage,
   onWorkClick,
+  onRefresh,
   renderBadges,
   headerContent,
 }) => {
@@ -79,15 +83,23 @@ export const PendingTab: React.FC<PendingTabProps> = ({
                     "There was an error loading your work. Please check your connection and try again.",
                 })}
             </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="text-sm text-primary font-medium px-3 py-1 rounded-lg border border-slate-200"
-            >
-              {intl.formatMessage({
-                id: "app.workDashboard.error.retry",
-                defaultMessage: "Retry",
-              })}
-            </button>
+            {onRefresh && (
+              <button
+                onClick={onRefresh}
+                disabled={isFetching}
+                className="text-sm text-primary font-medium px-3 py-1 rounded-lg border border-slate-200 disabled:opacity-50"
+              >
+                {isFetching
+                  ? intl.formatMessage({
+                      id: "app.common.refreshing",
+                      defaultMessage: "Refreshing...",
+                    })
+                  : intl.formatMessage({
+                      id: "app.workDashboard.error.retry",
+                      defaultMessage: "Retry",
+                    })}
+              </button>
+            )}
           </div>
         ) : pendingWork.length === 0 ? (
           <div className="text-center py-12">
@@ -98,12 +110,29 @@ export const PendingTab: React.FC<PendingTabProps> = ({
                 defaultMessage: "No pending work",
               })}
             </p>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-slate-600 mb-3">
               {intl.formatMessage({
                 id: "app.workDashboard.pending.description",
                 defaultMessage: "Work awaiting review will appear here",
               })}
             </p>
+            {onRefresh && (
+              <button
+                onClick={onRefresh}
+                disabled={isFetching}
+                className="text-xs text-text-sub font-medium px-2 py-1 rounded border border-stroke-soft hover:bg-bg-soft disabled:opacity-50"
+              >
+                {isFetching
+                  ? intl.formatMessage({
+                      id: "app.common.refreshing",
+                      defaultMessage: "Refreshing...",
+                    })
+                  : intl.formatMessage({
+                      id: "app.common.refresh",
+                      defaultMessage: "Refresh",
+                    })}
+              </button>
+            )}
           </div>
         ) : (
           <div className="space-y-3">
@@ -115,7 +144,6 @@ export const PendingTab: React.FC<PendingTabProps> = ({
                 badges={renderBadges?.(work)}
                 className="stagger-item"
                 style={{ animationDelay: `${index * 30}ms` } as React.CSSProperties}
-                variant="dashboard"
               />
             ))}
           </div>

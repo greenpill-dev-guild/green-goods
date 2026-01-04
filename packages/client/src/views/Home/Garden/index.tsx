@@ -63,13 +63,18 @@ export const Garden: React.FC<GardenProps> = () => {
   const { id: gardenIdParam } = useParams<{ id: string }>();
   const { pathname } = useLocation();
   const chainId = DEFAULT_CHAIN_ID;
-  const { data: allGardens = [] } = useGardens(chainId);
+  const { data: allGardens = [], isFetching: gardensLoading } = useGardens(chainId);
   const garden = allGardens.find((g) => g.id === gardenIdParam);
   const gardenStatus: "error" | "success" | "pending" = garden ? "success" : "pending";
-  const isFetching = false;
   const { data: allGardeners = [] } = useGardeners();
   const { data: actions = [] } = useActions(chainId);
-  const { works: mergedWorks } = useWorks(gardenIdParam || "");
+  const {
+    works: mergedWorks,
+    isLoading: worksLoading,
+    isFetching: worksFetching,
+    isError: worksError,
+    refetch: refetchWorks,
+  } = useWorks(gardenIdParam || "");
   const members = useMemo<GardenMember[]>(() => {
     if (!garden) return [];
 
@@ -142,16 +147,26 @@ export const Garden: React.FC<GardenProps> = () => {
   const renderTabContent = () => {
     switch (activeTab) {
       case GardenTab.Work: {
-        const workFetchStatus =
-          mergedWorks.length > 0 ? "success" : isFetching ? "pending" : gardenStatus;
+        // Determine fetch status from actual hook states
+        const workFetchStatus: "pending" | "success" | "error" = worksError
+          ? "error"
+          : worksLoading
+            ? "pending"
+            : "success";
         return (
-          <GardenWork workFetchStatus={workFetchStatus} actions={actions} works={mergedWorks} />
+          <GardenWork
+            workFetchStatus={workFetchStatus}
+            actions={actions}
+            works={mergedWorks}
+            isFetching={worksFetching}
+            onRefresh={refetchWorks}
+          />
         );
       }
       case GardenTab.Insights:
         return (
           <GardenAssessments
-            asessmentFetchStatus={isFetching ? "pending" : gardenStatus}
+            asessmentFetchStatus={gardensLoading ? "pending" : gardenStatus}
             assessments={assessments}
             description={description}
           />
@@ -215,7 +230,7 @@ export const Garden: React.FC<GardenProps> = () => {
                   activeTab={activeTab}
                   onTabChange={(tabId) => setActiveTab(tabId as GardenTab)}
                   variant="compact"
-                  isLoading={isFetching}
+                  isLoading={gardensLoading || worksFetching}
                 />
               </div>
             </div>
@@ -242,7 +257,7 @@ export const Garden: React.FC<GardenProps> = () => {
             {/* Scrollable content below fixed header (add top padding to match header height) */}
             <div
               className="flex-1 min-h-0 px-4 md:px-6 pb-4 pt-56 overflow-y-auto overflow-x-hidden"
-              aria-busy={isFetching}
+              aria-busy={worksFetching}
             >
               {renderTabContent()}
             </div>
