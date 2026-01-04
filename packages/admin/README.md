@@ -294,21 +294,19 @@ Set `VITE_ENABLE_SW_DEV=true` for additional debugging information.
 
 ## 📖 Documentation
 
-### [Admin Dashboard Documentation](./docs/)
-Comprehensive documentation for the admin dashboard:
-- **[Migration Guide](./docs/GARDEN_FEATURE_MIGRATION.md)** - Guide for implementing garden features that were previously CLI scripts
-- **[README](./docs/README.md)** - Overview of the admin dashboard architecture and common tasks
+📖 **[Admin Dashboard Documentation](https://docs.greengoods.app/developer/architecture/admin-package)** — Complete admin architecture guide
 
-**📋 For developers working on new garden features**, start with the [Garden Feature Migration Guide](./docs/GARDEN_FEATURE_MIGRATION.md) which includes:
-- Detailed implementation guides with code examples
-- Best practices and recommended patterns
-- GraphQL query examples
-- Testing checklists
-- Priority roadmap
+**Essential Guides:**
+- 🏗️ [System Architecture](https://docs.greengoods.app/developer/architecture) — Package relationships and data flow
+- 🎯 [Operator Quickstart](https://docs.greengoods.app/welcome/quickstart-operator) — Get started as an operator
+- 📋 [Managing Gardens Guide](https://docs.greengoods.app/guides/operators/managing-gardens) — Garden management workflows
 
-## 📚 Additional Resources
+**Package-Specific Documentation:**
+- **[Migration Guide](./docs/GARDEN_FEATURE_MIGRATION.md)** — Implementing garden features that were previously CLI scripts
+- **[Local README](./docs/README.md)** — Overview of admin dashboard architecture
 
-- [Green Goods Documentation](../../docs/)
-- [Smart Contracts](../contracts/)
-- [GraphQL Indexer](../indexer/)
-- [Client Application](../client/)
+## 📚 Related Resources
+
+- [Smart Contracts Package](https://docs.greengoods.app/developer/architecture/contracts-package)
+- [GraphQL Indexer Package](https://docs.greengoods.app/developer/architecture/indexer-package)
+- [Client Application Package](https://docs.greengoods.app/developer/architecture/client-package)

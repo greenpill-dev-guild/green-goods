@@ -1,0 +1,279 @@
+/**
+ * Green Goods Documentation Theme
+ * Based on Material Design 2 principles from the Green Goods design system
+ */
+
+/* ============================================================================
+   COLOR PALETTE - Material Design 2 Inspired
+   ========================================================================= */
+
+:root {
+  /* Primary Brand Colors (Green) */
+  --green-800: #1b5e20;
+  --green-700: #2e7d32;
+  --green-600: #388e3c;
+  --green-500: #4caf50;
+  --green-400: #66bb6a;
+  --green-300: #81c784;
+
+  /* Neutral Scale */
+  --neutral-950: #0a0a0a;
+  --neutral-900: #171717;
+  --neutral-850: #1f1f1f;
+  --neutral-800: #262626;
+  --neutral-700: #404040;
+  --neutral-600: #525252;
+  --neutral-500: #737373;
+  --neutral-400: #a3a3a3;
+  --neutral-300: #d4d4d4;
+  --neutral-200: #e5e5e5;
+  --neutral-100: #f5f5f5;
+  --neutral-50: #fafafa;
+
+  /* State Colors */
+  --success-base: #4caf50;
+  --error-base: #f44336;
+  --warning-base: #ff9800;
+  --info-base: #2196f3;
+}
+
+/* ============================================================================
+   LIGHT MODE - Primary Colors & Semantics
+   ========================================================================= */
+
+:root {
+  /* Primary Brand */
+  --ifm-color-primary: var(--green-500);
+  --ifm-color-primary-dark: var(--green-600);
+  --ifm-color-primary-darker: var(--green-700);
+  --ifm-color-primary-darkest: var(--green-800);
+  --ifm-color-primary-light: var(--green-400);
+  --ifm-color-primary-lighter: var(--green-300);
+  --ifm-color-primary-lightest: var(--green-300);
+
+  /* Semantic Background */
+  --ifm-background-color: var(--neutral-50);
+  --ifm-background-surface-color: #ffffff;
+  --ifm-hover-overlay: rgba(0, 0, 0, 0.05);
+
+  /* Semantic Text */
+  --ifm-font-color-base: var(--neutral-950);
+  --ifm-font-color-secondary: var(--neutral-600);
+  --ifm-color-emphasis-300: var(--neutral-400);
+
+  /* Borders */
+  --ifm-color-emphasis-200: var(--neutral-200);
+  --ifm-color-emphasis-100: var(--neutral-100);
+
+  /* Code */
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(76, 175, 80, 0.1);
+
+  /* Links */
+  --ifm-link-color: var(--green-600);
+  --ifm-link-hover-color: var(--green-700);
+
+  /* Success/Error States */
+  --ifm-color-success: var(--success-base);
+  --ifm-color-danger: var(--error-base);
+  --ifm-color-warning: var(--warning-base);
+  --ifm-color-info: var(--info-base);
+}
+
+/* ============================================================================
+   DARK MODE - Adjusted Palette
+   ========================================================================= */
+
+[data-theme='dark'] {
+  /* Primary Brand (slightly lighter for contrast) */
+  --ifm-color-primary: var(--green-400);
+  --ifm-color-primary-dark: var(--green-500);
+  --ifm-color-primary-darker: var(--green-600);
+  --ifm-color-primary-darkest: var(--green-700);
+  --ifm-color-primary-light: var(--green-300);
+  --ifm-color-primary-lighter: var(--green-300);
+  --ifm-color-primary-lightest: var(--green-300);
+
+  /* Semantic Background */
+  --ifm-background-color: var(--neutral-950);
+  --ifm-background-surface-color: var(--neutral-900);
+  --ifm-hover-overlay: rgba(255, 255, 255, 0.05);
+
+  /* Semantic Text */
+  --ifm-font-color-base: var(--neutral-50);
+  --ifm-font-color-secondary: var(--neutral-300);
+  --ifm-color-emphasis-300: var(--neutral-500);
+
+  /* Borders */
+  --ifm-color-emphasis-200: var(--neutral-700);
+  --ifm-color-emphasis-100: var(--neutral-800);
+
+  /* Code */
+  --docusaurus-highlighted-code-line-bg: rgba(76, 175, 80, 0.15);
+
+  /* Links */
+  --ifm-link-color: var(--green-400);
+  --ifm-link-hover-color: var(--green-300);
+}
+
+/* ============================================================================
+   TYPOGRAPHY - Material Design 2 Scale
+   ========================================================================= */
+
+:root {
+  --ifm-font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', 
+                          Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 
+                          'Droid Sans', 'Helvetica Neue', sans-serif;
+  --ifm-font-family-monospace: 'Fira Code', 'Cascadia Code', 'Consolas', 
+                               'Monaco', 'Courier New', monospace;
+  
+  /* Type Scale */
+  --ifm-h1-font-size: 2.5rem;    /* 40px */
+  --ifm-h2-font-size: 2rem;      /* 32px */
+  --ifm-h3-font-size: 1.5rem;    /* 24px */
+  --ifm-h4-font-size: 1.25rem;   /* 20px */
+  --ifm-h5-font-size: 1.125rem;  /* 18px */
+  --ifm-h6-font-size: 1rem;      /* 16px */
+  
+  --ifm-line-height-base: 1.5;
+  --ifm-heading-font-weight: 500;
+}
+
+/* ============================================================================
+   COMPONENT CUSTOMIZATIONS
+   ========================================================================= */
+
+/* Navbar */
+.navbar {
+  background-color: var(--ifm-background-surface-color);
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.navbar__logo {
+  height: 32px;
+}
+
+.navbar__link {
+  font-weight: 500;
+}
+
+/* Sidebar */
+.menu {
+  font-weight: 400;
+}
+
+.menu__link {
+  border-radius: 6px;
+}
+
+.menu__link--active {
+  font-weight: 500;
+  background-color: rgba(76, 175, 80, 0.1);
+  border-left: 3px solid var(--ifm-color-primary);
+  padding-left: calc(var(--ifm-menu-link-padding-horizontal) - 3px);
+}
+
+/* Code Blocks */
+div[class^='codeBlockContainer'] {
+  border-radius: 8px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.prism-code {
+  font-size: 0.875rem;
+}
+
+/* Cards & Content */
+.card {
+  border-radius: 8px;
+  border: 1px solid var(--ifm-color-emphasis-200);
+}
+
+article {
+  max-width: 800px;
+}
+
+/* Tables */
+table {
+  display: block;
+  overflow-x: auto;
+  border-radius: 6px;
+}
+
+/* Admonitions (Callouts) */
+.admonition {
+  border-radius: 8px;
+  border-left-width: 4px;
+}
+
+.admonition-heading {
+  font-weight: 500;
+}
+
+/* Search */
+.DocSearch-Button {
+  border-radius: 6px;
+}
+
+/* Footer */
+.footer {
+  background-color: var(--ifm-background-surface-color);
+  border-top: 1px solid var(--ifm-color-emphasis-200);
+}
+
+/* ============================================================================
+   UTILITY CLASSES
+   ========================================================================= */
+
+/* Spacing (Material Design) */
+.spacing-sm { margin: 0.5rem; }
+.spacing-md { margin: 1rem; }
+.spacing-lg { margin: 1.5rem; }
+.spacing-xl { margin: 2rem; }
+
+/* Status Badges (aligned with app) */
+.badge--success {
+  background-color: rgba(76, 175, 80, 0.1);
+  color: var(--success-base);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.badge--error {
+  background-color: rgba(244, 67, 54, 0.1);
+  color: var(--error-base);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.badge--warning {
+  background-color: rgba(255, 152, 0, 0.1);
+  color: var(--warning-base);
+  border: 1px solid rgba(255, 152, 0, 0.3);
+}
+
+/* ============================================================================
+   RESPONSIVE DESIGN
+   ========================================================================= */
+
+@media (max-width: 768px) {
+  :root {
+    --ifm-h1-font-size: 2rem;
+    --ifm-h2-font-size: 1.5rem;
+  }
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ========================================================================= */
+
+/* Focus indicators */
+*:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 2px;
+}
+
+/* Skip to content link */
+.skipToContent_fXgn {
+  background-color: var(--ifm-color-primary);
+  color: white;
+}

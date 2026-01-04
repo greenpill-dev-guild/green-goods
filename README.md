@@ -5,16 +5,16 @@ Green Goods is an offline-first, single-chain platform for documenting conservat
 ## Quick Start
 
 ```bash
-git clone https://github.com/your-org/green-goods.git
+git clone https://github.com/greenpill-dev-guild/green-goods.git
 cd green-goods
-npm setup                     # Checks deps, installs packages, creates .env from template
+bun setup                     # Checks deps, installs packages, creates .env from template
 
 vi .env                       # Populate keys (Base Sepolia is the default chain: 84532)
 
 bun dev                       # Starts client, admin, indexer via pm2
 ```
 
-> **Note**: `npm setup` checks for required dependencies (Node 20+, Bun, Git, Docker, Foundry), installs them if possible, runs `bun install`, and copies `.env.example` to `.env`. If you prefer manual setup, see [Installation Guide](./docs/developer/installation.md).
+> **Note**: `bun setup` checks for required dependencies (Node 20+, Bun, Git, Docker, Foundry), installs them if possible, runs `bun install`, and copies `.env.example` to `.env`. If you prefer manual setup, see the [Installation Guide](https://docs.greengoods.app/developer/installation).
 
 Useful follow-ups:
 
@@ -41,19 +41,26 @@ Scripts live in `package.json`; contract-specific flows are described in the Con
 
 ## Documentation
 
-- [System Architecture](./docs/developer/architecture.md) — full system map and package summaries (GitBook canonical doc)
-- [Developer Getting Started](./docs/developer/getting-started.md) — environment setup, testing, troubleshooting
-- [Contracts Handbook](./docs/developer/contracts-handbook.md) — deployment, upgrades, schema care, validation
-- [IPFS Deployment](./docs/developer/ipfs-deployment.md) — decentralized app deployment via Storacha + Pinata
-- [Product Overview](./docs/features/overview.md) — product architecture and data flow
-- [Karma GAP Integration](./docs/developer/karma-gap.md) — appendix for the GAP attestation bridge
+📖 **[Full Documentation](https://docs.greengoods.app)** — Complete documentation for all users and developers
+
+**Quick Links:**
+- [Getting Started](https://docs.greengoods.app/developer/getting-started) — Environment setup, testing, troubleshooting
+- [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook) — Deployment, upgrades, schema management
+- [Architecture Diagrams](https://docs.greengoods.app/developer/architecture/diagrams) — Visual system overview
+- [API Reference](https://docs.greengoods.app/developer/api-reference) — GraphQL APIs and smart contracts
+
+**Run docs locally:**
+```bash
+bun docs:dev
+```
 
 Package-specific READMEs:
-
-- `packages/client/README.md` — offline-first PWA
-- `packages/admin/README.md` — operator dashboard
+- `packages/client/README.md` — Offline-first PWA
+- `packages/admin/README.md` — Operator dashboard
 - `packages/indexer/README.md` — Envio indexer
-- `packages/contracts/README.md` — foundry project layout and scripts
+- `packages/contracts/README.md` — Foundry project layout and scripts
+- `packages/agent/README.md` — Multi-platform bot
+- `packages/shared/README.md` — Common hooks and utilities
 
 ## Contributing
 

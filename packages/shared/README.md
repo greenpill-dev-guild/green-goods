@@ -154,6 +154,13 @@ bun test job-queue
 
 ## Documentation
 
-For detailed architecture documentation, see:
-- [AGENTS.md](./AGENTS.md) — Full architecture guide for AI agents
+📖 **[Shared Package Documentation](https://docs.greengoods.app/developer/architecture/monorepo-structure#shared-package)** — Shared utilities and architecture patterns
+
+**Essential Guides:**
+- 🏗️ [Hook Architecture](https://docs.greengoods.app/developer/architecture/monorepo-structure#hook-boundary-critical) — All hooks centralized in shared
+- 🔄 [State Management](https://docs.greengoods.app/developer/architecture/monorepo-structure#state-management) — Providers, stores, and query patterns
+- 📦 [Cross-Package Imports](https://docs.greengoods.app/developer/architecture/monorepo-structure#cross-package-dependencies) — Import boundaries and conventions
+
+**For AI Agents:**
+- [AGENTS.md](./AGENTS.md) — AI agent architecture guide
 - [Root AGENTS.md](/AGENTS.md) — Monorepo-wide documentation

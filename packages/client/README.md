@@ -2,6 +2,13 @@
 
 This package contains the frontend application for Green Goods, a Progressive Web App (PWA) designed to revolutionize community impact reporting. It enables Garden Operators and Gardeners to document and get approval for community actions, interact with blockchain components for attestations, and view impact data.
 
+📖 **[Client Documentation](https://docs.greengoods.app/developer/architecture/client-package)** — Complete client architecture and development guide
+
+**Essential Guides:**
+- 🌱 [Gardener Quickstart](https://docs.greengoods.app/welcome/quickstart-gardener) — Get started as a gardener
+- 📱 [Offline Architecture](https://docs.greengoods.app/developer/architecture/client-package#offline-first-architecture) — Job queue and PWA patterns
+- 🔐 [Authentication Guide](https://docs.greengoods.app/developer/architecture/client-package#authentication) — Passkey and wallet auth flows
+
 ## Getting Started
 
 This section assumes you have already set up the main Green Goods project as outlined in the [root README.md](../../README.md).

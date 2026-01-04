@@ -51,7 +51,11 @@
     "build:agent": "cd packages/agent && bun run build",
     "build:client": "cd packages/client && bun run build",
     "build:indexer": "cd packages/indexer && bun run build",
-    "build:contracts": "cd packages/contracts && bun run build"
+    "build:contracts": "cd packages/contracts && bun run build",
+
+    "docs:dev": "cd docs && bun start",
+    "docs:build": "cd docs && bun run build",
+    "docs:serve": "cd docs && bun run serve"
   },
   "overrides": {
     "multiformats": "^13.4.2"
