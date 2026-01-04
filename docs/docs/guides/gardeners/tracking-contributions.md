@@ -404,16 +404,16 @@ Rate: 90%
 
 ## Learn More
 
-- [Logging Work](logging-work.md) — Step-by-step submission guide
-- [Best Practices](best-practices.md) — Tips for quality work
-- [Attestations](../../concepts/attestations.md) — Understanding on-chain records
-- [Gardener Quickstart](../../welcome/quickstart-gardener.md) — Getting started
+- [Logging Work](logging-work) — Step-by-step submission guide
+- [Best Practices](best-practices) — Tips for quality work
+- [Attestations](../../concepts/attestations) — Understanding on-chain records
+- [Gardener Quickstart](../../welcome/quickstart-gardener) — Getting started
 
 ---
 
 ## Need Help?
 
 - 💬 **Community**: [Telegram](https://t.me/+N3o3_43iRec1Y2Jh)
-- 📖 **FAQ**: [Reference/FAQ](../../reference/faq.md)
+- 📖 **FAQ**: [Reference/FAQ](../../reference/faq)
 - 🐛 **Bug Report**: [GitHub Issues](https://github.com/greenpill-dev-guild/green-goods/issues)
 

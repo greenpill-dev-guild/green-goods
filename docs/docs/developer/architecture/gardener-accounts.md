@@ -258,7 +258,7 @@ event ProfileUpdated(
 ```bash
 # Deploy to testnet (Base Sepolia)
 cd packages/contracts
-node script/deploy.js core --network baseSepolia --broadcast
+bun script/deploy.ts core --network baseSepolia --broadcast
 
 # GardenerAccount logic will be deployed automatically
 # Address saved to deployments/84532-latest.json
@@ -268,7 +268,8 @@ node script/deploy.js core --network baseSepolia --broadcast
 
 ```bash
 # Upgrade GardenerAccount implementation
-node script/upgrade.js gardener-account --network baseSepolia --broadcast
+cd packages/contracts
+bun script/upgrade.ts gardener-account --network baseSepolia --broadcast
 
 # This deploys new logic; existing accounts continue working
 # New accounts use updated logic automatically

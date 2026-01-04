@@ -406,7 +406,7 @@ Update issue labels accordingly:
 ## Reference
 
 - [n8n Automation Diagram](architecture/diagrams.md#n8n-automation)
-- [Cursor Workflows](cursor-workflows.md)
+- [Cursor Workflows](cursor-workflows)
 - [Orchestration Rule](https://github.com/greenpill-dev-guild/green-goods/tree/main/.cursor/rules/orchestration.mdc)
 - [Cursor GitHub Integration](https://cursor.com/docs/integrations/github)
 - [Cursor Cloud Agents](https://cursor.com/docs/cloud-agent)

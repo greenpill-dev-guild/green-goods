@@ -66,7 +66,7 @@ Thank you to everyone who has contributed to Green Goods!
 - Community support
 - Translations
 
-[Contributing Guide →](../developer/contributing.md)
+[Contributing Guide →](../developer/contributing)
 
 ---
 
@@ -200,7 +200,7 @@ Contact: [Telegram](https://t.me/+N3o3_43iRec1Y2Jh) for media inquiries
 
 ## Contributing
 
-Want to be listed here? [Start contributing!](../developer/contributing.md)
+Want to be listed here? [Start contributing!](../developer/contributing)
 
 All contributors are credited in:
 - GitHub contributors list

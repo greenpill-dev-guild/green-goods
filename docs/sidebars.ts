@@ -1,12 +1,17 @@
 import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
 
 /**
- * Green Goods Documentation Sidebar
+ * Green Goods Documentation Sidebars
  * 
- * Mirrors the structure from GitBook SUMMARY.md
+ * Two separate navigation structures:
+ * - usersSidebar: For gardeners, operators, evaluators
+ * - developersSidebar: For developers and contributors
  */
 const sidebars: SidebarsConfig = {
-  docsSidebar: [
+  // ============================================================================
+  // USERS SIDEBAR - Gardeners, Operators, Evaluators
+  // ============================================================================
+  usersSidebar: [
     {
       type: 'doc',
       id: 'intro',
@@ -30,7 +35,6 @@ const sidebars: SidebarsConfig = {
         'welcome/quickstart-gardener',
         'welcome/quickstart-operator',
         'welcome/quickstart-evaluator',
-        'welcome/quickstart-developer',
       ],
     },
     {
@@ -90,57 +94,6 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: 'Developer Documentation',
-      items: [
-        {
-          type: 'category',
-          label: 'Getting Started',
-          items: [
-            'developer/getting-started',
-            'developer/installation',
-          ],
-        },
-        {
-          type: 'category',
-          label: 'Architecture & Packages',
-          items: [
-            'developer/architecture/monorepo-structure',
-            'developer/architecture/diagrams',
-            'developer/architecture/client-package',
-            'developer/architecture/admin-package',
-            'developer/architecture/indexer-package',
-            'developer/architecture/telegram-bot',
-            'developer/architecture/contracts-package',
-            'developer/architecture',
-          ],
-        },
-        {
-          type: 'category',
-          label: 'Testing & Development',
-          items: [
-            'developer/testing',
-            'developer/cursor-workflows',
-            'developer/n8n-automation',
-            'developer/api-reference',
-            'developer/contracts-handbook',
-            'developer/ipfs-deployment',
-            'developer/karma-gap',
-            'developer/theming',
-          ],
-        },
-        {
-          type: 'category',
-          label: 'Contributing',
-          items: [
-            'developer/contributing',
-            'developer/docs-contributing',
-            'developer/docs-deployment',
-          ],
-        },
-      ],
-    },
-    {
-      type: 'category',
       label: 'Reference',
       items: [
         'reference/faq',
@@ -148,6 +101,84 @@ const sidebars: SidebarsConfig = {
         'reference/design-research',
         'reference/credits',
         'glossary',
+      ],
+    },
+  ],
+
+  // ============================================================================
+  // DEVELOPERS SIDEBAR - Technical Documentation
+  // ============================================================================
+  developersSidebar: [
+    {
+      type: 'doc',
+      id: 'welcome/quickstart-developer',
+      label: 'Developer Quickstart',
+    },
+    {
+      type: 'category',
+      label: 'Getting Started',
+      collapsed: false,
+      items: [
+        'developer/getting-started',
+        'developer/installation',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Architecture',
+      items: [
+        'developer/architecture',
+        'developer/architecture/monorepo-structure',
+        'developer/architecture/diagrams',
+        {
+          type: 'category',
+          label: 'Package Architecture',
+          items: [
+            'developer/architecture/client-package',
+            'developer/architecture/admin-package',
+            'developer/architecture/indexer-package',
+            'developer/architecture/contracts-package',
+            'developer/architecture/telegram-bot',
+            'developer/architecture/gardener-accounts',
+          ],
+        },
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Testing & Development',
+      items: [
+        'developer/testing',
+        'developer/cursor-workflows',
+        'developer/n8n-automation',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Deployment & Operations',
+      items: [
+        'developer/contracts-handbook',
+        'developer/ipfs-deployment',
+        'developer/karma-gap',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'API & Integrations',
+      items: [
+        'developer/api-reference',
+        'developer/theming',
+        'developer/auto-translation-flow',
+        'developer/translation-troubleshooting',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Contributing',
+      items: [
+        'developer/contributing',
+        'developer/docs-contributing',
+        'developer/docs-deployment',
       ],
     },
   ],

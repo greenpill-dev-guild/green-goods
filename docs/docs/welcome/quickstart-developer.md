@@ -62,21 +62,26 @@ Edit `.env` with your preferred editor:
 # Required for client
 VITE_WALLETCONNECT_PROJECT_ID=your_reown_project_id
 VITE_PIMLICO_API_KEY=your_pimlico_api_key
-VITE_CHAIN_ID=84532  # Base Sepolia for testing
+VITE_CHAIN_ID=84532  # Base Sepolia (testnet)
 
 # Required for contracts
 FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer  # After creating keystore
 BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
 
-# Optional but recommended
-VITE_PINATA_JWT=your_pinata_jwt  # For IPFS uploads
-ETHERSCAN_API_KEY=your_etherscan_key  # For contract verification
+# Optional - IPFS storage (choose one)
+VITE_STORACHA_KEY=your_storacha_key  # Storacha (recommended)
+VITE_STORACHA_PROOF=your_storacha_proof
+PINATA_JWT=your_pinata_jwt  # Pinata (alternative)
+
+# Optional - Contract verification
+ETHERSCAN_API_KEY=your_etherscan_v2_key
 ```
 
 **Get API Keys**:
 - **Reown (WalletConnect)**: [cloud.reown.com](https://cloud.reown.com/)
 - **Pimlico**: [dashboard.pimlico.io](https://dashboard.pimlico.io/)
-- **Pinata**: [app.pinata.cloud](https://app.pinata.cloud/)
+- **Storacha** (recommended): [console.storacha.network](https://console.storacha.network)
+- **Pinata** (alternative): [app.pinata.cloud](https://app.pinata.cloud/)
 
 ### 2.3 (Optional) Import Deployer Key
 
@@ -87,7 +92,7 @@ cast wallet import green-goods-deployer --interactive
 # Enter your private key and set a password
 ```
 
-[Detailed Environment Setup →](../developer/installation.md)
+[Detailed Environment Setup →](../developer/installation)
 
 ---
 
@@ -155,7 +160,7 @@ The main gardener-facing Progressive Web App.
 - Tailwind CSS v4 + Radix UI
 - Offline-first architecture
 
-[Client Package Docs →](../developer/architecture/client-package.md)
+[Client Package Docs →](../developer/architecture/client-package)
 
 ### 4.2 Admin Dashboard (http://localhost:3002)
 
@@ -172,7 +177,7 @@ Operator and admin interface.
 - Urql (GraphQL) + XState + Zustand
 - Tailwind CSS v4 + Radix UI
 
-[Admin Package Docs →](../developer/architecture/admin-package.md)
+[Admin Package Docs →](../developer/architecture/admin-package)
 
 ### 4.3 GraphQL Indexer (http://localhost:8080)
 
@@ -199,7 +204,7 @@ query Gardens {
 - GraphQL API
 - ReScript event handlers
 
-[Indexer Package Docs →](../developer/architecture/indexer-package.md)
+[Indexer Package Docs →](../developer/architecture/indexer-package)
 
 ---
 
@@ -265,7 +270,7 @@ bun test:e2e:smoke  # E2E smoke tests
 ```
 
 **Complete testing guide**:
-- [Testing & QA](../developer/testing.md)
+- [Testing & QA](../developer/testing)
 - [E2E Test Reference](https://github.com/greenpill-dev-guild/green-goods/tree/main/tests#readme)
 - [E2E Architecture](https://github.com/greenpill-dev-guild/green-goods/tree/main/tests/ARCHITECTURE.md)
 
@@ -298,7 +303,7 @@ bun --filter contracts deploy:testnet
 - Schemas (EAS attestation templates)
 - Root "Green Goods Community Garden"
 
-[Deployment Guide →](../developer/contracts-handbook.md)
+[Deployment Guide →](../developer/contracts-handbook)
 
 ---
 
@@ -366,7 +371,7 @@ green-goods/
 - `.gitbook.yaml`: GitBook documentation config
 - `ecosystem.config.js`: PM2 service definitions
 
-[Monorepo Structure Guide →](../developer/architecture/monorepo-structure.md)
+[Monorepo Structure Guide →](../developer/architecture/monorepo-structure)
 
 ---
 
@@ -509,11 +514,11 @@ bun dev
 
 ### Developer Guides
 
-- [Installation & Setup](../developer/installation.md)
-- [Architecture Overview](../developer/architecture/monorepo-structure.md)
-- [Testing Guide](../developer/testing.md)
-- [API Reference](../developer/api-reference.md)
-- [Contributing Guide](../developer/contributing.md)
+- [Installation & Setup](../developer/installation)
+- [Architecture Overview](../developer/architecture/monorepo-structure)
+- [Testing Guide](../developer/testing)
+- [API Reference](../developer/api-reference)
+- [Contributing Guide](../developer/contributing)
 
 ### Package Documentation
 

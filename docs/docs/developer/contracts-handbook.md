@@ -18,7 +18,7 @@ Operational guide for the Solidity workspace (`packages/contracts`). Every flow 
 
 ## Deployments
 
-All deployments run through `deploy.js`, wrapped by bun scripts so environment loading and schema setup stay consistent.
+All deployments run through `deploy.ts`, wrapped by bun scripts so environment loading and schema setup stay consistent.
 
 ```bash
 # Local anvil deployment with fixtures
@@ -35,8 +35,8 @@ bun --filter contracts deploy:arbitrum
 Optional parameters:
 
 - `bun --filter contracts deploy:dry:testnet` — simulates without broadcasting
-- `node script/deploy.js core --network baseSepolia --broadcast --update-schemas` — refreshes schema metadata without redeploying contracts
-- `node script/deploy.js core --network baseSepolia --broadcast --force` — full reset (use only for initial network bring-up)
+- `bun script/deploy.ts core --network baseSepolia --broadcast --update-schemas` — refreshes schema metadata without redeploying contracts
+- `bun script/deploy.ts core --network baseSepolia --broadcast --force` — full reset (use only for initial network bring-up)
 
 Deployment artifacts live in `packages/contracts/deployments/<chainId>-latest.json`. Treat these files as source of truth for frontends and indexer.
 
@@ -53,7 +53,7 @@ bun --filter contracts upgrade:celo
 bun --filter contracts upgrade:arbitrum
 ```
 
-To target an individual contract, call `node script/upgrade.js <target> --network <network> --broadcast` (e.g. `action-registry`, `work-resolver`). Only use raw `forge script` for exploratory debugging.
+To target an individual contract, call `bun script/upgrade.ts <target> --network <network> --broadcast` (e.g. `action-registry`, `work-resolver`). Only use raw `forge script` for exploratory debugging.
 
 GardenAccount resolvers are immutable; resolver upgrades require a new implementation. Follow the upgrade script prompts and announce opt-in steps to garden owners.
 
@@ -66,7 +66,7 @@ Common scenarios:
 - **Metadata refresh** (name/description fix):
 
   ```bash
-  node script/deploy.js core --network baseSepolia --broadcast --update-schemas
+  bun script/deploy.ts core --network baseSepolia --broadcast --update-schemas
   ```
 
 - **New schema version for testing**: create `config/schemas.test.json` and wire it into your local deployment branch; do not commit changes to `schemas.json`.
@@ -84,6 +84,6 @@ Before a production deployment, capture:
 
 - Test results (`bun --filter contracts test`)
 - Gas report snapshot
-- Deployment summary (`node script/deploy.js status --network <network>`)
+- Deployment summary (`bun script/deploy.ts status --network <network>`)
 
 Store deployment notes alongside the commit or link them in the PR description for traceability.

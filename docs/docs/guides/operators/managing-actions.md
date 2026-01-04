@@ -60,6 +60,6 @@ Capitals: SOCIAL, CULTURAL
 
 ## Learn More
 
-- [Managing Gardens](managing-gardens.md)
-- [Reviewing Work](reviewing-work.md)
+- [Managing Gardens](managing-gardens)
+- [Reviewing Work](reviewing-work)
 

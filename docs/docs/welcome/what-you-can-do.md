@@ -32,7 +32,7 @@ The fastest way to create verifiable impact records:
 <!-- ![MDR Workflow Animation](../.gitbook/assets/mdr-animation.gif) -->
 *Complete a submission in under 2 minutes*
 
-[Detailed Guide: Logging Work →](../guides/gardeners/logging-work.md)
+[Detailed Guide: Logging Work →](../guides/gardeners/logging-work)
 
 ### Track Your Contributions
 
@@ -47,7 +47,7 @@ The fastest way to create verifiable impact records:
 - Showcase your impact to funders
 - Unlock future opportunities
 
-[Guide: Tracking Contributions →](../guides/gardeners/tracking-contributions.md)
+[Guide: Tracking Contributions →](../guides/gardeners/tracking-contributions)
 
 ### Work Across Multiple Gardens
 
@@ -90,7 +90,7 @@ The fastest way to create verifiable impact records:
 6. Share attestation on social media
 ```
 
-[Best Practices Guide →](../guides/gardeners/best-practices.md)
+[Best Practices Guide →](../guides/gardeners/best-practices)
 
 ---
 
@@ -110,7 +110,7 @@ The fastest way to create verifiable impact records:
 - Update member lists
 - Manage multiple gardens from one dashboard
 
-[Guide: Managing Gardens →](../guides/operators/managing-gardens.md)
+[Guide: Managing Gardens →](../guides/operators/managing-gardens)
 
 ### Design Actions for Gardeners
 
@@ -130,7 +130,7 @@ The fastest way to create verifiable impact records:
 - Seasonal adjustments
 - Emergency priorities
 
-[Guide: Managing Actions →](../guides/operators/managing-actions.md)
+[Guide: Managing Actions →](../guides/operators/managing-actions)
 
 ### Review and Approve Work
 
@@ -153,7 +153,7 @@ The fastest way to create verifiable impact records:
 - Gardener receives confirmation
 - Work becomes part of garden's permanent record
 
-[Guide: Reviewing Work →](../guides/operators/reviewing-work.md)
+[Guide: Reviewing Work →](../guides/operators/reviewing-work)
 
 ### Generate Impact Reports
 
@@ -173,7 +173,7 @@ The fastest way to create verifiable impact records:
 - Multi-chain standardization
 - Transparent accountability
 
-[Guide: Reporting Impact →](../guides/operators/reporting-impact.md)
+[Guide: Reporting Impact →](../guides/operators/reporting-impact)
 
 ### Example Operator Workflows
 
@@ -220,7 +220,7 @@ The fastest way to create verifiable impact records:
    - Visual dashboards
    - Export functionality
 
-[Guide: Accessing Data →](../guides/evaluators/accessing-data.md)
+[Guide: Accessing Data →](../guides/evaluators/accessing-data)
 
 ### Query Impact Data
 
@@ -255,7 +255,7 @@ query ApprovedWork($startDate: Int!, $endDate: Int!) {
 }
 ```
 
-[API Reference →](../developer/api-reference.md)
+[API Reference →](../developer/api-reference)
 
 ### Explore Gardens and Work
 
@@ -271,7 +271,7 @@ query ApprovedWork($startDate: Int!, $endDate: Int!) {
 - Review operator feedback
 - Verify on-chain attestations
 
-[Guide: Exploring Gardens →](../guides/evaluators/exploring-gardens.md)
+[Guide: Exploring Gardens →](../guides/evaluators/exploring-gardens)
 
 ### Integrate with External Frameworks
 
@@ -286,7 +286,7 @@ query ApprovedWork($startDate: Int!, $endDate: Int!) {
 - JSON for databases
 - GraphQL for dashboards
 
-[Guide: External Frameworks →](../guides/evaluators/external-frameworks.md)
+[Guide: External Frameworks →](../guides/evaluators/external-frameworks)
 
 ### Example Evaluator Workflows
 
@@ -342,7 +342,7 @@ query ApprovedWork($startDate: Int!, $endDate: Int!) {
 - Event-driven architecture
 - Automatic sync with blockchain
 
-[API Documentation →](../developer/api-reference.md)
+[API Documentation →](../developer/api-reference)
 
 ### Interact with Smart Contracts
 
@@ -358,7 +358,7 @@ query ApprovedWork($startDate: Int!, $endDate: Int!) {
 - `WorkApprovalResolver`: Approval logic
 - `AssessmentResolver`: Garden assessments
 
-[Contracts Documentation →](../developer/architecture/contracts-package.md)
+[Contracts Documentation →](../developer/architecture/contracts-package)
 
 ### Build Custom Integrations
 
@@ -401,7 +401,7 @@ client.subscription(WORK_APPROVED_SUBSCRIPTION)
   });
 ```
 
-[Integration Examples →](../developer/api-reference.md)
+[Integration Examples →](../developer/api-reference)
 
 ### Contribute to the Platform
 
@@ -418,7 +418,7 @@ client.subscription(WORK_APPROVED_SUBSCRIPTION)
 - Documentation
 - Bug fixes
 
-[Contributing Guide →](../developer/contributing.md)
+[Contributing Guide →](../developer/contributing)
 
 ### Example Developer Workflows
 
@@ -513,8 +513,8 @@ Green Goods is a platform for regenerative coordination. The possibilities are e
 
 ## Learn More
 
-- [Why Green Goods?](why-green-goods.md) — Understand the problems we solve
-- [Who Is It For?](who-is-it-for.md) — Find your role
-- [Core Concepts](../concepts/roles.md) — Deep dive into how it works
-- [How-To Guides](../guides/gardeners/logging-work.md) — Step-by-step tutorials
+- [Why Green Goods?](why-green-goods) — Understand the problems we solve
+- [Who Is It For?](who-is-it-for) — Find your role
+- [Core Concepts](../concepts/roles) — Deep dive into how it works
+- [How-To Guides](../guides/gardeners/logging-work) — Step-by-step tutorials
 

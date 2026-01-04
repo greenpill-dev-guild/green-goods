@@ -390,9 +390,9 @@ Garden focuses on urban tree planting:
 
 ### Green Goods Resources
 
-- [Attestations](attestations.md) — Foundation for Hypercerts
-- [Gardens & Work](gardens-and-work.md) — What gets aggregated
-- [Operator Guide: Reporting Impact](../guides/operators/reporting-impact.md)
+- [Attestations](attestations) — Foundation for Hypercerts
+- [Gardens & Work](gardens-and-work) — What gets aggregated
+- [Operator Guide: Reporting Impact](../guides/operators/reporting-impact)
 
 ### External Resources
 

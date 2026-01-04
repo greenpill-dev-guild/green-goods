@@ -198,7 +198,7 @@ See [Contributing to Documentation](docs-contributing) for the full workflow, as
 
 ## Contributor Recognition
 
-- Contributors listed in [Credits](../reference/credits.md)
+- Contributors listed in [Credits](../reference/credits)
 - Mention in release notes
 - Potential for core team invitation
 - Future: Retroactive rewards (via Hypercerts!)
@@ -207,8 +207,8 @@ See [Contributing to Documentation](docs-contributing) for the full workflow, as
 
 ## Learn More
 
-- [Developer Quickstart](../welcome/quickstart-developer.md)
-- [Installation Guide](installation.md)
-- [Testing Details](testing.md)
-- [Architecture Docs](architecture/monorepo-structure.md)
+- [Developer Quickstart](../welcome/quickstart-developer)
+- [Installation Guide](installation)
+- [Testing Details](testing)
+- [Architecture Docs](architecture/monorepo-structure)
 

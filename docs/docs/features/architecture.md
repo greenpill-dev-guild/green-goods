@@ -47,7 +47,7 @@ graph TD
   EAS --> DB
 ```
 
-> **Detailed diagrams:** See [Architecture Diagrams](../developer/architecture/diagrams.md) for sequence diagrams of specific flows.
+> **Detailed diagrams:** See [Architecture Diagrams](../developer/architecture/diagrams) for sequence diagrams of specific flows.
 
 ---
 
@@ -505,22 +505,22 @@ subscription NewApprovals {
 
 ### Technical Documentation
 
-- [Developer Architecture Guide](../developer/architecture/monorepo-structure.md) — Code-level details
-- [Client Package](../developer/architecture/client-package.md) — PWA architecture
-- [Admin Package](../developer/architecture/admin-package.md) — Dashboard architecture
-- [Indexer Package](../developer/architecture/indexer-package.md) — GraphQL indexer
-- [Contracts Package](../developer/architecture/contracts-package.md) — Smart contracts
+- [Developer Architecture Guide](../developer/architecture/monorepo-structure) — Code-level details
+- [Client Package](../developer/architecture/client-package) — PWA architecture
+- [Admin Package](../developer/architecture/admin-package) — Dashboard architecture
+- [Indexer Package](../developer/architecture/indexer-package) — GraphQL indexer
+- [Contracts Package](../developer/architecture/contracts-package) — Smart contracts
 
 ### Product Documentation
 
-- [Product Overview](overview.md) — Vision and goals
-- [Core Features](core-features.md) — Feature breakdown
-- [Offline Architecture](../developer/architecture/client-package.md) — Offline-first details
-- [Karma GAP Integration](../developer/karma-gap.md) — GAP technical spec
+- [Product Overview](overview) — Vision and goals
+- [Core Features](core-features) — Feature breakdown
+- [Offline Architecture](../developer/architecture/client-package) — Offline-first details
+- [Karma GAP Integration](../developer/karma-gap) — GAP technical spec
 
 ### Concepts
 
-- [Attestations](../concepts/attestations.md) — How verification works
-- [Gardens & Work](../concepts/gardens-and-work.md) — Data model
-- [MDR Workflow](../concepts/mdr-workflow.md) — User experience
+- [Attestations](../concepts/attestations) — How verification works
+- [Gardens & Work](../concepts/gardens-and-work) — Data model
+- [MDR Workflow](../concepts/mdr-workflow) — User experience
 

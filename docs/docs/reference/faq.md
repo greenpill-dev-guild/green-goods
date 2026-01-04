@@ -182,7 +182,7 @@ See the  for curated guides, recipes, and external references.
 3. View attestation details
 4. Verify signature and data
 
-[Verification Guide →](../guides/evaluators/using-attestation-data.md)
+[Verification Guide →](../guides/evaluators/using-attestation-data)
 
 ### Can I export all data?
 
@@ -214,7 +214,7 @@ Verified on-chain: [Attestation UID]
 **Indexer**: Envio + PostgreSQL + GraphQL
 **Storage**: IPFS via Storacha
 
-[Technical Architecture →](../developer/architecture/monorepo-structure.md)
+[Technical Architecture →](../developer/architecture/monorepo-structure)
 
 ### How are attestations stored?
 
@@ -239,7 +239,7 @@ Verified on-chain: [Attestation UID]
 
 **Grantee Accountability Protocol**: Standardized impact reporting framework. Green Goods automatically creates GAP attestations.
 
-[Karma GAP Details →](../developer/karma-gap.md)
+[Karma GAP Details →](../developer/karma-gap)
 
 ### Can I run Green Goods locally?
 
@@ -253,7 +253,7 @@ vi .env      # Add your API keys
 bun dev
 ```
 
-[Installation Guide →](../developer/installation.md)
+[Installation Guide →](../developer/installation)
 
 ### How do I contribute code?
 
@@ -262,7 +262,7 @@ bun dev
 3. Make changes and test
 4. Submit pull request
 
-[Contributing Guide →](../developer/contributing.md)
+[Contributing Guide →](../developer/contributing)
 
 ---
 
@@ -312,8 +312,8 @@ bun dev
 - 
 - 
 - 
-- [Developer Quickstart](../welcome/quickstart-developer.md)
-- [Core Concepts](../concepts/roles.md)
+- [Developer Quickstart](../welcome/quickstart-developer)
+- [Core Concepts](../concepts/roles)
 
 ---
 

@@ -494,16 +494,16 @@ Before each submission, ask:
 
 ## Learn More
 
-- [Logging Work](logging-work.md) — Step-by-step process
-- [Tracking Contributions](tracking-contributions.md) — Monitor your impact
-- [MDR Workflow](../../concepts/mdr-workflow.md) — Understanding the system
-- [Gardener Quickstart](../../welcome/quickstart-gardener.md) — Getting started
+- [Logging Work](logging-work) — Step-by-step process
+- [Tracking Contributions](tracking-contributions) — Monitor your impact
+- [MDR Workflow](../../concepts/mdr-workflow) — Understanding the system
+- [Gardener Quickstart](../../welcome/quickstart-gardener) — Getting started
 
 ---
 
 ## Need Help?
 
 - 💬 **Community**: [Telegram](https://t.me/+N3o3_43iRec1Y2Jh)
-- 📖 **FAQ**: [Reference/FAQ](../../reference/faq.md)
+- 📖 **FAQ**: [Reference/FAQ](../../reference/faq)
 - 🎓 **Ask Operators**: Your garden's communication channel
 

@@ -1,7 +1,7 @@
 # Indexer Package (Envio GraphQL)
 
 > **Audience:** Engineers working on `packages/indexer` or consuming Envio artifacts.
-> **Related docs:** [Monorepo Structure](monorepo-structure.md), [packages/indexer/README.md](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/indexer#readme)
+> **Related docs:** [Monorepo Structure](monorepo-structure), [packages/indexer/README.md](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/indexer#readme)
 > **Networks:** Arbitrum One (42161), Celo (42220), Base Sepolia (84532). Deployment data: `packages/contracts/deployments/*.json`. Updated November 2024.
 > **External references:** Review the [Envio documentation](https://docs.envio.dev/) when modifying handlers, and align GraphQL schemas with the official Envio guidance.
 
@@ -29,18 +29,18 @@ bun --filter indexer codegen # Regenerate after schema changes
 ## What It Indexes
 
 **Events**:
-- Garden creation (`GardenCreated`)
+- Garden creation (`GardenMinted`)
 - Action registration (`ActionRegistered`)
-- Work submissions (via EAS attestations)
-- Work approvals (via EAS attestations)
-- Member changes (`GardenerAdded`, `OperatorAdded`)
+- Garden updates (`NameUpdated`, `DescriptionUpdated`, `LocationUpdated`, etc.)
+- Member changes (`GardenerAdded`, `GardenerRemoved`, `GardenOperatorAdded`, `GardenOperatorRemoved`)
+- GAP project tracking (`GAPProjectCreated`)
+
+**Note**: Work submissions and approvals are **not** indexed by Envio. Query them from EAS GraphQL instead.
 
 **Entities**:
-- Gardens
-- Actions
-- Work
-- WorkApproval
-- Attestations
+- Gardens (garden metadata, members, GAP projects)
+- Actions (task registry)
+- Gardeners (member profiles)
 
 ---
 

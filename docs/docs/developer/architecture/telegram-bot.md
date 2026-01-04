@@ -278,4 +278,4 @@ bun test --coverage
 
 - [Package README](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/agent/AGENTS.md)
 - [Shared Package](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/shared#readme)
-- [Architecture Overview](../architecture.md)
+- [Architecture Overview](../architecture)

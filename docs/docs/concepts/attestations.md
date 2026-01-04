@@ -102,9 +102,9 @@ Work Submission {
 **When**: After completing MDR workflow
 **Attester**: Gardener's address (or garden account)
 
-**Example**:
+**Example (Arbitrum)**:
 ```
-Schema UID: 0xb4318a3d228cb57828e9c56d96f88756beb71be540140226b8fc31ca97099f26
+Schema UID: 0xf6fd183baeb8ae5c5f2f27a734b546b6128bee7877ea074f5cf9b18981be3a20
 Attester: 0xGardenerSmartAccount...
 Data:
   actionUID: 1
@@ -132,9 +132,9 @@ Work Approval {
 **Attester**: Operator's wallet address
 **References**: Points to work submission attestation
 
-**Example**:
+**Example (Arbitrum)**:
 ```
-Schema UID: 0xe386d0277645e801c701259783b5338314a2d67fdc52dc963da1f27fda40074b
+Schema UID: 0x9d734bc51ee7d3186a8f61603500c41386a5670d210e6995ba4973a7dedae60f
 Attester: 0xOperatorAddress...
 Referenced Attestation: 0xWorkSubmissionUID...
 Data:
@@ -289,7 +289,7 @@ When operators approve work in Green Goods:
 
 **View on Karma GAP**: [gap.karmahq.xyz](https://gap.karmahq.xyz/)
 
-[Learn more about Karma GAP →](../developer/karma-gap.md)
+[Learn more about Karma GAP →](../developer/karma-gap)
 
 ---
 
@@ -300,9 +300,9 @@ When operators approve work in Green Goods:
 Green Goods attestations are deployed on:
 
 **Arbitrum One** (42161):
-- Work Schema: `0xb4318a3d228cb57828e9c56d96f88756beb71be540140226b8fc31ca97099f26`
-- Approval Schema: `0xe386d0277645e801c701259783b5338314a2d67fdc52dc963da1f27fda40074b`
-- Assessment Schema: `0x0027bf6235b41365962ecc3df493a9bfe12160a6c72c7b39f34c6955975b3fa4`
+- Work Schema: `0xf6fd183baeb8ae5c5f2f27a734b546b6128bee7877ea074f5cf9b18981be3a20`
+- Approval Schema: `0x9d734bc51ee7d3186a8f61603500c41386a5670d210e6995ba4973a7dedae60f`
+- Assessment Schema: `0x0356357a57e39ec4057763f3853116b97193589c7592eb7f81b9ed45d97cc598`
 
 **Celo** (42220):
 - Work Schema: `0x481c4190bcaf0140d77d1124acd443f51ed78d73fecb6cd4f77265142df0c00a`
@@ -313,6 +313,8 @@ Green Goods attestations are deployed on:
 - Work Schema: `0x481c4190bcaf0140d77d1124acd443f51ed78d73fecb6cd4f77265142df0c00a`
 - Approval Schema: `0x584054ca6d3ed2d3adaed85fd3e2375d1197cb7e4c9698fec62d7431323f20c6`
 - Assessment Schema: `0xcbcd83143911085d2010d921a12ecf53569eb8dc4564b0ddb5d469c03b44d232`
+
+
 
 ---
 
@@ -345,15 +347,15 @@ query WorkAttestations($gardenId: String!) {
 ```typescript
 import { EAS } from "@ethereum-attestation-service/eas-sdk";
 
-const eas = new EAS("0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458");
+const eas = new EAS("0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458"); // Arbitrum EAS address
 eas.connect(provider);
 
-// Get attestation
-const attestation = await eas.getAttestation(
-  "0xb4318a3d228cb57828e9c56d96f88756beb71be540140226b8fc31ca97099f26"
-);
+// Get attestation by UID (not schema UID)
+const attestationUID = "0x1234..."; // Actual attestation UID from transaction
+const attestation = await eas.getAttestation(attestationUID);
 
 console.log(attestation.attester);
+console.log(attestation.recipient);
 console.log(attestation.data);
 ```
 
@@ -415,9 +417,9 @@ Attestations enable powerful future use cases:
 
 ## Learn More
 
-- [Gardens & Work](gardens-and-work.md) — What gets attested
-- [MDR Workflow](mdr-workflow.md) — How work creates attestations
-- [Karma GAP Integration](../developer/karma-gap.md) — Technical details
+- [Gardens & Work](gardens-and-work) — What gets attested
+- [MDR Workflow](mdr-workflow) — How work creates attestations
+- [Karma GAP Integration](../developer/karma-gap) — Technical details
 - [EAS Documentation](https://docs.attest.org/) — Ethereum Attestation Service background and reference
 - [Contract Deployments](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/contracts/deployments) — Schema UIDs by network
 

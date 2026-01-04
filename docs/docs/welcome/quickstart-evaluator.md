@@ -71,25 +71,20 @@ query AllGardens {
 <!-- ![Query Results](../.gitbook/assets/query-results.png) -->
 *Gardens returned with all metadata*
 
-### 1.3 Query Approved Work in a Garden
+### 1.3 Query Actions for a Garden
 
-Want to see verified work for a specific garden?
+Want to see available actions in a garden?
 
 ```graphql
-query GardenWork($gardenId: String!) {
-  Work(where: {gardenId: {_eq: $gardenId}}) {
+query GardenActions($chainId: Int!) {
+  Action(where: {chainId: {_eq: $chainId}}) {
     id
+    chainId
     title
-    gardener
-    actionUID
-    media
-    metadata
-    createdAt
-    approvals: WorkApproval {
-      approved
-      feedback
-      timestamp
-    }
+    instructions
+    capitals
+    startTime
+    endTime
   }
 }
 ```
@@ -97,46 +92,50 @@ query GardenWork($gardenId: String!) {
 **Variables**:
 ```json
 {
-  "gardenId": "42161-1"
+  "chainId": 84532
 }
 ```
 
-Replace `42161-1` with any garden ID (format: `chainId-tokenId`).
+**Note**: For **work submissions and approvals**, you need to query the **EAS GraphQL API** (not Green Goods indexer). See [API Reference](../developer/api-reference) for EAS query examples.
 
-### 1.4 Filter by Date Range
+### 1.4 Work Submissions & Approvals (EAS)
 
-Only want recent work?
+Work and approval data comes from **EAS GraphQL API**, not Green Goods indexer.
 
+**EAS Endpoints**:
+- Arbitrum: https://arbitrum.easscan.org/graphql
+- Celo: https://celo.easscan.org/graphql
+- Base Sepolia: https://base-sepolia.easscan.org/graphql
+
+**Query work attestations**:
 ```graphql
-query RecentApprovals($startDate: Int!) {
-  WorkApproval(where: {
-    approved: {_eq: true}
-    timestamp: {_gte: $startDate}
-  }) {
-    id
-    workUID
-    approved
-    feedback
-    timestamp
-    work: Work {
-      title
-      gardener
-      media
+query WorkAttestations($schemaId: String!, $recipient: String!) {
+  attestations(
+    where: {
+      schemaId: { equals: $schemaId }
+      recipient: { equals: $recipient }
+      revoked: { equals: false }
     }
+    orderBy: { timeCreated: desc }
+    take: 10
+  ) {
+    id
+    attester
+    timeCreated
+    decodedDataJson
   }
 }
 ```
 
-**Variables**:
+**Variables** (Arbitrum work schema):
 ```json
 {
-  "startDate": 1704067200
+  "schemaId": "0xf6fd183baeb8ae5c5f2f27a734b546b6128bee7877ea074f5cf9b18981be3a20",
+  "recipient": "0xGardenAccountAddress"
 }
 ```
 
-Convert dates to Unix timestamp: [Epoch Converter](https://www.epochconverter.com/)
-
-[Full API Reference →](../developer/api-reference.md)
+[Full API Reference with schema UIDs →](../developer/api-reference)
 
 ---
 
@@ -184,7 +183,7 @@ Every approved work is permanently recorded on-chain via EAS (Ethereum Attestati
 
 From your GraphQL query results, note the attestation UID.
 
-Example: `0xb4318a3d228cb57828e9c56d96f88756beb71be540140226b8fc31ca97099f26`
+Example: `0x1234567890abcdef...` (actual attestation UID from query result)
 
 ### 3.2 View on EAS Explorer
 
@@ -352,7 +351,7 @@ print(gardens)
 5. Calculate total impact value
 6. Make investment decision
 
-[More Examples →](../guides/evaluators/exploring-gardens.md)
+[More Examples →](../guides/evaluators/exploring-gardens)
 
 ---
 
@@ -384,7 +383,7 @@ Green Goods data maps to:
 - **Biodiversity**: Parse species and habitat data
 - **Karma GAP**: Direct integration for standardized reporting
 
-[Integration Guide →](../guides/evaluators/external-frameworks.md)
+[Integration Guide →](../guides/evaluators/external-frameworks)
 
 ### Build Custom Analytics
 
@@ -476,21 +475,21 @@ query ApprovalBreakdown($gardenId: String!) {
 
 ### Detailed Evaluator Guides
 
-- [Accessing Data](../guides/evaluators/accessing-data.md)
-- [Exploring Gardens & Work](../guides/evaluators/exploring-gardens.md)
-- [Using Attestation Data](../guides/evaluators/using-attestation-data.md)
-- [External Framework Integration](../guides/evaluators/external-frameworks.md)
+- [Accessing Data](../guides/evaluators/accessing-data)
+- [Exploring Gardens & Work](../guides/evaluators/exploring-gardens)
+- [Using Attestation Data](../guides/evaluators/using-attestation-data)
+- [External Framework Integration](../guides/evaluators/external-frameworks)
 
 ### Understanding the System
 
-- [Attestations & On-Chain Records](../concepts/attestations.md)
-- [Gardens & Work](../concepts/gardens-and-work.md)
-- [Karma GAP Integration](../developer/karma-gap.md)
+- [Attestations & On-Chain Records](../concepts/attestations)
+- [Gardens & Work](../concepts/gardens-and-work)
+- [Karma GAP Integration](../developer/karma-gap)
 
 ### Developer Resources
 
-- [API Reference](../developer/api-reference.md)
-- [GraphQL Schema](../developer/architecture/indexer-package.md)
+- [API Reference](../developer/api-reference)
+- [GraphQL Schema](../developer/architecture/indexer-package)
 
 ### Get Help
 

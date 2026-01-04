@@ -94,7 +94,7 @@ STORACHA_PROOF=your_storacha_proof
 **Get API Keys**:
 - Reown: [cloud.reown.com](https://cloud.reown.com/)
 - Pimlico: [dashboard.pimlico.io](https://dashboard.pimlico.io/)
-- Storacha: [console.storacha.network](https://console.storacha.network/) (see [IPFS Deployment Guide](ipfs-deployment.md) for key generation)
+- Storacha: [console.storacha.network](https://console.storacha.network/) (see [IPFS Deployment Guide](ipfs-deployment) for key generation)
 
 ### 4. Start Development
 
@@ -195,8 +195,8 @@ bun install
 
 ## Learn More
 
-- [Developer Quickstart](../welcome/quickstart-developer.md)
-- [Monorepo Structure](architecture/monorepo-structure.md)
-- [Testing Guide](testing.md)
+- [Developer Quickstart](../welcome/quickstart-developer)
+- [Monorepo Structure](architecture/monorepo-structure)
+- [Testing Guide](testing)
 - [Root README](https://github.com/greenpill-dev-guild/green-goods/tree/main#readme)
 

@@ -217,7 +217,7 @@ Work follows the **Media → Details → Review** pattern:
 2. **Details**: Fill in metrics and context
 3. **Review**: Confirm and submit
 
-[See detailed MDR workflow →](mdr-workflow.md)
+[See detailed MDR workflow →](mdr-workflow)
 
 ### Work States
 
@@ -408,9 +408,9 @@ Operator Bob
 
 ## Learn More
 
-- [Roles & Responsibilities](roles.md) — How members interact with gardens
-- [MDR Workflow](mdr-workflow.md) — Detailed work submission process
-- [Attestations](attestations.md) — How work becomes permanent records
-- [Operator Guide: Managing Gardens](../guides/operators/managing-gardens.md)
-- [Gardener Guide: Logging Work](../guides/gardeners/logging-work.md)
+- [Roles & Responsibilities](roles) — How members interact with gardens
+- [MDR Workflow](mdr-workflow) — Detailed work submission process
+- [Attestations](attestations) — How work becomes permanent records
+- [Operator Guide: Managing Gardens](../guides/operators/managing-gardens)
+- [Gardener Guide: Logging Work](../guides/gardeners/logging-work)
 

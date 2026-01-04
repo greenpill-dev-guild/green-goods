@@ -81,7 +81,7 @@ When you approve:
 
 ## Learn More
 
-- [Managing Gardens](managing-gardens.md)
-- [Reporting Impact](reporting-impact.md)
-- [Attestations](../../concepts/attestations.md)
+- [Managing Gardens](managing-gardens)
+- [Reporting Impact](reporting-impact)
+- [Attestations](../../concepts/attestations)
 

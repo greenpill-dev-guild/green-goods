@@ -343,10 +343,10 @@ Gardens self-coordinate:
 
 ## Learn More
 
-- [Core Features](core-features.md) — Detailed feature breakdown
-- [System Architecture](architecture.md) — How it all works
-- [Why Green Goods?](../welcome/why-green-goods.md) — Problems we solve
-- [Gardens & Work](../concepts/gardens-and-work.md) — Core concepts
+- [Core Features](core-features) — Detailed feature breakdown
+- [System Architecture](architecture) — How it all works
+- [Why Green Goods?](../welcome/why-green-goods) — Problems we solve
+- [Gardens & Work](../concepts/gardens-and-work) — Core concepts
 - [Blog Post](https://paragraph.com/@greenpilldevguild/green-goods-simplifying-impact-capture-and-exchange) — Full vision
 
 ---

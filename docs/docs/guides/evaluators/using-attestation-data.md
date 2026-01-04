@@ -9,7 +9,7 @@ Verify on-chain records and prepare for future impact tokenization.
 **Get Attestation UID** from GraphQL query, then verify on EAS explorer.
 
 **Example**:
-- Work attestation: `0xb4318a3d228cb57828e9c56d96f88756beb71be540140226b8fc31ca97099f26`
+- Work attestation UID: `0x1234...abcd` (from query result)
 - View on: https://arbitrum.easscan.org/attestation/view/{UID}
 
 **What to Verify**:
@@ -41,7 +41,7 @@ Verify on-chain records and prepare for future impact tokenization.
 
 **View on Karma GAP**: https://gap.karmahq.xyz/
 
-[Karma GAP Technical Details →](../../developer/karma-gap.md)
+[Karma GAP Technical Details →](../../developer/karma-gap)
 
 ---
 
@@ -53,7 +53,7 @@ Verify on-chain records and prepare for future impact tokenization.
 - Fractionalized ownership
 - Impact markets
 
-[Learn About Hypercerts →](../../concepts/hypercerts.md)
+[Learn About Hypercerts →](../../concepts/hypercerts)
 
 ---
 
@@ -70,7 +70,7 @@ Verify on-chain records and prepare for future impact tokenization.
 
 ## Learn More
 
-- [Accessing Data](accessing-data.md)
-- [External Frameworks](external-frameworks.md)
-- [Attestations Concept](../../concepts/attestations.md)
+- [Accessing Data](accessing-data)
+- [External Frameworks](external-frameworks)
+- [Attestations Concept](../../concepts/attestations)
 

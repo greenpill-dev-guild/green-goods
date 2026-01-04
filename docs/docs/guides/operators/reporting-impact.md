@@ -47,7 +47,7 @@ Generate reports, track metrics, and communicate impact to funders.
 - Transparent accountability
 - Funder-friendly
 
-[Karma GAP Technical Details →](../../developer/karma-gap.md)
+[Karma GAP Technical Details →](../../developer/karma-gap)
 
 ---
 
@@ -81,13 +81,13 @@ Generate reports, track metrics, and communicate impact to funders.
 - Fractionalize among contributors
 - Enable impact markets
 
-[Learn About Hypercerts →](../../concepts/hypercerts.md)
+[Learn About Hypercerts →](../../concepts/hypercerts)
 
 ---
 
 ## Learn More
 
-- [Managing Gardens](managing-gardens.md)
-- [Reviewing Work](reviewing-work.md)
-- [Operator Quickstart](../../welcome/quickstart-operator.md)
+- [Managing Gardens](managing-gardens)
+- [Reviewing Work](reviewing-work)
+- [Operator Quickstart](../../welcome/quickstart-operator)
 

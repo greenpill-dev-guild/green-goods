@@ -21,7 +21,7 @@ green-goods/
 **Managed with**: Bun workspaces
 **Orchestrated with**: PM2 (for dev services)
 
-[Detailed Architecture →](architecture/monorepo-structure.md)
+[Detailed Architecture →](architecture/monorepo-structure)
 
 ---
 
@@ -66,7 +66,7 @@ green-goods/
 **Storage**: IPFS via Storacha (primary) + Pinata (redundancy)
 **Auth**: Pimlico smart accounts + Reown AppKit
 **Attestations**: EAS (Ethereum Attestation Service)
-**Deployment**: Decentralized via IPFS ([deployment guide](ipfs-deployment.md))
+**Deployment**: Decentralized via IPFS ([deployment guide](ipfs-deployment))
 
 ---
 
@@ -123,20 +123,20 @@ All data publicly accessible:
 ## Quick Links
 
 **Packages**:
-- [Client Package Docs](architecture/client-package.md)
-- [Admin Package Docs](architecture/admin-package.md)
-- [Indexer Package Docs](architecture/indexer-package.md)
-- [Contracts Package Docs](architecture/contracts-package.md)
+- [Client Package Docs](architecture/client-package)
+- [Admin Package Docs](architecture/admin-package)
+- [Indexer Package Docs](architecture/indexer-package)
+- [Contracts Package Docs](architecture/contracts-package)
 
 **Getting Started**:
-- [Installation Guide](installation.md)
-- [Developer Quickstart](../welcome/quickstart-developer.md)
+- [Installation Guide](installation)
+- [Developer Quickstart](../welcome/quickstart-developer)
 
 **Development**:
-- [Testing Guide](testing.md) - Unit, integration, and E2E tests
+- [Testing Guide](testing) - Unit, integration, and E2E tests
 - [E2E Test Reference](https://github.com/greenpill-dev-guild/green-goods/tree/main/tests#readme) - Playwright quick start
-- [API Reference](api-reference.md)
-- [Contributing Guide](contributing.md)
+- [API Reference](api-reference)
+- [Contributing Guide](contributing)
 
 ---
 

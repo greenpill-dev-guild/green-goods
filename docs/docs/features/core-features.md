@@ -42,7 +42,7 @@ Traditional web3 onboarding creates massive friction:
 - Full transparency and control
 - Suitable for validators and admins
 
-[Technical Details →](../developer/architecture/client-package.md)
+[Technical Details →](../developer/architecture/client-package)
 
 ---
 
@@ -121,7 +121,7 @@ Traditional impact forms have 15+ fields and take 30 minutes. MDR takes < 2 minu
 
 **Result**: High-quality documentation with minimal effort.
 
-[Detailed MDR Guide →](../concepts/mdr-workflow.md)
+[Detailed MDR Guide →](../concepts/mdr-workflow)
 
 ---
 
@@ -173,7 +173,7 @@ The Grantee Accountability Protocol (GAP) is a standardized framework for on-cha
 - Celo (42220)
 - Base Sepolia (84532)
 
-[Karma GAP Technical Details →](../developer/karma-gap.md)
+[Karma GAP Technical Details →](../developer/karma-gap)
 
 ---
 
@@ -212,7 +212,7 @@ Garden Assessment Attestation
 - Enable impact markets
 - Unlock retroactive funding
 
-[Learn More About Attestations →](../concepts/attestations.md)
+[Learn More About Attestations →](../concepts/attestations)
 
 ---
 
@@ -269,7 +269,7 @@ Translations are community-contributed. To add a language:
 3. Submit PR
 4. Community reviews
 
-[Contributing Guide →](../developer/contributing.md)
+[Contributing Guide →](../developer/contributing)
 
 ---
 
@@ -338,7 +338,7 @@ Confirmation → Update UI
 - 🟡 **Syncing**: Background upload
 - ℹ️ Clear indicators for all states
 
-[Offline Architecture Details →](../developer/architecture/client-package.md)
+[Offline Architecture Details →](../developer/architecture/client-package)
 
 ---
 
@@ -444,9 +444,9 @@ Confirmation → Update UI
 
 ## Learn More
 
-- [System Architecture](architecture.md) — Technical deep dive
-- [Product Overview](overview.md) — Vision and goals
-- [MDR Workflow](../concepts/mdr-workflow.md) — Signature feature
-- [Attestations](../concepts/attestations.md) — Verification system
-- [Offline Architecture](../developer/architecture/client-package.md) — Technical details
+- [System Architecture](architecture) — Technical deep dive
+- [Product Overview](overview) — Vision and goals
+- [MDR Workflow](../concepts/mdr-workflow) — Signature feature
+- [Attestations](../concepts/attestations) — Verification system
+- [Offline Architecture](../developer/architecture/client-package) — Technical details
 

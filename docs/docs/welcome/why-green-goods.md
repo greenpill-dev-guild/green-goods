@@ -42,7 +42,7 @@ Green Goods reduces this to three intuitive steps:
 
 **Impact**: What used to take hours now takes minutes, letting conservationists focus on their actual work.
 
-[Learn more about the MDR workflow →](../concepts/mdr-workflow.md)
+[Learn more about the MDR workflow →](../concepts/mdr-workflow)
 
 ## Problem 2: Grassroots Work Isn't Valued & Rewarded
 
@@ -83,7 +83,7 @@ Green Goods creates **permanent, verifiable proof** of every completed task:
 ```
 Work Submission Attestation
 Chain: Arbitrum One (42161)
-Schema UID: 0xb4318a3d228cb57828e9c56d96f88756beb71be540140226b8fc31ca97099f26
+Schema UID: 0xf6fd183baeb8ae5c5f2f27a734b546b6128bee7877ea074f5cf9b18981be3a20
 Attester: Garden Account (0xa622...)
 Data: 
   - actionUID: 1
@@ -92,11 +92,11 @@ Data:
   - metadata: {"treeSpecies": "Oak", "area": "500sqm"}
 ```
 
-[Explore a real attestation on EAS →](https://arbitrum.easscan.org/attestation/view/0xb4318a3d228cb57828e9c56d96f88756beb71be540140226b8fc31ca97099f26)
+[View work attestations on EAS →](https://arbitrum.easscan.org/schema/view/0xf6fd183baeb8ae5c5f2f27a734b546b6128bee7877ea074f5cf9b18981be3a20)
 
 **Impact**: Grassroots workers can finally prove their impact to the world and unlock new funding sources.
 
-[Learn more about attestations →](../concepts/attestations.md)
+[Learn more about attestations →](../concepts/attestations)
 
 ## Problem 3: Bioregions Have Many Interests, But No Coordination
 
@@ -158,7 +158,7 @@ Green Goods **Gardens** serve as coordination hubs for bioregional work:
 
 All tracking progress under one shared garden, making cumulative impact visible to funders.
 
-[Learn more about gardens →](../concepts/gardens-and-work.md)
+[Learn more about gardens →](../concepts/gardens-and-work)
 
 ---
 
@@ -195,8 +195,8 @@ By solving these three problems, Green Goods enables a future where:
 
 ## Learn More
 
-- [Who Is Green Goods For?](who-is-it-for.md) — Understand all user roles
-- [What You Can Do](what-you-can-do.md) — Explore specific use cases
-- [Core Concepts](../concepts/roles.md) — Deep dive into how it works
+- [Who Is Green Goods For?](who-is-it-for) — Understand all user roles
+- [What You Can Do](what-you-can-do) — Explore specific use cases
+- [Core Concepts](../concepts/roles) — Deep dive into how it works
 - [Read the Blog Post](https://paragraph.com/@greenpilldevguild/green-goods-simplifying-impact-capture-and-exchange) — Full product vision
 

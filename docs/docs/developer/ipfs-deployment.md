@@ -218,7 +218,7 @@ cluster-password: ${{ secrets.DAPPNODE_CLUSTER_PASSWORD }}
 - [IPFS Deploy Action](https://github.com/ipshipyard/ipfs-deploy-action)
 - [Storacha Docs](https://docs.storacha.network/)
 - [IPFS Gateway Best Practices](https://docs.ipfs.tech/how-to/gateway-best-practices/)
-- [Installation Guide](installation.md)
+- [Installation Guide](installation)
 
 
 

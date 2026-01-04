@@ -6,7 +6,7 @@ Complete guide to documenting your regenerative work using Green Goods' MDR work
 
 ## Prerequisites
 
-- ✅ Signed up with passkey ([Gardener Quickstart](../../welcome/quickstart-gardener.md))
+- ✅ Signed up with passkey ([Gardener Quickstart](../../welcome/quickstart-gardener))
 - ✅ Joined at least one garden
 - ✅ Completed some regenerative work
 - ✅ Have your smartphone ready
@@ -379,16 +379,16 @@ Planted trees on steep slope requiring extra care with erosion control. Used bur
 
 ## Learn More
 
-- [Tracking Your Contributions](tracking-contributions.md) — Monitor your submissions
-- [Best Practices](best-practices.md) — Advanced tips for quality work
-- [MDR Workflow](../../concepts/mdr-workflow.md) — Conceptual overview
-- [Gardener Quickstart](../../welcome/quickstart-gardener.md) — Getting started
+- [Tracking Your Contributions](tracking-contributions) — Monitor your submissions
+- [Best Practices](best-practices) — Advanced tips for quality work
+- [MDR Workflow](../../concepts/mdr-workflow) — Conceptual overview
+- [Gardener Quickstart](../../welcome/quickstart-gardener) — Getting started
 
 ---
 
 ## Need Help?
 
 - 💬 **Community**: [Telegram](https://t.me/+N3o3_43iRec1Y2Jh)
-- 📖 **FAQ**: [Reference/FAQ](../../reference/faq.md)
+- 📖 **FAQ**: [Reference/FAQ](../../reference/faq)
 - 🐛 **Bug Report**: [GitHub Issues](https://github.com/greenpill-dev-guild/green-goods/issues)
 

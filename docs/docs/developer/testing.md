@@ -171,7 +171,7 @@ npx playwright test tests/specs/client.smoke.spec.ts --debug
 Full technical details:
 - **Quick reference**: [`tests/README.md`](https://github.com/greenpill-dev-guild/green-goods/tree/main/tests#readme)
 - **Architecture deep dive**: [`tests/ARCHITECTURE.md`](https://github.com/greenpill-dev-guild/green-goods/tree/main/tests/ARCHITECTURE.md)
-- **Cursor workflows**: [`cursor-workflows.md`](cursor-workflows.md) - Issue→Agent→Tests→Fix flow
+- **Cursor workflows**: [`cursor-workflows.md`](cursor-workflows) - Issue→Agent→Tests→Fix flow
 
 ---
 
@@ -380,21 +380,22 @@ Uses Envio's mock database for event handler testing:
 import { TestHelpers, GardenToken } from "generated";
 const { MockDb } = TestHelpers;
 
-it("handles GardenCreated event", async () => {
+it("handles GardenMinted event", async () => {
   let mockDb = MockDb.createMockDb();
   
-  const mockEvent = GardenToken.GardenCreated.createMockEvent({
+  const mockEvent = GardenToken.GardenMinted.createMockEvent({
     tokenId: 1n,
-    owner: "0xOwner",
+    account: "0xGardenAccount",
+    name: "Test Garden",
     // ...
   });
   
-  const result = await GardenToken.GardenCreated.processEvent({
+  const result = await GardenToken.GardenMinted.processEvent({
     event: mockEvent,
     mockDb,
   });
   
-  const garden = result.entities.Garden.get("84532-1");
+  const garden = result.entities.Garden.get("0xGardenAccount");
   expect(garden.name).toBe("Test Garden");
 });
 ```
@@ -865,7 +866,7 @@ test("has no accessibility violations", async ({ page }) => {
 
 **E2E testing**:
 - Quick reference: [`../../tests/README.md`](https://github.com/greenpill-dev-guild/green-goods/tree/main/tests#readme)
-- Architecture: [`../../tests/ARCHITECTURE.md`](https://github.com/greenpill-dev-guild/green-goods/tree/main/tests/ARCHITECTURE.md)
+- Architecture: [`../../tests/ARCHITECTURE.md`](https://github.com/greenpill-dev-guild/green-goods/tree/main/tests/ARCHITECTURE)
 
 **CI/CD**:
 - GitHub Actions: `.github/workflows/`

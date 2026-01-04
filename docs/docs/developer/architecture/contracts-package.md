@@ -1,7 +1,7 @@
 # Contracts Package (Solidity)
 
 > **Audience:** Smart contract engineers and protocol contributors working in `packages/contracts`.
-> **Related docs:** [Monorepo Structure](monorepo-structure.md), [packages/contracts/README.md](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/contracts#readme)
+> **Related docs:** [Monorepo Structure](monorepo-structure), [packages/contracts/README.md](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/contracts#readme)
 > **Networks:** Arbitrum One (42161), Celo (42220), Base Sepolia (84532). Deployment data: `packages/contracts/deployments/*.json`. Updated November 2024.
 > **External references:** See [Ethereum Attestation Service docs](https://docs.attest.org/) for resolver expectations and [OpenZeppelin Upgrades guide](https://docs.openzeppelin.com/contracts/4.x/api/proxy#UUPSUpgradeable) for UUPS patterns.
 
@@ -104,11 +104,11 @@ contract WorkApprovalResolver is SchemaResolver {
 
 ## Deployment System
 
-**Via `deploy.js` wrapper**:
+**Via `deploy.ts` wrapper**:
 ```bash
-bun deploy:testnet    # Base Sepolia
-bun deploy:celo       # Celo mainnet
-bun deploy:arbitrum   # Arbitrum mainnet
+bun --filter contracts deploy:testnet    # Base Sepolia
+bun --filter contracts deploy:celo       # Celo mainnet
+bun --filter contracts deploy:arbitrum   # Arbitrum mainnet
 ```
 
 **What Gets Deployed**:
@@ -133,7 +133,7 @@ bun upgrade:celo
 - Upgrade tests required
 - Multisig-gated (production)
 
-[Upgrade Guide →](../contracts-handbook.md)
+[Upgrade Guide →](../contracts-handbook)
 
 ---
 
@@ -160,7 +160,7 @@ Never edit directly. Use `--update-schemas` flag for metadata changes only.
 - `src/lib/Karma.sol`
 - `src/interfaces/IKarmaGap.sol`
 
-[Karma GAP Details →](../karma-gap.md)
+[Karma GAP Details →](../karma-gap)
 
 ---
 
@@ -185,7 +185,7 @@ forge test --gas-report     # With gas reporting
 **📖 Full details**: [packages/contracts/README.md](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/contracts#readme)
 
 **Handbooks**:
-- [Contracts Handbook](../contracts-handbook.md)
+- [Contracts Handbook](../contracts-handbook)
 - [Deployment Checklist](https://github.com/greenpill-dev-guild/green-goods/tree/main/docs/DEPLOYMENT_CHECKLIST.md)
 
 **Key Files**:

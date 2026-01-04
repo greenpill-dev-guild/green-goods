@@ -46,7 +46,7 @@ Gardeners are community members who perform regenerative work and document it th
 <!-- ![Gardener Workflow](../.gitbook/assets/gardener-workflow.png) -->
 *Submitting work takes less than 2 minutes*
 
-**Get Started**: [Gardener Quickstart →](quickstart-gardener.md)
+**Get Started**: [Gardener Quickstart →](quickstart-gardener)
 
 ---
 
@@ -97,7 +97,7 @@ Operators are trusted community members who manage gardens, design tasks, and va
 <!-- ![Operator Dashboard](../.gitbook/assets/operator-dashboard.png) -->
 *Operators can manage multiple gardens from a single interface*
 
-**Get Started**: [Operator Quickstart →](quickstart-operator.md)
+**Get Started**: [Operator Quickstart →](quickstart-operator)
 
 ---
 
@@ -157,7 +157,7 @@ Evaluators analyze verified impact data to make funding decisions, conduct resea
 <!-- ![GraphQL Query Example](../.gitbook/assets/graphql-example.png) -->
 *Query impact data with flexible GraphQL API*
 
-**Get Started**: [Evaluator Quickstart →](quickstart-evaluator.md)
+**Get Started**: [Evaluator Quickstart →](quickstart-evaluator)
 
 ---
 
@@ -222,7 +222,7 @@ Developers build on, extend, or contribute to the Green Goods platform and proto
 <!-- ![System Architecture](../.gitbook/assets/system-architecture.png) -->
 *Green Goods architecture overview*
 
-**Get Started**: [Developer Quickstart →](quickstart-developer.md)
+**Get Started**: [Developer Quickstart →](quickstart-developer)
 
 ---
 
@@ -276,7 +276,7 @@ Green Goods is designed to support fluid role transitions. Your account can:
 
 ## Learn More
 
-- [Why Green Goods?](why-green-goods.md) — Understand the problems we solve
-- [What You Can Do](what-you-can-do.md) — Explore specific use cases
-- [Core Concepts](../concepts/roles.md) — Deep dive into roles and permissions
+- [Why Green Goods?](why-green-goods) — Understand the problems we solve
+- [What You Can Do](what-you-can-do) — Explore specific use cases
+- [Core Concepts](../concepts/roles) — Deep dive into roles and permissions
 

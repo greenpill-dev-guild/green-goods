@@ -21,7 +21,7 @@ Complete guide for operators to create, configure, and maintain gardens.
 6. Submit transaction
 7. Garden NFT minted + Karma GAP project created
 
-[See Operator Quickstart →](../../welcome/quickstart-operator.md)
+[See Operator Quickstart →](../../welcome/quickstart-operator)
 
 ---
 
@@ -90,7 +90,7 @@ Complete guide for operators to create, configure, and maintain gardens.
 
 ## Learn More
 
-- [Managing Actions](managing-actions.md)
-- [Reviewing Work](reviewing-work.md)
-- [Operator Quickstart](../../welcome/quickstart-operator.md)
+- [Managing Actions](managing-actions)
+- [Reviewing Work](reviewing-work)
+- [Operator Quickstart](../../welcome/quickstart-operator)
 

@@ -19,7 +19,7 @@ There are two ways to become an operator:
 
 1. **Admin Grant**: Platform admins can designate you as an operator
 2. **Garden Assignment**: Existing operators can add you to their gardens
-3. **Deploy Your Own**: Advanced users can deploy contracts (see [developer docs](quickstart-developer.md))
+3. **Deploy Your Own**: Advanced users can deploy contracts (see [developer docs](quickstart-developer))
 
 **For this quickstart**, we assume you've been granted operator status or are using the admin allowlist.
 
@@ -114,7 +114,7 @@ There are two ways to become an operator:
 <!-- ![Garden Created](../.gitbook/assets/garden-created.png) -->
 *Your garden is now live!*
 
-[Detailed Guide: Managing Gardens →](../guides/operators/managing-gardens.md)
+[Detailed Guide: Managing Gardens →](../guides/operators/managing-gardens)
 
 ---
 
@@ -172,7 +172,7 @@ Actions define the tasks gardeners can complete in your garden.
 
 **Result**: Gardeners in your garden can now see and complete this action!
 
-[Detailed Guide: Managing Actions →](../guides/operators/managing-actions.md)
+[Detailed Guide: Managing Actions →](../guides/operators/managing-actions)
 
 ---
 
@@ -237,7 +237,7 @@ As an operator, your primary role is validating gardener work.
 4. Work appears in garden's permanent record
 5. Metrics aggregate to garden level
 
-[Detailed Guide: Reviewing Work →](../guides/operators/reviewing-work.md)
+[Detailed Guide: Reviewing Work →](../guides/operators/reviewing-work)
 
 ---
 
@@ -272,7 +272,7 @@ As an operator, your primary role is validating gardener work.
 - Community progress updates
 - Research data sharing
 
-[Detailed Guide: Reporting Impact →](../guides/operators/reporting-impact.md)
+[Detailed Guide: Reporting Impact →](../guides/operators/reporting-impact)
 
 ---
 
@@ -339,7 +339,7 @@ Your approved work automatically:
 - Reports to standardized framework
 - Enables transparent accountability
 
-[Learn more about Karma GAP →](../developer/karma-gap.md)
+[Learn more about Karma GAP →](../developer/karma-gap)
 
 ### Future: Hypercerts
 
@@ -348,7 +348,7 @@ Coming soon:
 - Enable retroactive funding
 - Fractionalize impact tokens
 
-[Learn more about Hypercerts →](../concepts/hypercerts.md)
+[Learn more about Hypercerts →](../concepts/hypercerts)
 
 ---
 
@@ -378,16 +378,16 @@ Coming soon:
 
 ### Detailed Operator Guides
 
-- [Managing Gardens](../guides/operators/managing-gardens.md)
-- [Creating & Managing Actions](../guides/operators/managing-actions.md)
-- [Reviewing & Approving Work](../guides/operators/reviewing-work.md)
-- [Reporting & Impact](../guides/operators/reporting-impact.md)
+- [Managing Gardens](../guides/operators/managing-gardens)
+- [Creating & Managing Actions](../guides/operators/managing-actions)
+- [Reviewing & Approving Work](../guides/operators/reviewing-work)
+- [Reporting & Impact](../guides/operators/reporting-impact)
 
 ### Understanding the System
 
-- [Gardens & Work](../concepts/gardens-and-work.md)
-- [Attestations & On-Chain Records](../concepts/attestations.md)
-- [Roles & Responsibilities](../concepts/roles.md)
+- [Gardens & Work](../concepts/gardens-and-work)
+- [Attestations & On-Chain Records](../concepts/attestations)
+- [Roles & Responsibilities](../concepts/roles)
 
 ### Get Help
 

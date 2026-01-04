@@ -85,8 +85,8 @@ import { helper } from '../../client/src/utils/helper'; // Don't import source
 
 ## Learn More
 
-- [Client Package](client-package.md)
-- [Admin Package](admin-package.md)
-- [Indexer Package](indexer-package.md)
-- [Contracts Package](contracts-package.md)
+- [Client Package](client-package)
+- [Admin Package](admin-package)
+- [Indexer Package](indexer-package)
+- [Contracts Package](contracts-package)
 

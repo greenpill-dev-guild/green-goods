@@ -1,17 +1,23 @@
 # Accessing Data
 
-
-Query Green Goods impact data via GraphQL API, on-chain attestations, and admin UI.
+Query Green Goods impact data via GraphQL APIs, on-chain attestations, and admin UI.
 
 ---
 
-## GraphQL API
+## Data Sources
+
+Green Goods data comes from **two separate APIs**:
+
+### 1. Green Goods Indexer (Gardens & Actions)
 
 **Endpoint**: https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql
 
-**No Authentication Required** for public data.
+**Provides**:
+- Gardens (metadata, members)
+- Actions (task registry)
+- Gardeners (profiles)
 
-**Example Queries**:
+**Example queries**:
 
 ```graphql
 # All gardens
@@ -21,68 +27,104 @@ query AllGardens {
     name
     location
     gardeners
+    operators
     createdAt
   }
 }
 
-# Work in garden
-query GardenWork($gardenId: String!) {
-  Work(where: {gardenId: {_eq: $gardenId}}) {
+# Gardens by chain
+query GardensByChain($chainId: Int!) {
+  Garden(where: {chainId: {_eq: $chainId}}) {
     id
-    title
-    gardener
-    media
-    approvals: WorkApproval {
-      approved
-      feedback
-    }
+    name
+    location
   }
 }
 
-# Approved work in date range
-query ApprovedWork($startDate: Int!, $endDate: Int!) {
-  WorkApproval(where: {
-    approved: {_eq: true}
-    timestamp: {_gte: $startDate, _lte: $endDate}
-  }) {
+# Actions for all gardens
+query AllActions($chainId: Int!) {
+  Action(where: {chainId: {_eq: $chainId}}) {
     id
-    workUID
-    timestamp
-    work: Work {
-      title
-      gardener
-    }
+    title
+    instructions
+    capitals
+    startTime
+    endTime
   }
 }
 ```
 
-[Full API Reference →](../../developer/api-reference.md)
+### 2. EAS GraphQL (Work & Approvals)
+
+**Endpoints**:
+- Arbitrum: https://arbitrum.easscan.org/graphql
+- Celo: https://celo.easscan.org/graphql
+- Base Sepolia: https://base-sepolia.easscan.org/graphql
+
+**Provides**:
+- Work submission attestations
+- Work approval attestations
+- Assessment attestations
+
+**Example query** (get work for a garden):
+
+```graphql
+query WorkSubmissions($schemaId: String!, $recipient: String!) {
+  attestations(
+    where: {
+      schemaId: { equals: $schemaId }
+      recipient: { equals: $recipient }
+      revoked: { equals: false }
+    }
+    orderBy: { timeCreated: desc }
+  ) {
+    id
+    attester
+    timeCreated
+    decodedDataJson
+  }
+}
+```
+
+**Variables (Arbitrum)**:
+```json
+{
+  "schemaId": "0xf6fd183baeb8ae5c5f2f27a734b546b6128bee7877ea074f5cf9b18981be3a20",
+  "recipient": "0xGardenAccountAddress"
+}
+```
+
+[Full API Reference →](../../developer/api-reference)
 
 ---
 
-## On-Chain Access
+## On-Chain Verification
 
-**EAS Explorers**:
+**EAS Explorers** for direct attestation verification:
 - Arbitrum: https://arbitrum.easscan.org
 - Celo: https://celo.easscan.org
 - Base Sepolia: https://base-sepolia.easscan.org
 
 **Contract Addresses**:
-- See [deployments folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/contracts/deployments)
+- [Deployment artifacts](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/contracts/deployments)
 
 ---
 
 ## Admin Dashboard (Read-Only)
 
-Connect wallet to [admin.greengoods.app](https://admin.greengoods.app) for visual interface to browse data.
+Connect wallet to [admin.greengoods.app](https://admin.greengoods.app) for visual interface to browse gardens and generate reports.
 
 ---
 
 ## Export Options
 
-- CSV for spreadsheets
+**From GraphQL**:
 - JSON for databases/analysis
-- GraphQL for custom integrations
+- Custom integrations
 
-[See Evaluator Quickstart →](../../welcome/quickstart-evaluator.md)
+**From Admin UI** (planned):
+- CSV for spreadsheets
+- PDF reports
+
+[See Evaluator Quickstart →](../../welcome/quickstart-evaluator)
 

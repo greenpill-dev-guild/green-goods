@@ -206,7 +206,7 @@ Go outside and perform the actual conservation task! For litter cleanup:
    - Shows immutable record
    - Verifiable by anyone
 
-**Example attestation**: [View on EAS →](https://arbitrum.easscan.org/attestation/view/0xb4318a3d228cb57828e9c56d96f88756beb71be540140226b8fc31ca97099f26)
+**View attestations**: [EAS Explorer (Arbitrum) →](https://arbitrum.easscan.org)
 
 ---
 
@@ -260,7 +260,7 @@ Go outside and perform the actual conservation task! For litter cleanup:
 - **One task per submission**: Don't combine multiple activities
 - **Review before submitting**: Can't edit after submission
 
-[Full Best Practices Guide →](../guides/gardeners/best-practices.md)
+[Full Best Practices Guide →](../guides/gardeners/best-practices)
 
 ---
 
@@ -291,15 +291,15 @@ Go outside and perform the actual conservation task! For litter cleanup:
 
 ### Detailed Guides
 
-- [Logging Work (Step-by-Step)](../guides/gardeners/logging-work.md)
-- [Tracking Your Contributions](../guides/gardeners/tracking-contributions.md)
-- [Best Practices](../guides/gardeners/best-practices.md)
+- [Logging Work (Step-by-Step)](../guides/gardeners/logging-work)
+- [Tracking Your Contributions](../guides/gardeners/tracking-contributions)
+- [Best Practices](../guides/gardeners/best-practices)
 
 ### Understanding the System
 
-- [MDR Workflow](../concepts/mdr-workflow.md)
-- [Attestations & On-Chain Records](../concepts/attestations.md)
-- [Gardens & Actions](../concepts/gardens-and-work.md)
+- [MDR Workflow](../concepts/mdr-workflow)
+- [Attestations & On-Chain Records](../concepts/attestations)
+- [Gardens & Actions](../concepts/gardens-and-work)
 
 ### Get Help
 

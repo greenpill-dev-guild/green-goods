@@ -11,7 +11,7 @@ This guide maps the Green Goods monorepo, summarising package responsibilities, 
 - **Client (`packages/client`)** — offline-first PWA for gardeners and operators. Persists submissions locally, syncs to the contracts/indexer pipeline, and handles sign-in via Pimlico passkeys and WalletConnect.
 - **Admin (`packages/admin`)** — administrative console for garden setup, membership management, and contract lifecycle actions. Provides operator-scoped views via the indexer.
 - **Indexer (`packages/indexer`)** — Envio project ingesting contract events and exposing a GraphQL API consumed by both frontends.
-- **Contracts (`packages/contracts`)** — Solidity suite implementing gardens, actions, attestation resolvers, and the Karma GAP bridge. Managed through `deploy.js` wrappers.
+- **Contracts (`packages/contracts`)** — Solidity suite implementing gardens, actions, attestation resolvers, and the Karma GAP bridge. Managed through `deploy.ts` wrappers.
 
 All packages share the root `.env`; Base Sepolia (`84532`) is the default network. Use `bun dev` at the repository root for a full stack dev environment.
 
@@ -56,24 +56,24 @@ All packages share the root `.env`; Base Sepolia (`84532`) is the default networ
 ### Contracts
 
 - **Scope**: GardenToken (ERC-721), GardenAccount (ERC-6551), ActionRegistry, Work/Assessment resolvers, Karma GAP integration (`KarmaLib`).
-- **Tooling**: Foundry (forge/anvil), custom deployment scripts (`script/deploy.js`, `script/upgrade.js`), schema config in `config/schemas.json` (read-only).
+- **Tooling**: Foundry (forge/anvil), custom deployment scripts (`script/deploy.ts`, `script/upgrade.ts`), schema config in `config/schemas.json` (read-only).
 - **Commands**:
   ```bash
   bun --filter contracts build
   bun --filter contracts test             # includes gas report
-  bun --filter contracts deploy:testnet   # wraps deploy.js (Base Sepolia)
+  bun --filter contracts deploy:testnet   # wraps deploy.ts (Base Sepolia)
   bun --filter contracts upgrade:testnet  # UUPS upgrade wrapper
   ```
-- **Checklist**: See the [Contracts Handbook](contracts-handbook.md) for deployment, upgrade, schema, and validation procedures.
+- **Checklist**: See the [Contracts Handbook](contracts-handbook) for deployment, upgrade, schema, and validation procedures.
 
 ## Data & Integration Flow
 
-1. **Garden creation** (admin) → `GardenToken` mints and initialises a `GardenAccount` (token-bound account). Supported chains create a Karma GAP project via `KarmaLib`.
-2. **Action setup** (admin) → `ActionRegistry` entries define allowable work activities.
-3. **Work submission** (client) → Offline queue stores media + metadata, then submits on reconnect. Indexer captures `WorkSubmitted` events.
-4. **Approval** (operator) → `WorkApprovalResolver` validates roles, records EAS attestation, and, when available, creates a GAP impact attestation via `GardenAccount`.
-5. **Assessment** (operator) → `AssessmentResolver` generates milestone attestations (also synced to GAP where supported).
-6. **Consumption** → Frontends query Envio for state. GAP impact data is fetched directly with the SDK using stored project UIDs.
+1. **Garden creation** (admin) → `GardenToken` mints and emits `GardenMinted` event. Initializes `GardenAccount` (ERC-6551). Indexer captures event. Supported chains create a Karma GAP project via `KarmaLib`.
+2. **Action setup** (admin) → `ActionRegistry` emits `ActionRegistered` events. Indexer captures for task registry.
+3. **Work submission** (client) → Offline queue stores media + metadata, uploads to IPFS, then creates EAS attestation via `WorkResolver`. Attestations queryable from EAS GraphQL.
+4. **Approval** (operator) → `WorkApprovalResolver` validates roles, records EAS attestation, triggers `GreenGoodsResolver` which creates GAP impact attestation via `GardenAccount`.
+5. **Assessment** (operator) → `AssessmentResolver` generates assessment attestations (also synced to GAP where supported).
+6. **Consumption** → Frontends query Envio indexer for gardens/actions/members. Work/approval attestations queried from EAS GraphQL. GAP impact data fetched via SDK using stored project UIDs.
 
 ## Karma GAP At a Glance
 
@@ -84,7 +84,7 @@ All packages share the root `.env`; Base Sepolia (`84532`) is the default networ
 
 ## Related References
 
-- [Product Overview](../features/overview.md) — condensed product & data map
-- [Developer Docs](../developer/getting-started.md) — environment, testing, troubleshooting
-- [Contracts Handbook](../developer/contracts-handbook.md) — lifecycle workflows
+- [Product Overview](../features/overview) — condensed product & data map
+- [Developer Docs](../developer/getting-started) — environment, testing, troubleshooting
+- [Contracts Handbook](../developer/contracts-handbook) — lifecycle workflows
 - Package-specific deep dives remain in their respective `AGENTS.md` and README files for implementation details.

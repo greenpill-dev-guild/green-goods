@@ -62,7 +62,7 @@ Green Goods defines three core user roles, each with specific permissions and re
 - Pimlico smart account (account abstraction)
 - Gasless transactions (sponsored)
 
-[Gardener Quickstart →](../welcome/quickstart-gardener.md)
+[Gardener Quickstart →](../welcome/quickstart-gardener)
 
 ---
 
@@ -149,7 +149,7 @@ Operator B → Garden 2: ✅ Can manage
 - Share review guidelines
 - Discuss edge cases as team
 
-[Operator Quickstart →](../welcome/quickstart-operator.md)
+[Operator Quickstart →](../welcome/quickstart-operator)
 
 ---
 
@@ -224,7 +224,7 @@ Optional wallet connection for:
 - Verify historical performance
 - Calculate retroactive funding value
 
-[Evaluator Quickstart →](../welcome/quickstart-evaluator.md)
+[Evaluator Quickstart →](../welcome/quickstart-evaluator)
 
 ---
 
@@ -347,10 +347,10 @@ UI enforces roles for better UX:
 
 ## Learn More
 
-- [Gardens & Work](gardens-and-work.md) — How roles interact with gardens
-- [MDR Workflow](mdr-workflow.md) — Gardener submission process
-- [Attestations](attestations.md) — How approvals become permanent records
-- [Gardener Quickstart](../welcome/quickstart-gardener.md)
-- [Operator Quickstart](../welcome/quickstart-operator.md)
-- [Evaluator Quickstart](../welcome/quickstart-evaluator.md)
+- [Gardens & Work](gardens-and-work) — How roles interact with gardens
+- [MDR Workflow](mdr-workflow) — Gardener submission process
+- [Attestations](attestations) — How approvals become permanent records
+- [Gardener Quickstart](../welcome/quickstart-gardener)
+- [Operator Quickstart](../welcome/quickstart-operator)
+- [Evaluator Quickstart](../welcome/quickstart-evaluator)
 

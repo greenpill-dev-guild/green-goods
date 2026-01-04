@@ -82,11 +82,11 @@ sequenceDiagram
     Q->>IPFS: Upload media files
     IPFS-->>Q: CID / URLs
     Q->>SA: Build attestation tx
-    SA->>SC: Submit work attestation
-    SC->>EAS: Create attestation
+    SA->>SC: WorkResolver.onAttest()
+    SC->>EAS: Create work attestation
     EAS-->>SC: Attestation UID
-    SC-->>IDX: Emit WorkSubmitted event
-    IDX-->>UI: GraphQL reflects new work
+    Note over SC,EAS: Work stored as EAS attestation
+    SC-->>UI: Transaction confirmed
     UI-->>G: Success notification
   else Offline or SA Unavailable
     Note over Q: Job persisted, retry on reconnect
@@ -114,22 +114,21 @@ sequenceDiagram
   participant EAS as EAS
 
   O->>AD: View pending work
-  AD->>IDX: Query unapproved works
-  IDX-->>AD: Work list + media URLs
+  AD->>EAS: Query work attestations (EAS GraphQL)
+  EAS-->>AD: Work list + IPFS URLs
   O->>AD: Review photos, approve
   AD->>W: Sign approval tx
-  W->>SC: Submit approval attestation
+  W->>SC: WorkApprovalResolver.onAttest()
   SC->>EAS: Create approval attestation
   SC->>GG: onWorkApproved(garden, worker, workUID)
   
-  par Module Fan-out
+  par Module Fan-out (try/catch)
     GG->>GAP: Create impact attestation
     Note over GG: Other modules (Octant, Unlock) also triggered
   end
 
   EAS-->>SC: Approval UID
-  SC-->>IDX: Emit WorkApproved event
-  IDX-->>AD: UI updates
+  SC-->>AD: Transaction confirmed
   AD-->>O: Success toast
 ```
 
@@ -277,13 +276,13 @@ sequenceDiagram
   participant FE as Frontend
 
   Chain->>ENV: New block with events
-  ENV->>EH: Process GardenCreated event
-  EH->>EH: Parse metadata, compute IDs
+  ENV->>EH: Process GardenMinted event
+  EH->>EH: Parse event data, compute IDs
   EH->>DB: context.Garden.set(entity)
   
-  ENV->>EH: Process WorkSubmitted event
-  EH->>EH: Link to garden, action
-  EH->>DB: context.Work.set(entity)
+  ENV->>EH: Process ActionRegistered event
+  EH->>EH: Map capitals enum, create entity
+  EH->>DB: context.Action.set(entity)
   
   Note over DB,GQL: Schema auto-generated from schema.graphql
   

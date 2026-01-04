@@ -4,6 +4,7 @@ import { execSync } from "node:child_process";
 import { NetworkManager } from "../utils/network";
 import { AnvilManager } from "./anvil";
 import { EnvioIntegration } from "../utils/envio-integration";
+import { DocsUpdater } from "../utils/docs-updater";
 import type { ParsedOptions } from "../utils/cli-parser";
 
 /**
@@ -100,6 +101,11 @@ export class CoreDeployer {
       // Auto-update Envio configuration after successful deployment
       if (!options.skipEnvio) {
         await this._updateEnvioConfig(options);
+      }
+
+      // Auto-update documentation with new deployment data
+      if (options.broadcast && options.network !== "localhost") {
+        await this._updateDocumentation(options);
       }
 
       if (options.saveReport) {
@@ -226,6 +232,24 @@ export class CoreDeployer {
       console.warn("⚠️  Failed to update Envio config:", errorMsg);
       console.warn("   You can manually update it later using:");
       console.warn(`   bun script/utils/envio-integration.ts update ${chainId}`);
+    }
+  }
+
+  /**
+   * Update documentation with deployment data
+   * @param options - Deployment options
+   */
+  private async _updateDocumentation(options: ParsedOptions): Promise<void> {
+    const chainId = this.networkManager.getChainIdString(options.network);
+
+    try {
+      const docsUpdater = new DocsUpdater();
+      await docsUpdater.updateDocs([chainId]);
+    } catch (docsError) {
+      const errorMsg = docsError instanceof Error ? docsError.message : String(docsError);
+      console.warn("⚠️  Failed to update documentation:", errorMsg);
+      console.warn("   You can manually update docs using:");
+      console.warn(`   bun script/utils/docs-updater.ts ${chainId}`);
     }
   }
 }

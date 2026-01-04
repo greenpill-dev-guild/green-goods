@@ -7,7 +7,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 const config: Config = {
   title: 'Green Goods Documentation',
   tagline: 'Bringing community and environmental actions onchain',
-  favicon: 'img/favicon.ico',
+  favicon: 'img/favicon.ico', // Green Goods favicon from client app
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
   future: {
@@ -41,6 +41,7 @@ const config: Config = {
       'classic',
       {
         docs: {
+          path: 'docs',
           routeBasePath: '/', // Docs at root URL
           sidebarPath: './sidebars.ts',
           editUrl:
@@ -72,8 +73,8 @@ const config: Config = {
   ],
 
   themeConfig: {
-    // Replace with your project's social card
-    image: 'img/docusaurus-social-card.jpg',
+    // Social card for link previews (Twitter, Telegram, etc.)
+    image: 'img/green-goods-social-card.webp',
     colorMode: {
       respectPrefersColorScheme: true,
     },
@@ -81,14 +82,22 @@ const config: Config = {
       title: 'Green Goods',
       logo: {
         alt: 'Green Goods Logo',
-        src: 'img/logo.svg',
+        src: 'img/green-goods-logo.png',
+        srcDark: 'img/green-goods-logo.png', // Same logo for dark mode
+        style: { height: '32px', width: 'auto' }, // Preserve aspect ratio (819x464 = 1.76:1)
       },
       items: [
         {
           type: 'docSidebar',
-          sidebarId: 'docsSidebar',
+          sidebarId: 'usersSidebar',
           position: 'left',
-          label: 'Docs',
+          label: 'Users',
+        },
+        {
+          type: 'docSidebar',
+          sidebarId: 'developersSidebar',
+          position: 'left',
+          label: 'Developers',
         },
         {
           href: 'https://paragraph.com/@greenpilldevguild',
@@ -111,19 +120,36 @@ const config: Config = {
       style: 'dark',
       links: [
         {
-          title: 'Documentation',
+          title: 'Users',
           items: [
             {
-              label: 'Getting Started',
+              label: 'Gardener Guide',
               to: '/welcome/quickstart-gardener',
             },
             {
-              label: 'Core Concepts',
-              to: '/concepts/roles',
+              label: 'Operator Guide',
+              to: '/welcome/quickstart-operator',
             },
             {
-              label: 'Developer Docs',
-              to: '/developer/getting-started',
+              label: 'Evaluator Guide',
+              to: '/welcome/quickstart-evaluator',
+            },
+          ],
+        },
+        {
+          title: 'Developers',
+          items: [
+            {
+              label: 'Developer Quickstart',
+              to: '/welcome/quickstart-developer',
+            },
+            {
+              label: 'Architecture',
+              to: '/developer/architecture',
+            },
+            {
+              label: 'API Reference',
+              to: '/developer/api-reference',
             },
           ],
         },

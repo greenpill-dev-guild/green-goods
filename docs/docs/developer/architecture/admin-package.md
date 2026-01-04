@@ -1,7 +1,7 @@
 # Admin Package (Dashboard)
 
 > **Audience:** Frontend engineers working on `packages/admin`.
-> **Related docs:** [Monorepo Structure](monorepo-structure.md), [packages/admin/README.md](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/admin#readme)
+> **Related docs:** [Monorepo Structure](monorepo-structure), [packages/admin/README.md](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/admin#readme)
 > **Networks:** Arbitrum One (42161), Celo (42220), Base Sepolia (84532). Deployment data: `packages/contracts/deployments/*.json`. Updated November 2024.
 > **External references:** For GraphQL client patterns, see [urql documentation](https://formidable.com/open-source/urql/docs/) and XState’s [statecharts guide](https://stately.ai/docs/statecharts) when editing workflows.
 
@@ -129,7 +129,7 @@ CSS variables-based theming:
 - No hardcoded colors
 - Automatic adaptation
 
-[Theme Guide →](../theming.md)
+[Theme Guide →](../theming)
 
 ---
 

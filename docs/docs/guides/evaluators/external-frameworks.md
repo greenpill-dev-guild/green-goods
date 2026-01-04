@@ -17,21 +17,26 @@ Map Green Goods data to existing impact measurement standards and frameworks.
 
 ## Carbon Credit Frameworks
 
-**Extract Carbon Data**:
+**Extract Carbon Data from Actions**:
 ```graphql
-query CarbonWork {
-  Work(where: {title: {_ilike: "%tree%"}}) {
+query CarbonActions($chainId: Int!) {
+  Action(where: {
+    chainId: {_eq: $chainId}
+    title: {_ilike: "%tree%"}
+  }) {
+    id
     title
-    metadata
-    actionUID
-    approvals(where: {approved: {_eq: true}}) {
-      timestamp
-    }
+    instructions
+    capitals
+    ownerAddress
   }
 }
 ```
 
+**Then query work attestations** for those actions from **EAS GraphQL API**.
+
 **Calculate**:
+- Parse work attestation metadata for tree counts
 - Trees planted × average CO2 sequestered per tree
 - Area restored × carbon per hectare
 - Long-term monitoring via attestation chain
@@ -42,18 +47,26 @@ query CarbonWork {
 
 **Species Documentation**:
 ```graphql
-query BiodiversityWork {
-  Work(where: {
-    actionUID: {_in: [2, 5, 8]}  # Monitoring/survey actions
+# Step 1: Find biodiversity-related actions
+query BiodiversityActions($chainId: Int!) {
+  Action(where: {
+    chainId: {_eq: $chainId}
+    capitals: {_contains: "LIVING"}
   }) {
-    metadata  # Contains species lists
-    media     # Photo evidence
+    id
+    title
+    instructions
   }
 }
 ```
 
+**Step 2**: Query work attestations for these actions from **EAS GraphQL** to get:
+- `metadata` field (contains species lists)
+- `media` field (photo evidence)
+- `decodedDataJson` (structured data)
+
 **Metrics**:
-- Species count
+- Species count (from metadata)
 - Habitat quality indicators
 - Population trends over time
 
@@ -71,7 +84,7 @@ query BiodiversityWork {
 - Multi-chain reporting
 - Funder-friendly format
 
-[Technical Details →](../../developer/karma-gap.md)
+[Technical Details →](../../developer/karma-gap)
 
 ---
 
@@ -109,7 +122,7 @@ const transformed = data.Garden.map(transformToOurFormat);
 
 ## Learn More
 
-- [Accessing Data](accessing-data.md)
-- [API Reference](../../developer/api-reference.md)
-- [Evaluator Quickstart](../../welcome/quickstart-evaluator.md)
+- [Accessing Data](accessing-data)
+- [API Reference](../../developer/api-reference)
+- [Evaluator Quickstart](../../welcome/quickstart-evaluator)
 
