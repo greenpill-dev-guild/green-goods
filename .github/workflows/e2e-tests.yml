@@ -16,7 +16,6 @@ on:
           - chromium
           - mobile-chrome
           - mobile-safari
-          - tablet
         default: all
 
 concurrency:
@@ -59,14 +58,13 @@ jobs:
       - name: Run E2E tests
         run: |
           if [ "${{ github.event.inputs.project }}" = "all" ] || [ -z "${{ github.event.inputs.project }}" ]; then
-            # Run all projects (chromium, mobile-chrome, mobile-safari, tablet)
-            SKIP_WEBSERVER=true npx playwright test
+            # Run all projects (chromium, mobile-chrome, mobile-safari)
+            npx playwright test
           else
-            SKIP_WEBSERVER=true npx playwright test --project=${{ github.event.inputs.project }}
+            npx playwright test --project=${{ github.event.inputs.project }}
           fi
         env:
           CI: true
-          SKIP_WEBSERVER: true
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
@@ -119,7 +117,7 @@ jobs:
           VITE_ENVIO_INDEXER_URL: "http://localhost:8080"
 
       - name: Run smoke tests
-        run: SKIP_WEBSERVER=true npx playwright test tests/specs/smoke.spec.ts --project=chromium
+        run: npx playwright test tests/specs/client.smoke.spec.ts tests/specs/admin.smoke.spec.ts --project=chromium
         env:
           CI: true
 
