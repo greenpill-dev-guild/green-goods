@@ -1,7 +1,6 @@
 import { NO_EXPIRATION, ZERO_BYTES32 } from "@ethereum-attestation-service/eas-sdk";
 import { getPublicClient } from "@wagmi/core";
 import type { SmartAccountClient } from "permissionless";
-import { encodeFunctionData } from "viem";
 
 import { wagmiConfig } from "../../config/appkit";
 import { getEASConfig } from "../../config/blockchain";

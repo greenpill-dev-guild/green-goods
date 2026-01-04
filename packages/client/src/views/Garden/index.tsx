@@ -39,7 +39,7 @@ const Work: React.FC = () => {
   // Draft management
   const {
     activeDraftId,
-    setActiveDraftId,
+    _setActiveDraftId,
     createDraft,
     updateDraft,
     setImages: setDraftImages,

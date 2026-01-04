@@ -1,16 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { Script, console } from "forge-std/Script.sol";
+import {Script, console} from "forge-std/Script.sol";
 
-import { DeploymentBase } from "../test/helpers/DeploymentBase.sol";
-import { DeploymentRegistry } from "../src/DeploymentRegistry.sol";
-import { GardenAccount } from "../src/accounts/Garden.sol";
-import { GardenToken } from "../src/tokens/Garden.sol";
-import { Capital } from "../src/registries/Action.sol";
-import { WorkResolver } from "../src/resolvers/Work.sol";
-import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
-import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
+import {DeploymentBase} from "../test/helpers/DeploymentBase.sol";
+import {DeploymentRegistry} from "../src/DeploymentRegistry.sol";
+import {GardenToken} from "../src/tokens/Garden.sol";
+import {Capital} from "../src/registries/Action.sol";
+import {WorkResolver} from "../src/resolvers/Work.sol";
+import {WorkApprovalResolver} from "../src/resolvers/WorkApproval.sol";
+import {AssessmentResolver} from "../src/resolvers/Assessment.sol";
 
 /// @title Deploy
 /// @notice Production deployment script - orchestrates DeploymentBase + seed data
@@ -145,16 +144,17 @@ contract Deploy is Script, DeploymentBase {
                     abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".bannerImage")), (string));
 
                 string memory metadata = "";
-                try vm.parseJson(gardensJson, string.concat(basePath, ".metadata")) returns (bytes memory metadataBytes) {
+                try vm.parseJson(gardensJson, string.concat(basePath, ".metadata")) returns (bytes memory metadataBytes)
+                {
                     metadata = abi.decode(metadataBytes, (string));
-                } catch { }
+                } catch {}
 
                 bool openJoining = false;
                 try vm.parseJson(gardensJson, string.concat(basePath, ".openJoining")) returns (
                     bytes memory openJoiningBytes
                 ) {
                     openJoining = abi.decode(openJoiningBytes, (bool));
-                } catch { }
+                } catch {}
 
                 address[] memory gardeners =
                     abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".gardeners")), (address[]));
@@ -176,11 +176,6 @@ contract Deploy is Script, DeploymentBase {
                 address gardenAddress = gardenToken.mintGarden(gardenConfig);
                 gardenAddresses.push(gardenAddress);
                 gardenTokenIds.push(i + 1);
-
-                console.log("Garden created");
-                console.log("  name", name);
-                console.log("  tokenId", i + 1);
-                console.log("  address", gardenAddress);
             } catch {
                 break;
             }
@@ -254,10 +249,7 @@ contract Deploy is Script, DeploymentBase {
     }
 
     /// @notice Handle IPFS upload mismatch scenarios
-    function _handleIPFSMismatch(
-        uint256 expectedCount,
-        uint256 /* actualCount */
-    )
+    function _handleIPFSMismatch(uint256 expectedCount, uint256 /* actualCount */ )
         internal
         view
         returns (string[] memory)
@@ -290,9 +282,6 @@ contract Deploy is Script, DeploymentBase {
                 _registerSingleAction(json, basePath, ipfsHashes[i]);
 
                 string memory title = abi.decode(titleBytes, (string));
-                console.log("Action registered");
-                console.log("  title", title);
-                console.log("  index", i);
             } catch {
                 revert ActionDeploymentFailed();
             }
@@ -304,9 +293,11 @@ contract Deploy is Script, DeploymentBase {
         string memory title = abi.decode(vm.parseJson(json, string.concat(basePath, ".title")), (string));
         uint256 startTime =
             _parseISOTimestamp(abi.decode(vm.parseJson(json, string.concat(basePath, ".startTime")), (string)));
-        uint256 endTime = _parseISOTimestamp(abi.decode(vm.parseJson(json, string.concat(basePath, ".endTime")), (string)));
+        uint256 endTime =
+            _parseISOTimestamp(abi.decode(vm.parseJson(json, string.concat(basePath, ".endTime")), (string)));
 
-        string[] memory capitalStrings = abi.decode(vm.parseJson(json, string.concat(basePath, ".capitals")), (string[]));
+        string[] memory capitalStrings =
+            abi.decode(vm.parseJson(json, string.concat(basePath, ".capitals")), (string[]));
         Capital[] memory capitals = new Capital[](capitalStrings.length);
         for (uint256 j = 0; j < capitalStrings.length; j++) {
             capitals[j] = _parseCapital(capitalStrings[j]);
@@ -326,25 +317,7 @@ contract Deploy is Script, DeploymentBase {
     function _logDeploymentStrategy() internal view {
         uint256 chainId = block.chainid;
 
-        console.log("\n=== Green Goods Deployment ===");
-        console.log("Chain ID:", chainId);
-
-        if (_isMainnetChain(chainId)) {
-            console.log("Mode: MAINNET - ENS Infrastructure Only");
-            console.log("  - GardenerRegistry (greengoods.eth subdomain manager)");
-            console.log("  - Gardener logic (with ENS support)");
-            console.log("\nNote: Full protocol lives on L2 chains (Arbitrum, Celo, Base Sepolia)");
-        } else {
-            console.log("Mode: L2 - Full Protocol Deployment");
-            console.log("  - DeploymentRegistry");
-            console.log("  - GardenToken + GardenAccount (TBA)");
-            console.log("  - ActionRegistry");
-            console.log("  - Work/Approval/Assessment Resolvers");
-            console.log("  - Gardener logic (L2 mode, no ENS)");
-            console.log("  - Seed data (root garden + actions)");
-            console.log("\nNote: ENS subdomains managed on mainnet");
-        }
-        console.log("==============================\n");
+        if (_isMainnetChain(chainId)) {} else {}
     }
 
     /// @notice Parse deployment mode from environment
@@ -403,15 +376,15 @@ contract Deploy is Script, DeploymentBase {
         bytes memory timestampBytes = bytes(isoTimestamp);
 
         if (
-            timestampBytes.length >= 10 && timestampBytes[0] == "2" && timestampBytes[1] == "0" && timestampBytes[2] == "2"
-                && timestampBytes[3] == "4"
+            timestampBytes.length >= 10 && timestampBytes[0] == "2" && timestampBytes[1] == "0"
+                && timestampBytes[2] == "2" && timestampBytes[3] == "4"
         ) {
             return 1_704_067_200; // 2024-01-01
         }
 
         if (
-            timestampBytes.length >= 10 && timestampBytes[0] == "2" && timestampBytes[1] == "0" && timestampBytes[2] == "2"
-                && timestampBytes[3] == "5"
+            timestampBytes.length >= 10 && timestampBytes[0] == "2" && timestampBytes[1] == "0"
+                && timestampBytes[2] == "2" && timestampBytes[3] == "5"
         ) {
             return 1_767_225_599; // 2025-12-31
         }

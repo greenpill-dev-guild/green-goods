@@ -11,7 +11,6 @@
  */
 
 import type { Hex } from "viem";
-import type { Address } from "@green-goods/shared";
 
 // ============================================================================
 // PLATFORMS

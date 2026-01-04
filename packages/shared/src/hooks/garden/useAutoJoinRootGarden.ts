@@ -136,11 +136,11 @@ export function useAutoJoinRootGarden(autoJoin = false) {
   const queryClient = useQueryClient();
 
   const normalizeAddress = useCallback((value?: string | null) => value?.toLowerCase() ?? "", []);
-  const rootGardenAddressNormalized = useMemo(
+  const _rootGardenAddressNormalized = useMemo(
     () => normalizeAddress(rootGarden?.address),
     [rootGarden?.address, normalizeAddress]
   );
-  const rootGardenTokenId = useMemo(
+  const _rootGardenTokenId = useMemo(
     () => (typeof rootGarden?.tokenId !== "undefined" ? Number(rootGarden.tokenId) : undefined),
     [rootGarden?.tokenId]
   );

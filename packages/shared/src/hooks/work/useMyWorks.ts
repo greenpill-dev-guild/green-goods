@@ -13,7 +13,6 @@ import { filterByTimeRange, sortByCreatedAt, type TimeFilter } from "../../utils
 import { deduplicateById, mergeAndDeduplicateByClientId } from "../../utils/work/deduplication";
 import { fetchOfflineWorks } from "../../utils/work/offline";
 import { useUser } from "../auth/useUser";
-import { queryKeys } from "../query-keys";
 
 export interface UseMyWorksOptions {
   /**

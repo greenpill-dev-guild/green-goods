@@ -315,7 +315,7 @@ export async function submitWorkDirectly(
     try {
       await waitForReceiptWithTimeout(hash, chainId, txTimeout);
       debugLog("[WalletSubmission] Transaction confirmed", { hash });
-    } catch (timeoutErr) {
+    } catch (_timeoutErr) {
       // Transaction may still succeed, continue gracefully
       debugLog("[WalletSubmission] Transaction timeout, continuing...", { hash });
     }

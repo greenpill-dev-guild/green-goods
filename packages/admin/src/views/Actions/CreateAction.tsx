@@ -120,8 +120,14 @@ export default function CreateAction() {
         return (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-text-strong mb-2">Title</label>
+              <label
+                htmlFor="create-action-title"
+                className="block text-sm font-medium text-text-strong mb-2"
+              >
+                Title
+              </label>
               <input
+                id="create-action-title"
                 {...form.register("title")}
                 type="text"
                 className="w-full rounded-md border border-stroke-soft px-3 py-2"
@@ -135,8 +141,14 @@ export default function CreateAction() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-text-strong mb-2">Start Date</label>
+              <label
+                htmlFor="create-action-starttime"
+                className="block text-sm font-medium text-text-strong mb-2"
+              >
+                Start Date
+              </label>
               <input
+                id="create-action-starttime"
                 {...form.register("startTime", { valueAsDate: true })}
                 type="date"
                 className="w-full rounded-md border border-stroke-soft px-3 py-2"
@@ -149,8 +161,14 @@ export default function CreateAction() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-text-strong mb-2">End Date</label>
+              <label
+                htmlFor="create-action-endtime"
+                className="block text-sm font-medium text-text-strong mb-2"
+              >
+                End Date
+              </label>
               <input
+                id="create-action-endtime"
                 {...form.register("endTime", { valueAsDate: true })}
                 type="date"
                 className="w-full rounded-md border border-stroke-soft px-3 py-2"
@@ -180,13 +198,19 @@ export default function CreateAction() {
         return (
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-text-strong mb-2">
+              <label
+                htmlFor="create-action-capitals"
+                className="block text-sm font-medium text-text-strong mb-2"
+              >
                 Forms of Capital <span className="text-error-base">*</span>
               </label>
               <p className="text-xs text-text-soft mb-3">
                 Select the forms of capital associated with this action
               </p>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <fieldset
+                id="create-action-capitals"
+                className="grid grid-cols-2 gap-2 sm:grid-cols-4"
+              >
                 {CAPITALS_OPTIONS.map((capital) => {
                   const isChecked = capitals.includes(capital.value);
                   return (
@@ -214,7 +238,7 @@ export default function CreateAction() {
                     </label>
                   );
                 })}
-              </div>
+              </fieldset>
               {form.formState.errors.capitals && (
                 <p className="text-error-base text-sm mt-1">
                   {form.formState.errors.capitals.message}
@@ -223,10 +247,14 @@ export default function CreateAction() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-text-strong mb-2">
+              <label
+                htmlFor="create-action-media"
+                className="block text-sm font-medium text-text-strong mb-2"
+              >
                 Media (Images)
               </label>
               <FileUploadField
+                id="create-action-media"
                 currentFiles={form.watch("media")}
                 onFilesChange={(files: File[]) => form.setValue("media", files)}
                 onRemoveFile={(index: number) => {
@@ -254,10 +282,14 @@ export default function CreateAction() {
         return (
           <div>
             <div className="mb-4">
-              <label className="block text-sm font-medium text-text-strong mb-2">
+              <label
+                htmlFor="create-action-template"
+                className="block text-sm font-medium text-text-strong mb-2"
+              >
                 Start from a template (optional)
               </label>
               <select
+                id="create-action-template"
                 onChange={(e) => {
                   if (e.target.value) {
                     form.setValue("instructionConfig", instructionTemplates[e.target.value]);
