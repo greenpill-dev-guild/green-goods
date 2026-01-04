@@ -4,6 +4,41 @@ Green Goods is an open-source, monorepo platform for verifiable regenerative imp
 
 ---
 
+## Getting Started
+
+### 1. Environment Setup
+
+You have two options: **Dev Container** (recommended) or **Local Setup**.
+
+#### Option A: Dev Container (Recommended)
+
+[![Open in Dev Containers](https://img.shields.io/static/v1?label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/greenpill-dev-guild/green-goods)
+
+This provides a pre-configured environment with Node, Bun, Foundry, and Docker-in-Docker.
+
+1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) and [VS Code](https://code.visualstudio.com/).
+2. Install the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers).
+3. Open the repo in VS Code and click **"Reopen in Container"**.
+4. Edit `.env` with your keys.
+5. Run `bun dev`.
+
+#### Option B: Local Setup
+
+**Prerequisites:**
+- Node.js 20+
+- Bun 1.0+
+- Git
+- Docker Desktop (for indexer)
+- Foundry (for contracts)
+
+**Steps:**
+1. Clone the repo
+2. Run `bun setup`
+3. Edit `.env`
+4. Run `bun dev`
+
+---
+
 ## Monorepo Structure
 
 ```

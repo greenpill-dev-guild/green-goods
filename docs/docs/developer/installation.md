@@ -4,6 +4,63 @@ Complete setup guide for local Green Goods development.
 
 ---
 
+## Dev Container Setup (Recommended)
+
+[![Open in Dev Containers](https://img.shields.io/static/v1?label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/greenpill-dev-guild/green-goods)
+
+The fastest way to get started is using VS Code Dev Containers. This provides a fully configured, isolated development environment with all tools pre-installed.
+
+### Prerequisites
+
+- **Docker Desktop**: [docker.com](https://www.docker.com/products/docker-desktop/)
+- **VS Code**: With [Remote - Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension
+
+### Quick Start
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/greenpill-dev-guild/green-goods.git
+   ```
+
+2. Open in VS Code:
+   ```bash
+   code green-goods
+   ```
+
+3. When prompted "Reopen in Container", click **Yes** (or run `Dev Containers: Reopen in Container` from the command palette)
+
+4. Wait for the container to build (~2-5 minutes first time)
+
+5. Edit `.env` with your API keys
+
+6. Start development:
+   ```bash
+   bun dev
+   ```
+
+### What's Included
+
+The dev container comes with:
+- **Node.js 22** + **Bun** + **pnpm**
+- **Foundry** (forge, cast, anvil) for contract development
+- **Docker-in-Docker** for the indexer (Envio)
+- All VS Code extensions pre-configured
+- Git submodules initialized
+- Dependencies installed
+
+### Ports
+
+Services are automatically forwarded:
+- **3001**: Client PWA (http://localhost:3001)
+- **3002**: Admin dashboard (http://localhost:3002)
+- **8080**: Indexer GraphQL (http://localhost:8080)
+- **8545**: Anvil local blockchain
+- **3000**: Agent API
+
+> **Note**: Dev containers use HTTP instead of HTTPS. This is fine for local development—`localhost` is still a secure context for PWA/WebAuthn features.
+
+---
+
 ## Prerequisites
 
 ### Required

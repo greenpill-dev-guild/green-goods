@@ -4,6 +4,19 @@ Green Goods is an offline-first, single-chain platform for documenting conservat
 
 ## Quick Start
 
+### Option A: Dev Container (Recommended)
+
+[![Open in Dev Containers](https://img.shields.io/static/v1?label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/greenpill-dev-guild/green-goods)
+
+The fastest way to start is using VS Code Dev Containers (pre-configured environment):
+
+1. **Install [Docker Desktop](https://www.docker.com/products/docker-desktop/)** and **[VS Code](https://code.visualstudio.com/)**
+2. **Open repository in VS Code**
+3. **Click "Reopen in Container"** when prompted
+4. **Run `bun dev`** inside the terminal
+
+### Option B: Local Setup
+
 ```bash
 git clone https://github.com/greenpill-dev-guild/green-goods.git
 cd green-goods

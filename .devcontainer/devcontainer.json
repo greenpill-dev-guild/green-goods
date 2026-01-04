@@ -1,0 +1,57 @@
+{
+  "name": "Green Goods",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "remoteUser": "vscode",
+
+  // Docker-outside-of-docker: allows indexer (Envio) to run Docker containers
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+  },
+
+  // Forward all dev server ports
+  "forwardPorts": [
+    3000, // Agent API
+    3001, // Client PWA
+    3002, // Admin dashboard
+    8080, // Indexer GraphQL
+    8545, // Anvil (local blockchain)
+    9898 // HyperSync
+  ],
+
+  // Named volumes for node_modules (avoids host permission issues, faster I/O)
+  "mounts": [
+    "source=gg-node_modules,target=${containerWorkspaceFolder}/node_modules,type=volume",
+    "source=gg-indexer-generated-node_modules,target=${containerWorkspaceFolder}/packages/indexer/generated/node_modules,type=volume",
+    "source=gg-contracts-lib,target=${containerWorkspaceFolder}/packages/contracts/lib,type=volume"
+  ],
+
+  // Environment: signal to Vite configs to skip mkcert (use HTTP instead of HTTPS)
+  "containerEnv": {
+    "DEVCONTAINER": "true"
+  },
+
+  // Bootstrap script after container creation
+  "postCreateCommand": "bash .devcontainer/postCreate.sh",
+
+  // VS Code customizations
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "biomejs.biome",
+        "JuanBlanco.solidity",
+        "dbaeumer.vscode-eslint",
+        "bradlc.vscode-tailwindcss",
+        "esbenp.prettier-vscode",
+        "ms-azuretools.vscode-docker",
+        "GraphQL.vscode-graphql",
+        "GraphQL.vscode-graphql-syntax"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "editor.formatOnSave": true
+      }
+    }
+  }
+}

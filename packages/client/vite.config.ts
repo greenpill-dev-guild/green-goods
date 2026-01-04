@@ -52,8 +52,12 @@ export default defineConfig(({ mode }) => {
   const isIPFSBuild =
     rootEnv.VITE_USE_HASH_ROUTER === "true" || localEnv.VITE_USE_HASH_ROUTER === "true";
 
+  // Skip mkcert in devcontainer (use HTTP instead of HTTPS)
+  const isDevContainer = process.env.DEVCONTAINER === "true";
+
   const plugins = [
-    mkcert(),
+    // Only use mkcert for HTTPS when not in devcontainer
+    ...(isDevContainer ? [] : [mkcert()]),
     tailwindcss(),
     react(),
     VitePWA({
