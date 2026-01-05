@@ -28,9 +28,10 @@
 
     "dev": "trap 'npx pm2 delete all' EXIT; npx pm2 start ecosystem.config.cjs && npx pm2 logs --raw",
     "dev:stop": "npx pm2 delete all",
+    "dev:docs": "cd docs && bun start",
+    "dev:client": "cd packages/client && bun run dev",
     "dev:admin": "cd packages/admin && bun run dev",
     "dev:agent": "cd packages/agent && bun run dev",
-    "dev:client": "cd packages/client && bun run dev",
     "dev:indexer": "cd packages/indexer && bun run dev",
     "dev:contracts": "cd packages/contracts && bun run dev",
 
@@ -38,30 +39,28 @@
     "test:e2e": "node scripts/test-e2e.js",
     "test:e2e:smoke": "node scripts/test-e2e.js smoke",
     "test:e2e:ui": "SKIP_WEBSERVER=true SKIP_HEALTH_CHECK=true playwright test --ui",
-    "test:shared": "cd packages/shared && bun run test",
+    "test:client": "cd packages/client && bun run test",
     "test:admin": "cd packages/admin && bun run test",
     "test:agent": "cd packages/agent && bun run test",
-    "test:client": "cd packages/client && bun run test",
+    "test:shared": "cd packages/shared && bun run test",
     "test:indexer": "cd packages/indexer && bun run test",
     "test:contracts": "cd packages/contracts && bun run test",
 
     "build": "bun run build:contracts && bun run build:shared && bun run build:indexer && bun run build:client && bun run build:admin",
-    "build:shared": "cd packages/shared && bun run build",
+    "build:docs": "cd docs && bun run build",
+    "build:client": "cd packages/client && bun run build",
     "build:admin": "cd packages/admin && bun run build",
     "build:agent": "cd packages/agent && bun run build",
-    "build:client": "cd packages/client && bun run build",
+    "build:shared": "cd packages/shared && bun run build",
     "build:indexer": "cd packages/indexer && bun run build",
-    "build:contracts": "cd packages/contracts && bun run build",
-
-    "docs:dev": "cd docs && bun start",
-    "docs:build": "cd docs && bun run build",
-    "docs:serve": "cd docs && bun run serve"
+    "build:contracts": "cd packages/contracts && bun run build"
   },
   "overrides": {
     "multiformats": "^13.4.2"
   },
   "resolutions": {},
   "dependencies": {
+    "@ensdomains/ens-contracts": "^1.6.0",
     "dotenv": "^17.2.1",
     "ethers": "^6.16.0",
     "multiformats": "^13.4.2",
