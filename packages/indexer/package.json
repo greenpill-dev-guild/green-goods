@@ -36,9 +36,6 @@
     "postgres": "^3.4.7",
     "rescript-envsafe": "^5.0.0"
   },
-  "optionalDependencies": {
-    "generated": "./generated"
-  },
   "engines": {
     "node": ">=18.0.0"
   }
