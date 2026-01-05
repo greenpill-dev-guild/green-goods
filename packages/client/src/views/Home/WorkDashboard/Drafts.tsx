@@ -1,6 +1,5 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
-import type { DraftWithImages } from "@green-goods/shared/hooks";
-import { useActions, useDrafts, useGardens } from "@green-goods/shared/hooks";
+import { useActions, useDrafts, useGardens, type DraftWithImages } from "@green-goods/shared/hooks";
 import { findActionByUID } from "@green-goods/shared/utils";
 import { RiAlertLine, RiDraftLine, RiLoader4Line, RiRefreshLine } from "@remixicon/react";
 import React, { useState } from "react";
