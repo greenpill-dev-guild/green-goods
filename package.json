@@ -22,8 +22,9 @@
     "ci:local": "node scripts/ci-local.js",
     "prepare": "husky",
 
-    "format": "npx @biomejs/biome format --write . && cd packages/contracts && forge fmt",
-    "format:check": "npx @biomejs/biome format . && cd packages/contracts && forge fmt --check",
+    "format": "npx @biomejs/biome format --write .",
+    "format:contracts": "cd packages/contracts && bun run format",
+    "format:check": "npx @biomejs/biome format .",
     "lint": "bun oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/agent/src packages/contracts/script && cd packages/contracts && bun run lint",
 
     "dev": "trap 'npx pm2 delete all' EXIT; npx pm2 start ecosystem.config.cjs && npx pm2 logs --raw",

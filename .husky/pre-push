@@ -27,6 +27,7 @@ fi
 
 # 1. Auto-fix formatting
 echo "📐 Auto-fixing formatting..."
+$RUNNER format:contracts
 $RUNNER format
 
 # 2. Lint
