@@ -61,7 +61,7 @@ jobs:
       - name: Check formatting
         run: |
           cd packages/agent
-          bun run format --check || true
+          bun run format:check
 
       - name: Type check
         run: |

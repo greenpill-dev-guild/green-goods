@@ -38,7 +38,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build docs
-        run: bun docs:build
+        run: bun run build:docs
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

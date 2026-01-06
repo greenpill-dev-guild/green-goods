@@ -10,6 +10,7 @@
     "test:watch": "vitest --standalone",
     "coverage": "vitest run --coverage",
     "format": "biome format --write .",
+    "format:check": "biome format .",
     "lint": "oxlint src",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",

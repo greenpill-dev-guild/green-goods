@@ -12,6 +12,7 @@
     "test:watch": "bun test --watch",
     "test:coverage": "bun test --coverage",
     "format": "biome format --write src",
+    "format:check": "biome format src",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
