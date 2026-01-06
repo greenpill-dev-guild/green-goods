@@ -22,7 +22,7 @@
     "ci:local": "node scripts/ci-local.js",
     "prepare": "husky",
 
-    "format": "npx @biomejs/biome format --write . && cd packages/contracts && bun run format",
+    "format": "npx @biomejs/biome format --write . && cd packages/contracts && forge fmt",
     "format:check": "npx @biomejs/biome format . && cd packages/contracts && forge fmt --check",
     "lint": "bun oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/agent/src packages/contracts/script && cd packages/contracts && bun run lint",
 

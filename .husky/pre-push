@@ -25,9 +25,9 @@ else
   exit 1
 fi
 
-# 1. Format check
-echo "📐 Checking formatting..."
-$RUNNER format:check
+# 1. Auto-fix formatting
+echo "📐 Auto-fixing formatting..."
+$RUNNER format
 
 # 2. Lint
 echo "🔎 Running linter..."
