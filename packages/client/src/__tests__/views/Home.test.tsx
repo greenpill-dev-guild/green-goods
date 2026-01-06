@@ -1,39 +1,41 @@
 /**
- * Home View Tests
+ * Home View Smoke Tests
  *
- * Tests for the Home view's basic rendering and structure.
- * Note: Complex timeout/retry scenarios are tested at the integration level.
+ * Tests that the Home view renders without crashing.
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { cleanup, render, screen } from "@testing-library/react";
+import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock hooks
-const mockRefetch = vi.fn();
-const mockInvalidateQueries = vi.fn();
-
+// Mock shared hooks
 vi.mock("@green-goods/shared/hooks", () => ({
+  queryKeys: { gardens: { all: ["gardens"] } },
   useAuth: () => ({
-    smartAccountAddress: "0x123",
+    smartAccountAddress: "0x1234567890abcdef1234567890abcdef12345678",
     walletAddress: null,
   }),
-  useBrowserNavigation: () => {},
+  useBrowserNavigation: vi.fn(),
   useGardens: () => ({
-    data: [],
+    data: [
+      {
+        id: "garden-1",
+        name: "Test Garden",
+        location: "Test Location",
+        bannerImage: "",
+        gardeners: ["0x1234567890abcdef1234567890abcdef12345678"],
+        operators: [],
+        createdAt: Date.now(),
+      },
+    ],
     isLoading: false,
     isError: false,
-    refetch: mockRefetch,
+    refetch: vi.fn(),
   }),
   useNavigateToTop: () => vi.fn(),
   useOffline: () => ({ isOnline: true }),
-  queryKeys: {
-    gardens: {
-      all: ["gardens"],
-    },
-  },
 }));
 
 vi.mock("@green-goods/shared/stores", () => ({
@@ -44,34 +46,63 @@ vi.mock("@green-goods/shared/stores", () => ({
   }),
 }));
 
+vi.mock("@green-goods/shared/utils", () => ({
+  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+  gardenHasMember: (address: string, gardeners: string[]) =>
+    gardeners.includes(address.toLowerCase()),
+}));
+
 vi.mock("@tanstack/react-query", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@tanstack/react-query")>();
   return {
     ...actual,
     useQueryClient: () => ({
-      invalidateQueries: mockInvalidateQueries,
+      invalidateQueries: vi.fn(),
     }),
   };
 });
 
-// Import Home after mocks
+// Mock components
+vi.mock("@/components/Cards", () => ({
+  GardenCard: ({ garden, onClick }: { garden: { name: string }; onClick?: () => void }) =>
+    createElement("button", { "data-testid": "garden-card", onClick, type: "button" }, garden.name),
+  GardenCardSkeleton: () => createElement("div", { "data-testid": "garden-skeleton" }),
+}));
+
+vi.mock("../../views/Home/GardenFilters", () => ({
+  GardenFilterScope: {},
+  GardenSortOrder: {},
+  GardensFilterDrawer: () => null,
+}));
+
+vi.mock("../../views/Home/WorkDashboard/Icon", () => ({
+  WorkDashboardIcon: () => createElement("button", { "data-testid": "work-dashboard-icon" }),
+}));
+
+// Import after mocks
 import Home from "../../views/Home";
 
-const renderHome = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-    },
-  });
+const messages = {
+  "app.home": "Home",
+  "app.home.filters.button": "Filters",
+  "app.home.messages.noGardensFound": "No gardens found",
+};
 
+const renderWithProviders = (initialRoute = "/home") => {
   return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={["/home"]}>
-        <IntlProvider locale="en" messages={{}}>
-          <Home />
-        </IntlProvider>
-      </MemoryRouter>
-    </QueryClientProvider>
+    createElement(
+      MemoryRouter,
+      { initialEntries: [initialRoute] },
+      createElement(
+        IntlProvider,
+        { locale: "en", messages },
+        createElement(
+          Routes,
+          null,
+          createElement(Route, { path: "/home/*", element: createElement(Home) })
+        )
+      )
+    )
   );
 };
 
@@ -80,30 +111,38 @@ describe("Home View", () => {
     vi.clearAllMocks();
   });
 
-  it("renders the home article element", () => {
-    renderHome();
-    const article = screen.getByRole("article");
-    expect(article).toBeDefined();
+  afterEach(() => {
+    cleanup();
   });
 
-  it("shows empty state message when no gardens exist", () => {
-    renderHome();
-    // When no gardens and not loading, should show message
-    const emptyMessage = screen.queryByText(/no gardens/i);
-    expect(emptyMessage).toBeDefined();
+  it("renders without crashing", () => {
+    renderWithProviders();
+
+    expect(screen.getByRole("article")).toBeInTheDocument();
   });
 
-  it("has filter button for garden filtering", () => {
-    renderHome();
-    const filterButton = screen.getByRole("button", { name: /filters/i });
-    expect(filterButton).toBeDefined();
-  });
-});
+  it("displays home title", () => {
+    renderWithProviders();
 
-describe("Home View - Configuration", () => {
-  it("has MAX_LOADING_MS constant defined for timeout", async () => {
-    // Verify the timeout constant exists by importing the module
-    const homeModule = await import("../../views/Home");
-    expect(homeModule).toBeDefined();
+    expect(screen.getByText("Home")).toBeInTheDocument();
+  });
+
+  it("renders garden cards when data is available", () => {
+    renderWithProviders();
+
+    expect(screen.getByTestId("garden-card")).toBeInTheDocument();
+    expect(screen.getByText("Test Garden")).toBeInTheDocument();
+  });
+
+  it("shows filter button", () => {
+    renderWithProviders();
+
+    expect(screen.getByRole("button", { name: /filters/i })).toBeInTheDocument();
+  });
+
+  it("shows work dashboard icon", () => {
+    renderWithProviders();
+
+    expect(screen.getByTestId("work-dashboard-icon")).toBeInTheDocument();
   });
 });

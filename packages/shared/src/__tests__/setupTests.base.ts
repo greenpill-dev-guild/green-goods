@@ -87,18 +87,14 @@ export function setupTestEnvironment() {
       clearMeasures: vi.fn(),
     };
 
-    // Polyfill URL.createObjectURL / revokeObjectURL
+    // Force Polyfill URL.createObjectURL / revokeObjectURL
     if (!global.URL) {
       (global as any).URL = {} as any;
     }
-    if (!(global.URL as any).createObjectURL) {
-      (global.URL as any).createObjectURL = vi.fn(
-        () => `blob:mock-${Math.random().toString(36).slice(2)}`
-      );
-    }
-    if (!(global.URL as any).revokeObjectURL) {
-      (global.URL as any).revokeObjectURL = vi.fn();
-    }
+    (global.URL as any).createObjectURL = vi.fn(
+      () => `blob:mock-${Math.random().toString(36).slice(2)}`
+    );
+    (global.URL as any).revokeObjectURL = vi.fn();
 
     // Polyfill sessionStorage / localStorage
     const createMemoryStorage = () => {

@@ -72,13 +72,19 @@ function printError(message) {
 }
 
 /**
+ * Calculate elapsed time in human-readable format
+ */
+function getElapsedTime(startTime) {
+  return ((Date.now() - startTime) / 1000).toFixed(2);
+}
+
+/**
  * Run a command and track its result with real-time output
  */
 async function runStep(name, command, cwd = projectRoot) {
   return new Promise((resolve) => {
     const startTime = Date.now();
     console.log(`${colors.blue}Running: ${command}${colors.reset}`);
-    console.log(`${colors.blue}Working directory: ${cwd}${colors.reset}`);
     
     const child = spawn(command, {
       cwd,
@@ -87,7 +93,7 @@ async function runStep(name, command, cwd = projectRoot) {
     });
 
     child.on('close', (code) => {
-      const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+      const duration = getElapsedTime(startTime);
       if (code === 0) {
         printSuccess(`${name} passed (${duration}s)`);
         resolve(true);
@@ -99,7 +105,7 @@ async function runStep(name, command, cwd = projectRoot) {
     });
 
     child.on('error', (error) => {
-      const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+      const duration = getElapsedTime(startTime);
       printError(`${name} failed: ${error.message} (${duration}s)`);
       failures.push(name);
       resolve(false);
@@ -112,7 +118,8 @@ async function runStep(name, command, cwd = projectRoot) {
  */
 async function commandExists(cmd) {
   return new Promise((resolve) => {
-    const child = spawn(`command -v ${cmd}`, {
+    const checkCmd = process.platform === 'win32' ? `where ${cmd}` : `command -v ${cmd}`;
+    const child = spawn(checkCmd, {
       shell: true,
       stdio: 'ignore'
     });
@@ -189,6 +196,27 @@ async function main() {
   console.log(`  Only Lint: ${config.onlyLint ? 'Yes' : 'No'}`);
   console.log("");
 
+  // Pre-flight checks
+  if (!config.skipContracts) {
+    const hasForge = await commandExists("forge");
+    if (!hasForge) {
+      printWarning(
+        "Foundry not found. Use --skip-contracts or install with: curl -L https://foundry.paradigm.xyz | bash"
+      );
+      config.skipContracts = true;
+    }
+  }
+
+  if (!config.skipIndexer) {
+    const indexerGeneratedPath = resolve(projectRoot, "packages/indexer/generated/src");
+    if (!existsSync(indexerGeneratedPath)) {
+      printWarning(
+        "Indexer generated files not found. Use --skip-indexer or run: cd packages/indexer && bun run codegen && bun run setup-generated"
+      );
+      config.skipIndexer = true;
+    }
+  }
+
   // Format check
   printSection("Format Check");
   await runStep("Format", "bun run format:check");
@@ -200,7 +228,7 @@ async function main() {
   // Early exit for lint-only mode
   if (config.onlyLint) {
     printHeader("Lint-only checks completed!");
-    process.exit(0);
+    process.exit(failures.length > 0 ? 1 : 0);
   }
 
   // Shared package tests
@@ -213,19 +241,12 @@ async function main() {
 
   // Admin tests
   printSection("Admin Tests");
-  await runStep("Admin unit tests", "bun run test:unit", resolve(projectRoot, "packages/admin"));
+  await runStep("Admin tests", "bun run test", resolve(projectRoot, "packages/admin"));
 
   // Indexer tests
   if (!config.skipIndexer) {
     printSection("Indexer Tests");
-    const indexerGeneratedPath = resolve(projectRoot, "packages/indexer/generated/src");
-    if (existsSync(indexerGeneratedPath)) {
-      await runStep("Indexer tests", "bun run test", resolve(projectRoot, "packages/indexer"));
-    } else {
-      printWarning(
-        "Indexer generated files not found. Run 'cd packages/indexer && bun run codegen && bun run setup-generated' first, or use --skip-indexer"
-      );
-    }
+    await runStep("Indexer tests", "bun run test", resolve(projectRoot, "packages/indexer"));
   } else {
     printSection("Indexer Tests (SKIPPED)");
   }
@@ -233,14 +254,7 @@ async function main() {
   // Contracts tests
   if (!config.skipContracts) {
     printSection("Contracts Tests");
-    const hasForge = await commandExists("forge");
-    if (hasForge) {
-      await runStep("Contracts tests", "bun run test", resolve(projectRoot, "packages/contracts"));
-    } else {
-      printWarning(
-        "Foundry not found. Install with 'curl -L https://foundry.paradigm.xyz | bash' or use --skip-contracts"
-      );
-    }
+    await runStep("Contracts tests", "bun run test", resolve(projectRoot, "packages/contracts"));
   } else {
     printSection("Contracts Tests (SKIPPED)");
   }

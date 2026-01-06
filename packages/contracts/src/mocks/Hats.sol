@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { IHats } from "../interfaces/IHats.sol";
+import {IHats} from "../interfaces/IHats.sol";
 
 /// @title MockHats
 /// @notice Mock implementation of Hats Protocol for testing
 /// @dev Allows setting hat wearers directly without the full Hats logic
 contract MockHats is IHats {
+    /// @notice Thrown when array lengths don't match
+    error LengthMismatch();
     /// @notice Mapping of hat ID => wearer => isWearer
+
     mapping(uint256 => mapping(address => bool)) public wearers;
 
     /// @notice Mapping of hat ID => isActive
@@ -78,7 +81,7 @@ contract MockHats is IHats {
     /// @param _wearers Array of addresses
     /// @param _areWearers Array of booleans
     function batchSetWearers(uint256 _hatId, address[] calldata _wearers, bool[] calldata _areWearers) external {
-        require(_wearers.length == _areWearers.length, "Length mismatch");
+        if (_wearers.length != _areWearers.length) revert LengthMismatch();
         for (uint256 i = 0; i < _wearers.length; i++) {
             wearers[_hatId][_wearers[i]] = _areWearers[i];
         }

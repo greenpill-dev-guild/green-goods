@@ -315,7 +315,7 @@ export async function submitWorkDirectly(
     try {
       await waitForReceiptWithTimeout(hash, chainId, txTimeout);
       debugLog("[WalletSubmission] Transaction confirmed", { hash });
-    } catch (_timeoutErr) {
+    } catch {
       // Transaction may still succeed, continue gracefully
       debugLog("[WalletSubmission] Transaction timeout, continuing...", { hash });
     }
@@ -477,7 +477,7 @@ export async function submitApprovalDirectly(
     try {
       await waitForReceiptWithTimeout(hash, chainId, txTimeout);
       debugLog("[WalletSubmission] Approval transaction confirmed", { hash });
-    } catch (timeoutErr) {
+    } catch {
       // Transaction may still succeed, continue gracefully
       debugLog("[WalletSubmission] Approval timeout, continuing...", { hash });
     }

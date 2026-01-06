@@ -99,7 +99,6 @@ export const Splash: React.FC<SplashProps> = ({
             placeholder={usernameInput?.placeholder || "Choose a username"}
             className="w-full px-4 py-3 rounded-full border border-gray-300 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/20 text-center text-gray-900 placeholder:text-gray-400"
             disabled={isLoggingIn || !showUsernameInput}
-            autoFocus={showUsernameInput}
             tabIndex={showUsernameInput ? 0 : -1}
             aria-hidden={!showUsernameInput}
             onKeyDown={(e) => {

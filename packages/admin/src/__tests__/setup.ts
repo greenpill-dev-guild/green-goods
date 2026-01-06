@@ -48,3 +48,13 @@ vi.mock("react-hot-toast", () => ({
   },
   Toaster: () => null,
 }));
+
+// Admin-specific: Mock Reown AppKit to prevent network calls and 403 errors
+vi.mock("@reown/appkit", () => ({
+  AppKit: class {
+    initialize() {
+      return Promise.resolve();
+    }
+    destroy() {}
+  },
+}));

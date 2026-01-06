@@ -1,26 +1,35 @@
 import react from "@vitejs/plugin-react";
 import path from "path";
+import type { PluginOption } from "vite";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [react()],
-  optimizeDeps: {
-    include: ["multiformats"],
-  },
+  // optimizeDeps: {
+  //   include: ["multiformats"],
+  // },
   test: {
     environment: "jsdom",
     setupFiles: ["./src/__tests__/setupTests.ts"],
     globals: true,
     server: {
       deps: {
-        inline: ["multiformats", "@storacha/client", "@ethereum-attestation-service/eas-sdk"],
+        inline: [
+          "multiformats",
+          "@storacha/client",
+          "@ethereum-attestation-service/eas-sdk",
+          "uint8arrays",
+          "react",
+          "react-dom",
+          "@testing-library/react",
+        ],
       },
     },
     // Increase timeout for complex tests
     testTimeout: 10000,
-    // Fix React 18 concurrent rendering issues
-    pool: "forks",
-    isolate: true,
+    // Use threads to avoid module pollution between tests
+    pool: "threads",
+    isolate: false,
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "json"],
@@ -48,28 +57,84 @@ export default defineConfig({
   },
   resolve: {
     conditions: ["import", "module", "browser", "default"],
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-      "@green-goods/shared": path.resolve(__dirname, "../shared/src"),
-      "@green-goods/shared/hooks": path.resolve(__dirname, "../shared/src/hooks"),
-      "@green-goods/shared/providers": path.resolve(__dirname, "../shared/src/providers"),
-      "@green-goods/shared/modules": path.resolve(__dirname, "../shared/src/modules"),
-      "@green-goods/shared/utils": path.resolve(__dirname, "../shared/src/utils"),
-      "@green-goods/shared/config": path.resolve(__dirname, "../shared/src/config"),
-      "@green-goods/shared/types": path.resolve(__dirname, "../shared/src/types"),
-      "@green-goods/shared/stores": path.resolve(__dirname, "../shared/src/stores"),
-      "@green-goods/shared/mocks": path.resolve(__dirname, "../shared/src/mocks"),
-      "@green-goods/shared/components": path.resolve(__dirname, "../shared/src/components"),
-      // Node mocks now in shared package
-      pino: path.resolve(__dirname, "../shared/src/__mocks__/node/pino.ts"),
-      "node:diagnostics_channel": path.resolve(
-        __dirname,
-        "../shared/src/__mocks__/node/diagnostics-channel.ts"
-      ),
-      diagnostics_channel: path.resolve(
-        __dirname,
-        "../shared/src/__mocks__/node/diagnostics-channel.ts"
-      ),
-    },
+    alias: [
+      {
+        find: "@green-goods/shared/hooks",
+        replacement: path.resolve(__dirname, "../shared/src/hooks"),
+      },
+      {
+        find: "@green-goods/shared/providers",
+        replacement: path.resolve(__dirname, "../shared/src/providers"),
+      },
+      {
+        find: "@green-goods/shared/modules",
+        replacement: path.resolve(__dirname, "../shared/src/modules"),
+      },
+      {
+        find: "@green-goods/shared/utils",
+        replacement: path.resolve(__dirname, "../shared/src/utils"),
+      },
+      {
+        find: "@green-goods/shared/config",
+        replacement: path.resolve(__dirname, "../shared/src/config"),
+      },
+      {
+        find: "@green-goods/shared/types",
+        replacement: path.resolve(__dirname, "../shared/src/types"),
+      },
+      {
+        find: "@green-goods/shared/stores",
+        replacement: path.resolve(__dirname, "../shared/src/stores"),
+      },
+      {
+        find: "@green-goods/shared/mocks",
+        replacement: path.resolve(__dirname, "../shared/src/mocks"),
+      },
+      {
+        find: "@green-goods/shared/components",
+        replacement: path.resolve(__dirname, "../shared/src/components"),
+      },
+      {
+        find: "@green-goods/shared",
+        replacement: path.resolve(__dirname, "../shared/src"),
+      },
+      { find: "@", replacement: path.resolve(__dirname, "./src") },
+      {
+        find: "pino",
+        replacement: path.resolve(__dirname, "../shared/src/__mocks__/node/pino.ts"),
+      },
+      {
+        find: "node:diagnostics_channel",
+        replacement: path.resolve(__dirname, "../shared/src/__mocks__/node/diagnostics-channel.ts"),
+      },
+      {
+        find: "diagnostics_channel",
+        replacement: path.resolve(__dirname, "../shared/src/__mocks__/node/diagnostics-channel.ts"),
+      },
+      {
+        find: "multiformats/basics",
+        replacement: path.resolve(__dirname, "../../node_modules/multiformats/dist/src/basics.js"),
+      },
+      {
+        find: /^react$/,
+        replacement: path.resolve(__dirname, "../../node_modules/react"),
+      },
+      {
+        find: /^react\/jsx-runtime$/,
+        replacement: path.resolve(__dirname, "../../node_modules/react/jsx-runtime.js"),
+      },
+      {
+        find: /^react\/jsx-dev-runtime$/,
+        replacement: path.resolve(__dirname, "../../node_modules/react/jsx-dev-runtime.js"),
+      },
+      {
+        find: /^react-dom$/,
+        replacement: path.resolve(__dirname, "../../node_modules/react-dom"),
+      },
+      {
+        find: /^react-dom\/client$/,
+        replacement: path.resolve(__dirname, "../../node_modules/react-dom/client.js"),
+      },
+    ],
   },
 });

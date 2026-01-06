@@ -9,7 +9,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 // Mock hooks
 vi.mock("@green-goods/shared/hooks", () => ({
@@ -36,9 +36,32 @@ vi.mock("@green-goods/shared/components", () => ({
     createElement("span", { "data-testid": "status-badge", "data-status": status }, status),
 }));
 
+// Mock ImageWithFallback to avoid loading issues
+vi.mock("../../components/Display", () => ({
+  ImageWithFallback: ({ src, alt, className, ...props }: any) =>
+    createElement("img", { src, alt, className, ...props }),
+}));
+
+// Mock react-intl
+vi.mock("react-intl", async () => {
+  const React = await import("react");
+  return {
+    IntlProvider: ({ children }: { children: React.ReactNode }) =>
+      React.createElement(React.Fragment, null, children),
+    useIntl: () => ({
+      formatMessage: ({ defaultMessage }: { defaultMessage: string }) => defaultMessage,
+      formatDate: (date: number | Date) => new Date(date).toLocaleDateString(),
+      formatTime: (date: number | Date) => new Date(date).toLocaleTimeString(),
+      formatNumber: (num: number) => num.toString(),
+    }),
+    FormattedMessage: ({ defaultMessage }: { defaultMessage: string }) =>
+      React.createElement(React.Fragment, null, defaultMessage),
+  };
+});
+
 import { ActionCard } from "../../components/Cards/Action/ActionCard";
 import { GardenCard } from "../../components/Cards/Garden/GardenCard";
-import { WorkCard, MinimalWorkCard } from "../../components/Cards/Work/WorkCard";
+import { MinimalWorkCard, WorkCard } from "../../components/Cards/Work/WorkCard";
 
 // Test wrapper with IntlProvider
 const createWrapper = () => {

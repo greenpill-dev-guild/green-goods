@@ -156,6 +156,7 @@ export function MembersModal({
                       }}
                       disabled={isLoading}
                       className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg text-red-600 transition hover:bg-red-50 active:scale-95 disabled:opacity-50/20"
+                      // eslint-disable-next-line jsx-a11y/aria-proptypes
                       aria-label={`Remove ${member}`}
                     >
                       <RiDeleteBinLine className="h-5 w-5" />

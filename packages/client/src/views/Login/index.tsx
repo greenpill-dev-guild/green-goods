@@ -68,6 +68,7 @@ export function Login() {
       hasRunPostAuth.current = true;
       completeAuthentication(smartAccountAddress);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- completeAuthentication identity is stable
   }, [pendingPostAuth, isAuthenticated, smartAccountAddress]);
 
   // Reset the post-auth flag when we start a new login attempt

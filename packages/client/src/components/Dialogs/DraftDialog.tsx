@@ -57,6 +57,8 @@ export const DraftDialog: React.FC<DraftDialogProps> = ({
         "animate-in fade-in duration-200"
       )}
       onClick={onContinue}
+      onKeyDown={(e) => e.key === "Escape" && onContinue()}
+      role="presentation"
       data-testid="draft-dialog-overlay"
     >
       <div
@@ -66,6 +68,7 @@ export const DraftDialog: React.FC<DraftDialogProps> = ({
           "animate-in zoom-in-95 slide-in-from-bottom-4 duration-300"
         )}
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="draft-dialog-title"

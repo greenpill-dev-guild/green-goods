@@ -262,6 +262,7 @@ export function ArrayInput<TName extends Path<CreateAssessmentFormValues>>({
                   onClick={() => remove(index)}
                   disabled={disabled}
                   className="rounded-md p-1 text-red-500 transition hover:bg-red-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  // eslint-disable-next-line jsx-a11y/aria-proptypes
                   aria-label={`Remove ${label.toLowerCase()} entry`}
                 >
                   <RiDeleteBinLine className="h-4 w-4" />

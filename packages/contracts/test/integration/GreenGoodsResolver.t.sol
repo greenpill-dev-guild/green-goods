@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: MIT
+// solhint-disable one-contract-per-file
 pragma solidity ^0.8.25;
 
-import { Test } from "forge-std/Test.sol";
-import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import { GreenGoodsResolver } from "../../src/resolvers/GreenGoods.sol";
-import { OctantModule } from "../../src/modules/Octant.sol";
-import { UnlockModule } from "../../src/modules/Unlock.sol";
-import { MockOctantFactory } from "../../src/mocks/Octant.sol";
-import { MockUnlockFactory, MockPublicLock } from "../../src/mocks/Unlock.sol";
+import {Test} from "forge-std/Test.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import {GreenGoodsResolver} from "../../src/resolvers/GreenGoods.sol";
+import {OctantModule} from "../../src/modules/Octant.sol";
+import {UnlockModule} from "../../src/modules/Unlock.sol";
+import {MockOctantFactory} from "../../src/mocks/Octant.sol";
+import {MockUnlockFactory, MockPublicLock} from "../../src/mocks/Unlock.sol";
 
 /// @title GreenGoodsResolverTest
 /// @notice Tests for the GreenGoodsResolver contract
@@ -49,8 +50,9 @@ contract GreenGoodsResolverTest is Test {
 
         // Deploy resolver implementation and proxy
         GreenGoodsResolver resolverImpl = new GreenGoodsResolver();
-        bytes memory resolverInitData =
-            abi.encodeWithSelector(GreenGoodsResolver.initialize.selector, owner, workApprovalResolver, assessmentResolver);
+        bytes memory resolverInitData = abi.encodeWithSelector(
+            GreenGoodsResolver.initialize.selector, owner, workApprovalResolver, assessmentResolver
+        );
         address resolverProxyAddr = address(new ERC1967Proxy(address(resolverImpl), resolverInitData));
         resolver = GreenGoodsResolver(resolverProxyAddr);
 

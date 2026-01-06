@@ -163,6 +163,7 @@ export function FileUploadField({
                     type="button"
                     onClick={() => handleRemove(index)}
                     className="rounded-md p-1 text-red-500 transition hover:bg-red-100/20"
+                    // eslint-disable-next-line jsx-a11y/aria-proptypes
                     aria-label={`Remove ${file.name}`}
                   >
                     <RiCloseLine className="h-5 w-5" />

@@ -496,6 +496,8 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
               feedbackMode ? "translate-y-0" : "translate-y-full"
             )}
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            role="presentation"
           >
             <div className="p-4 space-y-3 max-w-screen-sm mx-auto">
               <div className="flex items-center justify-between">

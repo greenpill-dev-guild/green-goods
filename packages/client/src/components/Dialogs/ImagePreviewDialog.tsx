@@ -472,6 +472,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                       : "border-white/30 tap-feedback"
                   )}
                   type="button"
+                  // eslint-disable-next-line jsx-a11y/aria-proptypes
                   aria-label={`Go to image ${index + 1}`}
                 >
                   <ImageWithFallback

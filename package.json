@@ -56,7 +56,9 @@
     "build:contracts": "cd packages/contracts && bun run build"
   },
   "overrides": {
-    "multiformats": "^13.4.2"
+    "multiformats": "^13.4.2",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
   },
   "resolutions": {},
   "dependencies": {
@@ -64,23 +66,28 @@
     "dotenv": "^17.2.1",
     "ethers": "^6.16.0",
     "multiformats": "^13.4.2",
+    "uint8arrays": "^5.1.0",
     "viem": "^2.43.4"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.10",
     "@playwright/test": "^1.54.2",
     "@types/node": "^24.2.1",
+    "@vitejs/plugin-react": "^5.1.2",
+    "@vitest/coverage-v8": "^4.0.16",
     "dotenv-cli": "^10.0.0",
     "husky": "^9.1.7",
     "js-yaml": "^4.1.0",
+    "jsdom": "^27.4.0",
     "lint-staged": "16.1.5",
     "oxlint": "1.36.0",
     "pm2": "6.0.14",
     "tsc-alias": "^1.8.16",
     "tsx": "^4.20.3",
     "typescript": "^5.9.3",
-    "wait-port": "1.1.0",
-    "vitest": "4.0.16"
+    "vite": "^7.3.0",
+    "vitest": "^4.0.16",
+    "wait-port": "1.1.0"
   },
   "engines": {
     "node": ">=20.x",

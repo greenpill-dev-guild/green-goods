@@ -7,8 +7,6 @@
     "predev": "bash -lc 'lsof -t -iTCP:3002 -sTCP:LISTEN | xargs kill -9 2>/dev/null || true'",
     "dev": "vite",
     "test": "vitest run",
-    "test:unit": "vitest run --exclude='**/integration/**'",
-    "test:integration": "VITEST_INTEGRATION=true vitest run src/test/integration",
     "test:watch": "vitest --standalone",
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
@@ -16,9 +14,6 @@
     "lint": "oxlint src",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview"
-  },
-  "overrides": {
-    "vite": "npm:rolldown-vite@latest"
   },
   "dependencies": {
     "@green-goods/shared": "workspace:*",
@@ -65,15 +60,10 @@
     "@testing-library/user-event": "14.5.2",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^5.0.4",
-    "@vitest/coverage-v8": "^3.2.4",
     "dotenv-expand": "11.0.6",
-    "jsdom": "25.0.1",
     "msw": "^2.11.1",
-    "rolldown-vite": "latest",
     "tailwindcss": "^4.1.11",
     "tailwindcss-animate": "^1.0.7",
-    "vite": "^7.1.1",
     "vite-plugin-mkcert": "^1.17.8",
     "vitest-mock-extended": "^3.1.0"
   }

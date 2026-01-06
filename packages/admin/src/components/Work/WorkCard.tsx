@@ -96,6 +96,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({ work }) => {
         <Link
           to={`/gardens/${work.gardenAddress}/work/${work.id}`}
           className="inline-flex min-h-[44px] items-center whitespace-nowrap rounded-md px-3 py-2 text-xs font-medium text-green-600 transition hover:bg-green-50 active:scale-95 sm:min-h-0 sm:px-0 sm:py-0 sm:hover:bg-transparent"
+          // eslint-disable-next-line jsx-a11y/aria-proptypes
           aria-label={`View details for ${work.title || "work submission"}`}
         >
           <span className="sm:inline">View Details</span>
