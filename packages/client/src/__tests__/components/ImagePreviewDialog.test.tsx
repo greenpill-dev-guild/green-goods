@@ -4,10 +4,10 @@
  * Tests for the image preview dialog component.
  */
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 // Mock ImageWithFallback to avoid image loading issues
 vi.mock("@/components/Display", () => ({
@@ -46,6 +46,12 @@ function TestHarness({ initialOpen = true }: { initialOpen?: boolean }) {
 }
 
 describe("ImagePreviewDialog", () => {
+  afterEach(() => {
+    cleanup();
+    // Ensure all dialogs are removed from DOM
+    document.body.innerHTML = "";
+  });
+
   it("renders when open with images", () => {
     render(<ImagePreviewDialog isOpen onClose={() => {}} images={IMAGES} initialIndex={0} />);
 

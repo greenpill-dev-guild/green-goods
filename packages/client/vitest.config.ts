@@ -33,7 +33,7 @@ export default defineConfig({
     testTimeout: 10000,
     // Use threads to avoid module pollution between tests
     pool: "threads",
-    isolate: false,
+    isolate: true,
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "json"],

@@ -9,6 +9,10 @@ import { vi } from "vitest";
 
 // Import base setup from shared (includes common mocks)
 import "@green-goods/shared/__tests__/setupTests.base";
+import { setupTestEnvironment } from "@green-goods/shared/__tests__/setupTests.base";
+
+// Call the setup function to ensure proper cleanup between tests
+setupTestEnvironment();
 
 // Client-specific: Ensure diagnostics_channel polyfill for pino
 const ensureDiagnosticsChannel = () => {
