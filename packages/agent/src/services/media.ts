@@ -38,12 +38,16 @@ let gatewayUrl = "https://w3s.link";
  */
 export async function initMedia(key: string, proof: string, customGateway?: string): Promise<void> {
   try {
-    // Dynamic import for ES modules
-    const Client = await import("@storacha/client");
+    // Dynamic imports for ES modules
+    const [Client, Proof] = await Promise.all([
+      import("@storacha/client"),
+      import("@storacha/client/proof"),
+    ]);
+
     storachaClient = await Client.create();
 
-    // Add proof and key to the client
-    const parsedProof = Client.Proof.parse(proof);
+    // Parse and add proof to the client
+    const parsedProof = await Proof.parse(proof);
     const space = await storachaClient.addSpace(parsedProof);
     await storachaClient.setCurrentSpace(space.did());
 

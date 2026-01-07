@@ -92,7 +92,10 @@ export function ensureAppKit(options?: AppKitInitOptions) {
     throw new Error("SUPPORTED_CHAINS must have at least one chain");
   }
 
-  const networks = chains as unknown as [Chain, ...Chain[]];
+  // Type assertion needed due to viem version mismatch between main dependency
+  // and @reown/appkit-common's bundled viem. Runtime compatible.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const networks = chains as any;
 
   wagmiAdapterInstance = new WagmiAdapter({
     networks,
@@ -105,7 +108,7 @@ export function ensureAppKit(options?: AppKitInitOptions) {
     projectId,
     metadata,
     enableNetworkSwitch: false,
-    defaultNetwork: getChain(options?.defaultChainId ?? DEFAULT_CHAIN_ID),
+    defaultNetwork: getChain(options?.defaultChainId ?? DEFAULT_CHAIN_ID) as any,
     features: {
       analytics: false, // Disable AppKit analytics (we use PostHog)
     },
