@@ -38,6 +38,8 @@ jobs:
         env:
           CI: true
           ENCRYPTION_SECRET: "test-secret-for-ci-encryption-32chars"
+          TELEGRAM_BOT_TOKEN: "test-bot-token"
+          VITE_RPC_URL_84532: "http://localhost:8545"
 
   lint-and-typecheck:
     runs-on: ubuntu-latest

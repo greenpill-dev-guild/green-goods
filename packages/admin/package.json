@@ -47,7 +47,7 @@
     "urql": "^5.0.1",
     "viem": "^2.33.3",
     "wagmi": "^2.16.9",
-    "xstate": "^5.20.0",
+    "xstate": "^5.25.0",
     "zod": "^3.25.76",
     "zustand": "^5.0.6"
   },
@@ -56,18 +56,19 @@
     "@tailwindcss/forms": "^0.5.7",
     "@tailwindcss/postcss": "^4.0.14",
     "@tailwindcss/typography": "0.5.15",
-    "@testing-library/jest-dom": "6.6.3",
-    "@testing-library/react": "16.1.0",
-    "@testing-library/user-event": "14.5.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.4",
     "dotenv-expand": "11.0.6",
     "msw": "^2.11.1",
     "tailwindcss": "^4.1.11",
     "tailwindcss-animate": "^1.0.7",
     "vite": "^7.3.0",
-    "vitest": "^4.0.16",
     "vite-plugin-mkcert": "^1.17.8",
+    "vitest": "^4.0.16",
     "vitest-mock-extended": "^3.1.0"
   }
 }

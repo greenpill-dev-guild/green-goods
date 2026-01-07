@@ -12,6 +12,11 @@ export default defineConfig({
     testTimeout: 10000,
     pool: "threads",
     isolate: false,
+    deps: {
+      external: [],
+      inline: true,
+      interopDefault: true,
+    },
     server: {
       deps: {
         inline: [
@@ -24,6 +29,10 @@ export default defineConfig({
           "react-intl",
           "@testing-library/react",
           "@tanstack/react-query",
+          "viem",
+          "wagmi",
+          "@walletconnect/utils",
+          "@walletconnect/types",
         ],
       },
     },

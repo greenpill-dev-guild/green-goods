@@ -22,6 +22,10 @@ export default defineConfig({
           "react",
           "react-dom",
           "@testing-library/react",
+          "@testing-library/user-event",
+          "@testing-library/jest-dom",
+          "react-intl",
+          "react-router-dom",
         ],
       },
     },
@@ -110,10 +114,6 @@ export default defineConfig({
       {
         find: "diagnostics_channel",
         replacement: path.resolve(__dirname, "../shared/src/__mocks__/node/diagnostics-channel.ts"),
-      },
-      {
-        find: "multiformats/basics",
-        replacement: path.resolve(__dirname, "../../node_modules/multiformats/dist/src/basics.js"),
       },
       {
         find: /^react$/,
