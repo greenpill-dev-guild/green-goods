@@ -13,7 +13,6 @@
 
 import { createAppKit } from "@reown/appkit/react";
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
-import type { Chain } from "viem/chains";
 import { DEFAULT_CHAIN_ID } from "./blockchain";
 import { getChain, SUPPORTED_CHAINS } from "./chains";
 

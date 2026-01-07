@@ -65,6 +65,8 @@
     "msw": "^2.11.1",
     "tailwindcss": "^4.1.11",
     "tailwindcss-animate": "^1.0.7",
+    "vite": "^7.3.0",
+    "vitest": "^4.0.16",
     "vite-plugin-mkcert": "^1.17.8",
     "vitest-mock-extended": "^3.1.0"
   }
