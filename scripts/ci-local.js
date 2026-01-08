@@ -8,6 +8,7 @@
  *   --skip-build      Skip build step
  *   --only-lint       Only run lint and format checks
  *   --quick           Skip contracts, indexer, and build (fast feedback)
+ *   --generate-indexer  Run indexer codegen if generated files are missing
  *
  * This script mimics what GitHub Actions CI runs.
  */
@@ -31,12 +32,29 @@ const colors = {
   blue: "\x1b[0;34m",
 };
 
+// Environment variables matching GitHub Actions CI
+const ciEnv = {
+  // Common
+  CI: "true",
+  // Agent tests
+  ENCRYPTION_SECRET: "test-secret-for-ci-encryption-32chars",
+  TELEGRAM_BOT_TOKEN: "test-bot-token",
+  VITE_RPC_URL_84532: "http://localhost:8545",
+  // Client/Admin builds
+  VITE_USE_HASH_ROUTER: "false",
+  VITE_CHAIN_ID: "84532",
+  VITE_WALLETCONNECT_PROJECT_ID: "test",
+  VITE_PIMLICO_API_KEY: "test",
+  VITE_ENVIO_INDEXER_URL: "http://localhost:8080",
+};
+
 // Configuration
 const config = {
   skipContracts: false,
   skipIndexer: false,
   skipBuild: false,
   onlyLint: false,
+  generateIndexer: false,
 };
 
 // Track failures
@@ -80,16 +98,21 @@ function getElapsedTime(startTime) {
 
 /**
  * Run a command and track its result with real-time output
+ * @param {string} name - Display name for the step
+ * @param {string} command - Command to run
+ * @param {string} cwd - Working directory (defaults to projectRoot)
+ * @param {Object} env - Additional environment variables
  */
-async function runStep(name, command, cwd = projectRoot) {
+async function runStep(name, command, cwd = projectRoot, env = {}) {
   return new Promise((resolve) => {
     const startTime = Date.now();
     console.log(`${colors.blue}Running: ${command}${colors.reset}`);
-    
+
     const child = spawn(command, {
       cwd,
       shell: true,
-      stdio: 'inherit' // Stream output directly to parent process
+      stdio: 'inherit', // Stream output directly to parent process
+      env: { ...process.env, ...env }
     });
 
     child.on('close', (code) => {
@@ -141,12 +164,20 @@ function showHelp() {
   console.log("Usage: node scripts/ci-local.js [options]");
   console.log("");
   console.log("Options:");
-  console.log("  --skip-contracts  Skip contracts tests (requires Foundry)");
-  console.log("  --skip-indexer    Skip indexer tests (requires codegen setup)");
-  console.log("  --skip-build      Skip build step");
-  console.log("  --only-lint       Only run lint and format checks");
-  console.log("  --quick           Skip contracts, indexer, and build (fast feedback)");
-  console.log("  --help, -h        Show this help message");
+  console.log("  --skip-contracts    Skip contracts tests (requires Foundry)");
+  console.log("  --skip-indexer      Skip indexer tests (requires codegen setup)");
+  console.log("  --skip-build        Skip build step");
+  console.log("  --only-lint         Only run lint and format checks");
+  console.log("  --quick             Skip contracts, indexer, and build (fast feedback)");
+  console.log("  --generate-indexer  Run indexer codegen if generated files missing");
+  console.log("  --help, -h          Show this help message");
+  console.log("");
+  console.log("This script runs the same checks as GitHub Actions CI:");
+  console.log("  1. Format check (biome)");
+  console.log("  2. Lint (oxlint + solhint)");
+  console.log("  3. Type checking (TypeScript)");
+  console.log("  4. Unit tests (all packages)");
+  console.log("  5. Build (all packages)");
   process.exit(0);
 }
 
@@ -174,6 +205,9 @@ for (const arg of args) {
       config.skipIndexer = true;
       config.skipBuild = true;
       break;
+    case "--generate-indexer":
+      config.generateIndexer = true;
+      break;
     case "--help":
     case "-h":
       showHelp();
@@ -194,6 +228,7 @@ async function main() {
   console.log(`  Skip Indexer: ${config.skipIndexer ? 'Yes' : 'No'}`);
   console.log(`  Skip Build: ${config.skipBuild ? 'Yes' : 'No'}`);
   console.log(`  Only Lint: ${config.onlyLint ? 'Yes' : 'No'}`);
+  console.log(`  Generate Indexer: ${config.generateIndexer ? 'Yes' : 'No'}`);
   console.log("");
 
   // Pre-flight checks
@@ -210,20 +245,32 @@ async function main() {
   if (!config.skipIndexer) {
     const indexerGeneratedPath = resolve(projectRoot, "packages/indexer/generated/src");
     if (!existsSync(indexerGeneratedPath)) {
-      printWarning(
-        "Indexer generated files not found. Use --skip-indexer or run: cd packages/indexer && bun run codegen && bun run setup-generated"
-      );
-      config.skipIndexer = true;
+      if (config.generateIndexer) {
+        printSection("Indexer Code Generation");
+        const hasEnvio = await commandExists("envio");
+        if (!hasEnvio) {
+          printWarning("Envio CLI not found. Installing globally...");
+          await runStep("Install Envio", "npm install -g envio");
+        }
+        await runStep("Indexer codegen", "bun run codegen", resolve(projectRoot, "packages/indexer"));
+        await runStep("Indexer setup-generated", "bun run setup-generated", resolve(projectRoot, "packages/indexer"));
+      } else {
+        printWarning(
+          "Indexer generated files not found. Use --skip-indexer, --generate-indexer, or run: cd packages/indexer && bun run codegen && bun run setup-generated"
+        );
+        config.skipIndexer = true;
+      }
     }
   }
 
-  // Format check
+  // ============================================================================
+  // Phase 1: Format & Lint (matches all workflow lint jobs)
+  // ============================================================================
   printSection("Format Check");
-  await runStep("Format", "bun run format:check");
+  await runStep("Format check", "bun run format:check");
 
-  // Lint
   printSection("Lint");
-  await runStep("Lint", "bun run lint");
+  await runStep("Lint (all packages)", "bun run lint");
 
   // Early exit for lint-only mode
   if (config.onlyLint) {
@@ -231,51 +278,113 @@ async function main() {
     process.exit(failures.length > 0 ? 1 : 0);
   }
 
-  // Shared package tests
+  // ============================================================================
+  // Phase 2: Type Checking (matches GH Actions type check steps)
+  // ============================================================================
+  printSection("Type Checking");
+
+  // Shared package type check (matches shared-tests.yml)
+  await runStep("Shared typecheck", "npx tsc --noEmit", resolve(projectRoot, "packages/shared"));
+
+  // Agent package type check (matches agent-tests.yml)
+  await runStep("Agent typecheck", "bun run typecheck", resolve(projectRoot, "packages/agent"));
+
+  // ============================================================================
+  // Phase 3: Unit Tests (matches all workflow test jobs)
+  // ============================================================================
   printSection("Shared Package Tests");
-  await runStep("Shared tests", "bun run test", resolve(projectRoot, "packages/shared"));
+  await runStep("Shared tests", "bun run test", resolve(projectRoot, "packages/shared"), { CI: "true" });
 
-  // Client tests
   printSection("Client Tests");
-  await runStep("Client tests", "bun run test", resolve(projectRoot, "packages/client"));
+  await runStep("Client tests", "bun run test", resolve(projectRoot, "packages/client"), { CI: "true" });
 
-  // Admin tests
   printSection("Admin Tests");
-  await runStep("Admin tests", "bun run test", resolve(projectRoot, "packages/admin"));
+  await runStep("Admin tests", "bun run test", resolve(projectRoot, "packages/admin"), { CI: "true" });
 
-  // Indexer tests
+  // Indexer tests (matches indexer-tests.yml)
   if (!config.skipIndexer) {
     printSection("Indexer Tests");
-    await runStep("Indexer tests", "bun run test", resolve(projectRoot, "packages/indexer"));
+    await runStep("Indexer tests", "bun run test", resolve(projectRoot, "packages/indexer"), { CI: "true" });
   } else {
     printSection("Indexer Tests (SKIPPED)");
   }
 
-  // Contracts tests
+  // Contracts tests (matches contracts-tests.yml - builds first, then tests)
   if (!config.skipContracts) {
-    printSection("Contracts Tests");
-    await runStep("Contracts tests", "bun run test", resolve(projectRoot, "packages/contracts"));
+    printSection("Contracts Build & Tests");
+    await runStep("Contracts build", "bun run build", resolve(projectRoot, "packages/contracts"));
+    await runStep("Contracts tests", "bun run test", resolve(projectRoot, "packages/contracts"), { CI: "true" });
   } else {
     printSection("Contracts Tests (SKIPPED)");
   }
 
-  // Agent tests
+  // Agent tests (matches agent-tests.yml with full env vars)
   printSection("Agent Tests");
   await runStep(
     "Agent tests",
-    "ENCRYPTION_SECRET='test-secret-for-ci-encryption-32chars' bun run test",
-    resolve(projectRoot, "packages/agent")
+    "bun run test",
+    resolve(projectRoot, "packages/agent"),
+    {
+      CI: "true",
+      ENCRYPTION_SECRET: ciEnv.ENCRYPTION_SECRET,
+      TELEGRAM_BOT_TOKEN: ciEnv.TELEGRAM_BOT_TOKEN,
+      VITE_RPC_URL_84532: ciEnv.VITE_RPC_URL_84532,
+    }
   );
 
-  // Build all packages
+  // ============================================================================
+  // Phase 4: Build (matches all workflow build jobs with env vars)
+  // ============================================================================
   if (!config.skipBuild) {
     printSection("Build All Packages");
-    await runStep("Build", "bun run build");
+
+    // Build contracts first (dependency for other packages)
+    if (!config.skipContracts) {
+      // Already built above during tests
+      printSuccess("Contracts already built");
+    }
+
+    // Build shared (dependency for client/admin)
+    await runStep("Shared build", "bun run build", resolve(projectRoot, "packages/shared"));
+
+    // Build indexer
+    if (!config.skipIndexer) {
+      await runStep("Indexer build", "bun run build", resolve(projectRoot, "packages/indexer"));
+    }
+
+    // Build client (matches client-tests.yml lint-and-build job)
+    await runStep(
+      "Client build",
+      "bun run build",
+      resolve(projectRoot, "packages/client"),
+      {
+        VITE_USE_HASH_ROUTER: ciEnv.VITE_USE_HASH_ROUTER,
+        VITE_CHAIN_ID: ciEnv.VITE_CHAIN_ID,
+        VITE_WALLETCONNECT_PROJECT_ID: ciEnv.VITE_WALLETCONNECT_PROJECT_ID,
+        VITE_PIMLICO_API_KEY: ciEnv.VITE_PIMLICO_API_KEY,
+        VITE_ENVIO_INDEXER_URL: ciEnv.VITE_ENVIO_INDEXER_URL,
+      }
+    );
+
+    // Build admin (matches admin-tests.yml lint-and-build job)
+    await runStep(
+      "Admin build",
+      "bun run build",
+      resolve(projectRoot, "packages/admin"),
+      {
+        VITE_CHAIN_ID: ciEnv.VITE_CHAIN_ID,
+        VITE_WALLETCONNECT_PROJECT_ID: ciEnv.VITE_WALLETCONNECT_PROJECT_ID,
+        VITE_PIMLICO_API_KEY: ciEnv.VITE_PIMLICO_API_KEY,
+        VITE_ENVIO_INDEXER_URL: ciEnv.VITE_ENVIO_INDEXER_URL,
+      }
+    );
   } else {
     printSection("Build (SKIPPED)");
   }
 
+  // ============================================================================
   // Summary
+  // ============================================================================
   printHeader("CI Validation Summary");
 
   if (failures.length > 0) {

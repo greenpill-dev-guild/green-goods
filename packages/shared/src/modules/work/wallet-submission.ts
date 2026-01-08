@@ -12,7 +12,7 @@
  * @module modules/work/wallet-submission
  */
 
-import { NO_EXPIRATION, ZERO_BYTES32 } from "@ethereum-attestation-service/eas-sdk";
+import { NO_EXPIRATION, ZERO_BYTES32 } from "../../utils/eas/constants";
 import { getPublicClient, getWalletClient, waitForTransactionReceipt } from "@wagmi/core";
 import { wagmiConfig } from "../../config/appkit";
 import { getEASConfig } from "../../config/blockchain";

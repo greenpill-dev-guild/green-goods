@@ -1,4 +1,4 @@
-import { NO_EXPIRATION, ZERO_BYTES32 } from "@ethereum-attestation-service/eas-sdk";
+import { NO_EXPIRATION, ZERO_BYTES32 } from "../../utils/eas/constants";
 import { getPublicClient } from "@wagmi/core";
 import type { SmartAccountClient } from "permissionless";
 

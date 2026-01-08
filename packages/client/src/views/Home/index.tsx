@@ -170,7 +170,7 @@ const Home: React.FC = () => {
     if ((loadingTimedOut || isError) && !hasCachedData && isOnline) {
       return (
         <div className="flex flex-col items-center justify-center py-12 px-4 text-center gap-4">
-          <p className="text-slate-600">
+          <p className="text-text-sub-600">
             {intl.formatMessage({
               id: "app.home.loadingTimeout",
               defaultMessage: "Unable to load gardens. The server may be slow or unavailable.",
@@ -198,7 +198,7 @@ const Home: React.FC = () => {
             <GardenCardSkeleton key={idx} media="large" height="home" />
           ))}
           {!isOnline && (
-            <p className="text-center text-sm text-slate-500 mt-4 px-4">
+            <p className="text-center text-sm text-text-sub-600 mt-4 px-4">
               {intl.formatMessage({
                 id: "app.home.offline.loading",
                 defaultMessage: "You're offline. Gardens will appear when you reconnect.",
@@ -212,7 +212,7 @@ const Home: React.FC = () => {
     if ((isError || loadingTimedOut) && !hasCachedData && !isOnline) {
       return (
         <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-          <p className="text-slate-600">
+          <p className="text-text-sub-600">
             {intl.formatMessage({
               id: "app.home.offline.error",
               defaultMessage: "Unable to load gardens while offline.",
@@ -224,7 +224,7 @@ const Home: React.FC = () => {
 
     if (scope === "mine" && !primaryAddress) {
       return (
-        <p className="grid place-items-center text-center text-sm italic text-slate-500">
+        <p className="grid place-items-center text-center text-sm italic text-text-sub-600">
           {intl.formatMessage({
             id: "app.home.filters.scope.mineDisabled",
             defaultMessage: "Sign in or connect a wallet to filter by your gardens.",
@@ -236,7 +236,7 @@ const Home: React.FC = () => {
     if (!filteredGardens.length) {
       if (scope === "mine" && primaryAddress) {
         return (
-          <p className="grid place-items-center text-center text-sm italic text-slate-500">
+          <p className="grid place-items-center text-center text-sm italic text-text-sub-600">
             {intl.formatMessage({
               id: "app.home.gardens.mineEmpty",
               defaultMessage: "You don't steward any gardens yet.",
@@ -247,7 +247,7 @@ const Home: React.FC = () => {
 
       if (isFilterActive) {
         return (
-          <p className="grid place-items-center text-center text-sm italic text-slate-500">
+          <p className="grid place-items-center text-center text-sm italic text-text-sub-600">
             {intl.formatMessage({
               id: "app.home.filters.empty",
               defaultMessage: "No gardens match your filters.",
@@ -312,7 +312,9 @@ const Home: React.FC = () => {
                   "active:scale-95",
                   "flex items-center justify-center w-8 h-8 tap-target-lg",
                   "focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-600 active:border-emerald-600",
-                  isFilterActive ? "border-primary text-primary" : "border-slate-200 text-slate-500"
+                  isFilterActive
+                    ? "border-primary text-primary"
+                    : "border-stroke-soft-200 text-text-sub-600"
                 )}
                 aria-label={intl.formatMessage({
                   id: "app.home.filters.button",

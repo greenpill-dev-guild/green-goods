@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { withTimeout, TimeoutError, INDEXER_TIMEOUT_MS } from "../../modules/data/urql";
+import { withTimeout, TimeoutError, GRAPHQL_TIMEOUT_MS } from "../../modules/data/graphql-client";
 
 describe("withTimeout", () => {
   it("resolves when promise completes before timeout", async () => {
@@ -38,7 +38,7 @@ describe("withTimeout", () => {
     const timeoutPromise = withTimeout(neverResolves, undefined, "DefaultTimeoutOp");
 
     // Advance to default timeout
-    vi.advanceTimersByTime(INDEXER_TIMEOUT_MS + 100);
+    vi.advanceTimersByTime(GRAPHQL_TIMEOUT_MS + 100);
 
     await expect(timeoutPromise).rejects.toThrow(TimeoutError);
 
@@ -101,8 +101,8 @@ describe("TimeoutError", () => {
   });
 });
 
-describe("INDEXER_TIMEOUT_MS", () => {
+describe("GRAPHQL_TIMEOUT_MS", () => {
   it("is set to 12 seconds", () => {
-    expect(INDEXER_TIMEOUT_MS).toBe(12_000);
+    expect(GRAPHQL_TIMEOUT_MS).toBe(12_000);
   });
 });

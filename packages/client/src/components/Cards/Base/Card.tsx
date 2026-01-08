@@ -3,7 +3,7 @@ import { tv, type VariantProps } from "tailwind-variants";
 import { cn } from "@green-goods/shared/utils";
 
 export const cardVariants = tv({
-  base: "rounded-2xl border flex gap-0.5 justify-between border-border p-1 px-4 bg-white",
+  base: "rounded-2xl border flex gap-0.5 justify-between border-border p-1 px-4 bg-bg-white-0",
   variants: {
     variant: {
       primary: "",

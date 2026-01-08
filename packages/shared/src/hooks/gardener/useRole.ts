@@ -1,10 +1,13 @@
-import { graphql } from "gql.tada";
-import { useQuery } from "urql";
+import { useQuery } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
+import { STALE_TIMES } from "../../config/react-query";
+import { greenGoodsGraphQL } from "../../modules/data/graphql";
+import { greenGoodsIndexer } from "../../modules/data/graphql-client";
 import { useAuthContext } from "../../providers/Auth";
+import { queryKeys } from "../query-keys";
 import { useDeploymentRegistry } from "../blockchain/useDeploymentRegistry";
 
-const GET_OPERATOR_GARDENS = graphql(`
+const GET_OPERATOR_GARDENS = greenGoodsGraphQL(/* GraphQL */ `
   query GetOperatorGardens($operator: [String!]!) {
     Garden(where: {operators: {_contains: $operator}}) {
       id
@@ -13,13 +16,36 @@ const GET_OPERATOR_GARDENS = graphql(`
   }
 `);
 
+interface OperatorGarden {
+  id: string;
+  name: string;
+}
+
+/**
+ * Fetches gardens where the given address is an operator
+ */
+async function fetchOperatorGardens(address: string): Promise<OperatorGarden[]> {
+  const { data, error } = await greenGoodsIndexer.query(
+    GET_OPERATOR_GARDENS,
+    { operator: [address] },
+    "getOperatorGardens"
+  );
+
+  if (error) {
+    console.error("[useRole] Failed to fetch operator gardens:", error.message);
+    return [];
+  }
+
+  return data?.Garden ?? [];
+}
+
 export type UserRole = "deployer" | "operator" | "user";
 
 export interface RoleInfo {
   role: UserRole;
   isDeployer: boolean;
   isOperator: boolean;
-  operatorGardens: Array<{ id: string; name: string }>;
+  operatorGardens: OperatorGarden[];
   loading: boolean;
   deploymentPermissions: {
     canDeploy: boolean;
@@ -40,13 +66,16 @@ export function useRole(): RoleInfo {
 
   const deploymentRegistry = useDeploymentRegistry();
 
-  const [{ data: operatorData, fetching }] = useQuery({
-    query: GET_OPERATOR_GARDENS,
-    variables: { operator: [address ?? ""] },
-    pause: !address || !ready,
+  // Use React Query for fetching operator gardens
+  const { data: operatorGardens = [], isLoading: isFetching } = useQuery({
+    queryKey: queryKeys.role.operatorGardens(address ?? undefined),
+    queryFn: () => fetchOperatorGardens(address!),
+    enabled: !!address && ready,
+    staleTime: STALE_TIMES.baseLists,
+    // Offline-first: prefer cached data
+    networkMode: "offlineFirst",
   });
 
-  const operatorGardens = operatorData?.Garden || [];
   const isOperator = operatorGardens.length > 0;
   const isDeployer = deploymentRegistry.canDeploy;
 
@@ -63,7 +92,7 @@ export function useRole(): RoleInfo {
     isDeployer,
     isOperator,
     operatorGardens,
-    loading: !ready || fetching || deploymentRegistry.loading,
+    loading: !ready || isFetching || deploymentRegistry.loading,
     deploymentPermissions: {
       canDeploy: deploymentRegistry.canDeploy,
       isOwner: deploymentRegistry.isOwner,

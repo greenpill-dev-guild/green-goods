@@ -105,35 +105,35 @@ export class AppErrorBoundary extends Component<Props, State> {
       const isNetworkError = this.isNetworkError(this.state.error);
 
       return (
-        <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-bg-white-0 flex items-center justify-center p-4">
           <div className="max-w-lg w-full">
             {/* Animated container */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-gray-100/50 p-8 transform animate-fade-in">
+            <div className="bg-bg-weak-50 backdrop-blur-sm rounded-3xl shadow-2xl border border-stroke-soft-200 p-8 transform animate-fade-in">
               <div className="flex flex-col items-center text-center">
                 {/* Animated icon with glow effect */}
                 <div className="relative mb-8">
                   <div className="absolute inset-0 rounded-full animate-pulse">
                     {isNetworkError ? (
-                      <div className="w-24 h-24 bg-orange-100 rounded-full" />
+                      <div className="w-24 h-24 bg-warning-lighter rounded-full" />
                     ) : isOfflineError ? (
-                      <div className="w-24 h-24 bg-yellow-100 rounded-full" />
+                      <div className="w-24 h-24 bg-warning-lighter rounded-full" />
                     ) : (
-                      <div className="w-24 h-24 bg-red-100 rounded-full" />
+                      <div className="w-24 h-24 bg-error-lighter rounded-full" />
                     )}
                   </div>
-                  <div className="relative flex items-center justify-center w-24 h-24 rounded-full bg-white shadow-lg">
+                  <div className="relative flex items-center justify-center w-24 h-24 rounded-full bg-bg-soft-200 shadow-lg">
                     {isNetworkError ? (
-                      <RiWifiOffLine className="h-12 w-12 text-orange-500" />
+                      <RiWifiOffLine className="h-12 w-12 text-warning-base" />
                     ) : isOfflineError ? (
-                      <RiErrorWarningLine className="h-12 w-12 text-yellow-500" />
+                      <RiErrorWarningLine className="h-12 w-12 text-warning-base" />
                     ) : (
-                      <RiBugLine className="h-12 w-12 text-red-500" />
+                      <RiBugLine className="h-12 w-12 text-error-base" />
                     )}
                   </div>
                 </div>
 
                 {/* Title with emoji */}
-                <h1 className="text-3xl font-bold text-gray-900 mb-3">
+                <h1 className="text-3xl font-bold text-text-strong-950 mb-3">
                   {isNetworkError
                     ? `🌱 ${this.t("app.error.boundary.title.garden")}`
                     : isOfflineError
@@ -142,7 +142,7 @@ export class AppErrorBoundary extends Component<Props, State> {
                 </h1>
 
                 {/* Subtitle */}
-                <h2 className="text-lg font-semibold text-gray-700 mb-4">
+                <h2 className="text-lg font-semibold text-text-strong-950 mb-4">
                   {isNetworkError
                     ? this.t("app.error.boundary.subtitle.connection")
                     : isOfflineError
@@ -152,7 +152,7 @@ export class AppErrorBoundary extends Component<Props, State> {
 
                 {/* Main description */}
                 <div className="space-y-3 mb-8">
-                  <p className="text-gray-600 leading-relaxed">
+                  <p className="text-text-sub-600 leading-relaxed">
                     {isNetworkError
                       ? `🌐 ${this.t("app.error.boundary.description.network")}`
                       : isOfflineError
@@ -161,8 +161,8 @@ export class AppErrorBoundary extends Component<Props, State> {
                   </p>
 
                   {(isNetworkError || isOfflineError) && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                      <p className="text-sm text-green-700 font-medium">
+                    <div className="bg-success-lighter border border-success-light rounded-lg p-3">
+                      <p className="text-sm text-success-dark font-medium">
                         ✅ {this.t("app.error.boundary.protection.message")}
                       </p>
                     </div>
@@ -172,16 +172,16 @@ export class AppErrorBoundary extends Component<Props, State> {
                 {/* Development details */}
                 {this.state.error && (
                   <details className="mb-8 text-left w-full group">
-                    <summary className="cursor-pointer font-medium text-sm text-gray-700 hover:text-gray-900 transition-colors p-3 bg-gray-50 rounded-lg border border-gray-200 group-open:rounded-b-none">
+                    <summary className="cursor-pointer font-medium text-sm text-text-strong-950 hover:text-text-strong-950 transition-colors p-3 bg-bg-soft-200 rounded-lg border border-stroke-soft-200 group-open:rounded-b-none">
                       <span className="flex items-center justify-between">
                         🔍 {this.t("app.error.boundary.devMode.title")}
-                        <span className="text-xs text-gray-500 group-open:hidden">
+                        <span className="text-xs text-text-sub-600 group-open:hidden">
                           Click to expand
                         </span>
                       </span>
                     </summary>
-                    <div className="bg-gray-50 border border-gray-200 border-t-0 rounded-b-lg p-4">
-                      <pre className="text-xs text-gray-700 overflow-auto max-h-48 whitespace-pre-wrap">
+                    <div className="bg-bg-soft-200 border border-stroke-soft-200 border-t-0 rounded-b-lg p-4">
+                      <pre className="text-xs text-text-strong-950 overflow-auto max-h-48 whitespace-pre-wrap">
                         <strong>Error:</strong> {this.state.error.toString()}
                         {this.state.errorInfo?.componentStack && (
                           <>
@@ -204,7 +204,7 @@ export class AppErrorBoundary extends Component<Props, State> {
                     onClick={this.handleRetry}
                     label={this.t("app.error.boundary.action.tryAgain")}
                     leadingIcon={<RiRefreshLine className="h-5 w-5" />}
-                    className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
+                    className="w-full shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
                   />
 
                   <Button
@@ -213,13 +213,13 @@ export class AppErrorBoundary extends Component<Props, State> {
                     onClick={() => (window.location.href = "/")}
                     label={this.t("app.error.boundary.action.returnHome")}
                     leadingIcon={<RiHomeLine className="h-5 w-5" />}
-                    className="w-full border-2 hover:bg-gray-50 transform hover:scale-[1.02] transition-all duration-200"
+                    className="w-full border-2 hover:bg-bg-weak-50 transform hover:scale-[1.02] transition-all duration-200"
                   />
                 </div>
 
                 {/* Help text with animation */}
-                <div className="mt-8 p-4 bg-blue-50 rounded-xl border border-blue-200">
-                  <p className="text-xs text-blue-700 leading-relaxed">
+                <div className="mt-8 p-4 bg-information-lighter rounded-xl border border-information-light">
+                  <p className="text-xs text-information-dark leading-relaxed">
                     💡 <strong>{this.t("app.error.boundary.help.title")}</strong>{" "}
                     {this.t("app.error.boundary.help.description")}
                   </p>

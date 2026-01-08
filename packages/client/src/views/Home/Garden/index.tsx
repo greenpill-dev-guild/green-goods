@@ -184,7 +184,7 @@ export const Garden: React.FC<GardenProps> = () => {
         {pathname.includes("work") || pathname.includes("assessments") ? null : (
           <>
             {/* Fixed Header (banner + TopNav + title/metadata) */}
-            <div className="fixed top-0 left-0 right-0 bg-white z-20">
+            <div className="fixed top-0 left-0 right-0 bg-bg-white-0 z-20">
               <div className="relative w-full">
                 <img
                   src={bannerImage}
@@ -205,15 +205,15 @@ export const Garden: React.FC<GardenProps> = () => {
               </div>
 
               {/* Title and meta below banner */}
-              <div className="px-4 md:px-6 mt-3 flex flex-col gap-1.5 pb-3 bg-white">
+              <div className="px-4 md:px-6 mt-3 flex flex-col gap-1.5 pb-3 bg-bg-white-0">
                 <h1 className="text-xl md:text-2xl font-semibold line-clamp-1">{name}</h1>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                  <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                  <div className="flex items-center gap-1.5 text-sm text-text-sub-600">
                     <RiMapPin2Fill className="h-4 w-4 text-primary flex-shrink-0" />
                     <span>{location}</span>
                   </div>
-                  <span className="hidden sm:inline text-gray-400">•</span>
-                  <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                  <span className="hidden sm:inline text-text-soft-400">•</span>
+                  <div className="flex items-center gap-1.5 text-sm text-text-sub-600">
                     <RiCalendarEventFill className="h-4 w-4 text-primary flex-shrink-0" />
                     <span>
                       {intl.formatMessage({ id: "app.home.founded" })}{" "}
@@ -224,7 +224,7 @@ export const Garden: React.FC<GardenProps> = () => {
               </div>
 
               {/* Tabs sticky under header */}
-              <div className="sticky top-0 left-0 right-0 w-full bg-white z-10 shadow-sm">
+              <div className="sticky top-0 left-0 right-0 w-full bg-bg-white-0 z-10 shadow-sm">
                 <StandardTabs
                   tabs={tabs}
                   activeTab={activeTab}
@@ -239,12 +239,12 @@ export const Garden: React.FC<GardenProps> = () => {
             <div className="px-4 md:px-6 mt-3 flex flex-col gap-1.5">
               <h1 className="text-xl md:text-2xl font-semibold line-clamp-1">{name}</h1>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
-                <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                <div className="flex items-center gap-1.5 text-sm text-text-sub-600">
                   <RiMapPin2Fill className="h-4 w-4 text-primary flex-shrink-0" />
                   <span>{location}</span>
                 </div>
-                <span className="hidden sm:inline text-gray-400">•</span>
-                <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                <span className="hidden sm:inline text-text-soft-400">•</span>
+                <div className="flex items-center gap-1.5 text-sm text-text-sub-600">
                   <RiCalendarEventFill className="h-4 w-4 text-primary flex-shrink-0" />
                   <span>
                     {intl.formatMessage({ id: "app.home.founded" })}{" "}

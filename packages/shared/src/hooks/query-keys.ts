@@ -72,6 +72,13 @@ export const queryKeys = {
     byAddress: (address: string) => ["greengoods", "gardeners", "byAddress", address] as const,
   },
 
+  // Role related keys (operator/deployer detection)
+  role: {
+    all: ["greengoods", "role"] as const,
+    operatorGardens: (address?: string) =>
+      ["greengoods", "role", "operatorGardens", address] as const,
+  },
+
   // Draft related keys
   drafts: {
     all: ["greengoods", "drafts"] as const,

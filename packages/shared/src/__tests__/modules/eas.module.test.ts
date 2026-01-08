@@ -6,18 +6,17 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock URQL client
+// Mock GraphQL client
 const mockQuery = vi.fn();
-vi.mock("../../modules/data/urql", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../modules/data/urql")>();
-  return {
-    ...actual,
-    createEasClient: vi.fn(() => ({
-      query: () => mockQuery(),
-    })),
-    withTimeout: vi.fn((promise) => promise),
-  };
-});
+vi.mock("../../modules/data/graphql-client", () => ({
+  createEasClient: vi.fn(() => ({
+    query: mockQuery,
+  })),
+  greenGoodsIndexer: {
+    query: vi.fn(),
+  },
+  GQLClient: vi.fn(),
+}));
 
 // Mock config
 vi.mock("../../config", () => ({
@@ -66,11 +65,8 @@ describe("modules/data/eas", () => {
         },
       ];
 
-      mockQuery.mockReturnValue({
-        toPromise: vi.fn().mockResolvedValue({
-          data: { attestations: mockAttestations },
-          error: null,
-        }),
+      mockQuery.mockResolvedValue({
+        data: { attestations: mockAttestations },
       });
 
       const result = await getGardenAssessments();
@@ -80,11 +76,8 @@ describe("modules/data/eas", () => {
     });
 
     it("throws EASFetchError on GraphQL error", async () => {
-      mockQuery.mockReturnValue({
-        toPromise: vi.fn().mockResolvedValue({
-          data: null,
-          error: { message: "Network error" },
-        }),
+      mockQuery.mockResolvedValue({
+        error: { message: "Network error" },
       });
 
       await expect(getGardenAssessments()).rejects.toThrow(
@@ -93,11 +86,8 @@ describe("modules/data/eas", () => {
     });
 
     it("returns empty array when no attestations", async () => {
-      mockQuery.mockReturnValue({
-        toPromise: vi.fn().mockResolvedValue({
-          data: { attestations: [] },
-          error: null,
-        }),
+      mockQuery.mockResolvedValue({
+        data: { attestations: [] },
       });
 
       const result = await getGardenAssessments();
@@ -123,11 +113,8 @@ describe("modules/data/eas", () => {
         },
       ];
 
-      mockQuery.mockReturnValue({
-        toPromise: vi.fn().mockResolvedValue({
-          data: { attestations: mockAttestations },
-          error: null,
-        }),
+      mockQuery.mockResolvedValue({
+        data: { attestations: mockAttestations },
       });
 
       const result = await getWorks(gardenAddress, 84532);
@@ -137,11 +124,8 @@ describe("modules/data/eas", () => {
     });
 
     it("throws EASFetchError on error", async () => {
-      mockQuery.mockReturnValue({
-        toPromise: vi.fn().mockResolvedValue({
-          data: null,
-          error: { message: "Query failed" },
-        }),
+      mockQuery.mockResolvedValue({
+        error: { message: "Query failed" },
       });
 
       await expect(getWorks("0xGarden", 84532)).rejects.toThrow(
@@ -167,11 +151,8 @@ describe("modules/data/eas", () => {
         },
       ];
 
-      mockQuery.mockReturnValue({
-        toPromise: vi.fn().mockResolvedValue({
-          data: { attestations: mockAttestations },
-          error: null,
-        }),
+      mockQuery.mockResolvedValue({
+        data: { attestations: mockAttestations },
       });
 
       const result = await getWorkApprovals("0xGarden", 84532);
@@ -181,11 +162,8 @@ describe("modules/data/eas", () => {
     });
 
     it("handles empty approval list", async () => {
-      mockQuery.mockReturnValue({
-        toPromise: vi.fn().mockResolvedValue({
-          data: { attestations: [] },
-          error: null,
-        }),
+      mockQuery.mockResolvedValue({
+        data: { attestations: [] },
       });
 
       const result = await getWorkApprovals("0xGarden", 84532);

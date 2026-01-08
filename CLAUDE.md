@@ -149,7 +149,7 @@ const { user, isPasskeyUser, loginWithPasskey, loginWithWallet } = useAuth();
 - **React 18** + TypeScript (strict mode)
 - **Vite** for bundling  
 - **TailwindCSS v4** + Radix UI
-- **TanStack Query** (client) / **Urql** (admin) for data fetching
+- **TanStack Query** for data fetching (with graphql-request for GraphQL)
 - **Wagmi + Viem** for Web3
 - **Foundry** for smart contracts
 - **Envio** for blockchain indexing

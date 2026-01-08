@@ -50,7 +50,7 @@ export const ConfirmDrawer: React.FC<ConfirmDrawerProps> = ({
       tabIndex={-1}
     >
       <div
-        className="bg-white rounded-t-3xl shadow-2xl w-full overflow-hidden animate-in slide-in-from-bottom-full duration-300 ease-out"
+        className="bg-bg-white-0 rounded-t-3xl shadow-2xl w-full overflow-hidden animate-in slide-in-from-bottom-full duration-300 ease-out"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
           e.stopPropagation();
@@ -65,7 +65,7 @@ export const ConfirmDrawer: React.FC<ConfirmDrawerProps> = ({
             {icon && <div className="flex-shrink-0 mt-0.5">{icon}</div>}
             <div className="flex-1 min-w-0">
               <h2 className="text-lg font-semibold truncate">{title}</h2>
-              {description && <p className="text-sm text-slate-600 mt-1">{description}</p>}
+              {description && <p className="text-sm text-text-sub-600 mt-1">{description}</p>}
             </div>
           </div>
           <button
@@ -74,7 +74,7 @@ export const ConfirmDrawer: React.FC<ConfirmDrawerProps> = ({
             data-testid="confirm-drawer-close"
             aria-label="Close"
           >
-            <RiCloseLine className="w-5 h-5" />
+            <RiCloseLine className="w-5 h-5 text-text-soft-400" />
           </button>
         </div>
 
@@ -83,7 +83,7 @@ export const ConfirmDrawer: React.FC<ConfirmDrawerProps> = ({
           <button
             onClick={onClose}
             disabled={isLoading}
-            className="flex-1 py-3 px-4 text-sm font-medium text-slate-700 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors disabled:opacity-50"
+            className="flex-1 py-3 px-4 text-sm font-medium text-text-strong-950 bg-bg-weak-50 rounded-full hover:bg-bg-soft-200 transition-colors disabled:opacity-50"
           >
             {cancelLabel}
           </button>

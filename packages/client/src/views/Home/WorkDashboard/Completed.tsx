@@ -41,7 +41,7 @@ export const CompletedTab: React.FC<CompletedTabProps> = ({
               })}
             </p>
           ) : completedWork.length > 0 ? (
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-text-sub-600">
               {intl.formatMessage(
                 {
                   id: "app.workDashboard.completed.itemsCompleted",
@@ -59,7 +59,7 @@ export const CompletedTab: React.FC<CompletedTabProps> = ({
         {isLoading ? (
           <div className="h-full flex flex-col items-center justify-center pb-12">
             <BeatLoader />
-            <p className="text-sm text-slate-400 mt-4">
+            <p className="text-sm text-text-soft-400 mt-4">
               {intl.formatMessage({
                 id: "app.workDashboard.loading",
                 defaultMessage: "Loading completed work...",
@@ -69,13 +69,13 @@ export const CompletedTab: React.FC<CompletedTabProps> = ({
         ) : hasError ? (
           <div className="text-center py-12">
             <div className="text-4xl mb-3">⚠️</div>
-            <p className="font-medium text-slate-900">
+            <p className="font-medium text-text-strong-950">
               {intl.formatMessage({
                 id: "app.workDashboard.error.title",
                 defaultMessage: "Unable to load work",
               })}
             </p>
-            <p className="text-sm text-slate-600 mb-4">
+            <p className="text-sm text-text-sub-600 mb-4">
               {errorMessage ||
                 intl.formatMessage({
                   id: "app.workDashboard.error.description",
@@ -87,7 +87,7 @@ export const CompletedTab: React.FC<CompletedTabProps> = ({
               <button
                 onClick={onRefresh}
                 disabled={isFetching}
-                className="text-sm text-primary font-medium px-3 py-1 rounded-lg border border-slate-200 disabled:opacity-50"
+                className="text-sm text-primary font-medium px-3 py-1 rounded-lg border border-stroke-soft-200 disabled:opacity-50"
               >
                 {isFetching
                   ? intl.formatMessage({
@@ -104,13 +104,13 @@ export const CompletedTab: React.FC<CompletedTabProps> = ({
         ) : completedWork.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-4xl mb-3">📝</div>
-            <p className="font-medium text-slate-900">
+            <p className="font-medium text-text-strong-950">
               {intl.formatMessage({
                 id: "app.workDashboard.completed.noCompleted",
                 defaultMessage: "No completed work",
               })}
             </p>
-            <p className="text-sm text-slate-600 mb-3">
+            <p className="text-sm text-text-sub-600 mb-3">
               {intl.formatMessage({
                 id: "app.workDashboard.completed.description",
                 defaultMessage: "Approved and rejected work will appear here",

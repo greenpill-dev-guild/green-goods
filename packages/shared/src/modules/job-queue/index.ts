@@ -8,6 +8,7 @@ import type {
   QueueStats,
   WorkJobPayload,
 } from "../../types/job-queue";
+import { scheduleTask, yieldToMain } from "../../utils/scheduler";
 import { track } from "../app/posthog";
 import { submitApprovalWithPasskey, submitWorkWithPasskey } from "../work/passkey-submission";
 import { jobQueueDB } from "./db";
@@ -366,6 +367,9 @@ class JobQueue {
 
   /**
    * Internal flush implementation - processes only jobs for the specified user
+   *
+   * Uses the Scheduler API to yield to user input between jobs,
+   * preventing UI jank during batch processing.
    */
   private async _flushInternal(context: FlushContext): Promise<FlushResult> {
     if (!context.userAddress) {
@@ -384,9 +388,16 @@ class JobQueue {
     let failed = 0;
     let skipped = 0;
 
-    for (const job of jobs) {
+    // Process jobs with scheduler to yield to user input
+    for (let i = 0; i < jobs.length; i++) {
+      const job = jobs[i];
+
       try {
-        const result = await this.processJob(job.id, context);
+        // Schedule job processing as background task - yields to user interactions
+        const result = await scheduleTask(() => this.processJob(job.id, context), {
+          priority: "background",
+        });
+
         if (result.success) {
           processed += 1;
         } else if (result.skipped) {
@@ -398,6 +409,11 @@ class JobQueue {
         failed += 1;
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
         jobQueueEventBus.emit("job:failed", { jobId: job.id, job, error: errorMessage });
+      }
+
+      // Yield to main thread every 3 jobs to keep UI responsive
+      if ((i + 1) % 3 === 0 && i + 1 < jobs.length) {
+        await yieldToMain();
       }
     }
 

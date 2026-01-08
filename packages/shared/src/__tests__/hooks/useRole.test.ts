@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import { renderHook } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock auth provider
@@ -22,14 +22,38 @@ vi.mock("../../hooks/blockchain/useDeploymentRegistry", () => ({
   useDeploymentRegistry: () => mockUseDeploymentRegistry(),
 }));
 
-// Mock URQL
+// Mock React Query
 const mockUseQuery = vi.fn();
-vi.mock("urql", () => ({
-  useQuery: () => mockUseQuery(),
+vi.mock("@tanstack/react-query", () => ({
+  useQuery: (options: { queryFn?: () => Promise<unknown> }) => mockUseQuery(options),
 }));
 
-vi.mock("gql.tada", () => ({
-  graphql: vi.fn((query: string) => query),
+// Mock the GraphQL client
+vi.mock("../../modules/data/graphql-client", () => ({
+  greenGoodsIndexer: {
+    query: vi.fn().mockResolvedValue({ data: { Garden: [] } }),
+  },
+}));
+
+vi.mock("../../modules/data/graphql", () => ({
+  greenGoodsGraphQL: vi.fn((query: string) => query),
+}));
+
+vi.mock("../../config/react-query", () => ({
+  STALE_TIMES: {
+    baseLists: 60000,
+    works: 15000,
+    queue: 5000,
+    merged: 5000,
+  },
+}));
+
+vi.mock("../query-keys", () => ({
+  queryKeys: {
+    role: {
+      operatorGardens: (address?: string) => ["greengoods", "role", "operatorGardens", address],
+    },
+  },
 }));
 
 // Import after mocks - using dynamic import inside tests to ensure mocks are applied
@@ -47,6 +71,7 @@ describe("useRole", () => {
     // Default mock values - not logged in
     mockUseAuthContext.mockReturnValue({
       smartAccountAddress: null,
+      walletAddress: null,
       isReady: true,
       isAuthenticated: false,
     });
@@ -60,13 +85,12 @@ describe("useRole", () => {
       isInAllowlist: false,
       loading: false,
     });
-    mockUseQuery.mockReturnValue([
-      {
-        data: { Garden: [] },
-        fetching: false,
-        error: null,
-      },
-    ]);
+    // Mock React Query's useQuery response
+    mockUseQuery.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    });
   });
 
   it("should return deployer role when user can deploy (wallet mode)", () => {
@@ -94,18 +118,14 @@ describe("useRole", () => {
       address: "0x456",
       isConnected: true,
     });
-    mockUseQuery.mockReturnValue([
-      {
-        data: {
-          Garden: [
-            { id: "0x123", name: "Test Garden" },
-            { id: "0x456", name: "Another Garden" },
-          ],
-        },
-        fetching: false,
-        error: null,
-      },
-    ]);
+    mockUseQuery.mockReturnValue({
+      data: [
+        { id: "0x123", name: "Test Garden" },
+        { id: "0x456", name: "Another Garden" },
+      ],
+      isLoading: false,
+      error: null,
+    });
 
     const { result } = renderHook(() => useRole());
 
@@ -121,13 +141,11 @@ describe("useRole", () => {
       address: "0x789",
       isConnected: true,
     });
-    mockUseQuery.mockReturnValue([
-      {
-        data: { Garden: [] },
-        fetching: false,
-        error: null,
-      },
-    ]);
+    mockUseQuery.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    });
 
     const { result } = renderHook(() => useRole());
 
@@ -143,13 +161,11 @@ describe("useRole", () => {
       address: undefined,
       isConnected: false,
     });
-    mockUseQuery.mockReturnValue([
-      {
-        data: null,
-        fetching: true,
-        error: null,
-      },
-    ]);
+    mockUseQuery.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      error: null,
+    });
 
     const { result } = renderHook(() => useRole());
 
@@ -161,13 +177,11 @@ describe("useRole", () => {
       address: "0x123",
       isConnected: true,
     });
-    mockUseQuery.mockReturnValue([
-      {
-        data: null,
-        fetching: true,
-        error: null,
-      },
-    ]);
+    mockUseQuery.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      error: null,
+    });
 
     const { result } = renderHook(() => useRole());
 
@@ -203,15 +217,11 @@ describe("useRole", () => {
       isInAllowlist: true,
       loading: false,
     });
-    mockUseQuery.mockReturnValue([
-      {
-        data: {
-          Garden: [{ id: "0x123", name: "Test Garden" }],
-        },
-        fetching: false,
-        error: null,
-      },
-    ]);
+    mockUseQuery.mockReturnValue({
+      data: [{ id: "0x123", name: "Test Garden" }],
+      isLoading: false,
+      error: null,
+    });
 
     const { result } = renderHook(() => useRole());
 
@@ -228,16 +238,15 @@ describe("useRole", () => {
     });
     mockUseAuthContext.mockReturnValue({
       smartAccountAddress: "0xSmartAccount123",
+      walletAddress: null,
       isReady: true,
       isAuthenticated: true,
     });
-    mockUseQuery.mockReturnValue([
-      {
-        data: { Garden: [] },
-        fetching: false,
-        error: null,
-      },
-    ]);
+    mockUseQuery.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    });
 
     const { result } = renderHook(() => useRole());
 
@@ -274,6 +283,7 @@ describe("useRole", () => {
     });
     mockUseAuthContext.mockReturnValue({
       smartAccountAddress: "0xSmartAccount123",
+      walletAddress: null,
       isReady: true,
       isAuthenticated: true,
     });
@@ -283,13 +293,11 @@ describe("useRole", () => {
       isInAllowlist: false,
       loading: false,
     });
-    mockUseQuery.mockReturnValue([
-      {
-        data: { Garden: [] },
-        fetching: false,
-        error: null,
-      },
-    ]);
+    mockUseQuery.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    });
 
     const { result } = renderHook(() => useRole());
 

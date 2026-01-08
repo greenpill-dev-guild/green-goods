@@ -49,7 +49,7 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
       <div className="mb-4 px-4 pt-4 flex items-center justify-between gap-3">
         <div>
           {isLoading ? null : uploadingWork.length > 0 ? (
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-text-sub-600">
               {intl.formatMessage(
                 {
                   id: "app.workDashboard.recent.itemsCount",
@@ -65,7 +65,7 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
           {uploadingCount > 0 &&
             (isOnline ? (
               <button
-                className="text-sm text-primary font-medium px-3 py-1 rounded-lg border border-slate-200 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary active:border-primary active:scale-95 tap-feedback"
+                className="text-sm text-primary font-medium px-3 py-1 rounded-lg border border-stroke-soft-200 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary active:border-primary active:scale-95 tap-feedback"
                 onClick={handleSyncAll}
               >
                 {authMode === "wallet"
@@ -79,7 +79,7 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
                     })}
               </button>
             ) : (
-              <span className="text-xs text-slate-500 px-2">
+              <span className="text-xs text-text-sub-600 px-2">
                 {intl.formatMessage({
                   id: "app.workDashboard.offline",
                   defaultMessage: "Reconnect to sync",
@@ -93,7 +93,7 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
         {isLoading ? (
           <div className="h-full flex flex-col items-center justify-center pb-12">
             <BeatLoader />
-            <p className="text-sm text-slate-400 mt-4">
+            <p className="text-sm text-text-soft-400 mt-4">
               {intl.formatMessage({
                 id: "app.workDashboard.loading",
                 defaultMessage: "Loading recent work...",
@@ -103,13 +103,13 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
         ) : hasError ? (
           <div className="text-center py-12">
             <div className="text-4xl mb-3">⚠️</div>
-            <p className="font-medium text-slate-900">
+            <p className="font-medium text-text-strong-950">
               {intl.formatMessage({
                 id: "app.workDashboard.error.title",
                 defaultMessage: "Unable to load work",
               })}
             </p>
-            <p className="text-sm text-slate-600 mb-4">
+            <p className="text-sm text-text-sub-600 mb-4">
               {errorMessage ||
                 intl.formatMessage({
                   id: "app.workDashboard.error.description",
@@ -121,7 +121,7 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
               <button
                 onClick={onRefresh}
                 disabled={isFetching}
-                className="text-sm text-primary font-medium px-3 py-1 rounded-lg border border-slate-200 disabled:opacity-50"
+                className="text-sm text-primary font-medium px-3 py-1 rounded-lg border border-stroke-soft-200 disabled:opacity-50"
               >
                 {isFetching
                   ? intl.formatMessage({
@@ -138,13 +138,13 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
         ) : uploadingWork.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-4xl mb-3">✅</div>
-            <p className="font-medium text-slate-900">
+            <p className="font-medium text-text-strong-950">
               {intl.formatMessage({
                 id: "app.workDashboard.uploading.allSynced",
                 defaultMessage: "All synced!",
               })}
             </p>
-            <p className="text-sm text-slate-600 mb-3">
+            <p className="text-sm text-text-sub-600 mb-3">
               {intl.formatMessage({
                 id: "app.workDashboard.uploading.noUploading",
                 defaultMessage: "No items uploading",

@@ -37,18 +37,18 @@ class GardenErrorBoundaryClass extends Component<ErrorBoundaryProps, ErrorBounda
       const { intl } = this.props;
 
       return (
-        <div className="flex flex-col items-center justify-center h-full p-8 bg-white">
+        <div className="flex flex-col items-center justify-center h-full p-8 bg-bg-white-0">
           <div className="text-center max-w-md">
             <div className="mx-auto mb-4 w-14 h-14 rounded-2xl grid place-items-center bg-primary/10">
               <RiLeafFill className="w-7 h-7 text-primary" />
             </div>
-            <h2 className="text-xl font-semibold mb-2 text-gray-900">
+            <h2 className="text-xl font-semibold mb-2 text-text-strong-950">
               {intl?.formatMessage({
                 id: "app.error.garden.title",
                 defaultMessage: "Garden failed to load",
               })}
             </h2>
-            <p className="text-gray-600 mb-6">
+            <p className="text-text-sub-600 mb-6">
               {intl?.formatMessage({
                 id: "app.error.garden.description",
                 defaultMessage: "Something went wrong while loading this garden. Please try again.",
@@ -84,13 +84,13 @@ class GardenErrorBoundaryClass extends Component<ErrorBoundaryProps, ErrorBounda
             </div>
             {this.state.error && (
               <details className="mt-6 text-left">
-                <summary className="cursor-pointer text-sm text-gray-500">
+                <summary className="cursor-pointer text-sm text-text-sub-600">
                   {intl?.formatMessage({
                     id: "app.error.garden.technicalDetails",
                     defaultMessage: "Technical details",
                   })}
                 </summary>
-                <pre className="mt-2 text-xs bg-slate-50 border border-slate-200 p-3 rounded-lg overflow-auto max-h-40">
+                <pre className="mt-2 text-xs bg-bg-weak-50 border border-stroke-soft-200 p-3 rounded-lg overflow-auto max-h-40">
                   {this.state.error.stack}
                 </pre>
               </details>

@@ -364,13 +364,11 @@ query ApprovedWork($startDate: Int!, $endDate: Int!) {
 
 **Example: Impact Dashboard**
 ```typescript
-import { createClient } from 'urql';
+import { request, gql } from 'graphql-request';
 
-const client = createClient({
-  url: 'https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql',
-});
+const ENDPOINT = 'https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql';
 
-const query = `
+const query = gql`
   query Gardens {
     Garden {
       id
@@ -384,21 +382,34 @@ const query = `
   }
 `;
 
-const { data } = await client.query(query).toPromise();
+const data = await request(ENDPOINT, query);
 // Render custom dashboard with garden data
 ```
 
-**Example: Automated Funder Bot**
+**Example: Polling for New Approvals**
 ```typescript
-// Listen for high-quality approved work
-client.subscription(WORK_APPROVED_SUBSCRIPTION)
-  .subscribe(({ data }) => {
-    const { workUID, gardenId, approved } = data;
-    if (approved && meetsQualityThreshold(data)) {
-      // Trigger retroactive funding
-      sendFunding(gardenId, calculateReward(data));
+// Poll for recent high-quality approved work
+import { request, gql } from 'graphql-request';
+
+const RECENT_APPROVALS = gql`
+  query RecentApprovals($since: Int!) {
+    WorkApproval(where: {approved: {_eq: true}, timestamp: {_gte: $since}}) {
+      workUID
+      gardenId
+      feedback
     }
-  });
+  }
+`;
+
+setInterval(async () => {
+  const data = await request(ENDPOINT, RECENT_APPROVALS, { since: lastCheck });
+  for (const approval of data.WorkApproval) {
+    if (meetsQualityThreshold(approval)) {
+      sendFunding(approval.gardenId, calculateReward(approval));
+    }
+  }
+  lastCheck = Date.now();
+}, 60000);
 ```
 
 [Integration Examples →](../developer/api-reference)
@@ -407,7 +418,7 @@ client.subscription(WORK_APPROVED_SUBSCRIPTION)
 
 **Open Source Monorepo**:
 - **Client (PWA)**: React + TanStack Query + Viem
-- **Admin Dashboard**: React + Urql + XState
+- **Admin Dashboard**: React + TanStack Query + graphql-request + XState
 - **Indexer**: Envio GraphQL
 - **Contracts**: Solidity + Foundry
 

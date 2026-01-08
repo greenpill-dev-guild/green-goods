@@ -7,7 +7,7 @@
  * @module utils/eas/transaction-builder
  */
 
-import { NO_EXPIRATION, ZERO_BYTES32 } from "@ethereum-attestation-service/eas-sdk";
+import { NO_EXPIRATION, ZERO_BYTES32 } from "./constants";
 import { encodeFunctionData, type Hex } from "viem";
 import type { EASConfig } from "../../config/blockchain";
 import { EASABI } from "../blockchain/contracts";

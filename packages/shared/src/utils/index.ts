@@ -134,10 +134,11 @@ export {
   toggle,
 } from "./styles/theme";
 // ============================================================================
-// TIME
+// TIME (Temporal API with Date fallback)
 // ============================================================================
 export type { TimeFilter } from "./time";
 export {
+  // Core utilities (backward compatible)
   filterByTimeRange,
   formatDate,
   formatDateTime,
@@ -148,12 +149,41 @@ export {
   sortByCreatedAt,
   toDateTimeLocalValue,
   toSafeDate,
+  // Temporal-specific utilities (2026)
+  addDuration,
+  compareTimestamps,
+  formatDuration,
+  getCurrentTimezone,
+  getDurationMs,
+  getStartOfDayUTC,
+  isTemporalSupported,
+  toSafeInstant,
 } from "./time";
-
 // ============================================================================
-// URQL
+// COMPRESSION (Native Compression Streams API)
 // ============================================================================
-export { createUrqlClient } from "./urql";
+export type { CompressionFormat } from "./compression";
+export {
+  compress,
+  compressJSON,
+  decompress,
+  decompressJSON,
+  decompressResponse,
+  getCompressionRatio,
+  isCompressionSupported,
+} from "./compression";
+// ============================================================================
+// SCHEDULER (Native Scheduler API for cooperative multitasking)
+// ============================================================================
+export type { TaskPriority } from "./scheduler";
+export {
+  debounceWithScheduler,
+  isSchedulerSupported,
+  processBatched,
+  runWhenIdle,
+  scheduleTask,
+  yieldToMain,
+} from "./scheduler";
 
 // ============================================================================
 // WORK

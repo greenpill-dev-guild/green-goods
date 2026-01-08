@@ -59,7 +59,14 @@ export default defineConfig(({ mode }) => {
     // Only use mkcert for HTTPS when not in devcontainer
     ...(isDevContainer ? [] : [mkcert()]),
     tailwindcss(),
-    react(),
+    // React Compiler: Automatically optimizes components with memoization
+    // Eliminates need for manual useMemo/useCallback in most cases
+    // @see https://react.dev/learn/react-compiler
+    react({
+      babel: {
+        plugins: [["babel-plugin-react-compiler", {}]],
+      },
+    }),
     VitePWA({
       includeAssets: [
         "favicon.ico",
@@ -158,6 +165,9 @@ export default defineConfig(({ mode }) => {
       manifest: {
         name: "Green Goods",
         short_name: "Green Goods",
+        // Window Controls Overlay: Native desktop app feel (removes browser titlebar)
+        // Falls back to standalone on mobile or unsupported browsers
+        display_override: ["window-controls-overlay", "standalone"],
         icons: [
           { src: "/images/android-icon-36x36.png", sizes: "36x36", type: "image/png" },
           { src: "/images/android-icon-48x48.png", sizes: "48x48", type: "image/png" },

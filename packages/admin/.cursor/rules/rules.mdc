@@ -34,7 +34,7 @@ src/
 | Styling | Tailwind CSS v4 + CSS variables |
 | Forms | React Hook Form + Zod |
 | State | TanStack Query + Zustand + XState (via shared) |
-| GraphQL | Urql with subscriptions |
+| GraphQL | graphql-request (via shared) |
 
 ## Role-Based Access
 

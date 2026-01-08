@@ -1,4 +1,5 @@
 import { type BrowserContext, expect, type Page } from "@playwright/test";
+import { TIMEOUTS, SELECTORS, TestHelpers } from "./test-config";
 
 // ============================================================================
 // TYPES
@@ -209,11 +210,73 @@ export class ClientTestHelper {
     console.log(`🔐 Creating passkey account: ${username}`);
 
     await this.page.goto("/login");
-    await this.page.waitForLoadState("networkidle");
+    await this.page.waitForLoadState("domcontentloaded");
 
-    // Wait for login UI to be ready
+    // Wait for React app to fully mount and handle any errors
+    await this.page.waitForTimeout(2000);
+
+    // Check for application errors first - including QueryClient errors
+    const errorSelectors = [
+      'text="Unexpected Application Error"',
+      'text="No QueryClient set"',
+      'text="Application error"',
+      '[data-testid="error-boundary"]',
+    ];
+
+    for (const selector of errorSelectors) {
+      const hasError = await this.page
+        .locator(selector)
+        .isVisible({ timeout: 1000 })
+        .catch(() => false);
+      if (hasError) {
+        // App failed to load properly - log the error
+        const errorText = await this.page
+          .locator("body")
+          .textContent()
+          .catch(() => "Unable to get error text");
+        console.error(`App error detected: ${errorText.substring(0, 500)}`);
+
+        // Take a screenshot for debugging
+        await this.page.screenshot({
+          path: `test-results/app-error-${Date.now()}.png`,
+          fullPage: true,
+        });
+
+        // Try reloading once
+        await this.page.reload();
+        await this.page.waitForLoadState("domcontentloaded");
+        await this.page.waitForTimeout(3000);
+        break;
+      }
+    }
+
+    // Wait for login UI to be ready - with better error handling
     const loginButton = this.page.getByTestId("login-button");
-    await expect(loginButton).toBeVisible({ timeout: 10000 });
+    try {
+      await expect(loginButton).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+    } catch (error) {
+      // If login button not found, check console for errors
+      const consoleErrors: string[] = [];
+      this.page.on("console", (msg) => {
+        if (msg.type() === "error") {
+          consoleErrors.push(msg.text());
+        }
+      });
+
+      await this.page.waitForTimeout(1000);
+
+      if (consoleErrors.length > 0) {
+        console.error("Console errors detected:", consoleErrors.join("\n"));
+      }
+
+      // Take screenshot and re-throw
+      await this.page.screenshot({
+        path: `test-results/login-button-not-found-${Date.now()}.png`,
+        fullPage: true,
+      });
+
+      throw error;
+    }
 
     // Step 1: Click "Sign Up" button (shows username input)
     const initialButtonText = await loginButton.textContent();
@@ -223,8 +286,11 @@ export class ClientTestHelper {
     await this.page.waitForTimeout(500);
 
     // Step 2: Wait for username input to appear
-    const usernameInput = this.page.locator('input[placeholder*="username"], input[type="text"]');
-    await usernameInput.waitFor({ state: "visible", timeout: 5000 });
+    const usernameInput = this.page
+      .locator('[data-testid="username-input"]')
+      .or(this.page.locator('input[placeholder*="username"]'))
+      .first();
+    await usernameInput.waitFor({ state: "visible", timeout: TIMEOUTS.elementVisible });
     console.log("✓ Username input visible");
 
     // Step 3: Enter username
@@ -234,7 +300,15 @@ export class ClientTestHelper {
 
     // Step 4: Click "Create Account" button (triggers WebAuthn registration + garden join)
     // Button text should have changed from "Sign Up" to "Create Account"
-    await loginButton.click();
+    // Use whichever button we found earlier
+    const submitButton = (await this.page
+      .getByTestId("login-button")
+      .isVisible()
+      .catch(() => false))
+      ? this.page.getByTestId("login-button")
+      : this.page.locator('button:has-text("Create Account"), button:has-text("Login")').first();
+
+    await submitButton.click();
     console.log("⏳ Waiting for passkey registration + garden join...");
 
     // Step 5: Wait for complex flow to complete:
@@ -243,13 +317,14 @@ export class ClientTestHelper {
     //   - Navigation to /home
     try {
       // Longer timeout because this includes garden join
-      await this.page.waitForURL(/\/home/, { timeout: 45000 });
+      await this.page.waitForURL(/\/home/, { timeout: TIMEOUTS.passkeyCreation });
       console.log(`✅ Passkey account created and joined garden: ${username}`);
       return username;
     } catch (error) {
       console.error("❌ Passkey registration failed:");
       console.error(`   Current URL: ${this.page.url()}`);
-      console.error(`   Button text: "${await loginButton.textContent()}"`);
+      const buttonText = await submitButton.textContent().catch(() => "unknown");
+      console.error(`   Button text: "${buttonText}"`);
 
       // Check for loading states
       const isLoading = await this.page
@@ -283,10 +358,42 @@ export class ClientTestHelper {
     console.log(`🔐 Logging in with passkey${username ? `: ${username}` : " (stored)"}`);
 
     await this.page.goto("/login");
-    await this.page.waitForLoadState("networkidle");
+    await this.page.waitForLoadState("domcontentloaded");
+
+    // Wait for React app to fully mount
+    await this.page.waitForTimeout(1500);
+
+    // Check for application errors first - including QueryClient errors
+    const errorSelectors = [
+      'text="Unexpected Application Error"',
+      'text="No QueryClient set"',
+      'text="Application error"',
+      '[data-testid="error-boundary"]',
+    ];
+
+    for (const selector of errorSelectors) {
+      const hasError = await this.page
+        .locator(selector)
+        .isVisible({ timeout: 1000 })
+        .catch(() => false);
+      if (hasError) {
+        // App failed to load properly - log the error
+        const errorText = await this.page
+          .locator("body")
+          .textContent()
+          .catch(() => "Unable to get error text");
+        console.error(`App error detected during login: ${errorText.substring(0, 500)}`);
+
+        // Try reloading once
+        await this.page.reload();
+        await this.page.waitForLoadState("domcontentloaded");
+        await this.page.waitForTimeout(2000);
+        break;
+      }
+    }
 
     const loginButton = this.page.getByTestId("login-button");
-    await expect(loginButton).toBeVisible({ timeout: 10000 });
+    await expect(loginButton).toBeVisible({ timeout: TIMEOUTS.elementVisible });
 
     if (username) {
       // New username - need to enter it via login flow
@@ -313,7 +420,7 @@ export class ClientTestHelper {
 
     // Existing user login is faster (no garden join)
     try {
-      await this.page.waitForURL(/\/home/, { timeout: 30000 });
+      await this.page.waitForURL(/\/home/, { timeout: TIMEOUTS.passkeyLogin });
       console.log("✅ Passkey login successful");
     } catch (error) {
       console.error("❌ Passkey login failed:");
@@ -356,7 +463,7 @@ export class ClientTestHelper {
    * Wait for page to be fully loaded (no spinners).
    */
   async waitForPageLoad() {
-    await this.page.waitForLoadState("networkidle");
+    await this.page.waitForLoadState("domcontentloaded");
     await this.page
       .locator('[data-testid="loading"], .loading, .spinner, .animate-spin')
       .waitFor({ state: "hidden", timeout: 10000 })
@@ -429,6 +536,9 @@ export class AdminTestHelper {
     await this.page.goto("/login");
     await this.page.waitForLoadState("domcontentloaded");
 
+    // Wait for React app to mount
+    await this.page.waitForTimeout(1000);
+
     // Admin uses "Connect Wallet" button
     await expect(this.page.getByRole("button", { name: /connect wallet/i })).toBeVisible({
       timeout: 10000,
@@ -454,7 +564,7 @@ export class AdminTestHelper {
    * Wait for page to be fully loaded.
    */
   async waitForPageLoad() {
-    await this.page.waitForLoadState("networkidle");
+    await this.page.waitForLoadState("domcontentloaded");
     await this.page
       .locator('[data-testid="loading"], .loading, .spinner, .animate-spin')
       .waitFor({ state: "hidden", timeout: 10000 })

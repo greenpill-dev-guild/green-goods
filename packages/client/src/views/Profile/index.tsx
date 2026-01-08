@@ -58,7 +58,7 @@ const Profile: React.FC = () => {
   return (
     <section className="flex h-full flex-col">
       {/* Fixed Header */}
-      <div className="fixed left-0 top-0 z-10 w-full bg-white">
+      <div className="fixed left-0 top-0 z-10 w-full bg-bg-white-0">
         <div className="px-4 pt-6 pb-4">
           <UserProfile
             displayName={displayName}

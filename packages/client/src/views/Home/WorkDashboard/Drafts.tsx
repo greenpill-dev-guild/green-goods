@@ -76,7 +76,7 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
           </div>
         )}
         <div className="flex-1 flex items-center justify-center">
-          <div className="flex items-center gap-2 text-slate-500">
+          <div className="flex items-center gap-2 text-text-sub-600">
             <RiLoader4Line className="w-5 h-5 animate-spin" />
             <span className="text-sm">
               {intl.formatMessage({
@@ -99,13 +99,13 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
             {headerContent}
             <button
               onClick={() => refetchDrafts()}
-              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-bg-weak-50 rounded-lg transition-colors"
               aria-label={intl.formatMessage({
                 id: "app.drafts.refresh",
                 defaultMessage: "Refresh drafts",
               })}
             >
-              <RiRefreshLine className="w-4 h-4 text-slate-500" />
+              <RiRefreshLine className="w-4 h-4 text-text-sub-600" />
             </button>
           </div>
         )}
@@ -114,13 +114,13 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
             <RiDraftLine className="w-8 h-8 text-amber-600" />
           </div>
           <div>
-            <h3 className="font-medium text-slate-900">
+            <h3 className="font-medium text-text-strong-950">
               {intl.formatMessage({
                 id: "app.drafts.empty.title",
                 defaultMessage: "No drafts yet",
               })}
             </h3>
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="text-sm text-text-sub-600 mt-1">
               {intl.formatMessage({
                 id: "app.drafts.empty.description",
                 defaultMessage: "Drafts are automatically saved when you start adding photos",
@@ -139,7 +139,7 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
       <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100">
         <div className="flex items-center gap-2">
           {headerContent}
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-text-sub-600">
             {intl.formatMessage(
               { id: "app.drafts.count", defaultMessage: "{count} draft(s)" },
               { count: drafts.length }
@@ -148,13 +148,13 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
         </div>
         <button
           onClick={() => refetchDrafts()}
-          className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+          className="p-2 hover:bg-bg-weak-50 rounded-lg transition-colors"
           aria-label={intl.formatMessage({
             id: "app.drafts.refresh",
             defaultMessage: "Refresh drafts",
           })}
         >
-          <RiRefreshLine className="w-4 h-4 text-slate-500" />
+          <RiRefreshLine className="w-4 h-4 text-text-sub-600" />
         </button>
       </div>
 

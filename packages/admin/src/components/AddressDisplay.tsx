@@ -1,4 +1,3 @@
-import { useEnsName } from "@green-goods/shared/hooks";
 import { cn, copyToClipboard, formatAddress } from "@green-goods/shared/utils";
 import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
 import { useEffect, useState } from "react";
@@ -18,7 +17,8 @@ export function AddressDisplay({
 }: AddressDisplayProps) {
   const [copied, setCopied] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
-  const { data: ensName } = useEnsName(address);
+  // ENS temporarily disabled to fix QueryClient initialization
+  const ensName = null;
   const display = formatAddress(address, {
     ensName,
     variant: ensName ? "default" : "card",

@@ -27,7 +27,14 @@ export default defineConfig(({ mode }) => {
     // Only use mkcert for HTTPS when not in devcontainer
     ...(isDevContainer ? [] : [mkcert()]),
     tailwindcss(),
-    react(),
+    // React Compiler: Automatically optimizes components with memoization
+    // Eliminates need for manual useMemo/useCallback in most cases
+    // @see https://react.dev/learn/react-compiler
+    react({
+      babel: {
+        plugins: [["babel-plugin-react-compiler", {}]],
+      },
+    }),
   ];
 
   return {

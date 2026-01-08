@@ -88,7 +88,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
       case "install":
         return (
           <div
-            className={`${baseBarClasses} bg-white/95 text-slate-900 border-b border-slate-200 pointer-events-auto`}
+            className={`${baseBarClasses} bg-bg-white-0/95 text-text-strong-950 border-b border-stroke-soft-200 pointer-events-auto`}
             role="status"
           >
             <RiDownloadLine size={10} className="text-primary" aria-hidden="true" />
@@ -96,7 +96,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
             <button
               type="button"
               onClick={() => navigate("/profile")}
-              className="ml-1 inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] hover:bg-slate-50 active:scale-95 transition-transform"
+              className="ml-1 inline-flex items-center gap-1 rounded-full border border-stroke-sub-300 bg-bg-white-0 px-2 py-0.5 text-[10px] hover:bg-bg-weak-50 active:scale-95 transition-transform"
             >
               <RiUserLine className="h-3 w-3" />
               Profile
@@ -104,7 +104,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
             <button
               type="button"
               onClick={() => setInstallDismissed(true)}
-              className="ml-1 text-[10px] text-slate-500 hover:text-slate-700"
+              className="ml-1 text-[10px] text-text-sub-600 hover:text-text-strong-950"
               aria-label="Dismiss"
             >
               ✕

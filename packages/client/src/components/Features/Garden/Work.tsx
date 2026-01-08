@@ -48,9 +48,9 @@ const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
         <div className="grid gap-3">
           {[...Array(8)].map((_, i) => (
             <li key={i}>
-              <div className="flex flex-col gap-2 rounded-lg border border-slate-200 p-3 bg-white">
-                <div className="h-4 w-40 bg-slate-200 rounded animate-pulse" />
-                <div className="h-3 w-64 bg-slate-200 rounded animate-pulse" />
+              <div className="flex flex-col gap-2 rounded-lg border border-stroke-soft-200 p-3 bg-bg-white-0">
+                <div className="h-4 w-40 bg-bg-soft-200 rounded animate-pulse" />
+                <div className="h-3 w-64 bg-bg-soft-200 rounded animate-pulse" />
               </div>
             </li>
           ))}
@@ -59,7 +59,7 @@ const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
     case "success": {
       if (!sorted.length) {
         return (
-          <p className="grid p-8 place-items-center text-sm text-center italic text-gray-400">
+          <p className="grid p-8 place-items-center text-sm text-center italic text-text-soft-400">
             {intl.formatMessage({
               id: "app.garden.work.noWork",
               description: "No work yet",

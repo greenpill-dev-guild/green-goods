@@ -38,6 +38,7 @@ export function ConnectButton({
     <button
       onClick={() => open()}
       disabled={isConnecting}
+      data-testid="connect-wallet-button"
       className={cn(baseStyles, variantStyles[variant], sizeStyles[size], className)}
     >
       <div className="flex items-center">

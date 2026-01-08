@@ -194,21 +194,21 @@ export const WorkViewSkeleton: React.FC<WorkViewSkeletonProps> = ({
   return (
     <div className="flex flex-col gap-4">
       {/* Header info */}
-      <div className="bg-slate-100 p-4 rounded-lg animate-pulse h-24" />
+      <div className="bg-bg-weak-50 p-4 rounded-lg animate-pulse h-24" />
 
       {/* Garden section */}
-      <div className="h-4 w-28 bg-slate-200 rounded" />
+      <div className="h-4 w-28 bg-bg-soft-200 rounded" />
       <GardenCardSkeleton media="small" height="default" showBanner={false} />
 
       {/* Media section */}
       {showMedia && (
         <>
-          <div className="h-4 w-20 bg-slate-200 rounded" />
+          <div className="h-4 w-20 bg-bg-soft-200 rounded" />
           <div className="flex flex-row gap-3">
             {Array.from({ length: 3 }).map((_, idx) => (
               <div
                 key={`media-skel-${idx}`}
-                className="max-w-40 aspect-3/4 rounded-2xl bg-slate-200 animate-pulse w-full"
+                className="max-w-40 aspect-3/4 rounded-2xl bg-bg-soft-200 animate-pulse w-full"
               />
             ))}
           </div>
@@ -216,20 +216,20 @@ export const WorkViewSkeleton: React.FC<WorkViewSkeletonProps> = ({
       )}
 
       {/* Details section */}
-      <div className="h-4 w-24 bg-slate-200 rounded" />
+      <div className="h-4 w-24 bg-bg-soft-200 rounded" />
       <div className="space-y-2">
-        <div className="h-12 bg-slate-100 rounded-lg animate-pulse" />
+        <div className="h-12 bg-bg-weak-50 rounded-lg animate-pulse" />
         {Array.from({ length: numDetails }).map((_, i) => (
-          <div key={`detail-skel-${i}`} className="h-12 bg-slate-100 rounded-lg animate-pulse" />
+          <div key={`detail-skel-${i}`} className="h-12 bg-bg-weak-50 rounded-lg animate-pulse" />
         ))}
       </div>
 
       {/* Primary actions */}
       {showActions && (
         <div className="flex gap-3">
-          <div className="h-10 flex-1 bg-slate-100 rounded-lg animate-pulse" />
-          <div className="h-10 flex-1 bg-slate-100 rounded-lg animate-pulse" />
-          <div className="h-10 flex-1 bg-slate-100 rounded-lg animate-pulse" />
+          <div className="h-10 flex-1 bg-bg-weak-50 rounded-lg animate-pulse" />
+          <div className="h-10 flex-1 bg-bg-weak-50 rounded-lg animate-pulse" />
+          <div className="h-10 flex-1 bg-bg-weak-50 rounded-lg animate-pulse" />
         </div>
       )}
     </div>

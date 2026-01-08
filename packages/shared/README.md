@@ -64,7 +64,7 @@ src/
 ├── modules/         # Core business logic
 │   ├── app/         # Analytics (posthog), service worker
 │   ├── auth/        # Passkey session management
-│   ├── data/        # API clients (eas, greengoods, ipfs/storacha, urql)
+│   ├── data/        # API clients (eas, greengoods, ipfs/storacha, graphql-client)
 │   ├── job-queue/   # Offline queue system (IndexedDB, event bus)
 │   ├── translation/ # Browser translation, cache
 │   └── work/        # Work/approval submission logic

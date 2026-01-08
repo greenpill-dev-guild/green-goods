@@ -98,14 +98,18 @@ query BiodiversityActions($chainId: Int!) {
 
 **Example: Custom Dashboard**
 ```typescript
-import { createClient } from 'urql';
+import { request, gql } from 'graphql-request';
 
-const client = createClient({
-  url: 'https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql',
-});
+const ENDPOINT = 'https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql';
+
+const GARDENS_QUERY = gql`
+  query Gardens {
+    Garden { id name location gardeners }
+  }
+`;
 
 // Fetch and transform data
-const { data } = await client.query(GARDENS_QUERY).toPromise();
+const data = await request(ENDPOINT, GARDENS_QUERY);
 const transformed = data.Garden.map(transformToOurFormat);
 // Use in your dashboard
 ```

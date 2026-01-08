@@ -23,11 +23,13 @@ const environments = {
 const currentEnv = environments.local;
 
 export default defineConfig({
-  testDir: "./tests",
+  testDir: "./tests/specs",
+  testMatch: "**/*.spec.ts",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 1,
-  workers: process.env.CI ? 2 : undefined,
+  workers: process.env.CI ? 2 : 4,
+  maxFailures: process.env.CI ? 10 : undefined,
 
   outputDir: "tests/test-results",
 
@@ -47,12 +49,18 @@ export default defineConfig({
 
     // Trace/video/screenshot on failure
     trace: "on-first-retry",
-    video: "retain-on-failure",
+    video: process.env.CI ? "off" : "retain-on-failure",
     screenshot: "only-on-failure",
 
     // Timeouts for wallet/blockchain interactions
     navigationTimeout: 30000,
     actionTimeout: 15000,
+
+    // Viewport for consistent testing
+    viewport: { width: 1280, height: 720 },
+
+    // Emulate reduced motion to prevent animation issues
+    reducedMotion: "reduce",
   },
 
   // Browser matrix - Chromium for admin, mobile for client PWA
@@ -60,7 +68,21 @@ export default defineConfig({
     // Desktop Chrome - primary for development and admin dashboard
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        // Run admin tests first
+        testMatch: /admin.*\.spec\.ts/,
+      },
+    },
+
+    // Desktop Chrome - client tests
+    {
+      name: "chromium-client",
+      use: {
+        ...devices["Desktop Chrome"],
+        // Run client tests
+        testMatch: /client.*\.spec\.ts/,
+      },
     },
 
     // Android Chrome - PWA + passkey testing (WebAuthn support)
@@ -69,6 +91,8 @@ export default defineConfig({
       use: {
         ...devices["Pixel 5"],
         viewport: { width: 375, height: 667 },
+        // Only run client tests on mobile
+        testMatch: /client.*\.spec\.ts/,
       },
     },
 
@@ -79,6 +103,18 @@ export default defineConfig({
       use: {
         ...devices["iPhone 13 Pro"],
         viewport: { width: 390, height: 844 },
+        // Only run client tests on mobile
+        testMatch: /client.*\.spec\.ts/,
+      },
+    },
+
+    // Performance tests - separate project to avoid interference
+    {
+      name: "performance",
+      use: {
+        ...devices["Desktop Chrome"],
+        // Only run performance tests
+        testMatch: /performance\.spec\.ts/,
       },
     },
   ],

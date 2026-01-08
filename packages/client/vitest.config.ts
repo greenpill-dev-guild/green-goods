@@ -115,26 +115,6 @@ export default defineConfig({
         find: "diagnostics_channel",
         replacement: path.resolve(__dirname, "../shared/src/__mocks__/node/diagnostics-channel.ts"),
       },
-      {
-        find: /^react$/,
-        replacement: path.resolve(__dirname, "../../node_modules/react"),
-      },
-      {
-        find: /^react\/jsx-runtime$/,
-        replacement: path.resolve(__dirname, "../../node_modules/react/jsx-runtime.js"),
-      },
-      {
-        find: /^react\/jsx-dev-runtime$/,
-        replacement: path.resolve(__dirname, "../../node_modules/react/jsx-dev-runtime.js"),
-      },
-      {
-        find: /^react-dom$/,
-        replacement: path.resolve(__dirname, "../../node_modules/react-dom"),
-      },
-      {
-        find: /^react-dom\/client$/,
-        replacement: path.resolve(__dirname, "../../node_modules/react-dom/client.js"),
-      },
     ],
   },
 });

@@ -35,17 +35,16 @@
 
 import type { SmartAccountClient } from "permissionless";
 import { useMemo } from "react";
-import { useEnsName } from "../blockchain/useEnsName";
 import { useAuth } from "./useAuth";
 
-interface User {
+export interface User {
   id: string;
   wallet: {
     address: string;
   };
 }
 
-interface UseUserReturn {
+export interface UseUserReturn {
   /** User object for backward compatibility */
   user: User | null;
   /** Whether auth state is ready (not initializing) */
@@ -60,8 +59,8 @@ interface UseUserReturn {
   authMode: "wallet" | "passkey" | null;
   /** Passkey username (only set when authMode === "passkey") */
   userName: string | null;
-  /** ENS name for the primary address */
-  ensName: string | null;
+  /** ENS name for the primary address - REMOVED to fix QueryClient error */
+  ensName: null;
   /** External wallet connected (available for switching) */
   externalWalletConnected: boolean;
   /** External wallet address (may differ from walletAddress in passkey mode) */
@@ -100,10 +99,9 @@ export function useUser(): UseUserReturn {
     return null;
   }, [authMode, walletAddress, smartAccountAddress]);
 
-  // Use primary address for ENS lookup
-  // For wallet mode: use wallet address
-  // For passkey mode: use smart account address (though it won't have ENS)
-  const { data: ensName } = useEnsName(primaryAddress);
+  // ENS lookup removed to fix QueryClient initialization error
+  // The useEnsName hook was being called before QueryClient was available
+  // when Root component rendered during router initialization
 
   // Create EOA object only when wallet is the primary auth
   const eoa = useMemo(() => {
@@ -132,7 +130,7 @@ export function useUser(): UseUserReturn {
     smartAccountClient,
     authMode,
     userName,
-    ensName: ensName ?? null,
+    ensName: null, // Temporarily disabled to fix QueryClient error
     externalWalletConnected,
     externalWalletAddress,
     primaryAddress,

@@ -425,7 +425,7 @@ Service layer and business logic:
 - **`retry-policy.ts`**: Network retry logic for failed requests
 - **`service-worker.ts`**: Service worker registration and PWA functionality
 - **`storage-manager.ts`**: Advanced local storage management with cleanup
-- **`urql.ts`**: Alternative GraphQL client configuration
+- **`graphql-client.ts`**: Lightweight GraphQL client using graphql-request
 - **`work-submission.ts`**: Work and approval submission utilities with validation
 - **`job-queue/`**: Offline-first job processing system
   - `index.ts`: Main job queue interface and configuration

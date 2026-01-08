@@ -66,7 +66,7 @@ const BUTTON_VARIANTS = {
 // Base styling for navigation buttons
 const NAV_BUTTON_BASE = [
   "relative flex items-center justify-center w-8 h-8 p-1 rounded-lg border",
-  "bg-white border-slate-200 text-slate-500",
+  "bg-bg-white-0 border-stroke-soft-200 text-text-sub-600",
   "transition-all duration-200 tap-feedback",
   "active:scale-95",
   "focus:outline-none focus:ring-2",
@@ -152,7 +152,7 @@ export const TopNav: React.FC<TopNavProps> = ({
 
   const containerClasses = cn(
     "relative flex z-[1000] flex-row w-full justify-evenly items-center gap-4 p-6 h-20 top-2",
-    overlay && "fixed bg-white",
+    overlay && "fixed bg-bg-white-0",
     overlay && hasOfflineIssues && "top-2", // Space for offline indicator
     overlay && !hasOfflineIssues && "top-0"
   );

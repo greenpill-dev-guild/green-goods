@@ -3,7 +3,7 @@
 > **Audience:** Frontend engineers working on `packages/admin`.
 > **Related docs:** [Monorepo Structure](monorepo-structure), [packages/admin/README.md](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/admin#readme)
 > **Networks:** Arbitrum One (42161), Celo (42220), Base Sepolia (84532). Deployment data: `packages/contracts/deployments/*.json`. Updated November 2024.
-> **External references:** For GraphQL client patterns, see [urql documentation](https://formidable.com/open-source/urql/docs/) and XState’s [statecharts guide](https://stately.ai/docs/statecharts) when editing workflows.
+> **External references:** For GraphQL patterns, see [TanStack Query documentation](https://tanstack.com/query/latest/docs/react/overview) and XState's [statecharts guide](https://stately.ai/docs/statecharts) when editing workflows.
 
 Web dashboard for operators to manage gardens and validate work.
 
@@ -33,7 +33,8 @@ bun --filter admin build     # Production build
 - React Router v7
 
 ### State Management
-- Urql (GraphQL with subscriptions)
+- TanStack Query (data fetching, caching)
+- graphql-request (lightweight GraphQL client)
 - Zustand (global state)
 - XState (workflow orchestration)
 - React Hook Form (forms)
@@ -63,16 +64,16 @@ bun --filter admin build     # Production build
 - `src/hooks/useRole.ts`
 - `src/config.ts` (admin allowlist)
 
-### Real-Time Updates
+### Data Fetching
 
-**Urql subscriptions**:
-- Garden creation events
-- Work approvals
-- Member additions
+**TanStack Query + graphql-request**:
+- Cached garden and work queries
+- Automatic refetching on focus
+- Offline-first support
 
 **Implementation**:
-- `src/utils/urql.ts`
-- GraphQL subscriptions in views
+- `@green-goods/shared/modules/data/graphql-client.ts`
+- Query hooks in views
 
 ### Garden Management
 

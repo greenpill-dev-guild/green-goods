@@ -530,7 +530,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
             headerContent={
               <div className="flex items-center gap-2">
                 <select
-                  className="border border-slate-200 text-xs rounded-md px-2 py-1 bg-white"
+                  className="border border-stroke-soft-200 text-xs rounded-md px-2 py-1 bg-bg-white-0"
                   value={pendingFilter}
                   onChange={(e) => setPendingFilter(e.target.value as typeof pendingFilter)}
                 >
@@ -576,7 +576,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
             headerContent={
               <div className="flex items-center gap-2">
                 <select
-                  className="border border-slate-200 text-xs rounded-md px-2 py-1 bg-white"
+                  className="border border-stroke-soft-200 text-xs rounded-md px-2 py-1 bg-bg-white-0"
                   value={completedFilter}
                   onChange={(e) => setCompletedFilter(e.target.value as typeof completedFilter)}
                 >
@@ -630,7 +630,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     >
       <div
         className={cn(
-          "bg-white rounded-t-3xl shadow-2xl w-full overflow-hidden flex flex-col",
+          "bg-bg-white-0 rounded-t-3xl shadow-2xl w-full overflow-hidden flex flex-col",
           isClosing ? "modal-slide-exit" : "modal-slide-enter",
           className
         )}
@@ -652,7 +652,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
                 defaultMessage: "Work Dashboard",
               })}
             </h2>
-            <p className="text-sm text-slate-600 truncate">
+            <p className="text-sm text-text-sub-600 truncate">
               {intl.formatMessage({
                 id: "app.workDashboard.description",
                 defaultMessage: "Track work submissions and reviews",
@@ -666,7 +666,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
               data-testid="modal-drawer-close"
               aria-label="Close modal"
             >
-              <RiCloseLine className="w-5 h-5 focus:text-primary active:text-primary" />
+              <RiCloseLine className="w-5 h-5 text-text-soft-400 focus:text-primary active:text-primary" />
             </button>
           </div>
         </div>

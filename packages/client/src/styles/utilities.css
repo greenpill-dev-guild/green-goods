@@ -108,16 +108,16 @@
     height: 100%;
   }
 
-  /* Universal Icon Button Class */
+  /* Universal Icon Button Class - Dark mode compatible */
   .btn-icon {
     @apply relative flex items-center justify-center w-8 h-8 p-1 rounded-lg border;
-    @apply bg-white border-slate-200 text-slate-500;
+    @apply bg-bg-white-0 border-stroke-soft-200 text-text-soft-400;
     @apply transition-all duration-200 active:scale-95;
     @apply focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary active:border-primary;
   }
 
   .btn-icon svg {
-    @apply focus:text-primary active:text-primary;
+    @apply text-text-soft-400 focus:text-primary active:text-primary;
   }
 
   /* Increase hit area for touch without changing visual size */
@@ -145,39 +145,48 @@
   }
 
   /* ============================================
-   * Status Badge Variants
+   * Status Badge Variants - Dark mode compatible
    * Used in: WorkCard, MyWork, Uploading, WorkDashboard
+   * Uses semantic tokens with alpha backgrounds for dark mode
    * ============================================ */
   .badge-pill {
     @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply border-stroke-soft-200 text-text-sub-600;
   }
 
   .badge-pill-blue {
-    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium bg-blue-50 text-blue-600 border-blue-200;
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply bg-information-lighter text-information-dark border-information-light;
   }
 
   .badge-pill-amber {
-    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium bg-amber-50 text-amber-600 border-amber-200;
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply bg-warning-lighter text-warning-dark border-warning-light;
   }
 
   .badge-pill-green {
-    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium bg-green-50 text-green-600 border-green-200;
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply bg-success-lighter text-success-dark border-success-light;
   }
 
   .badge-pill-red {
-    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium bg-red-50 text-red-600 border-red-200;
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply bg-error-lighter text-error-dark border-error-light;
   }
 
   .badge-pill-purple {
-    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium bg-purple-50 text-purple-600 border-purple-200;
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply bg-feature-lighter text-feature-dark border-feature-light;
   }
 
   .badge-pill-slate {
-    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium bg-slate-50 text-slate-600 border-slate-200;
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply bg-bg-soft-200 text-text-sub-600 border-stroke-soft-200;
   }
 
   .badge-pill-emerald {
-    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium bg-emerald-50 text-emerald-600 border-emerald-200;
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply bg-success-lighter text-success-dark border-success-light;
   }
 
 }

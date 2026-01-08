@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { DEFAULT_CHAIN_ID, getEASConfig } from "../../config/blockchain";
 import { easGraphQL } from "../../modules/data/graphql";
-import { createEasClient } from "../../modules/data/urql";
+import { createEasClient } from "../../modules/data/graphql-client";
 import { queryKeys } from "../query-keys";
 
 // Enhanced work approval interface for UI
@@ -37,14 +37,16 @@ async function getWorkApprovalsByAttester(
     const easConfig = getEASConfig(chainId);
     const client = createEasClient(chainId);
 
-    const { data, error } = await client
-      .query(QUERY, {
+    const { data, error } = await client.query(
+      QUERY,
+      {
         where: {
           schemaId: { equals: easConfig.WORK_APPROVAL.uid },
           attester: { equals: attesterAddress }, // Filter by attester (reviewer)
         },
-      })
-      .toPromise();
+      },
+      "getWorkApprovalsByAttester"
+    );
 
     if (error) {
       return []; // Return empty array instead of throwing

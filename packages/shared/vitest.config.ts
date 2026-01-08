@@ -66,16 +66,14 @@ export default defineConfig({
     exclude: ["node_modules/", "dist/", "**/*.d.ts"],
   },
   resolve: {
-    dedupe: ["react", "react-dom"],
+    dedupe: ["react", "react-dom", "multiformats", "uint8arrays"],
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      react: path.resolve(__dirname, "../../node_modules/react"),
-      "react-dom": path.resolve(__dirname, "../../node_modules/react-dom"),
-      "react-dom/client": path.resolve(__dirname, "../../node_modules/react-dom/client.js"),
-      "react/jsx-runtime": path.resolve(__dirname, "../../node_modules/react/jsx-runtime.js"),
-      "react/jsx-dev-runtime": path.resolve(__dirname, "../../node_modules/react/jsx-dev-runtime.js"),
-      // Force any nested react-intl import of React to use the root copy
-      "react-intl/node_modules/react": path.resolve(__dirname, "../../node_modules/react"),
+      // Mock EAS SDK to avoid multiformats dependency chain in tests
+      "@ethereum-attestation-service/eas-sdk": path.resolve(
+        __dirname,
+        "./src/__mocks__/eas-sdk.ts"
+      ),
     },
   },
 });

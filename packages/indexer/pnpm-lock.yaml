@@ -42,10 +42,6 @@ importers:
       typescript:
         specifier: 5.2.2
         version: 5.2.2
-    optionalDependencies:
-      generated:
-        specifier: ./generated
-        version: link:generated
 
 packages:
 

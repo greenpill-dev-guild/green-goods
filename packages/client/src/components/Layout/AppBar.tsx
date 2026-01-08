@@ -56,7 +56,7 @@ export const AppBar = () => {
       className={cn(
         // Keep AppBar above page content (z-40), but below modal/drawer overlays (z-[20000]).
         // Hide AppBar when on garden submission routes, work detail pages, or when any drawer is open.
-        "fixed bottom-0 bg-white border-t border-t-stroke-soft-200 flex flex-row justify-evenly items-center w-full py-3 z-40 transition-transform duration-300",
+        "fixed bottom-0 bg-bg-white-0 border-t border-t-stroke-soft-200 flex flex-row justify-evenly items-center w-full py-3 z-40 transition-transform duration-300",
         isGarden || isWorkDetail || isAnyDrawerOpen ? "translate-y-full" : "translate-y-0"
       )}
     >
@@ -69,7 +69,7 @@ export const AppBar = () => {
                 "flex flex-col items-center",
                 isActive &&
                   "active tab-active text-primary focus:outline-hidden active-text-red-500",
-                !isActive && "text-slate-400"
+                !isActive && "text-text-soft-400"
               )}
               type="button"
             >

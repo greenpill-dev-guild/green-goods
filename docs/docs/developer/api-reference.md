@@ -435,13 +435,14 @@ response = requests.post(
 gardens = response.json()['data']['Garden']
 ```
 
-### React (with Urql)
+### React (with TanStack Query)
 
 **Query gardens from Envio indexer:**
 ```typescript
-import { useQuery } from 'urql';
+import { useQuery } from '@tanstack/react-query';
+import { request, gql } from 'graphql-request';
 
-const GARDENS_QUERY = `
+const GARDENS_QUERY = gql`
   query GardensByChain($chainId: Int!) {
     Garden(where: {chainId: {_eq: $chainId}}) {
       id
@@ -452,17 +453,21 @@ const GARDENS_QUERY = `
 `;
 
 function GardenList({ chainId }: { chainId: number }) {
-  const [result] = useQuery({ 
-    query: GARDENS_QUERY,
-    variables: { chainId }
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['gardens', chainId],
+    queryFn: () => request(
+      'https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql',
+      GARDENS_QUERY,
+      { chainId }
+    ),
   });
-  
-  if (result.fetching) return <div>Loading...</div>;
-  if (result.error) return <div>Error: {result.error.message}</div>;
-  
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+
   return (
     <ul>
-      {result.data.Garden.map(garden => (
+      {data.Garden.map(garden => (
         <li key={garden.id}>{garden.name}</li>
       ))}
     </ul>

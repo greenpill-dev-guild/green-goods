@@ -45,12 +45,12 @@ export const DraftCard: React.FC<DraftCardProps> = ({
       onClick={onResume}
       type="button"
       className={cn(
-        "flex items-stretch gap-0 border border-amber-200 rounded-lg overflow-hidden transition-all duration-300 cursor-pointer bg-amber-50/50 w-full text-left tap-feedback hover:border-amber-300 hover:bg-amber-50",
+        "flex items-stretch gap-0 border border-warning-light rounded-lg overflow-hidden transition-all duration-300 cursor-pointer bg-warning-lighter/50 w-full text-left tap-feedback hover:border-warning-base/40 hover:bg-warning-lighter",
         className
       )}
     >
       {/* Media thumbnail */}
-      <div className="w-22 flex-shrink-0 bg-amber-100 overflow-hidden relative aspect-square">
+      <div className="w-22 flex-shrink-0 bg-warning-light overflow-hidden relative aspect-square">
         {thumbUrl ? (
           <ImageWithFallback
             src={thumbUrl}
@@ -59,7 +59,7 @@ export const DraftCard: React.FC<DraftCardProps> = ({
             fallbackClassName="w-22 aspect-square"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-amber-400">
+          <div className="w-full h-full flex items-center justify-center text-warning-base">
             <RiDraftLine className="w-6 h-6" />
           </div>
         )}
@@ -69,17 +69,17 @@ export const DraftCard: React.FC<DraftCardProps> = ({
       <div className="flex-1 min-w-0 pl-2 pr-3 py-3">
         {/* Title row */}
         <div className="flex items-start justify-between">
-          <h4 className="font-medium text-sm text-slate-900 truncate pr-2">
+          <h4 className="font-medium text-sm text-text-strong-950 truncate pr-2">
             {actionTitle ||
               intl.formatMessage({ id: "app.draft.untitled", defaultMessage: "Untitled Draft" })}
           </h4>
-          <span className="text-xs font-medium px-2 py-0.5 rounded-full border flex-shrink-0 bg-amber-100 text-amber-700 border-amber-200">
+          <span className="text-xs font-medium px-2 py-0.5 rounded-full border flex-shrink-0 bg-warning-lighter text-warning-dark border-warning-light">
             {intl.formatMessage({ id: "app.draft.status", defaultMessage: "Draft" })}
           </span>
         </div>
 
         {/* Subtitle */}
-        <div className="mt-0.5 text-xs text-slate-600 truncate">
+        <div className="mt-0.5 text-xs text-text-sub-600 truncate">
           {gardenName && (
             <>
               {gardenName}
@@ -109,7 +109,7 @@ export const DraftCard: React.FC<DraftCardProps> = ({
           <button
             type="button"
             onClick={handleDelete}
-            className="p-1.5 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+            className="p-1.5 rounded-full text-text-soft-400 hover:text-error-base hover:bg-error-lighter transition-colors"
             aria-label={intl.formatMessage({
               id: "app.draft.delete",
               defaultMessage: "Delete draft",

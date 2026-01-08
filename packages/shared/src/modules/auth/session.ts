@@ -124,15 +124,3 @@ export function hasStoredPasskey(): boolean {
 export function clearStoredPasskey(): void {
   localStorage.removeItem(PASSKEY_STORAGE_KEY);
 }
-
-/** @deprecated Use getAuthMode instead */
-export const getSavedAuthMode = getAuthMode;
-
-/** @deprecated Use setAuthMode instead */
-export const saveAuthMode = setAuthMode;
-
-/** @deprecated Use hasStoredPasskey instead */
-export const hasStoredPasskeyCredential = hasStoredPasskey;
-
-/** @deprecated Use clearAllAuth instead */
-export const clearAllAuthStorage = clearAllAuth;

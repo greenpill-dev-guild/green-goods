@@ -22,13 +22,13 @@
     "reset": "./reset-indexer.sh"
   },
   "devDependencies": {
-    "@types/chai": "^4.3.11",
-    "@types/mocha": "10.0.6",
-    "@types/node": "20.8.8",
-    "chai": "4.3.10",
-    "mocha": "10.2.0",
+    "@types/chai": "^4.3.20",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^24.2.1",
+    "chai": "^4.5.0",
+    "mocha": "^10.8.2",
     "ts-mocha": "^10.0.0",
-    "typescript": "5.2.2"
+    "typescript": "^5.9.3"
   },
   "dependencies": {
     "@elastic/ecs-pino-format": "^1.5.0",

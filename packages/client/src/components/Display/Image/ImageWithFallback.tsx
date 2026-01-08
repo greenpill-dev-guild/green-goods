@@ -42,7 +42,7 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
     return (
       <div
         className={cn(
-          "flex items-center justify-center bg-slate-100 text-slate-400",
+          "flex items-center justify-center bg-bg-weak-50 text-text-soft-400",
           fallbackClassName,
           className
         )}
@@ -58,7 +58,7 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
       {isLoading && (
         <div
           className={cn(
-            "absolute inset-0 flex items-center justify-center bg-slate-100 animate-pulse",
+            "absolute inset-0 flex items-center justify-center bg-bg-weak-50 animate-pulse",
             className
           )}
         />

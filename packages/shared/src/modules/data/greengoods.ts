@@ -1,8 +1,8 @@
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { Capital } from "../../types/domain";
 import { greenGoodsGraphQL } from "./graphql";
+import { greenGoodsIndexer } from "./graphql-client";
 import { getFileByHash, resolveIPFSUrl } from "./ipfs";
-import { greenGoodsIndexer, withTimeout, INDEXER_TIMEOUT_MS } from "./urql";
 
 const GATEWAY_BASE_URL = "https://w3s.link";
 
@@ -29,11 +29,7 @@ export async function getActions(): Promise<Action[]> {
       }
     `);
 
-    const { data, error } = await withTimeout(
-      greenGoodsIndexer.query(QUERY, { chainId }).toPromise(),
-      INDEXER_TIMEOUT_MS,
-      "getActions"
-    );
+    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }, "getActions");
 
     if (error) {
       console.error("[getActions] Indexer query failed:", error.message);
@@ -129,11 +125,7 @@ export async function getGardens(): Promise<Garden[]> {
       }
     `);
 
-    const { data, error } = await withTimeout(
-      greenGoodsIndexer.query(QUERY, { chainId }).toPromise(),
-      INDEXER_TIMEOUT_MS,
-      "getGardens"
-    );
+    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }, "getGardens");
 
     if (error) {
       console.error("[getGardens] Indexer query failed:", error.message);
@@ -185,11 +177,7 @@ export async function getGardeners(): Promise<GardenerCard[]> {
       }
     `);
 
-    const { data, error } = await withTimeout(
-      greenGoodsIndexer.query(QUERY, { chainId }).toPromise(),
-      INDEXER_TIMEOUT_MS,
-      "getGardeners"
-    );
+    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }, "getGardeners");
 
     if (error) {
       console.error("[getGardeners] Indexer query failed:", error.message);

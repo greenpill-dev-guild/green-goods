@@ -24,6 +24,7 @@ export { useMerged } from "./app/useMerged";
 export { useNavigateToTop } from "./app/useNavigateToTop";
 export { useOffline } from "./app/useOffline";
 export { useTheme } from "./app/useTheme";
+export { useViewTransition, startViewTransition } from "./app/useViewTransition";
 export type { ToastActionOptions } from "./app/useToastAction";
 export { useToastAction } from "./app/useToastAction";
 
@@ -40,6 +41,7 @@ export { useGardenAssessments } from "./assessment/useGardenAssessments";
 export type { AuthContextType, AuthMode } from "./auth/useAuth";
 export { useAuth, useAuthContext } from "./auth/useAuth";
 export { useUser } from "./auth/useUser";
+export { useUserWithEns } from "./auth/useUserWithEns";
 
 // ============================================================================
 // BLOCKCHAIN
@@ -111,7 +113,7 @@ export { useScrollReveal } from "./ui/useScrollReveal";
 // ============================================================================
 export type { DraftWithImages, UseDraftsReturn } from "./work/useDrafts";
 export { useDrafts } from "./work/useDrafts";
-export { useMyMergedWorks, useMyOnlineWorks, useMyWorks } from "./work/useMyWorks";
+export { useMyOnlineWorks, useMyWorks } from "./work/useMyWorks";
 export { useWorkApproval } from "./work/useWorkApproval";
 export type { EnhancedWorkApproval } from "./work/useWorkApprovals";
 export { useWorkApprovals } from "./work/useWorkApprovals";

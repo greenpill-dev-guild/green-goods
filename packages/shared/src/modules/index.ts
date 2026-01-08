@@ -77,8 +77,6 @@ export {
   // Auth mode
   type AuthMode,
   clearAllAuth,
-  // Legacy aliases (deprecated)
-  clearAllAuthStorage,
   clearAuthMode,
   // Legacy (deprecated - credentials now on Pimlico server)
   clearStoredPasskey,
@@ -86,16 +84,13 @@ export {
   // Username (Pimlico server)
   clearStoredUsername,
   getAuthMode,
-  getSavedAuthMode,
   getStoredRpId,
   getStoredUsername,
   hasStoredPasskey,
-  hasStoredPasskeyCredential,
   hasStoredUsername,
   PASSKEY_STORAGE_KEY,
   // RP ID (Android passkey compatibility)
   RP_ID_STORAGE_KEY,
-  saveAuthMode,
   setAuthMode,
   setStoredRpId,
   setStoredUsername,
@@ -150,18 +145,19 @@ export {
 } from "./data/ipfs";
 
 // ============================================================================
-// DATA / URQL
+// DATA / GRAPHQL CLIENT
 // ============================================================================
 export {
   createEasClient,
-  createGreenGoodsIndexerClient,
   createIndexerClient,
   greenGoodsIndexer,
+  GQLClient,
   // Timeout utilities
   INDEXER_TIMEOUT_MS,
+  GRAPHQL_TIMEOUT_MS,
   TimeoutError,
   withTimeout,
-} from "./data/urql";
+} from "./data/graphql-client";
 
 // ============================================================================
 // JOB QUEUE

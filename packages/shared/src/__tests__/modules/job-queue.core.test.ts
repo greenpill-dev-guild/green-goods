@@ -7,6 +7,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // Ensure fake-indexeddb is loaded before job-queue module
 import "fake-indexeddb/auto";
 
+// Mock modules that pull in problematic dependencies (@walletconnect -> uint8arrays)
+vi.mock("../../config/appkit", () => ({
+  wagmiConfig: {},
+  appKit: null,
+}));
+
+vi.mock("@wagmi/core", () => ({
+  getPublicClient: vi.fn(() => ({
+    readContract: vi.fn(),
+  })),
+}));
+
 vi.mock("../../modules/app/posthog", () => ({
   track: vi.fn(),
 }));

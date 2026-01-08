@@ -668,8 +668,8 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
       <div
         className={cn(
           "padded pt-20",
-          effectiveStatus === "approved" && "bg-green-50/20",
-          effectiveStatus === "rejected" && "bg-red-50/20"
+          effectiveStatus === "approved" && "bg-success-lighter/40",
+          effectiveStatus === "rejected" && "bg-error-lighter/40"
         )}
       >
         {isMetadataLoading ? (

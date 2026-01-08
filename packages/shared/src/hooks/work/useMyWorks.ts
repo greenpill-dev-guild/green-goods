@@ -108,12 +108,3 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
 export function useMyOnlineWorks(options: Omit<UseMyWorksOptions, "includeOffline"> = {}) {
   return useMyWorks({ ...options, includeOffline: false });
 }
-
-/**
- * Hook for fetching merged online + offline works
- *
- * Convenience wrapper around useMyWorks with includeOffline=true.
- */
-export function useMyMergedWorks(options: Omit<UseMyWorksOptions, "includeOffline"> = {}) {
-  return useMyWorks({ ...options, includeOffline: true });
-}

@@ -64,12 +64,12 @@ const customStyles: StylesConfig = {
   }),
   placeholder: (provided) => ({
     ...provided,
-    color: "rgb(148 163 184)", // text-slate-400
+    color: "rgb(148 163 184)", // text-text-soft-400
     fontSize: "0.875rem",
   }),
   input: (provided) => ({
     ...provided,
-    color: "rgb(30 41 59)", // text-slate-800
+    color: "rgb(30 41 59)", // text-text-strong-950
     fontSize: "0.875rem",
   }),
   menu: (provided) => ({
@@ -115,7 +115,7 @@ const FormSelectComponent = forwardRef<HTMLSelectElement, FormSelectProps<any>>(
         defaultValue={[]}
         render={({ field }) => (
           <div className="flex flex-col gap-1">
-            <label htmlFor={name} className="font-semibold text-slate-800 text-label-sm">
+            <label htmlFor={name} className="font-semibold text-text-strong-950 text-label-sm">
               {label}
             </label>
             <Select
@@ -133,7 +133,7 @@ const FormSelectComponent = forwardRef<HTMLSelectElement, FormSelectProps<any>>(
               classNamePrefix="select"
             />
             {error && (
-              <p className="text-xs h-3 text-red-600" id={`${name}-helper-text`}>
+              <p className="text-xs h-3 text-error-base" id={`${name}-helper-text`}>
                 {error}
               </p>
             )}

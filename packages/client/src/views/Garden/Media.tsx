@@ -407,7 +407,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
               {/* Delete control */}
               <button
                 type="button"
-                className="flex items-center justify-center w-8 h-8 p-1 bg-white border border-stroke-sub-300 rounded-lg absolute top-2 right-2 z-10"
+                className="flex items-center justify-center w-8 h-8 p-1 bg-bg-white-0 border border-stroke-sub-300 rounded-lg absolute top-2 right-2 z-10"
                 onClick={(e) => {
                   e.stopPropagation();
                   removeImage(index);

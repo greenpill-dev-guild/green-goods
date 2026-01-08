@@ -112,7 +112,7 @@ Thank you to everyone who has contributed to Green Goods!
 - **[Zustand](https://zustand-demo.pmnd.rs)** - State management
 - **[React Hook Form](https://react-hook-form.com)** - Form handling
 - **[Zod](https://zod.dev)** - Schema validation
-- **[Urql](https://formidable.com/open-source/urql/)** - GraphQL client
+- **[graphql-request](https://github.com/jasonkuhrt/graphql-request)** - Lightweight GraphQL client
 
 ---
 

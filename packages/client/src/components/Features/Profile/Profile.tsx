@@ -45,7 +45,7 @@ export const Profile: React.FC<ProfileProps> = ({
           className="rounded-full w-24 h-24 object-cover"
         />
         {isLoadingAvatar && (
-          <div className="absolute inset-0 rounded-full bg-slate-200/80 animate-pulse backdrop-blur-sm" />
+          <div className="absolute inset-0 rounded-full bg-bg-soft-200/80 animate-pulse backdrop-blur-sm" />
         )}
       </div>
       <h5 className="font-semibold text-lg">{displayName}</h5>

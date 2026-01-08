@@ -62,7 +62,7 @@ The `useRole` hook automatically detects user permissions:
 - **Frontend**: React 18 + TypeScript + Vite
 - **Styling**: Tailwind CSS v4 + Radix UI
 - **State Management**: Zustand + XState workflows
-- **Data Fetching**: Urql (GraphQL) + subscriptions
+- **Data Fetching**: TanStack Query + graphql-request
 - **Blockchain**: Viem + Privy authentication
 - **Routing**: React Router v7
 - **Notifications**: React Hot Toast

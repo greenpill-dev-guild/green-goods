@@ -178,71 +178,29 @@ describe("hooks/garden/useAutoJoinRootGarden", () => {
     });
   });
 
-  describe("isGardener detection", () => {
-    it("detects existing gardener from indexer data", () => {
-      mockUseGardens.mockReturnValue({
-        data: [
-          createMockGarden({
-            id: "root-garden",
-            tokenID: BigInt(0),
-            gardeners: [MOCK_ADDRESSES.smartAccount],
-            operators: [],
-          }),
-        ],
-        isLoading: false,
-        isFetching: false,
-        refetch: vi.fn(),
-      });
-
-      const { result } = renderHook(() => useAutoJoinRootGarden(false), {
+  describe("hook initialization", () => {
+    it("returns rootGardenAddress from config", () => {
+      const { result } = renderHook(() => useAutoJoinRootGarden(), {
         wrapper: createWrapper(),
       });
 
-      expect(result.current.isGardener).toBe(true);
+      expect(result.current.rootGardenAddress).toBe("0xRootGarden123456789012345678901234567890");
     });
 
-    it("detects operator as member", () => {
-      mockUseGardens.mockReturnValue({
-        data: [
-          createMockGarden({
-            id: "root-garden",
-            tokenID: BigInt(0),
-            gardeners: [],
-            operators: [MOCK_ADDRESSES.smartAccount],
-          }),
-        ],
-        isLoading: false,
-        isFetching: false,
-        refetch: vi.fn(),
-      });
-
-      const { result } = renderHook(() => useAutoJoinRootGarden(false), {
+    it("provides joinGarden function", () => {
+      const { result } = renderHook(() => useAutoJoinRootGarden(), {
         wrapper: createWrapper(),
       });
 
-      expect(result.current.isGardener).toBe(true);
+      expect(typeof result.current.joinGarden).toBe("function");
     });
 
-    it("returns false when user is not a member", () => {
-      mockUseGardens.mockReturnValue({
-        data: [
-          createMockGarden({
-            id: "root-garden",
-            tokenID: BigInt(0),
-            gardeners: ["0xOtherAddress"],
-            operators: [],
-          }),
-        ],
-        isLoading: false,
-        isFetching: false,
-        refetch: vi.fn(),
-      });
-
-      const { result } = renderHook(() => useAutoJoinRootGarden(false), {
+    it("provides dismissPrompt function", () => {
+      const { result } = renderHook(() => useAutoJoinRootGarden(), {
         wrapper: createWrapper(),
       });
 
-      expect(result.current.isGardener).toBe(false);
+      expect(typeof result.current.dismissPrompt).toBe("function");
     });
   });
 
@@ -258,7 +216,7 @@ describe("hooks/garden/useAutoJoinRootGarden", () => {
         eoa: null,
       });
 
-      const { result } = renderHook(() => useAutoJoinRootGarden(false), {
+      const { result } = renderHook(() => useAutoJoinRootGarden(), {
         wrapper: createWrapper(),
       });
 
@@ -267,7 +225,7 @@ describe("hooks/garden/useAutoJoinRootGarden", () => {
       });
 
       expect(mockClient.sendTransaction).toHaveBeenCalled();
-      expect(result.current.isGardener).toBe(true);
+      // Verify localStorage is updated with onboarding keys
       expect(localStorageMock.setItem).toHaveBeenCalled();
     });
 
@@ -282,39 +240,35 @@ describe("hooks/garden/useAutoJoinRootGarden", () => {
         eoa: null,
       });
 
-      const { result } = renderHook(() => useAutoJoinRootGarden(false), {
+      const { result } = renderHook(() => useAutoJoinRootGarden(), {
         wrapper: createWrapper(),
       });
 
+      // Should not throw - AlreadyGardener is handled gracefully
       await act(async () => {
         await result.current.joinGarden();
       });
 
-      // Should not throw, should set isGardener
-      expect(result.current.isGardener).toBe(true);
+      // Should mark as onboarded even when already a gardener
+      expect(localStorageMock.setItem).toHaveBeenCalled();
     });
   });
 
   describe("Loading states", () => {
-    it("shows loading when gardens are loading", () => {
-      mockUseGardens.mockReturnValue({
-        data: [],
-        isLoading: true,
-        isFetching: false,
-        refetch: vi.fn(),
-      });
-
-      const { result } = renderHook(() => useAutoJoinRootGarden(false), {
+    it("starts with isLoading false when not pending", () => {
+      const { result } = renderHook(() => useAutoJoinRootGarden(), {
         wrapper: createWrapper(),
       });
 
-      expect(result.current.isLoading).toBe(true);
+      // isLoading is derived from internal state and isPending
+      // Initially should be false when no operation is in progress
+      expect(result.current.isLoading).toBe(false);
     });
   });
 
   describe("dismissPrompt", () => {
-    it("sets localStorage flag and updates state", () => {
-      const { result } = renderHook(() => useAutoJoinRootGarden(false), {
+    it("sets localStorage flag with correct key", () => {
+      const { result } = renderHook(() => useAutoJoinRootGarden(), {
         wrapper: createWrapper(),
       });
 
@@ -322,9 +276,11 @@ describe("hooks/garden/useAutoJoinRootGarden", () => {
         result.current.dismissPrompt();
       });
 
-      expect(localStorageMock.setItem).toHaveBeenCalledWith("rootGardenPrompted", "true");
-      expect(result.current.showPrompt).toBe(false);
-      expect(result.current.hasPrompted).toBe(true);
+      // Uses the updated key from the hook implementation
+      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+        "greengoods_root_garden_prompted",
+        "true"
+      );
     });
   });
 });

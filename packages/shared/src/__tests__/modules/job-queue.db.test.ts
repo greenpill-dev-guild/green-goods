@@ -1,8 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 
-// Use real idb with fake-indexeddb provided in setupTests
+// Ensure fake-indexeddb is loaded before job-queue module
+import "fake-indexeddb/auto";
 
-import { jobQueueDB } from "../../modules/job-queue";
+// Import directly from db.ts to avoid EAS SDK dependency chain
+import { jobQueueDB } from "../../modules/job-queue/db";
 
 // Test user address for scoped queue operations
 const TEST_USER_ADDRESS = "0xTestUser123";

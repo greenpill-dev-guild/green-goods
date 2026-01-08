@@ -174,7 +174,7 @@ Operator and admin interface.
 
 **Tech Stack**:
 - React 18 + TypeScript + Vite
-- Urql (GraphQL) + XState + Zustand
+- TanStack Query + graphql-request + XState + Zustand
 - Tailwind CSS v4 + Radix UI
 
 [Admin Package Docs →](../developer/architecture/admin-package)
@@ -445,21 +445,22 @@ Build external tools using the GraphQL API:
 
 ```typescript
 // Example: Impact dashboard
-import { createClient } from 'urql';
+import { request, gql } from 'graphql-request';
 
-const client = createClient({
-  url: 'https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql',
-});
+const ENDPOINT = 'https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql';
 
-// Real-time subscription to new approvals
-client.subscription(`
-  subscription {
+const APPROVED_WORK_QUERY = gql`
+  query ApprovedWork {
     WorkApproval(where: {approved: {_eq: true}}) {
       id
       work { title }
     }
   }
-`).subscribe(console.log);
+`;
+
+// Query approved work
+const data = await request(ENDPOINT, APPROVED_WORK_QUERY);
+console.log(data.WorkApproval);
 ```
 
 ---

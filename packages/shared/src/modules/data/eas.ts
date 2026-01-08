@@ -1,7 +1,7 @@
 import { getEASConfig } from "../../config/blockchain";
 import { easGraphQL } from "./graphql";
+import { createEasClient } from "./graphql-client";
 import { resolveIPFSUrl } from "./ipfs";
-import { createEasClient, withTimeout, INDEXER_TIMEOUT_MS } from "./urql";
 import type {
   EASAttestationRaw,
   EASDecodedField,
@@ -222,22 +222,20 @@ export const getGardenAssessments = async (
   const schemaId = { equals: easConfig.GARDEN_ASSESSMENT.uid };
   const client = createEasClient(chainId);
 
-  const { data, error } = await withTimeout(
-    client
-      .query(QUERY, {
-        where: gardenAddress
-          ? {
-              schemaId,
-              recipient: { equals: gardenAddress },
-              revoked: { equals: false },
-            }
-          : {
-              schemaId,
-              revoked: { equals: false },
-            },
-      })
-      .toPromise(),
-    INDEXER_TIMEOUT_MS,
+  const { data, error } = await client.query(
+    QUERY,
+    {
+      where: gardenAddress
+        ? {
+            schemaId,
+            recipient: { equals: gardenAddress },
+            revoked: { equals: false },
+          }
+        : {
+            schemaId,
+            revoked: { equals: false },
+          },
+    },
     "getGardenAssessments"
   );
 
@@ -304,11 +302,7 @@ export const getWorks = async (
     ...(recipientCondition ? { recipient: recipientCondition } : {}),
   };
 
-  const { data, error } = await withTimeout(
-    client.query(QUERY, { where }).toPromise(),
-    INDEXER_TIMEOUT_MS,
-    "getWorks"
-  );
+  const { data, error } = await client.query(QUERY, { where }, "getWorks");
 
   if (error) {
     throw new EASFetchError(`Failed to fetch works: ${error.message}`, "getWorks", error);
@@ -346,17 +340,15 @@ export const getWorksByGardener = async (
   const easConfig = getEASConfig(chainId);
   const client = createEasClient(chainId);
 
-  const { data, error } = await withTimeout(
-    client
-      .query(QUERY, {
-        where: {
-          schemaId: { equals: easConfig.WORK.uid },
-          attester: { equals: gardenerAddress },
-          revoked: { equals: false },
-        },
-      })
-      .toPromise(),
-    INDEXER_TIMEOUT_MS,
+  const { data, error } = await client.query(
+    QUERY,
+    {
+      where: {
+        schemaId: { equals: easConfig.WORK.uid },
+        attester: { equals: gardenerAddress },
+        revoked: { equals: false },
+      },
+    },
     "getWorksByGardener"
   );
 
@@ -399,22 +391,20 @@ export const getWorkApprovals = async (
   const schemaId = { equals: easConfig.WORK_APPROVAL.uid };
   const client = createEasClient(chainId);
 
-  const { data, error } = await withTimeout(
-    client
-      .query(QUERY, {
-        where: gardenerAddress
-          ? {
-              schemaId,
-              recipient: { equals: gardenerAddress },
-              revoked: { equals: false },
-            }
-          : {
-              schemaId,
-              revoked: { equals: false },
-            },
-      })
-      .toPromise(),
-    INDEXER_TIMEOUT_MS,
+  const { data, error } = await client.query(
+    QUERY,
+    {
+      where: gardenerAddress
+        ? {
+            schemaId,
+            recipient: { equals: gardenerAddress },
+            revoked: { equals: false },
+          }
+        : {
+            schemaId,
+            revoked: { equals: false },
+          },
+    },
     "getWorkApprovals"
   );
 

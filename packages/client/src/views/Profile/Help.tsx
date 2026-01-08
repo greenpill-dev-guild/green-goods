@@ -79,7 +79,7 @@ export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
 
   return (
     <>
-      <h5 className="text-label-md text-slate-900">
+      <h5 className="text-label-md text-text-strong-950">
         {intl.formatMessage({ id: "app.profile.help.getInTouch" })}
       </h5>
       {socials.map((social) => (
@@ -94,7 +94,7 @@ export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
 
               <div className="flex-1">
                 <div className="text-base">{social.title}</div>
-                <div className="text-xs text-slate-600">{social.description}</div>
+                <div className="text-xs text-text-sub-600">{social.description}</div>
               </div>
               <div className="flex text-right">
                 <RiArrowDropRightLine />
@@ -114,7 +114,7 @@ export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
 
             <div className="flex-1">
               <div className="text-base">Onboarding Form</div>
-              <div className="text-xs text-slate-600">Takes ~10 minutes to complete</div>
+              <div className="text-xs text-text-sub-600">Takes ~10 minutes to complete</div>
             </div>
             <div className="flex text-right">
               <RiArrowDropRightLine />
@@ -122,7 +122,7 @@ export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
           </div>
         </FlexCard>
       </a>
-      <h5 className="text-label-md text-slate-900">
+      <h5 className="text-label-md text-text-strong-950">
         {intl.formatMessage({ id: "app.profile.help.questions" })}
       </h5>
       <Faq>
