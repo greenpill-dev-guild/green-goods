@@ -65,7 +65,12 @@
   "devDependencies": {
     "@formatjs/cli": "^6.7.1",
     "@types/browser-lang": "0.1.2",
+    "@vitejs/plugin-react": "^5.1.2",
+    "babel-plugin-react-compiler": "^1.0.0",
+    "dotenv-expand": "11.0.6",
     "typescript": "^5.9.3",
+    "vite": "^7.3.0",
+    "vite-plugin-mkcert": "^1.17.8",
     "vite-plugin-pwa": "^1.0.2",
     "workbox-build": "^7.3.0",
     "workbox-window": "^7.3.0"
