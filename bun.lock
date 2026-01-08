@@ -108,6 +108,7 @@
         "zustand": "^5.0.6",
       },
       "devDependencies": {
+        "typescript": "^5.9.3",
         "vitest-mock-extended": "^3.1.0",
       },
     },
@@ -191,6 +192,7 @@
       "devDependencies": {
         "@formatjs/cli": "^6.7.1",
         "@types/browser-lang": "0.1.2",
+        "typescript": "^5.9.3",
         "vite-plugin-pwa": "^1.0.2",
         "workbox-build": "^7.3.0",
         "workbox-window": "^7.3.0",
