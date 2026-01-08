@@ -52,7 +52,12 @@ function getPendingJoins(): Record<string, { address: string; timestamp: number 
   }
 }
 
-function addPendingJoin(gardenId: string, userAddress: string) {
+/**
+ * Store a pending join for immediate UI feedback.
+ * Used when joining a garden but before the indexer has processed the event.
+ * Exported for use by useAutoJoinRootGarden hook.
+ */
+export function addPendingJoin(gardenId: string, userAddress: string) {
   if (typeof window === "undefined") return;
   const pending = getPendingJoins();
   pending[gardenId] = { address: userAddress, timestamp: Date.now() };

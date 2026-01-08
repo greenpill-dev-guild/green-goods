@@ -22,6 +22,7 @@ import { simulateJoinGarden } from "../../utils/contract/simulation";
 import { isAlreadyGardenerError } from "../../utils/errors/contract-errors";
 import { useUser } from "../auth/useUser";
 import { useGardens } from "../blockchain/useBaseLists";
+import { addPendingJoin } from "./useJoinGarden";
 import { queryInvalidation, queryKeys } from "../query-keys";
 
 const ROOT_GARDEN_PROMPTED_KEY = "rootGardenPrompted";
@@ -263,6 +264,9 @@ export function useAutoJoinRootGarden(autoJoin = false) {
       try {
         await executeJoin(gardenId, sessionOverride);
 
+        // Store pending join for immediate UI feedback (before indexer processes event)
+        addPendingJoin(gardenId, targetAddress);
+
         // Set appropriate localStorage flags
         localStorage.setItem(ROOT_GARDEN_PROMPTED_KEY, "true");
         const onboardKey = getOnboardedKey(targetAddress);
@@ -312,6 +316,9 @@ export function useAutoJoinRootGarden(autoJoin = false) {
       } catch (error) {
         // Special handling for AlreadyGardener error - not actually an error
         if (isAlreadyGardenerError(error)) {
+          // Store pending join for immediate UI feedback
+          addPendingJoin(gardenId, targetAddress);
+
           localStorage.setItem(ROOT_GARDEN_PROMPTED_KEY, "true");
           const onboardKey = getOnboardedKey(targetAddress);
           localStorage.setItem(onboardKey, "true");

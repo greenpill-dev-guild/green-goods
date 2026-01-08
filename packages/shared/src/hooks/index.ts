@@ -60,6 +60,7 @@ export type { GardenPermissions } from "./garden/useGardenPermissions";
 export { useGardenPermissions } from "./garden/useGardenPermissions";
 export { GardenTab, useGardenTabs } from "./garden/useGardenTabs";
 export {
+  addPendingJoin,
   checkGardenOpenJoining,
   isGardenMember,
   useJoinGarden,
