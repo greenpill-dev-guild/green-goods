@@ -12,10 +12,7 @@
 
   // Security: Enable network administration for firewall
   // Required for init-firewall.sh to configure iptables rules
-  "runArgs": [
-    "--cap-add=NET_ADMIN",
-    "--cap-add=NET_RAW"
-  ],
+  "runArgs": ["--cap-add=NET_ADMIN", "--cap-add=NET_RAW"],
 
   // Docker-outside-of-docker: allows indexer (Envio) to run Docker containers
   "features": {
@@ -23,14 +20,7 @@
   },
 
   // Forward all dev server ports
-  "forwardPorts": [
-    3000,
-    3001,
-    3002,
-    8080,
-    8545,
-    9898
-  ],
+  "forwardPorts": [3000, 3001, 3002, 8080, 8545, 9898],
   "portsAttributes": {
     "3000": { "label": "Agent API" },
     "3001": { "label": "Client PWA" },
