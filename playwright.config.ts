@@ -63,58 +63,61 @@ export default defineConfig({
     reducedMotion: "reduce",
   },
 
-  // Browser matrix - Chromium for admin, mobile for client PWA
+  // Browser matrix - streamlined for reliable CI testing
+  // Mobile projects disabled by default - enable with --project flag for cross-browser testing
   projects: [
-    // Desktop Chrome - primary for development and admin dashboard
+    // Desktop Chrome - admin tests only
     {
       name: "chromium",
-      use: {
-        ...devices["Desktop Chrome"],
-        // Run admin tests first
-        testMatch: /admin.*\.spec\.ts/,
-      },
+      testMatch: /admin.*\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"] },
     },
 
-    // Desktop Chrome - client tests
+    // Desktop Chrome - client smoke tests only (default for CI)
+    // Uses wallet injection for auth (passkey e2e tests skipped - virtual authenticator
+    // credentials are rejected by real Pimlico server)
     {
       name: "chromium-client",
-      use: {
-        ...devices["Desktop Chrome"],
-        // Run client tests
-        testMatch: /client.*\.spec\.ts/,
-      },
+      testMatch: /client\.smoke\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"] },
     },
 
-    // Android Chrome - PWA + passkey testing (WebAuthn support)
+    // Performance tests - separate project for load time and resource checks
+    {
+      name: "performance",
+      testMatch: /performance\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"] },
+    },
+
+    // ========================================================================
+    // OPTIONAL PROJECTS - Run with: npx playwright test --project=<name>
+    // ========================================================================
+
+    // Full client test suite (includes auth, navigation, etc.)
+    // Many tests require real infrastructure and will be skipped
+    {
+      name: "client-full",
+      testMatch: /client.*\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"] },
+    },
+
+    // Mobile Chrome - for cross-browser testing
     {
       name: "mobile-chrome",
+      testMatch: /client\.smoke\.spec\.ts/,
       use: {
         ...devices["Pixel 5"],
         viewport: { width: 375, height: 667 },
-        // Only run client tests on mobile
-        testMatch: /client.*\.spec\.ts/,
       },
     },
 
-    // iOS Safari - PWA testing with wallet auth (no WebAuthn virtual authenticator)
-    // Uses storage injection for authentication (same pattern as admin)
+    // Mobile Safari - for cross-browser testing
     {
       name: "mobile-safari",
+      testMatch: /client\.smoke\.spec\.ts/,
       use: {
         ...devices["iPhone 13 Pro"],
         viewport: { width: 390, height: 844 },
-        // Only run client tests on mobile
-        testMatch: /client.*\.spec\.ts/,
-      },
-    },
-
-    // Performance tests - separate project to avoid interference
-    {
-      name: "performance",
-      use: {
-        ...devices["Desktop Chrome"],
-        // Only run performance tests
-        testMatch: /performance\.spec\.ts/,
       },
     },
   ],

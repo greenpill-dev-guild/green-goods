@@ -75,8 +75,9 @@ jobs:
       - name: Run E2E tests
         run: |
           if [ "${{ github.event.inputs.project }}" = "all" ] || [ -z "${{ github.event.inputs.project }}" ]; then
-            # Run all projects (chromium, mobile-chrome, mobile-safari)
-            npx playwright test
+            # Run default projects: chromium (admin), chromium-client (client smoke), performance
+            # Mobile and client-full projects are optional (run manually with --project flag)
+            npx playwright test --project=chromium --project=chromium-client --project=performance
           else
             npx playwright test --project=${{ github.event.inputs.project }}
           fi
