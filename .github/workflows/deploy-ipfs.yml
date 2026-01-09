@@ -132,8 +132,8 @@ jobs:
           fi
           echo "✅ Storacha credentials validated"
 
-      # Deploy to Storacha using @storacha/cli (replaces deprecated @web3-storage/w3cli)
-      # This handles both CID generation and upload in one step
+      # Deploy to Storacha using @storacha/cli
+      # The proof is multibase-encoded (prefix 'm' = base64pad) - decode to temp file for CLI
       - name: Deploy to Storacha
         id: storacha
         env:
@@ -145,18 +145,22 @@ jobs:
           npm install -g @storacha/cli
 
           echo "🔑 Adding space from delegation proof..."
-          storacha space add "$STORACHA_PROOF"
+          # Proof is multibase-encoded (m prefix = base64pad) - write to temp file
+          PROOF_FILE=$(mktemp --suffix=.ucan)
+          echo "${STORACHA_PROOF:1}" | base64 -d > "$PROOF_FILE"
+          storacha space add "$PROOF_FILE"
+          rm -f "$PROOF_FILE"
 
           echo "🚀 Uploading to Storacha..."
           UPLOAD_OUTPUT=$(storacha up "$DIST_PATH" 2>&1)
           echo "$UPLOAD_OUTPUT"
 
-          # Extract CID from output (format: https://bafyXXX.ipfs.w3s.link or just the CID)
+          # Extract CID from output
           CID=$(echo "$UPLOAD_OUTPUT" | grep -oE 'bafy[a-zA-Z0-9]+' | head -1)
 
           if [[ -z "$CID" ]]; then
-            echo "::error::Failed to extract CID from Storacha upload output"
-            echo "Upload output was: $UPLOAD_OUTPUT"
+            echo "::error::Failed to get CID from Storacha upload"
+            echo "Output: $UPLOAD_OUTPUT"
             exit 1
           fi
 
