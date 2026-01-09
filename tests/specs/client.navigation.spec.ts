@@ -51,7 +51,10 @@ test.describe("Client Navigation", () => {
       // Test navigation to various routes
       const routes = [
         { path: "/home", selector: "body" },
-        { path: "/profile", selector: '[data-testid="profile-page"], h1:has-text("Profile"), body' },
+        {
+          path: "/profile",
+          selector: '[data-testid="profile-page"], h1:has-text("Profile"), body',
+        },
       ];
 
       for (const route of routes) {
@@ -62,12 +65,14 @@ test.describe("Client Navigation", () => {
         const currentUrl = page.url();
         if (!currentUrl.includes("/login")) {
           // Page content should load
-          await expect(page.locator(route.selector.split(", ")[0]).first()).toBeVisible({
-            timeout: TIMEOUTS.elementVisible,
-          }).catch(() => {
-            // Fallback - just verify page loaded
-            expect(page.locator("body")).toBeTruthy();
-          });
+          await expect(page.locator(route.selector.split(", ")[0]).first())
+            .toBeVisible({
+              timeout: TIMEOUTS.elementVisible,
+            })
+            .catch(() => {
+              // Fallback - just verify page loaded
+              expect(page.locator("body")).toBeTruthy();
+            });
         }
       }
     });
@@ -100,9 +105,7 @@ test.describe("Client Navigation", () => {
       }
 
       // Look for hamburger menu on mobile
-      const menuButton = page.locator(
-        'button[aria-label="Menu"], button[aria-label="Open menu"]'
-      );
+      const menuButton = page.locator('button[aria-label="Menu"], button[aria-label="Open menu"]');
       if (await menuButton.isVisible({ timeout: TIMEOUTS.shortWait }).catch(() => false)) {
         await menuButton.click();
         await page.waitForTimeout(TIMEOUTS.shortWait);
