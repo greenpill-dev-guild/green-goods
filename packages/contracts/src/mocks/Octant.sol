@@ -2,7 +2,7 @@
 // solhint-disable one-contract-per-file
 pragma solidity ^0.8.25;
 
-import {IOctantFactory, IOctantVault} from "../interfaces/IOctantFactory.sol";
+import { IOctantFactory, IOctantVault } from "../interfaces/IOctantFactory.sol";
 
 /// @title MockOctantFactory
 /// @notice Mock implementation of Octant factory for testing
@@ -17,7 +17,11 @@ contract MockOctantFactory is IOctantFactory {
         string memory symbol,
         address roleManager,
         uint256 profitMaxUnlockTime
-    ) external override returns (address vault) {
+    )
+        external
+        override
+        returns (address vault)
+    {
         vaultCount++;
         vault = address(new MockOctantVault(asset, _name, symbol, roleManager, profitMaxUnlockTime));
         deployedVaults[roleManager] = vault;

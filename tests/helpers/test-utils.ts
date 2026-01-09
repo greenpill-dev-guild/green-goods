@@ -482,9 +482,19 @@ export class ClientTestHelper {
  *
  * Uses storage injection to simulate authenticated state
  * (light auth path - doesn't require actual wallet extension).
+ *
+ * NOTE: For multi-tab tests, use the context parameter to ensure
+ * the init script applies to all pages in the context.
  */
 export class AdminTestHelper {
-  constructor(public page: Page) {}
+  private context?: BrowserContext;
+
+  constructor(
+    public page: Page,
+    context?: BrowserContext
+  ) {
+    this.context = context;
+  }
 
   /**
    * Inject authenticated wallet state into localStorage.
@@ -492,41 +502,90 @@ export class AdminTestHelper {
    * This simulates a connected wallet by setting the auth storage
    * that the app checks on load.
    *
+   * IMPORTANT: This sets localStorage via addInitScript which runs before
+   * page load. However, wagmi still needs to verify the connection with
+   * an actual connector. In CI without a real wallet, the app may redirect
+   * to login. Use waitForAuthSettled() after navigation to handle this.
+   *
    * @param address - Wallet address to simulate (defaults to test address)
    */
   async injectWalletAuth(address: string = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266") {
-    await this.page.addInitScript(
-      ({ address, authModeKey }) => {
-        // Set auth mode to wallet
-        localStorage.setItem(authModeKey, "wallet");
+    const initScript = ({ address, authModeKey }: { address: string; authModeKey: string }) => {
+      // Set auth mode to wallet
+      localStorage.setItem(authModeKey, "wallet");
 
-        // Mock wagmi storage (used by Reown AppKit)
-        // This tells wagmi there's a connected account
-        const wagmiState = {
-          state: {
-            connections: {
-              __type: "Map",
-              value: [
-                [
-                  "mock",
-                  {
-                    accounts: [address],
-                    chainId: 84532, // Base Sepolia
-                  },
-                ],
+      // Mock wagmi storage (used by Reown AppKit)
+      // This tells wagmi there's a connected account
+      const wagmiState = {
+        state: {
+          connections: {
+            __type: "Map",
+            value: [
+              [
+                "mock",
+                {
+                  accounts: [address],
+                  chainId: 84532, // Base Sepolia
+                },
               ],
-            },
-            current: "mock",
+            ],
           },
-        };
-        localStorage.setItem("wagmi.store", JSON.stringify(wagmiState));
+          current: "mock",
+        },
+      };
+      localStorage.setItem("wagmi.store", JSON.stringify(wagmiState));
 
-        // Also set reown/appkit state
-        localStorage.setItem("@w3m/connected_connector", '"mock"');
-        localStorage.setItem("@w3m/active_caip_network_id", '"eip155:84532"');
-      },
-      { address, authModeKey: AUTH_STORAGE_KEYS.authMode }
-    );
+      // Also set reown/appkit state
+      localStorage.setItem("@w3m/connected_connector", '"mock"');
+      localStorage.setItem("@w3m/active_caip_network_id", '"eip155:84532"');
+
+      // Set a marker so we can detect if injection worked
+      localStorage.setItem("__test_auth_injected", "true");
+    };
+
+    const scriptArgs = { address, authModeKey: AUTH_STORAGE_KEYS.authMode };
+
+    // Use context.addInitScript if context is available (for multi-tab support)
+    // Otherwise fall back to page.addInitScript
+    if (this.context) {
+      await this.context.addInitScript(initScript, scriptArgs);
+    } else {
+      await this.page.addInitScript(initScript, scriptArgs);
+    }
+  }
+
+  /**
+   * Wait for auth state to settle after navigation.
+   *
+   * In E2E tests with mocked wallet state, auth may not fully work
+   * due to wagmi needing actual wallet connections. This method waits
+   * for auth to settle and returns whether auth succeeded.
+   *
+   * @param options - Configuration options
+   * @returns true if authenticated, false if redirected to login
+   */
+  async waitForAuthSettled(options: { timeout?: number } = {}): Promise<boolean> {
+    const { timeout = 10000 } = options;
+
+    try {
+      // Wait for either authenticated UI OR login redirect
+      await Promise.race([
+        // Success case: nav element appears (authenticated)
+        this.page.waitForSelector('nav, aside, [data-testid="sidebar"], [role="navigation"]', {
+          state: "visible",
+          timeout,
+        }),
+        // Failure case: redirected to login
+        this.page.waitForURL(/\/login/, { timeout }),
+      ]);
+
+      // Check final state
+      const url = this.page.url();
+      return url.includes("/dashboard") || url.includes("/gardens") || url.includes("/actions");
+    } catch {
+      // Timeout - check where we ended up
+      return !this.page.url().includes("/login");
+    }
   }
 
   /**
