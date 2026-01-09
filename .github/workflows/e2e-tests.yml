@@ -40,8 +40,25 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Install Envio CLI
+        run: npm install -g envio
+
+      - name: Setup indexer (codegen + build)
+        run: |
+          cd packages/indexer
+          bun run codegen
+          bun run setup-generated
+
+      - name: Verify Docker is running
+        run: docker ps
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium webkit
@@ -101,8 +118,25 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Install Envio CLI
+        run: npm install -g envio
+
+      - name: Setup indexer (codegen + build)
+        run: |
+          cd packages/indexer
+          bun run codegen
+          bun run setup-generated
+
+      - name: Verify Docker is running
+        run: docker ps
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
@@ -112,8 +146,8 @@ jobs:
         env:
           VITE_USE_HASH_ROUTER: "true"
           VITE_CHAIN_ID: "84532"
-          VITE_WALLETCONNECT_PROJECT_ID: "test"
-          VITE_PIMLICO_API_KEY: "test"
+          VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID || 'test' }}
+          VITE_PIMLICO_API_KEY: ${{ secrets.VITE_PIMLICO_API_KEY || 'test' }}
           VITE_ENVIO_INDEXER_URL: "http://localhost:8080"
 
       - name: Run smoke tests

@@ -44,6 +44,42 @@ export interface PasskeyServerClient {
 }
 
 // ============================================================================
+// TIMEOUT CONFIGURATION
+// ============================================================================
+
+/**
+ * Default timeout for Pimlico server RPC calls (in milliseconds)
+ * Passkey operations can take time due to user interaction, so we set a reasonable limit
+ */
+const PIMLICO_RPC_TIMEOUT = 15_000; // 15 seconds
+
+/**
+ * Custom error class for Pimlico server timeouts
+ */
+export class PimlicoTimeoutError extends Error {
+  constructor(method: string, timeoutMs: number) {
+    super(
+      `Pimlico server request timed out after ${timeoutMs / 1000}s (method: ${method}). ` +
+        "This may indicate an invalid API key or network issues."
+    );
+    this.name = "PimlicoTimeoutError";
+  }
+}
+
+/**
+ * Custom error class for Pimlico server errors
+ */
+export class PimlicoServerError extends Error {
+  code: number;
+
+  constructor(message: string, code: number) {
+    super(message);
+    this.name = "PimlicoServerError";
+    this.code = code;
+  }
+}
+
+// ============================================================================
 // JSON-RPC CLIENT
 // ============================================================================
 
@@ -57,29 +93,69 @@ interface JsonRpcResponse<T> {
   };
 }
 
-async function jsonRpcCall<T>(baseUrl: string, method: string, params: unknown[]): Promise<T> {
-  const response = await fetch(baseUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: Date.now(),
-      method,
-      params,
-    }),
-  });
+/**
+ * Make a JSON-RPC call to Pimlico server with timeout handling
+ *
+ * @param baseUrl - Pimlico API endpoint URL
+ * @param method - RPC method name (e.g., pks_startRegistration)
+ * @param params - Method parameters
+ * @param timeoutMs - Request timeout in milliseconds (default: 15s)
+ */
+async function jsonRpcCall<T>(
+  baseUrl: string,
+  method: string,
+  params: unknown[],
+  timeoutMs: number = PIMLICO_RPC_TIMEOUT
+): Promise<T> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (!response.ok) {
-    throw new Error(`HTTP error: ${response.status} ${response.statusText}`);
+  try {
+    const response = await fetch(baseUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: Date.now(),
+        method,
+        params,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      // Handle common HTTP errors with helpful messages
+      if (response.status === 401 || response.status === 403) {
+        throw new PimlicoServerError(
+          "Invalid or missing Pimlico API key. Please check your VITE_PIMLICO_API_KEY configuration.",
+          response.status
+        );
+      }
+      throw new PimlicoServerError(
+        `HTTP error: ${response.status} ${response.statusText}`,
+        response.status
+      );
+    }
+
+    const data = (await response.json()) as JsonRpcResponse<T>;
+
+    if (data.error) {
+      throw new PimlicoServerError(
+        data.error.message || `RPC error: ${data.error.code}`,
+        data.error.code
+      );
+    }
+
+    return data.result as T;
+  } catch (error) {
+    // Handle abort (timeout)
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new PimlicoTimeoutError(method, timeoutMs);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  const data = (await response.json()) as JsonRpcResponse<T>;
-
-  if (data.error) {
-    throw new Error(data.error.message || `RPC error: ${data.error.code}`);
-  }
-
-  return data.result as T;
 }
 
 // ============================================================================
