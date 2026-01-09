@@ -62,7 +62,7 @@ jobs:
             staging_dnslink_name: _dnslink.admin-staging
 
     outputs:
-      cid: ${{ steps.ipfs.outputs.cid }}
+      cid: ${{ steps.storacha.outputs.cid }}
 
     steps:
       - name: Checkout
@@ -72,6 +72,11 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       - name: Restore Bun cache
         uses: actions/cache@v4
@@ -117,7 +122,6 @@ jobs:
           STORACHA_KEY: ${{ secrets.VITE_STORACHA_KEY }}
           STORACHA_PROOF: ${{ secrets.VITE_STORACHA_PROOF }}
         run: |
-          # Check that credentials are set
           if [[ -z "$STORACHA_KEY" ]]; then
             echo "::error::VITE_STORACHA_KEY secret is not set"
             exit 1
@@ -128,30 +132,14 @@ jobs:
           fi
           echo "✅ Storacha credentials validated"
 
-      # Use the action for CAR creation, CID generation, and optional Pinata upload
-      # Storacha upload is handled separately due to CLI migration from w3cli to @storacha/cli
-      # The action uses built-in Kubo for CAR creation, so it works even without Pinata
-      - name: Create CAR and generate CID
-        id: ipfs
-        uses: ipshipyard/ipfs-deploy-action@v1.7.0
-        with:
-          path-to-deploy: ${{ matrix.dist }}
-          # Optional: Pinata for fast gateway access and redundancy
-          # If PINATA_JWT is not set, the action still works (uses Kubo for CAR/CID)
-          pinata-jwt-token: ${{ secrets.PINATA_JWT }}
-          # PR features (comments, commit status)
-          github-token: ${{ github.token }}
-
-      # Upload to Storacha using the new @storacha/cli
-      # The ipfs-deploy-action uses deprecated @web3-storage/w3cli which doesn't
-      # support the new CAR-encoded proof format
-      - name: Upload to Storacha
+      # Deploy to Storacha using @storacha/cli (replaces deprecated @web3-storage/w3cli)
+      # This handles both CID generation and upload in one step
+      - name: Deploy to Storacha
         id: storacha
         env:
           STORACHA_PRINCIPAL: ${{ secrets.VITE_STORACHA_KEY }}
           STORACHA_PROOF: ${{ secrets.VITE_STORACHA_PROOF }}
           DIST_PATH: ${{ matrix.dist }}
-          EXPECTED_CID: ${{ steps.ipfs.outputs.cid }}
         run: |
           echo "📦 Installing @storacha/cli..."
           npm install -g @storacha/cli
@@ -163,34 +151,119 @@ jobs:
           UPLOAD_OUTPUT=$(storacha up "$DIST_PATH" 2>&1)
           echo "$UPLOAD_OUTPUT"
 
-          # Extract CID from output (storacha up outputs the root CID)
-          STORACHA_CID=$(echo "$UPLOAD_OUTPUT" | grep -oE 'bafy[a-zA-Z0-9]+' | head -1)
+          # Extract CID from output (format: https://bafyXXX.ipfs.w3s.link or just the CID)
+          CID=$(echo "$UPLOAD_OUTPUT" | grep -oE 'bafy[a-zA-Z0-9]+' | head -1)
 
-          if [[ -z "$STORACHA_CID" ]]; then
-            echo "::error::Failed to extract CID from Storacha upload"
+          if [[ -z "$CID" ]]; then
+            echo "::error::Failed to extract CID from Storacha upload output"
+            echo "Upload output was: $UPLOAD_OUTPUT"
             exit 1
           fi
 
-          echo "storacha_cid=$STORACHA_CID" >> $GITHUB_OUTPUT
+          echo "cid=$CID" >> $GITHUB_OUTPUT
+          echo "✅ Deployed to Storacha with CID: $CID"
 
-          # Verify CID matches (content-addressed, so should be identical)
-          if [[ -n "$EXPECTED_CID" && "$STORACHA_CID" != "$EXPECTED_CID" ]]; then
-            echo "::warning::Storacha CID ($STORACHA_CID) differs from Kubo CID ($EXPECTED_CID)"
+      # Optional: Pin to Pinata for redundancy and faster gateway access
+      - name: Pin to Pinata (optional)
+        env:
+          PINATA_JWT: ${{ secrets.PINATA_JWT }}
+          CID: ${{ steps.storacha.outputs.cid }}
+          APP_NAME: ${{ matrix.app }}
+          COMMIT_SHA: ${{ github.sha }}
+        continue-on-error: true
+        run: |
+          if [[ -z "$PINATA_JWT" ]]; then
+            echo "ℹ️ Skipping Pinata - PINATA_JWT not configured"
+            exit 0
           fi
 
-          echo "✅ Storacha upload complete: $STORACHA_CID"
+          echo "📌 Pinning to Pinata for redundancy..."
+          RESPONSE=$(curl -s -X POST "https://api.pinata.cloud/pinning/pinByHash" \
+            -H "Authorization: Bearer $PINATA_JWT" \
+            -H "Content-Type: application/json" \
+            -d "{\"hashToPin\": \"$CID\", \"pinataMetadata\": {\"name\": \"$APP_NAME-$COMMIT_SHA\"}}")
+
+          if echo "$RESPONSE" | grep -q "error"; then
+            echo "::warning::Pinata pinning failed: $RESPONSE"
+          else
+            echo "✅ Pinned to Pinata"
+          fi
+
+      # Update GitHub commit status
+      - name: Update commit status
+        if: steps.storacha.outputs.cid != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CID: ${{ steps.storacha.outputs.cid }}
+        run: |
+          gh api repos/${{ github.repository }}/statuses/${{ github.sha }} \
+            -f state=success \
+            -f target_url="https://$CID.ipfs.w3s.link" \
+            -f description="${{ matrix.title }} deployed to IPFS" \
+            -f context="IPFS / ${{ matrix.title }}"
+
+      # Add PR comment with deployment info
+      - name: Comment on PR
+        if: github.event_name == 'pull_request' && steps.storacha.outputs.cid != ''
+        uses: actions/github-script@v7
+        env:
+          CID: ${{ steps.storacha.outputs.cid }}
+          APP_TITLE: ${{ matrix.title }}
+          APP_ICON: ${{ matrix.icon }}
+        with:
+          script: |
+            const cid = process.env.CID;
+            const title = process.env.APP_TITLE;
+            const icon = process.env.APP_ICON;
+
+            const body = `## ${icon} ${title} Preview Deployed to IPFS
+
+            **CID:** \`${cid}\`
+
+            ### 🌐 Preview Links
+            - [Storacha Gateway](https://${cid}.ipfs.w3s.link)
+            - [dweb.link](https://${cid}.ipfs.dweb.link)
+            - [Cloudflare Gateway](https://${cid}.ipfs.cf-ipfs.com)
+
+            ---
+            <sub>Deployed with @storacha/cli</sub>`;
+
+            // Find existing comment to update
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const marker = `## ${icon} ${title} Preview`;
+            const existing = comments.find(c => c.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
 
       - name: Validate deployment
-        if: steps.ipfs.outputs.cid == ''
+        if: steps.storacha.outputs.cid == ''
         run: |
           echo "❌ IPFS deployment failed: no CID returned"
           exit 1
 
       - name: Deployment Summary
-        if: steps.ipfs.outputs.cid != ''
+        if: steps.storacha.outputs.cid != ''
         env:
-          CID: ${{ steps.ipfs.outputs.cid }}
-          STORACHA_CID: ${{ steps.storacha.outputs.storacha_cid }}
+          CID: ${{ steps.storacha.outputs.cid }}
           ENV_NAME: ${{ steps.env.outputs.env }}
           CHAIN_ID: ${{ steps.env.outputs.chain_id }}
           DOMAIN: ${{ steps.env.outputs.domain }}
@@ -203,15 +276,12 @@ jobs:
           echo "| **Environment** | $ENV_NAME |" >> $GITHUB_STEP_SUMMARY
           echo "| **Chain ID** | $CHAIN_ID |" >> $GITHUB_STEP_SUMMARY
           echo "| **CID** | \`$CID\` |" >> $GITHUB_STEP_SUMMARY
-          if [[ -n "$STORACHA_CID" ]]; then
-            echo "| **Storacha CID** | \`$STORACHA_CID\` |" >> $GITHUB_STEP_SUMMARY
-          fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### ✅ Automated Steps Completed" >> $GITHUB_STEP_SUMMARY
           echo "- [x] Built ${{ matrix.title }} app" >> $GITHUB_STEP_SUMMARY
-          echo "- [x] Created CAR file and generated CID" >> $GITHUB_STEP_SUMMARY
-          echo "- [x] Uploaded to Storacha (permanent storage)" >> $GITHUB_STEP_SUMMARY
-          echo "- [x] Uploaded to Pinata (if configured)" >> $GITHUB_STEP_SUMMARY
+          echo "- [x] Uploaded to Storacha (permanent IPFS storage)" >> $GITHUB_STEP_SUMMARY
+          echo "- [x] Pinned to Pinata (if configured)" >> $GITHUB_STEP_SUMMARY
+          echo "- [x] Updated GitHub commit status" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🔗 Manual Step: Update DNSLink" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
