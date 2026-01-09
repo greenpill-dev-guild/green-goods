@@ -132,35 +132,23 @@ jobs:
           fi
           echo "✅ Storacha credentials validated"
 
-      # Deploy to Storacha using @storacha/cli
-      # The proof is multibase-encoded (prefix 'm' = base64pad) - decode to temp file for CLI
+      # Deploy to Storacha using @storacha/client library
+      # The CLI doesn't support multibase-encoded proof strings directly,
+      # so we use a helper script that matches the pattern in packages/shared/src/modules/data/ipfs.ts
       - name: Deploy to Storacha
         id: storacha
         env:
-          STORACHA_PRINCIPAL: ${{ secrets.VITE_STORACHA_KEY }}
-          STORACHA_PROOF: ${{ secrets.VITE_STORACHA_PROOF }}
-          DIST_PATH: ${{ matrix.dist }}
+          VITE_STORACHA_KEY: ${{ secrets.VITE_STORACHA_KEY }}
+          VITE_STORACHA_PROOF: ${{ secrets.VITE_STORACHA_PROOF }}
         run: |
-          echo "📦 Installing @storacha/cli..."
-          npm install -g @storacha/cli
-
-          echo "🔑 Adding space from delegation proof..."
-          # Proof is multibase-encoded (m prefix = base64pad) - write to temp file
-          PROOF_FILE=$(mktemp --suffix=.ucan)
-          echo "${STORACHA_PROOF:1}" | base64 -d > "$PROOF_FILE"
-          storacha space add "$PROOF_FILE"
-          rm -f "$PROOF_FILE"
+          echo "📦 Installing dependencies..."
+          npm install @storacha/client files-from-path
 
           echo "🚀 Uploading to Storacha..."
-          UPLOAD_OUTPUT=$(storacha up "$DIST_PATH" 2>&1)
-          echo "$UPLOAD_OUTPUT"
-
-          # Extract CID from output
-          CID=$(echo "$UPLOAD_OUTPUT" | grep -oE 'bafy[a-zA-Z0-9]+' | head -1)
+          CID=$(node scripts/storacha-upload.js "${{ matrix.dist }}")
 
           if [[ -z "$CID" ]]; then
             echo "::error::Failed to get CID from Storacha upload"
-            echo "Output: $UPLOAD_OUTPUT"
             exit 1
           fi
 
