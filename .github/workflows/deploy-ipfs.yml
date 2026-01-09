@@ -141,9 +141,6 @@ jobs:
           VITE_STORACHA_KEY: ${{ secrets.VITE_STORACHA_KEY }}
           VITE_STORACHA_PROOF: ${{ secrets.VITE_STORACHA_PROOF }}
         run: |
-          echo "📦 Installing dependencies..."
-          npm install @storacha/client files-from-path
-
           echo "🚀 Uploading to Storacha..."
           CID=$(node scripts/storacha-upload.js "${{ matrix.dist }}")
 
