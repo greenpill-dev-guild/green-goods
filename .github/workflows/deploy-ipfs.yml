@@ -112,9 +112,34 @@ jobs:
           VITE_POSTHOG_HOST: "https://app.posthog.com"
           VITE_APP_URL: ${{ steps.env.outputs.app_url }}
 
+      - name: Validate Storacha credentials
+        env:
+          STORACHA_KEY: ${{ secrets.VITE_STORACHA_KEY }}
+          STORACHA_PROOF: ${{ secrets.VITE_STORACHA_PROOF }}
+        run: |
+          # Check that credentials are set and properly formatted (no special chars that break bash)
+          if [[ -z "$STORACHA_KEY" ]]; then
+            echo "::error::VITE_STORACHA_KEY secret is not set"
+            exit 1
+          fi
+          if [[ -z "$STORACHA_PROOF" ]]; then
+            echo "::error::VITE_STORACHA_PROOF secret is not set"
+            exit 1
+          fi
+          # Validate Base64 format (should only contain A-Za-z0-9+/=)
+          if ! echo "$STORACHA_KEY" | grep -qE '^[A-Za-z0-9+/=]+$'; then
+            echo "::error::VITE_STORACHA_KEY contains invalid characters (expected Base64)"
+            exit 1
+          fi
+          if ! echo "$STORACHA_PROOF" | grep -qE '^[A-Za-z0-9+/=]+$'; then
+            echo "::error::VITE_STORACHA_PROOF contains invalid characters (expected Base64)"
+            exit 1
+          fi
+          echo "✅ Storacha credentials validated"
+
       - name: Deploy to IPFS
         id: ipfs
-        uses: ipshipyard/ipfs-deploy-action@v1
+        uses: ipshipyard/ipfs-deploy-action@v1.7.0
         with:
           path-to-deploy: ${{ matrix.dist }}
           # Primary: Storacha (free, permanent storage)
