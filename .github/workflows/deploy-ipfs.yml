@@ -140,6 +140,7 @@ jobs:
         env:
           VITE_STORACHA_KEY: ${{ secrets.VITE_STORACHA_KEY }}
           VITE_STORACHA_PROOF: ${{ secrets.VITE_STORACHA_PROOF }}
+          DEBUG: 'true'
         run: |
           echo "🚀 Uploading to Storacha..."
           CID=$(node scripts/storacha-upload.js "${{ matrix.dist }}")
