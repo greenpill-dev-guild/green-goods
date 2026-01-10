@@ -1,4 +1,4 @@
-import { track } from "@green-goods/shared/modules";
+import { trackErrorBoundary } from "@green-goods/shared/modules";
 import { en, es, pt } from "@green-goods/shared/i18n";
 import {
   RiBugLine,
@@ -65,13 +65,12 @@ export class AppErrorBoundary extends Component<Props, State> {
       errorInfo,
     });
 
-    // Track error in PostHog
-    track("error_boundary_triggered", {
-      error_message: error.message,
-      error_stack: error.stack,
-      component_stack: errorInfo.componentStack,
-      is_offline_error: this.isOfflineError(error),
-      is_network_error: this.isNetworkError(error),
+    // Track error in PostHog with full context for debugging
+    trackErrorBoundary(error, {
+      componentStack: errorInfo.componentStack,
+      boundaryName: "AppErrorBoundary",
+      isOffline: this.isOfflineError(error),
+      isNetwork: this.isNetworkError(error),
     });
   }
 

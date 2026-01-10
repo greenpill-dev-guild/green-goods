@@ -21,6 +21,7 @@ import {
   trackGardenJoinStarted,
   trackGardenJoinSuccess,
 } from "../../modules/app/analytics-events";
+import { trackContractError, addBreadcrumb } from "../../modules/app/error-tracking";
 import { isAddressInList } from "../../utils/blockchain/address";
 
 /**
@@ -167,6 +168,7 @@ export function useJoinGarden() {
 
       // Track join started
       const authMode = client?.account ? "passkey" : "wallet";
+      addBreadcrumb("garden_join_started", { gardenAddress, authMode });
       trackGardenJoinStarted({
         gardenAddress,
         authMode,
@@ -277,11 +279,19 @@ export function useJoinGarden() {
           return "already-member";
         }
 
-        // Track failed join
+        // Track failed join - send both funnel event and structured exception
         trackGardenJoinFailed({
           gardenAddress,
           error: error instanceof Error ? error.message : "Unknown error",
           authMode,
+        });
+
+        // Also track as structured exception for PostHog error dashboard
+        trackContractError(error, {
+          source: "useJoinGarden",
+          gardenAddress,
+          authMode,
+          userAction: "joining garden",
         });
 
         setState((prev) => ({

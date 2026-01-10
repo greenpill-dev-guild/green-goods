@@ -21,6 +21,7 @@ import {
   trackWorkSubmissionStarted,
   trackWorkSubmissionSuccess,
 } from "../../modules/app/analytics-events";
+import { trackContractError, addBreadcrumb } from "../../modules/app/error-tracking";
 import { jobQueue } from "../../modules/job-queue";
 import { submitWorkDirectly } from "../../modules/work/wallet-submission";
 import { submitWorkToQueue } from "../../modules/work/work-submission";
@@ -204,6 +205,13 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
 
       // Track submission started
       const actionTitle = getActionTitle(actions, actionUID);
+      addBreadcrumb("work_submission_started", {
+        gardenAddress,
+        actionUID,
+        actionTitle,
+        authMode,
+        imageCount: variables?.images.length ?? 0,
+      });
       trackWorkSubmissionStarted({
         gardenAddress: gardenAddress ?? "",
         actionUID: actionUID ?? 0,
@@ -274,12 +282,26 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       // Parse contract error for user-friendly message
       const { title, message, parsed } = parseAndFormatError(error);
 
-      // Track submission failure
+      // Track submission failure - funnel event
       trackWorkSubmissionFailed({
         gardenAddress: gardenAddress ?? "",
         actionUID: actionUID ?? 0,
         error: parsed.message || (error instanceof Error ? error.message : "Unknown error"),
         authMode,
+      });
+
+      // Also track as structured exception for PostHog error dashboard
+      trackContractError(error, {
+        source: "useWorkMutation",
+        gardenAddress: gardenAddress ?? undefined,
+        authMode,
+        userAction: "submitting work",
+        metadata: {
+          actionUID,
+          imageCount: variables?.images.length ?? 0,
+          parsedErrorName: parsed.name,
+          isKnown: parsed.isKnown,
+        },
       });
 
       // Use parsed error if known, otherwise provide fallback based on auth mode

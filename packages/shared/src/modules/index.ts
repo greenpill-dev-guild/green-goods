@@ -64,6 +64,39 @@ export {
 } from "./app/posthog";
 
 // ============================================================================
+// APP / ERROR TRACKING
+// ============================================================================
+export {
+  // Core error tracking
+  trackError,
+  trackFatalError,
+  trackWarning,
+  // Category-specific tracking
+  trackContractError,
+  trackNetworkError,
+  trackAuthError,
+  trackGraphQLError,
+  trackSyncError,
+  trackStorageError,
+  // Recovery tracking
+  trackErrorRetry,
+  trackErrorRecovery,
+  // React Error Boundary helper
+  trackErrorBoundary,
+  // Breadcrumbs
+  addBreadcrumb,
+  getBreadcrumbs,
+  clearBreadcrumbs,
+  // Global handlers
+  initGlobalErrorHandlers,
+  // Types
+  type ErrorSeverity,
+  type ErrorCategory,
+  type ErrorContext,
+  type BreadcrumbEntry,
+} from "./app/error-tracking";
+
+// ============================================================================
 // APP / SERVICE WORKER
 // ============================================================================
 export { serviceWorkerManager } from "./app/service-worker";

@@ -1,4 +1,9 @@
-import { AppProvider, DEFAULT_CHAIN_ID, initTheme } from "@green-goods/shared";
+import {
+  AppProvider,
+  DEFAULT_CHAIN_ID,
+  initTheme,
+  initGlobalErrorHandlers,
+} from "@green-goods/shared";
 import { AppKitProvider, AuthProvider } from "@green-goods/shared/providers";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
@@ -10,6 +15,10 @@ import "@/config";
 
 // Initialize theme system
 initTheme();
+
+// Initialize global error handlers for PostHog exception tracking
+// This catches unhandled errors and promise rejections that escape Error Boundaries
+initGlobalErrorHandlers();
 
 // In development, ensure no stale service worker or caches make the app appear to run offline
 if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_SW_DEV !== "true") {
