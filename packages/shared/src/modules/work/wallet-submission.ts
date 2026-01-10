@@ -292,7 +292,11 @@ export async function submitWorkDirectly(
         actionUID,
         media: images,
       },
-      chainId
+      chainId,
+      {
+        gardenAddress,
+        authMode: "wallet",
+      }
     );
 
     // 4. Prepare EAS attestation transaction

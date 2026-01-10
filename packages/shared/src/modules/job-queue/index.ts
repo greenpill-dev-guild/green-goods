@@ -9,6 +9,8 @@ import type {
   WorkJobPayload,
 } from "../../types/job-queue";
 import { scheduleTask, yieldToMain } from "../../utils/scheduler";
+import { trackSyncError, addBreadcrumb, getBreadcrumbs } from "../app/error-tracking";
+import { getIpfsInitStatus } from "../data/ipfs";
 import { track } from "../app/posthog";
 import { submitApprovalWithPasskey, submitWorkWithPasskey } from "../work/passkey-submission";
 import { jobQueueDB } from "./db";
@@ -148,6 +150,14 @@ class JobQueue {
       synced: false,
     };
 
+    // Add breadcrumb for error debugging
+    addBreadcrumb("job_created", {
+      job_id: jobId,
+      job_kind: kind,
+      is_online: isOnline,
+      garden_address: (payload as WorkJobPayload)?.gardenAddress,
+    });
+
     track("offline_job_created", {
       job_id: jobId,
       job_kind: kind,
@@ -248,11 +258,33 @@ class JobQueue {
 
       jobQueueEventBus.emit("job:failed", { jobId, job, error: errorMessage });
 
+      // Get IPFS status for debugging
+      const ipfsStatus = getIpfsInitStatus();
+
+      // Track as fatal error - job will not be retried
+      trackSyncError(new Error(errorMessage), {
+        severity: "fatal",
+        source: "JobQueue.processJob",
+        userAction: `${job.kind} job exhausted retries`,
+        recoverable: false,
+        metadata: {
+          job_id: jobId,
+          job_kind: job.kind,
+          attempts: job.attempts,
+          last_error: job.lastError,
+          garden_address: (job.payload as WorkJobPayload)?.gardenAddress,
+          action_uid: (job.payload as WorkJobPayload)?.actionUID,
+          ipfs_status: ipfsStatus.status,
+          ipfs_client_ready: ipfsStatus.clientReady,
+        },
+      });
+
       track("offline_job_permanently_failed", {
         job_id: jobId,
         job_kind: job.kind,
         attempts: job.attempts,
         last_error: job.lastError,
+        ipfs_status: ipfsStatus.status,
       });
 
       return { success: false, error: errorMessage };
@@ -264,6 +296,14 @@ class JobQueue {
     }
 
     jobQueueEventBus.emit("job:processing", { jobId, job });
+
+    // Add breadcrumb for error debugging
+    addBreadcrumb("job_processing_started", {
+      job_id: jobId,
+      job_kind: job.kind,
+      attempt: job.attempts + 1,
+      garden_address: (job.payload as WorkJobPayload)?.gardenAddress,
+    });
 
     const chainId = job.chainId || DEFAULT_CHAIN_ID;
     const startTime = Date.now();
@@ -326,18 +366,55 @@ class JobQueue {
       return { success: true, txHash };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      const processingDuration = Date.now() - startTime;
 
       await jobQueueDB.markJobFailed(jobId, errorMessage);
       const updated = (await jobQueueDB.getJob(jobId)) ?? job;
 
       jobQueueEventBus.emit("job:failed", { jobId, job: updated, error: errorMessage });
 
+      // Get IPFS status for debugging upload failures
+      const ipfsStatus = getIpfsInitStatus();
+
+      // Track as structured exception for PostHog error dashboard
+      trackSyncError(error, {
+        source: "JobQueue.processJob",
+        userAction: `processing ${job.kind} job`,
+        recoverable: job.attempts + 1 < MAX_RETRIES,
+        metadata: {
+          job_id: jobId,
+          job_kind: job.kind,
+          attempts: job.attempts + 1,
+          max_retries: MAX_RETRIES,
+          will_retry: job.attempts + 1 < MAX_RETRIES,
+          processing_duration_ms: processingDuration,
+          chain_id: chainId,
+          user_address: job.userAddress,
+          garden_address: (job.payload as WorkJobPayload)?.gardenAddress,
+          action_uid: (job.payload as WorkJobPayload)?.actionUID,
+          ipfs_status: ipfsStatus.status,
+          ipfs_error: ipfsStatus.error,
+          ipfs_client_ready: ipfsStatus.clientReady,
+          is_online: typeof navigator !== "undefined" ? navigator.onLine : true,
+          connection_type:
+            typeof navigator !== "undefined"
+              ? (navigator as unknown as { connection?: { effectiveType?: string } }).connection
+                  ?.effectiveType
+              : undefined,
+          breadcrumbs: getBreadcrumbs().slice(-5),
+        },
+      });
+
+      // Also track as analytics event for funnel analysis
       track("offline_job_failed", {
         job_id: jobId,
         job_kind: job.kind,
         error: errorMessage,
         attempts: job.attempts + 1,
         will_retry: job.attempts + 1 < MAX_RETRIES,
+        processing_duration_ms: processingDuration,
+        ipfs_status: ipfsStatus.status,
+        ipfs_client_ready: ipfsStatus.clientReady,
       });
 
       return { success: false, error: errorMessage };

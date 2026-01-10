@@ -122,7 +122,11 @@ export async function submitWorkWithPasskey({
       actionUID,
       media: images,
     },
-    chainId
+    chainId,
+    {
+      gardenAddress,
+      authMode: "passkey",
+    }
   );
 
   const txParams = buildWorkAttestTx(easConfig, gardenAddress as `0x${string}`, attestationData);

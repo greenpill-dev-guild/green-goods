@@ -1,4 +1,5 @@
 import { type Client, create } from "@storacha/client";
+import { trackUploadError, trackUploadSuccess } from "../app/error-tracking";
 
 interface IpfsConfig {
   /** Base64-encoded ed25519 private key */
@@ -87,33 +88,174 @@ export async function initializeIpfs(config: IpfsConfig): Promise<{
     ipfsInitializationStatus = "failed";
     ipfsInitializationError = error instanceof Error ? error.message : String(error);
     console.error("Failed to initialize Storacha client:", error);
+
+    // Track initialization failure
+    trackUploadError(error, {
+      uploadCategory: "ipfs_init",
+      ipfsStatus: "failed",
+      source: "initializeIpfs",
+      severity: "fatal",
+      recoverable: false,
+      metadata: {
+        init_duration_ms: Date.now() - startTime,
+      },
+    });
+
     throw error;
   }
 }
 
 /**
- * Uploads a file to IPFS using Storacha
+ * Context for tracking individual file uploads within a batch.
+ * Pass this to get detailed tracking for each file in a multi-file upload.
  */
-export async function uploadFileToIPFS(file: File): Promise<{ cid: string }> {
+export interface FileUploadContext {
+  /** Index of this file in the batch (0-based) */
+  fileIndex?: number;
+  /** Total number of files in the batch */
+  totalFiles?: number;
+  /** Source function/component initiating the upload */
+  source?: string;
+  /** Garden address if relevant */
+  gardenAddress?: string;
+  /** Auth mode if relevant */
+  authMode?: "passkey" | "wallet" | null;
+}
+
+/**
+ * Uploads a file to IPFS using Storacha with comprehensive error tracking.
+ *
+ * @param file - The file to upload
+ * @param context - Optional context for batch tracking
+ * @returns Object containing the IPFS CID
+ * @throws Error if Storacha not initialized or upload fails
+ */
+export async function uploadFileToIPFS(
+  file: File,
+  context: FileUploadContext = {}
+): Promise<{ cid: string }> {
+  const startTime = Date.now();
+
   if (!storachaClient) {
-    throw new Error("Storacha not initialized. Call initializeIpfs() first.");
+    const error = new Error("Storacha not initialized. Call initializeIpfs() first.");
+
+    trackUploadError(error, {
+      uploadCategory: "file_upload",
+      ipfsStatus: ipfsInitializationStatus,
+      fileIndex: context.fileIndex,
+      totalFiles: context.totalFiles,
+      fileSize: file.size,
+      fileType: file.type,
+      fileName: file.name,
+      source: context.source ?? "uploadFileToIPFS",
+      gardenAddress: context.gardenAddress,
+      authMode: context.authMode,
+      severity: "error",
+      recoverable: false,
+      metadata: {
+        storacha_error: ipfsInitializationError,
+      },
+    });
+
+    throw error;
   }
 
   try {
     const cid = await storachaClient.uploadFile(file);
+    const uploadDuration = Date.now() - startTime;
+
+    // Track successful upload for performance monitoring
+    trackUploadSuccess({
+      uploadCategory: "file_upload",
+      fileIndex: context.fileIndex,
+      totalFiles: context.totalFiles,
+      fileSize: file.size,
+      fileType: file.type,
+      uploadDurationMs: uploadDuration,
+      cid: cid.toString(),
+      source: context.source ?? "uploadFileToIPFS",
+      gardenAddress: context.gardenAddress,
+    });
+
     return { cid: cid.toString() };
   } catch (error) {
+    const uploadDuration = Date.now() - startTime;
     console.error("Failed to upload file to Storacha:", error);
+
+    trackUploadError(error, {
+      uploadCategory: "file_upload",
+      ipfsStatus: ipfsInitializationStatus,
+      uploadDurationMs: uploadDuration,
+      fileIndex: context.fileIndex,
+      totalFiles: context.totalFiles,
+      fileSize: file.size,
+      fileType: file.type,
+      fileName: file.name,
+      source: context.source ?? "uploadFileToIPFS",
+      gardenAddress: context.gardenAddress,
+      authMode: context.authMode,
+      severity: "error",
+      recoverable: true,
+      metadata: {
+        is_online: typeof navigator !== "undefined" ? navigator.onLine : true,
+        connection_type:
+          typeof navigator !== "undefined"
+            ? (navigator as unknown as { connection?: { effectiveType?: string } }).connection
+                ?.effectiveType
+            : undefined,
+      },
+    });
+
     throw error;
   }
 }
 
 /**
- * Uploads JSON metadata to IPFS using Storacha
+ * Context for tracking JSON metadata uploads.
  */
-export async function uploadJSONToIPFS(json: Record<string, unknown>): Promise<{ cid: string }> {
+export interface JsonUploadContext {
+  /** Source function/component initiating the upload */
+  source?: string;
+  /** Garden address if relevant */
+  gardenAddress?: string;
+  /** Auth mode if relevant */
+  authMode?: "passkey" | "wallet" | null;
+  /** Type of metadata being uploaded */
+  metadataType?: string;
+}
+
+/**
+ * Uploads JSON metadata to IPFS using Storacha with comprehensive error tracking.
+ *
+ * @param json - The JSON object to upload
+ * @param context - Optional context for tracking
+ * @returns Object containing the IPFS CID
+ * @throws Error if Storacha not initialized or upload fails
+ */
+export async function uploadJSONToIPFS(
+  json: Record<string, unknown>,
+  context: JsonUploadContext = {}
+): Promise<{ cid: string }> {
+  const startTime = Date.now();
+
   if (!storachaClient) {
-    throw new Error("Storacha not initialized. Call initializeIpfs() first.");
+    const error = new Error("Storacha not initialized. Call initializeIpfs() first.");
+
+    trackUploadError(error, {
+      uploadCategory: "json_upload",
+      ipfsStatus: ipfsInitializationStatus,
+      source: context.source ?? "uploadJSONToIPFS",
+      gardenAddress: context.gardenAddress,
+      authMode: context.authMode,
+      severity: "error",
+      recoverable: false,
+      metadata: {
+        storacha_error: ipfsInitializationError,
+        metadata_type: context.metadataType,
+      },
+    });
+
+    throw error;
   }
 
   try {
@@ -123,9 +265,45 @@ export async function uploadJSONToIPFS(json: Record<string, unknown>): Promise<{
     const file = new File([blob], "metadata.json", { type: "application/json" });
 
     const cid = await storachaClient.uploadFile(file);
+    const uploadDuration = Date.now() - startTime;
+
+    // Track successful upload for performance monitoring
+    trackUploadSuccess({
+      uploadCategory: "json_upload",
+      fileSize: file.size,
+      fileType: "application/json",
+      uploadDurationMs: uploadDuration,
+      cid: cid.toString(),
+      source: context.source ?? "uploadJSONToIPFS",
+      gardenAddress: context.gardenAddress,
+    });
+
     return { cid: cid.toString() };
   } catch (error) {
+    const uploadDuration = Date.now() - startTime;
     console.error("Failed to upload JSON to Storacha:", error);
+
+    trackUploadError(error, {
+      uploadCategory: "json_upload",
+      ipfsStatus: ipfsInitializationStatus,
+      uploadDurationMs: uploadDuration,
+      source: context.source ?? "uploadJSONToIPFS",
+      gardenAddress: context.gardenAddress,
+      authMode: context.authMode,
+      severity: "error",
+      recoverable: true,
+      metadata: {
+        metadata_type: context.metadataType,
+        json_size_bytes: JSON.stringify(json).length,
+        is_online: typeof navigator !== "undefined" ? navigator.onLine : true,
+        connection_type:
+          typeof navigator !== "undefined"
+            ? (navigator as unknown as { connection?: { effectiveType?: string } }).connection
+                ?.effectiveType
+            : undefined,
+      },
+    });
+
     throw error;
   }
 }

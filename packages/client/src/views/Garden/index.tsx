@@ -282,10 +282,16 @@ const Work: React.FC = () => {
             console.error("[GardenFlow] Failed to clear draft on submission:", error);
           }
         }
-        // Full reset of store and form
-        useWorkFlowStore.getState().reset();
-        form.reset();
-        navigate("/home");
+        // Navigate FIRST to avoid flashing the Intro tab
+        // The reset will happen after navigation (cleanup on unmount or next mount)
+        navigate("/home", { replace: true });
+
+        // Reset state AFTER navigation to prevent visual flash
+        // Using requestAnimationFrame to ensure navigation has started
+        requestAnimationFrame(() => {
+          useWorkFlowStore.getState().reset();
+          form.reset();
+        });
       }, 1500);
       return () => clearTimeout(timer);
     }

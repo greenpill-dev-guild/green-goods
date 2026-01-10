@@ -78,6 +78,10 @@ export {
   trackGraphQLError,
   trackSyncError,
   trackStorageError,
+  // Upload tracking
+  trackUploadError,
+  trackUploadSuccess,
+  trackUploadBatchProgress,
   // Recovery tracking
   trackErrorRetry,
   trackErrorRecovery,
@@ -94,6 +98,8 @@ export {
   type ErrorCategory,
   type ErrorContext,
   type BreadcrumbEntry,
+  type UploadErrorCategory,
+  type UploadErrorContext,
 } from "./app/error-tracking";
 
 // ============================================================================
@@ -162,6 +168,7 @@ export {
 // ============================================================================
 export {
   getFileByHash,
+  getIpfsInitStatus,
   initializeIpfs,
   initializeIpfsFromEnv,
   // Deprecated aliases for backward compatibility
@@ -175,6 +182,9 @@ export {
   resolveIPFSUrl,
   uploadFileToIPFS,
   uploadJSONToIPFS,
+  // Upload context types
+  type FileUploadContext,
+  type JsonUploadContext,
 } from "./data/ipfs";
 
 // ============================================================================
