@@ -101,12 +101,38 @@ export interface QueueStats {
 // Database Schema Types
 // ============================================
 
+/**
+ * Serialized file data for IndexedDB storage.
+ * iOS Safari cannot store File objects directly in IndexedDB due to
+ * structured cloning limitations. We store the raw data and metadata
+ * separately, then reconstruct the File when reading.
+ */
+export interface SerializedFileData {
+  /** Raw file bytes as ArrayBuffer (IndexedDB-safe) */
+  data: ArrayBuffer;
+  /** Original filename */
+  name: string;
+  /** MIME type */
+  type: string;
+  /** Last modified timestamp */
+  lastModified: number;
+}
+
 export interface JobQueueDBImage {
   id: string;
   jobId: string;
-  file: File;
+  /**
+   * Serialized file data. We store as SerializedFileData instead of File
+   * because iOS Safari fails to clone File objects to IndexedDB.
+   * @see https://bugs.webkit.org/show_bug.cgi?id=228005
+   */
+  fileData: SerializedFileData;
   url: string;
   createdAt: number;
+  /**
+   * @deprecated Use fileData instead. Kept for migration compatibility.
+   */
+  file?: File;
 }
 
 export interface CachedWork {
@@ -148,7 +174,15 @@ export interface WorkDraft {
 export interface DraftImage {
   id: string;
   draftId: string;
-  file: File;
+  /**
+   * Serialized file data. We store as SerializedFileData instead of File
+   * because iOS Safari fails to clone File objects to IndexedDB.
+   */
+  fileData: SerializedFileData;
   url: string;
   createdAt: number;
+  /**
+   * @deprecated Use fileData instead. Kept for migration compatibility.
+   */
+  file?: File;
 }

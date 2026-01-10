@@ -8,8 +8,71 @@
  */
 
 import { type IDBPDatabase, openDB } from "idb";
-import type { DraftImage, DraftStep, WorkDraft } from "../../types/job-queue";
+import type {
+  DraftImage,
+  DraftStep,
+  WorkDraft,
+  SerializedFileData,
+} from "../../types/job-queue";
+import { trackStorageError } from "../app/error-tracking";
 import { mediaResourceManager } from "./media-resource-manager";
+
+/**
+ * Serialize a File to IndexedDB-safe format.
+ * iOS Safari cannot store File objects directly due to structured cloning issues.
+ */
+async function serializeFile(file: File): Promise<SerializedFileData> {
+  const arrayBuffer = await file.arrayBuffer();
+  return {
+    data: arrayBuffer,
+    name: file.name,
+    type: file.type || "image/jpeg",
+    lastModified: file.lastModified || Date.now(),
+  };
+}
+
+/**
+ * Deserialize stored file data back to a File object.
+ * Handles both new format (SerializedFileData) and legacy format (File).
+ */
+function deserializeFile(
+  image: DraftImage,
+  fallbackDraftId: string,
+  fallbackImageId: string
+): File {
+  // New format: SerializedFileData
+  if (image.fileData?.data) {
+    return new File([image.fileData.data], image.fileData.name, {
+      type: image.fileData.type,
+      lastModified: image.fileData.lastModified,
+    });
+  }
+
+  // Legacy format: direct File object (may fail on iOS when reading)
+  if (image.file instanceof File) {
+    return image.file;
+  }
+
+  // Fallback: try to reconstruct from blob-like object
+  if (image.file) {
+    const blob = image.file as unknown as Blob;
+    return new File(
+      [blob],
+      (image.file as unknown as { name?: string }).name ||
+        `draft-${fallbackDraftId}-${fallbackImageId}.jpg`,
+      {
+        type: blob?.type || "image/jpeg",
+        lastModified: Date.now(),
+      }
+    );
+  }
+
+  // Last resort: empty file (should not happen)
+  return new File([], `draft-${fallbackDraftId}-${fallbackImageId}.jpg`, {
+    type: "image/jpeg",
+    lastModified: Date.now(),
+  });
+}
 
 const DB_NAME = "green-goods-drafts";
 const DB_VERSION = 1;
@@ -186,20 +249,60 @@ class DraftDatabase {
   }
 
   /**
-   * Add an image to a draft
+   * Add an image to a draft.
+   * Serializes the File to ArrayBuffer before storing to work around iOS Safari
+   * IndexedDB issues with File objects.
    */
   async addImageToDraft(draftId: string, file: File): Promise<string> {
     const db = await this.init();
     const imageId = crypto.randomUUID();
     const url = mediaResourceManager.createUrl(file, draftId);
 
-    await db.add("draft_images", {
-      id: imageId,
-      draftId,
-      file,
-      url,
-      createdAt: Date.now(),
-    });
+    // Serialize file BEFORE storing to avoid iOS Safari DOMException
+    let fileData: SerializedFileData;
+    try {
+      fileData = await serializeFile(file);
+    } catch (serializeError) {
+      trackStorageError(serializeError, {
+        source: "DraftDatabase.addImageToDraft",
+        userAction: "serializing file for IndexedDB storage",
+        metadata: {
+          file_name: file.name,
+          file_size: file.size,
+          file_type: file.type,
+          draft_id: draftId,
+          is_ios: /iPad|iPhone|iPod/.test(navigator?.userAgent || ""),
+          user_agent: navigator?.userAgent,
+        },
+      });
+      throw serializeError;
+    }
+
+    try {
+      await db.add("draft_images", {
+        id: imageId,
+        draftId,
+        fileData, // Store serialized data instead of File
+        url,
+        createdAt: Date.now(),
+      } as DraftImage);
+    } catch (storeError) {
+      trackStorageError(storeError, {
+        source: "DraftDatabase.addImageToDraft",
+        userAction: "storing image in IndexedDB",
+        metadata: {
+          file_name: file.name,
+          file_size: file.size,
+          file_type: file.type,
+          draft_id: draftId,
+          is_ios: /iPad|iPhone|iPod/.test(navigator?.userAgent || ""),
+          user_agent: navigator?.userAgent,
+          error_name: storeError instanceof Error ? storeError.name : "Unknown",
+          error_message: storeError instanceof Error ? storeError.message : String(storeError),
+        },
+      });
+      throw storeError;
+    }
 
     // Update draft's updatedAt and firstIncompleteStep
     const draft = await this.getDraft(draftId);
@@ -240,7 +343,8 @@ class DraftDatabase {
   }
 
   /**
-   * Get images for a draft
+   * Get images for a draft.
+   * Deserializes stored file data back to File objects.
    */
   async getImagesForDraft(
     draftId: string
@@ -250,20 +354,14 @@ class DraftDatabase {
     const index = tx.objectStore("draft_images").index("draftId");
     const images = await index.getAll(draftId);
 
-    // Normalize files and refresh URLs
+    // Deserialize files from IndexedDB format back to File objects
     return images.map((img) => {
-      const normalizedFile =
-        img.file instanceof File
-          ? img.file
-          : new File([img.file], img.file?.name || `draft-${draftId}-${img.id}.jpg`, {
-              type: (img.file as Blob)?.type || "image/jpeg",
-              lastModified: Date.now(),
-            });
+      const file = deserializeFile(img, draftId, img.id);
 
       return {
         id: img.id,
-        file: normalizedFile,
-        url: mediaResourceManager.getOrCreateUrl(normalizedFile, draftId),
+        file,
+        url: mediaResourceManager.getOrCreateUrl(file, draftId),
       };
     });
   }

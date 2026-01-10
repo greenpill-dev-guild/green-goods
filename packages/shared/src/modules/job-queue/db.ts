@@ -1,7 +1,71 @@
 import { type IDBPDatabase, openDB } from "idb";
 import { normalizeToFile } from "../../utils/app/normalizeToFile";
+import { trackStorageError, addBreadcrumb } from "../app/error-tracking";
 import { mediaResourceManager } from "./media-resource-manager";
-import type { Job, JobQueueDBImage, CachedWork } from "../../types/job-queue";
+import type {
+  Job,
+  JobQueueDBImage,
+  CachedWork,
+  SerializedFileData,
+} from "../../types/job-queue";
+
+/**
+ * Serialize a File to IndexedDB-safe format.
+ * iOS Safari cannot store File objects directly due to structured cloning issues.
+ * We convert to ArrayBuffer + metadata which works reliably across all browsers.
+ */
+async function serializeFile(file: File): Promise<SerializedFileData> {
+  const arrayBuffer = await file.arrayBuffer();
+  return {
+    data: arrayBuffer,
+    name: file.name,
+    type: file.type || "image/jpeg",
+    lastModified: file.lastModified || Date.now(),
+  };
+}
+
+/**
+ * Deserialize stored file data back to a File object.
+ * Handles both new format (SerializedFileData) and legacy format (File).
+ */
+function deserializeFile(
+  image: JobQueueDBImage,
+  fallbackJobId: string,
+  fallbackImageId: string
+): File {
+  // New format: SerializedFileData
+  if (image.fileData?.data) {
+    return new File([image.fileData.data], image.fileData.name, {
+      type: image.fileData.type,
+      lastModified: image.fileData.lastModified,
+    });
+  }
+
+  // Legacy format: direct File object (may fail on iOS when reading)
+  if (image.file instanceof File) {
+    return image.file;
+  }
+
+  // Fallback: try to reconstruct from blob-like object
+  if (image.file) {
+    const blob = image.file as unknown as Blob;
+    return new File(
+      [blob],
+      (image.file as unknown as { name?: string }).name ||
+        `work-${fallbackJobId}-${fallbackImageId}.jpg`,
+      {
+        type: blob?.type || "image/jpeg",
+        lastModified: Date.now(),
+      }
+    );
+  }
+
+  // Last resort: empty file (should not happen)
+  return new File([], `work-${fallbackJobId}-${fallbackImageId}.jpg`, {
+    type: "image/jpeg",
+    lastModified: Date.now(),
+  });
+}
 
 const DB_NAME = "green-goods-job-queue";
 const DB_VERSION = 5; // Incremented for userAddress field
@@ -164,24 +228,58 @@ class JobQueueDatabase {
       }
     }
 
+    // Serialize all files BEFORE starting the transaction.
+    // This is important because:
+    // 1. arrayBuffer() is async and can't be called inside a transaction
+    // 2. iOS Safari fails to store File objects directly (DOMException: UnknownError)
+    const serializedFiles: Array<{ file: File; fileData: SerializedFileData }> = [];
+    for (const file of normalizedMediaFiles) {
+      try {
+        const fileData = await serializeFile(file);
+        serializedFiles.push({ file, fileData });
+      } catch (serializeError) {
+        // Track serialization failure with detailed context
+        trackStorageError(serializeError, {
+          source: "JobQueueDatabase.addJob",
+          userAction: "serializing file for IndexedDB storage",
+          metadata: {
+            file_name: file.name,
+            file_size: file.size,
+            file_type: file.type,
+            job_kind: job.kind,
+            is_ios: /iPad|iPhone|iPod/.test(navigator?.userAgent || ""),
+            user_agent: navigator?.userAgent,
+          },
+        });
+        throw serializeError;
+      }
+    }
+
+    // Add breadcrumb for debugging
+    addBreadcrumb("job_files_serialized", {
+      job_id: id,
+      file_count: serializedFiles.length,
+      total_size: serializedFiles.reduce((sum, f) => sum + f.file.size, 0),
+    });
+
     // Atomically persist job + images.
     // If anything fails, we cleanup any created object URLs and nothing is committed.
     const tx = db.transaction(["jobs", "job_images"], "readwrite");
     try {
       await tx.objectStore("jobs").add(jobData as Job);
 
-      for (let index = 0; index < normalizedMediaFiles.length; index++) {
-        const file = normalizedMediaFiles[index];
+      for (let index = 0; index < serializedFiles.length; index++) {
+        const { file, fileData } = serializedFiles[index];
         const imageId = crypto.randomUUID();
         const url = mediaResourceManager.createUrl(file, id);
 
         await tx.objectStore("job_images").add({
           id: imageId,
           jobId: id,
-          file,
+          fileData, // Store serialized data instead of File
           url,
           createdAt: timestamp,
-        });
+        } as JobQueueDBImage);
       }
 
       await tx.done;
@@ -189,6 +287,22 @@ class JobQueueDatabase {
       try {
         tx.abort();
       } catch {}
+
+      // Track IndexedDB storage failure with detailed context
+      trackStorageError(error, {
+        source: "JobQueueDatabase.addJob",
+        userAction: "storing job and images in IndexedDB",
+        metadata: {
+          job_id: id,
+          job_kind: job.kind,
+          file_count: serializedFiles.length,
+          total_size: serializedFiles.reduce((sum, f) => sum + f.file.size, 0),
+          is_ios: /iPad|iPhone|iPod/.test(navigator?.userAgent || ""),
+          user_agent: navigator?.userAgent,
+          error_name: error instanceof Error ? error.name : "Unknown",
+          error_message: error instanceof Error ? error.message : String(error),
+        },
+      });
 
       // Ensure we don't leak object URLs for a job that never persisted.
       mediaResourceManager.cleanupUrls(id);
@@ -280,20 +394,15 @@ class JobQueueDatabase {
     const index = tx.objectStore("job_images").index("jobId");
     const images = await index.getAll(jobId);
 
-    // Normalize files: IndexedDB may strip File metadata, so reconstruct if needed
+    // Deserialize files from IndexedDB format back to File objects.
+    // Handles both new serialized format and legacy File format.
     const result = images.map((img) => {
-      const normalizedFile =
-        img.file instanceof File
-          ? img.file
-          : new File([img.file], img.file?.name || `work-${jobId}-${img.id}.jpg`, {
-              type: (img.file as Blob)?.type || "image/jpeg",
-              lastModified: Date.now(),
-            });
+      const file = deserializeFile(img, jobId, img.id);
 
       return {
         id: img.id,
-        file: normalizedFile,
-        url: mediaResourceManager.getOrCreateUrl(normalizedFile, jobId),
+        file,
+        url: mediaResourceManager.getOrCreateUrl(file, jobId),
       };
     });
 

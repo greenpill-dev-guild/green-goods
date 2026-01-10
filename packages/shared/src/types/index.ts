@@ -103,6 +103,7 @@ export type {
   QueueEvent,
   QueueStats,
   QueueSubscriber,
+  SerializedFileData,
   WorkDraft as WorkDraftDB,
   WorkJobPayload,
 } from "./job-queue";
