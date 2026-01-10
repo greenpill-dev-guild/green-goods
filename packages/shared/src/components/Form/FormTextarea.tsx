@@ -9,6 +9,7 @@ export interface FormTextareaProps extends TextareaHTMLAttributes<HTMLTextAreaEl
 
 /**
  * Shared form textarea component with label, error, and helper text support.
+ * Uses Green Goods design tokens for consistent theming across client and admin.
  *
  * @example
  * <FormTextarea
@@ -22,17 +23,18 @@ export interface FormTextareaProps extends TextareaHTMLAttributes<HTMLTextAreaEl
 export const FormTextarea = forwardRef<HTMLTextAreaElement, FormTextareaProps>(
   ({ label, helperText, error, className, rows = 4, ...props }, ref) => (
     <div className={cn("flex flex-col gap-1", error && "shake-error", className)}>
-      <label className="font-semibold text-slate-800 text-sm" htmlFor={props.id}>
+      <label className="font-semibold text-text-strong-950 text-label-sm" htmlFor={props.id}>
         {label}
       </label>
       <textarea
         className={cn(
-          "block w-full bg-white border border-slate-300 rounded-lg py-3 px-4",
-          "text-sm transition-all duration-200 resize-none",
+          "block w-full bg-bg-white-0 border border-stroke-sub-300 rounded-lg py-3 px-4",
+          "text-sm text-text-strong-950 placeholder:text-text-soft-400",
+          "transition-all duration-200 resize-none",
           "disabled:opacity-50 disabled:pointer-events-none",
           error
-            ? "border-red-500 focus:ring-red-200 focus:ring-2 focus:border-red-500"
-            : "focus:ring-green-200 focus:ring-2 focus:border-green-500"
+            ? "border-error-base focus:ring-2 focus:ring-error-lighter focus:border-error-base"
+            : "focus:ring-2 focus:ring-primary-lighter focus:border-primary-base"
         )}
         rows={rows}
         {...props}
@@ -41,7 +43,7 @@ export const FormTextarea = forwardRef<HTMLTextAreaElement, FormTextareaProps>(
       {(helperText || error) && (
         <p
           id={`${props.id}-helper-text`}
-          className={cn("text-xs min-h-[1rem]", error ? "text-red-600" : "text-slate-600")}
+          className={cn("text-xs min-h-[1rem]", error ? "text-error-base" : "text-text-sub-600")}
         >
           {error || helperText}
         </p>
