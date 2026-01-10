@@ -186,6 +186,11 @@ export type {
   PasskeyWorkSubmissionParams,
   ResultOf,
   VariablesOf,
+  // Error tracking types
+  ErrorSeverity,
+  ErrorCategory,
+  ErrorContext,
+  BreadcrumbEntry,
 } from "./modules/index";
 export {
   // Session management
@@ -242,6 +247,23 @@ export {
   trackAppLifecycle,
   trackOfflineEvent,
   trackSyncPerformance,
+  // Error tracking
+  trackError,
+  trackFatalError,
+  trackWarning,
+  trackContractError,
+  trackNetworkError,
+  trackAuthError,
+  trackGraphQLError,
+  trackSyncError,
+  trackStorageError,
+  trackErrorRetry,
+  trackErrorRecovery,
+  trackErrorBoundary,
+  addBreadcrumb,
+  getBreadcrumbs,
+  clearBreadcrumbs,
+  initGlobalErrorHandlers,
   translationCache,
   USERNAME_STORAGE_KEY,
   updateUserProfile,
