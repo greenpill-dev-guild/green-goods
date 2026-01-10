@@ -270,7 +270,10 @@ export function trackError(error: unknown, context: ErrorContext = {}): void {
 /**
  * Track a fatal error (app-crashing errors).
  */
-export function trackFatalError(error: unknown, context: Omit<ErrorContext, "severity"> = {}): void {
+export function trackFatalError(
+  error: unknown,
+  context: Omit<ErrorContext, "severity"> = {}
+): void {
   trackError(error, { ...context, severity: "fatal" });
 }
 
