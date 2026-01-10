@@ -1,5 +1,8 @@
 # Green Goods
 
+[![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](https://github.com/greenpill-dev-guild/green-goods/releases/tag/v0.4.0)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 Green Goods is an offline-first, single-chain platform for documenting conservation work and proving impact on-chain. Operators approve gardener submissions, and the protocol anchors the results in Ethereum attestation infrastructure.
 
 ## Quick Start
@@ -82,3 +85,7 @@ Package-specific READMEs:
 - Keep environment-only secrets in the root `.env` and never add package-level `.env` files
 
 For more project background, automation guidelines, and tooling policies see `AGENTS.md` and the package-specific agent guides.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for release notes and version history.

@@ -157,6 +157,7 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Deployment & Operations',
       items: [
+        'developer/releasing',
         'developer/contracts-handbook',
         'developer/ipfs-deployment',
         'developer/karma-gap',

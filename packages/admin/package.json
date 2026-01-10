@@ -1,7 +1,7 @@
 {
-  "name": "admin",
+  "name": "@green-goods/admin",
+  "version": "0.4.0",
   "private": true,
-  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "predev": "bash -lc 'lsof -t -iTCP:3002 -sTCP:LISTEN | xargs kill -9 2>/dev/null || true'",
