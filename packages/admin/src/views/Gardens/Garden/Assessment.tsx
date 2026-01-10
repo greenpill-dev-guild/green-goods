@@ -8,6 +8,14 @@ import { DEFAULT_CHAIN_ID } from "../../../config";
 
 const EAS_EXPLORER_URL = "https://explorer.easscan.org";
 
+/** EAS decoded field structure from attestation JSON */
+interface EASDecodedField {
+  name: string;
+  value: {
+    value: unknown;
+  };
+}
+
 export default function GardenAssessment() {
   const { id } = useParams<{ id: string }>();
   const selectedChainId = useAdminStore((state) => state.selectedChainId);
@@ -33,7 +41,7 @@ export default function GardenAssessment() {
   const headerActions = (
     <Link
       to={`/gardens/${id}/assessments/create`}
-      className="inline-flex items-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+      className="inline-flex items-center rounded-md border border-transparent bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker focus:outline-none focus:ring-2 focus:ring-primary-base focus:ring-offset-2"
     >
       <RiAddLine className="mr-2 h-4 w-4" />
       New Assessment
@@ -116,7 +124,7 @@ export default function GardenAssessment() {
                       href={`${EAS_EXPLORER_URL}/attestation/view/${attestation.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center text-green-600 transition hover:text-green-900"
+                      className="inline-flex items-center text-primary-dark transition hover:text-primary-darker"
                     >
                       View <RiExternalLinkLine className="ml-1 h-4 w-4" />
                     </a>
@@ -149,11 +157,11 @@ function parseAssessment(decodedDataJson: string | null) {
   }
 
   try {
-    const fields = JSON.parse(decodedDataJson);
-    const readValue = (name: string) =>
-      fields.find((field: any) => field.name === name)?.value?.value;
+    const fields: EASDecodedField[] = JSON.parse(decodedDataJson);
+    const readValue = (name: string): unknown =>
+      fields.find((field) => field.name === name)?.value?.value;
 
-    const toNumber = (value: any): number | null => {
+    const toNumber = (value: unknown): number | null => {
       if (value === undefined || value === null) return null;
       if (typeof value === "number") return value;
       if (typeof value === "string") {

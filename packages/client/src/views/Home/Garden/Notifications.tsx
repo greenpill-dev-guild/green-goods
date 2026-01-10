@@ -1,4 +1,4 @@
-import { /* useEnsName, */ useNavigateToTop } from "@green-goods/shared/hooks";
+import { useEnsName, useNavigateToTop } from "@green-goods/shared/hooks";
 import { formatAddress } from "@green-goods/shared/utils";
 import { RiAlertFill, RiSeedlingFill } from "@remixicon/react";
 import type React from "react";
@@ -12,9 +12,7 @@ interface GardenNotificationsProps {
 
 function GardenNotificationItem({ garden, work }: { garden: Garden; work: Work }) {
   const intl = useIntl();
-  // TODO: Temporarily disabled useEnsName to fix E2E tests - QueryClient not available
-  // const { data: gardenerEnsName } = useEnsName(work.gardenerAddress);
-  const gardenerEnsName = null as string | null | undefined;
+  const { data: gardenerEnsName } = useEnsName(work.gardenerAddress);
 
   return (
     <Link

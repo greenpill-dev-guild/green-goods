@@ -155,7 +155,7 @@ export function MembersModal({
                         await onRemove(member);
                       }}
                       disabled={isLoading}
-                      className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg text-red-600 transition hover:bg-red-50 active:scale-95 disabled:opacity-50/20"
+                      className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg text-error-dark transition hover:bg-error-lighter active:scale-95 disabled:opacity-50/20"
                       // eslint-disable-next-line jsx-a11y/aria-proptypes
                       aria-label={`Remove ${member}`}
                     >
@@ -170,7 +170,7 @@ export function MembersModal({
 
         {/* Mobile drag indicator */}
         <div className="flex justify-center pb-2 pt-1 sm:hidden">
-          <div className="h-1 w-12 rounded-full bg-gray-300" />
+          <div className="h-1 w-12 rounded-full bg-stroke-sub" />
         </div>
       </div>
     </div>

@@ -8,19 +8,22 @@ interface InstructionsBuilderProps {
   onChange: (config: ActionInstructionConfig) => void;
 }
 
+type UIConfigKey = keyof ActionInstructionConfig["uiConfig"];
+
 export function InstructionsBuilder({ value, onChange }: InstructionsBuilderProps) {
   const [activeTab, setActiveTab] = useState<"media" | "details" | "review">("media");
 
-  const updateConfig = (path: string[], newValue: any) => {
-    const updated = { ...value };
-    let current: any = updated;
-
-    for (let i = 0; i < path.length - 1; i++) {
-      current = current[path[i]];
-    }
-
-    current[path[path.length - 1]] = newValue;
-    onChange(updated);
+  const updateUIConfig = <K extends UIConfigKey>(
+    key: K,
+    newValue: ActionInstructionConfig["uiConfig"][K]
+  ) => {
+    onChange({
+      ...value,
+      uiConfig: {
+        ...value.uiConfig,
+        [key]: newValue,
+      },
+    });
   };
 
   return (
@@ -67,21 +70,21 @@ export function InstructionsBuilder({ value, onChange }: InstructionsBuilderProp
         {activeTab === "media" && (
           <MediaConfigSection
             config={value.uiConfig.media}
-            onChange={(media) => updateConfig(["uiConfig", "media"], media)}
+            onChange={(media) => updateUIConfig("media", media)}
           />
         )}
 
         {activeTab === "details" && (
           <DetailsConfigSection
             config={value.uiConfig.details}
-            onChange={(details) => updateConfig(["uiConfig", "details"], details)}
+            onChange={(details) => updateUIConfig("details", details)}
           />
         )}
 
         {activeTab === "review" && (
           <ReviewConfigSection
             config={value.uiConfig.review}
-            onChange={(review) => updateConfig(["uiConfig", "review"], review)}
+            onChange={(review) => updateUIConfig("review", review)}
           />
         )}
       </div>

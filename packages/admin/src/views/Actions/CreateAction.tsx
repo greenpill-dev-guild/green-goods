@@ -219,8 +219,8 @@ export default function CreateAction() {
                       className={cn(
                         "flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2.5 text-sm transition",
                         isChecked
-                          ? "border-green-500 bg-green-50 text-green-700"
-                          : "border-stroke-soft bg-bg-white text-text-sub hover:border-green-300 hover:bg-green-50/5"
+                          ? "border-success-base bg-success-lighter text-success-dark"
+                          : "border-stroke-soft bg-bg-white text-text-sub hover:border-success-light hover:bg-success-lighter/30"
                       )}
                     >
                       <input
@@ -232,7 +232,7 @@ export default function CreateAction() {
                             : capitals.filter((c) => c !== capital.value);
                           form.setValue("capitals", newCapitals);
                         }}
-                        className="h-4 w-4 rounded border-stroke-sub text-green-600 focus:ring-2 focus:ring-green-200 focus:ring-offset-0"
+                        className="h-4 w-4 rounded border-stroke-sub text-success-base focus:ring-2 focus:ring-success-light focus:ring-offset-0"
                       />
                       <span className="flex-1 truncate font-medium">{capital.label}</span>
                     </label>

@@ -15,6 +15,7 @@ import { createAppKit } from "@reown/appkit/react";
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 import { DEFAULT_CHAIN_ID } from "./blockchain";
 import { getChain, SUPPORTED_CHAINS } from "./chains";
+import { getResolvedTheme } from "../utils/styles/theme";
 
 type AppKitMetadata = {
   name: string;
@@ -101,6 +102,9 @@ export function ensureAppKit(options?: AppKitInitOptions) {
     projectId,
   });
 
+  // Get initial theme from system/localStorage
+  const initialTheme = getResolvedTheme();
+
   appKitInstance = createAppKit({
     adapters: [wagmiAdapterInstance],
     networks,
@@ -111,7 +115,7 @@ export function ensureAppKit(options?: AppKitInitOptions) {
     features: {
       analytics: false, // Disable AppKit analytics (we use PostHog)
     },
-    themeMode: "light",
+    themeMode: initialTheme,
     themeVariables: {
       "--w3m-accent": "#367D42", // Green Goods primary green
       "--w3m-border-radius-master": "12px",
@@ -122,6 +126,16 @@ export function ensureAppKit(options?: AppKitInitOptions) {
     appKit: appKitInstance,
     wagmiConfig: wagmiAdapterInstance.wagmiConfig,
   };
+}
+
+/**
+ * Update AppKit theme mode dynamically.
+ * Call this when the app theme changes.
+ */
+export function updateAppKitTheme(isDark: boolean): void {
+  if (appKitInstance) {
+    appKitInstance.setThemeMode(isDark ? "dark" : "light");
+  }
 }
 
 // Eagerly initialize using defaults so consumers can import directly.

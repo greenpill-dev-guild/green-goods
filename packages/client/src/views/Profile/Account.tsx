@@ -2,7 +2,7 @@ import { toastService } from "@green-goods/shared";
 import {
   isGardenMember,
   useAuth,
-  // useEnsName,
+  useEnsName,
   useGardens,
   useJoinGarden,
   useTheme,
@@ -52,9 +52,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
   const { authMode, signOut, smartAccountAddress, credential, walletAddress } = useAuth();
   const { theme, setTheme } = useTheme();
   const primaryAddress = smartAccountAddress || walletAddress;
-  // TODO: Temporarily disabled useEnsName to fix E2E tests - QueryClient not available
-  // const { data: primaryEnsName } = useEnsName(primaryAddress);
-  const primaryEnsName = null as string | null | undefined;
+  const { data: primaryEnsName } = useEnsName(primaryAddress);
   const navigate = useNavigate();
   const {
     locale,

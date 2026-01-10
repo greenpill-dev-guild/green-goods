@@ -95,7 +95,16 @@ export { useRole } from "./gardener/useRole";
 // QUERY KEYS
 // ============================================================================
 export type { QueryKey, QueueQueryKey, WorksQueryKey } from "./query-keys";
-export { queryInvalidation, queryKeys } from "./query-keys";
+export {
+  DEFAULT_RETRY_COUNT,
+  DEFAULT_RETRY_DELAY,
+  queryInvalidation,
+  queryKeys,
+  STALE_TIME_FAST,
+  STALE_TIME_MEDIUM,
+  STALE_TIME_RARE,
+  STALE_TIME_SLOW,
+} from "./query-keys";
 
 // ============================================================================
 // TRANSLATION
@@ -111,6 +120,8 @@ export { useScrollReveal } from "./ui/useScrollReveal";
 // ============================================================================
 // WORK
 // ============================================================================
+export { useDraftAutoSave } from "./work/useDraftAutoSave";
+export { useDraftResume } from "./work/useDraftResume";
 export type { DraftWithImages, UseDraftsReturn } from "./work/useDrafts";
 export { useDrafts } from "./work/useDrafts";
 export { useMyOnlineWorks, useMyWorks } from "./work/useMyWorks";

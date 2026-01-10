@@ -2,6 +2,10 @@ import type { Job, Work, WorkJobPayload } from "@green-goods/shared";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
 import {
   queryKeys,
+  DEFAULT_RETRY_COUNT,
+  STALE_TIME_FAST,
+  STALE_TIME_MEDIUM,
+  STALE_TIME_SLOW,
   useDrafts,
   useMyOnlineWorks,
   useUser,
@@ -87,7 +91,8 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   const { data: gardens = [] } = useQuery({
     queryKey: queryKeys.gardens.byChain(DEFAULT_CHAIN_ID),
     queryFn: getGardens,
-    staleTime: 60_000,
+    staleTime: STALE_TIME_SLOW,
+    retry: DEFAULT_RETRY_COUNT,
   });
 
   const operatorGardenIds = useMemo(
@@ -152,7 +157,8 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       return allWorks.sort((a, b) => b.createdAt - a.createdAt);
     },
     enabled: operatorGardenIds.length > 0 && !!activeAddress,
-    staleTime: 30_000,
+    staleTime: STALE_TIME_MEDIUM,
+    retry: DEFAULT_RETRY_COUNT,
   });
 
   // Use new hooks for user's works
@@ -189,7 +195,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       return works.sort((a, b) => b.createdAt - a.createdAt);
     },
     enabled: !!activeAddress,
-    staleTime: 5000,
+    staleTime: STALE_TIME_FAST,
   });
 
   // Combine offline queue + recent online work for "Recent" tab
@@ -254,7 +260,8 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       return approvals;
     },
     enabled: operatorGardenIds.length > 0,
-    staleTime: 30_000,
+    staleTime: STALE_TIME_MEDIUM,
+    retry: DEFAULT_RETRY_COUNT,
   });
 
   // Set of work IDs that have been approved/rejected by ANY operator
@@ -275,9 +282,24 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     (w) => !alreadyReviewedByAnyone.has(w.id) && !isUserAddress(w.gardenerAddress)
   );
 
-  // Completed approvals (approved/rejected by you)
-  const completedReviewedByYou = completedApprovals.filter((work) =>
-    ["approved", "rejected"].includes(work.status)
+  // Completed approvals (approved/rejected by you) - convert to Work shape for MinimalWorkCard
+  const completedReviewedByYou: Work[] = useMemo(
+    () =>
+      completedApprovals
+        .filter((approval) => ["approved", "rejected"].includes(approval.status))
+        .map((approval) => ({
+          id: approval.workUID,
+          title: approval.title || `Work ${String(approval.workUID || "").slice(0, 8)}...`,
+          actionUID: approval.actionUID,
+          gardenerAddress: approval.gardenerAddress,
+          gardenAddress: approval.gardenId || "",
+          feedback: approval.feedback || "",
+          metadata: "",
+          media: [],
+          createdAt: approval.createdAt,
+          status: approval.status as "approved" | "rejected" | "pending",
+        })),
+    [completedApprovals]
   );
 
   // Completed: approvals for your own submissions (you as gardener)
@@ -291,7 +313,8 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     queryKey: ["approvals", "byGardener", activeAddress],
     queryFn: () => fetchWorkApprovals(activeAddress || undefined),
     enabled: !!activeAddress,
-    staleTime: 30_000,
+    staleTime: STALE_TIME_MEDIUM,
+    retry: DEFAULT_RETRY_COUNT,
   });
 
   // Pending: your submissions across ALL gardens (online and awaiting review)
@@ -319,14 +342,14 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         ? pendingMySubmissions
         : combinedPending;
 
-  const completedMyWorkReviewed = useMemo(
+  const completedMyWorkReviewed: Work[] = useMemo(
     () =>
       (myReceivedApprovals || []).map((a) => ({
         id: a.workUID,
-        gardenerAddress: a.gardenerAddress,
-        gardenAddress: undefined as unknown as string,
-        actionUID: a.actionUID,
         title: `Work ${String(a.workUID || "").slice(0, 8)}...`,
+        actionUID: a.actionUID,
+        gardenerAddress: a.gardenerAddress,
+        gardenAddress: "", // Not available from approval data
         feedback: a.feedback || "",
         metadata: "",
         media: [],
@@ -342,7 +365,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // Apply time filtering using utility
   const filteredUploading = filterByTimeRange(uploadingWork, timeFilter);
   const filteredPending = filterByTimeRange(pendingWork, timeFilter);
-  const filteredCompleted = filterByTimeRange(completedWork as Work[], timeFilter);
+  const filteredCompleted = filterByTimeRange(completedWork, timeFilter);
 
   // Navigation handler - handles both Work and WorkApproval shapes
   const handleWorkClick = (work: Work | { workUID?: string; gardenAddress?: string }) => {
@@ -561,7 +584,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       case "completed":
         return (
           <CompletedTab
-            completedWork={filteredCompleted as any}
+            completedWork={filteredCompleted}
             isLoading={isLoading || (completedFilter === "myWorkReviewed" && isLoadingMyApprovals)}
             isFetching={isFetchingCompleted}
             hasError={hasCompletedError}

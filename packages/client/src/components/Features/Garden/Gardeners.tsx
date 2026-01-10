@@ -1,4 +1,4 @@
-import { useEnsAvatar /* , useEnsName */ } from "@green-goods/shared/hooks";
+import { useEnsAvatar, useEnsName } from "@green-goods/shared/hooks";
 import { copyToClipboard, formatAddress } from "@green-goods/shared/utils";
 import {
   RiCalendarEventFill,
@@ -39,9 +39,7 @@ const GardenMemberItem = memo(function GardenMemberItem({
   onClick?: () => void;
 }) {
   const intl = useIntl();
-  // TODO: Temporarily disabled useEnsName to fix E2E tests - QueryClient not available
-  // const { data: ensName } = useEnsName(member.account);
-  const ensName = null as string | null | undefined;
+  const { data: ensName } = useEnsName(member.account);
   const { data: ensAvatar, isLoading: isLoadingAvatar } = useEnsAvatar(member.account);
   const displayName =
     member.username ||
@@ -110,9 +108,7 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
     const intl = useIntl();
     const shouldVirtualize = members.length > 40;
     const [selected, setSelected] = useState<GardenMember | null>(null);
-    // TODO: Temporarily disabled useEnsName to fix E2E tests - QueryClient not available
-    // const { data: selectedEnsName } = useEnsName(selected?.account);
-    const selectedEnsName = null as string | null | undefined;
+    const { data: selectedEnsName } = useEnsName(selected?.account);
     const title = useMemo(() => {
       if (!selected) return "";
       return (

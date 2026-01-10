@@ -26,11 +26,18 @@ export interface MediaBuffer {
   mimeType: string;
 }
 
+/** Minimal interface for Storacha client methods used by this service */
+interface StorachaClient {
+  addSpace(proof: unknown): Promise<{ did(): string }>;
+  setCurrentSpace(did: string): Promise<void>;
+  uploadFile(file: File): Promise<{ toString(): string }>;
+}
+
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
 
-let storachaClient: any = null;
+let storachaClient: StorachaClient | null = null;
 let gatewayUrl = "https://w3s.link";
 
 /**
@@ -44,7 +51,8 @@ export async function initMedia(key: string, proof: string, customGateway?: stri
       import("@storacha/client/proof"),
     ]);
 
-    storachaClient = await Client.create();
+    // Cast to our minimal interface - runtime API is compatible
+    storachaClient = (await Client.create()) as StorachaClient;
 
     // Parse and add proof to the client
     const parsedProof = await Proof.parse(proof);

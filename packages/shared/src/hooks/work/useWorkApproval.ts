@@ -146,10 +146,17 @@ export function useWorkApproval() {
           if (result.success && result.txHash) {
             return { hash: result.txHash as `0x${string}` };
           }
+          // If processing failed (not skipped), propagate the error
+          if (!result.success && result.error && !result.skipped) {
+            throw new Error(result.error);
+          }
+          // If skipped (e.g., already processed), return offline hash as pending
         } catch (error) {
           if (DEBUG_ENABLED) {
             debugWarn("[useWorkApproval] Inline approval processing threw", { jobId, error });
           }
+          // Re-throw to trigger onError handler and show user feedback
+          throw error;
         }
       }
 

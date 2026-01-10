@@ -1,4 +1,4 @@
-// import { useEnsName } from "@green-goods/shared/hooks";
+import { useEnsName } from "@green-goods/shared/hooks";
 import {
   cn,
   formatAddress,
@@ -157,16 +157,14 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   variant = "compact",
 }) => {
   const intl = useIntl();
-  // TODO: Temporarily disabled useEnsName to fix E2E tests - QueryClient not available
-  // const { data: gardenerEnsName } = useEnsName(
-  //   variant === "detailed" ? work.gardenerAddress : null,
-  //   { enabled: variant === "detailed" }
-  // );
-  const gardenerEnsName = null as string | null | undefined;
-  // const { data: gardenEnsName } = useEnsName(showGardenInfo ? work.gardenAddress : null, {
-  //   enabled: Boolean(showGardenInfo && work.gardenAddress),
-  // });
-  const gardenEnsName = null as string | null | undefined;
+  // ENS name resolution for gardener and garden addresses
+  const { data: gardenerEnsName } = useEnsName(
+    variant === "detailed" ? work.gardenerAddress : null,
+    { enabled: variant === "detailed" }
+  );
+  const { data: gardenEnsName } = useEnsName(showGardenInfo ? work.gardenAddress : null, {
+    enabled: Boolean(showGardenInfo && work.gardenAddress),
+  });
   const displayStatus = work.status
     ? work.status.charAt(0).toUpperCase() + work.status.slice(1)
     : "Pending";

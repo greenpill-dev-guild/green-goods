@@ -11,21 +11,21 @@ interface FormSelectProps<T extends FieldValues = FieldValues> {
   control: Control<T>;
 }
 
-// Custom styles matching design system (FormInput/FormText)
+// Custom styles matching design system - using CSS variables for dark mode support
 const customStyles: StylesConfig = {
   control: (provided, state) => ({
     ...provided,
-    backgroundColor: "white",
-    borderColor: state.isFocused ? "rgb(34 197 94)" : "rgb(203 213 225)", // border-stroke-sub-300
-    borderRadius: "0.5rem", // rounded-lg
+    backgroundColor: "rgb(var(--bg-white-0))",
+    borderColor: state.isFocused ? "rgb(var(--primary-base))" : "rgb(var(--stroke-soft-200))",
+    borderRadius: "0.5rem",
     borderWidth: "1px",
-    padding: "0.375rem 0.5rem", // py-3 px-4 equivalent (adjusted for multi-select)
+    padding: "0.375rem 0.5rem",
     minHeight: "3rem",
-    boxShadow: state.isFocused ? "0 0 0 3px rgba(34, 197, 94, 0.1)" : "none",
+    boxShadow: state.isFocused ? "0 0 0 3px rgba(var(--primary-base), 0.1)" : "none",
     transition: "all 150ms",
     "@media (hover: hover) and (pointer: fine)": {
       "&:hover": {
-        borderColor: state.isFocused ? "rgb(34 197 94)" : "rgb(148 163 184)",
+        borderColor: state.isFocused ? "rgb(var(--primary-base))" : "rgb(var(--stroke-sub-300))",
       },
     },
   }),
@@ -36,48 +36,49 @@ const customStyles: StylesConfig = {
   }),
   multiValue: (provided) => ({
     ...provided,
-    backgroundColor: "rgb(220 252 231)", // green-100
-    borderRadius: "0.375rem", // rounded-md
+    backgroundColor: "rgb(var(--success-lighter))",
+    borderRadius: "0.375rem",
     padding: "0.125rem 0.25rem",
     display: "flex",
     alignItems: "center",
     gap: "0.25rem",
-    border: "1px solid rgb(187 247 208)", // green-200
+    border: "1px solid rgb(var(--success-light))",
     transition: "all 150ms",
   }),
   multiValueLabel: (provided) => ({
     ...provided,
-    color: "rgb(22 101 52)", // green-800
+    color: "rgb(var(--success-dark))",
     fontSize: "0.875rem",
     fontWeight: "500",
     padding: "0.125rem 0.25rem",
   }),
   multiValueRemove: (provided) => ({
     ...provided,
-    color: "rgb(34 197 94)", // green-500
+    color: "rgb(var(--success-base))",
     cursor: "pointer",
     transition: "all 150ms",
     "&:hover": {
-      backgroundColor: "rgb(187 247 208)", // green-200
-      color: "rgb(22 101 52)", // green-800
+      backgroundColor: "rgb(var(--success-light))",
+      color: "rgb(var(--success-dark))",
     },
   }),
   placeholder: (provided) => ({
     ...provided,
-    color: "rgb(148 163 184)", // text-text-soft-400
+    color: "rgb(var(--text-soft-400))",
     fontSize: "0.875rem",
   }),
   input: (provided) => ({
     ...provided,
-    color: "rgb(30 41 59)", // text-text-strong-950
+    color: "rgb(var(--text-strong-950))",
     fontSize: "0.875rem",
   }),
   menu: (provided) => ({
     ...provided,
+    backgroundColor: "rgb(var(--bg-white-0))",
     borderRadius: "0.5rem",
     marginTop: "0.25rem",
     boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-    border: "1px solid rgb(226 232 240)",
+    border: "1px solid rgb(var(--stroke-soft-200))",
   }),
   menuList: (provided) => ({
     ...provided,
@@ -86,11 +87,11 @@ const customStyles: StylesConfig = {
   option: (provided, state) => ({
     ...provided,
     backgroundColor: state.isSelected
-      ? "rgb(220 252 231)" // green-100
+      ? "rgb(var(--success-lighter))"
       : state.isFocused
-        ? "rgb(240 253 244)" // green-50
-        : "white",
-    color: state.isSelected ? "rgb(22 101 52)" : "rgb(30 41 59)", // green-800 : slate-800
+        ? "rgb(var(--bg-weak-50))"
+        : "rgb(var(--bg-white-0))",
+    color: state.isSelected ? "rgb(var(--success-dark))" : "rgb(var(--text-strong-950))",
     cursor: "pointer",
     fontSize: "0.875rem",
     fontWeight: state.isSelected ? "500" : "400",
@@ -98,7 +99,29 @@ const customStyles: StylesConfig = {
     borderRadius: "0.375rem",
     transition: "all 150ms",
     "&:active": {
-      backgroundColor: "rgb(220 252 231)", // green-100
+      backgroundColor: "rgb(var(--success-lighter))",
+    },
+  }),
+  singleValue: (provided) => ({
+    ...provided,
+    color: "rgb(var(--text-strong-950))",
+  }),
+  indicatorSeparator: (provided) => ({
+    ...provided,
+    backgroundColor: "rgb(var(--stroke-soft-200))",
+  }),
+  dropdownIndicator: (provided) => ({
+    ...provided,
+    color: "rgb(var(--text-soft-400))",
+    "&:hover": {
+      color: "rgb(var(--text-sub-600))",
+    },
+  }),
+  clearIndicator: (provided) => ({
+    ...provided,
+    color: "rgb(var(--text-soft-400))",
+    "&:hover": {
+      color: "rgb(var(--text-sub-600))",
     },
   }),
 };

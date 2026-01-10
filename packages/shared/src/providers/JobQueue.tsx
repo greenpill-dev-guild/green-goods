@@ -219,15 +219,25 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
     }
 
     const abortController = new AbortController();
+    // Track if a flush is currently in progress to prevent concurrent operations
+    let isFlushInProgress = false;
 
     const attemptFlush = async () => {
+      // Prevent concurrent flush operations - this avoids race conditions
+      if (isFlushInProgress || abortController.signal.aborted) {
+        return;
+      }
+
+      isFlushInProgress = true;
       try {
         await jobQueue.flush({ smartAccountClient, userAddress: currentUserAddress });
-        await refreshStats(abortController.signal);
-      } catch {
-        if (abortController.signal.aborted) {
-          return;
+        if (!abortController.signal.aborted) {
+          await refreshStats(abortController.signal);
         }
+      } catch {
+        // Silently handle errors - they're logged in jobQueue.flush
+      } finally {
+        isFlushInProgress = false;
       }
     };
 

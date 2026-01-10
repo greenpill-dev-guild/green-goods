@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { DEFAULT_CHAIN_ID, getEASConfig } from "../../config/blockchain";
 import { easGraphQL } from "../../modules/data/graphql";
 import { createEasClient } from "../../modules/data/graphql-client";
-import { queryKeys } from "../query-keys";
+import { queryKeys, STALE_TIME_MEDIUM, STALE_TIME_RARE } from "../query-keys";
 
 // Enhanced work approval interface for UI
 export interface EnhancedWorkApproval extends WorkApproval {
@@ -122,8 +122,8 @@ export function useWorkApprovals(attesterAddress?: string) {
       }
     },
     enabled: !!attesterAddress,
-    staleTime: 10000, // 10 seconds (reduced for faster approval updates)
-    gcTime: 300000, // 5 minutes
+    staleTime: STALE_TIME_MEDIUM, // 30 seconds for approval updates
+    gcTime: STALE_TIME_RARE, // 5 minutes garbage collection
     throwOnError: false, // Don't throw errors
   });
 

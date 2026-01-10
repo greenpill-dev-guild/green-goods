@@ -102,13 +102,9 @@ export function useAutoJoinRootGarden() {
 
   const { writeContractAsync, isPending } = useWriteContract();
 
-  // Get QueryClient - but handle case where it's not available yet
-  let queryClient: ReturnType<typeof useQueryClient> | null = null;
-  try {
-    queryClient = useQueryClient();
-  } catch {
-    // QueryClient not available yet - this is OK during initial render
-  }
+  // Get QueryClient - always called unconditionally per React hook rules
+  // The hook will throw if used outside QueryClientProvider, but that's expected
+  const queryClient = useQueryClient();
 
   /**
    * Execute the join transaction
@@ -156,8 +152,6 @@ export function useAutoJoinRootGarden() {
    * Refetch garden data after joining
    */
   const refetchGardenData = useCallback(async () => {
-    if (!queryClient) return;
-
     const keysToInvalidate = queryInvalidation.invalidateGardens(chainId);
     await Promise.all(
       keysToInvalidate.map((key) => queryClient.invalidateQueries({ queryKey: key }))

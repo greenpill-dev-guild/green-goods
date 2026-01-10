@@ -2,7 +2,7 @@ import { RiGroupFill, RiMapPinFill, RiMapPinUserFill } from "@remixicon/react";
 import * as React from "react";
 import { useIntl } from "react-intl";
 import { tv, type VariantProps } from "tailwind-variants";
-// import { useEnsName } from "@green-goods/shared/hooks";
+import { useEnsName } from "@green-goods/shared/hooks";
 import { buildGardenMemberSets, cn, formatAddress } from "@green-goods/shared/utils";
 import { ImageWithFallback } from "@/components/Display";
 import { Badge } from "@/components/Communication";
@@ -40,9 +40,7 @@ export type GardenCardRootProps = React.HTMLAttributes<HTMLDivElement> &
   CardRootProps & { garden: Garden; selected: boolean } & GardenCardOptions;
 
 const OperatorBadge: React.FC<{ address: string }> = ({ address }) => {
-  // TODO: Temporarily disabled useEnsName to fix E2E tests - QueryClient not available
-  // const { data: ensName } = useEnsName(address);
-  const ensName = null as string | null | undefined;
+  const { data: ensName } = useEnsName(address);
   return (
     <Badge variant="outline" tint="none" className="border-0 p-0 text-xs font-medium leading-tight">
       {formatAddress(address, { ensName, variant: "card" })}
