@@ -1,11 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { screen, render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import React from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import RequireRole from "@/routes/RequireRole";
 
 const mockUseRole = vi.fn();
 
-vi.mock("@/hooks/useRole", () => ({
+vi.mock("@green-goods/shared/hooks", () => ({
   useRole: () => mockUseRole(),
 }));
 

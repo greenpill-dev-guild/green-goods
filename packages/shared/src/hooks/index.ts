@@ -3,16 +3,28 @@
 // ============================================================================
 // ACTION
 // ============================================================================
+export type { ActionOperationResult } from "./action/useActionOperations";
 export { useActionOperations } from "./action/useActionOperations";
+
+// ============================================================================
+// ANALYTICS
+// ============================================================================
+export type { UseAnalyticsIdentityOptions } from "./analytics/useAnalyticsIdentity";
+export { useAnalyticsIdentity } from "./analytics/useAnalyticsIdentity";
+export type { UsePageViewOptions } from "./analytics/usePageView";
+export { usePageView } from "./analytics/usePageView";
 
 // ============================================================================
 // APP
 // ============================================================================
 export { useBrowserNavigation } from "./app/useBrowserNavigation";
+export type { DebugModeState } from "./app/useDebugMode";
+export { useDebugMode } from "./app/useDebugMode";
 export { useMerged } from "./app/useMerged";
 export { useNavigateToTop } from "./app/useNavigateToTop";
 export { useOffline } from "./app/useOffline";
 export { useTheme } from "./app/useTheme";
+export { useViewTransition, startViewTransition } from "./app/useViewTransition";
 export type { ToastActionOptions } from "./app/useToastAction";
 export { useToastAction } from "./app/useToastAction";
 
@@ -26,8 +38,10 @@ export { useGardenAssessments } from "./assessment/useGardenAssessments";
 // ============================================================================
 // AUTH
 // ============================================================================
-export { useAuth, useClientAuth, usePasskeyAuth, useWalletAuth } from "./auth/useAuth";
+export type { AuthContextType, AuthMode } from "./auth/useAuth";
+export { useAuth, useAuthContext } from "./auth/useAuth";
 export { useUser } from "./auth/useUser";
+export { useUserWithEns } from "./auth/useUserWithEns";
 
 // ============================================================================
 // BLOCKCHAIN
@@ -49,7 +63,11 @@ export { useEnsName } from "./blockchain/useEnsName";
 // ============================================================================
 // GARDEN
 // ============================================================================
-export type { GardenOperationConfig } from "./garden/createGardenOperation";
+export type {
+  GardenOperationConfig,
+  GardenOperationResult,
+  OptimisticUpdateCallback,
+} from "./garden/createGardenOperation";
 export { createGardenOperation, GARDEN_OPERATIONS } from "./garden/createGardenOperation";
 export { checkMembership, useAutoJoinRootGarden } from "./garden/useAutoJoinRootGarden";
 export { useCreateGardenWorkflow } from "./garden/useCreateGardenWorkflow";
@@ -77,7 +95,16 @@ export { useRole } from "./gardener/useRole";
 // QUERY KEYS
 // ============================================================================
 export type { QueryKey, QueueQueryKey, WorksQueryKey } from "./query-keys";
-export { queryInvalidation, queryKeys } from "./query-keys";
+export {
+  DEFAULT_RETRY_COUNT,
+  DEFAULT_RETRY_DELAY,
+  queryInvalidation,
+  queryKeys,
+  STALE_TIME_FAST,
+  STALE_TIME_MEDIUM,
+  STALE_TIME_RARE,
+  STALE_TIME_SLOW,
+} from "./query-keys";
 
 // ============================================================================
 // TRANSLATION
@@ -93,7 +120,11 @@ export { useScrollReveal } from "./ui/useScrollReveal";
 // ============================================================================
 // WORK
 // ============================================================================
-export { useMyMergedWorks, useMyOnlineWorks, useMyWorks } from "./work/useMyWorks";
+export { useDraftAutoSave } from "./work/useDraftAutoSave";
+export { useDraftResume } from "./work/useDraftResume";
+export type { DraftWithImages, UseDraftsReturn } from "./work/useDrafts";
+export { useDrafts } from "./work/useDrafts";
+export { useMyOnlineWorks, useMyWorks } from "./work/useMyWorks";
 export { useWorkApproval } from "./work/useWorkApproval";
 export type { EnhancedWorkApproval } from "./work/useWorkApprovals";
 export { useWorkApprovals } from "./work/useWorkApprovals";

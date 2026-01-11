@@ -77,7 +77,14 @@ export const useApp = () => {
   return useContext(AppContext);
 };
 
-export const AppProvider = ({ children }: { children: React.ReactNode }) => {
+interface AppProviderProps {
+  children: React.ReactNode;
+  posthogKey?: string;
+}
+
+export const AppProvider = ({ children, posthogKey }: AppProviderProps) => {
+  // Use provided key or fall back to default client key
+  const apiKey = posthogKey || import.meta.env.VITE_POSTHOG_KEY;
   const defaultLocale = localStorage.getItem("gg-language")
     ? (localStorage.getItem("gg-language") as Locale)
     : (getBrowserLocale(supportedLanguages, "en") as Locale); // Use helper instead of browserLang
@@ -167,34 +174,43 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, [handleAppInstalled, handleBeforeInstall, handleInstallCheck, installState]);
 
-  return (
-    <PostHogProvider
-      apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
-      options={{
-        api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
-        capture_exceptions: true,
-        debug: import.meta.env.VITE_POSTHOG_DEBUG === "true",
+  const appContent = (
+    <AppContext.Provider
+      value={{
+        isMobile: isMobilePlatform(),
+        isInstalled: installState === "installed",
+        isStandalone,
+        wasInstalled,
+        platform,
+        locale,
+        availableLocales: supportedLanguages,
+        deferredPrompt,
+        promptInstall,
+        handleInstallCheck,
+        switchLanguage,
       }}
     >
-      <AppContext.Provider
-        value={{
-          isMobile: isMobilePlatform(),
-          isInstalled: installState === "installed",
-          isStandalone,
-          wasInstalled,
-          platform,
-          locale,
-          availableLocales: supportedLanguages,
-          deferredPrompt,
-          promptInstall,
-          handleInstallCheck,
-          switchLanguage,
+      <IntlProvider locale={locale} messages={messages[locale]}>
+        {children}
+      </IntlProvider>
+    </AppContext.Provider>
+  );
+
+  // Only wrap with PostHogProvider if API key is available
+  if (apiKey) {
+    return (
+      <PostHogProvider
+        apiKey={apiKey}
+        options={{
+          api_host: import.meta.env.VITE_POSTHOG_HOST,
+          capture_exceptions: true,
+          debug: import.meta.env.VITE_POSTHOG_DEBUG === "true",
         }}
       >
-        <IntlProvider locale={locale} messages={messages[locale]}>
-          {children}
-        </IntlProvider>
-      </AppContext.Provider>
-    </PostHogProvider>
-  );
+        {appContent}
+      </PostHogProvider>
+    );
+  }
+
+  return appContent;
 };

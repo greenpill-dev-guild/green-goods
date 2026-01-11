@@ -1,103 +1,171 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook } from "@testing-library/react";
+/**
+ * @vitest-environment jsdom
+ */
 
-// Mock the user provider first
-const mockUseUser = vi.fn();
-vi.mock("@/providers/user", () => ({
-  useUser: () => mockUseUser(),
+import { renderHook, waitFor } from "@testing-library/react";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+
+// Mock auth provider
+const mockUseAuthContext = vi.fn();
+const mockUseAccount = vi.fn();
+const mockUseDeploymentRegistry = vi.fn();
+
+vi.mock("../../providers/Auth", () => ({
+  useAuthContext: () => mockUseAuthContext(),
 }));
 
-// Mock URQL
+vi.mock("wagmi", () => ({
+  useAccount: () => mockUseAccount(),
+}));
+
+vi.mock("../../hooks/blockchain/useDeploymentRegistry", () => ({
+  useDeploymentRegistry: () => mockUseDeploymentRegistry(),
+}));
+
+// Mock React Query
 const mockUseQuery = vi.fn();
-vi.mock("urql", () => ({
-  useQuery: () => mockUseQuery(),
+vi.mock("@tanstack/react-query", () => ({
+  useQuery: (options: { queryFn?: () => Promise<unknown> }) => mockUseQuery(options),
 }));
 
-// Import after mocks
-const { useRole } = await import("@/hooks/useRole");
-const { createMockPrivyUser } = await import("../mocks/privy");
+// Mock the GraphQL client
+vi.mock("../../modules/data/graphql-client", () => ({
+  greenGoodsIndexer: {
+    query: vi.fn().mockResolvedValue({ data: { Garden: [] } }),
+  },
+}));
+
+vi.mock("../../modules/data/graphql", () => ({
+  greenGoodsGraphQL: vi.fn((query: string) => query),
+}));
+
+vi.mock("../../config/react-query", () => ({
+  STALE_TIMES: {
+    baseLists: 60000,
+    works: 15000,
+    queue: 5000,
+    merged: 5000,
+  },
+}));
+
+vi.mock("../query-keys", () => ({
+  queryKeys: {
+    role: {
+      operatorGardens: (address?: string) => ["greengoods", "role", "operatorGardens", address],
+    },
+  },
+}));
+
+// Import after mocks - using dynamic import inside tests to ensure mocks are applied
+let useRole: typeof import("../../hooks/gardener/useRole").useRole;
+
+beforeAll(async () => {
+  const module = await import("../../hooks/gardener/useRole");
+  useRole = module.useRole;
+});
 
 describe("useRole", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Default mock values - not logged in
+    mockUseAuthContext.mockReturnValue({
+      smartAccountAddress: null,
+      walletAddress: null,
+      isReady: true,
+      isAuthenticated: false,
+    });
+    mockUseAccount.mockReturnValue({
+      address: undefined,
+      isConnected: false,
+    });
+    mockUseDeploymentRegistry.mockReturnValue({
+      canDeploy: false,
+      isOwner: false,
+      isInAllowlist: false,
+      loading: false,
+    });
+    // Mock React Query's useQuery response
+    mockUseQuery.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    });
   });
 
-  it("should return admin role for admin address", () => {
-    const adminUser = createMockPrivyUser("admin");
-    mockUseUser.mockReturnValue(adminUser);
-    mockUseQuery.mockReturnValue([
-      {
-        data: { gardens: [] },
-        fetching: false,
-        error: null,
-      },
-    ]);
+  it("should return deployer role when user can deploy (wallet mode)", () => {
+    mockUseAccount.mockReturnValue({
+      address: "0x123",
+      isConnected: true,
+    });
+    mockUseDeploymentRegistry.mockReturnValue({
+      canDeploy: true,
+      isOwner: true,
+      isInAllowlist: true,
+      loading: false,
+    });
 
     const { result } = renderHook(() => useRole());
 
-    expect(result.current.role).toBe("admin");
-    expect(result.current.isAdmin).toBe(true);
+    expect(result.current.role).toBe("deployer");
+    expect(result.current.isDeployer).toBe(true);
     expect(result.current.isOperator).toBe(false);
     expect(result.current.loading).toBe(false);
   });
 
-  it("should return operator role for operator with gardens", () => {
-    const operatorUser = createMockPrivyUser("operator");
-    mockUseUser.mockReturnValue(operatorUser);
-    mockUseQuery.mockReturnValue([
-      {
-        data: {
-          gardens: [
-            { id: "0x123", name: "Test Garden" },
-            { id: "0x456", name: "Another Garden" },
-          ],
-        },
-        fetching: false,
-        error: null,
-      },
-    ]);
+  it("should return operator role for user with operator gardens", () => {
+    mockUseAccount.mockReturnValue({
+      address: "0x456",
+      isConnected: true,
+    });
+    mockUseQuery.mockReturnValue({
+      data: [
+        { id: "0x123", name: "Test Garden" },
+        { id: "0x456", name: "Another Garden" },
+      ],
+      isLoading: false,
+      error: null,
+    });
 
     const { result } = renderHook(() => useRole());
 
     expect(result.current.role).toBe("operator");
-    expect(result.current.isAdmin).toBe(false);
+    expect(result.current.isDeployer).toBe(false);
     expect(result.current.isOperator).toBe(true);
     expect(result.current.operatorGardens).toHaveLength(2);
     expect(result.current.loading).toBe(false);
   });
 
-  it("should return unauthorized role for unknown address", () => {
-    const unauthorizedUser = createMockPrivyUser("unauthorized");
-    mockUseUser.mockReturnValue(unauthorizedUser);
-    mockUseQuery.mockReturnValue([
-      {
-        data: { gardens: [] },
-        fetching: false,
-        error: null,
-      },
-    ]);
+  it("should return user role for unknown address without operator gardens", () => {
+    mockUseAccount.mockReturnValue({
+      address: "0x789",
+      isConnected: true,
+    });
+    mockUseQuery.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    });
 
     const { result } = renderHook(() => useRole());
 
-    expect(result.current.role).toBe("unauthorized");
-    expect(result.current.isAdmin).toBe(false);
+    expect(result.current.role).toBe("user");
+    expect(result.current.isDeployer).toBe(false);
     expect(result.current.isOperator).toBe(false);
     expect(result.current.operatorGardens).toHaveLength(0);
     expect(result.current.loading).toBe(false);
   });
 
-  it("should show loading state when user is not ready", () => {
-    mockUseUser.mockReturnValue({
-      ready: false,
-      address: null,
+  it("should show loading state when not connected", () => {
+    mockUseAccount.mockReturnValue({
+      address: undefined,
+      isConnected: false,
     });
-    mockUseQuery.mockReturnValue([
-      {
-        data: null,
-        fetching: true,
-        error: null,
-      },
-    ]);
+    mockUseQuery.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      error: null,
+    });
 
     const { result } = renderHook(() => useRole());
 
@@ -105,55 +173,137 @@ describe("useRole", () => {
   });
 
   it("should show loading state when query is fetching", () => {
-    const adminUser = createMockPrivyUser("admin");
-    mockUseUser.mockReturnValue(adminUser);
-    mockUseQuery.mockReturnValue([
-      {
-        data: null,
-        fetching: true,
-        error: null,
-      },
-    ]);
+    mockUseAccount.mockReturnValue({
+      address: "0x123",
+      isConnected: true,
+    });
+    mockUseQuery.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      error: null,
+    });
 
     const { result } = renderHook(() => useRole());
 
     expect(result.current.loading).toBe(true);
   });
 
-  it("should pause query when no address is available", () => {
-    mockUseUser.mockReturnValue({
-      ready: true,
-      address: null,
+  it("should show loading state when deployment registry is loading", () => {
+    mockUseAccount.mockReturnValue({
+      address: "0x123",
+      isConnected: true,
     });
-
-    renderHook(() => useRole());
-
-    expect(mockUseQuery).toHaveBeenCalledWith({
-      query: expect.any(Object),
-      variables: { operator: "" },
-      pause: true,
+    mockUseDeploymentRegistry.mockReturnValue({
+      canDeploy: false,
+      isOwner: false,
+      isInAllowlist: false,
+      loading: true,
     });
-  });
-
-  it("should admin take precedence over operator role", () => {
-    // Admin address that also has operator gardens
-    const adminUser = createMockPrivyUser("admin");
-    mockUseUser.mockReturnValue(adminUser);
-    mockUseQuery.mockReturnValue([
-      {
-        data: {
-          gardens: [{ id: "0x123", name: "Test Garden" }],
-        },
-        fetching: false,
-        error: null,
-      },
-    ]);
 
     const { result } = renderHook(() => useRole());
 
-    expect(result.current.role).toBe("admin");
-    expect(result.current.isAdmin).toBe(true);
+    expect(result.current.loading).toBe(true);
+  });
+
+  it("should deployer take precedence over operator role", () => {
+    // Deployer address that also has operator gardens
+    mockUseAccount.mockReturnValue({
+      address: "0x123",
+      isConnected: true,
+    });
+    mockUseDeploymentRegistry.mockReturnValue({
+      canDeploy: true,
+      isOwner: true,
+      isInAllowlist: true,
+      loading: false,
+    });
+    mockUseQuery.mockReturnValue({
+      data: [{ id: "0x123", name: "Test Garden" }],
+      isLoading: false,
+      error: null,
+    });
+
+    const { result } = renderHook(() => useRole());
+
+    expect(result.current.role).toBe("deployer");
+    expect(result.current.isDeployer).toBe(true);
     expect(result.current.isOperator).toBe(true); // Can still be operator
     expect(result.current.operatorGardens).toHaveLength(1);
+  });
+
+  it("should use smart account address when wagmi is not connected (passkey mode)", () => {
+    mockUseAccount.mockReturnValue({
+      address: undefined,
+      isConnected: false,
+    });
+    mockUseAuthContext.mockReturnValue({
+      smartAccountAddress: "0xSmartAccount123",
+      walletAddress: null,
+      isReady: true,
+      isAuthenticated: true,
+    });
+    mockUseQuery.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    });
+
+    const { result } = renderHook(() => useRole());
+
+    expect(result.current.role).toBe("user");
+    expect(result.current.loading).toBe(false);
+  });
+
+  it("should return deployment permissions from hook state", () => {
+    mockUseAccount.mockReturnValue({
+      address: "0x123",
+      isConnected: true,
+    });
+    mockUseDeploymentRegistry.mockReturnValue({
+      canDeploy: false,
+      isOwner: false,
+      isInAllowlist: false,
+      loading: false,
+    });
+
+    const { result } = renderHook(() => useRole());
+
+    expect(result.current.deploymentPermissions).toEqual({
+      canDeploy: false,
+      isOwner: false,
+      isInAllowlist: false,
+    });
+  });
+
+  it("should prioritize wagmi address over smart account address", () => {
+    // Both wagmi and passkey auth available - wagmi should take precedence
+    mockUseAccount.mockReturnValue({
+      address: "0xWagmiAddress",
+      isConnected: true,
+    });
+    mockUseAuthContext.mockReturnValue({
+      smartAccountAddress: "0xSmartAccount123",
+      walletAddress: null,
+      isReady: true,
+      isAuthenticated: true,
+    });
+    mockUseDeploymentRegistry.mockReturnValue({
+      canDeploy: true,
+      isOwner: true,
+      isInAllowlist: false,
+      loading: false,
+    });
+    mockUseQuery.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    });
+
+    const { result } = renderHook(() => useRole());
+
+    // Should detect deployer role using wagmi address
+    expect(result.current.role).toBe("deployer");
+    expect(result.current.isDeployer).toBe(true);
+    expect(result.current.loading).toBe(false);
   });
 });

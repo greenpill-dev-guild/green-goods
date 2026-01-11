@@ -1,12 +1,14 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
-import { getWorks } from "../../modules/data/eas";
+import { getWorkApprovals, getWorks } from "../../modules/data/eas";
 import { jobQueue, jobQueueDB } from "../../modules/job-queue";
 import { jobQueueEventBus, useJobQueueEvents } from "../../modules/job-queue/event-bus";
 import { useMerged } from "../app/useMerged";
 import { useUser } from "../auth/useUser";
 import { queryKeys } from "../query-keys";
+import type { Job, WorkJobPayload } from "../../types/job-queue";
+import type { Work } from "../../types/domain";
 
 // Helper function to convert job payload to Work model
 export function jobToWork(job: Job<WorkJobPayload>): Work {
@@ -45,7 +47,9 @@ export function useWorks(gardenId: string) {
     mergedKey: queryKeys.works.merged(gardenId, chainId),
     fetchOnline: () => getWorks(gardenId, chainId),
     fetchOffline: async () => {
-      const jobs = await jobQueue.getJobs({ kind: "work", synced: false });
+      // Only fetch offline jobs if we have a user address to scope by
+      if (!smartAccountAddress) return [];
+      const jobs = await jobQueue.getJobs(smartAccountAddress, { kind: "work", synced: false });
       return jobs.filter(
         (job) => (job.payload as WorkJobPayload).gardenAddress === gardenId
       ) as Job<WorkJobPayload>[];
@@ -57,6 +61,19 @@ export function useWorks(gardenId: string) {
       // Handle undefined data gracefully
       const safeOnlineWorks = onlineWorks ?? [];
       const safeOfflineJobs = offlineJobs ?? [];
+
+      // Fetch work approvals to compute proper status (approved/rejected/pending)
+      // Pass undefined to get all approvals, then filter by workUID in the map
+      // This ensures work.status reflects actual on-chain approval state
+      const approvals = await getWorkApprovals(undefined, chainId);
+      const approvalMap = new Map(approvals.map((approval) => [approval.workUID, approval]));
+
+      // Get cached status map to preserve optimistic updates
+      // This prevents resetting status to "pending" when merging new data
+      const cachedWorks = queryClient.getQueryData<Work[]>(
+        queryKeys.works.merged(gardenId, chainId)
+      );
+      const cachedStatusMap = new Map((cachedWorks ?? []).map((w) => [w.id, w.status]));
 
       const offlineWorks = await Promise.all(
         safeOfflineJobs.map(async (job) => {
@@ -72,7 +89,22 @@ export function useWorks(gardenId: string) {
 
       const workMap = new Map<string, Work>();
       safeOnlineWorks.forEach((work) => {
-        workMap.set(work.id, { ...work, status: "pending" as const });
+        // Compute status from approvals (source of truth)
+        // 1. Check if there's an approval for this work
+        // 2. If approval exists and approved=true → "approved"
+        // 3. If approval exists and approved=false → "rejected"
+        // 4. If no approval exists → "pending"
+        // 5. Preserve cached status if from optimistic updates
+        const approval = approvalMap.get(work.id);
+        const computedStatus = approval
+          ? approval.approved
+            ? ("approved" as const)
+            : ("rejected" as const)
+          : ("pending" as const);
+
+        // Use cached status if available (from optimistic updates), otherwise use computed
+        const status = cachedStatusMap.get(work.id) ?? computedStatus;
+        workMap.set(work.id, { ...work, status });
       });
       offlineWorks.forEach((work) => {
         const isDuplicate = safeOnlineWorks.some((onlineWork) => {
@@ -114,7 +146,9 @@ export function useWorks(gardenId: string) {
   return {
     works: (merged.merged.data ?? []) as Work[],
     isLoading: merged.merged.isLoading,
-    error: merged.merged.error,
+    isFetching: merged.online.isFetching || merged.merged.isFetching,
+    isError: merged.online.isError || merged.merged.isError,
+    error: merged.online.error || merged.merged.error,
     offlineCount: (merged.offline.data ?? []).length,
     onlineCount: (merged.online.data ?? []).length,
     refetch: () => {
@@ -127,17 +161,22 @@ export function useWorks(gardenId: string) {
 
 /**
  * Hook for getting pending work count across all gardens with event-driven updates
+ * Scoped to current user's smart account address
  */
 export function usePendingWorksCount() {
   const queryClient = useQueryClient();
+  const { smartAccountAddress } = useUser();
 
   const query = useQuery({
     queryKey: queryKeys.queue.pendingCount(),
     queryFn: async () => {
+      // Only count jobs for the current user
+      if (!smartAccountAddress) return 0;
       // Count only unsynced work jobs to align with Uploading tab
-      const jobs = await jobQueue.getJobs({ kind: "work", synced: false });
+      const jobs = await jobQueue.getJobs(smartAccountAddress, { kind: "work", synced: false });
       return jobs.length;
     },
+    enabled: !!smartAccountAddress,
     staleTime: STALE_TIMES.queue,
     gcTime: GC_TIMES.queue,
   });
@@ -152,13 +191,22 @@ export function usePendingWorksCount() {
 
 /**
  * Hook for getting queue statistics with event-driven updates
+ * Scoped to current user's smart account address
  */
 export function useQueueStatistics() {
   const queryClient = useQueryClient();
+  const { smartAccountAddress } = useUser();
 
   const query = useQuery({
     queryKey: queryKeys.queue.stats(),
-    queryFn: () => jobQueue.getStats(),
+    queryFn: async () => {
+      // Only get stats for the current user
+      if (!smartAccountAddress) {
+        return { total: 0, pending: 0, failed: 0, synced: 0 };
+      }
+      return jobQueue.getStats(smartAccountAddress);
+    },
+    enabled: !!smartAccountAddress,
     staleTime: STALE_TIMES.queue,
     gcTime: GC_TIMES.queue,
   });

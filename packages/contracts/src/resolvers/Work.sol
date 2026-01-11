@@ -7,11 +7,13 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgrade
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import { WorkSchema } from "../Schemas.sol";
-import { GardenAccount } from "../accounts/Garden.sol";
+import { IGardenAccessControl } from "../interfaces/IGardenAccessControl.sol";
 import { ActionRegistry } from "../registries/Action.sol";
-import { NotGardenerAccount, NotInActionRegistry } from "../Constants.sol";
 
 error NotActiveAction();
+/// @notice Thrown when attester is not a member (gardener or operator) of the garden
+error NotGardenMember();
+error NotInActionRegistry();
 
 /// @title WorkResolver
 /// @notice A schema resolver for the Actions event schema
@@ -52,7 +54,7 @@ contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
     /// @dev Validates attester identity and action validity before allowing work submission
     ///
     /// **Validation Order (Security Critical):**
-    /// 1. IDENTITY: Verify attester is a gardener of the target garden
+    /// 1. IDENTITY: Verify attester is a gardener OR operator of the target garden
     /// 2. ACTION: Verify action exists in registry
     /// 3. TIMING: Verify action is still active (not expired)
     ///
@@ -60,12 +62,16 @@ contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
     /// @return bool True if attestation is valid
     function onAttest(Attestation calldata attestation, uint256 /*value*/ ) internal view override returns (bool) {
         WorkSchema memory schema = abi.decode(attestation.data, (WorkSchema));
-        GardenAccount gardenAccount = GardenAccount(payable(attestation.recipient));
+        IGardenAccessControl accessControl = IGardenAccessControl(attestation.recipient);
 
-        // IDENTITY CHECK: Verify gardener status FIRST
-        // This is the primary security gate - only gardeners can submit work
-        if (gardenAccount.gardeners(attestation.attester) == false) {
-            revert NotGardenerAccount();
+        // IDENTITY CHECK: Verify gardener OR operator status FIRST
+        // Both roles can submit work - explicit policy for Hats Protocol compatibility
+        // Uses IGardenAccessControl interface for swappable access control backends
+        bool isGardener = accessControl.isGardener(attestation.attester);
+        bool isOperator = accessControl.isOperator(attestation.attester);
+
+        if (!isGardener && !isOperator) {
+            revert NotGardenMember();
         }
 
         // ACTION VALIDATION: Verify action exists in registry
@@ -83,19 +89,11 @@ contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
 
     // solhint-disable no-unused-vars
     /// @notice Handles the logic to be executed when an attestation is revoked.
-    /// @dev This function can only be called by the contract owner.
-    /// @return A boolean indicating whether the revocation is valid.
-    function onRevoke(
-        Attestation calldata, /*attestation*/
-        uint256 /*value*/
-    )
-        internal
-        view
-        override
-        onlyOwner
-        returns (bool)
-    {
-        return true;
+    /// @dev Work submissions are NOT revocable - always returns false.
+    /// @return Always false - work submissions cannot be revoked.
+    function onRevoke(Attestation calldata, /*attestation*/ uint256 /*value*/ ) internal pure override returns (bool) {
+        // Work submissions are permanent and cannot be revoked
+        return false;
     }
 
     /// @notice Authorizes an upgrade to the contract's implementation.

@@ -6,7 +6,7 @@ import {GardenAccount, NotAuthorizedCaller} from "../src/accounts/Garden.sol";
 import {GardenToken} from "../src/tokens/Garden.sol";
 import {ActionRegistry, Capital} from "../src/registries/Action.sol";
 import {KarmaLib} from "../src/lib/Karma.sol";
-import {IProjectResolver} from "../src/interfaces/IKarmaGap.sol";
+import {IProjectResolver} from "../src/interfaces/IKarma.sol";
 import {EASHelper} from "./helpers/EASHelper.sol";
 import {IEAS, AttestationRequest, AttestationRequestData} from "@eas/IEAS.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
@@ -407,6 +407,7 @@ contract E2EKarmaGAPForkTest is DeploymentBase, IERC721Receiver {
             location: "Location",
             bannerImage: "ipfs://banner",
             metadata: "",
+            openJoining: false,
             gardeners: gardeners,
             gardenOperators: multiOperators
         });
@@ -473,6 +474,7 @@ contract E2EKarmaGAPForkTest is DeploymentBase, IERC721Receiver {
             location: "Location",
             bannerImage: "ipfs://banner",
             metadata: "",
+            openJoining: false,
             gardeners: gardeners,
             gardenOperators: operators
         });
@@ -573,6 +575,7 @@ contract E2EKarmaGAPForkTest is DeploymentBase, IERC721Receiver {
             location: "Test Location",
             bannerImage: "ipfs://banner",
             metadata: "",
+            openJoining: false,
             gardeners: gardeners,
             gardenOperators: operators
         });

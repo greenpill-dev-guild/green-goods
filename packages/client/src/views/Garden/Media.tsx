@@ -1,44 +1,112 @@
-import { track } from "@green-goods/shared/modules";
+import { mediaResourceManager, track } from "@green-goods/shared/modules";
 import { imageCompressor } from "@green-goods/shared/utils/work/image-compression";
 import { RiCloseLine, RiImageFill, RiLoader4Line, RiZoomInLine } from "@remixicon/react";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { FormInfo } from "@/components/Cards";
 import { Badge } from "@/components/Communication";
 import { ImagePreviewDialog } from "@/components/Dialogs";
 import { Books } from "@/components/Features";
 
+/** Stable tracking ID for work draft media URLs */
+const WORK_DRAFT_TRACKING_ID = "work-draft";
+
 interface WorkMediaProps {
   config?: Action["mediaInfo"];
   images: File[];
   setImages: React.Dispatch<React.SetStateAction<File[]>>;
+  /** Minimum required images computed from action config */
+  minRequired?: number;
+  /** Callback to get the gallery click handler for external buttons */
+  onGalleryClickRef?: React.MutableRefObject<(() => void) | null>;
+  /** Callback to get the camera click handler for external buttons */
+  onCameraClickRef?: React.MutableRefObject<(() => void) | null>;
 }
 
-export const WorkMedia: React.FC<WorkMediaProps> = ({ config, images, setImages }) => {
+/**
+ * Helper to gather environment context for PostHog diagnostics
+ */
+function getMediaUploadContext() {
+  const isStandalone =
+    typeof window !== "undefined" &&
+    (window.matchMedia("(display-mode: standalone)").matches ||
+      // @ts-expect-error iOS Safari standalone mode
+      window.navigator?.standalone === true);
+
+  const platform = /android/i.test(navigator.userAgent)
+    ? "android"
+    : /iphone|ipad|ipod/i.test(navigator.userAgent)
+      ? "ios"
+      : "web";
+
+  return {
+    platform,
+    isStandalone,
+    userAgent: navigator.userAgent,
+    isOnline: navigator.onLine,
+  };
+}
+
+export const WorkMedia: React.FC<WorkMediaProps> = ({
+  config,
+  images,
+  setImages,
+  minRequired = 0,
+  onGalleryClickRef,
+  onCameraClickRef,
+}) => {
   const intl = useIntl();
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isCompressing, setIsCompressing] = useState(false);
   const [compressionProgress, setCompressionProgress] = useState(0);
 
-  // Memoize object URLs to prevent memory leaks
-  // Track previous URLs for cleanup
-  const prevUrlsRef = useRef<string[]>([]);
+  // Refs for tracking programmatic clicks
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const lastClickSourceRef = useRef<"gallery" | "camera" | null>(null);
+
+  // Use mediaResourceManager for stable, tracked blob URLs
+  // URLs are cached by file identity and only cleaned up on unmount/reset
   const imageUrls = useMemo(() => {
-    // Revoke previous URLs before creating new ones
-    prevUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
-    // Create new URLs
-    const urls = images.map((file) => URL.createObjectURL(file));
-    prevUrlsRef.current = urls;
-    return urls;
+    return images.map((file) => mediaResourceManager.getOrCreateUrl(file, WORK_DRAFT_TRACKING_ID));
   }, [images]);
 
-  // Cleanup on unmount
+  // Cleanup tracked URLs only on unmount (not on every re-render)
   useEffect(() => {
     return () => {
-      prevUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      mediaResourceManager.cleanupUrls(WORK_DRAFT_TRACKING_ID);
     };
   }, []);
+
+  // Track upload button clicks for diagnostics
+  const handleUploadButtonClick = useCallback((source: "gallery" | "camera") => {
+    lastClickSourceRef.current = source;
+    const context = getMediaUploadContext();
+
+    track("media_upload_button_clicked", {
+      source,
+      ...context,
+      programmatic_click: true,
+    });
+
+    // Trigger the appropriate input
+    if (source === "gallery") {
+      galleryInputRef.current?.click();
+    } else {
+      cameraInputRef.current?.click();
+    }
+  }, []);
+
+  // Expose click handlers to parent via refs
+  useEffect(() => {
+    if (onGalleryClickRef) {
+      onGalleryClickRef.current = () => handleUploadButtonClick("gallery");
+    }
+    if (onCameraClickRef) {
+      onCameraClickRef.current = () => handleUploadButtonClick("camera");
+    }
+  }, [handleUploadButtonClick, onGalleryClickRef, onCameraClickRef]);
 
   const mediaTitle = config?.title
     ? config.title
@@ -62,31 +130,46 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({ config, images, setImages 
   );
   const maxImageCount =
     config?.maxImageCount && config.maxImageCount > 0 ? config.maxImageCount : 0;
-  const requiredImageCount =
-    config?.required && (config?.minImageCount ?? 0) > 0
-      ? (config?.minImageCount as number)
-      : config?.required
-        ? 1
-        : 0;
-  const requiredBadgeLabel = config?.required
-    ? intl.formatMessage(
-        {
-          id: "app.garden.upload.requiredWithMax",
-          defaultMessage: "Requires {requiredCount} media upload{pluralRequired}, max {maxCount}",
-        },
-        {
-          requiredCount: requiredImageCount,
-          pluralRequired: requiredImageCount === 1 ? "" : "s",
-          maxCount: maxImageCount,
-        }
-      )
-    : "";
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (!files || files.length === 0) return;
+    const context = getMediaUploadContext();
+    const source = lastClickSourceRef.current;
+
+    // Track onChange event fired - critical for Android diagnostics
+    track("media_upload_onchange_fired", {
+      source,
+      files_length: files?.length ?? 0,
+      files_is_null: files === null,
+      files_is_undefined: files === undefined,
+      ...context,
+    });
+
+    // Edge case: files is null or empty after picker closes (BUG-009 diagnostic)
+    if (!files || files.length === 0) {
+      track("media_upload_empty_files", {
+        source,
+        files_is_null: files === null,
+        files_length: files?.length ?? 0,
+        ...context,
+      });
+      // Clear the source ref for next attempt
+      lastClickSourceRef.current = null;
+      return;
+    }
 
     const fileArray = Array.from(files);
+
+    // Track file details (no filenames or content for privacy)
+    track("media_upload_files_received", {
+      source,
+      file_count: fileArray.length,
+      mime_types: fileArray.map((f) => f.type),
+      sizes_bytes: fileArray.map((f) => f.size),
+      total_size_bytes: fileArray.reduce((sum, f) => sum + f.size, 0),
+      ...context,
+    });
+
     setIsCompressing(true);
     setCompressionProgress(0);
 
@@ -102,8 +185,10 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({ config, images, setImages 
 
       if (imagesToCompress.length > 0) {
         track("bulk_image_compression_started", {
+          source,
           total_files: imagesToCompress.length,
           total_size: imagesToCompress.reduce((sum, f) => sum + f.size, 0),
+          ...context,
         });
 
         // Compress images with progress tracking
@@ -126,12 +211,23 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({ config, images, setImages 
         // Track compression results
         const stats = imageCompressor.getCompressionStats(compressionResults);
         track("bulk_image_compression_completed", {
+          source,
           ...stats,
           files_compressed: imagesToCompress.length,
+          ...context,
         });
 
         // Compression summary tracked via analytics
       }
+
+      // Track successful state update
+      track("media_upload_state_update", {
+        source,
+        files_added: finalFiles.length,
+        current_count: images.length,
+        new_count: images.length + finalFiles.length,
+        ...context,
+      });
 
       setImages((prevImages) => {
         const next = [...prevImages, ...finalFiles];
@@ -142,8 +238,10 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({ config, images, setImages 
       });
     } catch (error) {
       track("bulk_image_compression_failed", {
+        source,
         error: error instanceof Error ? error.message : "Unknown error",
         file_count: fileArray.length,
+        ...context,
       });
 
       // Fallback to original files if compression fails
@@ -153,6 +251,8 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({ config, images, setImages 
       setCompressionProgress(0);
       // Clear the input
       event.target.value = "";
+      // Clear the source ref
+      lastClickSourceRef.current = null;
     }
   };
 
@@ -168,11 +268,38 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({ config, images, setImages 
   return (
     <div className="flex flex-col gap-4">
       <FormInfo title={mediaTitle} info={mediaDescription} Icon={RiImageFill} />
-      {config?.required ? (
-        <Badge className="self-start" variant="pill" tint="primary">
-          {requiredBadgeLabel}
+      {/* Dynamic progress badge - shows current/required with color feedback */}
+      {minRequired > 0 && (
+        <Badge
+          className={`self-start ${
+            images.length >= minRequired
+              ? "bg-green-100 text-green-700"
+              : "bg-amber-100 text-amber-700"
+          }`}
+          variant="pill"
+          tint="none"
+        >
+          {intl.formatMessage(
+            {
+              id: "app.garden.upload.progress",
+              defaultMessage: "{current} of {required} photos uploaded",
+            },
+            {
+              current: images.length,
+              required: minRequired,
+            }
+          )}
+          {maxImageCount > 0 &&
+            ` (${intl.formatMessage(
+              {
+                id: "app.garden.upload.maxAllowed",
+                defaultMessage: "max {max}",
+              },
+              { max: maxImageCount }
+            )})`}
+          {images.length >= minRequired && " ✓"}
         </Badge>
-      ) : null}
+      )}
       {neededItems.length > 0 ? (
         <div className="">
           <div className="text-xs tracking-tight mb-1 uppercase">
@@ -209,6 +336,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({ config, images, setImages 
       ) : null}
       <div className="hidden">
         <input
+          ref={galleryInputRef}
           id="work-media-upload"
           type="file"
           accept="image/*"
@@ -218,6 +346,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({ config, images, setImages 
         />
 
         <input
+          ref={cameraInputRef}
           id="work-media-camera"
           type="file"
           accept="image/*"
@@ -278,7 +407,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({ config, images, setImages 
               {/* Delete control */}
               <button
                 type="button"
-                className="flex items-center justify-center w-8 h-8 p-1 bg-white border border-stroke-sub-300 rounded-lg absolute top-2 right-2 z-10"
+                className="flex items-center justify-center w-8 h-8 p-1 bg-bg-white-0 border border-stroke-sub-300 rounded-lg absolute top-2 right-2 z-10"
                 onClick={(e) => {
                   e.stopPropagation();
                   removeImage(index);

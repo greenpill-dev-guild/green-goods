@@ -8,53 +8,92 @@
  */
 
 /**
+ * Error metadata with recovery information
+ */
+interface ErrorInfo {
+  name: string;
+  message: string;
+  action?: string;
+  recoverable: boolean;
+  suggestedAction?: "retry" | "join-garden" | "contact-support" | "check-wallet";
+}
+
+/**
  * Common contract error signatures and their human-readable messages
  */
-const ERROR_SIGNATURES: Record<string, { name: string; message: string; action?: string }> = {
-  // GardenAccount errors
+const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
+  // WorkResolver errors - membership check
+  // Old selector (NotGardenerAccount) kept for backward compatibility with unupgraded contracts
   "0x8cb4ae3b": {
-    name: "NotGardenerAccount",
+    name: "NotGardenMember",
     message: "You are not a member of this garden",
     action: "Please join the garden before submitting work",
+    recoverable: false,
+    suggestedAction: "join-garden",
+  },
+  // New selector for NotGardenMember() - keccak256("NotGardenMember()")[0:4]
+  "0x1648fd01": {
+    name: "NotGardenMember",
+    message: "You are not a member of this garden",
+    action: "Please join the garden before submitting work",
+    recoverable: false,
+    suggestedAction: "join-garden",
   },
   "0x30cd7471": {
     name: "NotGardenOwner",
     message: "Only the garden owner can perform this action",
+    recoverable: false,
+    suggestedAction: "contact-support",
   },
   "0x5d91fb09": {
     name: "NotGardenOperator",
     message: "Only garden operators can perform this action",
+    recoverable: false,
+    suggestedAction: "contact-support",
   },
   "0xdb926eba": {
     name: "InvalidInvite",
     message: "This garden is invite-only",
     action: "Request an invite from a garden operator to join",
+    recoverable: false,
+    suggestedAction: "contact-support",
   },
   "0x42375a1e": {
     name: "AlreadyGardener",
     message: "You are already a member of this garden",
+    recoverable: false, // Not an error state, just informational
   },
   "0x3c6e2a8f": {
     name: "TooManyGardeners",
     message: "This garden has reached its maximum member capacity",
+    recoverable: false,
+    suggestedAction: "contact-support",
   },
   "0x5d91fb08": {
     name: "TooManyOperators",
     message: "This garden has reached its maximum operator capacity",
+    recoverable: false,
+    suggestedAction: "contact-support",
   },
   "0x4e487b71": {
     name: "GAPProjectNotInitialized",
     message: "Karma GAP project not initialized for this garden",
+    recoverable: false,
+    suggestedAction: "contact-support",
   },
 
   // ActionRegistry errors
   "0x82b42900": {
     name: "NotActionOwner",
     message: "Only the action owner can modify this action",
+    recoverable: false,
+    suggestedAction: "contact-support",
   },
   "0x8baa579f": {
     name: "InvalidAction",
     message: "Invalid action configuration",
+    recoverable: false,
+    suggestedAction: "contact-support",
   },
 
   // WorkResolver errors
@@ -62,38 +101,50 @@ const ERROR_SIGNATURES: Record<string, { name: string; message: string; action?:
     name: "NotActiveAction",
     message: "This action has expired and is no longer accepting work submissions",
     action: "Select an active action to submit work for",
+    recoverable: false, // Need to select different action
   },
   "0x5b634bd2": {
     name: "NotInActionRegistry",
     message: "This action does not exist in the registry",
     action: "Select a valid action to submit work for",
+    recoverable: false,
   },
 
   // WorkApprovalResolver errors
   "0x48f5c3ed": {
     name: "InvalidAttestation",
     message: "Invalid work attestation",
+    recoverable: false,
+    suggestedAction: "contact-support",
   },
   "0x5d91fb10": {
     name: "NotAuthorizedApprover",
     message: "You are not authorized to approve work in this garden",
     action: "Only garden operators can approve work",
+    recoverable: false,
+    suggestedAction: "contact-support",
   },
 
   // Common ERC-721 / Token errors
   "0xceea21b6": {
     name: "ERC721NonexistentToken",
     message: "Garden token does not exist",
+    recoverable: false,
+    suggestedAction: "contact-support",
   },
   "0x6b2a5f4a": {
     name: "ERC721InvalidOwner",
     message: "Invalid garden owner",
+    recoverable: false,
+    suggestedAction: "contact-support",
   },
 
   // Generic errors
   "0x": {
     name: "EmptyRevert",
     message: "Transaction reverted with no error message",
+    recoverable: true, // Unknown errors may be transient
+    suggestedAction: "retry",
   },
 };
 
@@ -111,6 +162,10 @@ export interface ParsedContractError {
   action?: string;
   /** Whether this is a recognized error */
   isKnown: boolean;
+  /** Whether the error is recoverable (user can retry with same data) */
+  recoverable: boolean;
+  /** Suggested next action for user */
+  suggestedAction?: "retry" | "join-garden" | "contact-support" | "check-wallet";
 }
 
 /**
@@ -153,17 +208,19 @@ function extractErrorSignature(error: unknown): string | null {
  * Parse a contract error into a human-readable format
  *
  * @param error - Error object, string, or hex code
- * @returns Parsed error with name, message, and optional action
+ * @returns Parsed error with name, message, recovery info, and optional action
  *
  * @example
  * ```typescript
  * const parsed = parseContractError("0x8cb4ae3b");
  * // {
  * //   raw: "0x8cb4ae3b",
- * //   name: "NotGardenerAccount",
+ * //   name: "NotGardenMember",
  * //   message: "You are not a member of this garden",
  * //   action: "Please join the garden before submitting work",
- * //   isKnown: true
+ * //   isKnown: true,
+ * //   recoverable: false,
+ * //   suggestedAction: "join-garden"
  * // }
  * ```
  */
@@ -186,6 +243,8 @@ export function parseContractError(error: unknown): ParsedContractError {
       message: knownError.message,
       action: knownError.action,
       isKnown: true,
+      recoverable: knownError.recoverable,
+      suggestedAction: knownError.suggestedAction,
     };
   }
 
@@ -198,6 +257,8 @@ export function parseContractError(error: unknown): ParsedContractError {
         message: errorInfo.message,
         action: errorInfo.action,
         isKnown: true,
+        recoverable: errorInfo.recoverable,
+        suggestedAction: errorInfo.suggestedAction,
       };
     }
   }
@@ -211,10 +272,44 @@ export function parseContractError(error: unknown): ParsedContractError {
       name: "Validation Error",
       message: cleanMessage,
       isKnown: true,
+      recoverable: false,
+      suggestedAction: "contact-support",
     };
   }
 
-  // Unknown error - return generic message
+  // Check for network/timeout errors (recoverable)
+  if (
+    errorStr.toLowerCase().includes("timeout") ||
+    errorStr.toLowerCase().includes("network") ||
+    errorStr.toLowerCase().includes("connection")
+  ) {
+    return {
+      raw: signature ?? errorStr,
+      name: "NetworkError",
+      message: "Network error occurred. Please check your connection and try again.",
+      isKnown: true,
+      recoverable: true,
+      suggestedAction: "retry",
+    };
+  }
+
+  // Check for user rejection (not recoverable in the traditional sense)
+  if (
+    errorStr.toLowerCase().includes("user rejected") ||
+    errorStr.toLowerCase().includes("user denied") ||
+    errorStr.toLowerCase().includes("rejected the request")
+  ) {
+    return {
+      raw: signature ?? errorStr,
+      name: "UserRejected",
+      message: "Transaction was rejected. Please try again when ready.",
+      isKnown: true,
+      recoverable: true,
+      suggestedAction: "retry",
+    };
+  }
+
+  // Unknown error - return generic message (assume recoverable for retry)
   return {
     raw: signature ?? errorStr,
     name: "UnknownError",
@@ -222,15 +317,26 @@ export function parseContractError(error: unknown): ParsedContractError {
       ? `Transaction failed with error code: ${signature}`
       : "Transaction failed. Please try again.",
     isKnown: false,
+    recoverable: true, // Unknown errors may be transient
+    suggestedAction: "retry",
   };
 }
 
 /**
- * Check if an error is a "user not a gardener" error
+ * Check if an error is a "not a garden member" error
+ * (user is neither a gardener nor an operator of the garden)
+ */
+export function isNotGardenMemberError(error: unknown): boolean {
+  const parsed = parseContractError(error);
+  // Check for both old (NotGardenerAccount) and new (NotGardenMember) error names
+  return parsed.name === "NotGardenMember" || parsed.name === "NotGardenerAccount";
+}
+
+/**
+ * @deprecated Use isNotGardenMemberError instead
  */
 export function isNotGardenerError(error: unknown): boolean {
-  const parsed = parseContractError(error);
-  return parsed.name === "NotGardenerAccount";
+  return isNotGardenMemberError(error);
 }
 
 /**

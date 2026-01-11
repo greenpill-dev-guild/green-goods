@@ -1,4 +1,5 @@
 import React from "react";
+import type { Job } from "../../types/job-queue";
 
 /**
  * Event Bus for Job Queue
@@ -22,6 +23,10 @@ type JobQueueEventData<T extends JobQueueEventType> = JobQueueEventMap[T];
 type JobQueueEventListener<T extends JobQueueEventType> = (data: JobQueueEventData<T>) => void;
 
 class JobQueueEventBus extends EventTarget {
+  // Track listeners for explicit cleanup
+  private listenerRegistry = new Map<string, Set<{ type: string; listener: EventListener }>>();
+  private listenerId = 0;
+
   /**
    * Emit a typed event
    */
@@ -42,11 +47,29 @@ class JobQueueEventBus extends EventTarget {
       listener(customEvent.detail);
     };
 
+    // Track this listener for cleanup
+    const id = String(++this.listenerId);
+    if (!this.listenerRegistry.has(id)) {
+      this.listenerRegistry.set(id, new Set());
+    }
+    this.listenerRegistry.get(id)!.add({ type, listener: eventListener });
+
     this.addEventListener(type, eventListener);
 
-    // Return unsubscribe function
+    // Return unsubscribe function that also cleans up registry
     return () => {
       this.removeEventListener(type, eventListener);
+      const listeners = this.listenerRegistry.get(id);
+      if (listeners) {
+        listeners.forEach((entry) => {
+          if (entry.listener === eventListener) {
+            listeners.delete(entry);
+          }
+        });
+        if (listeners.size === 0) {
+          this.listenerRegistry.delete(id);
+        }
+      }
     };
   }
 
@@ -82,10 +105,13 @@ class JobQueueEventBus extends EventTarget {
    * Remove all listeners (cleanup)
    */
   removeAllListeners(): void {
-    // Since EventTarget doesn't provide a way to get listeners,
-    // we'll need to track them manually or just let them be garbage collected
-    // For now, we'll just clear our internal state if we had any
-    console.debug("Event bus cleanup requested - listeners will be garbage collected");
+    // Explicitly remove all tracked listeners
+    this.listenerRegistry.forEach((listeners) => {
+      listeners.forEach(({ type, listener }) => {
+        this.removeEventListener(type, listener);
+      });
+    });
+    this.listenerRegistry.clear();
   }
 }
 

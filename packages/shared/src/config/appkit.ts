@@ -13,9 +13,9 @@
 
 import { createAppKit } from "@reown/appkit/react";
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
-import type { Chain } from "viem/chains";
 import { DEFAULT_CHAIN_ID } from "./blockchain";
 import { getChain, SUPPORTED_CHAINS } from "./chains";
+import { getResolvedTheme } from "../utils/styles/theme";
 
 type AppKitMetadata = {
   name: string;
@@ -30,13 +30,28 @@ type AppKitInitOptions = {
   defaultChainId?: number;
 };
 
+/**
+ * Canonical app URL for wallet connect metadata.
+ * Production: always use www.greengoods.app (consistent across IPFS gateways, in-app browsers)
+ * Dev/preview: use actual origin for local testing
+ */
+function getCanonicalAppUrl(): string {
+  if (typeof window === "undefined") return "https://www.greengoods.app";
+
+  // Production domains: always canonical
+  if (window.location.hostname.endsWith("greengoods.app")) {
+    return "https://www.greengoods.app";
+  }
+
+  // Dev/preview: use actual origin
+  return window.location.origin;
+}
+
 const defaultMetadata: AppKitMetadata = {
   name: "Green Goods",
-  description: "Start Bringing Biodiversity Onchain",
-  url:
-    import.meta.env.VITE_APP_URL ||
-    (typeof window !== "undefined" ? window.location.origin : "https://greengoods.app"),
-  icons: ["https://greengoods.app/icon.png"],
+  description: "Start Bringing Your Impact Onchain",
+  url: getCanonicalAppUrl(),
+  icons: ["https://www.greengoods.app/icon.png"],
 };
 
 const defaultProjectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
@@ -77,12 +92,18 @@ export function ensureAppKit(options?: AppKitInitOptions) {
     throw new Error("SUPPORTED_CHAINS must have at least one chain");
   }
 
-  const networks = chains as unknown as [Chain, ...Chain[]];
+  // Type assertion needed due to viem version mismatch between main dependency
+  // and @reown/appkit-common's bundled viem. Runtime compatible.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const networks = chains as any;
 
   wagmiAdapterInstance = new WagmiAdapter({
     networks,
     projectId,
   });
+
+  // Get initial theme from system/localStorage
+  const initialTheme = getResolvedTheme();
 
   appKitInstance = createAppKit({
     adapters: [wagmiAdapterInstance],
@@ -90,11 +111,11 @@ export function ensureAppKit(options?: AppKitInitOptions) {
     projectId,
     metadata,
     enableNetworkSwitch: false,
-    defaultNetwork: getChain(options?.defaultChainId ?? DEFAULT_CHAIN_ID),
+    defaultNetwork: getChain(options?.defaultChainId ?? DEFAULT_CHAIN_ID) as any,
     features: {
       analytics: false, // Disable AppKit analytics (we use PostHog)
     },
-    themeMode: "light",
+    themeMode: initialTheme,
     themeVariables: {
       "--w3m-accent": "#367D42", // Green Goods primary green
       "--w3m-border-radius-master": "12px",
@@ -105,6 +126,16 @@ export function ensureAppKit(options?: AppKitInitOptions) {
     appKit: appKitInstance,
     wagmiConfig: wagmiAdapterInstance.wagmiConfig,
   };
+}
+
+/**
+ * Update AppKit theme mode dynamically.
+ * Call this when the app theme changes.
+ */
+export function updateAppKitTheme(isDark: boolean): void {
+  if (appKitInstance) {
+    appKitInstance.setThemeMode(isDark ? "dark" : "light");
+  }
 }
 
 // Eagerly initialize using defaults so consumers can import directly.

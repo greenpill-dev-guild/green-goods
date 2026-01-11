@@ -52,10 +52,21 @@ export default defineConfig(({ mode }) => {
   const isIPFSBuild =
     rootEnv.VITE_USE_HASH_ROUTER === "true" || localEnv.VITE_USE_HASH_ROUTER === "true";
 
+  // Skip mkcert in devcontainer (use HTTP instead of HTTPS)
+  const isDevContainer = process.env.DEVCONTAINER === "true";
+
   const plugins = [
-    mkcert(),
+    // Only use mkcert for HTTPS when not in devcontainer
+    ...(isDevContainer ? [] : [mkcert()]),
     tailwindcss(),
-    react(),
+    // React Compiler: Automatically optimizes components with memoization
+    // Eliminates need for manual useMemo/useCallback in most cases
+    // @see https://react.dev/learn/react-compiler
+    react({
+      babel: {
+        plugins: [["babel-plugin-react-compiler", {}]],
+      },
+    }),
     VitePWA({
       includeAssets: [
         "favicon.ico",
@@ -111,11 +122,28 @@ export default defineConfig(({ mode }) => {
             },
           },
           {
+            // Indexer API - show cached immediately, revalidate in background
+            urlPattern: /indexer\.hyperindex\.xyz|localhost:8080/,
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "indexer-cache",
+              expiration: {
+                maxAgeSeconds: 24 * 60 * 60, // 24 hours for offline
+                maxEntries: 100,
+              },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            // GraphQL fallback (EAS, etc.) - show cached immediately, revalidate in background
             urlPattern: /graphql/,
-            handler: "NetworkFirst",
+            handler: "StaleWhileRevalidate",
             options: {
               cacheName: "graphql-cache",
-              networkTimeoutSeconds: 5,
+              expiration: {
+                maxAgeSeconds: 24 * 60 * 60, // 24 hours for offline
+                maxEntries: 100,
+              },
               cacheableResponse: { statuses: [0, 200] },
             },
           },
@@ -137,6 +165,9 @@ export default defineConfig(({ mode }) => {
       manifest: {
         name: "Green Goods",
         short_name: "Green Goods",
+        // Window Controls Overlay: Native desktop app feel (removes browser titlebar)
+        // Falls back to standalone on mobile or unsupported browsers
+        display_override: ["window-controls-overlay", "standalone"],
         icons: [
           { src: "/images/android-icon-36x36.png", sizes: "36x36", type: "image/png" },
           { src: "/images/android-icon-48x48.png", sizes: "48x48", type: "image/png" },
@@ -203,10 +234,20 @@ export default defineConfig(({ mode }) => {
         "@green-goods/shared/workflows": resolve(__dirname, "../shared/src/workflows"),
         "@green-goods/shared/constants": resolve(__dirname, "../shared/src/constants"),
       },
+      // Add conditions for proper module resolution on Vercel
+      conditions: ["import", "module", "browser", "default"],
     },
     // Optimize dependency pre-bundling
     optimizeDeps: {
-      include: ["react", "react-dom", "posthog-js"],
+      // Include CJS packages that need named exports extracted
+      include: [
+        "react",
+        "react-dom",
+        "posthog-js",
+        "@ethereum-attestation-service/eas-sdk",
+        "multiformats",
+      ],
+      // Exclude local packages and ESM-only packages
       exclude: ["@green-goods/shared"],
     },
     server: {

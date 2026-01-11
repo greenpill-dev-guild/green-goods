@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import { useOptionalPasskeyAuth } from "../../providers/PasskeyAuth";
-import { useOptionalWalletAuth } from "../../providers/WalletAuth";
+import { useAccount } from "wagmi";
+import { useAuthContext } from "../../providers/Auth";
 import { isAddressInList } from "../../utils/blockchain/address";
 
 export interface GardenPermissions {
@@ -12,11 +12,11 @@ export interface GardenPermissions {
 }
 
 export function useGardenPermissions(): GardenPermissions {
-  const passkeyAuth = useOptionalPasskeyAuth();
-  const walletAuth = useOptionalWalletAuth();
-  const address = (passkeyAuth?.walletAddress ||
-    passkeyAuth?.smartAccountAddress ||
-    walletAuth?.address) as string | undefined;
+  const auth = useAuthContext();
+  const { address: wagmiAddress } = useAccount();
+
+  // Get address - prioritize wagmi for wallet mode, then auth context for passkey mode
+  const address = (wagmiAddress ?? auth.smartAccountAddress) as string | undefined;
 
   const permissions = useMemo(() => {
     const isOperatorOfGarden = (garden: Garden): boolean => {

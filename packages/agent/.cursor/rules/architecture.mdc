@@ -1,0 +1,133 @@
+---
+description: Agent architecture deep dive — data flow, handler context, layer patterns
+globs:
+  - src/**/*.ts
+alwaysApply: false
+---
+
+# Agent Architecture Deep Dive
+
+Detailed patterns for the Green Goods agent. See `AGENTS.md` for overview.
+
+## Data Flow
+
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant P as Platform API<br/>(Telegram/Discord)
+  participant A as Agent
+  participant H as Handler Router
+  participant S as Services<br/>(DB/Blockchain/AI)
+
+  U->>P: Send message/command
+  P->>A: Platform webhook event
+  A->>A: toInboundMessage()
+  A->>H: handleMessage(inboundMsg)
+  
+  alt Command
+    H->>H: handleCommand()
+  else Text
+    H->>H: handleText()
+  else Voice
+    H->>H: handleVoice()
+  end
+  
+  H->>S: Call services (DB, chain, AI)
+  S-->>H: Service response
+  H-->>A: HandlerResult
+  A->>A: toResponse()
+  A->>P: Platform message format
+  P->>U: Display response
+```
+
+## Layer Patterns
+
+### Types Layer (`types.ts`)
+
+**All types in one file** — Single source of truth:
+
+```typescript
+export type Platform = "telegram" | "discord" | "whatsapp" | "sms";
+export interface InboundMessage { ... }
+export interface OutboundResponse { ... }
+export interface HandlerResult { ... }
+```
+
+### Handlers Layer (`handlers/`)
+
+**Pure functions with minimal dependencies:**
+
+```typescript
+// Inject only what needs mocking
+export interface StartDeps {
+  generatePrivateKey: () => `0x${string}`;
+}
+
+export async function handleStart(message: InboundMessage, deps: StartDeps): Promise<HandlerResult> {
+  // Use services directly
+  const user = await db.getUser(message.platform, message.sender.platformId);
+  // ...
+}
+```
+
+### Services Layer (`services/`)
+
+**Singleton pattern:**
+
+```typescript
+let _db: DB | null = null;
+
+export function initDB(path: string): DB {
+  if (!_db) _db = new DB(path);
+  return _db;
+}
+
+// Convenience exports
+export const getUser = (platform: Platform, id: string) => getDB().getUser(platform, id);
+```
+
+### Platforms Layer (`platforms/`)
+
+**One file per platform with all platform-specific code:**
+
+- `toInboundMessage()` — Convert platform event → InboundMessage
+- `toResponse()` — Convert OutboundResponse → platform format
+- `create{Platform}Bot()` — Bot setup and lifecycle
+- `createVoiceProcessor()` — Voice handling (if supported)
+- `createNotifier()` — Outbound notifications
+
+## Handler Context
+
+For platform-specific features, use handler context:
+
+```typescript
+// handlers/index.ts
+export interface HandlerContext {
+  voiceProcessor?: { downloadAndTranscribe: (fileId: string) => Promise<string> };
+  notifier?: { notify: (platform: string, id: string, msg: string) => Promise<void> };
+}
+
+let _context: HandlerContext = {};
+export function setHandlerContext(ctx: HandlerContext): void { _context = ctx; }
+```
+
+## Adding a Platform
+
+1. **Create `platforms/{platform}.ts`:**
+   ```typescript
+   export function toInboundMessage(event: PlatformEvent): InboundMessage | null { ... }
+   export function toResponse(response: OutboundResponse): PlatformFormat { ... }
+   export function createBot(config, handleMessage) { ... }
+   ```
+
+2. **Add webhook route in `api/server.ts`**
+
+3. **Initialize in `index.ts`**
+
+## Trade-offs
+
+| Benefit | Cost |
+|---------|------|
+| Easy to understand | Services not mockable (inject deps for testable handlers) |
+| Fast navigation | Adding platforms requires some duplication |
+| Minimal boilerplate | May need refactoring at scale |

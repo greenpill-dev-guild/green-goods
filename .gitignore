@@ -142,3 +142,133 @@ dev-dist
 # Playwright test results
 test-results/
 playwright-report/
+tests/test-results/
+tests/playwright-report/
+
+# ================================
+# Package Manager Caches
+# ================================
+# Bun binary lockfile (optional - some teams commit this)
+# bun.lockb
+
+# Bun cache directories
+.bun/
+*.bunx
+
+# pnpm store (content-addressable package cache)
+.pnpm-store/
+
+# npm/yarn caches (in case they appear locally)
+.npm/
+.yarn/cache/
+
+# ================================
+# Devcontainer / Docker
+# ================================
+# Docker volume data (these are mounted, not in repo)
+# Note: node_modules/ already covered above
+
+# Docker Compose override (local customizations)
+docker-compose.override.yml
+docker-compose.local.yml
+
+# Container-specific env files
+.env.docker
+.env.container
+
+# ================================
+# IDE / Editor - Local Settings
+# ================================
+# VSCode local/user settings (workspace settings are OK to commit)
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-workspace
+*.code-workspace.local
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Vim
+*.swp
+*.swo
+*~
+
+# ================================
+# Claude Code
+# ================================
+# Local Claude settings (user-specific, not shared)
+.claude/settings.local.json
+
+# Claude conversation/session data
+.claude/projects/
+.claude/todos/
+.claude/statsig/
+.claude/*.db
+
+# Keep shared Claude settings
+!.claude/settings.json
+!.claude/commands/
+
+# ================================
+# OS Generated
+# ================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+.directory
+
+# ================================
+# Monorepo / Workspace
+# ================================
+# Turborepo
+.turbo/
+
+# Package manager workspaces (already have node_modules)
+# Nx
+.nx/
+
+# Build artifacts in packages (dist already covered)
+packages/*/dist/
+packages/*/.cache/
+
+# Package-specific generated files
+# Note: packages/indexer/generated/ has its own .gitignore for ReScript artifacts
+packages/contracts/cache/
+packages/contracts/broadcast/
+
+# ================================
+# Secrets & Credentials
+# ================================
+# Private keys (NEVER commit these)
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+
+# Wallet files
+keystore/
+*.keystore
+
+# API keys file
+secrets.json
+credentials.json

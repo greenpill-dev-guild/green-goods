@@ -1,6 +1,6 @@
 {
-  "name": "indexer",
-  "version": "0.1.0",
+  "name": "@green-goods/indexer",
+  "version": "0.4.0",
   "scripts": {
     "clean": "tsc --clean",
     "build": "tsc --build",
@@ -14,27 +14,27 @@
     "start": "envio start",
     "stop": "pkill -f 'envio dev' || true && lsof -ti:9898 -ti:8080 2>/dev/null | xargs kill -9 2>/dev/null || true",
 
+    "test:setup": "bun run codegen && bun run setup-generated",
+    "pretest": "[ -d generated/src ] || bun run test:setup",
     "test": "bun run mocha",
+    "test:full": "bun run test:setup && bun run mocha",
     "lint": "oxlint src test",
     "reset": "./reset-indexer.sh"
   },
   "devDependencies": {
-    "@types/chai": "^4.3.11",
-    "@types/mocha": "10.0.6",
-    "@types/node": "20.8.8",
-    "chai": "4.3.10",
-    "mocha": "10.2.0",
+    "@types/chai": "^4.3.20",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^24.2.1",
+    "chai": "^4.5.0",
+    "mocha": "^10.8.2",
     "ts-mocha": "^10.0.0",
-    "typescript": "5.2.2"
+    "typescript": "^5.9.3"
   },
   "dependencies": {
     "@elastic/ecs-pino-format": "^1.5.0",
     "envio": "2.32.2",
     "postgres": "^3.4.7",
     "rescript-envsafe": "^5.0.0"
-  },
-  "optionalDependencies": {
-    "generated": "./generated"
   },
   "engines": {
     "node": ">=18.0.0"

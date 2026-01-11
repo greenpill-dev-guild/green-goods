@@ -7,6 +7,7 @@ import {
   useGardens,
   useGardenTabs,
   useNavigateToTop,
+  useUser,
   useWorks,
 } from "@green-goods/shared/hooks";
 import {
@@ -32,6 +33,7 @@ type GardenProps = {};
 
 export const Garden: React.FC<GardenProps> = () => {
   const intl = useIntl();
+  const { primaryAddress } = useUser();
 
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
@@ -61,13 +63,18 @@ export const Garden: React.FC<GardenProps> = () => {
   const { id: gardenIdParam } = useParams<{ id: string }>();
   const { pathname } = useLocation();
   const chainId = DEFAULT_CHAIN_ID;
-  const { data: allGardens = [] } = useGardens(chainId);
+  const { data: allGardens = [], isFetching: gardensLoading } = useGardens(chainId);
   const garden = allGardens.find((g) => g.id === gardenIdParam);
   const gardenStatus: "error" | "success" | "pending" = garden ? "success" : "pending";
-  const isFetching = false;
   const { data: allGardeners = [] } = useGardeners();
   const { data: actions = [] } = useActions(chainId);
-  const { works: mergedWorks } = useWorks(gardenIdParam || "");
+  const {
+    works: mergedWorks,
+    isLoading: worksLoading,
+    isFetching: worksFetching,
+    isError: worksError,
+    refetch: refetchWorks,
+  } = useWorks(gardenIdParam || "");
   const members = useMemo<GardenMember[]>(() => {
     if (!garden) return [];
 
@@ -109,6 +116,13 @@ export const Garden: React.FC<GardenProps> = () => {
 
   const { name, bannerImage, location, createdAt, assessments, description } = garden;
 
+  // Check if current user is an operator (can approve/reject work)
+  const isOperator = useMemo(() => {
+    if (!primaryAddress || !garden.operators) return false;
+    const normalizedUserAddress = primaryAddress.toLowerCase();
+    return garden.operators.some((addr) => addr.toLowerCase() === normalizedUserAddress);
+  }, [primaryAddress, garden.operators]);
+
   // Restore scroll position when switching tabs
 
   // Standard tabs configuration - removed counts
@@ -133,16 +147,26 @@ export const Garden: React.FC<GardenProps> = () => {
   const renderTabContent = () => {
     switch (activeTab) {
       case GardenTab.Work: {
-        const workFetchStatus =
-          mergedWorks.length > 0 ? "success" : isFetching ? "pending" : gardenStatus;
+        // Determine fetch status from actual hook states
+        const workFetchStatus: "pending" | "success" | "error" = worksError
+          ? "error"
+          : worksLoading
+            ? "pending"
+            : "success";
         return (
-          <GardenWork workFetchStatus={workFetchStatus} actions={actions} works={mergedWorks} />
+          <GardenWork
+            workFetchStatus={workFetchStatus}
+            actions={actions}
+            works={mergedWorks}
+            isFetching={worksFetching}
+            onRefresh={refetchWorks}
+          />
         );
       }
       case GardenTab.Insights:
         return (
           <GardenAssessments
-            asessmentFetchStatus={isFetching ? "pending" : gardenStatus}
+            asessmentFetchStatus={gardensLoading ? "pending" : gardenStatus}
             assessments={assessments}
             description={description}
           />
@@ -160,7 +184,7 @@ export const Garden: React.FC<GardenProps> = () => {
         {pathname.includes("work") || pathname.includes("assessments") ? null : (
           <>
             {/* Fixed Header (banner + TopNav + title/metadata) */}
-            <div className="fixed top-0 left-0 right-0 bg-white z-20">
+            <div className="fixed top-0 left-0 right-0 bg-bg-white-0 z-20">
               <div className="relative w-full">
                 <img
                   src={bannerImage}
@@ -175,20 +199,21 @@ export const Garden: React.FC<GardenProps> = () => {
                     onBackClick={() => navigate("/home")}
                     works={mergedWorks}
                     garden={garden}
+                    isOperator={isOperator}
                   />
                 </div>
               </div>
 
               {/* Title and meta below banner */}
-              <div className="px-4 md:px-6 mt-3 flex flex-col gap-1.5 pb-3 bg-white">
+              <div className="px-4 md:px-6 mt-3 flex flex-col gap-1.5 pb-3 bg-bg-white-0">
                 <h1 className="text-xl md:text-2xl font-semibold line-clamp-1">{name}</h1>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                  <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                  <div className="flex items-center gap-1.5 text-sm text-text-sub-600">
                     <RiMapPin2Fill className="h-4 w-4 text-primary flex-shrink-0" />
                     <span>{location}</span>
                   </div>
-                  <span className="hidden sm:inline text-gray-400">•</span>
-                  <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                  <span className="hidden sm:inline text-text-soft-400">•</span>
+                  <div className="flex items-center gap-1.5 text-sm text-text-sub-600">
                     <RiCalendarEventFill className="h-4 w-4 text-primary flex-shrink-0" />
                     <span>
                       {intl.formatMessage({ id: "app.home.founded" })}{" "}
@@ -199,13 +224,13 @@ export const Garden: React.FC<GardenProps> = () => {
               </div>
 
               {/* Tabs sticky under header */}
-              <div className="sticky top-0 left-0 right-0 w-full bg-white z-10 shadow-sm">
+              <div className="sticky top-0 left-0 right-0 w-full bg-bg-white-0 z-10 shadow-sm">
                 <StandardTabs
                   tabs={tabs}
                   activeTab={activeTab}
                   onTabChange={(tabId) => setActiveTab(tabId as GardenTab)}
                   variant="compact"
-                  isLoading={isFetching}
+                  isLoading={gardensLoading || worksFetching}
                 />
               </div>
             </div>
@@ -214,12 +239,12 @@ export const Garden: React.FC<GardenProps> = () => {
             <div className="px-4 md:px-6 mt-3 flex flex-col gap-1.5">
               <h1 className="text-xl md:text-2xl font-semibold line-clamp-1">{name}</h1>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
-                <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                <div className="flex items-center gap-1.5 text-sm text-text-sub-600">
                   <RiMapPin2Fill className="h-4 w-4 text-primary flex-shrink-0" />
                   <span>{location}</span>
                 </div>
-                <span className="hidden sm:inline text-gray-400">•</span>
-                <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                <span className="hidden sm:inline text-text-soft-400">•</span>
+                <div className="flex items-center gap-1.5 text-sm text-text-sub-600">
                   <RiCalendarEventFill className="h-4 w-4 text-primary flex-shrink-0" />
                   <span>
                     {intl.formatMessage({ id: "app.home.founded" })}{" "}
@@ -232,7 +257,7 @@ export const Garden: React.FC<GardenProps> = () => {
             {/* Scrollable content below fixed header (add top padding to match header height) */}
             <div
               className="flex-1 min-h-0 px-4 md:px-6 pb-4 pt-56 overflow-y-auto overflow-x-hidden"
-              aria-busy={isFetching}
+              aria-busy={worksFetching}
             >
               {renderTabContent()}
             </div>

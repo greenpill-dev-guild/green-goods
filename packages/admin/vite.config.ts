@@ -20,10 +20,21 @@ export default defineConfig(({ mode }) => {
   const isIPFSBuild =
     rootEnv.VITE_USE_HASH_ROUTER === "true" || localEnv.VITE_USE_HASH_ROUTER === "true";
 
+  // Skip mkcert in devcontainer (use HTTP instead of HTTPS)
+  const isDevContainer = process.env.DEVCONTAINER === "true";
+
   const plugins = [
-    mkcert(),
+    // Only use mkcert for HTTPS when not in devcontainer
+    ...(isDevContainer ? [] : [mkcert()]),
     tailwindcss(),
-    react(),
+    // React Compiler: Automatically optimizes components with memoization
+    // Eliminates need for manual useMemo/useCallback in most cases
+    // @see https://react.dev/learn/react-compiler
+    react({
+      babel: {
+        plugins: [["babel-plugin-react-compiler", {}]],
+      },
+    }),
   ];
 
   return {
@@ -35,6 +46,7 @@ export default defineConfig(({ mode }) => {
     // Deduplicate React and PostHog to prevent multiple instances
     resolve: {
       dedupe: ['react', 'react-dom', 'posthog-js'],
+      conditions: ['import', 'module', 'browser', 'default'],
       alias: {
         "@": resolve(__dirname, "./src"),
         "@green-goods/shared": resolve(__dirname, "../shared/src"),
@@ -57,8 +69,13 @@ export default defineConfig(({ mode }) => {
         'react',
         'react-dom',
         'posthog-js',
+        'multiformats',
       ],
       exclude: ['@green-goods/shared'],
+    },
+    // Fix CommonJS resolution for ESM packages
+    ssr: {
+      noExternal: ['multiformats'],
     },
     server: {
       port: 3002,

@@ -1,17 +1,20 @@
 {
   "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem"],
-      "env": {
-        "ALLOWED_DIRECTORIES": ["${workspaceFolder}"]
-      }
+    "miro": {
+      "url": "https://mcp.miro.com/",
+      "disabled": false,
+      "autoApprove": []
+    },
+    "figma": {
+      "url": "https://mcp.figma.com/mcp"
     },
     "vercel": {
       "url": "https://mcp.vercel.com"
     },
-    "figma": {
-      "url": "https://mcp.figma.com/mcp"
+    "railway": {
+      "command": "npx -y @railway/mcp-server",
+      "env": {},
+      "args": []
     }
   }
 }

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { createPublicClient, http } from "viem";
+import { useAccount } from "wagmi";
 import { DEFAULT_CHAIN_ID, getNetworkConfig } from "../../config/blockchain";
-import { useOptionalPasskeyAuth } from "../../providers/PasskeyAuth";
-import { useOptionalWalletAuth } from "../../providers/WalletAuth";
+import { useAuthContext } from "../../providers/Auth";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { compareAddresses } from "../../utils/blockchain/address";
 import { getChain, getNetworkContracts } from "../../utils/blockchain/contracts";
@@ -34,12 +34,15 @@ export interface DeploymentRegistryPermissions {
 }
 
 export function useDeploymentRegistry(): DeploymentRegistryPermissions {
-  const passkeyAuth = useOptionalPasskeyAuth();
-  const walletAuth = useOptionalWalletAuth();
+  const auth = useAuthContext();
+  const { address: wagmiAddress, isConnected } = useAccount();
 
-  const address =
-    passkeyAuth?.smartAccountAddress ?? passkeyAuth?.walletAddress ?? walletAuth?.address ?? null;
-  const ready = passkeyAuth ? passkeyAuth.isReady : (walletAuth?.ready ?? false);
+  // Get address - prioritize wagmi for wallet mode, then auth context (wallet or passkey)
+  const address = wagmiAddress ?? auth.walletAddress ?? auth.smartAccountAddress ?? null;
+
+  // Ready when either wagmi is connected OR auth context is authenticated
+  const ready = isConnected || (auth.isReady && auth.isAuthenticated);
+
   const selectedChainId = useAdminStore((state: AdminState) => state.selectedChainId);
   const chainId = selectedChainId || DEFAULT_CHAIN_ID;
   const [permissions, setPermissions] = useState<DeploymentRegistryPermissions>({

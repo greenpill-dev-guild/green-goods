@@ -1,0 +1,140 @@
+/* View Transitions API - Native Page Transitions
+ *
+ * Provides smooth, native-feel page transitions using the browser's
+ * View Transitions API. Falls back gracefully in unsupported browsers.
+ *
+ * Browser support (2026):
+ * - Chrome 111+: Full support
+ * - Safari 18.4+: Full support
+ * - Firefox: Partial (cross-document only)
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/API/View_Transition_API
+ */
+
+/* Enable automatic same-document view transitions */
+@view-transition {
+  navigation: auto;
+}
+
+/* Default page transition animations */
+::view-transition-old(page),
+::view-transition-image-pair(page) > ::view-transition-old {
+  animation: 0.2s cubic-bezier(0.4, 0, 1, 1) both view-transition-fade-out;
+}
+
+::view-transition-new(page),
+::view-transition-image-pair(page) > ::view-transition-new {
+  animation: 0.3s cubic-bezier(0.16, 1, 0.3, 1) both view-transition-fade-in;
+}
+
+/* Slide transitions for main content */
+::view-transition-old(main) {
+  animation: 0.25s cubic-bezier(0.4, 0, 1, 1) both view-transition-slide-out-left;
+}
+
+::view-transition-new(main) {
+  animation: 0.35s cubic-bezier(0.16, 1, 0.3, 1) both view-transition-slide-in-right;
+}
+
+/* Back navigation - reverse direction */
+::view-transition-old(main).back-navigation {
+  animation: 0.25s cubic-bezier(0.4, 0, 1, 1) both view-transition-slide-out-right;
+}
+
+::view-transition-new(main).back-navigation {
+  animation: 0.35s cubic-bezier(0.16, 1, 0.3, 1) both view-transition-slide-in-left;
+}
+
+/* Keyframe animations */
+@keyframes view-transition-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes view-transition-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes view-transition-slide-out-left {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+}
+
+@keyframes view-transition-slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes view-transition-slide-out-right {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+}
+
+@keyframes view-transition-slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Utility classes for view-transition-name */
+.view-transition-page {
+  view-transition-name: page;
+}
+
+.view-transition-main {
+  view-transition-name: main;
+}
+
+.view-transition-header {
+  view-transition-name: header;
+}
+
+.view-transition-nav {
+  view-transition-name: nav;
+}
+
+/* Persist elements across page transitions (e.g., shared elements) */
+.view-transition-persist {
+  view-transition-name: persist;
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 0.01ms !important;
+  }
+}

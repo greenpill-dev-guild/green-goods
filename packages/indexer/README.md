@@ -2,7 +2,17 @@
 
 This package contains the Envio indexer for Green Goods contracts. It exposes a GraphQL API used by the client for gardens, actions, work, approvals, and attestations.
 
+📖 **[Indexer Documentation](https://docs.greengoods.app/developer/architecture/indexer-package)** — Complete indexer architecture and development guide
+
 ### Run
+
+**Using Dev Container (Recommended):**
+The dev container includes "Docker-outside-of-docker" support, so the indexer works out of the box. Just run:
+```bash
+bun dev
+```
+
+**Using Local Setup:**
 
 **First, ensure Docker Desktop is running:**
 ```bash

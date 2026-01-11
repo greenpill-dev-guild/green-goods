@@ -1,0 +1,190 @@
+---
+description: Modal and drawer patterns — ModalDrawer, ConfirmDrawer, ImagePreviewDialog
+globs:
+  - "**/Modal/**/*.tsx"
+  - "**/Drawer/**/*.tsx"
+  - "**/Dialog/**/*.tsx"
+alwaysApply: false
+---
+
+# Modal & Drawer Components
+
+Patterns for modals, drawers, and dialogs.
+
+## ModalDrawer
+
+Responsive modal/drawer with optional tabs:
+
+```typescript
+<ModalDrawer
+  isOpen={isOpen}
+  onClose={onClose}
+  header={{
+    title: "Work Dashboard",
+    description: "Sync status and pending items",
+    actions: <SyncAllButton />,
+  }}
+  tabs={[
+    { id: "pending", label: "Pending", count: pendingCount },
+    { id: "completed", label: "Completed", count: completedCount },
+  ]}
+  activeTab={activeTab}
+  onTabChange={setActiveTab}
+  maxHeight="95vh"
+>
+  {renderTabContent()}
+</ModalDrawer>
+```
+
+## ConfirmDrawer
+
+Confirmation dialog for actions:
+
+```typescript
+<ConfirmDrawer
+  isOpen={isOpen}
+  onClose={onClose}
+  title="Confirm Approval"
+  description="Are you sure you want to approve this work?"
+  confirmLabel="Approve"
+  confirmVariant="primary"
+  onConfirm={handleConfirm}
+  isLoading={isSubmitting}
+/>
+```
+
+## ImagePreviewDialog
+
+Full-screen image preview with zoom:
+
+```typescript
+<ImagePreviewDialog
+  isOpen={isOpen}
+  onClose={onClose}
+  images={mediaUrls}
+  initialIndex={0}
+/>
+```
+
+**Features:**
+- Keyboard navigation (arrows, +/-, Escape)
+- Pinch-to-zoom on touch devices
+- Mouse wheel zoom
+- Drag panning
+- Download button
+
+## Backdrop Pattern
+
+```typescript
+<div
+  className="fixed inset-0 bg-overlay backdrop-blur-sm z-[7777]"
+  onClick={onClose}
+>
+  <div
+    className="bg-bg-white rounded-t-3xl shadow-2xl"
+    onClick={(e) => e.stopPropagation()}
+  >
+    {/* Content */}
+  </div>
+</div>
+```
+
+## Focus Management
+
+```typescript
+useEffect(() => {
+  if (!isOpen) return;
+
+  // Focus first focusable element
+  const firstFocusable = containerRef.current?.querySelector(
+    "button, input, [tabindex]:not([tabindex='-1'])"
+  ) as HTMLElement;
+  firstFocusable?.focus();
+
+  // Trap focus
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "Tab") {
+      trapFocus(e);
+    }
+    if (e.key === "Escape") {
+      onClose();
+    }
+  };
+
+  document.addEventListener("keydown", handleKeyDown);
+  return () => document.removeEventListener("keydown", handleKeyDown);
+}, [isOpen]);
+```
+
+## Scroll Lock
+
+```typescript
+useEffect(() => {
+  if (isOpen) {
+    document.body.style.overflow = "hidden";
+  }
+  return () => {
+    document.body.style.overflow = "";
+  };
+}, [isOpen]);
+```
+
+## Animation
+
+```typescript
+<div
+  className={cn(
+    "transform transition-transform duration-300",
+    isOpen ? "translate-y-0" : "translate-y-full"
+  )}
+>
+```
+
+## Responsive Behavior
+
+```typescript
+// Drawer on mobile, modal on desktop
+<div
+  className={cn(
+    "fixed inset-x-0 bottom-0 rounded-t-3xl",
+    "lg:inset-auto lg:top-1/2 lg:left-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2",
+    "lg:rounded-2xl lg:max-w-lg"
+  )}
+>
+```
+
+## Anti-Patterns
+
+```typescript
+// ❌ Wrong — missing backdrop click handler
+<div className="fixed inset-0">
+  <Modal />
+</div>
+
+// ✅ Correct — backdrop closes modal
+<div className="fixed inset-0" onClick={onClose}>
+  <div onClick={(e) => e.stopPropagation()}>
+    <Modal />
+  </div>
+</div>
+```
+
+```typescript
+// ❌ Wrong — missing focus trap
+<Modal>
+  <button>Action</button>
+</Modal>
+
+// ✅ Correct — focus trapped
+<Modal>
+  <FocusTrap>
+    <button>Action</button>
+  </FocusTrap>
+</Modal>
+```
+
+## Reference Files
+
+- ModalDrawer: `src/components/Dialogs/ModalDrawer.tsx`
+- ConfirmDrawer: `src/components/Dialogs/ConfirmDrawer.tsx`
+- ImagePreview: `src/components/Dialogs/ImagePreviewDialog.tsx`

@@ -13,72 +13,84 @@
       "path": "../packages/indexer"
     },
     {
-      "name": "admin",
-      "path": "../packages/admin"
+      "name": "agent",
+      "path": "../packages/agent"
     },
     {
-      "name": "src",
-      "path": "../packages/admin/src"
+      "name": "admin",
+      "path": "../packages/admin"
     },
     {
       "name": "client",
       "path": "../packages/client"
     },
     {
-      "name": "src",
-      "path": "../packages/client/src"
-    },
-    {
       "name": "shared",
       "path": "../packages/shared"
-    },
-    {
-      "path": "../packages/shared/src"
     }
   ],
   "settings": {
-  "[solidity]": {
-    "editor.defaultFormatter": "JuanBlanco.solidity",
+    "[solidity]": {
+      "editor.defaultFormatter": "JuanBlanco.solidity",
+      "editor.formatOnSave": true,
+      "editor.rulers": [120],
+      "editor.wordWrap": "bounded",
+      "editor.wordWrapColumn": 120
+    },
+    "[toml]": {
+      "editor.defaultFormatter": "biomejs.biome"
+    },
+    "[css]": {
+      "editor.defaultFormatter": "biomejs.biome"
+    },
+    "[typescriptreact]": {
+      "editor.defaultFormatter": "biomejs.biome"
+    },
+    "[typescript]": {
+      "editor.defaultFormatter": "biomejs.biome"
+    },
+    "[javascript]": {
+      "editor.defaultFormatter": "biomejs.biome"
+    },
+    "[javascriptreact]": {
+      "editor.defaultFormatter": "biomejs.biome"
+    },
+    "[json]": {
+      "editor.defaultFormatter": "biomejs.biome"
+    },
     "editor.formatOnSave": true,
-    "editor.rulers": [120],
-    "editor.wordWrap": "bounded",
-    "editor.wordWrapColumn": 120
+    "editor.codeActionsOnSave": {
+      "source.organizeImports.biome": "explicit",
+      "source.fixAll.biome": "explicit"
+    },
+    "solidity.formatter": "forge",
+    "solidity.defaultCompiler": "localNodeModule",
+    "solidity.compileUsingRemoteVersion": "v0.8.25+commit.b61c2a91",
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "typescript.enablePromptUseWorkspaceTsdk": true,
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/contracts/lib": true,
+      "**/*.code-search": true
+    },
+    "remote.containers.defaultExtensions": [
+      "biomejs.biome",
+      "JuanBlanco.solidity",
+      "bradlc.vscode-tailwindcss",
+      "ms-azuretools.vscode-docker",
+      "GraphQL.vscode-graphql",
+      "GraphQL.vscode-graphql-syntax"
+    ]
   },
-  "[toml]": {
-    "editor.defaultFormatter": "biomejs.biome"
-  },
-  "[css]": {
-    "editor.defaultFormatter": "biomejs.biome"
-  },
-  "[typescriptreact]": {
-    "editor.defaultFormatter": "biomejs.biome"
-  },
-  "[typescript]": {
-    "editor.defaultFormatter": "biomejs.biome"
-  },
-  "[javascript]": {
-    "editor.defaultFormatter": "biomejs.biome"
-  },
-  "[javascriptreact]": {
-    "editor.defaultFormatter": "biomejs.biome"
-  },
-  "[json]": {
-    "editor.defaultFormatter": "biomejs.biome"
-  },
-  "editor.formatOnSave": true,
-  "editor.codeActionsOnSave": {
-    "source.organizeImports.biome": "explicit",
-    "source.fixAll.biome": "explicit"
-  },
-  "solidity.formatter": "forge",
-  "solidity.defaultCompiler": "localNodeModule",
-  "solidity.compileUsingRemoteVersion": "v0.8.25+commit.b61c2a91",
-  "typescript.tsdk": "node_modules/typescript/lib",
-  "typescript.enablePromptUseWorkspaceTsdk": true,
-  "search.exclude": {
-    "**/node_modules": true,
-    "**/contracts/lib": true,
-    "**/*.code-search": true
-  }
+  "extensions": {
+    "recommendations": [
+      "biomejs.biome",
+      "JuanBlanco.solidity",
+      "bradlc.vscode-tailwindcss",
+      "ms-azuretools.vscode-docker",
+      "GraphQL.vscode-graphql",
+      "GraphQL.vscode-graphql-syntax",
+      "ms-vscode-remote.remote-containers"
+    ]
   }
 }

@@ -1,0 +1,202 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { handleMessage } from '../../src/handlers';
+import { initAI } from '../../src/services/ai';
+import { RateLimiter } from '../../src/services/rate-limiter';
+import { createMockMessage } from '../utils/factories';
+
+describe('Error Scenarios', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('AI Service Failures', () => {
+    it('should handle AI service timeout', async () => {
+      // Mock AI to timeout
+      vi.spyOn(global, 'fetch').mockImplementation(() => 
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Request timeout')), 100)
+        )
+      );
+      
+      const message = createMockMessage({
+        content: { type: 'text', text: 'I planted 10 trees today' },
+      });
+      
+      const result = await handleMessage(message);
+      
+      expect(result.response.text).toContain('having trouble processing');
+      expect(result.response.text).not.toContain('error');
+    });
+    
+    it('should handle malformed AI responses', async () => {
+      vi.spyOn(global, 'fetch').mockResolvedValue({
+        ok: true,
+        json: async () => ({ invalid: 'response' }),
+      } as Response);
+      
+      const message = createMockMessage({
+        content: { type: 'text', text: 'Test message' },
+      });
+      
+      const result = await handleMessage(message);
+      expect(result.response.text).toContain('understand your message');
+    });
+  });
+
+  describe('Database Failures', () => {
+    it('should handle database connection errors', async () => {
+      // Force database error
+      const dbMock = vi.fn().mockRejectedValue(new Error('SQLITE_CANTOPEN'));
+      vi.mock('better-sqlite3', () => ({
+        default: dbMock,
+      }));
+      
+      const message = createMockMessage({
+        content: { type: 'command', name: 'start', args: [] },
+      });
+      
+      const result = await handleMessage(message);
+      expect(result.response.text).toContain('temporary issue');
+    });
+    
+    it('should handle database lock errors', async () => {
+      // Simulate database locked error
+      const dbError = new Error('SQLITE_BUSY: database is locked');
+      
+      vi.mock('../../src/services/db', () => ({
+        createUser: vi.fn().mockRejectedValue(dbError),
+      }));
+      
+      const message = createMockMessage({
+        content: { type: 'command', name: 'start', args: [] },
+      });
+      
+      const result = await handleMessage(message);
+      expect(result.response.text).toContain('Please try again');
+    });
+  });
+
+  describe('Network Failures', () => {
+    it('should handle blockchain RPC errors', async () => {
+      vi.mock('viem', () => ({
+        createPublicClient: () => ({
+          readContract: vi.fn().mockRejectedValue(new Error('Network error')),
+        }),
+      }));
+      
+      const message = createMockMessage({
+        content: { type: 'command', name: 'join', args: ['0x1234567890abcdef1234567890abcdef12345678'] },
+      });
+      
+      const result = await handleMessage(message);
+      expect(result.response.text).toContain('network issues');
+    });
+    
+    it('should retry transient failures', async () => {
+      let attempts = 0;
+      
+      vi.mock('viem', () => ({
+        createWalletClient: () => ({
+          writeContract: vi.fn().mockImplementation(() => {
+            attempts++;
+            if (attempts < 3) {
+              throw new Error('Transient error');
+            }
+            return '0x' + '0'.repeat(64);
+          }),
+        }),
+      }));
+      
+      // Test retry logic
+      const result = await submitWorkWithRetry(mockWorkData);
+      expect(attempts).toBe(3);
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('Rate Limiting', () => {
+    it('should handle rate limit exceeded', async () => {
+      const limiter = new RateLimiter();
+      const userId = 'rate-test-user';
+      
+      // Exhaust rate limit
+      for (let i = 0; i < 10; i++) {
+        limiter.check(userId, 'message');
+      }
+      
+      const message = createMockMessage({
+        sender: { platformId: userId },
+        content: { type: 'text', text: 'Another message' },
+      });
+      
+      const result = await handleMessage(message);
+      expect(result.response.text).toContain('slow down');
+      expect(result.response.text).toMatch(/wait \d+ seconds/);
+    });
+  });
+
+  describe('Input Validation', () => {
+    it('should handle malformed messages gracefully', async () => {
+      const invalidMessages = [
+        { id: 'test' }, // Missing required fields
+        { id: 'test', content: null }, // Null content
+        { id: 'test', content: { type: 'unknown' } }, // Unknown type
+      ];
+      
+      for (const msg of invalidMessages) {
+        const result = await handleMessage(msg as any);
+        expect(result.response.text).toBeDefined();
+        expect(result.response.text).not.toContain('error');
+      }
+    });
+    
+    it('should sanitize user input', async () => {
+      const message = createMockMessage({
+        content: { 
+          type: 'text', 
+          text: '<script>alert("xss")</script>I planted trees' 
+        },
+      });
+      
+      const result = await handleMessage(message);
+      expect(result.response.text).not.toContain('<script>');
+    });
+  });
+
+  describe('Resource Exhaustion', () => {
+    it('should handle memory pressure', async () => {
+      // Simulate large work submission
+      const largeMessage = createMockMessage({
+        content: {
+          type: 'text',
+          text: 'I planted trees. ' + 'Details... '.repeat(10000),
+        },
+      });
+      
+      const result = await handleMessage(largeMessage);
+      expect(result.response.text).toContain('too long');
+    });
+    
+    it('should timeout long-running operations', async () => {
+      vi.useFakeTimers();
+      
+      // Mock slow operation
+      const slowOperation = new Promise((resolve) => {
+        setTimeout(() => resolve('done'), 60000); // 60 seconds
+      });
+      
+      const timeoutPromise = Promise.race([
+        slowOperation,
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout')), 5000)
+        ),
+      ]);
+      
+      vi.advanceTimersByTime(5000);
+      
+      await expect(timeoutPromise).rejects.toThrow('Timeout');
+      
+      vi.useRealTimers();
+    });
+  });
+});

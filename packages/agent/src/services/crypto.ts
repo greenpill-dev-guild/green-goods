@@ -11,6 +11,9 @@
  */
 
 import crypto from "crypto";
+import { loggers } from "./logger";
+
+const log = loggers.crypto;
 
 // ============================================================================
 // CONFIGURATION
@@ -59,10 +62,9 @@ function getEncryptionSecret(): string {
   const secret = process.env.ENCRYPTION_SECRET;
 
   if (!secret) {
-    console.warn(
-      "⚠️  SECURITY WARNING: ENCRYPTION_SECRET not set. Using derived key from TELEGRAM_BOT_TOKEN."
+    log.warn(
+      "ENCRYPTION_SECRET not set - using derived key from TELEGRAM_BOT_TOKEN. Set ENCRYPTION_SECRET for production."
     );
-    console.warn("   Set ENCRYPTION_SECRET in .env for production use.");
     // Fall back to bot token as secret (better than nothing, but not ideal)
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     if (!botToken) {
@@ -73,7 +75,7 @@ function getEncryptionSecret(): string {
 
   // Warn if secret seems weak
   if (secret.length < 32) {
-    console.warn("⚠️  SECURITY WARNING: ENCRYPTION_SECRET should be at least 32 characters.");
+    log.warn("ENCRYPTION_SECRET should be at least 32 characters");
   }
 
   return secret;
@@ -204,7 +206,7 @@ export function getPrivateKey(storedKey: string): {
   }
 
   // Legacy unencrypted key - return as-is but flag for migration
-  console.warn("⚠️  Found unencrypted private key. Will be encrypted on next save.");
+  log.warn("Found unencrypted private key - will be encrypted on next save");
   return {
     privateKey: storedKey,
     needsMigration: true,

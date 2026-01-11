@@ -1,223 +1,89 @@
 import {
+  queryKeys,
   useAuth,
   useBrowserNavigation,
   useGardens,
   useNavigateToTop,
+  useOffline,
 } from "@green-goods/shared/hooks";
+import { useUIStore } from "@green-goods/shared/stores";
+import type { Garden } from "@green-goods/shared/types";
 import { cn, gardenHasMember } from "@green-goods/shared/utils";
-import { RiFilterLine } from "@remixicon/react";
-import React, { useEffect, useMemo, useState } from "react";
+import { RiFilterLine, RiRefreshLine } from "@remixicon/react";
+import { useQueryClient } from "@tanstack/react-query";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation } from "react-router-dom";
-import { Button } from "@/components/Actions";
 import { GardenCard, GardenCardSkeleton } from "@/components/Cards";
-import { ModalDrawer } from "@/components/Dialogs/ModalDrawer";
+
+// Minimum time to show skeleton before revealing cached data (prevents flash)
+const MIN_SKELETON_MS = 1500;
+// Maximum time to wait for data before showing error state (prevents infinite skeleton)
+const MAX_LOADING_MS = 15_000;
+
+import {
+  GardenFilterScope,
+  GardenFiltersState,
+  GardenSortOrder,
+  GardensFilterDrawer,
+} from "./GardenFilters";
 import { WorkDashboardIcon } from "./WorkDashboard/Icon";
 
-type GardenFilterScope = "all" | "mine";
-type GardenSortOrder = "default" | "name" | "recent";
-
-type GardenFiltersState = {
-  scope: GardenFilterScope;
-  sort: GardenSortOrder;
-};
-
-type FilterOptionButtonProps = {
-  label: string;
-  selected: boolean;
-  onClick: () => void;
-  disabled?: boolean;
-  description?: string;
-};
-
-const FilterOptionButton = ({
-  label,
-  selected,
-  onClick,
-  disabled = false,
-  description,
-}: FilterOptionButtonProps) => (
-  <button
-    type="button"
-    onClick={onClick}
-    disabled={disabled}
-    className={cn(
-      "w-full rounded-2xl border border-stroke-soft-200 bg-white p-3 text-left text-sm transition-all duration-200 min-h-[56px] flex flex-col justify-center tap-feedback",
-      selected ? "border-primary bg-primary/10 text-primary shadow-sm" : "",
-      disabled && "cursor-not-allowed opacity-60"
-    )}
-    aria-pressed={selected}
-  >
-    <span className="font-medium leading-tight">{label}</span>
-    {description ? <span className="mt-1 block text-xs text-slate-500">{description}</span> : null}
-  </button>
-);
-
-type GardensFilterDrawerProps = {
-  isOpen: boolean;
-  onClose: () => void;
-  filters: GardenFiltersState;
-  onScopeChange: (scope: GardenFilterScope) => void;
-  onSortChange: (sort: GardenSortOrder) => void;
-  onReset: () => void;
-  canFilterMine: boolean;
-  myGardensCount: number;
-  isFilterActive: boolean;
-};
-
-const GardensFilterDrawer = ({
-  isOpen,
-  onClose,
-  filters,
-  onScopeChange,
-  onSortChange,
-  onReset,
-  canFilterMine,
-  myGardensCount,
-  isFilterActive,
-}: GardensFilterDrawerProps) => {
-  const intl = useIntl();
-
-  const scopeOptions: Array<{
-    id: GardenFilterScope;
-    label: string;
-    description?: string;
-    disabled?: boolean;
-  }> = [
-    {
-      id: "all",
-      label: intl.formatMessage({
-        id: "app.home.filters.scope.all",
-        defaultMessage: "All gardens",
-      }),
-    },
-    {
-      id: "mine",
-      label: intl.formatMessage(
-        {
-          id: "app.home.filters.scope.mine",
-          defaultMessage: "My gardens ({count})",
-        },
-        { count: myGardensCount }
-      ),
-      description: !canFilterMine
-        ? intl.formatMessage({
-            id: "app.home.filters.scope.mineDisabled",
-            defaultMessage: "Sign in or connect a wallet to filter by your gardens.",
-          })
-        : myGardensCount === 0
-          ? intl.formatMessage({
-              id: "app.home.filters.scope.mineEmpty",
-              defaultMessage: "No gardens assigned yet.",
-            })
-          : undefined,
-      disabled: !canFilterMine,
-    },
-  ];
-
-  const sortOptions: Array<{ id: GardenSortOrder; label: string }> = [
-    {
-      id: "default",
-      label: intl.formatMessage({
-        id: "app.home.filters.sort.default",
-        defaultMessage: "Default order",
-      }),
-    },
-    {
-      id: "recent",
-      label: intl.formatMessage({
-        id: "app.home.filters.sort.recent",
-        defaultMessage: "Newest first",
-      }),
-    },
-    {
-      id: "name",
-      label: intl.formatMessage({
-        id: "app.home.filters.sort.name",
-        defaultMessage: "Name (A-Z)",
-      }),
-    },
-  ];
-
-  return (
-    <ModalDrawer
-      isOpen={isOpen}
-      onClose={onClose}
-      header={{
-        title: intl.formatMessage({
-          id: "app.home.filters.title",
-          defaultMessage: "Filter Gardens",
-        }),
-        description: intl.formatMessage({
-          id: "app.home.filters.description",
-          defaultMessage: "Filter by membership or sort order.",
-        }),
-      }}
-    >
-      <div className="flex flex-col gap-6">
-        <section>
-          <h6 className="mb-3 text-sm font-semibold text-slate-600">
-            {intl.formatMessage({
-              id: "app.home.filters.scopeTitle",
-              defaultMessage: "Show",
-            })}
-          </h6>
-          <div className="grid grid-cols-1 gap-2">
-            {scopeOptions.map(({ id, ...option }) => (
-              <FilterOptionButton
-                key={id}
-                {...option}
-                selected={filters.scope === id}
-                onClick={() => onScopeChange(id)}
-              />
-            ))}
-          </div>
-        </section>
-
-        <section>
-          <h6 className="mb-3 text-sm font-semibold text-slate-600">
-            {intl.formatMessage({
-              id: "app.home.filters.sortTitle",
-              defaultMessage: "Sort by",
-            })}
-          </h6>
-          <div className="grid grid-cols-1 gap-2">
-            {sortOptions.map(({ id, ...option }) => (
-              <FilterOptionButton
-                key={id}
-                {...option}
-                selected={filters.sort === id}
-                onClick={() => onSortChange(id)}
-              />
-            ))}
-          </div>
-        </section>
-
-        <Button
-          label={intl.formatMessage({
-            id: "app.home.filters.reset",
-            defaultMessage: "Reset filters",
-          })}
-          variant="neutral"
-          mode="stroke"
-          size="xsmall"
-          onClick={onReset}
-          disabled={!isFilterActive}
-          type="button"
-        />
-      </div>
-    </ModalDrawer>
-  );
-};
-
-const Gardens: React.FC = () => {
+const Home: React.FC = () => {
   const navigate = useNavigateToTop();
   const location = useLocation();
-  const { data: gardensResolved = [], isLoading } = useGardens();
+  const queryClient = useQueryClient();
+  const { data: gardensResolved = [], isLoading, isError, refetch } = useGardens();
   const intl = useIntl();
+  const { isOnline } = useOffline();
   const { smartAccountAddress, walletAddress } = useAuth();
   const [filters, setFilters] = useState<GardenFiltersState>({ scope: "all", sort: "default" });
-  const [isFilterOpen, setFilterOpen] = useState(false);
+
+  // Minimum skeleton display time to prevent flash of cached content
+  const [minTimeElapsed, setMinTimeElapsed] = useState(false);
+  // Maximum loading timeout - prevents infinite skeleton
+  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
+  const minTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const maxTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    if (isLoading && !minTimeElapsed) {
+      minTimerRef.current = setTimeout(() => setMinTimeElapsed(true), MIN_SKELETON_MS);
+    }
+    return () => clearTimeout(minTimerRef.current);
+  }, [isLoading, minTimeElapsed]);
+
+  // Maximum loading timeout effect
+  useEffect(() => {
+    if (isLoading && !loadingTimedOut && gardensResolved.length === 0) {
+      maxTimerRef.current = setTimeout(() => setLoadingTimedOut(true), MAX_LOADING_MS);
+    }
+    // Clear timeout if loading completes or data arrives
+    if (!isLoading || gardensResolved.length > 0) {
+      clearTimeout(maxTimerRef.current);
+      if (!isLoading) setLoadingTimedOut(false);
+    }
+    return () => clearTimeout(maxTimerRef.current);
+  }, [isLoading, loadingTimedOut, gardensResolved.length]);
+
+  // Reset timers when navigating back to home
+  useEffect(() => {
+    if (location.pathname === "/home") {
+      setMinTimeElapsed(false);
+      setLoadingTimedOut(false);
+    }
+  }, [location.pathname]);
+
+  // Retry handler for timeout/error state
+  const handleRetry = () => {
+    setLoadingTimedOut(false);
+    setMinTimeElapsed(false);
+    queryClient.invalidateQueries({ queryKey: queryKeys.gardens.all });
+    refetch();
+  };
+
+  // Use UIStore for filter drawer state (allows AppBar to react to drawer state)
+  const { isGardenFilterOpen, openGardenFilter, closeGardenFilter } = useUIStore();
 
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
@@ -272,9 +138,9 @@ const Gardens: React.FC = () => {
 
   useEffect(() => {
     if (location.pathname !== "/home") {
-      setFilterOpen(false);
+      closeGardenFilter();
     }
-  }, [location.pathname]);
+  }, [location.pathname, closeGardenFilter]);
 
   function handleCardClick(id: string) {
     navigate(`/home/${id}`);
@@ -296,19 +162,69 @@ const Gardens: React.FC = () => {
   };
 
   const renderGardens = () => {
-    if (isLoading) {
+    // Show skeletons until min time elapsed OR if no cached data available
+    const hasCachedData = gardensResolved.length > 0;
+    const showSkeletons = isLoading && (!hasCachedData || !minTimeElapsed) && !loadingTimedOut;
+
+    // Handle timeout or error state (online but no data after max wait)
+    if ((loadingTimedOut || isError) && !hasCachedData && isOnline) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 px-4 text-center gap-4">
+          <p className="text-text-sub-600">
+            {intl.formatMessage({
+              id: "app.home.loadingTimeout",
+              defaultMessage: "Unable to load gardens. The server may be slow or unavailable.",
+            })}
+          </p>
+          <button
+            type="button"
+            onClick={handleRetry}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-primary/90 transition-colors"
+          >
+            <RiRefreshLine className="w-4 h-4" />
+            {intl.formatMessage({
+              id: "app.home.retry",
+              defaultMessage: "Retry",
+            })}
+          </button>
+        </div>
+      );
+    }
+
+    if (showSkeletons) {
       return (
         <div className="flex flex-col gap-4">
           {Array.from({ length: 3 }).map((_, idx) => (
             <GardenCardSkeleton key={idx} media="large" height="home" />
           ))}
+          {!isOnline && (
+            <p className="text-center text-sm text-text-sub-600 mt-4 px-4">
+              {intl.formatMessage({
+                id: "app.home.offline.loading",
+                defaultMessage: "You're offline. Gardens will appear when you reconnect.",
+              })}
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    if ((isError || loadingTimedOut) && !hasCachedData && !isOnline) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+          <p className="text-text-sub-600">
+            {intl.formatMessage({
+              id: "app.home.offline.error",
+              defaultMessage: "Unable to load gardens while offline.",
+            })}
+          </p>
         </div>
       );
     }
 
     if (scope === "mine" && !primaryAddress) {
       return (
-        <p className="grid place-items-center text-center text-sm italic text-slate-500">
+        <p className="grid place-items-center text-center text-sm italic text-text-sub-600">
           {intl.formatMessage({
             id: "app.home.filters.scope.mineDisabled",
             defaultMessage: "Sign in or connect a wallet to filter by your gardens.",
@@ -320,7 +236,7 @@ const Gardens: React.FC = () => {
     if (!filteredGardens.length) {
       if (scope === "mine" && primaryAddress) {
         return (
-          <p className="grid place-items-center text-center text-sm italic text-slate-500">
+          <p className="grid place-items-center text-center text-sm italic text-text-sub-600">
             {intl.formatMessage({
               id: "app.home.gardens.mineEmpty",
               defaultMessage: "You don't steward any gardens yet.",
@@ -331,7 +247,7 @@ const Gardens: React.FC = () => {
 
       if (isFilterActive) {
         return (
-          <p className="grid place-items-center text-center text-sm italic text-slate-500">
+          <p className="grid place-items-center text-center text-sm italic text-text-sub-600">
             {intl.formatMessage({
               id: "app.home.filters.empty",
               defaultMessage: "No gardens match your filters.",
@@ -350,18 +266,35 @@ const Gardens: React.FC = () => {
       );
     }
 
-    return filteredGardens.map((garden: Garden) => (
-      <GardenCard
-        key={garden.id}
-        garden={garden}
-        media="large"
-        height="home"
-        showOperators={true}
-        selected={garden.id === selectedGardenId}
-        {...garden}
-        onClick={() => handleCardClick(garden.id)}
-      />
-    ));
+    // Show offline/refreshing indicator when showing stale data
+    const isRefreshing = isLoading && hasCachedData;
+
+    return (
+      <>
+        {isRefreshing && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm text-amber-800 mb-2">
+            {isOnline
+              ? intl.formatMessage({ id: "app.home.refreshing", defaultMessage: "Refreshing..." })
+              : intl.formatMessage({
+                  id: "app.home.offline.cached",
+                  defaultMessage: "Showing cached data. You're offline.",
+                })}
+          </div>
+        )}
+        {filteredGardens.map((garden: Garden) => (
+          <GardenCard
+            key={garden.id}
+            garden={garden}
+            media="large"
+            height="home"
+            showOperators={true}
+            selected={garden.id === selectedGardenId}
+            {...garden}
+            onClick={() => handleCardClick(garden.id)}
+          />
+        ))}
+      </>
+    );
   };
 
   return (
@@ -373,13 +306,15 @@ const Gardens: React.FC = () => {
             <div className="ml-4 flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setFilterOpen(true)}
+                onClick={openGardenFilter}
                 className={cn(
                   "relative p-1 rounded-lg border transition-all duration-200 tap-feedback",
                   "active:scale-95",
                   "flex items-center justify-center w-8 h-8 tap-target-lg",
                   "focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-600 active:border-emerald-600",
-                  isFilterActive ? "border-primary text-primary" : "border-slate-200 text-slate-500"
+                  isFilterActive
+                    ? "border-primary text-primary"
+                    : "border-stroke-soft-200 text-text-sub-600"
                 )}
                 aria-label={intl.formatMessage({
                   id: "app.home.filters.button",
@@ -400,8 +335,8 @@ const Gardens: React.FC = () => {
             {renderGardens()}
           </div>
           <GardensFilterDrawer
-            isOpen={isFilterOpen}
-            onClose={() => setFilterOpen(false)}
+            isOpen={isGardenFilterOpen}
+            onClose={closeGardenFilter}
             filters={filters}
             onScopeChange={handleScopeChange}
             onSortChange={handleSortChange}
@@ -417,4 +352,4 @@ const Gardens: React.FC = () => {
   );
 };
 
-export default Gardens;
+export default Home;

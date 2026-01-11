@@ -7,7 +7,7 @@ import {
   GardenAccount,
   // Gardener as GardenerContract, // Not yet deployed
   GardenToken,
-} from "generated";
+} from "../generated";
 
 type Action = {
   id: string;
@@ -194,6 +194,11 @@ GardenToken.GardenMinted.contractRegister(({ event, context }) => {
 GardenToken.GardenMinted.handler(async ({ event, context }) => {
   const gardenId = event.params.account;
 
+  // Merge operators into gardeners list (operators are also gardeners by contract design)
+  // Note: The contract's initialize() should set gardeners[op] = true for all operators,
+  // but we ensure consistency here by merging the lists.
+  const allMemberAddresses = [...new Set([...event.params.gardeners, ...event.params.operators])];
+
   // 1. Create Garden Entity
   const gardenEntity: Garden = {
     id: gardenId,
@@ -203,7 +208,7 @@ GardenToken.GardenMinted.handler(async ({ event, context }) => {
     location: event.params.location,
     bannerImage: event.params.bannerImage,
     openJoining: event.params.openJoining,
-    gardeners: event.params.gardeners,
+    gardeners: allMemberAddresses, // Operators are also gardeners
     operators: event.params.operators,
     tokenAddress: event.srcAddress,
     tokenID: event.params.tokenId,
@@ -211,9 +216,9 @@ GardenToken.GardenMinted.handler(async ({ event, context }) => {
   };
   context.Garden.set(gardenEntity);
 
-  // 2. Create/Update Gardener Entities
-  for (const gardenerAddress of event.params.gardeners) {
-    const gardenerId = `${event.chainId}-${gardenerAddress}`;
+  // 2. Create/Update Gardener Entities for all members (gardeners + operators)
+  for (const memberAddress of allMemberAddresses) {
+    const gardenerId = `${event.chainId}-${memberAddress}`;
     const existingGardener = await context.Gardener.get(gardenerId);
 
     if (existingGardener) {
@@ -427,18 +432,60 @@ GardenAccount.GardenerRemoved.handler(async ({ event, context }) => {
 });
 
 // Handler for the GardenOperatorAdded event
+// Note: In the contract, operators are also added as gardeners (addGardenOperator sets both mappings).
+// We mirror this behavior in the indexer for consistency.
 GardenAccount.GardenOperatorAdded.handler(async ({ event, context }) => {
   const gardenId = event.srcAddress;
+  const operatorAddress = event.params.operator;
   const existingGarden = await context.Garden.get(gardenId);
 
   if (existingGarden) {
-    const updatedOperators = [...existingGarden.operators, event.params.operator];
+    // Add to operators list
+    const updatedOperators = [...existingGarden.operators, operatorAddress];
+
+    // Also add to gardeners list for consistency with contract behavior
+    // (GardenAccount.addGardenOperator sets both gardenOperators[op] = true AND gardeners[op] = true)
+    const isAlreadyGardener = existingGarden.gardeners.some(
+      (g) => g.toLowerCase() === operatorAddress.toLowerCase()
+    );
+    const updatedGardeners = isAlreadyGardener
+      ? existingGarden.gardeners
+      : [...existingGarden.gardeners, operatorAddress];
+
     const updatedGarden: Garden = {
       ...existingGarden,
       operators: updatedOperators,
+      gardeners: updatedGardeners,
     };
 
     context.Garden.set(updatedGarden);
+  }
+
+  // Also update/create Gardener entity (since operators are gardeners)
+  const gardenerId = `${event.chainId}-${operatorAddress}`;
+  const existingGardener = await context.Gardener.get(gardenerId);
+
+  if (existingGardener) {
+    // Update existing gardener with new garden if not already present
+    const hasGarden = existingGardener.gardens.includes(gardenId);
+    if (!hasGarden) {
+      const updatedGardens = [...existingGardener.gardens, gardenId];
+      const updatedGardener: Gardener = {
+        ...existingGardener,
+        gardens: updatedGardens,
+      };
+      context.Gardener.set(updatedGardener);
+    }
+  } else {
+    // Create new gardener entity
+    const newGardener: Gardener = {
+      id: gardenerId,
+      chainId: event.chainId,
+      createdAt: event.block.timestamp,
+      firstGarden: gardenId,
+      gardens: [gardenId],
+    };
+    context.Gardener.set(newGardener);
   }
 });
 

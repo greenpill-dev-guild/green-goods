@@ -1,19 +1,20 @@
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
-import { getActions, getGardeners, getGardens } from "../../modules/data/greengoods";
 import { queryClient } from "../../config/react-query";
+import { getActions, getGardeners, getGardens } from "../../modules/data/greengoods";
+import { queryKeys } from "../query-keys";
 
 /** Warms the TanStack Query cache with baseline lists needed across dashboards. */
 export function ensureBaseLists(chainId: number = DEFAULT_CHAIN_ID) {
   const actionsPromise = queryClient.ensureQueryData({
-    queryKey: ["actions", chainId],
+    queryKey: queryKeys.actions.byChain(chainId),
     queryFn: () => getActions(),
   });
   const gardensPromise = queryClient.ensureQueryData({
-    queryKey: ["gardens", chainId],
+    queryKey: queryKeys.gardens.byChain(chainId),
     queryFn: () => getGardens(),
   });
   const gardenersPromise = queryClient.ensureQueryData({
-    queryKey: ["gardeners"],
+    queryKey: queryKeys.gardeners.all,
     queryFn: () => getGardeners(),
   });
 

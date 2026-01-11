@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { TOKENBOUND_REGISTRY, SALT } from "../Constants.sol";
 import { IERC6551Registry } from "../interfaces/IERC6551Registry.sol";
 
 error InvalidChainId();
+
+// TOKENBOUND (FUTURE PRIMITIVE) - file-level constants for external import
+bytes32 constant SALT = 0x6551655165516551655165516551655165516551655165516551655165516551;
+address constant TOKENBOUND_REGISTRY = 0x000000006551c19487814612e58FE06813775758; // Same address on all EVM chains
 
 /// @title TBALib
 /// @notice A library for interacting with Token Bound Accounts (TBA) on different chains.

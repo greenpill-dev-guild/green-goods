@@ -1,7 +1,15 @@
 /**
- * Green Goods Indexer GraphQL Response Types
+ * DEPRECATED: Global indexer response types
  *
- * Type definitions for the Green Goods indexer (Envio) GraphQL API responses.
+ * These global declarations are kept for backward compatibility only.
+ * Import from '@green-goods/shared' instead:
+ *
+ * @example
+ * ```typescript
+ * import type { IndexerGarden, IndexerAction, IndexerGardener } from '@green-goods/shared';
+ * ```
+ *
+ * This file will be removed in a future version.
  */
 
 /**

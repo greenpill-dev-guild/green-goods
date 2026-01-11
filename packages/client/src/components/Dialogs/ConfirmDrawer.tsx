@@ -1,60 +1,108 @@
+import { cn } from "@green-goods/shared/utils";
+import { RiCloseLine, RiLoader4Line } from "@remixicon/react";
 import React from "react";
-import { useIntl } from "react-intl";
-import { Button } from "@/components/Actions";
-import { ModalDrawer } from "./ModalDrawer";
 
-export type ConfirmDrawerProps = {
+export interface ConfirmDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  onConfirm: () => void | Promise<void>;
   title: string;
   description?: string;
-  confirmLabel: string;
+  confirmLabel?: string;
   cancelLabel?: string;
-  confirmVariant?: "primary" | "error" | "neutral";
-  confirmDisabled?: boolean;
-  onConfirm: () => void;
-  children?: React.ReactNode;
-};
+  variant?: "default" | "danger";
+  isLoading?: boolean;
+  icon?: React.ReactNode;
+}
 
+/**
+ * A simple confirmation drawer that slides up from the bottom.
+ * Used for confirming destructive actions like delete.
+ */
 export const ConfirmDrawer: React.FC<ConfirmDrawerProps> = ({
   isOpen,
   onClose,
+  onConfirm,
   title,
   description,
-  confirmLabel,
-  cancelLabel,
-  confirmVariant = "primary",
-  confirmDisabled = false,
-  onConfirm,
-  children,
+  confirmLabel = "Confirm",
+  cancelLabel = "Cancel",
+  variant = "default",
+  isLoading = false,
+  icon,
 }) => {
-  const intl = useIntl();
-  const cancelText =
-    cancelLabel ?? intl.formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" });
+  if (!isOpen) return null;
+
+  const handleConfirm = async () => {
+    await onConfirm();
+  };
 
   return (
-    <ModalDrawer isOpen={isOpen} onClose={onClose} header={{ title, description }}>
-      <div className="flex flex-col gap-4">
-        {children}
-        <div className="flex gap-3">
-          <Button
+    <div
+      className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[30000] flex items-end justify-center animate-in fade-in-0 duration-150"
+      data-testid="confirm-drawer-overlay"
+      onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          onClose();
+        }
+      }}
+      tabIndex={-1}
+    >
+      <div
+        className="bg-bg-white-0 rounded-t-3xl shadow-2xl w-full overflow-hidden animate-in slide-in-from-bottom-full duration-300 ease-out"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          e.stopPropagation();
+        }}
+        role="dialog"
+        aria-modal="true"
+        data-testid="confirm-drawer"
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between p-4 border-b border-border">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            {icon && <div className="flex-shrink-0 mt-0.5">{icon}</div>}
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg font-semibold truncate">{title}</h2>
+              {description && <p className="text-sm text-text-sub-600 mt-1">{description}</p>}
+            </div>
+          </div>
+          <button
             onClick={onClose}
-            label={cancelText}
-            variant="neutral"
-            mode="stroke"
-            className="flex-1"
-          />
-          <Button
-            onClick={onConfirm}
-            label={confirmLabel}
-            variant={confirmVariant}
-            mode="filled"
-            className="flex-1"
-            disabled={confirmDisabled}
-          />
+            className="btn-icon flex-shrink-0 ml-2"
+            data-testid="confirm-drawer-close"
+            aria-label="Close"
+          >
+            <RiCloseLine className="w-5 h-5 text-text-soft-400" />
+          </button>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-3 p-4">
+          <button
+            onClick={onClose}
+            disabled={isLoading}
+            className="flex-1 py-3 px-4 text-sm font-medium text-text-strong-950 bg-bg-weak-50 rounded-full hover:bg-bg-soft-200 transition-colors disabled:opacity-50"
+          >
+            {cancelLabel}
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={isLoading}
+            className={cn(
+              "flex-1 py-3 px-4 text-sm font-medium rounded-full transition-colors disabled:opacity-50 flex items-center justify-center gap-2",
+              variant === "danger"
+                ? "text-white bg-red-500 hover:bg-red-600"
+                : "text-white bg-primary hover:bg-primary/90"
+            )}
+          >
+            {isLoading && <RiLoader4Line className="w-4 h-4 animate-spin" />}
+            {confirmLabel}
+          </button>
         </div>
       </div>
-    </ModalDrawer>
+    </div>
   );
 };
 

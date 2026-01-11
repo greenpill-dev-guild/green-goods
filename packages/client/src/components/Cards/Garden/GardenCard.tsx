@@ -83,10 +83,10 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardRootProps>(
     // Placeholder for missing/failed banner images
     const BannerFallback = () => (
       <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-100 to-slate-200" />
+        <div className="absolute inset-0 bg-gradient-to-br from-bg-weak-50 to-bg-soft-200" />
         <div className="absolute inset-0 opacity-50 bg-[repeating-linear-gradient(45deg,rgba(0,0,0,0.04)_0px,rgba(0,0,0,0.04)_10px,transparent_10px,transparent_20px)]" />
         <div className="absolute inset-0 grid place-items-center">
-          <span className="text-5xl font-semibold text-slate-400 select-none">
+          <span className="text-5xl font-semibold text-text-soft-400 select-none">
             {(garden.name?.charAt(0) || "G").toUpperCase()}
           </span>
         </div>
@@ -96,12 +96,22 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardRootProps>(
     return (
       <Card
         ref={ref}
-        className={cn(classes, "tap-feedback transition-all duration-300", selected && "")}
+        data-testid="garden-card"
+        className={cn(
+          classes,
+          "@container tap-feedback transition-all duration-300",
+          selected && ""
+        )}
         onClick={onClick}
       >
         {showBanner && (
           <div
-            className={cn(media === "large" ? "h-40" : "h-26", "relative w-full overflow-hidden")}
+            className={cn(
+              // Container query: adapts to card width, not viewport
+              // Small containers (< 300px): h-26, Medium+ containers: h-40
+              "h-26 @[300px]:h-32 @[400px]:h-40",
+              "relative w-full overflow-hidden"
+            )}
           >
             {hasProvidedSrc && !imageError ? (
               <ImageWithFallback
@@ -119,7 +129,8 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardRootProps>(
         <div
           data-selected={selected}
           className={cn(
-            "p-5 flex flex-col gap-2 border border-border rounded-lg transition-all duration-400 flex-1", // flex-1 for remaining space
+            // Container query: responsive padding based on card width
+            "p-3 @[300px]:p-4 @[400px]:p-5 flex flex-col gap-2 border border-border rounded-lg transition-all duration-400 flex-1",
             showBanner && "border-t-0 rounded-t-0"
           )}
         >
@@ -139,7 +150,7 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardRootProps>(
               {garden.name}
             </h5>
 
-            <div className="flex flex-row flex-wrap gap-1 text-xs text-slate-600 font-medium">
+            <div className="flex flex-row flex-wrap gap-1 text-xs text-text-sub-600 font-medium">
               <Badge
                 variant="outline"
                 tint="none"
@@ -178,8 +189,8 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardRootProps>(
 
             {showOperators && operatorCount > 0 && (
               <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  <RiMapPinUserFill className="h-3.5 w-3.5" />
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-text-sub-600">
+                  <RiMapPinUserFill className="h-3.5 w-3.5 text-primary" />
                   <span>
                     {intl.formatMessage({
                       id: "app.garden.operatorHeading",
@@ -187,12 +198,12 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardRootProps>(
                     })}
                   </span>
                 </div>
-                <div className="flex flex-wrap items-center gap-1 text-xs text-slate-600">
+                <div className="flex flex-wrap items-center gap-1 text-xs text-text-sub-600">
                   {operatorAddresses.slice(0, 2).map((operator) => (
                     <OperatorBadge key={operator} address={operator} />
                   ))}
                   {operatorAddresses.length > 2 && (
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-text-sub-600">
                       {intl.formatMessage(
                         {
                           id: "app.garden.andOthers",
@@ -207,7 +218,7 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardRootProps>(
             )}
 
             {showDescription && (
-              <p className="text-sm text-slate-600 line-clamp-3 flex-1">{garden.description}</p>
+              <p className="text-sm text-text-sub-600 line-clamp-3 flex-1">{garden.description}</p>
             )}
           </div>
         </div>

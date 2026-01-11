@@ -70,20 +70,17 @@ export const useWork = () => {
 };
 
 export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
-  const { smartAccountClient, authMode, eoa, smartAccountAddress } = useUser();
+  const { smartAccountClient, authMode, primaryAddress } = useUser();
   const chainId = DEFAULT_CHAIN_ID;
 
   // Base lists via React Query
   const { data: actionsData = [], isLoading: actionsLoading } = useActions(chainId);
   const { data: gardensData = [], isLoading: gardensLoading } = useGardens(chainId);
 
-  // Get current user address based on auth mode (normalized for comparisons)
+  // Normalize user address for comparisons (primaryAddress is already resolved by authMode)
   const userAddress = useMemo(() => {
-    if (authMode === "wallet") return normalizeAddress(eoa?.address);
-    if (authMode === "passkey") return normalizeAddress(smartAccountAddress);
-    // Fallback to whatever is available
-    return normalizeAddress(smartAccountAddress || eoa?.address);
-  }, [authMode, eoa?.address, smartAccountAddress]);
+    return normalizeAddress(primaryAddress);
+  }, [primaryAddress]);
 
   // Filter gardens to only show ones user is a member of
   const userGardens = useMemo(() => {
@@ -122,7 +119,18 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
     gardenAddress,
     actionUID,
     actions: actionsData,
+    userAddress,
   });
+
+  // Compute minimum required images from selected action
+  const minRequiredImages = useMemo(() => {
+    if (typeof actionUID !== "number" || !actionsData.length) return 1;
+    const selectedAction = actionsData.find(
+      (a: Action) => Number(a.id.split("-").pop()) === actionUID
+    );
+    if (!selectedAction?.mediaInfo?.required) return 0;
+    return selectedAction.mediaInfo.minImageCount ?? 1;
+  }, [actionUID, actionsData]);
 
   // Upload work handler - memoized to prevent unnecessary re-renders
   const handleUploadWork = useCallback(
@@ -134,7 +142,9 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         ...(typeof data.plantCount === "number" ? { plantCount: data.plantCount } : {}),
       };
 
-      const errors = validateWorkSubmissionContext(gardenAddress, actionUID, images);
+      const errors = validateWorkSubmissionContext(gardenAddress, actionUID, images, {
+        minRequired: minRequiredImages,
+      });
       if (errors.length > 0) {
         validationToasts.formError(errors[0]);
         if (DEBUG_ENABLED) {
@@ -162,7 +172,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         }
       }
     },
-    [gardenAddress, actionUID, images, workMutation]
+    [gardenAddress, actionUID, images, workMutation, minRequiredImages]
   );
 
   // Wrap with handleSubmit for form validation

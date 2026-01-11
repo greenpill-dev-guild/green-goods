@@ -56,8 +56,11 @@ export function DetailsConfigSection({ config, onChange }: DetailsConfigSectionP
     <div className="space-y-6">
       {/* Section Settings */}
       <div>
-        <label className="block text-sm font-medium text-text-strong mb-2">Section Title</label>
+        <label htmlFor="section-title" className="block text-sm font-medium text-text-strong mb-2">
+          Section Title
+        </label>
         <input
+          id="section-title"
           type="text"
           value={config.title}
           onChange={(e) => onChange({ ...config, title: e.target.value })}
@@ -67,8 +70,14 @@ export function DetailsConfigSection({ config, onChange }: DetailsConfigSectionP
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-text-strong mb-2">Description</label>
+        <label
+          htmlFor="section-description"
+          className="block text-sm font-medium text-text-strong mb-2"
+        >
+          Description
+        </label>
         <textarea
+          id="section-description"
           value={config.description}
           onChange={(e) => onChange({ ...config, description: e.target.value })}
           className="w-full rounded-md border border-stroke-soft px-3 py-2"
@@ -78,10 +87,14 @@ export function DetailsConfigSection({ config, onChange }: DetailsConfigSectionP
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-text-strong mb-2">
+        <label
+          htmlFor="feedback-placeholder"
+          className="block text-sm font-medium text-text-strong mb-2"
+        >
           Feedback Placeholder
         </label>
         <input
+          id="feedback-placeholder"
           type="text"
           value={config.feedbackPlaceholder}
           onChange={(e) => onChange({ ...config, feedbackPlaceholder: e.target.value })}
@@ -203,8 +216,14 @@ function InputFieldEditor({
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-medium text-text-sub mb-1">Field Key</label>
+          <label
+            htmlFor={`field-key-${input.key}`}
+            className="block text-xs font-medium text-text-sub mb-1"
+          >
+            Field Key
+          </label>
           <input
+            id={`field-key-${input.key}`}
             type="text"
             value={input.key}
             onChange={(e) => onUpdate({ key: e.target.value })}
@@ -214,8 +233,14 @@ function InputFieldEditor({
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-text-sub mb-1">Field Type</label>
+          <label
+            htmlFor={`field-type-${input.key}`}
+            className="block text-xs font-medium text-text-sub mb-1"
+          >
+            Field Type
+          </label>
           <select
+            id={`field-type-${input.key}`}
             value={input.type}
             onChange={(e) => onUpdate({ type: e.target.value as WorkInput["type"], options: [] })}
             className="w-full rounded-md border border-stroke-soft px-2 py-1.5 text-sm"
@@ -228,8 +253,14 @@ function InputFieldEditor({
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-text-sub mb-1">Label</label>
+          <label
+            htmlFor={`field-label-${input.key}`}
+            className="block text-xs font-medium text-text-sub mb-1"
+          >
+            Label
+          </label>
           <input
+            id={`field-label-${input.key}`}
             type="text"
             value={input.title}
             onChange={(e) => onUpdate({ title: e.target.value })}
@@ -239,8 +270,14 @@ function InputFieldEditor({
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-text-sub mb-1">Placeholder</label>
+          <label
+            htmlFor={`field-placeholder-${input.key}`}
+            className="block text-xs font-medium text-text-sub mb-1"
+          >
+            Placeholder
+          </label>
           <input
+            id={`field-placeholder-${input.key}`}
             type="text"
             value={input.placeholder}
             onChange={(e) => onUpdate({ placeholder: e.target.value })}
@@ -266,8 +303,13 @@ function InputFieldEditor({
       {/* Options for Select type */}
       {input.type === "select" && (
         <div className="mt-3 pt-3 border-t border-stroke-soft">
-          <label className="block text-xs font-medium text-text-sub mb-2">Options</label>
-          <div className="space-y-1.5">
+          <label
+            htmlFor={`field-options-${input.key}`}
+            className="block text-xs font-medium text-text-sub mb-2"
+          >
+            Options
+          </label>
+          <div id={`field-options-${input.key}`} className="space-y-1.5">
             {input.options.map((option, optIndex) => (
               <div key={optIndex} className="flex items-center gap-2">
                 <input

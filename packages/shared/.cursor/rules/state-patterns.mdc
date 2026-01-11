@@ -1,0 +1,486 @@
+---
+description: State management patterns — providers, Zustand stores, TanStack Query, XState workflows
+globs:
+  - "**/providers/**/*.tsx"
+  - "**/stores/**/*.ts"
+  - "**/workflows/**/*.ts"
+alwaysApply: false
+---
+
+# State Management Patterns
+
+Green Goods uses specialized tools for different state concerns. This rule documents the patterns.
+
+## Visual Reference
+
+See [Provider Hierarchy Diagram](docs/developer/architecture/diagrams.md#provider-hierarchy) for the required nesting order.
+
+## State Tool Selection
+
+| Concern | Tool | Package |
+|---------|------|---------|
+| Server state | TanStack Query | `@green-goods/shared` |
+| UI state | Zustand | `@green-goods/shared` |
+| Form state | React Hook Form | Local to component |
+| Global context | React Context (Providers) | `@green-goods/shared` |
+| Complex workflows | XState | `@green-goods/shared` |
+
+## Provider Hierarchy
+
+**Required nesting order:**
+
+```tsx
+<WagmiProvider config={wagmiConfig}>
+  <QueryClientProvider client={queryClient}>
+    <AppKitProvider>
+      <AuthProvider>
+        <AppProvider>
+          <JobQueueProvider>
+            <WorkProvider>
+              {children}
+            </WorkProvider>
+          </JobQueueProvider>
+        </AppProvider>
+      </AuthProvider>
+    </AppKitProvider>
+  </QueryClientProvider>
+</WagmiProvider>
+```
+
+**Why this order:**
+1. `WagmiProvider` — Blockchain connection (required by AppKit)
+2. `QueryClientProvider` — React Query instance
+3. `AppKitProvider` — Wallet modal (needs Wagmi)
+4. `AuthProvider` — Auth state (needs AppKit for wallet)
+5. `AppProvider` — App settings, i18n
+6. `JobQueueProvider` — Offline job queue (needs Auth)
+7. `WorkProvider` — Work submission state (needs JobQueue)
+
+## Providers
+
+### AuthProvider
+
+Manages unified authentication (passkey + wallet):
+
+```typescript
+import { useAuth } from "@green-goods/shared";
+
+const {
+  authMode,           // "passkey" | "wallet" | null
+  smartAccountClient, // For passkey mode
+  walletAddress,      // Connected wallet address
+  eoaAddress,         // EOA address
+  signOut,            // Sign out function
+  isAuthenticated,    // Boolean
+} = useAuth();
+```
+
+**Auth mode branching:**
+
+```typescript
+const { authMode, smartAccountClient } = useAuth();
+
+if (authMode === "wallet") {
+  // Direct wallet transaction
+  await writeContractAsync({ ... });
+} else {
+  // Passkey mode — use job queue or smart account
+  const { txHash } = await submitWorkToQueue(draft);
+  if (smartAccountClient) {
+    await processJobInline(jobId, smartAccountClient);
+  }
+}
+```
+
+### JobQueueProvider
+
+Manages offline-first job processing:
+
+```typescript
+import { jobQueue, jobQueueEventBus, useJobQueueEvents } from "@green-goods/shared";
+
+// Add job to queue
+const jobId = await jobQueue.addJob("work", payload, { chainId });
+
+// Listen for events
+useJobQueueEvents(["job:completed"], ({ jobId, txHash }) => {
+  queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
+});
+
+// Get queue stats
+const stats = await jobQueue.getStats();
+```
+
+### WorkProvider
+
+Manages work submission state:
+
+```typescript
+import { useWorkContext } from "@green-goods/shared";
+
+const {
+  draft,            // Current work draft
+  setDraft,         // Update draft
+  resetDraft,       // Clear draft
+  images,           // Selected images
+  addImage,         // Add image
+  removeImage,      // Remove image
+} = useWorkContext();
+```
+
+### AppProvider
+
+Manages app-level settings:
+
+```typescript
+import { useAppContext } from "@green-goods/shared";
+
+const {
+  locale,           // Current locale
+  setLocale,        // Change locale
+  isPWA,            // Is installed as PWA
+} = useAppContext();
+```
+
+## Zustand Stores
+
+Zustand stores live in `@green-goods/shared` and manage UI state.
+
+### useAdminStore
+
+Admin-specific state:
+
+```typescript
+import { useAdminStore } from "@green-goods/shared";
+
+const {
+  selectedGarden,       // Currently selected garden
+  setSelectedGarden,    // Select a garden
+  selectedChainId,      // Selected chain
+  setSelectedChainId,   // Change chain
+  pendingTransactions,  // Pending tx list
+  addPendingTransaction,
+  removePendingTransaction,
+} = useAdminStore();
+```
+
+### useUIStore
+
+Global UI state:
+
+```typescript
+import { useUIStore } from "@green-goods/shared";
+
+const {
+  sidebarOpen,          // Sidebar visibility
+  setSidebarOpen,       // Toggle sidebar
+  modalOpen,            // Current modal
+  setModalOpen,         // Show/hide modal
+} = useUIStore();
+```
+
+### useWorkFlowStore
+
+Work submission wizard state:
+
+```typescript
+import { useWorkFlowStore } from "@green-goods/shared";
+
+const {
+  currentStep,          // Current wizard step
+  setCurrentStep,       // Navigate steps
+  draft,                // Work draft data
+  updateDraft,          // Update draft
+  resetFlow,            // Reset wizard
+} = useWorkFlowStore();
+```
+
+### useCreateGardenStore
+
+Garden creation wizard state:
+
+```typescript
+import { useCreateGardenStore } from "@green-goods/shared";
+
+const {
+  step,                 // Current step
+  setStep,              // Navigate steps
+  formData,             // Form data
+  updateFormData,       // Update data
+  reset,                // Reset wizard
+} = useCreateGardenStore();
+```
+
+## TanStack Query Patterns
+
+### Query Key Structure
+
+Always use centralized query keys:
+
+```typescript
+import { queryKeys } from "@green-goods/shared";
+
+// Key factories
+queryKeys.gardens.all(chainId)           // ["gardens", chainId]
+queryKeys.gardens.detail(gardenId, chainId)  // ["gardens", gardenId, chainId]
+queryKeys.works.merged(gardenId, chainId)    // ["works", "merged", gardenId, chainId]
+queryKeys.works.online(gardenId, chainId)    // ["works", "online", gardenId, chainId]
+queryKeys.queue.stats()                  // ["queue", "stats"]
+queryKeys.queue.pending()                // ["queue", "pending"]
+```
+
+### Stale Times
+
+Use consistent stale times:
+
+```typescript
+import { STALE_TIMES } from "@green-goods/shared";
+
+useQuery({
+  queryKey: queryKeys.gardens.all(chainId),
+  queryFn: fetchGardens,
+  staleTime: STALE_TIMES.GARDEN,  // 5 minutes
+});
+```
+
+### Invalidation Patterns
+
+```typescript
+// After successful mutation
+onSuccess: (_, variables) => {
+  queryClient.invalidateQueries({
+    queryKey: queryKeys.works.merged(variables.gardenId, variables.chainId),
+  });
+}
+
+// After job completion
+useJobQueueEvents(["job:completed"], ({ jobId }) => {
+  queryClient.invalidateQueries({ queryKey: queryKeys.queue.stats() });
+  queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
+});
+```
+
+### Prefetching
+
+```typescript
+import { prefetchGardens, prefetchActions } from "@green-goods/shared";
+
+// In route loader
+export async function loader({ params }) {
+  await Promise.all([
+    prefetchGardens(queryClient, chainId),
+    prefetchActions(queryClient, chainId),
+  ]);
+  return null;
+}
+```
+
+## XState Workflows
+
+Complex multi-step flows use XState machines.
+
+### Garden Creation Workflow
+
+```typescript
+import { createGardenMachine } from "@green-goods/shared";
+import { useMachine } from "@xstate/react";
+
+const [state, send] = useMachine(createGardenMachine);
+
+// Current step
+const currentStep = state.value;
+
+// Send events
+send({ type: "NEXT" });
+send({ type: "BACK" });
+send({ type: "SUBMIT", data: formData });
+
+// State checks
+if (state.matches("submitting")) {
+  // Show loading
+}
+if (state.matches("success")) {
+  // Show success
+}
+```
+
+### Assessment Workflow
+
+```typescript
+import { createAssessmentMachine } from "@green-goods/shared";
+import { useMachine } from "@xstate/react";
+
+const [state, send] = useMachine(createAssessmentMachine);
+
+// Navigate steps
+send({ type: "NEXT" });
+send({ type: "SELECT_TYPE", assessmentType: "before-after" });
+```
+
+## Event-Driven Updates
+
+**Never use polling.** Use event-driven updates:
+
+```typescript
+// ✅ Correct — event-driven
+import { useJobQueueEvents, queryKeys } from "@green-goods/shared";
+
+useJobQueueEvents(["job:completed"], () => {
+  queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
+});
+
+// ❌ Wrong — polling
+setInterval(() => {
+  queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
+}, 5000);
+```
+
+### Available Events
+
+```typescript
+// Job queue events
+useJobQueueEvents(["job:added", "job:processing", "job:completed", "job:failed"], handler);
+
+// Event bus direct usage
+import { jobQueueEventBus } from "@green-goods/shared";
+
+jobQueueEventBus.on("job:completed", ({ jobId, txHash }) => {
+  // Handle completion
+});
+```
+
+## Form State
+
+Use React Hook Form for form state:
+
+```typescript
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { workDraftSchema } from "@green-goods/shared";
+
+const form = useForm({
+  resolver: zodResolver(workDraftSchema),
+  defaultValues: {
+    title: "",
+    description: "",
+  },
+});
+```
+
+### Form + Store Integration
+
+```typescript
+// Sync form with store
+const { draft, updateDraft } = useWorkFlowStore();
+
+const form = useForm({
+  defaultValues: draft,
+});
+
+// Update store on change
+useEffect(() => {
+  const subscription = form.watch((data) => {
+    updateDraft(data);
+  });
+  return () => subscription.unsubscribe();
+}, [form, updateDraft]);
+```
+
+## Anti-Patterns
+
+### Never Mix State Concerns
+
+```typescript
+// ❌ Wrong — server state in Zustand
+const useStore = create((set) => ({
+  gardens: [],  // Server data in Zustand
+  fetchGardens: async () => { ... },
+}));
+
+// ✅ Correct — use TanStack Query for server state
+const { data: gardens } = useQuery({
+  queryKey: queryKeys.gardens.all(chainId),
+  queryFn: fetchGardens,
+});
+```
+
+### Never Skip Provider Hierarchy
+
+```typescript
+// ❌ Wrong — providers out of order
+<AuthProvider>
+  <WagmiProvider>  {/* Needs to wrap AuthProvider */}
+    ...
+
+// ✅ Correct — proper nesting
+<WagmiProvider>
+  <AuthProvider>
+    ...
+```
+
+### Never Create Stores in Client/Admin
+
+```typescript
+// ❌ Wrong — local store
+// packages/client/src/stores/useLocalStore.ts
+
+// ✅ Correct — shared store
+// packages/shared/src/stores/useStore.ts
+```
+
+### Never Poll for Updates
+
+```typescript
+// ❌ Wrong — polling
+useEffect(() => {
+  const interval = setInterval(() => {
+    refetch();
+  }, 5000);
+  return () => clearInterval(interval);
+}, []);
+
+// ✅ Correct — event-driven
+useJobQueueEvents(["job:completed"], () => {
+  refetch();
+});
+```
+
+## Creating New Stores
+
+### Step 1: Create Store
+
+```typescript
+// packages/shared/src/stores/useNewStore.ts
+import { create } from "zustand";
+
+interface NewStoreState {
+  value: string;
+  setValue: (value: string) => void;
+}
+
+export const useNewStore = create<NewStoreState>((set) => ({
+  value: "",
+  setValue: (value) => set({ value }),
+}));
+```
+
+### Step 2: Export from Index
+
+```typescript
+// packages/shared/src/stores/index.ts
+export { useNewStore } from "./useNewStore";
+```
+
+### Step 3: Export from Package
+
+```typescript
+// packages/shared/src/index.ts
+export { useNewStore } from "./stores";
+```
+
+## Reference Files
+
+- Providers: `packages/shared/src/providers/`
+- Stores: `packages/shared/src/stores/`
+- Workflows: `packages/shared/src/workflows/`
+- Query keys: `packages/shared/src/hooks/query-keys.ts`

@@ -6,7 +6,7 @@
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor, act } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -38,6 +38,12 @@ vi.mock("../../components/toast", () => ({
     success: vi.fn(),
     dismiss: vi.fn(),
   },
+  walletProgressToasts: {
+    success: vi.fn(),
+    error: vi.fn(),
+    dismiss: vi.fn(),
+  },
+  showWalletProgress: vi.fn(),
 }));
 
 vi.mock("../../stores/useUIStore", () => ({
@@ -75,18 +81,19 @@ vi.mock("../../utils/errors/contract-errors", () => ({
   })),
 }));
 
+import { walletProgressToasts, workToasts } from "../../components/toast";
+import { useWorkMutation } from "../../hooks/work/useWorkMutation";
+import { jobQueue } from "../../modules/job-queue";
 import { submitWorkDirectly } from "../../modules/work/wallet-submission";
 import { submitWorkToQueue } from "../../modules/work/work-submission";
-import { jobQueue } from "../../modules/job-queue";
-import { workToasts } from "../../components/toast";
-import { useWorkMutation } from "../../hooks/work/useWorkMutation";
 import {
-  createMockWorkDraft,
   createMockAction,
-  createMockSmartAccountClient,
   createMockFiles,
-  MOCK_TX_HASH,
+  createMockSmartAccountClient,
+  createMockWorkDraft,
   MOCK_ADDRESSES,
+  MOCK_TX_HASH,
+  mock,
 } from "../test-utils";
 
 describe("hooks/work/useWorkMutation", () => {
@@ -124,11 +131,12 @@ describe("hooks/work/useWorkMutation", () => {
     gardenAddress: MOCK_ADDRESSES.garden,
     actionUID: 1,
     actions: [createMockAction({ id: "1" })],
+    userAddress: MOCK_ADDRESSES.user,
   };
 
   describe("Wallet mode - online", () => {
     it("calls submitWorkDirectly when online", async () => {
-      vi.mocked(submitWorkDirectly).mockResolvedValue(MOCK_TX_HASH);
+      mock(submitWorkDirectly).mockResolvedValue(MOCK_TX_HASH);
 
       const { result } = renderHook(() => useWorkMutation(defaultOptions), {
         wrapper: createWrapper(),
@@ -147,7 +155,8 @@ describe("hooks/work/useWorkMutation", () => {
         1,
         "Test Action",
         84532,
-        images
+        images,
+        expect.objectContaining({ onProgress: expect.any(Function) })
       );
       expect(submitWorkToQueue).not.toHaveBeenCalled();
     });
@@ -157,7 +166,7 @@ describe("hooks/work/useWorkMutation", () => {
     it("queues via submitWorkToQueue when offline", async () => {
       Object.defineProperty(navigator, "onLine", { value: false });
 
-      vi.mocked(submitWorkToQueue).mockResolvedValue({
+      mock(submitWorkToQueue).mockResolvedValue({
         txHash: "0xoffline_123",
         jobId: "job-123",
         clientWorkId: "work-123",
@@ -184,13 +193,13 @@ describe("hooks/work/useWorkMutation", () => {
     it("queues and processes inline when online with smart account", async () => {
       const smartAccountClient = createMockSmartAccountClient();
 
-      vi.mocked(submitWorkToQueue).mockResolvedValue({
+      mock(submitWorkToQueue).mockResolvedValue({
         txHash: "0xoffline_abc",
         jobId: "job-abc",
         clientWorkId: "work-abc",
       });
 
-      vi.mocked(jobQueue.processJob).mockResolvedValue({
+      mock(jobQueue.processJob).mockResolvedValue({
         success: true,
         txHash: MOCK_TX_HASH,
         skipped: false,
@@ -202,6 +211,7 @@ describe("hooks/work/useWorkMutation", () => {
             ...defaultOptions,
             authMode: "passkey",
             smartAccountClient: smartAccountClient as any,
+            userAddress: MOCK_ADDRESSES.smartAccount, // Use smart account address for passkey mode
           }),
         { wrapper: createWrapper() }
       );
@@ -226,7 +236,7 @@ describe("hooks/work/useWorkMutation", () => {
     it("queues without processing when offline", async () => {
       Object.defineProperty(navigator, "onLine", { value: false });
 
-      vi.mocked(submitWorkToQueue).mockResolvedValue({
+      mock(submitWorkToQueue).mockResolvedValue({
         txHash: "0xoffline_xyz",
         jobId: "job-xyz",
         clientWorkId: "work-xyz",
@@ -238,6 +248,7 @@ describe("hooks/work/useWorkMutation", () => {
             ...defaultOptions,
             authMode: "passkey",
             smartAccountClient: createMockSmartAccountClient() as any,
+            userAddress: MOCK_ADDRESSES.smartAccount, // Use smart account address for passkey mode
           }),
         { wrapper: createWrapper() }
       );
@@ -258,7 +269,16 @@ describe("hooks/work/useWorkMutation", () => {
 
   describe("Success handling", () => {
     it("shows success toast for wallet mode", async () => {
-      vi.mocked(submitWorkDirectly).mockResolvedValue(MOCK_TX_HASH);
+      // Mock submitWorkDirectly to call the onProgress callback with "complete"
+      mock(submitWorkDirectly).mockImplementation(
+        async (_draft, _garden, _actionUID, _actionTitle, _chainId, _images, options) => {
+          // Simulate the wallet submission calling onProgress("complete")
+          if (options?.onProgress) {
+            options.onProgress("complete");
+          }
+          return MOCK_TX_HASH;
+        }
+      );
 
       const { result } = renderHook(() => useWorkMutation(defaultOptions), {
         wrapper: createWrapper(),
@@ -271,15 +291,16 @@ describe("hooks/work/useWorkMutation", () => {
         });
       });
 
+      // Wallet mode uses walletProgressToasts.success() via onProgress("complete") callback
       await waitFor(() => {
-        expect(workToasts.success).toHaveBeenCalled();
+        expect(walletProgressToasts.success).toHaveBeenCalled();
       });
     });
 
     it("returns offline hash for queued work", async () => {
       Object.defineProperty(navigator, "onLine", { value: false });
 
-      vi.mocked(submitWorkToQueue).mockResolvedValue({
+      mock(submitWorkToQueue).mockResolvedValue({
         txHash: "0xoffline_queued",
         jobId: "job-q",
         clientWorkId: "work-q",
@@ -305,7 +326,7 @@ describe("hooks/work/useWorkMutation", () => {
   describe("Error handling", () => {
     it("shows error toast on submission failure", async () => {
       const error = new Error("Submission failed");
-      vi.mocked(submitWorkDirectly).mockRejectedValue(error);
+      mock(submitWorkDirectly).mockRejectedValue(error);
 
       const { result } = renderHook(() => useWorkMutation(defaultOptions), {
         wrapper: createWrapper(),
@@ -322,7 +343,10 @@ describe("hooks/work/useWorkMutation", () => {
         }
       });
 
-      expect(result.current.isError).toBe(true);
+      // Wait for error state to be set
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true);
+      });
     });
   });
 });

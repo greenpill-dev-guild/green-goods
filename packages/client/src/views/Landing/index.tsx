@@ -1,22 +1,14 @@
 import { toastService } from "@green-goods/shared";
 import { useApp } from "@green-goods/shared/providers/App";
-import React, { useState } from "react";
+import React from "react";
 import { Hero } from "@/components/Layout";
 import { Footer, Header } from "@/components/Navigation";
 
-type LandingProps = {};
-
-type SubscribeState = "idle" | "subscribing" | "subscribed" | "error";
-
-const Landing: React.FC<LandingProps> = () => {
+const Landing: React.FC = () => {
   const { isMobile } = useApp();
-
-  const [_state, setSubscribeState] = useState<SubscribeState>("idle");
 
   function handleSubscribe(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-
-    setSubscribeState("subscribing");
 
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email") as string;
@@ -30,7 +22,6 @@ const Landing: React.FC<LandingProps> = () => {
     })
       .then((response) => {
         if (!response.ok) {
-          // ERROR
           throw new Error("Network response was not ok.");
         }
         toastService.success({
@@ -39,16 +30,13 @@ const Landing: React.FC<LandingProps> = () => {
           context: "email subscription",
           suppressLogging: true,
         });
-
-        setSubscribeState("subscribed");
       })
-      .catch((_error) => {
-        setSubscribeState("error");
+      .catch((error) => {
         toastService.error({
           title: "Subscription failed",
           message: "Something went wrong. Please try again.",
           context: "email subscription",
-          error: _error,
+          error,
         });
       });
   }

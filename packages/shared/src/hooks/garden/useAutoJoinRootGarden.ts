@@ -1,35 +1,41 @@
 /**
  * Auto-Join Root Garden Hook
  *
- * Manages joining the root community garden on first login.
- *
- * Uses deployment data for root garden address (not indexer) to avoid race conditions.
+ * Simplified hook for managing root garden membership on first login.
+ * Uses deployment config for root garden address (not indexer).
  *
  * @module hooks/garden/useAutoJoinRootGarden
  */
 
 import { useQueryClient } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { encodeFunctionData } from "viem";
+import type { SmartAccountClient } from "permissionless";
+import { useCallback, useRef, useState } from "react";
+import { encodeFunctionData, type Hex } from "viem";
 import { useWriteContract } from "wagmi";
 import { ONBOARDED_STORAGE_KEY } from "../../config/app";
 import { wagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
-import type { PasskeySession } from "../../modules/auth/passkey";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
-import { simulateJoinGarden } from "../../utils/contract/simulation";
+import { toastService } from "../../components/toast";
 import { isAlreadyGardenerError } from "../../utils/errors/contract-errors";
 import { useUser } from "../auth/useUser";
-import { useGardens } from "../blockchain/useBaseLists";
-import { queryInvalidation, queryKeys } from "../query-keys";
+import { queryInvalidation } from "../query-keys";
 
-const ROOT_GARDEN_PROMPTED_KEY = "rootGardenPrompted";
+/**
+ * Session data for passkey authentication.
+ * Used when calling joinGarden during login flow.
+ */
+interface PasskeySession {
+  address: Hex;
+  client: SmartAccountClient | null;
+}
+
+// Storage keys
+const ROOT_GARDEN_PROMPTED_KEY = "greengoods_root_garden_prompted";
 
 const getOnboardedKey = (address?: string | null) => {
-  if (!address) {
-    return ONBOARDED_STORAGE_KEY;
-  }
+  if (!address) return ONBOARDED_STORAGE_KEY;
   return `${ONBOARDED_STORAGE_KEY}:${address.toLowerCase()}`;
 };
 
@@ -46,15 +52,10 @@ export async function checkMembership(address: string): Promise<{
   const rootGarden = networkConfig.rootGarden;
 
   if (!rootGarden?.address) {
-    // No root garden configured, can't check membership
-    return {
-      isGardener: false,
-      hasBeenOnboarded,
-    };
+    return { isGardener: false, hasBeenOnboarded };
   }
 
   try {
-    // Use wagmi's readContract - shares the same config as useReadContract hook
     const isGardener = await readContract(wagmiConfig, {
       address: rootGarden.address,
       abi: GardenAccountABI,
@@ -62,7 +63,6 @@ export async function checkMembership(address: string): Promise<{
       args: [address as `0x${string}`],
     });
 
-    // Update localStorage if on-chain status shows they're a gardener
     if (isGardener && !hasBeenOnboarded) {
       localStorage.setItem(onboardingKey, "true");
     }
@@ -72,312 +72,252 @@ export async function checkMembership(address: string): Promise<{
       hasBeenOnboarded: Boolean(isGardener) || hasBeenOnboarded,
     };
   } catch (error) {
-    // Offline or RPC error: fall back to localStorage
-    console.warn("Failed to check on-chain membership, using localStorage fallback:", error);
-    return {
-      isGardener: hasBeenOnboarded, // Conservative: assume localStorage is correct
-      hasBeenOnboarded,
-    };
+    console.warn("Failed to check on-chain membership:", error);
+    return { isGardener: hasBeenOnboarded, hasBeenOnboarded };
   }
-}
-
-/**
- * Join state for the root garden
- */
-interface JoinState {
-  isGardener: boolean;
-  isLoading: boolean;
-  hasPrompted: boolean;
-  showPrompt: boolean;
 }
 
 /**
  * Hook for managing root garden membership.
  *
- * Features:
- * - Checks if user is already a member
- * - Auto-joins on first login for passkey users (when autoJoin=true)
- * - Shows manual prompt for wallet users (when autoJoin=false)
- * - Uses direct joinGarden() function (no invite codes)
- * - Stores join status in localStorage to prevent duplicate prompts
+ * Simplified flow:
+ * 1. On first login, prompts user once to join root garden via toast
+ * 2. User can accept (join) or dismiss
+ * 3. Shows success/error based on result
+ * 4. Refetches garden data after joining
  *
- * Storage Keys:
- * - greengoods_user_onboarded: Set to "true" after successful first-time onboarding
- * - rootGardenPrompted: Set to "true" when wallet user has been prompted or dismissed
- *
- * @param autoJoin - If true, automatically joins without user prompt (passkey flow)
- * @returns Join state and functions for manual join/dismiss
+ * @returns Join state and joinGarden function
  */
-export function useAutoJoinRootGarden(autoJoin = false) {
-  const { smartAccountAddress, smartAccountClient, ready, eoa } = useUser();
-  // Support both passkey (smartAccountAddress) and wallet (eoa.address) users
-  const walletAddress = eoa?.address;
-  const primaryAddress = smartAccountAddress || walletAddress;
+export function useAutoJoinRootGarden() {
+  const { smartAccountAddress, smartAccountClient, eoa } = useUser();
+  const primaryAddress = smartAccountAddress || eoa?.address;
 
   const networkConfig = getDefaultChain();
   const rootGarden = networkConfig.rootGarden;
   const chainId = Number(networkConfig.chainId ?? DEFAULT_CHAIN_ID);
-  const {
-    data: gardens,
-    isLoading: gardensLoading,
-    isFetching: gardensFetching,
-    refetch: refetchGardens,
-  } = useGardens(chainId);
-  const queryClient = useQueryClient();
 
-  const normalizeAddress = useCallback((value?: string | null) => value?.toLowerCase() ?? "", []);
-  const rootGardenAddressNormalized = useMemo(
-    () => normalizeAddress(rootGarden?.address),
-    [rootGarden?.address, normalizeAddress]
-  );
-  const rootGardenTokenId = useMemo(
-    () => (typeof rootGarden?.tokenId !== "undefined" ? Number(rootGarden.tokenId) : undefined),
-    [rootGarden?.tokenId]
-  );
-
-  const [state, setState] = useState<JoinState>({
-    isGardener: false,
-    isLoading: true,
-    hasPrompted: false,
-    showPrompt: false,
-  });
-
-  const rootGardenRecord = useMemo(() => {
-    if (!gardens) return null;
-
-    // Always use token ID 0 (the first garden)
-    return gardens.find((garden) => Number(garden.tokenID) === 0) ?? null;
-  }, [gardens]);
+  const [isLoading, setIsLoading] = useState(false);
+  const hasPromptedRef = useRef(false);
+  const promptToastIdRef = useRef<string | null>(null);
 
   const { writeContractAsync, isPending } = useWriteContract();
 
-  // Check membership from indexer data (Token ID 0)
-  // User is a member if they're in either gardeners OR operators array
-  const derivedIsMember = useMemo(() => {
-    if (!rootGardenRecord || !primaryAddress) return false;
+  // Get QueryClient - always called unconditionally per React hook rules
+  // The hook will throw if used outside QueryClientProvider, but that's expected
+  const queryClient = useQueryClient();
 
-    const normalized = normalizeAddress(primaryAddress);
-
-    // Check if user is a gardener (coalesce to boolean)
-    const isGardener =
-      rootGardenRecord.gardeners?.some((m) => normalizeAddress(m) === normalized) ?? false;
-
-    // Check if user is an operator (coalesce to boolean)
-    const isOperator =
-      rootGardenRecord.operators?.some((m) => normalizeAddress(m) === normalized) ?? false;
-
-    return isGardener || isOperator;
-  }, [rootGardenRecord, primaryAddress, normalizeAddress]);
-
-  useEffect(() => {
-    setState((prev) => ({
-      ...prev,
-      isGardener: derivedIsMember,
-      isLoading: gardensLoading || gardensFetching || isPending,
-    }));
-  }, [derivedIsMember, gardensLoading, gardensFetching, isPending]);
-
-  // Generic Join Function
+  /**
+   * Execute the join transaction
+   */
   const executeJoin = useCallback(
-    async (gardenAddress: string, sessionOverride?: PasskeySession) => {
-      // For session override (auto-join on login), use session address/client
-      // Otherwise, use primaryAddress and smartAccountClient (if available)
+    async (sessionOverride?: PasskeySession): Promise<string> => {
       const targetAddress = sessionOverride?.address ?? primaryAddress;
       const client = sessionOverride?.client ?? smartAccountClient;
 
-      if (!gardenAddress || !targetAddress) throw new Error("Missing join data");
+      if (!rootGarden?.address || !targetAddress) {
+        throw new Error("Missing join data");
+      }
 
       let txHash: string;
+
       if (client?.account) {
-        // Use smart account for passkey authentication (sponsored transaction)
-        // Skip simulation for sponsored transactions - let them fail with paymaster error if needed
+        // Passkey user - sponsored transaction
         txHash = await client.sendTransaction({
           account: client.account,
           chain: client.chain,
-          to: gardenAddress as `0x${string}`,
+          to: rootGarden.address,
           value: 0n,
-          data: encodeFunctionData({ abi: GardenAccountABI, functionName: "joinGarden", args: [] }),
+          data: encodeFunctionData({
+            abi: GardenAccountABI,
+            functionName: "joinGarden",
+            args: [],
+          }),
         });
       } else {
-        // Use wagmi for wallet authentication (user pays gas)
-        // Simulate first to catch errors before user pays gas
-        const simulation = await simulateJoinGarden(
-          gardenAddress as `0x${string}`,
-          targetAddress as `0x${string}`
-        );
-
-        // If simulation failed, throw error BEFORE transaction to avoid wasting gas
-        if (!simulation.success) {
-          if (simulation.error) {
-            // Use parsed error message if available
-            const error = new Error(simulation.error.message);
-            error.name = simulation.error.name;
-            throw error;
-          }
-          // Fallback if error object is missing
-          throw new Error("Transaction simulation failed. Please try again.");
-        }
-
+        // Wallet user - pays gas
         txHash = await writeContractAsync({
-          address: gardenAddress as `0x${string}`,
+          address: rootGarden.address,
           abi: GardenAccountABI,
           functionName: "joinGarden",
           args: [],
         });
       }
 
-      // Invalidate all garden-related queries using centralized pattern
-      const keysToInvalidate = queryInvalidation.invalidateGardens(chainId);
-      await Promise.all(
-        keysToInvalidate.map((key) => queryClient.invalidateQueries({ queryKey: key }))
-      );
-      await refetchGardens();
       return txHash;
     },
-    [primaryAddress, smartAccountClient, writeContractAsync, chainId, queryClient, refetchGardens]
+    [primaryAddress, smartAccountClient, rootGarden?.address, writeContractAsync]
   );
 
   /**
-   * Join the root garden using direct joinGarden() function (no invite codes).
-   *
-   * Supports both passkey (smart account) and wallet (wagmi) authentication.
-   * For passkey users: Transaction is sponsored via Pimlico paymaster.
-   * For wallet users: User pays gas fees directly.
-   *
-   * Uses deployment data for root garden address to avoid indexer race conditions.
-   *
-   * @throws {Error} If join transaction fails
+   * Refetch garden data after joining
    */
-  const joinGarden = useCallback(
-    async (sessionOverride?: PasskeySession) => {
-      const targetAddress = sessionOverride?.address ?? primaryAddress;
+  const refetchGardenData = useCallback(async () => {
+    const keysToInvalidate = queryInvalidation.invalidateGardens(chainId);
+    await Promise.all(
+      keysToInvalidate.map((key) => queryClient.invalidateQueries({ queryKey: key }))
+    );
+  }, [queryClient, chainId]);
 
-      // Use deployment data for root garden address (avoids indexer race condition)
-      // This is more reliable than waiting for the indexer to return gardens
-      const gardenId = rootGarden?.address;
-
-      if (!gardenId) {
-        throw new Error("Root garden not configured for this network. Please contact support.");
+  /**
+   * Mark user as onboarded in localStorage
+   */
+  const markOnboarded = useCallback(
+    (address?: string) => {
+      const targetAddress = address ?? primaryAddress;
+      localStorage.setItem(ROOT_GARDEN_PROMPTED_KEY, "true");
+      if (targetAddress) {
+        localStorage.setItem(getOnboardedKey(targetAddress), "true");
       }
-
-      try {
-        await executeJoin(gardenId, sessionOverride);
-
-        // Set appropriate localStorage flags
-        localStorage.setItem(ROOT_GARDEN_PROMPTED_KEY, "true");
-        const onboardKey = getOnboardedKey(targetAddress);
-        localStorage.setItem(onboardKey, "true");
-        localStorage.setItem(ONBOARDED_STORAGE_KEY, "true"); // legacy key for backward compatibility
-
-        setState((prev) => ({
-          ...prev,
-          isGardener: true,
-          showPrompt: false,
-          hasPrompted: true,
-          isLoading: false,
-        }));
-
-        // Optimistic update: update the cache immediately so UI reflects membership
-        // This ensures WorkProvider sees the user as a member without waiting for indexer
-        if (targetAddress) {
-          queryClient.setQueryData(
-            queryKeys.gardens.byChain(chainId),
-            (oldGardens: any[] | undefined) => {
-              if (!oldGardens) return oldGardens;
-              return oldGardens.map((garden) => {
-                // Check if this is the root garden (Token ID 0)
-                const isRoot = Number(garden.tokenID) === 0;
-
-                if (isRoot) {
-                  // Add user to gardeners list if not already there
-                  const currentGardeners = garden.gardeners || [];
-                  const isAlreadyInList = currentGardeners.some(
-                    (g: string) => normalizeAddress(g) === normalizeAddress(targetAddress)
-                  );
-                  if (!isAlreadyInList) {
-                    return {
-                      ...garden,
-                      gardeners: [...currentGardeners, targetAddress],
-                    };
-                  }
-                }
-                return garden;
-              });
-            }
-          );
-        }
-
-        // Refetch gardens to get updated membership list
-        await refetchGardens();
-      } catch (error) {
-        // Special handling for AlreadyGardener error - not actually an error
-        if (isAlreadyGardenerError(error)) {
-          localStorage.setItem(ROOT_GARDEN_PROMPTED_KEY, "true");
-          const onboardKey = getOnboardedKey(targetAddress);
-          localStorage.setItem(onboardKey, "true");
-          localStorage.setItem(ONBOARDED_STORAGE_KEY, "true");
-          setState((prev) => ({
-            ...prev,
-            isGardener: true,
-            showPrompt: false,
-            hasPrompted: true,
-            isLoading: false,
-          }));
-          // Still refetch gardens even if already a gardener
-          await refetchGardens();
-          return; // Exit successfully
-        }
-
-        throw error;
-      }
+      localStorage.setItem(ONBOARDED_STORAGE_KEY, "true");
     },
-    [
-      chainId,
-      executeJoin,
-      normalizeAddress,
-      queryClient,
-      refetchGardens,
-      rootGarden,
-      primaryAddress,
-    ]
+    [primaryAddress]
   );
 
-  // Auto-join effect (when autoJoin=true, joins automatically on first login)
-  // Note: This is primarily called manually from Login component for controlled flow
-  useEffect(() => {
-    if (!autoJoin) return;
-    if (!ready || !primaryAddress || !rootGarden?.address) return;
-    if (derivedIsMember) return;
+  /**
+   * Join the root garden.
+   *
+   * For passkey users: Transaction is sponsored via Pimlico paymaster.
+   * For wallet users: User pays gas fees directly.
+   */
+  const joinGarden = useCallback(
+    async (sessionOverride?: PasskeySession): Promise<void> => {
+      const targetAddress = sessionOverride?.address ?? primaryAddress;
 
-    const onboardedKey = getOnboardedKey(primaryAddress);
-    const isOnboarded =
-      localStorage.getItem(onboardedKey) === "true" ||
-      localStorage.getItem(ONBOARDED_STORAGE_KEY) === "true";
-    if (isOnboarded) {
-      return;
-    }
+      if (!rootGarden?.address) {
+        throw new Error("Root garden not configured for this network");
+      }
 
-    // This auto-join is mainly a fallback - primary flow is in Login component
-    joinGarden().catch((err) => {
-      console.error("Auto-join failed", err);
-    });
-  }, [autoJoin, ready, primaryAddress, rootGarden, derivedIsMember, joinGarden]);
+      setIsLoading(true);
+
+      try {
+        await executeJoin(sessionOverride);
+        markOnboarded(targetAddress);
+
+        // Dismiss prompt toast if still showing
+        if (promptToastIdRef.current) {
+          toastService.dismiss(promptToastIdRef.current);
+          promptToastIdRef.current = null;
+        }
+
+        toastService.success({
+          title: "Welcome to Green Goods!",
+          message: "You're now part of the community garden.",
+          icon: "🌱",
+          suppressLogging: true,
+        });
+
+        // Refetch garden data so user can start working immediately
+        await refetchGardenData();
+      } catch (error) {
+        // Already a gardener is not an error
+        if (isAlreadyGardenerError(error)) {
+          markOnboarded(targetAddress);
+
+          if (promptToastIdRef.current) {
+            toastService.dismiss(promptToastIdRef.current);
+            promptToastIdRef.current = null;
+          }
+
+          await refetchGardenData();
+          return;
+        }
+
+        toastService.error({
+          title: "Couldn't join garden",
+          message: "Please try again from your profile.",
+          error,
+        });
+
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [primaryAddress, rootGarden?.address, executeJoin, markOnboarded, refetchGardenData]
+  );
 
   /**
    * Dismiss the join prompt without joining.
-   * Sets localStorage flag to prevent showing prompt again.
-   * Used for wallet users who can manually join later.
    */
-  const dismissPrompt = () => {
+  const dismissPrompt = useCallback(() => {
     localStorage.setItem(ROOT_GARDEN_PROMPTED_KEY, "true");
-    setState((prev) => ({ ...prev, showPrompt: false, hasPrompted: true }));
-  };
+    hasPromptedRef.current = true;
+
+    if (promptToastIdRef.current) {
+      toastService.dismiss(promptToastIdRef.current);
+      promptToastIdRef.current = null;
+    }
+
+    toastService.info({
+      title: "No problem!",
+      message: "You can join the community garden anytime from your profile.",
+      icon: "👋",
+      duration: 3000,
+      suppressLogging: true,
+    });
+  }, []);
+
+  /**
+   * Show the join prompt toast (call once after first login)
+   */
+  const promptToJoin = useCallback(() => {
+    // Don't prompt if already prompted or no root garden
+    if (hasPromptedRef.current) return;
+    if (!rootGarden?.address) return;
+
+    // Check if user has already been prompted
+    const alreadyPrompted = localStorage.getItem(ROOT_GARDEN_PROMPTED_KEY) === "true";
+    if (alreadyPrompted) {
+      hasPromptedRef.current = true;
+      return;
+    }
+
+    // Check if user is already onboarded
+    if (primaryAddress) {
+      const isOnboarded = localStorage.getItem(getOnboardedKey(primaryAddress)) === "true";
+      if (isOnboarded) {
+        hasPromptedRef.current = true;
+        return;
+      }
+    }
+
+    hasPromptedRef.current = true;
+
+    // Show single toast with join action
+    const toastId = toastService.info({
+      title: "Join the Community Garden",
+      message: "Get started by joining the root garden to track your impact.",
+      icon: "🌱",
+      duration: 15000, // Give user time to read and decide
+      action: {
+        label: "Join Now",
+        onClick: () => {
+          joinGarden().catch((err) => {
+            console.error("Join garden failed:", err);
+          });
+        },
+        dismissOnClick: true,
+        testId: "join-garden-action",
+      },
+    });
+
+    promptToastIdRef.current = toastId;
+
+    // Auto-dismiss handler (if user doesn't interact)
+    setTimeout(() => {
+      if (promptToastIdRef.current === toastId) {
+        // User didn't interact - mark as prompted but don't show dismiss message
+        localStorage.setItem(ROOT_GARDEN_PROMPTED_KEY, "true");
+        promptToastIdRef.current = null;
+      }
+    }, 15000);
+  }, [rootGarden?.address, primaryAddress, joinGarden]);
 
   return {
-    ...state,
-    isPending,
+    isLoading: isLoading || isPending,
     joinGarden,
     dismissPrompt,
-    isGardener: derivedIsMember || state.isGardener,
+    promptToJoin,
+    rootGardenAddress: rootGarden?.address,
   };
 }

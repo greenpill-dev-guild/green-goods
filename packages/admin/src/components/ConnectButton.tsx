@@ -23,9 +23,9 @@ export function ConnectButton({
 
   const variantStyles = {
     primary:
-      "border border-transparent text-white bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 shadow-sm hover:shadow-md focus:ring-green-500",
+      "border border-transparent text-primary-foreground bg-primary-base hover:bg-primary-darker shadow-sm hover:shadow-md focus:ring-primary-base",
     secondary:
-      "border border-stroke-sub text-text-sub bg-bg-white hover:bg-bg-weak focus:ring-green-500",
+      "border border-stroke-sub text-text-sub bg-bg-white hover:bg-bg-weak focus:ring-primary-base",
   };
 
   const sizeStyles = {
@@ -38,6 +38,7 @@ export function ConnectButton({
     <button
       onClick={() => open()}
       disabled={isConnecting}
+      data-testid="connect-wallet-button"
       className={cn(baseStyles, variantStyles[variant], sizeStyles[size], className)}
     >
       <div className="flex items-center">

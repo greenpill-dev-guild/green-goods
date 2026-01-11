@@ -56,7 +56,9 @@ export function useMerged<TOnline, TOffline, TMerged>(
     staleTime: options.staleTimeMerged ?? 5_000,
     gcTime: options.gcTimeMerged ?? 30_000,
     // Use placeholder data for smoother transitions
-    placeholderData: (previousData) => previousData ?? options.defaultMergedValue,
+    // Cast is safe: defaultMergedValue is TMerged which satisfies NonFunctionGuard<TMerged>
+    placeholderData: (previousData) =>
+      (previousData ?? options.defaultMergedValue) as typeof previousData,
   });
 
   // Invalidate merged query when source data changes

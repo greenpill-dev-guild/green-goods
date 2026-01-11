@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock modules
-vi.mock("../../modules/data/pinata", () => ({
+// Mock IPFS (Storacha)
+vi.mock("../../modules/data/ipfs", () => ({
   getFileByHash: vi.fn().mockResolvedValue({
     data: new Blob(["test"], { type: "image/png" }),
   }),

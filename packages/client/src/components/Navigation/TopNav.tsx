@@ -3,14 +3,16 @@ import { cn } from "@green-goods/shared/utils";
 import { RiArrowLeftFill, RiNotificationFill, RiNotificationLine } from "@remixicon/react";
 import { forwardRef, useRef } from "react";
 import { createPortal } from "react-dom";
-import { GardenNotifications } from "@/views/Home/Garden/Notifications";
 import { Button } from "@/components/Actions";
+import { GardenNotifications } from "@/views/Home/Garden/Notifications";
 
 type TopNavProps = {
   onBackClick?: (e: React.SyntheticEvent<HTMLButtonElement>) => void;
   garden?: Garden;
   works?: Work[];
   overlay?: boolean;
+  /** Whether the current user is an operator of this garden */
+  isOperator?: boolean;
 } & React.HTMLAttributes<HTMLDivElement>;
 
 type NotificationsProps = {
@@ -64,7 +66,7 @@ const BUTTON_VARIANTS = {
 // Base styling for navigation buttons
 const NAV_BUTTON_BASE = [
   "relative flex items-center justify-center w-8 h-8 p-1 rounded-lg border",
-  "bg-white border-slate-200 text-slate-500",
+  "bg-bg-white-0 border-stroke-soft-200 text-text-sub-600",
   "transition-all duration-200 tap-feedback",
   "active:scale-95",
   "focus:outline-none focus:ring-2",
@@ -138,6 +140,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   onBackClick,
   garden,
   overlay,
+  isOperator = false,
   ...props
 }: TopNavProps) => {
   const { syncStatus, isOnline } = useOffline();
@@ -149,7 +152,7 @@ export const TopNav: React.FC<TopNavProps> = ({
 
   const containerClasses = cn(
     "relative flex z-[1000] flex-row w-full justify-evenly items-center gap-4 p-6 h-20 top-2",
-    overlay && "fixed bg-white",
+    overlay && "fixed bg-bg-white-0",
     overlay && hasOfflineIssues && "top-2", // Space for offline indicator
     overlay && !hasOfflineIssues && "top-0"
   );
@@ -184,7 +187,8 @@ export const TopNav: React.FC<TopNavProps> = ({
       </div>
 
       <div className="flex grow" />
-      {garden && <NotificationCenter {...props} garden={garden} />}
+      {/* Only show notifications for operators - they need to review pending work */}
+      {garden && isOperator && <NotificationCenter {...props} garden={garden} />}
     </div>
   );
 };

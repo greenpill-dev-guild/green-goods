@@ -1,24 +1,30 @@
 import { toastService } from "@green-goods/shared";
 import {
-  checkGardenOpenJoining,
   isGardenMember,
-  useClientAuth,
+  useAuth,
   useEnsName,
   useGardens,
   useJoinGarden,
+  useTheme,
 } from "@green-goods/shared/hooks";
 import { type Locale, useApp } from "@green-goods/shared/providers";
 import { capitalize, isAlreadyGardenerError, parseAndFormatError } from "@green-goods/shared/utils";
 import {
   RiCheckLine,
+  RiComputerLine,
+  RiDownloadLine,
   RiEarthFill,
   RiKeyLine,
   RiLogoutBoxRLine,
   RiMapPinLine,
+  RiMoonLine,
   RiPlantLine,
+  RiRefreshLine,
+  RiSmartphoneLine,
+  RiSunLine,
   RiWalletLine,
 } from "@remixicon/react";
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import { ReactNode, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/Actions";
@@ -43,53 +49,38 @@ interface ApplicationSettings {
 type ProfileAccountProps = {};
 
 export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
-  const { authMode, signOut, smartAccountAddress, credential, walletAddress } = useClientAuth();
+  const { authMode, signOut, smartAccountAddress, credential, walletAddress } = useAuth();
+  const { theme, setTheme } = useTheme();
   const primaryAddress = smartAccountAddress || walletAddress;
   const { data: primaryEnsName } = useEnsName(primaryAddress);
   const navigate = useNavigate();
-  const { locale, switchLanguage, availableLocales } = useApp();
+  const {
+    locale,
+    switchLanguage,
+    availableLocales,
+    isMobile,
+    isInstalled,
+    deferredPrompt,
+    promptInstall,
+    platform,
+  } = useApp();
   const intl = useIntl();
 
-  // Fetch all gardens
+  // Fetch all gardens (openJoining is now included from indexer)
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
 
   // Join garden hook
   const { joinGarden, isJoining, joiningGardenId } = useJoinGarden();
 
-  // Track which gardens have openJoining enabled (for join button state)
-  const [openGardensMap, setOpenGardensMap] = useState<Map<string, boolean>>(new Map());
-  const [checkingOpenJoining, setCheckingOpenJoining] = useState(false);
-
-  // Check openJoining status for all gardens
-  useEffect(() => {
-    const checkOpenJoiningStatus = async () => {
-      if (gardens.length === 0) return;
-
-      setCheckingOpenJoining(true);
-      const results = new Map<string, boolean>();
-
-      // Check all gardens in parallel
-      await Promise.all(
-        gardens.map(async (garden) => {
-          const isOpen = await checkGardenOpenJoining(garden.id);
-          results.set(garden.id, isOpen);
-        })
-      );
-
-      setOpenGardensMap(results);
-      setCheckingOpenJoining(false);
-    };
-
-    checkOpenJoiningStatus();
-  }, [gardens]);
-
   // Show only open gardens or gardens where user is a member
+  // Uses garden.openJoining from indexer instead of per-garden RPC calls
   const allGardens = useMemo(() => {
     if (!primaryAddress || !gardens.length) return [];
 
     return gardens
       .filter((garden) => {
-        const isOpen = openGardensMap.get(garden.id) === true;
+        // Use openJoining from indexer (defaults to false if missing)
+        const isOpen = garden.openJoining === true;
         const isMember = isGardenMember(
           primaryAddress,
           garden.gardeners,
@@ -103,7 +94,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
         ...garden,
         isMember: isGardenMember(primaryAddress, garden.gardeners, garden.operators, garden.id),
       }));
-  }, [gardens, primaryAddress, openGardensMap]);
+  }, [gardens, primaryAddress]);
 
   const handleJoinGarden = async (garden: Garden) => {
     try {
@@ -158,7 +149,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
 
   const handleLogout = async () => {
     try {
-      await signOut();
+      await signOut?.();
       // Pass fromLogout state to prevent redirect back to profile
       navigate("/login", { replace: true, state: { fromLogout: true } });
       toastService.success({
@@ -186,7 +177,118 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
     }
   };
 
+  /**
+   * Force refresh the app by clearing caches and reloading.
+   * Useful when users experience "weird behavior" after an update.
+   */
+  const handleRefreshApp = async () => {
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      toastService.info({
+        title: intl.formatMessage({
+          id: "app.update.offline",
+          defaultMessage: "You're offline",
+        }),
+        message: intl.formatMessage({
+          id: "app.update.offlineMessage",
+          defaultMessage: "Connect to the internet to update the app.",
+        }),
+        context: "appRefresh",
+      });
+      return;
+    }
+
+    try {
+      toastService.loading({
+        title: intl.formatMessage({
+          id: "app.update.refreshing",
+          defaultMessage: "Updating app…",
+        }),
+        message: intl.formatMessage({
+          id: "app.update.refreshingMessage",
+          defaultMessage: "Clearing cached data and reloading.",
+        }),
+        context: "appRefresh",
+      });
+
+      // Unregister all service workers
+      if ("serviceWorker" in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map((r) => r.unregister()));
+      }
+
+      // Clear all caches
+      if ("caches" in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((key) => caches.delete(key)));
+      }
+
+      // Clear React Query persisted cache (localStorage + IndexedDB)
+      try {
+        localStorage.removeItem("__rq_pc__");
+      } catch {
+        // ignore
+      }
+      try {
+        indexedDB.deleteDatabase("gg-react-query");
+      } catch {
+        // ignore
+      }
+    } catch (err) {
+      console.debug("[AppRefresh] Best-effort cache clear failed:", err);
+    } finally {
+      window.location.reload();
+    }
+  };
+
+  const themeOptions = [
+    {
+      value: "light" as const,
+      label: intl.formatMessage({ id: "app.settings.themeLight", defaultMessage: "Light" }),
+      icon: <RiSunLine className="w-4" />,
+    },
+    {
+      value: "dark" as const,
+      label: intl.formatMessage({ id: "app.settings.themeDark", defaultMessage: "Dark" }),
+      icon: <RiMoonLine className="w-4" />,
+    },
+    {
+      value: "system" as const,
+      label: intl.formatMessage({ id: "app.settings.themeSystem", defaultMessage: "System" }),
+      icon: <RiComputerLine className="w-4" />,
+    },
+  ];
+
+  const currentThemeOption = themeOptions.find((opt) => opt.value === theme) || themeOptions[2];
+
   const applicationSettings: ApplicationSettings[] = [
+    {
+      title: intl.formatMessage({
+        id: "app.settings.theme",
+        defaultMessage: "Theme",
+      }),
+      description: intl.formatMessage({
+        id: "app.settings.selectTheme",
+        defaultMessage: "Choose your preferred appearance",
+      }),
+      Icon: currentThemeOption.icon,
+      Option: () => (
+        <Select value={theme} onValueChange={(val) => setTheme(val as "light" | "dark" | "system")}>
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectValue placeholder={currentThemeOption.label} />
+          </SelectTrigger>
+          <SelectContent>
+            {themeOptions.map((opt) => (
+              <SelectItem value={opt.value} key={opt.value}>
+                <span className="flex items-center gap-2">
+                  {opt.icon}
+                  {opt.label}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ),
+    },
     {
       title: intl.formatMessage({
         id: "app.settings.language",
@@ -205,7 +307,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
       Icon: <RiEarthFill className="w-4" />,
       Option: () => (
         <Select onValueChange={(val) => switchLanguage(val as Locale)}>
-          <SelectTrigger className="w-full sm:w-[220px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue
               className="capitalize"
               placeholder={capitalize(intl.formatDisplayName(locale, { type: "language" }) || "")}
@@ -225,7 +327,66 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
 
   return (
     <>
-      <h5 className="text-label-md text-slate-900">
+      {/* Install CTA (mobile web only, not yet installed) */}
+      {isMobile && !isInstalled && (
+        <>
+          <h5 className="text-label-md text-text-strong-950">
+            {intl.formatMessage({
+              id: "app.profile.install",
+              defaultMessage: "Install App",
+            })}
+          </h5>
+          <Card>
+            <div className="flex flex-row items-center gap-3 justify-between w-full">
+              <Avatar>
+                <div className="flex items-center justify-center text-center mx-auto text-primary">
+                  <RiSmartphoneLine className="w-4" />
+                </div>
+              </Avatar>
+              <div className="flex flex-col gap-1 grow">
+                <div className="text-sm font-medium">
+                  {intl.formatMessage({
+                    id: "app.profile.installTitle",
+                    defaultMessage: "Install Green Goods",
+                  })}
+                </div>
+                <div className="text-xs text-text-sub-600">
+                  {deferredPrompt
+                    ? intl.formatMessage({
+                        id: "app.profile.installDescriptionPrompt",
+                        defaultMessage: "Install for the best experience with offline support.",
+                      })
+                    : platform === "ios"
+                      ? intl.formatMessage({
+                          id: "app.profile.installDescriptionIOS",
+                          defaultMessage: "Tap Share → Add to Home Screen in Safari.",
+                        })
+                      : intl.formatMessage({
+                          id: "app.profile.installDescriptionAndroid",
+                          defaultMessage: "Open in Chrome → Menu → Install app.",
+                        })}
+                </div>
+              </div>
+              {deferredPrompt ? (
+                <Button
+                  variant="primary"
+                  mode="filled"
+                  size="xsmall"
+                  onClick={promptInstall}
+                  leadingIcon={<RiDownloadLine className="w-4" />}
+                  label={intl.formatMessage({
+                    id: "app.profile.installButton",
+                    defaultMessage: "Install",
+                  })}
+                  className="shrink-0"
+                />
+              ) : null}
+            </div>
+          </Card>
+        </>
+      )}
+
+      <h5 className="text-label-md text-text-strong-950">
         {intl.formatMessage({
           id: "app.profile.settings",
           description: "Settings",
@@ -243,27 +404,64 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
               <div className="flex items-center font-sm gap-1">
                 <div className="line-clamp-1 text-sm">{title}</div>
               </div>
-              <div className="text-xs text-gray-500">{description}</div>
+              <div className="text-xs text-text-sub-600">{description}</div>
             </div>
             {<Option />}
           </div>
         </Card>
       ))}
 
+      {/* Refresh App - Clear caches and reload for updates */}
+      <Card>
+        <div className="flex flex-row items-center gap-3 justify-between w-full">
+          <Avatar>
+            <div className="flex items-center justify-center text-center mx-auto text-primary">
+              <RiRefreshLine className="w-4" />
+            </div>
+          </Avatar>
+          <div className="flex flex-col gap-1 grow">
+            <div className="line-clamp-1 text-sm">
+              {intl.formatMessage({
+                id: "app.update.title",
+                defaultMessage: "Refresh app",
+              })}
+            </div>
+            <div className="text-xs text-text-sub-600">
+              {intl.formatMessage({
+                id: "app.update.subtitle",
+                defaultMessage: "Use this if things look weird after an update.",
+              })}
+            </div>
+          </div>
+          <Button
+            variant="neutral"
+            mode="stroke"
+            size="xsmall"
+            onClick={handleRefreshApp}
+            leadingIcon={<RiRefreshLine className="w-4" />}
+            label={intl.formatMessage({
+              id: "app.update.button",
+              defaultMessage: "Refresh",
+            })}
+            className="shrink-0"
+          />
+        </div>
+      </Card>
+
       {/* Gardens Section - All available gardens with membership status */}
       {primaryAddress && (
         <>
-          <h5 className="text-label-md text-slate-900">
+          <h5 className="text-label-md text-text-strong-950">
             {intl.formatMessage({
               id: "app.profile.gardens",
               defaultMessage: "Gardens",
             })}
           </h5>
 
-          {gardensLoading || checkingOpenJoining ? (
+          {gardensLoading ? (
             <Card>
               <div className="flex flex-row items-center justify-center w-full py-2">
-                <span className="text-sm text-slate-500">
+                <span className="text-sm text-text-sub-600">
                   {intl.formatMessage({
                     id: "app.profile.loadingGardens",
                     defaultMessage: "Loading gardens...",
@@ -288,7 +486,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
                         <div className="flex flex-col gap-0.5 min-w-0">
                           <div className="text-sm font-medium line-clamp-1">{garden.name}</div>
                           {garden.location && (
-                            <div className="flex items-center gap-1 text-xs text-gray-500">
+                            <div className="flex items-center gap-1 text-xs text-text-sub-600">
                               <RiMapPinLine className="w-3 h-3 shrink-0" />
                               <span className="line-clamp-1">{garden.location}</span>
                             </div>
@@ -327,8 +525,8 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
           ) : (
             <Card>
               <div className="flex flex-row items-center gap-3 justify-center w-full py-2">
-                <RiPlantLine className="w-5 text-slate-400" />
-                <span className="text-sm text-slate-500">
+                <RiPlantLine className="w-5 text-text-soft-400" />
+                <span className="text-sm text-text-sub-600">
                   {intl.formatMessage({
                     id: "app.profile.noGardens",
                     defaultMessage: "No gardens available",
@@ -340,7 +538,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
         </>
       )}
 
-      <h5 className="text-label-md text-slate-900">
+      <h5 className="text-label-md text-text-strong-950">
         {intl.formatMessage({
           id: "app.profile.account",
           description: "Account",
@@ -373,7 +571,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
                     })}
               </div>
             </div>
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-text-sub-600">
               {authMode === "passkey" && credential
                 ? "Active"
                 : authMode === "wallet" && walletAddress

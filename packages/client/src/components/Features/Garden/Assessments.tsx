@@ -55,16 +55,18 @@ const AssessmentCard = memo(function AssessmentCard({
     <Card key={assessment.id} className="flex flex-col gap-2">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h6 className="truncate text-base font-semibold text-slate-900">{assessment.title}</h6>
-          <p className="text-xs uppercase tracking-wide text-slate-500">
+          <h6 className="truncate text-base font-semibold text-text-strong-950">
+            {assessment.title}
+          </h6>
+          <p className="text-xs uppercase tracking-wide text-text-sub-600">
             {assessment.assessmentType ||
               intl.formatMessage({ id: "app.garden.assessments.title" })}
           </p>
-          <p className="mt-2 line-clamp-3 text-sm text-slate-600">{assessment.description}</p>
+          <p className="mt-2 line-clamp-3 text-sm text-text-sub-600">{assessment.description}</p>
         </div>
         <Link
           to={`assessments/${assessment.id}`}
-          className="inline-flex shrink-0 items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-100"
+          className="inline-flex shrink-0 items-center gap-1 rounded-md border border-stroke-soft-200 px-2 py-1 text-xs font-medium text-text-sub-600 transition hover:bg-bg-weak-50"
         >
           <RiExternalLinkLine className="h-3.5 w-3.5" />
           {intl.formatMessage({ id: "app.actions.view" })}
@@ -76,7 +78,7 @@ const AssessmentCard = memo(function AssessmentCard({
           <Badge leadingIcon={<RiCalendarLine className="h-4 w-4 text-primary" />} variant="pill">
             {intl.formatMessage({ id: "app.garden.assessments.dateRange" })}
           </Badge>
-          <span className="px-2 text-xs text-slate-600">
+          <span className="px-2 text-xs text-text-sub-600">
             {startDate || endDate ? [startDate, endDate].filter(Boolean).join(" — ") : "—"}
           </span>
         </div>
@@ -111,8 +113,8 @@ const AssessmentCard = memo(function AssessmentCard({
       </div>
 
       {metricsPreview.length ? (
-        <div className="rounded-md bg-slate-50 p-3 text-xs text-slate-600">
-          <p className="mb-1 font-medium text-slate-700">
+        <div className="rounded-md bg-bg-weak-50 p-3 text-xs text-text-sub-600">
+          <p className="mb-1 font-medium text-text-strong-950">
             {intl.formatMessage({ id: "app.garden.assessments.metricsPreview" })}
           </p>
           <ul className="space-y-1">
@@ -138,18 +140,18 @@ const AssessmentList = ({ assessments, asessmentFetchStatus }: AssessmentListPro
           <CarouselContent>
             {[...Array(3)].map((_, i) => (
               <CarouselItem key={i}>
-                <div className="p-4 border border-slate-200 rounded-xl bg-white">
-                  <div className="h-4 w-24 bg-slate-200 rounded animate-pulse mb-3" />
+                <div className="p-4 border border-stroke-soft-200 rounded-xl bg-bg-white-0">
+                  <div className="h-4 w-24 bg-bg-soft-200 rounded animate-pulse mb-3" />
                   <div className="flex flex-wrap gap-2 mb-2">
                     {[...Array(4)].map((_, j) => (
-                      <div key={j} className="h-6 w-16 bg-slate-200 rounded-full animate-pulse" />
+                      <div key={j} className="h-6 w-16 bg-bg-soft-200 rounded-full animate-pulse" />
                     ))}
                   </div>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     {[...Array(4)].map((_, k) => (
                       <div key={k} className="flex flex-col gap-2">
-                        <div className="h-5 w-28 bg-slate-200 rounded animate-pulse" />
-                        <div className="h-4 w-20 bg-slate-200 rounded animate-pulse" />
+                        <div className="h-5 w-28 bg-bg-soft-200 rounded animate-pulse" />
+                        <div className="h-4 w-20 bg-bg-soft-200 rounded animate-pulse" />
                       </div>
                     ))}
                   </div>
@@ -171,7 +173,7 @@ const AssessmentList = ({ assessments, asessmentFetchStatus }: AssessmentListPro
           </CarouselContent>
         </Carousel>
       ) : (
-        <p className="grid p-8 place-items-center text-sm text-center italic text-gray-400">
+        <p className="grid p-8 place-items-center text-sm text-center italic text-text-soft-400">
           {intl.formatMessage({
             id: "app.garden.assessments.noAssesment",
             description: "No assessments yet",
@@ -198,14 +200,14 @@ const ReportCard = memo(function ReportCard({ report, index }: { report: string;
     <Card className="flex flex-col gap-3 min-h-[160px]">
       <div className="flex items-center gap-2 text-primary">
         <RiFileTextLine className="h-6 w-6 flex-shrink-0" />
-        <h6 className="truncate text-base font-semibold text-slate-900">
+        <h6 className="truncate text-base font-semibold text-text-strong-950">
           {intl.formatMessage(
             { id: "app.garden.reports.document", defaultMessage: "Report Document {num}" },
             { num: index + 1 }
           )}
         </h6>
       </div>
-      <p className="text-sm text-slate-600 line-clamp-2 break-all">{fileName}</p>
+      <p className="text-sm text-text-sub-600 line-clamp-2 break-all">{fileName}</p>
       <a
         href={report}
         target="_blank"
@@ -244,7 +246,7 @@ export const GardenAssessments = forwardRef<HTMLDivElement, GardenAssessmentsPro
               <div className="flex flex-col gap-2 w-full">
                 <div className="flex flex-row p-3 border-b border-stroke-soft-200 w-full">
                   <RiInformationLine size={24} className="text-primary" />
-                  <div className="px-2 font-medium text-slate-800">
+                  <div className="px-2 font-medium text-text-strong-950">
                     {intl.formatMessage({
                       id: "app.garden.description.label",
                       defaultMessage: "Garden Description",
@@ -252,7 +254,7 @@ export const GardenAssessments = forwardRef<HTMLDivElement, GardenAssessmentsPro
                   </div>
                 </div>
                 <div className="pb-3 pl-4 pt-1 text-label-sm items-start text-left justify-start">
-                  <p className="whitespace-pre-line text-slate-600 leading-relaxed">
+                  <p className="whitespace-pre-line text-text-sub-600 leading-relaxed">
                     {description}
                   </p>
                 </div>
@@ -262,13 +264,13 @@ export const GardenAssessments = forwardRef<HTMLDivElement, GardenAssessmentsPro
         )}
 
         <section className="space-y-3">
-          <h2 className="text-base font-semibold text-slate-900">{assessmentsTitle}</h2>
+          <h2 className="text-base font-semibold text-text-strong-950">{assessmentsTitle}</h2>
           <AssessmentList assessments={assessments} asessmentFetchStatus={asessmentFetchStatus} />
         </section>
 
         {allReports.length > 0 && (
           <section className="space-y-3">
-            <h2 className="text-base font-semibold text-slate-900">{reportsTitle}</h2>
+            <h2 className="text-base font-semibold text-text-strong-950">{reportsTitle}</h2>
             <Carousel opts={{ align: "start", loop: false }}>
               <CarouselContent>
                 {allReports.map((report, index) => (

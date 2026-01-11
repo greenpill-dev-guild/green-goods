@@ -9,507 +9,154 @@ alwaysApply: false
 
 # Environment Variables & Configuration
 
-Green Goods uses a **single root `.env` file** for all environment variables across all packages. This rule documents mandatory patterns and conventions.
+Green Goods uses a **single root `.env` file** for all packages. This rule documents mandatory patterns.
 
-## ⚠️ IMPORTANT FOR AGENTS
+## Agent Instructions
 
-**The `.env` file is NOT accessible** (in `.gitignore` for security).
+**The `.env` file is NOT accessible** (in `.gitignore`).
 
-When documenting or adding environment variables:
-- **✅ DO:** Update `.env.example` with new variables and descriptions
-- **✅ DO:** Document variable purpose and how to obtain values
-- **❌ DON'T:** Try to read or modify `.env` directly
-- **❌ DON'T:** Include actual API keys or secrets in `.env.example`
+- **✅ DO:** Update `.env.example` with new variables (include setup instructions and links)
+- **✅ DO:** Document variable purpose in `.env.example` comments
+- **❌ DON'T:** Try to read `.env` directly — check config files or `.env.example` instead
+- **❌ DON'T:** Include actual secrets in `.env.example`
 
-**Example Agent Workflow:**
+## Critical Rule: Root .env Only
+
+**All packages use the root `.env` at project root.** Never create package-specific `.env` files.
+
 ```bash
-# When adding a new environment variable:
-# 1. Add to .env.example with placeholder
-# 2. Document where to get the real value
-# 3. Update this rule file if it's a new category
+# ✅ Correct
+/green-goods/.env
+
+# ❌ Wrong
+/green-goods/packages/client/.env
+/green-goods/packages/admin/.env
 ```
 
-## CRITICAL RULE: Root .env Only
+**How packages load .env:**
+- **Client/Admin (Vite):** Auto-loads root `.env`, access via `import.meta.env.VITE_*`
+- **Contracts (deploy.js):** Explicitly loads `dotenv.config({ path: '../../../.env' })`
+- **Agent (Node.js):** Loads via dotenv from project root
 
-**✅ ALWAYS:** Use root `.env` file at `/Users/afo/Code/greenpill/green-goods/.env`
+## Variable Categories
 
-**❌ NEVER:** Create package-specific `.env` files
+### Required Variables
 
-### Why Root .env Only?
+| Variable | Purpose | Get From |
+|----------|---------|----------|
+| `VITE_CHAIN_ID` | Target chain (84532=Base Sepolia, 42161=Arbitrum, 42220=Celo) | Choose based on deployment |
+| `VITE_PIMLICO_API_KEY` | Passkey smart accounts | [pimlico.io](https://pimlico.io) |
+| `VITE_WALLETCONNECT_PROJECT_ID` | Wallet connection | [cloud.reown.com](https://cloud.reown.com) |
+| `VITE_STORACHA_KEY` | IPFS uploads (private key) | [storacha.network](https://docs.storacha.network) |
+| `VITE_STORACHA_PROOF` | IPFS uploads (delegation) | `storacha delegation create` |
 
-1. **Consistency**: All packages use same configuration
-2. **Deployment**: Deployment scripts load root .env
-3. **Simplicity**: Single source of truth
-4. **Security**: One file to manage secrets
+### Deployment Variables
 
-### How Packages Load .env
+| Variable | Purpose |
+|----------|---------|
+| `FOUNDRY_KEYSTORE_ACCOUNT` | Foundry keystore account name for deployment |
+| `ETHERSCAN_API_KEY` | Block explorer verification |
+| `{NETWORK}_RPC_URL` | RPC URLs (e.g., `BASE_SEPOLIA_RPC_URL`, `ARBITRUM_RPC_URL`) |
 
-**Client/Admin (Vite):**
+### Development Flags
+
+| Variable | Purpose |
+|----------|---------|
+| `VITE_DESKTOP_DEV=true` | Bypass PWA install prompts |
+| `VITE_DEBUG_MODE=true` | Skip media requirements, verbose logs |
+| `VITE_ENABLE_SW_DEV=true` | Enable service worker in dev |
+| `VITE_ENVIO_INDEXER_URL` | Override indexer endpoint (default: localhost:8080) |
+
+### Analytics (Optional)
+
+| Variable | Purpose |
+|----------|---------|
+| `VITE_POSTHOG_KEY` | Client PWA analytics |
+| `VITE_POSTHOG_ADMIN_KEY` | Admin dashboard analytics |
+| `VITE_POSTHOG_HOST` | PostHog host URL |
+
+### Agent Package
+
+| Variable | Purpose |
+|----------|---------|
+| `TELEGRAM_BOT_TOKEN` | Telegram bot token from @BotFather |
+| `ENCRYPTION_SECRET` | 64-char base64 secret for key encryption |
+| `BOT_MODE` | `polling` (dev) or `webhook` (production) |
+| `WEBHOOK_URL` | Public HTTPS URL for webhooks |
+
+## Variable Naming
+
+- **`VITE_*`** — Exposed to browser (client-side)
+- **No prefix** — Server-side only (deployment scripts, agent)
+
+```bash
+VITE_CHAIN_ID=84532                    # Client-side (visible in browser)
+FOUNDRY_KEYSTORE_ACCOUNT=deployer      # Server-side only
+```
+
+## Chain Configuration
+
+**Apps are single-chain.** Chain is determined by `VITE_CHAIN_ID` at build time — no runtime switching.
+
 ```typescript
-// Vite automatically loads root .env
-// Access via import.meta.env.VITE_*
-const chainId = import.meta.env.VITE_CHAIN_ID;
+// ✅ Correct: Read from env via shared config
+import { DEFAULT_CHAIN_ID } from '@green-goods/shared';
+
+// ❌ Wrong: Never read chain from wallet
+const { chainId } = useAccount();
 ```
 
-**Contracts (deploy.js):**
-```javascript
-// deploy.js explicitly loads root .env
-dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
-```
-
-**Indexer (Envio):**
-```bash
-# Envio Docker Compose inherits from root .env
-# Configured in generated/docker-compose.yaml
-```
-
-## Environment Variable Categories
-
-### 1. Blockchain Configuration
+**Multi-chain deployment:** Build separate app instances per chain:
 
 ```bash
-# Chain selection (REQUIRED for client/admin)
-VITE_CHAIN_ID=84532  # 84532=Base Sepolia, 42161=Arbitrum, 42220=Celo
-
-# RPC URLs (REQUIRED for all packages)
-BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
-ARBITRUM_RPC_URL=https://arb1.arbitrum.io/rpc
-CELO_RPC_URL=https://forno.celo.org
-
-# Alternative RPC with Alchemy
-ALCHEMY_API_KEY=your-key-here
-# Automatically constructs: https://base-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}
-```
-
-### 2. Authentication & Services
-
-```bash
-# Pimlico (account abstraction, sponsorship)
-VITE_PIMLICO_API_KEY=your-pimlico-key
-
-# WalletConnect (multi-wallet support)
-VITE_WALLETCONNECT_PROJECT_ID=your-wc-project-id
-
-# Pinata (IPFS uploads)
-VITE_PINATA_JWT=your-pinata-jwt
-
-# PostHog (analytics)
-VITE_PUBLIC_POSTHOG_KEY=phc_...
-VITE_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
-```
-
-### 3. Deployment Configuration
-
-```bash
-# Foundry keystore account name (REQUIRED for deployment)
-FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer
-
-# Block explorer verification (OPTIONAL but recommended)
-ETHERSCAN_API_KEY=your-etherscan-key
-
-# Deployment options
-SCHEMA_DEPLOYMENT_MAX_RETRIES=3
-SCHEMA_DEPLOYMENT_SKIP_ON_FAILURE=false
-```
-
-### 4. Development Flags
-
-```bash
-# Desktop development (bypass PWA install checks)
-VITE_DESKTOP_DEV=true
-
-# Service worker in dev mode
-VITE_ENABLE_SW_DEV=true
-
-# Mock PWA installed state
-VITE_MOCK_PWA_INSTALLED=true
-
-# PostHog debug mode
-VITE_POSTHOG_DEBUG=true
-
-# Job queue debug logging
-VITE_QUEUE_DEBUG=true
-```
-
-### 5. Indexer Configuration
-
-```bash
-# Envio indexer GraphQL endpoint
-VITE_ENVIO_INDEXER_URL=http://localhost:8080/v1/graphql
-
-# Production override
-VITE_ENVIO_INDEXER_URL=https://indexer.greengoods.app/v1/graphql
-```
-
-## Variable Naming Conventions
-
-### Prefixes
-
-**`VITE_`** — Client-side variables (exposed to browser):
-```bash
-VITE_CHAIN_ID=84532
-VITE_PIMLICO_API_KEY=...
-```
-
-**No prefix** — Server-side/deployment only:
-```bash
-FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer
-PRIVATE_KEY=0x...  # If using raw key (not recommended)
-```
-
-### Naming Pattern
-
-```bash
-# Pattern: [PREFIX_][SERVICE_][RESOURCE]_[DESCRIPTOR]
-VITE_PIMLICO_API_KEY           # Client, Pimlico service, API key
-BASE_SEPOLIA_RPC_URL           # Server, Base Sepolia network, RPC URL
-VITE_PUBLIC_POSTHOG_HOST       # Client, PostHog, public host
+VITE_CHAIN_ID=42161 bun --filter client build  # Arbitrum
+VITE_CHAIN_ID=42220 bun --filter client build  # Celo
 ```
 
 ## Configuration Files
 
-### Client Config (`packages/client/src/config/blockchain.ts`)
+**Shared config (source of truth):**
+```
+packages/shared/src/config/blockchain.ts  # getDefaultChain(), DEFAULT_CHAIN_ID
+packages/shared/src/config/chains.ts      # Chain definitions
+packages/contracts/deployments/*.json     # Contract addresses per chain
+packages/contracts/deployments/networks.json # Network metadata
+```
 
+**Package configs re-export from shared:**
 ```typescript
-// Load from environment
-export function getDefaultChain(): Chain {
-  const chainId = import.meta.env.VITE_CHAIN_ID;
-  
-  switch (chainId) {
-    case "42161": return arbitrum;
-    case "84532": return baseSepolia;
-    case "42220": return celo;
-    default: return baseSepolia;
-  }
-}
-
-// Export constant derived from env
-export const DEFAULT_CHAIN_ID = getDefaultChain().id;
+// packages/admin/src/config.ts
+export { DEFAULT_CHAIN_ID, getNetworkConfig } from '@green-goods/shared';
 ```
-
-### Admin Config (`packages/admin/src/config.ts`)
-
-```typescript
-// Admin allowlist
-export const ADMIN_ADDRESSES = [
-  '0x2aa64E6d80390F5C017F0313cB908051BE2FD35e',
-  '0x04D60647836bcA09c37B379550038BdaaFD82503'
-];
-
-// Load chain from env
-export function getDefaultChain() {
-  const chainId = import.meta.env.VITE_DEFAULT_CHAIN_ID;
-  // ... same pattern as client
-}
-```
-
-### Contracts Config (`packages/contracts/deployments/networks.json`)
-
-```json
-{
-  "networks": {
-    "baseSepolia": {
-      "chainId": 84532,
-      "rpcUrl": "${BASE_SEPOLIA_RPC_URL}",
-      "contracts": {
-        "eas": "0x4200000000000000000000000000000000000021",
-        "easSchemaRegistry": "0x4200000000000000000000000000000000000020"
-      }
-    }
-  }
-}
-```
-
-**Note:** Environment variables use `${VAR}` template syntax in JSON.
-
-## Secrets Management
-
-### What Goes in .env
-
-**✅ Include:**
-- API keys (Pimlico, Pinata, Alchemy, PostHog)
-- RPC URLs with auth tokens
-- Keystore account names
-- Service configuration
-
-**❌ Never Include:**
-- Private keys in plaintext (use Foundry keystore)
-- Secrets in git (add `.env` to `.gitignore`)
-- Production secrets in `.env.example`
-
-### .env.example Pattern (Agent-Editable)
-
-**THIS IS THE FILE AGENTS SHOULD UPDATE** when adding new environment variables.
-
-```bash
-# Root .env.example (template for users)
-# Location: /Users/afo/Code/greenpill/green-goods/.env.example
-
-# Blockchain Configuration (REQUIRED)
-VITE_CHAIN_ID=84532
-FOUNDRY_KEYSTORE_ACCOUNT=your-deployer-account-name
-
-# RPC URLs (REQUIRED)
-BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
-# Get Alchemy key from: https://dashboard.alchemy.com
-ALCHEMY_API_KEY=your-alchemy-api-key
-
-# Account Abstraction (REQUIRED for gasless transactions)
-# Get from: https://dashboard.pimlico.io
-VITE_PIMLICO_API_KEY=get-from-pimlico-dashboard
-
-# IPFS Storage (REQUIRED for media uploads)
-# Get from: https://app.pinata.cloud
-VITE_PINATA_JWT=get-from-pinata-dashboard
-
-# Analytics (OPTIONAL)
-# Get from: https://posthog.com
-VITE_PUBLIC_POSTHOG_KEY=get-from-posthog-dashboard
-VITE_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
-
-# Never include actual values - always use placeholders with instructions
-# VITE_PIMLICO_API_KEY=pk_real_key_here ❌ WRONG
-# VITE_PIMLICO_API_KEY=get-from-pimlico-dashboard ✅ CORRECT
-```
-
-**Agent Guidelines for .env.example:**
-1. Always add descriptive comments above each variable
-2. Include links to where users can obtain the value
-3. Mark variables as REQUIRED or OPTIONAL
-4. Group related variables together
-5. Never include actual API keys or secrets
 
 ## Configuration Precedence
-
-Values loaded in this order (last wins):
 
 1. Hardcoded defaults in code
 2. `deployments/networks.json` values
 3. Root `.env` file
-4. Environment variables from shell
-
-### Example Precedence
-
-```typescript
-// 1. Hardcoded default
-const indexerUrl = 'http://localhost:8080/v1/graphql';
-
-// 2. Override from .env if present
-const fromEnv = import.meta.env.VITE_ENVIO_INDEXER_URL;
-const finalUrl = fromEnv || indexerUrl;
-```
-
-## Chain-Specific Configuration
-
-### Single-Chain Apps
-
-Client and Admin are **single-chain** applications:
-
-```typescript
-// Correct: Read from env, no runtime switching
-import { DEFAULT_CHAIN_ID } from '@/config/blockchain';
-
-function useCurrentChain() {
-  return useMemo(() => DEFAULT_CHAIN_ID, []);
-}
-
-// Wrong: Don't read from wallet
-function useCurrentChain() {
-  const { chainId } = useAccount();  // ❌ Never do this
-  return chainId;
-}
-```
-
-### Why No Chain Switching?
-
-- Data consistency: Indexer, contracts, and UI must align on chain
-- Schema differences: Each chain may have different schemas
-- UX simplicity: Users deploy app per chain, not switch chains
-- State management: Avoids complex multi-chain state
-
-### Deploying Multi-Chain
-
-To support multiple chains:
-
-1. Deploy separate app instances per chain
-2. Use different `.env` files per deployment
-3. Each instance points to chain-specific indexer
-
-```bash
-# Example: Deploy client for Celo
-VITE_CHAIN_ID=42220 bun --filter client build
-# Deploy to celo.greengoods.app
-
-# Deploy client for Arbitrum
-VITE_CHAIN_ID=42161 bun --filter client build  
-# Deploy to arbitrum.greengoods.app
-```
-
-## Development vs Production
-
-### Development Overrides
-
-```bash
-# Development .env additions
-VITE_DESKTOP_DEV=true              # Skip PWA install prompts
-VITE_ENABLE_SW_DEV=true            # Enable service worker in dev
-VITE_QUEUE_DEBUG=true              # Debug job queue
-VITE_POSTHOG_DEBUG=true            # Debug analytics
-
-# Local endpoints
-VITE_ENVIO_INDEXER_URL=http://localhost:8080/v1/graphql
-```
-
-### Production .env
-
-```bash
-# Production .env (minimal, secure)
-VITE_CHAIN_ID=42161
-VITE_PIMLICO_API_KEY=pk_...
-VITE_PINATA_JWT=...
-VITE_WALLETCONNECT_PROJECT_ID=...
-VITE_PUBLIC_POSTHOG_KEY=phc_...
-VITE_ENVIO_INDEXER_URL=https://indexer.greengoods.app/v1/graphql
-
-# No debug flags
-# No dev flags
-# No local URLs
-```
-
-## Security Best Practices
-
-### API Key Rotation
-
-When rotating keys:
-
-1. Update root `.env`
-2. Redeploy all affected packages
-3. Verify all services work with new keys
-4. Revoke old keys after validation
-
-### Secret Scanning
-
-**Protected:**
-- Root `.env` in `.gitignore`
-- Never commit secrets
-- Use keystore for private keys
-
-**CI/CD:**
-- Set secrets as environment variables
-- Never log sensitive values
-- Use secret management services
-
-## Validation Commands
-
-**Note:** Agents cannot run these commands since `.env` is not accessible. These are for human developers.
-
-```bash
-# Verify .env loaded correctly (human developers only)
-node -e "require('dotenv').config(); console.log(process.env.FOUNDRY_KEYSTORE_ACCOUNT)"
-
-# Check variable accessibility from client
-cd packages/client && node -e "console.log(process.env.VITE_CHAIN_ID)"
-
-# Validate RPC connectivity
-cast chain-id --rpc-url $BASE_SEPOLIA_RPC_URL
-```
-
-**For Agents:**
-- Read configuration from source files (e.g., `config/blockchain.ts`)
-- Check `.env.example` for variable requirements
-- Update `.env.example` when adding new variables
-- Document what values are needed and where to obtain them
+4. Shell environment variables (last wins)
 
 ## Anti-Patterns
 
-### ❌ Package-Specific .env Files
-
-```bash
-# WRONG
-packages/client/.env
-packages/admin/.env
-packages/contracts/.env
-```
-
-### ❌ Hardcoded Configuration
-
 ```typescript
-// Wrong
+// ❌ Hardcoded addresses
 const GARDEN_TOKEN = '0x1234...';
-const CHAIN_ID = 84532;
 
-// Correct
+// ✅ Import from deployment artifacts
 import deployment from '../../../contracts/deployments/84532-latest.json';
 const GARDEN_TOKEN = deployment.gardenToken;
 
-import { DEFAULT_CHAIN_ID } from '@/config/blockchain';
-const chainId = DEFAULT_CHAIN_ID;
-```
-
-### ❌ Runtime Chain Switching
-
-```typescript
-// Wrong
+// ❌ Runtime chain switching
 const { switchChain } = useSwitchChain();
 await switchChain({ chainId: 42161 });
 
-// Correct
-// Deploy separate app per chain, no switching
+// ✅ Single chain from environment
+import { DEFAULT_CHAIN_ID } from '@green-goods/shared';
 ```
 
-## Agent Workflow for Environment Variables
+## Reference Files
 
-### When Adding a New Service Integration
-
-**Example: Adding a new third-party API**
-
-1. **Update `.env.example`:**
-```bash
-# Add to /Users/afo/Code/greenpill/green-goods/.env.example
-
-# New Service Name (REQUIRED/OPTIONAL)
-# Get from: https://dashboard.newservice.com
-VITE_NEWSERVICE_API_KEY=get-from-newservice-dashboard
-VITE_NEWSERVICE_API_URL=https://api.newservice.com
-```
-
-2. **Update this rule file** to document the new category if needed
-
-3. **Update config files** to read the new variable:
-```typescript
-// packages/client/src/config/newservice.ts
-export const NEWSERVICE_API_KEY = import.meta.env.VITE_NEWSERVICE_API_KEY;
-export const NEWSERVICE_API_URL = import.meta.env.VITE_NEWSERVICE_API_URL;
-```
-
-4. **Inform the user** they need to:
-   - Copy `.env.example` to `.env` (if first time)
-   - Add actual API key value to `.env`
-   - Restart dev server to load new variables
-
-### When Documenting Existing Variables
-
-**Don't attempt to read `.env`** — instead:
-
-1. Check `.env.example` for documented variables
-2. Look at config files (e.g., `config/blockchain.ts`) to see how they're used
-3. Search codebase for `import.meta.env.VITE_*` or `process.env.*` usage
-
-### Example: Finding What Variables Are Used
-
-```typescript
-// Search for: import.meta.env
-// In: packages/client/src/config/blockchain.ts
-
-export const DEFAULT_CHAIN_ID = import.meta.env.VITE_CHAIN_ID || "84532";
-// This tells you VITE_CHAIN_ID is used and defaults to "84532"
-```
-
-## Reference Documents
-
-- **Root .env template:** `/.env.example` ← **AGENTS SHOULD EDIT THIS**
-- Client config: `packages/client/src/config/blockchain.ts`
-- Admin config: `packages/admin/src/config.ts`
-- Network config: `packages/contracts/deployments/networks.json`
-- Deployment guide: `docs/DEPLOYMENT.md`
-- Environment setup: `docs/ENVIRONMENT_SETUP.md`
+- **Template:** `/.env.example` (agents should update this)
+- **Shared config:** `packages/shared/src/config/blockchain.ts`
+- **Network metadata:** `packages/contracts/deployments/networks.json`
+- **Deployment artifacts:** `packages/contracts/deployments/{chainId}-latest.json`

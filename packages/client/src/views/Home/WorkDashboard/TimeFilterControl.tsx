@@ -11,7 +11,7 @@ export function TimeFilterControl<T extends string>({
 }: TimeFilterControlProps<T>) {
   return (
     <select
-      className="border border-slate-200 text-xs rounded-md px-2 py-1 bg-white capitalize"
+      className="border border-stroke-soft-200 text-xs rounded-md px-2 py-1 bg-bg-white-0 capitalize"
       value={value}
       onChange={(e) => onChange(e.target.value as T)}
     >

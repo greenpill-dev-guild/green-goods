@@ -13,7 +13,7 @@ export const avatarVariants = tv({
     },
     mode: {
       "no-outline": "border-0 shadow-0",
-      outline: "border-slate-200 border",
+      outline: "border-stroke-soft-200 border",
     },
     shadow: {
       "no-shadow": "shadow-none",
@@ -74,7 +74,7 @@ const AvatarSkeleton = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTM
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("h-full w-full rounded-full bg-slate-200 animate-pulse", className)}
+      className={cn("h-full w-full rounded-full bg-bg-soft-200 animate-pulse", className)}
       {...props}
     />
   )

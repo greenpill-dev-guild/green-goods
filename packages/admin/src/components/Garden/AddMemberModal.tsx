@@ -125,7 +125,7 @@ export function AddMemberModal({
                   setAddress(e.target.value);
                   setError("");
                 }}
-                className="w-full px-3 py-2 pr-10 border border-stroke-sub bg-bg-white text-text-strong rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="w-full px-3 py-2 pr-10 border border-stroke-sub bg-bg-white text-text-strong rounded-md focus:outline-none focus:ring-2 focus:ring-primary-base focus:border-primary-base"
                 placeholder="0x..."
                 disabled={isLoading}
               />
@@ -148,7 +148,7 @@ export function AddMemberModal({
                     : "Enter a valid ENS name or 0x address."}
               </p>
             )}
-            {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+            {error && <p className="mt-1 text-sm text-error-dark">{error}</p>}
           </div>
 
           {/* Buttons */}
@@ -157,7 +157,7 @@ export function AddMemberModal({
               type="button"
               onClick={handleClose}
               disabled={isLoading}
-              className="px-4 py-2 border border-stroke-sub text-sm font-medium rounded-md text-text-sub bg-bg-white hover:bg-bg-weak focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+              className="px-4 py-2 border border-stroke-sub text-sm font-medium rounded-md text-text-sub bg-bg-white hover:bg-bg-weak focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-base disabled:opacity-50"
             >
               Cancel
             </button>
@@ -165,10 +165,10 @@ export function AddMemberModal({
               type="submit"
               disabled={isLoading || !trimmed || (shouldResolveEns && resolvingEns)}
               className={cn(
-                "px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500",
+                "px-4 py-2 border border-transparent text-sm font-medium rounded-md text-primary-foreground focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-base",
                 isLoading || !trimmed || (shouldResolveEns && resolvingEns)
                   ? "bg-bg-surface cursor-not-allowed"
-                  : "bg-green-600 hover:bg-green-700"
+                  : "bg-primary-base hover:bg-primary-darker"
               )}
             >
               {isLoading

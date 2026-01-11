@@ -1,9 +1,12 @@
 import { HydrationFallback } from "@green-goods/shared/components";
-import { createBrowserRouter, createHashRouter, redirect } from "react-router-dom";
+import { createBrowserRouter, createHashRouter, Navigate, redirect } from "react-router-dom";
 
 // Use hash router for IPFS builds to ensure proper SPA routing on IPFS gateways
 const createRouter =
   import.meta.env.VITE_USE_HASH_ROUTER === "true" ? createHashRouter : createBrowserRouter;
+
+// Root redirect component - prevents "empty page" warning
+const RootRedirect = () => <Navigate to="/dashboard" replace />;
 
 export const router = createRouter([
   {
@@ -13,6 +16,10 @@ export const router = createRouter([
       <HydrationFallback appName="Green Goods Admin" showIcon message="Loading..." />
     ),
     children: [
+      {
+        index: true,
+        element: <RootRedirect />,
+      },
       {
         path: "login",
         lazy: async () => ({ Component: (await import("@/views/Login")).default }),
@@ -30,7 +37,6 @@ export const router = createRouter([
                   Component: (await import("@/routes/DashboardShell")).default,
                 }),
                 children: [
-                  { index: true, loader: () => redirect("/dashboard") },
                   {
                     path: "dashboard",
                     lazy: async () => ({ Component: (await import("@/views/Dashboard")).default }),

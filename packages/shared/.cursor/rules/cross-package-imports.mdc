@@ -1,671 +1,109 @@
 ---
-description: Cross-package import patterns for shared code
+description: Cross-package import principles and patterns
 globs:
-  - "packages/client/src/**/*"
-  - "packages/admin/src/**/*"
+  - "packages/*/src/**/*.ts"
+  - "packages/*/src/**/*.tsx"
 alwaysApply: false
 ---
 
-# Cross-Package Import Patterns
+# Cross-Package Imports
 
-This rule documents how client and admin packages should import from the shared package.
+Rules for importing code across packages in the Green Goods monorepo.
 
-## Import from @green-goods/shared
+## Architectural Boundaries
 
-### Auth Hooks
+```
+packages/
+├── shared/     ← Central code (hooks, providers, stores, modules)
+├── client/     ← Consumes shared, NO local hooks/stores
+├── admin/      ← Consumes shared, NO local hooks/stores
+├── contracts/  ← Solidity + deployment artifacts
+├── indexer/    ← Envio GraphQL
+└── agent/      ← Telegram/Discord bot
+```
+
+## Import Rules
+
+### ✅ Allowed
 
 ```typescript
-import { 
-  useAuth, 
-  useUser, 
-  useClientAuth, 
-  usePasskeyAuth, 
-  useWalletAuth 
-} from '@green-goods/shared';
+// Client/Admin importing from shared
+import { useAuth, useRole, queryKeys } from "@green-goods/shared";
+import { AppProvider, JobQueueProvider } from "@green-goods/shared";
+import { workToasts, mediaResourceManager } from "@green-goods/shared";
+import type { Garden, Work } from "@green-goods/shared";
+
+// Client/Admin importing contract artifacts
+import deployment from "../../../contracts/deployments/84532-latest.json";
+import GardenABI from "../../../contracts/out/Garden.sol/Garden.json";
 ```
 
-### Garden Hooks
+### ❌ Forbidden
 
 ```typescript
-import { 
-  useGardens, 
-  useGardenOperations, 
-  useGardenPermissions,
-  useGardenInvites,
-  useGardenTabs,
-  useJoinGarden,
-  useAutoJoinRootGarden,
-  useCreateGardenWorkflow
-} from '@green-goods/shared';
+// Source code imports across packages
+import { helper } from "../../client/src/utils/helper";
+import { Component } from "../../admin/src/components/Foo";
+
+// Deep imports from shared
+import { useAuth } from "@green-goods/shared/src/hooks/auth/useAuth";
 ```
 
-### Work Hooks
+## What Lives in Shared
+
+| Type | Location | Purpose |
+|------|----------|---------|
+| **Hooks** | `src/hooks/` | ALL hooks |
+| **Providers** | `src/providers/` | Auth, JobQueue, Work, App |
+| **Stores** | `src/stores/` | Zustand stores |
+| **Modules** | `src/modules/` | Core business logic |
+| **Types** | `src/types/` | ALL domain types (explicit imports) |
+| **Utils** | `src/utils/` | Utility functions |
+| **Config** | `src/config/` | Chain, blockchain config |
+| **i18n** | `src/i18n/` | Translations |
+
+## Type Import Pattern (Required)
+
+**ALL domain types must be explicitly imported:**
 
 ```typescript
-import { 
-  useWorks, 
-  useMyWorks,
-  useMyMergedWorks,
-  useMyOnlineWorks,
-  useWorkApproval, 
-  useWorkApprovals,
-  useWorkMutation,
-  useWorkForm,
-  useWorkImages,
-  usePendingWorksCount,
-  useQueueStatistics,
-  workFormSchema,
-  jobToWork
-} from '@green-goods/shared';
+// ✅ Correct - explicit imports
+import type { Garden, Work, Action, Job, WorkJobPayload } from '@green-goods/shared';
+
+// ❌ Wrong - relying on global types
+const garden: Garden = { ... }; // Don't assume globals
 ```
 
-### Blockchain Hooks
+**See:** `.cursor/rules/type-system.mdc` for complete type guidelines.
 
-```typescript
-import { 
-  useCurrentChain, 
-  useNetworkConfig, 
-  useChainConfig,
-  useEASConfig,
-  useEnsName,
-  useEnsAddress,
-  useEnsAvatar,
-  useDeploymentRegistry,
-  useActions,
-  useGardeners,
-  ensureBaseLists
-} from '@green-goods/shared';
-```
+## What Stays in Packages
 
-### App Hooks
+| Package | Keeps | Reason |
+|---------|-------|--------|
+| **Client** | Components, views | Different UX patterns |
+| **Admin** | Components, views | Different UX patterns |
+| **Contracts** | Solidity source | Build tool specific |
+| **Indexer** | Event handlers | Envio-specific |
 
-```typescript
-import { 
-  useOffline, 
-  useToastAction, 
-  useMerged,
-  useTheme,
-  useBrowserNavigation,
-  useNavigateToTop
-} from '@green-goods/shared';
-```
+## Key Principle
 
-### UI Hooks
+> **If logic is used by both client and admin, it must live in shared.**
 
-```typescript
-import { useScrollReveal } from '@green-goods/shared';
-```
+This ensures:
+- Single source of truth
+- No duplicate code
+- Consistent behavior
+- Easier testing
 
-### Translation Hooks
+## Adding New Shared Code
 
-```typescript
-import { 
-  useTranslation, 
-  useActionTranslation, 
-  useGardenTranslation 
-} from '@green-goods/shared';
-```
+1. Create in `packages/shared/src/{category}/`
+2. Export from `packages/shared/src/{category}/index.ts`
+3. Re-export from `packages/shared/src/index.ts`
+4. Import in packages from `@green-goods/shared`
 
-### Role & Profile Hooks
+## Reference
 
-```typescript
-import { useRole, useGardenerProfile } from '@green-goods/shared';
-```
-
-### Assessment Hooks
-
-```typescript
-import { 
-  useGardenAssessments, 
-  useCreateAssessmentWorkflow 
-} from '@green-goods/shared';
-```
-
-### Action Hooks
-
-```typescript
-import { useActionOperations } from '@green-goods/shared';
-```
-
-### Query Keys
-
-```typescript
-import { queryKeys, queryInvalidation } from '@green-goods/shared';
-
-// Usage
-queryKeys.gardens.all(chainId)
-queryKeys.gardens.detail(gardenId, chainId)
-queryKeys.works.merged(gardenId, chainId)
-queryKeys.works.online(gardenId, chainId)
-queryKeys.queue.stats()
-queryKeys.queue.pending()
-```
-
-### Providers
-
-```typescript
-import { 
-  AppProvider,
-  AppKitProvider,
-  ClientAuthProvider,
-  PasskeyAuthProvider,
-  WalletAuthProvider,
-  JobQueueProvider,
-  WorkProvider,
-  useAppKit,
-  useClientAuthProvider,
-  useJobQueue,
-  useWork
-} from '@green-goods/shared';
-```
-
-### Stores
-
-```typescript
-import { 
-  useAdminStore,
-  useUIStore,
-  useWorkFlowStore,
-  useCreateGardenStore,
-  WorkTab,
-  type AdminState,
-  type UIState,
-  type WorkFlowState,
-  type WorkDraftState,
-  type CreateGardenStep,
-  type CreateGardenFormState
-} from '@green-goods/shared';
-```
-
-### Workflows
-
-```typescript
-import { 
-  createGardenMachine,
-  createAssessmentMachine,
-  type CreateGardenContext,
-  type CreateGardenEvent,
-  type AssessmentContext,
-  type AssessmentEvent
-} from '@green-goods/shared';
-```
-
-### Config
-
-```typescript
-import { 
-  DEFAULT_CHAIN_ID,
-  getDefaultChain,
-  getNetworkConfig,
-  getEASConfig,
-  getChain,
-  getChainName,
-  isChainSupported,
-  SUPPORTED_CHAINS,
-  wagmiConfig,
-  queryClient,
-  appKit,
-  createPimlicoClientForChain,
-  createPublicClientForChain,
-  getPimlicoApiKey,
-  getPimlicoBundlerUrl,
-  getPimlicoPaymasterUrl,
-  getIndexerUrl,
-  getEasGraphqlUrl,
-  STALE_TIMES,
-  GC_TIMES,
-  APP_NAME,
-  APP_URL,
-  APP_DESCRIPTION,
-  APP_ICON,
-  APP_DEFAULT_TITLE,
-  APP_TITLE_TEMPLATE,
-  ONBOARDED_STORAGE_KEY
-} from '@green-goods/shared';
-```
-
-### Job Queue Module
-
-```typescript
-import { 
-  jobQueue, 
-  jobQueueDB, 
-  jobQueueEventBus,
-  useJobQueueEvents,
-  createOfflineTxHash 
-} from '@green-goods/shared';
-```
-
-### Data Module
-
-```typescript
-import { 
-  // EAS
-  getWorks,
-  getWorksByGardener,
-  getWorkApprovals,
-  getGardenAssessments,
-  
-  // Green Goods Indexer
-  getGardens,
-  getGardeners,
-  getActions,
-  updateUserProfile,
-  Capital,
-  
-  // GraphQL clients
-  createEasClient,
-  createGreenGoodsIndexerClient,
-  createIndexerClient,
-  greenGoodsIndexer,
-  easGraphQL,
-  greenGoodsGraphQL,
-  
-  // IPFS
-  uploadFileToIPFS,
-  uploadJSONToIPFS,
-  getFileByHash,
-  resolveIPFSUrl,
-  resolveImageUrl,
-  resolveAvatarUrl,
-  initializePinata,
-  initializePinataFromEnv
-} from '@green-goods/shared';
-```
-
-### Work Submission Module
-
-```typescript
-import { 
-  submitWorkWithPasskey,
-  submitApprovalWithPasskey,
-  submitWorkBot,
-  submitApprovalBot,
-  validateWorkDraft,
-  validateApprovalDraft,
-  formatJobError,
-  getSubmissionStatusText
-} from '@green-goods/shared';
-```
-
-### Auth Module
-
-```typescript
-import { 
-  // Passkey
-  registerPasskeySession,
-  registerPasskeySessionWithENS,
-  authenticatePasskey,
-  recoverPasskeyAccount,
-  restorePasskeySession,
-  clearStoredCredential,
-  hasStoredPasskeyCredential,
-  PASSKEY_STORAGE_KEY,
-  
-  // Session
-  saveAuthMode,
-  getSavedAuthMode,
-  clearAuthMode,
-  clearAllAuthStorage,
-  setSignedOut,
-  clearSignedOut,
-  wasExplicitlySignedOut,
-  setPasskeySignedOut,
-  clearPasskeySignedOut,
-  wasPasskeySignedOut,
-  isFreshAppStart,
-  markSessionActive,
-  checkAndHandleFreshStart,
-  AUTH_MODE_STORAGE_KEY,
-  SIGNED_OUT_KEY,
-  PASSKEY_SIGNED_OUT_KEY,
-  SESSION_MARKER_KEY
-} from '@green-goods/shared';
-```
-
-### App Module
-
-```typescript
-import { 
-  // Analytics
-  track,
-  identify,
-  reset,
-  getDistinctId,
-  trackAppLifecycle,
-  trackOfflineEvent,
-  trackSyncPerformance,
-  
-  // Service Worker
-  serviceWorkerManager
-} from '@green-goods/shared';
-```
-
-### Translation Module
-
-```typescript
-import { 
-  browserTranslator,
-  translationCache,
-  runTranslationDiagnostics
-} from '@green-goods/shared';
-```
-
-### Types
-
-```typescript
-import type { 
-  // Auth
-  AuthMode,
-  BaseAuthContext,
-  ClientAuthContext,
-  PasskeyAuthContext,
-  WalletAuthContext,
-  UnifiedAuthContext,
-  PasskeySession,
-  
-  // Garden
-  Garden,
-  GardenInvite,
-  GardenPermissions,
-  GardenOperationConfig,
-  CreateGardenParams,
-  
-  // Work
-  Work,
-  WorkDraft,
-  WorkApproval,
-  WorkApprovalDraft,
-  WorkFormData,
-  EnhancedWorkApproval,
-  
-  // Action
-  Action,
-  
-  // Queue
-  Job,
-  QueueStats,
-  
-  // Role
-  UserRole,
-  RoleInfo,
-  
-  // Blockchain
-  Address,
-  ChainId,
-  NetworkConfig,
-  EASConfig,
-  SupportedChainId,
-  DeploymentConfig,
-  DeploymentParams,
-  NetworkContracts,
-  
-  // GraphQL
-  FragmentOf,
-  ResultOf,
-  VariablesOf,
-  
-  // Query Keys
-  QueryKey,
-  WorksQueryKey,
-  QueueQueryKey
-} from '@green-goods/shared';
-```
-
-### Type Guards
-
-```typescript
-import { 
-  isPasskeyAuth, 
-  isWalletAuth, 
-  hasSmartAccount 
-} from '@green-goods/shared';
-```
-
-### Components
-
-```typescript
-import { 
-  Spinner,
-  CenteredSpinner,
-  StatusBadge,
-  ToastViewport,
-  toastService,
-  setToastTranslator,
-  FormInput,
-  FormTextarea,
-  FormLayout,
-  TranslationBadge,
-  HydrationFallback,
-  getStatusColors
-} from '@green-goods/shared';
-```
-
-### Utils
-
-```typescript
-import { 
-  // Styling
-  cn,
-  
-  // Address formatting
-  formatAddress,
-  truncateAddress,
-  normalizeAddress,
-  compareAddresses,
-  isUserAddress,
-  isValidAddressFormat,
-  isAddressInList,
-  
-  // ENS
-  resolveEnsName,
-  resolveEnsAddress,
-  
-  // Time
-  formatRelativeTime,
-  filterByTimeRange,
-  getTimeCutoff,
-  
-  // Text
-  capitalize,
-  truncate,
-  
-  // Work
-  encodeWorkApprovalData,
-  downloadWorkData,
-  extractClientWorkId,
-  
-  // EAS
-  getEASExplorerUrl,
-  openEASExplorer,
-  isValidAttestationId,
-  buildWorkAttestTx,
-  buildApprovalAttestTx,
-  
-  // Garden
-  buildGardenMemberSets,
-  gardenHasMember,
-  resolveGardenMemberKey,
-  
-  // Errors
-  formatErrorForToast,
-  formatUserError,
-  formatWalletError,
-  parseContractError,
-  parseAndFormatError,
-  isAlreadyGardenerError,
-  isNotGardenerError,
-  USER_FRIENDLY_ERRORS,
-  
-  // Simulation
-  simulateTransaction,
-  simulateJoinGarden,
-  
-  // Contracts
-  getNetworkContracts,
-  GardenTokenABI,
-  GardenAccountABI,
-  ActionRegistryABI,
-  
-  // Theme
-  getTheme,
-  setTheme,
-  initTheme,
-  getResolvedTheme,
-  toggle,
-  listenToSystemChanges,
-  
-  // Storage
-  saveFormDraft,
-  loadFormDraft,
-  clearFormDraft,
-  
-  // Clipboard
-  copyToClipboard,
-  
-  // Image
-  imageCompressor,
-  calculateCompressionRatio,
-  
-  // Offline
-  fetchOfflineWorks,
-  convertJobsToWorks,
-  mergeAndDeduplicateByClientId,
-  
-  // Misc
-  createClients,
-  createUrqlClient,
-  createDispatchAdapter,
-  pollQueryAfterTransaction,
-  pollQueriesAfterTransaction,
-  deduplicateById,
-  sortByCreatedAt,
-  recursiveCloneChildren,
-  formatFileSize,
-  getTag,
-  
-  // Actions
-  instructionTemplates,
-  defaultTemplate,
-  
-  // Debug
-  DEBUG_ENABLED,
-  debugLog,
-  debugWarn,
-  debugError
-} from '@green-goods/shared';
-```
-
-### i18n
-
-```typescript
-import { en, es, pt } from '@green-goods/shared';
-```
-
-## What NOT to Import from Shared
-
-### Package-Specific Components
-
-Client and admin have their own UI components tailored to their use cases:
-
-```typescript
-// ❌ Wrong - these don't exist in shared
-import { WorkCard, GardenCard } from '@green-goods/shared';
-
-// ✅ Correct - use package-specific components
-// In client:
-import { WorkCard } from '@/components/Cards/Work/WorkCard';
-
-// In admin:
-import { WorkCard } from '@/components/Work/WorkCard';
-```
-
-### View Components
-
-Views are package-specific:
-
-```typescript
-// ❌ Wrong
-import { Home, Profile } from '@green-goods/shared';
-
-// ✅ Correct - views are in each package
-// Client views in packages/client/src/views/
-// Admin views in packages/admin/src/views/
-```
-
-### Deep Imports
-
-Never import from internal paths:
-
-```typescript
-// ❌ Wrong - deep imports
-import { useAuth } from '@green-goods/shared/src/hooks/auth/useAuth';
-import { jobQueueDB } from '@green-goods/shared/src/modules/job-queue/db';
-
-// ✅ Correct - always use package root
-import { useAuth, jobQueueDB } from '@green-goods/shared';
-```
-
-## Migration Guide
-
-If you encounter imports from old paths, update them:
-
-```typescript
-// Old (client-local) — no longer works
-import { useAuth } from '@/hooks/auth/useAuth';
-import { jobQueue } from '@/modules/job-queue';
-import { useAdminStore } from '@/stores/useAdminStore';
-
-// New (shared package)
-import { useAuth, jobQueue, useAdminStore } from '@green-goods/shared';
-```
-
-## Checking Import Health
-
-Run this to find outdated imports:
-
-```bash
-# Find old-style hook imports in client
-grep -r "from '@/hooks/" packages/client/src/
-
-# Find old-style module imports in client
-grep -r "from '@/modules/" packages/client/src/
-
-# Find old-style provider imports in client
-grep -r "from '@/providers/" packages/client/src/
-
-# Find old-style store imports
-grep -r "from '@/stores/" packages/client/src/
-```
-
-These should all point to `@green-goods/shared` now (except for client-specific overrides).
-
-## Import Organization
-
-When importing from shared, organize imports by category:
-
-```typescript
-// 1. Hooks
-import { useAuth, useWorks, useGardens } from '@green-goods/shared';
-
-// 2. Providers
-import { AppProvider, JobQueueProvider } from '@green-goods/shared';
-
-// 3. Stores
-import { useAdminStore, useUIStore } from '@green-goods/shared';
-
-// 4. Modules
-import { jobQueue, track } from '@green-goods/shared';
-
-// 5. Config
-import { DEFAULT_CHAIN_ID, getNetworkConfig } from '@green-goods/shared';
-
-// 6. Utils
-import { cn, formatAddress } from '@green-goods/shared';
-
-// 7. Components
-import { Spinner, ToastViewport } from '@green-goods/shared';
-
-// 8. Types (always last, using 'import type')
-import type { Garden, Work, UserRole } from '@green-goods/shared';
-```
+- Hook architecture: `.cursor/rules/hook-architecture.mdc`
+- State patterns: `.cursor/rules/state-patterns.mdc`
+- Monorepo rules: `/.cursor/rules/monorepo.mdc`

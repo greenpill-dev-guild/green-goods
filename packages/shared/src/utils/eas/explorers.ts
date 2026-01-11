@@ -1,5 +1,6 @@
 /**
  * Utility functions for EAS (Ethereum Attestation Service) explorer links
+ * and block explorer transaction links
  */
 
 /**
@@ -13,6 +14,21 @@ const CHAIN_ID_TO_EAS_NAME: Record<number, string> = {
   137: "polygon",
   8453: "base",
   84532: "base-sepolia",
+  // Add more chains as needed
+};
+
+/**
+ * Maps chain IDs to their block explorer base URLs
+ */
+const CHAIN_ID_TO_BLOCK_EXPLORER: Record<number, string> = {
+  1: "https://etherscan.io",
+  11155111: "https://sepolia.etherscan.io",
+  42161: "https://arbiscan.io",
+  10: "https://optimistic.etherscan.io",
+  137: "https://polygonscan.com",
+  8453: "https://basescan.org",
+  84532: "https://sepolia.basescan.org",
+  42220: "https://celoscan.io",
   // Add more chains as needed
 };
 
@@ -56,4 +72,31 @@ export function openEASExplorer(chainId: number, attestationId: string): void {
  */
 export function isValidAttestationId(attestationId: string): boolean {
   return /^0x[a-fA-F0-9]{64}$/.test(attestationId);
+}
+
+/**
+ * Generates a block explorer URL for viewing a transaction
+ * @param chainId - The chain ID where the transaction exists
+ * @param txHash - The transaction hash (0x prefixed hex string)
+ * @returns The complete block explorer URL
+ */
+export function getBlockExplorerTxUrl(chainId: number, txHash: string): string {
+  const baseUrl = CHAIN_ID_TO_BLOCK_EXPLORER[chainId];
+
+  if (!baseUrl) {
+    // Fallback to etherscan mainnet for unknown chain IDs
+    return `https://etherscan.io/tx/${txHash}`;
+  }
+
+  return `${baseUrl}/tx/${txHash}`;
+}
+
+/**
+ * Opens the block explorer transaction page in a new tab
+ * @param chainId - The chain ID where the transaction exists
+ * @param txHash - The transaction hash
+ */
+export function openBlockExplorerTx(chainId: number, txHash: string): void {
+  const url = getBlockExplorerTxUrl(chainId, txHash);
+  window.open(url, "_blank", "noopener,noreferrer");
 }

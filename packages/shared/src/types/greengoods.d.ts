@@ -2,10 +2,17 @@
 /* biome-ignore format: generated file */
 
 /**
- * Green Goods Global Type Definitions
+ * DEPRECATED: Green Goods Global Type Definitions
  *
- * These types are globally available across all packages.
- * Do not import them - they are automatically available.
+ * These global declarations are kept for backward compatibility only.
+ * Import from '@green-goods/shared' instead:
+ *
+ * @example
+ * ```typescript
+ * import type { Garden, Work, Action, Capital } from '@green-goods/shared';
+ * ```
+ *
+ * This file will be removed in a future version.
  */
 
 declare interface Link<T> {
@@ -63,6 +70,8 @@ declare interface Garden extends GardenCard {
   communityToken?: string;
   assessments: GardenAssessment[];
   works: Work[];
+  /** Whether the garden allows open joining (from indexer, updated by OpenJoiningUpdated event) */
+  openJoining?: boolean;
 }
 
 // ============================================

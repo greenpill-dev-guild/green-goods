@@ -1,0 +1,404 @@
+---
+description: Hook architecture — all hooks live in shared, zero hooks in client/admin packages
+globs:
+  - "**/hooks/**/*.ts"
+  - "**/use*.ts"
+alwaysApply: false
+---
+
+# Hook Architecture
+
+All React hooks in Green Goods live in `@green-goods/shared`. Client and admin packages consume hooks but never define them.
+
+## Architectural Boundary
+
+```
+packages/
+├── shared/src/hooks/   ← ALL hooks live here
+├── client/src/         ← ZERO hook definitions (consumers only)
+└── admin/src/          ← ZERO hook definitions (consumers only)
+```
+
+**This is a hard rule.** No exceptions.
+
+## Why Centralize Hooks?
+
+1. **Single source of truth** — No duplicate logic across packages
+2. **Consistent API** — Same hook signatures everywhere
+3. **Easier testing** — Test once in shared, use everywhere
+4. **Better maintainability** — Fix bugs in one place
+
+## Hook Categories
+
+### Authentication Hooks
+
+```typescript
+import { useAuth, useUser } from "@green-goods/shared";
+
+// useAuth — unified auth state
+const { authMode, smartAccountClient, walletAddress, eoaAddress, signOut } = useAuth();
+
+// useUser — user identity
+const { user, ready, eoa, smartAccountAddress } = useUser();
+```
+
+### Garden Hooks
+
+```typescript
+import {
+  useGardens,
+  useGardenOperations,
+  useGardenPermissions,
+  useGardenInvites,
+  useGardenTabs,
+  useJoinGarden,
+  useAutoJoinRootGarden,
+  useCreateGardenWorkflow,
+} from "@green-goods/shared";
+
+// useGardens — fetch gardens
+const { data: gardens, isLoading } = useGardens(chainId);
+
+// useGardenOperations — mutation helpers
+const { addGardener, removeGardener, addOperator, removeOperator } = useGardenOperations();
+
+// useGardenPermissions — permission checks
+const permissions = useGardenPermissions();
+const canAdd = permissions.canAddMembers(garden);
+```
+
+### Work Hooks
+
+```typescript
+import {
+  useWorks,
+  useMyWorks,
+  useWorkApproval,
+  useWorkApprovals,
+  useWorkMutation,
+  useWorkForm,
+  useWorkImages,
+} from "@green-goods/shared";
+
+// useWorks — fetch works for a garden
+const { data: works } = useWorks(gardenId, chainId);
+
+// useWorkMutation — submit work
+const workMutation = useWorkMutation();
+await workMutation.mutateAsync(draft);
+
+// useWorkApproval — approve/reject
+const { approve, reject, isPending } = useWorkApproval();
+```
+
+### Role & Profile Hooks
+
+```typescript
+import { useRole, useGardenerProfile } from "@green-goods/shared";
+
+// useRole — current user's role
+const { role, isDeployer, isOperator, operatorGardens } = useRole();
+
+// useGardenerProfile — profile data
+const { profile, updateProfile } = useGardenerProfile();
+```
+
+### Blockchain Hooks
+
+```typescript
+import {
+  useCurrentChain,
+  useNetworkConfig,
+  useChainConfig,
+  useEASConfig,
+  useEnsName,
+  useEnsAddress,
+  useEnsAvatar,
+  useDeploymentRegistry,
+} from "@green-goods/shared";
+
+// useCurrentChain — always from environment
+const chainId = useCurrentChain();  // Reads VITE_CHAIN_ID
+
+// useNetworkConfig — network details
+const config = useNetworkConfig();
+
+// useEnsName — resolve address to name
+const { data: ensName } = useEnsName(address);
+```
+
+### App Hooks
+
+```typescript
+import {
+  useOffline,
+  useToastAction,
+  useMerged,
+  useTheme,
+  useBrowserNavigation,
+  useNavigateToTop,
+  useScrollReveal,
+  useDebugMode,
+} from "@green-goods/shared";
+
+// useOffline — offline detection
+const isOffline = useOffline();
+
+// useToastAction — wrap transactions with toast
+const { executeWithToast } = useToastAction();
+```
+
+### Assessment Hooks
+
+```typescript
+import { useGardenAssessments, useCreateAssessmentWorkflow } from "@green-goods/shared";
+
+const { data: assessments } = useGardenAssessments(gardenId);
+```
+
+### Translation Hooks
+
+```typescript
+import { useTranslation, useActionTranslation, useGardenTranslation } from "@green-goods/shared";
+
+const { translate, isTranslating } = useTranslation();
+const translatedAction = useActionTranslation(action);
+const translatedGarden = useGardenTranslation(garden);
+```
+
+### Analytics Hooks
+
+```typescript
+import { useAnalyticsIdentity, usePageView } from "@green-goods/shared";
+
+// Auto-identify user
+useAnalyticsIdentity();
+
+// Track page views
+usePageView("/garden/123");
+```
+
+## Query Keys
+
+Always use centralized query keys:
+
+```typescript
+import { queryKeys } from "@green-goods/shared";
+
+// Query key factories
+queryKeys.gardens.all(chainId)
+queryKeys.gardens.detail(gardenId, chainId)
+queryKeys.works.merged(gardenId, chainId)
+queryKeys.works.online(gardenId, chainId)
+queryKeys.queue.stats()
+queryKeys.queue.pending()
+
+// Invalidation
+queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
+```
+
+## Creating New Hooks
+
+### Step 1: Choose Domain
+
+Place hook in appropriate domain folder:
+
+```
+packages/shared/src/hooks/
+├── action/      ← Action-related
+├── analytics/   ← Tracking
+├── app/         ← App-level utilities
+├── assessment/  ← Assessment workflows
+├── auth/        ← Authentication
+├── blockchain/  ← Chain, ENS, deployment
+├── garden/      ← Garden operations
+├── gardener/    ← User role/profile
+├── translation/ ← i18n
+├── ui/          ← UI utilities
+└── work/        ← Work submissions
+```
+
+### Step 2: Follow Naming Convention
+
+```typescript
+// useEntityVerb pattern
+useGardenOperations  // Operations on gardens
+useWorkApproval      // Approve/reject work
+useCreateGardenWorkflow  // Multi-step workflow
+
+// useEntity pattern (for data fetching)
+useWorks            // Fetch works
+useGardenAssessments  // Fetch assessments
+
+// useAdjective pattern (for state)
+useOffline          // Offline state
+useDebugMode        // Debug mode state
+```
+
+### Step 3: Export from Index
+
+```typescript
+// packages/shared/src/hooks/index.ts
+export { useNewHook } from "./domain/useNewHook";
+```
+
+### Step 4: Re-export from Package Root
+
+```typescript
+// packages/shared/src/index.ts
+export { useNewHook } from "./hooks";
+```
+
+## Hook Implementation Patterns
+
+### Data Fetching Hook
+
+```typescript
+import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "../query-keys";
+
+export function useGardens(chainId: number) {
+  return useQuery({
+    queryKey: queryKeys.gardens.all(chainId),
+    queryFn: () => fetchGardens(chainId),
+    staleTime: STALE_TIMES.GARDEN,
+  });
+}
+```
+
+### Mutation Hook
+
+```typescript
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "../query-keys";
+
+export function useWorkMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: submitWork,
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.works.merged(variables.gardenId, variables.chainId),
+      });
+    },
+  });
+}
+```
+
+### Auth-Dependent Hook
+
+```typescript
+export function useGardenOperations() {
+  const { authMode, smartAccountClient } = useAuth();
+
+  const addGardener = async (gardenId: string, address: string) => {
+    if (authMode === "wallet") {
+      // Direct transaction
+    } else {
+      // Passkey flow
+    }
+  };
+
+  return { addGardener, removeGardener, ... };
+}
+```
+
+### Chain-Dependent Hook
+
+```typescript
+export function useDeploymentRegistry() {
+  const chainId = useCurrentChain();  // Always from env, never wallet
+  
+  // Use chainId for all queries
+}
+```
+
+## Anti-Patterns
+
+### Never Create Hooks in Client/Admin
+
+```typescript
+// ❌ packages/client/src/hooks/useLocalHook.ts
+export function useLocalHook() { ... }
+
+// ❌ packages/admin/src/hooks/useAdminHook.ts
+export function useAdminHook() { ... }
+
+// ✅ packages/shared/src/hooks/domain/useHook.ts
+export function useHook() { ... }
+```
+
+### Never Use Wallet Chain ID
+
+```typescript
+// ❌ Wrong — wallet chain can differ
+const { chainId } = useAccount();
+const { data } = useWorks(gardenId, chainId);
+
+// ✅ Correct — always use environment chain
+const chainId = useCurrentChain();  // Reads VITE_CHAIN_ID
+const { data } = useWorks(gardenId, chainId);
+```
+
+### Never Duplicate Query Keys
+
+```typescript
+// ❌ Wrong — ad-hoc keys
+queryClient.invalidateQueries({ queryKey: ["works", gardenId] });
+
+// ✅ Correct — centralized keys
+queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
+```
+
+### Never Skip Hook Index Export
+
+```typescript
+// ❌ Missing from index
+// packages/shared/src/hooks/domain/useNewHook.ts exists
+// but not exported from hooks/index.ts
+
+// ✅ Always export from index
+// hooks/index.ts
+export { useNewHook } from "./domain/useNewHook";
+```
+
+## Migration Guide
+
+If you find a hook in client or admin:
+
+1. Move hook to `packages/shared/src/hooks/{domain}/`
+2. Export from `packages/shared/src/hooks/index.ts`
+3. Export from `packages/shared/src/index.ts`
+4. Update imports in client/admin to use `@green-goods/shared`
+5. Delete the original file
+
+## Testing Hooks
+
+All hook tests live in `packages/shared/src/__tests__/hooks/`:
+
+```typescript
+// packages/shared/src/__tests__/hooks/useGardenOperations.test.ts
+import { renderHook, waitFor } from "@testing-library/react";
+import { useGardenOperations } from "../../hooks";
+
+describe("useGardenOperations", () => {
+  it("adds gardener successfully", async () => {
+    const { result } = renderHook(() => useGardenOperations(), {
+      wrapper: TestProviders,
+    });
+
+    await act(async () => {
+      await result.current.addGardener(gardenId, address);
+    });
+
+    expect(mockWriteContract).toHaveBeenCalled();
+  });
+});
+```
+
+## Reference Files
+
+- Hook exports: `packages/shared/src/hooks/index.ts`
+- Query keys: `packages/shared/src/hooks/query-keys.ts`
+- Package exports: `packages/shared/src/index.ts`

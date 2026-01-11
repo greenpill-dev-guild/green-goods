@@ -1,0 +1,128 @@
+{
+  "name": "Green Goods",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "TZ": "${localEnv:TZ:UTC}",
+      "CLAUDE_CODE_VERSION": "latest",
+      "GIT_DELTA_VERSION": "0.18.2"
+    }
+  },
+  "remoteUser": "node",
+
+  // Security: Enable network administration for firewall
+  // Required for init-firewall.sh to configure iptables rules
+  "runArgs": ["--cap-add=NET_ADMIN", "--cap-add=NET_RAW"],
+
+  // Docker-outside-of-docker: allows indexer (Envio) to run Docker containers
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+  },
+
+  // Forward all dev server ports
+  "forwardPorts": [3000, 3001, 3002, 8080, 8545, 9898],
+  "portsAttributes": {
+    "3000": { "label": "Agent API" },
+    "3001": { "label": "Client PWA" },
+    "3002": { "label": "Admin Dashboard" },
+    "8080": { "label": "Indexer GraphQL" },
+    "8545": { "label": "Anvil (Local Blockchain)" },
+    "9898": { "label": "HyperSync" }
+  },
+
+  // Named volumes for persistence and performance
+  "mounts": [
+    "source=gg-node_modules,target=${containerWorkspaceFolder}/node_modules,type=volume",
+    "source=gg-indexer-generated-node_modules,target=${containerWorkspaceFolder}/packages/indexer/generated/node_modules,type=volume",
+    "source=gg-contracts-lib,target=${containerWorkspaceFolder}/packages/contracts/lib,type=volume",
+    "source=gg-commandhistory-${devcontainerId},target=/commandhistory,type=volume",
+    "source=gg-claude-config-${devcontainerId},target=/home/node/.claude,type=volume"
+  ],
+
+  // Container environment variables
+  "containerEnv": {
+    "DEVCONTAINER": "true",
+    "NODE_OPTIONS": "--max-old-space-size=4096",
+    "CLAUDE_CONFIG_DIR": "/home/node/.claude",
+    "POWERLEVEL9K_DISABLE_GITSTATUS": "true"
+  },
+
+  // Claude Code authentication (OPTIONAL)
+  //
+  // You do NOT need to set these. Just run 'claude login' inside the container.
+  // These env vars are only for automated/enterprise setups where you want to
+  // pre-configure authentication before the container starts.
+  //
+  // See: https://docs.anthropic.com/en/docs/claude-code/enterprise-deployment
+  "remoteEnv": {
+    // === Direct Anthropic API (optional - or just run 'claude login') ===
+    "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}",
+
+    // === Amazon Bedrock (optional) ===
+    // Set CLAUDE_CODE_USE_BEDROCK=1 on host to enable
+    "CLAUDE_CODE_USE_BEDROCK": "${localEnv:CLAUDE_CODE_USE_BEDROCK}",
+    "AWS_REGION": "${localEnv:AWS_REGION}",
+    "AWS_ACCESS_KEY_ID": "${localEnv:AWS_ACCESS_KEY_ID}",
+    "AWS_SECRET_ACCESS_KEY": "${localEnv:AWS_SECRET_ACCESS_KEY}",
+    "AWS_SESSION_TOKEN": "${localEnv:AWS_SESSION_TOKEN}",
+
+    // === Google Vertex AI (optional) ===
+    // Set CLAUDE_CODE_USE_VERTEX=1 on host to enable
+    "CLAUDE_CODE_USE_VERTEX": "${localEnv:CLAUDE_CODE_USE_VERTEX}",
+    "CLOUD_ML_REGION": "${localEnv:CLOUD_ML_REGION}",
+    "ANTHROPIC_VERTEX_PROJECT_ID": "${localEnv:ANTHROPIC_VERTEX_PROJECT_ID}",
+
+    // === Microsoft Foundry (optional) ===
+    // Set CLAUDE_CODE_USE_FOUNDRY=1 on host to enable
+    "CLAUDE_CODE_USE_FOUNDRY": "${localEnv:CLAUDE_CODE_USE_FOUNDRY}",
+    "ANTHROPIC_FOUNDRY_RESOURCE": "${localEnv:ANTHROPIC_FOUNDRY_RESOURCE}",
+    "ANTHROPIC_FOUNDRY_API_KEY": "${localEnv:ANTHROPIC_FOUNDRY_API_KEY}",
+
+    // === Corporate Proxy (optional) ===
+    "HTTPS_PROXY": "${localEnv:HTTPS_PROXY}",
+    "HTTP_PROXY": "${localEnv:HTTP_PROXY}",
+    "NO_PROXY": "${localEnv:NO_PROXY}"
+  },
+
+  // Lifecycle commands
+  // postStartCommand: Initialize firewall on every container start
+  // postCreateCommand: One-time setup (dependencies, env, codegen)
+  "postStartCommand": "sudo /usr/local/bin/init-firewall.sh",
+  "postCreateCommand": "bash .devcontainer/postCreate.sh",
+  "waitFor": "postStartCommand",
+
+  // VS Code customizations
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropics.claude-code",
+        "biomejs.biome",
+        "JuanBlanco.solidity",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss",
+        "ms-azuretools.vscode-docker",
+        "GraphQL.vscode-graphql",
+        "GraphQL.vscode-graphql-syntax",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "bash": {
+            "path": "bash",
+            "icon": "terminal-bash"
+          },
+          "zsh": {
+            "path": "zsh"
+          }
+        },
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "biomejs.biome",
+        "[solidity]": {
+          "editor.defaultFormatter": "JuanBlanco.solidity"
+        }
+      }
+    }
+  }
+}

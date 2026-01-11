@@ -1,5 +1,10 @@
 import { getChain } from "@green-goods/shared/config";
 import { useDeploymentRegistry } from "@green-goods/shared/hooks";
+import {
+  trackAdminDeployFailed,
+  trackAdminDeployStarted,
+  trackAdminDeploySuccess,
+} from "@green-goods/shared/modules";
 import { useAdminStore } from "@green-goods/shared/stores";
 import {
   RiCodeBoxLine,
@@ -22,14 +27,37 @@ export default function Deployment() {
   const handleDeploy = async () => {
     setIsDeploying(true);
     setDeploymentResult("");
+
+    // Track deployment started
+    trackAdminDeployStarted({
+      chainId: selectedChainId,
+      contractType: "green-goods-core",
+    });
+
     try {
       // Note: This would typically call the deployment script via API
       setDeploymentResult(
         "Deployment started... This would integrate with the contracts deployment script."
       );
       await new Promise((resolve) => setTimeout(resolve, 3000)); // Mock deployment
+
+      // Track deployment success (mock - would use real tx hash in production)
+      trackAdminDeploySuccess({
+        chainId: selectedChainId,
+        contractType: "green-goods-core",
+        contractAddress: "0x...", // Would come from deployment result
+        txHash: "0x...", // Would come from deployment result
+      });
+
       setDeploymentResult("✅ Deployment completed successfully!");
     } catch (error) {
+      // Track deployment failure
+      trackAdminDeployFailed({
+        chainId: selectedChainId,
+        contractType: "green-goods-core",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+
       setDeploymentResult(
         `❌ Deployment failed: ${error instanceof Error ? error.message : "Unknown error"}`
       );

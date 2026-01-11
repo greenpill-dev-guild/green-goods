@@ -3,18 +3,18 @@
  *
  * Re-exports shared configurations and defines admin-specific constants.
  */
-import { initializePinataFromEnv } from "@green-goods/shared/modules";
+import { initializeIpfsFromEnv } from "@green-goods/shared/modules";
 
-// Initialize Pinata from environment
-void initializePinataFromEnv(import.meta.env);
+// Initialize Storacha IPFS from environment
+void initializeIpfsFromEnv(import.meta.env);
 
 // Re-export shared configs (use relative path within monorepo)
 export {
+  DEFAULT_CHAIN_ID,
+  getDefaultChain,
   getEASConfig,
   getIndexerUrl,
   getNetworkConfig,
-  DEFAULT_CHAIN_ID,
-  getDefaultChain,
 } from "../../shared/src/config/blockchain";
 export {
   getChain,

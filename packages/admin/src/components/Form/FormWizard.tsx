@@ -76,7 +76,7 @@ export function FormWizard({
                   type="button"
                   onClick={onNext}
                   disabled={isSubmitting || nextDisabled}
-                  className="flex-1 rounded-md bg-green-600 px-6 py-2.5 text-sm font-medium text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-initial"
+                  className="flex-1 rounded-md bg-primary-base px-6 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker disabled:cursor-not-allowed disabled:opacity-60 sm:flex-initial"
                 >
                   {nextLabel}
                 </button>
@@ -88,7 +88,7 @@ export function FormWizard({
                   onClick={onSubmit}
                   disabled={isSubmitting}
                   className={cn(
-                    "flex flex-1 items-center justify-center gap-2 rounded-md bg-green-600 px-6 py-2.5 text-sm font-medium text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-initial",
+                    "flex flex-1 items-center justify-center gap-2 rounded-md bg-primary-base px-6 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker disabled:cursor-not-allowed disabled:opacity-60 sm:flex-initial",
                     isSubmitting && "cursor-not-allowed opacity-70"
                   )}
                 >

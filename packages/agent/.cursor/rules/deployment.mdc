@@ -1,0 +1,124 @@
+---
+description: Agent deployment — Railway, Docker, webhooks, monitoring
+globs:
+  - Dockerfile
+  - railway.toml
+alwaysApply: false
+---
+
+# Agent Deployment Guide
+
+Production deployment for the Green Goods agent.
+
+## Deployment Modes
+
+| Mode | Use Case | Command |
+|------|----------|---------|
+| **Polling** | Local dev | `BOT_MODE=polling bun dev` |
+| **Webhook** | Production | `BOT_MODE=webhook bun start` |
+
+## Railway Deployment
+
+### Prerequisites
+
+1. Telegram Bot Token from [@BotFather](https://t.me/BotFather)
+2. Encryption Secret (32+ chars): `openssl rand -base64 48`
+3. Railway project + custom domain
+
+### Environment Variables
+
+**Required:**
+```bash
+NODE_ENV=production
+TELEGRAM_BOT_TOKEN=<token>
+ENCRYPTION_SECRET=<64-char-secret>
+BOT_MODE=webhook
+WEBHOOK_URL=https://agent.greengoods.app
+DB_PATH=/data/agent.db
+```
+
+**Optional:**
+```bash
+TELEGRAM_WEBHOOK_SECRET=<random-secret>
+PORT=3000
+VITE_CHAIN_ID=84532  # Base Sepolia
+```
+
+### Setup Steps
+
+1. **Create service:** `railway up --service agent`
+2. **Add volume:** Mount `/data` for SQLite persistence
+3. **Set domain:** `railway domain create agent.greengoods.app`
+4. **Register webhook:**
+   ```bash
+   curl -X POST "https://api.telegram.org/bot${TOKEN}/setWebhook" \
+     -d "url=https://agent.greengoods.app/telegram/webhook" \
+     -d "secret_token=${WEBHOOK_SECRET}"
+   ```
+
+### Health Endpoints
+
+| Endpoint | Purpose |
+|----------|---------|
+| `/health` | Basic uptime |
+| `/ready` | Service readiness |
+
+## Docker
+
+### Build & Run
+
+```bash
+# Build from repo root
+docker build -f packages/agent/Dockerfile -t green-goods-agent .
+
+# Run
+docker run -d \
+  -p 3000:3000 \
+  -v agent-data:/data \
+  -e TELEGRAM_BOT_TOKEN=<token> \
+  -e ENCRYPTION_SECRET=<secret> \
+  -e BOT_MODE=webhook \
+  green-goods-agent
+```
+
+## Production Checklist
+
+### Configuration
+- [ ] `ENCRYPTION_SECRET` set (32+ chars)
+- [ ] `WEBHOOK_URL` matches domain
+- [ ] `DB_PATH` points to persistent volume
+- [ ] `NODE_ENV=production`
+
+### Security
+- [ ] TLS/HTTPS enabled
+- [ ] Webhook secret configured
+- [ ] Rate limiting enabled
+
+### Monitoring
+- [ ] Health checks working
+- [ ] Logs accessible
+
+## Troubleshooting
+
+### Webhook Not Receiving
+
+```bash
+# Check webhook status
+curl "https://api.telegram.org/bot${TOKEN}/getWebhookInfo"
+```
+
+- Verify WEBHOOK_URL matches domain
+- Check TLS certificate
+- Review logs: `railway logs --tail`
+
+### Database Errors
+
+- Verify volume mounted at `/data`
+- Check `DB_PATH` environment variable
+- Ensure write permissions
+
+### Encryption Errors
+
+- Verify `ENCRYPTION_SECRET` unchanged between deploys
+- Check length (32+ chars)
+- No trailing whitespace

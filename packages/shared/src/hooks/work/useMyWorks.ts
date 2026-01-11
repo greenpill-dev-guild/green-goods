@@ -13,7 +13,6 @@ import { filterByTimeRange, sortByCreatedAt, type TimeFilter } from "../../utils
 import { deduplicateById, mergeAndDeduplicateByClientId } from "../../utils/work/deduplication";
 import { fetchOfflineWorks } from "../../utils/work/offline";
 import { useUser } from "../auth/useUser";
-import { queryKeys } from "../query-keys";
 
 export interface UseMyWorksOptions {
   /**
@@ -108,13 +107,4 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
  */
 export function useMyOnlineWorks(options: Omit<UseMyWorksOptions, "includeOffline"> = {}) {
   return useMyWorks({ ...options, includeOffline: false });
-}
-
-/**
- * Hook for fetching merged online + offline works
- *
- * Convenience wrapper around useMyWorks with includeOffline=true.
- */
-export function useMyMergedWorks(options: Omit<UseMyWorksOptions, "includeOffline"> = {}) {
-  return useMyWorks({ ...options, includeOffline: true });
 }

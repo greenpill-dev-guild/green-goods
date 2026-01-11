@@ -1,60 +1,59 @@
-import { cn } from "@green-goods/shared/utils";
-import { RiCheckLine, RiCloudOffLine } from "@remixicon/react";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useOffline } from "@green-goods/shared/hooks";
+import { useApp } from "@green-goods/shared/providers";
+import { cn } from "@green-goods/shared/utils";
+import { RiCheckLine, RiCloudOffLine, RiDownloadLine, RiUserLine } from "@remixicon/react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface OfflineIndicatorProps {
   className?: string;
   forceShow?: boolean;
-  testState?: "offline" | "back-online" | null;
+  testState?: "offline" | "back-online" | "install" | null;
 }
 
-type IndicatorState = "offline" | "back-online" | null;
+type IndicatorState = "offline" | "back-online" | "install" | null;
 
 export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
   className,
-  forceShow = false, // Default to true for testing
+  forceShow = false,
   testState,
 }) => {
-  // Get data directly from hooks
+  const navigate = useNavigate();
   const { isOnline } = useOffline();
+  const { isMobile, isInstalled } = useApp();
 
   // State for tracking "back online" message
   const [showBackOnline, setShowBackOnline] = useState(false);
   const [wasOffline, setWasOffline] = useState(!isOnline);
+  // Allow user to dismiss install banner for this session
+  const [installDismissed, setInstallDismissed] = useState(false);
 
   // Handle online/offline transitions
   useEffect(() => {
     if (wasOffline && isOnline) {
-      // Show "back online" message when transitioning from offline to online
       setShowBackOnline(true);
       const timer = setTimeout(() => {
         setShowBackOnline(false);
-      }, 3000); // Hide after 3 seconds
-
+      }, 3000);
       return () => clearTimeout(timer);
     }
     setWasOffline(!isOnline);
   }, [isOnline, wasOffline]);
 
-  // Simplified display logic - only handle offline and back-online states
+  // Display priority: offline > back-online > install nudge
   const displayPriority = useMemo((): IndicatorState => {
-    // For testing purposes, allow override
     if (testState !== undefined) return testState;
 
-    // Show "back online" message if transitioning back online
     if (showBackOnline) return "back-online";
-
-    // Show offline indicator when offline
     if (!isOnline) return "offline";
 
-    // For testing purposes, default to offline state for demonstration
+    // Install nudge: mobile web (not installed) and not dismissed
+    if (isMobile && !isInstalled && !installDismissed) return "install";
+
     if (forceShow) return "offline";
-
     return null;
-  }, [isOnline, showBackOnline, testState, forceShow]);
+  }, [isOnline, showBackOnline, testState, forceShow, isMobile, isInstalled, installDismissed]);
 
-  // Simple offline/online status indicator
   const renderIndicator = useCallback(() => {
     const baseBarClasses =
       "w-full flex items-center justify-center gap-2 px-3 py-0.5 text-[8px] font-medium transition-all duration-300 ease-in-out backdrop-blur-md shadow-sm";
@@ -86,17 +85,47 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
           </div>
         );
 
+      case "install":
+        return (
+          <div
+            className={`${baseBarClasses} bg-bg-white-0/95 text-text-strong-950 border-b border-stroke-soft-200 pointer-events-auto`}
+            role="status"
+          >
+            <RiDownloadLine size={10} className="text-primary" aria-hidden="true" />
+            <span className="text-[10px]">Install for full experience.</span>
+            <button
+              type="button"
+              onClick={() => navigate("/profile")}
+              className="ml-1 inline-flex items-center gap-1 rounded-full border border-stroke-sub-300 bg-bg-white-0 px-2 py-0.5 text-[10px] hover:bg-bg-weak-50 active:scale-95 transition-transform"
+            >
+              <RiUserLine className="h-3 w-3" />
+              Profile
+            </button>
+            <button
+              type="button"
+              onClick={() => setInstallDismissed(true)}
+              className="ml-1 text-[10px] text-text-sub-600 hover:text-text-strong-950"
+              aria-label="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+        );
+
       default:
         return null;
     }
-  }, [displayPriority]);
+  }, [displayPriority, navigate]);
 
-  // Compact top bar container with slide-down animations
   const containerClasses = cn(
     "fixed top-0 left-0 right-0 z-30 transition-all duration-500 ease-out pointer-events-none",
     displayPriority ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full",
     className
   );
 
-  return <div className={containerClasses}>{renderIndicator()}</div>;
+  return (
+    <div className={containerClasses} data-testid="offline-indicator">
+      {renderIndicator()}
+    </div>
+  );
 };

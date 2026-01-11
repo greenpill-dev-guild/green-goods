@@ -1,6 +1,11 @@
+import { mediaResourceManager } from "@green-goods/shared/modules";
 import { RiFileFill, RiLeafFill, RiPencilFill, RiPlantFill } from "@remixicon/react";
+import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { WorkView } from "@/components/Features/Work";
+
+/** Stable tracking ID for work draft media URLs (shared with Media.tsx) */
+const WORK_DRAFT_TRACKING_ID = "work-draft";
 
 interface WorkReviewProps {
   reviewConfig?: Action["review"];
@@ -52,7 +57,11 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
       }
       return { label: input.title, value: display, icon: RiFileFill };
     })
-    .filter(Boolean) as Array<{ label: string; value: string; icon: any }>;
+    .filter(Boolean) as Array<{
+    label: string;
+    value: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }>;
 
   const baseDetails = [
     {
@@ -85,13 +94,19 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
       : []),
   ];
 
+  // Reuse stable URLs from mediaResourceManager (same tracking ID as Media.tsx)
+  const mediaUrls = useMemo(
+    () => images.map((file) => mediaResourceManager.getOrCreateUrl(file, WORK_DRAFT_TRACKING_ID)),
+    [images]
+  );
+
   return (
     <WorkView
       title={reviewTitle}
       info={reviewDescription}
       garden={garden}
       actionTitle={action.title}
-      media={images.map((f) => URL.createObjectURL(f))}
+      media={mediaUrls}
       details={[...baseDetails, ...dynamicDetails]}
       headerIcon={RiFileFill}
       primaryActions={[]}

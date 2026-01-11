@@ -1,129 +1,208 @@
 @import "tailwindcss";
 @import "@green-goods/shared/styles/theme.css";
 
-body {
-  margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Open Sans', 'Helvetica Neue', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Configure dark mode to use data-theme attribute */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ============================================================================
+ * TAILWIND THEME - CSS-First Color Configuration
+ * Migrated from tailwind.config.ts to CSS-first approach (Tailwind v4)
+ * ============================================================================ */
+@theme {
+  /* Semantic background tokens */
+  --color-bg-strong: rgb(var(--bg-strong-950));
+  --color-bg-surface: rgb(var(--bg-surface-800));
+  --color-bg-sub: rgb(var(--bg-sub-300));
+  --color-bg-soft: rgb(var(--bg-soft-200));
+  --color-bg-weak: rgb(var(--bg-weak-50));
+  --color-bg-white: rgb(var(--bg-white-0));
+
+  /* Semantic text tokens */
+  --color-text-strong: rgb(var(--text-strong-950));
+  --color-text-sub: rgb(var(--text-sub-600));
+  --color-text-soft: rgb(var(--text-soft-400));
+  --color-text-disabled: rgb(var(--text-disabled-300));
+
+  /* Semantic stroke tokens */
+  --color-stroke-strong: rgb(var(--stroke-strong-950));
+  --color-stroke-sub: rgb(var(--stroke-sub-300));
+  --color-stroke-soft: rgb(var(--stroke-soft-200));
+
+  /* State colors - Success */
+  --color-success-dark: rgb(var(--success-dark));
+  --color-success-base: rgb(var(--success-base));
+  --color-success-light: rgb(var(--success-light));
+  --color-success-lighter: rgb(var(--success-lighter));
+
+  /* State colors - Error */
+  --color-error-dark: rgb(var(--error-dark));
+  --color-error-base: rgb(var(--error-base));
+  --color-error-light: rgb(var(--error-light));
+  --color-error-lighter: rgb(var(--error-lighter));
+
+  /* State colors - Warning */
+  --color-warning-dark: rgb(var(--warning-dark));
+  --color-warning-base: rgb(var(--warning-base));
+  --color-warning-light: rgb(var(--warning-light));
+  --color-warning-lighter: rgb(var(--warning-lighter));
+
+  /* State colors - Information */
+  --color-information-dark: rgb(var(--information-dark));
+  --color-information-base: rgb(var(--information-base));
+  --color-information-light: rgb(var(--information-light));
+  --color-information-lighter: rgb(var(--information-lighter));
+
+  /* Gray scale (from CSS variables) */
+  --color-gray-950: rgb(var(--gray-950));
+  --color-gray-900: rgb(var(--gray-900));
+  --color-gray-800: rgb(var(--gray-800));
+  --color-gray-700: rgb(var(--gray-700));
+  --color-gray-600: rgb(var(--gray-600));
+  --color-gray-500: rgb(var(--gray-500));
+  --color-gray-400: rgb(var(--gray-400));
+  --color-gray-300: rgb(var(--gray-300));
+  --color-gray-200: rgb(var(--gray-200));
+  --color-gray-100: rgb(var(--gray-100));
+  --color-gray-50: rgb(var(--gray-50));
+
+  /* Green scale (brand color - from shared theme CSS variables) */
+  --color-green-950: rgb(var(--green-950));
+  --color-green-900: rgb(var(--green-900));
+  --color-green-800: rgb(var(--green-800));
+  --color-green-700: rgb(var(--green-700));
+  --color-green-600: rgb(var(--green-600));
+  --color-green-500: rgb(var(--green-500));
+  --color-green-400: rgb(var(--green-400));
+  --color-green-300: rgb(var(--green-300));
+  --color-green-200: rgb(var(--green-200));
+  --color-green-100: rgb(var(--green-100));
+  --color-green-50: rgb(var(--green-50));
 }
 
-/* Hide scrollbars globally */
-* {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* Internet Explorer 10+ */
-}
+/* Base layer: Admin-specific element resets */
+@layer base {
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Open Sans', 'Helvetica Neue', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-*::-webkit-scrollbar {
-  display: none; /* WebKit */
-}
+  /* Hide scrollbars globally */
+  * {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
+  }
 
-/* Lock the root document to prevent double scrollbars; delegate scroll to app shell */
-html,
-body {
-  height: 100%;
-  overflow: hidden;
-  overscroll-behavior: contain;
-}
+  *::-webkit-scrollbar {
+    display: none; /* WebKit */
+  }
 
-#root {
-  height: 100%;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
+  /* Lock the root document to prevent double scrollbars; delegate scroll to app shell */
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: contain;
+  }
+
+  #root {
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
 }
 
 /* ============================================================================
- * DESIGN SYSTEM - Shadows & Elevation
+ * DESIGN SYSTEM - Shadows & Elevation (utilities layer)
  * ============================================================================ */
+@layer utilities {
+  .shadow-xs {
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  }
 
-/* Shadow system for depth */
-.shadow-xs {
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-}
+  .shadow-sm {
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  }
 
-.shadow-sm {
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-}
+  .shadow-md {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  }
 
-.shadow-md {
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-}
+  .shadow-lg {
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  }
 
-.shadow-lg {
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-}
+  .shadow-xl {
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  }
 
-.shadow-xl {
-  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-}
+  .shadow-2xl {
+    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  }
 
-.shadow-2xl {
-  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
-}
+  /* Dark mode - stronger shadows */
+  [data-theme="dark"] .shadow-sm {
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.5), 0 1px 2px -1px rgb(0 0 0 / 0.5);
+  }
 
-/* Dark mode - stronger shadows */
-[data-theme="dark"] .shadow-sm {
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.5), 0 1px 2px -1px rgb(0 0 0 / 0.5);
-}
+  [data-theme="dark"] .shadow-md {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.5);
+  }
 
-[data-theme="dark"] .shadow-md {
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.5);
-}
+  [data-theme="dark"] .shadow-lg {
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.7), 0 4px 6px -4px rgb(0 0 0 / 0.7);
+  }
 
-[data-theme="dark"] .shadow-lg {
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.7), 0 4px 6px -4px rgb(0 0 0 / 0.7);
-}
+  [data-theme="dark"] .shadow-xl {
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.7), 0 8px 10px -6px rgb(0 0 0 / 0.7);
+  }
 
-[data-theme="dark"] .shadow-xl {
-  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.7), 0 8px 10px -6px rgb(0 0 0 / 0.7);
-}
-
-[data-theme="dark"] .shadow-2xl {
-  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.8);
+  [data-theme="dark"] .shadow-2xl {
+    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.8);
+  }
 }
 
 /* ============================================================================
- * FORM INPUTS - Theme-Adaptive Styling
+ * FORM INPUTS - Theme-Adaptive Styling (base layer)
  * ============================================================================ */
+@layer base {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    background: inherit;
+    border: 1px solid rgb(var(--stroke-sub-300));
+    color: rgb(var(--text-strong-950));
+    transition: all 200ms ease;
+  }
 
-/* Form inputs that adapt to theme */
-input:not([type="checkbox"]):not([type="radio"]),
-select,
-textarea {
-  background: inherit;
-  border: 1px solid rgb(var(--stroke-sub-300));
-  color: rgb(var(--text-strong-950));
-  transition: all 200ms ease;
-}
+  input:not([type="checkbox"]):not([type="radio"]):focus,
+  select:focus,
+  textarea:focus {
+    outline: none;
+    border-color: rgb(var(--focus-ring));
+    box-shadow: 0 0 0 3px rgb(var(--focus-ring) / 0.1);
+  }
 
-input:not([type="checkbox"]):not([type="radio"]):focus,
-select:focus,
-textarea:focus {
-  outline: none;
-  border-color: rgb(var(--focus-ring));
-  box-shadow: 0 0 0 3px rgb(var(--focus-ring) / 0.1);
-}
+  input:not([type="checkbox"]):not([type="radio"]):disabled,
+  select:disabled,
+  textarea:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: rgb(var(--bg-soft-200));
+  }
 
-input:not([type="checkbox"]):not([type="radio"]):disabled,
-select:disabled,
-textarea:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  background: rgb(var(--bg-soft-200));
-}
-
-/* Placeholder text */
-input::placeholder,
-textarea::placeholder {
-  color: rgb(var(--text-soft-400));
+  input::placeholder,
+  textarea::placeholder {
+    color: rgb(var(--text-soft-400));
+  }
 }
 
 /* ============================================================================
  * SKELETON LOADING - Shimmer Animation
  * ============================================================================ */
-
 @keyframes shimmer {
   0% {
     background-position: 200% 0;

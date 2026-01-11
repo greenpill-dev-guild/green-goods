@@ -1,20 +1,13 @@
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { Capital } from "../../types/domain";
 import { greenGoodsGraphQL } from "./graphql";
-import { getFileByHash, resolveIPFSUrl } from "./pinata";
-import { greenGoodsIndexer } from "./urql";
+import { greenGoodsIndexer } from "./graphql-client";
+import { getFileByHash, resolveIPFSUrl } from "./ipfs";
 
 const GATEWAY_BASE_URL = "https://w3s.link";
 
-export enum Capital {
-  SOCIAL = 0,
-  MATERIAL = 1,
-  FINANCIAL = 2,
-  LIVING = 3,
-  INTELLECTUAL = 4,
-  EXPERIENTIAL = 5,
-  SPIRITUAL = 6,
-  CULTURAL = 7,
-}
+// Re-export Capital for backward compatibility
+export { Capital };
 
 /** Fetches action definitions from the indexer and enriches media + UI config. */
 export async function getActions(): Promise<Action[]> {
@@ -36,7 +29,7 @@ export async function getActions(): Promise<Action[]> {
       }
     `);
 
-    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }).toPromise();
+    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }, "getActions");
 
     if (error) {
       console.error("[getActions] Indexer query failed:", error.message);
@@ -54,7 +47,7 @@ export async function getActions(): Promise<Action[]> {
               ? media.map((cid: string) => resolveIPFSUrl(cid, GATEWAY_BASE_URL))
               : [];
 
-          // Fetch action instructions from IPFS using existing pinata module
+          // Fetch action instructions from IPFS using Storacha module
           let actionConfig: ActionInstructionConfig | null = null;
           try {
             if (instructions) {
@@ -126,12 +119,13 @@ export async function getGardens(): Promise<Garden[]> {
           bannerImage
           gardeners
           operators
+          openJoining
           createdAt
         }
       }
     `);
 
-    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }).toPromise();
+    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }, "getGardens");
 
     if (error) {
       console.error("[getGardens] Indexer query failed:", error.message);
@@ -156,6 +150,7 @@ export async function getGardens(): Promise<Garden[]> {
         bannerImage,
         gardeners: garden.gardeners || [],
         operators: garden.operators || [],
+        openJoining: Boolean(garden.openJoining),
         assessments: [],
         works: [],
         createdAt: garden.createdAt ? (garden.createdAt as number) * 1000 : Date.now(),
@@ -178,12 +173,11 @@ export async function getGardeners(): Promise<GardenerCard[]> {
           chainId
           createdAt
           firstGarden
-          joinedVia
         }
       }
     `);
 
-    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }).toPromise();
+    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }, "getGardeners");
 
     if (error) {
       console.error("[getGardeners] Indexer query failed:", error.message);

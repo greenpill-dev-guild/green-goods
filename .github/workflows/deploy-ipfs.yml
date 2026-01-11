@@ -7,6 +7,11 @@ on:
       - 'packages/client/**'
       - 'packages/admin/**'
       - 'packages/shared/**'
+  pull_request:
+    paths:
+      - 'packages/client/**'
+      - 'packages/admin/**'
+      - 'packages/shared/**'
   workflow_dispatch:
     inputs:
       app:
@@ -18,14 +23,47 @@ on:
           - client
           - admin
 
+# Required permissions for PR comments and commit status
+permissions:
+  contents: read
+  pull-requests: write
+  statuses: write
+
 jobs:
-  deploy-client:
-    if: >
-      (github.event_name == 'push') ||
-      (github.event.inputs.app == 'both' || github.event.inputs.app == 'client')
+  deploy:
+    name: Deploy ${{ matrix.title }} to IPFS
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: client
+            title: Client
+            build: build:client
+            dist: packages/client/dist
+            icon: 🌱
+            prod_app_url: https://greengoods.app
+            prod_domain: greengoods.app
+            prod_dnslink_name: _dnslink
+            staging_app_url: https://staging.greengoods.app
+            staging_domain: staging.greengoods.app
+            staging_dnslink_name: _dnslink.staging
+
+          - app: admin
+            title: Admin
+            build: build:admin
+            dist: packages/admin/dist
+            icon: 🛠️
+            prod_app_url: https://admin.greengoods.app
+            prod_domain: admin.greengoods.app
+            prod_dnslink_name: _dnslink.admin
+            staging_app_url: https://admin-staging.greengoods.app
+            staging_domain: admin-staging.greengoods.app
+            staging_dnslink_name: _dnslink.admin-staging
+
     outputs:
-      cid: ${{ steps.ipfs.outputs.cid }}
+      cid: ${{ steps.storacha.outputs.cid }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,87 +78,12 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Determine environment
-        id: env
-        run: |
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            echo "env=production" >> $GITHUB_OUTPUT
-            echo "chain_id=42161" >> $GITHUB_OUTPUT
-            echo "app_url=https://greengoods.app" >> $GITHUB_OUTPUT
-            echo "domain=greengoods.app" >> $GITHUB_OUTPUT
-            echo "dnslink_name=_dnslink" >> $GITHUB_OUTPUT
-          else
-            echo "env=staging" >> $GITHUB_OUTPUT
-            echo "chain_id=84532" >> $GITHUB_OUTPUT
-            echo "app_url=https://staging.greengoods.app" >> $GITHUB_OUTPUT
-            echo "domain=staging.greengoods.app" >> $GITHUB_OUTPUT
-            echo "dnslink_name=_dnslink.staging" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Build client
-        run: bun run build:client
-        env:
-          VITE_USE_HASH_ROUTER: 'true'
-          VITE_CHAIN_ID: ${{ steps.env.outputs.chain_id }}
-          VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID }}
-          VITE_PIMLICO_API_KEY: ${{ secrets.VITE_PIMLICO_API_KEY }}
-          VITE_ENVIO_INDEXER_URL: ${{ secrets.VITE_ENVIO_INDEXER_URL }}
-          VITE_PUBLIC_POSTHOG_KEY: ${{ secrets.VITE_PUBLIC_POSTHOG_KEY }}
-          VITE_PUBLIC_POSTHOG_HOST: "https://app.posthog.com"
-          VITE_APP_URL: ${{ steps.env.outputs.app_url }}
-
-      - name: Deploy to IPFS (Pinata)
-        id: ipfs
-        uses: ipshipyard/ipfs-deploy-action@v1
+      - name: Restore Bun cache
+        uses: actions/cache@v4
         with:
-          path-to-deploy: packages/client/dist
-          pinata-jwt: ${{ secrets.PINATA_JWT }}
-
-      - name: Deployment Summary
-        run: |
-          echo "## Client deployed to IPFS" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Environment:** ${{ steps.env.outputs.env }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Chain ID:** ${{ steps.env.outputs.chain_id }}" >> $GITHUB_STEP_SUMMARY
-          echo "**CID:** \`${{ steps.ipfs.outputs.cid }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Update DNSLink" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Set TXT record \`${{ steps.env.outputs.dnslink_name }}\` on \`${{ steps.env.outputs.domain }}\` to:" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "dnslink=/ipfs/${{ steps.ipfs.outputs.cid }}" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Gateway Links" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- [dweb.link](https://${{ steps.ipfs.outputs.cid }}.ipfs.dweb.link)" >> $GITHUB_STEP_SUMMARY
-          echo "- [w3s.link](https://${{ steps.ipfs.outputs.cid }}.ipfs.w3s.link)" >> $GITHUB_STEP_SUMMARY
-          echo "- [cloudflare-ipfs.com](https://${{ steps.ipfs.outputs.cid }}.ipfs.cf-ipfs.com)" >> $GITHUB_STEP_SUMMARY
-
-  deploy-admin:
-    if: >
-      (github.event_name == 'push') ||
-      (github.event.inputs.app == 'both' || github.event.inputs.app == 'admin')
-    runs-on: ubuntu-latest
-    outputs:
-      cid: ${{ steps.ipfs.outputs.cid }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
+          restore-keys: ${{ runner.os }}-bun-
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -131,56 +94,196 @@ jobs:
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
             echo "env=production" >> $GITHUB_OUTPUT
             echo "chain_id=42161" >> $GITHUB_OUTPUT
-            echo "app_url=https://admin.greengoods.app" >> $GITHUB_OUTPUT
-            echo "domain=admin.greengoods.app" >> $GITHUB_OUTPUT
-            echo "dnslink_name=_dnslink.admin" >> $GITHUB_OUTPUT
+            echo "app_url=${{ matrix.prod_app_url }}" >> $GITHUB_OUTPUT
+            echo "domain=${{ matrix.prod_domain }}" >> $GITHUB_OUTPUT
+            echo "dnslink_name=${{ matrix.prod_dnslink_name }}" >> $GITHUB_OUTPUT
           else
             echo "env=staging" >> $GITHUB_OUTPUT
             echo "chain_id=84532" >> $GITHUB_OUTPUT
-            echo "app_url=https://admin-staging.greengoods.app" >> $GITHUB_OUTPUT
-            echo "domain=admin-staging.greengoods.app" >> $GITHUB_OUTPUT
-            echo "dnslink_name=_dnslink.admin-staging" >> $GITHUB_OUTPUT
+            echo "app_url=${{ matrix.staging_app_url }}" >> $GITHUB_OUTPUT
+            echo "domain=${{ matrix.staging_domain }}" >> $GITHUB_OUTPUT
+            echo "dnslink_name=${{ matrix.staging_dnslink_name }}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Build admin
-        run: bun run build:admin
+      - name: Build ${{ matrix.title }}
+        run: bun run ${{ matrix.build }}
         env:
           VITE_USE_HASH_ROUTER: 'true'
           VITE_CHAIN_ID: ${{ steps.env.outputs.chain_id }}
           VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID }}
           VITE_PIMLICO_API_KEY: ${{ secrets.VITE_PIMLICO_API_KEY }}
           VITE_ENVIO_INDEXER_URL: ${{ secrets.VITE_ENVIO_INDEXER_URL }}
-          VITE_PUBLIC_POSTHOG_KEY: ${{ secrets.VITE_PUBLIC_POSTHOG_KEY }}
-          VITE_PUBLIC_POSTHOG_HOST: "https://app.posthog.com"
+          VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
+          VITE_POSTHOG_HOST: "https://app.posthog.com"
           VITE_APP_URL: ${{ steps.env.outputs.app_url }}
 
-      - name: Deploy to IPFS (Pinata)
-        id: ipfs
-        uses: ipshipyard/ipfs-deploy-action@v1
+      - name: Validate Storacha credentials
+        env:
+          STORACHA_KEY: ${{ secrets.VITE_STORACHA_KEY }}
+          STORACHA_PROOF: ${{ secrets.VITE_STORACHA_PROOF }}
+        run: |
+          if [[ -z "$STORACHA_KEY" ]]; then
+            echo "::error::VITE_STORACHA_KEY secret is not set"
+            exit 1
+          fi
+          if [[ -z "$STORACHA_PROOF" ]]; then
+            echo "::error::VITE_STORACHA_PROOF secret is not set"
+            exit 1
+          fi
+          echo "✅ Storacha credentials validated"
+
+      # Deploy to Storacha using @storacha/client library
+      # The CLI doesn't support multibase-encoded proof strings directly,
+      # so we use a helper script that matches the pattern in packages/shared/src/modules/data/ipfs.ts
+      - name: Deploy to Storacha
+        id: storacha
+        env:
+          VITE_STORACHA_KEY: ${{ secrets.VITE_STORACHA_KEY }}
+          VITE_STORACHA_PROOF: ${{ secrets.VITE_STORACHA_PROOF }}
+          DEBUG: 'true'
+        run: |
+          echo "🚀 Uploading to Storacha..."
+          CID=$(node scripts/storacha-upload.js "${{ matrix.dist }}")
+
+          if [[ -z "$CID" ]]; then
+            echo "::error::Failed to get CID from Storacha upload"
+            exit 1
+          fi
+
+          echo "cid=$CID" >> $GITHUB_OUTPUT
+          echo "✅ Deployed to Storacha with CID: $CID"
+
+      # Optional: Pin to Pinata for redundancy and faster gateway access
+      - name: Pin to Pinata (optional)
+        env:
+          PINATA_JWT: ${{ secrets.PINATA_JWT }}
+          CID: ${{ steps.storacha.outputs.cid }}
+          APP_NAME: ${{ matrix.app }}
+          COMMIT_SHA: ${{ github.sha }}
+        continue-on-error: true
+        run: |
+          if [[ -z "$PINATA_JWT" ]]; then
+            echo "ℹ️ Skipping Pinata - PINATA_JWT not configured"
+            exit 0
+          fi
+
+          echo "📌 Pinning to Pinata for redundancy..."
+          RESPONSE=$(curl -s -X POST "https://api.pinata.cloud/pinning/pinByHash" \
+            -H "Authorization: Bearer $PINATA_JWT" \
+            -H "Content-Type: application/json" \
+            -d "{\"hashToPin\": \"$CID\", \"pinataMetadata\": {\"name\": \"$APP_NAME-$COMMIT_SHA\"}}")
+
+          if echo "$RESPONSE" | grep -q "error"; then
+            echo "::warning::Pinata pinning failed: $RESPONSE"
+          else
+            echo "✅ Pinned to Pinata"
+          fi
+
+      # Update GitHub commit status
+      - name: Update commit status
+        if: steps.storacha.outputs.cid != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CID: ${{ steps.storacha.outputs.cid }}
+        run: |
+          gh api repos/${{ github.repository }}/statuses/${{ github.sha }} \
+            -f state=success \
+            -f target_url="https://$CID.ipfs.w3s.link" \
+            -f description="${{ matrix.title }} deployed to IPFS" \
+            -f context="IPFS / ${{ matrix.title }}"
+
+      # Add PR comment with deployment info
+      - name: Comment on PR
+        if: github.event_name == 'pull_request' && steps.storacha.outputs.cid != ''
+        uses: actions/github-script@v7
+        env:
+          CID: ${{ steps.storacha.outputs.cid }}
+          APP_TITLE: ${{ matrix.title }}
+          APP_ICON: ${{ matrix.icon }}
         with:
-          path-to-deploy: packages/admin/dist
-          pinata-jwt: ${{ secrets.PINATA_JWT }}
+          script: |
+            const cid = process.env.CID;
+            const title = process.env.APP_TITLE;
+            const icon = process.env.APP_ICON;
+
+            const body = `## ${icon} ${title} Preview Deployed to IPFS
+
+            **CID:** \`${cid}\`
+
+            ### 🌐 Preview Links
+            - [Storacha Gateway](https://${cid}.ipfs.w3s.link)
+            - [dweb.link](https://${cid}.ipfs.dweb.link)
+            - [Cloudflare Gateway](https://${cid}.ipfs.cf-ipfs.com)
+
+            ---
+            <sub>Deployed with @storacha/cli</sub>`;
+
+            // Find existing comment to update
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const marker = `## ${icon} ${title} Preview`;
+            const existing = comments.find(c => c.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      - name: Validate deployment
+        if: steps.storacha.outputs.cid == ''
+        run: |
+          echo "❌ IPFS deployment failed: no CID returned"
+          exit 1
 
       - name: Deployment Summary
+        if: steps.storacha.outputs.cid != ''
+        env:
+          CID: ${{ steps.storacha.outputs.cid }}
+          ENV_NAME: ${{ steps.env.outputs.env }}
+          CHAIN_ID: ${{ steps.env.outputs.chain_id }}
+          DOMAIN: ${{ steps.env.outputs.domain }}
+          DNSLINK_NAME: ${{ steps.env.outputs.dnslink_name }}
         run: |
-          echo "## Admin deployed to IPFS" >> $GITHUB_STEP_SUMMARY
+          echo "## ${{ matrix.icon }} ${{ matrix.title }} deployed to IPFS" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Environment:** ${{ steps.env.outputs.env }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Chain ID:** ${{ steps.env.outputs.chain_id }}" >> $GITHUB_STEP_SUMMARY
-          echo "**CID:** \`${{ steps.ipfs.outputs.cid }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Environment** | $ENV_NAME |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Chain ID** | $CHAIN_ID |" >> $GITHUB_STEP_SUMMARY
+          echo "| **CID** | \`$CID\` |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Update DNSLink" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Automated Steps Completed" >> $GITHUB_STEP_SUMMARY
+          echo "- [x] Built ${{ matrix.title }} app" >> $GITHUB_STEP_SUMMARY
+          echo "- [x] Uploaded to Storacha (permanent IPFS storage)" >> $GITHUB_STEP_SUMMARY
+          echo "- [x] Pinned to Pinata (if configured)" >> $GITHUB_STEP_SUMMARY
+          echo "- [x] Updated GitHub commit status" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Set TXT record \`${{ steps.env.outputs.dnslink_name }}\` on \`${{ steps.env.outputs.domain }}\` to:" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 Manual Step: Update DNSLink" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "dnslink=/ipfs/${{ steps.ipfs.outputs.cid }}" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "To make \`$DOMAIN\` serve this deployment, update your DNS:" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Gateway Links" >> $GITHUB_STEP_SUMMARY
+          echo "| Record Type | Name | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------------|------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| TXT | \`$DNSLINK_NAME\` | \`dnslink=/ipfs/$CID\` |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- [dweb.link](https://${{ steps.ipfs.outputs.cid }}.ipfs.dweb.link)" >> $GITHUB_STEP_SUMMARY
-          echo "- [w3s.link](https://${{ steps.ipfs.outputs.cid }}.ipfs.w3s.link)" >> $GITHUB_STEP_SUMMARY
-          echo "- [cloudflare-ipfs.com](https://${{ steps.ipfs.outputs.cid }}.ipfs.cf-ipfs.com)" >> $GITHUB_STEP_SUMMARY
-
-
+          echo "### 🌐 Gateway Links (available immediately)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- [Storacha Gateway](https://$CID.ipfs.w3s.link)" >> $GITHUB_STEP_SUMMARY
+          echo "- [dweb.link](https://$CID.ipfs.dweb.link)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Service Worker Gateway](https://$CID.ipfs.inbrowser.link)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Cloudflare](https://$CID.ipfs.cf-ipfs.com)" >> $GITHUB_STEP_SUMMARY

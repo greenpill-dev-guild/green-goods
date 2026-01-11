@@ -1,5 +1,16 @@
 import type { SmartAccountClient } from "permissionless";
 import { DEFAULT_CHAIN_ID } from "../../config";
+import type {
+  ApprovalJobPayload,
+  Job,
+  JobKindMap,
+  QueueEvent,
+  QueueStats,
+  WorkJobPayload,
+} from "../../types/job-queue";
+import { scheduleTask, yieldToMain } from "../../utils/scheduler";
+import { trackSyncError, addBreadcrumb, getBreadcrumbs } from "../app/error-tracking";
+import { getIpfsInitStatus } from "../data/ipfs";
 import { track } from "../app/posthog";
 import { submitApprovalWithPasskey, submitWorkWithPasskey } from "../work/passkey-submission";
 import { jobQueueDB } from "./db";
@@ -23,7 +34,10 @@ interface ProcessJobResult {
   skipped?: boolean;
 }
 
-interface FlushContext extends ProcessJobContext {}
+interface FlushContext extends ProcessJobContext {
+  /** User address to scope the flush operation */
+  userAddress: string;
+}
 
 export interface FlushResult {
   processed: number;
@@ -81,7 +95,7 @@ async function executeApprovalJob(
       approved: payload.approved,
       feedback: payload.feedback,
     } as WorkApprovalDraft,
-    gardenerAddress: payload.gardenerAddress || "",
+    gardenAddress: payload.gardenAddress,
     chainId,
   });
 }
@@ -98,12 +112,21 @@ class JobQueue {
 
   /**
    * Add a job to the queue
+   * @param kind - Job type (work or approval)
+   * @param payload - Job payload data
+   * @param userAddress - User address who created this job (required for user scoping)
+   * @param meta - Optional metadata
    */
   async addJob<K extends keyof JobKindMap>(
     kind: K,
     payload: JobKindMap[K],
+    userAddress: string,
     meta?: Record<string, unknown>
   ): Promise<string> {
+    if (!userAddress) {
+      throw new Error("userAddress is required when adding a job");
+    }
+
     const chainId = (meta as { chainId?: number })?.chainId || DEFAULT_CHAIN_ID;
     const isOnline = navigator.onLine;
 
@@ -112,6 +135,7 @@ class JobQueue {
       payload,
       meta: { chainId, ...meta },
       chainId,
+      userAddress,
     });
 
     const job: Job = {
@@ -120,16 +144,26 @@ class JobQueue {
       payload,
       meta: { chainId, ...meta },
       chainId,
+      userAddress,
       createdAt: Date.now(),
       attempts: 0,
       synced: false,
     };
+
+    // Add breadcrumb for error debugging
+    addBreadcrumb("job_created", {
+      job_id: jobId,
+      job_kind: kind,
+      is_online: isOnline,
+      garden_address: (payload as WorkJobPayload)?.gardenAddress,
+    });
 
     track("offline_job_created", {
       job_id: jobId,
       job_kind: kind,
       is_online: isOnline,
       chain_id: chainId,
+      user_address: userAddress,
       will_process_immediately: false,
     });
 
@@ -148,6 +182,7 @@ class JobQueue {
         jobId,
         kind,
         chainId,
+        userAddress,
         isOnline,
         mediaCount,
       });
@@ -223,11 +258,33 @@ class JobQueue {
 
       jobQueueEventBus.emit("job:failed", { jobId, job, error: errorMessage });
 
+      // Get IPFS status for debugging
+      const ipfsStatus = getIpfsInitStatus();
+
+      // Track as fatal error - job will not be retried
+      trackSyncError(new Error(errorMessage), {
+        severity: "fatal",
+        source: "JobQueue.processJob",
+        userAction: `${job.kind} job exhausted retries`,
+        recoverable: false,
+        metadata: {
+          job_id: jobId,
+          job_kind: job.kind,
+          attempts: job.attempts,
+          last_error: job.lastError,
+          garden_address: (job.payload as WorkJobPayload)?.gardenAddress,
+          action_uid: (job.payload as WorkJobPayload)?.actionUID,
+          ipfs_status: ipfsStatus.status,
+          ipfs_client_ready: ipfsStatus.clientReady,
+        },
+      });
+
       track("offline_job_permanently_failed", {
         job_id: jobId,
         job_kind: job.kind,
         attempts: job.attempts,
         last_error: job.lastError,
+        ipfs_status: ipfsStatus.status,
       });
 
       return { success: false, error: errorMessage };
@@ -239,6 +296,14 @@ class JobQueue {
     }
 
     jobQueueEventBus.emit("job:processing", { jobId, job });
+
+    // Add breadcrumb for error debugging
+    addBreadcrumb("job_processing_started", {
+      job_id: jobId,
+      job_kind: job.kind,
+      attempt: job.attempts + 1,
+      garden_address: (job.payload as WorkJobPayload)?.gardenAddress,
+    });
 
     const chainId = job.chainId || DEFAULT_CHAIN_ID;
     const startTime = Date.now();
@@ -301,18 +366,55 @@ class JobQueue {
       return { success: true, txHash };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      const processingDuration = Date.now() - startTime;
 
       await jobQueueDB.markJobFailed(jobId, errorMessage);
       const updated = (await jobQueueDB.getJob(jobId)) ?? job;
 
       jobQueueEventBus.emit("job:failed", { jobId, job: updated, error: errorMessage });
 
+      // Get IPFS status for debugging upload failures
+      const ipfsStatus = getIpfsInitStatus();
+
+      // Track as structured exception for PostHog error dashboard
+      trackSyncError(error, {
+        source: "JobQueue.processJob",
+        userAction: `processing ${job.kind} job`,
+        recoverable: job.attempts + 1 < MAX_RETRIES,
+        metadata: {
+          job_id: jobId,
+          job_kind: job.kind,
+          attempts: job.attempts + 1,
+          max_retries: MAX_RETRIES,
+          will_retry: job.attempts + 1 < MAX_RETRIES,
+          processing_duration_ms: processingDuration,
+          chain_id: chainId,
+          user_address: job.userAddress,
+          garden_address: (job.payload as WorkJobPayload)?.gardenAddress,
+          action_uid: (job.payload as WorkJobPayload)?.actionUID,
+          ipfs_status: ipfsStatus.status,
+          ipfs_error: ipfsStatus.error,
+          ipfs_client_ready: ipfsStatus.clientReady,
+          is_online: typeof navigator !== "undefined" ? navigator.onLine : true,
+          connection_type:
+            typeof navigator !== "undefined"
+              ? (navigator as unknown as { connection?: { effectiveType?: string } }).connection
+                  ?.effectiveType
+              : undefined,
+          breadcrumbs: getBreadcrumbs().slice(-5),
+        },
+      });
+
+      // Also track as analytics event for funnel analysis
       track("offline_job_failed", {
         job_id: jobId,
         job_kind: job.kind,
         error: errorMessage,
         attempts: job.attempts + 1,
         will_retry: job.attempts + 1 < MAX_RETRIES,
+        processing_duration_ms: processingDuration,
+        ipfs_status: ipfsStatus.status,
+        ipfs_client_ready: ipfsStatus.clientReady,
       });
 
       return { success: false, error: errorMessage };
@@ -341,10 +443,18 @@ class JobQueue {
   }
 
   /**
-   * Internal flush implementation
+   * Internal flush implementation - processes only jobs for the specified user
+   *
+   * Uses the Scheduler API to yield to user input between jobs,
+   * preventing UI jank during batch processing.
    */
   private async _flushInternal(context: FlushContext): Promise<FlushResult> {
-    const jobs = await jobQueueDB.getJobs({ synced: false });
+    if (!context.userAddress) {
+      throw new Error("userAddress is required for flush operation");
+    }
+
+    // Only get jobs for the current user
+    const jobs = await jobQueueDB.getJobs({ userAddress: context.userAddress, synced: false });
     if (jobs.length === 0) {
       const emptyResult = { processed: 0, failed: 0, skipped: 0 };
       jobQueueEventBus.emit("queue:sync-completed", { result: emptyResult });
@@ -355,9 +465,16 @@ class JobQueue {
     let failed = 0;
     let skipped = 0;
 
-    for (const job of jobs) {
+    // Process jobs with scheduler to yield to user input
+    for (let i = 0; i < jobs.length; i++) {
+      const job = jobs[i];
+
       try {
-        const result = await this.processJob(job.id, context);
+        // Schedule job processing as background task - yields to user interactions
+        const result = await scheduleTask(() => this.processJob(job.id, context), {
+          priority: "background",
+        });
+
         if (result.success) {
           processed += 1;
         } else if (result.skipped) {
@@ -370,6 +487,11 @@ class JobQueue {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
         jobQueueEventBus.emit("job:failed", { jobId: job.id, job, error: errorMessage });
       }
+
+      // Yield to main thread every 3 jobs to keep UI responsive
+      if ((i + 1) % 3 === 0 && i + 1 < jobs.length) {
+        await yieldToMain();
+      }
     }
 
     const result = { processed, failed, skipped };
@@ -378,32 +500,49 @@ class JobQueue {
   }
 
   /**
-   * Get job statistics
+   * Get job statistics for a specific user
+   * @param userAddress - User address to scope statistics
    */
-  async getStats(): Promise<QueueStats> {
-    return await jobQueueDB.getStats();
+  async getStats(userAddress: string): Promise<QueueStats> {
+    if (!userAddress) {
+      throw new Error("userAddress is required when getting stats");
+    }
+    return await jobQueueDB.getStats(userAddress);
   }
 
   /**
-   * Get jobs with optional filtering
+   * Get jobs for a specific user with optional filtering
+   * @param userAddress - User address (required)
+   * @param filter - Optional filters for kind and synced status
    */
-  async getJobs(filter?: { kind?: string; synced?: boolean }): Promise<Job[]> {
-    return await jobQueueDB.getJobs(filter);
+  async getJobs(userAddress: string, filter?: { kind?: string; synced?: boolean }): Promise<Job[]> {
+    if (!userAddress) {
+      throw new Error("userAddress is required when getting jobs");
+    }
+    return await jobQueueDB.getJobs({ userAddress, ...filter });
   }
 
   /**
-   * Check if there are pending jobs
+   * Check if there are pending jobs for a specific user
+   * @param userAddress - User address to check
    */
-  async hasPendingJobs(): Promise<boolean> {
-    const jobs = await jobQueueDB.getJobs({ synced: false });
+  async hasPendingJobs(userAddress: string): Promise<boolean> {
+    if (!userAddress) {
+      throw new Error("userAddress is required when checking pending jobs");
+    }
+    const jobs = await jobQueueDB.getJobs({ userAddress, synced: false });
     return jobs.length > 0;
   }
 
   /**
-   * Get pending jobs count
+   * Get pending jobs count for a specific user
+   * @param userAddress - User address to count
    */
-  async getPendingCount(): Promise<number> {
-    const jobs = await jobQueueDB.getJobs({ synced: false });
+  async getPendingCount(userAddress: string): Promise<number> {
+    if (!userAddress) {
+      throw new Error("userAddress is required when getting pending count");
+    }
+    const jobs = await jobQueueDB.getJobs({ userAddress, synced: false });
     return jobs.length;
   }
 
@@ -453,4 +592,6 @@ class JobQueue {
 export const jobQueue = new JobQueue();
 
 export { jobQueueDB } from "./db";
+export { computeFirstIncompleteStep, draftDB } from "./draft-db";
 export { jobQueueEventBus, useJobQueueEvents } from "./event-bus";
+export { mediaResourceManager } from "./media-resource-manager";

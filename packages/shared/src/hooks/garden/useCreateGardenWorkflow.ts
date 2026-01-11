@@ -1,6 +1,11 @@
 import { useMachine } from "@xstate/react";
 import { useCallback, useEffect, useMemo } from "react";
 import { useAccount, useWalletClient } from "wagmi";
+import {
+  trackAdminGardenCreateFailed,
+  trackAdminGardenCreateStarted,
+  trackAdminGardenCreateSuccess,
+} from "../../modules/app/analytics-events";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { useCreateGardenStore } from "../../stores/useCreateGardenStore";
 import { GardenTokenABI, getNetworkContracts } from "../../utils/blockchain/contracts";
@@ -29,25 +34,49 @@ export function useCreateGardenWorkflow() {
               throw new Error("Connect a wallet to deploy the garden");
             }
 
-            const contracts = getNetworkContracts(selectedChainId);
-            const txHash = await walletClient.writeContract({
-              address: contracts.gardenToken as `0x${string}`,
-              abi: GardenTokenABI,
-              functionName: "mintGarden",
-              account: address,
-              args: [
-                params.communityToken,
-                params.name,
-                params.description,
-                params.location,
-                params.bannerImage,
-                params.gardeners,
-                params.gardenOperators,
-              ],
+            // Track garden creation started
+            trackAdminGardenCreateStarted({
+              gardenName: params.name,
+              chainId: selectedChainId,
             });
 
-            addPendingTransaction(txHash, "garden:create");
-            return txHash;
+            try {
+              const contracts = getNetworkContracts(selectedChainId);
+              const txHash = await walletClient.writeContract({
+                address: contracts.gardenToken as `0x${string}`,
+                abi: GardenTokenABI,
+                functionName: "mintGarden",
+                account: address,
+                args: [
+                  params.communityToken,
+                  params.name,
+                  params.description,
+                  params.location,
+                  params.bannerImage,
+                  params.gardeners,
+                  params.gardenOperators,
+                ],
+              });
+
+              // Track garden creation success
+              trackAdminGardenCreateSuccess({
+                gardenName: params.name,
+                gardenAddress: contracts.gardenToken, // Note: actual garden address comes from event
+                chainId: selectedChainId,
+                txHash,
+              });
+
+              addPendingTransaction(txHash, "garden:create");
+              return txHash;
+            } catch (error) {
+              // Track garden creation failure
+              trackAdminGardenCreateFailed({
+                gardenName: params.name,
+                chainId: selectedChainId,
+                error: error instanceof Error ? error.message : "Unknown error",
+              });
+              throw error;
+            }
           },
         },
       } as any),

@@ -1,11 +1,61 @@
 // Modules — EXPLICIT EXPORTS for tree-shaking
 
+export {
+  ANALYTICS_EVENTS,
+  trackAdminDeployFailed,
+  // Admin: deployment events
+  trackAdminDeployStarted,
+  trackAdminDeploySuccess,
+  trackAdminGardenCreateFailed,
+  // Admin: garden events
+  trackAdminGardenCreateStarted,
+  trackAdminGardenCreateSuccess,
+  trackAdminMemberAddFailed,
+  // Admin: member events
+  trackAdminMemberAddStarted,
+  trackAdminMemberAddSuccess,
+  trackAdminMemberRemoveFailed,
+  trackAdminMemberRemoveStarted,
+  trackAdminMemberRemoveSuccess,
+  trackAuthPasskeyLoginFailed,
+  trackAuthPasskeyLoginStarted,
+  trackAuthPasskeyLoginSuccess,
+  trackAuthPasskeyRegisterFailed,
+  // Auth events
+  trackAuthPasskeyRegisterStarted,
+  trackAuthPasskeyRegisterSuccess,
+  trackAuthSessionRestored,
+  trackAuthSwitchMethod,
+  trackAuthWalletConnectFailed,
+  trackAuthWalletConnectStarted,
+  trackAuthWalletConnectSuccess,
+  trackGardenAutoJoinFailed,
+  trackGardenAutoJoinStarted,
+  trackGardenAutoJoinSuccess,
+  trackGardenJoinAlreadyMember,
+  trackGardenJoinFailed,
+  // Garden join events
+  trackGardenJoinStarted,
+  trackGardenJoinSuccess,
+  trackWorkApprovalFailed,
+  // Work approval events
+  trackWorkApprovalStarted,
+  trackWorkApprovalSuccess,
+  trackWorkRejectionSuccess,
+  trackWorkSubmissionFailed,
+  trackWorkSubmissionOffline,
+  trackWorkSubmissionQueued,
+  // Work submission events
+  trackWorkSubmissionStarted,
+  trackWorkSubmissionSuccess,
+} from "./app/analytics-events";
 // ============================================================================
 // APP / ANALYTICS
 // ============================================================================
 export {
   getDistinctId,
   identify,
+  identifyWithProperties,
   reset,
   track,
   trackAppLifecycle,
@@ -14,23 +64,48 @@ export {
 } from "./app/posthog";
 
 // ============================================================================
+// APP / ERROR TRACKING
+// ============================================================================
+export {
+  // Core error tracking
+  trackError,
+  trackFatalError,
+  trackWarning,
+  // Category-specific tracking
+  trackContractError,
+  trackNetworkError,
+  trackAuthError,
+  trackGraphQLError,
+  trackSyncError,
+  trackStorageError,
+  // Upload tracking
+  trackUploadError,
+  trackUploadSuccess,
+  trackUploadBatchProgress,
+  // Recovery tracking
+  trackErrorRetry,
+  trackErrorRecovery,
+  // React Error Boundary helper
+  trackErrorBoundary,
+  // Breadcrumbs
+  addBreadcrumb,
+  getBreadcrumbs,
+  clearBreadcrumbs,
+  // Global handlers
+  initGlobalErrorHandlers,
+  // Types
+  type ErrorSeverity,
+  type ErrorCategory,
+  type ErrorContext,
+  type BreadcrumbEntry,
+  type UploadErrorCategory,
+  type UploadErrorContext,
+} from "./app/error-tracking";
+
+// ============================================================================
 // APP / SERVICE WORKER
 // ============================================================================
 export { serviceWorkerManager } from "./app/service-worker";
-
-// ============================================================================
-// AUTH / PASSKEY
-// ============================================================================
-export type { PasskeySession } from "./auth/passkey";
-export {
-  authenticatePasskey,
-  clearStoredCredential,
-  PASSKEY_STORAGE_KEY,
-  recoverPasskeyAccount,
-  registerPasskeySession,
-  registerPasskeySessionWithENS,
-  restorePasskeySession,
-} from "./auth/passkey";
 
 // ============================================================================
 // AUTH / SESSION
@@ -40,34 +115,25 @@ export {
   AUTH_MODE_STORAGE_KEY,
   // Auth mode
   type AuthMode,
-  getAuthMode,
-  setAuthMode,
-  clearAuthMode,
-  // Passkey
-  hasStoredPasskey,
-  clearStoredPasskey,
-  // Sign out
   clearAllAuth,
-  // Legacy exports (deprecated but kept for backward compatibility)
-  PASSKEY_SIGNED_OUT_KEY,
-  SESSION_MARKER_KEY,
-  SIGNED_OUT_KEY,
-  getSavedAuthMode,
-  saveAuthMode,
-  hasStoredPasskeyCredential,
-  clearAllAuthStorage,
-  wasPasskeySignedOut,
-  setPasskeySignedOut,
-  clearPasskeySignedOut,
-  isFreshAppStart,
-  setWalletConnectIntent,
-  consumeWalletConnectIntent,
-  clearWalletConnectIntent,
-  clearSignedOut,
-  setSignedOut,
-  wasExplicitlySignedOut,
-  markSessionActive,
-  checkAndHandleFreshStart,
+  clearAuthMode,
+  // Legacy (deprecated - credentials now on Pimlico server)
+  clearStoredPasskey,
+  clearStoredRpId,
+  // Username (Pimlico server)
+  clearStoredUsername,
+  getAuthMode,
+  getStoredRpId,
+  getStoredUsername,
+  hasStoredPasskey,
+  hasStoredUsername,
+  PASSKEY_STORAGE_KEY,
+  // RP ID (Android passkey compatibility)
+  RP_ID_STORAGE_KEY,
+  setAuthMode,
+  setStoredRpId,
+  setStoredUsername,
+  USERNAME_STORAGE_KEY,
 } from "./auth/session";
 
 // ============================================================================
@@ -98,28 +164,43 @@ export {
 } from "./data/greengoods";
 
 // ============================================================================
-// DATA / PINATA (IPFS)
+// DATA / IPFS (Storacha)
 // ============================================================================
 export {
   getFileByHash,
+  getIpfsInitStatus,
+  initializeIpfs,
+  initializeIpfsFromEnv,
+  // Deprecated aliases for backward compatibility
   initializePinata,
   initializePinataFromEnv,
+  // Storacha aliases (preferred naming)
+  initializeStoracha,
+  initializeStorachaFromEnv,
   resolveAvatarUrl,
   resolveImageUrl,
   resolveIPFSUrl,
   uploadFileToIPFS,
   uploadJSONToIPFS,
-} from "./data/pinata";
+  // Upload context types
+  type FileUploadContext,
+  type JsonUploadContext,
+} from "./data/ipfs";
 
 // ============================================================================
-// DATA / URQL
+// DATA / GRAPHQL CLIENT
 // ============================================================================
 export {
   createEasClient,
-  createGreenGoodsIndexerClient,
   createIndexerClient,
   greenGoodsIndexer,
-} from "./data/urql";
+  GQLClient,
+  // Timeout utilities
+  INDEXER_TIMEOUT_MS,
+  GRAPHQL_TIMEOUT_MS,
+  TimeoutError,
+  withTimeout,
+} from "./data/graphql-client";
 
 // ============================================================================
 // JOB QUEUE
@@ -129,6 +210,7 @@ export {
   jobQueue,
   jobQueueDB,
   jobQueueEventBus,
+  mediaResourceManager,
   useJobQueueEvents,
 } from "./job-queue";
 

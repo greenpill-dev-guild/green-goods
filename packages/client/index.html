@@ -9,7 +9,7 @@
     <meta
       key="description"
       name="description"
-      content="Bringing Biodiversity Onchain"
+      content="Bring Community Impact Onchain"
     />
     <meta name="author" content="Green Goods" />
 
@@ -23,10 +23,10 @@
     <meta property="og:site_name" content="Green Goods" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://greengoods.app" />
-    <meta property="og:description" content="Bringing Biodiversity Onchain" />
+    <meta property="og:description" content="Bring Community Impact Onchain" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:description" content="Bringing Biodiversity Onchain" />
+    <meta name="twitter:description" content="Bring Community Impact Onchain" />
     <meta name="twitter:title" content="Green Goods" />
     <meta name="twitter:site" content="greengoodsapp" />
     <meta name="twitter:creator" content="time_is_oba" />
@@ -63,7 +63,8 @@
       name="msapplication-TileImage"
       content="/images/ms-icon-144x144.png"
     />
-    <meta name="theme-color" content="#fff" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#171717" media="(prefers-color-scheme: dark)" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -74,17 +75,12 @@
 
     <title>Green Goods</title>
     <script>
+      // Set theme before render to prevent flash
       (function() {
-        const KEY = 'theme';
-        try {
-          const stored = localStorage.getItem(KEY) || 'system';
-          const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          const resolved = stored === 'dark' || (stored === 'system' && systemDark);
-          document.documentElement.dataset.theme = resolved ? 'dark' : 'light';
-        } catch (_) {
-          const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          document.documentElement.dataset.theme = systemDark ? 'dark' : 'light';
-        }
+        var stored = localStorage.getItem('theme') || 'system';
+        var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var isDark = stored === 'dark' || (stored === 'system' && systemDark);
+        document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
       })();
     </script>
   </head>

@@ -13,7 +13,7 @@ contracts:
   - name: GardenToken
     handler: src/EventHandlers.ts
     events:
-      - event: GardenMinted(uint256 indexed tokenId, address indexed account, string name, string description, string location, string bannerImage, address[] gardeners, address[] operators)
+      - event: GardenMinted(uint256 indexed tokenId, address indexed account, string name, string description, string location, string bannerImage, bool openJoining, address[] gardeners, address[] operators)
   - name: GardenAccount
     handler: src/EventHandlers.ts
     events:
@@ -26,13 +26,32 @@ contracts:
       - event: GardenOperatorAdded(address indexed updater, address indexed operator)
       - event: GardenOperatorRemoved(address indexed updater, address indexed operator)
       - event: GAPProjectCreated(bytes32 indexed projectUID, address indexed gardenAddress, string projectName)
+      - event: OpenJoiningUpdated(address indexed updater, bool openJoining)
 networks:
   - id: 42161
-    start_block: 402713370
+    start_block: 403157656
     contracts:
       - name: ActionRegistry
-        address: "0xac033393575fE76619Dc146Ee0a0482751376Cb0"
+        address: "0x51f4Fd2c75a2FEC0dd60aF05E6D3A3aA7A070010"
       - name: GardenToken
-        address: "0xFBC692bb6087cfAe03Abb432291a27780063222E"
+        address: "0xEcCB8515A349Ee4BC3861658eb7dEC4B05d34236"
       - name: GardenAccount
-        address: "0x797789D3AaBDfDD9Aaa403a2ac2f12827d7cF6D4"
+        address: "0x78D227c545de19484173F4371F1fC9C309D532f9"
+  - id: 84532
+    start_block: 32407622
+    contracts:
+      - name: ActionRegistry
+        address: "0x9685E9E5430C13AFF7ef32D9E8fc93d516e121E0"
+      - name: GardenToken
+        address: "0x0B0EA0FfB996B0b04335507Ef1523124480f7310"
+      - name: GardenAccount
+        address: "0xa624FDdBdfA1E13C739791fB65E2D174b7316519"
+  - id: 42220
+    start_block: 48697725
+    contracts:
+      - name: ActionRegistry
+        address: "0x0747ED4f1915b8f3A6eA8a9d8216E8F53EE80f92"
+      - name: GardenToken
+        address: "0xDcA639287A392E17cad0deA4E72F5B3cfA429e6B"
+      - name: GardenAccount
+        address: "0x710cBFB9a29920B4577692eD495972fcd27286b4"

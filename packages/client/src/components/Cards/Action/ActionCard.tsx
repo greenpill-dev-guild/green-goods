@@ -36,6 +36,7 @@ const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
     return (
       <Card
         ref={ref}
+        data-testid="action-card"
         className={cn(classes, "tap-feedback transition-all duration-300")}
         {...props}
       >
@@ -71,7 +72,7 @@ const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
               {action.title}
             </h5>
           </div>
-          <div className="text-sm text-slate-500 h-24 flex-1 line-clamp-3">
+          <div className="text-sm text-text-sub-600 h-24 flex-1 line-clamp-3">
             {action.mediaInfo?.description}
           </div>
         </div>

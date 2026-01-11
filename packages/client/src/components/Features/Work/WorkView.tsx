@@ -15,17 +15,31 @@ export type WorkViewAction = {
   className?: string;
 };
 
+// Icon component type for details and header
+type IconComponent = React.ComponentType<{ className?: string }>;
+
 type WorkViewProps = {
   title: string;
   info: string;
   garden: Garden;
   actionTitle: string;
   media?: string[];
-  details: Array<{ label: string; value: string; icon?: React.ComponentType<any> | null }>;
-  headerIcon?: React.ComponentType<any> | null;
+  details: Array<{ label: string; value: string; icon?: IconComponent | null }>;
+  headerIcon?: IconComponent | null;
   primaryActions?: WorkViewAction[]; // shown near header or under details
   feedbackSection?: React.ReactNode; // optional feedback input section
   footer?: React.ReactNode; // e.g., fixed approval bar
+  /**
+   * When the provided `footer` is positioned `fixed` (outside normal layout flow),
+   * set this to true so the WorkView reserves vertical space and content doesn't
+   * end up hidden behind the footer.
+   */
+  reserveFooterSpace?: boolean;
+  /**
+   * Optional override for the reserved space element used by `reserveFooterSpace`.
+   * Useful when different fixed footers have different heights.
+   */
+  footerSpacerClassName?: string;
   showMedia?: boolean;
 };
 
@@ -40,6 +54,8 @@ export const WorkView: React.FC<WorkViewProps> = ({
   primaryActions = [],
   feedbackSection,
   footer,
+  reserveFooterSpace = false,
+  footerSpacerClassName,
   showMedia = true,
 }) => {
   const intl = useIntl();
@@ -143,7 +159,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
                   shape="pilled"
                   mode={hasCustomStyling ? undefined : isApprovalAction ? "filled" : "stroke"}
                   size="medium"
-                  leadingIcon={(a.icon as any) ?? <RiDownloadLine className="w-6 h-6" />}
+                  leadingIcon={a.icon ?? <RiDownloadLine className="w-6 h-6" />}
                   disabled={a.disabled}
                 />
               );
@@ -151,6 +167,13 @@ export const WorkView: React.FC<WorkViewProps> = ({
           </div>
         </>
       )}
+
+      {reserveFooterSpace ? (
+        <div
+          aria-hidden="true"
+          className={footerSpacerClassName ?? "h-[calc(96px+env(safe-area-inset-bottom))]"}
+        />
+      ) : null}
 
       {footer}
     </div>
@@ -171,21 +194,21 @@ export const WorkViewSkeleton: React.FC<WorkViewSkeletonProps> = ({
   return (
     <div className="flex flex-col gap-4">
       {/* Header info */}
-      <div className="bg-slate-100 p-4 rounded-lg animate-pulse h-24" />
+      <div className="bg-bg-weak-50 p-4 rounded-lg animate-pulse h-24" />
 
       {/* Garden section */}
-      <div className="h-4 w-28 bg-slate-200 rounded" />
+      <div className="h-4 w-28 bg-bg-soft-200 rounded" />
       <GardenCardSkeleton media="small" height="default" showBanner={false} />
 
       {/* Media section */}
       {showMedia && (
         <>
-          <div className="h-4 w-20 bg-slate-200 rounded" />
+          <div className="h-4 w-20 bg-bg-soft-200 rounded" />
           <div className="flex flex-row gap-3">
             {Array.from({ length: 3 }).map((_, idx) => (
               <div
                 key={`media-skel-${idx}`}
-                className="max-w-40 aspect-3/4 rounded-2xl bg-slate-200 animate-pulse w-full"
+                className="max-w-40 aspect-3/4 rounded-2xl bg-bg-soft-200 animate-pulse w-full"
               />
             ))}
           </div>
@@ -193,20 +216,20 @@ export const WorkViewSkeleton: React.FC<WorkViewSkeletonProps> = ({
       )}
 
       {/* Details section */}
-      <div className="h-4 w-24 bg-slate-200 rounded" />
+      <div className="h-4 w-24 bg-bg-soft-200 rounded" />
       <div className="space-y-2">
-        <div className="h-12 bg-slate-100 rounded-lg animate-pulse" />
+        <div className="h-12 bg-bg-weak-50 rounded-lg animate-pulse" />
         {Array.from({ length: numDetails }).map((_, i) => (
-          <div key={`detail-skel-${i}`} className="h-12 bg-slate-100 rounded-lg animate-pulse" />
+          <div key={`detail-skel-${i}`} className="h-12 bg-bg-weak-50 rounded-lg animate-pulse" />
         ))}
       </div>
 
       {/* Primary actions */}
       {showActions && (
         <div className="flex gap-3">
-          <div className="h-10 flex-1 bg-slate-100 rounded-lg animate-pulse" />
-          <div className="h-10 flex-1 bg-slate-100 rounded-lg animate-pulse" />
-          <div className="h-10 flex-1 bg-slate-100 rounded-lg animate-pulse" />
+          <div className="h-10 flex-1 bg-bg-weak-50 rounded-lg animate-pulse" />
+          <div className="h-10 flex-1 bg-bg-weak-50 rounded-lg animate-pulse" />
+          <div className="h-10 flex-1 bg-bg-weak-50 rounded-lg animate-pulse" />
         </div>
       )}
     </div>

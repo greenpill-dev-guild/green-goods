@@ -1,4 +1,4 @@
-import { useEnsAvatar, useGardenerProfile, useUser } from "@green-goods/shared/hooks";
+import { useAuth, useEnsAvatar, useGardenerProfile, useUser } from "@green-goods/shared/hooks";
 import { resolveAvatarUrl } from "@green-goods/shared/modules";
 import { formatAddress } from "@green-goods/shared/utils";
 import { RiHeadphoneLine, RiSettings2Fill } from "@remixicon/react";
@@ -13,6 +13,7 @@ const DEFAULT_AVATAR = "/images/avatar.png";
 
 const Profile: React.FC = () => {
   const { user, ensName } = useUser();
+  const { userName } = useAuth();
   const { profile } = useGardenerProfile();
   const intl = useIntl();
   const [activeTab, setActiveTab] = useState<"account" | "help">("account");
@@ -27,7 +28,9 @@ const Profile: React.FC = () => {
     defaultMessage: "Unknown User",
   });
 
-  const displayName = profile?.name?.trim() || ensName || formattedAddress || fallbackDisplayName;
+  // Display name priority: profile name > ENS > passkey username > formatted address > fallback
+  const displayName =
+    profile?.name?.trim() || ensName || userName || formattedAddress || fallbackDisplayName;
 
   const headerAvatar = profile?.imageURI
     ? resolveAvatarUrl(profile.imageURI)
@@ -55,7 +58,7 @@ const Profile: React.FC = () => {
   return (
     <section className="flex h-full flex-col">
       {/* Fixed Header */}
-      <div className="fixed left-0 top-0 z-10 w-full bg-white">
+      <div className="fixed left-0 top-0 z-10 w-full bg-bg-white-0">
         <div className="px-4 pt-6 pb-4">
           <UserProfile
             displayName={displayName}

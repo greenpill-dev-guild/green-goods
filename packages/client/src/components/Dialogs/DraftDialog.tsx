@@ -57,22 +57,25 @@ export const DraftDialog: React.FC<DraftDialogProps> = ({
         "animate-in fade-in duration-200"
       )}
       onClick={onContinue}
+      onKeyDown={(e) => e.key === "Escape" && onContinue()}
+      role="presentation"
       data-testid="draft-dialog-overlay"
     >
       <div
         ref={dialogRef}
         className={cn(
-          "relative w-full max-w-sm bg-white rounded-2xl shadow-2xl",
+          "relative w-full max-w-sm bg-bg-white-0 rounded-2xl shadow-2xl",
           "animate-in zoom-in-95 slide-in-from-bottom-4 duration-300"
         )}
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="draft-dialog-title"
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-stroke-soft-200">
-          <h2 id="draft-dialog-title" className="text-lg font-semibold text-text-strong">
+          <h2 id="draft-dialog-title" className="text-lg font-semibold text-text-strong-950">
             {intl.formatMessage({
               id: "app.garden.draft.title",
               defaultMessage: "Continue Previous Work?",
@@ -89,7 +92,7 @@ export const DraftDialog: React.FC<DraftDialogProps> = ({
             aria-label="Close"
             type="button"
           >
-            <RiCloseLine className="w-5 h-5 text-text-sub" />
+            <RiCloseLine className="w-5 h-5 text-text-soft-400" />
           </button>
         </div>
 
@@ -99,7 +102,7 @@ export const DraftDialog: React.FC<DraftDialogProps> = ({
             <div className="p-3 bg-primary/10 rounded-full shrink-0">
               <RiDraftLine className="w-6 h-6 text-primary" />
             </div>
-            <p className="text-sm text-text-sub leading-relaxed">
+            <p className="text-sm text-text-sub-600 leading-relaxed">
               {intl.formatMessage(
                 {
                   id: "app.garden.draft.description",

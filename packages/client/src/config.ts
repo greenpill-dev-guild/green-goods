@@ -3,10 +3,10 @@
  *
  * Re-exports shared configurations and defines client-specific constants.
  */
-import { initializePinataFromEnv } from "@green-goods/shared";
+import { initializeIpfsFromEnv } from "@green-goods/shared";
 
-// Initialize Pinata from environment
-void initializePinataFromEnv(import.meta.env);
+// Initialize Storacha IPFS from environment
+void initializeIpfsFromEnv(import.meta.env);
 
 // Re-export shared configs (use relative path within monorepo)
 export {
@@ -26,6 +26,6 @@ export {
 
 // Client-specific config
 export const CLIENT_NAME = "Green Goods";
-export const CLIENT_DESCRIPTION = "Start Bringing Biodiversity Onchain";
+export const CLIENT_DESCRIPTION = "Start Bringing Your Impact Onchain";
 export const CLIENT_URL = "https://greengoods.app";
 export const CLIENT_ICON = "https://greengoods.app/icon.png";

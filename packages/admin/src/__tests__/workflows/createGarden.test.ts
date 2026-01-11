@@ -1,8 +1,7 @@
+import { resetCreateGardenStore, useCreateGardenStore } from "@green-goods/shared/stores";
+import { createGardenMachine } from "@green-goods/shared/workflows";
 import { beforeEach, describe, expect, it } from "vitest";
-import { createActor } from "xstate";
-
-import { createGardenMachine } from "@/workflows/createGarden";
-import { resetCreateGardenStore, useCreateGardenStore } from "@/stores/createGarden";
+import { createActor, fromPromise } from "xstate";
 
 const GARDENER_ONE = "0x1234567890123456789012345678901234567890";
 const GARDENER_TWO = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd";
@@ -67,11 +66,11 @@ describe("createGarden workflow", () => {
     actor.stop();
   });
 
-  it("invokes the submit service and transitions to success", async () => {
+  it("invokes the submit actor and transitions to success", async () => {
     const actor = createActor(
       createGardenMachine.provide({
-        services: {
-          submitGarden: async () => "0xhash",
+        actors: {
+          submitGarden: fromPromise(async () => "0xhash"),
         },
       })
     );
@@ -84,7 +83,8 @@ describe("createGarden workflow", () => {
     actor.send({ type: "NEXT" });
 
     actor.send({ type: "SUBMIT" });
-    await Promise.resolve();
+    // Wait for the actor to process
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     expect(actor.getSnapshot().value).toBe("success");
     expect(actor.getSnapshot().context.txHash).toBe("0xhash");
@@ -96,14 +96,14 @@ describe("createGarden workflow", () => {
     let attempt = 0;
     const actor = createActor(
       createGardenMachine.provide({
-        services: {
-          submitGarden: async () => {
+        actors: {
+          submitGarden: fromPromise(async () => {
             attempt += 1;
             if (attempt === 1) {
               throw new Error("boom");
             }
             return "0xhash";
-          },
+          }),
         },
       })
     );
@@ -116,14 +116,16 @@ describe("createGarden workflow", () => {
     actor.send({ type: "NEXT" });
 
     actor.send({ type: "SUBMIT" });
-    await Promise.resolve();
+    // Wait for the actor to process
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     expect(actor.getSnapshot().value).toBe("error");
     expect(actor.getSnapshot().context.error).toBe("boom");
     expect(actor.getSnapshot().context.retryCount).toBe(1);
 
     actor.send({ type: "RETRY" });
-    await Promise.resolve();
+    // Wait for the retry
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     expect(actor.getSnapshot().value).toBe("success");
     expect(actor.getSnapshot().context.txHash).toBe("0xhash");

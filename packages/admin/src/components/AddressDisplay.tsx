@@ -1,4 +1,3 @@
-import { useEnsName } from "@green-goods/shared/hooks";
 import { cn, copyToClipboard, formatAddress } from "@green-goods/shared/utils";
 import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
 import { useEffect, useState } from "react";
@@ -18,7 +17,8 @@ export function AddressDisplay({
 }: AddressDisplayProps) {
   const [copied, setCopied] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
-  const { data: ensName } = useEnsName(address);
+  // ENS temporarily disabled to fix QueryClient initialization
+  const ensName = null;
   const display = formatAddress(address, {
     ensName,
     variant: ensName ? "default" : "card",
@@ -50,16 +50,16 @@ export function AddressDisplay({
         <span className="text-sm font-mono cursor-pointer text-text-strong">{display}</span>
 
         {showTooltip && (
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-bg-strong text-white text-xs rounded whitespace-nowrap z-50">
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-bg-strong text-static-white text-xs rounded whitespace-nowrap z-50">
             {ensName ? (
               <div className="flex flex-col text-left">
                 <span>{ensName}</span>
-                <span className="text-[10px] text-gray-300">{address}</span>
+                <span className="text-[10px] text-text-disabled">{address}</span>
               </div>
             ) : (
               address
             )}
-            <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900" />
+            <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-bg-strong" />
           </div>
         )}
       </div>
@@ -71,7 +71,7 @@ export function AddressDisplay({
           title="Copy address"
         >
           {copied ? (
-            <RiCheckLine className="h-3 w-3 text-green-600" />
+            <RiCheckLine className="h-3 w-3 text-success-dark" />
           ) : (
             <RiFileCopyLine className="h-3 w-3" />
           )}

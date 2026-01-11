@@ -3,6 +3,26 @@
  * Standardizes and simplifies React Query cache keys
  */
 
+// ============================================
+// Stale Time Constants (in milliseconds)
+// ============================================
+
+/** Fast-changing data (queue status, uploading jobs) */
+export const STALE_TIME_FAST = 5_000; // 5 seconds
+
+/** Medium-frequency data (approvals, recent works) */
+export const STALE_TIME_MEDIUM = 30_000; // 30 seconds
+
+/** Slow-changing data (gardens, actions) */
+export const STALE_TIME_SLOW = 60_000; // 1 minute
+
+/** Rarely changing data (user profile, settings) */
+export const STALE_TIME_RARE = 300_000; // 5 minutes
+
+/** Default retry configuration */
+export const DEFAULT_RETRY_COUNT = 3;
+export const DEFAULT_RETRY_DELAY = 1000; // 1 second
+
 // Base query key factory
 export const queryKeys = {
   // Top-level key for all Green Goods queries
@@ -71,6 +91,22 @@ export const queryKeys = {
     all: ["greengoods", "gardeners"] as const,
     byAddress: (address: string) => ["greengoods", "gardeners", "byAddress", address] as const,
   },
+
+  // Role related keys (operator/deployer detection)
+  role: {
+    all: ["greengoods", "role"] as const,
+    operatorGardens: (address?: string) =>
+      ["greengoods", "role", "operatorGardens", address] as const,
+  },
+
+  // Draft related keys
+  drafts: {
+    all: ["greengoods", "drafts"] as const,
+    list: (userAddress: string, chainId: number) =>
+      ["greengoods", "drafts", "list", userAddress, chainId] as const,
+    detail: (draftId: string) => ["greengoods", "drafts", "detail", draftId] as const,
+    images: (draftId: string) => ["greengoods", "drafts", "images", draftId] as const,
+  },
 } as const;
 
 // Utility functions for invalidating related queries
@@ -125,6 +161,18 @@ export const queryInvalidation = {
   invalidateGarden: (gardenId: string, chainId: number) => [
     queryKeys.gardens.byChain(chainId),
     queryKeys.gardens.detail(gardenId, chainId),
+  ],
+
+  // Invalidate drafts for user
+  invalidateDrafts: (userAddress: string, chainId: number) => [
+    queryKeys.drafts.all,
+    queryKeys.drafts.list(userAddress, chainId),
+  ],
+
+  // Invalidate specific draft
+  invalidateDraft: (draftId: string) => [
+    queryKeys.drafts.detail(draftId),
+    queryKeys.drafts.images(draftId),
   ],
 };
 

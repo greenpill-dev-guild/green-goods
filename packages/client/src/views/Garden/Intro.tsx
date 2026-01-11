@@ -70,7 +70,7 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
           )}
 
           {actionsStatus === "success" && actions.length === 0 && (
-            <div className="p-4 text-sm text-slate-600">
+            <div className="p-4 text-sm text-text-sub-600">
               {intl.formatMessage({
                 id: "app.garden.noActionsFound",
                 defaultMessage: "No actions found.",
@@ -130,7 +130,7 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
           )}
 
           {gardensStatus === "success" && gardens.length === 0 && (
-            <div className="p-4 text-sm text-slate-600">
+            <div className="p-4 text-sm text-text-sub-600">
               {intl.formatMessage({
                 id: "app.garden.noGardensFound",
                 defaultMessage: "No gardens found.",

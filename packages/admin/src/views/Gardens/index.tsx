@@ -18,7 +18,7 @@ export default function Gardens() {
   const headerActions = (
     <Link
       to="/gardens/create"
-      className="inline-flex items-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+      className="inline-flex items-center rounded-md border border-transparent bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker focus:outline-none focus:ring-2 focus:ring-primary-base focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
     >
       <RiAddLine className="mr-2 h-4 w-4" />
       Create Garden
@@ -113,6 +113,7 @@ export default function Gardens() {
           return (
             <div
               key={garden.id}
+              data-testid="garden-card"
               className="min-w-[320px] overflow-hidden rounded-lg border border-stroke-soft bg-bg-white shadow-sm transition-shadow hover:shadow-md"
             >
               <div className="relative h-48">
@@ -133,7 +134,7 @@ export default function Gardens() {
                   />
                 ) : null}
                 <div
-                  className={`absolute inset-0 items-center justify-center bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 text-white ${resolvedBannerImage ? "hidden" : "flex"}`}
+                  className={`absolute inset-0 items-center justify-center bg-gradient-to-br from-primary-dark via-primary-base to-primary-darker text-primary-foreground ${resolvedBannerImage ? "hidden" : "flex"}`}
                   style={{ display: resolvedBannerImage ? "none" : "flex" }}
                 >
                   <div className="text-center">
@@ -178,7 +179,7 @@ export default function Gardens() {
                 <div className="flex items-center justify-end">
                   <Link
                     to={`/gardens/${garden.id}`}
-                    className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-1.5 text-sm font-medium text-text-sub transition hover:bg-bg-weak focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                    className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-1.5 text-sm font-medium text-text-sub transition hover:bg-bg-weak focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-base"
                   >
                     <RiEyeLine className="mr-1 h-4 w-4" />
                     {canManage ? "Manage" : "View"}

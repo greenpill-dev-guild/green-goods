@@ -45,7 +45,7 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
 
   return (
     <div
-      className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[7777] flex items-end justify-center animate-in fade-in-0 duration-150"
+      className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[20000] flex items-end justify-center animate-in fade-in-0 duration-150"
       data-testid="modal-drawer-overlay"
       onClick={onClose}
       onKeyDown={(e) => {
@@ -57,7 +57,7 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
     >
       <div
         className={cn(
-          "bg-white rounded-t-3xl shadow-2xl w-full overflow-hidden flex flex-col",
+          "bg-bg-white-0 rounded-t-3xl shadow-2xl w-full overflow-hidden flex flex-col",
           "animate-in slide-in-from-bottom-full duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]",
           className
         )}
@@ -75,22 +75,18 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
           <div className="flex-1 min-w-0">
             <h2 className="text-lg font-semibold truncate">{header.title}</h2>
             {header.description && (
-              <p className="text-sm text-slate-600 truncate">{header.description}</p>
+              <p className="text-sm text-text-sub-600 truncate">{header.description}</p>
             )}
           </div>
           <div className="flex items-center gap-2 ml-4">
             {header.actions}
             <button
               onClick={onClose}
-              className={cn(
-                "p-1 rounded-full border border-slate-200 transition-all duration-200 flex-shrink-0 tap-feedback",
-                "focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-600 active:border-emerald-600",
-                "active:scale-95"
-              )}
+              className="btn-icon"
               data-testid="modal-drawer-close"
               aria-label="Close modal"
             >
-              <RiCloseLine className="w-5 h-5 text-slate-400 focus:text-emerald-700 active:text-emerald-700" />
+              <RiCloseLine className="w-5 h-5 text-text-soft-400 focus:text-primary active:text-primary" />
             </button>
           </div>
         </div>
@@ -107,8 +103,8 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
                   "focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:text-emerald-700",
                   "active:text-emerald-700",
                   activeTab === tab.id
-                    ? "text-primary border-b-2 border-primary bg-slate-50"
-                    : "text-slate-600"
+                    ? "text-primary border-b-2 border-primary bg-bg-weak-50"
+                    : "text-text-sub-600"
                 )}
                 data-testid={`tab-${tab.id}`}
               >

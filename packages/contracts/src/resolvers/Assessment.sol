@@ -7,7 +7,8 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgrade
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import { AssessmentSchema } from "../Schemas.sol";
-import { GardenAccount } from "../accounts/Garden.sol";
+import { IGardenAccessControl } from "../interfaces/IGardenAccessControl.sol";
+import { IGardenAccount } from "../interfaces/IGardenAccount.sol";
 import { KarmaLib } from "../lib/Karma.sol";
 
 error NotGardenOperator();
@@ -67,12 +68,13 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
         // Decode the assessment schema to validate structure
         AssessmentSchema memory schema = abi.decode(attestation.data, (AssessmentSchema));
 
-        // Get the garden account from the recipient
-        GardenAccount gardenAccount = GardenAccount(payable(attestation.recipient));
+        // Use IGardenAccessControl interface for role verification
+        IGardenAccessControl accessControl = IGardenAccessControl(attestation.recipient);
 
         // IDENTITY CHECK: Verify operator status FIRST
         // This is the primary authorization - only operators can create assessments
-        if (gardenAccount.gardenOperators(attestation.attester) == false) {
+        // Uses IGardenAccessControl interface for swappable access control backends
+        if (!accessControl.isOperator(attestation.attester)) {
             revert NotGardenOperator();
         }
 
@@ -99,6 +101,8 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
         }
 
         // GAP INTEGRATION: Create project milestone (assessment)
+        // Uses IGardenAccount interface for decoupled compilation
+        IGardenAccount gardenAccount = IGardenAccount(attestation.recipient);
         _createGAPProjectMilestone(schema, gardenAccount);
 
         return true;
@@ -126,7 +130,7 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
     /// @dev SECURITY: Only called after full validation in onAttest()
     /// @param schema Assessment schema data
     /// @param gardenAccount The garden account to create milestone for
-    function _createGAPProjectMilestone(AssessmentSchema memory schema, GardenAccount gardenAccount) private {
+    function _createGAPProjectMilestone(AssessmentSchema memory schema, IGardenAccount gardenAccount) private {
         // Skip if GAP not supported on this chain
         if (!KarmaLib.isSupported()) return;
 
@@ -205,19 +209,11 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
 
     // solhint-disable no-unused-vars
     /// @notice Handles the logic to be executed when an attestation is revoked.
-    /// @dev This function can only be called by the contract owner.
-    /// @return A boolean indicating whether the revocation is valid.
-    function onRevoke(
-        Attestation calldata, /*attestation*/
-        uint256 /*value*/
-    )
-        internal
-        view
-        override
-        onlyOwner
-        returns (bool)
-    {
-        return true;
+    /// @dev Assessments are NOT revocable - always returns false.
+    /// @return Always false - assessments cannot be revoked.
+    function onRevoke(Attestation calldata, /*attestation*/ uint256 /*value*/ ) internal pure override returns (bool) {
+        // Assessments are permanent and cannot be revoked
+        return false;
     }
 
     /// @notice Authorizes an upgrade to the contract's implementation.
