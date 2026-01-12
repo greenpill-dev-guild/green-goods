@@ -10,6 +10,31 @@ alwaysApply: false
 
 All React hooks in Green Goods live in `@green-goods/shared`. Client and admin packages consume hooks but never define them.
 
+## Principles for Hook Design
+
+### Single Responsibility
+- Each hook does ONE thing: `useAuth` for auth, `useWorks` for work data
+- If a hook needs "and" in its description, split it into multiple hooks
+
+### DRY (Don't Repeat Yourself)
+- Centralized in shared — never duplicate hook logic across packages
+- Use `queryKeys` factory — no ad-hoc cache keys
+- Compose hooks rather than duplicating logic
+
+### Interface Segregation
+- Expose minimal, focused APIs from hooks
+- Consumers import only what they need
+- Avoid "god hooks" that do everything
+
+### Dependency Inversion
+- Hooks depend on provider abstractions, not concrete implementations
+- `useCurrentChain()` abstracts chain source from consumers
+- Testable via provider mocking
+
+### Liskov Substitution
+- Both auth modes (passkey/wallet) implement same `useAuth` interface
+- Consumers don't need to know which auth mode is active
+
 ## Architectural Boundary
 
 ```

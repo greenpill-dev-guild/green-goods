@@ -41,9 +41,54 @@ function _authorizeUpgrade(address) internal override onlyOwner {
 
 - SPDX header; pinned `pragma solidity ^0.8.25`
 - OpenZeppelin contracts where possible
-- Checks-Effects-Interactions pattern
+- Checks-Effects-Interactions pattern (CEI) — validate, update state, then interact
 - ReentrancyGuard if funds move
 - Prefer `calldata` for external args
+- Pull-over-push for payments — users withdraw, don't auto-distribute
+
+## Visibility (MANDATORY)
+
+**Explicitly label ALL functions and state variables:**
+
+```solidity
+// ✅ Explicit
+uint256 private _totalSupply;
+mapping(address => uint256) public balances;
+function mint(address to) external onlyOwner { }
+function _internal() internal { }
+
+// ❌ Implicit (dangerous defaults)
+uint256 totalSupply;  // internal by default
+function mint() { }   // public by default!
+```
+
+## Security Patterns
+
+### Administrative Safeguards
+
+- **Multi-sig required:** Gnosis Safe (3-of-5 minimum) for admin roles
+- **Timelock for upgrades:** 48h delay for mainnet, 24h for testnet
+- **Emergency pause:** Separate guardian can pause without delay
+- **Never single EOA:** No single private key for critical operations
+
+### Gas Safety
+
+```solidity
+// ✅ Bounded loops
+function process(uint256 start, uint256 count) external {
+    uint256 end = min(start + count, items.length);
+    for (uint256 i = start; i < end; i++) { }
+}
+
+// ❌ Unbounded (gas limit risk)
+for (uint256 i = 0; i < items.length; i++) { }
+```
+
+### Solidity 0.8+ Built-ins
+
+- **No SafeMath needed:** Overflow checks are automatic
+- **Use `uint256`:** Default for arithmetic
+- **Custom errors:** Gas-efficient reverts (already mandatory above)
 
 ## Events
 
@@ -102,10 +147,47 @@ function testGardenToken_mintsNewGarden() public {}
 function testGardenToken_revertsOnUnauthorized() public {}
 
 // Prefixes
-test_         // Happy path
-testRevert_   // Failure cases
-testFuzz_     // Fuzz tests
-testE2E_      // Multi-contract flows
+test_           // Happy path
+testRevert_     // Failure cases
+testFuzz_       // Fuzz tests (random inputs)
+testInvariant_  // Invariant tests (conditions that never change)
+testE2E_        // Multi-contract flows
+```
+
+### Adversarial Testing (MANDATORY for mainnet)
+
+**Fuzz Testing — Find edge cases with random inputs:**
+
+```solidity
+function testFuzz_mintGarden(address to, string calldata uri) public {
+    vm.assume(to != address(0));
+    vm.assume(bytes(uri).length > 0 && bytes(uri).length < 1000);
+
+    uint256 tokenId = gardenToken.mintGarden(to, uri);
+    assertEq(gardenToken.ownerOf(tokenId), to);
+}
+```
+
+**Invariant Testing — Conditions that must NEVER change:**
+
+```solidity
+// Define in invariants/ directory
+function invariant_totalSupplyConsistent() public {
+    assertEq(gardenToken.totalSupply(), actualMintCount);
+}
+
+function invariant_ownerNeverZero() public {
+    for (uint i = 1; i <= gardenToken.totalSupply(); i++) {
+        assertTrue(gardenToken.ownerOf(i) != address(0));
+    }
+}
+```
+
+**Static Analysis — CI/CD integration:**
+
+```bash
+# Run Slither before deployment
+slither packages/contracts/src/ --filter-paths "test|mock"
 ```
 
 ### Test Structure

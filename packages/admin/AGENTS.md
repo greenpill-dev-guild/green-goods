@@ -30,6 +30,34 @@ src/
 
 ## Core Concepts
 
+### Design Principles Applied
+
+**DRY (Don't Repeat Yourself)**
+- All hooks from `@green-goods/shared` — zero local hook definitions
+- Permission checks via `useGardenPermissions` — centralized access logic
+- Reuse shared toast and query patterns
+
+**KISS (Keep It Simple, Stupid)**
+- Role-based routing with simple guards
+- Modal workflows with predictable patterns
+- Design tokens for consistent styling
+
+**Single Responsibility (SOLID)**
+- `RequireDeployer` — checks deployer role only
+- `RequireOperatorOrDeployer` — checks operator/deployer only
+- Each route guard does one permission check
+
+**Separation of Concerns**
+- `components/` — UI elements (modals, forms, tables)
+- `views/` — Page compositions
+- `routes/` — Role guards and navigation
+- Business logic in `@green-goods/shared`
+
+**Optimize for Deletion**
+- Each garden management view is independent
+- Modal components are self-contained
+- Route guards are composable and removable
+
 ### Role-Based Access
 
 Three user roles with different permissions:

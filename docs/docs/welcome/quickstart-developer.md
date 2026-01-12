@@ -155,7 +155,7 @@ The main gardener-facing Progressive Web App.
 - Work dashboard
 
 **Tech Stack**:
-- React 18 + TypeScript + Vite
+- React 19 + TypeScript + Vite
 - TanStack Query + Zustand
 - Tailwind CSS v4 + Radix UI
 - Offline-first architecture
@@ -173,7 +173,7 @@ Operator and admin interface.
 - Member management
 
 **Tech Stack**:
-- React 18 + TypeScript + Vite
+- React 19 + TypeScript + Vite
 - TanStack Query + graphql-request + XState + Zustand
 - Tailwind CSS v4 + Radix UI
 

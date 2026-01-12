@@ -13,7 +13,7 @@ Web dashboard for operators to manage gardens and validate work.
 
 **Path**: `packages/admin/`
 **Port**: http://localhost:3002
-**Stack**: React 18 + TypeScript + Vite
+**Stack**: React 19 + TypeScript + Vite
 
 **Commands**:
 ```bash
@@ -27,7 +27,7 @@ bun --filter admin build     # Production build
 ## Tech Stack
 
 ### Core
-- React 18
+- React 19
 - TypeScript (strict)
 - Vite
 - React Router v7

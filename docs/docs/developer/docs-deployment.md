@@ -9,7 +9,7 @@ This guide covers deploying the Green Goods documentation site to GitHub Pages w
 
 ## GitHub Pages Deployment
 
-The documentation is automatically deployed to GitHub Pages when changes are pushed to the `main` branch.
+The documentation is automatically deployed to GitHub Pages when changes are pushed to the `main` or `release/**` branches.
 
 ### Initial Setup (One-Time)
 
@@ -68,7 +68,7 @@ This ensures the CNAME persists after builds.
 
 The workflow (`.github/workflows/deploy-docs.yml`) automatically:
 
-1. **Triggers** on push to `main` branch (if `docs/**` changed)
+1. **Triggers** on push to `main` or `release/**` branches (if `docs/**` changed)
 2. **Builds** the site with `bun docs:build`
 3. **Deploys** to GitHub Pages
 4. **Available** at your custom domain in 2-3 minutes

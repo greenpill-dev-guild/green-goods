@@ -1,0 +1,314 @@
+---
+description: Logging and observability standards for debugging, monitoring, and production support
+globs:
+alwaysApply: true
+---
+
+# Logging & Observability Standards
+
+Structured logging and observability patterns for debugging production issues and monitoring system health.
+
+## Log Levels
+
+Use appropriate log levels consistently:
+
+| Level | When to Use | Example |
+|-------|-------------|---------|
+| `debug` | Development details, verbose state | `debug("Job queue state", { pending: 5 })` |
+| `info` | Normal operations, milestones | `info("Work submitted", { jobId })` |
+| `warn` | Concerning but recoverable | `warn("Retry attempt", { attempt: 3 })` |
+| `error` | Failures requiring attention | `error("Sync failed", { error })` |
+
+## Structured Logging Format
+
+**Always use structured logging with context:**
+
+```typescript
+// ✅ Correct — structured with context
+logger.info("Work submitted successfully", {
+  jobId: "job-123",
+  gardenId: "garden-456",
+  chainId: 84532,
+  userId: "user-789",
+  duration: 1250,
+});
+
+// ❌ Wrong — unstructured string interpolation
+console.log(`Work ${jobId} submitted to garden ${gardenId}`);
+```
+
+## Logging Patterns by Package
+
+### Client (PWA)
+
+```typescript
+// Job queue operations
+logger.info("Job added to queue", { jobId, type: "work", gardenId });
+logger.info("Job processing started", { jobId, attempt: 1 });
+logger.warn("Job retry scheduled", { jobId, attempt: 3, nextRetry: timestamp });
+logger.error("Job failed permanently", { jobId, error: error.message, attempts: 5 });
+
+// Sync operations
+logger.info("Sync started", { pendingJobs: 5, online: true });
+logger.info("Sync completed", { synced: 5, failed: 0, duration: 3200 });
+logger.warn("Partial sync", { synced: 3, failed: 2, errors: [...] });
+
+// Auth events
+logger.info("User authenticated", { authMode: "passkey", userId });
+logger.info("User signed out", { userId, reason: "manual" });
+logger.warn("Auth session expired", { userId });
+```
+
+### Admin
+
+```typescript
+// Garden operations
+logger.info("Garden created", { gardenId, creatorId, chainId });
+logger.info("Member added", { gardenId, memberId, role: "gardener" });
+logger.info("Work approved", { workId, gardenId, approverId });
+
+// Transaction tracking
+logger.info("Transaction submitted", { txHash, type: "addGardener", gardenId });
+logger.info("Transaction confirmed", { txHash, blockNumber, gasUsed });
+logger.error("Transaction failed", { txHash, error: error.message });
+```
+
+### Contracts (Events as Logs)
+
+```solidity
+// Emit events for all state changes (these ARE your logs)
+event WorkSubmitted(uint256 indexed actionUID, address indexed gardener, bytes32 workUID);
+event WorkApproved(bytes32 indexed workUID, address indexed approver, bool approved);
+event ModuleExecutionSuccess(bytes32 indexed moduleId, address indexed garden, bytes32 uid);
+event ModuleExecutionFailed(bytes32 indexed moduleId, address indexed garden, bytes32 uid);
+```
+
+### Indexer
+
+```typescript
+// Event processing
+logger.info("Event processed", { event: "GardenCreated", gardenId, chainId, blockNumber });
+logger.warn("Event processing slow", { event, duration: 5000, threshold: 2000 });
+logger.error("Event handler failed", { event, error: error.message, blockNumber });
+```
+
+### Agent
+
+```typescript
+// Command handling
+logger.info("Command received", { platform: "telegram", command: "/start", userId });
+logger.info("Response sent", { platform: "telegram", userId, responseType: "welcome" });
+
+// Rate limiting
+logger.warn("Rate limit triggered", { userId, limit: "messages", count: 11, window: "1m" });
+
+// Encryption operations (never log sensitive data!)
+logger.info("Key encrypted for storage", { userId });  // ✅
+logger.info("Key stored", { key: privateKey });        // ❌ NEVER!
+```
+
+## Correlation IDs
+
+**Track requests across services with correlation IDs:**
+
+```typescript
+// Generate at request start
+const correlationId = crypto.randomUUID();
+
+// Include in all logs for this request
+logger.info("Work submission started", { correlationId, gardenId });
+logger.info("IPFS upload complete", { correlationId, cid });
+logger.info("Transaction submitted", { correlationId, txHash });
+
+// Pass to downstream services
+await submitToQueue(data, { correlationId });
+```
+
+## Sensitive Data Rules
+
+**NEVER log:**
+
+```typescript
+// ❌ NEVER log these
+logger.info("User data", { privateKey });           // Private keys
+logger.info("Auth", { password, seedPhrase });      // Credentials
+logger.info("Session", { authToken, apiKey });      // Tokens
+logger.info("Personal", { email, phone, address }); // PII without consent
+```
+
+**Safe to log:**
+
+```typescript
+// ✅ Safe to log
+logger.info("User action", {
+  userId: "user-123",           // Opaque ID, not email
+  walletAddress: "0x1234...",   // Public blockchain address
+  gardenId: "garden-456",       // Internal ID
+  action: "submit_work",        // Action type
+});
+```
+
+## Error Logging
+
+**Include stack traces and context for errors:**
+
+```typescript
+try {
+  await submitWork(draft);
+} catch (error) {
+  logger.error("Work submission failed", {
+    error: error instanceof Error ? error.message : String(error),
+    stack: error instanceof Error ? error.stack : undefined,
+    context: {
+      gardenId,
+      actionId,
+      authMode,
+      attempt: retryCount,
+    },
+  });
+  throw error;  // Re-throw after logging
+}
+```
+
+## Performance Logging
+
+**Track operation durations:**
+
+```typescript
+const start = performance.now();
+
+await heavyOperation();
+
+const duration = performance.now() - start;
+logger.info("Operation completed", {
+  operation: "ipfsUpload",
+  duration,
+  ...(duration > 5000 && { slow: true }),  // Flag slow operations
+});
+```
+
+## Health Metrics
+
+**Log periodic health metrics:**
+
+```typescript
+// Job queue health (every 5 minutes)
+logger.info("Queue health", {
+  pending: stats.pending,
+  processing: stats.processing,
+  completed: stats.completedLast5Min,
+  failed: stats.failedLast5Min,
+  avgProcessingTime: stats.avgDuration,
+});
+
+// Memory usage (if concerning)
+if (performance.memory?.usedJSHeapSize > threshold) {
+  logger.warn("High memory usage", {
+    used: performance.memory.usedJSHeapSize,
+    total: performance.memory.totalJSHeapSize,
+  });
+}
+```
+
+## Client-Side Error Tracking
+
+**Capture unhandled errors:**
+
+```typescript
+// Global error handler
+window.addEventListener("error", (event) => {
+  logger.error("Unhandled error", {
+    message: event.message,
+    filename: event.filename,
+    lineno: event.lineno,
+    colno: event.colno,
+    stack: event.error?.stack,
+  });
+});
+
+// Unhandled promise rejections
+window.addEventListener("unhandledrejection", (event) => {
+  logger.error("Unhandled promise rejection", {
+    reason: event.reason?.message || String(event.reason),
+    stack: event.reason?.stack,
+  });
+});
+```
+
+## Log Aggregation (Production)
+
+**In production, logs should be sent to a centralized service:**
+
+```typescript
+// Development: console
+// Production: structured JSON to aggregator
+
+const logger = createLogger({
+  level: import.meta.env.DEV ? "debug" : "info",
+  transport: import.meta.env.DEV
+    ? consoleTransport
+    : jsonTransport,  // For log aggregation (Datadog, etc.)
+});
+```
+
+## Anti-Patterns
+
+### Never Use console.log in Production Code
+
+```typescript
+// ❌ Wrong — unstructured, no levels
+console.log("something happened");
+console.log("data:", data);
+
+// ✅ Correct — structured with context
+logger.info("Event occurred", { eventType, data });
+```
+
+### Never Log and Swallow Errors
+
+```typescript
+// ❌ Wrong — swallows error
+try {
+  await riskyOperation();
+} catch (e) {
+  console.error(e);
+  // Error disappears!
+}
+
+// ✅ Correct — log and handle appropriately
+try {
+  await riskyOperation();
+} catch (error) {
+  logger.error("Operation failed", { error: error.message });
+  throw error;  // Or handle with user feedback
+}
+```
+
+### Never Log in Loops Without Throttling
+
+```typescript
+// ❌ Wrong — floods logs
+for (const item of items) {
+  logger.info("Processing item", { item });
+}
+
+// ✅ Correct — batch or summarize
+logger.info("Processing batch", { count: items.length });
+// ... process ...
+logger.info("Batch complete", { processed: items.length, failed: 0 });
+```
+
+## Implementation Checklist
+
+- [ ] Logger utility created in `@green-goods/shared`
+- [ ] Log levels configured per environment
+- [ ] Correlation IDs implemented for request tracing
+- [ ] Sensitive data scrubbing in place
+- [ ] Error boundaries log to error tracking
+- [ ] Performance metrics for slow operations
+- [ ] Health check endpoints log status
+
+## Reference
+
+- Error tracking: See `error-handling.mdc`
+- Performance: See `performance.mdc`

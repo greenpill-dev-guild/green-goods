@@ -26,6 +26,34 @@ src/
 
 ## Core Concepts
 
+### Design Principles Applied
+
+**DRY (Don't Repeat Yourself)**
+- All hooks from `@green-goods/shared` — zero local hook definitions
+- Design system tokens — no hardcoded colors
+- Toast presets from shared — consistent feedback
+
+**KISS (Keep It Simple, Stupid)**
+- Chain from environment only — no runtime switching
+- Event-driven updates — no complex polling logic
+- Semantic tokens — simple, consistent styling
+
+**Separation of Concerns**
+- `components/` — Reusable UI elements only
+- `views/` — Page-level compositions
+- `routes/` — Navigation and guards
+- Business logic lives in `@green-goods/shared`
+
+**Interface Segregation (SOLID)**
+- Import only needed hooks from shared
+- Components receive minimal props
+- Views compose components, don't know about data fetching internals
+
+**Optimize for Deletion**
+- Components are self-contained and removable
+- Views can be swapped without affecting others
+- Route guards are independent
+
 ### Offline-First
 
 Work submissions queue locally when offline and sync when online:

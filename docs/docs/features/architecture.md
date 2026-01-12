@@ -178,7 +178,7 @@ Confirm data matches
 **Purpose**: Mobile-first app for gardeners to document work
 
 **Technology**:
-- React 18 + TypeScript
+- React 19 + TypeScript
 - Vite bundler
 - TanStack Query (data fetching)
 - Zustand (state management)
@@ -204,7 +204,7 @@ User input → Local validation → IndexedDB queue
 **Purpose**: Web dashboard for operators to manage gardens and approve work
 
 **Technology**:
-- React 18 + TypeScript
+- React 19 + TypeScript
 - Urql (GraphQL client)
 - XState (workflow orchestration)
 - Zustand (state management)

@@ -797,7 +797,58 @@ afterEach(() => {
 
 ## Performance Testing
 
-### Lighthouse (Manual)
+### Lighthouse CI (Automated)
+
+Lighthouse CI runs automatically on all PRs that affect the client, admin, or shared packages. It tests performance, accessibility, best practices, and SEO.
+
+**Run locally:**
+
+```bash
+# Test client (builds + runs Lighthouse)
+bun lighthouse:client
+
+# Test admin
+bun lighthouse:admin
+
+# Test both
+bun lighthouse
+
+# Collect results only (no assertions)
+bun lighthouse:collect
+```
+
+**Performance Budgets:**
+
+| Metric | Target | Notes |
+|--------|--------|-------|
+| Performance Score | 90+ | Overall Lighthouse performance |
+| Accessibility Score | 100 | WCAG compliance |
+| Best Practices | 95+ | Security, HTTPS, modern APIs |
+| SEO | 90+ | Meta tags, semantic HTML |
+| Total Blocking Time | < 300ms | Main thread blocking time |
+| Cumulative Layout Shift | < 0.1 | Visual stability |
+| Largest Contentful Paint | < 2.5s | Largest element render time |
+| First Contentful Paint | < 2s | First paint time |
+| Time to Interactive | < 3.8s | Full interactivity time |
+
+**Configuration:**
+
+- Client config: `packages/client/.lighthouserc.json`
+- Admin config: `packages/admin/.lighthouserc.json`
+- CI workflow: `.github/workflows/lighthouse-ci.yml`
+
+**Viewing Results:**
+
+Results are uploaded to temporary public storage and linked in PR comments. You can also view local results:
+
+```bash
+# After running locally (from package directory)
+cd packages/client && npx lhci open
+```
+
+### Lighthouse (Manual - Advanced)
+
+For custom Lighthouse audits beyond CI:
 
 ```bash
 # Build production
@@ -806,15 +857,34 @@ bun --filter client build
 # Serve
 bunx serve packages/client/dist
 
-# Run Lighthouse
-npx lighthouse http://localhost:3000 --view
+# Run Lighthouse with custom config
+npx lighthouse http://localhost:3000 --view \
+  --preset=desktop \
+  --throttling.rttMs=40 \
+  --throttling.throughputKbps=10240
+
+# Mobile simulation
+npx lighthouse http://localhost:3000 --view \
+  --preset=perf \
+  --throttling-method=simulate
 ```
 
-**Targets**:
-- Performance: 90+
-- Accessibility: 100
-- Best Practices: 95+
-- SEO: 90+
+### Performance Profiling
+
+Use Chrome DevTools for detailed performance analysis:
+
+```bash
+# Start dev server
+bun dev
+
+# Open Chrome DevTools Performance tab
+# Record page load and interactions
+# Look for:
+# - Long tasks (> 50ms)
+# - Network waterfalls
+# - Memory leaks
+# - Layout thrashing
+```
 
 ### Load Testing (Future)
 

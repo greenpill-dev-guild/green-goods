@@ -54,6 +54,35 @@ bun stop
 # or just Ctrl+C
 ```
 
+## Design Principles Applied
+
+**DRY (Don't Repeat Yourself)**
+- Composite ID pattern (`${chainId}-${identifier}`) used consistently
+- Helper functions for common entity operations
+- Reusable query patterns in `queries/`
+
+**KISS (Keep It Simple, Stupid)**
+- Direct entity updates — no complex ORM abstractions
+- Simple event → entity mapping
+- Graceful degradation with sensible defaults
+
+**Single Responsibility (SOLID)**
+- Each handler processes one event type
+- Clear separation: config.yaml (what to index) vs EventHandlers.ts (how to process)
+- Schema defines structure, handlers define behavior
+
+**Idempotency**
+- Handlers can be re-run safely
+- Create-if-not-exists pattern for update events
+- Entity state is always consistent
+
+**Defensive Programming**
+- Null checks with fallback values
+- Try/catch with meaningful error logs
+- Bidirectional relationship updates (both sides)
+
+---
+
 ## Entity Conventions
 
 ### Always Include chainId

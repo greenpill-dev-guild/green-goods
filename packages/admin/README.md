@@ -59,7 +59,7 @@ The `useRole` hook automatically detects user permissions:
 ## 🏗️ Architecture
 
 ### Technology Stack
-- **Frontend**: React 18 + TypeScript + Vite
+- **Frontend**: React 19 + TypeScript + Vite
 - **Styling**: Tailwind CSS v4 + Radix UI
 - **State Management**: Zustand + XState workflows
 - **Data Fetching**: TanStack Query + graphql-request

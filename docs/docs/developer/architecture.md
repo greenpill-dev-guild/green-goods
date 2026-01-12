@@ -19,7 +19,7 @@ All packages share the root `.env`; Base Sepolia (`84532`) is the default networ
 
 ### Client PWA
 
-- **Stack**: React 18, Vite, Tailwind v4, Radix UI, TanStack Query (with offline persister), Viem, Zustand.
+- **Stack**: React 19, Vite, Tailwind v4, Radix UI, TanStack Query (with offline persister), Viem, Zustand.
 - **Auth**: Pimlico passkey smart accounts (primary) and Reown AppKit wallet connections. Privy variables exist only for legacy migrations.
 - **Offline architecture**: IndexedDB queue (`src/modules/offline`), service worker via `vite-plugin-pwa`, background sync to replay submissions.
 - **Useful commands**:
@@ -32,7 +32,7 @@ All packages share the root `.env`; Base Sepolia (`84532`) is the default networ
 
 ### Admin Dashboard
 
-- **Stack**: React 18, Tailwind v4, Zustand, XState workflows, Urql (GraphQL + subscriptions), Viem.
+- **Stack**: React 19, Tailwind v4, Zustand, XState workflows, Urql (GraphQL + subscriptions), Viem.
 - **Roles**: Admin allow list (see `src/config.ts`) and operator scope resolved from the indexer via the `useRole` hook.
 - **Features**: Garden creation & membership management, contract deployment helpers, Karma GAP impact viewing (via SDK), planned impact exports.
 - **Commands**:

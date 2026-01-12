@@ -8,6 +8,31 @@ alwaysApply: true
 
 Green Goods is a bun monorepo with 6 packages. This rule provides guidance on cross-package patterns and when to share vs duplicate code.
 
+## Cross-Package Principles
+
+### DRY Across Packages
+
+- **Rule of Three:** If code appears in 3+ places, extract to `@green-goods/shared`
+- Share hooks, utilities, types — never duplicate business logic
+- Contract addresses from deployment artifacts — single source of truth
+
+### Separation of Concerns by Package
+
+| Package | Responsibility | Never Contains |
+|---------|----------------|----------------|
+| `shared` | Hooks, providers, business logic | UI components |
+| `client` | Gardener UI only | Hooks, business logic |
+| `admin` | Operator UI only | Hooks, business logic |
+| `contracts` | On-chain state | Frontend code |
+| `indexer` | Data indexing | Business logic |
+| `agent` | Bot interactions | Frontend code |
+
+### YAGNI for Packages
+
+- Don't add package dependencies "just in case"
+- Don't create abstraction layers between packages until needed
+- Don't add configuration options without a use case
+
 ## Visual Reference
 
 See [System Context Diagram](docs/developer/architecture/diagrams.md#system-context) for package relationships and external integrations.

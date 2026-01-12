@@ -6,6 +6,211 @@ alwaysApply: true
 
 # Code Quality & Testing Standards
 
+## Coding Principles
+
+### Core Principles (Always Apply)
+
+**DRY (Don't Repeat Yourself)**
+- If you're writing similar code a third time, extract it to `@green-goods/shared`
+- Use existing utilities: `queryKeys`, toast presets, date formatters
+- Never hardcode values that exist in deployment artifacts
+
+**KISS (Keep It Simple, Stupid)**
+- Prefer simple, readable solutions over clever abstractions
+- Use the simplest tool that solves the problem
+- Don't add configuration for "just in case" scenarios
+
+**YAGNI (You Ain't Gonna Need It)**
+- Don't implement features until they're needed
+- Don't add backwards-compatibility shims — change the code directly
+- Delete unused code completely (no `_unused` prefixes)
+
+### Code Design Principles
+
+**Single Responsibility**
+- Each function/component does one thing well
+- If a component needs "and" in its description, split it
+
+**Open/Closed**
+- Extend behavior through composition, not modification
+- Add new query keys without changing existing ones
+
+**Boy Scout Rule**
+- Leave code better than you found it
+- Fix nearby typos, improve variable names while working
+
+**Optimize for Deletion**
+- Design modules that are easy to remove
+- Loose coupling enables clean removal
+- If it's hard to delete, it's too entangled
+
+### Self-Documenting Code
+
+```typescript
+// ✅ Self-documenting — names explain intent
+const isOffline = useOffline();
+const { addGardener, removeGardener } = useGardenOperations();
+await queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
+
+// ❌ Cryptic — requires comments to understand
+const o = useO();
+const { a, r } = useGO();
+await qc.inv({ qk: ['w', 'm', gid, cid] });
+```
+
+**Comments explain "why", code explains "how":**
+```typescript
+// Merge online and offline works, preferring online within 5-minute window
+// to handle race conditions during sync
+export async function mergeWorks(online: Work[], offline: Job[]): Promise<Work[]>
+```
+
+## Advanced TypeScript Patterns (2026)
+
+### Never Use `any` — Use `unknown`
+
+```typescript
+// ✅ Forces type checking before use
+function processData(data: unknown) {
+  if (typeof data === 'string') {
+    return data.toUpperCase();  // Safe - TypeScript knows it's string
+  }
+  if (isWork(data)) {
+    return data.title;  // Safe - type guard narrows the type
+  }
+}
+
+// ❌ Turns off compiler benefits
+function processData(data: any) {
+  return data.whatever;  // No safety!
+}
+```
+
+### Discriminated Unions for Type-Safe Logic
+
+```typescript
+// ✅ Tagged unions with exhaustive checking
+type AuthState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'authenticated'; user: User }
+  | { status: 'error'; message: string };
+
+function render(state: AuthState) {
+  switch (state.status) {
+    case 'idle': return <LoginButton />;
+    case 'loading': return <Spinner />;
+    case 'authenticated': return <Dashboard user={state.user} />;
+    case 'error': return <Error message={state.message} />;
+    default: {
+      const _exhaustive: never = state;  // Compile error if case missed
+      return _exhaustive;
+    }
+  }
+}
+```
+
+### Strict Immutability with `as const`
+
+```typescript
+// ✅ Literal, read-only types
+const CHAIN_IDS = {
+  arbitrum: 42161,
+  celo: 42220,
+  baseSepolia: 84532,
+} as const;
+
+type ChainId = typeof CHAIN_IDS[keyof typeof CHAIN_IDS];  // 42161 | 42220 | 84532
+
+// ❌ Without as const - loses literal types
+const CHAIN_IDS = {
+  arbitrum: 42161,  // Type: number (not 42161)
+};
+```
+
+### AbortSignals for Async Safety
+
+```typescript
+// ✅ Cancellable async operations
+async function fetchGardens(chainId: number, signal?: AbortSignal) {
+  const response = await fetch(`/api/gardens?chain=${chainId}`, { signal });
+  if (signal?.aborted) return [];
+  return response.json();
+}
+
+// Usage in React
+useEffect(() => {
+  const controller = new AbortController();
+  fetchGardens(chainId, controller.signal);
+  return () => controller.abort();  // Cancel on unmount
+}, [chainId]);
+
+// ❌ Fire-and-forget (memory leaks, stale data)
+useEffect(() => {
+  fetchGardens(chainId);  // Can't cancel!
+}, [chainId]);
+```
+
+### Type-Safe API Layers with Zod
+
+```typescript
+// ✅ Runtime validation + TypeScript inference
+import { z } from 'zod';
+
+const WorkSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string().min(1),
+  status: z.enum(['pending', 'approved', 'rejected']),
+});
+
+type Work = z.infer<typeof WorkSchema>;  // Auto-inferred type!
+
+function parseWork(data: unknown): Work {
+  return WorkSchema.parse(data);  // Throws if invalid
+}
+```
+
+### Avoid Magic Abstractions
+
+```typescript
+// ✅ Transparent, debuggable code
+export function useGardenOperations() {
+  const queryClient = useQueryClient();
+  const chainId = useCurrentChain();
+
+  const addGardener = async (gardenId: string, address: string) => {
+    // Clear what happens, easy to debug
+    await writeContract({ ... });
+    queryClient.invalidateQueries({ queryKey: queryKeys.gardens.detail(gardenId, chainId) });
+  };
+
+  return { addGardener };
+}
+
+// ❌ Over-abstracted "clever" code
+export const useGardenOperations = createMagicHook({
+  mutations: ['addGardener', 'removeGardener'],
+  autoInvalidate: true,
+  globalErrorHandler: true,
+});  // What does this do? How do I debug it?
+```
+
+### Top-Level Await for Module Init
+
+```typescript
+// ✅ Clean module initialization (ES2022+)
+const config = await loadConfig();
+export const client = createClient(config);
+
+// ❌ Old pattern with IIFEs
+let client: Client;
+(async () => {
+  const config = await loadConfig();
+  client = createClient(config);
+})();
+export { client };  // May be undefined!
+```
+
 ## Tooling Stack
 
 ### Biome (Formatting)

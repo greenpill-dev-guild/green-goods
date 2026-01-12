@@ -28,6 +28,43 @@ src/
 
 ## Core Concepts
 
+### Design Principles Applied
+
+**DRY (Don't Repeat Yourself)**
+- Platform-agnostic message format — write handler logic once, use everywhere
+- Shared `@green-goods/shared` for blockchain operations
+- Common response builders across platforms
+
+**KISS (Keep It Simple, Stupid)**
+- Direct imports over complex DI containers
+- Singleton services — simple, predictable initialization
+- Minimal abstraction layers
+
+**Single Responsibility (SOLID)**
+- Handlers: pure business logic only
+- Adapters: message transformation only
+- Services: external integration only
+
+**Open/Closed (SOLID)**
+- Add new platforms without modifying existing handlers
+- Add new commands without changing router structure
+- Platform adapters extend, never modify core
+
+**Dependency Inversion (SOLID)**
+- Handlers receive dependencies via injection for testability
+- No direct service imports in handlers — pass as `deps` parameter
+
+**Separation of Concerns**
+- `handlers/` — Business logic (pure functions)
+- `platforms/` — Platform-specific adapters
+- `services/` — External integrations
+- `api/` — HTTP endpoints
+
+**Optimize for Deletion**
+- Each platform adapter is independent — remove without affecting others
+- Handlers don't know about platforms — easy to repurpose
+- Services are isolated — swap implementations cleanly
+
 ### Platform-Agnostic Messages
 
 All platforms normalize to a common format:

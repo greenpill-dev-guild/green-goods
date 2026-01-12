@@ -13,7 +13,7 @@ Offline-first Progressive Web App for gardeners to document regenerative work.
 
 **Path**: `packages/client/`
 **Port**: https://localhost:3001 (HTTPS via mkcert)
-**Stack**: React 18 + TypeScript + Vite
+**Stack**: React 19 + TypeScript + Vite
 
 **Commands**:
 ```bash
@@ -27,7 +27,7 @@ bun --filter client build    # Production build
 ## Tech Stack
 
 ### Core
-- React 18 (lazy loading)
+- React 19 (lazy loading)
 - TypeScript (strict mode)
 - Vite (bundler)
 - React Router

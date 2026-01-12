@@ -201,7 +201,7 @@ Developers build on, extend, or contribute to the Green Goods platform and proto
 ### Tech Stack Overview
 
 **Frontend**:
-- React 18 + TypeScript + Vite
+- React 19 + TypeScript + Vite
 - TanStack Query + Zustand
 - Tailwind CSS v4 + Radix UI
 - Offline-first architecture

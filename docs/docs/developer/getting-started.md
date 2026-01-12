@@ -65,13 +65,13 @@ green-goods/
 ### Frontend
 
 **Client (PWA)**:
-- React 18 + TypeScript + Vite
+- React 19 + TypeScript + Vite
 - TanStack Query + Zustand
 - Tailwind CSS v4 + Radix UI
 - Offline-first (IndexedDB + Service Worker)
 
 **Admin (Dashboard)**:
-- React 18 + TypeScript + Vite
+- React 19 + TypeScript + Vite
 - Urql (GraphQL) + XState + Zustand
 - Tailwind CSS v4 + Radix UI
 

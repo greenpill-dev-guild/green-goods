@@ -38,6 +38,33 @@ src/
 
 ## Core Concepts
 
+### Design Principles Applied
+
+The shared package embodies these principles:
+
+**DRY (Don't Repeat Yourself)**
+- Single source for all hooks — no duplication across client/admin
+- Centralized `queryKeys` factory — consistent cache management
+- Toast presets — reusable feedback patterns
+
+**Single Responsibility (SOLID)**
+- `useAuth` — authentication only
+- `useWorks` — work data fetching only
+- `useWorkMutation` — work submission only
+- Each hook does one thing well
+
+**Open/Closed (SOLID)**
+- `queryKeys` is open for extension (add new domains) but closed for modification
+- Add new hooks without changing existing ones
+
+**Interface Segregation (SOLID)**
+- Import only what you need: `import { useAuth }` not everything
+- Hooks expose minimal, focused interfaces
+
+**Dependency Inversion (SOLID)**
+- Hooks depend on provider abstractions, not concrete implementations
+- `useCurrentChain()` abstracts chain source from consumers
+
 ### Hook Centralization
 
 **All hooks live in shared.** Client and admin packages consume hooks but never define them.

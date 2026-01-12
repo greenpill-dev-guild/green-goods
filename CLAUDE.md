@@ -146,7 +146,7 @@ const { user, isPasskeyUser, loginWithPasskey, loginWithWallet } = useAuth();
 
 ### Critical Dependencies
 
-- **React 18** + TypeScript (strict mode)
+- **React 19** + TypeScript (strict mode)
 - **Vite** for bundling  
 - **TailwindCSS v4** + Radix UI
 - **TanStack Query** for data fetching (with graphql-request for GraphQL)
@@ -193,6 +193,7 @@ See `.env.example` for all variables with setup instructions.
 3. Build affected packages to verify: `bun --filter [package] build`
 4. Use conventional commits: `feat(client): add feature` or `fix(contracts): resolve issue`
 5. Never commit without running lint/test/build
+6. **Always run `bun install`** after adding new packages or updating dependency versions in package.json
 
 ### Key Design Decisions
 
