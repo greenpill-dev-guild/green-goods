@@ -174,25 +174,16 @@ const authSetup = setup({
     // ─────────────────────────────────────────────────────────────────────────
 
     /** Store passkey session from successful auth */
-    storePasskeySession: assign({
-      credential: ({ event }) => {
-        const e = event as { output: PasskeySessionResult };
-        return e.output.credential;
-      },
-      smartAccountClient: ({ event }) => {
-        const e = event as { output: PasskeySessionResult };
-        return e.output.smartAccountClient;
-      },
-      smartAccountAddress: ({ event }) => {
-        const e = event as { output: PasskeySessionResult };
-        return e.output.smartAccountAddress;
-      },
-      userName: ({ event }) => {
-        const e = event as { output: PasskeySessionResult };
-        return e.output.userName;
-      },
-      error: null,
-      retryCount: 0,
+    storePasskeySession: assign(({ event }) => {
+      const { output } = event as { output: PasskeySessionResult };
+      return {
+        credential: output.credential,
+        smartAccountClient: output.smartAccountClient,
+        smartAccountAddress: output.smartAccountAddress,
+        userName: output.userName,
+        error: null,
+        retryCount: 0,
+      };
     }),
 
     /** Store wallet address as primary auth */
@@ -274,17 +265,8 @@ const authSetup = setup({
     /** Can retry authentication (max 3 attempts) */
     canRetry: ({ context }) => context.retryCount < 3,
 
-    /** Has stored username for session restore */
-    hasStoredUsername: ({ context }) => {
-      const stored = localStorage.getItem("greengoods_username");
-      return Boolean(stored || context.userName);
-    },
-
     /** External wallet is connected (can switch to wallet auth) */
     hasExternalWallet: ({ context }) => context.externalWalletConnected === true,
-
-    /** No external wallet connected */
-    noExternalWallet: ({ context }) => context.externalWalletConnected !== true,
 
     /** Session was successfully restored */
     sessionRestored: ({ event }) => {
@@ -378,12 +360,7 @@ export const authMachine = authSetup.createMachine({
         },
       } as any,
 
-      on: {
-        // If wallet connects during init, track it (will be available after init)
-        EXTERNAL_WALLET_CONNECTED: {
-          actions: "trackExternalWalletConnected",
-        },
-      },
+      // EXTERNAL_WALLET_CONNECTED handled by global handler
     },
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -454,10 +431,7 @@ export const authMachine = authSetup.createMachine({
           target: "unauthenticated",
           actions: "clearAllAuthState",
         },
-        // Track external wallet even during registration
-        EXTERNAL_WALLET_CONNECTED: {
-          actions: "trackExternalWalletConnected",
-        },
+        // EXTERNAL_WALLET_CONNECTED handled by global handler
       },
     },
 
@@ -491,10 +465,7 @@ export const authMachine = authSetup.createMachine({
           target: "unauthenticated",
           actions: "clearAllAuthState",
         },
-        // Track external wallet even during authentication
-        EXTERNAL_WALLET_CONNECTED: {
-          actions: "trackExternalWalletConnected",
-        },
+        // EXTERNAL_WALLET_CONNECTED handled by global handler
       },
     },
 
@@ -648,12 +619,7 @@ export const authMachine = authSetup.createMachine({
             },
           } as any,
 
-          on: {
-            // Track external wallet even during ENS claim
-            EXTERNAL_WALLET_CONNECTED: {
-              actions: "trackExternalWalletConnected",
-            },
-          },
+          // EXTERNAL_WALLET_CONNECTED handled by global handler
         },
       },
     },
@@ -709,13 +675,7 @@ export const authMachine = authSetup.createMachine({
           actions: "clearAllAuthState",
         },
 
-        // Track external wallet even in error state
-        EXTERNAL_WALLET_CONNECTED: {
-          actions: "trackExternalWalletConnected",
-        },
-        EXTERNAL_WALLET_DISCONNECTED: {
-          actions: "trackExternalWalletDisconnected",
-        },
+        // External wallet events handled by global handler
       },
     },
   },

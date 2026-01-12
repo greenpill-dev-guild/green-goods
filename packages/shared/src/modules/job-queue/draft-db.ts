@@ -8,73 +8,17 @@
  */
 
 import { type IDBPDatabase, openDB } from "idb";
-import type { DraftImage, DraftStep, WorkDraft, SerializedFileData } from "../../types/job-queue";
+import type { DraftImage, DraftStep, WorkDraftRecord, SerializedFileData } from "../../types/job-queue";
+import { serializeFile, deserializeFile, buildFileMetadata } from "../../utils/storage/file-serialization";
 import { trackStorageError } from "../app/error-tracking";
 import { mediaResourceManager } from "./media-resource-manager";
-
-/**
- * Serialize a File to IndexedDB-safe format.
- * iOS Safari cannot store File objects directly due to structured cloning issues.
- */
-async function serializeFile(file: File): Promise<SerializedFileData> {
-  const arrayBuffer = await file.arrayBuffer();
-  return {
-    data: arrayBuffer,
-    name: file.name,
-    type: file.type || "image/jpeg",
-    lastModified: file.lastModified || Date.now(),
-  };
-}
-
-/**
- * Deserialize stored file data back to a File object.
- * Handles both new format (SerializedFileData) and legacy format (File).
- */
-function deserializeFile(
-  image: DraftImage,
-  fallbackDraftId: string,
-  fallbackImageId: string
-): File {
-  // New format: SerializedFileData
-  if (image.fileData?.data) {
-    return new File([image.fileData.data], image.fileData.name, {
-      type: image.fileData.type,
-      lastModified: image.fileData.lastModified,
-    });
-  }
-
-  // Legacy format: direct File object (may fail on iOS when reading)
-  if (image.file instanceof File) {
-    return image.file;
-  }
-
-  // Fallback: try to reconstruct from blob-like object
-  if (image.file) {
-    const blob = image.file as unknown as Blob;
-    return new File(
-      [blob],
-      (image.file as unknown as { name?: string }).name ||
-        `draft-${fallbackDraftId}-${fallbackImageId}.jpg`,
-      {
-        type: blob?.type || "image/jpeg",
-        lastModified: Date.now(),
-      }
-    );
-  }
-
-  // Last resort: empty file (should not happen)
-  return new File([], `draft-${fallbackDraftId}-${fallbackImageId}.jpg`, {
-    type: "image/jpeg",
-    lastModified: Date.now(),
-  });
-}
 
 const DB_NAME = "green-goods-drafts";
 const DB_VERSION = 1;
 const MAX_DRAFTS_PER_USER = 20;
 
 interface DraftDB {
-  drafts: WorkDraft;
+  drafts: WorkDraftRecord;
   draft_images: DraftImage;
 }
 
@@ -82,7 +26,7 @@ interface DraftDB {
  * Compute the first incomplete step based on draft data
  */
 export function computeFirstIncompleteStep(
-  draft: Partial<WorkDraft>,
+  draft: Partial<WorkDraftRecord>,
   hasImages: boolean
 ): DraftStep {
   // Step 1: Intro - needs garden and action selected
@@ -141,7 +85,7 @@ class DraftDatabase {
   async createDraft(
     userAddress: string,
     chainId: number,
-    data: Partial<Omit<WorkDraft, "id" | "userAddress" | "chainId" | "createdAt" | "updatedAt">>
+    data: Partial<Omit<WorkDraftRecord, "id" | "userAddress" | "chainId" | "createdAt" | "updatedAt">>
   ): Promise<string> {
     const db = await this.init();
 
@@ -151,7 +95,7 @@ class DraftDatabase {
     const id = crypto.randomUUID();
     const now = Date.now();
 
-    const draft: WorkDraft = {
+    const draft: WorkDraftRecord = {
       id,
       userAddress,
       chainId,
@@ -175,7 +119,7 @@ class DraftDatabase {
    */
   async updateDraft(
     draftId: string,
-    data: Partial<Omit<WorkDraft, "id" | "userAddress" | "chainId" | "createdAt">>
+    data: Partial<Omit<WorkDraftRecord, "id" | "userAddress" | "chainId" | "createdAt">>
   ): Promise<void> {
     const db = await this.init();
     const existing = await db.get("drafts", draftId);
@@ -188,7 +132,7 @@ class DraftDatabase {
     const images = await this.getImagesForDraft(draftId);
     const hasImages = images.length > 0;
 
-    const updated: WorkDraft = {
+    const updated: WorkDraftRecord = {
       ...existing,
       ...data,
       firstIncompleteStep: computeFirstIncompleteStep({ ...existing, ...data }, hasImages),
@@ -201,7 +145,7 @@ class DraftDatabase {
   /**
    * Get a draft by ID
    */
-  async getDraft(draftId: string): Promise<WorkDraft | undefined> {
+  async getDraft(draftId: string): Promise<WorkDraftRecord | undefined> {
     const db = await this.init();
     return await db.get("drafts", draftId);
   }
@@ -209,7 +153,7 @@ class DraftDatabase {
   /**
    * Get all drafts for a user on a specific chain, ordered by updatedAt desc
    */
-  async getDraftsForUser(userAddress: string, chainId: number): Promise<WorkDraft[]> {
+  async getDraftsForUser(userAddress: string, chainId: number): Promise<WorkDraftRecord[]> {
     const db = await this.init();
     const tx = db.transaction("drafts", "readonly");
     const index = tx.objectStore("drafts").index("userAddress");
@@ -261,14 +205,7 @@ class DraftDatabase {
       trackStorageError(serializeError, {
         source: "DraftDatabase.addImageToDraft",
         userAction: "serializing file for IndexedDB storage",
-        metadata: {
-          file_name: file.name,
-          file_size: file.size,
-          file_type: file.type,
-          draft_id: draftId,
-          is_ios: /iPad|iPhone|iPod/.test(navigator?.userAgent || ""),
-          user_agent: navigator?.userAgent,
-        },
+        metadata: buildFileMetadata(file, draftId),
       });
       throw serializeError;
     }
@@ -286,12 +223,7 @@ class DraftDatabase {
         source: "DraftDatabase.addImageToDraft",
         userAction: "storing image in IndexedDB",
         metadata: {
-          file_name: file.name,
-          file_size: file.size,
-          file_type: file.type,
-          draft_id: draftId,
-          is_ios: /iPad|iPhone|iPod/.test(navigator?.userAgent || ""),
-          user_agent: navigator?.userAgent,
+          ...buildFileMetadata(file, draftId),
           error_name: storeError instanceof Error ? storeError.name : "Unknown",
           error_message: storeError instanceof Error ? storeError.message : String(storeError),
         },
@@ -351,7 +283,7 @@ class DraftDatabase {
 
     // Deserialize files from IndexedDB format back to File objects
     return images.map((img) => {
-      const file = deserializeFile(img, draftId, img.id);
+      const file = deserializeFile(img, `draft-${draftId}`, img.id);
 
       return {
         id: img.id,

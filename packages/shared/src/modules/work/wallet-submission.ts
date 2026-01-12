@@ -12,6 +12,7 @@
  * @module modules/work/wallet-submission
  */
 
+import type { WorkApprovalDraft, WorkDraft } from "../../types/domain";
 import { NO_EXPIRATION, ZERO_BYTES32 } from "../../utils/eas/constants";
 import { getPublicClient, getWalletClient, waitForTransactionReceipt } from "@wagmi/core";
 import { wagmiConfig } from "../../config/appkit";

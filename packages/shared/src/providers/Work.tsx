@@ -10,6 +10,7 @@
  */
 
 import React, { useCallback, useContext } from "react";
+import type { Action, Garden, WorkDraft } from "../types/domain";
 import type { Control, FormState, UseFormRegister } from "react-hook-form";
 import { useShallow } from "zustand/react/shallow";
 import { validationToasts } from "../components/toast";

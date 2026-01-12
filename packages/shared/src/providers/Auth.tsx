@@ -45,6 +45,7 @@ import {
   clearAuthMode,
   clearStoredUsername,
   getAuthMode,
+  getStoredUsername,
   hasStoredUsername,
   setAuthMode as saveAuthModeToStorage,
 } from "../modules/auth/session";
@@ -252,9 +253,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       // Get stored username or use provided
-      const storedUsername =
-        typeof window !== "undefined" ? localStorage.getItem("greengoods_username") : null;
-      const finalUserName = userName || storedUsername || "user";
+      const finalUserName = userName || getStoredUsername() || "user";
 
       // Send event to machine
       actor.send({ type: "LOGIN_PASSKEY_EXISTING", userName: finalUserName });
@@ -287,9 +286,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const switchToPasskey = useCallback(
     (userName?: string) => {
       if (!actor) return;
-      const storedUsername =
-        typeof window !== "undefined" ? localStorage.getItem("greengoods_username") : null;
-      const finalUserName = userName || storedUsername || "user";
+      const finalUserName = userName || getStoredUsername() || "user";
       actor.send({ type: "SWITCH_TO_PASSKEY", userName: finalUserName });
       saveAuthModeToStorage("passkey");
     },

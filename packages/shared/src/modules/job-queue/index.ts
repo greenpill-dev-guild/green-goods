@@ -1,5 +1,6 @@
 import type { SmartAccountClient } from "permissionless";
 import { DEFAULT_CHAIN_ID } from "../../config";
+import type { WorkApprovalDraft, WorkSubmission } from "../../types/domain";
 import type {
   ApprovalJobPayload,
   Job,
@@ -71,7 +72,7 @@ async function executeWorkJob(
       plantCount: typeof payload.plantCount === "number" ? payload.plantCount : 0,
       feedback: payload.feedback,
       media: files,
-    } as WorkDraft,
+    } as WorkSubmission,
     gardenAddress: payload.gardenAddress,
     actionUID: payload.actionUID,
     actionTitle,

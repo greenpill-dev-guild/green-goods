@@ -8,6 +8,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./components": "./src/components/index.ts",
+    "./cards": "./src/components/Cards/index.ts",
+    "./display": "./src/components/Display/index.ts",
+    "./badge": "./src/components/Badge/index.ts",
     "./config": "./src/config/index.ts",
     "./hooks": "./src/hooks/index.ts",
     "./i18n": "./src/i18n/index.ts",

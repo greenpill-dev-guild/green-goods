@@ -56,23 +56,20 @@ import type { PasskeySessionResult, RestoreSessionResult } from "./authMachine";
 // TYPES
 // ============================================================================
 
-interface RegisterInput {
+/** Input for passkey operations (register/authenticate) */
+interface PasskeyInput {
   passkeyClient: PasskeyServerClient | null;
   userName: string | null;
   chainId: number;
 }
 
-interface AuthenticateInput {
-  passkeyClient: PasskeyServerClient | null;
-  userName: string | null;
-  chainId: number;
-}
-
+/** Input for session restore (no userName needed - read from storage) */
 interface RestoreInput {
   passkeyClient: PasskeyServerClient | null;
   chainId: number;
 }
 
+/** Input for ENS claiming */
 interface ClaimENSInput {
   smartAccountClient: SmartAccountClient | null;
   name: string;
@@ -81,8 +78,37 @@ interface ClaimENSInput {
 const DEFAULT_SPONSORSHIP_POLICY_ID = "sp_next_monster_badoon";
 
 // ============================================================================
-// HELPER: Build Smart Account from Credential
+// HELPERS
 // ============================================================================
+
+/**
+ * Decode a credential ID from base64URL or hex format to Uint8Array.
+ * WebAuthn credential IDs can be in either format depending on the server.
+ */
+function decodeCredentialId(id: string): Uint8Array {
+  // Try base64URL decode first
+  try {
+    let base64 = id.replace(/-/g, "+").replace(/_/g, "/");
+    const padding = base64.length % 4;
+    if (padding === 2) base64 += "==";
+    else if (padding === 3) base64 += "=";
+
+    const decoded = atob(base64);
+    const bytes = new Uint8Array(decoded.length);
+    for (let i = 0; i < decoded.length; i++) {
+      bytes[i] = decoded.charCodeAt(i);
+    }
+    return bytes;
+  } catch {
+    // Try hex decoding as fallback
+    const hex = id.replace(/^0x/, "");
+    const byteValues = hex.match(/.{1,2}/g)?.map((byte) => parseInt(byte, 16)) || [];
+    if (byteValues.some((b) => isNaN(b))) {
+      throw new Error("Invalid credential ID format");
+    }
+    return new Uint8Array(byteValues);
+  }
+}
 
 async function buildSmartAccountFromCredential(
   credential: P256Credential,
@@ -212,7 +238,7 @@ export const restoreSessionService = fromPromise<RestoreSessionResult | null, Re
  * 3. Verify registration on Pimlico server (stores credential)
  * 4. Build smart account client
  */
-export const registerPasskeyService = fromPromise<PasskeySessionResult, RegisterInput>(
+export const registerPasskeyService = fromPromise<PasskeySessionResult, PasskeyInput>(
   async ({ input }) => {
     const { userName, chainId } = input;
 
@@ -271,7 +297,7 @@ export const registerPasskeyService = fromPromise<PasskeySessionResult, Register
  * 2. Prompt biometric authentication
  * 3. Build smart account client
  */
-export const authenticatePasskeyService = fromPromise<PasskeySessionResult, AuthenticateInput>(
+export const authenticatePasskeyService = fromPromise<PasskeySessionResult, PasskeyInput>(
   async ({ input }) => {
     const { userName, chainId } = input;
 
@@ -298,30 +324,8 @@ export const authenticatePasskeyService = fromPromise<PasskeySessionResult, Auth
       // Use first credential
       const credential = credentials[0];
 
-      // Prompt biometric authentication
-      // Convert credential ID to BufferSource for WebAuthn
-      let credentialIdBytes: Uint8Array;
-      try {
-        // Base64URL decode
-        let base64 = credential.id.replace(/-/g, "+").replace(/_/g, "/");
-        const padding = base64.length % 4;
-        if (padding === 2) base64 += "==";
-        else if (padding === 3) base64 += "=";
-
-        const decodedData = atob(base64);
-        credentialIdBytes = new Uint8Array(decodedData.length);
-        for (let i = 0; i < decodedData.length; i++) {
-          credentialIdBytes[i] = decodedData.charCodeAt(i);
-        }
-      } catch {
-        // Try hex decoding as fallback
-        const hex = credential.id.replace(/^0x/, "");
-        const bytes = hex.match(/.{1,2}/g)?.map((byte) => parseInt(byte, 16)) || [];
-        if (bytes.some((b) => isNaN(b))) {
-          throw new Error("Invalid credential ID format");
-        }
-        credentialIdBytes = new Uint8Array(bytes);
-      }
+      // Decode credential ID for WebAuthn authentication
+      const credentialIdBytes = decodeCredentialId(credential.id);
 
       // Prompt WebAuthn authentication (biometric)
       // Use stored RP ID for Android compatibility (must match registration)

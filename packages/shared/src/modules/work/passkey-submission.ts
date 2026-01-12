@@ -1,6 +1,7 @@
 import { NO_EXPIRATION, ZERO_BYTES32 } from "../../utils/eas/constants";
 import { getPublicClient } from "@wagmi/core";
 import type { SmartAccountClient } from "permissionless";
+import type { WorkApprovalDraft, WorkDraft } from "../../types/domain";
 
 import { wagmiConfig } from "../../config/appkit";
 import { getEASConfig } from "../../config/blockchain";

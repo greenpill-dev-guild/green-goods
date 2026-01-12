@@ -125,56 +125,43 @@ export const authActor = typeof window !== "undefined" ? getAuthActor() : null;
 // ============================================================================
 
 /**
- * Common selectors for use with `useSelector`
+ * Selectors for use with `useSelector` from @xstate/react
+ *
+ * Usage:
+ * ```ts
+ * const isAuthenticated = useSelector(authActor, authSelectors.isAuthenticated);
+ * const address = useSelector(authActor, authSelectors.activeAddress);
+ * ```
  */
 export const authSelectors = {
   // State checks
-  isInitializing: (state: ReturnType<typeof getAuthActor>["getSnapshot"]) =>
-    state().matches("initializing"),
-
-  isAuthenticated: (state: ReturnType<typeof getAuthActor>["getSnapshot"]) =>
-    state().matches("authenticated"),
-
-  isPasskeyAuth: (state: ReturnType<typeof getAuthActor>["getSnapshot"]) =>
-    state().matches({ authenticated: "passkey" }),
-
-  isWalletAuth: (state: ReturnType<typeof getAuthActor>["getSnapshot"]) =>
-    state().matches({ authenticated: "wallet" }),
-
-  isAuthenticating: (state: ReturnType<typeof getAuthActor>["getSnapshot"]) =>
-    state().matches("registering") || state().matches("authenticating"),
-
-  isError: (state: ReturnType<typeof getAuthActor>["getSnapshot"]) => state().matches("error"),
+  isInitializing: (snapshot: AuthSnapshot) => snapshot.matches("initializing"),
+  isAuthenticated: (snapshot: AuthSnapshot) => snapshot.matches("authenticated"),
+  isPasskeyAuth: (snapshot: AuthSnapshot) => snapshot.matches({ authenticated: "passkey" }),
+  isWalletAuth: (snapshot: AuthSnapshot) => snapshot.matches({ authenticated: "wallet" }),
+  isAuthenticating: (snapshot: AuthSnapshot) =>
+    snapshot.matches("registering") || snapshot.matches("authenticating"),
+  isError: (snapshot: AuthSnapshot) => snapshot.matches("error"),
 
   // Context values
-  smartAccountAddress: (state: ReturnType<typeof getAuthActor>["getSnapshot"]) =>
-    state().context.smartAccountAddress,
-
-  walletAddress: (state: ReturnType<typeof getAuthActor>["getSnapshot"]) =>
-    state().context.walletAddress,
-
-  userName: (state: ReturnType<typeof getAuthActor>["getSnapshot"]) => state().context.userName,
-
-  error: (state: ReturnType<typeof getAuthActor>["getSnapshot"]) => state().context.error,
+  smartAccountAddress: (snapshot: AuthSnapshot) => snapshot.context.smartAccountAddress,
+  walletAddress: (snapshot: AuthSnapshot) => snapshot.context.walletAddress,
+  userName: (snapshot: AuthSnapshot) => snapshot.context.userName,
+  error: (snapshot: AuthSnapshot) => snapshot.context.error,
 
   // Computed - respects auth mode (single source of truth)
-  activeAddress: (state: ReturnType<typeof getAuthActor>["getSnapshot"]) => {
-    const snapshot = state();
-    // Passkey mode -> use smart account address
+  activeAddress: (snapshot: AuthSnapshot) => {
     if (snapshot.matches({ authenticated: "passkey" })) {
       return snapshot.context.smartAccountAddress;
     }
-    // Wallet mode -> use wallet address
     if (snapshot.matches({ authenticated: "wallet" })) {
       return snapshot.context.walletAddress;
     }
-    // Not authenticated
     return null;
   },
 
   // Auth mode derived from state
-  authMode: (state: ReturnType<typeof getAuthActor>["getSnapshot"]) => {
-    const snapshot = state();
+  authMode: (snapshot: AuthSnapshot) => {
     if (
       snapshot.matches({ authenticated: "passkey" }) ||
       snapshot.matches({ authenticated: "claiming_ens" })

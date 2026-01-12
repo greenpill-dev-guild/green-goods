@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
+import type { Action, Work, WorkApprovalDraft, WorkDraft } from "../../types/domain";
 import { getActionTitle } from "../../utils/action/parsers";
 import { createOfflineTxHash, jobQueue } from "../job-queue";
 

@@ -1,5 +1,5 @@
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
-import { Capital } from "../../types/domain";
+import { Capital, type Action, type ActionInstructionConfig, type Garden, type GardenerCard, type WorkInput } from "../../types/domain";
 import { greenGoodsGraphQL } from "./graphql";
 import { greenGoodsIndexer } from "./graphql-client";
 import { getFileByHash, resolveIPFSUrl } from "./ipfs";

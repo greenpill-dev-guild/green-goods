@@ -889,3 +889,43 @@
   --color-overlay: rgb(var(--overlay));
 }
 
+/* ============================================================================
+ * UTILITIES LAYER - Container Queries and Layout Helpers
+ * Provides utility classes for responsive container-based layouts
+ * @see https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment/Container_queries
+ * ============================================================================ */
+@layer utilities {
+  /* Container query contexts - apply to parent elements to enable @[width] queries on children */
+  .container-inline {
+    container-type: inline-size;
+  }
+
+  .container-size {
+    container-type: size;
+  }
+
+  .container-normal {
+    container-type: normal;
+  }
+
+  /* Named containers for complex nested layouts */
+  .container-card {
+    container-type: inline-size;
+    container-name: card;
+  }
+
+  .container-work-card {
+    container-type: inline-size;
+    container-name: work-card;
+  }
+
+  .container-garden-card {
+    container-type: inline-size;
+    container-name: garden-card;
+  }
+
+  .container-panel {
+    container-type: inline-size;
+    container-name: panel;
+  }
+}

@@ -1,4 +1,5 @@
 import { type PublicClient, type WalletClient } from "viem";
+import type { WorkApprovalDraft, WorkDraft } from "../../types/domain";
 import { getEASConfig } from "../../config/blockchain";
 import { encodeWorkApprovalData, encodeWorkData } from "../../utils/eas/encoders";
 import { buildApprovalAttestTx, buildWorkAttestTx } from "../../utils/eas/transaction-builder";
