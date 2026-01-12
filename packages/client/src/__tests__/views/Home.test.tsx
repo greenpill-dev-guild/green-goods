@@ -18,6 +18,12 @@ vi.mock("@green-goods/shared/hooks", () => ({
     walletAddress: null,
   }),
   useBrowserNavigation: vi.fn(),
+  useFilteredGardens: (gardens: unknown[], _filters: unknown, _address: unknown) => ({
+    filteredGardens: gardens,
+    myGardensCount: 1,
+    isFilterActive: false,
+    activeFilterCount: 0,
+  }),
   useGardens: () => ({
     data: [
       {
@@ -30,12 +36,19 @@ vi.mock("@green-goods/shared/hooks", () => ({
         createdAt: Date.now(),
       },
     ],
-    isLoading: false,
+    isFetching: false,
+    isPending: false,
     isError: false,
     refetch: vi.fn(),
   }),
+  useLoadingWithMinDuration: () => ({
+    showSkeleton: false,
+    timedOut: false,
+    reset: vi.fn(),
+  }),
   useNavigateToTop: () => vi.fn(),
   useOffline: () => ({ isOnline: true }),
+  usePrimaryAddress: () => "0x1234567890abcdef1234567890abcdef12345678",
 }));
 
 vi.mock("@green-goods/shared/stores", () => ({

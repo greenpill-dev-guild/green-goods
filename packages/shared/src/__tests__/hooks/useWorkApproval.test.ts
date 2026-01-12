@@ -301,7 +301,7 @@ describe("hooks/work/useWorkApproval", () => {
       expect(toastService.error).toHaveBeenCalledWith(
         expect.objectContaining({
           id: "approval-submit",
-          title: "Approval failed",
+          title: "Approval submission failed",
         })
       );
     });

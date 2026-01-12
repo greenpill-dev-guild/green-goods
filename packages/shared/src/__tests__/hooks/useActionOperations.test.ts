@@ -28,7 +28,7 @@ vi.mock("../../utils/blockchain/contracts", () => ({
 }));
 
 // Mock simulation
-vi.mock("../../utils/contract/simulation", () => ({
+vi.mock("../../utils/blockchain/simulation", () => ({
   simulateTransaction: vi.fn(),
 }));
 
@@ -66,7 +66,7 @@ vi.mock("@tanstack/react-query", () => ({
 }));
 
 import { useAccount, useWalletClient } from "wagmi";
-import { simulateTransaction } from "../../utils/contract/simulation";
+import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { useToastAction } from "../../hooks/app/useToastAction";
 
 describe("useActionOperations", () => {
