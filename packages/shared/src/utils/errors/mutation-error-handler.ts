@@ -129,7 +129,9 @@ export function createMutationErrorHandler(config: MutationErrorHandlerConfig) {
         : "Transaction failed. Please try again.";
 
     // Determine display title
-    const displayTitle = parsed.isKnown ? title : `${toastContext.charAt(0).toUpperCase() + toastContext.slice(1)} failed`;
+    const displayTitle = parsed.isKnown
+      ? title
+      : `${toastContext.charAt(0).toUpperCase() + toastContext.slice(1)} failed`;
 
     // Show error toast
     if (useWalletProgressToast && authMode === "wallet") {

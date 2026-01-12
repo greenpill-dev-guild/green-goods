@@ -27,7 +27,8 @@ function trackOperationStarted(
   operationType: "add" | "remove",
   targetAddress: string
 ): void {
-  const tracker = operationType === "add" ? trackAdminMemberAddStarted : trackAdminMemberRemoveStarted;
+  const tracker =
+    operationType === "add" ? trackAdminMemberAddStarted : trackAdminMemberRemoveStarted;
   tracker({ gardenAddress, memberType, targetAddress });
 }
 
@@ -39,7 +40,8 @@ function trackOperationSuccess(
   targetAddress: string,
   txHash: string
 ): void {
-  const tracker = operationType === "add" ? trackAdminMemberAddSuccess : trackAdminMemberRemoveSuccess;
+  const tracker =
+    operationType === "add" ? trackAdminMemberAddSuccess : trackAdminMemberRemoveSuccess;
   tracker({ gardenAddress, memberType, targetAddress, txHash });
 }
 
@@ -51,7 +53,8 @@ function trackOperationFailed(
   targetAddress: string,
   error: string
 ): void {
-  const tracker = operationType === "add" ? trackAdminMemberAddFailed : trackAdminMemberRemoveFailed;
+  const tracker =
+    operationType === "add" ? trackAdminMemberAddFailed : trackAdminMemberRemoveFailed;
   tracker({ gardenAddress, memberType, targetAddress, error });
 }
 
@@ -272,7 +275,13 @@ export function createGardenOperation(
       const parsed = parseContractError(error);
 
       // Track operation failure
-      trackOperationFailed(gardenId, config.memberType, config.operationType, targetAddress, parsed.message);
+      trackOperationFailed(
+        gardenId,
+        config.memberType,
+        config.operationType,
+        targetAddress,
+        parsed.message
+      );
 
       return {
         success: false,

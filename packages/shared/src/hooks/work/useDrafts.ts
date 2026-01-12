@@ -100,7 +100,9 @@ export function useDrafts() {
   // Mutation: Create draft
   const createDraftMutation = useMutation({
     mutationFn: async (
-      data: Partial<Omit<WorkDraftRecord, "id" | "userAddress" | "chainId" | "createdAt" | "updatedAt">>
+      data: Partial<
+        Omit<WorkDraftRecord, "id" | "userAddress" | "chainId" | "createdAt" | "updatedAt">
+      >
     ) => {
       if (!userAddress) throw new Error("User not authenticated");
       return await draftDB.createDraft(userAddress, chainId, data);

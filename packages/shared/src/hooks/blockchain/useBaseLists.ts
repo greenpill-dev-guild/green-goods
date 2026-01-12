@@ -1,4 +1,9 @@
-import { type QueryKey, type UseQueryResult, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  type QueryKey,
+  type UseQueryResult,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import type { Action, Garden, GardenerCard } from "../../types/domain";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { GC_TIMES, STALE_TIMES } from "../../config/react-query";

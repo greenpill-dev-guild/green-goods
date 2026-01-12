@@ -29,6 +29,7 @@
     "paths": {
       "@/*": ["./src/*"],
       "@green-goods/shared": ["../shared/src/index.ts"],
+      "@green-goods/shared/components": ["../shared/src/components/index.ts"],
       "@green-goods/shared/hooks": ["../shared/src/hooks/index.ts"],
       "@green-goods/shared/hooks/*": ["../shared/src/hooks/*/index.ts"],
       "@green-goods/shared/providers": ["../shared/src/providers/index.ts"],

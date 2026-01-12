@@ -8,8 +8,17 @@
  */
 
 import { type IDBPDatabase, openDB } from "idb";
-import type { DraftImage, DraftStep, WorkDraftRecord, SerializedFileData } from "../../types/job-queue";
-import { serializeFile, deserializeFile, buildFileMetadata } from "../../utils/storage/file-serialization";
+import type {
+  DraftImage,
+  DraftStep,
+  WorkDraftRecord,
+  SerializedFileData,
+} from "../../types/job-queue";
+import {
+  serializeFile,
+  deserializeFile,
+  buildFileMetadata,
+} from "../../utils/storage/file-serialization";
 import { trackStorageError } from "../app/error-tracking";
 import { mediaResourceManager } from "./media-resource-manager";
 
@@ -85,7 +94,9 @@ class DraftDatabase {
   async createDraft(
     userAddress: string,
     chainId: number,
-    data: Partial<Omit<WorkDraftRecord, "id" | "userAddress" | "chainId" | "createdAt" | "updatedAt">>
+    data: Partial<
+      Omit<WorkDraftRecord, "id" | "userAddress" | "chainId" | "createdAt" | "updatedAt">
+    >
   ): Promise<string> {
     const db = await this.init();
 

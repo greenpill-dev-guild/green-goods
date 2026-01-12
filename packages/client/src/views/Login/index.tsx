@@ -8,7 +8,8 @@ type AuthFlow = "none" | "register" | "login";
 
 /** Convert technical errors to user-friendly messages */
 const getFriendlyErrorMessage = (err: unknown): string => {
-  if (!(err instanceof Error)) return "Something went wrong. Please try again or use 'Login with wallet'.";
+  if (!(err instanceof Error))
+    return "Something went wrong. Please try again or use 'Login with wallet'.";
 
   const msg = err.message.toLowerCase();
   if (msg.includes("cancel") || msg.includes("abort") || msg.includes("user deny")) {
@@ -34,7 +35,8 @@ const validateUsername = (name: string): string | null => {
   if (!name.trim()) return "Please enter a username";
   if (name.length < 3) return "Username must be at least 3 characters";
   if (name.length > 30) return "Username must be less than 30 characters";
-  if (!/^[a-zA-Z0-9_-]+$/.test(name)) return "Username can only contain letters, numbers, underscores and hyphens";
+  if (!/^[a-zA-Z0-9_-]+$/.test(name))
+    return "Username can only contain letters, numbers, underscores and hyphens";
   return null;
 };
 
@@ -66,7 +68,9 @@ export function Login() {
   const fromLogout = (location.state as { fromLogout?: boolean } | null)?.fromLogout === true;
 
   // Redirect destination
-  const redirectTo = fromLogout ? "/home" : new URLSearchParams(location.search).get("redirectTo") || "/home";
+  const redirectTo = fromLogout
+    ? "/home"
+    : new URLSearchParams(location.search).get("redirectTo") || "/home";
 
   // Existing account detection
   const hasExistingAccount = !fromLogout && (hasStoredCredential || hasStoredUsername());
@@ -222,7 +226,11 @@ export function Login() {
               : undefined
           : undefined
       }
-      tertiaryAction={activeFlow === "none" ? { label: "Login with wallet", onClick: () => loginWithWallet?.() } : undefined}
+      tertiaryAction={
+        activeFlow === "none"
+          ? { label: "Login with wallet", onClick: () => loginWithWallet?.() }
+          : undefined
+      }
     />
   );
 }

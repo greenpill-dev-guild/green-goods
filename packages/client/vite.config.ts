@@ -222,6 +222,7 @@ export default defineConfig(({ mode }) => {
       alias: {
         "@": resolve(__dirname, "./src"),
         "@green-goods/shared": resolve(__dirname, "../shared/src"),
+        "@green-goods/shared/components": resolve(__dirname, "../shared/src/components"),
         "@green-goods/shared/hooks": resolve(__dirname, "../shared/src/hooks"),
         "@green-goods/shared/providers": resolve(__dirname, "../shared/src/providers"),
         "@green-goods/shared/modules": resolve(__dirname, "../shared/src/modules"),

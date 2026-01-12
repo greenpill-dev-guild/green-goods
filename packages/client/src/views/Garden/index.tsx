@@ -110,13 +110,14 @@ const Work: React.FC = () => {
   } = form;
 
   // Draft auto-save (handles creation on first image and debounced saves)
-  useDraftAutoSave(
-    { gardenAddress, actionUID, feedback, plantSelection, plantCount },
-    images
-  );
+  useDraftAutoSave({ gardenAddress, actionUID, feedback, plantSelection, plantCount }, images);
 
   // Draft resume (handles URL params and meaningful draft detection)
-  const { showDraftDialog, handleContinueDraft, handleStartFresh: clearDraft } = useDraftResume({
+  const {
+    showDraftDialog,
+    handleContinueDraft,
+    handleStartFresh: clearDraft,
+  } = useDraftResume({
     formState: { images, gardenAddress, actionUID, feedback, plantSelection, plantCount },
     isOnIntroTab: activeTab === WorkTab.Intro,
     searchParams,
@@ -184,7 +185,13 @@ const Work: React.FC = () => {
 
     if (!translatedAction?.mediaInfo) return defaults;
 
-    const { needed = [], optional = [], maxImageCount = 0, minImageCount, ...rest } = translatedAction.mediaInfo;
+    const {
+      needed = [],
+      optional = [],
+      maxImageCount = 0,
+      minImageCount,
+      ...rest
+    } = translatedAction.mediaInfo;
     return {
       ...defaults,
       ...rest,
@@ -199,7 +206,10 @@ const Work: React.FC = () => {
 
   const detailsConfig = useMemo(() => {
     const defaults = {
-      title: intl.formatMessage({ id: "app.garden.details.title", defaultMessage: "Enter Details" }),
+      title: intl.formatMessage({
+        id: "app.garden.details.title",
+        defaultMessage: "Enter Details",
+      }),
       description: intl.formatMessage({
         id: "app.garden.submit.tab.details.instruction",
         defaultMessage: "Provide detailed information and feedback",
@@ -283,19 +293,27 @@ const Work: React.FC = () => {
   const currentTab = {
     [WorkTab.Intro]: {
       primary: () => changeTab(WorkTab.Media),
-      primaryLabel: intl.formatMessage({ id: "app.garden.submit.tab.intro.label", defaultMessage: "Start Gardening" }),
+      primaryLabel: intl.formatMessage({
+        id: "app.garden.submit.tab.intro.label",
+        defaultMessage: "Start Gardening",
+      }),
       primaryDisabled: !gardenAddress || typeof actionUID !== "number",
       customSecondary: null,
       backButton: () => navigate("/home", { viewTransition: true }),
     },
     [WorkTab.Media]: {
       primary: () => changeTab(WorkTab.Details),
-      primaryLabel: intl.formatMessage({ id: "app.garden.submit.tab.media.label", defaultMessage: "Add Details" }),
+      primaryLabel: intl.formatMessage({
+        id: "app.garden.submit.tab.media.label",
+        defaultMessage: "Add Details",
+      }),
       primaryDisabled: !canBypassMediaRequirement && images.length < minRequired,
       customSecondary: (
         <>
           <Button
-            onClick={() => galleryClickRef.current?.() ?? document.getElementById("work-media-upload")?.click()}
+            onClick={() =>
+              galleryClickRef.current?.() ?? document.getElementById("work-media-upload")?.click()
+            }
             label=""
             className="w-12 px-0 shrink-0"
             variant="neutral"
@@ -305,7 +323,9 @@ const Work: React.FC = () => {
             leadingIcon={<RiImageFill className="text-primary w-5 h-5" />}
           />
           <Button
-            onClick={() => cameraClickRef.current?.() ?? document.getElementById("work-media-camera")?.click()}
+            onClick={() =>
+              cameraClickRef.current?.() ?? document.getElementById("work-media-camera")?.click()
+            }
             label=""
             className="w-12 px-0 shrink-0"
             variant="neutral"
@@ -320,14 +340,20 @@ const Work: React.FC = () => {
     },
     [WorkTab.Details]: {
       primary: () => changeTab(WorkTab.Review),
-      primaryLabel: intl.formatMessage({ id: "app.garden.submit.tab.details.label", defaultMessage: "Review Work" }),
+      primaryLabel: intl.formatMessage({
+        id: "app.garden.submit.tab.details.label",
+        defaultMessage: "Review Work",
+      }),
       primaryDisabled: !state.isValid,
       customSecondary: null,
       backButton: () => changeTab(WorkTab.Media),
     },
     [WorkTab.Review]: {
       primary: handleWorkSubmission,
-      primaryLabel: intl.formatMessage({ id: "app.garden.submit.tab.review.label", defaultMessage: "Upload Work" }),
+      primaryLabel: intl.formatMessage({
+        id: "app.garden.submit.tab.review.label",
+        defaultMessage: "Upload Work",
+      }),
       primaryDisabled: !state.isValid || state.isSubmitting || workMutation.isPending,
       customSecondary: null,
       backButton: () => changeTab(WorkTab.Details),
@@ -363,7 +389,14 @@ const Work: React.FC = () => {
           />
         );
       case WorkTab.Details:
-        return <WorkDetails config={detailsConfig} inputs={detailInputs} register={register} control={control} />;
+        return (
+          <WorkDetails
+            config={detailsConfig}
+            inputs={detailInputs}
+            register={register}
+            control={control}
+          />
+        );
       case WorkTab.Review: {
         if (showSkeleton) {
           return (
@@ -405,7 +438,10 @@ const Work: React.FC = () => {
         />
       </TopNav>
 
-      <form id="work-form" className="relative py-6 pt-20 flex flex-col gap-4 min-h-[calc(100vh-7.5rem)]">
+      <form
+        id="work-form"
+        className="relative py-6 pt-20 flex flex-col gap-4 min-h-[calc(100vh-7.5rem)]"
+      >
         <div className="padded relative flex flex-col gap-4 flex-1">{renderTabContent()}</div>
         <div className="flex fixed left-0 bottom-0 py-3 w-full z-[10000] bg-bg-white-0 border-t border-stroke-soft-200">
           <div className="flex flex-row gap-4 w-full padded">

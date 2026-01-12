@@ -1,5 +1,9 @@
 import { type Client, create } from "@storacha/client";
-import { trackUploadError, trackUploadSuccess, type UploadErrorCategory } from "../app/error-tracking";
+import {
+  trackUploadError,
+  trackUploadSuccess,
+  type UploadErrorCategory,
+} from "../app/error-tracking";
 
 interface IpfsConfig {
   /** Base64-encoded ed25519 private key */
@@ -223,7 +227,13 @@ export async function uploadFileToIPFS(
     async () => ({ cid: await storachaClient!.uploadFile(file) }),
     "file_upload",
     { source: context.source ?? "uploadFileToIPFS", gardenAddress: context.gardenAddress },
-    { size: file.size, type: file.type, name: file.name, index: context.fileIndex, total: context.totalFiles }
+    {
+      size: file.size,
+      type: file.type,
+      name: file.name,
+      index: context.fileIndex,
+      total: context.totalFiles,
+    }
   );
 }
 

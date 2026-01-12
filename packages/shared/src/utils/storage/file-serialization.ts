@@ -56,14 +56,10 @@ export function deserializeFile(
   if (stored.file) {
     const blob = stored.file as Blob;
     const name = (stored.file as { name?: string }).name;
-    return new File(
-      [blob],
-      name || `${fallbackPrefix}-${fallbackId}.jpg`,
-      {
-        type: blob?.type || "image/jpeg",
-        lastModified: Date.now(),
-      }
-    );
+    return new File([blob], name || `${fallbackPrefix}-${fallbackId}.jpg`, {
+      type: blob?.type || "image/jpeg",
+      lastModified: Date.now(),
+    });
   }
 
   // Last resort: empty file (should not happen in practice)

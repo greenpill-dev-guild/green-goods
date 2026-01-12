@@ -42,9 +42,7 @@ export const cardVariants = tv({
 
 export type CardVariantProps = VariantProps<typeof cardVariants>;
 
-export interface CardBaseProps
-  extends React.HTMLAttributes<HTMLDivElement>,
-    CardVariantProps {
+export interface CardBaseProps extends React.HTMLAttributes<HTMLDivElement>, CardVariantProps {
   asChild?: boolean;
 }
 

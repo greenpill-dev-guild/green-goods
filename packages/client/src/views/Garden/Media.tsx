@@ -116,12 +116,16 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         track("media_compression_complete", { ...stats, ...context });
       }
 
-      const maxCount = config?.maxImageCount && config.maxImageCount > 0 ? config.maxImageCount : Infinity;
+      const maxCount =
+        config?.maxImageCount && config.maxImageCount > 0 ? config.maxImageCount : Infinity;
       setImages((prev) => [...prev, ...finalFiles].slice(0, maxCount));
 
       track("media_upload_complete", { count: finalFiles.length, ...context });
     } catch (error) {
-      track("media_upload_failed", { error: error instanceof Error ? error.message : "Unknown", ...context });
+      track("media_upload_failed", {
+        error: error instanceof Error ? error.message : "Unknown",
+        ...context,
+      });
       setImages((prev) => [...prev, ...fileArray]); // Fallback to uncompressed
     } finally {
       setIsCompressing(false);
@@ -134,7 +138,9 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
   const removeImage = (index: number) => setImages((prev) => prev.filter((_, i) => i !== index));
 
   // Config values with defaults
-  const title = config?.title || intl.formatMessage({ id: "app.garden.upload.title", defaultMessage: "Upload Media" });
+  const title =
+    config?.title ||
+    intl.formatMessage({ id: "app.garden.upload.title", defaultMessage: "Upload Media" });
   const description =
     config?.description ||
     intl.formatMessage({
@@ -143,7 +149,8 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
     });
   const neededItems = useMemo(() => config?.needed?.filter(Boolean) ?? [], [config?.needed]);
   const optionalItems = useMemo(() => config?.optional?.filter(Boolean) ?? [], [config?.optional]);
-  const maxImageCount = config?.maxImageCount && config.maxImageCount > 0 ? config.maxImageCount : 0;
+  const maxImageCount =
+    config?.maxImageCount && config.maxImageCount > 0 ? config.maxImageCount : 0;
 
   return (
     <div className="flex flex-col gap-4">
@@ -157,7 +164,10 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
           tint="none"
         >
           {intl.formatMessage(
-            { id: "app.garden.upload.progress", defaultMessage: "{current} of {required} photos uploaded" },
+            {
+              id: "app.garden.upload.progress",
+              defaultMessage: "{current} of {required} photos uploaded",
+            },
             { current: images.length, required: minRequired }
           )}
           {maxImageCount > 0 &&
@@ -226,7 +236,10 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
           <RiLoader4Line className="w-5 h-5 text-blue-600 animate-spin" />
           <div className="flex-1">
             <p className="text-sm font-medium text-blue-900">
-              {intl.formatMessage({ id: "app.garden.upload.compressing", defaultMessage: "Compressing images..." })}
+              {intl.formatMessage({
+                id: "app.garden.upload.compressing",
+                defaultMessage: "Compressing images...",
+              })}
             </p>
             <div className="mt-2 bg-blue-200 rounded-full h-2">
               <div
@@ -235,7 +248,9 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
               />
             </div>
           </div>
-          <span className="text-sm text-blue-700 font-medium">{Math.round(compressionProgress)}%</span>
+          <span className="text-sm text-blue-700 font-medium">
+            {Math.round(compressionProgress)}%
+          </span>
         </div>
       )}
 

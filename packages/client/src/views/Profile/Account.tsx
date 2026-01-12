@@ -274,7 +274,10 @@ export const ProfileAccount: React.FC = () => {
         }),
         Icon: currentThemeOption.icon,
         Option: () => (
-          <Select value={theme} onValueChange={(val) => setTheme(val as "light" | "dark" | "system")}>
+          <Select
+            value={theme}
+            onValueChange={(val) => setTheme(val as "light" | "dark" | "system")}
+          >
             <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder={currentThemeOption.label} />
             </SelectTrigger>
@@ -326,7 +329,16 @@ export const ProfileAccount: React.FC = () => {
         ),
       },
     ],
-    [intl, theme, setTheme, currentThemeOption, themeOptions, locale, switchLanguage, availableLocales]
+    [
+      intl,
+      theme,
+      setTheme,
+      currentThemeOption,
+      themeOptions,
+      locale,
+      switchLanguage,
+      availableLocales,
+    ]
   );
 
   return (

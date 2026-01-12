@@ -132,11 +132,7 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
       <Wrapper
         ref={ref as React.Ref<HTMLButtonElement & HTMLDivElement>}
         data-testid="garden-card"
-        className={cn(
-          classes,
-          "rounded-2xl border border-border bg-bg-white-0",
-          className
-        )}
+        className={cn(classes, "rounded-2xl border border-border bg-bg-white-0", className)}
         onClick={interactive ? onClick : undefined}
         type={interactive ? "button" : undefined}
       >
@@ -255,9 +251,7 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
 
             {/* Description */}
             {showDescription && garden.description && (
-              <p className="text-sm text-text-sub-600 line-clamp-3 flex-1">
-                {garden.description}
-              </p>
+              <p className="text-sm text-text-sub-600 line-clamp-3 flex-1">{garden.description}</p>
             )}
           </div>
         </div>

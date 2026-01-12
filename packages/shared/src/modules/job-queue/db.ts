@@ -1,6 +1,10 @@
 import { type IDBPDatabase, openDB } from "idb";
 import { normalizeToFile } from "../../utils/app/normalizeToFile";
-import { serializeFile, deserializeFile, buildFileMetadata } from "../../utils/storage/file-serialization";
+import {
+  serializeFile,
+  deserializeFile,
+  buildFileMetadata,
+} from "../../utils/storage/file-serialization";
 import { trackStorageError, addBreadcrumb } from "../app/error-tracking";
 import { mediaResourceManager } from "./media-resource-manager";
 import type { Job, JobQueueDBImage, CachedWork, SerializedFileData } from "../../types/job-queue";
