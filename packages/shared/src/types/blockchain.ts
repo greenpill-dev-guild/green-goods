@@ -1,5 +1,15 @@
+/**
+ * Blockchain Configuration Types
+ *
+ * Types for chain IDs and deployment configuration.
+ */
+
+import type { Address } from "./domain";
+
+/** Chain ID type alias */
 export type ChainId = number;
 
+/** Deployment configuration for a specific chain */
 export interface DeploymentConfig {
   gardenToken?: Address;
   actionRegistry?: Address;

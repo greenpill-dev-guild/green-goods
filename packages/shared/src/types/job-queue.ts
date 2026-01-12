@@ -154,7 +154,36 @@ export interface CachedWork {
 
 export type DraftStep = "intro" | "media" | "details" | "review";
 
-export interface WorkDraft {
+/**
+ * Persisted work draft state in IndexedDB.
+ * Tracks multi-step form progress with resume capability.
+ *
+ * This is different from WorkSubmission (domain.ts) which is the
+ * final form data submitted to the blockchain. WorkDraftRecord
+ * includes persistence metadata (id, timestamps, step tracking).
+ *
+ * @example
+ * ```typescript
+ * const draft: WorkDraftRecord = {
+ *   id: "draft-123",
+ *   userAddress: "0x...",
+ *   chainId: 84532,
+ *   gardenAddress: "0x...",
+ *   actionUID: 1,
+ *   feedback: "In progress...",
+ *   plantSelection: ["tomato"],
+ *   plantCount: 5,
+ *   currentStep: "details",
+ *   firstIncompleteStep: "details",
+ *   createdAt: 1704067200000,
+ *   updatedAt: 1704067200000
+ * };
+ * ```
+ *
+ * @see WorkSubmission for the form input shape (what gets submitted)
+ * @see DraftStep for valid step values
+ */
+export interface WorkDraftRecord {
   id: string;
   userAddress: string;
   chainId: number;
@@ -170,6 +199,11 @@ export interface WorkDraft {
   createdAt: number;
   updatedAt: number;
 }
+
+/**
+ * @deprecated Use WorkDraftRecord instead. Kept for backward compatibility.
+ */
+export type WorkDraft = WorkDraftRecord;
 
 export interface DraftImage {
   id: string;

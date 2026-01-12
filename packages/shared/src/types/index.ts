@@ -1,27 +1,35 @@
 /**
- * Type Exports
+ * Type Exports - @green-goods/shared
  *
- * This folder contains several categories of types:
+ * Organized by domain:
  *
- * EXPLICIT EXPORTS (import from '@green-goods/shared'):
- * - domain.ts - Core domain types (Garden, Work, Action, etc.)
- * - job-queue.ts - Job queue and offline sync types
- * - offline.ts - Offline feature types
- * - eas-responses.ts - EAS GraphQL response parsing types
- * - indexer-responses.ts - Indexer GraphQL response types
- * - contracts.ts - Contract deployment types
- * - auth.ts - Authentication types
+ * DOMAIN ENTITIES (domain.ts):
+ *   Garden, GardenCard, GardenAssessment - Garden-related types
+ *   Action, ActionCard, WorkInput - Action configuration
+ *   Work, WorkCard, WorkSubmission, WorkApproval - Work documentation
+ *   GardenerCard - User profiles
  *
- * GLOBAL DECLARATIONS (*.d.ts - for backward compatibility, will be removed):
- * - greengoods.d.ts - Legacy global types (use domain.ts instead)
- * - job-queue.d.ts - Legacy global types (use job-queue.ts instead)
- * - offline.d.ts - Legacy global types (use offline.ts instead)
- * - global.d.ts - JSX intrinsic elements (AppKit)
- * - react-window.d.ts - React window virtualization types
+ * API RESPONSES:
+ *   eas-responses.ts - Parsed EAS attestation data (EASWork, EASWorkApproval, etc.)
+ *   indexer-responses.ts - Green Goods indexer responses (IndexerGarden, etc.)
  *
- * GRAPHQL INTROSPECTION (large generated files for gql.tada):
- * - green-goods.d.ts - Green Goods indexer GraphQL types
- * - eas.d.ts - EAS GraphQL types
+ * OFFLINE/QUEUE SYSTEM:
+ *   job-queue.ts - Job queue, WorkDraftRecord, file serialization
+ *   offline.ts - OfflineStatus, SyncMetrics, WorkConflict
+ *
+ * INFRASTRUCTURE:
+ *   auth.ts - AuthMode, BaseAuthContext
+ *   contracts.ts - NetworkContracts, DeploymentParams
+ *   blockchain.ts - ChainId, DeploymentConfig
+ *
+ * GENERATED (do not edit manually):
+ *   green-goods.d.ts - Indexer GraphQL schema (gql.tada)
+ *   eas.d.ts - EAS GraphQL schema (gql.tada)
+ *
+ * TYPE DECLARATIONS (*.d.ts):
+ *   global.d.ts - JSX intrinsic elements (AppKit web components)
+ *   react-window.d.ts - Virtual scrolling types (library ships Flow types)
+ *   temporal.d.ts - Temporal API declarations
  */
 
 // ============================================
@@ -31,7 +39,7 @@ export type { AuthMode, BaseAuthContext } from "./auth";
 // ============================================
 // Blockchain Types
 // ============================================
-export type { ChainId, DeploymentConfig } from "./blockchain.d";
+export type { ChainId, DeploymentConfig } from "./blockchain";
 // ============================================
 // Contract Types
 // ============================================
@@ -54,7 +62,8 @@ export type {
   WorkApproval,
   WorkApprovalDraft,
   WorkCard,
-  WorkDraft,
+  WorkSubmission,
+  WorkDraft, // @deprecated - use WorkSubmission
   WorkInput,
   WorkMetadata,
 } from "./domain";
@@ -90,7 +99,6 @@ export type {
   ApprovalJobPayload,
   CachedWork,
   DraftImage,
-  // Draft types
   DraftStep,
   Job,
   JobKind,
@@ -102,7 +110,8 @@ export type {
   QueueStats,
   QueueSubscriber,
   SerializedFileData,
-  WorkDraft as WorkDraftDB,
+  WorkDraftRecord,
+  WorkDraft as WorkDraftDB, // @deprecated - use WorkDraftRecord
   WorkJobPayload,
 } from "./job-queue";
 // ============================================

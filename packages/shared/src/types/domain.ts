@@ -16,8 +16,13 @@ import type { Address as ViemAddress } from "viem";
 // Base Types
 // ============================================
 
+/** Ethereum address type from viem */
 export type Address = ViemAddress;
 
+/**
+ * Eight capitals framework for categorizing regenerative impact.
+ * Used to tag actions and assessments by the type of value they create.
+ */
 export enum Capital {
   SOCIAL = 0,
   MATERIAL = 1,
@@ -33,6 +38,7 @@ export enum Capital {
 // Gardener Types
 // ============================================
 
+/** User profile information for display in cards and lists */
 export interface GardenerCard {
   id: string; // Privy ID
   account?: string; // Smart Account Address
@@ -48,6 +54,7 @@ export interface GardenerCard {
 // Garden Types - Single Source of Truth
 // ============================================
 
+/** Minimal garden data for display in cards and lists */
 export interface GardenCard {
   id: string;
   name: string;
@@ -56,6 +63,7 @@ export interface GardenCard {
   operators: string[];
 }
 
+/** Full garden entity with all related data (assessments, works, gardeners) */
 export interface Garden extends GardenCard {
   chainId: number;
   tokenAddress: string;
@@ -113,6 +121,7 @@ export interface AssessmentDraft {
 // Action Types
 // ============================================
 
+/** Minimal action data for display in cards and lists */
 export interface ActionCard {
   id: string;
   startTime: number;
@@ -124,6 +133,7 @@ export interface ActionCard {
   createdAt: number;
 }
 
+/** Full action with form configuration and UI settings */
 export interface Action extends ActionCard {
   description: string;
   inputs: WorkInput[];
@@ -160,7 +170,26 @@ export interface WorkInput {
 // Work Types
 // ============================================
 
-export interface WorkDraft {
+/**
+ * Data submitted when a gardener documents their work.
+ * This is the form input shape before processing/submission.
+ *
+ * @example
+ * ```typescript
+ * const submission: WorkSubmission = {
+ *   actionUID: 1,
+ *   title: "Planted tomatoes",
+ *   plantSelection: ["tomato", "basil"],
+ *   plantCount: 12,
+ *   feedback: "Great growing conditions",
+ *   media: [photoFile1, photoFile2]
+ * };
+ * ```
+ *
+ * @see WorkDraftRecord for the persisted draft state in IndexedDB
+ * @see Work for the final on-chain work record
+ */
+export interface WorkSubmission {
   actionUID: number;
   title: string;
   plantSelection: string[];
@@ -170,6 +199,12 @@ export interface WorkDraft {
   metadata?: Record<string, unknown>;
 }
 
+/**
+ * @deprecated Use WorkSubmission instead. Kept for backward compatibility.
+ */
+export type WorkDraft = WorkSubmission;
+
+/** Minimal work data for display in cards and lists */
 export interface WorkCard {
   id: string;
   title: string;
@@ -182,6 +217,7 @@ export interface WorkCard {
   createdAt: number;
 }
 
+/** On-chain work record with approval status */
 export interface Work extends WorkCard {
   status: "pending" | "approved" | "rejected";
 }
@@ -213,6 +249,7 @@ export interface WorkApproval extends WorkApprovalDraft {
 // Action Instruction Types
 // ============================================
 
+/** Configuration for action instructions UI (admin setup) */
 export interface ActionInstructionConfig {
   description: string;
   uiConfig: {
@@ -229,6 +266,7 @@ export interface ActionInstructionConfig {
       title: string;
       description: string;
       feedbackPlaceholder: string;
+      inputs: WorkInput[];
     };
     review: {
       title: string;
