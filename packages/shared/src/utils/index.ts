@@ -37,6 +37,16 @@ export { getTag } from "./app/tags";
 export type { FormatAddressOptions, FormatAddressVariant } from "./app/text";
 export { capitalize, formatAddress, truncate } from "./app/text";
 // ============================================================================
+// WAKE LOCK (Screen Wake Lock API)
+// ============================================================================
+export {
+  isWakeLockSupported,
+  releaseWakeLock,
+  requestWakeLock,
+  setupWakeLockVisibilityHandler,
+  withWakeLock,
+} from "./app/wake-lock";
+// ============================================================================
 // ADDRESS
 // ============================================================================
 export {
@@ -63,6 +73,19 @@ export { resolveEnsAddress, resolveEnsName } from "./blockchain/ens";
 // BLOCKCHAIN POLLING
 // ============================================================================
 export { pollQueriesAfterTransaction, pollQueryAfterTransaction } from "./blockchain/polling";
+// ============================================================================
+// COMPRESSION (Native Compression Streams API)
+// ============================================================================
+export type { CompressionFormat } from "./compression";
+export {
+  compress,
+  compressJSON,
+  decompress,
+  decompressJSON,
+  decompressResponse,
+  getCompressionRatio,
+  isCompressionSupported,
+} from "./compression";
 // ============================================================================
 // CONTRACT
 // ============================================================================
@@ -106,8 +129,35 @@ export {
   formatWalletError,
   USER_FRIENDLY_ERRORS,
 } from "./errors/user-messages";
+export {
+  normalizeFeedback,
+  normalizePlantCount,
+  normalizePlantSelection,
+} from "./form/normalizers";
 // ============================================================================
-// FORM STORAGE
+// QUERY INVALIDATION
+// ============================================================================
+export type { InvalidationDelay, ProgressiveInvalidationOptions } from "./query-invalidation";
+export {
+  INVALIDATION_DELAYS,
+  scheduleInvalidation,
+  scheduleInvalidationForKey,
+  scheduleProgressiveInvalidation,
+} from "./query-invalidation";
+// ============================================================================
+// SCHEDULER (Native Scheduler API for cooperative multitasking)
+// ============================================================================
+export type { TaskPriority } from "./scheduler";
+export {
+  debounceWithScheduler,
+  isSchedulerSupported,
+  processBatched,
+  runWhenIdle,
+  scheduleTask,
+  yieldToMain,
+} from "./scheduler";
+// ============================================================================
+// FORM
 // ============================================================================
 export { clearFormDraft, loadFormDraft, saveFormDraft } from "./storage/form";
 // ============================================================================
@@ -131,60 +181,33 @@ export {
   initTheme,
   listenToSystemChanges,
   setTheme,
-  toggle,
 } from "./styles/theme";
 // ============================================================================
 // TIME (Temporal API with Date fallback)
 // ============================================================================
 export type { TimeFilter } from "./time";
 export {
+  // Temporal-specific utilities (2026)
+  addDuration,
+  compareTimestamps,
   // Core utilities (backward compatible)
   filterByTimeRange,
   formatDate,
   formatDateTime,
+  formatDuration,
   formatRelativeTime,
   fromDateTimeLocalValue,
+  getCurrentTimezone,
+  getDurationMs,
+  getStartOfDayUTC,
   getTimeCutoff,
+  isTemporalSupported,
   normalizeTimestamp,
   sortByCreatedAt,
   toDateTimeLocalValue,
   toSafeDate,
-  // Temporal-specific utilities (2026)
-  addDuration,
-  compareTimestamps,
-  formatDuration,
-  getCurrentTimezone,
-  getDurationMs,
-  getStartOfDayUTC,
-  isTemporalSupported,
   toSafeInstant,
 } from "./time";
-// ============================================================================
-// COMPRESSION (Native Compression Streams API)
-// ============================================================================
-export type { CompressionFormat } from "./compression";
-export {
-  compress,
-  compressJSON,
-  decompress,
-  decompressJSON,
-  decompressResponse,
-  getCompressionRatio,
-  isCompressionSupported,
-} from "./compression";
-// ============================================================================
-// SCHEDULER (Native Scheduler API for cooperative multitasking)
-// ============================================================================
-export type { TaskPriority } from "./scheduler";
-export {
-  debounceWithScheduler,
-  isSchedulerSupported,
-  processBatched,
-  runWhenIdle,
-  scheduleTask,
-  yieldToMain,
-} from "./scheduler";
-
 // ============================================================================
 // WORK
 // ============================================================================

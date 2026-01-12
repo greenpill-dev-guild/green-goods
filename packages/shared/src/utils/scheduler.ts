@@ -11,6 +11,8 @@
  * @see https://developer.mozilla.org/en-US/docs/Web/API/Scheduler
  */
 
+import { releaseWakeLock, requestWakeLock } from "./app/wake-lock";
+
 /**
  * Task priority levels (matches W3C Prioritized Task Scheduling spec)
  *
@@ -78,26 +80,28 @@ export async function scheduleTask<T>(
     return window.scheduler!.postTask(callback, { priority, signal, delay });
   }
 
-  // Fallback implementation using setTimeout
-  return new Promise((resolve, reject) => {
-    // For background priority, add small delay to allow other tasks
-    const fallbackDelay = delay + (priority === "background" ? 1 : 0);
+  // Fallback implementation using setTimeout with Promise.withResolvers()
+  const { promise, resolve, reject } = Promise.withResolvers<T>();
 
-    const timeoutId = setTimeout(async () => {
-      try {
-        const result = await callback();
-        resolve(result);
-      } catch (error) {
-        reject(error);
-      }
-    }, fallbackDelay);
+  // For background priority, add small delay to allow other tasks
+  const fallbackDelay = delay + (priority === "background" ? 1 : 0);
 
-    // Handle abort signal
-    signal?.addEventListener("abort", () => {
-      clearTimeout(timeoutId);
-      reject(new DOMException("Aborted", "AbortError"));
-    });
+  const timeoutId = setTimeout(async () => {
+    try {
+      const result = await callback();
+      resolve(result);
+    } catch (error) {
+      reject(error as Error);
+    }
+  }, fallbackDelay);
+
+  // Handle abort signal
+  signal?.addEventListener("abort", () => {
+    clearTimeout(timeoutId);
+    reject(new DOMException("Aborted", "AbortError"));
   });
+
+  return promise;
 }
 
 /**
@@ -119,9 +123,11 @@ export async function yieldToMain(): Promise<void> {
     return window.scheduler.yield();
   }
 
-  // Fallback: yield via setTimeout(0)
+  // Fallback: yield via setTimeout(0) with Promise.withResolvers()
   // This moves to the back of the task queue
-  return new Promise((resolve) => setTimeout(resolve, 0));
+  const { promise, resolve } = Promise.withResolvers<void>();
+  setTimeout(resolve, 0);
+  return promise;
 }
 
 /**
@@ -160,30 +166,42 @@ export async function processBatched<T, R>(
     signal?: AbortSignal;
     /** Progress callback */
     onProgress?: (processed: number, total: number) => void;
+    /** Keep screen awake during processing (default: false) */
+    keepAwake?: boolean;
   } = {}
 ): Promise<R[]> {
-  const { batchSize = 5, priority = "background", signal, onProgress } = options;
+  const { batchSize = 5, priority = "background", signal, onProgress, keepAwake = false } = options;
   const results: R[] = [];
 
-  for (let i = 0; i < items.length; i++) {
-    // Check for abort before each item
-    if (signal?.aborted) {
-      throw new DOMException("Aborted", "AbortError");
+  // Acquire wake lock if requested to prevent screen sleep during long operations
+  const wakeLock = keepAwake ? await requestWakeLock() : null;
+
+  try {
+    for (let i = 0; i < items.length; i++) {
+      // Check for abort before each item
+      if (signal?.aborted) {
+        throw new DOMException("Aborted", "AbortError");
+      }
+
+      // Schedule each item's processing as a background task
+      const result = await scheduleTask(() => processor(items[i], i), { priority, signal });
+      results.push(result);
+
+      // Yield after each batch to allow UI updates and user input
+      if ((i + 1) % batchSize === 0 && i + 1 < items.length) {
+        await yieldToMain();
+        onProgress?.(i + 1, items.length);
+      }
     }
 
-    // Schedule each item's processing as a background task
-    const result = await scheduleTask(() => processor(items[i], i), { priority, signal });
-    results.push(result);
-
-    // Yield after each batch to allow UI updates and user input
-    if ((i + 1) % batchSize === 0 && i + 1 < items.length) {
-      await yieldToMain();
-      onProgress?.(i + 1, items.length);
+    onProgress?.(items.length, items.length);
+    return results;
+  } finally {
+    // Release wake lock when done
+    if (wakeLock) {
+      await releaseWakeLock();
     }
   }
-
-  onProgress?.(items.length, items.length);
-  return results;
 }
 
 /**
@@ -197,22 +215,24 @@ export async function processBatched<T, R>(
  * @returns Promise resolving to callback result
  */
 export async function runWhenIdle<T>(callback: () => T | Promise<T>, timeout = 5000): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const run = async () => {
-      try {
-        resolve(await callback());
-      } catch (error) {
-        reject(error);
-      }
-    };
+  const { promise, resolve, reject } = Promise.withResolvers<T>();
 
-    if (typeof requestIdleCallback !== "undefined") {
-      requestIdleCallback(() => run(), { timeout });
-    } else {
-      // Fallback for Safari (no requestIdleCallback)
-      setTimeout(run, 1);
+  const run = async () => {
+    try {
+      resolve(await callback());
+    } catch (error) {
+      reject(error as Error);
     }
-  });
+  };
+
+  if (typeof requestIdleCallback !== "undefined") {
+    requestIdleCallback(() => run(), { timeout });
+  } else {
+    // Fallback for Safari (no requestIdleCallback)
+    setTimeout(run, 1);
+  }
+
+  return promise;
 }
 
 /**

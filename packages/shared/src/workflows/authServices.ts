@@ -142,16 +142,19 @@ async function fetchCredentialsWithRetry(
 ): Promise<P256Credential[] | null> {
   for (let attempt = 0; attempt <= SESSION_RESTORE_MAX_RETRIES; attempt++) {
     try {
+      const { promise: timeoutPromise, reject } = Promise.withResolvers<never>();
+      setTimeout(() => reject(new Error("Session restore timeout")), SESSION_RESTORE_TIMEOUT);
+
       return await Promise.race([
         passkeyClient.getCredentials({ context: { userName: storedUsername } }),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Session restore timeout")), SESSION_RESTORE_TIMEOUT)
-        ),
+        timeoutPromise,
       ]);
     } catch (error) {
       if (attempt === SESSION_RESTORE_MAX_RETRIES) throw error;
       // Exponential backoff: 1s, 2s
-      await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, attempt)));
+      const { promise, resolve } = Promise.withResolvers<void>();
+      setTimeout(resolve, 1000 * Math.pow(2, attempt));
+      await promise;
     }
   }
   return null;

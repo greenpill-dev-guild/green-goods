@@ -71,23 +71,6 @@ export interface Garden extends GardenCard {
 }
 
 // ============================================
-// Plant & Species Types
-// ============================================
-
-export interface PlantInfo {
-  genus: string;
-  height: number;
-  latitude: number;
-  longitude: number;
-  image: string;
-}
-
-export interface SpeciesRegistry {
-  trees: PlantInfo[];
-  weeds: PlantInfo[];
-}
-
-// ============================================
 // Assessment Types
 // ============================================
 

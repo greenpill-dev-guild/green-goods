@@ -75,23 +75,6 @@ declare interface Garden extends GardenCard {
 }
 
 // ============================================
-// Plant & Species Types
-// ============================================
-
-declare interface PlantInfo {
-  genus: string;
-  height: number;
-  latitude: number;
-  longitude: number;
-  image: string;
-}
-
-declare interface SpeciesRegistry {
-  trees: PlantInfo[];
-  weeds: PlantInfo[];
-}
-
-// ============================================
 // Assessment Types
 // ============================================
 

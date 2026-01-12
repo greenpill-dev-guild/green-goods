@@ -45,7 +45,7 @@ export const buildGardenMemberSets = (
     if (key) operatorIds.add(key);
   });
 
-  const memberIds = new Set<string>([...gardenerIds, ...operatorIds]);
+  const memberIds = gardenerIds.union(operatorIds);
 
   return {
     gardenerIds,

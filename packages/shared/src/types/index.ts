@@ -50,8 +50,6 @@ export type {
   GardenCard,
   GardenerCard,
   Link,
-  PlantInfo,
-  SpeciesRegistry,
   Work,
   WorkApproval,
   WorkApprovalDraft,

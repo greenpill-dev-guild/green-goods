@@ -9,7 +9,7 @@
 
 import type { Chain } from "viem";
 import { createWebAuthnCredential, type P256Credential } from "viem/account-abstraction";
-import { setStoredRpId } from "../modules/auth/session";
+import { getStoredRpId, setStoredRpId } from "../modules/auth/session";
 import { getChain } from "./chains";
 import { getPimlicoApiKey } from "./pimlico";
 
@@ -327,8 +327,10 @@ function bufferToBase64Url(buffer: ArrayBuffer): string {
  * This is the main entry point for credential creation when using
  * the Pimlico passkey server flow.
  *
- * IMPORTANT: Explicitly sets RP ID to current hostname for Android compatibility.
- * Android is strict about RP ID matching between registration and authentication.
+ * IMPORTANT: Uses a fixed RP ID for Android compatibility.
+ * Android WebAuthn requires the RP ID to EXACTLY match between registration
+ * and authentication. Using a fixed RP ID (via VITE_PASSKEY_RP_ID env var)
+ * ensures consistency across devices and browser data clears.
  */
 export async function createPasskeyWithServer(
   serverClient: PasskeyServerClient,
@@ -339,8 +341,9 @@ export async function createPasskeyWithServer(
     context: { userName },
   });
 
-  // 2. Capture current hostname as RP ID for Android compatibility
-  const rpId = window.location.hostname;
+  // 2. Get configured RP ID (uses env var if set, otherwise hostname)
+  // This ensures the same RP ID is used for both registration and authentication
+  const rpId = getStoredRpId();
 
   // 3. Create credential using WebAuthn
   const credential = await createWebAuthnCredential({
@@ -363,6 +366,7 @@ export async function createPasskeyWithServer(
   });
 
   // 4. Store RP ID for authentication (Android requires exact match)
+  // This is a backup - the env var should be the primary source
   setStoredRpId(rpId);
 
   // 5. Verify and store on Pimlico server

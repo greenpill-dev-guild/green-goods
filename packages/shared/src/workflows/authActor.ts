@@ -157,9 +157,35 @@ export const authSelectors = {
 
   error: (state: ReturnType<typeof getAuthActor>["getSnapshot"]) => state().context.error,
 
-  // Computed
-  activeAddress: (state: ReturnType<typeof getAuthActor>["getSnapshot"]) =>
-    state().context.smartAccountAddress || state().context.walletAddress,
+  // Computed - respects auth mode (single source of truth)
+  activeAddress: (state: ReturnType<typeof getAuthActor>["getSnapshot"]) => {
+    const snapshot = state();
+    // Passkey mode -> use smart account address
+    if (snapshot.matches({ authenticated: "passkey" })) {
+      return snapshot.context.smartAccountAddress;
+    }
+    // Wallet mode -> use wallet address
+    if (snapshot.matches({ authenticated: "wallet" })) {
+      return snapshot.context.walletAddress;
+    }
+    // Not authenticated
+    return null;
+  },
+
+  // Auth mode derived from state
+  authMode: (state: ReturnType<typeof getAuthActor>["getSnapshot"]) => {
+    const snapshot = state();
+    if (
+      snapshot.matches({ authenticated: "passkey" }) ||
+      snapshot.matches({ authenticated: "claiming_ens" })
+    ) {
+      return "passkey" as const;
+    }
+    if (snapshot.matches({ authenticated: "wallet" })) {
+      return "wallet" as const;
+    }
+    return null;
+  },
 };
 
 // ============================================================================
