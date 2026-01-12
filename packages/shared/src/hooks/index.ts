@@ -21,12 +21,23 @@ export { useBrowserNavigation } from "./app/useBrowserNavigation";
 export type { DebugModeState } from "./app/useDebugMode";
 export { useDebugMode } from "./app/useDebugMode";
 export { useMerged } from "./app/useMerged";
+export type { NavigateToTopOptions } from "./app/useNavigateToTop";
 export { useNavigateToTop } from "./app/useNavigateToTop";
 export { useOffline } from "./app/useOffline";
 export { useTheme } from "./app/useTheme";
-export { useViewTransition, startViewTransition } from "./app/useViewTransition";
 export type { ToastActionOptions } from "./app/useToastAction";
 export { useToastAction } from "./app/useToastAction";
+export type {
+  MutationToastConfig,
+  MutationTrackingConfig,
+  UseMutationWithTrackingOptions,
+} from "./app/useMutationWithTracking";
+export { useMutationWithTracking } from "./app/useMutationWithTracking";
+export type {
+  UseLoadingWithMinDurationOptions,
+  UseLoadingWithMinDurationResult,
+} from "./app/useLoadingWithMinDuration";
+export { useLoadingWithMinDuration } from "./app/useLoadingWithMinDuration";
 
 // ============================================================================
 // ASSESSMENT
@@ -40,8 +51,8 @@ export { useGardenAssessments } from "./assessment/useGardenAssessments";
 // ============================================================================
 export type { AuthContextType, AuthMode } from "./auth/useAuth";
 export { useAuth, useAuthContext } from "./auth/useAuth";
+export { getPrimaryAddress, usePrimaryAddress } from "./auth/usePrimaryAddress";
 export { useUser } from "./auth/useUser";
-export { useUserWithEns } from "./auth/useUserWithEns";
 
 // ============================================================================
 // BLOCKCHAIN
@@ -49,6 +60,11 @@ export { useUserWithEns } from "./auth/useUserWithEns";
 export { ensureBaseLists } from "./blockchain/prefetch";
 export { useActions, useGardeners, useGardens } from "./blockchain/useBaseLists";
 export {
+  // Pure functions (preferred for non-React contexts)
+  getCurrentChain,
+  getEASConfigForChain,
+  getNetworkConfigForChain,
+  // Hook wrappers (for React component consistency)
   useChainConfig,
   useCurrentChain,
   useEASConfig,
@@ -59,6 +75,8 @@ export { useDeploymentRegistry } from "./blockchain/useDeploymentRegistry";
 export { useEnsAddress } from "./blockchain/useEnsAddress";
 export { useEnsAvatar } from "./blockchain/useEnsAvatar";
 export { useEnsName } from "./blockchain/useEnsName";
+export type { UseEnsQueryOptions, UseEnsQueryResult } from "./blockchain/useEnsQuery";
+export { useEnsQuery } from "./blockchain/useEnsQuery";
 
 // ============================================================================
 // GARDEN
@@ -82,6 +100,13 @@ export {
   isGardenMember,
   useJoinGarden,
 } from "./garden/useJoinGarden";
+export type {
+  GardenFilterScope,
+  GardenFiltersState,
+  GardenSortOrder,
+  UseFilteredGardensResult,
+} from "./garden/useFilteredGardens";
+export { useFilteredGardens } from "./garden/useFilteredGardens";
 
 // ============================================================================
 // GARDENER

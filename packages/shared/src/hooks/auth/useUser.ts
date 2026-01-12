@@ -15,12 +15,9 @@
  * @example
  * ```tsx
  * function ProfileComponent() {
- *   const { user, eoa, smartAccountAddress, authMode, ready } = useUser();
+ *   const { user, eoa, smartAccountAddress, authMode, ready, primaryAddress } = useUser();
  *
  *   if (!ready) return <Loader />;
- *
- *   // Primary address for the current auth mode
- *   const primaryAddress = authMode === "wallet" ? eoa?.address : smartAccountAddress;
  *
  *   return (
  *     <div>
@@ -34,8 +31,8 @@
  */
 
 import type { SmartAccountClient } from "permissionless";
-import { useMemo } from "react";
 import { useAuth } from "./useAuth";
+import { usePrimaryAddress } from "./usePrimaryAddress";
 
 export interface User {
   id: string;
@@ -72,6 +69,9 @@ export interface UseUserReturn {
 export function useUser(): UseUserReturn {
   const auth = useAuth();
 
+  // Use the single source of truth for primary address
+  const primaryAddress = usePrimaryAddress();
+
   // Get auth state from context
   const authMode = auth.authMode ?? null;
   const isReady = auth.isReady ?? false;
@@ -87,40 +87,20 @@ export function useUser(): UseUserReturn {
   // Get smart account client (passkey mode only)
   const smartAccountClient = auth.smartAccountClient ?? null;
 
-  // Determine primary address based on auth mode
-  // This is the address that should be used for membership checks, transactions, etc.
-  const primaryAddress = useMemo(() => {
-    if (authMode === "wallet" && walletAddress) {
-      return walletAddress;
-    }
-    if (authMode === "passkey" && smartAccountAddress) {
-      return smartAccountAddress;
-    }
-    return null;
-  }, [authMode, walletAddress, smartAccountAddress]);
-
   // ENS lookup removed to fix QueryClient initialization error
   // The useEnsName hook was being called before QueryClient was available
   // when Root component rendered during router initialization
 
   // Create EOA object only when wallet is the primary auth
-  const eoa = useMemo(() => {
-    if (authMode === "wallet" && walletAddress) {
-      return { address: walletAddress };
-    }
-    return null;
-  }, [authMode, walletAddress]);
+  // React 19: No useMemo needed - compiler handles this
+  const eoa = authMode === "wallet" && walletAddress ? { address: walletAddress } : null;
 
   // Create user object for backward compatibility
-  const user = useMemo(() => {
-    if (!isAuthenticated || !primaryAddress) {
-      return null;
-    }
-    return {
-      id: primaryAddress,
-      wallet: { address: primaryAddress },
-    };
-  }, [isAuthenticated, primaryAddress]);
+  // React 19: No useMemo needed - compiler handles this
+  const user =
+    isAuthenticated && primaryAddress
+      ? { id: primaryAddress, wallet: { address: primaryAddress } }
+      : null;
 
   return {
     user,

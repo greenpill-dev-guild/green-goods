@@ -1,3 +1,12 @@
+/**
+ * Create Garden Workflow Hook
+ *
+ * Bridges the XState machine with the Zustand form store,
+ * providing a clean API for the UI layer.
+ *
+ * @module hooks/garden/useCreateGardenWorkflow
+ */
+
 import { useMachine } from "@xstate/react";
 import { useCallback, useEffect, useMemo } from "react";
 import { useAccount, useWalletClient } from "wagmi";
@@ -9,7 +18,21 @@ import {
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { useCreateGardenStore } from "../../stores/useCreateGardenStore";
 import { GardenTokenABI, getNetworkContracts } from "../../utils/blockchain/contracts";
-import { createGardenMachine } from "../../workflows/createGarden";
+import { createGardenMachine, type CreateGardenFormStatus } from "../../workflows/createGarden";
+
+/**
+ * Get current form status from the store for passing to machine events
+ */
+function getFormStatus(): CreateGardenFormStatus {
+  const state = useCreateGardenStore.getState();
+  return {
+    canProceed: state.canProceed(),
+    isReviewReady: state.isReviewReady(),
+    isOnReviewStep: state.currentStep === state.steps.length - 1,
+    currentStep: state.currentStep,
+    totalSteps: state.steps.length,
+  };
+}
 
 export function useCreateGardenWorkflow() {
   const { address } = useAccount();
@@ -19,6 +42,13 @@ export function useCreateGardenWorkflow() {
   const updateTransactionStatus = useAdminStore(
     (state: AdminState) => state.updateTransactionStatus
   );
+
+  // Get store actions for step navigation
+  const storeNextStep = useCreateGardenStore((s) => s.nextStep);
+  const storePrevStep = useCreateGardenStore((s) => s.previousStep);
+  const storeGoToReview = useCreateGardenStore((s) => s.goToReview);
+  const storeGoToFirstIncomplete = useCreateGardenStore((s) => s.goToFirstIncompleteStep);
+  const storeReset = useCreateGardenStore((s) => s.reset);
 
   const machine = useMemo(
     () =>
@@ -91,15 +121,60 @@ export function useCreateGardenWorkflow() {
     }
   }, [state.value, state.context.txHash, updateTransactionStatus]);
 
-  const openFlow = useCallback(() => send({ type: "OPEN" }), [send]);
-  const closeFlow = useCallback(() => send({ type: "CLOSE" }), [send]);
-  const goNext = useCallback(() => send({ type: "NEXT" }), [send]);
-  const goBack = useCallback(() => send({ type: "BACK" }), [send]);
-  const goToReview = useCallback(() => send({ type: "REVIEW" }), [send]);
-  const submitCreation = useCallback(() => send({ type: "SUBMIT" }), [send]);
-  const retry = useCallback(() => send({ type: "RETRY" }), [send]);
-  const edit = useCallback(() => send({ type: "EDIT" }), [send]);
-  const createAnother = useCallback(() => send({ type: "CREATE_ANOTHER" }), [send]);
+  // Navigation handlers that bridge store and machine
+  const openFlow = useCallback(() => {
+    storeReset();
+    send({ type: "OPEN" });
+  }, [send, storeReset]);
+
+  const closeFlow = useCallback(() => {
+    storeReset();
+    send({ type: "CLOSE" });
+  }, [send, storeReset]);
+
+  const goNext = useCallback(() => {
+    const formStatus = getFormStatus();
+    if (formStatus.canProceed) {
+      // Only advance store if machine will accept the event
+      storeNextStep();
+    }
+    send({ type: "NEXT", formStatus });
+  }, [send, storeNextStep]);
+
+  const goBack = useCallback(() => {
+    const formStatus = getFormStatus();
+    if (formStatus.currentStep > 0) {
+      storePrevStep();
+    }
+    send({ type: "BACK", formStatus });
+  }, [send, storePrevStep]);
+
+  const goToReview = useCallback(() => {
+    const formStatus = getFormStatus();
+    if (formStatus.isReviewReady) {
+      storeGoToReview();
+    }
+    send({ type: "REVIEW", formStatus });
+  }, [send, storeGoToReview]);
+
+  const submitCreation = useCallback(() => {
+    const formStatus = getFormStatus();
+    send({ type: "SUBMIT", formStatus });
+  }, [send]);
+
+  const retry = useCallback(() => {
+    send({ type: "RETRY" });
+  }, [send]);
+
+  const edit = useCallback(() => {
+    storeGoToFirstIncomplete();
+    send({ type: "EDIT" });
+  }, [send, storeGoToFirstIncomplete]);
+
+  const createAnother = useCallback(() => {
+    storeReset();
+    send({ type: "CREATE_ANOTHER" });
+  }, [send, storeReset]);
 
   return {
     state,

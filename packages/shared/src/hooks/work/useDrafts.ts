@@ -9,6 +9,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
+import { toastService } from "../../components/toast";
 import { computeFirstIncompleteStep, draftDB } from "../../modules/job-queue/draft-db";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
 import { WorkTab } from "../../stores/workFlowTypes";
@@ -110,6 +111,14 @@ export function useDrafts() {
         queryKey: queryKeys.drafts.list(userAddress || "", chainId),
       });
     },
+    onError: (error) => {
+      toastService.error({
+        title: "Failed to create draft",
+        message: error instanceof Error ? error.message : "Please try again.",
+        context: "draft creation",
+        error,
+      });
+    },
   });
 
   // Mutation: Update draft
@@ -128,6 +137,14 @@ export function useDrafts() {
         queryKey: queryKeys.drafts.list(userAddress || "", chainId),
       });
     },
+    onError: (error) => {
+      toastService.error({
+        title: "Failed to save draft",
+        message: error instanceof Error ? error.message : "Please try again.",
+        context: "draft update",
+        error,
+      });
+    },
   });
 
   // Mutation: Delete draft
@@ -143,6 +160,14 @@ export function useDrafts() {
         queryKey: queryKeys.drafts.list(userAddress || "", chainId),
       });
     },
+    onError: (error) => {
+      toastService.error({
+        title: "Failed to delete draft",
+        message: error instanceof Error ? error.message : "Please try again.",
+        context: "draft deletion",
+        error,
+      });
+    },
   });
 
   // Mutation: Add image to draft
@@ -153,6 +178,14 @@ export function useDrafts() {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.drafts.list(userAddress || "", chainId),
+      });
+    },
+    onError: (error) => {
+      toastService.error({
+        title: "Failed to add image",
+        message: error instanceof Error ? error.message : "Please try again.",
+        context: "draft image add",
+        error,
       });
     },
   });
@@ -167,6 +200,14 @@ export function useDrafts() {
         queryKey: queryKeys.drafts.list(userAddress || "", chainId),
       });
     },
+    onError: (error) => {
+      toastService.error({
+        title: "Failed to remove image",
+        message: error instanceof Error ? error.message : "Please try again.",
+        context: "draft image remove",
+        error,
+      });
+    },
   });
 
   // Mutation: Set images for draft (replaces all)
@@ -177,6 +218,14 @@ export function useDrafts() {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.drafts.list(userAddress || "", chainId),
+      });
+    },
+    onError: (error) => {
+      toastService.error({
+        title: "Failed to save images",
+        message: error instanceof Error ? error.message : "Please try again.",
+        context: "draft images set",
+        error,
       });
     },
   });

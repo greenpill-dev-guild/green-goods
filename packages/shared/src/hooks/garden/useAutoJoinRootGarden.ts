@@ -19,6 +19,7 @@ import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { toastService } from "../../components/toast";
 import { isAlreadyGardenerError } from "../../utils/errors/contract-errors";
+import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useUser } from "../auth/useUser";
 import { queryInvalidation } from "../query-keys";
 
@@ -89,8 +90,9 @@ export async function checkMembership(address: string): Promise<{
  * @returns Join state and joinGarden function
  */
 export function useAutoJoinRootGarden() {
-  const { smartAccountAddress, smartAccountClient, eoa } = useUser();
-  const primaryAddress = smartAccountAddress || eoa?.address;
+  const { smartAccountClient } = useUser();
+  // Use single source of truth for primary address
+  const primaryAddress = usePrimaryAddress();
 
   const networkConfig = getDefaultChain();
   const rootGarden = networkConfig.rootGarden;
@@ -162,7 +164,7 @@ export function useAutoJoinRootGarden() {
    * Mark user as onboarded in localStorage
    */
   const markOnboarded = useCallback(
-    (address?: string) => {
+    (address?: string | null) => {
       const targetAddress = address ?? primaryAddress;
       localStorage.setItem(ROOT_GARDEN_PROMPTED_KEY, "true");
       if (targetAddress) {

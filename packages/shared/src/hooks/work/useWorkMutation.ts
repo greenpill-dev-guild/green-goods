@@ -243,30 +243,29 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         wasOffline: isOfflineHash,
       });
 
-      // Mark submission as complete (triggers checkmark)
+      // Mark submission as complete (triggers checkmark animation in Garden view)
+      // The Garden view useEffect will handle:
+      // 1. Clearing the draft
+      // 2. Navigating to /home
+      // 3. Opening the work dashboard
       useWorkFlowStore.getState().setSubmissionCompleted(true);
 
       if (isOfflineHash) {
         // Offline: dismiss info toast after brief delay
-        setTimeout(() => workToasts.dismiss(), 1500);
+        setTimeout(() => workToasts.dismiss(), 1000);
       } else if (authMode === "wallet") {
         // Wallet mode: success already shown by onProgress("complete") callback
         // Just dismiss the loading toast after a delay so user sees the success
-        setTimeout(() => walletProgressToasts.dismiss(), 2000);
+        setTimeout(() => walletProgressToasts.dismiss(), 1500);
       } else {
         // Passkey mode with inline processing: dismiss loading toast
         // Success will be shown by job queue event handler
         workToasts.dismiss();
       }
 
-      // Navigate after short delay to show checkmark
-      setTimeout(
-        () => {
-          openWorkDashboard();
-          // Navigation will happen in Garden view via useEffect watching submissionCompleted
-        },
-        isOfflineHash ? 1000 : 1500
-      );
+      // Open work dashboard immediately - navigation will follow from Garden view
+      // This creates a fluid transition: success checkmark → dashboard slides up → navigate
+      openWorkDashboard();
 
       if (DEBUG_ENABLED) {
         debugLog("[WorkMutation] Work submission completed", {
