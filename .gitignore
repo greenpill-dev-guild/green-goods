@@ -145,6 +145,10 @@ playwright-report/
 tests/test-results/
 tests/playwright-report/
 
+# Lighthouse CI results
+.lighthouseci/
+lighthouse-results/
+
 # ================================
 # Package Manager Caches
 # ================================

@@ -115,6 +115,11 @@ export default defineConfig({
         find: "diagnostics_channel",
         replacement: path.resolve(__dirname, "../shared/src/__mocks__/node/diagnostics-channel.ts"),
       },
+      // Mock WalletConnect utils to avoid uint8arrays dependency chain in tests
+      {
+        find: "@walletconnect/utils",
+        replacement: path.resolve(__dirname, "../shared/src/__mocks__/walletconnect-utils.ts"),
+      },
     ],
   },
 });

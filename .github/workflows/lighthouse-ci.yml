@@ -1,0 +1,98 @@
+name: Lighthouse CI
+
+on:
+  pull_request:
+    paths:
+      - "packages/client/**"
+      - "packages/admin/**"
+      - "packages/shared/**"
+      - ".github/workflows/lighthouse-ci.yml"
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - "packages/client/**"
+      - "packages/admin/**"
+      - "packages/shared/**"
+
+jobs:
+  lighthouse-client:
+    name: Lighthouse CI - Client
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: ./.github/workflows/setup-bun-action
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build client
+        run: bun run --filter '@green-goods/client' build
+        env:
+          VITE_CHAIN_ID: "84532"
+          VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID }}
+          VITE_PIMLICO_API_KEY: ${{ secrets.VITE_PIMLICO_API_KEY }}
+          VITE_STORACHA_KEY: "dummy-key-for-build"
+          VITE_STORACHA_PROOF: "dummy-proof-for-build"
+          NODE_ENV: production
+
+      - name: Run Lighthouse CI
+        working-directory: packages/client
+        run: npx lhci autorun
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
+      - name: Upload Lighthouse results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-client-results
+          path: packages/client/.lighthouseci/
+          retention-days: 30
+
+  lighthouse-admin:
+    name: Lighthouse CI - Admin
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: ./.github/workflows/setup-bun-action
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build admin
+        run: bun run --filter '@green-goods/admin' build
+        env:
+          VITE_CHAIN_ID: "84532"
+          VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID }}
+          VITE_PIMLICO_API_KEY: ${{ secrets.VITE_PIMLICO_API_KEY }}
+          NODE_ENV: production
+
+      - name: Run Lighthouse CI
+        working-directory: packages/admin
+        run: npx lhci autorun
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
+      - name: Upload Lighthouse results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-admin-results
+          path: packages/admin/.lighthouseci/
+          retention-days: 30

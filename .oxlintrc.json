@@ -21,7 +21,10 @@
     "react/jsx-uses-react": "error",
     "react/jsx-uses-vars": "error",
     "react/no-unescaped-entities": "warn",
-    "react/no-unknown-property": "error",
+    "react/no-unknown-property": [
+      "error",
+      { "ignore": ["popover", "popovertarget", "popovertargetaction"] }
+    ],
     "@typescript-eslint/no-unused-vars": "warn",
     "@typescript-eslint/no-explicit-any": "off",
     "@typescript-eslint/prefer-const": "error",
@@ -35,7 +38,7 @@
   },
   "settings": {
     "react": {
-      "version": "18.3"
+      "version": "19.2"
     }
   }
 }

@@ -74,6 +74,11 @@ export default defineConfig({
         __dirname,
         "./src/__mocks__/eas-sdk.ts"
       ),
+      // Mock WalletConnect utils to avoid uint8arrays dependency chain in tests
+      "@walletconnect/utils": path.resolve(
+        __dirname,
+        "./src/__mocks__/walletconnect-utils.ts"
+      ),
     },
   },
 });

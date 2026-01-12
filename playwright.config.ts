@@ -60,7 +60,7 @@ export default defineConfig({
     viewport: { width: 1280, height: 720 },
 
     // Emulate reduced motion to prevent animation issues
-    reducedMotion: "reduce",
+    // reducedMotion: "reduce",
   },
 
   // Browser matrix - streamlined for reliable CI testing

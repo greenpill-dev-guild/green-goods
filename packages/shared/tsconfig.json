@@ -5,7 +5,7 @@
     "moduleResolution": "bundler",
     "resolvePackageJsonExports": true,
     "target": "ES2022",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "types": ["node"],
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
