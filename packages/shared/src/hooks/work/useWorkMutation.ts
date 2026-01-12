@@ -9,6 +9,7 @@
 
 import { useMutation } from "@tanstack/react-query";
 import type { SmartAccountClient } from "permissionless";
+import type { Action, WorkDraft } from "../../types/domain";
 import {
   showWalletProgress,
   toastService,

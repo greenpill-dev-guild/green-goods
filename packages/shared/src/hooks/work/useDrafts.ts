@@ -9,11 +9,11 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
-import { toastService } from "../../components/toast";
 import { computeFirstIncompleteStep, draftDB } from "../../modules/job-queue/draft-db";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
 import { WorkTab } from "../../stores/workFlowTypes";
-import type { DraftStep, WorkDraft } from "../../types/job-queue";
+import type { DraftStep, WorkDraftRecord } from "../../types/job-queue";
+import { createDraftErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { queryKeys } from "../query-keys";
@@ -50,7 +50,7 @@ function workTabToDraftStep(tab: WorkTab): DraftStep {
   }
 }
 
-export interface DraftWithImages extends WorkDraft {
+export interface DraftWithImages extends WorkDraftRecord {
   images: Array<{ id: string; file: File; url: string }>;
   thumbnailUrl: string | null;
 }
@@ -100,7 +100,7 @@ export function useDrafts() {
   // Mutation: Create draft
   const createDraftMutation = useMutation({
     mutationFn: async (
-      data: Partial<Omit<WorkDraft, "id" | "userAddress" | "chainId" | "createdAt" | "updatedAt">>
+      data: Partial<Omit<WorkDraftRecord, "id" | "userAddress" | "chainId" | "createdAt" | "updatedAt">>
     ) => {
       if (!userAddress) throw new Error("User not authenticated");
       return await draftDB.createDraft(userAddress, chainId, data);
@@ -111,14 +111,7 @@ export function useDrafts() {
         queryKey: queryKeys.drafts.list(userAddress || "", chainId),
       });
     },
-    onError: (error) => {
-      toastService.error({
-        title: "Failed to create draft",
-        message: error instanceof Error ? error.message : "Please try again.",
-        context: "draft creation",
-        error,
-      });
-    },
+    onError: createDraftErrorHandler("create"),
   });
 
   // Mutation: Update draft
@@ -128,7 +121,7 @@ export function useDrafts() {
       data,
     }: {
       draftId: string;
-      data: Partial<Omit<WorkDraft, "id" | "userAddress" | "chainId" | "createdAt">>;
+      data: Partial<Omit<WorkDraftRecord, "id" | "userAddress" | "chainId" | "createdAt">>;
     }) => {
       await draftDB.updateDraft(draftId, data);
     },
@@ -137,14 +130,7 @@ export function useDrafts() {
         queryKey: queryKeys.drafts.list(userAddress || "", chainId),
       });
     },
-    onError: (error) => {
-      toastService.error({
-        title: "Failed to save draft",
-        message: error instanceof Error ? error.message : "Please try again.",
-        context: "draft update",
-        error,
-      });
-    },
+    onError: createDraftErrorHandler("save"),
   });
 
   // Mutation: Delete draft
@@ -160,14 +146,7 @@ export function useDrafts() {
         queryKey: queryKeys.drafts.list(userAddress || "", chainId),
       });
     },
-    onError: (error) => {
-      toastService.error({
-        title: "Failed to delete draft",
-        message: error instanceof Error ? error.message : "Please try again.",
-        context: "draft deletion",
-        error,
-      });
-    },
+    onError: createDraftErrorHandler("delete"),
   });
 
   // Mutation: Add image to draft
@@ -180,14 +159,7 @@ export function useDrafts() {
         queryKey: queryKeys.drafts.list(userAddress || "", chainId),
       });
     },
-    onError: (error) => {
-      toastService.error({
-        title: "Failed to add image",
-        message: error instanceof Error ? error.message : "Please try again.",
-        context: "draft image add",
-        error,
-      });
-    },
+    onError: createDraftErrorHandler("add image to"),
   });
 
   // Mutation: Remove image from draft
@@ -200,14 +172,7 @@ export function useDrafts() {
         queryKey: queryKeys.drafts.list(userAddress || "", chainId),
       });
     },
-    onError: (error) => {
-      toastService.error({
-        title: "Failed to remove image",
-        message: error instanceof Error ? error.message : "Please try again.",
-        context: "draft image remove",
-        error,
-      });
-    },
+    onError: createDraftErrorHandler("remove image from"),
   });
 
   // Mutation: Set images for draft (replaces all)
@@ -220,14 +185,7 @@ export function useDrafts() {
         queryKey: queryKeys.drafts.list(userAddress || "", chainId),
       });
     },
-    onError: (error) => {
-      toastService.error({
-        title: "Failed to save images",
-        message: error instanceof Error ? error.message : "Please try again.",
-        context: "draft images set",
-        error,
-      });
-    },
+    onError: createDraftErrorHandler("save images for"),
   });
 
   /**

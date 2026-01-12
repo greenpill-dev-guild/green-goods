@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useAccount } from "wagmi";
+import type { Garden } from "../../types/domain";
 import { useAuthContext } from "../../providers/Auth";
 import { isAddressInList } from "../../utils/blockchain/address";
 

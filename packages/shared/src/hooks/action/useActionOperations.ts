@@ -12,7 +12,7 @@ import { useAccount, useWalletClient } from "wagmi";
 import { toastService } from "../../components/toast";
 import { Capital } from "../../modules/data/greengoods";
 import { ActionRegistryABI, getNetworkContracts } from "../../utils/blockchain/contracts";
-import { simulateTransaction } from "../../utils/contract/simulation";
+import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { parseContractError } from "../../utils/errors/contract-errors";
 import { useToastAction } from "../app/useToastAction";
 import { queryKeys } from "../query-keys";

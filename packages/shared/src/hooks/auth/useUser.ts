@@ -68,35 +68,25 @@ export interface UseUserReturn {
 
 export function useUser(): UseUserReturn {
   const auth = useAuth();
-
-  // Use the single source of truth for primary address
   const primaryAddress = usePrimaryAddress();
 
-  // Get auth state from context
-  const authMode = auth.authMode ?? null;
-  const isReady = auth.isReady ?? false;
-  const isAuthenticated = auth.isAuthenticated ?? false;
+  // Extract auth state with null defaults for type safety
+  const {
+    authMode = null,
+    isReady = false,
+    isAuthenticated = false,
+    smartAccountAddress = null,
+    walletAddress = null,
+    userName = null,
+    externalWalletConnected = false,
+    externalWalletAddress = null,
+    smartAccountClient = null,
+  } = auth;
 
-  // Get addresses and username from auth context
-  const smartAccountAddress = auth.smartAccountAddress ?? null;
-  const walletAddress = auth.walletAddress ?? null;
-  const userName = auth.userName ?? null;
-  const externalWalletConnected = auth.externalWalletConnected ?? false;
-  const externalWalletAddress = auth.externalWalletAddress ?? null;
-
-  // Get smart account client (passkey mode only)
-  const smartAccountClient = auth.smartAccountClient ?? null;
-
-  // ENS lookup removed to fix QueryClient initialization error
-  // The useEnsName hook was being called before QueryClient was available
-  // when Root component rendered during router initialization
-
-  // Create EOA object only when wallet is the primary auth
-  // React 19: No useMemo needed - compiler handles this
+  // Create EOA object only when wallet is the primary auth (React 19 compiler handles memoization)
   const eoa = authMode === "wallet" && walletAddress ? { address: walletAddress } : null;
 
-  // Create user object for backward compatibility
-  // React 19: No useMemo needed - compiler handles this
+  // Create user object for backward compatibility (React 19 compiler handles memoization)
   const user =
     isAuthenticated && primaryAddress
       ? { id: primaryAddress, wallet: { address: primaryAddress } }
@@ -110,7 +100,7 @@ export function useUser(): UseUserReturn {
     smartAccountClient,
     authMode,
     userName,
-    ensName: null, // Temporarily disabled to fix QueryClient error
+    ensName: null, // Disabled - useEnsName was called before QueryClient was available
     externalWalletConnected,
     externalWalletAddress,
     primaryAddress,

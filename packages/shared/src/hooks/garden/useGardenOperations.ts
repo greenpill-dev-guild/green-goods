@@ -7,6 +7,7 @@
  */
 
 import { useQueryClient } from "@tanstack/react-query";
+import type { Garden } from "../../types/domain";
 import { useCallback, useMemo, useState } from "react";
 import { useAccount, useWalletClient } from "wagmi";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";

@@ -17,8 +17,43 @@ import {
   trackAdminMemberRemoveSuccess,
 } from "../../modules/app/analytics-events";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
-import { simulateTransaction } from "../../utils/contract/simulation";
+import { simulateTransaction } from "../../utils/blockchain/simulation";
 import type { ToastActionOptions } from "../app/useToastAction";
+
+/** Helper to track operation started - reduces duplicate conditionals */
+function trackOperationStarted(
+  gardenAddress: string,
+  memberType: "gardener" | "operator",
+  operationType: "add" | "remove",
+  targetAddress: string
+): void {
+  const tracker = operationType === "add" ? trackAdminMemberAddStarted : trackAdminMemberRemoveStarted;
+  tracker({ gardenAddress, memberType, targetAddress });
+}
+
+/** Helper to track operation success */
+function trackOperationSuccess(
+  gardenAddress: string,
+  memberType: "gardener" | "operator",
+  operationType: "add" | "remove",
+  targetAddress: string,
+  txHash: string
+): void {
+  const tracker = operationType === "add" ? trackAdminMemberAddSuccess : trackAdminMemberRemoveSuccess;
+  tracker({ gardenAddress, memberType, targetAddress, txHash });
+}
+
+/** Helper to track operation failure */
+function trackOperationFailed(
+  gardenAddress: string,
+  memberType: "gardener" | "operator",
+  operationType: "add" | "remove",
+  targetAddress: string,
+  error: string
+): void {
+  const tracker = operationType === "add" ? trackAdminMemberAddFailed : trackAdminMemberRemoveFailed;
+  tracker({ gardenAddress, memberType, targetAddress, error });
+}
 
 /**
  * Configuration for a garden operation
@@ -155,19 +190,7 @@ export function createGardenOperation(
     }
 
     // Track operation started
-    if (config.operationType === "add") {
-      trackAdminMemberAddStarted({
-        gardenAddress: gardenId,
-        memberType: config.memberType,
-        targetAddress,
-      });
-    } else {
-      trackAdminMemberRemoveStarted({
-        gardenAddress: gardenId,
-        memberType: config.memberType,
-        targetAddress,
-      });
-    }
+    trackOperationStarted(gardenId, config.memberType, config.operationType, targetAddress);
 
     setIsLoading(true);
 
@@ -183,21 +206,13 @@ export function createGardenOperation(
 
       if (!simulation.success) {
         // Track failure
-        if (config.operationType === "add") {
-          trackAdminMemberAddFailed({
-            gardenAddress: gardenId,
-            memberType: config.memberType,
-            targetAddress,
-            error: simulation.error?.message ?? "Simulation failed",
-          });
-        } else {
-          trackAdminMemberRemoveFailed({
-            gardenAddress: gardenId,
-            memberType: config.memberType,
-            targetAddress,
-            error: simulation.error?.message ?? "Simulation failed",
-          });
-        }
+        trackOperationFailed(
+          gardenId,
+          config.memberType,
+          config.operationType,
+          targetAddress,
+          simulation.error?.message ?? "Simulation failed"
+        );
 
         // Show error toast for simulation failure
         toastService.error({
@@ -244,21 +259,7 @@ export function createGardenOperation(
       );
 
       // Track operation success
-      if (config.operationType === "add") {
-        trackAdminMemberAddSuccess({
-          gardenAddress: gardenId,
-          memberType: config.memberType,
-          targetAddress,
-          txHash: hash,
-        });
-      } else {
-        trackAdminMemberRemoveSuccess({
-          gardenAddress: gardenId,
-          memberType: config.memberType,
-          targetAddress,
-          txHash: hash,
-        });
-      }
+      trackOperationSuccess(gardenId, config.memberType, config.operationType, targetAddress, hash);
 
       return {
         hash,
@@ -271,21 +272,7 @@ export function createGardenOperation(
       const parsed = parseContractError(error);
 
       // Track operation failure
-      if (config.operationType === "add") {
-        trackAdminMemberAddFailed({
-          gardenAddress: gardenId,
-          memberType: config.memberType,
-          targetAddress,
-          error: parsed.message,
-        });
-      } else {
-        trackAdminMemberRemoveFailed({
-          gardenAddress: gardenId,
-          memberType: config.memberType,
-          targetAddress,
-          error: parsed.message,
-        });
-      }
+      trackOperationFailed(gardenId, config.memberType, config.operationType, targetAddress, parsed.message);
 
       return {
         success: false,

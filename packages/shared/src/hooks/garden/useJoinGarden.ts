@@ -7,9 +7,10 @@
  * @module hooks/garden/useJoinGarden
  */
 
-import type { SmartAccountClient } from "permissionless";
 import { useQueryClient } from "@tanstack/react-query";
+import type { Garden } from "../../types/domain";
 import { readContract } from "@wagmi/core";
+import type { SmartAccountClient } from "permissionless";
 import { useCallback, useState } from "react";
 import { encodeFunctionData, type Hex } from "viem";
 import { useWriteContract } from "wagmi";
@@ -21,7 +22,7 @@ import {
   trackGardenJoinStarted,
   trackGardenJoinSuccess,
 } from "../../modules/app/analytics-events";
-import { trackContractError, addBreadcrumb } from "../../modules/app/error-tracking";
+import { addBreadcrumb, trackContractError } from "../../modules/app/error-tracking";
 import { isAddressInList } from "../../utils/blockchain/address";
 
 /**
@@ -32,8 +33,9 @@ interface PasskeySession {
   address: Hex;
   client: SmartAccountClient | null;
 }
-import { simulateJoinGarden } from "../../utils/contract/simulation";
+
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
+import { simulateJoinGarden } from "../../utils/blockchain/simulation";
 import { isAlreadyGardenerError } from "../../utils/errors/contract-errors";
 import { useUser } from "../auth/useUser";
 import { queryKeys } from "../query-keys";

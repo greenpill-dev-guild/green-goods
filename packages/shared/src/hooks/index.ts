@@ -140,7 +140,7 @@ export { useTranslation } from "./translation/useTranslation";
 // ============================================================================
 // UI
 // ============================================================================
-export { useScrollReveal } from "./ui/useScrollReveal";
+export { useScrollReveal } from "./app/useScrollReveal";
 
 // ============================================================================
 // WORK

@@ -13,6 +13,7 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { Work, WorkApprovalDraft } from "../../types/domain";
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import {
@@ -24,7 +25,8 @@ import {
 import { jobQueue } from "../../modules/job-queue";
 import { submitApprovalDirectly } from "../../modules/work/wallet-submission";
 import { submitApprovalToQueue } from "../../modules/work/work-submission";
-import { DEBUG_ENABLED, debugError, debugLog, debugWarn } from "../../utils/debug";
+import { DEBUG_ENABLED, debugLog, debugWarn } from "../../utils/debug";
+import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
 import { queryKeys } from "../query-keys";
 
@@ -321,40 +323,41 @@ export function useWorkApproval() {
       }
     },
     onError: (error: unknown, variables) => {
-      // Track approval failure
-      trackWorkApprovalFailed({
-        workUID: variables?.draft.workUID ?? "",
-        gardenAddress: variables?.work.gardenAddress ?? "",
-        error: error instanceof Error ? error.message : "Unknown error",
-        authMode,
-      });
-
       const isApproval = variables?.draft.approved ?? false;
-      const message =
-        authMode === "wallet"
-          ? "Transaction failed. Check your wallet and try again."
-          : `We couldn't send the ${isApproval ? "approval" : "decision"}. We'll retry shortly.`;
-      toastService.error({
-        id: "approval-submit",
-        title: isApproval ? "Approval failed" : "Decision failed",
-        message,
-        context: authMode === "wallet" ? "wallet confirmation" : "approval submission",
-        description:
-          authMode === "wallet"
+      const actionType = isApproval ? "approval" : "decision";
+
+      // Create error handler with approval-specific configuration
+      const handleError = createMutationErrorHandler({
+        source: "useWorkApproval",
+        toastContext: `${actionType} submission`,
+        toastId: "approval-submit",
+        trackError: (errorMsg) =>
+          trackWorkApprovalFailed({
+            workUID: variables?.draft.workUID ?? "",
+            gardenAddress: variables?.work.gardenAddress ?? "",
+            error: errorMsg,
+            authMode,
+          }),
+        getFallbackMessage: (mode) =>
+          mode === "wallet"
+            ? "Transaction failed. Check your wallet and try again."
+            : `We couldn't send the ${actionType}. We'll retry shortly.`,
+        getFallbackDescription: (mode) =>
+          mode === "wallet"
             ? "If this keeps happening, reconnect your wallet before resubmitting."
             : "Keep the app open; the queue will keep trying in the background.",
-        error,
       });
-      if (DEBUG_ENABLED) {
-        debugError("[useWorkApproval] Approval submission failed", error, {
-          authMode,
+
+      handleError(error, {
+        authMode,
+        gardenAddress: variables?.work.gardenAddress,
+        metadata: {
           chainId,
           workUID: variables?.draft.workUID,
           approved: variables?.draft.approved,
           gardenerAddress: variables?.work?.gardenerAddress,
-          message,
-        });
-      }
+        },
+      });
     },
   });
 }
