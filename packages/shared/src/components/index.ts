@@ -1,6 +1,38 @@
 // Shared UI Components
 // EXPLICIT EXPORTS for tree-shaking
 
+// Display Components
+export { ImageWithFallback, type ImageWithFallbackProps } from "./Display";
+
+// Badge Component
+export { Badge, badgeVariants, type BadgeProps, type BadgeVariantProps } from "./Badge";
+
+// Card Components
+export {
+  CardBase,
+  CardHeader,
+  CardFooter,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  cardVariants,
+  type CardBaseProps,
+  type CardVariantProps,
+  WorkCard,
+  workCardVariants,
+  type WorkCardProps,
+  type WorkCardData,
+  type WorkCardLabels,
+  type WorkCardVariantProps,
+  type WorkStatus,
+  GardenCard,
+  gardenCardVariants,
+  type GardenCardProps,
+  type GardenCardData,
+  type GardenCardLabels,
+  type GardenCardVariantProps,
+} from "./Cards";
+
 // Form Components
 export type { FormInputProps } from "./Form/FormInput";
 export { FormInput } from "./Form/FormInput";
@@ -36,7 +68,7 @@ export { HydrationFallback } from "./HydrationFallback";
 export type { CenteredSpinnerProps, SpinnerProps } from "./Spinner";
 export { CenteredSpinner, Spinner } from "./Spinner";
 // Status Badge
-export type { StatusBadgeProps, WorkStatus } from "./StatusBadge";
+export type { StatusBadgeProps } from "./StatusBadge";
 export { getStatusColors, StatusBadge } from "./StatusBadge";
 // Toast Preset i18n Factory Functions
 export type { FormatMessageFn } from "./Toast/presets";
