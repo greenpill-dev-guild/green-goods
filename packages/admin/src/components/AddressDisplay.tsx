@@ -1,6 +1,7 @@
 import { cn, copyToClipboard, formatAddress } from "@green-goods/shared/utils";
 import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
-import { useEffect, useState } from "react";
+import { useEffect, useId } from "react";
+import { useState } from "react";
 
 interface AddressDisplayProps {
   address: string;
@@ -16,7 +17,7 @@ export function AddressDisplay({
   truncateLength: _truncateLength = 6,
 }: AddressDisplayProps) {
   const [copied, setCopied] = useState(false);
-  const [showTooltip, setShowTooltip] = useState(false);
+  const tooltipId = useId();
   // ENS temporarily disabled to fix QueryClient initialization
   const ensName = null;
   const display = formatAddress(address, {
@@ -42,32 +43,40 @@ export function AddressDisplay({
 
   return (
     <div className={cn("flex items-center space-x-2", className)}>
-      <div
-        className="relative"
-        onMouseEnter={() => setShowTooltip(true)}
-        onMouseLeave={() => setShowTooltip(false)}
+      <button
+        type="button"
+        popovertarget={tooltipId}
+        className="text-sm font-mono text-text-strong hover:text-text-sub transition-colors focus:outline-none focus:ring-2 focus:ring-primary-base/20 rounded"
+        style={{ background: "none", border: "none", padding: 0 }}
       >
-        <span className="text-sm font-mono cursor-pointer text-text-strong">{display}</span>
+        {display}
+      </button>
 
-        {showTooltip && (
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-bg-strong text-static-white text-xs rounded whitespace-nowrap z-50">
-            {ensName ? (
-              <div className="flex flex-col text-left">
-                <span>{ensName}</span>
-                <span className="text-[10px] text-text-disabled">{address}</span>
-              </div>
-            ) : (
-              address
-            )}
-            <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-bg-strong" />
+      <div
+        id={tooltipId}
+        // @ts-expect-error - popover is a valid HTML attribute but not in React types yet
+        popover="hint"
+        className="px-2 py-1 bg-bg-strong text-static-white text-xs rounded whitespace-nowrap m-0 border-0"
+        style={{
+          inset: "unset",
+          margin: "unset",
+        }}
+      >
+        {ensName ? (
+          <div className="flex flex-col text-left">
+            <span>{ensName}</span>
+            <span className="text-[10px] text-text-disabled">{address}</span>
           </div>
+        ) : (
+          address
         )}
       </div>
 
       {showCopyButton && (
         <button
+          type="button"
           onClick={handleCopy}
-          className="p-1 text-text-soft hover:text-text-sub transition-colors"
+          className="p-1 text-text-soft hover:text-text-sub transition-colors focus:outline-none focus:ring-2 focus:ring-primary-base/20 rounded"
           title="Copy address"
         >
           {copied ? (
