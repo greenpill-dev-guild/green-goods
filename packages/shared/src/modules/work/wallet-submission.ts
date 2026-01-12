@@ -118,15 +118,15 @@ async function waitForReceiptWithTimeout(
   chainId: number,
   timeoutMs: number = 60_000
 ): Promise<void> {
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    setTimeout(() => {
-      reject(
-        new Error(
-          `Transaction confirmation timeout after ${timeoutMs / 1000}s. The transaction may still be processing.`
-        )
-      );
-    }, timeoutMs);
-  });
+  const { promise: timeoutPromise, reject } = Promise.withResolvers<never>();
+
+  setTimeout(() => {
+    reject(
+      new Error(
+        `Transaction confirmation timeout after ${timeoutMs / 1000}s. The transaction may still be processing.`
+      )
+    );
+  }, timeoutMs);
 
   const receiptPromise = waitForTransactionReceipt(wagmiConfig, { hash, chainId });
 

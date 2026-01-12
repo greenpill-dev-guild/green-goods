@@ -8,12 +8,7 @@
  */
 
 import { type IDBPDatabase, openDB } from "idb";
-import type {
-  DraftImage,
-  DraftStep,
-  WorkDraft,
-  SerializedFileData,
-} from "../../types/job-queue";
+import type { DraftImage, DraftStep, WorkDraft, SerializedFileData } from "../../types/job-queue";
 import { trackStorageError } from "../app/error-tracking";
 import { mediaResourceManager } from "./media-resource-manager";
 

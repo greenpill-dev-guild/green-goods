@@ -2,12 +2,7 @@ import { type IDBPDatabase, openDB } from "idb";
 import { normalizeToFile } from "../../utils/app/normalizeToFile";
 import { trackStorageError, addBreadcrumb } from "../app/error-tracking";
 import { mediaResourceManager } from "./media-resource-manager";
-import type {
-  Job,
-  JobQueueDBImage,
-  CachedWork,
-  SerializedFileData,
-} from "../../types/job-queue";
+import type { Job, JobQueueDBImage, CachedWork, SerializedFileData } from "../../types/job-queue";
 
 /**
  * Serialize a File to IndexedDB-safe format.

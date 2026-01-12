@@ -73,9 +73,31 @@ export function hasStoredUsername(): boolean {
 // RP ID (for Android passkey compatibility)
 // ============================================================================
 
-/** Get stored RP ID, fallback to current hostname */
-export function getStoredRpId(): string {
+/**
+ * Get the configured RP ID for passkey operations.
+ *
+ * Android WebAuthn requires the RP ID to EXACTLY match between registration
+ * and authentication. Using a fixed RP ID ensures consistency across:
+ * - Different devices
+ * - Browser data clears
+ * - PWA vs browser contexts
+ *
+ * Priority: Environment variable > Stored value > Current hostname
+ */
+function getConfiguredRpId(): string {
+  // Use environment variable if configured (recommended for production)
+  const envRpId = import.meta.env.VITE_PASSKEY_RP_ID;
+  if (envRpId) {
+    return envRpId;
+  }
+
+  // Fall back to stored value or current hostname
   return localStorage.getItem(RP_ID_STORAGE_KEY) || window.location.hostname;
+}
+
+/** Get stored RP ID, with fixed fallback for Android compatibility */
+export function getStoredRpId(): string {
+  return getConfiguredRpId();
 }
 
 /** Store RP ID used during registration */

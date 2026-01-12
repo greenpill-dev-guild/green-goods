@@ -174,6 +174,7 @@ export const AppProvider = ({ children, posthogKey }: AppProviderProps) => {
     };
   }, [handleAppInstalled, handleBeforeInstall, handleInstallCheck, installState]);
 
+  // React 19: Compiler handles memoization of context value
   const appContent = (
     <AppContext.Provider
       value={{

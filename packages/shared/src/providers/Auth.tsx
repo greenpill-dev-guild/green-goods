@@ -44,6 +44,7 @@ import {
   type AuthMode,
   clearAuthMode,
   clearStoredUsername,
+  getAuthMode,
   hasStoredUsername,
   setAuthMode as saveAuthModeToStorage,
 } from "../modules/auth/session";
@@ -141,6 +142,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isConnected: false,
     address: undefined,
   });
+
+  // Track wallet hydration timeout - give up waiting after 2 seconds
+  const [walletHydrationTimedOut, setWalletHydrationTimedOut] = React.useState(false);
+  const hydrationTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  // Start hydration timeout on mount if wallet auth mode is stored
+  useEffect(() => {
+    const storedAuthMode = getAuthMode();
+    if (storedAuthMode === "wallet" && !isConnected && !walletHydrationTimedOut) {
+      hydrationTimeoutRef.current = setTimeout(() => {
+        setWalletHydrationTimedOut(true);
+      }, 2000); // 2 second timeout for wallet reconnection
+    }
+
+    // Clear timeout if wallet connects
+    if (isConnected) {
+      clearTimeout(hydrationTimeoutRef.current);
+    }
+
+    return () => clearTimeout(hydrationTimeoutRef.current);
+  }, [isConnected, walletHydrationTimedOut]);
 
   // ============================================================
   // WALLET EVENT SYNC
@@ -361,9 +383,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Check for stored username (indicates existing account with Pimlico server)
     const storedCredential = hasStoredUsername();
 
+    // Determine if auth is ready
+    // For wallet mode: wait for Wagmi to finish reconnecting before declaring ready
+    // This prevents the login flash when refreshing with wallet auth
+    const machineReady = !snapshot.matches("initializing");
+    const storedAuthMode = typeof window !== "undefined" ? getAuthMode() : null;
+
+    // If user was previously authenticated with wallet, wait for Wagmi to settle
+    // before declaring auth as ready. This prevents:
+    // 1. Auto-logout on refresh (RequireAuth redirecting before wallet reconnects)
+    // 2. Login view flash (showing login briefly before auto-login completes)
+    // Give up waiting after timeout to prevent infinite loading
+    const isWalletHydrating =
+      storedAuthMode === "wallet" &&
+      !snapshot.matches("authenticated") &&
+      !walletHydrationTimedOut &&
+      (isConnecting || (!isConnected && !snapshot.matches("unauthenticated")));
+
     return {
       authMode,
-      isReady: !snapshot.matches("initializing"),
+      isReady: machineReady && !isWalletHydrating,
       isAuthenticated: snapshot.matches("authenticated"),
       isAuthenticating,
       error: snapshot.context.error,
@@ -378,7 +417,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       externalWalletConnected: snapshot.context.externalWalletConnected,
       externalWalletAddress: snapshot.context.externalWalletAddress,
     };
-  }, [snapshot, isConnecting]);
+  }, [snapshot, isConnecting, isConnected, walletHydrationTimedOut]);
 
   // ============================================================
   // CONTEXT VALUE

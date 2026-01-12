@@ -2,12 +2,14 @@
  * Work Provider
  *
  * Orchestrates work submission functionality by composing hooks.
- * Provides context for work form, images, mutation, and navigation.
+ * Split into two contexts for performance optimization:
+ * - WorkSelectionContext: Low-frequency updates (gardens, actions, tabs)
+ * - WorkFormContext: High-frequency updates (form state, images)
  *
  * @module providers/work
  */
 
-import React, { useCallback, useContext, useMemo } from "react";
+import React, { useCallback, useContext } from "react";
 import type { Control, FormState, UseFormRegister } from "react-hook-form";
 import { useShallow } from "zustand/react/shallow";
 import { validationToasts } from "../components/toast";
@@ -26,6 +28,46 @@ import { DEBUG_ENABLED, debugError, debugLog, debugWarn } from "../utils/debug";
 // Re-export WorkTab for backward compatibility
 export { WorkTab };
 
+// ============================================================================
+// Types
+// ============================================================================
+
+/**
+ * Low-frequency selection data (gardens, actions, navigation)
+ */
+export interface WorkSelectionValue {
+  gardens: Garden[];
+  actions: Action[];
+  isLoading: boolean;
+  activeTab: WorkTab;
+  setActiveTab: (value: WorkTab) => void;
+  gardenAddress: string | null;
+  setGardenAddress: (value: string | null) => void;
+  actionUID: number | null;
+  setActionUID: (value: number | null) => void;
+}
+
+/**
+ * High-frequency form data (form state, images, mutation)
+ */
+export interface WorkFormValue {
+  state: FormState<WorkFormData>;
+  control: Control<WorkFormData>;
+  register: UseFormRegister<WorkFormData>;
+  images: File[];
+  setImages: React.Dispatch<React.SetStateAction<File[]>>;
+  feedback: string;
+  plantSelection: string[];
+  plantCount: number | undefined;
+  values: Record<string, unknown>;
+  reset: () => void;
+  uploadWork: (e?: React.BaseSyntheticEvent) => Promise<void>;
+  workMutation: ReturnType<typeof useWorkMutation>;
+}
+
+/**
+ * Combined interface for backward compatibility
+ */
 export interface WorkDataProps {
   gardens: Garden[];
   actions: Action[];
@@ -52,6 +94,14 @@ export interface WorkDataProps {
   setActiveTab: (value: WorkTab) => void;
 }
 
+// ============================================================================
+// Contexts
+// ============================================================================
+
+const WorkSelectionContext = React.createContext<WorkSelectionValue | null>(null);
+const WorkFormContext = React.createContext<WorkFormValue | null>(null);
+
+// Legacy context for backward compatibility
 const WorkContext = React.createContext<WorkDataProps>({
   form: {
     register: () => ({}) as ReturnType<UseFormRegister<WorkFormData>>,
@@ -65,9 +115,47 @@ const WorkContext = React.createContext<WorkDataProps>({
   },
 } as unknown as WorkDataProps);
 
+// ============================================================================
+// Hooks
+// ============================================================================
+
+/**
+ * Access low-frequency selection data (gardens, actions, tabs).
+ * Use this when you only need selection state to avoid re-renders on form changes.
+ */
+export function useWorkSelection(): WorkSelectionValue {
+  const context = useContext(WorkSelectionContext);
+  if (!context) {
+    throw new Error("useWorkSelection must be used within a WorkProvider");
+  }
+  return context;
+}
+
+/**
+ * Access high-frequency form data (form state, images, mutation).
+ * Use this when you need form state to avoid re-renders on selection changes.
+ */
+export function useWorkFormContext(): WorkFormValue {
+  const context = useContext(WorkFormContext);
+  if (!context) {
+    throw new Error("useWorkFormContext must be used within a WorkProvider");
+  }
+  return context;
+}
+
+/**
+ * Access all work data (backward compatible hook).
+ * Combines selection and form contexts.
+ *
+ * @deprecated Consider using useWorkSelection or useWorkFormContext for better performance
+ */
 export const useWork = () => {
   return useContext(WorkContext);
 };
+
+// ============================================================================
+// Provider
+// ============================================================================
 
 export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   const { smartAccountClient, authMode, primaryAddress } = useUser();
@@ -77,23 +165,20 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   const { data: actionsData = [], isLoading: actionsLoading } = useActions(chainId);
   const { data: gardensData = [], isLoading: gardensLoading } = useGardens(chainId);
 
-  // Normalize user address for comparisons (primaryAddress is already resolved by authMode)
-  const userAddress = useMemo(() => {
-    return normalizeAddress(primaryAddress);
-  }, [primaryAddress]);
+  // Normalize user address for comparisons
+  const userAddress = normalizeAddress(primaryAddress);
 
   // Filter gardens to only show ones user is a member of
-  const userGardens = useMemo(() => {
-    if (!userAddress || !gardensData) return [];
-
-    return gardensData.filter((garden: Garden) => {
-      // Check if user is in gardeners or operators list (case-insensitive)
-      return (
-        isAddressInList(userAddress, garden.gardeners) ||
-        isAddressInList(userAddress, garden.operators)
-      );
-    });
-  }, [gardensData, userAddress]);
+  // React 19: Compiler handles memoization
+  const userGardens =
+    userAddress && gardensData
+      ? gardensData.filter((garden: Garden) => {
+          return (
+            isAddressInList(userAddress, garden.gardeners) ||
+            isAddressInList(userAddress, garden.operators)
+          );
+        })
+      : [];
 
   // UI state via Zustand with useShallow for multi-select optimization
   const { actionUID, gardenAddress, activeTab, setActionUID, setGardenAddress, setActiveTab } =
@@ -108,7 +193,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       }))
     );
 
-  // Use extracted hooks (setImages uses dispatch adapter for functional updates)
+  // Use extracted hooks
   const { images, setImages } = useWorkImages();
   const workForm = useWorkForm();
 
@@ -123,19 +208,20 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   });
 
   // Compute minimum required images from selected action
-  const minRequiredImages = useMemo(() => {
+  // React 19: Compiler handles memoization
+  const getMinRequiredImages = () => {
     if (typeof actionUID !== "number" || !actionsData.length) return 1;
     const selectedAction = actionsData.find(
       (a: Action) => Number(a.id.split("-").pop()) === actionUID
     );
     if (!selectedAction?.mediaInfo?.required) return 0;
     return selectedAction.mediaInfo.minImageCount ?? 1;
-  }, [actionUID, actionsData]);
+  };
+  const minRequiredImages = getMinRequiredImages();
 
-  // Upload work handler - memoized to prevent unnecessary re-renders
+  // Upload work handler
   const handleUploadWork = useCallback(
     async (data: WorkFormData) => {
-      // Build draft from form data (partial) - validation will check for required fields
       const draft = {
         feedback: data.feedback,
         plantSelection: data.plantSelection,
@@ -152,7 +238,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         }
         return;
       }
-      // Snapshot images to avoid race with state clearing after navigation
+
       const imagesSnapshot = images.slice();
       if (DEBUG_ENABLED) {
         debugLog("[WorkProvider] Submitting work with validated draft", {
@@ -161,6 +247,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
           imageCount: imagesSnapshot.length,
         });
       }
+
       try {
         await workMutation.mutateAsync({ draft: draft as WorkDraft, images: imagesSnapshot });
       } catch (error) {
@@ -175,41 +262,72 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
     [gardenAddress, actionUID, images, workMutation, minRequiredImages]
   );
 
-  // Wrap with handleSubmit for form validation
-  const uploadWork = useMemo(
-    () => workForm.handleSubmit(handleUploadWork),
-    [workForm, handleUploadWork]
-  );
+  const uploadWork = workForm.handleSubmit(handleUploadWork);
+
+  // Selection context value (low-frequency updates)
+  // React 19: Compiler handles memoization
+  const selectionValue: WorkSelectionValue = {
+    gardens: userGardens,
+    actions: actionsData,
+    isLoading: actionsLoading || gardensLoading,
+    activeTab,
+    setActiveTab,
+    gardenAddress,
+    setGardenAddress,
+    actionUID,
+    setActionUID,
+  };
+
+  // Form context value (high-frequency updates)
+  // React 19: Compiler handles memoization
+  const formValue: WorkFormValue = {
+    state: workForm.formState,
+    control: workForm.control,
+    register: workForm.register,
+    images,
+    setImages,
+    feedback: workForm.feedback,
+    plantSelection: workForm.plantSelection,
+    plantCount: workForm.plantCount,
+    values: workForm.values,
+    reset: workForm.reset,
+    uploadWork,
+    workMutation,
+  };
+
+  // Legacy combined value for backward compatibility
+  // React 19: Compiler handles memoization
+  const legacyValue: WorkDataProps = {
+    gardens: userGardens,
+    actions: actionsData,
+    isLoading: actionsLoading || gardensLoading,
+    workMutation,
+    form: {
+      state: workForm.formState,
+      control: workForm.control,
+      register: workForm.register,
+      actionUID,
+      images,
+      setImages,
+      setActionUID,
+      uploadWork,
+      gardenAddress,
+      setGardenAddress,
+      feedback: workForm.feedback,
+      plantSelection: workForm.plantSelection,
+      plantCount: workForm.plantCount,
+      values: workForm.values,
+      reset: workForm.reset,
+    },
+    activeTab,
+    setActiveTab,
+  };
 
   return (
-    <WorkContext.Provider
-      value={{
-        gardens: userGardens,
-        actions: actionsData,
-        isLoading: actionsLoading || gardensLoading,
-        workMutation,
-        form: {
-          state: workForm.formState,
-          control: workForm.control,
-          register: workForm.register,
-          actionUID,
-          images,
-          setImages,
-          setActionUID,
-          uploadWork,
-          gardenAddress,
-          setGardenAddress,
-          feedback: workForm.feedback,
-          plantSelection: workForm.plantSelection,
-          plantCount: workForm.plantCount,
-          values: workForm.values,
-          reset: workForm.reset,
-        },
-        activeTab,
-        setActiveTab,
-      }}
-    >
-      {children}
-    </WorkContext.Provider>
+    <WorkSelectionContext.Provider value={selectionValue}>
+      <WorkFormContext.Provider value={formValue}>
+        <WorkContext.Provider value={legacyValue}>{children}</WorkContext.Provider>
+      </WorkFormContext.Provider>
+    </WorkSelectionContext.Provider>
   );
 };

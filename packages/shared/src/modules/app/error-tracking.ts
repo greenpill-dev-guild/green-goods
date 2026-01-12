@@ -8,7 +8,8 @@
  * - Global error handler setup
  * - Integration with contract error parsing
  *
- * PostHog expects `$exception` events for error tracking dashboards.
+ * Uses `error_tracked` custom events for detailed context. PostHog's built-in
+ * `capture_exceptions` option handles native exception format automatically.
  *
  * @module modules/app/error-tracking
  */
@@ -161,7 +162,9 @@ function isPostHogReady(): boolean {
 /**
  * Track an error to PostHog with full context.
  *
- * This sends a `$exception` event which PostHog uses for error analytics.
+ * This sends an `error_tracked` event with detailed error context.
+ * PostHog's built-in `capture_exceptions` handles the native `$exception`
+ * event format automatically - this provides additional structured context.
  *
  * @param error - The error object or message
  * @param context - Additional context about the error
@@ -205,12 +208,12 @@ export function trackError(error: unknown, context: ErrorContext = {}): void {
     parsedContractError = parseContractError(error);
   }
 
-  // Build the exception properties
+  // Build the error properties
   const properties: Record<string, unknown> = {
-    // Standard PostHog exception fields
-    $exception_type: normalizedError.name || "Error",
-    $exception_message: normalizedError.message,
-    $exception_stack_trace_raw: normalizedError.stack,
+    // Error details
+    error_type: normalizedError.name || "Error",
+    error_message: normalizedError.message,
+    error_stack: normalizedError.stack,
 
     // Custom error context
     severity,
@@ -232,8 +235,8 @@ export function trackError(error: unknown, context: ErrorContext = {}): void {
     // Breadcrumbs for debugging
     breadcrumbs: getBreadcrumbs().slice(-10), // Last 10 actions
 
-    // Fingerprint for deduplication
-    $exception_fingerprint: generateErrorFingerprint(normalizedError, {
+    // Fingerprint for grouping similar errors
+    error_fingerprint: generateErrorFingerprint(normalizedError, {
       ...context,
       contractError: parsedContractError,
     }),
@@ -259,8 +262,8 @@ export function trackError(error: unknown, context: ErrorContext = {}): void {
     return;
   }
 
-  // Send as $exception event (PostHog's expected format for error tracking)
-  posthog.capture("$exception", properties);
+  // Send as custom event - PostHog's built-in capture_exceptions handles native $exception format
+  posthog.capture("error_tracked", properties);
 }
 
 // ============================================================================

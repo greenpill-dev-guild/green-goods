@@ -50,6 +50,44 @@ export {
   trackWorkSubmissionSuccess,
 } from "./app/analytics-events";
 // ============================================================================
+// APP / ERROR TRACKING
+// ============================================================================
+export {
+  // Breadcrumbs
+  addBreadcrumb,
+  type BreadcrumbEntry,
+  clearBreadcrumbs,
+  type ErrorCategory,
+  type ErrorContext,
+  // Types
+  type ErrorSeverity,
+  getBreadcrumbs,
+  // Global handlers
+  initGlobalErrorHandlers,
+  trackAuthError,
+  // Category-specific tracking
+  trackContractError,
+  // Core error tracking
+  trackError,
+  // React Error Boundary helper
+  trackErrorBoundary,
+  trackErrorRecovery,
+  // Recovery tracking
+  trackErrorRetry,
+  trackFatalError,
+  trackGraphQLError,
+  trackNetworkError,
+  trackStorageError,
+  trackSyncError,
+  trackUploadBatchProgress,
+  // Upload tracking
+  trackUploadError,
+  trackUploadSuccess,
+  trackWarning,
+  type UploadErrorCategory,
+  type UploadErrorContext,
+} from "./app/error-tracking";
+// ============================================================================
 // APP / ANALYTICS
 // ============================================================================
 export {
@@ -62,45 +100,6 @@ export {
   trackOfflineEvent,
   trackSyncPerformance,
 } from "./app/posthog";
-
-// ============================================================================
-// APP / ERROR TRACKING
-// ============================================================================
-export {
-  // Core error tracking
-  trackError,
-  trackFatalError,
-  trackWarning,
-  // Category-specific tracking
-  trackContractError,
-  trackNetworkError,
-  trackAuthError,
-  trackGraphQLError,
-  trackSyncError,
-  trackStorageError,
-  // Upload tracking
-  trackUploadError,
-  trackUploadSuccess,
-  trackUploadBatchProgress,
-  // Recovery tracking
-  trackErrorRetry,
-  trackErrorRecovery,
-  // React Error Boundary helper
-  trackErrorBoundary,
-  // Breadcrumbs
-  addBreadcrumb,
-  getBreadcrumbs,
-  clearBreadcrumbs,
-  // Global handlers
-  initGlobalErrorHandlers,
-  // Types
-  type ErrorSeverity,
-  type ErrorCategory,
-  type ErrorContext,
-  type BreadcrumbEntry,
-  type UploadErrorCategory,
-  type UploadErrorContext,
-} from "./app/error-tracking";
 
 // ============================================================================
 // APP / SERVICE WORKER
@@ -151,7 +150,20 @@ export {
 // ============================================================================
 export type { FragmentOf, ResultOf, VariablesOf } from "./data/graphql";
 export { easGraphQL, greenGoodsGraphQL } from "./data/graphql";
-
+// ============================================================================
+// DATA / GRAPHQL CLIENT
+// ============================================================================
+export {
+  createEasClient,
+  createIndexerClient,
+  GQLClient,
+  GRAPHQL_TIMEOUT_MS,
+  greenGoodsIndexer,
+  // Timeout utilities
+  INDEXER_TIMEOUT_MS,
+  TimeoutError,
+  withTimeout,
+} from "./data/graphql-client";
 // ============================================================================
 // DATA / GREENGOODS
 // ============================================================================
@@ -162,11 +174,12 @@ export {
   getGardens,
   updateUserProfile,
 } from "./data/greengoods";
-
 // ============================================================================
 // DATA / IPFS (Storacha)
 // ============================================================================
 export {
+  // Upload context types
+  type FileUploadContext,
   getFileByHash,
   getIpfsInitStatus,
   initializeIpfs,
@@ -177,30 +190,13 @@ export {
   // Storacha aliases (preferred naming)
   initializeStoracha,
   initializeStorachaFromEnv,
+  type JsonUploadContext,
   resolveAvatarUrl,
   resolveImageUrl,
   resolveIPFSUrl,
   uploadFileToIPFS,
   uploadJSONToIPFS,
-  // Upload context types
-  type FileUploadContext,
-  type JsonUploadContext,
 } from "./data/ipfs";
-
-// ============================================================================
-// DATA / GRAPHQL CLIENT
-// ============================================================================
-export {
-  createEasClient,
-  createIndexerClient,
-  greenGoodsIndexer,
-  GQLClient,
-  // Timeout utilities
-  INDEXER_TIMEOUT_MS,
-  GRAPHQL_TIMEOUT_MS,
-  TimeoutError,
-  withTimeout,
-} from "./data/graphql-client";
 
 // ============================================================================
 // JOB QUEUE
