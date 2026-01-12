@@ -1,20 +1,46 @@
+/**
+ * ENS Avatar Resolution Hook
+ *
+ * Resolves an Ethereum address to its ENS avatar URL.
+ * Includes local caching for offline support.
+ *
+ * @module hooks/blockchain/useEnsAvatar
+ */
+
 import { useQuery } from "@tanstack/react-query";
 import { isAddress } from "viem";
 import { resolveEnsAvatar } from "../../utils/blockchain/ens";
-import { getCachedAvatar, cacheAvatar } from "../../utils/storage/avatar-cache";
+import { cacheAvatar, getCachedAvatar } from "../../utils/storage/avatar-cache";
+import { queryKeys, STALE_TIME_RARE } from "../query-keys";
+import type { UseEnsQueryOptions, UseEnsQueryResult } from "./useEnsQuery";
 
-type UseEnsAvatarOptions = {
-  enabled?: boolean;
-  chainId?: number;
-};
-
-/** React Query wrapper around resolveEnsAvatar with local caching for offline support. */
-export function useEnsAvatar(address?: string | null, options: UseEnsAvatarOptions = {}) {
+/**
+ * React Query wrapper around resolveEnsAvatar with local caching for offline support.
+ *
+ * Note: This hook doesn't use the generic useEnsQuery because it has custom caching logic
+ * that needs to check local storage before making network requests.
+ *
+ * @param address - Ethereum address to resolve avatar for
+ * @param options - Query options
+ * @returns Query result with avatar URL or null
+ *
+ * @example
+ * ```typescript
+ * const { data: avatarUrl, isLoading } = useEnsAvatar("0x123...");
+ * if (avatarUrl) {
+ *   return <img src={avatarUrl} alt="Avatar" />;
+ * }
+ * ```
+ */
+export function useEnsAvatar(
+  address?: string | null,
+  options: UseEnsQueryOptions = {}
+): UseEnsQueryResult<string> {
   const normalized = address?.toLowerCase() ?? null;
   const enabled = options.enabled ?? Boolean(normalized && isAddress(normalized));
 
   return useQuery({
-    queryKey: ["ens-avatar", normalized],
+    queryKey: queryKeys.ens.avatar(normalized ?? ""),
     queryFn: async () => {
       if (!normalized) return null;
 
@@ -34,7 +60,7 @@ export function useEnsAvatar(address?: string | null, options: UseEnsAvatarOptio
 
       return avatarUrl;
     },
-    staleTime: 5 * 60 * 1000, // cache ENS avatars for 5 minutes in React Query
+    staleTime: options.staleTime ?? STALE_TIME_RARE,
     enabled,
   });
 }

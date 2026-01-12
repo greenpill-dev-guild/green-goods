@@ -92,6 +92,21 @@ export const queryKeys = {
     byAddress: (address: string) => ["greengoods", "gardeners", "byAddress", address] as const,
   },
 
+  // Gardener profile related keys (on-chain profile data)
+  gardenerProfile: {
+    all: ["greengoods", "gardener-profile"] as const,
+    byAddress: (address: string, chainId: number) =>
+      ["greengoods", "gardener-profile", address, chainId] as const,
+  },
+
+  // ENS related keys
+  ens: {
+    all: ["greengoods", "ens"] as const,
+    name: (address: string) => ["greengoods", "ens", "name", address] as const,
+    address: (name: string) => ["greengoods", "ens", "address", name] as const,
+    avatar: (address: string) => ["greengoods", "ens", "avatar", address] as const,
+  },
+
   // Role related keys (operator/deployer detection)
   role: {
     all: ["greengoods", "role"] as const,
@@ -174,6 +189,22 @@ export const queryInvalidation = {
     queryKeys.drafts.detail(draftId),
     queryKeys.drafts.images(draftId),
   ],
+
+  // Invalidate gardener profile
+  invalidateGardenerProfile: (address?: string, chainId?: number) => {
+    if (address && chainId) {
+      return [queryKeys.gardenerProfile.byAddress(address, chainId)];
+    }
+    return [queryKeys.gardenerProfile.all];
+  },
+
+  // Invalidate ENS data
+  invalidateEns: (address?: string) => {
+    if (address) {
+      return [queryKeys.ens.name(address), queryKeys.ens.avatar(address)];
+    }
+    return [queryKeys.ens.all];
+  },
 };
 
 // Type-safe query key helpers

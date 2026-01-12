@@ -1,21 +1,39 @@
-import { useQuery } from "@tanstack/react-query";
+/**
+ * ENS Name Resolution Hook
+ *
+ * Resolves an Ethereum address to its ENS name.
+ *
+ * @module hooks/blockchain/useEnsName
+ */
+
 import { isAddress } from "viem";
 import { resolveEnsName } from "../../utils/blockchain/ens";
+import { queryKeys } from "../query-keys";
+import { useEnsQuery, type UseEnsQueryOptions, type UseEnsQueryResult } from "./useEnsQuery";
 
-type UseEnsNameOptions = {
-  enabled?: boolean;
-  chainId?: number;
-};
-
-/** React Query wrapper around resolveEnsName with sensible caching defaults. */
-export function useEnsName(address?: string | null, options: UseEnsNameOptions = {}) {
-  const normalized = address?.toLowerCase() ?? null;
-  const enabled = options.enabled ?? Boolean(normalized && isAddress(normalized));
-
-  return useQuery({
-    queryKey: ["ens-name", normalized],
-    queryFn: async () => (normalized ? resolveEnsName(normalized, options) : null),
-    staleTime: 5 * 60 * 1000, // cache ENS names for 5 minutes
-    enabled,
-  });
+/**
+ * React Query wrapper around resolveEnsName with sensible caching defaults.
+ *
+ * @param address - Ethereum address to resolve
+ * @param options - Query options
+ * @returns Query result with ENS name or null
+ *
+ * @example
+ * ```typescript
+ * const { data: ensName, isLoading } = useEnsName("0x123...");
+ * ```
+ */
+export function useEnsName(
+  address?: string | null,
+  options: UseEnsQueryOptions = {}
+): UseEnsQueryResult<string> {
+  return useEnsQuery(
+    address,
+    (normalizedAddress, opts) => resolveEnsName(normalizedAddress, opts),
+    queryKeys.ens.name(address?.toLowerCase() ?? ""),
+    {
+      ...options,
+      validator: isAddress,
+    }
+  );
 }
