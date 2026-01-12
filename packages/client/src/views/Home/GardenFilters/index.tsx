@@ -1,15 +1,15 @@
+import type {
+  GardenFilterScope,
+  GardenFiltersState,
+  GardenSortOrder,
+} from "@green-goods/shared/hooks";
 import { cn } from "@green-goods/shared/utils";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
 import { ModalDrawer } from "@/components/Dialogs/ModalDrawer";
 
-export type GardenFilterScope = "all" | "mine";
-export type GardenSortOrder = "default" | "name" | "recent";
-
-export type GardenFiltersState = {
-  scope: GardenFilterScope;
-  sort: GardenSortOrder;
-};
+// Re-export types from shared for convenience
+export type { GardenFilterScope, GardenFiltersState, GardenSortOrder };
 
 export type FilterOptionButtonProps = {
   label: string;

@@ -151,7 +151,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
     try {
       await signOut?.();
       // Pass fromLogout state to prevent redirect back to profile
-      navigate("/login", { replace: true, state: { fromLogout: true } });
+      navigate("/login", { replace: true, state: { fromLogout: true }, viewTransition: true });
       toastService.success({
         title: intl.formatMessage({
           id: "app.account.sessionClosed",

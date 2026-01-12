@@ -1,5 +1,5 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
-import { useActions, useDrafts, useGardens, type DraftWithImages } from "@green-goods/shared/hooks";
+import { type DraftWithImages, useActions, useDrafts, useGardens } from "@green-goods/shared/hooks";
 import { findActionByUID } from "@green-goods/shared/utils";
 import { RiAlertLine, RiDraftLine, RiLoader4Line, RiRefreshLine } from "@remixicon/react";
 import React, { useState } from "react";
@@ -43,7 +43,7 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
 
   // Handle resume draft
   const handleResume = (draft: DraftWithImages) => {
-    navigate(`/garden?draftId=${draft.id}`);
+    navigate(`/garden?draftId=${draft.id}`, { viewTransition: true });
   };
 
   // Handle delete draft
@@ -162,7 +162,7 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
       <div className="flex-1 overflow-y-auto p-4">
         <ul className="flex flex-col gap-3">
           {drafts.map((draft) => (
-            <li key={draft.id}>
+            <li key={draft.id} className="cv-draft-card">
               <DraftCard
                 draft={draft}
                 actionTitle={getActionTitle(draft.actionUID)}

@@ -1,4 +1,10 @@
-import { useAuth, useEnsAvatar, useGardenerProfile, useUser } from "@green-goods/shared/hooks";
+import {
+  useAuth,
+  useEnsAvatar,
+  useEnsName,
+  useGardenerProfile,
+  useUser,
+} from "@green-goods/shared/hooks";
 import { resolveAvatarUrl } from "@green-goods/shared/modules";
 import { formatAddress } from "@green-goods/shared/utils";
 import { RiHeadphoneLine, RiSettings2Fill } from "@remixicon/react";
@@ -12,16 +18,19 @@ import { ProfileHelp } from "./Help";
 const DEFAULT_AVATAR = "/images/avatar.png";
 
 const Profile: React.FC = () => {
-  const { user, ensName } = useUser();
+  const { user } = useUser();
   const { userName } = useAuth();
   const { profile } = useGardenerProfile();
   const intl = useIntl();
   const [activeTab, setActiveTab] = useState<"account" | "help">("account");
 
   const primaryAddress = user?.id;
-  const formattedAddress = primaryAddress ? formatAddress(primaryAddress, { ensName }) : null;
 
+  // ENS resolution - called directly here since we're inside QueryClientProvider
+  const { data: ensName } = useEnsName(primaryAddress);
   const { data: ensAvatar, isLoading: isLoadingAvatar } = useEnsAvatar(primaryAddress ?? undefined);
+
+  const formattedAddress = primaryAddress ? formatAddress(primaryAddress, { ensName }) : null;
 
   const fallbackDisplayName = intl.formatMessage({
     id: "app.garden.gardeners.unknownUser",

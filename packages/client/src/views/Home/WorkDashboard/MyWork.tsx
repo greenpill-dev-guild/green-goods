@@ -67,33 +67,34 @@ export const MyWorkTab: React.FC<MyWorkTabProps> = ({ works, isLoading, onWorkCl
               const isOffline = work.id.startsWith("0xoffline_") || !work.id.startsWith("0x");
 
               return (
-                <MinimalWorkCard
-                  key={work.id}
-                  work={work}
-                  onClick={() => onWorkClick(work)}
-                  badges={
-                    isOffline
-                      ? [
-                          <span key="pending" className="badge-pill-amber">
-                            <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
-                            Pending Upload
-                          </span>,
-                        ]
-                      : work.status === "approved"
+                <div key={work.id} className="cv-work-card">
+                  <MinimalWorkCard
+                    work={work}
+                    onClick={() => onWorkClick(work)}
+                    badges={
+                      isOffline
                         ? [
-                            <span key="approved" className="badge-pill-green">
-                              Approved
+                            <span key="pending" className="badge-pill-amber">
+                              <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
+                              Pending Upload
                             </span>,
                           ]
-                        : work.status === "rejected"
+                        : work.status === "approved"
                           ? [
-                              <span key="rejected" className="badge-pill-red">
-                                Rejected
+                              <span key="approved" className="badge-pill-green">
+                                Approved
                               </span>,
                             ]
-                          : []
-                  }
-                />
+                          : work.status === "rejected"
+                            ? [
+                                <span key="rejected" className="badge-pill-red">
+                                  Rejected
+                                </span>,
+                              ]
+                            : []
+                    }
+                  />
+                </div>
               );
             })}
           </div>

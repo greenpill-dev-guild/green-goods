@@ -385,7 +385,10 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         return;
       }
 
-      navigate(`/home/${gardenId}/work/${workId}`, { state: { from: "dashboard" } });
+      navigate(`/home/${gardenId}/work/${workId}`, {
+        state: { from: "dashboard" },
+        viewTransition: true,
+      });
     } catch {
       // Navigation error - silently fail
     }
@@ -639,7 +642,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   return (
     <div
       className={cn(
-        "fixed inset-0 bg-black/20 backdrop-blur-sm z-[20000] flex items-end justify-center",
+        "fixed inset-0 bg-black/30 backdrop-blur-sm z-[20000] flex items-end justify-center",
         isClosing ? "modal-backdrop-exit" : "modal-backdrop-enter"
       )}
       data-testid="modal-drawer-overlay"
@@ -657,7 +660,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
           isClosing ? "modal-slide-exit" : "modal-slide-enter",
           className
         )}
-        style={{ height: "85vh" }}
+        style={{ height: "85vh", maxHeight: "85vh" }}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
           e.stopPropagation();

@@ -480,7 +480,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
         {/* Backdrop - Fades in over content */}
         <div
           className={cn(
-            "fixed inset-0 bg-black/40 backdrop-blur-sm z-[190] transition-opacity duration-300",
+            "fixed inset-0 bg-black/30 backdrop-blur-sm z-[190] transition-opacity duration-300",
             feedbackMode ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
           )}
           onClick={handleCancelFeedback}

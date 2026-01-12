@@ -271,28 +271,30 @@ const Work: React.FC = () => {
   };
 
   // Navigate when submission completes
+  // The work dashboard opens immediately on success (from useWorkMutation)
+  // This effect handles navigation and cleanup after showing the success checkmark
   useEffect(() => {
     if (submissionCompleted) {
-      const timer = setTimeout(async () => {
-        // Clear the draft on successful submission
-        if (activeDraftId) {
-          try {
-            await clearActiveDraft();
-          } catch (error) {
-            console.error("[GardenFlow] Failed to clear draft on submission:", error);
-          }
-        }
-        // Navigate FIRST to avoid flashing the Intro tab
-        // The reset will happen after navigation (cleanup on unmount or next mount)
-        navigate("/home", { replace: true });
+      // Clear the draft immediately (async, fire and forget)
+      if (activeDraftId) {
+        clearActiveDraft().catch((error) => {
+          console.error("[GardenFlow] Failed to clear draft on submission:", error);
+        });
+      }
 
-        // Reset state AFTER navigation to prevent visual flash
-        // Using requestAnimationFrame to ensure navigation has started
+      // Short delay to show checkmark, then navigate
+      // Dashboard is already open, so this creates a smooth transition
+      const timer = setTimeout(() => {
+        // Navigate to home - the dashboard overlay stays visible
+        navigate("/home", { replace: true, viewTransition: true });
+
+        // Reset state after navigation to prevent visual flash
         requestAnimationFrame(() => {
           useWorkFlowStore.getState().reset();
           form.reset();
         });
-      }, 1500);
+      }, 800); // Reduced from 1500ms - dashboard already visible
+
       return () => clearTimeout(timer);
     }
   }, [submissionCompleted, navigate, form, activeDraftId, clearActiveDraft]);
@@ -508,7 +510,7 @@ const Work: React.FC = () => {
       secondary: null,
       secondaryLabel: null,
       customSecondary: null,
-      backButton: () => navigate("/home"),
+      backButton: () => navigate("/home", { viewTransition: true }),
     },
     [WorkTab.Media]: {
       primary: () => changeTab(WorkTab.Details),
