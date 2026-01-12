@@ -121,9 +121,8 @@ contract MockGAP is IGap, IProjectResolver {
 
             // Generate UID
             attestationCount++;
-            bytes32 uid = keccak256(
-                abi.encodePacked(block.timestamp, msg.sender, attestationCount, node.multiRequest.schema)
-            );
+            bytes32 uid =
+                keccak256(abi.encodePacked(block.timestamp, msg.sender, attestationCount, node.multiRequest.schema));
             createdUIDs[i] = uid;
 
             // Resolve reference

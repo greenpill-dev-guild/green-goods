@@ -17,7 +17,7 @@ export const formatJsonRpcError = (id: number, error: unknown) => ({
   error,
 });
 
-export const parseUri = (uri: string) => ({
+export const parseUri = (_uri: string) => ({
   protocol: "wc",
   version: 2,
   topic: "mock-topic",

@@ -1,7 +1,6 @@
 import { cn, copyToClipboard, formatAddress } from "@green-goods/shared/utils";
 import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
-import { useEffect, useId } from "react";
-import { useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 interface AddressDisplayProps {
   address: string;

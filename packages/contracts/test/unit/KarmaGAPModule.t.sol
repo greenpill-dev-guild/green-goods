@@ -533,17 +533,11 @@ contract KarmaGAPModuleTest is Test {
     /// @dev Creates a mock project and returns its UID
     function _createMockProject(address garden, address projectOwner) internal returns (bytes32) {
         vm.prank(projectOwner);
-        return mockGAP.attest(
-            _buildProjectRequest(garden)
-        );
+        return mockGAP.attest(_buildProjectRequest(garden));
     }
 
     /// @dev Builds a project attestation request
-    function _buildProjectRequest(address recipient)
-        internal
-        pure
-        returns (AttestationRequest memory)
-    {
+    function _buildProjectRequest(address recipient) internal pure returns (AttestationRequest memory) {
         return AttestationRequest({
             schema: PROJECT_SCHEMA,
             data: AttestationRequestData({

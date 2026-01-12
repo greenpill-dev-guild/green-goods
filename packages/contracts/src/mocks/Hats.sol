@@ -188,7 +188,7 @@ contract MockHats is IHats {
             mutable_: false,
             active: true,
             admin: topHatId // Self-admin
-        });
+         });
 
         wearers[topHatId][_target] = true;
         eligibility[topHatId][_target] = true;
@@ -350,15 +350,7 @@ contract MockHats is IHats {
     }
 
     /// @inheritdoc IHats
-    function setHatWearerStatus(
-        uint256 _hatId,
-        address _wearer,
-        bool _eligible,
-        bool _standing
-    )
-        external
-        returns (bool)
-    {
+    function setHatWearerStatus(uint256 _hatId, address _wearer, bool _eligible, bool _standing) external returns (bool) {
         eligibility[_hatId][_wearer] = _eligible;
         standing[_hatId][_wearer] = _standing;
         return true;

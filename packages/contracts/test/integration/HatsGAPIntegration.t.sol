@@ -153,9 +153,7 @@ contract HatsGAPIntegrationTest is Test {
 
         // 2. Create GAP project
         vm.prank(gardenOwner);
-        bytes32 projectUID = mockGAP.attest(
-            _buildProjectRequest(garden1)
-        );
+        bytes32 projectUID = mockGAP.attest(_buildProjectRequest(garden1));
         garden1ProjectUID = projectUID;
 
         // 3. Assign initial operator with hat and GAP admin
@@ -206,12 +204,10 @@ contract HatsGAPIntegrationTest is Test {
         assertTrue(mockHats.isWearerOfHat(gardener1, GARDEN1_GARDENER_HAT), "Should validate gardener role");
 
         // Operator approves work → creates GAP impact
-        bytes32 workUID = bytes32(uint256(12345));
+        bytes32 workUID = bytes32(uint256(12_345));
 
         vm.prank(workApprovalResolver);
-        bytes32 impactUID = mockGAP.attest(
-            _buildImpactRequest(garden1, garden1ProjectUID, "Tree Planting", workUID)
-        );
+        bytes32 impactUID = mockGAP.attest(_buildImpactRequest(garden1, garden1ProjectUID, "Tree Planting", workUID));
 
         // Verify impact created
         assertTrue(GAPTestHelper.isValidImpactUID(impactUID), "Impact UID should be valid");
@@ -232,9 +228,7 @@ contract HatsGAPIntegrationTest is Test {
 
         // Evaluator creates assessment → creates GAP milestone
         vm.prank(assessmentResolver);
-        bytes32 milestoneUID = mockGAP.attest(
-            _buildMilestoneRequest(garden1, garden1ProjectUID, "Q1 Assessment")
-        );
+        bytes32 milestoneUID = mockGAP.attest(_buildMilestoneRequest(garden1, garden1ProjectUID, "Q1 Assessment"));
 
         // Verify milestone created
         assertTrue(GAPTestHelper.isValidMilestoneUID(milestoneUID), "Milestone UID should be valid");
@@ -308,9 +302,7 @@ contract HatsGAPIntegrationTest is Test {
 
         // Setup garden 2 project
         vm.prank(gardenOwner);
-        bytes32 garden2ProjectUID = mockGAP.attest(
-            _buildProjectRequest(garden2)
-        );
+        bytes32 garden2ProjectUID = mockGAP.attest(_buildProjectRequest(garden2));
 
         // Verify isolation
         assertTrue(mockGAP.isAdmin(garden1ProjectUID, operator1), "Operator1 admin of garden1 project");
@@ -337,9 +329,7 @@ contract HatsGAPIntegrationTest is Test {
     function test_graceful_hatsFailureDoesNotAffectGAP() public {
         // Create GAP project
         vm.prank(gardenOwner);
-        bytes32 projectUID = mockGAP.attest(
-            _buildProjectRequest(garden1)
-        );
+        bytes32 projectUID = mockGAP.attest(_buildProjectRequest(garden1));
 
         // Hat becomes inactive
         mockHats.setHatActive(GARDEN1_OPERATOR_HAT, false);
@@ -381,9 +371,7 @@ contract HatsGAPIntegrationTest is Test {
         mockHats.setHatActive(garden2OperatorHat, true);
 
         vm.prank(gardenOwner);
-        bytes32 garden2ProjectUID = mockGAP.attest(
-            _buildProjectRequest(garden2)
-        );
+        bytes32 garden2ProjectUID = mockGAP.attest(_buildProjectRequest(garden2));
 
         // Same operator can be operator of multiple gardens
         mockHats.setWearer(garden2OperatorHat, operator1, true);
@@ -420,20 +408,14 @@ contract HatsGAPIntegrationTest is Test {
 
         // Create GAP project
         vm.prank(gardenOwner);
-        garden1ProjectUID = mockGAP.attest(
-            _buildProjectRequest(garden1)
-        );
+        garden1ProjectUID = mockGAP.attest(_buildProjectRequest(garden1));
 
         // Assign operator
         mockHats.setWearer(GARDEN1_OPERATOR_HAT, operator1, true);
         mockGAP.addProjectAdmin(garden1ProjectUID, operator1);
     }
 
-    function _buildProjectRequest(address recipient)
-        internal
-        pure
-        returns (AttestationRequest memory)
-    {
+    function _buildProjectRequest(address recipient) internal pure returns (AttestationRequest memory) {
         return AttestationRequest({
             schema: PROJECT_SCHEMA,
             data: AttestationRequestData({
@@ -474,7 +456,11 @@ contract HatsGAPIntegrationTest is Test {
         });
     }
 
-    function _buildMilestoneRequest(address recipient, bytes32 projectUID, string memory title)
+    function _buildMilestoneRequest(
+        address recipient,
+        bytes32 projectUID,
+        string memory title
+    )
         internal
         pure
         returns (AttestationRequest memory)

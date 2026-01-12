@@ -420,9 +420,7 @@ contract GardenHatsModuleTest is Test {
     function test_isAdminOfHat_gardensHatWearerIsGardenAdmin() public {
         mockHats.setWearer(GARDENS_HAT, gardenToken, true);
 
-        assertTrue(
-            mockHats.isAdminOfHat(gardenToken, GARDEN1_ROOT_HAT), "Gardens hat wearer should be admin of garden hat"
-        );
+        assertTrue(mockHats.isAdminOfHat(gardenToken, GARDEN1_ROOT_HAT), "Gardens hat wearer should be admin of garden hat");
     }
 
     function test_isAdminOfHat_nonAdminReturnsFalse() public {

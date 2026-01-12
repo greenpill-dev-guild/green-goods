@@ -117,9 +117,7 @@ library GAPTestHelper {
         );
 
         bytes memory part3 = abi.encodePacked(
-            ',"links":[{"type":"other","url":"',
-            linkURL,
-            '","label":"View in Green Goods"}],"type":"project-update"}'
+            ',"links":[{"type":"other","url":"', linkURL, '","label":"View in Green Goods"}],"type":"project-update"}'
         );
 
         return string(abi.encodePacked(part1, part2, part3));
@@ -131,9 +129,7 @@ library GAPTestHelper {
     /// @return JSON string for simple impact
     function buildSimpleImpactJSON(string memory title, string memory text) internal pure returns (string memory) {
         return string(
-            abi.encodePacked(
-                '{"title":"', escapeJSON(title), '","text":"', escapeJSON(text), '","type":"project-update"}'
-            )
+            abi.encodePacked('{"title":"', escapeJSON(title), '","text":"', escapeJSON(text), '","type":"project-update"}')
         );
     }
 
@@ -146,7 +142,11 @@ library GAPTestHelper {
     /// @param text Milestone description
     /// @param metaJSON Additional metadata (capitals, metrics)
     /// @return JSON string for milestone
-    function buildMilestoneJSON(string memory title, string memory text, string memory metaJSON)
+    function buildMilestoneJSON(
+        string memory title,
+        string memory text,
+        string memory metaJSON
+    )
         internal
         pure
         returns (string memory)
@@ -416,8 +416,8 @@ library GAPTestHelper {
     function timestampToISO(uint256 timestamp) internal pure returns (string memory) {
         // Simplified: returns a fixed format for testing
         // In production, use a proper date library
-        (uint256 year, uint256 month, uint256 day) = _daysToDate(timestamp / 86400);
-        uint256 hour = (timestamp % 86400) / 3600;
+        (uint256 year, uint256 month, uint256 day) = _daysToDate(timestamp / 86_400);
+        uint256 hour = (timestamp % 86_400) / 3600;
         uint256 minute = (timestamp % 3600) / 60;
         uint256 second = timestamp % 60;
 
@@ -448,7 +448,11 @@ library GAPTestHelper {
     /// @param description Project description
     /// @param location Project location
     /// @return Encoded project data
-    function mockProjectData(string memory name, string memory description, string memory location)
+    function mockProjectData(
+        string memory name,
+        string memory description,
+        string memory location
+    )
         internal
         pure
         returns (bytes memory)
@@ -462,7 +466,12 @@ library GAPTestHelper {
     /// @param startDate Start date
     /// @param endDate End date
     /// @return Encoded milestone data
-    function mockMilestoneData(string memory title, string memory description, uint256 startDate, uint256 endDate)
+    function mockMilestoneData(
+        string memory title,
+        string memory description,
+        uint256 startDate,
+        uint256 endDate
+    )
         internal
         pure
         returns (bytes memory)
@@ -475,7 +484,11 @@ library GAPTestHelper {
     /// @param description Impact description
     /// @param metrics Impact metrics JSON
     /// @return Encoded impact data
-    function mockImpactData(string memory title, string memory description, string memory metrics)
+    function mockImpactData(
+        string memory title,
+        string memory description,
+        string memory metrics
+    )
         internal
         pure
         returns (bytes memory)
@@ -499,15 +512,11 @@ library GAPTestHelper {
 
     /// @dev Converts days since epoch to date components
     /// @dev Based on https://howardhinnant.github.io/date_algorithms.html
-    function _daysToDate(uint256 _days)
-        private
-        pure
-        returns (uint256 year, uint256 month, uint256 day)
-    {
-        int256 L = int256(_days) + 68569 + 2440588;
-        int256 N = (4 * L) / 146097;
-        L = L - (146097 * N + 3) / 4;
-        int256 _year = (4000 * (L + 1)) / 1461001;
+    function _daysToDate(uint256 _days) private pure returns (uint256 year, uint256 month, uint256 day) {
+        int256 L = int256(_days) + 68_569 + 2_440_588;
+        int256 N = (4 * L) / 146_097;
+        L = L - (146_097 * N + 3) / 4;
+        int256 _year = (4000 * (L + 1)) / 1_461_001;
         L = L - (1461 * _year) / 4 + 31;
         int256 _month = (80 * L) / 2447;
         int256 _day = L - (2447 * _month) / 80;
