@@ -6,9 +6,9 @@
  */
 
 import { type Abi, createPublicClient, http } from "viem";
-import { arbitrum, baseSepolia, celo } from "viem/chains";
 import type { NetworkContracts } from "../../types/contracts";
 import { getChain as getChainFromConfig } from "../../config/chains";
+import { getNetworkName, getRpcUrl } from "./chain-registry";
 
 // Re-export chain utilities from config
 export { getChain } from "../../config/chains";
@@ -32,29 +32,7 @@ export const EASABI = EASABIJson.abi as Abi;
 
 function getNetworkConfigFromNetworksJson(chainId: number) {
   const networksData = networksConfig as { networks: Record<string, any> };
-
-  // Map chainId to network name
-  let networkName = "";
-  switch (chainId) {
-    case 42161:
-      networkName = "arbitrum";
-      break;
-    case 42220:
-      networkName = "celo";
-      break;
-    case 84532:
-      networkName = "baseSepolia";
-      break;
-    case 31337:
-      networkName = "localhost";
-      break;
-    case 11155111:
-      networkName = "sepolia";
-      break;
-    default:
-      networkName = "baseSepolia";
-  }
-
+  const networkName = getNetworkName(chainId);
   return networksData.networks[networkName] || networksData.networks.baseSepolia;
 }
 
@@ -103,21 +81,7 @@ export function getNetworkContracts(chainId: number): NetworkContracts {
 export function createClients(chainId: number) {
   const chain = getChainFromConfig(chainId);
   const alchemyKey = import.meta.env.VITE_ALCHEMY_API_KEY || "demo";
-
-  let rpcUrl = "";
-  switch (chainId) {
-    case arbitrum.id:
-      rpcUrl = `https://arb-mainnet.g.alchemy.com/v2/${alchemyKey}`;
-      break;
-    case celo.id:
-      rpcUrl = "https://forno.celo.org";
-      break;
-    case baseSepolia.id:
-      rpcUrl = `https://base-sepolia.g.alchemy.com/v2/${alchemyKey}`;
-      break;
-    default:
-      rpcUrl = `https://arb-mainnet.g.alchemy.com/v2/${alchemyKey}`;
-  }
+  const rpcUrl = getRpcUrl(chainId, alchemyKey);
 
   const publicClient = createPublicClient({
     chain,

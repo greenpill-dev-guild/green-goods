@@ -18,6 +18,24 @@ export function isCompressionSupported(): boolean {
 }
 
 /**
+ * Combine multiple Uint8Array chunks into a single Uint8Array
+ * Used internally by compress and decompress functions.
+ *
+ * @param chunks - Array of Uint8Array chunks to combine
+ * @returns Single combined Uint8Array
+ */
+function combineChunks(chunks: Uint8Array[]): Uint8Array {
+  const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return result;
+}
+
+/**
  * Compress data using native CompressionStream
  *
  * @param data - String or ArrayBuffer to compress
@@ -49,16 +67,7 @@ export async function compress(
     chunks.push(value);
   }
 
-  // Combine chunks into single ArrayBuffer
-  const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
-  const result = new Uint8Array(totalLength);
-  let offset = 0;
-  for (const chunk of chunks) {
-    result.set(chunk, offset);
-    offset += chunk.length;
-  }
-
-  return result.buffer;
+  return combineChunks(chunks).buffer as ArrayBuffer;
 }
 
 /**
@@ -91,16 +100,7 @@ export async function decompress(
     chunks.push(value);
   }
 
-  // Combine chunks and decode to string
-  const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
-  const result = new Uint8Array(totalLength);
-  let offset = 0;
-  for (const chunk of chunks) {
-    result.set(chunk, offset);
-    offset += chunk.length;
-  }
-
-  return new TextDecoder().decode(result);
+  return new TextDecoder().decode(combineChunks(chunks));
 }
 
 /**

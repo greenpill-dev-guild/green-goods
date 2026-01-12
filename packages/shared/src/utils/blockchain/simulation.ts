@@ -111,7 +111,7 @@ export async function simulateJoinGarden(
   abi?: Abi
 ): Promise<SimulationResult> {
   // Import GardenAccountABI dynamically to avoid circular deps
-  const { GardenAccountABI } = await import("../blockchain/contracts");
+  const { GardenAccountABI } = await import("./contracts");
 
   return simulateTransaction(
     gardenAddress,

@@ -58,6 +58,20 @@ export {
   truncateAddress,
 } from "./blockchain/address";
 // ============================================================================
+// CHAIN REGISTRY
+// ============================================================================
+export type { ChainConfig } from "./blockchain/chain-registry";
+export {
+  CHAIN_REGISTRY,
+  DEFAULT_CHAIN_CONFIG,
+  getBlockExplorer,
+  getChainConfig,
+  getEASName,
+  getNetworkName,
+  getRpcUrl,
+  isChainSupported,
+} from "./blockchain/chain-registry";
+// ============================================================================
 // CONTRACTS (ABIs & clients)
 // ============================================================================
 export {
@@ -74,6 +88,11 @@ export { resolveEnsAddress, resolveEnsName } from "./blockchain/ens";
 // ============================================================================
 export { pollQueriesAfterTransaction, pollQueryAfterTransaction } from "./blockchain/polling";
 // ============================================================================
+// CONTRACT
+// ============================================================================
+export type { SimulationResult } from "./blockchain/simulation";
+export { simulateJoinGarden, simulateTransaction } from "./blockchain/simulation";
+// ============================================================================
 // COMPRESSION (Native Compression Streams API)
 // ============================================================================
 export type { CompressionFormat } from "./compression";
@@ -86,11 +105,6 @@ export {
   getCompressionRatio,
   isCompressionSupported,
 } from "./compression";
-// ============================================================================
-// CONTRACT
-// ============================================================================
-export type { SimulationResult } from "./contract/simulation";
-export { simulateJoinGarden, simulateTransaction } from "./contract/simulation";
 // ============================================================================
 // DEBUG
 // ============================================================================
@@ -123,6 +137,7 @@ export {
   parseAndFormatError,
   parseContractError,
 } from "./errors/contract-errors";
+export { extractErrorMessage, extractErrorMessageOr } from "./errors/extract-message";
 export {
   formatJobError,
   formatUserError,

@@ -1,4 +1,5 @@
 import { SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
+import type { AssessmentDraft, WorkApprovalDraft, WorkDraft } from "../../types/domain";
 
 import { getEASConfig } from "../../config/blockchain";
 import { trackUploadBatchProgress, trackUploadError } from "../../modules/app/error-tracking";
