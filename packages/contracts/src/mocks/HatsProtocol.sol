@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { IHats } from "../interfaces/IHats.sol";
+import { IHatsProtocol } from "../interfaces/IHatsProtocol.sol";
 
-/// @title MockHats
+/// @title MockHatsProtocol
 /// @notice Enhanced mock implementation of Hats Protocol for testing
 /// @dev Supports full hat creation, tree structure, and eligibility management
-contract MockHats is IHats {
+contract MockHatsProtocol is IHatsProtocol {
     // ═══════════════════════════════════════════════════════════════════════════
     // Errors
     // ═══════════════════════════════════════════════════════════════════════════
@@ -63,7 +63,7 @@ contract MockHats is IHats {
     // Hat ID Utilities (matching Hats Protocol bit structure)
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @inheritdoc IHats
+    /// @inheritdoc IHatsProtocol
     function getHatLevel(uint256 _hatId) public pure returns (uint32) {
         uint32 level = 0;
         // Check each 16-bit segment after the first 32 bits (top hat domain)
@@ -75,13 +75,13 @@ contract MockHats is IHats {
         return level;
     }
 
-    /// @inheritdoc IHats
+    /// @inheritdoc IHatsProtocol
     function isTopHat(uint256 _hatId) public pure returns (bool) {
         // Top hat has no levels after the domain (first 32 bits)
         return (_hatId << 32) == 0;
     }
 
-    /// @inheritdoc IHats
+    /// @inheritdoc IHatsProtocol
     function getAdminAtLevel(uint256 _hatId, uint32 _level) public pure returns (uint256) {
         // Mask out everything below the specified level
         uint256 levelBits = (MAX_LEVELS - _level) * LEVEL_SIZE;
@@ -89,7 +89,7 @@ contract MockHats is IHats {
         return _hatId & mask;
     }
 
-    /// @inheritdoc IHats
+    /// @inheritdoc IHatsProtocol
     function getNextId(uint256 _admin) public view returns (uint256) {
         Hat storage adminHat = hats[_admin];
         uint32 level = getHatLevel(_admin);
@@ -102,17 +102,17 @@ contract MockHats is IHats {
     // Read Functions
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @inheritdoc IHats
+    /// @inheritdoc IHatsProtocol
     function isWearerOfHat(address _user, uint256 _hatId) external view returns (bool) {
         return wearers[_hatId][_user] && hats[_hatId].active && _isEligible(_hatId, _user);
     }
 
-    /// @inheritdoc IHats
+    /// @inheritdoc IHatsProtocol
     function isActive(uint256 _hatId) external view returns (bool) {
         return hats[_hatId].active;
     }
 
-    /// @inheritdoc IHats
+    /// @inheritdoc IHatsProtocol
     function isAdminOfHat(address _user, uint256 _hatId) external view returns (bool) {
         if (isTopHat(_hatId)) {
             return wearers[_hatId][_user];
@@ -126,7 +126,7 @@ contract MockHats is IHats {
         return false;
     }
 
-    /// @inheritdoc IHats
+    /// @inheritdoc IHatsProtocol
     function viewHat(uint256 _hatId)
         external
         view
@@ -156,7 +156,7 @@ contract MockHats is IHats {
         );
     }
 
-    /// @inheritdoc IHats
+    /// @inheritdoc IHatsProtocol
     function getHatImageUri(uint256 _hatId) external view returns (string memory) {
         return hats[_hatId].imageURI;
     }
@@ -165,7 +165,7 @@ contract MockHats is IHats {
     // Write Functions
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @inheritdoc IHats
+    /// @inheritdoc IHatsProtocol
     function mintTopHat(
         address _target,
         string calldata _details,
@@ -195,7 +195,7 @@ contract MockHats is IHats {
         standing[topHatId][_target] = true;
     }
 
-    /// @inheritdoc IHats
+    /// @inheritdoc IHatsProtocol
     function createHat(
         uint256 _admin,
         string calldata _details,
@@ -229,7 +229,7 @@ contract MockHats is IHats {
         return newHatId;
     }
 
-    /// @inheritdoc IHats
+    /// @inheritdoc IHatsProtocol
     function mintHat(uint256 _hatId, address _wearer) external returns (bool) {
         Hat storage hat = hats[_hatId];
         if (!hat.active) revert HatNotActive();
@@ -244,7 +244,7 @@ contract MockHats is IHats {
         return true;
     }
 
-    /// @inheritdoc IHats
+    /// @inheritdoc IHatsProtocol
     function batchMintHats(uint256[] calldata _hatIds, address[] calldata _wearers) external returns (bool) {
         if (_hatIds.length != _wearers.length) revert ArrayLengthMismatch();
 
@@ -262,7 +262,7 @@ contract MockHats is IHats {
         return true;
     }
 
-    /// @inheritdoc IHats
+    /// @inheritdoc IHatsProtocol
     function batchCreateHats(
         uint256[] calldata _admins,
         string[] calldata _details,
@@ -301,7 +301,7 @@ contract MockHats is IHats {
         return true;
     }
 
-    /// @inheritdoc IHats
+    /// @inheritdoc IHatsProtocol
     function transferHat(uint256 _hatId, address _from, address _to) external {
         if (!hats[_hatId].mutable_) revert HatNotMutable();
 
@@ -314,55 +314,55 @@ contract MockHats is IHats {
         hats[_hatId].supply++;
     }
 
-    /// @inheritdoc IHats
+    /// @inheritdoc IHatsProtocol
     function changeHatDetails(uint256 _hatId, string calldata _newDetails) external {
         if (!hats[_hatId].mutable_ && !isTopHat(_hatId)) revert HatNotMutable();
         hats[_hatId].details = _newDetails;
     }
 
-    /// @inheritdoc IHats
+    /// @inheritdoc IHatsProtocol
     function changeHatEligibility(uint256 _hatId, address _newEligibility) external {
         if (!hats[_hatId].mutable_) revert HatNotMutable();
         hats[_hatId].eligibility = _newEligibility;
     }
 
-    /// @inheritdoc IHats
+    /// @inheritdoc IHatsProtocol
     function changeHatToggle(uint256 _hatId, address _newToggle) external {
         if (!hats[_hatId].mutable_) revert HatNotMutable();
         hats[_hatId].toggle = _newToggle;
     }
 
-    /// @inheritdoc IHats
+    /// @inheritdoc IHatsProtocol
     function changeHatImageURI(uint256 _hatId, string calldata _newImageURI) external {
         if (!hats[_hatId].mutable_ && !isTopHat(_hatId)) revert HatNotMutable();
         hats[_hatId].imageURI = _newImageURI;
     }
 
-    /// @inheritdoc IHats
+    /// @inheritdoc IHatsProtocol
     function changeHatMaxSupply(uint256 _hatId, uint32 _newMaxSupply) external {
         if (!hats[_hatId].mutable_) revert HatNotMutable();
         hats[_hatId].maxSupply = _newMaxSupply;
     }
 
-    /// @inheritdoc IHats
+    /// @inheritdoc IHatsProtocol
     function makeHatImmutable(uint256 _hatId) external {
         hats[_hatId].mutable_ = false;
     }
 
-    /// @inheritdoc IHats
+    /// @inheritdoc IHatsProtocol
     function setHatWearerStatus(uint256 _hatId, address _wearer, bool _eligible, bool _standing) external returns (bool) {
         eligibility[_hatId][_wearer] = _eligible;
         standing[_hatId][_wearer] = _standing;
         return true;
     }
 
-    /// @inheritdoc IHats
+    /// @inheritdoc IHatsProtocol
     function checkHatWearerStatus(uint256 _hatId, address _wearer) external returns (bool) {
         // In mock, just return current status
         return eligibility[_hatId][_wearer] && standing[_hatId][_wearer];
     }
 
-    /// @inheritdoc IHats
+    /// @inheritdoc IHatsProtocol
     function checkHatStatus(uint256 _hatId) external returns (bool) {
         // In mock, just return current status
         return hats[_hatId].active;

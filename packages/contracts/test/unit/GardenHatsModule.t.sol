@@ -3,7 +3,7 @@ pragma solidity ^0.8.25;
 
 import { Test } from "forge-std/Test.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import { MockHats } from "../../src/mocks/Hats.sol";
+import { MockHatsProtocol } from "../../src/mocks/HatsProtocol.sol";
 
 /// @title GardenHatsModuleTest
 /// @notice TDD tests for GardenHatsModule - to be implemented
@@ -25,7 +25,7 @@ contract GardenHatsModuleTest is Test {
     // Test Contracts
     // ═══════════════════════════════════════════════════════════════════════════
 
-    MockHats public mockHats;
+    MockHatsProtocol public mockHats;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Test Addresses
@@ -96,13 +96,13 @@ contract GardenHatsModuleTest is Test {
         communityMember1 = address(0x8000);
 
         // Deploy mock Hats
-        mockHats = new MockHats();
+        mockHats = new MockHatsProtocol();
 
         // Setup Green Goods hat tree structure
         _setupGreenGoodsTopHat();
     }
 
-    /// @dev Sets up the Green Goods top hat and gardens hat in MockHats
+    /// @dev Sets up the Green Goods top hat and gardens hat in MockHatsProtocol
     function _setupGreenGoodsTopHat() internal {
         // Mint top hat to owner
         mockHats.mintTopHat(owner, "Green Goods", "ipfs://green-goods-logo");
@@ -499,7 +499,7 @@ contract GardenHatsModuleTest is Test {
         mockHats.setWearer(GARDEN1_OPERATOR_HAT, operator1, true);
 
         // Second operator should fail if max supply is 1
-        vm.expectRevert(MockHats.MaxSupplyReached.selector);
+        vm.expectRevert(MockHatsProtocol.MaxSupplyReached.selector);
         mockHats.mintHat(GARDEN1_OPERATOR_HAT, operator2);
     }
 
@@ -511,7 +511,7 @@ contract GardenHatsModuleTest is Test {
         mockHats.makeHatImmutable(GARDEN1_GARDENER_HAT);
 
         // Transfer should fail
-        vm.expectRevert(MockHats.HatNotMutable.selector);
+        vm.expectRevert(MockHatsProtocol.HatNotMutable.selector);
         mockHats.transferHat(GARDEN1_GARDENER_HAT, gardener1, gardener2);
     }
 
@@ -522,7 +522,7 @@ contract GardenHatsModuleTest is Test {
         mockHats.setHatActive(GARDEN1_GARDENER_HAT, false);
 
         // Minting should fail
-        vm.expectRevert(MockHats.HatNotActive.selector);
+        vm.expectRevert(MockHatsProtocol.HatNotActive.selector);
         mockHats.mintHat(GARDEN1_GARDENER_HAT, gardener1);
     }
 
@@ -530,7 +530,7 @@ contract GardenHatsModuleTest is Test {
     // Helper Functions
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @dev Creates a garden hat tree in MockHats
+    /// @dev Creates a garden hat tree in MockHatsProtocol
     function _createGardenHatTree(address garden) internal {
         // Create garden root hat
         vm.prank(gardenToken);

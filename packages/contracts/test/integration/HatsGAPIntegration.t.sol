@@ -4,7 +4,7 @@ pragma solidity ^0.8.25;
 import { Test } from "forge-std/Test.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { AttestationRequest, AttestationRequestData } from "@eas/IEAS.sol";
-import { MockHats } from "../../src/mocks/Hats.sol";
+import { MockHatsProtocol } from "../../src/mocks/HatsProtocol.sol";
 import { MockGAP } from "../../src/mocks/GAP.sol";
 import { GAPTestHelper } from "../helpers/GAPTestHelper.sol";
 
@@ -35,7 +35,7 @@ contract HatsGAPIntegrationTest is Test {
     // Test Contracts
     // ═══════════════════════════════════════════════════════════════════════════
 
-    MockHats public mockHats;
+    MockHatsProtocol public mockHats;
     MockGAP public mockGAP;
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -110,7 +110,7 @@ contract HatsGAPIntegrationTest is Test {
         evaluator1 = address(0x6000);
 
         // Deploy mocks
-        mockHats = new MockHats();
+        mockHats = new MockHatsProtocol();
         mockGAP = new MockGAP();
 
         // Setup Green Goods hat tree
