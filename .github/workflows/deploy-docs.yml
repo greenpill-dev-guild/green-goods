@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - 'release/**'
     paths:
       - 'docs/**'
       - '.github/workflows/deploy-docs.yml'
@@ -50,8 +51,8 @@ jobs:
           path: docs/build
 
   deploy:
-    # Only deploy on push to main, not on PRs
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Only deploy on push to main or release branches, not on PRs
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/'))
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

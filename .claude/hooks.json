@@ -10,7 +10,7 @@
           "tool_name": "Write|Edit",
           "file_pattern": "packages/client/src/hooks/**|packages/admin/src/hooks/**"
         },
-        "command": "echo '🚫 BLOCKED: All hooks must be created in packages/shared/src/hooks/ - see AGENTS.md'",
+        "command": "echo '🚫 BLOCKED: All hooks must be created in packages/shared/src/hooks/ - see AGENTS.md' >&2 && exit 2",
         "blocking": true,
         "description": "Enforce hook centralization in shared package"
       },
@@ -19,7 +19,7 @@
           "tool_name": "Write",
           "file_pattern": "packages/**/.env|packages/**/.env.*"
         },
-        "command": "echo '🚫 BLOCKED: Package-level .env files are not allowed. Use root .env only.'",
+        "command": "echo '🚫 BLOCKED: Package-level .env files are not allowed. Use root .env only.' >&2 && exit 2",
         "blocking": true,
         "description": "Prevent package-level environment files"
       },

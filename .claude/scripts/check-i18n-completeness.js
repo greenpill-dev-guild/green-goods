@@ -6,9 +6,11 @@
  * Run: node .claude/scripts/check-i18n-completeness.js
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const I18N_PATH = path.join(__dirname, '../../packages/shared/src/i18n');
 
 const LANGUAGES = ['en', 'es', 'pt'];
