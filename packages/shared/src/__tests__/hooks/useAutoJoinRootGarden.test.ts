@@ -27,6 +27,12 @@ vi.mock("../../hooks/auth/useUser", () => ({
   useUser: () => mockUseUser(),
 }));
 
+// Mock primary address hook
+const mockUsePrimaryAddress = vi.fn();
+vi.mock("../../hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => mockUsePrimaryAddress(),
+}));
+
 // Mock gardens hook
 const mockUseGardens = vi.fn();
 vi.mock("../../hooks/blockchain/useBaseLists", () => ({
@@ -76,6 +82,16 @@ vi.mock("../../utils/contract/simulation", () => ({
 
 vi.mock("../../utils/errors/contract-errors", () => ({
   isAlreadyGardenerError: vi.fn((error) => error?.message?.includes("AlreadyGardener")),
+}));
+
+// Mock toast service
+vi.mock("../../components/toast", () => ({
+  toastService: {
+    success: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(() => "toast-id"),
+    dismiss: vi.fn(),
+  },
 }));
 
 import { readContract } from "@wagmi/core";
@@ -129,6 +145,8 @@ describe("hooks/garden/useAutoJoinRootGarden", () => {
       ready: true,
       eoa: null,
     });
+
+    mockUsePrimaryAddress.mockReturnValue(MOCK_ADDRESSES.smartAccount);
 
     // Root garden with token ID 0
     mockUseGardens.mockReturnValue({

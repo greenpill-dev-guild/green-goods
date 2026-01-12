@@ -9,22 +9,51 @@ import { jobQueueDB } from "../../modules/job-queue/db";
 // Test user address for scoped queue operations
 const TEST_USER_ADDRESS = "0xTestUser123";
 
+/**
+ * Creates a mock File with arrayBuffer support for Node.js test environment.
+ * Node's File class may not have arrayBuffer() method in all environments.
+ */
+function createMockFile(content: string, name: string, type: string): File {
+  const blob = new Blob([content], { type });
+  const file = new File([blob], name, { type });
+
+  // Ensure arrayBuffer is available (polyfill for test environments)
+  if (!file.arrayBuffer) {
+    Object.defineProperty(file, "arrayBuffer", {
+      value: async () => {
+        const reader = new FileReader();
+        return new Promise<ArrayBuffer>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as ArrayBuffer);
+          reader.onerror = reject;
+          reader.readAsArrayBuffer(blob);
+        });
+      },
+    });
+  }
+
+  return file;
+}
+
 describe("modules/job-queue/db", () => {
   it("adds and retrieves a job, manages images URLs", async () => {
     // fake-indexeddb is already installed via setupTests
     // Polyfill URL.createObjectURL if missing
     if (!global.URL.createObjectURL) {
-      (global.URL as any).createObjectURL = vi.fn(() => `blob:mock-${Math.random()}`);
-      (global.URL as any).revokeObjectURL = vi.fn();
+      (global.URL as unknown as Record<string, unknown>).createObjectURL = vi.fn(
+        () => `blob:mock-${Math.random()}`
+      );
+      (global.URL as unknown as Record<string, unknown>).revokeObjectURL = vi.fn();
     }
+
+    const mockFile = createMockFile("x", "x.jpg", "image/jpeg");
 
     const id = await jobQueueDB.addJob({
       kind: "work",
-      payload: { media: [new File(["x"], "x.jpg", { type: "image/jpeg" })] },
+      payload: { media: [mockFile] },
       meta: { chainId: 84532 },
       chainId: 84532,
       userAddress: TEST_USER_ADDRESS,
-    } as any);
+    } as Parameters<typeof jobQueueDB.addJob>[0]);
 
     expect(typeof id).toBe("string");
     const job = await jobQueueDB.getJob(id);

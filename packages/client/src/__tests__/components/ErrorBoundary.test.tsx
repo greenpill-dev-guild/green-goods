@@ -21,6 +21,11 @@ vi.mock("../../components/Actions", () => ({
   Button: ({ label, onClick }: any) => createElement("button", { onClick, type: "button" }, label),
 }));
 
+// Mock shared modules to avoid WalletConnect dependency chain
+vi.mock("@green-goods/shared/modules", () => ({
+  trackErrorBoundary: vi.fn(),
+}));
+
 import { GardenErrorBoundary } from "../../components/Errors/ErrorBoundary";
 
 // Component that throws

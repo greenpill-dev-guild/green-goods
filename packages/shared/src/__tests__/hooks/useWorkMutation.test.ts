@@ -73,12 +73,35 @@ vi.mock("../../utils/debug", () => ({
   debugError: vi.fn(),
 }));
 
+vi.mock("../../modules/app/error-tracking", () => ({
+  trackContractError: vi.fn(),
+  addBreadcrumb: vi.fn(),
+}));
+
+vi.mock("../../modules/app/analytics-events", () => ({
+  trackWorkSubmissionStarted: vi.fn(),
+  trackWorkSubmissionSuccess: vi.fn(),
+  trackWorkSubmissionFailed: vi.fn(),
+}));
+
 vi.mock("../../utils/errors/contract-errors", () => ({
+  parseContractError: vi.fn((error: unknown) => ({
+    raw: error instanceof Error ? error.message : String(error),
+    name: "UnknownError",
+    message: "Something went wrong",
+    isKnown: false,
+    recoverable: true,
+    suggestedAction: "retry",
+  })),
   parseAndFormatError: vi.fn(() => ({
     title: "Error",
     message: "Something went wrong",
-    parsed: { isKnown: false, name: "unknown" },
+    parsed: { isKnown: false, name: "unknown", recoverable: true },
   })),
+  isNotGardenMemberError: vi.fn(() => false),
+  isNotGardenerError: vi.fn(() => false),
+  isAlreadyGardenerError: vi.fn(() => false),
+  formatErrorForToast: vi.fn(() => ({ title: "Error", message: "Something went wrong" })),
 }));
 
 import { walletProgressToasts, workToasts } from "../../components/toast";

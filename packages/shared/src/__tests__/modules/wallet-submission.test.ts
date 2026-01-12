@@ -155,7 +155,11 @@ describe("wallet-submission", () => {
           actionUID: 123,
           media: mockImages,
         }),
-        mockChainId
+        mockChainId,
+        expect.objectContaining({
+          authMode: "wallet",
+          gardenAddress: "0xGardenAddress",
+        })
       );
       expect(mockWalletClient.sendTransaction).toHaveBeenCalledWith(
         expect.objectContaining({

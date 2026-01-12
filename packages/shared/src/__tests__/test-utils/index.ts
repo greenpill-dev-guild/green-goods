@@ -146,6 +146,23 @@ export function flushPromises(): Promise<void> {
 // ============================================
 
 /**
+ * Mock method interface for vitest mock functions.
+ * Uses unknown for values that depend on the mocked function's signature.
+ */
+interface MockMethods<T> {
+  mockResolvedValue: (
+    value: T extends (...args: unknown[]) => Promise<infer R> ? R : unknown
+  ) => void;
+  mockRejectedValue: (value: unknown) => void;
+  mockReturnValue: (value: T extends (...args: unknown[]) => infer R ? R : unknown) => void;
+  mockImplementation: (
+    fn: T extends (...args: infer A) => infer R ? (...args: A) => R : never
+  ) => void;
+  mockClear: () => void;
+  mockReset: () => void;
+}
+
+/**
  * Type-safe mock helper to replace vi.mocked()
  *
  * Usage:
@@ -153,17 +170,10 @@ export function flushPromises(): Promise<void> {
  *   mock(myObject.method).mockReturnValue(...)
  *
  * This helper provides compatibility across Vitest versions
- * by bypassing TypeScript's type checking for mock methods.
+ * by providing typed mock methods.
  */
-export function mock<T>(fn: T): T & {
-  mockResolvedValue: (value: any) => void;
-  mockRejectedValue: (value: any) => void;
-  mockReturnValue: (value: any) => void;
-  mockImplementation: (fn: any) => void;
-  mockClear: () => void;
-  mockReset: () => void;
-} {
-  return fn as any;
+export function mock<T>(fn: T): T & MockMethods<T> {
+  return fn as T & MockMethods<T>;
 }
 
 // ============================================

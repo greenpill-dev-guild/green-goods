@@ -35,6 +35,11 @@ vi.mock("../../hooks/auth/useUser", () => ({
   })),
 }));
 
+// Mock primary address hook
+vi.mock("../../hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: vi.fn(() => "0xSmartAccount"),
+}));
+
 vi.mock("../../components/toast", () => ({
   toastService: {
     success: vi.fn(),
@@ -70,6 +75,7 @@ import { queueToasts } from "../../components/toast";
 import { jobQueue } from "../../modules/job-queue";
 import { useAuth } from "../../hooks/auth/useAuth";
 import { useUser } from "../../hooks/auth/useUser";
+import { usePrimaryAddress } from "../../hooks/auth/usePrimaryAddress";
 
 // Type helpers for mocked functions
 const mockJobQueue = jobQueue as {
@@ -81,6 +87,7 @@ const mockJobQueue = jobQueue as {
 };
 const mockUseAuth = useAuth as ReturnType<typeof vi.fn>;
 const mockUseUser = useUser as ReturnType<typeof vi.fn>;
+const mockUsePrimaryAddress = usePrimaryAddress as ReturnType<typeof vi.fn>;
 
 describe("providers/JobQueueProvider", () => {
   let queryClient: QueryClient;
@@ -107,6 +114,7 @@ describe("providers/JobQueueProvider", () => {
       smartAccountClient: { account: { address: "0xSmartAccount" } },
       eoa: null,
     });
+    mockUsePrimaryAddress.mockReturnValue("0xSmartAccount");
     mockJobQueue.getStats.mockResolvedValue({ total: 0, pending: 0, failed: 0, synced: 0 });
   });
 
@@ -293,6 +301,7 @@ describe("providers/JobQueueProvider", () => {
         smartAccountClient: null,
         eoa: { address: "0xWallet123" },
       });
+      mockUsePrimaryAddress.mockReturnValue("0xWallet123");
 
       renderHook(() => useJobQueue(), { wrapper: createWrapper() });
 
