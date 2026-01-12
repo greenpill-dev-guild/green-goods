@@ -1,8 +1,8 @@
 import {
   AppProvider,
   DEFAULT_CHAIN_ID,
-  initTheme,
   initGlobalErrorHandlers,
+  initTheme,
 } from "@green-goods/shared";
 import { AppKitProvider, AuthProvider } from "@green-goods/shared/providers";
 import { StrictMode } from "react";

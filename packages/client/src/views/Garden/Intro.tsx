@@ -28,6 +28,13 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
   setGardenAddress,
 }) => {
   const intl = useIntl();
+
+  // Filter to only show active actions (current time is within startTime and endTime)
+  const activeActions = actions.filter((action) => {
+    const now = Date.now();
+    return now >= action.startTime && now <= action.endTime;
+  });
+
   // Status comes from parent loader now; show skeletons based on arrays being empty temporarily
   const actionsStatus: "pending" | "success" = actions.length ? "success" : "pending";
   const gardensStatus: "pending" | "success" = gardens.length ? "success" : "pending";
@@ -69,7 +76,7 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
             </div>
           )}
 
-          {actionsStatus === "success" && actions.length === 0 && (
+          {actionsStatus === "success" && activeActions.length === 0 && (
             <div className="p-4 text-sm text-text-sub-600">
               {intl.formatMessage({
                 id: "app.garden.noActionsFound",
@@ -78,8 +85,8 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
             </div>
           )}
 
-          {actions.length > 0 &&
-            actions.map((action) => {
+          {activeActions.length > 0 &&
+            activeActions.map((action) => {
               const uid = uidFromActionId(action.id);
               return (
                 <CarouselItem

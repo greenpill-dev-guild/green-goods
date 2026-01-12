@@ -1,10 +1,42 @@
-import { useAutoJoinRootGarden, useAuth } from "@green-goods/shared/hooks";
-import { hasStoredUsername, getStoredUsername } from "@green-goods/shared/modules";
-import { useState, useEffect, useRef } from "react";
+import { useAuth, useAutoJoinRootGarden } from "@green-goods/shared/hooks";
+import { getStoredUsername, hasStoredUsername } from "@green-goods/shared/modules";
+import { useEffect, useRef, useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { type LoadingState, Splash } from "@/components/Layout";
 
 type AuthFlow = "none" | "register" | "login";
+
+/** Convert technical errors to user-friendly messages */
+const getFriendlyErrorMessage = (err: unknown): string => {
+  if (!(err instanceof Error)) return "Something went wrong. Please try again or use 'Login with wallet'.";
+
+  const msg = err.message.toLowerCase();
+  if (msg.includes("cancel") || msg.includes("abort") || msg.includes("user deny")) {
+    return "Login cancelled. Please try again when ready.";
+  }
+  if (msg.includes("not support") || msg.includes("unavailable")) {
+    return "Passkey authentication is not available on this device. Try using 'Login with wallet' instead.";
+  }
+  if (msg.includes("network") || msg.includes("timeout") || msg.includes("fetch")) {
+    return "Connection issue. Please check your internet and try again.";
+  }
+  if (msg.includes("no passkey found") || msg.includes("no credentials")) {
+    return "No account found with this username. Please check your username or create a new account.";
+  }
+  if (msg.includes("credential") || msg.includes("passkey")) {
+    return "Couldn't verify your passkey. Please try again or use 'Login with wallet'.";
+  }
+  return "Something went wrong. Please try again or use 'Login with wallet'.";
+};
+
+/** Validate username format */
+const validateUsername = (name: string): string | null => {
+  if (!name.trim()) return "Please enter a username";
+  if (name.length < 3) return "Username must be at least 3 characters";
+  if (name.length > 30) return "Username must be less than 30 characters";
+  if (!/^[a-zA-Z0-9_-]+$/.test(name)) return "Username can only contain letters, numbers, underscores and hyphens";
+  return null;
+};
 
 export function Login() {
   const location = useLocation();
@@ -20,35 +52,27 @@ export function Login() {
   } = useAuth();
 
   const [loadingState, setLoadingState] = useState<LoadingState | null>(null);
-  const [loadingMessage, setLoadingMessage] = useState<string | undefined>(undefined);
+  const [loadingMessage, setLoadingMessage] = useState<string | undefined>();
   const [loginError, setLoginError] = useState<string | null>(null);
-
-  // Auth flow state
   const [activeFlow, setActiveFlow] = useState<AuthFlow>("none");
   const [username, setUsername] = useState("");
   const [usernameError, setUsernameError] = useState<string | null>(null);
 
-  // Garden join prompt - called once after first login
   const { promptToJoin } = useAutoJoinRootGarden();
   const hasPromptedJoinRef = useRef(false);
 
-  // Check if we're on a nested route (like /login/recover)
+  // Check if nested route or came from logout
   const isNestedRoute = location.pathname !== "/login";
+  const fromLogout = (location.state as { fromLogout?: boolean } | null)?.fromLogout === true;
 
-  // Check if user came from explicit logout
-  const locationState = location.state as { fromLogout?: boolean } | null;
-  const fromLogout = locationState?.fromLogout === true;
+  // Redirect destination
+  const redirectTo = fromLogout ? "/home" : new URLSearchParams(location.search).get("redirectTo") || "/home";
 
-  // Extract redirectTo parameter, default to /home
-  const redirectTo = fromLogout
-    ? "/home"
-    : new URLSearchParams(location.search).get("redirectTo") || "/home";
-
-  // Check if user has existing credentials
-  const hasExistingAccount = fromLogout ? false : hasStoredCredential || hasStoredUsername();
+  // Existing account detection
+  const hasExistingAccount = !fromLogout && (hasStoredCredential || hasStoredUsername());
   const storedUsername = fromLogout ? null : getStoredUsername();
 
-  // Reset username input when returning to initial state
+  // Reset username when flow changes
   useEffect(() => {
     if (activeFlow === "none") {
       setUsername("");
@@ -56,18 +80,15 @@ export function Login() {
     }
   }, [activeFlow]);
 
-  // Prompt to join garden after successful authentication (once)
+  // Prompt garden join after auth
   useEffect(() => {
     if (isAuthenticated && !hasPromptedJoinRef.current) {
       hasPromptedJoinRef.current = true;
-      // Small delay to let the redirect happen first
-      setTimeout(() => {
-        promptToJoin();
-      }, 500);
+      setTimeout(() => promptToJoin(), 500);
     }
   }, [isAuthenticated, promptToJoin]);
 
-  // Clear loading state on auth errors
+  // Handle auth errors
   useEffect(() => {
     if (authError && !isAuthenticating) {
       setLoadingState(null);
@@ -76,44 +97,11 @@ export function Login() {
     }
   }, [authError, isAuthenticating]);
 
-  // Validate username
-  const validateUsername = (name: string): boolean => {
-    if (!name.trim()) {
-      setUsernameError("Please enter a username");
-      return false;
-    }
-    if (name.length < 3) {
-      setUsernameError("Username must be at least 3 characters");
-      return false;
-    }
-    if (name.length > 30) {
-      setUsernameError("Username must be less than 30 characters");
-      return false;
-    }
-    if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
-      setUsernameError("Username can only contain letters, numbers, underscores and hyphens");
-      return false;
-    }
-    setUsernameError(null);
-    return true;
-  };
-
-  // ============================================================================
-  // FLOW HANDLERS
-  // ============================================================================
-
-  const handleSignUp = () => {
-    setLoginError(null);
-    setActiveFlow("register");
-  };
-
-  const handleLoginFlow = () => {
-    setLoginError(null);
-    setActiveFlow("login");
-  };
-
-  const handleWalletLogin = () => {
-    loginWithWallet?.();
+  const handleAuthError = (err: unknown) => {
+    setLoadingState(null);
+    setLoadingMessage(undefined);
+    console.error("Authentication failed", err);
+    setLoginError(getFriendlyErrorMessage(err));
   };
 
   const handleCancel = () => {
@@ -123,147 +111,77 @@ export function Login() {
     setLoginError(null);
   };
 
-  // Handle login for existing users (with stored username)
+  // Auth handlers
   const handleExistingUserLogin = async () => {
     setLoginError(null);
     setLoadingMessage("Authenticating...");
+    setLoadingState("welcome");
     try {
-      setLoadingState("welcome");
-      if (loginWithPasskey) {
-        await loginWithPasskey(storedUsername || undefined);
-      }
+      await loginWithPasskey?.(storedUsername || undefined);
     } catch (err) {
       handleAuthError(err);
     }
   };
 
-  // Handle account creation for new users
   const handleCreateAccount = async () => {
-    if (!validateUsername(username)) return;
-
+    const error = validateUsername(username);
+    if (error) {
+      setUsernameError(error);
+      return;
+    }
+    setUsernameError(null);
     setLoginError(null);
     setLoadingMessage("Creating your wallet...");
+    setLoadingState("welcome");
     try {
-      setLoadingState("welcome");
-      if (createAccount) {
-        await createAccount(username.trim());
-      }
+      await createAccount?.(username.trim());
     } catch (err) {
       handleAuthError(err);
     }
   };
 
-  // Handle login for returning users (entering username)
   const handleRecoveryLogin = async () => {
-    if (!validateUsername(username)) return;
-
+    const error = validateUsername(username);
+    if (error) {
+      setUsernameError(error);
+      return;
+    }
+    setUsernameError(null);
     setLoginError(null);
     setLoadingMessage("Authenticating...");
+    setLoadingState("welcome");
     try {
-      setLoadingState("welcome");
-      if (loginWithPasskey) {
-        await loginWithPasskey(username.trim());
-      }
+      await loginWithPasskey?.(username.trim());
     } catch (err) {
       handleAuthError(err);
     }
   };
 
-  // Main submit handler
-  const handleSubmit = async () => {
-    if (hasExistingAccount && activeFlow === "none") {
-      await handleExistingUserLogin();
-    } else if (activeFlow === "register") {
-      await handleCreateAccount();
-    } else if (activeFlow === "login") {
-      await handleRecoveryLogin();
-    }
+  // Determine primary action based on state
+  const getPrimaryAction = () => {
+    if (hasExistingAccount && activeFlow === "none") return handleExistingUserLogin;
+    if (activeFlow === "register") return handleCreateAccount;
+    if (activeFlow === "login") return handleRecoveryLogin;
+    return () => {
+      setLoginError(null);
+      setActiveFlow("register");
+    };
   };
-
-  // Handle authentication errors
-  const handleAuthError = (err: unknown) => {
-    setLoadingState(null);
-    setLoadingMessage(undefined);
-    console.error("Authentication failed", err);
-    setLoginError(getFriendlyErrorMessage(err));
-  };
-
-  // Convert technical errors to user-friendly messages
-  const getFriendlyErrorMessage = (err: unknown): string => {
-    if (err instanceof Error) {
-      const message = err.message.toLowerCase();
-
-      if (
-        message.includes("cancel") ||
-        message.includes("abort") ||
-        message.includes("user deny")
-      ) {
-        return "Login cancelled. Please try again when ready.";
-      }
-      if (message.includes("not support") || message.includes("unavailable")) {
-        return "Passkey authentication is not available on this device. Try using 'Login with wallet' instead.";
-      }
-      if (message.includes("network") || message.includes("timeout") || message.includes("fetch")) {
-        return "Connection issue. Please check your internet and try again.";
-      }
-      if (message.includes("no passkey found") || message.includes("no credentials")) {
-        return "No account found with this username. Please check your username or create a new account.";
-      }
-      if (message.includes("credential") || message.includes("passkey")) {
-        return "Couldn't verify your passkey. Please try again or use 'Login with wallet'.";
-      }
-    }
-    return "Something went wrong. Please try again or use 'Login with wallet'.";
-  };
-
-  // ============================================================================
-  // RENDER HELPERS
-  // ============================================================================
-
-  const shouldShowUsernameInput = activeFlow !== "none" && !hasExistingAccount;
 
   const getButtonLabel = () => {
-    if (shouldShowUsernameInput) {
-      return activeFlow === "register" ? "Create Account" : "Login";
-    }
-    if (hasExistingAccount && activeFlow === "none") {
-      return `Login${storedUsername ? ` as ${storedUsername}` : ""}`;
-    }
+    if (activeFlow === "register") return "Create Account";
+    if (activeFlow === "login") return "Login";
+    if (hasExistingAccount) return `Login${storedUsername ? ` as ${storedUsername}` : ""}`;
     return "Sign Up";
   };
 
-  const getUsernameHint = () => {
-    if (activeFlow === "register") return "Choose a username for your new account";
-    if (activeFlow === "login") return "Enter the username you registered with";
-    return "";
-  };
+  // Render logic
+  if (isNestedRoute) return <Outlet />;
+  if (!isReady) return <Splash loadingState="welcome" />;
+  if (isAuthenticated) return <Navigate to={redirectTo} replace />;
+  if (loadingState) return <Splash loadingState={loadingState} message={loadingMessage} />;
 
-  const getPrimaryAction = () => {
-    if (hasExistingAccount && activeFlow === "none") return handleExistingUserLogin;
-    if (activeFlow !== "none") return handleSubmit;
-    return handleSignUp;
-  };
-
-  // Nested route handling
-  if (isNestedRoute) {
-    return <Outlet />;
-  }
-
-  // Wait for auth to be ready
-  if (!isReady) {
-    return <Splash loadingState="welcome" />;
-  }
-
-  // Redirect once authenticated
-  if (isAuthenticated) {
-    return <Navigate to={redirectTo} replace />;
-  }
-
-  // Loading screen during authentication
-  if (loadingState) {
-    return <Splash loadingState={loadingState} message={loadingMessage} />;
-  }
-
+  const showUsernameInput = activeFlow !== "none" && !hasExistingAccount;
   const errorMessage = !isAuthenticating ? loginError || usernameError : null;
 
   return (
@@ -273,15 +191,18 @@ export function Login() {
       buttonLabel={getButtonLabel()}
       errorMessage={errorMessage}
       usernameInput={
-        shouldShowUsernameInput
+        showUsernameInput
           ? {
               value: username,
               onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                 setUsername(e.target.value);
-                if (usernameError) validateUsername(e.target.value);
+                if (usernameError) setUsernameError(validateUsername(e.target.value));
               },
               placeholder: activeFlow === "register" ? "Choose a username" : "Enter your username",
-              hint: getUsernameHint(),
+              hint:
+                activeFlow === "register"
+                  ? "Choose a username for your new account"
+                  : "Enter the username you registered with",
               onCancel: handleCancel,
             }
           : undefined
@@ -291,15 +212,17 @@ export function Login() {
           ? activeFlow !== "none"
             ? { label: "Cancel", onSelect: handleCancel }
             : !hasExistingAccount
-              ? { label: "Login", onSelect: handleLoginFlow }
+              ? {
+                  label: "Login",
+                  onSelect: () => {
+                    setLoginError(null);
+                    setActiveFlow("login");
+                  },
+                }
               : undefined
           : undefined
       }
-      tertiaryAction={
-        activeFlow === "none"
-          ? { label: "Login with wallet", onClick: handleWalletLogin }
-          : undefined
-      }
+      tertiaryAction={activeFlow === "none" ? { label: "Login with wallet", onClick: () => loginWithWallet?.() } : undefined}
     />
   );
 }

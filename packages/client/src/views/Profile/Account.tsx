@@ -1,4 +1,4 @@
-import { toastService } from "@green-goods/shared";
+import { toastService, type Garden } from "@green-goods/shared";
 import {
   isGardenMember,
   useAuth,
@@ -46,9 +46,7 @@ interface ApplicationSettings {
   Icon: React.ReactNode;
 }
 
-type ProfileAccountProps = {};
-
-export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
+export const ProfileAccount: React.FC = () => {
   const { authMode, signOut, smartAccountAddress, credential, walletAddress } = useAuth();
   const { theme, setTheme } = useTheme();
   const primaryAddress = smartAccountAddress || walletAddress;
@@ -225,13 +223,13 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
       // Clear React Query persisted cache (localStorage + IndexedDB)
       try {
         localStorage.removeItem("__rq_pc__");
-      } catch {
-        // ignore
+      } catch (e) {
+        if (import.meta.env.DEV) console.debug("[AppRefresh] localStorage clear failed:", e);
       }
       try {
         indexedDB.deleteDatabase("gg-react-query");
-      } catch {
-        // ignore
+      } catch (e) {
+        if (import.meta.env.DEV) console.debug("[AppRefresh] IndexedDB clear failed:", e);
       }
     } catch (err) {
       console.debug("[AppRefresh] Best-effort cache clear failed:", err);
@@ -240,90 +238,96 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
     }
   };
 
-  const themeOptions = [
-    {
-      value: "light" as const,
-      label: intl.formatMessage({ id: "app.settings.themeLight", defaultMessage: "Light" }),
-      icon: <RiSunLine className="w-4" />,
-    },
-    {
-      value: "dark" as const,
-      label: intl.formatMessage({ id: "app.settings.themeDark", defaultMessage: "Dark" }),
-      icon: <RiMoonLine className="w-4" />,
-    },
-    {
-      value: "system" as const,
-      label: intl.formatMessage({ id: "app.settings.themeSystem", defaultMessage: "System" }),
-      icon: <RiComputerLine className="w-4" />,
-    },
-  ];
+  const themeOptions = useMemo(
+    () => [
+      {
+        value: "light" as const,
+        label: intl.formatMessage({ id: "app.settings.themeLight", defaultMessage: "Light" }),
+        icon: <RiSunLine className="w-4" />,
+      },
+      {
+        value: "dark" as const,
+        label: intl.formatMessage({ id: "app.settings.themeDark", defaultMessage: "Dark" }),
+        icon: <RiMoonLine className="w-4" />,
+      },
+      {
+        value: "system" as const,
+        label: intl.formatMessage({ id: "app.settings.themeSystem", defaultMessage: "System" }),
+        icon: <RiComputerLine className="w-4" />,
+      },
+    ],
+    [intl]
+  );
 
   const currentThemeOption = themeOptions.find((opt) => opt.value === theme) || themeOptions[2];
 
-  const applicationSettings: ApplicationSettings[] = [
-    {
-      title: intl.formatMessage({
-        id: "app.settings.theme",
-        defaultMessage: "Theme",
-      }),
-      description: intl.formatMessage({
-        id: "app.settings.selectTheme",
-        defaultMessage: "Choose your preferred appearance",
-      }),
-      Icon: currentThemeOption.icon,
-      Option: () => (
-        <Select value={theme} onValueChange={(val) => setTheme(val as "light" | "dark" | "system")}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder={currentThemeOption.label} />
-          </SelectTrigger>
-          <SelectContent>
-            {themeOptions.map((opt) => (
-              <SelectItem value={opt.value} key={opt.value}>
-                <span className="flex items-center gap-2">
-                  {opt.icon}
-                  {opt.label}
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      ),
-    },
-    {
-      title: intl.formatMessage({
-        id: "app.settings.language",
-        description: "Language",
-      }),
-      description: intl.formatMessage(
-        {
-          id: "app.settings.selectLanguage",
-          description: "Select your desired language, language selector",
-          defaultMessage: "Select your preferred language",
-        },
-        {
-          language: locale,
-        }
-      ),
-      Icon: <RiEarthFill className="w-4" />,
-      Option: () => (
-        <Select onValueChange={(val) => switchLanguage(val as Locale)}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue
-              className="capitalize"
-              placeholder={capitalize(intl.formatDisplayName(locale, { type: "language" }) || "")}
-            />
-          </SelectTrigger>
-          <SelectContent>
-            {availableLocales?.map((localeOption: Locale) => (
-              <SelectItem value={localeOption} key={localeOption} className="capitalize">
-                {capitalize(intl.formatDisplayName(localeOption, { type: "language" }) || "")}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      ),
-    },
-  ];
+  const applicationSettings: ApplicationSettings[] = useMemo(
+    () => [
+      {
+        title: intl.formatMessage({
+          id: "app.settings.theme",
+          defaultMessage: "Theme",
+        }),
+        description: intl.formatMessage({
+          id: "app.settings.selectTheme",
+          defaultMessage: "Choose your preferred appearance",
+        }),
+        Icon: currentThemeOption.icon,
+        Option: () => (
+          <Select value={theme} onValueChange={(val) => setTheme(val as "light" | "dark" | "system")}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder={currentThemeOption.label} />
+            </SelectTrigger>
+            <SelectContent>
+              {themeOptions.map((opt) => (
+                <SelectItem value={opt.value} key={opt.value}>
+                  <span className="flex items-center gap-2">
+                    {opt.icon}
+                    {opt.label}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ),
+      },
+      {
+        title: intl.formatMessage({
+          id: "app.settings.language",
+          defaultMessage: "Language",
+        }),
+        description: intl.formatMessage(
+          {
+            id: "app.settings.selectLanguage",
+            description: "Select your desired language, language selector",
+            defaultMessage: "Select your preferred language",
+          },
+          {
+            language: locale,
+          }
+        ),
+        Icon: <RiEarthFill className="w-4" />,
+        Option: () => (
+          <Select onValueChange={(val) => switchLanguage(val as Locale)}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue
+                className="capitalize"
+                placeholder={capitalize(intl.formatDisplayName(locale, { type: "language" }) || "")}
+              />
+            </SelectTrigger>
+            <SelectContent>
+              {availableLocales?.map((localeOption: Locale) => (
+                <SelectItem value={localeOption} key={localeOption} className="capitalize">
+                  {capitalize(intl.formatDisplayName(localeOption, { type: "language" }) || "")}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ),
+      },
+    ],
+    [intl, theme, setTheme, currentThemeOption, themeOptions, locale, switchLanguage, availableLocales]
+  );
 
   return (
     <>
@@ -389,7 +393,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
       <h5 className="text-label-md text-text-strong-950">
         {intl.formatMessage({
           id: "app.profile.settings",
-          description: "Settings",
+          defaultMessage: "Settings",
         })}
       </h5>
       {applicationSettings.map(({ title, Icon, description, Option }) => (
@@ -406,7 +410,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
               </div>
               <div className="text-xs text-text-sub-600">{description}</div>
             </div>
-            {<Option />}
+            <Option />
           </div>
         </Card>
       ))}
@@ -541,7 +545,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
       <h5 className="text-label-md text-text-strong-950">
         {intl.formatMessage({
           id: "app.profile.account",
-          description: "Account",
+          defaultMessage: "Account",
         })}
       </h5>
 
@@ -563,11 +567,11 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
                 {authMode === "passkey"
                   ? intl.formatMessage({
                       id: "app.account.passkey",
-                      description: "Passkey Wallet",
+                      defaultMessage: "Passkey Wallet",
                     })
                   : intl.formatMessage({
                       id: "app.account.wallet",
-                      description: "External Wallet",
+                      defaultMessage: "External Wallet",
                     })}
               </div>
             </div>
@@ -596,7 +600,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
                 <div className="line-clamp-1 text-sm">
                   {intl.formatMessage({
                     id: "app.account.address",
-                    description:
+                    defaultMessage:
                       authMode === "passkey" ? "Smart Account Address" : "Wallet Address",
                   })}
                 </div>
@@ -618,7 +622,7 @@ export const ProfileAccount: React.FC<ProfileAccountProps> = () => {
         onClick={handleLogout}
         label={intl.formatMessage({
           id: "app.profile.logout",
-          description: "Logout",
+          defaultMessage: "Logout",
         })}
         leadingIcon={<RiLogoutBoxRLine className="w-4" />}
         className="w-full"
