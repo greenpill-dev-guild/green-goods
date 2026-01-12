@@ -66,6 +66,7 @@ const AssessmentCard = memo(function AssessmentCard({
         </div>
         <Link
           to={`assessments/${assessment.id}`}
+          viewTransition
           className="inline-flex shrink-0 items-center gap-1 rounded-md border border-stroke-soft-200 px-2 py-1 text-xs font-medium text-text-sub-600 transition hover:bg-bg-weak-50"
         >
           <RiExternalLinkLine className="h-3.5 w-3.5" />

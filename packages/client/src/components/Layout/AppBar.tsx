@@ -1,4 +1,3 @@
-import { useNavigateToTop } from "@green-goods/shared/hooks";
 import { useUIStore } from "@green-goods/shared/stores";
 import { cn } from "@green-goods/shared/utils";
 import {
@@ -18,7 +17,6 @@ export const AppBar = () => {
   const isGarden = pathname.startsWith("/garden");
   const isWorkDetail = pathname.includes("/work/");
   const intl = useIntl();
-  const navigate = useNavigateToTop();
 
   // Check if any drawer is open to hide AppBar beneath them
   const { isWorkDashboardOpen, isGardenFilterOpen } = useUIStore();
@@ -63,25 +61,18 @@ export const AppBar = () => {
       {tabs.map(({ path, ActiveIcon, InactiveIcon, title }) => {
         const isActive = pathname.startsWith(path);
         return (
-          <Link to={path} key={title} onClick={() => navigate(path)}>
-            <button
-              className={cn(
-                "flex flex-col items-center",
-                isActive &&
-                  "active tab-active text-primary focus:outline-hidden active-text-red-500",
-                !isActive && "text-text-soft-400"
-              )}
-              type="button"
-            >
-              {pathname.startsWith(path) ? (
-                <ActiveIcon className="w-6 h-6" />
-              ) : (
-                <InactiveIcon className="w-6 h-6" />
-              )}
-              <p className={`text-sm ${pathname.startsWith(path) ? "text-primary" : ""}`}>
-                {title}
-              </p>
-            </button>
+          <Link
+            to={path}
+            key={title}
+            viewTransition
+            className={cn(
+              "flex flex-col items-center",
+              isActive && "active tab-active text-primary focus:outline-hidden",
+              !isActive && "text-text-soft-400"
+            )}
+          >
+            {isActive ? <ActiveIcon className="w-6 h-6" /> : <InactiveIcon className="w-6 h-6" />}
+            <p className={cn("text-sm", isActive && "text-primary")}>{title}</p>
           </Link>
         );
       })}

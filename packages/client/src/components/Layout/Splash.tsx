@@ -223,6 +223,7 @@ export const Splash: React.FC<SplashProps> = ({
             ) : (
               <Link
                 to={tertiaryAction.href || "#"}
+                viewTransition
                 className={`text-xs underline transition-all duration-200 ${
                   !loadingState && !isLoggingIn
                     ? "text-text-sub-600 hover:text-primary opacity-100"

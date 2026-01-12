@@ -89,7 +89,7 @@ export const Hero: React.FC<HeroProps> = () => {
                   })}
                 </Dialog.Trigger>
                 <Dialog.Portal>
-                  <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm animate-fade-in z-50" />
+                  <Dialog.Overlay className="fixed inset-0 bg-black/30 backdrop-blur-sm animate-fade-in z-50" />
                   <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-4 max-w-md w-full animate-scale-in z-50 focus:outline-none">
                     <div className="relative bg-bg-white-0 rounded-xl shadow-2xl p-6 w-full overflow-hidden">
                       <div className="absolute top-0 left-0 w-full h-2 bg-primary" />

@@ -174,7 +174,7 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
         {/* Centered popover-style dialog instead of bottom drawer */}
         {selected && (
           <div
-            className="fixed inset-0 z-[10002] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+            className="fixed inset-0 z-[10002] flex items-center justify-center bg-black/30 backdrop-blur-sm"
             onClick={() => setSelected(null)}
             onKeyDown={(e) => {
               if (e.key === "Escape") {

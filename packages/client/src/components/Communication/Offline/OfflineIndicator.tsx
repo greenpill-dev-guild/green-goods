@@ -95,7 +95,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
             <span className="text-[10px]">Install for full experience.</span>
             <button
               type="button"
-              onClick={() => navigate("/profile")}
+              onClick={() => navigate("/profile", { viewTransition: true })}
               className="ml-1 inline-flex items-center gap-1 rounded-full border border-stroke-sub-300 bg-bg-white-0 px-2 py-0.5 text-[10px] hover:bg-bg-weak-50 active:scale-95 transition-transform"
             >
               <RiUserLine className="h-3 w-3" />

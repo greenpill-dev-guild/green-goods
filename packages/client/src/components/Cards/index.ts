@@ -43,4 +43,3 @@ export {
   type WorkCardItem,
   type WorkCardProps,
 } from "./Work/WorkCard";
-export { WorkCardBase, type WorkCardBaseProps } from "./Work/WorkCardBase";
