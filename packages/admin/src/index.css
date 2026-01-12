@@ -211,3 +211,70 @@
     background-position: -200% 0;
   }
 }
+
+/* ============================================================================
+ * NATIVE POPOVER STYLES
+ * Per web.dev/learn/css/popover-and-dialog
+ * Styles for hint, auto, and manual popovers
+ * ============================================================================ */
+@layer utilities {
+  /* Base popover styles - hidden by default */
+  [popover] {
+    border: none;
+    padding: 0;
+    box-shadow: 0 12px 24px 0 rgba(14, 18, 27, 0.06), 0 1px 2px 0 rgba(14, 18, 27, 0.03);
+  }
+
+  /* Popover open state with animation */
+  [popover]:popover-open {
+    opacity: 1;
+    transform: scale(1);
+    
+    /* Enable discrete animation for display property */
+    transition: 
+      opacity 0.2s ease-out,
+      transform 0.2s ease-out,
+      overlay 0.2s allow-discrete,
+      display 0.2s allow-discrete;
+  }
+
+  /* Starting styles for popover animation */
+  @starting-style {
+    [popover]:popover-open {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+  }
+
+  /* Closing animation */
+  [popover] {
+    opacity: 0;
+    transform: scale(0.95);
+    
+    transition: 
+      opacity 0.2s ease-in,
+      transform 0.2s ease-in,
+      overlay 0.2s allow-discrete,
+      display 0.2s allow-discrete;
+  }
+
+  /* Backdrop styles for auto popovers */
+  [popover]::backdrop {
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(4px);
+  }
+
+  [popover]:popover-open::backdrop {
+    opacity: 1;
+    transition: 
+      opacity 0.2s ease-out,
+      overlay 0.2s allow-discrete,
+      display 0.2s allow-discrete;
+  }
+
+  @starting-style {
+    [popover]:popover-open::backdrop {
+      opacity: 0;
+    }
+  }
+}

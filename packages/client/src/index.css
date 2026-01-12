@@ -28,10 +28,15 @@
 }
 
 html {
-  @apply relative overflow-x-hidden;
+  @apply relative overflow-x-hidden bg-bg-white-0;
+  /* Prevent overscroll bounce from revealing background gaps */
+  overscroll-behavior: none;
 }
 body {
-  @apply relative m-0 w-screen h-screen bg-bg-white-0 text-text-strong-950 overflow-x-hidden;
+  /* Fixed positioning prevents iOS Safari rubber-band scrolling from shifting the body */
+  @apply m-0 bg-bg-white-0 text-text-strong-950 overflow-hidden;
+  position: fixed;
+  inset: 0;
 }
 
 #root {

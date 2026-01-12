@@ -1,7 +1,7 @@
 /* View Transitions API - Native Page Transitions
  *
  * Provides smooth, native-feel page transitions using the browser's
- * View Transitions API. Falls back gracefully in unsupported browsers.
+ * View Transitions API for SPAs via React Router v7+.
  *
  * Browser support (2026):
  * - Chrome 111+: Full support
@@ -9,128 +9,164 @@
  * - Firefox: Partial (cross-document only)
  *
  * @see https://developer.mozilla.org/en-US/docs/Web/API/View_Transition_API
+ * @see https://web.dev/learn/css/view-transitions-spas
  */
 
-/* Enable automatic same-document view transitions */
-@view-transition {
-  navigation: auto;
-}
+/* ============================================================================
+ * VIEW TRANSITION NAMES
+ * Elements must have unique view-transition-name to participate in transitions
+ * ============================================================================ */
 
-/* Default page transition animations */
-::view-transition-old(page),
-::view-transition-image-pair(page) > ::view-transition-old {
-  animation: 0.2s cubic-bezier(0.4, 0, 1, 1) both view-transition-fade-out;
-}
-
-::view-transition-new(page),
-::view-transition-image-pair(page) > ::view-transition-new {
-  animation: 0.3s cubic-bezier(0.16, 1, 0.3, 1) both view-transition-fade-in;
-}
-
-/* Slide transitions for main content */
-::view-transition-old(main) {
-  animation: 0.25s cubic-bezier(0.4, 0, 1, 1) both view-transition-slide-out-left;
-}
-
-::view-transition-new(main) {
-  animation: 0.35s cubic-bezier(0.16, 1, 0.3, 1) both view-transition-slide-in-right;
-}
-
-/* Back navigation - reverse direction */
-::view-transition-old(main).back-navigation {
-  animation: 0.25s cubic-bezier(0.4, 0, 1, 1) both view-transition-slide-out-right;
-}
-
-::view-transition-new(main).back-navigation {
-  animation: 0.35s cubic-bezier(0.16, 1, 0.3, 1) both view-transition-slide-in-left;
-}
-
-/* Keyframe animations */
-@keyframes view-transition-fade-out {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
-@keyframes view-transition-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes view-transition-slide-out-left {
-  from {
-    opacity: 1;
-    transform: translateX(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-}
-
-@keyframes view-transition-slide-in-right {
-  from {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes view-transition-slide-out-right {
-  from {
-    opacity: 1;
-    transform: translateX(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-}
-
-@keyframes view-transition-slide-in-left {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-/* Utility classes for view-transition-name */
-.view-transition-page {
-  view-transition-name: page;
-}
-
-.view-transition-main {
+/* Main content area - assigned via className in AppShell */
+.vt-main {
   view-transition-name: main;
 }
 
-.view-transition-header {
+/* Page-level transitions for specific views */
+.vt-page {
+  view-transition-name: page;
+}
+
+/* Hero/header elements that persist across views */
+.vt-header {
   view-transition-name: header;
 }
 
-.view-transition-nav {
-  view-transition-name: nav;
+/* Garden cards for hero transitions */
+.vt-garden-card {
+  view-transition-name: garden-card;
 }
 
-/* Persist elements across page transitions (e.g., shared elements) */
-.view-transition-persist {
-  view-transition-name: persist;
+/* Work cards for detail transitions */
+.vt-work-card {
+  view-transition-name: work-card;
 }
 
-/* Respect reduced motion preference */
+/* ============================================================================
+ * DEFAULT TRANSITIONS
+ * Applied when no transition type is specified
+ * ============================================================================ */
+
+::view-transition-group(main) {
+  animation-duration: 0.2s;
+}
+
+::view-transition-old(main) {
+  animation: 0.15s cubic-bezier(0.4, 0, 1, 1) both vt-fade-out;
+}
+
+::view-transition-new(main) {
+  animation: 0.25s cubic-bezier(0.16, 1, 0.3, 1) both vt-fade-in;
+}
+
+/* ============================================================================
+ * DIRECTIONAL TRANSITIONS (using :active-view-transition-type)
+ * These are triggered by passing types to startViewTransition or viewTransition
+ * ============================================================================ */
+
+/* Forward navigation - slide left */
+html:active-view-transition-type(forwards) {
+  &::view-transition-old(main) {
+    animation: 0.15s cubic-bezier(0.4, 0, 1, 1) both vt-slide-out-left;
+  }
+
+  &::view-transition-new(main) {
+    animation: 0.25s cubic-bezier(0.16, 1, 0.3, 1) both vt-slide-in-right;
+  }
+}
+
+/* Back navigation - slide right */
+html:active-view-transition-type(backwards) {
+  &::view-transition-old(main) {
+    animation: 0.15s cubic-bezier(0.4, 0, 1, 1) both vt-slide-out-right;
+  }
+
+  &::view-transition-new(main) {
+    animation: 0.25s cubic-bezier(0.16, 1, 0.3, 1) both vt-slide-in-left;
+  }
+}
+
+/* Fade transition - for modals and overlays */
+html:active-view-transition-type(fade) {
+  &::view-transition-old(main) {
+    animation: 0.1s ease-out both vt-fade-out;
+  }
+
+  &::view-transition-new(main) {
+    animation: 0.2s ease-out both vt-fade-in;
+  }
+}
+
+/* ============================================================================
+ * KEYFRAME ANIMATIONS
+ * ============================================================================ */
+
+@keyframes vt-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes vt-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes vt-slide-out-left {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+}
+
+@keyframes vt-slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes vt-slide-out-right {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+}
+
+@keyframes vt-slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ============================================================================
+ * ACCESSIBILITY - Respect reduced motion preference
+ * ============================================================================ */
+
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*),
   ::view-transition-old(*),

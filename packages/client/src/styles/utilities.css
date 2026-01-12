@@ -189,4 +189,110 @@
     @apply bg-success-lighter text-success-dark border-success-light;
   }
 
+  /* ============================================
+   * Native Popover Styles
+   * Per web.dev/learn/css/popover-and-dialog
+   * ============================================ */
+  
+  /* Base popover styles - hidden by default */
+  [popover] {
+    border: none;
+    padding: 0;
+    box-shadow: var(--shadow-tooltip);
+  }
+
+  /* Popover open state with animation */
+  [popover]:popover-open {
+    opacity: 1;
+    transform: scale(1);
+    
+    /* Enable discrete animation for display property */
+    transition: 
+      opacity 0.2s ease-out,
+      transform 0.2s ease-out,
+      overlay 0.2s allow-discrete,
+      display 0.2s allow-discrete;
+  }
+
+  /* Starting styles for popover animation */
+  @starting-style {
+    [popover]:popover-open {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+  }
+
+  /* Closing animation */
+  [popover] {
+    opacity: 0;
+    transform: scale(0.95);
+    
+    transition: 
+      opacity 0.2s ease-in,
+      transform 0.2s ease-in,
+      overlay 0.2s allow-discrete,
+      display 0.2s allow-discrete;
+  }
+
+  /* Backdrop styles for auto popovers */
+  [popover]::backdrop {
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(4px);
+  }
+
+  [popover]:popover-open::backdrop {
+    opacity: 1;
+    transition: 
+      opacity 0.2s ease-out,
+      overlay 0.2s allow-discrete,
+      display 0.2s allow-discrete;
+  }
+
+  @starting-style {
+    [popover]:popover-open::backdrop {
+      opacity: 0;
+    }
+  }
+
+  /* ============================================
+   * Content Visibility - Skip rendering off-screen items
+   * Uses content-visibility: auto (Baseline Sept 2024)
+   * @see https://web.dev/articles/content-visibility
+   * ============================================ */
+
+  /* Generic content-visibility for list items */
+  .cv-auto {
+    content-visibility: auto;
+  }
+
+  /* Work card list items (~100px height) */
+  .cv-work-card {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 100px;
+  }
+
+  /* Garden card list items (~180px height) */
+  .cv-garden-card {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 180px;
+  }
+
+  /* Draft card list items (~80px height) */
+  .cv-draft-card {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 80px;
+  }
+
+  /* Notification items (~60px height) */
+  .cv-notification {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 60px;
+  }
+
+  /* Member/gardener list items (~56px height) */
+  .cv-member {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 56px;
+  }
+
 }
