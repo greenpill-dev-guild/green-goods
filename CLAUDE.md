@@ -205,3 +205,154 @@ See `.env.example` for all variables with setup instructions.
 - **EAS for attestations** - leverages existing infrastructure
 
 For detailed patterns and rules, see the `.cursor/rules/` directories throughout the codebase.
+
+## Claude Code Integration
+
+This project has extensive Claude Code tooling configured in `.claude/`.
+
+### Available Commands
+
+| Command | Purpose |
+|---------|---------|
+| `/pr` | Create PR with issue linking and conventional commits |
+| `/review` | Review changes against implementation plan |
+| `/audit` | Run comprehensive codebase audit |
+| `/delphi` | Launch parallel oracle analysis (e.g., `delphi x6`) |
+| `/plan` | Create detailed implementation plan |
+| `/execute` | Execute plan in batches with checkpoints |
+| `/fix-lint` | Auto-fix linting issues |
+| `/scope` | Check for scope creep |
+| `/shitshow` | Emergency troubleshooting mode |
+
+### Available Skills (24)
+
+**Development Workflow:**
+- `create-plan`, `check-plan`, `executing-plans` - Planning lifecycle
+- `create-pr`, `code-review`, `requesting-code-review`, `receiving-code-review` - PR workflow
+- `test-driven-development` - TDD methodology
+- `verification-before-completion` - Evidence-based completion
+
+**Analysis & Research:**
+- `audit`, `architectural-analysis` - Codebase health
+- `delphi`, `the-oracle` - Deep research and parallel analysis
+- `systematic-debugging` - Root cause analysis
+
+**Specialized:**
+- `contract-deploy-validator` - UUPS validation, gas reports
+- `hook-generator` - Generate hooks in shared package
+- `i18n-sync` - Translation completeness
+- `offline-sync-debugger` - Job queue and IndexedDB debugging
+- `superpower-zustand` - Zustand store patterns
+- `design-spec-extraction` - Extract Figma design tokens
+- `chrome-devtools` - Browser debugging
+- `gh-ticket` - Comprehensive issue creation
+- `the-archivist` - Decision documentation
+- `4-step-program` - Fix-review-iterate workflow
+
+### Available Agents (5)
+
+| Agent | Purpose |
+|-------|---------|
+| `code-reviewer` | 6-pass ultra-critical review, auto-posts to GitHub |
+| `cracked-coder` | Elite implementation specialist |
+| `engineering-lead` | Strategic coordinator |
+| `infrastructure-architect` | System design guidance |
+| `oracle` | Deep research agent |
+
+### Enabled Plugins (13)
+
+- `typescript-lsp` - TypeScript language server
+- `github` - GitHub integration
+- `figma` - Figma design extraction
+- `vercel` - Vercel deployment
+- `playwright` - E2E testing
+- `code-review` - PR review workflow
+- `security-guidance` - Security scanning
+- `feature-dev` - Feature development
+- `frontend-design` - UI/UX guidance
+- `context7` - Context management
+- `serena` - Code navigation
+- `pr-review-toolkit` - 6-dimension PR analysis
+- `hookify` - Custom hooks creation
+
+### MCP Servers (6)
+
+| Server | Purpose |
+|--------|---------|
+| `figma` | Design context extraction |
+| `vercel` | Deployment management |
+| `miro` | Whiteboard collaboration |
+| `railway` | Railway deployment |
+| `foundry` | Contract development (forge, cast, anvil) |
+| `storacha` | IPFS/Filecoin storage |
+
+## Secure Autonomous Execution
+
+### Recommended: Sandbox Mode
+
+Enable sandboxing for autonomous execution with security boundaries:
+
+```bash
+/sandbox
+```
+
+This provides:
+- **Filesystem isolation** - Only access project directories
+- **Network isolation** - Only approved domains
+- **84% fewer permission prompts** while maintaining security
+
+### Sandbox Configuration
+
+In `.claude/settings.local.json`:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun:*)",
+      "Bash(forge:*)",
+      "Bash(cast:*)",
+      "Bash(git:*)"
+    ],
+    "deny": [
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(sudo:*)"
+    ]
+  },
+  "sandbox": {
+    "filesystem": {
+      "allow": ["packages/**", "scripts/**"],
+      "deny": ["~/.ssh", "~/.aws", "~/.env*"]
+    },
+    "network": {
+      "mode": "auto-allow",
+      "allowedDomains": [
+        "github.com",
+        "api.github.com",
+        "registry.npmjs.org",
+        "sepolia.base.org",
+        "mcp.figma.com",
+        "mcp.vercel.com"
+      ]
+    }
+  }
+}
+```
+
+### Permission Modes
+
+| Mode | Use Case |
+|------|----------|
+| `plan` | Safe analysis, no modifications |
+| `acceptEdits` | Auto-approve edits, manual command approval |
+| `sandbox auto-allow` | Autonomous within boundaries (recommended) |
+| `bypassPermissions` | Full autonomy (only in isolated environments) |
+
+### Security Best Practices
+
+1. **Never commit secrets** - Use `.env` (gitignored)
+2. **Review contract changes** - Always verify before deployment
+3. **Use sandbox for automation** - OS-level isolation
+4. **Audit permissions** - Run `/permissions` to review
+5. **Verify MCP servers** - Only use trusted servers
