@@ -1,6 +1,6 @@
 # Green Goods
 
-Green Goods is an offline-first, single-chain platform for documenting conservation work and proving impact on-chain. Operators approve gardener submissions, and the protocol anchors the results in Ethereum attestation infrastructure.
+Green Goods is an offline-first platform for documenting ecological and social work and proving impact on-chain. Operators approve gardener submissions, and the protocol anchors the results in Ethereum attestation infrastructure.
 
 ## Quick Start
 
