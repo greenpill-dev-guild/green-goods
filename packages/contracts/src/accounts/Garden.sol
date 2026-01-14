@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.25;
+pragma solidity ^0.8.25;
 
 import { AccountV3Upgradable } from "@tokenbound/AccountV3Upgradable.sol";
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
@@ -22,6 +22,12 @@ error GAPProjectNotInitialized();
 error GAPNotSupportedOnChain();
 error GAPImpactCreationFailed();
 error GAPMilestoneCreationFailed();
+
+/// @dev Maximum number of gardeners allowed during initialization (prevents gas exhaustion)
+uint256 constant MAX_INIT_GARDENERS = 50;
+
+/// @dev Maximum number of operators allowed during initialization (prevents gas exhaustion)
+uint256 constant MAX_INIT_OPERATORS = 20;
 
 /// @title GardenAccount Contract
 /// @notice Manages gardeners and operators for a Garden, and supports community token management.
@@ -193,8 +199,8 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
     /// @param params Initialization parameters struct
     function initialize(IGardenAccount.InitParams calldata params) external initializer {
         // Validate array lengths to prevent gas exhaustion
-        if (params.gardeners.length > 50) revert TooManyGardeners();
-        if (params.gardenOperators.length > 20) revert TooManyOperators();
+        if (params.gardeners.length > MAX_INIT_GARDENERS) revert TooManyGardeners();
+        if (params.gardenOperators.length > MAX_INIT_OPERATORS) revert TooManyOperators();
 
         // Note: Community token validation is performed by GardenToken before minting
         communityToken = params.communityToken;
@@ -633,12 +639,11 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
     ///   - Overridable: 1 slot (overrides mapping)
     ///   - Permissioned: 1 slot (permissions mapping)
     ///   - ERC6551Account: 1 slot (_state)
-    /// GardenAccount storage (13 slots):
-    ///   - communityToken(1) + name(1) + description(1) + location(1) +
-    ///   - bannerImage(1) + metadata(1) + gardeners(1) + gardenOperators(1) + gardenInvites(1) +
-    ///   - inviteToGarden(1) + inviteExpiry(1) + inviteUsed(1) + openJoining(1) +
-    ///   - gapProjectUID(1)
+    /// GardenAccount storage (10 slots):
+    ///   - communityToken (1) + name (1) + description (1) + location (1)
+    ///   - bannerImage (1) + metadata (1) + gardeners (1) + gardenOperators (1)
+    ///   - openJoining (1) + gapProjectUID (1)
     /// Note: WORK_APPROVAL_RESOLVER and ASSESSMENT_RESOLVER are immutables (no storage slots)
-    /// Gap calculation: 50 - (5 + 14) = 31 slots
-    uint256[31] private __gap;
+    /// Gap calculation: 50 - (5 + 10) = 35 slots
+    uint256[35] private __gap;
 }
