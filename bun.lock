@@ -261,6 +261,7 @@
         "browser-image-compression": "^2.0.2",
         "browser-lang": "^0.2.1",
         "clsx": "2.1.1",
+        "embla-carousel-react": "^8.6.0",
         "ethers": "^6.16.0",
         "gql.tada": "^1.8.10",
         "graphql": "^16.10.0",
