@@ -25,7 +25,8 @@ export function useWorkImages() {
   const _setImages = useWorkFlowStore((s: WorkFlowState) => s.setImages);
 
   // Create dispatch adapter for React.SetStateAction API compatibility
-  const setImages = createDispatchAdapter(() => images, _setImages);
+  // Use getState() to always get fresh value, avoiding stale closure issues
+  const setImages = createDispatchAdapter(() => useWorkFlowStore.getState().images, _setImages);
 
   // Load images from IndexedDB on mount
   useEffect(() => {

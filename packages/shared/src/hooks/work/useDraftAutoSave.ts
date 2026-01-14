@@ -1,13 +1,14 @@
 /**
- * Draft Auto-Save Hook
+ * Draft Save Hook
  *
- * Manages draft creation and auto-saving with debouncing.
- * Extracts draft management logic from the Garden submission flow.
+ * Manages draft saving when user exits the garden flow.
+ * Drafts are only created/saved when explicitly triggered (on exit),
+ * not automatically when images are added or form data changes.
  *
  * @module hooks/work/useDraftAutoSave
  */
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useDrafts } from "./useDrafts";
 
 interface DraftFormData {
@@ -19,64 +20,95 @@ interface DraftFormData {
 }
 
 interface UseDraftAutoSaveOptions {
-  /** Debounce delay in milliseconds (default: 1000) */
-  debounceMs?: number;
-  /** Whether auto-save is enabled */
+  /** Whether draft saving is enabled */
   enabled?: boolean;
 }
 
 /**
- * Hook for managing draft auto-save with debouncing.
+ * Check if there's meaningful progress worth saving as a draft
+ */
+function hasMeaningfulProgress(formData: DraftFormData, imageCount: number): boolean {
+  // Images are the strongest indicator of progress
+  if (imageCount > 0) return true;
+
+  // Having form input (feedback, plant selection, or plant count) indicates progress
+  const hasFormInput =
+    formData.feedback.trim().length > 0 ||
+    formData.plantSelection.length > 0 ||
+    (formData.plantCount ?? 0) > 0;
+
+  return hasFormInput;
+}
+
+/**
+ * Hook for managing draft saves on exit from garden flow.
  *
- * Handles:
- * - Draft creation when first image is added
- * - Auto-saving form data with debouncing
- * - Image syncing to drafts
+ * Drafts are NOT created automatically when images are added.
+ * Instead, call `saveOnExit()` when the user navigates away from
+ * the garden flow to persist their progress.
  *
  * @example
  * ```tsx
- * const { triggerSave, createDraftWithImages } = useDraftAutoSave({
- *   formData: { gardenAddress, actionUID, feedback, plantSelection, plantCount },
- *   images,
- *   debounceMs: 1000,
- * });
+ * const { saveOnExit, hasMeaningfulProgress } = useDraftAutoSave(
+ *   { gardenAddress, actionUID, feedback, plantSelection, plantCount },
+ *   images
+ * );
+ *
+ * // Call when user navigates away
+ * const handleBack = async () => {
+ *   await saveOnExit();
+ *   navigate('/home');
+ * };
  * ```
  */
 export function useDraftAutoSave(
   formData: DraftFormData,
-  images: File[],
+  images: File[] | undefined,
   options: UseDraftAutoSaveOptions = {}
 ) {
-  const { debounceMs = 1000, enabled = true } = options;
+  const { enabled = true } = options;
+  // Handle undefined images array - memoize to prevent unnecessary re-renders
+  const safeImages = useMemo(() => images ?? [], [images]);
 
   const { activeDraftId, createDraft, updateDraft, setImages: setDraftImages } = useDrafts();
 
-  // Track previous image count for draft creation trigger
-  const prevImageCountRef = useRef(0);
-  // Debounce timer reference
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Track if a save is in progress to avoid overlapping saves
   const isSavingRef = useRef(false);
 
   /**
-   * Save draft data with debouncing
+   * Save draft on exit - creates a new draft or updates existing one.
+   * Only saves if there's meaningful progress (images or form data).
+   *
+   * @returns The draft ID if saved, null otherwise
    */
-  const saveDraft = useCallback(async () => {
-    if (!activeDraftId || isSavingRef.current) return;
+  const saveOnExit = useCallback(async (): Promise<string | null> => {
+    if (!enabled || isSavingRef.current) return null;
 
-    // Clear existing timeout
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
+    // Only save if there's meaningful progress
+    if (!hasMeaningfulProgress(formData, safeImages.length)) {
+      return null;
     }
 
-    // Debounce save
-    saveTimeoutRef.current = setTimeout(async () => {
-      if (!activeDraftId) return;
+    isSavingRef.current = true;
 
-      isSavingRef.current = true;
-      try {
+    try {
+      let draftId = activeDraftId;
+
+      // Create a new draft if we don't have one
+      if (!draftId) {
+        draftId = await createDraft({
+          gardenAddress: formData.gardenAddress,
+          actionUID: formData.actionUID,
+          feedback: formData.feedback,
+          plantSelection: formData.plantSelection,
+          plantCount: formData.plantCount ?? undefined,
+          currentStep: "intro",
+          firstIncompleteStep: "intro",
+        });
+      } else {
+        // Update existing draft
         await updateDraft({
-          draftId: activeDraftId,
+          draftId,
           data: {
             gardenAddress: formData.gardenAddress,
             actionUID: formData.actionUID,
@@ -85,93 +117,30 @@ export function useDraftAutoSave(
             plantCount: formData.plantCount ?? undefined,
           },
         });
-
-        // Sync images if there are any
-        if (images.length > 0) {
-          await setDraftImages({ draftId: activeDraftId, files: images });
-        }
-      } catch (error) {
-        console.error("[useDraftAutoSave] Failed to auto-save draft:", error);
-      } finally {
-        isSavingRef.current = false;
       }
-    }, debounceMs);
-  }, [activeDraftId, updateDraft, setDraftImages, formData, images, debounceMs]);
 
-  /**
-   * Create a new draft when first image is added
-   */
-  const createDraftWithImages = useCallback(async () => {
-    if (activeDraftId) return null; // Already have a draft
-
-    try {
-      const draftId = await createDraft({
-        gardenAddress: formData.gardenAddress,
-        actionUID: formData.actionUID,
-        feedback: formData.feedback,
-        plantSelection: formData.plantSelection,
-        plantCount: formData.plantCount ?? undefined,
-        currentStep: "media",
-        firstIncompleteStep: "media",
-      });
-
-      if (draftId && images.length > 0) {
-        await setDraftImages({ draftId, files: images });
+      // Sync images if there are any
+      if (draftId && safeImages.length > 0) {
+        await setDraftImages({ draftId, files: safeImages });
       }
 
       return draftId;
     } catch (error) {
-      console.error("[useDraftAutoSave] Failed to create draft:", error);
+      console.error("[useDraftAutoSave] Failed to save draft on exit:", error);
       return null;
+    } finally {
+      isSavingRef.current = false;
     }
-  }, [activeDraftId, createDraft, setDraftImages, formData, images]);
-
-  // Create draft on first image added
-  useEffect(() => {
-    if (!enabled) return;
-
-    const hadNoImages = prevImageCountRef.current === 0;
-    const hasImagesNow = images.length > 0;
-
-    if (hadNoImages && hasImagesNow && !activeDraftId) {
-      createDraftWithImages();
-    }
-
-    prevImageCountRef.current = images.length;
-  }, [images.length, activeDraftId, createDraftWithImages, enabled]);
-
-  // Auto-save on form changes
-  useEffect(() => {
-    if (!enabled || !activeDraftId) return;
-
-    saveDraft();
-
-    // Cleanup timeout on unmount
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-    };
-  }, [
-    formData.gardenAddress,
-    formData.actionUID,
-    formData.feedback,
-    formData.plantSelection,
-    formData.plantCount,
-    images.length,
-    saveDraft,
-    activeDraftId,
-    enabled,
-  ]);
+  }, [enabled, activeDraftId, createDraft, updateDraft, setDraftImages, formData, safeImages]);
 
   return {
-    /** Manually trigger a save (debounced) */
-    triggerSave: saveDraft,
-    /** Create a new draft with current images */
-    createDraftWithImages,
+    /** Save draft when exiting the flow (only if there's meaningful progress) */
+    saveOnExit,
     /** Whether there's an active draft */
     hasDraft: !!activeDraftId,
     /** Current draft ID */
     draftId: activeDraftId,
+    /** Whether there's meaningful progress worth saving */
+    hasMeaningfulProgress: hasMeaningfulProgress(formData, safeImages.length),
   };
 }
