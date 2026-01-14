@@ -214,7 +214,9 @@ export async function updateUserProfile(
   customMetadata: Record<string, unknown>,
   accessToken?: string
 ) {
-  const apiBase = import.meta.env.DEV ? "http://localhost:3000" : "https://api.greengoods.app";
+  const apiBase =
+    import.meta.env.VITE_API_BASE_URL ||
+    (import.meta.env.DEV ? "http://localhost:3000" : "https://api.greengoods.app");
   const res = await fetch(`${apiBase}/users/me`, {
     method: "PATCH",
     credentials: "include",

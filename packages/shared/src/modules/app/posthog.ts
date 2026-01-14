@@ -298,6 +298,8 @@ export function trackAppLifecycle(event: "app_start" | "app_resume" | "app_backg
 // ============================================================================
 
 let lastOnlineStatus = typeof navigator !== "undefined" ? navigator.onLine : true;
+let networkListenersInitialized = false;
+let cleanupNetworkListeners: (() => void) | null = null;
 
 function handleOnline() {
   if (!lastOnlineStatus) {
@@ -326,8 +328,19 @@ function handleVisibilityChange() {
   trackAppLifecycle(event);
 }
 
-// Set up listeners (only in browser)
-if (typeof window !== "undefined") {
+/**
+ * Initialize network status and visibility tracking.
+ *
+ * @returns A cleanup function to remove all event listeners
+ */
+export function initNetworkTracking(): () => void {
+  if (networkListenersInitialized && cleanupNetworkListeners) {
+    return cleanupNetworkListeners;
+  }
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+
   window.addEventListener("online", handleOnline);
   window.addEventListener("offline", handleOffline);
 
@@ -341,4 +354,26 @@ if (typeof window !== "undefined") {
   } else {
     setTimeout(() => trackAppLifecycle("app_start"), 0);
   }
+
+  networkListenersInitialized = true;
+
+  // Return cleanup function
+  cleanupNetworkListeners = () => {
+    window.removeEventListener("online", handleOnline);
+    window.removeEventListener("offline", handleOffline);
+
+    if (typeof document !== "undefined") {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    }
+
+    networkListenersInitialized = false;
+    cleanupNetworkListeners = null;
+  };
+
+  return cleanupNetworkListeners;
+}
+
+// Auto-initialize for backward compatibility (only in browser)
+if (typeof window !== "undefined") {
+  initNetworkTracking();
 }

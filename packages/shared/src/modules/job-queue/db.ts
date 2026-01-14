@@ -224,7 +224,9 @@ class JobQueueDatabase {
     } catch (error) {
       try {
         tx.abort();
-      } catch {}
+      } catch {
+        // Transaction may already be aborted; ignore error
+      }
 
       // Track IndexedDB storage failure with detailed context
       trackStorageError(error, {
