@@ -5,6 +5,42 @@
  */
 
 import { submitApprovalBot, submitWorkBot } from "@green-goods/shared";
+
+/**
+ * Minimal GardenAccount ABI for agent verification functions.
+ *
+ * This subset matches the actual GardenAccount.sol contract interface
+ * (implements IGardenAccessControl). We define it locally to avoid
+ * importing browser-dependent shared package utilities.
+ *
+ * Functions included:
+ * - isGardener(address) -> bool: Check if address is a gardener
+ * - isOperator(address) -> bool: Check if address is an operator
+ * - name() -> string: Get garden name
+ */
+const GardenAccountABI = [
+  {
+    inputs: [{ name: "account", type: "address" }],
+    name: "isGardener",
+    outputs: [{ name: "", type: "bool" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "account", type: "address" }],
+    name: "isOperator",
+    outputs: [{ name: "", type: "bool" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "name",
+    outputs: [{ name: "", type: "string" }],
+    stateMutability: "view",
+    type: "function",
+  },
+] as const;
 import {
   type Address,
   type Chain,
@@ -24,44 +60,6 @@ import type {
 import { loggers } from "./logger";
 
 const log = loggers.blockchain;
-
-// ============================================================================
-// CONTRACT ABI
-// ============================================================================
-
-const GARDEN_ABI = [
-  {
-    inputs: [
-      { name: "role", type: "bytes32" },
-      { name: "account", type: "address" },
-    ],
-    name: "hasRole",
-    outputs: [{ name: "", type: "bool" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "OPERATOR_ROLE",
-    outputs: [{ name: "", type: "bytes32" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "GARDENER_ROLE",
-    outputs: [{ name: "", type: "bytes32" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "name",
-    outputs: [{ name: "", type: "string" }],
-    stateMutability: "view",
-    type: "function",
-  },
-] as const;
 
 const CACHE_TTL = 60_000; // 1 minute
 
@@ -168,18 +166,17 @@ class Blockchain {
     try {
       const contract = getContract({
         address: gardenAddress as Address,
-        abi: GARDEN_ABI,
+        abi: GardenAccountABI,
         client: this.publicClient,
       });
 
-      const operatorRole = await contract.read.OPERATOR_ROLE();
-      const hasRole = await contract.read.hasRole([operatorRole, userAddress as Address]);
+      const isOp = await contract.read.isOperator([userAddress as Address]);
 
-      this.operatorCache.set(cacheKey, { data: hasRole, timestamp: Date.now() });
+      this.operatorCache.set(cacheKey, { data: isOp as boolean, timestamp: Date.now() });
 
       return {
-        verified: hasRole,
-        reason: hasRole ? undefined : "Address is not an operator for this garden",
+        verified: isOp as boolean,
+        reason: isOp ? undefined : "Address is not an operator for this garden",
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
@@ -206,18 +203,17 @@ class Blockchain {
     try {
       const contract = getContract({
         address: gardenAddress as Address,
-        abi: GARDEN_ABI,
+        abi: GardenAccountABI,
         client: this.publicClient,
       });
 
-      const gardenerRole = await contract.read.GARDENER_ROLE();
-      const hasRole = await contract.read.hasRole([gardenerRole, userAddress as Address]);
+      const isGard = await contract.read.isGardener([userAddress as Address]);
 
-      this.gardenerCache.set(cacheKey, { data: hasRole, timestamp: Date.now() });
+      this.gardenerCache.set(cacheKey, { data: isGard as boolean, timestamp: Date.now() });
 
       return {
-        verified: hasRole,
-        reason: hasRole ? undefined : "Address is not a gardener in this garden",
+        verified: isGard as boolean,
+        reason: isGard ? undefined : "Address is not a gardener in this garden",
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
@@ -235,12 +231,12 @@ class Blockchain {
     try {
       const contract = getContract({
         address: gardenAddress as Address,
-        abi: GARDEN_ABI,
+        abi: GardenAccountABI,
         client: this.publicClient,
       });
 
       const name = await contract.read.name();
-      const info: GardenInfo = { exists: true, name, address: gardenAddress };
+      const info: GardenInfo = { exists: true, name: name as string, address: gardenAddress };
 
       this.gardenCache.set(gardenAddress, { data: info, timestamp: Date.now() });
       return info;
