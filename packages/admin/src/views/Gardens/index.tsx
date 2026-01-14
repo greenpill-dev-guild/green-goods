@@ -105,7 +105,7 @@ export default function Gardens() {
     content = (
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {gardens.map((garden) => {
-          const canManage = gardenPermissions.canManageGarden(garden as any);
+          const canManage = gardenPermissions.canManageGarden(garden);
           const resolvedBannerImage = garden.bannerImage
             ? resolveIPFSUrl(garden.bannerImage)
             : null;

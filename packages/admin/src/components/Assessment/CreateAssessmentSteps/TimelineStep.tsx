@@ -45,14 +45,14 @@ export function TimelineStep({ register, errors, control, isSubmitting }: Timeli
         />
       </LabeledField>
       <ArrayInput
-        control={control as any}
+        control={control}
         name="tags"
         label="Tags"
         placeholder="water-quality"
         helper="Add labels to group similar assessments."
         emptyHint="No tags added."
         disabled={isSubmitting}
-        error={extractErrorMessage(errors.tags as any)}
+        error={extractErrorMessage(errors.tags)}
         addLabel="Add tag"
       />
     </div>

@@ -41,8 +41,9 @@ export default function CreateGarden() {
   useEffect(() => {
     const draft = loadFormDraft<CreateGardenFormState>(DRAFT_KEY);
     if (draft) {
-      Object.entries(draft).forEach(([key, value]) => {
-        setField(key as keyof CreateGardenFormState, value as any);
+      // Type-safe iteration over draft fields
+      (Object.keys(draft) as Array<keyof CreateGardenFormState>).forEach((key) => {
+        setField(key, draft[key]);
       });
     }
     openFlow();
