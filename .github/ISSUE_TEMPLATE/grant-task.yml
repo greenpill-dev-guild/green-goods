@@ -1,0 +1,86 @@
+name: Grant Task
+description: Task related to the Arbitrum grant deliverables
+title: "[GRANT]: "
+labels: ["grant", "arbitrum"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which functional area does this task belong to?
+      options:
+        - Growth
+        - Finance Management
+        - Project Management
+        - Product Development
+        - UI Design
+        - Community
+        - Marketing
+        - Quality Assurance
+        - Engineering
+    validations:
+      required: true
+
+  - type: dropdown
+    id: milestone
+    attributes:
+      label: Milestone
+      description: Which grant milestone does this task belong to?
+      options:
+        - "M1 - Project Development (Month 1)"
+        - "M2 - Hypercerts Integration (Months 1-2)"
+        - "M3 - DeFi Integration (Months 2-3)"
+        - "M4 - Community Activations 1&2 (Months 1-2)"
+        - "M5 - Activations 3 + Reporting (Month 3)"
+    validations:
+      required: true
+
+  - type: input
+    id: budget
+    attributes:
+      label: Budget
+      description: Budget allocated for this task (USD)
+      placeholder: "$200"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Detailed description of the task
+      placeholder: Describe the task and its objectives
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: List the acceptance criteria for this task
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+        - [ ] Criterion 3
+    validations:
+      required: true
+
+  - type: textarea
+    id: technical-notes
+    attributes:
+      label: Technical Notes
+      description: Any technical considerations or implementation notes
+      placeholder: Technical details, dependencies, or constraints
+    validations:
+      required: false
+
+  - type: textarea
+    id: kpis
+    attributes:
+      label: KPIs
+      description: Key Performance Indicators for measuring success
+      placeholder: |
+        - Target metric 1
+        - Target metric 2
+    validations:
+      required: false

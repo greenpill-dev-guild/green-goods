@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Greenpill Dev Guild
+    url: https://app.charmverse.io/greenpill-dev-guild
+    about: Visit our CharmVerse for project documentation
+  - name: Green Goods Documentation
+    url: https://docs.greengoods.app
+    about: Check out the Green Goods documentation
