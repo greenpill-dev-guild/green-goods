@@ -6,8 +6,10 @@
  *   --skip-contracts  Skip contracts tests (requires Foundry)
  *   --skip-indexer    Skip indexer tests (requires codegen setup)
  *   --skip-build      Skip build step
+ *   --skip-lighthouse Skip Lighthouse performance tests
  *   --only-lint       Only run lint and format checks
- *   --quick           Skip contracts, indexer, and build (fast feedback)
+ *   --quick           Skip contracts, indexer, build, and lighthouse (fast feedback)
+ *   --lighthouse      Run Lighthouse tests (included by default, use --skip-lighthouse to skip)
  *   --generate-indexer  Run indexer codegen if generated files are missing
  *
  * This script mimics what GitHub Actions CI runs.
@@ -53,6 +55,7 @@ const config = {
   skipContracts: false,
   skipIndexer: false,
   skipBuild: false,
+  skipLighthouse: false,
   onlyLint: false,
   generateIndexer: false,
 };
@@ -167,8 +170,9 @@ function showHelp() {
   console.log("  --skip-contracts    Skip contracts tests (requires Foundry)");
   console.log("  --skip-indexer      Skip indexer tests (requires codegen setup)");
   console.log("  --skip-build        Skip build step");
+  console.log("  --skip-lighthouse   Skip Lighthouse performance tests");
   console.log("  --only-lint         Only run lint and format checks");
-  console.log("  --quick             Skip contracts, indexer, and build (fast feedback)");
+  console.log("  --quick             Skip contracts, indexer, build, and lighthouse (fast feedback)");
   console.log("  --generate-indexer  Run indexer codegen if generated files missing");
   console.log("  --help, -h          Show this help message");
   console.log("");
@@ -178,6 +182,7 @@ function showHelp() {
   console.log("  3. Type checking (TypeScript)");
   console.log("  4. Unit tests (all packages)");
   console.log("  5. Build (all packages)");
+  console.log("  6. Lighthouse performance tests (client + admin)");
   process.exit(0);
 }
 
@@ -197,6 +202,9 @@ for (const arg of args) {
     case "--skip-build":
       config.skipBuild = true;
       break;
+    case "--skip-lighthouse":
+      config.skipLighthouse = true;
+      break;
     case "--only-lint":
       config.onlyLint = true;
       break;
@@ -204,6 +212,7 @@ for (const arg of args) {
       config.skipContracts = true;
       config.skipIndexer = true;
       config.skipBuild = true;
+      config.skipLighthouse = true;
       break;
     case "--generate-indexer":
       config.generateIndexer = true;
@@ -227,6 +236,7 @@ async function main() {
   console.log(`  Skip Contracts: ${config.skipContracts ? 'Yes' : 'No'}`);
   console.log(`  Skip Indexer: ${config.skipIndexer ? 'Yes' : 'No'}`);
   console.log(`  Skip Build: ${config.skipBuild ? 'Yes' : 'No'}`);
+  console.log(`  Skip Lighthouse: ${config.skipLighthouse ? 'Yes' : 'No'}`);
   console.log(`  Only Lint: ${config.onlyLint ? 'Yes' : 'No'}`);
   console.log(`  Generate Indexer: ${config.generateIndexer ? 'Yes' : 'No'}`);
   console.log("");
@@ -380,6 +390,40 @@ async function main() {
     );
   } else {
     printSection("Build (SKIPPED)");
+  }
+
+  // ============================================================================
+  // Phase 5: Lighthouse Performance Tests (matches lighthouse-ci.yml)
+  // ============================================================================
+  if (!config.skipLighthouse && !config.skipBuild) {
+    // Check if lhci is available
+    const hasLhci = await commandExists("lhci");
+    if (!hasLhci) {
+      printWarning(
+        "Lighthouse CI not found. Installing @lhci/cli..."
+      );
+      await runStep("Install Lighthouse CI", "npm install -g @lhci/cli");
+    }
+
+    printSection("Lighthouse CI - Client");
+    await runStep(
+      "Lighthouse client",
+      "npx lhci autorun",
+      resolve(projectRoot, "packages/client"),
+      { CI: "true" }
+    );
+
+    printSection("Lighthouse CI - Admin");
+    await runStep(
+      "Lighthouse admin",
+      "npx lhci autorun",
+      resolve(projectRoot, "packages/admin"),
+      { CI: "true" }
+    );
+  } else if (config.skipLighthouse) {
+    printSection("Lighthouse (SKIPPED)");
+  } else if (config.skipBuild) {
+    printSection("Lighthouse (SKIPPED - requires build)");
   }
 
   // ============================================================================

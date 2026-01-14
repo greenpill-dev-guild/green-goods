@@ -16,6 +16,13 @@ vi.mock("@green-goods/shared/hooks", () => ({
   useAuth: () => ({
     smartAccountAddress: "0x1234567890abcdef1234567890abcdef12345678",
     walletAddress: null,
+    isAuthenticated: true,
+  }),
+  useAutoJoinRootGarden: () => ({
+    promptToJoin: vi.fn(),
+    joinGarden: vi.fn(),
+    isLoading: false,
+    rootGardenAddress: "0xabcdef1234567890abcdef1234567890abcdef12",
   }),
   useBrowserNavigation: vi.fn(),
   useFilteredGardens: (gardens: unknown[], _filters: unknown, _address: unknown) => ({

@@ -122,6 +122,9 @@ const mockPasskeyServerClient = {
 vi.mock("../../config/passkeyServer", () => ({
   createPasskeyServerClient: vi.fn(() => mockPasskeyServerClient),
   createPasskeyWithServer: vi.fn(),
+  getPasskeyRpId: vi.fn(() => "localhost"),
+  PASSKEY_RP_ID: "greengoods.app",
+  PASSKEY_RP_NAME: "Green Goods",
 }));
 
 // Mocked session functions
