@@ -114,7 +114,16 @@ export function ensureAppKit(options?: AppKitInitOptions) {
     defaultNetwork: getChain(options?.defaultChainId ?? DEFAULT_CHAIN_ID) as any,
     features: {
       analytics: false, // Disable AppKit analytics (we use PostHog)
+      email: false, // Disable email login (we use passkeys instead)
+      socials: false, // Disable social logins (Google, Apple, Discord, etc.)
     },
+    // Only show these wallets in the selection modal
+    includeWalletIds: [
+      "c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96", // MetaMask
+      "18388be9ac2d02726dbac9777c96efaac06d744b2f6d580fccdd4127a6d01fd1", // Rabby
+      "1ae92b26df02f0abca6304df07debccd18262fdf5fe82daa81593582dac9a369", // Rainbow
+      "fd20dc426fb37566d803205b19bbc1d4096b248ac04548e3cfb6b3a38bd033aa", // Coinbase
+    ],
     themeMode: initialTheme,
     themeVariables: {
       "--w3m-accent": "#367D42", // Green Goods primary green
