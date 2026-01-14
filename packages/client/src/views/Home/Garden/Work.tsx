@@ -147,7 +147,16 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
         gardenId: garden?.id || "",
       };
       await downloadWorkMedia(workData);
-    } catch {}
+    } catch (error) {
+      toastService.error({
+        title: intl.formatMessage({
+          id: "app.home.work.downloadMediaFailed",
+          defaultMessage: "Failed to download media",
+        }),
+        message: error instanceof Error ? error.message : "Unknown error",
+        context: "work media download",
+      });
+    }
   };
 
   const handleDownloadData = () => {
@@ -165,7 +174,16 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
         gardenId: garden?.id || "",
       };
       downloadWorkData(workData);
-    } catch {}
+    } catch (error) {
+      toastService.error({
+        title: intl.formatMessage({
+          id: "app.home.work.downloadDataFailed",
+          defaultMessage: "Failed to download data",
+        }),
+        message: error instanceof Error ? error.message : "Unknown error",
+        context: "work data download",
+      });
+    }
   };
 
   const handleShare = async () => {
@@ -183,7 +201,16 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
         gardenId: garden?.id || "",
       };
       await shareWork(workData);
-    } catch {}
+    } catch (error) {
+      toastService.error({
+        title: intl.formatMessage({
+          id: "app.home.work.shareFailed",
+          defaultMessage: "Failed to share work",
+        }),
+        message: error instanceof Error ? error.message : "Unknown error",
+        context: "work sharing",
+      });
+    }
   };
 
   const handleViewAttestation = () => {

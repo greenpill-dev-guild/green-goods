@@ -1,5 +1,6 @@
 import { useAuth, useAutoJoinRootGarden } from "@green-goods/shared/hooks";
 import { getStoredUsername, hasStoredUsername } from "@green-goods/shared/modules";
+import { debugError } from "@green-goods/shared/utils/debug";
 import { useEffect, useRef, useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { type LoadingState, Splash } from "@/components/Layout";
@@ -104,7 +105,7 @@ export function Login() {
   const handleAuthError = (err: unknown) => {
     setLoadingState(null);
     setLoadingMessage(undefined);
-    console.error("Authentication failed", err);
+    debugError("Authentication failed", err);
     setLoginError(getFriendlyErrorMessage(err));
   };
 

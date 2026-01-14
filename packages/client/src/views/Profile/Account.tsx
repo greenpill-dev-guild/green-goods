@@ -8,7 +8,12 @@ import {
   useTheme,
 } from "@green-goods/shared/hooks";
 import { type Locale, useApp } from "@green-goods/shared/providers";
-import { capitalize, isAlreadyGardenerError, parseAndFormatError } from "@green-goods/shared/utils";
+import {
+  capitalize,
+  isAlreadyGardenerError,
+  parseAndFormatError,
+} from "@green-goods/shared/utils";
+import { debugError } from "@green-goods/shared/utils/debug";
 import {
   RiCheckLine,
   RiComputerLine,
@@ -132,7 +137,7 @@ export const ProfileAccount: React.FC = () => {
         return;
       }
 
-      console.error(`Failed to join garden ${garden.id}`, err);
+      debugError(`Failed to join garden ${garden.id}`, err);
 
       const { title, message } = parseAndFormatError(err);
 
@@ -159,7 +164,7 @@ export const ProfileAccount: React.FC = () => {
         suppressLogging: true,
       });
     } catch (err) {
-      console.error("Logout failed", err);
+      debugError("Logout failed", err);
       toastService.error({
         title: intl.formatMessage({
           id: "app.account.logoutFailed",

@@ -19,7 +19,7 @@ vi.mock("@green-goods/shared/config/blockchain", () => ({
 // Mock shared hooks
 vi.mock("@green-goods/shared/hooks", () => ({
   useActionTranslation: () => ({ translatedAction: null }),
-  useDraftAutoSave: () => undefined,
+  useDraftAutoSave: () => ({ saveOnExit: vi.fn().mockResolvedValue(undefined) }),
   useDraftResume: () => ({
     showDraftDialog: false,
     handleContinueDraft: vi.fn(),
