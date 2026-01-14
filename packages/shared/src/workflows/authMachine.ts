@@ -36,7 +36,7 @@
 import { type SmartAccountClient } from "permissionless";
 import { type Hex } from "viem";
 import { type P256Credential } from "viem/account-abstraction";
-import { assign, setup } from "xstate";
+import { assign, fromPromise, setup } from "xstate";
 
 import { type PasskeyServerClient } from "../config/passkeyServer";
 
@@ -115,6 +115,29 @@ export interface PasskeySessionResult {
 }
 
 export interface RestoreSessionResult extends PasskeySessionResult {}
+
+// ============================================================================
+// ACTOR INPUT TYPES
+// ============================================================================
+
+/** Input for session restore operation */
+export interface RestoreSessionInput {
+  passkeyClient: PasskeyServerClient | null;
+  chainId: number;
+}
+
+/** Input for passkey operations (register/authenticate) */
+export interface PasskeyOperationInput {
+  passkeyClient: PasskeyServerClient | null;
+  userName: string | null;
+  chainId: number;
+}
+
+/** Input for ENS claiming */
+export interface ClaimENSInput {
+  smartAccountClient: SmartAccountClient | null;
+  name: string;
+}
 
 // ============================================================================
 // INPUT TYPE
@@ -275,20 +298,22 @@ const authSetup = setup({
     },
   },
   actors: {
-    // Services are provided via machine options in authActor.ts
-    restoreSession: () => {
-      throw new Error("restoreSession actor not provided");
-    },
-    registerPasskey: () => {
+    // Placeholder actors with proper typing - actual implementations provided in authActor.ts
+    restoreSession: fromPromise<RestoreSessionResult | null, RestoreSessionInput>(
+      async () => {
+        throw new Error("restoreSession actor not provided");
+      }
+    ),
+    registerPasskey: fromPromise<PasskeySessionResult, PasskeyOperationInput>(async () => {
       throw new Error("registerPasskey actor not provided");
-    },
-    authenticatePasskey: () => {
+    }),
+    authenticatePasskey: fromPromise<PasskeySessionResult, PasskeyOperationInput>(async () => {
       throw new Error("authenticatePasskey actor not provided");
-    },
-    claimENS: () => {
+    }),
+    claimENS: fromPromise<void, ClaimENSInput>(async () => {
       throw new Error("claimENS actor not provided");
-    },
-  } as any,
+    }),
+  },
 });
 
 // ============================================================================
@@ -337,7 +362,7 @@ export const authMachine = authSetup.createMachine({
     initializing: {
       invoke: {
         src: "restoreSession",
-        input: ({ context }: { context: AuthContext }) => ({
+        input: ({ context }): RestoreSessionInput => ({
           passkeyClient: context.passkeyClient,
           chainId: context.chainId,
         }),
@@ -358,7 +383,7 @@ export const authMachine = authSetup.createMachine({
           target: "unauthenticated",
           actions: "clearError",
         },
-      } as any,
+      },
 
       // EXTERNAL_WALLET_CONNECTED handled by global handler
     },
@@ -410,7 +435,7 @@ export const authMachine = authSetup.createMachine({
 
       invoke: {
         src: "registerPasskey",
-        input: ({ context }: { context: AuthContext }) => ({
+        input: ({ context }): PasskeyOperationInput => ({
           passkeyClient: context.passkeyClient,
           userName: context.userName,
           chainId: context.chainId,
@@ -423,7 +448,7 @@ export const authMachine = authSetup.createMachine({
           target: "error",
           actions: ["storeError", "incrementRetry"],
         },
-      } as any,
+      },
 
       on: {
         // Allow cancellation
@@ -444,7 +469,7 @@ export const authMachine = authSetup.createMachine({
 
       invoke: {
         src: "authenticatePasskey",
-        input: ({ context }: { context: AuthContext }) => ({
+        input: ({ context }): PasskeyOperationInput => ({
           passkeyClient: context.passkeyClient,
           userName: context.userName,
           chainId: context.chainId,
@@ -457,7 +482,7 @@ export const authMachine = authSetup.createMachine({
           target: "error",
           actions: ["storeError", "incrementRetry"],
         },
-      } as any,
+      },
 
       on: {
         // Allow cancellation
@@ -600,16 +625,14 @@ export const authMachine = authSetup.createMachine({
         claiming_ens: {
           invoke: {
             src: "claimENS",
-            input: ({
-              context,
-              event,
-            }: {
-              context: AuthContext;
-              event: { type: "CLAIM_ENS"; name: string };
-            }) => ({
-              smartAccountClient: context.smartAccountClient,
-              name: event.name,
-            }),
+            input: ({ context, event }): ClaimENSInput => {
+              // This state is only entered via CLAIM_ENS event
+              const claimEvent = event as { type: "CLAIM_ENS"; name: string };
+              return {
+                smartAccountClient: context.smartAccountClient,
+                name: claimEvent.name,
+              };
+            },
             onDone: {
               target: "passkey",
             },
@@ -617,7 +640,7 @@ export const authMachine = authSetup.createMachine({
               target: "passkey",
               actions: "storeError",
             },
-          } as any,
+          },
 
           // EXTERNAL_WALLET_CONNECTED handled by global handler
         },

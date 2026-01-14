@@ -74,10 +74,13 @@ export class GQLClient {
     operationName?: string
   ): Promise<{ data: TData; error?: undefined } | { data?: undefined; error: Error }> {
     try {
-      // Use explicit any to allow flexible variable passing - graphql-request handles the types
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // Cast to RequestDocument for graphql-request compatibility.
+      // TypedDocumentNode is a subtype that includes the same runtime structure.
       const data = await withTimeout(
-        this.client.request<TData>(document as any, variables as any),
+        this.client.request<TData>(
+          document as RequestDocument,
+          variables as Record<string, unknown>
+        ),
         GRAPHQL_TIMEOUT_MS,
         operationName
       );
@@ -95,9 +98,12 @@ export class GQLClient {
     document: TypedDocumentNode<TData, TVariables> | RequestDocument,
     variables?: TVariables
   ): Promise<TData> {
-    // Use explicit any to allow flexible variable passing - graphql-request handles the types
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return this.client.request<TData>(document as any, variables as any);
+    // Cast to RequestDocument for graphql-request compatibility.
+    // TypedDocumentNode is a subtype that includes the same runtime structure.
+    return this.client.request<TData>(
+      document as RequestDocument,
+      variables as Record<string, unknown>
+    );
   }
 }
 
