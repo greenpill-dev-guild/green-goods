@@ -140,6 +140,8 @@ export { useTranslation } from "./translation/useTranslation";
 // ============================================================================
 // UI
 // ============================================================================
+export type { CarouselContextProps, CarouselProps } from "./app/useCarousel";
+export { CarouselContext, useCarousel } from "./app/useCarousel";
 export { useScrollReveal } from "./app/useScrollReveal";
 
 // ============================================================================

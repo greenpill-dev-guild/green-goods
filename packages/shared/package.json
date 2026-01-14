@@ -41,8 +41,6 @@
     "coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "ethers": "^6.16.0",
-    "graphql": "^16.10.0",
     "@reown/appkit": "^1.8.14",
     "@reown/appkit-adapter-wagmi": "^1.8.14",
     "@storacha/client": "^1.8.26",
@@ -50,14 +48,17 @@
     "browser-image-compression": "^2.0.2",
     "browser-lang": "^0.2.1",
     "clsx": "2.1.1",
+    "embla-carousel-react": "^8.6.0",
+    "ethers": "^6.16.0",
     "gql.tada": "^1.8.10",
+    "graphql": "^16.10.0",
+    "graphql-request": "^7.1.2",
     "multiformats": "^13.4.2",
     "permissionless": "^0.2.57",
     "posthog-js": "^1.284.0",
     "react-router-dom": "^7.9.4",
     "tailwind-merge": "3.0.2",
     "tailwind-variants": "0.3.1",
-    "graphql-request": "^7.1.2",
     "uuid": "^13.0.0"
   },
   "peerDependencies": {
