@@ -185,10 +185,7 @@ export function useAutoJoinRootGarden() {
    * @param options.silent - If true, suppresses toast notifications (used by promptToJoin)
    */
   const joinGarden = useCallback(
-    async (
-      sessionOverride?: PasskeySession,
-      options?: { silent?: boolean }
-    ): Promise<void> => {
+    async (sessionOverride?: PasskeySession, options?: { silent?: boolean }): Promise<void> => {
       const targetAddress = sessionOverride?.address ?? primaryAddress;
       const silent = options?.silent ?? false;
 

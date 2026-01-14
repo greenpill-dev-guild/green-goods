@@ -8,11 +8,7 @@ import {
   useTheme,
 } from "@green-goods/shared/hooks";
 import { type Locale, useApp } from "@green-goods/shared/providers";
-import {
-  capitalize,
-  isAlreadyGardenerError,
-  parseAndFormatError,
-} from "@green-goods/shared/utils";
+import { capitalize, isAlreadyGardenerError, parseAndFormatError } from "@green-goods/shared/utils";
 import { debugError } from "@green-goods/shared/utils/debug";
 import {
   RiCheckLine,

@@ -1,9 +1,4 @@
-import {
-  ActionRegistry,
-  GardenAccount,
-  GardenToken,
-  Capital,
-} from "../generated";
+import { ActionRegistry, GardenAccount, GardenToken, Capital } from "../generated";
 
 import type {
   Action,
@@ -67,11 +62,7 @@ function mapCapitalType(value: bigint): Capital {
  * Creates a default Garden entity with empty values.
  * Used when handling update events for gardens that don't exist yet.
  */
-function createDefaultGarden(
-  gardenId: string,
-  chainId: number,
-  timestamp: number
-): Garden {
+function createDefaultGarden(gardenId: string, chainId: number, timestamp: number): Garden {
   return {
     id: gardenId,
     chainId,
@@ -232,9 +223,7 @@ GardenToken.GardenMinted.handler(
     // Merge operators into gardeners list (operators are also gardeners by contract design)
     // Note: The contract's initialize() should set gardeners[op] = true for all operators,
     // but we ensure consistency here by merging the lists.
-    const allMemberAddresses = [
-      ...new Set([...event.params.gardeners, ...event.params.operators]),
-    ];
+    const allMemberAddresses = [...new Set([...event.params.gardeners, ...event.params.operators])];
 
     // 1. Create Garden Entity
     const gardenEntity: Garden = {
@@ -561,9 +550,7 @@ GardenAccount.GAPProjectCreated.handler(
         `Updated Garden ${gardenId} with GAP project UID: ${event.params.projectUID}`
       );
     } else {
-      context.log.warn(
-        `Garden ${gardenId} not found when processing GAPProjectCreated event`
-      );
+      context.log.warn(`Garden ${gardenId} not found when processing GAPProjectCreated event`);
     }
   }
 );
@@ -582,13 +569,9 @@ GardenAccount.OpenJoiningUpdated.handler(
 
       context.Garden.set(updatedGarden);
 
-      context.log.info(
-        `Updated Garden ${gardenId} openJoining to: ${event.params.openJoining}`
-      );
+      context.log.info(`Updated Garden ${gardenId} openJoining to: ${event.params.openJoining}`);
     } else {
-      context.log.warn(
-        `Garden ${gardenId} not found when processing OpenJoiningUpdated event`
-      );
+      context.log.warn(`Garden ${gardenId} not found when processing OpenJoiningUpdated event`);
     }
   }
 );

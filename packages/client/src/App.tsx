@@ -77,7 +77,10 @@ function App() {
         },
       } as Persister;
     } catch (e) {
-      debugWarn("[Persister] Failed to initialize IndexedDB persister, falling back to storage:", e);
+      debugWarn(
+        "[Persister] Failed to initialize IndexedDB persister, falling back to storage:",
+        e
+      );
       return undefined;
     }
   };

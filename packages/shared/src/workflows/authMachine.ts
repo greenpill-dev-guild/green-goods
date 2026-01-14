@@ -299,11 +299,9 @@ const authSetup = setup({
   },
   actors: {
     // Placeholder actors with proper typing - actual implementations provided in authActor.ts
-    restoreSession: fromPromise<RestoreSessionResult | null, RestoreSessionInput>(
-      async () => {
-        throw new Error("restoreSession actor not provided");
-      }
-    ),
+    restoreSession: fromPromise<RestoreSessionResult | null, RestoreSessionInput>(async () => {
+      throw new Error("restoreSession actor not provided");
+    }),
     registerPasskey: fromPromise<PasskeySessionResult, PasskeyOperationInput>(async () => {
       throw new Error("registerPasskey actor not provided");
     }),

@@ -44,11 +44,7 @@ import {
   trackAuthPasskeyRegisterSuccess,
   trackAuthSessionRestored,
 } from "../modules/app/analytics-events";
-import {
-  clearStoredUsername,
-  getStoredUsername,
-  setStoredUsername,
-} from "../modules/auth/session";
+import { clearStoredUsername, getStoredUsername, setStoredUsername } from "../modules/auth/session";
 
 import type { PasskeySessionResult, RestoreSessionResult } from "./authMachine";
 
