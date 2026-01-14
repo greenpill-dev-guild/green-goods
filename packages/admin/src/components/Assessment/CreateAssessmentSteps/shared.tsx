@@ -44,7 +44,10 @@ const baseAssessmentSchema = z.object({
   endDate: z.string().trim().min(1, "End date is required"),
   location: z.string().trim().min(1, "Location is required"),
   tags: stringListSchema,
-  evidenceMedia: z.array(z.any()).optional().default([]),
+  evidenceMedia: z
+    .array(z.instanceof(File))
+    .optional()
+    .default([]),
 });
 
 export const createAssessmentSchema = baseAssessmentSchema.superRefine((data, ctx) => {
@@ -105,12 +108,8 @@ export const createAssessmentSchema = baseAssessmentSchema.superRefine((data, ct
   }
 });
 
-type CreateAssessmentFormValues = z.infer<typeof createAssessmentSchema>;
-
-export type CreateAssessmentForm = CreateAssessmentFormValues & {
-  evidenceMedia: File[];
-  metrics: string;
-};
+// Use the base schema for type inference to avoid superRefine complexity
+export type CreateAssessmentForm = z.infer<typeof baseAssessmentSchema>;
 
 export function createDefaultAssessmentForm(): CreateAssessmentForm {
   return {

@@ -7,6 +7,7 @@ import {
   uploadFileToIPFS,
 } from "@green-goods/shared";
 import { useActionOperations } from "@green-goods/shared/hooks";
+import { debugError } from "@green-goods/shared/utils/debug";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -17,10 +18,18 @@ import { FormWizard } from "@/components/Form/FormWizard";
 import type { Step } from "@/components/Form/StepIndicator";
 import { FileUploadField } from "@/components/FileUploadField";
 
+const instructionInputSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  label: z.string(),
+  placeholder: z.string().optional(),
+  required: z.boolean().optional(),
+});
+
 const createActionSchema = z.object({
   title: z.string().min(1, "Title is required"),
-  startTime: z.date(),
-  endTime: z.date(),
+  startTime: z.coerce.date(),
+  endTime: z.coerce.date(),
   capitals: z.array(z.number()).min(1, "Select at least one capital"),
   media: z.array(z.instanceof(File)).min(1, "At least one image required"),
   instructionConfig: z.object({
@@ -39,7 +48,7 @@ const createActionSchema = z.object({
         title: z.string(),
         description: z.string(),
         feedbackPlaceholder: z.string(),
-        inputs: z.array(z.any()),
+        inputs: z.array(instructionInputSchema),
       }),
       review: z.object({
         title: z.string(),
@@ -64,8 +73,7 @@ export default function CreateAction() {
   const [currentStep, setCurrentStep] = useState(0);
 
   const form = useForm<CreateActionForm>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(createActionSchema as any) as any,
+    resolver: zodResolver(createActionSchema),
     defaultValues: {
       title: "",
       startTime: new Date(),
@@ -109,7 +117,7 @@ export default function CreateAction() {
 
       navigate("/actions");
     } catch (error) {
-      console.error("Failed to create action:", error);
+      debugError("Failed to create action:", error);
       toastService.error({ title: "Failed to create action" });
     }
   };

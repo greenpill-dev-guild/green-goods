@@ -73,8 +73,7 @@ export default function CreateAssessment() {
     setValue,
     watch,
   } = useForm<CreateAssessmentForm>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(createAssessmentSchema as any) as any,
+    resolver: zodResolver(createAssessmentSchema),
     defaultValues: createDefaultAssessmentForm(),
     mode: "onChange",
     shouldUnregister: false,
