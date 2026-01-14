@@ -4,6 +4,7 @@
     "collect": {
       "numberOfRuns": 3,
       "startServerCommand": "bun run preview",
+      "startServerReadyPattern": "Local:",
       "url": ["http://localhost:4173"],
       "settings": {
         "preset": "desktop",

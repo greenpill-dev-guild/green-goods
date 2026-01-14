@@ -20,12 +20,13 @@ export default defineConfig(({ mode }) => {
   const isIPFSBuild =
     rootEnv.VITE_USE_HASH_ROUTER === "true" || localEnv.VITE_USE_HASH_ROUTER === "true";
 
-  // Skip mkcert in devcontainer (use HTTP instead of HTTPS)
+  // Skip mkcert in devcontainer or CI (use HTTP instead of HTTPS)
   const isDevContainer = process.env.DEVCONTAINER === "true";
+  const isCI = process.env.CI === "true";
 
   const plugins = [
-    // Only use mkcert for HTTPS when not in devcontainer
-    ...(isDevContainer ? [] : [mkcert()]),
+    // Only use mkcert for HTTPS when not in devcontainer or CI
+    ...(isDevContainer || isCI ? [] : [mkcert()]),
     tailwindcss(),
     // React Compiler: Automatically optimizes components with memoization
     // Eliminates need for manual useMemo/useCallback in most cases

@@ -1,5 +1,7 @@
 import {
   queryKeys,
+  useAuth,
+  useAutoJoinRootGarden,
   useBrowserNavigation,
   useFilteredGardens,
   useGardens,
@@ -57,6 +59,11 @@ const Home: React.FC = () => {
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
 
+  // Auto-join root garden prompt for new users
+  const { isAuthenticated } = useAuth();
+  const { promptToJoin } = useAutoJoinRootGarden();
+  const hasPromptedJoinRef = useRef(false);
+
   // Ref for scrolling to article on card click
   const articleRef = useRef<HTMLElement>(null);
 
@@ -76,6 +83,17 @@ const Home: React.FC = () => {
       closeGardenFilter();
     }
   }, [location.pathname, closeGardenFilter]);
+
+  // Prompt new users to join root garden after signup
+  // This runs once when user lands on Home after authentication
+  useEffect(() => {
+    if (isAuthenticated && location.pathname === "/home" && !hasPromptedJoinRef.current) {
+      hasPromptedJoinRef.current = true;
+      // Small delay to let the page settle after navigation
+      const timer = setTimeout(() => promptToJoin(), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthenticated, location.pathname, promptToJoin]);
 
   // Handlers
   const handleRetry = () => {
@@ -137,7 +155,7 @@ const Home: React.FC = () => {
               <WorkDashboardIcon />
             </div>
           </div>
-          <div className="padded flex-1 flex flex-col gap-4 overflow-y-scroll overflow-x-hidden">
+          <div className="padded flex flex-col gap-4">
             <GardenList
               gardens={filteredGardens}
               selectedGardenId={selectedGardenId}

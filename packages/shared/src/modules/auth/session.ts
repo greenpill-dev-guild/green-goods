@@ -74,30 +74,23 @@ export function hasStoredUsername(): boolean {
 // ============================================================================
 
 /**
- * Get the configured RP ID for passkey operations.
+ * Get stored RP ID from localStorage.
  *
- * Android WebAuthn requires the RP ID to EXACTLY match between registration
- * and authentication. Using a fixed RP ID ensures consistency across:
- * - Different devices
- * - Browser data clears
- * - PWA vs browser contexts
+ * NOTE: The primary RP ID source is now `getPasskeyRpId()` from passkeyServer.ts
+ * which uses a hardcoded production domain (greengoods.app).
+ * This function is kept for backward compatibility and debugging.
  *
- * Priority: Environment variable > Stored value > Current hostname
+ * @deprecated Use `getPasskeyRpId()` from passkeyServer.ts instead
  */
-function getConfiguredRpId(): string {
-  // Use environment variable if configured (recommended for production)
-  const envRpId = import.meta.env.VITE_PASSKEY_RP_ID;
-  if (envRpId) {
-    return envRpId;
+export function getStoredRpId(): string {
+  // Check stored value from previous registration
+  const storedRpId = localStorage.getItem(RP_ID_STORAGE_KEY);
+  if (storedRpId) {
+    return storedRpId;
   }
 
-  // Fall back to stored value or current hostname
-  return localStorage.getItem(RP_ID_STORAGE_KEY) || window.location.hostname;
-}
-
-/** Get stored RP ID, with fixed fallback for Android compatibility */
-export function getStoredRpId(): string {
-  return getConfiguredRpId();
+  // Fall back to current hostname
+  return window.location.hostname;
 }
 
 /** Store RP ID used during registration */
@@ -125,6 +118,62 @@ export function clearAllAuth(): void {
   localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
   localStorage.removeItem(USERNAME_STORAGE_KEY);
   localStorage.removeItem(RP_ID_STORAGE_KEY);
+}
+
+// ============================================================================
+// DEBUG UTILITIES
+// ============================================================================
+
+/**
+ * Debug function to check passkey configuration.
+ * Call this from browser console to diagnose Android passkey issues:
+ *   window.__debugPasskey() (in dev mode)
+ */
+export function debugPasskeyConfig(): void {
+  const envRpId = import.meta.env.VITE_PASSKEY_RP_ID;
+  const storedRpId = localStorage.getItem(RP_ID_STORAGE_KEY);
+  const storedUsername = localStorage.getItem(USERNAME_STORAGE_KEY);
+  const hostname = window.location.hostname;
+  const origin = window.location.origin;
+
+  // Import the hardcoded value for display
+  const hardcodedRpId = "greengoods.app";
+
+  console.group("[Passkey Debug] Configuration");
+  console.log("Hardcoded RP ID:", hardcodedRpId);
+  console.log("Environment VITE_PASSKEY_RP_ID:", envRpId || "(not set, will use hardcoded)");
+  console.log("Stored RP ID (localStorage):", storedRpId || "(not set)");
+  console.log("Current hostname:", hostname);
+  console.log("Current origin:", origin);
+  console.log("Stored username:", storedUsername || "(not set)");
+  console.log("---");
+
+  // Determine effective RP ID (matching logic in getPasskeyRpId)
+  let effectiveRpId = hardcodedRpId;
+  if (envRpId) {
+    effectiveRpId = envRpId;
+  } else if (import.meta.env.DEV && hostname === "localhost") {
+    effectiveRpId = "localhost";
+  }
+
+  console.log("Effective RP ID for auth:", effectiveRpId);
+
+  if (storedRpId && storedRpId !== effectiveRpId) {
+    console.warn(
+      "⚠️ WARNING: Stored RP ID differs from effective RP ID!",
+      "\n  Stored:",
+      storedRpId,
+      "\n  Effective:",
+      effectiveRpId,
+      "\n  This may cause Android passkey issues."
+    );
+  }
+  console.groupEnd();
+}
+
+// Expose debug function globally in development
+if (import.meta.env.DEV) {
+  (window as { __debugPasskey?: typeof debugPasskeyConfig }).__debugPasskey = debugPasskeyConfig;
 }
 
 // ============================================================================

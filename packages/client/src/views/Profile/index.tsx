@@ -88,7 +88,10 @@ const Profile: React.FC = () => {
       </div>
 
       {/* Content */}
-      <div id="profile-scroll" className="flex-1 overflow-x-hidden overflow-y-auto pt-64 pb-4">
+      <div
+        id="profile-scroll"
+        className="flex-1 overflow-x-hidden overflow-y-auto pt-64 pb-4 native-scroll"
+      >
         <div className="padded my-4 flex flex-col gap-4">
           {activeTab === "help" ? <ProfileHelp /> : <ProfileAccount />}
         </div>

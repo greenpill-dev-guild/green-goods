@@ -109,14 +109,18 @@ const Work: React.FC = () => {
     plantCount,
   } = form;
 
-  // Draft auto-save (handles creation on first image and debounced saves)
-  useDraftAutoSave({ gardenAddress, actionUID, feedback, plantSelection, plantCount }, images);
+  // Draft save on exit (only saves when user navigates away, not automatically)
+  const { saveOnExit } = useDraftAutoSave(
+    { gardenAddress, actionUID, feedback, plantSelection, plantCount },
+    images
+  );
 
   // Draft resume (handles URL params and meaningful draft detection)
   const {
     showDraftDialog,
     handleContinueDraft,
     handleStartFresh: clearDraft,
+    clearActiveDraft,
   } = useDraftResume({
     formState: { images, gardenAddress, actionUID, feedback, plantSelection, plantCount },
     isOnIntroTab: activeTab === WorkTab.Intro,
@@ -142,6 +146,11 @@ const Work: React.FC = () => {
   useEffect(() => {
     if (!submissionCompleted) return;
 
+    // Clear the draft on successful submission
+    clearActiveDraft().catch((error) => {
+      console.error("[Garden] Failed to clear draft after submission:", error);
+    });
+
     const timer = setTimeout(() => {
       navigate("/home", { replace: true, viewTransition: true });
       requestAnimationFrame(() => {
@@ -151,7 +160,7 @@ const Work: React.FC = () => {
     }, 800);
 
     return () => clearTimeout(timer);
-  }, [submissionCompleted, navigate, form]);
+  }, [submissionCompleted, navigate, form, clearActiveDraft]);
 
   // Selected action and garden with translations
   const selectedAction = useMemo(() => {
@@ -285,8 +294,14 @@ const Work: React.FC = () => {
   };
 
   const changeTab = (tab: WorkTab) => {
-    document.getElementById("root")?.scrollIntoView({ behavior: "instant" });
+    document.getElementById("app-scroll")?.scrollTo({ top: 0, behavior: "instant" });
     setActiveTab(tab);
+  };
+
+  // Handle exit from garden flow - save draft if there's meaningful progress
+  const handleExitFlow = async () => {
+    await saveOnExit();
+    navigate("/home", { viewTransition: true });
   };
 
   // Tab configuration
@@ -299,7 +314,7 @@ const Work: React.FC = () => {
       }),
       primaryDisabled: !gardenAddress || typeof actionUID !== "number",
       customSecondary: null,
-      backButton: () => navigate("/home", { viewTransition: true }),
+      backButton: handleExitFlow,
     },
     [WorkTab.Media]: {
       primary: () => changeTab(WorkTab.Details),

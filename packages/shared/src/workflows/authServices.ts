@@ -27,6 +27,7 @@ import { getChain } from "../config/chains";
 import {
   createPasskeyServerClient,
   createPasskeyWithServer,
+  getPasskeyRpId,
   type PasskeyServerClient,
 } from "../config/passkeyServer";
 import {
@@ -45,7 +46,6 @@ import {
 } from "../modules/app/analytics-events";
 import {
   clearStoredUsername,
-  getStoredRpId,
   getStoredUsername,
   setStoredUsername,
 } from "../modules/auth/session";
@@ -327,10 +327,20 @@ export const authenticatePasskeyService = fromPromise<PasskeySessionResult, Pass
       // Decode credential ID for WebAuthn authentication
       const credentialIdBytes = decodeCredentialId(credential.id);
 
-      // Prompt WebAuthn authentication (biometric)
-      // Use stored RP ID for Android compatibility (must match registration)
-      const rpId = getStoredRpId();
+      // Get fixed RP ID - MUST match what was used during registration
+      // This is critical for Android which is strict about RP ID matching
+      const rpId = getPasskeyRpId();
 
+      console.debug(
+        "[Passkey] Authentication - RP ID:",
+        rpId,
+        "| Origin:",
+        window.location.origin,
+        "| Credential:",
+        credential.id.substring(0, 16) + "..."
+      );
+
+      // Prompt WebAuthn authentication (biometric)
       const authResponse = await window.navigator.credentials.get({
         publicKey: {
           challenge: crypto.getRandomValues(new Uint8Array(32)),

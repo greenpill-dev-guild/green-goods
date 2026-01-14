@@ -9,9 +9,55 @@
 
 import type { Chain } from "viem";
 import { createWebAuthnCredential, type P256Credential } from "viem/account-abstraction";
-import { getStoredRpId, setStoredRpId } from "../modules/auth/session";
+import { setStoredRpId } from "../modules/auth/session";
 import { getChain } from "./chains";
 import { getPimlicoApiKey } from "./pimlico";
+
+// ============================================================================
+// RP ID CONFIGURATION
+// ============================================================================
+
+/**
+ * Fixed RP ID for passkey operations.
+ *
+ * CRITICAL FOR ANDROID: The RP ID MUST be identical between registration and
+ * authentication. Android's Credential Manager is very strict about this.
+ *
+ * Using the apex domain (greengoods.app) allows passkeys to work on:
+ * - greengoods.app
+ * - www.greengoods.app
+ * - Any subdomain of greengoods.app
+ *
+ * For local development, passkeys created with this RP ID won't work on localhost.
+ * Use a staging deployment or test on production domain for passkey testing.
+ */
+export const PASSKEY_RP_ID = "greengoods.app";
+export const PASSKEY_RP_NAME = "Green Goods";
+
+/**
+ * Get the RP ID for passkey operations.
+ * Uses hardcoded production domain for consistency.
+ * Falls back to hostname only in development when env var explicitly allows it.
+ */
+export function getPasskeyRpId(): string {
+  // Allow override via env var for development/staging
+  const envRpId = import.meta.env.VITE_PASSKEY_RP_ID;
+  if (envRpId) {
+    return envRpId;
+  }
+
+  // In development on localhost, use hostname to allow local testing
+  // Note: Passkeys created on localhost won't work in production
+  if (import.meta.env.DEV && window.location.hostname === "localhost") {
+    console.warn(
+      "[Passkey] Using localhost as RP ID. Passkeys created here will NOT work in production."
+    );
+    return "localhost";
+  }
+
+  // Default to production domain
+  return PASSKEY_RP_ID;
+}
 
 // ============================================================================
 // TYPES
@@ -327,53 +373,65 @@ function bufferToBase64Url(buffer: ArrayBuffer): string {
  * This is the main entry point for credential creation when using
  * the Pimlico passkey server flow.
  *
- * IMPORTANT: Uses a fixed RP ID for Android compatibility.
+ * IMPORTANT: Uses a fixed RP ID (greengoods.app) for Android compatibility.
  * Android WebAuthn requires the RP ID to EXACTLY match between registration
- * and authentication. Using a fixed RP ID (via VITE_PASSKEY_RP_ID env var)
- * ensures consistency across devices and browser data clears.
+ * and authentication. Using a hardcoded RP ID ensures consistency.
+ *
+ * Reference: https://docs.pimlico.io/guides/how-to/signers/passkey-server
  */
 export async function createPasskeyWithServer(
   serverClient: PasskeyServerClient,
   userName: string
 ): Promise<P256Credential> {
-  // 1. Get registration options from Pimlico server
+  // 1. Get registration options from Pimlico server (challenge, user info, etc.)
   const options = await serverClient.startRegistration({
     context: { userName },
   });
 
-  // 2. Get configured RP ID (uses env var if set, otherwise hostname)
-  // This ensures the same RP ID is used for both registration and authentication
-  const rpId = getStoredRpId();
+  // 2. Get fixed RP ID - CRITICAL for Android compatibility
+  const rpId = getPasskeyRpId();
 
-  // 3. Create credential using WebAuthn
+  console.debug("[Passkey] Registration - RP ID:", rpId, "| Origin:", window.location.origin);
+
+  // 3. Create credential using WebAuthn with our fixed RP ID
+  // We override Pimlico's server options to ensure RP ID consistency
   const credential = await createWebAuthnCredential({
-    name: "Green Goods Wallet",
+    name: userName, // Use username as credential name for better UX
+    rp: {
+      id: rpId,
+      name: PASSKEY_RP_NAME,
+    },
     createFn: async (viemOptions) => {
-      // Merge server options with viem defaults
+      // Merge Pimlico's server options (challenge, user, excludeCredentials)
+      // but ALWAYS use our RP ID to ensure Android compatibility
       const mergedOptions = viemOptions as CredentialCreationOptions | undefined;
       if (mergedOptions?.publicKey && options.publicKey) {
-        // Use server-provided options
-        Object.assign(mergedOptions.publicKey, options.publicKey);
-        // Override RP ID to ensure consistency with authentication
+        // Take server's challenge and user info
+        mergedOptions.publicKey.challenge = options.publicKey.challenge;
+        mergedOptions.publicKey.user = options.publicKey.user;
+        if (options.publicKey.excludeCredentials) {
+          mergedOptions.publicKey.excludeCredentials = options.publicKey.excludeCredentials;
+        }
+        // ALWAYS override RP to our fixed value (ignore server's rpId)
         mergedOptions.publicKey.rp = {
-          ...mergedOptions.publicKey.rp,
           id: rpId,
-          name: mergedOptions.publicKey.rp?.name ?? "Green Goods",
+          name: PASSKEY_RP_NAME,
         };
       }
       return window.navigator.credentials.create(mergedOptions);
     },
   });
 
-  // 4. Store RP ID for authentication (Android requires exact match)
-  // This is a backup - the env var should be the primary source
+  // 4. Store RP ID in localStorage as backup for session restore
   setStoredRpId(rpId);
 
-  // 5. Verify and store on Pimlico server
+  // 5. Verify and store credential on Pimlico server
   const verifiedCredential = await serverClient.verifyRegistration({
     credential,
     context: { userName },
   });
+
+  console.debug("[Passkey] Registration complete - Credential ID:", verifiedCredential.id);
 
   return verifiedCredential;
 }

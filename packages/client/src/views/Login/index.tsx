@@ -1,7 +1,7 @@
-import { useAuth, useAutoJoinRootGarden } from "@green-goods/shared/hooks";
+import { useAuth } from "@green-goods/shared/hooks";
 import { getStoredUsername, hasStoredUsername } from "@green-goods/shared/modules";
 import { debugError } from "@green-goods/shared/utils/debug";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { type LoadingState, Splash } from "@/components/Layout";
 
@@ -61,9 +61,6 @@ export function Login() {
   const [username, setUsername] = useState("");
   const [usernameError, setUsernameError] = useState<string | null>(null);
 
-  const { promptToJoin } = useAutoJoinRootGarden();
-  const hasPromptedJoinRef = useRef(false);
-
   // Check if nested route or came from logout
   const isNestedRoute = location.pathname !== "/login";
   const fromLogout = (location.state as { fromLogout?: boolean } | null)?.fromLogout === true;
@@ -84,14 +81,6 @@ export function Login() {
       setUsernameError(null);
     }
   }, [activeFlow]);
-
-  // Prompt garden join after auth
-  useEffect(() => {
-    if (isAuthenticated && !hasPromptedJoinRef.current) {
-      hasPromptedJoinRef.current = true;
-      setTimeout(() => promptToJoin(), 500);
-    }
-  }, [isAuthenticated, promptToJoin]);
 
   // Handle auth errors
   useEffect(() => {

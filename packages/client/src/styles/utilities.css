@@ -295,4 +295,14 @@
     contain-intrinsic-size: auto 56px;
   }
 
+  /* ============================================
+   * Native Scroll Bounce Effect
+   * Enables iOS-style rubber-band scrolling on containers
+   * Use on scrollable elements that need the native bounce feel
+   * ============================================ */
+  .native-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: auto;
+  }
+
 }
