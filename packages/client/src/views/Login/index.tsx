@@ -1,4 +1,5 @@
 import { useAuth } from "@green-goods/shared/hooks";
+import { Helmet } from "react-helmet-async";
 import { getStoredUsername, hasStoredUsername } from "@green-goods/shared/modules";
 import { debugError } from "@green-goods/shared/utils/debug";
 import { useEffect, useState } from "react";
@@ -179,49 +180,59 @@ export function Login() {
   const errorMessage = !isAuthenticating ? loginError || usernameError : null;
 
   return (
-    <Splash
-      login={getPrimaryAction()}
-      isLoggingIn={isAuthenticating}
-      buttonLabel={getButtonLabel()}
-      errorMessage={errorMessage}
-      usernameInput={
-        showUsernameInput
-          ? {
-              value: username,
-              onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                setUsername(e.target.value);
-                if (usernameError) setUsernameError(validateUsername(e.target.value));
-              },
-              placeholder: activeFlow === "register" ? "Choose a username" : "Enter your username",
-              hint:
-                activeFlow === "register"
-                  ? "Choose a username for your new account"
-                  : "Enter the username you registered with",
-              onCancel: handleCancel,
-            }
-          : undefined
-      }
-      secondaryAction={
-        !isAuthenticating
-          ? activeFlow !== "none"
-            ? { label: "Cancel", onSelect: handleCancel }
-            : !hasExistingAccount
-              ? {
-                  label: "Login",
-                  onSelect: () => {
-                    setLoginError(null);
-                    setActiveFlow("login");
-                  },
-                }
-              : undefined
-          : undefined
-      }
-      tertiaryAction={
-        activeFlow === "none"
-          ? { label: "Login with wallet", onClick: () => loginWithWallet?.() }
-          : undefined
-      }
-    />
+    <>
+      <Helmet>
+        <title>Login | Green Goods</title>
+        <meta
+          name="description"
+          content="Sign in to Green Goods to start bringing your community impact onchain."
+        />
+      </Helmet>
+      <Splash
+        login={getPrimaryAction()}
+        isLoggingIn={isAuthenticating}
+        buttonLabel={getButtonLabel()}
+        errorMessage={errorMessage}
+        usernameInput={
+          showUsernameInput
+            ? {
+                value: username,
+                onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                  setUsername(e.target.value);
+                  if (usernameError) setUsernameError(validateUsername(e.target.value));
+                },
+                placeholder:
+                  activeFlow === "register" ? "Choose a username" : "Enter your username",
+                hint:
+                  activeFlow === "register"
+                    ? "Choose a username for your new account"
+                    : "Enter the username you registered with",
+                onCancel: handleCancel,
+              }
+            : undefined
+        }
+        secondaryAction={
+          !isAuthenticating
+            ? activeFlow !== "none"
+              ? { label: "Cancel", onSelect: handleCancel }
+              : !hasExistingAccount
+                ? {
+                    label: "Login",
+                    onSelect: () => {
+                      setLoginError(null);
+                      setActiveFlow("login");
+                    },
+                  }
+                : undefined
+            : undefined
+        }
+        tertiaryAction={
+          activeFlow === "none"
+            ? { label: "Login with wallet", onClick: () => loginWithWallet?.() }
+            : undefined
+        }
+      />
+    </>
   );
 }
 

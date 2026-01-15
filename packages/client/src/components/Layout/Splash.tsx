@@ -211,7 +211,7 @@ export const Splash: React.FC<SplashProps> = ({
                 onClick={tertiaryAction.onClick}
                 className={`text-xs underline transition-all duration-200 ${
                   !loadingState && !isLoggingIn
-                    ? "text-text-sub-600 hover:text-primary opacity-100"
+                    ? "text-foreground hover:text-primary opacity-100"
                     : "text-text-soft-400 opacity-0 pointer-events-none"
                 }`}
                 tabIndex={!loadingState && !isLoggingIn ? 0 : -1}
@@ -226,7 +226,7 @@ export const Splash: React.FC<SplashProps> = ({
                 viewTransition
                 className={`text-xs underline transition-all duration-200 ${
                   !loadingState && !isLoggingIn
-                    ? "text-text-sub-600 hover:text-primary opacity-100"
+                    ? "text-foreground hover:text-primary opacity-100"
                     : "text-text-soft-400 opacity-0 pointer-events-none"
                 }`}
                 tabIndex={!loadingState && !isLoggingIn ? 0 : -1}

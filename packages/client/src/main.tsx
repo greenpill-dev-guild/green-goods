@@ -6,6 +6,7 @@ import {
 } from "@green-goods/shared";
 import { AppKitProvider, AuthProvider } from "@green-goods/shared/providers";
 import { StrictMode } from "react";
+import { HelmetProvider } from "react-helmet-async";
 import { createRoot } from "react-dom/client";
 import App from "@/App.tsx";
 import { AppErrorBoundary } from "@/components/Errors";
@@ -94,25 +95,27 @@ function initPwaAutoUpdate() {
 initPwaAutoUpdate();
 
 export const Root = () => (
-  <AppErrorBoundary>
-    <AppKitProvider
-      projectId={import.meta.env.VITE_WALLETCONNECT_PROJECT_ID}
-      metadata={{
-        name: "Green Goods",
-        description: "Start Bringing Your Impact Onchain",
-        url: import.meta.env.VITE_APP_URL || window.location.origin,
-        icons: ["https://greengoods.app/icon.png"],
-      }}
-      defaultChainId={DEFAULT_CHAIN_ID}
-    >
-      {/* AuthProvider uses XState + Pimlico passkey server */}
-      <AuthProvider>
-        <AppProvider posthogKey={import.meta.env.VITE_POSTHOG_KEY}>
-          <App />
-        </AppProvider>
-      </AuthProvider>
-    </AppKitProvider>
-  </AppErrorBoundary>
+  <HelmetProvider>
+    <AppErrorBoundary>
+      <AppKitProvider
+        projectId={import.meta.env.VITE_WALLETCONNECT_PROJECT_ID}
+        metadata={{
+          name: "Green Goods",
+          description: "Start Bringing Your Impact Onchain",
+          url: import.meta.env.VITE_APP_URL || window.location.origin,
+          icons: ["https://greengoods.app/icon.png"],
+        }}
+        defaultChainId={DEFAULT_CHAIN_ID}
+      >
+        {/* AuthProvider uses XState + Pimlico passkey server */}
+        <AuthProvider>
+          <AppProvider posthogKey={import.meta.env.VITE_POSTHOG_KEY}>
+            <App />
+          </AppProvider>
+        </AuthProvider>
+      </AppKitProvider>
+    </AppErrorBoundary>
+  </HelmetProvider>
 );
 
 const container = document.getElementById("root");
