@@ -732,11 +732,17 @@ export async function queryIndexer<T = unknown>(
 /**
  * Check if gardens exist in the indexer.
  */
-export async function hasGardens(page: Page): Promise<boolean> {
+export async function hasGardens(page: Page, chainId?: number): Promise<boolean> {
   try {
+    const resolvedChainId =
+      typeof chainId === "number" && !Number.isNaN(chainId)
+        ? chainId
+        : Number(process.env.VITE_CHAIN_ID ?? process.env.TEST_CHAIN_ID ?? 84532);
+
     const data = await queryIndexer<{ Garden: Array<{ id: string }> }>(
       page,
-      `query { Garden(limit: 1) { id } }`
+      `query Gardens($chainId: Int!) { Garden(where: {chainId: {_eq: $chainId}}, limit: 1) { id } }`,
+      { chainId: resolvedChainId }
     );
     return data.Garden.length > 0;
   } catch {
