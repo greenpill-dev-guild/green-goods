@@ -15,9 +15,13 @@ export interface ServiceStatus {
 // CONSTANTS
 // ============================================================================
 
+// In CI, Vite skips mkcert and runs on HTTP instead of HTTPS
+const isCI = process.env.CI === "true";
+const protocol = isCI ? "http" : "https";
+
 export const TEST_URLS = {
-  client: process.env.TEST_CLIENT_URL ?? "https://localhost:3001",
-  admin: process.env.TEST_ADMIN_URL ?? "https://localhost:3002",
+  client: process.env.TEST_CLIENT_URL ?? `${protocol}://localhost:3001`,
+  admin: process.env.TEST_ADMIN_URL ?? `${protocol}://localhost:3002`,
   indexer: process.env.TEST_INDEXER_URL ?? "http://localhost:8080/v1/graphql",
 };
 

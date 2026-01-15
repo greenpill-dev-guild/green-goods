@@ -10,10 +10,14 @@ import { chromium, type FullConfig } from "@playwright/test";
 async function globalSetup(config: FullConfig) {
   console.log("🚀 Starting global test setup...\n");
 
+  // In CI, Vite skips mkcert and runs on HTTP instead of HTTPS
+  const isCI = process.env.CI === "true";
+  const protocol = isCI ? "http" : "https";
+
   // Set test environment variables
   process.env.TEST_INDEXER_URL = "http://localhost:8080/v1/graphql";
-  process.env.TEST_CLIENT_URL = "https://localhost:3001";
-  process.env.TEST_ADMIN_URL = "https://localhost:3002";
+  process.env.TEST_CLIENT_URL = `${protocol}://localhost:3001`;
+  process.env.TEST_ADMIN_URL = `${protocol}://localhost:3002`;
   process.env.TEST_CHAIN_ID = "84532"; // Base Sepolia
 
   // Enable service worker only for PWA tests
@@ -57,7 +61,7 @@ async function globalSetup(config: FullConfig) {
 
     // Check client
     try {
-      await page.goto("https://localhost:3001", { timeout: 5000 });
+      await page.goto(`${protocol}://localhost:3001`, { timeout: 5000 });
       console.log("  ✅ Client (port 3001) - available");
     } catch {
       console.log("  ⚠️  Client (port 3001) - not available (will be started by webServer)");
@@ -65,7 +69,7 @@ async function globalSetup(config: FullConfig) {
 
     // Check admin
     try {
-      await page.goto("https://localhost:3002", { timeout: 5000 });
+      await page.goto(`${protocol}://localhost:3002`, { timeout: 5000 });
       console.log("  ✅ Admin (port 3002) - available");
     } catch {
       console.log("  ⚠️  Admin (port 3002) - not available (will be started by webServer)");
