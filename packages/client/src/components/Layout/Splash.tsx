@@ -70,6 +70,7 @@ export const Splash: React.FC<SplashProps> = ({
             src="/icon.png"
             alt={APP_NAME}
             width={240}
+            height={240}
             className={`transition-opacity duration-300 ${loadingState ? "animate-pulse" : ""}`}
           />
         </div>
