@@ -102,7 +102,23 @@ export function FileUploadField({
     onRemoveFile?.(index);
   };
 
-  const sanitizeFileName = (name: string) => name.replace(/[\u0000-\u001F\u007F<>]/g, "");
+  const sanitizeFileName = (name: string) =>
+    Array.from(name)
+      .filter((char) => {
+        const code = char.charCodeAt(0);
+        // Strip control characters and HTML meta-characters to keep text-only output.
+        return (
+          code >= 32 &&
+          code !== 127 &&
+          char !== "<" &&
+          char !== ">" &&
+          char !== "&" &&
+          char !== '"' &&
+          char !== "'" &&
+          char !== "`"
+        );
+      })
+      .join("");
 
   const getFilePreviewUrl = (file: File): string | null => {
     if (previewableImageTypes.has(file.type)) {
