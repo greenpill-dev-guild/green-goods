@@ -1,6 +1,10 @@
-import { useOffline } from "@green-goods/shared/hooks";
-import { useQueueFlush } from "@green-goods/shared/providers/JobQueue";
+import type { Work } from "@green-goods/shared";
 import React from "react";
+
+import { useOffline } from "@green-goods/shared/hooks";
+import { trackSyncError } from "@green-goods/shared/modules";
+import { useQueueFlush } from "@green-goods/shared/providers/JobQueue";
+
 import { MinimalWorkCard } from "@/components/Cards";
 
 interface MyWorkTabProps {
@@ -13,16 +17,26 @@ export const MyWorkTab: React.FC<MyWorkTabProps> = ({ works, isLoading, onWorkCl
   const { isOnline } = useOffline();
   const flush = useQueueFlush();
 
+  // Separate offline and online works (defined before handleFlushAll which uses it)
+  const offlineWorks = works.filter((w) => w.id.startsWith("0xoffline_") || !w.id.startsWith("0x"));
+
   const handleFlushAll = async () => {
     try {
       await flush();
     } catch (error) {
       console.error("Failed to flush queue:", error);
+      trackSyncError(error, {
+        source: "MyWork.handleFlushAll",
+        userAction: "manually flushing pending work uploads",
+        recoverable: true,
+        metadata: {
+          trigger: "upload_all_button",
+          offline_works_count: offlineWorks.length,
+          is_online: isOnline,
+        },
+      });
     }
   };
-
-  // Separate offline and online works
-  const offlineWorks = works.filter((w) => w.id.startsWith("0xoffline_") || !w.id.startsWith("0x"));
 
   return (
     <div className="h-full flex flex-col">

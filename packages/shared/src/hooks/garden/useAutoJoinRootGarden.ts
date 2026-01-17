@@ -16,6 +16,7 @@ import { useWriteContract } from "wagmi";
 import { ONBOARDED_STORAGE_KEY } from "../../config/app";
 import { wagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
+import { trackNetworkError } from "../../modules/app/error-tracking";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { toastService } from "../../components/toast";
 import { isAlreadyGardenerError } from "../../utils/errors/contract-errors";
@@ -74,6 +75,17 @@ export async function checkMembership(address: string): Promise<{
     };
   } catch (error) {
     console.warn("Failed to check on-chain membership:", error);
+    trackNetworkError(error, {
+      source: "checkMembership",
+      userAction: "checking root garden membership status",
+      recoverable: true,
+      metadata: {
+        user_address: address,
+        root_garden: rootGarden?.address,
+        function_name: "gardeners",
+        is_offline: typeof navigator !== "undefined" ? !navigator.onLine : false,
+      },
+    });
     return { isGardener: hasBeenOnboarded, hasBeenOnboarded };
   }
 }

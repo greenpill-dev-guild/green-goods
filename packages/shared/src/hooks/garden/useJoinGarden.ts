@@ -22,7 +22,11 @@ import {
   trackGardenJoinStarted,
   trackGardenJoinSuccess,
 } from "../../modules/app/analytics-events";
-import { addBreadcrumb, trackContractError } from "../../modules/app/error-tracking";
+import {
+  addBreadcrumb,
+  trackContractError,
+  trackNetworkError,
+} from "../../modules/app/error-tracking";
 import { isAddressInList } from "../../utils/blockchain/address";
 
 /**
@@ -53,6 +57,16 @@ export async function checkGardenOpenJoining(gardenAddress: string): Promise<boo
     return Boolean(isOpen);
   } catch (error) {
     console.warn(`Failed to check openJoining for ${gardenAddress}:`, error);
+    trackNetworkError(error, {
+      source: "checkGardenOpenJoining",
+      userAction: "checking if garden allows open joining",
+      recoverable: true,
+      metadata: {
+        garden_address: gardenAddress,
+        function_name: "openJoining",
+        is_offline: typeof navigator !== "undefined" ? !navigator.onLine : false,
+      },
+    });
     return false;
   }
 }

@@ -1,9 +1,11 @@
-import { useAuth } from "@green-goods/shared/hooks";
-import { Helmet } from "react-helmet-async";
-import { getStoredUsername, hasStoredUsername } from "@green-goods/shared/modules";
-import { debugError } from "@green-goods/shared/utils/debug";
 import { useEffect, useState } from "react";
+import { Helmet } from "react-helmet-async";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
+
+import { useAuth } from "@green-goods/shared/hooks";
+import { getStoredUsername, hasStoredUsername, trackAuthError } from "@green-goods/shared/modules";
+import { debugError } from "@green-goods/shared/utils/debug";
+
 import { type LoadingState, Splash } from "@/components/Layout";
 
 type AuthFlow = "none" | "register" | "login";
@@ -92,11 +94,37 @@ export function Login() {
     }
   }, [authError, isAuthenticating]);
 
-  const handleAuthError = (err: unknown) => {
+  const handleAuthError = (err: unknown, operation: "login" | "create" | "recovery") => {
     setLoadingState(null);
     setLoadingMessage(undefined);
     debugError("Authentication failed", err);
     setLoginError(getFriendlyErrorMessage(err));
+
+    // Check if user intentionally cancelled (don't track as error)
+    const isUserCancellation =
+      err instanceof Error &&
+      (err.message.toLowerCase().includes("cancel") ||
+        err.message.toLowerCase().includes("abort") ||
+        err.message.toLowerCase().includes("user deny"));
+
+    if (!isUserCancellation) {
+      trackAuthError(err, {
+        source: "Login.handleAuthError",
+        userAction:
+          operation === "create"
+            ? "creating account with passkey"
+            : operation === "recovery"
+              ? "logging in with username recovery"
+              : "logging in with passkey",
+        authMode: "passkey",
+        recoverable: true,
+        metadata: {
+          operation,
+          has_stored_credential: hasStoredCredential,
+          has_stored_username: !!storedUsername,
+        },
+      });
+    }
   };
 
   const handleCancel = () => {
@@ -114,7 +142,7 @@ export function Login() {
     try {
       await loginWithPasskey?.(storedUsername || undefined);
     } catch (err) {
-      handleAuthError(err);
+      handleAuthError(err, "login");
     }
   };
 
@@ -131,7 +159,7 @@ export function Login() {
     try {
       await createAccount?.(username.trim());
     } catch (err) {
-      handleAuthError(err);
+      handleAuthError(err, "create");
     }
   };
 
@@ -148,7 +176,7 @@ export function Login() {
     try {
       await loginWithPasskey?.(username.trim());
     } catch (err) {
-      handleAuthError(err);
+      handleAuthError(err, "recovery");
     }
   };
 

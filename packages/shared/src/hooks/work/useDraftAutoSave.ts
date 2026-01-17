@@ -9,6 +9,8 @@
  */
 
 import { useCallback, useMemo, useRef } from "react";
+
+import { trackStorageError } from "../../modules/app/error-tracking";
 import { useDrafts } from "./useDrafts";
 
 interface DraftFormData {
@@ -127,6 +129,19 @@ export function useDraftAutoSave(
       return draftId;
     } catch (error) {
       console.error("[useDraftAutoSave] Failed to save draft on exit:", error);
+      trackStorageError(error, {
+        source: "useDraftAutoSave.saveOnExit",
+        userAction: "saving draft on navigation exit",
+        recoverable: true,
+        metadata: {
+          draft_id: activeDraftId,
+          has_images: safeImages.length > 0,
+          image_count: safeImages.length,
+          garden_address: formData.gardenAddress,
+          action_uid: formData.actionUID,
+          has_feedback: formData.feedback.length > 0,
+        },
+      });
       return null;
     } finally {
       isSavingRef.current = false;

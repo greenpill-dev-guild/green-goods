@@ -1,8 +1,11 @@
 import type { Work } from "@green-goods/shared";
-import { useOffline, useUser } from "@green-goods/shared/hooks";
-import { useQueueFlush } from "@green-goods/shared/providers/JobQueue";
 import React from "react";
 import { useIntl } from "react-intl";
+
+import { useOffline, useUser } from "@green-goods/shared/hooks";
+import { trackSyncError } from "@green-goods/shared/modules";
+import { useQueueFlush } from "@green-goods/shared/providers/JobQueue";
+
 import { MinimalWorkCard } from "@/components/Cards";
 import { BeatLoader } from "@/components/Communication";
 
@@ -41,6 +44,17 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
       await flush();
     } catch (error) {
       console.error("Failed to sync all items:", error);
+      trackSyncError(error, {
+        source: "Uploading.handleSyncAll",
+        userAction: authMode === "wallet" ? "retrying failed uploads" : "syncing all pending items",
+        recoverable: true,
+        metadata: {
+          trigger: authMode === "wallet" ? "retry_button" : "sync_all_button",
+          uploading_count: uploadingCount,
+          auth_mode: authMode,
+          is_online: isOnline,
+        },
+      });
     }
   };
 

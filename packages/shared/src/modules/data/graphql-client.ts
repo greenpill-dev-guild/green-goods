@@ -1,6 +1,8 @@
-import { GraphQLClient, type RequestDocument } from "graphql-request";
 import type { TypedDocumentNode } from "@graphql-typed-document-node/core";
+import { GraphQLClient, type RequestDocument } from "graphql-request";
+
 import { getEasGraphqlUrl, getIndexerUrl } from "../../config/blockchain";
+import { trackGraphQLError } from "../app/error-tracking";
 
 /** Vite environment interface for indexer URL access */
 interface ViteEnv {
@@ -86,7 +88,21 @@ export class GQLClient {
       );
       return { data };
     } catch (error) {
-      return { error: error instanceof Error ? error : new Error(String(error)) };
+      const normalizedError = error instanceof Error ? error : new Error(String(error));
+
+      trackGraphQLError(normalizedError, {
+        source: "GQLClient.query",
+        userAction: operationName ? `executing ${operationName} query` : "executing GraphQL query",
+        recoverable: true,
+        metadata: {
+          operation_name: operationName,
+          is_timeout: error instanceof TimeoutError,
+          timeout_ms: error instanceof TimeoutError ? error.timeoutMs : undefined,
+          is_offline: typeof navigator !== "undefined" ? !navigator.onLine : false,
+        },
+      });
+
+      return { error: normalizedError };
     }
   }
 

@@ -7,6 +7,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
+import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -45,6 +46,7 @@ vi.mock("@green-goods/shared/hooks", () => ({
 vi.mock("@green-goods/shared/modules", () => ({
   hasStoredUsername: () => false,
   getStoredUsername: () => null,
+  trackAuthError: vi.fn(),
 }));
 
 // Mock Splash component to simplify testing
@@ -104,13 +106,17 @@ import { Login } from "../../views/Login";
 const renderWithRouter = (initialRoute = "/login") => {
   return render(
     createElement(
-      MemoryRouter,
-      { initialEntries: [initialRoute] },
+      HelmetProvider,
+      null,
       createElement(
-        Routes,
-        null,
-        createElement(Route, { path: "/login/*", element: createElement(Login) }),
-        createElement(Route, { path: "/home", element: createElement("div", null, "Home Page") })
+        MemoryRouter,
+        { initialEntries: [initialRoute] },
+        createElement(
+          Routes,
+          null,
+          createElement(Route, { path: "/login/*", element: createElement(Login) }),
+          createElement(Route, { path: "/home", element: createElement("div", null, "Home Page") })
+        )
       )
     )
   );
@@ -197,6 +203,7 @@ describe("Login View - Existing User", () => {
     vi.doMock("@green-goods/shared/modules", () => ({
       hasStoredUsername: () => true,
       getStoredUsername: () => "testuser",
+      trackAuthError: vi.fn(),
     }));
 
     // Re-import with new mocks - this is tricky in vitest
