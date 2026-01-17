@@ -260,6 +260,25 @@ export function useAutoJoinRootGarden(autoJoin = false) {
         throw new Error("Root garden not configured for this network. Please contact support.");
       }
 
+      // Double-check: Don't attempt join if already a member (defense-in-depth)
+      // This check happens AFTER gardens data is loaded, so derivedIsMember is reliable
+      if (derivedIsMember && !gardensLoading && !gardensFetching) {
+        console.log("[useAutoJoinRootGarden] User is already a member, skipping join");
+        // Mark as onboarded even if we skip the join
+        localStorage.setItem(ROOT_GARDEN_PROMPTED_KEY, "true");
+        const onboardKey = getOnboardedKey(targetAddress);
+        localStorage.setItem(onboardKey, "true");
+        localStorage.setItem(ONBOARDED_STORAGE_KEY, "true");
+        setState((prev) => ({
+          ...prev,
+          isGardener: true,
+          showPrompt: false,
+          hasPrompted: true,
+          isLoading: false,
+        }));
+        return; // Exit without joining
+      }
+
       try {
         await executeJoin(gardenId, sessionOverride);
 
@@ -333,7 +352,10 @@ export function useAutoJoinRootGarden(autoJoin = false) {
     },
     [
       chainId,
+      derivedIsMember,
       executeJoin,
+      gardensLoading,
+      gardensFetching,
       normalizeAddress,
       queryClient,
       refetchGardens,
@@ -347,21 +369,31 @@ export function useAutoJoinRootGarden(autoJoin = false) {
   useEffect(() => {
     if (!autoJoin) return;
     if (!ready || !primaryAddress || !rootGarden?.address) return;
-    if (derivedIsMember) return;
+
+    // CRITICAL: Wait for gardens data to load before checking membership
+    // This prevents race condition where auto-join fires before indexer data loads
+    if (gardensLoading || gardensFetching) {
+      return; // Wait for data to be ready
+    }
+
+    // Check if user is already a member (from indexer data)
+    if (derivedIsMember) {
+      return; // Already a member, no need to join
+    }
 
     const onboardedKey = getOnboardedKey(primaryAddress);
     const isOnboarded =
       localStorage.getItem(onboardedKey) === "true" ||
       localStorage.getItem(ONBOARDED_STORAGE_KEY) === "true";
     if (isOnboarded) {
-      return;
+      return; // Already onboarded, no need to join
     }
 
     // This auto-join is mainly a fallback - primary flow is in Login component
     joinGarden().catch((err) => {
       console.error("Auto-join failed", err);
     });
-  }, [autoJoin, ready, primaryAddress, rootGarden, derivedIsMember, joinGarden]);
+  }, [autoJoin, ready, primaryAddress, rootGarden, derivedIsMember, gardensLoading, gardensFetching, joinGarden]);
 
   /**
    * Dismiss the join prompt without joining.

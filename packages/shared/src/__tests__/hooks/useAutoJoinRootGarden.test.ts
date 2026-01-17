@@ -293,6 +293,47 @@ describe("hooks/garden/useAutoJoinRootGarden", () => {
       // Should not throw, should set isGardener
       expect(result.current.isGardener).toBe(true);
     });
+
+    it("skips join transaction if user is already a member", async () => {
+      const mockClient = createMockSmartAccountClient();
+      mockClient.sendTransaction.mockResolvedValue("0xJoinTxHash");
+
+      mockUseUser.mockReturnValue({
+        smartAccountAddress: MOCK_ADDRESSES.smartAccount,
+        smartAccountClient: mockClient,
+        ready: true,
+        eoa: null,
+      });
+
+      // Mock gardens data showing user is already a member
+      mockUseGardens.mockReturnValue({
+        data: [
+          createMockGarden({
+            id: "root-garden",
+            tokenID: BigInt(0),
+            gardeners: [MOCK_ADDRESSES.smartAccount],
+            operators: [],
+          }),
+        ],
+        isLoading: false,
+        isFetching: false,
+        refetch: vi.fn(),
+      });
+
+      const { result } = renderHook(() => useAutoJoinRootGarden(false), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await result.current.joinGarden();
+      });
+
+      // Should NOT attempt transaction since user is already a member
+      expect(mockClient.sendTransaction).not.toHaveBeenCalled();
+      // Should still mark as gardener and update localStorage
+      expect(result.current.isGardener).toBe(true);
+      expect(localStorageMock.setItem).toHaveBeenCalledWith("rootGardenPrompted", "true");
+    });
   });
 
   describe("Loading states", () => {
