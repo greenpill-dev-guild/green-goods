@@ -20,11 +20,12 @@
   },
 
   // Forward all dev server ports
-  "forwardPorts": [3000, 3001, 3002, 8080, 8545, 9898],
+  "forwardPorts": [3000, 3001, 3002, 3003, 8080, 8545, 9898],
   "portsAttributes": {
     "3000": { "label": "Agent API" },
     "3001": { "label": "Client PWA" },
     "3002": { "label": "Admin Dashboard" },
+    "3003": { "label": "Docs (Docusaurus)" },
     "8080": { "label": "Indexer GraphQL" },
     "8545": { "label": "Anvil (Local Blockchain)" },
     "9898": { "label": "HyperSync" }
@@ -35,6 +36,7 @@
     "source=gg-node_modules,target=${containerWorkspaceFolder}/node_modules,type=volume",
     "source=gg-indexer-generated-node_modules,target=${containerWorkspaceFolder}/packages/indexer/generated/node_modules,type=volume",
     "source=gg-contracts-lib,target=${containerWorkspaceFolder}/packages/contracts/lib,type=volume",
+    "source=gg-docs-node_modules,target=${containerWorkspaceFolder}/docs/node_modules,type=volume",
     "source=gg-commandhistory-${devcontainerId},target=/commandhistory,type=volume",
     "source=gg-claude-config-${devcontainerId},target=/home/node/.claude,type=volume"
   ],
@@ -47,14 +49,19 @@
     "POWERLEVEL9K_DISABLE_GITSTATUS": "true"
   },
 
-  // Claude Code authentication (OPTIONAL)
+  // Remote environment variables (forwarded from host)
   //
+  // Claude Code authentication (OPTIONAL):
   // You do NOT need to set these. Just run 'claude login' inside the container.
   // These env vars are only for automated/enterprise setups where you want to
   // pre-configure authentication before the container starts.
-  //
   // See: https://docs.anthropic.com/en/docs/claude-code/enterprise-deployment
   "remoteEnv": {
+    // === GPG Signing ===
+    // Forward GPG key ID from host for automatic commit signing
+    // Add to your ~/.zshrc: export GPG_KEY_ID="YOUR_KEY_ID"
+    "GPG_KEY_ID": "${localEnv:GPG_KEY_ID}",
+
     // === Direct Anthropic API (optional - or just run 'claude login') ===
     "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}",
 
