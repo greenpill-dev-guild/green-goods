@@ -12,6 +12,7 @@
     "figma@claude-plugins-official": true,
     "vercel@claude-plugins-official": true,
     "pr-review-toolkit@claude-plugins-official": true,
-    "hookify@claude-plugins-official": true
+    "hookify@claude-plugins-official": true,
+    "ralph-wiggum@claude-plugins-official": true
   }
 }
