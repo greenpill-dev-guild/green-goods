@@ -1,8 +1,7 @@
 /**
  * Authentication Services for XState Machine
  *
- * These services handle the async operations for the auth machine,
- * using Pimlico's passkey server for credential storage.
+ * Client-only passkey authentication services using localStorage for credential storage.
  *
  * Services:
  * - restoreSession: Check for existing session on app start
@@ -10,7 +9,7 @@
  * - authenticatePasskey: Login with existing passkey (returning user)
  * - claimENS: Claim ENS subdomain on mainnet
  *
- * Reference: https://docs.pimlico.io/guides/how-to/signers/passkey-server
+ * Reference: https://docs.pimlico.io/docs/how-tos/signers/passkey
  */
 
 import { createSmartAccountClient, type SmartAccountClient } from "permissionless";
@@ -24,12 +23,7 @@ import {
 import { fromPromise } from "xstate";
 
 import { getChain } from "../config/chains";
-import {
-  createPasskeyServerClient,
-  createPasskeyWithServer,
-  getPasskeyRpId,
-  type PasskeyServerClient,
-} from "../config/passkeyServer";
+import { createPasskey, getPasskeyRpId } from "../config/passkeyServer";
 import {
   createPimlicoClientForChain,
   createPublicClientForChain,
@@ -44,7 +38,7 @@ import {
   trackAuthPasskeyRegisterSuccess,
   trackAuthSessionRestored,
 } from "../modules/app/analytics-events";
-import { clearStoredUsername, getStoredUsername, setStoredUsername } from "../modules/auth/session";
+import { getStoredCredential, getStoredUsername, setStoredUsername } from "../modules/auth/session";
 
 import type { PasskeySessionResult, RestoreSessionResult } from "./authMachine";
 
@@ -54,14 +48,12 @@ import type { PasskeySessionResult, RestoreSessionResult } from "./authMachine";
 
 /** Input for passkey operations (register/authenticate) */
 interface PasskeyInput {
-  passkeyClient: PasskeyServerClient | null;
   userName: string | null;
   chainId: number;
 }
 
-/** Input for session restore (no userName needed - read from storage) */
+/** Input for session restore */
 interface RestoreInput {
-  passkeyClient: PasskeyServerClient | null;
   chainId: number;
 }
 
@@ -79,7 +71,7 @@ const DEFAULT_SPONSORSHIP_POLICY_ID = "sp_next_monster_badoon";
 
 /**
  * Decode a credential ID from base64URL or hex format to Uint8Array.
- * WebAuthn credential IDs can be in either format depending on the server.
+ * WebAuthn credential IDs can be in either format.
  */
 function decodeCredentialId(id: string): Uint8Array {
   // Try base64URL decode first
@@ -106,6 +98,10 @@ function decodeCredentialId(id: string): Uint8Array {
   }
 }
 
+/**
+ * Build smart account client from P256Credential.
+ * This is the core function that creates the Kernel smart account.
+ */
 async function buildSmartAccountFromCredential(
   credential: P256Credential,
   chainId: number
@@ -115,8 +111,10 @@ async function buildSmartAccountFromCredential(
   const pimlicoClient = createPimlicoClientForChain(chainId);
   const bundlerUrl = getPimlicoBundlerUrl(chainId);
 
+  // Create WebAuthn account from credential
   const webAuthnAccount = toWebAuthnAccount({ credential });
 
+  // Create Kernel smart account with WebAuthn owner
   const account = await toKernelSmartAccount({
     client: publicClient,
     version: "0.3.1",
@@ -130,6 +128,7 @@ async function buildSmartAccountFromCredential(
   const sponsorshipPolicyId =
     import.meta.env.VITE_PIMLICO_SPONSORSHIP_POLICY_ID || DEFAULT_SPONSORSHIP_POLICY_ID;
 
+  // Create smart account client with Pimlico paymaster for gas sponsorship
   const client = createSmartAccountClient({
     account,
     chain,
@@ -154,68 +153,44 @@ async function buildSmartAccountFromCredential(
 // SERVICE: Restore Session
 // ============================================================================
 
-// Session restore: 15s timeout with 2 retries for poor networks
-const SESSION_RESTORE_TIMEOUT = 15000;
-const SESSION_RESTORE_MAX_RETRIES = 2;
-
-async function fetchCredentialsWithRetry(
-  passkeyClient: PasskeyServerClient,
-  storedUsername: string
-): Promise<P256Credential[] | null> {
-  for (let attempt = 0; attempt <= SESSION_RESTORE_MAX_RETRIES; attempt++) {
-    try {
-      const { promise: timeoutPromise, reject } = Promise.withResolvers<never>();
-      setTimeout(() => reject(new Error("Session restore timeout")), SESSION_RESTORE_TIMEOUT);
-
-      return await Promise.race([
-        passkeyClient.getCredentials({ context: { userName: storedUsername } }),
-        timeoutPromise,
-      ]);
-    } catch (error) {
-      if (attempt === SESSION_RESTORE_MAX_RETRIES) throw error;
-      // Exponential backoff: 1s, 2s
-      const { promise, resolve } = Promise.withResolvers<void>();
-      setTimeout(resolve, 1000 * Math.pow(2, attempt));
-      await promise;
-    }
-  }
-  return null;
-}
-
+/**
+ * Restore session from localStorage.
+ * Reads stored credential and rebuilds smart account client.
+ */
 export const restoreSessionService = fromPromise<RestoreSessionResult | null, RestoreInput>(
   async ({ input }) => {
     const { chainId } = input;
+
+    // Check for stored credential and username
+    const storedCredential = getStoredCredential();
     const storedUsername = getStoredUsername();
 
-    if (!storedUsername) return null;
-
-    const passkeyClient = createPasskeyServerClient(chainId);
+    if (!storedCredential) {
+      console.debug("[Auth] No stored credential found");
+      return null;
+    }
 
     try {
-      const credentials = await fetchCredentialsWithRetry(passkeyClient, storedUsername);
-
-      if (!credentials || credentials.length === 0) {
-        clearStoredUsername();
-        return null;
-      }
-
-      const credential = credentials[0];
-      const { client, address } = await buildSmartAccountFromCredential(credential, chainId);
+      // Build smart account from stored credential
+      const { client, address } = await buildSmartAccountFromCredential(storedCredential, chainId);
 
       // Track successful session restore
       trackAuthSessionRestored({
         smartAccountAddress: address,
-        userName: storedUsername,
+        userName: storedUsername || "unknown",
       });
 
+      console.debug("[Auth] Session restored for:", address);
+
       return {
-        credential,
+        credential: storedCredential,
         smartAccountClient: client,
         smartAccountAddress: address,
-        userName: storedUsername,
+        userName: storedUsername || "",
       };
-    } catch {
-      // Don't clear username on network errors - user still has account
+    } catch (error) {
+      console.error("[Auth] Failed to restore session:", error);
+      // Don't clear credential on network errors - user still has their passkey
       return null;
     }
   }
@@ -226,13 +201,12 @@ export const restoreSessionService = fromPromise<RestoreSessionResult | null, Re
 // ============================================================================
 
 /**
- * Register a new passkey for a new user using Pimlico server
+ * Register a new passkey for a new user.
  *
  * Flow:
- * 1. Start registration on Pimlico server
- * 2. Create WebAuthn credential (prompts biometric)
- * 3. Verify registration on Pimlico server (stores credential)
- * 4. Build smart account client
+ * 1. Create WebAuthn credential (prompts biometric)
+ * 2. Store credential in localStorage
+ * 3. Build smart account client
  */
 export const registerPasskeyService = fromPromise<PasskeySessionResult, PasskeyInput>(
   async ({ input }) => {
@@ -246,13 +220,10 @@ export const registerPasskeyService = fromPromise<PasskeySessionResult, PasskeyI
     trackAuthPasskeyRegisterStarted({ userName });
 
     try {
-      // Create passkey server client
-      const passkeyClient = createPasskeyServerClient(chainId);
+      // Create passkey (this stores it in localStorage too)
+      const credential = await createPasskey(userName);
 
-      // Create and register credential via Pimlico server
-      const credential = await createPasskeyWithServer(passkeyClient, userName);
-
-      // Store username locally for session restore
+      // Store username for display
       setStoredUsername(userName);
 
       // Build smart account
@@ -263,6 +234,8 @@ export const registerPasskeyService = fromPromise<PasskeySessionResult, PasskeyI
         smartAccountAddress: address,
         userName,
       });
+
+      console.debug("[Auth] Registration complete - Address:", address);
 
       return {
         credential,
@@ -286,45 +259,32 @@ export const registerPasskeyService = fromPromise<PasskeySessionResult, PasskeyI
 // ============================================================================
 
 /**
- * Authenticate with existing passkey using Pimlico server
+ * Authenticate with existing passkey from localStorage.
  *
  * Flow:
- * 1. Fetch credentials from Pimlico server
- * 2. Prompt biometric authentication
+ * 1. Read credential from localStorage
+ * 2. Prompt biometric authentication via WebAuthn
  * 3. Build smart account client
  */
 export const authenticatePasskeyService = fromPromise<PasskeySessionResult, PasskeyInput>(
   async ({ input }) => {
     const { userName, chainId } = input;
 
-    if (!userName) {
-      throw new Error("Username is required for authentication");
-    }
-
     // Track login started
-    trackAuthPasskeyLoginStarted({ userName });
+    trackAuthPasskeyLoginStarted({ userName: userName || "returning" });
 
     try {
-      // Create passkey server client
-      const passkeyClient = createPasskeyServerClient(chainId);
+      // Get stored credential
+      const credential = getStoredCredential();
 
-      // Fetch credentials from Pimlico server
-      const credentials = await passkeyClient.getCredentials({
-        context: { userName },
-      });
-
-      if (credentials.length === 0) {
-        throw new Error("No passkey found for this account. Please create a new account.");
+      if (!credential) {
+        throw new Error("No passkey found. Please create a new account.");
       }
-
-      // Use first credential
-      const credential = credentials[0];
 
       // Decode credential ID for WebAuthn authentication
       const credentialIdBytes = decodeCredentialId(credential.id);
 
-      // Get fixed RP ID - MUST match what was used during registration
-      // This is critical for Android which is strict about RP ID matching
+      // Get RP ID - MUST match what was used during registration
       const rpId = getPasskeyRpId();
 
       console.debug(
@@ -346,7 +306,6 @@ export const authenticatePasskeyService = fromPromise<PasskeySessionResult, Pass
             {
               id: credentialIdBytes as BufferSource,
               type: "public-key",
-              // Transports hint helps Android find the credential
               transports: ["internal", "hybrid"],
             },
           ],
@@ -358,29 +317,35 @@ export const authenticatePasskeyService = fromPromise<PasskeySessionResult, Pass
         throw new Error("Passkey authentication was cancelled");
       }
 
-      // Store username for session restore
-      setStoredUsername(userName);
+      // Update stored username if provided
+      if (userName) {
+        setStoredUsername(userName);
+      }
 
-      // Build smart account with the credential from server
+      // Build smart account with the stored credential
       const { client, address } = await buildSmartAccountFromCredential(credential, chainId);
+
+      const resolvedUsername = userName || getStoredUsername() || "";
 
       // Track successful login
       trackAuthPasskeyLoginSuccess({
         smartAccountAddress: address,
-        userName,
+        userName: resolvedUsername,
       });
+
+      console.debug("[Auth] Authentication complete - Address:", address);
 
       return {
         credential,
         smartAccountClient: client,
         smartAccountAddress: address,
-        userName,
+        userName: resolvedUsername,
       };
     } catch (error) {
       // Track failed login
       trackAuthPasskeyLoginFailed({
         error: error instanceof Error ? error.message : "Unknown error",
-        userName,
+        userName: userName || "unknown",
       });
       throw error;
     }
@@ -392,7 +357,7 @@ export const authenticatePasskeyService = fromPromise<PasskeySessionResult, Pass
 // ============================================================================
 
 /**
- * Claim ENS subdomain on mainnet
+ * Claim ENS subdomain on mainnet.
  */
 export const claimENSService = fromPromise<void, ClaimENSInput>(async ({ input }) => {
   const { smartAccountClient, name } = input;

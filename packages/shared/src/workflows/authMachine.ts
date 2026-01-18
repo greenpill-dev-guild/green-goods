@@ -2,7 +2,7 @@
  * Authentication State Machine
  *
  * XState 5 machine for managing passkey and wallet authentication flows.
- * Integrates with Pimlico passkey server for credential storage.
+ * Uses client-only credential storage in localStorage.
  *
  * Design Principles:
  * 1. ALL state transitions defined in the machine (no React-side filtering)
@@ -11,7 +11,7 @@
  * 4. Explicit transitions for switching auth methods
  *
  * States:
- * - initializing: Checking for existing session
+ * - initializing: Checking for existing session (localStorage)
  * - unauthenticated: No active session, ready for login
  * - registering: Creating new passkey (new user flow)
  * - authenticating: Logging in with existing passkey (returning user flow)
@@ -31,6 +31,8 @@
  * - SWITCH_TO_WALLET: Switch from passkey to connected wallet
  * - SWITCH_TO_PASSKEY: Switch from wallet to passkey (triggers login flow)
  * - SIGN_OUT: Clear all auth state
+ *
+ * Reference: https://docs.pimlico.io/docs/how-tos/signers/passkey
  */
 
 import { type SmartAccountClient } from "permissionless";
@@ -38,16 +40,11 @@ import { type Hex } from "viem";
 import { type P256Credential } from "viem/account-abstraction";
 import { assign, fromPromise, setup } from "xstate";
 
-import { type PasskeyServerClient } from "../config/passkeyServer";
-
 // ============================================================================
 // CONTEXT
 // ============================================================================
 
 export interface AuthContext {
-  // Pimlico server client (initialized at start)
-  passkeyClient: PasskeyServerClient | null;
-
   // Passkey session state
   credential: P256Credential | null;
   userName: string | null;
@@ -122,13 +119,11 @@ export interface RestoreSessionResult extends PasskeySessionResult {}
 
 /** Input for session restore operation */
 export interface RestoreSessionInput {
-  passkeyClient: PasskeyServerClient | null;
   chainId: number;
 }
 
 /** Input for passkey operations (register/authenticate) */
 export interface PasskeyOperationInput {
-  passkeyClient: PasskeyServerClient | null;
   userName: string | null;
   chainId: number;
 }
@@ -145,7 +140,6 @@ export interface ClaimENSInput {
 
 export interface AuthInput {
   chainId: number;
-  passkeyClient: PasskeyServerClient | null;
 }
 
 // ============================================================================
@@ -323,7 +317,6 @@ export const authMachine = authSetup.createMachine({
   initial: "initializing",
 
   context: ({ input }) => ({
-    passkeyClient: input?.passkeyClient ?? null,
     credential: null,
     userName: null,
     smartAccountClient: null,
@@ -355,13 +348,12 @@ export const authMachine = authSetup.createMachine({
   states: {
     // ═══════════════════════════════════════════════════════════════════════════
     // INITIALIZING
-    // Check for existing session (passkey via stored username)
+    // Check for existing session (passkey credential in localStorage)
     // ═══════════════════════════════════════════════════════════════════════════
     initializing: {
       invoke: {
         src: "restoreSession",
         input: ({ context }): RestoreSessionInput => ({
-          passkeyClient: context.passkeyClient,
           chainId: context.chainId,
         }),
         onDone: [
@@ -434,7 +426,6 @@ export const authMachine = authSetup.createMachine({
       invoke: {
         src: "registerPasskey",
         input: ({ context }): PasskeyOperationInput => ({
-          passkeyClient: context.passkeyClient,
           userName: context.userName,
           chainId: context.chainId,
         }),
@@ -468,7 +459,6 @@ export const authMachine = authSetup.createMachine({
       invoke: {
         src: "authenticatePasskey",
         input: ({ context }): PasskeyOperationInput => ({
-          passkeyClient: context.passkeyClient,
           userName: context.userName,
           chainId: context.chainId,
         }),

@@ -2,7 +2,7 @@
  * Unified Auth Provider
  *
  * Single authentication provider using XState for state management
- * and Pimlico passkey server for credential storage.
+ * and localStorage for credential storage (client-only approach).
  *
  * Design Principles:
  * 1. React only REPORTS events to the machine (no filtering)
@@ -11,7 +11,7 @@
  *
  * Features:
  * - XState-based state management for predictable auth flows
- * - Pimlico passkey server integration (no localStorage for credentials)
+ * - Client-only credential storage in localStorage
  * - Automatic session restoration on mount
  * - Wallet fallback for admin/operator users
  * - External wallet tracking (available for switching)
@@ -27,7 +27,7 @@
  * const { authMode, smartAccountAddress, createAccount, signOut } = useAuth();
  * ```
  *
- * Reference: https://docs.pimlico.io/guides/how-to/signers/passkey-server
+ * Reference: https://docs.pimlico.io/docs/how-tos/signers/passkey
  */
 
 import { disconnect } from "@wagmi/core";
@@ -43,10 +43,11 @@ import { queryClient } from "../config/react-query";
 import {
   type AuthMode,
   clearAuthMode,
+  clearStoredCredential,
   clearStoredUsername,
   getAuthMode,
   getStoredUsername,
-  hasStoredUsername,
+  hasStoredCredential,
   setAuthMode as saveAuthModeToStorage,
 } from "../modules/auth/session";
 import { type AuthActor, getAuthActor } from "../workflows/authActor";
@@ -329,7 +330,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [actor]);
 
   const clearPasskey = useCallback(() => {
-    // Clear stored username (credentials are on Pimlico server)
+    // Clear stored credential and username from localStorage
+    clearStoredCredential();
     clearStoredUsername();
     if (actor) {
       actor.send({ type: "SIGN_OUT" });
@@ -377,8 +379,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       snapshot.matches("wallet_connecting") ||
       isConnecting;
 
-    // Check for stored username (indicates existing account with Pimlico server)
-    const storedCredential = hasStoredUsername();
+    // Check for stored credential (indicates existing account in localStorage)
+    const storedCredential = hasStoredCredential();
 
     // Determine if auth is ready
     // For wallet mode: wait for Wagmi to finish reconnecting before declaring ready

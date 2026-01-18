@@ -1,15 +1,19 @@
 /**
  * Authentication Session Utilities
  *
- * Minimal session management for Pimlico passkey server integration.
+ * Client-only session management for passkey authentication.
  *
  * Storage keys:
  * - AUTH_MODE_STORAGE_KEY: Which auth method is active ("passkey" | "wallet")
- * - USERNAME_STORAGE_KEY: Pimlico passkey server username (for session restore)
+ * - USERNAME_STORAGE_KEY: User's display name
+ * - CREDENTIAL_STORAGE_KEY: Passkey credential (id + publicKey)
  *
- * Note: Passkey credentials are stored on Pimlico's server, not localStorage.
- * Only the username is stored locally to know which credentials to fetch.
+ * Note: This is a simplified client-only approach following Pimlico's documentation.
+ * Credentials are stored in localStorage - no server-side storage needed.
+ * Reference: https://docs.pimlico.io/docs/how-tos/signers/passkey
  */
+
+import type { P256Credential } from "viem/account-abstraction";
 
 // ============================================================================
 // STORAGE KEYS
@@ -18,8 +22,11 @@
 /** Active auth mode */
 export const AUTH_MODE_STORAGE_KEY = "greengoods_auth_mode";
 
-/** Username for Pimlico passkey server (only thing stored locally for passkey auth) */
+/** Username for display */
 export const USERNAME_STORAGE_KEY = "greengoods_username";
+
+/** Passkey credential (id + publicKey as JSON) */
+export const CREDENTIAL_STORAGE_KEY = "greengoods_credential";
 
 /** RP ID used during passkey registration (for cross-device consistency) */
 export const RP_ID_STORAGE_KEY = "greengoods_rp_id";
@@ -108,15 +115,16 @@ export function clearStoredRpId(): void {
 // ============================================================================
 
 /**
- * Clear all auth storage including username and RP ID.
+ * Clear all auth storage including credential, username, and RP ID.
  *
- * WARNING: This removes the username permanently.
- * For regular logout, use clearAuthMode() instead to keep the username.
+ * WARNING: This removes the credential permanently.
+ * For regular logout, use clearAuthMode() instead to keep the credential.
  * Only use this for complete account deletion.
  */
 export function clearAllAuth(): void {
   localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
   localStorage.removeItem(USERNAME_STORAGE_KEY);
+  localStorage.removeItem(CREDENTIAL_STORAGE_KEY);
   localStorage.removeItem(RP_ID_STORAGE_KEY);
 }
 
@@ -177,21 +185,80 @@ if (import.meta.env.DEV) {
 }
 
 // ============================================================================
-// LEGACY EXPORTS (kept for backward compatibility during migration)
+// CREDENTIAL STORAGE (Client-Only)
 // ============================================================================
 
-/** @deprecated Legacy key - credentials now stored on Pimlico server */
-export const PASSKEY_STORAGE_KEY = "greengoods_passkey_credential";
-
-/** @deprecated Use hasStoredUsername instead */
-export function hasStoredPasskey(): boolean {
-  // Check for username (new flow) OR old credential (migration)
-  return Boolean(
-    localStorage.getItem(USERNAME_STORAGE_KEY) || localStorage.getItem(PASSKEY_STORAGE_KEY)
-  );
+/**
+ * Serializable credential data for localStorage storage.
+ * Only stores the fields needed to reconstruct the smart account.
+ */
+interface StoredCredential {
+  id: string;
+  publicKey: `0x${string}`;
 }
 
-/** @deprecated Clear legacy credential if present */
+/**
+ * Store passkey credential in localStorage.
+ * Only stores id and publicKey (raw cannot be serialized).
+ */
+export function setStoredCredential(credential: P256Credential): void {
+  const storedData: StoredCredential = {
+    id: credential.id,
+    publicKey: credential.publicKey,
+  };
+  localStorage.setItem(CREDENTIAL_STORAGE_KEY, JSON.stringify(storedData));
+}
+
+/**
+ * Get stored credential from localStorage.
+ * Returns a P256Credential-compatible object (without raw).
+ */
+export function getStoredCredential(): P256Credential | null {
+  const stored = localStorage.getItem(CREDENTIAL_STORAGE_KEY);
+  if (!stored) return null;
+
+  try {
+    const data = JSON.parse(stored) as StoredCredential;
+    // Return as P256Credential (raw is undefined, which is fine for smart account creation)
+    return {
+      id: data.id,
+      publicKey: data.publicKey,
+      raw: undefined as unknown as PublicKeyCredential,
+    };
+  } catch {
+    console.warn("[Session] Failed to parse stored credential, clearing...");
+    localStorage.removeItem(CREDENTIAL_STORAGE_KEY);
+    return null;
+  }
+}
+
+/**
+ * Check if there's a stored credential.
+ */
+export function hasStoredCredential(): boolean {
+  return localStorage.getItem(CREDENTIAL_STORAGE_KEY) !== null;
+}
+
+/**
+ * Clear stored credential.
+ */
+export function clearStoredCredential(): void {
+  localStorage.removeItem(CREDENTIAL_STORAGE_KEY);
+}
+
+// ============================================================================
+// LEGACY EXPORTS (kept for backward compatibility)
+// ============================================================================
+
+/** @deprecated Use CREDENTIAL_STORAGE_KEY instead */
+export const PASSKEY_STORAGE_KEY = "greengoods_passkey_credential";
+
+/** @deprecated Use hasStoredCredential instead */
+export function hasStoredPasskey(): boolean {
+  return hasStoredCredential() || hasStoredUsername();
+}
+
+/** @deprecated Use clearStoredCredential instead */
 export function clearStoredPasskey(): void {
-  localStorage.removeItem(PASSKEY_STORAGE_KEY);
+  clearStoredCredential();
 }

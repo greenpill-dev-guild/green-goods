@@ -55,7 +55,6 @@ export {
 export type {
   EASConfig,
   NetworkConfig,
-  PasskeyServerClient,
   SupportedChainId,
 } from "./config/index";
 export {
@@ -66,7 +65,7 @@ export {
   APP_TITLE_TEMPLATE,
   APP_URL,
   appKit,
-  createPasskeyServerClient,
+  createPasskey,
   createPimlicoClientForChain,
   createPublicClientForChain,
   DEFAULT_CHAIN_ID,
@@ -78,12 +77,15 @@ export {
   getEasGraphqlUrl,
   getIndexerUrl,
   getNetworkConfig,
+  getPasskeyRpId,
   getPimlicoApiKey,
   getPimlicoBundlerUrl,
   getPimlicoPaymasterUrl,
   isChainSupported,
-  isPasskeyServerAvailable,
+  isPasskeyAvailable,
   ONBOARDED_STORAGE_KEY,
+  PASSKEY_RP_ID,
+  PASSKEY_RP_NAME,
   queryClient,
   STALE_TIMES,
   SUPPORTED_CHAINS,
