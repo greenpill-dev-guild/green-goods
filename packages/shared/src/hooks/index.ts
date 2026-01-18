@@ -38,6 +38,8 @@ export type {
   UseLoadingWithMinDurationResult,
 } from "./app/useLoadingWithMinDuration";
 export { useLoadingWithMinDuration } from "./app/useLoadingWithMinDuration";
+export type { ServiceWorkerUpdateState } from "./app/useServiceWorkerUpdate";
+export { useServiceWorkerUpdate } from "./app/useServiceWorkerUpdate";
 
 // ============================================================================
 // ASSESSMENT

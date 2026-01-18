@@ -14,6 +14,12 @@
     "start": "envio start",
     "stop": "pkill -f 'envio dev' || true && lsof -ti:9898 -ti:8080 2>/dev/null | xargs kill -9 2>/dev/null || true",
 
+    "doctor": "./doctor.sh",
+    "doctor:fix": "./doctor.sh --fix",
+    "db:up": "cd generated && docker compose up -d",
+    "db:down": "cd generated && docker compose down",
+    "db:logs": "cd generated && docker compose logs -f",
+
     "test:setup": "bun run codegen && bun run setup-generated",
     "pretest": "[ -d generated/src ] || bun run test:setup",
     "test": "bun run mocha",
@@ -32,7 +38,7 @@
   },
   "dependencies": {
     "@elastic/ecs-pino-format": "^1.5.0",
-    "envio": "2.32.2",
+    "envio": "2.32.3",
     "postgres": "^3.4.7",
     "rescript-envsafe": "^5.0.0"
   },

@@ -3,9 +3,11 @@ import {
   DEFAULT_CHAIN_ID,
   initGlobalErrorHandlers,
   initTheme,
+  useServiceWorkerUpdate,
 } from "@green-goods/shared";
+import { updateToasts } from "@green-goods/shared/components";
 import { AppKitProvider, AuthProvider } from "@green-goods/shared/providers";
-import { StrictMode } from "react";
+import { StrictMode, useEffect } from "react";
 import { HelmetProvider } from "react-helmet-async";
 import { createRoot } from "react-dom/client";
 import App from "@/App.tsx";
@@ -44,55 +46,28 @@ if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_SW_DEV !== "true") {
 }
 
 /**
- * PWA Auto-Update System
+ * PWA Update Notifier Component
  *
- * On mobile PWAs, a new deploy downloads the service worker in the background,
- * but the running app keeps using old JS + cached data until a reload.
- * This causes "weird behavior" after updates.
+ * Shows a toast notification when a new version of the app is available.
+ * Users can choose to update immediately or dismiss and update later.
  *
- * Solution:
- * 1. Check for SW updates when the app comes back to foreground (visibility/focus)
- * 2. Auto-reload once the new SW takes control (controllerchange)
+ * This replaces the old auto-reload behavior to give users control over
+ * when the app refreshes, preventing unexpected data loss.
  */
-function initPwaAutoUpdate() {
-  const enableDevServiceWorker = import.meta.env.VITE_ENABLE_SW_DEV === "true";
-  if (!(import.meta.env.PROD || enableDevServiceWorker)) return;
-  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+function UpdateNotifier() {
+  const { updateAvailable, isUpdating, applyUpdate } = useServiceWorkerUpdate();
 
-  let hasController = navigator.serviceWorker.controller !== null;
-  let reloading = false;
-
-  const checkForUpdates = async () => {
-    try {
-      const registration = await navigator.serviceWorker.getRegistration();
-      await registration?.update();
-    } catch {
-      // Silently ignore update check failures (offline, etc.)
+  useEffect(() => {
+    if (updateAvailable) {
+      updateToasts.available(applyUpdate);
     }
-  };
-
-  // When a new SW takes control, reload once so the new JS/assets actually run
-  navigator.serviceWorker.addEventListener("controllerchange", () => {
-    // First install (no previous controller): don't reload
-    if (!hasController) {
-      hasController = true;
-      return;
+    if (isUpdating) {
+      updateToasts.updating();
     }
-    // Prevent reload loops
-    if (reloading) return;
-    reloading = true;
-    window.location.reload();
-  });
+  }, [updateAvailable, isUpdating, applyUpdate]);
 
-  // iOS/Android: update checks on foreground/resume
-  void checkForUpdates();
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") void checkForUpdates();
-  });
-  window.addEventListener("focus", () => void checkForUpdates());
+  return null;
 }
-
-initPwaAutoUpdate();
 
 export const Root = () => (
   <HelmetProvider>
@@ -110,6 +85,7 @@ export const Root = () => (
         {/* AuthProvider uses XState + Pimlico passkey server */}
         <AuthProvider>
           <AppProvider posthogKey={import.meta.env.VITE_POSTHOG_KEY}>
+            <UpdateNotifier />
             <App />
           </AppProvider>
         </AuthProvider>
