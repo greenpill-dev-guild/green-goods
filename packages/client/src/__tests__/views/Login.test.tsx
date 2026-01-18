@@ -22,6 +22,12 @@ vi.mock("@green-goods/shared", () => ({
     success: vi.fn(),
     error: vi.fn(),
   },
+  copyToClipboard: vi.fn(),
+  useInstallGuidance: () => ({
+    showInstallPrompt: false,
+    installAction: null,
+    dismissInstallPrompt: vi.fn(),
+  }),
 }));
 
 vi.mock("@green-goods/shared/hooks", () => ({
@@ -56,13 +62,11 @@ vi.mock("@/components/Layout", () => ({
     buttonLabel,
     errorMessage,
     secondaryAction,
-    tertiaryAction,
   }: {
     login?: () => void;
     buttonLabel?: string;
     errorMessage?: string | null;
     secondaryAction?: { label: string; onSelect: () => void };
-    tertiaryAction?: { label: string; onClick: () => void };
   }) =>
     createElement(
       "div",
@@ -74,7 +78,7 @@ vi.mock("@/components/Layout", () => ({
           onClick: login,
           type: "button",
         },
-        buttonLabel || "Sign Up"
+        buttonLabel || "Create Account"
       ),
       secondaryAction &&
         createElement(
@@ -85,16 +89,6 @@ vi.mock("@/components/Layout", () => ({
             type: "button",
           },
           secondaryAction.label
-        ),
-      tertiaryAction &&
-        createElement(
-          "button",
-          {
-            "data-testid": "wallet-button",
-            onClick: tertiaryAction.onClick,
-            type: "button",
-          },
-          tertiaryAction.label
         ),
       errorMessage && createElement("p", { "data-testid": "error-message" }, errorMessage)
     ),
@@ -137,29 +131,23 @@ describe("Login View", () => {
     expect(screen.getByTestId("splash-screen")).toBeInTheDocument();
   });
 
-  it("shows Sign Up button for new users", () => {
+  it("shows Create Account button for new users", () => {
     renderWithRouter();
 
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Sign Up");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create Account");
   });
 
-  it("shows Login secondary button for new users", () => {
+  it("shows Login with Wallet secondary button", () => {
     renderWithRouter();
 
-    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Login");
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Login with Wallet");
   });
 
-  it("shows Login with wallet option", () => {
-    renderWithRouter();
-
-    expect(screen.getByTestId("wallet-button")).toHaveTextContent("Login with wallet");
-  });
-
-  it("calls loginWithWallet when wallet button clicked", async () => {
+  it("calls loginWithWallet when secondary button clicked", async () => {
     const user = userEvent.setup();
     renderWithRouter();
 
-    await user.click(screen.getByTestId("wallet-button"));
+    await user.click(screen.getByTestId("secondary-button"));
 
     expect(mockLoginWithWallet).toHaveBeenCalled();
   });

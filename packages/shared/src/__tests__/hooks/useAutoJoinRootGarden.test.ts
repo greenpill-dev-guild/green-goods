@@ -271,9 +271,11 @@ describe("hooks/garden/useAutoJoinRootGarden", () => {
       expect(localStorageMock.setItem).toHaveBeenCalled();
     });
 
-    it("skips join transaction if user is already a member", async () => {
+    it("handles on-chain AlreadyGardener rejection gracefully", async () => {
+      // The implementation uses an optimistic approach: always attempts the join
+      // and handles AlreadyGardener error if it occurs (no pre-check of indexed data)
       const mockClient = createMockSmartAccountClient();
-      mockClient.sendTransaction.mockResolvedValue("0xJoinTxHash");
+      mockClient.sendTransaction.mockRejectedValue(new Error("AlreadyGardener"));
 
       mockUseUser.mockReturnValue({
         smartAccountAddress: MOCK_ADDRESSES.smartAccount,
@@ -282,22 +284,7 @@ describe("hooks/garden/useAutoJoinRootGarden", () => {
         eoa: null,
       });
 
-      // Mock gardens data showing user is already a member
-      mockUseGardens.mockReturnValue({
-        data: [
-          createMockGarden({
-            id: "root-garden",
-            tokenID: BigInt(0),
-            gardeners: [MOCK_ADDRESSES.smartAccount],
-            operators: [],
-          }),
-        ],
-        isLoading: false,
-        isFetching: false,
-        refetch: vi.fn(),
-      });
-
-      const { result } = renderHook(() => useAutoJoinRootGarden(false), {
+      const { result } = renderHook(() => useAutoJoinRootGarden(), {
         wrapper: createWrapper(),
       });
 
@@ -305,11 +292,10 @@ describe("hooks/garden/useAutoJoinRootGarden", () => {
         await result.current.joinGarden();
       });
 
-      // Should NOT attempt transaction since user is already a member
-      expect(mockClient.sendTransaction).not.toHaveBeenCalled();
-      // Should still mark as gardener and update localStorage
-      expect(result.current.isGardener).toBe(true);
-      expect(localStorageMock.setItem).toHaveBeenCalledWith("rootGardenPrompted", "true");
+      // Transaction IS attempted (optimistic approach)
+      expect(mockClient.sendTransaction).toHaveBeenCalled();
+      // AlreadyGardener error is caught and user is marked as onboarded
+      expect(localStorageMock.setItem).toHaveBeenCalled();
     });
   });
 

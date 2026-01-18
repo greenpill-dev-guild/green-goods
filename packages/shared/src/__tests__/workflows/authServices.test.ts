@@ -121,7 +121,7 @@ const mockPasskeyServerClient = {
 
 vi.mock("../../config/passkeyServer", () => ({
   createPasskeyServerClient: vi.fn(() => mockPasskeyServerClient),
-  createPasskeyWithServer: vi.fn(),
+  createPasskey: vi.fn(),
   getPasskeyRpId: vi.fn(() => "localhost"),
   PASSKEY_RP_ID: "greengoods.app",
   PASSKEY_RP_NAME: "Green Goods",
@@ -129,6 +129,7 @@ vi.mock("../../config/passkeyServer", () => ({
 
 // Mocked session functions
 let mockStoredUsername: string | null = null;
+let mockStoredCredential: unknown = null;
 vi.mock("../../modules/auth/session", () => ({
   getStoredUsername: vi.fn(() => mockStoredUsername),
   setStoredUsername: vi.fn((u: string) => {
@@ -136,6 +137,13 @@ vi.mock("../../modules/auth/session", () => ({
   }),
   clearStoredUsername: vi.fn(() => {
     mockStoredUsername = null;
+  }),
+  getStoredCredential: vi.fn(() => mockStoredCredential),
+  setStoredCredential: vi.fn((c: unknown) => {
+    mockStoredCredential = c;
+  }),
+  clearStoredCredential: vi.fn(() => {
+    mockStoredCredential = null;
   }),
   hasStoredPasskey: vi.fn(() => false),
   getStoredRpId: vi.fn(() => "localhost"),
@@ -145,7 +153,7 @@ vi.mock("../../modules/auth/session", () => ({
 }));
 
 // Import after mocks
-import { createPasskeyWithServer } from "../../config/passkeyServer";
+import { createPasskey } from "../../config/passkeyServer";
 import { clearStoredUsername, setStoredUsername } from "../../modules/auth/session";
 import {
   authenticatePasskeyService,
@@ -244,6 +252,7 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockStoredUsername = null;
+    mockStoredCredential = null;
     globalMockLocalStorage.clear();
     globalMockLocalStorage._setStore({});
 
@@ -291,106 +300,70 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
   });
 
   // ==========================================================================
-  // RESTORE SESSION SERVICE (Pimlico Server)
+  // RESTORE SESSION SERVICE (Client-Only Storage)
   // ==========================================================================
 
-  describe("restoreSessionService (Pimlico Server)", () => {
-    it("returns null when no stored username", async () => {
-      mockStoredUsername = null;
+  describe("restoreSessionService (Client-Only Storage)", () => {
+    it("returns null when no stored credential", async () => {
+      mockStoredCredential = null;
 
       const result = await invokeService(restoreSessionService, {
-        passkeyClient: null,
         chainId: MOCK_CHAIN_ID,
       });
 
       expect(result).toBeNull();
     });
 
-    it("fetches credentials from Pimlico server using stored username", async () => {
+    it("restores session from stored credential", async () => {
+      mockStoredCredential = MOCK_CREDENTIAL;
       mockStoredUsername = MOCK_USERNAME;
-      mockPasskeyServerClient.getCredentials.mockResolvedValue([MOCK_CREDENTIAL]);
 
       const result = await invokeService(restoreSessionService, {
-        passkeyClient: null,
         chainId: MOCK_CHAIN_ID,
       });
 
-      expect(mockPasskeyServerClient.getCredentials).toHaveBeenCalledWith({
-        context: { userName: MOCK_USERNAME },
-      });
       expect(result).not.toBeNull();
       expect(result?.credential).toEqual(MOCK_CREDENTIAL);
       expect(result?.smartAccountAddress).toBe(MOCK_SMART_ACCOUNT_ADDRESS);
       expect(result?.userName).toBe(MOCK_USERNAME);
     });
 
-    it("returns null and clears username when no credentials on server", async () => {
-      mockStoredUsername = MOCK_USERNAME;
-      mockPasskeyServerClient.getCredentials.mockResolvedValue([]);
+    it("returns result with empty username when no stored username", async () => {
+      mockStoredCredential = MOCK_CREDENTIAL;
+      mockStoredUsername = null;
 
       const result = await invokeService(restoreSessionService, {
-        passkeyClient: null,
         chainId: MOCK_CHAIN_ID,
       });
 
-      expect(result).toBeNull();
-      expect(clearStoredUsername).toHaveBeenCalled();
-    });
-
-    it("returns null but preserves username when server fetch fails (network error)", async () => {
-      mockStoredUsername = MOCK_USERNAME;
-      mockPasskeyServerClient.getCredentials.mockRejectedValue(new Error("Server error"));
-
-      const result = await invokeService(restoreSessionService, {
-        passkeyClient: null,
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      // On network errors, we should NOT clear the username - the user's account still exists
-      // They just couldn't restore it due to a network issue
-      expect(result).toBeNull();
-      expect(clearStoredUsername).not.toHaveBeenCalled();
-    });
-
-    it("uses first credential when multiple exist on server", async () => {
-      mockStoredUsername = MOCK_USERNAME;
-      const secondCredential = { ...MOCK_CREDENTIAL, id: "second-id" };
-      mockPasskeyServerClient.getCredentials.mockResolvedValue([MOCK_CREDENTIAL, secondCredential]);
-
-      const result = await invokeService(restoreSessionService, {
-        passkeyClient: null,
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(result?.credential).toEqual(MOCK_CREDENTIAL);
+      expect(result).not.toBeNull();
+      expect(result?.userName).toBe("");
     });
   });
 
   // ==========================================================================
-  // REGISTER PASSKEY SERVICE (Pimlico Server)
+  // REGISTER PASSKEY SERVICE (Client-Only)
   // ==========================================================================
 
-  describe("registerPasskeyService (Pimlico Server)", () => {
+  describe("registerPasskeyService (Client-Only)", () => {
     it("throws when username is missing", async () => {
       await expect(
         invokeService(registerPasskeyService, {
-          passkeyClient: null,
           userName: null,
           chainId: MOCK_CHAIN_ID,
         })
       ).rejects.toThrow("Username is required for registration");
     });
 
-    it("creates credential via Pimlico server flow", async () => {
-      (createPasskeyWithServer as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CREDENTIAL);
+    it("creates credential and stores username", async () => {
+      (createPasskey as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CREDENTIAL);
 
       const result = await invokeService(registerPasskeyService, {
-        passkeyClient: null,
         userName: MOCK_USERNAME,
         chainId: MOCK_CHAIN_ID,
       });
 
-      expect(createPasskeyWithServer).toHaveBeenCalled();
+      expect(createPasskey).toHaveBeenCalledWith(MOCK_USERNAME);
       expect(setStoredUsername).toHaveBeenCalledWith(MOCK_USERNAME);
       expect(result.credential).toEqual(MOCK_CREDENTIAL);
       expect(result.userName).toBe(MOCK_USERNAME);
@@ -398,10 +371,9 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
     });
 
     it("stores username locally after successful registration", async () => {
-      (createPasskeyWithServer as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CREDENTIAL);
+      (createPasskey as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CREDENTIAL);
 
       await invokeService(registerPasskeyService, {
-        passkeyClient: null,
         userName: "alice",
         chainId: MOCK_CHAIN_ID,
       });
@@ -410,10 +382,9 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
     });
 
     it("builds smart account from registered credential", async () => {
-      (createPasskeyWithServer as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CREDENTIAL);
+      (createPasskey as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CREDENTIAL);
 
       const result = await invokeService(registerPasskeyService, {
-        passkeyClient: null,
         userName: MOCK_USERNAME,
         chainId: MOCK_CHAIN_ID,
       });
@@ -424,48 +395,33 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
   });
 
   // ==========================================================================
-  // AUTHENTICATE PASSKEY SERVICE (Pimlico Server)
+  // AUTHENTICATE PASSKEY SERVICE (Client-Only)
   // ==========================================================================
 
-  describe("authenticatePasskeyService (Pimlico Server)", () => {
-    it("throws when username is not provided", async () => {
-      await expect(
-        invokeService(authenticatePasskeyService, {
-          passkeyClient: null,
-          userName: null,
-          chainId: MOCK_CHAIN_ID,
-        })
-      ).rejects.toThrow("Username is required for authentication");
-    });
-
-    it("throws when no credentials found on Pimlico server", async () => {
-      mockPasskeyServerClient.getCredentials.mockResolvedValue([]);
+  describe("authenticatePasskeyService (Client-Only)", () => {
+    it("throws when no stored credential", async () => {
+      mockStoredCredential = null;
 
       await expect(
         invokeService(authenticatePasskeyService, {
-          passkeyClient: null,
           userName: MOCK_USERNAME,
           chainId: MOCK_CHAIN_ID,
         })
-      ).rejects.toThrow("No passkey found for this account");
+      ).rejects.toThrow("No passkey found. Please create a new account.");
     });
 
-    it("fetches credentials from Pimlico server and prompts biometric", async () => {
-      mockPasskeyServerClient.getCredentials.mockResolvedValue([MOCK_CREDENTIAL]);
+    it("reads credential from localStorage and prompts biometric", async () => {
+      mockStoredCredential = MOCK_CREDENTIAL;
       mockCredentials.get.mockResolvedValue({
         id: MOCK_CREDENTIAL.id,
         type: "public-key",
       });
 
       const result = await invokeService(authenticatePasskeyService, {
-        passkeyClient: null,
         userName: MOCK_USERNAME,
         chainId: MOCK_CHAIN_ID,
       });
 
-      expect(mockPasskeyServerClient.getCredentials).toHaveBeenCalledWith({
-        context: { userName: MOCK_USERNAME },
-      });
       expect(mockCredentials.get).toHaveBeenCalled();
       expect(result.credential).toBeDefined();
       expect(result.smartAccountClient).toBeDefined();
@@ -473,14 +429,13 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
     });
 
     it("stores username after successful authentication", async () => {
-      mockPasskeyServerClient.getCredentials.mockResolvedValue([MOCK_CREDENTIAL]);
+      mockStoredCredential = MOCK_CREDENTIAL;
       mockCredentials.get.mockResolvedValue({
         id: MOCK_CREDENTIAL.id,
         type: "public-key",
       });
 
       await invokeService(authenticatePasskeyService, {
-        passkeyClient: null,
         userName: MOCK_USERNAME,
         chainId: MOCK_CHAIN_ID,
       });
@@ -489,27 +444,25 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
     });
 
     it("throws when biometric authentication is cancelled", async () => {
-      mockPasskeyServerClient.getCredentials.mockResolvedValue([MOCK_CREDENTIAL]);
+      mockStoredCredential = MOCK_CREDENTIAL;
       mockCredentials.get.mockResolvedValue(null); // User cancelled
 
       await expect(
         invokeService(authenticatePasskeyService, {
-          passkeyClient: null,
           userName: MOCK_USERNAME,
           chainId: MOCK_CHAIN_ID,
         })
       ).rejects.toThrow("Passkey authentication was cancelled");
     });
 
-    it("prompts WebAuthn with correct credential ID from server", async () => {
-      mockPasskeyServerClient.getCredentials.mockResolvedValue([MOCK_CREDENTIAL]);
+    it("prompts WebAuthn with correct credential ID from storage", async () => {
+      mockStoredCredential = MOCK_CREDENTIAL;
       mockCredentials.get.mockResolvedValue({
         id: MOCK_CREDENTIAL.id,
         type: "public-key",
       });
 
       await invokeService(authenticatePasskeyService, {
-        passkeyClient: null,
         userName: MOCK_USERNAME,
         chainId: MOCK_CHAIN_ID,
       });
@@ -548,11 +501,10 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
 
   describe("username flow integration", () => {
     it("new user: register stores username, enables restore", async () => {
-      (createPasskeyWithServer as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CREDENTIAL);
+      (createPasskey as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CREDENTIAL);
 
       // Register new user
       const registerResult = await invokeService(registerPasskeyService, {
-        passkeyClient: null,
         userName: "newuser",
         chainId: MOCK_CHAIN_ID,
       });
@@ -561,37 +513,29 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
       expect(setStoredUsername).toHaveBeenCalledWith("newuser");
     });
 
-    it("existing user: authenticate uses stored username to fetch from server", async () => {
-      mockPasskeyServerClient.getCredentials.mockResolvedValue([MOCK_CREDENTIAL]);
+    it("existing user: authenticate uses stored credential", async () => {
+      mockStoredCredential = MOCK_CREDENTIAL;
       mockCredentials.get.mockResolvedValue({
         id: MOCK_CREDENTIAL.id,
         type: "public-key",
       });
 
       const result = await invokeService(authenticatePasskeyService, {
-        passkeyClient: null,
         userName: "existinguser",
         chainId: MOCK_CHAIN_ID,
       });
 
-      expect(mockPasskeyServerClient.getCredentials).toHaveBeenCalledWith({
-        context: { userName: "existinguser" },
-      });
       expect(result.userName).toBe("existinguser");
     });
 
-    it("restore: fetches credentials from server using stored username", async () => {
+    it("restore: restores session from stored credential and username", async () => {
       mockStoredUsername = "restoreduser";
-      mockPasskeyServerClient.getCredentials.mockResolvedValue([MOCK_CREDENTIAL]);
+      mockStoredCredential = MOCK_CREDENTIAL;
 
       const result = await invokeService(restoreSessionService, {
-        passkeyClient: null,
         chainId: MOCK_CHAIN_ID,
       });
 
-      expect(mockPasskeyServerClient.getCredentials).toHaveBeenCalledWith({
-        context: { userName: "restoreduser" },
-      });
       expect(result?.userName).toBe("restoreduser");
     });
   });
@@ -602,10 +546,9 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
 
   describe("service result types", () => {
     it("registerPasskeyService returns complete PasskeySessionResult", async () => {
-      (createPasskeyWithServer as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CREDENTIAL);
+      (createPasskey as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CREDENTIAL);
 
       const result = await invokeService(registerPasskeyService, {
-        passkeyClient: null,
         userName: MOCK_USERNAME,
         chainId: MOCK_CHAIN_ID,
       });
@@ -619,14 +562,13 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
     });
 
     it("authenticatePasskeyService returns complete PasskeySessionResult", async () => {
-      mockPasskeyServerClient.getCredentials.mockResolvedValue([MOCK_CREDENTIAL]);
+      mockStoredCredential = MOCK_CREDENTIAL;
       mockCredentials.get.mockResolvedValue({
         id: MOCK_CREDENTIAL.id,
         type: "public-key",
       });
 
       const result = await invokeService(authenticatePasskeyService, {
-        passkeyClient: null,
         userName: MOCK_USERNAME,
         chainId: MOCK_CHAIN_ID,
       });
@@ -639,10 +581,9 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
 
     it("restoreSessionService returns RestoreSessionResult or null", async () => {
       mockStoredUsername = MOCK_USERNAME;
-      mockPasskeyServerClient.getCredentials.mockResolvedValue([MOCK_CREDENTIAL]);
+      mockStoredCredential = MOCK_CREDENTIAL;
 
       const result = await invokeService(restoreSessionService, {
-        passkeyClient: null,
         chainId: MOCK_CHAIN_ID,
       });
 
