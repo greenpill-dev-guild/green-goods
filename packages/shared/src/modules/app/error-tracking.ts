@@ -15,7 +15,7 @@
  */
 
 import { posthog } from "posthog-js";
-import { track } from "./posthog";
+import { getAppContext, track } from "./posthog";
 import { parseContractError, type ParsedContractError } from "../../utils/errors/contract-errors";
 
 const IS_DEV = import.meta.env.DEV;
@@ -208,8 +208,16 @@ export function trackError(error: unknown, context: ErrorContext = {}): void {
     parsedContractError = parseContractError(error);
   }
 
+  // Get app context for version and environment
+  const appContext = getAppContext();
+
   // Build the error properties
   const properties: Record<string, unknown> = {
+    // App context (version and environment)
+    app_version: appContext.app_version,
+    environment: appContext.environment,
+    chain_id: appContext.chain_id,
+
     // Error details
     error_type: normalizedError.name || "Error",
     error_message: normalizedError.message,

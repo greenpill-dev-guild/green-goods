@@ -160,6 +160,7 @@ const sidebars: SidebarsConfig = {
         'developer/releasing',
         'developer/contracts-handbook',
         'developer/ipfs-deployment',
+        'developer/monitoring',
         'developer/karma-gap',
       ],
     },
