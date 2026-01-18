@@ -389,10 +389,17 @@ contract MockHats is IHats {
     }
 
     /// @notice Set whether a hat is active (test helper)
+    /// @dev When activating a hat with maxSupply == 0, this function sets maxSupply = 100
+    ///      and also sets mutable_ = true as a side effect.
     /// @param _hatId The hat ID
     /// @param _active Whether the hat is active
     function setHatActive(uint256 _hatId, bool _active) external {
         hats[_hatId].active = _active;
+        // Set a reasonable default maxSupply if activating and not already set
+        if (_active && hats[_hatId].maxSupply == 0) {
+            hats[_hatId].maxSupply = 100;
+            hats[_hatId].mutable_ = true;
+        }
     }
 
     /// @notice Set eligibility status (test helper)

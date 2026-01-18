@@ -316,10 +316,13 @@ contract GardenHatsModuleTest is Test {
     function test_maxSupply_preventsOverMinting() public {
         _createGardenHatTree(garden1);
 
-        // Try to mint more than max supply
+        // Set max supply to 1 for this test
+        mockHats.changeHatMaxSupply(GARDEN1_OPERATOR_HAT, 1);
+
+        // Mint first operator (uses supply 1/1)
         mockHats.setWearer(GARDEN1_OPERATOR_HAT, operator1, true);
 
-        // Second operator should fail if max supply is 1
+        // Second operator should fail since max supply is 1
         vm.expectRevert(MockHats.MaxSupplyReached.selector);
         mockHats.mintHat(GARDEN1_OPERATOR_HAT, operator2);
     }
