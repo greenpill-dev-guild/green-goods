@@ -7,6 +7,7 @@ import { usePrimaryAddress } from "../hooks/auth/usePrimaryAddress";
 import { useUser } from "../hooks/auth/useUser";
 import { queryInvalidation, queryKeys } from "../hooks/query-keys";
 import { jobQueue } from "../modules/job-queue";
+import { trackStorageQuota } from "../utils/storage/quota";
 import type {
   QueueStats,
   QueueEvent,
@@ -96,6 +97,25 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
   const invalidateKeys = (keys: readonly (readonly unknown[])[]) => {
     keys.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
   };
+
+  // Track storage quota on app start and when user changes
+  useEffect(() => {
+    // Only track once when user is authenticated
+    if (!currentUserAddress) return;
+
+    // Track storage quota on initial load
+    void trackStorageQuota("app_start");
+
+    // Optionally track periodically (every 30 minutes while app is open)
+    const intervalId = setInterval(
+      () => {
+        void trackStorageQuota("periodic_check");
+      },
+      30 * 60 * 1000 // 30 minutes
+    );
+
+    return () => clearInterval(intervalId);
+  }, [currentUserAddress]);
 
   // Subscribe to queue events
   useEffect(() => {

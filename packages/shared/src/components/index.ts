@@ -1,5 +1,13 @@
-// Shared UI Components
-// EXPLICIT EXPORTS for tree-shaking
+/**
+ * Shared UI Components
+ * EXPLICIT EXPORTS for tree-shaking
+ *
+ * NOTE: SuspenseBoundary components have been moved to the client package
+ * at @/components/Boundaries to comply with the "shared = hooks only" guideline.
+ *
+ * This file exports reusable UI primitives (Badge, Card, Form, Spinner, Toast)
+ * that are used across both client and admin packages.
+ */
 
 // Display Components
 export { ImageWithFallback, type ImageWithFallbackProps } from "./Display";

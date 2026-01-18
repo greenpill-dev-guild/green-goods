@@ -5,7 +5,7 @@ import { IntlProvider } from "react-intl";
 import enMessages from "../i18n/en.json";
 import esMessages from "../i18n/es.json";
 import ptMessages from "../i18n/pt.json";
-import { track } from "../modules/app/posthog";
+import { registerGlobalProperties, track } from "../modules/app/posthog";
 import {
   getMobileOperatingSystem,
   isAppInstalled,
@@ -196,6 +196,40 @@ export const AppProvider = ({ children, posthogKey }: AppProviderProps) => {
       </IntlProvider>
     </AppContext.Provider>
   );
+
+  // Register global PostHog properties after PostHog initializes
+  useEffect(() => {
+    if (!apiKey) return;
+
+    let isMounted = true;
+    let timeoutId: ReturnType<typeof setTimeout>;
+    let attemptCount = 0;
+    const maxAttempts = 10;
+
+    const tryRegister = () => {
+      if (!isMounted) return;
+
+      // Try to register - returns true if successful
+      const success = registerGlobalProperties();
+
+      if (success || attemptCount >= maxAttempts) {
+        return; // Done - either success or max attempts reached
+      }
+
+      // Exponential backoff: 100ms, 200ms, 400ms, 800ms, etc.
+      const delay = Math.min(100 * Math.pow(2, attemptCount), 2000);
+      attemptCount += 1;
+      timeoutId = setTimeout(tryRegister, delay);
+    };
+
+    // Start first attempt after initial delay
+    timeoutId = setTimeout(tryRegister, 100);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+    };
+  }, [apiKey]);
 
   // Only wrap with PostHogProvider if API key is available
   if (apiKey) {

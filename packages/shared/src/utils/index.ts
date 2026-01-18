@@ -15,6 +15,22 @@ export { defaultTemplate, instructionTemplates } from "./action/templates";
 // ============================================================================
 export { copyToClipboard } from "./app/clipboard";
 export type { GardenMemberLike } from "./app/garden";
+// ============================================================================
+// HAPTIC FEEDBACK (Vibration API)
+// ============================================================================
+export {
+  hapticError,
+  hapticHeavy,
+  hapticLight,
+  haptics,
+  hapticSelection,
+  hapticSuccess,
+  hapticWarning,
+  isHapticsEnabled,
+  isHapticsSupported,
+  resetHapticsState,
+  setHapticsEnabled,
+} from "./app/haptics";
 export {
   buildGardenMemberSets,
   gardenHasMember,
@@ -25,6 +41,19 @@ export {
 // ============================================================================
 export type { NormalizeToFileOptions } from "./app/normalizeToFile";
 export { normalizeToFile } from "./app/normalizeToFile";
+// ============================================================================
+// BROWSER
+// ============================================================================
+export type { BrowserInfo, MobileBrowser } from "./app/browser";
+export {
+  canTriggerInstallPrompt,
+  detectMobileBrowser,
+  getOpenInBrowserUrl,
+  getRecommendedBrowser,
+} from "./app/browser";
+// ============================================================================
+// PWA
+// ============================================================================
 export type { Platform } from "./app/pwa";
 export {
   getMobileOperatingSystem,
@@ -175,6 +204,20 @@ export {
 // FORM
 // ============================================================================
 export { clearFormDraft, loadFormDraft, saveFormDraft } from "./storage/form";
+// ============================================================================
+// STORAGE QUOTA
+// ============================================================================
+export type { StorageQuotaInfo, StorageQuotaThresholds } from "./storage/quota";
+export {
+  DEFAULT_CRITICAL_THRESHOLD,
+  DEFAULT_LOW_THRESHOLD,
+  formatBytes,
+  getStorageQuota,
+  hasEnoughStorage,
+  isStorageQuotaSupported,
+  trackStorageErrorWithQuota,
+  trackStorageQuota,
+} from "./storage/quota";
 // ============================================================================
 // CN (classnames utility)
 // ============================================================================

@@ -25,6 +25,7 @@ import {
 import { jobQueue } from "../../modules/job-queue";
 import { submitApprovalDirectly } from "../../modules/work/wallet-submission";
 import { submitApprovalToQueue } from "../../modules/work/work-submission";
+import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugLog, debugWarn } from "../../utils/debug";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
@@ -213,6 +214,9 @@ export function useWorkApproval() {
       const isApproval = variables?.draft.approved ?? false;
       const isOfflineHash = typeof txHash === "string" && txHash.startsWith("0xoffline_");
 
+      // Provide haptic feedback for successful approval
+      hapticSuccess();
+
       // Track approval/rejection success
       if (isApproval) {
         trackWorkApprovalSuccess({
@@ -323,6 +327,9 @@ export function useWorkApproval() {
       }
     },
     onError: (error: unknown, variables) => {
+      // Provide haptic feedback for error
+      hapticError();
+
       const isApproval = variables?.draft.approved ?? false;
       const actionType = isApproval ? "approval" : "decision";
 
