@@ -1,4 +1,4 @@
-import type { Job, Work, WorkJobPayload } from "@green-goods/shared";
+import { toastService, type Job, type Work, type WorkJobPayload } from "@green-goods/shared";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
 import {
   queryKeys,
@@ -389,8 +389,19 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         state: { from: "dashboard" },
         viewTransition: true,
       });
-    } catch {
-      // Navigation error - silently fail
+    } catch (err) {
+      console.error("Navigation error:", err);
+      toastService.error({
+        title: intl.formatMessage({
+          id: "app.workDashboard.error.navigationFailed",
+          defaultMessage: "Couldn't open work",
+        }),
+        message: intl.formatMessage({
+          id: "app.workDashboard.error.navigationFailedMessage",
+          defaultMessage: "Please try again.",
+        }),
+        context: "workDashboard",
+      });
     }
   };
 

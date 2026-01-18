@@ -66,21 +66,21 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
               </CarouselItem>
             ))}
 
-          {/* Error state intentionally disabled until backend errors are surfaced */}
+          {/* Show informational message when no actions are configured for this garden */}
           {actions.length === 0 && actionsStatus === "success" && (
-            <div className="p-4 text-sm text-rose-600">
+            <div className="p-4 text-sm text-text-sub-600">
               {intl.formatMessage({
-                id: "app.garden.errorFetchingActions",
-                defaultMessage: "Error fetching actions. Please try again.",
+                id: "app.garden.noActionsConfigured",
+                defaultMessage: "No actions have been configured for this garden yet.",
               })}
             </div>
           )}
 
-          {actionsStatus === "success" && activeActions.length === 0 && (
+          {actionsStatus === "success" && actions.length > 0 && activeActions.length === 0 && (
             <div className="p-4 text-sm text-text-sub-600">
               {intl.formatMessage({
-                id: "app.garden.noActionsFound",
-                defaultMessage: "No actions found.",
+                id: "app.garden.noActiveActions",
+                defaultMessage: "No active actions at this time.",
               })}
             </div>
           )}
@@ -126,21 +126,12 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
               </CarouselItem>
             ))}
 
-          {/* Error state intentionally disabled until backend errors are surfaced */}
+          {/* Show informational message when no gardens are available */}
           {gardens.length === 0 && gardensStatus === "success" && (
-            <div className="p-4 text-sm text-rose-600">
-              {intl.formatMessage({
-                id: "app.garden.errorFetchingGardens",
-                defaultMessage: "Error fetching gardens. Please try again.",
-              })}
-            </div>
-          )}
-
-          {gardensStatus === "success" && gardens.length === 0 && (
             <div className="p-4 text-sm text-text-sub-600">
               {intl.formatMessage({
-                id: "app.garden.noGardensFound",
-                defaultMessage: "No gardens found.",
+                id: "app.garden.noGardensAvailable",
+                defaultMessage: "No gardens available. You may need to join a garden first.",
               })}
             </div>
           )}

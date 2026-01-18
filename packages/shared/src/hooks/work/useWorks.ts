@@ -65,7 +65,14 @@ export function useWorks(gardenId: string) {
       // Fetch work approvals to compute proper status (approved/rejected/pending)
       // Pass undefined to get all approvals, then filter by workUID in the map
       // This ensures work.status reflects actual on-chain approval state
-      const approvals = await getWorkApprovals(undefined, chainId);
+      // Gracefully degrade if approvals fetch fails - show works with "pending" status
+      let approvals: Awaited<ReturnType<typeof getWorkApprovals>> = [];
+      try {
+        approvals = await getWorkApprovals(undefined, chainId);
+      } catch (error) {
+        console.warn("[useWorks] Failed to fetch approvals, status may be stale:", error);
+        // Continue with empty approvals - works will show as "pending"
+      }
       const approvalMap = new Map(approvals.map((approval) => [approval.workUID, approval]));
 
       // Get cached status map to preserve optimistic updates

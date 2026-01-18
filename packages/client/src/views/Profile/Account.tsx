@@ -541,14 +541,33 @@ export const ProfileAccount: React.FC = () => {
             </div>
           ) : (
             <Card>
-              <div className="flex flex-row items-center gap-3 justify-center w-full py-2">
-                <RiPlantLine className="w-5 text-text-soft-400" />
-                <span className="text-sm text-text-sub-600">
-                  {intl.formatMessage({
-                    id: "app.profile.noGardens",
-                    defaultMessage: "No gardens available",
+              <div className="flex flex-col items-center gap-3 w-full py-4">
+                <RiPlantLine className="w-8 h-8 text-text-soft-400" />
+                <div className="text-center">
+                  <p className="text-sm font-medium text-text-strong-950">
+                    {intl.formatMessage({
+                      id: "app.profile.noGardensTitle",
+                      defaultMessage: "No gardens yet",
+                    })}
+                  </p>
+                  <p className="text-xs text-text-sub-600 mt-1">
+                    {intl.formatMessage({
+                      id: "app.profile.noGardensDescription",
+                      defaultMessage: "Discover and join gardens to start submitting work",
+                    })}
+                  </p>
+                </div>
+                <Button
+                  variant="primary"
+                  mode="filled"
+                  size="xsmall"
+                  onClick={() => navigate("/home")}
+                  leadingIcon={<RiPlantLine className="w-4" />}
+                  label={intl.formatMessage({
+                    id: "app.profile.discoverGardens",
+                    defaultMessage: "Discover Gardens",
                   })}
-                </span>
+                />
               </div>
             </Card>
           )}
