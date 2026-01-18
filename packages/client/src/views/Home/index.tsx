@@ -1,7 +1,7 @@
+import { toastService } from "@green-goods/shared";
 import {
   queryKeys,
   useAuth,
-  useAutoJoinRootGarden,
   useBrowserNavigation,
   useFilteredGardens,
   useGardens,
@@ -21,6 +21,9 @@ import { Outlet, useLocation } from "react-router-dom";
 import { GardenList } from "./GardenList";
 import { type GardenFiltersState, GardensFilterDrawer } from "./GardenFilters";
 import { WorkDashboardIcon } from "./WorkDashboard/Icon";
+
+/** Storage key for welcome prompt - shown once per device */
+const WELCOME_SHOWN_KEY = "greengoods_welcome_shown";
 
 const Home: React.FC = () => {
   const navigate = useNavigateToTop();
@@ -59,10 +62,9 @@ const Home: React.FC = () => {
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
 
-  // Auto-join root garden prompt for new users
+  // Auth state for welcome message
   const { isAuthenticated } = useAuth();
-  const { promptToJoin } = useAutoJoinRootGarden();
-  const hasPromptedJoinRef = useRef(false);
+  const hasShownWelcomeRef = useRef(false);
 
   // Ref for scrolling to article on card click
   const articleRef = useRef<HTMLElement>(null);
@@ -84,16 +86,39 @@ const Home: React.FC = () => {
     }
   }, [location.pathname, closeGardenFilter]);
 
-  // Prompt new users to join root garden after signup
-  // This runs once when user lands on Home after authentication
+  // Show welcome message once for new users - points them to profile for garden discovery
   useEffect(() => {
-    if (isAuthenticated && location.pathname === "/home" && !hasPromptedJoinRef.current) {
-      hasPromptedJoinRef.current = true;
-      // Small delay to let the page settle after navigation
-      const timer = setTimeout(() => promptToJoin(), 500);
-      return () => clearTimeout(timer);
+    if (!isAuthenticated || hasShownWelcomeRef.current) return;
+    if (location.pathname !== "/home") return;
+
+    // Check localStorage - only show once per device
+    const hasBeenShown = localStorage.getItem(WELCOME_SHOWN_KEY) === "true";
+    if (hasBeenShown) {
+      hasShownWelcomeRef.current = true;
+      return;
     }
-  }, [isAuthenticated, location.pathname, promptToJoin]);
+
+    // Mark as shown BEFORE showing toast (prevents re-triggering)
+    localStorage.setItem(WELCOME_SHOWN_KEY, "true");
+    hasShownWelcomeRef.current = true;
+
+    // Small delay to let page render first
+    const timer = setTimeout(() => {
+      toastService.info({
+        title: "Welcome to Green Goods! 🌱",
+        message: "Visit your Profile to discover and join gardens.",
+        duration: 6000,
+        action: {
+          label: "Go to Profile",
+          onClick: () => navigate("/profile"),
+          dismissOnClick: true,
+        },
+        suppressLogging: true,
+      });
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [isAuthenticated, location.pathname, navigate]);
 
   // Handlers
   const handleRetry = () => {

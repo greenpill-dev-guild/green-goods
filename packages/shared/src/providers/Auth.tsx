@@ -303,7 +303,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Disconnect wallet
     await disconnectWallet();
 
-    // Clear local storage (auth mode + username to prevent auto-restore)
+    // Clear auth mode and username, but KEEP credential for future passkey login
+    // The credential contains the public key needed to reconstruct the smart account
+    // Clearing it would force the user to create a new account (different address)
     clearAuthMode();
     clearStoredUsername();
 

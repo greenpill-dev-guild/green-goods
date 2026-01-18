@@ -48,6 +48,7 @@ export function Login() {
   const [loadingState, setLoadingState] = useState<LoadingState | null>(null);
   const [loadingMessage, setLoadingMessage] = useState<string | undefined>();
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [username, setUsername] = useState("");
 
   // Check if nested route or came from logout
   const isNestedRoute = location.pathname !== "/login";
@@ -110,18 +111,24 @@ export function Login() {
     }
   };
 
-  // Create new passkey account
+  // Create new passkey account with optional username
   const handleCreateAccount = async () => {
     setLoginError(null);
     setLoadingMessage("Creating your wallet...");
     setLoadingState("welcome");
     try {
-      // Generate a simple username based on timestamp (can be updated later with ENS)
-      const tempUsername = `user_${Date.now()}`;
-      await createAccount?.(tempUsername);
+      // Pass username if provided, otherwise authServices will generate one
+      const finalUsername = username.trim() || undefined;
+      await createAccount?.(finalUsername);
     } catch (err) {
       handleAuthError(err, "create");
     }
+  };
+
+  // Login with wallet
+  const handleWalletLogin = () => {
+    setLoginError(null);
+    loginWithWallet?.();
   };
 
   // Render logic
@@ -148,7 +155,21 @@ export function Login() {
         isLoggingIn={isAuthenticating}
         buttonLabel={buttonLabel}
         errorMessage={!isAuthenticating ? loginError : null}
-        tertiaryAction={{ label: "Login with wallet", onClick: () => loginWithWallet?.() }}
+        secondaryAction={{
+          label: "Login with Wallet",
+          onSelect: handleWalletLogin,
+        }}
+        // Show username input only for new account creation
+        usernameInput={
+          !hasExistingAccount
+            ? {
+                value: username,
+                onChange: (e) => setUsername(e.target.value),
+                placeholder: "Enter a display name (optional)",
+                hint: "This name will be shown in your profile",
+              }
+            : undefined
+        }
       />
     </>
   );
