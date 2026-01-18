@@ -14,10 +14,11 @@ import { useUIStore } from "@green-goods/shared/stores";
 import { cn } from "@green-goods/shared/utils";
 import { RiFilterLine } from "@remixicon/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation } from "react-router-dom";
 
+import { PullToRefresh } from "@/components/Inputs";
 import { GardenList } from "./GardenList";
 import { type GardenFiltersState, GardensFilterDrawer } from "./GardenFilters";
 import { WorkDashboardIcon } from "./WorkDashboard/Icon";
@@ -127,6 +128,13 @@ const Home: React.FC = () => {
     refetch();
   };
 
+  // Pull-to-refresh handler
+  const handlePullToRefresh = useCallback(async () => {
+    resetLoadingState();
+    queryClient.invalidateQueries({ queryKey: queryKeys.gardens.all });
+    await refetch();
+  }, [queryClient, refetch, resetLoadingState]);
+
   const handleCardClick = (id: string) => {
     navigate(`/home/${id}`);
     articleRef.current?.scrollIntoView();
@@ -149,7 +157,15 @@ const Home: React.FC = () => {
   return (
     <article ref={articleRef} className="mb-6">
       {location.pathname === "/home" && (
-        <>
+        <PullToRefresh
+          onRefresh={handlePullToRefresh}
+          isRefreshing={isFetching && !isPending}
+          disabled={!isOnline}
+          refreshLabel={intl.formatMessage({
+            id: "app.home.pullToRefresh",
+            defaultMessage: "Pull to refresh gardens",
+          })}
+        >
           <div className="flex items-center justify-between w-full py-6 px-4 sm:px-6 md:px-12">
             <h4 className="font-semibold flex-1">{intl.formatMessage({ id: "app.home" })}</h4>
             <div className="ml-4 flex items-center gap-2">
@@ -206,7 +222,7 @@ const Home: React.FC = () => {
             myGardensCount={myGardensCount}
             isFilterActive={isFilterActive}
           />
-        </>
+        </PullToRefresh>
       )}
       <Outlet />
     </article>

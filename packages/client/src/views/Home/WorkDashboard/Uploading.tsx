@@ -1,4 +1,4 @@
-import type { Work } from "@green-goods/shared";
+import { hapticLight, type Work } from "@green-goods/shared";
 import React, { useState } from "react";
 import { useIntl } from "react-intl";
 
@@ -42,6 +42,8 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
 
   const handleSyncAll = async () => {
     if (isSyncing) return;
+    // Provide haptic feedback when sync is triggered
+    hapticLight();
     setIsSyncing(true);
     try {
       await flush();

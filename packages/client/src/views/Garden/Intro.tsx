@@ -1,3 +1,4 @@
+import { hapticSelection } from "@green-goods/shared";
 import { RiHammerFill, RiPlantFill } from "@remixicon/react";
 import type React from "react";
 import { useIntl } from "react-intl";
@@ -92,7 +93,11 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
                 <CarouselItem
                   key={action.id}
                   onClick={() => {
-                    if (uid !== null) setActionUID(uid);
+                    if (uid !== null) {
+                      // Provide haptic feedback for selection
+                      hapticSelection();
+                      setActionUID(uid);
+                    }
                   }}
                 >
                   <ActionCard
@@ -141,6 +146,8 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
               <CarouselItem
                 key={garden.id}
                 onClick={() => {
+                  // Provide haptic feedback for selection
+                  hapticSelection();
                   setGardenAddress(garden.id);
                 }}
               >

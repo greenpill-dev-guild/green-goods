@@ -1,12 +1,32 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 
+import {
+  copyToClipboard,
+  toastService,
+  useInstallGuidance,
+  type InstallGuidance,
+} from "@green-goods/shared";
+import type { Platform } from "@green-goods/shared/utils";
 import { useAuth } from "@green-goods/shared/hooks";
 import { trackAuthError } from "@green-goods/shared/modules";
+import { useApp } from "@green-goods/shared/providers/App";
 import { debugError } from "@green-goods/shared/utils/debug";
 
 import { type LoadingState, Splash } from "@/components/Layout";
+
+/** Get the browser guidance label based on scenario and platform */
+function getBrowserGuidanceLabel(guidance: InstallGuidance, platform: Platform): string {
+  if (guidance.scenario === "in-app-browser") {
+    return platform === "android" && guidance.openInBrowserUrl
+      ? "Open in Chrome for best experience"
+      : "Copy link & open in Safari";
+  }
+  return platform === "ios"
+    ? "For best experience, open in Safari"
+    : "Open in Chrome for best experience";
+}
 
 /** Convert technical errors to user-friendly messages */
 const getFriendlyErrorMessage = (err: unknown): string => {
@@ -45,10 +65,44 @@ export function Login() {
     error: authError,
   } = useAuth();
 
+  // Get platform/browser info for installation guidance
+  const { platform, isMobile, isInstalled, wasInstalled, deferredPrompt } = useApp();
+  const guidance = useInstallGuidance(
+    platform,
+    isInstalled,
+    wasInstalled,
+    deferredPrompt,
+    isMobile
+  );
+
   const [loadingState, setLoadingState] = useState<LoadingState | null>(null);
   const [loadingMessage, setLoadingMessage] = useState<string | undefined>();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [username, setUsername] = useState("");
+
+  // Handle browser switch action (for wrong browser/in-app browser scenarios)
+  const handleBrowserSwitch = useCallback(async () => {
+    if (guidance.openInBrowserUrl) {
+      // Android: Use intent URL to open in Chrome
+      window.location.href = guidance.openInBrowserUrl;
+    } else {
+      // iOS: Copy URL since we can't programmatically switch browsers
+      const success = await copyToClipboard(window.location.href);
+      if (success) {
+        toastService.show({
+          status: "success",
+          title: "Link copied!",
+          description: "Now open Safari and paste this link to continue.",
+        });
+      } else {
+        toastService.show({
+          status: "error",
+          title: "Couldn't copy link",
+          description: "Please manually copy this URL and open it in Safari.",
+        });
+      }
+    }
+  }, [guidance.openInBrowserUrl]);
 
   // Check if nested route or came from logout
   const isNestedRoute = location.pathname !== "/login";
@@ -141,6 +195,15 @@ export function Login() {
   const primaryAction = hasExistingAccount ? handlePasskeyLogin : handleCreateAccount;
   const buttonLabel = hasExistingAccount ? "Login with Passkey" : "Create Account";
 
+  // Build tertiary action for browser guidance when in wrong browser
+  const browserGuidanceTertiaryAction =
+    isMobile && (guidance.scenario === "wrong-browser" || guidance.scenario === "in-app-browser")
+      ? {
+          label: getBrowserGuidanceLabel(guidance, platform),
+          onClick: handleBrowserSwitch,
+        }
+      : undefined;
+
   return (
     <>
       <Helmet>
@@ -159,6 +222,7 @@ export function Login() {
           label: "Login with Wallet",
           onSelect: handleWalletLogin,
         }}
+        tertiaryAction={browserGuidanceTertiaryAction}
         // Show username input only for new account creation
         usernameInput={
           !hasExistingAccount

@@ -1,4 +1,10 @@
-import { toastService, type Job, type Work, type WorkJobPayload } from "@green-goods/shared";
+import {
+  hapticLight,
+  toastService,
+  type Job,
+  type Work,
+  type WorkJobPayload,
+} from "@green-goods/shared";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
 import {
   queryKeys,
@@ -121,8 +127,14 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       const allWorks: Work[] = [];
 
       for (const gardenId of operatorGardenIds) {
-        // Fetch online works from EAS
-        const online = await getWorks([gardenId], DEFAULT_CHAIN_ID);
+        // Fetch online works from EAS - gracefully handle per-garden failures
+        let online: Work[] = [];
+        try {
+          online = await getWorks([gardenId], DEFAULT_CHAIN_ID);
+        } catch (err) {
+          console.warn(`[WorkDashboard] Failed to fetch works for garden ${gardenId}:`, err);
+          // Continue with offline works for this garden and other gardens
+        }
 
         // Fetch offline works from job queue (scoped to current user)
         const offlineJobs = activeAddress
@@ -469,17 +481,23 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
 
   // Combined refresh functions for each tab
   const handleRefreshRecent = () => {
+    // Provide haptic feedback when refresh is triggered
+    hapticLight();
     refetchOfflineQueue();
     refetchRecentOnline();
   };
 
   const handleRefreshPending = () => {
+    // Provide haptic feedback when refresh is triggered
+    hapticLight();
     refetchOperatorWorks();
     refetchMyWorks();
     refetchApprovals();
   };
 
   const handleRefreshCompleted = () => {
+    // Provide haptic feedback when refresh is triggered
+    hapticLight();
     refetchApprovals();
     refetchMyApprovals();
   };
