@@ -74,6 +74,8 @@ export default defineConfig(({ mode }) => {
       includeAssets: [
         "favicon.ico",
         "icon.png",
+        "icon-512.png",
+        "maskable-icon-512.png",
         "apple-icon.png",
         "images/android-icon-36x36.png",
         "images/android-icon-48x48.png",
@@ -177,6 +179,13 @@ export default defineConfig(({ mode }) => {
           { src: "/images/android-icon-72x72.png", sizes: "72x72", type: "image/png" },
           { src: "/images/android-icon-144x144.png", sizes: "144x144", type: "image/png" },
           { src: "/apple-icon.png", sizes: "192x192", type: "image/png" },
+          { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+          {
+            src: "/maskable-icon-512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
+          },
         ],
         start_url: "/",
         scope: "/",
@@ -203,9 +212,6 @@ export default defineConfig(({ mode }) => {
             url: "/profile",
             icons: [{ src: "images/profile.png", sizes: "64x64", type: "image/png" }],
           },
-        ],
-        related_applications: [
-          { platform: "webapp", url: "https://localhost:3001/manifest.webmanifest" },
         ],
         categories: [],
       },

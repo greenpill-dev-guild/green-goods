@@ -60,7 +60,9 @@
     "build:agent": "cd packages/agent && bun run build",
     "build:shared": "cd packages/shared && bun run build",
     "build:indexer": "cd packages/indexer && bun run build",
-    "build:contracts": "cd packages/contracts && bun run build"
+    "build:contracts": "cd packages/contracts && bun run build",
+    "sourcemaps": "node scripts/upload-sourcemaps.js",
+    "sourcemaps:dry-run": "node scripts/upload-sourcemaps.js --dry-run"
   },
   "overrides": {
     "multiformats": "^13.4.2",
