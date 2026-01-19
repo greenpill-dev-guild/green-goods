@@ -145,6 +145,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     address: undefined,
   });
 
+  // Guard to prevent duplicate LOGIN_WALLET events during session restore
+  const walletRestoreAttemptedRef = useRef(false);
+
   // Track wallet hydration timeout - give up waiting after 2 seconds
   const [walletHydrationTimedOut, setWalletHydrationTimedOut] = React.useState(false);
   const hydrationTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -188,11 +191,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // This handles the case where user opens AppKit modal then connects
         const currentState = actor.getSnapshot();
         if (currentState?.matches("unauthenticated")) {
-          console.debug(
-            "[AuthProvider] Wallet connected in unauthenticated state, triggering LOGIN_WALLET"
-          );
-          actor.send({ type: "LOGIN_WALLET" });
-          saveAuthModeToStorage("wallet");
+          if (!walletRestoreAttemptedRef.current) {
+            walletRestoreAttemptedRef.current = true;
+            console.debug(
+              "[AuthProvider] Wallet connected in unauthenticated state, triggering LOGIN_WALLET"
+            );
+            actor.send({ type: "LOGIN_WALLET" });
+            saveAuthModeToStorage("wallet");
+          }
         }
       }
     }
@@ -209,6 +215,43 @@ export function AuthProvider({ children }: AuthProviderProps) {
       address: currentAddress,
     };
   }, [actor, isConnected, isConnecting, wagmiWalletAddress]);
+
+  // ============================================================
+  // WALLET SESSION RESTORE
+  // ============================================================
+  // Handle race condition: wallet may connect during 'initializing' state,
+  // then machine transitions to 'unauthenticated'. We need to auto-login
+  // with wallet if authMode was 'wallet' and wallet is already connected.
+  useEffect(() => {
+    if (!actor || !snapshot) return;
+
+    const storedAuthMode = getAuthMode();
+
+    // Only act when machine just entered unauthenticated state
+    // Use snapshot from dependency array instead of actor.getSnapshot()
+    if (!snapshot.matches("unauthenticated")) return;
+
+    // Check if we should auto-restore wallet session:
+    // 1. Wallet is connected
+    // 2. Stored authMode is "wallet" (user was previously logged in with wallet)
+    // 3. Machine context already has external wallet tracked
+    if (
+      isConnected &&
+      wagmiWalletAddress &&
+      storedAuthMode === "wallet" &&
+      snapshot.context.externalWalletConnected
+    ) {
+      // Guard: only attempt wallet restore once per session (shared with WALLET EVENT SYNC)
+      if (!walletRestoreAttemptedRef.current) {
+        walletRestoreAttemptedRef.current = true;
+        console.debug(
+          "[AuthProvider] Auto-restoring wallet session after init:",
+          wagmiWalletAddress
+        );
+        actor.send({ type: "LOGIN_WALLET" });
+      }
+    }
+  }, [actor, snapshot, isConnected, wagmiWalletAddress]);
 
   // ============================================================
   // HELPER: Disconnect wallet
@@ -309,6 +352,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     clearAuthMode();
     clearStoredUsername();
 
+    // Reset wallet restore guard to allow future auto-restore
+    walletRestoreAttemptedRef.current = false;
+
     // Clear query cache
     queryClient.clear();
   }, [actor, disconnectWallet]);
@@ -338,6 +384,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (actor) {
       actor.send({ type: "SIGN_OUT" });
     }
+    // Reset wallet restore guard to allow future auto-restore
+    walletRestoreAttemptedRef.current = false;
   }, [actor]);
 
   // ============================================================

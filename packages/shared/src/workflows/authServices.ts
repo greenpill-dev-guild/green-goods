@@ -38,7 +38,12 @@ import {
   trackAuthPasskeyRegisterSuccess,
   trackAuthSessionRestored,
 } from "../modules/app/analytics-events";
-import { getStoredCredential, getStoredUsername, setStoredUsername } from "../modules/auth/session";
+import {
+  getAuthMode,
+  getStoredCredential,
+  getStoredUsername,
+  setStoredUsername,
+} from "../modules/auth/session";
 
 import type { PasskeySessionResult, RestoreSessionResult } from "./authMachine";
 
@@ -112,7 +117,10 @@ async function buildSmartAccountFromCredential(
   const bundlerUrl = getPimlicoBundlerUrl(chainId);
 
   // Create WebAuthn account from credential
-  const webAuthnAccount = toWebAuthnAccount({ credential });
+  // CRITICAL: Must pass rpId to match what was used during registration
+  // Without this, Android's Credential Manager rejects the credential on sign
+  const rpId = getPasskeyRpId();
+  const webAuthnAccount = toWebAuthnAccount({ credential, rpId });
 
   // Create Kernel smart account with WebAuthn owner
   const account = await toKernelSmartAccount({
@@ -156,10 +164,24 @@ async function buildSmartAccountFromCredential(
 /**
  * Restore session from localStorage.
  * Reads stored credential and rebuilds smart account client.
+ *
+ * IMPORTANT: Only restores passkey session if the stored authMode is "passkey" or not set.
+ * If authMode is "wallet", we skip passkey restoration to let wallet auth take precedence.
+ * This prevents passkey auth from hijacking wallet sessions after page refresh.
  */
 export const restoreSessionService = fromPromise<RestoreSessionResult | null, RestoreInput>(
   async ({ input }) => {
     const { chainId } = input;
+
+    // Check stored auth mode - respect user's last authentication choice
+    const storedAuthMode = getAuthMode();
+
+    // If user was last authenticated with wallet, don't auto-restore passkey session
+    // This prevents passkey from "stealing" the session when user explicitly chose wallet
+    if (storedAuthMode === "wallet") {
+      console.debug("[Auth] Auth mode is wallet, skipping passkey session restore");
+      return null;
+    }
 
     // Check for stored credential and username
     const storedCredential = getStoredCredential();
@@ -170,6 +192,8 @@ export const restoreSessionService = fromPromise<RestoreSessionResult | null, Re
       return null;
     }
 
+    // At this point, authMode is either "passkey" or null (legacy sessions)
+    // since wallet mode returned early above. Proceed with passkey session restore.
     try {
       // Build smart account from stored credential
       const { client, address } = await buildSmartAccountFromCredential(storedCredential, chainId);

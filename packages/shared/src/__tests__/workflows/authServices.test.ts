@@ -130,7 +130,15 @@ vi.mock("../../config/passkeyServer", () => ({
 // Mocked session functions
 let mockStoredUsername: string | null = null;
 let mockStoredCredential: unknown = null;
+let mockAuthMode: "passkey" | "wallet" | null = null;
 vi.mock("../../modules/auth/session", () => ({
+  getAuthMode: vi.fn(() => mockAuthMode),
+  setAuthMode: vi.fn((mode: "passkey" | "wallet") => {
+    mockAuthMode = mode;
+  }),
+  clearAuthMode: vi.fn(() => {
+    mockAuthMode = null;
+  }),
   getStoredUsername: vi.fn(() => mockStoredUsername),
   setStoredUsername: vi.fn((u: string) => {
     mockStoredUsername = u;
@@ -253,6 +261,7 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
     vi.clearAllMocks();
     mockStoredUsername = null;
     mockStoredCredential = null;
+    mockAuthMode = null;
     globalMockLocalStorage.clear();
     globalMockLocalStorage._setStore({});
 
@@ -338,6 +347,49 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
 
       expect(result).not.toBeNull();
       expect(result?.userName).toBe("");
+    });
+
+    // Bug fix: Prevent passkey from hijacking wallet sessions
+    it("returns null when authMode is wallet even if credential exists", async () => {
+      // This is the key bug scenario:
+      // 1. User has stored credential (from previous passkey login)
+      // 2. User signed out and logged in with wallet (authMode = "wallet")
+      // 3. On refresh, restoreSession should NOT restore passkey session
+      mockStoredCredential = MOCK_CREDENTIAL;
+      mockStoredUsername = MOCK_USERNAME;
+      mockAuthMode = "wallet";
+
+      const result = await invokeService(restoreSessionService, {
+        chainId: MOCK_CHAIN_ID,
+      });
+
+      expect(result).toBeNull();
+    });
+
+    it("restores session when authMode is passkey", async () => {
+      mockStoredCredential = MOCK_CREDENTIAL;
+      mockStoredUsername = MOCK_USERNAME;
+      mockAuthMode = "passkey";
+
+      const result = await invokeService(restoreSessionService, {
+        chainId: MOCK_CHAIN_ID,
+      });
+
+      expect(result).not.toBeNull();
+      expect(result?.smartAccountAddress).toBe(MOCK_SMART_ACCOUNT_ADDRESS);
+    });
+
+    it("restores session when authMode is null (legacy or fresh state)", async () => {
+      mockStoredCredential = MOCK_CREDENTIAL;
+      mockStoredUsername = MOCK_USERNAME;
+      mockAuthMode = null;
+
+      const result = await invokeService(restoreSessionService, {
+        chainId: MOCK_CHAIN_ID,
+      });
+
+      expect(result).not.toBeNull();
+      expect(result?.smartAccountAddress).toBe(MOCK_SMART_ACCOUNT_ADDRESS);
     });
   });
 
