@@ -298,7 +298,7 @@
   /* ============================================
    * Native Scroll Bounce Effect
    * Enables iOS-style rubber-band scrolling on containers
-   * Use on scrollable elements that need the native bounce feel
+   * Pull-to-refresh dynamically contains overscroll when needed
    * ============================================ */
   .native-scroll {
     -webkit-overflow-scrolling: touch;
@@ -306,10 +306,18 @@
   }
 
   /* ============================================
-   * Dynamic Viewport Height with Fallback
-   * Uses 100vh as fallback for older browsers (IE, Opera Mini)
-   * then 100dvh for modern browsers that support it
+   * Modal Height Utility
+   * Fixed height for bottom sheet modals (85% viewport)
+   * Uses dvh for dynamic viewport on mobile, vh as fallback
    * ============================================ */
+  .h-modal {
+    height: 85vh;
+    height: 85dvh;
+    max-height: calc(100vh - 2rem);
+    max-height: calc(100dvh - 2rem);
+  }
+
+  /* Max-height only variant (content determines height up to max) */
   .max-h-modal {
     max-height: calc(100vh - 2rem);
     max-height: calc(100dvh - 2rem);

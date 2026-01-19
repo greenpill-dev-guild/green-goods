@@ -133,6 +133,12 @@ export function PullToRefresh({
       // Only allow pull if at the top of scroll container
       if (scrollTop > 5) return;
 
+      // Contain overscroll to prevent native pull-to-refresh interference
+      // This allows native bounce at the bottom while we handle the top
+      if (scrollContainer) {
+        scrollContainer.style.overscrollBehaviorY = "contain";
+      }
+
       touchStartY.current = e.touches[0].clientY;
       isPulling.current = true;
     };
@@ -144,9 +150,12 @@ export function PullToRefresh({
       const scrollContainer = getScrollContainer();
       const scrollTop = scrollContainer?.scrollTop ?? 0;
 
-      // If user scrolled down, cancel pull
+      // If user scrolled down, cancel pull and restore native overscroll
       if (scrollTop > 5) {
         isPulling.current = false;
+        if (scrollContainer) {
+          scrollContainer.style.overscrollBehaviorY = "";
+        }
         setPullState("idle");
         setPullDistance(0);
         return;
@@ -162,17 +171,15 @@ export function PullToRefresh({
         return;
       }
 
+      // Prevent native scroll/overscroll immediately when pulling down at top
+      // This must happen early to prevent browser's native pull-to-refresh
+      e.preventDefault();
+
       // Apply resistance to make it feel more natural
       const resistedDistance = Math.min(deltaY / RESISTANCE, MAX_PULL_DISTANCE);
 
       setPullDistance(resistedDistance);
       setPullState(resistedDistance >= REFRESH_THRESHOLD ? "ready" : "pulling");
-
-      // Prevent default scroll only when we're actually pulling
-      // This works because we use { passive: false }
-      if (resistedDistance > 10) {
-        e.preventDefault();
-      }
     };
 
     const handleTouchEnd = async () => {
@@ -183,6 +190,12 @@ export function PullToRefresh({
         onRefresh: refresh,
         externalRefreshing: ext,
       } = stateRef.current;
+
+      // Restore native overscroll behavior
+      const scrollContainer = getScrollContainer();
+      if (scrollContainer) {
+        scrollContainer.style.overscrollBehaviorY = "";
+      }
 
       // Guard against double-refresh race condition
       if (!isPulling.current || d || r) return;
@@ -224,6 +237,12 @@ export function PullToRefresh({
       container.removeEventListener("touchmove", handleTouchMove);
       container.removeEventListener("touchend", handleTouchEnd);
       container.removeEventListener("touchcancel", handleTouchEnd);
+
+      // Restore native overscroll on unmount
+      const scrollContainer = getScrollContainer();
+      if (scrollContainer) {
+        scrollContainer.style.overscrollBehaviorY = "";
+      }
     };
   }, [getScrollContainer]);
 

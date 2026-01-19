@@ -707,7 +707,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     >
       <div
         className={cn(
-          "bg-bg-white-0 rounded-t-3xl shadow-2xl w-full overflow-hidden flex flex-col max-h-modal",
+          "bg-bg-white-0 rounded-t-3xl shadow-2xl w-full overflow-hidden flex flex-col h-modal",
           isClosing ? "modal-slide-exit" : "modal-slide-enter",
           className
         )}
