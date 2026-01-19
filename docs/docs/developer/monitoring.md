@@ -453,5 +453,5 @@ const cleanup = initGlobalErrorHandlers();
 - [PostHog Alerts Docs](https://posthog.com/docs/product-analytics/alerts)
 - [PostHog GitHub](https://github.com/PostHog/posthog)
 - [PostHog Upload Source Maps Action](https://github.com/PostHog/upload-source-maps)
-- [Error Tracking Module](/packages/shared/src/modules/app/error-tracking.ts)
-- [Analytics Events Module](/packages/shared/src/modules/app/analytics-events.ts)
+- [Error Tracking Module](https://github.com/greenpill-dev-guild/green-goods/blob/main/packages/shared/src/modules/app/error-tracking.ts)
+- [Analytics Events Module](https://github.com/greenpill-dev-guild/green-goods/blob/main/packages/shared/src/modules/app/analytics-events.ts)
