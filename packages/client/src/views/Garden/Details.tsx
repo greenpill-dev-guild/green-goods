@@ -1,4 +1,5 @@
 import type { WorkFormData } from "@green-goods/shared/hooks/work/useWorkForm";
+import { normalizeTimeSpentMinutes } from "@green-goods/shared/utils/form/normalizers";
 import { RiFileFill } from "@remixicon/react";
 import type { Control, Path, UseFormRegister } from "react-hook-form";
 import { useIntl } from "react-intl";
@@ -36,6 +37,30 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({ config, register, cont
   return (
     <div className="flex flex-col gap-4">
       <FormInfo title={detailsTitle} info={detailsDescription} Icon={RiFileFill} />
+
+      {/* Time Spent Input - Always shown as a default field */}
+      <FormInput
+        {...register("timeSpentMinutes", {
+          setValueAs: normalizeTimeSpentMinutes,
+        })}
+        label={intl.formatMessage({
+          id: "app.garden.details.timeSpent",
+          defaultMessage: "Time Spent (hours)",
+        })}
+        type="number"
+        inputMode="decimal"
+        step="0.5"
+        min="0"
+        placeholder={intl.formatMessage({
+          id: "app.garden.details.timeSpentPlaceholder",
+          defaultMessage: "e.g., 1.5 for 1h 30m",
+        })}
+        helperText={intl.formatMessage({
+          id: "app.garden.details.timeSpentHint",
+          defaultMessage: "Enter hours spent on this work (decimals OK)",
+        })}
+      />
+
       {inputs.map((input) => {
         if (!input) return null;
 

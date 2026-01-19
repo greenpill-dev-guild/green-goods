@@ -1,5 +1,6 @@
 import { mediaResourceManager } from "@green-goods/shared/modules";
-import { RiFileFill, RiLeafFill, RiPencilFill, RiPlantFill } from "@remixicon/react";
+import { formatTimeSpent } from "@green-goods/shared/utils/form/normalizers";
+import { RiFileFill, RiLeafFill, RiPencilFill, RiPlantFill, RiTimeFill } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { WorkView } from "@/components/Features/Work";
@@ -15,6 +16,7 @@ interface WorkReviewProps {
   values: Record<string, unknown>;
   plantSelection: string[];
   plantCount: number;
+  timeSpentMinutes?: number;
   feedback: string;
 }
 
@@ -26,6 +28,7 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
   values,
   plantSelection,
   plantCount,
+  timeSpentMinutes,
   feedback,
 }) => {
   const intl = useIntl();
@@ -63,7 +66,22 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
     icon: React.ComponentType<{ className?: string }>;
   }>;
 
+  const formattedTimeSpent = formatTimeSpent(timeSpentMinutes);
+
   const baseDetails = [
+    // Time spent - shown first as a key metric
+    ...(formattedTimeSpent
+      ? [
+          {
+            label: intl.formatMessage({
+              id: "app.garden.review.timeSpent",
+              defaultMessage: "Time Spent",
+            }),
+            value: formattedTimeSpent,
+            icon: RiTimeFill,
+          },
+        ]
+      : []),
     {
       label: intl.formatMessage({
         id: "app.garden.review.plantTypes",

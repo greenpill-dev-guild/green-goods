@@ -181,6 +181,7 @@ export interface WorkInput {
  *   title: "Planted tomatoes",
  *   plantSelection: ["tomato", "basil"],
  *   plantCount: 12,
+ *   timeSpentMinutes: 90,
  *   feedback: "Great growing conditions",
  *   media: [photoFile1, photoFile2]
  * };
@@ -194,6 +195,8 @@ export interface WorkSubmission {
   title: string;
   plantSelection: string[];
   plantCount: number;
+  /** Time spent on the work in minutes */
+  timeSpentMinutes?: number;
   feedback: string;
   media: File[];
   metadata?: Record<string, unknown>;
@@ -225,6 +228,8 @@ export interface Work extends WorkCard {
 export interface WorkMetadata {
   plantCount: number;
   plantSelection: string[];
+  /** Time spent on the work in minutes */
+  timeSpentMinutes?: number;
 }
 
 // ============================================

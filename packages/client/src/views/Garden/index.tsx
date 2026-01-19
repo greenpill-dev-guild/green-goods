@@ -107,11 +107,12 @@ const Work: React.FC = () => {
     feedback,
     plantSelection,
     plantCount,
+    timeSpentMinutes,
   } = form;
 
   // Draft save on exit (only saves when user navigates away, not automatically)
   const { saveOnExit } = useDraftAutoSave(
-    { gardenAddress, actionUID, feedback, plantSelection, plantCount },
+    { gardenAddress, actionUID, feedback, plantSelection, plantCount, timeSpentMinutes },
     images
   );
 
@@ -122,7 +123,15 @@ const Work: React.FC = () => {
     handleStartFresh: clearDraft,
     clearActiveDraft,
   } = useDraftResume({
-    formState: { images, gardenAddress, actionUID, feedback, plantSelection, plantCount },
+    formState: {
+      images,
+      gardenAddress,
+      actionUID,
+      feedback,
+      plantSelection,
+      plantCount,
+      timeSpentMinutes,
+    },
     isOnIntroTab: activeTab === WorkTab.Intro,
     searchParams,
     setSearchParams,
@@ -439,6 +448,7 @@ const Work: React.FC = () => {
             feedback={feedback}
             plantCount={plantCount ?? 0}
             plantSelection={plantSelection}
+            timeSpentMinutes={timeSpentMinutes}
           />
         );
       }
