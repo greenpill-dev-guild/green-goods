@@ -305,4 +305,14 @@
     overscroll-behavior-y: auto;
   }
 
+  /* ============================================
+   * Dynamic Viewport Height with Fallback
+   * Uses 100vh as fallback for older browsers (IE, Opera Mini)
+   * then 100dvh for modern browsers that support it
+   * ============================================ */
+  .max-h-modal {
+    max-height: calc(100vh - 2rem);
+    max-height: calc(100dvh - 2rem);
+  }
+
 }

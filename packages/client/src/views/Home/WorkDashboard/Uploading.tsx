@@ -116,7 +116,7 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-4 pb-4">
         {isLoading ? (
           <div className="h-full flex flex-col items-center justify-center pb-12">
             <BeatLoader />

@@ -314,20 +314,37 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     [completedApprovals]
   );
 
-  // Completed: approvals for your own submissions (you as gardener)
+  // Fetch all approvals to find those for the user's works
+  // Note: EAS approval attestations have garden (not gardener) as recipient,
+  // so we must fetch all and filter client-side by matching workUID
+  //
+  // TODO: SCALABILITY - This fetches ALL approvals and filters client-side.
+  // As the number of work submissions grows, this will become slow.
+  // Recommended: Create a backend aggregation endpoint that accepts workUIDs
+  // and returns only relevant approvals, or implement pagination when
+  // EAS GraphQL supports it. See getWorkApprovals docstring for details.
   const {
-    data: myReceivedApprovals = [],
+    data: allApprovals = [],
     isLoading: isLoadingMyApprovals,
     isFetching: isFetchingMyApprovals,
     isError: isErrorMyApprovals,
     refetch: refetchMyApprovals,
   } = useQuery({
-    queryKey: ["approvals", "byGardener", activeAddress],
-    queryFn: () => fetchWorkApprovals(activeAddress || undefined),
+    queryKey: ["approvals", "all", activeAddress],
+    queryFn: () => fetchWorkApprovals(undefined),
     enabled: !!activeAddress,
     staleTime: STALE_TIME_MEDIUM,
     retry: DEFAULT_RETRY_COUNT,
   });
+
+  // Build a set of the user's work IDs for efficient lookup
+  const myWorkIds = useMemo(() => new Set((myOnlineWorks || []).map((w) => w.id)), [myOnlineWorks]);
+
+  // Filter approvals to only those for the user's works
+  const myReceivedApprovals = useMemo(
+    () => (allApprovals || []).filter((a) => myWorkIds.has(a.workUID)),
+    [allApprovals, myWorkIds]
+  );
 
   // Pending: your submissions across ALL gardens (online and awaiting review)
   const approvedOrRejectedForMe = useMemo(
@@ -675,7 +692,12 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         isClosing ? "modal-backdrop-exit" : "modal-backdrop-enter"
       )}
       data-testid="modal-drawer-overlay"
-      onClick={handleClose}
+      onClick={(e) => {
+        // Only close if clicking directly on backdrop, not from propagated events
+        if (e.target === e.currentTarget) {
+          handleClose();
+        }
+      }}
       onKeyDown={(e) => {
         if (e.key === "Escape") {
           handleClose();
@@ -685,12 +707,14 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     >
       <div
         className={cn(
-          "bg-bg-white-0 rounded-t-3xl shadow-2xl w-full overflow-hidden flex flex-col",
+          "bg-bg-white-0 rounded-t-3xl shadow-2xl w-full overflow-hidden flex flex-col max-h-modal",
           isClosing ? "modal-slide-exit" : "modal-slide-enter",
           className
         )}
-        style={{ height: "85vh", maxHeight: "85vh" }}
         onClick={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+        onTouchEnd={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
           e.stopPropagation();
         }}
@@ -736,8 +760,10 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
           triggerClassName="text-xs"
         />
 
-        {/* Content */}
-        <div className="flex-1 min-h-0 overflow-hidden">{renderTabContent()}</div>
+        {/* Content - overscroll-contain prevents scroll chaining to backdrop */}
+        <div className="flex-1 min-h-0 overflow-hidden overscroll-contain">
+          {renderTabContent()}
+        </div>
       </div>
     </div>
   );
