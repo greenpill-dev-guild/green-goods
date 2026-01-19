@@ -142,9 +142,15 @@ export async function getGardens(): Promise<Garden[]> {
     if (!data || !data.Garden || !Array.isArray(data.Garden)) return [];
 
     return data.Garden.map((garden) => {
-      const bannerImage = garden.bannerImage
-        ? resolveIPFSUrl(garden.bannerImage, GATEWAY_BASE_URL)
-        : "/images/no-image-placeholder.png";
+      // DIRTY FIX: Override Octant Community Garden banner until indexer is updated
+      const OCTANT_BANNER_OVERRIDE = "bafkreihslrqy363mkr4kn5skr56zcazyvikldosy433p6e5okxyxxjdyuy";
+      const isOctantGarden = garden.name === "Octant Community Garden";
+
+      const bannerImage = isOctantGarden
+        ? resolveIPFSUrl(OCTANT_BANNER_OVERRIDE, GATEWAY_BASE_URL)
+        : garden.bannerImage
+          ? resolveIPFSUrl(garden.bannerImage, GATEWAY_BASE_URL)
+          : "/images/no-image-placeholder.png";
 
       return {
         id: garden.id,
