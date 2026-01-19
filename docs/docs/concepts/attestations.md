@@ -300,19 +300,9 @@ When operators approve work in Green Goods:
 Green Goods attestations are deployed on:
 
 **Arbitrum One** (42161):
-- Work Schema: `0xf6fd183baeb8ae5c5f2f27a734b546b6128bee7877ea074f5cf9b18981be3a20`
-- Approval Schema: `0x9d734bc51ee7d3186a8f61603500c41386a5670d210e6995ba4973a7dedae60f`
-- Assessment Schema: `0x0356357a57e39ec4057763f3853116b97193589c7592eb7f81b9ed45d97cc598`
-
-**Celo** (42220):
-- Work Schema: `0x481c4190bcaf0140d77d1124acd443f51ed78d73fecb6cd4f77265142df0c00a`
-- Approval Schema: `0x584054ca6d3ed2d3adaed85fd3e2375d1197cb7e4c9698fec62d7431323f20c6`
-- Assessment Schema: `0xcbcd83143911085d2010d921a12ecf53569eb8dc4564b0ddb5d469c03b44d232`
-
-**Base Sepolia** (84532):
-- Work Schema: `0x481c4190bcaf0140d77d1124acd443f51ed78d73fecb6cd4f77265142df0c00a`
-- Approval Schema: `0x584054ca6d3ed2d3adaed85fd3e2375d1197cb7e4c9698fec62d7431323f20c6`
-- Assessment Schema: `0xcbcd83143911085d2010d921a12ecf53569eb8dc4564b0ddb5d469c03b44d232`
+- Work Schema: `0x8b8d53d8d4f258c621319185e86dad094e45a21b8ca7770a44770daae22c5a16`
+- Approval Schema: `0xe8dc098b57c5db925256ff6274da00aeb53377f241c8db56e5ec87d521c43367`
+- Assessment Schema: `0xcf9a20d8c1c3037199d178580c0de0946beb5f1b1f3a9c97446d2a69f55187d1`
 
 
 
