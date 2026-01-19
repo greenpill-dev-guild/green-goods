@@ -19,6 +19,7 @@ interface DraftFormData {
   feedback: string;
   plantSelection: string[];
   plantCount: number | null | undefined;
+  timeSpentMinutes?: number;
 }
 
 interface UseDraftAutoSaveOptions {
@@ -33,11 +34,12 @@ function hasMeaningfulProgress(formData: DraftFormData, imageCount: number): boo
   // Images are the strongest indicator of progress
   if (imageCount > 0) return true;
 
-  // Having form input (feedback, plant selection, or plant count) indicates progress
+  // Having form input (feedback, plant selection, plant count, or time spent) indicates progress
   const hasFormInput =
     formData.feedback.trim().length > 0 ||
     formData.plantSelection.length > 0 ||
-    (formData.plantCount ?? 0) > 0;
+    (formData.plantCount ?? 0) > 0 ||
+    (formData.timeSpentMinutes ?? 0) > 0;
 
   return hasFormInput;
 }
@@ -104,6 +106,7 @@ export function useDraftAutoSave(
           feedback: formData.feedback,
           plantSelection: formData.plantSelection,
           plantCount: formData.plantCount ?? undefined,
+          timeSpentMinutes: formData.timeSpentMinutes,
           currentStep: "intro",
           firstIncompleteStep: "intro",
         });
@@ -117,6 +120,7 @@ export function useDraftAutoSave(
             feedback: formData.feedback,
             plantSelection: formData.plantSelection,
             plantCount: formData.plantCount ?? undefined,
+            timeSpentMinutes: formData.timeSpentMinutes,
           },
         });
       }

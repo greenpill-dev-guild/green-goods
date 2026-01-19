@@ -60,6 +60,7 @@ export interface WorkFormValue {
   feedback: string;
   plantSelection: string[];
   plantCount: number | undefined;
+  timeSpentMinutes: number | undefined;
   values: Record<string, unknown>;
   reset: () => void;
   uploadWork: (e?: React.BaseSyntheticEvent) => Promise<void>;
@@ -88,6 +89,7 @@ export interface WorkDataProps {
     feedback: string;
     plantSelection: string[];
     plantCount: number | undefined;
+    timeSpentMinutes: number | undefined;
     values: Record<string, unknown>;
     reset: () => void;
   };
@@ -227,6 +229,9 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         feedback: data.feedback,
         plantSelection: data.plantSelection,
         ...(typeof data.plantCount === "number" ? { plantCount: data.plantCount } : {}),
+        ...(typeof data.timeSpentMinutes === "number"
+          ? { timeSpentMinutes: data.timeSpentMinutes }
+          : {}),
       };
 
       const errors = validateWorkSubmissionContext(gardenAddress, actionUID, images, {
@@ -290,6 +295,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
     feedback: workForm.feedback,
     plantSelection: workForm.plantSelection,
     plantCount: workForm.plantCount,
+    timeSpentMinutes: workForm.timeSpentMinutes,
     values: workForm.values,
     reset: workForm.reset,
     uploadWork,
@@ -317,6 +323,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       feedback: workForm.feedback,
       plantSelection: workForm.plantSelection,
       plantCount: workForm.plantCount,
+      timeSpentMinutes: workForm.timeSpentMinutes,
       values: workForm.values,
       reset: workForm.reset,
     },

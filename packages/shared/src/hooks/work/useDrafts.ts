@@ -238,6 +238,7 @@ export function useDrafts() {
     store.setFeedback(draft.feedback);
     store.setPlantSelection(draft.plantSelection);
     store.setPlantCount(draft.plantCount);
+    store.setTimeSpentMinutes(draft.timeSpentMinutes);
     store.setImages(files);
 
     // Set active draft
@@ -269,6 +270,7 @@ export function useDrafts() {
           feedback: store.feedback,
           plantSelection: store.plantSelection,
           plantCount: store.plantCount,
+          timeSpentMinutes: store.timeSpentMinutes,
           currentStep: workTabToDraftStep(store.activeTab),
         },
       });

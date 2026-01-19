@@ -10,11 +10,15 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { normalizePlantCount, normalizePlantSelection } from "../../utils/form/normalizers";
+import {
+  normalizePlantCount,
+  normalizePlantSelection,
+  normalizeTimeSpentMinutes,
+} from "../../utils/form/normalizers";
 
 /**
  * Zod schema for work submission form validation
- * Note: Only validating form fields (feedback, plantSelection, plantCount)
+ * Note: Only validating form fields (feedback, plantSelection, plantCount, timeSpentMinutes)
  * actionUID, title, and media are managed outside the form
  *
  * Uses shared normalizers from utils/form/normalizers.ts for consistency
@@ -24,6 +28,8 @@ export const workFormSchema = z.object({
   feedback: z.string().optional().default(""),
   plantSelection: z.preprocess(normalizePlantSelection, z.array(z.string())),
   plantCount: z.preprocess(normalizePlantCount, z.number().nonnegative().optional()),
+  /** Time spent in minutes (user inputs hours, normalized to minutes) */
+  timeSpentMinutes: z.preprocess(normalizeTimeSpentMinutes, z.number().nonnegative().optional()),
 });
 
 // Infer base form type from Zod schema
@@ -62,6 +68,7 @@ export function useWorkForm() {
   const feedback = watch("feedback") ?? "";
   const plantSelection = normalizePlantSelection(watch("plantSelection"));
   const plantCount = normalizePlantCount(watch("plantCount"));
+  const timeSpentMinutes = normalizeTimeSpentMinutes(watch("timeSpentMinutes"));
   const values = watch() as unknown as Record<string, unknown>;
 
   return {
@@ -70,6 +77,7 @@ export function useWorkForm() {
     feedback,
     plantSelection,
     plantCount,
+    timeSpentMinutes,
     values,
   };
 }
