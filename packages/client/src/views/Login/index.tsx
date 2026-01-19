@@ -116,7 +116,9 @@ export function Login() {
     : new URLSearchParams(location.search).get("redirectTo") || "/home";
 
   // Existing account detection (check localStorage for stored credential)
-  const hasExistingAccount = !fromLogout && hasStoredCredential;
+  // Always show login option if credential exists - even after logout
+  // The credential is preserved during signOut() to allow re-login with same address
+  const hasExistingAccount = hasStoredCredential;
 
   // Handle auth errors
   useEffect(() => {
