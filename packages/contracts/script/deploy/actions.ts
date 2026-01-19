@@ -81,23 +81,28 @@ export class ActionDeployer extends GardenDeployer {
    * @returns Solidity script code
    */
   private _generateActionScript(actions: ActionConfig[], actionRegistryAddress: string): string {
+    // Calculate dynamic timestamps: start = now, end = now + 3 months
+    const now = new Date();
+    const startTime = Math.floor(now.getTime() / 1000);
+    const threeMonthsLater = new Date(now);
+    threeMonthsLater.setMonth(threeMonthsLater.getMonth() + 3);
+    const endTime = Math.floor(threeMonthsLater.getTime() / 1000);
+
     // Log action deployment details for verification
     console.log("\n📋 Actions to be deployed:");
     console.log("─".repeat(60));
+    console.log(`  Using dynamic timestamps (ignoring config values):`);
+    console.log(`  Start: ${now.toISOString()} → ${startTime}`);
+    console.log(`  End:   ${threeMonthsLater.toISOString()} → ${endTime}`);
+    console.log("─".repeat(60));
     actions.forEach((action, index) => {
-      const startTime = Math.floor(new Date(action.startTime).getTime() / 1000);
-      const endTime = Math.floor(new Date(action.endTime).getTime() / 1000);
       console.log(`  ${index}: ${action.title}`);
-      console.log(`     Start: ${action.startTime} → ${startTime}`);
-      console.log(`     End:   ${action.endTime} → ${endTime}`);
-      console.log(`     End (verified): ${new Date(endTime * 1000).toISOString()}`);
     });
     console.log("─".repeat(60));
 
     const actionsCode = actions
       .map((action, index) => {
-        const startTime = Math.floor(new Date(action.startTime).getTime() / 1000);
-        const endTime = Math.floor(new Date(action.endTime).getTime() / 1000);
+        // Use dynamic timestamps instead of config values
 
         return `
         // Action ${index + 1}: ${action.title}

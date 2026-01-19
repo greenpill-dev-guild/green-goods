@@ -25,10 +25,10 @@
       ]
     },
     {
-      "name": "DevConnect",
-      "description": "A garden created during DevConnect to turn Web3 builders into gardeners. Participants engage with regenerative actions and record their impact onchain. This demonstrates how regens can use Green Goods for event-based community engagement.",
-      "location": "Buenos Aires, Argentina",
-      "bannerImage": "bafybeiguhorfplqktq33rwnyaphbncmb4o4thombdyyzbzo3hel6csu7im",
+      "name": "Octant Community Garden",
+      "description": "A specialized garden for members of the Octant community, focusing on collaborative projects and initiatives that align with the orgs mission and values.",
+      "location": "Golem City",
+      "bannerImage": "bafybeif7he4d2ou2ncqsnxgjuld6wypxv4jy4gcrhh7y4hbug5b73ao3my",
       "metadata": "",
       "openJoining": true,
       "gardeners": ["0x476E2651BF97dE8a26e4A05a9c8e00A6EFa1390c", "0x809C9f8dd8CA93A41c3adca4972Fa234C28F7714"],
