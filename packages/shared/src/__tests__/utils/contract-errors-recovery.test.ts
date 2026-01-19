@@ -50,7 +50,8 @@ describe("contract error recovery fields", () => {
     });
 
     it("should mark permission errors as not recoverable", () => {
-      const result = parseContractError("0x30cd7471"); // NotGardenOwner
+      // 0xd8cae624 = keccak256("NotGardenOwner()")[0:4]
+      const result = parseContractError("0xd8cae624");
       expect(result.recoverable).toBe(false);
       expect(result.suggestedAction).toBe("contact-support");
     });
@@ -58,14 +59,14 @@ describe("contract error recovery fields", () => {
 
   describe("suggestedAction field", () => {
     it("should suggest join-garden for membership errors", () => {
-      // Test both old and new selectors
-      expect(parseContractError("0x8cb4ae3b").suggestedAction).toBe("join-garden");
-      expect(parseContractError("0x1648fd01").suggestedAction).toBe("join-garden");
+      // Test both legacy and current selectors
+      expect(parseContractError("0x8cb4ae3b").suggestedAction).toBe("join-garden"); // Legacy (NotGardenerAccount)
+      expect(parseContractError("0xfdb31dd5").suggestedAction).toBe("join-garden"); // Current (NotGardenMember)
     });
 
     it("should suggest contact-support for permission errors", () => {
-      expect(parseContractError("0x30cd7471").suggestedAction).toBe("contact-support"); // NotGardenOwner
-      expect(parseContractError("0x5d91fb09").suggestedAction).toBe("contact-support"); // NotGardenOperator
+      expect(parseContractError("0xd8cae624").suggestedAction).toBe("contact-support"); // NotGardenOwner
+      expect(parseContractError("0xf3aeae14").suggestedAction).toBe("contact-support"); // NotGardenOperator
       expect(parseContractError("0xdb926eba").suggestedAction).toBe("contact-support"); // InvalidInvite
     });
 
@@ -83,13 +84,13 @@ describe("contract error recovery fields", () => {
       expectedSuggestedAction?: string;
     }> = [
       {
-        signature: "0x8cb4ae3b",
+        signature: "0x8cb4ae3b", // Legacy selector (NotGardenerAccount)
         expectedName: "NotGardenMember",
         expectedRecoverable: false,
         expectedSuggestedAction: "join-garden",
       },
       {
-        signature: "0x30cd7471",
+        signature: "0xd8cae624", // keccak256("NotGardenOwner()")[0:4]
         expectedName: "NotGardenOwner",
         expectedRecoverable: false,
         expectedSuggestedAction: "contact-support",
@@ -107,8 +108,8 @@ describe("contract error recovery fields", () => {
         // No suggested action - need to select different action
       },
       {
-        signature: "0x5d91fb10",
-        expectedName: "NotAuthorizedApprover",
+        signature: "0xf3aeae14", // keccak256("NotGardenOperator()")[0:4]
+        expectedName: "NotGardenOperator",
         expectedRecoverable: false,
         expectedSuggestedAction: "contact-support",
       },
