@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.25;
 
-import {Test} from "forge-std/Test.sol";
-import {ERC6551Registry} from "../../lib/tokenbound/lib/erc6551/src/ERC6551Registry.sol";
-import {TOKENBOUND_REGISTRY} from "../../src/lib/TBA.sol";
+import { Test } from "forge-std/Test.sol";
+import { ERC6551Registry } from "../../lib/tokenbound/lib/erc6551/src/ERC6551Registry.sol";
+import { TOKENBOUND_REGISTRY } from "../../src/lib/TBA.sol";
 
 error ERC6551RegistryNotDeployed();
 

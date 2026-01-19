@@ -50,6 +50,44 @@ export {
   trackWorkSubmissionSuccess,
 } from "./app/analytics-events";
 // ============================================================================
+// APP / ERROR TRACKING
+// ============================================================================
+export {
+  // Breadcrumbs
+  addBreadcrumb,
+  type BreadcrumbEntry,
+  clearBreadcrumbs,
+  type ErrorCategory,
+  type ErrorContext,
+  // Types
+  type ErrorSeverity,
+  getBreadcrumbs,
+  // Global handlers
+  initGlobalErrorHandlers,
+  trackAuthError,
+  // Category-specific tracking
+  trackContractError,
+  // Core error tracking
+  trackError,
+  // React Error Boundary helper
+  trackErrorBoundary,
+  trackErrorRecovery,
+  // Recovery tracking
+  trackErrorRetry,
+  trackFatalError,
+  trackGraphQLError,
+  trackNetworkError,
+  trackStorageError,
+  trackSyncError,
+  trackUploadBatchProgress,
+  // Upload tracking
+  trackUploadError,
+  trackUploadSuccess,
+  trackWarning,
+  type UploadErrorCategory,
+  type UploadErrorContext,
+} from "./app/error-tracking";
+// ============================================================================
 // APP / ANALYTICS
 // ============================================================================
 export {
@@ -77,22 +115,22 @@ export {
   // Auth mode
   type AuthMode,
   clearAllAuth,
-  // Legacy aliases (deprecated)
-  clearAllAuthStorage,
   clearAuthMode,
   // Legacy (deprecated - credentials now on Pimlico server)
   clearStoredPasskey,
+  clearStoredRpId,
   // Username (Pimlico server)
   clearStoredUsername,
   getAuthMode,
-  getSavedAuthMode,
+  getStoredRpId,
   getStoredUsername,
   hasStoredPasskey,
-  hasStoredPasskeyCredential,
   hasStoredUsername,
   PASSKEY_STORAGE_KEY,
-  saveAuthMode,
+  // RP ID (Android passkey compatibility)
+  RP_ID_STORAGE_KEY,
   setAuthMode,
+  setStoredRpId,
   setStoredUsername,
   USERNAME_STORAGE_KEY,
 } from "./auth/session";
@@ -112,7 +150,20 @@ export {
 // ============================================================================
 export type { FragmentOf, ResultOf, VariablesOf } from "./data/graphql";
 export { easGraphQL, greenGoodsGraphQL } from "./data/graphql";
-
+// ============================================================================
+// DATA / GRAPHQL CLIENT
+// ============================================================================
+export {
+  createEasClient,
+  createIndexerClient,
+  GQLClient,
+  GRAPHQL_TIMEOUT_MS,
+  greenGoodsIndexer,
+  // Timeout utilities
+  INDEXER_TIMEOUT_MS,
+  TimeoutError,
+  withTimeout,
+} from "./data/graphql-client";
 // ============================================================================
 // DATA / GREENGOODS
 // ============================================================================
@@ -123,12 +174,14 @@ export {
   getGardens,
   updateUserProfile,
 } from "./data/greengoods";
-
 // ============================================================================
 // DATA / IPFS (Storacha)
 // ============================================================================
 export {
+  // Upload context types
+  type FileUploadContext,
   getFileByHash,
+  getIpfsInitStatus,
   initializeIpfs,
   initializeIpfsFromEnv,
   // Deprecated aliases for backward compatibility
@@ -137,26 +190,13 @@ export {
   // Storacha aliases (preferred naming)
   initializeStoracha,
   initializeStorachaFromEnv,
+  type JsonUploadContext,
   resolveAvatarUrl,
   resolveImageUrl,
   resolveIPFSUrl,
   uploadFileToIPFS,
   uploadJSONToIPFS,
 } from "./data/ipfs";
-
-// ============================================================================
-// DATA / URQL
-// ============================================================================
-export {
-  createEasClient,
-  createGreenGoodsIndexerClient,
-  createIndexerClient,
-  greenGoodsIndexer,
-  // Timeout utilities
-  INDEXER_TIMEOUT_MS,
-  TimeoutError,
-  withTimeout,
-} from "./data/urql";
 
 // ============================================================================
 // JOB QUEUE
@@ -166,6 +206,7 @@ export {
   jobQueue,
   jobQueueDB,
   jobQueueEventBus,
+  mediaResourceManager,
   useJobQueueEvents,
 } from "./job-queue";
 

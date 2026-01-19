@@ -1,15 +1,35 @@
 {
   "mcpServers": {
-    "vercel": {
-      "url": "https://mcp.vercel.com"
-    },
-    "figma": {
-      "url": "https://mcp.figma.com/mcp"
-    },
     "miro": {
       "url": "https://mcp.miro.com/",
       "disabled": false,
       "autoApprove": []
+    },
+    "figma": {
+      "url": "https://mcp.figma.com/mcp"
+    },
+    "vercel": {
+      "url": "https://mcp.vercel.com"
+    },
+    "railway": {
+      "command": "npx",
+      "args": ["-y", "@railway/mcp-server"],
+      "env": {}
+    },
+    "foundry": {
+      "command": "npx",
+      "args": ["-y", "@pranesh.asp/foundry-mcp-server"],
+      "env": {
+        "RPC_URL": "https://sepolia.base.org"
+      }
+    },
+    "storacha": {
+      "command": "npx",
+      "args": ["-y", "@storacha/mcp-storage-server"],
+      "env": {
+        "PRIVATE_KEY": "${VITE_STORACHA_KEY}",
+        "DELEGATION": "${VITE_STORACHA_PROOF}"
+      }
     }
   }
 }

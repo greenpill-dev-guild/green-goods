@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
+// solhint-disable one-contract-per-file
 pragma solidity ^0.8.25;
 
-import {IUnlockFactory, IPublicLock} from "../interfaces/IUnlock.sol";
+import { IUnlockFactory, IPublicLock } from "../interfaces/IUnlock.sol";
 
 /// @title MockUnlockFactory
 /// @notice Mock implementation of Unlock factory for testing
@@ -40,7 +41,11 @@ contract MockPublicLock is IPublicLock {
     }
 
     /// @notice Grants keys to recipients
-    function grantKeys(address[] calldata _recipients, uint256[] calldata _expirationTimestamps, address[] calldata)
+    function grantKeys(
+        address[] calldata _recipients,
+        uint256[] calldata _expirationTimestamps,
+        address[] calldata
+    )
         external
         override
         returns (uint256[] memory tokenIds)

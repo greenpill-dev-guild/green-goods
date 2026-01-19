@@ -1,177 +1,265 @@
-import { test, expect } from "@playwright/test";
-import { BasePage } from "../pages/base.page";
+/**
+ * Performance E2E Tests
+ *
+ * Tests for page load times, resource usage, and performance metrics
+ */
 
-test.describe("Performance Monitoring", () => {
-  let basePage: BasePage;
+import { expect, test } from "@playwright/test";
+import { TEST_URLS } from "../helpers/test-utils";
+import { TIMEOUTS } from "../helpers/test-config";
 
-  test.beforeEach(async ({ page }) => {
-    basePage = new (class extends BasePage {})(page);
-  });
+test.describe("Performance Tests", () => {
+  test.describe("Page Load Performance", () => {
+    test("client app loads within acceptable time", async ({ page }) => {
+      const startTime = Date.now();
 
-  test("should load homepage within acceptable time", async ({ page }) => {
-    const startTime = Date.now();
+      await page.goto(TEST_URLS.client);
+      await page.waitForLoadState("networkidle");
 
-    await page.goto("/");
-    await basePage.waitForPageLoad();
+      const loadTime = Date.now() - startTime;
 
-    const loadTime = Date.now() - startTime;
+      // Page should load in under 5 seconds
+      expect(loadTime).toBeLessThan(5000);
 
-    // Should load within 5 seconds
-    expect(loadTime).toBeLessThan(5000);
-    console.log(`Homepage loaded in ${loadTime}ms`);
-  });
+      // Check for Core Web Vitals
+      const metrics = await page.evaluate(() => {
+        return new Promise((resolve) => {
+          let lcp = 0;
+          let fid = 0;
+          let cls = 0;
 
-  test("should have acceptable Core Web Vitals", async ({ page }) => {
-    await page.goto("/");
-    await basePage.waitForPageLoad();
+          // LCP (Largest Contentful Paint)
+          new PerformanceObserver((list) => {
+            const entries = list.getEntries();
+            const lastEntry = entries[entries.length - 1];
+            lcp = lastEntry.startTime;
+          }).observe({ entryTypes: ["largest-contentful-paint"] });
 
-    // Measure Core Web Vitals
-    const metrics = await page.evaluate(() => {
-      return new Promise((resolve) => {
-        const observer = new PerformanceObserver((list) => {
-          const entries = list.getEntries();
-          const metrics: any = {};
-
-          entries.forEach((entry) => {
-            if (entry.name === "first-contentful-paint") {
-              metrics.fcp = entry.startTime;
+          // CLS (Cumulative Layout Shift)
+          new PerformanceObserver((list) => {
+            for (const entry of list.getEntries()) {
+              if (!(entry as any).hadRecentInput) {
+                cls += (entry as any).value;
+              }
             }
-            if (entry.name === "largest-contentful-paint") {
-              metrics.lcp = entry.startTime;
-            }
-          });
+          }).observe({ entryTypes: ["layout-shift"] });
 
-          resolve(metrics);
+          // Wait a bit for metrics to be collected
+          setTimeout(() => {
+            resolve({ lcp, cls, fid });
+          }, 2000);
         });
-
-        observer.observe({ entryTypes: ["paint", "largest-contentful-paint"] });
-
-        // Fallback timeout
-        setTimeout(() => resolve({}), 3000);
       });
+
+      // LCP should be under 2.5s (good), 4s (needs improvement)
+      expect((metrics as any).lcp).toBeLessThan(4000);
+
+      // CLS should be under 0.1 (good), 0.25 (needs improvement)
+      expect((metrics as any).cls).toBeLessThan(0.25);
     });
 
-    console.log("Core Web Vitals:", metrics);
+    test("admin app loads within acceptable time", async ({ page }) => {
+      const startTime = Date.now();
 
-    // Basic performance expectations
-    if ((metrics as any).fcp) {
-      expect((metrics as any).fcp).toBeLessThan(2000); // FCP should be under 2s
-    }
-    if ((metrics as any).lcp) {
-      expect((metrics as any).lcp).toBeLessThan(4000); // LCP should be under 4s
-    }
+      await page.goto(TEST_URLS.admin);
+      await page.waitForLoadState("networkidle");
+
+      const loadTime = Date.now() - startTime;
+
+      // Page should load in under 5 seconds
+      expect(loadTime).toBeLessThan(5000);
+    });
   });
 
-  test("should handle GraphQL queries efficiently", async ({ page }) => {
-    await page.goto("/");
-    await basePage.waitForPageLoad();
+  test.describe("Resource Loading", () => {
+    test("no failed resource requests on client", async ({ page }) => {
+      const failedRequests: string[] = [];
 
-    const startTime = Date.now();
+      page.on("requestfailed", (request) => {
+        failedRequests.push(`${request.failure()?.errorText}: ${request.url()}`);
+      });
 
-    // Test GraphQL query performance
-    const response = await page.evaluate(async () => {
-      const start = performance.now();
+      await page.goto(TEST_URLS.client);
+      await page.waitForLoadState("networkidle");
+      await page.waitForTimeout(2000);
 
-      try {
-        const res = await fetch("/graphql", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            query: `
-              query {
-                Garden(limit: 5) {
-                  id
-                  name
-                  tokenAddress
-                }
-              }
-            `,
-          }),
-        });
+      // Should have no failed requests (or only expected ones)
+      // Filter out:
+      // - favicon, analytics, error endpoints (expected to potentially fail)
+      // - Aborted requests to root URL (SPA redirect behavior)
+      // - Service worker related requests
+      const criticalFailures = failedRequests.filter((failure) => {
+        const isExpected =
+          failure.includes("favicon") ||
+          failure.includes("analytics") ||
+          failure.includes("error") ||
+          failure.includes("ERR_ABORTED") || // Navigation aborted during redirect
+          failure.includes("service-worker") ||
+          failure.includes("sw.js");
+        return !isExpected;
+      });
 
-        const data = await res.json();
-        const end = performance.now();
+      expect(criticalFailures).toHaveLength(0);
+    });
 
-        return {
-          duration: end - start,
-          success: res.ok,
-          dataSize: JSON.stringify(data).length,
-        };
-      } catch (error) {
-        return {
-          duration: performance.now() - start,
-          success: false,
-          error: error.message,
-        };
+    test("bundles are appropriately sized", async ({ page, request }) => {
+      // Get the main page
+      const response = await request.get(TEST_URLS.client);
+      const html = await response.text();
+
+      // Extract script and style URLs
+      const scriptMatches = html.matchAll(/<script[^>]+src=["']([^"']+)["']/g);
+      const styleMatches = html.matchAll(/<link[^>]+href=["']([^"']+\.css)["']/g);
+
+      const bundles: { url: string; size: number }[] = [];
+
+      // Check script sizes
+      for (const match of scriptMatches) {
+        const url = new URL(match[1], TEST_URLS.client).toString();
+        try {
+          const response = await request.get(url);
+          const size = (await response.body()).length;
+          bundles.push({ url: match[1], size });
+        } catch {
+          // Ignore errors for external scripts
+        }
+      }
+
+      // Check style sizes
+      for (const match of styleMatches) {
+        const url = new URL(match[1], TEST_URLS.client).toString();
+        try {
+          const response = await request.get(url);
+          const size = (await response.body()).length;
+          bundles.push({ url: match[1], size });
+        } catch {
+          // Ignore errors
+        }
+      }
+
+      // Check bundle sizes
+      const totalSize = bundles.reduce((sum, b) => sum + b.size, 0);
+      const largestBundle = Math.max(...bundles.map((b) => b.size));
+
+      // Total JS/CSS should be under 1MB for initial load
+      expect(totalSize).toBeLessThan(1024 * 1024);
+
+      // No single bundle should be over 500KB
+      expect(largestBundle).toBeLessThan(500 * 1024);
+    });
+  });
+
+  test.describe("Memory Usage", () => {
+    test("no memory leaks during navigation", async ({ page }) => {
+      // Navigate to client app
+      await page.goto(TEST_URLS.client);
+      await page.waitForLoadState("networkidle");
+
+      // Get initial memory usage
+      const initialMemory = await page.evaluate(() => {
+        return (performance as any).memory?.usedJSHeapSize || 0;
+      });
+
+      // Navigate around a few times
+      for (let i = 0; i < 5; i++) {
+        await page.goto(`${TEST_URLS.client}/login`);
+        await page.waitForLoadState("networkidle");
+        await page.goto(TEST_URLS.client);
+        await page.waitForLoadState("networkidle");
+      }
+
+      // Force garbage collection if available
+      await page.evaluate(() => {
+        if ((window as any).gc) {
+          (window as any).gc();
+        }
+      });
+
+      await page.waitForTimeout(1000);
+
+      // Check final memory usage
+      const finalMemory = await page.evaluate(() => {
+        return (performance as any).memory?.usedJSHeapSize || 0;
+      });
+
+      // Memory should not have grown by more than 50%
+      if (initialMemory > 0 && finalMemory > 0) {
+        const growth = (finalMemory - initialMemory) / initialMemory;
+        expect(growth).toBeLessThan(0.5);
       }
     });
-
-    expect(response.success).toBe(true);
-    expect(response.duration).toBeLessThan(2000); // Should respond within 2s
-
-    console.log(`GraphQL query completed in ${response.duration}ms`);
   });
 
-  test("should maintain performance on mobile devices", async ({ page }) => {
-    // Set mobile viewport
-    await page.setViewportSize({ width: 375, height: 667 });
+  test.describe("API Response Times", () => {
+    test("GraphQL queries respond quickly", async ({ request }) => {
+      const queries = [
+        { query: "query { __typename }" },
+        { query: "query { Garden(limit: 10) { id name } }" },
+      ];
 
-    const startTime = Date.now();
+      for (const query of queries) {
+        const startTime = Date.now();
 
-    await page.goto("/");
-    await basePage.waitForPageLoad();
+        const response = await request.post(TEST_URLS.indexer, {
+          data: query,
+          headers: { "Content-Type": "application/json" },
+        });
 
-    const loadTime = Date.now() - startTime;
+        const responseTime = Date.now() - startTime;
 
-    // Mobile should load within 6 seconds (allowing for slower devices)
-    expect(loadTime).toBeLessThan(6000);
-    console.log(`Mobile page loaded in ${loadTime}ms`);
+        expect(response.status()).toBe(200);
+        // GraphQL queries should respond in under 1 second
+        expect(responseTime).toBeLessThan(1000);
+      }
+    });
   });
 
-  test("should handle memory usage efficiently", async ({ page }) => {
-    await page.goto("/");
-    await basePage.waitForPageLoad();
+  test.describe("PWA Performance", () => {
+    test("service worker caches assets correctly", async ({ page }) => {
+      // Service worker registration may not work in test environment
+      // Skip if not running in a production-like environment
+      test.skip(
+        process.env.CI === "true",
+        "Service worker tests skipped in CI: requires HTTPS and proper SW registration. " +
+          "Test manually or in staging environment."
+      );
 
-    // Get initial memory usage
-    const memoryInfo = await page.evaluate(() => {
-      return (performance as any).memory
-        ? {
-            usedJSHeapSize: (performance as any).memory.usedJSHeapSize,
-            totalJSHeapSize: (performance as any).memory.totalJSHeapSize,
-            jsHeapSizeLimit: (performance as any).memory.jsHeapSizeLimit,
-          }
-        : null;
+      // Navigate to client (PWA)
+      await page.goto(TEST_URLS.client);
+      await page.waitForLoadState("networkidle");
+
+      // Wait for service worker
+      await page.waitForTimeout(2000);
+
+      // Check if service worker is registered
+      const swRegistered = await page.evaluate(async () => {
+        if ("serviceWorker" in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          return registrations.length > 0;
+        }
+        return false;
+      });
+
+      if (!swRegistered) {
+        console.log("Service worker not registered - skipping offline test");
+        return;
+      }
+
+      // PWA should have service worker
+      expect(swRegistered).toBeTruthy();
+
+      // Go offline
+      await page.context().setOffline(true);
+
+      // Reload page
+      await page.reload();
+
+      // Page should still load from cache
+      const title = await page.title();
+      expect(title).toContain("Green Goods");
+
+      // Go back online
+      await page.context().setOffline(false);
     });
-
-    if (memoryInfo) {
-      console.log("Memory usage:", memoryInfo);
-
-      // Basic memory checks (values in bytes)
-      expect(memoryInfo.usedJSHeapSize).toBeLessThan(50 * 1024 * 1024); // Under 50MB
-      expect(memoryInfo.usedJSHeapSize).toBeGreaterThan(0);
-    }
-  });
-
-  test("should handle network timeouts gracefully", async ({ page }) => {
-    await page.goto("/");
-    await basePage.waitForPageLoad();
-
-    // Test with slow network conditions
-    await page.route("**/*", async (route) => {
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Add 1s delay
-      route.continue();
-    });
-
-    const startTime = Date.now();
-
-    // Navigate to another page
-    await page.click("a").catch(() => {
-      // Might not have navigation links, that's okay
-    });
-
-    const responseTime = Date.now() - startTime;
-
-    // Should handle delays gracefully
-    expect(responseTime).toBeLessThan(10000); // Within 10s even with delays
   });
 });

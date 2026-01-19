@@ -1,3 +1,4 @@
+import type { Action, WorkInput } from "../../types/domain";
 import { useTranslation } from "./useTranslation";
 
 export function useActionTranslation(action: Action | null) {

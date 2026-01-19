@@ -77,6 +77,13 @@ vi.mock("../../utils/blockchain/contracts", () => ({
 }));
 
 vi.mock("../../utils/errors/contract-errors", () => ({
+  parseContractError: vi.fn((error: unknown) => ({
+    raw: error instanceof Error ? error.message : String(error),
+    name: "UnknownError",
+    message: error instanceof Error ? error.message : String(error),
+    isKnown: false,
+    recoverable: true,
+  })),
   isAlreadyGardenerError: vi.fn((error) => error?.message?.includes("AlreadyGardener")),
 }));
 

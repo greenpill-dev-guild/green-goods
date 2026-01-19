@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {IEAS, Attestation} from "@eas/IEAS.sol";
-import {SchemaResolver} from "@eas/resolver/SchemaResolver.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { IEAS, Attestation } from "@eas/IEAS.sol";
+import { SchemaResolver } from "@eas/resolver/SchemaResolver.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-import {AssessmentSchema} from "../Schemas.sol";
-import {IGardenAccessControl} from "../interfaces/IGardenAccessControl.sol";
-import {IGardenAccount} from "../interfaces/IGardenAccount.sol";
-import {KarmaLib} from "../lib/Karma.sol";
+import { AssessmentSchema } from "../Schemas.sol";
+import { IGardenAccessControl } from "../interfaces/IGardenAccessControl.sol";
+import { IGardenAccount } from "../interfaces/IGardenAccount.sol";
+import { KarmaLib } from "../lib/Karma.sol";
 
 error NotGardenOperator();
 error TitleRequired();

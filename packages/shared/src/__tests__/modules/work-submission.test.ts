@@ -1,4 +1,31 @@
+/**
+ * @vitest-environment jsdom
+ */
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+// Ensure fake-indexeddb is loaded before job-queue module
+import "fake-indexeddb/auto";
+
+// Mock modules that pull in problematic dependencies (@walletconnect -> uint8arrays)
+vi.mock("../../config/appkit", () => ({
+  wagmiConfig: {},
+  appKit: null,
+}));
+
+vi.mock("@wagmi/core", () => ({
+  getPublicClient: vi.fn(() => ({
+    readContract: vi.fn(),
+  })),
+}));
+
+vi.mock("../../modules/app/posthog", () => ({
+  track: vi.fn(),
+}));
+
+vi.mock("../../modules/work/passkey-submission", () => ({
+  submitWorkWithPasskey: vi.fn(async () => "0xtestwork"),
+  submitApprovalWithPasskey: vi.fn(async () => "0xtestapproval"),
+}));
 
 import {
   formatJobError,
@@ -25,7 +52,12 @@ describe("modules/work-submission", () => {
   });
 
   it("validates drafts and returns errors", () => {
-    const errors = validateWorkDraft({ feedback: "" } as any, null, null, []);
+    const errors = validateWorkDraft(
+      { feedback: "", actionUID: null, title: "", plantSelection: [], plantCount: 0, media: [] },
+      null,
+      null,
+      []
+    );
     expect(errors.length).toBeGreaterThan(0);
   });
 

@@ -1,6 +1,13 @@
 import { type IDBPDatabase, openDB } from "idb";
 import { normalizeToFile } from "../../utils/app/normalizeToFile";
+import {
+  serializeFile,
+  deserializeFile,
+  buildFileMetadata,
+} from "../../utils/storage/file-serialization";
+import { trackStorageError, addBreadcrumb } from "../app/error-tracking";
 import { mediaResourceManager } from "./media-resource-manager";
+import type { Job, JobQueueDBImage, CachedWork, SerializedFileData } from "../../types/job-queue";
 
 const DB_NAME = "green-goods-job-queue";
 const DB_VERSION = 5; // Incremented for userAddress field
@@ -82,22 +89,36 @@ class JobQueueDatabase {
   }
 
   /**
-   * Clean up stale object URLs that are older than 1 hour
+   * Clean up stale object URLs that are older than 1 hour.
+   * IMPORTANT: Only delete image rows for jobs that are already synced or deleted.
+   * For pending jobs, only revoke the blob URL (to free memory) but keep the
+   * image row so files can be re-loaded when needed.
    */
   private async cleanupStaleUrls(): Promise<void> {
     try {
       const db = await this.init();
-      const tx = db.transaction("job_images", "readwrite");
-      const store = tx.objectStore("job_images");
-      const index = store.index("createdAt");
+      const tx = db.transaction(["job_images", "jobs"], "readwrite");
+      const imagesStore = tx.objectStore("job_images");
+      const jobsStore = tx.objectStore("jobs");
+      const index = imagesStore.index("createdAt");
 
       const oneHourAgo = Date.now() - 60 * 60 * 1000;
       const staleImages = await index.getAll(IDBKeyRange.upperBound(oneHourAgo));
 
       for (const image of staleImages) {
-        // Clean up the URL using MediaResourceManager
+        // Check if the parent job still exists and is pending
+        const job = await jobsStore.get(image.jobId);
+
+        // Always revoke the blob URL to free memory
         mediaResourceManager.cleanupUrl(image.url);
-        await store.delete(image.id);
+
+        // Only delete the image row if:
+        // - The parent job doesn't exist (orphaned image)
+        // - The parent job is already synced (completed)
+        // For pending jobs, keep the image row so we can regenerate URLs later
+        if (!job || job.synced) {
+          await imagesStore.delete(image.id);
+        }
       }
 
       await tx.done;
@@ -149,31 +170,77 @@ class JobQueueDatabase {
       }
     }
 
+    // Serialize all files BEFORE starting the transaction.
+    // This is important because:
+    // 1. arrayBuffer() is async and can't be called inside a transaction
+    // 2. iOS Safari fails to store File objects directly (DOMException: UnknownError)
+    const serializedFiles: Array<{ file: File; fileData: SerializedFileData }> = [];
+    for (const file of normalizedMediaFiles) {
+      try {
+        const fileData = await serializeFile(file);
+        serializedFiles.push({ file, fileData });
+      } catch (serializeError) {
+        // Track serialization failure with detailed context
+        trackStorageError(serializeError, {
+          source: "JobQueueDatabase.addJob",
+          userAction: "serializing file for IndexedDB storage",
+          metadata: {
+            ...buildFileMetadata(file, id),
+            job_kind: job.kind,
+          },
+        });
+        throw serializeError;
+      }
+    }
+
+    // Add breadcrumb for debugging
+    addBreadcrumb("job_files_serialized", {
+      job_id: id,
+      file_count: serializedFiles.length,
+      total_size: serializedFiles.reduce((sum, f) => sum + f.file.size, 0),
+    });
+
     // Atomically persist job + images.
     // If anything fails, we cleanup any created object URLs and nothing is committed.
     const tx = db.transaction(["jobs", "job_images"], "readwrite");
     try {
       await tx.objectStore("jobs").add(jobData as Job);
 
-      for (let index = 0; index < normalizedMediaFiles.length; index++) {
-        const file = normalizedMediaFiles[index];
+      for (let index = 0; index < serializedFiles.length; index++) {
+        const { file, fileData } = serializedFiles[index];
         const imageId = crypto.randomUUID();
         const url = mediaResourceManager.createUrl(file, id);
 
         await tx.objectStore("job_images").add({
           id: imageId,
           jobId: id,
-          file,
+          fileData, // Store serialized data instead of File
           url,
           createdAt: timestamp,
-        });
+        } as JobQueueDBImage);
       }
 
       await tx.done;
     } catch (error) {
       try {
         tx.abort();
-      } catch {}
+      } catch {
+        // Transaction may already be aborted; ignore error
+      }
+
+      // Track IndexedDB storage failure with detailed context
+      trackStorageError(error, {
+        source: "JobQueueDatabase.addJob",
+        userAction: "storing job and images in IndexedDB",
+        metadata: {
+          job_id: id,
+          job_kind: job.kind,
+          file_count: serializedFiles.length,
+          total_size: serializedFiles.reduce((sum, f) => sum + f.file.size, 0),
+          error_name: error instanceof Error ? error.name : "Unknown",
+          error_message: error instanceof Error ? error.message : String(error),
+        },
+      });
 
       // Ensure we don't leak object URLs for a job that never persisted.
       mediaResourceManager.cleanupUrls(id);
@@ -265,20 +332,15 @@ class JobQueueDatabase {
     const index = tx.objectStore("job_images").index("jobId");
     const images = await index.getAll(jobId);
 
-    // Normalize files: IndexedDB may strip File metadata, so reconstruct if needed
+    // Deserialize files from IndexedDB format back to File objects.
+    // Handles both new serialized format and legacy File format.
     const result = images.map((img) => {
-      const normalizedFile =
-        img.file instanceof File
-          ? img.file
-          : new File([img.file], img.file?.name || `work-${jobId}-${img.id}.jpg`, {
-              type: (img.file as Blob)?.type || "image/jpeg",
-              lastModified: Date.now(),
-            });
+      const file = deserializeFile(img, `work-${jobId}`, img.id);
 
       return {
         id: img.id,
-        file: normalizedFile,
-        url: mediaResourceManager.getOrCreateUrl(normalizedFile, jobId),
+        file,
+        url: mediaResourceManager.getOrCreateUrl(file, jobId),
       };
     });
 
@@ -417,6 +479,39 @@ class JobQueueDatabase {
 
     // Cleanup old clientWorkId mappings
     await this.cleanupOldMappings();
+  }
+
+  // Key for storing failed delete IDs in localStorage (lightweight persistence)
+  private readonly FAILED_DELETE_IDS_KEY = "gg_failed_delete_job_ids";
+
+  /**
+   * Load failed delete job IDs from localStorage.
+   * Uses localStorage instead of IndexedDB for simplicity since this is just a small array.
+   */
+  async loadFailedDeleteIds(): Promise<string[]> {
+    try {
+      const stored = localStorage.getItem(this.FAILED_DELETE_IDS_KEY);
+      if (!stored) return [];
+      const parsed = JSON.parse(stored);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Save failed delete job IDs to localStorage.
+   */
+  async saveFailedDeleteIds(ids: string[]): Promise<void> {
+    try {
+      if (ids.length === 0) {
+        localStorage.removeItem(this.FAILED_DELETE_IDS_KEY);
+      } else {
+        localStorage.setItem(this.FAILED_DELETE_IDS_KEY, JSON.stringify(ids));
+      }
+    } catch {
+      // Ignore storage errors - this is just cleanup optimization
+    }
   }
 }
 

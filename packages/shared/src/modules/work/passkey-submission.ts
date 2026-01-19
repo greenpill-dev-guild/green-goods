@@ -1,7 +1,7 @@
-import { NO_EXPIRATION, ZERO_BYTES32 } from "@ethereum-attestation-service/eas-sdk";
+import { NO_EXPIRATION, ZERO_BYTES32 } from "../../utils/eas/constants";
 import { getPublicClient } from "@wagmi/core";
 import type { SmartAccountClient } from "permissionless";
-import { encodeFunctionData } from "viem";
+import type { WorkApprovalDraft, WorkDraft } from "../../types/domain";
 
 import { wagmiConfig } from "../../config/appkit";
 import { getEASConfig } from "../../config/blockchain";
@@ -123,7 +123,11 @@ export async function submitWorkWithPasskey({
       actionUID,
       media: images,
     },
-    chainId
+    chainId,
+    {
+      gardenAddress,
+      authMode: "passkey",
+    }
   );
 
   const txParams = buildWorkAttestTx(easConfig, gardenAddress as `0x${string}`, attestationData);

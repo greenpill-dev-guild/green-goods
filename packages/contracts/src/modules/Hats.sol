@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
-import {IGardenAccessControl} from "../interfaces/IGardenAccessControl.sol";
-import {IHats} from "../interfaces/IHats.sol";
+import { IGardenAccessControl } from "../interfaces/IGardenAccessControl.sol";
+import { IHats } from "../interfaces/IHats.sol";
 
 /// @title HatsModule
 /// @notice Adapts Hats Protocol for Green Goods access control
@@ -176,9 +176,7 @@ contract HatsModule is IGardenAccessControl, OwnableUpgradeable, UUPSUpgradeable
     /// @param gardenerHatId Hat ID for gardener role
     /// @param operatorHatId Hat ID for operator role
     /// @param ownerHatId Hat ID for owner role
-    function configureGarden(address garden, uint256 gardenerHatId, uint256 operatorHatId, uint256 ownerHatId)
-        external
-    {
+    function configureGarden(address garden, uint256 gardenerHatId, uint256 operatorHatId, uint256 ownerHatId) external {
         // Authorization: owner, config authority, or garden itself
         if (msg.sender != owner() && !configAuthority[msg.sender] && msg.sender != garden) {
             revert NotGardenAdmin(msg.sender, garden);
@@ -236,7 +234,11 @@ contract HatsModule is IGardenAccessControl, OwnableUpgradeable, UUPSUpgradeable
     /// @param account The account to check
     /// @param getHatId Function to get the hat ID for the role
     /// @return True if account has the role
-    function _checkRole(address garden, address account, function(address) view returns (uint256) getHatId)
+    function _checkRole(
+        address garden,
+        address account,
+        function(address) view returns (uint256) getHatId
+    )
         internal
         view
         returns (bool)
@@ -271,5 +273,5 @@ contract HatsModule is IGardenAccessControl, OwnableUpgradeable, UUPSUpgradeable
     /// @notice Authorizes an upgrade to a new implementation
     /// @param newImplementation The address of the new implementation
     // solhint-disable-next-line no-empty-blocks
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner { }
 }

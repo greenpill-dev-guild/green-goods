@@ -1,8 +1,7 @@
 import { useOffline } from "@green-goods/shared/hooks";
 import { cn } from "@green-goods/shared/utils";
 import { RiArrowLeftFill, RiNotificationFill, RiNotificationLine } from "@remixicon/react";
-import { forwardRef, useRef } from "react";
-import { createPortal } from "react-dom";
+import { useId } from "react";
 import { Button } from "@/components/Actions";
 import { GardenNotifications } from "@/views/Home/Garden/Notifications";
 
@@ -18,32 +17,31 @@ type TopNavProps = {
 type NotificationsProps = {
   garden?: Garden;
   works?: Work[];
+  popoverId: string;
 };
 
-const Notifications = forwardRef<HTMLDialogElement, NotificationsProps>(
-  ({ garden, works }, ref) => {
-    if (!garden || !works) return null;
+const Notifications: React.FC<NotificationsProps> = ({ garden, works, popoverId }) => {
+  if (!garden || !works) return null;
 
-    return createPortal(
-      <dialog
-        ref={ref}
-        className="fixed left-0 top-0 inset-0 w-full h-full z-1000000 bg-transparent p-6 pointer-events-auto m-0 max-w-[100%] max-h-[100%] backdrop:bg-black/30 backdrop:backdrop-blur-sm transition-all duration-200"
-        onClick={(e) => {
-          e.stopPropagation();
-          (ref as React.RefObject<HTMLDialogElement>).current?.close();
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") {
-            (ref as React.RefObject<HTMLDialogElement>).current?.close();
-          }
-        }}
-      >
-        <GardenNotifications garden={garden} notifications={works} />
-      </dialog>,
-      document.body
-    );
-  }
-);
+  return (
+    <div
+      id={popoverId}
+      // @ts-expect-error - popover is a valid HTML attribute but not in React types yet
+      popover="auto"
+      className="fixed inset-0 w-full h-full bg-transparent p-6 m-0 border-0"
+      style={{
+        inset: "unset",
+        margin: "unset",
+        left: 0,
+        top: 0,
+        width: "100%",
+        height: "100%",
+      }}
+    >
+      <GardenNotifications garden={garden} notifications={works} />
+    </div>
+  );
+};
 
 Notifications.displayName = "Notifications";
 
@@ -66,7 +64,7 @@ const BUTTON_VARIANTS = {
 // Base styling for navigation buttons
 const NAV_BUTTON_BASE = [
   "relative flex items-center justify-center w-8 h-8 p-1 rounded-lg border",
-  "bg-white border-slate-200 text-slate-500",
+  "bg-bg-white-0 border-stroke-soft-200 text-text-sub-600",
   "transition-all duration-200 tap-feedback",
   "active:scale-95",
   "focus:outline-none focus:ring-2",
@@ -95,7 +93,7 @@ const NotificationBadge: React.FC<{ count: number }> = ({ count }) => (
 );
 
 const NotificationCenter: React.FC<TopNavProps> = ({ works, ...props }) => {
-  const ref = useRef<HTMLDialogElement>(null);
+  const popoverId = useId();
 
   const workNotifications = works?.filter((work) => work.status === "pending") || [];
   const hasNotifications = workNotifications.length > 0;
@@ -103,27 +101,20 @@ const NotificationCenter: React.FC<TopNavProps> = ({ works, ...props }) => {
 
   if (works === undefined) return null;
 
-  const toggleDialog = () => {
-    if (ref.current?.open) {
-      ref.current.close();
-    } else {
-      ref.current?.showModal();
-    }
-  };
-
   const styles = createButtonStyles("work");
 
   return (
     <>
       <button
         type="button"
+        popovertarget={popoverId}
         className={cn(styles.button, "dropdown dropdown-bottom dropdown-end tap-target-lg")}
-        onClick={toggleDialog}
+        aria-label="View notifications"
       >
         {hasNotifications && <NotificationBadge count={workNotifications.length} />}
         <NotificationIcon className={styles.icon} />
       </button>
-      <Notifications {...props} works={works} ref={ref} />
+      <Notifications {...props} works={works} popoverId={popoverId} />
     </>
   );
 };
@@ -152,7 +143,7 @@ export const TopNav: React.FC<TopNavProps> = ({
 
   const containerClasses = cn(
     "relative flex z-[1000] flex-row w-full justify-evenly items-center gap-4 p-6 h-20 top-2",
-    overlay && "fixed bg-white",
+    overlay && "fixed bg-bg-white-0",
     overlay && hasOfflineIssues && "top-2", // Space for offline indicator
     overlay && !hasOfflineIssues && "top-0"
   );

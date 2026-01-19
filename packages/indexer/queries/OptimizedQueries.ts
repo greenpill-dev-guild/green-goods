@@ -183,7 +183,7 @@ export const OPTIMIZED_QUERIES = {
         }
       }
     }
-  `
+  `,
 };
 
 // Helper types for TypeScript
@@ -196,7 +196,7 @@ export interface GardenFilters {
 
 export interface ActionFilters {
   chainId?: number;
-  status?: 'UPCOMING' | 'ACTIVE' | 'EXPIRED';
+  status?: "UPCOMING" | "ACTIVE" | "EXPIRED";
   capitalCount_gte?: number;
   title_contains?: string;
 }
@@ -205,7 +205,7 @@ export interface PaginationOptions {
   first?: number;
   skip?: number;
   orderBy?: string;
-  orderDirection?: 'asc' | 'desc';
+  orderDirection?: "asc" | "desc";
 }
 
 // Query builders for dynamic filtering
@@ -216,15 +216,15 @@ export const QueryBuilders = {
       first: pagination.first || 20,
       skip: pagination.skip || 0,
       where: filters,
-      orderBy: pagination.orderBy || 'createdAt',
-      orderDirection: pagination.orderDirection || 'desc',
+      orderBy: pagination.orderBy || "createdAt",
+      orderDirection: pagination.orderDirection || "desc",
     },
   }),
 
   buildActionQuery: (filters: ActionFilters, pagination: PaginationOptions = {}) => ({
     query: OPTIMIZED_QUERIES.getActionsByStatus,
     variables: {
-      status: filters.status || 'ACTIVE',
+      status: filters.status || "ACTIVE",
       chainId: filters.chainId,
       first: pagination.first || 20,
       skip: pagination.skip || 0,

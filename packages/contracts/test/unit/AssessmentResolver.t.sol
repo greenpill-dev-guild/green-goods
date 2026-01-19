@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.25;
 
-import {Test} from "forge-std/Test.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { Test } from "forge-std/Test.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-import {AssessmentResolver} from "../../src/resolvers/Assessment.sol";
-import {GardenAccount} from "../../src/accounts/Garden.sol";
-import {IGardenAccount} from "../../src/interfaces/IGardenAccount.sol";
-import {MockEAS} from "../../src/mocks/EAS.sol";
-import {MockERC20} from "../../src/mocks/ERC20.sol";
+import { AssessmentResolver } from "../../src/resolvers/Assessment.sol";
+import { GardenAccount } from "../../src/accounts/Garden.sol";
+import { IGardenAccount } from "../../src/interfaces/IGardenAccount.sol";
+import { MockEAS } from "../../src/mocks/EAS.sol";
+import { MockERC20 } from "../../src/mocks/ERC20.sol";
 
 /// @title AssessmentResolverTest
 /// @notice Test suite for the AssessmentResolver contract

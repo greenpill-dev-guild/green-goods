@@ -86,7 +86,7 @@
   animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* 2. Shimmer skeleton */
+/* 2. Shimmer skeleton - Dark mode friendly */
 @keyframes shimmer {
   0% {
     background-position: -1000px 0;
@@ -99,7 +99,7 @@
 .skeleton {
   position: relative;
   overflow: hidden;
-  background-color: #e5e7eb;
+  background-color: rgb(var(--bg-soft-200));
 }
 
 .skeleton::after {
@@ -109,7 +109,7 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.6),
+    rgb(var(--bg-sub-300) / 60%),
     transparent
   );
   background-size: 1000px 100%;

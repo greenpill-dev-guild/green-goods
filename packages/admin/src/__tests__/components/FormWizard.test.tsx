@@ -4,7 +4,8 @@
  * Tests for the multi-step form wizard component.
  */
 
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
+import { renderWithProviders as render } from "../test-utils";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -14,7 +15,7 @@ vi.mock("@green-goods/shared/utils", () => ({
   cn: (...args: any[]) => args.filter(Boolean).join(" "),
 }));
 
-vi.mock("./StepIndicator", () => ({
+vi.mock("../../components/Form/StepIndicator", () => ({
   StepIndicator: ({ steps, currentStep }: { steps: any[]; currentStep: number }) =>
     createElement(
       "div",

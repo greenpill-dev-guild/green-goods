@@ -84,55 +84,55 @@ function getStatusConfig(status: WorkStatus, variant: "semantic" | "default"): S
     }
   }
 
-  // Default Tailwind colors (client-style)
+  // Default colors using semantic tokens (dark mode aware)
   switch (status) {
     case "approved":
       return {
         icon: <RiCheckLine className={iconClass} />,
         label: "Approved",
-        bgColor: "bg-green-50",
-        textColor: "text-green-700",
-        borderColor: "border-green-200",
+        bgColor: "bg-success-lighter",
+        textColor: "text-success-dark",
+        borderColor: "border-success-light",
       };
     case "rejected":
       return {
         icon: <RiCloseLine className={iconClass} />,
         label: "Rejected",
-        bgColor: "bg-red-50",
-        textColor: "text-red-700",
-        borderColor: "border-red-200",
+        bgColor: "bg-error-lighter",
+        textColor: "text-error-dark",
+        borderColor: "border-error-light",
       };
     case "pending":
       return {
         icon: <RiTimeLine className={iconClass} />,
         label: "Pending",
-        bgColor: "bg-slate-50",
-        textColor: "text-slate-700",
-        borderColor: "border-slate-200",
+        bgColor: "bg-faded-lighter",
+        textColor: "text-text-sub-600",
+        borderColor: "border-faded-light",
       };
     case "syncing":
       return {
         icon: <RiLoader4Line className={cn(iconClass, "animate-spin")} />,
         label: "Syncing",
-        bgColor: "bg-blue-50",
-        textColor: "text-blue-700",
-        borderColor: "border-blue-200",
+        bgColor: "bg-information-lighter",
+        textColor: "text-information-dark",
+        borderColor: "border-information-light",
       };
     case "failed":
       return {
         icon: <RiErrorWarningLine className={iconClass} />,
         label: "Failed",
-        bgColor: "bg-red-50",
-        textColor: "text-red-700",
-        borderColor: "border-red-200",
+        bgColor: "bg-error-lighter",
+        textColor: "text-error-dark",
+        borderColor: "border-error-light",
       };
     default:
       return {
         icon: <RiTimeLine className={iconClass} />,
         label: status,
-        bgColor: "bg-slate-50",
-        textColor: "text-slate-700",
-        borderColor: "border-slate-200",
+        bgColor: "bg-faded-lighter",
+        textColor: "text-text-sub-600",
+        borderColor: "border-faded-light",
       };
   }
 }

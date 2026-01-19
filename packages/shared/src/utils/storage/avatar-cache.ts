@@ -3,6 +3,8 @@
  * Caches avatar URLs by address for quick lookup.
  */
 
+import { debugError, debugWarn } from "../debug";
+
 const AVATAR_CACHE_KEY = "greengoods_ens_avatar_cache";
 const CACHE_VERSION = 1;
 const MAX_CACHE_SIZE = 100; // Maximum number of avatars to cache
@@ -27,11 +29,15 @@ function getCache(): AvatarCache {
     }
     const parsed = JSON.parse(cached) as AvatarCache;
     if (parsed.version !== CACHE_VERSION) {
-      // Version mismatch, clear cache
+      debugWarn("Avatar cache version mismatch, clearing cache", {
+        cachedVersion: parsed.version,
+        expectedVersion: CACHE_VERSION,
+      });
       return { version: CACHE_VERSION, entries: [] };
     }
     return parsed;
-  } catch {
+  } catch (error) {
+    debugError("Failed to load avatar cache", error, { key: AVATAR_CACHE_KEY });
     return { version: CACHE_VERSION, entries: [] };
   }
 }
@@ -40,7 +46,10 @@ function setCache(cache: AvatarCache): void {
   try {
     localStorage.setItem(AVATAR_CACHE_KEY, JSON.stringify(cache));
   } catch (error) {
-    console.warn("Failed to cache avatar:", error);
+    debugError("Failed to save avatar cache", error, {
+      key: AVATAR_CACHE_KEY,
+      entryCount: cache.entries.length,
+    });
   }
 }
 
@@ -99,7 +108,7 @@ export function clearAvatarCache(): void {
   try {
     localStorage.removeItem(AVATAR_CACHE_KEY);
   } catch (error) {
-    console.warn("Failed to clear avatar cache:", error);
+    debugError("Failed to clear avatar cache", error, { key: AVATAR_CACHE_KEY });
   }
 }
 

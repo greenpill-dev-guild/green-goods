@@ -8,6 +8,35 @@ alwaysApply: true
 
 Green Goods is a bun monorepo with 6 packages. This rule provides guidance on cross-package patterns and when to share vs duplicate code.
 
+## Cross-Package Principles
+
+### DRY Across Packages
+
+- **Rule of Three:** If code appears in 3+ places, extract to `@green-goods/shared`
+- Share hooks, utilities, types — never duplicate business logic
+- Contract addresses from deployment artifacts — single source of truth
+
+### Separation of Concerns by Package
+
+| Package | Responsibility | Never Contains |
+|---------|----------------|----------------|
+| `shared` | Hooks, providers, business logic | UI components |
+| `client` | Gardener UI only | Hooks, business logic |
+| `admin` | Operator UI only | Hooks, business logic |
+| `contracts` | On-chain state | Frontend code |
+| `indexer` | Data indexing | Business logic |
+| `agent` | Bot interactions | Frontend code |
+
+### YAGNI for Packages
+
+- Don't add package dependencies "just in case"
+- Don't create abstraction layers between packages until needed
+- Don't add configuration options without a use case
+
+## Visual Reference
+
+See [System Context Diagram](docs/developer/architecture/diagrams.md#system-context) for package relationships and external integrations.
+
 ## Package Architecture
 
 ```
@@ -17,7 +46,7 @@ packages/
 ├── shared/       # Common code (hooks, providers, stores, modules)
 ├── indexer/      # Envio GraphQL (blockchain data indexer)
 ├── contracts/    # Solidity (EAS integration, TBA accounts)
-└── telegram/     # Telegram bot for garden interactions
+└── agent/        # Agent for garden interactions
 ```
 
 ## Cross-Package Dependencies
@@ -30,6 +59,8 @@ packages/
 // Client/Admin importing from shared package
 import { useAuth, useRole, queryKeys } from '@green-goods/shared';
 import { AppProvider, JobQueueProvider } from '@green-goods/shared';
+import { workToasts, approvalToasts, mediaResourceManager } from '@green-goods/shared';
+import { formatDate, formatDateTime } from '@green-goods/shared';
 import type { Garden, Work } from '@green-goods/shared';
 
 // Client/Admin importing contract artifacts
@@ -58,6 +89,9 @@ import { useAuth } from '@green-goods/shared/src/hooks/auth/useAuth';
 - React providers (Auth, JobQueue, Work, App)
 - Zustand stores (admin, UI, workFlow)
 - Core modules (job-queue, data, work, auth)
+- Toast presets and utilities (workToasts, approvalToasts, queueToasts, validationToasts, walletProgressToasts)
+- Date/time utilities (formatDate, formatDateTime, toDateTimeLocalValue, fromDateTimeLocalValue)
+- Media resource manager (mediaResourceManager)
 - TypeScript types and utilities
 - i18n translations
 
@@ -75,7 +109,36 @@ import { useAuth } from '@green-goods/shared/src/hooks/auth/useAuth';
 
 **Why:** The shared package provides common logic while keeping UI concerns separate.
 
+## Hook Boundary (CRITICAL)
+
+**ALL hooks live in `@green-goods/shared`.** Client and admin packages MUST NOT define hooks.
+
+```typescript
+// ✅ Correct — import from shared
+import { useAuth, useWorks, useRole } from "@green-goods/shared";
+
+// ❌ Wrong — no hooks in client/admin
+// packages/client/src/hooks/useLocalHook.ts
+export function useLocalHook() { ... }
+```
+
+If you need new hook functionality:
+1. Create in `packages/shared/src/hooks/{domain}/`
+2. Export from `packages/shared/src/hooks/index.ts`
+3. Re-export from `packages/shared/src/index.ts`
+4. Import in client/admin from `@green-goods/shared`
+
+See `packages/shared/.cursor/rules/hook-architecture.mdc` for full hook documentation.
+
 ## Workspace Commands
+
+### Initial Setup
+
+```bash
+bun setup  # Checks deps, installs packages, creates .env
+```
+
+The setup script validates Node.js 20+, Bun, Git (required) and Docker, Foundry (optional), then runs `bun install` and creates `.env` from template.
 
 ### Running Commands
 
@@ -161,7 +224,7 @@ Packages have build dependencies:
 3. **indexer** (needs contract ABIs)
 4. **client** (needs shared package and deployment artifacts)
 5. **admin** (needs shared package and deployment artifacts)
-6. **telegram** (needs shared package)
+6. **agent** (needs shared package)
 
 **Build all in order:**
 ```bash

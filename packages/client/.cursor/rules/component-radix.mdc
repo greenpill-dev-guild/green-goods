@@ -1,0 +1,265 @@
+---
+description: Radix UI primitive patterns — Accordion, Select, Tabs, Avatar
+globs:
+  - "**/Accordion/**/*.tsx"
+  - "**/Select/**/*.tsx"
+  - "**/Tabs/**/*.tsx"
+  - "**/Avatar/**/*.tsx"
+alwaysApply: false
+---
+
+# Radix UI Integration
+
+Patterns for wrapping Radix UI primitives with Tailwind styles.
+
+## When to Use Radix
+
+**Use Radix for accessible primitives:**
+- Accordion
+- Dialog/Modal
+- Select/Dropdown
+- Tabs
+- Avatar
+- Switch
+
+**Wrap with Tailwind, don't override:**
+
+```typescript
+import * as SelectPrimitive from "@radix-ui/react-select";
+
+const SelectTrigger = forwardRef((props, ref) => (
+  <SelectPrimitive.Trigger
+    ref={ref}
+    className={cn(
+      "flex h-9 w-full items-center justify-between",
+      "rounded-md border border-stroke-soft bg-bg-white px-3",
+      "focus:outline-none focus:ring-2 focus:ring-primary/20",
+      props.className
+    )}
+    {...props}
+  />
+));
+```
+
+## Accordion
+
+```typescript
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/Display/Accordion";
+
+<Accordion type="single" collapsible>
+  <AccordionItem value="faq-1">
+    <AccordionTrigger>How do I submit work?</AccordionTrigger>
+    <AccordionContent>
+      Take photos, describe your work, and tap Submit.
+    </AccordionContent>
+  </AccordionItem>
+</Accordion>
+```
+
+**Styling pattern:**
+
+```typescript
+const AccordionTrigger = forwardRef(({ children, className }, ref) => (
+  <AccordionPrimitive.Header className="flex">
+    <AccordionPrimitive.Trigger
+      ref={ref}
+      className={cn(
+        "flex flex-1 items-center justify-between py-4",
+        "font-medium text-text-strong",
+        "[&[data-state=open]>svg]:rotate-180",
+        className
+      )}
+    >
+      {children}
+      <RiArrowDownSLine className="h-4 w-4 transition-transform" />
+    </AccordionPrimitive.Trigger>
+  </AccordionPrimitive.Header>
+));
+```
+
+## Select
+
+```typescript
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/Inputs/Select";
+
+<Select value={value} onValueChange={setValue}>
+  <SelectTrigger>
+    <SelectValue placeholder="Select action" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="plant">Plant Trees</SelectItem>
+    <SelectItem value="clean">Clean Up</SelectItem>
+  </SelectContent>
+</Select>
+```
+
+**Content positioning:**
+
+```typescript
+const SelectContent = forwardRef(({ children, className, position = "popper" }, ref) => (
+  <SelectPrimitive.Portal>
+    <SelectPrimitive.Content
+      ref={ref}
+      position={position}
+      className={cn(
+        "relative z-50 min-w-[8rem] overflow-hidden",
+        "rounded-md border border-stroke-soft bg-bg-white shadow-md",
+        "data-[state=open]:animate-in data-[state=closed]:animate-out",
+        className
+      )}
+    >
+      <SelectPrimitive.Viewport className="p-1">
+        {children}
+      </SelectPrimitive.Viewport>
+    </SelectPrimitive.Content>
+  </SelectPrimitive.Portal>
+));
+```
+
+## Tabs
+
+```typescript
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/Navigation/Tabs";
+
+<Tabs defaultValue="pending">
+  <TabsList>
+    <TabsTrigger value="pending">Pending</TabsTrigger>
+    <TabsTrigger value="completed">Completed</TabsTrigger>
+  </TabsList>
+  <TabsContent value="pending">
+    {pendingWorks.map((work) => <WorkCard key={work.id} work={work} />)}
+  </TabsContent>
+  <TabsContent value="completed">
+    {completedWorks.map((work) => <WorkCard key={work.id} work={work} />)}
+  </TabsContent>
+</Tabs>
+```
+
+## Avatar
+
+```typescript
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/Display/Avatar";
+
+<Avatar>
+  <AvatarImage src={user.avatar} alt={user.name} />
+  <AvatarFallback>{user.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+</Avatar>
+```
+
+**Size variants:**
+
+```typescript
+const avatarVariants = tv({
+  base: "relative flex shrink-0 overflow-hidden rounded-full",
+  variants: {
+    size: {
+      sm: "h-8 w-8",
+      md: "h-10 w-10",
+      lg: "h-12 w-12",
+    },
+  },
+  defaultVariants: {
+    size: "md",
+  },
+});
+```
+
+## Switch
+
+```typescript
+import { Switch } from "@/components/Selection/Switch";
+
+<Switch
+  checked={isEnabled}
+  onCheckedChange={setIsEnabled}
+  aria-label="Enable notifications"
+/>
+```
+
+## Data Attributes
+
+Radix components expose data attributes for styling states:
+
+```typescript
+// Style based on state
+className={cn(
+  "[&[data-state=checked]]:bg-primary",
+  "[&[data-state=unchecked]]:bg-bg-soft",
+  "[&[data-disabled]]:opacity-50",
+)}
+```
+
+Common data attributes:
+- `data-state="open"` / `data-state="closed"`
+- `data-state="checked"` / `data-state="unchecked"`
+- `data-disabled`
+- `data-highlighted`
+
+## Animation
+
+```typescript
+// Fade in/out
+className={cn(
+  "data-[state=open]:animate-in data-[state=closed]:animate-out",
+  "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+)}
+
+// Slide
+className={cn(
+  "data-[state=closed]:slide-out-to-top-2",
+  "data-[state=open]:slide-in-from-top-2",
+)}
+```
+
+## Slot Pattern
+
+Use Radix Slot for component composition:
+
+```typescript
+import { Slot } from "@radix-ui/react-slot";
+
+interface ButtonProps {
+  asChild?: boolean;
+  children: React.ReactNode;
+}
+
+const Button = ({ asChild, children, ...props }: ButtonProps) => {
+  const Comp = asChild ? Slot : "button";
+  return <Comp {...props}>{children}</Comp>;
+};
+
+// Renders as <a> with button styles
+<Button asChild>
+  <a href="/path">Link Button</a>
+</Button>
+```
+
+## Anti-Patterns
+
+```typescript
+// ❌ Wrong — overriding Radix styles
+<SelectPrimitive.Trigger style={{ display: "flex" }}>
+
+// ✅ Correct — use className
+<SelectPrimitive.Trigger className="flex">
+```
+
+```typescript
+// ❌ Wrong — not forwarding ref
+const SelectTrigger = (props) => (
+  <SelectPrimitive.Trigger {...props} />
+);
+
+// ✅ Correct — forward ref
+const SelectTrigger = forwardRef((props, ref) => (
+  <SelectPrimitive.Trigger ref={ref} {...props} />
+));
+```
+
+## Reference Files
+
+- Accordion: `src/components/Display/Accordion.tsx`
+- Select: `src/components/Inputs/Select.tsx`
+- Tabs: `src/components/Navigation/Tabs.tsx`
+- Avatar: `src/components/Display/Avatar.tsx`
+- Switch: `src/components/Selection/Switch.tsx`

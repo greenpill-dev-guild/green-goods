@@ -52,14 +52,30 @@ export default defineConfig(({ mode }) => {
   const isIPFSBuild =
     rootEnv.VITE_USE_HASH_ROUTER === "true" || localEnv.VITE_USE_HASH_ROUTER === "true";
 
+  // Skip mkcert in devcontainer, CI, or when SKIP_MKCERT is set
+  // SKIP_MKCERT is useful when sudo is broken (e.g., "you do not exist in passwd database")
+  const isDevContainer = process.env.DEVCONTAINER === "true";
+  const isCI = process.env.CI === "true";
+  const skipMkcert = process.env.SKIP_MKCERT === "true";
+
   const plugins = [
-    mkcert(),
+    // Only use mkcert for HTTPS when not in devcontainer, CI, or explicitly skipped
+    ...(isDevContainer || isCI || skipMkcert ? [] : [mkcert()]),
     tailwindcss(),
-    react(),
+    // React Compiler: Automatically optimizes components with memoization
+    // Eliminates need for manual useMemo/useCallback in most cases
+    // @see https://react.dev/learn/react-compiler
+    react({
+      babel: {
+        plugins: [["babel-plugin-react-compiler", {}]],
+      },
+    }),
     VitePWA({
       includeAssets: [
         "favicon.ico",
         "icon.png",
+        "icon-512.png",
+        "maskable-icon-512.png",
         "apple-icon.png",
         "images/android-icon-36x36.png",
         "images/android-icon-48x48.png",
@@ -78,7 +94,7 @@ export default defineConfig(({ mode }) => {
         "images/profile.png",
       ],
       injectRegister: "auto",
-      registerType: "autoUpdate",
+      registerType: "prompt",
       workbox: {
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
         globPatterns: ["**/*.{html,js,css,ico,png,svg}"],
@@ -154,12 +170,22 @@ export default defineConfig(({ mode }) => {
       manifest: {
         name: "Green Goods",
         short_name: "Green Goods",
+        // Window Controls Overlay: Native desktop app feel (removes browser titlebar)
+        // Falls back to standalone on mobile or unsupported browsers
+        display_override: ["window-controls-overlay", "standalone"],
         icons: [
           { src: "/images/android-icon-36x36.png", sizes: "36x36", type: "image/png" },
           { src: "/images/android-icon-48x48.png", sizes: "48x48", type: "image/png" },
           { src: "/images/android-icon-72x72.png", sizes: "72x72", type: "image/png" },
           { src: "/images/android-icon-144x144.png", sizes: "144x144", type: "image/png" },
           { src: "/apple-icon.png", sizes: "192x192", type: "image/png" },
+          { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+          {
+            src: "/maskable-icon-512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
+          },
         ],
         start_url: "/",
         scope: "/",
@@ -187,9 +213,6 @@ export default defineConfig(({ mode }) => {
             icons: [{ src: "images/profile.png", sizes: "64x64", type: "image/png" }],
           },
         ],
-        related_applications: [
-          { platform: "webapp", url: "https://localhost:3001/manifest.webmanifest" },
-        ],
         categories: [],
       },
       devOptions: { enabled: process.env.VITE_ENABLE_SW_DEV === "true" },
@@ -200,7 +223,7 @@ export default defineConfig(({ mode }) => {
     base: isIPFSBuild ? "./" : "/",
     envDir: rootDir,
     envPrefix: ["VITE_", "SKIP_"],
-    build: { target: "es2020", sourcemap: true, chunkSizeWarningLimit: 2000 },
+    build: { sourcemap: true, chunkSizeWarningLimit: 2000 },
     plugins,
     // Deduplicate React and PostHog to prevent multiple instances
     resolve: {
@@ -208,6 +231,7 @@ export default defineConfig(({ mode }) => {
       alias: {
         "@": resolve(__dirname, "./src"),
         "@green-goods/shared": resolve(__dirname, "../shared/src"),
+        "@green-goods/shared/components": resolve(__dirname, "../shared/src/components"),
         "@green-goods/shared/hooks": resolve(__dirname, "../shared/src/hooks"),
         "@green-goods/shared/providers": resolve(__dirname, "../shared/src/providers"),
         "@green-goods/shared/modules": resolve(__dirname, "../shared/src/modules"),

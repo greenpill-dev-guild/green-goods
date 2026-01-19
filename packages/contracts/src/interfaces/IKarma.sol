@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {AttestationRequest, MultiAttestationRequest} from "@eas/IEAS.sol";
+import { AttestationRequest, MultiAttestationRequest } from "@eas/IEAS.sol";
 
 /// @title IGap
 /// @notice Interface for Karma GAP main contract

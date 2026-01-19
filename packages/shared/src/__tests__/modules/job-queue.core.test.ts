@@ -1,4 +1,23 @@
+/**
+ * @vitest-environment jsdom
+ */
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+// Ensure fake-indexeddb is loaded before job-queue module
+import "fake-indexeddb/auto";
+
+// Mock modules that pull in problematic dependencies (@walletconnect -> uint8arrays)
+vi.mock("../../config/appkit", () => ({
+  wagmiConfig: {},
+  appKit: null,
+}));
+
+vi.mock("@wagmi/core", () => ({
+  getPublicClient: vi.fn(() => ({
+    readContract: vi.fn(),
+  })),
+}));
 
 vi.mock("../../modules/app/posthog", () => ({
   track: vi.fn(),
@@ -17,6 +36,31 @@ import {
 
 // Test user address for scoped queue operations
 const TEST_USER_ADDRESS = "0xTestUser123";
+
+/**
+ * Creates a mock File with arrayBuffer support for Node.js test environment.
+ * Node's File class may not have arrayBuffer() method in all environments.
+ */
+function createMockFile(content: string, name: string, type: string): File {
+  const blob = new Blob([content], { type });
+  const file = new File([blob], name, { type });
+
+  // Ensure arrayBuffer is available (polyfill for test environments)
+  if (!file.arrayBuffer) {
+    Object.defineProperty(file, "arrayBuffer", {
+      value: async () => {
+        const reader = new FileReader();
+        return new Promise<ArrayBuffer>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as ArrayBuffer);
+          reader.onerror = reject;
+          reader.readAsArrayBuffer(blob);
+        });
+      },
+    });
+  }
+
+  return file;
+}
 
 describe("modules/job-queue", () => {
   beforeEach(() => {
@@ -40,7 +84,7 @@ describe("modules/job-queue", () => {
   });
 
   it("processes a queued work job during flush when client is available", async () => {
-    const file = new File(["content"], "work.jpg", { type: "image/jpeg" });
+    const file = createMockFile("content", "work.jpg", "image/jpeg");
     const jobId = await jobQueue.addJob(
       "work",
       {
@@ -108,7 +152,7 @@ describe("modules/job-queue", () => {
         feedback: "ok",
         plantSelection: ["Rose"],
         plantCount: 1,
-        media: [new File(["content"], "x.jpg", { type: "image/jpeg" })],
+        media: [createMockFile("content", "x.jpg", "image/jpeg")],
       },
       TEST_USER_ADDRESS,
       { chainId: 84532 }

@@ -19,7 +19,9 @@ interface IOctantFactory {
         string memory symbol,
         address roleManager,
         uint256 profitMaxUnlockTime
-    ) external returns (address vault);
+    )
+        external
+        returns (address vault);
 }
 
 /// @title IOctantVault

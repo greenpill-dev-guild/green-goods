@@ -38,6 +38,12 @@ vi.mock("../../components/toast", () => ({
     success: vi.fn(),
     dismiss: vi.fn(),
   },
+  walletProgressToasts: {
+    success: vi.fn(),
+    error: vi.fn(),
+    dismiss: vi.fn(),
+  },
+  showWalletProgress: vi.fn(),
 }));
 
 vi.mock("../../stores/useUIStore", () => ({
@@ -67,15 +73,38 @@ vi.mock("../../utils/debug", () => ({
   debugError: vi.fn(),
 }));
 
+vi.mock("../../modules/app/error-tracking", () => ({
+  trackContractError: vi.fn(),
+  addBreadcrumb: vi.fn(),
+}));
+
+vi.mock("../../modules/app/analytics-events", () => ({
+  trackWorkSubmissionStarted: vi.fn(),
+  trackWorkSubmissionSuccess: vi.fn(),
+  trackWorkSubmissionFailed: vi.fn(),
+}));
+
 vi.mock("../../utils/errors/contract-errors", () => ({
+  parseContractError: vi.fn((error: unknown) => ({
+    raw: error instanceof Error ? error.message : String(error),
+    name: "UnknownError",
+    message: "Something went wrong",
+    isKnown: false,
+    recoverable: true,
+    suggestedAction: "retry",
+  })),
   parseAndFormatError: vi.fn(() => ({
     title: "Error",
     message: "Something went wrong",
-    parsed: { isKnown: false, name: "unknown" },
+    parsed: { isKnown: false, name: "unknown", recoverable: true },
   })),
+  isNotGardenMemberError: vi.fn(() => false),
+  isNotGardenerError: vi.fn(() => false),
+  isAlreadyGardenerError: vi.fn(() => false),
+  formatErrorForToast: vi.fn(() => ({ title: "Error", message: "Something went wrong" })),
 }));
 
-import { workToasts } from "../../components/toast";
+import { walletProgressToasts, workToasts } from "../../components/toast";
 import { useWorkMutation } from "../../hooks/work/useWorkMutation";
 import { jobQueue } from "../../modules/job-queue";
 import { submitWorkDirectly } from "../../modules/work/wallet-submission";
@@ -87,6 +116,7 @@ import {
   createMockWorkDraft,
   MOCK_ADDRESSES,
   MOCK_TX_HASH,
+  mock,
 } from "../test-utils";
 
 describe("hooks/work/useWorkMutation", () => {
@@ -129,7 +159,7 @@ describe("hooks/work/useWorkMutation", () => {
 
   describe("Wallet mode - online", () => {
     it("calls submitWorkDirectly when online", async () => {
-      vi.mocked(submitWorkDirectly).mockResolvedValue(MOCK_TX_HASH);
+      mock(submitWorkDirectly).mockResolvedValue(MOCK_TX_HASH);
 
       const { result } = renderHook(() => useWorkMutation(defaultOptions), {
         wrapper: createWrapper(),
@@ -148,7 +178,8 @@ describe("hooks/work/useWorkMutation", () => {
         1,
         "Test Action",
         84532,
-        images
+        images,
+        expect.objectContaining({ onProgress: expect.any(Function) })
       );
       expect(submitWorkToQueue).not.toHaveBeenCalled();
     });
@@ -158,7 +189,7 @@ describe("hooks/work/useWorkMutation", () => {
     it("queues via submitWorkToQueue when offline", async () => {
       Object.defineProperty(navigator, "onLine", { value: false });
 
-      vi.mocked(submitWorkToQueue).mockResolvedValue({
+      mock(submitWorkToQueue).mockResolvedValue({
         txHash: "0xoffline_123",
         jobId: "job-123",
         clientWorkId: "work-123",
@@ -185,13 +216,13 @@ describe("hooks/work/useWorkMutation", () => {
     it("queues and processes inline when online with smart account", async () => {
       const smartAccountClient = createMockSmartAccountClient();
 
-      vi.mocked(submitWorkToQueue).mockResolvedValue({
+      mock(submitWorkToQueue).mockResolvedValue({
         txHash: "0xoffline_abc",
         jobId: "job-abc",
         clientWorkId: "work-abc",
       });
 
-      vi.mocked(jobQueue.processJob).mockResolvedValue({
+      mock(jobQueue.processJob).mockResolvedValue({
         success: true,
         txHash: MOCK_TX_HASH,
         skipped: false,
@@ -228,7 +259,7 @@ describe("hooks/work/useWorkMutation", () => {
     it("queues without processing when offline", async () => {
       Object.defineProperty(navigator, "onLine", { value: false });
 
-      vi.mocked(submitWorkToQueue).mockResolvedValue({
+      mock(submitWorkToQueue).mockResolvedValue({
         txHash: "0xoffline_xyz",
         jobId: "job-xyz",
         clientWorkId: "work-xyz",
@@ -261,7 +292,16 @@ describe("hooks/work/useWorkMutation", () => {
 
   describe("Success handling", () => {
     it("shows success toast for wallet mode", async () => {
-      vi.mocked(submitWorkDirectly).mockResolvedValue(MOCK_TX_HASH);
+      // Mock submitWorkDirectly to call the onProgress callback with "complete"
+      mock(submitWorkDirectly).mockImplementation(
+        async (_draft, _garden, _actionUID, _actionTitle, _chainId, _images, options) => {
+          // Simulate the wallet submission calling onProgress("complete")
+          if (options?.onProgress) {
+            options.onProgress("complete");
+          }
+          return MOCK_TX_HASH;
+        }
+      );
 
       const { result } = renderHook(() => useWorkMutation(defaultOptions), {
         wrapper: createWrapper(),
@@ -274,15 +314,16 @@ describe("hooks/work/useWorkMutation", () => {
         });
       });
 
+      // Wallet mode uses walletProgressToasts.success() via onProgress("complete") callback
       await waitFor(() => {
-        expect(workToasts.success).toHaveBeenCalled();
+        expect(walletProgressToasts.success).toHaveBeenCalled();
       });
     });
 
     it("returns offline hash for queued work", async () => {
       Object.defineProperty(navigator, "onLine", { value: false });
 
-      vi.mocked(submitWorkToQueue).mockResolvedValue({
+      mock(submitWorkToQueue).mockResolvedValue({
         txHash: "0xoffline_queued",
         jobId: "job-q",
         clientWorkId: "work-q",
@@ -308,7 +349,7 @@ describe("hooks/work/useWorkMutation", () => {
   describe("Error handling", () => {
     it("shows error toast on submission failure", async () => {
       const error = new Error("Submission failed");
-      vi.mocked(submitWorkDirectly).mockRejectedValue(error);
+      mock(submitWorkDirectly).mockRejectedValue(error);
 
       const { result } = renderHook(() => useWorkMutation(defaultOptions), {
         wrapper: createWrapper(),

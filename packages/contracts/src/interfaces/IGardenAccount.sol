@@ -42,7 +42,9 @@ interface IGardenAccount {
         string calldata impactDescription,
         string calldata proofIPFS,
         bytes32 workUID
-    ) external returns (bytes32 impactUID);
+    )
+        external
+        returns (bytes32 impactUID);
 
     /// @notice Creates Karma GAP milestone for an assessment
     /// @dev SECURITY: Only callable by AssessmentResolver (has onlyAssessmentResolver modifier)
@@ -54,7 +56,9 @@ interface IGardenAccount {
         string calldata milestoneTitle,
         string calldata milestoneDescription,
         string calldata milestoneMeta
-    ) external returns (bytes32 milestoneUID);
+    )
+        external
+        returns (bytes32 milestoneUID);
 
     /// @notice Returns the name of the garden
     function name() external view returns (string memory);

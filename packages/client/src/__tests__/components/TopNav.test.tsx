@@ -6,8 +6,8 @@
  */
 
 import { render, screen } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { createElement } from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock hooks
 vi.mock("@green-goods/shared/hooks", () => ({
@@ -22,21 +22,28 @@ vi.mock("@green-goods/shared/utils", () => ({
 }));
 
 // Mock the GardenNotifications component
-vi.mock("@/views/Home/Garden/Notifications", () => ({
-  GardenNotifications: ({ garden, notifications }: any) =>
-    createElement(
-      "div",
-      { "data-testid": "garden-notifications" },
-      `Notifications: ${notifications?.length ?? 0}`
-    ),
-}));
+vi.mock("@/views/Home/Garden/Notifications", async () => {
+  const React = await import("react");
+  return {
+    GardenNotifications: ({ notifications }: any) =>
+      React.createElement(
+        "div",
+        { "data-testid": "garden-notifications" },
+        `Notifications: ${notifications?.length ?? 0}`
+      ),
+  };
+});
 
 // Mock Button component
-vi.mock("@/components/Actions", () => ({
-  Button: ({ children, onClick, leadingIcon, ...props }: any) =>
-    createElement("button", { onClick, ...props }, leadingIcon, children),
-}));
+vi.mock("@/components/Actions", async () => {
+  const React = await import("react");
+  return {
+    Button: ({ children, onClick, leadingIcon, ...props }: any) =>
+      React.createElement("button", { onClick, ...props }, leadingIcon, children),
+  };
+});
 
+import { Work } from "@green-goods/shared/types";
 import { TopNav } from "../../components/Navigation/TopNav";
 
 // ============================================================================
@@ -65,8 +72,7 @@ const mockWorks: Work[] = [
     gardenerAddress: "0xGardener1",
     gardenAddress: "0xGarden123",
     feedback: "",
-    plantCount: 5,
-    plantSelection: ["tree"],
+    metadata: JSON.stringify({ plantCount: 5, plantSelection: ["tree"] }),
     media: [],
     createdAt: Date.now(),
     status: "pending",
@@ -78,8 +84,7 @@ const mockWorks: Work[] = [
     gardenerAddress: "0xGardener2",
     gardenAddress: "0xGarden123",
     feedback: "",
-    plantCount: 3,
-    plantSelection: ["flower"],
+    metadata: JSON.stringify({ plantCount: 3, plantSelection: ["flower"] }),
     media: [],
     createdAt: Date.now(),
     status: "approved",
@@ -149,8 +154,7 @@ describe("components/Navigation/TopNav", () => {
           gardenerAddress: "0xGardener3",
           gardenAddress: "0xGarden123",
           feedback: "",
-          plantCount: 2,
-          plantSelection: [],
+          metadata: JSON.stringify({ plantCount: 2, plantSelection: [] }),
           media: [],
           createdAt: Date.now(),
         },

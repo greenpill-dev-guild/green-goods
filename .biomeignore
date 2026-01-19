@@ -1,6 +1,5 @@
 # External libraries and dependencies
 packages/contracts/lib/
-packages/indexer/
 **/node_modules/
 **/generated/
 **/*.generated.*
@@ -26,4 +25,4 @@ packages/indexer/
 **/lcov.info
 **/package-lock.json
 **/pnpm-lock.yaml
-**/yarn.lock 
+**/yarn.lock

@@ -372,10 +372,10 @@ describe("ActionRegistry", () => {
         mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM),
       });
 
-      mockDb = (await ActionRegistry.ActionRegistered.processEvent({
+      mockDb = await ActionRegistry.ActionRegistered.processEvent({
         event: createEvent,
         mockDb,
-      }));
+      });
 
       // Update start time
       const updateEvent = ActionRegistry.ActionStartTimeUpdated.createMockEvent({
@@ -412,10 +412,10 @@ describe("ActionRegistry", () => {
         mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM),
       });
 
-      mockDb = (await ActionRegistry.ActionRegistered.processEvent({
+      mockDb = await ActionRegistry.ActionRegistered.processEvent({
         event: createEvent,
         mockDb,
-      }));
+      });
 
       const updateEvent = ActionRegistry.ActionEndTimeUpdated.createMockEvent({
         owner: createMockAddress(0),
@@ -450,10 +450,10 @@ describe("ActionRegistry", () => {
         mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM),
       });
 
-      mockDb = (await ActionRegistry.ActionRegistered.processEvent({
+      mockDb = await ActionRegistry.ActionRegistered.processEvent({
         event: createEvent,
         mockDb,
-      }));
+      });
 
       const updateEvent = ActionRegistry.ActionTitleUpdated.createMockEvent({
         owner: createMockAddress(0),
@@ -469,7 +469,11 @@ describe("ActionRegistry", () => {
 
       const action = result.entities.Action.get(`${CHAIN_ID_ARBITRUM}-${actionUID}`);
       assert.equal(action.title, "New Title", "title should be updated");
-      assert.equal(action.instructions, "Original instructions", "instructions should be preserved");
+      assert.equal(
+        action.instructions,
+        "Original instructions",
+        "instructions should be preserved"
+      );
     });
 
     it("update on non-existent action is a no-op", async () => {
@@ -505,6 +509,8 @@ describe("GardenToken", () => {
       const tokenAddress = createMockAddress(11);
       const gardenerAddresses = [createMockAddress(1), createMockAddress(2)];
       const operatorAddresses = [createMockAddress(3)];
+      // Handler merges gardeners + operators (operators are also gardeners by contract design)
+      const expectedGardeners = [...new Set([...gardenerAddresses, ...operatorAddresses])];
 
       const mockEvent = GardenToken.GardenMinted.createMockEvent({
         tokenId: 1n,
@@ -540,7 +546,7 @@ describe("GardenToken", () => {
       assert.equal(garden.openJoining, true, "openJoining should be set");
       assert.equal(garden.tokenAddress, tokenAddress, "tokenAddress should be set");
       assert.equal(garden.tokenID, 1n, "tokenID should be set");
-      assert.deepEqual(garden.gardeners, gardenerAddresses, "gardeners should be set");
+      assert.deepEqual(garden.gardeners, expectedGardeners, "gardeners should include operators");
       assert.deepEqual(garden.operators, operatorAddresses, "operators should be set");
     });
 
@@ -576,7 +582,11 @@ describe("GardenToken", () => {
 
       assert.equal(gardenerEntity1.chainId, CHAIN_ID_ARBITRUM);
       assert.equal(gardenerEntity1.firstGarden, gardenAddress, "firstGarden should be set");
-      assert.deepEqual(gardenerEntity1.gardens, [gardenAddress], "gardens should include the garden");
+      assert.deepEqual(
+        gardenerEntity1.gardens,
+        [gardenAddress],
+        "gardens should include the garden"
+      );
       assert.equal(gardenerEntity1.createdAt, 50000, "createdAt should be block timestamp");
     });
 
@@ -675,7 +685,10 @@ describe("GardenAccount", () => {
 
       // Check Garden was updated
       const garden = result.entities.Garden.get(gardenAddress);
-      assert.ok(garden.gardeners.includes(newGardenerAddress), "Garden should include new gardener");
+      assert.ok(
+        garden.gardeners.includes(newGardenerAddress),
+        "Garden should include new gardener"
+      );
 
       // Check Gardener was created
       const gardener = result.entities.Gardener.get(`${CHAIN_ID_ARBITRUM}-${newGardenerAddress}`);
@@ -1207,7 +1220,9 @@ describe("Multi-Chain Support", () => {
     });
 
     // Verify separate gardener entities
-    const arbitrumGardener = afterBase.entities.Gardener.get(`${CHAIN_ID_ARBITRUM}-${gardenerAddress}`);
+    const arbitrumGardener = afterBase.entities.Gardener.get(
+      `${CHAIN_ID_ARBITRUM}-${gardenerAddress}`
+    );
     const baseGardener = afterBase.entities.Gardener.get(`${CHAIN_ID_BASE}-${gardenerAddress}`);
 
     assert.ok(arbitrumGardener, "Arbitrum gardener should exist");

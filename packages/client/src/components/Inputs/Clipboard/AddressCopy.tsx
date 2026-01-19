@@ -66,13 +66,13 @@ export function AddressCopy({
         onClick={handleCopy}
         aria-labelledby={statusId}
         className={cn(
-          "flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white text-left shadow-sm transition-all duration-150 tap-feedback",
+          "flex w-full items-center justify-between gap-3 rounded-xl border border-stroke-soft-200 bg-bg-white-0 text-left shadow-sm transition-all duration-150 tap-feedback",
           "active:scale-[0.99]",
           "focus:outline-none focus:ring-2 focus:ring-primary/30",
           sizeClasses
         )}
       >
-        <span className="flex items-center gap-2 text-sm text-slate-700">
+        <span className="flex items-center gap-2 text-sm text-text-strong-950">
           {icon ? <span className="text-primary">{icon}</span> : null}
           <span className="font-mono text-xs sm:text-sm">{displayValue}</span>
         </span>

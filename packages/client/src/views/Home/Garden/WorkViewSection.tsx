@@ -145,7 +145,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       onClick: onDownloadData,
       icon: <RiDownloadLine className="w-6 h-6" />,
       className:
-        "!bg-white !border-2 !border-[#3E8E4E] !text-[#3E8E4E] hover:!bg-[#3E8E4E]/5 !outline-none",
+        "!bg-bg-white-0 !border-2 !border-[#3E8E4E] !text-[#3E8E4E] hover:!bg-[#3E8E4E]/5 !outline-none",
     },
     ...(media && media.length > 0 && onDownloadMedia
       ? [
@@ -158,7 +158,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
             onClick: onDownloadMedia,
             icon: <RiDownloadLine className="w-6 h-6" />,
             className:
-              "!bg-white !border-2 !border-[#FF7533] !text-[#FF7533] hover:!bg-[#FF7533]/5 !outline-none",
+              "!bg-bg-white-0 !border-2 !border-[#FF7533] !text-[#FF7533] hover:!bg-[#FF7533]/5 !outline-none",
           },
         ]
       : []),
@@ -168,7 +168,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       onClick: onShare,
       icon: <RiShareLine className="w-6 h-6" />,
       className:
-        "!bg-white !border-2 !border-[#D28560] !text-[#D28560] hover:!bg-[#D28560]/5 !outline-none",
+        "!bg-bg-white-0 !border-2 !border-[#D28560] !text-[#D28560] hover:!bg-[#D28560]/5 !outline-none",
     },
     ...(onViewAttestation
       ? [
@@ -181,7 +181,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
             onClick: onViewAttestation,
             icon: <RiExternalLinkLine className="w-6 h-6" />,
             className:
-              "!bg-white !border-2 !border-[#6EE0F7] !text-[#6EE0F7] hover:!bg-[#6EE0F7]/5 !outline-none",
+              "!bg-bg-white-0 !border-2 !border-[#6EE0F7] !text-[#6EE0F7] hover:!bg-[#6EE0F7]/5 !outline-none",
           },
         ]
       : []),

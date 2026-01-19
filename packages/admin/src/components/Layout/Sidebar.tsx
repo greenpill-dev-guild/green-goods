@@ -34,6 +34,7 @@ export function Sidebar() {
 
   return (
     <div
+      data-testid="sidebar"
       className={cn(
         "fixed inset-y-0 left-0 z-50 w-64 bg-bg-white shadow-lg transform transition-transform duration-300 ease-in-out",
         sidebarOpen ? "translate-x-0" : "-translate-x-full",

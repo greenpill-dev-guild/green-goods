@@ -1,15 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.25;
 
-import {Test} from "forge-std/Test.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { Test } from "forge-std/Test.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-import {Capital} from "../../src/registries/Action.sol";
+import { Capital } from "../../src/registries/Action.sol";
 import {
-    ActionRegistry,
-    NotActionOwner,
-    EndTimeBeforeStartTime,
-    StartTimeAfterEndTime
+    ActionRegistry, NotActionOwner, EndTimeBeforeStartTime, StartTimeAfterEndTime
 } from "../../src/registries/Action.sol";
 
 contract ActionRegistryTest is Test {

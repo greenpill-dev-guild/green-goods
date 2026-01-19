@@ -56,9 +56,9 @@ export const GardenAssessment: FC<GardenAssessmentProps> = () => {
       <TopNav onBackClick={() => window.history.back()} />
       <div className="padded flex flex-col gap-8 pt-16">
         <header className="space-y-3">
-          <p className="text-xs uppercase tracking-wide text-slate-500">{garden.name}</p>
-          <h1 className="text-2xl font-semibold text-slate-900">{assessment.title}</h1>
-          <p className="text-sm text-slate-600">{assessment.description}</p>
+          <p className="text-xs uppercase tracking-wide text-text-sub-600">{garden.name}</p>
+          <h1 className="text-2xl font-semibold text-text-strong-950">{assessment.title}</h1>
+          <p className="text-sm text-text-sub-600">{assessment.description}</p>
           <div className="flex flex-wrap gap-2">
             <Badge tint="primary" variant="pill">
               {assessment.assessmentType ||
@@ -70,7 +70,7 @@ export const GardenAssessment: FC<GardenAssessmentProps> = () => {
               </Badge>
             ))}
           </div>
-          <div className="text-xs text-slate-500">
+          <div className="text-xs text-text-sub-600">
             {startDate || endDate
               ? [startDate, endDate].filter(Boolean).join(" — ")
               : "Date not set"}
@@ -88,23 +88,23 @@ export const GardenAssessment: FC<GardenAssessmentProps> = () => {
           ) : null}
         </header>
 
-        <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-base font-semibold text-slate-900">
+        <section className="space-y-3 rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-4 shadow-sm">
+          <h2 className="text-base font-semibold text-text-strong-950">
             {intl.formatMessage({ id: "app.garden.assessments.metrics" })}
           </h2>
           {metricsJson ? (
-            <pre className="max-h-96 overflow-auto rounded-lg bg-slate-900/90 p-4 text-xs text-slate-100">
+            <pre className="max-h-96 overflow-auto rounded-lg bg-bg-surface-800/90 p-4 text-xs text-slate-100">
               {metricsJson}
             </pre>
           ) : (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-text-sub-600">
               {intl.formatMessage({ id: "app.garden.assessments.noMetrics" })}
             </p>
           )}
         </section>
 
-        <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-base font-semibold text-slate-900">
+        <section className="space-y-3 rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-4 shadow-sm">
+          <h2 className="text-base font-semibold text-text-strong-950">
             {intl.formatMessage({ id: "app.garden.assessments.evidence" })}
           </h2>
           {assessment.evidenceMedia.length ? (
@@ -126,14 +126,14 @@ export const GardenAssessment: FC<GardenAssessmentProps> = () => {
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-text-sub-600">
               {intl.formatMessage({ id: "app.garden.assessments.noEvidence" })}
             </p>
           )}
         </section>
 
-        <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-base font-semibold text-slate-900">
+        <section className="space-y-3 rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-4 shadow-sm">
+          <h2 className="text-base font-semibold text-text-strong-950">
             {intl.formatMessage({ id: "app.garden.assessments.documents" })}
           </h2>
           {assessment.reportDocuments.length ? (
@@ -152,14 +152,14 @@ export const GardenAssessment: FC<GardenAssessmentProps> = () => {
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-text-sub-600">
               {intl.formatMessage({ id: "app.garden.assessments.noDocuments" })}
             </p>
           )}
         </section>
 
-        <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-base font-semibold text-slate-900">
+        <section className="space-y-3 rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-4 shadow-sm">
+          <h2 className="text-base font-semibold text-text-strong-950">
             {intl.formatMessage({ id: "app.garden.assessments.impactAttestations" })}
           </h2>
           {assessment.impactAttestations.length ? (
@@ -178,7 +178,7 @@ export const GardenAssessment: FC<GardenAssessmentProps> = () => {
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-text-sub-600">
               {intl.formatMessage({ id: "app.garden.assessments.noImpactRefs" })}
             </p>
           )}

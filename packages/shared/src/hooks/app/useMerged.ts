@@ -51,8 +51,9 @@ export function useMerged<TOnline, TOffline, TMerged>(
       // Handle undefined data gracefully - pass to merge function to handle
       return options.merge(onlineQuery.data, offlineQuery.data);
     },
-    // Enable when at least one source has data or both are done loading
-    enabled: !onlineQuery.isLoading || !offlineQuery.isLoading,
+    // Enable only when BOTH sources are done loading to prevent race conditions
+    // where merge runs before online data arrives (offline is much faster)
+    enabled: !onlineQuery.isLoading && !offlineQuery.isLoading,
     staleTime: options.staleTimeMerged ?? 5_000,
     gcTime: options.gcTimeMerged ?? 30_000,
     // Use placeholder data for smoother transitions

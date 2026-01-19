@@ -1,285 +1,101 @@
 /**
- * Pimlico Passkey Server Client
+ * Client-Only Passkey Utilities
  *
- * Creates a client for interacting with Pimlico's passkey server infrastructure.
- * Server-side credential storage eliminates localStorage serialization issues.
+ * Simple WebAuthn credential creation without server-side storage.
+ * Credentials are stored in localStorage for session persistence.
  *
- * Reference: https://docs.pimlico.io/guides/how-to/signers/passkey-server
+ * Reference: https://docs.pimlico.io/docs/how-tos/signers/passkey
  */
 
-import type { Chain } from "viem";
 import { createWebAuthnCredential, type P256Credential } from "viem/account-abstraction";
-import { getChain } from "./chains";
-import { getPimlicoApiKey } from "./pimlico";
+import { setStoredCredential, setStoredRpId } from "../modules/auth/session";
 
 // ============================================================================
-// TYPES
-// ============================================================================
-
-export interface PasskeyServerClient {
-  chain: Chain;
-  baseUrl: string;
-
-  /**
-   * Start passkey registration flow
-   * Returns WebAuthn creation options from Pimlico server
-   */
-  startRegistration: (params: {
-    context: { userName: string };
-  }) => Promise<CredentialCreationOptions>;
-
-  /**
-   * Verify registration and store credential on Pimlico server
-   */
-  verifyRegistration: (params: {
-    credential: P256Credential;
-    context: { userName: string };
-  }) => Promise<P256Credential>;
-
-  /**
-   * Retrieve stored credentials for a user from Pimlico server
-   */
-  getCredentials: (params: { context: { userName: string } }) => Promise<P256Credential[]>;
-}
-
-// ============================================================================
-// JSON-RPC CLIENT
-// ============================================================================
-
-interface JsonRpcResponse<T> {
-  jsonrpc: "2.0";
-  id: number;
-  result?: T;
-  error?: {
-    code: number;
-    message: string;
-  };
-}
-
-async function jsonRpcCall<T>(baseUrl: string, method: string, params: unknown[]): Promise<T> {
-  const response = await fetch(baseUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: Date.now(),
-      method,
-      params,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP error: ${response.status} ${response.statusText}`);
-  }
-
-  const data = (await response.json()) as JsonRpcResponse<T>;
-
-  if (data.error) {
-    throw new Error(data.error.message || `RPC error: ${data.error.code}`);
-  }
-
-  return data.result as T;
-}
-
-// ============================================================================
-// PIMLICO PASSKEY SERVER CLIENT
+// RP ID CONFIGURATION
 // ============================================================================
 
 /**
- * Create a Pimlico passkey server client
+ * Fixed RP ID for passkey operations.
  *
- * This client handles credential storage on Pimlico's server, eliminating
- * the need for localStorage credential management.
+ * CRITICAL FOR ANDROID: The RP ID MUST be identical between registration and
+ * authentication. Android's Credential Manager is very strict about this.
  *
- * @param chainId - Chain ID for operations
- * @returns PasskeyServerClient instance
+ * Using the apex domain (greengoods.app) allows passkeys to work on:
+ * - greengoods.app
+ * - www.greengoods.app
+ * - Any subdomain of greengoods.app
  */
-export function createPasskeyServerClient(chainId: number): PasskeyServerClient {
-  const pimlicoApiKey = getPimlicoApiKey();
-  const chain = getChain(chainId);
-  const baseUrl = `https://api.pimlico.io/v2/${chainId}/rpc?apikey=${pimlicoApiKey}`;
-
-  return {
-    chain,
-    baseUrl,
-
-    /**
-     * Start registration - request WebAuthn options from Pimlico server
-     * Uses pks_startRegistration RPC method
-     */
-    startRegistration: async (params) => {
-      const result = await jsonRpcCall<PublicKeyCredentialCreationOptions>(
-        baseUrl,
-        "pks_startRegistration",
-        [{ userName: params.context.userName }]
-      );
-
-      // Convert challenge from base64url to ArrayBuffer if needed
-      if (result.challenge && typeof result.challenge === "string") {
-        result.challenge = base64UrlToBuffer(result.challenge);
-      }
-
-      // Convert user.id from base64url to ArrayBuffer if needed
-      if (result.user?.id && typeof result.user.id === "string") {
-        result.user.id = base64UrlToBuffer(result.user.id);
-      }
-
-      // Convert excludeCredentials ids if present
-      if (result.excludeCredentials) {
-        result.excludeCredentials = result.excludeCredentials.map((cred) => ({
-          ...cred,
-          id: typeof cred.id === "string" ? base64UrlToBuffer(cred.id) : cred.id,
-        }));
-      }
-
-      return { publicKey: result };
-    },
-
-    /**
-     * Verify registration - send credential to Pimlico server for storage
-     * Uses pks_verifyRegistration RPC method
-     */
-    verifyRegistration: async (params) => {
-      // Prepare credential for RPC (ensure proper serialization)
-      const credentialPayload = {
-        id: params.credential.id,
-        rawId: params.credential.id,
-        response: params.credential.raw?.response
-          ? {
-              clientDataJSON: bufferToBase64Url(
-                (params.credential.raw as PublicKeyCredential).response.clientDataJSON
-              ),
-              attestationObject: bufferToBase64Url(
-                (
-                  (params.credential.raw as PublicKeyCredential)
-                    .response as AuthenticatorAttestationResponse
-                ).attestationObject
-              ),
-            }
-          : undefined,
-        type: "public-key",
-        authenticatorAttachment: "platform",
-        clientExtensionResults: {},
-      };
-
-      const result = await jsonRpcCall<{
-        success: boolean;
-        id: string;
-        publicKey: string;
-      }>(baseUrl, "pks_verifyRegistration", [
-        credentialPayload,
-        { userName: params.context.userName },
-      ]);
-
-      if (!result.success) {
-        throw new Error("Passkey verification failed");
-      }
-
-      // Return credential with server-verified data
-      return {
-        id: result.id,
-        publicKey: result.publicKey as `0x${string}`,
-        raw: params.credential.raw,
-      } as P256Credential;
-    },
-
-    /**
-     * Get credentials - retrieve stored credentials from Pimlico server
-     * Uses pks_getCredentials RPC method
-     */
-    getCredentials: async (params) => {
-      const result = await jsonRpcCall<Array<{ id: string; publicKey: string }>>(
-        baseUrl,
-        "pks_getCredentials",
-        [{ userName: params.context.userName }]
-      );
-
-      // Convert to P256Credential format
-      // Note: raw is not available from server-stored credentials
-      return result.map((cred) => ({
-        id: cred.id,
-        publicKey: cred.publicKey as `0x${string}`,
-        raw: undefined as unknown as PublicKeyCredential,
-      })) as P256Credential[];
-    },
-  };
-}
-
-// ============================================================================
-// BUFFER CONVERSION HELPERS
-// ============================================================================
+export const PASSKEY_RP_ID = "greengoods.app";
+export const PASSKEY_RP_NAME = "Green Goods";
 
 /**
- * Convert base64url string to ArrayBuffer
+ * Get the RP ID for passkey operations.
+ * Uses hardcoded production domain for consistency.
+ * Falls back to hostname only in development when on localhost.
  */
-function base64UrlToBuffer(base64url: string): ArrayBuffer {
-  // Replace URL-safe chars and add padding
-  let base64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
-  const padding = base64.length % 4;
-  if (padding === 2) base64 += "==";
-  else if (padding === 3) base64 += "=";
-
-  const binary = atob(base64);
-  const buffer = new ArrayBuffer(binary.length);
-  const view = new Uint8Array(buffer);
-  for (let i = 0; i < binary.length; i++) {
-    view[i] = binary.charCodeAt(i);
+export function getPasskeyRpId(): string {
+  // Allow override via env var for development/staging
+  const envRpId = import.meta.env.VITE_PASSKEY_RP_ID;
+  if (envRpId) {
+    return envRpId;
   }
-  return buffer;
-}
 
-/**
- * Convert ArrayBuffer to base64url string
- */
-function bufferToBase64Url(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
+  // In development on localhost, use hostname to allow local testing
+  // Note: Passkeys created on localhost won't work in production
+  if (import.meta.env.DEV && window.location.hostname === "localhost") {
+    console.warn(
+      "[Passkey] Using localhost as RP ID. Passkeys created here will NOT work in production."
+    );
+    return "localhost";
   }
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+
+  // Default to production domain
+  return PASSKEY_RP_ID;
 }
 
 // ============================================================================
-// CREDENTIAL CREATION HELPER
+// CLIENT-ONLY CREDENTIAL CREATION
 // ============================================================================
 
 /**
- * Create WebAuthn credential using Pimlico server options
+ * Create a passkey credential (client-only, no server).
  *
- * This is the main entry point for credential creation when using
- * the Pimlico passkey server flow.
+ * This is a simplified approach that:
+ * 1. Creates WebAuthn credential via browser API
+ * 2. Stores credential in localStorage
+ * 3. Stores RP ID for consistency on future authentications
+ *
+ * @param userName - Display name for the credential
+ * @returns P256Credential for smart account creation
  */
-export async function createPasskeyWithServer(
-  serverClient: PasskeyServerClient,
-  userName: string
-): Promise<P256Credential> {
-  // 1. Get registration options from Pimlico server
-  const options = await serverClient.startRegistration({
-    context: { userName },
-  });
+export async function createPasskey(userName: string): Promise<P256Credential> {
+  const rpId = getPasskeyRpId();
 
-  // 2. Create credential using WebAuthn
+  console.debug(
+    "[Passkey] Creating credential - RP ID:",
+    rpId,
+    "| Origin:",
+    window.location.origin
+  );
+
+  // Create WebAuthn credential using viem's helper
   const credential = await createWebAuthnCredential({
-    name: "Green Goods Wallet",
-    createFn: async (viemOptions) => {
-      // Merge server options with viem defaults
-      const mergedOptions = viemOptions as CredentialCreationOptions | undefined;
-      if (mergedOptions?.publicKey && options.publicKey) {
-        // Use server-provided options
-        Object.assign(mergedOptions.publicKey, options.publicKey);
-      }
-      return window.navigator.credentials.create(mergedOptions);
+    name: userName,
+    rp: {
+      id: rpId,
+      name: PASSKEY_RP_NAME,
     },
   });
 
-  // 3. Verify and store on Pimlico server
-  const verifiedCredential = await serverClient.verifyRegistration({
-    credential,
-    context: { userName },
-  });
+  // Store credential in localStorage for session persistence
+  setStoredCredential(credential);
 
-  return verifiedCredential;
+  // Store RP ID for future authentications
+  setStoredRpId(rpId);
+
+  console.debug("[Passkey] Credential created - ID:", credential.id.substring(0, 16) + "...");
+
+  return credential;
 }
 
 // ============================================================================
@@ -287,12 +103,22 @@ export async function createPasskeyWithServer(
 // ============================================================================
 
 /**
- * Check if Pimlico passkey server is available
- * Returns true if API key is configured
+ * Check if passkeys are available on this device/browser.
+ * Uses the Web Authentication API availability check.
  */
-export function isPasskeyServerAvailable(): boolean {
+export async function isPasskeyAvailable(): Promise<boolean> {
   try {
-    getPimlicoApiKey();
+    // Check if WebAuthn is supported
+    if (!window.PublicKeyCredential) {
+      return false;
+    }
+
+    // Check if platform authenticator (biometric/device) is available
+    if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === "function") {
+      return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+    }
+
+    // Fallback: assume available if WebAuthn exists
     return true;
   } catch {
     return false;

@@ -6,15 +6,15 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock URQL client with timeout support
-const mockQuery = vi.fn();
-vi.mock("../../modules/data/urql", () => ({
+// Mock GraphQL client - use vi.hoisted to ensure mockQuery is available before vi.mock hoisting
+const { mockQuery } = vi.hoisted(() => ({
+  mockQuery: vi.fn(),
+}));
+
+vi.mock("../../modules/data/graphql-client", () => ({
   greenGoodsIndexer: {
-    query: () => mockQuery(),
+    query: mockQuery,
   },
-  // Pass through timeout utilities
-  INDEXER_TIMEOUT_MS: 12_000,
-  withTimeout: <T>(promise: Promise<T>) => promise,
 }));
 
 // Mock config
@@ -68,11 +68,8 @@ describe("modules/data/greengoods", () => {
         },
       ];
 
-      mockQuery.mockReturnValue({
-        toPromise: vi.fn().mockResolvedValue({
-          data: { Garden: mockGardens },
-          error: null,
-        }),
+      mockQuery.mockResolvedValue({
+        data: { Garden: mockGardens },
       });
 
       const result = await getGardens();
@@ -114,11 +111,8 @@ describe("modules/data/greengoods", () => {
         },
       ];
 
-      mockQuery.mockReturnValue({
-        toPromise: vi.fn().mockResolvedValue({
-          data: { Garden: mockGardens },
-          error: null,
-        }),
+      mockQuery.mockResolvedValue({
+        data: { Garden: mockGardens },
       });
 
       const result = await getGardens();
@@ -146,11 +140,8 @@ describe("modules/data/greengoods", () => {
         },
       ];
 
-      mockQuery.mockReturnValue({
-        toPromise: vi.fn().mockResolvedValue({
-          data: { Garden: mockGardens },
-          error: null,
-        }),
+      mockQuery.mockResolvedValue({
+        data: { Garden: mockGardens },
       });
 
       const result = await getGardens();
@@ -160,11 +151,8 @@ describe("modules/data/greengoods", () => {
     });
 
     it("returns empty array on GraphQL error", async () => {
-      mockQuery.mockReturnValue({
-        toPromise: vi.fn().mockResolvedValue({
-          data: null,
-          error: { message: "Indexer unavailable" },
-        }),
+      mockQuery.mockResolvedValue({
+        error: { message: "Indexer unavailable" },
       });
 
       const result = await getGardens();
@@ -173,11 +161,8 @@ describe("modules/data/greengoods", () => {
     });
 
     it("returns empty array when no gardens exist", async () => {
-      mockQuery.mockReturnValue({
-        toPromise: vi.fn().mockResolvedValue({
-          data: { Garden: [] },
-          error: null,
-        }),
+      mockQuery.mockResolvedValue({
+        data: { Garden: [] },
       });
 
       const result = await getGardens();
@@ -202,11 +187,8 @@ describe("modules/data/greengoods", () => {
         },
       ];
 
-      mockQuery.mockReturnValue({
-        toPromise: vi.fn().mockResolvedValue({
-          data: { Action: mockActions },
-          error: null,
-        }),
+      mockQuery.mockResolvedValue({
+        data: { Action: mockActions },
       });
 
       const result = await getActions();
@@ -218,11 +200,8 @@ describe("modules/data/greengoods", () => {
     });
 
     it("handles indexer unavailable gracefully", async () => {
-      mockQuery.mockReturnValue({
-        toPromise: vi.fn().mockResolvedValue({
-          data: null,
-          error: { message: "Connection refused" },
-        }),
+      mockQuery.mockResolvedValue({
+        error: { message: "Connection refused" },
       });
 
       const result = await getActions();
@@ -245,11 +224,8 @@ describe("modules/data/greengoods", () => {
         },
       ];
 
-      mockQuery.mockReturnValue({
-        toPromise: vi.fn().mockResolvedValue({
-          data: { Action: mockActions },
-          error: null,
-        }),
+      mockQuery.mockResolvedValue({
+        data: { Action: mockActions },
       });
 
       const result = await getActions();

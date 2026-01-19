@@ -1,4 +1,4 @@
-import { DEFAULT_CHAIN_ID, STALE_TIMES } from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID, formatDate, STALE_TIMES } from "@green-goods/shared";
 import {
   queryKeys,
   useGardenAssessments,
@@ -147,7 +147,7 @@ export default function GardenDetail() {
               />
             ) : null}
             <div
-              className={`absolute inset-0 items-center justify-center bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 text-white ${garden.bannerImage ? "hidden" : "flex"}`}
+              className={`absolute inset-0 items-center justify-center bg-gradient-to-br from-primary-dark via-primary-base to-primary-darker text-primary-foreground ${garden.bannerImage ? "hidden" : "flex"}`}
               style={{ display: garden.bannerImage ? "none" : "flex" }}
             >
               <div className="text-center">
@@ -157,7 +157,7 @@ export default function GardenDetail() {
             </div>
 
             {/* Garden Name Overlay */}
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-4 text-white sm:p-6">
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-static-black/80 via-static-black/50 to-transparent p-4 text-static-white sm:p-6">
               <h2 className="text-xl font-bold drop-shadow-lg sm:text-2xl">{garden.name}</h2>
               <p className="mt-1 text-sm opacity-90 sm:text-base">{garden.location}</p>
             </div>
@@ -176,7 +176,7 @@ export default function GardenDetail() {
               {canManage && (
                 <Link
                   to={`/gardens/${id}/assessments/create`}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-green-600 text-white shadow-lg transition hover:bg-green-700 active:scale-95 sm:h-auto sm:w-auto sm:gap-2 sm:rounded-md sm:px-3 sm:py-2"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-base text-primary-foreground shadow-lg transition hover:bg-primary-darker active:scale-95 sm:h-auto sm:w-auto sm:gap-2 sm:rounded-md sm:px-3 sm:py-2"
                   title="New Assessment"
                   aria-label="New Assessment"
                 >
@@ -402,23 +402,21 @@ export default function GardenDetail() {
                     className="flex items-center justify-between rounded-md bg-bg-weak p-3"
                   >
                     <div className="flex min-w-0 flex-1 items-center space-x-3">
-                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-purple-100">
-                        <RiFileList3Line className="h-4 w-4 text-purple-600" />
+                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-feature-lighter">
+                        <RiFileList3Line className="h-4 w-4 text-feature-dark" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-text-strong">
                           {assessment.title || assessment.assessmentType || "Assessment"}
                         </p>
-                        <p className="text-xs text-text-soft">
-                          {new Date(assessment.createdAt * 1000).toLocaleDateString()}
-                        </p>
+                        <p className="text-xs text-text-soft">{formatDate(assessment.createdAt)}</p>
                       </div>
                     </div>
                     <a
                       href={`${EAS_EXPLORER_URL}/attestation/view/${assessment.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center text-sm text-green-600 transition hover:text-green-900"
+                      className="inline-flex items-center text-sm text-primary-dark transition hover:text-primary-darker"
                     >
                       View <RiExternalLinkLine className="ml-1 h-4 w-4" />
                     </a>

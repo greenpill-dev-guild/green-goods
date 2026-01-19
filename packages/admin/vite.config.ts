@@ -20,17 +20,31 @@ export default defineConfig(({ mode }) => {
   const isIPFSBuild =
     rootEnv.VITE_USE_HASH_ROUTER === "true" || localEnv.VITE_USE_HASH_ROUTER === "true";
 
+  // Skip mkcert in devcontainer, CI, or when SKIP_MKCERT is set
+  // SKIP_MKCERT is useful when sudo is broken (e.g., "you do not exist in passwd database")
+  const isDevContainer = process.env.DEVCONTAINER === "true";
+  const isCI = process.env.CI === "true";
+  const skipMkcert = process.env.SKIP_MKCERT === "true";
+
   const plugins = [
-    mkcert(),
+    // Only use mkcert for HTTPS when not in devcontainer, CI, or explicitly skipped
+    ...(isDevContainer || isCI || skipMkcert ? [] : [mkcert()]),
     tailwindcss(),
-    react(),
+    // React Compiler: Automatically optimizes components with memoization
+    // Eliminates need for manual useMemo/useCallback in most cases
+    // @see https://react.dev/learn/react-compiler
+    react({
+      babel: {
+        plugins: [["babel-plugin-react-compiler", {}]],
+      },
+    }),
   ];
 
   return {
     base: isIPFSBuild ? "./" : "/",
     envDir: rootDir,
     envPrefix: ["VITE_", "PRIVY_", "SKIP_"],
-    build: { target: "es2020", sourcemap: true, chunkSizeWarningLimit: 2000 },
+    build: { sourcemap: true, chunkSizeWarningLimit: 2000 },
     plugins,
     // Deduplicate React and PostHog to prevent multiple instances
     resolve: {

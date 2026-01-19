@@ -20,6 +20,103 @@ const IS_DEV = import.meta.env.DEV;
 const IS_DEBUG = import.meta.env.VITE_POSTHOG_DEBUG === "true";
 
 // ============================================================================
+// APP VERSION AND ENVIRONMENT
+// ============================================================================
+
+/**
+ * Get the app version from environment variable or package.json.
+ * Falls back to "unknown" if not available.
+ */
+export function getAppVersion(): string {
+  return import.meta.env.VITE_APP_VERSION || "unknown";
+}
+
+/**
+ * Get the current chain ID from environment.
+ * @returns The chain ID if valid, null if missing or invalid
+ */
+export function getChainId(): number | null {
+  const chainId = import.meta.env.VITE_CHAIN_ID;
+  if (!chainId) return null;
+  const parsed = Number(chainId);
+  if (!Number.isFinite(parsed) || !Number.isInteger(parsed) || parsed <= 0) {
+    return null;
+  }
+  return parsed;
+}
+
+/**
+ * Common testnet chain IDs.
+ */
+const TESTNET_CHAIN_IDS = new Set([
+  84532, // Base Sepolia
+  11155111, // Ethereum Sepolia
+  421614, // Arbitrum Sepolia
+  80002, // Polygon Amoy
+  11155420, // Optimism Sepolia
+  44787, // Celo Alfajores
+]);
+
+/**
+ * Known mainnet chain IDs.
+ */
+const MAINNET_CHAIN_IDS = new Set([
+  1, // Ethereum Mainnet
+  42161, // Arbitrum One
+  42220, // Celo Mainnet
+  137, // Polygon
+  10, // Optimism
+  8453, // Base
+]);
+
+/**
+ * Determine if the current chain is a testnet.
+ */
+export function isTestnetEnvironment(chainId?: number | null): boolean {
+  const chain = chainId ?? getChainId();
+  if (chain === null) return false;
+  return TESTNET_CHAIN_IDS.has(chain);
+}
+
+/**
+ * Determine if the current chain is a known mainnet.
+ */
+export function isMainnetEnvironment(chainId?: number | null): boolean {
+  const chain = chainId ?? getChainId();
+  if (chain === null) return false;
+  return MAINNET_CHAIN_IDS.has(chain);
+}
+
+/**
+ * Get the environment name based on chain ID.
+ * Returns "unknown" if chain ID is not configured, invalid, or not in known chains.
+ */
+export function getEnvironment(chainId?: number | null): "testnet" | "mainnet" | "unknown" {
+  const chain = chainId ?? getChainId();
+  if (chain === null) return "unknown";
+  if (isTestnetEnvironment(chain)) return "testnet";
+  if (isMainnetEnvironment(chain)) return "mainnet";
+  return "unknown";
+}
+
+/**
+ * Get all app context properties for tracking.
+ * These properties are included in all events for consistent context.
+ */
+export function getAppContext(): {
+  app_version: string;
+  environment: "testnet" | "mainnet" | "unknown";
+  chain_id: number | null;
+} {
+  const chainId = getChainId();
+  return {
+    app_version: getAppVersion(),
+    environment: getEnvironment(chainId),
+    chain_id: chainId,
+  };
+}
+
+// ============================================================================
 // INITIALIZATION CHECK
 // ============================================================================
 
@@ -298,6 +395,8 @@ export function trackAppLifecycle(event: "app_start" | "app_resume" | "app_backg
 // ============================================================================
 
 let lastOnlineStatus = typeof navigator !== "undefined" ? navigator.onLine : true;
+let networkListenersInitialized = false;
+let cleanupNetworkListeners: (() => void) | null = null;
 
 function handleOnline() {
   if (!lastOnlineStatus) {
@@ -326,8 +425,19 @@ function handleVisibilityChange() {
   trackAppLifecycle(event);
 }
 
-// Set up listeners (only in browser)
-if (typeof window !== "undefined") {
+/**
+ * Initialize network status and visibility tracking.
+ *
+ * @returns A cleanup function to remove all event listeners
+ */
+export function initNetworkTracking(): () => void {
+  if (networkListenersInitialized && cleanupNetworkListeners) {
+    return cleanupNetworkListeners;
+  }
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+
   window.addEventListener("online", handleOnline);
   window.addEventListener("offline", handleOffline);
 
@@ -341,4 +451,75 @@ if (typeof window !== "undefined") {
   } else {
     setTimeout(() => trackAppLifecycle("app_start"), 0);
   }
+
+  networkListenersInitialized = true;
+
+  // Return cleanup function
+  cleanupNetworkListeners = () => {
+    window.removeEventListener("online", handleOnline);
+    window.removeEventListener("offline", handleOffline);
+
+    if (typeof document !== "undefined") {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    }
+
+    networkListenersInitialized = false;
+    cleanupNetworkListeners = null;
+  };
+
+  return cleanupNetworkListeners;
+}
+
+// ============================================================================
+// GLOBAL PROPERTIES REGISTRATION
+// ============================================================================
+
+let globalPropertiesRegistered = false;
+
+/**
+ * Register global properties with PostHog.
+ * These properties are included in all events automatically.
+ *
+ * Call this after PostHog is initialized (e.g., in the AppProvider).
+ * Safe to call multiple times - will only register once.
+ *
+ * @returns true if registration was successful or already done, false if PostHog isn't ready
+ */
+export function registerGlobalProperties(): boolean {
+  if (globalPropertiesRegistered) return true;
+  if (IS_DEV) {
+    globalPropertiesRegistered = true;
+    if (IS_DEBUG) {
+      console.log("[PostHog] Skipping global properties registration (dev mode)", getAppContext());
+    }
+    return true;
+  }
+  if (!isPostHogReady()) {
+    if (IS_DEBUG) {
+      console.warn("[PostHog] Not ready, skipping global properties registration");
+    }
+    return false;
+  }
+
+  const context = getAppContext();
+
+  // Register super properties - these are included in all events
+  posthog.register({
+    app_version: context.app_version,
+    environment: context.environment,
+    chain_id: context.chain_id,
+  });
+
+  globalPropertiesRegistered = true;
+
+  if (IS_DEBUG) {
+    console.log("[PostHog] Registered global properties:", context);
+  }
+
+  return true;
+}
+
+// Auto-initialize for backward compatibility (only in browser)
+if (typeof window !== "undefined") {
+  initNetworkTracking();
 }

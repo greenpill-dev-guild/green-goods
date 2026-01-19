@@ -75,6 +75,7 @@ jobs:
           cd packages/client
           bun run build
         env:
+          VITE_USE_HASH_ROUTER: "false"
           VITE_CHAIN_ID: "84532"
           VITE_WALLETCONNECT_PROJECT_ID: "test"
           VITE_PIMLICO_API_KEY: "test"

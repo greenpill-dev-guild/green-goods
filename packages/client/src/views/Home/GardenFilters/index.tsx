@@ -1,15 +1,15 @@
+import type {
+  GardenFilterScope,
+  GardenFiltersState,
+  GardenSortOrder,
+} from "@green-goods/shared/hooks";
 import { cn } from "@green-goods/shared/utils";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
 import { ModalDrawer } from "@/components/Dialogs/ModalDrawer";
 
-export type GardenFilterScope = "all" | "mine";
-export type GardenSortOrder = "default" | "name" | "recent";
-
-export type GardenFiltersState = {
-  scope: GardenFilterScope;
-  sort: GardenSortOrder;
-};
+// Re-export types from shared for convenience
+export type { GardenFilterScope, GardenFiltersState, GardenSortOrder };
 
 export type FilterOptionButtonProps = {
   label: string;
@@ -31,14 +31,16 @@ const FilterOptionButton = ({
     onClick={onClick}
     disabled={disabled}
     className={cn(
-      "w-full rounded-2xl border border-stroke-soft-200 bg-white p-3 text-left text-sm transition-all duration-200 min-h-[56px] flex flex-col justify-center tap-feedback",
+      "w-full rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-3 text-left text-sm transition-all duration-200 min-h-[56px] flex flex-col justify-center tap-feedback",
       selected ? "border-primary bg-primary/10 text-primary shadow-sm" : "",
       disabled && "cursor-not-allowed opacity-60"
     )}
     aria-pressed={selected}
   >
     <span className="font-medium leading-tight">{label}</span>
-    {description ? <span className="mt-1 block text-xs text-slate-500">{description}</span> : null}
+    {description ? (
+      <span className="mt-1 block text-xs text-text-sub-600">{description}</span>
+    ) : null}
   </button>
 );
 
@@ -145,7 +147,7 @@ export const GardensFilterDrawer = ({
     >
       <div className="flex flex-col gap-6">
         <section>
-          <h6 className="mb-3 text-sm font-semibold text-slate-600">
+          <h6 className="mb-3 text-sm font-semibold text-text-sub-600">
             {intl.formatMessage({
               id: "app.home.filters.scopeTitle",
               defaultMessage: "Show",
@@ -164,7 +166,7 @@ export const GardensFilterDrawer = ({
         </section>
 
         <section>
-          <h6 className="mb-3 text-sm font-semibold text-slate-600">
+          <h6 className="mb-3 text-sm font-semibold text-text-sub-600">
             {intl.formatMessage({
               id: "app.home.filters.sortTitle",
               defaultMessage: "Sort by",

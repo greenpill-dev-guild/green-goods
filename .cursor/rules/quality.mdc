@@ -6,641 +6,429 @@ alwaysApply: true
 
 # Code Quality & Testing Standards
 
-Green Goods maintains high code quality through automated tooling, comprehensive testing, and clear conventions.
+## Coding Principles
 
-## Tooling Stack
+### Core Principles (Always Apply)
 
-### Biome (Formatting + Basic Linting)
+**DRY (Don't Repeat Yourself)**
+- If you're writing similar code a third time, extract it to `@green-goods/shared`
+- Use existing utilities: `queryKeys`, toast presets, date formatters
+- Never hardcode values that exist in deployment artifacts
 
-**Why Biome over Prettier:**
-- **35x faster** than Prettier
-- Combined formatter + linter
-- Native TypeScript support
-- Zero configuration needed
+**KISS (Keep It Simple, Stupid)**
+- Prefer simple, readable solutions over clever abstractions
+- Use the simplest tool that solves the problem
+- Don't add configuration for "just in case" scenarios
 
-**Usage:**
-```bash
-# Format all files
-bun format
+**YAGNI (You Ain't Gonna Need It)**
+- Don't implement features until they're needed
+- Don't add backwards-compatibility shims — change the code directly
+- Delete unused code completely (no `_unused` prefixes)
 
-# Format specific package
-cd packages/client && bun run format
+### Code Design Principles
 
-# Auto-format on save (VS Code)
-# Already configured in .vscode/settings.json
-```
+**Single Responsibility**
+- Each function/component does one thing well
+- If a component needs "and" in its description, split it
 
-**Configuration:**
-- Root: `/biome.json`
-- Client: `/packages/client/biome.json`
-- Each package can override root config
+**Open/Closed**
+- Extend behavior through composition, not modification
+- Add new query keys without changing existing ones
 
-### 0xlint (Fast Linting)
+**Boy Scout Rule**
+- Leave code better than you found it
+- Fix nearby typos, improve variable names while working
 
-**Why 0xlint:**
-- **30ms** on entire codebase
-- Rust-based performance
-- TypeScript-aware
-- Complements Biome
+**Optimize for Deletion**
+- Design modules that are easy to remove
+- Loose coupling enables clean removal
+- If it's hard to delete, it's too entangled
 
-**Usage:**
-```bash
-# Lint client
-cd packages/client && bun run lint
+### Self-Documenting Code
 
-# Lint all packages
-bun lint
-```
-
-**What it catches:**
-- Unused variables
-- Import organization
-- TypeScript errors
-- Common mistakes
-
-### Combined Workflow
-
-```bash
-# Pre-commit hook runs automatically
-bun format && bun lint
-
-# Manual quality check
-bun format && bun lint && bun test
-```
-
-## Conventional Commits
-
-### Format
-
-```
-<type>(<scope>): <description>
-
-[optional body]
-
-[optional footer]
-```
-
-### Types
-
-- **feat**: New feature
-- **fix**: Bug fix
-- **docs**: Documentation changes
-- **style**: Code style (formatting, not CSS)
-- **refactor**: Code restructuring
-- **test**: Adding/updating tests
-- **chore**: Maintenance tasks
-
-### Scopes
-
-Use package names or feature areas:
-- `client`, `admin`, `contracts`, `indexer`
-- `offline`, `auth`, `deployment`, `schema`
-
-### Examples
-
-```bash
-# Feature additions
-feat(client): add offline work submission queue
-feat(contracts): implement garden invite system
-
-# Bug fixes
-fix(client): resolve job queue race condition on sync
-fix(contracts): fix storage gap in GardenToken upgrade
-
-# Documentation
-docs(indexer): add GraphQL query examples
-docs: update deployment guide with mainnet checklist
-
-# Tests
-test(client): add integration tests for work approval flow
-test(contracts): add gas optimization tests
-
-# Chores
-chore(admin): update dependencies to latest
-chore: configure Playwright E2E tests
-```
-
-### Commit Hook
-
-Git hooks automatically:
-1. Format staged files (Biome)
-2. Run linter (0xlint)
-3. Validate commit message format
-4. Run relevant tests (on push)
-
-## Testing Standards
-
-### Coverage Targets
-
-**Client:**
-- 80%+ for critical paths (offline queue, auth, sync)
-- 70%+ overall coverage
-- 100% for security-critical code (auth, encryption)
-
-**Admin:**
-- 70%+ for role logic and workflows
-- Integration test all admin operations
-- 100% for access control logic
-
-**Contracts:**
-- **Testnet**: 80% pass rate acceptable
-- **Mainnet**: 100% tests must pass
-- Gas optimization tests required
-
-**E2E (Playwright):**
-- Cover critical user flows
-- Garden creation → work submission → approval
-- Offline → online sync
-
-### Test Organization
-
-**Client/Admin (Vitest):**
-```
-src/
-├── __tests__/
-│   ├── components/      # Component unit tests
-│   ├── hooks/           # Hook tests
-│   ├── modules/         # Service layer tests
-│   ├── integration/     # Multi-component flows
-│   └── setupTests.ts    # Test environment setup
-├── __mocks__/
-│   ├── crypto.ts        # Browser API mocks
-│   ├── indexeddb.ts
-│   └── navigator.ts
-```
-
-**Contracts (Foundry):**
-```
-test/
-├── ActionRegistry.t.sol       # Unit tests
-├── GardenAccount.t.sol
-├── E2EWorkflow.t.sol         # Integration tests
-├── UpgradeSafety.t.sol       # Upgrade tests
-└── helpers/                   # Test utilities
-```
-
-### Test Naming
-
-**Client/Admin:**
 ```typescript
-// Pattern: describe('[Module/Component]', () => { it('[behavior]') })
+// ✅ Self-documenting — names explain intent
+const isOffline = useOffline();
+const { addGardener, removeGardener } = useGardenOperations();
+await queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
 
-describe('JobQueue', () => {
-  it('adds job and emits lifecycle events', async () => {
-    // ...
-  });
-  
-  it('retries failed jobs with exponential backoff', async () => {
-    // ...
-  });
-});
+// ❌ Cryptic — requires comments to understand
+const o = useO();
+const { a, r } = useGO();
+await qc.inv({ qk: ['w', 'm', gid, cid] });
 ```
 
-**Contracts:**
-```solidity
-// Pattern: test[ContractName]_[scenario]
-
-function testGardenToken_mintsNewGarden() public {
-  // ...
-}
-
-function testGardenToken_revertsOnUnauthorizedMint() public {
-  // ...
-}
+**Comments explain "why", code explains "how":**
+```typescript
+// Merge online and offline works, preferring online within 5-minute window
+// to handle race conditions during sync
+export async function mergeWorks(online: Work[], offline: Job[]): Promise<Work[]>
 ```
 
-### Test Quality Checklist
+## Advanced TypeScript Patterns (2026)
 
-For every new feature:
-- [ ] Unit tests for core logic
-- [ ] Integration test for user flow
-- [ ] Error case tests
-- [ ] Edge case coverage
-- [ ] Mock external dependencies
-- [ ] Cleanup after tests (no state leakage)
+### Never Use `any` — Use `unknown`
 
-## Code Style
-
-### TypeScript Strictness
-
-All packages use strict mode:
-```json
-{
-  "compilerOptions": {
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "noImplicitReturns": true
+```typescript
+// ✅ Forces type checking before use
+function processData(data: unknown) {
+  if (typeof data === 'string') {
+    return data.toUpperCase();  // Safe - TypeScript knows it's string
+  }
+  if (isWork(data)) {
+    return data.title;  // Safe - type guard narrows the type
   }
 }
+
+// ❌ Turns off compiler benefits
+function processData(data: any) {
+  return data.whatever;  // No safety!
+}
 ```
 
-**Rules:**
-- **Never use `any`** — Always use proper typing or documented type assertions
-- Prefer `unknown` for untrusted data
-- Use type guards for narrowing
-- Explicit return types on exported functions
-
-### Zod Type Inference
-
-When using Zod for validation (forms, APIs, etc.), always infer types from schemas:
-
-**✅ Correct:**
-```typescript
-import { z, type ZodType } from 'zod';
-
-// Define schema with explicit type annotation
-const userSchema: ZodType<{
-  name: string;
-  email: string;
-  age?: number;
-}> = z.object({
-  name: z.string().min(1),
-  email: z.string().email(),
-  age: z.number().optional(),
-});
-
-// Infer type from schema (single source of truth)
-type User = z.infer<typeof userSchema>;
-```
-
-**❌ Wrong:**
-```typescript
-// Don't use 'any'
-const schema = z.object({ name: z.string() }) as any;
-
-// Don't manually duplicate types
-const schema = z.object({ name: z.string() });
-type User = { name: string }; // Should use z.infer instead
-```
-
-**See Also:** `packages/client/.cursor/rules/form-validation.mdc` for complete patterns
-
-### Import Organization
+### Discriminated Unions for Type-Safe Logic
 
 ```typescript
-// 1. External dependencies
-import { useQuery } from '@tanstack/react-query';
-import { type Hex } from 'viem';
+// ✅ Tagged unions with exhaustive checking
+type AuthState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'authenticated'; user: User }
+  | { status: 'error'; message: string };
 
-// 2. Internal absolute imports (@ alias)
-import { Button } from '@/components/UI/Button';
-import { useAuth } from '@/hooks/auth/useAuth';
-
-// 3. Relative imports (same directory)
-import { helper } from './helper';
-
-// 4. Type-only imports separate
-import type { WorkDraft } from '@/types/work';
-```
-
-Biome auto-organizes imports on save.
-
-### File Naming
-
-**Components:**
-```
-ComponentName.tsx      # Component file
-ComponentName.test.tsx # Test file
-index.ts               # Barrel export (optional)
-```
-
-**Hooks:**
-```
-useFeatureName.ts
-useFeatureName.test.ts
-```
-
-**Utils:**
-```
-utilityName.ts
-utilityName.test.ts
-```
-
-**Lowercase for directories:**
-```
-components/ui/button/
-hooks/auth/
-modules/job-queue/
-```
-
-## Linting Configuration
-
-### Biome Config Highlights
-
-```json
-{
-  "formatter": {
-    "enabled": true,
-    "lineWidth": 100,
-    "indentStyle": "space"
-  },
-  "linter": {
-    "enabled": true,
-    "rules": {
-      "recommended": true,
-      "suspicious": {
-        "noExplicitAny": "warn"
-      }
+function render(state: AuthState) {
+  switch (state.status) {
+    case 'idle': return <LoginButton />;
+    case 'loading': return <Spinner />;
+    case 'authenticated': return <Dashboard user={state.user} />;
+    case 'error': return <Error message={state.message} />;
+    default: {
+      const _exhaustive: never = state;  // Compile error if case missed
+      return _exhaustive;
     }
   }
 }
 ```
 
-### Solidity Linting (contracts)
+### Strict Immutability with `as const`
 
-```bash
-# Run Solhint
-cd packages/contracts && bun run lint
-
-# Auto-format Solidity
-forge fmt
-```
-
-## Pre-Commit Workflow
-
-Husky hooks run automatically:
-
-**Pre-commit:**
-```bash
-1. Format staged files (Biome)
-2. Lint changed files (0xlint)
-3. Type check (tsc --noEmit)
-```
-
-**Pre-push:**
-```bash
-1. Run affected tests
-2. Verify build succeeds
-```
-
-**Manual bypass** (use sparingly):
-```bash
-git commit --no-verify
-```
-
-## Documentation Standards
-
-### Code Documentation
-
-**Required for:**
-- Exported functions
-- Complex algorithms
-- Non-obvious patterns
-- Public APIs
-
-**Example:**
 ```typescript
-/**
- * Merges online and offline work submissions, deduplicating based on content hash.
- * 
- * Online works take precedence. Offline works are filtered out if they match
- * an online work within a 5-minute time window.
- * 
- * @param onlineWorks - Works fetched from blockchain
- * @param offlineJobs - Pending local jobs
- * @returns Merged and deduplicated work array
- */
-export async function mergeWorks(
-  onlineWorks: Work[],
-  offlineJobs: Job<WorkJobPayload>[]
-): Promise<Work[]> {
-  // ...
+// ✅ Literal, read-only types
+const CHAIN_IDS = {
+  arbitrum: 42161,
+  celo: 42220,
+  baseSepolia: 84532,
+} as const;
+
+type ChainId = typeof CHAIN_IDS[keyof typeof CHAIN_IDS];  // 42161 | 42220 | 84532
+
+// ❌ Without as const - loses literal types
+const CHAIN_IDS = {
+  arbitrum: 42161,  // Type: number (not 42161)
+};
+```
+
+### AbortSignals for Async Safety
+
+```typescript
+// ✅ Cancellable async operations
+async function fetchGardens(chainId: number, signal?: AbortSignal) {
+  const response = await fetch(`/api/gardens?chain=${chainId}`, { signal });
+  if (signal?.aborted) return [];
+  return response.json();
+}
+
+// Usage in React
+useEffect(() => {
+  const controller = new AbortController();
+  fetchGardens(chainId, controller.signal);
+  return () => controller.abort();  // Cancel on unmount
+}, [chainId]);
+
+// ❌ Fire-and-forget (memory leaks, stale data)
+useEffect(() => {
+  fetchGardens(chainId);  // Can't cancel!
+}, [chainId]);
+```
+
+### Type-Safe API Layers with Zod
+
+```typescript
+// ✅ Runtime validation + TypeScript inference
+import { z } from 'zod';
+
+const WorkSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string().min(1),
+  status: z.enum(['pending', 'approved', 'rejected']),
+});
+
+type Work = z.infer<typeof WorkSchema>;  // Auto-inferred type!
+
+function parseWork(data: unknown): Work {
+  return WorkSchema.parse(data);  // Throws if invalid
 }
 ```
 
-### README Updates
-
-When adding major features, update:
-- [ ] Package README (`packages/*/README.md`)
-- [ ] Root README (if cross-cutting feature)
-- [ ] Relevant docs in `/docs/`
-- [ ] AGENTS.md or .mdc rules (if establishing new pattern)
-
-### Comment Style
+### Avoid Magic Abstractions
 
 ```typescript
-// Single-line for brief explanations
-const result = calculateHash(data); // Hash used for deduplication
+// ✅ Transparent, debuggable code
+export function useGardenOperations() {
+  const queryClient = useQueryClient();
+  const chainId = useCurrentChain();
 
-/* 
- * Multi-line for complex explanations
- * explaining the why, not the what
+  const addGardener = async (gardenId: string, address: string) => {
+    // Clear what happens, easy to debug
+    await writeContract({ ... });
+    queryClient.invalidateQueries({ queryKey: queryKeys.gardens.detail(gardenId, chainId) });
+  };
+
+  return { addGardener };
+}
+
+// ❌ Over-abstracted "clever" code
+export const useGardenOperations = createMagicHook({
+  mutations: ['addGardener', 'removeGardener'],
+  autoInvalidate: true,
+  globalErrorHandler: true,
+});  // What does this do? How do I debug it?
+```
+
+### Top-Level Await for Module Init
+
+```typescript
+// ✅ Clean module initialization (ES2022+)
+const config = await loadConfig();
+export const client = createClient(config);
+
+// ❌ Old pattern with IIFEs
+let client: Client;
+(async () => {
+  const config = await loadConfig();
+  client = createClient(config);
+})();
+export { client };  // May be undefined!
+```
+
+## Tooling Stack
+
+### Biome (Formatting)
+
+Fast formatter (35x faster than Prettier). Linting disabled at root — use oxlint.
+
+```bash
+bun format              # Format all files
+bun format:check        # Check without writing
+```
+
+**Config:** `/biome.json` — 100 char line width, double quotes, ES5 trailing commas.
+
+### oxlint (Linting)
+
+Rust-based linter (~30ms on entire codebase).
+
+```bash
+bun lint                # Lint all packages
+```
+
+**Catches:** Unused variables, import issues, TypeScript errors, common mistakes.
+
+### Combined Workflow
+
+```bash
+# Pre-commit (automatic via lint-staged)
+bun format && bun lint
+
+# Full validation
+bun format && bun lint && bun test
+```
+
+## Conventional Commits
+
+```
+<type>(<scope>): <description>
+```
+
+**Types:** `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
+
+**Scopes:** `client`, `admin`, `shared`, `contracts`, `indexer`, `agent`, or feature areas (`offline`, `auth`, `deployment`)
+
+**Examples:**
+```bash
+feat(client): add offline work submission queue
+fix(contracts): fix storage gap in GardenToken upgrade
+test(shared): add job queue integration tests
+```
+
+## Testing Standards
+
+### Coverage Targets
+
+| Package | Critical Paths | Overall | Notes |
+|---------|---------------|---------|-------|
+| Client | 80%+ | 70%+ | 100% for auth/encryption |
+| Admin | 70%+ | 70%+ | 100% for access control |
+| Shared | 80%+ | 70%+ | Core logic, all hooks |
+| Contracts | 100% (mainnet) | 80% (testnet) | Gas tests required |
+
+### Test Organization
+
+**TypeScript packages (Vitest):**
+```
+src/__tests__/
+├── components/      # Component tests
+├── hooks/           # Hook tests
+├── modules/         # Service layer tests
+└── integration/     # Multi-component flows
+```
+
+**Contracts (Foundry):**
+```
+test/
+├── {Contract}.t.sol     # Unit tests
+├── E2EWorkflow.t.sol    # Integration tests
+└── helpers/             # Test utilities
+```
+
+### Test Naming
+
+```typescript
+// TypeScript: describe('[Module]') + it('[behavior]')
+describe('JobQueue', () => {
+  it('retries failed jobs with exponential backoff', async () => {});
+});
+```
+
+```solidity
+// Solidity: test[ContractName]_[scenario]
+function testGardenToken_revertsOnUnauthorizedMint() public {}
+```
+
+## Code Style
+
+### TypeScript Strictness
+
+All packages use strict mode. **Never use `any`** — use `unknown` for untrusted data.
+
+### Import Organization (Auto-sorted by Biome)
+
+```typescript
+// 1. External deps  2. Internal (@/ alias)  3. Relative  4. Types
+import { useQuery } from '@tanstack/react-query';
+import { Button } from '@/components/Button';
+import { helper } from './helper';
+import type { Work } from '@/types';
+```
+
+### File Naming
+
+- Components: `ComponentName.tsx`
+- Hooks: `useFeatureName.ts`
+- Tests: `*.test.ts(x)`
+- Directories: lowercase (`hooks/auth/`, `modules/job-queue/`)
+
+### Solidity
+
+```bash
+cd packages/contracts && forge fmt     # Format
+cd packages/contracts && bun run lint  # Lint (solhint)
+```
+
+Use custom errors over require strings. Always include storage gaps in upgradeable contracts.
+
+## Documentation Standards
+
+**Required JSDoc for:** Exported functions, complex algorithms, public APIs.
+
+```typescript
+/**
+ * Merges online and offline work submissions, deduplicating by content hash.
+ * Online works take precedence within a 5-minute time window.
  */
-const backoffDelay = Math.min(
-  baseDelay * Math.pow(multiplier, attempt),
-  maxDelay
-); // Exponential backoff with ceiling
+export async function mergeWorks(online: Work[], offline: Job[]): Promise<Work[]>
 ```
 
-## Quality Metrics
+## Pre-merge Requirements
 
-### Build Performance
-
-- **Client build**: <30s for development, <60s for production
-- **Contracts compile**: <10s with cache, <30s clean
-- **Test suite**: <5s for unit tests, <30s for integration
-
-### Bundle Size Targets
-
-**Client:**
-- Main bundle: ~4.4MB (acceptable for offline-first PWA)
-- Individual chunks: <100KB where possible
-- Critical path: <1MB (Garden, Home views)
-
-**Admin:**
-- Main bundle: ~2MB (admin tool, bundle size less critical)
-
-### Performance Budgets
-
-Monitor with Lighthouse/PageSpeed:
-- First Contentful Paint: <1.5s
-- Time to Interactive: <3s on 3G
-- Cumulative Layout Shift: <0.1
-
-## CI/CD Integration
-
-### GitHub Actions
-
-Automated quality checks on PR:
-```yaml
-1. Install dependencies (bun)
-2. Format check (Biome)
-3. Lint (0xlint + Biome)
-4. Type check (tsc)
-5. Unit tests (Vitest/Foundry)
-6. Build all packages
-7. E2E tests (Playwright)
-```
-
-### Pre-merge Requirements
-
-- [ ] All tests passing
-- [ ] No linter errors
-- [ ] No TypeScript errors
-- [ ] Build succeeds
+- [ ] All tests passing (`bun test`)
+- [ ] No lint errors (`bun lint`)
+- [ ] Build succeeds (`bun build`)
 - [ ] Conventional commit format
-- [ ] README updated (if needed)
-
-## MCP Tool Integration
-
-Use MCP tools for quality workflows:
-
-### GitHub MCP for Issues
-
-```bash
-# Track tech debt
-@github: Create issue "Refactor job queue retry logic" with label tech-debt
-
-# Bug reports
-@github: Create issue from failed test output with label bug, package:client
-```
-
-### Playwright MCP for Testing
-
-```bash
-# Visual regression
-@playwright: Run visual comparison test for WorkDashboard component
-
-# E2E validation
-@playwright: Execute garden creation E2E test and capture screenshots
-```
-
-## Quality Checklist
-
-Before pushing code:
-
-- [ ] `bun format` (auto-formatted)
-- [ ] `bun lint` (no errors)
-- [ ] `bun test` (relevant tests pass)
-- [ ] `bun build` (builds successfully)
-- [ ] Conventional commit message
-- [ ] Updated documentation
-- [ ] Added tests for new features
-- [ ] Removed console.logs and debuggers
+- [ ] README updated if needed
 
 ## Agent Validation Protocol
 
-**MANDATORY:** After completing ANY code modification task, agents MUST run validation commands before reporting task completion. Do NOT skip validation.
+**MANDATORY:** Run validation after ANY code modification before reporting completion.
 
-### When to Validate
+### Package-Specific Commands
 
-Run validation after:
-- Adding new features
-- Fixing bugs
-- Refactoring code
-- Modifying types or interfaces
-- Changing imports or exports
-- Updating configuration
-
-### Package-Specific Validation Commands
-
-Determine which package(s) you modified and run the corresponding commands:
-
-**Client** (`packages/client/src/**`):
+**Client:**
 ```bash
-cd packages/client && bun run build   # TypeScript check + Vite build
-cd packages/client && bun run lint    # oxlint
-cd packages/client && bun run test    # Vitest
+cd packages/client && bun run build && bun run lint && bun run test
 ```
 
-**Admin** (`packages/admin/src/**`):
+**Admin:**
 ```bash
-cd packages/admin && bun run build    # TypeScript check + Vite build
-cd packages/admin && bun run lint     # oxlint
-cd packages/admin && bun run test     # Vitest
+cd packages/admin && bun run build && bun run lint && bun run test
 ```
 
-**Shared** (`packages/shared/src/**`):
+**Shared:**
 ```bash
-cd packages/shared && npx tsc --noEmit   # TypeScript check (no build script)
-cd packages/shared && bun run lint       # oxlint
-cd packages/shared && bun run test       # Vitest
+cd packages/shared && npx tsc --noEmit && bun run lint && bun run test
 ```
 
-**Contracts** (`packages/contracts/src/**` or `test/**`):
+**Contracts:**
 ```bash
-cd packages/contracts && bun run build   # forge build --via-ir
-cd packages/contracts && bun run lint    # forge fmt + solhint
-cd packages/contracts && bun run test    # forge test
+cd packages/contracts && bun run build && bun run lint && bun run test
 ```
 
-**Indexer** (`packages/indexer/src/**`):
+**Indexer:**
 ```bash
-cd packages/indexer && bun run build     # tsc --build
-cd packages/indexer && bun run lint      # oxlint
-cd packages/indexer && bun run test      # mocha
+cd packages/indexer && bun run build && bun run lint && bun run test
+```
+
+**Agent:**
+```bash
+cd packages/agent && bun run build && bun run test
 ```
 
 ### Validation by Task Type
 
-| Task Type | Required Validation |
-|-----------|-------------------|
-| New feature | `build` + `lint` + `format` + `test` |
-| Bug fix | `build` + `lint` + `test` (affected tests) |
+| Task | Required |
+|------|----------|
+| New feature | `build` + `lint` + `test` |
+| Bug fix | `build` + `lint` + affected tests |
 | Refactor | `build` + `lint` + `test` |
 | Type changes | `build` + `lint` |
-| Config change | `build` (verify no breakage) |
-| Docs only | `bun format` only |
+| Config change | `build` |
+| Docs only | `bun format` |
 
 ### Cross-Package Changes
 
-When changes span multiple packages, validate ALL affected packages:
+Validate ALL affected packages. Example for shared → client:
 
 ```bash
-# Example: Changed shared hooks used by client
 cd packages/shared && npx tsc --noEmit && bun run lint && bun run test
 cd packages/client && bun run build && bun run lint && bun run test
 ```
 
-### Failure Handling
-
-If ANY validation command fails:
-
-1. **DO NOT** report the task as complete
-2. **READ** the error output carefully
-3. **FIX** all errors in your code
-4. **RE-RUN** the failed validation command
-5. **REPEAT** until all validations pass
-6. Only then report task completion
-
-### Quick Validation (Minimum Required)
-
-For small, isolated changes, at minimum run:
+### Quick Validation (Minimum)
 
 ```bash
-# For TypeScript packages (client/admin/shared/indexer)
 cd packages/{package} && bun run build && bun run lint
-
-# For contracts
-cd packages/contracts && bun run build && bun run lint
 ```
 
-This catches:
-- TypeScript type errors
-- Import/export issues
-- Linting violations
-- Build-time failures
+### On Failure
 
-### Full Validation (Recommended)
-
-For any non-trivial change:
-
-```bash
-# From repo root
-bun format && bun lint && bun test
-```
-
-Or package-specific:
-
-```bash
-cd packages/{package} && bun run format && bun run lint && bun run build && bun run test
-```
+1. **Do NOT** report task complete
+2. Read error output
+3. Fix all errors
+4. Re-run validation
+5. Repeat until all pass
 
 ## Reference Documents
 
+- Biome config: `/biome.json`
+- Package rules: `packages/*/.cursor/rules/*.mdc`
 - Architecture: `/docs/ARCHITECTURE.md`
-- Testing guide: `/docs/TESTING.md`
-- Deployment guide: `/docs/DEPLOYMENT.md`
-- Biome config: `/biome.json`, `/packages/*/biome.json`
-- TypeScript config: `/tsconfig.json`
-- Package rules: `.cursor/rules/*.mdc`, `packages/*/.cursor/rules/*.mdc`

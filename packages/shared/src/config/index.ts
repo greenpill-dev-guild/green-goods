@@ -48,12 +48,13 @@ export {
   getPimlicoPaymasterUrl,
 } from "./pimlico";
 
-// From passkeyServer.ts
-export type { PasskeyServerClient } from "./passkeyServer";
+// From passkeyServer.ts (client-only passkey utilities)
 export {
-  createPasskeyServerClient,
-  createPasskeyWithServer,
-  isPasskeyServerAvailable,
+  createPasskey,
+  getPasskeyRpId,
+  isPasskeyAvailable,
+  PASSKEY_RP_ID,
+  PASSKEY_RP_NAME,
 } from "./passkeyServer";
 
 // From react-query.ts

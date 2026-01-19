@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.25;
+pragma solidity ^0.8.25;
 
-import {AccountV3Upgradable} from "@tokenbound/AccountV3Upgradable.sol";
-import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import {AttestationRequest, AttestationRequestData} from "@eas/IEAS.sol";
+import { AccountV3Upgradable } from "@tokenbound/AccountV3Upgradable.sol";
+import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import { AttestationRequest, AttestationRequestData } from "@eas/IEAS.sol";
 
-import {KarmaLib} from "../lib/Karma.sol";
-import {StringUtils} from "../lib/StringUtils.sol";
-import {IGap} from "../interfaces/IKarma.sol";
-import {IGardenAccessControl} from "../interfaces/IGardenAccessControl.sol";
-import {IGardenAccount} from "../interfaces/IGardenAccount.sol";
+import { KarmaLib } from "../lib/Karma.sol";
+import { StringUtils } from "../lib/StringUtils.sol";
+import { IGap } from "../interfaces/IKarma.sol";
+import { IGardenAccessControl } from "../interfaces/IGardenAccessControl.sol";
+import { IGardenAccount } from "../interfaces/IGardenAccount.sol";
 
 error NotGardenOwner();
 error NotGardenOperator();
@@ -22,6 +22,12 @@ error GAPProjectNotInitialized();
 error GAPNotSupportedOnChain();
 error GAPImpactCreationFailed();
 error GAPMilestoneCreationFailed();
+
+/// @dev Maximum number of gardeners allowed during initialization (prevents gas exhaustion)
+uint256 constant MAX_INIT_GARDENERS = 50;
+
+/// @dev Maximum number of operators allowed during initialization (prevents gas exhaustion)
+uint256 constant MAX_INIT_OPERATORS = 20;
 
 /// @title GardenAccount Contract
 /// @notice Manages gardeners and operators for a Garden, and supports community token management.
@@ -180,7 +186,9 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
         address guardian,
         address workApprovalResolver,
         address assessmentResolver
-    ) AccountV3Upgradable(erc4337EntryPoint, multicallForwarder, erc6551Registry, guardian) {
+    )
+        AccountV3Upgradable(erc4337EntryPoint, multicallForwarder, erc6551Registry, guardian)
+    {
         WORK_APPROVAL_RESOLVER = workApprovalResolver;
         ASSESSMENT_RESOLVER = assessmentResolver;
         _disableInitializers();
@@ -191,8 +199,8 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
     /// @param params Initialization parameters struct
     function initialize(IGardenAccount.InitParams calldata params) external initializer {
         // Validate array lengths to prevent gas exhaustion
-        if (params.gardeners.length > 50) revert TooManyGardeners();
-        if (params.gardenOperators.length > 20) revert TooManyOperators();
+        if (params.gardeners.length > MAX_INIT_GARDENERS) revert TooManyGardeners();
+        if (params.gardenOperators.length > MAX_INIT_OPERATORS) revert TooManyOperators();
 
         // Note: Community token validation is performed by GardenToken before minting
         communityToken = params.communityToken;
@@ -353,7 +361,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
                 value: 0
             });
 
-            AttestationRequest memory req = AttestationRequest({schema: KarmaLib.getProjectSchemaUID(), data: reqData});
+            AttestationRequest memory req = AttestationRequest({ schema: KarmaLib.getProjectSchemaUID(), data: reqData });
 
             try gap.attest(req) returns (bytes32 uid) {
                 projectUID = uid;
@@ -376,7 +384,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
                 value: 0
             });
 
-            AttestationRequest memory req = AttestationRequest({schema: KarmaLib.getMemberOfSchemaUID(), data: reqData});
+            AttestationRequest memory req = AttestationRequest({ schema: KarmaLib.getMemberOfSchemaUID(), data: reqData });
 
             try gap.attest(req) {
                 // Success - continue to details
@@ -400,7 +408,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
                 value: 0
             });
 
-            AttestationRequest memory req = AttestationRequest({schema: KarmaLib.getDetailsSchemaUID(), data: reqData});
+            AttestationRequest memory req = AttestationRequest({ schema: KarmaLib.getDetailsSchemaUID(), data: reqData });
 
             try gap.attest(req) {
                 emit GAPProjectCreated(projectUID, address(this), name);
@@ -430,7 +438,11 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
         string calldata impactDescription,
         string calldata proofIPFS,
         bytes32 workUID
-    ) external onlyWorkApprovalResolver returns (bytes32) {
+    )
+        external
+        onlyWorkApprovalResolver
+        returns (bytes32)
+    {
         if (gapProjectUID == bytes32(0)) revert GAPProjectNotInitialized();
         if (!KarmaLib.isSupported()) revert GAPNotSupportedOnChain();
 
@@ -446,7 +458,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
             value: 0
         });
 
-        AttestationRequest memory req = AttestationRequest({schema: KarmaLib.getDetailsSchemaUID(), data: reqData});
+        AttestationRequest memory req = AttestationRequest({ schema: KarmaLib.getDetailsSchemaUID(), data: reqData });
 
         try IGap(KarmaLib.getGapContract()).attest(req) returns (bytes32 impactUID) {
             return impactUID;
@@ -472,7 +484,11 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
         string calldata milestoneTitle,
         string calldata milestoneDescription,
         string calldata milestoneMeta
-    ) external onlyAssessmentResolver returns (bytes32) {
+    )
+        external
+        onlyAssessmentResolver
+        returns (bytes32)
+    {
         if (gapProjectUID == bytes32(0)) revert GAPProjectNotInitialized();
         if (!KarmaLib.isSupported()) revert GAPNotSupportedOnChain();
 
@@ -488,7 +504,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
             value: 0
         });
 
-        AttestationRequest memory req = AttestationRequest({schema: KarmaLib.getDetailsSchemaUID(), data: reqData});
+        AttestationRequest memory req = AttestationRequest({ schema: KarmaLib.getDetailsSchemaUID(), data: reqData });
 
         try IGap(KarmaLib.getGapContract()).attest(req) returns (bytes32 milestoneUID) {
             return milestoneUID;
@@ -498,14 +514,17 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
     }
 
     /// @notice Builds milestone JSON string (helper to reduce stack depth)
-    function _buildMilestoneJSON(string calldata title, string calldata desc, string calldata meta)
+    function _buildMilestoneJSON(
+        string calldata title,
+        string calldata desc,
+        string calldata meta
+    )
         private
         pure
         returns (string memory)
     {
         bytes memory part1 = abi.encodePacked("{\"title\":\"", StringUtils.escapeJSON(title), "\",\"text\":\"");
-        bytes memory part2 =
-            abi.encodePacked(StringUtils.escapeJSON(desc), "\",\"type\":\"project-milestone\",\"data\":");
+        bytes memory part2 = abi.encodePacked(StringUtils.escapeJSON(desc), "\",\"type\":\"project-milestone\",\"data\":");
         return string(abi.encodePacked(part1, part2, meta, "}"));
     }
 
@@ -514,7 +533,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
     function _addGAPProjectAdmin(address admin) private {
         if (gapProjectUID == bytes32(0)) return;
         // solhint-disable-next-line no-empty-blocks
-        try IGap(KarmaLib.getGapContract()).addProjectAdmin(gapProjectUID, admin) {}
+        try IGap(KarmaLib.getGapContract()).addProjectAdmin(gapProjectUID, admin) { }
             catch { /* Non-critical: GAP sync failed */ }
     }
 
@@ -523,7 +542,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
     function _removeGAPProjectAdmin(address admin) private {
         if (gapProjectUID == bytes32(0)) return;
         // solhint-disable-next-line no-empty-blocks
-        try IGap(KarmaLib.getGapContract()).removeProjectAdmin(gapProjectUID, admin) {}
+        try IGap(KarmaLib.getGapContract()).removeProjectAdmin(gapProjectUID, admin) { }
             catch { /* Non-critical: GAP sync failed */ }
     }
 
@@ -569,7 +588,11 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
         string calldata impactDescription,
         string calldata proofIPFS,
         bytes32 workUID
-    ) private view returns (string memory) {
+    )
+        private
+        view
+        returns (string memory)
+    {
         (,, uint256 tokenId) = token();
         string memory isoDate = StringUtils.timestampToISO(block.timestamp);
 
@@ -616,12 +639,11 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
     ///   - Overridable: 1 slot (overrides mapping)
     ///   - Permissioned: 1 slot (permissions mapping)
     ///   - ERC6551Account: 1 slot (_state)
-    /// GardenAccount storage (13 slots):
-    ///   - communityToken(1) + name(1) + description(1) + location(1) +
-    ///   - bannerImage(1) + metadata(1) + gardeners(1) + gardenOperators(1) + gardenInvites(1) +
-    ///   - inviteToGarden(1) + inviteExpiry(1) + inviteUsed(1) + openJoining(1) +
-    ///   - gapProjectUID(1)
+    /// GardenAccount storage (10 slots):
+    ///   - communityToken (1) + name (1) + description (1) + location (1)
+    ///   - bannerImage (1) + metadata (1) + gardeners (1) + gardenOperators (1)
+    ///   - openJoining (1) + gapProjectUID (1)
     /// Note: WORK_APPROVAL_RESOLVER and ASSESSMENT_RESOLVER are immutables (no storage slots)
-    /// Gap calculation: 50 - (5 + 14) = 31 slots
-    uint256[31] private __gap;
+    /// Gap calculation: 50 - (5 + 10) = 35 slots
+    uint256[35] private __gap;
 }

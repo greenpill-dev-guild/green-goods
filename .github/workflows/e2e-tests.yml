@@ -1,0 +1,165 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      project:
+        description: 'Playwright project to run'
+        required: false
+        type: choice
+        options:
+          - all
+          - chromium
+          - mobile-chrome
+          - mobile-safari
+        default: all
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Envio CLI
+        run: npm install -g envio
+
+      - name: Setup indexer (codegen + build)
+        run: |
+          cd packages/indexer
+          bun run codegen
+          bun run setup-generated
+
+      - name: Verify Docker is running
+        run: docker ps
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: Build client for E2E
+        run: bun run build:client
+        env:
+          VITE_USE_HASH_ROUTER: "true"
+          VITE_CHAIN_ID: "84532"
+          VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID || 'test' }}
+          VITE_PIMLICO_API_KEY: ${{ secrets.VITE_PIMLICO_API_KEY || 'test' }}
+          VITE_ENVIO_INDEXER_URL: ${{ secrets.VITE_ENVIO_INDEXER_URL || 'http://localhost:8080' }}
+
+      - name: Run E2E tests
+        run: |
+          if [ "${{ github.event.inputs.project }}" = "all" ] || [ -z "${{ github.event.inputs.project }}" ]; then
+            # Run default projects: chromium (admin), chromium-client (client smoke), performance
+            # Mobile and client-full projects are optional (run manually with --project flag)
+            npx playwright test --project=chromium --project=chromium-client --project=performance
+          else
+            npx playwright test --project=${{ github.event.inputs.project }}
+          fi
+        env:
+          CI: true
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: test-results/
+          retention-days: 14
+
+  # Smoke test on PRs - runs only chromium for faster feedback
+  smoke:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Envio CLI
+        run: npm install -g envio
+
+      - name: Setup indexer (codegen + build)
+        run: |
+          cd packages/indexer
+          bun run codegen
+          bun run setup-generated
+
+      - name: Verify Docker is running
+        run: docker ps
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build client
+        run: bun run build:client
+        env:
+          VITE_USE_HASH_ROUTER: "true"
+          VITE_CHAIN_ID: "84532"
+          VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID || 'test' }}
+          VITE_PIMLICO_API_KEY: ${{ secrets.VITE_PIMLICO_API_KEY || 'test' }}
+          VITE_ENVIO_INDEXER_URL: "http://localhost:8080"
+
+      - name: Run smoke tests
+        run: npx playwright test tests/specs/client.smoke.spec.ts tests/specs/admin.smoke.spec.ts --project=chromium
+        env:
+          CI: true
+
+      - name: Upload smoke test report
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: smoke-test-report
+          path: playwright-report/
+          retention-days: 7

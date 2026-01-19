@@ -1,7 +1,13 @@
 /**
  * Agent Types
  *
- * All shared types in one place. No separate ports/contracts folders.
+ * Agent-specific types for bot functionality.
+ * Domain types should be imported from @green-goods/shared when possible.
+ *
+ * @example
+ * ```typescript
+ * import type { Garden, Work, WorkJobPayload } from '@green-goods/shared';
+ * ```
  */
 
 import type { Hex } from "viem";

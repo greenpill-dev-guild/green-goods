@@ -3,6 +3,7 @@ import { encodeFunctionData } from "viem";
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { useAuth } from "../auth/useAuth";
+import { queryKeys } from "../query-keys";
 
 // GardenerAccount ABI (minimal - just the functions we need)
 const GARDENER_ACCOUNT_ABI = [
@@ -122,7 +123,7 @@ export function useGardenerProfile() {
   // Query profile from indexer (GraphQL)
   // TODO: Replace with actual GraphQL query once indexer is updated
   const profileQuery = useQuery({
-    queryKey: ["gardener-profile", smartAccountAddress, DEFAULT_CHAIN_ID],
+    queryKey: queryKeys.gardenerProfile.byAddress(smartAccountAddress ?? "", DEFAULT_CHAIN_ID),
     queryFn: async () => {
       if (!smartAccountAddress) return null;
 
@@ -170,7 +171,7 @@ export function useGardenerProfile() {
       return txHash;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["gardener-profile"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.gardenerProfile.all });
       toastService.success({
         title: "Profile updated",
         message: "Your profile changes were saved.",
@@ -214,7 +215,7 @@ export function useGardenerProfile() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["gardener-profile"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.gardenerProfile.all });
       toastService.success({
         title: "Name updated",
         message: "Your profile name has been updated.",
@@ -248,7 +249,7 @@ export function useGardenerProfile() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["gardener-profile"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.gardenerProfile.all });
       toastService.success({
         title: "Bio updated",
         message: "Your biography has been updated.",
@@ -282,7 +283,7 @@ export function useGardenerProfile() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["gardener-profile"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.gardenerProfile.all });
       toastService.success({
         title: "Location updated",
         message: "Your location has been saved.",
@@ -316,7 +317,7 @@ export function useGardenerProfile() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["gardener-profile"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.gardenerProfile.all });
       toastService.success({
         title: "Profile image updated",
         message: "Your new image is on the way.",

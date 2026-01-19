@@ -3,13 +3,17 @@
  *
  * Provides unified interface for work approval submission that branches
  * based on authentication mode:
- * - Wallet mode: Direct transaction via wallet client
- * - Passkey mode: Direct smart-account transaction (Pimlico sponsored)
+ * - Wallet mode: Direct transaction via wallet client (updates status after confirmation)
+ * - Passkey mode: Direct smart-account transaction (Pimlico sponsored, updates status after confirmation)
+ *
+ * The UI remains in a pending state until the transaction is confirmed on-chain.
+ * For offline/queued submissions, status updates occur when the job:completed event fires.
  *
  * @module hooks/work/useWorkApproval
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { Work, WorkApprovalDraft } from "../../types/domain";
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import {
@@ -19,12 +23,11 @@ import {
   trackWorkRejectionSuccess,
 } from "../../modules/app/analytics-events";
 import { jobQueue } from "../../modules/job-queue";
-import {
-  submitApprovalDirectly,
-  type WalletSubmissionResult,
-} from "../../modules/work/wallet-submission";
+import { submitApprovalDirectly } from "../../modules/work/wallet-submission";
 import { submitApprovalToQueue } from "../../modules/work/work-submission";
-import { DEBUG_ENABLED, debugError, debugLog, debugWarn } from "../../utils/debug";
+import { hapticError, hapticSuccess } from "../../utils/app/haptics";
+import { DEBUG_ENABLED, debugLog, debugWarn } from "../../utils/debug";
+import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
 import { queryKeys } from "../query-keys";
 
@@ -36,8 +39,6 @@ interface UseWorkApprovalParams {
 /** Mutation result including wallet submission details */
 interface ApprovalMutationResult {
   hash: `0x${string}`;
-  /** Wallet-specific result (only present for wallet mode) */
-  walletResult?: WalletSubmissionResult;
 }
 
 /**
@@ -96,8 +97,13 @@ export function useWorkApproval() {
             workUID: draft.workUID,
           });
         }
-        const walletResult = await submitApprovalDirectly(draft, work.gardenAddress, chainId);
-        return { hash: walletResult.hash, walletResult };
+        const hash = await submitApprovalDirectly(
+          draft,
+          work.gardenAddress,
+          work.gardenerAddress,
+          chainId
+        );
+        return { hash };
       }
 
       if (DEBUG_ENABLED) {
@@ -143,10 +149,17 @@ export function useWorkApproval() {
           if (result.success && result.txHash) {
             return { hash: result.txHash as `0x${string}` };
           }
+          // If processing failed (not skipped), propagate the error
+          if (!result.success && result.error && !result.skipped) {
+            throw new Error(result.error);
+          }
+          // If skipped (e.g., already processed), return offline hash as pending
         } catch (error) {
           if (DEBUG_ENABLED) {
             debugWarn("[useWorkApproval] Inline approval processing threw", { jobId, error });
           }
+          // Re-throw to trigger onError handler and show user feedback
+          throw error;
         }
       }
 
@@ -172,49 +185,7 @@ export function useWorkApproval() {
         });
       }
 
-      const { draft, work } = variables;
-
-      // Cancel outgoing refetches for ALL modes to avoid race conditions
-      await queryClient.cancelQueries({
-        queryKey: queryKeys.works.merged(work.gardenAddress, chainId),
-      });
-
-      // Snapshot current data for rollback
-      const previousMergedWorks = queryClient.getQueryData(
-        queryKeys.works.merged(work.gardenAddress, chainId)
-      );
-      const previousOnlineWorks = queryClient.getQueryData(
-        queryKeys.works.online(work.gardenAddress, chainId)
-      );
-
-      // Optimistic update for ALL modes (not just wallet)
-      queryClient.setQueryData(
-        queryKeys.works.merged(work.gardenAddress, chainId),
-        (old: Work[] = []) =>
-          old.map((w) =>
-            w.id === draft.workUID
-              ? { ...w, status: draft.approved ? ("approved" as const) : ("rejected" as const) }
-              : w
-          )
-      );
-
-      queryClient.setQueryData(
-        queryKeys.works.online(work.gardenAddress, chainId),
-        (old: Work[] = []) =>
-          old.map((w) =>
-            w.id === draft.workUID
-              ? { ...w, status: draft.approved ? ("approved" as const) : ("rejected" as const) }
-              : w
-          )
-      );
-
-      if (DEBUG_ENABLED) {
-        debugLog("[useWorkApproval] Applied optimistic update", {
-          authMode,
-          workUID: draft.workUID,
-          newStatus: draft.approved ? "approved" : "rejected",
-        });
-      }
+      const { draft } = variables;
 
       // Show loading toast
       const actionLabel = draft.approved ? "approval" : "decision";
@@ -237,14 +208,14 @@ export function useWorkApproval() {
         context: authMode === "wallet" ? "wallet confirmation" : "approval submission",
         suppressLogging: true,
       });
-
-      // Return context for rollback on error
-      return { previousMergedWorks, previousOnlineWorks };
     },
     onSuccess: (result, variables) => {
-      const { hash: txHash, walletResult } = result;
+      const { hash: txHash } = result;
       const isApproval = variables?.draft.approved ?? false;
       const isOfflineHash = typeof txHash === "string" && txHash.startsWith("0xoffline_");
+
+      // Provide haptic feedback for successful approval
+      hapticSuccess();
 
       // Track approval/rejection success
       if (isApproval) {
@@ -263,56 +234,49 @@ export function useWorkApproval() {
         });
       }
 
-      // Handle wallet mode results (including timeout case)
-      if (authMode === "wallet" && walletResult) {
-        const { confirmed, timedOut, explorerUrl } = walletResult;
+      // Update status in cache ONLY after transaction is confirmed (not for offline placeholders)
+      // This ensures UI transitions to approved/rejected state only after on-chain confirmation
+      if (variables && !isOfflineHash) {
+        const { draft, work } = variables;
 
-        if (timedOut) {
-          // Transaction sent but confirmation timed out - show "submitted" with explorer link
-          toastService.success({
-            id: "approval-submit",
-            title: isApproval ? "Approval submitted" : "Decision submitted",
-            message: "Transaction sent. Check explorer for confirmation status.",
-            context: "wallet confirmation",
-            action: explorerUrl
-              ? {
-                  label: "View on explorer",
-                  onClick: () => window.open(explorerUrl, "_blank", "noopener,noreferrer"),
-                }
-              : undefined,
-            suppressLogging: true,
-          });
-        } else if (confirmed) {
-          // Transaction confirmed
-          toastService.success({
-            id: "approval-submit",
-            title: isApproval ? "Approval submitted" : "Decision submitted",
-            message: "Transaction confirmed.",
-            context: "wallet confirmation",
-            action: explorerUrl
-              ? {
-                  label: "View on explorer",
-                  onClick: () => window.open(explorerUrl, "_blank", "noopener,noreferrer"),
-                }
-              : undefined,
-            suppressLogging: true,
-          });
-        } else {
-          // Transaction sent but receipt fetch had issues - treat as submitted
-          toastService.success({
-            id: "approval-submit",
-            title: isApproval ? "Approval submitted" : "Decision submitted",
-            message: "Transaction sent successfully.",
-            context: "wallet confirmation",
-            action: explorerUrl
-              ? {
-                  label: "View on explorer",
-                  onClick: () => window.open(explorerUrl, "_blank", "noopener,noreferrer"),
-                }
-              : undefined,
-            suppressLogging: true,
+        queryClient.setQueryData(
+          queryKeys.works.merged(work.gardenAddress, chainId),
+          (old: Work[] = []) =>
+            old.map((w) =>
+              w.id === draft.workUID
+                ? { ...w, status: draft.approved ? ("approved" as const) : ("rejected" as const) }
+                : w
+            )
+        );
+
+        queryClient.setQueryData(
+          queryKeys.works.online(work.gardenAddress, chainId),
+          (old: Work[] = []) =>
+            old.map((w) =>
+              w.id === draft.workUID
+                ? { ...w, status: draft.approved ? ("approved" as const) : ("rejected" as const) }
+                : w
+            )
+        );
+
+        if (DEBUG_ENABLED) {
+          debugLog("[useWorkApproval] Updated status after confirmation", {
+            authMode,
+            workUID: draft.workUID,
+            newStatus: draft.approved ? "approved" : "rejected",
           });
         }
+      }
+
+      // Show success toast for wallet mode (direct submission)
+      if (authMode === "wallet") {
+        toastService.success({
+          id: "approval-submit",
+          title: isApproval ? "Approval submitted" : "Decision submitted",
+          message: "Transaction confirmed.",
+          context: "wallet confirmation",
+          suppressLogging: true,
+        });
       } else {
         // Passkey mode or offline
         const successMessage = isApproval ? "Decision recorded." : "Feedback recorded.";
@@ -359,76 +323,48 @@ export function useWorkApproval() {
           workUID: variables?.draft.workUID,
           txHash,
           wasOffline: isOfflineHash,
-          walletResult: walletResult
-            ? { confirmed: walletResult.confirmed, timedOut: walletResult.timedOut }
-            : undefined,
         });
       }
     },
-    onError: (error: unknown, variables, context) => {
-      // Track approval failure
-      trackWorkApprovalFailed({
-        workUID: variables?.draft.workUID ?? "",
-        gardenAddress: variables?.work.gardenAddress ?? "",
-        error: error instanceof Error ? error.message : "Unknown error",
-        authMode,
-      });
-
-      // Rollback optimistic updates for all modes
-      if (context && variables) {
-        const { previousMergedWorks, previousOnlineWorks } = context as {
-          previousMergedWorks?: Work[];
-          previousOnlineWorks?: Work[];
-        };
-
-        if (previousMergedWorks) {
-          queryClient.setQueryData(
-            queryKeys.works.merged(variables.work.gardenAddress, chainId),
-            previousMergedWorks
-          );
-        }
-
-        if (previousOnlineWorks) {
-          queryClient.setQueryData(
-            queryKeys.works.online(variables.work.gardenAddress, chainId),
-            previousOnlineWorks
-          );
-        }
-
-        if (DEBUG_ENABLED) {
-          debugLog("[useWorkApproval] Rolled back optimistic update due to error", {
-            authMode,
-            workUID: variables.draft.workUID,
-          });
-        }
-      }
+    onError: (error: unknown, variables) => {
+      // Provide haptic feedback for error
+      hapticError();
 
       const isApproval = variables?.draft.approved ?? false;
-      const message =
-        authMode === "wallet"
-          ? "Transaction failed. Check your wallet and try again."
-          : `We couldn't send the ${isApproval ? "approval" : "decision"}. We'll retry shortly.`;
-      toastService.error({
-        id: "approval-submit",
-        title: isApproval ? "Approval failed" : "Decision failed",
-        message,
-        context: authMode === "wallet" ? "wallet confirmation" : "approval submission",
-        description:
-          authMode === "wallet"
+      const actionType = isApproval ? "approval" : "decision";
+
+      // Create error handler with approval-specific configuration
+      const handleError = createMutationErrorHandler({
+        source: "useWorkApproval",
+        toastContext: `${actionType} submission`,
+        toastId: "approval-submit",
+        trackError: (errorMsg) =>
+          trackWorkApprovalFailed({
+            workUID: variables?.draft.workUID ?? "",
+            gardenAddress: variables?.work.gardenAddress ?? "",
+            error: errorMsg,
+            authMode,
+          }),
+        getFallbackMessage: (mode) =>
+          mode === "wallet"
+            ? "Transaction failed. Check your wallet and try again."
+            : `We couldn't send the ${actionType}. We'll retry shortly.`,
+        getFallbackDescription: (mode) =>
+          mode === "wallet"
             ? "If this keeps happening, reconnect your wallet before resubmitting."
             : "Keep the app open; the queue will keep trying in the background.",
-        error,
       });
-      if (DEBUG_ENABLED) {
-        debugError("[useWorkApproval] Approval submission failed", error, {
-          authMode,
+
+      handleError(error, {
+        authMode,
+        gardenAddress: variables?.work.gardenAddress,
+        metadata: {
           chainId,
           workUID: variables?.draft.workUID,
           approved: variables?.draft.approved,
           gardenerAddress: variables?.work?.gardenerAddress,
-          message,
-        });
-      }
+        },
+      });
     },
   });
 }

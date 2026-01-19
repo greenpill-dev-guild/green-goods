@@ -29,14 +29,14 @@ contracts:
       - event: OpenJoiningUpdated(address indexed updater, bool openJoining)
 networks:
   - id: 42161
-    start_block: 415670550
+    start_block: 422901795
     contracts:
       - name: ActionRegistry
-        address: "0x950dEC5d47F871978E8d1beBB9cd43EF364e6C05"
+        address: "0x042D2b082Cdd4DCBc0aD9dD7c631BC2e45B05cB1"
       - name: GardenToken
-        address: "0xC29eE18729aDA7415E1C95A5Df24940Df35F5488"
+        address: "0x0a7Ca3203f25c1c028D54C19789e83b401383F92"
       - name: GardenAccount
-        address: "0xC08bC251C4DC586e0326f652F448f753d71Dc513"
+        address: "0x7de23111804b374E3a8d79932C4068d378F6843f"
   - id: 84532
     start_block: 32407622
     contracts:

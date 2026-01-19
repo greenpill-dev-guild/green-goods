@@ -7,8 +7,11 @@ export function ReviewConfigSection({ config, onChange }: ReviewConfigSectionPro
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-text-strong mb-2">Section Title</label>
+        <label htmlFor="review-title" className="block text-sm font-medium text-text-strong mb-2">
+          Section Title
+        </label>
         <input
+          id="review-title"
           type="text"
           value={config.title}
           onChange={(e) => onChange({ ...config, title: e.target.value })}
@@ -18,8 +21,14 @@ export function ReviewConfigSection({ config, onChange }: ReviewConfigSectionPro
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-text-strong mb-2">Description</label>
+        <label
+          htmlFor="review-description"
+          className="block text-sm font-medium text-text-strong mb-2"
+        >
+          Description
+        </label>
         <textarea
+          id="review-description"
           value={config.description}
           onChange={(e) => onChange({ ...config, description: e.target.value })}
           className="w-full rounded-md border border-stroke-soft px-3 py-2"

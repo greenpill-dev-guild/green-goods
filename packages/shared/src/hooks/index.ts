@@ -21,11 +21,32 @@ export { useBrowserNavigation } from "./app/useBrowserNavigation";
 export type { DebugModeState } from "./app/useDebugMode";
 export { useDebugMode } from "./app/useDebugMode";
 export { useMerged } from "./app/useMerged";
+export type { NavigateToTopOptions } from "./app/useNavigateToTop";
 export { useNavigateToTop } from "./app/useNavigateToTop";
 export { useOffline } from "./app/useOffline";
 export { useTheme } from "./app/useTheme";
 export type { ToastActionOptions } from "./app/useToastAction";
 export { useToastAction } from "./app/useToastAction";
+export type {
+  MutationToastConfig,
+  MutationTrackingConfig,
+  UseMutationWithTrackingOptions,
+} from "./app/useMutationWithTracking";
+export { useMutationWithTracking } from "./app/useMutationWithTracking";
+export type {
+  UseLoadingWithMinDurationOptions,
+  UseLoadingWithMinDurationResult,
+} from "./app/useLoadingWithMinDuration";
+export { useLoadingWithMinDuration } from "./app/useLoadingWithMinDuration";
+export type { ServiceWorkerUpdateState } from "./app/useServiceWorkerUpdate";
+export { useServiceWorkerUpdate } from "./app/useServiceWorkerUpdate";
+export type {
+  InstallAction,
+  InstallGuidance,
+  InstallScenario,
+  ManualInstallStep,
+} from "./app/useInstallGuidance";
+export { useInstallGuidance } from "./app/useInstallGuidance";
 
 // ============================================================================
 // ASSESSMENT
@@ -39,6 +60,7 @@ export { useGardenAssessments } from "./assessment/useGardenAssessments";
 // ============================================================================
 export type { AuthContextType, AuthMode } from "./auth/useAuth";
 export { useAuth, useAuthContext } from "./auth/useAuth";
+export { getPrimaryAddress, usePrimaryAddress } from "./auth/usePrimaryAddress";
 export { useUser } from "./auth/useUser";
 
 // ============================================================================
@@ -46,7 +68,18 @@ export { useUser } from "./auth/useUser";
 // ============================================================================
 export { ensureBaseLists } from "./blockchain/prefetch";
 export { useActions, useGardeners, useGardens } from "./blockchain/useBaseLists";
+// Suspense-enabled hooks (for use with SuspenseBoundary)
 export {
+  useSuspenseActions,
+  useSuspenseGardeners,
+  useSuspenseGardens,
+} from "./blockchain/useSuspenseBaseLists";
+export {
+  // Pure functions (preferred for non-React contexts)
+  getCurrentChain,
+  getEASConfigForChain,
+  getNetworkConfigForChain,
+  // Hook wrappers (for React component consistency)
   useChainConfig,
   useCurrentChain,
   useEASConfig,
@@ -57,6 +90,8 @@ export { useDeploymentRegistry } from "./blockchain/useDeploymentRegistry";
 export { useEnsAddress } from "./blockchain/useEnsAddress";
 export { useEnsAvatar } from "./blockchain/useEnsAvatar";
 export { useEnsName } from "./blockchain/useEnsName";
+export type { UseEnsQueryOptions, UseEnsQueryResult } from "./blockchain/useEnsQuery";
+export { useEnsQuery } from "./blockchain/useEnsQuery";
 
 // ============================================================================
 // GARDEN
@@ -80,6 +115,13 @@ export {
   isGardenMember,
   useJoinGarden,
 } from "./garden/useJoinGarden";
+export type {
+  GardenFilterScope,
+  GardenFiltersState,
+  GardenSortOrder,
+  UseFilteredGardensResult,
+} from "./garden/useFilteredGardens";
+export { useFilteredGardens } from "./garden/useFilteredGardens";
 
 // ============================================================================
 // GARDENER
@@ -93,7 +135,22 @@ export { useRole } from "./gardener/useRole";
 // QUERY KEYS
 // ============================================================================
 export type { QueryKey, QueueQueryKey, WorksQueryKey } from "./query-keys";
-export { queryInvalidation, queryKeys } from "./query-keys";
+
+// ============================================================================
+// STORAGE
+// ============================================================================
+export type { UseStorageQuotaOptions, UseStorageQuotaResult } from "./storage/useStorageQuota";
+export { useStorageQuota, useStorageQuotaCheck } from "./storage/useStorageQuota";
+export {
+  DEFAULT_RETRY_COUNT,
+  DEFAULT_RETRY_DELAY,
+  queryInvalidation,
+  queryKeys,
+  STALE_TIME_FAST,
+  STALE_TIME_MEDIUM,
+  STALE_TIME_RARE,
+  STALE_TIME_SLOW,
+} from "./query-keys";
 
 // ============================================================================
 // TRANSLATION
@@ -104,12 +161,18 @@ export { useTranslation } from "./translation/useTranslation";
 // ============================================================================
 // UI
 // ============================================================================
-export { useScrollReveal } from "./ui/useScrollReveal";
+export type { CarouselContextProps, CarouselProps } from "./app/useCarousel";
+export { CarouselContext, useCarousel } from "./app/useCarousel";
+export { useScrollReveal } from "./app/useScrollReveal";
 
 // ============================================================================
 // WORK
 // ============================================================================
-export { useMyMergedWorks, useMyOnlineWorks, useMyWorks } from "./work/useMyWorks";
+export { useDraftAutoSave } from "./work/useDraftAutoSave";
+export { useDraftResume } from "./work/useDraftResume";
+export type { DraftWithImages, UseDraftsReturn } from "./work/useDrafts";
+export { useDrafts } from "./work/useDrafts";
+export { useMyOnlineWorks, useMyWorks } from "./work/useMyWorks";
 export { useWorkApproval } from "./work/useWorkApproval";
 export type { EnhancedWorkApproval } from "./work/useWorkApprovals";
 export { useWorkApprovals } from "./work/useWorkApprovals";

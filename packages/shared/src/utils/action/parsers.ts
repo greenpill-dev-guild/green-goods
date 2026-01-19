@@ -7,6 +7,8 @@
  * @module utils/action/parsers
  */
 
+import type { Action } from "../../types/domain";
+
 /**
  * Parse the numeric actionUID from a composite action ID.
  *

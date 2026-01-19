@@ -10,9 +10,7 @@ interface IGardenerRegistry {
     /// @param owner The Gardener account address that owns this subdomain
     /// @param credentialId WebAuthn credential ID for passkey recovery
     /// @param timestamp Registration timestamp
-    event SubdomainRegistered(
-        string indexed name, address indexed owner, bytes32 indexed credentialId, uint256 timestamp
-    );
+    event SubdomainRegistered(string indexed name, address indexed owner, bytes32 indexed credentialId, uint256 timestamp);
 
     /// @notice Check if a subdomain name is available
     /// @param name The subdomain name to check (e.g., "alice")

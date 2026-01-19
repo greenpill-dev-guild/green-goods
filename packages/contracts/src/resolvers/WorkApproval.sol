@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {IEAS, Attestation} from "@eas/IEAS.sol";
-import {SchemaResolver} from "@eas/resolver/SchemaResolver.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { IEAS, Attestation } from "@eas/IEAS.sol";
+import { SchemaResolver } from "@eas/resolver/SchemaResolver.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-import {WorkApprovalSchema, WorkSchema} from "../Schemas.sol";
-import {IGardenAccessControl} from "../interfaces/IGardenAccessControl.sol";
-import {IGreenGoodsResolver} from "../interfaces/IGreenGoodsResolver.sol";
-import {IGardenAccount} from "../interfaces/IGardenAccount.sol";
-import {ActionRegistry} from "../registries/Action.sol";
-import {NotInActionRegistry} from "./Work.sol";
-import {KarmaLib} from "../lib/Karma.sol";
+import { WorkApprovalSchema, WorkSchema } from "../Schemas.sol";
+import { IGardenAccessControl } from "../interfaces/IGardenAccessControl.sol";
+import { IGreenGoodsResolver } from "../interfaces/IGreenGoodsResolver.sol";
+import { IGardenAccount } from "../interfaces/IGardenAccount.sol";
+import { ActionRegistry } from "../registries/Action.sol";
+import { NotInActionRegistry } from "./Work.sol";
+import { KarmaLib } from "../lib/Karma.sol";
 
 error NotInWorkRegistry();
 error NotGardenOperator();
@@ -128,7 +128,9 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
         WorkApprovalSchema memory schema,
         Attestation memory workAttestation,
         Attestation calldata approvalAttestation
-    ) private {
+    )
+        private
+    {
         WorkSchema memory workSchema = abi.decode(workAttestation.data, (WorkSchema));
 
         // Get first media IPFS CID (for proof)
@@ -183,7 +185,9 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
         WorkApprovalSchema memory schema,
         Attestation memory workAttestation,
         IGardenAccount gardenAccount
-    ) private {
+    )
+        private
+    {
         // Skip if garden has no GAP project
         bytes32 projectUID = gardenAccount.getGAPProjectUID();
         if (projectUID == bytes32(0)) return;

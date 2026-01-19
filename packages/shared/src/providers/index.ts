@@ -27,5 +27,11 @@ export { AuthProvider, useAuthContext } from "./Auth";
 export { JobQueueProvider, useJobQueue, useQueueFlush, useQueueStats } from "./JobQueue";
 
 // Work Provider
-export type { WorkDataProps } from "./Work";
-export { useWork, WorkProvider, WorkTab } from "./Work";
+export type { WorkDataProps, WorkFormValue, WorkSelectionValue } from "./Work";
+export {
+  useWork,
+  useWorkFormContext,
+  useWorkSelection,
+  WorkProvider,
+  WorkTab,
+} from "./Work";

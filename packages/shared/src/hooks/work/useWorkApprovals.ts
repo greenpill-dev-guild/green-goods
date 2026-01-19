@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
+import type { WorkApproval } from "../../types/domain";
 import { DEFAULT_CHAIN_ID, getEASConfig } from "../../config/blockchain";
 import { easGraphQL } from "../../modules/data/graphql";
-import { createEasClient } from "../../modules/data/urql";
-import { queryKeys } from "../query-keys";
+import { createEasClient } from "../../modules/data/graphql-client";
+import { queryKeys, STALE_TIME_MEDIUM, STALE_TIME_RARE } from "../query-keys";
 
 // Enhanced work approval interface for UI
 export interface EnhancedWorkApproval extends WorkApproval {
@@ -37,14 +38,16 @@ async function getWorkApprovalsByAttester(
     const easConfig = getEASConfig(chainId);
     const client = createEasClient(chainId);
 
-    const { data, error } = await client
-      .query(QUERY, {
+    const { data, error } = await client.query(
+      QUERY,
+      {
         where: {
           schemaId: { equals: easConfig.WORK_APPROVAL.uid },
           attester: { equals: attesterAddress }, // Filter by attester (reviewer)
         },
-      })
-      .toPromise();
+      },
+      "getWorkApprovalsByAttester"
+    );
 
     if (error) {
       return []; // Return empty array instead of throwing
@@ -120,8 +123,8 @@ export function useWorkApprovals(attesterAddress?: string) {
       }
     },
     enabled: !!attesterAddress,
-    staleTime: 10000, // 10 seconds (reduced for faster approval updates)
-    gcTime: 300000, // 5 minutes
+    staleTime: STALE_TIME_MEDIUM, // 30 seconds for approval updates
+    gcTime: STALE_TIME_RARE, // 5 minutes garbage collection
     throwOnError: false, // Don't throw errors
   });
 

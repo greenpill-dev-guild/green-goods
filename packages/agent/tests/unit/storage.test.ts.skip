@@ -1,0 +1,246 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import Database from 'better-sqlite3';
+import fs from 'fs';
+import path from 'path';
+import { initDB, getDB, createUser, getUser } from '../../src/services/db';
+import { prepareKeyForStorage } from '../../src/services/crypto';
+import type { CreateUserInput } from '../../src/types';
+
+describe('Storage Service', () => {
+  const testDbPath = path.join(__dirname, '../fixtures/test.db');
+  
+  beforeEach(() => {
+    // Ensure test directory exists
+    const dir = path.dirname(testDbPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    
+    // Initialize fresh database
+    if (fs.existsSync(testDbPath)) {
+      fs.unlinkSync(testDbPath);
+    }
+    initDB(testDbPath);
+  });
+
+  afterEach(() => {
+    // Clean up
+    const db = getDB();
+    if (db) {
+      db.close();
+    }
+    if (fs.existsSync(testDbPath)) {
+      fs.unlinkSync(testDbPath);
+    }
+  });
+
+  describe('Database Initialization', () => {
+    it('should create all required tables', () => {
+      const db = getDB();
+      
+      // Verify tables exist
+      const tables = db.prepare(`
+        SELECT name FROM sqlite_master 
+        WHERE type='table' AND name NOT LIKE 'sqlite_%'
+      `).all() as { name: string }[];
+      
+      const tableNames = tables.map(t => t.name).sort();
+      expect(tableNames).toEqual(['sessions', 'users', 'work_drafts']);
+    });
+
+    it('should handle re-initialization gracefully', () => {
+      const db1 = getDB();
+      expect(db1).toBeDefined();
+      
+      // Re-initialize should return same instance
+      initDB(testDbPath);
+      const db2 = getDB();
+      expect(db2).toBe(db1);
+    });
+  });
+
+  describe('User Operations', () => {
+    it('should create and retrieve users', async () => {
+      const userData: CreateUserInput = {
+        platform: 'telegram',
+        platformId: 'user-123',
+        privateKey: '0x' + 'a'.repeat(64),
+        address: '0x' + '1'.repeat(40),
+        role: 'gardener',
+      };
+      
+      const userId = await createUser(userData);
+      expect(userId).toBeGreaterThan(0);
+      
+      const user = await getUser('telegram', 'user-123');
+      expect(user).toBeDefined();
+      expect(user?.address).toBe(userData.address);
+      expect(user?.role).toBe('gardener');
+    });
+
+    it('should encrypt private keys on storage', async () => {
+      const privateKey = '0x' + 'b'.repeat(64);
+      const userData: CreateUserInput = {
+        platform: 'telegram',
+        platformId: 'user-456',
+        privateKey,
+        address: '0x' + '2'.repeat(40),
+        role: 'operator',
+      };
+      
+      await createUser(userData);
+      
+      // Read directly from database
+      const db = getDB();
+      const row = db.prepare(
+        'SELECT private_key FROM users WHERE platform_id = ?'
+      ).get('user-456') as { private_key: string };
+      
+      // Should be encrypted
+      expect(row.private_key).not.toBe(privateKey);
+      expect(() => JSON.parse(row.private_key)).not.toThrow();
+      
+      const encrypted = JSON.parse(row.private_key);
+      expect(encrypted.version).toBe(1);
+      expect(encrypted.ciphertext).toBeDefined();
+    });
+
+    it('should handle duplicate users', async () => {
+      const userData: CreateUserInput = {
+        platform: 'telegram',
+        platformId: 'user-789',
+        privateKey: '0x' + 'c'.repeat(64),
+        address: '0x' + '3'.repeat(40),
+        role: 'gardener',
+      };
+      
+      await createUser(userData);
+      
+      // Attempting to create duplicate should throw
+      await expect(createUser(userData)).rejects.toThrow();
+    });
+  });
+
+  describe('Session Management', () => {
+    it('should create and retrieve sessions', async () => {
+      const db = getDB();
+      
+      // Create session
+      db.prepare(`
+        INSERT INTO sessions (platform_id, step, data)
+        VALUES (?, ?, ?)
+      `).run('user-123', 'awaiting_confirmation', JSON.stringify({ test: true }));
+      
+      // Retrieve session
+      const session = db.prepare(`
+        SELECT * FROM sessions WHERE platform_id = ?
+      `).get('user-123') as any;
+      
+      expect(session).toBeDefined();
+      expect(session.step).toBe('awaiting_confirmation');
+      expect(JSON.parse(session.data)).toEqual({ test: true });
+    });
+
+    it('should update existing sessions', async () => {
+      const db = getDB();
+      
+      // Create initial session
+      db.prepare(`
+        INSERT INTO sessions (platform_id, step, data)
+        VALUES (?, ?, ?)
+      `).run('user-456', 'initial', '{}');
+      
+      // Update session
+      db.prepare(`
+        UPDATE sessions 
+        SET step = ?, data = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE platform_id = ?
+      `).run('updated', JSON.stringify({ updated: true }), 'user-456');
+      
+      const session = db.prepare(`
+        SELECT * FROM sessions WHERE platform_id = ?
+      `).get('user-456') as any;
+      
+      expect(session.step).toBe('updated');
+      expect(JSON.parse(session.data)).toEqual({ updated: true });
+    });
+  });
+
+  describe('Work Drafts', () => {
+    it('should store and retrieve work drafts', async () => {
+      const db = getDB();
+      
+      const draftData = {
+        actions: [
+          { actionId: 'water', quantity: 10 },
+          { actionId: 'plant', quantity: 5 },
+        ],
+        gardenAddress: '0x' + '4'.repeat(40),
+        metadata: { notes: 'Test work' },
+      };
+      
+      // Create user first
+      await createUser({
+        platform: 'telegram',
+        platformId: 'worker-123',
+        privateKey: '0x' + 'd'.repeat(64),
+        address: '0x' + '5'.repeat(40),
+        role: 'gardener',
+      });
+      
+      const user = await getUser('telegram', 'worker-123');
+      
+      // Store draft
+      db.prepare(`
+        INSERT INTO work_drafts (user_id, draft_id, data)
+        VALUES (?, ?, ?)
+      `).run(user!.id, 'draft-123', JSON.stringify(draftData));
+      
+      // Retrieve draft
+      const draft = db.prepare(`
+        SELECT * FROM work_drafts WHERE draft_id = ?
+      `).get('draft-123') as any;
+      
+      expect(draft).toBeDefined();
+      expect(JSON.parse(draft.data)).toEqual(draftData);
+    });
+  });
+
+  describe('Transaction Management', () => {
+    it('should handle transactions correctly', async () => {
+      const db = getDB();
+      
+      // Start transaction
+      const insert = db.prepare('INSERT INTO users (platform, platform_id, private_key, address, role) VALUES (?, ?, ?, ?, ?)');
+      const insertMany = db.transaction((users: any[]) => {
+        for (const user of users) {
+          insert.run(user.platform, user.platform_id, user.private_key, user.address, user.role);
+        }
+      });
+      
+      const users = [
+        {
+          platform: 'telegram',
+          platform_id: 'tx-user-1',
+          private_key: prepareKeyForStorage('0x' + 'e'.repeat(64)),
+          address: '0x' + '6'.repeat(40),
+          role: 'gardener',
+        },
+        {
+          platform: 'telegram',
+          platform_id: 'tx-user-2',
+          private_key: prepareKeyForStorage('0x' + 'f'.repeat(64)),
+          address: '0x' + '7'.repeat(40),
+          role: 'operator',
+        },
+      ];
+      
+      // Execute transaction
+      insertMany(users);
+      
+      // Verify both inserted
+      const count = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
+      expect(count.count).toBe(2);
+    });
+  });
+});

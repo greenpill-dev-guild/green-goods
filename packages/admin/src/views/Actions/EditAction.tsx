@@ -1,7 +1,10 @@
 import {
   DEFAULT_CHAIN_ID,
   defaultTemplate,
+  fromDateTimeLocalValue,
   toastService,
+  toDateTimeLocalValue,
+  toSafeDate,
   uploadFileToIPFS,
 } from "@green-goods/shared";
 import { useActionOperations, useActions } from "@green-goods/shared/hooks";
@@ -23,13 +26,22 @@ export default function EditAction() {
     isLoading,
   } = useActionOperations(DEFAULT_CHAIN_ID);
 
-  const [title, setTitle] = useState(action?.title || "");
-  const [startTime, setStartTime] = useState(action ? new Date(action.startTime) : new Date());
-  const [endTime, setEndTime] = useState(action ? new Date(action.endTime) : new Date());
+  const [title, setTitle] = useState("");
+  const [startTime, setStartTime] = useState<Date>(new Date());
+  const [endTime, setEndTime] = useState<Date>(new Date());
   const [instructionConfig, setInstructionConfig] =
     useState<ActionInstructionConfig>(defaultTemplate);
   const [isEditingInstructions, setIsEditingInstructions] = useState(false);
   const [isLoadingInstructions, setIsLoadingInstructions] = useState(false);
+
+  // Sync form state when action data loads or changes
+  useEffect(() => {
+    if (action) {
+      setTitle(action.title || "");
+      setStartTime(toSafeDate(action.startTime) ?? new Date());
+      setEndTime(toSafeDate(action.endTime) ?? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000));
+    }
+  }, [action]);
 
   // Load existing instruction config from IPFS when action is available
   useEffect(() => {
@@ -119,8 +131,14 @@ export default function EditAction() {
           <h3 className="text-lg font-semibold mb-4">Basic Information</h3>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-text-strong mb-2">Title</label>
+              <label
+                htmlFor="action-title"
+                className="block text-sm font-medium text-text-strong mb-2"
+              >
+                Title
+              </label>
               <input
+                id="action-title"
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -130,23 +148,33 @@ export default function EditAction() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-text-strong mb-2">
+                <label
+                  htmlFor="action-start-time"
+                  className="block text-sm font-medium text-text-strong mb-2"
+                >
                   Start Time
                 </label>
                 <input
+                  id="action-start-time"
                   type="datetime-local"
-                  value={startTime.toISOString().slice(0, 16)}
-                  onChange={(e) => setStartTime(new Date(e.target.value))}
+                  value={toDateTimeLocalValue(startTime.getTime())}
+                  onChange={(e) => setStartTime(fromDateTimeLocalValue(e.target.value))}
                   className="w-full rounded-md border border-stroke-soft px-3 py-2"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-text-strong mb-2">End Time</label>
+                <label
+                  htmlFor="action-end-time"
+                  className="block text-sm font-medium text-text-strong mb-2"
+                >
+                  End Time
+                </label>
                 <input
+                  id="action-end-time"
                   type="datetime-local"
-                  value={endTime.toISOString().slice(0, 16)}
-                  onChange={(e) => setEndTime(new Date(e.target.value))}
+                  value={toDateTimeLocalValue(endTime.getTime())}
+                  onChange={(e) => setEndTime(fromDateTimeLocalValue(e.target.value))}
                   className="w-full rounded-md border border-stroke-soft px-3 py-2"
                 />
               </div>
@@ -175,8 +203,8 @@ export default function EditAction() {
             <InstructionsBuilder value={instructionConfig} onChange={setInstructionConfig} />
           ) : (
             <p className="text-text-sub text-sm">
-              Click "Edit instructions" to modify the work submission form configuration. This will
-              create a new version of the instructions.
+              Click &quot;Edit instructions&quot; to modify the work submission form configuration.
+              This will create a new version of the instructions.
             </p>
           )}
         </div>

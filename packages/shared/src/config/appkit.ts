@@ -13,9 +13,9 @@
 
 import { createAppKit } from "@reown/appkit/react";
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
-import type { Chain } from "viem/chains";
 import { DEFAULT_CHAIN_ID } from "./blockchain";
 import { getChain, SUPPORTED_CHAINS } from "./chains";
+import { getResolvedTheme } from "../utils/styles/theme";
 
 type AppKitMetadata = {
   name: string;
@@ -92,12 +92,18 @@ export function ensureAppKit(options?: AppKitInitOptions) {
     throw new Error("SUPPORTED_CHAINS must have at least one chain");
   }
 
-  const networks = chains as unknown as [Chain, ...Chain[]];
+  // Type assertion needed due to viem version mismatch between main dependency
+  // and @reown/appkit-common's bundled viem. Runtime compatible.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const networks = chains as any;
 
   wagmiAdapterInstance = new WagmiAdapter({
     networks,
     projectId,
   });
+
+  // Get initial theme from system/localStorage
+  const initialTheme = getResolvedTheme();
 
   appKitInstance = createAppKit({
     adapters: [wagmiAdapterInstance],
@@ -105,11 +111,20 @@ export function ensureAppKit(options?: AppKitInitOptions) {
     projectId,
     metadata,
     enableNetworkSwitch: false,
-    defaultNetwork: getChain(options?.defaultChainId ?? DEFAULT_CHAIN_ID),
+    defaultNetwork: getChain(options?.defaultChainId ?? DEFAULT_CHAIN_ID) as any,
     features: {
       analytics: false, // Disable AppKit analytics (we use PostHog)
+      email: false, // Disable email login (we use passkeys instead)
+      socials: false, // Disable social logins (Google, Apple, Discord, etc.)
     },
-    themeMode: "light",
+    // Only show these wallets in the selection modal
+    includeWalletIds: [
+      "c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96", // MetaMask
+      "18388be9ac2d02726dbac9777c96efaac06d744b2f6d580fccdd4127a6d01fd1", // Rabby
+      "1ae92b26df02f0abca6304df07debccd18262fdf5fe82daa81593582dac9a369", // Rainbow
+      "fd20dc426fb37566d803205b19bbc1d4096b248ac04548e3cfb6b3a38bd033aa", // Coinbase
+    ],
+    themeMode: initialTheme,
     themeVariables: {
       "--w3m-accent": "#367D42", // Green Goods primary green
       "--w3m-border-radius-master": "12px",
@@ -120,6 +135,16 @@ export function ensureAppKit(options?: AppKitInitOptions) {
     appKit: appKitInstance,
     wagmiConfig: wagmiAdapterInstance.wagmiConfig,
   };
+}
+
+/**
+ * Update AppKit theme mode dynamically.
+ * Call this when the app theme changes.
+ */
+export function updateAppKitTheme(isDark: boolean): void {
+  if (appKitInstance) {
+    appKitInstance.setThemeMode(isDark ? "dark" : "light");
+  }
 }
 
 // Eagerly initialize using defaults so consumers can import directly.

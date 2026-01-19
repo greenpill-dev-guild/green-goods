@@ -35,7 +35,6 @@
 import { createActor } from "xstate";
 
 import { DEFAULT_CHAIN_ID } from "../config/blockchain";
-import { createPasskeyServerClient, isPasskeyServerAvailable } from "../config/passkeyServer";
 import { authMachine } from "./authMachine";
 import { authServices } from "./authServices";
 
@@ -61,16 +60,6 @@ function createAuthActor() {
   // Get chain ID at runtime
   const chainId = getChainId();
 
-  // Initialize passkey server client if available
-  let passkeyClient = null;
-  if (isPasskeyServerAvailable()) {
-    try {
-      passkeyClient = createPasskeyServerClient(chainId);
-    } catch (error) {
-      console.warn("[AuthActor] Failed to create passkey server client:", error);
-    }
-  }
-
   // Create actor with services and initial context
   const actor = createActor(
     authMachine.provide({
@@ -84,7 +73,6 @@ function createAuthActor() {
     {
       input: {
         chainId,
-        passkeyClient,
       },
     }
   );
@@ -125,41 +113,54 @@ export const authActor = typeof window !== "undefined" ? getAuthActor() : null;
 // ============================================================================
 
 /**
- * Common selectors for use with `useSelector`
+ * Selectors for use with `useSelector` from @xstate/react
+ *
+ * Usage:
+ * ```ts
+ * const isAuthenticated = useSelector(authActor, authSelectors.isAuthenticated);
+ * const address = useSelector(authActor, authSelectors.activeAddress);
+ * ```
  */
 export const authSelectors = {
   // State checks
-  isInitializing: (state: ReturnType<typeof getAuthActor>["getSnapshot"]) =>
-    state().matches("initializing"),
-
-  isAuthenticated: (state: ReturnType<typeof getAuthActor>["getSnapshot"]) =>
-    state().matches("authenticated"),
-
-  isPasskeyAuth: (state: ReturnType<typeof getAuthActor>["getSnapshot"]) =>
-    state().matches({ authenticated: "passkey" }),
-
-  isWalletAuth: (state: ReturnType<typeof getAuthActor>["getSnapshot"]) =>
-    state().matches({ authenticated: "wallet" }),
-
-  isAuthenticating: (state: ReturnType<typeof getAuthActor>["getSnapshot"]) =>
-    state().matches("registering") || state().matches("authenticating"),
-
-  isError: (state: ReturnType<typeof getAuthActor>["getSnapshot"]) => state().matches("error"),
+  isInitializing: (snapshot: AuthSnapshot) => snapshot.matches("initializing"),
+  isAuthenticated: (snapshot: AuthSnapshot) => snapshot.matches("authenticated"),
+  isPasskeyAuth: (snapshot: AuthSnapshot) => snapshot.matches({ authenticated: "passkey" }),
+  isWalletAuth: (snapshot: AuthSnapshot) => snapshot.matches({ authenticated: "wallet" }),
+  isAuthenticating: (snapshot: AuthSnapshot) =>
+    snapshot.matches("registering") || snapshot.matches("authenticating"),
+  isError: (snapshot: AuthSnapshot) => snapshot.matches("error"),
 
   // Context values
-  smartAccountAddress: (state: ReturnType<typeof getAuthActor>["getSnapshot"]) =>
-    state().context.smartAccountAddress,
+  smartAccountAddress: (snapshot: AuthSnapshot) => snapshot.context.smartAccountAddress,
+  walletAddress: (snapshot: AuthSnapshot) => snapshot.context.walletAddress,
+  userName: (snapshot: AuthSnapshot) => snapshot.context.userName,
+  error: (snapshot: AuthSnapshot) => snapshot.context.error,
 
-  walletAddress: (state: ReturnType<typeof getAuthActor>["getSnapshot"]) =>
-    state().context.walletAddress,
+  // Computed - respects auth mode (single source of truth)
+  activeAddress: (snapshot: AuthSnapshot) => {
+    if (snapshot.matches({ authenticated: "passkey" })) {
+      return snapshot.context.smartAccountAddress;
+    }
+    if (snapshot.matches({ authenticated: "wallet" })) {
+      return snapshot.context.walletAddress;
+    }
+    return null;
+  },
 
-  userName: (state: ReturnType<typeof getAuthActor>["getSnapshot"]) => state().context.userName,
-
-  error: (state: ReturnType<typeof getAuthActor>["getSnapshot"]) => state().context.error,
-
-  // Computed
-  activeAddress: (state: ReturnType<typeof getAuthActor>["getSnapshot"]) =>
-    state().context.smartAccountAddress || state().context.walletAddress,
+  // Auth mode derived from state
+  authMode: (snapshot: AuthSnapshot) => {
+    if (
+      snapshot.matches({ authenticated: "passkey" }) ||
+      snapshot.matches({ authenticated: "claiming_ens" })
+    ) {
+      return "passkey" as const;
+    }
+    if (snapshot.matches({ authenticated: "wallet" })) {
+      return "wallet" as const;
+    }
+    return null;
+  },
 };
 
 // ============================================================================

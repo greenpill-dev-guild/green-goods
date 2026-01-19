@@ -1,20 +1,20 @@
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import {
+  Capital,
+  type Action,
+  type ActionInstructionConfig,
+  type Garden,
+  type GardenerCard,
+  type WorkInput,
+} from "../../types/domain";
 import { greenGoodsGraphQL } from "./graphql";
+import { greenGoodsIndexer } from "./graphql-client";
 import { getFileByHash, resolveIPFSUrl } from "./ipfs";
-import { greenGoodsIndexer, withTimeout, INDEXER_TIMEOUT_MS } from "./urql";
 
 const GATEWAY_BASE_URL = "https://w3s.link";
 
-export enum Capital {
-  SOCIAL = 0,
-  MATERIAL = 1,
-  FINANCIAL = 2,
-  LIVING = 3,
-  INTELLECTUAL = 4,
-  EXPERIENTIAL = 5,
-  SPIRITUAL = 6,
-  CULTURAL = 7,
-}
+// Re-export Capital for backward compatibility
+export { Capital };
 
 /** Fetches action definitions from the indexer and enriches media + UI config. */
 export async function getActions(): Promise<Action[]> {
@@ -36,11 +36,7 @@ export async function getActions(): Promise<Action[]> {
       }
     `);
 
-    const { data, error } = await withTimeout(
-      greenGoodsIndexer.query(QUERY, { chainId }).toPromise(),
-      INDEXER_TIMEOUT_MS,
-      "getActions"
-    );
+    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }, "getActions");
 
     if (error) {
       console.error("[getActions] Indexer query failed:", error.message);
@@ -136,11 +132,7 @@ export async function getGardens(): Promise<Garden[]> {
       }
     `);
 
-    const { data, error } = await withTimeout(
-      greenGoodsIndexer.query(QUERY, { chainId }).toPromise(),
-      INDEXER_TIMEOUT_MS,
-      "getGardens"
-    );
+    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }, "getGardens");
 
     if (error) {
       console.error("[getGardens] Indexer query failed:", error.message);
@@ -192,11 +184,7 @@ export async function getGardeners(): Promise<GardenerCard[]> {
       }
     `);
 
-    const { data, error } = await withTimeout(
-      greenGoodsIndexer.query(QUERY, { chainId }).toPromise(),
-      INDEXER_TIMEOUT_MS,
-      "getGardeners"
-    );
+    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }, "getGardeners");
 
     if (error) {
       console.error("[getGardeners] Indexer query failed:", error.message);
@@ -226,7 +214,9 @@ export async function updateUserProfile(
   customMetadata: Record<string, unknown>,
   accessToken?: string
 ) {
-  const apiBase = import.meta.env.DEV ? "http://localhost:3000" : "https://api.greengoods.app";
+  const apiBase =
+    import.meta.env.VITE_API_BASE_URL ||
+    (import.meta.env.DEV ? "http://localhost:3000" : "https://api.greengoods.app");
   const res = await fetch(`${apiBase}/users/me`, {
     method: "PATCH",
     credentials: "include",

@@ -62,6 +62,7 @@ export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({ garden
                   ? "bg-green-100 text-green-700"
                   : "bg-bg-soft text-text-sub hover:bg-bg-sub"
               }`}
+              // eslint-disable-next-line jsx-a11y/aria-proptypes
               aria-label={`Filter by ${filter.label}`}
               aria-pressed={activeFilter === filter.id}
             >

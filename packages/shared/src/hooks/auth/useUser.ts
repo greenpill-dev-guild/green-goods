@@ -15,12 +15,9 @@
  * @example
  * ```tsx
  * function ProfileComponent() {
- *   const { user, eoa, smartAccountAddress, authMode, ready } = useUser();
+ *   const { user, eoa, smartAccountAddress, authMode, ready, primaryAddress } = useUser();
  *
  *   if (!ready) return <Loader />;
- *
- *   // Primary address for the current auth mode
- *   const primaryAddress = authMode === "wallet" ? eoa?.address : smartAccountAddress;
  *
  *   return (
  *     <div>
@@ -34,18 +31,17 @@
  */
 
 import type { SmartAccountClient } from "permissionless";
-import { useMemo } from "react";
-import { useEnsName } from "../blockchain/useEnsName";
 import { useAuth } from "./useAuth";
+import { usePrimaryAddress } from "./usePrimaryAddress";
 
-interface User {
+export interface User {
   id: string;
   wallet: {
     address: string;
   };
 }
 
-interface UseUserReturn {
+export interface UseUserReturn {
   /** User object for backward compatibility */
   user: User | null;
   /** Whether auth state is ready (not initializing) */
@@ -60,8 +56,8 @@ interface UseUserReturn {
   authMode: "wallet" | "passkey" | null;
   /** Passkey username (only set when authMode === "passkey") */
   userName: string | null;
-  /** ENS name for the primary address */
-  ensName: string | null;
+  /** ENS name for the primary address - REMOVED to fix QueryClient error */
+  ensName: null;
   /** External wallet connected (available for switching) */
   externalWalletConnected: boolean;
   /** External wallet address (may differ from walletAddress in passkey mode) */
@@ -72,57 +68,29 @@ interface UseUserReturn {
 
 export function useUser(): UseUserReturn {
   const auth = useAuth();
+  const primaryAddress = usePrimaryAddress();
 
-  // Get auth state from context
-  const authMode = auth.authMode ?? null;
-  const isReady = auth.isReady ?? false;
-  const isAuthenticated = auth.isAuthenticated ?? false;
+  // Extract auth state with null defaults for type safety
+  const {
+    authMode = null,
+    isReady = false,
+    isAuthenticated = false,
+    smartAccountAddress = null,
+    walletAddress = null,
+    userName = null,
+    externalWalletConnected = false,
+    externalWalletAddress = null,
+    smartAccountClient = null,
+  } = auth;
 
-  // Get addresses and username from auth context
-  const smartAccountAddress = auth.smartAccountAddress ?? null;
-  const walletAddress = auth.walletAddress ?? null;
-  const userName = auth.userName ?? null;
-  const externalWalletConnected = auth.externalWalletConnected ?? false;
-  const externalWalletAddress = auth.externalWalletAddress ?? null;
+  // Create EOA object only when wallet is the primary auth (React 19 compiler handles memoization)
+  const eoa = authMode === "wallet" && walletAddress ? { address: walletAddress } : null;
 
-  // Get smart account client (passkey mode only)
-  const smartAccountClient = auth.smartAccountClient ?? null;
-
-  // Determine primary address based on auth mode
-  // This is the address that should be used for membership checks, transactions, etc.
-  const primaryAddress = useMemo(() => {
-    if (authMode === "wallet" && walletAddress) {
-      return walletAddress;
-    }
-    if (authMode === "passkey" && smartAccountAddress) {
-      return smartAccountAddress;
-    }
-    return null;
-  }, [authMode, walletAddress, smartAccountAddress]);
-
-  // Use primary address for ENS lookup
-  // For wallet mode: use wallet address
-  // For passkey mode: use smart account address (though it won't have ENS)
-  const { data: ensName } = useEnsName(primaryAddress);
-
-  // Create EOA object only when wallet is the primary auth
-  const eoa = useMemo(() => {
-    if (authMode === "wallet" && walletAddress) {
-      return { address: walletAddress };
-    }
-    return null;
-  }, [authMode, walletAddress]);
-
-  // Create user object for backward compatibility
-  const user = useMemo(() => {
-    if (!isAuthenticated || !primaryAddress) {
-      return null;
-    }
-    return {
-      id: primaryAddress,
-      wallet: { address: primaryAddress },
-    };
-  }, [isAuthenticated, primaryAddress]);
+  // Create user object for backward compatibility (React 19 compiler handles memoization)
+  const user =
+    isAuthenticated && primaryAddress
+      ? { id: primaryAddress, wallet: { address: primaryAddress } }
+      : null;
 
   return {
     user,
@@ -132,7 +100,7 @@ export function useUser(): UseUserReturn {
     smartAccountClient,
     authMode,
     userName,
-    ensName: ensName ?? null,
+    ensName: null, // Disabled - useEnsName was called before QueryClient was available
     externalWalletConnected,
     externalWalletAddress,
     primaryAddress,

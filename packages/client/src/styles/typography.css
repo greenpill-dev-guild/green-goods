@@ -1,11 +1,17 @@
 @import "tailwindcss";
 
+/* Header color with dark mode support */
+:root {
+  --color-header-text: #254d31; /* Dark forest green for light mode */
+}
+
+:root[data-theme="dark"] {
+  --color-header-text: rgb(var(--green-200)); /* Pale mint for dark mode - matches primary */
+}
+
 @theme {
   /* --text-base: 16px; */
   /* --text-sm: 14px */
-
-  /* Header color */
-  --color-header-text: #254d31;
 
   /* Title variants */
   --text-title-h1: 56px;

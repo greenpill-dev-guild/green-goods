@@ -154,7 +154,7 @@ export function EvidenceStep({
     if (successfulUploads.length > 0) {
       const currentDocs = getValues().reportDocuments || [];
       const newUrls = successfulUploads.map((r) => r.url!);
-      setValue("reportDocuments", [...currentDocs, ...newUrls] as any);
+      setValue("reportDocuments", [...currentDocs, ...newUrls]);
     }
 
     // Track failed files for retry (excluding duplicates from previous attempts)
@@ -229,7 +229,7 @@ export function EvidenceStep({
     if (successfulUploads.length > 0) {
       const currentDocs = getValues().reportDocuments || [];
       const newUrls = successfulUploads.map((r) => r.url!);
-      setValue("reportDocuments", [...currentDocs, ...newUrls] as any);
+      setValue("reportDocuments", [...currentDocs, ...newUrls]);
     }
 
     // Update failed files list to only include files that still failed
@@ -304,14 +304,14 @@ export function EvidenceStep({
         <div className="flex items-end justify-between gap-2">
           <div className="flex-1">
             <ArrayInput
-              control={control as any}
+              control={control}
               name="reportDocuments"
               label="Report documents"
               placeholder="https://... or IPFS CID"
               helper="Paste URLs or IPFS CIDs for supporting documents, or upload files."
               emptyHint="No report documents added."
               disabled={isSubmitting}
-              error={extractErrorMessage(errors.reportDocuments as any)}
+              error={extractErrorMessage(errors.reportDocuments)}
               addLabel="Add URL"
             />
           </div>
@@ -367,14 +367,14 @@ export function EvidenceStep({
         )}
       </div>
       <ArrayInput
-        control={control as any}
+        control={control}
         name="impactAttestations"
         label="Related impact attestations"
         placeholder="0x..."
         helper="Reference related EAS attestations using their 32-byte UID."
         emptyHint="No attestation references added."
         disabled={isSubmitting}
-        error={extractErrorMessage(errors.impactAttestations as any)}
+        error={extractErrorMessage(errors.impactAttestations)}
         addLabel="Add attestation"
         transformValue={(value) => value.toLowerCase()}
       />

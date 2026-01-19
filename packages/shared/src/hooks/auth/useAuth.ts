@@ -55,7 +55,7 @@ interface UseAuthReturn {
   hasStoredCredential?: boolean;
 
   // Actions
-  createAccount?: (userName?: string) => Promise<unknown>;
+  createAccount?: (userName: string) => Promise<unknown>;
   loginWithPasskey?: (userName?: string) => Promise<unknown>;
   loginWithWallet?: () => void;
   signOut?: () => Promise<void>;

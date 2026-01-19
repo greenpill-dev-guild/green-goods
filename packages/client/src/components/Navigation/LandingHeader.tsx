@@ -36,7 +36,8 @@ export const LandingHeader: React.FC<LandingHeaderProps> = () => {
             href={link}
             target="_blank"
             rel="noreferrer"
-            className="text-[#367D42] hover:text-[#D2B48C] bg-slate-100 hover:bg-slate-200 p-2 rounded-full transition-colors grid place-items-center"
+            aria-label={`Visit our ${title}`}
+            className="text-[#367D42] hover:text-[#D2B48C] bg-bg-weak-50 hover:bg-bg-soft-200 p-2 rounded-full transition-colors grid place-items-center"
             onClick={action}
           >
             <Icon size={28} />

@@ -31,6 +31,39 @@ export interface CompressionStats {
 }
 
 /**
+ * Compression profiles based on file size thresholds
+ * Each profile defines settings optimized for different file sizes
+ */
+const COMPRESSION_PROFILES = {
+  /** Large files (>10MB): aggressive compression */
+  large: {
+    maxSizeMB: 1,
+    maxWidthOrHeight: 1920,
+    initialQuality: 0.7,
+  },
+  /** Medium-large files (5-10MB): moderate compression */
+  mediumLarge: {
+    maxSizeMB: 1.5,
+    maxWidthOrHeight: 2048,
+    initialQuality: 0.75,
+  },
+  /** Medium files (2-5MB): light compression */
+  medium: {
+    maxSizeMB: 1,
+    maxWidthOrHeight: 2048,
+    initialQuality: 0.8,
+  },
+  /** Small files (<2MB): minimal compression */
+  small: {
+    maxSizeMB: 0.8,
+    maxWidthOrHeight: 2048,
+    initialQuality: 0.85,
+  },
+} as const;
+
+type CompressionProfile = keyof typeof COMPRESSION_PROFILES;
+
+/**
  * Intelligent Image Compressor using browser-image-compression
  * Provides automatic compression with intelligent settings based on file size and content
  */
@@ -148,6 +181,16 @@ class ImageCompressor {
   }
 
   /**
+   * Determine which compression profile to use based on file size
+   */
+  private getCompressionProfile(fileSizeMB: number): CompressionProfile {
+    if (fileSizeMB > 10) return "large";
+    if (fileSizeMB > 5) return "mediumLarge";
+    if (fileSizeMB > 2) return "medium";
+    return "small";
+  }
+
+  /**
    * Get intelligent compression settings based on file characteristics
    */
   private getIntelligentSettings(
@@ -155,39 +198,8 @@ class ImageCompressor {
     customOptions?: CompressionOptions
   ): CompressionOptions {
     const fileSizeMB = file.size / (1024 * 1024);
-
-    // Base settings on file size
-    let settings: CompressionOptions;
-
-    if (fileSizeMB > 10) {
-      // Large files: aggressive compression
-      settings = {
-        maxSizeMB: 1,
-        maxWidthOrHeight: 1920,
-        initialQuality: 0.7,
-      };
-    } else if (fileSizeMB > 5) {
-      // Medium-large files: moderate compression
-      settings = {
-        maxSizeMB: 1.5,
-        maxWidthOrHeight: 2048,
-        initialQuality: 0.75,
-      };
-    } else if (fileSizeMB > 2) {
-      // Medium files: light compression
-      settings = {
-        maxSizeMB: 1,
-        maxWidthOrHeight: 2048,
-        initialQuality: 0.8,
-      };
-    } else {
-      // Small files: minimal compression
-      settings = {
-        maxSizeMB: 0.8,
-        maxWidthOrHeight: 2048,
-        initialQuality: 0.85,
-      };
-    }
+    const profile = this.getCompressionProfile(fileSizeMB);
+    const settings = COMPRESSION_PROFILES[profile];
 
     // Merge with defaults and custom options
     return {

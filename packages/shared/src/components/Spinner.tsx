@@ -25,7 +25,7 @@ export const Spinner: React.FC<SpinnerProps> = ({ size = "md", className, label 
     <>
       <div
         className={cn(
-          "animate-spin rounded-full border-green-200 border-t-green-600",
+          "animate-spin rounded-full border-success-light border-t-primary",
           sizeClasses[size],
           className
         )}
@@ -59,14 +59,14 @@ export const CenteredSpinner: React.FC<CenteredSpinnerProps> = ({
     <div
       className={cn(
         "flex flex-col items-center justify-center gap-3",
-        fullScreen ? "min-h-screen bg-white" : "min-h-[200px]"
+        fullScreen ? "min-h-screen bg-bg-white-0" : "min-h-[200px]"
       )}
       role="status"
       aria-live="polite"
       aria-busy="true"
     >
       <Spinner {...spinnerProps} />
-      {message && <p className="text-sm text-slate-600">{message}</p>}
+      {message && <p className="text-sm text-text-sub-600">{message}</p>}
     </div>
   );
 };

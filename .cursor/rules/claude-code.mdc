@@ -1,0 +1,276 @@
+---
+description: Claude Code skills, commands, agents, and workflows for Green Goods development
+globs:
+alwaysApply: true
+---
+
+# Claude Code Integration
+
+This rule documents all Claude Code tooling configured for Green Goods in `.claude/`.
+
+## Quick Reference
+
+| Type | Count | Location |
+|------|-------|----------|
+| Skills | 24 | `.claude/skills/*/SKILL.md` |
+| Commands | 9 | `.claude/commands/*.md` |
+| Agents | 5 | `.claude/agents/*.md` |
+| Plugins | 13 | `.claude/settings.json` |
+| MCP Servers | 6 | `.cursor/mcp.json` |
+
+## Commands (Slash Commands)
+
+| Command | Purpose | Example |
+|---------|---------|---------|
+| `/pr` | Create PR with conventional commits | `/pr` after completing feature |
+| `/review` | Review changes against plan | `/review` before submitting |
+| `/audit` | Run codebase audit | `/audit packages/contracts` |
+| `/delphi` | Launch parallel oracle analysis | `/delphi x6` for full sweep |
+| `/plan` | Create implementation plan | `/plan add auth feature` |
+| `/execute` | Execute plan in batches | `/execute batch=3` |
+| `/fix-lint` | Auto-fix linting issues | `/fix-lint packages/client` |
+| `/scope` | Check for scope creep | `/scope` before PR |
+| `/shitshow` | Emergency troubleshooting | `/shitshow` when broken |
+
+## Skills by Category
+
+### Development Workflow
+
+| Skill | Purpose |
+|-------|---------|
+| `create-plan` | Strategic planning methodology |
+| `check-plan` | Validate implementation plans |
+| `executing-plans` | Batched plan execution |
+| `create-pr` | Structured PR workflow |
+| `code-review` | 6-pass ultra-critical review |
+| `requesting-code-review` | Initiate review requests |
+| `receiving-code-review` | Process peer feedback |
+| `test-driven-development` | TDD methodology |
+| `verification-before-completion` | Evidence-based completion |
+
+### Analysis & Research
+
+| Skill | Purpose |
+|-------|---------|
+| `audit` | Codebase health analysis |
+| `architectural-analysis` | 8-phase system audit |
+| `delphi` | Parallel oracle consultation |
+| `the-oracle` | Deep research agent |
+| `systematic-debugging` | Root cause analysis |
+
+### Specialized
+
+| Skill | Purpose |
+|-------|---------|
+| `contract-deploy-validator` | UUPS validation, gas reports |
+| `hook-generator` | Generate hooks in shared package |
+| `i18n-sync` | Translation completeness |
+| `offline-sync-debugger` | Job queue/IndexedDB debugging |
+| `superpower-zustand` | Zustand store patterns |
+| `design-spec-extraction` | Figma design token extraction |
+| `chrome-devtools` | Browser debugging for PWA |
+| `gh-ticket` | Comprehensive issue creation |
+| `the-archivist` | Decision documentation (ADRs) |
+| `4-step-program` | Fix-review-iterate workflow |
+
+## Agents
+
+| Agent | Model | Purpose |
+|-------|-------|---------|
+| `code-reviewer` | Opus | 6-pass review, auto-posts to GitHub |
+| `cracked-coder` | Opus | Elite implementation specialist |
+| `engineering-lead` | Opus | Strategic coordinator |
+| `infrastructure-architect` | Opus | System design guidance |
+| `oracle` | Opus | Deep research agent |
+
+## Delphi Parallel Analysis
+
+The Delphi skill launches multiple agents for parallel code analysis:
+
+```
+"Have delphi x6 do a full sweep of this repo's code quality,
+identify issues, code smells, dead code, redundant code,
+bad patterns, and areas to refactor."
+```
+
+This command:
+1. Spawns 6 parallel oracle agents
+2. Each analyzes the codebase independently
+3. Results are synthesized into comprehensive report
+
+## MCP Servers
+
+| Server | Purpose | Domain |
+|--------|---------|--------|
+| `figma` | Design context extraction | mcp.figma.com |
+| `vercel` | Deployment management | mcp.vercel.com |
+| `miro` | Whiteboard collaboration | mcp.miro.com |
+| `railway` | Railway deployment | via npx |
+| `foundry` | Contract development (forge, cast, anvil) | via npx |
+| `storacha` | IPFS/Filecoin storage | via npx |
+
+### Foundry MCP Usage
+
+```typescript
+// Available tools: forge, cast, anvil
+// Auto-configured for Base Sepolia RPC
+```
+
+### Storacha MCP Usage
+
+```typescript
+// Requires VITE_STORACHA_KEY and VITE_STORACHA_PROOF in .env
+// For IPFS uploads via Filecoin
+```
+
+## Enabled Plugins
+
+| Plugin | Purpose |
+|--------|---------|
+| `typescript-lsp` | TypeScript language server |
+| `github` | GitHub integration |
+| `figma` | Figma design extraction |
+| `vercel` | Vercel deployment |
+| `playwright` | E2E testing |
+| `code-review` | PR review workflow |
+| `security-guidance` | Security scanning |
+| `feature-dev` | Feature development |
+| `frontend-design` | UI/UX guidance |
+| `context7` | Context management |
+| `serena` | Code navigation |
+| `pr-review-toolkit` | 6-dimension PR analysis |
+| `hookify` | Custom hooks creation |
+
+## Secure Autonomous Execution
+
+### Sandbox Configuration
+
+The `.claude/settings.local.json` configures secure sandboxing:
+
+**Allowed Operations:**
+- `bun`, `forge`, `cast`, `anvil`, `git`, `gh` commands
+- File operations within project directories
+- Network access to approved domains only
+
+**Denied Operations:**
+- `curl`, `wget`, `sudo` commands
+- Access to `~/.ssh`, `~/.aws`, `~/.gnupg`
+- Arbitrary network access
+
+### Permission Modes
+
+| Mode | Use Case |
+|------|----------|
+| `plan` | Safe analysis, no modifications |
+| `acceptEdits` | Auto-approve edits, manual command approval |
+| `sandbox auto-allow` | Autonomous within boundaries (recommended) |
+| `bypassPermissions` | Full autonomy (only in isolated environments) |
+
+### Security Best Practices
+
+1. **Never commit secrets** - Use `.env` (gitignored)
+2. **Review contract changes** - Always verify before deployment
+3. **Use sandbox for automation** - OS-level isolation
+4. **Verify MCP servers** - Only use trusted servers
+
+## Green Goods-Specific Skills
+
+### contract-deploy-validator
+
+Validates before contract deployment:
+- Storage gap checks (UUPS)
+- Schema immutability (`schemas.json`)
+- ABI export freshness
+- Gas estimation report
+
+### hook-generator
+
+Generates React hooks in shared package:
+- Follows `packages/shared/src/hooks/` patterns
+- Auto-adds to barrel exports
+- Creates test skeleton
+- Validates i18n compliance
+
+### i18n-sync
+
+Keeps translations complete:
+- Scans for missing keys across locales
+- Suggests translations
+- Validates semantic key naming
+
+### offline-sync-debugger
+
+Debug offline-first issues:
+- Job queue inspection
+- IndexedDB state analysis
+- Service Worker lifecycle tracking
+
+## Workflow Examples
+
+### Feature Development
+
+```bash
+# 1. Create plan
+/plan implement user preferences
+
+# 2. Review plan before execution
+/check-plan
+
+# 3. Execute plan in batches
+/execute batch=3
+
+# 4. Run validation
+bun format && bun lint && bun test
+
+# 5. Create PR
+/pr
+```
+
+### Code Quality Sweep
+
+```bash
+# Launch 6 parallel agents
+/delphi x6
+
+# Or run audit on specific package
+/audit packages/contracts
+```
+
+### Emergency Recovery
+
+```bash
+# When everything is broken
+/shitshow
+```
+
+## File Locations
+
+```
+.claude/
+├── settings.json          # Plugins configuration
+├── settings.local.json    # Sandbox & permissions
+├── hooks.json             # Enforcement rules
+├── skills/                # 24 skills
+│   ├── audit/SKILL.md
+│   ├── create-plan/SKILL.md
+│   ├── delphi/SKILL.md
+│   └── ...
+├── commands/              # 9 commands
+│   ├── pr.md
+│   ├── review.md
+│   └── ...
+└── agents/                # 5 agents
+    ├── code-reviewer.md
+    ├── cracked-coder.md
+    └── ...
+
+.cursor/
+├── mcp.json               # MCP server configuration
+└── rules/                 # Package-specific rules
+```
+
+## Reference
+
+- Full documentation: `CLAUDE.md`
+- Package rules: `packages/*/.cursor/rules/*.mdc`
+- Skills source: `.claude/skills/*/SKILL.md`

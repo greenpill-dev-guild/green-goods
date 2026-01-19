@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+
 import { handleStart, type StartDeps } from "../handlers/start";
 import { handleJoin, type JoinDeps } from "../handlers/join";
 import { handleTextSubmission, handleCancelSubmission, type SubmitDeps } from "../handlers/submit";

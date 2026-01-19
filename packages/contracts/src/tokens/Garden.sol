@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.25;
+pragma solidity ^0.8.25;
 
-import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { ERC721Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import {TBALib} from "../lib/TBA.sol";
-import {IGardenAccount} from "../interfaces/IGardenAccount.sol";
-import {DeploymentRegistry} from "../DeploymentRegistry.sol";
+import { TBALib } from "../lib/TBA.sol";
+import { IGardenAccount } from "../interfaces/IGardenAccount.sol";
+import { DeploymentRegistry } from "../DeploymentRegistry.sol";
 
 /// @title GardenToken Contract
 /// @notice This contract manages the minting of Garden tokens and the creation of associated Garden accounts.
@@ -76,6 +76,14 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     error TooManyGardeners();
     /// @notice Error thrown when too many operators are provided
     error TooManyOperators();
+
+    /// @notice Maximum gardeners allowed per garden in batch mint (higher limit for batches)
+    /// @dev Set higher than GardenAccount.MAX_INIT_GARDENERS to allow larger batch operations
+    uint256 private constant MAX_BATCH_GARDENERS = 100;
+
+    /// @notice Maximum operators allowed per garden in batch mint
+    /// @dev Set higher than GardenAccount.MAX_INIT_OPERATORS to allow larger batch operations
+    uint256 private constant MAX_BATCH_OPERATORS = 100;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     /// @param gardenAccountImplementation The address of the Garden account implementation.
@@ -182,8 +190,8 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         // Validate all community tokens and array lengths upfront for fail-fast behavior
         for (uint256 i = 0; i < configsLength;) {
             _validateCommunityToken(configs[i].communityToken);
-            if (configs[i].gardeners.length > 100) revert TooManyGardeners();
-            if (configs[i].gardenOperators.length > 100) revert TooManyOperators();
+            if (configs[i].gardeners.length > MAX_BATCH_GARDENERS) revert TooManyGardeners();
+            if (configs[i].gardenOperators.length > MAX_BATCH_OPERATORS) revert TooManyOperators();
             unchecked {
                 ++i;
             }

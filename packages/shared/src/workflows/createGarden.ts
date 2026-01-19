@@ -1,6 +1,29 @@
-import { assign, setup } from "xstate";
+/**
+ * Create Garden State Machine
+ *
+ * Manages the garden creation workflow. This machine is decoupled from
+ * external stores - all state is received through events.
+ *
+ * @module workflows/createGarden
+ */
 
-import { useCreateGardenStore } from "../stores/useCreateGardenStore";
+import { assign, fromPromise, setup } from "xstate";
+
+/**
+ * Form validation status passed to the machine through events
+ */
+export interface CreateGardenFormStatus {
+  /** Whether the current step is valid */
+  canProceed: boolean;
+  /** Whether all steps are complete and ready for review */
+  isReviewReady: boolean;
+  /** Whether the form is on the review step */
+  isOnReviewStep: boolean;
+  /** Current step index */
+  currentStep: number;
+  /** Total number of steps */
+  totalSteps: number;
+}
 
 export interface CreateGardenContext {
   txHash?: string;
@@ -11,19 +34,24 @@ export interface CreateGardenContext {
 type SubmitDoneEvent = { type: "done.invoke.submitGarden"; output: string };
 type SubmitErrorEvent = { type: "error.platform.submitGarden"; error: unknown };
 
+/**
+ * Navigation events now include form status for validation
+ */
+type NavigationEvents =
+  | { type: "NEXT"; formStatus: CreateGardenFormStatus }
+  | { type: "BACK"; formStatus: CreateGardenFormStatus }
+  | { type: "REVIEW"; formStatus: CreateGardenFormStatus }
+  | { type: "SUBMIT"; formStatus: CreateGardenFormStatus };
+
 type BaseEvents =
   | { type: "OPEN" }
   | { type: "CLOSE" }
   | { type: "RESET" }
-  | { type: "NEXT" }
-  | { type: "BACK" }
-  | { type: "REVIEW" }
-  | { type: "SUBMIT" }
   | { type: "EDIT" }
   | { type: "RETRY" }
   | { type: "CREATE_ANOTHER" };
 
-export type CreateGardenEvent = BaseEvents | SubmitDoneEvent | SubmitErrorEvent;
+export type CreateGardenEvent = BaseEvents | NavigationEvents | SubmitDoneEvent | SubmitErrorEvent;
 
 const createGardenSetup = setup({
   types: {
@@ -56,41 +84,56 @@ const createGardenSetup = setup({
     incrementRetry: assign({
       retryCount: ({ context }) => context.retryCount + 1,
     }),
-    advanceStep: () => {
-      useCreateGardenStore.getState().nextStep();
-    },
-    goBackStep: () => {
-      useCreateGardenStore.getState().previousStep();
-    },
-    resetFormData: () => {
-      useCreateGardenStore.getState().reset();
-    },
-    goToReviewStep: () => {
-      useCreateGardenStore.getState().goToReview();
-    },
-    ensureReviewStep: () => {
-      useCreateGardenStore.getState().goToReview();
-    },
-    goToFirstIncompleteStep: () => {
-      useCreateGardenStore.getState().goToFirstIncompleteStep();
-    },
   },
   guards: {
-    canGoForward: () => useCreateGardenStore.getState().canProceed(),
-    isReviewStep: () => {
-      const state = useCreateGardenStore.getState();
-      return state.currentStep === state.steps.length - 2 && state.canProceed();
+    /**
+     * Check if form can proceed to next step based on event data
+     */
+    canGoForward: ({ event }) => {
+      if (!("formStatus" in event)) return false;
+      return event.formStatus.canProceed;
     },
-    canGoBack: () => useCreateGardenStore.getState().currentStep > 0,
-    isReviewReady: () => useCreateGardenStore.getState().isReviewReady(),
-    canSubmit: () => useCreateGardenStore.getState().isReviewReady(),
+    /**
+     * Check if we're navigating to review step
+     */
+    isReviewStep: ({ event }) => {
+      if (!("formStatus" in event)) return false;
+      const { currentStep, totalSteps, canProceed } = event.formStatus;
+      // Review is second to last step, and we can proceed
+      return currentStep === totalSteps - 2 && canProceed;
+    },
+    /**
+     * Check if can go back (not on first step)
+     */
+    canGoBack: ({ event }) => {
+      if (!("formStatus" in event)) return false;
+      return event.formStatus.currentStep > 0;
+    },
+    /**
+     * Check if all required steps are complete and ready for review
+     */
+    isReviewReady: ({ event }) => {
+      if (!("formStatus" in event)) return false;
+      return event.formStatus.isReviewReady;
+    },
+    /**
+     * Check if form can be submitted
+     */
+    canSubmit: ({ event }) => {
+      if (!("formStatus" in event)) return false;
+      return event.formStatus.isReviewReady;
+    },
+    /**
+     * Check if retry is allowed
+     */
     canRetry: ({ context }) => context.retryCount < 3,
   },
   actors: {
-    submitGarden: () => {
+    // Placeholder actor with proper typing - actual implementation provided when machine is used
+    submitGarden: fromPromise<string, void>(async () => {
       throw new Error("submitGarden actor not implemented");
-    },
-  } as any,
+    }),
+  },
 });
 
 export const createGardenMachine = createGardenSetup.createMachine({
@@ -104,7 +147,7 @@ export const createGardenMachine = createGardenSetup.createMachine({
       on: {
         OPEN: {
           target: "collecting",
-          actions: ["clearContext", "resetFormData"],
+          actions: "clearContext",
         },
       },
     },
@@ -114,43 +157,38 @@ export const createGardenMachine = createGardenSetup.createMachine({
           {
             guard: "isReviewStep",
             target: "review",
-            actions: "advanceStep",
           },
           {
             guard: "canGoForward",
-            actions: "advanceStep",
+            // Navigation is handled by the hook layer, not by machine actions
           },
         ],
         BACK: {
           guard: "canGoBack",
-          actions: "goBackStep",
+          // Navigation is handled by the hook layer
         },
         REVIEW: {
           guard: "isReviewReady",
           target: "review",
-          actions: "goToReviewStep",
         },
         CLOSE: {
           target: "idle",
-          actions: ["clearContext", "resetFormData"],
+          actions: "clearContext",
         },
         RESET: {
           target: "idle",
-          actions: ["clearContext", "resetFormData"],
+          actions: "clearContext",
         },
       },
     },
     review: {
-      entry: "ensureReviewStep",
       on: {
         EDIT: {
           target: "collecting",
-          actions: "goToFirstIncompleteStep",
         },
         BACK: {
           guard: "canGoBack",
           target: "collecting",
-          actions: "goBackStep",
         },
         SUBMIT: {
           guard: "canSubmit",
@@ -158,7 +196,7 @@ export const createGardenMachine = createGardenSetup.createMachine({
         },
         CLOSE: {
           target: "idle",
-          actions: ["clearContext", "resetFormData"],
+          actions: "clearContext",
         },
       },
     },
@@ -174,11 +212,11 @@ export const createGardenMachine = createGardenSetup.createMachine({
           target: "error",
           actions: ["storeFailure", "incrementRetry"],
         },
-      } as any,
+      },
       on: {
         CLOSE: {
           target: "idle",
-          actions: ["clearContext", "resetFormData"],
+          actions: "clearContext",
         },
       },
     },
@@ -186,11 +224,11 @@ export const createGardenMachine = createGardenSetup.createMachine({
       on: {
         CLOSE: {
           target: "idle",
-          actions: ["clearContext", "resetFormData"],
+          actions: "clearContext",
         },
         CREATE_ANOTHER: {
           target: "collecting",
-          actions: ["clearContext", "resetFormData"],
+          actions: "clearContext",
         },
       },
     },
@@ -205,7 +243,7 @@ export const createGardenMachine = createGardenSetup.createMachine({
         },
         CLOSE: {
           target: "idle",
-          actions: ["clearContext", "resetFormData"],
+          actions: "clearContext",
         },
       },
     },

@@ -6,49 +6,38 @@ globs:
 alwaysApply: false
 ---
 
-# Deployment Patterns & Conventions
+# Deployment Patterns
 
-This rule covers Green Goods contract deployment workflows, ensuring safe and consistent deployments across networks.
+This rule covers Green Goods contract deployment workflows for safe, consistent deployments across networks.
 
-## Deploy vs Upgrade Decision Matrix
+## Quick Reference
 
-### When to Deploy (New Addresses)
-
-Use `bun deploy:*` when:
-- Setting up a new network
-- First-time deployment
-- Testing locally or on fork
-- Want completely fresh state
-
-**Commands:**
+**Deploy new contracts:**
 ```bash
-bun deploy:local      # Anvil localhost
-bun deploy:testnet    # Base Sepolia
-bun deploy:celo       # Celo mainnet
-bun deploy:arbitrum   # Arbitrum mainnet
+bun deploy:testnet       # Base Sepolia
+bun deploy:arbitrum      # Arbitrum mainnet
+bun deploy:celo          # Celo mainnet
 ```
 
-### When to Upgrade (Same Addresses)
-
-Use `bun upgrade:*` when:
-- Fixing bugs in production contracts
-- Adding features to existing contracts
-- Maintaining addresses for existing integrations
-- Upgrading UUPS proxies
-
-**Commands:**
+**Upgrade existing contracts:**
 ```bash
 bun upgrade:testnet
-bun upgrade:celo
 bun upgrade:arbitrum
+bun upgrade:celo
 ```
 
-## MANDATORY: Use deploy.js Wrapper
+**Check status:**
+```bash
+bun status               # All networks
+bun status baseSepolia   # Specific network
+```
+
+## MANDATORY: Use deploy.ts
 
 **✅ ALWAYS:**
 ```bash
 bun deploy:testnet
-node script/deploy.js core --network baseSepolia --broadcast
+bun script/deploy.ts core --network baseSepolia --broadcast
 ```
 
 **❌ NEVER:**
@@ -56,136 +45,82 @@ node script/deploy.js core --network baseSepolia --broadcast
 forge script script/Deploy.s.sol --broadcast --rpc-url $RPC
 ```
 
-### Why deploy.js is Required
+**Why deploy.ts is required:**
+- Loads root `.env` correctly (from `../../../.env`)
+- Uses Foundry keystore for secure key management
+- Handles schema deployment and verification
+- Auto-updates Envio indexer configuration
+- Provides dry-run validation
 
-1. **Environment Loading**: Properly loads root `.env` file
-2. **Deterministic Addresses**: Ensures same deployer key across chains
-3. **Schema Deployment**: Handles EAS schema registration
-4. **Error Recovery**: Implements retry logic and validation
-5. **Verification**: Automatic Etherscan verification
-6. **Integration**: Updates indexer config automatically
-
-### deploy.js Usage
+## Deployment Flags
 
 ```bash
-# Dry run (simulation, no broadcast)
-node script/deploy.js core --network baseSepolia
+# Dry run (simulation only)
+bun script/deploy.ts core --network baseSepolia
 
-# Deploy with broadcast
-node script/deploy.js core --network baseSepolia --broadcast
+# Deploy for real
+bun script/deploy.ts core --network baseSepolia --broadcast
 
-# Update schemas only (skip contracts if deployed)
-node script/deploy.js core --network baseSepolia --broadcast --update-schemas
+# Update schemas only
+bun script/deploy.ts core --network baseSepolia --broadcast --update-schemas
 
-# Force fresh deployment (ignore existing)
-node script/deploy.js core --network baseSepolia --broadcast --force
-
-# Skip schema deployment
-node script/deploy.js core --network baseSepolia --broadcast --skip-schemas
+# Force fresh deployment
+bun script/deploy.ts core --network baseSepolia --broadcast --force
 ```
 
-## Root .env Loading Pattern
+## What Gets Deployed
 
-The deploy.js script **always** loads the root `.env`:
+**Core contracts:**
+- DeploymentRegistry — Tracks protocol deployments
+- GardenToken — ERC721 for garden NFTs
+- GardenAccount — Token-bound account implementation
+- ActionRegistry — Garden action registry
+- GardenerRegistry — Gardener profiles
 
-```javascript
-// packages/contracts/script/deploy.js
-dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
-```
+**Resolvers:**
+- WorkResolver — Work submission attestations
+- WorkApprovalResolver — Work approval attestations
+- AssessmentResolver — Assessment attestations
+- GreenGoodsResolver — Central integration fan-out
 
-**Never** use package-specific .env files for deployment.
+**Integration modules:**
+- OctantModule — Octant vault integration
+- UnlockModule — Unlock badge integration
+- HatsModule — Hats protocol integration
 
-### Required Environment Variables
+**EAS schemas:**
+- Work schema
+- Work Approval schema
+- Garden Assessment schema
 
+**Initial data:**
+- Root garden ("Green Goods Community Garden")
+- Core actions (Planting, Identify Plant, Litter Cleanup)
+
+## Environment Variables
+
+Required in root `.env`:
 ```bash
-# Root .env (correct location)
 FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer
 BASE_SEPOLIA_RPC_URL=https://...
-CELO_RPC_URL=https://...
 ARBITRUM_RPC_URL=https://...
-ETHERSCAN_API_KEY=...  # Optional but recommended
-```
-
-### Loading in Forge Scripts
-
-If you need environment variables in Solidity scripts:
-
-```solidity
-// Deploy.s.sol
-string memory privateKey = vm.envString("PRIVATE_KEY");  // ❌ Won't work
-
-// Correct: Use Foundry keystore
-vm.startBroadcast();  // Uses FOUNDRY_KEYSTORE_ACCOUNT from .env
-```
-
-## Deployment Profiles
-
-deploy.js supports multiple profiles:
-
-### Available Profiles
-
-```javascript
-const profiles = {
-  production: { /* mainnet settings */ },
-  testing: { /* testnet settings */ },
-  update: { /* schema updates */ },
-  hotfix: { /* emergency fixes */ },
-  optimized: { /* gas optimizations */ }
-};
-```
-
-### Using Profiles
-
-```bash
-# Use specific profile
-node script/deploy.js core --network celo --profile production --broadcast
-
-# Default profile (production for mainnet, testing for testnet)
-bun deploy:celo
+CELO_RPC_URL=https://...
+ETHERSCAN_API_KEY=...  # Optional, for verification
 ```
 
 ## Deployment Artifacts
 
-### Generated Files
-
-After deployment, these files are updated:
-
+After deployment:
 ```
 packages/contracts/deployments/
-├── 84532-latest.json       # Base Sepolia
-├── 42161-latest.json       # Arbitrum
-├── 42220-latest.json       # Celo
-└── networks.json           # Network configs
+├── 84532-latest.json   # Base Sepolia
+├── 42161-latest.json   # Arbitrum
+├── 42220-latest.json   # Celo
+└── networks.json       # Network configuration
 ```
 
-### Artifact Structure
-
-```json
-{
-  "network": "baseSepolia",
-  "chainId": 84532,
-  "deploymentRegistry": "0x...",
-  "gardenToken": "0x...",
-  "actionRegistry": "0x...",
-  "workResolver": "0x...",
-  "workApprovalResolver": "0x...",
-  "assessmentResolver": "0x...",
-  "schemas": {
-    "workSchemaUID": "0x...",
-    "workApprovalSchemaUID": "0x...",
-    "gardenAssessmentSchemaUID": "0x..."
-  },
-  "rootGarden": {
-    "address": "0x...",
-    "tokenId": 1
-  }
-}
-```
-
-### Using Artifacts in Frontend
-
+**Using artifacts:**
 ```typescript
-// Client
 import deployment from '../../../contracts/deployments/84532-latest.json';
 
 const gardenToken = deployment.gardenToken;
@@ -194,188 +129,51 @@ const workSchemaUID = deployment.schemas.workSchemaUID;
 
 ## Pre-Deployment Checklist
 
-Before running `--broadcast`:
-
+**All deployments:**
 - [ ] Tests passing: `bun --filter contracts test`
-- [ ] Code formatted: `bun --filter contracts format`
-- [ ] Gas analyzed: `forge test --gas-report`
-- [ ] Dry run successful: `node script/deploy.js core --network <net>`
-- [ ] Deployer funded: `cast balance $ADDRESS --rpc-url $RPC`
-- [ ] RPC accessible: `cast chain-id --rpc-url $RPC`
-- [ ] Keystore configured: `cast wallet list` shows deployer account
+- [ ] Build succeeds: `bun --filter contracts build`
+- [ ] Dry run successful: `bun deploy:dry:testnet`
+- [ ] Deployer funded: `cast balance $(cast wallet address green-goods-deployer)`
+- [ ] RPC accessible: `cast chain-id --rpc-url $RPC_URL`
 
-### Testnet Requirements
+**Mainnet additional:**
+- [ ] Security audit completed
+- [ ] Multisig ownership configured
+- [ ] 100% test pass rate
+- [ ] Gas analysis: `bun --filter contracts test:gas`
 
-- ≥80% test pass rate acceptable
-- Internal security review sufficient
-- Can iterate and fix issues quickly
+## Production Readiness
 
-### Mainnet Requirements
+Quick assessment before mainnet:
 
-- 100% test pass rate required
-- External security audit mandatory
-- Multisig ownership configured
-- Rollback plan documented
-- Monitoring configured
+| Check | Testnet | Mainnet |
+|-------|---------|---------|
+| Test pass rate | ≥80% | 100% |
+| Security audit | Internal | External required |
+| Gas benchmarks | Reviewed | Optimized |
+| Multisig | Optional | Required |
 
-## Post-Deployment Verification
+**Blocking issues:**
+- Test pass rate below threshold
+- Missing schema UIDs in deployment JSON
+- Compiler errors/warnings
+- Insufficient deployer balance
 
-After deployment completes:
+## Post-Deployment
 
 ```bash
-# Verify contract ownership
+# Verify on block explorer (auto-runs with --broadcast)
 cast call $GARDEN_TOKEN "owner()" --rpc-url $RPC
 
-# Verify schema registration
-cast call $EAS "getSchema(bytes32)" $SCHEMA_UID --rpc-url $RPC
-
-# Verify on block explorer
-# Check deployment artifact for verification URLs
-
-# Update dependent packages
+# Update dependent packages (auto-runs for Envio)
 cd packages/indexer && bun codegen
 cd packages/client && bun build
 ```
 
-## Deployment Troubleshooting
-
-### Common Issues
-
-**Issue: "Keystore not found"**
-```bash
-# Solution
-cast wallet import green-goods-deployer --interactive
-```
-
-**Issue: "RPC connection failed"**
-```bash
-# Verify RPC
-curl -X POST $BASE_SEPOLIA_RPC_URL \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"eth_chainId","id":1}'
-
-# Check environment variable
-echo $BASE_SEPOLIA_RPC_URL
-```
-
-**Issue: "Insufficient funds"**
-```bash
-# Check balance
-cast balance $(cast wallet address green-goods-deployer) --rpc-url $RPC
-
-# Fund deployer
-# Get testnet ETH from faucet or send from another wallet
-```
-
-**Issue: "Schema deployment failed"**
-```bash
-# Deploy with schema skip, then retry schemas
-node script/deploy.js core --network baseSepolia --broadcast --skip-schemas
-node script/deploy.js core --network baseSepolia --broadcast --update-schemas
-```
-
-## Network Configuration
-
-### networks.json Structure
-
-```json
-{
-  "networks": {
-    "baseSepolia": {
-      "chainId": 84532,
-      "rpcUrl": "${BASE_SEPOLIA_RPC_URL}",
-      "blockExplorer": "https://sepolia.basescan.org",
-      "contracts": {
-        "eas": "0x...",
-        "easSchemaRegistry": "0x..."
-      }
-    }
-  }
-}
-```
-
-### Adding New Network
-
-1. Add configuration to `deployments/networks.json`
-2. Add RPC URL to root `.env`
-3. Add npm script to `package.json`:
-   ```json
-   {
-     "scripts": {
-       "deploy:newnetwork": "node script/deploy.js core --network newNetwork --broadcast"
-     }
-   }
-   ```
-4. Test with dry run first
-5. Document in `docs/DEPLOYMENT.md`
-
-## Deterministic Deployment
-
-Green Goods uses deterministic addresses via consistent deployer:
-
-**Why it matters:**
-- Same contracts get same addresses across chains
-- Easier multi-chain integration
-- Predictable address calculation
-
-**How it works:**
-- Uses same deployer key (from keystore) on all networks
-- Uses CREATE2 for some contracts
-- Documented in deployment artifacts
-
-### Verify Deterministic Deployment
-
-```bash
-# Address should match across networks
-cast call $GARDEN_TOKEN_CELO "owner()" --rpc-url $CELO_RPC
-cast call $GARDEN_TOKEN_ARB "owner()" --rpc-url $ARB_RPC
-# Should be same owner address
-```
-
-## Emergency Procedures
-
-### Deployment Rollback
-
-If deployment fails mid-process:
-
-1. Check `packages/contracts/broadcast/` for partial transactions
-2. Review deployment log for error
-3. Fix issue in contracts
-4. Re-run with `--force` to redeploy from scratch
-
-**⚠️ Warning:** Rollback on mainnet requires multisig approval
-
-### Schema Recovery
-
-If schemas deploy but contracts fail:
-
-```bash
-# Continue deployment, skip schema step
-node script/deploy.js core --network <net> --broadcast --skip-schemas
-```
-
-Schemas are immutable once deployed — no need to redeploy.
-
-## MCP Tool Integration
-
-Use GitHub MCP for deployment workflow:
-
-```bash
-# Create deployment PR
-@github: Create PR for "Base Sepolia Deployment" with deployment checklist
-
-# Track deployment issues
-@github: Create issue "Investigate schema deployment timeout on Celo"
-
-# Document deployment
-@github: Add comment to issue #123 with deployment artifact JSON
-```
-
 ## Reference Files
 
-- Deploy script: `packages/contracts/script/deploy.js`
-- Upgrade script: `packages/contracts/script/upgrade.js`
-- Deployment guide: `docs/DEPLOYMENT.md`
-- Upgrade guide: `docs/UPGRADES.md`
+- Deploy CLI: `packages/contracts/script/deploy.ts`
+- Deploy logic: `packages/contracts/script/deploy/core.ts`
+- Forge script: `packages/contracts/script/Deploy.s.sol`
+- Upgrade script: `packages/contracts/script/upgrade.ts`
 - Network config: `packages/contracts/deployments/networks.json`
-- Deployment artifacts: `packages/contracts/deployments/*-latest.json`

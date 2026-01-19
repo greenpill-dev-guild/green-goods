@@ -21,6 +21,10 @@ describe("stores/useWorkFlowStore", () => {
   beforeEach(() => {
     // Reset store state before each test
     useWorkFlowStore.getState().reset();
+
+    // Mock URL object methods
+    global.URL.createObjectURL = vi.fn(() => "blob:test-url");
+    global.URL.revokeObjectURL = vi.fn();
   });
 
   afterEach(() => {

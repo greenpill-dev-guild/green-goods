@@ -1,158 +1,143 @@
-# Welcome to Green Goods
+# Green Goods Documentation
 
-**Bringing community and environmental actions onchain to better measure, track and reward impact on local communities.**
+This directory contains the Green Goods documentation site built with [Docusaurus](https://docusaurus.io/).
 
-Green Goods is an offline-first Progressive Web App (PWA) that makes it simple for communities to document, verify, and prove their regenerative impact work. Whether you're planting trees, cleaning waterways, or restoring biodiversity,  Green Goods helps you capture that work in three easy steps and turn it into permanent, verifiable on-chain records.
+## Local Development
 
-<!-- TODO: Add hero image or screenshot of the Green Goods app -->
-![Green Goods Hero](https://via.placeholder.com/1200x600?text=Green+Goods+PWA+Screenshot)
-*Try it now at [greengoods.app](https://greengoods.app)*
+```bash
+# From repository root
+bun docs:dev
 
-## Why Green Goods Matters
+# Or from this directory
+cd docs && bun start
+```
 
-Traditional impact measurement is:
-- 📋 **Tedious and meticulous**: Complex forms, spreadsheets, and bureaucratic reporting
-- 💸 **Undervalued**: Grassroots conservation work rarely gets funded or recognized
-- 🌍 **Fragmented**: Bioregional efforts lack coordination and shared infrastructure
+This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
 
-Green Goods solves this with:
-- 📱 **Simple 3-step workflow**: Media → Details → Review (MDR)
-- ⛓️ **On-chain attestations**: Permanent, verifiable proof of impact
-- 🏡 **Hyper-local gardens**: Community hubs serving diverse regenerative needs
+## Build
 
-[Learn more about why Green Goods →](welcome/why-green-goods.md)
+```bash
+# From repository root
+bun docs:build
 
-## Who Is This For?
+# Or from this directory
+cd docs && bun run build
+```
 
-Green Goods serves four key audiences:
+This command generates static content into the `build` directory and can be served using any static contents hosting service.
 
-### 🌱 Gardeners
-On-the-ground workers documenting conservation efforts directly from their mobile devices. Get started in 5 minutes with passkey authentication—no seed phrases or gas fees.
+## Deployment
 
-[**Gardener Quickstart →**](welcome/quickstart-gardener.md) • [Gardener Hub](reference/for-gardeners.md)
+The documentation site is configured for deployment to:
+- GitHub Pages
+- Vercel
+- Netlify
+- Any static hosting service
 
-### 🧑‍🌾 Garden Operators
-Community coordinators who manage gardens, create tasks, and validate work submissions. Approve work with feedback and watch impact grow in real-time.
+See [Docusaurus deployment docs](https://docusaurus.io/docs/deployment) for detailed instructions.
 
-[**Operator Quickstart →**](welcome/quickstart-operator.md) • [Operator Hub](reference/for-operators.md)
+## Structure
 
-### 📊 Impact Evaluators
-Researchers, funders, and analysts who need verifiable impact data. Query on-chain attestations, explore gardens, and export data for analysis.
+```
+docs/
+├── docs/              # Documentation content (Markdown)
+│   ├── welcome/       # Getting started guides
+│   ├── concepts/      # Core concepts
+│   ├── features/      # Product features
+│   ├── guides/        # How-to guides by role
+│   ├── developer/     # Developer documentation
+│   └── reference/     # FAQ, glossary, credits
+├── blog/              # Blog posts (optional)
+├── src/               # Custom React components
+├── static/            # Static assets (images, etc.)
+├── docusaurus.config.ts  # Site configuration
+└── sidebars.ts        # Sidebar navigation structure
+```
 
-[**Evaluator Quickstart →**](welcome/quickstart-evaluator.md) • [Evaluator Hub](reference/for-evaluators.md)
+## Adding Content
 
-### 👩‍💻 Developers
-Builders integrating with Green Goods protocol or extending the platform. Access GraphQL APIs, smart contracts, and comprehensive developer docs.
+### New Documentation Page
 
-[**Developer Quickstart →**](welcome/quickstart-developer.md)
+1. Create a new `.md` file in the appropriate directory under `docs/`
+2. Add frontmatter with metadata:
+   ```markdown
+   ---
+   sidebar_position: 3
+   title: My Page Title
+   ---
+   
+   # My Page Title
+   
+   Content here...
+   ```
+3. Add the page to `sidebars.ts` if you want custom positioning
 
-## What You Can Do
+### New Blog Post
 
-<table>
-  <tr>
-    <td><strong>For Gardeners</strong></td>
-    <td><strong>For Operators</strong></td>
-  </tr>
-  <tr>
-    <td>
-      • Submit work with photos<br>
-      • Track your contributions<br>
-      • Earn recognition onchain<br>
-      • Work offline, sync later
-    </td>
-    <td>
-      • Create and manage gardens<br>
-      • Design action tasks<br>
-      • Review and approve work<br>
-      • Generate impact reports
-    </td>
-  </tr>
-  <tr>
-    <td><strong>For Evaluators</strong></td>
-    <td><strong>For Developers</strong></td>
-  </tr>
-  <tr>
-    <td>
-      • Query verified work data<br>
-      • View on-chain attestations<br>
-      • Export for analysis<br>
-      • Map to impact frameworks
-    </td>
-    <td>
-      • Build on Green Goods<br>
-      • Integrate via GraphQL<br>
-      • Deploy contracts<br>
-      • Contribute to the platform
-    </td>
-  </tr>
-</table>
+1. Create a new `.md` file in `blog/` with the format: `YYYY-MM-DD-post-title.md`
+2. Add frontmatter:
+   ```markdown
+   ---
+   slug: post-title
+   title: Post Title
+   authors: [username]
+   tags: [release, feature]
+   ---
+   
+   Content here...
+   ```
 
-[See all use cases →](welcome/what-you-can-do.md)
+## Documentation Guidelines
 
-## Key Features
+- **Markdown files**: Use standard Markdown with optional frontmatter
+- **Links**: Use relative links without `.md` extension (e.g., `[link](../concepts/roles)`)
+- **Images**: Store in `static/img/` and reference as `/img/filename.png`
+- **Mermaid diagrams**: Fully supported - wrap in ` ```mermaid ` code blocks
+- **Code blocks**: Specify language for syntax highlighting
 
-- 🔐 **Frictionless Onboarding**: Passkey authentication with Face ID/Touch ID
-- 📱 **Mobile-First PWA**: Install on your phone, works offline
-- ⛓️ **Multi-Chain**: Deployed on Arbitrum, Celo, and Base Sepolia
-- 🌍 **Localization**: Available in English, Spanish, and Portuguese
-- 🤖 **Automated Impact Reporting**: Karma GAP integration for transparent tracking
-- 🎨 **Beautiful Design**: Modern UI with accessibility built-in
+## Mermaid Diagram Support
 
-## Quick Links
+Mermaid diagrams are enabled. Example:
 
-- 🚀 **Try the App**: [greengoods.app](https://greengoods.app)
-- 🛠️ **Admin Dashboard**: [admin.greengoods.app](https://admin.greengoods.app)
-- 💬 **Join Community**: [Telegram](https://t.me/+N3o3_43iRec1Y2Jh) • [Twitter](https://x.com/greengoodsapp)
-- 📖 **Read the Blog**: [Simplifying Impact Capture](https://paragraph.com/@greenpilldevguild/green-goods-simplifying-impact-capture-and-exchange)
-- 🧑‍💻 **View Source**: [GitHub](https://github.com/greenpill-dev-guild/green-goods)
+````markdown
+```mermaid
+graph TD
+  A[Start] --> B{Decision}
+  B -->|Yes| C[Action]
+  B -->|No| D[Other]
+```
+````
 
-## Ready to Get Started?
+For complex diagrams, consider using the ELK layout algorithm (requires `@mermaid-js/layout-elk`).
 
-Choose your path:
+## Contributing
 
-<table>
-  <tr>
-    <td align="center" width="25%">
-      <h3>🌱</h3>
-      <a href="welcome/quickstart-gardener.md"><strong>I want to document work</strong></a><br>
-      <small>Start submitting impact in 5 minutes</small>
-    </td>
-    <td align="center" width="25%">
-      <h3>🧑‍🌾</h3>
-      <a href="welcome/quickstart-operator.md"><strong>I want to manage a garden</strong></a><br>
-      <small>Create your community hub</small>
-    </td>
-    <td align="center" width="25%">
-      <h3>📊</h3>
-      <a href="welcome/quickstart-evaluator.md"><strong>I want to analyze impact</strong></a><br>
-      <small>Access verified data</small>
-    </td>
-    <td align="center" width="25%">
-      <h3>👩‍💻</h3>
-      <a href="welcome/quickstart-developer.md"><strong>I want to build</strong></a><br>
-      <small>Integrate or contribute</small>
-    </td>
-  </tr>
-</table>
+See [Contributing to Documentation](https://github.com/greenpill-dev-guild/green-goods/tree/main/docs/docs/developer/docs-contributing.md) for the full workflow and style guide.
 
----
+## Troubleshooting
 
-## Learn More
+### Build Errors
 
-- [Core Concepts](concepts/roles.md) — Understand gardens, actions, work, and attestations
-- [Product Features](features/overview.md) — Explore what makes Green Goods unique
-- [How-To Guides](guides/gardeners/logging-work.md) — Step-by-step tutorials for all roles
-- [Developer Docs](developer/getting-started.md) — Technical documentation and APIs
+```bash
+# Clear cache and rebuild
+rm -rf .docusaurus build
+bun run build
+```
 
-## Built By
+### Broken Links
 
-Green Goods is developed by the [Greenpill Dev Guild](https://github.com/greenpill-dev-guild), a community of builders creating regenerative web3 infrastructure.
+Run the build - Docusaurus will report all broken links and throw an error. Fix them before deploying.
 
-**Open Source**: MIT License • [View on GitHub](https://github.com/greenpill-dev-guild/green-goods)
+### Port Already in Use
 
----
+```bash
+# Kill process on port 3000
+lsof -i :3000
+kill -9 <PID>
+```
 
-<p align="center">
-  <em>Making regenerative impact measurable, verifiable, and fundable.</em>
-</p>
+## Resources
 
+- [Docusaurus Documentation](https://docusaurus.io/docs)
+- [Markdown Features](https://docusaurus.io/docs/markdown-features)
+- [Docusaurus Configuration](https://docusaurus.io/docs/api/docusaurus-config)

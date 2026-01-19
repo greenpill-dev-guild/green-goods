@@ -48,8 +48,11 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
     <div className="space-y-6">
       {/* Basic Settings */}
       <div>
-        <label className="block text-sm font-medium text-text-strong mb-2">Section Title</label>
+        <label htmlFor="media-title" className="block text-sm font-medium text-text-strong mb-2">
+          Section Title
+        </label>
         <input
+          id="media-title"
           type="text"
           value={config.title}
           onChange={(e) => onChange({ ...config, title: e.target.value })}
@@ -59,8 +62,14 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-text-strong mb-2">Description</label>
+        <label
+          htmlFor="media-description"
+          className="block text-sm font-medium text-text-strong mb-2"
+        >
+          Description
+        </label>
         <textarea
+          id="media-description"
           value={config.description}
           onChange={(e) => onChange({ ...config, description: e.target.value })}
           className="w-full rounded-md border border-stroke-soft px-3 py-2"
@@ -72,8 +81,11 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
       {/* Image Count */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-text-strong mb-2">Min Images</label>
+          <label htmlFor="media-min" className="block text-sm font-medium text-text-strong mb-2">
+            Min Images
+          </label>
           <input
+            id="media-min"
             type="number"
             min="0"
             value={config.minImageCount}
@@ -82,8 +94,11 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-text-strong mb-2">Max Images</label>
+          <label htmlFor="media-max" className="block text-sm font-medium text-text-strong mb-2">
+            Max Images
+          </label>
           <input
+            id="media-max"
             type="number"
             min="1"
             value={config.maxImageCount}
@@ -109,13 +124,13 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
 
       {/* Needed Shot Types */}
       <div>
-        <label className="block text-sm font-medium text-text-strong mb-2">
+        <label htmlFor="media-needed" className="block text-sm font-medium text-text-strong mb-2">
           Required Shot Types
         </label>
         <p className="text-xs text-text-sub mb-3">
           Specify what types of photos users must capture
         </p>
-        <div className="space-y-2">
+        <fieldset id="media-needed" className="space-y-2">
           {config.needed.map((shot, index) => (
             <div key={index} className="flex items-center gap-2">
               <input
@@ -160,18 +175,18 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
               Add
             </button>
           </div>
-        </div>
+        </fieldset>
       </div>
 
       {/* Optional Shot Types */}
       <div>
-        <label className="block text-sm font-medium text-text-strong mb-2">
+        <label htmlFor="media-optional" className="block text-sm font-medium text-text-strong mb-2">
           Optional Shot Types
         </label>
         <p className="text-xs text-text-sub mb-3">
           Suggest additional photos users can optionally include
         </p>
-        <div className="space-y-2">
+        <fieldset id="media-optional" className="space-y-2">
           {config.optional.map((shot, index) => (
             <div key={index} className="flex items-center gap-2">
               <input
@@ -216,7 +231,7 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
               Add
             </button>
           </div>
-        </div>
+        </fieldset>
       </div>
     </div>
   );

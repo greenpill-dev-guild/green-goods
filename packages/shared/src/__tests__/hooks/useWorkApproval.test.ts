@@ -101,7 +101,7 @@ describe("hooks/work/useWorkApproval", () => {
 
   describe("Wallet mode", () => {
     it("calls submitApprovalDirectly for wallet users", async () => {
-      vi.mocked(submitApprovalDirectly).mockResolvedValue(MOCK_TX_HASH);
+      (submitApprovalDirectly as any).mockResolvedValue(MOCK_TX_HASH);
 
       const { result } = renderHook(() => useWorkApproval(), {
         wrapper: createWrapper(),
@@ -114,7 +114,12 @@ describe("hooks/work/useWorkApproval", () => {
         await result.current.mutateAsync({ draft, work });
       });
 
-      expect(submitApprovalDirectly).toHaveBeenCalledWith(draft, work.gardenAddress, 84532);
+      expect(submitApprovalDirectly).toHaveBeenCalledWith(
+        draft,
+        work.gardenAddress,
+        work.gardenerAddress,
+        84532
+      );
       expect(submitApprovalToQueue).not.toHaveBeenCalled();
     });
   });
@@ -129,12 +134,12 @@ describe("hooks/work/useWorkApproval", () => {
         smartAccountAddress: MOCK_ADDRESSES.smartAccount,
       });
 
-      vi.mocked(submitApprovalToQueue).mockResolvedValue({
+      (submitApprovalToQueue as any).mockResolvedValue({
         txHash: "0xoffline_approval",
         jobId: "job-approval-1",
       });
 
-      vi.mocked(jobQueue.processJob).mockResolvedValue({
+      (jobQueue.processJob as any).mockResolvedValue({
         success: true,
         txHash: MOCK_TX_HASH,
         skipped: false,
@@ -147,9 +152,9 @@ describe("hooks/work/useWorkApproval", () => {
       const work = createMockWork();
       const draft = createMockWorkApprovalDraft({ approved: true });
 
-      let txHash: string | undefined;
+      let result_data: { hash: string } | undefined;
       await act(async () => {
-        txHash = await result.current.mutateAsync({ draft, work });
+        result_data = await result.current.mutateAsync({ draft, work });
       });
 
       expect(submitApprovalToQueue).toHaveBeenCalledWith(
@@ -161,7 +166,7 @@ describe("hooks/work/useWorkApproval", () => {
       expect(jobQueue.processJob).toHaveBeenCalledWith("job-approval-1", {
         smartAccountClient,
       });
-      expect(txHash).toBe(MOCK_TX_HASH);
+      expect(result_data?.hash).toBe(MOCK_TX_HASH);
     });
 
     it("returns offline hash when offline", async () => {
@@ -173,7 +178,7 @@ describe("hooks/work/useWorkApproval", () => {
         smartAccountAddress: MOCK_ADDRESSES.smartAccount,
       });
 
-      vi.mocked(submitApprovalToQueue).mockResolvedValue({
+      (submitApprovalToQueue as any).mockResolvedValue({
         txHash: "0xoffline_xyz",
         jobId: "job-xyz",
       });
@@ -185,19 +190,19 @@ describe("hooks/work/useWorkApproval", () => {
       const work = createMockWork();
       const draft = createMockWorkApprovalDraft({ approved: false });
 
-      let txHash: string | undefined;
+      let result_data: { hash: string } | undefined;
       await act(async () => {
-        txHash = await result.current.mutateAsync({ draft, work });
+        result_data = await result.current.mutateAsync({ draft, work });
       });
 
-      expect(txHash).toBe("0xoffline_xyz");
+      expect(result_data?.hash).toBe("0xoffline_xyz");
       expect(jobQueue.processJob).not.toHaveBeenCalled();
     });
   });
 
   describe("Feedback handling", () => {
     it("handles empty feedback correctly", async () => {
-      vi.mocked(submitApprovalDirectly).mockResolvedValue(MOCK_TX_HASH);
+      (submitApprovalDirectly as any).mockResolvedValue(MOCK_TX_HASH);
 
       const { result } = renderHook(() => useWorkApproval(), {
         wrapper: createWrapper(),
@@ -216,12 +221,13 @@ describe("hooks/work/useWorkApproval", () => {
       expect(submitApprovalDirectly).toHaveBeenCalledWith(
         expect.objectContaining({ feedback: "" }),
         work.gardenAddress,
+        work.gardenerAddress,
         84532
       );
     });
 
     it("includes feedback for rejection", async () => {
-      vi.mocked(submitApprovalDirectly).mockResolvedValue(MOCK_TX_HASH);
+      (submitApprovalDirectly as any).mockResolvedValue(MOCK_TX_HASH);
 
       const { result } = renderHook(() => useWorkApproval(), {
         wrapper: createWrapper(),
@@ -243,6 +249,7 @@ describe("hooks/work/useWorkApproval", () => {
           feedback: "Please improve the planting technique",
         }),
         work.gardenAddress,
+        work.gardenerAddress,
         84532
       );
     });
@@ -250,7 +257,7 @@ describe("hooks/work/useWorkApproval", () => {
 
   describe("Toast notifications", () => {
     it("shows success toast on approval", async () => {
-      vi.mocked(submitApprovalDirectly).mockResolvedValue(MOCK_TX_HASH);
+      (submitApprovalDirectly as any).mockResolvedValue(MOCK_TX_HASH);
 
       const { result } = renderHook(() => useWorkApproval(), {
         wrapper: createWrapper(),
@@ -274,7 +281,7 @@ describe("hooks/work/useWorkApproval", () => {
 
     it("shows error toast on failure", async () => {
       const error = new Error("Approval failed");
-      vi.mocked(submitApprovalDirectly).mockRejectedValue(error);
+      (submitApprovalDirectly as any).mockRejectedValue(error);
 
       const { result } = renderHook(() => useWorkApproval(), {
         wrapper: createWrapper(),
@@ -294,7 +301,7 @@ describe("hooks/work/useWorkApproval", () => {
       expect(toastService.error).toHaveBeenCalledWith(
         expect.objectContaining({
           id: "approval-submit",
-          title: "Approval failed",
+          title: "Approval submission failed",
         })
       );
     });

@@ -1,326 +1,134 @@
-# Green Goods Admin Dashboard — Architecture Guide
+# Green Goods Admin
 
-The admin dashboard provides garden management and contract deployment tools for administrators and operators.
+Garden management and contract deployment dashboard for administrators and operators.
 
-## Architecture Overview
+## Quick Reference
+
+| Command | Description |
+|---------|-------------|
+| `bun dev` | Start development server |
+| `bun build` | Production build |
+| `bun test` | Run tests |
+| `bun lint` | Run linter |
+
+## Architecture
 
 ```
 src/
-├── components/      # Admin-specific UI components
-│   ├── Action/     # Action configuration components
+├── components/      # Admin UI components
+│   ├── Action/     # Action configuration
 │   ├── Assessment/ # Assessment workflow steps
-│   ├── Form/       # Form layout and wizard components
-│   ├── Garden/     # Garden management (create, invite, members)
-│   ├── Layout/     # Dashboard layout (Header, Sidebar, etc.)
-│   └── Work/       # Work display components
-├── views/           # Main views
-│   ├── Actions/    # Action management
-│   ├── Contracts/  # Contract deployment status
-│   ├── Dashboard/  # Main dashboard
-│   ├── Deployment/ # Contract deployment
-│   ├── Gardens/    # Garden management
-│   └── Login/      # Authentication
-├── routes/          # Route guards
-│   ├── DashboardShell.tsx     # Dashboard wrapper
-│   ├── RequireAuth.tsx        # Auth guard
-│   ├── RequireDeployer.tsx    # Deployer role guard
-│   ├── RequireOperatorOrDeployer.tsx
-│   ├── RequireRole.tsx        # Generic role guard
-│   └── Root.tsx               # Root layout
+│   ├── Garden/     # Garden management
+│   └── Layout/     # Dashboard layout
+├── views/           # Main views (lazy-loaded)
+├── routes/          # Route guards (RequireRole, DashboardShell)
 ├── config.ts        # Admin configuration
-└── router.tsx       # React Router configuration
+└── router.tsx       # Route configuration
 ```
 
-**Important:** Core logic (hooks, providers, stores, workflows) lives in `@green-goods/shared`. See `/packages/shared/AGENTS.md` for details.
+**All hooks, providers, stores, and workflows live in `@green-goods/shared`.**
 
-## Core Functionality
+## Core Concepts
 
-### 1. Role-Based Access Control
+### Design Principles Applied
 
-**Three user roles:**
-- **Deployer (Admin):** Full access via allowlist
-- **Operator:** Garden-specific access via indexer
-- **User:** Unauthorized (read-only or redirected)
+**DRY (Don't Repeat Yourself)**
+- All hooks from `@green-goods/shared` — zero local hook definitions
+- Permission checks via `useGardenPermissions` — centralized access logic
+- Reuse shared toast and query patterns
 
-**Role detection:**
-```typescript
-import { useRole } from '@green-goods/shared';
+**KISS (Keep It Simple, Stupid)**
+- Role-based routing with simple guards
+- Modal workflows with predictable patterns
+- Design tokens for consistent styling
 
-const { role, isDeployer, isOperator, operatorGardens } = useRole();
+**Single Responsibility (SOLID)**
+- `RequireDeployer` — checks deployer role only
+- `RequireOperatorOrDeployer` — checks operator/deployer only
+- Each route guard does one permission check
 
-// Access patterns
-if (isDeployer) {
-  // Show all gardens, enable garden creation
-}
-if (isOperator) {
-  // Show operator gardens only, enable member management
-}
-```
+**Separation of Concerns**
+- `components/` — UI elements (modals, forms, tables)
+- `views/` — Page compositions
+- `routes/` — Role guards and navigation
+- Business logic in `@green-goods/shared`
 
-### 2. Garden Management
+**Optimize for Deletion**
+- Each garden management view is independent
+- Modal components are self-contained
+- Route guards are composable and removable
 
-**Admin features:**
+### Role-Based Access
+
+Three user roles with different permissions:
+
+| Role | Access | Source |
+|------|--------|--------|
+| **Deployer** | Full access, create gardens, deploy contracts | Allowlist |
+| **Operator** | Manage assigned gardens only | Indexer query |
+| **User** | Unauthorized | Default |
+
+### Garden Management
+
 - Create gardens (deployers only)
 - Add/remove gardeners and operators
 - Update garden metadata
 - View garden statistics
 
-**Files:**
-- Create wizard: `src/views/Gardens/CreateGarden.tsx`
-- Create steps: `src/components/Garden/CreateGardenSteps/`
-- Member modal: `src/components/Garden/MembersModal.tsx`
-- Invite modal: `src/components/Garden/CreateInviteModal.tsx`
-- Detail view: `src/views/Gardens/Garden/Detail.tsx`
+### Contract Deployment
 
-### 3. Contract Deployment
-
-**Deployer-only feature:**
 - View deployed contracts
 - Deploy new contracts
 - Verify contracts on explorer
 
-**Files:**
-- Deployment view: `src/views/Deployment/index.tsx`
-- Contracts view: `src/views/Contracts/index.tsx`
+## Key Workflows
 
-### 4. Action Management
+### Garden Creation
 
-**Admin features:**
-- Create and edit actions
-- Configure action details, media requirements, review settings
-
-**Files:**
-- Actions list: `src/views/Actions/index.tsx`
-- Create action: `src/views/Actions/CreateAction.tsx`
-- Edit action: `src/views/Actions/EditAction.tsx`
-- Action detail: `src/views/Actions/ActionDetail.tsx`
-
-## Imports from Shared Package
-
-```typescript
-// Hooks
-import { 
-  useRole, useGardenOperations, useGardenPermissions,
-  useDeploymentRegistry, useGardens, useActions,
-  useToastAction, queryKeys 
-} from '@green-goods/shared';
-
-// Providers (used in main.tsx)
-import { 
-  AppKitProvider, AuthProvider, AppProvider 
-} from '@green-goods/shared';
-
-// Stores
-import { 
-  useAdminStore, useCreateGardenStore, useUIStore 
-} from '@green-goods/shared';
-
-// Workflows
-import { createGardenMachine, createAssessmentMachine } from '@green-goods/shared';
-
-// Config
-import { DEFAULT_CHAIN_ID, getNetworkConfig } from '@green-goods/shared';
-
-// Types
-import type { Garden, Action, UserRole } from '@green-goods/shared';
+```
+Select type → Configure details → Add members → Deploy → Done
 ```
 
-## State Management
+### Member Management
 
-### Zustand Store (useAdminStore)
-
-From `@green-goods/shared`:
-- Selected chain ID
-- Selected garden
-- Pending transactions
-- Sidebar open/closed
-
-```typescript
-import { useAdminStore } from '@green-goods/shared';
-
-const { selectedGarden, setSelectedGarden } = useAdminStore();
+```
+Check permissions → Add/Remove via modal → Toast feedback
 ```
 
-### XState Workflows
+## Cursor Rules
 
-Complex flows with retry logic from `@green-goods/shared`:
-- Garden creation workflow
-- Assessment creation workflow
+Detailed patterns are documented in `.cursor/rules/`:
 
-```typescript
-import { createGardenMachine } from '@green-goods/shared';
-import { useMachine } from '@xstate/react';
+| Rule File | Description |
+|-----------|-------------|
+| `rules.mdc` | **Start here** — Package overview and critical patterns |
+| `access-control.mdc` | Role detection, permissions, route guards |
+| `component-workflows.mdc` | Modal patterns, form validation, toast notifications |
+| `testing.mdc` | Admin-specific testing patterns |
 
-const [state, send] = useMachine(createGardenMachine);
-```
+### Shared Package Rules
 
-## Theme System
+Cross-cutting patterns in `shared/.cursor/rules/`:
 
-### CSS Variables-Based Theming
+| Rule File | Description |
+|-----------|-------------|
+| `design-system.mdc` | Colors, typography, spacing, icons |
+| `hook-architecture.mdc` | All hooks live in shared |
+| `state-patterns.mdc` | Providers, stores, query keys |
+| `testing-patterns.mdc` | Vitest, mocks, coverage targets |
+| `appkit-integration.mdc` | Wallet connection via Reown |
+| `cross-package-imports.mdc` | Import boundaries |
 
-The admin dashboard uses semantic CSS variable tokens for all styling:
+## Critical Rules
 
-**Core principle:** Use semantic tokens that adapt to light/dark mode automatically.
+1. **All hooks from shared** — Never create hooks in admin package
+2. **Toast for all transactions** — Wrap contract calls with `useToastAction`
+3. **Permission checks** — Always verify with `useGardenPermissions` before actions
+4. **Role-based routing** — Use `RequireDeployer`, `RequireOperatorOrDeployer` guards
+5. **Semantic tokens** — Use design system tokens, not hardcoded colors
 
-```typescript
-// ✅ Correct - Semantic tokens
-<div className="bg-bg-white text-text-strong border border-stroke-soft">
+## Reference
 
-// ❌ Wrong - Hardcoded colors
-<div className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
-```
-
-### Token Categories
-
-**Background tokens:**
-- `bg-white` - Primary backgrounds (inverts in dark mode)
-- `bg-weak` - Subtle backgrounds
-- `bg-soft` - Soft backgrounds
-- `bg-surface` - Surface backgrounds
-
-**Text tokens:**
-- `text-strong` - Primary text
-- `text-sub` - Secondary text
-- `text-soft` - Tertiary text
-- `text-disabled` - Disabled text
-
-**Border tokens:**
-- `border-stroke-soft` - Soft borders
-- `border-stroke-sub` - Medium borders
-
-**State tokens:**
-- `success-*` (green) - Success states, approval badges
-- `error-*` (red) - Error states, validation errors, remove actions
-- `warning-*` (orange) - Warning states, pending statuses
-- `information-*` (blue) - Information states, help text
-
-## Key Patterns
-
-### 1. Toast Notifications for All Transactions
-
-**MANDATORY:** Wrap all contract calls with `useToastAction`:
-
-```typescript
-import { useToastAction } from '@green-goods/shared';
-
-const { executeWithToast } = useToastAction();
-
-await executeWithToast(
-  () => writeContractAsync({/*...*/}),
-  {
-    loadingMessage: 'Processing...',
-    successMessage: 'Success!',
-    errorMessage: 'Failed',
-  }
-);
-```
-
-### 2. Permission Checks Before Actions
-
-```typescript
-import { useGardenPermissions } from '@green-goods/shared';
-
-const permissions = useGardenPermissions();
-
-const handleRemoveOperator = async (garden: Garden, address: string) => {
-  if (!permissions.canRemoveMembers(garden)) {
-    toast.error('Unauthorized');
-    return;
-  }
-  
-  await executeWithToast(
-    () => removeOperator(garden.id, address),
-    { successMessage: 'Operator removed' }
-  );
-};
-```
-
-### 3. Role-Based Route Protection
-
-```tsx
-// router.tsx
-<Route element={<RequireAuth />}>
-  <Route element={<DashboardShell />}>
-    {/* Admin-only routes */}
-    <Route element={<RequireDeployer />}>
-      <Route path="/deployment" element={<Deployment />} />
-      <Route path="/contracts" element={<Contracts />} />
-    </Route>
-    
-    {/* Admin + Operator routes */}
-    <Route element={<RequireOperatorOrDeployer />}>
-      <Route path="/gardens" element={<Gardens />} />
-      <Route path="/gardens/:id/*" element={<GardenDetail />} />
-    </Route>
-  </Route>
-</Route>
-```
-
-## Testing Strategy
-
-### Integration Test Focus
-
-Admin tests emphasize end-to-end workflows:
-
-```typescript
-it('admin can create garden and add members', async () => {
-  const { user } = renderWithProviders(<App />, { userRole: 'admin' });
-  
-  // Create garden
-  await user.click(screen.getByText('Create Garden'));
-  await user.type(screen.getByLabelText('Name'), 'Test Garden');
-  await user.click(screen.getByText('Submit'));
-  
-  // Add gardener
-  await user.click(screen.getByText('Add Gardener'));
-  await user.type(screen.getByLabelText('Address'), '0x...');
-  await user.click(screen.getByText('Add'));
-  
-  // Verify
-  expect(screen.getByText('Test Garden')).toBeInTheDocument();
-});
-```
-
-## Tech Stack
-
-- **UI:** React 18 + TypeScript + Vite
-- **Styling:** Tailwind CSS v4
-- **State:** Zustand + XState (from `@green-goods/shared`)
-- **GraphQL:** Urql with subscriptions
-- **Blockchain:** Viem + Wagmi
-- **Forms:** React Hook Form + Zod
-- **Routing:** React Router v7
-
-## Common Tasks
-
-### Adding Admin Feature
-
-1. Check role requirements (deployer vs operator)
-2. Create component in `src/components/` or `src/views/`
-3. Add route in `router.tsx` with appropriate guard (`RequireDeployer`, `RequireOperatorOrDeployer`)
-4. Import hooks from `@green-goods/shared`
-5. Use `useToastAction` for blockchain calls
-6. Add integration test
-7. Update admin AGENTS.md if establishing new pattern
-
-### Adding Garden Operation
-
-1. Use `useGardenOperations` from `@green-goods/shared`
-2. Check permissions with `useGardenPermissions`
-3. Create modal/form component if needed
-4. Use `executeWithToast` for transaction
-5. Add test for authorized and unauthorized cases
-
-## Deep Dive Rules
-
-- **Access Control:** `.cursor/rules/access-control.mdc`
-- **State & Workflows:** `.cursor/rules/state-workflows.mdc`
-- **GraphQL:** `.cursor/rules/graphql-integration.mdc`
-- **Components:** `.cursor/rules/component-workflows.mdc`
-- **Testing:** `.cursor/rules/testing.mdc`
-
-## Reference Documentation
-
-- Admin README: `/packages/admin/README.md`
-- Shared AGENTS.md: `/packages/shared/AGENTS.md`
-- Root guide: `/AGENTS.md`
+- **Shared package:** `/packages/shared/AGENTS.md`
+- **Root guide:** `/AGENTS.md`
+- **README:** `/packages/admin/README.md`

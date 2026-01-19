@@ -22,18 +22,23 @@ describe("parseContractError", () => {
       message: "You are not a member of this garden",
       action: "Please join the garden before submitting work",
       isKnown: true,
+      recoverable: false,
+      suggestedAction: "join-garden",
     });
   });
 
-  it("parses NotGardenMember error code (new selector)", () => {
-    const result = parseContractError("0x1648fd01");
+  it("parses NotGardenMember error code (current selector)", () => {
+    // 0xfdb31dd5 = keccak256("NotGardenMember()")[0:4]
+    const result = parseContractError("0xfdb31dd5");
 
     expect(result).toEqual({
-      raw: "0x1648fd01",
+      raw: "0xfdb31dd5",
       name: "NotGardenMember",
       message: "You are not a member of this garden",
       action: "Please join the garden before submitting work",
       isKnown: true,
+      recoverable: false,
+      suggestedAction: "join-garden",
     });
   });
 
@@ -46,6 +51,8 @@ describe("parseContractError", () => {
       message: "You are already a member of this garden",
       action: undefined,
       isKnown: true,
+      recoverable: false,
+      suggestedAction: undefined,
     });
   });
 
@@ -65,6 +72,8 @@ describe("parseContractError", () => {
       name: "UnknownError",
       message: "Transaction failed with error code: 0xdeadbeef",
       isKnown: false,
+      recoverable: true,
+      suggestedAction: "retry",
     });
   });
 
@@ -88,8 +97,9 @@ describe("isNotGardenMemberError", () => {
     expect(isNotGardenMemberError("0x8cb4ae3b")).toBe(true);
   });
 
-  it("returns true for NotGardenMember error (new selector)", () => {
-    expect(isNotGardenMemberError("0x1648fd01")).toBe(true);
+  it("returns true for NotGardenMember error (current selector)", () => {
+    // 0xfdb31dd5 = keccak256("NotGardenMember()")[0:4]
+    expect(isNotGardenMemberError("0xfdb31dd5")).toBe(true);
   });
 
   it("returns false for other errors", () => {
@@ -158,8 +168,9 @@ describe("parseAndFormatError", () => {
   });
 
   it("handles complex error objects", () => {
+    // 0xf3aeae14 = keccak256("NotGardenOperator()")[0:4]
     const error = {
-      message: "UserOperation failed with error: 0x5d91fb09",
+      message: "UserOperation failed with error: 0xf3aeae14",
       code: "CALL_EXCEPTION",
     };
 

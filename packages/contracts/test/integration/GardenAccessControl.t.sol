@@ -1,19 +1,20 @@
 // SPDX-License-Identifier: MIT
+// solhint-disable one-contract-per-file
 pragma solidity ^0.8.25;
 
-import {Test} from "forge-std/Test.sol";
-import {IGardenAccessControl} from "../../src/interfaces/IGardenAccessControl.sol";
-import {IGardenAccount} from "../../src/interfaces/IGardenAccount.sol";
-import {GardenAccount} from "../../src/accounts/Garden.sol";
-import {AccountGuardian} from "@tokenbound/AccountGuardian.sol";
-import {ERC6551Registry} from "erc6551/ERC6551Registry.sol";
-import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import { Test } from "forge-std/Test.sol";
+import { IGardenAccessControl } from "../../src/interfaces/IGardenAccessControl.sol";
+import { IGardenAccount } from "../../src/interfaces/IGardenAccount.sol";
+import { GardenAccount } from "../../src/accounts/Garden.sol";
+import { AccountGuardian } from "@tokenbound/AccountGuardian.sol";
+import { ERC6551Registry } from "erc6551/ERC6551Registry.sol";
+import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 /// @notice Mock ERC721 for testing
 contract MockGardenNFT is ERC721 {
     uint256 private _tokenIdCounter;
 
-    constructor() ERC721("MockGarden", "GARDEN") {}
+    constructor() ERC721("MockGarden", "GARDEN") { }
 
     function mint(address to) external returns (uint256) {
         uint256 tokenId = _tokenIdCounter++;

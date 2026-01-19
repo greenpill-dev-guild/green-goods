@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  unit-tests:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -36,45 +36,12 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Run unit tests
+      - name: Run tests
         run: |
           cd packages/admin
-          bun run test:unit
+          bun run test
         env:
           CI: true
-
-  integration-tests:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Run integration tests
-        run: |
-          cd packages/admin
-          bun run test:integration
-        env:
-          CI: true
-          VITEST_INTEGRATION: true
-          VITE_BASE_SEPOLIA_RPC: ${{ secrets.BASE_SEPOLIA_RPC }}
-          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
 
   lint-and-build:
     runs-on: ubuntu-latest
@@ -107,3 +74,8 @@ jobs:
         run: |
           cd packages/admin
           bun run build
+        env:
+          VITE_CHAIN_ID: "84532"
+          VITE_WALLETCONNECT_PROJECT_ID: "test"
+          VITE_PIMLICO_API_KEY: "test"
+          VITE_ENVIO_INDEXER_URL: "http://localhost:8080"

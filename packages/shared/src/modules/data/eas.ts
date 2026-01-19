@@ -1,9 +1,28 @@
 import { getEASConfig } from "../../config/blockchain";
 import { easGraphQL } from "./graphql";
+import { createEasClient } from "./graphql-client";
 import { resolveIPFSUrl } from "./ipfs";
-import { createEasClient } from "./urql";
+import type {
+  EASAttestationRaw,
+  EASDecodedField,
+  EASGardenAssessment,
+  EASWork,
+  EASWorkApproval,
+} from "../../types/eas-responses";
 
 const GATEWAY_BASE_URL = "https://w3s.link";
+
+/** Custom error for EAS fetch failures - allows React Query to properly retry/error */
+export class EASFetchError extends Error {
+  constructor(
+    message: string,
+    public readonly operation: string,
+    public readonly cause?: unknown
+  ) {
+    super(message);
+    this.name = "EASFetchError";
+  }
+}
 
 /**
  * Value that can be converted to a number from EAS decoded fields
@@ -203,8 +222,9 @@ export const getGardenAssessments = async (
   const schemaId = { equals: easConfig.GARDEN_ASSESSMENT.uid };
   const client = createEasClient(chainId);
 
-  const { data, error } = await client
-    .query(QUERY, {
+  const { data, error } = await client.query(
+    QUERY,
+    {
       where: gardenAddress
         ? {
             schemaId,
@@ -215,26 +235,34 @@ export const getGardenAssessments = async (
             schemaId,
             revoked: { equals: false },
           },
-    })
-    .toPromise();
-
-  if (error) console.error(error);
-  if (!data) console.error("No assessment data found");
-
-  return (
-    data?.attestations.map(({ id, attester, recipient, timeCreated, decodedDataJson }) => {
-      const timestamp = typeof timeCreated === "string" ? Number(timeCreated) : (timeCreated ?? 0);
-      return parseDataToGardenAssessment(
-        id,
-        {
-          attester,
-          recipient,
-          time: timestamp,
-        },
-        decodedDataJson
-      );
-    }) ?? []
+    },
+    "getGardenAssessments"
   );
+
+  if (error) {
+    throw new EASFetchError(
+      `Failed to fetch garden assessments: ${error.message}`,
+      "getGardenAssessments",
+      error
+    );
+  }
+
+  if (!data?.attestations) {
+    return [];
+  }
+
+  return data.attestations.map(({ id, attester, recipient, timeCreated, decodedDataJson }) => {
+    const timestamp = typeof timeCreated === "string" ? Number(timeCreated) : (timeCreated ?? 0);
+    return parseDataToGardenAssessment(
+      id,
+      {
+        attester,
+        recipient,
+        time: timestamp,
+      },
+      decodedDataJson
+    );
+  });
 };
 
 /** Queries work attestations for a garden or multiple gardens */
@@ -274,15 +302,19 @@ export const getWorks = async (
     ...(recipientCondition ? { recipient: recipientCondition } : {}),
   };
 
-  const { data, error } = await client.query(QUERY, { where }).toPromise();
+  const { data, error } = await client.query(QUERY, { where }, "getWorks");
 
-  if (error) console.error(error);
-  if (!data) console.error("No data found");
+  if (error) {
+    throw new EASFetchError(`Failed to fetch works: ${error.message}`, "getWorks", error);
+  }
 
-  return (
-    data?.attestations.map(({ id, attester, recipient, timeCreated, decodedDataJson }) =>
-      parseDataToWork(id, { attester, recipient, time: timeCreated }, decodedDataJson)
-    ) ?? []
+  if (!data?.attestations) {
+    // No attestations is valid (empty garden) - return empty array
+    return [];
+  }
+
+  return data.attestations.map(({ id, attester, recipient, timeCreated, decodedDataJson }) =>
+    parseDataToWork(id, { attester, recipient, time: timeCreated }, decodedDataJson)
   );
 };
 
@@ -308,32 +340,52 @@ export const getWorksByGardener = async (
   const easConfig = getEASConfig(chainId);
   const client = createEasClient(chainId);
 
-  const { data, error } = await client
-    .query(QUERY, {
+  const { data, error } = await client.query(
+    QUERY,
+    {
       where: {
         schemaId: { equals: easConfig.WORK.uid },
         attester: { equals: gardenerAddress },
         revoked: { equals: false },
       },
-    })
-    .toPromise();
+    },
+    "getWorksByGardener"
+  );
 
   if (error) {
-    console.error(error);
-    return [];
+    throw new EASFetchError(
+      `Failed to fetch works by gardener: ${error.message}`,
+      "getWorksByGardener",
+      error
+    );
   }
-  if (!data) {
-    console.error("No data found");
+
+  if (!data?.attestations) {
     return [];
   }
 
-  return (data.attestations || []).map(
+  return data.attestations.map(
     ({ id, attester, recipient, timeCreated, decodedDataJson }: EASAttestationRaw) =>
       parseDataToWork(id, { attester, recipient, time: timeCreated as number }, decodedDataJson)
   );
 };
 
-/** Loads work approval attestations */
+/**
+ * Loads work approval attestations.
+ *
+ * SCALABILITY NOTE: Currently fetches all approvals matching the schema.
+ * Client-side filtering by workUID does not scale as attestation volume grows.
+ *
+ * TODO: When implementing pagination:
+ * - Add optional `page`/`limit` or `cursor` parameters
+ * - Update queryKey in consumers to include pagination params
+ * - Consider a backend aggregation endpoint that accepts specific workUIDs
+ *   and returns only matching approvals for better performance.
+ *
+ * @param gardenerAddress - Optional filter by recipient address (gardener)
+ * @param chainId - Optional chain ID override
+ * @returns Array of work approval attestations
+ */
 export const getWorkApprovals = async (
   gardenerAddress?: string,
   chainId?: number | string
@@ -354,8 +406,9 @@ export const getWorkApprovals = async (
   const schemaId = { equals: easConfig.WORK_APPROVAL.uid };
   const client = createEasClient(chainId);
 
-  const { data, error } = await client
-    .query(QUERY, {
+  const { data, error } = await client.query(
+    QUERY,
+    {
       where: gardenerAddress
         ? {
             schemaId,
@@ -366,15 +419,23 @@ export const getWorkApprovals = async (
             schemaId,
             revoked: { equals: false },
           },
-    })
-    .toPromise();
+    },
+    "getWorkApprovals"
+  );
 
-  if (error) console.error(error);
-  if (!data) console.error("No data found");
+  if (error) {
+    throw new EASFetchError(
+      `Failed to fetch work approvals: ${error.message}`,
+      "getWorkApprovals",
+      error
+    );
+  }
 
-  return (
-    data?.attestations.map(({ id, attester, recipient, timeCreated, decodedDataJson }) =>
-      parseDataToWorkApproval(id, { attester, recipient, time: timeCreated }, decodedDataJson)
-    ) ?? []
+  if (!data?.attestations) {
+    return [];
+  }
+
+  return data.attestations.map(({ id, attester, recipient, timeCreated, decodedDataJson }) =>
+    parseDataToWorkApproval(id, { attester, recipient, time: timeCreated }, decodedDataJson)
   );
 };

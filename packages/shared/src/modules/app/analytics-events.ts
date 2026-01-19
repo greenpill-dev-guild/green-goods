@@ -2,7 +2,7 @@
  * Analytics Events Module
  *
  * Centralized definitions for all product funnel events.
- * Provides typed tracking functions for consistent analytics.
+ * Uses a generic tracker factory to reduce boilerplate.
  *
  * Event Naming Convention:
  * - snake_case for event names
@@ -15,13 +15,37 @@
 import { track } from "./posthog";
 
 // ============================================================================
+// TRACKER FACTORY
+// ============================================================================
+
+type AuthMode = "passkey" | "wallet" | null;
+type MemberType = "gardener" | "operator";
+
+/**
+ * Converts camelCase object keys to snake_case for PostHog
+ */
+function toSnakeCase(obj: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    const snakeKey = key.replace(/([A-Z])/g, "_$1").toLowerCase();
+    result[snakeKey] = value;
+  }
+  return result;
+}
+
+/**
+ * Creates a typed tracking function that automatically converts keys to snake_case
+ */
+function createTracker<T extends Record<string, unknown>>(eventName: string) {
+  return (props: T) => track(eventName, toSnakeCase(props));
+}
+
+// ============================================================================
 // EVENT NAMES
 // ============================================================================
 
 export const ANALYTICS_EVENTS = {
-  // ─────────────────────────────────────────────────────────────────────────
-  // ONBOARDING / AUTH
-  // ─────────────────────────────────────────────────────────────────────────
+  // Auth
   AUTH_PASSKEY_REGISTER_STARTED: "auth_passkey_register_started",
   AUTH_PASSKEY_REGISTER_SUCCESS: "auth_passkey_register_success",
   AUTH_PASSKEY_REGISTER_FAILED: "auth_passkey_register_failed",
@@ -34,9 +58,7 @@ export const ANALYTICS_EVENTS = {
   AUTH_SESSION_RESTORED: "auth_session_restored",
   AUTH_SWITCH_METHOD: "auth_switch_method",
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // GARDEN JOIN
-  // ─────────────────────────────────────────────────────────────────────────
+  // Garden Join
   GARDEN_JOIN_STARTED: "garden_join_started",
   GARDEN_JOIN_SUCCESS: "garden_join_success",
   GARDEN_JOIN_FAILED: "garden_join_failed",
@@ -45,34 +67,26 @@ export const ANALYTICS_EVENTS = {
   GARDEN_AUTO_JOIN_SUCCESS: "garden_auto_join_success",
   GARDEN_AUTO_JOIN_FAILED: "garden_auto_join_failed",
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // WORK SUBMISSION
-  // ─────────────────────────────────────────────────────────────────────────
+  // Work Submission
   WORK_SUBMISSION_STARTED: "work_submission_started",
   WORK_SUBMISSION_QUEUED: "work_submission_queued",
   WORK_SUBMISSION_SUCCESS: "work_submission_success",
   WORK_SUBMISSION_FAILED: "work_submission_failed",
   WORK_SUBMISSION_OFFLINE: "work_submission_offline",
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // WORK APPROVAL
-  // ─────────────────────────────────────────────────────────────────────────
+  // Work Approval
   WORK_APPROVAL_STARTED: "work_approval_started",
   WORK_APPROVAL_SUCCESS: "work_approval_success",
   WORK_APPROVAL_FAILED: "work_approval_failed",
   WORK_REJECTION_SUCCESS: "work_rejection_success",
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // ADMIN: GARDEN MANAGEMENT
-  // ─────────────────────────────────────────────────────────────────────────
+  // Admin: Garden Management
   ADMIN_GARDEN_CREATE_STARTED: "admin_garden_create_started",
   ADMIN_GARDEN_CREATE_SUCCESS: "admin_garden_create_success",
   ADMIN_GARDEN_CREATE_FAILED: "admin_garden_create_failed",
   ADMIN_GARDEN_UPDATE_SUCCESS: "admin_garden_update_success",
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // ADMIN: MEMBER MANAGEMENT
-  // ─────────────────────────────────────────────────────────────────────────
+  // Admin: Member Management
   ADMIN_MEMBER_ADD_STARTED: "admin_member_add_started",
   ADMIN_MEMBER_ADD_SUCCESS: "admin_member_add_success",
   ADMIN_MEMBER_ADD_FAILED: "admin_member_add_failed",
@@ -80,9 +94,7 @@ export const ANALYTICS_EVENTS = {
   ADMIN_MEMBER_REMOVE_SUCCESS: "admin_member_remove_success",
   ADMIN_MEMBER_REMOVE_FAILED: "admin_member_remove_failed",
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // ADMIN: DEPLOYMENT
-  // ─────────────────────────────────────────────────────────────────────────
+  // Admin: Deployment
   ADMIN_DEPLOY_STARTED: "admin_deploy_started",
   ADMIN_DEPLOY_SUCCESS: "admin_deploy_success",
   ADMIN_DEPLOY_FAILED: "admin_deploy_failed",
@@ -90,9 +102,7 @@ export const ANALYTICS_EVENTS = {
   ADMIN_CONTRACT_VERIFY_SUCCESS: "admin_contract_verify_success",
   ADMIN_CONTRACT_VERIFY_FAILED: "admin_contract_verify_failed",
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // ADMIN: ACTION MANAGEMENT
-  // ─────────────────────────────────────────────────────────────────────────
+  // Admin: Action Management
   ADMIN_ACTION_CREATE_STARTED: "admin_action_create_started",
   ADMIN_ACTION_CREATE_SUCCESS: "admin_action_create_success",
   ADMIN_ACTION_CREATE_FAILED: "admin_action_create_failed",
@@ -100,456 +110,278 @@ export const ANALYTICS_EVENTS = {
 } as const;
 
 // ============================================================================
-// TYPED TRACKING FUNCTIONS
+// AUTH TRACKING
 // ============================================================================
 
-// ─────────────────────────────────────────────────────────────────────────
-// ONBOARDING / AUTH
-// ─────────────────────────────────────────────────────────────────────────
+export const trackAuthPasskeyRegisterStarted = createTracker<{ userName: string }>(
+  ANALYTICS_EVENTS.AUTH_PASSKEY_REGISTER_STARTED
+);
 
-export function trackAuthPasskeyRegisterStarted(props: { userName: string }) {
-  track(ANALYTICS_EVENTS.AUTH_PASSKEY_REGISTER_STARTED, {
-    user_name: props.userName,
-  });
-}
-
-export function trackAuthPasskeyRegisterSuccess(props: {
+export const trackAuthPasskeyRegisterSuccess = createTracker<{
   smartAccountAddress: string;
   userName: string;
-}) {
-  track(ANALYTICS_EVENTS.AUTH_PASSKEY_REGISTER_SUCCESS, {
-    smart_account_address: props.smartAccountAddress,
-    user_name: props.userName,
-  });
-}
+}>(ANALYTICS_EVENTS.AUTH_PASSKEY_REGISTER_SUCCESS);
 
-export function trackAuthPasskeyRegisterFailed(props: { error: string; userName: string }) {
-  track(ANALYTICS_EVENTS.AUTH_PASSKEY_REGISTER_FAILED, {
-    error: props.error,
-    user_name: props.userName,
-  });
-}
+export const trackAuthPasskeyRegisterFailed = createTracker<{ error: string; userName: string }>(
+  ANALYTICS_EVENTS.AUTH_PASSKEY_REGISTER_FAILED
+);
 
-export function trackAuthPasskeyLoginStarted(props: { userName: string }) {
-  track(ANALYTICS_EVENTS.AUTH_PASSKEY_LOGIN_STARTED, {
-    user_name: props.userName,
-  });
-}
+export const trackAuthPasskeyLoginStarted = createTracker<{ userName: string }>(
+  ANALYTICS_EVENTS.AUTH_PASSKEY_LOGIN_STARTED
+);
 
-export function trackAuthPasskeyLoginSuccess(props: {
+export const trackAuthPasskeyLoginSuccess = createTracker<{
   smartAccountAddress: string;
   userName: string;
-}) {
-  track(ANALYTICS_EVENTS.AUTH_PASSKEY_LOGIN_SUCCESS, {
-    smart_account_address: props.smartAccountAddress,
-    user_name: props.userName,
-  });
-}
+}>(ANALYTICS_EVENTS.AUTH_PASSKEY_LOGIN_SUCCESS);
 
-export function trackAuthPasskeyLoginFailed(props: { error: string; userName: string }) {
-  track(ANALYTICS_EVENTS.AUTH_PASSKEY_LOGIN_FAILED, {
-    error: props.error,
-    user_name: props.userName,
-  });
-}
+export const trackAuthPasskeyLoginFailed = createTracker<{ error: string; userName: string }>(
+  ANALYTICS_EVENTS.AUTH_PASSKEY_LOGIN_FAILED
+);
 
-export function trackAuthWalletConnectStarted() {
+export const trackAuthWalletConnectStarted = () =>
   track(ANALYTICS_EVENTS.AUTH_WALLET_CONNECT_STARTED, {});
-}
 
-export function trackAuthWalletConnectSuccess(props: { walletAddress: string }) {
-  track(ANALYTICS_EVENTS.AUTH_WALLET_CONNECT_SUCCESS, {
-    wallet_address: props.walletAddress,
-  });
-}
+export const trackAuthWalletConnectSuccess = createTracker<{ walletAddress: string }>(
+  ANALYTICS_EVENTS.AUTH_WALLET_CONNECT_SUCCESS
+);
 
-export function trackAuthWalletConnectFailed(props: { error: string }) {
-  track(ANALYTICS_EVENTS.AUTH_WALLET_CONNECT_FAILED, {
-    error: props.error,
-  });
-}
+export const trackAuthWalletConnectFailed = createTracker<{ error: string }>(
+  ANALYTICS_EVENTS.AUTH_WALLET_CONNECT_FAILED
+);
 
-export function trackAuthSessionRestored(props: { smartAccountAddress: string; userName: string }) {
-  track(ANALYTICS_EVENTS.AUTH_SESSION_RESTORED, {
-    smart_account_address: props.smartAccountAddress,
-    user_name: props.userName,
-  });
-}
+export const trackAuthSessionRestored = createTracker<{
+  smartAccountAddress: string;
+  userName: string;
+}>(ANALYTICS_EVENTS.AUTH_SESSION_RESTORED);
 
-export function trackAuthSwitchMethod(props: {
+export const trackAuthSwitchMethod = createTracker<{
   from: "passkey" | "wallet";
   to: "passkey" | "wallet";
-}) {
-  track(ANALYTICS_EVENTS.AUTH_SWITCH_METHOD, {
-    from_method: props.from,
-    to_method: props.to,
-  });
-}
+}>(ANALYTICS_EVENTS.AUTH_SWITCH_METHOD);
 
-// ─────────────────────────────────────────────────────────────────────────
-// GARDEN JOIN
-// ─────────────────────────────────────────────────────────────────────────
+// ============================================================================
+// GARDEN JOIN TRACKING
+// ============================================================================
 
-export function trackGardenJoinStarted(props: {
+export const trackGardenJoinStarted = createTracker<{
   gardenAddress: string;
   gardenName?: string;
-  authMode: "passkey" | "wallet" | null;
-}) {
-  track(ANALYTICS_EVENTS.GARDEN_JOIN_STARTED, {
-    garden_address: props.gardenAddress,
-    garden_name: props.gardenName,
-    auth_mode: props.authMode,
-  });
-}
+  authMode: AuthMode;
+}>(ANALYTICS_EVENTS.GARDEN_JOIN_STARTED);
 
-export function trackGardenJoinSuccess(props: {
+export const trackGardenJoinSuccess = createTracker<{
   gardenAddress: string;
   gardenName?: string;
   txHash: string;
-  authMode: "passkey" | "wallet" | null;
-}) {
-  track(ANALYTICS_EVENTS.GARDEN_JOIN_SUCCESS, {
-    garden_address: props.gardenAddress,
-    garden_name: props.gardenName,
-    tx_hash: props.txHash,
-    auth_mode: props.authMode,
-  });
-}
+  authMode: AuthMode;
+}>(ANALYTICS_EVENTS.GARDEN_JOIN_SUCCESS);
 
-export function trackGardenJoinFailed(props: {
+export const trackGardenJoinFailed = createTracker<{
   gardenAddress: string;
   error: string;
-  authMode: "passkey" | "wallet" | null;
-}) {
-  track(ANALYTICS_EVENTS.GARDEN_JOIN_FAILED, {
-    garden_address: props.gardenAddress,
-    error: props.error,
-    auth_mode: props.authMode,
-  });
-}
+  authMode: AuthMode;
+}>(ANALYTICS_EVENTS.GARDEN_JOIN_FAILED);
 
-export function trackGardenJoinAlreadyMember(props: { gardenAddress: string }) {
-  track(ANALYTICS_EVENTS.GARDEN_JOIN_ALREADY_MEMBER, {
-    garden_address: props.gardenAddress,
-  });
-}
+export const trackGardenJoinAlreadyMember = createTracker<{ gardenAddress: string }>(
+  ANALYTICS_EVENTS.GARDEN_JOIN_ALREADY_MEMBER
+);
 
-export function trackGardenAutoJoinStarted(props: { gardenAddress: string; gardenName?: string }) {
-  track(ANALYTICS_EVENTS.GARDEN_AUTO_JOIN_STARTED, {
-    garden_address: props.gardenAddress,
-    garden_name: props.gardenName,
-  });
-}
+export const trackGardenAutoJoinStarted = createTracker<{
+  gardenAddress: string;
+  gardenName?: string;
+}>(ANALYTICS_EVENTS.GARDEN_AUTO_JOIN_STARTED);
 
-export function trackGardenAutoJoinSuccess(props: {
+export const trackGardenAutoJoinSuccess = createTracker<{
   gardenAddress: string;
   gardenName?: string;
   txHash: string;
-}) {
-  track(ANALYTICS_EVENTS.GARDEN_AUTO_JOIN_SUCCESS, {
-    garden_address: props.gardenAddress,
-    garden_name: props.gardenName,
-    tx_hash: props.txHash,
-  });
-}
+}>(ANALYTICS_EVENTS.GARDEN_AUTO_JOIN_SUCCESS);
 
-export function trackGardenAutoJoinFailed(props: { gardenAddress: string; error: string }) {
-  track(ANALYTICS_EVENTS.GARDEN_AUTO_JOIN_FAILED, {
-    garden_address: props.gardenAddress,
-    error: props.error,
-  });
-}
+export const trackGardenAutoJoinFailed = createTracker<{ gardenAddress: string; error: string }>(
+  ANALYTICS_EVENTS.GARDEN_AUTO_JOIN_FAILED
+);
 
-// ─────────────────────────────────────────────────────────────────────────
-// WORK SUBMISSION
-// ─────────────────────────────────────────────────────────────────────────
+// ============================================================================
+// WORK SUBMISSION TRACKING
+// ============================================================================
 
-export function trackWorkSubmissionStarted(props: {
+export const trackWorkSubmissionStarted = createTracker<{
   gardenAddress: string;
   actionUID: number;
   actionTitle?: string;
-  authMode: "passkey" | "wallet" | null;
+  authMode: AuthMode;
   imageCount: number;
-}) {
-  track(ANALYTICS_EVENTS.WORK_SUBMISSION_STARTED, {
-    garden_address: props.gardenAddress,
-    action_uid: props.actionUID,
-    action_title: props.actionTitle,
-    auth_mode: props.authMode,
-    image_count: props.imageCount,
-  });
-}
+}>(ANALYTICS_EVENTS.WORK_SUBMISSION_STARTED);
 
-export function trackWorkSubmissionQueued(props: {
+export const trackWorkSubmissionQueued = createTracker<{
   gardenAddress: string;
   actionUID: number;
   jobId: string;
   isOnline: boolean;
-}) {
-  track(ANALYTICS_EVENTS.WORK_SUBMISSION_QUEUED, {
-    garden_address: props.gardenAddress,
-    action_uid: props.actionUID,
-    job_id: props.jobId,
-    is_online: props.isOnline,
-  });
-}
+}>(ANALYTICS_EVENTS.WORK_SUBMISSION_QUEUED);
 
-export function trackWorkSubmissionSuccess(props: {
+export const trackWorkSubmissionSuccess = createTracker<{
   gardenAddress: string;
   actionUID: number;
   txHash: string;
-  authMode: "passkey" | "wallet" | null;
+  authMode: AuthMode;
   wasOffline: boolean;
-}) {
-  track(ANALYTICS_EVENTS.WORK_SUBMISSION_SUCCESS, {
-    garden_address: props.gardenAddress,
-    action_uid: props.actionUID,
-    tx_hash: props.txHash,
-    auth_mode: props.authMode,
-    was_offline: props.wasOffline,
-  });
-}
+}>(ANALYTICS_EVENTS.WORK_SUBMISSION_SUCCESS);
 
-export function trackWorkSubmissionFailed(props: {
+export const trackWorkSubmissionFailed = createTracker<{
   gardenAddress: string;
   actionUID: number;
   error: string;
-  authMode: "passkey" | "wallet" | null;
-}) {
-  track(ANALYTICS_EVENTS.WORK_SUBMISSION_FAILED, {
-    garden_address: props.gardenAddress,
-    action_uid: props.actionUID,
-    error: props.error,
-    auth_mode: props.authMode,
-  });
-}
+  authMode: AuthMode;
+}>(ANALYTICS_EVENTS.WORK_SUBMISSION_FAILED);
 
-export function trackWorkSubmissionOffline(props: {
+export const trackWorkSubmissionOffline = createTracker<{
   gardenAddress: string;
   actionUID: number;
   jobId: string;
-}) {
-  track(ANALYTICS_EVENTS.WORK_SUBMISSION_OFFLINE, {
-    garden_address: props.gardenAddress,
-    action_uid: props.actionUID,
-    job_id: props.jobId,
-  });
-}
+}>(ANALYTICS_EVENTS.WORK_SUBMISSION_OFFLINE);
 
-// ─────────────────────────────────────────────────────────────────────────
-// WORK APPROVAL
-// ─────────────────────────────────────────────────────────────────────────
+// ============================================================================
+// WORK APPROVAL TRACKING
+// ============================================================================
 
-export function trackWorkApprovalStarted(props: {
+export const trackWorkApprovalStarted = createTracker<{
   workUID: string;
   gardenAddress: string;
   approved: boolean;
-  authMode: "passkey" | "wallet" | null;
-}) {
-  track(ANALYTICS_EVENTS.WORK_APPROVAL_STARTED, {
-    work_uid: props.workUID,
-    garden_address: props.gardenAddress,
-    approved: props.approved,
-    auth_mode: props.authMode,
-  });
-}
+  authMode: AuthMode;
+}>(ANALYTICS_EVENTS.WORK_APPROVAL_STARTED);
 
-export function trackWorkApprovalSuccess(props: {
+export const trackWorkApprovalSuccess = createTracker<{
   workUID: string;
   gardenAddress: string;
   txHash: string;
-  authMode: "passkey" | "wallet" | null;
-}) {
-  track(ANALYTICS_EVENTS.WORK_APPROVAL_SUCCESS, {
-    work_uid: props.workUID,
-    garden_address: props.gardenAddress,
-    tx_hash: props.txHash,
-    auth_mode: props.authMode,
-  });
-}
+  authMode: AuthMode;
+}>(ANALYTICS_EVENTS.WORK_APPROVAL_SUCCESS);
 
-export function trackWorkRejectionSuccess(props: {
+export const trackWorkRejectionSuccess = createTracker<{
   workUID: string;
   gardenAddress: string;
   txHash: string;
-  authMode: "passkey" | "wallet" | null;
-}) {
-  track(ANALYTICS_EVENTS.WORK_REJECTION_SUCCESS, {
-    work_uid: props.workUID,
-    garden_address: props.gardenAddress,
-    tx_hash: props.txHash,
-    auth_mode: props.authMode,
-  });
-}
+  authMode: AuthMode;
+}>(ANALYTICS_EVENTS.WORK_REJECTION_SUCCESS);
 
-export function trackWorkApprovalFailed(props: {
+export const trackWorkApprovalFailed = createTracker<{
   workUID: string;
   gardenAddress: string;
   error: string;
-  authMode: "passkey" | "wallet" | null;
+  authMode: AuthMode;
+}>(ANALYTICS_EVENTS.WORK_APPROVAL_FAILED);
+
+// ============================================================================
+// WALLET SUBMISSION TIMING
+// ============================================================================
+
+export function trackWalletSubmissionTiming(props: {
+  gardenAddress: string;
+  actionUID: number;
+  totalTimeMs: number;
+  imageCount: number;
 }) {
-  track(ANALYTICS_EVENTS.WORK_APPROVAL_FAILED, {
-    work_uid: props.workUID,
-    garden_address: props.gardenAddress,
-    error: props.error,
-    auth_mode: props.authMode,
+  const timingBucket =
+    props.totalTimeMs < 5000
+      ? "fast"
+      : props.totalTimeMs < 10000
+        ? "normal"
+        : props.totalTimeMs < 20000
+          ? "slow"
+          : "very_slow";
+
+  track("wallet_submission_timing", {
+    ...toSnakeCase(props),
+    timing_bucket: timingBucket,
   });
 }
 
-// ─────────────────────────────────────────────────────────────────────────
+// ============================================================================
 // ADMIN: GARDEN MANAGEMENT
-// ─────────────────────────────────────────────────────────────────────────
+// ============================================================================
 
-export function trackAdminGardenCreateStarted(props: { gardenName: string; chainId: number }) {
-  track(ANALYTICS_EVENTS.ADMIN_GARDEN_CREATE_STARTED, {
-    garden_name: props.gardenName,
-    chain_id: props.chainId,
-  });
-}
+export const trackAdminGardenCreateStarted = createTracker<{
+  gardenName: string;
+  chainId: number;
+}>(ANALYTICS_EVENTS.ADMIN_GARDEN_CREATE_STARTED);
 
-export function trackAdminGardenCreateSuccess(props: {
+export const trackAdminGardenCreateSuccess = createTracker<{
   gardenName: string;
   gardenAddress: string;
   chainId: number;
   txHash: string;
-}) {
-  track(ANALYTICS_EVENTS.ADMIN_GARDEN_CREATE_SUCCESS, {
-    garden_name: props.gardenName,
-    garden_address: props.gardenAddress,
-    chain_id: props.chainId,
-    tx_hash: props.txHash,
-  });
-}
+}>(ANALYTICS_EVENTS.ADMIN_GARDEN_CREATE_SUCCESS);
 
-export function trackAdminGardenCreateFailed(props: {
+export const trackAdminGardenCreateFailed = createTracker<{
   gardenName: string;
   chainId: number;
   error: string;
-}) {
-  track(ANALYTICS_EVENTS.ADMIN_GARDEN_CREATE_FAILED, {
-    garden_name: props.gardenName,
-    chain_id: props.chainId,
-    error: props.error,
-  });
-}
+}>(ANALYTICS_EVENTS.ADMIN_GARDEN_CREATE_FAILED);
 
-// ─────────────────────────────────────────────────────────────────────────
+// ============================================================================
 // ADMIN: MEMBER MANAGEMENT
-// ─────────────────────────────────────────────────────────────────────────
+// ============================================================================
 
-export function trackAdminMemberAddStarted(props: {
+export const trackAdminMemberAddStarted = createTracker<{
   gardenAddress: string;
-  memberType: "gardener" | "operator";
+  memberType: MemberType;
   targetAddress: string;
-}) {
-  track(ANALYTICS_EVENTS.ADMIN_MEMBER_ADD_STARTED, {
-    garden_address: props.gardenAddress,
-    member_type: props.memberType,
-    target_address: props.targetAddress,
-  });
-}
+}>(ANALYTICS_EVENTS.ADMIN_MEMBER_ADD_STARTED);
 
-export function trackAdminMemberAddSuccess(props: {
+export const trackAdminMemberAddSuccess = createTracker<{
   gardenAddress: string;
-  memberType: "gardener" | "operator";
+  memberType: MemberType;
   targetAddress: string;
   txHash: string;
-}) {
-  track(ANALYTICS_EVENTS.ADMIN_MEMBER_ADD_SUCCESS, {
-    garden_address: props.gardenAddress,
-    member_type: props.memberType,
-    target_address: props.targetAddress,
-    tx_hash: props.txHash,
-  });
-}
+}>(ANALYTICS_EVENTS.ADMIN_MEMBER_ADD_SUCCESS);
 
-export function trackAdminMemberAddFailed(props: {
+export const trackAdminMemberAddFailed = createTracker<{
   gardenAddress: string;
-  memberType: "gardener" | "operator";
+  memberType: MemberType;
   targetAddress: string;
   error: string;
-}) {
-  track(ANALYTICS_EVENTS.ADMIN_MEMBER_ADD_FAILED, {
-    garden_address: props.gardenAddress,
-    member_type: props.memberType,
-    target_address: props.targetAddress,
-    error: props.error,
-  });
-}
+}>(ANALYTICS_EVENTS.ADMIN_MEMBER_ADD_FAILED);
 
-export function trackAdminMemberRemoveStarted(props: {
+export const trackAdminMemberRemoveStarted = createTracker<{
   gardenAddress: string;
-  memberType: "gardener" | "operator";
+  memberType: MemberType;
   targetAddress: string;
-}) {
-  track(ANALYTICS_EVENTS.ADMIN_MEMBER_REMOVE_STARTED, {
-    garden_address: props.gardenAddress,
-    member_type: props.memberType,
-    target_address: props.targetAddress,
-  });
-}
+}>(ANALYTICS_EVENTS.ADMIN_MEMBER_REMOVE_STARTED);
 
-export function trackAdminMemberRemoveSuccess(props: {
+export const trackAdminMemberRemoveSuccess = createTracker<{
   gardenAddress: string;
-  memberType: "gardener" | "operator";
+  memberType: MemberType;
   targetAddress: string;
   txHash: string;
-}) {
-  track(ANALYTICS_EVENTS.ADMIN_MEMBER_REMOVE_SUCCESS, {
-    garden_address: props.gardenAddress,
-    member_type: props.memberType,
-    target_address: props.targetAddress,
-    tx_hash: props.txHash,
-  });
-}
+}>(ANALYTICS_EVENTS.ADMIN_MEMBER_REMOVE_SUCCESS);
 
-export function trackAdminMemberRemoveFailed(props: {
+export const trackAdminMemberRemoveFailed = createTracker<{
   gardenAddress: string;
-  memberType: "gardener" | "operator";
+  memberType: MemberType;
   targetAddress: string;
   error: string;
-}) {
-  track(ANALYTICS_EVENTS.ADMIN_MEMBER_REMOVE_FAILED, {
-    garden_address: props.gardenAddress,
-    member_type: props.memberType,
-    target_address: props.targetAddress,
-    error: props.error,
-  });
-}
+}>(ANALYTICS_EVENTS.ADMIN_MEMBER_REMOVE_FAILED);
 
-// ─────────────────────────────────────────────────────────────────────────
+// ============================================================================
 // ADMIN: DEPLOYMENT
-// ─────────────────────────────────────────────────────────────────────────
+// ============================================================================
 
-export function trackAdminDeployStarted(props: { chainId: number; contractType: string }) {
-  track(ANALYTICS_EVENTS.ADMIN_DEPLOY_STARTED, {
-    chain_id: props.chainId,
-    contract_type: props.contractType,
-  });
-}
+export const trackAdminDeployStarted = createTracker<{ chainId: number; contractType: string }>(
+  ANALYTICS_EVENTS.ADMIN_DEPLOY_STARTED
+);
 
-export function trackAdminDeploySuccess(props: {
+export const trackAdminDeploySuccess = createTracker<{
   chainId: number;
   contractType: string;
   contractAddress: string;
   txHash: string;
-}) {
-  track(ANALYTICS_EVENTS.ADMIN_DEPLOY_SUCCESS, {
-    chain_id: props.chainId,
-    contract_type: props.contractType,
-    contract_address: props.contractAddress,
-    tx_hash: props.txHash,
-  });
-}
+}>(ANALYTICS_EVENTS.ADMIN_DEPLOY_SUCCESS);
 
-export function trackAdminDeployFailed(props: {
+export const trackAdminDeployFailed = createTracker<{
   chainId: number;
   contractType: string;
   error: string;
-}) {
-  track(ANALYTICS_EVENTS.ADMIN_DEPLOY_FAILED, {
-    chain_id: props.chainId,
-    contract_type: props.contractType,
-    error: props.error,
-  });
-}
+}>(ANALYTICS_EVENTS.ADMIN_DEPLOY_FAILED);

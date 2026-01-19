@@ -1,13 +1,18 @@
 @import "tailwindcss";
 
-@import "./styles/colors.css";
+/* Configure dark mode to use data-theme attribute (matching shared theme system) */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Import unified theme from shared package (CSS variables + @theme block) */
+@import "@green-goods/shared/styles/theme.css";
+
 @import "./styles/typography.css";
 @import "./styles/utilities.css";
 @import "./styles/animation.css";
+@import "./styles/view-transitions.css";
 
 :root {
   color-scheme: light dark;
-  background-color: #fff;
 
   scrollbar-width: none;
   -ms-overflow-style: none; /* IE and Edge */
@@ -23,10 +28,17 @@
 }
 
 html {
-  @apply relative overflow-x-hidden;
+  @apply relative overflow-x-hidden bg-bg-white-0;
+  /* Prevent overscroll bounce from revealing background gaps */
+  overscroll-behavior: none;
 }
 body {
-  @apply relative m-0 w-screen h-screen bg-white dark:bg-white text-foreground overflow-x-hidden;
+  /* Fixed positioning prevents iOS Safari rubber-band scrolling from shifting the body */
+  @apply m-0 bg-bg-white-0 text-text-strong-950 overflow-hidden;
+  position: fixed;
+  inset: 0;
+  /* Note: Safe area insets are handled at component level for fixed-position elements.
+     See AppBar.tsx, Work.tsx, Garden/index.tsx for examples. */
 }
 
 #root {
@@ -59,4 +71,45 @@ div::-webkit-scrollbar {
 
 hr {
   @apply opacity-10;
+}
+
+/* ============================================================================
+ * Window Controls Overlay (PWA Desktop Native Feel)
+ * Enables drag region and accounts for window controls on desktop PWAs
+ * @see https://developer.mozilla.org/en-US/docs/Web/API/Window_Controls_Overlay_API
+ * ============================================================================ */
+
+@supports (app-region: drag) {
+  /* Make header draggable like a native window titlebar */
+  .app-titlebar {
+    app-region: drag;
+    -webkit-app-region: drag;
+
+    /* Account for window controls positioning */
+    padding-left: env(titlebar-area-x, 0);
+    padding-right: calc(100vw - env(titlebar-area-x, 0) - env(titlebar-area-width, 100vw));
+    min-height: env(titlebar-area-height, 48px);
+  }
+
+  /* Allow clicks on interactive elements within the titlebar */
+  .app-titlebar button,
+  .app-titlebar a,
+  .app-titlebar input,
+  .app-titlebar [role="button"],
+  .app-titlebar-interactive {
+    app-region: no-drag;
+    -webkit-app-region: no-drag;
+  }
+
+  /* Safe area padding for content below titlebar */
+  .app-content-with-titlebar {
+    padding-top: env(titlebar-area-height, 0);
+  }
+}
+
+/* Fallback for non-WCO environments (standard PWA/browser) */
+@supports not (app-region: drag) {
+  .app-titlebar {
+    min-height: 48px;
+  }
 }

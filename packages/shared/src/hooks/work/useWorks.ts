@@ -7,6 +7,8 @@ import { jobQueueEventBus, useJobQueueEvents } from "../../modules/job-queue/eve
 import { useMerged } from "../app/useMerged";
 import { useUser } from "../auth/useUser";
 import { queryKeys } from "../query-keys";
+import type { Job, WorkJobPayload } from "../../types/job-queue";
+import type { Work, WorkCard } from "../../types/domain";
 
 // Helper function to convert job payload to Work model
 export function jobToWork(job: Job<WorkJobPayload>): Work {
@@ -63,7 +65,14 @@ export function useWorks(gardenId: string) {
       // Fetch work approvals to compute proper status (approved/rejected/pending)
       // Pass undefined to get all approvals, then filter by workUID in the map
       // This ensures work.status reflects actual on-chain approval state
-      const approvals = await getWorkApprovals(undefined, chainId);
+      // Gracefully degrade if approvals fetch fails - show works with "pending" status
+      let approvals: Awaited<ReturnType<typeof getWorkApprovals>> = [];
+      try {
+        approvals = await getWorkApprovals(undefined, chainId);
+      } catch (error) {
+        console.warn("[useWorks] Failed to fetch approvals, status may be stale:", error);
+        // Continue with empty approvals - works will show as "pending"
+      }
       const approvalMap = new Map(approvals.map((approval) => [approval.workUID, approval]));
 
       // Get cached status map to preserve optimistic updates
@@ -104,11 +113,23 @@ export function useWorks(gardenId: string) {
         const status = cachedStatusMap.get(work.id) ?? computedStatus;
         workMap.set(work.id, { ...work, status });
       });
+      // Build a lookup map for O(1) duplicate checking: actionUID -> list of createdAt timestamps
+      // This optimizes from O(n*m) to O(n+m) where n=offline, m=online
+      const onlineTimestampsByAction = new Map<number, number[]>();
+      safeOnlineWorks.forEach((work) => {
+        const timestamps = onlineTimestampsByAction.get(work.actionUID) ?? [];
+        timestamps.push(work.createdAt);
+        onlineTimestampsByAction.set(work.actionUID, timestamps);
+      });
+
+      const DUPLICATE_TIME_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+
       offlineWorks.forEach((work) => {
-        const isDuplicate = safeOnlineWorks.some((onlineWork) => {
-          const timeDiff = Math.abs(onlineWork.createdAt - work.createdAt);
-          return onlineWork.actionUID === work.actionUID && timeDiff < 5 * 60 * 1000;
-        });
+        // Only check timestamps for works with matching actionUID
+        const onlineTimestamps = onlineTimestampsByAction.get(work.actionUID);
+        const isDuplicate = onlineTimestamps?.some(
+          (timestamp) => Math.abs(timestamp - work.createdAt) < DUPLICATE_TIME_WINDOW_MS
+        );
         if (!isDuplicate) {
           workMap.set(work.id, work);
         }
@@ -144,7 +165,9 @@ export function useWorks(gardenId: string) {
   return {
     works: (merged.merged.data ?? []) as Work[],
     isLoading: merged.merged.isLoading,
-    error: merged.merged.error,
+    isFetching: merged.online.isFetching || merged.merged.isFetching,
+    isError: merged.online.isError || merged.merged.isError,
+    error: merged.online.error || merged.merged.error,
     offlineCount: (merged.offline.data ?? []).length,
     onlineCount: (merged.online.data ?? []).length,
     refetch: () => {

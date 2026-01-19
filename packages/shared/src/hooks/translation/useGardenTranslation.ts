@@ -1,3 +1,4 @@
+import type { Garden } from "../../types/domain";
 import { useTranslation } from "./useTranslation";
 
 export function useGardenTranslation(garden: Garden | null) {

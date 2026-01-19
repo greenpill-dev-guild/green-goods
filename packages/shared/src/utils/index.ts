@@ -15,6 +15,22 @@ export { defaultTemplate, instructionTemplates } from "./action/templates";
 // ============================================================================
 export { copyToClipboard } from "./app/clipboard";
 export type { GardenMemberLike } from "./app/garden";
+// ============================================================================
+// HAPTIC FEEDBACK (Vibration API)
+// ============================================================================
+export {
+  hapticError,
+  hapticHeavy,
+  hapticLight,
+  haptics,
+  hapticSelection,
+  hapticSuccess,
+  hapticWarning,
+  isHapticsEnabled,
+  isHapticsSupported,
+  resetHapticsState,
+  setHapticsEnabled,
+} from "./app/haptics";
 export {
   buildGardenMemberSets,
   gardenHasMember,
@@ -25,6 +41,19 @@ export {
 // ============================================================================
 export type { NormalizeToFileOptions } from "./app/normalizeToFile";
 export { normalizeToFile } from "./app/normalizeToFile";
+// ============================================================================
+// BROWSER
+// ============================================================================
+export type { BrowserInfo, MobileBrowser } from "./app/browser";
+export {
+  canTriggerInstallPrompt,
+  detectMobileBrowser,
+  getOpenInBrowserUrl,
+  getRecommendedBrowser,
+} from "./app/browser";
+// ============================================================================
+// PWA
+// ============================================================================
 export type { Platform } from "./app/pwa";
 export {
   getMobileOperatingSystem,
@@ -37,6 +66,16 @@ export { getTag } from "./app/tags";
 export type { FormatAddressOptions, FormatAddressVariant } from "./app/text";
 export { capitalize, formatAddress, truncate } from "./app/text";
 // ============================================================================
+// WAKE LOCK (Screen Wake Lock API)
+// ============================================================================
+export {
+  isWakeLockSupported,
+  releaseWakeLock,
+  requestWakeLock,
+  setupWakeLockVisibilityHandler,
+  withWakeLock,
+} from "./app/wake-lock";
+// ============================================================================
 // ADDRESS
 // ============================================================================
 export {
@@ -47,6 +86,20 @@ export {
   normalizeAddress,
   truncateAddress,
 } from "./blockchain/address";
+// ============================================================================
+// CHAIN REGISTRY
+// ============================================================================
+export type { ChainConfig } from "./blockchain/chain-registry";
+export {
+  CHAIN_REGISTRY,
+  DEFAULT_CHAIN_CONFIG,
+  getBlockExplorer,
+  getChainConfig,
+  getEASName,
+  getNetworkName,
+  getRpcUrl,
+  isChainSupported,
+} from "./blockchain/chain-registry";
 // ============================================================================
 // CONTRACTS (ABIs & clients)
 // ============================================================================
@@ -66,8 +119,21 @@ export { pollQueriesAfterTransaction, pollQueryAfterTransaction } from "./blockc
 // ============================================================================
 // CONTRACT
 // ============================================================================
-export type { SimulationResult } from "./contract/simulation";
-export { simulateJoinGarden, simulateTransaction } from "./contract/simulation";
+export type { SimulationResult } from "./blockchain/simulation";
+export { simulateJoinGarden, simulateTransaction } from "./blockchain/simulation";
+// ============================================================================
+// COMPRESSION (Native Compression Streams API)
+// ============================================================================
+export type { CompressionFormat } from "./compression";
+export {
+  compress,
+  compressJSON,
+  decompress,
+  decompressJSON,
+  decompressResponse,
+  getCompressionRatio,
+  isCompressionSupported,
+} from "./compression";
 // ============================================================================
 // DEBUG
 // ============================================================================
@@ -100,16 +166,58 @@ export {
   parseAndFormatError,
   parseContractError,
 } from "./errors/contract-errors";
+export { extractErrorMessage, extractErrorMessageOr } from "./errors/extract-message";
 export {
   formatJobError,
   formatUserError,
   formatWalletError,
   USER_FRIENDLY_ERRORS,
 } from "./errors/user-messages";
+export {
+  normalizeFeedback,
+  normalizePlantCount,
+  normalizePlantSelection,
+} from "./form/normalizers";
 // ============================================================================
-// FORM STORAGE
+// QUERY INVALIDATION
+// ============================================================================
+export type { InvalidationDelay, ProgressiveInvalidationOptions } from "./query-invalidation";
+export {
+  INVALIDATION_DELAYS,
+  scheduleInvalidation,
+  scheduleInvalidationForKey,
+  scheduleProgressiveInvalidation,
+} from "./query-invalidation";
+// ============================================================================
+// SCHEDULER (Native Scheduler API for cooperative multitasking)
+// ============================================================================
+export type { TaskPriority } from "./scheduler";
+export {
+  debounceWithScheduler,
+  isSchedulerSupported,
+  processBatched,
+  runWhenIdle,
+  scheduleTask,
+  yieldToMain,
+} from "./scheduler";
+// ============================================================================
+// FORM
 // ============================================================================
 export { clearFormDraft, loadFormDraft, saveFormDraft } from "./storage/form";
+// ============================================================================
+// STORAGE QUOTA
+// ============================================================================
+export type { StorageQuotaInfo, StorageQuotaThresholds } from "./storage/quota";
+export {
+  DEFAULT_CRITICAL_THRESHOLD,
+  DEFAULT_LOW_THRESHOLD,
+  formatBytes,
+  getStorageQuota,
+  hasEnoughStorage,
+  isStorageQuotaSupported,
+  trackStorageErrorWithQuota,
+  trackStorageQuota,
+} from "./storage/quota";
 // ============================================================================
 // CN (classnames utility)
 // ============================================================================
@@ -131,24 +239,33 @@ export {
   initTheme,
   listenToSystemChanges,
   setTheme,
-  toggle,
 } from "./styles/theme";
 // ============================================================================
-// TIME
+// TIME (Temporal API with Date fallback)
 // ============================================================================
 export type { TimeFilter } from "./time";
 export {
+  // Temporal-specific utilities (2026)
+  addDuration,
+  compareTimestamps,
+  // Core utilities (backward compatible)
   filterByTimeRange,
+  formatDate,
+  formatDateTime,
+  formatDuration,
   formatRelativeTime,
+  fromDateTimeLocalValue,
+  getCurrentTimezone,
+  getDurationMs,
+  getStartOfDayUTC,
   getTimeCutoff,
+  isTemporalSupported,
+  normalizeTimestamp,
   sortByCreatedAt,
+  toDateTimeLocalValue,
+  toSafeDate,
+  toSafeInstant,
 } from "./time";
-
-// ============================================================================
-// URQL
-// ============================================================================
-export { createUrqlClient } from "./urql";
-
 // ============================================================================
 // WORK
 // ============================================================================

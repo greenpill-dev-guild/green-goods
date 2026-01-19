@@ -1,16 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {Script, console} from "forge-std/Script.sol";
+import { Script } from "forge-std/Script.sol";
 
-import {DeploymentBase} from "../test/helpers/DeploymentBase.sol";
-import {DeploymentRegistry} from "../src/DeploymentRegistry.sol";
-import {GardenAccount} from "../src/accounts/Garden.sol";
-import {GardenToken} from "../src/tokens/Garden.sol";
-import {Capital} from "../src/registries/Action.sol";
-import {WorkResolver} from "../src/resolvers/Work.sol";
-import {WorkApprovalResolver} from "../src/resolvers/WorkApproval.sol";
-import {AssessmentResolver} from "../src/resolvers/Assessment.sol";
+import { DeploymentBase } from "../test/helpers/DeploymentBase.sol";
+import { DeploymentRegistry } from "../src/DeploymentRegistry.sol";
+import { GardenToken } from "../src/tokens/Garden.sol";
+import { Capital } from "../src/registries/Action.sol";
+import { WorkResolver } from "../src/resolvers/Work.sol";
+import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
+import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
 
 /// @title Deploy
 /// @notice Production deployment script - orchestrates DeploymentBase + seed data
@@ -145,17 +144,16 @@ contract Deploy is Script, DeploymentBase {
                     abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".bannerImage")), (string));
 
                 string memory metadata = "";
-                try vm.parseJson(gardensJson, string.concat(basePath, ".metadata")) returns (bytes memory metadataBytes)
-                {
+                try vm.parseJson(gardensJson, string.concat(basePath, ".metadata")) returns (bytes memory metadataBytes) {
                     metadata = abi.decode(metadataBytes, (string));
-                } catch {}
+                } catch { }
 
                 bool openJoining = false;
                 try vm.parseJson(gardensJson, string.concat(basePath, ".openJoining")) returns (
                     bytes memory openJoiningBytes
                 ) {
                     openJoining = abi.decode(openJoiningBytes, (bool));
-                } catch {}
+                } catch { }
 
                 address[] memory gardeners =
                     abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".gardeners")), (address[]));
@@ -177,11 +175,6 @@ contract Deploy is Script, DeploymentBase {
                 address gardenAddress = gardenToken.mintGarden(gardenConfig);
                 gardenAddresses.push(gardenAddress);
                 gardenTokenIds.push(i + 1);
-
-                console.log("Garden created");
-                console.log("  name", name);
-                console.log("  tokenId", i + 1);
-                console.log("  address", gardenAddress);
             } catch {
                 break;
             }
@@ -189,59 +182,20 @@ contract Deploy is Script, DeploymentBase {
     }
 
     /// @notice Upload actions to IPFS and return hashes
+    // solhint-disable-next-line code-complexity
     function _uploadActionsToIPFS(uint256 expectedCount) internal returns (string[] memory) {
         string[] memory inputs = new string[](2);
         inputs[0] = "bun";
         inputs[1] = "script/utils/ipfs-uploader.ts";
 
         try vm.ffi(inputs) returns (bytes memory result) {
-            // Check if result is empty or just whitespace
             if (result.length == 0) {
                 return _handleIPFSMismatch(expectedCount, 0);
             }
 
-            string memory resultJson = string(result);
-            bytes memory parsed;
-
-            // Try to parse as JSON directly
-            try vm.parseJson(resultJson) returns (bytes memory directParsed) {
-                parsed = directParsed;
-            } catch {
-                // Strip any non-JSON prefix/suffix (e.g., dotenv logs) by locating the LAST '[' and LAST ']'
-                bytes memory resultBytes = bytes(resultJson);
-                int256 start = -1;
-                int256 end = -1;
-
-                for (uint256 i = resultBytes.length; i > 0; i--) {
-                    if (resultBytes[i - 1] == "]" && end == -1) {
-                        end = int256(i);
-                        break;
-                    }
-                }
-
-                if (end > 0) {
-                    for (uint256 i = uint256(end); i > 0; i--) {
-                        if (resultBytes[i - 1] == "[") {
-                            start = int256(i - 1);
-                            break;
-                        }
-                    }
-                }
-
-                if (start >= 0 && end > start) {
-                    bytes memory sliced = new bytes(uint256(end - start));
-                    for (uint256 i = uint256(start); i < uint256(end); i++) {
-                        sliced[i - uint256(start)] = resultBytes[i];
-                    }
-
-                    try vm.parseJson(string(sliced)) returns (bytes memory cleanedParsed) {
-                        parsed = cleanedParsed;
-                    } catch {
-                        return _handleIPFSMismatch(expectedCount, 0);
-                    }
-                } else {
-                    return _handleIPFSMismatch(expectedCount, 0);
-                }
+            (bool success, bytes memory parsed) = _tryParseIPFSResult(result);
+            if (!success) {
+                return _handleIPFSMismatch(expectedCount, 0);
             }
 
             string[] memory hashes = abi.decode(parsed, (string[]));
@@ -254,8 +208,67 @@ contract Deploy is Script, DeploymentBase {
         }
     }
 
+    /// @notice Try to parse IPFS result JSON, handling prefix/suffix noise
+    function _tryParseIPFSResult(bytes memory result) internal returns (bool success, bytes memory parsed) {
+        string memory resultJson = string(result);
+
+        // Try to parse as JSON directly
+        try vm.parseJson(resultJson) returns (bytes memory directParsed) {
+            return (true, directParsed);
+            // solhint-disable-next-line no-empty-blocks
+        } catch {
+            // Fall through to extraction logic
+        }
+
+        // Extract JSON array from noisy output
+        (int256 start, int256 end) = _findJsonArrayBounds(bytes(resultJson));
+        if (start < 0 || end <= start) {
+            return (false, "");
+        }
+
+        bytes memory sliced = new bytes(uint256(end - start));
+        for (uint256 i = uint256(start); i < uint256(end); i++) {
+            sliced[i - uint256(start)] = bytes(resultJson)[i];
+        }
+
+        try vm.parseJson(string(sliced)) returns (bytes memory cleanedParsed) {
+            return (true, cleanedParsed);
+        } catch {
+            return (false, "");
+        }
+    }
+
+    /// @notice Find bounds of JSON array in potentially noisy output
+    function _findJsonArrayBounds(bytes memory resultBytes) internal pure returns (int256 start, int256 end) {
+        start = -1;
+        end = -1;
+
+        // Find LAST ']'
+        for (uint256 i = resultBytes.length; i > 0; i--) {
+            if (resultBytes[i - 1] == "]") {
+                end = int256(i);
+                break;
+            }
+        }
+
+        // Find matching '[' before end
+        if (end > 0) {
+            for (uint256 i = uint256(end); i > 0; i--) {
+                if (resultBytes[i - 1] == "[") {
+                    start = int256(i - 1);
+                    break;
+                }
+            }
+        }
+
+        return (start, end);
+    }
+
     /// @notice Handle IPFS upload mismatch scenarios
-    function _handleIPFSMismatch(uint256 expectedCount, uint256 /* actualCount */ )
+    function _handleIPFSMismatch(
+        uint256 expectedCount,
+        uint256 /* actualCount */
+    )
         internal
         view
         returns (string[] memory)
@@ -286,11 +299,6 @@ contract Deploy is Script, DeploymentBase {
             try vm.parseJson(json, string.concat(basePath, ".title")) returns (bytes memory titleBytes) {
                 if (titleBytes.length == 0) break;
                 _registerSingleAction(json, basePath, ipfsHashes[i]);
-
-                string memory title = abi.decode(titleBytes, (string));
-                console.log("Action registered");
-                console.log("  title", title);
-                console.log("  index", i);
             } catch {
                 revert ActionDeploymentFailed();
             }
@@ -300,13 +308,11 @@ contract Deploy is Script, DeploymentBase {
     /// @notice Register a single action
     function _registerSingleAction(string memory json, string memory basePath, string memory ipfsHash) internal {
         string memory title = abi.decode(vm.parseJson(json, string.concat(basePath, ".title")), (string));
-        uint256 startTime =
-            _parseISOTimestamp(abi.decode(vm.parseJson(json, string.concat(basePath, ".startTime")), (string)));
-        uint256 endTime =
-            _parseISOTimestamp(abi.decode(vm.parseJson(json, string.concat(basePath, ".endTime")), (string)));
+        // Use dynamic timestamps: start = now, end = now + 3 months (ignoring config values)
+        uint256 startTime = block.timestamp;
+        uint256 endTime = block.timestamp + 90 days; // ~3 months
 
-        string[] memory capitalStrings =
-            abi.decode(vm.parseJson(json, string.concat(basePath, ".capitals")), (string[]));
+        string[] memory capitalStrings = abi.decode(vm.parseJson(json, string.concat(basePath, ".capitals")), (string[]));
         Capital[] memory capitals = new Capital[](capitalStrings.length);
         for (uint256 j = 0; j < capitalStrings.length; j++) {
             capitals[j] = _parseCapital(capitalStrings[j]);
@@ -326,25 +332,7 @@ contract Deploy is Script, DeploymentBase {
     function _logDeploymentStrategy() internal view {
         uint256 chainId = block.chainid;
 
-        console.log("\n=== Green Goods Deployment ===");
-        console.log("Chain ID:", chainId);
-
-        if (_isMainnetChain(chainId)) {
-            console.log("Mode: MAINNET - ENS Infrastructure Only");
-            console.log("  - GardenerRegistry (greengoods.eth subdomain manager)");
-            console.log("  - Gardener logic (with ENS support)");
-            console.log("\nNote: Full protocol lives on L2 chains (Arbitrum, Celo, Base Sepolia)");
-        } else {
-            console.log("Mode: L2 - Full Protocol Deployment");
-            console.log("  - DeploymentRegistry");
-            console.log("  - GardenToken + GardenAccount (TBA)");
-            console.log("  - ActionRegistry");
-            console.log("  - Work/Approval/Assessment Resolvers");
-            console.log("  - Gardener logic (L2 mode, no ENS)");
-            console.log("  - Seed data (root garden + actions)");
-            console.log("\nNote: ENS subdomains managed on mainnet");
-        }
-        console.log("==============================\n");
+        if (_isMainnetChain(chainId)) { } else { }
     }
 
     /// @notice Parse deployment mode from environment
@@ -403,15 +391,15 @@ contract Deploy is Script, DeploymentBase {
         bytes memory timestampBytes = bytes(isoTimestamp);
 
         if (
-            timestampBytes.length >= 10 && timestampBytes[0] == "2" && timestampBytes[1] == "0"
-                && timestampBytes[2] == "2" && timestampBytes[3] == "4"
+            timestampBytes.length >= 10 && timestampBytes[0] == "2" && timestampBytes[1] == "0" && timestampBytes[2] == "2"
+                && timestampBytes[3] == "4"
         ) {
             return 1_704_067_200; // 2024-01-01
         }
 
         if (
-            timestampBytes.length >= 10 && timestampBytes[0] == "2" && timestampBytes[1] == "0"
-                && timestampBytes[2] == "2" && timestampBytes[3] == "5"
+            timestampBytes.length >= 10 && timestampBytes[0] == "2" && timestampBytes[1] == "0" && timestampBytes[2] == "2"
+                && timestampBytes[3] == "5"
         ) {
             return 1_767_225_599; // 2025-12-31
         }

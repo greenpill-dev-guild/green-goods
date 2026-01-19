@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.25;
 
-import {Test} from "forge-std/Test.sol";
+import { Test } from "forge-std/Test.sol";
 
 /// @title KarmaGAPSchemaValidationTest
 /// @notice Tests to validate JSON schema format for Karma GAP attestations

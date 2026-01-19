@@ -1,15 +1,40 @@
 #!/usr/bin/env sh
+set -eu
 
-echo "🔍 Running format check before push..."
+# Enable pipefail only if supported (dash doesn't support it)
+(set -o pipefail) 2>/dev/null && set -o pipefail
 
-# Try bun first, fall back to npm
+# Add common package manager bin paths to PATH
+export PATH="$HOME/.bun/bin:$HOME/.local/bin:$PATH"
+
+# Only try nvm when running in bash (nvm isn't POSIX-sh safe)
+if [ -n "${BASH_VERSION-}" ] && [ -f .nvmrc ]; then
+  export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+  if [ -s "$NVM_DIR/nvm.sh" ]; then
+    . "$NVM_DIR/nvm.sh"
+    nvm use --silent >/dev/null 2>&1 || true
+  fi
+fi
+
+echo "🔍 Running pre-push checks..."
+
+# Determine runner (bun preferred, npm fallback)
 if command -v bun >/dev/null 2>&1; then
-  bun run format:check
+  RUNNER="bun run"
 elif command -v npm >/dev/null 2>&1; then
-  npm run format:check
+  RUNNER="npm run"
 else
   echo "Error: Neither bun nor npm found. Install bun: https://bun.sh"
   exit 1
 fi
+
+# 1. Auto-fix formatting
+echo "📐 Auto-fixing formatting..."
+$RUNNER format:contracts
+$RUNNER format
+
+# 2. Lint
+echo "🔎 Running linter..."
+$RUNNER lint
 
 echo "✅ Pre-push checks passed!"

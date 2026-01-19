@@ -9,7 +9,7 @@ export default function RequireAuth() {
   // Show minimal loading state to prevent flash of login screen
   if (!isReady) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-bg-white-0">
         <div className="h-10 w-10 animate-spin rounded-full border-3 border-green-200 border-t-green-600" />
       </div>
     );

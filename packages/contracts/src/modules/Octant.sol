@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
-import {IOctantFactory, IOctantVault} from "../interfaces/IOctantFactory.sol";
+import { IOctantFactory } from "../interfaces/IOctantFactory.sol";
 
 /// @title OctantModule
 /// @notice Integration module for creating and managing Octant vaults for gardens
@@ -107,7 +107,10 @@ contract OctantModule is OwnableUpgradeable, UUPSUpgradeable {
         address _octantFactory,
         address _defaultAsset,
         uint256 _profitUnlockTime
-    ) external initializer {
+    )
+        external
+        initializer
+    {
         if (_owner == address(0)) revert ZeroAddress();
         if (_router == address(0)) revert ZeroAddress();
 
@@ -204,11 +207,7 @@ contract OctantModule is OwnableUpgradeable, UUPSUpgradeable {
     /// @param garden The garden address
     /// @param gardenName The garden name
     /// @return vault The created vault address
-    function createVaultForGarden(address garden, string calldata gardenName)
-        external
-        onlyOwner
-        returns (address vault)
-    {
+    function createVaultForGarden(address garden, string calldata gardenName) external onlyOwner returns (address vault) {
         if (address(octantFactory) == address(0)) revert FactoryNotConfigured();
         if (defaultAsset == address(0)) revert AssetNotConfigured();
         if (gardenVaults[garden] != address(0)) revert VaultAlreadyExists(garden);
@@ -269,5 +268,5 @@ contract OctantModule is OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Authorizes an upgrade to a new implementation
     /// @param newImplementation The address of the new implementation
     // solhint-disable-next-line no-empty-blocks
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner { }
 }

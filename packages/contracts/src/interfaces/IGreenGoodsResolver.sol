@@ -36,7 +36,8 @@ interface IGreenGoodsResolver {
         address attester,
         string calldata feedback,
         string calldata mediaIPFS
-    ) external;
+    )
+        external;
 
     /// @notice Called when an assessment is created
     /// @dev Called by AssessmentResolver after validation
@@ -55,7 +56,8 @@ interface IGreenGoodsResolver {
         string calldata description,
         string[] calldata capitals,
         string calldata assessmentType
-    ) external;
+    )
+        external;
 
     /// @notice Check if a specific module is enabled
     /// @param moduleId The module identifier (e.g., keccak256("GAP"), keccak256("OCTANT"))

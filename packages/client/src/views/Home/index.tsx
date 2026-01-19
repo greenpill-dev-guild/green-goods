@@ -1,159 +1,152 @@
+import { toastService } from "@green-goods/shared";
 import {
   queryKeys,
   useAuth,
   useBrowserNavigation,
+  useFilteredGardens,
   useGardens,
+  useLoadingWithMinDuration,
   useNavigateToTop,
   useOffline,
+  usePrimaryAddress,
 } from "@green-goods/shared/hooks";
 import { useUIStore } from "@green-goods/shared/stores";
-import type { Garden } from "@green-goods/shared/types";
-import { cn, gardenHasMember } from "@green-goods/shared/utils";
-import { RiFilterLine, RiRefreshLine } from "@remixicon/react";
+import { cn } from "@green-goods/shared/utils";
+import { RiFilterLine } from "@remixicon/react";
 import { useQueryClient } from "@tanstack/react-query";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation } from "react-router-dom";
-import { GardenCard, GardenCardSkeleton } from "@/components/Cards";
 
-// Minimum time to show skeleton before revealing cached data (prevents flash)
-const MIN_SKELETON_MS = 1500;
-// Maximum time to wait for data before showing error state (prevents infinite skeleton)
-const MAX_LOADING_MS = 15_000;
-
-import {
-  GardenFilterScope,
-  GardenFiltersState,
-  GardenSortOrder,
-  GardensFilterDrawer,
-} from "./GardenFilters";
+import { PullToRefresh } from "@/components/Inputs";
+import { GardenList } from "./GardenList";
+import { type GardenFiltersState, GardensFilterDrawer } from "./GardenFilters";
 import { WorkDashboardIcon } from "./WorkDashboard/Icon";
+
+/** Storage key for welcome prompt - shown once per device */
+const WELCOME_SHOWN_KEY = "greengoods_welcome_shown";
 
 const Home: React.FC = () => {
   const navigate = useNavigateToTop();
   const location = useLocation();
   const queryClient = useQueryClient();
-  const { data: gardensResolved = [], isLoading, isError, refetch } = useGardens();
   const intl = useIntl();
+
+  // Data fetching
+  const { data: gardens = [], isFetching, isPending, isError, refetch } = useGardens();
+
+  // Auth & connectivity
   const { isOnline } = useOffline();
-  const { smartAccountAddress, walletAddress } = useAuth();
+  const primaryAddress = usePrimaryAddress();
+  const normalizedAddress = primaryAddress?.toLowerCase() ?? null;
+
+  // Filter state
   const [filters, setFilters] = useState<GardenFiltersState>({ scope: "all", sort: "default" });
 
-  // Minimum skeleton display time to prevent flash of cached content
-  const [minTimeElapsed, setMinTimeElapsed] = useState(false);
-  // Maximum loading timeout - prevents infinite skeleton
-  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
-  const minTimerRef = useRef<ReturnType<typeof setTimeout>>();
-  const maxTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  // Use extracted hooks for cleaner logic
+  const isLoadingData = isPending || (isFetching && gardens.length === 0);
+  const {
+    showSkeleton,
+    timedOut,
+    reset: resetLoadingState,
+  } = useLoadingWithMinDuration(isLoadingData, gardens.length > 0);
 
-  useEffect(() => {
-    if (isLoading && !minTimeElapsed) {
-      minTimerRef.current = setTimeout(() => setMinTimeElapsed(true), MIN_SKELETON_MS);
-    }
-    return () => clearTimeout(minTimerRef.current);
-  }, [isLoading, minTimeElapsed]);
+  const { filteredGardens, myGardensCount, isFilterActive, activeFilterCount } = useFilteredGardens(
+    gardens,
+    filters,
+    normalizedAddress
+  );
 
-  // Maximum loading timeout effect
-  useEffect(() => {
-    if (isLoading && !loadingTimedOut && gardensResolved.length === 0) {
-      maxTimerRef.current = setTimeout(() => setLoadingTimedOut(true), MAX_LOADING_MS);
-    }
-    // Clear timeout if loading completes or data arrives
-    if (!isLoading || gardensResolved.length > 0) {
-      clearTimeout(maxTimerRef.current);
-      if (!isLoading) setLoadingTimedOut(false);
-    }
-    return () => clearTimeout(maxTimerRef.current);
-  }, [isLoading, loadingTimedOut, gardensResolved.length]);
-
-  // Reset timers when navigating back to home
-  useEffect(() => {
-    if (location.pathname === "/home") {
-      setMinTimeElapsed(false);
-      setLoadingTimedOut(false);
-    }
-  }, [location.pathname]);
-
-  // Retry handler for timeout/error state
-  const handleRetry = () => {
-    setLoadingTimedOut(false);
-    setMinTimeElapsed(false);
-    queryClient.invalidateQueries({ queryKey: queryKeys.gardens.all });
-    refetch();
-  };
-
-  // Use UIStore for filter drawer state (allows AppBar to react to drawer state)
+  // UI state from store
   const { isGardenFilterOpen, openGardenFilter, closeGardenFilter } = useUIStore();
 
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
 
-  const selectedGardenId = useMemo(() => location.pathname.split("/")[2], [location.pathname]);
-  const primaryAddress = useMemo(() => {
-    const address = smartAccountAddress ?? walletAddress;
-    return address ? address.toLowerCase() : null;
-  }, [smartAccountAddress, walletAddress]);
+  // Auth state for welcome message
+  const { isAuthenticated } = useAuth();
+  const hasShownWelcomeRef = useRef(false);
 
-  const myGardensCount = useMemo(() => {
-    if (!primaryAddress) return 0;
-    return gardensResolved.reduce(
-      (count, garden) =>
-        count + (gardenHasMember(primaryAddress, garden.gardeners, garden.operators) ? 1 : 0),
-      0
-    );
-  }, [gardensResolved, primaryAddress]);
+  // Ref for scrolling to article on card click
+  const articleRef = useRef<HTMLElement>(null);
 
-  const { scope, sort } = filters;
+  // Selected garden from URL
+  const selectedGardenId = location.pathname.split("/")[2];
 
-  const filteredGardens = useMemo(() => {
-    let working = gardensResolved;
-
-    if (scope === "mine") {
-      if (!primaryAddress) {
-        return [];
-      }
-
-      working = working.filter((garden) =>
-        gardenHasMember(primaryAddress, garden.gardeners, garden.operators)
-      );
+  // Reset loading state when navigating back to home
+  useEffect(() => {
+    if (location.pathname === "/home") {
+      resetLoadingState();
     }
+  }, [location.pathname, resetLoadingState]);
 
-    if (sort === "name") {
-      return [...working].sort((a, b) =>
-        (a.name || "").localeCompare(b.name || "", undefined, { sensitivity: "base" })
-      );
-    }
-
-    if (sort === "recent") {
-      return [...working].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
-    }
-
-    return [...working];
-  }, [gardensResolved, scope, sort, primaryAddress]);
-
-  const isScopeFiltered = scope !== "all";
-  const isSortFiltered = sort !== "default";
-  const isFilterActive = isScopeFiltered || isSortFiltered;
-  const activeFilterCount = (isScopeFiltered ? 1 : 0) + (isSortFiltered ? 1 : 0);
-
+  // Close filter drawer when navigating away
   useEffect(() => {
     if (location.pathname !== "/home") {
       closeGardenFilter();
     }
   }, [location.pathname, closeGardenFilter]);
 
-  function handleCardClick(id: string) {
-    navigate(`/home/${id}`);
-    document.getElementsByTagName("article")[0]?.scrollIntoView();
-  }
+  // Show welcome message once for new users - points them to profile for garden discovery
+  useEffect(() => {
+    if (!isAuthenticated || hasShownWelcomeRef.current) return;
+    if (location.pathname !== "/home") return;
 
-  const handleScopeChange = (nextScope: GardenFilterScope) => {
+    // Check localStorage - only show once per device
+    const hasBeenShown = localStorage.getItem(WELCOME_SHOWN_KEY) === "true";
+    if (hasBeenShown) {
+      hasShownWelcomeRef.current = true;
+      return;
+    }
+
+    // Mark as shown BEFORE showing toast (prevents re-triggering)
+    localStorage.setItem(WELCOME_SHOWN_KEY, "true");
+    hasShownWelcomeRef.current = true;
+
+    // Small delay to let page render first
+    const timer = setTimeout(() => {
+      toastService.info({
+        title: "Welcome to Green Goods! 🌱",
+        message: "Visit your Profile to discover and join gardens.",
+        duration: 6000,
+        action: {
+          label: "Go to Profile",
+          onClick: () => navigate("/profile"),
+          dismissOnClick: true,
+        },
+        suppressLogging: true,
+      });
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [isAuthenticated, location.pathname, navigate]);
+
+  // Handlers
+  const handleRetry = () => {
+    resetLoadingState();
+    queryClient.invalidateQueries({ queryKey: queryKeys.gardens.all });
+    refetch();
+  };
+
+  // Pull-to-refresh handler
+  const handlePullToRefresh = useCallback(async () => {
+    resetLoadingState();
+    queryClient.invalidateQueries({ queryKey: queryKeys.gardens.all });
+    await refetch();
+  }, [queryClient, refetch, resetLoadingState]);
+
+  const handleCardClick = (id: string) => {
+    navigate(`/home/${id}`);
+    articleRef.current?.scrollIntoView();
+  };
+
+  const handleScopeChange = (nextScope: GardenFiltersState["scope"]) => {
     setFilters((current) =>
       current.scope === nextScope ? current : { ...current, scope: nextScope }
     );
   };
 
-  const handleSortChange = (nextSort: GardenSortOrder) => {
+  const handleSortChange = (nextSort: GardenFiltersState["sort"]) => {
     setFilters((current) => (current.sort === nextSort ? current : { ...current, sort: nextSort }));
   };
 
@@ -161,146 +154,18 @@ const Home: React.FC = () => {
     setFilters({ scope: "all", sort: "default" });
   };
 
-  const renderGardens = () => {
-    // Show skeletons until min time elapsed OR if no cached data available
-    const hasCachedData = gardensResolved.length > 0;
-    const showSkeletons = isLoading && (!hasCachedData || !minTimeElapsed) && !loadingTimedOut;
-
-    // Handle timeout or error state (online but no data after max wait)
-    if ((loadingTimedOut || isError) && !hasCachedData && isOnline) {
-      return (
-        <div className="flex flex-col items-center justify-center py-12 px-4 text-center gap-4">
-          <p className="text-slate-600">
-            {intl.formatMessage({
-              id: "app.home.loadingTimeout",
-              defaultMessage: "Unable to load gardens. The server may be slow or unavailable.",
-            })}
-          </p>
-          <button
-            type="button"
-            onClick={handleRetry}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-primary/90 transition-colors"
-          >
-            <RiRefreshLine className="w-4 h-4" />
-            {intl.formatMessage({
-              id: "app.home.retry",
-              defaultMessage: "Retry",
-            })}
-          </button>
-        </div>
-      );
-    }
-
-    if (showSkeletons) {
-      return (
-        <div className="flex flex-col gap-4">
-          {Array.from({ length: 3 }).map((_, idx) => (
-            <GardenCardSkeleton key={idx} media="large" height="home" />
-          ))}
-          {!isOnline && (
-            <p className="text-center text-sm text-slate-500 mt-4 px-4">
-              {intl.formatMessage({
-                id: "app.home.offline.loading",
-                defaultMessage: "You're offline. Gardens will appear when you reconnect.",
-              })}
-            </p>
-          )}
-        </div>
-      );
-    }
-
-    if ((isError || loadingTimedOut) && !hasCachedData && !isOnline) {
-      return (
-        <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-          <p className="text-slate-600">
-            {intl.formatMessage({
-              id: "app.home.offline.error",
-              defaultMessage: "Unable to load gardens while offline.",
-            })}
-          </p>
-        </div>
-      );
-    }
-
-    if (scope === "mine" && !primaryAddress) {
-      return (
-        <p className="grid place-items-center text-center text-sm italic text-slate-500">
-          {intl.formatMessage({
-            id: "app.home.filters.scope.mineDisabled",
-            defaultMessage: "Sign in or connect a wallet to filter by your gardens.",
-          })}
-        </p>
-      );
-    }
-
-    if (!filteredGardens.length) {
-      if (scope === "mine" && primaryAddress) {
-        return (
-          <p className="grid place-items-center text-center text-sm italic text-slate-500">
-            {intl.formatMessage({
-              id: "app.home.gardens.mineEmpty",
-              defaultMessage: "You don't steward any gardens yet.",
-            })}
-          </p>
-        );
-      }
-
-      if (isFilterActive) {
-        return (
-          <p className="grid place-items-center text-center text-sm italic text-slate-500">
-            {intl.formatMessage({
-              id: "app.home.filters.empty",
-              defaultMessage: "No gardens match your filters.",
-            })}
-          </p>
-        );
-      }
-
-      return (
-        <p className="grid place-items-center text-sm italic">
-          {intl.formatMessage({
-            id: "app.home.messages.noGardensFound",
-            description: "No gardens found",
-          })}
-        </p>
-      );
-    }
-
-    // Show offline/refreshing indicator when showing stale data
-    const isRefreshing = isLoading && hasCachedData;
-
-    return (
-      <>
-        {isRefreshing && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm text-amber-800 mb-2">
-            {isOnline
-              ? intl.formatMessage({ id: "app.home.refreshing", defaultMessage: "Refreshing..." })
-              : intl.formatMessage({
-                  id: "app.home.offline.cached",
-                  defaultMessage: "Showing cached data. You're offline.",
-                })}
-          </div>
-        )}
-        {filteredGardens.map((garden: Garden) => (
-          <GardenCard
-            key={garden.id}
-            garden={garden}
-            media="large"
-            height="home"
-            showOperators={true}
-            selected={garden.id === selectedGardenId}
-            {...garden}
-            onClick={() => handleCardClick(garden.id)}
-          />
-        ))}
-      </>
-    );
-  };
-
   return (
-    <article className={"mb-6"}>
-      {location.pathname === "/home" ? (
-        <>
+    <article ref={articleRef} className="mb-6">
+      {location.pathname === "/home" && (
+        <PullToRefresh
+          onRefresh={handlePullToRefresh}
+          isRefreshing={isFetching && !isPending}
+          disabled={!isOnline}
+          refreshLabel={intl.formatMessage({
+            id: "app.home.pullToRefresh",
+            defaultMessage: "Pull to refresh gardens",
+          })}
+        >
           <div className="flex items-center justify-between w-full py-6 px-4 sm:px-6 md:px-12">
             <h4 className="font-semibold flex-1">{intl.formatMessage({ id: "app.home" })}</h4>
             <div className="ml-4 flex items-center gap-2">
@@ -312,7 +177,9 @@ const Home: React.FC = () => {
                   "active:scale-95",
                   "flex items-center justify-center w-8 h-8 tap-target-lg",
                   "focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-600 active:border-emerald-600",
-                  isFilterActive ? "border-primary text-primary" : "border-slate-200 text-slate-500"
+                  isFilterActive
+                    ? "border-primary text-primary"
+                    : "border-stroke-soft-200 text-text-sub-600"
                 )}
                 aria-label={intl.formatMessage({
                   id: "app.home.filters.button",
@@ -320,17 +187,29 @@ const Home: React.FC = () => {
                 })}
               >
                 <RiFilterLine className="h-4 w-4" />
-                {isFilterActive ? (
+                {isFilterActive && (
                   <span className="absolute -top-1.5 -right-1.5 inline-flex min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-white">
                     {activeFilterCount}
                   </span>
-                ) : null}
+                )}
               </button>
               <WorkDashboardIcon />
             </div>
           </div>
-          <div className={"padded flex-1 flex flex-col gap-4 overflow-y-scroll overflow-x-hidden"}>
-            {renderGardens()}
+          <div className="padded flex flex-col gap-4">
+            <GardenList
+              gardens={filteredGardens}
+              selectedGardenId={selectedGardenId}
+              onCardClick={handleCardClick}
+              showSkeleton={showSkeleton}
+              timedOut={timedOut}
+              isError={isError}
+              isOnline={isOnline}
+              onRetry={handleRetry}
+              scope={filters.scope}
+              isFilterActive={isFilterActive}
+              hasUserAddress={Boolean(normalizedAddress)}
+            />
           </div>
           <GardensFilterDrawer
             isOpen={isGardenFilterOpen}
@@ -339,12 +218,12 @@ const Home: React.FC = () => {
             onScopeChange={handleScopeChange}
             onSortChange={handleSortChange}
             onReset={handleResetFilters}
-            canFilterMine={Boolean(primaryAddress)}
+            canFilterMine={Boolean(normalizedAddress)}
             myGardensCount={myGardensCount}
             isFilterActive={isFilterActive}
           />
-        </>
-      ) : null}
+        </PullToRefresh>
+      )}
       <Outlet />
     </article>
   );

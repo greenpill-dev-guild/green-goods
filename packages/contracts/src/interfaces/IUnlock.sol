@@ -32,7 +32,9 @@ interface IPublicLock {
         address[] calldata _recipients,
         uint256[] calldata _expirationTimestamps,
         address[] calldata _keyManagers
-    ) external returns (uint256[] memory tokenIds);
+    )
+        external
+        returns (uint256[] memory tokenIds);
 
     /// @notice Checks if an address has a valid (non-expired) key
     /// @param _user The address to check

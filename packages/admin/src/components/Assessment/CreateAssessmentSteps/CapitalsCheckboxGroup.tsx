@@ -1,6 +1,12 @@
 import { cn } from "@green-goods/shared/utils";
-import { type Control, type FieldError, useController } from "react-hook-form";
-import type { CreateAssessmentForm } from "./shared";
+import {
+  type Control,
+  type FieldError,
+  type FieldErrorsImpl,
+  type Merge,
+  useController,
+} from "react-hook-form";
+import { type CreateAssessmentForm, extractErrorMessage } from "./shared";
 
 // The 8 forms of capital from Constants.sol
 const CAPITALS = [
@@ -14,9 +20,12 @@ const CAPITALS = [
   { value: "CULTURAL", label: "Cultural" },
 ] as const;
 
+/** Error type for array fields - can be a field error or array of errors */
+type ArrayFieldError = FieldError | Merge<FieldError, FieldErrorsImpl<string[]>> | undefined;
+
 interface CapitalsCheckboxGroupProps {
   control: Control<CreateAssessmentForm>;
-  error?: FieldError;
+  error?: ArrayFieldError;
   disabled?: boolean;
 }
 
@@ -88,7 +97,7 @@ export function CapitalsCheckboxGroup({
 
       {/* Always render to reserve space and prevent layout shift */}
       <span className="block min-h-[1.25rem] text-xs text-red-600">
-        {error?.message || "\u00A0"}
+        {extractErrorMessage(error) || "\u00A0"}
       </span>
     </div>
   );

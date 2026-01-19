@@ -8,6 +8,8 @@
 
 import { jobToWork } from "../../hooks/work/useWorks";
 import { jobQueueDB } from "../../modules/job-queue";
+import type { Job, WorkJobPayload } from "../../types/job-queue";
+import type { Work } from "../../types/domain";
 
 /**
  * Convert job queue entries to Work objects with media

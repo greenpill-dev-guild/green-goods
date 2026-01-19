@@ -1,11 +1,19 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { queueToasts, toastService } from "../components/toast";
 import { DEFAULT_CHAIN_ID } from "../config/blockchain";
 import { queryClient } from "../config/react-query";
 import { useAuth } from "../hooks/auth/useAuth";
+import { usePrimaryAddress } from "../hooks/auth/usePrimaryAddress";
 import { useUser } from "../hooks/auth/useUser";
-import { queryKeys } from "../hooks/query-keys";
+import { queryInvalidation, queryKeys } from "../hooks/query-keys";
 import { jobQueue } from "../modules/job-queue";
+import { trackStorageQuota } from "../utils/storage/quota";
+import type {
+  QueueStats,
+  QueueEvent,
+  WorkJobPayload,
+  ApprovalJobPayload,
+} from "../types/job-queue";
 
 interface JobQueueContextValue {
   stats: QueueStats;
@@ -47,28 +55,26 @@ interface JobQueueProviderProps {
   children: React.ReactNode;
 }
 
+// Work type for cache updates
+interface Work {
+  id: string;
+  status: string;
+  [key: string]: unknown;
+}
+
 const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) => {
-  const { smartAccountAddress, smartAccountClient, eoa } = useUser();
-  const { authMode, walletAddress } = useAuth();
+  const { smartAccountClient } = useUser();
+  const { authMode } = useAuth();
+
+  // Use single source of truth for primary address
+  const currentUserAddress = usePrimaryAddress();
+
   const [stats, setStats] = useState<QueueStats>({ total: 0, pending: 0, failed: 0, synced: 0 });
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastEvent, setLastEvent] = useState<QueueEvent | null>(null);
 
-  // Get current user address based on auth mode
-  // Passkey mode: use smart account address
-  // Wallet mode: use wallet address or EOA address
-  const currentUserAddress = React.useMemo(() => {
-    if (authMode === "passkey" && smartAccountAddress) {
-      return smartAccountAddress;
-    }
-    if (authMode === "wallet") {
-      // walletAddress is a string, eoa is { address: string }
-      return walletAddress || eoa?.address || null;
-    }
-    return null;
-  }, [authMode, smartAccountAddress, walletAddress, eoa]);
-
-  const refreshStats = React.useCallback(
+  // useCallback needed here as refreshStats is used in multiple effects
+  const refreshStats = useCallback(
     async (signal?: AbortSignal) => {
       // Only fetch stats if we have a user address to scope by
       if (!currentUserAddress) {
@@ -87,25 +93,35 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
     [currentUserAddress]
   );
 
+  // Helper to invalidate multiple query keys
+  const invalidateKeys = (keys: readonly (readonly unknown[])[]) => {
+    keys.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
+  };
+
+  // Track storage quota on app start and when user changes
+  useEffect(() => {
+    // Only track once when user is authenticated
+    if (!currentUserAddress) return;
+
+    // Track storage quota on initial load
+    void trackStorageQuota("app_start");
+
+    // Optionally track periodically (every 30 minutes while app is open)
+    const intervalId = setInterval(
+      () => {
+        void trackStorageQuota("periodic_check");
+      },
+      30 * 60 * 1000 // 30 minutes
+    );
+
+    return () => clearInterval(intervalId);
+  }, [currentUserAddress]);
+
   // Subscribe to queue events
   useEffect(() => {
     const abortController = new AbortController();
 
-    const invalidateOnJobAddedWork = (gardenId: string, chainId: number) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.queue.stats() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.queue.pendingCount() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.works.offline(gardenId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
-    };
-
-    const invalidateOnJobCompletedWork = (gardenId: string, chainId: number) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.queue.stats() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.queue.pendingCount() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.works.online(gardenId, chainId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
-    };
-
-    // Event handlers organized by event type
+    // Event handlers using DRY query invalidation helpers
     const handleJobProcessing = () => {
       setIsProcessing(true);
       // Suppress toasts for background processing/retries to reduce noise
@@ -122,15 +138,17 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
         const workPayload = event.job.payload as WorkJobPayload;
         const gardenId = workPayload.gardenAddress;
         const chainId = (event.job.chainId as number) || DEFAULT_CHAIN_ID;
-        invalidateOnJobCompletedWork(gardenId, chainId);
+
+        // Use DRY helper instead of inline invalidation
+        invalidateKeys(queryInvalidation.onJobCompleted(gardenId, chainId));
       } else if (event.job.kind === "approval") {
         queueToasts.jobCompleted("approval");
         const approvalPayload = event.job.payload as ApprovalJobPayload;
 
         // Invalidate work approvals to show the new approval
-        if (smartAccountAddress) {
+        if (currentUserAddress) {
           queryClient.invalidateQueries({
-            queryKey: queryKeys.workApprovals.byAttester(smartAccountAddress, DEFAULT_CHAIN_ID),
+            queryKey: queryKeys.workApprovals.byAttester(currentUserAddress, DEFAULT_CHAIN_ID),
           });
         }
 
@@ -170,7 +188,9 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
         const workPayload = event.job.payload as WorkJobPayload;
         const gardenId = workPayload.gardenAddress;
         const chainId = (event.job.chainId as number) || DEFAULT_CHAIN_ID;
-        invalidateOnJobAddedWork(gardenId, chainId);
+
+        // Use DRY helper instead of inline invalidation
+        invalidateKeys(queryInvalidation.onJobAdded(gardenId, chainId));
       }
 
       // Update global counts
@@ -202,7 +222,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       abortController.abort(); // Cancel any pending async operations
       unsubscribe();
     };
-  }, [smartAccountAddress, refreshStats]);
+  }, [currentUserAddress, refreshStats]);
 
   useEffect(() => {
     if (!smartAccountClient || !currentUserAddress) {
@@ -213,15 +233,25 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
     }
 
     const abortController = new AbortController();
+    // Track if a flush is currently in progress to prevent concurrent operations
+    let isFlushInProgress = false;
 
     const attemptFlush = async () => {
+      // Prevent concurrent flush operations - this avoids race conditions
+      if (isFlushInProgress || abortController.signal.aborted) {
+        return;
+      }
+
+      isFlushInProgress = true;
       try {
         await jobQueue.flush({ smartAccountClient, userAddress: currentUserAddress });
-        await refreshStats(abortController.signal);
-      } catch {
-        if (abortController.signal.aborted) {
-          return;
+        if (!abortController.signal.aborted) {
+          await refreshStats(abortController.signal);
         }
+      } catch {
+        // Silently handle errors - they're logged in jobQueue.flush
+      } finally {
+        isFlushInProgress = false;
       }
     };
 
@@ -243,66 +273,68 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       abortController.abort();
       window.removeEventListener("online", handleOnline);
     };
-  }, [smartAccountClient, refreshStats, authMode, currentUserAddress]);
+  }, [smartAccountClient, authMode, currentUserAddress, refreshStats]);
 
-  // Removed queue-level sync toasts; provider now handles processing inline
-
-  const contextValue: JobQueueContextValue = {
-    stats,
-    isProcessing,
-    lastEvent,
-    flush: async () => {
-      if (!currentUserAddress) {
-        toastService.error({
-          id: "job-queue-flush",
-          title: "Cannot sync",
-          message: "Please sign in to sync your queue.",
-          context: "job queue",
-        });
-        return;
-      }
-
-      try {
-        const result = await jobQueue.flush({
-          smartAccountClient: smartAccountClient ?? null,
-          userAddress: currentUserAddress,
-        });
-        await refreshStats();
-
-        if (result.processed > 0) {
-          queueToasts.syncSuccess(result.processed);
-        } else if (result.failed > 0) {
-          queueToasts.syncError();
-        } else if (result.skipped > 0) {
-          const isOnline = typeof navigator === "undefined" ? true : navigator.onLine;
-          const reason = !isOnline
-            ? "Reconnect to the internet to finish syncing."
-            : !smartAccountClient
-              ? "Unlock your passkey session to continue syncing."
-              : "We'll retry shortly.";
-          queueToasts.stillQueued(reason);
-        } else {
-          queueToasts.queueClear();
+  // Context value - useMemo kept here as it's passed to Provider (cross-boundary)
+  const contextValue: JobQueueContextValue = React.useMemo(
+    () => ({
+      stats,
+      isProcessing,
+      lastEvent,
+      flush: async () => {
+        if (!currentUserAddress) {
+          toastService.error({
+            id: "job-queue-flush",
+            title: "Cannot sync",
+            message: "Please sign in to sync your queue.",
+            context: "job queue",
+          });
+          return;
         }
-      } catch (error) {
-        toastService.error({
-          id: "job-queue-flush",
-          title: "Queue sync failed",
-          message: "Please try again.",
-          context: "job queue",
-          error,
-        });
-      }
-    },
-    hasPendingJobs: () => {
-      if (!currentUserAddress) return Promise.resolve(false);
-      return jobQueue.hasPendingJobs(currentUserAddress);
-    },
-    getPendingCount: () => {
-      if (!currentUserAddress) return Promise.resolve(0);
-      return jobQueue.getPendingCount(currentUserAddress);
-    },
-  };
+
+        try {
+          const result = await jobQueue.flush({
+            smartAccountClient: smartAccountClient ?? null,
+            userAddress: currentUserAddress,
+          });
+          await refreshStats();
+
+          if (result.processed > 0) {
+            queueToasts.syncSuccess(result.processed);
+          } else if (result.failed > 0) {
+            queueToasts.syncError();
+          } else if (result.skipped > 0) {
+            const isOnline = typeof navigator === "undefined" ? true : navigator.onLine;
+            const reason = !isOnline
+              ? "Reconnect to the internet to finish syncing."
+              : !smartAccountClient
+                ? "Unlock your passkey session to continue syncing."
+                : "We'll retry shortly.";
+            queueToasts.stillQueued(reason);
+          } else {
+            queueToasts.queueClear();
+          }
+        } catch (error) {
+          toastService.error({
+            id: "job-queue-flush",
+            title: "Queue sync failed",
+            message: "Please try again.",
+            context: "job queue",
+            error,
+          });
+        }
+      },
+      hasPendingJobs: () => {
+        if (!currentUserAddress) return Promise.resolve(false);
+        return jobQueue.hasPendingJobs(currentUserAddress);
+      },
+      getPendingCount: () => {
+        if (!currentUserAddress) return Promise.resolve(0);
+        return jobQueue.getPendingCount(currentUserAddress);
+      },
+    }),
+    [stats, isProcessing, lastEvent, currentUserAddress, smartAccountClient, refreshStats]
+  );
 
   return <JobQueueContext.Provider value={contextValue}>{children}</JobQueueContext.Provider>;
 };

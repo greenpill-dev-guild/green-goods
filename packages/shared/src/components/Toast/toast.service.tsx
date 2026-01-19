@@ -39,6 +39,8 @@ export interface ToastDescriptor {
   suppressLogging?: boolean;
   /** Optional icon override (emoji or React component). */
   icon?: ReactNode;
+  /** Whether the toast can be dismissed by tapping on it. Defaults to true for success/info/error, false for loading. */
+  dismissible?: boolean;
 }
 
 export interface ToastTranslator {
@@ -59,6 +61,7 @@ interface ResolvedToastDescriptor {
   devMessage?: string;
   suppressLogging?: boolean;
   icon?: ReactNode;
+  dismissible: boolean;
 }
 
 interface ToastMessageProps {
@@ -74,13 +77,17 @@ interface ToastMessageProps {
   onCopyError?: () => void;
   /** Whether copy was successful */
   copySuccess?: boolean;
+  /** Whether the toast can be dismissed by tapping */
+  dismissible?: boolean;
+  /** Callback to dismiss the toast */
+  onDismiss?: () => void;
 }
 
 const DEFAULT_DURATIONS: Record<ToastStatus, number> = {
   success: 3000,
   error: 4500,
   info: 3500,
-  loading: 60000,
+  loading: 20000,
 };
 
 const isDevEnvironment =
@@ -169,10 +176,14 @@ function normalizeDescriptor(descriptor: ToastDescriptor): ResolvedToastDescript
     devMessage,
     suppressLogging,
     icon,
+    dismissible,
   } = descriptor;
 
   const normalizedMessage = message ?? buildDefaultMessage(status, context);
   const normalizedTitle = title ?? buildDefaultTitle(status, context);
+
+  // Default: loading toasts are NOT dismissible, others are
+  const normalizedDismissible = dismissible ?? status !== "loading";
 
   return {
     id,
@@ -187,6 +198,7 @@ function normalizeDescriptor(descriptor: ToastDescriptor): ResolvedToastDescript
     devMessage,
     suppressLogging,
     icon,
+    dismissible: normalizedDismissible,
   };
 }
 
@@ -369,9 +381,12 @@ function ToastMessage({
   debugDescription,
   onCopyError,
   copySuccess,
+  dismissible,
+  onDismiss,
 }: ToastMessageProps) {
   const buttonLabel = action?.label ?? "";
-  const handleAction = () => {
+  const handleAction = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering dismiss when clicking action button
     if (!action) return;
     if (action.dismissOnClick !== false && toastId) {
       toast.dismiss(toastId);
@@ -379,16 +394,87 @@ function ToastMessage({
     action.onClick();
   };
 
+  const handleDismiss = () => {
+    if (dismissible && onDismiss) {
+      onDismiss();
+    }
+  };
+
   const ariaLabel = title ? `${title}: ${message}` : undefined;
 
+  const containerClassName = cn(
+    "flex w-full flex-col gap-1 text-[color:var(--color-text-strong-950)] text-left",
+    status === "loading" && "animate-pulse",
+    dismissible && "cursor-pointer"
+  );
+
+  // Use div with role="button" for dismissible toasts to avoid nested buttons (invalid HTML)
+  // Inner action buttons remain as real <button> elements for proper semantics
+  if (dismissible) {
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        handleDismiss();
+      }
+    };
+
+    return (
+      <div
+        role="button"
+        tabIndex={0}
+        className={containerClassName}
+        aria-label={ariaLabel}
+        onClick={handleDismiss}
+        onKeyDown={handleKeyDown}
+      >
+        {title ? <p className="text-sm font-semibold leading-tight">{title}</p> : null}
+        <p className="text-sm leading-snug">{message}</p>
+        {description ? (
+          <p className="text-xs leading-snug text-[color:var(--color-text-subtle-600)]">
+            {description}
+          </p>
+        ) : null}
+        {/* Debug mode: show verbose error info */}
+        {debugDescription ? (
+          <div className="mt-1 rounded bg-[var(--color-bg-weak-50)] p-2">
+            <p className="break-all font-mono text-[10px] leading-tight text-[color:var(--color-text-sub-600)]">
+              {debugDescription}
+            </p>
+          </div>
+        ) : null}
+        {/* Action buttons row */}
+        <div className="flex items-center gap-3">
+          {action ? (
+            <button
+              type="button"
+              onClick={handleAction}
+              className={ACTION_BUTTON_BASE}
+              data-testid={action.testId}
+            >
+              {buttonLabel}
+            </button>
+          ) : null}
+          {/* Debug mode: copy error button */}
+          {onCopyError ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent triggering dismiss
+                onCopyError();
+              }}
+              className={cn(ACTION_BUTTON_BASE, copySuccess && "text-[var(--color-success-base)]")}
+              data-testid="toast-copy-error"
+            >
+              {copySuccess ? "✓ Copied" : "📋 Copy Error"}
+            </button>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div
-      className={cn(
-        "flex w-full flex-col gap-1 text-[color:var(--color-text-strong-950)]",
-        status === "loading" && "animate-pulse"
-      )}
-      aria-label={ariaLabel}
-    >
+    <div className={containerClassName} aria-label={ariaLabel}>
       {title ? <p className="text-sm font-semibold leading-tight">{title}</p> : null}
       <p className="text-sm leading-snug">{message}</p>
       {description ? (
@@ -420,7 +506,10 @@ function ToastMessage({
         {onCopyError ? (
           <button
             type="button"
-            onClick={onCopyError}
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent triggering dismiss
+              onCopyError();
+            }}
             className={cn(ACTION_BUTTON_BASE, copySuccess && "text-[var(--color-success-base)]")}
             data-testid="toast-copy-error"
           >
@@ -447,10 +536,12 @@ function DebugToastMessage({
   resolved,
   toastId,
   clipboardText,
+  onDismiss,
 }: {
   resolved: ResolvedToastDescriptor;
   toastId: string;
   clipboardText: string;
+  onDismiss: () => void;
 }) {
   const [copySuccess, setCopySuccess] = React.useState(false);
 
@@ -473,6 +564,8 @@ function DebugToastMessage({
       debugDescription={getVerboseErrorDescription(resolved.error)}
       onCopyError={handleCopyError}
       copySuccess={copySuccess}
+      dismissible={resolved.dismissible}
+      onDismiss={onDismiss}
     />
   );
 }
@@ -506,6 +599,8 @@ function showToast(descriptor: ToastDescriptor) {
   );
 
   const toastId = toastFn((toastState: HotToast) => {
+    const handleDismiss = () => toast.dismiss(toastState.id);
+
     // Use debug component with copy functionality for errors in debug mode
     if (isDebug && isError) {
       return (
@@ -513,6 +608,7 @@ function showToast(descriptor: ToastDescriptor) {
           resolved={resolved}
           toastId={toastState.id}
           clipboardText={clipboardText}
+          onDismiss={handleDismiss}
         />
       );
     }
@@ -526,6 +622,8 @@ function showToast(descriptor: ToastDescriptor) {
         action={resolved.action}
         status={resolved.status}
         toastId={toastState.id}
+        dismissible={resolved.dismissible}
+        onDismiss={handleDismiss}
       />
     );
   }, toastOptions);

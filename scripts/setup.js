@@ -2,33 +2,33 @@
 
 /**
  * Green Goods Setup Script
- * 
+ *
  * Checks dependencies, installs packages, and configures environment
  */
 
-const fs = require('fs');
-const { execSync } = require('child_process');
+import fs from "fs";
+import { execSync } from "child_process";
 
 // Simple color helpers
 const c = {
-  reset: '\x1b[0m',
-  green: '\x1b[32m',
-  yellow: '\x1b[33m',
-  red: '\x1b[31m',
-  cyan: '\x1b[36m',
-  dim: '\x1b[2m'
+  reset: "\x1b[0m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  red: "\x1b[31m",
+  cyan: "\x1b[36m",
+  dim: "\x1b[2m",
 };
 
 const log = {
   info: (msg) => console.log(`${c.cyan}ℹ${c.reset}  ${msg}`),
   success: (msg) => console.log(`${c.green}✓${c.reset}  ${msg}`),
   warning: (msg) => console.log(`${c.yellow}⚠${c.reset}  ${msg}`),
-  error: (msg) => console.log(`${c.red}✗${c.reset}  ${msg}`)
+  error: (msg) => console.log(`${c.red}✗${c.reset}  ${msg}`),
 };
 
 function checkCommand(cmd, name) {
   try {
-    execSync(`which ${cmd}`, { stdio: 'ignore' });
+    execSync(`which ${cmd}`, { stdio: "ignore" });
     return true;
   } catch {
     log.error(`${name} not found`);
@@ -37,25 +37,27 @@ function checkCommand(cmd, name) {
 }
 
 function installBun() {
-  log.info('Installing bun...\n');
-  const isWindows = process.platform === 'win32';
-  
+  log.info("Installing bun...\n");
+  const isWindows = process.platform === "win32";
+
   try {
     if (isWindows) {
-      execSync('powershell -c "irm bun.sh/install.ps1 | iex"', { stdio: 'inherit' });
+      execSync('powershell -c "irm bun.sh/install.ps1 | iex"', {
+        stdio: "inherit",
+      });
     } else {
-      execSync('curl -fsSL https://bun.sh/install | bash', { stdio: 'inherit' });
+      execSync("curl -fsSL https://bun.sh/install | bash", { stdio: "inherit" });
     }
-    
+
     // Add to PATH for current session
     if (!isWindows) {
       process.env.PATH = `${process.env.HOME}/.bun/bin:${process.env.PATH}`;
     }
-    
-    log.success('Bun installed successfully\n');
+
+    log.success("Bun installed successfully\n");
     return true;
   } catch (err) {
-    log.error('Failed to install bun automatically');
+    log.error("Failed to install bun automatically");
     console.log(`${c.dim}Install manually: https://bun.sh${c.reset}\n`);
     return false;
   }
@@ -63,10 +65,10 @@ function installBun() {
 
 function checkVersion(cmd, minVersion, name) {
   try {
-    const version = execSync(`${cmd} --version`, { encoding: 'utf8' }).trim();
+    const version = execSync(`${cmd} --version`, { encoding: "utf8" }).trim();
     const match = version.match(/(\d+)/);
     if (match && parseInt(match[1]) >= minVersion) {
-      log.success(`${name} ${version.split('\n')[0]}`);
+      log.success(`${name} ${version.split("\n")[0]}`);
       return true;
     }
     log.error(`${name} version ${minVersion}+ required`);
@@ -79,12 +81,12 @@ function checkVersion(cmd, minVersion, name) {
 
 function checkDocker() {
   try {
-    execSync('docker ps', { stdio: 'ignore' });
-    const version = execSync('docker --version', { encoding: 'utf8' }).trim();
+    execSync("docker ps", { stdio: "ignore" });
+    const version = execSync("docker --version", { encoding: "utf8" }).trim();
     log.success(version);
     return true;
   } catch {
-    log.error('Docker not running or not installed');
+    log.error("Docker not running or not installed");
     return false;
   }
 }
@@ -92,17 +94,17 @@ function checkDocker() {
 console.log(`\n${c.green}🌱 Green Goods Setup${c.reset}\n`);
 
 // Check dependencies
-log.info('Checking dependencies...\n');
-const hasNode = checkVersion('node', 20, 'Node.js');
-let hasBun = checkVersion('bun', 1, 'bun');
-const hasGit = checkCommand('git', 'Git');
+log.info("Checking dependencies...\n");
+const hasNode = checkVersion("node", 20, "Node.js");
+let hasBun = checkVersion("bun", 1, "bun");
+const hasGit = checkCommand("git", "Git");
 const hasDocker = checkDocker();
-const hasForge = checkCommand('forge', 'Foundry');
+const hasForge = checkCommand("forge", "Foundry");
 
-console.log('');
+console.log("");
 
 if (!hasNode || !hasGit) {
-  log.error('Missing required dependencies. Install them and try again.\n');
+  log.error("Missing required dependencies. Install them and try again.\n");
   console.log(`${c.dim}Required:${c.reset}
   • Node.js 20+: https://nodejs.org
   • Git: https://git-scm.com\n`);
@@ -110,55 +112,57 @@ if (!hasNode || !hasGit) {
 }
 
 if (!hasBun) {
-  log.warning('Bun not found. Attempting to install...\n');
+  log.warning("Bun not found. Attempting to install...\n");
   hasBun = installBun();
   if (!hasBun) {
-    log.error('Bun installation failed. Please install manually.\n');
+    log.error("Bun installation failed. Please install manually.\n");
     console.log(`${c.dim}Install: https://bun.sh${c.reset}\n`);
     process.exit(1);
   }
 }
 
 if (!hasDocker) {
-  log.warning('Docker not running. Required for indexer development.');
+  log.warning("Docker not running. Required for indexer development.");
 }
 
 if (!hasForge) {
-  log.warning('Foundry not found. Required for contract development.');
-  console.log(`${c.dim}Install: curl -L https://foundry.paradigm.xyz | bash && foundryup${c.reset}\n`);
+  log.warning("Foundry not found. Required for contract development.");
+  console.log(
+    `${c.dim}Install: curl -L https://foundry.paradigm.xyz | bash && foundryup${c.reset}\n`
+  );
 }
 
 // Install dependencies
-if (!fs.existsSync('node_modules')) {
-  log.info('Installing dependencies...\n');
+if (!fs.existsSync("node_modules")) {
+  log.info("Installing dependencies...\n");
   try {
-    execSync('bun install', { stdio: 'inherit' });
-    log.success('Dependencies installed\n');
+    execSync("bun install", { stdio: "inherit" });
+    log.success("Dependencies installed\n");
   } catch {
-    log.error('Failed to install dependencies\n');
+    log.error("Failed to install dependencies\n");
     process.exit(1);
   }
 } else {
-  log.success('Dependencies already installed\n');
+  log.success("Dependencies already installed\n");
 }
 
 // Setup environment
-if (!fs.existsSync('.env')) {
-  if (fs.existsSync('.env.example')) {
-    fs.copyFileSync('.env.example', '.env');
-    log.success('Created .env from template\n');
-    
+if (!fs.existsSync(".env")) {
+  if (fs.existsSync(".env.example")) {
+    fs.copyFileSync(".env.example", ".env");
+    log.success("Created .env from template\n");
+
     console.log(`${c.cyan}Configure these services:${c.reset}
   • Privy (Auth): https://console.privy.io
   • Pinata (IPFS): https://pinata.cloud
   • Envio (Indexer): https://envio.dev
-  
+
 See .env for all variables.\n`);
   } else {
-    log.warning('No .env.example found\n');
+    log.warning("No .env.example found\n");
   }
 } else {
-  log.success('Environment already configured\n');
+  log.success("Environment already configured\n");
 }
 
 // Next steps

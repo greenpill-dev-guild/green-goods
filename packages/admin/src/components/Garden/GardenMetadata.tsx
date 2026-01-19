@@ -91,7 +91,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
             aria-label="Copy garden address"
           >
             {copiedGarden ? (
-              <RiCheckLine className="h-4 w-4 text-green-600" />
+              <RiCheckLine className="h-4 w-4 text-success-dark" />
             ) : (
               <RiFileCopyLine className="h-4 w-4" />
             )}
@@ -101,7 +101,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
               href={getExplorerUrl(gardenId, "address") || "#"}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded p-2 text-blue-600 transition hover:bg-blue-50 active:scale-95"
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded p-2 text-information-dark transition hover:bg-information-lighter active:scale-95"
               title="View on block explorer"
               aria-label="View garden on block explorer"
             >
@@ -134,7 +134,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
             aria-label="Copy NFT identifier"
           >
             {copiedToken ? (
-              <RiCheckLine className="h-4 w-4 text-green-600" />
+              <RiCheckLine className="h-4 w-4 text-success-dark" />
             ) : (
               <RiFileCopyLine className="h-4 w-4" />
             )}
@@ -144,7 +144,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
               href={getExplorerUrl(tokenAddress, "nft") || "#"}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded p-2 text-blue-600 transition hover:bg-blue-50 active:scale-95"
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded p-2 text-information-dark transition hover:bg-information-lighter active:scale-95"
               title="View NFT on block explorer"
               aria-label="View NFT on block explorer"
             >
@@ -173,7 +173,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
             href={getOpenSeaUrl()}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-md border border-blue-300 bg-blue-50 px-4 py-2.5 text-xs font-medium text-blue-700 transition hover:bg-blue-100 active:scale-95"
+            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-md border border-information-light bg-information-lighter px-4 py-2.5 text-xs font-medium text-information-dark transition hover:bg-information-light active:scale-95"
           >
             <RiNftLine className="h-4 w-4 flex-shrink-0" />
             <span className="whitespace-nowrap">OpenSea</span>

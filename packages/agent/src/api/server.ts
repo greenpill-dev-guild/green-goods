@@ -60,15 +60,18 @@ export function createServer(deps: ServerDeps, config?: Partial<ServerConfig>): 
           return { ok: true };
 
         case "whatsapp":
-          // TODO: WhatsApp Cloud API webhook
+          // Future: WhatsApp Cloud API webhook integration
+          // See: https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks
           return reply.status(501).send({ error: "WhatsApp webhooks not yet implemented" });
 
         case "sms":
-          // TODO: Twilio webhook
+          // Future: Twilio SMS webhook integration
+          // See: https://www.twilio.com/docs/messaging/guides/webhook-request
           return reply.status(501).send({ error: "SMS webhooks not yet implemented" });
 
         case "discord":
-          // TODO: Discord webhook
+          // Future: Discord webhook/bot integration
+          // See: https://discord.com/developers/docs/interactions/receiving-and-responding
           return reply.status(501).send({ error: "Discord webhooks not yet implemented" });
 
         default:

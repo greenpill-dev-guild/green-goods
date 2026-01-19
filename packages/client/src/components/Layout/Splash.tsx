@@ -24,11 +24,13 @@ interface UsernameInputConfig {
   placeholder?: string;
   hint?: string;
   onCancel?: () => void;
+  minLength?: number;
 }
 
 interface SplashProps {
   login?: () => void;
   isLoggingIn?: boolean;
+  isLoginDisabled?: boolean;
   buttonLabel?: string;
   loadingState?: LoadingState;
   message?: string;
@@ -41,6 +43,7 @@ interface SplashProps {
 export const Splash: React.FC<SplashProps> = ({
   login,
   isLoggingIn = false,
+  isLoginDisabled = false,
   buttonLabel = "Login",
   loadingState,
   message,
@@ -59,7 +62,7 @@ export const Splash: React.FC<SplashProps> = ({
   const showUsernameInput = usernameInput && !loadingState;
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-green-50 to-white px-4 pb-12 pt-[12vh]">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-bg-white-0 px-4 pb-12 pt-[12vh]">
       {/* Fixed-size container - prevents layout shift */}
       <div className="flex w-full max-w-sm flex-col items-center">
         {/* ─────────────────────────────────────────────────────────────────────
@@ -70,6 +73,7 @@ export const Splash: React.FC<SplashProps> = ({
             src="/icon.png"
             alt={APP_NAME}
             width={240}
+            height={240}
             className={`transition-opacity duration-300 ${loadingState ? "animate-pulse" : ""}`}
           />
         </div>
@@ -78,7 +82,7 @@ export const Splash: React.FC<SplashProps> = ({
             TITLE/MESSAGE - Fixed height container
         ───────────────────────────────────────────────────────────────────── */}
         <div className="h-8 flex items-center justify-center mb-6">
-          <h3 className="text-center font-bold text-[#367D42] transition-all duration-200">
+          <h3 className="text-center font-bold text-primary transition-all duration-200">
             {displayMessage}
           </h3>
         </div>
@@ -97,14 +101,15 @@ export const Splash: React.FC<SplashProps> = ({
             value={usernameInput?.value ?? ""}
             onChange={usernameInput?.onChange ?? (() => {})}
             placeholder={usernameInput?.placeholder || "Choose a username"}
-            className="w-full px-4 py-3 rounded-full border border-gray-300 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/20 text-center text-gray-900 placeholder:text-gray-400"
+            minLength={usernameInput?.minLength}
+            data-testid="username-input"
+            className="w-full px-4 py-3 rounded-full border border-stroke-soft-200 bg-bg-white-0 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-center text-text-strong-950 placeholder:text-text-soft-400"
             disabled={isLoggingIn || !showUsernameInput}
-            autoFocus={showUsernameInput}
             tabIndex={showUsernameInput ? 0 : -1}
             aria-hidden={!showUsernameInput}
             onKeyDown={(e) => {
               if (!showUsernameInput) return;
-              if (e.key === "Enter" && login) {
+              if (e.key === "Enter" && login && !isLoginDisabled) {
                 login();
               }
               if (e.key === "Escape" && usernameInput?.onCancel) {
@@ -113,7 +118,7 @@ export const Splash: React.FC<SplashProps> = ({
             }}
           />
           <p
-            className={`mt-2 text-center text-xs text-gray-500 transition-opacity duration-200 ${
+            className={`mt-2 text-center text-xs text-text-sub-600 transition-opacity duration-200 ${
               showUsernameInput ? "opacity-100" : "opacity-0"
             }`}
           >
@@ -128,12 +133,12 @@ export const Splash: React.FC<SplashProps> = ({
           {/* Primary button / Loader */}
           <div className="w-full h-10 flex items-center justify-center">
             {loadingState ? (
-              <div className="h-10 w-10 animate-spin rounded-full border-4 border-green-600 border-t-transparent" />
+              <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
             ) : (
               login && (
                 <Button
                   onClick={login}
-                  disabled={isLoggingIn}
+                  disabled={isLoggingIn || isLoginDisabled}
                   className="w-full transition-all duration-200"
                   shape="pilled"
                   data-testid="login-button"
@@ -155,6 +160,7 @@ export const Splash: React.FC<SplashProps> = ({
                 !secondaryAction || secondaryAction.isDisabled || isLoggingIn || !!loadingState
               }
               label={secondaryAction?.label || "Login with wallet"}
+              data-testid="secondary-action-button"
               className={`w-full transition-all duration-200 ${
                 !loadingState && secondaryAction && !secondaryAction.isDisabled && !isLoggingIn
                   ? "opacity-100"
@@ -171,7 +177,7 @@ export const Splash: React.FC<SplashProps> = ({
         ───────────────────────────────────────────────────────────────────── */}
         <div className="h-6 flex items-center justify-center mt-2">
           <p
-            className={`max-w-sm text-center text-sm text-gray-600 transition-opacity duration-200 ${
+            className={`max-w-sm text-center text-sm text-text-sub-600 transition-opacity duration-200 ${
               loadingState === "joining-garden" ? "opacity-100" : "opacity-0"
             }`}
           >
@@ -192,7 +198,7 @@ export const Splash: React.FC<SplashProps> = ({
                 : "opacity-0 -translate-y-2 pointer-events-none"
             }`}
           >
-            <div className="flex w-full items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+            <div className="flex w-full items-start gap-2 rounded-lg border border-error-light bg-error-lighter p-3 text-sm text-error-dark">
               <span className="font-semibold shrink-0">Error:</span>
               <span>{errorMessage || "\u00A0"}</span>
             </div>
@@ -210,8 +216,8 @@ export const Splash: React.FC<SplashProps> = ({
                 onClick={tertiaryAction.onClick}
                 className={`text-xs underline transition-all duration-200 ${
                   !loadingState && !isLoggingIn
-                    ? "text-gray-500 hover:text-green-600 opacity-100"
-                    : "text-gray-400 opacity-0 pointer-events-none"
+                    ? "text-foreground hover:text-primary opacity-100"
+                    : "text-text-soft-400 opacity-0 pointer-events-none"
                 }`}
                 tabIndex={!loadingState && !isLoggingIn ? 0 : -1}
                 aria-hidden={!!loadingState || isLoggingIn}
@@ -222,10 +228,11 @@ export const Splash: React.FC<SplashProps> = ({
             ) : (
               <Link
                 to={tertiaryAction.href || "#"}
+                viewTransition
                 className={`text-xs underline transition-all duration-200 ${
                   !loadingState && !isLoggingIn
-                    ? "text-gray-500 hover:text-green-600 opacity-100"
-                    : "text-gray-400 opacity-0 pointer-events-none"
+                    ? "text-foreground hover:text-primary opacity-100"
+                    : "text-text-soft-400 opacity-0 pointer-events-none"
                 }`}
                 tabIndex={!loadingState && !isLoggingIn ? 0 : -1}
                 aria-hidden={!!loadingState || isLoggingIn}
