@@ -16,6 +16,16 @@ const mockLoginWithPasskey = vi.fn();
 const mockCreateAccount = vi.fn();
 const mockLoginWithWallet = vi.fn();
 
+vi.mock("@green-goods/shared/providers", () => ({
+  useApp: () => ({
+    platform: "unknown" as const,
+    isMobile: false,
+    isInstalled: false,
+    wasInstalled: false,
+    deferredPrompt: null,
+  }),
+}));
+
 vi.mock("@green-goods/shared", () => ({
   toastService: {
     info: vi.fn(),
@@ -53,6 +63,12 @@ vi.mock("@green-goods/shared/modules", () => ({
   hasStoredUsername: () => false,
   getStoredUsername: () => null,
   trackAuthError: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/utils", () => ({
+  debugError: vi.fn(),
+  debugWarn: vi.fn(),
+  debugLog: vi.fn(),
 }));
 
 // Mock Splash component to simplify testing

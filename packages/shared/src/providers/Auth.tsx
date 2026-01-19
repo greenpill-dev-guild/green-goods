@@ -80,7 +80,7 @@ export interface AuthContextType {
   externalWalletAddress: Hex | null;
 
   // Actions - Primary flow
-  createAccount: (userName?: string) => Promise<void>;
+  createAccount: (userName: string) => Promise<void>;
   loginWithPasskey: (userName?: string) => Promise<void>;
   loginWithWallet: () => void;
   signOut: () => Promise<void>;
@@ -96,7 +96,7 @@ export interface AuthContextType {
 
   // Legacy aliases (kept for backwards compatibility)
   signInWithPasskey: (userName?: string) => Promise<void>;
-  createPasskey: (userName?: string) => Promise<void>;
+  createPasskey: (userName: string) => Promise<void>;
   clearPasskey: () => void;
   connectWallet: () => void;
   disconnectWallet: () => Promise<void>;
@@ -269,19 +269,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // ============================================================
 
   const createAccount = useCallback(
-    async (userName?: string) => {
+    async (userName: string) => {
       if (!actor) return;
+
+      // Display name is required for new passkey accounts (minimum 3 characters)
+      const trimmedName = userName?.trim();
+      if (!trimmedName || trimmedName.length < 3) {
+        throw new Error("Display name must be at least 3 characters");
+      }
 
       // Disconnect wallet if connected (starting fresh with passkey)
       if (isConnected) {
         await disconnectWallet();
       }
 
-      // Generate username if not provided
-      const finalUserName = userName || `user_${Date.now()}`;
-
       // Send event to machine
-      actor.send({ type: "LOGIN_PASSKEY_NEW", userName: finalUserName });
+      actor.send({ type: "LOGIN_PASSKEY_NEW", userName: trimmedName });
       saveAuthModeToStorage("passkey");
     },
     [actor, isConnected, disconnectWallet]

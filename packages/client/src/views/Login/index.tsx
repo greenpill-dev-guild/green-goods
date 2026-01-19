@@ -8,11 +8,10 @@ import {
   useInstallGuidance,
   type InstallGuidance,
 } from "@green-goods/shared";
-import type { Platform } from "@green-goods/shared/utils";
+import { debugError, type Platform } from "@green-goods/shared/utils";
 import { useAuth } from "@green-goods/shared/hooks";
 import { trackAuthError } from "@green-goods/shared/modules";
-import { useApp } from "@green-goods/shared/providers/App";
-import { debugError } from "@green-goods/shared/utils/debug";
+import { useApp } from "@green-goods/shared/providers";
 
 import { type LoadingState, Splash } from "@/components/Layout";
 
@@ -48,6 +47,9 @@ const getFriendlyErrorMessage = (err: unknown): string => {
   }
   if (msg.includes("credential") || msg.includes("passkey")) {
     return "Couldn't verify your passkey. Please try again or use 'Login with wallet'.";
+  }
+  if (msg.includes("at least 3 characters")) {
+    return "Please enter a display name with at least 3 characters.";
   }
   return "Something went wrong. Please try again or use 'Login with wallet'.";
 };
@@ -165,19 +167,25 @@ export function Login() {
     }
   };
 
-  // Create new passkey account with optional username
+  // Create new passkey account with required username (minimum 3 characters)
   const handleCreateAccount = async () => {
+    const trimmedUsername = username.trim();
+    if (trimmedUsername.length < 3) {
+      setLoginError("Please enter a display name with at least 3 characters.");
+      return;
+    }
     setLoginError(null);
     setLoadingMessage("Creating your wallet...");
     setLoadingState("welcome");
     try {
-      // Pass username if provided, otherwise authServices will generate one
-      const finalUsername = username.trim() || undefined;
-      await createAccount?.(finalUsername);
+      await createAccount?.(trimmedUsername);
     } catch (err) {
       handleAuthError(err, "create");
     }
   };
+
+  // Validation: username must be at least 3 characters for new accounts
+  const isUsernameValid = username.trim().length >= 3;
 
   // Login with wallet
   const handleWalletLogin = () => {
@@ -223,17 +231,19 @@ export function Login() {
           onSelect: handleWalletLogin,
         }}
         tertiaryAction={browserGuidanceTertiaryAction}
-        // Show username input only for new account creation
+        // Show username input only for new account creation (required, min 3 chars)
         usernameInput={
           !hasExistingAccount
             ? {
                 value: username,
                 onChange: (e) => setUsername(e.target.value),
-                placeholder: "Enter a display name (optional)",
-                hint: "This name will be shown in your profile",
+                placeholder: "Enter a display name",
+                hint: "Required - at least 3 characters",
+                minLength: 3,
               }
             : undefined
         }
+        isLoginDisabled={!hasExistingAccount && !isUsernameValid}
       />
     </>
   );
