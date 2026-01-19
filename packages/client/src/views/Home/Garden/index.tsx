@@ -256,7 +256,7 @@ export const Garden: React.FC<GardenProps> = () => {
 
             {/* Scrollable content below fixed header (add top padding to match header height) */}
             <div
-              className="flex-1 min-h-0 px-4 md:px-6 pb-4 pt-56 overflow-y-auto overflow-x-hidden"
+              className="flex-1 min-h-0 px-4 md:px-6 pb-24 pt-56 overflow-y-auto overflow-x-hidden"
               aria-busy={worksFetching}
             >
               {renderTabContent()}

@@ -1,4 +1,4 @@
-import { StatusBadge, toastService } from "@green-goods/shared";
+import { toastService } from "@green-goods/shared";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
 import {
   queryKeys,
@@ -692,24 +692,11 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   return (
     <article>
       <TopNav onBackClick={handleBack} overlay />
-      <div
-        className={cn(
-          "padded pt-20",
-          effectiveStatus === "approved" && "bg-success-lighter/40",
-          effectiveStatus === "rejected" && "bg-error-lighter/40"
-        )}
-      >
+      <div className="padded pt-20">
         {isMetadataLoading ? (
           <WorkViewSkeleton showMedia showActions={false} numDetails={3} />
         ) : (
           <>
-            {/* Status Badge - Prominent display for approved/rejected work */}
-            {effectiveStatus !== "pending" && (
-              <div className="mb-4 flex justify-center">
-                <StatusBadge status={effectiveStatus} size="md" className="shadow-sm" />
-              </div>
-            )}
-
             <WorkViewSection
               garden={garden}
               work={work}
