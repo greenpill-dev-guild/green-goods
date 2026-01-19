@@ -84,10 +84,21 @@ if [ -n "${GPG_KEY_ID:-}" ]; then
     git config --global tag.gpgsign true
     
     # 3. Fix pinentry issues (prevents 'failed to sign' errors)
-    mkdir -p ~/.gnupg
-    chmod 700 ~/.gnupg
-    if ! grep -q "pinentry-mode loopback" ~/.gnupg/gpg.conf 2>/dev/null; then
-        echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
+    mkdir -p "$HOME/.gnupg"
+    if [ -d "$HOME/.gnupg" ]; then
+        if chmod 700 "$HOME/.gnupg"; then
+            if [ -w "$HOME/.gnupg" ]; then
+                if ! grep -q "pinentry-mode loopback" "$HOME/.gnupg/gpg.conf" 2>/dev/null; then
+                    echo "pinentry-mode loopback" >> "$HOME/.gnupg/gpg.conf"
+                fi
+            else
+                echo "   ⚠️  ~/.gnupg is not writable; skipping GPG pinentry configuration"
+            fi
+        else
+            echo "   ⚠️  Failed to set permissions on ~/.gnupg; skipping GPG pinentry configuration"
+        fi
+    else
+        echo "   ⚠️  Failed to create ~/.gnupg directory; skipping GPG pinentry configuration"
     fi
     echo "   ✅ GPG signing enabled for commits and tags"
 else
