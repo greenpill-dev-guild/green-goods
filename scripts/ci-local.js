@@ -6,9 +6,10 @@
  *   --skip-contracts  Skip contracts tests (requires Foundry)
  *   --skip-indexer    Skip indexer tests (requires codegen setup)
  *   --skip-build      Skip build step
+ *   --skip-docs       Skip docs build (catches broken links)
  *   --skip-lighthouse Skip Lighthouse performance tests
  *   --only-lint       Only run lint and format checks
- *   --quick           Skip contracts, indexer, build, and lighthouse (fast feedback)
+ *   --quick           Skip contracts, indexer, build, docs, and lighthouse (fast feedback)
  *   --lighthouse      Run Lighthouse tests (included by default, use --skip-lighthouse to skip)
  *   --generate-indexer  Run indexer codegen if generated files are missing
  *
@@ -16,7 +17,7 @@
  */
 
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -55,6 +56,7 @@ const config = {
   skipContracts: false,
   skipIndexer: false,
   skipBuild: false,
+  skipDocs: false,
   skipLighthouse: false,
   onlyLint: false,
   generateIndexer: false,
@@ -170,9 +172,10 @@ function showHelp() {
   console.log("  --skip-contracts    Skip contracts tests (requires Foundry)");
   console.log("  --skip-indexer      Skip indexer tests (requires codegen setup)");
   console.log("  --skip-build        Skip build step");
+  console.log("  --skip-docs         Skip docs build (catches broken links)");
   console.log("  --skip-lighthouse   Skip Lighthouse performance tests");
   console.log("  --only-lint         Only run lint and format checks");
-  console.log("  --quick             Skip contracts, indexer, build, and lighthouse (fast feedback)");
+  console.log("  --quick             Skip contracts, indexer, build, docs, and lighthouse (fast feedback)");
   console.log("  --generate-indexer  Run indexer codegen if generated files missing");
   console.log("  --help, -h          Show this help message");
   console.log("");
@@ -182,7 +185,8 @@ function showHelp() {
   console.log("  3. Type checking (TypeScript)");
   console.log("  4. Unit tests (all packages)");
   console.log("  5. Build (all packages)");
-  console.log("  6. Lighthouse performance tests (client + admin)");
+  console.log("  6. Docs build (catches broken links)");
+  console.log("  7. Lighthouse performance tests (client + admin)");
   process.exit(0);
 }
 
@@ -202,6 +206,9 @@ for (const arg of args) {
     case "--skip-build":
       config.skipBuild = true;
       break;
+    case "--skip-docs":
+      config.skipDocs = true;
+      break;
     case "--skip-lighthouse":
       config.skipLighthouse = true;
       break;
@@ -212,6 +219,7 @@ for (const arg of args) {
       config.skipContracts = true;
       config.skipIndexer = true;
       config.skipBuild = true;
+      config.skipDocs = true;
       config.skipLighthouse = true;
       break;
     case "--generate-indexer":
@@ -236,6 +244,7 @@ async function main() {
   console.log(`  Skip Contracts: ${config.skipContracts ? 'Yes' : 'No'}`);
   console.log(`  Skip Indexer: ${config.skipIndexer ? 'Yes' : 'No'}`);
   console.log(`  Skip Build: ${config.skipBuild ? 'Yes' : 'No'}`);
+  console.log(`  Skip Docs: ${config.skipDocs ? 'Yes' : 'No'}`);
   console.log(`  Skip Lighthouse: ${config.skipLighthouse ? 'Yes' : 'No'}`);
   console.log(`  Only Lint: ${config.onlyLint ? 'Yes' : 'No'}`);
   console.log(`  Generate Indexer: ${config.generateIndexer ? 'Yes' : 'No'}`);
@@ -393,7 +402,49 @@ async function main() {
   }
 
   // ============================================================================
-  // Phase 5: Lighthouse Performance Tests (matches lighthouse-ci.yml)
+  // Phase 5: Docs Build (catches broken links before deployment)
+  // ============================================================================
+  if (!config.skipDocs) {
+    const docsPath = resolve(projectRoot, "docs");
+    if (!existsSync(docsPath)) {
+      printSection("Docs Build (SKIPPED - directory not found)");
+      printWarning("Docs directory not found at: " + docsPath);
+    } else {
+      // Check if docs has a build script before attempting to run it
+      const docsPackageJsonPath = resolve(docsPath, "package.json");
+      let hasBuildScript = false;
+
+      if (existsSync(docsPackageJsonPath)) {
+        try {
+          const packageJson = JSON.parse(readFileSync(docsPackageJsonPath, "utf8"));
+          hasBuildScript = packageJson.scripts && packageJson.scripts.build;
+        } catch (error) {
+          printWarning(`Failed to read/parse ${docsPackageJsonPath}: ${error.message}`);
+          // Assume no build script and continue
+        }
+      } else {
+        printSection("Docs Build (SKIPPED - no package.json)");
+        printWarning("No package.json found at: " + docsPackageJsonPath);
+      }
+
+      if (!hasBuildScript && existsSync(docsPackageJsonPath)) {
+        printSection("Docs Build (SKIPPED - no build script)");
+        printWarning("No build script found in " + docsPackageJsonPath);
+      } else if (hasBuildScript) {
+        printSection("Docs Build");
+        await runStep(
+          "Docs build",
+          "bun run build",
+          docsPath
+        );
+      }
+    }
+  } else {
+    printSection("Docs Build (SKIPPED)");
+  }
+
+  // ============================================================================
+  // Phase 6: Lighthouse Performance Tests (matches lighthouse-ci.yml)
   // ============================================================================
   if (!config.skipLighthouse && !config.skipBuild) {
     // Check if lhci is available
