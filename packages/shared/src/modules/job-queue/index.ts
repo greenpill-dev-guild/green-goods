@@ -10,6 +10,7 @@ import type {
   WorkJobPayload,
 } from "../../types/job-queue";
 import { scheduleTask, yieldToMain } from "../../utils/scheduler";
+import { getStorageQuota } from "../../utils/storage/quota";
 import { trackSyncError, addBreadcrumb, getBreadcrumbs } from "../app/error-tracking";
 import { getIpfsInitStatus } from "../data/ipfs";
 import { track } from "../app/posthog";
@@ -107,9 +108,75 @@ const MAX_RETRIES = 5;
 /**
  * Job queue responsible for persisting and processing offline work/approval jobs.
  */
+/** Default interval for orphaned job cleanup (5 minutes) */
+const ORPHAN_CLEANUP_INTERVAL = 5 * 60 * 1000;
+
+/** Threshold for alerting on failed delete count */
+const FAILED_DELETE_ALERT_THRESHOLD = 10;
+
 class JobQueue {
   private isFlushing = false;
   private flushPromise: Promise<FlushResult> | null = null;
+
+  /** Track job IDs that failed to delete for retry */
+  private failedDeleteJobIds: Set<string> = new Set();
+
+  /** Counter for failed deletes since last cleanup */
+  private failedDeleteCount = 0;
+
+  /** Interval ID for cleanup scheduler */
+  private cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
+
+  /** Cached storage quota to avoid per-job async latency */
+  private cachedStorageQuota: Awaited<ReturnType<typeof getStorageQuota>> | null = null;
+  private cachedStorageQuotaFetchedAt = 0;
+  private storageQuotaCacheTTL = 30_000; // 30 seconds
+
+  /** Whether failed delete IDs have been rehydrated from IndexedDB */
+  private failedDeleteIdsInitialized = false;
+
+  /**
+   * Get cached storage quota, refreshing if expired
+   */
+  private async getCachedStorageQuota(): Promise<Awaited<ReturnType<typeof getStorageQuota>>> {
+    const now = Date.now();
+    if (
+      this.cachedStorageQuota &&
+      now - this.cachedStorageQuotaFetchedAt < this.storageQuotaCacheTTL
+    ) {
+      return this.cachedStorageQuota;
+    }
+    this.cachedStorageQuota = await getStorageQuota();
+    this.cachedStorageQuotaFetchedAt = now;
+    return this.cachedStorageQuota;
+  }
+
+  /**
+   * Initialize failed delete IDs from IndexedDB on first access
+   */
+  private async initFailedDeleteIds(): Promise<void> {
+    if (this.failedDeleteIdsInitialized) return;
+    try {
+      const storedIds = await jobQueueDB.loadFailedDeleteIds();
+      this.failedDeleteJobIds = new Set(storedIds);
+      this.failedDeleteCount = storedIds.length;
+      this.failedDeleteIdsInitialized = true;
+    } catch (err) {
+      console.warn("[JobQueue] Failed to load failed delete IDs from IndexedDB:", err);
+      this.failedDeleteIdsInitialized = true;
+    }
+  }
+
+  /**
+   * Persist failed delete IDs to IndexedDB
+   */
+  private async persistFailedDeleteIds(): Promise<void> {
+    try {
+      await jobQueueDB.saveFailedDeleteIds([...this.failedDeleteJobIds]);
+    } catch (err) {
+      console.warn("[JobQueue] Failed to persist failed delete IDs to IndexedDB:", err);
+    }
+  }
 
   /**
    * Add a job to the queue
@@ -130,6 +197,43 @@ class JobQueue {
 
     const chainId = (meta as { chainId?: number })?.chainId || DEFAULT_CHAIN_ID;
     const isOnline = navigator.onLine;
+
+    // Check storage quota before adding job (using cache to avoid per-job latency)
+    const storageQuota = await this.getCachedStorageQuota();
+
+    // Track storage status with job creation
+    if (storageQuota.isCritical) {
+      // Track critical storage warning - job may fail to persist
+      track("job_queue_storage_critical", {
+        job_kind: kind,
+        storage_percent_used: Math.round(storageQuota.percentUsed * 10) / 10,
+        storage_used_mb: Math.round(storageQuota.used / (1024 * 1024)),
+        storage_quota_mb: Math.round(storageQuota.quota / (1024 * 1024)),
+        is_online: isOnline,
+      });
+
+      // Add breadcrumb for debugging potential storage failures
+      addBreadcrumb("storage_critical_on_job_add", {
+        job_kind: kind,
+        percent_used: storageQuota.percentUsed,
+      });
+
+      console.warn(
+        `[JobQueue] Storage critically low (${Math.round(storageQuota.percentUsed)}% used). Job may fail to persist.`
+      );
+    } else if (storageQuota.isLow) {
+      // Track low storage warning
+      track("job_queue_storage_low", {
+        job_kind: kind,
+        storage_percent_used: Math.round(storageQuota.percentUsed * 10) / 10,
+        is_online: isOnline,
+      });
+
+      addBreadcrumb("storage_low_on_job_add", {
+        job_kind: kind,
+        percent_used: storageQuota.percentUsed,
+      });
+    }
 
     const jobId = await jobQueueDB.addJob({
       kind,
@@ -346,7 +450,23 @@ class JobQueue {
 
       try {
         await jobQueueDB.deleteJob(jobId);
-      } catch {}
+      } catch (deleteErr) {
+        // Job is already marked synced, so this is just a storage leak
+        // Track for cleanup retry and persist to IndexedDB
+        this.failedDeleteJobIds.add(jobId);
+        this.failedDeleteCount += 1;
+        await this.persistFailedDeleteIds();
+
+        console.warn("[JobQueue] Failed to delete synced job:", jobId, deleteErr);
+
+        // Alert if threshold exceeded
+        if (this.failedDeleteCount >= FAILED_DELETE_ALERT_THRESHOLD) {
+          track("job_queue_delete_failures_threshold", {
+            failed_count: this.failedDeleteCount,
+            pending_cleanup_count: this.failedDeleteJobIds.size,
+          });
+        }
+      }
 
       const completedJob: Job = {
         ...job,
@@ -377,6 +497,9 @@ class JobQueue {
       // Get IPFS status for debugging upload failures
       const ipfsStatus = getIpfsInitStatus();
 
+      // Get storage quota for debugging storage-related failures
+      const storageQuota = await getStorageQuota();
+
       // Track as structured exception for PostHog error dashboard
       trackSyncError(error, {
         source: "JobQueue.processJob",
@@ -402,6 +525,12 @@ class JobQueue {
               ? (navigator as unknown as { connection?: { effectiveType?: string } }).connection
                   ?.effectiveType
               : undefined,
+          // Storage quota information
+          storage_percent_used: Math.round(storageQuota.percentUsed * 10) / 10,
+          storage_is_low: storageQuota.isLow,
+          storage_is_critical: storageQuota.isCritical,
+          storage_used_mb: Math.round(storageQuota.used / (1024 * 1024)),
+          storage_quota_mb: Math.round(storageQuota.quota / (1024 * 1024)),
           breadcrumbs: getBreadcrumbs().slice(-5),
         },
       });
@@ -583,9 +712,97 @@ class JobQueue {
   }
 
   /**
+   * Cleanup orphaned synced jobs that failed to delete.
+   * This method scans for jobs marked as synced but still present,
+   * and retries deletion.
+   */
+  async cleanupOrphanedSyncedJobs(): Promise<{ cleaned: number; failed: number }> {
+    // Ensure we've rehydrated from IndexedDB
+    await this.initFailedDeleteIds();
+
+    let cleaned = 0;
+    let failed = 0;
+
+    // First, retry jobs from the failed delete set
+    for (const jobId of this.failedDeleteJobIds) {
+      try {
+        const job = await jobQueueDB.getJob(jobId);
+        // Only delete if job exists and is synced
+        if (job?.synced) {
+          await jobQueueDB.deleteJob(jobId);
+          this.failedDeleteJobIds.delete(jobId);
+          cleaned += 1;
+        } else if (!job) {
+          // Job already deleted, remove from tracking
+          this.failedDeleteJobIds.delete(jobId);
+          cleaned += 1;
+        }
+      } catch {
+        failed += 1;
+      }
+    }
+
+    // Note: We only clean up jobs that previously failed to delete.
+    // A full scan of all synced jobs would require iterating over all users,
+    // which is handled separately via the JobQueueDB.cleanupSyncedJobs method
+    // that can be called with a specific userAddress.
+
+    // Reset counter after cleanup attempt
+    this.failedDeleteCount = 0;
+
+    // Persist the updated set
+    await this.persistFailedDeleteIds();
+
+    if (cleaned > 0 || failed > 0) {
+      track("job_queue_orphan_cleanup", {
+        cleaned,
+        failed,
+        remaining: this.failedDeleteJobIds.size,
+      });
+    }
+
+    return { cleaned, failed };
+  }
+
+  /**
+   * Start periodic cleanup of orphaned synced jobs.
+   * @param intervalMs - Cleanup interval in milliseconds (default: 5 minutes)
+   */
+  startCleanupScheduler(intervalMs: number = ORPHAN_CLEANUP_INTERVAL): void {
+    if (this.cleanupIntervalId) {
+      return; // Already running
+    }
+
+    // Rehydrate failed delete IDs from IndexedDB on startup
+    this.initFailedDeleteIds().catch((err) => {
+      console.warn("[JobQueue] Failed to init failed delete IDs:", err);
+    });
+
+    this.cleanupIntervalId = setInterval(() => {
+      // Only run cleanup if there are failed deletes to retry
+      if (this.failedDeleteJobIds.size > 0) {
+        this.cleanupOrphanedSyncedJobs().catch((err) => {
+          console.warn("[JobQueue] Cleanup scheduler error:", err);
+        });
+      }
+    }, intervalMs);
+  }
+
+  /**
+   * Stop the periodic cleanup scheduler.
+   */
+  stopCleanupScheduler(): void {
+    if (this.cleanupIntervalId) {
+      clearInterval(this.cleanupIntervalId);
+      this.cleanupIntervalId = null;
+    }
+  }
+
+  /**
    * Cleanup resources when queue is no longer needed
    */
   async cleanup(): Promise<void> {
+    this.stopCleanupScheduler();
     await jobQueueDB.cleanup();
   }
 }

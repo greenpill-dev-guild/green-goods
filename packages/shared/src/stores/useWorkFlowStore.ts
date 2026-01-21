@@ -7,6 +7,7 @@ export type WorkDraftState = {
   feedback: string;
   plantSelection: string[];
   plantCount?: number;
+  timeSpentMinutes?: number;
   images: File[];
 };
 
@@ -24,6 +25,7 @@ export type WorkFlowState = WorkDraftState & {
   setFeedback: (text: string) => void;
   setPlantSelection: (vals: string[]) => void;
   setPlantCount: (n?: number) => void;
+  setTimeSpentMinutes: (n?: number) => void;
   setImages: (files: File[]) => void;
   /** Register an object URL for cleanup on reset */
   registerImageUrl: (url: string) => void;
@@ -38,6 +40,7 @@ const initial: WorkDraftState = {
   feedback: "",
   plantSelection: [],
   plantCount: undefined,
+  timeSpentMinutes: undefined,
   images: [],
 };
 
@@ -54,6 +57,7 @@ export const useWorkFlowStore = create<WorkFlowState>((set, get) => ({
   setFeedback: (text) => set({ feedback: text }),
   setPlantSelection: (vals) => set({ plantSelection: vals }),
   setPlantCount: (n) => set({ plantCount: n }),
+  setTimeSpentMinutes: (n) => set({ timeSpentMinutes: n }),
   setImages: (files) => set({ images: files }),
 
   registerImageUrl: (url) => {

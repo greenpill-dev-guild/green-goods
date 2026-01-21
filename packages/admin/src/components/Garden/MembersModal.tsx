@@ -124,7 +124,7 @@ export function MembersModal({
                         }}
                         disabled={isLoading}
                         className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg text-error-dark transition hover:bg-error-lighter active:scale-95 disabled:opacity-50/20"
-                        aria-label={`Remove ${member}`}
+                        aria-label="Remove member"
                       >
                         <RiDeleteBinLine className="h-5 w-5" />
                       </button>

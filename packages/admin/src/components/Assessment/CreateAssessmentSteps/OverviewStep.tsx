@@ -58,11 +58,7 @@ export function OverviewStep({ register, errors, control, isSubmitting }: Overvi
           {...register("description")}
         />
       </LabeledField>
-      <CapitalsCheckboxGroup
-        control={control as any}
-        error={errors.capitals as any}
-        disabled={isSubmitting}
-      />
+      <CapitalsCheckboxGroup control={control} error={errors.capitals} disabled={isSubmitting} />
     </div>
   );
 }

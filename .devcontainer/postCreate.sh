@@ -17,6 +17,7 @@ echo "🔧 Fixing volume permissions..."
 sudo chown -R node:node /workspaces/green-goods/node_modules 2>/dev/null || true
 sudo chown -R node:node /workspaces/green-goods/packages/indexer/generated/node_modules 2>/dev/null || true
 sudo chown -R node:node /workspaces/green-goods/packages/contracts/lib 2>/dev/null || true
+sudo chown -R node:node /workspaces/green-goods/docs/node_modules 2>/dev/null || true
 
 # Initialize git submodules (contracts dependencies)
 echo "📦 Initializing git submodules..."
@@ -34,6 +35,10 @@ fi
 # Install all workspace dependencies
 echo "📦 Installing dependencies with bun..."
 bun install
+
+# Install docs dependencies (Docusaurus site)
+echo "📚 Installing docs dependencies..."
+cd docs && bun install && cd .. || echo "   ⚠️  Docs install skipped (run 'cd docs && bun install' manually)"
 
 # Generate indexer types (so 'bun dev' works out of the box)
 echo "🔧 Generating indexer types..."
@@ -53,13 +58,55 @@ echo "✅ Setup complete!"
 echo "═══════════════════════════════════════════════════════════"
 echo ""
 echo "🚀 Quick start:"
-echo "   bun dev          - Start all services (client, admin, indexer, agent)"
+echo "   bun dev          - Start all services (client, admin, docs, indexer, agent)"
 echo "   bun dev:client   - Start client only (http://localhost:3001)"
 echo "   bun dev:admin    - Start admin only (http://localhost:3002)"
+echo "   bun dev:docs     - Start docs only (http://localhost:3003)"
 echo "   bun test         - Run all tests"
 echo ""
 echo "📝 Don't forget to edit .env with your API keys!"
 echo "   Required: VITE_WALLETCONNECT_PROJECT_ID, VITE_PIMLICO_API_KEY"
+echo ""
+
+# === GPG Signing Setup ===
+echo "═══════════════════════════════════════════════════════════"
+echo "🔐 GPG Signing"
+echo "═══════════════════════════════════════════════════════════"
+
+# 1. Ensure Git uses the container's GPG program
+git config --global gpg.program gpg
+
+# 2. If GPG_KEY_ID is available, configure automatic signing
+if [ -n "${GPG_KEY_ID:-}" ]; then
+    echo "   ✅ Found GPG Key ID: $GPG_KEY_ID"
+    git config --global user.signingkey "$GPG_KEY_ID"
+    git config --global commit.gpgsign true
+    git config --global tag.gpgsign true
+    
+    # 3. Fix pinentry issues (prevents 'failed to sign' errors)
+    mkdir -p "$HOME/.gnupg"
+    if [ -d "$HOME/.gnupg" ]; then
+        if chmod 700 "$HOME/.gnupg"; then
+            if [ -w "$HOME/.gnupg" ]; then
+                if ! grep -q "pinentry-mode loopback" "$HOME/.gnupg/gpg.conf" 2>/dev/null; then
+                    echo "pinentry-mode loopback" >> "$HOME/.gnupg/gpg.conf"
+                fi
+            else
+                echo "   ⚠️  ~/.gnupg is not writable; skipping GPG pinentry configuration"
+            fi
+        else
+            echo "   ⚠️  Failed to set permissions on ~/.gnupg; skipping GPG pinentry configuration"
+        fi
+    else
+        echo "   ⚠️  Failed to create ~/.gnupg directory; skipping GPG pinentry configuration"
+    fi
+    echo "   ✅ GPG signing enabled for commits and tags"
+else
+    echo "   ⚠️  GPG_KEY_ID not set"
+    echo "       To enable signing, set GPG_KEY_ID in devcontainer.json"
+    echo "       or export it in your local shell before building"
+fi
+
 echo ""
 
 # === Claude Code Status ===

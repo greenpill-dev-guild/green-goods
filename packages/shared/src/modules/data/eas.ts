@@ -370,7 +370,22 @@ export const getWorksByGardener = async (
   );
 };
 
-/** Loads work approval attestations */
+/**
+ * Loads work approval attestations.
+ *
+ * SCALABILITY NOTE: Currently fetches all approvals matching the schema.
+ * Client-side filtering by workUID does not scale as attestation volume grows.
+ *
+ * TODO: When implementing pagination:
+ * - Add optional `page`/`limit` or `cursor` parameters
+ * - Update queryKey in consumers to include pagination params
+ * - Consider a backend aggregation endpoint that accepts specific workUIDs
+ *   and returns only matching approvals for better performance.
+ *
+ * @param gardenerAddress - Optional filter by recipient address (gardener)
+ * @param chainId - Optional chain ID override
+ * @returns Array of work approval attestations
+ */
 export const getWorkApprovals = async (
   gardenerAddress?: string,
   chainId?: number | string

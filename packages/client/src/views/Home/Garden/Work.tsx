@@ -1,4 +1,4 @@
-import { StatusBadge, toastService } from "@green-goods/shared";
+import { toastService } from "@green-goods/shared";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
 import {
   queryKeys,
@@ -147,7 +147,16 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
         gardenId: garden?.id || "",
       };
       await downloadWorkMedia(workData);
-    } catch {}
+    } catch (error) {
+      toastService.error({
+        title: intl.formatMessage({
+          id: "app.home.work.downloadMediaFailed",
+          defaultMessage: "Failed to download media",
+        }),
+        message: error instanceof Error ? error.message : "Unknown error",
+        context: "work media download",
+      });
+    }
   };
 
   const handleDownloadData = () => {
@@ -165,7 +174,16 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
         gardenId: garden?.id || "",
       };
       downloadWorkData(workData);
-    } catch {}
+    } catch (error) {
+      toastService.error({
+        title: intl.formatMessage({
+          id: "app.home.work.downloadDataFailed",
+          defaultMessage: "Failed to download data",
+        }),
+        message: error instanceof Error ? error.message : "Unknown error",
+        context: "work data download",
+      });
+    }
   };
 
   const handleShare = async () => {
@@ -183,7 +201,16 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
         gardenId: garden?.id || "",
       };
       await shareWork(workData);
-    } catch {}
+    } catch (error) {
+      toastService.error({
+        title: intl.formatMessage({
+          id: "app.home.work.shareFailed",
+          defaultMessage: "Failed to share work",
+        }),
+        message: error instanceof Error ? error.message : "Unknown error",
+        context: "work sharing",
+      });
+    }
   };
 
   const handleViewAttestation = () => {
@@ -665,6 +692,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   return (
     <article>
       <TopNav onBackClick={handleBack} overlay />
+<<<<<<< HEAD
       <div
         className={cn(
           "padded pt-20",
@@ -672,17 +700,13 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
           effectiveStatus === "rejected" && "bg-error-lighter/40"
         )}
       >
+=======
+      <div className="padded pt-20">
+>>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
         {isMetadataLoading ? (
           <WorkViewSkeleton showMedia showActions={false} numDetails={3} />
         ) : (
           <>
-            {/* Status Badge - Prominent display for approved/rejected work */}
-            {effectiveStatus !== "pending" && (
-              <div className="mb-4 flex justify-center">
-                <StatusBadge status={effectiveStatus} size="md" className="shadow-sm" />
-              </div>
-            )}
-
             <WorkViewSection
               garden={garden}
               work={work}

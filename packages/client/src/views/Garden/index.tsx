@@ -107,18 +107,41 @@ const Work: React.FC = () => {
     feedback,
     plantSelection,
     plantCount,
+    timeSpentMinutes,
   } = form;
 
+<<<<<<< HEAD
   // Draft auto-save (handles creation on first image and debounced saves)
   useDraftAutoSave({ gardenAddress, actionUID, feedback, plantSelection, plantCount }, images);
+=======
+  // Draft save on exit (only saves when user navigates away, not automatically)
+  const { saveOnExit } = useDraftAutoSave(
+    { gardenAddress, actionUID, feedback, plantSelection, plantCount, timeSpentMinutes },
+    images
+  );
+>>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
 
   // Draft resume (handles URL params and meaningful draft detection)
   const {
     showDraftDialog,
     handleContinueDraft,
     handleStartFresh: clearDraft,
+<<<<<<< HEAD
   } = useDraftResume({
     formState: { images, gardenAddress, actionUID, feedback, plantSelection, plantCount },
+=======
+    clearActiveDraft,
+  } = useDraftResume({
+    formState: {
+      images,
+      gardenAddress,
+      actionUID,
+      feedback,
+      plantSelection,
+      plantCount,
+      timeSpentMinutes,
+    },
+>>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
     isOnIntroTab: activeTab === WorkTab.Intro,
     searchParams,
     setSearchParams,
@@ -142,6 +165,14 @@ const Work: React.FC = () => {
   useEffect(() => {
     if (!submissionCompleted) return;
 
+<<<<<<< HEAD
+=======
+    // Clear the draft on successful submission
+    clearActiveDraft().catch((error) => {
+      console.error("[Garden] Failed to clear draft after submission:", error);
+    });
+
+>>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
     const timer = setTimeout(() => {
       navigate("/home", { replace: true, viewTransition: true });
       requestAnimationFrame(() => {
@@ -149,10 +180,17 @@ const Work: React.FC = () => {
         form.reset();
       });
     }, 800);
+<<<<<<< HEAD
 
     return () => clearTimeout(timer);
   }, [submissionCompleted, navigate, form]);
 
+=======
+
+    return () => clearTimeout(timer);
+  }, [submissionCompleted, navigate, form, clearActiveDraft]);
+
+>>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
   // Selected action and garden with translations
   const selectedAction = useMemo(() => {
     if (!actions.length || typeof actionUID !== "number") return null;
@@ -285,10 +323,19 @@ const Work: React.FC = () => {
   };
 
   const changeTab = (tab: WorkTab) => {
-    document.getElementById("root")?.scrollIntoView({ behavior: "instant" });
+    document.getElementById("app-scroll")?.scrollTo({ top: 0, behavior: "instant" });
     setActiveTab(tab);
   };
 
+<<<<<<< HEAD
+=======
+  // Handle exit from garden flow - save draft if there's meaningful progress
+  const handleExitFlow = async () => {
+    await saveOnExit();
+    navigate("/home", { viewTransition: true });
+  };
+
+>>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
   // Tab configuration
   const currentTab = {
     [WorkTab.Intro]: {
@@ -299,7 +346,11 @@ const Work: React.FC = () => {
       }),
       primaryDisabled: !gardenAddress || typeof actionUID !== "number",
       customSecondary: null,
+<<<<<<< HEAD
       backButton: () => navigate("/home", { viewTransition: true }),
+=======
+      backButton: handleExitFlow,
+>>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
     },
     [WorkTab.Media]: {
       primary: () => changeTab(WorkTab.Details),
@@ -311,9 +362,19 @@ const Work: React.FC = () => {
       customSecondary: (
         <>
           <Button
+<<<<<<< HEAD
             onClick={() =>
               galleryClickRef.current?.() ?? document.getElementById("work-media-upload")?.click()
             }
+=======
+            onClick={() => {
+              if (galleryClickRef.current) {
+                galleryClickRef.current();
+              } else {
+                document.getElementById("work-media-upload")?.click();
+              }
+            }}
+>>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
             label=""
             className="w-12 px-0 shrink-0"
             variant="neutral"
@@ -323,9 +384,19 @@ const Work: React.FC = () => {
             leadingIcon={<RiImageFill className="text-primary w-5 h-5" />}
           />
           <Button
+<<<<<<< HEAD
             onClick={() =>
               cameraClickRef.current?.() ?? document.getElementById("work-media-camera")?.click()
             }
+=======
+            onClick={() => {
+              if (cameraClickRef.current) {
+                cameraClickRef.current();
+              } else {
+                document.getElementById("work-media-camera")?.click();
+              }
+            }}
+>>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
             label=""
             className="w-12 px-0 shrink-0"
             variant="neutral"
@@ -416,6 +487,10 @@ const Work: React.FC = () => {
             feedback={feedback}
             plantCount={plantCount ?? 0}
             plantSelection={plantSelection}
+<<<<<<< HEAD
+=======
+            timeSpentMinutes={timeSpentMinutes}
+>>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
           />
         );
       }
@@ -443,7 +518,11 @@ const Work: React.FC = () => {
         className="relative py-6 pt-20 flex flex-col gap-4 min-h-[calc(100vh-7.5rem)]"
       >
         <div className="padded relative flex flex-col gap-4 flex-1">{renderTabContent()}</div>
+<<<<<<< HEAD
         <div className="flex fixed left-0 bottom-0 py-3 w-full z-[10000] bg-bg-white-0 border-t border-stroke-soft-200">
+=======
+        <div className="flex fixed left-0 bottom-0 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] w-full z-[10000] bg-bg-white-0 border-t border-stroke-soft-200">
+>>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
           <div className="flex flex-row gap-4 w-full padded">
             {currentTab.customSecondary}
             <Button

@@ -13,6 +13,16 @@ interface ErrorBoundaryProps {
   children: ReactNode;
   fallback?: ReactNode;
   intl?: IntlShape;
+  /**
+   * Called when the error boundary is reset (e.g., via Try Again button)
+   * Useful for resetting queries or other state
+   */
+  onReset?: () => void;
+  /**
+   * Key that when changed will reset the error boundary
+   * Useful for resetting when navigation occurs
+   */
+  resetKey?: string | number;
 }
 
 class GardenErrorBoundaryClass extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
@@ -34,6 +44,18 @@ class GardenErrorBoundaryClass extends Component<ErrorBoundaryProps, ErrorBounda
       boundaryName: "GardenErrorBoundary",
     });
   }
+
+  // Reset error state when resetKey changes (useful for navigation)
+  componentDidUpdate(prevProps: ErrorBoundaryProps) {
+    if (this.state.hasError && prevProps.resetKey !== this.props.resetKey) {
+      this.resetErrorState();
+    }
+  }
+
+  resetErrorState = () => {
+    this.setState({ hasError: false, error: undefined });
+    this.props.onReset?.();
+  };
 
   render() {
     if (this.state.hasError) {
@@ -68,12 +90,12 @@ class GardenErrorBoundaryClass extends Component<ErrorBoundaryProps, ErrorBounda
                 size="medium"
                 label={
                   intl?.formatMessage({
-                    id: "app.error.garden.reload",
-                    defaultMessage: "Reload",
-                  }) || "Reload"
+                    id: "app.error.garden.tryAgain",
+                    defaultMessage: "Try Again",
+                  }) || "Try Again"
                 }
                 leadingIcon={<RiRefreshLine className="w-5 h-5" />}
-                onClick={() => window.location.reload()}
+                onClick={this.resetErrorState}
               />
               <Button
                 variant="neutral"

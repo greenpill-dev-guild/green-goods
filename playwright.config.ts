@@ -10,11 +10,15 @@ const __dirname = path.dirname(__filename);
 // Load root .env so tests can access test variables
 loadEnv({ path: path.resolve(__dirname, ".env") });
 
+// In CI, Vite skips mkcert and runs on HTTP instead of HTTPS
+const isCI = process.env.CI === "true";
+const protocol = isCI ? "http" : "https";
+
 // Environment configuration
 const environments = {
   local: {
-    client: "https://localhost:3001", // HTTPS via mkcert
-    admin: "https://localhost:3002", // HTTPS via mkcert
+    client: `${protocol}://localhost:3001`,
+    admin: `${protocol}://localhost:3002`,
     indexer: "http://localhost:8080/v1/graphql",
     chain: "base-sepolia",
   },

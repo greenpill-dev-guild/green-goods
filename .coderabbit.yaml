@@ -1,0 +1,153 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+# CodeRabbit Configuration for Green Goods Monorepo
+# Strict, comprehensive reviews focused on security, performance, and code quality
+
+language: en-US
+
+reviews:
+  # Skip draft PRs, only review when ready
+  request_changes_workflow: true
+  high_level_summary: true
+  high_level_summary_placeholder: "@coderabbitai summary"
+  poem: false
+  collapse_walkthrough: false
+  sequence_diagrams: true
+  changed_files_summary: true
+  labeling_instructions: []
+
+  # Review profile - strict for thorough analysis
+  profile: assertive
+
+  # Auto-review settings
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+      - "release/*"
+
+  # Path-specific review instructions
+  path_instructions:
+    # Shared package - critical for architecture
+    - path: "packages/shared/**"
+      instructions: |
+        This is the shared package containing ALL React hooks and business logic.
+        - Verify hooks follow React 19 patterns and rules of hooks
+        - Check for proper TypeScript strict mode compliance
+        - Ensure no UI components are defined here (hooks only)
+        - Validate TanStack Query usage patterns
+        - Check Zustand store patterns follow project conventions
+
+    # Client PWA - offline-first concerns
+    - path: "packages/client/**"
+      instructions: |
+        Offline-first React PWA for gardeners.
+        - Verify NO hooks are defined here (must use @green-goods/shared)
+        - Check for proper offline handling and service worker integration
+        - Validate job queue usage for background sync
+        - Ensure proper error boundaries for offline scenarios
+        - Check accessibility (a11y) compliance
+
+    # Admin dashboard
+    - path: "packages/admin/**"
+      instructions: |
+        Admin dashboard for operators.
+        - Verify NO hooks are defined here (must use @green-goods/shared)
+        - Check for proper role-based access control
+        - Validate data visualization components
+
+    # Smart contracts - highest security scrutiny
+    - path: "packages/contracts/**/*.sol"
+      instructions: |
+        Solidity smart contracts require CRITICAL security review.
+        - Check for reentrancy vulnerabilities
+        - Validate access control modifiers
+        - Review gas optimization opportunities
+        - Ensure UUPS upgrade patterns are correct
+        - Check for integer overflow/underflow (even with Solidity 0.8+)
+        - Validate EAS attestation integration
+        - Review all external calls for security
+        - Check for front-running vulnerabilities
+
+    # Contract tests
+    - path: "packages/contracts/test/**"
+      instructions: |
+        Contract tests should have 100% coverage for mainnet code.
+        - Verify comprehensive edge case coverage
+        - Check for proper fuzzing where applicable
+        - Validate gas snapshot tests exist
+
+    # Indexer
+    - path: "packages/indexer/**"
+      instructions: |
+        Envio GraphQL indexer for blockchain events.
+        - Verify event handlers are idempotent
+        - Check for proper error handling in handlers
+        - Validate GraphQL schema matches contract events
+
+    # Agent
+    - path: "packages/agent/**"
+      instructions: |
+        Multi-platform bot (Telegram primary).
+        - Check for proper input validation
+        - Validate rate limiting considerations
+        - Review error handling for external API calls
+
+  # Files/paths to ignore in reviews
+  path_filters:
+    # Lock files
+    - "!**/*.lock"
+    - "!**/bun.lockb"
+    - "!**/package-lock.json"
+    - "!**/yarn.lock"
+    - "!**/pnpm-lock.yaml"
+
+    # Build outputs
+    - "!**/dist/**"
+    - "!**/build/**"
+    - "!**/.next/**"
+    - "!**/out/**"
+    - "!**/cache/**"
+
+    # Generated contract artifacts
+    - "!packages/contracts/out/**"
+    - "!packages/contracts/cache/**"
+    - "!packages/contracts/broadcast/**"
+    - "!packages/contracts/deployments/**"
+
+    # Generated types
+    - "!**/*.generated.ts"
+    - "!**/generated/**"
+
+    # IDE and tool configs (minor changes)
+    - "!**/.vscode/**"
+    - "!**/.idea/**"
+
+    # Minified files
+    - "!**/*.min.js"
+    - "!**/*.min.css"
+
+    # Source maps
+    - "!**/*.map"
+
+# Chat settings for interactive reviews
+chat:
+  auto_reply: true
+
+# Early access features
+early_access: true
+
+# Knowledge base for project-specific context
+knowledge_base:
+  opt_out: false
+  learnings:
+    scope: auto
+  issues:
+    scope: auto
+  jira:
+    project_keys: []
+  linear:
+    team_keys: []
+  pull_requests:
+    scope: auto

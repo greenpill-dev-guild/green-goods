@@ -2,7 +2,7 @@
  * Unified Auth Provider
  *
  * Single authentication provider using XState for state management
- * and Pimlico passkey server for credential storage.
+ * and localStorage for credential storage (client-only approach).
  *
  * Design Principles:
  * 1. React only REPORTS events to the machine (no filtering)
@@ -11,7 +11,7 @@
  *
  * Features:
  * - XState-based state management for predictable auth flows
- * - Pimlico passkey server integration (no localStorage for credentials)
+ * - Client-only credential storage in localStorage
  * - Automatic session restoration on mount
  * - Wallet fallback for admin/operator users
  * - External wallet tracking (available for switching)
@@ -27,7 +27,7 @@
  * const { authMode, smartAccountAddress, createAccount, signOut } = useAuth();
  * ```
  *
- * Reference: https://docs.pimlico.io/guides/how-to/signers/passkey-server
+ * Reference: https://docs.pimlico.io/docs/how-tos/signers/passkey
  */
 
 import { disconnect } from "@wagmi/core";
@@ -43,10 +43,11 @@ import { queryClient } from "../config/react-query";
 import {
   type AuthMode,
   clearAuthMode,
+  clearStoredCredential,
   clearStoredUsername,
   getAuthMode,
   getStoredUsername,
-  hasStoredUsername,
+  hasStoredCredential,
   setAuthMode as saveAuthModeToStorage,
 } from "../modules/auth/session";
 import { type AuthActor, getAuthActor } from "../workflows/authActor";
@@ -79,7 +80,7 @@ export interface AuthContextType {
   externalWalletAddress: Hex | null;
 
   // Actions - Primary flow
-  createAccount: (userName?: string) => Promise<void>;
+  createAccount: (userName: string) => Promise<void>;
   loginWithPasskey: (userName?: string) => Promise<void>;
   loginWithWallet: () => void;
   signOut: () => Promise<void>;
@@ -95,7 +96,7 @@ export interface AuthContextType {
 
   // Legacy aliases (kept for backwards compatibility)
   signInWithPasskey: (userName?: string) => Promise<void>;
-  createPasskey: (userName?: string) => Promise<void>;
+  createPasskey: (userName: string) => Promise<void>;
   clearPasskey: () => void;
   connectWallet: () => void;
   disconnectWallet: () => Promise<void>;
@@ -144,6 +145,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     address: undefined,
   });
 
+  // Guard to prevent duplicate LOGIN_WALLET events during session restore
+  const walletRestoreAttemptedRef = useRef(false);
+
   // Track wallet hydration timeout - give up waiting after 2 seconds
   const [walletHydrationTimedOut, setWalletHydrationTimedOut] = React.useState(false);
   const hydrationTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -187,11 +191,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // This handles the case where user opens AppKit modal then connects
         const currentState = actor.getSnapshot();
         if (currentState?.matches("unauthenticated")) {
-          console.debug(
-            "[AuthProvider] Wallet connected in unauthenticated state, triggering LOGIN_WALLET"
-          );
-          actor.send({ type: "LOGIN_WALLET" });
-          saveAuthModeToStorage("wallet");
+          if (!walletRestoreAttemptedRef.current) {
+            walletRestoreAttemptedRef.current = true;
+            console.debug(
+              "[AuthProvider] Wallet connected in unauthenticated state, triggering LOGIN_WALLET"
+            );
+            actor.send({ type: "LOGIN_WALLET" });
+            saveAuthModeToStorage("wallet");
+          }
         }
       }
     }
@@ -210,6 +217,43 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [actor, isConnected, isConnecting, wagmiWalletAddress]);
 
   // ============================================================
+  // WALLET SESSION RESTORE
+  // ============================================================
+  // Handle race condition: wallet may connect during 'initializing' state,
+  // then machine transitions to 'unauthenticated'. We need to auto-login
+  // with wallet if authMode was 'wallet' and wallet is already connected.
+  useEffect(() => {
+    if (!actor || !snapshot) return;
+
+    const storedAuthMode = getAuthMode();
+
+    // Only act when machine just entered unauthenticated state
+    // Use snapshot from dependency array instead of actor.getSnapshot()
+    if (!snapshot.matches("unauthenticated")) return;
+
+    // Check if we should auto-restore wallet session:
+    // 1. Wallet is connected
+    // 2. Stored authMode is "wallet" (user was previously logged in with wallet)
+    // 3. Machine context already has external wallet tracked
+    if (
+      isConnected &&
+      wagmiWalletAddress &&
+      storedAuthMode === "wallet" &&
+      snapshot.context.externalWalletConnected
+    ) {
+      // Guard: only attempt wallet restore once per session (shared with WALLET EVENT SYNC)
+      if (!walletRestoreAttemptedRef.current) {
+        walletRestoreAttemptedRef.current = true;
+        console.debug(
+          "[AuthProvider] Auto-restoring wallet session after init:",
+          wagmiWalletAddress
+        );
+        actor.send({ type: "LOGIN_WALLET" });
+      }
+    }
+  }, [actor, snapshot, isConnected, wagmiWalletAddress]);
+
+  // ============================================================
   // HELPER: Disconnect wallet
   // ============================================================
   const disconnectWallet = useCallback(async () => {
@@ -225,19 +269,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // ============================================================
 
   const createAccount = useCallback(
-    async (userName?: string) => {
+    async (userName: string) => {
       if (!actor) return;
+
+      // Display name is required for new passkey accounts (minimum 3 characters)
+      const trimmedName = userName?.trim();
+      if (!trimmedName || trimmedName.length < 3) {
+        throw new Error("Display name must be at least 3 characters");
+      }
 
       // Disconnect wallet if connected (starting fresh with passkey)
       if (isConnected) {
         await disconnectWallet();
       }
 
-      // Generate username if not provided
-      const finalUserName = userName || `user_${Date.now()}`;
-
       // Send event to machine
-      actor.send({ type: "LOGIN_PASSKEY_NEW", userName: finalUserName });
+      actor.send({ type: "LOGIN_PASSKEY_NEW", userName: trimmedName });
       saveAuthModeToStorage("passkey");
     },
     [actor, isConnected, disconnectWallet]
@@ -302,9 +349,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Disconnect wallet
     await disconnectWallet();
 
-    // Clear local storage (auth mode + username to prevent auto-restore)
+    // Clear auth mode and username, but KEEP credential for future passkey login
+    // The credential contains the public key needed to reconstruct the smart account
+    // Clearing it would force the user to create a new account (different address)
     clearAuthMode();
     clearStoredUsername();
+
+    // Reset wallet restore guard to allow future auto-restore
+    walletRestoreAttemptedRef.current = false;
 
     // Clear query cache
     queryClient.clear();
@@ -329,11 +381,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [actor]);
 
   const clearPasskey = useCallback(() => {
-    // Clear stored username (credentials are on Pimlico server)
+    // Clear stored credential and username from localStorage
+    clearStoredCredential();
     clearStoredUsername();
     if (actor) {
       actor.send({ type: "SIGN_OUT" });
     }
+    // Reset wallet restore guard to allow future auto-restore
+    walletRestoreAttemptedRef.current = false;
   }, [actor]);
 
   // ============================================================
@@ -377,8 +432,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       snapshot.matches("wallet_connecting") ||
       isConnecting;
 
-    // Check for stored username (indicates existing account with Pimlico server)
-    const storedCredential = hasStoredUsername();
+    // Check for stored credential (indicates existing account in localStorage)
+    const storedCredential = hasStoredCredential();
 
     // Determine if auth is ready
     // For wallet mode: wait for Wagmi to finish reconnecting before declaring ready

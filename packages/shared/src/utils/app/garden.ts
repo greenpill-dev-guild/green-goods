@@ -45,7 +45,8 @@ export const buildGardenMemberSets = (
     if (key) operatorIds.add(key);
   });
 
-  const memberIds = gardenerIds.union(operatorIds);
+  // Use spread instead of Set.prototype.union for wider compatibility
+  const memberIds = new Set([...gardenerIds, ...operatorIds]);
 
   return {
     gardenerIds,

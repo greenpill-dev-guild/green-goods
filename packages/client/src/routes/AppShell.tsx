@@ -9,7 +9,11 @@ export default function AppShell() {
       <WorkProvider>
         {/* Main content area with view-transition-name for SPA transitions */}
         <main className="vt-main flex flex-col h-[calc(100lvh-69px)] overflow-x-hidden">
+<<<<<<< HEAD
           <div id="app-scroll" className="flex-1 overflow-y-auto overflow-x-hidden">
+=======
+          <div id="app-scroll" className="flex-1 overflow-y-auto overflow-x-hidden native-scroll">
+>>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
             <Outlet />
           </div>
           <ScrollRestoration />

@@ -13,11 +13,12 @@ import type { SmartAccountClient } from "permissionless";
 import { useCallback, useRef, useState } from "react";
 import { encodeFunctionData, type Hex } from "viem";
 import { useWriteContract } from "wagmi";
+import { toastService } from "../../components/toast";
 import { ONBOARDED_STORAGE_KEY } from "../../config/app";
 import { wagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
+import { trackNetworkError } from "../../modules/app/error-tracking";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
-import { toastService } from "../../components/toast";
 import { isAlreadyGardenerError } from "../../utils/errors/contract-errors";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useUser } from "../auth/useUser";
@@ -74,6 +75,17 @@ export async function checkMembership(address: string): Promise<{
     };
   } catch (error) {
     console.warn("Failed to check on-chain membership:", error);
+    trackNetworkError(error, {
+      source: "checkMembership",
+      userAction: "checking root garden membership status",
+      recoverable: true,
+      metadata: {
+        user_address: address,
+        root_garden: rootGarden?.address,
+        function_name: "gardeners",
+        is_offline: typeof navigator !== "undefined" ? !navigator.onLine : false,
+      },
+    });
     return { isGardener: hasBeenOnboarded, hasBeenOnboarded };
   }
 }
@@ -180,16 +192,18 @@ export function useAutoJoinRootGarden() {
    *
    * For passkey users: Transaction is sponsored via Pimlico paymaster.
    * For wallet users: User pays gas fees directly.
+   *
+   * @param sessionOverride - Optional passkey session for login flow
+   * @param options.silent - If true, suppresses toast notifications (used by promptToJoin)
    */
   const joinGarden = useCallback(
-    async (sessionOverride?: PasskeySession): Promise<void> => {
+    async (sessionOverride?: PasskeySession, options?: { silent?: boolean }): Promise<void> => {
       const targetAddress = sessionOverride?.address ?? primaryAddress;
+      const silent = options?.silent ?? false;
 
       if (!rootGarden?.address) {
         throw new Error("Root garden not configured for this network");
       }
-
-      setIsLoading(true);
 
       try {
         await executeJoin(sessionOverride);
@@ -201,12 +215,14 @@ export function useAutoJoinRootGarden() {
           promptToastIdRef.current = null;
         }
 
-        toastService.success({
-          title: "Welcome to Green Goods!",
-          message: "You're now part of the community garden.",
-          icon: "🌱",
-          suppressLogging: true,
-        });
+        if (!silent) {
+          toastService.success({
+            title: "Welcome to Green Goods!",
+            message: "You're now part of the community garden.",
+            icon: "🌱",
+            suppressLogging: true,
+          });
+        }
 
         // Refetch garden data so user can start working immediately
         await refetchGardenData();
@@ -224,18 +240,20 @@ export function useAutoJoinRootGarden() {
           return;
         }
 
-        toastService.error({
-          title: "Couldn't join garden",
-          message: "Please try again from your profile.",
-          error,
-        });
+        if (!silent) {
+          toastService.error({
+            title: "Couldn't join garden",
+            message: "Please try again from your profile.",
+            error,
+          });
+        }
 
         throw error;
       } finally {
         setIsLoading(false);
       }
     },
-    [primaryAddress, rootGarden?.address, executeJoin, markOnboarded, refetchGardenData]
+    [executeJoin, markOnboarded, refetchGardenData, rootGarden?.address, primaryAddress]
   );
 
   /**
@@ -260,9 +278,10 @@ export function useAutoJoinRootGarden() {
   }, []);
 
   /**
-   * Show the join prompt toast (call once after first login)
+   * Auto-join root garden on first login.
+   * Triggers passkey signing automatically, no button required.
    */
-  const promptToJoin = useCallback(() => {
+  const promptToJoin = useCallback(async () => {
     // Don't prompt if already prompted or no root garden
     if (hasPromptedRef.current) return;
     if (!rootGarden?.address) return;
@@ -285,35 +304,86 @@ export function useAutoJoinRootGarden() {
 
     hasPromptedRef.current = true;
 
-    // Show single toast with join action
-    const toastId = toastService.info({
-      title: "Join the Community Garden",
-      message: "Get started by joining the root garden to track your impact.",
+    // Show loading toast while joining
+    const loadingToastId = toastService.loading({
+      title: "Joining Community Garden",
+      message: "Please confirm with your passkey...",
       icon: "🌱",
-      duration: 15000, // Give user time to read and decide
-      action: {
-        label: "Join Now",
-        onClick: () => {
-          joinGarden().catch((err) => {
-            console.error("Join garden failed:", err);
-          });
-        },
-        dismissOnClick: true,
-        testId: "join-garden-action",
-      },
     });
 
-    promptToastIdRef.current = toastId;
+    try {
+      await joinGarden(undefined, { silent: true });
 
-    // Auto-dismiss handler (if user doesn't interact)
-    setTimeout(() => {
-      if (promptToastIdRef.current === toastId) {
-        // User didn't interact - mark as prompted but don't show dismiss message
-        localStorage.setItem(ROOT_GARDEN_PROMPTED_KEY, "true");
-        promptToastIdRef.current = null;
+      // Dismiss loading toast
+      toastService.dismiss(loadingToastId);
+
+      // Show success toast indicating they can start gardening
+      toastService.success({
+        title: "Welcome to Green Goods!",
+        message: "You can now start submitting work to gardens.",
+        icon: "🌱",
+        duration: 6000,
+        suppressLogging: true,
+      });
+    } catch (error) {
+      // Dismiss loading toast
+      toastService.dismiss(loadingToastId);
+
+      // Check if user cancelled/declined the passkey signing
+      const isCancelled =
+        error instanceof Error &&
+        (error.message.toLowerCase().includes("cancel") ||
+          error.message.toLowerCase().includes("abort") ||
+          error.message.toLowerCase().includes("denied") ||
+          error.message.toLowerCase().includes("user refused"));
+
+      // Already a gardener - silent success
+      if (isAlreadyGardenerError(error)) {
+        markOnboarded(primaryAddress);
+        toastService.success({
+          title: "Already a member!",
+          message: "You can start submitting work to gardens.",
+          icon: "🌱",
+          duration: 4000,
+          suppressLogging: true,
+        });
+        return;
       }
-    }, 15000);
-  }, [rootGarden?.address, primaryAddress, joinGarden]);
+
+      if (isCancelled) {
+        // User declined - show friendly message pointing to profile
+        toastService.info({
+          title: "No problem!",
+          message: "You can join a garden anytime from your profile.",
+          icon: "👋",
+          duration: 5000,
+          action: {
+            label: "Go to Profile",
+            onClick: () => {
+              window.location.href = "/profile";
+            },
+            dismissOnClick: true,
+            testId: "go-to-profile-action",
+          },
+          suppressLogging: true,
+        });
+      } else {
+        // Actual error - show error message pointing to profile
+        toastService.error({
+          title: "Couldn't join garden",
+          message: "You can try again from your profile.",
+          error,
+          action: {
+            label: "Go to Profile",
+            onClick: () => {
+              window.location.href = "/profile";
+            },
+            dismissOnClick: true,
+          },
+        });
+      }
+    }
+  }, [rootGarden?.address, primaryAddress, joinGarden, markOnboarded]);
 
   return {
     isLoading: isLoading || isPending,

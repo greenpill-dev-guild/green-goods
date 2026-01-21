@@ -224,7 +224,23 @@ class JobQueueDatabase {
     } catch (error) {
       try {
         tx.abort();
-      } catch {}
+      } catch {
+        // Transaction may already be aborted; ignore error
+      }
+
+      // Track IndexedDB storage failure with detailed context
+      trackStorageError(error, {
+        source: "JobQueueDatabase.addJob",
+        userAction: "storing job and images in IndexedDB",
+        metadata: {
+          job_id: id,
+          job_kind: job.kind,
+          file_count: serializedFiles.length,
+          total_size: serializedFiles.reduce((sum, f) => sum + f.file.size, 0),
+          error_name: error instanceof Error ? error.name : "Unknown",
+          error_message: error instanceof Error ? error.message : String(error),
+        },
+      });
 
       // Track IndexedDB storage failure with detailed context
       trackStorageError(error, {
@@ -477,6 +493,39 @@ class JobQueueDatabase {
 
     // Cleanup old clientWorkId mappings
     await this.cleanupOldMappings();
+  }
+
+  // Key for storing failed delete IDs in localStorage (lightweight persistence)
+  private readonly FAILED_DELETE_IDS_KEY = "gg_failed_delete_job_ids";
+
+  /**
+   * Load failed delete job IDs from localStorage.
+   * Uses localStorage instead of IndexedDB for simplicity since this is just a small array.
+   */
+  async loadFailedDeleteIds(): Promise<string[]> {
+    try {
+      const stored = localStorage.getItem(this.FAILED_DELETE_IDS_KEY);
+      if (!stored) return [];
+      const parsed = JSON.parse(stored);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Save failed delete job IDs to localStorage.
+   */
+  async saveFailedDeleteIds(ids: string[]): Promise<void> {
+    try {
+      if (ids.length === 0) {
+        localStorage.removeItem(this.FAILED_DELETE_IDS_KEY);
+      } else {
+        localStorage.setItem(this.FAILED_DELETE_IDS_KEY, JSON.stringify(ids));
+      }
+    } catch {
+      // Ignore storage errors - this is just cleanup optimization
+    }
   }
 }
 

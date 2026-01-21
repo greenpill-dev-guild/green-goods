@@ -27,6 +27,9 @@
     {
       "name": "shared",
       "path": "../packages/shared"
+    },
+    {
+      "path": "../docs"
     }
   ],
   "settings": {

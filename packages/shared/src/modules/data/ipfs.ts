@@ -352,6 +352,19 @@ export function resolveImageUrl(uri: string): string {
   if (!uri) return "";
   return resolveIPFSUrl(uri);
 }
+/**
+ * Check if a value is a placeholder/dummy credential (used in CI builds)
+ */
+function isPlaceholderCredential(value: string | undefined): boolean {
+  if (!value) return true;
+  const lowerValue = value.toLowerCase();
+  return (
+    lowerValue.includes("dummy") ||
+    lowerValue.includes("placeholder") ||
+    lowerValue.includes("example") ||
+    value.length < 20 // Valid Storacha keys are much longer
+  );
+}
 
 /**
  * Convenience initializer that reads Vite-style env vars.
@@ -373,13 +386,17 @@ export async function initializeIpfsFromEnv(
   const proof = env?.VITE_STORACHA_PROOF;
   const gatewayBaseUrl = env?.VITE_STORACHA_GATEWAY;
 
-  if (!key || !proof) {
+  // Skip initialization if credentials are missing or are placeholder values (CI builds)
+  if (!key || !proof || isPlaceholderCredential(key) || isPlaceholderCredential(proof)) {
     ipfsInitializationStatus = "skipped_no_config";
-    console.warn(
-      "VITE_STORACHA_KEY and VITE_STORACHA_PROOF are not configured. " +
-        "Media features will be unavailable. " +
-        "See: https://docs.storacha.network/how-to/upload-from-ci/"
-    );
+    // Only warn in development, not in CI/production builds with placeholders
+    if (import.meta.env.DEV) {
+      console.warn(
+        "VITE_STORACHA_KEY and VITE_STORACHA_PROOF are not configured. " +
+          "Media features will be unavailable. " +
+          "See: https://docs.storacha.network/how-to/upload-from-ci/"
+      );
+    }
     return false;
   }
 

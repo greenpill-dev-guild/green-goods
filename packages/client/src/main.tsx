@@ -3,9 +3,16 @@ import {
   DEFAULT_CHAIN_ID,
   initGlobalErrorHandlers,
   initTheme,
+<<<<<<< HEAD
 } from "@green-goods/shared";
+=======
+  useServiceWorkerUpdate,
+} from "@green-goods/shared";
+import { updateToasts } from "@green-goods/shared/components";
+>>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
 import { AppKitProvider, AuthProvider } from "@green-goods/shared/providers";
-import { StrictMode } from "react";
+import { StrictMode, useEffect } from "react";
+import { HelmetProvider } from "react-helmet-async";
 import { createRoot } from "react-dom/client";
 import App from "@/App.tsx";
 import { AppErrorBoundary } from "@/components/Errors";
@@ -43,6 +50,7 @@ if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_SW_DEV !== "true") {
 }
 
 /**
+<<<<<<< HEAD
  * PWA Auto-Update System
  *
  * On mobile PWAs, a new deploy downloads the service worker in the background,
@@ -93,26 +101,54 @@ function initPwaAutoUpdate() {
 
 initPwaAutoUpdate();
 
+=======
+ * PWA Update Notifier Component
+ *
+ * Shows a toast notification when a new version of the app is available.
+ * Users can choose to update immediately or dismiss and update later.
+ *
+ * This replaces the old auto-reload behavior to give users control over
+ * when the app refreshes, preventing unexpected data loss.
+ */
+function UpdateNotifier() {
+  const { updateAvailable, isUpdating, applyUpdate } = useServiceWorkerUpdate();
+
+  useEffect(() => {
+    if (updateAvailable) {
+      updateToasts.available(applyUpdate);
+    }
+    if (isUpdating) {
+      updateToasts.updating();
+    }
+  }, [updateAvailable, isUpdating, applyUpdate]);
+
+  return null;
+}
+
+>>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
 export const Root = () => (
-  <AppErrorBoundary>
-    <AppKitProvider
-      projectId={import.meta.env.VITE_WALLETCONNECT_PROJECT_ID}
-      metadata={{
-        name: "Green Goods",
-        description: "Start Bringing Your Impact Onchain",
-        url: import.meta.env.VITE_APP_URL || window.location.origin,
-        icons: ["https://greengoods.app/icon.png"],
-      }}
-      defaultChainId={DEFAULT_CHAIN_ID}
-    >
-      {/* AuthProvider uses XState + Pimlico passkey server */}
-      <AuthProvider>
-        <AppProvider posthogKey={import.meta.env.VITE_POSTHOG_KEY}>
-          <App />
-        </AppProvider>
-      </AuthProvider>
-    </AppKitProvider>
-  </AppErrorBoundary>
+  <HelmetProvider>
+    <AppErrorBoundary>
+      <AppKitProvider
+        projectId={import.meta.env.VITE_WALLETCONNECT_PROJECT_ID}
+        metadata={{
+          name: "Green Goods",
+          description: "Start Bringing Your Impact Onchain",
+          url: import.meta.env.VITE_APP_URL || window.location.origin,
+          icons: ["https://greengoods.app/icon.png"],
+        }}
+        defaultChainId={DEFAULT_CHAIN_ID}
+      >
+        {/* AuthProvider uses XState + Pimlico passkey server */}
+        <AuthProvider>
+          <AppProvider posthogKey={import.meta.env.VITE_POSTHOG_KEY}>
+            <UpdateNotifier />
+            <App />
+          </AppProvider>
+        </AuthProvider>
+      </AppKitProvider>
+    </AppErrorBoundary>
+  </HelmetProvider>
 );
 
 const container = document.getElementById("root");

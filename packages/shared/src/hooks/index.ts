@@ -38,6 +38,15 @@ export type {
   UseLoadingWithMinDurationResult,
 } from "./app/useLoadingWithMinDuration";
 export { useLoadingWithMinDuration } from "./app/useLoadingWithMinDuration";
+export type { ServiceWorkerUpdateState } from "./app/useServiceWorkerUpdate";
+export { useServiceWorkerUpdate } from "./app/useServiceWorkerUpdate";
+export type {
+  InstallAction,
+  InstallGuidance,
+  InstallScenario,
+  ManualInstallStep,
+} from "./app/useInstallGuidance";
+export { useInstallGuidance } from "./app/useInstallGuidance";
 
 // ============================================================================
 // ASSESSMENT
@@ -59,6 +68,12 @@ export { useUser } from "./auth/useUser";
 // ============================================================================
 export { ensureBaseLists } from "./blockchain/prefetch";
 export { useActions, useGardeners, useGardens } from "./blockchain/useBaseLists";
+// Suspense-enabled hooks (for use with SuspenseBoundary)
+export {
+  useSuspenseActions,
+  useSuspenseGardeners,
+  useSuspenseGardens,
+} from "./blockchain/useSuspenseBaseLists";
 export {
   // Pure functions (preferred for non-React contexts)
   getCurrentChain,
@@ -120,6 +135,12 @@ export { useRole } from "./gardener/useRole";
 // QUERY KEYS
 // ============================================================================
 export type { QueryKey, QueueQueryKey, WorksQueryKey } from "./query-keys";
+
+// ============================================================================
+// STORAGE
+// ============================================================================
+export type { UseStorageQuotaOptions, UseStorageQuotaResult } from "./storage/useStorageQuota";
+export { useStorageQuota, useStorageQuotaCheck } from "./storage/useStorageQuota";
 export {
   DEFAULT_RETRY_COUNT,
   DEFAULT_RETRY_DELAY,
@@ -140,6 +161,8 @@ export { useTranslation } from "./translation/useTranslation";
 // ============================================================================
 // UI
 // ============================================================================
+export type { CarouselContextProps, CarouselProps } from "./app/useCarousel";
+export { CarouselContext, useCarousel } from "./app/useCarousel";
 export { useScrollReveal } from "./app/useScrollReveal";
 
 // ============================================================================

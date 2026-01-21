@@ -163,6 +163,7 @@ export async function encodeWorkData(
       {
         plantSelection: data.plantSelection,
         plantCount: data.plantCount,
+        timeSpentMinutes: data.timeSpentMinutes,
         clientWorkId: data.metadata?.clientWorkId,
         submittedAt: data.metadata?.submittedAt,
       },

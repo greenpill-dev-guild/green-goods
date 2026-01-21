@@ -1,8 +1,18 @@
+<<<<<<< HEAD
 import type { Work } from "@green-goods/shared";
 import { useOffline, useUser } from "@green-goods/shared/hooks";
 import { useQueueFlush } from "@green-goods/shared/providers/JobQueue";
 import React from "react";
+=======
+import { hapticLight, type Work } from "@green-goods/shared";
+import React, { useState } from "react";
+>>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
 import { useIntl } from "react-intl";
+
+import { useOffline, useUser } from "@green-goods/shared/hooks";
+import { trackSyncError } from "@green-goods/shared/modules";
+import { useQueueFlush } from "@green-goods/shared/providers/JobQueue";
+
 import { MinimalWorkCard } from "@/components/Cards";
 import { BeatLoader } from "@/components/Communication";
 
@@ -31,16 +41,34 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
   const { authMode } = useUser();
   const { isOnline } = useOffline();
   const flush = useQueueFlush();
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Only offline (unsynced) work is actively "uploading".
   const uploadingOfflineWork = uploadingWork.filter((work) => work.id.startsWith("0xoffline_"));
   const uploadingCount = uploadingOfflineWork.length;
 
   const handleSyncAll = async () => {
+    if (isSyncing) return;
+    // Provide haptic feedback when sync is triggered
+    hapticLight();
+    setIsSyncing(true);
     try {
       await flush();
     } catch (error) {
       console.error("Failed to sync all items:", error);
+      trackSyncError(error, {
+        source: "Uploading.handleSyncAll",
+        userAction: authMode === "wallet" ? "retrying failed uploads" : "syncing all pending items",
+        recoverable: true,
+        metadata: {
+          trigger: authMode === "wallet" ? "retry_button" : "sync_all_button",
+          uploading_count: uploadingCount,
+          auth_mode: authMode,
+          is_online: isOnline,
+        },
+      });
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -65,18 +93,28 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
           {uploadingCount > 0 &&
             (isOnline ? (
               <button
+<<<<<<< HEAD
                 className="text-sm text-primary font-medium px-3 py-1 rounded-lg border border-stroke-soft-200 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary active:border-primary active:scale-95 tap-feedback"
+=======
+                className="text-sm text-primary font-medium px-3 py-1 rounded-lg border border-stroke-soft-200 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary active:border-primary active:scale-95 tap-feedback disabled:opacity-50 disabled:cursor-not-allowed"
+>>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
                 onClick={handleSyncAll}
+                disabled={isSyncing}
               >
-                {authMode === "wallet"
+                {isSyncing
                   ? intl.formatMessage({
-                      id: "app.workDashboard.queue.retry",
-                      defaultMessage: "Retry",
+                      id: "app.workDashboard.queue.syncing",
+                      defaultMessage: "Syncing...",
                     })
-                  : intl.formatMessage({
-                      id: "app.workDashboard.queue.syncAll",
-                      defaultMessage: "Sync All",
-                    })}
+                  : authMode === "wallet"
+                    ? intl.formatMessage({
+                        id: "app.workDashboard.queue.retry",
+                        defaultMessage: "Retry",
+                      })
+                    : intl.formatMessage({
+                        id: "app.workDashboard.queue.syncAll",
+                        defaultMessage: "Sync All",
+                      })}
               </button>
             ) : (
               <span className="text-xs text-text-sub-600 px-2">
@@ -89,7 +127,7 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-4 pb-4">
         {isLoading ? (
           <div className="h-full flex flex-col items-center justify-center pb-12">
             <BeatLoader />
@@ -137,17 +175,21 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
           </div>
         ) : uploadingWork.length === 0 ? (
           <div className="text-center py-12">
+<<<<<<< HEAD
             <div className="text-4xl mb-3">✅</div>
+=======
+            <div className="text-4xl mb-3">📋</div>
+>>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
             <p className="font-medium text-text-strong-950">
               {intl.formatMessage({
-                id: "app.workDashboard.uploading.allSynced",
-                defaultMessage: "All synced!",
+                id: "app.workDashboard.uploading.noRecentWork",
+                defaultMessage: "No recent work",
               })}
             </p>
             <p className="text-sm text-text-sub-600 mb-3">
               {intl.formatMessage({
-                id: "app.workDashboard.uploading.noUploading",
-                defaultMessage: "No items uploading",
+                id: "app.workDashboard.uploading.submitWorkHint",
+                defaultMessage: "Work you submit will appear here",
               })}
             </p>
             {onRefresh && (

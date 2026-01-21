@@ -1,4 +1,14 @@
+<<<<<<< HEAD
 import type { Job, Work, WorkJobPayload } from "@green-goods/shared";
+=======
+import {
+  hapticLight,
+  toastService,
+  type Job,
+  type Work,
+  type WorkJobPayload,
+} from "@green-goods/shared";
+>>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
 import {
   queryKeys,
@@ -121,8 +131,14 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       const allWorks: Work[] = [];
 
       for (const gardenId of operatorGardenIds) {
-        // Fetch online works from EAS
-        const online = await getWorks([gardenId], DEFAULT_CHAIN_ID);
+        // Fetch online works from EAS - gracefully handle per-garden failures
+        let online: Work[] = [];
+        try {
+          online = await getWorks([gardenId], DEFAULT_CHAIN_ID);
+        } catch (err) {
+          console.warn(`[WorkDashboard] Failed to fetch works for garden ${gardenId}:`, err);
+          // Continue with offline works for this garden and other gardens
+        }
 
         // Fetch offline works from job queue (scoped to current user)
         const offlineJobs = activeAddress
@@ -302,20 +318,48 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     [completedApprovals]
   );
 
+<<<<<<< HEAD
   // Completed: approvals for your own submissions (you as gardener)
   const {
     data: myReceivedApprovals = [],
+=======
+  // Fetch all approvals to find those for the user's works
+  // Note: EAS approval attestations have garden (not gardener) as recipient,
+  // so we must fetch all and filter client-side by matching workUID
+  //
+  // TODO: SCALABILITY - This fetches ALL approvals and filters client-side.
+  // As the number of work submissions grows, this will become slow.
+  // Recommended: Create a backend aggregation endpoint that accepts workUIDs
+  // and returns only relevant approvals, or implement pagination when
+  // EAS GraphQL supports it. See getWorkApprovals docstring for details.
+  const {
+    data: allApprovals = [],
+>>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
     isLoading: isLoadingMyApprovals,
     isFetching: isFetchingMyApprovals,
     isError: isErrorMyApprovals,
     refetch: refetchMyApprovals,
   } = useQuery({
+<<<<<<< HEAD
     queryKey: ["approvals", "byGardener", activeAddress],
     queryFn: () => fetchWorkApprovals(activeAddress || undefined),
+=======
+    queryKey: ["approvals", "all", activeAddress],
+    queryFn: () => fetchWorkApprovals(undefined),
+>>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
     enabled: !!activeAddress,
     staleTime: STALE_TIME_MEDIUM,
     retry: DEFAULT_RETRY_COUNT,
   });
+
+  // Build a set of the user's work IDs for efficient lookup
+  const myWorkIds = useMemo(() => new Set((myOnlineWorks || []).map((w) => w.id)), [myOnlineWorks]);
+
+  // Filter approvals to only those for the user's works
+  const myReceivedApprovals = useMemo(
+    () => (allApprovals || []).filter((a) => myWorkIds.has(a.workUID)),
+    [allApprovals, myWorkIds]
+  );
 
   // Pending: your submissions across ALL gardens (online and awaiting review)
   const approvedOrRejectedForMe = useMemo(
@@ -389,8 +433,24 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         state: { from: "dashboard" },
         viewTransition: true,
       });
+<<<<<<< HEAD
     } catch {
       // Navigation error - silently fail
+=======
+    } catch (err) {
+      console.error("Navigation error:", err);
+      toastService.error({
+        title: intl.formatMessage({
+          id: "app.workDashboard.error.navigationFailed",
+          defaultMessage: "Couldn't open work",
+        }),
+        message: intl.formatMessage({
+          id: "app.workDashboard.error.navigationFailedMessage",
+          defaultMessage: "Please try again.",
+        }),
+        context: "workDashboard",
+      });
+>>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
     }
   };
 
@@ -458,17 +518,32 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
 
   // Combined refresh functions for each tab
   const handleRefreshRecent = () => {
+<<<<<<< HEAD
+=======
+    // Provide haptic feedback when refresh is triggered
+    hapticLight();
+>>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
     refetchOfflineQueue();
     refetchRecentOnline();
   };
 
   const handleRefreshPending = () => {
+<<<<<<< HEAD
+=======
+    // Provide haptic feedback when refresh is triggered
+    hapticLight();
+>>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
     refetchOperatorWorks();
     refetchMyWorks();
     refetchApprovals();
   };
 
   const handleRefreshCompleted = () => {
+<<<<<<< HEAD
+=======
+    // Provide haptic feedback when refresh is triggered
+    hapticLight();
+>>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
     refetchApprovals();
     refetchMyApprovals();
   };
@@ -646,7 +721,12 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         isClosing ? "modal-backdrop-exit" : "modal-backdrop-enter"
       )}
       data-testid="modal-drawer-overlay"
-      onClick={handleClose}
+      onClick={(e) => {
+        // Only close if clicking directly on backdrop, not from propagated events
+        if (e.target === e.currentTarget) {
+          handleClose();
+        }
+      }}
       onKeyDown={(e) => {
         if (e.key === "Escape") {
           handleClose();
@@ -656,12 +736,22 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     >
       <div
         className={cn(
+<<<<<<< HEAD
           "bg-bg-white-0 rounded-t-3xl shadow-2xl w-full overflow-hidden flex flex-col",
           isClosing ? "modal-slide-exit" : "modal-slide-enter",
           className
         )}
         style={{ height: "85vh", maxHeight: "85vh" }}
+=======
+          "bg-bg-white-0 rounded-t-3xl shadow-2xl w-full overflow-hidden flex flex-col h-modal",
+          isClosing ? "modal-slide-exit" : "modal-slide-enter",
+          className
+        )}
+>>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
         onClick={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+        onTouchEnd={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
           e.stopPropagation();
         }}
@@ -707,8 +797,10 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
           triggerClassName="text-xs"
         />
 
-        {/* Content */}
-        <div className="flex-1 min-h-0 overflow-hidden">{renderTabContent()}</div>
+        {/* Content - overscroll-contain prevents scroll chaining to backdrop */}
+        <div className="flex-1 min-h-0 overflow-hidden overscroll-contain">
+          {renderTabContent()}
+        </div>
       </div>
     </div>
   );

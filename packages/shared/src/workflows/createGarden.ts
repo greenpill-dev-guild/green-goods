@@ -7,7 +7,7 @@
  * @module workflows/createGarden
  */
 
-import { assign, setup } from "xstate";
+import { assign, fromPromise, setup } from "xstate";
 
 /**
  * Form validation status passed to the machine through events
@@ -129,10 +129,11 @@ const createGardenSetup = setup({
     canRetry: ({ context }) => context.retryCount < 3,
   },
   actors: {
-    submitGarden: () => {
+    // Placeholder actor with proper typing - actual implementation provided when machine is used
+    submitGarden: fromPromise<string, void>(async () => {
       throw new Error("submitGarden actor not implemented");
-    },
-  } as any,
+    }),
+  },
 });
 
 export const createGardenMachine = createGardenSetup.createMachine({
@@ -211,7 +212,7 @@ export const createGardenMachine = createGardenSetup.createMachine({
           target: "error",
           actions: ["storeFailure", "incrementRetry"],
         },
-      } as any,
+      },
       on: {
         CLOSE: {
           target: "idle",

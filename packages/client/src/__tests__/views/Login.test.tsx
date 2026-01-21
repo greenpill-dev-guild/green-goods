@@ -7,6 +7,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
+import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -15,12 +16,28 @@ const mockLoginWithPasskey = vi.fn();
 const mockCreateAccount = vi.fn();
 const mockLoginWithWallet = vi.fn();
 
+vi.mock("@green-goods/shared/providers", () => ({
+  useApp: () => ({
+    platform: "unknown" as const,
+    isMobile: false,
+    isInstalled: false,
+    wasInstalled: false,
+    deferredPrompt: null,
+  }),
+}));
+
 vi.mock("@green-goods/shared", () => ({
   toastService: {
     info: vi.fn(),
     success: vi.fn(),
     error: vi.fn(),
   },
+  copyToClipboard: vi.fn(),
+  useInstallGuidance: () => ({
+    showInstallPrompt: false,
+    installAction: null,
+    dismissInstallPrompt: vi.fn(),
+  }),
 }));
 
 vi.mock("@green-goods/shared/hooks", () => ({
@@ -45,6 +62,13 @@ vi.mock("@green-goods/shared/hooks", () => ({
 vi.mock("@green-goods/shared/modules", () => ({
   hasStoredUsername: () => false,
   getStoredUsername: () => null,
+  trackAuthError: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/utils", () => ({
+  debugError: vi.fn(),
+  debugWarn: vi.fn(),
+  debugLog: vi.fn(),
 }));
 
 // Mock Splash component to simplify testing
@@ -54,13 +78,11 @@ vi.mock("@/components/Layout", () => ({
     buttonLabel,
     errorMessage,
     secondaryAction,
-    tertiaryAction,
   }: {
     login?: () => void;
     buttonLabel?: string;
     errorMessage?: string | null;
     secondaryAction?: { label: string; onSelect: () => void };
-    tertiaryAction?: { label: string; onClick: () => void };
   }) =>
     createElement(
       "div",
@@ -72,7 +94,7 @@ vi.mock("@/components/Layout", () => ({
           onClick: login,
           type: "button",
         },
-        buttonLabel || "Sign Up"
+        buttonLabel || "Create Account"
       ),
       secondaryAction &&
         createElement(
@@ -84,16 +106,6 @@ vi.mock("@/components/Layout", () => ({
           },
           secondaryAction.label
         ),
-      tertiaryAction &&
-        createElement(
-          "button",
-          {
-            "data-testid": "wallet-button",
-            onClick: tertiaryAction.onClick,
-            type: "button",
-          },
-          tertiaryAction.label
-        ),
       errorMessage && createElement("p", { "data-testid": "error-message" }, errorMessage)
     ),
 }));
@@ -104,13 +116,17 @@ import { Login } from "../../views/Login";
 const renderWithRouter = (initialRoute = "/login") => {
   return render(
     createElement(
-      MemoryRouter,
-      { initialEntries: [initialRoute] },
+      HelmetProvider,
+      null,
       createElement(
-        Routes,
-        null,
-        createElement(Route, { path: "/login/*", element: createElement(Login) }),
-        createElement(Route, { path: "/home", element: createElement("div", null, "Home Page") })
+        MemoryRouter,
+        { initialEntries: [initialRoute] },
+        createElement(
+          Routes,
+          null,
+          createElement(Route, { path: "/login/*", element: createElement(Login) }),
+          createElement(Route, { path: "/home", element: createElement("div", null, "Home Page") })
+        )
       )
     )
   );
@@ -131,29 +147,23 @@ describe("Login View", () => {
     expect(screen.getByTestId("splash-screen")).toBeInTheDocument();
   });
 
-  it("shows Sign Up button for new users", () => {
+  it("shows Create Account button for new users", () => {
     renderWithRouter();
 
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Sign Up");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create Account");
   });
 
-  it("shows Login secondary button for new users", () => {
+  it("shows Login with Wallet secondary button", () => {
     renderWithRouter();
 
-    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Login");
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Login with Wallet");
   });
 
-  it("shows Login with wallet option", () => {
-    renderWithRouter();
-
-    expect(screen.getByTestId("wallet-button")).toHaveTextContent("Login with wallet");
-  });
-
-  it("calls loginWithWallet when wallet button clicked", async () => {
+  it("calls loginWithWallet when secondary button clicked", async () => {
     const user = userEvent.setup();
     renderWithRouter();
 
-    await user.click(screen.getByTestId("wallet-button"));
+    await user.click(screen.getByTestId("secondary-button"));
 
     expect(mockLoginWithWallet).toHaveBeenCalled();
   });
@@ -197,6 +207,7 @@ describe("Login View - Existing User", () => {
     vi.doMock("@green-goods/shared/modules", () => ({
       hasStoredUsername: () => true,
       getStoredUsername: () => "testuser",
+      trackAuthError: vi.fn(),
     }));
 
     // Re-import with new mocks - this is tricky in vitest

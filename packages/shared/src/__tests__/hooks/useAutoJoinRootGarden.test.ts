@@ -270,6 +270,33 @@ describe("hooks/garden/useAutoJoinRootGarden", () => {
       // Should mark as onboarded even when already a gardener
       expect(localStorageMock.setItem).toHaveBeenCalled();
     });
+
+    it("handles on-chain AlreadyGardener rejection gracefully", async () => {
+      // The implementation uses an optimistic approach: always attempts the join
+      // and handles AlreadyGardener error if it occurs (no pre-check of indexed data)
+      const mockClient = createMockSmartAccountClient();
+      mockClient.sendTransaction.mockRejectedValue(new Error("AlreadyGardener"));
+
+      mockUseUser.mockReturnValue({
+        smartAccountAddress: MOCK_ADDRESSES.smartAccount,
+        smartAccountClient: mockClient,
+        ready: true,
+        eoa: null,
+      });
+
+      const { result } = renderHook(() => useAutoJoinRootGarden(), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await result.current.joinGarden();
+      });
+
+      // Transaction IS attempted (optimistic approach)
+      expect(mockClient.sendTransaction).toHaveBeenCalled();
+      // AlreadyGardener error is caught and user is marked as onboarded
+      expect(localStorageMock.setItem).toHaveBeenCalled();
+    });
   });
 
   describe("Loading states", () => {

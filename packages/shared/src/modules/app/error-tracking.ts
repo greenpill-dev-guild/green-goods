@@ -15,7 +15,7 @@
  */
 
 import { posthog } from "posthog-js";
-import { track } from "./posthog";
+import { getAppContext, track } from "./posthog";
 import { parseContractError, type ParsedContractError } from "../../utils/errors/contract-errors";
 
 const IS_DEV = import.meta.env.DEV;
@@ -208,8 +208,16 @@ export function trackError(error: unknown, context: ErrorContext = {}): void {
     parsedContractError = parseContractError(error);
   }
 
+  // Get app context for version and environment
+  const appContext = getAppContext();
+
   // Build the error properties
   const properties: Record<string, unknown> = {
+    // App context (version and environment)
+    app_version: appContext.app_version,
+    environment: appContext.environment,
+    chain_id: appContext.chain_id,
+
     // Error details
     error_type: normalizedError.name || "Error",
     error_message: normalizedError.message,
@@ -392,19 +400,26 @@ export function trackErrorRecovery(originalError: unknown, context: ErrorContext
 // ============================================================================
 
 let globalHandlersInitialized = false;
+let cleanupGlobalHandlers: (() => void) | null = null;
 
 /**
  * Initialize global error handlers for uncaught errors and promise rejections.
  *
  * Call this once at app startup (e.g., in main.tsx).
  * This catches errors that escape React Error Boundaries.
+ *
+ * @returns A cleanup function to remove the event listeners
  */
-export function initGlobalErrorHandlers(): void {
-  if (globalHandlersInitialized) return;
-  if (typeof window === "undefined") return;
+export function initGlobalErrorHandlers(): () => void {
+  if (globalHandlersInitialized && cleanupGlobalHandlers) {
+    return cleanupGlobalHandlers;
+  }
+  if (typeof window === "undefined") {
+    return () => {};
+  }
 
   // Handle uncaught errors
-  window.addEventListener("error", (event) => {
+  const handleError = (event: ErrorEvent) => {
     // Ignore errors from browser extensions or cross-origin scripts
     if (!event.filename || event.filename.includes("extension://")) return;
 
@@ -418,10 +433,10 @@ export function initGlobalErrorHandlers(): void {
         colno: event.colno,
       },
     });
-  });
+  };
 
   // Handle unhandled promise rejections
-  window.addEventListener("unhandledrejection", (event) => {
+  const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
     const error = event.reason instanceof Error ? event.reason : new Error(String(event.reason));
 
     // Try to categorize the error
@@ -441,13 +456,30 @@ export function initGlobalErrorHandlers(): void {
       category,
       source: "unhandledrejection",
     });
-  });
+  };
+
+  window.addEventListener("error", handleError);
+  window.addEventListener("unhandledrejection", handleUnhandledRejection);
 
   globalHandlersInitialized = true;
 
   if (IS_DEBUG) {
     console.log("[ErrorTracking] Global error handlers initialized");
   }
+
+  // Return cleanup function
+  cleanupGlobalHandlers = () => {
+    window.removeEventListener("error", handleError);
+    window.removeEventListener("unhandledrejection", handleUnhandledRejection);
+    globalHandlersInitialized = false;
+    cleanupGlobalHandlers = null;
+
+    if (IS_DEBUG) {
+      console.log("[ErrorTracking] Global error handlers cleaned up");
+    }
+  };
+
+  return cleanupGlobalHandlers;
 }
 
 // ============================================================================

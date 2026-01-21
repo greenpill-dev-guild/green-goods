@@ -12,9 +12,24 @@
       "url": "https://mcp.vercel.com"
     },
     "railway": {
-      "command": "npx -y @railway/mcp-server",
-      "env": {},
-      "args": []
+      "command": "npx",
+      "args": ["-y", "@railway/mcp-server"],
+      "env": {}
+    },
+    "foundry": {
+      "command": "npx",
+      "args": ["-y", "@pranesh.asp/foundry-mcp-server"],
+      "env": {
+        "RPC_URL": "https://sepolia.base.org"
+      }
+    },
+    "storacha": {
+      "command": "npx",
+      "args": ["-y", "@storacha/mcp-storage-server"],
+      "env": {
+        "PRIVATE_KEY": "${VITE_STORACHA_KEY}",
+        "DELEGATION": "${VITE_STORACHA_PROOF}"
+      }
     }
   }
 }

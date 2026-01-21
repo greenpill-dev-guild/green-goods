@@ -9,6 +9,7 @@
  */
 
 import { useMutation, type UseMutationOptions } from "@tanstack/react-query";
+import { useRef } from "react";
 import { toastService, type ToastDescriptor } from "../../components/toast";
 
 /**
@@ -39,10 +40,13 @@ export interface MutationTrackingConfig {
 
 /**
  * Extended mutation options with tracking - toasts only (no callbacks override)
+ *
+ * Note: TContext is always undefined because this hook manages onMutate internally
+ * and does not support custom context values.
  */
-export interface UseMutationWithTrackingOptions<TData, TError, TVariables, TContext>
+export interface UseMutationWithTrackingOptions<TData, TError, TVariables>
   extends Omit<
-    UseMutationOptions<TData, TError, TVariables, TContext>,
+    UseMutationOptions<TData, TError, TVariables, undefined>,
     "onMutate" | "onSuccess" | "onError" | "onSettled"
   > {
   /** Toast notifications for different mutation states */
@@ -70,44 +74,61 @@ export interface UseMutationWithTrackingOptions<TData, TError, TVariables, TCont
  * });
  * ```
  */
-export function useMutationWithTracking<
-  TData = unknown,
-  TError = Error,
-  TVariables = void,
-  TContext = unknown,
->(options: UseMutationWithTrackingOptions<TData, TError, TVariables, TContext>) {
+export function useMutationWithTracking<TData = unknown, TError = Error, TVariables = void>(
+  options: UseMutationWithTrackingOptions<TData, TError, TVariables>
+) {
   const { toasts, errorContext = "mutation", ...mutationOptions } = options;
 
-  return useMutation<TData, TError, TVariables, TContext>({
+  // Generate a unique toast ID for this hook instance to prevent collisions
+  // when multiple mutations with the same errorContext run concurrently.
+  // Uses true lazy initialization to avoid evaluating the initializer on every render
+  // (which is fragile under React 18 concurrent mode).
+  const toastIdRef = useRef<string | null>(null);
+  if (toastIdRef.current === null) {
+    toastIdRef.current =
+      toasts?.loading?.id ??
+      `mutation-${errorContext}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  }
+  const toastId = toastIdRef.current;
+
+  return useMutation<TData, TError, TVariables, undefined>({
     ...mutationOptions,
     onMutate: async () => {
       // Show loading toast if configured
       if (toasts?.loading) {
-        toastService.loading(toasts.loading);
+        toastService.loading({ ...toasts.loading, id: toastId });
       }
-      return undefined as TContext;
+      return undefined;
     },
     onSuccess: () => {
-      // Show success toast if configured
+      // Show success toast if configured (replaces loading toast via same ID)
       if (toasts?.success) {
         toastService.success({
           ...toasts.success,
+          id: toastId,
           context: errorContext,
           suppressLogging: true,
         });
+      } else if (toasts?.loading) {
+        // Dismiss loading toast if no success toast configured
+        toastService.dismiss(toastId);
       }
     },
     onError: (error: TError) => {
-      // Show error toast if configured
+      // Show error toast if configured (replaces loading toast via same ID)
       if (toasts?.error) {
         const errorMessage =
           error instanceof Error ? error.message : "An unexpected error occurred.";
         toastService.error({
           ...toasts.error,
+          id: toastId,
           message: toasts.error.message || errorMessage,
           context: errorContext,
           error: error instanceof Error ? error : new Error(String(error)),
         });
+      } else if (toasts?.loading) {
+        // Dismiss loading toast if no error toast configured
+        toastService.dismiss(toastId);
       }
     },
   });
@@ -135,12 +156,9 @@ export function createMutationFactory(defaultOptions: {
   errorContext?: string;
   defaultToasts?: Partial<MutationToastConfig>;
 }) {
-  return function useFactoryMutation<
-    TData = unknown,
-    TError = Error,
-    TVariables = void,
-    TContext = unknown,
-  >(options: UseMutationWithTrackingOptions<TData, TError, TVariables, TContext>) {
+  return function useFactoryMutation<TData = unknown, TError = Error, TVariables = void>(
+    options: UseMutationWithTrackingOptions<TData, TError, TVariables>
+  ) {
     return useMutationWithTracking({
       errorContext: defaultOptions.errorContext,
       toasts: {

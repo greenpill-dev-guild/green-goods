@@ -24,11 +24,13 @@ interface UsernameInputConfig {
   placeholder?: string;
   hint?: string;
   onCancel?: () => void;
+  minLength?: number;
 }
 
 interface SplashProps {
   login?: () => void;
   isLoggingIn?: boolean;
+  isLoginDisabled?: boolean;
   buttonLabel?: string;
   loadingState?: LoadingState;
   message?: string;
@@ -41,6 +43,7 @@ interface SplashProps {
 export const Splash: React.FC<SplashProps> = ({
   login,
   isLoggingIn = false,
+  isLoginDisabled = false,
   buttonLabel = "Login",
   loadingState,
   message,
@@ -70,6 +73,7 @@ export const Splash: React.FC<SplashProps> = ({
             src="/icon.png"
             alt={APP_NAME}
             width={240}
+            height={240}
             className={`transition-opacity duration-300 ${loadingState ? "animate-pulse" : ""}`}
           />
         </div>
@@ -97,6 +101,7 @@ export const Splash: React.FC<SplashProps> = ({
             value={usernameInput?.value ?? ""}
             onChange={usernameInput?.onChange ?? (() => {})}
             placeholder={usernameInput?.placeholder || "Choose a username"}
+            minLength={usernameInput?.minLength}
             data-testid="username-input"
             className="w-full px-4 py-3 rounded-full border border-stroke-soft-200 bg-bg-white-0 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-center text-text-strong-950 placeholder:text-text-soft-400"
             disabled={isLoggingIn || !showUsernameInput}
@@ -104,7 +109,7 @@ export const Splash: React.FC<SplashProps> = ({
             aria-hidden={!showUsernameInput}
             onKeyDown={(e) => {
               if (!showUsernameInput) return;
-              if (e.key === "Enter" && login) {
+              if (e.key === "Enter" && login && !isLoginDisabled) {
                 login();
               }
               if (e.key === "Escape" && usernameInput?.onCancel) {
@@ -133,7 +138,7 @@ export const Splash: React.FC<SplashProps> = ({
               login && (
                 <Button
                   onClick={login}
-                  disabled={isLoggingIn}
+                  disabled={isLoggingIn || isLoginDisabled}
                   className="w-full transition-all duration-200"
                   shape="pilled"
                   data-testid="login-button"
@@ -211,7 +216,7 @@ export const Splash: React.FC<SplashProps> = ({
                 onClick={tertiaryAction.onClick}
                 className={`text-xs underline transition-all duration-200 ${
                   !loadingState && !isLoggingIn
-                    ? "text-text-sub-600 hover:text-primary opacity-100"
+                    ? "text-foreground hover:text-primary opacity-100"
                     : "text-text-soft-400 opacity-0 pointer-events-none"
                 }`}
                 tabIndex={!loadingState && !isLoggingIn ? 0 : -1}
@@ -226,7 +231,7 @@ export const Splash: React.FC<SplashProps> = ({
                 viewTransition
                 className={`text-xs underline transition-all duration-200 ${
                   !loadingState && !isLoggingIn
-                    ? "text-text-sub-600 hover:text-primary opacity-100"
+                    ? "text-foreground hover:text-primary opacity-100"
                     : "text-text-soft-400 opacity-0 pointer-events-none"
                 }`}
                 tabIndex={!loadingState && !isLoggingIn ? 0 : -1}

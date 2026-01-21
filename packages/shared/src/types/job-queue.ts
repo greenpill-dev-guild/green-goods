@@ -192,6 +192,8 @@ export interface WorkDraftRecord {
   feedback: string;
   plantSelection: string[];
   plantCount: number | undefined;
+  /** Time spent on the work in minutes */
+  timeSpentMinutes?: number;
   /** Current step in the flow (for resume) */
   currentStep: DraftStep;
   /** First incomplete step (computed on save) */

@@ -29,6 +29,7 @@ import { submitWorkToQueue } from "../../modules/work/work-submission";
 import { useUIStore } from "../../stores/useUIStore";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
 import { getActionTitle } from "../../utils/action/parsers";
+import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../utils/debug";
 import { parseAndFormatError } from "../../utils/errors/contract-errors";
 
@@ -235,6 +236,9 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     onSuccess: (txHash) => {
       const isOfflineHash = typeof txHash === "string" && txHash.startsWith("0xoffline_");
 
+      // Provide haptic feedback for successful submission
+      hapticSuccess();
+
       // Track submission success
       trackWorkSubmissionSuccess({
         gardenAddress: gardenAddress ?? "",
@@ -279,6 +283,9 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       }
     },
     onError: (error: unknown, variables) => {
+      // Provide haptic feedback for error
+      hapticError();
+
       // Parse contract error for user-friendly message
       const { title, message, parsed } = parseAndFormatError(error);
 

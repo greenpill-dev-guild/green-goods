@@ -8,6 +8,8 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+
+import { trackStorageError } from "../../modules/app/error-tracking";
 import { useDrafts } from "./useDrafts";
 
 interface DraftFormState {
@@ -77,6 +79,12 @@ export function useDraftResume(options: UseDraftResumeOptions) {
         })
         .catch((error) => {
           console.error("[useDraftResume] Failed to resume draft:", error);
+          trackStorageError(error, {
+            source: "useDraftResume.resumeFromUrl",
+            userAction: "resuming draft from URL parameter",
+            recoverable: true,
+            metadata: { draft_id: draftIdFromUrl, operation: "resume_draft" },
+          });
           // Clear invalid draftId from URL
           const newParams = new URLSearchParams(searchParams);
           newParams.delete("draftId");
@@ -132,6 +140,12 @@ export function useDraftResume(options: UseDraftResumeOptions) {
         await clearActiveDraft();
       } catch (error) {
         console.error("[useDraftResume] Failed to clear draft:", error);
+        trackStorageError(error, {
+          source: "useDraftResume.handleStartFresh",
+          userAction: "clearing active draft to start fresh",
+          recoverable: true,
+          metadata: { draft_id: activeDraftId, operation: "clear_draft" },
+        });
       }
     }
   }, [activeDraftId, clearActiveDraft]);
@@ -147,5 +161,7 @@ export function useDraftResume(options: UseDraftResumeOptions) {
     handleStartFresh,
     /** Whether a draft is currently being resumed from URL */
     isResumingFromUrl: hasResumedDraft.current,
+    /** Clear the active draft (e.g., after successful submission) */
+    clearActiveDraft,
   };
 }

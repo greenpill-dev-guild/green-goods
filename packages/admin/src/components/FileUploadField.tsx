@@ -31,6 +31,14 @@ export function FileUploadField({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
+  const previewableImageTypes = new Set([
+    "image/avif",
+    "image/bmp",
+    "image/gif",
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+  ]);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -94,8 +102,26 @@ export function FileUploadField({
     onRemoveFile?.(index);
   };
 
+  const sanitizeFileName = (name: string) =>
+    Array.from(name)
+      .filter((char) => {
+        const code = char.charCodeAt(0);
+        // Strip control characters and HTML meta-characters to keep text-only output.
+        return (
+          code >= 32 &&
+          code !== 127 &&
+          char !== "<" &&
+          char !== ">" &&
+          char !== "&" &&
+          char !== '"' &&
+          char !== "'" &&
+          char !== "`"
+        );
+      })
+      .join("");
+
   const getFilePreviewUrl = (file: File): string | null => {
-    if (file.type.startsWith("image/")) {
+    if (previewableImageTypes.has(file.type)) {
       return URL.createObjectURL(file);
     }
     return null;
@@ -141,21 +167,23 @@ export function FileUploadField({
       {showPreview && currentFiles.length > 0 && (
         <div className="mt-3 space-y-2">
           {currentFiles.map((file, index) => {
+            const safeFileName = sanitizeFileName(file.name);
             const previewUrl = getFilePreviewUrl(file);
+            const safePreviewUrl = previewUrl?.startsWith("blob:") ? previewUrl : null;
             return (
               <div
-                key={`${file.name}-${index}`}
+                key={`${safeFileName}-${index}`}
                 className="flex items-center gap-3 rounded-md border border-gray-100 bg-bg-weak p-3"
               >
-                {previewUrl && (
+                {safePreviewUrl && (
                   <img
-                    src={previewUrl}
-                    alt={file.name}
+                    src={safePreviewUrl}
+                    alt={safeFileName}
                     className="h-12 w-12 rounded object-cover"
                   />
                 )}
                 <div className="flex-1 truncate">
-                  <p className="truncate text-sm font-medium text-text-sub">{file.name}</p>
+                  <p className="truncate text-sm font-medium text-text-sub">{safeFileName}</p>
                   <p className="text-xs text-text-soft">{(file.size / 1024).toFixed(1)} KB</p>
                 </div>
                 {onRemoveFile && (
@@ -164,7 +192,7 @@ export function FileUploadField({
                     onClick={() => handleRemove(index)}
                     className="rounded-md p-1 text-red-500 transition hover:bg-red-100/20"
                     // eslint-disable-next-line jsx-a11y/aria-proptypes
-                    aria-label={`Remove ${file.name}`}
+                    aria-label={`Remove ${safeFileName}`}
                   >
                     <RiCloseLine className="h-5 w-5" />
                   </button>

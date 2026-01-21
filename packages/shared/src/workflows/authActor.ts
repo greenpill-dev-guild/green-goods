@@ -35,7 +35,6 @@
 import { createActor } from "xstate";
 
 import { DEFAULT_CHAIN_ID } from "../config/blockchain";
-import { createPasskeyServerClient, isPasskeyServerAvailable } from "../config/passkeyServer";
 import { authMachine } from "./authMachine";
 import { authServices } from "./authServices";
 
@@ -61,16 +60,6 @@ function createAuthActor() {
   // Get chain ID at runtime
   const chainId = getChainId();
 
-  // Initialize passkey server client if available
-  let passkeyClient = null;
-  if (isPasskeyServerAvailable()) {
-    try {
-      passkeyClient = createPasskeyServerClient(chainId);
-    } catch (error) {
-      console.warn("[AuthActor] Failed to create passkey server client:", error);
-    }
-  }
-
   // Create actor with services and initial context
   const actor = createActor(
     authMachine.provide({
@@ -84,7 +73,6 @@ function createAuthActor() {
     {
       input: {
         chainId,
-        passkeyClient,
       },
     }
   );

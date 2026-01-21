@@ -15,9 +15,13 @@ export interface ServiceStatus {
 // CONSTANTS
 // ============================================================================
 
+// In CI, Vite skips mkcert and runs on HTTP instead of HTTPS
+const isCI = process.env.CI === "true";
+const protocol = isCI ? "http" : "https";
+
 export const TEST_URLS = {
-  client: process.env.TEST_CLIENT_URL ?? "https://localhost:3001",
-  admin: process.env.TEST_ADMIN_URL ?? "https://localhost:3002",
+  client: process.env.TEST_CLIENT_URL ?? `${protocol}://localhost:3001`,
+  admin: process.env.TEST_ADMIN_URL ?? `${protocol}://localhost:3002`,
   indexer: process.env.TEST_INDEXER_URL ?? "http://localhost:8080/v1/graphql",
 };
 
@@ -728,11 +732,17 @@ export async function queryIndexer<T = unknown>(
 /**
  * Check if gardens exist in the indexer.
  */
-export async function hasGardens(page: Page): Promise<boolean> {
+export async function hasGardens(page: Page, chainId?: number): Promise<boolean> {
   try {
+    const resolvedChainId =
+      typeof chainId === "number" && !Number.isNaN(chainId)
+        ? chainId
+        : Number(process.env.VITE_CHAIN_ID ?? process.env.TEST_CHAIN_ID ?? 84532);
+
     const data = await queryIndexer<{ Garden: Array<{ id: string }> }>(
       page,
-      `query { Garden(limit: 1) { id } }`
+      `query Gardens($chainId: Int!) { Garden(where: {chainId: {_eq: $chainId}}, limit: 1) { id } }`,
+      { chainId: resolvedChainId }
     );
     return data.Garden.length > 0;
   } catch {
