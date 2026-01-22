@@ -692,17 +692,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   return (
     <article>
       <TopNav onBackClick={handleBack} overlay />
-<<<<<<< HEAD
-      <div
-        className={cn(
-          "padded pt-20",
-          effectiveStatus === "approved" && "bg-success-lighter/40",
-          effectiveStatus === "rejected" && "bg-error-lighter/40"
-        )}
-      >
-=======
       <div className="padded pt-20">
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
         {isMetadataLoading ? (
           <WorkViewSkeleton showMedia showActions={false} numDetails={3} />
         ) : (

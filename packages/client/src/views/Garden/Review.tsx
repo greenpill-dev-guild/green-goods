@@ -1,10 +1,6 @@
 import { mediaResourceManager } from "@green-goods/shared/modules";
-<<<<<<< HEAD
-import { RiFileFill, RiLeafFill, RiPencilFill, RiPlantFill } from "@remixicon/react";
-=======
 import { formatTimeSpent } from "@green-goods/shared/utils/form/normalizers";
 import { RiFileFill, RiLeafFill, RiPencilFill, RiPlantFill, RiTimeFill } from "@remixicon/react";
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { WorkView } from "@/components/Features/Work";

@@ -37,11 +37,8 @@ body {
   @apply m-0 bg-bg-white-0 text-text-strong-950 overflow-hidden;
   position: fixed;
   inset: 0;
-<<<<<<< HEAD
-=======
   /* Note: Safe area insets are handled at component level for fixed-position elements.
      See AppBar.tsx, Work.tsx, Garden/index.tsx for examples. */
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
 }
 
 #root {

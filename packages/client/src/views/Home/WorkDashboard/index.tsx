@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-import type { Job, Work, WorkJobPayload } from "@green-goods/shared";
-=======
 import {
   hapticLight,
   toastService,
@@ -8,7 +5,6 @@ import {
   type Work,
   type WorkJobPayload,
 } from "@green-goods/shared";
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
 import {
   queryKeys,
@@ -318,11 +314,6 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     [completedApprovals]
   );
 
-<<<<<<< HEAD
-  // Completed: approvals for your own submissions (you as gardener)
-  const {
-    data: myReceivedApprovals = [],
-=======
   // Fetch all approvals to find those for the user's works
   // Note: EAS approval attestations have garden (not gardener) as recipient,
   // so we must fetch all and filter client-side by matching workUID
@@ -334,19 +325,13 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // EAS GraphQL supports it. See getWorkApprovals docstring for details.
   const {
     data: allApprovals = [],
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
     isLoading: isLoadingMyApprovals,
     isFetching: isFetchingMyApprovals,
     isError: isErrorMyApprovals,
     refetch: refetchMyApprovals,
   } = useQuery({
-<<<<<<< HEAD
-    queryKey: ["approvals", "byGardener", activeAddress],
-    queryFn: () => fetchWorkApprovals(activeAddress || undefined),
-=======
     queryKey: ["approvals", "all", activeAddress],
     queryFn: () => fetchWorkApprovals(undefined),
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
     enabled: !!activeAddress,
     staleTime: STALE_TIME_MEDIUM,
     retry: DEFAULT_RETRY_COUNT,
@@ -433,10 +418,6 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         state: { from: "dashboard" },
         viewTransition: true,
       });
-<<<<<<< HEAD
-    } catch {
-      // Navigation error - silently fail
-=======
     } catch (err) {
       console.error("Navigation error:", err);
       toastService.error({
@@ -450,7 +431,6 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         }),
         context: "workDashboard",
       });
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
     }
   };
 
@@ -518,32 +498,23 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
 
   // Combined refresh functions for each tab
   const handleRefreshRecent = () => {
-<<<<<<< HEAD
-=======
     // Provide haptic feedback when refresh is triggered
     hapticLight();
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
     refetchOfflineQueue();
     refetchRecentOnline();
   };
 
   const handleRefreshPending = () => {
-<<<<<<< HEAD
-=======
     // Provide haptic feedback when refresh is triggered
     hapticLight();
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
     refetchOperatorWorks();
     refetchMyWorks();
     refetchApprovals();
   };
 
   const handleRefreshCompleted = () => {
-<<<<<<< HEAD
-=======
     // Provide haptic feedback when refresh is triggered
     hapticLight();
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
     refetchApprovals();
     refetchMyApprovals();
   };
@@ -736,18 +707,10 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     >
       <div
         className={cn(
-<<<<<<< HEAD
-          "bg-bg-white-0 rounded-t-3xl shadow-2xl w-full overflow-hidden flex flex-col",
-          isClosing ? "modal-slide-exit" : "modal-slide-enter",
-          className
-        )}
-        style={{ height: "85vh", maxHeight: "85vh" }}
-=======
           "bg-bg-white-0 rounded-t-3xl shadow-2xl w-full overflow-hidden flex flex-col h-modal",
           isClosing ? "modal-slide-exit" : "modal-slide-enter",
           className
         )}
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
         onClick={(e) => e.stopPropagation()}
         onTouchStart={(e) => e.stopPropagation()}
         onTouchMove={(e) => e.stopPropagation()}

@@ -159,11 +159,7 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
       </div>
 
       {/* List */}
-<<<<<<< HEAD
-      <div className="flex-1 overflow-y-auto p-4">
-=======
       <div className="flex-1 overflow-y-auto overscroll-contain p-4">
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
         <ul className="flex flex-col gap-3">
           {drafts.map((draft) => (
             <li key={draft.id} className="cv-draft-card">

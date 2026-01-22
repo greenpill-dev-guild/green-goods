@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-import { toastService, type Garden } from "@green-goods/shared";
-=======
 import {
   copyToClipboard,
   hapticLight,
@@ -8,7 +5,6 @@ import {
   toastService,
   type Garden,
 } from "@green-goods/shared";
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
 import {
   isGardenMember,
   useAuth,
@@ -236,11 +232,8 @@ export const ProfileAccount: React.FC = () => {
    * Useful when users experience "weird behavior" after an update.
    */
   const handleRefreshApp = async () => {
-<<<<<<< HEAD
-=======
     // Provide haptic feedback when refresh button is pressed
     hapticLight();
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
       toastService.info({
         title: intl.formatMessage({
@@ -413,29 +406,6 @@ export const ProfileAccount: React.FC = () => {
               defaultMessage: "Install App",
             })}
           </h5>
-<<<<<<< HEAD
-          <Card>
-            <div className="flex flex-row items-center gap-3 justify-between w-full">
-              <Avatar>
-                <div className="flex items-center justify-center text-center mx-auto text-primary">
-                  <RiSmartphoneLine className="w-4" />
-                </div>
-              </Avatar>
-              <div className="flex flex-col gap-1 grow">
-                <div className="text-sm font-medium">
-                  {intl.formatMessage({
-                    id: "app.profile.installTitle",
-                    defaultMessage: "Install Green Goods",
-                  })}
-                </div>
-                <div className="text-xs text-text-sub-600">
-                  {deferredPrompt
-                    ? intl.formatMessage({
-                        id: "app.profile.installDescriptionPrompt",
-                        defaultMessage: "Install for the best experience with offline support.",
-                      })
-                    : platform === "ios"
-=======
 
           {/* Browser switch warning when in wrong browser or in-app browser */}
           {(guidance.scenario === "wrong-browser" || guidance.scenario === "in-app-browser") && (
@@ -449,7 +419,6 @@ export const ProfileAccount: React.FC = () => {
                 <div className="flex flex-col gap-1 grow">
                   <div className="text-sm font-medium text-warning-dark">
                     {guidance.scenario === "in-app-browser"
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
                       ? intl.formatMessage({
                           id: "app.profile.openInBrowser",
                           defaultMessage: "Open in Browser",
@@ -688,14 +657,6 @@ export const ProfileAccount: React.FC = () => {
             </div>
           ) : (
             <Card>
-<<<<<<< HEAD
-              <div className="flex flex-row items-center gap-3 justify-center w-full py-2">
-                <RiPlantLine className="w-5 text-text-soft-400" />
-                <span className="text-sm text-text-sub-600">
-                  {intl.formatMessage({
-                    id: "app.profile.noGardens",
-                    defaultMessage: "No gardens available",
-=======
               <div className="flex flex-col items-center gap-3 w-full py-4">
                 <RiPlantLine className="w-8 h-8 text-text-soft-400" />
                 <div className="text-center">
@@ -721,7 +682,6 @@ export const ProfileAccount: React.FC = () => {
                   label={intl.formatMessage({
                     id: "app.profile.discoverGardens",
                     defaultMessage: "Discover Gardens",
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
                   })}
                 />
               </div>

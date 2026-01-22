@@ -293,8 +293,6 @@
   .cv-member {
     content-visibility: auto;
     contain-intrinsic-size: auto 56px;
-<<<<<<< HEAD
-=======
   }
 
   /* ============================================
@@ -323,7 +321,6 @@
   .max-h-modal {
     max-height: calc(100vh - 2rem);
     max-height: calc(100dvh - 2rem);
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
   }
 
 }

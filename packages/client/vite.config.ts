@@ -52,14 +52,6 @@ export default defineConfig(({ mode }) => {
   const isIPFSBuild =
     rootEnv.VITE_USE_HASH_ROUTER === "true" || localEnv.VITE_USE_HASH_ROUTER === "true";
 
-<<<<<<< HEAD
-  // Skip mkcert in devcontainer (use HTTP instead of HTTPS)
-  const isDevContainer = process.env.DEVCONTAINER === "true";
-
-  const plugins = [
-    // Only use mkcert for HTTPS when not in devcontainer
-    ...(isDevContainer ? [] : [mkcert()]),
-=======
   // Skip mkcert in devcontainer, CI, or when SKIP_MKCERT is set
   // SKIP_MKCERT is useful when sudo is broken (e.g., "you do not exist in passwd database")
   const isDevContainer = process.env.DEVCONTAINER === "true";
@@ -69,7 +61,6 @@ export default defineConfig(({ mode }) => {
   const plugins = [
     // Only use mkcert for HTTPS when not in devcontainer, CI, or explicitly skipped
     ...(isDevContainer || isCI || skipMkcert ? [] : [mkcert()]),
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
     tailwindcss(),
     // React Compiler: Automatically optimizes components with memoization
     // Eliminates need for manual useMemo/useCallback in most cases

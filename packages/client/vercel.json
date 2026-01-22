@@ -3,8 +3,6 @@
   "buildCommand": "bun run build",
   "outputDirectory": "dist",
   "framework": "vite",
-<<<<<<< HEAD
-=======
   "headers": [
     {
       "source": "/sw.js",
@@ -52,7 +50,6 @@
       ]
     }
   ],
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
   "rewrites": [
     {
       "source": "/(.*)",

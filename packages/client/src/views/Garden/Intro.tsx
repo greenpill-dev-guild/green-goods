@@ -77,11 +77,7 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
             </div>
           )}
 
-<<<<<<< HEAD
-          {actionsStatus === "success" && activeActions.length === 0 && (
-=======
           {actionsStatus === "success" && actions.length > 0 && activeActions.length === 0 && (
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
             <div className="p-4 text-sm text-text-sub-600">
               {intl.formatMessage({
                 id: "app.garden.noActiveActions",
@@ -139,22 +135,8 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
           {gardens.length === 0 && gardensStatus === "success" && (
             <div className="p-4 text-sm text-text-sub-600">
               {intl.formatMessage({
-<<<<<<< HEAD
-                id: "app.garden.errorFetchingGardens",
-                defaultMessage: "Error fetching gardens. Please try again.",
-              })}
-            </div>
-          )}
-
-          {gardensStatus === "success" && gardens.length === 0 && (
-            <div className="p-4 text-sm text-text-sub-600">
-              {intl.formatMessage({
-                id: "app.garden.noGardensFound",
-                defaultMessage: "No gardens found.",
-=======
                 id: "app.garden.noGardensAvailable",
                 defaultMessage: "No gardens available. You may need to join a garden first.",
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
               })}
             </div>
           )}

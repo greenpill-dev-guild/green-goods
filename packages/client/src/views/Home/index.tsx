@@ -1,6 +1,7 @@
 import { toastService } from "@green-goods/shared";
 import {
   queryKeys,
+  useAuth,
   useBrowserNavigation,
   useFilteredGardens,
   useGardens,
@@ -13,18 +14,11 @@ import { useUIStore } from "@green-goods/shared/stores";
 import { cn } from "@green-goods/shared/utils";
 import { RiFilterLine } from "@remixicon/react";
 import { useQueryClient } from "@tanstack/react-query";
-<<<<<<< HEAD
-import { useEffect, useRef, useState } from "react";
-import { useIntl } from "react-intl";
-import { Outlet, useLocation } from "react-router-dom";
-
-=======
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation } from "react-router-dom";
 
 import { PullToRefresh } from "@/components/Inputs";
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
 import { GardenList } from "./GardenList";
 import { type GardenFiltersState, GardensFilterDrawer } from "./GardenFilters";
 import { WorkDashboardIcon } from "./WorkDashboard/Icon";
@@ -69,14 +63,6 @@ const Home: React.FC = () => {
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
 
-<<<<<<< HEAD
-  // Ref for scrolling to article on card click
-  const articleRef = useRef<HTMLElement>(null);
-
-  // Selected garden from URL
-  const selectedGardenId = location.pathname.split("/")[2];
-
-=======
   // Auth state for welcome message
   const { isAuthenticated } = useAuth();
   const hasShownWelcomeRef = useRef(false);
@@ -87,7 +73,6 @@ const Home: React.FC = () => {
   // Selected garden from URL
   const selectedGardenId = location.pathname.split("/")[2];
 
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
   // Reset loading state when navigating back to home
   useEffect(() => {
     if (location.pathname === "/home") {
@@ -102,15 +87,6 @@ const Home: React.FC = () => {
     }
   }, [location.pathname, closeGardenFilter]);
 
-<<<<<<< HEAD
-  // Handlers
-  const handleRetry = () => {
-    resetLoadingState();
-    queryClient.invalidateQueries({ queryKey: queryKeys.gardens.all });
-    refetch();
-  };
-
-=======
   // Show welcome message once for new users - points them to profile for garden discovery
   useEffect(() => {
     if (!isAuthenticated || hasShownWelcomeRef.current) return;
@@ -159,7 +135,6 @@ const Home: React.FC = () => {
     await refetch();
   }, [queryClient, refetch, resetLoadingState]);
 
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
   const handleCardClick = (id: string) => {
     navigate(`/home/${id}`);
     articleRef.current?.scrollIntoView();
@@ -182,9 +157,6 @@ const Home: React.FC = () => {
   return (
     <article ref={articleRef} className="mb-6">
       {location.pathname === "/home" && (
-<<<<<<< HEAD
-        <>
-=======
         <PullToRefresh
           onRefresh={handlePullToRefresh}
           isRefreshing={isFetching && !isPending}
@@ -194,7 +166,6 @@ const Home: React.FC = () => {
             defaultMessage: "Pull to refresh gardens",
           })}
         >
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
           <div className="flex items-center justify-between w-full py-6 px-4 sm:px-6 md:px-12">
             <h4 className="font-semibold flex-1">{intl.formatMessage({ id: "app.home" })}</h4>
             <div className="ml-4 flex items-center gap-2">
@@ -225,11 +196,7 @@ const Home: React.FC = () => {
               <WorkDashboardIcon />
             </div>
           </div>
-<<<<<<< HEAD
-          <div className="padded flex-1 flex flex-col gap-4 overflow-y-scroll overflow-x-hidden">
-=======
           <div className="padded flex flex-col gap-4">
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
             <GardenList
               gardens={filteredGardens}
               selectedGardenId={selectedGardenId}
@@ -255,11 +222,7 @@ const Home: React.FC = () => {
             myGardensCount={myGardensCount}
             isFilterActive={isFilterActive}
           />
-<<<<<<< HEAD
-        </>
-=======
         </PullToRefresh>
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
       )}
       <Outlet />
     </article>

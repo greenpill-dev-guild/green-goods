@@ -1,12 +1,5 @@
-<<<<<<< HEAD
-import type { Work } from "@green-goods/shared";
-import { useOffline, useUser } from "@green-goods/shared/hooks";
-import { useQueueFlush } from "@green-goods/shared/providers/JobQueue";
-import React from "react";
-=======
 import { hapticLight, type Work } from "@green-goods/shared";
 import React, { useState } from "react";
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
 import { useIntl } from "react-intl";
 
 import { useOffline, useUser } from "@green-goods/shared/hooks";
@@ -93,11 +86,7 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
           {uploadingCount > 0 &&
             (isOnline ? (
               <button
-<<<<<<< HEAD
-                className="text-sm text-primary font-medium px-3 py-1 rounded-lg border border-stroke-soft-200 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary active:border-primary active:scale-95 tap-feedback"
-=======
                 className="text-sm text-primary font-medium px-3 py-1 rounded-lg border border-stroke-soft-200 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary active:border-primary active:scale-95 tap-feedback disabled:opacity-50 disabled:cursor-not-allowed"
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
                 onClick={handleSyncAll}
                 disabled={isSyncing}
               >
@@ -175,11 +164,7 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
           </div>
         ) : uploadingWork.length === 0 ? (
           <div className="text-center py-12">
-<<<<<<< HEAD
-            <div className="text-4xl mb-3">✅</div>
-=======
             <div className="text-4xl mb-3">📋</div>
->>>>>>> dd9ace50c09ee19a814d3a577a020a847e5f9430
             <p className="font-medium text-text-strong-950">
               {intl.formatMessage({
                 id: "app.workDashboard.uploading.noRecentWork",
