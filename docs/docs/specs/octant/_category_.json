@@ -1,0 +1,8 @@
+{
+  "label": "Octant Vaults",
+  "position": 2,
+  "link": {
+    "type": "doc",
+    "id": "specs/octant/octant-overview"
+  }
+}
