@@ -31,9 +31,6 @@ jobs:
       - name: Setup Bun
         uses: ./.github/workflows/setup-bun-action
 
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
       - name: Build client
         run: bun run --filter '@green-goods/client' build
         env:
@@ -71,9 +68,6 @@ jobs:
 
       - name: Setup Bun
         uses: ./.github/workflows/setup-bun-action
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
 
       - name: Build admin
         run: bun run --filter '@green-goods/admin' build
