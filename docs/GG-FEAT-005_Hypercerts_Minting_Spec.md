@@ -653,6 +653,126 @@ interface OutcomeMetrics {
 - Attestation references provide complete provenance
 - Karma GAP creates additional audit trail
 
+### 5.5 Permission Model (Hats Protocol Integration)
+
+> **Key Insight:** Operator permission is checked twice - once via Envio (for UI gating), once on-chain via HatsModule (before mint transaction).
+
+**Permission Architecture:**
+
+```mermaid
+flowchart LR
+    subgraph UI["UI LAYER (Admin Dashboard)"]
+        A["Open Wizard"]
+        B["useRole Hook"]
+        C["Envio Query"]
+    end
+
+    subgraph OnChain["ON-CHAIN LAYER"]
+        D["HatsModule.isOperator()"]
+        E["HatsProtocol.isWearerOfHat()"]
+    end
+
+    A --> B
+    B --> C
+    C -->|"Garden.operators[]"| B
+    B -->|"isOperator=true"| A
+
+    A -->|"Before mint"| D
+    D --> E
+    E -->|"true"| F["Proceed with mint"]
+    E -->|"false"| G["Show error"]
+```
+
+**Dual Permission Check:**
+
+| Check | Location | Purpose | When |
+|-------|----------|---------|------|
+| Envio Query | `useRole` hook | UI gating (fast) | On wizard mount |
+| Hats On-chain | `HatsModule.isOperator()` | Authoritative validation | Before mint tx |
+
+**Code Reference:**
+```typescript
+// packages/shared/src/hooks/gardener/useRole.ts - EXISTING
+const { isOperator, operatorGardens } = useRole();
+
+// In useMintHypercert - BEFORE submitting UserOp
+const hatsModule = getContract({ address: HATS_MODULE, abi: HATS_MODULE_ABI });
+const isStillOperator = await hatsModule.read.isOperator([gardenAddress, userAddress]);
+if (!isStillOperator) throw new PermissionDeniedError('Operator role revoked');
+```
+
+**Failure Scenarios:**
+
+| Scenario | UI Behavior | User Action |
+|----------|-------------|-------------|
+| Not operator (Envio) | Show "Access Denied" page | Request operator role from garden owner |
+| Role revoked mid-session | Show error toast "Role revoked" | Contact garden owner |
+| Hats contract not configured | Fall back to Garden.operators check | N/A (transparent) |
+
+### 5.6 GreenGoodsResolver Integration
+
+> **Key Insight:** `MODULE_HYPERCERTS` is already reserved at `GreenGoodsResolver.sol:40`. After minting via HypercertMinter, the client calls GreenGoodsResolver to record the event.
+
+**Integration Architecture:**
+
+```mermaid
+sequenceDiagram
+    participant Client as Admin Dashboard
+    participant HCMinter as HypercertMinter<br/>(External)
+    participant GGResolver as GreenGoodsResolver
+    participant HCModule as HypercertsModule
+
+    Client->>HCMinter: createAllowlist(...)
+    HCMinter-->>Client: hypercertId
+
+    Note over Client: Extract hypercertId from tx logs
+
+    Client->>GGResolver: onHypercertMinted(<br/>garden, hypercertId,<br/>attestationUIDs, metadataUri)
+
+    alt MODULE_HYPERCERTS enabled
+        GGResolver->>HCModule: recordHypercert(...)
+        HCModule-->>GGResolver: success
+        GGResolver-->>Client: ModuleExecutionSuccess event
+    else MODULE_HYPERCERTS disabled
+        GGResolver-->>Client: (no-op)
+    end
+```
+
+**Module Lifecycle:**
+
+1. **Deploy:** `HypercertsModule.sol` deployed and initialized
+2. **Configure:** `GreenGoodsResolver.setHypercertsModule(address)`
+3. **Enable:** `GreenGoodsResolver.setModuleEnabled(MODULE_HYPERCERTS, true)`
+4. **Use:** Client calls `onHypercertMinted()` after successful mint
+
+**Contract Reference:**
+```solidity
+// GreenGoodsResolver.sol:40 - ALREADY RESERVED
+bytes32 public constant MODULE_HYPERCERTS = keccak256("HYPERCERTS");
+
+// NEW - Add to GreenGoodsResolver
+function onHypercertMinted(
+    address garden,
+    uint256 hypercertId,
+    bytes32[] calldata attestationUIDs,
+    string calldata metadataUri
+) external onlyAuthorized {
+    if (_enabledModules[MODULE_HYPERCERTS] && address(hypercertsModule) != address(0)) {
+        try hypercertsModule.recordHypercert(garden, hypercertId, attestationUIDs, metadataUri, msg.sender) {
+            emit ModuleExecutionSuccess(MODULE_HYPERCERTS, garden, bytes32(hypercertId));
+        } catch {
+            emit ModuleExecutionFailed(MODULE_HYPERCERTS, garden, bytes32(hypercertId));
+        }
+    }
+}
+```
+
+**Why This Pattern:**
+- **Isolation:** HypercertsModule failure doesn't affect HypercertMinter transaction
+- **Observability:** Events emitted for indexer to track module execution
+- **Upgradability:** Module can be upgraded independently via UUPS
+- **Feature flag:** Can disable without redeploying GreenGoodsResolver
+
 ---
 
 ## 6) Requirements (Grouped by Action + Cross-Cutting)
@@ -1177,21 +1297,35 @@ This provides stability for v1 while positioning for ATProtocol SDK adoption in 
 
 ## 13) Technical Decision: ATProtocol Compatibility
 
-### 13.1 Current State
+> ⚠️ **DEFERRED TO v1.5+**
+>
+> This section describes a **future migration path** that is NOT part of the v1 implementation scope.
+> The ATProtocol SDK is still in active development. v1 will use the proven onchain-first approach.
+>
+> **Decision:** Implement v1 without ATProtocol. Revisit when SDK reaches stable release.
+> **Owner:** @engineering
+> **Review Date:** Q3 2026
+
+### 13.1 Current State (As of January 2026)
 
 Hypercerts is transitioning from purely onchain to ATProtocol-based data layer:
 - EVM chains still supported (Arbitrum, Base, Optimism, Celo)
 - New ATProtocol SDK provides PDS/SDS storage with onchain anchoring
 - Lexicons defined for Activity, Contribution, Evaluation, Evidence, Measurement, Collection, Rights
 
-### 13.2 v1 Approach (Onchain-First)
+**Status:** SDK in beta, not production-ready for v1.
+
+### 13.2 v1 Approach (Onchain-First) ✅ CURRENT
 
 For v1, use current production infrastructure:
 - Mint to HypercertMinter on Arbitrum (proven, deployed)
-- Store metadata on IPFS
-- Index via Hypercerts Graph and Envio
+- Store metadata on IPFS via Storacha
+- Index via Envio (primary) and Hypercerts Graph (secondary)
+- Record in GreenGoodsResolver via HypercertsModule
 
-### 13.3 v1.5 Migration Path (Dual-Write)
+### 13.3 v1.5 Migration Path (Dual-Write) 🔮 FUTURE
+
+> **NOT FOR v1 IMPLEMENTATION** - Documenting for future planning only.
 
 When ATProtocol SDK stabilizes:
 1. Create ATProtocol Activity record for each Hypercert
@@ -1199,7 +1333,12 @@ When ATProtocol SDK stabilizes:
 3. Store extended metadata (SDGs, capitals) in ATProto hidden_properties
 4. Index from both sources
 
-### 13.4 Data Mapping
+**Prerequisites:**
+- ATProtocol SDK reaches 1.0 stable
+- Green Goods has ATProto PDS/SDS infrastructure
+- Migration tooling validated on testnet
+
+### 13.4 Data Mapping (Reference Only)
 
 | Green Goods Concept | Hypercerts ATProto Lexicon |
 | :---- | :---- |
@@ -1213,7 +1352,7 @@ When ATProtocol SDK stabilizes:
 | Outcome metrics | org.hypercerts.claim.measurement |
 | GreenWill badge | app.certified.badge.award |
 
-This mapping ensures minimal friction when migrating to ATProtocol in v1.5.
+This mapping ensures minimal friction when migrating to ATProtocol in v1.5+.
 
 ---
 
