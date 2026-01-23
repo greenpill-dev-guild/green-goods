@@ -1,0 +1,146 @@
+---
+description: Admin dashboard — overview, architecture, key patterns
+globs:
+  - "packages/admin/src/**/*"
+alwaysApply: false
+---
+
+# Admin Package
+
+Garden management and contract deployment dashboard.
+
+## Architecture
+
+```
+src/
+├── components/      # Admin UI components
+│   ├── Action/     # Action configuration
+│   ├── Assessment/ # Assessment workflow steps
+│   ├── Garden/     # Garden management
+│   └── Layout/     # Dashboard layout
+├── views/           # Main views (lazy-loaded)
+├── routes/          # Route guards (RequireRole, DashboardShell)
+├── config.ts        # Admin configuration
+└── router.tsx       # Route configuration
+```
+
+**Shared code lives in `@green-goods/shared`** — all hooks, providers, stores, and workflows.
+
+## Stack
+
+| Concern | Tool |
+|---------|------|
+| Framework | React 18 + Vite + TypeScript |
+| Styling | Tailwind CSS v4 + CSS variables |
+| Forms | React Hook Form + Zod |
+| State | TanStack Query + Zustand + XState (via shared) |
+| GraphQL | graphql-request (via shared) |
+
+## Role-Based Access
+
+Three user roles:
+- **Deployer (Admin):** Full access via allowlist
+- **Operator:** Garden-specific access via indexer
+- **User:** Unauthorized
+
+```typescript
+import { useRole } from "@green-goods/shared";
+
+const { role, isDeployer, isOperator, operatorGardens } = useRole();
+```
+
+## Critical Patterns
+
+### All Hooks from Shared
+
+```typescript
+// ✅ Correct
+import { useRole, useGardenOperations, useToastAction } from "@green-goods/shared";
+
+// ❌ Wrong
+import { useLocalHook } from "./hooks/useLocalHook";
+```
+
+### Toast for All Transactions
+
+```typescript
+import { useToastAction } from "@green-goods/shared";
+
+const { executeWithToast } = useToastAction();
+
+await executeWithToast(
+  () => writeContractAsync({/*...*/}),
+  {
+    loadingMessage: "Processing...",
+    successMessage: "Success!",
+    errorMessage: "Failed",
+  }
+);
+```
+
+### Permission Checks
+
+```typescript
+import { useGardenPermissions } from "@green-goods/shared";
+
+const permissions = useGardenPermissions();
+
+if (!permissions.canRemoveMembers(garden)) {
+  toast.error("Unauthorized");
+  return;
+}
+```
+
+### Semantic Design Tokens
+
+```typescript
+// ✅ Correct
+<div className="bg-bg-white text-text-strong border-stroke-soft">
+
+// ❌ Wrong
+<div className="bg-white dark:bg-gray-800">
+```
+
+## Routing
+
+Role-based route protection:
+
+```typescript
+<Route element={<RequireAuth />}>
+  <Route element={<DashboardShell />}>
+    {/* Admin-only */}
+    <Route element={<RequireDeployer />}>
+      <Route path="/deployment" element={<Deployment />} />
+    </Route>
+    
+    {/* Admin + Operator */}
+    <Route element={<RequireOperatorOrDeployer />}>
+      <Route path="/gardens" element={<Gardens />} />
+    </Route>
+  </Route>
+</Route>
+```
+
+## Deep Dive Rules
+
+| Topic | Rule File |
+|-------|-----------|
+| Access Control | `.cursor/rules/access-control.mdc` |
+| Component Workflows | `.cursor/rules/component-workflows.mdc` |
+| Testing | `.cursor/rules/testing.mdc` |
+
+## Shared Package Rules
+
+| Topic | Location |
+|-------|----------|
+| Design System | `shared/.cursor/rules/design-system.mdc` |
+| Hook Architecture | `shared/.cursor/rules/hook-architecture.mdc` |
+| State Patterns | `shared/.cursor/rules/state-patterns.mdc` |
+| Testing | `shared/.cursor/rules/testing-patterns.mdc` |
+| AppKit | `shared/.cursor/rules/appkit-integration.mdc` |
+| Imports | `shared/.cursor/rules/cross-package-imports.mdc` |
+
+## Reference
+
+- **AGENTS.md:** `/packages/admin/AGENTS.md`
+- **Shared:** `/packages/shared/AGENTS.md`

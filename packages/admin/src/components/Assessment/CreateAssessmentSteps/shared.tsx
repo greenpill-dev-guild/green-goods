@@ -5,7 +5,6 @@ import {
   type Control,
   type FieldError,
   type FieldErrorsImpl,
-  type Path,
   useFieldArray,
   useWatch,
 } from "react-hook-form";
@@ -44,7 +43,7 @@ const baseAssessmentSchema = z.object({
   endDate: z.string().trim().min(1, "End date is required"),
   location: z.string().trim().min(1, "Location is required"),
   tags: stringListSchema,
-  evidenceMedia: z.array(z.any()).optional().default([]),
+  evidenceMedia: z.array(z.instanceof(File)).optional().default([]),
 });
 
 export const createAssessmentSchema = baseAssessmentSchema.superRefine((data, ctx) => {
@@ -105,12 +104,8 @@ export const createAssessmentSchema = baseAssessmentSchema.superRefine((data, ct
   }
 });
 
-type CreateAssessmentFormValues = z.infer<typeof createAssessmentSchema>;
-
-export type CreateAssessmentForm = CreateAssessmentFormValues & {
-  evidenceMedia: File[];
-  metrics: string;
-};
+// Use the base schema for type inference to avoid superRefine complexity
+export type CreateAssessmentForm = z.infer<typeof baseAssessmentSchema>;
 
 export function createDefaultAssessmentForm(): CreateAssessmentForm {
   return {
@@ -165,9 +160,12 @@ export const textareaClassName = (error?: FieldError) =>
     error && "border-red-300 focus:border-red-400 focus:ring-red-100/60"
   );
 
-interface ArrayInputProps<TName extends Path<CreateAssessmentFormValues>> {
-  control: Control<CreateAssessmentFormValues>;
-  name: TName;
+/** String array field names in CreateAssessmentForm */
+type StringArrayFieldName = "tags" | "reportDocuments" | "impactAttestations" | "capitals";
+
+interface ArrayInputProps {
+  control: Control<CreateAssessmentForm>;
+  name: StringArrayFieldName;
   label: string;
   placeholder?: string;
   helper?: string;
@@ -179,7 +177,7 @@ interface ArrayInputProps<TName extends Path<CreateAssessmentFormValues>> {
   transformValue?: (value: string) => string;
 }
 
-export function ArrayInput<TName extends Path<CreateAssessmentFormValues>>({
+export function ArrayInput({
   control,
   name,
   label,
@@ -191,12 +189,12 @@ export function ArrayInput<TName extends Path<CreateAssessmentFormValues>>({
   disabled,
   error,
   transformValue,
-}: ArrayInputProps<TName>) {
+}: ArrayInputProps) {
   const { fields, append, remove } = useFieldArray({
-    control: control as any,
+    control,
     name,
   });
-  const values = (useWatch({ control, name }) as string[] | undefined) ?? [];
+  const values = useWatch({ control, name }) ?? [];
   const [inputValue, setInputValue] = useState("");
 
   const handleAdd = () => {
@@ -204,7 +202,7 @@ export function ArrayInput<TName extends Path<CreateAssessmentFormValues>>({
     if (!trimmed) {
       return;
     }
-    append(transformValue ? transformValue(trimmed) : (trimmed as any));
+    append(transformValue ? transformValue(trimmed) : trimmed);
     setInputValue("");
   };
 
@@ -262,6 +260,7 @@ export function ArrayInput<TName extends Path<CreateAssessmentFormValues>>({
                   onClick={() => remove(index)}
                   disabled={disabled}
                   className="rounded-md p-1 text-red-500 transition hover:bg-red-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  // eslint-disable-next-line jsx-a11y/aria-proptypes
                   aria-label={`Remove ${label.toLowerCase()} entry`}
                 >
                   <RiDeleteBinLine className="h-4 w-4" />

@@ -83,7 +83,7 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
           className={cn(
             "flex items-center justify-center gap-1.5 text-sm font-medium transition-all duration-200 relative flex-1 min-w-0 tap-feedback",
             variant === "compact" ? "py-2.5" : "py-3",
-            activeTab === tab.id ? "text-primary bg-slate-50" : "text-slate-600",
+            activeTab === tab.id ? "text-primary bg-bg-weak-50" : "text-text-sub-600",
             tab.disabled && "opacity-50 cursor-not-allowed",
             triggerClassName
           )}
@@ -110,7 +110,7 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
           {activeTab === tab.id && (
             <div className="absolute bottom-0 left-0 right-0 h-0.5">
               {isLoading ? (
-                <div className="w-full h-full bg-slate-200">
+                <div className="w-full h-full bg-bg-soft-200">
                   <div
                     className="h-full bg-primary animate-[standardTabLoading_2s_ease-in-out_infinite]"
                     style={{

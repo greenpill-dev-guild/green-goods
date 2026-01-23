@@ -2,6 +2,8 @@
 
 Platform-agnostic bot for Green Goods. Currently supports Telegram, with architecture designed for Discord and WhatsApp.
 
+📖 **[Agent Documentation](https://docs.greengoods.app/developer/architecture/telegram-bot)** — Complete bot architecture and deployment guide
+
 ## Quick Start
 
 ```bash
@@ -58,6 +60,11 @@ BOT_MODE=polling              # or "webhook" (default: polling in dev)
 PORT=3000                     # HTTP server port
 WEBHOOK_URL=https://...       # Required for webhook mode
 DB_PATH=data/agent.db         # SQLite database path
+
+# Analytics (optional, enabled in production)
+POSTHOG_AGENT_KEY=phc_...     # PostHog API key from https://posthog.com
+POSTHOG_HOST=https://us.i.posthog.com  # PostHog host
+ANALYTICS_ENABLED=true        # Enable/disable analytics
 ```
 
 ## Commands
@@ -100,6 +107,7 @@ bun run typecheck    # TypeScript type check
 - **Rate Limiting**: Sliding window per action type
 - **On-Chain Verification**: Operator roles verified against smart contracts
 - **Input Validation**: Address and key format validation
+- **Analytics Privacy**: User IDs are hashed before sending to PostHog (no raw Telegram IDs stored)
 
 ### Rate Limits
 
@@ -118,6 +126,7 @@ bun run typecheck    # TypeScript type check
 bun test
 
 # Test files:
+# - analytics.test.ts  (30+ tests) - PostHog analytics integration
 # - crypto.test.ts     (25 tests) - Encryption & validation
 # - rate-limiter.test.ts (18 tests) - Rate limiting
 # - handlers.test.ts   (15 tests) - Command handlers
@@ -145,4 +154,6 @@ See [AGENTS.md](./AGENTS.md) for detailed architecture documentation including:
 - [ ] Configure webhook URL with TLS
 - [ ] Consider HSM/KMS for key storage
 - [ ] Set up monitoring for `/health` endpoint
+- [ ] Configure `POSTHOG_AGENT_KEY` for analytics
+- [ ] Review analytics events in PostHog dashboard
 

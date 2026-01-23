@@ -1,12 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, act } from "@testing-library/react";
-import { IntlProvider } from "react-intl";
+import { act, renderHook } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
-import { useToastAction } from "@/hooks/useToastAction";
-import { toastService } from "@/toast";
-import enMessages from "@/i18n/en.json";
+import { IntlProvider } from "react-intl";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { toastService } from "../../components/toast";
+import { useToastAction } from "../../hooks/app/useToastAction";
+import enMessages from "../../i18n/en.json";
 
-vi.mock("@/toast", () => ({
+vi.mock("../../components/toast", () => ({
   toastService: {
     loading: vi.fn(),
     success: vi.fn(),
@@ -105,7 +105,7 @@ describe("useToastAction", () => {
     });
     expect(toastService.success).toHaveBeenCalledWith({
       id: "toast-id",
-      message: "Action completed successfully",
+      message: "All set.",
       title: undefined,
       context: undefined,
       duration: 3000,
@@ -125,7 +125,7 @@ describe("useToastAction", () => {
 
     expect(toastService.success).toHaveBeenCalledWith({
       id: "toast-id",
-      message: "Action completed successfully",
+      message: "All set.",
       title: undefined,
       context: undefined,
       duration: 5000,

@@ -10,6 +10,55 @@ alwaysApply: false
 
 Admin dashboard uses modal-based workflows for garden management. This rule documents modal patterns, form validation, and toast notification conventions.
 
+## Dialog & Popover Standards
+
+### When to Use What
+
+**Native Popover (`popover="hint"`)** - Tooltips only
+- Address displays (see `AddressDisplay.tsx`)
+- Info icon hints
+- Non-critical supplementary information
+
+**Radix Dialog (Standard)** - All modals and forms
+- Member management (`AddMemberModal`, `MembersModal`)
+- Garden creation forms
+- Confirmation dialogs
+- Any modal interaction with forms or multiple steps
+
+**Migration Note:** Admin package currently uses custom div-based modals. Future work should migrate to Radix Dialog for better accessibility and consistency. See `/docs/developer/dialog-popover-migration.md`.
+
+### Radix Dialog Pattern (Recommended)
+
+```typescript
+import * as Dialog from "@radix-ui/react-dialog";
+
+<Dialog.Root>
+  <Dialog.Trigger asChild>
+    <button>Add Member</button>
+  </Dialog.Trigger>
+  
+  <Dialog.Portal>
+    <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" />
+    <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-2xl p-6 max-w-md w-full z-50">
+      <Dialog.Title>Add Member</Dialog.Title>
+      <form onSubmit={handleSubmit}>
+        {/* Form fields */}
+      </form>
+      <Dialog.Close asChild>
+        <button aria-label="Close">✕</button>
+      </Dialog.Close>
+    </Dialog.Content>
+  </Dialog.Portal>
+</Dialog.Root>
+```
+
+**Benefits over custom modals:**
+- Complete ARIA support
+- Focus management built-in
+- Animation primitives
+- Portal rendering
+- Composable API
+
 ## Modal Workflow Pattern
 
 ### CreateGardenModal

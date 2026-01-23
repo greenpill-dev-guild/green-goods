@@ -1,20 +1,20 @@
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import {
+  Capital,
+  type Action,
+  type ActionInstructionConfig,
+  type Garden,
+  type GardenerCard,
+  type WorkInput,
+} from "../../types/domain";
 import { greenGoodsGraphQL } from "./graphql";
-import { getFileByHash, resolveIPFSUrl } from "./pinata";
-import { greenGoodsIndexer } from "./urql";
+import { greenGoodsIndexer } from "./graphql-client";
+import { getFileByHash, resolveIPFSUrl } from "./ipfs";
 
 const GATEWAY_BASE_URL = "https://w3s.link";
 
-export enum Capital {
-  SOCIAL = 0,
-  MATERIAL = 1,
-  FINANCIAL = 2,
-  LIVING = 3,
-  INTELLECTUAL = 4,
-  EXPERIENTIAL = 5,
-  SPIRITUAL = 6,
-  CULTURAL = 7,
-}
+// Re-export Capital for backward compatibility
+export { Capital };
 
 /** Fetches action definitions from the indexer and enriches media + UI config. */
 export async function getActions(): Promise<Action[]> {
@@ -36,7 +36,7 @@ export async function getActions(): Promise<Action[]> {
       }
     `);
 
-    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }).toPromise();
+    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }, "getActions");
 
     if (error) {
       console.error("[getActions] Indexer query failed:", error.message);
@@ -54,7 +54,7 @@ export async function getActions(): Promise<Action[]> {
               ? media.map((cid: string) => resolveIPFSUrl(cid, GATEWAY_BASE_URL))
               : [];
 
-          // Fetch action instructions from IPFS using existing pinata module
+          // Fetch action instructions from IPFS using Storacha module
           let actionConfig: ActionInstructionConfig | null = null;
           try {
             if (instructions) {
@@ -126,12 +126,13 @@ export async function getGardens(): Promise<Garden[]> {
           bannerImage
           gardeners
           operators
+          openJoining
           createdAt
         }
       }
     `);
 
-    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }).toPromise();
+    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }, "getGardens");
 
     if (error) {
       console.error("[getGardens] Indexer query failed:", error.message);
@@ -141,9 +142,15 @@ export async function getGardens(): Promise<Garden[]> {
     if (!data || !data.Garden || !Array.isArray(data.Garden)) return [];
 
     return data.Garden.map((garden) => {
-      const bannerImage = garden.bannerImage
-        ? resolveIPFSUrl(garden.bannerImage, GATEWAY_BASE_URL)
-        : "/images/no-image-placeholder.png";
+      // DIRTY FIX: Override Octant Community Garden banner until indexer is updated
+      const OCTANT_BANNER_OVERRIDE = "bafkreihslrqy363mkr4kn5skr56zcazyvikldosy433p6e5okxyxxjdyuy";
+      const isOctantGarden = garden.name === "Octant Community Garden";
+
+      const bannerImage = isOctantGarden
+        ? resolveIPFSUrl(OCTANT_BANNER_OVERRIDE, GATEWAY_BASE_URL)
+        : garden.bannerImage
+          ? resolveIPFSUrl(garden.bannerImage, GATEWAY_BASE_URL)
+          : "/images/no-image-placeholder.png";
 
       return {
         id: garden.id,
@@ -156,6 +163,7 @@ export async function getGardens(): Promise<Garden[]> {
         bannerImage,
         gardeners: garden.gardeners || [],
         operators: garden.operators || [],
+        openJoining: Boolean(garden.openJoining),
         assessments: [],
         works: [],
         createdAt: garden.createdAt ? (garden.createdAt as number) * 1000 : Date.now(),
@@ -178,12 +186,11 @@ export async function getGardeners(): Promise<GardenerCard[]> {
           chainId
           createdAt
           firstGarden
-          joinedVia
         }
       }
     `);
 
-    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }).toPromise();
+    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }, "getGardeners");
 
     if (error) {
       console.error("[getGardeners] Indexer query failed:", error.message);
@@ -213,7 +220,9 @@ export async function updateUserProfile(
   customMetadata: Record<string, unknown>,
   accessToken?: string
 ) {
-  const apiBase = import.meta.env.DEV ? "http://localhost:3000" : "https://api.greengoods.app";
+  const apiBase =
+    import.meta.env.VITE_API_BASE_URL ||
+    (import.meta.env.DEV ? "http://localhost:3000" : "https://api.greengoods.app");
   const res = await fetch(`${apiBase}/users/me`, {
     method: "PATCH",
     credentials: "include",

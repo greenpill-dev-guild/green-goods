@@ -22,26 +22,26 @@ export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className 
 
   // Determine primary icon and styling based on status priority
   let primaryIcon: React.ReactNode;
-  let iconColor = "text-slate-500";
-  let bgColor = "bg-white";
-  let borderColor = "border-slate-200";
+  let iconColor = "text-text-sub-600";
+  let bgColor = "bg-bg-white-0";
+  let borderColor = "border-stroke-soft-200";
 
   if (isSyncing) {
     primaryIcon = (
       <RiLoader4Line className="w-4 h-4 animate-spin focus:text-blue-700 active:text-blue-700" />
     );
-    iconColor = "text-slate-500";
+    iconColor = "text-text-sub-600";
   } else if (!isOnline) {
     primaryIcon = (
       <RiCloudOffLine className="w-4 h-4 focus:text-orange-700 active:text-orange-700" />
     );
-    iconColor = "text-slate-500";
+    iconColor = "text-text-sub-600";
   } else if (hasPendingItems) {
     primaryIcon = <RiTaskLine className="w-4 h-4 focus:text-emerald-700 active:text-emerald-700" />;
-    iconColor = "text-slate-500";
+    iconColor = "text-text-sub-600";
   } else {
     primaryIcon = <RiTaskLine className="w-4 h-4 focus:text-emerald-700 active:text-emerald-700" />;
-    iconColor = "text-slate-500";
+    iconColor = "text-text-sub-600";
   }
 
   // Dashboard state and handlers
@@ -70,7 +70,7 @@ export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className 
           id: "app.workDashboard.openButton",
           defaultMessage: "Open work dashboard",
         })}
-        data-testid="work-dashboard-icon"
+        data-testid="work-dashboard-button"
       >
         {primaryIcon}
 

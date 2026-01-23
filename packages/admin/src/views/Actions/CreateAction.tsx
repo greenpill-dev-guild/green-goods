@@ -7,6 +7,7 @@ import {
   uploadFileToIPFS,
 } from "@green-goods/shared";
 import { useActionOperations } from "@green-goods/shared/hooks";
+import { debugError } from "@green-goods/shared/utils/debug";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -17,10 +18,18 @@ import { FormWizard } from "@/components/Form/FormWizard";
 import type { Step } from "@/components/Form/StepIndicator";
 import { FileUploadField } from "@/components/FileUploadField";
 
+const instructionInputSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  label: z.string(),
+  placeholder: z.string().optional(),
+  required: z.boolean().optional(),
+});
+
 const createActionSchema = z.object({
   title: z.string().min(1, "Title is required"),
-  startTime: z.date(),
-  endTime: z.date(),
+  startTime: z.coerce.date(),
+  endTime: z.coerce.date(),
   capitals: z.array(z.number()).min(1, "Select at least one capital"),
   media: z.array(z.instanceof(File)).min(1, "At least one image required"),
   instructionConfig: z.object({
@@ -39,7 +48,7 @@ const createActionSchema = z.object({
         title: z.string(),
         description: z.string(),
         feedbackPlaceholder: z.string(),
-        inputs: z.array(z.any()),
+        inputs: z.array(instructionInputSchema),
       }),
       review: z.object({
         title: z.string(),
@@ -64,8 +73,7 @@ export default function CreateAction() {
   const [currentStep, setCurrentStep] = useState(0);
 
   const form = useForm<CreateActionForm>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(createActionSchema as any) as any,
+    resolver: zodResolver(createActionSchema),
     defaultValues: {
       title: "",
       startTime: new Date(),
@@ -109,7 +117,7 @@ export default function CreateAction() {
 
       navigate("/actions");
     } catch (error) {
-      console.error("Failed to create action:", error);
+      debugError("Failed to create action:", error);
       toastService.error({ title: "Failed to create action" });
     }
   };
@@ -120,8 +128,14 @@ export default function CreateAction() {
         return (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-text-strong mb-2">Title</label>
+              <label
+                htmlFor="create-action-title"
+                className="block text-sm font-medium text-text-strong mb-2"
+              >
+                Title
+              </label>
               <input
+                id="create-action-title"
                 {...form.register("title")}
                 type="text"
                 className="w-full rounded-md border border-stroke-soft px-3 py-2"
@@ -135,8 +149,14 @@ export default function CreateAction() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-text-strong mb-2">Start Date</label>
+              <label
+                htmlFor="create-action-starttime"
+                className="block text-sm font-medium text-text-strong mb-2"
+              >
+                Start Date
+              </label>
               <input
+                id="create-action-starttime"
                 {...form.register("startTime", { valueAsDate: true })}
                 type="date"
                 className="w-full rounded-md border border-stroke-soft px-3 py-2"
@@ -149,8 +169,14 @@ export default function CreateAction() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-text-strong mb-2">End Date</label>
+              <label
+                htmlFor="create-action-endtime"
+                className="block text-sm font-medium text-text-strong mb-2"
+              >
+                End Date
+              </label>
               <input
+                id="create-action-endtime"
                 {...form.register("endTime", { valueAsDate: true })}
                 type="date"
                 className="w-full rounded-md border border-stroke-soft px-3 py-2"
@@ -180,13 +206,19 @@ export default function CreateAction() {
         return (
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-text-strong mb-2">
+              <label
+                htmlFor="create-action-capitals"
+                className="block text-sm font-medium text-text-strong mb-2"
+              >
                 Forms of Capital <span className="text-error-base">*</span>
               </label>
               <p className="text-xs text-text-soft mb-3">
                 Select the forms of capital associated with this action
               </p>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <fieldset
+                id="create-action-capitals"
+                className="grid grid-cols-2 gap-2 sm:grid-cols-4"
+              >
                 {CAPITALS_OPTIONS.map((capital) => {
                   const isChecked = capitals.includes(capital.value);
                   return (
@@ -195,8 +227,8 @@ export default function CreateAction() {
                       className={cn(
                         "flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2.5 text-sm transition",
                         isChecked
-                          ? "border-green-500 bg-green-50 text-green-700"
-                          : "border-stroke-soft bg-bg-white text-text-sub hover:border-green-300 hover:bg-green-50/5"
+                          ? "border-success-base bg-success-lighter text-success-dark"
+                          : "border-stroke-soft bg-bg-white text-text-sub hover:border-success-light hover:bg-success-lighter/30"
                       )}
                     >
                       <input
@@ -208,13 +240,13 @@ export default function CreateAction() {
                             : capitals.filter((c) => c !== capital.value);
                           form.setValue("capitals", newCapitals);
                         }}
-                        className="h-4 w-4 rounded border-stroke-sub text-green-600 focus:ring-2 focus:ring-green-200 focus:ring-offset-0"
+                        className="h-4 w-4 rounded border-stroke-sub text-success-base focus:ring-2 focus:ring-success-light focus:ring-offset-0"
                       />
                       <span className="flex-1 truncate font-medium">{capital.label}</span>
                     </label>
                   );
                 })}
-              </div>
+              </fieldset>
               {form.formState.errors.capitals && (
                 <p className="text-error-base text-sm mt-1">
                   {form.formState.errors.capitals.message}
@@ -223,10 +255,14 @@ export default function CreateAction() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-text-strong mb-2">
+              <label
+                htmlFor="create-action-media"
+                className="block text-sm font-medium text-text-strong mb-2"
+              >
                 Media (Images)
               </label>
               <FileUploadField
+                id="create-action-media"
                 currentFiles={form.watch("media")}
                 onFilesChange={(files: File[]) => form.setValue("media", files)}
                 onRemoveFile={(index: number) => {
@@ -254,10 +290,14 @@ export default function CreateAction() {
         return (
           <div>
             <div className="mb-4">
-              <label className="block text-sm font-medium text-text-strong mb-2">
+              <label
+                htmlFor="create-action-template"
+                className="block text-sm font-medium text-text-strong mb-2"
+              >
                 Start from a template (optional)
               </label>
               <select
+                id="create-action-template"
                 onChange={(e) => {
                   if (e.target.value) {
                     form.setValue("instructionConfig", instructionTemplates[e.target.value]);

@@ -1,0 +1,232 @@
+// SPDX-License-Identifier: MIT
+// solhint-disable one-contract-per-file
+pragma solidity ^0.8.25;
+
+import { Test } from "forge-std/Test.sol";
+import { IGardenAccessControl } from "../../src/interfaces/IGardenAccessControl.sol";
+import { IGardenAccount } from "../../src/interfaces/IGardenAccount.sol";
+import { GardenAccount } from "../../src/accounts/Garden.sol";
+import { AccountGuardian } from "@tokenbound/AccountGuardian.sol";
+import { ERC6551Registry } from "erc6551/ERC6551Registry.sol";
+import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+
+/// @notice Mock ERC721 for testing
+contract MockGardenNFT is ERC721 {
+    uint256 private _tokenIdCounter;
+
+    constructor() ERC721("MockGarden", "GARDEN") { }
+
+    function mint(address to) external returns (uint256) {
+        uint256 tokenId = _tokenIdCounter++;
+        _mint(to, tokenId);
+        return tokenId;
+    }
+}
+
+/// @title GardenAccessControlTest
+/// @notice Tests for IGardenAccessControl interface implementation in GardenAccount
+contract GardenAccessControlTest is Test {
+    GardenAccount public gardenAccountImpl;
+    GardenAccount public gardenAccount;
+    MockGardenNFT public gardenNFT;
+    ERC6551Registry public registry;
+    AccountGuardian public guardian;
+
+    address public owner;
+    address public operator1;
+    address public gardener1;
+    address public gardener2;
+    address public randomUser;
+
+    // Mock addresses for constructor
+    address constant ENTRY_POINT = address(0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789);
+    address constant MULTICALL = address(0xcA11bde05977b3631167028862bE2a173976CA11);
+    address constant WORK_RESOLVER = address(0x1111);
+    address constant ASSESSMENT_RESOLVER = address(0x2222);
+
+    function setUp() public {
+        owner = address(this);
+        operator1 = address(0x100);
+        gardener1 = address(0x200);
+        gardener2 = address(0x300);
+        randomUser = address(0x400);
+
+        // Deploy dependencies
+        guardian = new AccountGuardian(owner);
+        registry = new ERC6551Registry();
+        gardenNFT = new MockGardenNFT();
+
+        // Deploy GardenAccount implementation
+        gardenAccountImpl = new GardenAccount(
+            ENTRY_POINT, MULTICALL, address(registry), address(guardian), WORK_RESOLVER, ASSESSMENT_RESOLVER
+        );
+
+        // Mint NFT and create TBA
+        uint256 tokenId = gardenNFT.mint(owner);
+        address tbaAddress =
+            registry.createAccount(address(gardenAccountImpl), bytes32(0), block.chainid, address(gardenNFT), tokenId);
+        gardenAccount = GardenAccount(payable(tbaAddress));
+
+        // Initialize garden
+        address[] memory initialGardeners = new address[](1);
+        initialGardeners[0] = gardener1;
+        address[] memory initialOperators = new address[](1);
+        initialOperators[0] = operator1;
+
+        IGardenAccount.InitParams memory params = IGardenAccount.InitParams({
+            communityToken: address(0),
+            name: "Test Garden",
+            description: "A test garden",
+            location: "Test Location",
+            bannerImage: "",
+            metadata: "",
+            openJoining: false,
+            gardeners: initialGardeners,
+            gardenOperators: initialOperators
+        });
+
+        gardenAccount.initialize(params);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // IGardenAccessControl Interface Tests
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_isGardener_returnsTrueForGardener() public {
+        IGardenAccessControl accessControl = IGardenAccessControl(address(gardenAccount));
+        assertTrue(accessControl.isGardener(gardener1), "gardener1 should be a gardener");
+    }
+
+    function test_isGardener_returnsFalseForInitializer() public {
+        // The initializer (owner via TBA) is NOT automatically added as gardener
+        // NFT owner is only an operator, not a gardener (can add themselves if needed)
+        IGardenAccessControl accessControl = IGardenAccessControl(address(gardenAccount));
+        assertFalse(accessControl.isGardener(owner), "owner should NOT be a gardener (only operator)");
+    }
+
+    function test_isGardener_returnsFalseForNonGardener() public {
+        IGardenAccessControl accessControl = IGardenAccessControl(address(gardenAccount));
+        assertFalse(accessControl.isGardener(randomUser), "randomUser should not be a gardener");
+    }
+
+    function test_isOperator_returnsTrueForOperator() public {
+        IGardenAccessControl accessControl = IGardenAccessControl(address(gardenAccount));
+        assertTrue(accessControl.isOperator(operator1), "operator1 should be an operator");
+    }
+
+    function test_isOperator_returnsTrueForInitializer() public {
+        // The initializer is automatically added as operator
+        IGardenAccessControl accessControl = IGardenAccessControl(address(gardenAccount));
+        assertTrue(accessControl.isOperator(owner), "owner should be an operator (initializer)");
+    }
+
+    function test_isOperator_returnsFalseForNonOperator() public {
+        IGardenAccessControl accessControl = IGardenAccessControl(address(gardenAccount));
+        assertFalse(accessControl.isOperator(gardener1), "gardener1 should not be an operator");
+        assertFalse(accessControl.isOperator(randomUser), "randomUser should not be an operator");
+    }
+
+    function test_isOwner_returnsTrueForNFTOwner() public {
+        IGardenAccessControl accessControl = IGardenAccessControl(address(gardenAccount));
+        assertTrue(accessControl.isOwner(owner), "NFT owner should be the garden owner");
+    }
+
+    function test_isOwner_returnsFalseForNonOwner() public {
+        IGardenAccessControl accessControl = IGardenAccessControl(address(gardenAccount));
+        assertFalse(accessControl.isOwner(operator1), "operator should not be owner");
+        assertFalse(accessControl.isOwner(gardener1), "gardener should not be owner");
+        assertFalse(accessControl.isOwner(randomUser), "randomUser should not be owner");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Role Changes Reflected in Interface
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_isGardener_updatesAfterAddGardener() public {
+        IGardenAccessControl accessControl = IGardenAccessControl(address(gardenAccount));
+
+        // Initially not a gardener
+        assertFalse(accessControl.isGardener(gardener2), "gardener2 should not be a gardener initially");
+
+        // Add gardener2 (operator1 can add gardeners)
+        vm.prank(operator1);
+        gardenAccount.addGardener(gardener2);
+
+        // Now should be a gardener
+        assertTrue(accessControl.isGardener(gardener2), "gardener2 should be a gardener after adding");
+    }
+
+    function test_isGardener_updatesAfterRemoveGardener() public {
+        IGardenAccessControl accessControl = IGardenAccessControl(address(gardenAccount));
+
+        // Initially a gardener
+        assertTrue(accessControl.isGardener(gardener1), "gardener1 should be a gardener initially");
+
+        // Remove gardener1 (operator1 can remove gardeners)
+        vm.prank(operator1);
+        gardenAccount.removeGardener(gardener1);
+
+        // Now should not be a gardener
+        assertFalse(accessControl.isGardener(gardener1), "gardener1 should not be a gardener after removal");
+    }
+
+    function test_isOperator_updatesAfterAddOperator() public {
+        IGardenAccessControl accessControl = IGardenAccessControl(address(gardenAccount));
+        address newOperator = address(0x500);
+
+        // Initially not an operator
+        assertFalse(accessControl.isOperator(newOperator), "newOperator should not be an operator initially");
+
+        // Add operator (operator1 can add operators)
+        vm.prank(operator1);
+        gardenAccount.addGardenOperator(newOperator);
+
+        // Now should be an operator
+        assertTrue(accessControl.isOperator(newOperator), "newOperator should be an operator after adding");
+    }
+
+    function test_isOperator_updatesAfterRemoveOperator() public {
+        IGardenAccessControl accessControl = IGardenAccessControl(address(gardenAccount));
+
+        // Initially an operator
+        assertTrue(accessControl.isOperator(operator1), "operator1 should be an operator initially");
+
+        // Remove operator1 (only owner can remove operators)
+        gardenAccount.removeGardenOperator(operator1);
+
+        // Now should not be an operator
+        assertFalse(accessControl.isOperator(operator1), "operator1 should not be an operator after removal");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Interface Compatibility
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_gardenAccount_implementsIGardenAccessControl() public {
+        // This test verifies that GardenAccount can be cast to IGardenAccessControl
+        IGardenAccessControl accessControl = IGardenAccessControl(address(gardenAccount));
+
+        // All interface methods should work without reverting
+        accessControl.isGardener(owner);
+        accessControl.isOperator(owner);
+        accessControl.isOwner(owner);
+    }
+
+    function test_interfaceMethodsMatchMappings() public {
+        IGardenAccessControl accessControl = IGardenAccessControl(address(gardenAccount));
+
+        // isGardener should match gardeners mapping
+        assertEq(
+            accessControl.isGardener(gardener1),
+            gardenAccount.gardeners(gardener1),
+            "isGardener should match gardeners mapping"
+        );
+
+        // isOperator should match gardenOperators mapping
+        assertEq(
+            accessControl.isOperator(operator1),
+            gardenAccount.gardenOperators(operator1),
+            "isOperator should match gardenOperators mapping"
+        );
+    }
+}

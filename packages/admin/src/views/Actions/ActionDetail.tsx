@@ -1,4 +1,4 @@
-import { DEFAULT_CHAIN_ID } from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID, formatDateTime } from "@green-goods/shared";
 import { useActions } from "@green-goods/shared/hooks";
 import { RiEditLine } from "@remixicon/react";
 import { Link, useParams } from "react-router-dom";
@@ -62,13 +62,13 @@ export default function ActionDetail() {
               <div>
                 <dt className="text-sm text-text-soft">Start Time</dt>
                 <dd className="text-sm font-medium text-text-strong">
-                  {new Date(action.startTime).toLocaleString()}
+                  {formatDateTime(action.startTime)}
                 </dd>
               </div>
               <div>
                 <dt className="text-sm text-text-soft">End Time</dt>
                 <dd className="text-sm font-medium text-text-strong">
-                  {new Date(action.endTime).toLocaleString()}
+                  {formatDateTime(action.endTime)}
                 </dd>
               </div>
               <div>

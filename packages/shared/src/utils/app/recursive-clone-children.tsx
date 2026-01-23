@@ -13,8 +13,7 @@ import * as React from "react";
  */
 export function recursiveCloneChildren(
   children: React.ReactNode,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  additionalProps: any,
+  additionalProps: Record<string, unknown>,
   displayNames: string[],
   uniqueId: string,
   asChild?: boolean

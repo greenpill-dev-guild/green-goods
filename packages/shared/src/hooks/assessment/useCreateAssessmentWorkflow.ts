@@ -1,9 +1,9 @@
-import { EAS, SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
+import { EAS, SchemaEncoder, type Transaction } from "@ethereum-attestation-service/eas-sdk";
 import { useMachine } from "@xstate/react";
-import { ethers } from "ethers";
+import { ethers, type Eip1193Provider } from "ethers";
 import { useAccount } from "wagmi";
 import { getEASConfig } from "../../config/blockchain";
-import { uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/pinata";
+import { uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/ipfs";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { createAssessmentMachine } from "../../workflows/createAssessment";
@@ -67,15 +67,15 @@ export function useCreateAssessmentWorkflow() {
       }
 
       const params = state.context.assessmentParams;
-      const eas = new EAS("0x4200000000000000000000000000000000000021");
+      const eas = new EAS(contracts.eas);
       // Connect EAS SDK with the wallet's provider
       if (!connector) {
         throw new Error("No wallet connector found");
       }
       const provider = await connector.getProvider();
 
-      // Create ethers provider from raw provider
-      const ethersProvider = new ethers.BrowserProvider(provider as any);
+      // Create ethers provider from raw provider (EIP-1193 compatible)
+      const ethersProvider = new ethers.BrowserProvider(provider as Eip1193Provider);
       const signer = await ethersProvider.getSigner();
       eas.connect(signer);
 
@@ -131,39 +131,20 @@ export function useCreateAssessmentWorkflow() {
         { name: "tags", value: params.tags, type: "string[]" },
       ]);
 
-      // The SDK may return a bytes32 UID or a transaction-like object depending on version.
-      const attestResult = await eas.attest({
+      // EAS SDK attest returns Transaction<string> where wait() returns the attestation UID
+      const attestResult: Transaction<string> = await eas.attest({
         schema: easConfig.GARDEN_ASSESSMENT.uid,
         data: {
-          // machine context stores CreateAssessmentForm; caller adds gardenId at startCreation
-          recipient: (params as any).gardenId,
+          // params already has gardenId from CreateAssessmentForm type
+          recipient: params.gardenId,
           expirationTime: 0n,
           revocable: true,
           data: encodedData,
         },
       });
 
-      let newAttestationUID: string;
-      if (typeof attestResult === "string") {
-        newAttestationUID = attestResult;
-      } else if (attestResult && typeof (attestResult as any).wait === "function") {
-        // transaction-like object: prefer hash or UID if available
-        newAttestationUID =
-          (attestResult as any).attestationUID ||
-          (attestResult as any).hash ||
-          String(attestResult);
-        try {
-          // wait for confirmation to get any on-chain UID if SDK returns it in receipt
-          const receipt = await (attestResult as any).wait();
-          if (receipt && (receipt as any).attestationUID) {
-            newAttestationUID = (receipt as any).attestationUID;
-          }
-        } catch {
-          // ignore wait errors; we still have a usable identifier
-        }
-      } else {
-        newAttestationUID = String(attestResult);
-      }
+      // Wait for transaction confirmation and get the attestation UID
+      const newAttestationUID = await attestResult.wait();
 
       send({ type: "SUCCESS", txHash: newAttestationUID });
 

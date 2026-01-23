@@ -1,19 +1,36 @@
 # Green Goods
 
-Green Goods is an offline-first platform for documenting ecological and social work and proving impact on-chain. Operators approve gardener submissions, and the protocol anchors the results in Ethereum attestation infrastructure.
+[![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](https://github.com/greenpill-dev-guild/green-goods/releases/tag/v0.4.0)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
+Green Goods is an offline-first, single-chain platform for documenting ecological and social work and proving impact on-chain. Operators approve gardener submissions, and the protocol anchors the results in Ethereum attestation infrastructure.
 
 ## Quick Start
 
-```bash
-git clone https://github.com/your-org/green-goods.git
-cd green-goods
-bun install
+### Option A: Dev Container (Recommended)
 
-cp .env.example .env          # All packages share the root env file
+[![Open in Dev Containers](https://img.shields.io/static/v1?label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/greenpill-dev-guild/green-goods)
+
+The fastest way to start is using VS Code Dev Containers (pre-configured environment):
+
+1. **Install [Docker Desktop](https://www.docker.com/products/docker-desktop/)** and **[VS Code](https://code.visualstudio.com/)**
+2. **Open repository in VS Code**
+3. **Click "Reopen in Container"** when prompted
+4. **Run `bun dev`** inside the terminal
+
+### Option B: Local Setup
+
+```bash
+git clone https://github.com/greenpill-dev-guild/green-goods.git
+cd green-goods
+bun setup                     # Checks deps, installs packages, creates .env from template
+
 vi .env                       # Populate keys (Base Sepolia is the default chain: 84532)
 
 bun dev                       # Starts client, admin, indexer via pm2
 ```
+
+> **Note**: `bun setup` checks for required dependencies (Node 20+, Bun, Git, Docker, Foundry), installs them if possible, runs `bun install`, and copies `.env.example` to `.env`. If you prefer manual setup, see the [Installation Guide](https://docs.greengoods.app/developer/installation).
 
 Useful follow-ups:
 
@@ -40,18 +57,26 @@ Scripts live in `package.json`; contract-specific flows are described in the Con
 
 ## Documentation
 
-- [System Architecture](./docs/developer/architecture.md) — full system map and package summaries (GitBook canonical doc)
-- [Developer Getting Started](./docs/developer/getting-started.md) — environment setup, testing, troubleshooting
-- [Contracts Handbook](./docs/developer/contracts-handbook.md) — deployment, upgrades, schema care, validation
-- [Product Overview](./docs/features/overview.md) — product architecture and data flow
-- [Karma GAP Integration](./docs/developer/karma-gap.md) — appendix for the GAP attestation bridge
+📖 **[Full Documentation](https://docs.greengoods.app)** — Complete documentation for all users and developers
+
+**Quick Links:**
+- [Getting Started](https://docs.greengoods.app/developer/getting-started) — Environment setup, testing, troubleshooting
+- [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook) — Deployment, upgrades, schema management
+- [Architecture Diagrams](https://docs.greengoods.app/developer/architecture/diagrams) — Visual system overview
+- [API Reference](https://docs.greengoods.app/developer/api-reference) — GraphQL APIs and smart contracts
+
+**Run docs locally:**
+```bash
+bun docs:dev
+```
 
 Package-specific READMEs:
-
-- `packages/client/README.md` — offline-first PWA
-- `packages/admin/README.md` — operator dashboard
+- `packages/client/README.md` — Offline-first PWA
+- `packages/admin/README.md` — Operator dashboard
 - `packages/indexer/README.md` — Envio indexer
-- `packages/contracts/README.md` — foundry project layout and scripts
+- `packages/contracts/README.md` — Foundry project layout and scripts
+- `packages/agent/README.md` — Multi-platform bot
+- `packages/shared/README.md` — Common hooks and utilities
 
 ## Contributing
 
@@ -60,3 +85,7 @@ Package-specific READMEs:
 - Keep environment-only secrets in the root `.env` and never add package-level `.env` files
 
 For more project background, automation guidelines, and tooling policies see `AGENTS.md` and the package-specific agent guides.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for release notes and version history.

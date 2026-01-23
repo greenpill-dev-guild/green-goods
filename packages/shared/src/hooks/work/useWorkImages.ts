@@ -9,6 +9,8 @@
 
 import { get as idbGet, set as idbSet } from "idb-keyval";
 import { useEffect } from "react";
+
+import { trackStorageError } from "../../modules/app/error-tracking";
 import { useWorkFlowStore, type WorkFlowState } from "../../stores/useWorkFlowStore";
 import { DEBUG_ENABLED, debugLog } from "../../utils/debug";
 import { createDispatchAdapter } from "../../utils/dispatch-adapter";
@@ -25,7 +27,8 @@ export function useWorkImages() {
   const _setImages = useWorkFlowStore((s: WorkFlowState) => s.setImages);
 
   // Create dispatch adapter for React.SetStateAction API compatibility
-  const setImages = createDispatchAdapter(() => images, _setImages);
+  // Use getState() to always get fresh value, avoiding stale closure issues
+  const setImages = createDispatchAdapter(() => useWorkFlowStore.getState().images, _setImages);
 
   // Load images from IndexedDB on mount
   useEffect(() => {
@@ -42,6 +45,12 @@ export function useWorkImages() {
         }
       } catch (error) {
         console.error("[useWorkImages] Failed to load images from IDB", error);
+        trackStorageError(error, {
+          source: "useWorkImages.loadImages",
+          userAction: "loading draft images from IndexedDB",
+          recoverable: true,
+          metadata: { operation: "idb_get", key: WORK_IMAGES_KEY },
+        });
       }
     };
     loadImages();
@@ -56,6 +65,12 @@ export function useWorkImages() {
         await idbSet(WORK_IMAGES_KEY, images);
       } catch (error) {
         console.error("[useWorkImages] Failed to save images to IDB", error);
+        trackStorageError(error, {
+          source: "useWorkImages.saveImages",
+          userAction: "saving images to IndexedDB",
+          recoverable: true,
+          metadata: { operation: "idb_set", key: WORK_IMAGES_KEY, image_count: images.length },
+        });
       }
     };
     saveImages();

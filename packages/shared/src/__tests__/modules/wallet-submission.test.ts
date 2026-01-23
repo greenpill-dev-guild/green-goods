@@ -93,6 +93,7 @@ import type { WalletClient } from "viem";
 
 import { submitApprovalDirectly, submitWorkDirectly } from "../../modules/work/wallet-submission";
 import * as encoders from "../../utils/eas/encoders";
+import { mock } from "../test-utils";
 
 describe("wallet-submission", () => {
   const mockWalletClient: Partial<WalletClient> = {
@@ -128,12 +129,12 @@ describe("wallet-submission", () => {
 
     it("should successfully submit work when wallet is connected", async () => {
       // Setup mocks
-      vi.mocked(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
-      vi.mocked(encoders.encodeWorkData).mockResolvedValue("0xEncodedWorkData" as `0x${string}`);
-      vi.mocked(mockWalletClient.sendTransaction!).mockResolvedValue(
+      mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
+      mock(encoders.encodeWorkData).mockResolvedValue("0xEncodedWorkData" as `0x${string}`);
+      mock(mockWalletClient.sendTransaction!).mockResolvedValue(
         "0xTransactionHash" as `0x${string}`
       );
-      vi.mocked(wagmiCore.waitForTransactionReceipt).mockResolvedValue({} as any);
+      mock(wagmiCore.waitForTransactionReceipt).mockResolvedValue({} as any);
 
       // Execute
       const result = await submitWorkDirectly(
@@ -154,7 +155,11 @@ describe("wallet-submission", () => {
           actionUID: 123,
           media: mockImages,
         }),
-        mockChainId
+        mockChainId,
+        expect.objectContaining({
+          authMode: "wallet",
+          gardenAddress: "0xGardenAddress",
+        })
       );
       expect(mockWalletClient.sendTransaction).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -170,7 +175,7 @@ describe("wallet-submission", () => {
 
     it("should throw error when wallet is not connected", async () => {
       // Setup: no wallet client
-      vi.mocked(wagmiCore.getWalletClient).mockResolvedValue(null as any);
+      mock(wagmiCore.getWalletClient).mockResolvedValue(null as any);
 
       // Execute & Verify
       await expect(
@@ -187,9 +192,9 @@ describe("wallet-submission", () => {
 
     it("should handle user rejection error", async () => {
       // Setup mocks
-      vi.mocked(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
-      vi.mocked(encoders.encodeWorkData).mockResolvedValue("0xEncodedWorkData" as `0x${string}`);
-      vi.mocked(mockWalletClient.sendTransaction!).mockRejectedValue(
+      mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
+      mock(encoders.encodeWorkData).mockResolvedValue("0xEncodedWorkData" as `0x${string}`);
+      mock(mockWalletClient.sendTransaction!).mockRejectedValue(
         new Error("User rejected the request")
       );
 
@@ -208,9 +213,9 @@ describe("wallet-submission", () => {
 
     it("should handle insufficient funds error", async () => {
       // Setup mocks
-      vi.mocked(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
-      vi.mocked(encoders.encodeWorkData).mockResolvedValue("0xEncodedWorkData" as `0x${string}`);
-      vi.mocked(mockWalletClient.sendTransaction!).mockRejectedValue(
+      mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
+      mock(encoders.encodeWorkData).mockResolvedValue("0xEncodedWorkData" as `0x${string}`);
+      mock(mockWalletClient.sendTransaction!).mockRejectedValue(
         new Error("insufficient funds for gas")
       );
 
@@ -229,9 +234,9 @@ describe("wallet-submission", () => {
 
     it("should handle network error", async () => {
       // Setup mocks
-      vi.mocked(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
-      vi.mocked(encoders.encodeWorkData).mockResolvedValue("0xEncodedWorkData" as `0x${string}`);
-      vi.mocked(mockWalletClient.sendTransaction!).mockRejectedValue(
+      mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
+      mock(encoders.encodeWorkData).mockResolvedValue("0xEncodedWorkData" as `0x${string}`);
+      mock(mockWalletClient.sendTransaction!).mockRejectedValue(
         new Error("network connection failed")
       );
 
@@ -250,9 +255,9 @@ describe("wallet-submission", () => {
 
     it("should handle nonce conflict error", async () => {
       // Setup mocks
-      vi.mocked(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
-      vi.mocked(encoders.encodeWorkData).mockResolvedValue("0xEncodedWorkData" as `0x${string}`);
-      vi.mocked(mockWalletClient.sendTransaction!).mockRejectedValue(new Error("nonce too low"));
+      mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
+      mock(encoders.encodeWorkData).mockResolvedValue("0xEncodedWorkData" as `0x${string}`);
+      mock(mockWalletClient.sendTransaction!).mockRejectedValue(new Error("nonce too low"));
 
       // Execute & Verify
       await expect(
@@ -278,18 +283,19 @@ describe("wallet-submission", () => {
 
     it("should successfully submit approval when wallet is connected", async () => {
       // Setup mocks
-      vi.mocked(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
-      vi.mocked(encoders.encodeWorkApprovalData).mockReturnValue(
+      mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
+      mock(encoders.encodeWorkApprovalData).mockReturnValue(
         "0xEncodedApprovalData" as `0x${string}`
       );
-      vi.mocked(mockWalletClient.sendTransaction!).mockResolvedValue(
+      mock(mockWalletClient.sendTransaction!).mockResolvedValue(
         "0xApprovalTxHash" as `0x${string}`
       );
-      vi.mocked(wagmiCore.waitForTransactionReceipt).mockResolvedValue({} as any);
+      mock(wagmiCore.waitForTransactionReceipt).mockResolvedValue({} as any);
 
       // Execute
       const result = await submitApprovalDirectly(
         mockApprovalDraft,
+        "0xGardenAddress",
         "0xGardenerAddress",
         mockChainId
       );
@@ -312,27 +318,37 @@ describe("wallet-submission", () => {
 
     it("should throw error when wallet is not connected", async () => {
       // Setup: no wallet client
-      vi.mocked(wagmiCore.getWalletClient).mockResolvedValue(null as any);
+      mock(wagmiCore.getWalletClient).mockResolvedValue(null as any);
 
       // Execute & Verify
       await expect(
-        submitApprovalDirectly(mockApprovalDraft, "0xGardenerAddress", mockChainId)
+        submitApprovalDirectly(
+          mockApprovalDraft,
+          "0xGardenAddress",
+          "0xGardenerAddress",
+          mockChainId
+        )
       ).rejects.toThrow("Wallet not connected");
     });
 
     it("should handle user rejection error for approval", async () => {
       // Setup mocks
-      vi.mocked(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
-      vi.mocked(encoders.encodeWorkApprovalData).mockReturnValue(
+      mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
+      mock(encoders.encodeWorkApprovalData).mockReturnValue(
         "0xEncodedApprovalData" as `0x${string}`
       );
-      vi.mocked(mockWalletClient.sendTransaction!).mockRejectedValue(
+      mock(mockWalletClient.sendTransaction!).mockRejectedValue(
         new Error("User rejected the request")
       );
 
       // Execute & Verify
       await expect(
-        submitApprovalDirectly(mockApprovalDraft, "0xGardenerAddress", mockChainId)
+        submitApprovalDirectly(
+          mockApprovalDraft,
+          "0xGardenAddress",
+          "0xGardenerAddress",
+          mockChainId
+        )
       ).rejects.toThrow("Transaction cancelled by user");
     });
   });

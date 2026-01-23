@@ -1,7 +1,7 @@
 import * as React from "react";
 import { cn } from "@green-goods/shared/utils";
 import { Card } from "../Base/Card";
-import { cardVariants as gardenCardVariants, type GardenCardVariantProps } from "./GardenCard";
+import { gardenCardVariants, type GardenCardVariantProps } from "./GardenCard";
 
 type GardenCardSkeletonProps = GardenCardVariantProps & {
   showBanner?: boolean;

@@ -17,14 +17,21 @@ export {
 // AppKit Provider
 export { AppKitProvider, useAppKit } from "./AppKitProvider";
 
-// Auth Providers
-export { WalletAuthProvider, useWalletAuth, useOptionalWalletAuth } from "./WalletAuth";
-export { PasskeyAuthProvider } from "./PasskeyAuth";
-export { ClientAuthProvider, useClientAuth } from "./ClientAuth";
+// Auth Provider
+// Unified XState-based provider with Pimlico passkey server
+// Supports both passkey and wallet authentication modes
+export type { AuthContextType } from "./Auth";
+export { AuthProvider, useAuthContext } from "./Auth";
 
 // Job Queue Provider
 export { JobQueueProvider, useJobQueue, useQueueFlush, useQueueStats } from "./JobQueue";
 
 // Work Provider
-export type { WorkDataProps } from "./Work";
-export { useWork, WorkProvider, WorkTab } from "./Work";
+export type { WorkDataProps, WorkFormValue, WorkSelectionValue } from "./Work";
+export {
+  useWork,
+  useWorkFormContext,
+  useWorkSelection,
+  WorkProvider,
+  WorkTab,
+} from "./Work";

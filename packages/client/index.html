@@ -2,14 +2,13 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta
       key="description"
       name="description"
-      content="Bringing Biodiversity Onchain"
+      content="Bring Community Impact Onchain"
     />
     <meta name="author" content="Green Goods" />
 
@@ -23,10 +22,10 @@
     <meta property="og:site_name" content="Green Goods" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://greengoods.app" />
-    <meta property="og:description" content="Bringing Biodiversity Onchain" />
+    <meta property="og:description" content="Bring Community Impact Onchain" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:description" content="Bringing Biodiversity Onchain" />
+    <meta name="twitter:description" content="Bring Community Impact Onchain" />
     <meta name="twitter:title" content="Green Goods" />
     <meta name="twitter:site" content="greengoodsapp" />
     <meta name="twitter:creator" content="time_is_oba" />
@@ -63,9 +62,11 @@
       name="msapplication-TileImage"
       content="/images/ms-icon-144x144.png"
     />
-    <meta name="theme-color" content="#fff" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#171717" media="(prefers-color-scheme: dark)" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
@@ -74,17 +75,12 @@
 
     <title>Green Goods</title>
     <script>
+      // Set theme before render to prevent flash
       (function() {
-        const KEY = 'theme';
-        try {
-          const stored = localStorage.getItem(KEY) || 'system';
-          const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          const resolved = stored === 'dark' || (stored === 'system' && systemDark);
-          document.documentElement.dataset.theme = resolved ? 'dark' : 'light';
-        } catch (_) {
-          const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          document.documentElement.dataset.theme = systemDark ? 'dark' : 'light';
-        }
+        var stored = localStorage.getItem('theme') || 'system';
+        var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var isDark = stored === 'dark' || (stored === 'system' && systemDark);
+        document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
       })();
     </script>
   </head>

@@ -1,293 +1,152 @@
+import { toastService } from "@green-goods/shared";
 import {
+  queryKeys,
   useAuth,
   useBrowserNavigation,
+  useFilteredGardens,
   useGardens,
+  useLoadingWithMinDuration,
   useNavigateToTop,
+  useOffline,
+  usePrimaryAddress,
 } from "@green-goods/shared/hooks";
-import { cn, gardenHasMember } from "@green-goods/shared/utils";
+import { useUIStore } from "@green-goods/shared/stores";
+import { cn } from "@green-goods/shared/utils";
 import { RiFilterLine } from "@remixicon/react";
-import React, { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation } from "react-router-dom";
-import { Button } from "@/components/Actions";
-import { GardenCard, GardenCardSkeleton } from "@/components/Cards";
-import { ModalDrawer } from "@/components/Dialogs/ModalDrawer";
+
+import { PullToRefresh } from "@/components/Inputs";
+import { GardenList } from "./GardenList";
+import { type GardenFiltersState, GardensFilterDrawer } from "./GardenFilters";
 import { WorkDashboardIcon } from "./WorkDashboard/Icon";
 
-type GardenFilterScope = "all" | "mine";
-type GardenSortOrder = "default" | "name" | "recent";
+/** Storage key for welcome prompt - shown once per device */
+const WELCOME_SHOWN_KEY = "greengoods_welcome_shown";
 
-type GardenFiltersState = {
-  scope: GardenFilterScope;
-  sort: GardenSortOrder;
-};
-
-type FilterOptionButtonProps = {
-  label: string;
-  selected: boolean;
-  onClick: () => void;
-  disabled?: boolean;
-  description?: string;
-};
-
-const FilterOptionButton = ({
-  label,
-  selected,
-  onClick,
-  disabled = false,
-  description,
-}: FilterOptionButtonProps) => (
-  <button
-    type="button"
-    onClick={onClick}
-    disabled={disabled}
-    className={cn(
-      "w-full rounded-2xl border border-stroke-soft-200 bg-white p-3 text-left text-sm transition-all duration-200 min-h-[56px] flex flex-col justify-center tap-feedback",
-      selected ? "border-primary bg-primary/10 text-primary shadow-sm" : "",
-      disabled && "cursor-not-allowed opacity-60"
-    )}
-    aria-pressed={selected}
-  >
-    <span className="font-medium leading-tight">{label}</span>
-    {description ? <span className="mt-1 block text-xs text-slate-500">{description}</span> : null}
-  </button>
-);
-
-type GardensFilterDrawerProps = {
-  isOpen: boolean;
-  onClose: () => void;
-  filters: GardenFiltersState;
-  onScopeChange: (scope: GardenFilterScope) => void;
-  onSortChange: (sort: GardenSortOrder) => void;
-  onReset: () => void;
-  canFilterMine: boolean;
-  myGardensCount: number;
-  isFilterActive: boolean;
-};
-
-const GardensFilterDrawer = ({
-  isOpen,
-  onClose,
-  filters,
-  onScopeChange,
-  onSortChange,
-  onReset,
-  canFilterMine,
-  myGardensCount,
-  isFilterActive,
-}: GardensFilterDrawerProps) => {
-  const intl = useIntl();
-
-  const scopeOptions: Array<{
-    id: GardenFilterScope;
-    label: string;
-    description?: string;
-    disabled?: boolean;
-  }> = [
-    {
-      id: "all",
-      label: intl.formatMessage({
-        id: "app.home.filters.scope.all",
-        defaultMessage: "All gardens",
-      }),
-    },
-    {
-      id: "mine",
-      label: intl.formatMessage(
-        {
-          id: "app.home.filters.scope.mine",
-          defaultMessage: "My gardens ({count})",
-        },
-        { count: myGardensCount }
-      ),
-      description: !canFilterMine
-        ? intl.formatMessage({
-            id: "app.home.filters.scope.mineDisabled",
-            defaultMessage: "Sign in or connect a wallet to filter by your gardens.",
-          })
-        : myGardensCount === 0
-          ? intl.formatMessage({
-              id: "app.home.filters.scope.mineEmpty",
-              defaultMessage: "No gardens assigned yet.",
-            })
-          : undefined,
-      disabled: !canFilterMine,
-    },
-  ];
-
-  const sortOptions: Array<{ id: GardenSortOrder; label: string }> = [
-    {
-      id: "default",
-      label: intl.formatMessage({
-        id: "app.home.filters.sort.default",
-        defaultMessage: "Default order",
-      }),
-    },
-    {
-      id: "recent",
-      label: intl.formatMessage({
-        id: "app.home.filters.sort.recent",
-        defaultMessage: "Newest first",
-      }),
-    },
-    {
-      id: "name",
-      label: intl.formatMessage({
-        id: "app.home.filters.sort.name",
-        defaultMessage: "Name (A-Z)",
-      }),
-    },
-  ];
-
-  return (
-    <ModalDrawer
-      isOpen={isOpen}
-      onClose={onClose}
-      header={{
-        title: intl.formatMessage({
-          id: "app.home.filters.title",
-          defaultMessage: "Filter Gardens",
-        }),
-        description: intl.formatMessage({
-          id: "app.home.filters.description",
-          defaultMessage: "Filter by membership or sort order.",
-        }),
-      }}
-    >
-      <div className="flex flex-col gap-6">
-        <section>
-          <h6 className="mb-3 text-sm font-semibold text-slate-600">
-            {intl.formatMessage({
-              id: "app.home.filters.scopeTitle",
-              defaultMessage: "Show",
-            })}
-          </h6>
-          <div className="grid grid-cols-1 gap-2">
-            {scopeOptions.map(({ id, ...option }) => (
-              <FilterOptionButton
-                key={id}
-                {...option}
-                selected={filters.scope === id}
-                onClick={() => onScopeChange(id)}
-              />
-            ))}
-          </div>
-        </section>
-
-        <section>
-          <h6 className="mb-3 text-sm font-semibold text-slate-600">
-            {intl.formatMessage({
-              id: "app.home.filters.sortTitle",
-              defaultMessage: "Sort by",
-            })}
-          </h6>
-          <div className="grid grid-cols-1 gap-2">
-            {sortOptions.map(({ id, ...option }) => (
-              <FilterOptionButton
-                key={id}
-                {...option}
-                selected={filters.sort === id}
-                onClick={() => onSortChange(id)}
-              />
-            ))}
-          </div>
-        </section>
-
-        <Button
-          label={intl.formatMessage({
-            id: "app.home.filters.reset",
-            defaultMessage: "Reset filters",
-          })}
-          variant="neutral"
-          mode="stroke"
-          size="xsmall"
-          onClick={onReset}
-          disabled={!isFilterActive}
-          type="button"
-        />
-      </div>
-    </ModalDrawer>
-  );
-};
-
-const Gardens: React.FC = () => {
+const Home: React.FC = () => {
   const navigate = useNavigateToTop();
   const location = useLocation();
-  const { data: gardensResolved = [], isLoading } = useGardens();
+  const queryClient = useQueryClient();
   const intl = useIntl();
-  const { smartAccountAddress, walletAddress } = useAuth();
+
+  // Data fetching
+  const { data: gardens = [], isFetching, isPending, isError, refetch } = useGardens();
+
+  // Auth & connectivity
+  const { isOnline } = useOffline();
+  const primaryAddress = usePrimaryAddress();
+  const normalizedAddress = primaryAddress?.toLowerCase() ?? null;
+
+  // Filter state
   const [filters, setFilters] = useState<GardenFiltersState>({ scope: "all", sort: "default" });
-  const [isFilterOpen, setFilterOpen] = useState(false);
+
+  // Use extracted hooks for cleaner logic
+  const isLoadingData = isPending || (isFetching && gardens.length === 0);
+  const {
+    showSkeleton,
+    timedOut,
+    reset: resetLoadingState,
+  } = useLoadingWithMinDuration(isLoadingData, gardens.length > 0);
+
+  const { filteredGardens, myGardensCount, isFilterActive, activeFilterCount } = useFilteredGardens(
+    gardens,
+    filters,
+    normalizedAddress
+  );
+
+  // UI state from store
+  const { isGardenFilterOpen, openGardenFilter, closeGardenFilter } = useUIStore();
 
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
 
-  const selectedGardenId = useMemo(() => location.pathname.split("/")[2], [location.pathname]);
-  const primaryAddress = useMemo(() => {
-    const address = smartAccountAddress ?? walletAddress;
-    return address ? address.toLowerCase() : null;
-  }, [smartAccountAddress, walletAddress]);
+  // Auth state for welcome message
+  const { isAuthenticated } = useAuth();
+  const hasShownWelcomeRef = useRef(false);
 
-  const myGardensCount = useMemo(() => {
-    if (!primaryAddress) return 0;
-    return gardensResolved.reduce(
-      (count, garden) =>
-        count + (gardenHasMember(primaryAddress, garden.gardeners, garden.operators) ? 1 : 0),
-      0
-    );
-  }, [gardensResolved, primaryAddress]);
+  // Ref for scrolling to article on card click
+  const articleRef = useRef<HTMLElement>(null);
 
-  const { scope, sort } = filters;
+  // Selected garden from URL
+  const selectedGardenId = location.pathname.split("/")[2];
 
-  const filteredGardens = useMemo(() => {
-    let working = gardensResolved;
-
-    if (scope === "mine") {
-      if (!primaryAddress) {
-        return [];
-      }
-
-      working = working.filter((garden) =>
-        gardenHasMember(primaryAddress, garden.gardeners, garden.operators)
-      );
+  // Reset loading state when navigating back to home
+  useEffect(() => {
+    if (location.pathname === "/home") {
+      resetLoadingState();
     }
+  }, [location.pathname, resetLoadingState]);
 
-    if (sort === "name") {
-      return [...working].sort((a, b) =>
-        (a.name || "").localeCompare(b.name || "", undefined, { sensitivity: "base" })
-      );
-    }
-
-    if (sort === "recent") {
-      return [...working].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
-    }
-
-    return [...working];
-  }, [gardensResolved, scope, sort, primaryAddress]);
-
-  const isScopeFiltered = scope !== "all";
-  const isSortFiltered = sort !== "default";
-  const isFilterActive = isScopeFiltered || isSortFiltered;
-  const activeFilterCount = (isScopeFiltered ? 1 : 0) + (isSortFiltered ? 1 : 0);
-
+  // Close filter drawer when navigating away
   useEffect(() => {
     if (location.pathname !== "/home") {
-      setFilterOpen(false);
+      closeGardenFilter();
     }
-  }, [location.pathname]);
+  }, [location.pathname, closeGardenFilter]);
 
-  function handleCardClick(id: string) {
+  // Show welcome message once for new users - points them to profile for garden discovery
+  useEffect(() => {
+    if (!isAuthenticated || hasShownWelcomeRef.current) return;
+    if (location.pathname !== "/home") return;
+
+    // Check localStorage - only show once per device
+    const hasBeenShown = localStorage.getItem(WELCOME_SHOWN_KEY) === "true";
+    if (hasBeenShown) {
+      hasShownWelcomeRef.current = true;
+      return;
+    }
+
+    // Mark as shown BEFORE showing toast (prevents re-triggering)
+    localStorage.setItem(WELCOME_SHOWN_KEY, "true");
+    hasShownWelcomeRef.current = true;
+
+    // Small delay to let page render first
+    const timer = setTimeout(() => {
+      toastService.info({
+        title: "Welcome to Green Goods! 🌱",
+        message: "Visit your Profile to discover and join gardens.",
+        duration: 6000,
+        action: {
+          label: "Go to Profile",
+          onClick: () => navigate("/profile"),
+          dismissOnClick: true,
+        },
+        suppressLogging: true,
+      });
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [isAuthenticated, location.pathname, navigate]);
+
+  // Handlers
+  const handleRetry = () => {
+    resetLoadingState();
+    queryClient.invalidateQueries({ queryKey: queryKeys.gardens.all });
+    refetch();
+  };
+
+  // Pull-to-refresh handler
+  const handlePullToRefresh = useCallback(async () => {
+    resetLoadingState();
+    queryClient.invalidateQueries({ queryKey: queryKeys.gardens.all });
+    await refetch();
+  }, [queryClient, refetch, resetLoadingState]);
+
+  const handleCardClick = (id: string) => {
     navigate(`/home/${id}`);
-    document.getElementsByTagName("article")[0]?.scrollIntoView();
-  }
+    articleRef.current?.scrollIntoView();
+  };
 
-  const handleScopeChange = (nextScope: GardenFilterScope) => {
+  const handleScopeChange = (nextScope: GardenFiltersState["scope"]) => {
     setFilters((current) =>
       current.scope === nextScope ? current : { ...current, scope: nextScope }
     );
   };
 
-  const handleSortChange = (nextSort: GardenSortOrder) => {
+  const handleSortChange = (nextSort: GardenFiltersState["sort"]) => {
     setFilters((current) => (current.sort === nextSort ? current : { ...current, sort: nextSort }));
   };
 
@@ -295,91 +154,32 @@ const Gardens: React.FC = () => {
     setFilters({ scope: "all", sort: "default" });
   };
 
-  const renderGardens = () => {
-    if (isLoading) {
-      return (
-        <div className="flex flex-col gap-4">
-          {Array.from({ length: 3 }).map((_, idx) => (
-            <GardenCardSkeleton key={idx} media="large" height="home" />
-          ))}
-        </div>
-      );
-    }
-
-    if (scope === "mine" && !primaryAddress) {
-      return (
-        <p className="grid place-items-center text-center text-sm italic text-slate-500">
-          {intl.formatMessage({
-            id: "app.home.filters.scope.mineDisabled",
-            defaultMessage: "Sign in or connect a wallet to filter by your gardens.",
-          })}
-        </p>
-      );
-    }
-
-    if (!filteredGardens.length) {
-      if (scope === "mine" && primaryAddress) {
-        return (
-          <p className="grid place-items-center text-center text-sm italic text-slate-500">
-            {intl.formatMessage({
-              id: "app.home.gardens.mineEmpty",
-              defaultMessage: "You don't steward any gardens yet.",
-            })}
-          </p>
-        );
-      }
-
-      if (isFilterActive) {
-        return (
-          <p className="grid place-items-center text-center text-sm italic text-slate-500">
-            {intl.formatMessage({
-              id: "app.home.filters.empty",
-              defaultMessage: "No gardens match your filters.",
-            })}
-          </p>
-        );
-      }
-
-      return (
-        <p className="grid place-items-center text-sm italic">
-          {intl.formatMessage({
-            id: "app.home.messages.noGardensFound",
-            description: "No gardens found",
-          })}
-        </p>
-      );
-    }
-
-    return filteredGardens.map((garden: Garden) => (
-      <GardenCard
-        key={garden.id}
-        garden={garden}
-        media="large"
-        height="home"
-        showOperators={true}
-        selected={garden.id === selectedGardenId}
-        {...garden}
-        onClick={() => handleCardClick(garden.id)}
-      />
-    ));
-  };
-
   return (
-    <article className={"mb-6"}>
-      {location.pathname === "/home" ? (
-        <>
+    <article ref={articleRef} className="mb-6">
+      {location.pathname === "/home" && (
+        <PullToRefresh
+          onRefresh={handlePullToRefresh}
+          isRefreshing={isFetching && !isPending}
+          disabled={!isOnline}
+          refreshLabel={intl.formatMessage({
+            id: "app.home.pullToRefresh",
+            defaultMessage: "Pull to refresh gardens",
+          })}
+        >
           <div className="flex items-center justify-between w-full py-6 px-4 sm:px-6 md:px-12">
             <h4 className="font-semibold flex-1">{intl.formatMessage({ id: "app.home" })}</h4>
             <div className="ml-4 flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setFilterOpen(true)}
+                onClick={openGardenFilter}
                 className={cn(
                   "relative p-1 rounded-lg border transition-all duration-200 tap-feedback",
                   "active:scale-95",
                   "flex items-center justify-center w-8 h-8 tap-target-lg",
                   "focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-600 active:border-emerald-600",
-                  isFilterActive ? "border-primary text-primary" : "border-slate-200 text-slate-500"
+                  isFilterActive
+                    ? "border-primary text-primary"
+                    : "border-stroke-soft-200 text-text-sub-600"
                 )}
                 aria-label={intl.formatMessage({
                   id: "app.home.filters.button",
@@ -387,34 +187,46 @@ const Gardens: React.FC = () => {
                 })}
               >
                 <RiFilterLine className="h-4 w-4" />
-                {isFilterActive ? (
+                {isFilterActive && (
                   <span className="absolute -top-1.5 -right-1.5 inline-flex min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-white">
                     {activeFilterCount}
                   </span>
-                ) : null}
+                )}
               </button>
               <WorkDashboardIcon />
             </div>
           </div>
-          <div className={"padded flex-1 flex flex-col gap-4 overflow-y-scroll overflow-x-hidden"}>
-            {renderGardens()}
+          <div className="padded flex flex-col gap-4">
+            <GardenList
+              gardens={filteredGardens}
+              selectedGardenId={selectedGardenId}
+              onCardClick={handleCardClick}
+              showSkeleton={showSkeleton}
+              timedOut={timedOut}
+              isError={isError}
+              isOnline={isOnline}
+              onRetry={handleRetry}
+              scope={filters.scope}
+              isFilterActive={isFilterActive}
+              hasUserAddress={Boolean(normalizedAddress)}
+            />
           </div>
           <GardensFilterDrawer
-            isOpen={isFilterOpen}
-            onClose={() => setFilterOpen(false)}
+            isOpen={isGardenFilterOpen}
+            onClose={closeGardenFilter}
             filters={filters}
             onScopeChange={handleScopeChange}
             onSortChange={handleSortChange}
             onReset={handleResetFilters}
-            canFilterMine={Boolean(primaryAddress)}
+            canFilterMine={Boolean(normalizedAddress)}
             myGardensCount={myGardensCount}
             isFilterActive={isFilterActive}
           />
-        </>
-      ) : null}
+        </PullToRefresh>
+      )}
       <Outlet />
     </article>
   );
 };
 
-export default Gardens;
+export default Home;

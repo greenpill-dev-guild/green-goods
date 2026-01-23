@@ -1,278 +1,161 @@
 # Green Goods Agent — Architecture Guide
 
-The agent package provides a platform-agnostic bot for Green Goods that currently supports Telegram, with architecture designed for future Discord and WhatsApp integrations.
+The agent package provides a platform-agnostic bot for Green Goods that currently supports Telegram, with architecture designed for future Discord, WhatsApp, and SMS integrations.
+
+## Quick Reference
+
+| Command | Description |
+|---------|-------------|
+| `bun dev` | Start in polling mode (local dev) |
+| `bun start` | Start in webhook mode (production) |
+| `bun test` | Run all tests |
+| `bun test --coverage` | Run with coverage report |
 
 ## Architecture Overview
 
 ```
 src/
-├── core/                    # Platform-agnostic business logic
-│   ├── contracts/          # Message envelope types
-│   │   ├── message.ts      # InboundMessage, MessageContent types
-│   │   └── response.ts     # OutboundResponse, HandlerResult types
-│   ├── handlers/           # Command and message handlers
-│   │   ├── start.ts        # /start - wallet creation
-│   │   ├── join.ts         # /join - garden membership
-│   │   ├── status.ts       # /status - user status
-│   │   ├── help.ts         # /help - command list
-│   │   ├── pending.ts      # /pending - operator work list
-│   │   ├── submit.ts       # Work submission (text/voice)
-│   │   ├── approve.ts      # /approve - operator approval
-│   │   ├── reject.ts       # /reject - operator rejection
-│   │   └── utils.ts        # Handler utilities
-│   └── orchestrator.ts     # Routes messages to handlers
-│
-├── ports/                   # Interfaces for external dependencies
-│   ├── storage.ts          # StoragePort - user/session/work persistence
-│   ├── ai.ts               # AIPort - STT and NLU
-│   ├── blockchain.ts       # BlockchainPort - on-chain operations
-│   └── index.ts
-│
-├── adapters/                # Platform-specific implementations
-│   ├── storage/
-│   │   └── sqlite.ts       # SQLite storage (platform-agnostic schema)
-│   ├── ai/
-│   │   └── whisper.ts      # Whisper STT + regex NLU
-│   ├── blockchain/
-│   │   └── viem.ts         # Viem blockchain operations
-│   └── telegram/
-│       ├── index.ts        # Telegraf bot setup
-│       └── transformer.ts  # Telegram <-> core envelope conversion
-│
-├── services/                # Reusable utilities
-│   ├── crypto.ts           # Key encryption, secure random
-│   └── rate-limiter.ts     # Sliding window rate limiting
-│
-├── api/                     # HTTP API layer
-│   ├── server.ts           # Fastify server
-│   └── routes/
-│       ├── health.ts       # Health/readiness endpoints
-│       └── webhook.ts      # Platform webhook receivers
-│
-├── config.ts               # Centralized configuration
-└── index.ts                # Entry point
+├── types.ts           # All types (messages, responses, users, etc.)
+├── index.ts           # Entry point
+├── config.ts          # Configuration loader
+├── handlers/          # Command & message handlers (pure functions)
+├── services/          # External integrations (singletons)
+├── platforms/         # Platform adapters
+└── api/               # Fastify health + webhooks
 ```
+
+**Philosophy:** Keep it simple. Direct imports, singleton services, minimal indirection.
 
 ## Core Concepts
 
-### 1. Platform-Agnostic Message Contract
+### Design Principles Applied
 
-All platforms are normalized to a common message format:
+**DRY (Don't Repeat Yourself)**
+- Platform-agnostic message format — write handler logic once, use everywhere
+- Shared `@green-goods/shared` for blockchain operations
+- Common response builders across platforms
+
+**KISS (Keep It Simple, Stupid)**
+- Direct imports over complex DI containers
+- Singleton services — simple, predictable initialization
+- Minimal abstraction layers
+
+**Single Responsibility (SOLID)**
+- Handlers: pure business logic only
+- Adapters: message transformation only
+- Services: external integration only
+
+**Open/Closed (SOLID)**
+- Add new platforms without modifying existing handlers
+- Add new commands without changing router structure
+- Platform adapters extend, never modify core
+
+**Dependency Inversion (SOLID)**
+- Handlers receive dependencies via injection for testability
+- No direct service imports in handlers — pass as `deps` parameter
+
+**Separation of Concerns**
+- `handlers/` — Business logic (pure functions)
+- `platforms/` — Platform-specific adapters
+- `services/` — External integrations
+- `api/` — HTTP endpoints
+
+**Optimize for Deletion**
+- Each platform adapter is independent — remove without affecting others
+- Handlers don't know about platforms — easy to repurpose
+- Services are isolated — swap implementations cleanly
+
+### Platform-Agnostic Messages
+
+All platforms normalize to a common format:
 
 ```typescript
 interface InboundMessage {
   id: string;
-  platform: 'telegram' | 'discord' | 'whatsapp';
+  platform: "telegram" | "discord" | "whatsapp" | "sms";
   sender: { platformId: string; displayName?: string };
-  content: MessageContent;  // text | command | voice | callback | image
-  locale?: string;
+  content: MessageContent; // text | command | voice | callback | image
   timestamp: number;
 }
-
-interface OutboundResponse {
-  text: string;
-  parseMode?: 'markdown' | 'html';
-  buttons?: { label: string; callbackData: string }[];
-}
 ```
 
-### 2. Ports & Adapters Pattern
+### Handler Pattern
 
-Dependencies are abstracted behind port interfaces:
-
-```typescript
-// Storage port
-interface StoragePort {
-  getUser(platform: Platform, platformId: string): Promise<User | undefined>;
-  createUser(input: CreateUserInput): Promise<User>;
-  // ... sessions, pending work
-}
-
-// AI port
-interface AIPort {
-  transcribe(audioPath: string): Promise<string>;
-  parseWorkText(text: string): Promise<ParsedWorkData>;
-}
-
-// Blockchain port
-interface BlockchainPort {
-  submitWork(params: SubmitWorkParams): Promise<Hex>;
-  isOperator(gardenAddress: string, userAddress: string): Promise<boolean>;
-}
-```
-
-### 3. Orchestrator
-
-The orchestrator routes messages to handlers:
-
-```typescript
-const orchestrator = new Orchestrator({
-  storage,
-  ai,
-  blockchain,
-  rateLimiter,
-  crypto,
-  voiceProcessor,
-  notifier,
-});
-
-const response = await orchestrator.handle(inboundMessage);
-```
-
-## Bot Modes
-
-### Polling Mode (Development)
-
-```bash
-BOT_MODE=polling bun run dev
-```
-
-- Uses Telegram long polling
-- No external URL required
-- Good for local development
-
-### Webhook Mode (Production)
-
-```bash
-BOT_MODE=webhook PORT=3000 WEBHOOK_URL=https://your-domain.com bun run start
-```
-
-- Uses HTTP webhooks
-- Requires public URL
-- Includes health endpoints: `/health`, `/health/ready`
-
-## Environment Variables
-
-| Variable | Description | Required |
-|:---------|:------------|:---------|
-| `TELEGRAM_BOT_TOKEN` | Telegram bot token from @BotFather | Yes |
-| `ENCRYPTION_SECRET` | 32+ char secret for key encryption | Yes |
-| `BOT_MODE` | `polling` or `webhook` (default: webhook) | No |
-| `PORT` | HTTP server port (default: 3000) | No |
-| `WEBHOOK_URL` | Public URL for webhooks | For webhook mode |
-| `TELEGRAM_WEBHOOK_SECRET` | Secret for webhook verification | No |
-| `DB_PATH` | SQLite database path (default: data/agent.db) | No |
-
-## Running the Agent
-
-### Development
-
-```bash
-# From project root
-bun run dev:agent
-
-# Or from package directory
-cd packages/agent
-bun run dev
-```
-
-### Production
-
-```bash
-# Build
-bun run build:agent
-
-# Start
-NODE_ENV=production bun run start
-```
-
-## Key Patterns
-
-### 1. Handler Structure
-
-Each handler is a pure function that takes a message and dependencies:
+Handlers are pure functions with dependency injection for testability:
 
 ```typescript
 export async function handleStart(
   message: InboundMessage,
-  deps: { storage: StoragePort; generatePrivateKey: () => Hex }
+  deps: { generatePrivateKey: () => `0x${string}` }
 ): Promise<HandlerResult> {
-  // Business logic
-  return { response: { text: '...' } };
+  // Business logic here
+  return { response: { text: "Welcome!" } };
 }
 ```
 
-### 2. Session Management
+### Session Management
 
-Sessions track multi-step flows (e.g., work confirmation):
+Sessions track multi-step flows via `updateSession` / `clearSession` in handler results.
 
-```typescript
-// Set session in handler result
-return {
-  response: { text: 'Confirm?', buttons: [...] },
-  updateSession: { step: 'confirming_work', draft: workData },
-};
+## Development
 
-// Clear session after completion
-return { response: { text: 'Done!' }, clearSession: true };
-```
+### Adding a Command
 
-### 3. Rate Limiting
+1. Create handler in `src/handlers/{command}.ts`
+2. Add route in `handlers/index.ts` switch
+3. Write tests in `src/__tests__/`
+4. Update help text
 
-Rate limits are checked per action type:
+### Adding a Platform
 
-```typescript
-const rateCheck = this.checkRateLimit(platformId, 'submission');
-if (rateCheck) return rateCheck;  // Returns error response if limited
-```
+1. Create `src/platforms/{platform}.ts` with:
+   - `toInboundMessage()` — Transform platform → unified format
+   - `toResponse()` — Transform unified → platform format
+   - `create{Platform}Bot()` — Bot setup
+2. Add webhook route in `api/server.ts`
+3. Initialize in `index.ts`
 
-### 4. Voice Processing
+## Environment Variables
 
-Voice messages are processed through the VoiceProcessor:
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `TELEGRAM_BOT_TOKEN` | Bot token from @BotFather | Yes |
+| `ENCRYPTION_SECRET` | 32+ char secret for key encryption | Yes |
+| `BOT_MODE` | `polling` or `webhook` | No (default: webhook) |
+| `DB_PATH` | SQLite path | No (default: data/agent.db) |
 
-```typescript
-interface VoiceProcessor {
-  downloadAndTranscribe(audioUrl: string): Promise<string>;
-}
-```
+See deployment guide for full production configuration.
 
-## Adding a New Platform
+## Deep Dive Rules
 
-1. Create adapter in `src/adapters/{platform}/`:
-   - `transformer.ts` - Convert platform events <-> core envelopes
-   - `index.ts` - Platform client setup
+Detailed patterns for specific concerns:
 
-2. Create voice processor (if supporting voice)
+- **Architecture:** `.cursor/rules/architecture.mdc` — Data flow, handler context, layer patterns
+- **Deployment:** `.cursor/rules/deployment.mdc` — Railway, Docker, webhooks, monitoring
+- **Security:** `.cursor/rules/security.mdc` — Encryption, rate limiting, input validation
+- **Testing:** `.cursor/rules/testing.mdc` — Coverage targets, test patterns
 
-3. Create notifier (for outbound messages)
+## Key Anti-Patterns
 
-4. Add webhook route in `src/api/routes/webhook.ts`
+❌ **Don't put business logic in platform adapters** — Adapters only transform
 
-5. Update entry point to initialize the new adapter
+❌ **Don't skip rate limiting** — Always check before expensive operations
 
-## Testing
+❌ **Don't hardcode chain IDs** — Use `getConfig().chainId`
 
-```bash
-# Run all tests
-bun test
-
-# Watch mode
-bun test --watch
-
-# Coverage
-bun test --coverage
-```
+❌ **Don't store plaintext keys** — Always encrypt via `prepareKeyForStorage()`
 
 ## Dependencies
 
 | Package | Purpose |
-|:--------|:--------|
-| `telegraf` | Telegram Bot API framework |
-| `fastify` | HTTP server for webhooks |
-| `viem` | Ethereum wallet/blockchain operations |
-| `@xenova/transformers` | Local Whisper model for STT |
+|---------|---------|
+| `telegraf` | Telegram Bot API |
+| `fastify` | HTTP server |
+| `viem` | Blockchain operations |
+| `@xenova/transformers` | Whisper STT |
 | `@green-goods/shared` | Shared business logic |
 
-## Future Improvements
+## References
 
-- [ ] Discord adapter
-- [ ] WhatsApp adapter (Meta Cloud API)
-- [ ] Photo/media attachments
-- [ ] LLM-based NLU for better parsing
-- [ ] Multi-language support
-- [ ] HSM/KMS for key management
-
-## Reference Documents
-
-- [Shared Package](../shared/README.md)
+- [Shared Package](../shared/AGENTS.md)
 - [Contracts Handbook](../../docs/developer/contracts-handbook.md)

@@ -66,21 +66,6 @@ export function setTheme(theme: Theme): void {
 }
 
 /**
- * Toggle through theme options: light → dark → system → light
- * Returns the new theme
- */
-export function toggle(): Theme {
-  const order: Theme[] = ["light", "dark", "system"];
-  const current = getTheme();
-  const currentIndex = order.indexOf(current);
-  const nextIndex = (currentIndex + 1) % order.length;
-  const next = order[nextIndex];
-
-  setTheme(next);
-  return next;
-}
-
-/**
  * Listen to system theme changes and update when in system mode
  * Returns cleanup function
  */

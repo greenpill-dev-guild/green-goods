@@ -1,7 +1,11 @@
-import { create } from "zustand";
 import { getAddress, isAddress } from "viem";
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 import type { CreateGardenParams } from "../types/contracts";
+
+// Storage key for garden creation flow persistence
+const CREATE_GARDEN_STORAGE_KEY = "green-goods:create-garden";
 
 export interface CreateGardenFormState {
   name: string;
@@ -95,160 +99,184 @@ export function isValidAddress(address: string): boolean {
   return isAddress(address.trim());
 }
 
-export const useCreateGardenStore = create<CreateGardenStore>((set, get) => ({
-  form: createEmptyGardenForm(),
-  steps: defaultSteps,
-  currentStep: 0,
-  setField: (field, value) =>
-    set((state) => ({
-      form: {
-        ...state.form,
-        [field]: value,
-      },
-    })),
-  addGardener: (address) => {
-    const sanitized = sanitizeAddress(address);
-    if (!isValidAddress(sanitized)) {
-      return { success: false, error: "Enter a valid wallet address" };
-    }
-
-    const { form } = get();
-
-    // Check if already a gardener (case-insensitive via checksummed comparison)
-    if (form.gardeners.includes(sanitized)) {
-      return { success: false, error: "Address already added as gardener" };
-    }
-
-    // Check if already an operator
-    if (form.operators.includes(sanitized)) {
-      return { success: false, error: "Address is already an operator" };
-    }
-
-    set((state) => ({
-      form: {
-        ...state.form,
-        gardeners: [...state.form.gardeners, sanitized],
-      },
-    }));
-
-    return { success: true };
-  },
-  removeGardener: (index) =>
-    set((state) => ({
-      form: {
-        ...state.form,
-        gardeners: state.form.gardeners.filter((_, i) => i !== index),
-      },
-    })),
-  addOperator: (address) => {
-    const sanitized = sanitizeAddress(address);
-    if (!isValidAddress(sanitized)) {
-      return { success: false, error: "Enter a valid wallet address" };
-    }
-
-    const { form } = get();
-
-    // Check if already an operator (case-insensitive via checksummed comparison)
-    if (form.operators.includes(sanitized)) {
-      return { success: false, error: "Address already added as operator" };
-    }
-
-    // Check if already a gardener
-    if (form.gardeners.includes(sanitized)) {
-      return { success: false, error: "Address is already a gardener" };
-    }
-
-    set((state) => ({
-      form: {
-        ...state.form,
-        operators: [...state.form.operators, sanitized],
-      },
-    }));
-
-    return { success: true };
-  },
-  removeOperator: (index) =>
-    set((state) => ({
-      form: {
-        ...state.form,
-        operators: state.form.operators.filter((_, i) => i !== index),
-      },
-    })),
-  nextStep: () =>
-    set((state) => ({
-      currentStep: Math.min(state.currentStep + 1, state.steps.length - 1),
-    })),
-  previousStep: () =>
-    set((state) => ({
-      currentStep: Math.max(state.currentStep - 1, 0),
-    })),
-  goToStep: (index) =>
-    set((state) => ({
-      currentStep: Math.min(Math.max(index, 0), state.steps.length - 1),
-    })),
-  goToReview: () =>
-    set((state) => ({
-      currentStep: state.steps.length - 1,
-    })),
-  goToFirstIncompleteStep: () => {
-    const { steps } = get();
-    for (let i = 0; i < steps.length - 1; i++) {
-      const step = steps[i];
-      if (!get().isStepValid(step.id)) {
-        set({ currentStep: i });
-        return;
-      }
-    }
-    set({ currentStep: steps.length - 2 });
-  },
-  isStepValid: (stepId) => {
-    const { form } = get();
-    switch (stepId) {
-      case "details":
-        return (
-          form.name.trim().length > 0 &&
-          form.description.trim().length > 0 &&
-          form.location.trim().length > 0 &&
-          isValidAddress(form.communityToken.trim())
-        );
-      case "team":
-        return form.gardeners.length > 0;
-      case "review":
-        return true;
-      default:
-        return false;
-    }
-  },
-  canProceed: () => {
-    const { steps, currentStep } = get();
-    return get().isStepValid(steps[currentStep]?.id ?? "details");
-  },
-  isReviewReady: () => {
-    const { steps } = get();
-    return steps.slice(0, steps.length - 1).every((step) => get().isStepValid(step.id));
-  },
-  reset: () =>
-    set({
+export const useCreateGardenStore = create<CreateGardenStore>()(
+  persist(
+    (set, get) => ({
       form: createEmptyGardenForm(),
+      steps: defaultSteps,
       currentStep: 0,
-    }),
-  getParams: () => {
-    const { form } = get();
-    if (!get().isReviewReady()) {
-      return null;
-    }
+      setField: (field, value) =>
+        set((state) => ({
+          form: {
+            ...state.form,
+            [field]: value,
+          },
+        })),
+      addGardener: (address) => {
+        const sanitized = sanitizeAddress(address);
+        if (!isValidAddress(sanitized)) {
+          return { success: false, error: "Enter a valid wallet address" };
+        }
 
-    return {
-      communityToken: form.communityToken.trim(),
-      name: form.name.trim(),
-      description: form.description.trim(),
-      location: form.location.trim(),
-      bannerImage: form.bannerImage.trim(),
-      gardeners: form.gardeners,
-      gardenOperators: form.operators,
-    } satisfies CreateGardenParams;
-  },
-}));
+        const { form } = get();
+
+        // Check if already a gardener (case-insensitive via checksummed comparison)
+        if (form.gardeners.includes(sanitized)) {
+          return { success: false, error: "Address already added as gardener" };
+        }
+
+        // Check if already an operator
+        if (form.operators.includes(sanitized)) {
+          return { success: false, error: "Address is already an operator" };
+        }
+
+        set((state) => ({
+          form: {
+            ...state.form,
+            gardeners: [...state.form.gardeners, sanitized],
+          },
+        }));
+
+        return { success: true };
+      },
+      removeGardener: (index) =>
+        set((state) => ({
+          form: {
+            ...state.form,
+            gardeners: state.form.gardeners.filter((_, i) => i !== index),
+          },
+        })),
+      addOperator: (address) => {
+        const sanitized = sanitizeAddress(address);
+        if (!isValidAddress(sanitized)) {
+          return { success: false, error: "Enter a valid wallet address" };
+        }
+
+        const { form } = get();
+
+        // Check if already an operator (case-insensitive via checksummed comparison)
+        if (form.operators.includes(sanitized)) {
+          return { success: false, error: "Address already added as operator" };
+        }
+
+        // Check if already a gardener
+        if (form.gardeners.includes(sanitized)) {
+          return { success: false, error: "Address is already a gardener" };
+        }
+
+        set((state) => ({
+          form: {
+            ...state.form,
+            operators: [...state.form.operators, sanitized],
+          },
+        }));
+
+        return { success: true };
+      },
+      removeOperator: (index) =>
+        set((state) => ({
+          form: {
+            ...state.form,
+            operators: state.form.operators.filter((_, i) => i !== index),
+          },
+        })),
+      nextStep: () =>
+        set((state) => ({
+          currentStep: Math.min(state.currentStep + 1, state.steps.length - 1),
+        })),
+      previousStep: () =>
+        set((state) => ({
+          currentStep: Math.max(state.currentStep - 1, 0),
+        })),
+      goToStep: (index) =>
+        set((state) => ({
+          currentStep: Math.min(Math.max(index, 0), state.steps.length - 1),
+        })),
+      goToReview: () =>
+        set((state) => ({
+          currentStep: state.steps.length - 1,
+        })),
+      goToFirstIncompleteStep: () => {
+        const { steps } = get();
+        for (let i = 0; i < steps.length - 1; i++) {
+          const step = steps[i];
+          if (!get().isStepValid(step.id)) {
+            set({ currentStep: i });
+            return;
+          }
+        }
+        set({ currentStep: steps.length - 2 });
+      },
+      isStepValid: (stepId) => {
+        const { form } = get();
+        switch (stepId) {
+          case "details":
+            return (
+              form.name.trim().length > 0 &&
+              form.description.trim().length > 0 &&
+              form.location.trim().length > 0 &&
+              isValidAddress(form.communityToken.trim())
+            );
+          case "team":
+            return form.gardeners.length > 0;
+          case "review":
+            return true;
+          default:
+            return false;
+        }
+      },
+      canProceed: () => {
+        const { steps, currentStep } = get();
+        return get().isStepValid(steps[currentStep]?.id ?? "details");
+      },
+      isReviewReady: () => {
+        const { steps } = get();
+        return steps.slice(0, steps.length - 1).every((step) => get().isStepValid(step.id));
+      },
+      reset: () =>
+        set({
+          form: createEmptyGardenForm(),
+          currentStep: 0,
+        }),
+      getParams: () => {
+        const { form } = get();
+        if (!get().isReviewReady()) {
+          return null;
+        }
+
+        return {
+          communityToken: form.communityToken.trim(),
+          name: form.name.trim(),
+          description: form.description.trim(),
+          location: form.location.trim(),
+          bannerImage: form.bannerImage.trim(),
+          gardeners: form.gardeners,
+          gardenOperators: form.operators,
+        } satisfies CreateGardenParams;
+      },
+    }),
+    {
+      name: CREATE_GARDEN_STORAGE_KEY,
+      // Persist form data and current step to sessionStorage
+      // Using sessionStorage so it clears when the browser tab is closed
+      storage: {
+        getItem: (name) => {
+          const str = sessionStorage.getItem(name);
+          return str ? JSON.parse(str) : null;
+        },
+        setItem: (name, value) => {
+          sessionStorage.setItem(name, JSON.stringify(value));
+        },
+        removeItem: (name) => {
+          sessionStorage.removeItem(name);
+        },
+      },
+      // Only persist form and currentStep, not steps (static) or functions
+      partialize: (state) =>
+        ({ form: state.form, currentStep: state.currentStep }) as CreateGardenStore,
+    }
+  )
+);
 
 export function resetCreateGardenStore() {
   useCreateGardenStore.setState({
@@ -256,4 +284,6 @@ export function resetCreateGardenStore() {
     steps: defaultSteps,
     currentStep: 0,
   });
+  // Also clear the persisted state from sessionStorage
+  sessionStorage.removeItem(CREATE_GARDEN_STORAGE_KEY);
 }

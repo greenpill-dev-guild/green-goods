@@ -1,10 +1,19 @@
 import { v4 as uuidv4 } from "uuid";
+import type { Action, Work, WorkApprovalDraft, WorkDraft } from "../../types/domain";
 import { getActionTitle } from "../../utils/action/parsers";
 import { createOfflineTxHash, jobQueue } from "../job-queue";
 
 /**
  * Consolidated work submission utility
  * Handles both online and offline work submission scenarios
+ *
+ * @param draft - Work draft data
+ * @param gardenAddress - Garden address to submit to
+ * @param actionUID - Action UID
+ * @param actions - List of available actions (for title lookup)
+ * @param chainId - Chain ID
+ * @param images - Work images
+ * @param userAddress - User address who is submitting (required for user-scoped queue)
  */
 export async function submitWorkToQueue(
   draft: WorkDraft,
@@ -12,7 +21,8 @@ export async function submitWorkToQueue(
   actionUID: number,
   actions: Action[],
   chainId: number,
-  images: File[]
+  images: File[],
+  userAddress: string
 ): Promise<{ txHash: `0x${string}`; jobId: string; clientWorkId: string }> {
   if (!gardenAddress) {
     throw new Error("Garden address is required");
@@ -20,6 +30,10 @@ export async function submitWorkToQueue(
 
   if (typeof actionUID !== "number") {
     throw new Error("Action UID must be a number");
+  }
+
+  if (!userAddress) {
+    throw new Error("User address is required");
   }
 
   const actionTitle = getActionTitle(actions, actionUID);
@@ -51,6 +65,7 @@ export async function submitWorkToQueue(
       gardenAddress,
       media: images,
     },
+    userAddress,
     { chainId, clientWorkId }
   );
 
@@ -61,11 +76,17 @@ export async function submitWorkToQueue(
 /**
  * Consolidated work approval submission utility
  * Handles both online and offline approval scenarios
+ *
+ * @param draft - Approval draft data
+ * @param work - Work being approved/rejected
+ * @param chainId - Chain ID
+ * @param userAddress - User address who is approving (required for user-scoped queue)
  */
 export async function submitApprovalToQueue(
   draft: WorkApprovalDraft,
   work: Work | undefined,
-  chainId: number
+  chainId: number,
+  userAddress: string
 ): Promise<{ txHash: `0x${string}`; jobId: string }> {
   if (!draft.workUID) {
     throw new Error("Work UID is required");
@@ -75,13 +96,19 @@ export async function submitApprovalToQueue(
     throw new Error("Work not found");
   }
 
+  if (!userAddress) {
+    throw new Error("User address is required");
+  }
+
   // Add approval job to queue - this handles both offline and online scenarios
   const jobId = await jobQueue.addJob(
     "approval",
     {
       ...draft,
+      gardenAddress: work.gardenAddress,
       gardenerAddress: work.gardenerAddress || "",
     },
+    userAddress,
     { chainId }
   );
 
@@ -95,6 +122,14 @@ export async function submitApprovalToQueue(
 export const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
 
 /**
+ * Options for validating work submission context
+ */
+export interface ValidateWorkContextOptions {
+  /** Minimum required images (from action config). Defaults to 1 if not provided. */
+  minRequired?: number;
+}
+
+/**
  * Validate submission context before work submission.
  * Note: Form field validation (feedback, plantSelection, plantCount) is handled
  * by the Zod schema in useWorkForm.ts. This function only validates context.
@@ -102,14 +137,19 @@ export const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
  * @param gardenAddress - Selected garden address
  * @param actionUID - Selected action UID
  * @param images - Work images to upload
+ * @param options - Validation options including minRequired images
  * @returns Array of error messages (empty if valid)
  */
 export function validateWorkSubmissionContext(
   gardenAddress: string | null,
   actionUID: number | null,
-  images: File[]
+  images: File[],
+  options: ValidateWorkContextOptions = {}
 ): string[] {
   const errors: string[] = [];
+
+  // Default to 1 if not specified (backward compatibility)
+  const minRequired = options.minRequired ?? 1;
 
   if (!gardenAddress) {
     errors.push("Garden must be selected");
@@ -119,8 +159,12 @@ export function validateWorkSubmissionContext(
     errors.push("Action must be selected");
   }
 
-  if (images.length === 0) {
-    errors.push("At least one image is required");
+  if (images.length < minRequired) {
+    if (minRequired === 1) {
+      errors.push("At least one image is required");
+    } else {
+      errors.push(`At least ${minRequired} images are required`);
+    }
   }
 
   // Check image file sizes
@@ -140,9 +184,10 @@ export function validateWorkDraft(
   _draft: WorkDraft,
   gardenAddress: string | null,
   actionUID: number | null,
-  images: File[]
+  images: File[],
+  options: ValidateWorkContextOptions = {}
 ): string[] {
-  return validateWorkSubmissionContext(gardenAddress, actionUID, images);
+  return validateWorkSubmissionContext(gardenAddress, actionUID, images, options);
 }
 
 /**

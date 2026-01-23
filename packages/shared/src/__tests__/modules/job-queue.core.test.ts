@@ -1,4 +1,23 @@
+/**
+ * @vitest-environment jsdom
+ */
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+// Ensure fake-indexeddb is loaded before job-queue module
+import "fake-indexeddb/auto";
+
+// Mock modules that pull in problematic dependencies (@walletconnect -> uint8arrays)
+vi.mock("../../config/appkit", () => ({
+  wagmiConfig: {},
+  appKit: null,
+}));
+
+vi.mock("@wagmi/core", () => ({
+  getPublicClient: vi.fn(() => ({
+    readContract: vi.fn(),
+  })),
+}));
 
 vi.mock("../../modules/app/posthog", () => ({
   track: vi.fn(),
@@ -15,6 +34,34 @@ import {
   submitApprovalWithPasskey,
 } from "../../modules/work/passkey-submission";
 
+// Test user address for scoped queue operations
+const TEST_USER_ADDRESS = "0xTestUser123";
+
+/**
+ * Creates a mock File with arrayBuffer support for Node.js test environment.
+ * Node's File class may not have arrayBuffer() method in all environments.
+ */
+function createMockFile(content: string, name: string, type: string): File {
+  const blob = new Blob([content], { type });
+  const file = new File([blob], name, { type });
+
+  // Ensure arrayBuffer is available (polyfill for test environments)
+  if (!file.arrayBuffer) {
+    Object.defineProperty(file, "arrayBuffer", {
+      value: async () => {
+        const reader = new FileReader();
+        return new Promise<ArrayBuffer>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as ArrayBuffer);
+          reader.onerror = reject;
+          reader.readAsArrayBuffer(blob);
+        });
+      },
+    });
+  }
+
+  return file;
+}
+
 describe("modules/job-queue", () => {
   beforeEach(() => {
     try {
@@ -30,14 +77,14 @@ describe("modules/job-queue", () => {
   });
 
   afterEach(async () => {
-    const jobs = await jobQueue.getJobs();
+    const jobs = await jobQueue.getJobs(TEST_USER_ADDRESS);
     for (const job of jobs) {
       await jobQueueDB.deleteJob(job.id);
     }
   });
 
   it("processes a queued work job during flush when client is available", async () => {
-    const file = new File(["content"], "work.jpg", { type: "image/jpeg" });
+    const file = createMockFile("content", "work.jpg", "image/jpeg");
     const jobId = await jobQueue.addJob(
       "work",
       {
@@ -49,6 +96,7 @@ describe("modules/job-queue", () => {
         plantCount: 1,
         media: [file],
       },
+      TEST_USER_ADDRESS,
       { chainId: 84532 }
     );
 
@@ -58,12 +106,12 @@ describe("modules/job-queue", () => {
       account: { address: "0xabc" },
     } as any;
 
-    const result = await jobQueue.flush({ smartAccountClient });
+    const result = await jobQueue.flush({ smartAccountClient, userAddress: TEST_USER_ADDRESS });
 
     expect(result.processed).toBe(1);
     expect(result.failed).toBe(0);
     expect(submitWorkWithPasskey).toHaveBeenCalledTimes(1);
-    const stats = await jobQueue.getStats();
+    const stats = await jobQueue.getStats(TEST_USER_ADDRESS);
     expect(stats.pending).toBe(0);
   });
 
@@ -76,10 +124,14 @@ describe("modules/job-queue", () => {
         approved: true,
         gardenerAddress: "0xgardener",
       },
+      TEST_USER_ADDRESS,
       { chainId: 84532 }
     );
 
-    const result = await jobQueue.flush({ smartAccountClient: null });
+    const result = await jobQueue.flush({
+      smartAccountClient: null,
+      userAddress: TEST_USER_ADDRESS,
+    });
 
     expect(result.processed).toBe(0);
     expect(result.skipped).toBeGreaterThan(0);
@@ -100,8 +152,9 @@ describe("modules/job-queue", () => {
         feedback: "ok",
         plantSelection: ["Rose"],
         plantCount: 1,
-        media: [new File(["content"], "x.jpg", { type: "image/jpeg" })],
+        media: [createMockFile("content", "x.jpg", "image/jpeg")],
       },
+      TEST_USER_ADDRESS,
       { chainId: 84532 }
     );
 
@@ -109,11 +162,11 @@ describe("modules/job-queue", () => {
       account: { address: "0xabc" },
     } as any;
 
-    const result = await jobQueue.flush({ smartAccountClient });
+    const result = await jobQueue.flush({ smartAccountClient, userAddress: TEST_USER_ADDRESS });
 
     expect(result.failed).toBe(1);
     expect(submitWorkWithPasskey).toHaveBeenCalled();
-    const jobs = await jobQueue.getJobs();
+    const jobs = await jobQueue.getJobs(TEST_USER_ADDRESS);
     expect(jobs[0]?.lastError).toContain("boom");
   });
 });

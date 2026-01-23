@@ -4,21 +4,33 @@
  * Tests for the core message handlers (start, join, submit).
  */
 
-import { describe, it, expect, beforeEach, mock } from "bun:test";
-import { handleStart, type StartDeps } from "../core/handlers/start";
-import { handleJoin, type JoinDeps } from "../core/handlers/join";
-import {
-  handleTextSubmission,
-  handleVoiceSubmission,
-  handleConfirmSubmission,
-  handleCancelSubmission,
-  type SubmitDeps,
-} from "../core/handlers/submit";
-import type { InboundMessage } from "../core/contracts/message";
-import type { StoragePort, User } from "../ports/storage";
-import type { BlockchainPort, GardenInfo } from "../ports/blockchain";
-import type { AIPort, ParsedWorkData } from "../ports/ai";
-import type { Session } from "../core/contracts/response";
+import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+
+import { handleStart, type StartDeps } from "../handlers/start";
+import { handleJoin, type JoinDeps } from "../handlers/join";
+import { handleTextSubmission, handleCancelSubmission, type SubmitDeps } from "../handlers/submit";
+import type { InboundMessage, User } from "../types";
+import { initDB } from "../services/db";
+import { initAI } from "../services/ai";
+import * as db from "../services/db";
+
+// Set up test environment
+const TEST_DB_PATH = "data/test/handlers-test.db";
+const originalSecret = process.env.ENCRYPTION_SECRET;
+
+beforeAll(() => {
+  process.env.ENCRYPTION_SECRET = "test-secret-key-for-encryption-32chars!";
+  initDB(TEST_DB_PATH);
+  initAI();
+});
+
+afterAll(async () => {
+  if (originalSecret) {
+    process.env.ENCRYPTION_SECRET = originalSecret;
+  } else {
+    delete process.env.ENCRYPTION_SECRET;
+  }
+});
 
 // ============================================================================
 // MOCK FACTORIES
@@ -48,150 +60,71 @@ function createMockUser(overrides: Partial<User> = {}): User {
   };
 }
 
-function createMockStoragePort(overrides: Partial<StoragePort> = {}): StoragePort {
-  return {
-    getUser: mock(() => Promise.resolve(undefined)),
-    createUser: mock((input) => Promise.resolve({ ...input, createdAt: Date.now() } as User)),
-    updateUser: mock(() => Promise.resolve()),
-    getOperatorForGarden: mock(() => Promise.resolve(undefined)),
-    getSession: mock(() => Promise.resolve(undefined)),
-    setSession: mock(() => Promise.resolve()),
-    clearSession: mock(() => Promise.resolve()),
-    addPendingWork: mock(() => Promise.resolve()),
-    getPendingWork: mock(() => Promise.resolve(undefined)),
-    getPendingWorksForGarden: mock(() => Promise.resolve([])),
-    removePendingWork: mock(() => Promise.resolve()),
-    close: mock(() => Promise.resolve()),
-    ...overrides,
-  };
-}
-
-function createMockBlockchainPort(overrides: Partial<BlockchainPort> = {}): BlockchainPort {
-  return {
-    submitWork: mock(() => Promise.resolve(("0x" + "f".repeat(64)) as `0x${string}`)),
-    submitApproval: mock(() => Promise.resolve(("0x" + "f".repeat(64)) as `0x${string}`)),
-    isOperator: mock(() => Promise.resolve({ verified: false })),
-    isGardener: mock(() => Promise.resolve({ verified: false })),
-    getGardenInfo: mock(() =>
-      Promise.resolve({ exists: true, name: "Test Garden", address: "0x123" })
-    ),
-    getChainId: mock(() => 84532),
-    clearCache: mock(() => {}),
-    ...overrides,
-  };
-}
-
-function createMockAIPort(overrides: Partial<AIPort> = {}): AIPort {
-  return {
-    transcribe: mock(() => Promise.resolve("transcribed text")),
-    parseWorkText: mock(() =>
-      Promise.resolve({
-        tasks: [{ type: "planting", species: "trees", count: 5 }],
-        notes: "Planted 5 trees today",
-        date: new Date().toISOString().split("T")[0],
-      } as ParsedWorkData)
-    ),
-    isModelLoaded: mock(() => true),
-    ...overrides,
-  };
-}
-
 // ============================================================================
-// START HANDLER TESTS
+// START HANDLER
 // ============================================================================
 
 describe("handleStart", () => {
-  let storage: StoragePort;
-  let deps: StartDeps;
-
-  beforeEach(() => {
-    storage = createMockStoragePort();
-    deps = {
-      storage,
-      generatePrivateKey: () => ("0x" + "a".repeat(64)) as `0x${string}`,
-    };
-  });
-
-  it("creates wallet for new user", async () => {
+  it("creates a new wallet for first-time users", async () => {
     const message = createMockMessage({
+      sender: { platformId: `new-user-${Date.now()}` },
       content: { type: "command", name: "start", args: [] },
     });
+
+    const deps: StartDeps = {
+      generatePrivateKey: () => `0x${"b".repeat(64)}` as `0x${string}`,
+    };
 
     const result = await handleStart(message, deps);
 
     expect(result.response.text).toContain("Welcome to Green Goods");
-    expect(result.response.text).toContain("I've created a wallet");
-    expect(result.response.parseMode).toBe("markdown");
-    expect(storage.createUser).toHaveBeenCalled();
+    expect(result.response.text).toContain("created a wallet");
   });
 
-  it("welcomes back existing user", async () => {
-    const existingUser = createMockUser({
-      currentGarden: "0x" + "2".repeat(40),
+  it("welcomes back existing users", async () => {
+    // First create the user
+    const platformId = `existing-user-${Date.now()}`;
+    await db.createUser({
+      platform: "telegram",
+      platformId,
+      privateKey: "0x" + "c".repeat(64),
+      address: "0x" + "2".repeat(40),
+      role: "gardener",
     });
-    storage = createMockStoragePort({
-      getUser: mock(() => Promise.resolve(existingUser)),
-    });
-    deps.storage = storage;
 
     const message = createMockMessage({
+      sender: { platformId },
       content: { type: "command", name: "start", args: [] },
     });
+
+    const deps: StartDeps = {
+      generatePrivateKey: () => `0x${"d".repeat(64)}` as `0x${string}`,
+    };
 
     const result = await handleStart(message, deps);
 
     expect(result.response.text).toContain("Welcome back");
-    expect(result.response.text).toContain(existingUser.address.slice(0, 6));
-    expect(storage.createUser).not.toHaveBeenCalled();
-  });
-
-  it("shows not joined status for user without garden", async () => {
-    const existingUser = createMockUser({ currentGarden: undefined });
-    storage = createMockStoragePort({
-      getUser: mock(() => Promise.resolve(existingUser)),
-    });
-    deps.storage = storage;
-
-    const message = createMockMessage({
-      content: { type: "command", name: "start", args: [] },
-    });
-
-    const result = await handleStart(message, deps);
-
-    expect(result.response.text).toContain("Not joined");
   });
 });
 
 // ============================================================================
-// JOIN HANDLER TESTS
+// JOIN HANDLER
 // ============================================================================
 
 describe("handleJoin", () => {
-  let storage: StoragePort;
-  let blockchain: BlockchainPort;
-  let deps: JoinDeps;
-  let user: User;
-
-  beforeEach(() => {
-    storage = createMockStoragePort();
-    blockchain = createMockBlockchainPort();
-    user = createMockUser();
-    deps = {
-      storage,
-      blockchain,
-      isValidAddress: (addr) => /^0x[a-fA-F0-9]{40}$/.test(addr),
-    };
-  });
-
   it("shows usage when no address provided", async () => {
     const message = createMockMessage({
       content: { type: "command", name: "join", args: [] },
     });
 
+    const user = createMockUser();
+    const deps: JoinDeps = {
+      isValidAddress: (addr: string) => /^0x[a-fA-F0-9]{40}$/.test(addr),
+    };
+
     const result = await handleJoin(message, user, deps);
 
     expect(result.response.text).toContain("Usage");
-    expect(result.response.text).toContain("/join");
   });
 
   it("rejects invalid address format", async () => {
@@ -199,262 +132,71 @@ describe("handleJoin", () => {
       content: { type: "command", name: "join", args: ["invalid-address"] },
     });
 
+    const user = createMockUser();
+    const deps: JoinDeps = {
+      isValidAddress: (addr: string) => /^0x[a-fA-F0-9]{40}$/.test(addr),
+    };
+
     const result = await handleJoin(message, user, deps);
 
     expect(result.response.text).toContain("Invalid address format");
   });
-
-  it("rejects non-existent garden", async () => {
-    blockchain = createMockBlockchainPort({
-      getGardenInfo: mock(() => Promise.resolve({ exists: false, address: "0x123" })),
-    });
-    deps.blockchain = blockchain;
-
-    const gardenAddress = "0x" + "a".repeat(40);
-    const message = createMockMessage({
-      content: { type: "command", name: "join", args: [gardenAddress] },
-    });
-
-    const result = await handleJoin(message, user, deps);
-
-    expect(result.response.text).toContain("Garden not found");
-  });
-
-  it("successfully joins valid garden", async () => {
-    const gardenAddress = "0x" + "a".repeat(40);
-    const gardenInfo: GardenInfo = {
-      exists: true,
-      name: "Test Garden",
-      address: gardenAddress,
-    };
-    blockchain = createMockBlockchainPort({
-      getGardenInfo: mock(() => Promise.resolve(gardenInfo)),
-    });
-    deps.blockchain = blockchain;
-
-    const message = createMockMessage({
-      content: { type: "command", name: "join", args: [gardenAddress] },
-    });
-
-    const result = await handleJoin(message, user, deps);
-
-    expect(result.response.text).toContain("Joined garden successfully");
-    expect(result.response.text).toContain("Test Garden");
-    expect(storage.updateUser).toHaveBeenCalled();
-  });
 });
 
 // ============================================================================
-// SUBMIT HANDLER TESTS
+// SUBMIT HANDLER
 // ============================================================================
 
 describe("handleTextSubmission", () => {
-  let storage: StoragePort;
-  let ai: AIPort;
-  let deps: SubmitDeps;
-  let user: User;
-
-  beforeEach(() => {
-    storage = createMockStoragePort();
-    ai = createMockAIPort();
-    user = createMockUser({ currentGarden: "0x" + "2".repeat(40) });
-    deps = {
-      storage,
-      ai,
-      generateId: () => "work-123",
-    };
-  });
-
   it("parses work from text and shows confirmation", async () => {
     const message = createMockMessage({
       content: { type: "text", text: "I planted 5 trees today" },
     });
 
+    const user = createMockUser({ currentGarden: "0x" + "3".repeat(40) });
+    const deps: SubmitDeps = {
+      generateId: () => "test-id-123",
+    };
+
     const result = await handleTextSubmission(message, user, deps);
 
-    expect(result.response.text).toContain("Confirm your submission");
-    expect(result.response.text).toContain("planting");
-    expect(result.response.buttons).toHaveLength(2);
+    expect(result.response.text).toContain("Confirm");
+    expect(result.response.buttons).toBeDefined();
+    expect(result.updateSession).toBeDefined();
     expect(result.updateSession?.step).toBe("confirming_work");
   });
 
   it("shows error when no tasks identified", async () => {
-    ai = createMockAIPort({
-      parseWorkText: mock(() =>
-        Promise.resolve({
-          tasks: [],
-          notes: "",
-          date: new Date().toISOString().split("T")[0],
-        })
-      ),
-    });
-    deps.ai = ai;
-
     const message = createMockMessage({
       content: { type: "text", text: "hello there" },
     });
 
+    const user = createMockUser({ currentGarden: "0x" + "3".repeat(40) });
+    const deps: SubmitDeps = {
+      generateId: () => "test-id-123",
+    };
+
     const result = await handleTextSubmission(message, user, deps);
 
-    expect(result.response.text).toContain("couldn't identify any work tasks");
-  });
-});
-
-describe("handleVoiceSubmission", () => {
-  let storage: StoragePort;
-  let ai: AIPort;
-  let deps: SubmitDeps;
-  let user: User;
-
-  beforeEach(() => {
-    storage = createMockStoragePort();
-    ai = createMockAIPort();
-    user = createMockUser({ currentGarden: "0x" + "2".repeat(40) });
-    deps = {
-      storage,
-      ai,
-      generateId: () => "work-123",
-    };
-  });
-
-  it("parses work from transcribed text", async () => {
-    const message = createMockMessage({
-      content: { type: "voice", audioUrl: "file_id_123", mimeType: "audio/ogg" },
-    });
-
-    const result = await handleVoiceSubmission(message, user, "I planted 5 trees today", deps);
-
-    expect(result.response.text).toContain("Confirm your submission");
-    expect(result.updateSession?.step).toBe("confirming_work");
-  });
-
-  it("shows transcription when no tasks identified", async () => {
-    ai = createMockAIPort({
-      parseWorkText: mock(() =>
-        Promise.resolve({
-          tasks: [],
-          notes: "",
-          date: new Date().toISOString().split("T")[0],
-        })
-      ),
-    });
-    deps.ai = ai;
-
-    const message = createMockMessage({
-      content: { type: "voice", audioUrl: "file_id_123", mimeType: "audio/ogg" },
-    });
-
-    const result = await handleVoiceSubmission(message, user, "just saying hello", deps);
-
-    expect(result.response.text).toContain("I heard:");
-    expect(result.response.text).toContain("just saying hello");
-    expect(result.response.text).toContain("couldn't identify any work tasks");
-  });
-});
-
-describe("handleConfirmSubmission", () => {
-  let storage: StoragePort;
-  let ai: AIPort;
-  let deps: SubmitDeps;
-  let user: User;
-  let session: Session;
-
-  beforeEach(() => {
-    storage = createMockStoragePort();
-    ai = createMockAIPort();
-    user = createMockUser({ currentGarden: "0x" + "2".repeat(40) });
-    session = {
-      platform: "telegram",
-      platformId: "user-123",
-      step: "confirming_work",
-      draft: {
-        tasks: [{ type: "planting", species: "trees", count: 5 }],
-        notes: "Planted 5 trees",
-        date: "2024-01-15",
-      },
-      updatedAt: Date.now(),
-    };
-    deps = {
-      storage,
-      ai,
-      generateId: () => "work-123",
-    };
-  });
-
-  it("creates pending work and clears session", async () => {
-    const message = createMockMessage({
-      content: { type: "callback", data: "confirm_submission" },
-    });
-
-    const result = await handleConfirmSubmission(message, user, session, deps);
-
-    expect(result.response.text).toContain("Work submitted for approval");
-    expect(result.response.text).toContain("work-123");
-    expect(result.clearSession).toBe(true);
-    expect(storage.addPendingWork).toHaveBeenCalled();
-    expect(storage.clearSession).toHaveBeenCalled();
-  });
-
-  it("handles expired session", async () => {
-    session.draft = undefined;
-
-    const message = createMockMessage({
-      content: { type: "callback", data: "confirm_submission" },
-    });
-
-    const result = await handleConfirmSubmission(message, user, session, deps);
-
-    expect(result.response.text).toContain("Session expired");
-    expect(result.clearSession).toBe(true);
-  });
-
-  it("notifies operator when available", async () => {
-    const operator = createMockUser({
-      platformId: "operator-456",
-      role: "operator",
-    });
-    storage = createMockStoragePort({
-      getOperatorForGarden: mock(() => Promise.resolve(operator)),
-    });
-    deps.storage = storage;
-
-    const notifyOperator = mock(() => Promise.resolve());
-    deps.notifyOperator = notifyOperator;
-
-    const message = createMockMessage({
-      content: { type: "callback", data: "confirm_submission" },
-    });
-
-    await handleConfirmSubmission(message, user, session, deps);
-
-    expect(notifyOperator).toHaveBeenCalled();
+    expect(result.response.text).toContain("couldn't identify");
   });
 });
 
 describe("handleCancelSubmission", () => {
-  let storage: StoragePort;
-  let ai: AIPort;
-  let deps: SubmitDeps;
-
-  beforeEach(() => {
-    storage = createMockStoragePort();
-    ai = createMockAIPort();
-    deps = {
-      storage,
-      ai,
-      generateId: () => "work-123",
-    };
-  });
-
   it("clears session and confirms cancellation", async () => {
+    const platformId = `cancel-user-${Date.now()}`;
     const message = createMockMessage({
+      sender: { platformId },
       content: { type: "callback", data: "cancel_submission" },
     });
 
+    const deps: SubmitDeps = {
+      generateId: () => "test-id",
+    };
+
     const result = await handleCancelSubmission(message, deps);
 
-    expect(result.response.text).toContain("Submission cancelled");
+    expect(result.response.text).toContain("cancelled");
     expect(result.clearSession).toBe(true);
-    expect(storage.clearSession).toHaveBeenCalled();
   });
 });

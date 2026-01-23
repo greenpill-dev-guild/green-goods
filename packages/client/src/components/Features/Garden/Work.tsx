@@ -1,16 +1,17 @@
 import { useNavigateToTop } from "@green-goods/shared/hooks";
+import { RiLoader4Line } from "@remixicon/react";
 import React, { forwardRef, memo, UIEvent, useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { FixedSizeList as List } from "react-window";
 import { MinimalWorkCard } from "@/components/Cards";
 import { BeatLoader } from "@/components/Communication";
 
-// import { cn } from "@green-goods/shared/utils/cn";
-
 interface GardenWorkProps {
   actions: Action[];
   works: Work[];
   workFetchStatus: "pending" | "success" | "error";
+  isFetching?: boolean;
+  onRefresh?: () => void;
   handleScroll?: (event: UIEvent<HTMLUListElement>) => void;
 }
 
@@ -47,9 +48,9 @@ const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
         <div className="grid gap-3">
           {[...Array(8)].map((_, i) => (
             <li key={i}>
-              <div className="flex flex-col gap-2 rounded-lg border border-slate-200 p-3 bg-white">
-                <div className="h-4 w-40 bg-slate-200 rounded animate-pulse" />
-                <div className="h-3 w-64 bg-slate-200 rounded animate-pulse" />
+              <div className="flex flex-col gap-2 rounded-lg border border-stroke-soft-200 p-3 bg-bg-white-0">
+                <div className="h-4 w-40 bg-bg-soft-200 rounded animate-pulse" />
+                <div className="h-3 w-64 bg-bg-soft-200 rounded animate-pulse" />
               </div>
             </li>
           ))}
@@ -58,7 +59,7 @@ const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
     case "success": {
       if (!sorted.length) {
         return (
-          <p className="grid p-8 place-items-center text-sm text-center italic text-gray-400">
+          <p className="grid p-8 place-items-center text-sm text-center italic text-text-soft-400">
             {intl.formatMessage({
               id: "app.garden.work.noWork",
               description: "No work yet",
@@ -83,7 +84,12 @@ const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
         );
         return (
           <li style={style}>
-            <MinimalWorkCard onClick={onOpen} work={work as unknown as Work} actionTitle={title} />
+            <MinimalWorkCard
+              onClick={onOpen}
+              work={work as unknown as Work}
+              actionTitle={title}
+              variant="detailed"
+            />
           </li>
         );
       });
@@ -124,7 +130,8 @@ const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
 };
 
 export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
-  ({ works, actions, workFetchStatus, handleScroll }, ref) => {
+  ({ works, actions, workFetchStatus, isFetching, onRefresh, handleScroll }, ref) => {
+    const intl = useIntl();
     const isEmpty = workFetchStatus === "success" && works.length === 0;
     const hasError = workFetchStatus === "error";
     const isLoading = workFetchStatus === "pending";
@@ -146,18 +153,68 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
         )}
 
         {hasError && (
-          <div className="flex items-center justify-center p-8">
-            <p className="text-sm text-red-600 text-center">
-              Error loading works. Please try again.
+          <div className="flex flex-col items-center justify-center gap-4 p-8">
+            <p className="text-sm text-error-text text-center">
+              {intl.formatMessage({
+                id: "app.garden.work.errorLoadingWorks",
+                defaultMessage: "Failed to load work submissions",
+              })}
             </p>
+            {onRefresh && (
+              <button
+                onClick={onRefresh}
+                disabled={isFetching}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-base rounded-lg hover:bg-primary-light disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isFetching ? (
+                  <>
+                    <RiLoader4Line className="w-4 h-4 animate-spin" />
+                    {intl.formatMessage({
+                      id: "app.common.refreshing",
+                      defaultMessage: "Refreshing...",
+                    })}
+                  </>
+                ) : (
+                  intl.formatMessage({
+                    id: "app.common.tryAgain",
+                    defaultMessage: "Try Again",
+                  })
+                )}
+              </button>
+            )}
           </div>
         )}
 
         {isEmpty && (
-          <div className="flex items-center justify-center p-8">
-            <p className="text-sm text-center italic text-gray-400">
-              No work items found for this garden yet.
+          <div className="flex flex-col items-center justify-center gap-4 p-8">
+            <p className="text-sm text-center italic text-text-sub">
+              {intl.formatMessage({
+                id: "app.garden.work.noWork",
+                defaultMessage: "No work submissions yet",
+              })}
             </p>
+            {onRefresh && (
+              <button
+                onClick={onRefresh}
+                disabled={isFetching}
+                className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-text-sub border border-stroke-soft rounded-lg hover:bg-bg-soft disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isFetching ? (
+                  <>
+                    <RiLoader4Line className="w-3 h-3 animate-spin" />
+                    {intl.formatMessage({
+                      id: "app.common.refreshing",
+                      defaultMessage: "Refreshing...",
+                    })}
+                  </>
+                ) : (
+                  intl.formatMessage({
+                    id: "app.common.refresh",
+                    defaultMessage: "Refresh",
+                  })
+                )}
+              </button>
+            )}
           </div>
         )}
 

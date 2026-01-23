@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/crates/oxc_linter/src/config/oxlintrc.schema.json",
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["react", "typescript", "jsx-a11y"],
   "env": {
     "browser": true,
@@ -21,7 +21,10 @@
     "react/jsx-uses-react": "error",
     "react/jsx-uses-vars": "error",
     "react/no-unescaped-entities": "warn",
-    "react/no-unknown-property": "error",
+    "react/no-unknown-property": [
+      "error",
+      { "ignore": ["popover", "popovertarget", "popovertargetaction"] }
+    ],
     "@typescript-eslint/no-unused-vars": "warn",
     "@typescript-eslint/no-explicit-any": "off",
     "@typescript-eslint/prefer-const": "error",
@@ -35,7 +38,7 @@
   },
   "settings": {
     "react": {
-      "version": "detect"
+      "version": "19.2"
     }
   }
 }

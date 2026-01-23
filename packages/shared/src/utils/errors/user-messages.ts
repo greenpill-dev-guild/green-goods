@@ -8,6 +8,8 @@
  * @module utils/errors/user-messages
  */
 
+import { extractErrorMessage } from "./extract-message";
+
 /**
  * Error patterns mapped to user-friendly messages
  * Keys are lowercase patterns to match against error messages
@@ -19,6 +21,8 @@ export const USER_FRIENDLY_ERRORS: Record<string, string> = {
   unauthorized: "You're not authorized to perform this action",
   "not a gardener": "You're not a member of this garden. Please join from your profile.",
   notgardener: "You're not a member of this garden. Please join from your profile.",
+  "not a member": "You're not a member of this garden. Please join from your profile.",
+  notgardenmember: "You're not a member of this garden. Please join from your profile.",
 
   // Network and connectivity errors
   network: "Network connection error - your work is saved offline",
@@ -64,8 +68,7 @@ export const USER_FRIENDLY_ERRORS: Record<string, string> = {
  * ```
  */
 export function formatUserError(error: string | Error | unknown): string {
-  const message =
-    typeof error === "string" ? error : error instanceof Error ? error.message : String(error);
+  const message = extractErrorMessage(error);
   const lowerMessage = message.toLowerCase();
 
   // Check each pattern for a match
@@ -100,7 +103,7 @@ export function formatJobError(error: string): string {
  * @returns User-friendly error message
  */
 export function formatWalletError(error: unknown): string {
-  const message = error instanceof Error ? error.message : String(error);
+  const message = extractErrorMessage(error);
   const lowerMessage = message.toLowerCase();
 
   // Wallet-specific patterns

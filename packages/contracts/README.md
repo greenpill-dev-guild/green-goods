@@ -20,7 +20,7 @@ bun install
 > Green Goods deployment uses Foundry's FFI (Foreign Function Interface) to generate EAS schema strings from the `config/schemas.json` file. This is **required** for deployment to work.
 > 
 > - **Already Configured**: `ffi = true` is set in `foundry.toml`
-> - **What it does**: Calls `script/utils/generate-schemas.js` to convert schema field definitions into EAS-compatible format strings
+> - **What it does**: Calls `script/utils/generate-schemas.ts` to convert schema field definitions into EAS-compatible format strings
 > - **Security**: FFI allows execution of external scripts. Our usage is safe (controlled, audited script), but be aware when running untrusted deployment scripts
 > - **CI/CD**: Ensure your deployment environment has Node.js available and FFI enabled
 
@@ -825,15 +825,14 @@ echo $CELO_RPC_URL
 
 ## Documentation
 
-**Core Guides:**
-- 📘 [Contracts Handbook](../../docs/developer/contracts-handbook.md) - deployment, upgrades, schema management, validation
-- 📋 [Deployment Checklist](../../docs/DEPLOYMENT_CHECKLIST.md) - GitBook release validation for docs
-**Configuration:**
-- 📝 [Schema Definitions](./config/schemas.json) - EAS schema configuration
-- 🌐 [Network Configuration](./deployments/networks.json) - Multi-chain settings
-- 🏗️ [Action Definitions](./config/actions.json) - Core garden actions
+📖 **[Contracts Documentation](https://docs.greengoods.app/developer/architecture/contracts-package)** — Complete contracts architecture guide
 
-**Additional:**
-- 📐 [Architecture Overview](../../docs/developer/architecture.md)
-- ✅ [Testing Guide](../../docs/developer/testing.md)
-- 🌍 [Product Overview](../../docs/features/overview.md)
+**Essential Guides:**
+- 📘 [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook) — Deployment, upgrades, schema management
+- 🏗️ [Architecture Overview](https://docs.greengoods.app/developer/architecture) — System design and package relationships
+- ✅ [Testing Guide](https://docs.greengoods.app/developer/testing) — Testing strategy and best practices
+
+**Configuration Files:**
+- 📝 [Schema Definitions](./config/schemas.json) — EAS schema configuration
+- 🌐 [Network Configuration](./deployments/networks.json) — Multi-chain settings
+- 🏗️ [Action Definitions](./config/actions.json) — Core garden actions

@@ -1,186 +1,253 @@
-import { toastService } from "@green-goods/shared";
-import { checkMembership, useAutoJoinRootGarden } from "@green-goods/shared/hooks";
-import { hasStoredPasskey, type PasskeySession } from "@green-goods/shared/modules";
-import { useClientAuth } from "@green-goods/shared/providers";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { Helmet } from "react-helmet-async";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
+
+import {
+  copyToClipboard,
+  toastService,
+  useInstallGuidance,
+  type InstallGuidance,
+} from "@green-goods/shared";
+import { debugError, type Platform } from "@green-goods/shared/utils";
+import { useAuth } from "@green-goods/shared/hooks";
+import { trackAuthError } from "@green-goods/shared/modules";
+import { useApp } from "@green-goods/shared/providers";
+
 import { type LoadingState, Splash } from "@/components/Layout";
+
+/** Get the browser guidance label based on scenario and platform */
+function getBrowserGuidanceLabel(guidance: InstallGuidance, platform: Platform): string {
+  if (guidance.scenario === "in-app-browser") {
+    return platform === "android" && guidance.openInBrowserUrl
+      ? "Open in Chrome for best experience"
+      : "Copy link & open in Safari";
+  }
+  return platform === "ios"
+    ? "For best experience, open in Safari"
+    : "Open in Chrome for best experience";
+}
+
+/** Convert technical errors to user-friendly messages */
+const getFriendlyErrorMessage = (err: unknown): string => {
+  if (!(err instanceof Error))
+    return "Something went wrong. Please try again or use 'Login with wallet'.";
+
+  const msg = err.message.toLowerCase();
+  if (msg.includes("cancel") || msg.includes("abort") || msg.includes("user deny")) {
+    return "Login cancelled. Please try again when ready.";
+  }
+  if (msg.includes("not support") || msg.includes("unavailable")) {
+    return "Passkey authentication is not available on this device. Try using 'Login with wallet' instead.";
+  }
+  if (msg.includes("network") || msg.includes("timeout") || msg.includes("fetch")) {
+    return "Connection issue. Please check your internet and try again.";
+  }
+  if (msg.includes("no passkey found") || msg.includes("no credentials")) {
+    return "No passkey found on this device. Please create a new account.";
+  }
+  if (msg.includes("credential") || msg.includes("passkey")) {
+    return "Couldn't verify your passkey. Please try again or use 'Login with wallet'.";
+  }
+  if (msg.includes("at least 3 characters")) {
+    return "Please enter a display name with at least 3 characters.";
+  }
+  return "Something went wrong. Please try again or use 'Login with wallet'.";
+};
 
 export function Login() {
   const location = useLocation();
   const {
     loginWithPasskey,
+    createAccount,
     loginWithWallet,
     isAuthenticating,
     isAuthenticated,
     isReady,
-    setPasskeySession,
-  } = useClientAuth();
+    hasStoredCredential,
+    error: authError,
+  } = useAuth();
+
+  // Get platform/browser info for installation guidance
+  const { platform, isMobile, isInstalled, wasInstalled, deferredPrompt } = useApp();
+  const guidance = useInstallGuidance(
+    platform,
+    isInstalled,
+    wasInstalled,
+    deferredPrompt,
+    isMobile
+  );
 
   const [loadingState, setLoadingState] = useState<LoadingState | null>(null);
-  const [loadingMessage, setLoadingMessage] = useState<string | undefined>(undefined);
+  const [loadingMessage, setLoadingMessage] = useState<string | undefined>();
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [username, setUsername] = useState("");
 
-  const { joinGarden, isLoading: isJoiningGarden } = useAutoJoinRootGarden();
+  // Handle browser switch action (for wrong browser/in-app browser scenarios)
+  const handleBrowserSwitch = useCallback(async () => {
+    if (guidance.openInBrowserUrl) {
+      // Android: Use intent URL to open in Chrome
+      window.location.href = guidance.openInBrowserUrl;
+    } else {
+      // iOS: Copy URL since we can't programmatically switch browsers
+      const success = await copyToClipboard(window.location.href);
+      if (success) {
+        toastService.show({
+          status: "success",
+          title: "Link copied!",
+          description: "Now open Safari and paste this link to continue.",
+        });
+      } else {
+        toastService.show({
+          status: "error",
+          title: "Couldn't copy link",
+          description: "Please manually copy this URL and open it in Safari.",
+        });
+      }
+    }
+  }, [guidance.openInBrowserUrl]);
 
-  // Check if we're on a nested route (like /login/recover)
+  // Check if nested route or came from logout
   const isNestedRoute = location.pathname !== "/login";
+  const fromLogout = (location.state as { fromLogout?: boolean } | null)?.fromLogout === true;
 
-  // Check if user came from explicit logout - ignore redirectTo in that case
-  const locationState = location.state as { fromLogout?: boolean } | null;
-  const fromLogout = locationState?.fromLogout === true;
-
-  // Extract redirectTo parameter from URL query string, default to /home
-  // If coming from explicit logout, always go to /home
+  // Redirect destination
   const redirectTo = fromLogout
     ? "/home"
     : new URLSearchParams(location.search).get("redirectTo") || "/home";
 
-  const handlePasskeyLogin = async () => {
-    setLoginError(null);
-    setLoadingMessage("Preparing your wallet…");
-    try {
-      setLoadingState("welcome");
+  // Existing account detection (check localStorage for stored credential)
+  // Always show login option if credential exists - even after logout
+  // The credential is preserved during signOut() to allow re-login with same address
+  const hasExistingAccount = hasStoredCredential;
 
-      const hasExistingCredential = hasStoredPasskey();
-      setLoadingMessage(hasExistingCredential ? "Authenticating..." : undefined);
-
-      const session: PasskeySession = await loginWithPasskey();
-      setPasskeySession(session);
-
-      // Check membership BEFORE showing any toast
-      const membershipStatus = await checkMembership(session.address);
-      const isAlreadyGardener = membershipStatus.isGardener || membershipStatus.hasBeenOnboarded;
-
-      // Only show join flow if user is NOT already a gardener
-      if (!isAlreadyGardener) {
-        setLoadingState("joining-garden");
-        setLoadingMessage("Approve the next passkey prompt to join the community garden.");
-        toastService.info({
-          title: "Approve passkey prompt",
-          message: "Confirm the next passkey request to join the community garden.",
-          icon: "🪴",
-          context: "garden join",
-          suppressLogging: true,
-        });
-
-        try {
-          await joinGarden(session);
-          toastService.success({
-            title: "Welcome to Green Goods",
-            message: "You're now part of the community garden.",
-            icon: "🪴",
-            context: "garden join",
-            suppressLogging: true,
-          });
-        } catch (joinErr) {
-          console.error("Garden join failed", joinErr);
-          toastService.info({
-            title: "Welcome!",
-            message: "You can join the community garden anytime from your profile.",
-            icon: "ℹ️",
-            context: "garden join",
-            suppressLogging: true,
-          });
-        }
-      } else {
-        // Already a gardener, just mark as onboarded (if not already)
-        if (!membershipStatus.hasBeenOnboarded) {
-          const onboardingKey = `greengoods_onboarded:${session.address.toLowerCase()}`;
-          localStorage.setItem(onboardingKey, "true");
-        }
-      }
-    } catch (err) {
-      setLoadingState(null);
-      console.error("Passkey authentication failed", err);
-
-      // Set user-friendly error message without toast
-      const friendlyMessage = getFriendlyErrorMessage(err);
-      setLoginError(friendlyMessage);
-    } finally {
+  // Handle auth errors
+  useEffect(() => {
+    if (authError && !isAuthenticating) {
       setLoadingState(null);
       setLoadingMessage(undefined);
+      setLoginError(getFriendlyErrorMessage(authError));
+    }
+  }, [authError, isAuthenticating]);
+
+  const handleAuthError = (err: unknown, operation: "login" | "create") => {
+    setLoadingState(null);
+    setLoadingMessage(undefined);
+    debugError("Authentication failed", err);
+    setLoginError(getFriendlyErrorMessage(err));
+
+    // Check if user intentionally cancelled (don't track as error)
+    const isUserCancellation =
+      err instanceof Error &&
+      (err.message.toLowerCase().includes("cancel") ||
+        err.message.toLowerCase().includes("abort") ||
+        err.message.toLowerCase().includes("user deny"));
+
+    if (!isUserCancellation) {
+      trackAuthError(err, {
+        source: "Login.handleAuthError",
+        userAction:
+          operation === "create" ? "creating account with passkey" : "logging in with passkey",
+        authMode: "passkey",
+        recoverable: true,
+        metadata: {
+          operation,
+          has_stored_credential: hasStoredCredential,
+        },
+      });
     }
   };
 
-  // Convert technical errors to user-friendly messages
-  const getFriendlyErrorMessage = (err: unknown): string => {
-    if (err instanceof Error) {
-      const message = err.message.toLowerCase();
-
-      // User cancelled passkey prompt
-      if (
-        message.includes("cancel") ||
-        message.includes("abort") ||
-        message.includes("user deny")
-      ) {
-        return "Login cancelled. Please try again when ready.";
-      }
-
-      // Passkey not supported or available
-      if (message.includes("not support") || message.includes("unavailable")) {
-        return "Passkey authentication is not available on this device. Try using 'Login with wallet' instead.";
-      }
-
-      // Network or timeout issues
-      if (message.includes("network") || message.includes("timeout") || message.includes("fetch")) {
-        return "Connection issue. Please check your internet and try again.";
-      }
-
-      // Generic passkey errors
-      if (message.includes("credential") || message.includes("passkey")) {
-        return "Couldn't verify your passkey. Please try again or use 'Login with wallet'.";
-      }
+  // Login with existing passkey
+  const handlePasskeyLogin = async () => {
+    setLoginError(null);
+    setLoadingMessage("Authenticating...");
+    setLoadingState("welcome");
+    try {
+      await loginWithPasskey?.();
+    } catch (err) {
+      handleAuthError(err, "login");
     }
-
-    // Fallback for unknown errors
-    return "Something went wrong. Please try again or use 'Login with wallet'.";
   };
 
+  // Create new passkey account with required username (minimum 3 characters)
+  const handleCreateAccount = async () => {
+    const trimmedUsername = username.trim();
+    if (trimmedUsername.length < 3) {
+      setLoginError("Please enter a display name with at least 3 characters.");
+      return;
+    }
+    setLoginError(null);
+    setLoadingMessage("Creating your wallet...");
+    setLoadingState("welcome");
+    try {
+      await createAccount?.(trimmedUsername);
+    } catch (err) {
+      handleAuthError(err, "create");
+    }
+  };
+
+  // Validation: username must be at least 3 characters for new accounts
+  const isUsernameValid = username.trim().length >= 3;
+
+  // Login with wallet
   const handleWalletLogin = () => {
-    loginWithWallet();
+    setLoginError(null);
+    loginWithWallet?.();
   };
 
-  // If on a nested route (like /login/recover), render the child route
-  if (isNestedRoute) {
-    return <Outlet />;
-  }
+  // Render logic
+  if (isNestedRoute) return <Outlet />;
+  if (!isReady) return <Splash loadingState="welcome" />;
+  if (isAuthenticated) return <Navigate to={redirectTo} replace />;
+  if (loadingState) return <Splash loadingState={loadingState} message={loadingMessage} />;
 
-  // Wait for auth to be ready before showing login or redirecting
-  // This prevents the login screen flash during auth restoration on page refresh
-  if (!isReady) {
-    return <Splash loadingState="welcome" />;
-  }
+  // Determine primary action based on whether user has existing credential
+  const primaryAction = hasExistingAccount ? handlePasskeyLogin : handleCreateAccount;
+  const buttonLabel = hasExistingAccount ? "Login with Passkey" : "Create Account";
 
-  // Redirect to app once authenticated (both passkey and wallet)
-  if (isAuthenticated) {
-    return <Navigate to={redirectTo} replace />;
-  }
+  // Build tertiary action for browser guidance when in wrong browser
+  const browserGuidanceTertiaryAction =
+    isMobile && (guidance.scenario === "wrong-browser" || guidance.scenario === "in-app-browser")
+      ? {
+          label: getBrowserGuidanceLabel(guidance, platform),
+          onClick: handleBrowserSwitch,
+        }
+      : undefined;
 
-  // Loading screen during passkey creation, garden join, or welcome back
-  if (loadingState) {
-    return <Splash loadingState={loadingState} message={loadingMessage} />;
-  }
-
-  // Use local error state instead of provider error for better control
-  const errorMessage = !isAuthenticating && !isJoiningGarden ? loginError : null;
-
-  // Main splash screen with login button
   return (
-    <Splash
-      login={handlePasskeyLogin}
-      isLoggingIn={isAuthenticating || isJoiningGarden}
-      buttonLabel="Login"
-      errorMessage={errorMessage}
-      secondaryAction={
-        !isAuthenticating && !isJoiningGarden
-          ? {
-              label: "Login with wallet",
-              onSelect: handleWalletLogin,
-            }
-          : undefined
-      }
-    />
+    <>
+      <Helmet>
+        <title>Login | Green Goods</title>
+        <meta
+          name="description"
+          content="Sign in to Green Goods to start bringing your community impact onchain."
+        />
+      </Helmet>
+      <Splash
+        login={primaryAction}
+        isLoggingIn={isAuthenticating}
+        buttonLabel={buttonLabel}
+        errorMessage={!isAuthenticating ? loginError : null}
+        secondaryAction={{
+          label: "Login with Wallet",
+          onSelect: handleWalletLogin,
+        }}
+        tertiaryAction={browserGuidanceTertiaryAction}
+        // Show username input only for new account creation (required, min 3 chars)
+        usernameInput={
+          !hasExistingAccount
+            ? {
+                value: username,
+                onChange: (e) => setUsername(e.target.value),
+                placeholder: "Enter a display name",
+                hint: "Required - at least 3 characters",
+                minLength: 3,
+              }
+            : undefined
+        }
+        isLoginDisabled={!hasExistingAccount && !isUsernameValid}
+      />
+    </>
   );
 }
 

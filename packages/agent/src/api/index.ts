@@ -1,9 +1,5 @@
 /**
- * API Layer
- *
- * HTTP API for webhooks and health monitoring.
+ * API exports
  */
 
 export * from "./server";
-export * from "./routes/health";
-export * from "./routes/webhook";

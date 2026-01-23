@@ -1,4 +1,4 @@
-import { DEFAULT_CHAIN_ID, STALE_TIMES } from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID, formatDate, STALE_TIMES } from "@green-goods/shared";
 import {
   queryKeys,
   useGardenAssessments,
@@ -17,7 +17,7 @@ import {
   RiUserLine,
 } from "@remixicon/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AddressDisplay } from "@/components/AddressDisplay";
 import { AddMemberModal } from "@/components/Garden/AddMemberModal";
@@ -53,10 +53,14 @@ export default function GardenDetail() {
   const { data: gardens = [], isLoading: fetching, error } = useGardens();
   const garden = gardens.find((g) => g.id === id);
 
-  // Refetch function to invalidate gardens query
-  const refetch = async () => {
-    await queryClient.invalidateQueries({ queryKey: queryKeys.gardens.byChain(DEFAULT_CHAIN_ID) });
-  };
+  // Background refetch to sync with indexer after transaction confirms
+  // This is a fallback - optimistic updates handle immediate UI updates
+  const scheduleBackgroundRefetch = useCallback(() => {
+    // Delay refetch to allow indexer to process the transaction
+    setTimeout(() => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.gardens.byChain(DEFAULT_CHAIN_ID) });
+    }, 5000);
+  }, [queryClient]);
 
   const {
     data: assessmentList = [],
@@ -143,7 +147,7 @@ export default function GardenDetail() {
               />
             ) : null}
             <div
-              className={`absolute inset-0 items-center justify-center bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 text-white ${garden.bannerImage ? "hidden" : "flex"}`}
+              className={`absolute inset-0 items-center justify-center bg-gradient-to-br from-primary-dark via-primary-base to-primary-darker text-primary-foreground ${garden.bannerImage ? "hidden" : "flex"}`}
               style={{ display: garden.bannerImage ? "none" : "flex" }}
             >
               <div className="text-center">
@@ -153,7 +157,7 @@ export default function GardenDetail() {
             </div>
 
             {/* Garden Name Overlay */}
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-4 text-white sm:p-6">
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-static-black/80 via-static-black/50 to-transparent p-4 text-static-white sm:p-6">
               <h2 className="text-xl font-bold drop-shadow-lg sm:text-2xl">{garden.name}</h2>
               <p className="mt-1 text-sm opacity-90 sm:text-base">{garden.location}</p>
             </div>
@@ -172,7 +176,7 @@ export default function GardenDetail() {
               {canManage && (
                 <Link
                   to={`/gardens/${id}/assessments/create`}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-green-600 text-white shadow-lg transition hover:bg-green-700 active:scale-95 sm:h-auto sm:w-auto sm:gap-2 sm:rounded-md sm:px-3 sm:py-2"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-base text-primary-foreground shadow-lg transition hover:bg-primary-darker active:scale-95 sm:h-auto sm:w-auto sm:gap-2 sm:rounded-md sm:px-3 sm:py-2"
                   title="New Assessment"
                   aria-label="New Assessment"
                 >
@@ -264,8 +268,11 @@ export default function GardenDetail() {
                       {canManage && (
                         <button
                           onClick={async () => {
-                            await removeOperator(operator);
-                            await refetch();
+                            const result = await removeOperator(operator);
+                            if (result.success) {
+                              // Schedule background refetch to sync with indexer
+                              scheduleBackgroundRefetch();
+                            }
                           }}
                           disabled={isLoading}
                           className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded text-error-base transition hover:bg-error-lighter active:scale-95 disabled:opacity-50/20"
@@ -332,8 +339,11 @@ export default function GardenDetail() {
                       {canManage && (
                         <button
                           onClick={async () => {
-                            await removeGardener(gardener);
-                            await refetch();
+                            const result = await removeGardener(gardener);
+                            if (result.success) {
+                              // Schedule background refetch to sync with indexer
+                              scheduleBackgroundRefetch();
+                            }
                           }}
                           disabled={isLoading}
                           className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded text-error-base transition hover:bg-error-lighter active:scale-95 disabled:opacity-50/20"
@@ -386,39 +396,32 @@ export default function GardenDetail() {
               <p className="py-4 text-center text-sm text-text-soft">No assessments found</p>
             ) : (
               <div className="space-y-3">
-                {assessments.map((attestation) => {
-                  const assessmentData = attestation.decodedDataJson
-                    ? JSON.parse(attestation.decodedDataJson)
-                    : {};
-                  return (
-                    <div
-                      key={attestation.id}
-                      className="flex items-center justify-between rounded-md bg-bg-weak p-3"
-                    >
-                      <div className="flex min-w-0 flex-1 items-center space-x-3">
-                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-purple-100">
-                          <RiFileList3Line className="h-4 w-4 text-purple-600" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-text-strong">
-                            CO2 Stock: {assessmentData.carbonTonStock ?? "-"} T
-                          </p>
-                          <p className="text-xs text-text-soft">
-                            {new Date(attestation.time * 1000).toLocaleDateString()}
-                          </p>
-                        </div>
+                {assessments.map((assessment) => (
+                  <div
+                    key={assessment.id}
+                    className="flex items-center justify-between rounded-md bg-bg-weak p-3"
+                  >
+                    <div className="flex min-w-0 flex-1 items-center space-x-3">
+                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-feature-lighter">
+                        <RiFileList3Line className="h-4 w-4 text-feature-dark" />
                       </div>
-                      <a
-                        href={`${EAS_EXPLORER_URL}/attestation/view/${attestation.id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center text-sm text-green-600 transition hover:text-green-900"
-                      >
-                        View <RiExternalLinkLine className="ml-1 h-4 w-4" />
-                      </a>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-text-strong">
+                          {assessment.title || assessment.assessmentType || "Assessment"}
+                        </p>
+                        <p className="text-xs text-text-soft">{formatDate(assessment.createdAt)}</p>
+                      </div>
                     </div>
-                  );
-                })}
+                    <a
+                      href={`${EAS_EXPLORER_URL}/attestation/view/${assessment.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-sm text-primary-dark transition hover:text-primary-darker"
+                    >
+                      View <RiExternalLinkLine className="ml-1 h-4 w-4" />
+                    </a>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -430,12 +433,13 @@ export default function GardenDetail() {
         onClose={() => setAddMemberModalOpen(false)}
         memberType={memberType}
         onAdd={async (address: string) => {
-          if (memberType === "gardener") {
-            await addGardener(address);
-          } else {
-            await addOperator(address);
+          const result =
+            memberType === "gardener" ? await addGardener(address) : await addOperator(address);
+
+          if (result.success) {
+            // Schedule background refetch to sync with indexer
+            scheduleBackgroundRefetch();
           }
-          await refetch();
         }}
         isLoading={isLoading}
       />
@@ -447,12 +451,15 @@ export default function GardenDetail() {
         members={membersModalType === "operator" ? garden.operators : garden.gardeners}
         canManage={canManage}
         onRemove={async (member: string) => {
-          if (membersModalType === "operator") {
-            await removeOperator(member);
-          } else {
-            await removeGardener(member);
+          const result =
+            membersModalType === "operator"
+              ? await removeOperator(member)
+              : await removeGardener(member);
+
+          if (result.success) {
+            // Schedule background refetch to sync with indexer
+            scheduleBackgroundRefetch();
           }
-          await refetch();
         }}
         isLoading={isLoading}
         icon={<RiUserLine className="h-5 w-5" />}

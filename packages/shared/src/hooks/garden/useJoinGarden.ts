@@ -8,16 +8,38 @@
  */
 
 import { useQueryClient } from "@tanstack/react-query";
+import type { Garden } from "../../types/domain";
 import { readContract } from "@wagmi/core";
+import type { SmartAccountClient } from "permissionless";
 import { useCallback, useState } from "react";
-import { encodeFunctionData } from "viem";
+import { encodeFunctionData, type Hex } from "viem";
 import { useWriteContract } from "wagmi";
 import { wagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
-import type { PasskeySession } from "../../modules/auth/passkey";
+import {
+  trackGardenJoinAlreadyMember,
+  trackGardenJoinFailed,
+  trackGardenJoinStarted,
+  trackGardenJoinSuccess,
+} from "../../modules/app/analytics-events";
+import {
+  addBreadcrumb,
+  trackContractError,
+  trackNetworkError,
+} from "../../modules/app/error-tracking";
 import { isAddressInList } from "../../utils/blockchain/address";
-import { simulateJoinGarden } from "../../utils/contract/simulation";
+
+/**
+ * Session data for passkey authentication.
+ * Used when calling joinGarden during login flow.
+ */
+interface PasskeySession {
+  address: Hex;
+  client: SmartAccountClient | null;
+}
+
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
+import { simulateJoinGarden } from "../../utils/blockchain/simulation";
 import { isAlreadyGardenerError } from "../../utils/errors/contract-errors";
 import { useUser } from "../auth/useUser";
 import { queryKeys } from "../query-keys";
@@ -35,6 +57,16 @@ export async function checkGardenOpenJoining(gardenAddress: string): Promise<boo
     return Boolean(isOpen);
   } catch (error) {
     console.warn(`Failed to check openJoining for ${gardenAddress}:`, error);
+    trackNetworkError(error, {
+      source: "checkGardenOpenJoining",
+      userAction: "checking if garden allows open joining",
+      recoverable: true,
+      metadata: {
+        garden_address: gardenAddress,
+        function_name: "openJoining",
+        is_offline: typeof navigator !== "undefined" ? !navigator.onLine : false,
+      },
+    });
     return false;
   }
 }
@@ -150,6 +182,14 @@ export function useJoinGarden() {
         throw new Error("Missing garden address or user address");
       }
 
+      // Track join started
+      const authMode = client?.account ? "passkey" : "wallet";
+      addBreadcrumb("garden_join_started", { gardenAddress, authMode });
+      trackGardenJoinStarted({
+        gardenAddress,
+        authMode,
+      });
+
       setState((prev) => ({
         ...prev,
         isJoining: true,
@@ -226,6 +266,13 @@ export function useJoinGarden() {
           queryClient.invalidateQueries({ queryKey: queryKeys.gardens.byChain(chainId) });
         }, 10000);
 
+        // Track successful join
+        trackGardenJoinSuccess({
+          gardenAddress,
+          txHash,
+          authMode,
+        });
+
         setState((prev) => ({
           ...prev,
           isJoining: false,
@@ -237,6 +284,7 @@ export function useJoinGarden() {
       } catch (error) {
         // Special handling for AlreadyGardener error - not actually an error
         if (isAlreadyGardenerError(error)) {
+          trackGardenJoinAlreadyMember({ gardenAddress });
           addPendingJoin(gardenAddress, targetAddress);
           setState((prev) => ({
             ...prev,
@@ -246,6 +294,21 @@ export function useJoinGarden() {
           }));
           return "already-member";
         }
+
+        // Track failed join - send both funnel event and structured exception
+        trackGardenJoinFailed({
+          gardenAddress,
+          error: error instanceof Error ? error.message : "Unknown error",
+          authMode,
+        });
+
+        // Also track as structured exception for PostHog error dashboard
+        trackContractError(error, {
+          source: "useJoinGarden",
+          gardenAddress,
+          authMode,
+          userAction: "joining garden",
+        });
 
         setState((prev) => ({
           ...prev,

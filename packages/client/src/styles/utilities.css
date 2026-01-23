@@ -108,16 +108,16 @@
     height: 100%;
   }
 
-  /* Universal Icon Button Class */
+  /* Universal Icon Button Class - Dark mode compatible */
   .btn-icon {
     @apply relative flex items-center justify-center w-8 h-8 p-1 rounded-lg border;
-    @apply bg-white border-slate-200 text-slate-500;
+    @apply bg-bg-white-0 border-stroke-soft-200 text-text-soft-400;
     @apply transition-all duration-200 active:scale-95;
     @apply focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary active:border-primary;
   }
 
   .btn-icon svg {
-    @apply focus:text-primary active:text-primary;
+    @apply text-text-soft-400 focus:text-primary active:text-primary;
   }
 
   /* Increase hit area for touch without changing visual size */
@@ -143,4 +143,184 @@
     background: transparent;
     pointer-events: auto;
   }
+
+  /* ============================================
+   * Status Badge Variants - Dark mode compatible
+   * Used in: WorkCard, MyWork, Uploading, WorkDashboard
+   * Uses semantic tokens with alpha backgrounds for dark mode
+   * ============================================ */
+  .badge-pill {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply border-stroke-soft-200 text-text-sub-600;
+  }
+
+  .badge-pill-blue {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply bg-information-lighter text-information-dark border-information-light;
+  }
+
+  .badge-pill-amber {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply bg-warning-lighter text-warning-dark border-warning-light;
+  }
+
+  .badge-pill-green {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply bg-success-lighter text-success-dark border-success-light;
+  }
+
+  .badge-pill-red {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply bg-error-lighter text-error-dark border-error-light;
+  }
+
+  .badge-pill-purple {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply bg-feature-lighter text-feature-dark border-feature-light;
+  }
+
+  .badge-pill-slate {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply bg-bg-soft-200 text-text-sub-600 border-stroke-soft-200;
+  }
+
+  .badge-pill-emerald {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply bg-success-lighter text-success-dark border-success-light;
+  }
+
+  /* ============================================
+   * Native Popover Styles
+   * Per web.dev/learn/css/popover-and-dialog
+   * ============================================ */
+  
+  /* Base popover styles - hidden by default */
+  [popover] {
+    border: none;
+    padding: 0;
+    box-shadow: var(--shadow-tooltip);
+  }
+
+  /* Popover open state with animation */
+  [popover]:popover-open {
+    opacity: 1;
+    transform: scale(1);
+    
+    /* Enable discrete animation for display property */
+    transition: 
+      opacity 0.2s ease-out,
+      transform 0.2s ease-out,
+      overlay 0.2s allow-discrete,
+      display 0.2s allow-discrete;
+  }
+
+  /* Starting styles for popover animation */
+  @starting-style {
+    [popover]:popover-open {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+  }
+
+  /* Closing animation */
+  [popover] {
+    opacity: 0;
+    transform: scale(0.95);
+    
+    transition: 
+      opacity 0.2s ease-in,
+      transform 0.2s ease-in,
+      overlay 0.2s allow-discrete,
+      display 0.2s allow-discrete;
+  }
+
+  /* Backdrop styles for auto popovers */
+  [popover]::backdrop {
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(4px);
+  }
+
+  [popover]:popover-open::backdrop {
+    opacity: 1;
+    transition: 
+      opacity 0.2s ease-out,
+      overlay 0.2s allow-discrete,
+      display 0.2s allow-discrete;
+  }
+
+  @starting-style {
+    [popover]:popover-open::backdrop {
+      opacity: 0;
+    }
+  }
+
+  /* ============================================
+   * Content Visibility - Skip rendering off-screen items
+   * Uses content-visibility: auto (Baseline Sept 2024)
+   * @see https://web.dev/articles/content-visibility
+   * ============================================ */
+
+  /* Generic content-visibility for list items */
+  .cv-auto {
+    content-visibility: auto;
+  }
+
+  /* Work card list items (~100px height) */
+  .cv-work-card {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 100px;
+  }
+
+  /* Garden card list items (~180px height) */
+  .cv-garden-card {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 180px;
+  }
+
+  /* Draft card list items (~80px height) */
+  .cv-draft-card {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 80px;
+  }
+
+  /* Notification items (~60px height) */
+  .cv-notification {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 60px;
+  }
+
+  /* Member/gardener list items (~56px height) */
+  .cv-member {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 56px;
+  }
+
+  /* ============================================
+   * Native Scroll Bounce Effect
+   * Enables iOS-style rubber-band scrolling on containers
+   * Pull-to-refresh dynamically contains overscroll when needed
+   * ============================================ */
+  .native-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: auto;
+  }
+
+  /* ============================================
+   * Modal Height Utility
+   * Fixed height for bottom sheet modals (85% viewport)
+   * Uses dvh for dynamic viewport on mobile, vh as fallback
+   * ============================================ */
+  .h-modal {
+    height: 85vh;
+    height: 85dvh;
+    max-height: calc(100vh - 2rem);
+    max-height: calc(100dvh - 2rem);
+  }
+
+  /* Max-height only variant (content determines height up to max) */
+  .max-h-modal {
+    max-height: calc(100vh - 2rem);
+    max-height: calc(100dvh - 2rem);
+  }
+
 }

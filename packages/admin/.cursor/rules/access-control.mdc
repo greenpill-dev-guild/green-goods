@@ -13,6 +13,10 @@ The admin dashboard uses role-based access control with three levels: admin (all
 
 **Note:** Role hooks are in `@green-goods/shared`. Route guards are in `packages/admin/src/routes/`.
 
+## Visual Reference
+
+See [Work Approval Flow](docs/developer/architecture/diagrams.md#work-approval) for the complete operator → attestation → GAP sequence.
+
 ## Role Hierarchy
 
 ```typescript
@@ -49,7 +53,8 @@ export type UserRole = 'deployer' | 'operator' | 'user';
 ```typescript
 // hooks/useRole.ts
 export function useRole(): RoleInfo {
-  const { address } = useAuth();
+  const auth = useAuthContext();
+  const address = auth.walletAddress ?? auth.smartAccountAddress;
   const deploymentPermissions = useDeploymentRegistry();
   
   const { data: operatorGardens } = useQuery({
@@ -136,7 +141,8 @@ export function isAdmin(address?: string): boolean {
 ```typescript
 // hooks/useDeploymentRegistry.ts
 export function useDeploymentRegistry() {
-  const { address } = useAuth();
+  const auth = useAuthContext();
+  const address = auth.smartAccountAddress ?? auth.walletAddress;
   const networkConfig = getNetworkContracts(chainId);
   
   const { data: isOwner } = useReadContract({
@@ -170,7 +176,8 @@ export function useDeploymentRegistry() {
 ```typescript
 // hooks/useGardenPermissions.ts
 export function useGardenPermissions(): GardenPermissions {
-  const { address } = useAuth();
+  const auth = useAuthContext();
+  const address = auth.walletAddress ?? auth.smartAccountAddress;
   
   const isOperatorOfGarden = (garden: Garden): boolean => {
     if (!address) return false;
@@ -223,11 +230,13 @@ function GardenDetail({ garden }: { garden: Garden }) {
 ### RequireAuth
 
 ```typescript
-// components/RequireAuth.tsx
+// routes/RequireAuth.tsx
 export function RequireAuth() {
-  const { address } = useAuth();
+  const { isAuthenticated, eoaAddress, isReady } = useAuth();
   
-  if (!address) {
+  if (!isReady) return <DashboardLayoutSkeleton />;
+  
+  if (!isAuthenticated || !eoaAddress) {
     return <Navigate to="/login" replace />;
   }
   

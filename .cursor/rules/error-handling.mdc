@@ -1,0 +1,589 @@
+---
+description: Error handling patterns for graceful degradation, user feedback, and debugging
+globs:
+alwaysApply: true
+---
+
+# Error Handling Patterns
+
+Comprehensive error handling for robust user experiences and effective debugging.
+
+## Error Categories
+
+Categorize errors to determine appropriate handling:
+
+| Category | Examples | Response |
+|----------|----------|----------|
+| `network` | Fetch failed, timeout | Retry with backoff, show offline indicator |
+| `validation` | Invalid input, schema mismatch | Show form errors, highlight fields |
+| `auth` | Session expired, unauthorized | Redirect to login, clear state |
+| `permission` | Forbidden action, wrong role | Show access denied, suggest action |
+| `blockchain` | Tx failed, gas estimation | Show failure, offer retry with details |
+| `storage` | IndexedDB full, quota exceeded | Prompt cleanup, degrade gracefully |
+| `unknown` | Unexpected errors | Log, show generic message, report |
+
+## Error Category Detection
+
+```typescript
+type ErrorCategory =
+  | "network"
+  | "validation"
+  | "auth"
+  | "permission"
+  | "blockchain"
+  | "storage"
+  | "unknown";
+
+function categorizeError(error: unknown): ErrorCategory {
+  if (error instanceof TypeError && error.message.includes("fetch")) {
+    return "network";
+  }
+  if (error instanceof z.ZodError) {
+    return "validation";
+  }
+  if (isAuthError(error)) {
+    return "auth";
+  }
+  if (isBlockchainError(error)) {
+    return "blockchain";
+  }
+  if (error instanceof DOMException && error.name === "QuotaExceededError") {
+    return "storage";
+  }
+  return "unknown";
+}
+
+function isBlockchainError(error: unknown): boolean {
+  if (error instanceof Error) {
+    return (
+      error.message.includes("user rejected") ||
+      error.message.includes("insufficient funds") ||
+      error.message.includes("execution reverted") ||
+      error.message.includes("nonce")
+    );
+  }
+  return false;
+}
+```
+
+## Error Boundaries (React)
+
+### Global Error Boundary
+
+```typescript
+// packages/shared/src/components/ErrorBoundary.tsx
+import { Component, ErrorInfo, ReactNode } from "react";
+
+interface Props {
+  children: ReactNode;
+  fallback?: ReactNode;
+  onError?: (error: Error, errorInfo: ErrorInfo) => void;
+}
+
+interface State {
+  hasError: boolean;
+  error: Error | null;
+}
+
+export class ErrorBoundary extends Component<Props, State> {
+  state: State = { hasError: false, error: null };
+
+  static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Log to error tracking service
+    logger.error("React error boundary caught error", {
+      error: error.message,
+      stack: error.stack,
+      componentStack: errorInfo.componentStack,
+    });
+
+    this.props.onError?.(error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback || <DefaultErrorFallback error={this.state.error} />;
+    }
+    return this.props.children;
+  }
+}
+```
+
+### Error Boundary Placement Strategy
+
+```tsx
+// App-level: Catches catastrophic errors
+<ErrorBoundary fallback={<CriticalErrorPage />}>
+  <App />
+</ErrorBoundary>
+
+// Route-level: Isolates page failures
+<Route path="/garden/:id">
+  <ErrorBoundary fallback={<GardenErrorFallback />}>
+    <GardenView />
+  </ErrorBoundary>
+</Route>
+
+// Feature-level: Isolates component failures
+<ErrorBoundary fallback={<WorkFormError onRetry={reset} />}>
+  <WorkSubmissionForm />
+</ErrorBoundary>
+```
+
+### Error Fallback Components
+
+```tsx
+// Default fallback
+function DefaultErrorFallback({ error }: { error: Error | null }) {
+  return (
+    <div role="alert" className="p-4 bg-error-lighter rounded-lg">
+      <h2 className="text-lg font-semibold text-error-dark">
+        {intl.formatMessage({ id: "error.unexpected.title" })}
+      </h2>
+      <p className="text-text-sub mt-2">
+        {intl.formatMessage({ id: "error.unexpected.description" })}
+      </p>
+      <button
+        onClick={() => window.location.reload()}
+        className="mt-4 btn btn-primary"
+      >
+        {intl.formatMessage({ id: "error.reload" })}
+      </button>
+    </div>
+  );
+}
+
+// Feature-specific fallback with retry
+function WorkFormError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div role="alert" className="p-4 bg-warning-lighter rounded-lg">
+      <h3>{intl.formatMessage({ id: "work.error.title" })}</h3>
+      <p>{intl.formatMessage({ id: "work.error.description" })}</p>
+      <button onClick={onRetry} className="btn btn-secondary">
+        {intl.formatMessage({ id: "common.tryAgain" })}
+      </button>
+    </div>
+  );
+}
+```
+
+## Async Error Handling
+
+### Hook-Level Error Handling
+
+```typescript
+// TanStack Query handles errors automatically
+const { data, error, isError } = useQuery({
+  queryKey: queryKeys.gardens.all(chainId),
+  queryFn: fetchGardens,
+  retry: 3,
+  retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+});
+
+// Display error state
+if (isError) {
+  return <ErrorDisplay error={error} onRetry={refetch} />;
+}
+```
+
+### Mutation Error Handling
+
+```typescript
+const mutation = useMutation({
+  mutationFn: submitWork,
+  onError: (error) => {
+    const category = categorizeError(error);
+
+    switch (category) {
+      case "network":
+        toast.error(intl.formatMessage({ id: "error.network" }));
+        break;
+      case "blockchain":
+        toast.error(intl.formatMessage(
+          { id: "error.transaction" },
+          { reason: getBlockchainErrorMessage(error) }
+        ));
+        break;
+      case "auth":
+        signOut();
+        navigate("/login");
+        break;
+      default:
+        toast.error(intl.formatMessage({ id: "error.unexpected" }));
+        logger.error("Mutation failed", { error });
+    }
+  },
+});
+```
+
+### Async Function Error Handling
+
+```typescript
+async function submitWorkWithRetry(draft: WorkDraft, maxRetries = 3) {
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await submitWork(draft);
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+
+      const category = categorizeError(error);
+
+      // Don't retry non-recoverable errors
+      if (category === "validation" || category === "auth" || category === "permission") {
+        throw error;
+      }
+
+      // Log retry attempt
+      logger.warn("Retry attempt", {
+        attempt,
+        maxRetries,
+        error: lastError.message,
+        category,
+      });
+
+      // Exponential backoff
+      if (attempt < maxRetries) {
+        await sleep(1000 * 2 ** (attempt - 1));
+      }
+    }
+  }
+
+  throw lastError;
+}
+```
+
+## User-Friendly Error Messages
+
+### Error Message Mapping
+
+```typescript
+// packages/shared/src/utils/error-messages.ts
+
+const ERROR_MESSAGE_KEYS: Record<string, string> = {
+  // Network errors
+  "Failed to fetch": "error.network.offline",
+  "NetworkError": "error.network.failed",
+  "timeout": "error.network.timeout",
+
+  // Blockchain errors
+  "user rejected": "error.blockchain.rejected",
+  "insufficient funds": "error.blockchain.insufficientFunds",
+  "execution reverted": "error.blockchain.reverted",
+  "nonce too low": "error.blockchain.nonceTooLow",
+
+  // Auth errors
+  "unauthorized": "error.auth.unauthorized",
+  "session expired": "error.auth.sessionExpired",
+
+  // Storage errors
+  "QuotaExceededError": "error.storage.quotaExceeded",
+};
+
+export function getErrorMessageKey(error: unknown): string {
+  if (error instanceof Error) {
+    for (const [pattern, key] of Object.entries(ERROR_MESSAGE_KEYS)) {
+      if (error.message.toLowerCase().includes(pattern.toLowerCase())) {
+        return key;
+      }
+    }
+  }
+  return "error.unexpected";
+}
+
+export function getUserFriendlyMessage(error: unknown, intl: IntlShape): string {
+  const key = getErrorMessageKey(error);
+  return intl.formatMessage({ id: key });
+}
+```
+
+### i18n Error Messages
+
+```json
+// en.json
+{
+  "error.network.offline": "You appear to be offline. Please check your connection.",
+  "error.network.failed": "Network request failed. Please try again.",
+  "error.network.timeout": "Request timed out. Please try again.",
+  "error.blockchain.rejected": "Transaction was rejected.",
+  "error.blockchain.insufficientFunds": "Insufficient funds for this transaction.",
+  "error.blockchain.reverted": "Transaction failed. Please try again.",
+  "error.auth.unauthorized": "You don't have permission for this action.",
+  "error.auth.sessionExpired": "Your session has expired. Please log in again.",
+  "error.storage.quotaExceeded": "Storage is full. Please clear some data.",
+  "error.unexpected": "Something went wrong. Please try again.",
+  "error.reload": "Reload Page",
+  "common.tryAgain": "Try Again"
+}
+```
+
+## Toast Patterns for Errors
+
+```typescript
+import { toast } from "@green-goods/shared";
+
+// Network errors — offer retry
+toast.error(
+  intl.formatMessage({ id: "error.network.offline" }),
+  {
+    action: {
+      label: intl.formatMessage({ id: "common.retry" }),
+      onClick: () => retry(),
+    },
+    duration: 10000,
+  }
+);
+
+// Blockchain errors — show details
+toast.error(
+  intl.formatMessage({ id: "error.blockchain.reverted" }),
+  {
+    description: getBlockchainErrorDetails(error),
+    duration: 15000,
+  }
+);
+
+// Auth errors — redirect action
+toast.error(
+  intl.formatMessage({ id: "error.auth.sessionExpired" }),
+  {
+    action: {
+      label: intl.formatMessage({ id: "common.login" }),
+      onClick: () => navigate("/login"),
+    },
+  }
+);
+```
+
+## Blockchain-Specific Error Handling
+
+```typescript
+function handleBlockchainError(error: unknown): void {
+  if (!(error instanceof Error)) {
+    toast.error(intl.formatMessage({ id: "error.unexpected" }));
+    return;
+  }
+
+  const message = error.message.toLowerCase();
+
+  if (message.includes("user rejected") || message.includes("user denied")) {
+    // User cancelled — not an error, just inform
+    toast.info(intl.formatMessage({ id: "transaction.cancelled" }));
+    return;
+  }
+
+  if (message.includes("insufficient funds")) {
+    toast.error(intl.formatMessage({ id: "error.blockchain.insufficientFunds" }), {
+      description: intl.formatMessage({ id: "error.blockchain.insufficientFunds.description" }),
+    });
+    return;
+  }
+
+  if (message.includes("execution reverted")) {
+    // Try to extract revert reason
+    const reason = extractRevertReason(error);
+    toast.error(intl.formatMessage({ id: "error.blockchain.reverted" }), {
+      description: reason || undefined,
+    });
+    return;
+  }
+
+  // Unknown blockchain error
+  toast.error(intl.formatMessage({ id: "error.blockchain.unknown" }));
+  logger.error("Unknown blockchain error", { error: error.message });
+}
+
+function extractRevertReason(error: Error): string | null {
+  // Common patterns for revert reasons
+  const match = error.message.match(/reason="([^"]+)"/);
+  return match ? match[1] : null;
+}
+```
+
+## Offline Error Handling
+
+```typescript
+// Handle errors when offline
+async function handleOfflineSubmission(draft: WorkDraft) {
+  const isOnline = navigator.onLine;
+
+  if (!isOnline) {
+    // Queue for later — not an error
+    const jobId = await jobQueue.addJob("work", draft, { chainId });
+    toast.success(intl.formatMessage({ id: "work.queued" }), {
+      description: intl.formatMessage({ id: "work.queued.description" }),
+    });
+    return { queued: true, jobId };
+  }
+
+  try {
+    return await submitWork(draft);
+  } catch (error) {
+    if (categorizeError(error) === "network") {
+      // Network failed mid-request — queue it
+      const jobId = await jobQueue.addJob("work", draft, { chainId });
+      toast.info(intl.formatMessage({ id: "work.queuedAfterFailure" }));
+      return { queued: true, jobId };
+    }
+    throw error;
+  }
+}
+```
+
+## Global Error Handlers
+
+```typescript
+// packages/client/src/utils/global-error-handlers.ts
+
+export function setupGlobalErrorHandlers() {
+  // Unhandled errors
+  window.addEventListener("error", (event) => {
+    logger.error("Unhandled error", {
+      message: event.message,
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno,
+      stack: event.error?.stack,
+    });
+
+    // Don't show toast for script errors from extensions, etc.
+    if (event.filename?.includes(window.location.origin)) {
+      toast.error(intl.formatMessage({ id: "error.unexpected" }));
+    }
+  });
+
+  // Unhandled promise rejections
+  window.addEventListener("unhandledrejection", (event) => {
+    logger.error("Unhandled promise rejection", {
+      reason: event.reason?.message || String(event.reason),
+      stack: event.reason?.stack,
+    });
+
+    // Prevent default browser error
+    event.preventDefault();
+
+    toast.error(intl.formatMessage({ id: "error.unexpected" }));
+  });
+}
+
+// Call in app initialization
+setupGlobalErrorHandlers();
+```
+
+## Anti-Patterns
+
+### Never Swallow Errors Silently
+
+```typescript
+// ❌ Wrong — error disappears
+try {
+  await riskyOperation();
+} catch (e) {
+  // Nothing happens
+}
+
+// ❌ Wrong — logs but user sees nothing
+try {
+  await riskyOperation();
+} catch (e) {
+  console.error(e);
+}
+
+// ✅ Correct — log AND handle
+try {
+  await riskyOperation();
+} catch (error) {
+  logger.error("Operation failed", { error });
+  toast.error(getUserFriendlyMessage(error, intl));
+}
+```
+
+### Never Show Raw Error Messages to Users
+
+```typescript
+// ❌ Wrong — exposes internals
+toast.error(error.message);
+toast.error(`Error: ${error.stack}`);
+
+// ✅ Correct — user-friendly message
+toast.error(getUserFriendlyMessage(error, intl));
+```
+
+### Never Catch and Re-throw Without Logging
+
+```typescript
+// ❌ Wrong — loses context
+try {
+  await operation();
+} catch (e) {
+  throw new Error("Operation failed");
+}
+
+// ✅ Correct — preserve and log
+try {
+  await operation();
+} catch (error) {
+  logger.error("Operation failed", { error, context: { ... } });
+  throw error;  // Or throw new Error with cause
+}
+```
+
+## Testing Error Handling
+
+```typescript
+describe("Error Handling", () => {
+  it("shows user-friendly message for network errors", async () => {
+    // Mock network failure
+    server.use(
+      rest.get("/api/gardens", (req, res, ctx) => {
+        return res.networkError("Failed to connect");
+      })
+    );
+
+    render(<GardenList />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/check your connection/i)).toBeInTheDocument();
+    });
+  });
+
+  it("redirects to login on auth error", async () => {
+    // Mock 401 response
+    server.use(
+      rest.get("/api/gardens", (req, res, ctx) => {
+        return res(ctx.status(401));
+      })
+    );
+
+    render(<GardenList />, { wrapper: TestProviders });
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith("/login");
+    });
+  });
+
+  it("error boundary catches render errors", () => {
+    const ThrowingComponent = () => {
+      throw new Error("Test error");
+    };
+
+    render(
+      <ErrorBoundary fallback={<div>Error caught</div>}>
+        <ThrowingComponent />
+      </ErrorBoundary>
+    );
+
+    expect(screen.getByText("Error caught")).toBeInTheDocument();
+  });
+});
+```
+
+## Reference
+
+- Logging: See `logging-observability.mdc`
+- Toast patterns: See `packages/shared/.cursor/rules/state-patterns.mdc`
+- Offline handling: See `packages/client/.cursor/rules/offline-architecture.mdc`

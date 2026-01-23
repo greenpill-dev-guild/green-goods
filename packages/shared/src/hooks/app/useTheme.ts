@@ -5,6 +5,7 @@ import {
   setTheme as setThemeAPI,
   type Theme,
 } from "../../utils/styles/theme";
+import { updateAppKitTheme } from "../../config/appkit";
 
 /**
  * React hook for theme management
@@ -21,7 +22,10 @@ export function useTheme() {
   const setTheme = useCallback((newTheme: Theme) => {
     setThemeAPI(newTheme);
     setThemeState(newTheme);
-    setIsDark(getResolvedTheme(newTheme) === "dark");
+    const resolvedIsDark = getResolvedTheme(newTheme) === "dark";
+    setIsDark(resolvedIsDark);
+    // Sync AppKit modal theme
+    updateAppKitTheme(resolvedIsDark);
   }, []);
 
   // Toggle through light → dark → system
@@ -40,7 +44,10 @@ export function useTheme() {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
     const handleChange = () => {
-      setIsDark(mediaQuery.matches);
+      const systemIsDark = mediaQuery.matches;
+      setIsDark(systemIsDark);
+      // Sync AppKit modal theme on system preference change
+      updateAppKitTheme(systemIsDark);
     };
 
     // Modern browsers

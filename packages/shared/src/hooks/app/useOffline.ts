@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { jobQueueEventBus } from "../../modules/job-queue/event-bus";
 import { useQueueFlush } from "../../providers/JobQueue";
-import { usePendingWorksCount, useQueueStatistics } from "../work/useWorks";
+import { usePendingWorksCount } from "../work/useWorks";
 
 /** Reports offline status and queue metrics derived from TanStack Query subscriptions. */
 export function useOffline() {
@@ -9,13 +9,8 @@ export function useOffline() {
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "error">("idle");
   const flush = useQueueFlush();
 
-  // Use event-driven hooks instead of polling
+  // Use event-driven hook for pending count
   const { data: pendingCount = 0 } = usePendingWorksCount();
-  const { data: stats } = useQueueStatistics();
-
-  // Get pending work items using the job queue directly (no polling)
-  const pendingWork = stats ? stats.pending + stats.failed : 0;
-  void pendingWork; // avoid unused value since we return aggregated values separately
 
   // Listen to online/offline events
   useEffect(() => {

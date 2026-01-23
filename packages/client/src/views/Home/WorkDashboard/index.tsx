@@ -1,5 +1,22 @@
+import {
+  hapticLight,
+  toastService,
+  type Job,
+  type Work,
+  type WorkJobPayload,
+} from "@green-goods/shared";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
-import { queryKeys, useMyOnlineWorks, useUser, useWorkApprovals } from "@green-goods/shared/hooks";
+import {
+  queryKeys,
+  DEFAULT_RETRY_COUNT,
+  STALE_TIME_FAST,
+  STALE_TIME_MEDIUM,
+  STALE_TIME_SLOW,
+  useDrafts,
+  useMyOnlineWorks,
+  useUser,
+  useWorkApprovals,
+} from "@green-goods/shared/hooks";
 import {
   getWorkApprovals as fetchWorkApprovals,
   getGardens,
@@ -15,17 +32,19 @@ import {
   isUserAddress as sharedIsUserAddress,
   type TimeFilter,
 } from "@green-goods/shared/utils";
-import { RiCheckLine, RiCloseLine, RiTimeLine } from "@remixicon/react";
+import { RiCheckLine, RiCloseLine, RiDraftLine, RiTaskLine, RiTimeLine } from "@remixicon/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { type StandardTab, StandardTabs } from "@/components/Navigation";
 import { CompletedTab } from "./Completed";
+import { DraftsTab } from "./Drafts";
 import { PendingTab } from "./Pending";
 import { TimeFilterControl } from "./TimeFilterControl";
 import { UploadingTab } from "./Uploading";
 
+// Component-specific props (not a domain type)
 export interface WorkDashboardProps {
   className?: string;
   onClose?: () => void;
@@ -42,12 +61,21 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     sharedIsUserAddress(address, activeAddress);
 
   // Use the new hook for work approvals
-  const { completedApprovals, isLoading, hasError, errorMessage } = useWorkApprovals(
-    activeAddress || undefined
-  );
+  const {
+    completedApprovals,
+    isLoading,
+    hasError,
+    errorMessage,
+    refetch: refetchApprovals,
+  } = useWorkApprovals(activeAddress || undefined);
+
+  // Get draft count for badge
+  const { draftCount } = useDrafts();
 
   // State management
-  const [activeTab, setActiveTab] = useState<"recent" | "pending" | "completed">("recent");
+  const [activeTab, setActiveTab] = useState<"drafts" | "recent" | "pending" | "completed">(
+    "recent"
+  );
   const [isClosing, setIsClosing] = useState(false);
   const [pendingFilter, setPendingFilter] = useState<"all" | "needsReview" | "mySubmissions">(
     "all"
@@ -69,7 +97,8 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   const { data: gardens = [] } = useQuery({
     queryKey: queryKeys.gardens.byChain(DEFAULT_CHAIN_ID),
     queryFn: getGardens,
-    staleTime: 60_000,
+    staleTime: STALE_TIME_SLOW,
+    retry: DEFAULT_RETRY_COUNT,
   });
 
   const operatorGardenIds = useMemo(
@@ -85,18 +114,32 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   );
 
   // Fetch works for gardens the user operates (online + offline merged)
-  const { data: operatorWorks = [], isLoading: isLoadingOperatorWorks } = useQuery({
+  const {
+    data: operatorWorks = [],
+    isLoading: isLoadingOperatorWorks,
+    isFetching: isFetchingOperatorWorks,
+    isError: isErrorOperatorWorks,
+    refetch: refetchOperatorWorks,
+  } = useQuery({
     queryKey: ["operatorWorks", activeAddress, operatorGardenIds],
     queryFn: async () => {
       if (!activeAddress) return [];
       const allWorks: Work[] = [];
 
       for (const gardenId of operatorGardenIds) {
-        // Fetch online works from EAS
-        const online = await getWorks([gardenId], DEFAULT_CHAIN_ID);
+        // Fetch online works from EAS - gracefully handle per-garden failures
+        let online: Work[] = [];
+        try {
+          online = await getWorks([gardenId], DEFAULT_CHAIN_ID);
+        } catch (err) {
+          console.warn(`[WorkDashboard] Failed to fetch works for garden ${gardenId}:`, err);
+          // Continue with offline works for this garden and other gardens
+        }
 
-        // Fetch offline works from job queue
-        const offlineJobs = await jobQueue.getJobs({ kind: "work", synced: false });
+        // Fetch offline works from job queue (scoped to current user)
+        const offlineJobs = activeAddress
+          ? await jobQueue.getJobs(activeAddress, { kind: "work", synced: false })
+          : [];
         const gardenOfflineJobs = offlineJobs.filter(
           (job) => (job.payload as WorkJobPayload).gardenAddress === gardenId
         );
@@ -126,31 +169,55 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       return allWorks.sort((a, b) => b.createdAt - a.createdAt);
     },
     enabled: operatorGardenIds.length > 0 && !!activeAddress,
-    staleTime: 30_000,
+    staleTime: STALE_TIME_MEDIUM,
+    retry: DEFAULT_RETRY_COUNT,
   });
 
   // Use new hooks for user's works
-  const { data: myOnlineWorks = [], isLoading: isLoadingMyOnlineWorks } = useMyOnlineWorks();
-  const { data: recentOnlineWork = [], isLoading: isLoadingRecentOnline } = useMyOnlineWorks({
+  const {
+    data: myOnlineWorks = [],
+    isLoading: isLoadingMyOnlineWorks,
+    isFetching: isFetchingMyWorks,
+    isError: isErrorMyWorks,
+    refetch: refetchMyWorks,
+  } = useMyOnlineWorks();
+  const {
+    data: recentOnlineWork = [],
+    isLoading: isLoadingRecentOnline,
+    isFetching: isFetchingRecentOnline,
+    isError: isErrorRecentOnline,
+    refetch: refetchRecentOnline,
+  } = useMyOnlineWorks({
     timeFilter,
   });
 
   const queryClient = useQueryClient();
 
-  // Uploading work (offline queue jobs only)
-  const { data: offlineQueueWork = [], isLoading: isLoadingOfflineQueue } = useQuery({
+  // Uploading work (offline queue jobs only, scoped to current user)
+  const {
+    data: offlineQueueWork = [],
+    isLoading: isLoadingOfflineQueue,
+    refetch: refetchOfflineQueue,
+  } = useQuery({
     queryKey: queryKeys.queue.uploading(),
     queryFn: async () => {
-      const jobs = await jobQueue.getJobs({ kind: "work", synced: false });
+      if (!activeAddress) return [];
+      const jobs = await jobQueue.getJobs(activeAddress, { kind: "work", synced: false });
       const works = await convertJobsToWorks(jobs as Job<WorkJobPayload>[], activeAddress);
       return works.sort((a, b) => b.createdAt - a.createdAt);
     },
-    staleTime: 5000,
+    enabled: !!activeAddress,
+    staleTime: STALE_TIME_FAST,
   });
 
-  // Combine offline queue + recent online work for "Recent Work" tab
-  const recentWorkCombined = useMemo(() => {
-    const combined = [...offlineQueueWork, ...recentOnlineWork];
+  // Combine offline queue + recent online work for "Recent" tab
+  const recentWorkCombined = useMemo((): Work[] => {
+    // Convert EASWork to Work by adding status
+    const onlineWithStatus: Work[] = recentOnlineWork.map((w) => ({
+      ...w,
+      status: "pending" as const,
+    }));
+    const combined = [...offlineQueueWork, ...onlineWithStatus];
 
     // Remove duplicates by ID
     const seen = new Set<string>();
@@ -196,29 +263,88 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     [completedApprovals]
   );
 
+  // Fetch ALL approvals for operator gardens to filter out work reviewed by ANY operator
+  const { data: allOperatorGardenApprovals = [] } = useQuery({
+    queryKey: ["allApprovals", "operatorGardens", operatorGardenIds],
+    queryFn: async () => {
+      // Fetch all work approvals (not scoped to any attester)
+      const approvals = await fetchWorkApprovals(undefined);
+      return approvals;
+    },
+    enabled: operatorGardenIds.length > 0,
+    staleTime: STALE_TIME_MEDIUM,
+    retry: DEFAULT_RETRY_COUNT,
+  });
+
+  // Set of work IDs that have been approved/rejected by ANY operator
+  const alreadyReviewedByAnyone = useMemo(
+    () => new Set((allOperatorGardenApprovals || []).map((a) => a.workUID)),
+    [allOperatorGardenApprovals]
+  );
+
   const operatorWorksById = useMemo(() => {
-    const map = new Map<string, any>();
-    (operatorWorks || []).forEach((w: any) => map.set(w.id, w));
+    const map = new Map<string, Work>();
+    (operatorWorks || []).forEach((w) => map.set(w.id, w));
     return map;
   }, [operatorWorks]);
 
   // Pending work needing your review (from gardens you operate, excluding your own submissions)
-  const pendingNeedsReview: any[] = (operatorWorks || []).filter(
-    (w: any) => !reviewedByYou.has(w.id) && !isUserAddress(w.gardenerAddress)
+  // Filter out works that have been reviewed by ANY operator, not just the current user
+  const pendingNeedsReview = (operatorWorks || []).filter(
+    (w) => !alreadyReviewedByAnyone.has(w.id) && !isUserAddress(w.gardenerAddress)
   );
 
-  // Completed approvals (approved/rejected by you)
-  const completedReviewedByYou = completedApprovals.filter((work) =>
-    ["approved", "rejected"].includes(work.status)
+  // Completed approvals (approved/rejected by you) - convert to Work shape for MinimalWorkCard
+  const completedReviewedByYou: Work[] = useMemo(
+    () =>
+      completedApprovals
+        .filter((approval) => ["approved", "rejected"].includes(approval.status))
+        .map((approval) => ({
+          id: approval.workUID,
+          title: approval.title || `Work ${String(approval.workUID || "").slice(0, 8)}...`,
+          actionUID: approval.actionUID,
+          gardenerAddress: approval.gardenerAddress,
+          gardenAddress: approval.gardenId || "",
+          feedback: approval.feedback || "",
+          metadata: "",
+          media: [],
+          createdAt: approval.createdAt,
+          status: approval.status as "approved" | "rejected" | "pending",
+        })),
+    [completedApprovals]
   );
 
-  // Completed: approvals for your own submissions (you as gardener)
-  const { data: myReceivedApprovals = [], isLoading: isLoadingMyApprovals } = useQuery({
-    queryKey: ["approvals", "byGardener", activeAddress],
-    queryFn: () => fetchWorkApprovals(activeAddress || undefined),
+  // Fetch all approvals to find those for the user's works
+  // Note: EAS approval attestations have garden (not gardener) as recipient,
+  // so we must fetch all and filter client-side by matching workUID
+  //
+  // TODO: SCALABILITY - This fetches ALL approvals and filters client-side.
+  // As the number of work submissions grows, this will become slow.
+  // Recommended: Create a backend aggregation endpoint that accepts workUIDs
+  // and returns only relevant approvals, or implement pagination when
+  // EAS GraphQL supports it. See getWorkApprovals docstring for details.
+  const {
+    data: allApprovals = [],
+    isLoading: isLoadingMyApprovals,
+    isFetching: isFetchingMyApprovals,
+    isError: isErrorMyApprovals,
+    refetch: refetchMyApprovals,
+  } = useQuery({
+    queryKey: ["approvals", "all", activeAddress],
+    queryFn: () => fetchWorkApprovals(undefined),
     enabled: !!activeAddress,
-    staleTime: 30_000,
+    staleTime: STALE_TIME_MEDIUM,
+    retry: DEFAULT_RETRY_COUNT,
   });
+
+  // Build a set of the user's work IDs for efficient lookup
+  const myWorkIds = useMemo(() => new Set((myOnlineWorks || []).map((w) => w.id)), [myOnlineWorks]);
+
+  // Filter approvals to only those for the user's works
+  const myReceivedApprovals = useMemo(
+    () => (allApprovals || []).filter((a) => myWorkIds.has(a.workUID)),
+    [allApprovals, myWorkIds]
+  );
 
   // Pending: your submissions across ALL gardens (online and awaiting review)
   const approvedOrRejectedForMe = useMemo(
@@ -226,13 +352,13 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     [myReceivedApprovals]
   );
 
-  const pendingMySubmissions: any[] = (myOnlineWorks || []).filter(
-    (w: any) => isUserAddress(w.gardenerAddress) && !approvedOrRejectedForMe.has(w.id)
-  );
+  const pendingMySubmissions: Work[] = (myOnlineWorks || [])
+    .filter((w) => isUserAddress(w.gardenerAddress) && !approvedOrRejectedForMe.has(w.id))
+    .map((w) => ({ ...w, status: "pending" as const }));
 
   // Combine lists and deduplicate by id when showing "all"
   const combinedPending = useMemo(() => {
-    const map = new Map<string, any>();
+    const map = new Map<string, Work>();
     for (const w of pendingNeedsReview) map.set(w.id, w);
     for (const w of pendingMySubmissions) map.set(w.id, w);
     return Array.from(map.values()).sort((a, b) => b.createdAt - a.createdAt);
@@ -245,14 +371,14 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         ? pendingMySubmissions
         : combinedPending;
 
-  const completedMyWorkReviewed = useMemo(
+  const completedMyWorkReviewed: Work[] = useMemo(
     () =>
       (myReceivedApprovals || []).map((a) => ({
         id: a.workUID,
-        gardenerAddress: a.gardenerAddress,
-        gardenAddress: undefined as unknown as string,
-        actionUID: a.actionUID,
         title: `Work ${String(a.workUID || "").slice(0, 8)}...`,
+        actionUID: a.actionUID,
+        gardenerAddress: a.gardenerAddress,
+        gardenAddress: "", // Not available from approval data
         feedback: a.feedback || "",
         metadata: "",
         media: [],
@@ -268,15 +394,15 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // Apply time filtering using utility
   const filteredUploading = filterByTimeRange(uploadingWork, timeFilter);
   const filteredPending = filterByTimeRange(pendingWork, timeFilter);
-  const filteredCompleted = filterByTimeRange(completedWork as any, timeFilter);
+  const filteredCompleted = filterByTimeRange(completedWork, timeFilter);
 
-  // Navigation handler
-  const handleWorkClick = (work: any) => {
+  // Navigation handler - handles both Work and WorkApproval shapes
+  const handleWorkClick = (work: Work | { workUID?: string; gardenAddress?: string }) => {
     try {
-      let workId = work.id || work.workUID;
-      let gardenId = work.gardenAddress || work.gardenId;
+      let workId = "id" in work ? work.id : (work as { workUID?: string }).workUID;
+      let gardenId = work.gardenAddress;
 
-      if (!gardenId && work.workUID) {
+      if (!gardenId && "workUID" in work && work.workUID) {
         const found = operatorWorksById.get(work.workUID);
         if (found) {
           gardenId = found.gardenAddress;
@@ -285,25 +411,31 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       }
 
       if (!gardenId || !workId) {
-        console.error("Invalid work object for navigation:", work);
         return;
       }
 
-      navigate(`/home/${gardenId}/work/${workId}`, { state: { from: "dashboard" } });
-    } catch (error) {
-      console.error("Error navigating to work:", error, work);
+      navigate(`/home/${gardenId}/work/${workId}`, {
+        state: { from: "dashboard" },
+        viewTransition: true,
+      });
+    } catch (err) {
+      console.error("Navigation error:", err);
+      toastService.error({
+        title: intl.formatMessage({
+          id: "app.workDashboard.error.navigationFailed",
+          defaultMessage: "Couldn't open work",
+        }),
+        message: intl.formatMessage({
+          id: "app.workDashboard.error.navigationFailedMessage",
+          defaultMessage: "Please try again.",
+        }),
+        context: "workDashboard",
+      });
     }
   };
 
-  // Badge helpers
-  const badge = (text: string, cls: string, icon?: React.ReactNode) => (
-    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border ${cls}`}>
-      {icon}
-      {text}
-    </span>
-  );
-
-  const renderWorkBadges = (item: any) => {
+  // Badge renderers using CSS utilities from utilities.css
+  const renderWorkBadges = (item: Work) => {
     const badges: React.ReactNode[] = [];
     const isGardener = isUserAddress(item.gardenerAddress);
     const isOperator =
@@ -312,52 +444,112 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
 
     if (isOperator && !reviewed) {
       badges.push(
-        badge(
-          "Needs review",
-          "bg-amber-50 text-amber-600 border-amber-200",
+        <span key="review" className="badge-pill-amber">
           <RiTimeLine className="w-3 h-3" />
-        )
+          {intl.formatMessage({
+            id: "app.workDashboard.badge.needsReview",
+            defaultMessage: "Needs review",
+          })}
+        </span>
       );
     }
     if (reviewed) {
       badges.push(
-        badge(
-          "Reviewed by you",
-          "bg-emerald-50 text-emerald-600 border-emerald-200",
+        <span key="reviewed" className="badge-pill-emerald">
           <RiCheckLine className="w-3 h-3" />
-        )
+          {intl.formatMessage({
+            id: "app.workDashboard.badge.reviewedByYou",
+            defaultMessage: "Reviewed by you",
+          })}
+        </span>
       );
     }
     if (isGardener) {
-      badges.push(badge("You submitted", "bg-slate-50 text-slate-600 border-slate-200"));
+      badges.push(
+        <span key="submitted" className="badge-pill-slate">
+          {intl.formatMessage({
+            id: "app.workDashboard.badge.youSubmitted",
+            defaultMessage: "You submitted",
+          })}
+        </span>
+      );
     }
     return badges;
   };
 
-  const renderApprovalBadges = (_item: any) => {
-    return [
-      badge(
-        "Reviewed by you",
-        "bg-emerald-50 text-emerald-600 border-emerald-200",
-        <RiCheckLine className="w-3 h-3" />
-      ),
-    ];
+  const renderApprovalBadges = () => [
+    <span key="reviewed" className="badge-pill-emerald">
+      <RiCheckLine className="w-3 h-3" />
+      {intl.formatMessage({
+        id: "app.workDashboard.badge.reviewedByYou",
+        defaultMessage: "Reviewed by you",
+      })}
+    </span>,
+  ];
+
+  const renderMyWorkReviewedBadges = () => [
+    <span key="work-reviewed" className="badge-pill-slate">
+      {intl.formatMessage({
+        id: "app.workDashboard.badge.yourWorkReviewed",
+        defaultMessage: "Your work was reviewed",
+      })}
+    </span>,
+  ];
+
+  // Combined refresh functions for each tab
+  const handleRefreshRecent = () => {
+    // Provide haptic feedback when refresh is triggered
+    hapticLight();
+    refetchOfflineQueue();
+    refetchRecentOnline();
   };
 
-  const renderMyWorkReviewedBadges = (_item: any) => {
-    return [badge("Your work was reviewed", "bg-slate-50 text-slate-600 border-slate-200")];
+  const handleRefreshPending = () => {
+    // Provide haptic feedback when refresh is triggered
+    hapticLight();
+    refetchOperatorWorks();
+    refetchMyWorks();
+    refetchApprovals();
   };
+
+  const handleRefreshCompleted = () => {
+    // Provide haptic feedback when refresh is triggered
+    hapticLight();
+    refetchApprovals();
+    refetchMyApprovals();
+  };
+
+  // Combined error states
+  const hasRecentError = isErrorRecentOnline;
+  const hasPendingError = hasError || isErrorOperatorWorks || isErrorMyWorks;
+  const hasCompletedError = hasError || isErrorMyApprovals;
+
+  // Combined fetching states
+  const isFetchingRecent = isFetchingRecentOnline;
+  const isFetchingPending = isFetchingOperatorWorks || isFetchingMyWorks;
+  const isFetchingCompleted = isFetchingMyApprovals;
 
   const tabs: StandardTab[] = [
     {
+      id: "drafts",
+      icon: <RiDraftLine className="w-4 h-4" />,
+      label: intl.formatMessage({
+        id: "app.workDashboard.tabs.drafts",
+        defaultMessage: "Drafts",
+      }),
+      count: draftCount > 0 ? draftCount : undefined,
+    },
+    {
       id: "recent",
+      icon: <RiTimeLine className="w-4 h-4" />,
       label: intl.formatMessage({
         id: "app.workDashboard.tabs.recent",
-        defaultMessage: "Recent Work",
+        defaultMessage: "Recent",
       }),
     },
     {
       id: "pending",
+      icon: <RiTaskLine className="w-4 h-4" />,
       label: intl.formatMessage({
         id: "app.workDashboard.tabs.pending",
         defaultMessage: "Pending",
@@ -365,6 +557,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     },
     {
       id: "completed",
+      icon: <RiCheckLine className="w-4 h-4" />,
       label: intl.formatMessage({
         id: "app.workDashboard.tabs.completed",
         defaultMessage: "Completed",
@@ -381,12 +574,17 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
 
   const renderTabContent = () => {
     switch (activeTab) {
+      case "drafts":
+        return <DraftsTab />;
       case "recent":
         return (
           <UploadingTab
             uploadingWork={filteredUploading}
             isLoading={isLoading || isLoadingUploading}
+            isFetching={isFetchingRecent}
+            hasError={hasRecentError}
             onWorkClick={handleWorkClick}
+            onRefresh={handleRefreshRecent}
             headerContent={<TimeFilterControl value={timeFilter} onChange={setTimeFilter} />}
           />
         );
@@ -395,14 +593,16 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
           <PendingTab
             pendingWork={filteredPending}
             isLoading={isLoading || isLoadingOperatorWorks || isLoadingMyOnlineWorks}
-            hasError={hasError}
+            isFetching={isFetchingPending}
+            hasError={hasPendingError}
             errorMessage={errorMessage}
             onWorkClick={handleWorkClick}
+            onRefresh={handleRefreshPending}
             renderBadges={renderWorkBadges}
             headerContent={
               <div className="flex items-center gap-2">
                 <select
-                  className="border border-slate-200 text-xs rounded-md px-2 py-1 bg-white"
+                  className="border border-stroke-soft-200 text-xs rounded-md px-2 py-1 bg-bg-white-0"
                   value={pendingFilter}
                   onChange={(e) => setPendingFilter(e.target.value as typeof pendingFilter)}
                 >
@@ -433,11 +633,13 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       case "completed":
         return (
           <CompletedTab
-            completedWork={filteredCompleted as any}
+            completedWork={filteredCompleted}
             isLoading={isLoading || (completedFilter === "myWorkReviewed" && isLoadingMyApprovals)}
-            hasError={hasError}
+            isFetching={isFetchingCompleted}
+            hasError={hasCompletedError}
             errorMessage={errorMessage}
             onWorkClick={handleWorkClick}
+            onRefresh={handleRefreshCompleted}
             renderBadges={
               completedFilter === "reviewedByYou"
                 ? renderApprovalBadges
@@ -446,7 +648,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
             headerContent={
               <div className="flex items-center gap-2">
                 <select
-                  className="border border-slate-200 text-xs rounded-md px-2 py-1 bg-white"
+                  className="border border-stroke-soft-200 text-xs rounded-md px-2 py-1 bg-bg-white-0"
                   value={completedFilter}
                   onChange={(e) => setCompletedFilter(e.target.value as typeof completedFilter)}
                 >
@@ -473,7 +675,10 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
           <UploadingTab
             uploadingWork={filteredUploading}
             isLoading={isLoading || isLoadingUploading}
+            isFetching={isFetchingRecent}
+            hasError={hasRecentError}
             onWorkClick={handleWorkClick}
+            onRefresh={handleRefreshRecent}
             headerContent={<TimeFilterControl value={timeFilter} onChange={setTimeFilter} />}
           />
         );
@@ -483,11 +688,16 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   return (
     <div
       className={cn(
-        "fixed inset-0 bg-black/20 backdrop-blur-sm z-[10001] flex items-end justify-center",
+        "fixed inset-0 bg-black/30 backdrop-blur-sm z-[20000] flex items-end justify-center",
         isClosing ? "modal-backdrop-exit" : "modal-backdrop-enter"
       )}
       data-testid="modal-drawer-overlay"
-      onClick={handleClose}
+      onClick={(e) => {
+        // Only close if clicking directly on backdrop, not from propagated events
+        if (e.target === e.currentTarget) {
+          handleClose();
+        }
+      }}
       onKeyDown={(e) => {
         if (e.key === "Escape") {
           handleClose();
@@ -497,12 +707,14 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     >
       <div
         className={cn(
-          "bg-white rounded-t-3xl shadow-2xl w-full overflow-hidden flex flex-col",
+          "bg-bg-white-0 rounded-t-3xl shadow-2xl w-full overflow-hidden flex flex-col h-modal",
           isClosing ? "modal-slide-exit" : "modal-slide-enter",
           className
         )}
-        style={{ height: "85vh" }}
         onClick={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+        onTouchEnd={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
           e.stopPropagation();
         }}
@@ -519,7 +731,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
                 defaultMessage: "Work Dashboard",
               })}
             </h2>
-            <p className="text-sm text-slate-600 truncate">
+            <p className="text-sm text-text-sub-600 truncate">
               {intl.formatMessage({
                 id: "app.workDashboard.description",
                 defaultMessage: "Track work submissions and reviews",
@@ -529,11 +741,11 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
           <div className="flex items-center gap-2 ml-4">
             <button
               onClick={handleClose}
-              className="btn-icon rounded-full"
+              className="btn-icon"
               data-testid="modal-drawer-close"
               aria-label="Close modal"
             >
-              <RiCloseLine className="w-5 h-5 focus:text-primary active:text-primary" />
+              <RiCloseLine className="w-5 h-5 text-text-soft-400 focus:text-primary active:text-primary" />
             </button>
           </div>
         </div>
@@ -542,12 +754,16 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         <StandardTabs
           tabs={tabs}
           activeTab={activeTab}
-          onTabChange={(tabId: string) => setActiveTab(tabId as "recent" | "pending" | "completed")}
+          onTabChange={(tabId: string) =>
+            setActiveTab(tabId as "drafts" | "recent" | "pending" | "completed")
+          }
           triggerClassName="text-xs"
         />
 
-        {/* Content */}
-        <div className="flex-1 min-h-0 overflow-hidden">{renderTabContent()}</div>
+        {/* Content - overscroll-contain prevents scroll chaining to backdrop */}
+        <div className="flex-1 min-h-0 overflow-hidden overscroll-contain">
+          {renderTabContent()}
+        </div>
       </div>
     </div>
   );

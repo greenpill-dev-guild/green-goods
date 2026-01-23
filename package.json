@@ -1,6 +1,7 @@
 {
   "name": "green-goods",
-  "version": "0.0.0",
+  "version": "0.4.0",
+  "type": "module",
   "private": true,
   "keywords": [
     "green-goods",
@@ -18,58 +19,107 @@
   ],
   "scripts": {
     "setup": "node scripts/setup.js",
+    "ci:local": "node scripts/ci-local.js",
     "prepare": "husky",
-
-    "dev": "trap 'npx pm2 delete all' EXIT; npx pm2 start ecosystem.config.js && npx pm2 logs --raw",
+    "postinstall": "node scripts/fix-multiformats.js",
+    "format": "npx @biomejs/biome format --write .",
+    "format:contracts": "cd packages/contracts && bun run format",
+    "format:check": "npx @biomejs/biome format .",
+    "lint": "bun oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/agent/src packages/contracts/script && cd packages/contracts && bun run lint",
+    "dev": "trap 'npx pm2 delete all' EXIT; npx pm2 start ecosystem.config.cjs && npx pm2 logs --raw",
     "dev:stop": "npx pm2 delete all",
+    "dev:docs": "cd docs && bun start",
     "dev:client": "cd packages/client && bun run dev",
     "dev:admin": "cd packages/admin && bun run dev",
-    "dev:indexer": "cd packages/indexer && bun run dev",
-    "dev:contracts": "cd packages/contracts && bun run dev",
     "dev:agent": "cd packages/agent && bun run dev",
-
-    "format": "npx @biomejs/biome format --write .",
-    "format:check": "npx @biomejs/biome format .",
-    "lint": "bun oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/contracts/script",
-    "test": "bun run test:client && bun run test:admin && bun run test:indexer && bun run test:contracts",
-
-    "test:e2e": "playwright test",
+    "dev:indexer": "cd packages/indexer && bun run dev",
+    "indexer:doctor": "cd packages/indexer && bun run doctor",
+    "indexer:fix": "cd packages/indexer && bun run doctor:fix",
+    "indexer:db:up": "cd packages/indexer && bun run db:up",
+    "indexer:db:down": "cd packages/indexer && bun run db:down",
+    "indexer:reset": "cd packages/indexer && bun run reset",
+    "dev:contracts": "cd packages/contracts && bun run dev",
+    "test": "bun run test:shared && bun run test:client && bun run test:admin && bun run test:indexer && bun run test:contracts && bun run test:agent",
+    "test:e2e": "node scripts/test-e2e.js",
+    "test:e2e:smoke": "node scripts/test-e2e.js smoke",
+    "test:e2e:ui": "SKIP_WEBSERVER=true SKIP_HEALTH_CHECK=true playwright test --ui",
     "test:client": "cd packages/client && bun run test",
     "test:admin": "cd packages/admin && bun run test",
+    "test:agent": "cd packages/agent && bun run test",
+    "test:shared": "cd packages/shared && bun run test",
     "test:indexer": "cd packages/indexer && bun run test",
     "test:contracts": "cd packages/contracts && bun run test",
-
+    "lighthouse": "bun run lighthouse:client && bun run lighthouse:admin",
+    "lighthouse:client": "bun run build:client && cd packages/client && npx lhci autorun",
+    "lighthouse:admin": "bun run build:admin && cd packages/admin && npx lhci autorun",
+    "lighthouse:collect": "bun run build:client && cd packages/client && npx lhci collect",
     "build": "bun run build:contracts && bun run build:shared && bun run build:indexer && bun run build:client && bun run build:admin",
-    "build:shared": "cd packages/shared && bun run build",
+    "build:docs": "cd docs && bun run build",
     "build:client": "cd packages/client && bun run build",
     "build:admin": "cd packages/admin && bun run build",
+    "build:agent": "cd packages/agent && bun run build",
+    "build:shared": "cd packages/shared && bun run build",
     "build:indexer": "cd packages/indexer && bun run build",
     "build:contracts": "cd packages/contracts && bun run build",
-    "build:agent": "cd packages/agent && bun run build",
-    "test:agent": "cd packages/agent && bun run test"
+    "sourcemaps": "node scripts/upload-sourcemaps.js",
+    "sourcemaps:dry-run": "node scripts/upload-sourcemaps.js --dry-run"
   },
   "overrides": {
-    "vite": "npm:rolldown-vite@7.1.0"
+    "multiformats": "^13.4.2",
+    "uint8arrays": "^5.1.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
   },
-  "resolutions": {},
+  "resolutions": {
+    "uint8arrays": "^5.1.0"
+  },
   "dependencies": {
     "dotenv": "^17.2.1",
-    "ethers": "^6.15.0",
-    "viem": "^2.33.3"
+    "ethers": "^6.16.0",
+    "multiformats": "^13.4.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "uint8arrays": "^5.1.0",
+    "viem": "^2.43.4"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.1.4",
+    "@biomejs/biome": "2.3.10",
+    "@lhci/cli": "^0.15.1",
     "@playwright/test": "^1.54.2",
+    "@storacha/client": "^1.8.26",
+    "@tailwindcss/forms": "^0.5.7",
+    "@tailwindcss/postcss": "^4.0.14",
+    "@tailwindcss/typography": "0.5.15",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^24.2.1",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.1.2",
+    "@vitest/coverage-v8": "^4.0.16",
+    "babel-plugin-react-compiler": "^1.0.0",
     "dotenv-cli": "^10.0.0",
+    "dotenv-expand": "11.0.6",
+    "fake-indexeddb": "^6.2.5",
+    "files-from-path": "^1.1.4",
+    "graphql": "^16.10.0",
     "husky": "^9.1.7",
     "js-yaml": "^4.1.0",
+    "jsdom": "^27.4.0",
+    "lighthouse": "^13.0.1",
     "lint-staged": "16.1.5",
-    "oxlint": "1.11.1",
-    "pm2": "6.0.8",
+    "msw": "^2.11.1",
+    "oxlint": "1.36.0",
+    "pm2": "6.0.14",
+    "tailwindcss": "^4.1.11",
+    "tailwindcss-animate": "^1.0.7",
     "tsc-alias": "^1.8.16",
     "tsx": "^4.20.3",
-    "typescript": "^5.9.2",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.0",
+    "vite-plugin-mkcert": "^1.17.8",
+    "vitest": "^4.0.16",
     "wait-port": "1.1.0"
   },
   "engines": {
@@ -78,14 +128,12 @@
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json}": [
-      "npx @biomejs/biome format --write"
-    ],
-    "*.sol": [
-      "forge fmt"
+      "bash -c 'files=\"$@\"; filtered=$(echo \"$files\" | tr \" \" \"\\n\" | grep -v \"packages/contracts/out/\"); [ -n \"$filtered\" ] && echo \"$filtered\" | xargs npx @biomejs/biome format --write || true' --"
     ]
   },
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "docs"
   ],
   "trustedDependencies": [
     "sharp"

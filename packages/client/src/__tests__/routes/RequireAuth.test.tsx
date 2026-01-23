@@ -1,92 +1,103 @@
 /**
- * RequireAuth Test Suite
+ * RequireAuth Route Guard Tests
  *
- * Tests authentication guard component
+ * Tests the authentication route guard behavior.
  */
 
-import { render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
+import { createElement } from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import RequireAuth from "../../routes/RequireAuth";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock useAuth hook from shared package
-const mockUseAuth = vi.fn(() => ({
-  isReady: false,
-  isAuthenticated: false,
+// Mock the useAuth hook
+const mockUseAuth = vi.fn();
+
+vi.mock("@green-goods/shared/hooks", () => ({
+  useAuth: () => mockUseAuth(),
 }));
 
-vi.mock("@green-goods/shared/hooks", async () => {
-  const actual = await vi.importActual<typeof import("@green-goods/shared/hooks")>(
-    "@green-goods/shared/hooks"
+// Import after mocks
+import RequireAuth from "../../routes/RequireAuth";
+
+const ProtectedContent = () => createElement("div", null, "Protected Content");
+const LoginPage = () => createElement("div", null, "Login Page");
+
+const renderWithRouter = (initialRoute = "/protected") => {
+  return render(
+    createElement(
+      MemoryRouter,
+      { initialEntries: [initialRoute] },
+      createElement(
+        Routes,
+        null,
+        createElement(Route, { path: "/login", element: createElement(LoginPage) }),
+        createElement(
+          Route,
+          { element: createElement(RequireAuth) },
+          createElement(Route, { path: "/protected", element: createElement(ProtectedContent) })
+        )
+      )
+    )
   );
-  return {
-    ...actual,
-    useAuth: () => mockUseAuth(),
-  };
-});
+};
 
 describe("RequireAuth", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("should render nothing when not ready", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("renders loading spinner when auth is not ready", () => {
     mockUseAuth.mockReturnValue({
       isReady: false,
       isAuthenticated: false,
     });
 
-    const { container } = render(
-      <MemoryRouter initialEntries={["/protected"]}>
-        <Routes>
-          <Route element={<RequireAuth />}>
-            <Route path="*" element={<div>Protected Content</div>} />
-          </Route>
-        </Routes>
-      </MemoryRouter>
-    );
+    const { container } = renderWithRouter();
 
-    expect(container.firstChild).toBeNull();
+    // Should show a loading spinner
+    const spinner = container.querySelector(".animate-spin");
+    expect(spinner).toBeInTheDocument();
+    expect(screen.queryByText("Protected Content")).not.toBeInTheDocument();
+    expect(screen.queryByText("Login Page")).not.toBeInTheDocument();
   });
 
-  it("should redirect to login when not authenticated", async () => {
+  it("redirects to login when not authenticated", () => {
     mockUseAuth.mockReturnValue({
       isReady: true,
       isAuthenticated: false,
     });
 
-    render(
-      <MemoryRouter initialEntries={["/protected"]}>
-        <Routes>
-          <Route path="/login" element={<div>Login Page</div>} />
-          <Route element={<RequireAuth />}>
-            <Route path="*" element={<div>Protected Content</div>} />
-          </Route>
-        </Routes>
-      </MemoryRouter>
-    );
+    renderWithRouter();
 
-    await waitFor(() => {
-      expect(screen.getByText("Login Page")).toBeInTheDocument();
-    });
+    expect(screen.getByText("Login Page")).toBeInTheDocument();
+    expect(screen.queryByText("Protected Content")).not.toBeInTheDocument();
   });
 
-  it("should render children when authenticated", () => {
+  it("renders protected content when authenticated", () => {
     mockUseAuth.mockReturnValue({
       isReady: true,
       isAuthenticated: true,
     });
 
-    render(
-      <MemoryRouter initialEntries={["/protected"]}>
-        <Routes>
-          <Route element={<RequireAuth />}>
-            <Route path="*" element={<div>Protected Content</div>} />
-          </Route>
-        </Routes>
-      </MemoryRouter>
-    );
+    renderWithRouter();
 
     expect(screen.getByText("Protected Content")).toBeInTheDocument();
+    expect(screen.queryByText("Login Page")).not.toBeInTheDocument();
+  });
+
+  it("preserves redirect path in login URL", () => {
+    mockUseAuth.mockReturnValue({
+      isReady: true,
+      isAuthenticated: false,
+    });
+
+    renderWithRouter("/protected?foo=bar");
+
+    // Redirect happens - we land on login page
+    expect(screen.getByText("Login Page")).toBeInTheDocument();
   });
 });

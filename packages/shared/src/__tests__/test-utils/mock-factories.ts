@@ -17,6 +17,7 @@ export const MOCK_ADDRESSES = {
   gardener: "0x1234567890123456789012345678901234567890",
   smartAccount: "0xSmartAccount1234567890123456789012345678",
   garden: "0xGarden12345678901234567890123456789012345",
+  user: "0xUser12345678901234567890123456789012345678",
 } as const;
 
 export const MOCK_TX_HASH =
@@ -174,16 +175,27 @@ export function createMockAuthContext(options: MockAuthContextOptions = {}) {
 
 export function createMockUserContext(options: MockAuthContextOptions = {}) {
   const authContext = createMockAuthContext(options);
+
+  // primaryAddress is derived based on auth mode (matches useUser hook logic)
+  const primaryAddress =
+    authContext.authMode === "wallet"
+      ? authContext.walletAddress
+      : authContext.authMode === "passkey"
+        ? authContext.smartAccountAddress
+        : authContext.smartAccountAddress || authContext.walletAddress || null;
+
   return {
-    user: authContext.isAuthenticated
-      ? { id: "test-user", address: authContext.smartAccountAddress }
-      : null,
+    user: authContext.isAuthenticated ? { id: "test-user", address: primaryAddress } : null,
     ready: authContext.isReady,
     eoa: authContext.eoa,
     smartAccountAddress: authContext.smartAccountAddress,
     smartAccountClient: authContext.smartAccountClient,
     authMode: authContext.authMode,
     ensName: null,
+    // New properties for unified auth
+    primaryAddress,
+    externalWalletConnected: Boolean(authContext.walletAddress),
+    externalWalletAddress: authContext.walletAddress,
   };
 }
 

@@ -3,8 +3,88 @@
  * Uses [data-theme] attribute for theme switching
  */
 
-/* Base color primitives (RGB values for Tailwind opacity modifiers) */
-:root {
+/* ============================================================================
+ * CSS @property Definitions (Baseline July 2024)
+ * Type-safe custom properties with syntax validation and animation support
+ * Applied to @theme tokens which use full color values (not raw RGB triplets)
+ * @see https://developer.mozilla.org/en-US/docs/Web/CSS/@property
+ * ============================================================================ */
+
+/* Semantic background colors - enables smooth animated theme transitions */
+@property --color-background {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgb(255, 255, 255);
+}
+
+@property --color-foreground {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgb(23, 23, 23);
+}
+
+@property --color-card {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgb(247, 247, 247);
+}
+
+@property --color-muted {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgb(245, 245, 245);
+}
+
+/* Primary brand color - enables animated hover/focus states */
+@property --color-primary {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgb(31, 193, 107);
+}
+
+@property --color-primary-foreground {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgb(255, 255, 255);
+}
+
+/* Border/stroke colors - enables animated border transitions */
+@property --color-border {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgb(245, 245, 245);
+}
+
+@property --color-ring {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgb(209, 209, 209);
+}
+
+/* Destructive state - enables animated error state transitions */
+@property --color-destructive {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgb(251, 55, 72);
+}
+
+/* Overlay color - enables animated modal/drawer backdrop transitions */
+@property --color-overlay {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgba(51, 51, 51, 0.24);
+}
+
+/* CSS Cascade Layers - ensures predictable specificity order
+ * theme < base < components < utilities
+ * This prevents specificity wars with Radix UI and other libraries
+ */
+@layer theme, base, components, utilities;
+
+/* Theme layer: CSS custom properties for the design system */
+@layer theme {
+  /* Base color primitives (RGB values for Tailwind opacity modifiers) */
+  :root {
   /* Gray scale (matches client exactly) */
   --gray-950: 23 23 23;
   --gray-900: 28 28 28;
@@ -42,9 +122,10 @@
   --slate-alpha-16: 153 160 174 / 16%;
   --slate-alpha-10: 153 160 174 / 10%;
 
-  /* Neutral (alias to gray) */
+  /* Neutral (alias to gray with added 850 for card elevation) */
   --neutral-950: var(--gray-950);
   --neutral-900: var(--gray-900);
+  --neutral-850: 35 35 35;  /* Custom intermediate for card elevation */
   --neutral-800: var(--gray-800);
   --neutral-700: var(--gray-700);
   --neutral-600: var(--gray-600);
@@ -240,6 +321,7 @@
   --primary-dark: var(--green-800);
   --primary-darker: var(--green-700);
   --primary-base: var(--green-500);
+  --primary-foreground: var(--neutral-0);  /* White text on dark green bg */
   --primary-alpha-24: var(--green-alpha-24);
   --primary-alpha-16: var(--green-alpha-16);
   --primary-alpha-10: var(--green-alpha-10);
@@ -325,13 +407,13 @@
 
 /* Dark theme overrides using data-theme attribute */
 :root[data-theme="dark"] {
-  /* Backgrounds - proper dark mode hierarchy with better depth (darkest to lightest) */
-  --bg-white-0: var(--neutral-950);      /* 14 18 27 - page background (darkest) */
-  --bg-weak-50: var(--neutral-900);      /* 24 27 37 - subtle backgrounds */
-  --bg-soft-200: var(--neutral-850);     /* ~30 34 42 - cards (elevated from page) */
-  --bg-sub-300: var(--neutral-700);      /* 43 48 59 - more elevated cards */
-  --bg-surface-800: var(--neutral-600);  /* 82 88 102 - prominent surfaces */
-  --bg-strong-950: var(--neutral-50);    /* 245 247 250 - highlights/hovers */
+  /* Backgrounds - proper dark mode hierarchy with clear card elevation */
+  --bg-white-0: var(--neutral-950);      /* 23 23 23 - page background (darkest) */
+  --bg-weak-50: var(--neutral-850);      /* 35 35 35 - card surfaces (visibly lighter) */
+  --bg-soft-200: var(--neutral-800);     /* 41 41 41 - elevated cards/surfaces */
+  --bg-sub-300: var(--neutral-700);      /* 51 51 51 - more elevated elements */
+  --bg-surface-800: var(--neutral-600);  /* 92 92 92 - prominent surfaces */
+  --bg-strong-950: var(--neutral-100);   /* 245 245 245 - highlights/hovers */
 
   /* Text - light on dark */
   --text-strong-950: var(--neutral-50);      /* 245 247 250 - primary text (lightest) */
@@ -353,6 +435,12 @@
   --faded-base: var(--neutral-500);
   --faded-light: var(--neutral-alpha-24);
   --faded-lighter: var(--neutral-alpha-16);
+
+  /* Primary (brand) colors - very light for dark mode accessibility */
+  --primary-dark: var(--green-400);
+  --primary-darker: var(--green-300);
+  --primary-base: var(--green-200);  /* 194 245 218 - pale mint for maximum contrast */
+  --primary-foreground: var(--green-950);  /* Dark green text on light green bg */
 
   /* Focus rings - Dark theme */
   --focus-ring: var(--blue-400);
@@ -418,16 +506,426 @@
   --social-amazon: 255 255 255;
   --social-zendesk: 255 255 255;
 }
+} /* End @layer theme */
 
-/* Base element styles */
-html,
-body,
-#root {
-  height: 100%;
+/* Base layer: Element resets and defaults */
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    background: rgb(var(--bg-white-0));
+    color: rgb(var(--text-strong-950));
+  }
 }
 
-body {
-  background: rgb(var(--bg-white-0));
-  color: rgb(var(--text-strong-950));
+/* ============================================================================
+ * TAILWIND THEME - CSS-First Color Configuration
+ * Exposes CSS variables to Tailwind for utility class generation
+ * ============================================================================ */
+@theme {
+  /* Theme base colors - use semantic tokens for dark mode support */
+  --color-primary: rgb(var(--primary-base));
+  --color-primary-foreground: rgb(var(--primary-foreground));
+
+  --color-secondary: rgb(var(--green-100));
+  --color-secondary-foreground: rgb(var(--neutral-950));
+
+  --color-tertiary: rgb(var(--blue-100));
+  --color-tertiary-foreground: rgb(var(--neutral-950));
+
+  --color-accent: rgb(var(--green-600));
+  --color-accent-foreground: rgb(var(--neutral-0));
+
+  /* Background and foreground colors - use semantic tokens for dark mode */
+  --color-background: rgb(var(--bg-white-0));
+  --color-foreground: rgb(var(--text-strong-950));
+
+  /* Card colors - use semantic tokens for dark mode */
+  --color-card: rgb(var(--bg-weak-50));
+  --color-card-foreground: rgb(var(--text-strong-950));
+
+  /* Muted colors - use semantic tokens for dark mode */
+  --color-muted: rgb(var(--bg-soft-200));
+  --color-muted-foreground: rgb(var(--text-sub-600));
+
+  /* Destructive colors */
+  --color-destructive: rgb(var(--red-500));
+  --color-destructive-foreground: rgb(var(--neutral-0));
+
+  /* Border, input, and ring colors - use semantic tokens for dark mode support */
+  --color-border: rgb(var(--stroke-soft-200));
+  --color-input: rgb(var(--stroke-soft-200));
+  --color-ring: rgb(var(--stroke-sub-300));
+
+  /* Gray color palette */
+  --color-gray-0: rgb(var(--gray-0));
+  --color-gray-50: rgb(var(--gray-50));
+  --color-gray-100: rgb(var(--gray-100));
+  --color-gray-200: rgb(var(--gray-200));
+  --color-gray-300: rgb(var(--gray-300));
+  --color-gray-400: rgb(var(--gray-400));
+  --color-gray-500: rgb(var(--gray-500));
+  --color-gray-600: rgb(var(--gray-600));
+  --color-gray-700: rgb(var(--gray-700));
+  --color-gray-800: rgb(var(--gray-800));
+  --color-gray-900: rgb(var(--gray-900));
+  --color-gray-950: rgb(var(--gray-950));
+  /* Alpha variants using relative color syntax (Baseline Sept 2024) */
+  --color-gray-alpha-24: rgb(from rgb(var(--gray-400)) r g b / 24%);
+  --color-gray-alpha-16: rgb(from rgb(var(--gray-400)) r g b / 16%);
+  --color-gray-alpha-10: rgb(from rgb(var(--gray-400)) r g b / 10%);
+
+  /* Slate color palette */
+  --color-slate-0: rgb(var(--slate-0));
+  --color-slate-50: rgb(var(--slate-50));
+  --color-slate-100: rgb(var(--slate-100));
+  --color-slate-200: rgb(var(--slate-200));
+  --color-slate-300: rgb(var(--slate-300));
+  --color-slate-400: rgb(var(--slate-400));
+  --color-slate-500: rgb(var(--slate-500));
+  --color-slate-600: rgb(var(--slate-600));
+  --color-slate-700: rgb(var(--slate-700));
+  --color-slate-800: rgb(var(--slate-800));
+  --color-slate-850: rgb(var(--slate-850));
+  --color-slate-900: rgb(var(--slate-900));
+  --color-slate-950: rgb(var(--slate-950));
+  /* Alpha variants using relative color syntax */
+  --color-slate-alpha-24: rgb(from rgb(var(--slate-400)) r g b / 24%);
+  --color-slate-alpha-16: rgb(from rgb(var(--slate-400)) r g b / 16%);
+  --color-slate-alpha-10: rgb(from rgb(var(--slate-400)) r g b / 10%);
+
+  /* Neutral color palette */
+  --color-neutral-0: rgb(var(--neutral-0));
+  --color-neutral-50: rgb(var(--neutral-50));
+  --color-neutral-100: rgb(var(--neutral-100));
+  --color-neutral-200: rgb(var(--neutral-200));
+  --color-neutral-300: rgb(var(--neutral-300));
+  --color-neutral-400: rgb(var(--neutral-400));
+  --color-neutral-500: rgb(var(--neutral-500));
+  --color-neutral-600: rgb(var(--neutral-600));
+  --color-neutral-700: rgb(var(--neutral-700));
+  --color-neutral-800: rgb(var(--neutral-800));
+  --color-neutral-900: rgb(var(--neutral-900));
+  --color-neutral-950: rgb(var(--neutral-950));
+  /* Alpha variants using relative color syntax */
+  --color-neutral-alpha-24: rgb(from rgb(var(--neutral-400)) r g b / 24%);
+  --color-neutral-alpha-16: rgb(from rgb(var(--neutral-400)) r g b / 16%);
+  --color-neutral-alpha-10: rgb(from rgb(var(--neutral-400)) r g b / 10%);
+
+  /* Blue color palette */
+  --color-blue-50: rgb(var(--blue-50));
+  --color-blue-100: rgb(var(--blue-100));
+  --color-blue-200: rgb(var(--blue-200));
+  --color-blue-300: rgb(var(--blue-300));
+  --color-blue-400: rgb(var(--blue-400));
+  --color-blue-500: rgb(var(--blue-500));
+  --color-blue-600: rgb(var(--blue-600));
+  --color-blue-700: rgb(var(--blue-700));
+  --color-blue-800: rgb(var(--blue-800));
+  --color-blue-900: rgb(var(--blue-900));
+  --color-blue-950: rgb(var(--blue-950));
+  /* Alpha variants using relative color syntax */
+  --color-blue-alpha-24: rgb(from rgb(var(--blue-500)) r g b / 24%);
+  --color-blue-alpha-16: rgb(from rgb(var(--blue-500)) r g b / 16%);
+  --color-blue-alpha-10: rgb(from rgb(var(--blue-500)) r g b / 10%);
+
+  /* Orange color palette */
+  --color-orange-50: rgb(var(--orange-50));
+  --color-orange-100: rgb(var(--orange-100));
+  --color-orange-200: rgb(var(--orange-200));
+  --color-orange-300: rgb(var(--orange-300));
+  --color-orange-400: rgb(var(--orange-400));
+  --color-orange-500: rgb(var(--orange-500));
+  --color-orange-600: rgb(var(--orange-600));
+  --color-orange-700: rgb(var(--orange-700));
+  --color-orange-800: rgb(var(--orange-800));
+  --color-orange-900: rgb(var(--orange-900));
+  --color-orange-950: rgb(var(--orange-950));
+  /* Alpha variants using relative color syntax */
+  --color-orange-alpha-24: rgb(from rgb(var(--orange-500)) r g b / 24%);
+  --color-orange-alpha-16: rgb(from rgb(var(--orange-500)) r g b / 16%);
+  --color-orange-alpha-10: rgb(from rgb(var(--orange-500)) r g b / 10%);
+
+  /* Red color palette */
+  --color-red-50: rgb(var(--red-50));
+  --color-red-100: rgb(var(--red-100));
+  --color-red-200: rgb(var(--red-200));
+  --color-red-300: rgb(var(--red-300));
+  --color-red-400: rgb(var(--red-400));
+  --color-red-500: rgb(var(--red-500));
+  --color-red-600: rgb(var(--red-600));
+  --color-red-700: rgb(var(--red-700));
+  --color-red-800: rgb(var(--red-800));
+  --color-red-900: rgb(var(--red-900));
+  --color-red-950: rgb(var(--red-950));
+  /* Alpha variants using relative color syntax */
+  --color-red-alpha-24: rgb(from rgb(var(--red-500)) r g b / 24%);
+  --color-red-alpha-16: rgb(from rgb(var(--red-500)) r g b / 16%);
+  --color-red-alpha-10: rgb(from rgb(var(--red-500)) r g b / 10%);
+
+  /* Green color palette */
+  --color-green-50: rgb(var(--green-50));
+  --color-green-100: rgb(var(--green-100));
+  --color-green-200: rgb(var(--green-200));
+  --color-green-300: rgb(var(--green-300));
+  --color-green-400: rgb(var(--green-400));
+  --color-green-500: rgb(var(--green-500));
+  --color-green-600: rgb(var(--green-600));
+  --color-green-700: rgb(var(--green-700));
+  --color-green-800: rgb(var(--green-800));
+  --color-green-900: rgb(var(--green-900));
+  --color-green-950: rgb(var(--green-950));
+  /* Alpha variants using relative color syntax */
+  --color-green-alpha-24: rgb(from rgb(var(--green-500)) r g b / 24%);
+  --color-green-alpha-16: rgb(from rgb(var(--green-500)) r g b / 16%);
+  --color-green-alpha-10: rgb(from rgb(var(--green-500)) r g b / 10%);
+
+  /* Yellow color palette */
+  --color-yellow-50: rgb(var(--yellow-50));
+  --color-yellow-100: rgb(var(--yellow-100));
+  --color-yellow-200: rgb(var(--yellow-200));
+  --color-yellow-300: rgb(var(--yellow-300));
+  --color-yellow-400: rgb(var(--yellow-400));
+  --color-yellow-500: rgb(var(--yellow-500));
+  --color-yellow-600: rgb(var(--yellow-600));
+  --color-yellow-700: rgb(var(--yellow-700));
+  --color-yellow-800: rgb(var(--yellow-800));
+  --color-yellow-900: rgb(var(--yellow-900));
+  --color-yellow-950: rgb(var(--yellow-950));
+  /* Alpha variants using relative color syntax */
+  --color-yellow-alpha-24: rgb(from rgb(var(--yellow-500)) r g b / 24%);
+  --color-yellow-alpha-16: rgb(from rgb(var(--yellow-500)) r g b / 16%);
+  --color-yellow-alpha-10: rgb(from rgb(var(--yellow-500)) r g b / 10%);
+
+  /* Purple color palette */
+  --color-purple-50: rgb(var(--purple-50));
+  --color-purple-100: rgb(var(--purple-100));
+  --color-purple-200: rgb(var(--purple-200));
+  --color-purple-300: rgb(var(--purple-300));
+  --color-purple-400: rgb(var(--purple-400));
+  --color-purple-500: rgb(var(--purple-500));
+  --color-purple-600: rgb(var(--purple-600));
+  --color-purple-700: rgb(var(--purple-700));
+  --color-purple-800: rgb(var(--purple-800));
+  --color-purple-900: rgb(var(--purple-900));
+  --color-purple-950: rgb(var(--purple-950));
+  /* Alpha variants using relative color syntax */
+  --color-purple-alpha-24: rgb(from rgb(var(--purple-500)) r g b / 24%);
+  --color-purple-alpha-16: rgb(from rgb(var(--purple-500)) r g b / 16%);
+  --color-purple-alpha-10: rgb(from rgb(var(--purple-500)) r g b / 10%);
+
+  /* Sky color palette */
+  --color-sky-50: rgb(var(--sky-50));
+  --color-sky-100: rgb(var(--sky-100));
+  --color-sky-200: rgb(var(--sky-200));
+  --color-sky-300: rgb(var(--sky-300));
+  --color-sky-400: rgb(var(--sky-400));
+  --color-sky-500: rgb(var(--sky-500));
+  --color-sky-600: rgb(var(--sky-600));
+  --color-sky-700: rgb(var(--sky-700));
+  --color-sky-800: rgb(var(--sky-800));
+  --color-sky-900: rgb(var(--sky-900));
+  --color-sky-950: rgb(var(--sky-950));
+  /* Alpha variants using relative color syntax */
+  --color-sky-alpha-24: rgb(from rgb(var(--sky-500)) r g b / 24%);
+  --color-sky-alpha-16: rgb(from rgb(var(--sky-500)) r g b / 16%);
+  --color-sky-alpha-10: rgb(from rgb(var(--sky-500)) r g b / 10%);
+
+  /* Pink color palette */
+  --color-pink-50: rgb(var(--pink-50));
+  --color-pink-100: rgb(var(--pink-100));
+  --color-pink-200: rgb(var(--pink-200));
+  --color-pink-300: rgb(var(--pink-300));
+  --color-pink-400: rgb(var(--pink-400));
+  --color-pink-500: rgb(var(--pink-500));
+  --color-pink-600: rgb(var(--pink-600));
+  --color-pink-700: rgb(var(--pink-700));
+  --color-pink-800: rgb(var(--pink-800));
+  --color-pink-900: rgb(var(--pink-900));
+  --color-pink-950: rgb(var(--pink-950));
+  /* Alpha variants using relative color syntax */
+  --color-pink-alpha-24: rgb(from rgb(var(--pink-500)) r g b / 24%);
+  --color-pink-alpha-16: rgb(from rgb(var(--pink-500)) r g b / 16%);
+  --color-pink-alpha-10: rgb(from rgb(var(--pink-500)) r g b / 10%);
+
+  /* Teal color palette */
+  --color-teal-50: rgb(var(--teal-50));
+  --color-teal-100: rgb(var(--teal-100));
+  --color-teal-200: rgb(var(--teal-200));
+  --color-teal-300: rgb(var(--teal-300));
+  --color-teal-400: rgb(var(--teal-400));
+  --color-teal-500: rgb(var(--teal-500));
+  --color-teal-600: rgb(var(--teal-600));
+  --color-teal-700: rgb(var(--teal-700));
+  --color-teal-800: rgb(var(--teal-800));
+  --color-teal-900: rgb(var(--teal-900));
+  --color-teal-950: rgb(var(--teal-950));
+  /* Alpha variants using relative color syntax */
+  --color-teal-alpha-24: rgb(from rgb(var(--teal-500)) r g b / 24%);
+  --color-teal-alpha-16: rgb(from rgb(var(--teal-500)) r g b / 16%);
+  --color-teal-alpha-10: rgb(from rgb(var(--teal-500)) r g b / 10%);
+
+  /* White and Black colors */
+  --color-white: rgb(255, 255, 255);
+  /* Alpha variants using relative color syntax */
+  --color-white-alpha-24: rgb(from white r g b / 24%);
+  --color-white-alpha-16: rgb(from white r g b / 16%);
+  --color-white-alpha-10: rgb(from white r g b / 10%);
+
+  --color-black: rgb(0, 0, 0);
+  /* Alpha variants using relative color syntax */
+  --color-black-alpha-24: rgb(from black r g b / 24%);
+  --color-black-alpha-16: rgb(from black r g b / 16%);
+  --color-black-alpha-10: rgb(from black r g b / 10%);
+
+  /* Primary color variations */
+  --color-primary-dark: rgb(var(--primary-dark));
+  --color-primary-darker: rgb(var(--primary-darker));
+  --color-primary-base: rgb(var(--primary-base));
+  /* Alpha variants using relative color syntax */
+  --color-primary-alpha-24: rgb(from rgb(var(--primary-base)) r g b / 24%);
+  --color-primary-alpha-16: rgb(from rgb(var(--primary-base)) r g b / 16%);
+  --color-primary-alpha-10: rgb(from rgb(var(--primary-base)) r g b / 10%);
+
+  /* Static colors */
+  --color-static-black: rgb(var(--static-black));
+  --color-static-white: rgb(var(--static-white));
+
+  /* Background variations */
+  --color-bg-strong-950: rgb(var(--bg-strong-950));
+  --color-bg-surface-800: rgb(var(--bg-surface-800));
+  --color-bg-sub-300: rgb(var(--bg-sub-300));
+  --color-bg-soft-200: rgb(var(--bg-soft-200));
+  --color-bg-weak-50: rgb(var(--bg-weak-50));
+  --color-bg-white-0: rgb(var(--bg-white-0));
+
+  /* Text variations */
+  --color-text-strong-950: rgb(var(--text-strong-950));
+  --color-text-sub-600: rgb(var(--text-sub-600));
+  --color-text-soft-400: rgb(var(--text-soft-400));
+  --color-text-disabled-300: rgb(var(--text-disabled-300));
+  --color-text-white-0: rgb(var(--text-white-0));
+
+  /* Stroke variations */
+  --color-stroke-strong-950: rgb(var(--stroke-strong-950));
+  --color-stroke-sub-300: rgb(var(--stroke-sub-300));
+  --color-stroke-soft-200: rgb(var(--stroke-soft-200));
+  --color-stroke-white-0: rgb(var(--stroke-white-0));
+
+  /* Faded */
+  --color-faded-dark: rgb(var(--faded-dark));
+  --color-faded-base: rgb(var(--faded-base));
+  --color-faded-light: rgb(var(--faded-light));
+  --color-faded-lighter: rgb(var(--faded-lighter));
+
+  /* Information */
+  --color-information-dark: rgb(var(--information-dark));
+  --color-information-base: rgb(var(--information-base));
+  --color-information-light: rgb(var(--information-light));
+  --color-information-lighter: rgb(var(--information-lighter));
+
+  /* Warning */
+  --color-warning-dark: rgb(var(--warning-dark));
+  --color-warning-base: rgb(var(--warning-base));
+  --color-warning-light: rgb(var(--warning-light));
+  --color-warning-lighter: rgb(var(--warning-lighter));
+
+  /* Error */
+  --color-error-dark: rgb(var(--error-dark));
+  --color-error-base: rgb(var(--error-base));
+  --color-error-light: rgb(var(--error-light));
+  --color-error-lighter: rgb(var(--error-lighter));
+
+  /* Success */
+  --color-success-dark: rgb(var(--success-dark));
+  --color-success-base: rgb(var(--success-base));
+  --color-success-light: rgb(var(--success-light));
+  --color-success-lighter: rgb(var(--success-lighter));
+
+  /* Away */
+  --color-away-dark: rgb(var(--away-dark));
+  --color-away-base: rgb(var(--away-base));
+  --color-away-light: rgb(var(--away-light));
+  --color-away-lighter: rgb(var(--away-lighter));
+
+  /* Feature */
+  --color-feature-dark: rgb(var(--feature-dark));
+  --color-feature-base: rgb(var(--feature-base));
+  --color-feature-light: rgb(var(--feature-light));
+  --color-feature-lighter: rgb(var(--feature-lighter));
+
+  /* Verified */
+  --color-verified-dark: rgb(var(--verified-dark));
+  --color-verified-base: rgb(var(--verified-base));
+  --color-verified-light: rgb(var(--verified-light));
+  --color-verified-lighter: rgb(var(--verified-lighter));
+
+  /* Highlighted */
+  --color-highlighted-dark: rgb(var(--highlighted-dark));
+  --color-highlighted-base: rgb(var(--highlighted-base));
+  --color-highlighted-light: rgb(var(--highlighted-light));
+  --color-highlighted-lighter: rgb(var(--highlighted-lighter));
+
+  /* Stable */
+  --color-stable-dark: rgb(var(--stable-dark));
+  --color-stable-base: rgb(var(--stable-base));
+  --color-stable-light: rgb(var(--stable-light));
+  --color-stable-lighter: rgb(var(--stable-lighter));
+
+  /* Social media colors */
+  --color-social-apple: rgb(var(--social-apple));
+  --color-social-twitter: rgb(var(--social-twitter));
+  --color-social-github: rgb(var(--social-github));
+  --color-social-notion: rgb(var(--social-notion));
+  --color-social-tidal: rgb(var(--social-tidal));
+  --color-social-amazon: rgb(var(--social-amazon));
+  --color-social-zendesk: rgb(var(--social-zendesk));
+
+  /* Overlay */
+  --color-overlay: rgb(var(--overlay));
 }
 
+/* ============================================================================
+ * UTILITIES LAYER - Container Queries and Layout Helpers
+ * Provides utility classes for responsive container-based layouts
+ * @see https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment/Container_queries
+ * ============================================================================ */
+@layer utilities {
+  /* Container query contexts - apply to parent elements to enable @[width] queries on children */
+  .container-inline {
+    container-type: inline-size;
+  }
+
+  .container-size {
+    container-type: size;
+  }
+
+  .container-normal {
+    container-type: normal;
+  }
+
+  /* Named containers for complex nested layouts */
+  .container-card {
+    container-type: inline-size;
+    container-name: card;
+  }
+
+  .container-work-card {
+    container-type: inline-size;
+    container-name: work-card;
+  }
+
+  .container-garden-card {
+    container-type: inline-size;
+    container-name: garden-card;
+  }
+
+  .container-panel {
+    container-type: inline-size;
+    container-name: panel;
+  }
+}

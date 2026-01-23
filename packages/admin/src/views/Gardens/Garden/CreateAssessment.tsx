@@ -1,5 +1,8 @@
 import { toastService } from "@green-goods/shared";
-import { useCreateAssessmentWorkflow } from "@green-goods/shared/hooks";
+import {
+  type CreateAssessmentForm as WorkflowAssessmentForm,
+  useCreateAssessmentWorkflow,
+} from "@green-goods/shared/hooks";
 import { useAdminStore } from "@green-goods/shared/stores";
 import { clearFormDraft, loadFormDraft, saveFormDraft } from "@green-goods/shared/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -73,8 +76,7 @@ export default function CreateAssessment() {
     setValue,
     watch,
   } = useForm<CreateAssessmentForm>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(createAssessmentSchema as any) as any,
+    resolver: zodResolver(createAssessmentSchema),
     defaultValues: createDefaultAssessmentForm(),
     mode: "onChange",
     shouldUnregister: false,
@@ -118,7 +120,7 @@ export default function CreateAssessment() {
   }, [isSuccess, navigate, gardenId, DRAFT_KEY]);
 
   useEffect(() => {
-    setValue("evidenceMedia", evidenceFiles as any, { shouldDirty: true });
+    setValue("evidenceMedia", evidenceFiles, { shouldDirty: true });
   }, [evidenceFiles, setValue]);
 
   useEffect(() => {
@@ -177,24 +179,23 @@ export default function CreateAssessment() {
         return;
       }
 
-      const payload = {
-        ...formData,
-        metrics: metricsObj,
-        capitals: formData.capitals.map((capital) => capital.trim()),
-        reportDocuments: formData.reportDocuments.map((doc) => doc.trim()),
-        impactAttestations: formData.impactAttestations.map((uid) => uid.trim()),
-        tags: formData.tags.map((tag) => tag.trim()),
-        location: formData.location.trim(),
+      const payload: WorkflowAssessmentForm & { gardenId: string } = {
         title: formData.title.trim(),
         description: formData.description.trim(),
         assessmentType: formData.assessmentType.trim(),
+        capitals: formData.capitals.map((capital) => capital.trim()),
+        metrics: metricsObj,
         evidenceMedia: evidenceFiles,
+        reportDocuments: formData.reportDocuments.map((doc) => doc.trim()),
+        impactAttestations: formData.impactAttestations.map((uid) => uid.trim()),
+        startDate: Math.floor(new Date(formData.startDate).getTime() / 1000),
+        endDate: Math.floor(new Date(formData.endDate).getTime() / 1000),
+        location: formData.location.trim(),
+        tags: formData.tags.map((tag) => tag.trim()),
         gardenId,
-        startDate: Number(new Date(formData.startDate).getTime() / 1000),
-        endDate: Number(new Date(formData.endDate).getTime() / 1000),
       };
 
-      startCreation(payload as any);
+      startCreation(payload);
       const uid = await submitCreation();
       setLastAttestationId(uid);
     } catch (error) {
@@ -212,16 +213,16 @@ export default function CreateAssessment() {
     const step = stepConfigs[currentStep];
     if (!step) return;
 
-    // Map step IDs to field names
-    const fieldMap: Record<string, Array<keyof CreateAssessmentForm>> = {
+    // Map step IDs to field names for validation
+    const fieldMap = {
       overview: ["title", "assessmentType", "description", "capitals"],
       timeline: ["startDate", "endDate", "location", "tags"],
       evidence: ["metrics", "reportDocuments", "impactAttestations"],
-    };
+    } as const satisfies Record<string, readonly (keyof CreateAssessmentForm)[]>;
 
-    const fields = fieldMap[step.id];
+    const fields = fieldMap[step.id as keyof typeof fieldMap];
     if (fields) {
-      const valid = await trigger(fields as any, { shouldFocus: true });
+      const valid = await trigger([...fields], { shouldFocus: true });
       if (!valid) {
         return;
       }

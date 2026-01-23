@@ -1,5 +1,4 @@
-import { useRole } from "@green-goods/shared/hooks";
-import { useWalletAuth as useAuth } from "@green-goods/shared/providers";
+import { useAuth, useRole } from "@green-goods/shared/hooks";
 import { useUIStore } from "@green-goods/shared/stores";
 import { cn } from "@green-goods/shared/utils";
 import {
@@ -27,7 +26,7 @@ const navigation = [
 
 export function Sidebar() {
   const location = useLocation();
-  const { disconnect } = useAuth();
+  const { signOut } = useAuth();
   const { role } = useRole();
   const { sidebarOpen, setSidebarOpen } = useUIStore();
 
@@ -35,6 +34,7 @@ export function Sidebar() {
 
   return (
     <div
+      data-testid="sidebar"
       className={cn(
         "fixed inset-y-0 left-0 z-50 w-64 bg-bg-white shadow-lg transform transition-transform duration-300 ease-in-out",
         sidebarOpen ? "translate-x-0" : "-translate-x-full",
@@ -85,14 +85,14 @@ export function Sidebar() {
           })}
         </nav>
 
-        {/* Footer - Keep disconnect for mobile, but main disconnect is now in UserProfile */}
+        {/* Footer - Keep sign out for mobile, but main sign out is now in UserProfile */}
         <div className="p-4 border-t border-stroke-soft lg:hidden">
           <button
-            onClick={disconnect}
+            onClick={() => signOut?.()}
             className="flex items-center w-full px-3 py-2 text-sm font-medium text-text-sub rounded-md hover:bg-bg-weak hover:text-text-strong transition-colors"
           >
             <RiLogoutBoxLine className="mr-3 h-5 w-5" />
-            Disconnect
+            Sign Out
           </button>
         </div>
       </div>

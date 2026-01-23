@@ -4,11 +4,21 @@ pragma solidity ^0.8.25;
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-import { Capital } from "../Constants.sol";
-
 error NotActionOwner();
 error EndTimeBeforeStartTime();
 error StartTimeAfterEndTime();
+
+// ENUMS
+enum Capital {
+    SOCIAL,
+    MATERIAL,
+    FINANCIAL,
+    LIVING,
+    INTELLECTUAL,
+    EXPERIENTIAL,
+    SPIRITUAL,
+    CULTURAL
+}
 
 /// @title Action Registry Contract
 /// @notice This contract allows the owner to register and manage actions.

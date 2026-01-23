@@ -3,27 +3,26 @@ import { Navigate, useLocation } from "react-router-dom";
 import Landing from "@/views/Landing";
 
 /**
- * PlatformRouter handles root path (/) routing based on device type and install state.
+ * PlatformRouter handles root path (/) routing based on device type.
  *
  * Flow:
  * - Desktop web: Shows landing page with "open on mobile" messaging
- * - Mobile web (not installed): Shows landing page with install button
- * - Mobile app (installed): Redirects to /home (RequireAuth guard handles login check)
+ * - Mobile web (installed or not): Redirects to /home (RequireAuth handles login)
  *
- * Authentication checking is delegated to RequireAuth guard for simplicity.
+ * Install is no longer a prerequisite—users can use the app in browser.
+ * Install nudges appear in-app (banner + profile) for better experience.
  */
 export default function PlatformRouter() {
-  const { isMobile, isStandalone } = useApp();
+  const { isMobile } = useApp();
   const location = useLocation();
 
   const redirectTo = new URLSearchParams(location.search).get("redirectTo");
 
-  // Mobile users with installed app: redirect to /home
-  // The RequireAuth guard will handle authentication checks and login redirect if needed
-  if (isMobile && isStandalone) {
+  // Mobile users: go straight to app (RequireAuth handles login if needed)
+  if (isMobile) {
     return <Navigate to={redirectTo || "/home"} replace />;
   }
 
-  // Desktop users and mobile users without app: show landing page
+  // Desktop users: show landing page
   return <Landing />;
 }

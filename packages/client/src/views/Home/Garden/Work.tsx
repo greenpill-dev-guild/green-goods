@@ -53,6 +53,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   const [metadataError, setMetadataError] = useState<string | null>(null);
   const [feedbackMode, setFeedbackMode] = useState<"approve" | "reject" | null>(null);
   const [inlineFeedback, setInlineFeedback] = useState<string>("");
+  const [optimisticStatus, setOptimisticStatus] = useState<"approved" | "rejected" | null>(null);
   const navigateToTop = useNavigateToTop();
   const location = useLocation();
   const chainId = DEFAULT_CHAIN_ID;
@@ -62,6 +63,10 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   const { data: actions = [] } = useActions(chainId);
   const { works: mergedWorks } = useWorks(gardenId || "");
   const work = mergedWorks.find((w) => w.id === (workId || ""));
+
+  // Derive effective status (optimistic takes precedence over fetched data)
+  const effectiveStatus = optimisticStatus ?? work?.status ?? "pending";
+
   const queryClient = useQueryClient();
   const actionTitle = useMemo(() => {
     if (!work) return null;
@@ -142,7 +147,16 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
         gardenId: garden?.id || "",
       };
       await downloadWorkMedia(workData);
-    } catch {}
+    } catch (error) {
+      toastService.error({
+        title: intl.formatMessage({
+          id: "app.home.work.downloadMediaFailed",
+          defaultMessage: "Failed to download media",
+        }),
+        message: error instanceof Error ? error.message : "Unknown error",
+        context: "work media download",
+      });
+    }
   };
 
   const handleDownloadData = () => {
@@ -160,7 +174,16 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
         gardenId: garden?.id || "",
       };
       downloadWorkData(workData);
-    } catch {}
+    } catch (error) {
+      toastService.error({
+        title: intl.formatMessage({
+          id: "app.home.work.downloadDataFailed",
+          defaultMessage: "Failed to download data",
+        }),
+        message: error instanceof Error ? error.message : "Unknown error",
+        context: "work data download",
+      });
+    }
   };
 
   const handleShare = async () => {
@@ -178,7 +201,16 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
         gardenId: garden?.id || "",
       };
       await shareWork(workData);
-    } catch {}
+    } catch (error) {
+      toastService.error({
+        title: intl.formatMessage({
+          id: "app.home.work.shareFailed",
+          defaultMessage: "Failed to share work",
+        }),
+        message: error instanceof Error ? error.message : "Unknown error",
+        context: "work sharing",
+      });
+    }
   };
 
   const handleViewAttestation = () => {
@@ -236,6 +268,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
       feedback: inlineFeedback,
     };
 
+    // Optimistic status is set AFTER transaction confirms (in job:completed handler)
     workApprovalMutation.mutate({ draft, work });
     setFeedbackMode(null);
     setInlineFeedback("");
@@ -253,6 +286,9 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
       if (payload.workUID !== work.id) return;
 
       if (type === "job:completed") {
+        // Set optimistic status AFTER transaction confirms (bridges indexer lag)
+        setOptimisticStatus(payload.approved ? "approved" : "rejected");
+
         const message = payload.approved
           ? intl.formatMessage({ id: "app.toast.workApproved", defaultMessage: "Work approved" })
           : intl.formatMessage({ id: "app.toast.workRejected", defaultMessage: "Work rejected" });
@@ -263,10 +299,17 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
           context: "approval submission",
           suppressLogging: true,
         });
-        // Navigate back after successful approval
-        setTimeout(() => navigateToTop(`/home/${garden?.id ?? ""}`), 500);
+
+        // Delay navigation to show success state (2.5s instead of 500ms)
+        setTimeout(() => {
+          setOptimisticStatus(null); // Clear before navigating
+          navigateToTop(`/home/${garden?.id ?? ""}`);
+        }, 2500);
       }
       if (type === "job:failed") {
+        // Clear optimistic status on failure
+        setOptimisticStatus(null);
+
         const failureMessage = intl.formatMessage({
           id: "app.toast.actionFailed",
           defaultMessage: "Action failed",
@@ -279,6 +322,8 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
           error: "error" in data ? data.error : undefined,
         });
       }
+
+      // Invalidate queries - real data will replace optimistic when ready
       queryClient.invalidateQueries({ queryKey: queryKeys.workApprovals.all });
       if (garden?.id) {
         queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(garden.id, chainId) });
@@ -287,6 +332,14 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
     },
     [work?.id, garden?.id]
   );
+
+  // Clear optimistic status when real data arrives
+  useEffect(() => {
+    if (optimisticStatus && work?.status && work.status === optimisticStatus) {
+      // Real data caught up with optimistic state, clear it
+      setOptimisticStatus(null);
+    }
+  }, [work?.status, optimisticStatus]);
 
   // using shared ConfirmDrawer component
 
@@ -449,12 +502,12 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
     ) : null;
 
   const approvalFooter =
-    viewingMode === "operator" && work.status === "pending" ? (
+    viewingMode === "operator" && effectiveStatus === "pending" ? (
       <>
         {/* Backdrop - Fades in over content */}
         <div
           className={cn(
-            "fixed inset-0 bg-black/40 backdrop-blur-sm z-[190] transition-opacity duration-300",
+            "fixed inset-0 bg-black/30 backdrop-blur-sm z-[190] transition-opacity duration-300",
             feedbackMode ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
           )}
           onClick={handleCancelFeedback}
@@ -470,6 +523,8 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
               feedbackMode ? "translate-y-0" : "translate-y-full"
             )}
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            role="presentation"
           >
             <div className="p-4 space-y-3 max-w-screen-sm mx-auto">
               <div className="flex items-center justify-between">
@@ -590,6 +645,39 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
         </div>
       </>
     ) : null;
+
+  // Success footer shows when work has been approved/rejected
+  const successFooter =
+    viewingMode === "operator" && effectiveStatus !== "pending" ? (
+      <div className="fixed left-0 right-0 bottom-0 z-[200]">
+        <div className="bg-bg-white-0 border-t border-stroke-soft-200 p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+          <div className="max-w-screen-sm mx-auto flex items-center justify-center gap-2">
+            {effectiveStatus === "approved" ? (
+              <RiCheckLine className="w-5 h-5 text-success-base" />
+            ) : (
+              <RiCloseLine className="w-5 h-5 text-error-base" />
+            )}
+            <span
+              className={cn(
+                "text-sm font-medium",
+                effectiveStatus === "approved" ? "text-success-base" : "text-error-base"
+              )}
+            >
+              {effectiveStatus === "approved"
+                ? intl.formatMessage({
+                    id: "app.home.workApproval.approved",
+                    defaultMessage: "Work Approved",
+                  })
+                : intl.formatMessage({
+                    id: "app.home.workApproval.rejected",
+                    defaultMessage: "Work Rejected",
+                  })}
+            </span>
+          </div>
+        </div>
+      </div>
+    ) : null;
+
   const metadataErrorDetail =
     metadataStatus === "error" && metadataError
       ? intl.formatMessage(
@@ -604,55 +692,47 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   return (
     <article>
       <TopNav onBackClick={handleBack} overlay />
-      {workApprovalMutation.isIdle && (
-        <div className={cn("padded pt-20", (retryFooter || approvalFooter) && "pb-8")}>
-          {isMetadataLoading ? (
-            <WorkViewSkeleton showMedia showActions={false} numDetails={3} />
-          ) : (
+      <div className="padded pt-20">
+        {isMetadataLoading ? (
+          <WorkViewSkeleton showMedia showActions={false} numDetails={3} />
+        ) : (
+          <>
             <WorkViewSection
               garden={garden}
               work={work}
               workMetadata={workMetadata}
               viewingMode={viewingMode}
               actionTitle={resolvedActionTitle}
+              effectiveStatus={effectiveStatus}
               onDownloadData={handleDownloadData}
               onDownloadMedia={hasMedia ? handleDownloadMedia : undefined}
               onShare={handleShare}
               onViewAttestation={canViewAttestation ? handleViewAttestation : undefined}
-              footer={retryFooter || approvalFooter}
+              footer={retryFooter || approvalFooter || successFooter}
+              reserveFooterSpace={Boolean(retryFooter || approvalFooter || successFooter)}
+              footerSpacerClassName="h-[calc(112px+env(safe-area-inset-bottom))]"
             />
-          )}
+          </>
+        )}
 
-          {metadataStatus === "error" && (
-            <div className="mt-4 rounded-xl border border-error-light bg-error-lighter px-4 py-3 flex items-start gap-3">
-              <RiErrorWarningLine className="w-5 h-5 text-error-base flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-sm text-error-dark font-medium">
-                  {intl.formatMessage({
-                    id: "app.home.work.metadataFallbackNotice",
-                    defaultMessage:
-                      "We couldn't load all work details from storage. Some fields may be unavailable.",
-                  })}
-                </p>
-                {metadataErrorDetail && (
-                  <p className="mt-1 text-xs text-error-base">{metadataErrorDetail}</p>
-                )}
-              </div>
+        {metadataStatus === "error" && (
+          <div className="mt-4 rounded-xl border border-error-light bg-error-lighter px-4 py-3 flex items-start gap-3">
+            <RiErrorWarningLine className="w-5 h-5 text-error-base flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm text-error-dark font-medium">
+                {intl.formatMessage({
+                  id: "app.home.work.metadataFallbackNotice",
+                  defaultMessage:
+                    "We couldn't load all work details from storage. Some fields may be unavailable.",
+                })}
+              </p>
+              {metadataErrorDetail && (
+                <p className="mt-1 text-xs text-error-base">{metadataErrorDetail}</p>
+              )}
             </div>
-          )}
-        </div>
-      )}
-
-      {workApprovalMutation.isPending && (
-        <div className="fixed left-0 right-0 bottom-0 bg-bg-white-0 border-t border-stroke-soft-200 p-4 pb-6 z-[201]">
-          <div className="flex items-center justify-center gap-2 text-text-sub-600">
-            <RiLoader4Line className="w-5 h-5 animate-spin" />
-            <span className="text-sm">
-              {intl.formatMessage({ id: "app.common.processing", defaultMessage: "Processing..." })}
-            </span>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </article>
   );
 };

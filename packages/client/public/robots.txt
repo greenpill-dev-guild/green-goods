@@ -1,0 +1,5 @@
+# robots.txt for Green Goods
+User-agent: *
+Allow: /
+
+Sitemap: https://greengoods.app/sitemap.xml

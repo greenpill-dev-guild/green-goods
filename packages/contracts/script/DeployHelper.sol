@@ -44,7 +44,7 @@ abstract contract DeployHelper is Script {
         address workResolver;
         address workApprovalResolver;
         address gardenerAccountLogic; // GardenerAccount implementation for user smart accounts
-        address ensRegistrar; // ENS Registrar (mainnet only, address(0) on L2s)
+        address gardenerRegistry; // Gardener Registry (mainnet only, address(0) on L2s)
         bytes32 assessmentSchemaUID;
         bytes32 workSchemaUID;
         bytes32 workApprovalSchemaUID;
@@ -136,7 +136,7 @@ abstract contract DeployHelper is Script {
 
         // Generate salt from string for fresh deployment
         // Increment this number for complete redeployment to new addresses
-        salt = keccak256(bytes("greenGoodsCleanDeploy2025:11"));
+        salt = keccak256(bytes("greenGoodsCleanDeploy2025:13"));
         factory = json.readAddress(".deploymentDefaults.factory");
         tokenboundRegistry = json.readAddress(".deploymentDefaults.tokenboundRegistry");
     }
@@ -205,7 +205,7 @@ abstract contract DeployHelper is Script {
         vm.serializeAddress(obj, "workResolver", result.workResolver);
         vm.serializeAddress(obj, "workApprovalResolver", result.workApprovalResolver);
         vm.serializeAddress(obj, "gardenerAccountLogic", result.gardenerAccountLogic);
-        vm.serializeAddress(obj, "ensRegistrar", result.ensRegistrar);
+        vm.serializeAddress(obj, "gardenerRegistry", result.gardenerRegistry);
 
         // Serialize root garden info
         console.log("\nRoot Garden:");
@@ -308,8 +308,8 @@ abstract contract DeployHelper is Script {
     /// @notice Generate schema string from fields array using JavaScript utility
     function _generateSchemaString(string memory schemaName) internal virtual returns (string memory) {
         string[] memory inputs = new string[](3);
-        inputs[0] = "node";
-        inputs[1] = "script/utils/generate-schemas.js";
+        inputs[0] = "bun";
+        inputs[1] = "script/utils/generate-schemas.ts";
         inputs[2] = schemaName;
 
         bytes memory result = vm.ffi(inputs);

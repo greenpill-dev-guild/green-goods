@@ -1,0 +1,104 @@
+---
+description: Agent testing conventions — coverage targets, test patterns
+globs:
+  - src/__tests__/**/*.ts
+alwaysApply: false
+---
+
+# Agent Testing Conventions
+
+Testing patterns for the Green Goods agent.
+
+## Test Structure
+
+```
+src/__tests__/
+├── handlers.test.ts       # Command handlers
+├── storage.test.ts        # SQLite operations
+├── crypto.test.ts         # Encryption
+├── rate-limiter.test.ts   # Rate limiting
+```
+
+## Coverage Targets
+
+| Component | Target | Priority |
+|-----------|--------|----------|
+| Crypto | 100% | Critical |
+| Rate Limiter | 100% | Critical |
+| Handlers | 90%+ | High |
+| Storage | 85%+ | High |
+| Platform Adapters | 70%+ | Medium |
+
+**Overall:** 80%+
+
+## Test Patterns
+
+### Handler Tests
+
+Handlers are pure functions — easy to test:
+
+```typescript
+describe("handleStart", () => {
+  beforeAll(() => initDB(":memory:"));
+  afterAll(() => closeDB());
+
+  it("creates new user", async () => {
+    const message: InboundMessage = {
+      id: "1",
+      platform: "telegram",
+      sender: { platformId: "123" },
+      content: { type: "command", name: "start", args: [] },
+      timestamp: Date.now(),
+    };
+
+    const result = await handleStart(message, {
+      generatePrivateKey: () => "0x" + "a".repeat(64),
+    });
+
+    expect(result.response.text).toContain("Welcome");
+  });
+});
+```
+
+### Crypto Tests (100% coverage)
+
+```typescript
+it("encrypts and decrypts correctly", async () => {
+  const encrypted = await encryptPrivateKey(key, secret);
+  const decrypted = await decryptPrivateKey(encrypted, secret);
+  expect(decrypted).toBe(key);
+});
+
+it("throws on wrong secret", async () => {
+  const encrypted = await encryptPrivateKey(key, secret);
+  await expect(decryptPrivateKey(encrypted, "wrong")).rejects.toThrow();
+});
+```
+
+### Rate Limiter Tests
+
+```typescript
+it("blocks after limit exceeded", () => {
+  for (let i = 0; i < 10; i++) limiter.check("user1", "messages");
+  expect(limiter.check("user1", "messages").allowed).toBe(false);
+});
+```
+
+## Running Tests
+
+```bash
+bun test                    # All tests
+bun test --watch            # Watch mode
+bun test --coverage         # Coverage report
+bun test storage.test.ts    # Single file
+```
+
+## Quality Checklist
+
+- [ ] Unit tests for all handlers
+- [ ] Integration tests for storage
+- [ ] Error cases covered
+- [ ] Edge cases (empty, null)
+- [ ] `beforeAll` for service init
+- [ ] `afterAll` for cleanup
+- [ ] No flaky tests

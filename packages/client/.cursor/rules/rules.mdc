@@ -1,54 +1,119 @@
 ---
-description: Client (PWA) — UI system, Tailwind v4, Radix, forms, offline-first, and component patterns.
+description: Client (PWA) — overview, architecture, and key patterns
 globs:
   - "packages/client/src/**/*"
-  - "packages/client/*.{ts,tsx}"
 alwaysApply: false
 ---
 
-# Client UI & Styling Rules
+# Client Package
 
-## Foundations
-- **Stack:** React + Vite + TypeScript, **Tailwind CSS v4** utilities, **Radix UI** primitives.
-- **Shared code:** Hooks, providers, modules, and stores come from `@green-goods/shared`. See `/packages/shared/AGENTS.md`.
-- **Design language:** utility-first classes; avoid inline styles. Prefer semantic HTML (`<main>`, `<section>`, etc.) and accessible Radix components.
-- **Class composition:** use a `cn()` helper for conditional classes; keep class lists ordered layout→spacing→typography→color→state.
+Offline-first PWA for gardeners and operators.
 
-## Layout & Spacing
-- Mobile-first. Use `container`, CSS grid/flex with consistent gaps from Tailwind scale.
-- Page skeleton: `<main>` (page), `<section>` (blocks), `<header>`/`<footer>` as needed; include empty, loading (skeleton), and error states for all async views.
+## Architecture
 
-## Components
-- **Structure:** `Props` interface at top, function component below, named export. Colocate tests as `*.test.tsx`.
-- **Radix UI:** use Radix for accessible dialogs, popovers, selects; never re-implement focus management.
-- **Variants:** keep variants minimal (e.g., `size`, `tone`, `state`). Prefer data-attributes for state styling (e.g., `[data-state=open]`).
-- **Icons/imagery:** provide descriptive `alt` text; do not encode text in images.
+```
+src/
+├── components/      # UI components (cards, forms, dialogs)
+├── views/           # Route views (lazy-loaded)
+├── routes/          # Route guards (RequireAuth, AppShell)
+├── styles/          # CSS (colors, typography, animation)
+└── config.ts        # Client configuration
+```
 
-## Forms & Validation
-- Use **React Hook Form** + Zod resolver; display field-level errors and an error summary if submission fails.
-- Buttons must reflect mutation state: `loading` disables + shows spinner; success shows toast/snackbar.
+**Shared code lives in `@green-goods/shared`** — all hooks, providers, stores, and modules.
 
-## Data Fetching
-- Use **TanStack Query** for remote data with explicit `queryKey`s and cache times. Always render `isPending`/`isError` branches.
-- For mutations, implement optimistic UI only when safe; otherwise show progress with a “view details” link.
+## Stack
 
-## Offline-First (PWA)
-- Persist **work submissions** and **approvals** offline via IndexedDB; enqueue sync jobs on reconnect.
-- Provide a global **OfflineIndicator** and per-view banners for pending sync; surface counts of queued actions.
-- On reconnect, auto-sync and toast results (success/failures with retry). All forms should save drafts offline.
-- Service Worker caches app shell + critical routes; avoid caching authenticated API responses beyond session.
+| Concern | Tool |
+|---------|------|
+| Framework | React 18 + Vite + TypeScript |
+| Styling | Tailwind CSS v4 + CSS variables |
+| UI Primitives | Radix UI |
+| Forms | React Hook Form + Zod |
+| State | TanStack Query + Zustand (via shared) |
+| Offline | IndexedDB + Service Worker |
 
-## Styling Conventions
-- Use Tailwind tokens; avoid arbitrary values unless prototyping (remove before merge).
-- Respect design scale for font sizes/line heights; ensure contrast for AA.
-- Reuse shared primitives (`<Button>`, `<Input>`, `<Card>`, `<Badge>`, `<Toast>`) before adding new UI.
-- Keep component files ≤200–250 lines; extract subcomponents/hooks when growing.
+## Critical Patterns
 
-## Green Goods Patterns
-- **Before/After workflow:** components must prompt for “before” and “after” photos, show previews, collect notes/metrics, and store media metadata (timestamp, plant detection tags) alongside the submission.
-- **Operator review:** review screens display plant-detection results, allow approve/reject with feedback, and record decision state for sync.
-- **Attestation prep:** attach IPFS URLs + detection metadata to the payload that downstream services submit to EAS.
+### All Hooks from Shared
 
-## Testing (client)
-- Vitest + React Testing Library; snapshot only for pure presentational components.
-- Playwright E2E for critical flows: login → create work with before/after → offline save → reconnect sync → operator approval.
+```typescript
+// ✅ Correct
+import { useAuth, useWorks, useOffline } from "@green-goods/shared";
+
+// ❌ Wrong — no local hooks
+import { useLocalHook } from "./hooks/useLocalHook";
+```
+
+### Chain from Environment Only
+
+```typescript
+// ✅ Always use environment chain
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared";
+
+// ❌ Never use wallet chain
+const { chainId } = useAccount();
+```
+
+### Offline-First Work Submission
+
+```typescript
+import { jobQueue, jobQueueEventBus } from "@green-goods/shared";
+
+// Add job to queue
+const jobId = await jobQueue.addJob("work", payload, { chainId });
+
+// Listen for completion
+jobQueueEventBus.on("job:completed", handleComplete);
+```
+
+### Semantic Design Tokens
+
+```typescript
+// ✅ Correct
+<div className="bg-bg-white text-text-strong border-stroke-soft">
+
+// ❌ Wrong
+<div className="bg-white text-gray-900">
+```
+
+## Routing
+
+Lazy-load all views and wrap authenticated routes:
+
+```typescript
+<Route element={<RequireAuth />}>
+  <Route element={<AppShell />}>
+    <Route path="home" lazy={() => import("@/views/Home")} />
+    <Route path="garden" lazy={() => import("@/views/Garden")} />
+  </Route>
+</Route>
+```
+
+## Deep Dive Rules
+
+| Topic | Rule File |
+|-------|-----------|
+| Authentication | `.cursor/rules/authentication.mdc` |
+| Offline Queue | `.cursor/rules/offline-architecture.mdc` |
+| Card Components | `.cursor/rules/component-cards.mdc` |
+| Form Components | `.cursor/rules/component-forms.mdc` |
+| Modal/Drawer | `.cursor/rules/component-modals.mdc` |
+| Radix UI | `.cursor/rules/component-radix.mdc` |
+| Testing | `.cursor/rules/testing.mdc` |
+
+## Shared Package Rules
+
+| Topic | Location |
+|-------|----------|
+| Design System | `shared/.cursor/rules/design-system.mdc` |
+| Hook Architecture | `shared/.cursor/rules/hook-architecture.mdc` |
+| State Patterns | `shared/.cursor/rules/state-patterns.mdc` |
+| Testing | `shared/.cursor/rules/testing-patterns.mdc` |
+| AppKit | `shared/.cursor/rules/appkit-integration.mdc` |
+| Imports | `shared/.cursor/rules/cross-package-imports.mdc` |
+
+## Reference
+
+- **AGENTS.md:** `/packages/client/AGENTS.md`
+- **Shared:** `/packages/shared/AGENTS.md`

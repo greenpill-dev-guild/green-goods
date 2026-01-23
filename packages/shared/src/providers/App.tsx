@@ -5,7 +5,7 @@ import { IntlProvider } from "react-intl";
 import enMessages from "../i18n/en.json";
 import esMessages from "../i18n/es.json";
 import ptMessages from "../i18n/pt.json";
-import { track } from "../modules/app/posthog";
+import { registerGlobalProperties, track } from "../modules/app/posthog";
 import {
   getMobileOperatingSystem,
   isAppInstalled,
@@ -77,7 +77,14 @@ export const useApp = () => {
   return useContext(AppContext);
 };
 
-export const AppProvider = ({ children }: { children: React.ReactNode }) => {
+interface AppProviderProps {
+  children: React.ReactNode;
+  posthogKey?: string;
+}
+
+export const AppProvider = ({ children, posthogKey }: AppProviderProps) => {
+  // Use provided key or fall back to default client key
+  const apiKey = posthogKey || import.meta.env.VITE_POSTHOG_KEY;
   const defaultLocale = localStorage.getItem("gg-language")
     ? (localStorage.getItem("gg-language") as Locale)
     : (getBrowserLocale(supportedLanguages, "en") as Locale); // Use helper instead of browserLang
@@ -167,34 +174,78 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, [handleAppInstalled, handleBeforeInstall, handleInstallCheck, installState]);
 
-  return (
-    <PostHogProvider
-      apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
-      options={{
-        api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
-        capture_exceptions: true,
-        debug: import.meta.env.VITE_POSTHOG_DEBUG === "true",
+  // React 19: Compiler handles memoization of context value
+  const appContent = (
+    <AppContext.Provider
+      value={{
+        isMobile: isMobilePlatform(),
+        isInstalled: installState === "installed",
+        isStandalone,
+        wasInstalled,
+        platform,
+        locale,
+        availableLocales: supportedLanguages,
+        deferredPrompt,
+        promptInstall,
+        handleInstallCheck,
+        switchLanguage,
       }}
     >
-      <AppContext.Provider
-        value={{
-          isMobile: isMobilePlatform(),
-          isInstalled: installState === "installed",
-          isStandalone,
-          wasInstalled,
-          platform,
-          locale,
-          availableLocales: supportedLanguages,
-          deferredPrompt,
-          promptInstall,
-          handleInstallCheck,
-          switchLanguage,
+      <IntlProvider locale={locale} messages={messages[locale]}>
+        {children}
+      </IntlProvider>
+    </AppContext.Provider>
+  );
+
+  // Register global PostHog properties after PostHog initializes
+  useEffect(() => {
+    if (!apiKey) return;
+
+    let isMounted = true;
+    let timeoutId: ReturnType<typeof setTimeout>;
+    let attemptCount = 0;
+    const maxAttempts = 10;
+
+    const tryRegister = () => {
+      if (!isMounted) return;
+
+      // Try to register - returns true if successful
+      const success = registerGlobalProperties();
+
+      if (success || attemptCount >= maxAttempts) {
+        return; // Done - either success or max attempts reached
+      }
+
+      // Exponential backoff: 100ms, 200ms, 400ms, 800ms, etc.
+      const delay = Math.min(100 * Math.pow(2, attemptCount), 2000);
+      attemptCount += 1;
+      timeoutId = setTimeout(tryRegister, delay);
+    };
+
+    // Start first attempt after initial delay
+    timeoutId = setTimeout(tryRegister, 100);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+    };
+  }, [apiKey]);
+
+  // Only wrap with PostHogProvider if API key is available
+  if (apiKey) {
+    return (
+      <PostHogProvider
+        apiKey={apiKey}
+        options={{
+          api_host: import.meta.env.VITE_POSTHOG_HOST,
+          capture_exceptions: true,
+          debug: import.meta.env.VITE_POSTHOG_DEBUG === "true",
         }}
       >
-        <IntlProvider locale={locale} messages={messages[locale]}>
-          {children}
-        </IntlProvider>
-      </AppContext.Provider>
-    </PostHogProvider>
-  );
+        {appContent}
+      </PostHogProvider>
+    );
+  }
+
+  return appContent;
 };

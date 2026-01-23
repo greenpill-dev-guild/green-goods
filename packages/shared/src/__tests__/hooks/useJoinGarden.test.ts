@@ -5,7 +5,7 @@
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -77,13 +77,19 @@ vi.mock("../../utils/blockchain/contracts", () => ({
 }));
 
 vi.mock("../../utils/errors/contract-errors", () => ({
+  parseContractError: vi.fn((error: unknown) => ({
+    raw: error instanceof Error ? error.message : String(error),
+    name: "UnknownError",
+    message: error instanceof Error ? error.message : String(error),
+    isKnown: false,
+    recoverable: true,
+  })),
   isAlreadyGardenerError: vi.fn((error) => error?.message?.includes("AlreadyGardener")),
 }));
 
 import { readContract } from "@wagmi/core";
-import { useWriteContract } from "wagmi";
-import { useJoinGarden, checkGardenOpenJoining } from "../../hooks/garden/useJoinGarden";
-import { MOCK_ADDRESSES, MOCK_TX_HASH, createMockSmartAccountClient } from "../test-utils";
+import { checkGardenOpenJoining, useJoinGarden } from "../../hooks/garden/useJoinGarden";
+import { createMockSmartAccountClient, MOCK_ADDRESSES, MOCK_TX_HASH } from "../test-utils";
 
 describe("hooks/garden/useJoinGarden", () => {
   let queryClient: QueryClient;

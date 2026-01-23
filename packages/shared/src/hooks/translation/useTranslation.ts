@@ -2,7 +2,13 @@ import { useContext, useEffect, useState } from "react";
 import { browserTranslator } from "../../modules/translation/browser-translator";
 import { AppContext } from "../../providers/App";
 
-type TranslatableValue = string | string[] | Record<string, unknown> | null | undefined;
+type TranslatableValue =
+  | string
+  | string[]
+  | Record<string, unknown>
+  | Record<string, unknown>[]
+  | null
+  | undefined;
 
 export function useTranslation<T extends TranslatableValue>(
   content: T,

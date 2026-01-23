@@ -5,6 +5,7 @@
 import { describe, it, expect } from "vitest";
 import {
   parseContractError,
+  isNotGardenMemberError,
   isNotGardenerError,
   isAlreadyGardenerError,
   formatErrorForToast,
@@ -12,15 +13,32 @@ import {
 } from "../contract-errors";
 
 describe("parseContractError", () => {
-  it("parses NotGardenerAccount error code", () => {
+  it("parses NotGardenMember error code (old selector for backward compatibility)", () => {
     const result = parseContractError("0x8cb4ae3b");
 
     expect(result).toEqual({
       raw: "0x8cb4ae3b",
-      name: "NotGardenerAccount",
+      name: "NotGardenMember",
       message: "You are not a member of this garden",
       action: "Please join the garden before submitting work",
       isKnown: true,
+      recoverable: false,
+      suggestedAction: "join-garden",
+    });
+  });
+
+  it("parses NotGardenMember error code (current selector)", () => {
+    // 0xfdb31dd5 = keccak256("NotGardenMember()")[0:4]
+    const result = parseContractError("0xfdb31dd5");
+
+    expect(result).toEqual({
+      raw: "0xfdb31dd5",
+      name: "NotGardenMember",
+      message: "You are not a member of this garden",
+      action: "Please join the garden before submitting work",
+      isKnown: true,
+      recoverable: false,
+      suggestedAction: "join-garden",
     });
   });
 
@@ -33,6 +51,8 @@ describe("parseContractError", () => {
       message: "You are already a member of this garden",
       action: undefined,
       isKnown: true,
+      recoverable: false,
+      suggestedAction: undefined,
     });
   });
 
@@ -40,7 +60,7 @@ describe("parseContractError", () => {
     const errorMessage = "UserOperation reverted during simulation with reason: 0x8cb4ae3b";
     const result = parseContractError(errorMessage);
 
-    expect(result.name).toBe("NotGardenerAccount");
+    expect(result.name).toBe("NotGardenMember");
     expect(result.isKnown).toBe(true);
   });
 
@@ -52,6 +72,8 @@ describe("parseContractError", () => {
       name: "UnknownError",
       message: "Transaction failed with error code: 0xdeadbeef",
       isKnown: false,
+      recoverable: true,
+      suggestedAction: "retry",
     });
   });
 
@@ -59,7 +81,7 @@ describe("parseContractError", () => {
     const error = new Error("Transaction reverted with reason: 0x8cb4ae3b");
     const result = parseContractError(error);
 
-    expect(result.name).toBe("NotGardenerAccount");
+    expect(result.name).toBe("NotGardenMember");
   });
 
   it("handles string errors without hex codes", () => {
@@ -70,14 +92,26 @@ describe("parseContractError", () => {
   });
 });
 
-describe("isNotGardenerError", () => {
-  it("returns true for NotGardenerAccount error", () => {
-    expect(isNotGardenerError("0x8cb4ae3b")).toBe(true);
+describe("isNotGardenMemberError", () => {
+  it("returns true for NotGardenMember error (old selector)", () => {
+    expect(isNotGardenMemberError("0x8cb4ae3b")).toBe(true);
+  });
+
+  it("returns true for NotGardenMember error (current selector)", () => {
+    // 0xfdb31dd5 = keccak256("NotGardenMember()")[0:4]
+    expect(isNotGardenMemberError("0xfdb31dd5")).toBe(true);
   });
 
   it("returns false for other errors", () => {
+    expect(isNotGardenMemberError("0x42375a1e")).toBe(false);
+    expect(isNotGardenMemberError("some error")).toBe(false);
+  });
+});
+
+describe("isNotGardenerError (deprecated)", () => {
+  it("still works for backward compatibility", () => {
+    expect(isNotGardenerError("0x8cb4ae3b")).toBe(true);
     expect(isNotGardenerError("0x42375a1e")).toBe(false);
-    expect(isNotGardenerError("some error")).toBe(false);
   });
 });
 
@@ -98,7 +132,7 @@ describe("formatErrorForToast", () => {
     const result = formatErrorForToast(parsed);
 
     expect(result).toEqual({
-      title: "Not Gardener Account",
+      title: "Not Garden Member",
       message: "You are not a member of this garden. Please join the garden before submitting work",
     });
   });
@@ -128,14 +162,15 @@ describe("parseAndFormatError", () => {
   it("parses and formats in one call", () => {
     const result = parseAndFormatError("0x8cb4ae3b");
 
-    expect(result.title).toBe("Not Gardener Account");
+    expect(result.title).toBe("Not Garden Member");
     expect(result.message).toContain("You are not a member");
     expect(result.parsed.isKnown).toBe(true);
   });
 
   it("handles complex error objects", () => {
+    // 0xf3aeae14 = keccak256("NotGardenOperator()")[0:4]
     const error = {
-      message: "UserOperation failed with error: 0x5d91fb09",
+      message: "UserOperation failed with error: 0xf3aeae14",
       code: "CALL_EXCEPTION",
     };
 

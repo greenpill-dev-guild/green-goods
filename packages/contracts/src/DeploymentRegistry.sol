@@ -20,6 +20,15 @@ contract DeploymentRegistry is OwnableUpgradeable, UUPSUpgradeable {
         address gardenToken;
         address workResolver;
         address workApprovalResolver;
+        // Integration endpoints (Phase 1+)
+        address assessmentResolver;
+        address integrationRouter;
+        // Future integration addresses (Phase 2+)
+        address hatsAccessControl; // Hats Protocol adapter
+        address octantFactory; // Octant vault factory
+        address unlockFactory; // Unlock Protocol lock factory
+        address hypercerts; // Hypercerts contract
+        address greenWillRegistry; // GreenWill artifact registry
     }
 
     /// @notice Emitted when a network configuration is updated
@@ -279,6 +288,48 @@ contract DeploymentRegistry is OwnableUpgradeable, UUPSUpgradeable {
         return getNetworkConfigForChain(block.chainid).workApprovalResolver;
     }
 
+    /// @notice Gets the Assessment Resolver address for the current chain
+    /// @return The Assessment Resolver address
+    function getAssessmentResolver() external view returns (address) {
+        return getNetworkConfigForChain(block.chainid).assessmentResolver;
+    }
+
+    /// @notice Gets the Integration Router address for the current chain
+    /// @return The Integration Router address
+    function getIntegrationRouter() external view returns (address) {
+        return getNetworkConfigForChain(block.chainid).integrationRouter;
+    }
+
+    /// @notice Gets the Hats Access Control address for the current chain
+    /// @return The Hats Access Control address (zero if not configured)
+    function getHatsAccessControl() external view returns (address) {
+        return getNetworkConfigForChain(block.chainid).hatsAccessControl;
+    }
+
+    /// @notice Gets the Octant Factory address for the current chain
+    /// @return The Octant Factory address (zero if not configured)
+    function getOctantFactory() external view returns (address) {
+        return getNetworkConfigForChain(block.chainid).octantFactory;
+    }
+
+    /// @notice Gets the Unlock Factory address for the current chain
+    /// @return The Unlock Factory address (zero if not configured)
+    function getUnlockFactory() external view returns (address) {
+        return getNetworkConfigForChain(block.chainid).unlockFactory;
+    }
+
+    /// @notice Gets the Hypercerts contract address for the current chain
+    /// @return The Hypercerts address (zero if not configured)
+    function getHypercerts() external view returns (address) {
+        return getNetworkConfigForChain(block.chainid).hypercerts;
+    }
+
+    /// @notice Gets the GreenWill Registry address for the current chain
+    /// @return The GreenWill Registry address (zero if not configured)
+    function getGreenWillRegistry() external view returns (address) {
+        return getNetworkConfigForChain(block.chainid).greenWillRegistry;
+    }
+
     /// @notice Updates the Action Registry address for the current chain
     /// @param contractAddress The new address
     function updateActionRegistry(address contractAddress) external onlyOwnerOrAllowlist whenNotPaused {
@@ -290,6 +341,55 @@ contract DeploymentRegistry is OwnableUpgradeable, UUPSUpgradeable {
     /// @param contractAddress The new address
     function updateGardenToken(address contractAddress) external onlyOwnerOrAllowlist whenNotPaused {
         networks[block.chainid].gardenToken = contractAddress;
+        emit NetworkConfigUpdated(block.chainid, networks[block.chainid]);
+    }
+
+    /// @notice Updates the Assessment Resolver address for the current chain
+    /// @param contractAddress The new address
+    function updateAssessmentResolver(address contractAddress) external onlyOwnerOrAllowlist whenNotPaused {
+        networks[block.chainid].assessmentResolver = contractAddress;
+        emit NetworkConfigUpdated(block.chainid, networks[block.chainid]);
+    }
+
+    /// @notice Updates the Integration Router address for the current chain
+    /// @param contractAddress The new address
+    function updateIntegrationRouter(address contractAddress) external onlyOwnerOrAllowlist whenNotPaused {
+        networks[block.chainid].integrationRouter = contractAddress;
+        emit NetworkConfigUpdated(block.chainid, networks[block.chainid]);
+    }
+
+    /// @notice Updates the Hats Access Control address for the current chain
+    /// @param contractAddress The new address
+    function updateHatsAccessControl(address contractAddress) external onlyOwnerOrAllowlist whenNotPaused {
+        networks[block.chainid].hatsAccessControl = contractAddress;
+        emit NetworkConfigUpdated(block.chainid, networks[block.chainid]);
+    }
+
+    /// @notice Updates the Octant Factory address for the current chain
+    /// @param contractAddress The new address
+    function updateOctantFactory(address contractAddress) external onlyOwnerOrAllowlist whenNotPaused {
+        networks[block.chainid].octantFactory = contractAddress;
+        emit NetworkConfigUpdated(block.chainid, networks[block.chainid]);
+    }
+
+    /// @notice Updates the Unlock Factory address for the current chain
+    /// @param contractAddress The new address
+    function updateUnlockFactory(address contractAddress) external onlyOwnerOrAllowlist whenNotPaused {
+        networks[block.chainid].unlockFactory = contractAddress;
+        emit NetworkConfigUpdated(block.chainid, networks[block.chainid]);
+    }
+
+    /// @notice Updates the Hypercerts contract address for the current chain
+    /// @param contractAddress The new address
+    function updateHypercerts(address contractAddress) external onlyOwnerOrAllowlist whenNotPaused {
+        networks[block.chainid].hypercerts = contractAddress;
+        emit NetworkConfigUpdated(block.chainid, networks[block.chainid]);
+    }
+
+    /// @notice Updates the GreenWill Registry address for the current chain
+    /// @param contractAddress The new address
+    function updateGreenWillRegistry(address contractAddress) external onlyOwnerOrAllowlist whenNotPaused {
+        networks[block.chainid].greenWillRegistry = contractAddress;
         emit NetworkConfigUpdated(block.chainid, networks[block.chainid]);
     }
 

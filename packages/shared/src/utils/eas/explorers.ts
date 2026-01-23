@@ -1,20 +1,9 @@
 /**
  * Utility functions for EAS (Ethereum Attestation Service) explorer links
+ * and block explorer transaction links
  */
 
-/**
- * Maps chain IDs to their EAS explorer chain names
- */
-const CHAIN_ID_TO_EAS_NAME: Record<number, string> = {
-  1: "mainnet",
-  11155111: "sepolia", // Sepolia testnet
-  42161: "arbitrum-one",
-  10: "optimism",
-  137: "polygon",
-  8453: "base",
-  84532: "base-sepolia",
-  // Add more chains as needed
-};
+import { getBlockExplorer, getEASName } from "../blockchain/chain-registry";
 
 /**
  * Generates an EAS explorer URL for viewing an attestation
@@ -23,12 +12,7 @@ const CHAIN_ID_TO_EAS_NAME: Record<number, string> = {
  * @returns The complete EAS explorer URL
  */
 export function getEASExplorerUrl(chainId: number, attestationId: string): string {
-  const chainName = CHAIN_ID_TO_EAS_NAME[chainId];
-
-  if (!chainName) {
-    // Fallback to mainnet for unknown chain IDs
-    return `https://easscan.org/attestation/view/${attestationId}`;
-  }
+  const chainName = getEASName(chainId);
 
   // For mainnet, use the base domain without subdomain
   if (chainName === "mainnet") {
@@ -56,4 +40,25 @@ export function openEASExplorer(chainId: number, attestationId: string): void {
  */
 export function isValidAttestationId(attestationId: string): boolean {
   return /^0x[a-fA-F0-9]{64}$/.test(attestationId);
+}
+
+/**
+ * Generates a block explorer URL for viewing a transaction
+ * @param chainId - The chain ID where the transaction exists
+ * @param txHash - The transaction hash (0x prefixed hex string)
+ * @returns The complete block explorer URL
+ */
+export function getBlockExplorerTxUrl(chainId: number, txHash: string): string {
+  const baseUrl = getBlockExplorer(chainId);
+  return `${baseUrl}/tx/${txHash}`;
+}
+
+/**
+ * Opens the block explorer transaction page in a new tab
+ * @param chainId - The chain ID where the transaction exists
+ * @param txHash - The transaction hash
+ */
+export function openBlockExplorerTx(chainId: number, txHash: string): void {
+  const url = getBlockExplorerTxUrl(chainId, txHash);
+  window.open(url, "_blank", "noopener,noreferrer");
 }

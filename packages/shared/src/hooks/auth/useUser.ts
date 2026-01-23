@@ -4,17 +4,26 @@
  * This hook provides a simplified interface for accessing user data,
  * supporting both wallet (EOA) and passkey (smart account) authentication.
  *
+ * Address Resolution Rules:
+ * - authMode === "wallet": Use walletAddress (the connected wallet EOA)
+ * - authMode === "passkey": Use smartAccountAddress (the passkey smart account)
+ * - authMode === null: Not authenticated, no primary address
+ *
+ * The hook also exposes externalWalletAddress which is always tracked
+ * regardless of auth mode (useful for showing "switch to wallet" option).
+ *
  * @example
  * ```tsx
  * function ProfileComponent() {
- *   const { user, eoa, smartAccountAddress, ready } = useUser();
+ *   const { user, eoa, smartAccountAddress, authMode, ready, primaryAddress } = useUser();
  *
  *   if (!ready) return <Loader />;
  *
  *   return (
  *     <div>
- *       <p>EOA: {eoa?.address}</p>
- *       <p>Smart Account: {smartAccountAddress}</p>
+ *       <p>Auth Mode: {authMode}</p>
+ *       <p>Primary Address: {primaryAddress}</p>
+ *       {authMode === "passkey" && <p>Smart Account: {smartAccountAddress}</p>}
  *     </div>
  *   );
  * }
@@ -22,70 +31,78 @@
  */
 
 import type { SmartAccountClient } from "permissionless";
-import { useEnsName } from "../blockchain/useEnsName";
 import { useAuth } from "./useAuth";
+import { usePrimaryAddress } from "./usePrimaryAddress";
 
-interface User {
+export interface User {
   id: string;
   wallet: {
     address: string;
   };
 }
 
-interface UseUserReturn {
+export interface UseUserReturn {
+  /** User object for backward compatibility */
   user: User | null;
+  /** Whether auth state is ready (not initializing) */
   ready: boolean;
+  /** EOA object (only set when authMode === "wallet") */
   eoa: { address: string } | null;
+  /** Smart account address (only set when authMode === "passkey") */
   smartAccountAddress: string | null;
+  /** Smart account client for transactions (passkey mode only) */
   smartAccountClient: SmartAccountClient | null;
+  /** Current authentication mode */
   authMode: "wallet" | "passkey" | null;
-  ensName: string | null;
+  /** Passkey username (only set when authMode === "passkey") */
+  userName: string | null;
+  /** ENS name for the primary address - REMOVED to fix QueryClient error */
+  ensName: null;
+  /** External wallet connected (available for switching) */
+  externalWalletConnected: boolean;
+  /** External wallet address (may differ from walletAddress in passkey mode) */
+  externalWalletAddress: string | null;
+  /** Primary address based on current auth mode */
+  primaryAddress: string | null;
 }
 
 export function useUser(): UseUserReturn {
   const auth = useAuth();
+  const primaryAddress = usePrimaryAddress();
 
-  // Use unified auth interface properties
-  const authMode = auth.authMode ?? null;
-  const isReady = auth.isReady ?? false;
-  const isAuthenticated = auth.isAuthenticated ?? false;
+  // Extract auth state with null defaults for type safety
+  const {
+    authMode = null,
+    isReady = false,
+    isAuthenticated = false,
+    smartAccountAddress = null,
+    walletAddress = null,
+    userName = null,
+    externalWalletConnected = false,
+    externalWalletAddress = null,
+    smartAccountClient = null,
+  } = auth;
 
-  // Get addresses from unified interface
-  const eoaAddress = auth.eoaAddress;
-  const smartAccountAddress = auth.smartAccountAddress ?? null;
+  // Create EOA object only when wallet is the primary auth (React 19 compiler handles memoization)
+  const eoa = authMode === "wallet" && walletAddress ? { address: walletAddress } : null;
 
-  // For wallet-only auth, walletAddress might be available
-  const walletAddress = "walletAddress" in auth ? auth.walletAddress : undefined;
-
-  // Determine the primary address for this user
-  const primaryAddress = eoaAddress ?? walletAddress ?? smartAccountAddress ?? undefined;
-
-  // Get smart account client if available
-  const smartAccountClient =
-    "smartAccountClient" in auth ? (auth.smartAccountClient as SmartAccountClient | null) : null;
-
-  // Use EOA address for ENS lookup (smart accounts don't have ENS)
-  const { data: ensName } = useEnsName(eoaAddress ?? walletAddress);
-
-  // Create EOA object if we have an address
-  const eoa = primaryAddress ? { address: primaryAddress as string } : null;
-
-  // Create user object for backward compatibility
+  // Create user object for backward compatibility (React 19 compiler handles memoization)
   const user =
     isAuthenticated && primaryAddress
-      ? {
-          id: primaryAddress as string,
-          wallet: { address: primaryAddress as string },
-        }
+      ? { id: primaryAddress, wallet: { address: primaryAddress } }
       : null;
 
   return {
     user,
     ready: isReady,
     eoa,
-    smartAccountAddress: smartAccountAddress as string | null,
+    smartAccountAddress,
     smartAccountClient,
     authMode,
-    ensName: ensName ?? null,
+    userName,
+    ensName: null, // Disabled - useEnsName was called before QueryClient was available
+    externalWalletConnected,
+    externalWalletAddress,
+    primaryAddress,
   };
 }

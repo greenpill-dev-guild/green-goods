@@ -3,6 +3,8 @@
  * These templates define the media, details, and review steps for different action types.
  */
 
+import type { ActionInstructionConfig } from "../../types/domain";
+
 export const defaultTemplate: ActionInstructionConfig = {
   description: "Complete this action",
   uiConfig: {

@@ -14,7 +14,10 @@ interface StepIndicatorProps {
 
 export function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
   return (
-    <div className="sticky top-0 z-30 border-b border-stroke-soft bg-bg-white shadow-sm">
+    <div
+      className="sticky top-0 z-30 border-b border-stroke-soft bg-bg-white shadow-sm"
+      data-testid="step-indicator"
+    >
       {/* Step progress indicators */}
       <div className="relative bg-bg-weak">
         <ol className="flex">
