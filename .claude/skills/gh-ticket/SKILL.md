@@ -16,18 +16,110 @@ Use when:
 > The moment you decide to create a ticket, you have MAXIMUM CONTEXT.
 > Capture it NOW before it fades. Let AI do the heavy lifting.
 
+## Document Ecosystem
+
+Documents are stored in your **database + docs system** and **referenced** in GitHub issues.
+
+| Document | Cadence | Storage | GitHub |
+|----------|---------|---------|--------|
+| **PRD** | Quarterly | Database + Docs | Epic (reference) |
+| **Feature Spec** | Per PRD feature | Database + Docs | Story (linked) |
+| **Tech Spec** | Per feature | Database + Docs | Story (linked) |
+| **QA Test Cases** | Per feature | Database + Docs | Story (checklist) |
+| **GTM** | Per launch | Database + Docs | Milestone |
+
+## Issue Hierarchy
+
+```
+PRD (Quarterly)              → Database + Docs
+  └── Epic Issue             → GitHub reference to PRD
+      │
+      └── Feature Spec       → Database + Docs
+          └── Story Issue    → GitHub (links to specs)
+              │
+              ├── Tech Spec  → Database + Docs (linked)
+              ├── QA Cases   → Database + Docs (linked)
+              │
+              └── Tasks      → GitHub Issues
+                  ├── [FEATURE] Implementation
+                  ├── [POLISH] Refinement
+                  ├── [DOCS] Documentation
+                  └── [BUG] Defect
+```
+
+### Hierarchy Relationships
+
+| Relationship | Example | Linking |
+|--------------|---------|---------|
+| PRD → Epic | PRD doc → Epic #100 | `--prd-url {url}` |
+| Epic → Stories | Epic #100 → Stories #101, #102 | `--epic #100` |
+| Feature Spec → Story | Spec doc → Story #101 | `--spec-url {url}` |
+| Tech Spec → Story | Tech doc → Story #101 | `--tech-spec-url {url}` |
+| Story → Tasks | Story #101 → Tasks #102, #103 | `--story #101` |
+
+---
+
 ## Quick Reference
 
-| Command | Template | Labels | Use For |
-|---------|----------|--------|---------|
-| `/ticket bug` | Bug Report | `bug`, `triage` | Bug reports with reproduction steps |
-| `/ticket feature` | Feature Request | `enhancement` | Simple features (1-2 packages) |
-| `/ticket feature --complete` | Feature Complete | `enhancement` | **AI-buildable specs** (3+ packages) |
-| `/ticket task` | Engineering Task | `task` | Specific engineering work |
-| `/ticket contract` | Smart Contract | `contract` | Contract creation/modification |
-| `/ticket hook` | Shared Hook | `component`, `shared` | New hooks in shared package |
-| `/ticket story` | User Story | `story` | Product-focused user stories |
-| `/ticket spike` | Investigation | `spike` | Research with timebox |
+### Epic & Story Commands (Linked to Docs)
+
+| Command | Labels | Use For |
+|---------|--------|---------|
+| `/ticket epic --prd-url {url}` | `epic`, `prd`, `Q{N}` | Create epic referencing quarterly PRD |
+| `/ticket story --epic #N --spec-url {url}` | `story` | Story for feature spec implementation |
+| `/ticket story --epic #N --spec-url {url} --tech-spec-url {url}` | `story` | Story with tech spec |
+
+### Task Commands (Under Stories)
+
+| Command | Labels | Use For |
+|---------|--------|---------|
+| `/ticket feature --story #N` | `task`, `feature` | Feature implementation task |
+| `/ticket feature --story #N --complete` | `task`, `feature` | **AI-buildable** feature task |
+| `/ticket polish --story #N` | `task`, `polish` | UI/UX refinement task |
+| `/ticket docs --story #N` | `task`, `documentation` | Documentation task |
+| `/ticket bug --story #N` | `bug` | Bug related to story |
+| `/ticket bug` | `bug`, `triage` | Standalone bug report |
+
+### Specialized Commands
+
+| Command | Labels | Use For |
+|---------|--------|---------|
+| `/ticket contract --story #N` | `task`, `contract` | Smart contract work |
+| `/ticket hook --story #N` | `task`, `component`, `shared` | New hook in shared package |
+| `/ticket spike` | `spike` | Research/investigation |
+
+### Estimation Flags
+
+| Flag | Values | Use |
+|------|--------|-----|
+| `--expected-hours {N}` | Number | Time estimate |
+| `--effort {size}` | `XS`, `S`, `M`, `L`, `XL` | T-shirt sizing |
+| `--priority {P}` | `P0`, `P1`, `P2`, `P3` | Priority level |
+| `--scope {pkg}` | `client`, `admin`, `shared`, `contracts`, `indexer`, `multi` | Package scope |
+
+### Story-Based Workflow
+
+**PRDs (Epics)** break down into **Stories**, which spawn **Feature Tasks**:
+
+```bash
+# 1. Create a PRD for major initiative
+/ticket prd "Garden Management System"
+
+# 2. Create stories linked to PRD
+/ticket story --prd #100 "As a gardener, I want to create a garden"
+/ticket story --prd #100 "As a gardener, I want to invite members"
+
+# 3. Create features linked to stories
+/ticket feature --story #101 --complete "useCreateGarden hook"
+/ticket feature --story #101 "Garden creation view"
+
+# 4. Batch create stories from PRD
+/ticket story --prd #100 --batch "
+  Create garden profile
+  Invite garden members
+  Set garden permissions
+"
+```
 
 ### AI-Buildable Feature Tickets
 
@@ -45,6 +137,18 @@ The complete template includes:
 - Error handling matrix
 - Offline implementation patterns
 - AI self-verification checklist
+
+### Agent Assignment by Issue Type
+
+| Issue Type | Primary Agent | Fallback | Trigger |
+|------------|---------------|----------|---------|
+| Feature (complete) | **Codex** | Claude Code | `@codex` |
+| Feature (simple) | **Codex** | Cursor | `@codex` |
+| Bug | **Claude Code** | Cursor | `@claude` |
+| Polish | **Claude Code** | Cursor | `@claude` |
+| Documentation | **Claude Code** | - | `@claude` |
+| Contract | **Claude Code** | Human | `@claude` |
+| Investigation/Spike | **Cursor** | Claude Code | `@cursor` |
 
 ---
 
@@ -493,3 +597,223 @@ Before creating ticket:
 - #123 - Similar bug reported
 - #200 - Parent feature
 ```
+
+---
+
+## Story Workflow
+
+### Creating a PRD (Epic)
+
+```bash
+/ticket prd "Feature Initiative Name"
+```
+
+This creates an epic-level issue with:
+- Executive summary
+- User personas
+- Functional requirements table
+- Story map placeholder
+- Architecture overview
+- Release plan
+
+### Creating Stories from PRD
+
+```bash
+# Single story
+/ticket story --prd #100 "As a gardener, I want to create a garden so that I can track conservation work"
+
+# Batch create from requirements
+/ticket story --prd #100 --from-requirements
+
+# With type specification
+/ticket story --prd #100 --type technical "Enable offline sync for garden data"
+```
+
+Story types:
+- `user-facing`: Direct user value (default)
+- `technical`: Infrastructure/enablement
+- `enabler`: Enables future stories
+
+### Creating Features from Stories
+
+```bash
+# Simple feature
+/ticket feature --story #101 "Garden creation form"
+
+# AI-buildable feature
+/ticket feature --story #101 --complete "useCreateGarden hook with offline support"
+
+# Hook specifically
+/ticket hook --story #101 "useGardenMembers"
+
+# Contract work
+/ticket contract --story #101 "Add createGarden function to GardenToken"
+```
+
+### Hierarchy Visualization
+
+After creating issues, verify hierarchy:
+
+```bash
+# View PRD with all linked stories
+gh issue view #100 --comments
+
+# View story with all linked features
+gh issue view #101 --comments
+```
+
+---
+
+## n8n Automation Integration
+
+### Trigger Sources
+
+| Source | Trigger | Issue Types |
+|--------|---------|-------------|
+| Google Meet | Gemini notes saved | Bugs, Stories |
+| Discord | `/issue` command | Any |
+| Discord | Meeting summary post | Bugs, Stories |
+| Manual | `/ticket` command | Any |
+
+### Automated Story Flow
+
+```mermaid
+flowchart TB
+    subgraph Triggers
+        M[Meeting Notes]
+        D[Discord Command]
+        P[PRD Approval]
+    end
+
+    subgraph Processing
+        E[Extract Requirements]
+        C[Classify Type]
+        G[Generate Issue]
+    end
+
+    subgraph IssueCreation
+        PRD[Create PRD]
+        S[Create Story]
+        F[Create Feature]
+        B[Create Bug]
+    end
+
+    subgraph AgentDispatch
+        CX[Codex - Features]
+        CL[Claude - Bugs/Polish]
+        CR[Cursor - Investigation]
+    end
+
+    M --> E
+    D --> C
+    P --> E
+
+    E --> C
+    C -->|Epic| PRD
+    C -->|Story| S
+    C -->|Feature| F
+    C -->|Bug| B
+
+    PRD -->|"Auto-generate"| S
+    S -->|"Auto-generate"| F
+
+    F --> CX
+    B --> CL
+    S -->|"Investigation needed"| CR
+```
+
+### Discord Integration Commands
+
+In Discord, users can trigger issue creation:
+
+```
+/issue bug Loading spinner missing on mobile
+/issue story As a gardener, I want to track my work history
+/issue feature Add export functionality to reports
+```
+
+The bot will:
+1. Parse the request
+2. Search for related issues
+3. Create with appropriate template
+4. Link to parent PRD/Story if context available
+5. Dispatch to appropriate agent
+
+### Agent Routing Logic
+
+```javascript
+function routeToAgent(issue) {
+  const { type, complexity, packages, hasOffline } = issue;
+
+  // Features → Codex
+  if (type === 'feature' || type === 'story-implementation') {
+    if (complexity === 'XL' || packages.length > 3) {
+      return { agent: 'codex', mode: 'supervised' };
+    }
+    return { agent: 'codex', mode: 'autonomous' };
+  }
+
+  // Bugs → Claude Code
+  if (type === 'bug') {
+    if (issue.severity === 'high' || issue.area === 'contracts') {
+      return { agent: 'claude', mode: 'supervised' };
+    }
+    return { agent: 'claude', mode: 'autonomous' };
+  }
+
+  // Polish/Docs → Claude Code
+  if (type === 'polish' || type === 'documentation') {
+    return { agent: 'claude', mode: 'autonomous' };
+  }
+
+  // Investigation → Cursor
+  if (type === 'spike' || issue.needsInvestigation) {
+    return { agent: 'cursor', mode: 'investigate-only' };
+  }
+
+  // Default: human triage
+  return { agent: null, mode: 'manual' };
+}
+```
+
+### Post-Creation Hooks
+
+After issue creation, n8n can:
+
+1. **For Stories**: Auto-create feature task scaffolds
+2. **For Features**: Dispatch to Codex with full context
+3. **For Bugs**: Dispatch to Claude Code with investigation prompt
+4. **For All**: Add to project board, assign sprint
+
+---
+
+## Templates Reference
+
+### GitHub Issue Templates
+
+| Template | File | Use Case |
+|----------|------|----------|
+| Epic | `templates/epic.md` | PRD tracking issue |
+| Story | `templates/story.md` | Feature spec implementation |
+| Feature Task | `templates/feature-complete.md` | AI-buildable implementation tasks |
+| Polish Task | `templates/polish.md` | UI/UX refinements |
+| Docs Task | `templates/docs.md` | Documentation updates |
+| Bug Report | `templates/bug.md` | Defect documentation |
+
+### Document Templates (for Database/Docs)
+
+| Template | File | Use Case |
+|----------|------|----------|
+| PRD | `templates/prd.md` | Quarterly product requirements |
+| Feature Spec | `templates/feature-spec.md` | Feature requirements |
+| Tech Spec | `templates/tech-spec.md` | Technical design |
+| QA Test Cases | `templates/qa-test-cases.md` | Testing documentation |
+
+## Supporting Documentation
+
+| Document | File | Purpose |
+|----------|------|---------|
+| **Ecosystem** | `ecosystem.md` | **Complete document & issue system overview** |
+| Ideal Flow | `ideal-flow.md` | End-to-end workflow with context optimization |
+| Agent Routing | `agent-routing.md` | Decision tree for Codex/Claude/Cursor dispatch |
+| n8n Workflow | `docs/developer/n8n-story-workflow.md` | Automation pipeline configuration |
