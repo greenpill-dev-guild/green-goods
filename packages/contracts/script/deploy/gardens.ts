@@ -199,12 +199,7 @@ export class GardenDeployer {
    * secrets such as private keys and API keys.
    */
   private _redactSensitiveArgs(args: string[]): string[] {
-    const sensitiveFlags = new Set([
-      "--private-key",
-      "--etherscan-api-key",
-      "--account",
-      "--sender",
-    ]);
+    const sensitiveFlags = new Set(["--private-key", "--etherscan-api-key", "--account", "--sender"]);
 
     const redacted: string[] = [];
     for (let i = 0; i < args.length; i++) {
