@@ -140,7 +140,7 @@ export class GardenDeployer {
     }
 
     console.log("\nExecuting deployment...");
-    const displayArgs = args.map((arg, idx) => (idx > 0 && args[idx - 1] === "--private-key" ? "[REDACTED]" : arg));
+    const displayArgs = this._redactSensitiveArgs(args);
     console.log("forge", displayArgs.join(" "));
 
     execFileSync("forge", args, {
@@ -190,5 +190,27 @@ export class GardenDeployer {
     fs.writeFileSync(recordPath, JSON.stringify(deploymentRecord, null, 2));
 
     console.log(`Deployment record saved to: ${recordPath}`);
+  }
+
+  /**
+   * Redact sensitive arguments from the displayed forge command.
+   *
+   * This keeps execution behaviour unchanged while avoiding logging
+   * secrets such as private keys and API keys.
+   */
+  private _redactSensitiveArgs(args: string[]): string[] {
+    const sensitiveFlags = new Set(["--private-key", "--etherscan-api-key", "--account", "--sender"]);
+
+    const redacted: string[] = [];
+    for (let i = 0; i < args.length; i++) {
+      const arg = args[i];
+      redacted.push(arg);
+      if (sensitiveFlags.has(arg) && i + 1 < args.length) {
+        redacted.push("[REDACTED]");
+        i++; // skip original sensitive value
+      }
+    }
+
+    return redacted;
   }
 }
