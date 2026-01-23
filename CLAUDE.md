@@ -245,9 +245,54 @@ This project has extensive Claude Code tooling configured in `.claude/`.
 - `superpower-zustand` - Zustand store patterns
 - `design-spec-extraction` - Extract Figma design tokens
 - `chrome-devtools` - Browser debugging
-- `gh-ticket` - Comprehensive issue creation
+- `gh-ticket` - AI-powered issue creation with context
 - `the-archivist` - Decision documentation
 - `4-step-program` - Fix-review-iterate workflow
+
+### GitHub Issue Creation
+
+Use `/ticket` or the `gh-ticket` skill to create context-rich GitHub issues. The skill auto-detects issue type and populates AI context sections.
+
+**Quick Commands:**
+```bash
+/ticket bug "Description"      # Bug report with triage label
+/ticket feature "Description"  # Feature request
+/ticket task "Description"     # Engineering task
+/ticket contract "Description" # Smart contract work
+/ticket hook "Description"     # New shared hook
+/ticket spike "Description"    # Research/investigation
+```
+
+**Available Issue Templates** (YAML forms with validation):
+
+| Template | Labels | Use For |
+|----------|--------|---------|
+| 🐛 Bug Report | `bug`, `triage` | Bugs with reproduction steps |
+| ✨ Feature Request | `enhancement` | New features with acceptance criteria |
+| 🔧 Engineering Task | `task` | Specific engineering work |
+| 📜 Smart Contract | `contract` | Contract creation/modification |
+| 🪝 Shared Hook | `component` | New hooks in shared package |
+| 📖 User Story | `story` | Product-focused user stories |
+| 🔬 Spike | `spike` | Research with timebox |
+| 🎨 Design Request | `design` | Design work requests |
+
+**Package Labels** (auto-detected from file paths):
+- `client` - Client PWA package
+- `admin` - Admin dashboard package
+- `shared` - Shared package (hooks, utils)
+- `contract` - Smart contracts
+- `indexer` - Envio indexer
+- `agent` - Telegram/Discord bot agent
+- `triage` - Needs initial review
+
+**AI Context Sections:**
+Every issue template includes an "AI Notes" section for:
+- Files analyzed during investigation
+- Error messages and stack traces
+- Suggested implementation approach
+- Pattern references from codebase
+
+Issues are automatically added to the **Green Goods** project board.
 
 ### Available Agents (5)
 

@@ -1,143 +1,352 @@
-# GitHub Ticket Skill
+# GitHub Ticket Skill (Enhanced)
 
-Create comprehensive GitHub issues that capture maximum context.
+Create context-rich GitHub issues that integrate with org templates and AI workflows.
 
 ## Activation
 
 Use when:
 - Creating new GitHub issues
-- Documenting bugs or features
 - User requests `/ticket` or "create an issue"
-- Capturing investigation findings
+- After investigation/debugging sessions
+- Documenting bugs or features
+- Capturing findings that need follow-up
 
 ## Core Principle
 
 > The moment you decide to create a ticket, you have MAXIMUM CONTEXT.
-> Capture it NOW before it fades.
+> Capture it NOW before it fades. Let AI do the heavy lifting.
 
-## Why This Matters
+## Quick Reference
 
-| Ticket Quality | Implementation Cost |
-|----------------|---------------------|
-| Vague ticket | 10x clarification time |
-| Detailed ticket | Immediate start |
+| Command | Template | Labels |
+|---------|----------|--------|
+| `/ticket bug` | Bug Report | `bug`, `triage` |
+| `/ticket feature` | Feature Request | `enhancement` |
+| `/ticket task` | Engineering Task | `task` |
+| `/ticket contract` | Smart Contract | `contract` |
+| `/ticket hook` | Shared Hook | `component`, `shared` |
+| `/ticket story` | User Story | `story` |
+| `/ticket spike` | Investigation | `spike` |
 
-## Process
+---
 
-### Phase 1: Context Dump
+## Workflow
 
-Before structuring, dump everything you know:
+### Step 1: Detect Issue Type
 
-- What triggered this?
-- What did you discover?
-- What files are involved?
-- What's the current state?
-- What's the desired state?
-- What have you already tried?
+Automatically determine from conversation context:
 
-### Phase 2: Requirements Extraction
+| Detected Context | Type | Template |
+|------------------|------|----------|
+| Error, exception, "not working" | Bug | `bug.yml` |
+| "add", "implement", "new feature" | Feature | `feature.yml` |
+| UI work, component creation | Component | `hook.yml` |
+| Contract, Solidity, upgrade | Contract | `contract.yml` |
+| Refactor, cleanup, technical debt | Task | `task.yml` |
+| "investigate", "research", "spike" | Spike | `spike.yml` |
+| User journey, acceptance criteria | Story | `story.yml` |
 
-Convert knowledge into checklist:
+### Step 2: Gather Codebase Context
 
-- [ ] Functional requirement 1
-- [ ] Functional requirement 2
-- [ ] Edge case handling
-- [ ] Error handling
-- [ ] Test coverage
+```bash
+# Identify affected packages from recent work
+git diff --stat HEAD~5 | grep packages/
 
-Each item must be:
-- **Specific** - Not "improve performance"
-- **Testable** - Clear pass/fail criteria
-- **Independent** - Can verify in isolation
+# Find related files by keyword
+grep -r "keyword" packages/*/src --include="*.ts" -l | head -10
 
-### Phase 3: Implementation Guidance
+# Check existing patterns for reference
+ls packages/shared/src/hooks/
 
-Provide specific locations:
-
-```markdown
-## Implementation Notes
-
-### Files to Modify
-- `packages/shared/src/hooks/useAuth.ts` - Add new method
-- `packages/client/src/views/Login.tsx` - Use new hook
-
-### Existing Patterns
-See `packages/shared/src/hooks/useGarden.ts` for similar implementation
-
-### Dependencies
-- Requires `@tanstack/react-query` for data fetching
-- Uses existing `useGraphQL` provider
-
-### Suggested Approach
-1. Start with hook implementation
-2. Add tests
-3. Integrate in views
+# Get recent commits for context
+git log --oneline -5
 ```
 
-### Phase 4: Structure Ticket
+### Step 3: Auto-Detect Package Labels
 
-Use this template:
+Map file paths to labels:
 
+| Path Pattern | Label |
+|--------------|-------|
+| `packages/client/*` | Add label: (none - implied) |
+| `packages/admin/*` | Add label: (none - implied) |
+| `packages/shared/*` | Add label: (none - implied) |
+| `packages/contracts/*` | Add label: `contract` |
+| `packages/indexer/*` | Add label: `api` |
+| `packages/agent/*` | Add label: (none - implied) |
+| `docs/*` | Add label: `documentation` |
+
+### Step 4: Build Issue Content
+
+#### For Bug Reports
 ```markdown
-## Summary
-[One sentence describing the issue/feature]
+## Bug Description
+[Clear description from investigation]
 
-## Context
-[Why this is needed, what triggered it]
-
-## Current Behavior
-[What happens now - for bugs]
+## Steps to Reproduce
+1. [Step from debugging session]
+2. [Step 2]
+3. [Step 3]
 
 ## Expected Behavior
 [What should happen]
 
-## Requirements
-- [ ] Requirement 1
-- [ ] Requirement 2
-- [ ] Requirement 3
+## Current Behavior
+[What actually happens]
 
-## Acceptance Criteria
-- [ ] Criterion 1 (how to verify)
-- [ ] Criterion 2 (how to verify)
+## Environment
+- Package: [detected from files]
+- Browser/OS: [if known]
+- Offline Related: [Yes/No]
 
-## Implementation Notes
+## AI Investigation Notes
 
-### Files to Modify
-- `path/to/file.ts` - [what to change]
+### Files Analyzed
+- `packages/[package]/src/[file].ts` - [what was found]
 
-### Existing Patterns
-- See `path/to/example.ts` for reference
-
-### Dependencies
-- [List any dependencies]
-
-## Out of Scope
-- [What this ticket does NOT cover]
-
-## Related
-- Closes #123 (if applicable)
-- Related to #456
+### Error Details
+```
+[Error message/stack trace if available]
 ```
 
-### Phase 5: Add Visuals
+### Relevant Code
+```typescript
+// Code snippet from investigation
+```
 
-Include Mermaid diagrams for complex flows:
+### Root Cause Analysis
+[What was discovered during investigation]
+
+### Suggested Fix
+[If fix approach is known]
+```
+
+#### For Feature Requests
+```markdown
+## Problem Statement
+As a [user type], I want to [action] so that [benefit].
+
+## Proposed Solution
+[Description of solution]
+
+## Acceptance Criteria
+- [ ] Criterion 1
+- [ ] Criterion 2
+- [ ] Criterion 3
+
+## AI Implementation Notes
+
+### Suggested Approach
+1. [Step 1]
+2. [Step 2]
+3. [Step 3]
+
+### Files to Create/Modify
+- [ ] `packages/shared/src/hooks/use[Feature].ts` - New hook
+- [ ] `packages/client/src/views/[Feature]/index.tsx` - New view
+- [ ] `packages/shared/src/stores/[feature]Store.ts` - If state needed
+
+### Pattern Reference
+See `packages/shared/src/hooks/useGarden.ts` for similar implementation
+
+### Dependencies
+- @tanstack/react-query for data fetching
+- Zustand for local state (if needed)
+
+### Offline Consideration
+- [ ] Not applicable
+- [ ] Queue for sync when online
+- [ ] Full offline support with IndexedDB
+```
+
+#### For Engineering Tasks
+```markdown
+## Summary
+[What needs to be done]
+
+## Done State
+- [ ] Task 1 completed
+- [ ] Task 2 completed
+- [ ] Tests added/updated
+- [ ] Documentation updated (if needed)
+
+## Technical Requirements
+- [Requirement 1]
+- [Requirement 2]
+
+## AI Implementation Notes
+
+### Files to Modify
+- `packages/[package]/src/[file].ts` - [what to change]
+
+### Existing Patterns
+See `packages/[package]/src/[reference].ts` for example
+
+### Testing Strategy
+```bash
+cd packages/[package] && bun test [file]
+```
+
+## Resources
+- [Related docs](link)
+- Related to #[issue]
+```
+
+#### For Smart Contracts
+```markdown
+## Summary
+[Contract work description]
+
+## Done State
+- [ ] Contract implemented/modified
+- [ ] Unit tests (100% coverage)
+- [ ] Fuzz tests for parameters
+- [ ] Gas snapshot updated
+- [ ] NatSpec documentation complete
+- [ ] Security checklist verified
+
+## Security Checklist
+- [ ] CEI pattern followed
+- [ ] Reentrancy guards where needed
+- [ ] Access control on state-changing functions
+- [ ] Events emitted for state changes
+- [ ] No tx.origin for authorization
+- [ ] Input validation
+
+## Upgrade Impact
+- [ ] New contract (no upgrade)
+- [ ] Safe upgrade (storage compatible)
+- [ ] Breaking change (migration needed)
+
+## AI Implementation Notes
+
+### Contract Location
+`packages/contracts/src/[path]/[Contract].sol`
+
+### Inheritance
+- Extends: [OpenZeppelin contracts, etc.]
+- Interfaces: [IContract]
+
+### Testing
+```bash
+cd packages/contracts && forge test --match-contract [TestContract] -vvv
+```
+
+### Gas Considerations
+[Any gas optimization notes]
+```
+
+#### For Shared Hooks
+```markdown
+## Hook Name
+`use[FeatureName]`
+
+## Purpose
+[What this hook does]
+
+## API Design
+```typescript
+function use[Feature](options?: {
+  // options
+}): {
+  data: [Type] | undefined;
+  isLoading: boolean;
+  error: Error | null;
+  // other returns
+}
+```
+
+## Done State
+- [ ] Hook implemented in `packages/shared/src/hooks/`
+- [ ] TypeScript types exported
+- [ ] Unit tests (80%+ coverage)
+- [ ] Re-exported from package index
+- [ ] Used in at least one view
+
+## AI Implementation Notes
+
+### Data Source
+- [ ] GraphQL (Indexer)
+- [ ] Contract Read
+- [ ] IndexedDB / Local Storage
+- [ ] Zustand Store
+- [ ] Computed
+
+### Pattern Reference
+Follow `packages/shared/src/hooks/useGarden.ts`
+
+### TanStack Query Integration
+- Query key: `['[feature]', id]`
+- Stale time: [appropriate duration]
+
+### Testing
+```bash
+cd packages/shared && bun test use[Feature]
+```
+```
+
+### Step 5: Green Goods Compliance
+
+Always include for Green Goods issues:
 
 ```markdown
-## Architecture
+## Compliance Checklist
+- [ ] Hooks in `@green-goods/shared` only (if new hook)
+- [ ] i18n keys added to en.json, es.json, pt.json (if new UI strings)
+- [ ] No hardcoded contract addresses (use deployment artifacts)
+- [ ] Tests meet coverage targets (Client/Admin: 70%, Shared: 80%, Contracts: 100%)
+- [ ] Follows existing patterns in codebase
+```
 
+### Step 6: Create the Issue
+
+```bash
+# Write issue body to temp file
+cat << 'EOF' > /tmp/issue-body.md
+[Generated issue content]
+EOF
+
+# Create issue with appropriate template labels
+gh issue create \
+  --repo greenpill-dev-guild/green-goods \
+  --title "[TYPE]: Brief description" \
+  --label "label1,label2" \
+  --body-file /tmp/issue-body.md
+
+# Add to Green Goods project board
+gh project item-add 4 --owner greenpill-dev-guild --url [issue-url]
+```
+
+### Step 7: Verify & Report
+
+After creating:
+1. ✅ Display issue URL
+2. 📋 Show issue number
+3. 🏷️ List labels applied
+4. 📊 Confirm project board addition
+5. 🔗 Note any related issues
+
+---
+
+## Mermaid Diagrams
+
+Include diagrams for complex flows:
+
+### Architecture Diagram
+```markdown
 ```mermaid
 flowchart LR
     A[User Action] --> B[Hook]
-    B --> C[API Call]
-    C --> D[Database]
+    B --> C[API/Contract]
+    C --> D[Data Store]
     D --> C
     C --> B
     B --> E[UI Update]
 ```
+```
 
-## State Flow
-
+### State Flow Diagram
+```markdown
 ```mermaid
 stateDiagram-v2
     [*] --> Idle
@@ -149,67 +358,97 @@ stateDiagram-v2
 ```
 ```
 
-## Green Goods Ticket Additions
-
-For Green Goods issues, include:
-
-**Package scope**:
+### Sequence Diagram
 ```markdown
-## Affected Packages
-- [ ] shared
-- [ ] client
-- [ ] admin
-- [ ] contracts
-- [ ] indexer
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant C as Client
+    participant S as Shared Hook
+    participant I as Indexer
+    U->>C: Action
+    C->>S: useFeature()
+    S->>I: GraphQL Query
+    I-->>S: Data
+    S-->>C: State Update
+    C-->>U: UI Update
+```
 ```
 
-**Compliance checklist**:
-```markdown
-## Compliance
-- [ ] Hook in shared package (if new hook)
-- [ ] i18n keys added (if new UI strings)
-- [ ] No hardcoded addresses (if contract interaction)
-- [ ] Tests added (coverage target met)
-```
+---
 
-**Offline considerations** (if applicable):
-```markdown
-## Offline Behavior
-- How should this work offline?
-- Job queue integration needed?
-- IndexedDB storage needed?
-```
+## Available Labels
 
-## Ticket Quality Checklist
+### Type Labels
+- `bug` - Something isn't working
+- `enhancement` - New feature or request
+- `task` - General engineering task
+- `story` - User story
+- `spike` - Research/investigation
 
-Before submitting:
+### Package Labels
+- `contract` - Smart contract work
+- `api` - Indexer/API work
+- `component` - UI component
+- `design` - Design needed
+- `documentation` - Docs updates
 
+### Status Labels
+- `triage` - Needs review
+- `good first issue` - Good for newcomers
+- `help wanted` - Extra attention needed
+
+---
+
+## Quality Checklist
+
+Before creating ticket:
 - [ ] Summary is clear and specific
 - [ ] Context explains why this matters
-- [ ] Requirements are testable
 - [ ] Acceptance criteria are verifiable
-- [ ] Implementation notes provide starting points
-- [ ] Out of scope is defined
-- [ ] Related issues are linked
+- [ ] AI notes include file paths and patterns
+- [ ] Compliance checklist included
+- [ ] Related issues linked
+- [ ] Appropriate labels selected
 - [ ] Diagrams added for complex flows
 
-## Creating the Ticket
+---
 
+## Examples
+
+### Quick Bug Ticket
 ```bash
-gh issue create \
-  --title "[type]: Brief description" \
-  --body "$(cat <<'EOF'
-[Ticket content here]
-EOF
-)" \
-  --label "type:feature" \
-  --assignee "@me"
+/ticket bug "Login button not responding on mobile Safari"
 ```
 
-## Output
+### Quick Feature Ticket
+```bash
+/ticket feature "Add dark mode toggle to settings" --package client,shared
+```
 
-After creating ticket:
-1. Display issue URL
-2. Show issue number
-3. Confirm labels applied
-4. Ready for implementation
+### Quick Task Ticket
+```bash
+/ticket task "Refactor useGarden hook to use new GraphQL schema"
+```
+
+### Contract Ticket
+```bash
+/ticket contract "Add batch approval function to WorkApproval resolver"
+```
+
+---
+
+## Output Format
+
+```
+✅ Issue created successfully!
+
+📋 Issue: #265
+🔗 URL: https://github.com/greenpill-dev-guild/green-goods/issues/265
+🏷️ Labels: bug, triage
+📊 Added to: Green Goods project board
+
+🔗 Related Issues:
+- #123 - Similar bug reported
+- #200 - Parent feature
+```
