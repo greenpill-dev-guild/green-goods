@@ -14,9 +14,9 @@ Use when:
 
 | Code | Language | File |
 |------|----------|------|
-| en | English | `packages/shared/src/i18n/locales/en.json` |
-| es | Spanish | `packages/shared/src/i18n/locales/es.json` |
-| pt | Portuguese | `packages/shared/src/i18n/locales/pt.json` |
+| en | English | `packages/shared/src/i18n/en.json` |
+| es | Spanish | `packages/shared/src/i18n/es.json` |
+| pt | Portuguese | `packages/shared/src/i18n/pt.json` |
 
 ## Process
 
@@ -35,8 +35,8 @@ This will identify:
 
 ```bash
 # Compare en.json with other locales
-diff <(jq 'keys' packages/shared/src/i18n/locales/en.json | sort) \
-     <(jq 'keys' packages/shared/src/i18n/locales/es.json | sort)
+diff <(jq 'keys' packages/shared/src/i18n/en.json | sort) \
+     <(jq 'keys' packages/shared/src/i18n/es.json | sort)
 ```
 
 ### Phase 3: Semantic Key Validation
@@ -123,9 +123,9 @@ Ensure all files have same structure:
 
 ```bash
 # Check JSON validity
-jq '.' packages/shared/src/i18n/locales/en.json > /dev/null
-jq '.' packages/shared/src/i18n/locales/es.json > /dev/null
-jq '.' packages/shared/src/i18n/locales/pt.json > /dev/null
+jq '.' packages/shared/src/i18n/en.json > /dev/null
+jq '.' packages/shared/src/i18n/es.json > /dev/null
+jq '.' packages/shared/src/i18n/pt.json > /dev/null
 ```
 
 ### Phase 8: Generate Report
