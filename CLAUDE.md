@@ -255,26 +255,42 @@ Use `/ticket` or the `gh-ticket` skill to create context-rich GitHub issues. The
 
 **Quick Commands:**
 ```bash
-/ticket bug "Description"      # Bug report with triage label
-/ticket feature "Description"  # Feature request
-/ticket task "Description"     # Engineering task
-/ticket contract "Description" # Smart contract work
-/ticket hook "Description"     # New shared hook
-/ticket spike "Description"    # Research/investigation
+/ticket bug "Description"              # Bug report with triage label
+/ticket feature "Description"          # Simple feature (1-2 packages)
+/ticket feature --complete "Desc"      # AI-buildable spec (3+ packages)
+/ticket task "Description"             # Engineering task
+/ticket contract "Description"         # Smart contract work
+/ticket hook "Description"             # New shared hook
+/ticket spike "Description"            # Research/investigation
 ```
 
-**Available Issue Templates** (YAML forms with validation):
+**Two-Tier Feature Templates:**
+
+| Template | Flag | Use For |
+|----------|------|---------|
+| Feature Simple | `/ticket feature` | Quick features, 1-2 packages, human implementation |
+| **Feature Complete** | `/ticket feature --complete` | **AI-buildable specs**: 3+ packages, offline support, AI agent assignment |
+
+Use `--complete` when the feature spans multiple packages or will be assigned to an AI agent. It includes:
+- Testable acceptance criteria (Given/When/Then)
+- TypeScript API contracts for hooks/stores
+- GraphQL schema additions
+- Test specifications with fixtures
+- Error handling matrix
+- Offline implementation patterns
+- AI self-verification checklist
+
+**All Issue Templates:**
 
 | Template | Labels | Use For |
 |----------|--------|---------|
 | 🐛 Bug Report | `bug`, `triage` | Bugs with reproduction steps |
-| ✨ Feature Request | `enhancement` | New features with acceptance criteria |
+| ✨ Feature (Simple) | `enhancement` | Quick features, human implementation |
+| ✨ Feature (Complete) | `enhancement` | AI-buildable specs, complex features |
 | 🔧 Engineering Task | `task` | Specific engineering work |
 | 📜 Smart Contract | `contract` | Contract creation/modification |
 | 🪝 Shared Hook | `component` | New hooks in shared package |
-| 📖 User Story | `story` | Product-focused user stories |
 | 🔬 Spike | `spike` | Research with timebox |
-| 🎨 Design Request | `design` | Design work requests |
 
 **Package Labels** (auto-detected from file paths):
 - `client` - Client PWA package
@@ -283,16 +299,10 @@ Use `/ticket` or the `gh-ticket` skill to create context-rich GitHub issues. The
 - `contract` - Smart contracts
 - `indexer` - Envio indexer
 - `agent` - Telegram/Discord bot agent
-- `triage` - Needs initial review
-
-**AI Context Sections:**
-Every issue template includes an "AI Notes" section for:
-- Files analyzed during investigation
-- Error messages and stack traces
-- Suggested implementation approach
-- Pattern references from codebase
 
 Issues are automatically added to the **Green Goods** project board.
+
+**Full Guide:** `.claude/docs/gh-ticket-guide.md`
 
 ### Available Agents (5)
 

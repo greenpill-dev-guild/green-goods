@@ -18,15 +18,33 @@ Use when:
 
 ## Quick Reference
 
-| Command | Template | Labels |
-|---------|----------|--------|
-| `/ticket bug` | Bug Report | `bug`, `triage` |
-| `/ticket feature` | Feature Request | `enhancement` |
-| `/ticket task` | Engineering Task | `task` |
-| `/ticket contract` | Smart Contract | `contract` |
-| `/ticket hook` | Shared Hook | `component`, `shared` |
-| `/ticket story` | User Story | `story` |
-| `/ticket spike` | Investigation | `spike` |
+| Command | Template | Labels | Use For |
+|---------|----------|--------|---------|
+| `/ticket bug` | Bug Report | `bug`, `triage` | Bug reports with reproduction steps |
+| `/ticket feature` | Feature Request | `enhancement` | Simple features (1-2 packages) |
+| `/ticket feature --complete` | Feature Complete | `enhancement` | **AI-buildable specs** (3+ packages) |
+| `/ticket task` | Engineering Task | `task` | Specific engineering work |
+| `/ticket contract` | Smart Contract | `contract` | Contract creation/modification |
+| `/ticket hook` | Shared Hook | `component`, `shared` | New hooks in shared package |
+| `/ticket story` | User Story | `story` | Product-focused user stories |
+| `/ticket spike` | Investigation | `spike` | Research with timebox |
+
+### AI-Buildable Feature Tickets
+
+Use `--complete` flag for features that:
+- Span 3+ packages (client, shared, contracts, indexer)
+- Require offline support
+- Will be assigned to AI agents
+- Need complex state management
+
+The complete template includes:
+- Testable acceptance criteria (Given/When/Then)
+- Full hook API contracts with TypeScript
+- GraphQL schema additions
+- Test specifications with fixtures
+- Error handling matrix
+- Offline implementation patterns
+- AI self-verification checklist
 
 ---
 
@@ -39,12 +57,35 @@ Automatically determine from conversation context:
 | Detected Context | Type | Template |
 |------------------|------|----------|
 | Error, exception, "not working" | Bug | `bug.yml` |
-| "add", "implement", "new feature" | Feature | `feature.yml` |
+| "add", "implement", "new feature" | Feature | `feature.md` |
+| Complex feature (3+ packages, AI agent, offline) | Feature Complete | `feature-complete.md` |
 | UI work, component creation | Component | `hook.yml` |
 | Contract, Solidity, upgrade | Contract | `contract.yml` |
 | Refactor, cleanup, technical debt | Task | `task.yml` |
 | "investigate", "research", "spike" | Spike | `spike.yml` |
 | User journey, acceptance criteria | Story | `story.yml` |
+
+### Step 1.5: Feature Complexity Check
+
+For feature requests, assess complexity to choose template:
+
+```
+Is this feature...?
+├── Spanning 3+ packages → Use feature-complete.md
+├── Requiring offline support → Use feature-complete.md
+├── Being assigned to AI agent → Use feature-complete.md
+├── Needing complex state management → Use feature-complete.md
+└── Simple (1-2 packages, online-only) → Use feature.md
+```
+
+**Feature Complete template includes:**
+- Testable acceptance criteria (Given/When/Then tables)
+- Full TypeScript API contracts for hooks
+- GraphQL schema additions for indexer
+- Complete test specifications with fixtures
+- Error handling matrix with codes and messages
+- Offline job queue implementation patterns
+- AI self-verification checklist
 
 ### Step 2: Gather Codebase Context
 

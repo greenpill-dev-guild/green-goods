@@ -2,6 +2,24 @@
 
 > This template extends the generic org-level feature template with Green Goods-specific sections.
 
+---
+
+## Template Selection Guide
+
+| Complexity | Template | When to Use |
+|------------|----------|-------------|
+| **Simple** | This template (`feature.md`) | 1-2 packages, online-only, quick implementation |
+| **Complex** | [`feature-complete.md`](./feature-complete.md) | 3+ packages, offline support, AI agent assignment, complex state |
+
+**Use `feature-complete.md` when:**
+- Feature spans client + shared + contracts + indexer
+- Offline-first behavior is required
+- Issue will be assigned to an AI agent for autonomous implementation
+- Complex state management with Zustand stores needed
+- You need testable acceptance criteria (Given/When/Then)
+
+---
+
 ## Template Structure
 
 ```markdown
