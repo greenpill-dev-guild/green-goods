@@ -43,6 +43,19 @@ jobs:
         env:
           CI: true
 
+      - name: Generate coverage report
+        run: |
+          cd packages/admin
+          bun run test:coverage
+        env:
+          CI: true
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        with:
+          directory: packages/admin/coverage
+          flags: admin-dashboard
+
   lint-and-build:
     runs-on: ubuntu-latest
     steps:
