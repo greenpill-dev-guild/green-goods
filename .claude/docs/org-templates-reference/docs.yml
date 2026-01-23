@@ -1,0 +1,158 @@
+name: Documentation
+description: Documentation updates, guides, API docs
+title: "[DOCS]: "
+labels: ["documentation"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for documentation updates, new guides, API documentation, or README improvements.
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this documentation?
+      options:
+        - Critical - Blocking onboarding or causing confusion
+        - High - Important for upcoming release or feature
+        - Medium - Would improve developer experience
+        - Low - Nice to have, minor improvement
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Documentation Type
+      description: What kind of documentation is this?
+      options:
+        - README - Project or package README
+        - API Docs - API reference documentation
+        - Guide - How-to guide or tutorial
+        - Architecture - System design documentation
+        - Agent Rules - AI assistant configuration
+        - Contributing - Contribution guidelines
+        - Changelog - Release notes or changelog
+    validations:
+      required: true
+
+  - type: dropdown
+    id: package
+    attributes:
+      label: Affected Package/Module
+      description: Which package(s) does this documentation cover?
+      multiple: true
+      options:
+        - project-wide
+        - frontend
+        - backend
+        - shared/common
+        - contracts/blockchain
+        - api/indexer
+        - other
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Documentation Scope
+      description: What documents need to be created or updated?
+      placeholder: |
+        ### Documents to Update
+        | Document | Sections |
+        |----------|----------|
+        | README.md | Installation, Usage |
+
+        ### Documents to Create
+        | Document | Purpose |
+        |----------|---------|
+        | CONTRIBUTING.md | Contribution guidelines |
+    validations:
+      required: true
+
+  - type: textarea
+    id: outline
+    attributes:
+      label: Content Outline
+      description: Key sections and topics to cover
+      placeholder: |
+        1. Overview
+           - What this covers
+           - Prerequisites
+        2. Getting Started
+           - Installation
+           - Configuration
+        3. Usage
+           - Basic examples
+           - Advanced patterns
+        4. API Reference
+           - Methods
+           - Types
+    validations:
+      required: true
+
+  - type: textarea
+    id: source
+    attributes:
+      label: Source Material
+      description: Where to get information for this documentation
+      placeholder: |
+        | Source | What to Extract |
+        |--------|-----------------|
+        | `src/hooks/useAuth.ts` | API signatures, usage patterns |
+        | Existing README | Update with new features |
+        | Team knowledge | Best practices, gotchas |
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Code Examples Required
+      description: What code examples should be included?
+      placeholder: |
+        | Example | Language | Purpose |
+        |---------|----------|---------|
+        | Basic usage | TypeScript | Show simple hook usage |
+        | Advanced config | TypeScript | Show all options |
+        | CLI commands | Bash | Installation and setup |
+
+  - type: textarea
+    id: ai-context
+    attributes:
+      label: AI Implementation Notes
+      description: |
+        For AI assistants: Add content guidance, file references, accuracy requirements.
+      placeholder: |
+        ## Content Requirements
+        - Must be accurate as of current code
+        - Include runnable examples
+        - Follow existing doc style
+
+        ## Files to Reference
+        - `src/...` for API signatures
+        - `tests/...` for usage examples
+
+        ## Verification
+        - Code examples must compile/run
+        - Links must be valid
+
+  - type: textarea
+    id: effort-estimate
+    attributes:
+      label: Effort Estimate
+      description: AI-suggested and/or final estimate
+      placeholder: |
+        **AI Suggested:** X hours
+        **Final Estimate:**
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## Best Practices Reference
+        - [Technical Writing Guide](https://developers.google.com/tech-writing)
+        - [Documentation System (Divio)](https://documentation.divio.com/)
+        - [README Best Practices](https://github.com/matiassingers/awesome-readme)
+        - [Conventional Commits](https://www.conventionalcommits.org/)

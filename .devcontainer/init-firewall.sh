@@ -188,7 +188,15 @@ PROJECT_DOMAINS=(
     # Telegram (agent)
     "api.telegram.org"
 
-    # Etherscan (contract verification)
+    # Etherscan-family APIs (contract verification, explorers)
+    # NOTE:
+    #   - These endpoints (Etherscan, Basescan, Arbiscan, Celoscan, etc.)
+    #     normally require API keys and enforce rate limits.
+    #   - This firewall script only whitelists network access; it does NOT
+    #     validate API keys or configure rate limiting.
+    #   - For production use, ensure API keys are provided via environment
+    #     variables (for example in a .env file) and never hard-coded in
+    #     source code or this script.
     "api.etherscan.io"
     "api-sepolia.basescan.org"
     "api.arbiscan.io"

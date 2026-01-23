@@ -1,0 +1,15 @@
+# GitHub Issue Template Chooser Configuration
+# This config file controls how templates appear in the issue creation UI
+
+blank_issues_enabled: false
+
+contact_links:
+  - name: Ask a Question
+    url: https://t.me/greenpilldevguild
+    about: Ask questions in our Telegram community
+  - name: Documentation
+    url: https://docs.greenpill.dev
+    about: Check the documentation for guides and references
+  - name: Feature Discussion
+    url: https://github.com/orgs/greenpill-dev-guild/discussions
+    about: Discuss ideas before creating an issue
