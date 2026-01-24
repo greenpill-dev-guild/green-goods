@@ -1,92 +1,191 @@
-# Codebase Audit Skill
+# Audit Skill
 
-Systematic codebase analysis to identify quality issues, technical debt, and architectural problems.
+Systematic codebase analysis combining quality audit and architectural review to identify technical debt, dead code, and violations.
 
 ## Activation
 
 Use when:
-- Starting a new feature to understand codebase health
+- Starting a new feature (`/audit`)
 - Before major refactoring
 - Periodic quality assessment
-- User requests `/audit`
+- Evaluating codebase health
 
-## Process
+## Agent Routing
 
-### Phase 1: Discovery & Planning
+| Scenario | Agent | Why |
+|----------|-------|-----|
+| Deep architectural investigation | `oracle` | Multi-source research |
+| Fixing audit findings | `cracked-coder` | Tracked implementation |
+| Review of audit fixes | `code-reviewer` | 6-pass verification |
+| Quick targeted audit | Direct (no agent) | Faster results |
 
-1. Establish audit scope (package or full monorepo)
-2. Map file structure using Glob
-3. Create tracking in memory for findings
-4. Initialize markdown report at `.plans/audits/[date]-audit.md`
+**Invocation**: Say "use oracle to investigate [pattern]" or spawn via Task tool.
 
-### Phase 2: Automated Analysis
+---
 
-Run these checks (Green Goods adapted):
+## Progress Tracking (REQUIRED)
+
+**Every audit MUST use TodoWrite for visibility and session continuity.**
+
+### For Full Audit
+```
+1. Todo: "Run automated checks (tsc, lint)" → in_progress
+2. Todo: "Check Green Goods compliance" → pending
+3. Todo: "Review files in [package]" → pending (one per package)
+4. Todo: "Detect dead code" → pending
+5. Todo: "Check architectural patterns" → pending
+6. Todo: "Generate audit report" → pending
+```
+
+### During Audit
+```
+- Mark each section completed as you finish
+- Add findings as sub-todos: "Finding: [severity] [description]"
+- Track packages reviewed vs pending
+```
+
+### Why This Matters
+- **Resumable audits**: Large codebases take time
+- **Team handoff**: Another person can continue
+- **Completeness**: Ensures nothing is skipped
+
+---
+
+## Part 1: Automated Analysis
+
+### Run Automated Checks
 
 ```bash
 # Type checking
-cd /Users/afo/Code/greenpill/green-goods && bun run --filter [package] tsc --noEmit
+bun run --filter [package] tsc --noEmit
 
-# Linting with oxlint
+# Linting
 bun lint
 
-# Contract-specific (if auditing contracts)
+# Contract analysis (if applicable)
 cd packages/contracts && forge build && solhint 'src/**/*.sol'
 
 # Find TODO/FIXME markers
-grep -rn "TODO\|FIXME\|HACK\|XXX" --include="*.ts" --include="*.tsx" --include="*.sol" packages/
+grep -rn "TODO\|FIXME\|HACK\|XXX" --include="*.ts" --include="*.tsx" packages/
 ```
 
-### Phase 3: Systematic File Review
+### Green Goods Specific
 
-For each file, check:
+```bash
+# Hook location
+bash .claude/scripts/validate-hook-location.sh
+
+# i18n completeness
+node .claude/scripts/check-i18n-completeness.js
+
+# Contract artifacts match
+diff packages/contracts/out/ packages/contracts/deployments/
+```
+
+---
+
+## Part 2: File-by-File Review
+
+### For Each File Check
 
 1. **Deprecations** - Outdated patterns, old APIs
 2. **Unfinished work** - TODO comments, incomplete implementations
 3. **Architectural violations**:
    - Hooks in client/admin (must be in shared)
    - Package-level .env files (forbidden)
-   - Hardcoded contract addresses (use deployment artifacts)
-   - Runtime chain switching (single chain only)
+   - Hardcoded contract addresses
+   - Runtime chain switching
 4. **Type problems** - `any`, `unknown`, type assertions
 5. **Code smells** - Long functions, deep nesting, magic numbers
 
-Assign severity:
+### Severity Levels
+
 - **CRITICAL**: Security issues, data loss risk
 - **HIGH**: Bugs, broken functionality
 - **MEDIUM**: Tech debt, maintainability
 - **LOW**: Style, minor improvements
 
-### Phase 4: Cross-File Analysis
+---
 
-1. **Dependency cycles** - Check for circular imports
-2. **Dead code** - Unused exports, unreachable code
-3. **Duplicate logic** - Similar implementations across packages
-4. **Hook boundary violations** - Ensure all hooks in shared package
+## Part 3: Dead Code Detection
 
-### Phase 5: Green Goods Specific Checks
+### Process
 
-1. **Contract artifacts**:
+1. **Identify exports**
    ```bash
-   # Verify deployments match compiled ABIs
-   diff packages/contracts/out/ packages/contracts/deployments/
+   grep -n "export " [file]
    ```
 
-2. **i18n completeness**:
+2. **Search for usage**
    ```bash
-   node .claude/scripts/check-i18n-completeness.js
+   grep -rn "[export-name]" packages/ --include="*.ts" --include="*.tsx"
    ```
 
-3. **Hook location validation**:
-   ```bash
-   bash .claude/scripts/validate-hook-location.sh
-   ```
+3. **Categorize**:
+   - **Dead**: No usage found
+   - **Possibly Dead**: Only test usage
+   - **Internal**: Used within same file
+   - **Active**: Used across codebase
 
-4. **Schema immutability** - Ensure schemas.json unchanged
+4. **Verify false positives**:
+   - Framework hooks (React components)
+   - Public APIs
+   - Contract entry points
 
-### Phase 6: Report Generation
+---
 
-Create structured report at `.plans/audits/[date]-audit.md`:
+## Part 4: Architectural Anti-Patterns
+
+| Anti-Pattern | Detection | Example |
+|--------------|-----------|---------|
+| God Objects | Files > 500 lines | Large utility files |
+| Circular Deps | Import cycles | A imports B imports A |
+| Tight Coupling | Direct instantiation | `new ServiceClass()` |
+| Layer Violations | Wrong import direction | Client importing admin |
+
+### Green Goods Violations
+
+```bash
+# Hooks outside shared
+grep -rn "^export.*use[A-Z]" packages/client packages/admin
+
+# Package .env files
+find packages -name ".env*" -not -path "*/node_modules/*"
+
+# Hardcoded addresses
+grep -rn "0x[a-fA-F0-9]\{40\}" packages/ --include="*.ts" --include="*.tsx"
+
+# Runtime chain switching
+grep -rn "chainId" packages/ --include="*.ts" | grep -v "DEFAULT_CHAIN_ID"
+```
+
+---
+
+## Part 5: Type Issues
+
+| Issue | Pattern | Severity |
+|-------|---------|----------|
+| `any` type | `: any` | High |
+| `unknown` type | `: unknown` | Medium |
+| Type assertions | `as Type` | Medium |
+| @ts-ignore | `//@ts-ignore` | High |
+
+```bash
+# Find any/unknown
+grep -rn ": any\|: unknown" packages/ --include="*.ts" --include="*.tsx"
+
+# Find assertions
+grep -rn " as [A-Z]" packages/ --include="*.ts" --include="*.tsx"
+
+# Find ts-ignore
+grep -rn "@ts-ignore\|@ts-nocheck" packages/ --include="*.ts" --include="*.tsx"
+```
+
+---
+
+## Part 6: Report Generation
+
+Create at `.plans/audits/[date]-audit.md`:
 
 ```markdown
 # Audit Report - [Date]
@@ -101,14 +200,25 @@ Create structured report at `.plans/audits/[date]-audit.md`:
 ## Critical Findings
 [List with file:line references]
 
-## High Priority
-[List with file:line references]
+## Dead Code
+| File | Export | Last Used | Recommendation |
+|------|--------|-----------|----------------|
 
-## Medium Priority
-[List with file:line references]
+## Duplications
+| Pattern | Locations | Impact |
+|---------|-----------|--------|
 
-## Low Priority
-[List with file:line references]
+## Anti-Patterns
+| Issue | Location | Severity | Fix |
+|-------|----------|----------|-----|
+
+## Type Issues
+| File | Line | Issue | Severity |
+|------|------|-------|----------|
+
+## Green Goods Violations
+| Rule | Violation | Location |
+|------|-----------|----------|
 
 ## Automated Tool Results
 ### TypeScript
@@ -117,12 +227,109 @@ Create structured report at `.plans/audits/[date]-audit.md`:
 ### Linting
 [oxlint output]
 
-### Contract Analysis
-[forge/solhint output]
-
 ## Recommendations
-[Prioritized action items]
+1. [Priority 1 action]
+2. [Priority 2 action]
+
+## Statistics
+- Total lines: N
+- Type safety: Y%
+- Estimated cleanup: Z hours
 ```
+
+---
+
+## Part 7: Issue Creation from Findings (Prompt First)
+
+### When to Offer Issue Creation
+
+After generating audit report, for CRITICAL or HIGH findings:
+
+1. **Prompt the user** using AskUserQuestion tool:
+
+   ```json
+   // Exact tool call format:
+   {
+     "questions": [{
+       "question": "Audit found N CRITICAL and M HIGH issues. Create GitHub issues for these findings?",
+       "header": "Issues",
+       "options": [
+         {
+           "label": "All CRITICAL/HIGH",
+           "description": "Create issues for all significant findings with full context"
+         },
+         {
+           "label": "CRITICAL only",
+           "description": "Only create issues for blocking/security issues"
+         },
+         {
+           "label": "Skip",
+           "description": "Don't create issues, just report findings"
+         }
+       ],
+       "multiSelect": false
+     }]
+   }
+   ```
+
+2. **Always ask before creating** — never auto-create issues.
+
+### Issue Template for Audit Findings
+
+```bash
+gh issue create \
+  --title "audit: [finding-title]" \
+  --label "tech-debt" \
+  --assignee "@me" \
+  --project "Green Goods" \
+  --body "$(cat <<'EOF'
+## Audit Finding
+
+**Severity**: [CRITICAL/HIGH/MEDIUM]
+**Location**: `[file:line]`
+**Audit Date**: [date]
+
+## Description
+[Finding description]
+
+## Impact
+[What could go wrong if not fixed]
+
+## Recommended Fix
+[How to resolve this issue]
+
+## Related Files
+- `[file1.ts]`
+- `[file2.ts]`
+
+---
+*Auto-generated from audit report: `.plans/audits/[date]-audit.md`*
+EOF
+)"
+```
+
+### Batch Creation
+
+For multiple findings:
+```bash
+# Create issues in batch, capture issue numbers
+for finding in findings; do
+  ISSUE_URL=$(gh issue create ... --json url --jq '.url')
+  echo "Created: $ISSUE_URL"
+done
+
+# Add summary comment to audit report
+gh issue comment [AUDIT_TRACKING_ISSUE] --body "Created issues: #1, #2, #3"
+```
+
+### Post-Creation
+
+After creating issues:
+1. Update audit report with issue links
+2. Add issues to project board
+3. Set priority field based on severity
+
+---
 
 ## Key Principles
 
@@ -131,11 +338,14 @@ Create structured report at `.plans/audits/[date]-audit.md`:
 - **Evidence-based** - Every finding needs file:line reference
 - **Severity consistency** - Apply same standards across codebase
 - **Green Goods conventions** - Check against CLAUDE.md rules
+- **Prompt before issues** - Always ask user before creating GitHub issues
 
 ## Output
 
-Present findings to user with:
-1. Summary statistics
+Present to user:
+1. Executive summary
 2. Top 5 critical/high findings
-3. Link to full report
-4. Recommended next steps
+3. Green Goods violations
+4. Link to full report
+5. Offer to create GitHub issues (prompt first)
+6. Recommended next steps

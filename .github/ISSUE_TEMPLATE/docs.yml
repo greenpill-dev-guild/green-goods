@@ -1,0 +1,28 @@
+name: Documentation
+description: Documentation improvement or addition
+labels: ["documentation"]
+body:
+  - type: dropdown
+    id: type
+    attributes:
+      label: Documentation Type
+      options:
+        - New documentation
+        - Update existing docs
+        - Fix incorrect information
+        - Add code examples
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What documentation change is needed?
+    validations:
+      required: true
+  - type: input
+    id: location
+    attributes:
+      label: Location
+      description: Where should this documentation live?
+      placeholder: "README.md, docs/, CLAUDE.md"

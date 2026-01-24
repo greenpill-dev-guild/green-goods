@@ -124,6 +124,39 @@ export default defineConfig({
         viewport: { width: 390, height: 844 },
       },
     },
+
+    // ========================================================================
+    // INTEGRATION TESTING PROJECTS
+    // ========================================================================
+
+    // Anvil Fork - Tests with local Anvil fork of Base Sepolia
+    // Run with: bun test:e2e:fork
+    // Requires Anvil running: bun anvil:start
+    {
+      name: "anvil-fork",
+      testMatch: /.*\.fork\.spec\.ts$/,
+      use: { ...devices["Desktop Chrome"] },
+      timeout: 60000, // Longer timeout for blockchain interactions
+    },
+
+    // Passkey Mock - Tests with mocked Pimlico bundler/paymaster
+    // Enables full passkey E2E tests without real infrastructure
+    // Run with: bun test:e2e:passkey
+    {
+      name: "passkey-mock",
+      testMatch: /.*\.passkey\.spec\.ts$/,
+      use: { ...devices["Desktop Chrome"] },
+    },
+
+    // Testnet - Tests against real Base Sepolia (manual only)
+    // Run with: bun test:e2e:testnet
+    // Requires: TEST_WALLET_PRIVATE_KEY env var
+    {
+      name: "testnet",
+      testMatch: /.*\.testnet\.spec\.ts$/,
+      use: { ...devices["Desktop Chrome"] },
+      timeout: 120000, // Extra long timeout for real transactions
+    },
   ],
 
   // WebServer configuration - starts services if not running

@@ -8,6 +8,90 @@ Ultra-critical 6-pass code review agent that posts findings to GitHub PRs.
 - **Model**: opus
 - **Description**: Conducts systematic 6-pass code review and posts to GitHub
 
+## Configuration
+
+```yaml
+# MCP Server Access
+mcp_servers: []  # Read-only agent, no external servers needed
+
+# Extended Thinking
+thinking:
+  enabled: true
+  budget_tokens: 4000  # Moderate depth for thorough analysis
+
+# Permissions (read-only)
+permissions:
+  - Read
+  - Glob
+  - Grep
+  - WebFetch
+  - WebSearch
+  - Bash(gh:*)  # Only for posting PR comments
+  - TodoWrite
+```
+
+## Output Schema
+
+```yaml
+output_schema:
+  type: object
+  required: [findings, recommendation, coverage_percent, verification]
+  properties:
+    findings:
+      type: array
+      items:
+        type: object
+        required: [severity, location, description]
+        properties:
+          severity:
+            type: string
+            enum: [CRITICAL, HIGH, MEDIUM, LOW]
+          location:
+            type: string
+            description: "file:line format"
+          description:
+            type: string
+          suggestion:
+            type: string
+    recommendation:
+      type: string
+      enum: [APPROVE, REQUEST_CHANGES]
+    coverage_percent:
+      type: number
+      description: "Percentage of requirements covered (0-100)"
+    verification:
+      type: object
+      properties:
+        tests_checked: boolean
+        lint_checked: boolean
+        build_checked: boolean
+        gg_conventions_checked: boolean
+```
+
+## Progress Tracking (REQUIRED)
+
+**Every review MUST use TodoWrite for visibility and session continuity.**
+
+### Before Starting
+```
+1. Todo: "Pass 0: Understanding changes" → in_progress
+2. Todo: "Pass 1-5: Technical analysis" → pending
+3. Todo: "Pass 6: Synthesis and recommendation" → pending
+4. Todo: "Post review to GitHub" → pending
+```
+
+### During Review
+```
+- After each pass: mark completed, start next
+- If blocked: add todo describing the issue
+- Keep exactly ONE todo as in_progress
+```
+
+### Why This Matters
+- **Team visibility**: Others see review progress
+- **Resumable**: Can continue review if interrupted
+- **Audit trail**: Shows what was checked
+
 ## Tools Available
 
 - Read
@@ -24,7 +108,7 @@ Use when:
 - PR needs review before merge
 - After completing implementation task
 - User requests code review
-- Part of 4-step-program workflow
+- Part of review skill workflow
 
 ## 6-Pass Protocol
 
@@ -140,10 +224,10 @@ bun build
 ## Related Skills
 
 Leverage these skills for specialized reviews:
-- `contract-deploy-validator` - UUPS storage gaps, gas estimation
-- `i18n-sync` - Translation completeness checks
-- `hook-generator` - Verify hooks follow shared package patterns
-- `offline-sync-debugger` - Job queue and IndexedDB inspection
+- `plan` - Planning methodology for implementation analysis
+- `review` - Full 6-pass code review protocol
+- `debug` - Systematic debugging for issue investigation
+- `audit` - Comprehensive codebase audit
 
 ## GitHub Posting
 

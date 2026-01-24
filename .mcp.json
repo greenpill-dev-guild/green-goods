@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json.schemastore.org/mcp.json",
+  "version": "1.0",
+  "description": "Green Goods MCP server configuration",
+
+  "servers": {
+    "figma": {
+      "description": "Figma design context extraction and Code Connect",
+      "url": "https://mcp.figma.com",
+      "enabled": true,
+      "usage": ["Design-to-code implementation", "Component discovery", "Design system rules"]
+    },
+
+    "vercel": {
+      "description": "Vercel deployment management",
+      "url": "https://mcp.vercel.com",
+      "enabled": true,
+      "usage": ["Deploy applications", "View deployment logs", "Manage environments"]
+    },
+
+    "foundry": {
+      "description": "Smart contract development tools (forge, cast, anvil)",
+      "command": ["foundry-mcp"],
+      "enabled": true,
+      "usage": ["Contract compilation", "Contract testing", "Chain interactions", "Gas estimation"],
+      "tools": ["forge", "cast", "anvil"]
+    },
+
+    "storacha": {
+      "description": "IPFS/Filecoin storage via Storacha",
+      "url": "https://up.storacha.network",
+      "enabled": true,
+      "usage": ["Upload work media to IPFS", "Pin content to Filecoin", "Retrieve CIDs"]
+    },
+
+    "miro": {
+      "description": "Miro whiteboard collaboration",
+      "url": "https://mcp.miro.com",
+      "enabled": true,
+      "usage": ["Architecture diagrams", "Planning sessions", "Research visualization"]
+    },
+
+    "railway": {
+      "description": "Railway deployment management",
+      "command": ["railway-mcp"],
+      "enabled": true,
+      "usage": ["Deploy indexer services", "Manage databases", "View service logs"]
+    }
+  },
+
+  "agentAccess": {
+    "code-reviewer": {
+      "servers": [],
+      "note": "Read-only agent, no MCP servers needed"
+    },
+    "cracked-coder": {
+      "servers": ["foundry", "figma", "vercel", "storacha", "railway"],
+      "note": "Full implementation access: contracts, design, deploy, storage, services"
+    },
+    "oracle": {
+      "servers": ["figma", "vercel", "miro"],
+      "note": "Research access: design discovery, deployment investigation, architecture diagrams"
+    }
+  }
+}
