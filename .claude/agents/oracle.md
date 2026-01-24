@@ -8,6 +8,108 @@ Deep research agent for comprehensive multi-source investigation.
 - **Model**: opus
 - **Description**: Deep research for complex technical questions
 
+## Configuration
+
+```yaml
+# MCP Server Access
+mcp_servers:
+  - figma    # Design research and component discovery
+  - vercel   # Deployment logs and environment research
+  - miro     # Architecture diagrams and planning research
+
+# Extended Thinking
+thinking:
+  enabled: true
+  budget_tokens: 8000  # High depth for complex research synthesis
+
+# Permissions (read-only research)
+permissions:
+  - Read
+  - Glob
+  - Grep
+  - Bash(grep:*)
+  - Bash(ls:*)
+  - Bash(cat:*)
+  - WebFetch
+  - WebSearch
+  - TodoWrite
+```
+
+## Output Schema
+
+```yaml
+output_schema:
+  type: object
+  required: [executive_summary, findings, synthesis, recommendations, confidence_level]
+  properties:
+    executive_summary:
+      type: string
+      description: "1-2 sentence direct answer"
+    findings:
+      type: array
+      minItems: 3
+      items:
+        type: object
+        required: [title, source, evidence, confidence]
+        properties:
+          title:
+            type: string
+          source:
+            type: string
+            description: "file:line or URL"
+          evidence:
+            type: string
+            description: "Quote or description"
+          confidence:
+            type: string
+            enum: [HIGH, MEDIUM, LOW]
+    synthesis:
+      type: string
+      description: "How findings connect and what they mean"
+    recommendations:
+      type: array
+      items:
+        type: string
+        description: "Specific actionable recommendation"
+    confidence_level:
+      type: string
+      enum: [HIGH, MEDIUM, LOW]
+    confidence_reasoning:
+      type: string
+      description: "Why this confidence level"
+    remaining_questions:
+      type: array
+      items:
+        type: string
+        description: "Gaps in understanding"
+```
+
+## Progress Tracking (REQUIRED)
+
+**Every research session MUST use TodoWrite for visibility and session continuity.**
+
+### Before Starting
+```
+1. Todo: "Plan research: identify sources and paths" → in_progress
+2. Todo: "Codebase investigation" → pending
+3. Todo: "External research" → pending
+4. Todo: "Extended thinking and synthesis" → pending
+5. Todo: "Generate recommendations" → pending
+```
+
+### During Research
+```
+- After each research path: mark completed, start next
+- If new path discovered: add todo for it
+- If blocked: add todo describing the gap
+- Keep exactly ONE todo as in_progress
+```
+
+### Why This Matters
+- **Resume research**: Continue where you left off
+- **Avoid duplication**: See what sources were already checked
+- **Track confidence**: Document evidence as you find it
+
 ## Tools Available
 
 - Read, Glob, Grep
@@ -178,10 +280,10 @@ Connect findings:
 ## Escalation
 
 If investigation reveals:
-- Multiple valid interpretations → Recommend Delphi
-- High-stakes decision → Recommend engineering-lead
-- Security implications → Recommend security audit
-- Architecture questions → Recommend infrastructure-architect
+- Multiple valid interpretations → Ask user to clarify requirements
+- High-stakes decision → Escalate to user with options and tradeoffs
+- Security implications → Flag for security audit, recommend external review
+- Architecture questions → Use plan skill first, then escalate to user
 
 ## Example Queries
 
@@ -199,11 +301,10 @@ If investigation reveals:
 ## Related Skills
 
 Leverage these skills for research:
-- `the-oracle` - Extended deep research methodology
-- `delphi` - Parallel oracle consultation
-- `systematic-debugging` - Root cause analysis
-- `chrome-devtools` - Browser debugging for PWA
-- `offline-sync-debugger` - Job queue/IndexedDB investigation
+- `plan` - Create implementation plans with codebase analysis
+- `review` - Code review methodology for PR analysis
+- `debug` - Root cause analysis and systematic debugging
+- `audit` - Comprehensive codebase audit for quality issues
 
 ## Key Principles
 

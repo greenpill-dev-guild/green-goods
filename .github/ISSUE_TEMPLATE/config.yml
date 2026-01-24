@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Greenpill Dev Guild Discord
+    url: https://discord.gg/greenpill
+    about: Questions about implementation or architecture? Ask in Discord first.
+  - name: Workspace (PRD & Specs)
+    url: https://notion.so/greenpill
+    about: View the PRD and create specs before opening User Stories
