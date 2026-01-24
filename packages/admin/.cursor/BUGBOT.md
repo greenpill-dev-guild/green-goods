@@ -1,34 +1,53 @@
-# Green Goods Admin — Bugbot Rules (warnings-first)
+# BUGBOT: Admin Package
 
-Rules for role-based access control and admin patterns.
+Automated warnings for the admin dashboard.
 
----
+## Critical Warnings
 
-## A) Permission checks before mutations
+### Hooks Defined in Admin (FORBIDDEN)
+```
+Pattern: src/hooks/**/*.ts
+Trigger: export function use
+Message: "FORBIDDEN: All hooks must be in @green-goods/shared. Move to packages/shared/src/hooks/"
+```
 
-If any changed file contains `/(addGardener|removeGardener|addOperator|removeOperator)\(/` without `useGardenPermissions` or `canAdd` nearby, then:
-- Add a non-blocking Bug titled "Admin: verify permission check"
-- Body: "Consider verifying permissions with `useGardenPermissions()` before mutations. See `packages/admin/.cursor/rules/access-control.mdc`."
+### Missing Permission Check
+```
+Pattern: src/views/**/*.tsx
+Trigger: function.*View|export default
+Without: useRole|hasPermission|RequireRole
+Message: "Admin views should check permissions with useRole or RequireRole"
+```
 
----
+### Hardcoded Permission
+```
+Pattern: **/*.ts(x)
+Trigger: role\s*===?\s*['"]
+Message: "Use hasPermission(role, Permission.X) instead of hardcoded role checks"
+```
 
-## B) Toast for all transactions
+### Data Exposure Risk
+```
+Pattern: **/*.ts(x)
+Trigger: console\.log.*user|console\.log.*garden|console\.log.*wallet
+Message: "Remove sensitive data from console.log before commit"
+```
 
-If any changed file contains `/writeContract(Async)?\(/` without `useToastAction` or toast preset nearby, then:
-- Add a non-blocking Bug titled "Admin: transaction without toast"
-- Body: "Wrap contract calls with `useToastAction()` or use toast presets (`workToasts`, `approvalToasts`). Users need feedback."
+### Hardcoded Address
+```
+Pattern: src/**/*.ts(x)
+Trigger: ['"]0x[a-fA-F0-9]{40}['"]
+Message: "Use deployment artifacts, not hardcoded addresses"
+```
 
----
-
-## C) Role-based routing
-
-If any changed file defines routes without role guards, then:
-- Add a non-blocking Bug titled "Admin: verify route protection"
-- Body: "Protect admin routes with `RequireDeployer` or `RequireOperatorOrDeployer`. See `packages/admin/.cursor/rules/access-control.mdc`."
-
----
+### Missing Error Boundary
+```
+Pattern: src/views/**/*.tsx
+Trigger: throw new Error
+Without: ErrorBoundary
+Message: "Wrap throwing components in ErrorBoundary"
+```
 
 ## Reference
 
-- `.cursor/rules/access-control.mdc` — Role patterns
-- `.cursor/rules/component-workflows.mdc` — Toast + modal patterns
+See `.claude/context/admin.md` for full patterns.

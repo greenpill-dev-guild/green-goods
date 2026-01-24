@@ -1,36 +1,55 @@
-# Green Goods Indexer — Bugbot Rules (warnings-first)
+# BUGBOT: Indexer Package
 
-Envio-specific patterns for multi-chain indexing.
+Automated warnings for the Envio blockchain indexer.
 
----
+## Critical Warnings
 
-## A) New entities must include chainId
+### Missing chainId Field
+```
+Pattern: src/**/*.ts
+Trigger: context\.(\w+)\.set\(
+Without: chainId
+Message: "Entity MUST include chainId field for multi-chain support"
+```
 
-If any changed file adds a new GraphQL entity without `chainId`, then:
-- Pattern: New `type X @entity` in `schema.graphql` without `chainId: Int!`
-- Add a non-blocking Bug titled "Indexer: entity missing chainId"
-- Body: "All entities must include `chainId: Int!` for multi-chain support. See `packages/indexer/.cursor/rules/envio-conventions.mdc#entity-requirements`."
+### Non-Composite ID
+```
+Pattern: src/**/*.ts
+Trigger: id:\s*event\.params
+Without: \`\$\{.*chainId
+Message: "Use composite ID: `${chainId}-${uid}` for cross-chain uniqueness"
+```
 
----
+### Missing Create-If-Not-Exists
+```
+Pattern: src/**/*.ts
+Trigger: context\.(\w+)\.get\(
+Without: if.*null|??
+Message: "Handle null case - entity may not exist yet"
+```
 
-## B) Use composite IDs
+### Event Handler Without Loader
+```
+Pattern: src/**/*.ts
+Trigger: handler:.*async
+Without: loader:
+Message: "Add loader function to pre-fetch required entities"
+```
 
-If any changed file creates entities with simple IDs instead of composite, then:
-- Pattern: `context.Entity.set({ id: tokenId, ...` without `${chainId}-` prefix
-- Add a non-blocking Bug titled "Indexer: verify composite ID"
-- Body: "Use composite IDs: \`${chainId}-${identifier}\` to prevent collisions across chains. See `packages/indexer/.cursor/rules/envio-conventions.mdc#composite-id-pattern`."
+### Docker Not Running
+```
+Pattern: terminal
+Trigger: bun dev|pnpm dev
+Message: "Ensure Docker is running: `docker ps` should show envio containers"
+```
 
----
-
-## C) Bidirectional relationship updates
-
-If any changed file updates one side of a relationship without the other, then:
-- Add a non-blocking Bug titled "Indexer: verify bidirectional update"
-- Body: "Update both sides of relationships. When adding gardener to garden, also add garden to gardener. See `packages/indexer/.cursor/rules/envio-conventions.mdc#bidirectional-relationships`."
-
----
+### Schema Out of Sync
+```
+Pattern: schema.graphql
+Trigger: any edit
+Message: "Run `bun codegen` after schema changes to regenerate types"
+```
 
 ## Reference
 
-- `.cursor/rules/envio-conventions.mdc` — Entity/handler patterns
-- `.cursor/rules/development.mdc` — Codegen workflow
+See `.claude/context/indexer.md` for full patterns.

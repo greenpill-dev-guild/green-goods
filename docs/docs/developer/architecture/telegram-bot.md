@@ -94,7 +94,7 @@ packages/telegram/
 │   └── bot.db             # Local database (gitignored)
 ├── package.json
 ├── tsconfig.json
-└── AGENTS.md              # AI agent guide
+└── README.md              # Package documentation
 ```
 
 ## Setup & Configuration
@@ -276,6 +276,7 @@ bun test --coverage
 
 ## Related Documentation
 
-- [Package README](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/agent/AGENTS.md)
+- [Package README](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/agent#readme)
+- [Agent Context](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/context/agent.md)
 - [Shared Package](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/shared#readme)
 - [Architecture Overview](../architecture)

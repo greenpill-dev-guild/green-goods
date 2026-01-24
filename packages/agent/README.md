@@ -136,7 +136,7 @@ bun test
 
 ## Architecture
 
-See [AGENTS.md](./AGENTS.md) for detailed architecture documentation including:
+See [agent.md](/.claude/context/agent.md) for detailed architecture documentation including:
 - Ports & Adapters pattern
 - Message contracts
 - Handler patterns

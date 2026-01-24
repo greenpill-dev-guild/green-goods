@@ -139,7 +139,5 @@ CSS variables-based theming:
 **📖 Full details**: [packages/admin/README.md](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/admin#readme)
 
 **Key Files**:
-- Access control: `.cursor/rules/access-control.mdc`
-- State workflows: `.cursor/rules/state-workflows.mdc`
-- GraphQL patterns: `.cursor/rules/graphql-integration.mdc`
+- Patterns and conventions: `.claude/context/admin.md`
 

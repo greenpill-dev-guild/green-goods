@@ -138,6 +138,5 @@ type Garden @entity {
 **📖 Full details**: [packages/indexer/README.md](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/indexer#readme)
 
 **Key Files**:
-- Envio conventions: `.cursor/rules/envio-conventions.mdc`
-- Development workflow: `.cursor/rules/indexer-workflow.mdc`
+- Patterns and conventions: `.claude/context/indexer.md`
 

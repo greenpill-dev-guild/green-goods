@@ -1,34 +1,44 @@
-# Green Goods Shared — Bugbot Rules (warnings-first)
+# BUGBOT: Shared Package
 
-Rules for centralized hooks, providers, and state management.
+Automated warnings for the `@green-goods/shared` package.
 
----
+## Critical Warnings
 
-## A) Query keys must be centralized
+### Hook Naming Convention
+```
+Pattern: src/hooks/**/*.ts
+Trigger: export function [^use]
+Message: "Hook must start with 'use' prefix (e.g., useGarden, useAuth)"
+```
 
-If any changed file contains `/queryKey:\s*\[/` without `queryKeys\.`, then:
-- Add a non-blocking Bug titled "Shared: ad-hoc query key"
-- Body: "Use centralized query keys: `queryKeys.works.merged(...)`, `queryKeys.gardens.all(...)`. See `packages/shared/.cursor/rules/state-patterns.mdc`."
+### Provider Missing Display Name
+```
+Pattern: src/providers/**/*.tsx
+Trigger: createContext without displayName
+Message: "Add displayName to context for React DevTools debugging"
+```
 
----
+### Store Without Persist Check
+```
+Pattern: src/stores/**/*.ts
+Trigger: create( without persist
+Message: "Consider if this store needs persistence (see auth.store.ts for pattern)"
+```
 
-## B) Provider nesting order
+### Missing Query Key Export
+```
+Pattern: src/hooks/**/use*.ts
+Trigger: queryKey: \[.*\] without export in query-keys.ts
+Message: "Add query key to hooks/query-keys.ts for consistency"
+```
 
-If any changed file modifies provider hierarchy and violates required order, then:
-- Add a non-blocking Bug titled "Shared: verify provider nesting order"
-- Body: "Providers must nest: WagmiProvider > QueryClientProvider > AppKitProvider > AuthProvider > AppProvider > JobQueueProvider > WorkProvider. See `packages/shared/.cursor/rules/state-patterns.mdc#provider-hierarchy`."
-
----
-
-## C) Event-driven updates only
-
-If any changed file contains `/setInterval\s*\(/` or periodic invalidation, then:
-- Add a non-blocking Bug titled "Shared: polling instead of events"
-- Body: "Use `useJobQueueEvents()` or React Query subscription patterns. No polling."
-
----
+### Deep Import Instead of Barrel
+```
+Pattern: **/*.ts(x)
+Trigger: from ['"]@green-goods/shared/(?!index)
+Message: "Use barrel import: from '@green-goods/shared'"
+```
 
 ## Reference
 
-- `.cursor/rules/state-patterns.mdc` — Provider/store patterns
-- `.cursor/rules/hook-architecture.mdc` — Hook creation guide
+See `.claude/context/shared.md` for full patterns.

@@ -189,9 +189,5 @@ forge test --gas-report     # With gas reporting
 - [Deployment Checklist](https://github.com/greenpill-dev-guild/green-goods/tree/main/docs/DEPLOYMENT_CHECKLIST.md)
 
 **Key Files**:
-- Deployment patterns: `.cursor/rules/deployment-patterns.mdc`
-- Gas optimization: `.cursor/rules/gas-optimization.mdc`
-- Testing conventions: `.cursor/rules/testing-conventions.mdc`
-- UUPS upgrades: `.cursor/rules/uups-upgrades.mdc`
-- Schema management: `.cursor/rules/schema-management.mdc`
+- Patterns and conventions: `.claude/context/contracts.md`
 
