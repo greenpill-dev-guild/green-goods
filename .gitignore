@@ -91,11 +91,19 @@ web_modules/
 .nuxt
 dist
 
-# Foundry build artifacts (ABI JSON) are stored in `packages/contracts/out/`. Only keep those tracked files; ignore every other `out/` directory.
+# Foundry build artifacts - ignore all out/ directories
 out/
 **/out/
+
+# Keep only the specific ABIs imported by packages/shared
 !packages/contracts/out/
-!packages/contracts/out/**
+!packages/contracts/out/Garden.sol/
+!packages/contracts/out/Garden.sol/GardenAccount.json
+!packages/contracts/out/Garden.sol/GardenToken.json
+!packages/contracts/out/Action.sol/
+!packages/contracts/out/Action.sol/ActionRegistry.json
+!packages/contracts/out/EAS.sol/
+!packages/contracts/out/EAS.sol/MockEAS.json
 
 # Vite dev build output
 dev-dist

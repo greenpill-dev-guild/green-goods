@@ -1,0 +1,142 @@
+name: Task
+description: Detailed implementation task - links to specs, provides concrete guidance
+labels: ["task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Implementation Task
+
+        Tasks are **detailed implementation work** derived from User Stories.
+        Each task should be completable in 1-3 focused sessions.
+
+        > Link specs directly - don't duplicate information that exists in `docs/`.
+        > Provide context and guidance, point to concrete resources.
+
+  - type: input
+    id: parent-story
+    attributes:
+      label: Parent Story
+      description: Link to the User Story this implements
+      placeholder: "#123 - As a gardener, I want to submit work offline"
+    validations:
+      required: true
+
+  - type: textarea
+    id: task-description
+    attributes:
+      label: What to Build
+      description: Clear description of what this task produces
+      placeholder: |
+        Implement the IndexedDB storage layer for offline work queue.
+
+        This task creates the foundation for offline work submission by
+        building the local storage mechanism that persists work actions
+        until they can be synced to the server.
+    validations:
+      required: true
+
+  - type: textarea
+    id: specs
+    attributes:
+      label: Specifications
+      description: Link to feature spec, tech spec, and any other relevant documentation
+      placeholder: |
+        **Feature Spec**: [docs/specs/GG-FEAT-008_Offline_Sync.md](docs/specs/GG-FEAT-008_Offline_Sync.md)
+        **Tech Spec**: [docs/specs/GG-TECH-008_Offline_Sync_Technical.md](docs/specs/GG-TECH-008_Offline_Sync_Technical.md)
+
+        Key sections:
+        - Feature Spec §3.2: Queue data model
+        - Tech Spec §4.1: IndexedDB schema design
+        - Tech Spec §4.3: Conflict resolution strategy
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation-guidance
+    attributes:
+      label: Implementation Guidance
+      description: Concrete guidance - files to modify, patterns to follow, gotchas to avoid
+      placeholder: |
+        ## Files to Create/Modify
+
+        ```
+        packages/shared/src/stores/offlineQueue.ts  (new)
+        packages/shared/src/hooks/useOfflineQueue.ts (new)
+        packages/client/src/providers/OfflineProvider.tsx (modify)
+        ```
+
+        ## Patterns to Follow
+
+        - Follow existing Zustand store pattern in `packages/shared/src/stores/`
+        - Use the persist middleware like `gardenStore.ts` does
+        - Reference `useJobQueue` hook for similar queue patterns
+
+        ## Technical Considerations
+
+        - IndexedDB has async API - use idb wrapper library (already installed)
+        - Max storage ~50MB on mobile - implement cleanup for old entries
+        - Must handle upgrade migrations for schema changes
+
+        ## Gotchas
+
+        - Don't use localStorage (5MB limit, sync API blocks main thread)
+        - Test on Safari/iOS - IndexedDB behavior differs
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: Specific, testable criteria for this task (not the full story)
+      placeholder: |
+        - [ ] `useOfflineQueue` hook exports `addToQueue`, `getQueue`, `removeFromQueue`
+        - [ ] Queue persists across page refreshes
+        - [ ] Queue entries include timestamp, retry count, payload
+        - [ ] Unit tests cover all queue operations
+        - [ ] Works in Chrome, Firefox, Safari, and mobile browsers
+    validations:
+      required: true
+
+  - type: textarea
+    id: resources
+    attributes:
+      label: Additional Resources
+      description: Helpful links - existing code to reference, external docs, examples
+      placeholder: |
+        **Existing Patterns**:
+        - [gardenStore.ts:45-78](packages/shared/src/stores/gardenStore.ts) - Zustand persist pattern
+        - [useJobQueue.ts](packages/shared/src/hooks/useJobQueue.ts) - Similar queue implementation
+
+        **External Docs**:
+        - [idb library docs](https://github.com/jakearchibald/idb)
+        - [IndexedDB best practices](https://web.dev/indexeddb-best-practices/)
+    validations:
+      required: false
+
+  - type: dropdown
+    id: package
+    attributes:
+      label: Package
+      description: Primary package this task modifies
+      options:
+        - shared
+        - client
+        - admin
+        - contracts
+        - indexer
+    validations:
+      required: true
+
+  - type: dropdown
+    id: complexity
+    attributes:
+      label: Complexity
+      description: Estimated complexity (affects review depth)
+      options:
+        - "low - straightforward implementation"
+        - "medium - requires understanding existing patterns"
+        - "high - architectural decisions, multiple packages"
+    validations:
+      required: true

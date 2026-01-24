@@ -1,40 +1,66 @@
-# /plan - Create Implementation Plan
+# /plan - Planning & Execution
 
-Create a detailed implementation plan for a feature or task.
+Create and execute implementation plans for features and tasks.
 
 ## Trigger
 
-User says `/plan [description]` or "create a plan for..."
+- `/plan [description]` - Create a new plan
+- `/plan check` - Check progress on current plan
+- `/plan execute` - Execute plan in batches
 
 ## Process
 
-1. Load the `create-plan` skill from `.claude/skills/create-plan/SKILL.md`
-2. Extract requirements from user request
-3. Audit codebase for related patterns
-4. Create plan at `.plans/[name].todo.md`
+1. Load the `plan` skill from `.claude/skills/plan/SKILL.md`
+2. Follow the skill workflow for the requested action
 
-## Output Format
+## Usage
 
-Plan file with:
-- Overview
-- Requirements coverage table
-- CLAUDE.md compliance checklist
-- Impact analysis
-- Implementation steps
-- Removal specification
-- Validation criteria
-
-## Examples
-
+### Create a Plan
 ```bash
 /plan add garden metrics dashboard
 /plan refactor authentication flow
 /plan implement offline sync retry
 ```
 
+### Check Progress
+```bash
+/plan check
+```
+
+### Execute Plan
+```bash
+/plan execute              # Execute current plan
+/plan execute [plan-name]  # Execute specific plan
+```
+
 ## Plan Location
 
 All plans go to `.plans/` directory:
 - Feature plans: `[feature-name].todo.md`
-- Decisions: `DECISIONS.md` or `decisions/ADR-NNN-*.md`
+- Decisions: `decisions/ADR-NNN-*.md`
 - Audits: `audits/[date]-audit.md`
+
+## Batch Execution
+
+Default: 3 tasks per batch
+
+After each batch:
+- Report completed tasks
+- Show verification results
+- Await feedback before continuing
+
+## Verification
+
+Run after each batch:
+```bash
+bun format && bun lint && bun test && bun build
+```
+
+## Output
+
+Plan file with:
+- Overview and requirements coverage
+- CLAUDE.md compliance checklist
+- Impact analysis (files to modify/create/delete)
+- Implementation steps
+- Validation criteria

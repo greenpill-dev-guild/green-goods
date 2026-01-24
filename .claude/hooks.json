@@ -1,78 +1,199 @@
 {
-  "$schema": "https://claude.ai/schemas/hooks.json",
-  "version": "1.0",
-  "description": "Green Goods Claude Code hooks for consistency enforcement",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Green Goods Claude Code hooks v3.0 - 4 categories",
 
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": {
-          "tool_name": "Write|Edit",
-          "file_pattern": "packages/client/src/hooks/**|packages/admin/src/hooks/**"
-        },
-        "command": "echo '🚫 BLOCKED: All hooks must be created in packages/shared/src/hooks/ - see AGENTS.md' >&2 && exit 2",
-        "blocking": true,
-        "description": "Enforce hook centralization in shared package"
+        "_category": "Quality",
+        "_description": "Block hooks in wrong location",
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$TOOL_INPUT\" | grep -qE 'packages/(client|admin)/src/hooks/'; then echo '🚫 BLOCKED: All hooks must be in packages/shared/src/hooks/ - see CLAUDE.md' >&2; exit 2; fi",
+            "statusMessage": "Checking hook location..."
+          }
+        ]
       },
       {
-        "matcher": {
-          "tool_name": "Write",
-          "file_pattern": "packages/**/.env|packages/**/.env.*"
-        },
-        "command": "echo '🚫 BLOCKED: Package-level .env files are not allowed. Use root .env only.' >&2 && exit 2",
-        "blocking": true,
-        "description": "Prevent package-level environment files"
+        "_category": "Quality",
+        "_description": "Block package-level .env files",
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$TOOL_INPUT\" | grep -qE 'packages/[^/]+/\\.env'; then echo '🚫 BLOCKED: Package-level .env files not allowed. Use root .env only.' >&2; exit 2; fi",
+            "statusMessage": "Checking env file location..."
+          }
+        ]
       },
       {
-        "matcher": {
-          "tool_name": "Edit",
-          "file_pattern": "packages/contracts/config/schemas.json"
-        },
-        "command": "echo '⚠️ WARNING: schemas.json is read-only. Use --update-schemas via deploy.ts or create schemas.test.json'",
-        "blocking": false,
-        "description": "Warn about schema immutability"
+        "_category": "Quality",
+        "_description": "Warn on schema file edits",
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$TOOL_INPUT\" | grep -q 'packages/contracts/config/schemas.json'; then echo '⚠️ WARNING: schemas.json is read-only. Use --update-schemas via deploy.ts or create schemas.test.json'; fi",
+            "statusMessage": "Checking schema file..."
+          }
+        ]
+      },
+      {
+        "_category": "Safety",
+        "_description": "Production deployment confirmation",
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$TOOL_INPUT\" | grep -qiE 'deploy.*mainnet|upgrade.*mainnet|vercel.*--prod'; then echo '🚨 PRODUCTION DEPLOYMENT - Requires explicit user confirmation before proceeding'; fi",
+            "statusMessage": "Checking deployment target..."
+          }
+        ]
+      },
+      {
+        "_category": "Safety",
+        "_description": "Block force push to main",
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$TOOL_INPUT\" | grep -qE 'git.*push.*--force.*(main|master)'; then echo '🚫 BLOCKED: Never force push to main/master' >&2; exit 2; fi",
+            "statusMessage": "Checking git push..."
+          }
+        ]
+      },
+      {
+        "_category": "Workflow",
+        "_description": "Pre-commit validation reminder",
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$TOOL_INPUT\" | grep -qE 'git commit'; then echo '📋 PRE-COMMIT: Ensure `bun format && bun lint && bun test` passed'; fi",
+            "statusMessage": "Pre-commit reminder..."
+          }
+        ]
       }
     ],
 
     "PostToolUse": [
       {
-        "matcher": {
-          "tool_name": "Write|Edit",
-          "file_pattern": "**/*.tsx"
-        },
-        "command": ".claude/scripts/check-ui-strings.sh \"$FILE_PATH\"",
-        "blocking": false,
-        "description": "Remind about i18n for UI components"
+        "_category": "Workflow",
+        "_description": "i18n reminder for UI components",
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$FILE_PATH\" | grep -qE '\\.tsx$'; then echo '📝 REMINDER: Add i18n keys to en.json, es.json, pt.json for any new UI strings'; fi",
+            "statusMessage": "Checking for i18n reminder..."
+          }
+        ]
+      },
+      {
+        "_category": "Workflow",
+        "_description": "Hardcoded address warning",
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$FILE_PATH\" | grep -qE '\\.(ts|tsx)$' && grep -q '0x[a-fA-F0-9]\\{40\\}' \"$FILE_PATH\" 2>/dev/null; then echo '⚠️ WARNING: Hardcoded address detected. Use deployment artifacts from packages/contracts/deployments/'; fi || true",
+            "statusMessage": "Checking for hardcoded addresses..."
+          }
+        ]
+      },
+      {
+        "_category": "Workflow",
+        "_description": "TDD reminder for implementation files",
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$FILE_PATH\" | grep -qE 'packages/(shared|client|admin)/src/[^_].*\\.(ts|tsx)$' && ! echo \"$FILE_PATH\" | grep -q '__tests__'; then echo '🧪 TDD: Consider writing test at __tests__/ first'; fi",
+            "statusMessage": "TDD check..."
+          }
+        ]
+      },
+      {
+        "_category": "Workflow",
+        "_description": "Contract ABI rebuild reminder",
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$FILE_PATH\" | grep -qE 'packages/contracts/src/.*\\.sol$'; then echo '🔨 CONTRACT CHANGED: Run `bun --filter contracts build` to update ABIs'; fi",
+            "statusMessage": "Contract ABI check..."
+          }
+        ]
       }
     ],
 
-    "Notification": [
+    "SessionStart": [
       {
-        "matcher": {
-          "event": "session_start"
-        },
-        "command": "echo '🌿 Welcome, fellow cultivator of the Greenpill Dev Guild. The garden awaits your tending.'",
-        "description": "Guild welcome message"
+        "_category": "Lifecycle",
+        "_description": "Session welcome message",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '🌿 Green Goods | 4 Entry Points: PRD → Feature → Bug → Polish | Use TodoWrite for tracking'",
+            "once": true
+          }
+        ]
+      }
+    ],
+
+    "SubagentStart": [
+      {
+        "_category": "Lifecycle",
+        "_description": "cracked-coder protocol reminder",
+        "matcher": "cracked-coder",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '🔧 cracked-coder: TDD mandatory for features. GATHER → PLAN → TEST → IMPLEMENT → VERIFY → DEPLOY'",
+            "statusMessage": "Initializing cracked-coder..."
+          }
+        ]
+      },
+      {
+        "_category": "Lifecycle",
+        "_description": "code-reviewer protocol reminder",
+        "matcher": "code-reviewer",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '🔍 code-reviewer: Follow 6-pass protocol, post findings to GitHub.'",
+            "statusMessage": "Initializing code-reviewer..."
+          }
+        ]
+      },
+      {
+        "_category": "Lifecycle",
+        "_description": "oracle protocol reminder",
+        "matcher": "oracle",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '🔮 oracle: Use 3+ research paths, provide evidence-based findings.'",
+            "statusMessage": "Initializing oracle..."
+          }
+        ]
+      }
+    ],
+
+    "SubagentStop": [
+      {
+        "_category": "Lifecycle",
+        "_description": "Verify TodoWrite usage",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if ! echo \"$ARGUMENTS\" | grep -qi 'todowrite\\|todo.*completed\\|todo.*in_progress'; then echo '⚠️ WARN: Agent did not use TodoWrite for progress tracking'; fi",
+            "statusMessage": "Checking agent TodoWrite usage..."
+          }
+        ]
       }
     ]
-  },
-
-  "reminders": {
-    "ui_strings": {
-      "trigger_patterns": ["component", "modal", "button", "form", "text", "label", "message"],
-      "message": "Remember: Any new user-facing strings require translations in en.json, es.json, and pt.json"
-    },
-    "hooks": {
-      "trigger_patterns": ["hook", "useQuery", "useMutation", "use[A-Z]"],
-      "message": "Remember: All hooks must be created in packages/shared/src/hooks/"
-    },
-    "contracts": {
-      "trigger_patterns": ["deploy", "upgrade", "contract", "forge"],
-      "message": "Remember: Use bun --filter contracts deploy:* wrappers. Never raw forge script --broadcast unless debugging."
-    },
-    "chain": {
-      "trigger_patterns": ["chainId", "chain", "network"],
-      "message": "Remember: Use DEFAULT_CHAIN_ID from shared config. Never use wallet chainId for contract interactions."
-    }
   }
 }
