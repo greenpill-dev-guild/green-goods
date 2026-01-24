@@ -58,7 +58,7 @@ contract GardenAccessControlTest is Test {
 
         // Deploy GardenAccount implementation
         gardenAccountImpl = new GardenAccount(
-            ENTRY_POINT, MULTICALL, address(registry), address(guardian), WORK_RESOLVER, ASSESSMENT_RESOLVER
+            ENTRY_POINT, MULTICALL, address(registry), address(guardian)
         );
 
         // Mint NFT and create TBA

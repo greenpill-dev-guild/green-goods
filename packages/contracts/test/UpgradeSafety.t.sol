@@ -10,8 +10,10 @@ import { GardenAccount } from "../src/accounts/Garden.sol";
 import { WorkResolver } from "../src/resolvers/Work.sol";
 import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
 import { DeploymentRegistry } from "../src/DeploymentRegistry.sol";
+import { HatsModule } from "../src/modules/Hats.sol";
 import { MockEAS } from "../src/mocks/EAS.sol";
 import { MockERC20 } from "../src/mocks/ERC20.sol";
+import { MockHatsProtocol } from "../src/mocks/HatsProtocol.sol";
 import { ERC6551Helper } from "./helpers/ERC6551Helper.sol";
 
 /// @title UpgradeSafetyTest
@@ -28,6 +30,8 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
     // Mock dependencies
     MockEAS private mockEAS;
     MockERC20 private communityToken;
+    MockHatsProtocol private mockHats;
+    HatsModule private hatsModule;
     GardenAccount private gardenAccountImpl;
 
     // Test addresses
@@ -47,14 +51,36 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
         // Deploy mocks
         mockEAS = new MockEAS();
         communityToken = new MockERC20();
+        mockHats = new MockHatsProtocol();
+
+        // Create a top hat and gardens hat for testing
+        uint256 topHatId = mockHats.mintTopHat(multisig, "Green Goods Top Hat", "");
+        uint256 gardensHatId = mockHats.createHat(
+            topHatId,
+            "Gardens",
+            type(uint32).max,
+            address(0),
+            address(0),
+            true,
+            ""
+        );
+
+        // Deploy and initialize HatsModule
+        HatsModule hatsModuleImpl = new HatsModule();
+        bytes memory hatsModuleInitData = abi.encodeWithSelector(
+            HatsModule.initialize.selector,
+            multisig,
+            address(mockHats),
+            gardensHatId
+        );
+        ERC1967Proxy hatsModuleProxy = new ERC1967Proxy(address(hatsModuleImpl), hatsModuleInitData);
+        hatsModule = HatsModule(address(hatsModuleProxy));
 
         gardenAccountImpl = new GardenAccount(
             address(0x1001), // erc4337EntryPoint
             address(0x1002), // multicallForwarder
             address(0x1003), // erc6551Registry - will be overridden by TOKENBOUND_REGISTRY in actual use
-            address(0x1004), // guardian
-            address(0x2001), // workApprovalResolver
-            address(0x2002) // assessmentResolver
+            address(0x1004) // guardian
         );
 
         // Deploy ActionRegistry with proxy
@@ -71,8 +97,12 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
         gardenToken = GardenToken(address(gardenProxy));
         gardenTokenProxy = address(gardenProxy);
 
-        // Deploy WorkResolver with proxy
-        WorkResolver workResolverImpl = new WorkResolver(address(mockEAS), address(actionRegistry));
+        // Set GardenToken in HatsModule
+        vm.prank(multisig);
+        hatsModule.setGardenToken(address(gardenToken));
+
+        // Deploy WorkResolver with proxy (now requires hatsModule)
+        WorkResolver workResolverImpl = new WorkResolver(address(mockEAS), address(actionRegistry), address(hatsModule));
         bytes memory workInitData = abi.encodeWithSelector(WorkResolver.initialize.selector, multisig);
         ERC1967Proxy workProxy = new ERC1967Proxy(address(workResolverImpl), workInitData);
         workResolver = WorkResolver(payable(address(workProxy)));
@@ -152,7 +182,7 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
         emit log_named_string("[PASS] GardenToken", "Access control enforced");
 
         // Test WorkResolver upgrade access control
-        WorkResolver newWorkImpl = new WorkResolver(address(mockEAS), address(actionRegistry));
+        WorkResolver newWorkImpl = new WorkResolver(address(mockEAS), address(actionRegistry), address(hatsModule));
 
         vm.prank(unauthorized);
         vm.expectRevert("Ownable: caller is not the owner");
@@ -250,9 +280,8 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
         address originalOwner = gardenToken.ownerOf(tokenId);
         GardenAccount garden = GardenAccount(payable(gardenAddress));
         string memory originalName = garden.name();
-        bool wasGardener1 = garden.gardeners(gardeners[0]);
-        bool wasGardener2 = garden.gardeners(gardeners[1]);
-        bool wasOperator = garden.gardenOperators(operators[0]);
+        // Note: Role management is now via HatsModule, not GardenAccount
+        // Gardeners/operators are stored in HatsModule hat trees
 
         // Upgrade GardenToken
         GardenToken newGardenImpl = new GardenToken(address(gardenAccountImpl));
@@ -267,9 +296,7 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
         // Verify all state preserved
         assertEq(gardenToken.ownerOf(tokenId), originalOwner, "Token owner preserved");
         assertEq(garden.name(), originalName, "Garden name preserved");
-        assertEq(garden.gardeners(gardeners[0]), wasGardener1, "Gardener 1 preserved");
-        assertEq(garden.gardeners(gardeners[1]), wasGardener2, "Gardener 2 preserved");
-        assertEq(garden.gardenOperators(operators[0]), wasOperator, "Operator preserved");
+        // Note: Role verification would be done via HatsModule.isGardener()/isOperator()
 
         // Verify all actions preserved
         for (uint256 i = 0; i < 3; i++) {

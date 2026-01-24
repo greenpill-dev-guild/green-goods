@@ -20,6 +20,8 @@ import { WorkResolver } from "../../src/resolvers/Work.sol";
 import { WorkApprovalResolver } from "../../src/resolvers/WorkApproval.sol";
 import { AssessmentResolver } from "../../src/resolvers/Assessment.sol";
 import { ResolverStub } from "../../src/resolvers/ResolverStub.sol";
+import { HatsModule } from "../../src/modules/Hats.sol";
+import { MockHatsProtocol } from "../../src/mocks/HatsProtocol.sol";
 
 /// @notice Schema registry interface
 interface ISchemaRegistry {
@@ -75,6 +77,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
     WorkResolver public workResolver;
     WorkApprovalResolver public workApprovalResolver;
     AssessmentResolver public assessmentResolver;
+    HatsModule public hatsModule;
     address public gardenerAccountLogic; // Gardener implementation for user smart accounts (Kernel v3)
     GardenerRegistry public gardenerRegistry; // Gardener Registry (mainnet/sepolia only, null on L2s)
 
@@ -177,11 +180,14 @@ abstract contract DeploymentBase is Test, DeployHelper {
         // 2. Deploy ActionRegistry with CREATE2 + proxy (owner will own it)
         actionRegistry = ActionRegistry(deployActionRegistry(owner, salt, factory));
 
+        // 3. Deploy HatsModule with MockHatsProtocol for testing
+        hatsModule = HatsModule(_deployHatsModule(owner, salt, factory));
+
         // 4. Deploy resolvers with UUPS proxies + CREATE2 (owner will own them)
-        workResolver = WorkResolver(payable(_deployWorkResolver(eas, address(actionRegistry), owner, salt, factory)));
+        workResolver = WorkResolver(payable(_deployWorkResolver(eas, address(actionRegistry), address(hatsModule), owner, salt, factory)));
         workApprovalResolver =
-            WorkApprovalResolver(payable(_deployWorkApprovalResolver(eas, address(actionRegistry), owner, salt, factory)));
-        assessmentResolver = AssessmentResolver(payable(_deployAssessmentResolver(eas, owner, salt, factory)));
+            WorkApprovalResolver(payable(_deployWorkApprovalResolver(eas, address(actionRegistry), address(hatsModule), owner, salt, factory)));
+        assessmentResolver = AssessmentResolver(payable(_deployAssessmentResolver(eas, address(hatsModule), owner, salt, factory)));
 
         // 5. Deploy GardenAccount (TBA) with CREATE2
         gardenAccountImpl = GardenAccount(
@@ -205,6 +211,9 @@ abstract contract DeploymentBase is Test, DeployHelper {
         // 7. Deploy GardenToken with CREATE2 + proxy (owner will own it)
         gardenToken =
             GardenToken(deployGardenToken(address(gardenAccountImpl), owner, address(deploymentRegistry), salt, factory));
+
+        // 8. Configure HatsModule with GardenToken address
+        hatsModule.setGardenToken(address(gardenToken));
     }
 
     /// @notice Deploy DeploymentRegistry with governance and proxy
@@ -352,6 +361,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
     function _deployWorkResolver(
         address eas,
         address _actionRegistry,
+        address _hatsModule,
         address owner,
         bytes32 salt,
         address factory
@@ -359,7 +369,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
         internal
         returns (address)
     {
-        WorkResolver implementation = new WorkResolver(eas, _actionRegistry);
+        WorkResolver implementation = new WorkResolver(eas, _actionRegistry, _hatsModule);
         bytes32 stubSalt = keccak256(abi.encodePacked(salt, "ResolverStub"));
         bytes memory stubBytecode = type(ResolverStub).creationCode;
         address stubAddress = _deployCreate2(stubBytecode, stubSalt, factory);
@@ -388,6 +398,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
     function _deployWorkApprovalResolver(
         address eas,
         address _actionRegistry,
+        address _hatsModule,
         address owner,
         bytes32 salt,
         address factory
@@ -395,7 +406,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
         internal
         returns (address)
     {
-        WorkApprovalResolver implementation = new WorkApprovalResolver(eas, _actionRegistry);
+        WorkApprovalResolver implementation = new WorkApprovalResolver(eas, _actionRegistry, _hatsModule);
         bytes32 stubSalt = keccak256(abi.encodePacked(salt, "ResolverStub"));
         bytes memory stubBytecode = type(ResolverStub).creationCode;
         address stubAddress = Create2.computeAddress(stubSalt, keccak256(stubBytecode), factory);
@@ -427,6 +438,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
     /// @notice Deploy AssessmentResolver with ResolverStub + UUPS + CREATE2
     function _deployAssessmentResolver(
         address eas,
+        address _hatsModule,
         address owner,
         bytes32 salt,
         address factory
@@ -434,7 +446,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
         internal
         returns (address)
     {
-        AssessmentResolver implementation = new AssessmentResolver(eas);
+        AssessmentResolver implementation = new AssessmentResolver(eas, _hatsModule);
         bytes32 stubSalt = keccak256(abi.encodePacked(salt, "ResolverStub"));
         bytes memory stubBytecode = type(ResolverStub).creationCode;
         address stubAddress = Create2.computeAddress(stubSalt, keccak256(stubBytecode), factory);
@@ -455,6 +467,50 @@ abstract contract DeploymentBase is Test, DeployHelper {
         if (!_isDeployed(predicted)) {
             address deployed = _deployCreate2(fullProxyBytecode, assessmentResolverSalt, factory);
             UUPSUpgradeable(deployed).upgradeTo(address(implementation));
+        }
+
+        return predicted;
+    }
+
+    /// @notice Deploy HatsModule with MockHatsProtocol + UUPS proxy
+    /// @param owner The initial owner
+    /// @param salt The CREATE2 salt
+    /// @param factory The CREATE2 factory address
+    /// @return The HatsModule proxy address
+    function _deployHatsModule(address owner, bytes32 salt, address factory) internal returns (address) {
+        // Deploy MockHatsProtocol for testing
+        MockHatsProtocol mockHats = new MockHatsProtocol();
+
+        // Create a top hat and gardens hat for testing
+        uint256 topHatId = mockHats.mintTopHat(owner, "Green Goods Top Hat", "");
+        uint256 gardensHatId = mockHats.createHat(
+            topHatId,
+            "Gardens",
+            type(uint32).max,
+            address(0),
+            address(0),
+            true,
+            ""
+        );
+
+        // Deploy HatsModule implementation
+        HatsModule implementation = new HatsModule();
+
+        // Deploy proxy with initialization
+        bytes32 hatsModuleSalt = keccak256(abi.encodePacked(salt, "HatsModuleProxy"));
+        bytes memory initData = abi.encodeWithSelector(
+            HatsModule.initialize.selector,
+            owner,
+            address(mockHats),
+            gardensHatId
+        );
+        bytes memory proxyBytecode =
+            abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(address(implementation), initData));
+        address predicted = Create2.computeAddress(hatsModuleSalt, keccak256(proxyBytecode), factory);
+        _logCreate2Prediction("HatsModule proxy", hatsModuleSalt, factory, predicted);
+
+        if (!_isDeployed(predicted)) {
+            _deployCreate2(proxyBytecode, hatsModuleSalt, factory);
         }
 
         return predicted;
@@ -560,7 +616,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
             workApprovalResolver: address(workApprovalResolver),
             assessmentResolver: address(assessmentResolver),
             integrationRouter: address(0), // Deployed separately in Phase 1
-            hatsAccessControl: address(0), // Phase 2+
+            hatsAccessControl: address(hatsModule), // HatsModule for role management
             octantFactory: address(0), // Phase 3+
             unlockFactory: address(0), // Phase 3+
             hypercerts: address(0), // Phase 4+

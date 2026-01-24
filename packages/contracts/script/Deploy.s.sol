@@ -308,9 +308,9 @@ contract Deploy is Script, DeploymentBase {
     /// @notice Register a single action
     function _registerSingleAction(string memory json, string memory basePath, string memory ipfsHash) internal {
         string memory title = abi.decode(vm.parseJson(json, string.concat(basePath, ".title")), (string));
-        // Use dynamic timestamps: start = now, end = now + 3 months (ignoring config values)
-        uint256 startTime = block.timestamp;
-        uint256 endTime = block.timestamp + 90 days; // ~3 months
+        uint256 startTime =
+            _parseISOTimestamp(abi.decode(vm.parseJson(json, string.concat(basePath, ".startTime")), (string)));
+        uint256 endTime = _parseISOTimestamp(abi.decode(vm.parseJson(json, string.concat(basePath, ".endTime")), (string)));
 
         string[] memory capitalStrings = abi.decode(vm.parseJson(json, string.concat(basePath, ".capitals")), (string[]));
         Capital[] memory capitals = new Capital[](capitalStrings.length);

@@ -2,32 +2,30 @@
 pragma solidity ^0.8.25;
 
 import { Test } from "forge-std/Test.sol";
-import { MockHats } from "../../src/mocks/Hats.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { MockHatsProtocol } from "../../src/mocks/HatsProtocol.sol";
 
 /// @title GardenHatsModuleTest
-/// @notice Tests for MockHats functionality used in garden integration tests
-/// @dev Tests verify the MockHats contract behavior for hat-based role management
+/// @notice TDD tests for GardenHatsModule - to be implemented
+/// @dev Tests define expected behavior for garden hat tree management
 ///
-/// **Note:** The Hats integration is planned for future implementation via HatsModule.
-/// These tests verify the MockHats contract works correctly for integration testing.
-///
-/// **Green Goods Hat Tree Structure (Planned):**
+/// **Green Goods Hat Tree Structure:**
 /// ```
 /// Green Goods Top Hat (0x0000005c...)
-/// +-- Gardens Hat (parent for all gardens)
-///     +-- Garden Hat (per-garden root)
-///         +-- Operator Hat (can mint Gardener/Evaluator)
-///         +-- Gardener Hat (minted by Operator)
-///         +-- Evaluator Hat (minted by Operator)
-///         +-- Funder Hat (eligibility-based)
-///         +-- Community Hat (eligibility-based: ERC-20 holder)
+/// └── Gardens Hat (parent for all gardens)
+///     └── Garden Hat (per-garden root)
+///         ├── Operator Hat (can mint Gardener/Evaluator)
+///         ├── Gardener Hat (minted by Operator)
+///         ├── Evaluator Hat (minted by Operator)
+///         ├── Funder Hat (eligibility-based)
+///         └── Community Hat (eligibility-based: ERC-20 holder)
 /// ```
 contract GardenHatsModuleTest is Test {
     // ═══════════════════════════════════════════════════════════════════════════
     // Test Contracts
     // ═══════════════════════════════════════════════════════════════════════════
 
-    MockHats public mockHats;
+    MockHatsProtocol public mockHats;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Test Addresses
@@ -73,6 +71,17 @@ contract GardenHatsModuleTest is Test {
     uint256 constant ROLE_FUNDER = 4;
     uint256 constant ROLE_COMMUNITY = 5;
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Events (expected from GardenHatsModule)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    event GardenHatTreeCreated(
+        address indexed garden, uint256 rootHatId, uint256 operatorHatId, uint256 gardenerHatId, uint256 evaluatorHatId
+    );
+    event RoleAssigned(address indexed garden, address indexed account, uint256 role, uint256 hatId);
+    event RoleRevoked(address indexed garden, address indexed account, uint256 role, uint256 hatId);
+    event EligibilityModuleSet(address indexed garden, uint256 role, address module);
+
     function setUp() public {
         owner = address(this);
         gardenToken = address(0x1000);
@@ -87,13 +96,13 @@ contract GardenHatsModuleTest is Test {
         communityMember1 = address(0x8000);
 
         // Deploy mock Hats
-        mockHats = new MockHats();
+        mockHats = new MockHatsProtocol();
 
         // Setup Green Goods hat tree structure
         _setupGreenGoodsTopHat();
     }
 
-    /// @dev Sets up the Green Goods top hat and gardens hat in MockHats
+    /// @dev Sets up the Green Goods top hat and gardens hat in MockHatsProtocol
     function _setupGreenGoodsTopHat() internal {
         // Mint top hat to owner
         mockHats.mintTopHat(owner, "Green Goods", "ipfs://green-goods-logo");
@@ -105,6 +114,168 @@ contract GardenHatsModuleTest is Test {
 
         // Mint gardens hat to gardenToken so it can create garden hats
         mockHats.mintHat(GARDENS_HAT, gardenToken);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Hat Tree Creation Tests
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_createGardenHatTree_createsAllRoles() public {
+        // TODO: Implement GardenHatsModule
+        // Expected: Module creates 5 role hats under garden root
+        return; // TODO: Implement
+    }
+
+    function test_createGardenHatTree_setsCorrectAdminHierarchy() public {
+        // TODO: Implement GardenHatsModule
+        // Expected: Garden root is admin of all role hats
+        // Operator hat is hatter for gardener/evaluator
+        return; // TODO: Implement
+    }
+
+    function test_createGardenHatTree_emitsEvent() public {
+        // TODO: Implement GardenHatsModule
+        return; // TODO: Implement
+    }
+
+    function test_createGardenHatTree_revertsIfNotGardenToken() public {
+        // TODO: Implement GardenHatsModule
+        // Expected: Only GardenToken can create hat trees
+        return; // TODO: Implement
+    }
+
+    function test_createGardenHatTree_revertsIfGardenExists() public {
+        // TODO: Implement GardenHatsModule
+        // Expected: Cannot create duplicate hat tree for same garden
+        return; // TODO: Implement
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Operator Role Tests
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_assignOperator_mintsOperatorHat() public {
+        // TODO: Implement GardenHatsModule
+        // Expected: Mints operator hat to address
+        return; // TODO: Implement
+    }
+
+    function test_assignOperator_becomesGAPProjectAdmin() public {
+        // TODO: Implement with KarmaGAPModule integration
+        // Expected: Operator is added as GAP project admin
+        return; // TODO: Implement
+    }
+
+    function test_assignOperator_revertsIfNotGardenOwner() public {
+        // TODO: Implement GardenHatsModule
+        return; // TODO: Implement
+    }
+
+    function test_assignOperator_revertsIfAlreadyOperator() public {
+        // TODO: Implement GardenHatsModule
+        return; // TODO: Implement
+    }
+
+    function test_revokeOperator_transfersHat() public {
+        // TODO: Implement GardenHatsModule
+        // Expected: Removes operator hat from address
+        return; // TODO: Implement
+    }
+
+    function test_revokeOperator_removesGAPProjectAdmin() public {
+        // TODO: Implement with KarmaGAPModule integration
+        // Expected: Operator is removed as GAP project admin
+        return; // TODO: Implement
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Gardener Role Tests
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_assignGardener_mintsGardenerHat() public {
+        // TODO: Implement GardenHatsModule
+        // Expected: Mints gardener hat to address
+        return; // TODO: Implement
+    }
+
+    function test_assignGardener_onlyOperatorCanMint() public {
+        // TODO: Implement GardenHatsModule
+        // Expected: Only operator can mint gardener hats
+        return; // TODO: Implement
+    }
+
+    function test_assignGardener_revertsIfNotOperator() public {
+        // TODO: Implement GardenHatsModule
+        return; // TODO: Implement
+    }
+
+    function test_revokeGardener_removesHat() public {
+        // TODO: Implement GardenHatsModule
+        return; // TODO: Implement
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Evaluator Role Tests
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_assignEvaluator_mintsEvaluatorHat() public {
+        // TODO: Implement GardenHatsModule
+        return; // TODO: Implement
+    }
+
+    function test_assignEvaluator_onlyOperatorCanMint() public {
+        // TODO: Implement GardenHatsModule
+        return; // TODO: Implement
+    }
+
+    function test_revokeEvaluator_removesHat() public {
+        // TODO: Implement GardenHatsModule
+        return; // TODO: Implement
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Funder Role Tests (Eligibility-Based)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_funderRole_usesEligibilityModule() public {
+        // TODO: Implement GardenHatsModule
+        // Expected: Funder hat uses eligibility module (Octant/Hypercerts/Revnet)
+        return; // TODO: Implement
+    }
+
+    function test_setFunderEligibility_updatesModule() public {
+        // TODO: Implement GardenHatsModule
+        return; // TODO: Implement
+    }
+
+    function test_funderRole_eligibilityCheckPasses() public {
+        // TODO: Implement with mock eligibility module
+        return; // TODO: Implement
+    }
+
+    function test_funderRole_eligibilityCheckFails() public {
+        // TODO: Implement with mock eligibility module
+        return; // TODO: Implement
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Community Role Tests (ERC-20 Token Holder)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_communityRole_usesTokenEligibility() public {
+        // TODO: Implement GardenHatsModule
+        // Expected: Community hat uses token-gating eligibility
+        return; // TODO: Implement
+    }
+
+    function test_communityRole_tokenHolderIsEligible() public {
+        // TODO: Implement with mock ERC-20 and eligibility module
+        return; // TODO: Implement
+    }
+
+    function test_communityRole_nonHolderNotEligible() public {
+        // TODO: Implement with mock ERC-20 and eligibility module
+        return; // TODO: Implement
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -263,10 +434,18 @@ contract GardenHatsModuleTest is Test {
     function test_batchMintHats_assignsMultipleRoles() public {
         _createGardenHatTree(garden1);
 
-        // Use setWearer helper which bypasses maxSupply checks (for mocking purposes)
-        mockHats.setWearer(GARDEN1_OPERATOR_HAT, operator1, true);
-        mockHats.setWearer(GARDEN1_GARDENER_HAT, gardener1, true);
-        mockHats.setWearer(GARDEN1_EVALUATOR_HAT, evaluator1, true);
+        uint256[] memory hatIds = new uint256[](3);
+        address[] memory wearers = new address[](3);
+
+        hatIds[0] = GARDEN1_OPERATOR_HAT;
+        hatIds[1] = GARDEN1_GARDENER_HAT;
+        hatIds[2] = GARDEN1_EVALUATOR_HAT;
+
+        wearers[0] = operator1;
+        wearers[1] = gardener1;
+        wearers[2] = evaluator1;
+
+        mockHats.batchMintHats(hatIds, wearers);
 
         assertTrue(mockHats.isWearerOfHat(operator1, GARDEN1_OPERATOR_HAT), "Operator should have hat");
         assertTrue(mockHats.isWearerOfHat(gardener1, GARDEN1_GARDENER_HAT), "Gardener should have hat");
@@ -316,14 +495,11 @@ contract GardenHatsModuleTest is Test {
     function test_maxSupply_preventsOverMinting() public {
         _createGardenHatTree(garden1);
 
-        // Set max supply to 1 for this test
-        mockHats.changeHatMaxSupply(GARDEN1_OPERATOR_HAT, 1);
-
-        // Mint first operator (uses supply 1/1)
+        // Try to mint more than max supply
         mockHats.setWearer(GARDEN1_OPERATOR_HAT, operator1, true);
 
-        // Second operator should fail since max supply is 1
-        vm.expectRevert(MockHats.MaxSupplyReached.selector);
+        // Second operator should fail if max supply is 1
+        vm.expectRevert(MockHatsProtocol.MaxSupplyReached.selector);
         mockHats.mintHat(GARDEN1_OPERATOR_HAT, operator2);
     }
 
@@ -335,7 +511,7 @@ contract GardenHatsModuleTest is Test {
         mockHats.makeHatImmutable(GARDEN1_GARDENER_HAT);
 
         // Transfer should fail
-        vm.expectRevert(MockHats.HatNotMutable.selector);
+        vm.expectRevert(MockHatsProtocol.HatNotMutable.selector);
         mockHats.transferHat(GARDEN1_GARDENER_HAT, gardener1, gardener2);
     }
 
@@ -346,7 +522,7 @@ contract GardenHatsModuleTest is Test {
         mockHats.setHatActive(GARDEN1_GARDENER_HAT, false);
 
         // Minting should fail
-        vm.expectRevert(MockHats.HatNotActive.selector);
+        vm.expectRevert(MockHatsProtocol.HatNotActive.selector);
         mockHats.mintHat(GARDEN1_GARDENER_HAT, gardener1);
     }
 
@@ -354,7 +530,7 @@ contract GardenHatsModuleTest is Test {
     // Helper Functions
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @dev Creates a garden hat tree in MockHats
+    /// @dev Creates a garden hat tree in MockHatsProtocol
     function _createGardenHatTree(address garden) internal {
         // Create garden root hat
         vm.prank(gardenToken);

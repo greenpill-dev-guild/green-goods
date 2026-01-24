@@ -36,7 +36,7 @@ contract FuzzTests is Test, ERC6551Helper {
         // Deploy garden account implementation
         gardenAccountImplementation = address(
             new GardenAccount(
-                address(0x1001), address(0x1002), address(0x1003), address(0x1004), address(0x2001), address(0x2002)
+                address(0x1001), address(0x1002), address(0x1003), address(0x1004)
             )
         );
 

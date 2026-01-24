@@ -129,7 +129,7 @@ library GAPTestHelper {
     /// @return JSON string for simple impact
     function buildSimpleImpactJSON(string memory title, string memory text) internal pure returns (string memory) {
         return string(
-            abi.encodePacked("{'title':'", escapeJSON(title), "','text':'", escapeJSON(text), "','type':'project-update'}")
+            abi.encodePacked('{"title":"', escapeJSON(title), '","text":"', escapeJSON(text), '","type":"project-update"}')
         );
     }
 
@@ -153,11 +153,11 @@ library GAPTestHelper {
     {
         return string(
             abi.encodePacked(
-                "{'title':'",
+                '{"title":"',
                 escapeJSON(title),
-                "','text':'",
+                '","text":"',
                 escapeJSON(text),
-                "','type':'project-milestone','data':",
+                '","type":"project-milestone","data":',
                 metaJSON,
                 "}"
             )
@@ -171,7 +171,7 @@ library GAPTestHelper {
     function buildSimpleMilestoneJSON(string memory title, string memory text) internal pure returns (string memory) {
         return string(
             abi.encodePacked(
-                "{'title':'", escapeJSON(title), "','text':'", escapeJSON(text), "','type':'project-milestone'}"
+                '{"title":"', escapeJSON(title), '","text":"', escapeJSON(text), '","type":"project-milestone"}'
             )
         );
     }
@@ -202,21 +202,21 @@ library GAPTestHelper {
     {
         return string(
             abi.encodePacked(
-                "{'natural':",
+                '{"natural":',
                 uint2str(natural),
-                ",'social':",
+                ',"social":',
                 uint2str(social),
-                ",'financial':",
+                ',"financial":',
                 uint2str(financial),
-                ",'living':",
+                ',"living":',
                 uint2str(living),
-                ",'intellectual':",
+                ',"intellectual":',
                 uint2str(intellectual),
-                ",'experiential':",
+                ',"experiential":',
                 uint2str(experiential),
-                ",'spiritual':",
+                ',"spiritual":',
                 uint2str(spiritual),
-                ",'cultural':",
+                ',"cultural":',
                 uint2str(cultural),
                 "}"
             )
@@ -233,7 +233,7 @@ library GAPTestHelper {
     /// @return True if field is present
     function hasField(string memory json, string memory field) internal pure returns (bool) {
         bytes memory jsonBytes = bytes(json);
-        bytes memory fieldBytes = bytes(string(abi.encodePacked("'", field, "':")));
+        bytes memory fieldBytes = bytes(string(abi.encodePacked('"', field, '":')));
 
         if (jsonBytes.length < fieldBytes.length) return false;
 
@@ -255,7 +255,7 @@ library GAPTestHelper {
     /// @param expectedType Expected type value (e.g., "project-update")
     /// @return True if type matches
     function hasType(string memory json, string memory expectedType) internal pure returns (bool) {
-        string memory typeField = string(abi.encodePacked("'type':'", expectedType, "'"));
+        string memory typeField = string(abi.encodePacked('"type":"', expectedType, '"'));
         return contains(json, typeField);
     }
 
@@ -296,7 +296,7 @@ library GAPTestHelper {
         // Count characters that need escaping
         for (uint256 i = 0; i < inputBytes.length; i++) {
             bytes1 char = inputBytes[i];
-            if (char == "'" || char == "\\" || char == "\n" || char == "\r" || char == "\t") {
+            if (char == '"' || char == "\\" || char == "\n" || char == "\r" || char == "\t") {
                 extraChars++;
             }
         }
@@ -308,9 +308,9 @@ library GAPTestHelper {
 
         for (uint256 i = 0; i < inputBytes.length; i++) {
             bytes1 char = inputBytes[i];
-            if (char == "'") {
+            if (char == '"') {
                 output[outputIndex++] = "\\";
-                output[outputIndex++] = "'";
+                output[outputIndex++] = '"';
             } else if (char == "\\") {
                 output[outputIndex++] = "\\";
                 output[outputIndex++] = "\\";

@@ -2,8 +2,9 @@
 pragma solidity ^0.8.25;
 
 import { Test } from "forge-std/Test.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { AttestationRequest, AttestationRequestData } from "@eas/IEAS.sol";
-import { MockHats } from "../../src/mocks/Hats.sol";
+import { MockHatsProtocol } from "../../src/mocks/HatsProtocol.sol";
 import { MockGAP } from "../../src/mocks/GAP.sol";
 import { GAPTestHelper } from "../helpers/GAPTestHelper.sol";
 
@@ -34,7 +35,7 @@ contract HatsGAPIntegrationTest is Test {
     // Test Contracts
     // ═══════════════════════════════════════════════════════════════════════════
 
-    MockHats public mockHats;
+    MockHatsProtocol public mockHats;
     MockGAP public mockGAP;
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -109,7 +110,7 @@ contract HatsGAPIntegrationTest is Test {
         evaluator1 = address(0x6000);
 
         // Deploy mocks
-        mockHats = new MockHats();
+        mockHats = new MockHatsProtocol();
         mockGAP = new MockGAP();
 
         // Setup Green Goods hat tree
@@ -157,7 +158,6 @@ contract HatsGAPIntegrationTest is Test {
 
         // 3. Assign initial operator with hat and GAP admin
         mockHats.mintHat(operatorHatId, operator1);
-        vm.prank(gardenOwner);
         mockGAP.addProjectAdmin(projectUID, operator1);
 
         // Verify state
@@ -172,7 +172,6 @@ contract HatsGAPIntegrationTest is Test {
 
         // Add second operator (simulating GardenHatsModule + KarmaGAPModule)
         mockHats.mintHat(GARDEN1_OPERATOR_HAT, operator2);
-        vm.prank(operator1); // operator1 is an admin after setup
         mockGAP.addProjectAdmin(garden1ProjectUID, operator2);
 
         // Verify both operators
@@ -183,7 +182,6 @@ contract HatsGAPIntegrationTest is Test {
 
         // Remove operator2
         mockHats.setWearer(GARDEN1_OPERATOR_HAT, operator2, false);
-        vm.prank(operator1); // operator1 can remove other admins
         mockGAP.removeProjectAdmin(garden1ProjectUID, operator2);
 
         // Verify removal
@@ -337,7 +335,6 @@ contract HatsGAPIntegrationTest is Test {
         mockHats.setHatActive(GARDEN1_OPERATOR_HAT, false);
 
         // GAP operations still work
-        vm.prank(gardenOwner);
         mockGAP.addProjectAdmin(projectUID, operator1);
         assertTrue(mockGAP.isAdmin(projectUID, operator1), "GAP should work despite hat being inactive");
     }
@@ -355,7 +352,6 @@ contract HatsGAPIntegrationTest is Test {
 
         // Remove from both
         mockHats.setWearer(GARDEN1_OPERATOR_HAT, operator1, false);
-        vm.prank(gardenOwner); // Only owner can remove last admin
         mockGAP.removeProjectAdmin(garden1ProjectUID, operator1);
 
         // Both should agree on removal
@@ -379,7 +375,6 @@ contract HatsGAPIntegrationTest is Test {
 
         // Same operator can be operator of multiple gardens
         mockHats.setWearer(garden2OperatorHat, operator1, true);
-        vm.prank(gardenOwner);
         mockGAP.addProjectAdmin(garden2ProjectUID, operator1);
 
         // Verify operator1 is operator of both gardens
@@ -411,15 +406,12 @@ contract HatsGAPIntegrationTest is Test {
         mockHats.setHatActive(GARDEN1_GARDENER_HAT, true);
         mockHats.setHatActive(GARDEN1_EVALUATOR_HAT, true);
 
-        // Create GAP project (gardenOwner becomes project owner and first admin)
+        // Create GAP project
         vm.prank(gardenOwner);
         garden1ProjectUID = mockGAP.attest(_buildProjectRequest(garden1));
 
-        // Assign operator hat
+        // Assign operator
         mockHats.setWearer(GARDEN1_OPERATOR_HAT, operator1, true);
-
-        // Add operator as GAP admin (must be called by project owner/admin)
-        vm.prank(gardenOwner);
         mockGAP.addProjectAdmin(garden1ProjectUID, operator1);
     }
 
@@ -448,7 +440,7 @@ contract HatsGAPIntegrationTest is Test {
         returns (AttestationRequest memory)
     {
         string memory json = string(
-            abi.encodePacked("{'title':'", title, "','type':'project-update','workUID':'", _bytes32ToHex(workUID), "'}")
+            abi.encodePacked('{"title":"', title, '","type":"project-update","workUID":"', _bytes32ToHex(workUID), '"}')
         );
 
         return AttestationRequest({
@@ -473,7 +465,7 @@ contract HatsGAPIntegrationTest is Test {
         pure
         returns (AttestationRequest memory)
     {
-        string memory json = string(abi.encodePacked("{'title':'", title, "','type':'project-milestone'}"));
+        string memory json = string(abi.encodePacked('{"title":"', title, '","type":"project-milestone"}'));
 
         return AttestationRequest({
             schema: DETAILS_SCHEMA,

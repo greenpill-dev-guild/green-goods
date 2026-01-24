@@ -1,11 +1,13 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
 import {
   GardenTab,
+  isGardenMember,
   useActions,
   useBrowserNavigation,
   useGardeners,
   useGardens,
   useGardenTabs,
+  useJoinGarden,
   useNavigateToTop,
   useUser,
   useWorks,
@@ -16,10 +18,13 @@ import {
   RiGroupFill,
   RiHammerFill,
   RiMapPin2Fill,
+  RiUserAddLine,
 } from "@remixicon/react";
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation, useParams } from "react-router-dom";
+import toast from "react-hot-toast";
+import { Button } from "@/components/Actions";
 import { GardenErrorBoundary } from "@/components/Errors";
 import {
   GardenAssessments,
@@ -123,6 +128,55 @@ export const Garden: React.FC<GardenProps> = () => {
     return garden.operators.some((addr) => addr.toLowerCase() === normalizedUserAddress);
   }, [primaryAddress, garden.operators]);
 
+  // Check if current user is already a member of this garden
+  const isMember = useMemo(() => {
+    return isGardenMember(primaryAddress, garden.gardeners, garden.operators, garden.id);
+  }, [primaryAddress, garden.gardeners, garden.operators, garden.id]);
+
+  // Join garden functionality
+  const { joinGarden, isJoining } = useJoinGarden();
+
+  const handleJoinGarden = useCallback(async () => {
+    if (!garden.id) return;
+
+    try {
+      const result = await joinGarden(garden.id);
+      if (result === "already-member") {
+        toast.success(
+          intl.formatMessage({
+            id: "app.garden.alreadyMember",
+            defaultMessage: "You're already a member of this garden",
+          })
+        );
+      } else {
+        toast.success(
+          intl.formatMessage({
+            id: "app.garden.joinSuccess",
+            defaultMessage: "Successfully joined the garden!",
+          })
+        );
+      }
+    } catch (error) {
+      toast.error(
+        intl.formatMessage({
+          id: "app.garden.joinError",
+          defaultMessage: "Failed to join garden. Please try again.",
+        })
+      );
+    }
+  }, [garden.id, joinGarden, intl]);
+
+  // Determine if join button should be shown
+  const showJoinButton = useMemo(() => {
+    // Must be authenticated
+    if (!primaryAddress) return false;
+    // Must not already be a member
+    if (isMember) return false;
+    // Garden must allow open joining
+    if (!garden.openJoining) return false;
+    return true;
+  }, [primaryAddress, isMember, garden.openJoining]);
+
   // Restore scroll position when switching tabs
 
   // Standard tabs configuration - removed counts
@@ -206,7 +260,23 @@ export const Garden: React.FC<GardenProps> = () => {
 
               {/* Title and meta below banner */}
               <div className="px-4 md:px-6 mt-3 flex flex-col gap-1.5 pb-3 bg-bg-white-0">
-                <h1 className="text-xl md:text-2xl font-semibold line-clamp-1">{name}</h1>
+                <div className="flex items-start justify-between gap-3">
+                  <h1 className="text-xl md:text-2xl font-semibold line-clamp-1">{name}</h1>
+                  {showJoinButton && (
+                    <Button
+                      label={intl.formatMessage({
+                        id: "app.garden.join",
+                        defaultMessage: "Join",
+                      })}
+                      leadingIcon={<RiUserAddLine className="w-4 h-4" />}
+                      variant="primary"
+                      mode="filled"
+                      size="small"
+                      onClick={handleJoinGarden}
+                      disabled={isJoining}
+                    />
+                  )}
+                </div>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                   <div className="flex items-center gap-1.5 text-sm text-text-sub-600">
                     <RiMapPin2Fill className="h-4 w-4 text-primary flex-shrink-0" />
@@ -235,9 +305,25 @@ export const Garden: React.FC<GardenProps> = () => {
               </div>
             </div>
 
-            {/* Title and meta below banner */}
+            {/* Spacer for fixed header + join button section */}
             <div className="px-4 md:px-6 mt-3 flex flex-col gap-1.5">
-              <h1 className="text-xl md:text-2xl font-semibold line-clamp-1">{name}</h1>
+              <div className="flex items-start justify-between gap-3">
+                <h1 className="text-xl md:text-2xl font-semibold line-clamp-1">{name}</h1>
+                {showJoinButton && (
+                  <Button
+                    label={intl.formatMessage({
+                      id: "app.garden.join",
+                      defaultMessage: "Join",
+                    })}
+                    leadingIcon={<RiUserAddLine className="w-4 h-4" />}
+                    variant="primary"
+                    mode="filled"
+                    size="small"
+                    onClick={handleJoinGarden}
+                    disabled={isJoining}
+                  />
+                )}
+              </div>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
                 <div className="flex items-center gap-1.5 text-sm text-text-sub-600">
                   <RiMapPin2Fill className="h-4 w-4 text-primary flex-shrink-0" />

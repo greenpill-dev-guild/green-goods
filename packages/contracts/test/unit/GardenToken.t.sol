@@ -18,9 +18,7 @@ contract GardenTokenTest is Test, ERC6551Helper {
             address(0x001), // erc4337EntryPoint
             address(0x002), // multicallForwarder
             address(0x003), // erc6551Registry
-            address(0x004), // guardian
-            address(0x2001), // workApprovalResolver
-            address(0x2002) // assessmentResolver
+            address(0x004) // guardian
         )
     );
     address private owner = address(this);
