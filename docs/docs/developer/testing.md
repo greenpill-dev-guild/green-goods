@@ -926,13 +926,13 @@ test("has no accessibility violations", async ({ page }) => {
 
 ## Complete Testing Documentation
 
-**Package-specific**:
-- Client: `packages/client/.cursor/rules/testing.mdc`
-- Admin: `packages/admin/.cursor/rules/testing.mdc`
-- Shared: `packages/shared/.cursor/rules/testing-patterns.mdc`
-- Contracts: `packages/contracts/.cursor/rules/rules.mdc`
-- Agent: `packages/agent/.cursor/rules/testing.mdc`
-- Indexer: `packages/indexer/.cursor/rules/envio-conventions.mdc`
+**Package-specific context**:
+- Client: `.claude/context/client.md`
+- Admin: `.claude/context/admin.md`
+- Shared: `.claude/context/shared.md`
+- Contracts: `.claude/context/contracts.md`
+- Agent: `.claude/context/agent.md`
+- Indexer: `.claude/context/indexer.md`
 
 **E2E testing**:
 - Quick reference: [`../../tests/README.md`](https://github.com/greenpill-dev-guild/green-goods/tree/main/tests#readme)
@@ -940,4 +940,4 @@ test("has no accessibility violations", async ({ page }) => {
 
 **CI/CD**:
 - GitHub Actions: `.github/workflows/`
-- Quality standards: `.cursor/rules/quality.mdc`
+- Quality standards: `CLAUDE.md`

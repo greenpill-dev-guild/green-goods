@@ -1,42 +1,51 @@
-# Green Goods Client — Bugbot Rules (warnings-first)
+# BUGBOT: Client Package
 
-Rules for offline-first PWA patterns. These apply when client files change.
+Automated warnings for the offline-first PWA client.
 
----
+## Critical Warnings
 
-## A) No polling — use event-driven updates
+### Hooks Defined in Client (FORBIDDEN)
+```
+Pattern: src/hooks/**/*.ts
+Trigger: export function use
+Message: "FORBIDDEN: All hooks must be in @green-goods/shared. Move to packages/shared/src/hooks/"
+```
 
-If any changed file contains `/setInterval\s*\(/` or `/setTimeout\s*\([^)]*,\s*\d{3,}\)/`, then:
-- Add a non-blocking Bug titled "Client: polling detected (use events)"
-- Body: "Use `useJobQueueEvents()` for reactive updates instead of polling. See `packages/client/.cursor/rules/offline-architecture.mdc`."
+### Polling Detected
+```
+Pattern: **/*.ts(x)
+Trigger: setInterval.*queryClient|polling|refetchInterval
+Message: "Avoid polling. Use useJobQueueEvents for event-driven updates"
+```
 
----
+### Orphan Blob URL
+```
+Pattern: **/*.ts(x)
+Trigger: URL\.createObjectURL(?!.*mediaResourceManager)
+Message: "Use mediaResourceManager.getOrCreateUrl() to prevent memory leaks"
+```
 
-## B) Media URL management
+### Wallet Chain ID Used
+```
+Pattern: **/*.ts(x)
+Trigger: useAccount\(\).*chainId|const.*chainId.*=.*useAccount
+Message: "Use DEFAULT_CHAIN_ID from @green-goods/shared, not wallet chainId"
+```
 
-If any changed file contains `/URL\.createObjectURL\(/` and does NOT contain `mediaResourceManager`, then:
-- Add a non-blocking Bug titled "Client: raw blob URL without cleanup tracking"
-- Body: "Use `mediaResourceManager.getOrCreateUrl(file, trackingId)` for stable URLs with cleanup tracking. Raw `URL.createObjectURL` creates memory leaks. See `packages/client/.cursor/rules/offline-architecture.mdc`."
+### Missing isReady Check
+```
+Pattern: **/*.ts(x)
+Trigger: smartAccountClient\.(send|write)(?!.*isReady)
+Message: "Guard smartAccountClient calls with isReady check"
+```
 
----
-
-## C) Chain from environment (not wallet)
-
-If any changed file contains `/useAccount\(\).*chainId/` or `/\{\s*chainId\s*\}\s*=\s*useAccount\(/`, then:
-- Add a non-blocking Bug titled "Client: wallet chainId usage forbidden"
-- Body: "Client is single-chain. Use `useCurrentChain()` or `DEFAULT_CHAIN_ID` from `@green-goods/shared`. See `packages/client/.cursor/rules/authentication.mdc`."
-
----
-
-## D) Auth mode branching
-
-If any changed file contains `/smartAccountClient\./` without nearby check for auth mode, then:
-- Add a non-blocking Bug titled "Client: consider auth mode check"
-- Body: "Verify `authMode === 'passkey'` before using `smartAccountClient`. Wallet users should use direct transactions. See `packages/client/.cursor/rules/authentication.mdc`."
-
----
+### Hardcoded Address
+```
+Pattern: src/**/*.ts(x)
+Trigger: ['"]0x[a-fA-F0-9]{40}['"]
+Message: "Use deployment artifacts, not hardcoded addresses"
+```
 
 ## Reference
 
-- `.cursor/rules/offline-architecture.mdc` — Job queue patterns
-- `.cursor/rules/authentication.mdc` — Auth mode branching
+See `.claude/context/client.md` for full patterns.

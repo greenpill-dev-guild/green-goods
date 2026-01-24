@@ -148,8 +148,5 @@ submitWork()
 **📖 Full details**: [packages/client/README.md](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/client#readme)
 
 **Key Files**:
-- Architecture: `.cursor/rules/offline-architecture.mdc`
-- Auth patterns: `.cursor/rules/authentication.mdc`
-- State management: `.cursor/rules/state-management.mdc`
-- Component patterns: `.cursor/rules/component-patterns.mdc`
+- Patterns and conventions: `.claude/context/client.md`
 

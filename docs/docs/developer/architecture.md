@@ -28,7 +28,7 @@ All packages share the root `.env`; Base Sepolia (`84532`) is the default networ
   bun --filter client test       # Vitest suite
   bun --filter client format     # Biome formatter
   ```
-- **Key docs**: `packages/client/AGENTS.md` covers offline patterns, queue APIs, and Pimlico setup.
+- **Key docs**: `.claude/context/client.md` covers offline patterns, queue APIs, and Pimlico setup.
 
 ### Admin Dashboard
 
@@ -87,4 +87,4 @@ All packages share the root `.env`; Base Sepolia (`84532`) is the default networ
 - [Product Overview](../features/overview) — condensed product & data map
 - [Developer Docs](../developer/getting-started) — environment, testing, troubleshooting
 - [Contracts Handbook](../developer/contracts-handbook) — lifecycle workflows
-- Package-specific deep dives remain in their respective `AGENTS.md` and README files for implementation details.
+- Package-specific deep dives are in `.claude/context/` and package README files for implementation details.

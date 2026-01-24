@@ -1,446 +1,190 @@
 # Green Goods Agent System Guide
 
-This document provides an overview of the complete agent documentation system for Green Goods.
+This document provides an overview of the AI configuration system for Green Goods.
 
-## Agent Documentation Architecture
+## Configuration Architecture (Consolidated)
+
+All AI configuration is now centralized at the root level:
 
 ```
 green-goods/
-├── .cursor/
-│   ├── mcp.json                      # MCP server configuration
-│   └── rules/                        # Root-level MDC rules
-│       ├── monorepo.mdc             # Always applied
-│       ├── quality.mdc              # Always applied
-│       ├── diagrams.mdc             # Always applied (Mermaid generation)
-│       ├── orchestration.mdc        # Always applied (Cloud Agent dispatch)
-│       ├── deployment.mdc           # Auto-attached to contracts/**
-│       └── environment.mdc          # Auto-attached to .env*, config.*
-├── AGENTS.md                         # Root agent guide (high-level)
-└── packages/
-    ├── shared/                       # Common code for client + admin
-    │   ├── AGENTS.md                # Shared architecture overview
-    │   └── .cursor/rules/
-    │       ├── rules.mdc                 # Package conventions
-    │       ├── cross-package-imports.mdc # Import patterns
-    │       ├── hook-architecture.mdc     # All hooks live in shared
-    │       ├── state-patterns.mdc        # Providers, stores, query keys
-    │       ├── design-system.mdc         # Colors, typography, icons
-    │       ├── testing-patterns.mdc      # Vitest, mocks, coverage
-    │       └── appkit-integration.mdc    # Wallet connection
-    ├── client/
-    │   ├── AGENTS.md                # Client architecture overview
-    │   └── .cursor/rules/
-    │       ├── rules.mdc                 # Package conventions
-    │       ├── offline-architecture.mdc  # Job queue, sync, storage
-    │       ├── authentication.mdc        # Passkey, Pimlico, guards
-    │       ├── component-cards.mdc       # Card patterns
-    │       ├── component-forms.mdc       # Form patterns
-    │       ├── component-modals.mdc      # Modal/drawer patterns
-    │       ├── component-radix.mdc       # Radix UI primitives
-    │       └── testing.mdc              # Vitest, Playwright MCP
-    ├── admin/
-    │   ├── AGENTS.md                # Admin architecture overview
-    │   └── .cursor/rules/
-    │       ├── rules.mdc                # Package conventions
-    │       ├── access-control.mdc       # Role-based access
-    │       ├── component-workflows.mdc  # Modals, forms
-    │       └── testing.mdc             # Integration tests
-    ├── indexer/
-    │   ├── AGENTS.md                # Indexer overview
-    │   └── .cursor/rules/
-    │       ├── envio-conventions.mdc    # Entity patterns
-    │       └── development.mdc         # Workflow, Docker
-    ├── agent/
-    │   ├── AGENTS.md                # Multi-platform bot overview
-    │   └── .cursor/rules/
-    │       ├── rules.mdc               # Package conventions
-    │       ├── architecture.mdc        # Data flow, handlers
-    │       ├── deployment.mdc          # Railway, Docker, webhooks
-    │       ├── security.mdc            # Encryption, rate limiting
-    │       └── testing.mdc            # Coverage targets
-    └── contracts/
-        ├── AGENTS.md                # Contracts overview
-        └── .cursor/rules/
-            ├── rules.mdc               # Solidity style, safety
-            ├── schema-management.mdc   # Immutable schemas
-            ├── deployment-patterns.mdc # deploy.ts usage
-            └── uups-upgrades.mdc      # Storage gaps
+├── CLAUDE.md                    # Primary context (always loaded)
+├── .claude/
+│   ├── agents/                 # Agent definitions
+│   │   ├── oracle.md           # Deep research agent
+│   │   ├── cracked-coder.md    # TDD implementation agent
+│   │   └── code-reviewer.md    # 6-pass review agent
+│   ├── context/                # Package-specific context
+│   │   ├── shared.md           # Loaded for packages/shared/**
+│   │   ├── client.md           # Loaded for packages/client/**
+│   │   ├── admin.md            # Loaded for packages/admin/**
+│   │   ├── contracts.md        # Loaded for packages/contracts/**
+│   │   ├── indexer.md          # Loaded for packages/indexer/**
+│   │   └── agent.md            # Loaded for packages/agent/**
+│   ├── hooks.json              # Convention enforcement hooks
+│   └── skills/                 # Slash commands
+│       ├── plan/SKILL.md       # /plan
+│       ├── review/SKILL.md     # /review
+│       ├── debug/SKILL.md      # /debug
+│       └── audit/SKILL.md      # /audit
+└── .cursor/
+    ├── AGENT_SYSTEM_GUIDE.md   # This file (overview)
+    ├── BUGBOT.md               # Bugbot configuration
+    └── mcp.json                # MCP server configuration
 ```
 
-## Rule Activation Patterns
+## Context Loading
 
-### Always Applied Rules
+### Primary Context (Always Loaded)
 
-These rules are always in context:
-- `/.cursor/rules/monorepo.mdc` — package structure and conventions
-- `/.cursor/rules/quality.mdc` — testing and code quality standards
-- `/.cursor/rules/diagrams.mdc` — Mermaid diagram generation guidance
-- `/.cursor/rules/orchestration.mdc` — Cloud Agent dispatch and GitHub MCP orchestration
-- `/packages/indexer/.cursor/rules/development.mdc` — indexer workflow
+**CLAUDE.md** is always loaded and contains:
+- Development commands
+- Architecture overview
+- Coding patterns
+- Type system rules
+- Error handling
+- Testing standards
+- Claude Code integration
 
-### Auto-Attached Rules
+### Package-Specific Context
 
-Rules auto-attach when working with matching files:
+When working in a package directory, the corresponding context file is loaded:
 
-**Root-level:**
-- `deployment.mdc` → `packages/contracts/**`
-- `environment.mdc` → `**/.env*`, `**/config.*`
+| Working In | Context Loaded |
+|------------|----------------|
+| `packages/shared/**` | `.claude/context/shared.md` |
+| `packages/client/**` | `.claude/context/client.md` |
+| `packages/admin/**` | `.claude/context/admin.md` |
+| `packages/contracts/**` | `.claude/context/contracts.md` |
+| `packages/indexer/**` | `.claude/context/indexer.md` |
+| `packages/agent/**` | `.claude/context/agent.md` |
 
-**Shared:**
-- `rules.mdc` → `packages/shared/src/**`
-- `hook-architecture.mdc` → `packages/shared/src/hooks/**`
-- `state-patterns.mdc` → `packages/shared/src/providers/**`, `packages/shared/src/stores/**`
-- `cross-package-imports.mdc` → `packages/client/src/**`, `packages/admin/src/**`
+### Context Contents
 
-**Client:**
-- `rules.mdc` → `packages/client/src/**`
-- `component-*.mdc` → `packages/client/src/components/**`, `packages/client/src/views/**`
-- `testing.mdc` → `packages/client/src/__tests__/**`, `**/*.test.*`
+Each package context file (~200 lines) contains:
+- Quick reference commands
+- Package architecture
+- Critical patterns (MANDATORY rules)
+- Anti-patterns to avoid
+- Common mistakes and solutions
+- Testing coverage targets
+- Reference files
 
-**Admin:**
-- `rules.mdc` → `packages/admin/src/**`
-- `access-control.mdc` → `packages/admin/src/routes/Require*.tsx`
-- `component-workflows.mdc` → `packages/admin/src/components/Garden/**`
-- `testing.mdc` → `packages/admin/src/__tests__/**`
+## Available Commands (4)
 
-**Indexer:**
-- `envio-conventions.mdc` → `schema.graphql`, `src/EventHandlers.ts`, `config.yaml`
+| Command | Purpose |
+|---------|---------|
+| `/plan` | Create, check, and execute implementation plans |
+| `/review` | Perform 6-pass code review, process feedback |
+| `/debug` | Systematic debugging with root cause analysis |
+| `/audit` | Comprehensive codebase health analysis |
 
-**Agent:**
-- `rules.mdc` → `packages/agent/src/**`
-- `architecture.mdc` → `packages/agent/src/handlers/**`, `packages/agent/src/services/**`
-- `security.mdc` → `packages/agent/src/services/encryption.ts`
-- `deployment.mdc` → `packages/agent/Dockerfile`, `packages/agent/src/api/**`
+## Available Agents (3)
 
-**Contracts:**
-- `rules.mdc` → `packages/contracts/src/**`
-- `schema-management.mdc` → `packages/contracts/config/schemas.json`
-- `deployment-patterns.mdc` → `packages/contracts/script/deploy.ts`
-- `uups-upgrades.mdc` → `packages/contracts/src/**/*Upgradeable.sol`, `packages/contracts/test/*Upgrade*.sol`
+| Agent | Purpose | When to Use |
+|-------|---------|-------------|
+| `oracle` | Deep research with evidence | Research questions, multi-source investigation |
+| `cracked-coder` | TDD implementation | Feature development (>50 lines) |
+| `code-reviewer` | 6-pass systematic review | PR review before merge |
 
-### Manual Invocation
+**Invocation:** Just say "use cracked-coder for this" or "ask oracle about X"
 
-Invoke specific rules with `@rulename`:
+## Hooks (Convention Enforcement)
 
-```bash
-# Check contract production readiness
-@rules: Assess contracts for Celo mainnet deployment
+Hooks in `.claude/hooks.json` enforce Green Goods patterns:
 
-# Review hook architecture
-@hook-architecture: Review this custom hook implementation
-```
+| Category | What It Catches |
+|----------|-----------------|
+| Quality | Hooks in wrong location, package .env files |
+| Safety | Production deploys, force push to main |
+| Workflow | TDD reminder, i18n reminder, ABI rebuild reminder |
 
-## MCP Server Configuration
+## MCP Servers (6)
 
-### Server Locations
-
-| Server | Location | Why |
-|--------|----------|-----|
-| **GitHub** | Global config | Requires `GITHUB_TOKEN` secret; has write access |
-| **Figma** | Project | Design file access, code generation |
-| **Vercel** | Project | Deployment management |
-| **Railway** | Project | Agent deployment |
-| **Miro** | Project | Diagrams and boards |
-
-### Two GitHub Integrations
-
-| Integration | Purpose | Capabilities |
-|-------------|---------|--------------|
-| **GitHub MCP** (global) | In-editor orchestration | Read/write issues, PRs, comments |
-| **GitHub App** (cloud) | Cloud Agents + Bugbot | Clone repos, push commits, open PRs |
-
-**They work together:** MCP dispatches work → GitHub App executes Cloud Agents.
-
-### Available MCP Tools
-
-**GitHub (global, read+write):**
-- Issue tracking and triage
-- PR management and review
-- **Post `@cursor` comments to spawn Cloud Agents**
-- Create issues and PRs
-- Code search across repos
-
-**Figma:**
-- UI code generation from designs
-- Design screenshots
-- Variable/token extraction
-
-**Vercel:**
-- Deployment management
-- Preview URLs
-- Build logs
-
-**Miro:**
-- Board access
-- Diagram generation
-
-**Railway:**
-- Agent deployment
-- Environment configuration
-- Logs and monitoring
-
-### MCP Usage Guidelines
-
-**Orchestrate Cloud Agents:**
-```bash
-# Triage issues
-@github: List open issues labeled "bug" in greenpill-dev-guild/green-goods
-
-# Dispatch Cloud Agent to fix an issue
-@github: Post comment on issue #123: "@cursor Investigate and fix this bug. Add a test first."
-
-# Dispatch Bugbot auto-fix on a PR
-@github: Post comment on PR #456: "@cursor fix"
-
-# Track Cloud Agent PRs
-@github: List PRs authored by cursor[bot] in greenpill-dev-guild/green-goods
-```
-
-**Other MCP tasks:**
-```bash
-@github: Create issue "Add dark mode" with labels: feature, client
-@figma: Get design context for [fileKey] node [nodeId]
-@vercel: Check deployment status for latest PR
-@railway: View agent deployment logs
-```
-
-**Use native tools for:**
-- Feature development (local agent)
-- Component creation
-- Business logic implementation
-
-**See also:** [Cursor Workflows Guide](../docs/developer/cursor-workflows.md) for complete orchestration, dispatch templates, and Cloud vs Local agent guidance.
+| Server | Purpose |
+|--------|---------|
+| `figma` | Design context extraction |
+| `vercel` | Deployment management |
+| `miro` | Whiteboard collaboration |
+| `railway` | Railway deployment |
+| `foundry` | Contract development (forge, cast, anvil) |
+| `storacha` | IPFS/Filecoin storage |
 
 ## Critical Cross-Package Rules
 
-These rules are enforced across ALL packages:
+These rules are enforced across ALL packages (from CLAUDE.md):
 
 ### 1. Root .env Only
-
 **✅ DO:** Use root `.env` file
 **❌ DON'T:** Create package-specific `.env` files
 
 ### 2. Chain from Environment
-
-**✅ DO:** Use `VITE_CHAIN_ID` via `getDefaultChain()`
+**✅ DO:** Use `VITE_CHAIN_ID` via `DEFAULT_CHAIN_ID`
 **❌ DON'T:** Read from wallet `chainId`
 
 ### 3. Deploy via deploy.ts
-
 **✅ DO:** `bun deploy:testnet` or `bun script/deploy.ts`
 **❌ DON'T:** `forge script script/Deploy.s.sol`
 
 ### 4. Never Modify schemas.json
-
 **✅ DO:** Create `schemas.test.json` for testing
 **❌ DON'T:** Edit `config/schemas.json`
 
 ### 5. Centralized Query Keys
-
 **✅ DO:** Use `queryKeys` from `@green-goods/shared`
 **❌ DON'T:** Construct ad-hoc query keys
 
 ### 6. Hooks Live in Shared (CRITICAL)
-
 **✅ DO:** Create hooks in `packages/shared/src/hooks/`
 **❌ DON'T:** Create hooks in client or admin packages
 
-## Package-Specific Priorities
+## The 4 Entry Points
 
-### Shared (Highest Complexity)
+All work enters through one of these flows:
 
-**Focus areas:**
-- Offline-first architecture (job queue, sync, storage)
-- State management (TanStack Query, Zustand, RHF)
-- Authentication (passkey, smart accounts)
-- Hooks, providers, stores, workflows
-- Toast presets and utilities
-- Date/time formatting utilities
-
-**Rule count:** 7 MDC files + AGENTS.md
-
-### Client (Medium Complexity)
-
-**Focus areas:**
-- Component patterns (cards, forms, modals)
-- Views and routing
-- PWA-specific features
-
-**Rule count:** 8 MDC files + AGENTS.md
-
-### Admin (Medium Complexity)
-
-**Focus areas:**
-- Role-based access control
-- Garden management workflows
-- Modal workflows
-
-**Rule count:** 4 MDC files + AGENTS.md
-
-### Indexer (Low Complexity)
-
-**Focus areas:**
-- Envio conventions
-- Event handlers
-- Multi-chain entities
-
-**Rule count:** 2 MDC files + AGENTS.md
-
-### Agent (Medium Complexity)
-
-**Focus areas:**
-- Multi-platform bot (Telegram, Discord, WhatsApp)
-- Handler architecture
-- Security (encryption, rate limiting)
-- Railway deployment
-
-**Rule count:** 5 MDC files + AGENTS.md
-
-### Contracts (Medium Complexity)
-
-**Focus areas:**
-- Schema immutability
-- Deployment safety
-- UUPS upgrades
-- Solidity style and safety
-
-**Rule count:** 4 MDC files + AGENTS.md
-
-## Visual Documentation
-
-Use Mermaid diagrams to clarify complex flows. Reference canonical diagrams instead of recreating them.
-
-### Canonical Diagrams
-
-Located in `docs/developer/architecture/diagrams.md`:
-
-| Diagram | Use When |
-|---------|----------|
-| System Context | Package relationships, onboarding |
-| Work Submission | Offline queue, client PRs |
-| Work Approval | Admin PRs, resolver changes |
-| Auth Flow | Auth-related PRs |
-| Provider Hierarchy | Context nesting issues |
-| E2E Test Flow | Test infrastructure |
-| Deployment Flow | Contract deployment |
-| Indexer Flow | Event processing |
-
-### When to Generate Diagrams
-
-- Cross-package flows (3+ packages affected)
-- Multi-step workflows
-- PR descriptions touching complex flows
-- Answering "how does X work?" questions
-
-### Diagram Generation Pattern
-
-1. **Level 1 (detailed)**: Sequence diagram of specific function
-2. **Level 2 (summary)**: Flowchart of component interactions
-3. **Level 3 (context)**: System map showing packages
-
-See `/.cursor/rules/diagrams.mdc` for full guidance.
+| Entry Point | Flow | TDD |
+|-------------|------|-----|
+| **PRD** | `/plan` → Specs → Stories → Features | No |
+| **Feature** | cracked-coder (GATHER → PLAN → TEST → IMPLEMENT → VERIFY) | **Yes** |
+| **Bug** | `/debug` → root cause → cracked-coder (if complex) | If complex |
+| **Polish** | Direct Claude (no agent needed) | No |
 
 ## Quality Baseline
 
 All packages follow these standards:
 
-- **TypeScript:** Strict mode, no `any` without justification
-- **Formatting:** Biome (35x faster than Prettier)
-- **Linting:** oxlint (30ms on entire codebase)
-- **Commits:** Conventional commits (`feat:`, `fix:`, `docs:`)
-- **Testing:** 70%+ overall, 80%+ for critical paths
-- **Documentation:** Update README and rules when establishing patterns
+| Standard | Requirement |
+|----------|-------------|
+| TypeScript | Strict mode, no `any` without justification |
+| Formatting | Biome (35x faster than Prettier) |
+| Linting | oxlint (30ms on entire codebase) |
+| Commits | Conventional commits (`feat:`, `fix:`, `docs:`) |
+| Testing | 70%+ overall, 80%+ for critical paths |
 
-## Tool Preferences
+## Getting Started
 
-**Formatting & Linting:**
-- Biome over Prettier (performance)
-- oxlint over ESLint (speed)
-- Solhint for Solidity
+1. Read `CLAUDE.md` for project overview and patterns
+2. Check `.claude/context/{package}.md` for package-specific rules
+3. Use agents: "use cracked-coder for this feature"
+4. Use commands: `/plan`, `/review`, `/debug`, `/audit`
+5. Follow conventional commits
+6. Run validation before committing: `bun format && bun lint && bun test && bun build`
 
-**Package Management:**
-- bun for workspace management
+## Migration Notes
 
-**Blockchain:**
-- Viem over ethers (TypeScript-first, smaller bundle)
-- Foundry over Hardhat (speed, testing)
+**Previous Structure (Deprecated):**
+- 36 individual `.mdc` rule files across packages
+- Package-level `AGENTS.md` files
 
-**State:**
-- TanStack Query for server state
-- Zustand for UI state
-- React Hook Form for forms
+**Current Structure (Active):**
+- 1 primary `CLAUDE.md` file
+- 6 package context files in `.claude/context/`
+- 3 agents in `.claude/agents/`
+- 4 skills in `.claude/skills/`
 
-## Getting Started as an Agent
-
-1. Read root `AGENTS.md` for project overview
-2. Review root `.cursor/rules/` for cross-package standards
-3. Check package-specific `AGENTS.md` for architecture
-4. Review package `.cursor/rules/` for detailed patterns
-5. Use MCP tools when appropriate
-6. Follow conventional commits
-7. Update rules when establishing new patterns
-
-## Agent Capabilities
-
-With this documentation system, agents can:
-
-- ✅ Build features following existing patterns
-- ✅ Understand offline-first architecture
-- ✅ Navigate role-based access correctly
-- ✅ Deploy contracts safely
-- ✅ Write consistent tests
-- ✅ Use appropriate state management
-- ✅ Follow code quality standards
-- ✅ Leverage MCP tools effectively
-- ✅ Orchestrate Cloud Agents via GitHub MCP
-- ✅ Triage and dispatch multiple issues in parallel
-- ✅ Integrate with n8n automated pipelines (meeting → issue → agent)
-
-## Maintenance
-
-### Updating Rules
-
-When to update agent documentation:
-
-- **New pattern established:** Add to relevant .mdc file
-- **Breaking change:** Update all affected rules
-- **New package added:** Create AGENTS.md and .cursor/rules/
-- **Major refactor:** Review and update related rules
-- **User feedback:** Incorporate into rule improvements
-
-### Rule File Limits
-
-Keep each rule under 500 lines:
-- Split large rules into focused files
-- Use multiple .mdc files per concern
-- Link related rules in "Reference Files" section
-
-## Success Metrics
-
-Agent documentation is successful when:
-
-- New features follow established patterns automatically
-- Fewer clarification questions about architecture
-- Consistent code structure across contributions
-- Faster onboarding for human developers
-- Reduced rework from architectural misunderstandings
-
-## Quick Reference
-
-| Package | AGENTS.md | Rule Count | Focus |
-|---------|-----------|------------|-------|
-| Root | ✅ | 6 | Cross-package standards, diagrams, orchestration |
-| Shared | ✅ | 7 | Hooks, providers, modules, stores |
-| Client | ✅ | 8 | Components, views, PWA |
-| Admin | ✅ | 4 | Access control, workflows |
-| Indexer | ✅ | 2 | Envio conventions |
-| Agent | ✅ | 5 | Multi-platform bot |
-| Contracts | ✅ | 4 | Deployment, safety |
-
-**Total:** 7 AGENTS.md files, 36 MDC rule files, 1 MCP config, 1 diagrams reference
+This consolidation reduces context overhead by ~80% while preserving all critical patterns.
 
 ---
 
-**Last Updated:** 2025-01-01  
-**Maintained by:** Green Goods core team  
-**For questions:** greengoods@greenpill.builders
+**Last Updated:** 2026-01-24
+**Maintained by:** Green Goods core team

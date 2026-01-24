@@ -1,43 +1,55 @@
-# Green Goods Agent — Bugbot Rules (warnings-first)
+# BUGBOT: Agent Package
 
-Security-focused rules for the agent bot.
+Automated warnings for the multi-platform bot (Telegram).
 
----
+## Critical Warnings
 
-## A) Never store plaintext keys
+### Exposed Private Key
+```
+Pattern: **/*.ts
+Trigger: privateKey|PRIVATE_KEY|secret
+Without: decrypt|process\.env
+Message: "NEVER hardcode private keys. Use encrypted storage or environment variables"
+```
 
-If any changed file stores private keys without encryption:
-- Pattern: `/db\.(insert|update).*privateKey/` without `prepareKeyForStorage`
-- Add a non-blocking Bug titled "Agent security: plaintext key storage"
-- Body: "Always encrypt with `prepareKeyForStorage(key)` before database storage. See `packages/agent/.cursor/rules/security.mdc`."
+### Missing Rate Limit
+```
+Pattern: src/handlers/**/*.ts
+Trigger: export.*handler|handle
+Without: rateLimit|cooldown
+Message: "Add rate limiting to prevent abuse"
+```
 
----
+### Unsafe Error Message
+```
+Pattern: **/*.ts
+Trigger: catch.*reply\(.*error|catch.*send\(.*error
+Message: "Don't expose raw errors to users. Use sanitized messages"
+```
 
-## B) Rate limiting required
+### Missing Input Validation
+```
+Pattern: src/handlers/**/*.ts
+Trigger: ctx\.message\.text|update\.message
+Without: validate|sanitize|zod
+Message: "Validate and sanitize all user input"
+```
 
-If any changed file adds handler functions without rate limiting, then:
-- Add a non-blocking Bug titled "Agent: verify rate limit"
-- Body: "Add rate limiting via `rateLimiter.check(userId, action)` before expensive operations. See `packages/agent/.cursor/rules/security.mdc`."
+### Service Without Singleton
+```
+Pattern: src/services/**/*.ts
+Trigger: export class
+Without: instance|getInstance|singleton
+Message: "Services should be singletons to manage state properly"
+```
 
----
-
-## C) Input validation
-
-If any changed file uses blockchain addresses without validation, then:
-- Add a non-blocking Bug titled "Agent: verify address validation"
-- Body: "Validate addresses with `isValidAddress(addr)` before use."
-
----
-
-## D) No business logic in platform adapters
-
-If any changed file in `platforms/` contains complex business logic, then:
-- Add a non-blocking Bug titled "Agent arch: business logic in adapter"
-- Body: "Platform adapters only transform messages. Business logic belongs in `handlers/`. See `packages/agent/.cursor/rules/architecture.mdc`."
-
----
+### Direct API Call
+```
+Pattern: src/handlers/**/*.ts
+Trigger: fetch\(|axios\.|got\(
+Message: "Use service layer for API calls, not direct in handlers"
+```
 
 ## Reference
 
-- `.cursor/rules/security.mdc` — Encryption, rate limiting, validation
-- `.cursor/rules/architecture.mdc` — Handler patterns
+See `.claude/context/agent.md` for full patterns.

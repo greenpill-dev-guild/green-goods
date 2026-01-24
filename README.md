@@ -84,7 +84,7 @@ Package-specific READMEs:
 - Run `bun format && bun lint && bun test` before opening PRs
 - Keep environment-only secrets in the root `.env` and never add package-level `.env` files
 
-For more project background, automation guidelines, and tooling policies see `AGENTS.md` and the package-specific agent guides.
+For more project background, automation guidelines, and tooling policies see `AGENTS.md`, `CLAUDE.md`, and the package-specific context files in `.claude/context/`.
 
 ## Changelog
 

@@ -10,7 +10,7 @@ For the first rollout, everything here is NON-BLOCKING warnings.
 
 If any changed file path matches `/(^|\/)packages\/[^\/]+\/\.env(\.|$)/`, then:
 - Add a non-blocking Bug titled "GG invariant: package-level .env file"
-- Body: "All packages use the single root `.env`. Remove this file and use root `.env` + `.env.example` docs. See `.cursor/rules/environment.mdc`."
+- Body: "All packages use the single root `.env`. Remove this file and use root `.env` + `.env.example` docs. See `CLAUDE.md`."
 
 If any changed file path matches `/(^|\/)\.env$/`, then:
 - Add a non-blocking Bug titled "GG invariant: committed root .env"
@@ -34,7 +34,7 @@ If any changed file contains `/(PRIVATE_KEY|ENCRYPTION_SECRET|TELEGRAM_BOT_TOKEN
 
 If any changed file path matches `/packages\/contracts\/config\/schemas\.json$/`, then:
 - Add a non-blocking Bug titled "GG invariant: do not modify contracts/config/schemas.json"
-- Body: "This file represents production EAS schema metadata. Editing it can create duplicate schemas and break indexing. Use `schemas.test.json` for experiments or `deploy.ts --update-schemas` for metadata-only updates. See `packages/contracts/.cursor/rules/schema-management.mdc`."
+- Body: "This file represents production EAS schema metadata. Editing it can create duplicate schemas and break indexing. Use `schemas.test.json` for experiments or `deploy.ts --update-schemas` for metadata-only updates. See `.claude/context/contracts.md`."
 
 ---
 
@@ -42,7 +42,7 @@ If any changed file path matches `/packages\/contracts\/config\/schemas\.json$/`
 
 If any changed file path matches `/packages\/(client|admin)\/src\/hooks\//`, then:
 - Add a non-blocking Bug titled "GG invariant: hooks must live in @green-goods/shared"
-- Body: "Client/admin may consume hooks but must not define them. Move to `packages/shared/src/hooks/...` and re-export. See `.cursor/rules/monorepo.mdc` + `packages/shared/.cursor/rules/hook-architecture.mdc`."
+- Body: "Client/admin may consume hooks but must not define them. Move to `packages/shared/src/hooks/...` and re-export. See `CLAUDE.md` and `.claude/context/shared.md`."
 
 If any changed file path matches `/packages\/(client|admin)\/src\/.*\.(ts|tsx)$/` and contains `/export\s+(function|const)\s+use[A-Z]\w*/`, then:
 - Add a non-blocking Bug titled "GG invariant: exported hook found outside shared"
@@ -54,7 +54,7 @@ If any changed file path matches `/packages\/(client|admin)\/src\/.*\.(ts|tsx)$/
 
 If any changed file contains `/@green-goods\/shared\/src\//`, then:
 - Add a non-blocking Bug titled "GG invariant: forbidden deep import from @green-goods/shared"
-- Body: "Do not import from shared internals. Export from shared and import via `@green-goods/shared` (or allowed subpaths like `@green-goods/shared/hooks`). See `packages/shared/.cursor/rules/cross-package-imports.mdc`."
+- Body: "Do not import from shared internals. Export from shared and import via `@green-goods/shared` (or allowed subpaths like `@green-goods/shared/hooks`). See `.claude/context/shared.md`."
 
 If any changed file contains `/(\.\.\/){2,}packages\/(client|admin|shared|agent|indexer)\/src\//`, then:
 - Add a non-blocking Bug titled "GG invariant: forbidden cross-package source import"
@@ -87,4 +87,4 @@ If any changed file contains `/(?:^|\s)(TODO|FIXME)(?:\s*:|\s+)/`, then:
 
 - [Cursor Bugbot docs](https://docs.cursor.com/en/bugbot)
 - [Bugbot rules cookbook](https://cursor.com/docs/cookbook/bugbot-rules)
-- `.cursor/rules/` — Agent rules for context
+- `.claude/context/` — Package-specific context files

@@ -76,7 +76,7 @@ These universal programming principles guide all development in this codebase:
 - **AbortSignal** — Cancellable async operations
 - **Zod schemas** — Runtime validation with type inference
 
-See `.cursor/rules/quality.mdc` for detailed examples.
+See `CLAUDE.md` for detailed type system examples.
 
 ### Advanced Solidity Patterns
 
@@ -86,7 +86,7 @@ See `.cursor/rules/quality.mdc` for detailed examples.
 - **Fuzz + invariant testing** — Adversarial testing with Foundry
 - **Multi-sig + timelock** — No single key for admin actions
 
-See `packages/contracts/AGENTS.md` and `packages/contracts/.cursor/rules/rules.mdc` for detailed examples.
+See `.claude/context/contracts.md` for detailed patterns.
 
 ---
 
@@ -142,15 +142,14 @@ For troubleshooting setup issues, see [Installation Guide](./docs/developer/inst
 
 ## Workflow Checklist
 
-1. **Before editing** — read relevant package agent guides:
-   - `packages/shared/AGENTS.md` — common hooks, providers, stores, modules
-   - `packages/client/AGENTS.md` — PWA views and components
-   - `packages/admin/AGENTS.md` — dashboard views and components
-   - `packages/indexer/AGENTS.md` — Envio GraphQL indexer
-   - `packages/agent/AGENTS.md` — multi-platform bot (Telegram, Discord, WhatsApp)
-   - `packages/agent/.cursor/rules/*.mdc` — agent architecture, testing, deployment, security
-   - `packages/contracts/AGENTS.md` — Solidity contracts overview
-   - `packages/contracts/.cursor/rules/*.mdc` — detailed contract patterns
+1. **Before editing** — read the primary context files:
+   - `CLAUDE.md` — primary context (architecture, patterns, commands)
+   - `.claude/context/shared.md` — hooks, providers, stores, state patterns
+   - `.claude/context/client.md` — offline architecture, authentication, components
+   - `.claude/context/admin.md` — access control, role-based workflows
+   - `.claude/context/contracts.md` — UUPS upgrades, deployment, schema management
+   - `.claude/context/indexer.md` — Envio conventions, event handlers
+   - `.claude/context/agent.md` — multi-platform bot architecture, security
 2. **During implementation**
    - Keep TypeScript strict (`noImplicitAny`, etc.)
    - Prefer existing helper utilities over duplicating logic
@@ -193,7 +192,6 @@ See [IPFS Deployment Guide](./docs/developer/ipfs-deployment.md) for setup and t
 When explaining cross-package flows, reference or generate Mermaid diagrams:
 
 - **Canonical diagrams:** `docs/developer/architecture/diagrams.md`
-- **Generation guide:** `.cursor/rules/diagrams.mdc`
 
 | Flow | Use When |
 |------|----------|

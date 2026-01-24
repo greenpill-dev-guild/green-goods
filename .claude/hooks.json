@@ -98,7 +98,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if echo \"$FILE_PATH\" | grep -qE '\\.(ts|tsx)$' && grep -q '0x[a-fA-F0-9]\\{40\\}' \"$FILE_PATH\" 2>/dev/null; then echo '⚠️ WARNING: Hardcoded address detected. Use deployment artifacts from packages/contracts/deployments/'; fi || true",
+            "command": "if echo \"$FILE_PATH\" | grep -qE '\\.(ts|tsx)$' && ! echo \"$FILE_PATH\" | grep -qE '(__tests__|\\.(test|spec)\\.)' && grep -q '0x[a-fA-F0-9]\\{40\\}' \"$FILE_PATH\" 2>/dev/null; then echo '⚠️ WARNING: Hardcoded address detected. Use deployment artifacts from packages/contracts/deployments/'; fi || true",
             "statusMessage": "Checking for hardcoded addresses..."
           }
         ]
@@ -137,6 +137,17 @@
           {
             "type": "command",
             "command": "echo '🌿 Green Goods | 4 Entry Points: PRD → Feature → Bug → Polish | Use TodoWrite for tracking'",
+            "once": true
+          }
+        ]
+      },
+      {
+        "_category": "Context",
+        "_description": "Auto-remind to load package context",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PKG=$(pwd | grep -oE 'packages/[^/]+' | head -1 | cut -d/ -f2); if [ -n \"$PKG\" ] && [ -f \".claude/context/$PKG.md\" ]; then echo \"📁 CONTEXT: Working in packages/$PKG — Read .claude/context/$PKG.md for package-specific patterns\"; fi",
             "once": true
           }
         ]

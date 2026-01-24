@@ -162,5 +162,6 @@ bun test job-queue
 - 📦 [Cross-Package Imports](https://docs.greengoods.app/developer/architecture/monorepo-structure#cross-package-dependencies) — Import boundaries and conventions
 
 **For AI Agents:**
-- [AGENTS.md](./AGENTS.md) — AI agent architecture guide
-- [Root AGENTS.md](/AGENTS.md) — Monorepo-wide documentation
+- [CLAUDE.md](/CLAUDE.md) — Primary context file
+- [shared.md](/.claude/context/shared.md) — Package-specific patterns
+- [Root AGENTS.md](/AGENTS.md) — Quick reference
