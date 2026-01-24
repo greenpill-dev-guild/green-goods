@@ -210,125 +210,98 @@ For detailed patterns and rules, see the `.cursor/rules/` directories throughout
 
 This project has extensive Claude Code tooling configured in `.claude/`.
 
-### Available Commands
+### The 4 Entry Points
+
+All work enters through one of these flows:
+
+| Entry Point | Flow | TDD |
+|-------------|------|-----|
+| **PRD** | `/plan` → Specs → Stories → Features | No |
+| **Feature** | cracked-coder (GATHER → PLAN → TEST → IMPLEMENT → VERIFY → DEPLOY) | **Yes** |
+| **Bug** | `/debug` → root cause → cracked-coder (if complex) | If complex |
+| **Polish** | Direct Claude (no agent needed) | No |
+
+```
+PRD → /plan → docs/specs/ → Stories → Features
+                                         ↓
+Feature ────────────────► cracked-coder (TDD)
+                                         ↓
+Bug → /debug ───────────► cracked-coder (if complex)
+                                         ↓
+Polish → Direct Claude    /review → Deploy via MCP
+```
+
+### Available Commands (4)
 
 | Command | Purpose |
 |---------|---------|
-| `/pr` | Create PR with issue linking and conventional commits |
-| `/review` | Review changes against implementation plan |
-| `/audit` | Run comprehensive codebase audit |
-| `/delphi` | Launch parallel oracle analysis (e.g., `delphi x6`) |
-| `/plan` | Create detailed implementation plan |
-| `/execute` | Execute plan in batches with checkpoints |
-| `/fix-lint` | Auto-fix linting issues |
-| `/scope` | Check for scope creep |
-| `/shitshow` | Emergency troubleshooting mode |
+| `/plan` | Create, check, and execute implementation plans |
+| `/review` | Perform 6-pass code review, process feedback |
+| `/debug` | Systematic debugging with root cause analysis |
+| `/audit` | Comprehensive codebase health analysis |
 
-### Available Skills (24)
+### Available Skills (4)
 
-**Development Workflow:**
-- `create-plan`, `check-plan`, `executing-plans` - Planning lifecycle
-- `create-pr`, `code-review`, `requesting-code-review`, `receiving-code-review` - PR workflow
-- `test-driven-development` - TDD methodology
-- `verification-before-completion` - Evidence-based completion
+| Skill | Consolidates | Purpose |
+|-------|--------------|---------|
+| **plan** | Planning lifecycle + GG patterns | Create plans, check progress, execute in batches. Includes hook generation, offline-sync, and i18n patterns |
+| **review** | Code review workflow | 6-pass ultra-critical review, request/receive feedback, GitHub posting |
+| **debug** | Debugging + verification | Root cause analysis, verification before completion |
+| **audit** | Codebase analysis | Dead code detection, architectural anti-patterns, type issues |
 
-**Analysis & Research:**
-- `audit`, `architectural-analysis` - Codebase health
-- `delphi`, `the-oracle` - Deep research and parallel analysis
-- `systematic-debugging` - Root cause analysis
+### Available Agents (3)
 
-**Specialized:**
-- `contract-deploy-validator` - UUPS validation, gas reports
-- `hook-generator` - Generate hooks in shared package
-- `i18n-sync` - Translation completeness
-- `offline-sync-debugger` - Job queue and IndexedDB debugging
-- `superpower-zustand` - Zustand store patterns
-- `design-spec-extraction` - Extract Figma design tokens
-- `chrome-devtools` - Browser debugging
-- `gh-ticket` - AI-powered issue creation with context
-- `the-archivist` - Decision documentation
-- `4-step-program` - Fix-review-iterate workflow
+| Agent | Purpose | MCP Access |
+|-------|---------|------------|
+| `cracked-coder` | Feature implementation with TDD | foundry, vercel, railway, storacha, figma |
+| `code-reviewer` | 6-pass ultra-critical review, posts to GitHub | None (read-only) |
+| `oracle` | Deep research with evidence | figma, miro |
 
-### GitHub Issue Creation
+### When to Use Agents
 
-Use `/ticket` or the `gh-ticket` skill to create context-rich GitHub issues. The skill auto-detects issue type and populates AI context sections.
+| Situation | Use | Why |
+|-----------|-----|-----|
+| Feature implementation | `cracked-coder` | TDD mandatory, full MCP for deploy |
+| Complex implementation (>50 lines) | `cracked-coder` | Maintains focus, tracks progress |
+| Research question, multi-source investigation | `oracle` | Deep research with evidence |
+| PR review before merge | `code-reviewer` | 6-pass systematic review |
+| Deployment (apps, contracts, indexer) | `cracked-coder` | Has vercel, foundry, railway MCP |
+| Polish, simple changes | Direct Claude | Faster, no TDD overhead |
 
-**Quick Commands:**
-```bash
-/ticket bug "Description"              # Bug report with triage label
-/ticket feature "Description"          # Simple feature (1-2 packages)
-/ticket feature --complete "Desc"      # AI-buildable spec (3+ packages)
-/ticket task "Description"             # Engineering task
-/ticket contract "Description"         # Smart contract work
-/ticket hook "Description"             # New shared hook
-/ticket spike "Description"            # Research/investigation
-```
+**Invocation**: Just say "use cracked-coder for this" or "ask oracle about X"
 
-**Two-Tier Feature Templates:**
+### Session Continuity
 
-| Template | Flag | Use For |
-|----------|------|---------|
-| Feature Simple | `/ticket feature` | Quick features, 1-2 packages, human implementation |
-| **Feature Complete** | `/ticket feature --complete` | **AI-buildable specs**: 3+ packages, offline support, AI agent assignment |
+**Problem**: Context gets lost in long sessions, plan progress forgotten, work repeated.
 
-Use `--complete` when the feature spans multiple packages or will be assigned to an AI agent. It includes:
-- Testable acceptance criteria (Given/When/Then)
-- TypeScript API contracts for hooks/stores
-- GraphQL schema additions
-- Test specifications with fixtures
-- Error handling matrix
-- Offline implementation patterns
-- AI self-verification checklist
+**Solution**: All significant work MUST use:
 
-**All Issue Templates:**
+1. **TodoWrite** - Track progress visibly
+   - Create todos at session start
+   - Mark `in_progress` → `completed` as you work
+   - On interruption: todos show exactly where you stopped
 
-| Template | Labels | Use For |
-|----------|--------|---------|
-| 🐛 Bug Report | `bug`, `triage` | Bugs with reproduction steps |
-| ✨ Feature (Simple) | `enhancement` | Quick features, human implementation |
-| ✨ Feature (Complete) | `enhancement` | AI-buildable specs, complex features |
-| 🔧 Engineering Task | `task` | Specific engineering work |
-| 📜 Smart Contract | `contract` | Contract creation/modification |
-| 🪝 Shared Hook | `component` | New hooks in shared package |
-| 🔬 Spike | `spike` | Research with timebox |
+2. **Plan Files** - Persistent context in `.plans/`
+   - Plan file = source of truth across sessions
+   - Update plan as work progresses
+   - Team members can read plan to understand state
 
-**Package Labels** (auto-detected from file paths):
-- `client` - Client PWA package
-- `admin` - Admin dashboard package
-- `shared` - Shared package (hooks, utils)
-- `contract` - Smart contracts
-- `indexer` - Envio indexer
-- `agent` - Telegram/Discord bot agent
+3. **Convention Hooks** (4 categories) - Prevent drift
+   - **Quality**: Block hooks in wrong location, block package .env
+   - **Safety**: Confirm production deploys, block force push to main
+   - **Workflow**: TDD reminder, i18n reminder, ABI rebuild reminder
+   - **Lifecycle**: Agent protocol reminders, TodoWrite verification
 
-Issues are automatically added to the **Green Goods** project board.
+**Team Handoffs**: Next person reads todos + plan file → knows exactly where things stand.
 
-**Full Guide:** `.claude/docs/gh-ticket-guide.md`
+### Enabled Plugins (4)
 
-### Available Agents (5)
-
-| Agent | Purpose |
-|-------|---------|
-| `code-reviewer` | 6-pass ultra-critical review, auto-posts to GitHub |
-| `cracked-coder` | Elite implementation specialist |
-| `engineering-lead` | Strategic coordinator |
-| `infrastructure-architect` | System design guidance |
-| `oracle` | Deep research agent |
-
-### Enabled Plugins (13)
-
-- `typescript-lsp` - TypeScript language server
-- `github` - GitHub integration
-- `figma` - Figma design extraction
-- `vercel` - Vercel deployment
-- `playwright` - E2E testing
-- `code-review` - PR review workflow
-- `security-guidance` - Security scanning
-- `feature-dev` - Feature development
-- `frontend-design` - UI/UX guidance
-- `context7` - Context management
-- `serena` - Code navigation
-- `pr-review-toolkit` - 6-dimension PR analysis
-- `hookify` - Custom hooks creation
+| Plugin | Purpose |
+|--------|---------|
+| `github` | GitHub integration (PRs, issues, workflow) |
+| `typescript-lsp` | TypeScript language server |
+| `figma` | Figma design extraction via MCP |
+| `vercel` | Vercel deployment management |
 
 ### MCP Servers (6)
 
