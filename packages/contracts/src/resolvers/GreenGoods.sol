@@ -92,7 +92,8 @@ contract GreenGoodsResolver is IGreenGoodsResolver, OwnableUpgradeable, UUPSUpgr
     IKarmaGAPModule public karmaGAPModule;
 
     /// @notice Storage gap for future upgrades
-    /// Reserves 45 slots (50 total - 5 used: _enabledModules, authorizedCallers, octantModule, unlockModule, karmaGAPModule)
+    /// Reserves 45 slots (50 total - 5 used: _enabledModules, authorizedCallers, octantModule, unlockModule,
+    /// karmaGAPModule)
     uint256[45] private __gap;
 
     // ═══════════════════════════════════════════════════════════════════════════

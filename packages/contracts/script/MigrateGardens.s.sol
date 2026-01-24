@@ -178,7 +178,10 @@ contract MigrateGardens is Script {
         while (start < strBytes.length && (strBytes[start] == " " || strBytes[start] == "\t")) {
             start++;
         }
-        if (start + 1 < strBytes.length && strBytes[start] == "0" && (strBytes[start + 1] == "x" || strBytes[start + 1] == "X")) {
+        if (
+            start + 1 < strBytes.length && strBytes[start] == "0"
+                && (strBytes[start + 1] == "x" || strBytes[start + 1] == "X")
+        ) {
             start += 2;
         }
 

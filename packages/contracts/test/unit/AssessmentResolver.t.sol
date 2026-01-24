@@ -40,12 +40,8 @@ contract AssessmentResolverTest is Test {
 
         // Deploy HatsModule
         HatsModule hatsModuleImpl = new HatsModule();
-        bytes memory hatsModuleInitData = abi.encodeWithSelector(
-            HatsModule.initialize.selector,
-            multisig,
-            address(mockHats),
-            gardensHatId
-        );
+        bytes memory hatsModuleInitData =
+            abi.encodeWithSelector(HatsModule.initialize.selector, multisig, address(mockHats), gardensHatId);
         ERC1967Proxy hatsModuleProxy = new ERC1967Proxy(address(hatsModuleImpl), hatsModuleInitData);
         hatsModule = HatsModule(address(hatsModuleProxy));
 

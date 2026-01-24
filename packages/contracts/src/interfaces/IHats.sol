@@ -12,22 +12,23 @@ interface IHats {
     /// @notice Role types in a garden's hat tree
     /// @dev Each role corresponds to a specific hat in the garden's hierarchy
     enum GardenRole {
-        Operator,   // Can manage gardeners, assessments (role ID 1)
-        Gardener,   // Can submit work (role ID 2)
-        Evaluator,  // Can approve/reject work (role ID 3)
-        Funder,     // Eligibility-based via external module (role ID 4)
-        Community   // ERC-20 holder via eligibility module (role ID 5)
+        Operator, // Can manage gardeners, assessments (role ID 1)
+        Gardener, // Can submit work (role ID 2)
+        Evaluator, // Can approve/reject work (role ID 3)
+        Funder, // Eligibility-based via external module (role ID 4)
+        Community // ERC-20 holder via eligibility module (role ID 5)
+
     }
 
     /// @notice Hat tree structure for a garden
     struct GardenHatTree {
-        uint256 rootHatId;      // Garden's root hat (admin of all role hats)
-        uint256 operatorHatId;  // Operator role hat
-        uint256 gardenerHatId;  // Gardener role hat
+        uint256 rootHatId; // Garden's root hat (admin of all role hats)
+        uint256 operatorHatId; // Operator role hat
+        uint256 gardenerHatId; // Gardener role hat
         uint256 evaluatorHatId; // Evaluator role hat
-        uint256 funderHatId;    // Funder role hat (eligibility-based)
+        uint256 funderHatId; // Funder role hat (eligibility-based)
         uint256 communityHatId; // Community role hat (token-gated)
-        bool exists;            // True if tree has been created
+        bool exists; // True if tree has been created
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -36,11 +37,7 @@ interface IHats {
 
     /// @notice Emitted when a garden's hat tree is created
     event GardenHatTreeCreated(
-        address indexed garden,
-        uint256 rootHatId,
-        uint256 operatorHatId,
-        uint256 gardenerHatId,
-        uint256 evaluatorHatId
+        address indexed garden, uint256 rootHatId, uint256 operatorHatId, uint256 gardenerHatId, uint256 evaluatorHatId
     );
 
     /// @notice Emitted when a role is assigned to an account
@@ -87,7 +84,9 @@ interface IHats {
         address garden,
         address operator,
         string calldata gardenName
-    ) external returns (uint256 rootHatId);
+    )
+        external
+        returns (uint256 rootHatId);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Role Management
@@ -111,21 +110,13 @@ interface IHats {
     /// @param garden The garden address
     /// @param accounts The accounts to grant roles to
     /// @param roles The roles to grant (parallel array with accounts)
-    function batchGrantRoles(
-        address garden,
-        address[] calldata accounts,
-        GardenRole[] calldata roles
-    ) external;
+    function batchGrantRoles(address garden, address[] calldata accounts, GardenRole[] calldata roles) external;
 
     /// @notice Batch revokes roles from multiple accounts
     /// @param garden The garden address
     /// @param accounts The accounts to revoke roles from
     /// @param roles The roles to revoke (parallel array with accounts)
-    function batchRevokeRoles(
-        address garden,
-        address[] calldata accounts,
-        GardenRole[] calldata roles
-    ) external;
+    function batchRevokeRoles(address garden, address[] calldata accounts, GardenRole[] calldata roles) external;
 
     /// @notice Allows anyone to join a garden as a gardener if open joining is enabled
     /// @dev Checks IGardenAccount(garden).openJoining() and grants gardener hat

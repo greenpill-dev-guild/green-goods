@@ -42,12 +42,8 @@ contract WorkResolverTest is Test {
 
         // Deploy HatsModule
         HatsModule hatsModuleImpl = new HatsModule();
-        bytes memory hatsModuleInitData = abi.encodeWithSelector(
-            HatsModule.initialize.selector,
-            multisig,
-            address(mockHats),
-            gardensHatId
-        );
+        bytes memory hatsModuleInitData =
+            abi.encodeWithSelector(HatsModule.initialize.selector, multisig, address(mockHats), gardensHatId);
         ERC1967Proxy hatsModuleProxy = new ERC1967Proxy(address(hatsModuleImpl), hatsModuleInitData);
         hatsModule = HatsModule(address(hatsModuleProxy));
 
@@ -64,9 +60,8 @@ contract WorkResolverTest is Test {
         mockActionRegistry = ActionRegistry(address(actionProxy));
 
         // Deploy mock garden account (needs proxy for upgradeable contract)
-        GardenAccount gardenAccountImpl = new GardenAccount(
-            address(0x1021), address(0x1022), address(0x1023), address(0x1024)
-        );
+        GardenAccount gardenAccountImpl =
+            new GardenAccount(address(0x1021), address(0x1022), address(0x1023), address(0x1024));
 
         IGardenAccount.InitParams memory params = IGardenAccount.InitParams({
             communityToken: address(mockCommunityToken),

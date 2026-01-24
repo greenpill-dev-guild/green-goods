@@ -194,12 +194,7 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
     /// @dev SECURITY: Only called after full validation in onAttest()
     /// @param schema Work approval schema data
     /// @param workAttestation The work attestation being approved
-    function _createGAPProjectImpact(
-        WorkApprovalSchema memory schema,
-        Attestation memory workAttestation
-    )
-        private
-    {
+    function _createGAPProjectImpact(WorkApprovalSchema memory schema, Attestation memory workAttestation) private {
         // Get work and action data
         WorkSchema memory workSchema = abi.decode(workAttestation.data, (WorkSchema));
         ActionRegistry.Action memory action = ActionRegistry(ACTION_REGISTRY).getAction(schema.actionUID);

@@ -22,13 +22,11 @@ library HatsLib {
 
     /// @notice Green Goods Community Top Hat on Arbitrum (Tree 92)
     /// @dev Admin of Gardens Hat and Protocol Gardeners Hat
-    uint256 internal constant ARBITRUM_COMMUNITY_HAT =
-        0x0000005c00020000000000000000000000000000000000000000000000000000;
+    uint256 internal constant ARBITRUM_COMMUNITY_HAT = 0x0000005c00020000000000000000000000000000000000000000000000000000;
 
     /// @notice Green Goods Gardens Hat on Arbitrum - parent for all per-garden hats
     /// @dev Under this hat, each garden gets its own root hat with role children
-    uint256 internal constant ARBITRUM_GARDENS_HAT =
-        0x0000005c00020001000000000000000000000000000000000000000000000000;
+    uint256 internal constant ARBITRUM_GARDENS_HAT = 0x0000005c00020001000000000000000000000000000000000000000000000000;
 
     /// @notice Green Goods Protocol Gardeners Hat on Arbitrum
     /// @dev Protocol-wide gardener role (not garden-specific)

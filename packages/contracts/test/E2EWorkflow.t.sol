@@ -62,24 +62,12 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
 
         // Create a top hat and gardens hat for testing
         uint256 topHatId = mockHats.mintTopHat(multisig, "Green Goods Top Hat", "");
-        uint256 gardensHatId = mockHats.createHat(
-            topHatId,
-            "Gardens",
-            type(uint32).max,
-            address(0),
-            address(0),
-            true,
-            ""
-        );
+        uint256 gardensHatId = mockHats.createHat(topHatId, "Gardens", type(uint32).max, address(0), address(0), true, "");
 
         // Deploy and initialize HatsModule
         HatsModule hatsModuleImpl = new HatsModule();
-        bytes memory hatsModuleInitData = abi.encodeWithSelector(
-            HatsModule.initialize.selector,
-            multisig,
-            address(mockHats),
-            gardensHatId
-        );
+        bytes memory hatsModuleInitData =
+            abi.encodeWithSelector(HatsModule.initialize.selector, multisig, address(mockHats), gardensHatId);
         ERC1967Proxy hatsModuleProxy = new ERC1967Proxy(address(hatsModuleImpl), hatsModuleInitData);
         hatsModule = HatsModule(address(hatsModuleProxy));
 
@@ -117,7 +105,8 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
         ERC1967Proxy workResolverProxy = new ERC1967Proxy(address(workResolverImpl), workResolverInitData);
         workResolver = WorkResolver(payable(address(workResolverProxy)));
 
-        WorkApprovalResolver workApprovalResolverImpl = new WorkApprovalResolver(address(mockEAS), address(actionRegistry), address(hatsModule));
+        WorkApprovalResolver workApprovalResolverImpl =
+            new WorkApprovalResolver(address(mockEAS), address(actionRegistry), address(hatsModule));
         bytes memory workApprovalResolverInitData =
             abi.encodeWithSelector(WorkApprovalResolver.initialize.selector, multisig);
         ERC1967Proxy workApprovalResolverProxy =

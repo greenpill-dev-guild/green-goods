@@ -64,7 +64,10 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
         address _gardenToken,
         address _workApprovalResolver,
         address _assessmentResolver
-    ) external initializer {
+    )
+        external
+        initializer
+    {
         if (_owner == address(0)) revert ZeroAddress();
         if (_gardenToken == address(0)) revert ZeroAddress();
         // Resolvers can be zero initially and set later
@@ -138,7 +141,11 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
         string calldata description,
         string calldata location,
         string calldata bannerImage
-    ) external onlyGardenToken returns (bytes32 projectUID) {
+    )
+        external
+        onlyGardenToken
+        returns (bytes32 projectUID)
+    {
         // Skip if GAP not supported on this chain
         if (!KarmaLib.isSupported()) {
             emit GAPOperationFailed(garden, "createProject", "Chain not supported");
@@ -260,7 +267,11 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
         string calldata impactDescription,
         string calldata proofIPFS,
         bytes32 workUID
-    ) external onlyWorkApprovalResolver returns (bytes32 impactUID) {
+    )
+        external
+        onlyWorkApprovalResolver
+        returns (bytes32 impactUID)
+    {
         bytes32 projectUID = gardenProjects[garden];
         if (projectUID == bytes32(0)) {
             emit GAPOperationFailed(garden, "createImpact", "No project");
@@ -299,7 +310,11 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
         string calldata milestoneTitle,
         string calldata milestoneDescription,
         string calldata milestoneMeta
-    ) external onlyAssessmentResolver returns (bytes32 milestoneUID) {
+    )
+        external
+        onlyAssessmentResolver
+        returns (bytes32 milestoneUID)
+    {
         bytes32 projectUID = gardenProjects[garden];
         if (projectUID == bytes32(0)) {
             emit GAPOperationFailed(garden, "createMilestone", "No project");
@@ -356,7 +371,11 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
         string calldata description,
         string calldata location,
         string calldata bannerImage
-    ) private pure returns (string memory) {
+    )
+        private
+        pure
+        returns (string memory)
+    {
         string memory imageURL =
             bytes(bannerImage).length > 0 ? string(abi.encodePacked("https://w3s.link/ipfs/", bannerImage)) : "";
 
@@ -384,7 +403,11 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
         string calldata proofIPFS,
         bytes32 workUID,
         uint256 tokenId
-    ) private view returns (string memory) {
+    )
+        private
+        view
+        returns (string memory)
+    {
         string memory isoDate = StringUtils.timestampToISO(block.timestamp);
 
         // Part 1: title, text, dates
@@ -427,7 +450,11 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
         string calldata title,
         string calldata desc,
         string calldata meta
-    ) private pure returns (string memory) {
+    )
+        private
+        pure
+        returns (string memory)
+    {
         bytes memory part1 = abi.encodePacked("{\"title\":\"", StringUtils.escapeJSON(title), "\",\"text\":\"");
         bytes memory part2 = abi.encodePacked(StringUtils.escapeJSON(desc), "\",\"type\":\"project-milestone\",\"data\":");
         return string(abi.encodePacked(part1, part2, meta, "}"));

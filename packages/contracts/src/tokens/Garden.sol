@@ -202,7 +202,9 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         _createHatTreeIfConfigured(gardenAccount, primaryOperator, config.name, config.gardenOperators);
 
         // Create GAP project via KarmaGAPModule (if configured)
-        _createGAPProjectIfConfigured(gardenAccount, primaryOperator, config.name, config.description, config.location, config.bannerImage);
+        _createGAPProjectIfConfigured(
+            gardenAccount, primaryOperator, config.name, config.description, config.location, config.bannerImage
+        );
 
         return gardenAccount;
     }
@@ -279,7 +281,9 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
             _createHatTreeIfConfigured(gardenAccount, primaryOperator, config.name, config.gardenOperators);
 
             // Create GAP project via KarmaGAPModule (if configured)
-            _createGAPProjectIfConfigured(gardenAccount, primaryOperator, config.name, config.description, config.location, config.bannerImage);
+            _createGAPProjectIfConfigured(
+                gardenAccount, primaryOperator, config.name, config.description, config.location, config.bannerImage
+            );
 
             gardenAccounts[i] = gardenAccount;
 
@@ -322,7 +326,9 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         address primaryOperator,
         string calldata gardenName,
         address[] calldata additionalOperators
-    ) private {
+    )
+        private
+    {
         if (address(gardenHatsModule) == address(0)) return;
 
         try gardenHatsModule.createGardenHatTree(gardenAccount, primaryOperator, gardenName) returns (uint256 rootHatId) {
@@ -350,10 +356,14 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         string calldata description,
         string calldata location,
         string calldata bannerImage
-    ) private {
+    )
+        private
+    {
         if (address(karmaGAPModule) == address(0)) return;
 
-        try karmaGAPModule.createProject(gardenAccount, primaryOperator, name, description, location, bannerImage) returns (bytes32 projectUID) {
+        try karmaGAPModule.createProject(gardenAccount, primaryOperator, name, description, location, bannerImage) returns (
+            bytes32 projectUID
+        ) {
             if (projectUID != bytes32(0)) {
                 emit GardenGAPProjectCreated(gardenAccount, projectUID);
             }

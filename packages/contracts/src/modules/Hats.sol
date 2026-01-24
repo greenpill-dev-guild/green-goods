@@ -67,11 +67,7 @@ contract HatsModule is IHats, OwnableUpgradeable, UUPSUpgradeable {
     /// @param _hats The Hats Protocol contract address
     /// @param _gardensHatId The parent hat ID for all gardens (0 for testnet)
     /// @dev gardenToken must be set via setGardenToken() after deployment
-    function initialize(
-        address _owner,
-        address _hats,
-        uint256 _gardensHatId
-    ) external initializer {
+    function initialize(address _owner, address _hats, uint256 _gardensHatId) external initializer {
         if (_owner == address(0)) revert ZeroAddress();
         if (_hats == address(0)) revert ZeroAddress();
 
@@ -135,7 +131,11 @@ contract HatsModule is IHats, OwnableUpgradeable, UUPSUpgradeable {
         address garden,
         address operator,
         string calldata gardenName
-    ) external onlyGardenToken returns (uint256 rootHatId) {
+    )
+        external
+        onlyGardenToken
+        returns (uint256 rootHatId)
+    {
         if (gardenHatTrees[garden].exists) {
             revert GardenTreeAlreadyExists(garden);
         }
@@ -283,11 +283,7 @@ contract HatsModule is IHats, OwnableUpgradeable, UUPSUpgradeable {
     }
 
     /// @inheritdoc IHats
-    function batchGrantRoles(
-        address garden,
-        address[] calldata accounts,
-        GardenRole[] calldata roles
-    ) external {
+    function batchGrantRoles(address garden, address[] calldata accounts, GardenRole[] calldata roles) external {
         if (accounts.length != roles.length) revert InvalidRole();
 
         for (uint256 i = 0; i < accounts.length; i++) {
@@ -297,11 +293,7 @@ contract HatsModule is IHats, OwnableUpgradeable, UUPSUpgradeable {
     }
 
     /// @inheritdoc IHats
-    function batchRevokeRoles(
-        address garden,
-        address[] calldata accounts,
-        GardenRole[] calldata roles
-    ) external {
+    function batchRevokeRoles(address garden, address[] calldata accounts, GardenRole[] calldata roles) external {
         if (accounts.length != roles.length) revert InvalidRole();
 
         for (uint256 i = 0; i < accounts.length; i++) {
@@ -426,12 +418,18 @@ contract HatsModule is IHats, OwnableUpgradeable, UUPSUpgradeable {
     function _checkGrantAuthorization(address garden, GardenHatTree storage tree, GardenRole role) private view {
         if (role == GardenRole.Operator) {
             // Only garden owner (root hat wearer) or module owner can grant operator
-            if (!hatsProtocol.isWearerOfHat(msg.sender, tree.rootHatId) && msg.sender != owner() && msg.sender != gardenToken) {
+            if (
+                !hatsProtocol.isWearerOfHat(msg.sender, tree.rootHatId) && msg.sender != owner()
+                    && msg.sender != gardenToken
+            ) {
                 revert NotGardenOwner();
             }
         } else {
             // Only operators can grant other roles
-            if (!hatsProtocol.isWearerOfHat(msg.sender, tree.operatorHatId) && msg.sender != owner() && msg.sender != gardenToken) {
+            if (
+                !hatsProtocol.isWearerOfHat(msg.sender, tree.operatorHatId) && msg.sender != owner()
+                    && msg.sender != gardenToken
+            ) {
                 revert NotGardenOperator();
             }
         }

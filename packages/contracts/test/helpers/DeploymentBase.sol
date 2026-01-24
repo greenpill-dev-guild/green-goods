@@ -184,10 +184,14 @@ abstract contract DeploymentBase is Test, DeployHelper {
         hatsModule = HatsModule(_deployHatsModule(owner, salt, factory));
 
         // 4. Deploy resolvers with UUPS proxies + CREATE2 (owner will own them)
-        workResolver = WorkResolver(payable(_deployWorkResolver(eas, address(actionRegistry), address(hatsModule), owner, salt, factory)));
-        workApprovalResolver =
-            WorkApprovalResolver(payable(_deployWorkApprovalResolver(eas, address(actionRegistry), address(hatsModule), owner, salt, factory)));
-        assessmentResolver = AssessmentResolver(payable(_deployAssessmentResolver(eas, address(hatsModule), owner, salt, factory)));
+        workResolver = WorkResolver(
+            payable(_deployWorkResolver(eas, address(actionRegistry), address(hatsModule), owner, salt, factory))
+        );
+        workApprovalResolver = WorkApprovalResolver(
+            payable(_deployWorkApprovalResolver(eas, address(actionRegistry), address(hatsModule), owner, salt, factory))
+        );
+        assessmentResolver =
+            AssessmentResolver(payable(_deployAssessmentResolver(eas, address(hatsModule), owner, salt, factory)));
 
         // 5. Deploy GardenAccount (TBA) with CREATE2
         gardenAccountImpl = GardenAccount(
@@ -483,27 +487,15 @@ abstract contract DeploymentBase is Test, DeployHelper {
 
         // Create a top hat and gardens hat for testing
         uint256 topHatId = mockHats.mintTopHat(owner, "Green Goods Top Hat", "");
-        uint256 gardensHatId = mockHats.createHat(
-            topHatId,
-            "Gardens",
-            type(uint32).max,
-            address(0),
-            address(0),
-            true,
-            ""
-        );
+        uint256 gardensHatId = mockHats.createHat(topHatId, "Gardens", type(uint32).max, address(0), address(0), true, "");
 
         // Deploy HatsModule implementation
         HatsModule implementation = new HatsModule();
 
         // Deploy proxy with initialization
         bytes32 hatsModuleSalt = keccak256(abi.encodePacked(salt, "HatsModuleProxy"));
-        bytes memory initData = abi.encodeWithSelector(
-            HatsModule.initialize.selector,
-            owner,
-            address(mockHats),
-            gardensHatId
-        );
+        bytes memory initData =
+            abi.encodeWithSelector(HatsModule.initialize.selector, owner, address(mockHats), gardensHatId);
         bytes memory proxyBytecode =
             abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(address(implementation), initData));
         address predicted = Create2.computeAddress(hatsModuleSalt, keccak256(proxyBytecode), factory);

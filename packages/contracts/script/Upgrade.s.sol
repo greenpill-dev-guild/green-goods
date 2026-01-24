@@ -58,7 +58,13 @@ contract Upgrade is Script {
     function loadNetworkConfig()
         internal
         view
-        returns (address eas, address easSchemaRegistry, address actionRegistry, address gardenAccountImpl, address hatsModule)
+        returns (
+            address eas,
+            address easSchemaRegistry,
+            address actionRegistry,
+            address gardenAccountImpl,
+            address hatsModule
+        )
     {
         string memory chainIdStr = vm.toString(block.chainid);
         string memory deploymentPath = string.concat(vm.projectRoot(), "/deployments/", chainIdStr, "-latest.json");
@@ -315,9 +321,7 @@ contract Upgrade is Script {
 
         // Deploy new implementation
         // Note: Post-modularization, GardenAccount no longer needs resolver addresses
-        GardenAccount newImpl = new GardenAccount(
-            entryPoint, multicallForwarder, tokenboundRegistry, guardian
-        );
+        GardenAccount newImpl = new GardenAccount(entryPoint, multicallForwarder, tokenboundRegistry, guardian);
 
         newImplAddress = address(newImpl);
         console.log("New GardenAccount implementation deployed at:", newImplAddress);
