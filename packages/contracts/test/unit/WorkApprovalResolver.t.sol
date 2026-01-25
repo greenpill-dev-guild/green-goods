@@ -11,19 +11,15 @@ import { GardenAccount } from "../../src/accounts/Garden.sol";
 import { IGardenAccount } from "../../src/interfaces/IGardenAccount.sol";
 import { ActionRegistry } from "../../src/registries/Action.sol";
 import { WorkApprovalResolver } from "../../src/resolvers/WorkApproval.sol";
-import { HatsModule } from "../../src/modules/Hats.sol";
 import { MockEAS } from "../../src/mocks/EAS.sol";
 import { MockERC20 } from "../../src/mocks/ERC20.sol";
-import { MockHatsProtocol } from "../../src/mocks/HatsProtocol.sol";
 
 contract WorkApprovalResolverTest is Test {
     WorkApprovalResolver private workApprovalResolver;
     ActionRegistry private mockActionRegistry;
     GardenAccount private mockGardenAccount;
-    HatsModule private hatsModule;
     MockEAS private mockIEAS;
     MockERC20 private mockCommunityToken;
-    MockHatsProtocol private mockHats;
 
     address private owner = address(this);
     address private multisig = address(0x123);
@@ -33,24 +29,14 @@ contract WorkApprovalResolverTest is Test {
     function setUp() public {
         // Deploy mock community token
         mockCommunityToken = new MockERC20();
-        mockIEAS = new MockEAS();
-
-        // Deploy mock Hats Protocol
-        mockHats = new MockHatsProtocol();
-        uint256 topHatId = mockHats.mintTopHat(multisig, "Top Hat", "");
-        uint256 gardensHatId = mockHats.createHat(topHatId, "Gardens", type(uint32).max, address(0), address(0), true, "");
-
-        // Deploy HatsModule
-        HatsModule hatsModuleImpl = new HatsModule();
-        bytes memory hatsModuleInitData =
-            abi.encodeWithSelector(HatsModule.initialize.selector, multisig, address(mockHats), gardensHatId);
-        ERC1967Proxy hatsModuleProxy = new ERC1967Proxy(address(hatsModuleImpl), hatsModuleInitData);
-        hatsModule = HatsModule(address(hatsModuleProxy));
 
         // Create minimal mock contracts with code (use non-precompile addresses)
         vm.etch(address(0x1002), hex"00"); // multicallForwarder
         vm.etch(address(0x1003), hex"00"); // erc6551Registry
         vm.etch(address(0x1004), hex"00"); // guardian
+
+        // Deploy the mock contracts
+        mockIEAS = new MockEAS();
 
         ActionRegistry actionImpl = new ActionRegistry();
         bytes memory actionInitData = abi.encodeWithSelector(ActionRegistry.initialize.selector, multisig);
@@ -58,8 +44,9 @@ contract WorkApprovalResolverTest is Test {
         mockActionRegistry = ActionRegistry(address(actionProxy));
 
         // Deploy mock garden account (needs proxy for upgradeable contract)
-        GardenAccount gardenAccountImpl =
-            new GardenAccount(address(mockIEAS), address(0x1002), address(0x1003), address(0x1004));
+        GardenAccount gardenAccountImpl = new GardenAccount(
+            address(mockIEAS), address(0x1002), address(0x1003), address(0x1004), address(0x2001), address(0x2002)
+        );
 
         IGardenAccount.InitParams memory params = IGardenAccount.InitParams({
             communityToken: address(mockCommunityToken),
@@ -78,9 +65,8 @@ contract WorkApprovalResolverTest is Test {
         ERC1967Proxy gardenAccountProxy = new ERC1967Proxy(address(gardenAccountImpl), gardenAccountInitData);
         mockGardenAccount = GardenAccount(payable(address(gardenAccountProxy)));
 
-        // Deploy the WorkApprovalResolver implementation (now requires hatsModule)
-        WorkApprovalResolver resolverImpl =
-            new WorkApprovalResolver(address(mockIEAS), address(mockActionRegistry), address(hatsModule));
+        // Deploy the WorkApprovalResolver implementation
+        WorkApprovalResolver resolverImpl = new WorkApprovalResolver(address(mockIEAS), address(mockActionRegistry));
 
         // Deploy with proxy and initialize
         bytes memory resolverInitData = abi.encodeWithSelector(WorkApprovalResolver.initialize.selector, multisig);

@@ -34,8 +34,11 @@ contract FuzzTests is Test, ERC6551Helper {
         actionRegistry = ActionRegistry(address(actionProxy));
 
         // Deploy garden account implementation
-        gardenAccountImplementation =
-            address(new GardenAccount(address(0x1001), address(0x1002), address(0x1003), address(0x1004)));
+        gardenAccountImplementation = address(
+            new GardenAccount(
+                address(0x1001), address(0x1002), address(0x1003), address(0x1004), address(0x2001), address(0x2002)
+            )
+        );
 
         // Deploy garden token
         GardenToken gardenTokenImpl = new GardenToken(gardenAccountImplementation);

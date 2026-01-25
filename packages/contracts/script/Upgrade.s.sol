@@ -58,13 +58,7 @@ contract Upgrade is Script {
     function loadNetworkConfig()
         internal
         view
-        returns (
-            address eas,
-            address easSchemaRegistry,
-            address actionRegistry,
-            address gardenAccountImpl,
-            address hatsModule
-        )
+        returns (address eas, address easSchemaRegistry, address actionRegistry, address gardenAccountImpl)
     {
         string memory chainIdStr = vm.toString(block.chainid);
         string memory deploymentPath = string.concat(vm.projectRoot(), "/deployments/", chainIdStr, "-latest.json");
@@ -74,7 +68,6 @@ contract Upgrade is Script {
         easSchemaRegistry = abi.decode(vm.parseJson(json, ".eas.schemaRegistry"), (address));
         actionRegistry = abi.decode(vm.parseJson(json, ".actionRegistry"), (address));
         gardenAccountImpl = abi.decode(vm.parseJson(json, ".gardenAccountImpl"), (address));
-        hatsModule = abi.decode(vm.parseJson(json, ".hatsModule"), (address));
     }
 
     /// @notice Upgrade ActionRegistry
@@ -123,7 +116,7 @@ contract Upgrade is Script {
 
         vm.startBroadcast();
 
-        (,,, address gardenAccountImpl,) = loadNetworkConfig();
+        (,,, address gardenAccountImpl) = loadNetworkConfig();
         console.log("Using GardenAccount implementation:", gardenAccountImpl);
 
         GardenToken newImpl = new GardenToken(gardenAccountImpl);
@@ -154,12 +147,11 @@ contract Upgrade is Script {
 
         vm.startBroadcast();
 
-        (address eas,, address actionRegistry,, address hatsModule) = loadNetworkConfig();
+        (address eas,, address actionRegistry,) = loadNetworkConfig();
         console.log("Using EAS:", eas);
         console.log("Using ActionRegistry:", actionRegistry);
-        console.log("Using HatsModule:", hatsModule);
 
-        WorkResolver newImpl = new WorkResolver(eas, actionRegistry, hatsModule);
+        WorkResolver newImpl = new WorkResolver(eas, actionRegistry);
         console.log("New WorkResolver implementation:", address(newImpl));
 
         // Verify implementations differ
@@ -187,12 +179,11 @@ contract Upgrade is Script {
 
         vm.startBroadcast();
 
-        (address eas,, address actionRegistry,, address hatsModule) = loadNetworkConfig();
+        (address eas,, address actionRegistry,) = loadNetworkConfig();
         console.log("Using EAS:", eas);
         console.log("Using ActionRegistry:", actionRegistry);
-        console.log("Using HatsModule:", hatsModule);
 
-        WorkApprovalResolver newImpl = new WorkApprovalResolver(eas, actionRegistry, hatsModule);
+        WorkApprovalResolver newImpl = new WorkApprovalResolver(eas, actionRegistry);
         console.log("New WorkApprovalResolver implementation:", address(newImpl));
 
         // Verify implementations differ
@@ -220,11 +211,10 @@ contract Upgrade is Script {
 
         vm.startBroadcast();
 
-        (address eas,,,, address hatsModule) = loadNetworkConfig();
+        (address eas,,,) = loadNetworkConfig();
         console.log("Using EAS:", eas);
-        console.log("Using HatsModule:", hatsModule);
 
-        AssessmentResolver newImpl = new AssessmentResolver(eas, hatsModule);
+        AssessmentResolver newImpl = new AssessmentResolver(eas);
         console.log("New AssessmentResolver implementation:", address(newImpl));
 
         // Verify implementations differ
@@ -320,8 +310,9 @@ contract Upgrade is Script {
         console.log("Guardian:", guardian);
 
         // Deploy new implementation
-        // Note: Post-modularization, GardenAccount no longer needs resolver addresses
-        GardenAccount newImpl = new GardenAccount(entryPoint, multicallForwarder, tokenboundRegistry, guardian);
+        GardenAccount newImpl = new GardenAccount(
+            entryPoint, multicallForwarder, tokenboundRegistry, guardian, workApprovalResolver, assessmentResolver
+        );
 
         newImplAddress = address(newImpl);
         console.log("New GardenAccount implementation deployed at:", newImplAddress);

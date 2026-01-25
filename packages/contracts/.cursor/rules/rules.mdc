@@ -1,0 +1,238 @@
+---
+description: Contracts — Solidity style, safety, gas, events, and testing with Foundry.
+globs:
+  - "packages/contracts/src/**/*.sol"
+  - "packages/contracts/script/**/*"
+  - "packages/contracts/test/**/*"
+alwaysApply: false
+---
+
+# Contracts Rules
+
+Main rules for Green Goods Solidity contracts. See specialized rules for:
+- `deployment-patterns.mdc` — Deployment CLI and commands
+- `schema-management.mdc` — EAS schema immutability (CRITICAL)
+- `uups-upgrades.mdc` — Storage gaps and upgrade safety
+
+## Custom Errors (MANDATORY)
+
+```solidity
+// ✅ Define at contract top
+error ZeroAddress(string paramName);
+error UnauthorizedCaller(address caller);
+
+// ✅ Use instead of require
+if (addr == address(0)) revert ZeroAddress("tokenAddress");
+
+// ❌ Don't use require with strings
+require(addr != address(0), "Zero address");
+```
+
+## Empty Blocks
+
+```solidity
+// ✅ Justify with solhint disable
+function _authorizeUpgrade(address) internal override onlyOwner {
+    // solhint-disable-line no-empty-blocks
+}
+```
+
+## Code Style
+
+- SPDX header; pinned `pragma solidity ^0.8.25`
+- OpenZeppelin contracts where possible
+- Checks-Effects-Interactions pattern (CEI) — validate, update state, then interact
+- ReentrancyGuard if funds move
+- Prefer `calldata` for external args
+- Pull-over-push for payments — users withdraw, don't auto-distribute
+
+## Visibility (MANDATORY)
+
+**Explicitly label ALL functions and state variables:**
+
+```solidity
+// ✅ Explicit
+uint256 private _totalSupply;
+mapping(address => uint256) public balances;
+function mint(address to) external onlyOwner { }
+function _internal() internal { }
+
+// ❌ Implicit (dangerous defaults)
+uint256 totalSupply;  // internal by default
+function mint() { }   // public by default!
+```
+
+## Security Patterns
+
+### Administrative Safeguards
+
+- **Multi-sig required:** Gnosis Safe (3-of-5 minimum) for admin roles
+- **Timelock for upgrades:** 48h delay for mainnet, 24h for testnet
+- **Emergency pause:** Separate guardian can pause without delay
+- **Never single EOA:** No single private key for critical operations
+
+### Gas Safety
+
+```solidity
+// ✅ Bounded loops
+function process(uint256 start, uint256 count) external {
+    uint256 end = min(start + count, items.length);
+    for (uint256 i = start; i < end; i++) { }
+}
+
+// ❌ Unbounded (gas limit risk)
+for (uint256 i = 0; i < items.length; i++) { }
+```
+
+### Solidity 0.8+ Built-ins
+
+- **No SafeMath needed:** Overflow checks are automatic
+- **Use `uint256`:** Default for arithmetic
+- **Custom errors:** Gas-efficient reverts (already mandatory above)
+
+## Events
+
+```solidity
+// ✅ Index addresses and IDs for filtering
+event WorkSubmitted(uint256 indexed actionUID, address indexed gardener, string ipfsHash);
+event ModuleExecutionSuccess(bytes32 indexed moduleId, address indexed garden, bytes32 indexed uid);
+```
+
+---
+
+## Gas Optimization
+
+### Compiler Settings
+
+```toml
+# foundry.toml
+[profile.default]
+via_ir = true        # Required for GardenAccount
+optimizer = true
+optimizer_runs = 200
+```
+
+### Storage Packing
+
+```solidity
+// ✅ Pack into 1 slot
+uint128 public startTime;
+uint128 public endTime;
+
+// ❌ Wastes 2 slots
+uint256 public startTime;
+uint256 public endTime;
+```
+
+### Module Isolation
+
+```solidity
+// Non-blocking module calls
+try octantModule.onWorkApproved(garden, name) returns (address vault) {
+    emit ModuleExecutionSuccess(MODULE_OCTANT, garden, workUID);
+} catch {
+    emit ModuleExecutionFailed(MODULE_OCTANT, garden, workUID);
+}
+```
+
+---
+
+## Testing
+
+### Naming Convention
+
+```solidity
+// Pattern: test[Contract]_[scenario]
+function testGardenToken_mintsNewGarden() public {}
+function testGardenToken_revertsOnUnauthorized() public {}
+
+// Prefixes
+test_           // Happy path
+testRevert_     // Failure cases
+testFuzz_       // Fuzz tests (random inputs)
+testInvariant_  // Invariant tests (conditions that never change)
+testE2E_        // Multi-contract flows
+```
+
+### Adversarial Testing (MANDATORY for mainnet)
+
+**Fuzz Testing — Find edge cases with random inputs:**
+
+```solidity
+function testFuzz_mintGarden(address to, string calldata uri) public {
+    vm.assume(to != address(0));
+    vm.assume(bytes(uri).length > 0 && bytes(uri).length < 1000);
+
+    uint256 tokenId = gardenToken.mintGarden(to, uri);
+    assertEq(gardenToken.ownerOf(tokenId), to);
+}
+```
+
+**Invariant Testing — Conditions that must NEVER change:**
+
+```solidity
+// Define in invariants/ directory
+function invariant_totalSupplyConsistent() public {
+    assertEq(gardenToken.totalSupply(), actualMintCount);
+}
+
+function invariant_ownerNeverZero() public {
+    for (uint i = 1; i <= gardenToken.totalSupply(); i++) {
+        assertTrue(gardenToken.ownerOf(i) != address(0));
+    }
+}
+```
+
+**Static Analysis — CI/CD integration:**
+
+```bash
+# Run Slither before deployment
+slither packages/contracts/src/ --filter-paths "test|mock"
+```
+
+### Test Structure
+
+```solidity
+contract GardenTokenTest is Test {
+    GardenToken public gardenToken;
+    
+    function setUp() public {
+        gardenToken = new GardenToken();
+        gardenToken.initialize();
+    }
+    
+    function testGardenToken_mintsNewGarden() public {
+        uint256 tokenId = gardenToken.mintGarden(address(this), "ipfs://...");
+        assertEq(gardenToken.ownerOf(tokenId), address(this));
+    }
+    
+    function testRevert_unauthorized() public {
+        vm.prank(address(0x1));
+        vm.expectRevert(abi.encodeWithSelector(UnauthorizedCaller.selector, address(0x1)));
+        gardenToken.mintGarden(address(this), "");
+    }
+}
+```
+
+### Commands
+
+```bash
+bun test              # Run all (excludes E2E)
+bun test:gas          # With gas report
+bun test:e2e          # Integration tests
+bun lint              # Format + solhint
+```
+
+### Gas Benchmarks
+
+| Function | Target |
+|----------|--------|
+| mintGarden | <500k |
+| registerAction | <200k |
+| Work attest | <150k |
+| Work approval | <100k |
+
+### Coverage
+
+- **Testnet:** ≥80% pass rate
+- **Mainnet:** 100% pass rate required

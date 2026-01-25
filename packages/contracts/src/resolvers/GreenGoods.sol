@@ -6,7 +6,7 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgrade
 
 import { IGreenGoodsResolver } from "../interfaces/IGreenGoodsResolver.sol";
 import { IGardenAccount } from "../interfaces/IGardenAccount.sol";
-import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
+import { KarmaLib } from "../lib/Karma.sol";
 import { OctantModule } from "../modules/Octant.sol";
 import { UnlockModule } from "../modules/Unlock.sol";
 
@@ -62,9 +62,6 @@ contract GreenGoodsResolver is IGreenGoodsResolver, OwnableUpgradeable, UUPSUpgr
     /// @notice Emitted when the Unlock module address is updated
     event UnlockModuleUpdated(address indexed oldModule, address indexed newModule);
 
-    /// @notice Emitted when the KarmaGAP module address is updated
-    event KarmaGAPModuleUpdated(address indexed oldModule, address indexed newModule);
-
     // ═══════════════════════════════════════════════════════════════════════════
     // Errors
     // ═══════════════════════════════════════════════════════════════════════════
@@ -88,13 +85,9 @@ contract GreenGoodsResolver is IGreenGoodsResolver, OwnableUpgradeable, UUPSUpgr
     /// @notice Unlock badge module address
     UnlockModule public unlockModule;
 
-    /// @notice KarmaGAP module address
-    IKarmaGAPModule public karmaGAPModule;
-
     /// @notice Storage gap for future upgrades
-    /// Reserves 45 slots (50 total - 5 used: _enabledModules, authorizedCallers, octantModule, unlockModule,
-    /// karmaGAPModule)
-    uint256[45] private __gap;
+    /// Reserves 46 slots (50 total - 4 used: _enabledModules, authorizedCallers, octantModule, unlockModule)
+    uint256[46] private __gap;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Modifiers
@@ -242,14 +235,6 @@ contract GreenGoodsResolver is IGreenGoodsResolver, OwnableUpgradeable, UUPSUpgr
         emit UnlockModuleUpdated(oldModule, _module);
     }
 
-    /// @notice Sets the KarmaGAP module address
-    /// @param _module The module address
-    function setKarmaGAPModule(address _module) external onlyOwner {
-        address oldModule = address(karmaGAPModule);
-        karmaGAPModule = IKarmaGAPModule(_module);
-        emit KarmaGAPModuleUpdated(oldModule, _module);
-    }
-
     // ═══════════════════════════════════════════════════════════════════════════
     // GAP Module (Phase 1 — migrated from GardenAccount)
     // ═══════════════════════════════════════════════════════════════════════════
@@ -267,17 +252,29 @@ contract GreenGoodsResolver is IGreenGoodsResolver, OwnableUpgradeable, UUPSUpgr
     )
         private
     {
-        // Skip if GAP module not configured
-        if (address(karmaGAPModule) == address(0)) return;
+        // Skip if GAP not supported on this chain
+        if (!KarmaLib.isSupported()) return;
+
+        IGardenAccount gardenAccount = IGardenAccount(garden);
 
         // Skip if garden has no GAP project
-        bytes32 projectUID = karmaGAPModule.getProjectUID(garden);
+        bytes32 projectUID = gardenAccount.getGAPProjectUID();
         if (projectUID == bytes32(0)) return;
 
-        // GAP impact creation is now handled by WorkApprovalResolver calling KarmaGAPModule directly
-        // This is just for event emission and future module fan-out
+        // Note: In Phase 1, we still delegate to GardenAccount.createProjectImpact()
+        // because it has the complex JSON building and GAP attestation logic.
+        // In future phases, this logic could be moved to a dedicated GAPModule contract.
+
+        // The resolver has already validated the approval, so this is just
+        // triggering the GAP side-effect. We don't need to re-validate here.
+
+        // For now, emit event indicating GAP was triggered (actual execution
+        // happens in the resolver via gardenAccount.createProjectImpact)
         emit ModuleExecutionSuccess(MODULE_GAP, garden, workUID);
 
+        // ASSUMPTION: The resolver still calls gardenAccount.createProjectImpact() directly
+        // This router call is for future module fan-out. In Phase 2+, we'll move
+        // the GAP logic here and remove it from GardenAccount.
         // solhint-disable-next-line no-unused-vars
         feedback;
         mediaIPFS;
@@ -296,15 +293,17 @@ contract GreenGoodsResolver is IGreenGoodsResolver, OwnableUpgradeable, UUPSUpgr
     )
         private
     {
-        // Skip if GAP module not configured
-        if (address(karmaGAPModule) == address(0)) return;
+        // Skip if GAP not supported on this chain
+        if (!KarmaLib.isSupported()) return;
+
+        IGardenAccount gardenAccount = IGardenAccount(garden);
 
         // Skip if garden has no GAP project
-        bytes32 projectUID = karmaGAPModule.getProjectUID(garden);
+        bytes32 projectUID = gardenAccount.getGAPProjectUID();
         if (projectUID == bytes32(0)) return;
 
-        // GAP milestone creation is now handled by AssessmentResolver calling KarmaGAPModule directly
-        // This is just for event emission and future module fan-out
+        // Same as work approval: emit success event for observability
+        // Actual GAP execution still happens in resolver → GardenAccount
         emit ModuleExecutionSuccess(MODULE_GAP, garden, assessmentUID);
     }
 

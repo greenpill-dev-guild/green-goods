@@ -4,54 +4,81 @@ pragma solidity ^0.8.25;
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
-import { IHatsProtocol } from "../interfaces/IHatsProtocol.sol";
+import { IGardenAccessControl } from "../interfaces/IGardenAccessControl.sol";
 import { IHats } from "../interfaces/IHats.sol";
-import { IGardenAccount } from "../interfaces/IGardenAccount.sol";
-import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
 
 /// @title HatsModule
-/// @notice Manages Hats Protocol hat trees for Green Goods gardens
-/// @dev Creates per-garden hat hierarchies with role-based access control
+/// @notice Adapts Hats Protocol for Green Goods access control
+/// @dev Implements IGardenAccessControl using Hats Protocol hat IDs
 ///
-/// **Hat Tree Structure:**
-/// ```
-/// Green Goods Top Hat (Tree 92 on Arbitrum)
-/// └── Gardens Hat (parent for all gardens)
-///     └── Garden Hat (per-garden root)
-///         ├── Operator Hat (can mint Gardener/Evaluator)
-///         ├── Gardener Hat (minted by Operator)
-///         ├── Evaluator Hat (minted by Operator)
-///         ├── Funder Hat (eligibility-based)
-///         └── Community Hat (token-gated)
-/// ```
+/// **Architecture:**
+/// - Each garden can configure three hat IDs: gardener, operator, owner
+/// - Role checks query Hats Protocol instead of local mappings
+/// - Gardens can opt-in to Hats by calling `configureGarden()`
+/// - Unconfigured gardens fall through to their native access control
 ///
-/// **Security:**
-/// - Only GardenToken can create hat trees
-/// - Only garden owner can grant/revoke Operator role
-/// - Operators can grant/revoke Gardener/Evaluator roles
-/// - Funder/Community roles use eligibility modules
-contract HatsModule is IHats, OwnableUpgradeable, UUPSUpgradeable {
+/// **Hat ID Structure:**
+/// Hats uses hierarchical uint256 IDs. Gardens can use any structure, but recommended:
+/// - Top hat: Protocol-wide admin
+/// - Garden hat: Per-garden root
+///   - Gardener hat: Child of garden hat
+///   - Operator hat: Child of garden hat (inherits gardener)
+///   - Owner hat: Child of garden hat (inherits operator)
+///
+/// **Usage:**
+/// 1. Deploy HatsModule (singleton)
+/// 2. Garden admin calls `configureGarden(gardenAddress, gardenerHatId, operatorHatId, ownerHatId)`
+/// 3. Resolvers call `isGardener()` / `isOperator()` via the adapter
+contract HatsModule is IGardenAccessControl, OwnableUpgradeable, UUPSUpgradeable {
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Types
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Hat configuration for a garden
+    struct GardenHats {
+        uint256 gardenerHatId; // Hat ID for gardener role
+        uint256 operatorHatId; // Hat ID for operator role
+        uint256 ownerHatId; // Hat ID for owner role
+        bool configured; // True if garden has been configured
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Events
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Emitted when a garden's hat configuration is set
+    event GardenConfigured(address indexed garden, uint256 gardenerHatId, uint256 operatorHatId, uint256 ownerHatId);
+
+    /// @notice Emitted when a garden's hat configuration is removed
+    event GardenDeconfigured(address indexed garden);
+
+    /// @notice Emitted when the Hats contract address is updated
+    event HatsContractUpdated(address indexed oldHats, address indexed newHats);
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Errors
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    error ZeroAddress();
+    error GardenNotConfigured(address garden);
+    error InvalidHatId();
+    error NotGardenAdmin(address caller, address garden);
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Storage
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// @notice The Hats Protocol contract
-    IHatsProtocol public hatsProtocol;
+    IHats public hats;
 
-    /// @notice The parent hat ID for all gardens (child of top hat)
-    uint256 public gardensHatId;
+    /// @notice Hat configuration per garden
+    mapping(address garden => GardenHats config) public gardenHats;
 
-    /// @notice GardenToken contract address
-    address public gardenToken;
-
-    /// @notice KarmaGAPModule for syncing GAP project admins
-    IKarmaGAPModule public karmaGAPModule;
-
-    /// @notice Garden address → Hat tree structure
-    mapping(address garden => GardenHatTree tree) public gardenHatTrees;
+    /// @notice Addresses authorized to configure gardens (e.g., GardenToken, deployer)
+    mapping(address => bool) public configAuthority;
 
     /// @notice Storage gap for future upgrades
-    uint256[45] private __gap;
+    uint256[47] private __gap;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Constructor & Initializer
@@ -62,434 +89,181 @@ contract HatsModule is IHats, OwnableUpgradeable, UUPSUpgradeable {
         _disableInitializers();
     }
 
-    /// @notice Initialize the module
+    /// @notice Initialize the adapter
     /// @param _owner The owner address
     /// @param _hats The Hats Protocol contract address
-    /// @param _gardensHatId The parent hat ID for all gardens (0 for testnet)
-    /// @dev gardenToken must be set via setGardenToken() after deployment
-    function initialize(address _owner, address _hats, uint256 _gardensHatId) external initializer {
+    function initialize(address _owner, address _hats) external initializer {
         if (_owner == address(0)) revert ZeroAddress();
         if (_hats == address(0)) revert ZeroAddress();
 
         __Ownable_init();
         _transferOwnership(_owner);
 
-        hatsProtocol = IHatsProtocol(_hats);
-        gardensHatId = _gardensHatId;
-        // Note: gardenToken is set separately via setGardenToken() to allow flexible deployment order
-
+        hats = IHats(_hats);
         emit HatsContractUpdated(address(0), _hats);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // Modifiers
+    // IGardenAccessControl Implementation
     // ═══════════════════════════════════════════════════════════════════════════
 
-    modifier onlyGardenToken() {
-        if (msg.sender != gardenToken) revert NotGardenToken();
-        _;
+    /// @inheritdoc IGardenAccessControl
+    /// @dev Checks if account wears the gardener hat for msg.sender (the garden)
+    /// @param account The address to check
+    /// @return True if account is a gardener
+    function isGardener(address account) external view override returns (bool) {
+        return _checkRole(msg.sender, account, _getGardenerHatId);
+    }
+
+    /// @inheritdoc IGardenAccessControl
+    /// @dev Checks if account wears the operator hat for msg.sender (the garden)
+    /// @param account The address to check
+    /// @return True if account is an operator
+    function isOperator(address account) external view override returns (bool) {
+        return _checkRole(msg.sender, account, _getOperatorHatId);
+    }
+
+    /// @inheritdoc IGardenAccessControl
+    /// @dev Checks if account wears the owner hat for msg.sender (the garden)
+    /// @param account The address to check
+    /// @return True if account is an owner
+    function isOwner(address account) external view override returns (bool) {
+        return _checkRole(msg.sender, account, _getOwnerHatId);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // Admin Functions
+    // Garden-Specific Queries (for external use)
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice Set the Hats Protocol contract address
-    /// @param _hats The new Hats contract address
+    /// @notice Check if account is a gardener of a specific garden
+    /// @param garden The garden address
+    /// @param account The account to check
+    /// @return True if account is a gardener
+    function isGardenerOf(address garden, address account) external view returns (bool) {
+        return _checkRole(garden, account, _getGardenerHatId);
+    }
+
+    /// @notice Check if account is an operator of a specific garden
+    /// @param garden The garden address
+    /// @param account The account to check
+    /// @return True if account is an operator
+    function isOperatorOf(address garden, address account) external view returns (bool) {
+        return _checkRole(garden, account, _getOperatorHatId);
+    }
+
+    /// @notice Check if account is an owner of a specific garden
+    /// @param garden The garden address
+    /// @param account The account to check
+    /// @return True if account is an owner
+    function isOwnerOf(address garden, address account) external view returns (bool) {
+        return _checkRole(garden, account, _getOwnerHatId);
+    }
+
+    /// @notice Check if a garden is configured with Hats
+    /// @param garden The garden address
+    /// @return True if garden has hat configuration
+    function isConfigured(address garden) external view returns (bool) {
+        return gardenHats[garden].configured;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Configuration
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Configure hat IDs for a garden
+    /// @dev Can be called by owner, config authority, or garden owner
+    /// @param garden The garden address
+    /// @param gardenerHatId Hat ID for gardener role
+    /// @param operatorHatId Hat ID for operator role
+    /// @param ownerHatId Hat ID for owner role
+    function configureGarden(address garden, uint256 gardenerHatId, uint256 operatorHatId, uint256 ownerHatId) external {
+        // Authorization: owner, config authority, or garden itself
+        if (msg.sender != owner() && !configAuthority[msg.sender] && msg.sender != garden) {
+            revert NotGardenAdmin(msg.sender, garden);
+        }
+
+        if (garden == address(0)) revert ZeroAddress();
+        if (gardenerHatId == 0 || operatorHatId == 0 || ownerHatId == 0) revert InvalidHatId();
+
+        gardenHats[garden] = GardenHats({
+            gardenerHatId: gardenerHatId,
+            operatorHatId: operatorHatId,
+            ownerHatId: ownerHatId,
+            configured: true
+        });
+
+        emit GardenConfigured(garden, gardenerHatId, operatorHatId, ownerHatId);
+    }
+
+    /// @notice Remove hat configuration for a garden
+    /// @dev Reverts garden to native access control
+    /// @param garden The garden address
+    function deconfigureGarden(address garden) external {
+        // Authorization: owner, config authority, or garden itself
+        if (msg.sender != owner() && !configAuthority[msg.sender] && msg.sender != garden) {
+            revert NotGardenAdmin(msg.sender, garden);
+        }
+
+        delete gardenHats[garden];
+        emit GardenDeconfigured(garden);
+    }
+
+    /// @notice Update the Hats Protocol contract address
+    /// @param _hats New Hats contract address
     function setHatsContract(address _hats) external onlyOwner {
         if (_hats == address(0)) revert ZeroAddress();
-        address oldHats = address(hatsProtocol);
-        hatsProtocol = IHatsProtocol(_hats);
+        address oldHats = address(hats);
+        hats = IHats(_hats);
         emit HatsContractUpdated(oldHats, _hats);
     }
 
-    /// @notice Set the GardenToken contract address
-    /// @param _gardenToken The new GardenToken address
-    function setGardenToken(address _gardenToken) external onlyOwner {
-        if (_gardenToken == address(0)) revert ZeroAddress();
-        gardenToken = _gardenToken;
-    }
-
-    /// @notice Set the KarmaGAPModule contract address
-    /// @param _karmaGAPModule The KarmaGAPModule address
-    function setKarmaGAPModule(address _karmaGAPModule) external onlyOwner {
-        karmaGAPModule = IKarmaGAPModule(_karmaGAPModule);
-    }
-
-    /// @notice Set the gardens hat ID
-    /// @param _gardensHatId The parent hat ID for all gardens
-    function setGardensHatId(uint256 _gardensHatId) external onlyOwner {
-        gardensHatId = _gardensHatId;
+    /// @notice Add or remove a config authority
+    /// @param authority The address to authorize/deauthorize
+    /// @param authorized True to authorize, false to deauthorize
+    function setConfigAuthority(address authority, bool authorized) external onlyOwner {
+        if (authority == address(0)) revert ZeroAddress();
+        configAuthority[authority] = authorized;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // Hat Tree Management
+    // Internal Helpers
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @inheritdoc IHats
-    function createGardenHatTree(
+    /// @dev Check if account has a role in a garden
+    /// @param garden The garden address
+    /// @param account The account to check
+    /// @param getHatId Function to get the hat ID for the role
+    /// @return True if account has the role
+    function _checkRole(
         address garden,
-        address operator,
-        string calldata gardenName
+        address account,
+        function(address) view returns (uint256) getHatId
     )
-        external
-        onlyGardenToken
-        returns (uint256 rootHatId)
+        internal
+        view
+        returns (bool)
     {
-        if (gardenHatTrees[garden].exists) {
-            revert GardenTreeAlreadyExists(garden);
+        GardenHats storage config = gardenHats[garden];
+
+        // If garden not configured, revert (caller should use native access control)
+        if (!config.configured) {
+            revert GardenNotConfigured(garden);
         }
 
-        // Create garden root hat under gardens hat
-        rootHatId = hatsProtocol.createHat(
-            gardensHatId,
-            string(abi.encodePacked(gardenName, " Garden")),
-            1, // Max 1 wearer for root (the garden itself)
-            address(0), // No eligibility module
-            address(0), // No toggle module
-            true, // Mutable
-            "" // No image
-        );
-
-        // Mint root hat to garden
-        hatsProtocol.mintHat(rootHatId, garden);
-
-        // Create role hats under garden root
-        uint256 operatorHatId = hatsProtocol.createHat(
-            rootHatId,
-            "Operator",
-            type(uint32).max, // Unlimited operators
-            address(0),
-            address(0),
-            true,
-            ""
-        );
-
-        uint256 gardenerHatId = hatsProtocol.createHat(
-            rootHatId,
-            "Gardener",
-            type(uint32).max, // Unlimited gardeners
-            address(0),
-            address(0),
-            true,
-            ""
-        );
-
-        uint256 evaluatorHatId = hatsProtocol.createHat(
-            rootHatId,
-            "Evaluator",
-            type(uint32).max, // Unlimited evaluators
-            address(0),
-            address(0),
-            true,
-            ""
-        );
-
-        uint256 funderHatId = hatsProtocol.createHat(
-            rootHatId,
-            "Funder",
-            type(uint32).max,
-            address(0), // Eligibility module set later
-            address(0),
-            true,
-            ""
-        );
-
-        uint256 communityHatId = hatsProtocol.createHat(
-            rootHatId,
-            "Community",
-            type(uint32).max,
-            address(0), // Eligibility module set later
-            address(0),
-            true,
-            ""
-        );
-
-        // Store the tree
-        gardenHatTrees[garden] = GardenHatTree({
-            rootHatId: rootHatId,
-            operatorHatId: operatorHatId,
-            gardenerHatId: gardenerHatId,
-            evaluatorHatId: evaluatorHatId,
-            funderHatId: funderHatId,
-            communityHatId: communityHatId,
-            exists: true
-        });
-
-        // Mint operator hat to the primary operator
-        hatsProtocol.mintHat(operatorHatId, operator);
-
-        emit GardenHatTreeCreated(garden, rootHatId, operatorHatId, gardenerHatId, evaluatorHatId);
-        emit RoleAssigned(garden, operator, GardenRole.Operator, operatorHatId);
-
-        return rootHatId;
+        uint256 hatId = getHatId(garden);
+        return hats.isWearerOfHat(account, hatId);
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Role Management
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    /// @inheritdoc IHats
-    function grantRole(address garden, address account, GardenRole role) external {
-        GardenHatTree storage tree = gardenHatTrees[garden];
-        if (!tree.exists) revert GardenTreeNotFound(garden);
-
-        uint256 hatId = _getRoleHatId(tree, role);
-
-        // Check authorization based on role
-        _checkGrantAuthorization(garden, tree, role);
-
-        // Check if already has role
-        if (hatsProtocol.isWearerOfHat(account, hatId)) {
-            revert RoleAlreadyAssigned(account, role);
-        }
-
-        // Mint the hat
-        hatsProtocol.mintHat(hatId, account);
-
-        // Sync with GAP if operator
-        if (role == GardenRole.Operator && address(karmaGAPModule) != address(0)) {
-            karmaGAPModule.addProjectAdmin(garden, account);
-        }
-
-        emit RoleAssigned(garden, account, role, hatId);
+    function _getGardenerHatId(address garden) internal view returns (uint256) {
+        return gardenHats[garden].gardenerHatId;
     }
 
-    /// @inheritdoc IHats
-    function revokeRole(address garden, address account, GardenRole role) external {
-        GardenHatTree storage tree = gardenHatTrees[garden];
-        if (!tree.exists) revert GardenTreeNotFound(garden);
-
-        uint256 hatId = _getRoleHatId(tree, role);
-
-        // Check authorization based on role
-        _checkRevokeAuthorization(garden, tree, role);
-
-        // Check if has role
-        if (!hatsProtocol.isWearerOfHat(account, hatId)) {
-            revert RoleNotAssigned(account, role);
-        }
-
-        // Transfer hat away (effectively revoking)
-        // Note: Hats protocol doesn't have a direct "burn" - we transfer to zero or use renounce
-        hatsProtocol.transferHat(hatId, account, address(0));
-
-        // Sync with GAP if operator
-        if (role == GardenRole.Operator && address(karmaGAPModule) != address(0)) {
-            karmaGAPModule.removeProjectAdmin(garden, account);
-        }
-
-        emit RoleRevoked(garden, account, role, hatId);
+    function _getOperatorHatId(address garden) internal view returns (uint256) {
+        return gardenHats[garden].operatorHatId;
     }
 
-    /// @inheritdoc IHats
-    function batchGrantRoles(address garden, address[] calldata accounts, GardenRole[] calldata roles) external {
-        if (accounts.length != roles.length) revert InvalidRole();
-
-        for (uint256 i = 0; i < accounts.length; i++) {
-            // Use internal logic instead of external call to save gas
-            _grantRoleInternal(garden, accounts[i], roles[i]);
-        }
-    }
-
-    /// @inheritdoc IHats
-    function batchRevokeRoles(address garden, address[] calldata accounts, GardenRole[] calldata roles) external {
-        if (accounts.length != roles.length) revert InvalidRole();
-
-        for (uint256 i = 0; i < accounts.length; i++) {
-            _revokeRoleInternal(garden, accounts[i], roles[i]);
-        }
-    }
-
-    /// @inheritdoc IHats
-    function joinGarden(address garden) external {
-        GardenHatTree storage tree = gardenHatTrees[garden];
-        if (!tree.exists) revert GardenTreeNotFound(garden);
-
-        // Check if garden allows open joining
-        if (!IGardenAccount(garden).openJoining()) {
-            revert OpenJoiningNotEnabled();
-        }
-
-        // Check if already a gardener
-        if (hatsProtocol.isWearerOfHat(msg.sender, tree.gardenerHatId)) {
-            revert AlreadyGardener();
-        }
-
-        // Mint gardener hat to caller
-        hatsProtocol.mintHat(tree.gardenerHatId, msg.sender);
-
-        emit RoleAssigned(garden, msg.sender, GardenRole.Gardener, tree.gardenerHatId);
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Eligibility Module Management
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    /// @inheritdoc IHats
-    function setEligibilityModule(address garden, GardenRole role, address module) external {
-        GardenHatTree storage tree = gardenHatTrees[garden];
-        if (!tree.exists) revert GardenTreeNotFound(garden);
-
-        // Only owner or garden can set eligibility modules
-        if (msg.sender != owner() && msg.sender != garden) {
-            revert NotAuthorizedCaller();
-        }
-
-        // Only Funder and Community roles can have eligibility modules
-        if (role != GardenRole.Funder && role != GardenRole.Community) {
-            revert InvalidRole();
-        }
-
-        uint256 hatId = _getRoleHatId(tree, role);
-
-        // Change eligibility module
-        hatsProtocol.changeHatEligibility(hatId, module);
-
-        emit EligibilityModuleSet(garden, role, module);
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // View Functions
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    /// @inheritdoc IHats
-    function hasRole(address garden, address account, GardenRole role) external view returns (bool) {
-        GardenHatTree storage tree = gardenHatTrees[garden];
-        if (!tree.exists) return false;
-
-        uint256 hatId = _getRoleHatId(tree, role);
-        return hatsProtocol.isWearerOfHat(account, hatId);
-    }
-
-    /// @inheritdoc IHats
-    function getRoleHatId(address garden, GardenRole role) external view returns (uint256) {
-        GardenHatTree storage tree = gardenHatTrees[garden];
-        if (!tree.exists) return 0;
-        return _getRoleHatId(tree, role);
-    }
-
-    /// @inheritdoc IHats
-    function getGardenHatTree(address garden) external view returns (GardenHatTree memory) {
-        return gardenHatTrees[garden];
-    }
-
-    /// @inheritdoc IHats
-    function hasHatTree(address garden) external view returns (bool) {
-        return gardenHatTrees[garden].exists;
-    }
-
-    /// @inheritdoc IHats
-    function isOperator(address garden, address account) external view returns (bool) {
-        GardenHatTree storage tree = gardenHatTrees[garden];
-        if (!tree.exists) return false;
-        return hatsProtocol.isWearerOfHat(account, tree.operatorHatId);
-    }
-
-    /// @inheritdoc IHats
-    function isGardener(address garden, address account) external view returns (bool) {
-        GardenHatTree storage tree = gardenHatTrees[garden];
-        if (!tree.exists) return false;
-        return hatsProtocol.isWearerOfHat(account, tree.gardenerHatId);
-    }
-
-    /// @inheritdoc IHats
-    function isEvaluator(address garden, address account) external view returns (bool) {
-        GardenHatTree storage tree = gardenHatTrees[garden];
-        if (!tree.exists) return false;
-        return hatsProtocol.isWearerOfHat(account, tree.evaluatorHatId);
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Internal Functions
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    /// @notice Gets the hat ID for a role
-    function _getRoleHatId(GardenHatTree storage tree, GardenRole role) private view returns (uint256) {
-        if (role == GardenRole.Operator) return tree.operatorHatId;
-        if (role == GardenRole.Gardener) return tree.gardenerHatId;
-        if (role == GardenRole.Evaluator) return tree.evaluatorHatId;
-        if (role == GardenRole.Funder) return tree.funderHatId;
-        if (role == GardenRole.Community) return tree.communityHatId;
-        revert InvalidRole();
-    }
-
-    /// @notice Checks if caller is authorized to grant a role
-    function _checkGrantAuthorization(address garden, GardenHatTree storage tree, GardenRole role) private view {
-        if (role == GardenRole.Operator) {
-            // Only garden owner (root hat wearer) or module owner can grant operator
-            if (
-                !hatsProtocol.isWearerOfHat(msg.sender, tree.rootHatId) && msg.sender != owner()
-                    && msg.sender != gardenToken
-            ) {
-                revert NotGardenOwner();
-            }
-        } else {
-            // Only operators can grant other roles
-            if (
-                !hatsProtocol.isWearerOfHat(msg.sender, tree.operatorHatId) && msg.sender != owner()
-                    && msg.sender != gardenToken
-            ) {
-                revert NotGardenOperator();
-            }
-        }
-    }
-
-    /// @notice Checks if caller is authorized to revoke a role
-    function _checkRevokeAuthorization(address garden, GardenHatTree storage tree, GardenRole role) private view {
-        if (role == GardenRole.Operator) {
-            // Only garden owner can revoke operator
-            if (!hatsProtocol.isWearerOfHat(msg.sender, tree.rootHatId) && msg.sender != owner()) {
-                revert NotGardenOwner();
-            }
-        } else {
-            // Only operators can revoke other roles
-            if (!hatsProtocol.isWearerOfHat(msg.sender, tree.operatorHatId) && msg.sender != owner()) {
-                revert NotGardenOperator();
-            }
-        }
-    }
-
-    /// @notice Internal grant role logic
-    function _grantRoleInternal(address garden, address account, GardenRole role) private {
-        GardenHatTree storage tree = gardenHatTrees[garden];
-        if (!tree.exists) revert GardenTreeNotFound(garden);
-
-        uint256 hatId = _getRoleHatId(tree, role);
-        _checkGrantAuthorization(garden, tree, role);
-
-        if (hatsProtocol.isWearerOfHat(account, hatId)) {
-            revert RoleAlreadyAssigned(account, role);
-        }
-
-        hatsProtocol.mintHat(hatId, account);
-
-        if (role == GardenRole.Operator && address(karmaGAPModule) != address(0)) {
-            karmaGAPModule.addProjectAdmin(garden, account);
-        }
-
-        emit RoleAssigned(garden, account, role, hatId);
-    }
-
-    /// @notice Internal revoke role logic
-    function _revokeRoleInternal(address garden, address account, GardenRole role) private {
-        GardenHatTree storage tree = gardenHatTrees[garden];
-        if (!tree.exists) revert GardenTreeNotFound(garden);
-
-        uint256 hatId = _getRoleHatId(tree, role);
-        _checkRevokeAuthorization(garden, tree, role);
-
-        if (!hatsProtocol.isWearerOfHat(account, hatId)) {
-            revert RoleNotAssigned(account, role);
-        }
-
-        hatsProtocol.transferHat(hatId, account, address(0));
-
-        if (role == GardenRole.Operator && address(karmaGAPModule) != address(0)) {
-            karmaGAPModule.removeProjectAdmin(garden, account);
-        }
-
-        emit RoleRevoked(garden, account, role, hatId);
+    function _getOwnerHatId(address garden) internal view returns (uint256) {
+        return gardenHats[garden].ownerHatId;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
