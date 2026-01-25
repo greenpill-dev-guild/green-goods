@@ -152,6 +152,123 @@ bun test
 bun test job-queue
 ```
 
+## Storybook
+
+The shared package includes a Storybook setup for component development, testing, and documentation.
+
+### Quick Start
+
+```bash
+cd packages/shared
+
+# Start Storybook dev server (port 6006)
+bun run storybook
+
+# Build static Storybook for deployment
+bun run build-storybook
+```
+
+Storybook is also included in the PM2 ecosystem — running `bun dev` from the root starts it alongside other services.
+
+### Accessing Storybook
+
+- **Local**: http://localhost:6006
+- **Theme Toggle**: Use the 🎨 paintbrush icon in the toolbar to switch between light/dark modes
+
+### Use Cases
+
+| Use Case | How Storybook Helps |
+|----------|---------------------|
+| **Product Development** | Preview components in isolation before integrating into views |
+| **Testing** | Visual regression testing, accessibility audits via a11y addon |
+| **Debugging** | Isolate component issues without app context |
+| **Prototyping** | Quickly iterate on component variants and states |
+| **Documentation** | Auto-generated docs from component props (autodocs) |
+
+### Writing Stories
+
+Stories live alongside components:
+
+```
+src/components/
+├── Badge/
+│   ├── Badge.tsx
+│   └── Badge.stories.tsx  ← Story file
+```
+
+**Basic story template:**
+
+```typescript
+import type { Meta, StoryObj } from "@storybook/react";
+import { MyComponent } from "./MyComponent";
+
+const meta: Meta<typeof MyComponent> = {
+  title: "Components/Category/MyComponent",
+  component: MyComponent,
+  tags: ["autodocs"],  // Enable auto-generated docs
+  argTypes: {
+    variant: {
+      control: "select",
+      options: ["primary", "secondary"],
+    },
+  },
+};
+
+export default meta;
+type Story = StoryObj<typeof MyComponent>;
+
+export const Default: Story = {
+  args: {
+    children: "Example",
+    variant: "primary",
+  },
+};
+
+export const AllVariants: Story = {
+  render: () => (
+    <div className="flex gap-2">
+      <MyComponent variant="primary">Primary</MyComponent>
+      <MyComponent variant="secondary">Secondary</MyComponent>
+    </div>
+  ),
+};
+```
+
+### Story Guidelines
+
+1. **Location**: Stories go in the same folder as the component
+2. **Naming**: Use `ComponentName.stories.tsx`
+3. **Title**: Follow hierarchy `Components/Category/ComponentName`
+4. **Tags**: Include `["autodocs"]` for automatic documentation
+5. **Variants**: Show all component states (default, loading, error, empty)
+6. **Controls**: Add `argTypes` for interactive prop editing
+
+### Theming
+
+Storybook uses the same design tokens as the apps:
+
+- **CSS Variables**: All `--bg-*`, `--text-*`, `--stroke-*` tokens work
+- **Tailwind v4**: Full Tailwind utility classes available
+- **Dark Mode**: Toggle via toolbar, uses `[data-theme="dark"]`
+
+### Accessibility Testing
+
+The a11y addon is pre-configured:
+
+1. Open any story
+2. Click the "Accessibility" tab in the addon panel
+3. Review violations, passes, and incomplete checks
+
+### Configuration Files
+
+| File | Purpose |
+|------|---------|
+| `.storybook/main.ts` | Storybook config (addons, Vite plugins) |
+| `.storybook/preview.tsx` | Global decorators, theme setup |
+| `.storybook/storybook.css` | Tailwind + design tokens |
+| `.storybook/theme.ts` | Green Goods branding for Storybook UI |
+| `.storybook/manager.ts` | Applies branding to sidebar |
+
 ## Documentation
 
 📖 **[Shared Package Documentation](https://docs.greengoods.app/developer/architecture/monorepo-structure#shared-package)** — Shared utilities and architecture patterns

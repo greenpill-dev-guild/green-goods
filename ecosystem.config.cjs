@@ -67,5 +67,18 @@ module.exports = {
       max_restarts: 10,
       min_uptime: "10s",
     },
+    {
+      name: "storybook",
+      script: "sh",
+      args: '-c "cd packages/shared && bun run storybook"',
+      cwd: ".",
+      env: {
+        NODE_ENV: "development",
+      },
+      merge_logs: true,
+      autorestart: true,
+      max_restarts: 10,
+      min_uptime: "10s",
+    },
   ],
 };

@@ -27,7 +27,7 @@ bun setup                     # Checks deps, installs packages, creates .env fro
 
 vi .env                       # Populate keys (Base Sepolia is the default chain: 84532)
 
-bun dev                       # Starts client, admin, indexer via pm2
+bun dev                       # Starts client, admin, indexer, storybook via pm2
 ```
 
 > **Note**: `bun setup` checks for required dependencies (Node 20+, Bun, Git, Docker, Foundry), installs them if possible, runs `bun install`, and copies `.env.example` to `.env`. If you prefer manual setup, see the [Installation Guide](https://docs.greengoods.app/developer/installation).
@@ -35,7 +35,8 @@ bun dev                       # Starts client, admin, indexer via pm2
 Useful follow-ups:
 
 - `bun dev:stop` — stop the pm2 services
-- `bun exec pm2 logs <service>` — stream logs for `client`, `admin`, or `indexer`
+- `bun exec pm2 logs <service>` — stream logs for `client`, `admin`, `indexer`, or `storybook`
+- Open http://localhost:6006 — Storybook component library
 
 ## Common Commands
 
@@ -76,7 +77,7 @@ Package-specific READMEs:
 - `packages/indexer/README.md` — Envio indexer
 - `packages/contracts/README.md` — Foundry project layout and scripts
 - `packages/agent/README.md` — Multi-platform bot
-- `packages/shared/README.md` — Common hooks and utilities
+- `packages/shared/README.md` — Common hooks, utilities, and **Storybook** component library
 
 ## Contributing
 

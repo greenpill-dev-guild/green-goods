@@ -9,6 +9,8 @@ Loaded when working in `packages/shared/`. Extends CLAUDE.md.
 | `bun test` | Run tests |
 | `npx tsc --noEmit` | Type check |
 | `bun lint` | Lint with oxlint |
+| `bun run storybook` | Start Storybook (port 6006) |
+| `bun run build-storybook` | Build static Storybook |
 
 ## Architecture
 
@@ -249,6 +251,81 @@ export function useNewHook(param: string) {
 }
 ```
 
+## Storybook Component Development
+
+### When to Use Storybook
+
+| Use Case | Storybook Role |
+|----------|----------------|
+| **New Component** | Develop in isolation first, then integrate |
+| **Debugging UI** | Isolate component from app context |
+| **Testing Variants** | See all states (loading, error, empty) at once |
+| **Prototyping** | Quickly iterate on designs |
+| **Documentation** | Auto-generated docs from props |
+
+### Creating Stories (MANDATORY for New Components)
+
+When adding components to `src/components/`, include a story file:
+
+```
+src/components/
+├── MyComponent/
+│   ├── MyComponent.tsx
+│   └── MyComponent.stories.tsx  ← Required
+```
+
+**Story template:**
+
+```typescript
+import type { Meta, StoryObj } from "@storybook/react";
+import { MyComponent } from "./MyComponent";
+
+const meta: Meta<typeof MyComponent> = {
+  title: "Components/Category/MyComponent",
+  component: MyComponent,
+  tags: ["autodocs"],
+};
+
+export default meta;
+type Story = StoryObj<typeof MyComponent>;
+
+export const Default: Story = {
+  args: { /* default props */ },
+};
+
+// Show all variants
+export const AllVariants: Story = {
+  render: () => (
+    <div className="flex gap-2">
+      <MyComponent variant="primary" />
+      <MyComponent variant="secondary" />
+    </div>
+  ),
+};
+```
+
+### Storybook Theming
+
+- Uses same CSS tokens as apps (`--bg-*`, `--text-*`, `--stroke-*`)
+- Tailwind v4 utilities work in stories
+- Theme toggle in toolbar (🎨 icon) switches light/dark
+
+### Accessibility Testing
+
+The a11y addon runs automatically:
+1. Open story in Storybook
+2. Check "Accessibility" tab in addon panel
+3. Fix any violations before merging
+
+### Configuration Files
+
+| File | Purpose |
+|------|---------|
+| `.storybook/main.ts` | Addons, Vite config |
+| `.storybook/preview.tsx` | Global decorators |
+| `.storybook/storybook.css` | Tailwind + tokens |
+| `.storybook/theme.ts` | Green Goods branding |
+
 ## Reference Files
 
 - Hook exports: `src/hooks/index.ts`
@@ -256,3 +333,4 @@ export function useNewHook(param: string) {
 - Package exports: `src/index.ts`
 - Providers: `src/providers/`
 - Stores: `src/stores/`
+- Storybook config: `.storybook/`

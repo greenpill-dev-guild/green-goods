@@ -1,0 +1,588 @@
+/* Storybook CSS Entry Point
+ * Configures Tailwind CSS v4 and imports all necessary styles
+ * to match the client/admin app styling.
+ */
+
+@import "tailwindcss";
+
+/* Configure dark mode to use data-theme attribute (matching shared theme system) */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Import unified theme from shared package (CSS variables + @theme block) */
+@import "../src/styles/theme.css";
+
+/* ============================================================================
+ * ROOT STYLES
+ * Base configuration for the Storybook preview
+ * ============================================================================ */
+
+:root {
+  color-scheme: light dark;
+
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-synthesis: none;
+  font-optical-sizing: auto;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================================================
+ * TYPOGRAPHY THEME TOKENS
+ * Font sizes, line heights, weights for consistent typography
+ * ============================================================================ */
+
+/* Header color with dark mode support */
+:root {
+  --color-header-text: #254d31; /* Dark forest green for light mode */
+}
+
+:root[data-theme="dark"] {
+  --color-header-text: rgb(var(--green-200)); /* Pale mint for dark mode - matches primary */
+}
+
+@theme {
+  /* Title variants */
+  --text-title-h1: 56px;
+  --text-title-h1--line-height: 64px;
+  --text-title-h1--letter-spacing: -0.01em;
+  --text-title-h1--font-weight: 500;
+
+  --text-title-h2: 48px;
+  --text-title-h2--line-height: 56px;
+  --text-title-h2--letter-spacing: -0.01em;
+  --text-title-h2--font-weight: 500;
+
+  --text-title-h3: 40px;
+  --text-title-h3--line-height: 48px;
+  --text-title-h3--letter-spacing: -0.01em;
+  --text-title-h3--font-weight: 500;
+
+  --text-title-h4: 32px;
+  --text-title-h4--line-height: 40px;
+  --text-title-h4--letter-spacing: -0.005em;
+  --text-title-h4--font-weight: 500;
+
+  --text-title-h5: 24px;
+  --text-title-h5--line-height: 32px;
+  --text-title-h5--letter-spacing: 0px;
+  --text-title-h5--font-weight: 500;
+
+  --text-title-h6: 20px;
+  --text-title-h6--line-height: 28px;
+  --text-title-h6--letter-spacing: 0px;
+  --text-title-h6--font-weight: 500;
+
+  /* Label variants */
+  --text-label-xl: 24px;
+  --text-label-xl--line-height: 32px;
+  --text-label-xl--letter-spacing: -0.015em;
+  --text-label-xl--font-weight: 500;
+
+  --text-label-lg: 18px;
+  --text-label-lg--line-height: 24px;
+  --text-label-lg--letter-spacing: -0.015em;
+  --text-label-lg--font-weight: 500;
+
+  --text-label-md: 16px;
+  --text-label-md--line-height: 24px;
+  --text-label-md--letter-spacing: -0.011em;
+  --text-label-md--font-weight: 500;
+
+  --text-label-sm: 14px;
+  --text-label-sm--line-height: 20px;
+  --text-label-sm--letter-spacing: -0.006em;
+  --text-label-sm--font-weight: 400;
+
+  --text-label-xs: 12px;
+  --text-label-xs--line-height: 16px;
+  --text-label-xs--letter-spacing: 0px;
+  --text-label-xs--font-weight: 500;
+
+  /* Paragraph variants */
+  --text-paragraph-xl: 24px;
+  --text-paragraph-xl--line-height: 32px;
+  --text-paragraph-xl--letter-spacing: -0.015em;
+  --text-paragraph-xl--font-weight: 400;
+
+  --text-paragraph-lg: 18px;
+  --text-paragraph-lg--line-height: 24px;
+  --text-paragraph-lg--letter-spacing: -0.015em;
+  --text-paragraph-lg--font-weight: 400;
+
+  --text-paragraph-md: 16px;
+  --text-paragraph-md--line-height: 24px;
+  --text-paragraph-md--letter-spacing: -0.011em;
+  --text-paragraph-md--font-weight: 400;
+
+  --text-paragraph-sm: 14px;
+  --text-paragraph-sm--line-height: 20px;
+  --text-paragraph-sm--letter-spacing: -0.006em;
+  --text-paragraph-sm--font-weight: 400;
+
+  --text-paragraph-xs: 12px;
+  --text-paragraph-xs--line-height: 16px;
+  --text-paragraph-xs--letter-spacing: 0px;
+  --text-paragraph-xs--font-weight: 400;
+
+  /* Subheading variants */
+  --text-subheading-md: 16px;
+  --text-subheading-md--line-height: 24px;
+  --text-subheading-md--letter-spacing: 0.06em;
+  --text-subheading-md--font-weight: 500;
+
+  --text-subheading-sm: 14px;
+  --text-subheading-sm--line-height: 20px;
+  --text-subheading-sm--letter-spacing: 0.06em;
+  --text-subheading-sm--font-weight: 500;
+
+  --text-subheading-xs: 12px;
+  --text-subheading-xs--line-height: 16px;
+  --text-subheading-xs--letter-spacing: 0.04em;
+  --text-subheading-xs--font-weight: 500;
+
+  --text-subheading-2xs: 11px;
+  --text-subheading-2xs--line-height: 12px;
+  --text-subheading-2xs--letter-spacing: 0.02em;
+  --text-subheading-2xs--font-weight: 500;
+
+  /* Documentation styles */
+  --text-doc-label: 18px;
+  --text-doc-label--line-height: 32px;
+  --text-doc-label--letter-spacing: -0.015em;
+  --text-doc-label--font-weight: 500;
+
+  --text-doc-paragraph: 18px;
+  --text-doc-paragraph--line-height: 32px;
+  --text-doc-paragraph--letter-spacing: -0.015em;
+  --text-doc-paragraph--font-weight: 400;
+
+  /* Shadows */
+  --shadow-regular-xs: 0 1px 2px 0 rgba(10, 13, 20, 0.03);
+  --shadow-regular-sm: 0 2px 4px rgba(27, 28, 29, 0.04);
+  --shadow-regular-md: 0 16px 32px -12px rgba(14, 18, 27, 0.1);
+
+  /* Button focus shadows */
+  --shadow-button-primary-focus: 0 0 0 2px var(--color-bg-white-0), 0 0 0 4px
+    var(--color-primary-alpha-10);
+  --shadow-button-important-focus: 0 0 0 2px var(--color-bg-white-0), 0 0 0 4px
+    var(--color-neutral-alpha-16);
+  --shadow-button-error-focus: 0 0 0 2px var(--color-bg-white-0), 0 0 0 4px
+    var(--color-red-alpha-10);
+
+  /* Fancy button shadows */
+  --shadow-fancy-buttons-neutral: 0 1px 2px 0 rgba(27, 28, 29, 0.48), 0 0 0 1px #242628;
+  --shadow-fancy-buttons-primary: 0 1px 2px 0 rgba(14, 18, 27, 0.24), 0 0 0 1px
+    var(--color-primary-base);
+  --shadow-fancy-buttons-error: 0 1px 2px 0 rgba(14, 18, 27, 0.24), 0 0 0 1px
+    var(--color-error-base);
+  --shadow-fancy-buttons-stroke: 0 1px 3px 0 rgba(14, 18, 27, 0.12), 0 0 0 1px
+    var(--color-stroke-soft-200);
+
+  /* Component-specific shadows */
+  --shadow-toggle-switch: 0 6px 10px 0 rgba(14, 18, 27, 0.06), 0 2px 4px 0 rgba(14, 18, 27, 0.03);
+  --shadow-switch-thumb: 0 4px 8px 0 rgba(27, 28, 29, 0.06), 0 2px 4px 0 rgba(14, 18, 27, 0.08);
+  --shadow-tooltip: 0 12px 24px 0 rgba(14, 18, 27, 0.06), 0 1px 2px 0 rgba(14, 18, 27, 0.03);
+
+  /* Animations */
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-spring-bump: spring-bump 0.56s ease-in-out;
+}
+
+@keyframes accordion-down {
+  from {
+    height: 0;
+    filter: blur(2px) contrast(6);
+  }
+  20% {
+    filter: blur(0px) contrast(1);
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+    filter: blur(0px) contrast(1);
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+    filter: blur(0px) contrast(1);
+  }
+  20% {
+    filter: blur(0px) contrast(1);
+  }
+  to {
+    height: 0;
+    filter: blur(2px) contrast(6);
+  }
+}
+
+@keyframes spring-bump {
+  from {
+    transform: scale(0.8);
+  }
+  60% {
+    transform: scale(1.1);
+  }
+  70% {
+    transform: scale(0.95);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/* ============================================================================
+ * TYPOGRAPHY UTILITIES
+ * ============================================================================ */
+
+@layer utilities {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-family-sans);
+    color: var(--color-header-text);
+  }
+
+  * {
+    font-family: var(--font-family-sans);
+  }
+
+  h1 {
+    font-size: 2em;
+    font-weight: bold;
+  }
+
+  h2 {
+    font-size: 1.5em;
+    font-weight: bold;
+  }
+
+  h3 {
+    font-size: 1.25em;
+    font-weight: bold;
+  }
+
+  h4 {
+    font-size: 1.125em;
+    font-weight: bold;
+  }
+
+  h5 {
+    font-size: 1.125em;
+    font-weight: bold;
+  }
+
+  h6 {
+    font-size: 1em;
+    font-weight: 600;
+  }
+
+  p {
+    font-size: 1em;
+  }
+
+  a {
+    color: var(--color-primary);
+    text-decoration: none;
+  }
+
+  ul {
+    list-style: none;
+  }
+
+  ol {
+    list-style: none;
+  }
+
+  /* Shadow utilities */
+  .shadow-regular-xs {
+    box-shadow: var(--shadow-regular-xs);
+  }
+
+  .shadow-regular-sm {
+    box-shadow: var(--shadow-regular-sm);
+  }
+
+  .shadow-regular-md {
+    box-shadow: var(--shadow-regular-md);
+  }
+
+  .shadow-button-primary-focus {
+    box-shadow: var(--shadow-button-primary-focus);
+  }
+
+  .shadow-button-important-focus {
+    box-shadow: var(--shadow-button-important-focus);
+  }
+
+  .shadow-button-error-focus {
+    box-shadow: var(--shadow-button-error-focus);
+  }
+
+  .shadow-fancy-buttons-neutral {
+    box-shadow: var(--shadow-fancy-buttons-neutral);
+  }
+
+  .shadow-fancy-buttons-primary {
+    box-shadow: var(--shadow-fancy-buttons-primary);
+  }
+
+  .shadow-fancy-buttons-error {
+    box-shadow: var(--shadow-fancy-buttons-error);
+  }
+
+  .shadow-fancy-buttons-stroke {
+    box-shadow: var(--shadow-fancy-buttons-stroke);
+  }
+
+  .shadow-toggle-switch {
+    box-shadow: var(--shadow-toggle-switch);
+  }
+
+  .shadow-switch-thumb {
+    box-shadow: var(--shadow-switch-thumb);
+  }
+
+  .shadow-tooltip {
+    box-shadow: var(--shadow-tooltip);
+  }
+
+  /* Custom Border Radius Utilities */
+  .rounded-10 {
+    border-radius: 0.625rem;
+  }
+  .rounded-20 {
+    border-radius: 1.25rem;
+  }
+
+  /* Universal Icon Button Class - Dark mode compatible */
+  .btn-icon {
+    @apply relative flex items-center justify-center w-8 h-8 p-1 rounded-lg border;
+    @apply bg-bg-white-0 border-stroke-soft-200 text-text-soft-400;
+    @apply transition-all duration-200 active:scale-95;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary active:border-primary;
+  }
+
+  .btn-icon svg {
+    @apply text-text-soft-400 focus:text-primary active:text-primary;
+  }
+
+  /* Status Badge Variants - Dark mode compatible */
+  .badge-pill {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply border-stroke-soft-200 text-text-sub-600;
+  }
+
+  .badge-pill-blue {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply bg-information-lighter text-information-dark border-information-light;
+  }
+
+  .badge-pill-amber {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply bg-warning-lighter text-warning-dark border-warning-light;
+  }
+
+  .badge-pill-green {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply bg-success-lighter text-success-dark border-success-light;
+  }
+
+  .badge-pill-red {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply bg-error-lighter text-error-dark border-error-light;
+  }
+
+  .badge-pill-purple {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply bg-feature-lighter text-feature-dark border-feature-light;
+  }
+
+  .badge-pill-slate {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply bg-bg-soft-200 text-text-sub-600 border-stroke-soft-200;
+  }
+
+  .badge-pill-emerald {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply bg-success-lighter text-success-dark border-success-light;
+  }
+
+  /* Additional utility classes */
+  .small {
+    @apply text-paragraph-sm;
+  }
+
+  .extra-small {
+    @apply text-paragraph-xs;
+  }
+}
+
+/* ============================================================================
+ * ANIMATIONS
+ * ============================================================================ */
+
+/* Staggered list animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fadeInScale {
+  animation: fadeInScale 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.stagger-item {
+  opacity: 0;
+  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Shimmer skeleton - Dark mode friendly */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: rgb(var(--bg-soft-200));
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(var(--bg-sub-300) / 60%),
+    transparent
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Micro-interactions */
+.tap-feedback {
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.tap-feedback:active {
+  transform: scale(0.98);
+}
+
+/* Toast animations */
+@keyframes toastSlideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes toastSlideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.toast-enter {
+  animation: toastSlideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.toast-exit {
+  animation: toastSlideOutRight 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+/* Modal animations */
+@keyframes modalBackdropFadeIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(4px);
+  }
+}
+
+@keyframes modalSlideIn {
+  from {
+    transform: translate3d(0, 100%, 0);
+    opacity: 0.8;
+  }
+  60% {
+    transform: translate3d(0, -2%, 0);
+    opacity: 1;
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+}
+
+.modal-backdrop-enter {
+  animation: modalBackdropFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.modal-slide-enter {
+  animation: modalSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+}
+
+/* Accessibility - respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

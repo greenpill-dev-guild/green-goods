@@ -1,0 +1,12 @@
+# Storybook
+storybook-static/
+debug-storybook.log
+*.storybook.log
+
+# Build artifacts
+dist/
+*.tsbuildinfo
+
+# Coverage
+coverage/
+*.lcov

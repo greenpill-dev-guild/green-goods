@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Initial setup (checks dependencies, installs packages, creates .env)
 bun setup
 
-# Start all services via PM2 (client, admin, indexer)
+# Start all services via PM2 (client, admin, indexer, storybook)
 bun dev
 
 # Stop all services
@@ -19,6 +19,7 @@ bun dev:stop
 bun exec pm2 logs client
 bun exec pm2 logs admin
 bun exec pm2 logs indexer
+bun exec pm2 logs storybook
 ```
 
 ### Code Quality
@@ -77,6 +78,8 @@ cd packages/shared
 npx tsc --noEmit     # Type check
 bun test             # Run tests
 bun lint             # Lint with oxlint
+bun run storybook    # Start Storybook dev server (port 6006)
+bun run build-storybook  # Build static Storybook
 ```
 
 ## High-Level Architecture
@@ -93,7 +96,7 @@ Green Goods is an **offline-first, single-chain** platform for documenting conse
 packages/
 ├── client/       # Offline-first React PWA for gardeners (port 3001)
 ├── admin/        # React dashboard for operators (port 3002)
-├── shared/       # Common hooks, providers, stores, modules
+├── shared/       # Common hooks, providers, stores, modules, Storybook (port 6006)
 ├── indexer/      # Envio GraphQL API indexing blockchain events (port 8080)
 ├── contracts/    # Solidity smart contracts (Foundry framework)
 └── agent/        # Multi-platform bot (Telegram primary)

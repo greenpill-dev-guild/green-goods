@@ -38,7 +38,9 @@
     "build": "echo 'Shared package uses source files directly - no build needed'",
     "test": "vitest run",
     "test:watch": "vitest --standalone",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build -o storybook-static"
   },
   "dependencies": {
     "@reown/appkit": "^1.8.14",
@@ -84,7 +86,16 @@
   },
   "devDependencies": {
     "@graphql-typed-document-node/core": "^3.2.0",
+    "@storybook/addon-a11y": "8.6.15",
+    "@storybook/addon-essentials": "8.6.15",
+    "@storybook/manager-api": "8.6.15",
+    "@storybook/preview-api": "8.6.15",
+    "@storybook/react": "8.6.15",
+    "@storybook/react-vite": "8.6.15",
+    "@storybook/theming": "8.6.15",
+    "@tailwindcss/vite": "^4.1.11",
     "@types/browser-lang": "^0.1.2",
-    "@types/uuid": "^11.0.0"
+    "@types/uuid": "^11.0.0",
+    "storybook": "8.6.15"
   }
 }

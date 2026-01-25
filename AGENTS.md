@@ -110,6 +110,7 @@ To apply the Claude skills and rules in Codex without duplicating them, treat th
 - `.claude/agents/*.md` — role behaviors (`oracle`, `cracked-coder`, `code-reviewer`)
 
 When a task matches these workflows, open the relevant file(s) and follow them; do not restate or re-implement the rules here.
+MCP servers are defined in `.mcp.json` (single source of truth).
 
 ## MCP Usage
 
@@ -183,6 +184,14 @@ For troubleshooting setup issues, see [Installation Guide](./docs/developer/inst
 - Contracts should revert with custom errors and emit events for state changes.
 - Offline workflows persist to IndexedDB (see `packages/shared/src/modules/job-queue`); respect existing queue APIs when adding new flows.
 
+### UI Component Development
+
+- **Storybook** — Develop and test components in isolation at http://localhost:6006 (runs with `bun dev`)
+- **New components** — Create story files alongside components (`ComponentName.stories.tsx`)
+- **Variants** — Show all states (default, loading, error, empty) in stories
+- **Accessibility** — Use Storybook's a11y addon to catch issues early
+- **Theming** — Toggle light/dark in Storybook toolbar to verify both modes
+
 ## IPFS Deployment
 
 Client and admin apps are deployed to IPFS via GitHub Actions (`.github/workflows/deploy-ipfs.yml`).
@@ -223,5 +232,6 @@ For complex flows, start with a sequence diagram (detailed), then summarize to a
 - [Product Overview](./docs/features/overview.md) — architecture snapshot
 - [Karma GAP Integration](./docs/developer/karma-gap.md) — GAP-specific context
 - [Architecture Diagrams](./docs/developer/architecture/diagrams.md) — canonical Mermaid diagrams
+- [Storybook](http://localhost:6006) — component library (run `bun dev` or `cd packages/shared && bun run storybook`)
 
 When in doubt, check recent commits for precedent, or ask for clarification instead of guessing. Consistency across packages is the priority.
