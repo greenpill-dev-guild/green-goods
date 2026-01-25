@@ -588,3 +588,232 @@ GardenAccount.OpenJoiningUpdated.handler(
 // 1. Uncomment the contracts in config.yaml when ready to deploy
 // 2. Import ENSRegistrar and Gardener from generated module
 // 3. Implement handlers following the same patterns as above
+
+// ============================================================================
+// HYPERCERT EVENT HANDLERS
+// ============================================================================
+
+// Note: These handlers require generated types from `bun run codegen` after
+// schema.graphql and config.yaml updates. Uncomment when types are available.
+
+/*
+import {
+  HypercertMinter,
+  IntegrationRouter,
+  HypercertStatus,
+} from "../generated";
+
+import type {
+  Hypercert,
+  HypercertClaim,
+  WorkApproval,
+  HypercertMinter_TransferSingle_handlerArgs,
+  HypercertMinter_ClaimStored_handlerArgs,
+  IntegrationRouter_HypercertMinted_handlerArgs,
+  IntegrationRouter_HypercertClaimed_handlerArgs,
+} from "../generated/src/Types.gen";
+
+// Zero address constant for mint detection
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
+// Helper to create default Hypercert entity
+// Note: claims are stored as separate HypercertClaim entities (Envio doesn't support entity arrays)
+function createDefaultHypercert(
+  hypercertId: string,
+  chainId: number,
+  tokenId: bigint,
+  timestamp: number
+): Hypercert {
+  return {
+    id: hypercertId,
+    chainId,
+    tokenId,
+    garden: "",
+    metadataUri: "",
+    mintedAt: timestamp,
+    mintedBy: "",
+    txHash: "",
+    totalUnits: 0n,
+    claimedUnits: 0n,
+    attestationCount: 0,
+    attestationUIDs: [],
+    title: undefined,
+    description: undefined,
+    imageUri: undefined,
+    workScopes: [],
+    status: "ACTIVE" as HypercertStatus,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  };
+}
+
+// Handler for HypercertMinter TransferSingle event (detects mints)
+// This fires for all ERC1155 transfers, we filter for mints (from = zero address)
+HypercertMinter.TransferSingle.handler(
+  async ({ event, context }: HypercertMinter_TransferSingle_handlerArgs<void>) => {
+    // Only process mints (from zero address)
+    if (event.params.from.toLowerCase() !== ZERO_ADDRESS) {
+      return;
+    }
+
+    const tokenId = event.params.id;
+    const hypercertId = `${event.chainId}-${tokenId.toString()}`;
+    const timestamp = event.block.timestamp;
+
+    // Check if hypercert already exists (may be created by IntegrationRouter event first)
+    let existingHypercert = await context.Hypercert.get(hypercertId);
+
+    if (existingHypercert) {
+      // Update with mint details
+      const updatedHypercert: Hypercert = {
+        ...existingHypercert,
+        totalUnits: event.params.value,
+        mintedBy: event.params.operator,
+        txHash: event.transaction.hash,
+        updatedAt: timestamp,
+      };
+      context.Hypercert.set(updatedHypercert);
+    } else {
+      // Create new hypercert entity
+      const newHypercert = createDefaultHypercert(hypercertId, event.chainId, tokenId, timestamp);
+      newHypercert.totalUnits = event.params.value;
+      newHypercert.mintedBy = event.params.operator;
+      newHypercert.txHash = event.transaction.hash;
+      context.Hypercert.set(newHypercert);
+    }
+
+    context.log.info(`Hypercert minted: ${hypercertId} with ${event.params.value} units`);
+  }
+);
+
+// Handler for HypercertMinter ClaimStored event (stores metadata URI)
+HypercertMinter.ClaimStored.handler(
+  async ({ event, context }: HypercertMinter_ClaimStored_handlerArgs<void>) => {
+    const tokenId = event.params.claimID;
+    const hypercertId = `${event.chainId}-${tokenId.toString()}`;
+    const timestamp = event.block.timestamp;
+
+    let existingHypercert = await context.Hypercert.get(hypercertId);
+
+    if (existingHypercert) {
+      const updatedHypercert: Hypercert = {
+        ...existingHypercert,
+        metadataUri: event.params.uri,
+        totalUnits: event.params.totalUnits,
+        updatedAt: timestamp,
+      };
+      context.Hypercert.set(updatedHypercert);
+    } else {
+      const newHypercert = createDefaultHypercert(hypercertId, event.chainId, tokenId, timestamp);
+      newHypercert.metadataUri = event.params.uri;
+      newHypercert.totalUnits = event.params.totalUnits;
+      context.Hypercert.set(newHypercert);
+    }
+
+    context.log.info(`Hypercert claim stored: ${hypercertId} with URI ${event.params.uri}`);
+  }
+);
+
+// Handler for IntegrationRouter HypercertMinted event (Green Goods specific)
+// This links hypercerts to gardens and work attestations
+IntegrationRouter.HypercertMinted.handler(
+  async ({ event, context }: IntegrationRouter_HypercertMinted_handlerArgs<void>) => {
+    const tokenId = event.params.hypercertId;
+    const hypercertId = `${event.chainId}-${tokenId.toString()}`;
+    const timestamp = event.block.timestamp;
+
+    // Get or create hypercert
+    let existingHypercert = await context.Hypercert.get(hypercertId);
+
+    const attestationUIDs = event.params.attestationUIDs.map((uid) => uid.toString());
+
+    if (existingHypercert) {
+      const updatedHypercert: Hypercert = {
+        ...existingHypercert,
+        garden: event.params.garden,
+        metadataUri: event.params.metadataUri,
+        mintedBy: event.params.operator,
+        attestationUIDs,
+        attestationCount: attestationUIDs.length,
+        txHash: event.transaction.hash,
+        updatedAt: timestamp,
+      };
+      context.Hypercert.set(updatedHypercert);
+    } else {
+      const newHypercert = createDefaultHypercert(hypercertId, event.chainId, tokenId, timestamp);
+      newHypercert.garden = event.params.garden;
+      newHypercert.metadataUri = event.params.metadataUri;
+      newHypercert.mintedBy = event.params.operator;
+      newHypercert.attestationUIDs = attestationUIDs;
+      newHypercert.attestationCount = attestationUIDs.length;
+      newHypercert.txHash = event.transaction.hash;
+      context.Hypercert.set(newHypercert);
+    }
+
+    // Update WorkApproval entities to link them to this hypercert
+    for (const attestationUID of attestationUIDs) {
+      const workApprovalId = `${event.chainId}-${attestationUID}`;
+      const existingWorkApproval = await context.WorkApproval.get(workApprovalId);
+
+      if (existingWorkApproval) {
+        const updatedWorkApproval: WorkApproval = {
+          ...existingWorkApproval,
+          hypercertId,
+          bundledAt: timestamp,
+        };
+        context.WorkApproval.set(updatedWorkApproval);
+      }
+      // Note: WorkApproval may not exist yet if indexed from EAS separately
+    }
+
+    context.log.info(
+      `Hypercert minted for garden ${event.params.garden}: ${hypercertId} with ${attestationUIDs.length} attestations`
+    );
+  }
+);
+
+// Handler for IntegrationRouter HypercertClaimed event
+// Tracks when users claim their share of a hypercert
+IntegrationRouter.HypercertClaimed.handler(
+  async ({ event, context }: IntegrationRouter_HypercertClaimed_handlerArgs<void>) => {
+    const tokenId = event.params.hypercertId;
+    const hypercertId = `${event.chainId}-${tokenId.toString()}`;
+    const claimant = event.params.claimant;
+    const claimId = `${event.chainId}-${tokenId.toString()}-${claimant}`;
+    const timestamp = event.block.timestamp;
+
+    // Create claim entity
+    const claim: HypercertClaim = {
+      id: claimId,
+      chainId: event.chainId,
+      hypercertId,
+      claimant,
+      units: event.params.units,
+      claimedAt: timestamp,
+      txHash: event.transaction.hash,
+    };
+    context.HypercertClaim.set(claim);
+
+    // Update hypercert with new claimed units
+    // Note: Claims are stored as separate HypercertClaim entities, not in an array
+    const existingHypercert = await context.Hypercert.get(hypercertId);
+    if (existingHypercert) {
+      const newClaimedUnits = existingHypercert.claimedUnits + event.params.units;
+
+      // Update status if fully claimed
+      const isFullyClaimed = newClaimedUnits >= existingHypercert.totalUnits;
+      const newStatus: HypercertStatus = isFullyClaimed ? "CLAIMED" : existingHypercert.status;
+
+      const updatedHypercert: Hypercert = {
+        ...existingHypercert,
+        claimedUnits: newClaimedUnits,
+        status: newStatus,
+        updatedAt: timestamp,
+      };
+      context.Hypercert.set(updatedHypercert);
+    }
+
+    context.log.info(`Hypercert claimed: ${hypercertId} by ${claimant} for ${event.params.units} units`);
+  }
+);
+*/

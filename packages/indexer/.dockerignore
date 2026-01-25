@@ -1,0 +1,25 @@
+# Docker ignore for indexer
+node_modules
+generated/node_modules
+.git
+*.log
+.env*
+!.env.example
+.DS_Store
+
+# Envio generated files that should be rebuilt in container
+generated/src/*.gen.ts
+generated/src/*.res.js
+
+# Test files
+test/
+*.test.ts
+coverage/
+
+# IDE files
+.vscode/
+.idea/
+
+# Build artifacts
+dist/
+*.tsbuildinfo

@@ -6,13 +6,18 @@ Loaded when working in `packages/indexer/`. Extends CLAUDE.md.
 
 | Command | Purpose |
 |---------|---------|
-| `bun dev` | Start indexer (checks Docker, sets up ReScript) |
-| `bun stop` | Stop indexer |
+| `bun run dev:docker` | Start Docker-based indexer (recommended for macOS) |
+| `bun run dev:docker:logs` | View Docker indexer logs |
+| `bun run dev:docker:down` | Stop Docker containers |
+| `bun dev` | Start native indexer (Linux/Dev Container) |
+| `bun stop` | Stop native indexer |
 | `bun reset` | Reset state completely |
 | `bun codegen` | Regenerate after schema/config changes |
 | `bun test` | Run tests |
 
 **Prerequisite:** Docker Desktop must be running.
+
+> **macOS Note:** Use Docker-based commands (`dev:docker`) to avoid Rust `system-configuration` crate panic. PM2 uses Docker automatically when running `bun dev` from monorepo root.
 
 ## Architecture
 
@@ -157,14 +162,36 @@ GardenAccount.GardenerAdded.handler(async ({ event, context }) => {
 
 ### Starting the Indexer
 
+**Option A: Docker-Based (Recommended for macOS)**
+```bash
+# Start full Docker stack (PostgreSQL + Hasura + Indexer)
+bun run dev:docker
+
+# View logs
+bun run dev:docker:logs
+
+# Stop
+bun run dev:docker:down
+```
+
+**Option B: Native (Linux/Dev Container)**
 ```bash
 # Ensure Docker is running
 open -a Docker  # macOS
 # Wait 30 seconds
 
-# Start indexer
+# Start native indexer
 bun dev
 ```
+
+### Docker Compose Files
+
+| File | Purpose |
+|------|---------|
+| `docker-compose.indexer.yaml` | Full stack (PG + Hasura + Indexer) |
+| `generated/docker-compose.yaml` | PostgreSQL + Hasura only (for native indexer) |
+
+⚠️ **Port Conflict:** Both use ports 5433 and 8080. Stop one before starting the other.
 
 ### When to Run Codegen
 

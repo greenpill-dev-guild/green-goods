@@ -10,8 +10,10 @@ module.exports = {
       },
       merge_logs: true,
       autorestart: true,
-      max_restarts: 10,
+      max_restarts: 3,
       min_uptime: "10s",
+      restart_delay: 3000, // Wait 3s between restarts to allow port release
+      kill_timeout: 5000,
     },
     {
       name: "admin",
@@ -23,13 +25,14 @@ module.exports = {
       },
       merge_logs: true,
       autorestart: true,
-      max_restarts: 10,
+      max_restarts: 3,
       min_uptime: "10s",
+      restart_delay: 3000,
+      kill_timeout: 5000,
     },
     {
       name: "client",
       script: "sh",
-      // Use default vite (aliased to rolldown-vite) for dev
       args: '-c "cd packages/client && bun run dev"',
       cwd: ".",
       env: {
@@ -38,8 +41,10 @@ module.exports = {
       },
       merge_logs: true,
       autorestart: true,
-      max_restarts: 10,
+      max_restarts: 3,
       min_uptime: "10s",
+      restart_delay: 3000,
+      kill_timeout: 5000,
     },
     {
       name: "agent",
@@ -51,21 +56,26 @@ module.exports = {
       },
       merge_logs: true,
       autorestart: true,
-      max_restarts: 10,
+      max_restarts: 3,
       min_uptime: "10s",
+      restart_delay: 3000,
+      kill_timeout: 5000,
     },
     {
       name: "indexer",
       script: "sh",
-      args: '-c "cd packages/indexer && bun run dev"',
+      // Use Docker-based indexer to avoid macOS Rust panic in system-configuration crate
+      // The Docker container runs PostgreSQL, Hasura, and the Envio indexer
+      args: '-c "cd packages/indexer && docker compose -f docker-compose.indexer.yaml up --build"',
       cwd: ".",
       env: {
         NODE_ENV: "development",
       },
       merge_logs: true,
-      autorestart: true,
-      max_restarts: 10,
+      autorestart: false, // Docker Compose handles its own restarts
+      max_restarts: 0,
       min_uptime: "10s",
+      kill_timeout: 30000, // Longer timeout for Docker Compose to stop gracefully
     },
     {
       name: "storybook",
@@ -74,11 +84,15 @@ module.exports = {
       cwd: ".",
       env: {
         NODE_ENV: "development",
+        // Disable interactive prompts for port selection
+        CI: "true",
       },
       merge_logs: true,
       autorestart: true,
-      max_restarts: 10,
+      max_restarts: 3,
       min_uptime: "10s",
+      restart_delay: 3000,
+      kill_timeout: 5000,
     },
   ],
 };

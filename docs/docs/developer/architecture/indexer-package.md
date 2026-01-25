@@ -12,17 +12,27 @@ Blockchain event indexer exposing Green Goods data via GraphQL.
 ## Quick Reference
 
 **Path**: `packages/indexer/`
-**Port**: http://localhost:8080
-**Password**: `testing` (local)
-**Stack**: Envio HyperIndex + PostgreSQL
+**Ports**:
+- GraphQL API: http://localhost:8080 (password: `testing`)
+- Indexer: http://localhost:9898
+**Stack**: Envio HyperIndex + PostgreSQL + Hasura
 
 **Commands**:
 ```bash
+# Docker-based (recommended for macOS)
+cd packages/indexer
+bun run dev:docker           # Start full Docker stack
+bun run dev:docker:logs      # View logs
+bun run dev:docker:down      # Stop containers
+
+# Native (Linux/Dev Container)
 bun --filter indexer dev     # Start indexer (checks Docker)
 bun --filter indexer stop    # Stop indexer
 bun --filter indexer reset   # Reset completely
 bun --filter indexer codegen # Regenerate after schema changes
 ```
+
+> **macOS Note**: The native Envio indexer may crash due to a Rust `system-configuration` crate panic. Use the Docker-based approach (`dev:docker`) which containerizes everything.
 
 ---
 
@@ -99,14 +109,32 @@ GraphQL API (Hasura)
 1. Edit `schema.graphql`
 2. Run `bun codegen`
 3. Run `bun run setup-generated`
-4. Restart: `bun dev`
+4. Restart: `bun run dev:docker` (macOS) or `bun dev` (Linux)
 
 **Docker Management**:
+
+There are two Docker Compose configurations:
+
+| File | Purpose |
+|------|---------|
+| `generated/docker-compose.yaml` | PostgreSQL + Hasura only (for native indexer) |
+| `docker-compose.indexer.yaml` | Full stack including containerized indexer |
+
 ```bash
-docker compose down     # Stop
-docker compose up -d    # Start
-docker compose logs -f  # View logs
+# Full Docker stack (recommended for macOS)
+cd packages/indexer
+bun run dev:docker        # Start
+bun run dev:docker:logs   # View logs
+bun run dev:docker:down   # Stop
+
+# Native stack (Linux/Dev Container)
+cd packages/indexer/generated
+docker compose up -d      # Start PostgreSQL + Hasura
+docker compose down       # Stop
+docker compose logs -f    # View logs
 ```
+
+⚠️ **Port Conflict**: Both stacks use ports 5433 and 8080. Stop one before starting the other.
 
 ---
 

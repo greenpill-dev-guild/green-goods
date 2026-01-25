@@ -37,6 +37,9 @@ Useful follow-ups:
 - `bun dev:stop` — stop the pm2 services
 - `bun exec pm2 logs <service>` — stream logs for `client`, `admin`, `indexer`, or `storybook`
 - Open http://localhost:6006 — Storybook component library
+- Open http://localhost:8080 — Indexer GraphQL Playground (password: `testing`)
+
+> **macOS Note**: The indexer runs via Docker to avoid a known Rust crate issue. PM2 handles this automatically. For manual control: `cd packages/indexer && bun run dev:docker`
 
 ## Common Commands
 

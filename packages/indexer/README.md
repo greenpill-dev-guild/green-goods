@@ -4,54 +4,96 @@ This package contains the Envio indexer for Green Goods contracts. It exposes a 
 
 📖 **[Indexer Documentation](https://docs.greengoods.app/developer/architecture/indexer-package)** — Complete indexer architecture and development guide
 
-### Run
+---
 
-**Using Dev Container (Recommended):**
-The dev container includes "Docker-outside-of-docker" support, so the indexer works out of the box. Just run:
+### Quick Start
+
+#### Option A: Docker-Based (Recommended for macOS)
+
+The Docker-based setup containerizes everything (PostgreSQL, Hasura, Indexer) and avoids macOS-specific Rust panics:
+
 ```bash
-bun dev
+# Start the full stack
+bun run dev:docker
+
+# View logs
+bun run dev:docker:logs
+
+# Stop
+bun run dev:docker:down
 ```
 
-**Using Local Setup:**
+This runs:
+- **PostgreSQL**: Port 5433
+- **Hasura GraphQL**: Port 8080 (password: `testing`)
+- **Envio Indexer**: Port 9898
 
-**First, ensure Docker Desktop is running:**
-```bash
-open -a Docker
-# Wait 30 seconds for it to fully start
-```
+> **Note**: When running `bun dev` from the monorepo root, PM2 automatically uses the Docker-based indexer on macOS.
 
-**Then start the indexer:**
+#### Option B: Native (Linux or Dev Container)
+
+If you're on Linux or using the VS Code Dev Container:
+
 ```bash
+# Ensure Docker Desktop is running first
+open -a Docker  # macOS
+# Wait 30 seconds
+
+# Start the native indexer
 bun dev
 ```
 
 This command:
-1. Checks Docker is accessible (fails fast with clear instructions if not)
+1. Checks Docker is accessible
 2. Stops any running indexer instances
-3. Installs ReScript dependencies in the `generated/` folder
+3. Installs ReScript dependencies in `generated/`
 4. Builds the ReScript code
 5. Starts the indexer
 
-Visit http://localhost:8080 to see the GraphQL Playground, local password is `testing`.
+Visit http://localhost:8080 for the GraphQL Playground (password: `testing`).
 
-**Alternative commands:**
+---
+
+### Development Flows
+
+There are two Docker Compose configurations:
+
+| File | Purpose | Use Case |
+|------|---------|----------|
+| `generated/docker-compose.yaml` | PostgreSQL + Hasura only | Native indexer on Linux |
+| `docker-compose.indexer.yaml` | Full stack (PG + Hasura + Indexer) | macOS or full containerization |
+
+⚠️ **Port Conflict**: Both use ports 5433 and 8080. Stop one before starting the other:
 ```bash
-# Stop the indexer
-bun stop
+# Stop generated stack
+cd generated && docker compose down
 
-# Just setup ReScript dependencies
-bun run setup-generated
-
-# Start without automatic setup (assumes already setup)
-bun run dev:manual
+# Stop full Docker stack
+bun run dev:docker:down
 ```
 
-**If you get "Docker is not running" error:**
+---
+
+### Commands Reference
+
 ```bash
-open -a Docker
-# Wait 30 seconds
-docker ps  # Verify it's working
-bun dev
+# Docker-based development
+bun run dev:docker        # Start full Docker stack
+bun run dev:docker:detach # Start in background
+bun run dev:docker:logs   # Stream logs
+bun run dev:docker:down   # Stop and remove containers
+
+# Native development
+bun dev                   # Start with auto-setup
+bun run dev:manual        # Start without setup (assumes already configured)
+bun stop                  # Stop indexer
+
+# Maintenance
+bun run setup-generated   # Install ReScript dependencies
+bun codegen               # Regenerate from schema changes
+bun reset                 # Full reset (clears all data)
+bun run doctor            # Diagnose issues
+bun run doctor:fix        # Auto-fix common issues
 ```
 
 ### Generate files from `config.yaml` or `schema.graphql`

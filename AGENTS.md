@@ -151,6 +151,8 @@ After setup, the developer needs to:
 1. Edit `.env` with API keys (Reown, Pimlico, optionally Storacha)
 2. Run `bun dev` to start all services
 
+> **macOS Note**: The indexer runs via Docker (`docker-compose.indexer.yaml`) to avoid a known Rust `system-configuration` crate panic. PM2 handles this automatically. For manual control: `cd packages/indexer && bun run dev:docker`
+
 For troubleshooting setup issues, see [Installation Guide](./docs/developer/installation.md).
 
 ## Workflow Checklist

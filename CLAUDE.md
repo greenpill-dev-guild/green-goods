@@ -69,8 +69,13 @@ bun deploy:testnet   # Deploy to Base Sepolia (default)
 cd packages/indexer
 bun test              # Run tests
 bun build            # Build indexer
-bun dev              # Start local indexer
+bun dev              # Start via PM2 (uses Docker on macOS)
+bun run dev:docker    # Start Docker-based indexer directly
+bun run dev:docker:logs  # View Docker logs
+bun run dev:docker:down  # Stop Docker containers
 ```
+
+> **macOS Note**: The native Envio indexer crashes due to a Rust `system-configuration` crate panic. PM2 automatically uses the Docker-based indexer (`docker-compose.indexer.yaml`) which containerizes PostgreSQL, Hasura, and the Envio indexer together.
 
 **Shared Package:**
 ```bash

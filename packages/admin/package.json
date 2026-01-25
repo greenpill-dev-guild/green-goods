@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "predev": "bash -lc 'lsof -t -iTCP:3002 -sTCP:LISTEN | xargs kill -9 2>/dev/null || true'",
+    "predev": "lsof -t -iTCP:3002 -sTCP:LISTEN | xargs kill -9 2>/dev/null || true",
     "dev": "vite",
     "test": "vitest run",
     "test:watch": "vitest --standalone",
@@ -19,6 +19,8 @@
   "dependencies": {
     "@green-goods/shared": "workspace:*",
     "@ethereum-attestation-service/eas-sdk": "2.7.0",
+    "multiformats": "^13.4.2",
+    "react-intl": "^7.1.0",
     "posthog-js": "^1.284.0",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-accordion": "^1.2.3",
