@@ -5,7 +5,8 @@ const mockGarden: GardenCardData = {
   id: "garden-1",
   name: "Community Permaculture Garden",
   location: "Portland, OR",
-  description: "A community-driven permaculture space focused on native plants and sustainable growing practices.",
+  description:
+    "A community-driven permaculture space focused on native plants and sustainable growing practices.",
   bannerImage: "https://picsum.photos/800/400?random=1",
   gardeners: ["0x1234...5678", "0x2345...6789", "0x3456...7890"],
   operators: ["0xabcd...efgh"],

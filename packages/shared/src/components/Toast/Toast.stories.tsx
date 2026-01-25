@@ -26,9 +26,7 @@ type Story = StoryObj<typeof ToastViewport>;
 export const Demo: Story = {
   render: () => (
     <div className="flex flex-col gap-3">
-      <p className="text-sm text-text-sub-600 mb-2">
-        Click buttons to show different toast types:
-      </p>
+      <p className="text-sm text-text-sub-600 mb-2">Click buttons to show different toast types:</p>
       <div className="flex flex-wrap gap-2">
         <button
           onClick={() => toastService.show({ type: "success", message: "Operation successful!" })}
@@ -43,7 +41,9 @@ export const Demo: Story = {
           Error Toast
         </button>
         <button
-          onClick={() => toastService.show({ type: "warning", message: "Please check your input." })}
+          onClick={() =>
+            toastService.show({ type: "warning", message: "Please check your input." })
+          }
           className="px-4 py-2 bg-warning-base text-white rounded-lg hover:bg-warning-dark transition-colors"
         >
           Warning Toast
@@ -90,14 +90,18 @@ export const LoadingToast: Story = {
 export const MultipleToasts: Story = {
   render: () => (
     <div className="flex flex-col gap-3">
-      <p className="text-sm text-text-sub-600 mb-2">
-        Click to show multiple toasts at once:
-      </p>
+      <p className="text-sm text-text-sub-600 mb-2">Click to show multiple toasts at once:</p>
       <button
         onClick={() => {
           toastService.show({ type: "success", message: "First notification" });
-          setTimeout(() => toastService.show({ type: "info", message: "Second notification" }), 200);
-          setTimeout(() => toastService.show({ type: "warning", message: "Third notification" }), 400);
+          setTimeout(
+            () => toastService.show({ type: "info", message: "Second notification" }),
+            200
+          );
+          setTimeout(
+            () => toastService.show({ type: "warning", message: "Third notification" }),
+            400
+          );
         }}
         className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors w-fit"
       >

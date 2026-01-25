@@ -86,11 +86,7 @@ export const Password: Story = {
 export const AllStates: Story = {
   render: () => (
     <div className="flex flex-col gap-4 max-w-md">
-      <FormInput
-        label="Default"
-        placeholder="Enter text"
-        id="state-default"
-      />
+      <FormInput label="Default" placeholder="Enter text" id="state-default" />
       <FormInput
         label="With Helper"
         placeholder="Enter text"

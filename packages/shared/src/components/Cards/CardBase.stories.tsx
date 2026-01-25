@@ -1,5 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { CardBase, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "./CardBase";
+import {
+  CardBase,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "./CardBase";
 
 const meta: Meta<typeof CardBase> = {
   title: "Components/Cards/CardBase",

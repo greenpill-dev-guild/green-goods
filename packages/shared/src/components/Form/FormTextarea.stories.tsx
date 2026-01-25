@@ -88,11 +88,7 @@ export const LargeRows: Story = {
 export const AllStates: Story = {
   render: () => (
     <div className="flex flex-col gap-4 max-w-md">
-      <FormTextarea
-        label="Default"
-        placeholder="Enter text"
-        id="state-default"
-      />
+      <FormTextarea label="Default" placeholder="Enter text" id="state-default" />
       <FormTextarea
         label="With Helper"
         placeholder="Enter text"

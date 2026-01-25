@@ -33,10 +33,7 @@ export const UnsupportedNotice: StoryObj = {
     <div className="rounded-md bg-bg-soft p-3 text-sm text-text-sub">
       <p>
         Translation not available in your browser.{" "}
-        <button
-          type="button"
-          className="text-green-600 hover:underline ml-1"
-        >
+        <button type="button" className="text-green-600 hover:underline ml-1">
           Switch to English
         </button>
       </p>

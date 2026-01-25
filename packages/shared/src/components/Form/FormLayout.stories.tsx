@@ -31,9 +31,7 @@ export const Default: Story = {
         <FormInput label="Name" placeholder="Enter your name" id="name" />
         <FormInput label="Email" placeholder="Enter your email" type="email" id="email" />
         <FormTextarea label="Message" placeholder="Enter your message" id="message" />
-        <button className="px-4 py-2 bg-primary text-white rounded-lg w-fit">
-          Submit
-        </button>
+        <button className="px-4 py-2 bg-primary text-white rounded-lg w-fit">Submit</button>
       </div>
     ),
   },
@@ -46,10 +44,13 @@ export const Small: Story = {
       <div className="flex flex-col gap-4">
         <h2 className="text-xl font-semibold">Login</h2>
         <FormInput label="Email" placeholder="Enter your email" type="email" id="login-email" />
-        <FormInput label="Password" placeholder="Enter your password" type="password" id="login-password" />
-        <button className="px-4 py-2 bg-primary text-white rounded-lg w-full">
-          Sign In
-        </button>
+        <FormInput
+          label="Password"
+          placeholder="Enter your password"
+          type="password"
+          id="login-password"
+        />
+        <button className="px-4 py-2 bg-primary text-white rounded-lg w-full">Sign In</button>
       </div>
     ),
   },
@@ -78,7 +79,12 @@ export const ExtraLarge: Story = {
           <FormInput label="Title" placeholder="Work title" id="title" />
           <FormInput label="Location" placeholder="Garden location" id="location" />
         </div>
-        <FormTextarea label="Description" placeholder="Describe the work completed" id="description" rows={4} />
+        <FormTextarea
+          label="Description"
+          placeholder="Describe the work completed"
+          id="description"
+          rows={4}
+        />
       </div>
     ),
   },

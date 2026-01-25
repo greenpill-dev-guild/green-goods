@@ -14,7 +14,16 @@ const meta: Meta<typeof Badge> = {
     },
     tint: {
       control: "select",
-      options: ["primary", "secondary", "tertiary", "accent", "destructive", "black", "muted", "none"],
+      options: [
+        "primary",
+        "secondary",
+        "tertiary",
+        "accent",
+        "destructive",
+        "black",
+        "muted",
+        "none",
+      ],
       description: "Color tint of the badge",
     },
   },
@@ -67,13 +76,27 @@ export const WithTrailingIcon: Story = {
 export const AllTints: Story = {
   render: () => (
     <div className="flex flex-wrap gap-2">
-      <Badge variant="pill" tint="primary">Primary</Badge>
-      <Badge variant="pill" tint="secondary">Secondary</Badge>
-      <Badge variant="pill" tint="tertiary">Tertiary</Badge>
-      <Badge variant="pill" tint="accent">Accent</Badge>
-      <Badge variant="pill" tint="destructive">Destructive</Badge>
-      <Badge variant="pill" tint="black">Black</Badge>
-      <Badge variant="pill" tint="muted">Muted</Badge>
+      <Badge variant="pill" tint="primary">
+        Primary
+      </Badge>
+      <Badge variant="pill" tint="secondary">
+        Secondary
+      </Badge>
+      <Badge variant="pill" tint="tertiary">
+        Tertiary
+      </Badge>
+      <Badge variant="pill" tint="accent">
+        Accent
+      </Badge>
+      <Badge variant="pill" tint="destructive">
+        Destructive
+      </Badge>
+      <Badge variant="pill" tint="black">
+        Black
+      </Badge>
+      <Badge variant="pill" tint="muted">
+        Muted
+      </Badge>
     </div>
   ),
 };
@@ -82,7 +105,9 @@ export const AllVariants: Story = {
   render: () => (
     <div className="flex flex-wrap gap-2">
       <Badge variant="transparent">Transparent</Badge>
-      <Badge variant="pill" tint="primary">Pill</Badge>
+      <Badge variant="pill" tint="primary">
+        Pill
+      </Badge>
       <Badge variant="outline">Outline</Badge>
     </div>
   ),
