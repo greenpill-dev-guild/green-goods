@@ -100,6 +100,17 @@ See `.claude/context/contracts.md` for detailed patterns.
 - **Hooks in shared only** — all React hooks live in `@green-goods/shared`. Never create hooks in client or admin packages.
 - **i18n completeness** — **ANY** new user-facing string MUST be added to ALL THREE language files (`packages/shared/src/i18n/{en,es,pt}.json`) simultaneously. Use `intl.formatMessage()` with semantic keys (e.g., `app.feature.action`). Never commit hardcoded UI strings.
 
+## Codex Alignment (No Duplication)
+
+To apply the Claude skills and rules in Codex without duplicating them, treat the Claude system as the canonical source of truth and reference it directly:
+
+- `CLAUDE.md` — primary rules, architecture, and commands
+- `.claude/skills/{plan,review,debug,audit}/SKILL.md` — authoritative workflows for `/plan`, `/review`, `/debug`, `/audit`
+- `.claude/commands/*.md` — command triggers, usage, and output expectations
+- `.claude/agents/*.md` — role behaviors (`oracle`, `cracked-coder`, `code-reviewer`)
+
+When a task matches these workflows, open the relevant file(s) and follow them; do not restate or re-implement the rules here.
+
 ## MCP Usage
 
 - **GitHub** — list/inspect issues and PRs freely; request approval before creating or editing content.
@@ -107,6 +118,7 @@ See `.claude/context/contracts.md` for detailed patterns.
 - **Vercel** — deployment management and preview URLs.
 - **Miro** — board access and diagram generation.
 - **Railway** — agent deployment management.
+- **Config** — MCP servers are defined in `.mcp.json` (single source of truth).
 
 Default to local commands (rg, bun, forge) when the task is small. Escalate to MCP when you need cross-repo views, screenshots, or automated PR operations.
 
@@ -211,6 +223,5 @@ For complex flows, start with a sequence diagram (detailed), then summarize to a
 - [Product Overview](./docs/features/overview.md) — architecture snapshot
 - [Karma GAP Integration](./docs/developer/karma-gap.md) — GAP-specific context
 - [Architecture Diagrams](./docs/developer/architecture/diagrams.md) — canonical Mermaid diagrams
-- [Agent System Guide](./.cursor/AGENT_SYSTEM_GUIDE.md) — complete documentation architecture
 
 When in doubt, check recent commits for precedent, or ask for clarification instead of guessing. Consistency across packages is the priority.

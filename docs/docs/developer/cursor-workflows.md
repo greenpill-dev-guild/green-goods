@@ -356,7 +356,7 @@ Already configured in your global Cursor settings with `GITHUB_TOKEN`.
 
 ### Figma MCP
 
-Already configured in project `.cursor/mcp.json`. Authenticate via Cursor MCP settings when prompted.
+Defined in root `.mcp.json`. Authenticate via Cursor MCP settings when prompted.
 
 ### Playwright
 

@@ -301,7 +301,7 @@ const data = await queryIndexer<T>(page, query, variables);
 
 ### MCP Servers vs Playwright
 
-You have these MCP servers configured (`.cursor/mcp.json`):
+You have these MCP servers configured (`.mcp.json`):
 
 | MCP Server | Purpose | Overlap with Playwright? |
 |------------|---------|--------------------------|

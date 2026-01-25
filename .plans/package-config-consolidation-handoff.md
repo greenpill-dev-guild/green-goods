@@ -34,7 +34,6 @@ Consolidate ~45 fragmented package-level AI configuration files into 6 comprehen
 **Root `.cursor/` (KEEP):**
 - `mcp.json` - Single source of truth for MCP servers
 - `BUGBOT.md` - PR review automation rules
-- `AGENT_SYSTEM_GUIDE.md` - Update to reflect new architecture
 
 **Root `AGENTS.md` (KEEP):**
 - Keep as quick-reference pointer to CLAUDE.md and context files
@@ -45,8 +44,7 @@ Consolidate ~45 fragmented package-level AI configuration files into 6 comprehen
 ```
 .cursor/                        # ROOT - KEEP for Cursor support
 ├── mcp.json                   # MCP servers (single source of truth)
-├── BUGBOT.md                  # PR review rules
-└── AGENT_SYSTEM_GUIDE.md      # Updated to reflect new structure
+└── BUGBOT.md                  # PR review rules
 
 .claude/
 ├── context/                    # NEW: Comprehensive package context (~200 lines each)
@@ -118,15 +116,10 @@ Create context files in this order (shared first as template):
 
 These patterns are critical for consistent, reliable code generation.
 
-### Phase 2: Update Root .cursor/ (Day 1)
-
-**Update:** `.cursor/AGENT_SYSTEM_GUIDE.md` to reflect new architecture
-- Remove references to package-level `.cursor/rules/`
-- Point to `.claude/context/` for package-specific guidance
-- Keep MCP server documentation
+### Phase 2: Root MCP Config (Day 1)
 
 **Keep unchanged:**
-- `.cursor/mcp.json` - Single source of truth for MCP
+- `.mcp.json` - Single source of truth for MCP
 - `.cursor/BUGBOT.md` - Already comprehensive, package BUGBOT files are redundant
 
 ### Phase 3: Delete Package Files (Day 2)
@@ -226,7 +219,8 @@ grep -r "cursorrules" docs/ packages/ --include="*.md" 2>/dev/null
 - [ ] No `AGENTS.md` files in `packages/*/`
 - [ ] No `.cursor/` directories in `packages/*/`
 - [ ] Root `AGENTS.md` exists and references context files
-- [ ] Root `.cursor/` still has `mcp.json`, `BUGBOT.md`
+- [ ] Root `.mcp.json` exists
+- [ ] Root `.cursor/` still has `BUGBOT.md`
 - [ ] Agent files updated with context loading instructions
 - [ ] No broken references in docs/ or READMEs
 - [ ] `bun build` passes
@@ -234,10 +228,9 @@ grep -r "cursorrules" docs/ packages/ --include="*.md" 2>/dev/null
 
 ## Critical Files
 
-**Files to modify (5):**
+**Files to modify (4):**
 - [CLAUDE.md](CLAUDE.md) - Add context file documentation section
 - [AGENTS.md](AGENTS.md) - Add reference to new context structure
-- [.cursor/AGENT_SYSTEM_GUIDE.md](.cursor/AGENT_SYSTEM_GUIDE.md) - Update to reflect new architecture
 - [.claude/agents/cracked-coder.md](.claude/agents/cracked-coder.md) - Add context loading instructions
 - [.claude/agents/oracle.md](.claude/agents/oracle.md) - Add context loading instructions
 
@@ -258,7 +251,7 @@ grep -r "cursorrules" docs/ packages/ --include="*.md" 2>/dev/null
 
 **Files to keep (root level):**
 - `AGENTS.md` - Quick reference (updated to point to context/)
-- `.cursor/mcp.json` - MCP server configuration
+- `.mcp.json` - MCP server configuration
 - `.cursor/BUGBOT.md` - PR review automation
 - `.claude/settings.local.json` - Already comprehensive
 
@@ -341,7 +334,10 @@ test -f AGENTS.md && echo "✓ Root AGENTS.md exists"
 
 # 4. Verify root .cursor intact
 ls .cursor/
-# Should show: mcp.json, BUGBOT.md, AGENT_SYSTEM_GUIDE.md
+# Should show: BUGBOT.md
+
+# 4b. Verify root MCP config
+test -f .mcp.json && echo "✓ Root .mcp.json exists"
 
 # 5. Verify agent files updated
 grep -l "context/" .claude/agents/*.md
@@ -393,7 +389,7 @@ CLAUDE.md (principles, architecture, commands)
 
 ## MCP Configuration
 
-**Location:** `.cursor/mcp.json` (single source of truth)
+**Location:** `.mcp.json` (single source of truth)
 
 | Server | Purpose |
 |--------|---------|
