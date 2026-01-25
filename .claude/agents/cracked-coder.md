@@ -229,6 +229,70 @@ All work must include:
 3. Verification evidence (`bun test`, `bun lint`, `bun build` output)
 4. Brief summary of approach
 
+## UI Implementation Quality
+
+When implementing UI components:
+
+### 1. Check for Figma Designs First
+
+Before implementing new UI components, always ask or check:
+- "Do Figma designs exist for this feature?"
+- If yes: Use `figma:implement-design` skill to extract design context
+- If no: Follow existing patterns and Material Design principles
+
+### 2. Follow Existing Patterns
+
+Reference existing similar components in codebase:
+- **Card components**: See `GardenCard`, `WorkCard` patterns
+- **Selection patterns**: Use card selection with `selected` prop (not checkboxes on mobile)
+- **Forms**: Follow form patterns in `packages/shared/src/components/`
+- **Layout**: Match existing page layouts in admin/client
+
+### 3. Component Design System
+
+Green Goods uses a Material Design-aligned system:
+- **Radix UI primitives** for accessibility (Dialog, DropdownMenu, etc.)
+- **Tailwind CSS v4** for styling
+- **tailwind-variants** for component variants
+- Shared components from `@green-goods/shared/components`
+
+### 4. Mobile-First Considerations
+
+- **Tap targets**: Minimum 44x44px for touch
+- **Card selection** over checkboxes for multi-select (larger targets)
+- **Border highlight** for selection state (visible, accessible)
+- Test on mobile viewport sizes
+
+### 5. Example: Selectable Card Pattern
+
+```typescript
+// Follow GardenCard selection pattern
+interface AttestationCardProps {
+  attestation: WorkApproval;
+  selected?: boolean;
+  onSelect?: (id: string) => void;
+}
+
+function AttestationCard({ attestation, selected, onSelect }: AttestationCardProps) {
+  return (
+    <button
+      onClick={() => onSelect?.(attestation.id)}
+      className={tv({
+        base: "w-full p-4 rounded-lg border transition-colors",
+        variants: {
+          selected: {
+            true: "border-primary bg-primary/5",
+            false: "border-border hover:border-primary/50"
+          }
+        }
+      })({ selected })}
+    >
+      {/* Card content */}
+    </button>
+  );
+}
+```
+
 ## Key Principles
 
 > Code that doesn't just work—it excels in elegance, efficiency, and maintainability.

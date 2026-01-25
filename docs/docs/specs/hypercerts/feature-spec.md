@@ -65,8 +65,8 @@ description: Product requirements and user flows for Hypercerts minting
 ### 2.2 Integration / Interaction Points
 
 - [x] **UI / Client** (Admin Dashboard screens, form components, preview rendering)
-- [x] **Backend API** (GraphQL queries, REST mutations, IPFS upload)
-- [x] **Data layer** (Envio indexer for attestations, IPFS for metadata/images)
+- [x] **Data Layer** (GraphQL queries via graphql-request, client-side IPFS upload via Storacha)
+- [x] **Data Sources** (EAS GraphQL for attestations, Envio indexer for gardens/gardeners, IPFS for metadata)
 - [x] **External services** (Storracha for IPFS, Hypercerts API for minting)
 - [x] **Onchain / contracts** (HypercertMinter on Arbitrum, EAS for referenced attestations)
 - [x] **Permissions / roles** (Hats Protocol Operator role required)
@@ -144,18 +144,25 @@ query CheckAttestationsBundled($uids: [String!]!) {
 }
 ```
 
-**REST Endpoints (Writes)**
+**Client-Side Draft Persistence (IndexedDB)**
 
-| Method | Endpoint | Purpose | Auth | Request Body |
-| :---- | :---- | :---- | :---- | :---- |
-| POST | `/api/hypercerts/draft` | Save draft | Wallet sig | HypercertDraft |
-| GET | `/api/hypercerts/draft/:gardenId` | Get drafts | Wallet sig | - |
-| DELETE | `/api/hypercerts/draft/:id` | Delete draft | Wallet sig | - |
-| POST | `/api/hypercerts/upload-metadata` | Upload to IPFS | Wallet sig | HypercertMetadata |
-| POST | `/api/hypercerts/upload-allowlist` | Upload allowlist CSV | Wallet sig | AllowlistEntry[] |
-| POST | `/api/hypercerts/prepare-mint` | Build transaction | Wallet sig | `{ metadataUri, allowlistUri, totalUnits }` |
-| POST | `/api/hypercerts/confirm-mint` | Record successful mint | Wallet sig | `{ txHash, hypercertId }` |
-| POST | `/api/hypercerts/notify-contributors` | Send notifications | Wallet sig | `{ hypercertId }` |
+> **Note:** Green Goods uses a serverless architecture with no backend API. All draft operations are handled client-side via IndexedDB using `idb-keyval`.
+
+| Operation | Method | Key Format |
+| :---- | :---- | :---- |
+| Save draft | `set(draftKey, draft)` | `hypercert_draft_{gardenAddress}_{userAddress}` |
+| Load draft | `get(draftKey)` | `hypercert_draft_{gardenAddress}_{userAddress}` |
+| Delete draft | `del(draftKey)` | `hypercert_draft_{gardenAddress}_{userAddress}` |
+| List drafts | `keys()` → filter | Filter by prefix `hypercert_draft_` |
+
+**Client-Side Operations (No Backend Required)**
+
+| Operation | Service | Method |
+| :---- | :---- | :---- |
+| Upload metadata to IPFS | Storacha (`@storacha/client`) | `uploadJSONToIPFS()` from shared/modules/data/ipfs.ts |
+| Upload allowlist to IPFS | Storacha (`@storacha/client`) | `uploadJSONToIPFS()` from shared/modules/data/ipfs.ts |
+| Build & sign transaction | Pimlico (ERC-4337) | `sendUserOperation()` via permissionless.js |
+| Notify contributors | PostHog / In-app | Analytics event + toast notification |
 
 ### 2.3 Action x Integration Matrix
 
@@ -181,16 +188,16 @@ query CheckAttestationsBundled($uids: [String!]!) {
 2. Clicks "Create Hypercert" button in Treasury or Reports section
 3. System displays filter panel: date range, action domain, work scope tags
 4. Operator applies filters (e.g., "Waste Management", "Q4 2025")
-5. System queries Envio indexer for approved attestations matching criteria
-6. System displays attestation list with: title, date, gardener, media preview, action type
-7. Operator toggles checkboxes to select/deselect individual attestations
+5. System queries EAS GraphQL API for approved work approvals matching criteria (via `getWorkApprovals` from shared/modules/data/eas.ts)
+6. System displays attestation list as selectable cards with: title, date, gardener, domain badge, action type
+7. Operator taps attestation cards to select/deselect (cards highlight with primary color border when selected, following GardenCard selection pattern)
 8. System shows running totals: selected count, unique contributors, date range covered
 9. Operator clicks "Continue to Metadata"
 
 **Alternate flows:**
 - No matching attestations: Display empty state with guidance to verify more work first
 - Too many attestations (100+): Paginate with "Select All on Page" and "Select All Matching"
-- Attestation already in Hypercert: Disable checkbox, show "Already bundled in [HC-XXX]" tooltip
+- Attestation already in Hypercert: Disable card selection, show "Already bundled in [HC-XXX]" tooltip
 
 **Edge cases:**
 - Mixed action domains: Allow cross-domain bundles but warn "Multi-domain Hypercerts may be harder to evaluate"
@@ -340,6 +347,42 @@ This is why the Preview step (Action C) must be emphasized in UX.
 - Draft older than 7 days: Warn "This draft is old. Attestations may have changed."
 - Attestations in draft now bundled elsewhere: Show warning, remove from selection, allow continue
 
+### 3.8 User Journey Overview
+
+The following diagram shows the complete operator journey from discovery through sharing:
+
+```mermaid
+journey
+    title Operator Hypercert Creation Journey
+    section Discovery
+      Learn about Hypercerts: 3: Operator
+      Review garden attestations: 4: Operator
+      Decide to bundle impact: 5: Operator
+    section Selection
+      Open wizard: 5: Operator
+      Filter attestations: 4: Operator
+      Select work to bundle: 5: Operator
+    section Configuration
+      Edit metadata: 4: Operator
+      Preview artwork: 5: Operator
+      Configure distribution: 4: Operator
+    section Minting
+      Review final summary: 4: Operator
+      Sign transaction: 3: Operator
+      Wait for confirmation: 2: Operator
+    section Completion
+      View minted Hypercert: 5: Operator
+      Share with community: 5: Operator
+      Notify contributors: 4: Operator
+```
+
+<details>
+<summary>📷 View as image (for non-Mermaid renderers)</summary>
+
+![User Journey](./images/user-journey.png)
+
+</details>
+
 ---
 
 ## 4) UI Design and Screens
@@ -394,7 +437,9 @@ This is why the Preview step (Action C) must be emphasized in UX.
 
 ### 4.2 Reusable Components
 
-**AttestationCard:** Compact display of single attestation with checkbox, media thumbnail, title, date, gardener avatar/address
+**AttestationCard:** Simplified selectable card for list selection, displays: title, date (approvedAt), gardener name/address, domain badge (e.g., "Waste", "Agroforestry"). Uses border highlight for selection state, matching GardenCard pattern. Extends WorkCard pattern with `selected` prop.
+
+> **Mobile-First Selection:** Card selection provides larger tap targets (minimum 44x44px) for mobile users. Visual feedback via border highlight and background tint confirms selection state.
 
 **HypercertPreviewCard:** Generated artwork preview matching Hypercerts.org visual standard
 
@@ -621,11 +666,24 @@ interface OutcomeMetrics {
 - Failure behavior: 3 retries with backoff, fallback to local queue
 - Limits: 10MB per upload
 
-**Envio Indexer**
-- Purpose: Query attestations for bundling
-- Calls: GraphQL queries for Work/WorkApproval attestations
+**EAS GraphQL API (Attestations)**
+- Purpose: Query work approvals for bundling into Hypercerts
+- Calls: EAS GraphQL queries via `getWorkApprovals()` from shared/modules/data/eas.ts
 - Failure behavior: Retry with backoff, show cached data if available
 - Limits: 100 results per page default
+
+**Envio Indexer (Gardens/Gardeners)**
+- Purpose: Query garden metadata and gardener profiles
+- Calls: GraphQL queries via graphql-request + gql.tada
+- Failure behavior: Retry with backoff, show cached data if available
+- Limits: 100 results per page default
+
+> **Data Source Architecture:**
+> | Data Type | Source | Query Method |
+> |-----------|--------|--------------|
+> | Work submissions & approvals | EAS GraphQL API | `getWorkApprovals()` from eas.ts |
+> | Gardens & gardeners | Green Goods Envio Indexer | graphql-request |
+> | Hypercerts (post-mint) | Hypercerts Graph API | graphql-request |
 
 **Hypercerts API/Graph**
 - Purpose: Query minted Hypercerts, validate no duplicates
@@ -634,10 +692,32 @@ interface OutcomeMetrics {
 - Limits: Rate limiting per Hypercerts API policy
 
 **Karma GAP**
-- Purpose: Create milestone update for minted Hypercert
-- Calls: POST to GAP API
-- Failure behavior: Queue for retry, non-blocking (Hypercert still valid)
-- Limits: Per GAP API policy
+- Purpose: Optional milestone completion after Hypercert mint
+- Calls: Karma GAP SDK for milestone updates
+- Failure behavior: Non-blocking (Hypercert mint succeeds regardless)
+- Limits: Per GAP SDK limits
+
+> **Karma GAP Milestone Integration:**
+> | Aspect | v1 Implementation | Notes |
+> |--------|-------------------|-------|
+> | Project Creation | On garden creation (existing) | Automatic |
+> | Milestone Creation | On assessment (existing) | Automatic |
+> | Milestone Detection | Auto-detect from linked assessment | System identifies milestone via attestation refs |
+> | Milestone Completion | Optional user action post-mint | User confirms or skips |
+>
+> **UI on Success Screen:**
+> After successful Hypercert mint, if the bundled attestations link to an assessment with an open GAP milestone:
+> ```
+> ─────────────────────────────────────
+> Karma GAP Milestone Detected
+>
+> Milestone: "Q4 2025 Impact Assessment"
+> Status: Open
+>
+> [ ] Mark this milestone as complete
+>     [Update Milestone]     [Skip]
+> ─────────────────────────────────────
+> ```
 
 ### 5.4 Security and Privacy
 
@@ -796,6 +876,53 @@ function onHypercertMinted(
 - **Observability:** Events emitted for indexer to track module execution
 - **Upgradability:** Module can be upgraded independently via UUPS
 - **Feature flag:** Can disable without redeploying GreenGoodsResolver
+
+### 5.7 Data Flow Overview
+
+The following diagram shows how data flows from input through processing to permanent storage:
+
+```mermaid
+flowchart TB
+    subgraph Input["INPUT DATA"]
+        ATT["Selected Attestations<br/>(from EAS GraphQL API)"]
+        META["User-Entered Metadata<br/>(title, description, tags)"]
+        DIST["Distribution Config<br/>(addresses, units)"]
+    end
+
+    subgraph ClientProcess["CLIENT-SIDE PROCESSING"]
+        AGG["Aggregate Metrics<br/>(timeframe, outcomes)"]
+        VAL["Validate Inputs<br/>(Zod schemas)"]
+        MERKLE["Generate Merkle Tree<br/>(@hypercerts-org/sdk)"]
+        FMT["Format Metadata JSON<br/>(Hypercert schema)"]
+    end
+
+    subgraph PermanentStorage["PERMANENT STORAGE"]
+        IPFS["IPFS (Storacha)<br/>• metadata.json<br/>• allowlist.json"]
+        HC["HypercertMinter<br/>Arbitrum One"]
+        GGR["GreenGoodsResolver<br/>HypercertsModule"]
+    end
+
+    ATT --> AGG
+    META --> FMT
+    AGG --> FMT
+    DIST --> MERKLE
+    FMT --> VAL
+    MERKLE --> VAL
+    VAL --> IPFS
+    IPFS --> HC
+    HC -.-> GGR
+
+    style Input fill:#e3f2fd
+    style ClientProcess fill:#fff3e0
+    style PermanentStorage fill:#e8f5e9
+```
+
+<details>
+<summary>📷 View as image (for non-Mermaid renderers)</summary>
+
+![Data Flow](./images/data-flow.png)
+
+</details>
 
 ---
 
@@ -1024,6 +1151,8 @@ function onHypercertMinted(
 
 ## 8) Analytics and Telemetry
 
+> **Analytics Stack:** Green Goods uses PostHog exclusively (`posthog-js` v1.284.0). All events below are tracked via the PostHog SDK with automatic session replay and feature flags support.
+
 ### 8.1 Events
 
 | Event Name | When it fires | Properties |
@@ -1059,8 +1188,8 @@ function onHypercertMinted(
 | tx_timeout | TX_005 | Transaction not included in block within 60s |
 | permission_denied | PERM_001 | User lacks Operator role for Garden |
 | permission_denied | PERM_002 | Hats Protocol check failed |
-| network_error | NET_001 | GraphQL query failed |
-| network_error | NET_002 | REST endpoint unreachable |
+| network_error | NET_001 | GraphQL query failed (EAS, Envio, or Hypercerts Graph) |
+| network_error | NET_002 | IPFS upload failed (Storacha) |
 | network_error | NET_003 | User offline |
 | validation_error | VAL_001 | Attestation already bundled |
 | validation_error | VAL_002 | Distribution sum invalid |
@@ -1586,17 +1715,47 @@ This mapping ensures minimal friction when migrating to ATProtocol in v1.5+.
 ## Appendix
 
 **References and links:**
-- Green Goods v1 PRD: GG-FEAT-005 is FR-P-004
-- Hypercerts Token Standard: https://hypercerts.org/docs/developer/token-standard
-- Hypercerts Metadata: https://hypercerts.org/docs/developer/metadata
-- Hypercerts Allowlists: https://hypercerts.org/docs/developer/allowlists
-- Hypercerts Attestations: https://hypercerts.org/docs/developer/attestations
-- Hypercerts Deployments: https://hypercerts.org/docs/developer/deployments
-- Hypercerts SDK (ATProto): https://github.com/hypercerts-org/hypercerts-sdk
-- Hypercerts Lexicon: https://github.com/hypercerts-org/hypercerts-lexicon
-- HypercertMinter Arbitrum: 0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07
+
+**Hypercerts Protocol (Primary References):**
+- Minting Guide: https://www.hypercerts.org/docs/guide/mint
+- Token Standard: https://www.hypercerts.org/docs/developer/token-standard
+- Metadata Schema: https://www.hypercerts.org/docs/developer/metadata
+- JavaScript Quickstart: https://www.hypercerts.org/docs/developer/quickstart-javascript
+- Solidity Quickstart: https://www.hypercerts.org/docs/developer/quickstart-solidity
+- Allowlists: https://www.hypercerts.org/docs/developer/allowlists
+- Querying: https://www.hypercerts.org/docs/developer/querying
+- Contract Deployments: https://hypercerts.org/docs/developer/deployments
+- HypercertMinter Arbitrum: `0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07`
+
+**Pimlico (ERC-4337 Account Abstraction):**
+- Wagmi useSendTransaction Hook: https://docs.pimlico.io/references/permissionless/wagmi/reference/hooks/useSendTransaction
+- Documentation: https://docs.pimlico.io
+- Paymaster API: https://docs.pimlico.io/paymaster/verifying-paymaster
+- Bundler API: https://docs.pimlico.io/bundler
+
+**EAS (Ethereum Attestation Service):**
+- Documentation: https://docs.attest.org
+- GraphQL API: https://docs.attest.org/docs/developer-tools/api
+- Schema Registry: https://docs.attest.org/docs/tutorials/schema-registry
+
+**Storacha (IPFS/Filecoin):**
+- Documentation: https://storacha.network/docs
+- Client SDK: https://github.com/storacha/client
+
+**Karma GAP:**
+- Documentation: https://gap.karmahq.xyz/docs
+- SDK: https://github.com/show-karma/karma-gap-sdk
+
+**Green Goods Internal References:**
+- Green Goods v1 PRD: `/docs/prd/green-goods-v1`
+- Architecture Overview: `/docs/developer/architecture`
+- Shared Package: `/docs/developer/architecture/monorepo-structure`
+- Contracts Handbook: `/docs/developer/contracts-handbook`
+- IPFS Deployment: `/docs/developer/ipfs-deployment`
+
+**Design Resources:**
 - Figma Designs: https://www.figma.com/design/nSZR8RzIJCHwmrfq5oU4zZ/Designs (Hypercerts Minting Flow)
-- Green Goods GitHub: https://github.com/greenpill-dev-guild/community-host
+- Green Goods GitHub: https://github.com/greenpill-dev-guild/green-goods
 
 **Related Feature Specs:**
 - GG-FEAT-002: Passkey Authentication (dependency)
@@ -1616,7 +1775,7 @@ This mapping ensures minimal friction when migrating to ATProtocol in v1.5+.
 - ATProtocol: Bluesky's decentralized social data layer being adopted by Hypercerts
 - Pimlico: ERC-4337 bundler and paymaster for gas sponsorship
 - Storracha: IPFS/Filecoin storage abstraction layer
-- Envio: Blockchain indexer used for querying attestations
+- Envio: Blockchain indexer used for querying gardens and gardeners
 
 **Changelog:**
 

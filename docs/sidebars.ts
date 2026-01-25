@@ -183,6 +183,30 @@ const sidebars: SidebarsConfig = {
         'developer/docs-deployment',
       ],
     },
+    {
+      type: 'category',
+      label: 'Product Requirements',
+      items: [
+        'prd/prd-overview',
+        'prd/green-goods-v1',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Specifications',
+      items: [
+        'specs/specs-overview',
+        {
+          type: 'category',
+          label: 'Hypercerts Integration',
+          items: [
+            'specs/hypercerts/hypercerts-overview',
+            'specs/hypercerts/feature-spec',
+            'specs/hypercerts/technical-spec',
+          ],
+        },
+      ],
+    },
   ],
 };
 

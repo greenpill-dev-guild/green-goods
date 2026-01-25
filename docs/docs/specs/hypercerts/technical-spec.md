@@ -31,7 +31,7 @@ This technical specification provides the engineering blueprint for implementing
 - Admin Dashboard UI components for Hypercert creation wizard (Vite + React)
 - Direct contract interactions from the client (no backend API)
 - Integration with Hypercerts smart contracts on Arbitrum
-- Integration with EAS attestations via Green Goods Envio Indexer
+- Integration with EAS attestations via EAS GraphQL API (easscan.org)
 - IPFS metadata and allowlist storage via Storracha (client-side)
 - Gas sponsorship via Pimlico (ERC-4337)
 - Local draft persistence via IndexedDB
@@ -89,7 +89,7 @@ flowchart TB
         AppKit["Reown AppKit<br/>(Wallet)"]
 
         subgraph Services["CLIENT-SIDE SERVICES"]
-            Urql["Urql<br/>GraphQL"]
+            GQL["graphql-request<br/>+ gql.tada"]
             Viem["Viem<br/>Contract"]
             Stor["Storacha<br/>IPFS"]
             Pim["Pimlico<br/>UserOp"]
@@ -105,6 +105,7 @@ flowchart TB
     end
 
     subgraph External["EXTERNAL SERVICES"]
+        EASAPI["EAS GraphQL<br/>(easscan.org)"]
         HCGraph["Hypercerts<br/>Graph"]
         StorAPI["Storacha<br/>(IPFS)"]
         PimAPI["Pimlico<br/>(4337)"]
@@ -114,16 +115,18 @@ flowchart TB
     subgraph Arbitrum["ARBITRUM ONE (L2)"]
         GGContracts["Green Goods Contracts<br/>• GardenToken<br/>• GreenGoodsResolver<br/>• HatsModule"]
         HCMinter["HypercertMinter<br/>Contract"]
-        EAS["EAS<br/>Contract"]
+        EASContract["EAS<br/>Contract"]
     end
 
-    Urql --> EnvioAPI
-    Urql --> HCGraph
+    GQL --> EnvioAPI
+    GQL --> EASAPI
+    GQL --> HCGraph
     Viem --> Arbitrum
     Stor --> StorAPI
     Pim --> PimAPI
 
     EnvioAPI --> Arbitrum
+    EASAPI -.-> EASContract
     PimAPI --> HCMinter
     PimAPI --> GGContracts
 ```
@@ -310,6 +313,7 @@ erDiagram
 
 **Development Environment:**
 - **Blockchain:** Base Sepolia (Chain ID: 84532) - default
+- **Alternative:** Arbitrum Sepolia (Chain ID: 421614) - for Hypercerts testing
 - **Commands:** `bun --filter admin dev` runs on http://localhost:3002
 
 ---
@@ -322,7 +326,7 @@ erDiagram
 
 | Req ID | Description | Technical Implementation |
 |--------|-------------|-------------------------|
-| FR-A-001 | Display approved attestations | GraphQL query to GG Envio Indexer with approved=true filter |
+| FR-A-001 | Display approved attestations | GraphQL query to EAS GraphQL API with approved=true filter |
 | FR-A-002 | Filter by date, domain, scope | GraphQL variables with WHERE clauses |
 | FR-B-001 | Pre-fill metadata | Client-side aggregation from selected attestations via Zustand |
 | FR-C-001 | Generate preview artwork | Client-side canvas rendering or Hypercerts API |
@@ -347,8 +351,9 @@ erDiagram
 
 | Service | Protocol | Authentication | Rate Limit |
 |---------|----------|----------------|------------|
-| GG Envio Indexer | GraphQL (Urql) | None | 100 req/min |
-| Hypercerts Graph | GraphQL | None | 50 req/min |
+| EAS GraphQL API | GraphQL (graphql-request) | None | 100 req/min |
+| GG Envio Indexer | GraphQL (graphql-request) | None | 100 req/min |
+| Hypercerts Graph | GraphQL (graphql-request) | None | 50 req/min |
 | Storracha | HTTP | DID Key (env var) | 10 uploads/min |
 | Pimlico | JSON-RPC | API Key (env var) | 100 req/min |
 | Karma GAP SDK | JS SDK | gapProjectUID | Per SDK limits |
@@ -374,14 +379,14 @@ flowchart LR
     end
 
     subgraph DataLayer["DATA LAYER"]
-        Envio["Envio GraphQL<br/>(Urql)"]
+        EASQuery["EAS GraphQL<br/>(graphql-request)"]
         Store["Zustand Store<br/>(shared)"]
         Canvas["Canvas Render<br/>(Preview)"]
         Merkle["Merkle Tree<br/>(@hypercerts-org/sdk)"]
         IPFS["Storacha Upload<br/>(existing module)"]
     end
 
-    S1 --> Envio
+    S1 --> EASQuery
     S2 --> Store
     S3 --> Canvas
     S4 --> Merkle
@@ -419,23 +424,25 @@ flowchart LR
 
 </details>
 
-#### 4.1.2 Attestation Query Flow
+#### 4.1.2 Attestation Query Flow (EAS GraphQL)
+
+> **Data Source Clarification:** Work approvals (attestations) are queried directly from the EAS GraphQL API via `getWorkApprovals()` in `shared/modules/data/eas.ts`. Gardens and gardeners are queried from the Green Goods Envio Indexer.
 
 ```mermaid
 sequenceDiagram
     participant Admin as Admin Dashboard<br/>(useAttestations hook)
-    participant Envio as Green Goods<br/>Envio Indexer
-    participant Arbitrum as Arbitrum<br/>EAS Contract
+    participant EAS as EAS<br/>GraphQL API
+    participant Chain as Arbitrum<br/>EAS Contract
 
-    Note over Envio,Arbitrum: Pre-indexed from WorkSubmitted<br/>and WorkApproval events
+    Note over EAS,Chain: Attestations indexed from<br/>WorkApproval schema events
 
-    Admin->>Envio: GraphQL Query (Urql)<br/>GetApprovedWorkApprovals<br/>{ gardenId, filters }
-    activate Envio
-    Envio-->>Admin: { workApprovals: [...],<br/>totalCount: N }
-    deactivate Envio
+    Admin->>EAS: GraphQL Query (graphql-request)<br/>getWorkApprovals<br/>{ gardenId, filters }
+    activate EAS
+    EAS-->>Admin: { workApprovals: [...],<br/>totalCount: N }
+    deactivate EAS
 
     Note over Admin: Filter: bundledInHypercert == null
-    Note over Admin: Render AttestationSelector UI
+    Note over Admin: Render AttestationSelector UI<br/>(card selection, not checkboxes)
 ```
 
 <details>
@@ -839,6 +846,13 @@ export interface AttestationRef {
 
 ### 4.3 Component Design
 
+> **Component Design System:**
+> Admin dashboard follows the same Material Design-aligned system as client PWA:
+> - Radix UI primitives for accessibility
+> - Tailwind CSS v4 for styling
+> - `tailwind-variants` for component variants
+> - Shared components from `@green-goods/shared/components`
+
 #### 4.3.1 Frontend Components (Vite + React)
 
 ```
@@ -860,47 +874,44 @@ src/
 │               └── create.tsx            # Wizard container
 │
 ├── components/
-│   ├── hypercerts/
-│   │   ├── wizard/
-│   │   │   ├── HypercertWizard.tsx       # Main wizard (XState machine)
-│   │   │   ├── WizardStepper.tsx         # Progress indicator
-│   │   │   ├── WizardNavigation.tsx      # Back/Next buttons
-│   │   │   │
-│   │   │   ├── steps/
-│   │   │   │   ├── AttestationSelector.tsx    # Step 1
-│   │   │   │   ├── MetadataEditor.tsx         # Step 2
-│   │   │   │   ├── PreviewPanel.tsx           # Step 3
-│   │   │   │   ├── DistributionConfig.tsx     # Step 4
-│   │   │   │   └── MintConfirmation.tsx       # Step 5
-│   │   │   │
-│   │   │   └── shared/
-│   │   │       ├── AttestationCard.tsx        # Single attestation
-│   │   │       ├── AttestationFilters.tsx     # Filter controls
-│   │   │       ├── TagSelector.tsx            # Work/Impact scope
-│   │   │       ├── SDGPicker.tsx              # SDG selection
-│   │   │       ├── CapitalsPicker.tsx         # 8 capitals
-│   │   │       ├── OutcomeMetricsTable.tsx    # Metrics edit
-│   │   │       ├── DistributionTable.tsx      # Allowlist editor
-│   │   │       ├── HypercertPreviewCard.tsx   # Generated artwork
-│   │   │       ├── GasEstimator.tsx           # Gas display
-│   │   │       └── TransactionProgress.tsx    # Mint progress
+│   ├── hypercert/                        # Singular, flat structure
+│   │   ├── HypercertWizard.tsx           # Main wizard (XState machine)
+│   │   ├── WizardStepper.tsx             # Minimal progress indicator
+│   │   ├── WizardNavigation.tsx          # Back/Next buttons
+│   │   │
+│   │   ├── steps/                        # Step components
+│   │   │   ├── AttestationSelector.tsx   # Step 1: Card-based selection
+│   │   │   ├── MetadataEditor.tsx        # Step 2
+│   │   │   ├── PreviewPanel.tsx          # Step 3
+│   │   │   ├── DistributionConfig.tsx    # Step 4
+│   │   │   └── MintConfirmation.tsx      # Step 5
+│   │   │
+│   │   ├── shared/                       # Shared subcomponents
+│   │   │   ├── AttestationCard.tsx       # Selectable card (title, date, gardener, domain badge)
+│   │   │   ├── AttestationFilters.tsx    # Filter controls
+│   │   │   ├── TagSelector.tsx           # Work/Impact scope
+│   │   │   ├── SDGPicker.tsx             # SDG selection
+│   │   │   ├── CapitalsPicker.tsx        # 8 capitals
+│   │   │   ├── OutcomeMetricsTable.tsx   # Metrics edit
+│   │   │   ├── DistributionTable.tsx     # Allowlist editor
+│   │   │   ├── HypercertPreviewCard.tsx  # Generated artwork
+│   │   │   ├── GasEstimator.tsx          # Gas display
+│   │   │   └── TransactionProgress.tsx   # Mint progress
 │   │   │
 │   │   ├── list/
-│   │   │   ├── HypercertsList.tsx             # Grid/list view
-│   │   │   ├── HypercertCard.tsx              # Summary card
-│   │   │   └── HypercertsFilters.tsx          # Filters
+│   │   │   ├── HypercertsList.tsx        # Grid/list view
+│   │   │   ├── HypercertCard.tsx         # Summary card
+│   │   │   └── HypercertsFilters.tsx     # Filters
 │   │   │
 │   │   └── detail/
-│   │       ├── HypercertDetail.tsx            # Full detail
-│   │       ├── AllowlistTable.tsx             # Claim status
-│   │       └── AttestationReferences.tsx      # Linked atts
+│   │       ├── HypercertDetail.tsx       # Full detail
+│   │       ├── AllowlistTable.tsx        # Claim status
+│   │       └── AttestationReferences.tsx # Linked atts
 │   │
 │   └── ui/                               # Radix UI components (shared)
-│
-└── graphql/
-    └── queries/
-        ├── attestations.ts               # Attestation queries (uses shared)
-        └── hypercerts.ts                 # Hypercert queries (uses shared)
+
+# Note: GraphQL queries are in shared package, not admin
+# See packages/shared/src/modules/data/ for query implementations
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # SHARED PACKAGE (packages/shared/src) - ALL HOOKS, STORES, WORKFLOWS LIVE HERE
@@ -910,7 +921,7 @@ src/
 packages/shared/src/
 ├── hooks/
 │   └── hypercerts/
-│       ├── useAttestations.ts            # Query approved attestations from Envio
+│       ├── useAttestations.ts            # Query approved attestations from EAS GraphQL
 │       ├── useHypercerts.ts              # Query minted Hypercerts
 │       ├── useHypercertDraft.ts          # IndexedDB draft persistence
 │       ├── useMintHypercert.ts           # Minting mutation with XState
@@ -1167,7 +1178,8 @@ export const mintHypercertMachine = mintHypercertSetup.createMachine({
 sequenceDiagram
     participant Op as Operator
     participant Admin as Admin Dashboard
-    participant Envio as Envio Indexer
+    participant Envio as Envio Indexer<br/>(Gardens)
+    participant EAS as EAS GraphQL<br/>(Attestations)
     participant IPFS as Storacha (IPFS)
     participant Pim as Pimlico (4337)
     participant HC as HypercertMinter
@@ -1185,9 +1197,9 @@ sequenceDiagram
 
     Admin->>Admin: Check IndexedDB for draft
 
-    Admin->>Envio: Query WorkApprovals (Urql)
-    Envio-->>Admin: { workApprovals, totalCount }
-    Admin-->>Op: Display Attestation List
+    Admin->>EAS: Query WorkApprovals (graphql-request)
+    EAS-->>Admin: { workApprovals, totalCount }
+    Admin-->>Op: Display Attestation Cards
 
     Op->>Admin: Select Attestations (Step 1)
     Admin->>Admin: Update Zustand store
@@ -1254,24 +1266,24 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant Admin as Admin Dashboard
-    participant Hook as useAttestations Hook<br/>(Urql)
-    participant Envio as GG Envio Indexer
+    participant Hook as useAttestations Hook<br/>(graphql-request)
+    participant EAS as EAS GraphQL API
     participant Store as Zustand Store
 
     Admin->>Hook: Enter Step 1
 
-    Hook->>Envio: GraphQL Query<br/>GetApprovedWorkApprovals
+    Hook->>EAS: GraphQL Query<br/>getWorkApprovals
 
-    Note over Envio: Filter: approved=true<br/>bundledInHypercert=null
+    Note over EAS: Filter: approved=true<br/>bundledInHypercert=null
 
-    Envio-->>Hook: { workApprovals: [...] }
+    EAS-->>Hook: { workApprovals: [...] }
     Hook-->>Admin: { data, isLoading }
 
     Admin->>Admin: Render AttestationSelector<br/>with filter controls
 
-    Admin->>Store: User toggles checkbox
+    Admin->>Store: User taps attestation card
     Store->>Store: selectAttestation(id)
-    Store-->>Admin: Re-render with<br/>updated selection
+    Store-->>Admin: Re-render with<br/>selected card highlighted
 ```
 
 <details>
@@ -1482,7 +1494,7 @@ sequenceDiagram
     participant Op as Operator
     participant Admin as Admin Dashboard
     participant IDB as IndexedDB<br/>(idb-keyval)
-    participant Envio as Envio Indexer
+    participant EAS as EAS GraphQL<br/>(Attestations)
 
     Op->>Admin: Navigate to Create Hypercert
 
@@ -1491,8 +1503,8 @@ sequenceDiagram
     alt Draft found
         IDB-->>Admin: Draft data
 
-        Admin->>Envio: Verify attestations still valid<br/>Check bundledInHypercert status
-        Envio-->>Admin: Current bundling status
+        Admin->>EAS: Verify attestations still valid<br/>Check bundledInHypercert status
+        EAS-->>Admin: Current bundling status
 
         Admin-->>Op: Show Recovery Modal<br/>"Resume from Step 3?"
 
@@ -2081,12 +2093,12 @@ export async function waitForReceipt(params: {
 
 | Layer | Technology | Version |
 |-------|------------|---------|
-| Frontend | React + Vite | 18.x / 5.x |
+| Frontend | React + Vite | 19.x / 5.x |
 | UI Components | Radix UI | Latest |
 | State Management | Zustand | 5.x |
 | State Machines | XState | 5.x |
 | Form Handling | React Hook Form + Zod | 7.x |
-| GraphQL Client | Urql | 5.x |
+| GraphQL Client | graphql-request + gql.tada | 7.x / 1.x |
 | Blockchain | Viem | 2.x |
 | Account Abstraction | Permissionless | 0.x |
 | Wallet Connection | Reown AppKit | Latest |
@@ -2095,14 +2107,28 @@ export async function waitForReceipt(params: {
 | IPFS | @storacha/client | Latest (existing module) |
 | Bundler | Pimlico | v2 API |
 | Indexer | Envio | 2.x |
+| Analytics | PostHog | 1.x |
 | Package Manager | Bun | Latest |
+
+#### v1 Hypercerts Integration Pattern
+
+Green Goods uses a **hybrid approach** for Hypercerts integration:
+
+| Package | Purpose | Usage |
+|---------|---------|-------|
+| `@hypercerts-org/sdk` | Metadata validation, formatting helpers | Merkle tree generation, metadata schema |
+| `@storacha/client` | IPFS uploads | Existing module in shared package |
+| `viem` | Direct contract calls for minting | More control, works with Pimlico bundler |
+| `@hypercerts-org/contracts` | ABI/interface only | Contract addresses and types |
+
+This provides stability while positioning for future SDK evolution. Direct `viem` contract calls allow full control over gas sponsorship via the Pimlico ERC-4337 bundler.
 
 ### 8.2 Development Phases
 
 #### Phase 1: Foundation (Week 1)
 - [ ] Add hypercert types to `packages/shared`
 - [ ] Create Envio indexer schema extensions for hypercerts
-- [ ] Implement GraphQL queries in admin package
+- [ ] Implement GraphQL queries in `packages/shared/src/modules/data/`
 - [ ] Set up Zustand store for wizard state
 
 #### Phase 2: Core Wizard (Week 2)

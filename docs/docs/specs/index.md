@@ -30,27 +30,27 @@ Bundle verified work attestations into ERC-1155 Hypercert tokens for on-chain im
 
 ---
 
-### [Octant Vaults](/specs/octant/octant-overview)
+### Octant Vaults
 
-**Status:** 🟡 In Development
+**Status:** 📋 Planned
 
 Enable Garden treasuries to deposit into yield-generating vaults with yield routed to Hypercert fraction purchases via conviction voting.
 
-- Feature Spec: GG-FEAT-006
-- Technical Spec: GG-TECH-006
+- Feature Spec: GG-FEAT-006 (coming soon)
+- Technical Spec: GG-TECH-006 (coming soon)
 - Priority: High
 - Estimated Effort: 8 weeks
 
 ---
 
-### [Gardens Conviction Voting](/specs/gardens/gardens-overview)
+### Gardens Conviction Voting
 
-**Status:** 🟡 In Development
+**Status:** 📋 Planned
 
 Integrate Gardens V2 Conviction Voting for community-driven yield allocation to Hypercert fraction purchases, with the `HypercertYieldAllocator` adapter bridging Gardens and Hypercerts.
 
-- Feature Spec: GG-FEAT-007
-- Technical Spec: GG-TECH-007
+- Feature Spec: GG-FEAT-007 (coming soon)
+- Technical Spec: GG-TECH-007 (coming soon)
 - Priority: High
 - Estimated Effort: 6 weeks
 
