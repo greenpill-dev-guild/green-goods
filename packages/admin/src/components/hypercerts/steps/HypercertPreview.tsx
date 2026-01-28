@@ -90,7 +90,7 @@ export function HypercertPreview({
   totalUnits,
   allowlist = [],
   mintingState,
-  chainId: _chainId = DEFAULT_CHAIN_ID,
+  chainId = DEFAULT_CHAIN_ID,
   onEditMetadata,
   onEditDistribution,
 }: HypercertPreviewProps) {
