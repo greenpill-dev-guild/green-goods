@@ -1,23 +1,27 @@
-import { DEFAULT_CHAIN_ID, formatDate, STALE_TIMES } from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID, formatDate } from "@green-goods/shared";
 import {
   queryKeys,
   useGardenAssessments,
   useGardenOperations,
   useGardenPermissions,
   useGardens,
+  useWorks,
 } from "@green-goods/shared/hooks";
-import { getWorks, resolveIPFSUrl } from "@green-goods/shared/modules";
+import { resolveIPFSUrl } from "@green-goods/shared/modules";
 import {
   RiCheckboxCircleLine,
   RiDeleteBinLine,
   RiExternalLinkLine,
   RiFileList3Line,
+  RiMedalLine,
+  RiAddLine,
   RiShieldCheckLine,
   RiUserAddLine,
   RiUserLine,
 } from "@remixicon/react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
+import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
 import { AddressDisplay } from "@/components/AddressDisplay";
 import { AddMemberModal } from "@/components/Garden/AddMemberModal";
@@ -32,6 +36,7 @@ const EAS_EXPLORER_URL = "https://explorer.easscan.org";
 
 export default function GardenDetail() {
   const { id } = useParams<{ id: string }>();
+  const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const gardenPermissions = useGardenPermissions();
   const [addMemberModalOpen, setAddMemberModalOpen] = useState(false);
@@ -75,13 +80,8 @@ export default function GardenDetail() {
 
   const canManage = garden ? gardenPermissions.canManageGarden(garden) : false;
 
-  // Fetch work submissions for this garden
-  const { data: works = [] } = useQuery({
-    queryKey: queryKeys.works.online(id!, DEFAULT_CHAIN_ID),
-    queryFn: () => getWorks(id),
-    enabled: !!id,
-    staleTime: STALE_TIMES.works,
-  });
+  // Fetch work submissions for this garden using shared hook
+  const { works } = useWorks(id!);
 
   const baseHeaderProps = {
     backLink: { to: "/gardens", label: "Back to gardens" },
@@ -173,6 +173,17 @@ export default function GardenDetail() {
                 <RiFileList3Line className="h-5 w-5" />
                 <span className="hidden text-sm font-medium sm:inline">View Assessments</span>
               </Link>
+              <Link
+                to={`/gardens/${id}/hypercerts`}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-bg-white/95 text-text-sub shadow-lg backdrop-blur transition hover:bg-bg-white active:scale-95 sm:h-auto sm:w-auto sm:gap-2 sm:rounded-md sm:px-3 sm:py-2"
+                title={formatMessage({ id: "app.hypercerts.actions.viewHypercerts" })}
+                aria-label={formatMessage({ id: "app.hypercerts.actions.viewHypercerts" })}
+              >
+                <RiMedalLine className="h-5 w-5" />
+                <span className="hidden text-sm font-medium sm:inline">
+                  {formatMessage({ id: "app.hypercerts.actions.viewHypercerts" })}
+                </span>
+              </Link>
               {canManage && (
                 <Link
                   to={`/gardens/${id}/assessments/create`}
@@ -182,6 +193,19 @@ export default function GardenDetail() {
                 >
                   <RiFileList3Line className="h-5 w-5" />
                   <span className="hidden text-sm font-medium sm:inline">New Assessment</span>
+                </Link>
+              )}
+              {canManage && (
+                <Link
+                  to={`/gardens/${id}/hypercerts/create`}
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-base text-primary-foreground shadow-lg transition hover:bg-primary-darker active:scale-95 sm:h-auto sm:w-auto sm:gap-2 sm:rounded-md sm:px-3 sm:py-2"
+                  title={formatMessage({ id: "app.hypercerts.actions.newHypercert" })}
+                  aria-label={formatMessage({ id: "app.hypercerts.actions.newHypercert" })}
+                >
+                  <RiAddLine className="h-5 w-5" />
+                  <span className="hidden text-sm font-medium sm:inline">
+                    {formatMessage({ id: "app.hypercerts.actions.newHypercert" })}
+                  </span>
                 </Link>
               )}
             </div>
