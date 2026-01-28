@@ -242,6 +242,20 @@ class JobQueueDatabase {
         },
       });
 
+      // Track IndexedDB storage failure with detailed context
+      trackStorageError(error, {
+        source: "JobQueueDatabase.addJob",
+        userAction: "storing job and images in IndexedDB",
+        metadata: {
+          job_id: id,
+          job_kind: job.kind,
+          file_count: serializedFiles.length,
+          total_size: serializedFiles.reduce((sum, f) => sum + f.file.size, 0),
+          error_name: error instanceof Error ? error.name : "Unknown",
+          error_message: error instanceof Error ? error.message : String(error),
+        },
+      });
+
       // Ensure we don't leak object URLs for a job that never persisted.
       mediaResourceManager.cleanupUrls(id);
       throw error;

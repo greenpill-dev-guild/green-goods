@@ -251,6 +251,77 @@ export function formatDateTime(
 }
 
 /**
+ * Formats a date for date input value (YYYY-MM-DD).
+ * Returns empty string if invalid (inputs handle empty gracefully).
+ * Uses UTC to avoid timezone-related day shifts.
+ *
+ * @param value - Unix timestamp (seconds or milliseconds), Date, or Temporal.Instant
+ * @returns ISO date string in YYYY-MM-DD format, or empty string if invalid
+ */
+export function toDateInputValue(value: unknown): string {
+  if (value === null || value === undefined) return "";
+
+  // Handle 0 as a valid Unix timestamp (epoch)
+  if (value === 0) return "1970-01-01";
+
+  // Try Temporal-based formatting if available
+  if (isTemporalSupported()) {
+    const instant = toSafeInstant(value);
+    if (instant) {
+      try {
+        const zonedDateTime = instant.toZonedDateTimeISO("UTC");
+        // Format as YYYY-MM-DD for date inputs
+        return zonedDateTime.toString().slice(0, 10);
+      } catch {
+        // Fall through to Date-based formatting
+      }
+    }
+  }
+
+  // Fallback to Date-based formatting
+  const date = toSafeDate(value);
+  if (!date) return "";
+
+  try {
+    return date.toISOString().slice(0, 10);
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Parses a "YYYY-MM-DD" date input value as UTC to match toDateInputValue.
+ * Returns Unix timestamp in seconds (for blockchain compatibility).
+ *
+ * @param value - Date string in YYYY-MM-DD format
+ * @returns Unix timestamp in seconds, or 0 if invalid
+ */
+export function fromDateInputValue(value: string): number {
+  if (!value) return 0;
+
+  // Parse YYYY-MM-DD format manually to ensure UTC interpretation
+  const parts = value.split("-").map(Number);
+  if (parts.length !== 3 || parts.some(Number.isNaN)) return 0;
+
+  const [year, month, day] = parts;
+
+  // Validate month range (1-12)
+  if (month < 1 || month > 12) return 0;
+
+  // Validate day range (must be at least 1)
+  if (day < 1) return 0;
+
+  // Calculate the maximum days in the given month (accounting for leap years)
+  // Using Date.UTC with day=0 gives the last day of the previous month
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+
+  // Validate day does not exceed the maximum for this month
+  if (day > daysInMonth) return 0;
+
+  return Math.floor(Date.UTC(year, month - 1, day) / 1000);
+}
+
+/**
  * Formats a date for datetime-local input value (YYYY-MM-DDTHH:mm).
  * Returns empty string if invalid (inputs handle empty gracefully).
  */

@@ -158,6 +158,151 @@ function patchWalletConnect() {
   findAndPatchFiles(walletConnectBase);
 }
 
+/**
+ * Fix Bun's module resolution for cached packages with symlinks.
+ *
+ * Bun caches packages in .bun/ with symlinks, but module resolution from
+ * within .bun/ doesn't follow symlinks correctly. This function replaces
+ * symlinks with real copies for packages that need them.
+ *
+ * Known problematic packages:
+ * - EAS SDK requires multiformats
+ * - @walletconnect/utils requires uint8arrays
+ */
+function fixBunCacheSymlinks() {
+  const nodeModules = path.join(__dirname, "..", "node_modules");
+  const bunCache = path.join(nodeModules, ".bun");
+
+  if (!fs.existsSync(bunCache)) {
+    console.log("⏭️  .bun cache not found, skipping symlink fixes");
+    return;
+  }
+
+  console.log("🔍 Scanning .bun cache for symlink resolution issues...");
+
+  const bunDirs = fs.readdirSync(bunCache);
+
+  // Map of package patterns to their required dependencies that need symlink fixes
+  const problematicPackages = [
+    {
+      pattern: "@ethereum-attestation-service+eas-sdk@",
+      deps: ["multiformats"],
+    },
+    {
+      pattern: "@walletconnect+utils@",
+      deps: ["uint8arrays", "multiformats"],
+    },
+    {
+      pattern: "@walletconnect+sign-client@",
+      deps: ["uint8arrays", "multiformats"],
+    },
+    {
+      pattern: "@walletconnect+core@",
+      deps: ["uint8arrays", "multiformats"],
+    },
+  ];
+
+  // Find source packages in cache (to copy from)
+  const packageSources = {};
+  for (const dir of bunDirs) {
+    // Parse package name from dir (format: package-name@version+hash or @scope+package@version+hash)
+    const match = dir.match(/^(@[^+]+\+)?([^@]+)@/);
+    if (match) {
+      const pkgName = match[1] ? match[1].replace("+", "/") + match[2] : match[2];
+      packageSources[pkgName] = path.join(bunCache, dir, "node_modules", pkgName.replace("/", path.sep));
+    }
+  }
+
+  let fixCount = 0;
+
+  for (const { pattern, deps } of problematicPackages) {
+    const matchingDirs = bunDirs.filter(d => d.startsWith(pattern));
+
+    for (const pkgDir of matchingDirs) {
+      const pkgNodeModules = path.join(bunCache, pkgDir, "node_modules");
+
+      if (!fs.existsSync(pkgNodeModules)) continue;
+
+      for (const depName of deps) {
+        const depPath = path.join(pkgNodeModules, depName);
+        const sourcePath = packageSources[depName];
+
+        if (!sourcePath || !fs.existsSync(sourcePath)) {
+          continue;
+        }
+
+        try {
+          const stats = fs.lstatSync(depPath);
+          if (stats.isSymbolicLink()) {
+            // Replace symlink with real copy
+            fs.unlinkSync(depPath);
+            copyDirSync(sourcePath, depPath);
+            console.log(`✅ Fixed ${pattern}... → ${depName}`);
+            fixCount++;
+
+            // Patch ESM-only packages to add require export
+            patchPackageExports(depPath);
+          }
+        } catch (err) {
+          if (err.code === "ENOENT") {
+            // Dependency not linked, might be okay
+          } else {
+            console.log(`⚠️  Error fixing ${depName} in ${pkgDir}: ${err.message}`);
+          }
+        }
+      }
+    }
+  }
+
+  if (fixCount > 0) {
+    console.log(`✅ Fixed ${fixCount} symlink(s) in .bun cache`);
+  } else {
+    console.log("✅ No symlink fixes needed in .bun cache");
+  }
+}
+
+/**
+ * Patch package.json exports to add require field if missing (for ESM-only packages)
+ */
+function patchPackageExports(pkgPath) {
+  const packageJsonPath = path.join(pkgPath, "package.json");
+  if (!fs.existsSync(packageJsonPath)) return;
+
+  try {
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+
+    if (packageJson.exports && packageJson.exports["."]) {
+      const mainExport = packageJson.exports["."];
+      if (mainExport.import && !mainExport.require) {
+        // Add require pointing to same file (Bun handles ESM/CJS interop)
+        mainExport.require = mainExport.import;
+        fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2), "utf8");
+      }
+    }
+  } catch (err) {
+    console.log(`⚠️  Could not patch package.json exports: ${err.message}`);
+  }
+}
+
+/**
+ * Recursively copy a directory
+ */
+function copyDirSync(src, dest) {
+  fs.mkdirSync(dest, { recursive: true });
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+
+    if (entry.isDirectory()) {
+      copyDirSync(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
 // Main execution
 function main() {
   console.log("🔧 Applying multiformats compatibility fixes...");
@@ -173,6 +318,7 @@ function main() {
     createMultiformatsBasicsShim();
     patchUint8arrays();
     patchWalletConnect();
+    fixBunCacheSymlinks();
     console.log("✅ All multiformats compatibility fixes applied successfully!");
   } catch (error) {
     console.error("❌ Error applying multiformats fixes:", error);

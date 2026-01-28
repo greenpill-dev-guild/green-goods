@@ -4,6 +4,8 @@ WORKDIR /app
 # Workspace manifests (root) and source
 COPY package.json bun.lock ./
 COPY packages ./packages
+COPY docs/package.json ./docs/package.json
+COPY scripts ./scripts
 
 # Install all workspace deps
 RUN bun install --frozen-lockfile

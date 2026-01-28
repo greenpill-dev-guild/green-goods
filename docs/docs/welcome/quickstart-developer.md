@@ -160,7 +160,7 @@ The main gardener-facing Progressive Web App.
 - Tailwind CSS v4 + Radix UI
 - Offline-first architecture
 
-[Client Package Docs →](../developer/architecture/client-package)
+[Client Package Docs →](../developer/client)
 
 ### 4.2 Admin Dashboard (http://localhost:3002)
 
@@ -177,7 +177,7 @@ Operator and admin interface.
 - TanStack Query + graphql-request + XState + Zustand
 - Tailwind CSS v4 + Radix UI
 
-[Admin Package Docs →](../developer/architecture/admin-package)
+[Admin Package Docs →](../developer/admin)
 
 ### 4.3 GraphQL Indexer (http://localhost:8080)
 
@@ -204,7 +204,7 @@ query Gardens {
 - GraphQL API
 - ReScript event handlers
 
-[Indexer Package Docs →](../developer/architecture/indexer-package)
+[Indexer Package Docs →](../developer/indexer)
 
 ---
 
@@ -371,7 +371,7 @@ green-goods/
 - `.gitbook.yaml`: GitBook documentation config
 - `ecosystem.config.js`: PM2 service definitions
 
-[Monorepo Structure Guide →](../developer/architecture/monorepo-structure)
+[Monorepo Structure Guide →](../developer/architecture)
 
 ---
 
@@ -516,7 +516,7 @@ bun dev
 ### Developer Guides
 
 - [Installation & Setup](../developer/installation)
-- [Architecture Overview](../developer/architecture/monorepo-structure)
+- [Architecture Overview](../developer/architecture)
 - [Testing Guide](../developer/testing)
 - [API Reference](../developer/api-reference)
 - [Contributing Guide](../developer/contributing)

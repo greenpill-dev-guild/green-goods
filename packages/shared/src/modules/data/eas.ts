@@ -189,13 +189,24 @@ const parseDataToWorkApproval = (
 
   const actionUIDValue = actionUIDData?.value?.value as NumberConvertibleValue;
 
+  // Parse approved field robustly - handle boolean, string, or number
+  const rawApproved = approvedData?.value?.value;
+  let approved = false;
+  if (typeof rawApproved === "boolean") {
+    approved = rawApproved;
+  } else if (typeof rawApproved === "string") {
+    approved = rawApproved.toLowerCase() === "true" || rawApproved === "1";
+  } else if (typeof rawApproved === "number") {
+    approved = rawApproved !== 0;
+  }
+
   return {
     id: workApprovalUID,
     operatorAddress: attestation.attester,
     gardenerAddress: attestation.recipient,
     actionUID: toNumberFromField(actionUIDValue) ?? 0,
     workUID: (workUIDData?.value?.value as string) || "",
-    approved: (approvedData?.value?.value as boolean) ?? false,
+    approved,
     feedback: (feedbackData?.value?.value as string) || "",
     createdAt: attestation.time,
   };
@@ -437,5 +448,121 @@ export const getWorkApprovals = async (
 
   return data.attestations.map(({ id, attester, recipient, timeCreated, decodedDataJson }) =>
     parseDataToWorkApproval(id, { attester, recipient, time: timeCreated }, decodedDataJson)
+  );
+};
+
+/**
+ * Fetches work approval attestations by their UIDs.
+ * More efficient than getWorkApprovals when you have specific UIDs to fetch.
+ *
+ * @param uids - Array of attestation UIDs to fetch
+ * @param chainId - Optional chain ID override
+ * @returns Array of work approval attestations matching the UIDs
+ */
+export const getWorkApprovalsByUIDs = async (
+  uids: string[],
+  chainId?: number | string
+): Promise<EASWorkApproval[]> => {
+  if (uids.length === 0) return [];
+
+  const QUERY = easGraphQL(/* GraphQL */ `
+    query Attestations($where: AttestationWhereInput) {
+      attestations(where: $where) {
+        id
+        attester
+        recipient
+        timeCreated
+        decodedDataJson
+      }
+    }
+  `);
+
+  const easConfig = getEASConfig(chainId);
+  const client = createEasClient(chainId);
+
+  const { data, error } = await client.query(
+    QUERY,
+    {
+      where: {
+        schemaId: { equals: easConfig.WORK_APPROVAL.uid },
+        id: { in: uids },
+        revoked: { equals: false },
+      },
+    },
+    "getWorkApprovalsByUIDs"
+  );
+
+  if (error) {
+    throw new EASFetchError(
+      `Failed to fetch work approvals by UIDs: ${error.message}`,
+      "getWorkApprovalsByUIDs",
+      error
+    );
+  }
+
+  if (!data?.attestations) {
+    return [];
+  }
+
+  return data.attestations.map(({ id, attester, recipient, timeCreated, decodedDataJson }) =>
+    parseDataToWorkApproval(id, { attester, recipient, time: timeCreated }, decodedDataJson)
+  );
+};
+
+/**
+ * Fetches work attestations by their UIDs.
+ * More efficient than getWorks when you have specific UIDs to fetch.
+ *
+ * @param uids - Array of attestation UIDs to fetch
+ * @param chainId - Optional chain ID override
+ * @returns Array of work attestations matching the UIDs
+ */
+export const getWorksByUIDs = async (
+  uids: string[],
+  chainId?: number | string
+): Promise<EASWork[]> => {
+  if (uids.length === 0) return [];
+
+  const QUERY = easGraphQL(/* GraphQL */ `
+    query Attestations($where: AttestationWhereInput) {
+      attestations(where: $where) {
+        id
+        attester
+        recipient
+        timeCreated
+        decodedDataJson
+      }
+    }
+  `);
+
+  const easConfig = getEASConfig(chainId);
+  const client = createEasClient(chainId);
+
+  const { data, error } = await client.query(
+    QUERY,
+    {
+      where: {
+        schemaId: { equals: easConfig.WORK.uid },
+        id: { in: uids },
+        revoked: { equals: false },
+      },
+    },
+    "getWorksByUIDs"
+  );
+
+  if (error) {
+    throw new EASFetchError(
+      `Failed to fetch works by UIDs: ${error.message}`,
+      "getWorksByUIDs",
+      error
+    );
+  }
+
+  if (!data?.attestations) {
+    return [];
+  }
+
+  return data.attestations.map(({ id, attester, recipient, timeCreated, decodedDataJson }) =>
+    parseDataToWork(id, { attester, recipient, time: timeCreated }, decodedDataJson)
   );
 };

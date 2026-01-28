@@ -6,7 +6,7 @@
   "servers": {
     "figma": {
       "description": "Figma design context extraction and Code Connect",
-      "url": "https://mcp.figma.com",
+      "url": "https://mcp.figma.com/mcp",
       "enabled": true,
       "usage": ["Design-to-code implementation", "Component discovery", "Design system rules"]
     },
@@ -20,29 +20,36 @@
 
     "foundry": {
       "description": "Smart contract development tools (forge, cast, anvil)",
-      "command": ["foundry-mcp"],
+      "command": ["npx", "-y", "@pranesh.asp/foundry-mcp-server"],
       "enabled": true,
       "usage": ["Contract compilation", "Contract testing", "Chain interactions", "Gas estimation"],
-      "tools": ["forge", "cast", "anvil"]
+      "tools": ["forge", "cast", "anvil"],
+      "env": {
+        "RPC_URL": "https://sepolia.base.org"
+      }
     },
 
     "storacha": {
       "description": "IPFS/Filecoin storage via Storacha",
-      "url": "https://up.storacha.network",
+      "command": ["npx", "-y", "@storacha/mcp-storage-server"],
       "enabled": true,
-      "usage": ["Upload work media to IPFS", "Pin content to Filecoin", "Retrieve CIDs"]
+      "usage": ["Upload work media to IPFS", "Pin content to Filecoin", "Retrieve CIDs"],
+      "env": {
+        "PRIVATE_KEY": "${VITE_STORACHA_KEY}",
+        "DELEGATION": "${VITE_STORACHA_PROOF}"
+      }
     },
 
     "miro": {
       "description": "Miro whiteboard collaboration",
-      "url": "https://mcp.miro.com",
+      "url": "https://mcp.miro.com/",
       "enabled": true,
       "usage": ["Architecture diagrams", "Planning sessions", "Research visualization"]
     },
 
     "railway": {
       "description": "Railway deployment management",
-      "command": ["railway-mcp"],
+      "command": ["npx", "-y", "@railway/mcp-server"],
       "enabled": true,
       "usage": ["Deploy indexer services", "Manage databases", "View service logs"]
     }

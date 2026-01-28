@@ -214,7 +214,7 @@ Verified on-chain: [Attestation UID]
 **Indexer**: Envio + PostgreSQL + GraphQL
 **Storage**: IPFS via Storacha
 
-[Technical Architecture →](../developer/architecture/monorepo-structure)
+[Technical Architecture →](../developer/architecture)
 
 ### How are attestations stored?
 

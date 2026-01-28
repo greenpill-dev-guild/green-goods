@@ -132,6 +132,29 @@ export type { RoleInfo, UserRole } from "./gardener/useRole";
 export { useRole } from "./gardener/useRole";
 
 // ============================================================================
+// HYPERCERTS
+// Hooks are grouped together with useHypercert* prefix for discoverability
+// ============================================================================
+export type {
+  AttestationFilters,
+  UseAttestationsResult,
+} from "./hypercerts/useAttestations";
+// Re-export with consistent naming (useHypercertAttestations instead of useAttestations)
+export { useAttestations as useHypercertAttestations } from "./hypercerts/useAttestations";
+export { useCreateHypercertWorkflow } from "./hypercerts/useCreateHypercertWorkflow";
+export type { UseHypercertDraftResult } from "./hypercerts/useHypercertDraft";
+export { useHypercertDraft } from "./hypercerts/useHypercertDraft";
+export type {
+  UseHypercertsParams,
+  UseHypercertsResult,
+  OptimisticHypercertData,
+  HypercertSyncStatus,
+} from "./hypercerts/useHypercerts";
+export { useHypercerts } from "./hypercerts/useHypercerts";
+export type { UseMintHypercertResult } from "./hypercerts/useMintHypercert";
+export { useMintHypercert } from "./hypercerts/useMintHypercert";
+
+// ============================================================================
 // QUERY KEYS
 // ============================================================================
 export type { QueryKey, QueueQueryKey, WorksQueryKey } from "./query-keys";
@@ -180,6 +203,7 @@ export type { WorkFormData } from "./work/useWorkForm";
 export { useWorkForm, workFormSchema } from "./work/useWorkForm";
 export { useWorkImages } from "./work/useWorkImages";
 export { useWorkMutation } from "./work/useWorkMutation";
+export type { UseWorksOptions } from "./work/useWorks";
 export {
   jobToWork,
   usePendingWorksCount,

@@ -6,11 +6,16 @@
 // ============================================================================
 export type {
   CenteredSpinnerProps,
+  ConfirmDialogProps,
+  DatePickerProps,
+  DateRangePickerProps,
+  ErrorBoundaryProps,
   FormatMessageFn,
   FormInputProps,
   FormLayoutProps,
   FormTextareaProps,
   HydrationFallbackProps,
+  ImageWithFallbackProps,
   SpinnerProps,
   StatusBadgeProps,
   ToastAction,
@@ -24,17 +29,22 @@ export type {
 export {
   approvalToasts,
   CenteredSpinner,
+  ConfirmDialog,
   createApprovalToasts,
   createLocalizedToasts,
   createQueueToasts,
   createValidationToasts,
   createWalletProgressToasts,
   createWorkToasts,
+  DatePicker,
+  DateRangePicker,
+  ErrorBoundary,
   FormInput,
   FormLayout,
   FormTextarea,
   getStatusColors,
   HydrationFallback,
+  ImageWithFallback,
   queueToasts,
   Spinner,
   StatusBadge,
@@ -113,6 +123,10 @@ export type {
   RoleInfo,
   ServiceWorkerUpdateState,
   ToastActionOptions,
+  UseAttestationsResult,
+  UseHypercertDraftResult,
+  UseHypercertsResult,
+  UseMintHypercertResult,
   UseAnalyticsIdentityOptions,
   UsePageViewOptions,
   UserRole,
@@ -139,6 +153,7 @@ export {
   useBrowserNavigation,
   useChainConfig,
   useCreateAssessmentWorkflow,
+  useCreateHypercertWorkflow,
   useCreateGardenWorkflow,
   useCurrentChain,
   useDebugMode,
@@ -156,6 +171,11 @@ export {
   useGardens,
   useGardenTabs,
   useGardenTranslation,
+  // Hypercert hooks (grouped together, prefixed with useHypercert*)
+  useHypercertAttestations,
+  useHypercertDraft,
+  useHypercerts,
+  useMintHypercert,
   useInstallGuidance,
   useJoinGarden,
   useMerged,
@@ -200,6 +220,9 @@ export type {
   ErrorCategory,
   ErrorContext,
   BreadcrumbEntry,
+  // Logger types
+  LogContext,
+  Logger,
 } from "./modules/index";
 export {
   // Session management
@@ -209,18 +232,22 @@ export {
   clearAuthMode,
   clearStoredPasskey,
   clearStoredUsername,
+  checkAttestationsBundled,
   createEasClient,
   createIndexerClient,
   createOfflineTxHash,
   easGraphQL,
   formatJobError,
+  getApprovedAttestations,
   getActions,
   getAuthMode,
+  getGardenHypercerts,
   getDistinctId,
   getFileByHash,
   getGardenAssessments,
   getGardeners,
   getGardens,
+  getHypercertById,
   getStoredUsername,
   getSubmissionStatusText,
   getWorkApprovals,
@@ -273,6 +300,9 @@ export {
   getBreadcrumbs,
   clearBreadcrumbs,
   initGlobalErrorHandlers,
+  // Logging
+  createLogger,
+  logger,
   translationCache,
   USERNAME_STORAGE_KEY,
   updateUserProfile,
@@ -282,6 +312,37 @@ export {
   validateApprovalDraft,
   validateWorkDraft,
 } from "./modules/index";
+// ============================================================================
+// HYPERCERTS LIB
+// ============================================================================
+export {
+  DEFAULT_PROTOCOL_VERSION,
+  HYPERCERT_MINTER_ABI_FULL,
+  TOTAL_UNITS,
+  TransferRestrictions,
+  aggregateOutcomeMetrics,
+  allowlistEntrySchema,
+  allowlistSchema,
+  buildContributorStats,
+  buildContributorWeights,
+  calculateDistribution,
+  deriveWorkTimeframe,
+  encodeCreateAllowlist,
+  formatHypercertMetadata,
+  generateMerkleTree,
+  generateProof,
+  greenGoodsExtensionSchema,
+  hypercertMetadataSchema,
+  outcomeMetricsSchema,
+  propertyDefinitionSchema,
+  scopeDefinitionSchema,
+  sumUnits,
+  timeframeDefinitionSchema,
+  validateAllowlist,
+  validateMetadata,
+  verifyProof,
+} from "./lib/hypercerts";
+export type { ContributorWeight, DistributionMode, MerkleLeaf, MerkleTree } from "./lib/hypercerts";
 // ============================================================================
 // PROVIDERS (re-export via subpath import recommended: @green-goods/shared/providers)
 // ============================================================================
@@ -307,9 +368,13 @@ export {
   type AdminState,
   type CreateGardenFormState,
   type CreateGardenStep,
+  type HypercertWizardStore,
+  type MintingState,
+  type MintingStatus,
   type UIState,
   useAdminStore,
   useCreateGardenStore,
+  useHypercertWizardStore,
   useUIStore,
   useWorkFlowStore,
   type WorkDraftState,
@@ -338,6 +403,27 @@ export type {
   WorkApproval,
   ActionInstructionConfig,
   Link,
+  // Hypercert types
+  ActionDomain,
+  ActionType,
+  AllowlistEntry,
+  AttestationFilters,
+  AttestationRef,
+  CapitalType,
+  CustomMetric,
+  GreenGoodsExtension,
+  HypercertAllowlistClaim,
+  HypercertAttestation,
+  HypercertDraft,
+  HypercertMetadata,
+  HypercertRecord,
+  HypercertStatus,
+  MetricValue,
+  OutcomeMetrics,
+  PredefinedMetric,
+  PropertyDefinition,
+  ScopeDefinition,
+  TimeframeDefinition,
   // Job queue types
   Job,
   QueueEvent,
@@ -386,12 +472,14 @@ export type {
   BaseAuthContext,
 } from "./types/index";
 
-// Re-export Capital enum
-export { Capital } from "./types/index";
+// Re-export Capital enum and ACTION_DOMAINS constant
+export { ACTION_DOMAINS, Capital } from "./types/index";
 // ============================================================================
 // UTILITIES
 // ============================================================================
 export type {
+  CategorizedError,
+  CategorizedErrorCategory,
   ClassValue,
   CompressionOptions,
   CompressionResult,
@@ -446,10 +534,12 @@ export {
   formatRelativeTime,
   formatUserError,
   formatWalletError,
+  fromDateInputValue,
   fromDateTimeLocalValue,
   GardenAccountABI,
   GardenTokenABI,
   gardenHasMember,
+  getBlockchainErrorI18nKey,
   getBlockExplorerTxUrl,
   getEASExplorerUrl,
   getNetworkContracts,
@@ -497,11 +587,14 @@ export {
   simulateJoinGarden,
   simulateTransaction,
   sortByCreatedAt,
+  toDateInputValue,
   toDateTimeLocalValue,
   toSafeDate,
   truncate,
   truncateAddress,
   USER_FRIENDLY_ERRORS,
+  ValidationError,
+  categorizeError,
 } from "./utils/index";
 
 // ============================================================================
@@ -528,10 +621,13 @@ export {
   // Garden
   type CreateGardenContext,
   type CreateGardenEvent,
+  type MintHypercertContext,
+  type MintHypercertEvent,
   claimENSService,
   createAssessmentMachine,
   createGardenMachine,
   getAuthActor,
+  mintHypercertMachine,
   type PasskeySessionResult,
   type RestoreSessionResult,
   registerPasskeyService,

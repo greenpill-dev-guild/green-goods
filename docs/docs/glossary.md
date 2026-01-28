@@ -96,3 +96,24 @@ A carbon-negative blockchain focused on mobile-first financial tools and regener
 ## Community Garden
 The root garden created automatically on deployment, open to all users. New gardeners are automatically added to the Community Garden upon signup, providing immediate access to actions and the ability to start documenting work.
 
+## Merkle Tree
+A cryptographic data structure used to efficiently verify set membership. In the context of Hypercerts, Merkle trees store allowlists of addresses entitled to claim fractions of a Hypercert. The Merkle root is stored on-chain, while the full tree data is stored on IPFS, allowing efficient verification without storing all addresses on-chain.
+
+## UserOperation (UserOp)
+A pseudo-transaction object in ERC-4337 account abstraction that represents an intended action by a smart account. Unlike regular transactions, UserOperations are sent to a bundler (not directly to the blockchain), enabling features like gas sponsorship, batched transactions, and custom signature schemes.
+
+## Bundler
+A node in the ERC-4337 account abstraction system that collects UserOperations from multiple users, bundles them into a single transaction, and submits them to the blockchain. Green Goods uses Pimlico as its bundler service, enabling gasless transactions for gardeners.
+
+## Paymaster
+A smart contract in ERC-4337 that sponsors gas fees for UserOperations. Green Goods uses Pimlico's verifying paymaster to enable gasless transactions, allowing gardeners to submit work without holding native tokens for gas.
+
+## gql.tada
+A TypeScript library that provides type-safe GraphQL queries by inferring types directly from GraphQL schemas. Green Goods uses gql.tada with graphql-request for fully typed GraphQL operations, catching query errors at compile time rather than runtime.
+
+## Transfer Restrictions
+Hypercert configurations that control whether and how fractions can be transferred after minting. Options include: unrestricted (freely transferable), restricted to original recipients, or disallowed entirely. Green Goods Hypercerts typically use transfer restrictions to ensure impact claims remain with verified contributors.
+
+## Allowlist
+A list of Ethereum addresses entitled to claim fractions of a Hypercert or access certain features. Allowlists are stored as Merkle trees, enabling gas-efficient verification. In Green Goods, the allowlist for a Hypercert is generated from approved gardeners who contributed to the bundled work.
+

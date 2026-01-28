@@ -184,12 +184,24 @@ bun --filter admin dev
 
 ### Indexer
 
-**Ensure Docker running first**:
+The indexer requires Docker. On macOS, it runs fully containerized to avoid a known Rust issue.
+
+**Option A: Docker-Based (Recommended for macOS)**
 ```bash
-open -a Docker  # macOS
+cd packages/indexer
+bun run dev:docker        # Start full Docker stack
+bun run dev:docker:logs   # View logs
+bun run dev:docker:down   # Stop
+```
+
+**Option B: Native (Linux/Dev Container)**
+```bash
+open -a Docker  # macOS - ensure Docker is running
 # Wait 30 seconds
 bun --filter indexer dev
 ```
+
+> **Note**: When using `bun dev` from the monorepo root, PM2 automatically uses the Docker-based indexer on macOS.
 
 ### Contracts
 
@@ -253,7 +265,7 @@ bun install
 ## Learn More
 
 - [Developer Quickstart](../welcome/quickstart-developer)
-- [Monorepo Structure](architecture/monorepo-structure)
+- [Monorepo Structure](./architecture)
 - [Testing Guide](testing)
 - [Root README](https://github.com/greenpill-dev-guild/green-goods/tree/main#readme)
 

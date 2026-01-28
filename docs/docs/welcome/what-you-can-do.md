@@ -358,7 +358,7 @@ query ApprovedWork($startDate: Int!, $endDate: Int!) {
 - `WorkApprovalResolver`: Approval logic
 - `AssessmentResolver`: Garden assessments
 
-[Contracts Documentation →](../developer/architecture/contracts-package)
+[Contracts Documentation →](../developer/contracts)
 
 ### Build Custom Integrations
 

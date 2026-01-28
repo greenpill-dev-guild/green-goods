@@ -880,5 +880,5 @@ return [{
 ## Reference
 
 - [n8n Issue Automation](n8n-automation.md) - Bug-focused automation
-- [gh-ticket Skill](../../.claude/skills/gh-ticket/SKILL.md) - Manual ticket creation
-- [Orchestration Rules](../../.cursor/rules/orchestration.mdc) - Agent dispatch patterns
+- **gh-ticket Skill** (`.claude/skills/gh-ticket/SKILL.md`) - Manual ticket creation
+- **Orchestration Rules** (`.cursor/rules/orchestration.mdc`) - Agent dispatch patterns

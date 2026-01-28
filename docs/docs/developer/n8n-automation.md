@@ -11,7 +11,7 @@ This workflow automates:
 4. **Agent dispatch**: Posts `@cursor` comments to trigger Cloud Agents
 5. **Gating**: Routes by severity/priority/size to one-shot vs investigation
 
-See [n8n Automation Diagram](architecture/diagrams.md#n8n-automation) for visual flow.
+See [n8n Automation Diagram](./diagrams#n8n-automation) for visual flow.
 
 ---
 
@@ -405,7 +405,7 @@ Update issue labels accordingly:
 
 ## Reference
 
-- [n8n Automation Diagram](architecture/diagrams.md#n8n-automation)
+- [n8n Automation Diagram](./diagrams#n8n-automation)
 - [Cursor Workflows](cursor-workflows)
 - [Orchestration Rule](https://github.com/greenpill-dev-guild/green-goods/tree/main/.cursor/rules/orchestration.mdc)
 - [Cursor GitHub Integration](https://cursor.com/docs/integrations/github)

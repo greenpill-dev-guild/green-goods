@@ -56,7 +56,7 @@ green-goods/
 **Managed with**: Bun workspaces
 **Orchestrated with**: PM2 (for dev services)
 
-[Detailed Architecture →](architecture/monorepo-structure)
+[Detailed Architecture →](./architecture)
 
 ---
 
@@ -158,10 +158,10 @@ All data publicly accessible:
 ## Quick Links
 
 **Packages**:
-- [Client Package Docs](architecture/client-package)
-- [Admin Package Docs](architecture/admin-package)
-- [Indexer Package Docs](architecture/indexer-package)
-- [Contracts Package Docs](architecture/contracts-package)
+- [Client Package Docs](./client)
+- [Admin Package Docs](./admin)
+- [Indexer Package Docs](./indexer)
+- [Contracts Package Docs](./contracts)
 
 **Getting Started**:
 - [Installation Guide](installation)

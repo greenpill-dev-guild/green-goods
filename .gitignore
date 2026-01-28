@@ -212,6 +212,14 @@ docker-compose.local.yml
 *~
 
 # ================================
+# Cursor
+# ================================
+# Track .cursor/BUGBOT.md and .cursor/rules/*.mdc (shared team rules)
+# Ignore any local/user-specific cursor settings
+.cursor/settings.local.json
+.cursor/.cursorignore
+
+# ================================
 # Claude Code
 # ================================
 # Local Claude settings (user-specific, not shared)
@@ -284,3 +292,5 @@ keystore/
 # API keys file
 secrets.json
 credentials.json
+
+dara/test/*

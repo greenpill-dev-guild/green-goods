@@ -210,5 +210,5 @@ See [Contributing to Documentation](docs-contributing) for the full workflow, as
 - [Developer Quickstart](../welcome/quickstart-developer)
 - [Installation Guide](installation)
 - [Testing Details](testing)
-- [Architecture Docs](architecture/monorepo-structure)
+- [Architecture Docs](./architecture)
 

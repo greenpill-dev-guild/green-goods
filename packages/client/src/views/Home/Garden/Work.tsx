@@ -61,7 +61,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   const gardenId = (gardenIdFromContext || gardenIdParam) as string;
   const garden = gardens.find((g) => g.id === gardenId);
   const { data: actions = [] } = useActions(chainId);
-  const { works: mergedWorks } = useWorks(gardenId || "");
+  const { works: mergedWorks } = useWorks(gardenId || "", { offline: true });
   const work = mergedWorks.find((w) => w.id === (workId || ""));
 
   // Derive effective status (optimistic takes precedence over fetched data)

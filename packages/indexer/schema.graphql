@@ -72,3 +72,66 @@ type Gardener {
   # - reputation: Int
   # - attestations: [Attestation!]
 }
+
+# =============================================================================
+# Hypercert Entities
+# =============================================================================
+
+enum HypercertStatus {
+  ACTIVE
+  CLAIMED
+  SOLD
+  UNKNOWN
+}
+
+type Hypercert {
+  id: ID!                           # chainId-tokenId
+  chainId: Int!
+  tokenId: BigInt!
+  garden: String!                   # Garden address
+  metadataUri: String!              # IPFS URI (ipfs://...)
+  mintedAt: Int!
+  mintedBy: String!                 # Operator address who minted
+  txHash: String!
+  totalUnits: BigInt!
+  claimedUnits: BigInt!
+  attestationCount: Int!
+  attestationUIDs: [String!]!       # EAS attestation UIDs bundled into this hypercert
+
+  # Metadata fields (populated from IPFS)
+  title: String
+  description: String
+  imageUri: String
+  workScopes: [String!]
+
+  status: HypercertStatus!
+  # Note: Query claims via HypercertClaim.hypercertId (Envio doesn't support entity arrays)
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+type HypercertClaim {
+  id: ID!                           # chainId-hypercertTokenId-claimant
+  chainId: Int!
+  hypercertId: String!              # Reference to parent Hypercert
+  claimant: String!                 # Address who claimed
+  units: BigInt!
+  claimedAt: Int!
+  txHash: String!
+}
+
+# WorkApproval tracks which work attestations have been bundled into hypercerts
+type WorkApproval {
+  id: ID!                           # chainId-attestationUID
+  chainId: Int!
+  attestationUID: String!           # EAS attestation UID
+  garden: String!                   # Garden address
+  gardener: String!                 # Gardener who did the work
+  approvedBy: String!               # Operator who approved
+  approvedAt: Int!
+  txHash: String!
+
+  # Hypercert linkage (null until bundled)
+  hypercertId: String               # Hypercert this was bundled into
+  bundledAt: Int                    # Timestamp when bundled
+}

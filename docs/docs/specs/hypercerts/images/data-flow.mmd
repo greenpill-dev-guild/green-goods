@@ -1,0 +1,33 @@
+flowchart TB
+    subgraph Input["INPUT DATA"]
+        ATT["Selected Attestations<br/>(from EAS GraphQL API)"]
+        META["User-Entered Metadata<br/>(title, description, tags)"]
+        DIST["Distribution Config<br/>(addresses, units)"]
+    end
+
+    subgraph ClientProcess["CLIENT-SIDE PROCESSING"]
+        AGG["Aggregate Metrics<br/>(timeframe, outcomes)"]
+        VAL["Validate Inputs<br/>(Zod schemas)"]
+        MERKLE["Generate Merkle Tree<br/>(@hypercerts-org/sdk)"]
+        FMT["Format Metadata JSON<br/>(Hypercert schema)"]
+    end
+
+    subgraph PermanentStorage["PERMANENT STORAGE"]
+        IPFS["IPFS (Storacha)<br/>• metadata.json<br/>• allowlist.json"]
+        HC["HypercertMinter<br/>Arbitrum One"]
+        GGR["GreenGoodsResolver<br/>HypercertsModule"]
+    end
+
+    ATT --> AGG
+    META --> FMT
+    AGG --> FMT
+    DIST --> MERKLE
+    FMT --> VAL
+    MERKLE --> VAL
+    VAL --> IPFS
+    IPFS --> HC
+    HC -.-> GGR
+
+    style Input fill:#e3f2fd
+    style ClientProcess fill:#fff3e0
+    style PermanentStorage fill:#e8f5e9

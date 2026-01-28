@@ -12,7 +12,6 @@ export {
   renderWithQuery as renderWithProviders,
   MOCK_ADDRESSES,
   MOCK_TX_HASH,
-  createMockWalletClient,
   createMockSmartAccountClient,
 } from "@green-goods/shared/testing";
 
