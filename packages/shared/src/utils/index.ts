@@ -166,6 +166,11 @@ export {
   parseAndFormatError,
   parseContractError,
 } from "./errors/contract-errors";
+export type {
+  CategorizedError,
+  ErrorCategory as CategorizedErrorCategory,
+} from "./errors/categorize-error";
+export { categorizeError } from "./errors/categorize-error";
 export { extractErrorMessage, extractErrorMessageOr } from "./errors/extract-message";
 export {
   formatJobError,
@@ -173,6 +178,14 @@ export {
   formatWalletError,
   USER_FRIENDLY_ERRORS,
 } from "./errors/user-messages";
+export { ValidationError } from "./errors/validation-error";
+export type { BlockchainErrorInfo, BlockchainErrorType } from "./errors/blockchain-errors";
+export {
+  detectBlockchainError,
+  getBlockchainErrorAction,
+  getBlockchainErrorI18nKey,
+  isRecoverableBlockchainError,
+} from "./errors/blockchain-errors";
 export {
   normalizeFeedback,
   normalizePlantCount,
@@ -254,6 +267,7 @@ export {
   formatDateTime,
   formatDuration,
   formatRelativeTime,
+  fromDateInputValue,
   fromDateTimeLocalValue,
   getCurrentTimezone,
   getDurationMs,
@@ -262,6 +276,7 @@ export {
   isTemporalSupported,
   normalizeTimestamp,
   sortByCreatedAt,
+  toDateInputValue,
   toDateTimeLocalValue,
   toSafeDate,
   toSafeInstant,
