@@ -1,60 +1,169 @@
 import type { Address } from "viem";
 
 import { logger } from "../app/logger";
-import type {
-  ActionDomain,
-  ActionType,
-  AttestationFilters,
-  HypercertAttestation,
-  HypercertRecord,
-  HypercertStatus,
-  MetricValue,
+import {
+  ACTION_DOMAINS,
+  type ActionDomain,
+  type ActionType,
+  type AttestationFilters,
+  type HypercertAttestation,
+  type HypercertRecord,
+  type HypercertStatus,
+  type MetricValue,
 } from "../../types/hypercerts";
-import { greenGoodsIndexer } from "./graphql-client";
+import type { EASWorkApproval } from "../../types/eas-responses";
+import { greenGoodsIndexer, GQLClient } from "./graphql-client";
+import { getWorks, getWorkApprovals, getWorkApprovalsByUIDs, getWorksByUIDs } from "./eas";
 
-const APPROVED_ATTESTATIONS_QUERY = /* GraphQL */ `
-  query ApprovedWorkApprovals($gardenId: ID!, $limit: Int!) {
-    WorkApproval(
-      where: {
-        approved: { _eq: true }
-        bundledInHypercert: { _is_null: true }
-        garden: { id: { _eq: $gardenId } }
-      }
-      order_by: { approvedAt: desc }
-      limit: $limit
-    ) {
-      id
-      approvedAt
-      approvedBy
-      feedback
-      txHash
-      garden {
-        id
-      }
-      workSubmission {
-        id
-        title
-        gardenerName
-        domain
-        actionType
-        workScope
-        metrics
-        mediaUrls
-        createdAt
-        txHash
-        gardener {
-          id
-          ensName
+// =============================================================================
+// Hypercerts SDK API Client
+// =============================================================================
+
+/**
+ * Official Hypercerts API endpoints.
+ * These are the canonical indexers maintained by the Hypercerts team.
+ */
+const HYPERCERTS_API_ENDPOINTS = {
+  production: "https://api-v2.hypercerts.org",
+  test: "https://staging-api-v2.hypercerts.org",
+} as const;
+
+/** Get the Hypercerts API URL based on chain ID */
+function getHypercertsApiUrl(chainId?: number): string {
+  // Test chains use staging API
+  const testChains = [11155111, 84532, 421614, 314159];
+  const isTestChain = chainId ? testChains.includes(chainId) : false;
+  return isTestChain ? HYPERCERTS_API_ENDPOINTS.test : HYPERCERTS_API_ENDPOINTS.production;
+}
+
+/** Singleton Hypercerts SDK API client */
+let hypercertsApiClient: GQLClient | null = null;
+
+function getHypercertsApiClient(chainId?: number): GQLClient {
+  const url = `${getHypercertsApiUrl(chainId)}/v1/graphql`;
+  // Create new client if URL changed or not initialized
+  if (!hypercertsApiClient) {
+    hypercertsApiClient = new GQLClient(url);
+  }
+  return hypercertsApiClient;
+}
+
+/**
+ * GraphQL query for fetching a hypercert from the official Hypercerts API.
+ * The API uses a different schema than our Envio indexer.
+ */
+const SDK_HYPERCERT_QUERY = /* GraphQL */ `
+  query GetHypercert($hypercert_id: String!) {
+    hypercerts(where: { hypercert_id: { eq: $hypercert_id } }) {
+      data {
+        hypercert_id
+        units
+        uri
+        creator_address
+        creation_block_timestamp
+        token_id
+        contracts {
+          chain_id
+          contract_address
+        }
+        metadata {
+          name
+          description
+          image
+          work_scope
         }
       }
     }
   }
 `;
 
+interface SdkHypercertResponse {
+  hypercerts?: {
+    data?: Array<{
+      hypercert_id: string;
+      units: string;
+      uri: string;
+      creator_address: string;
+      creation_block_timestamp: string;
+      token_id: string;
+      contracts?: {
+        chain_id: number;
+        contract_address: string;
+      };
+      metadata?: {
+        name?: string;
+        description?: string;
+        image?: string;
+        work_scope?: string[];
+      };
+    }>;
+  };
+}
+
+/**
+ * Fetches a hypercert from the official Hypercerts SDK API.
+ * This is faster and more reliable than custom indexers for hypercert data.
+ *
+ * @param hypercertId - Format: "{chainId}-{tokenId}" e.g., "84532-123456789"
+ * @returns Partial HypercertRecord with data from SDK API, or null if not found
+ */
+export async function getHypercertFromSdkApi(
+  hypercertId: string
+): Promise<Partial<HypercertRecord> | null> {
+  // Extract chain ID from hypercert ID for API endpoint selection
+  const [chainIdStr] = hypercertId.split("-");
+  const chainId = chainIdStr ? parseInt(chainIdStr, 10) : undefined;
+
+  const client = getHypercertsApiClient(chainId);
+  const { data, error } = await client.query<SdkHypercertResponse>(
+    SDK_HYPERCERT_QUERY,
+    { hypercert_id: hypercertId },
+    "getHypercertFromSdkApi"
+  );
+
+  if (error) {
+    logger.debug("[getHypercertFromSdkApi] SDK API query failed", {
+      hypercertId,
+      error: error.message,
+    });
+    return null;
+  }
+
+  const items = data?.hypercerts?.data;
+  if (!items || items.length === 0) {
+    logger.debug("[getHypercertFromSdkApi] Hypercert not found in SDK API", { hypercertId });
+    return null;
+  }
+
+  const item = items[0];
+  const tokenIdBigInt = BigInt(item.token_id ?? "0");
+
+  return {
+    id: item.hypercert_id,
+    tokenId: tokenIdBigInt,
+    metadataUri: item.uri,
+    mintedAt: item.creation_block_timestamp
+      ? Math.floor(new Date(item.creation_block_timestamp).getTime() / 1000)
+      : 0,
+    mintedBy: item.creator_address as Address,
+    totalUnits: BigInt(item.units ?? "0"),
+    title: item.metadata?.name ?? undefined,
+    description: item.metadata?.description ?? undefined,
+    imageUri: item.metadata?.image ?? undefined,
+    workScopes: item.metadata?.work_scope ?? undefined,
+    // These fields require our Envio indexer or additional queries
+    gardenId: "",
+    txHash: "0x" as `0x${string}`,
+    claimedUnits: 0n,
+    attestationCount: 0,
+    status: "active" as HypercertStatus,
+  };
+}
+
 const GARDEN_HYPERCERTS_QUERY = /* GraphQL */ `
   query GardenHypercerts($gardenId: ID!, $limit: Int!) {
     Hypercert(
-      where: { garden: { id: { _eq: $gardenId } } }
+      where: { garden: { _eq: $gardenId } }
       order_by: { mintedAt: desc }
       limit: $limit
     ) {
@@ -67,13 +176,13 @@ const GARDEN_HYPERCERTS_QUERY = /* GraphQL */ `
       txHash
       claimedUnits
       attestationCount
+      attestationUIDs
       title
       description
+      imageUri
       workScopes
       status
-      garden {
-        id
-      }
+      garden
     }
   }
 `;
@@ -107,129 +216,21 @@ const HYPERCERT_DETAIL_QUERY = /* GraphQL */ `
       txHash
       claimedUnits
       attestationCount
+      attestationUIDs
       title
       description
+      imageUri
       workScopes
       status
-      garden {
-        id
-      }
-      workApprovals {
-        id
-        approvedAt
-        approvedBy
-        feedback
-        workSubmission {
-          id
-          title
-          gardenerName
-          domain
-          actionType
-          workScope
-          metrics
-          mediaUrls
-          createdAt
-          gardener {
-            id
-            ensName
-          }
-        }
-      }
+      garden
     }
   }
 `;
 
-const CHECK_BUNDLED_QUERY = /* GraphQL */ `
-  query CheckAttestationsBundled($uids: [ID!]!) {
-    WorkApproval(where: { id: { _in: $uids }, bundledInHypercert: { _is_null: false } }) {
-      id
-      bundledInHypercert {
-        id
-        title
-      }
-    }
-  }
-`;
+// Note: WorkApproval in Envio has hypercertId field (string | null) for bundle tracking
+// but we check bundling status by looking up attestationUIDs in the Hypercert entity
 
-interface RawWorkApproval {
-  id: string;
-  approvedAt?: number | null;
-  approvedBy?: string | null;
-  feedback?: string | null;
-  txHash?: string | null;
-  garden?: { id?: string | null } | null;
-  workSubmission?: {
-    id: string;
-    title?: string | null;
-    gardenerName?: string | null;
-    domain?: string | null;
-    actionType?: string | null;
-    workScope?: string[] | null;
-    metrics?: unknown;
-    mediaUrls?: string[] | null;
-    createdAt?: number | null;
-    txHash?: string | null;
-    gardener?: { id?: string | null; ensName?: string | null } | null;
-  } | null;
-}
-
-function isMetricValue(value: unknown): value is MetricValue {
-  if (!value || typeof value !== "object") return false;
-  const record = value as Record<string, unknown>;
-  return typeof record.value === "number" && typeof record.unit === "string";
-}
-
-function parseMetrics(raw: unknown): Record<string, MetricValue> | null {
-  if (!raw || typeof raw !== "object") return null;
-  const record = raw as Record<string, unknown>;
-  const entries = Object.entries(record);
-  if (!entries.length) return null;
-
-  const parsed: Record<string, MetricValue> = {};
-  for (const [key, value] of entries) {
-    if (isMetricValue(value)) {
-      parsed[key] = value;
-    }
-  }
-
-  return Object.keys(parsed).length ? parsed : null;
-}
-
-const ACTION_DOMAINS = new Set<ActionDomain>([
-  "solar",
-  "waste",
-  "agroforestry",
-  "education",
-  "mutual_credit",
-]);
-
-const ACTION_TYPES = new Set<ActionType>([
-  "hub_session",
-  "workshop",
-  "node_deployment",
-  "cleanup",
-  "recycling",
-  "composting",
-  "planting",
-  "nursery",
-  "maintenance",
-  "training",
-  "certification",
-  "commitment",
-  "exchange",
-]);
-
-function parseActionDomain(value?: string | null): ActionDomain | undefined {
-  if (!value) return undefined;
-  return ACTION_DOMAINS.has(value as ActionDomain) ? (value as ActionDomain) : undefined;
-}
-
-function parseActionType(value?: string | null): ActionType | undefined {
-  if (!value) return undefined;
-  return ACTION_TYPES.has(value as ActionType) ? (value as ActionType) : undefined;
-}
-
-function applyAttestationFilters(
+export function applyAttestationFilters(
   items: HypercertAttestation[],
   filters?: AttestationFilters
 ): HypercertAttestation[] {
@@ -283,58 +284,200 @@ function applyAttestationFilters(
   });
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+export function extractWorkMetadata(metadata: string | undefined): {
+  domain?: ActionDomain;
+  actionType?: ActionType;
+  workScope?: string[];
+  metrics?: Record<string, MetricValue>;
+} {
+  if (!metadata) return {};
+  try {
+    const parsed = JSON.parse(metadata) as unknown;
+    if (!isRecord(parsed)) return {};
+
+    const domainRaw = parsed.domain ?? parsed.actionDomain;
+    const domain = ACTION_DOMAINS.includes(domainRaw as ActionDomain)
+      ? (domainRaw as ActionDomain)
+      : undefined;
+
+    const actionType =
+      typeof parsed.actionType === "string" ? (parsed.actionType as ActionType) : undefined;
+
+    const scopeCandidate = parsed.workScope ?? parsed.workScopes ?? parsed.work_scope;
+    const workScope =
+      Array.isArray(scopeCandidate) && scopeCandidate.every((item) => typeof item === "string")
+        ? (scopeCandidate as string[])
+        : typeof scopeCandidate === "string"
+          ? [scopeCandidate]
+          : undefined;
+
+    const metrics = isRecord(parsed.metrics)
+      ? (parsed.metrics as Record<string, MetricValue>)
+      : undefined;
+
+    return { domain, actionType, workScope, metrics };
+  } catch {
+    return {};
+  }
+}
+
+function normalizeHypercertStatus(status?: string | null): HypercertStatus {
+  switch ((status || "").toLowerCase()) {
+    case "active":
+      return "active";
+    case "claimed":
+      return "claimed";
+    case "sold":
+      return "sold";
+    default:
+      return "unknown";
+  }
+}
+
+/**
+ * Fetches approved work attestations for a garden from EAS.
+ *
+ * This function queries the EAS indexer (not Envio) to get:
+ * 1. All work submissions for the garden
+ * 2. All approved work approvals
+ * 3. Joins them to create HypercertAttestation objects
+ *
+ * @param gardenId - The garden address to fetch attestations for
+ * @param filters - Optional filters for date range, domain, etc.
+ * @param _limit - Unused, kept for API compatibility
+ * @returns Array of approved work attestations ready for bundling into hypercerts
+ */
 export async function getApprovedAttestations(
   gardenId: string,
   filters?: AttestationFilters,
-  limit = 100
+  _limit = 100
 ): Promise<HypercertAttestation[]> {
-  const { data, error } = await greenGoodsIndexer.query(
-    APPROVED_ATTESTATIONS_QUERY,
-    { gardenId, limit },
-    "getApprovedAttestations"
-  );
+  try {
+    // Fetch works and approvals in parallel from EAS
+    const [works, allApprovals] = await Promise.all([getWorks(gardenId), getWorkApprovals()]);
 
-  if (error) {
-    logger.error("Indexer query failed", {
+    // Filter to only approved work approvals
+    const approvedApprovals = allApprovals.filter((approval) => approval.approved);
+
+    // Create a map of workUID -> approval for O(1) lookups
+    const approvalsByWorkUID = new Map<string, EASWorkApproval>();
+    for (const approval of approvedApprovals) {
+      approvalsByWorkUID.set(approval.workUID, approval);
+    }
+
+    // Join works with their approvals
+    const attestations: HypercertAttestation[] = [];
+
+    for (const work of works) {
+      const approval = approvalsByWorkUID.get(work.id);
+      if (!approval) continue; // Skip works without approval
+
+      const metadata = extractWorkMetadata(work.metadata);
+
+      attestations.push({
+        id: approval.id,
+        uid: approval.id,
+        workUid: work.id,
+        gardenId: work.gardenAddress,
+        title: work.title || "Untitled work",
+        actionType: metadata.actionType,
+        domain: metadata.domain,
+        workScope: metadata.workScope ?? [],
+        gardenerAddress: work.gardenerAddress as Address,
+        gardenerName: null, // ENS lookup would need separate query
+        mediaUrls: work.media ?? [],
+        metrics: metadata.metrics ?? null,
+        createdAt: work.createdAt,
+        approvedAt: approval.createdAt,
+        approvedBy: approval.operatorAddress as Address,
+        feedback: approval.feedback || null,
+      });
+    }
+
+    // Sort by approvedAt descending (most recent first)
+    attestations.sort((a, b) => b.approvedAt - a.approvedAt);
+
+    return applyAttestationFilters(attestations, filters);
+  } catch (error) {
+    logger.error("Failed to fetch approved attestations from EAS", {
       source: "getApprovedAttestations",
       gardenId,
-      limit,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return [];
+  }
+}
+
+/**
+ * Fetches specific attestations by their UIDs.
+ * More efficient than getApprovedAttestations when you have specific UIDs to fetch.
+ *
+ * @param uids - Array of attestation UIDs (work approval UIDs) to fetch
+ * @returns Array of approved work attestations matching the UIDs
+ */
+export async function getAttestationsByUIDs(uids: string[]): Promise<HypercertAttestation[]> {
+  if (uids.length === 0) return [];
+
+  try {
+    // Fetch only the specific approvals by UID
+    const approvals = await getWorkApprovalsByUIDs(uids);
+    if (approvals.length === 0) return [];
+
+    // Filter to only approved ones
+    const approvedApprovals = approvals.filter((approval) => approval.approved);
+    if (approvedApprovals.length === 0) return [];
+
+    // Get the work UIDs we need
+    const workUIDs = approvedApprovals.map((a) => a.workUID);
+    const works = await getWorksByUIDs(workUIDs);
+
+    // Create lookup map
+    const worksByUID = new Map(works.map((w) => [w.id, w]));
+
+    // Build attestations
+    const attestations: HypercertAttestation[] = [];
+    for (const approval of approvedApprovals) {
+      const work = worksByUID.get(approval.workUID);
+      if (!work) continue;
+
+      const metadata = extractWorkMetadata(work.metadata);
+      attestations.push({
+        id: approval.id,
+        uid: approval.id,
+        workUid: work.id,
+        gardenId: work.gardenAddress,
+        title: work.title || "Untitled work",
+        actionType: metadata.actionType,
+        domain: metadata.domain,
+        workScope: metadata.workScope ?? [],
+        gardenerAddress: work.gardenerAddress as Address,
+        gardenerName: null, // ENS lookup would need separate query
+        mediaUrls: work.media ?? [],
+        metrics: metadata.metrics ?? null,
+        createdAt: work.createdAt,
+        approvedAt: approval.createdAt,
+        approvedBy: approval.operatorAddress as Address,
+        feedback: approval.feedback || null,
+      });
+    }
+
+    // Sort by approvedAt descending (most recent first) to match getApprovedAttestations behavior
+    attestations.sort((a, b) => b.approvedAt - a.approvedAt);
+
+    return attestations;
+  } catch (error) {
+    logger.error("Failed to fetch attestations by UIDs from EAS", {
+      source: "getAttestationsByUIDs",
+      uidCount: uids.length,
       error: error instanceof Error ? error.message : String(error),
     });
     return [];
   }
-
-  const approvals = (data as { WorkApproval?: RawWorkApproval[] } | undefined)?.WorkApproval;
-  if (!approvals || !Array.isArray(approvals)) return [];
-
-  const attestations = approvals.map((approval) => {
-    const submission = approval.workSubmission;
-    const gardenerAddress = submission?.gardener?.id || approval.approvedBy || "";
-
-    const gardenerName = submission?.gardenerName || submission?.gardener?.ensName || null;
-
-    return {
-      id: approval.id,
-      workUid: submission?.id ?? "",
-      gardenId: approval.garden?.id ?? gardenId,
-      title: submission?.title ?? "Untitled work",
-      uid: approval.id,
-      actionType: parseActionType(submission?.actionType ?? null),
-      domain: parseActionDomain(submission?.domain ?? null),
-      workScope: submission?.workScope ?? [],
-      gardenerAddress:
-        (gardenerAddress as Address) ?? ("0x0000000000000000000000000000000000000000" as Address),
-      gardenerName,
-      mediaUrls: submission?.mediaUrls ?? [],
-      metrics: parseMetrics(submission?.metrics) ?? null,
-      createdAt: Number(submission?.createdAt ?? 0),
-      approvedAt: Number(approval.approvedAt ?? 0),
-      approvedBy: approval.approvedBy as Address | undefined,
-      feedback: approval.feedback ?? null,
-    } satisfies HypercertAttestation;
-  });
-
-  return applyAttestationFilters(attestations, filters);
 }
 
 /**
@@ -344,7 +487,9 @@ export async function getApprovedAttestations(
 export async function getHypercertClaims(
   hypercertId: string,
   limit = 100
-): Promise<{ id: string; claimant: Address; units: bigint; claimedAt: number; txHash: `0x${string}` }[]> {
+): Promise<
+  { id: string; claimant: Address; units: bigint; claimedAt: number; txHash: `0x${string}` }[]
+> {
   const { data, error } = await greenGoodsIndexer.query(
     HYPERCERT_CLAIMS_QUERY,
     { hypercertId, limit },
@@ -404,20 +549,21 @@ export async function getGardenHypercerts(
   const records = items
     .map((item) => {
       const record = item as Record<string, unknown>;
-      const recordStatus = (record.status as HypercertStatus | undefined) ?? "unknown";
+      const recordStatus = normalizeHypercertStatus(record.status as string | null | undefined);
 
       return {
         id: String(record.id ?? ""),
         tokenId: BigInt((record.tokenId as string | number | bigint | undefined) ?? 0),
-        gardenId: (record.garden as { id?: string } | null | undefined)?.id ?? gardenId,
+        gardenId: (record.garden as string | undefined) ?? gardenId,
         metadataUri: String(record.metadataUri ?? ""),
-        imageUri: undefined,
+        imageUri: record.imageUri ? String(record.imageUri) : undefined,
         mintedAt: Number(record.mintedAt ?? 0),
         mintedBy: record.mintedBy as Address,
         txHash: record.txHash as `0x${string}`,
         totalUnits: BigInt((record.totalUnits as string | number | bigint | undefined) ?? 0),
         claimedUnits: BigInt((record.claimedUnits as string | number | bigint | undefined) ?? 0),
         attestationCount: Number(record.attestationCount ?? 0),
+        attestationUIDs: (record.attestationUIDs as string[] | null | undefined) ?? undefined,
         title: record.title ? String(record.title) : undefined,
         description: record.description ? String(record.description) : undefined,
         workScopes: (record.workScopes as string[] | null | undefined) ?? undefined,
@@ -431,6 +577,12 @@ export async function getGardenHypercerts(
   return status ? records.filter((record) => record.status === status) : records;
 }
 
+/**
+ * Fetches a hypercert by ID from Envio indexer.
+ *
+ * Note: Attestation data is stored as UIDs only in the Envio schema.
+ * To get full attestation details, use getApprovedAttestations() with the garden ID.
+ */
 export async function getHypercertById(hypercertId: string): Promise<HypercertRecord | null> {
   const { data, error } = await greenGoodsIndexer.query(
     HYPERCERT_DETAIL_QUERY,
@@ -451,63 +603,47 @@ export async function getHypercertById(hypercertId: string): Promise<HypercertRe
   if (!items || !Array.isArray(items) || items.length === 0) return null;
 
   const record = items[0] as Record<string, unknown>;
-  const gardenId = (record.garden as { id?: string } | null | undefined)?.id ?? "";
-  const approvals = Array.isArray(record.workApprovals)
-    ? (record.workApprovals as Array<Record<string, unknown>>)
-    : [];
-
-  const attestations: HypercertAttestation[] = approvals.map((approval) => {
-    const submission = approval.workSubmission as Record<string, unknown> | null | undefined;
-    const gardener = submission?.gardener as Record<string, unknown> | null | undefined;
-    const gardenerAddress =
-      (gardener?.id as string | undefined) || (approval.approvedBy as string) || "";
-
-    return {
-      id: String(approval.id ?? ""),
-      uid: String(approval.id ?? ""),
-      workUid: String(submission?.id ?? ""),
-      gardenId,
-      title: String(submission?.title ?? "Untitled work"),
-      actionType: parseActionType((submission?.actionType as string | null | undefined) ?? null),
-      domain: parseActionDomain((submission?.domain as string | null | undefined) ?? null),
-      workScope: (submission?.workScope as string[] | null | undefined) ?? [],
-      gardenerAddress:
-        (gardenerAddress as Address) ?? ("0x0000000000000000000000000000000000000000" as Address),
-      gardenerName:
-        (submission?.gardenerName as string | null | undefined) ??
-        (gardener?.ensName as string | null | undefined) ??
-        null,
-      mediaUrls: (submission?.mediaUrls as string[] | null | undefined) ?? [],
-      metrics: parseMetrics(submission?.metrics) ?? null,
-      createdAt: Number(submission?.createdAt ?? 0),
-      approvedAt: Number(approval.approvedAt ?? 0),
-      approvedBy: approval.approvedBy as Address | undefined,
-      feedback: (approval.feedback as string | null | undefined) ?? null,
-    };
-  });
-
+  const gardenId = (record.garden as string | undefined) ?? "";
   const hypercertIdStr = String(record.id ?? "");
 
   // Fetch claims separately (Envio doesn't support entity arrays)
   const claims = await getHypercertClaims(hypercertIdStr);
+
+  // attestationUIDs are stored but attestation details must be fetched from EAS
+  const attestationUIDs = (record.attestationUIDs as string[] | null | undefined) ?? [];
+
+  let attestations: HypercertAttestation[] | undefined;
+  if (attestationUIDs.length > 0) {
+    try {
+      attestations = await getAttestationsByUIDs(attestationUIDs);
+    } catch (error) {
+      logger.warn("Failed to hydrate hypercert attestations", {
+        source: "getHypercertById",
+        hypercertId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
 
   return {
     id: hypercertIdStr,
     tokenId: BigInt((record.tokenId as string | number | bigint | undefined) ?? 0),
     gardenId,
     metadataUri: String(record.metadataUri ?? ""),
-    imageUri: undefined,
+    imageUri: record.imageUri ? String(record.imageUri) : undefined,
     mintedAt: Number(record.mintedAt ?? 0),
     mintedBy: record.mintedBy as Address,
     txHash: record.txHash as `0x${string}`,
     totalUnits: BigInt((record.totalUnits as string | number | bigint | undefined) ?? 0),
     claimedUnits: BigInt((record.claimedUnits as string | number | bigint | undefined) ?? 0),
-    attestationCount: Number(record.attestationCount ?? 0),
+    attestationCount: Number(record.attestationCount ?? attestationUIDs.length),
+    // Attestations are not populated here - use getApprovedAttestations for full details
     attestations,
+    attestationUIDs,
     title: record.title ? String(record.title) : undefined,
     description: record.description ? String(record.description) : undefined,
     workScopes: (record.workScopes as string[] | null | undefined) ?? undefined,
-    status: (record.status as HypercertStatus | undefined) ?? "unknown",
+    status: normalizeHypercertStatus(record.status as string | null | undefined),
     allowlistEntries: claims,
   } satisfies HypercertRecord;
 }
@@ -518,34 +654,38 @@ export interface BundledAttestationInfo {
   hypercertTitle?: string | null;
 }
 
-export async function checkAttestationsBundled(uids: string[]): Promise<BundledAttestationInfo[]> {
-  if (!uids.length) return [];
+/**
+ * Checks if any of the given attestation UIDs are already bundled in a hypercert.
+ *
+ * This uses the Hypercert entity's attestationUIDs list (indexer data) and
+ * requires a gardenId to scope the query efficiently.
+ */
+export async function checkAttestationsBundled(
+  uids: string[],
+  gardenId: string,
+  limit = 200
+): Promise<BundledAttestationInfo[]> {
+  if (!uids.length || !gardenId) return [];
 
-  const { data, error } = await greenGoodsIndexer.query(
-    CHECK_BUNDLED_QUERY,
-    { uids },
-    "checkAttestationsBundled"
-  );
+  const hypercerts = await getGardenHypercerts(gardenId, undefined, limit);
+  if (!hypercerts.length) return [];
 
-  if (error) {
-    logger.error("Indexer query failed", {
-      source: "checkAttestationsBundled",
-      uidCount: uids.length,
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return [];
+  const uidSet = new Set(uids);
+  const bundledByUid = new Map<string, BundledAttestationInfo>();
+
+  for (const hypercert of hypercerts) {
+    const attestationUIDs = hypercert.attestationUIDs ?? [];
+    if (!attestationUIDs.length) continue;
+
+    for (const uid of attestationUIDs) {
+      if (!uidSet.has(uid) || bundledByUid.has(uid)) continue;
+      bundledByUid.set(uid, {
+        uid,
+        hypercertId: hypercert.id,
+        hypercertTitle: hypercert.title ?? null,
+      });
+    }
   }
 
-  const approvals = (data as { WorkApproval?: Array<Record<string, unknown>> } | undefined)
-    ?.WorkApproval;
-  if (!approvals || !Array.isArray(approvals)) return [];
-
-  return approvals.map((approval) => {
-    const bundled = approval.bundledInHypercert as Record<string, unknown> | null | undefined;
-    return {
-      uid: String(approval.id ?? ""),
-      hypercertId: String(bundled?.id ?? ""),
-      hypercertTitle: bundled?.title ? String(bundled.title) : null,
-    };
-  });
+  return Array.from(bundledByUid.values());
 }

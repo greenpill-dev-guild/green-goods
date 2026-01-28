@@ -3,6 +3,8 @@
  * Standardizes and simplifies React Query cache keys
  */
 
+import type { AttestationFilters } from "../types/hypercerts";
+
 // ============================================
 // Stale Time Constants (in milliseconds)
 // ============================================
@@ -122,6 +124,18 @@ export const queryKeys = {
     detail: (draftId: string) => ["greengoods", "drafts", "detail", draftId] as const,
     images: (draftId: string) => ["greengoods", "drafts", "images", draftId] as const,
   },
+
+  // Hypercert related keys
+  hypercerts: {
+    all: ["greengoods", "hypercerts"] as const,
+    attestations: (gardenId?: string, filters?: AttestationFilters) =>
+      ["greengoods", "hypercerts", "attestations", gardenId, filters] as const,
+    list: (gardenId?: string, status?: string) =>
+      ["greengoods", "hypercerts", "list", gardenId, status] as const,
+    detail: (hypercertId?: string) => ["greengoods", "hypercerts", "detail", hypercertId] as const,
+    drafts: (gardenId?: string, operatorAddress?: string) =>
+      ["greengoods", "hypercerts", "drafts", gardenId, operatorAddress] as const,
+  },
 } as const;
 
 // Utility functions for invalidating related queries
@@ -190,6 +204,13 @@ export const queryInvalidation = {
     queryKeys.drafts.images(draftId),
   ],
 
+  // Invalidate hypercert lists
+  invalidateHypercerts: (gardenId?: string) => [
+    queryKeys.hypercerts.all,
+    queryKeys.hypercerts.list(gardenId),
+    queryKeys.hypercerts.attestations(gardenId),
+  ],
+
   // Invalidate gardener profile
   invalidateGardenerProfile: (address?: string, chainId?: number) => {
     if (address && chainId) {
@@ -225,7 +246,12 @@ export type QueryKey =
   | ReturnType<typeof queryKeys.offline.status>
   | ReturnType<typeof queryKeys.offline.sync>
   | typeof queryKeys.media.all
-  | ReturnType<typeof queryKeys.media.forJob>;
+  | ReturnType<typeof queryKeys.media.forJob>
+  | typeof queryKeys.hypercerts.all
+  | ReturnType<typeof queryKeys.hypercerts.attestations>
+  | ReturnType<typeof queryKeys.hypercerts.list>
+  | ReturnType<typeof queryKeys.hypercerts.detail>
+  | ReturnType<typeof queryKeys.hypercerts.drafts>;
 
 export type WorksQueryKey =
   | typeof queryKeys.works.all
