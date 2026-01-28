@@ -1,7 +1,7 @@
 # Admin Package (Dashboard)
 
 > **Audience:** Frontend engineers working on `packages/admin`.
-> **Related docs:** [Monorepo Structure](monorepo-structure), [packages/admin/README.md](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/admin#readme)
+> **Related docs:** [Monorepo Structure](./architecture), [packages/admin/README.md](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/admin#readme)
 > **Networks:** Arbitrum One (42161), Celo (42220), Base Sepolia (84532). Deployment data: `packages/contracts/deployments/*.json`. Updated November 2024.
 > **External references:** For GraphQL patterns, see [TanStack Query documentation](https://tanstack.com/query/latest/docs/react/overview) and XState's [statecharts guide](https://stately.ai/docs/statecharts) when editing workflows.
 
@@ -130,7 +130,7 @@ CSS variables-based theming:
 - No hardcoded colors
 - Automatic adaptation
 
-[Theme Guide →](../theming)
+[Theme Guide →](./theming)
 
 ---
 

@@ -1,7 +1,7 @@
 # Client Package (PWA)
 
 > **Audience:** Frontend engineers working on `packages/client`.
-> **Related docs:** [Monorepo Structure](monorepo-structure), [packages/client/README.md](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/client#readme)
+> **Related docs:** [Monorepo Structure](./architecture), [packages/client/README.md](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/client#readme)
 > **Networks:** Arbitrum One (42161), Celo (42220), Base Sepolia (84532). Deployment data: `packages/contracts/deployments/*.json`. Updated November 2024.
 > **External references:** Offline data patterns mirror the [TanStack Query offline guide](https://tanstack.com/query/latest/docs/framework/react/guides/examples/offline); review it when adjusting persistence.
 

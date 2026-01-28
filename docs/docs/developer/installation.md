@@ -265,7 +265,7 @@ bun install
 ## Learn More
 
 - [Developer Quickstart](../welcome/quickstart-developer)
-- [Monorepo Structure](architecture/monorepo-structure)
+- [Monorepo Structure](./architecture)
 - [Testing Guide](testing)
 - [Root README](https://github.com/greenpill-dev-guild/green-goods/tree/main#readme)
 

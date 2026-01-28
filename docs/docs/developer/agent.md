@@ -1,10 +1,16 @@
-# Telegram Bot
+# Agent Package (Bot)
 
-The **Telegram Bot** package (`packages/telegram`) provides a conversational interface for Green Goods, enabling users to join gardens, submit work, and approve submissions directly from Telegram.
+> **Audience:** Engineers working on `packages/agent`.
+> **Related docs:** [Monorepo Structure](./architecture), [packages/agent/README.md](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/agent#readme)
+> **External references:** Review the [Telegraf documentation](https://telegraf.js.org/) for bot patterns.
+
+Multi-platform conversational interface for Green Goods (currently Telegram).
+
+---
 
 ## Overview
 
-The bot is designed to be a "Bot-First" alternative to the web client, focusing on ease of use and low-bandwidth accessibility. It leverages AI for natural language understanding and voice processing.
+The agent is designed to be a "Bot-First" alternative to the web client, focusing on ease of use and low-bandwidth accessibility. It leverages AI for natural language understanding and voice processing.
 
 ### Key Features
 
@@ -79,7 +85,7 @@ The bot is built with **Telegraf** and runs as a standalone Node.js/Bun process.
 ## Directory Structure
 
 ```
-packages/telegram/
+packages/agent/
 ├── src/
 │   ├── index.ts           # Entry point, environment setup
 │   ├── bot.ts             # Main bot logic and command handlers
@@ -118,10 +124,10 @@ The bot requires a Telegram Bot Token from [@BotFather](https://t.me/BotFather).
 
 ```bash
 # From project root
-bun run dev:telegram
+bun --filter agent dev
 
 # Or from package directory
-cd packages/telegram
+cd packages/agent
 bun run dev
 ```
 
@@ -279,4 +285,4 @@ bun test --coverage
 - [Package README](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/agent#readme)
 - [Agent Context](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/context/agent.md)
 - [Shared Package](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/shared#readme)
-- [Architecture Overview](../architecture)
+- [Architecture Overview](./architecture)

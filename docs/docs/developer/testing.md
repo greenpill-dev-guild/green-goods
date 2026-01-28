@@ -924,6 +924,145 @@ test("has no accessibility violations", async ({ page }) => {
 
 ---
 
+## Hypercerts Testing
+
+Testing patterns specific to the Hypercert minting feature.
+
+### XState Machine Testing
+
+Test the `mintHypercertMachine` state transitions:
+
+```typescript
+import { createActor, fromPromise } from 'xstate';
+import { mintHypercertMachine } from '@green-goods/shared';
+
+describe('mintHypercertMachine', () => {
+  it('starts in idle state', () => {
+    const actor = createActor(mintHypercertMachine);
+    actor.start();
+    expect(actor.getSnapshot().value).toBe('idle');
+    actor.stop();
+  });
+
+  it('transitions to uploadingMetadata on START_MINT', () => {
+    const actor = createActor(mintHypercertMachine);
+    actor.start();
+
+    actor.send({ type: 'START_MINT', input: createMockMintInput() });
+    expect(actor.getSnapshot().value).toBe('uploadingMetadata');
+    actor.stop();
+  });
+
+  it('retries from last successful state', async () => {
+    let uploadCount = 0;
+
+    const actor = createActor(
+      mintHypercertMachine.provide({
+        actors: {
+          uploadMetadata: fromPromise(async () => ({ cid: 'QmMeta' })),
+          uploadAllowlist: fromPromise(async () => {
+            uploadCount++;
+            if (uploadCount === 1) throw new Error('First attempt failed');
+            return { cid: 'QmAllow', merkleRoot: '0x...' };
+          }),
+        },
+      })
+    );
+    actor.start();
+
+    actor.send({ type: 'START_MINT', input: createMockMintInput() });
+    await waitFor(() => expect(actor.getSnapshot().value).toBe('failed'));
+
+    // Retry preserves metadata CID, retries only failed step
+    actor.send({ type: 'RETRY' });
+    await waitFor(() => expect(actor.getSnapshot().value).toBe('signing'));
+    expect(actor.getSnapshot().context.metadataCid).toBe('QmMeta');
+    actor.stop();
+  });
+});
+```
+
+### Distribution Logic Testing
+
+```typescript
+import { calculateDistribution, buildContributorWeights, TOTAL_UNITS } from '@green-goods/shared';
+
+describe('calculateDistribution', () => {
+  it('distributes equally among contributors', () => {
+    const attestations = [
+      createMockHypercertAttestation({ gardenerAddress: '0x111' }),
+      createMockHypercertAttestation({ gardenerAddress: '0x222' }),
+      createMockHypercertAttestation({ gardenerAddress: '0x333' }),
+    ];
+
+    const result = calculateDistribution(attestations, 'equal');
+    expect(result.length).toBe(3);
+
+    // Total equals TOTAL_UNITS (100_000_000n)
+    const total = result.reduce((sum, e) => sum + e.units, 0n);
+    expect(total).toBe(TOTAL_UNITS);
+  });
+
+  it('weights by contribution count', () => {
+    const attestations = [
+      createMockHypercertAttestation({ gardenerAddress: '0x111' }),
+      createMockHypercertAttestation({ gardenerAddress: '0x111' }),
+      createMockHypercertAttestation({ gardenerAddress: '0x222' }),
+    ];
+
+    const weights = buildContributorWeights(attestations);
+    const result = calculateDistribution(attestations, 'weighted', weights);
+
+    const addr1Entry = result.find(e => e.address === '0x111');
+    const addr2Entry = result.find(e => e.address === '0x222');
+
+    // 0x111 has 2 contributions, 0x222 has 1
+    expect(addr1Entry!.units).toBe(addr2Entry!.units * 2n);
+  });
+});
+```
+
+### Mock Factories
+
+```typescript
+import {
+  createMockHypercertDraft,
+  createMockHypercertAttestation,
+  createMockAllowlistEntry,
+} from '@green-goods/shared/__tests__/test-utils';
+
+const draft = createMockHypercertDraft({
+  gardenId: 'test-garden',
+  title: 'Test Hypercert',
+  attestationIds: ['att-1', 'att-2'],
+});
+
+const attestations = [
+  createMockHypercertAttestation({ id: 'att-1', title: 'Work 1' }),
+  createMockHypercertAttestation({ id: 'att-2', title: 'Work 2' }),
+];
+
+const allowlist = [
+  createMockAllowlistEntry({ address: '0x123...', units: 50_000_000n }),
+  createMockAllowlistEntry({ address: '0x456...', units: 50_000_000n }),
+];
+```
+
+### Running Hypercert Tests
+
+```bash
+# Run all hypercert tests
+bun test packages/shared -- hypercert
+
+# Run specific test file
+bun test packages/shared/src/__tests__/workflows/mintHypercertMachine.test.ts
+
+# With coverage
+bun test packages/shared -- hypercert --coverage
+```
+
+---
+
 ## Complete Testing Documentation
 
 **Package-specific context**:

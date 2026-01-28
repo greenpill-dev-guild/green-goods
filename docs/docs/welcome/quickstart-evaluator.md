@@ -489,7 +489,7 @@ query ApprovalBreakdown($gardenId: String!) {
 ### Developer Resources
 
 - [API Reference](../developer/api-reference)
-- [GraphQL Schema](../developer/architecture/indexer-package)
+- [GraphQL Schema](../developer/indexer)
 
 ### Get Help
 

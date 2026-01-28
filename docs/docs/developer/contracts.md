@@ -1,7 +1,7 @@
 # Contracts Package (Solidity)
 
 > **Audience:** Smart contract engineers and protocol contributors working in `packages/contracts`.
-> **Related docs:** [Monorepo Structure](monorepo-structure), [packages/contracts/README.md](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/contracts#readme)
+> **Related docs:** [Monorepo Structure](./architecture), [packages/contracts/README.md](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/contracts#readme)
 > **Networks:** Arbitrum One (42161), Celo (42220), Base Sepolia (84532). Deployment data: `packages/contracts/deployments/*.json`. Updated November 2024.
 > **External references:** See [Ethereum Attestation Service docs](https://docs.attest.org/) for resolver expectations and [OpenZeppelin Upgrades guide](https://docs.openzeppelin.com/contracts/4.x/api/proxy#UUPSUpgradeable) for UUPS patterns.
 
@@ -133,7 +133,7 @@ bun upgrade:celo
 - Upgrade tests required
 - Multisig-gated (production)
 
-[Upgrade Guide →](../contracts-handbook)
+[Upgrade Guide →](./contracts-handbook)
 
 ---
 
@@ -160,7 +160,7 @@ Never edit directly. Use `--update-schemas` flag for metadata changes only.
 - `src/lib/Karma.sol`
 - `src/interfaces/IKarmaGap.sol`
 
-[Karma GAP Details →](../karma-gap)
+[Karma GAP Details →](./karma-gap)
 
 ---
 
@@ -185,7 +185,7 @@ forge test --gas-report     # With gas reporting
 **📖 Full details**: [packages/contracts/README.md](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/contracts#readme)
 
 **Handbooks**:
-- [Contracts Handbook](../contracts-handbook)
+- [Contracts Handbook](./contracts-handbook)
 - [Deployment Checklist](https://github.com/greenpill-dev-guild/green-goods/tree/main/docs/DEPLOYMENT_CHECKLIST.md)
 
 **Key Files**:
