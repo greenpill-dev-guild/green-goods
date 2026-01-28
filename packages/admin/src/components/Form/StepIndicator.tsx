@@ -99,9 +99,10 @@ export function StepIndicator({ steps, currentStep, onStepClick }: StepIndicator
                 {!isLast && (
                   <div
                     className={cn(
-                      "absolute left-1/2 top-1/2 z-0 h-px w-full -translate-y-1/2",
+                      "absolute left-1/2 top-1/2 h-px w-full -translate-y-1/2",
                       completed ? "bg-success-base" : "bg-bg-soft"
                     )}
+                    style={{ zIndex: 0 }}
                   />
                 )}
               </li>
