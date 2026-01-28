@@ -9,6 +9,16 @@
  * that are used across both client and admin packages.
  */
 
+// DatePicker Components
+export { DatePicker, type DatePickerProps } from "./DatePicker";
+export { DateRangePicker, type DateRangePickerProps } from "./DatePicker";
+
+// Dialog Components
+export { ConfirmDialog, type ConfirmDialogProps } from "./Dialog";
+
+// Error Boundary
+export { ErrorBoundary, type ErrorBoundaryProps } from "./ErrorBoundary";
+
 // Display Components
 export { ImageWithFallback, type ImageWithFallbackProps } from "./Display";
 
