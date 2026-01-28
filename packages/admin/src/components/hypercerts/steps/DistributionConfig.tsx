@@ -87,11 +87,14 @@ export function DistributionConfig({
   };
 
   const handleAddressChange = (index: number, value: string) => {
+    if (!isAddress(value)) {
+      return;
+    }
+
     const updated = [...allowlist];
-    // Store value and let UI validation (isAddress check below) show error state
     updated[index] = {
       ...updated[index],
-      address: value as AllowlistEntry["address"],
+      address: value,
     };
     onAllowlistChange(updated);
   };
