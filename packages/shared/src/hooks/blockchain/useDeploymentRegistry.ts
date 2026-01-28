@@ -6,6 +6,7 @@ import { useAuthContext } from "../../providers/Auth";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { compareAddresses } from "../../utils/blockchain/address";
 import { getChain, getNetworkContracts } from "../../utils/blockchain/contracts";
+import { logger } from "../../modules/app/logger";
 
 // DeploymentRegistry ABI - only the functions we need
 const DEPLOYMENT_REGISTRY_ABI = [
@@ -54,12 +55,14 @@ export function useDeploymentRegistry(): DeploymentRegistryPermissions {
 
   useEffect(() => {
     async function checkPermissions() {
+      // Keep loading=true when not ready - signals we haven't actually checked yet
+      // This prevents race conditions where useRole sees loading=false before wagmi reconnects
       if (!address || !ready) {
         setPermissions({
           isOwner: false,
           isInAllowlist: false,
           canDeploy: false,
-          loading: false,
+          loading: true,
         });
         return;
       }
@@ -69,7 +72,15 @@ export function useDeploymentRegistry(): DeploymentRegistryPermissions {
       try {
         const contracts = getNetworkContracts(chainId);
         const chain = getChain(chainId);
-        const networkConfig = getNetworkConfig(chainId);
+        // Get Alchemy API key from environment to avoid CORS issues with demo endpoint
+        const alchemyKey = import.meta.env.VITE_ALCHEMY_API_KEY || "demo";
+        const networkConfig = getNetworkConfig(chainId, alchemyKey);
+
+        logger.debug("RPC config", {
+          source: "useDeploymentRegistry",
+          hasAlchemyKey: alchemyKey !== "demo",
+          rpcHost: new URL(networkConfig.rpcUrl).hostname,
+        });
 
         // If deployment registry is not configured, return false
         if (contracts.deploymentRegistry === "0x0000000000000000000000000000000000000000") {

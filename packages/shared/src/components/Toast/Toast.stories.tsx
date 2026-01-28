@@ -29,27 +29,19 @@ export const Demo: Story = {
       <p className="text-sm text-text-sub-600 mb-2">Click buttons to show different toast types:</p>
       <div className="flex flex-wrap gap-2">
         <button
-          onClick={() => toastService.show({ type: "success", message: "Operation successful!" })}
+          onClick={() => toastService.show({ status: "success", message: "Operation successful!" })}
           className="px-4 py-2 bg-success-base text-white rounded-lg hover:bg-success-dark transition-colors"
         >
           Success Toast
         </button>
         <button
-          onClick={() => toastService.show({ type: "error", message: "Something went wrong." })}
+          onClick={() => toastService.show({ status: "error", message: "Something went wrong." })}
           className="px-4 py-2 bg-error-base text-white rounded-lg hover:bg-error-dark transition-colors"
         >
           Error Toast
         </button>
         <button
-          onClick={() =>
-            toastService.show({ type: "warning", message: "Please check your input." })
-          }
-          className="px-4 py-2 bg-warning-base text-white rounded-lg hover:bg-warning-dark transition-colors"
-        >
-          Warning Toast
-        </button>
-        <button
-          onClick={() => toastService.show({ type: "info", message: "Here's some information." })}
+          onClick={() => toastService.show({ status: "info", message: "Here's some information." })}
           className="px-4 py-2 bg-information-base text-white rounded-lg hover:bg-information-dark transition-colors"
         >
           Info Toast
@@ -70,10 +62,10 @@ export const LoadingToast: Story = {
       </p>
       <button
         onClick={() => {
-          const toastId = toastService.show({ type: "loading", message: "Processing..." });
+          const toastId = toastService.show({ status: "loading", message: "Processing..." });
           setTimeout(() => {
             toastService.dismiss(toastId);
-            toastService.show({ type: "success", message: "Done!" });
+            toastService.show({ status: "success", message: "Done!" });
           }, 2000);
         }}
         className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors w-fit"
@@ -93,13 +85,13 @@ export const MultipleToasts: Story = {
       <p className="text-sm text-text-sub-600 mb-2">Click to show multiple toasts at once:</p>
       <button
         onClick={() => {
-          toastService.show({ type: "success", message: "First notification" });
+          toastService.show({ status: "success", message: "First notification" });
           setTimeout(
-            () => toastService.show({ type: "info", message: "Second notification" }),
+            () => toastService.show({ status: "info", message: "Second notification" }),
             200
           );
           setTimeout(
-            () => toastService.show({ type: "warning", message: "Third notification" }),
+            () => toastService.show({ status: "info", message: "Third notification" }),
             400
           );
         }}

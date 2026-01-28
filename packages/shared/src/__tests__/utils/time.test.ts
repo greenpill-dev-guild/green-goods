@@ -275,6 +275,8 @@ describe("Time Utilities", () => {
     });
   });
 
+  // Note: toDateInputValue and fromDateInputValue tests are in date-input.test.ts
+
   describe("getStartOfDayUTC", () => {
     it("returns midnight UTC timestamp", () => {
       const result = getStartOfDayUTC(NOW);
