@@ -84,8 +84,6 @@ module.exports = {
       cwd: ".",
       env: {
         NODE_ENV: "development",
-        // Disable interactive prompts for port selection
-        CI: "true",
       },
       merge_logs: true,
       autorestart: true,
