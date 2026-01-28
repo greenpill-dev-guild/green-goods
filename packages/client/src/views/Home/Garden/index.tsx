@@ -79,7 +79,7 @@ export const Garden: React.FC<GardenProps> = () => {
     isFetching: worksFetching,
     isError: worksError,
     refetch: refetchWorks,
-  } = useWorks(gardenIdParam || "");
+  } = useWorks(gardenIdParam || "", { offline: true });
   const members = useMemo<GardenMember[]>(() => {
     if (!garden) return [];
 
@@ -156,7 +156,7 @@ export const Garden: React.FC<GardenProps> = () => {
           })
         );
       }
-    } catch (error) {
+    } catch {
       toast.error(
         intl.formatMessage({
           id: "app.garden.joinError",
