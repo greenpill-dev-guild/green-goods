@@ -6,7 +6,8 @@
 
 import { afterAll, afterEach, beforeAll, vi } from "vitest";
 
-// Mock window.matchMedia before importing modules that use it
+// Mock window.matchMedia for components and libraries that rely on it in tests
+// (e.g., responsive layout logic and chart libraries that expect matchMedia in JSDOM)
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: vi.fn().mockImplementation((query: string) => ({
