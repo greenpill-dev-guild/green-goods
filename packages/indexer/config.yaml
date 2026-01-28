@@ -27,8 +27,14 @@ contracts:
       - event: GardenOperatorRemoved(address indexed updater, address indexed operator)
       - event: GAPProjectCreated(bytes32 indexed projectUID, address indexed gardenAddress, string projectName)
       - event: OpenJoiningUpdated(address indexed updater, bool openJoining)
+  # Hypercert Minter (Hypercerts.org standard contract)
+  - name: HypercertMinter
+    handler: src/EventHandlers.ts
+    events:
+      - event: TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value)
+      - event: ClaimStored(uint256 indexed claimID, string uri, uint256 totalUnits)
 networks:
-  - id: 42161
+  - id: 42161  # Arbitrum
     start_block: 422901795
     contracts:
       - name: ActionRegistry
@@ -37,7 +43,9 @@ networks:
         address: "0x0a7Ca3203f25c1c028D54C19789e83b401383F92"
       - name: GardenAccount
         address: "0x7de23111804b374E3a8d79932C4068d378F6843f"
-  - id: 84532
+      - name: HypercertMinter
+        address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
+  - id: 84532  # Base Sepolia (testnet)
     start_block: 32407622
     contracts:
       - name: ActionRegistry
@@ -46,7 +54,9 @@ networks:
         address: "0x0B0EA0FfB996B0b04335507Ef1523124480f7310"
       - name: GardenAccount
         address: "0xa624FDdBdfA1E13C739791fB65E2D174b7316519"
-  - id: 42220
+      - name: HypercertMinter
+        address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
+  - id: 42220  # Celo
     start_block: 48697725
     contracts:
       - name: ActionRegistry
@@ -55,3 +65,5 @@ networks:
         address: "0xDcA639287A392E17cad0deA4E72F5B3cfA429e6B"
       - name: GardenAccount
         address: "0x710cBFB9a29920B4577692eD495972fcd27286b4"
+      - name: HypercertMinter
+        address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
