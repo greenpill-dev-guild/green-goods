@@ -67,7 +67,7 @@ EAS Contract (on Arbitrum, Celo, Base)
 └── Attestations: Actual signed records
 ```
 
-**Learn more**: [attest.sh](https://attest.sh)
+**Learn more**: [attest.org](https://attest.org)
 
 ### Why EAS?
 
