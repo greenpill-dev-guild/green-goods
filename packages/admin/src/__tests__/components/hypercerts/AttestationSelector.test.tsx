@@ -32,7 +32,9 @@ import { AttestationSelector } from "../../../components/hypercerts/steps/Attest
 // Test Fixtures
 // ============================================
 
-function createMockAttestation(overrides: Partial<HypercertAttestation> = {}): HypercertAttestation {
+function createMockAttestation(
+  overrides: Partial<HypercertAttestation> = {}
+): HypercertAttestation {
   const id = overrides.id ?? `0x${Math.random().toString(16).slice(2)}`;
   return {
     id,
@@ -374,9 +376,7 @@ describe("components/hypercerts/AttestationSelector", () => {
       await user.click(selectAllButton);
 
       // Should only select non-bundled attestations
-      expect(onSelectAll).toHaveBeenCalledWith(
-        expect.not.arrayContaining(["0x1111"])
-      );
+      expect(onSelectAll).toHaveBeenCalledWith(expect.not.arrayContaining(["0x1111"]));
     });
   });
 

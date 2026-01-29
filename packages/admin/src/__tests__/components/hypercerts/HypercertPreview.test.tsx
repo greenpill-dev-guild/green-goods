@@ -26,8 +26,15 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       blockExplorer: "https://sepolia.basescan.org",
     }),
     copyToClipboard: vi.fn().mockResolvedValue(true),
-    ImageWithFallback: ({ src, alt, className }: { src: string; alt: string; className?: string }) =>
-      createElement("img", { src, alt, className, "data-testid": "hypercert-image" }),
+    ImageWithFallback: ({
+      src,
+      alt,
+      className,
+    }: {
+      src: string;
+      alt: string;
+      className?: string;
+    }) => createElement("img", { src, alt, className, "data-testid": "hypercert-image" }),
   };
 });
 
@@ -38,11 +45,7 @@ vi.mock("../../../components/hypercerts/DistributionChart", () => ({
 
 vi.mock("../../../components/hypercerts/steps/MintProgress", () => ({
   MintProgress: ({ state }: { state: MintingState }) =>
-    createElement(
-      "div",
-      { "data-testid": "mint-progress" },
-      `Minting: ${state.status}`
-    ),
+    createElement("div", { "data-testid": "mint-progress" }, `Minting: ${state.status}`),
 }));
 
 import { HypercertPreview } from "../../../components/hypercerts/steps/HypercertPreview";
@@ -114,9 +117,7 @@ function createMockAllowlist(): AllowlistEntry[] {
   ];
 }
 
-function createMockMintingState(
-  overrides: Partial<MintingState> = {}
-): MintingState {
+function createMockMintingState(overrides: Partial<MintingState> = {}): MintingState {
   return {
     status: "idle",
     metadataCid: null,

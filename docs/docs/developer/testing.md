@@ -16,6 +16,11 @@ Comprehensive testing strategy across all Green Goods packages.
 | **Contracts** | Foundry | 80%+ (100% mainnet) | `bun --filter contracts test` |
 | **E2E** | Playwright | Login + key flows | `bun test:e2e:smoke` |
 
+This guide is organized by test type, then by package. For quick reference:
+- **Running any tests?** Start with [Running Tests](#running-tests)
+- **Adding E2E tests?** Jump to [E2E Testing](#e2e-testing-playwright)
+- **Testing a specific package?** Use the sidebar or jump to [Frontend Testing](#frontend-testing) or [Backend Testing](#backend-testing)
+
 ---
 
 ## Running Tests
@@ -175,16 +180,20 @@ Full technical details:
 
 ---
 
-## Client Testing
+## Frontend Testing
 
-### Test Categories
+All frontend packages use **Vitest** with **Testing Library** for component and hook tests. Coverage targets vary by criticality.
+
+### Client Testing
+
+#### Test Categories
 
 - **Component tests** - UI components with Testing Library
 - **Hook tests** - Custom React hooks
 - **Module tests** - Job queue, auth, data modules
 - **Integration tests** - Multi-component flows
 
-### Example: Job Queue Test
+#### Example: Job Queue Test
 
 ```typescript
 describe('JobQueue', () => {
@@ -196,7 +205,7 @@ describe('JobQueue', () => {
 });
 ```
 
-### Key Test Areas
+#### Key Test Areas
 
 - ✅ Offline queue processing
 - ✅ Passkey authentication (XState machine)
@@ -207,18 +216,16 @@ describe('JobQueue', () => {
 
 **Location**: `packages/client/src/__tests__/`
 
----
+### Admin Testing
 
-## Admin Testing
-
-### Test Categories
+#### Test Categories
 
 - **Component tests** - Garden forms, action forms
 - **Route guard tests** - RequireAuth, RequireDeployer
 - **Integration tests** - Garden creation workflow
 - **Role-based tests** - Operator vs Deployer permissions
 
-### Example: Access Control Test
+#### Example: Access Control Test
 
 ```typescript
 it('admin can create garden and add members', async () => {
@@ -232,7 +239,7 @@ it('admin can create garden and add members', async () => {
 });
 ```
 
-### Key Test Areas
+#### Key Test Areas
 
 - ✅ Role-based access control
 - ✅ Garden management (CRUD)
@@ -242,11 +249,9 @@ it('admin can create garden and add members', async () => {
 
 **Location**: `packages/admin/src/__tests__/`
 
----
+### Shared Package Testing
 
-## Shared Package Testing
-
-### Test Categories
+#### Test Categories
 
 - **Hook tests** - All custom hooks (auth, garden, work)
 - **Provider tests** - Auth, JobQueue, Work providers
@@ -254,7 +259,7 @@ it('admin can create garden and add members', async () => {
 - **Module tests** - Core business logic
 - **Workflow tests** - XState machines
 
-### Example: Hook Test
+#### Example: Hook Test
 
 ```typescript
 import { renderHook, waitFor } from '@testing-library/react';
@@ -273,7 +278,7 @@ it('authenticates with passkey', async () => {
 });
 ```
 
-### Key Test Areas
+#### Key Test Areas
 
 - ✅ Authentication state machine
 - ✅ Job queue (add, process, retry, sync)
@@ -288,9 +293,13 @@ it('authenticates with passkey', async () => {
 
 ---
 
-## Contract Testing (Foundry)
+## Backend Testing
 
-### Running Tests
+Backend packages have specialized testing tools: **Foundry** for contracts, **Envio Test Helpers** for indexer, and **Vitest** for agent.
+
+### Contract Testing (Foundry)
+
+#### Running Tests
 
 ```bash
 cd packages/contracts
@@ -302,7 +311,7 @@ forge test --gas-report         # Gas analysis
 forge coverage                  # Coverage report
 ```
 
-### Test Categories
+#### Test Categories
 
 - **Unit tests** - Individual contract functions
 - **Integration tests** - Multi-contract flows (GreenGoodsResolver fan-out)
@@ -310,7 +319,7 @@ forge coverage                  # Coverage report
 - **Upgrade safety** - UUPS upgrade validation
 - **Fuzz tests** - Property-based testing
 
-### Example: Unit Test
+#### Example: Unit Test
 
 ```solidity
 function testGardenToken_mintsNewGarden() public {
@@ -326,7 +335,7 @@ function testGardenToken_mintsNewGarden() public {
 }
 ```
 
-### Example: Integration Test
+#### Example: Integration Test
 
 ```solidity
 function testGreenGoodsResolver_fanOutOnWorkApproval() public {
@@ -346,7 +355,7 @@ function testGreenGoodsResolver_fanOutOnWorkApproval() public {
 }
 ```
 
-### Key Test Areas
+#### Key Test Areas
 
 - ✅ Access control (onlyOwner, role checks)
 - ✅ EAS attestation validation
@@ -361,18 +370,16 @@ function testGreenGoodsResolver_fanOutOnWorkApproval() public {
 - Testnet: 80%+ acceptable
 - Mainnet: 100% tests must pass
 
----
+### Indexer Testing (Envio)
 
-## Indexer Testing (Envio)
-
-### Running Tests
+#### Running Tests
 
 ```bash
 cd packages/indexer
 bun test
 ```
 
-### Test Structure
+#### Test Structure
 
 Uses Envio's mock database for event handler testing:
 
@@ -400,7 +407,7 @@ it("handles GardenMinted event", async () => {
 });
 ```
 
-### Key Test Areas
+#### Key Test Areas
 
 - ✅ Capital type mapping (8 types + UNKNOWN)
 - ✅ Multi-chain ID collision prevention
@@ -412,24 +419,22 @@ it("handles GardenMinted event", async () => {
 
 **Coverage**: Event handler logic (27+ tests)
 
----
+### Agent Testing (Telegram Bot)
 
-## Agent Testing (Telegram Bot)
-
-### Running Tests
+#### Running Tests
 
 ```bash
 cd packages/agent
 bun test
 ```
 
-### Test Categories
+#### Test Categories
 
 - **Handler tests** - Command handlers (pure functions)
 - **Service tests** - External integrations (mocked)
 - **Platform tests** - Message transformation
 
-### Example: Command Handler Test
+#### Example: Command Handler Test
 
 ```typescript
 import { handleStart } from "../handlers/start";
@@ -447,7 +452,7 @@ it("creates new user with encrypted key", async () => {
 });
 ```
 
-### Key Test Areas
+#### Key Test Areas
 
 - ✅ Command routing
 - ✅ Session management
@@ -1063,7 +1068,25 @@ bun test packages/shared -- hypercert --coverage
 
 ---
 
-## Complete Testing Documentation
+## Summary & Next Steps
+
+You now have the tools to test any part of Green Goods:
+
+| Test Type | When to Use | Key Command |
+|-----------|-------------|-------------|
+| Unit tests | After writing any code | `bun test` |
+| E2E smoke | Before PR, after UI changes | `bun test:e2e:smoke` |
+| Contract tests | After Solidity changes | `bun --filter contracts test` |
+| Coverage check | Before major PRs | `bun --filter <pkg> coverage` |
+
+**Next steps:**
+- Review [Contributing Guide](contributing) for PR requirements
+- Check [CI/CD workflows](https://github.com/greenpill-dev-guild/green-goods/tree/main/.github/workflows) for automation details
+- Join [Telegram](https://t.me/+N3o3_43iRec1Y2Jh) for testing questions
+
+---
+
+## Additional Resources
 
 **Package-specific context**:
 - Client: `.claude/context/client.md`
@@ -1074,8 +1097,8 @@ bun test packages/shared -- hypercert --coverage
 - Indexer: `.claude/context/indexer.md`
 
 **E2E testing**:
-- Quick reference: [`../../tests/README.md`](https://github.com/greenpill-dev-guild/green-goods/tree/main/tests#readme)
-- Architecture: [`../../tests/ARCHITECTURE.md`](https://github.com/greenpill-dev-guild/green-goods/tree/main/tests/ARCHITECTURE)
+- Quick reference: [`tests/README.md`](https://github.com/greenpill-dev-guild/green-goods/tree/main/tests#readme)
+- Architecture: [`tests/ARCHITECTURE.md`](https://github.com/greenpill-dev-guild/green-goods/tree/main/tests/ARCHITECTURE)
 
 **CI/CD**:
 - GitHub Actions: `.github/workflows/`

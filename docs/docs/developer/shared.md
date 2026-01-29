@@ -157,6 +157,8 @@ STALE_TIME_SLOW   // 1 minute - gardens, actions
 
 ## Stores (Zustand)
 
+> **State Management Overview:** Green Goods uses [Zustand](../glossary#zustand) for global UI state and [XState](../glossary#xstate) for complex workflows. See [State Management Decision Guide](#state-management-decision-guide) below for when to use each.
+
 Global state management with Zustand:
 
 ```typescript
@@ -261,6 +263,26 @@ useEffect(() => {
   return () => clearTimeout(timeout);
 }, [store.currentStep, store.selectedAttestationIds, store.title]);
 ```
+
+---
+
+## State Management Decision Guide
+
+Green Goods uses three state management approaches. Here's when to use each:
+
+| State Type | Tool | Use When |
+|------------|------|----------|
+| **Server state** | TanStack Query | Fetching/caching remote data (gardens, works, attestations) |
+| **UI state** | Zustand | Global UI preferences, wizard steps, form state across components |
+| **Complex workflows** | XState | Multi-step async flows with clear states (minting, authentication) |
+
+**Decision flowchart:**
+1. Is the data from an API? → **TanStack Query**
+2. Is it UI state shared across components? → **Zustand**
+3. Does it have multiple states with transitions? → **XState**
+4. Is it local to one component? → **useState/useReducer**
+
+The `useHypercertWizardStore` (Zustand) and `mintHypercertMachine` (XState) demonstrate this split: Zustand holds form data, XState manages the minting lifecycle.
 
 ---
 
@@ -616,6 +638,17 @@ export function useGardenStats(gardenId: string, chainId: number) {
   });
 }
 ```
+
+---
+
+## Next Steps
+
+| If you're... | Read next... |
+|--------------|--------------|
+| Building UI components | [Client Package](client) for offline patterns, [Admin Package](admin) for dashboard patterns |
+| Adding business logic | Deep-dive into [Modules](#modules) and [Workflows](#workflows-xstate) |
+| Testing hooks | [Testing Guide](testing#shared-package-testing) |
+| Understanding data flow | [Architecture](architecture#data--integration-flow) |
 
 ---
 

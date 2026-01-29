@@ -34,10 +34,16 @@ Green Goods reduces this to three intuitive steps:
 - Confirm and submit
 - Automatic IPFS storage and on-chain reference
 
-<!-- TODO: Add visual diagram of MDR workflow -->
-<!-- TODO: Add MDR workflow diagram -->
-<!-- <!-- TODO: Add image - MDR Workflow Diagram -->
-<!-- ![MDR Workflow Diagram](../.gitbook/assets/mdr-workflow-diagram.png) --> -->
+```mermaid
+graph LR
+    M["📸 Media<br/>Capture photos"] --> D["📝 Details<br/>Add context"]
+    D --> R["✅ Review<br/>Confirm & submit"]
+
+    style M fill:#10b981,color:#fff
+    style D fill:#3b82f6,color:#fff
+    style R fill:#8b5cf6,color:#fff
+```
+
 *The MDR workflow takes less than 2 minutes per submission*
 
 **Impact**: What used to take hours now takes minutes, letting conservationists focus on their actual work.

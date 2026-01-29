@@ -49,9 +49,23 @@ Garden NFT #1
 - All approvals/rejections
 - Cumulative impact metrics
 
-<!-- TODO: Add diagram showing garden structure -->
-<!-- TODO: Add image - Garden Structure -->
-<!-- ![Garden Structure](../.gitbook/assets/garden-structure-diagram.png) -->
+```mermaid
+graph TD
+    subgraph Garden["🌱 Garden (ERC-721 NFT)"]
+        metadata["📋 Metadata<br/>Name, Location, Banner"]
+        account["💼 Tokenbound Account<br/>(ERC-6551)"]
+        members["👥 Members<br/>Gardeners + Operators"]
+    end
+
+    account --> actions["📝 Actions Registry"]
+    account --> works["✅ Work Submissions"]
+    account --> assessments["📊 Assessments"]
+
+    actions -->|"defines tasks"| works
+    works -->|"reviewed by"| members
+    members -->|"belong to"| Garden
+```
+
 *A garden coordinates members, actions, and work*
 
 ### The Root Garden

@@ -29,7 +29,7 @@ This provides a pre-configured environment with Node, Bun, Foundry, and Docker-i
 - Bun 1.0+
 - Git
 - Docker Desktop (for indexer)
-- Foundry (for contracts)
+- [Foundry](../glossary#foundry) (for contracts)
 
 **Steps:**
 1. Clone the repo
@@ -87,9 +87,9 @@ green-goods/
 
 **Contracts**:
 - Solidity 0.8.20
-- Foundry (Forge, Cast, Anvil)
-- OpenZeppelin (UUPS upgrades)
-- EAS integration
+- [Foundry](../glossary#foundry) (Forge, Cast, Anvil)
+- OpenZeppelin ([UUPS](../glossary#uups-universal-upgradeable-proxy-standard) upgrades)
+- [EAS](../glossary#eas-ethereum-attestation-service) integration
 
 **Networks**:
 - Arbitrum One (42161)
@@ -175,10 +175,23 @@ All data publicly accessible:
 
 ---
 
+## Next Steps
+
+You're set up! Here's your recommended reading path:
+
+1. **Understand the architecture** → [System Overview](architecture)
+2. **Pick a package to explore** → [Shared](shared) (start here for hooks), [Client](client), [Admin](admin), [Contracts](contracts)
+3. **Learn testing patterns** → [Testing Guide](testing)
+4. **Contribute** → [Contributing Guide](contributing)
+
+---
+
 ## Community
 
-- 💬 **Chat**: [Telegram](https://t.me/+N3o3_43iRec1Y2Jh)
+Questions or stuck on setup? We're here to help:
+
+- 💬 **Dev Chat**: [Telegram](https://t.me/+N3o3_43iRec1Y2Jh) — fastest response
 - 🐙 **GitHub**: [Repo](https://github.com/greenpill-dev-guild/green-goods)
-- 🐛 **Issues**: [GitHub Issues](https://github.com/greenpill-dev-guild/green-goods/issues)
-- 📋 **Project Board**: [DevSpot](https://devspot.app/en/projects/466)
+- 🐛 **Issues**: [GitHub Issues](https://github.com/greenpill-dev-guild/green-goods/issues) — bugs and features
+- 💡 **Discussions**: [GitHub Discussions](https://github.com/greenpill-dev-guild/green-goods/discussions) — questions and ideas
 

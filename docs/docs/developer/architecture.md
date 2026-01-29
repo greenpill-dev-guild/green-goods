@@ -4,6 +4,8 @@
 > **Networks:** Arbitrum One (42161), Celo (42220), Base Sepolia (84532). Deployment data lives in `packages/contracts/deployments/*.json`. Updated January 2026.
 > **External references:** Review [Envio docs](https://docs.envio.dev/) and [EAS docs](https://docs.attest.org/) when working on indexer or attestation flows.
 
+> **Key Terms:** [EAS](../glossary#eas-ethereum-attestation-service) (Ethereum Attestation Service), [Envio](../glossary#envio) (event indexer), [ERC-6551](../glossary#tba-tokenbound-account) (token-bound accounts). See the [Glossary](../glossary) for all technical terms.
+
 This guide maps the Green Goods monorepo, summarising package responsibilities, technology stacks, and operational entry points.
 
 ---
@@ -29,12 +31,34 @@ agent ──→ shared
 
 **Single Source of Truth**: `packages/contracts/deployments/`
 
+```mermaid
+graph LR
+    subgraph Frontend
+        client[Client PWA]
+        admin[Admin Dashboard]
+    end
+    subgraph Core
+        shared[Shared Package]
+        contracts[Contracts]
+    end
+    subgraph Backend
+        indexer[Indexer]
+        agent[Agent Bot]
+    end
+
+    client --> shared
+    admin --> shared
+    shared --> contracts
+    indexer --> contracts
+    agent --> shared
+```
+
 ---
 
 ## System Layers
 
 - **Shared (`packages/shared`)** — common hooks, providers, stores, modules, and types used by all React apps. **All React hooks MUST live here.**
-- **Client (`packages/client`)** — offline-first PWA for gardeners. Persists submissions locally, syncs to the contracts/indexer pipeline, and handles sign-in via Pimlico passkeys and WalletConnect.
+- **Client (`packages/client`)** — offline-first PWA for gardeners. Persists submissions locally, syncs to the contracts/indexer pipeline, and handles sign-in via [Pimlico](../glossary#pimlico) passkeys (gasless smart accounts) and WalletConnect.
 - **Admin (`packages/admin`)** — administrative console for operators. Garden setup, membership management, Hypercert minting, and contract lifecycle actions.
 - **Indexer (`packages/indexer`)** — Envio project ingesting contract events and exposing a GraphQL API consumed by both frontends.
 - **Contracts (`packages/contracts`)** — Solidity suite implementing gardens, actions, attestation resolvers, and the Karma GAP bridge. Managed through `deploy.ts` wrappers.
@@ -74,6 +98,8 @@ import { helper } from '../../client/src/utils/helper';
 4. **client/admin/agent** — need shared package
 
 **Run**: `bun build` handles order automatically.
+
+Now that you understand how packages depend on each other, let's look at what each package contains and how to work with it.
 
 ---
 
@@ -138,6 +164,8 @@ import { helper } from '../../client/src/utils/helper';
   ```
 - **Key docs**: [Contracts Package](contracts) and [Contracts Handbook](contracts-handbook) for deployment procedures.
 
+With this understanding of individual packages, let's trace how data flows through the entire system when a gardener submits work.
+
 ---
 
 ## Data & Integration Flow
@@ -163,10 +191,22 @@ import { helper } from '../../client/src/utils/helper';
 
 ---
 
-## Related References
+## Next Steps
 
-- [Product Overview](../features/overview) — condensed product & data map
-- [Getting Started](getting-started) — environment setup
-- [Shared Package](shared) — hooks, modules, and patterns
-- [Contracts Handbook](contracts-handbook) — lifecycle workflows
-- Package-specific guides: [Client](client) | [Admin](admin) | [Indexer](indexer) | [Contracts](contracts)
+Choose your path based on what you're building:
+
+| If you want to... | Start with... |
+|-------------------|---------------|
+| Build frontend features | [Shared Package Guide](shared) → [Client](client) or [Admin](admin) |
+| Work on smart contracts | [Contracts Package](contracts) → [Contracts Handbook](contracts-handbook) |
+| Add GraphQL queries | [Indexer Package](indexer) → [API Reference](api-reference) |
+| Understand the product | [Features Overview](../features/overview) |
+
+---
+
+## Related Documentation
+
+- [Getting Started](getting-started) — Environment setup
+- [Shared Package](shared) — Hooks, modules, and patterns
+- [Contracts Handbook](contracts-handbook) — Deployment procedures
+- [Testing Guide](testing) — Test patterns across all packages

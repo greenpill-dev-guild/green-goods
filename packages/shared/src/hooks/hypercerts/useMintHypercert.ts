@@ -310,151 +310,131 @@ export function useMintHypercert(): UseMintHypercertResult {
     hasWalletClient: !!walletClient,
   });
 
-  const machine = useMemo(
-    () => {
-      logger.debug("[useMintHypercert] Creating machine with provide()");
+  const machine = useMemo(() => {
+    logger.debug("[useMintHypercert] Creating machine with provide()");
 
-      const providedMachine = mintHypercertMachine.provide({
-        actors: {
-          uploadMetadata: fromPromise(async ({ input }: { input: MintHypercertInput }) => {
-            logger.debug("[useMintHypercert] uploadMetadata actor starting", { hasInput: !!input });
-            const validation = validateMetadata(input.metadata);
-            if (!validation.valid) {
-              const message =
-                Object.values(validation.errors ?? {}).join(", ") || "Invalid metadata";
-              throw new Error(message);
-            }
+    const providedMachine = mintHypercertMachine.provide({
+      actors: {
+        uploadMetadata: fromPromise(async ({ input }: { input: MintHypercertInput }) => {
+          logger.debug("[useMintHypercert] uploadMetadata actor starting", { hasInput: !!input });
+          const validation = validateMetadata(input.metadata);
+          if (!validation.valid) {
+            const message = Object.values(validation.errors ?? {}).join(", ") || "Invalid metadata";
+            throw new Error(message);
+          }
 
-            const result = await uploadJSONToIPFS(
-              input.metadata as unknown as Record<string, unknown>,
-              {
-                source: "hypercert-minting-metadata",
-                gardenAddress: input.gardenAddress,
-                authMode,
-                metadataType: "hypercert",
-              }
-            );
-
-            return { cid: result.cid };
-          }),
-          uploadAllowlist: fromPromise(async ({ input }: { input: MintHypercertInput }) => {
-            const validation = sdkValidateAllowlist(input.allowlist, input.totalUnits);
-            if (!validation.valid) {
-              const message =
-                Object.values(validation.errors ?? {}).join(", ") || "Invalid allowlist";
-              throw new Error(message);
-            }
-
-            const tree = generateMerkleTree(input.allowlist);
-            const payload = serializeAllowlistTree(tree.tree);
-
-            const result = await uploadJSONToIPFS(payload as unknown as Record<string, unknown>, {
-              source: "hypercert-minting-allowlist",
+          const result = await uploadJSONToIPFS(
+            input.metadata as unknown as Record<string, unknown>,
+            {
+              source: "hypercert-minting-metadata",
               gardenAddress: input.gardenAddress,
               authMode,
-              metadataType: "hypercert-allowlist",
-            });
-
-            return { cid: result.cid, merkleRoot: tree.root };
-          }),
-          buildAndSignUserOp: fromPromise(async ({ input }: { input: MintHypercertSigningInput }) => {
-            if (!input.metadataCid) {
-              throw new Error("Missing metadata CID");
+              metadataType: "hypercert",
             }
-            if (!input.merkleRoot) {
-              throw new Error("Missing merkle root");
-            }
+          );
 
-            const contracts = await resolveHypercertContracts(chainId);
-            const callData = encodeCreateAllowlist({
-              account: smartAccountClient?.account?.address || (eoaAddress as Address),
-              totalUnits: input.totalUnits,
-              merkleRoot: input.merkleRoot,
-              metadataUri: `ipfs://${input.metadataCid}`,
-              transferRestrictions: TransferRestrictions.AllowAll,
-            });
+          return { cid: result.cid };
+        }),
+        uploadAllowlist: fromPromise(async ({ input }: { input: MintHypercertInput }) => {
+          const validation = sdkValidateAllowlist(input.allowlist, input.totalUnits);
+          if (!validation.valid) {
+            const message =
+              Object.values(validation.errors ?? {}).join(", ") || "Invalid allowlist";
+            throw new Error(message);
+          }
 
-            if (smartAccountClient) {
-              const userOpHash = await smartAccountClient.sendUserOperation({
-                account: smartAccountClient.account,
-                calls: [
-                  {
-                    to: contracts.hypercertMinter,
-                    data: callData,
-                    value: 0n,
-                  },
-                ],
-              });
+          const tree = generateMerkleTree(input.allowlist);
+          const payload = serializeAllowlistTree(tree.tree);
 
-              return { hash: userOpHash };
-            }
+          const result = await uploadJSONToIPFS(payload as unknown as Record<string, unknown>, {
+            source: "hypercert-minting-allowlist",
+            gardenAddress: input.gardenAddress,
+            authMode,
+            metadataType: "hypercert-allowlist",
+          });
 
-            if (!walletClient || !eoaAddress) {
-              throw new Error("Connect a wallet to mint the hypercert");
-            }
+          return { cid: result.cid, merkleRoot: tree.root };
+        }),
+        buildAndSignUserOp: fromPromise(async ({ input }: { input: MintHypercertSigningInput }) => {
+          if (!input.metadataCid) {
+            throw new Error("Missing metadata CID");
+          }
+          if (!input.merkleRoot) {
+            throw new Error("Missing merkle root");
+          }
 
-            const txHash = await walletClient.writeContract({
-              address: contracts.hypercertMinter,
-              abi: [
+          const contracts = await resolveHypercertContracts(chainId);
+          const callData = encodeCreateAllowlist({
+            account: smartAccountClient?.account?.address || (eoaAddress as Address),
+            totalUnits: input.totalUnits,
+            merkleRoot: input.merkleRoot,
+            metadataUri: `ipfs://${input.metadataCid}`,
+            transferRestrictions: TransferRestrictions.AllowAll,
+          });
+
+          if (smartAccountClient) {
+            const userOpHash = await smartAccountClient.sendUserOperation({
+              account: smartAccountClient.account,
+              calls: [
                 {
-                  type: "function",
-                  name: "createAllowlist",
-                  stateMutability: "nonpayable",
-                  inputs: [
-                    { name: "account", type: "address" },
-                    { name: "totalUnits", type: "uint256" },
-                    { name: "merkleRoot", type: "bytes32" },
-                    { name: "metadataUri", type: "string" },
-                    { name: "transferRestrictions", type: "uint8" },
-                  ],
-                  outputs: [{ name: "hypercertId", type: "uint256" }],
+                  to: contracts.hypercertMinter,
+                  data: callData,
+                  value: 0n,
                 },
               ],
-              functionName: "createAllowlist",
-              args: [
-                eoaAddress as Address,
-                input.totalUnits,
-                input.merkleRoot,
-                `ipfs://${input.metadataCid}`,
-                TransferRestrictions.AllowAll,
-              ],
-              account: eoaAddress as Address,
             });
 
-            return { hash: txHash };
-          }),
-          pollForReceipt: fromPromise(async ({ input }: { input: MintHypercertReceiptInput }) => {
-            const contracts = await resolveHypercertContracts(chainId);
-            const publicClient = createPublicClientForChain(chainId);
+            return { hash: userOpHash };
+          }
 
-            if (smartAccountClient) {
-              const receipt = await withTimeout(
-                smartAccountClient.getUserOperationReceipt({
-                  hash: input.hash,
-                }),
-                RECEIPT_POLLING_TIMEOUT_MS,
-                "Transaction confirmation"
-              );
+          if (!walletClient || !eoaAddress) {
+            throw new Error("Connect a wallet to mint the hypercert");
+          }
 
-              const txHash = receipt.receipt.transactionHash as Hex;
-              const hypercertId = extractHypercertIdFromLogs(
-                receipt.logs.filter(
-                  (log) => log.address.toLowerCase() === contracts.hypercertMinter.toLowerCase()
-                ) as Array<{ address: Address } & Record<string, unknown>>,
-                chainId
-              );
+          const txHash = await walletClient.writeContract({
+            address: contracts.hypercertMinter,
+            abi: [
+              {
+                type: "function",
+                name: "createAllowlist",
+                stateMutability: "nonpayable",
+                inputs: [
+                  { name: "account", type: "address" },
+                  { name: "totalUnits", type: "uint256" },
+                  { name: "merkleRoot", type: "bytes32" },
+                  { name: "metadataUri", type: "string" },
+                  { name: "transferRestrictions", type: "uint8" },
+                ],
+                outputs: [{ name: "hypercertId", type: "uint256" }],
+              },
+            ],
+            functionName: "createAllowlist",
+            args: [
+              eoaAddress as Address,
+              input.totalUnits,
+              input.merkleRoot,
+              `ipfs://${input.metadataCid}`,
+              TransferRestrictions.AllowAll,
+            ],
+            account: eoaAddress as Address,
+          });
 
-              return {
-                txHash,
-                hypercertId: hypercertId ?? "",
-              };
-            }
+          return { hash: txHash };
+        }),
+        pollForReceipt: fromPromise(async ({ input }: { input: MintHypercertReceiptInput }) => {
+          const contracts = await resolveHypercertContracts(chainId);
+          const publicClient = createPublicClientForChain(chainId);
 
+          if (smartAccountClient) {
             const receipt = await withTimeout(
-              publicClient.waitForTransactionReceipt({ hash: input.hash }),
+              smartAccountClient.getUserOperationReceipt({
+                hash: input.hash,
+              }),
               RECEIPT_POLLING_TIMEOUT_MS,
               "Transaction confirmation"
             );
+
+            const txHash = receipt.receipt.transactionHash as Hex;
             const hypercertId = extractHypercertIdFromLogs(
               receipt.logs.filter(
                 (log) => log.address.toLowerCase() === contracts.hypercertMinter.toLowerCase()
@@ -463,31 +443,48 @@ export function useMintHypercert(): UseMintHypercertResult {
             );
 
             return {
-              txHash: receipt.transactionHash,
+              txHash,
               hypercertId: hypercertId ?? "",
             };
-          }),
-        },
-      } as never);
+          }
 
-      logger.debug("[useMintHypercert] Machine created successfully", {
-        machineId: providedMachine.id,
-        machineType: typeof providedMachine,
-        hasConfig: !!providedMachine.config,
-      });
+          const receipt = await withTimeout(
+            publicClient.waitForTransactionReceipt({ hash: input.hash }),
+            RECEIPT_POLLING_TIMEOUT_MS,
+            "Transaction confirmation"
+          );
+          const hypercertId = extractHypercertIdFromLogs(
+            receipt.logs.filter(
+              (log) => log.address.toLowerCase() === contracts.hypercertMinter.toLowerCase()
+            ) as Array<{ address: Address } & Record<string, unknown>>,
+            chainId
+          );
 
-      // Debug: Check the actors in the provided machine
-      const implementations = (providedMachine as unknown as { implementations?: unknown }).implementations;
-      logger.debug("[useMintHypercert] Machine implementations", {
-        hasImplementations: !!implementations,
-        implementationsType: typeof implementations,
-        implementationsKeys: implementations ? Object.keys(implementations as object) : [],
-      });
+          return {
+            txHash: receipt.transactionHash,
+            hypercertId: hypercertId ?? "",
+          };
+        }),
+      },
+    } as never);
 
-      return providedMachine;
-    },
-    [authMode, chainId, eoaAddress, smartAccountClient, walletClient]
-  );
+    logger.debug("[useMintHypercert] Machine created successfully", {
+      machineId: providedMachine.id,
+      machineType: typeof providedMachine,
+      hasConfig: !!providedMachine.config,
+    });
+
+    // Debug: Check the actors in the provided machine
+    const implementations = (providedMachine as unknown as { implementations?: unknown })
+      .implementations;
+    logger.debug("[useMintHypercert] Machine implementations", {
+      hasImplementations: !!implementations,
+      implementationsType: typeof implementations,
+      implementationsKeys: implementations ? Object.keys(implementations as object) : [],
+    });
+
+    return providedMachine;
+  }, [authMode, chainId, eoaAddress, smartAccountClient, walletClient]);
 
   logger.debug("[useMintHypercert] About to call useMachine", {
     machineId: machine?.id,

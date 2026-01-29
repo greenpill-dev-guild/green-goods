@@ -23,14 +23,19 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     ...actual,
     TOTAL_UNITS: 100000000n,
     copyToClipboard: vi.fn().mockResolvedValue(true),
-    sumUnits: (entries: AllowlistEntry[]) =>
-      entries.reduce((sum, e) => sum + e.units, 0n),
+    sumUnits: (entries: AllowlistEntry[]) => entries.reduce((sum, e) => sum + e.units, 0n),
   };
 });
 
 // Mock the DistributionChart component
 vi.mock("../../../components/hypercerts/DistributionChart", () => ({
-  DistributionChart: ({ allowlist, totalUnits }: { allowlist: AllowlistEntry[]; totalUnits: bigint }) =>
+  DistributionChart: ({
+    allowlist,
+    totalUnits,
+  }: {
+    allowlist: AllowlistEntry[];
+    totalUnits: bigint;
+  }) =>
     createElement(
       "div",
       { "data-testid": "distribution-chart" },
@@ -227,8 +232,8 @@ describe("components/hypercerts/DistributionConfig", () => {
       );
 
       const unitsInputs = screen.getAllByRole("textbox");
-      const firstUnitsInput = unitsInputs.find(
-        (input) => (input as HTMLInputElement).value.includes("33")
+      const firstUnitsInput = unitsInputs.find((input) =>
+        (input as HTMLInputElement).value.includes("33")
       );
 
       if (firstUnitsInput) {
@@ -298,10 +303,7 @@ describe("components/hypercerts/DistributionConfig", () => {
       await user.click(addButton);
 
       expect(onAllowlistChange).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          ...defaultProps.allowlist,
-          expect.objectContaining({ units: 0n }),
-        ])
+        expect.arrayContaining([...defaultProps.allowlist, expect.objectContaining({ units: 0n })])
       );
     });
   });

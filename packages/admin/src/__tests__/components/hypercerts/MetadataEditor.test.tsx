@@ -47,7 +47,9 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
           type: "date",
           value: value ? new Date(value * 1000).toISOString().split("T")[0] : "",
           onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-            const date = e.target.value ? Math.floor(new Date(e.target.value).getTime() / 1000) : null;
+            const date = e.target.value
+              ? Math.floor(new Date(e.target.value).getTime() / 1000)
+              : null;
             onChange(date);
           },
           "aria-required": required,
@@ -280,9 +282,7 @@ describe("components/hypercerts/MetadataEditor", () => {
       await user.type(workScopeInput, "planting, restoration, care");
 
       // Find the call that contains workScopes
-      const workScopeCalls = onUpdate.mock.calls.filter(
-        (call) => call[0].workScopes !== undefined
-      );
+      const workScopeCalls = onUpdate.mock.calls.filter((call) => call[0].workScopes !== undefined);
       expect(workScopeCalls.length).toBeGreaterThan(0);
     });
   });
@@ -436,8 +436,8 @@ describe("components/hypercerts/MetadataEditor", () => {
       const capitalButtons = screen
         .getAllByRole("button")
         .filter((btn) => btn.getAttribute("aria-label"));
-      const livingCapitalButton = capitalButtons.find(
-        (btn) => btn.getAttribute("aria-label")?.toLowerCase().includes("living")
+      const livingCapitalButton = capitalButtons.find((btn) =>
+        btn.getAttribute("aria-label")?.toLowerCase().includes("living")
       );
 
       if (livingCapitalButton) {

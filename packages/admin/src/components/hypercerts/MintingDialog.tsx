@@ -29,13 +29,9 @@ export function MintingDialog({
   const { formatMessage } = useIntl();
 
   // Determine if dialog should be open based on minting state
-  const isActive =
-    mintingState.status !== "idle" && mintingState.status !== "confirmed";
+  const isActive = mintingState.status !== "idle" && mintingState.status !== "confirmed";
   const isFailed = mintingState.status === "failed";
-  const isInProgress =
-    isActive &&
-    !isFailed &&
-    mintingState.status !== "confirmed";
+  const isInProgress = isActive && !isFailed && mintingState.status !== "confirmed";
 
   return (
     <Dialog.Root open={isActive}>
