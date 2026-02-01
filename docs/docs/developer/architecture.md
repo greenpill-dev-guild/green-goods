@@ -31,27 +31,7 @@ agent ──→ shared
 
 **Single Source of Truth**: `packages/contracts/deployments/`
 
-```mermaid
-graph LR
-    subgraph Frontend
-        client[Client PWA]
-        admin[Admin Dashboard]
-    end
-    subgraph Core
-        shared[Shared Package]
-        contracts[Contracts]
-    end
-    subgraph Backend
-        indexer[Indexer]
-        agent[Agent Bot]
-    end
-
-    client --> shared
-    admin --> shared
-    shared --> contracts
-    indexer --> contracts
-    agent --> shared
-```
+See the [Package Dependencies diagram](diagrams#package-dependencies) for a visual representation of how packages relate to each other.
 
 ---
 
@@ -206,7 +186,7 @@ Choose your path based on what you're building:
 
 ## Related Documentation
 
-- [Getting Started](getting-started) — Environment setup
+- [Installation](installation) — Environment setup
 - [Shared Package](shared) — Hooks, modules, and patterns
 - [Contracts Handbook](contracts-handbook) — Deployment procedures
 - [Testing Guide](testing) — Test patterns across all packages

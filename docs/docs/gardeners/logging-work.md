@@ -30,10 +30,8 @@ Complete guide to documenting your regenerative work using Green Goods' MDR work
 - Use good lighting (avoid shadows)
 - Landscape orientation usually works best
 
-<!-- TODO: Add before photo example -->
-<!-- TODO: Add before photo example -->
-<!-- <!-- TODO: Add image - Before Photo Example -->
-<!-- ![Before Photo Example](../../.gitbook/assets/guide-before-photo.jpg) --> -->
+<!-- TODO: Add image - Before Photo Example -->
+<!-- ![Before Photo Example](../../.gitbook/assets/guide-before-photo.jpg) -->
 *Example: Before photo showing overgrown area*
 
 ### After Completing Work
@@ -51,10 +49,8 @@ Complete guide to documenting your regenerative work using Green Goods' MDR work
 - Capture evidence of work done
 - Include yourself or tools for scale (optional)
 
-<!-- TODO: Add after photo example -->
-<!-- TODO: Add after photo example -->
-<!-- <!-- TODO: Add image - After Photo Example -->
-<!-- ![After Photo Example](../../.gitbook/assets/guide-after-photo.jpg) --> -->
+<!-- TODO: Add image - After Photo Example -->
+<!-- ![After Photo Example](../../.gitbook/assets/guide-after-photo.jpg) -->
 *Example: After photo showing cleared area*
 
 ### Optional: Detail Photos

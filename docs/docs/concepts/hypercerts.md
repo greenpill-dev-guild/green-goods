@@ -392,7 +392,7 @@ Garden focuses on urban tree planting:
 
 - [Attestations](attestations) — Foundation for Hypercerts
 - [Gardens & Work](gardens-and-work) — What gets aggregated
-- [Operator Guide: Reporting Impact](../guides/operators/reporting-impact)
+- [Operator Guide: Reporting Impact](../operators/reporting-impact)
 
 ### External Resources
 

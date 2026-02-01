@@ -109,9 +109,20 @@ const GARDENS_QUERY = gql`
 `;
 
 // Fetch and transform data
-const data = await request(ENDPOINT, GARDENS_QUERY);
-const transformed = data.Garden.map(transformToOurFormat);
-// Use in your dashboard
+async function fetchGardenData() {
+  const data = await request(ENDPOINT, GARDENS_QUERY);
+  // Transform to your dashboard format
+  const transformed = data.Garden.map((garden: { id: string; name: string; location: string; gardeners: string[] }) => ({
+    identifier: garden.id,
+    displayName: garden.name,
+    region: garden.location,
+    memberCount: garden.gardeners.length,
+  }));
+  return transformed;
+}
+
+// Usage
+fetchGardenData().then(gardens => console.log(gardens));
 ```
 
 ---

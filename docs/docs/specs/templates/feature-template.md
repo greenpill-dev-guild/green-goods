@@ -1,6 +1,13 @@
+---
+id: feature-template
+title: Feature Specification Template
+sidebar_label: Feature Template
+sidebar_position: 1
+---
+
 # GG-FEAT-XXX: [Feature Name]
 
-> Feature Specification Template - Copy this file and rename to `GG-FEAT-[NUMBER]_[Feature_Name].md`
+> Feature Specification Template - Copy this file to `docs/docs/specs/[feature-name]/feature-spec.md`
 
 ## 1. Overview
 
@@ -14,7 +21,7 @@
 
 ### 1.3 Related Documents
 - **PRD Section**: [Link to workspace PRD section]
-- **Tech Spec**: [docs/specs/GG-TECH-XXX_[Name].md](docs/specs/GG-TECH-XXX_[Name].md)
+- **Tech Spec**: `./technical-spec.md` _(update path after copying)_
 - **Related Issues**: #X, #Y
 
 ---

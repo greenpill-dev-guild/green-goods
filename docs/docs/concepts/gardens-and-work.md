@@ -54,7 +54,8 @@ graph TD
     subgraph Garden["🌱 Garden (ERC-721 NFT)"]
         metadata["📋 Metadata<br/>Name, Location, Banner"]
         account["💼 Tokenbound Account<br/>(ERC-6551)"]
-        members["👥 Members<br/>Gardeners + Operators"]
+        gardeners["🌱 Gardeners<br/>workers"]
+        operators["🛡️ Operators<br/>validators"]
     end
 
     account --> actions["📝 Actions Registry"]
@@ -62,8 +63,7 @@ graph TD
     account --> assessments["📊 Assessments"]
 
     actions -->|"defines tasks"| works
-    works -->|"reviewed by"| members
-    members -->|"belong to"| Garden
+    works -->|"reviewed by"| operators
 ```
 
 *A garden coordinates members, actions, and work*
@@ -425,6 +425,6 @@ Operator Bob
 - [Roles & Responsibilities](roles) — How members interact with gardens
 - [MDR Workflow](mdr-workflow) — Detailed work submission process
 - [Attestations](attestations) — How work becomes permanent records
-- [Operator Guide: Managing Gardens](../guides/operators/managing-gardens)
-- [Gardener Guide: Logging Work](../guides/gardeners/logging-work)
+- [Operator Guide: Managing Gardens](../operators/managing-gardens)
+- [Gardener Guide: Logging Work](../gardeners/logging-work)
 

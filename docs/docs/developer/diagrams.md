@@ -6,6 +6,36 @@ Canonical Mermaid diagrams for understanding Green Goods data flows and system a
 
 ---
 
+## Package Dependencies {#package-dependencies}
+
+How packages depend on each other in the monorepo.
+
+```mermaid
+graph LR
+    subgraph Frontend
+        client[Client PWA]
+        admin[Admin Dashboard]
+    end
+    subgraph Core
+        shared[Shared Package]
+        contracts[Contracts]
+    end
+    subgraph Backend
+        indexer[Indexer]
+        agent[Agent Bot]
+    end
+
+    client --> shared
+    admin --> shared
+    shared --> contracts
+    indexer --> contracts
+    agent --> shared
+```
+
+**When to use:** Understanding build order, package relationships, onboarding.
+
+---
+
 ## System Context {#system-context}
 
 High-level view of the Green Goods monorepo and external integrations.

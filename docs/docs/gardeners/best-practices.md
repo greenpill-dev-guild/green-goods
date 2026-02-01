@@ -1,6 +1,6 @@
 # Best Practices for Gardeners
 
-Advanced tips and strategies to maximize your impact documentation quality and get faster approvals.
+Advanced tips and strategies to maximize your impact, documentation quality, and get faster approvals.
 
 ---
 
@@ -246,7 +246,7 @@ Advanced tips and strategies to maximize your impact documentation quality and g
 
 **Strategy**:
 - Start with 1-2 gardens
-- Build approval rate (&gt;80%)
+- Build approval rate (>80%)
 - Then expand to more
 - Maintain quality across all
 

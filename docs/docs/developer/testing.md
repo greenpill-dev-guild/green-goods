@@ -646,7 +646,7 @@ test("gardener can submit work", async ({ page }) => {
 ```typescript
 // Mock external services
 vi.mock('@green-goods/shared/modules/data/ipfs', () => ({
-  uploadToIPFS: vi.fn(() => Promise.resolve('ipfs://mock-hash')),
+  uploadFileToIPFS: vi.fn(() => Promise.resolve('ipfs://mock-hash')),
 }));
 
 // Mock viem client

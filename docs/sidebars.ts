@@ -59,37 +59,31 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: 'How-To Guides',
+      label: 'Gardeners',
       items: [
-        {
-          type: 'category',
-          label: 'For Gardeners',
-          items: [
-            'guides/gardeners/logging-work',
-            'guides/gardeners/tracking-contributions',
-            'guides/gardeners/best-practices',
-          ],
-        },
-        {
-          type: 'category',
-          label: 'For Garden Operators',
-          items: [
-            'guides/operators/managing-gardens',
-            'guides/operators/managing-actions',
-            'guides/operators/reviewing-work',
-            'guides/operators/reporting-impact',
-          ],
-        },
-        {
-          type: 'category',
-          label: 'For Impact Evaluators',
-          items: [
-            'guides/evaluators/accessing-data',
-            'guides/evaluators/exploring-gardens',
-            'guides/evaluators/using-attestation-data',
-            'guides/evaluators/external-frameworks',
-          ],
-        },
+        'gardeners/logging-work',
+        'gardeners/tracking-contributions',
+        'gardeners/best-practices',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Operators',
+      items: [
+        'operators/managing-gardens',
+        'operators/managing-actions',
+        'operators/reviewing-work',
+        'operators/reporting-impact',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Evaluators',
+      items: [
+        'evaluators/accessing-data',
+        'evaluators/exploring-gardens',
+        'evaluators/using-attestation-data',
+        'evaluators/external-frameworks',
       ],
     },
     {
@@ -119,7 +113,6 @@ const sidebars: SidebarsConfig = {
       label: 'Setup',
       collapsed: false,
       items: [
-        'developer/getting-started',
         'developer/installation',
       ],
     },

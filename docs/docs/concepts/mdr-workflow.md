@@ -398,6 +398,6 @@ interface WorkSubmission {
 
 - [Gardens & Work](gardens-and-work) — Understanding the broader context
 - [Attestations](attestations) — How submissions become on-chain records
-- [Gardener Guide: Logging Work](../guides/gardeners/logging-work) — Detailed step-by-step
-- [Best Practices Guide](../guides/gardeners/best-practices) — Tips for quality submissions
+- [Gardener Guide: Logging Work](../gardeners/logging-work) — Detailed step-by-step
+- [Best Practices Guide](../gardeners/best-practices) — Tips for quality submissions
 

@@ -1,150 +1,36 @@
 # Developer Quickstart
 
-Get the Green Goods monorepo running locally in 10 minutes. Start building on the regenerative impact protocol.
+Get the Green Goods monorepo running locally in 10 minutes.
 
 ---
 
-## What You'll Need
-
-- 🖥️ macOS, Linux, or Windows (WSL2)
-- 📦 [Bun](https://bun.sh) (v1.0+)
-- 🔨 [Foundry](https://book.getfoundry.sh/getting-started/installation) (for contracts)
-- 🐳 [Docker Desktop](https://www.docker.com/products/docker-desktop/) (for indexer)
-- 🔧 Git
-
-**Optional but recommended**:
-- 🦊 MetaMask or another web3 wallet
-- 🔑 Test ETH on Base Sepolia ([faucet](https://www.coinbase.com/faucets/base-ethereum-goerli-faucet))
-
----
-
-## Step 1: Clone and Install
-
-### 1.1 Clone the Repository
+## Quick Start
 
 ```bash
 git clone https://github.com/greenpill-dev-guild/green-goods.git
 cd green-goods
+bun setup    # Checks deps, installs packages, creates .env
 ```
 
-### 1.2 Run Setup
-
-```bash
-bun setup
-```
-
-The setup script:
-1. Checks required dependencies (Node.js 20+, Bun, Git)
-2. Checks optional dependencies (Docker, Foundry) with install instructions
-3. Runs `bun install` to install all workspace packages
-4. Creates `.env` from `.env.example`
-5. Shows next steps
-
-**What's installed**:
-- Frontend dependencies (React, Vite, TanStack Query)
-- Smart contract tools (Solidity, Foundry)
-- Indexer dependencies (Envio, ReScript)
-- Development tools (Biome, 0xlint, Vitest)
-
-> **Note**: For manual setup, run `bun install` then `cp .env.example .env`
-
----
-
-## Step 2: Configure Environment
-
-### 2.1 Edit .env File
-
-### 2.2 Add Required Variables
-
-Edit `.env` with your preferred editor:
-
-```bash
-# Required for client
-VITE_WALLETCONNECT_PROJECT_ID=your_reown_project_id
-VITE_PIMLICO_API_KEY=your_pimlico_api_key
-VITE_CHAIN_ID=84532  # Base Sepolia (testnet)
-
-# Required for contracts
-FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer  # After creating keystore
-BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
-
-# Optional - IPFS storage (choose one)
-VITE_STORACHA_KEY=your_storacha_key  # Storacha (recommended)
-VITE_STORACHA_PROOF=your_storacha_proof
-PINATA_JWT=your_pinata_jwt  # Pinata (alternative)
-
-# Optional - Contract verification
-ETHERSCAN_API_KEY=your_etherscan_v2_key
-```
-
-**Get API Keys**:
-- **Reown (WalletConnect)**: [cloud.reown.com](https://cloud.reown.com/)
+Edit `.env` with your API keys:
+- **Reown**: [cloud.reown.com](https://cloud.reown.com/)
 - **Pimlico**: [dashboard.pimlico.io](https://dashboard.pimlico.io/)
-- **Storacha** (recommended): [console.storacha.network](https://console.storacha.network)
-- **Pinata** (alternative): [app.pinata.cloud](https://app.pinata.cloud/)
 
-### 2.3 (Optional) Import Deployer Key
-
-For contract deployment:
+Then start all services:
 
 ```bash
-cast wallet import green-goods-deployer --interactive
-# Enter your private key and set a password
+bun dev      # Starts client, admin, indexer via PM2
 ```
 
-[Detailed Environment Setup →](../developer/installation)
+**Services:** Client (localhost:3001) • Admin (localhost:3002) • Indexer (localhost:8080)
+
+> For detailed setup options, Dev Containers, troubleshooting, and environment configuration, see the [Installation Guide](../developer/installation).
 
 ---
 
-## Step 3: Start the Full Stack
+## Explore the Stack
 
-Green Goods uses PM2 to orchestrate all services.
-
-### 3.1 Start Everything
-
-```bash
-bun dev
-```
-
-This starts:
-- ✅ **Client PWA**: https://localhost:3001 (HTTPS via mkcert)
-- ✅ **Admin Dashboard**: http://localhost:3002
-- ✅ **Indexer**: http://localhost:8080 (GraphQL playground)
-
-<!-- TODO: Add screenshot of terminal showing all services -->
-<!-- TODO: Add image - Services Running -->
-<!-- ![Services Running](../.gitbook/assets/services-running.png) -->
-*All services running via PM2*
-
-### 3.2 Verify Services
-
-**Check service status**:
-```bash
-bun exec pm2 status
-```
-
-**View logs**:
-```bash
-# All services
-bun exec pm2 logs
-
-# Specific service
-bun exec pm2 logs client
-bun exec pm2 logs admin
-bun exec pm2 logs indexer
-```
-
-### 3.3 Stop Services
-
-```bash
-bun dev:stop
-```
-
----
-
-## Step 4: Explore the Stack
-
-### 4.1 Client PWA (https://localhost:3001)
+### Client PWA (https://localhost:3001)
 
 The main gardener-facing Progressive Web App.
 
@@ -162,7 +48,7 @@ The main gardener-facing Progressive Web App.
 
 [Client Package Docs →](../developer/client)
 
-### 4.2 Admin Dashboard (http://localhost:3002)
+### Admin Dashboard (http://localhost:3002)
 
 Operator and admin interface.
 
@@ -179,7 +65,7 @@ Operator and admin interface.
 
 [Admin Package Docs →](../developer/admin)
 
-### 4.3 GraphQL Indexer (http://localhost:8080)
+### GraphQL Indexer (http://localhost:8080)
 
 Envio indexer exposing Green Goods blockchain data.
 
@@ -208,11 +94,11 @@ query Gardens {
 
 ---
 
-## Step 5: Run Tests
+## Run Tests
 
 Green Goods has comprehensive test coverage.
 
-### 5.1 Client Tests
+### Client Tests
 
 ```bash
 bun --filter client test
@@ -224,13 +110,13 @@ bun --filter client test
 - Integration tests
 - Service layer tests
 
-### 5.2 Admin Tests
+### Admin Tests
 
 ```bash
 bun --filter admin test
 ```
 
-### 5.3 Contract Tests
+### Contract Tests
 
 ```bash
 bun --filter contracts test
@@ -242,7 +128,7 @@ bun --filter contracts test
 - Gas optimization tests
 - Upgrade safety tests
 
-### 5.4 E2E Tests (Playwright)
+### E2E Tests (Playwright)
 
 ```bash
 # Run smoke tests (client + admin)
@@ -262,7 +148,7 @@ bun test:e2e:ui
 - Mobile responsive design
 - Cross-platform compatibility
 
-### 5.5 Run All Tests
+### Run All Tests
 
 ```bash
 bun test            # All unit/integration tests
@@ -276,15 +162,15 @@ bun test:e2e:smoke  # E2E smoke tests
 
 ---
 
-## Step 6: Deploy to Testnet (Optional)
+## Deploy to Testnet (Optional)
 
-### 6.1 Compile Contracts
+### Compile Contracts
 
 ```bash
 bun --filter contracts build
 ```
 
-### 6.2 Deploy to Base Sepolia
+### Deploy to Base Sepolia
 
 **Dry run first** (simulation):
 ```bash
@@ -336,7 +222,7 @@ Uses Biome (35x faster than Prettier).
 bun lint
 ```
 
-Uses 0xlint (30ms on entire codebase) + Biome.
+Uses oxlint (30ms on entire codebase) + Biome.
 
 ### Build for Production
 

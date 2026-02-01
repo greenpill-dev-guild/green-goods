@@ -238,12 +238,12 @@ Rejected: 5
 Rate: 90%
 ```
 
-**High approval rate (&gt;80%)** indicates:
+**High approval rate (>80%)** indicates:
 - Quality documentation
 - Understanding of standards
 - Reliable contributor
 
-**Low approval rate (&lt;50%)** suggests:
+**Low approval rate (<50%)** suggests:
 - Review feedback carefully
 - Improve photo quality
 - More accurate metrics
@@ -378,7 +378,7 @@ Rate: 90%
 ### What Funders Look For
 
 **High-Quality Portfolio**:
-- ✅ Consistent approval rate (&gt;80%)
+- ✅ Consistent approval rate (>80%)
 - ✅ Diverse action types
 - ✅ Clear photo documentation
 - ✅ Accurate metrics

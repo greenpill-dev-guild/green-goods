@@ -1,6 +1,13 @@
+---
+id: technical-template
+title: Technical Specification Template
+sidebar_label: Technical Template
+sidebar_position: 2
+---
+
 # GG-TECH-XXX: [Feature Name] Technical Specification
 
-> Technical Specification Template - Copy this file and rename to `GG-TECH-[NUMBER]_[Feature_Name]_Technical.md`
+> Technical Specification Template - Copy this file to `docs/docs/specs/[feature-name]/technical-spec.md`
 
 ## 1. Overview
 
@@ -13,7 +20,7 @@ Engineering blueprint for implementing [Feature Name].
 - **Breaking Changes**: [list or "None"]
 
 ### 1.3 Related Documents
-- **Feature Spec**: [docs/specs/GG-FEAT-XXX.md](docs/specs/GG-FEAT-XXX.md)
+- **Feature Spec**: `./feature-spec.md` _(update path after copying)_
 - **CLAUDE.md**: Architecture constraints and patterns
 
 ---

@@ -8,8 +8,7 @@ Quick navigation for Green Goods developers organized by your learning journey.
 
 New to the codebase? Start here.
 
-- [Quick Start](getting-started.md) — Setup in 5 minutes
-- [Full Installation](installation.md) — Detailed setup options and troubleshooting
+- [Installation Guide](installation.md) — Setup in 5 minutes with detailed options
 
 ---
 

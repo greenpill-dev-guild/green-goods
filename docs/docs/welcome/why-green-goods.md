@@ -36,7 +36,7 @@ Green Goods reduces this to three intuitive steps:
 
 ```mermaid
 graph LR
-    M["📸 Media<br/>Capture photos"] --> D["📝 Details<br/>Add context"]
+    M["📸 Media<br/>Capture photos"] --> D["✍️ Details<br/>Add context"]
     D --> R["✅ Review<br/>Confirm & submit"]
 
     style M fill:#10b981,color:#fff

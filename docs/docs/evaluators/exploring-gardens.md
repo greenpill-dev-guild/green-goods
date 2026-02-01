@@ -27,11 +27,38 @@ query Gardens($chainId: Int!) {
 - Location (city, region)
 - Specific garden IDs
 
+**Filter Examples**:
+
+```graphql
+# Filter by location (partial match)
+query GardensByLocation($chainId: Int!, $location: String!) {
+  Garden(where: {
+    chainId: {_eq: $chainId},
+    location: {_ilike: $location}
+  }) {
+    id
+    name
+    location
+  }
+}
+# Variables: {"chainId": 42161, "location": "%San Francisco%"}
+
+# Filter by specific garden IDs
+query GardensByIds($ids: [String!]!) {
+  Garden(where: {id: {_in: $ids}}) {
+    id
+    name
+    location
+  }
+}
+# Variables: {"ids": ["0x123...", "0x456..."]}
+```
+
 ---
 
 ## Garden-Level Analytics
 
-**Key Metrics** (from Envio indexer):
+**Key Metrics** (from the Envio indexer):
 - Garden metadata and members
 - Active gardeners count
 - GAP project tracking
@@ -56,7 +83,7 @@ query GardenDetails($gardenId: String!) {
 }
 ```
 
-**For work submissions and approvals**, query **EAS GraphQL API** separately:
+**For work submissions and approvals**, query the **Ethereum Attestation Service (EAS) GraphQL API** separately:
 ```graphql
 # Query work attestations from EAS (not Green Goods indexer)
 query WorkSubmissions($schemaId: String!, $recipient: String!) {
@@ -166,9 +193,17 @@ query ApprovalAttestations($schemaId: String!, $recipient: String!) {
 import { getGardens } from '@green-goods/shared/modules/data/indexer';
 import { getWorks, getWorkApprovals } from '@green-goods/shared/modules/data/eas';
 
-const gardens = await getGardens(chainId);
-const works = await getWorks(gardenAddress, chainId);
-const approvals = await getWorkApprovals(gardenAddress, chainId);
+async function fetchGardenData(chainId: number, gardenAddress: string) {
+  try {
+    const gardens = await getGardens(chainId);
+    const works = await getWorks(gardenAddress, chainId);
+    const approvals = await getWorkApprovals(gardenAddress, chainId);
+    return { gardens, works, approvals };
+  } catch (error) {
+    console.error('Failed to fetch garden data:', error);
+    throw error;
+  }
+}
 ```
 
 ---

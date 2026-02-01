@@ -12,6 +12,8 @@ Green Goods data comes from **two separate APIs**:
 
 **Endpoint**: https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql
 
+> **Note**: The `0bf0e0f` segment is a deployment identifier that may change between releases. Find the current endpoint in the [indexer package](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/indexer) or deployment artifacts.
+
 **Provides**:
 - Gardens (metadata, members)
 - Actions (task registry)
@@ -90,9 +92,11 @@ query WorkSubmissions($schemaId: String!, $recipient: String!) {
 ```json
 {
   "schemaId": "0xf6fd183baeb8ae5c5f2f27a734b546b6128bee7877ea074f5cf9b18981be3a20",
-  "recipient": "0xGardenAccountAddress"
+  "recipient": "0x..."  // Replace with actual garden account address
 }
 ```
+
+> **Schema IDs by Chain**: Schema IDs differ per chain. Find the current values for Arbitrum, Celo, and Base Sepolia in the [deployment artifacts](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/contracts/deployments).
 
 [Full API Reference →](../../developer/api-reference)
 
