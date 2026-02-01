@@ -7,7 +7,6 @@ Loaded when working in `packages/shared/`. Extends CLAUDE.md.
 | Command | Purpose |
 |---------|---------|
 | `bun test` | Run tests |
-| `npx tsc --noEmit` | Type check |
 | `bun lint` | Lint with oxlint |
 | `bun run storybook` | Start Storybook (port 6006) |
 | `bun run build-storybook` | Build static Storybook |
@@ -321,10 +320,10 @@ The a11y addon runs automatically:
 
 | File | Purpose |
 |------|---------|
-| `.storybook/main.ts` | Addons, Vite config |
-| `.storybook/preview.tsx` | Global decorators |
-| `.storybook/storybook.css` | Tailwind + tokens |
-| `.storybook/theme.ts` | Green Goods branding |
+| `packages/shared/.storybook/main.ts` | Addons, Vite config |
+| `packages/shared/.storybook/preview.tsx` | Global decorators |
+| `packages/shared/.storybook/storybook.css` | Tailwind + tokens |
+| `packages/shared/.storybook/theme.ts` | Green Goods branding |
 
 ## Reference Files
 
@@ -333,4 +332,4 @@ The a11y addon runs automatically:
 - Package exports: `src/index.ts`
 - Providers: `src/providers/`
 - Stores: `src/stores/`
-- Storybook config: `.storybook/`
+- Storybook config: `packages/shared/.storybook/`

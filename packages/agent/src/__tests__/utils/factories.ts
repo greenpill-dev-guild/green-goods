@@ -1,4 +1,4 @@
-import type { InboundMessage, User, Session, WorkDraftData } from "../../src/types";
+import type { InboundMessage, User, Session, WorkDraftData } from "../../types";
 import { faker } from "@faker-js/faker";
 
 // Set seed for reproducible tests
@@ -108,7 +108,7 @@ export class MessageBuilder {
   }
 
   build(): InboundMessage {
-    return this.message;
+    return { ...this.message };
   }
 }
 

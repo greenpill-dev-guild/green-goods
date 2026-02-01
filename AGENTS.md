@@ -125,35 +125,34 @@ Default to local commands (rg, bun, forge) when the task is small. Escalate to M
 
 ## Developer Onboarding
 
-When helping a developer set up the project for the first time, recommend the **Dev Container** (Option A) for the most reliable experience, or the automated setup script (Option B).
-
-### Option A: Dev Container (Best)
-1. Install Docker Desktop + VS Code
-2. Open repo in VS Code -> "Reopen in Container"
-3. Edit `.env`
-4. `bun dev`
-
-### Option B: Local Shell
 ```bash
 git clone https://github.com/greenpill-dev-guild/green-goods.git
 cd green-goods
-bun setup
+bun setup    # Checks deps, installs packages, creates .env
+bun dev      # Starts client, admin, indexer via PM2
 ```
 
-The `bun setup` command (`scripts/setup.js`):
-1. Checks for Node.js 20+, Bun, Git (required) and Docker, Foundry (optional)
-2. Auto-installs Bun if missing
-3. Runs `bun install` to install all workspace packages
-4. Creates `.env` from `.env.example`
-5. Provides next-step guidance
+After setup, edit `.env` with API keys (Reown, Pimlico, optionally Storacha).
 
-After setup, the developer needs to:
-1. Edit `.env` with API keys (Reown, Pimlico, optionally Storacha)
-2. Run `bun dev` to start all services
+For detailed setup instructions, troubleshooting, and Dev Container options, see the [Developer Quickstart](https://docs.greengoods.app/welcome/quickstart-developer).
 
-> **macOS Note**: The indexer runs via Docker (`docker-compose.indexer.yaml`) to avoid a known Rust `system-configuration` crate panic. PM2 handles this automatically. For manual control: `cd packages/indexer && bun run dev:docker`
+### Offline Bootstrap (Quick Reference)
 
-For troubleshooting setup issues, see [Installation Guide](./docs/developer/installation.md).
+If docs.greengoods.app is unavailable:
+
+```bash
+# Essential setup
+git clone https://github.com/greenpill-dev-guild/green-goods.git
+cd green-goods
+bun setup    # Checks deps, installs packages, creates .env
+bun dev      # Starts all services
+
+# Package-specific context files
+.claude/context/shared.md   # Hooks, providers, stores
+.claude/context/client.md   # PWA, offline architecture
+.claude/context/admin.md    # Dashboard, access control
+.claude/context/contracts.md # Solidity, deployment
+```
 
 ## Workflow Checklist
 
@@ -171,7 +170,7 @@ For troubleshooting setup issues, see [Installation Guide](./docs/developer/inst
    - Document non-obvious flows with concise comments
 3. **Before handing off**
    - Run `bun format && bun lint && bun test` or the package-specific equivalent
-   - Update documentation alongside behaviour changes (see `docs/developer/getting-started.md` and `docs/developer/contributing.md`, package READMEs)
+   - Update documentation alongside behavior changes (see [docs.greengoods.app](https://docs.greengoods.app) and package READMEs)
    - Surface remaining risks, manual steps, or test gaps in the final message
 
 ## Common Patterns
@@ -208,7 +207,7 @@ Client and admin apps are deployed to IPFS via GitHub Actions (`.github/workflow
 - `STORACHA_PROOF` — UCAN delegation proof
 - `PINATA_JWT` — Pinata JWT for redundancy
 
-See [IPFS Deployment Guide](./docs/developer/ipfs-deployment.md) for setup and troubleshooting.
+See [IPFS Deployment Guide](https://docs.greengoods.app/developer/ipfs-deployment) for setup and troubleshooting.
 
 ## Diagram-First Explanations
 
@@ -228,12 +227,15 @@ For complex flows, start with a sequence diagram (detailed), then summarize to a
 
 ## Reference Materials
 
-- [Developer Docs](./docs/developer/getting-started.md) — environment, testing, troubleshooting
-- [Contracts Handbook](./docs/developer/contracts-handbook.md) — deployment + upgrade playbooks
-- [IPFS Deployment](./docs/developer/ipfs-deployment.md) — decentralized app deployment
-- [Product Overview](./docs/features/overview.md) — architecture snapshot
-- [Karma GAP Integration](./docs/developer/karma-gap.md) — GAP-specific context
-- [Architecture Diagrams](./docs/developer/architecture/diagrams.md) — canonical Mermaid diagrams
-- [Storybook](http://localhost:6006) — component library (run `bun dev` or `cd packages/shared && bun run storybook`)
+> **Fallback:** If docs.greengoods.app is unavailable, see package READMEs and `.claude/context/*.md` files for offline reference.
+
+- [Developer Quickstart](https://docs.greengoods.app/welcome/quickstart-developer) — environment setup
+- [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook) — deployment + upgrade playbooks
+- [IPFS Deployment](https://docs.greengoods.app/developer/ipfs-deployment) — decentralized app deployment
+- [Product Overview](https://docs.greengoods.app/features/overview) — architecture snapshot
+- [Karma GAP Integration](https://docs.greengoods.app/developer/karma-gap) — GAP-specific context
+- [Architecture Diagrams](https://docs.greengoods.app/developer/architecture/diagrams) — canonical Mermaid diagrams
+- [Storybook](http://localhost:6006) — component library (local dev only, run `bun dev`)
+  - *For CI-deployed Storybook, see GitHub Actions artifacts or package README*
 
 When in doubt, check recent commits for precedent, or ask for clarification instead of guessing. Consistency across packages is the priority.

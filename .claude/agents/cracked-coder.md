@@ -85,6 +85,29 @@ Use when:
 - High-stakes code changes
 - Feature implementation (TDD required)
 
+## Skills Reference
+
+When implementing, consult these skills for best practices:
+
+| Skill | When to Reference |
+|-------|-------------------|
+| `test-driven-development` | **Always** for features/bugfixes (TDD workflow) |
+| `vitest` | Writing unit tests, mocking, coverage |
+| `e2e-testing-patterns` | Playwright tests, critical user flows |
+| `react-best-practices` | Data fetching, performance, bundle size |
+| `composition-patterns` | Component architecture, compound components |
+| `react-state-management` | Zustand stores, state architecture |
+| `tanstack-query` | Server state, queries, mutations |
+| `error-handling-patterns` | Error handling, Result types, toasts |
+| `architecture-patterns` | Clean Architecture, DDD, system design |
+| `reducing-entropy` | Cathedral Check, architectural work, refactoring, code deletion |
+| `responsive-design` | Mobile-first, container queries, fluid typography |
+| `vite` | Build config, env vars, plugins |
+
+See `.claude/skills/` for full guidelines.
+
+---
+
 ## Workflow: GATHER → PLAN → TEST → IMPLEMENT → VERIFY
 
 ### GATHER
@@ -96,9 +119,19 @@ Use when:
 
 ### PLAN
 1. Design solution architecture
-2. Identify edge cases
-3. Plan test strategy
-4. Consider failure modes
+2. **Cathedral Check** (from `reducing-entropy` skill):
+   - Find most similar existing file as reference
+   - Check for hidden global costs:
+     - **Rule 2 (Event Listeners)**: Cleanup with `useEventListener()` or `{ once: true }`
+     - **Rule 3 (Async Mount Guard)**: Use `useAsyncEffect()` with `isMounted()`
+     - **Rule 7 (Query Keys)**: Use `queryKeys.x.y()` helpers, not inline objects
+     - **Rule 9 (Chained useMemo)**: Combine into single useMemo
+     - **Rule 10 (Context Values)**: Wrap provider value in useMemo
+   - Identify architectural invariants to preserve
+3. Identify edge cases
+4. Plan test strategy
+5. Consider failure modes
+6. **Check skills**: Review `react-best-practices` for performance, `composition-patterns` for architecture
 
 ### TEST (Mandatory for Features)
 
@@ -122,6 +155,7 @@ it("should calculate garden metrics correctly", () => {
 2. Handle edge cases identified in PLAN
 3. Follow Green Goods patterns (see CLAUDE.md)
 4. Document non-obvious decisions
+5. **Apply skills**: Use `react-best-practices` rules (waterfalls, bundle size, re-renders)
 
 ### VERIFY
 

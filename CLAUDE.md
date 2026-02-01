@@ -80,7 +80,6 @@ bun run dev:docker:down  # Stop Docker containers
 **Shared Package:**
 ```bash
 cd packages/shared
-npx tsc --noEmit     # Type check
 bun test             # Run tests
 bun lint             # Lint with oxlint
 bun run storybook    # Start Storybook dev server (port 6006)
@@ -425,6 +424,70 @@ When implementing features:
 - Using `any` without documentation
 - Swallowing errors silently
 
+## Architectural Rules (10 Core Rules)
+
+> See `.claude/rules/architectural-rules.md` for full details and examples.
+
+These rules prevent performance leaks, fragile abstractions, and consistency drifts:
+
+| Rule | Pattern | Fix |
+|------|---------|-----|
+| **1. Timer Cleanup** | setTimeout in hooks | Use `useTimeout()` or `useDelayedInvalidation()` |
+| **2. Event Listeners** | addEventListener without cleanup | Use `useEventListener()` or `{ once: true }` |
+| **3. Async Races** | Async in useEffect without guard | Use isMounted flag or `useAsyncEffect()` |
+| **4. Error Handling** | Empty catch blocks | Use `createMutationErrorHandler()` |
+| **5. Address Types** | `string` for addresses | Use `Address` from shared types |
+| **6. Zustand Selectors** | `(state) => state` | Use granular field selectors |
+| **7. Query Keys** | Unstable object refs | Serialize or use useMemo |
+| **8. Form Validation** | Manual useState validation | Use React Hook Form + Zod |
+| **9. Chained useMemo** | useMemo depending on useMemo | Combine into single useMemo |
+| **10. Context Values** | Inline object literals | Wrap in useMemo |
+
+### Utility Hooks
+
+Use these hooks from `@green-goods/shared` to enforce patterns:
+
+```typescript
+import {
+  // Event listeners with auto-cleanup
+  useEventListener,
+  useWindowEvent,
+  useDocumentEvent,
+  // Timeouts with auto-cleanup
+  useTimeout,
+  useDelayedInvalidation,
+  // Async effects with mount guards
+  useAsyncEffect,
+  useAsyncSetup,
+} from '@green-goods/shared';
+```
+
+### Quick Reference
+
+```typescript
+// ❌ NEVER: Raw setTimeout in hooks
+setTimeout(() => invalidate(), 3000);
+
+// ✅ ALWAYS: Use utility hook
+const schedule = useDelayedInvalidation(invalidate, 3000);
+schedule();
+
+// ❌ NEVER: addEventListener without cleanup
+element.addEventListener('click', handler);
+
+// ✅ ALWAYS: Use utility hook or { once: true }
+useEventListener(element, 'click', handler);
+
+// ❌ NEVER: Async effect without guard
+useEffect(() => { fetch().then(setData); }, []);
+
+// ✅ ALWAYS: Use mount guard
+useAsyncEffect(async ({ isMounted }) => {
+  const data = await fetch();
+  if (isMounted()) setData(data);
+}, []);
+```
+
 ## Claude Code Integration
 
 This project has extensive Claude Code tooling configured in `.claude/`.
@@ -464,14 +527,41 @@ All work enters through one of these flows:
 | `/debug` | Systematic debugging with root cause analysis |
 | `/audit` | Comprehensive codebase health analysis |
 
-### Available Skills (4)
+### Available Skills (12)
 
-| Skill | Purpose |
-|-------|---------|
-| **plan** | Create plans, check progress, execute in batches |
-| **review** | 6-pass ultra-critical review, GitHub posting |
-| **debug** | Root cause analysis, verification before completion |
-| **audit** | Dead code detection, architectural anti-patterns |
+See [.claude/skills/index.md](.claude/skills/index.md) for quick reference with invocation keywords.
+
+**Command Skills (Workflow Orchestration):**
+
+| Skill | Invoke With | Purpose |
+|-------|-------------|---------|
+| **plan** | `/plan`, "plan this" | Create plans, check progress, execute in batches |
+| **review** | `/review`, "review this PR" | 6-pass ultra-critical review, GitHub posting |
+| **debug** | `/debug`, "debug this" | Root cause analysis, verification before completion |
+| **audit** | `/audit`, "audit codebase" | Dead code detection, architectural anti-patterns |
+
+**Development Skills (Implementation):**
+
+| Skill | Invoke With | Purpose |
+|-------|-------------|---------|
+| **testing** | "write tests", "TDD", "unit test" | TDD workflow, Vitest unit tests, Playwright E2E |
+| **react** | "component", "state", "hooks" | State management, composition, performance |
+| **tanstack-query** | "query", "fetch data", "mutation" | TanStack Query v5, server state, caching |
+| **error-handling-patterns** | "error handling", "try/catch" | Error boundaries, Result types, retry patterns |
+| **vite** | "build", "bundle", "env vars" | Vite 6.x config, plugins, optimization |
+
+**Design Skills (UI/UX):**
+
+| Skill | Invoke With | Purpose |
+|-------|-------------|---------|
+| **ui-compliance** | "accessibility", "a11y", "responsive" | WCAG, forms, mobile-first, animation, i18n |
+| **mermaid-diagrams** | "diagram", "flowchart", "mermaid" | Create diagrams for architecture, flows, ERDs |
+
+**Architecture Skills (System Design):**
+
+| Skill | Invoke With | Purpose |
+|-------|-------------|---------|
+| **architecture** | "architecture", "refactor", "clean code" | Clean Architecture, DDD, entropy reduction |
 
 ### Available Agents (3)
 

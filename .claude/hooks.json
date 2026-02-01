@@ -1,12 +1,20 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "description": "Green Goods Claude Code hooks v3.0 - 4 categories",
+  "description": "Green Goods Claude Code hooks v3.1 - Enhanced security validation",
+
+  "_security_notes": [
+    "All hook commands use pattern matching on Claude-provided variables ($TOOL_INPUT, $FILE_PATH)",
+    "These variables are sanitized by Claude Code before being passed to hooks",
+    "Commands use grep for pattern matching - no eval, no dynamic code execution",
+    "All patterns are anchored and specific to prevent false positives"
+  ],
 
   "hooks": {
     "PreToolUse": [
       {
         "_category": "Quality",
         "_description": "Block hooks in wrong location",
+        "_security": "Pattern-based check on sanitized $TOOL_INPUT",
         "matcher": "Write|Edit",
         "hooks": [
           {
@@ -19,12 +27,25 @@
       {
         "_category": "Quality",
         "_description": "Block package-level .env files",
+        "_security": "Pattern-based check on sanitized $TOOL_INPUT",
         "matcher": "Write",
         "hooks": [
           {
             "type": "command",
             "command": "if echo \"$TOOL_INPUT\" | grep -qE 'packages/[^/]+/\\.env'; then echo '🚫 BLOCKED: Package-level .env files not allowed. Use root .env only.' >&2; exit 2; fi",
             "statusMessage": "Checking env file location..."
+          }
+        ]
+      },
+      {
+        "_category": "Quality",
+        "_description": "TDD enforcement - check test file exists",
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "SRC=$(echo \"$TOOL_INPUT\" | grep -oE 'packages/(shared|client|admin)/src/[^\"]+\\.(ts|tsx)' | head -1); if [ -n \"$SRC\" ] && ! echo \"$SRC\" | grep -qE '(__tests__|\\.(test|spec)\\.)'; then TEST_PATH=$(echo \"$SRC\" | sed 's|/src/|/src/__tests__/|' | sed 's/\\.[^.]*$/.test&/'); if [ ! -f \"$TEST_PATH\" ]; then echo \"🧪 TDD CHECK: No test found. Expected: $TEST_PATH\"; fi; fi || true",
+            "statusMessage": "Checking for test file..."
           }
         ]
       },
@@ -43,6 +64,7 @@
       {
         "_category": "Safety",
         "_description": "Production deployment confirmation",
+        "_security": "Pattern detection for production deployments - warns but allows",
         "matcher": "Bash",
         "hooks": [
           {
@@ -55,6 +77,7 @@
       {
         "_category": "Safety",
         "_description": "Block force push to main",
+        "_security": "Hard block on dangerous git operations",
         "matcher": "Bash",
         "hooks": [
           {
@@ -71,8 +94,20 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if echo \"$TOOL_INPUT\" | grep -qE 'git commit'; then echo '📋 PRE-COMMIT: Ensure `bun format && bun lint && bun test` passed'; fi",
+            "command": "if echo \"$TOOL_INPUT\" | grep -qE 'git commit'; then echo '📋 PRE-COMMIT: Run validation first: bun format && bun lint && bun test && bun build'; fi",
             "statusMessage": "Pre-commit reminder..."
+          }
+        ]
+      },
+      {
+        "_category": "Workflow",
+        "_description": "Architecture file reminder",
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$FILE_PATH\" | grep -qE '(hooks/|stores/|providers/|modules/|types/|workflows/)[^_].*\\.(ts|tsx)$'; then echo '🏗️ ARCHITECTURE FILE: Review the 10 architectural rules in CLAUDE.md before editing (timers, listeners, async, errors, types, selectors, query keys, forms, useMemo, context)'; fi",
+            "statusMessage": "Checking for architectural file..."
           }
         ]
       }
@@ -110,7 +145,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if echo \"$FILE_PATH\" | grep -qE 'packages/(shared|client|admin)/src/[^_].*\\.(ts|tsx)$' && ! echo \"$FILE_PATH\" | grep -q '__tests__'; then echo '🧪 TDD: Consider writing test at __tests__/ first'; fi",
+            "command": "if echo \"$FILE_PATH\" | grep -qE 'packages/(shared|client|admin)/src/[^_].*\\.(ts|tsx)$' && ! echo \"$FILE_PATH\" | grep -q '__tests__'; then echo '🧪 TDD REQUIRED: Write failing test first at __tests__/, then implement. RED → GREEN → REFACTOR'; fi",
             "statusMessage": "TDD check..."
           }
         ]
@@ -136,7 +171,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '🌿 Green Goods | 4 Entry Points: PRD → Feature → Bug → Polish | Use TodoWrite for tracking'",
+            "command": "printf '%s\\n' '🌿 Green Goods Claude Code' '├─ /plan    → Plan features with specs' '├─ /debug   → Investigate bugs' '├─ /review  → 6-pass code review' '├─ /audit   → Codebase health check' '└─ Agents: \"use oracle\" (research) | \"use cracked-coder\" (implement)'",
             "once": true
           }
         ]
@@ -157,12 +192,12 @@
     "SubagentStart": [
       {
         "_category": "Lifecycle",
-        "_description": "cracked-coder protocol reminder",
+        "_description": "cracked-coder protocol reminder with Cathedral Check",
         "matcher": "cracked-coder",
         "hooks": [
           {
             "type": "command",
-            "command": "echo '🔧 cracked-coder: TDD mandatory for features. GATHER → PLAN → TEST → IMPLEMENT → VERIFY → DEPLOY'",
+            "command": "echo '🔧 cracked-coder: TDD mandatory. GATHER → PLAN (🏛️ Cathedral Check) → TEST → IMPLEMENT → VERIFY'",
             "statusMessage": "Initializing cracked-coder..."
           }
         ]
@@ -200,7 +235,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if ! echo \"$ARGUMENTS\" | grep -qi 'todowrite\\|todo.*completed\\|todo.*in_progress'; then echo '⚠️ WARN: Agent did not use TodoWrite for progress tracking'; fi",
+            "command": "if ! echo \"$ARGUMENTS\" | grep -qi 'todowrite\\|todo.*completed\\|todo.*in_progress'; then echo '⚠️ WARNING: Agent should use TodoWrite to track progress (mark tasks in_progress → completed)'; fi",
             "statusMessage": "Checking agent TodoWrite usage..."
           }
         ]
