@@ -1,3 +1,4 @@
+import { ConfirmDialog } from "@green-goods/shared/components";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
 import { type DraftWithImages, useActions, useDrafts, useGardens } from "@green-goods/shared/hooks";
 import { findActionByUID } from "@green-goods/shared/utils";
@@ -6,7 +7,6 @@ import React, { useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { DraftCard } from "@/components/Cards";
-import { ConfirmDrawer } from "@/components/Dialogs";
 
 export interface DraftsTabProps {
   className?: string;
@@ -175,8 +175,8 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
         </ul>
       </div>
 
-      {/* Delete Confirmation Drawer */}
-      <ConfirmDrawer
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
         isOpen={!!draftToDelete}
         onClose={handleCancelDelete}
         onConfirm={handleConfirmDelete}

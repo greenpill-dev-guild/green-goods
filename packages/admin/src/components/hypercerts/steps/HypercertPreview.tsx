@@ -1,5 +1,4 @@
 import {
-  DEFAULT_CHAIN_ID,
   ImageWithFallback,
   type AllowlistEntry,
   type HypercertMetadata,
@@ -19,7 +18,6 @@ interface HypercertPreviewProps {
   totalUnits: bigint;
   allowlist?: AllowlistEntry[];
   mintingState?: MintingState;
-  chainId?: number;
   /** Called when user clicks "Edit" to navigate back to metadata step */
   onEditMetadata?: () => void;
   /** Called when user clicks "Edit" to navigate back to distribution step */
@@ -90,7 +88,6 @@ export function HypercertPreview({
   totalUnits,
   allowlist = [],
   mintingState,
-  chainId = DEFAULT_CHAIN_ID,
   onEditMetadata,
   onEditDistribution,
 }: HypercertPreviewProps) {

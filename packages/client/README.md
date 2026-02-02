@@ -70,11 +70,6 @@ To run the client application in a local development environment:
     bun run dev
     ```
 
-    **Alternative development server (experimental):**
-    ```bash
-    bun run dev:rolldown
-    ```
-
 The application should typically be accessible at `https://localhost:3001` (note: HTTPS due to mkcert plugin for PWA features). The Vite server will provide live reloading and HMR (Hot Module Replacement).
 
 ### Development Setup

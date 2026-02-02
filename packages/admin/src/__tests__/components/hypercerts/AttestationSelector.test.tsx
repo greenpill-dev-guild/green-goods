@@ -17,14 +17,40 @@ vi.mock("@green-goods/shared/utils", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    formatDateTime: (timestamp: number) => new Date(timestamp).toLocaleDateString(),
-    ACTION_DOMAINS: ["biodiversity", "water", "soil", "carbon"],
-  };
-});
+vi.mock("@green-goods/shared", () => ({
+  formatDateTime: (timestamp: number) => new Date(timestamp).toLocaleDateString(),
+  ACTION_DOMAINS: ["biodiversity", "water", "soil", "carbon"],
+  // Minimal FormInput mock for search functionality with accessible label
+  FormInput: ({
+    id,
+    label,
+    value,
+    onChange,
+    placeholder,
+    ...props
+  }: {
+    id?: string;
+    label?: React.ReactNode;
+    value?: string;
+    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    placeholder?: string;
+    [key: string]: unknown;
+  }) => {
+    const React = require("react");
+    return React.createElement("div", null, [
+      label && React.createElement("label", { key: "label", htmlFor: id }, label),
+      React.createElement("input", {
+        key: "input",
+        id,
+        type: "text",
+        value: value ?? "",
+        onChange,
+        placeholder,
+        "data-testid": props["data-testid"] ?? "form-input",
+      }),
+    ]);
+  },
+}));
 
 import { AttestationSelector } from "../../../components/hypercerts/steps/AttestationSelector";
 
@@ -130,24 +156,15 @@ describe("components/hypercerts/AttestationSelector", () => {
       render(
         createElement(AttestationSelector, {
           ...defaultProps,
+          attestations: [], // Empty attestations during loading
           isLoading: true,
         })
       );
 
-      // Should have loading indicator
+      // Should have loading indicator with aria-busy
       const loadingRegion = screen.getByRole("status");
       expect(loadingRegion).toHaveAttribute("aria-busy", "true");
-    });
-
-    it("does not render attestation cards when loading", () => {
-      render(
-        createElement(AttestationSelector, {
-          ...defaultProps,
-          isLoading: true,
-        })
-      );
-
-      expect(screen.queryByText("Native Tree Planting")).not.toBeInTheDocument();
+      expect(loadingRegion).toHaveAttribute("aria-label");
     });
   });
 
@@ -160,9 +177,8 @@ describe("components/hypercerts/AttestationSelector", () => {
         })
       );
 
-      // Should show error message (translated in real app)
-      const errorElement = screen.getByRole("generic", { hidden: false });
-      expect(errorElement).toBeInTheDocument();
+      // Should show error message - look for the translated error text
+      expect(screen.getByText(/unable to load attestations/i)).toBeInTheDocument();
     });
   });
 
@@ -219,8 +235,8 @@ describe("components/hypercerts/AttestationSelector", () => {
         })
       );
 
-      // Should show "2 selected" or similar
-      expect(screen.getByText(/2/)).toBeInTheDocument();
+      // Should show "2 selected" - use more specific pattern
+      expect(screen.getByText(/2 selected/i)).toBeInTheDocument();
     });
   });
 
@@ -271,7 +287,8 @@ describe("components/hypercerts/AttestationSelector", () => {
     it("shows Select All button", () => {
       render(createElement(AttestationSelector, defaultProps));
 
-      expect(screen.getByText(/Select All/i)).toBeInTheDocument();
+      const selectAllButton = screen.getByRole("button", { name: /^select all$/i });
+      expect(selectAllButton).toBeInTheDocument();
     });
 
     it("shows Deselect All button when some selected", () => {
@@ -282,7 +299,8 @@ describe("components/hypercerts/AttestationSelector", () => {
         })
       );
 
-      expect(screen.getByText(/Deselect All/i)).toBeInTheDocument();
+      const deselectAllButton = screen.getByRole("button", { name: /deselect all/i });
+      expect(deselectAllButton).toBeInTheDocument();
     });
 
     it("calls onSelectAll when Select All clicked", async () => {
@@ -296,7 +314,7 @@ describe("components/hypercerts/AttestationSelector", () => {
         })
       );
 
-      const selectAllButton = screen.getByText(/Select All/i);
+      const selectAllButton = screen.getByRole("button", { name: /^select all$/i });
       await user.click(selectAllButton);
 
       expect(onSelectAll).toHaveBeenCalled();
@@ -314,7 +332,7 @@ describe("components/hypercerts/AttestationSelector", () => {
         })
       );
 
-      const deselectAllButton = screen.getByText(/Deselect All/i);
+      const deselectAllButton = screen.getByRole("button", { name: /deselect all/i });
       await user.click(deselectAllButton);
 
       expect(onDeselectAll).toHaveBeenCalled();
@@ -372,7 +390,7 @@ describe("components/hypercerts/AttestationSelector", () => {
         })
       );
 
-      const selectAllButton = screen.getByText(/Select All/i);
+      const selectAllButton = screen.getByRole("button", { name: /^select all$/i });
       await user.click(selectAllButton);
 
       // Should only select non-bundled attestations

@@ -1,6 +1,7 @@
 import { DEFAULT_CHAIN_ID, formatDate } from "@green-goods/shared";
 import {
-  queryKeys,
+  queryInvalidation,
+  useDelayedInvalidation,
   useGardenAssessments,
   useGardenOperations,
   useGardenPermissions,
@@ -20,7 +21,7 @@ import {
   RiUserLine,
 } from "@remixicon/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
 import { AddressDisplay } from "@/components/AddressDisplay";
@@ -59,13 +60,11 @@ export default function GardenDetail() {
   const garden = gardens.find((g) => g.id === id);
 
   // Background refetch to sync with indexer after transaction confirms
-  // This is a fallback - optimistic updates handle immediate UI updates
-  const scheduleBackgroundRefetch = useCallback(() => {
-    // Delay refetch to allow indexer to process the transaction
-    setTimeout(() => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.gardens.byChain(DEFAULT_CHAIN_ID) });
-    }, 5000);
-  }, [queryClient]);
+  // Uses useDelayedInvalidation for auto-cleanup on unmount
+  const { start: scheduleBackgroundRefetch } = useDelayedInvalidation(() => {
+    const keysToInvalidate = queryInvalidation.invalidateGardens(DEFAULT_CHAIN_ID);
+    keysToInvalidate.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
+  }, 5000);
 
   const {
     data: assessmentList = [],
