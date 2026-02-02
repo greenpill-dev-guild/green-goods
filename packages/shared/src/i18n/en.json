@@ -428,6 +428,7 @@
   "app.common.cancel": "Cancel",
   "app.common.close": "Close",
   "app.common.confirm": "Confirm",
+  "app.common.loading": "Loading...",
   "app.common.copyAddress": "Copy address",
   "app.common.done": "Done",
   "app.home.work.downloadData": "Download Data",

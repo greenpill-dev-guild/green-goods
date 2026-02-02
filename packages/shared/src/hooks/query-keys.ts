@@ -61,6 +61,25 @@ export const queryKeys = {
       ["greengoods", "workApprovals", "offline", attesterAddress] as const,
   },
 
+  // Approvals aggregated by operator gardens
+  approvals: {
+    all: ["greengoods", "approvals"] as const,
+    byOperatorGardens: (gardenIds: string[]) =>
+      [
+        "greengoods",
+        "approvals",
+        "byOperatorGardens",
+        JSON.stringify([...gardenIds].sort()),
+      ] as const,
+  },
+
+  // Operator works related keys
+  operatorWorks: {
+    all: ["greengoods", "operatorWorks"] as const,
+    byAddress: (address: string | undefined, gardenIds: string[]) =>
+      ["greengoods", "operatorWorks", address, JSON.stringify([...gardenIds].sort())] as const,
+  },
+
   // Offline state keys
   offline: {
     all: ["greengoods", "offline"] as const,

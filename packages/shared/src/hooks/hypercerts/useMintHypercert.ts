@@ -315,6 +315,9 @@ export function useMintHypercert(): UseMintHypercertResult {
 
     const providedMachine = mintHypercertMachine.provide({
       actors: {
+        // Note: XState automatically stops actors if the machine transitions away (e.g., on CANCEL).
+        // Full cancellation of in-flight IPFS uploads would require Storacha library support
+        // for AbortSignal, which is not currently available.
         uploadMetadata: fromPromise(async ({ input }: { input: MintHypercertInput }) => {
           logger.debug("[useMintHypercert] uploadMetadata actor starting", { hasInput: !!input });
           const validation = validateMetadata(input.metadata);
@@ -442,6 +445,13 @@ export function useMintHypercert(): UseMintHypercertResult {
               chainId
             );
 
+            if (hypercertId === null) {
+              logger.warn("[useMintHypercert] Failed to extract hypercertId from logs", {
+                txHash,
+                logsCount: receipt.logs.length,
+              });
+            }
+
             return {
               txHash,
               hypercertId: hypercertId ?? "",
@@ -460,13 +470,26 @@ export function useMintHypercert(): UseMintHypercertResult {
             chainId
           );
 
+          if (hypercertId === null) {
+            logger.warn("[useMintHypercert] Failed to extract hypercertId from logs", {
+              txHash: receipt.transactionHash,
+              logsCount: receipt.logs.length,
+            });
+          }
+
           return {
             txHash: receipt.transactionHash,
             hypercertId: hypercertId ?? "",
           };
         }),
       },
-    } as never);
+      // XState's strict typing for provide() expects exact type matches for actors.
+      // The runtime implementation is type-safe, but TypeScript cannot infer the
+      // correct types through the provide() boundary. We use 'as unknown as typeof'
+      // to maintain some type safety while satisfying the compiler. The actual actor
+      // implementations are verified at runtime.
+      // See: https://stately.ai/docs/actors#fromPromise
+    } as unknown as typeof hypercertMintMachine.implementations);
 
     logger.debug("[useMintHypercert] Machine created successfully", {
       machineId: providedMachine.id,
@@ -474,14 +497,16 @@ export function useMintHypercert(): UseMintHypercertResult {
       hasConfig: !!providedMachine.config,
     });
 
-    // Debug: Check the actors in the provided machine
-    const implementations = (providedMachine as unknown as { implementations?: unknown })
-      .implementations;
-    logger.debug("[useMintHypercert] Machine implementations", {
-      hasImplementations: !!implementations,
-      implementationsType: typeof implementations,
-      implementationsKeys: implementations ? Object.keys(implementations as object) : [],
-    });
+    // Debug introspection - only run in development
+    if (process.env.NODE_ENV === "development") {
+      const implementations = (providedMachine as unknown as { implementations?: unknown })
+        .implementations;
+      logger.debug("[useMintHypercert] Machine implementations", {
+        hasImplementations: !!implementations,
+        implementationsType: typeof implementations,
+        implementationsKeys: implementations ? Object.keys(implementations as object) : [],
+      });
+    }
 
     return providedMachine;
   }, [authMode, chainId, eoaAddress, smartAccountClient, walletClient]);

@@ -1,6 +1,13 @@
 // Hooks — EXPLICIT EXPORTS for tree-shaking
 
 // ============================================================================
+// UTILS (Low-level hooks for common patterns)
+// ============================================================================
+export { useEventListener, useWindowEvent, useDocumentEvent } from "./utils/useEventListener";
+export { useTimeout, useDelayedInvalidation } from "./utils/useTimeout";
+export { useAsyncEffect, useAsyncSetup } from "./utils/useAsyncEffect";
+
+// ============================================================================
 // ACTION
 // ============================================================================
 export type { ActionOperationResult } from "./action/useActionOperations";
@@ -27,12 +34,6 @@ export { useOffline } from "./app/useOffline";
 export { useTheme } from "./app/useTheme";
 export type { ToastActionOptions } from "./app/useToastAction";
 export { useToastAction } from "./app/useToastAction";
-export type {
-  MutationToastConfig,
-  MutationTrackingConfig,
-  UseMutationWithTrackingOptions,
-} from "./app/useMutationWithTracking";
-export { useMutationWithTracking } from "./app/useMutationWithTracking";
 export type {
   UseLoadingWithMinDurationOptions,
   UseLoadingWithMinDurationResult,
@@ -162,8 +163,6 @@ export type { QueryKey, QueueQueryKey, WorksQueryKey } from "./query-keys";
 // ============================================================================
 // STORAGE
 // ============================================================================
-export type { UseStorageQuotaOptions, UseStorageQuotaResult } from "./storage/useStorageQuota";
-export { useStorageQuota, useStorageQuotaCheck } from "./storage/useStorageQuota";
 export {
   DEFAULT_RETRY_COUNT,
   DEFAULT_RETRY_DELAY,
@@ -186,7 +185,6 @@ export { useTranslation } from "./translation/useTranslation";
 // ============================================================================
 export type { CarouselContextProps, CarouselProps } from "./app/useCarousel";
 export { CarouselContext, useCarousel } from "./app/useCarousel";
-export { useScrollReveal } from "./app/useScrollReveal";
 
 // ============================================================================
 // WORK

@@ -63,34 +63,51 @@ export function useDraftResume(options: UseDraftResumeOptions) {
 
   /**
    * Resume draft from URL parameter
+   * Uses AbortController for proper cancellation on unmount
    */
   useEffect(() => {
     if (hasResumedDraft.current) return;
 
     const draftIdFromUrl = searchParams.get("draftId");
-    if (draftIdFromUrl) {
-      hasResumedDraft.current = true;
-      resumeDraft(draftIdFromUrl)
-        .then(() => {
-          // Clear draftId from URL after resuming
-          const newParams = new URLSearchParams(searchParams);
-          newParams.delete("draftId");
-          setSearchParams(newParams, { replace: true });
-        })
-        .catch((error) => {
-          console.error("[useDraftResume] Failed to resume draft:", error);
-          trackStorageError(error, {
-            source: "useDraftResume.resumeFromUrl",
-            userAction: "resuming draft from URL parameter",
-            recoverable: true,
-            metadata: { draft_id: draftIdFromUrl, operation: "resume_draft" },
-          });
-          // Clear invalid draftId from URL
-          const newParams = new URLSearchParams(searchParams);
-          newParams.delete("draftId");
-          setSearchParams(newParams, { replace: true });
+    if (!draftIdFromUrl) return;
+
+    const controller = new AbortController();
+    hasResumedDraft.current = true;
+
+    resumeDraft(draftIdFromUrl, { signal: controller.signal })
+      .then(() => {
+        // Check if aborted before updating state
+        if (controller.signal.aborted) return;
+
+        // Use searchParams copy instead of window.location.search
+        // This preserves any params added after the effect started
+        const currentParams = new URLSearchParams(searchParams.toString());
+        currentParams.delete("draftId");
+        setSearchParams(currentParams, { replace: true });
+      })
+      .catch((error) => {
+        // Ignore abort errors
+        if (error.name === "AbortError") return;
+        // Check if aborted before handling error
+        if (controller.signal.aborted) return;
+
+        console.error("[useDraftResume] Failed to resume draft:", error);
+        trackStorageError(error, {
+          source: "useDraftResume.resumeFromUrl",
+          userAction: "resuming draft from URL parameter",
+          recoverable: true,
+          metadata: { draft_id: draftIdFromUrl, operation: "resume_draft" },
         });
-    }
+
+        // Use searchParams copy instead of window.location.search
+        const currentParams = new URLSearchParams(searchParams.toString());
+        currentParams.delete("draftId");
+        setSearchParams(currentParams, { replace: true });
+      });
+
+    return () => {
+      controller.abort();
+    };
   }, [searchParams, setSearchParams, resumeDraft]);
 
   /**

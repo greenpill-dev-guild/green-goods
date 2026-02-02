@@ -43,6 +43,7 @@ import { simulateJoinGarden } from "../../utils/blockchain/simulation";
 import { isAlreadyGardenerError } from "../../utils/errors/contract-errors";
 import { useUser } from "../auth/useUser";
 import { queryKeys } from "../query-keys";
+import { useDelayedInvalidation } from "../utils/useTimeout";
 
 /**
  * Check if a garden has openJoining enabled on-chain
@@ -166,6 +167,16 @@ export function useJoinGarden() {
     error: null,
   });
 
+  // Memoized invalidation callback for gardens
+  const invalidateGardens = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: queryKeys.gardens.byChain(chainId) }),
+    [queryClient, chainId]
+  );
+
+  // Use delayed invalidation with automatic cleanup on unmount
+  // 10 seconds for indexer to process
+  const { start: scheduleGardenSync } = useDelayedInvalidation(invalidateGardens, 10000);
+
   /**
    * Join a garden by its address/ID
    *
@@ -262,9 +273,8 @@ export function useJoinGarden() {
         );
 
         // Delayed sync - give indexer time to process the event
-        setTimeout(() => {
-          queryClient.invalidateQueries({ queryKey: queryKeys.gardens.byChain(chainId) });
-        }, 10000);
+        // Uses useDelayedInvalidation for automatic cleanup on unmount
+        scheduleGardenSync();
 
         // Track successful join
         trackGardenJoinSuccess({
@@ -320,7 +330,14 @@ export function useJoinGarden() {
         throw error;
       }
     },
-    [primaryAddress, smartAccountClient, writeContractAsync, chainId, queryClient]
+    [
+      primaryAddress,
+      smartAccountClient,
+      writeContractAsync,
+      chainId,
+      queryClient,
+      scheduleGardenSync,
+    ]
   );
 
   return {

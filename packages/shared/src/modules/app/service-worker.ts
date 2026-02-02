@@ -176,13 +176,19 @@ if (typeof window !== "undefined") {
     navigator.serviceWorker
       .getRegistrations()
       .then((registrations) => Promise.all(registrations.map((r) => r.unregister())))
-      .catch(() => {});
+      .catch((error) => {
+        // Log but don't block - this is best-effort cleanup
+        console.warn("[ServiceWorker] Failed to unregister existing workers:", error);
+      });
     // Clear caches that could serve stale assets
     if ("caches" in window) {
       caches
         .keys()
         .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
-        .catch(() => {});
+        .catch((error) => {
+          // Log but don't block - this is best-effort cleanup
+          console.warn("[ServiceWorker] Failed to clear caches:", error);
+        });
     }
   }
 }

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { subscribeWithSelector, persist, createJSONStorage } from "zustand/middleware";
+import { subscribeWithSelector } from "zustand/middleware";
 import { isAddress, getAddress } from "viem";
 
 import type {

@@ -223,34 +223,48 @@ export function useDrafts() {
 
   /**
    * Resume a draft - load it into WorkFlowStore and navigate to first incomplete step
+   * @param draftId - The draft ID to resume
+   * @param options - Optional configuration including AbortSignal for cancellation
    */
-  const resumeDraft = useCallback(async (draftId: string): Promise<WorkTab> => {
-    const draft = await draftDB.getDraft(draftId);
-    if (!draft) throw new Error(`Draft ${draftId} not found`);
+  const resumeDraft = useCallback(
+    async (draftId: string, options?: { signal?: AbortSignal }): Promise<WorkTab> => {
+      // Check if already aborted before starting
+      options?.signal?.throwIfAborted();
 
-    const images = await draftDB.getImagesForDraft(draftId);
-    const files = images.map((img) => img.file);
+      const draft = await draftDB.getDraft(draftId);
+      if (!draft) throw new Error(`Draft ${draftId} not found`);
 
-    // Load draft data into WorkFlowStore
-    const store = useWorkFlowStore.getState();
-    store.setGardenAddress(draft.gardenAddress);
-    store.setActionUID(draft.actionUID);
-    store.setFeedback(draft.feedback);
-    store.setPlantSelection(draft.plantSelection);
-    store.setPlantCount(draft.plantCount);
-    store.setTimeSpentMinutes(draft.timeSpentMinutes);
-    store.setImages(files);
+      // Check abort after async operation
+      options?.signal?.throwIfAborted();
 
-    // Set active draft
-    setActiveDraftId(draftId);
+      const images = await draftDB.getImagesForDraft(draftId);
+      const files = images.map((img) => img.file);
 
-    // Calculate and return the first incomplete step
-    const firstIncomplete = computeFirstIncompleteStep(draft, images.length > 0);
-    const targetTab = draftStepToWorkTab(firstIncomplete);
-    store.setActiveTab(targetTab);
+      // Check abort after async operation
+      options?.signal?.throwIfAborted();
 
-    return targetTab;
-  }, []);
+      // Load draft data into WorkFlowStore
+      const store = useWorkFlowStore.getState();
+      store.setGardenAddress(draft.gardenAddress);
+      store.setActionUID(draft.actionUID);
+      store.setFeedback(draft.feedback);
+      store.setPlantSelection(draft.plantSelection);
+      store.setPlantCount(draft.plantCount);
+      store.setTimeSpentMinutes(draft.timeSpentMinutes);
+      store.setImages(files);
+
+      // Set active draft
+      setActiveDraftId(draftId);
+
+      // Calculate and return the first incomplete step
+      const firstIncomplete = computeFirstIncompleteStep(draft, images.length > 0);
+      const targetTab = draftStepToWorkTab(firstIncomplete);
+      store.setActiveTab(targetTab);
+
+      return targetTab;
+    },
+    []
+  );
 
   /**
    * Sync current WorkFlowStore state to active draft
