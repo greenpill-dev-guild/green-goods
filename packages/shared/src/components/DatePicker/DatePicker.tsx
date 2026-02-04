@@ -1,7 +1,7 @@
 import * as Popover from "@radix-ui/react-popover";
 import { RiCalendarLine, RiArrowLeftSLine, RiArrowRightSLine } from "@remixicon/react";
 import { useState, useCallback, useMemo, forwardRef, type ReactNode } from "react";
-import { DayPicker, type DayPickerProps } from "react-day-picker";
+import { DayPicker, type DateBefore, type DateAfter } from "react-day-picker";
 import { cn } from "../../utils/styles/cn";
 
 export interface DatePickerProps {
@@ -109,8 +109,8 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
     const displayValue = selectedDate ? formatDate(selectedDate) : null;
 
     // Determine which dates should be disabled
-    const disabledDays: DayPickerProps["disabled"] = useMemo(() => {
-      const disabled: DayPickerProps["disabled"] = [];
+    const disabledDays = useMemo(() => {
+      const disabled: (DateBefore | DateAfter)[] = [];
       if (minDateObj) {
         disabled.push({ before: minDateObj });
       }
