@@ -9,6 +9,13 @@ System design patterns and entropy reduction philosophy for maintainable codebas
 
 ---
 
+## Activation
+
+When invoked:
+- Identify the smallest end-state codebase that solves the problem.
+- Look for deletion opportunities before adding new abstractions.
+- Validate against Green Goods core rules in `CLAUDE.md`.
+
 ## Part 1: Reducing Entropy
 
 ### The Goal

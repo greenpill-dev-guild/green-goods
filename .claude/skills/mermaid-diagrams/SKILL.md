@@ -1,19 +1,18 @@
 ---
 name: mermaid-diagrams
-description: Create software diagrams using Mermaid syntax. Use when explaining architecture, flows, or relationships.
+description: Create software diagrams using Mermaid syntax. Use for architecture explanations, workflow/flow diagrams, state machines, and relationship maps.
 ---
 
 # Mermaid Diagramming
 
 Create professional software diagrams using Mermaid's text-based syntax. Diagrams are version-controllable and maintainable alongside code.
 
-## When to Use
+## Activation
 
-- Explaining system architecture (Pass 0 in code review)
-- Documenting API flows
-- Database schema visualization
-- User journey mapping
-- State machine documentation
+When invoked:
+- Pick a diagram type that matches the question (sequence, flowchart, state).
+- Keep labels short and unambiguous.
+- Prefer simple diagrams unless the user requests detail.
 
 ## Diagram Type Selection
 

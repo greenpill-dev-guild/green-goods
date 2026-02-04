@@ -105,7 +105,7 @@ What do you need?
 /plan (from Figma design) → react → ui-compliance
 ```
 
-> **Note:** For Figma-to-code workflows, use the Figma MCP server tools (`mcp__figma-remote-mcp__get_design_context`) to extract design context before implementing.
+> **Note:** For Figma-to-code workflows, use the Figma MCP server tools (`mcp__figma__get_design_context`) to extract design context before implementing.
 
 **Bug Fix:**
 ```

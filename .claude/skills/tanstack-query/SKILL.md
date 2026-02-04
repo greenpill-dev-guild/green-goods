@@ -11,6 +11,20 @@ Modern server state management with caching, synchronization, and background upd
 
 ---
 
+## Activation
+
+When invoked:
+- Use centralized `queryKeys` and `queryInvalidation` helpers.
+- Prefer object syntax for all queries/mutations.
+- Avoid ad-hoc cache keys or inline query key arrays.
+
+## Green Goods Defaults
+
+- Query client config: `packages/shared/src/config/react-query.ts`
+- Query keys and invalidation: `packages/shared/src/hooks/query-keys.ts`
+
+Prefer aligning with existing stale/gc times and invalidation helpers instead of custom settings.
+
 ## v5 Critical Changes
 
 ### Always Use Object Syntax

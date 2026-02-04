@@ -1,19 +1,19 @@
 ---
 name: error-handling-patterns
-description: Robust error handling strategies for graceful failures and debugging. Use when implementing error handling or debugging error flows.
+description: Robust error handling strategies for graceful failures and debugging. Use for error handling implementations, error flow debugging, error boundaries, retry mechanisms, and user-friendly error messages.
 ---
 
 # Error Handling Patterns
 
 Build resilient applications with robust error handling that gracefully handles failures.
 
-## When to Use
+## Activation
 
-- Implementing error handling in new features
-- Debugging error flows
-- Setting up error boundaries
-- Creating retry mechanisms
-- Designing user-friendly error messages
+When invoked:
+- Classify the error category (network/validation/auth/permission/blockchain/storage).
+- Choose a user-facing response (toast, redirect, form error, retry).
+- Ensure logging captures actionable context.
+- Add or update tests for error paths.
 
 ## Error Categories
 

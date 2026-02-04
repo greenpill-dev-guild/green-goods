@@ -11,6 +11,21 @@ Modern build tool for frontend development with instant server start and lightni
 
 ---
 
+## Activation
+
+When invoked:
+- Inspect existing config before proposing changes.
+- Keep root `.env` only (no package-level env files).
+- Preserve React Compiler and PWA setup unless the request is explicit.
+
+## Green Goods Defaults
+
+- Client config: `packages/client/vite.config.ts`
+- Admin config: `packages/admin/vite.config.ts`
+- Shared defaults: root `.env` + `dotenv-expand` usage
+
+Prefer editing existing config files over introducing new patterns.
+
 ## Why Vite for Green Goods
 
 - **Native ESM**: Instant dev server start (no bundling)
@@ -21,7 +36,7 @@ Modern build tool for frontend development with instant server start and lightni
 
 ---
 
-## Configuration
+## Configuration (Generic Example)
 
 ```typescript
 // vite.config.ts

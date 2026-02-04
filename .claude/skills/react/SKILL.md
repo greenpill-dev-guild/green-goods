@@ -9,6 +9,13 @@ Complete React guide: state management, component composition, and performance o
 
 ---
 
+## Activation
+
+When invoked:
+- Identify state category (local/global/server/form/flow) before choosing a tool.
+- Keep hooks in `@green-goods/shared` only.
+- Use granular Zustand selectors to limit re-renders.
+
 ## Part 1: State Management
 
 ### State Categories

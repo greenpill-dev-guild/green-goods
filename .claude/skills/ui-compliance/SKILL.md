@@ -9,6 +9,13 @@ Complete UI guide: accessibility, forms, responsive design, animation, and i18n.
 
 ---
 
+## Activation
+
+When invoked:
+- Start with accessibility checks (WCAG AA).
+- Validate forms with RHF + Zod patterns.
+- Ensure responsive behavior across mobile and desktop.
+
 ## Part 1: Accessibility (CRITICAL)
 
 **Every Green Goods user deserves equal access.**
