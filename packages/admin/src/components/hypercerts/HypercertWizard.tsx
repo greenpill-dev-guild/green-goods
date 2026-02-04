@@ -83,20 +83,25 @@ export function HypercertWizard({
   const [draftReady, setDraftReady] = useState(false);
   const chainId = useAdminStore((state) => state.selectedChainId) ?? DEFAULT_CHAIN_ID;
 
-  const wizardState = useHypercertWizardStore((state) => state);
-  const {
-    selectedAttestationIds,
-    distributionMode,
-    allowlist,
-    mintingState,
-    reset,
-    toggleAttestation,
-    setSelectedAttestations,
-    updateMetadata,
-    setAllowlist,
-    setDistributionMode,
-    toDraft,
-  } = wizardState;
+  // Granular selectors to prevent unnecessary re-renders (Rule 6)
+  const selectedAttestationIds = useHypercertWizardStore((s) => s.selectedAttestationIds);
+  const distributionMode = useHypercertWizardStore((s) => s.distributionMode);
+  const allowlist = useHypercertWizardStore((s) => s.allowlist);
+  const mintingState = useHypercertWizardStore((s) => s.mintingState);
+  const reset = useHypercertWizardStore((s) => s.reset);
+  const toggleAttestation = useHypercertWizardStore((s) => s.toggleAttestation);
+  const setSelectedAttestations = useHypercertWizardStore((s) => s.setSelectedAttestations);
+  const updateMetadata = useHypercertWizardStore((s) => s.updateMetadata);
+  const setAllowlist = useHypercertWizardStore((s) => s.setAllowlist);
+  const setDistributionMode = useHypercertWizardStore((s) => s.setDistributionMode);
+  const toDraft = useHypercertWizardStore((s) => s.toDraft);
+  // Metadata fields for dependency tracking
+  const wizardTitle = useHypercertWizardStore((s) => s.title);
+  const wizardDescription = useHypercertWizardStore((s) => s.description);
+  const wizardWorkScopes = useHypercertWizardStore((s) => s.workScopes);
+  const wizardWorkTimeframeStart = useHypercertWizardStore((s) => s.workTimeframeStart);
+  const wizardWorkTimeframeEnd = useHypercertWizardStore((s) => s.workTimeframeEnd);
+  const wizardDraftId = useHypercertWizardStore((s) => s.draftId);
 
   const { currentStep, nextStep, previousStep, setStep, canProceed } = useCreateHypercertWorkflow();
 
@@ -256,12 +261,24 @@ export function HypercertWizard({
     };
   }, [selectedAttestations]);
 
-  // Include wizardState to ensure draft recalculates when form values change
+  // Include metadata fields to ensure draft recalculates when form values change
   // This is necessary because toDraft reads from store state via get()
   const draft = useMemo(
     () => toDraft(gardenId, (operatorAddress ?? zeroAddress) as `0x${string}`),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- wizardState triggers recalc on any form change
-    [gardenId, operatorAddress, toDraft, wizardState]
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Store values intentionally trigger recalc even though not passed to toDraft
+    [
+      gardenId,
+      operatorAddress,
+      toDraft,
+      wizardTitle,
+      wizardDescription,
+      wizardWorkScopes,
+      wizardWorkTimeframeStart,
+      wizardWorkTimeframeEnd,
+      selectedAttestationIds,
+      allowlist,
+      distributionMode,
+    ]
   );
 
   const previewMetadata = useMemo(() => {
@@ -279,9 +296,9 @@ export function HypercertWizard({
       // Pass optimistic data for immediate UI rendering while indexer syncs
       onComplete({
         hypercertId: mintingState.hypercertId,
-        title: wizardState.title || "",
-        description: wizardState.description || "",
-        workScopes: wizardState.workScopes || [],
+        title: wizardTitle || "",
+        description: wizardDescription || "",
+        workScopes: wizardWorkScopes || [],
         imageUri: previewMetadata?.image,
         attestationCount: selectedAttestations.length,
         mintedAt: Math.floor(Date.now() / 1000),
@@ -295,9 +312,9 @@ export function HypercertWizard({
     onComplete,
     previewMetadata?.image,
     selectedAttestations.length,
-    wizardState.description,
-    wizardState.title,
-    wizardState.workScopes,
+    wizardDescription,
+    wizardTitle,
+    wizardWorkScopes,
   ]);
 
   const handleMint = useCallback(async () => {
@@ -415,16 +432,16 @@ export function HypercertWizard({
       case 2: {
         // Metadata - check all required fields
         const missingFields: string[] = [];
-        if (!wizardState.title?.trim()) {
+        if (!wizardTitle?.trim()) {
           missingFields.push(formatMessage({ id: "app.hypercerts.metadata.title" }));
         }
-        if (!wizardState.workScopes?.length) {
+        if (!wizardWorkScopes?.length) {
           missingFields.push(formatMessage({ id: "app.hypercerts.metadata.workScope" }));
         }
-        if (!wizardState.workTimeframeStart) {
+        if (!wizardWorkTimeframeStart) {
           missingFields.push(formatMessage({ id: "app.hypercerts.metadata.workTimeframeStart" }));
         }
-        if (!wizardState.workTimeframeEnd) {
+        if (!wizardWorkTimeframeEnd) {
           missingFields.push(formatMessage({ id: "app.hypercerts.metadata.workTimeframeEnd" }));
         }
         if (missingFields.length > 0) {
@@ -444,10 +461,10 @@ export function HypercertWizard({
     currentStep,
     nextDisabled,
     selectedAttestationIds.length,
-    wizardState.title,
-    wizardState.workScopes,
-    wizardState.workTimeframeStart,
-    wizardState.workTimeframeEnd,
+    wizardTitle,
+    wizardWorkScopes,
+    wizardWorkTimeframeStart,
+    wizardWorkTimeframeEnd,
     formatMessage,
   ]);
 
@@ -519,7 +536,7 @@ export function HypercertWizard({
             logger.error("[HypercertWizard] Failed to clear draft on cancel", {
               error: err.message,
               stack: err.stack,
-              draftId: wizardState.draftId,
+              draftId: wizardDraftId,
             });
             // Inform user but don't block dialog close
             toastService.show({
