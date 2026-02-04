@@ -463,7 +463,9 @@ export function createTelegramBot(config: TelegramConfig, handleMessage: Message
   // Error handling
   bot.catch((err, ctx) => {
     log.error({ err, chatId: ctx.chat?.id }, "Bot error");
-    ctx.reply("❌ An error occurred. Please try again.").catch(() => {});
+    ctx.reply("❌ An error occurred. Please try again.").catch((replyErr) => {
+      log.warn({ replyErr, chatId: ctx.chat?.id }, "Failed to send error message to user");
+    });
   });
 
   return bot;
