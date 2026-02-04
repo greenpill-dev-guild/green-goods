@@ -107,3 +107,62 @@ export function buildApprovalAttestTx(
   );
   return buildAttestTxParams(easConfig.EAS.address as `0x${string}`, request);
 }
+
+/**
+ * Multi-attestation request structure for batch operations
+ */
+interface MultiAttestationRequest {
+  schema: Hex;
+  data: Array<{
+    recipient: `0x${string}`;
+    expirationTime: bigint;
+    revocable: boolean;
+    refUID: Hex;
+    data: Hex;
+    value: bigint;
+  }>;
+}
+
+/**
+ * Build batch approval attestation transaction params using EAS multiAttest
+ *
+ * This batches multiple approval attestations into a single transaction,
+ * significantly improving UX when approving/rejecting multiple works.
+ *
+ * @param easConfig - EAS configuration for the chain
+ * @param approvals - Array of { gardenAddress, attestationData } pairs
+ * @returns Transaction parameters (to, data, value)
+ * @throws Error if approvals array is empty
+ */
+export function buildBatchApprovalAttestTx(
+  easConfig: EASConfig,
+  approvals: Array<{ gardenAddress: `0x${string}`; attestationData: Hex }>
+): { to: `0x${string}`; data: Hex; value: bigint } {
+  // Guard against empty approvals array
+  if (approvals.length === 0) {
+    throw new Error("Approvals array must not be empty");
+  }
+
+  // Group attestations by schema (all approvals use the same schema)
+  const multiRequest: MultiAttestationRequest = {
+    schema: easConfig.WORK_APPROVAL.uid as Hex,
+    data: approvals.map(({ gardenAddress, attestationData }) => ({
+      recipient: gardenAddress,
+      expirationTime: NO_EXPIRATION,
+      revocable: true,
+      refUID: ZERO_BYTES32 as Hex,
+      data: attestationData,
+      value: 0n,
+    })),
+  };
+
+  return {
+    to: easConfig.EAS.address as `0x${string}`,
+    data: encodeFunctionData({
+      abi: EASABI,
+      functionName: "multiAttest",
+      args: [[multiRequest]],
+    }),
+    value: 0n,
+  };
+}

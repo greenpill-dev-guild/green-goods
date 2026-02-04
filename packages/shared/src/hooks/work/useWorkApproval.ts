@@ -29,7 +29,8 @@ import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugLog, debugWarn } from "../../utils/debug";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
-import { queryKeys } from "../query-keys";
+import { INDEXER_LAG_FOLLOWUP_MS, queryKeys } from "../query-keys";
+import { useTimeout } from "../utils/useTimeout";
 
 interface UseWorkApprovalParams {
   draft: WorkApprovalDraft;
@@ -77,6 +78,9 @@ export function useWorkApproval() {
   const { authMode, smartAccountClient, smartAccountAddress } = useUser();
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
+
+  // Use managed timeout for query invalidation to ensure cleanup on unmount
+  const { set: scheduleInvalidation } = useTimeout();
 
   return useMutation({
     mutationFn: async ({ draft, work }: UseWorkApprovalParams): Promise<ApprovalMutationResult> => {
@@ -185,7 +189,49 @@ export function useWorkApproval() {
         });
       }
 
-      const { draft } = variables;
+      const { draft, work } = variables;
+
+      // Cancel any outgoing refetches to avoid overwriting optimistic update
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.works.merged(work.gardenAddress, chainId),
+      });
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.works.online(work.gardenAddress, chainId),
+      });
+
+      // Snapshot previous state for rollback on error
+      const previousMerged = queryClient.getQueryData<Work[]>(
+        queryKeys.works.merged(work.gardenAddress, chainId)
+      );
+      const previousOnline = queryClient.getQueryData<Work[]>(
+        queryKeys.works.online(work.gardenAddress, chainId)
+      );
+
+      // Optimistically update the work status with a pending indicator
+      const optimisticStatus = draft.approved ? ("approved" as const) : ("rejected" as const);
+
+      queryClient.setQueryData(
+        queryKeys.works.merged(work.gardenAddress, chainId),
+        (old: Work[] = []) =>
+          old.map((w) =>
+            w.id === draft.workUID ? { ...w, status: optimisticStatus, _isPending: true } : w
+          )
+      );
+
+      queryClient.setQueryData(
+        queryKeys.works.online(work.gardenAddress, chainId),
+        (old: Work[] = []) =>
+          old.map((w) =>
+            w.id === draft.workUID ? { ...w, status: optimisticStatus, _isPending: true } : w
+          )
+      );
+
+      if (DEBUG_ENABLED) {
+        debugLog("[useWorkApproval] Applied optimistic update", {
+          workUID: draft.workUID,
+          newStatus: optimisticStatus,
+        });
+      }
 
       // Show loading toast
       const actionLabel = draft.approved ? "approval" : "decision";
@@ -208,6 +254,9 @@ export function useWorkApproval() {
         context: authMode === "wallet" ? "wallet confirmation" : "approval submission",
         suppressLogging: true,
       });
+
+      // Return context for rollback
+      return { previousMerged, previousOnline };
     },
     onSuccess: (result, variables) => {
       const { hash: txHash } = result;
@@ -234,17 +283,24 @@ export function useWorkApproval() {
         });
       }
 
-      // Update status in cache ONLY after transaction is confirmed (not for offline placeholders)
-      // This ensures UI transitions to approved/rejected state only after on-chain confirmation
-      if (variables && !isOfflineHash) {
+      // Clear _isPending flag and confirm status after transaction is confirmed
+      // For offline hashes, keep _isPending until job is processed
+      if (variables) {
         const { draft, work } = variables;
+        const confirmedStatus = draft.approved ? ("approved" as const) : ("rejected" as const);
 
+        // Update to clear pending flag (optimistic update already set the status)
         queryClient.setQueryData(
           queryKeys.works.merged(work.gardenAddress, chainId),
           (old: Work[] = []) =>
             old.map((w) =>
               w.id === draft.workUID
-                ? { ...w, status: draft.approved ? ("approved" as const) : ("rejected" as const) }
+                ? {
+                    ...w,
+                    status: confirmedStatus,
+                    _isPending: isOfflineHash, // Keep pending for offline, clear for confirmed
+                    _txHash: isOfflineHash ? undefined : txHash,
+                  }
                 : w
             )
         );
@@ -254,16 +310,23 @@ export function useWorkApproval() {
           (old: Work[] = []) =>
             old.map((w) =>
               w.id === draft.workUID
-                ? { ...w, status: draft.approved ? ("approved" as const) : ("rejected" as const) }
+                ? {
+                    ...w,
+                    status: confirmedStatus,
+                    _isPending: isOfflineHash,
+                    _txHash: isOfflineHash ? undefined : txHash,
+                  }
                 : w
             )
         );
 
         if (DEBUG_ENABLED) {
-          debugLog("[useWorkApproval] Updated status after confirmation", {
+          debugLog("[useWorkApproval] Confirmed optimistic update", {
             authMode,
             workUID: draft.workUID,
-            newStatus: draft.approved ? "approved" : "rejected",
+            newStatus: confirmedStatus,
+            isPending: isOfflineHash,
+            txHash,
           });
         }
       }
@@ -300,20 +363,29 @@ export function useWorkApproval() {
         });
       }
 
-      // Invalidate work queries to refetch from EAS after a delay
-      // (EAS indexer has 2-6 second lag)
+      // Invalidate work queries immediately - polling with smart backoff handles indexer lag
+      // No need for fixed 3-second delay - immediate invalidation + exponential backoff is faster
       if (variables) {
-        setTimeout(() => {
+        // Immediate invalidation for responsive UX
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.works.online(variables.work.gardenAddress, chainId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.works.merged(variables.work.gardenAddress, chainId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.workApprovals.all,
+        });
+
+        // Schedule a follow-up invalidation for indexer lag (non-blocking)
+        scheduleInvalidation(() => {
           queryClient.invalidateQueries({
             queryKey: queryKeys.works.online(variables.work.gardenAddress, chainId),
           });
           queryClient.invalidateQueries({
             queryKey: queryKeys.works.merged(variables.work.gardenAddress, chainId),
           });
-          queryClient.invalidateQueries({
-            queryKey: queryKeys.workApprovals.all,
-          });
-        }, 3000); // 3 second delay for indexer
+        }, INDEXER_LAG_FOLLOWUP_MS);
       }
 
       if (DEBUG_ENABLED) {
@@ -326,9 +398,29 @@ export function useWorkApproval() {
         });
       }
     },
-    onError: (error: unknown, variables) => {
+    onError: (error: unknown, variables, context) => {
       // Provide haptic feedback for error
       hapticError();
+
+      // Rollback optimistic updates using context from onMutate
+      if (context?.previousMerged && variables) {
+        queryClient.setQueryData(
+          queryKeys.works.merged(variables.work.gardenAddress, chainId),
+          context.previousMerged
+        );
+      }
+      if (context?.previousOnline && variables) {
+        queryClient.setQueryData(
+          queryKeys.works.online(variables.work.gardenAddress, chainId),
+          context.previousOnline
+        );
+      }
+
+      if (DEBUG_ENABLED) {
+        debugLog("[useWorkApproval] Rolled back optimistic update due to error", {
+          workUID: variables?.draft.workUID,
+        });
+      }
 
       const isApproval = variables?.draft.approved ?? false;
       const actionType = isApproval ? "approval" : "decision";

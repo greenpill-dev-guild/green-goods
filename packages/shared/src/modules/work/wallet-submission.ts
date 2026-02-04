@@ -26,7 +26,11 @@ import { EASABI } from "../../utils/blockchain/contracts";
 import { pollQueriesAfterTransaction } from "../../utils/blockchain/polling";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../utils/debug";
 import { encodeWorkApprovalData, encodeWorkData, simulateWorkData } from "../../utils/eas/encoders";
-import { buildApprovalAttestTx, buildWorkAttestTx } from "../../utils/eas/transaction-builder";
+import {
+  buildApprovalAttestTx,
+  buildBatchApprovalAttestTx,
+  buildWorkAttestTx,
+} from "../../utils/eas/transaction-builder";
 import { parseContractError } from "../../utils/errors/contract-errors";
 import { formatWalletError } from "../../utils/errors/user-messages";
 
@@ -550,6 +554,181 @@ export async function submitApprovalDirectly(
     }
 
     // Use centralized error formatting
+    throw new Error(formatWalletError(err));
+  }
+}
+
+/**
+ * Options for batch approval submission
+ */
+export interface BatchApprovalOptions {
+  /** Callback for progress updates */
+  onProgress?: OnProgressCallback;
+  /** Transaction timeout in milliseconds (default: 90000 for batch) */
+  txTimeout?: number;
+}
+
+/**
+ * Submit multiple work approvals in a single transaction using EAS multiAttest.
+ * Dramatically improves UX when operators approve/reject multiple works at once.
+ *
+ * Process:
+ * 1. Get wallet client from wagmi
+ * 2. Encode all approval data
+ * 3. Build batch EAS multiAttest transaction
+ * 4. Send single transaction via wallet
+ * 5. Wait for transaction receipt
+ * 6. Optimistically update cache for all works
+ * 7. Poll for indexer updates
+ *
+ * @param approvals - Array of approval drafts with work metadata
+ * @param chainId - Target chain ID
+ * @param options - Optional configuration
+ * @returns Transaction hash
+ */
+export async function submitBatchApprovalsDirectly(
+  approvals: Array<{
+    draft: WorkApprovalDraft;
+    gardenAddress: string;
+    gardenerAddress: string;
+  }>,
+  chainId: number,
+  options: BatchApprovalOptions = {}
+): Promise<`0x${string}`> {
+  // Guard against empty approvals array
+  if (approvals.length === 0) {
+    const logMessage = "[WalletSubmission] Empty approvals array - rejecting";
+    if (DEBUG_ENABLED) {
+      debugError(logMessage);
+    } else {
+      console.error(logMessage);
+    }
+    throw new Error("No approvals provided. At least one approval is required.");
+  }
+
+  const { onProgress, txTimeout = 90_000 } = options;
+  const startTime = Date.now();
+
+  debugLog("[WalletSubmission] Starting batch approval submission", {
+    count: approvals.length,
+    chainId,
+  });
+  onProgress?.("validating", `Preparing ${approvals.length} approvals...`);
+
+  // 1. Get wallet client and validate address upfront
+  const walletClient = await getWalletClient(wagmiConfig, { chainId });
+  if (!walletClient) {
+    throw new Error("Wallet not connected. Please connect your wallet and try again.");
+  }
+
+  // Validate operator address before any transaction work
+  const operatorAddress = walletClient.account?.address;
+  if (!operatorAddress) {
+    throw new Error("Wallet account address not available");
+  }
+
+  try {
+    // 2. Encode all approvals
+    const encodedApprovals = approvals.map(({ draft, gardenAddress }) => ({
+      gardenAddress: gardenAddress as `0x${string}`,
+      attestationData: encodeWorkApprovalData(draft, chainId),
+    }));
+
+    // 3. Build batch transaction
+    const easConfig = getEASConfig(chainId);
+    const txParams = buildBatchApprovalAttestTx(easConfig, encodedApprovals);
+
+    onProgress?.("confirming", `Confirm ${approvals.length} approvals in your wallet...`);
+    debugLog("[WalletSubmission] Sending batch approval transaction", {
+      to: txParams.to,
+      count: approvals.length,
+    });
+
+    // 4. Send transaction
+    const hash = await walletClient.sendTransaction({
+      ...txParams,
+      chain: walletClient.chain,
+      account: walletClient.account,
+    });
+
+    debugLog("[WalletSubmission] Batch approval transaction sent", { hash });
+
+    // 5. Wait for receipt
+    try {
+      await waitForReceiptWithTimeout(hash, chainId, txTimeout);
+      debugLog("[WalletSubmission] Batch approval confirmed", { hash });
+    } catch {
+      debugLog("[WalletSubmission] Batch approval timeout, continuing...", { hash });
+    }
+
+    // 6. Optimistically update cache for all works
+    // (operatorAddress was validated at the start of the function)
+
+    // Build all optimistic approvals first
+    const optimisticApprovals = approvals.map(({ draft, gardenerAddress }) => ({
+      id: `optimistic-batch-${hash}-${draft.workUID}`,
+      operatorAddress,
+      gardenerAddress,
+      actionUID: draft.actionUID,
+      workUID: draft.workUID,
+      approved: draft.approved,
+      feedback: draft.feedback || "",
+      createdAt: Math.floor(Date.now() / 1000),
+    }));
+
+    // Single setQueryData call for better performance
+    queryClient.setQueryData<EASWorkApproval[]>(queryKeys.workApprovals.all, (old) => [
+      ...optimisticApprovals,
+      ...(old || []),
+    ]);
+
+    onProgress?.("syncing", "Syncing with blockchain...");
+
+    // 7. Poll for indexer updates - collect unique garden addresses
+    const uniqueGardenAddresses = [...new Set(approvals.map((a) => a.gardenAddress))];
+    const pollKeys = [
+      queryKeys.workApprovals.all,
+      queryKeys.works.all,
+      ...uniqueGardenAddresses.flatMap((addr) => [
+        queryKeys.works.online(addr, chainId),
+        queryKeys.works.merged(addr, chainId),
+      ]),
+    ];
+
+    await pollQueriesAfterTransaction({
+      queryKeys: pollKeys,
+      initialDelayMs: 0,
+      baseDelay: 500,
+      maxDelay: 4000,
+      maxAttempts: 4,
+    });
+
+    onProgress?.("complete", `${approvals.length} approvals submitted!`);
+
+    // Track success
+    const totalTime = Date.now() - startTime;
+    track(ANALYTICS_EVENTS.WORK_APPROVAL_SUCCESS, {
+      batch_size: approvals.length,
+      tx_hash: hash,
+      auth_mode: "wallet",
+      total_time_ms: totalTime,
+      is_batch: true,
+    });
+
+    debugLog("[WalletSubmission] Batch approval complete", {
+      hash,
+      count: approvals.length,
+      totalTimeMs: totalTime,
+    });
+
+    return hash;
+  } catch (err: unknown) {
+    const logMessage = "[WalletSubmission] Batch approval failed";
+    if (DEBUG_ENABLED) {
+      debugError(logMessage, err);
+    } else {
+      console.error(logMessage, err);
+    }
     throw new Error(formatWalletError(err));
   }
 }

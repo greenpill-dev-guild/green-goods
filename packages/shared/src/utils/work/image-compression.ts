@@ -141,7 +141,8 @@ class ImageCompressor {
   }
 
   /**
-   * Compress multiple images with progress tracking
+   * Compress multiple images with progress tracking (sequential)
+   * @deprecated Use compressImagesParallel for better performance
    */
   async compressImages(
     files: File[],
@@ -177,6 +178,88 @@ class ImageCompressor {
     // Complete progress
     onProgress?.(100, "Compression complete");
 
+    return results;
+  }
+
+  /**
+   * Compress multiple images in PARALLEL for better performance
+   * Uses Promise.allSettled to handle individual failures gracefully
+   *
+   * @param files - Array of files to compress
+   * @param customOptions - Optional compression settings
+   * @param onProgress - Optional callback for overall progress (0-100)
+   * @returns Array of compression results maintaining original order
+   */
+  async compressImagesParallel(
+    files: File[],
+    customOptions?: CompressionOptions,
+    onProgress?: (progress: number, fileName: string) => void
+  ): Promise<CompressionResult[]> {
+    // Guard against empty files array to prevent division by zero
+    if (files.length === 0) {
+      onProgress?.(100, "No files to compress");
+      return [];
+    }
+
+    const totalFiles = files.length;
+    let completedCount = 0;
+
+    // Track compression start
+    track("image_compression_batch_started", {
+      total_files: totalFiles,
+      total_size: files.reduce((sum, f) => sum + f.size, 0),
+      parallel: true,
+    });
+
+    const startTime = Date.now();
+
+    // Compress all files in parallel
+    const compressionPromises = files.map(async (file, index) => {
+      try {
+        const result = await this.compressImage(file, customOptions);
+
+        completedCount++;
+        // Report progress as percentage of completed files
+        const progress = (completedCount / totalFiles) * 100;
+        onProgress?.(progress, file.name);
+
+        return { index, result };
+      } catch {
+        completedCount++;
+        onProgress?.((completedCount / totalFiles) * 100, file.name);
+
+        // Return original file on failure
+        return {
+          index,
+          result: {
+            file,
+            originalSize: file.size,
+            compressedSize: file.size,
+            compressionRatio: 0,
+          } as CompressionResult,
+        };
+      }
+    });
+
+    const settledResults = await Promise.allSettled(compressionPromises);
+
+    // Reconstruct results array in original order
+    const results: CompressionResult[] = new Array(totalFiles);
+    for (const settled of settledResults) {
+      if (settled.status === "fulfilled") {
+        results[settled.value.index] = settled.value.result;
+      }
+    }
+
+    // Track completion
+    track("image_compression_batch_completed", {
+      total_files: totalFiles,
+      processing_time: Date.now() - startTime,
+      parallel: true,
+      stats: this.getCompressionStats(results),
+    });
+
+    onProgress?.(100, "Compression complete");
     return results;
   }
 
