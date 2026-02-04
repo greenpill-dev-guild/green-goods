@@ -2,6 +2,7 @@ import { APP_NAME } from "@green-goods/shared/config";
 import { useApp } from "@green-goods/shared/providers";
 import { type RemixiconComponentType, RiGithubLine, RiTwitterLine } from "@remixicon/react";
 import type React from "react";
+import { useIntl } from "react-intl";
 
 type LandingHeaderProps = Record<string, never>;
 
@@ -19,6 +20,7 @@ const links: Link<RemixiconComponentType>[] = [
 ];
 
 export const LandingHeader: React.FC<LandingHeaderProps> = () => {
+  const intl = useIntl();
   const { isMobile } = useApp();
 
   const filterLinks = isMobile ? links.filter(({ title }) => title === "twitter") : links;
@@ -36,7 +38,10 @@ export const LandingHeader: React.FC<LandingHeaderProps> = () => {
             href={link}
             target="_blank"
             rel="noreferrer"
-            aria-label={`Visit our ${title}`}
+            aria-label={intl.formatMessage(
+              { id: "app.landing.header.socialLink" },
+              { platform: title }
+            )}
             className="text-[#367D42] hover:text-[#D2B48C] bg-bg-weak-50 hover:bg-bg-soft-200 p-2 rounded-full transition-colors grid place-items-center"
             onClick={action}
           >

@@ -121,3 +121,9 @@ export type {
 } from "./Toast/toast.service";
 export { setToastTranslator, toastService } from "./Toast/toast.service";
 export { TranslationBadge } from "./TranslationBadge";
+
+// Progress Components
+export type { SubmissionProgressState, SubmissionStage } from "../hooks/work/useSubmissionProgress";
+export { SubmissionProgress } from "./Progress/SubmissionProgress";
+export type { SyncStatus } from "./Progress/SyncIndicator";
+export { SyncIndicator } from "./Progress/SyncIndicator";
